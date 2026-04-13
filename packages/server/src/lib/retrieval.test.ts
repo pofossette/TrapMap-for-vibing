@@ -582,4 +582,58 @@ describe('retrieval', () => {
       expect(otherTeamMatch).toBeDefined();
     });
   });
+
+  describe('refinement behavior', () => {
+    it('returns null refinementSummary when includeRefinement is false', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      expect(result.refinementSummary).toBeNull();
+    });
+
+    it('returns null refinementSummary when no provider is configured', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: true, // Request refinement
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should still return matches, but with null refinement
+      expect(result.refinementSummary).toBeNull();
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+    });
+
+    it('search succeeds when provider config is absent', async () => {
+      const query: RetrievalQuery = {
+        seed: 'typescript types validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: true,
+      };
+
+      // This should not throw even without provider credentials
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should have matches
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+
+      // Each match should have valid score and reason
+      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
+      for (const match of allMatches) {
+        expect(match.score).toBeGreaterThanOrEqual(0);
+        expect(match.score).toBeLessThanOrEqual(1);
+        expect(match.reason).toBeTruthy();
+        expect(match.reason.length).toBeGreaterThan(0);
+      }
+    });
+  });
 });

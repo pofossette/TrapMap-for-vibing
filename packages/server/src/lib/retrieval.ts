@@ -254,15 +254,67 @@ export async function searchKnowledge(
     }
   }
 
-  // TODO: Implement refinement when includeRefinement is true
-  // For now, we skip refinement and return null
-  const refinementSummary = parsed.includeRefinement ? null : null;
+  // Generate refinement summary if requested and available
+  const refinementSummary = parsed.includeRefinement
+    ? await generateRefinement(parsed.seed, globalConstraints, projectKnowledge)
+    : null;
 
   return retrievalResponseSchema.parse({
     globalConstraints,
     projectKnowledge,
     refinementSummary,
   });
+}
+
+/**
+ * Check if a refinement provider is configured.
+ * Returns true if a chat model is available for refinement.
+ */
+function isRefinementAvailable(): boolean {
+  // Check if OpenAI API key is configured for refinement
+  // In the future, this could support other providers
+  return typeof process.env.OPENAI_API_KEY === 'string' &&
+         process.env.OPENAI_API_KEY.length > 0;
+}
+
+/**
+ * Generate a refinement summary for search results.
+ * This is best-effort: returns null if no provider is configured.
+ *
+ * @param query - The original search query
+ * @param globalConstraints - Matched global constraints
+ * @param projectKnowledge - Matched project knowledge
+ * @returns A summary string or null if refinement is unavailable
+ */
+async function generateRefinement(
+  query: string,
+  globalConstraints: unknown[],
+  projectKnowledge: unknown[],
+): Promise<string | null> {
+  // Best-effort: only refine if a provider is configured
+  if (!isRefinementAvailable()) {
+    return null;
+  }
+
+  // If we have no matches, return null (nothing to refine)
+  if (globalConstraints.length === 0 && projectKnowledge.length === 0) {
+    return null;
+  }
+
+  // TODO: Implement actual LLM-based refinement here
+  // This would use a LangChain chat model to summarize the results
+  // For now, we return null to maintain best-effort behavior
+  // Future implementation could look like:
+  //
+  // const { ChatOpenAI } = await import('@langchain/openai');
+  // const chat = new ChatOpenAI({ modelName: 'gpt-4o-mini' });
+  // const summary = await chat.invoke([
+  //   new SystemMessage('Summarize the following search results...'),
+  //   new HumanMessage(buildRefinementPrompt(...))
+  // ]);
+  // return summary.content as string;
+
+  return null;
 }
 
 /**
