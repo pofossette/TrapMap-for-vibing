@@ -54,6 +54,31 @@ export const importRequestSchema = z.object({
   entries: z.array(importEntrySchema).min(1),
 });
 
+export const importResultItemSchema = z.object({
+  success: z.boolean(),
+  entry: knowledgeEntrySchema.nullable(),
+  error: z.string().nullable(),
+  source: z.enum(['json', 'claude-skill']),
+});
+
+export const importResponseSchema = z.object({
+  results: z.array(importResultItemSchema),
+  importedCount: z.number().int().min(0),
+  failedCount: z.number().int().min(0),
+});
+
+export const claudeSkillMetadataSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  version: z.string().optional(),
+});
+
+export const claudeSkillImportSchema = z.object({
+  metadata: claudeSkillMetadataSchema,
+  content: z.string().min(1),
+  requestedLevel: securityLevelSchema,
+});
+
 export const auditEventSchema = z
   .object({
     id: entityIdSchema,
@@ -72,6 +97,12 @@ export const auditEventSchema = z
   .merge(auditMetadataSchema);
 
 export type ExportBundle = z.infer<typeof exportBundleSchema>;
+export type ImportEntry = z.infer<typeof importEntrySchema>;
+export type ImportRequest = z.infer<typeof importRequestSchema>;
+export type ImportResultItem = z.infer<typeof importResultItemSchema>;
+export type ImportResponse = z.infer<typeof importResponseSchema>;
+export type ClaudeSkillMetadata = z.infer<typeof claudeSkillMetadataSchema>;
+export type ClaudeSkillImport = z.infer<typeof claudeSkillImportSchema>;
 export type AuditEvent = z.infer<typeof auditEventSchema>;
 export type KnowledgeListRequest = z.infer<typeof knowledgeListRequestSchema>;
 export type KnowledgeListResponse = z.infer<typeof knowledgeListResponseSchema>;
