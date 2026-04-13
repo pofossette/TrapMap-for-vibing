@@ -436,6 +436,53 @@ describe('retrieval', () => {
       }
     });
 
+    it('ensures no entry ID appears in both buckets', async () => {
+      const query: RetrievalQuery = {
+        seed: 'validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Collect all entry IDs from both buckets
+      const globalIds = new Set(result.globalConstraints.map((m) => m.entryId));
+      const projectIds = new Set(result.projectKnowledge.map((m) => m.entryId));
+
+      // Check for overlap
+      const overlappingIds = [...globalIds].filter((id) => projectIds.has(id));
+
+      // No entry should appear in both buckets
+      expect(overlappingIds).toHaveLength(0);
+    });
+
+    it('provides concrete metadata in match reasons', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: ['security'], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
+
+      for (const match of allMatches) {
+        // Reason should be non-empty
+        expect(match.reason).toBeTruthy();
+        expect(match.reason.length).toBeGreaterThan(0);
+
+        // Reason should include concrete information, not just generic text
+        // Check for at least one of: label mentions, scope mentions, or score
+        const hasLabels = match.labels.some((label) => match.reason.toLowerCase().includes(label.toLowerCase()));
+        const hasScope = match.reason.toLowerCase().includes(match.scope.toLowerCase());
+        const hasScore = match.reason.includes('score:');
+
+        expect(hasLabels || hasScope || hasScore).toBe(true);
+      }
+    });
+
     it('respects maxResults limit', async () => {
       const query: RetrievalQuery = {
         seed: 'validation',
