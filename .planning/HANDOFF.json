@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-13T10:02:17.962Z",
+  "phase": "04",
+  "phase_name": "retrieval-and-cli-workflow",
+  "phase_dir": ".planning/phases/04-retrieval-and-cli-workflow",
+  "plan": 1,
+  "task": 2,
+  "total_tasks": 8,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Build the retrieval pipeline against approved knowledge", "status": "done", "commit": "d9d3f30"},
+    {"id": 2, "name": "Expose POST /v1/retrieval/search through Fastify", "status": "done", "commit": "48762ac"}
+  ],
+  "remaining_tasks": [
+    {"id": 3, "name": "Separate global constraints from project knowledge", "status": "not_started"},
+    {"id": 4, "name": "Add optional refinement without mandatory credentials", "status": "not_started"},
+    {"id": 5, "name": "Add retrieval command to CLI", "status": "not_started"},
+    {"id": 6, "name": "Create CLI retrieval tests", "status": "not_started"},
+    {"id": 7, "name": "Wire CLI workflow end-to-end", "status": "not_started"},
+    {"id": 8, "name": "Add end-to-end workflow tests", "status": "not_started"}
+  ],
+  "blockers": [],
+  "human_actions_pending": [],
+  "decisions": [
+    {"decision": "Use provider-agnostic embeddings adapter with deterministic fallback", "rationale": "Allows local/CI environments without OpenAI credentials", "phase": "04"},
+    {"decision": "Filter by approval state, team, and level before ranking", "rationale": "Satisfies RAG-03 requirement for eligibility-based retrieval", "phase": "04"},
+    {"decision": "Persist embedding cache in KnowledgeRecord", "rationale": "Avoid recomputing embeddings across queries", "phase": "04"}
+  ],
+  "uncommitted_files": [],
+  "next_action": "Continue with Wave 2 (04-02): Implement global/project knowledge separation and optional refinement",
+  "context_notes": "Wave 1 complete. Retrieval core is built with embeddings, eligibility filtering, and POST /v1/retrieval/search endpoint. Tests pass (28 tests). TypeScript compilation passes. Ready to proceed with Wave 2 which adds global/project separation and refinement logic."
+}
