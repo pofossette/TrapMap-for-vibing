@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 
 import { registerAuthCommands } from './commands/auth.js';
+import { registerAuditCommands } from './commands/audit.js';
 import { registerKnowledgeCommands } from './commands/knowledge.js';
 import { registerMemberCommands } from './commands/member.js';
 import { registerOperationsCommands } from './commands/operations.js';
@@ -37,6 +38,7 @@ const visibility = {
   allowKnowledgeImport: securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:import'),
   allowKnowledgeUpdate: securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
   allowKnowledgeDeactivate: securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
+  allowAuditRead: hasPermission(effectivePermissions, 'audit:read'),
 };
 
 const program = new Command();
@@ -82,6 +84,7 @@ program
       ...(visibility.allowKnowledgeImport ? ['import'] : []),
       ...(visibility.allowKnowledgeUpdate ? ['edit'] : []),
       ...(visibility.allowKnowledgeDeactivate ? ['deactivate'] : []),
+      ...(visibility.allowAuditRead ? ['audit'] : []),
     ];
 
     for (const commandName of availableCommands) {
@@ -113,6 +116,9 @@ registerOperationsCommands(program, {
   allowEdit: visibility.allowKnowledgeUpdate,
   allowDeactivate: visibility.allowKnowledgeDeactivate,
   allowImport: visibility.allowKnowledgeImport,
+});
+registerAuditCommands(program, {
+  allowRead: visibility.allowAuditRead,
 });
 
 program.parseAsync(process.argv).catch(printError);
