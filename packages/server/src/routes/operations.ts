@@ -1,4 +1,6 @@
 import {
+  auditListResponseSchema,
+  auditQuerySchema,
   exportBundleSchema,
   exportRequestSchema,
   importRequestSchema,
@@ -11,7 +13,7 @@ import {
 } from '@skill-shareer/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { createAuditEvent } from '../lib/audit.js';
+import { createAuditEvent, queryAuditEvents, toAuditEvent } from '../lib/audit.js';
 import { AppError } from '../lib/errors.js';
 import { createImportedEntry, detectDuplicates, parseClaudeSkill } from '../lib/import-export.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '../lib/knowledge.js';
@@ -21,6 +23,36 @@ import { nowIso } from '../lib/store.js';
 import { runPreReview } from '../lib/pre-review.js';
 
 export const operationsRoutes: FastifyPluginAsync = async (app) => {
+  app.get('/v1/operations/audit', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'audit:read');
+
+    const query = auditQuerySchema.parse(request.query as Record<string, unknown>);
+    const data = await app.skillShareer.store.snapshot();
+
+    const result = queryAuditEvents({
+      data,
+      query: {
+        action: query.action,
+        actorId: query.actorId,
+        entityId: query.entityId,
+        teamId: query.teamId,
+        from: query.from,
+        to: query.to,
+        limit: query.limit,
+      },
+      auth,
+    });
+
+    const items = result.items.map((record) => toAuditEvent(record, data));
+
+    return auditListResponseSchema.parse({
+      items,
+      nextCursor: null,
+      total: result.total,
+    });
+  });
+
   app.get('/v1/operations/knowledge', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:export');

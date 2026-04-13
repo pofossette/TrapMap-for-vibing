@@ -31,6 +31,7 @@ const documentedRoutes = [
   'GET /v1/knowledge/review-queue',
   'POST /v1/knowledge/review',
   'POST /v1/retrieval/search',
+  'GET /v1/operations/audit',
   'POST /v1/operations/import',
   'POST /v1/operations/export',
   'GET /v1/operations/knowledge',
