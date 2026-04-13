@@ -1,6 +1,7 @@
 import { reviewDecisionRequestSchema, reviewQueueResponseSchema } from '@skill-shareer/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
+import { createAuditEvent } from '../lib/audit.js';
 import { AppError } from '../lib/errors.js';
 import { applyReviewDecision, toKnowledgeEntry } from '../lib/knowledge.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
@@ -93,6 +94,7 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
         })();
 
       const decidedAt = nowIso();
+      const previousState = entry.lifecycleState;
       applyReviewDecision({
         store: app.skillShareer.store,
         data,
@@ -102,6 +104,18 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
         decision: payload.decision,
         notes: payload.notes,
       });
+
+      // Record audit event
+      const auditEvent = createAuditEvent({
+        store: app.skillShareer.store,
+        data,
+        teamId: entry.teamId,
+        actor: auth,
+        action: 'knowledge-reviewed',
+        entityId: entry.id,
+        payload: { decision: payload.decision, notes: payload.notes, previousState },
+      });
+      data.auditEvents.push(auditEvent);
 
       return toKnowledgeEntry(data, entry);
     });
