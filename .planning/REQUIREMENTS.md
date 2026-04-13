@@ -16,31 +16,36 @@
 
 - [ ] **ACCESS-01**: User can authenticate to the server from the CLI and keep a valid session across commands
 - [ ] **ACCESS-02**: User can list available teams and select one active team after login
-- [ ] **ACCESS-03**: Admin can create teams and onboard new team members
-- [ ] **ACCESS-04**: Admin can assign a role template and explicit permissions list to a team member
-- [ ] **ACCESS-05**: The server authorizes every protected action using both role template and explicit permissions on the user object
+- [ ] **ACCESS-03**: Higher-level members can create teams and onboard new team members; new members start at level 0
+- [ ] **ACCESS-04**: Higher-level members can modify lower-level members' security level and notes; a member's level cannot exceed the modifier's level
+- [ ] **ACCESS-05**: The server authorizes every protected action based on security level comparison and explicit permissions
+- [ ] **ACCESS-06**: Members can have optional notes for identification (e.g., department, purpose, contact)
+- [ ] **ACCESS-07**: System admin key is configured via environment variable with security level 10; members can generate access keys for others with level at or below their own, all keys are permanent until manually revoked
+- [ ] **ACCESS-08**: CLI shows or hides commands based on authenticated user's security level (higher level = more commands available)
+- [ ] **ACCESS-09**: Members have a security level (0-10) for access control; knowledge entries have a required level, and members can only access entries where their level meets or exceeds the requirement
 
 ### Knowledge Lifecycle
 
-- [ ] **KNOW-01**: User can submit a knowledge entry with scope, labels, shortcut, and detail
+- [ ] **KNOW-01**: User can submit a knowledge entry with scope, labels, shortcut, and detail; the entry's required security level defaults to the submitter's level
 - [ ] **KNOW-02**: The system distinguishes concise global constraints from project-internal knowledge and supports custom labels
 - [ ] **KNOW-03**: The system preserves lifecycle states and audit history across submissions, reviews, and revisions
-- [ ] **KNOW-04**: Knowledge only becomes searchable after admin approval
+- [ ] **KNOW-04**: Knowledge only becomes searchable after approval by a member with higher security level than the entry's required level
+- [ ] **KNOW-05**: Knowledge entries can only be modified by members with security level higher than the entry's required level; modifications cannot raise the required level above the modifier's level
 
 ### Review Workflow
 
 - [ ] **REVIEW-01**: The server runs agent pre-review for duplicate, correctness, and completeness checks on new or resubmitted knowledge
 - [ ] **REVIEW-02**: Pre-review marks a submission as `agent-pass` or `agent-rejected`
-- [ ] **REVIEW-03**: Admin can view both pre-review queues and filter by status
-- [ ] **REVIEW-04**: Admin can approve or reject a submission with review notes
-- [ ] **REVIEW-05**: User can inspect rejected content and reviewer feedback from the CLI
-- [ ] **REVIEW-06**: User can resubmit rejected content while preserving linkage to previous attempts
+- [ ] **REVIEW-03**: Members with higher security level than the submission's required level can view review queues and filter by status
+- [ ] **REVIEW-04**: Members with higher security level than the submission's required level can approve or reject it with review notes
+- [ ] **REVIEW-05**: Submitters can inspect their rejected content and reviewer feedback from the CLI
+- [ ] **REVIEW-06**: Submitters can resubmit rejected content while preserving linkage to previous attempts
 
 ### Retrieval
 
 - [ ] **RAG-01**: User can send a text seed from the CLI and receive relevant knowledge matches
 - [ ] **RAG-02**: Retrieval accepts text-only query input and indexes text-only knowledge in v1
-- [ ] **RAG-03**: Retrieval respects active team, scope, and metadata filters
+- [ ] **RAG-03**: Retrieval respects active team, scope, security level, and metadata filters
 - [ ] **RAG-04**: Retrieval surfaces concise global constraints separately from project knowledge when relevant
 - [ ] **RAG-05**: The server uses embeddings, metadata-aware ranking, and optional LLM refinement before returning context
 
@@ -53,9 +58,9 @@
 
 ### Operations
 
-- [ ] **OPS-01**: Admin can list, edit, and deactivate knowledge entries
-- [ ] **OPS-02**: Admin can export knowledge entries, metadata, and review status in bulk
-- [ ] **OPS-03**: Admin can import knowledge entries in bulk with validation and duplicate detection
+- [ ] **OPS-01**: Members can list, edit, and deactivate knowledge entries they have permission to modify (higher level than entry's required level)
+- [ ] **OPS-02**: Members can export knowledge entries they have access to in the project-defined JSON format with metadata and review history
+- [ ] **OPS-03**: Members can import knowledge entries from JSON format or standard Claude-compatible skill files; the importer specifies the security level for imported entries (cannot exceed their own level)
 - [ ] **OPS-04**: The server records review, import, export, and deactivation actions in an audit trail
 
 ## v2 Requirements
@@ -96,10 +101,15 @@
 | ACCESS-03 | Phase 2 | Pending |
 | ACCESS-04 | Phase 2 | Pending |
 | ACCESS-05 | Phase 2 | Pending |
+| ACCESS-06 | Phase 2 | Pending |
+| ACCESS-07 | Phase 2 | Pending |
+| ACCESS-08 | Phase 2 | Pending |
+| ACCESS-09 | Phase 2 | Pending |
 | KNOW-01 | Phase 3 | Pending |
 | KNOW-02 | Phase 3 | Pending |
 | KNOW-03 | Phase 3 | Pending |
 | KNOW-04 | Phase 3 | Pending |
+| KNOW-05 | Phase 3 | Pending |
 | REVIEW-01 | Phase 3 | Pending |
 | REVIEW-02 | Phase 3 | Pending |
 | REVIEW-03 | Phase 3 | Pending |
@@ -121,8 +131,8 @@
 | OPS-04 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 32 total
-- Mapped to phases: 32
+- v1 requirements: 38 total
+- Mapped to phases: 38
 - Unmapped: 0 ✓
 
 ---

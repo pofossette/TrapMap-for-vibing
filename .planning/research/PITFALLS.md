@@ -127,9 +127,12 @@ Phase 1
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Using role template only without explicit permission list | Over-privileged team members | Merge template and per-user permissions in one authorization layer |
-| Returning rejected content without ownership check | Data leakage across users or teams | Enforce subject ownership and admin-only overrides |
-| Skipping audit logs for admin changes | No accountability for destructive operations | Log review, member, import, export, and deactivation actions |
+| Using role template only without explicit permission list | Over-privileged team members | Authorization based on securityLevel comparison, no role templates |
+| Ignoring security level on knowledge access | Sensitive content leaked to lower-level members | Always enforce `member.securityLevel >= entry.requiredLevel` in retrieval |
+| Allowing level modification without proper checks | Privilege escalation | Only allow modifying member's level if modifier's level is higher |
+| Allowing knowledge approval by same-level members | Self-approval risk | Require `member.securityLevel > entry.requiredLevel` for approval |
+| Returning rejected content without ownership check | Data leakage across users or teams | Enforce subject ownership and higher-level overrides |
+| Skipping audit logs for privileged changes | No accountability for destructive operations | Log review, member level changes, import, export, and deactivation actions |
 
 ## UX Pitfalls
 

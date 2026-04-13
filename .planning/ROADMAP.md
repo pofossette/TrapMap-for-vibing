@@ -13,7 +13,7 @@ Skill Shareer will ship in five phases that move from platform foundations to tr
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Monorepo Skeleton and Contracts** - Establish the workspace, shared schemas, API surface, and skill compatibility baseline
-- [ ] **Phase 2: Identity, Teams, and RBAC** - Add login, team selection, member onboarding, and fine-grained permissions
+- [ ] **Phase 2: Identity, Teams, and RBAC** - Add login, team selection, member onboarding, member notes, access keys, and fine-grained permissions
 - [ ] **Phase 3: Knowledge Intake and Review** - Build structured submission, agent pre-review, admin review, and resubmission lifecycle
 - [ ] **Phase 4: Retrieval and CLI Workflow** - Deliver text-seed search and full CLI user workflows
 - [ ] **Phase 5: Admin Operations and Hardening** - Add knowledge management, import/export, and audit-grade operational controls
@@ -39,12 +39,14 @@ Plans:
 ### Phase 2: Identity, Teams, and RBAC
 **Goal**: Make every protected workflow team-aware and permission-safe before knowledge flows are added.
 **Depends on**: Phase 1
-**Requirements**: ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05
+**Requirements**: ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09
 **UI hint**: no
 **Success Criteria** (what must be TRUE):
   1. A CLI user can log in, persist a session, and switch active teams
-  2. An admin can create teams, onboard members, and manage role templates plus explicit permissions
-  3. Server authorization blocks actions when template or explicit permission rules do not allow them
+  2. Higher-level members can create teams, onboard members (level 0), and modify member levels (only to lower levels)
+  3. Server authorization blocks actions based on security level comparison
+  4. CLI shows or hides commands based on authenticated user's security level
+  5. System admin key (.env) creates a virtual user with level 10
 **Plans**: 3 plans
 
 Plans:
@@ -55,12 +57,14 @@ Plans:
 ### Phase 3: Knowledge Intake and Review
 **Goal**: Turn solved problems into reviewable knowledge objects with preserved lifecycle history.
 **Depends on**: Phase 2
-**Requirements**: KNOW-01, KNOW-02, KNOW-03, KNOW-04, REVIEW-01, REVIEW-02, REVIEW-03, REVIEW-04, REVIEW-05, REVIEW-06
+**Requirements**: KNOW-01, KNOW-02, KNOW-03, KNOW-04, KNOW-05, REVIEW-01, REVIEW-02, REVIEW-03, REVIEW-04, REVIEW-05, REVIEW-06
 **UI hint**: no
 **Success Criteria** (what must be TRUE):
-  1. A user can submit structured knowledge and the system records scope, labels, shortcut, and detail correctly
-  2. Agent pre-review produces `agent-pass` or `agent-rejected`, and admins can review both queues
-  3. Rejected submissions can be fetched, corrected, and resubmitted with history preserved
+  1. A user can submit structured knowledge; the entry's requiredLevel defaults to the user's securityLevel
+  2. Agent pre-review produces `agent-pass` or `agent-rejected`
+  3. Only members with level > submission.requiredLevel can review and approve
+  4. Rejected submissions can be fetched, corrected, and resubmitted with history preserved
+  5. Knowledge entries can only be modified by members with level > entry.requiredLevel
 **Plans**: 4 plans
 
 Plans:
@@ -75,9 +79,10 @@ Plans:
 **Requirements**: RAG-01, RAG-02, RAG-03, RAG-04, RAG-05, CLI-01, CLI-02, CLI-03, CLI-04
 **UI hint**: no
 **Success Criteria** (what must be TRUE):
-  1. A user can search from a text seed and receive team-safe, scope-aware knowledge results
+  1. A user can search from a text seed and receive only entries where `user.level >= entry.requiredLevel`
   2. Global constraints are surfaced distinctly when relevant to the query
-  3. CLI commands support both human-readable and JSON output, including solved-problem submission and review-history inspection
+  3. CLI commands support both human-readable and JSON output
+  4. CLI shows available commands based on user's security level
 **Plans**: 4 plans
 
 Plans:
@@ -92,9 +97,10 @@ Plans:
 **Requirements**: OPS-01, OPS-02, OPS-03, OPS-04
 **UI hint**: no
 **Success Criteria** (what must be TRUE):
-  1. Admins can browse, edit, and deactivate knowledge entries safely
-  2. Knowledge import/export works in bulk with validation, duplicate handling, and review metadata
-  3. Review, import/export, and deactivation operations are present in an audit trail
+  1. Members can browse, edit, and deactivate knowledge entries they have permission to modify
+  2. Members can export knowledge they have access to in the project-defined JSON format
+  3. Members can import knowledge; imported entries' requiredLevel cannot exceed importer's level
+  4. Review, import/export, and deactivation operations are present in an audit trail
 **Plans**: 3 plans
 
 Plans:
