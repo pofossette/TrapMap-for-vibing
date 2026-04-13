@@ -303,22 +303,22 @@ That same helper already prints JSON when `--json` is set and formatter output o
 | A2 | Search-warning signs like identical raw result counts across teams are a reliable signal of broken team filtering. | Common Pitfalls | The planner may include a weak verification heuristic. |
 | A3 | The repo previously had only lexical-style duplicate heuristics before Phase 4 retrieval. | State of the Art | Low impact; this does not affect the concrete Phase 4 plan. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should Phase 4 remain on the JSON store or also migrate to Postgres?**
-   What we know: The repo currently persists everything through `JsonStore`, and no Postgres or Drizzle code exists yet. [VERIFIED: codebase grep]
-   What's unclear: The project-level stack guidance recommends PostgreSQL + `pgvector`, but no phase requirement explicitly demands that migration now. [VERIFIED: codebase grep]
-   Recommendation: Plan Phase 4 against the existing JSON-store architecture unless the user explicitly wants storage migration pulled forward. [VERIFIED: codebase grep]
+   Decision: Keep Phase 4 on the existing `JsonStore` architecture and do not pull the PostgreSQL/`pgvector` migration forward into this phase. [RESOLVED]
+   Why: The repo currently persists everything through `JsonStore`, no Postgres or Drizzle code exists yet, and Phase 4 requirements focus on retrieval behavior rather than persistence migration. [VERIFIED: codebase grep]
+   Planning impact: Plans must deliver embeddings-backed retrieval and optional refinement on top of the JSON store, with migration-ready seams but no database migration work in this phase. [RESOLVED]
 
 2. **Which provider should back embeddings and optional refinement?**
-   What we know: Providers are intentionally configurable, `includeRefinement` is optional in practice, and no provider env vars are present right now. [VERIFIED: codebase grep]
-   What's unclear: Whether the project wants OpenAI first, a local model first, or only an adapter interface in this phase. [VERIFIED: codebase grep]
-   Recommendation: Plan an adapter interface plus one default integration (`@langchain/openai`) and ensure retrieval still works without credentials. [CITED: https://docs.langchain.com/oss/javascript/integrations/vectorstores] [VERIFIED: codebase grep]
+   Decision: Use a provider-agnostic adapter with `@langchain/openai` as the default first integration, while requiring a deterministic no-credentials fallback so local and CI execution remain green without provider secrets. [RESOLVED]
+   Why: Providers are intentionally configurable, `includeRefinement` is optional in practice, and no provider env vars are present right now. [VERIFIED: codebase grep] [CITED: https://docs.langchain.com/oss/javascript/integrations/vectorstores]
+   Planning impact: Plans must include concrete embedding generation/indexing/search tasks plus tests for both configured-provider and no-provider paths. [RESOLVED]
 
 3. **Should retrieval index only `shortcut + detail`, or also labels and review metadata?**
-   What we know: The current pre-review chain builds documents from `shortcut` and `detail`, while labels and scope already exist as metadata. [VERIFIED: codebase grep]
-   What's unclear: Whether labels should affect only metadata filtering or also contribute to the embedded text. [VERIFIED: codebase grep]
-   Recommendation: Plan deterministic metadata filtering for labels and start embeddings with `shortcut + detail`; add label text into the embedded content only if retrieval quality proves weak. [VERIFIED: codebase grep] [ASSUMED]
+   Decision: Build embedding text from `shortcut`, `detail`, and `labels`, while continuing to enforce labels and scope as metadata filters; exclude review-state metadata from embedded text. [RESOLVED]
+   Why: Labels are meaningful retrieval signals for terminal knowledge lookup, but review metadata is operational history rather than user-facing searchable content. [VERIFIED: codebase grep] [ASSUMED]
+   Planning impact: Retrieval plans must preserve metadata-aware filtering and include tests proving labels affect both filter behavior and embedding input construction. [RESOLVED]
 
 ## Environment Availability
 
