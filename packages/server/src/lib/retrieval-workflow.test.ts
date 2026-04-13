@@ -502,4 +502,134 @@ describe('End-to-end retrieval workflow', () => {
       expect(statusData2.entry.reviewHistory.length).toBe(2);
     });
   });
+
+  describe('JSON mode and stdin consistency', () => {
+    it('should return parseable JSON from knowledge submission endpoint', async () => {
+      const submitResponse = await server.inject({
+        method: 'POST',
+        url: '/v1/knowledge',
+        headers: {
+          'authorization': `Bearer ${submitterSessionToken}`,
+          'content-type': 'application/json',
+        },
+        payload: JSON.stringify({
+          scope: 'project',
+          labels: ['json', 'test'],
+          shortcut: 'JSON mode test',
+          detail: 'Test JSON output consistency',
+        }),
+      });
+
+      expect(submitResponse.statusCode).toBe(200);
+      const submitData = submitResponse.json();
+
+      // Should have entry property with contract-shaped data
+      expect(submitData).toHaveProperty('entry');
+      expect(submitData.entry).toHaveProperty('id');
+      expect(submitData.entry).toHaveProperty('lifecycleState');
+      expect(submitData.entry).toHaveProperty('shortcut');
+    });
+
+    it('should return parseable JSON from retrieval search endpoint', async () => {
+      // First, submit and approve an entry
+      const submitResponse = await server.inject({
+        method: 'POST',
+        url: '/v1/knowledge',
+        headers: {
+          'authorization': `Bearer ${submitterSessionToken}`,
+          'content-type': 'application/json',
+        },
+        payload: JSON.stringify({
+          scope: 'global',
+          labels: ['search', 'json'],
+          shortcut: 'Search JSON test',
+          detail: 'Test search JSON output',
+        }),
+      });
+
+      const submitData = submitResponse.json();
+      const entryId = submitData.entry.id;
+
+      // Approve the entry
+      await server.inject({
+        method: 'POST',
+        url: '/v1/knowledge/review',
+        headers: {
+          'authorization': `Bearer ${reviewerSessionToken}`,
+          'content-type': 'application/json',
+        },
+        payload: JSON.stringify({
+          entryId,
+          decision: 'approve',
+          notes: 'Approve for search test',
+        }),
+      });
+
+      // Search with JSON output
+      const searchResponse = await server.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        headers: {
+          'authorization': `Bearer ${submitterSessionToken}`,
+          'content-type': 'application/json',
+        },
+        payload: JSON.stringify({
+          seed: 'search JSON test',
+          filters: { labels: [], scopes: [] },
+          maxResults: 10,
+          includeRefinement: false,
+        }),
+      });
+
+      expect(searchResponse.statusCode).toBe(200);
+      const searchData = searchResponse.json();
+
+      // Should have contract-shaped retrieval data
+      expect(searchData).toHaveProperty('globalConstraints');
+      expect(searchData).toHaveProperty('projectKnowledge');
+      expect(searchData).toHaveProperty('refinementSummary');
+      expect(Array.isArray(searchData.globalConstraints)).toBe(true);
+      expect(Array.isArray(searchData.projectKnowledge)).toBe(true);
+    });
+
+    it('should return parseable JSON from review-status endpoint', async () => {
+      // Submit an entry
+      const submitResponse = await server.inject({
+        method: 'POST',
+        url: '/v1/knowledge',
+        headers: {
+          'authorization': `Bearer ${submitterSessionToken}`,
+          'content-type': 'application/json',
+        },
+        payload: JSON.stringify({
+          scope: 'project',
+          labels: ['status', 'json'],
+          shortcut: 'Status JSON test',
+          detail: 'Test status JSON output',
+        }),
+      });
+
+      const submitData = submitResponse.json();
+      const entryId = submitData.entry.id;
+
+      // Get entry details
+      const statusResponse = await server.inject({
+        method: 'GET',
+        url: `/v1/knowledge/${entryId}`,
+        headers: {
+          'authorization': `Bearer ${submitterSessionToken}`,
+        },
+      });
+
+      expect(statusResponse.statusCode).toBe(200);
+      const statusData = statusResponse.json();
+
+      // Should have contract-shaped entry data
+      expect(statusData).toHaveProperty('entry');
+      expect(statusData.entry).toHaveProperty('id');
+      expect(statusData.entry).toHaveProperty('lifecycleState');
+      expect(statusData.entry).toHaveProperty('history');
+      expect(statusData.entry).toHaveProperty('reviewHistory');
+    });
+  });
 });
