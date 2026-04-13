@@ -1,4 +1,9 @@
 import {
+  exportBundleSchema,
+  exportRequestSchema,
+  importRequestSchema,
+  importResponseSchema,
+  importResultItemSchema,
   knowledgeDeactivateRequestSchema,
   knowledgeDeactivateResponseSchema,
   knowledgeListRequestSchema,
@@ -7,10 +12,12 @@ import {
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '../lib/errors.js';
+import { createImportedEntry, detectDuplicates, parseClaudeSkill } from '../lib/import-export.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '../lib/knowledge.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
+import { runPreReview } from '../lib/pre-review.js';
 
 export const operationsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/operations/knowledge', async (request) => {
@@ -118,5 +125,131 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return knowledgeDeactivateResponseSchema.parse({ entry: updatedEntry });
+  });
+
+  app.post('/v1/operations/export', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:export');
+
+    const body = exportRequestSchema.parse((request.body as Record<string, unknown>) ?? {});
+
+    const data = await app.skillShareer.store.snapshot();
+
+    let entries = data.knowledgeEntries;
+
+    // Filter by teamId if specified
+    if (body.teamId !== undefined) {
+      if (body.teamId === null) {
+        // Export global entries only
+        entries = entries.filter((entry) => entry.teamId === null);
+      } else {
+        // Export specific team entries
+        entries = entries.filter((entry) => entry.teamId === body.teamId);
+      }
+    }
+
+    // Non-system-admin can only export entries where their level >= entry.requiredLevel
+    if (auth.subjectType !== 'system-admin') {
+      entries = entries.filter((entry) => auth.securityLevel >= entry.requiredLevel);
+    }
+
+    const items = entries.map((entry) => toKnowledgeEntry(data, entry));
+
+    const actorRef = {
+      id: auth.actorId,
+      handle: auth.handle,
+      securityLevel: auth.securityLevel,
+    };
+
+    return exportBundleSchema.parse({
+      exportedAt: nowIso(),
+      exportedBy: actorRef,
+      items,
+    });
+  });
+
+  app.post('/v1/operations/import', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:import');
+
+    // System-admin cannot import (needs real user as owner)
+    if (auth.subjectType === 'system-admin') {
+      throw new AppError(403, 'invalid_subject', 'System admin cannot import entries directly');
+    }
+
+    const ownerUserId = auth.user?.id;
+    if (!ownerUserId) {
+      throw new AppError(403, 'user_not_found', 'User record not found');
+    }
+
+    const body = importRequestSchema.parse((request.body as Record<string, unknown>) ?? {});
+
+    const results: Array<{
+      success: boolean;
+      entry: ReturnType<typeof toKnowledgeEntry> | null;
+      error: string | null;
+      source: 'json' | 'claude-skill';
+    }> = [];
+
+    let importedCount = 0;
+    let failedCount = 0;
+
+    await app.skillShareer.store.transact(async (data) => {
+      for (const entryPayload of body.entries) {
+        // Validate requestedLevel <= auth.securityLevel
+        if (entryPayload.requestedLevel > auth.securityLevel) {
+          results.push({
+            success: false,
+            entry: null,
+            error: `requestedLevel ${entryPayload.requestedLevel} exceeds user level ${auth.securityLevel}`,
+            source: entryPayload.source,
+          });
+          failedCount++;
+          continue;
+        }
+
+        // Run pre-review
+        const preReview = await runPreReview({
+          existingEntries: data.knowledgeEntries,
+          submission: entryPayload,
+        });
+
+        // Create imported entry
+        const importedRecord = createImportedEntry({
+          store: app.skillShareer.store,
+          data,
+          ownerUserId,
+          teamId: auth.activeTeamId,
+          payload: entryPayload,
+          requestedLevel: entryPayload.requestedLevel,
+          source: entryPayload.source,
+          createdAt: nowIso(),
+          preReview,
+        });
+
+        data.knowledgeEntries.push(importedRecord);
+
+        results.push({
+          success: true,
+          entry: toKnowledgeEntry(data, importedRecord),
+          error: null,
+          source: entryPayload.source,
+        });
+        importedCount++;
+      }
+    });
+
+    return importResponseSchema.parse({
+      results: results.map((r) =>
+        importResultItemSchema.parse({
+          success: r.success,
+          entry: r.entry,
+          error: r.error,
+          source: r.source,
+        }),
+      ),
+      importedCount,
+      failedCount,
+    });
   });
 };
