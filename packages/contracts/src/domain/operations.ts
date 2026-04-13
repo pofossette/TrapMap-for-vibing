@@ -4,13 +4,34 @@ import {
   actorRefSchema,
   auditMetadataSchema,
   entityIdSchema,
+  lifecycleStateSchema,
+  scopeSchema,
   securityLevelSchema,
 } from './common.js';
-import { knowledgeEntrySchema, knowledgeSubmissionSchema } from './knowledge.js';
+import { knowledgeEntrySchema, knowledgeListItemSchema, knowledgeSubmissionSchema } from './knowledge.js';
 
 export const knowledgeDeactivateRequestSchema = z.object({
   entryId: entityIdSchema,
   reason: z.string().min(1).max(500),
+});
+
+export const knowledgeListRequestSchema = z.object({
+  scope: scopeSchema.optional(),
+  lifecycleState: z.array(lifecycleStateSchema).optional(),
+  requiredLevelMax: securityLevelSchema.optional(),
+  ownerUserId: entityIdSchema.optional(),
+  limit: z.number().int().min(1).max(100).default(25),
+  cursor: z.string().min(1).max(128).optional(),
+});
+
+export const knowledgeListResponseSchema = z.object({
+  items: z.array(knowledgeListItemSchema),
+  nextCursor: z.string().min(1).max(128).nullable(),
+  total: z.number().int().min(0),
+});
+
+export const knowledgeDeactivateResponseSchema = z.object({
+  entry: knowledgeEntrySchema,
 });
 
 export const exportRequestSchema = z.object({
@@ -52,3 +73,6 @@ export const auditEventSchema = z
 
 export type ExportBundle = z.infer<typeof exportBundleSchema>;
 export type AuditEvent = z.infer<typeof auditEventSchema>;
+export type KnowledgeListRequest = z.infer<typeof knowledgeListRequestSchema>;
+export type KnowledgeListResponse = z.infer<typeof knowledgeListResponseSchema>;
+export type KnowledgeDeactivateResponse = z.infer<typeof knowledgeDeactivateResponseSchema>;
