@@ -7,39 +7,39 @@
 
 ### Platform & Skills
 
-- [ ] **PLAT-01**: The repository uses a monorepo layout with separate workspace members for CLI, server, and shared packages
-- [ ] **PLAT-02**: CLI and server share versioned TypeScript contract models and runtime validation schemas for auth, knowledge, review, retrieval, and operations payloads
-- [ ] **PLAT-03**: Project skills follow Claude-compatible directory and `SKILL.md` conventions with machine-readable metadata
-- [ ] **PLAT-04**: The server exposes a documented HTTP API surface for every CLI workflow in v1
+- [x] **PLAT-01**: The repository uses a monorepo layout with separate workspace members for CLI, server, and shared packages
+- [x] **PLAT-02**: CLI and server share versioned TypeScript contract models and runtime validation schemas for auth, knowledge, review, retrieval, and operations payloads
+- [x] **PLAT-03**: Project skills follow Claude-compatible directory and `SKILL.md` conventions with machine-readable metadata
+- [x] **PLAT-04**: The server exposes a documented HTTP API surface for every CLI workflow in v1
 
 ### Access & Teams
 
-- [ ] **ACCESS-01**: User can authenticate to the server from the CLI and keep a valid session across commands
-- [ ] **ACCESS-02**: User can list available teams and select one active team after login
-- [ ] **ACCESS-03**: Higher-level members can create teams and onboard new team members; new members start at level 0
-- [ ] **ACCESS-04**: Higher-level members can modify lower-level members' security level and notes; a member's level cannot exceed the modifier's level
-- [ ] **ACCESS-05**: The server authorizes every protected action based on security level comparison and explicit permissions
-- [ ] **ACCESS-06**: Members can have optional notes for identification (e.g., department, purpose, contact)
-- [ ] **ACCESS-07**: System admin key is configured via environment variable with security level 10; members can generate access keys for others with level at or below their own, all keys are permanent until manually revoked
-- [ ] **ACCESS-08**: CLI shows or hides commands based on authenticated user's security level (higher level = more commands available)
-- [ ] **ACCESS-09**: Members have a security level (0-10) for access control; knowledge entries have a required level, and members can only access entries where their level meets or exceeds the requirement
+- [x] **ACCESS-01**: User can authenticate to the server from the CLI and keep a valid session across commands
+- [x] **ACCESS-02**: User can list available teams and select one active team after login
+- [x] **ACCESS-03**: Higher-level members can create teams and onboard new team members; new members start at level 0
+- [x] **ACCESS-04**: Higher-level members can modify lower-level members' security level and notes; a member's level cannot exceed the modifier's level
+- [x] **ACCESS-05**: The server authorizes every protected action based on security level comparison and explicit permissions
+- [x] **ACCESS-06**: Members can have optional notes for identification (e.g., department, purpose, contact)
+- [x] **ACCESS-07**: System admin key is configured via environment variable with security level 10; members can generate access keys for others with level at or below their own, all keys are permanent until manually revoked
+- [x] **ACCESS-08**: CLI shows or hides commands based on authenticated user's security level (higher level = more commands available)
+- [x] **ACCESS-09**: Members have a security level (0-10) for access control; knowledge entries have a required level, and members can only access entries where their level meets or exceeds the requirement
 
 ### Knowledge Lifecycle
 
-- [ ] **KNOW-01**: User can submit a knowledge entry with scope, labels, shortcut, and detail; the entry's required security level defaults to the submitter's level
-- [ ] **KNOW-02**: The system distinguishes concise global constraints from project-internal knowledge and supports custom labels
-- [ ] **KNOW-03**: The system preserves lifecycle states and audit history across submissions, reviews, and revisions
-- [ ] **KNOW-04**: Knowledge only becomes searchable after approval by a member with higher security level than the entry's required level
-- [ ] **KNOW-05**: Knowledge entries can only be modified by members with security level higher than the entry's required level; modifications cannot raise the required level above the modifier's level
+- [x] **KNOW-01**: User can submit a knowledge entry with scope, labels, shortcut, and detail; the entry's required security level defaults to the submitter's level
+- [x] **KNOW-02**: The system distinguishes concise global constraints from project-internal knowledge and supports custom labels
+- [x] **KNOW-03**: The system preserves lifecycle states and audit history across submissions, reviews, and revisions
+- [x] **KNOW-04**: Knowledge only becomes searchable after approval by a member with higher security level than the entry's required level
+- [x] **KNOW-05**: Knowledge entries can only be modified by members with security level higher than the entry's required level; modifications cannot raise the required level above the modifier's level
 
 ### Review Workflow
 
-- [ ] **REVIEW-01**: The server runs agent pre-review for duplicate, correctness, and completeness checks on new or resubmitted knowledge
-- [ ] **REVIEW-02**: Pre-review marks a submission as `agent-pass` or `agent-rejected`
-- [ ] **REVIEW-03**: Members with higher security level than the submission's required level can view review queues and filter by status
-- [ ] **REVIEW-04**: Members with higher security level than the submission's required level can approve or reject it with review notes
-- [ ] **REVIEW-05**: Submitters can inspect their rejected content and reviewer feedback from the CLI
-- [ ] **REVIEW-06**: Submitters can resubmit rejected content while preserving linkage to previous attempts
+- [x] **REVIEW-01**: The server runs agent pre-review for duplicate, correctness, and completeness checks on new or resubmitted knowledge
+- [x] **REVIEW-02**: Pre-review marks a submission as `agent-pass` or `agent-rejected`
+- [x] **REVIEW-03**: Members with higher security level than the submission's required level can view review queues and filter by status
+- [x] **REVIEW-04**: Members with higher security level than the submission's required level can approve or reject it with review notes
+- [x] **REVIEW-05**: Submitters can inspect their rejected content and reviewer feedback from the CLI
+- [x] **REVIEW-06**: Submitters can resubmit rejected content while preserving linkage to previous attempts
 
 ### Retrieval
 
@@ -92,30 +92,30 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLAT-01 | Phase 1 | Pending |
-| PLAT-02 | Phase 1 | Pending |
-| PLAT-03 | Phase 1 | Pending |
-| PLAT-04 | Phase 1 | Pending |
-| ACCESS-01 | Phase 2 | Pending |
-| ACCESS-02 | Phase 2 | Pending |
-| ACCESS-03 | Phase 2 | Pending |
-| ACCESS-04 | Phase 2 | Pending |
-| ACCESS-05 | Phase 2 | Pending |
-| ACCESS-06 | Phase 2 | Pending |
-| ACCESS-07 | Phase 2 | Pending |
-| ACCESS-08 | Phase 2 | Pending |
-| ACCESS-09 | Phase 2 | Pending |
-| KNOW-01 | Phase 3 | Pending |
-| KNOW-02 | Phase 3 | Pending |
-| KNOW-03 | Phase 3 | Pending |
-| KNOW-04 | Phase 3 | Pending |
-| KNOW-05 | Phase 3 | Pending |
-| REVIEW-01 | Phase 3 | Pending |
-| REVIEW-02 | Phase 3 | Pending |
-| REVIEW-03 | Phase 3 | Pending |
-| REVIEW-04 | Phase 3 | Pending |
-| REVIEW-05 | Phase 3 | Pending |
-| REVIEW-06 | Phase 3 | Pending |
+| PLAT-01 | Phase 1 | Complete |
+| PLAT-02 | Phase 1 | Complete |
+| PLAT-03 | Phase 1 | Complete |
+| PLAT-04 | Phase 1 | Complete |
+| ACCESS-01 | Phase 2 | Complete |
+| ACCESS-02 | Phase 2 | Complete |
+| ACCESS-03 | Phase 2 | Complete |
+| ACCESS-04 | Phase 2 | Complete |
+| ACCESS-05 | Phase 2 | Complete |
+| ACCESS-06 | Phase 2 | Complete |
+| ACCESS-07 | Phase 2 | Complete |
+| ACCESS-08 | Phase 2 | Complete |
+| ACCESS-09 | Phase 2 | Complete |
+| KNOW-01 | Phase 3 | Complete |
+| KNOW-02 | Phase 3 | Complete |
+| KNOW-03 | Phase 3 | Complete |
+| KNOW-04 | Phase 3 | Complete |
+| KNOW-05 | Phase 3 | Complete |
+| REVIEW-01 | Phase 3 | Complete |
+| REVIEW-02 | Phase 3 | Complete |
+| REVIEW-03 | Phase 3 | Complete |
+| REVIEW-04 | Phase 3 | Complete |
+| REVIEW-05 | Phase 3 | Complete |
+| REVIEW-06 | Phase 3 | Complete |
 | RAG-01 | Phase 4 | Pending |
 | RAG-02 | Phase 4 | Pending |
 | RAG-03 | Phase 4 | Pending |

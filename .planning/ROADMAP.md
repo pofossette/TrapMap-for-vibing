@@ -12,8 +12,8 @@ Skill Shareer will ship in five phases that move from platform foundations to tr
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Monorepo Skeleton and Contracts** - Establish the workspace, shared schemas, API surface, and skill compatibility baseline
-- [ ] **Phase 2: Identity, Teams, and RBAC** - Add login, team selection, member onboarding, member notes, access keys, and fine-grained permissions
+- [x] **Phase 1: Monorepo Skeleton and Contracts** - Establish the workspace, shared schemas, API surface, and skill compatibility baseline (completed 2026-04-13)
+- [x] **Phase 2: Identity, Teams, and RBAC** - Add login, team selection, member onboarding, member notes, access keys, and fine-grained permissions (completed 2026-04-13)
 - [ ] **Phase 3: Knowledge Intake and Review** - Build structured submission, agent pre-review, admin review, and resubmission lifecycle
 - [ ] **Phase 4: Retrieval and CLI Workflow** - Deliver text-seed search and full CLI user workflows
 - [ ] **Phase 5: Admin Operations and Hardening** - Add knowledge management, import/export, and audit-grade operational controls
@@ -29,12 +29,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. The repo has a working monorepo skeleton for CLI, server, and shared packages
   2. Shared contracts define the core payloads for auth, knowledge, review, retrieval, and operations
   3. A documented API list exists and Claude-compatible skill layout is wired into the project structure
-**Plans**: 3 plans
+**Plans**: 3/3 plans complete
 
 Plans:
-- [ ] 01-01: Create `pnpm` workspace layout, package boundaries, and bootstrap scripts
-- [ ] 01-02: Define shared TypeScript schemas and error contracts used by CLI and server
-- [ ] 01-03: Add API surface documentation and initial Claude-compatible skill scaffolding
+- [x] 01-01: Create `pnpm` workspace layout, package boundaries, and bootstrap scripts
+- [x] 01-02: Define shared TypeScript schemas and error contracts used by CLI and server
+- [x] 01-03: Add API surface documentation and initial Claude-compatible skill scaffolding
 
 ### Phase 2: Identity, Teams, and RBAC
 **Goal**: Make every protected workflow team-aware and permission-safe before knowledge flows are added.
@@ -47,12 +47,12 @@ Plans:
   3. Server authorization blocks actions based on security level comparison
   4. CLI shows or hides commands based on authenticated user's security level
   5. System admin key (.env) creates a virtual user with level 10
-**Plans**: 3 plans
+**Plans**: 3/3 plans complete
 
 Plans:
-- [ ] 02-01: Implement auth/session flow and active-team context handling
-- [ ] 02-02: Build team and member management endpoints plus CLI commands
-- [ ] 02-03: Centralize authorization logic around role templates and explicit permissions
+- [x] 02-01: Implement auth/session flow and active-team context handling
+- [x] 02-02: Build team and member management endpoints plus CLI commands
+- [x] 02-03: Centralize authorization logic around role templates and explicit permissions
 
 ### Phase 3: Knowledge Intake and Review
 **Goal**: Turn solved problems into reviewable knowledge objects with preserved lifecycle history.
@@ -68,10 +68,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 03-01: Model knowledge entities, scopes, labels, and lifecycle states
-- [ ] 03-02: Implement submission APIs and review-state persistence
-- [ ] 03-03: Add LangChain-backed pre-review for duplicate/correctness/completeness checks
-- [ ] 03-04: Build admin review decisions and user resubmission workflow
+- [x] 03-01: Model knowledge entities, scopes, labels, and lifecycle states
+- [x] 03-02: Implement submission APIs and review-state persistence
+- [x] 03-03: Add LangChain-backed pre-review for duplicate/correctness/completeness checks
+- [x] 03-04: Build admin review decisions and user resubmission workflow
 
 ### Phase 4: Retrieval and CLI Workflow
 **Goal**: Deliver the core user promise: text-seed retrieval and shell-friendly operational commands.
@@ -115,8 +115,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Monorepo Skeleton and Contracts | 0/3 | Not started | - |
-| 2. Identity, Teams, and RBAC | 0/3 | Not started | - |
+| 1. Monorepo Skeleton and Contracts | 3/3 | Complete    | 2026-04-13 |
+| 2. Identity, Teams, and RBAC | 3/3 | Complete    | 2026-04-13 |
 | 3. Knowledge Intake and Review | 0/4 | Not started | - |
 | 4. Retrieval and CLI Workflow | 0/4 | Not started | - |
 | 5. Admin Operations and Hardening | 0/3 | Not started | - |

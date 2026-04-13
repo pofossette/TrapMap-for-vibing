@@ -1,0 +1,68 @@
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
+import type { ActiveSession } from '@skill-shareer/contracts';
+
+export interface CliState {
+  serverUrl: string;
+  sessionToken: string | null;
+  session: ActiveSession | null;
+}
+
+const DEFAULT_SERVER_URL = process.env.SKILL_SHAREER_SERVER_URL ?? 'http://127.0.0.1:4000';
+
+function getConfigPath(): string {
+  return path.join(os.homedir(), '.skill-shareer', 'cli.json');
+}
+
+function getDefaultState(): CliState {
+  return {
+    serverUrl: DEFAULT_SERVER_URL,
+    sessionToken: null,
+    session: null,
+  };
+}
+
+export async function loadCliState(): Promise<CliState> {
+  const configPath = getConfigPath();
+
+  try {
+    const raw = await readFile(configPath, 'utf8');
+    return {
+      ...getDefaultState(),
+      ...(JSON.parse(raw) as Partial<CliState>),
+    };
+  } catch {
+    return getDefaultState();
+  }
+}
+
+export async function saveCliState(state: CliState): Promise<void> {
+  const configPath = getConfigPath();
+  await mkdir(path.dirname(configPath), { recursive: true });
+  await writeFile(configPath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+}
+
+export async function updateCliState(
+  patch: Partial<CliState> | ((current: CliState) => CliState),
+): Promise<CliState> {
+  const current = await loadCliState();
+  const next =
+    typeof patch === 'function'
+      ? patch(current)
+      : {
+          ...current,
+          ...patch,
+        };
+  await saveCliState(next);
+  return next;
+}
+
+export async function clearSession(): Promise<CliState> {
+  return updateCliState((current) => ({
+    ...current,
+    sessionToken: null,
+    session: null,
+  }));
+}

@@ -62,6 +62,7 @@ pids/
 *.pid
 *.seed
 *.pid.lock
+.data/
 
 # Optional npm cache
 .npm
