@@ -11,6 +11,7 @@ import {
 } from '@skill-shareer/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
+import { createAuditEvent } from '../lib/audit.js';
 import { AppError } from '../lib/errors.js';
 import { createImportedEntry, detectDuplicates, parseClaudeSkill } from '../lib/import-export.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '../lib/knowledge.js';
@@ -103,6 +104,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       requireHigherLevel(auth, entry.requiredLevel);
 
       const deactivatedAt = nowIso();
+      const previousState = entry.lifecycleState;
 
       // Set lifecycle state
       entry.lifecycleState = 'deactivated';
@@ -120,6 +122,18 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       });
 
       entry.updatedAt = deactivatedAt;
+
+      // Record audit event
+      const auditEvent = createAuditEvent({
+        store: app.skillShareer.store,
+        data,
+        teamId: entry.teamId,
+        actor: auth,
+        action: 'knowledge-deactivated',
+        entityId: entry.id,
+        payload: { reason: payload.reason, previousState },
+      });
+      data.auditEvents.push(auditEvent);
 
       return toKnowledgeEntry(data, entry);
     });
@@ -161,8 +175,26 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       securityLevel: auth.securityLevel,
     };
 
+    const exportedAt = nowIso();
+    const entryCount = items.length;
+    const exportTeamId = body.teamId;
+
+    // Record audit event
+    await app.skillShareer.store.transact((data) => {
+      const auditEvent = createAuditEvent({
+        store: app.skillShareer.store,
+        data,
+        teamId: exportTeamId ?? null,
+        actor: auth,
+        action: 'knowledge-exported',
+        entityId: entryCount > 0 ? items[0].id : 'batch',
+        payload: { entryCount, teamId: exportTeamId, includeHistory: body.includeHistory },
+      });
+      data.auditEvents.push(auditEvent);
+    });
+
     return exportBundleSchema.parse({
-      exportedAt: nowIso(),
+      exportedAt,
       exportedBy: actorRef,
       items,
     });
@@ -228,6 +260,18 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
         });
 
         data.knowledgeEntries.push(importedRecord);
+
+        // Record audit event for successful import
+        const auditEvent = createAuditEvent({
+          store: app.skillShareer.store,
+          data,
+          teamId: auth.activeTeamId,
+          actor: auth,
+          action: 'knowledge-imported',
+          entityId: importedRecord.id,
+          payload: { source: entryPayload.source, requestedLevel: entryPayload.requestedLevel },
+        });
+        data.auditEvents.push(auditEvent);
 
         results.push({
           success: true,
