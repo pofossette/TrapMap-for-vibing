@@ -87,9 +87,9 @@ Plans:
 
 Plans:
 - [x] 04-01: Build embedding pipeline, metadata filters, and retrieval query API
-- [ ] 04-02: Implement result shaping for global constraints and project knowledge
-- [ ] 04-03: Build imperative CLI commands for search, submit, status, and resubmit
-- [ ] 04-04: Add JSON output mode, stdin-based submission, and end-to-end retrieval workflow tests
+- [x] 04-02: Implement result shaping for global constraints and project knowledge
+- [x] 04-03: Build imperative CLI commands for search, submit, status, and resubmit
+- [x] 04-04: Add JSON output mode, stdin-based submission, and end-to-end retrieval workflow tests
 
 ### Phase 5: Admin Operations and Hardening
 **Goal**: Make the system manageable for real teams through entry management, bulk operations, and auditable changes.
