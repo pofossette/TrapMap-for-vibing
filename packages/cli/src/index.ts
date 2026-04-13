@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { registerAuthCommands } from './commands/auth.js';
 import { registerKnowledgeCommands } from './commands/knowledge.js';
 import { registerMemberCommands } from './commands/member.js';
+import { registerRetrievalCommands } from './commands/retrieval.js';
 import { registerReviewCommands } from './commands/review.js';
 import { registerTeamCommands } from './commands/team.js';
 import { loadCliState } from './lib/config.js';
@@ -30,6 +31,7 @@ const visibility = {
     hasPermission(effectivePermissions, 'knowledge:update'),
   allowKnowledgeReview:
     securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:review'),
+  allowKnowledgeSearch: hasPermission(effectivePermissions, 'knowledge:search'),
 };
 
 const program = new Command();
@@ -67,6 +69,7 @@ program
       ...(visibility.allowAccessKeyCreate ? ['access-key:create'] : []),
       ...(visibility.allowKnowledgeSubmit ? ['submit', 'resubmit'] : []),
       ...(visibility.allowKnowledgeInspect ? ['review-status'] : []),
+      ...(visibility.allowKnowledgeSearch ? ['search'] : []),
       ...(visibility.allowKnowledgeReview
         ? ['review:queue', 'review:approve', 'review:reject']
         : []),
@@ -89,6 +92,9 @@ registerMemberCommands(program, {
 registerKnowledgeCommands(program, {
   allowInspect: visibility.allowKnowledgeInspect,
   allowSubmit: visibility.allowKnowledgeSubmit,
+});
+registerRetrievalCommands(program, {
+  allowSearch: visibility.allowKnowledgeSearch,
 });
 registerReviewCommands(program, {
   allowReview: visibility.allowKnowledgeReview,

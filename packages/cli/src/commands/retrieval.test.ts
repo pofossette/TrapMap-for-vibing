@@ -324,4 +324,22 @@ describe('CLI retrieval commands', () => {
       consoleLogSpy.mockRestore();
     });
   });
+
+  describe('permission-aware command visibility', () => {
+    it('should register search command when allowSearch is true', () => {
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).toContain('search');
+    });
+
+    it('should not register search command when allowSearch is false', () => {
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: false });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).not.toContain('search');
+    });
+  });
 });
