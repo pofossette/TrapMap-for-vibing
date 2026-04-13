@@ -86,7 +86,7 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 04-01: Build embedding pipeline, metadata filters, and retrieval query API
+- [x] 04-01: Build embedding pipeline, metadata filters, and retrieval query API
 - [ ] 04-02: Implement result shaping for global constraints and project knowledge
 - [ ] 04-03: Build imperative CLI commands for search, submit, status, and resubmit
 - [ ] 04-04: Add JSON output mode, stdin-based submission, and end-to-end retrieval workflow tests
