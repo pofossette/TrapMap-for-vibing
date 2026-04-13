@@ -8,6 +8,7 @@ import { accessKeyRoutes } from './routes/access-keys.js';
 import { authRoutes } from './routes/auth.js';
 import { knowledgeRoutes } from './routes/knowledge.js';
 import { memberRoutes } from './routes/members.js';
+import { operationsRoutes } from './routes/operations.js';
 import { retrievalRoutes } from './routes/retrieval.js';
 import { reviewRoutes } from './routes/review.js';
 import { teamRoutes } from './routes/teams.js';
@@ -32,6 +33,8 @@ const documentedRoutes = [
   'POST /v1/retrieval/search',
   'POST /v1/operations/import',
   'POST /v1/operations/export',
+  'GET /v1/operations/knowledge',
+  'POST /v1/operations/knowledge/:entryId/deactivate',
 ] as const;
 
 export function buildServer() {
@@ -64,6 +67,7 @@ export function buildServer() {
   app.register(reviewRoutes);
   app.register(knowledgeRoutes);
   app.register(retrievalRoutes);
+  app.register(operationsRoutes);
 
   app.setErrorHandler((error, _request, reply) => {
     if (isAppError(error)) {
