@@ -271,6 +271,7 @@ export function createKnowledgeEntryRecord(args: {
         note: args.preReview.notes[0] ?? null,
       }),
     ],
+    embeddingCache: null,
     createdAt: args.createdAt,
     updatedAt: args.createdAt,
   };

@@ -133,6 +133,21 @@ export interface KnowledgeMetadataRecord {
   latestDecision: 'approve' | 'reject' | null;
 }
 
+/**
+ * Cached embedding vector for retrieval.
+ * Enables reusing embeddings across queries without recomputing.
+ */
+export interface EmbeddingCacheRecord {
+  /** Hash of the text that was embedded (shortcut + detail + labels) */
+  textHash: string;
+  /** The embedding vector */
+  vector: number[];
+  /** Timestamp when this cache entry was created */
+  createdAt: string;
+  /** The revision number this embedding was computed from */
+  revision: number;
+}
+
 export interface KnowledgeRecord {
   id: string;
   teamId: string | null;
@@ -152,6 +167,8 @@ export interface KnowledgeRecord {
   reviewHistory: KnowledgeReviewDecisionRecord[];
   reviewNotes: KnowledgeReviewNoteRecord[];
   lifecycleHistory: KnowledgeLifecycleEventRecord[];
+  /** Cached embedding for retrieval (null if not yet computed) */
+  embeddingCache: EmbeddingCacheRecord | null;
   createdAt: string;
   updatedAt: string;
 }
