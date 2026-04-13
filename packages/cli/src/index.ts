@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { registerAuthCommands } from './commands/auth.js';
 import { registerKnowledgeCommands } from './commands/knowledge.js';
 import { registerMemberCommands } from './commands/member.js';
+import { registerOperationsCommands } from './commands/operations.js';
 import { registerRetrievalCommands } from './commands/retrieval.js';
 import { registerReviewCommands } from './commands/review.js';
 import { registerTeamCommands } from './commands/team.js';
@@ -32,6 +33,9 @@ const visibility = {
   allowKnowledgeReview:
     securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:review'),
   allowKnowledgeSearch: hasPermission(effectivePermissions, 'knowledge:search'),
+  allowKnowledgeExport: hasPermission(effectivePermissions, 'knowledge:export'),
+  allowKnowledgeUpdate: securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
+  allowKnowledgeDeactivate: securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
 };
 
 const program = new Command();
@@ -73,6 +77,9 @@ program
       ...(visibility.allowKnowledgeReview
         ? ['review:queue', 'review:approve', 'review:reject']
         : []),
+      ...(visibility.allowKnowledgeExport ? ['list'] : []),
+      ...(visibility.allowKnowledgeUpdate ? ['edit'] : []),
+      ...(visibility.allowKnowledgeDeactivate ? ['deactivate'] : []),
     ];
 
     for (const commandName of availableCommands) {
@@ -98,6 +105,11 @@ registerRetrievalCommands(program, {
 });
 registerReviewCommands(program, {
   allowReview: visibility.allowKnowledgeReview,
+});
+registerOperationsCommands(program, {
+  allowExport: visibility.allowKnowledgeExport,
+  allowEdit: visibility.allowKnowledgeUpdate,
+  allowDeactivate: visibility.allowKnowledgeDeactivate,
 });
 
 program.parseAsync(process.argv).catch(printError);
