@@ -4,7 +4,6 @@ import {
   retrievalMatchSchema,
   type RetrievalQuery,
   type RetrievalResponse,
-  type RetrievalMatch,
 } from '@skill-shareer/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
@@ -35,9 +34,11 @@ function cosineSimilarity(a: number[], b: number[]): number {
   let magnitudeB = 0;
 
   for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    magnitudeA += a[i] * a[i];
-    magnitudeB += b[i] * b[i];
+    const ai = a[i] ?? 0;
+    const bi = b[i] ?? 0;
+    dotProduct += ai * bi;
+    magnitudeA += ai * ai;
+    magnitudeB += bi * bi;
   }
 
   magnitudeA = Math.sqrt(magnitudeA);
@@ -178,7 +179,7 @@ function toRetrievalMatch(
   entry: KnowledgeRecord,
   score: number,
   filters: RetrievalQuery['filters'],
-): RetrievalMatch {
+) {
   return retrievalMatchSchema.parse({
     entryId: entry.id,
     scope: entry.scope,
@@ -241,8 +242,8 @@ export async function searchKnowledge(
   const topMatches = scoredEntries.slice(0, parsed.maxResults);
 
   // Split into global constraints and project knowledge
-  const globalConstraints: RetrievalMatch[] = [];
-  const projectKnowledge: RetrievalMatch[] = [];
+  const globalConstraints = [];
+  const projectKnowledge = [];
 
   for (const { entry, score } of topMatches) {
     const match = toRetrievalMatch(entry, score, parsed.filters);

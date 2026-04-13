@@ -388,6 +388,9 @@ describe('retrieval', () => {
     it('updates embedding cache when explicitly called', async () => {
       const data = await mockStore.snapshot();
       const entry = data.knowledgeEntries[0];
+      if (!entry) {
+        throw new Error('No entry found in test data');
+      }
 
       // Initially, cache should be null
       expect(entry.embeddingCache).toBeNull();
@@ -398,8 +401,12 @@ describe('retrieval', () => {
       // Cache should now be populated
       const updatedData = await mockStore.snapshot();
       const updatedEntry = updatedData.knowledgeEntries.find((e) => e.id === entry.id);
-      expect(updatedEntry?.embeddingCache).not.toBeNull();
-      expect(updatedEntry?.embeddingCache?.vector.length).toBeGreaterThan(0);
+      expect(updatedEntry).toBeDefined();
+      if (!updatedEntry) {
+        throw new Error('Entry should exist after update');
+      }
+      expect(updatedEntry.embeddingCache).not.toBeNull();
+      expect(updatedEntry.embeddingCache?.vector.length).toBeGreaterThan(0);
     });
   });
 

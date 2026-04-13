@@ -8,6 +8,7 @@ import { accessKeyRoutes } from './routes/access-keys.js';
 import { authRoutes } from './routes/auth.js';
 import { knowledgeRoutes } from './routes/knowledge.js';
 import { memberRoutes } from './routes/members.js';
+import { retrievalRoutes } from './routes/retrieval.js';
 import { reviewRoutes } from './routes/review.js';
 import { teamRoutes } from './routes/teams.js';
 
@@ -62,6 +63,7 @@ export function buildServer() {
   app.register(accessKeyRoutes);
   app.register(reviewRoutes);
   app.register(knowledgeRoutes);
+  app.register(retrievalRoutes);
 
   app.setErrorHandler((error, _request, reply) => {
     if (isAppError(error)) {
