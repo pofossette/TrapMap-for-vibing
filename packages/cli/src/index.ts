@@ -34,6 +34,7 @@ const visibility = {
     securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:review'),
   allowKnowledgeSearch: hasPermission(effectivePermissions, 'knowledge:search'),
   allowKnowledgeExport: hasPermission(effectivePermissions, 'knowledge:export'),
+  allowKnowledgeImport: securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:import'),
   allowKnowledgeUpdate: securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
   allowKnowledgeDeactivate: securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
 };
@@ -77,7 +78,8 @@ program
       ...(visibility.allowKnowledgeReview
         ? ['review:queue', 'review:approve', 'review:reject']
         : []),
-      ...(visibility.allowKnowledgeExport ? ['list'] : []),
+      ...(visibility.allowKnowledgeExport ? ['list', 'export'] : []),
+      ...(visibility.allowKnowledgeImport ? ['import'] : []),
       ...(visibility.allowKnowledgeUpdate ? ['edit'] : []),
       ...(visibility.allowKnowledgeDeactivate ? ['deactivate'] : []),
     ];
@@ -110,6 +112,7 @@ registerOperationsCommands(program, {
   allowExport: visibility.allowKnowledgeExport,
   allowEdit: visibility.allowKnowledgeUpdate,
   allowDeactivate: visibility.allowKnowledgeDeactivate,
+  allowImport: visibility.allowKnowledgeImport,
 });
 
 program.parseAsync(process.argv).catch(printError);

@@ -1,9 +1,13 @@
 import type {
+  ExportBundle,
+  ImportResponse,
   KnowledgeDeactivateResponse,
   KnowledgeEntryResponse,
   KnowledgeListResponse,
 } from '@skill-shareer/contracts';
 import {
+  exportBundleSchema,
+  importResponseSchema,
   knowledgeDeactivateResponseSchema,
   knowledgeEntryResponseSchema,
   knowledgeListResponseSchema,
@@ -13,11 +17,66 @@ import type { Command } from 'commander';
 import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
 import { printResult } from '../lib/output.js';
+import { resolveTextInput } from '../lib/input.js';
 
 interface OperationsCommandOptions {
   allowExport: boolean;
   allowEdit: boolean;
   allowDeactivate: boolean;
+  allowImport: boolean;
+}
+
+/**
+ * Parses a SKILL.md format content with YAML frontmatter.
+ * Extracts name as shortcut and description as detail.
+ * Returns null if parsing fails.
+ */
+function parseClaudeSkill(content: string): { shortcut: string; detail: string; scope: string; labels: string[] } | null {
+  // Match frontmatter between --- markers
+  const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
+
+  if (!frontmatterMatch) {
+    return null;
+  }
+
+  const match = frontmatterMatch;
+  if (!match[1] || !match[2]) {
+    return null;
+  }
+
+  const frontmatterRaw = match[1];
+  const body = match[2];
+
+  // Simple YAML parsing for the fields we care about
+  const lines = frontmatterRaw.split('\n');
+  const frontmatter: Record<string, string> = {};
+
+  for (const line of lines) {
+    const colonIndex = line.indexOf(':');
+    if (colonIndex === -1) continue;
+
+    const key = line.slice(0, colonIndex).trim();
+    const value = line.slice(colonIndex + 1).trim();
+
+    // Remove quotes if present
+    const unquoted = value.replace(/^["']|["']$/g, '');
+    frontmatter[key] = unquoted;
+  }
+
+  const name = frontmatter['name'];
+  if (!name) {
+    return null;
+  }
+
+  const description = frontmatter['description'] ?? '';
+  const detailContent = body.trim() || description;
+
+  return {
+    scope: 'project',
+    labels: ['imported', 'skill'],
+    shortcut: name,
+    detail: detailContent,
+  };
 }
 
 function formatListResponse(response: KnowledgeListResponse): string {
@@ -166,6 +225,125 @@ export function registerOperationsCommands(program: Command, options: Operations
 
         printResult(parsed, flags, ({ entry }) =>
           [`Deactivated ${entry.id}`, `Lifecycle: ${entry.lifecycleState}`].join('\n'),
+        );
+      });
+  }
+
+  if (options.allowExport) {
+    program
+      .command('export')
+      .description('Export knowledge entries to JSON')
+      .option('--team <teamId>', 'Filter by team ID (use "null" for global entries)')
+      .option('--include-history', 'Include submission and review history', true)
+      .option('--output <path>', 'Write output to file instead of stdout')
+      .option('--json', 'Output JSON')
+      .action(
+        async (flags: { includeHistory?: boolean; json?: boolean; output?: string; team?: string }) => {
+          const state = await loadCliState();
+          requireSessionToken(state);
+
+          const body: { includeHistory: boolean; teamId?: string | null } = {
+            includeHistory: flags.includeHistory ?? true,
+          };
+
+          if (flags.team !== undefined) {
+            body.teamId = flags.team === 'null' ? null : flags.team;
+          }
+
+          const response = await apiRequest<ExportBundle>(state, {
+            method: 'POST',
+            path: '/v1/operations/export',
+            body,
+          });
+          const parsed = exportBundleSchema.parse(response.data);
+
+          const outputText = flags.json
+            ? JSON.stringify(parsed, null, 2)
+            : `Exported ${parsed.items.length} entries at ${parsed.exportedAt}`;
+
+          if (flags.output) {
+            const { writeFile } = await import('node:fs/promises');
+            await writeFile(flags.output, JSON.stringify(parsed, null, 2), 'utf8');
+            console.log(`Wrote ${parsed.items.length} entries to ${flags.output}`);
+          } else {
+            console.log(outputText);
+          }
+        },
+      );
+  }
+
+  if (options.allowImport) {
+    program
+      .command('import')
+      .description('Import knowledge entries from JSON or skill files')
+      .requiredOption('--file <path>', 'Path to JSON file containing entries')
+      .requiredOption('--level <n>', 'Requested security level for imported entries', (val) => Number(val))
+      .option('--json', 'Output JSON')
+      .action(async (flags: { file: string; json?: boolean; level: number }) => {
+        const state = await loadCliState();
+        requireSessionToken(state);
+
+        const fileContent = await resolveTextInput({ file: flags.file }, 'import');
+        let entries: Array<{
+          scope: string;
+          labels: string[];
+          shortcut: string;
+          detail: string;
+          source: 'json' | 'claude-skill';
+          requestedLevel: number;
+        }>;
+
+        // Try to parse as JSON array first
+        try {
+          const parsed = JSON.parse(fileContent);
+          if (Array.isArray(parsed)) {
+            entries = parsed.map((entry) => ({
+              scope: entry.scope ?? 'project',
+              labels: entry.labels ?? ['imported'],
+              shortcut: entry.shortcut,
+              detail: entry.detail,
+              source: 'json' as const,
+              requestedLevel: flags.level,
+            }));
+          } else if (parsed.items && Array.isArray(parsed.items)) {
+            // Export bundle format
+            entries = parsed.items.map((entry: { scope: string; labels: string[]; shortcut: string; detail: string }) => ({
+              scope: entry.scope ?? 'project',
+              labels: entry.labels ?? ['imported'],
+              shortcut: entry.shortcut,
+              detail: entry.detail,
+              source: 'json' as const,
+              requestedLevel: flags.level,
+            }));
+          } else {
+            throw new Error('JSON must be an array of entries or an export bundle');
+          }
+        } catch {
+          // Try to parse as SKILL.md format
+          const submission = parseClaudeSkill(fileContent);
+
+          if (!submission) {
+            throw new Error('File must be a JSON array of entries or a valid SKILL.md format');
+          }
+
+          entries = [
+            {
+              ...submission,
+              source: 'claude-skill' as const,
+              requestedLevel: flags.level,
+            },
+          ];
+        }
+
+        const response = await apiRequest<ImportResponse>(state, {
+          method: 'POST',
+          path: '/v1/operations/import',
+          body: { entries },
+        });
+        const parsed = importResponseSchema.parse(response.data);
+
+        printResult(parsed, flags, (value) =>
+          [`Imported ${value.importedCount} entries, failed ${value.failedCount}`].join('\n'),
         );
       });
   }
