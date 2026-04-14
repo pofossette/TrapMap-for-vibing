@@ -47,3 +47,59 @@ export interface RetrievalStats {
   /** Whether refinement was attempted */
   refinementAttempted: boolean;
 }
+
+// =============================================================================
+// Channel-Aware Retrieval Candidate Types (Phase 7 Hybrid Groundwork)
+// These internal types support multi-path recall and are not part of the public API.
+// =============================================================================
+
+/**
+ * The recall channel that produced a candidate.
+ * Used to track evidence source during hybrid merge and rerank stages.
+ */
+export type RecallChannel = 'semantic' | 'keyword';
+
+/**
+ * Token match detail for keyword recall evidence.
+ * Records which query tokens matched which entry fields.
+ */
+export interface TokenMatchDetail {
+  /** The normalized token that matched */
+  token: string;
+  /** The field(s) where the match occurred */
+  fields: Array<'shortcut' | 'detail' | 'labels'>;
+}
+
+/**
+ * Internal candidate metadata for a single recall channel.
+ * Carries evidence from semantic or keyword scoring for later merge/rerank.
+ */
+export interface RecallCandidate {
+  /** The knowledge entry record */
+  entry: KnowledgeRecord;
+  /** The recall channel that produced this candidate */
+  channel: RecallChannel;
+  /** Normalized score for this channel, in [0, 1] */
+  score: number;
+  /** Token match details (keyword channel only, empty for semantic) */
+  tokenMatches: TokenMatchDetail[];
+}
+
+/**
+ * Merged candidate combining evidence from multiple recall channels.
+ * Produced by the merge stage for reranking.
+ */
+export interface MergedCandidate {
+  /** The knowledge entry record */
+  entry: KnowledgeRecord;
+  /** Semantic channel score, or 0 if not recalled via semantic */
+  semanticScore: number;
+  /** Keyword channel score, or 0 if not recalled via keyword */
+  keywordScore: number;
+  /** Combined score after merge, in [0, 1] */
+  combinedScore: number;
+  /** All token matches from keyword channel (empty if keyword not used) */
+  tokenMatches: TokenMatchDetail[];
+  /** Which channels contributed to this candidate */
+  channels: RecallChannel[];
+}
