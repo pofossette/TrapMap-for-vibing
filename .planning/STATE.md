@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-13)
 Phase: 05 (Admin Operations and Hardening) — EXECUTING
 Plan: 1 of 3
 Status: Executing Phase 05
-Last activity: 2026-04-14
+Last activity: 2026-04-14 - Completed quick task 260414-k5n: 引入biome的lint和format，引入knip的孤立代码检测和重复检查
 
 Progress: [██████░░░░] 60%
 
@@ -73,6 +73,12 @@ None yet.
 
 - Embedding provider and chat model provider remain intentionally configurable
 - Retrieval ranking and result shaping remain the next implementation focus
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260414-k5n | 引入biome的lint和format，引入knip的孤立代码检测和重复检查 | 2026-04-14 | ea5cf99 | [260414-k5n-biome-lint-format-knip](./quick/260414-k5n-biome-lint-format-knip/) |
 
 ## Session Continuity
 
