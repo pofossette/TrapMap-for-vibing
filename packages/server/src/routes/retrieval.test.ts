@@ -91,6 +91,40 @@ describe('retrieval route', () => {
       // Should require auth
       expect(response.statusCode).toBe(401);
     });
+
+    it('accepts valid retrieval query schema with mode field', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'JWT validation best practices',
+          filters: {
+            labels: ['security'],
+            scopes: ['global'],
+          },
+          maxResults: 5,
+          includeRefinement: true,
+          mode: 'semantic',
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('uses semantic as default mode when mode is omitted', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'test query',
+          // mode omitted, should default to semantic
+        },
+      });
+
+      // Should require auth
+      expect(response.statusCode).toBe(401);
+    });
   });
 
   describe('route registration', () => {

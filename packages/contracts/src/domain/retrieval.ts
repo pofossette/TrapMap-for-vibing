@@ -2,6 +2,14 @@ import { z } from 'zod';
 
 import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema } from './common.js';
 
+/**
+ * Query mode for retrieval requests.
+ * Defines the retrieval strategy to use when searching knowledge.
+ */
+export const retrievalQueryModeSchema = z.enum(['semantic', 'hybrid', 'graph-assisted']);
+
+export type RetrievalQueryMode = z.infer<typeof retrievalQueryModeSchema>;
+
 export const retrievalFiltersSchema = z.object({
   teamId: entityIdSchema.nullable().optional(),
   labels: z.array(labelSchema).default([]),
@@ -13,6 +21,7 @@ export const retrievalQuerySchema = z.object({
   filters: retrievalFiltersSchema.default({ labels: [], scopes: [] }),
   maxResults: z.number().int().min(1).max(50).default(10),
   includeRefinement: z.boolean().default(true),
+  mode: retrievalQueryModeSchema.default('semantic'),
 });
 
 export const retrievalMatchSchema = z.object({
