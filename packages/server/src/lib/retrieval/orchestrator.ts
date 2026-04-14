@@ -11,6 +11,7 @@ import { generateEmbedding, hashEmbeddingText } from '../embeddings.js';
 import { AppError } from '../errors.js';
 import type { EmbeddingCacheRecord, KnowledgeRecord } from '../store.js';
 import { nowIso } from '../store.js';
+import { filterEligibleEntries } from './filters.js';
 import type { RetrievalPipelineContext, ScoredEntry } from './types.js';
 
 /**
@@ -75,48 +76,6 @@ async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[]> {
   // Note: We don't update the cache here because we're working with a snapshot
   // The cache would be updated when the entry is modified or approved
   return vector;
-}
-
-/**
- * Check if an entry is eligible for retrieval given auth context and filters.
- * Enforces approval state, team access, security level, and metadata filters.
- */
-function isEntryEligible(
-  entry: KnowledgeRecord,
-  auth: ResolvedAuthContext,
-  filters: RetrievalQuery['filters'],
-): boolean {
-  // Must be approved
-  if (entry.lifecycleState !== 'approved') {
-    return false;
-  }
-
-  // Must have required level <= caller's security level
-  if (entry.requiredLevel > auth.securityLevel) {
-    return false;
-  }
-
-  // Project entries must match active team (unless system admin)
-  if (entry.teamId && auth.subjectType !== 'system-admin') {
-    if (entry.teamId !== auth.activeTeamId) {
-      return false;
-    }
-  }
-
-  // Apply scope filter if provided
-  if (filters.scopes.length > 0 && !filters.scopes.includes(entry.scope)) {
-    return false;
-  }
-
-  // Apply label filter if provided (all labels must match)
-  if (filters.labels.length > 0) {
-    const hasAllLabels = filters.labels.every((label) => entry.labels.includes(label));
-    if (!hasAllLabels) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 /**
@@ -222,9 +181,7 @@ export async function searchKnowledge(
   const data = await services.store.snapshot();
 
   // Filter eligible entries (approval, team, level, metadata)
-  const eligibleEntries = data.knowledgeEntries.filter((entry) =>
-    isEntryEligible(entry, auth, parsed.filters),
-  );
+  const eligibleEntries = filterEligibleEntries(data.knowledgeEntries, auth, parsed.filters);
 
   if (eligibleEntries.length === 0) {
     return retrievalResponseSchema.parse({
