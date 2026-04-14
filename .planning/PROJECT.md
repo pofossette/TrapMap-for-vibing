@@ -8,6 +8,24 @@ Skill Shareer is a CLI-first internal knowledge sharing system for software team
 
 Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
 
+## Current Milestone: v1.1 RAG Structure Enhancement
+
+**Goal:** Evolve from single-path embedding retrieval to an extensible multi-path RAG architecture with orchestrator, hybrid recall, reranking, and lifecycle-driven indexing.
+
+**Target features:**
+- Retrieval orchestrator with query mode support (semantic / hybrid / graph-assisted)
+- Multi-path recall (vector + keyword) with result merging
+- Reranking for improved result ordering
+- Enhanced citations with source tracking, snippets, tags, and recall channel attribution
+- Lifecycle-driven indexing pipeline (approve → index, update → refresh, deactivate → remove)
+- Summary builder for optional LLM-generated answers based on retrieved knowledge
+
+**Key context:**
+- Inspired by LightRAG's structure but NOT integrating the project directly
+- All enhancements stay within the existing monorepo and TS stack
+- Must preserve existing boundaries: CLI, contracts, RBAC, approval, audit
+- Gradual evolution: A → B → C → D → E phases, no big-bang rewrite
+
 ## Requirements
 
 ### Validated
@@ -18,7 +36,10 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 
 ### Active
 
-(None — next milestone to be planned)
+- Multi-path retrieval with orchestrator, hybrid recall (vector + keyword), and reranking — v1.1
+- Lifecycle-driven indexing pipeline tied to approval/update/deactivate events — v1.1
+- Enhanced citations with source tracking, snippets, tags, and recall channel attribution — v1.1
+- Query mode support (semantic / hybrid / graph-assisted) for extensible retrieval strategies — v1.1
 
 ### Out of Scope
 
@@ -84,4 +105,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-14 after v1.0 milestone*
+*Last updated: 2026-04-14 after v1.1 milestone initiation*
