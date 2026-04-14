@@ -341,4 +341,68 @@ describe('CLI retrieval commands', () => {
       expect(commands).not.toContain('search');
     });
   });
+
+  describe('search command mode flag', () => {
+    it('should include semantic mode by default', async () => {
+      const mockResponse: RetrievalResponse = {
+        globalConstraints: [],
+        projectKnowledge: [],
+        refinementSummary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test'], { from: 'user' });
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          body: expect.objectContaining({
+            mode: 'semantic',
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should support explicit mode flag', async () => {
+      const mockResponse: RetrievalResponse = {
+        globalConstraints: [],
+        projectKnowledge: [],
+        refinementSummary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test', '--mode', 'semantic'], { from: 'user' });
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          body: expect.objectContaining({
+            mode: 'semantic',
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+  });
 });

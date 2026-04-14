@@ -76,6 +76,7 @@ export function registerRetrievalCommands(
     .option('--scope <scope>', 'Filter by scope (global or project)')
     .option('--max-results <n>', 'Maximum number of results to return', '10')
     .option('--no-refinement', 'Disable LLM refinement')
+    .option('--mode <mode>', 'Query mode (semantic, hybrid, graph-assisted)', 'semantic')
     .option('--stdin', 'Read search seed from stdin')
     .option('--json', 'Output JSON')
     .action(
@@ -86,6 +87,7 @@ export function registerRetrievalCommands(
           scope?: string;
           maxResults: string;
           refinement?: boolean;
+          mode?: string;
           stdin?: boolean;
           json?: boolean;
         },
@@ -117,6 +119,7 @@ export function registerRetrievalCommands(
           filters,
           maxResults: Number.parseInt(flags.maxResults, 10),
           includeRefinement: flags.refinement ?? true,
+          mode: flags.mode ?? 'semantic',
         };
 
         const response = await apiRequest<RetrievalResponse>(state, {

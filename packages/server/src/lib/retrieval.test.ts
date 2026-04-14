@@ -239,6 +239,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -260,6 +261,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -276,6 +278,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -292,6 +295,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -308,6 +312,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -326,6 +331,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: ['global'] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -341,6 +347,7 @@ describe('retrieval', () => {
         filters: { labels: ['security'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -358,6 +365,7 @@ describe('retrieval', () => {
         filters: { labels: ['security', 'auth'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -378,6 +386,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       // Multiple searches with same query should return same results
@@ -420,6 +429,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -445,6 +455,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -466,6 +477,7 @@ describe('retrieval', () => {
         filters: { labels: ['security'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -494,6 +506,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 1,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -509,6 +522,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -531,6 +545,7 @@ describe('retrieval', () => {
         filters: { labels: ['nonexistent'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -550,6 +565,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -577,6 +593,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, systemAdminAuth, query);
@@ -595,6 +612,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -608,6 +626,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: true, // Request refinement
+        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -623,6 +642,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: true,
+        mode: 'semantic',
       };
 
       // This should not throw even without provider credentials

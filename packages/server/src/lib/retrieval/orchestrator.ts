@@ -51,8 +51,77 @@ export async function searchKnowledge(
     return buildEmptyResponse();
   }
 
+  // Dispatch based on query mode
+  const topMatches = await dispatchByMode(parsed.mode, parsed.seed, eligibleEntries, parsed);
+
+  // Assemble response buckets
+  const { globalConstraints, projectKnowledge } = assembleResponseBuckets(topMatches, parsed.filters);
+
+  // Generate refinement summary if requested and available
+  const refinementSummary = parsed.includeRefinement
+    ? await generateRefinement(parsed.seed, globalConstraints, projectKnowledge)
+    : null;
+
+  return buildRetrievalResponse(globalConstraints, projectKnowledge, refinementSummary);
+}
+
+/**
+ * Dispatch retrieval based on query mode.
+ * Currently only semantic mode is implemented; other modes return controlled errors.
+ *
+ * @param mode - Query mode (semantic, hybrid, graph-assisted)
+ * @param seed - Search query text
+ * @param eligibleEntries - Entries that passed eligibility filters
+ * @param parsed - Parsed retrieval query
+ * @returns Scored entries sorted by relevance
+ */
+async function dispatchByMode(
+  mode: string,
+  seed: string,
+  eligibleEntries: KnowledgeRecord[],
+  parsed: ReturnType<typeof retrievalQuerySchema.parse>,
+): Promise<ScoredEntry[]> {
+  switch (mode) {
+    case 'semantic':
+      return await semanticRecall(seed, eligibleEntries, parsed);
+    case 'hybrid':
+      throw new AppError(
+        501,
+        'mode_not_implemented',
+        'Hybrid retrieval mode is not yet implemented. Use semantic mode or wait for Phase 7.',
+      );
+    case 'graph-assisted':
+      throw new AppError(
+        501,
+        'mode_not_implemented',
+        'Graph-assisted retrieval mode is not yet implemented. Use semantic mode or wait for Phase 9.',
+      );
+    default:
+      // This should never happen due to Zod validation, but we handle it for safety
+      throw new AppError(
+        400,
+        'invalid_mode',
+        `Invalid query mode: ${mode}. Must be one of: semantic, hybrid, graph-assisted`,
+      );
+  }
+}
+
+/**
+ * Semantic recall using embeddings.
+ * This is the current default retrieval path.
+ *
+ * @param seed - Search query text
+ * @param eligibleEntries - Entries that passed eligibility filters
+ * @param parsed - Parsed retrieval query
+ * @returns Scored entries sorted by relevance
+ */
+async function semanticRecall(
+  seed: string,
+  eligibleEntries: KnowledgeRecord[],
+  parsed: ReturnType<typeof retrievalQuerySchema.parse>,
+): Promise<ScoredEntry[]> {
   // Generate query embedding
-  const queryVector = await getQueryEmbedding(parsed.seed);
+  const queryVector = await getQueryEmbedding(seed);
 
   // Compute embeddings and scores for all eligible entries
   const scoredEntries = await Promise.all(
@@ -68,17 +137,7 @@ export async function searchKnowledge(
   scoredEntries.sort((a, b) => b.score - a.score);
 
   // Take top maxResults
-  const topMatches = scoredEntries.slice(0, parsed.maxResults);
-
-  // Assemble response buckets
-  const { globalConstraints, projectKnowledge } = assembleResponseBuckets(topMatches, parsed.filters);
-
-  // Generate refinement summary if requested and available
-  const refinementSummary = parsed.includeRefinement
-    ? await generateRefinement(parsed.seed, globalConstraints, projectKnowledge)
-    : null;
-
-  return buildRetrievalResponse(globalConstraints, projectKnowledge, refinementSummary);
+  return scoredEntries.slice(0, parsed.maxResults);
 }
 
 /**
