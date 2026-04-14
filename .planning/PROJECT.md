@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Skill Shareer is a monorepo-based internal knowledge sharing system for software teams that need a lower-friction way to capture and reuse "pitfall" knowledge during development. It centers on a command-oriented CLI client and a LangChain JS-powered server so agents and humans can both retrieve relevant experience, submit solved problems, and keep curated knowledge trustworthy through admin review.
+Skill Shareer is a CLI-first internal knowledge sharing system for software teams. Teams can capture "pitfall" knowledge during development, retrieve relevant experience via text search, and maintain trustworthiness through admin review workflows. Built as a TypeScript monorepo with LangChain JS-powered RAG.
 
 ## Core Value
 
@@ -12,13 +12,13 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ CLI-first retrieval and submission flows that are shell-friendly for both humans and agents — v1.0
+- ✓ Team-aware knowledge lifecycle with admin review, rejected-item feedback, and resubmission — v1.0
+- ✓ Text-only RAG with global constraints, project-scoped knowledge, and batch import/export — v1.0
 
 ### Active
 
-- [ ] CLI-first retrieval and submission flows that are shell-friendly for both humans and agents
-- [ ] Team-aware knowledge lifecycle with admin review, rejected-item feedback, and resubmission
-- [ ] Text-only RAG with global constraints, project-scoped knowledge, and batch import/export
+(None — next milestone to be planned)
 
 ### Out of Scope
 
@@ -29,16 +29,20 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 
 ## Context
 
-Software teams repeatedly lose time to the same "踩坑" problems, but existing skill-only approaches do not scale well because context gets heavy and useful experience becomes hard to surface at the right time. The product should let a CLI client register server context, authenticate users, switch teams, submit solved problems, and retrieve relevant knowledge from a text seed while staying imperative and easy for bash-driven agents to consume.
+**Current State (v1.0 shipped 2026-04-14):**
 
-Knowledge is intentionally small and structured:
+- **Tech stack:** TypeScript, pnpm monorepo, Fastify server, LangChain JS, CLI with Commander.js
+- **Lines of code:** ~13,600 TypeScript across CLI, server, and shared contracts
+- **Data model:** Knowledge entries with labels, shortcut, detail, scope (global/project), required security level (0-10)
+- **Access control:** Role templates (user/admin) + explicit permissions, security level enforcement on all operations
+- **Search quality:** Embeddings-based retrieval with eligibility filtering (team/level/approval state), deterministic fallback, optional LLM refinement
+- **Operational features:** Import/export with validation, audit trail for review/import/export/deactivate actions
 
-- Labels: global labels plus custom labels
-- Shortcut: concise summary or reusable constraint
-- Detail: the fuller explanation, fix, or operating guidance
-- Scope: global constraints vs project-internal knowledge
+**User feedback themes:**
+- None yet — v1.0 is initial release
 
-The server owns text-only RAG, access control, agent pre-review, admin review, and data import/export. Users should be able to inspect rejected submissions and re-submit improved versions instead of losing work. The access model starts with `user` and `admin` templates, then extends them with a detailed permission list on the user object so teams can tighten or widen capabilities without inventing many extra roles.
+**Known issues:**
+- 3 minor TypeScript type issues (exactOptionalPropertyTypes incompatibilities, runtime-checked undefined handling) — non-blocking, can address in v1.1
 
 ## Constraints
 
@@ -53,12 +57,14 @@ The server owns text-only RAG, access control, agent pre-review, admin review, a
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| TypeScript-first monorepo with shared contracts | LangChain JS, CLI ergonomics, and shared runtime validation all fit a single TS stack well | — Pending |
-| CLI is the default user surface | The product is meant to work from bash and agent runtimes, not only from a GUI | — Pending |
-| Knowledge uses `labels + shortcut + detail + scope` as the canonical model | Small, opinionated structure keeps entries retrievable and cheap to review | — Pending |
-| Review is mandatory before publication | Team knowledge is only valuable if it stays trustworthy and deduplicated | — Pending |
-| Retrieval stays text-only in v1 | Limits complexity and keeps the first milestone focused on useful search quality | — Pending |
-| Skills must remain Claude-compatible | Anthropic skill compatibility is a stated product constraint, not a future nice-to-have | — Pending |
+| TypeScript-first monorepo with shared contracts | LangChain JS, CLI ergonomics, and shared runtime validation all fit a single TS stack well | ✓ Good — 93 contract imports wired across packages |
+| CLI is the default user surface | The product is meant to work from bash and agent runtimes, not only from a GUI | ✓ Good — all workflows work from terminal with JSON mode |
+| Knowledge uses `labels + shortcut + detail + scope` as the canonical model | Small, opinionated structure keeps entries retrievable and cheap to review | ✓ Good — retrieval quality confirmed via E2E tests |
+| Review is mandatory before publication | Team knowledge is only valuable if it stays trustworthy and deduplicated | ✓ Good — agent pre-review + human approval gating working |
+| Retrieval stays text-only in v1 | Limits complexity and keeps the first milestone focused on useful search quality | ✓ Good — embeddings pipeline with deterministic fallback operational |
+| Skills must remain Claude-compatible | Anthropic skill compatibility is a stated product constraint, not a future nice-to-have | ✓ Good — skill scaffolding follows SKILL.md conventions |
+| Security level (0-10) on users and knowledge entries | Role templates alone too coarse-grained; level comparison simple to reason about | ✓ Good — RBAC enforcement across all 20 API routes verified |
+| Audit trail for all mutating operations | Teams need traceability for knowledge changes, especially for compliance debugging | ✓ Good — review/import/export/deactivate all logged, queryable via CLI |
 
 ## Evolution
 
@@ -78,4 +84,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-13 after initialization*
+*Last updated: 2026-04-14 after v1.0 milestone*
