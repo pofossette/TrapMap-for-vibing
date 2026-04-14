@@ -1,163 +1,27 @@
 import {
   type RetrievalQuery,
   type RetrievalResponse,
-  retrievalMatchSchema,
   retrievalQuerySchema,
-  retrievalResponseSchema,
 } from '@skill-shareer/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import { generateEmbedding, hashEmbeddingText } from '../embeddings.js';
 import { AppError } from '../errors.js';
-import type { EmbeddingCacheRecord, KnowledgeRecord } from '../store.js';
+import type { KnowledgeRecord } from '../store.js';
 import { nowIso } from '../store.js';
+import { buildEmptyResponse, buildRetrievalResponse, assembleResponseBuckets } from './assembly.js';
 import { filterEligibleEntries } from './filters.js';
+import { buildEmbeddingText, cosineSimilarity, computeScore, getEntryEmbedding as semanticGetEntryEmbedding, getQueryEmbedding } from './recall/semantic.js';
 import type { RetrievalPipelineContext, ScoredEntry } from './types.js';
-
-/**
- * Build the embedding text from a knowledge entry.
- * Uses shortcut, detail, and labels - excludes images, attachments, and review metadata.
- */
-function buildEmbeddingText(entry: KnowledgeRecord): string {
-  const labelsText = entry.labels.join(' ');
-  return `${entry.shortcut}\n${entry.detail}\n${labelsText}`.trim();
-}
-
-/**
- * Compute cosine similarity between two vectors.
- */
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error('Vector dimensions must match');
-  }
-
-  let dotProduct = 0;
-  let magnitudeA = 0;
-  let magnitudeB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    const ai = a[i] ?? 0;
-    const bi = b[i] ?? 0;
-    dotProduct += ai * bi;
-    magnitudeA += ai * ai;
-    magnitudeB += bi * bi;
-  }
-
-  magnitudeA = Math.sqrt(magnitudeA);
-  magnitudeB = Math.sqrt(magnitudeB);
-
-  if (magnitudeA === 0 || magnitudeB === 0) {
-    return 0;
-  }
-
-  return dotProduct / (magnitudeA * magnitudeB);
-}
-
-/**
- * Get or compute embedding vector for a knowledge entry.
- * Uses cache if available and text hasn't changed.
- */
-async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[]> {
-  const text = buildEmbeddingText(entry);
-  const textHash = hashEmbeddingText(text);
-
-  // Check cache: only use if revision matches and text hash matches
-  if (
-    entry.embeddingCache &&
-    entry.embeddingCache.revision === entry.history.length &&
-    entry.embeddingCache.textHash === textHash
-  ) {
-    return entry.embeddingCache.vector;
-  }
-
-  // Cache miss or outdated - compute new embedding
-  const vector = await generateEmbedding(text);
-
-  // Note: We don't update the cache here because we're working with a snapshot
-  // The cache would be updated when the entry is modified or approved
-  return vector;
-}
-
-/**
- * Compute relevance score with metadata-aware boosts.
- * Base score is embedding similarity, boosted by exact label/scope matches.
- */
-function computeScore(
-  similarity: number,
-  entry: KnowledgeRecord,
-  filters: RetrievalQuery['filters'],
-): number {
-  // Clamp similarity to [0, 1] range first
-  let score = Math.max(0, Math.min(1, similarity));
-
-  // Boost for exact label matches
-  if (filters.labels.length > 0) {
-    const matchingLabels = filters.labels.filter((label) => entry.labels.includes(label));
-    const labelBoost = matchingLabels.length * 0.05; // Small boost per matching label
-    score = Math.min(1, score + labelBoost);
-  }
-
-  // Boost for exact scope match
-  if (filters.scopes.length === 1 && filters.scopes[0] === entry.scope) {
-    score = Math.min(1, score + 0.03);
-  }
-
-  return score;
-}
-
-/**
- * Generate a human-readable reason for the match.
- */
-function generateMatchReason(
-  entry: KnowledgeRecord,
-  score: number,
-  filters: RetrievalQuery['filters'],
-): string {
-  const parts: string[] = [];
-
-  if (filters.labels.length > 0) {
-    const matchingLabels = filters.labels.filter((label) => entry.labels.includes(label));
-    if (matchingLabels.length > 0) {
-      parts.push(`matches labels: ${matchingLabels.join(', ')}`);
-    }
-  }
-
-  if (filters.scopes.length === 1 && filters.scopes[0] === entry.scope) {
-    parts.push(`scope: ${entry.scope}`);
-  }
-
-  const baseReason = parts.length > 0 ? parts.join('; ') : 'semantic similarity';
-  return `${baseReason} (score: ${score.toFixed(2)})`;
-}
-
-/**
- * Convert a knowledge entry to a retrieval match.
- */
-function toRetrievalMatch(
-  entry: KnowledgeRecord,
-  score: number,
-  filters: RetrievalQuery['filters'],
-) {
-  return retrievalMatchSchema.parse({
-    entryId: entry.id,
-    scope: entry.scope,
-    requiredLevel: entry.requiredLevel,
-    shortcut: entry.shortcut,
-    detail: entry.detail,
-    labels: entry.labels,
-    score,
-    reason: generateMatchReason(entry, score, filters),
-  });
-}
 
 /**
  * Main retrieval pipeline orchestrator.
  *
  * Pipeline order (enforced for security):
- * 1. Approval state filtering (server-owned gate)
- * 2. Permission/team filtering (server-owned gate)
- * 3. Vector embedding retrieval (semantic search)
- * 4. Response assembly and output shaping
+ * 1. Eligibility filtering (approval, team, level, metadata)
+ * 2. Semantic recall (embedding lookup and scoring)
+ * 3. Response assembly (bucket split and output shaping)
+ * 4. Optional refinement (if requested and provider configured)
  *
  * This orchestrator is the entrypoint for Phase 7+ extensions:
  * - Hybrid recall (vector + keyword)
@@ -184,21 +48,16 @@ export async function searchKnowledge(
   const eligibleEntries = filterEligibleEntries(data.knowledgeEntries, auth, parsed.filters);
 
   if (eligibleEntries.length === 0) {
-    return retrievalResponseSchema.parse({
-      globalConstraints: [],
-      projectKnowledge: [],
-      refinementSummary: null,
-    });
+    return buildEmptyResponse();
   }
 
   // Generate query embedding
-  const queryText = parsed.seed;
-  const queryVector = await generateEmbedding(queryText);
+  const queryVector = await getQueryEmbedding(parsed.seed);
 
   // Compute embeddings and scores for all eligible entries
   const scoredEntries = await Promise.all(
     eligibleEntries.map(async (entry) => {
-      const entryVector = await getEntryEmbedding(entry);
+      const entryVector = await semanticGetEntryEmbedding(entry);
       const similarity = cosineSimilarity(queryVector, entryVector);
       const score = computeScore(similarity, entry, parsed.filters);
       return { entry, score };
@@ -211,29 +70,15 @@ export async function searchKnowledge(
   // Take top maxResults
   const topMatches = scoredEntries.slice(0, parsed.maxResults);
 
-  // Split into global constraints and project knowledge
-  const globalConstraints = [];
-  const projectKnowledge = [];
-
-  for (const { entry, score } of topMatches) {
-    const match = toRetrievalMatch(entry, score, parsed.filters);
-    if (entry.scope === 'global') {
-      globalConstraints.push(match);
-    } else {
-      projectKnowledge.push(match);
-    }
-  }
+  // Assemble response buckets
+  const { globalConstraints, projectKnowledge } = assembleResponseBuckets(topMatches, parsed.filters);
 
   // Generate refinement summary if requested and available
   const refinementSummary = parsed.includeRefinement
     ? await generateRefinement(parsed.seed, globalConstraints, projectKnowledge)
     : null;
 
-  return retrievalResponseSchema.parse({
-    globalConstraints,
-    projectKnowledge,
-    refinementSummary,
-  });
+  return buildRetrievalResponse(globalConstraints, projectKnowledge, refinementSummary);
 }
 
 /**
