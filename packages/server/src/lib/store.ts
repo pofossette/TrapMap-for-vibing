@@ -148,6 +148,38 @@ export interface EmbeddingCacheRecord {
   revision: number;
 }
 
+/**
+ * Adapter-specific sync status tracked in the store.
+ * Used by the indexing pipeline to track per-adapter state.
+ */
+export interface AdapterSyncState {
+  /** Current sync status */
+  status: 'pending' | 'synced' | 'failed';
+  /** Revision that was last synced */
+  revision: number;
+  /** Content hash that was last synced */
+  contentHash: string;
+  /** When this adapter was last synced */
+  lastSyncedAt: string | null;
+  /** Last error message (if sync failed) */
+  lastError: string | null;
+}
+
+/**
+ * Complete index state record persisted on KnowledgeRecord.
+ * Tracks normalization and per-adapter sync status.
+ */
+export interface KnowledgeIndexStateRecord {
+  /** SHA-256 hash of the normalized content */
+  contentHash: string;
+  /** When the content was last normalized */
+  normalizedAt: string;
+  /** Vector adapter sync state */
+  vector: AdapterSyncState;
+  /** Keyword adapter sync state */
+  keyword: AdapterSyncState;
+}
+
 export interface KnowledgeRecord {
   id: string;
   teamId: string | null;
@@ -169,6 +201,8 @@ export interface KnowledgeRecord {
   lifecycleHistory: KnowledgeLifecycleEventRecord[];
   /** Cached embedding for retrieval (null if not yet computed) */
   embeddingCache: EmbeddingCacheRecord | null;
+  /** Index state for lifecycle-driven indexing (null if not yet indexed) */
+  indexState: KnowledgeIndexStateRecord | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -14,8 +14,7 @@ import { createKnowledgeEntryRecord } from '../knowledge.js';
 import { runPreReview } from '../pre-review.js';
 import { JsonStore, nowIso } from '../store.js';
 
-// Import the functions we're testing (these don't exist yet)
-// @ts-expect-error - Function doesn't exist yet, will be implemented
+// Import the functions we're testing
 import { reconcileKnowledgeIndexes, syncKnowledgeIndex } from './pipeline.js';
 
 describe('indexing pipeline', () => {
@@ -61,16 +60,21 @@ describe('indexing pipeline', () => {
       });
 
       // Create and approve a knowledge entry
+      const snapshot = await store.snapshot();
       const preReview = await runPreReview({
-        shortcut: 'JWT Authentication',
-        detail: 'Use JWT tokens for API authentication',
-        labels: ['security', 'auth'],
-        scope: 'global',
+        existingEntries: snapshot.knowledgeEntries,
+        submission: {
+          shortcut: 'JWT Authentication',
+          detail: 'Use JWT tokens for API authentication',
+          labels: ['security', 'auth'],
+          scope: 'global',
+        },
       });
 
       let entryId: string;
       await store.transact(async (data) => {
-        const userIdForTransact = (await store.snapshot()).users[0].id;
+        const userIdForTransact = (await store.snapshot()).users[0]?.id;
+        if (!userIdForTransact) throw new Error('User not found');
         const entry = createKnowledgeEntryRecord({
           store,
           data,
@@ -95,19 +99,31 @@ describe('indexing pipeline', () => {
       });
 
       // Mock adapters to track calls
-      const vectorAdapterSpy = vi.fn().mockResolvedValue(undefined);
-      const keywordAdapterSpy = vi.fn().mockResolvedValue(undefined);
+      const vectorAdapterSpy = vi.fn().mockResolvedValue({
+        adapterKind: 'vector' as const,
+        success: true,
+        error: null,
+        performedWork: true,
+      });
+      const keywordAdapterSpy = vi.fn().mockResolvedValue({
+        adapterKind: 'keyword' as const,
+        success: true,
+        error: null,
+        performedWork: true,
+      });
 
       const mockAdapters = [
         {
-          kind: 'vector',
+          kind: 'vector' as const,
           sync: vectorAdapterSpy,
+          remove: vi.fn().mockResolvedValue(undefined),
         },
         {
-          kind: 'keyword',
+          kind: 'keyword' as const,
           sync: keywordAdapterSpy,
+          remove: vi.fn().mockResolvedValue(undefined),
         },
-      ] as const;
+      ];
 
       // Sync the entry
       await store.transact(async (data) => {
@@ -149,16 +165,21 @@ describe('indexing pipeline', () => {
       });
 
       // Create a knowledge entry in non-approved state
+      const snapshot2 = await store.snapshot();
       const preReview = await runPreReview({
-        shortcut: 'Draft Entry',
-        detail: 'This is a draft',
-        labels: ['draft'],
-        scope: 'global',
+        existingEntries: snapshot2.knowledgeEntries,
+        submission: {
+          shortcut: 'Draft Entry',
+          detail: 'This is a draft',
+          labels: ['draft'],
+          scope: 'global',
+        },
       });
 
       let entryId: string;
       await store.transact(async (data) => {
-        const userIdForTransact = (await store.snapshot()).users[0].id;
+        const userIdForTransact = (await store.snapshot()).users[0]?.id;
+        if (!userIdForTransact) throw new Error('User not found');
         const entry = createKnowledgeEntryRecord({
           store,
           data,
@@ -183,13 +204,19 @@ describe('indexing pipeline', () => {
       });
 
       // Mock adapter
-      const adapterSpy = vi.fn().mockResolvedValue(undefined);
+      const adapterSpy = vi.fn().mockResolvedValue({
+        adapterKind: 'vector' as const,
+        success: true,
+        error: null,
+        performedWork: true,
+      });
       const mockAdapters = [
         {
-          kind: 'vector',
+          kind: 'vector' as const,
           sync: adapterSpy,
+          remove: vi.fn().mockResolvedValue(undefined),
         },
-      ] as const;
+      ];
 
       // Sync the entry
       await store.transact(async (data) => {
@@ -217,16 +244,21 @@ describe('indexing pipeline', () => {
       });
 
       // Create an approved knowledge entry with existing index state
+      const snapshot3 = await store.snapshot();
       const preReview = await runPreReview({
-        shortcut: 'JWT Authentication',
-        detail: 'Use JWT tokens for API authentication',
-        labels: ['security', 'auth'],
-        scope: 'global',
+        existingEntries: snapshot3.knowledgeEntries,
+        submission: {
+          shortcut: 'JWT Authentication',
+          detail: 'Use JWT tokens for API authentication',
+          labels: ['security', 'auth'],
+          scope: 'global',
+        },
       });
 
       let entryId: string;
       await store.transact(async (data) => {
-        const userIdForTransact = (await store.snapshot()).users[0].id;
+        const userIdForTransact = (await store.snapshot()).users[0]?.id;
+        if (!userIdForTransact) throw new Error('User not found');
         const entry = createKnowledgeEntryRecord({
           store,
           data,
@@ -266,11 +298,16 @@ describe('indexing pipeline', () => {
       const removeSpy = vi.fn().mockResolvedValue(undefined);
       const mockAdapters = [
         {
-          kind: 'vector',
-          sync: vi.fn().mockResolvedValue(undefined),
+          kind: 'vector' as const,
+          sync: vi.fn().mockResolvedValue({
+            adapterKind: 'vector' as const,
+            success: true,
+            error: null,
+            performedWork: true,
+          }),
           remove: removeSpy,
         },
-      ] as const;
+      ];
 
       // Sync the deactivated entry
       await store.transact(async (data) => {
@@ -303,16 +340,21 @@ describe('indexing pipeline', () => {
       });
 
       // Create an approved knowledge entry
+      const snapshot4 = await store.snapshot();
       const preReview = await runPreReview({
-        shortcut: 'JWT Authentication',
-        detail: 'Use JWT tokens for API authentication',
-        labels: ['security', 'auth'],
-        scope: 'global',
+        existingEntries: snapshot4.knowledgeEntries,
+        submission: {
+          shortcut: 'JWT Authentication',
+          detail: 'Use JWT tokens for API authentication',
+          labels: ['security', 'auth'],
+          scope: 'global',
+        },
       });
 
       let entryId: string;
       await store.transact(async (data) => {
-        const userIdForTransact = (await store.snapshot()).users[0].id;
+        const userIdForTransact = (await store.snapshot()).users[0]?.id;
+        if (!userIdForTransact) throw new Error('User not found');
         const entry = createKnowledgeEntryRecord({
           store,
           data,
@@ -336,13 +378,19 @@ describe('indexing pipeline', () => {
       });
 
       // Mock adapter
-      const adapterSpy = vi.fn().mockResolvedValue(undefined);
+      const adapterSpy = vi.fn().mockResolvedValue({
+        adapterKind: 'vector' as const,
+        success: true,
+        error: null,
+        performedWork: true,
+      });
       const mockAdapters = [
         {
-          kind: 'vector',
+          kind: 'vector' as const,
           sync: adapterSpy,
+          remove: vi.fn().mockResolvedValue(undefined),
         },
-      ] as const;
+      ];
 
       // First sync
       await store.transact(async (data) => {
@@ -384,22 +432,31 @@ describe('indexing pipeline', () => {
       });
 
       // Create approved entries without index state
+      const reconcileSnapshot1 = await store.snapshot();
       const preReview1 = await runPreReview({
-        shortcut: 'Entry One',
-        detail: 'First entry',
-        labels: ['test'],
-        scope: 'global',
+        existingEntries: reconcileSnapshot1.knowledgeEntries,
+        submission: {
+          shortcut: 'Entry One',
+          detail: 'First entry',
+          labels: ['test'],
+          scope: 'global',
+        },
       });
 
+      const reconcileSnapshot2 = await store.snapshot();
       const preReview2 = await runPreReview({
-        shortcut: 'Entry Two',
-        detail: 'Second entry',
-        labels: ['test'],
-        scope: 'global',
+        existingEntries: reconcileSnapshot2.knowledgeEntries,
+        submission: {
+          shortcut: 'Entry Two',
+          detail: 'Second entry',
+          labels: ['test'],
+          scope: 'global',
+        },
       });
 
       await store.transact(async (data) => {
-        const userIdForTransact = (await store.snapshot()).users[0].id;
+        const userIdForTransact = (await store.snapshot()).users[0]?.id;
+        if (!userIdForTransact) throw new Error('User not found');
 
         const entry1 = createKnowledgeEntryRecord({
           store,
@@ -439,13 +496,19 @@ describe('indexing pipeline', () => {
       });
 
       // Mock adapter
-      const adapterSpy = vi.fn().mockResolvedValue(undefined);
+      const adapterSpy = vi.fn().mockResolvedValue({
+        adapterKind: 'vector' as const,
+        success: true,
+        error: null,
+        performedWork: true,
+      });
       const mockAdapters = [
         {
-          kind: 'vector',
+          kind: 'vector' as const,
           sync: adapterSpy,
+          remove: vi.fn().mockResolvedValue(undefined),
         },
-      ] as const;
+      ];
 
       // Reconcile should sync both entries
       await reconcileKnowledgeIndexes({ store }, mockAdapters);
@@ -470,15 +533,20 @@ describe('indexing pipeline', () => {
       });
 
       // Create an entry with existing index state but in non-approved state
+      const reconcileSnapshot3 = await store.snapshot();
       const preReview = await runPreReview({
-        shortcut: 'Rejected Entry',
-        detail: 'This entry was rejected',
-        labels: ['test'],
-        scope: 'global',
+        existingEntries: reconcileSnapshot3.knowledgeEntries,
+        submission: {
+          shortcut: 'Rejected Entry',
+          detail: 'This entry was rejected',
+          labels: ['test'],
+          scope: 'global',
+        },
       });
 
       await store.transact(async (data) => {
-        const userIdForTransact = (await store.snapshot()).users[0].id;
+        const userIdForTransact = (await store.snapshot()).users[0]?.id;
+        if (!userIdForTransact) throw new Error('User not found');
         const entry = createKnowledgeEntryRecord({
           store,
           data,
@@ -511,11 +579,16 @@ describe('indexing pipeline', () => {
       const removeSpy = vi.fn().mockResolvedValue(undefined);
       const mockAdapters = [
         {
-          kind: 'vector',
-          sync: vi.fn().mockResolvedValue(undefined),
+          kind: 'vector' as const,
+          sync: vi.fn().mockResolvedValue({
+            adapterKind: 'vector' as const,
+            success: true,
+            error: null,
+            performedWork: true,
+          }),
           remove: removeSpy,
         },
-      ] as const;
+      ];
 
       // Reconcile should remove index state
       await reconcileKnowledgeIndexes({ store }, mockAdapters);

@@ -33,12 +33,12 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
     const result = queryAuditEvents({
       data,
       query: {
-        action: query.action,
-        actorId: query.actorId,
-        entityId: query.entityId,
-        teamId: query.teamId,
-        from: query.from,
-        to: query.to,
+        ...(query.action !== undefined && { action: query.action }),
+        ...(query.actorId !== undefined && { actorId: query.actorId }),
+        ...(query.entityId !== undefined && { entityId: query.entityId }),
+        ...(query.teamId !== undefined && { teamId: query.teamId }),
+        ...(query.from !== undefined && { from: query.from }),
+        ...(query.to !== undefined && { to: query.to }),
         limit: query.limit,
       },
       auth,
@@ -219,7 +219,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
         teamId: exportTeamId ?? null,
         actor: auth,
         action: 'knowledge-exported',
-        entityId: entryCount > 0 ? items[0].id : 'batch',
+        entityId: entryCount > 0 ? (items[0]?.id ?? 'batch') : 'batch',
         payload: { entryCount, teamId: exportTeamId, includeHistory: body.includeHistory },
       });
       data.auditEvents.push(auditEvent);

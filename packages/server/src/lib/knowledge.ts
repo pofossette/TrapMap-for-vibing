@@ -285,6 +285,7 @@ export function createKnowledgeEntryRecord(args: {
       }),
     ],
     embeddingCache: null,
+    indexState: null,
     createdAt: args.createdAt,
     updatedAt: args.createdAt,
   };

@@ -59,8 +59,7 @@ function createTestEntry(overrides: Partial<KnowledgeRecord>): KnowledgeRecord {
   } as KnowledgeRecord;
 }
 
-// Import the functions we're testing (these don't exist yet)
-// @ts-expect-error - Function doesn't exist yet, will be implemented
+// Import the functions we're testing
 import { normalizeKnowledgeIndexDocument } from './normalize.js';
 
 describe('normalizeKnowledgeIndexDocument', () => {
@@ -180,11 +179,18 @@ describe('normalizeKnowledgeIndexDocument', () => {
     const doc2 = normalizeKnowledgeIndexDocument(entry);
     const doc3 = normalizeKnowledgeIndexDocument(entry);
 
-    // All results should be identical
-    expect(doc1).toEqual(doc2);
-    expect(doc2).toEqual(doc3);
+    // All deterministic fields should be identical (normalizedAt changes)
+    expect(doc1.canonicalText).toBe(doc2.canonicalText);
+    expect(doc2.canonicalText).toBe(doc3.canonicalText);
+    expect(doc1.tokens).toEqual(doc2.tokens);
+    expect(doc2.tokens).toEqual(doc3.tokens);
     expect(doc1.contentHash).toBe(doc2.contentHash);
     expect(doc2.contentHash).toBe(doc3.contentHash);
+
+    // normalizedAt should be a valid ISO timestamp but may differ
+    expect(doc1.normalizedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    expect(doc2.normalizedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    expect(doc3.normalizedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   });
 
   it('normalizes tokens to lowercase', () => {
