@@ -6,6 +6,14 @@ import { createKnowledgeEntryRecord } from './knowledge.js';
 import { runPreReview } from './pre-review.js';
 import { searchKnowledge, updateEntryEmbeddingCache } from './retrieval.js';
 import { JsonStore, nowIso } from './store.js';
+import {
+  createSemanticCandidate,
+  hasBothChannels,
+  mergeCandidates,
+  toScoredEntries,
+  toScoredEntry,
+} from './retrieval/merge.js';
+import type { RecallCandidate, MergedCandidate } from './retrieval/types.js';
 
 describe('retrieval', () => {
   let mockStore: JsonStore;
@@ -659,6 +667,336 @@ describe('retrieval', () => {
         expect(match.reason).toBeTruthy();
         expect(match.reason.length).toBeGreaterThan(0);
       }
+    });
+  });
+});
+
+// =============================================================================
+// Merge Module Tests (Phase 7 Hybrid Groundwork)
+// =============================================================================
+
+/**
+ * Helper to create a minimal KnowledgeRecord for merge testing.
+ */
+function createTestEntryForMerge(overrides: Partial<KnowledgeRecord>): KnowledgeRecord {
+  return {
+    id: 'test_1',
+    teamId: null,
+    scope: 'global',
+    labels: [],
+    shortcut: '',
+    detail: '',
+    requiredLevel: 0,
+    lifecycleState: 'approved',
+    ownerUserId: 'user_1',
+    latestRevision: {
+      revision: 1,
+      submittedAt: '2024-01-01T00:00:00Z',
+      submittedByUserId: 'user_1',
+      shortcut: '',
+      detail: '',
+      labels: [],
+      reviewNotes: [],
+    },
+    history: [],
+    metadata: {
+      scopeLabel: 'global-constraint',
+      submissionCount: 1,
+      resubmissionCount: 0,
+      revisionCount: 1,
+      latestSubmissionId: null,
+      latestSubmittedAt: null,
+      latestReviewedAt: null,
+      latestDecision: null,
+    },
+    latestSubmissionId: null,
+    submissionHistory: [],
+    agentReview: null,
+    reviewHistory: [],
+    reviewNotes: [],
+    lifecycleHistory: [],
+    embeddingCache: null,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    ...overrides,
+  } as KnowledgeRecord;
+}
+
+describe('merge module', () => {
+  describe('mergeCandidates', () => {
+    it('deduplicates candidates by entry id when the same entry appears in both channels', () => {
+      const sharedEntry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const semanticCandidates: RecallCandidate[] = [
+        { entry: sharedEntry, channel: 'semantic', score: 0.8, tokenMatches: [] },
+      ];
+
+      const keywordCandidates: RecallCandidate[] = [
+        { entry: sharedEntry, channel: 'keyword', score: 0.6, tokenMatches: [{ token: 'test', fields: ['shortcut'] }] },
+      ];
+
+      const merged = mergeCandidates(semanticCandidates, keywordCandidates);
+
+      // Should have exactly one entry (deduplicated)
+      expect(merged.length).toBe(1);
+      expect(merged[0]?.entry.id).toBe('entry_1');
+
+      // Should have both channel scores preserved
+      expect(merged[0]?.semanticScore).toBe(0.8);
+      expect(merged[0]?.keywordScore).toBe(0.6);
+
+      // Should have both channels recorded
+      expect(merged[0]?.channels).toContain('semantic');
+      expect(merged[0]?.channels).toContain('keyword');
+
+      // Token matches from keyword channel should be preserved
+      expect(merged[0]?.tokenMatches.length).toBe(1);
+    });
+
+    it('preserves normalized channel evidence for later rerank', () => {
+      const entry1 = createTestEntryForMerge({ id: 'entry_1' });
+      const entry2 = createTestEntryForMerge({ id: 'entry_2' });
+
+      const semanticCandidates: RecallCandidate[] = [
+        { entry: entry1, channel: 'semantic', score: 0.9, tokenMatches: [] },
+      ];
+
+      const keywordCandidates: RecallCandidate[] = [
+        { entry: entry2, channel: 'keyword', score: 0.7, tokenMatches: [{ token: 'test', fields: ['detail'] }] },
+      ];
+
+      const merged = mergeCandidates(semanticCandidates, keywordCandidates);
+
+      expect(merged.length).toBe(2);
+
+      // Semantic-only entry should have keywordScore of 0
+      const semanticOnly = merged.find((m) => m.entry.id === 'entry_1');
+      expect(semanticOnly).toBeDefined();
+      expect(semanticOnly?.semanticScore).toBe(0.9);
+      expect(semanticOnly?.keywordScore).toBe(0);
+      expect(semanticOnly?.channels).toEqual(['semantic']);
+
+      // Keyword-only entry should have semanticScore of 0
+      const keywordOnly = merged.find((m) => m.entry.id === 'entry_2');
+      expect(keywordOnly).toBeDefined();
+      expect(keywordOnly?.semanticScore).toBe(0);
+      expect(keywordOnly?.keywordScore).toBe(0.7);
+      expect(keywordOnly?.channels).toEqual(['keyword']);
+    });
+
+    it('sorts merged candidates deterministically and respects maxCandidates bound', () => {
+      const entryA = createTestEntryForMerge({ id: 'entry_a' });
+      const entryB = createTestEntryForMerge({ id: 'entry_b' });
+      const entryC = createTestEntryForMerge({ id: 'entry_c' });
+
+      const semanticCandidates: RecallCandidate[] = [
+        { entry: entryA, channel: 'semantic', score: 0.5, tokenMatches: [] },
+        { entry: entryB, channel: 'semantic', score: 0.9, tokenMatches: [] },
+        { entry: entryC, channel: 'semantic', score: 0.3, tokenMatches: [] },
+      ];
+
+      const keywordCandidates: RecallCandidate[] = [];
+
+      const merged = mergeCandidates(semanticCandidates, keywordCandidates, { maxCandidates: 2 });
+
+      // Should be limited to 2 candidates
+      expect(merged.length).toBe(2);
+
+      // Should be sorted by combined score descending
+      expect(merged[0]?.entry.id).toBe('entry_b'); // 0.9 * 0.6 = 0.54
+      expect(merged[1]?.entry.id).toBe('entry_a'); // 0.5 * 0.6 = 0.30
+    });
+
+    it('uses entry id as tiebreaker for deterministic ordering when scores are equal', () => {
+      const entryA = createTestEntryForMerge({ id: 'entry_a' });
+      const entryB = createTestEntryForMerge({ id: 'entry_b' });
+      const entryC = createTestEntryForMerge({ id: 'entry_c' });
+
+      // All entries have same score - should be sorted by ID
+      const semanticCandidates: RecallCandidate[] = [
+        { entry: entryC, channel: 'semantic', score: 0.8, tokenMatches: [] },
+        { entry: entryA, channel: 'semantic', score: 0.8, tokenMatches: [] },
+        { entry: entryB, channel: 'semantic', score: 0.8, tokenMatches: [] },
+      ];
+
+      const merged = mergeCandidates(semanticCandidates, []);
+
+      // Should be sorted by entry ID ascending when scores are equal
+      expect(merged[0]?.entry.id).toBe('entry_a');
+      expect(merged[1]?.entry.id).toBe('entry_b');
+      expect(merged[2]?.entry.id).toBe('entry_c');
+    });
+
+    it('combines scores using weighted average with default weights', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const semanticCandidates: RecallCandidate[] = [
+        { entry, channel: 'semantic', score: 1.0, tokenMatches: [] },
+      ];
+
+      const keywordCandidates: RecallCandidate[] = [
+        { entry, channel: 'keyword', score: 1.0, tokenMatches: [] },
+      ];
+
+      const merged = mergeCandidates(semanticCandidates, keywordCandidates);
+
+      // Default weights: semantic=0.6, keyword=0.4
+      // Combined: 1.0 * 0.6 + 1.0 * 0.4 = 1.0
+      expect(merged[0]?.combinedScore).toBeCloseTo(1.0, 5);
+    });
+
+    it('supports custom merge weights', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const semanticCandidates: RecallCandidate[] = [
+        { entry, channel: 'semantic', score: 0.8, tokenMatches: [] },
+      ];
+
+      const keywordCandidates: RecallCandidate[] = [
+        { entry, channel: 'keyword', score: 0.6, tokenMatches: [] },
+      ];
+
+      const merged = mergeCandidates(semanticCandidates, keywordCandidates, {
+        semanticWeight: 0.8,
+        keywordWeight: 0.2,
+      });
+
+      // Custom weights: 0.8 * 0.8 + 0.6 * 0.2 = 0.64 + 0.12 = 0.76
+      expect(merged[0]?.combinedScore).toBeCloseTo(0.76, 5);
+    });
+
+    it('returns empty array when both candidate lists are empty', () => {
+      const merged = mergeCandidates([], []);
+      expect(merged).toEqual([]);
+    });
+
+    it('handles semantic-only candidates', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const semanticCandidates: RecallCandidate[] = [
+        { entry, channel: 'semantic', score: 0.8, tokenMatches: [] },
+      ];
+
+      const merged = mergeCandidates(semanticCandidates, []);
+
+      expect(merged.length).toBe(1);
+      expect(merged[0]?.semanticScore).toBe(0.8);
+      expect(merged[0]?.keywordScore).toBe(0);
+      expect(merged[0]?.channels).toEqual(['semantic']);
+    });
+
+    it('handles keyword-only candidates', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const keywordCandidates: RecallCandidate[] = [
+        { entry, channel: 'keyword', score: 0.7, tokenMatches: [] },
+      ];
+
+      const merged = mergeCandidates([], keywordCandidates);
+
+      expect(merged.length).toBe(1);
+      expect(merged[0]?.semanticScore).toBe(0);
+      expect(merged[0]?.keywordScore).toBe(0.7);
+      expect(merged[0]?.channels).toEqual(['keyword']);
+    });
+  });
+
+  describe('toScoredEntry', () => {
+    it('converts merged candidate to scored entry using combined score', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const merged: MergedCandidate = {
+        entry,
+        semanticScore: 0.8,
+        keywordScore: 0.6,
+        combinedScore: 0.72,
+        tokenMatches: [],
+        channels: ['semantic', 'keyword'],
+      };
+
+      const scored = toScoredEntry(merged);
+
+      expect(scored.entry.id).toBe('entry_1');
+      expect(scored.score).toBe(0.72);
+    });
+  });
+
+  describe('toScoredEntries', () => {
+    it('converts multiple merged candidates to scored entries', () => {
+      const entry1 = createTestEntryForMerge({ id: 'entry_1' });
+      const entry2 = createTestEntryForMerge({ id: 'entry_2' });
+
+      const merged: MergedCandidate[] = [
+        {
+          entry: entry1,
+          semanticScore: 0.9,
+          keywordScore: 0,
+          combinedScore: 0.54,
+          tokenMatches: [],
+          channels: ['semantic'],
+        },
+        {
+          entry: entry2,
+          semanticScore: 0,
+          keywordScore: 0.8,
+          combinedScore: 0.32,
+          tokenMatches: [],
+          channels: ['keyword'],
+        },
+      ];
+
+      const scored = toScoredEntries(merged);
+
+      expect(scored.length).toBe(2);
+      expect(scored[0]?.entry.id).toBe('entry_1');
+      expect(scored[0]?.score).toBe(0.54);
+      expect(scored[1]?.entry.id).toBe('entry_2');
+      expect(scored[1]?.score).toBe(0.32);
+    });
+  });
+
+  describe('createSemanticCandidate', () => {
+    it('creates a semantic candidate with correct properties', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const candidate = createSemanticCandidate(entry, 0.85);
+
+      expect(candidate.entry.id).toBe('entry_1');
+      expect(candidate.channel).toBe('semantic');
+      expect(candidate.score).toBe(0.85);
+      expect(candidate.tokenMatches).toEqual([]);
+    });
+  });
+
+  describe('hasBothChannels', () => {
+    it('returns true when candidate has both channels', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const merged: MergedCandidate = {
+        entry,
+        semanticScore: 0.8,
+        keywordScore: 0.6,
+        combinedScore: 0.72,
+        tokenMatches: [],
+        channels: ['semantic', 'keyword'],
+      };
+
+      expect(hasBothChannels(merged)).toBe(true);
+    });
+
+    it('returns false when candidate has only one channel', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const semanticOnly: MergedCandidate = {
+        entry,
+        semanticScore: 0.8,
+        keywordScore: 0,
+        combinedScore: 0.48,
+        tokenMatches: [],
+        channels: ['semantic'],
+      };
+
+      expect(hasBothChannels(semanticOnly)).toBe(false);
     });
   });
 });
