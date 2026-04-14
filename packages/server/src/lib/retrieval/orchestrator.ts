@@ -12,8 +12,9 @@ import { nowIso } from '../store.js';
 import { buildEmptyResponse, buildRetrievalResponse, assembleResponseBuckets } from './assembly.js';
 import { filterEligibleEntries } from './filters.js';
 import { mergeCandidates, toScoredEntries, createSemanticCandidate } from './merge.js';
-import { keywordRecall } from './recall/keyword.js';
+import { keywordRecall, normalizeQuery } from './recall/keyword.js';
 import { buildEmbeddingText, cosineSimilarity, computeScore, getEntryEmbedding as semanticGetEntryEmbedding, getQueryEmbedding } from './recall/semantic.js';
+import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
 import type { RetrievalPipelineContext, ScoredEntry } from './types.js';
 
 /**
@@ -143,7 +144,8 @@ async function semanticRecall(
  * Pipeline:
  * 1. Run semantic recall in parallel with keyword recall
  * 2. Merge candidates from both channels (dedupe by entry.id)
- * 3. Return scored entries sorted by combined score
+ * 3. Rerank merged candidates using heuristic boosts
+ * 4. Return scored entries sorted by final score
  *
  * @param seed - Search query text
  * @param eligibleEntries - Entries that passed eligibility filters
@@ -155,6 +157,9 @@ async function hybridRecall(
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
 ): Promise<ScoredEntry[]> {
+  // Normalize query tokens for rerank stage
+  const queryTokens = normalizeQuery(seed);
+
   // Run both channels in parallel
   const [semanticCandidates, keywordCandidates] = await Promise.all([
     // Semantic channel: compute embeddings and scores
@@ -163,13 +168,16 @@ async function hybridRecall(
     keywordRecall(seed, eligibleEntries),
   ]);
 
-  // Merge candidates from both channels
-  const mergedCandidates = mergeCandidates(semanticCandidates, keywordCandidates, {
+  // Merge candidates from both channels (no limit yet - rerank first)
+  const mergedCandidates = mergeCandidates(semanticCandidates, keywordCandidates);
+
+  // Rerank merged candidates using heuristic boosts
+  const rerankedCandidates = rerankCandidates(mergedCandidates, queryTokens, {
     maxCandidates: parsed.maxResults,
   });
 
   // Convert to scored entries for assembly
-  return toScoredEntries(mergedCandidates);
+  return toScoredEntriesFromReranked(rerankedCandidates);
 }
 
 /**
