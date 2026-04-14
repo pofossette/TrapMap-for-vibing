@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/webpro/knip/main/knip.schema.json",
+  "entry": [
+    "packages/cli/src/index.ts",
+    "packages/server/src/index.ts",
+    "packages/contracts/src/index.ts"
+  ],
+  "project": "tsconfig.json",
+  "ignore": [
+    "dist/**",
+    "node_modules/**",
+    ".planning/**",
+    ".claude/**",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ],
+  "ignoreDependencies": [
+    "@biomejs/biome"
+  ]
+}

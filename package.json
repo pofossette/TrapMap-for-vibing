@@ -9,12 +9,15 @@
     "dev:cli": "pnpm --filter @skill-shareer/cli dev",
     "dev:server": "pnpm --filter @skill-shareer/server dev",
     "format": "biome format --write .",
+    "knip": "knip",
+    "knip:fix": "knip --fix",
     "lint": "biome check .",
     "test": "pnpm -r run test",
     "typecheck": "tsc -b --pretty false"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "knip": "^6.4.1",
     "tsx": "^4.20.3",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
