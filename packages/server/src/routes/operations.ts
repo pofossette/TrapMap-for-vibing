@@ -17,10 +17,10 @@ import { createAuditEvent, queryAuditEvents, toAuditEvent } from '../lib/audit.j
 import { AppError } from '../lib/errors.js';
 import { createImportedEntry, detectDuplicates, parseClaudeSkill } from '../lib/import-export.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '../lib/knowledge.js';
+import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
-import { runPreReview } from '../lib/pre-review.js';
 
 export const operationsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/operations/audit', async (request) => {

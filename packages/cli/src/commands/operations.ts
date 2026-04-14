@@ -16,8 +16,8 @@ import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
-import { printResult } from '../lib/output.js';
 import { resolveTextInput } from '../lib/input.js';
+import { printResult } from '../lib/output.js';
 
 interface OperationsCommandOptions {
   allowExport: boolean;
@@ -31,7 +31,9 @@ interface OperationsCommandOptions {
  * Extracts name as shortcut and description as detail.
  * Returns null if parsing fails.
  */
-function parseClaudeSkill(content: string): { shortcut: string; detail: string; scope: string; labels: string[] } | null {
+function parseClaudeSkill(
+  content: string,
+): { shortcut: string; detail: string; scope: string; labels: string[] } | null {
   // Match frontmatter between --- markers
   const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
 
@@ -96,7 +98,10 @@ function formatListResponse(response: KnowledgeListResponse): string {
     .join('\n\n');
 }
 
-export function registerOperationsCommands(program: Command, options: OperationsCommandOptions): void {
+export function registerOperationsCommands(
+  program: Command,
+  options: OperationsCommandOptions,
+): void {
   if (options.allowExport) {
     program
       .command('list')
@@ -135,7 +140,10 @@ export function registerOperationsCommands(program: Command, options: Operations
             queryParams.set('ownerUserId', flags.owner);
           }
 
-          const path = queryParams.size > 0 ? `/v1/operations/knowledge?${queryParams}` : '/v1/operations/knowledge';
+          const path =
+            queryParams.size > 0
+              ? `/v1/operations/knowledge?${queryParams}`
+              : '/v1/operations/knowledge';
           const response = await apiRequest<KnowledgeListResponse>(state, { path });
           const parsed = knowledgeListResponseSchema.parse(response.data);
 
@@ -194,9 +202,11 @@ export function registerOperationsCommands(program: Command, options: Operations
           const parsed = knowledgeEntryResponseSchema.parse(response.data);
 
           printResult(parsed, flags, ({ entry }) =>
-            [`Updated ${entry.id}`, `Lifecycle: ${entry.lifecycleState}`, `Revision: ${entry.latestRevision.revision}`].join(
-              '\n',
-            ),
+            [
+              `Updated ${entry.id}`,
+              `Lifecycle: ${entry.lifecycleState}`,
+              `Revision: ${entry.latestRevision.revision}`,
+            ].join('\n'),
           );
         },
       );
@@ -238,7 +248,12 @@ export function registerOperationsCommands(program: Command, options: Operations
       .option('--output <path>', 'Write output to file instead of stdout')
       .option('--json', 'Output JSON')
       .action(
-        async (flags: { includeHistory?: boolean; json?: boolean; output?: string; team?: string }) => {
+        async (flags: {
+          includeHistory?: boolean;
+          json?: boolean;
+          output?: string;
+          team?: string;
+        }) => {
           const state = await loadCliState();
           requireSessionToken(state);
 
@@ -277,7 +292,9 @@ export function registerOperationsCommands(program: Command, options: Operations
       .command('import')
       .description('Import knowledge entries from JSON or skill files')
       .requiredOption('--file <path>', 'Path to JSON file containing entries')
-      .requiredOption('--level <n>', 'Requested security level for imported entries', (val) => Number(val))
+      .requiredOption('--level <n>', 'Requested security level for imported entries', (val) =>
+        Number(val),
+      )
       .option('--json', 'Output JSON')
       .action(async (flags: { file: string; json?: boolean; level: number }) => {
         const state = await loadCliState();
@@ -307,14 +324,16 @@ export function registerOperationsCommands(program: Command, options: Operations
             }));
           } else if (parsed.items && Array.isArray(parsed.items)) {
             // Export bundle format
-            entries = parsed.items.map((entry: { scope: string; labels: string[]; shortcut: string; detail: string }) => ({
-              scope: entry.scope ?? 'project',
-              labels: entry.labels ?? ['imported'],
-              shortcut: entry.shortcut,
-              detail: entry.detail,
-              source: 'json' as const,
-              requestedLevel: flags.level,
-            }));
+            entries = parsed.items.map(
+              (entry: { scope: string; labels: string[]; shortcut: string; detail: string }) => ({
+                scope: entry.scope ?? 'project',
+                labels: entry.labels ?? ['imported'],
+                shortcut: entry.shortcut,
+                detail: entry.detail,
+                source: 'json' as const,
+                requestedLevel: flags.level,
+              }),
+            );
           } else {
             throw new Error('JSON must be an array of entries or an export bundle');
           }

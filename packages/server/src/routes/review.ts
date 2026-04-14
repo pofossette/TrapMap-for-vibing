@@ -51,7 +51,8 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
                     handle:
                       data.users.find(
                         (candidate) =>
-                          candidate.id === (entry.reviewHistory.at(-1)?.decidedByUserId ?? owner.id)
+                          candidate.id ===
+                          (entry.reviewHistory.at(-1)?.decidedByUserId ?? owner.id),
                       )?.handle ?? owner.handle,
                     securityLevel: entry.requiredLevel,
                   },

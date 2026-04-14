@@ -1,11 +1,11 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import { searchKnowledge, updateEntryEmbeddingCache } from './retrieval.js';
+import type { RetrievalQuery } from '@skill-shareer/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
-import { JsonStore, nowIso } from './store.js';
 import { createKnowledgeEntryRecord } from './knowledge.js';
 import { runPreReview } from './pre-review.js';
-import type { RetrievalQuery } from '@skill-shareer/contracts';
+import { searchKnowledge, updateEntryEmbeddingCache } from './retrieval.js';
+import { JsonStore, nowIso } from './store.js';
 
 describe('retrieval', () => {
   let mockStore: JsonStore;
@@ -85,7 +85,8 @@ describe('retrieval', () => {
             scope: 'global',
             labels: ['security', 'auth'],
             shortcut: 'Always validate JWT tokens',
-            detail: 'JWT tokens must be validated on every request to prevent authorization bypass.',
+            detail:
+              'JWT tokens must be validated on every request to prevent authorization bypass.',
           },
         }),
       });
@@ -102,7 +103,8 @@ describe('retrieval', () => {
           scope: 'project',
           labels: ['typescript', 'types'],
           shortcut: 'Use strict null checks',
-          detail: 'Enable strictNullChecks in tsconfig to catch null reference errors at compile time.',
+          detail:
+            'Enable strictNullChecks in tsconfig to catch null reference errors at compile time.',
         },
         requiredLevel: 5,
         createdAt,
@@ -112,7 +114,8 @@ describe('retrieval', () => {
             scope: 'project',
             labels: ['typescript', 'types'],
             shortcut: 'Use strict null checks',
-            detail: 'Enable strictNullChecks in tsconfig to catch null reference errors at compile time.',
+            detail:
+              'Enable strictNullChecks in tsconfig to catch null reference errors at compile time.',
           },
         }),
       });
@@ -475,7 +478,9 @@ describe('retrieval', () => {
 
         // Reason should include concrete information, not just generic text
         // Check for at least one of: label mentions, scope mentions, or score
-        const hasLabels = match.labels.some((label) => match.reason.toLowerCase().includes(label.toLowerCase()));
+        const hasLabels = match.labels.some((label) =>
+          match.reason.toLowerCase().includes(label.toLowerCase()),
+        );
         const hasScope = match.reason.toLowerCase().includes(match.scope.toLowerCase());
         const hasScore = match.reason.includes('score:');
 

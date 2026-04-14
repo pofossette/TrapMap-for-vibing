@@ -67,8 +67,8 @@ class OpenAIEmbeddings implements EmbeddingsAdapter {
   private impl: import('@langchain/openai').OpenAIEmbeddings | null = null;
 
   constructor() {
-    this.isConfigured = typeof process.env.OPENAI_API_KEY === 'string' &&
-                        process.env.OPENAI_API_KEY.length > 0;
+    this.isConfigured =
+      typeof process.env.OPENAI_API_KEY === 'string' && process.env.OPENAI_API_KEY.length > 0;
 
     if (this.isConfigured) {
       // Lazy import to avoid requiring the key at module load time
@@ -106,8 +106,8 @@ export async function getEmbeddingsAdapter(): Promise<EmbeddingsAdapter> {
   }
 
   // Try OpenAI if configured
-  const hasOpenAIKey = typeof process.env.OPENAI_API_KEY === 'string' &&
-                       process.env.OPENAI_API_KEY.length > 0;
+  const hasOpenAIKey =
+    typeof process.env.OPENAI_API_KEY === 'string' && process.env.OPENAI_API_KEY.length > 0;
 
   if (hasOpenAIKey) {
     cachedAdapter = new OpenAIEmbeddings();

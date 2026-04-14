@@ -1,10 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
 import type { RetrievalResponse } from '@skill-shareer/contracts';
 import { retrievalResponseSchema } from '@skill-shareer/contracts';
 import { Command } from 'commander';
+import { describe, expect, it, vi } from 'vitest';
 
-import { registerRetrievalCommands } from './retrieval.js';
 import * as http from '../lib/http.js';
+import { registerRetrievalCommands } from './retrieval.js';
 
 // Mock the dependencies
 vi.mock('../lib/http.js', () => ({
@@ -204,10 +204,9 @@ describe('CLI retrieval commands', () => {
       const program = new Command();
       registerRetrievalCommands(program, { allowSearch: true });
 
-      await program.parseAsync(
-        ['search', 'test', '--label', 'label1', '--label', 'label2'],
-        { from: 'user' },
-      );
+      await program.parseAsync(['search', 'test', '--label', 'label1', '--label', 'label2'], {
+        from: 'user',
+      });
 
       expect(http.apiRequest).toHaveBeenCalledWith(
         expect.anything(),

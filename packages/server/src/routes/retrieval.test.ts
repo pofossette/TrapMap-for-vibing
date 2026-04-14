@@ -1,7 +1,7 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import { buildServer } from '../app.js';
 import type { FastifyInstance } from 'fastify';
+import { buildServer } from '../app.js';
 
 describe('retrieval route', () => {
   let app: FastifyInstance;

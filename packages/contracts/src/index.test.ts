@@ -75,7 +75,8 @@ describe('contracts package', () => {
           securityLevel: 3,
         },
         shortcut: 'Keep rejected submissions linked to their prior attempt.',
-        detail: 'Submission records retain agent review, reviewer output, and audit-friendly notes.',
+        detail:
+          'Submission records retain agent review, reviewer output, and audit-friendly notes.',
         labels: ['langchain', 'review'],
       },
       history: [
@@ -100,7 +101,8 @@ describe('contracts package', () => {
             securityLevel: 3,
           },
           shortcut: 'Keep rejected submissions linked to their prior attempt.',
-          detail: 'Submission records retain agent review, reviewer output, and audit-friendly notes.',
+          detail:
+            'Submission records retain agent review, reviewer output, and audit-friendly notes.',
           labels: ['langchain', 'review'],
         },
       ],

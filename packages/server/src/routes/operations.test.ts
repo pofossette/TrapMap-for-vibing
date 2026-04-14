@@ -1,9 +1,9 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import { buildServer } from '../app.js';
-import type { FastifyInstance } from 'fastify';
-import { parseClaudeSkill, detectDuplicates } from '../lib/import-export.js';
 import type { KnowledgeSubmission } from '@skill-shareer/contracts';
+import type { FastifyInstance } from 'fastify';
+import { buildServer } from '../app.js';
+import { detectDuplicates, parseClaudeSkill } from '../lib/import-export.js';
 import type { KnowledgeRecord } from '../lib/store.js';
 
 describe('operations routes', () => {
@@ -369,8 +369,16 @@ Some body content.`;
         };
 
         const existing = [
-          createMockEntry({ id: 'knowledge_1', shortcut: 'Test Shortcut', detail: 'Different detail' }),
-          createMockEntry({ id: 'knowledge_2', shortcut: 'Other Shortcut', detail: 'This is a test detail for duplicate detection' }),
+          createMockEntry({
+            id: 'knowledge_1',
+            shortcut: 'Test Shortcut',
+            detail: 'Different detail',
+          }),
+          createMockEntry({
+            id: 'knowledge_2',
+            shortcut: 'Other Shortcut',
+            detail: 'This is a test detail for duplicate detection',
+          }),
         ];
 
         const duplicates = detectDuplicates(submission, existing);

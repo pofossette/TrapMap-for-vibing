@@ -11,16 +11,14 @@ interface RetrievalCommandOptions {
   allowSearch: boolean;
 }
 
-function formatMatch(
-  match: {
-    entryId: string;
-    shortcut: string;
-    detail: string;
-    labels: string[];
-    score: number;
-    reason: string;
-  },
-): string {
+function formatMatch(match: {
+  entryId: string;
+  shortcut: string;
+  detail: string;
+  labels: string[];
+  score: number;
+  reason: string;
+}): string {
   const lines = [
     `${match.entryId}`,
     `Shortcut: ${match.shortcut}`,
@@ -62,7 +60,10 @@ function formatRetrievalResponse(response: RetrievalResponse): string {
   return sections.join('\n');
 }
 
-export function registerRetrievalCommands(program: Command, options: RetrievalCommandOptions): void {
+export function registerRetrievalCommands(
+  program: Command,
+  options: RetrievalCommandOptions,
+): void {
   if (!options.allowSearch) {
     return;
   }

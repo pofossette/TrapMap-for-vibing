@@ -1,13 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify';
 
-import {
-  retrievalQuerySchema,
-  retrievalResponseSchema,
-} from '@skill-shareer/contracts';
+import { retrievalQuerySchema, retrievalResponseSchema } from '@skill-shareer/contracts';
 
 import { requirePermission } from '../lib/rbac.js';
-import { resolveAuthContext } from '../lib/session.js';
 import { searchKnowledge } from '../lib/retrieval.js';
+import { resolveAuthContext } from '../lib/session.js';
 
 export const retrievalRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/retrieval/search', async (request) => {

@@ -59,7 +59,10 @@ function formatHistory(items: KnowledgeEntry[]): string {
   return items.map((entry) => formatEntry(entry)).join('\n\n');
 }
 
-export function registerKnowledgeCommands(program: Command, options: KnowledgeCommandOptions): void {
+export function registerKnowledgeCommands(
+  program: Command,
+  options: KnowledgeCommandOptions,
+): void {
   if (options.allowSubmit) {
     program
       .command('submit')
@@ -108,9 +111,11 @@ export function registerKnowledgeCommands(program: Command, options: KnowledgeCo
           const parsed = knowledgeEntryResponseSchema.parse(response.data);
 
           printResult(parsed, flags, ({ entry }) =>
-            [`Submitted ${entry.id}`, `Lifecycle: ${entry.lifecycleState}`, `Shortcut: ${entry.shortcut}`].join(
-              '\n',
-            ),
+            [
+              `Submitted ${entry.id}`,
+              `Lifecycle: ${entry.lifecycleState}`,
+              `Shortcut: ${entry.shortcut}`,
+            ].join('\n'),
           );
         },
       );
@@ -159,9 +164,11 @@ export function registerKnowledgeCommands(program: Command, options: KnowledgeCo
           const parsed = knowledgeEntryResponseSchema.parse(response.data);
 
           printResult(parsed, flags, ({ entry }) =>
-            [`Resubmitted ${entry.id}`, `Lifecycle: ${entry.lifecycleState}`, `Revision: ${entry.latestRevision.revision}`].join(
-              '\n',
-            ),
+            [
+              `Resubmitted ${entry.id}`,
+              `Lifecycle: ${entry.lifecycleState}`,
+              `Revision: ${entry.latestRevision.revision}`,
+            ].join('\n'),
           );
         },
       );

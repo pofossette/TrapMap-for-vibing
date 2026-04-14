@@ -1,14 +1,14 @@
 import {
-  retrievalQuerySchema,
-  retrievalResponseSchema,
-  retrievalMatchSchema,
   type RetrievalQuery,
   type RetrievalResponse,
+  retrievalMatchSchema,
+  retrievalQuerySchema,
+  retrievalResponseSchema,
 } from '@skill-shareer/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
-import { AppError } from './errors.js';
 import { generateEmbedding, hashEmbeddingText } from './embeddings.js';
+import { AppError } from './errors.js';
 import type { EmbeddingCacheRecord, KnowledgeRecord, StoreData } from './store.js';
 import { nowIso } from './store.js';
 
@@ -55,9 +55,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
  * Get or compute embedding vector for a knowledge entry.
  * Uses cache if available and text hasn't changed.
  */
-async function getEntryEmbedding(
-  entry: KnowledgeRecord,
-): Promise<number[]> {
+async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[]> {
   const text = buildEmbeddingText(entry);
   const textHash = hashEmbeddingText(text);
 
@@ -210,7 +208,7 @@ export async function searchKnowledge(
 
   // Filter eligible entries
   const eligibleEntries = data.knowledgeEntries.filter((entry) =>
-    isEntryEligible(entry, auth, parsed.filters)
+    isEntryEligible(entry, auth, parsed.filters),
   );
 
   if (eligibleEntries.length === 0) {
@@ -232,7 +230,7 @@ export async function searchKnowledge(
       const similarity = cosineSimilarity(queryVector, entryVector);
       const score = computeScore(similarity, entry, parsed.filters);
       return { entry, score };
-    })
+    }),
   );
 
   // Sort by score descending
@@ -273,8 +271,7 @@ export async function searchKnowledge(
 function isRefinementAvailable(): boolean {
   // Check if OpenAI API key is configured for refinement
   // In the future, this could support other providers
-  return typeof process.env.OPENAI_API_KEY === 'string' &&
-         process.env.OPENAI_API_KEY.length > 0;
+  return typeof process.env.OPENAI_API_KEY === 'string' && process.env.OPENAI_API_KEY.length > 0;
 }
 
 /**

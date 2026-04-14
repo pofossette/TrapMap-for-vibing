@@ -15,8 +15,8 @@ import {
   toKnowledgeEntry,
   updateKnowledgeEntry,
 } from '../lib/knowledge.js';
-import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { runPreReview } from '../lib/pre-review.js';
+import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
 
@@ -25,7 +25,7 @@ function requireRealUser(userId: string | undefined): string {
     throw new AppError(
       403,
       'user_required',
-      'This workflow requires a real member account instead of the virtual system admin'
+      'This workflow requires a real member account instead of the virtual system admin',
     );
   }
 
@@ -41,14 +41,18 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     const ownerUserId = requireRealUser(auth.user?.id);
 
     if (payload.scope === 'project' && !auth.activeTeamId) {
-      throw new AppError(400, 'active_team_required', 'Project-scoped knowledge requires an active team');
+      throw new AppError(
+        400,
+        'active_team_required',
+        'Project-scoped knowledge requires an active team',
+      );
     }
 
     if (payload.requiredLevel !== undefined && payload.requiredLevel > auth.securityLevel) {
       throw new AppError(
         403,
         'required_level_too_high',
-        'requiredLevel cannot exceed the submitter security level'
+        'requiredLevel cannot exceed the submitter security level',
       );
     }
 
@@ -102,7 +106,8 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const isOwner = auth.user?.id === entry.ownerUserId;
-    const canReview = auth.subjectType === 'system-admin' || auth.securityLevel > entry.requiredLevel;
+    const canReview =
+      auth.subjectType === 'system-admin' || auth.securityLevel > entry.requiredLevel;
 
     if (!isOwner && !canReview) {
       throw new AppError(403, 'forbidden', 'You do not have access to this knowledge entry');
@@ -123,7 +128,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     });
 
     const existingEntries = (await app.skillShareer.store.snapshot()).knowledgeEntries.filter(
-      (entry) => entry.id !== entryId
+      (entry) => entry.id !== entryId,
     );
     const preReview = await runPreReview({
       existingEntries,
@@ -193,7 +198,11 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       const modifierId =
         auth.user?.id ??
         (() => {
-          throw new AppError(403, 'user_required', 'System admin cannot author knowledge revisions');
+          throw new AppError(
+            403,
+            'user_required',
+            'System admin cannot author knowledge revisions',
+          );
         })();
 
       const submittedAt = nowIso();

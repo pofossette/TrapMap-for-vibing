@@ -181,4 +181,6 @@ export type KnowledgeResubmission = z.infer<typeof knowledgeResubmissionSchema>;
 export type KnowledgeUpdate = z.infer<typeof knowledgeUpdateSchema>;
 export type KnowledgeEntryResponse = z.infer<typeof knowledgeEntryResponseSchema>;
 export type KnowledgeHistoryResponse = z.infer<typeof knowledgeHistoryResponseSchema>;
-export type KnowledgeSubmissionHistoryResponse = z.infer<typeof knowledgeSubmissionHistoryResponseSchema>;
+export type KnowledgeSubmissionHistoryResponse = z.infer<
+  typeof knowledgeSubmissionHistoryResponseSchema
+>;

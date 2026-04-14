@@ -8,7 +8,11 @@ import {
   scopeSchema,
   securityLevelSchema,
 } from './common.js';
-import { knowledgeEntrySchema, knowledgeListItemSchema, knowledgeSubmissionSchema } from './knowledge.js';
+import {
+  knowledgeEntrySchema,
+  knowledgeListItemSchema,
+  knowledgeSubmissionSchema,
+} from './knowledge.js';
 
 export const knowledgeDeactivateRequestSchema = z.object({
   entryId: entityIdSchema,
@@ -97,13 +101,17 @@ export const auditEventSchema = z
   .merge(auditMetadataSchema);
 
 export const auditQuerySchema = z.object({
-  action: z.array(z.enum([
-    'knowledge-reviewed',
-    'knowledge-imported',
-    'knowledge-exported',
-    'knowledge-deactivated',
-    'member-updated',
-  ])).optional(),
+  action: z
+    .array(
+      z.enum([
+        'knowledge-reviewed',
+        'knowledge-imported',
+        'knowledge-exported',
+        'knowledge-deactivated',
+        'member-updated',
+      ]),
+    )
+    .optional(),
   actorId: entityIdSchema.optional(),
   entityId: entityIdSchema.optional(),
   teamId: entityIdSchema.optional(),

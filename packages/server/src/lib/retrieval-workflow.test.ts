@@ -1,9 +1,9 @@
-import { describe, expect, it, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
-import { buildServer } from '../app.js';
 import type { FastifyInstance } from 'fastify';
-import { JsonStore, nowIso, hashSecret, createOpaqueToken } from './store.js';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { buildServer } from '../app.js';
 import { createKnowledgeEntryRecord } from './knowledge.js';
 import { runPreReview } from './pre-review.js';
+import { JsonStore, createOpaqueToken, hashSecret, nowIso } from './store.js';
 
 describe('End-to-end retrieval workflow', () => {
   let server: FastifyInstance;
@@ -150,7 +150,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/knowledge',
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -176,7 +176,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/retrieval/search',
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -202,7 +202,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/knowledge',
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -222,7 +222,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/knowledge/review',
         headers: {
-          'authorization': `Bearer ${reviewerSessionToken}`,
+          authorization: `Bearer ${reviewerSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -239,7 +239,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/retrieval/search',
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -268,7 +268,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/knowledge',
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -288,7 +288,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/knowledge/review',
         headers: {
-          'authorization': `Bearer ${reviewerSessionToken}`,
+          authorization: `Bearer ${reviewerSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -305,7 +305,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'GET',
         url: `/v1/knowledge/${entryId}`,
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
         },
       });
 
@@ -320,7 +320,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: `/v1/knowledge/${entryId}/resubmit`,
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -351,7 +351,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/knowledge/review',
         headers: {
-          'authorization': `Bearer ${reviewerSessionToken}`,
+          authorization: `Bearer ${reviewerSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -368,7 +368,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/retrieval/search',
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -397,7 +397,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/knowledge',
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -417,7 +417,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/knowledge/review',
         headers: {
-          'authorization': `Bearer ${reviewerSessionToken}`,
+          authorization: `Bearer ${reviewerSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -434,7 +434,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'GET',
         url: `/v1/knowledge/${entryId}`,
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
         },
       });
 
@@ -443,7 +443,8 @@ describe('End-to-end retrieval workflow', () => {
       expect(statusData1.entry.lifecycleState).toBe('rejected');
 
       // Should show reviewer notes
-      const lastDecision = statusData1.entry.reviewHistory[statusData1.entry.reviewHistory.length - 1];
+      const lastDecision =
+        statusData1.entry.reviewHistory[statusData1.entry.reviewHistory.length - 1];
       expect(lastDecision.notes).toBe('Add more specific implementation details');
 
       // Resubmit
@@ -451,7 +452,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: `/v1/knowledge/${entryId}/resubmit`,
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -468,7 +469,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/knowledge/review',
         headers: {
-          'authorization': `Bearer ${reviewerSessionToken}`,
+          authorization: `Bearer ${reviewerSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -485,7 +486,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'GET',
         url: `/v1/knowledge/${entryId}`,
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
         },
       });
 
@@ -509,7 +510,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/knowledge',
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -536,7 +537,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/knowledge',
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -555,7 +556,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/knowledge/review',
         headers: {
-          'authorization': `Bearer ${reviewerSessionToken}`,
+          authorization: `Bearer ${reviewerSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -570,7 +571,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/retrieval/search',
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -598,7 +599,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'POST',
         url: '/v1/knowledge',
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
           'content-type': 'application/json',
         },
         payload: JSON.stringify({
@@ -617,7 +618,7 @@ describe('End-to-end retrieval workflow', () => {
         method: 'GET',
         url: `/v1/knowledge/${entryId}`,
         headers: {
-          'authorization': `Bearer ${submitterSessionToken}`,
+          authorization: `Bearer ${submitterSessionToken}`,
         },
       });
 

@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 
-import { registerAuthCommands } from './commands/auth.js';
 import { registerAuditCommands } from './commands/audit.js';
+import { registerAuthCommands } from './commands/auth.js';
 import { registerKnowledgeCommands } from './commands/knowledge.js';
 import { registerMemberCommands } from './commands/member.js';
 import { registerOperationsCommands } from './commands/operations.js';
@@ -35,9 +35,12 @@ const visibility = {
     securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:review'),
   allowKnowledgeSearch: hasPermission(effectivePermissions, 'knowledge:search'),
   allowKnowledgeExport: hasPermission(effectivePermissions, 'knowledge:export'),
-  allowKnowledgeImport: securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:import'),
-  allowKnowledgeUpdate: securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
-  allowKnowledgeDeactivate: securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
+  allowKnowledgeImport:
+    securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:import'),
+  allowKnowledgeUpdate:
+    securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
+  allowKnowledgeDeactivate:
+    securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
   allowAuditRead: hasPermission(effectivePermissions, 'audit:read'),
 };
 

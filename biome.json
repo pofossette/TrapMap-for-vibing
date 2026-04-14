@@ -8,7 +8,22 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "correctness": {
+        "recommended": true
+      },
+      "suspicious": {
+        "recommended": true
+      },
+      "complexity": {
+        "recommended": true
+      },
+      "style": {
+        "recommended": true
+      },
+      "a11y": {
+        "recommended": true
+      }
     }
   },
   "files": {

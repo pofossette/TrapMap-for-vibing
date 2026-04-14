@@ -32,7 +32,19 @@ export function createAuditEvent(args: CreateAuditEventArgs) {
   };
 }
 
-export function toAuditEvent(record: { id: string; teamId: string | null; actorId: string; action: string; entityId: string; payload: Record<string, unknown>; createdAt: string; updatedAt: string }, data: StoreData): AuditEvent {
+export function toAuditEvent(
+  record: {
+    id: string;
+    teamId: string | null;
+    actorId: string;
+    action: string;
+    entityId: string;
+    payload: Record<string, unknown>;
+    createdAt: string;
+    updatedAt: string;
+  },
+  data: StoreData,
+): AuditEvent {
   const actorUser = data.users.find((candidate) => candidate.id === record.actorId);
 
   return {
@@ -65,7 +77,10 @@ export interface QueryAuditEventsArgs {
   auth: ResolvedAuthContext;
 }
 
-export function queryAuditEvents(args: QueryAuditEventsArgs): { items: typeof args.data.auditEvents; total: number } {
+export function queryAuditEvents(args: QueryAuditEventsArgs): {
+  items: typeof args.data.auditEvents;
+  total: number;
+} {
   let events = args.data.auditEvents;
 
   // Filter by action types
@@ -104,9 +119,7 @@ export function queryAuditEvents(args: QueryAuditEventsArgs): { items: typeof ar
   // For non-system-admin: only show events for teams where user is member, or global events
   if (args.auth.subjectType !== 'system-admin') {
     const userTeamIds = new Set(
-      args.data.memberships
-        .filter((m) => m.userId === args.auth.user?.id)
-        .map((m) => m.teamId)
+      args.data.memberships.filter((m) => m.userId === args.auth.user?.id).map((m) => m.teamId),
     );
 
     events = events.filter((event) => {

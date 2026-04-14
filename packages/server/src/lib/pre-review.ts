@@ -1,12 +1,12 @@
 import { Document } from '@langchain/core/documents';
 import { RunnableLambda } from '@langchain/core/runnables';
 import {
-  agentReviewResultSchema,
   type AgentReviewResult,
   type KnowledgeSubmission,
+  agentReviewResultSchema,
 } from '@skill-shareer/contracts';
 
-import { nowIso, type KnowledgeRecord } from './store.js';
+import { type KnowledgeRecord, nowIso } from './store.js';
 
 interface PreReviewInput {
   existingEntries: KnowledgeRecord[];
@@ -18,7 +18,7 @@ function tokenize(text: string): Set<string> {
     text
       .toLowerCase()
       .split(/[^a-z0-9]+/)
-      .filter((part) => part.length >= 3)
+      .filter((part) => part.length >= 3),
   );
 }
 
@@ -80,56 +80,61 @@ function correctnessRisk(input: PreReviewInput['submission']): 'low' | 'medium' 
   return 'high';
 }
 
-const preReviewChain = RunnableLambda.from(async (input: PreReviewInput): Promise<AgentReviewResult> => {
-  const submissionDocument = new Document({
-    pageContent: `${input.submission.shortcut}\n${input.submission.detail}`,
-    metadata: {
-      labels: input.submission.labels,
-      scope: input.submission.scope,
-    },
-  });
-
-  const submissionTokens = tokenize(submissionDocument.pageContent);
-  let duplicateScore = 0;
-
-  for (const entry of input.existingEntries) {
-    const candidate = new Document({
-      pageContent: `${entry.shortcut}\n${entry.detail}`,
+const preReviewChain = RunnableLambda.from(
+  async (input: PreReviewInput): Promise<AgentReviewResult> => {
+    const submissionDocument = new Document({
+      pageContent: `${input.submission.shortcut}\n${input.submission.detail}`,
       metadata: {
-        scope: entry.scope,
-        teamId: entry.teamId,
+        labels: input.submission.labels,
+        scope: input.submission.scope,
       },
     });
 
-    duplicateScore = Math.max(duplicateScore, overlapScore(submissionTokens, tokenize(candidate.pageContent)));
-  }
+    const submissionTokens = tokenize(submissionDocument.pageContent);
+    let duplicateScore = 0;
 
-  const duplicateRisk = toRisk(duplicateScore);
-  const completeness = completenessRisk(input.submission);
-  const correctness = correctnessRisk(input.submission);
-  const notes: string[] = [];
+    for (const entry of input.existingEntries) {
+      const candidate = new Document({
+        pageContent: `${entry.shortcut}\n${entry.detail}`,
+        metadata: {
+          scope: entry.scope,
+          teamId: entry.teamId,
+        },
+      });
 
-  if (duplicateRisk !== 'low') {
-    notes.push(`Potential duplicate overlap score: ${duplicateScore.toFixed(2)}`);
-  }
+      duplicateScore = Math.max(
+        duplicateScore,
+        overlapScore(submissionTokens, tokenize(candidate.pageContent)),
+      );
+    }
 
-  if (completeness !== 'low') {
-    notes.push('Submission detail or labels look incomplete for later reuse.');
-  }
+    const duplicateRisk = toRisk(duplicateScore);
+    const completeness = completenessRisk(input.submission);
+    const correctness = correctnessRisk(input.submission);
+    const notes: string[] = [];
 
-  if (correctness !== 'low') {
-    notes.push('Submission lacks strong fix/explanation evidence markers.');
-  }
+    if (duplicateRisk !== 'low') {
+      notes.push(`Potential duplicate overlap score: ${duplicateScore.toFixed(2)}`);
+    }
 
-  return agentReviewResultSchema.parse({
-    status: duplicateRisk === 'high' || completeness === 'high' ? 'agent-rejected' : 'agent-pass',
-    duplicateRisk,
-    correctnessRisk: correctness,
-    completenessRisk: completeness,
-    checkedAt: nowIso(),
-    notes,
-  });
-});
+    if (completeness !== 'low') {
+      notes.push('Submission detail or labels look incomplete for later reuse.');
+    }
+
+    if (correctness !== 'low') {
+      notes.push('Submission lacks strong fix/explanation evidence markers.');
+    }
+
+    return agentReviewResultSchema.parse({
+      status: duplicateRisk === 'high' || completeness === 'high' ? 'agent-rejected' : 'agent-pass',
+      duplicateRisk,
+      correctnessRisk: correctness,
+      completenessRisk: completeness,
+      checkedAt: nowIso(),
+      notes,
+    });
+  },
+);
 
 export async function runPreReview(input: PreReviewInput): Promise<AgentReviewResult> {
   return preReviewChain.invoke(input);

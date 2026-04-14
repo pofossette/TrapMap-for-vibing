@@ -1,10 +1,10 @@
 import {
-  knowledgeEntrySchema,
-  knowledgeListItemSchema,
   type AgentReviewResult,
   type KnowledgeResubmission,
   type KnowledgeSubmission,
   type KnowledgeUpdate,
+  knowledgeEntrySchema,
+  knowledgeListItemSchema,
 } from '@skill-shareer/contracts';
 
 import { AppError } from './errors.js';
@@ -29,7 +29,12 @@ function getUser(data: StoreData, userId: string) {
   return user;
 }
 
-function getMembershipLevel(data: StoreData, userId: string, teamId: string | null, fallbackLevel: number) {
+function getMembershipLevel(
+  data: StoreData,
+  userId: string,
+  teamId: string | null,
+  fallbackLevel: number,
+) {
   if (!teamId) {
     return fallbackLevel;
   }
@@ -110,7 +115,9 @@ function toSubmissionRecord(data: StoreData, record: KnowledgeRecord, fallbackLe
     reviewerDecision: submission.reviewerDecision
       ? toReviewDecision(data, submission.reviewerDecision, record.teamId, fallbackLevel)
       : null,
-    reviewNotes: submission.reviewNotes.map((note) => toReviewNote(data, note, record.teamId, fallbackLevel)),
+    reviewNotes: submission.reviewNotes.map((note) =>
+      toReviewNote(data, note, record.teamId, fallbackLevel),
+    ),
   }));
 }
 
@@ -213,7 +220,13 @@ export function createKnowledgeEntryRecord(args: {
   preReview: AgentReviewResult;
 }): KnowledgeRecord {
   const agentNotes = toAgentNotes(args.store, args.data, args.preReview);
-  const revision = createKnowledgeRevision(args.ownerUserId, args.payload, 1, args.createdAt, agentNotes);
+  const revision = createKnowledgeRevision(
+    args.ownerUserId,
+    args.payload,
+    1,
+    args.createdAt,
+    agentNotes,
+  );
   const latestSubmission = createSubmissionRecord(args.store, args.data, {
     submittedByUserId: args.ownerUserId,
     submittedAt: args.createdAt,
@@ -459,7 +472,9 @@ export function toKnowledgeEntry(data: StoreData, record: KnowledgeRecord) {
     lifecycleState: record.lifecycleState,
     owner,
     latestRevision: toRevision(data, record.latestRevision, record.teamId, record.requiredLevel),
-    history: record.history.map((revision) => toRevision(data, revision, record.teamId, record.requiredLevel)),
+    history: record.history.map((revision) =>
+      toRevision(data, revision, record.teamId, record.requiredLevel),
+    ),
     metadata: record.metadata,
     latestSubmission: submissionHistory.at(-1) ?? null,
     submissionHistory,
@@ -467,7 +482,9 @@ export function toKnowledgeEntry(data: StoreData, record: KnowledgeRecord) {
     reviewHistory: record.reviewHistory.map((decision) =>
       toReviewDecision(data, decision, record.teamId, record.requiredLevel),
     ),
-    reviewNotes: record.reviewNotes.map((note) => toReviewNote(data, note, record.teamId, record.requiredLevel)),
+    reviewNotes: record.reviewNotes.map((note) =>
+      toReviewNote(data, note, record.teamId, record.requiredLevel),
+    ),
     lifecycleHistory: toLifecycleEvent(data, record, record.requiredLevel),
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
