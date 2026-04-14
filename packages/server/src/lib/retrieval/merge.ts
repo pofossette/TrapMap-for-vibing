@@ -17,7 +17,7 @@
  * the public response schema.
  */
 
-import type { KnowledgeRecord } from '../../store.js';
+import type { KnowledgeRecord } from '../store.js';
 import type { MergedCandidate, RecallCandidate, ScoredEntry } from './types.js';
 
 /**

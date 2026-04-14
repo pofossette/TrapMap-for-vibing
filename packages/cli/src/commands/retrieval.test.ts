@@ -404,5 +404,77 @@ describe('CLI retrieval commands', () => {
 
       consoleLogSpy.mockRestore();
     });
+
+    it('should support hybrid mode flag', async () => {
+      const mockResponse: RetrievalResponse = {
+        globalConstraints: [],
+        projectKnowledge: [],
+        refinementSummary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test', '--mode', 'hybrid'], { from: 'user' });
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          body: expect.objectContaining({
+            mode: 'hybrid',
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('CLI passthrough for hybrid mode does not change output formatting', async () => {
+      const mockResponse: RetrievalResponse = {
+        globalConstraints: [
+          {
+            entryId: 'entry-1',
+            scope: 'global',
+            requiredLevel: 0,
+            shortcut: 'Test shortcut',
+            detail: 'Test detail',
+            labels: ['test'],
+            score: 0.9,
+            reason: 'Score: 0.9',
+          },
+        ],
+        projectKnowledge: [],
+        refinementSummary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test', '--mode', 'hybrid'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+
+      // Output should be same format regardless of mode
+      expect(output).toContain('Global constraints');
+      expect(output).toContain('Test shortcut');
+      expect(output).toContain('Score: 0.9');
+
+      consoleLogSpy.mockRestore();
+    });
   });
 });

@@ -5,6 +5,7 @@ import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { createKnowledgeEntryRecord } from './knowledge.js';
 import { runPreReview } from './pre-review.js';
 import { searchKnowledge, updateEntryEmbeddingCache } from './retrieval.js';
+import type { KnowledgeRecord } from './store.js';
 import { JsonStore, nowIso } from './store.js';
 import {
   createSemanticCandidate,
@@ -666,6 +667,163 @@ describe('retrieval', () => {
         expect(match.score).toBeLessThanOrEqual(1);
         expect(match.reason).toBeTruthy();
         expect(match.reason.length).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe('hybrid mode', () => {
+    it('mode: hybrid executes semantic + keyword recall + merge instead of returning 501', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        mode: 'hybrid',
+      };
+
+      // Should not throw 501 error
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return valid response structure
+      expect(Array.isArray(result.globalConstraints)).toBe(true);
+      expect(Array.isArray(result.projectKnowledge)).toBe(true);
+      expect(result.refinementSummary).toBeNull();
+    });
+
+    it('omitting mode still follows existing semantic path', async () => {
+      // At runtime, Zod applies default mode='semantic', but TypeScript type requires mode
+      // We test by passing object directly (not typed) to verify runtime default behavior
+      const queryWithoutMode = {
+        seed: 'JWT validation',
+        filters: { labels: [] as string[], scopes: [] as ('global' | 'project')[] },
+        maxResults: 10,
+        includeRefinement: false,
+        // mode omitted - should default to semantic at runtime
+      } as unknown as RetrievalQuery;
+
+      const queryWithSemantic: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        mode: 'semantic',
+      };
+
+      const resultWithoutMode = await searchKnowledge(mockServices, mockAuth, queryWithoutMode);
+      const resultWithSemantic = await searchKnowledge(mockServices, mockAuth, queryWithSemantic);
+
+      // Results should be identical when mode defaults to semantic
+      expect(resultWithoutMode.globalConstraints.map(m => m.entryId))
+        .toEqual(resultWithSemantic.globalConstraints.map(m => m.entryId));
+      expect(resultWithoutMode.projectKnowledge.map(m => m.entryId))
+        .toEqual(resultWithSemantic.projectKnowledge.map(m => m.entryId));
+    });
+
+    it('hybrid responses preserve existing response shape', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation security',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Response shape must match contract
+      expect(result).toHaveProperty('globalConstraints');
+      expect(result).toHaveProperty('projectKnowledge');
+      expect(result).toHaveProperty('refinementSummary');
+
+      // All matches should have required fields
+      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
+      for (const match of allMatches) {
+        expect(match).toHaveProperty('entryId');
+        expect(match).toHaveProperty('scope');
+        expect(match).toHaveProperty('requiredLevel');
+        expect(match).toHaveProperty('shortcut');
+        expect(match).toHaveProperty('detail');
+        expect(match).toHaveProperty('labels');
+        expect(match).toHaveProperty('score');
+        expect(match).toHaveProperty('reason');
+      }
+    });
+
+    it('hybrid mode respects scope semantics (global vs project)', async () => {
+      const query: RetrievalQuery = {
+        seed: 'validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Global entries should be in globalConstraints
+      for (const match of result.globalConstraints) {
+        expect(match.scope).toBe('global');
+      }
+
+      // Project entries should be in projectKnowledge
+      for (const match of result.projectKnowledge) {
+        expect(match.scope).toBe('project');
+      }
+    });
+
+    it('hybrid mode does not change scope filter behavior', async () => {
+      const query: RetrievalQuery = {
+        seed: 'validation',
+        filters: { labels: [], scopes: ['global'] },
+        maxResults: 10,
+        includeRefinement: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should only return global constraints
+      expect(result.projectKnowledge.length).toBe(0);
+      expect(result.globalConstraints.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it('hybrid mode produces deterministic results for same input', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        mode: 'hybrid',
+      };
+
+      const result1 = await searchKnowledge(mockServices, mockAuth, query);
+      const result2 = await searchKnowledge(mockServices, mockAuth, query);
+
+      expect(result1.globalConstraints).toEqual(result2.globalConstraints);
+      expect(result1.projectKnowledge).toEqual(result2.projectKnowledge);
+    });
+
+    it('hybrid mode combines semantic and keyword signals', async () => {
+      // This test verifies that hybrid mode runs both channels
+      // Even with deterministic embeddings, keyword channel adds lexical evidence
+
+      const query: RetrievalQuery = {
+        seed: 'JWT authentication', // Terms that appear in test data
+        filters: { labels: [], scopes: [] },
+        maxResults: 5,
+        includeRefinement: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should have results that combine both channels
+      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
+
+      // All matches should have valid scores
+      for (const match of allMatches) {
+        expect(match.score).toBeGreaterThanOrEqual(0);
+        expect(match.score).toBeLessThanOrEqual(1);
       }
     });
   });

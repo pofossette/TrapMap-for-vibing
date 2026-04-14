@@ -11,6 +11,8 @@ import type { KnowledgeRecord } from '../store.js';
 import { nowIso } from '../store.js';
 import { buildEmptyResponse, buildRetrievalResponse, assembleResponseBuckets } from './assembly.js';
 import { filterEligibleEntries } from './filters.js';
+import { mergeCandidates, toScoredEntries, createSemanticCandidate } from './merge.js';
+import { keywordRecall } from './recall/keyword.js';
 import { buildEmbeddingText, cosineSimilarity, computeScore, getEntryEmbedding as semanticGetEntryEmbedding, getQueryEmbedding } from './recall/semantic.js';
 import type { RetrievalPipelineContext, ScoredEntry } from './types.js';
 
@@ -19,14 +21,14 @@ import type { RetrievalPipelineContext, ScoredEntry } from './types.js';
  *
  * Pipeline order (enforced for security):
  * 1. Eligibility filtering (approval, team, level, metadata)
- * 2. Semantic recall (embedding lookup and scoring)
+ * 2. Mode dispatch (semantic, hybrid, graph-assisted)
  * 3. Response assembly (bucket split and output shaping)
  * 4. Optional refinement (if requested and provider configured)
  *
- * This orchestrator is the entrypoint for Phase 7+ extensions:
- * - Hybrid recall (vector + keyword)
- * - Reranking for improved ordering
- * - Query mode support (semantic/hybrid/graph-assisted)
+ * Query modes:
+ * - semantic: embedding-based retrieval (default)
+ * - hybrid: combines semantic and keyword channels with weighted merge
+ * - graph-assisted: not yet implemented (planned for future phase)
  *
  * @param services - Server services (config, store)
  * @param auth - Resolved auth context
@@ -67,7 +69,6 @@ export async function searchKnowledge(
 
 /**
  * Dispatch retrieval based on query mode.
- * Currently only semantic mode is implemented; other modes return controlled errors.
  *
  * @param mode - Query mode (semantic, hybrid, graph-assisted)
  * @param seed - Search query text
@@ -85,16 +86,12 @@ async function dispatchByMode(
     case 'semantic':
       return await semanticRecall(seed, eligibleEntries, parsed);
     case 'hybrid':
-      throw new AppError(
-        501,
-        'mode_not_implemented',
-        'Hybrid retrieval mode is not yet implemented. Use semantic mode or wait for Phase 7.',
-      );
+      return await hybridRecall(seed, eligibleEntries, parsed);
     case 'graph-assisted':
       throw new AppError(
         501,
         'mode_not_implemented',
-        'Graph-assisted retrieval mode is not yet implemented. Use semantic mode or wait for Phase 9.',
+        'Graph-assisted retrieval mode is not yet implemented. Use semantic or hybrid mode.',
       );
     default:
       // This should never happen due to Zod validation, but we handle it for safety
@@ -138,6 +135,72 @@ async function semanticRecall(
 
   // Take top maxResults
   return scoredEntries.slice(0, parsed.maxResults);
+}
+
+/**
+ * Hybrid recall combining semantic and keyword channels.
+ *
+ * Pipeline:
+ * 1. Run semantic recall in parallel with keyword recall
+ * 2. Merge candidates from both channels (dedupe by entry.id)
+ * 3. Return scored entries sorted by combined score
+ *
+ * @param seed - Search query text
+ * @param eligibleEntries - Entries that passed eligibility filters
+ * @param parsed - Parsed retrieval query
+ * @returns Scored entries sorted by combined relevance
+ */
+async function hybridRecall(
+  seed: string,
+  eligibleEntries: KnowledgeRecord[],
+  parsed: ReturnType<typeof retrievalQuerySchema.parse>,
+): Promise<ScoredEntry[]> {
+  // Run both channels in parallel
+  const [semanticCandidates, keywordCandidates] = await Promise.all([
+    // Semantic channel: compute embeddings and scores
+    computeSemanticCandidates(seed, eligibleEntries, parsed.filters),
+    // Keyword channel: lexical matching
+    keywordRecall(seed, eligibleEntries),
+  ]);
+
+  // Merge candidates from both channels
+  const mergedCandidates = mergeCandidates(semanticCandidates, keywordCandidates, {
+    maxCandidates: parsed.maxResults,
+  });
+
+  // Convert to scored entries for assembly
+  return toScoredEntries(mergedCandidates);
+}
+
+/**
+ * Compute semantic candidates for hybrid recall.
+ * Returns RecallCandidate[] for merge compatibility.
+ *
+ * @param seed - Search query text
+ * @param eligibleEntries - Entries that passed eligibility filters
+ * @param filters - Query filters for score boosting
+ * @returns Semantic recall candidates
+ */
+async function computeSemanticCandidates(
+  seed: string,
+  eligibleEntries: KnowledgeRecord[],
+  filters: RetrievalQuery['filters'],
+): Promise<ReturnType<typeof createSemanticCandidate>[]> {
+  const queryVector = await getQueryEmbedding(seed);
+
+  const candidates = await Promise.all(
+    eligibleEntries.map(async (entry) => {
+      const entryVector = await semanticGetEntryEmbedding(entry);
+      const similarity = cosineSimilarity(queryVector, entryVector);
+      const score = computeScore(similarity, entry, filters);
+      return createSemanticCandidate(entry, score);
+    }),
+  );
+
+  // Sort by score descending for deterministic ordering
+  candidates.sort((a, b) => b.score - a.score);
+
+  return candidates;
 }
 
 /**
