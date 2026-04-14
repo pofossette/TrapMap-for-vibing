@@ -633,4 +633,190 @@ describe('End-to-end retrieval workflow', () => {
       expect(statusData.entry).toHaveProperty('reviewHistory');
     });
   });
+
+  describe('hybrid mode with rerank (HYBR-05)', () => {
+    it('hybrid mode does not bypass approved-only filter after rerank', async () => {
+      // Submit knowledge entry (not approved)
+      const submitResponse = await server.inject({
+        method: 'POST',
+        url: '/v1/knowledge',
+        headers: {
+          authorization: `Bearer ${submitterSessionToken}`,
+          'content-type': 'application/json',
+        },
+        payload: JSON.stringify({
+          scope: 'project',
+          labels: ['hybrid', 'rerank', 'test'],
+          shortcut: 'Hybrid rerank test entry',
+          detail: 'This entry should not appear in hybrid search until approved',
+        }),
+      });
+
+      expect(submitResponse.statusCode).toBe(200);
+      const submitData = submitResponse.json();
+      const entryId = submitData.entry.id;
+
+      // Verify the entry is not approved
+      const snapshot = await store.snapshot();
+      const entry = snapshot.knowledgeEntries.find((e) => e.id === entryId);
+      expect(['submitted', 'agent-rejected', 'rejected']).toContain(entry?.lifecycleState ?? '');
+
+      // Search with hybrid mode - should NOT return the unapproved entry
+      // even though the keyword channel would find exact lexical matches
+      const searchResponse = await server.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        headers: {
+          authorization: `Bearer ${submitterSessionToken}`,
+          'content-type': 'application/json',
+        },
+        payload: JSON.stringify({
+          seed: 'hybrid rerank test',
+          filters: { labels: [], scopes: [] },
+          maxResults: 10,
+          includeRefinement: false,
+          mode: 'hybrid',
+        }),
+      });
+
+      expect(searchResponse.statusCode).toBe(200);
+      const searchData = searchResponse.json();
+
+      // The unapproved entry should NOT appear in hybrid search results
+      const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
+      const unapprovedMatch = allMatches.find((m: any) => m.entryId === entryId);
+      expect(unapprovedMatch).toBeUndefined();
+    });
+
+    it('hybrid mode returns approved entries with valid response shape', async () => {
+      // Submit and approve an entry
+      const submitResponse = await server.inject({
+        method: 'POST',
+        url: '/v1/knowledge',
+        headers: {
+          authorization: `Bearer ${submitterSessionToken}`,
+          'content-type': 'application/json',
+        },
+        payload: JSON.stringify({
+          scope: 'global',
+          labels: ['approved', 'hybrid'],
+          shortcut: 'Approved hybrid test',
+          detail: 'This approved entry should appear in hybrid search',
+        }),
+      });
+
+      const submitData = submitResponse.json();
+      const entryId = submitData.entry.id;
+
+      // Approve the entry
+      await server.inject({
+        method: 'POST',
+        url: '/v1/knowledge/review',
+        headers: {
+          authorization: `Bearer ${reviewerSessionToken}`,
+          'content-type': 'application/json',
+        },
+        payload: JSON.stringify({
+          entryId,
+          decision: 'approve',
+          notes: 'Approve for hybrid test',
+        }),
+      });
+
+      // Search with hybrid mode
+      const searchResponse = await server.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        headers: {
+          authorization: `Bearer ${submitterSessionToken}`,
+          'content-type': 'application/json',
+        },
+        payload: JSON.stringify({
+          seed: 'approved hybrid test',
+          filters: { labels: [], scopes: [] },
+          maxResults: 10,
+          includeRefinement: false,
+          mode: 'hybrid',
+        }),
+      });
+
+      expect(searchResponse.statusCode).toBe(200);
+      const searchData = searchResponse.json();
+
+      // Response should have correct shape
+      expect(searchData).toHaveProperty('globalConstraints');
+      expect(searchData).toHaveProperty('projectKnowledge');
+      expect(searchData).toHaveProperty('refinementSummary');
+
+      // The approved entry should appear in hybrid search results
+      const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
+      const approvedMatch = allMatches.find((m: any) => m.entryId === entryId);
+      expect(approvedMatch).toBeDefined();
+
+      // Match should have valid score after rerank
+      expect(approvedMatch.score).toBeGreaterThanOrEqual(0);
+      expect(approvedMatch.score).toBeLessThanOrEqual(1);
+    });
+
+    it('hybrid mode respects team boundaries after rerank', async () => {
+      // Submit and approve an entry for the test team
+      const submitResponse = await server.inject({
+        method: 'POST',
+        url: '/v1/knowledge',
+        headers: {
+          authorization: `Bearer ${submitterSessionToken}`,
+          'content-type': 'application/json',
+        },
+        payload: JSON.stringify({
+          scope: 'project',
+          labels: ['team', 'boundary'],
+          shortcut: 'Team boundary hybrid test',
+          detail: 'This team-scoped entry should only appear for team members',
+        }),
+      });
+
+      const submitData = submitResponse.json();
+      const entryId = submitData.entry.id;
+
+      // Approve the entry
+      await server.inject({
+        method: 'POST',
+        url: '/v1/knowledge/review',
+        headers: {
+          authorization: `Bearer ${reviewerSessionToken}`,
+          'content-type': 'application/json',
+        },
+        payload: JSON.stringify({
+          entryId,
+          decision: 'approve',
+          notes: 'Approve for team boundary test',
+        }),
+      });
+
+      // Search with hybrid mode - should find the entry
+      const searchResponse = await server.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        headers: {
+          authorization: `Bearer ${submitterSessionToken}`,
+          'content-type': 'application/json',
+        },
+        payload: JSON.stringify({
+          seed: 'team boundary hybrid',
+          filters: { labels: [], scopes: [] },
+          maxResults: 10,
+          includeRefinement: false,
+          mode: 'hybrid',
+        }),
+      });
+
+      expect(searchResponse.statusCode).toBe(200);
+      const searchData = searchResponse.json();
+
+      // The team-scoped entry should appear for team member
+      const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
+      const teamMatch = allMatches.find((m: any) => m.entryId === entryId);
+      expect(teamMatch).toBeDefined();
+    });
+  });
 });

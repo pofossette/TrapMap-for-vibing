@@ -174,6 +174,23 @@ describe('retrieval route', () => {
       // Actually, with current Fastify setup, auth may run first, so we accept either
       expect([400, 401]).toContain(response.statusCode);
     });
+
+    it('accepts hybrid mode with rerank enabled (HYBR-05)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'hybrid rerank test query',
+          filters: { labels: [], scopes: [] },
+          maxResults: 5,
+          includeRefinement: false,
+          mode: 'hybrid',
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
   });
 
   describe('route registration', () => {

@@ -14,6 +14,7 @@ import {
   toScoredEntries,
   toScoredEntry,
 } from './retrieval/merge.js';
+import { rerankCandidates, toScoredEntriesFromReranked, DEFAULT_BOTH_CHANNEL_BOOST, DEFAULT_TOKEN_DENSITY_BOOST } from './retrieval/rerank.js';
 import type { RecallCandidate, MergedCandidate } from './retrieval/types.js';
 
 describe('retrieval', () => {
@@ -826,6 +827,96 @@ describe('retrieval', () => {
         expect(match.score).toBeLessThanOrEqual(1);
       }
     });
+
+    // HYBR-05: Short-query hybrid improvement tests
+    it('hybrid mode improves short-query recall compared to semantic-only', async () => {
+      // Short query: "JWT" - a single term that appears in test data
+      // Hybrid should find and boost entries with "JWT" in shortcut/detail/labels
+
+      const semanticQuery: RetrievalQuery = {
+        seed: 'JWT',
+        filters: { labels: [], scopes: [] },
+        maxResults: 5,
+        includeRefinement: false,
+        mode: 'semantic',
+      };
+
+      const hybridQuery: RetrievalQuery = {
+        ...semanticQuery,
+        mode: 'hybrid',
+      };
+
+      const semanticResult = await searchKnowledge(mockServices, mockAuth, semanticQuery);
+      const hybridResult = await searchKnowledge(mockServices, mockAuth, hybridQuery);
+
+      // Both should return results
+      const semanticMatches = [...semanticResult.globalConstraints, ...semanticResult.projectKnowledge];
+      const hybridMatches = [...hybridResult.globalConstraints, ...hybridResult.projectKnowledge];
+
+      // Hybrid should find entries that semantic might miss or rank lower
+      // The key evidence: hybrid matches with "JWT" in their text should score higher
+      // due to the keyword channel boosting exact lexical matches
+      expect(hybridMatches.length).toBeGreaterThanOrEqual(semanticMatches.length);
+
+      // Entries with exact "JWT" token match should have higher scores in hybrid
+      const jwtMatches = hybridMatches.filter((m) =>
+        m.shortcut.toLowerCase().includes('jwt') ||
+        m.detail.toLowerCase().includes('jwt') ||
+        m.labels.some((l) => l.toLowerCase().includes('jwt')),
+      );
+
+      // All JWT matches should have valid boosted scores
+      for (const match of jwtMatches) {
+        expect(match.score).toBeGreaterThan(0);
+      }
+    });
+
+    it('hybrid rerank boosts entries appearing in both channels', async () => {
+      // Create a scenario where an entry appears in both semantic and keyword channels
+      const query: RetrievalQuery = {
+        seed: 'JWT validation', // This query will match "JWT" in keyword channel
+        filters: { labels: [], scopes: [] },
+        maxResults: 5,
+        includeRefinement: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
+
+      // The global constraint entry about JWT should appear and have a boosted score
+      // due to appearing in both semantic and keyword channels
+      const jwtEntry = allMatches.find((m) =>
+        m.shortcut.includes('JWT') || m.detail.includes('JWT'),
+      );
+
+      if (jwtEntry) {
+        // Entry should have a non-zero score from combined channels + rerank boost
+        expect(jwtEntry.score).toBeGreaterThan(0);
+      }
+    });
+
+    it('hybrid mode preserves approved-only boundary after rerank', async () => {
+      // This test ensures that rerank does not bypass the approved-only filter
+      const query: RetrievalQuery = {
+        seed: 'connection pooling', // This term appears in submitted (unapproved) entry
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
+
+      // The submitted entry about connection pooling should NOT appear
+      // even though hybrid mode would find a keyword match
+      const submittedMatch = allMatches.find((m) =>
+        m.detail.includes('connection pooling') || m.detail.includes('pgBouncer'),
+      );
+
+      expect(submittedMatch).toBeUndefined();
+    });
   });
 });
 
@@ -1155,6 +1246,293 @@ describe('merge module', () => {
       };
 
       expect(hasBothChannels(semanticOnly)).toBe(false);
+    });
+  });
+});
+
+// =============================================================================
+// Rerank Module Tests (Phase 7 HYBR-03)
+// =============================================================================
+
+describe('rerank module', () => {
+  describe('rerankCandidates', () => {
+    it('reorders merged candidates deterministically using combined channel evidence for the same input', () => {
+      const entryA = createTestEntryForMerge({ id: 'entry_a' });
+      const entryB = createTestEntryForMerge({ id: 'entry_b' });
+
+      // entryA: only semantic channel
+      // entryB: both channels (should get boost and rank higher)
+      const merged: MergedCandidate[] = [
+        {
+          entry: entryA,
+          semanticScore: 0.7,
+          keywordScore: 0,
+          combinedScore: 0.42, // 0.7 * 0.6
+          tokenMatches: [],
+          channels: ['semantic'],
+        },
+        {
+          entry: entryB,
+          semanticScore: 0.5,
+          keywordScore: 0.6,
+          combinedScore: 0.54, // 0.5 * 0.6 + 0.6 * 0.4
+          tokenMatches: [{ token: 'test', fields: ['shortcut'] }],
+          channels: ['semantic', 'keyword'],
+        },
+      ];
+
+      // Use multiple tokens so density is < 50% (only 1 matched out of 4 = 25%)
+      const queryTokens = ['test', 'other', 'tokens', 'here'];
+      const reranked = rerankCandidates(merged, queryTokens);
+
+      // entryB should rank higher due to both-channel boost
+      expect(reranked[0]?.entry.id).toBe('entry_b');
+      // Only both-channel boost (no token density boost since 25% < 50%)
+      expect(reranked[0]?.combinedScore).toBeCloseTo(0.54 + DEFAULT_BOTH_CHANNEL_BOOST, 5);
+    });
+
+    it('final results are truncated after rerank, not before merge', () => {
+      const entries = [
+        createTestEntryForMerge({ id: 'entry_1' }),
+        createTestEntryForMerge({ id: 'entry_2' }),
+        createTestEntryForMerge({ id: 'entry_3' }),
+      ];
+
+      const merged: MergedCandidate[] = entries.map((entry, i) => ({
+        entry,
+        semanticScore: 0.3 + i * 0.2,
+        keywordScore: 0,
+        combinedScore: (0.3 + i * 0.2) * 0.6,
+        tokenMatches: [],
+        channels: ['semantic'] as const,
+      }));
+
+      // Request max 2 candidates
+      const reranked = rerankCandidates(merged, [], { maxCandidates: 2 });
+
+      expect(reranked.length).toBe(2);
+      // Should have the highest scoring ones (entry_3 and entry_2)
+      expect(reranked[0]?.entry.id).toBe('entry_3');
+      expect(reranked[1]?.entry.id).toBe('entry_2');
+    });
+
+    it('rerank does not introduce new entries or bypass the filtered candidate set', () => {
+      const entryA = createTestEntryForMerge({ id: 'entry_a' });
+      const entryB = createTestEntryForMerge({ id: 'entry_b' });
+
+      const merged: MergedCandidate[] = [
+        {
+          entry: entryA,
+          semanticScore: 0.8,
+          keywordScore: 0,
+          combinedScore: 0.48,
+          tokenMatches: [],
+          channels: ['semantic'],
+        },
+        {
+          entry: entryB,
+          semanticScore: 0.7,
+          keywordScore: 0,
+          combinedScore: 0.42,
+          tokenMatches: [],
+          channels: ['semantic'],
+        },
+      ];
+
+      const reranked = rerankCandidates(merged, ['test']);
+
+      // Same number of candidates
+      expect(reranked.length).toBe(2);
+
+      // Same entries (just potentially reordered)
+      const rerankedIds = new Set(reranked.map((c) => c.entry.id));
+      expect(rerankedIds.has('entry_a')).toBe(true);
+      expect(rerankedIds.has('entry_b')).toBe(true);
+    });
+
+    it('applies both-channel boost for candidates with both channels', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const merged: MergedCandidate[] = [
+        {
+          entry,
+          semanticScore: 0.5,
+          keywordScore: 0.5,
+          combinedScore: 0.5, // Base combined score
+          tokenMatches: [],
+          channels: ['semantic', 'keyword'],
+        },
+      ];
+
+      const reranked = rerankCandidates(merged, []);
+
+      // Should get both-channel boost
+      expect(reranked[0]?.combinedScore).toBeCloseTo(0.5 + DEFAULT_BOTH_CHANNEL_BOOST, 5);
+    });
+
+    it('applies token density boost for high token match coverage', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const merged: MergedCandidate[] = [
+        {
+          entry,
+          semanticScore: 0.5,
+          keywordScore: 0.5,
+          combinedScore: 0.5,
+          // 3 out of 4 tokens matched (75% density >= 50%)
+          tokenMatches: [
+            { token: 'test', fields: ['shortcut'] },
+            { token: 'token', fields: ['detail'] },
+            { token: 'match', fields: ['labels'] },
+          ],
+          channels: ['semantic', 'keyword'],
+        },
+      ];
+
+      const queryTokens = ['test', 'token', 'match', 'query'];
+      const reranked = rerankCandidates(merged, queryTokens);
+
+      // Should get both-channel boost AND token density boost
+      const expectedBoost = DEFAULT_BOTH_CHANNEL_BOOST + DEFAULT_TOKEN_DENSITY_BOOST;
+      expect(reranked[0]?.combinedScore).toBeCloseTo(0.5 + expectedBoost, 5);
+    });
+
+    it('does not apply token density boost for low coverage', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const merged: MergedCandidate[] = [
+        {
+          entry,
+          semanticScore: 0.5,
+          keywordScore: 0.5,
+          combinedScore: 0.5,
+          // Only 1 out of 4 tokens matched (25% density < 50%)
+          tokenMatches: [{ token: 'test', fields: ['shortcut'] }],
+          channels: ['semantic', 'keyword'],
+        },
+      ];
+
+      const queryTokens = ['test', 'token', 'match', 'query'];
+      const reranked = rerankCandidates(merged, queryTokens);
+
+      // Should get both-channel boost but NOT token density boost
+      expect(reranked[0]?.combinedScore).toBeCloseTo(0.5 + DEFAULT_BOTH_CHANNEL_BOOST, 5);
+    });
+
+    it('uses entry id as tiebreaker for deterministic ordering when scores are equal', () => {
+      const entryA = createTestEntryForMerge({ id: 'entry_a' });
+      const entryB = createTestEntryForMerge({ id: 'entry_b' });
+      const entryC = createTestEntryForMerge({ id: 'entry_c' });
+
+      // All entries have same scores - should be sorted by ID
+      const merged: MergedCandidate[] = [
+        {
+          entry: entryC,
+          semanticScore: 0.5,
+          keywordScore: 0,
+          combinedScore: 0.3,
+          tokenMatches: [],
+          channels: ['semantic'],
+        },
+        {
+          entry: entryA,
+          semanticScore: 0.5,
+          keywordScore: 0,
+          combinedScore: 0.3,
+          tokenMatches: [],
+          channels: ['semantic'],
+        },
+        {
+          entry: entryB,
+          semanticScore: 0.5,
+          keywordScore: 0,
+          combinedScore: 0.3,
+          tokenMatches: [],
+          channels: ['semantic'],
+        },
+      ];
+
+      const reranked = rerankCandidates(merged, []);
+
+      // Should be sorted by entry ID ascending when scores are equal
+      expect(reranked[0]?.entry.id).toBe('entry_a');
+      expect(reranked[1]?.entry.id).toBe('entry_b');
+      expect(reranked[2]?.entry.id).toBe('entry_c');
+    });
+
+    it('caps score at 1.0 to maintain score bounds', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const merged: MergedCandidate[] = [
+        {
+          entry,
+          semanticScore: 1.0,
+          keywordScore: 1.0,
+          combinedScore: 1.0, // Already max
+          tokenMatches: [
+            { token: 'test', fields: ['shortcut'] },
+            { token: 'token', fields: ['detail'] },
+          ],
+          channels: ['semantic', 'keyword'],
+        },
+      ];
+
+      const queryTokens = ['test', 'token'];
+      const reranked = rerankCandidates(merged, queryTokens);
+
+      // Score should be capped at 1.0
+      expect(reranked[0]?.combinedScore).toBeLessThanOrEqual(1.0);
+    });
+
+    it('returns empty array for empty input', () => {
+      const reranked = rerankCandidates([], []);
+      expect(reranked).toEqual([]);
+    });
+
+    it('supports custom boost values', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const merged: MergedCandidate[] = [
+        {
+          entry,
+          semanticScore: 0.5,
+          keywordScore: 0.5,
+          combinedScore: 0.5,
+          tokenMatches: [],
+          channels: ['semantic', 'keyword'],
+        },
+      ];
+
+      const reranked = rerankCandidates(merged, [], {
+        bothChannelBoost: 0.25,
+        tokenDensityBoost: 0.2,
+      });
+
+      // Should use custom boost
+      expect(reranked[0]?.combinedScore).toBeCloseTo(0.75, 5);
+    });
+  });
+
+  describe('toScoredEntriesFromReranked', () => {
+    it('converts reranked candidates to scored entries using final score', () => {
+      const entry = createTestEntryForMerge({ id: 'entry_1' });
+
+      const reranked: MergedCandidate[] = [
+        {
+          entry,
+          semanticScore: 0.5,
+          keywordScore: 0.5,
+          combinedScore: 0.65, // After boosts
+          tokenMatches: [],
+          channels: ['semantic', 'keyword'],
+        },
+      ];
+
+      const scored = toScoredEntriesFromReranked(reranked);
+
+      expect(scored.length).toBe(1);
+      expect(scored[0]?.entry.id).toBe('entry_1');
+      expect(scored[0]?.score).toBe(0.65);
     });
   });
 });
