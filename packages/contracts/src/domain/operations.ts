@@ -96,6 +96,29 @@ export const auditEventSchema = z
   })
   .merge(auditMetadataSchema);
 
+export const auditQuerySchema = z.object({
+  action: z.array(z.enum([
+    'knowledge-reviewed',
+    'knowledge-imported',
+    'knowledge-exported',
+    'knowledge-deactivated',
+    'member-updated',
+  ])).optional(),
+  actorId: entityIdSchema.optional(),
+  entityId: entityIdSchema.optional(),
+  teamId: entityIdSchema.optional(),
+  from: z.iso.datetime({ offset: true }).optional(),
+  to: z.iso.datetime({ offset: true }).optional(),
+  limit: z.number().int().min(1).max(100).default(25),
+  cursor: z.string().min(1).max(128).optional(),
+});
+
+export const auditListResponseSchema = z.object({
+  items: z.array(auditEventSchema),
+  nextCursor: z.string().min(1).max(128).nullable(),
+  total: z.number().int().min(0),
+});
+
 export type ExportBundle = z.infer<typeof exportBundleSchema>;
 export type ImportEntry = z.infer<typeof importEntrySchema>;
 export type ImportRequest = z.infer<typeof importRequestSchema>;
@@ -104,6 +127,8 @@ export type ImportResponse = z.infer<typeof importResponseSchema>;
 export type ClaudeSkillMetadata = z.infer<typeof claudeSkillMetadataSchema>;
 export type ClaudeSkillImport = z.infer<typeof claudeSkillImportSchema>;
 export type AuditEvent = z.infer<typeof auditEventSchema>;
+export type AuditQuery = z.infer<typeof auditQuerySchema>;
+export type AuditListResponse = z.infer<typeof auditListResponseSchema>;
 export type KnowledgeListRequest = z.infer<typeof knowledgeListRequestSchema>;
 export type KnowledgeListResponse = z.infer<typeof knowledgeListResponseSchema>;
 export type KnowledgeDeactivateResponse = z.infer<typeof knowledgeDeactivateResponseSchema>;
