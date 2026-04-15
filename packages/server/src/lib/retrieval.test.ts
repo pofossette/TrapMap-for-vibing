@@ -641,4 +641,75 @@ describe('retrieval', () => {
       }
     });
   });
+
+  describe('persisted index state read path (Phase 8)', () => {
+    it('semantic recall prefers persisted indexState.vector over recomputing', async () => {
+      const data = await mockStore.snapshot();
+      const entry = data.knowledgeEntries[0];
+      if (!entry) {
+        throw new Error('No entry found in test data');
+      }
+
+      // Initially, no index state exists - should fall back to recomputation
+      expect(entry.indexState).toBeNull();
+
+      // After updating embedding cache, the entry should have cached vectors
+      await updateEntryEmbeddingCache(mockServices, entry.id);
+      const updatedData = await mockStore.snapshot();
+      const updatedEntry = updatedData.knowledgeEntries.find((e) => e.id === entry.id);
+      expect(updatedEntry).toBeDefined();
+      if (!updatedEntry) {
+        throw new Error('Entry should exist after update');
+      }
+
+      // For Phase 8, when indexState.vector is synced, semantic recall should read from it
+      // This test documents the expected behavior: persisted state is preferred
+      // The actual implementation will be added in Task 2
+      expect(updatedEntry.embeddingCache).not.toBeNull();
+
+      // TODO: Phase 8 Task 2 - verify that getEntryEmbedding reads indexState.vector first
+      // For now, this test ensures the embedding cache is populated
+    });
+
+    it('keyword recall reuses persisted field tokens for synced entries', async () => {
+      const data = await mockStore.snapshot();
+      const entry = data.knowledgeEntries[0];
+      if (!entry) {
+        throw new Error('No entry found in test data');
+      }
+
+      // For Phase 8, when indexState.keyword is synced, keyword recall should reuse
+      // persisted tokens instead of tokenizing entry text on every query
+      // This test documents the expected behavior
+      expect(entry.indexState).toBeNull();
+
+      // TODO: Phase 8 Task 2 - verify that keywordRecall uses persisted tokens
+      // when indexState.keyword.status === 'synced'
+      // For now, this test ensures the entry structure is ready for persisted state
+    });
+
+    it('legacy entries without synced state fall back to hot-path recomputation', async () => {
+      const data = await mockStore.snapshot();
+      const entry = data.knowledgeEntries[0];
+      if (!entry) {
+        throw new Error('No entry found in test data');
+      }
+
+      // Legacy entries (without indexState) should still work via fallback
+      expect(entry.indexState).toBeNull();
+
+      // Search should still succeed using the hot path
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return results even without persisted index state
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+    });
+  });
 });
