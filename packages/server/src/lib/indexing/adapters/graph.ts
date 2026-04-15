@@ -18,48 +18,17 @@
 import type { NormalizedIndexDocument } from '../types.js';
 import type { IndexSyncResult, IndexAdapter } from '../types.js';
 import { nowIso } from '../../store.js';
+import { extractGraphEntities } from '../../retrieval/graph-extract.js';
+import type {
+  GraphEntity,
+  GraphRelation,
+  GraphEntityType,
+  GraphRelationType,
+} from '../../retrieval/graph-extract.js';
 
-/**
- * Graph entity types supported for extraction.
- */
-export type GraphEntityType =
-  | 'service'
-  | 'tool'
-  | 'symptom'
-  | 'root-cause'
-  | 'fix'
-  | 'environment';
-
-/**
- * Graph relation types supported.
- */
-export type GraphRelationType =
-  | 'mentions'
-  | 'causes'
-  | 'fixed-by'
-  | 'observed-in'
-  | 'uses-tool'
-  | 'runs-in';
-
-/**
- * Extracted graph entity with type and value.
- */
-export interface GraphEntity {
-  type: GraphEntityType;
-  value: string;
-  /** Normalized value for deduplication */
-  normalizedValue: string;
-}
-
-/**
- * Graph relation between entities.
- */
-export interface GraphRelation {
-  type: GraphRelationType;
-  fromEntity: string; // normalized entity value
-  toEntity: string; // normalized entity value
-  weight: number; // support count
-}
+// Re-export types from graph-extract for API compatibility
+export type { GraphEntity, GraphRelation };
+export type { GraphEntityType, GraphRelationType };
 
 /**
  * Persisted graph state for query-time reuse.
@@ -109,148 +78,24 @@ function getCacheKey(entryId: string, revision: number): string {
 }
 
 /**
- * Normalize entity value for deduplication.
+ * Build persisted graph artifact from extraction result.
+ *
+ * This function transforms the extraction result into the persisted shape
+ * that the adapter stores for query-time reuse.
  */
-function normalizeEntityValue(value: string): string {
-  return value.toLowerCase().trim().replace(/\s+/g, '-');
-}
-
-/**
- * Deterministic entity extraction from normalized document.
- * Uses bounded heuristics to extract high-value entities.
- */
-function extractEntities(document: NormalizedIndexDocument): GraphEntity[] {
-  const entities: GraphEntity[] = [];
-  const text = document.canonicalText.toLowerCase();
-  const tokens = document.tokens;
-
-  // Extract service names (capitalized package-like phrases)
-  const servicePattern = /\b([A-Z][a-z0-9]+(?:[A-Z][a-z0-9]+)*)\b/g;
-  const serviceMatches = document.shortcut.match(servicePattern) || [];
-  for (const match of serviceMatches) {
-    if (match.length > 2) {
-      entities.push({
-        type: 'service',
-        value: match,
-        normalizedValue: normalizeEntityValue(match),
-      });
-    }
-  }
-
-  // Extract tool names (from labels and common tool patterns)
-  const toolKeywords = ['npm', 'pnpm', 'yarn', 'docker', 'kubernetes', 'git', 'vitest', 'typescript', 'node'];
-  for (const tool of toolKeywords) {
-    if (text.includes(tool)) {
-      entities.push({
-        type: 'tool',
-        value: tool,
-        normalizedValue: normalizeEntityValue(tool),
-      });
-    }
-  }
-
-  // Extract symptoms (error/problem phrases)
-  const symptomPatterns = ['error', 'fail', 'timeout', 'crash', 'cannot', 'undefined', 'null', 'leak'];
-  for (const symptom of symptomPatterns) {
-    if (text.includes(symptom)) {
-      entities.push({
-        type: 'symptom',
-        value: symptom,
-        normalizedValue: normalizeEntityValue(symptom),
-      });
-    }
-  }
-
-  // Extract root causes (causal phrases)
-  if (text.includes('because') || text.includes('caused by') || text.includes('due to') || text.includes('root cause')) {
-    entities.push({
-      type: 'root-cause',
-      value: 'root-cause',
-      normalizedValue: normalizeEntityValue('root-cause'),
-    });
-  }
-
-  // Extract fixes (remediation phrases)
-  const fixPatterns = ['fix', 'use', 'enable', 'set', 'add', 'configure', 'validate'];
-  for (const fix of fixPatterns) {
-    if (text.includes(fix)) {
-      entities.push({
-        type: 'fix',
-        value: fix,
-        normalizedValue: normalizeEntityValue(fix),
-      });
-    }
-  }
-
-  // Extract environment markers
-  const envPatterns = ['ci', 'local', 'production', 'staging', 'development'];
-  for (const env of envPatterns) {
-    if (text.includes(env)) {
-      entities.push({
-        type: 'environment',
-        value: env,
-        normalizedValue: normalizeEntityValue(env),
-      });
-    }
-  }
-
-  // Deduplicate by normalized value
-  const seen = new Set<string>();
-  return entities.filter((e) => {
-    if (seen.has(e.normalizedValue)) {
-      return false;
-    }
-    seen.add(e.normalizedValue);
-    return true;
-  });
-}
-
-/**
- * Deterministic relation extraction from entities.
- * Creates simple typed relations based on entity co-occurrence.
- */
-function extractRelations(entities: GraphEntity[]): GraphRelation[] {
-  const relations: GraphRelation[] = [];
-
-  // Group entities by type
-  const byType = new Map<GraphEntityType, GraphEntity[]>();
-  for (const entity of entities) {
-    if (!byType.has(entity.type)) {
-      byType.set(entity.type, []);
-    }
-    byType.get(entity.type)!.push(entity);
-  }
-
-  // Create simple relations based on co-occurrence
-  const symptoms = byType.get('symptom') || [];
-  const fixes = byType.get('fix') || [];
-  const tools = byType.get('tool') || [];
-
-  // Symptom -> Fix relations
-  for (const symptom of symptoms) {
-    for (const fix of fixes) {
-      relations.push({
-        type: 'fixed-by',
-        fromEntity: symptom.normalizedValue,
-        toEntity: fix.normalizedValue,
-        weight: 1,
-      });
-    }
-  }
-
-  // Fix -> Tool relations
-  for (const fix of fixes) {
-    for (const tool of tools) {
-      relations.push({
-        type: 'uses-tool',
-        fromEntity: fix.normalizedValue,
-        toEntity: tool.normalizedValue,
-        weight: 1,
-      });
-    }
-  }
-
-  return relations;
+export function buildGraphArtifact(
+  entryId: string,
+  revision: number,
+  contentHash: string,
+  extractionResult: { entities: GraphEntity[]; relations: GraphRelation[] },
+): PersistedGraphState {
+  return {
+    entryId,
+    revision,
+    entities: extractionResult.entities,
+    relations: extractionResult.relations,
+    contentHash,
+  };
 }
 
 /**
@@ -263,7 +108,7 @@ export const graphIndexAdapter: IndexAdapter = {
    * Sync graph index for a normalized document.
    *
    * This function:
-   * - Extracts entities and relations from the normalized document
+   * - Extracts entities and relations from the normalized document using shared extraction
    * - Persists graph payload keyed by entryId, revision, and contentHash
    * - Updates global graph index for cross-entry traversal
    * - Skips work if revision and content hash match (idempotency)
@@ -290,18 +135,16 @@ export const graphIndexAdapter: IndexAdapter = {
     }
 
     try {
-      // Extract entities and relations
-      const entities = extractEntities(document);
-      const relations = extractRelations(entities);
+      // Extract entities and relations using shared extraction module
+      const extractionResult = extractGraphEntities(document);
 
       // Build persisted graph state
-      const graphState: PersistedGraphState = {
-        entryId: document.entryId,
-        revision: document.revision,
-        entities,
-        relations,
-        contentHash: document.contentHash,
-      };
+      const graphState = buildGraphArtifact(
+        document.entryId,
+        document.revision,
+        document.contentHash,
+        extractionResult,
+      );
 
       // Persist graph state
       const state: GraphSyncState = {
@@ -315,7 +158,7 @@ export const graphIndexAdapter: IndexAdapter = {
       graphStateCache.set(cacheKey, state);
 
       // Update global graph index
-      for (const entity of entities) {
+      for (const entity of extractionResult.entities) {
         if (!globalGraphIndex.entities.has(entity.normalizedValue)) {
           globalGraphIndex.entities.set(entity.normalizedValue, new Set());
         }
@@ -325,7 +168,7 @@ export const graphIndexAdapter: IndexAdapter = {
       if (!globalGraphIndex.relations.has(document.entryId)) {
         globalGraphIndex.relations.set(document.entryId, []);
       }
-      globalGraphIndex.relations.set(document.entryId, relations);
+      globalGraphIndex.relations.set(document.entryId, extractionResult.relations);
 
       return {
         adapterKind: 'graph',

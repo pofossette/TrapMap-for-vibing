@@ -112,7 +112,7 @@ function extractServiceEntities(document: NormalizedIndexDocument): GraphEntity[
 
     for (const match of matches) {
       const value = match[1];
-      if (value.length > 2 && !NOISE_WORDS.has(value.toLowerCase())) {
+      if (value && value.length > 2 && !NOISE_WORDS.has(value.toLowerCase())) {
         entities.push({
           type: 'service',
           value,
@@ -128,7 +128,7 @@ function extractServiceEntities(document: NormalizedIndexDocument): GraphEntity[
 
   for (const match of shortcutMatches) {
     const value = match[1];
-    if (value.length > 2 && !NOISE_WORDS.has(value.toLowerCase())) {
+    if (value && value.length > 2 && !NOISE_WORDS.has(value.toLowerCase())) {
       entities.push({
         type: 'service',
         value,
