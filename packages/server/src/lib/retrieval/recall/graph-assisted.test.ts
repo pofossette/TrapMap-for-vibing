@@ -53,7 +53,10 @@ function createMockEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRec
     latestSubmissionId: null,
     submissionHistory: [],
     agentReview: null,
-    reviewerDecision: null,
+    reviewHistory: [],
+    reviewNotes: [],
+    lifecycleHistory: [],
+    embeddingCache: null,
     indexState: {
       contentHash: 'hash-1',
       normalizedAt: '2024-01-01T00:00:00Z',
@@ -61,6 +64,8 @@ function createMockEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRec
       keyword: { status: 'synced', revision: 1, contentHash: 'hash-1', lastSyncedAt: null, lastError: null },
       graph: { status: 'synced', revision: 1, contentHash: 'hash-1', lastSyncedAt: null, lastError: null },
     },
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
     ...overrides,
   };
 }
@@ -127,9 +132,9 @@ describe('graph-assisted recall', () => {
 
       // Should return entry matching query entities
       expect(candidates).toHaveLength(1);
-      expect(candidates[0].entry.id).toBe('entry-1');
-      expect(candidates[0].channel).toBe('graph');
-      expect(candidates[0].score).toBeGreaterThan(0);
+      expect(candidates[0]?.entry.id).toBe('entry-1');
+      expect(candidates[0]?.channel).toBe('graph');
+      expect(candidates[0]?.score).toBeGreaterThan(0);
     });
 
     it('handles empty query gracefully', async () => {
@@ -166,7 +171,7 @@ describe('graph-assisted recall', () => {
       const candidates = await graphAssistedRecall('PostgreSQL timeout fix', eligibleEntries);
 
       expect(candidates).toHaveLength(1);
-      expect(candidates[0].entry.id).toBe('entry-1');
+      expect(candidates[0]?.entry.id).toBe('entry-1');
     });
   });
 
@@ -302,7 +307,7 @@ describe('graph-assisted recall', () => {
       const entry2 = createMockEntry({
         id: 'entry-2',
         shortcut: 'Related container crash',
-        lifecycleState: 'pending', // Not approved
+        lifecycleState: 'submitted', // Not approved
       });
 
       // Setup graph with strong relation between entry1 and entry2
@@ -333,7 +338,7 @@ describe('graph-assisted recall', () => {
 
       // Should only return entry-1 (eligible), not entry-2 (not eligible)
       expect(candidates).toHaveLength(1);
-      expect(candidates[0].entry.id).toBe('entry-1');
+      expect(candidates[0]?.entry.id).toBe('entry-1');
     });
 
     it('never returns entries outside eligible set even with strong graph links', async () => {
@@ -381,8 +386,8 @@ describe('graph-assisted recall', () => {
 
       // Should only return entry-1 (level-0 user cannot see entry-2)
       expect(candidates).toHaveLength(1);
-      expect(candidates[0].entry.id).toBe('entry-1');
-      expect(candidates[0].entry.id).not.toBe('entry-2');
+      expect(candidates[0]?.entry.id).toBe('entry-1');
+      expect(candidates[0]?.entry.id).not.toBe('entry-2');
     });
   });
 
@@ -493,7 +498,7 @@ describe('graph-assisted recall', () => {
       // Entry with direct match should rank highest
       // Entry with stronger relation should rank higher than weak relation
       expect(candidates.length).toBeGreaterThan(0);
-      expect(candidates[0].entry.id).toBe('entry-1'); // Direct match
+      expect(candidates[0]?.entry.id).toBe('entry-1'); // Direct match
 
       // Find positions of entry2 and entry3
       const entry2Index = candidates.findIndex((c) => c.entry.id === 'entry-2');
@@ -528,8 +533,8 @@ describe('graph-assisted recall', () => {
       const candidates = await graphAssistedRecall('docker', eligibleEntries);
 
       expect(candidates).toHaveLength(1);
-      expect(candidates[0].score).toBeGreaterThan(0);
-      expect(candidates[0].score).toBeLessThanOrEqual(1);
+      expect(candidates[0]?.score).toBeGreaterThan(0);
+      expect(candidates[0]?.score).toBeLessThanOrEqual(1);
     });
 
     it('boosts score based on relation support count', async () => {

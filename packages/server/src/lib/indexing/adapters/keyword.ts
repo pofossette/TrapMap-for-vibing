@@ -99,20 +99,29 @@ export const keywordIndexAdapter = {
             lastSyncedAt: null,
             lastError: null,
           },
+          graph: {
+            status: 'pending',
+            revision: 0,
+            contentHash: '',
+            lastSyncedAt: null,
+            lastError: null,
+          },
         };
       }
 
       // Update keyword sync state
-      entry.indexState.keyword = {
-        status: 'synced',
-        revision: document.revision,
-        contentHash: document.contentHash,
-        lastSyncedAt: nowIso(),
-        lastError: null,
-      };
+      if (entry.indexState) {
+        entry.indexState.keyword = {
+          status: 'synced',
+          revision: document.revision,
+          contentHash: document.contentHash,
+          lastSyncedAt: nowIso(),
+          lastError: null,
+        };
 
-      // Store persisted keyword state
-      (entry.indexState.keyword as any).persistedState = keywordState;
+        // Store persisted keyword state
+        (entry.indexState.keyword as any).persistedState = keywordState;
+      }
 
       return {
         adapterKind: 'keyword',
@@ -176,3 +185,38 @@ export function getIndexedKeywordTokens(entry: KnowledgeRecord): PersistedKeywor
   }
   return null;
 }
+
+/**
+ * Check if an entry has indexed keyword tokens.
+ *
+ * @param entry - The knowledge entry
+ * @returns true if the entry has synced keyword tokens
+ */
+export function hasIndexedKeywordTokens(entry: KnowledgeRecord): boolean {
+  return entry.indexState?.keyword?.status === 'synced';
+}
+
+/**
+ * Upsert keyword index for a knowledge entry (wrapper function).
+ */
+export async function upsertKeywordIndex(
+  entry: KnowledgeRecord,
+  document: NormalizedIndexDocument,
+): Promise<IndexSyncResult> {
+  return keywordIndexAdapter.upsert(entry, document);
+}
+
+/**
+ * Remove keyword index for a knowledge entry (wrapper function).
+ */
+export async function removeKeywordIndex(
+  entry: KnowledgeRecord,
+  ref: { entryId: string; revision: number },
+): Promise<void> {
+  return keywordIndexAdapter.remove(entry, ref);
+}
+
+/**
+ * Keyword index payload type.
+ */
+export type KeywordIndexPayload = PersistedKeywordState;

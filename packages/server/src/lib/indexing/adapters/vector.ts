@@ -78,6 +78,13 @@ export const vectorIndexAdapter = {
             lastSyncedAt: null,
             lastError: null,
           },
+          graph: {
+            status: 'pending',
+            revision: 0,
+            contentHash: '',
+            lastSyncedAt: null,
+            lastError: null,
+          },
         };
       }
 
@@ -147,3 +154,36 @@ export const vectorIndexAdapter = {
     // The cache will be updated when/if the entry is re-approved
   },
 };
+
+/**
+ * Upsert vector index for a knowledge entry (wrapper function).
+ */
+export async function upsertVectorIndex(
+  entry: KnowledgeRecord,
+  document: NormalizedIndexDocument,
+): Promise<IndexSyncResult> {
+  return vectorIndexAdapter.upsert(entry, document);
+}
+
+/**
+ * Remove vector index for a knowledge entry (wrapper function).
+ */
+export async function removeVectorIndex(
+  entry: KnowledgeRecord,
+  ref: { entryId: string; revision: number },
+): Promise<void> {
+  return vectorIndexAdapter.remove(entry, ref);
+}
+
+/**
+ * Get vector payload from entry's embedding cache.
+ * Returns null if the entry has not been synced.
+ */
+export function getVectorPayload(entry: KnowledgeRecord): number[] | null {
+  return entry.embeddingCache?.vector || null;
+}
+
+/**
+ * Vector index payload type.
+ */
+export type VectorIndexPayload = number[];
