@@ -13,9 +13,10 @@ import { buildEmptyResponse, buildRetrievalResponse, assembleResponseBuckets } f
 import { filterEligibleEntries } from './filters.js';
 import { mergeCandidates, toScoredEntries, createSemanticCandidate } from './merge.js';
 import { keywordRecall, normalizeQuery } from './recall/keyword.js';
+import { graphAssistedRecall as graphRecall } from './recall/graph-assisted.js';
 import { buildEmbeddingText, cosineSimilarity, computeScore, getEntryEmbedding as semanticGetEntryEmbedding, getQueryEmbedding } from './recall/semantic.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
-import type { RetrievalPipelineContext, ScoredEntry } from './types.js';
+import type { MergedCandidate, RetrievalPipelineContext, ScoredEntry } from './types.js';
 
 /**
  * Main retrieval pipeline orchestrator.
@@ -29,7 +30,7 @@ import type { RetrievalPipelineContext, ScoredEntry } from './types.js';
  * Query modes:
  * - semantic: embedding-based retrieval (default)
  * - hybrid: combines semantic and keyword channels with weighted merge
- * - graph-assisted: not yet implemented (planned for future phase)
+ * - graph-assisted: hybrid baseline + graph expansion through relationships
  *
  * @param services - Server services (config, store)
  * @param auth - Resolved auth context
@@ -89,11 +90,7 @@ async function dispatchByMode(
     case 'hybrid':
       return await hybridRecall(seed, eligibleEntries, parsed);
     case 'graph-assisted':
-      throw new AppError(
-        501,
-        'mode_not_implemented',
-        'Graph-assisted retrieval mode is not yet implemented. Use semantic or hybrid mode.',
-      );
+      return await graphAssistedRecall(seed, eligibleEntries, parsed);
     default:
       // This should never happen due to Zod validation, but we handle it for safety
       throw new AppError(
@@ -209,6 +206,104 @@ async function computeSemanticCandidates(
   candidates.sort((a, b) => b.score - a.score);
 
   return candidates;
+}
+
+/**
+ * Graph-assisted recall combining hybrid baseline with graph expansion.
+ *
+ * Pipeline:
+ * 1. Run hybrid recall (semantic + keyword) as baseline
+ * 2. Run graph-assisted recall for relationship-based expansion
+ * 3. Merge graph candidates with hybrid candidates
+ * 4. Rerank combined candidates using heuristic boosts
+ * 5. Return scored entries sorted by final score
+ *
+ * @param seed - Search query text
+ * @param eligibleEntries - Entries that passed eligibility filters
+ * @param parsed - Parsed retrieval query
+ * @returns Scored entries sorted by combined relevance
+ */
+async function graphAssistedRecall(
+  seed: string,
+  eligibleEntries: KnowledgeRecord[],
+  parsed: ReturnType<typeof retrievalQuerySchema.parse>,
+): Promise<ScoredEntry[]> {
+  // Normalize query tokens for rerank stage
+  const queryTokens = normalizeQuery(seed);
+
+  // Convert eligible entries array to Map for graph recall
+  const eligibleEntriesMap = new Map<string, KnowledgeRecord>();
+  for (const entry of eligibleEntries) {
+    eligibleEntriesMap.set(entry.id, entry);
+  }
+
+  // Run hybrid baseline and graph recall in parallel
+  const [semanticCandidates, keywordCandidates, graphCandidates] = await Promise.all([
+    // Semantic channel: compute embeddings and scores
+    computeSemanticCandidates(seed, eligibleEntries, parsed.filters),
+    // Keyword channel: lexical matching
+    keywordRecall(seed, eligibleEntries),
+    // Graph channel: relationship-based expansion
+    graphRecall(seed, eligibleEntriesMap),
+  ]);
+
+  // Merge semantic and keyword candidates first
+  const hybridMerged = mergeCandidates(semanticCandidates, keywordCandidates);
+
+  // Now merge graph candidates with hybrid results
+  // We need to extend mergeCandidates to handle graph channel
+  const finalMerged = mergeCandidatesWithGraph(hybridMerged, graphCandidates);
+
+  // Rerank merged candidates using heuristic boosts
+  const rerankedCandidates = rerankCandidates(finalMerged, queryTokens, {
+    maxCandidates: parsed.maxResults,
+  });
+
+  // Convert to scored entries for assembly
+  return toScoredEntriesFromReranked(rerankedCandidates);
+}
+
+/**
+ * Merge graph candidates with hybrid candidates.
+ * Extends the merge logic to support graph channel evidence.
+ *
+ * @param hybridMerged - Already-merged semantic + keyword candidates
+ * @param graphCandidates - Graph recall candidates
+ * @returns Merged candidates with graph evidence included
+ */
+function mergeCandidatesWithGraph(
+  hybridMerged: ReturnType<typeof mergeCandidates>,
+  graphCandidates: Awaited<ReturnType<typeof graphRecall>>,
+): MergedCandidate[] {
+  const result = [...hybridMerged];
+
+  for (const graphCandidate of graphCandidates) {
+    const existing = result.find((c) => c.entry.id === graphCandidate.entry.id);
+
+    if (existing) {
+      // Entry exists from hybrid - add graph evidence
+      existing.channels.push('graph');
+      existing.graphScore = graphCandidate.score;
+      // Boost combined score based on graph evidence
+      existing.combinedScore = Math.min(1, existing.combinedScore + graphCandidate.score * 0.2);
+    } else {
+      // Entry only from graph channel
+      result.push({
+        entry: graphCandidate.entry,
+        semanticScore: 0,
+        keywordScore: 0,
+        graphScore: graphCandidate.score,
+        combinedScore: graphCandidate.score,
+        tokenMatches: [],
+        channels: ['graph'],
+      });
+    }
+  }
+
+  // Re-sort by combined score
+  result.sort((a, b) => b.combinedScore - a.combinedScore);
+
+  return result;
 }
 
 /**

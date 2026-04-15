@@ -57,7 +57,7 @@ export interface RetrievalStats {
  * The recall channel that produced a candidate.
  * Used to track evidence source during hybrid merge and rerank stages.
  */
-export type RecallChannel = 'semantic' | 'keyword';
+export type RecallChannel = 'semantic' | 'keyword' | 'graph';
 
 /**
  * Token match detail for keyword recall evidence.
@@ -96,6 +96,8 @@ export interface MergedCandidate {
   semanticScore: number;
   /** Keyword channel score, or 0 if not recalled via keyword */
   keywordScore: number;
+  /** Graph channel score, or 0 if not recalled via graph (optional for backward compatibility) */
+  graphScore?: number;
   /** Combined score after merge, in [0, 1] */
   combinedScore: number;
   /** All token matches from keyword channel (empty if keyword not used) */
