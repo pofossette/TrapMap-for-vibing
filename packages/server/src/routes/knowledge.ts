@@ -238,17 +238,23 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     // Trigger indexing AFTER the transaction commits (post-commit pattern)
     // Only refresh indexes for approved entries (IDX-05, T-11-04)
     if (previousState && nextState && nextState === 'approved') {
-      await runKnowledgeIndexEvent({
-        services: {
-          store: app.skillShareer.store,
-          data: await app.skillShareer.store.snapshot(),
-        },
-        entryId,
-        previousState: previousState as any,
-        nextState: nextState as any,
-        reason: 'updated',
-        adapters: app.skillShareer.indexAdapters,
-      });
+      try {
+        await runKnowledgeIndexEvent({
+          services: {
+            store: app.skillShareer.store,
+            data: await app.skillShareer.store.snapshot(),
+          },
+          entryId,
+          previousState: previousState as any,
+          nextState: nextState as any,
+          reason: 'updated',
+          adapters: app.skillShareer.indexAdapters,
+        });
+      } catch (indexingError) {
+        // Log but don't fail the request - domain state is already committed
+        app.log.error({ indexingError, entryId }, 'Post-commit indexing failed after update');
+        // Optionally: schedule retry or mark entry for reconciliation
+      }
     }
 
     return knowledgeEntryResponseSchema.parse({ entry: updatedEntry });
