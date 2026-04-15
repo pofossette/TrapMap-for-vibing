@@ -2,72 +2,50 @@
  * Vector index adapter for lifecycle-driven indexing.
  *
  * This module provides:
- * - Vector sync with idempotency based on revision and content hash
+ * - Vector upsert with idempotency based on revision and content hash
  * - Idempotent vector removal
- * - Embedding generation and persistence
+ * - EmbeddingCache mirroring for compatibility during migration
  *
- * The adapter generates embeddings from document.canonicalText and
- * persists them to the store for retrieval-time reuse.
+ * The adapter persists vector payloads to entry.indexState.vector and
+ * mirrors them to entry.embeddingCache for backward compatibility.
  *
  * Security note: This adapter operates on already-approved entries.
  * The pipeline is responsible for gating on lifecycleState before calling sync.
  */
 
+import type { KnowledgeRecord } from '../../store.js';
 import type { NormalizedIndexDocument } from '../types.js';
-import type { IndexSyncResult, IndexAdapter } from '../types.js';
+import type { IndexSyncResult } from '../types.js';
 import { generateEmbedding } from '../../embeddings.js';
 import { nowIso } from '../../store.js';
-import type { JsonStore } from '../../store.js';
-import type { StoreData } from '../../store.js';
-
-/**
- * In-memory tracking of synced vector state.
- * In production, this would be persisted to the store.
- */
-interface VectorSyncState {
-  entryId: string;
-  revision: number;
-  contentHash: string;
-  vector: number[];
-  syncedAt: string;
-}
-
-// In-memory storage for sync state (worktree-compatible approach)
-const vectorStateCache = new Map<string, VectorSyncState>();
-
-/**
- * Generate cache key for vector state.
- */
-function getCacheKey(entryId: string, revision: number): string {
-  return `${entryId}:${revision}`;
-}
 
 /**
  * Vector index adapter implementation.
  */
-export const vectorIndexAdapter: IndexAdapter = {
-  kind: 'vector',
+export const vectorIndexAdapter = {
+  kind: 'vector' as const,
 
   /**
-   * Sync vector index for a normalized document.
+   * Upsert vector index for a knowledge entry.
    *
    * This function:
    * - Generates embedding vector for the normalized document
-   * - Persists vector payload keyed by entryId, revision, and contentHash
+   * - Persists vector payload to entry.indexState.vector
+   * - Mirrors to entry.embeddingCache for compatibility
    * - Skips work if revision and content hash match (idempotency)
    *
+   * @param entry - The knowledge entry to update (mutated in place)
    * @param document - The normalized index document
    * @returns Sync result indicating success and whether work was performed
    */
-  async sync(document: NormalizedIndexDocument): Promise<IndexSyncResult> {
-    const cacheKey = getCacheKey(document.entryId, document.revision);
-    const existingState = vectorStateCache.get(cacheKey);
-
+  async upsert(entry: KnowledgeRecord, document: NormalizedIndexDocument): Promise<IndexSyncResult> {
     // Check if we can skip work (idempotency)
+    const currentVectorState = entry.indexState?.vector;
     if (
-      existingState &&
-      existingState.contentHash === document.contentHash &&
-      existingState.revision === document.revision
+      currentVectorState &&
+      currentVectorState.status === 'synced' &&
+      currentVectorState.revision === document.revision &&
+      currentVectorState.contentHash === document.contentHash
     ) {
       return {
         adapterKind: 'vector',
@@ -81,16 +59,44 @@ export const vectorIndexAdapter: IndexAdapter = {
       // Generate embedding vector
       const vector = await generateEmbedding(document.canonicalText);
 
-      // Persist vector state
-      const state: VectorSyncState = {
-        entryId: document.entryId,
+      // Ensure indexState exists
+      if (!entry.indexState) {
+        entry.indexState = {
+          contentHash: document.contentHash,
+          normalizedAt: document.normalizedAt,
+          vector: {
+            status: 'pending',
+            revision: 0,
+            contentHash: '',
+            lastSyncedAt: null,
+            lastError: null,
+          },
+          keyword: {
+            status: 'pending',
+            revision: 0,
+            contentHash: '',
+            lastSyncedAt: null,
+            lastError: null,
+          },
+        };
+      }
+
+      // Update vector sync state
+      entry.indexState.vector = {
+        status: 'synced',
         revision: document.revision,
         contentHash: document.contentHash,
-        vector,
-        syncedAt: nowIso(),
+        lastSyncedAt: nowIso(),
+        lastError: null,
       };
 
-      vectorStateCache.set(cacheKey, state);
+      // Mirror to embeddingCache for compatibility during migration
+      entry.embeddingCache = {
+        textHash: document.contentHash, // Use contentHash as textHash
+        vector,
+        createdAt: nowIso(),
+        revision: document.revision,
+      };
 
       return {
         adapterKind: 'vector',
@@ -100,6 +106,12 @@ export const vectorIndexAdapter: IndexAdapter = {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Update state to failed
+      if (entry.indexState?.vector) {
+        entry.indexState.vector.status = 'failed';
+        entry.indexState.vector.lastError = errorMessage;
+      }
 
       return {
         adapterKind: 'vector',
@@ -111,38 +123,27 @@ export const vectorIndexAdapter: IndexAdapter = {
   },
 
   /**
-   * Remove vector index for an entry.
+   * Remove vector index for a knowledge entry.
    *
    * This function:
-   * - Clears vector sync state for the given entry
+   * - Clears vector sync state from entry.indexState.vector
+   * - Does NOT clear embeddingCache (kept for compatibility)
    * - Is idempotent (safe to call multiple times)
    *
+   * @param entry - The knowledge entry to update (mutated in place)
    * @param ref - Entry reference containing entryId and revision
    */
-  async remove(ref: { entryId: string; revision: number }): Promise<void> {
-    const cacheKey = getCacheKey(ref.entryId, ref.revision);
-    vectorStateCache.delete(cacheKey);
+  async remove(entry: KnowledgeRecord, ref: { entryId: string; revision: number }): Promise<void> {
+    if (entry.indexState?.vector) {
+      entry.indexState.vector = {
+        status: 'pending',
+        revision: ref.revision,
+        contentHash: '',
+        lastSyncedAt: null,
+        lastError: null,
+      };
+    }
+    // Note: We do NOT clear embeddingCache here for compatibility
+    // The cache will be updated when/if the entry is re-approved
   },
 };
-
-/**
- * Get persisted vector for an entry.
- * Returns null if the entry has not been synced.
- *
- * @param entryId - The knowledge entry ID
- * @param revision - The entry revision
- * @returns Vector or null
- */
-export function getIndexedVector(entryId: string, revision: number): number[] | null {
-  const cacheKey = getCacheKey(entryId, revision);
-  const state = vectorStateCache.get(cacheKey);
-  return state?.vector || null;
-}
-
-/**
- * Clear the vector state cache.
- * Primarily used for testing.
- */
-export function clearVectorCache(): void {
-  vectorStateCache.clear();
-}

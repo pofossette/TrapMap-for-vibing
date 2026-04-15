@@ -14,7 +14,7 @@
  * Phase 7 hybrid groundwork: This is the keyword recall channel that will be
  * merged with semantic recall and reranked in later plans.
  *
- * Phase 8: Prefers persisted keyword tokens from keywordIndexCache for synced
+ * Phase 8: Prefers persisted keyword tokens from indexState.keyword for synced
  * entries, falling back to query-time tokenization for legacy entries.
  */
 
@@ -55,26 +55,24 @@ export function normalizeQuery(query: string): string[] {
  * Returns a map from field name to set of tokens.
  *
  * Phase 8: For synced entries, prefers persisted keyword tokens from
- * keywordIndexCache to avoid recomputing tokens on every query.
+ * indexState.keyword to avoid recomputing tokens on every query.
  */
 function tokenizeEntry(entry: KnowledgeRecord): {
   shortcut: Set<string>;
   detail: Set<string>;
   labels: Set<string>;
 } {
-  // Phase 8: Check for persisted keyword state in keywordIndexCache
-  const keywordCache = (entry as any).keywordIndexCache;
-  if (
-    entry.indexState?.keyword?.status === 'synced' &&
-    keywordCache?.tokens &&
-    Array.isArray(keywordCache.tokens)
-  ) {
-    // Use persisted tokens
-    return {
-      shortcut: new Set(keywordCache.shortcutTokens || []),
-      detail: new Set(keywordCache.detailTokens || []),
-      labels: new Set(keywordCache.labelTokens || []),
-    };
+  // Phase 8: Check for persisted keyword state
+  if (entry.indexState?.keyword?.status === 'synced') {
+    const persistedState = (entry.indexState.keyword as any).persistedState;
+    if (persistedState?.fieldTokens) {
+      // Use persisted tokens
+      return {
+        shortcut: new Set(persistedState.fieldTokens.shortcut),
+        detail: new Set(persistedState.fieldTokens.detail),
+        labels: new Set(persistedState.fieldTokens.labels),
+      };
+    }
   }
 
   // Fall back to query-time tokenization for legacy entries

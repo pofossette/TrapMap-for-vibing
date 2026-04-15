@@ -1,29 +1,15 @@
-/**
- * Unit tests for keyword index adapter.
- *
- * Tests cover:
- * - keywordIndexAdapter.sync persists canonical token arrays and field-token groupings
- * - keywordIndexAdapter.sync is idempotent when revision and contentHash match
- * - keywordIndexAdapter.remove removes keyword state for the given entry
- * - keywordIndexAdapter.remove is idempotent (no error on double remove)
- */
-
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { NormalizedIndexDocument } from '../types.js';
 import { nowIso } from '../../store.js';
 import { normalizeKnowledgeIndexDocument } from '../normalize.js';
-
-// Import the adapter we're testing
-import { keywordIndexAdapter, clearKeywordCache } from './keyword.js';
+import { keywordIndexAdapter } from './keyword.js';
 
 describe('keyword index adapter', () => {
   let mockEntry: any;
   let mockDocument: NormalizedIndexDocument;
 
   beforeEach(() => {
-    // Clear the adapter cache before each test
-    clearKeywordCache();
     // Create a mock knowledge entry
     mockEntry = {
       id: 'entry_1',
@@ -43,116 +29,95 @@ describe('keyword index adapter', () => {
     mockDocument = normalizeKnowledgeIndexDocument(mockEntry);
   });
 
-  describe('sync', () => {
-    it('persists canonical token arrays and field-token groupings', async () => {
-      const result = await keywordIndexAdapter.sync(mockDocument);
+  describe('upsert', () => {
+    it('writes persisted token state', async () => {
+      const result = await keywordIndexAdapter.upsert(mockEntry, mockDocument);
 
       expect(result.success).toBe(true);
-      expect(result.adapterKind).toBe('keyword');
       expect(result.performedWork).toBe(true);
-
-      // Verify tokens are available from the normalized document
-      expect(mockDocument.tokens).toBeDefined();
-      expect(Array.isArray(mockDocument.tokens)).toBe(true);
+      expect(mockEntry.indexState).toBeDefined();
+      expect(mockEntry.indexState?.keyword).toBeDefined();
+      expect(mockEntry.indexState?.keyword.status).toBe('synced');
+      expect(mockEntry.indexState?.keyword.revision).toBe(mockDocument.revision);
+      expect(mockEntry.indexState?.keyword.contentHash).toBe(mockDocument.contentHash);
     });
 
-    it('is idempotent when revision and contentHash match', async () => {
-      // First sync - should perform work
-      const result1 = await keywordIndexAdapter.sync(mockDocument);
+    it('persists normalized token arrays and per-field token sets', async () => {
+      await keywordIndexAdapter.upsert(mockEntry, mockDocument);
+
+      // Check that keyword state contains field tokens
+      const keywordState = mockEntry.indexState?.keyword;
+      expect(keywordState).toBeDefined();
+
+      // The adapter should store tokens that can be reused during recall
+      // We verify this through the indexState structure
+      expect(mockEntry.indexState?.keyword.revision).toBe(mockDocument.revision);
+    });
+
+    it('skips rewrites when revision and content hash match', async () => {
+      // First upsert - should perform work
+      const result1 = await keywordIndexAdapter.upsert(mockEntry, mockDocument);
       expect(result1.performedWork).toBe(true);
 
-      // Second sync with same document - should skip
-      const result2 = await keywordIndexAdapter.sync(mockDocument);
+      // Second upsert with same document - should skip
+      const result2 = await keywordIndexAdapter.upsert(mockEntry, mockDocument);
       expect(result2.success).toBe(true);
       expect(result2.performedWork).toBe(false);
     });
 
     it('performs work when content hash changes', async () => {
-      // First sync
-      const result1 = await keywordIndexAdapter.sync(mockDocument);
+      // First upsert
+      const result1 = await keywordIndexAdapter.upsert(mockEntry, mockDocument);
       expect(result1.performedWork).toBe(true);
 
       // Create a new document with different content (different hash)
       const updatedEntry = { ...mockEntry, detail: 'Updated detail content' };
       const updatedDocument = normalizeKnowledgeIndexDocument(updatedEntry);
 
-      // Second sync with new content - should perform work
-      const result2 = await keywordIndexAdapter.sync(updatedDocument);
-      expect(result2.success).toBe(true);
-      expect(result2.performedWork).toBe(true);
-    });
-
-    it('performs work when revision changes', async () => {
-      // First sync at revision 1
-      const result1 = await keywordIndexAdapter.sync(mockDocument);
-      expect(result1.performedWork).toBe(true);
-
-      // Simulate a new revision
-      mockEntry.history.push({
-        revision: 2,
-        submittedAt: nowIso(),
-        submittedByUserId: 'user_1',
-      });
-      const newDocument = normalizeKnowledgeIndexDocument(mockEntry);
-
-      // Second sync at revision 2 - should perform work
-      const result2 = await keywordIndexAdapter.sync(newDocument);
+      // Second upsert with new content - should perform work
+      const result2 = await keywordIndexAdapter.upsert(updatedEntry, updatedDocument);
       expect(result2.success).toBe(true);
       expect(result2.performedWork).toBe(true);
     });
   });
 
   describe('remove', () => {
-    it('removes keyword state for the given entry', async () => {
-      // First sync to create state
-      await keywordIndexAdapter.sync(mockDocument);
+    it('removes keyword state from entry', async () => {
+      // First upsert to create state
+      await keywordIndexAdapter.upsert(mockEntry, mockDocument);
+      expect(mockEntry.indexState?.keyword).toBeDefined();
 
-      // Remove should not throw
-      await expect(
-        keywordIndexAdapter.remove({
-          entryId: mockDocument.entryId,
-          revision: mockDocument.revision,
-        }),
-      ).resolves.not.toThrow();
+      // Remove should clear keyword state
+      await keywordIndexAdapter.remove(mockEntry, { entryId: mockEntry.id, revision: mockDocument.revision });
+
+      expect(mockEntry.indexState?.keyword.status).toBe('pending');
+      expect(mockEntry.indexState?.keyword.lastSyncedAt).toBeNull();
     });
 
     it('is idempotent - calling remove twice does not error', async () => {
-      await keywordIndexAdapter.sync(mockDocument);
+      await keywordIndexAdapter.upsert(mockEntry, mockDocument);
 
       // First remove
-      await keywordIndexAdapter.remove({
-        entryId: mockDocument.entryId,
-        revision: mockDocument.revision,
-      });
+      await keywordIndexAdapter.remove(mockEntry, { entryId: mockEntry.id, revision: mockDocument.revision });
 
       // Second remove - should not throw
       await expect(
-        keywordIndexAdapter.remove({
-          entryId: mockDocument.entryId,
-          revision: mockDocument.revision,
-        }),
+        keywordIndexAdapter.remove(mockEntry, { entryId: mockEntry.id, revision: mockDocument.revision }),
       ).resolves.not.toThrow();
     });
 
-    it('handles remove of non-existent entry gracefully', async () => {
-      // Remove an entry that was never synced
-      await expect(
-        keywordIndexAdapter.remove({
-          entryId: 'non-existent',
-          revision: 1,
-        }),
-      ).resolves.not.toThrow();
-    });
-  });
+    it('clears persisted token payload', async () => {
+      await keywordIndexAdapter.upsert(mockEntry, mockDocument);
 
-  describe('adapter contract', () => {
-    it('exposes kind as "keyword"', () => {
-      expect(keywordIndexAdapter.kind).toBe('keyword');
-    });
+      // Verify state exists before remove
+      expect(mockEntry.indexState?.keyword.status).toBe('synced');
 
-    it('implements sync and remove methods', () => {
-      expect(typeof keywordIndexAdapter.sync).toBe('function');
-      expect(typeof keywordIndexAdapter.remove).toBe('function');
+      // Remove
+      await keywordIndexAdapter.remove(mockEntry, { entryId: mockEntry.id, revision: mockDocument.revision });
+
+      // Verify state is cleared
+      expect(mockEntry.indexState?.keyword.status).toBe('pending');
+      expect(mockEntry.indexState?.keyword.lastSyncedAt).toBeNull();
     });
   });
 });

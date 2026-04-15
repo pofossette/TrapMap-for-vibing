@@ -83,9 +83,8 @@ export function computeScore(
 
 /**
  * Get or compute embedding vector for a knowledge entry.
- *
- * Phase 8: Prefers persisted indexState.vector for synced entries,
- * falls back to embeddingCache for legacy entries, then recomputes if necessary.
+ * Uses persisted indexState.vector if available (Phase 8), falls back to
+ * embeddingCache for compatibility, then recomputes if necessary.
  */
 export async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[]> {
   const text = buildEmbeddingText(entry);
@@ -97,13 +96,13 @@ export async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[
     entry.indexState.vector.revision === entry.history.length &&
     entry.indexState.vector.contentHash === textHash
   ) {
-    // Use persisted vector from embeddingCache (mirrored by vector adapter)
-    if (entry.embeddingCache?.embedding) {
-      return entry.embeddingCache.embedding;
+    // Use persisted vector from indexState
+    if (entry.embeddingCache?.vector) {
+      return entry.embeddingCache.vector;
     }
   }
 
-  // Fall back to legacy embeddingCache for entries without synced state
+  // Fall back to embeddingCache for legacy entries
   if (
     entry.embeddingCache &&
     entry.embeddingCache.revision === entry.history.length &&

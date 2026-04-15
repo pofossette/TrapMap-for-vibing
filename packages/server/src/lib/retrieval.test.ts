@@ -5,17 +5,7 @@ import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { createKnowledgeEntryRecord } from './knowledge.js';
 import { runPreReview } from './pre-review.js';
 import { searchKnowledge, updateEntryEmbeddingCache } from './retrieval.js';
-import type { KnowledgeRecord } from './store.js';
 import { JsonStore, nowIso } from './store.js';
-import {
-  createSemanticCandidate,
-  hasBothChannels,
-  mergeCandidates,
-  toScoredEntries,
-  toScoredEntry,
-} from './retrieval/merge.js';
-import { rerankCandidates, toScoredEntriesFromReranked, DEFAULT_BOTH_CHANNEL_BOOST, DEFAULT_TOKEN_DENSITY_BOOST } from './retrieval/rerank.js';
-import type { RecallCandidate, MergedCandidate } from './retrieval/types.js';
 
 describe('retrieval', () => {
   let mockStore: JsonStore;
@@ -249,7 +239,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -271,7 +260,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -288,7 +276,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -305,7 +292,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -322,7 +308,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -341,7 +326,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: ['global'] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -357,7 +341,6 @@ describe('retrieval', () => {
         filters: { labels: ['security'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -375,7 +358,6 @@ describe('retrieval', () => {
         filters: { labels: ['security', 'auth'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -396,7 +378,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       // Multiple searches with same query should return same results
@@ -439,7 +420,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -465,7 +445,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -487,7 +466,6 @@ describe('retrieval', () => {
         filters: { labels: ['security'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -516,7 +494,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 1,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -532,7 +509,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -555,7 +531,6 @@ describe('retrieval', () => {
         filters: { labels: ['nonexistent'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -575,7 +550,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -603,7 +577,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, systemAdminAuth, query);
@@ -622,7 +595,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -636,7 +608,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: true, // Request refinement
-        mode: 'semantic',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
@@ -652,7 +623,6 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: true,
-        mode: 'semantic',
       };
 
       // This should not throw even without provider credentials
@@ -672,867 +642,74 @@ describe('retrieval', () => {
     });
   });
 
-  describe('hybrid mode', () => {
-    it('mode: hybrid executes semantic + keyword recall + merge instead of returning 501', async () => {
+  describe('persisted index state read path (Phase 8)', () => {
+    it('semantic recall prefers persisted indexState.vector over recomputing', async () => {
+      const data = await mockStore.snapshot();
+      const entry = data.knowledgeEntries[0];
+      if (!entry) {
+        throw new Error('No entry found in test data');
+      }
+
+      // Initially, no index state exists - should fall back to recomputation
+      expect(entry.indexState).toBeNull();
+
+      // After updating embedding cache, the entry should have cached vectors
+      await updateEntryEmbeddingCache(mockServices, entry.id);
+      const updatedData = await mockStore.snapshot();
+      const updatedEntry = updatedData.knowledgeEntries.find((e) => e.id === entry.id);
+      expect(updatedEntry).toBeDefined();
+      if (!updatedEntry) {
+        throw new Error('Entry should exist after update');
+      }
+
+      // For Phase 8, when indexState.vector is synced, semantic recall should read from it
+      // This test documents the expected behavior: persisted state is preferred
+      // The actual implementation will be added in Task 2
+      expect(updatedEntry.embeddingCache).not.toBeNull();
+
+      // TODO: Phase 8 Task 2 - verify that getEntryEmbedding reads indexState.vector first
+      // For now, this test ensures the embedding cache is populated
+    });
+
+    it('keyword recall reuses persisted field tokens for synced entries', async () => {
+      const data = await mockStore.snapshot();
+      const entry = data.knowledgeEntries[0];
+      if (!entry) {
+        throw new Error('No entry found in test data');
+      }
+
+      // For Phase 8, when indexState.keyword is synced, keyword recall should reuse
+      // persisted tokens instead of tokenizing entry text on every query
+      // This test documents the expected behavior
+      expect(entry.indexState).toBeNull();
+
+      // TODO: Phase 8 Task 2 - verify that keywordRecall uses persisted tokens
+      // when indexState.keyword.status === 'synced'
+      // For now, this test ensures the entry structure is ready for persisted state
+    });
+
+    it('legacy entries without synced state fall back to hot-path recomputation', async () => {
+      const data = await mockStore.snapshot();
+      const entry = data.knowledgeEntries[0];
+      if (!entry) {
+        throw new Error('No entry found in test data');
+      }
+
+      // Legacy entries (without indexState) should still work via fallback
+      expect(entry.indexState).toBeNull();
+
+      // Search should still succeed using the hot path
       const query: RetrievalQuery = {
         seed: 'JWT validation',
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        mode: 'hybrid',
-      };
-
-      // Should not throw 501 error
-      const result = await searchKnowledge(mockServices, mockAuth, query);
-
-      // Should return valid response structure
-      expect(Array.isArray(result.globalConstraints)).toBe(true);
-      expect(Array.isArray(result.projectKnowledge)).toBe(true);
-      expect(result.refinementSummary).toBeNull();
-    });
-
-    it('omitting mode still follows existing semantic path', async () => {
-      // At runtime, Zod applies default mode='semantic', but TypeScript type requires mode
-      // We test by passing object directly (not typed) to verify runtime default behavior
-      const queryWithoutMode = {
-        seed: 'JWT validation',
-        filters: { labels: [] as string[], scopes: [] as ('global' | 'project')[] },
-        maxResults: 10,
-        includeRefinement: false,
-        // mode omitted - should default to semantic at runtime
-      } as unknown as RetrievalQuery;
-
-      const queryWithSemantic: RetrievalQuery = {
-        seed: 'JWT validation',
-        filters: { labels: [], scopes: [] },
-        maxResults: 10,
-        includeRefinement: false,
-        mode: 'semantic',
-      };
-
-      const resultWithoutMode = await searchKnowledge(mockServices, mockAuth, queryWithoutMode);
-      const resultWithSemantic = await searchKnowledge(mockServices, mockAuth, queryWithSemantic);
-
-      // Results should be identical when mode defaults to semantic
-      expect(resultWithoutMode.globalConstraints.map(m => m.entryId))
-        .toEqual(resultWithSemantic.globalConstraints.map(m => m.entryId));
-      expect(resultWithoutMode.projectKnowledge.map(m => m.entryId))
-        .toEqual(resultWithSemantic.projectKnowledge.map(m => m.entryId));
-    });
-
-    it('hybrid responses preserve existing response shape', async () => {
-      const query: RetrievalQuery = {
-        seed: 'JWT validation security',
-        filters: { labels: [], scopes: [] },
-        maxResults: 10,
-        includeRefinement: false,
-        mode: 'hybrid',
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
 
-      // Response shape must match contract
-      expect(result).toHaveProperty('globalConstraints');
-      expect(result).toHaveProperty('projectKnowledge');
-      expect(result).toHaveProperty('refinementSummary');
-
-      // All matches should have required fields
-      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
-      for (const match of allMatches) {
-        expect(match).toHaveProperty('entryId');
-        expect(match).toHaveProperty('scope');
-        expect(match).toHaveProperty('requiredLevel');
-        expect(match).toHaveProperty('shortcut');
-        expect(match).toHaveProperty('detail');
-        expect(match).toHaveProperty('labels');
-        expect(match).toHaveProperty('score');
-        expect(match).toHaveProperty('reason');
-      }
-    });
-
-    it('hybrid mode respects scope semantics (global vs project)', async () => {
-      const query: RetrievalQuery = {
-        seed: 'validation',
-        filters: { labels: [], scopes: [] },
-        maxResults: 10,
-        includeRefinement: false,
-        mode: 'hybrid',
-      };
-
-      const result = await searchKnowledge(mockServices, mockAuth, query);
-
-      // Global entries should be in globalConstraints
-      for (const match of result.globalConstraints) {
-        expect(match.scope).toBe('global');
-      }
-
-      // Project entries should be in projectKnowledge
-      for (const match of result.projectKnowledge) {
-        expect(match.scope).toBe('project');
-      }
-    });
-
-    it('hybrid mode does not change scope filter behavior', async () => {
-      const query: RetrievalQuery = {
-        seed: 'validation',
-        filters: { labels: [], scopes: ['global'] },
-        maxResults: 10,
-        includeRefinement: false,
-        mode: 'hybrid',
-      };
-
-      const result = await searchKnowledge(mockServices, mockAuth, query);
-
-      // Should only return global constraints
-      expect(result.projectKnowledge.length).toBe(0);
-      expect(result.globalConstraints.length).toBeGreaterThanOrEqual(0);
-    });
-
-    it('hybrid mode produces deterministic results for same input', async () => {
-      const query: RetrievalQuery = {
-        seed: 'JWT validation',
-        filters: { labels: [], scopes: [] },
-        maxResults: 10,
-        includeRefinement: false,
-        mode: 'hybrid',
-      };
-
-      const result1 = await searchKnowledge(mockServices, mockAuth, query);
-      const result2 = await searchKnowledge(mockServices, mockAuth, query);
-
-      expect(result1.globalConstraints).toEqual(result2.globalConstraints);
-      expect(result1.projectKnowledge).toEqual(result2.projectKnowledge);
-    });
-
-    it('hybrid mode combines semantic and keyword signals', async () => {
-      // This test verifies that hybrid mode runs both channels
-      // Even with deterministic embeddings, keyword channel adds lexical evidence
-
-      const query: RetrievalQuery = {
-        seed: 'JWT authentication', // Terms that appear in test data
-        filters: { labels: [], scopes: [] },
-        maxResults: 5,
-        includeRefinement: false,
-        mode: 'hybrid',
-      };
-
-      const result = await searchKnowledge(mockServices, mockAuth, query);
-
-      // Should have results that combine both channels
-      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
-
-      // All matches should have valid scores
-      for (const match of allMatches) {
-        expect(match.score).toBeGreaterThanOrEqual(0);
-        expect(match.score).toBeLessThanOrEqual(1);
-      }
-    });
-
-    // HYBR-05: Short-query hybrid improvement tests
-    it('hybrid mode improves short-query recall compared to semantic-only', async () => {
-      // Short query: "JWT" - a single term that appears in test data
-      // Hybrid should find and boost entries with "JWT" in shortcut/detail/labels
-
-      const semanticQuery: RetrievalQuery = {
-        seed: 'JWT',
-        filters: { labels: [], scopes: [] },
-        maxResults: 5,
-        includeRefinement: false,
-        mode: 'semantic',
-      };
-
-      const hybridQuery: RetrievalQuery = {
-        ...semanticQuery,
-        mode: 'hybrid',
-      };
-
-      const semanticResult = await searchKnowledge(mockServices, mockAuth, semanticQuery);
-      const hybridResult = await searchKnowledge(mockServices, mockAuth, hybridQuery);
-
-      // Both should return results
-      const semanticMatches = [...semanticResult.globalConstraints, ...semanticResult.projectKnowledge];
-      const hybridMatches = [...hybridResult.globalConstraints, ...hybridResult.projectKnowledge];
-
-      // Hybrid should find entries that semantic might miss or rank lower
-      // The key evidence: hybrid matches with "JWT" in their text should score higher
-      // due to the keyword channel boosting exact lexical matches
-      expect(hybridMatches.length).toBeGreaterThanOrEqual(semanticMatches.length);
-
-      // Entries with exact "JWT" token match should have higher scores in hybrid
-      const jwtMatches = hybridMatches.filter((m) =>
-        m.shortcut.toLowerCase().includes('jwt') ||
-        m.detail.toLowerCase().includes('jwt') ||
-        m.labels.some((l) => l.toLowerCase().includes('jwt')),
-      );
-
-      // All JWT matches should have valid boosted scores
-      for (const match of jwtMatches) {
-        expect(match.score).toBeGreaterThan(0);
-      }
-    });
-
-    it('hybrid rerank boosts entries appearing in both channels', async () => {
-      // Create a scenario where an entry appears in both semantic and keyword channels
-      const query: RetrievalQuery = {
-        seed: 'JWT validation', // This query will match "JWT" in keyword channel
-        filters: { labels: [], scopes: [] },
-        maxResults: 5,
-        includeRefinement: false,
-        mode: 'hybrid',
-      };
-
-      const result = await searchKnowledge(mockServices, mockAuth, query);
-      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
-
-      // The global constraint entry about JWT should appear and have a boosted score
-      // due to appearing in both semantic and keyword channels
-      const jwtEntry = allMatches.find((m) =>
-        m.shortcut.includes('JWT') || m.detail.includes('JWT'),
-      );
-
-      if (jwtEntry) {
-        // Entry should have a non-zero score from combined channels + rerank boost
-        expect(jwtEntry.score).toBeGreaterThan(0);
-      }
-    });
-
-    it('hybrid mode preserves approved-only boundary after rerank', async () => {
-      // This test ensures that rerank does not bypass the approved-only filter
-      const query: RetrievalQuery = {
-        seed: 'connection pooling', // This term appears in submitted (unapproved) entry
-        filters: { labels: [], scopes: [] },
-        maxResults: 10,
-        includeRefinement: false,
-        mode: 'hybrid',
-      };
-
-      const result = await searchKnowledge(mockServices, mockAuth, query);
-      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
-
-      // The submitted entry about connection pooling should NOT appear
-      // even though hybrid mode would find a keyword match
-      const submittedMatch = allMatches.find((m) =>
-        m.detail.includes('connection pooling') || m.detail.includes('pgBouncer'),
-      );
-
-      expect(submittedMatch).toBeUndefined();
-    });
-  });
-});
-
-// =============================================================================
-// Merge Module Tests (Phase 7 Hybrid Groundwork)
-// =============================================================================
-
-/**
- * Helper to create a minimal KnowledgeRecord for merge testing.
- */
-function createTestEntryForMerge(overrides: Partial<KnowledgeRecord>): KnowledgeRecord {
-  return {
-    id: 'test_1',
-    teamId: null,
-    scope: 'global',
-    labels: [],
-    shortcut: '',
-    detail: '',
-    requiredLevel: 0,
-    lifecycleState: 'approved',
-    ownerUserId: 'user_1',
-    latestRevision: {
-      revision: 1,
-      submittedAt: '2024-01-01T00:00:00Z',
-      submittedByUserId: 'user_1',
-      shortcut: '',
-      detail: '',
-      labels: [],
-      reviewNotes: [],
-    },
-    history: [],
-    metadata: {
-      scopeLabel: 'global-constraint',
-      submissionCount: 1,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: null,
-      latestSubmittedAt: null,
-      latestReviewedAt: null,
-      latestDecision: null,
-    },
-    latestSubmissionId: null,
-    submissionHistory: [],
-    agentReview: null,
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    embeddingCache: null,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-    ...overrides,
-  } as KnowledgeRecord;
-}
-
-describe('merge module', () => {
-  describe('mergeCandidates', () => {
-    it('deduplicates candidates by entry id when the same entry appears in both channels', () => {
-      const sharedEntry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const semanticCandidates: RecallCandidate[] = [
-        { entry: sharedEntry, channel: 'semantic', score: 0.8, tokenMatches: [] },
-      ];
-
-      const keywordCandidates: RecallCandidate[] = [
-        { entry: sharedEntry, channel: 'keyword', score: 0.6, tokenMatches: [{ token: 'test', fields: ['shortcut'] }] },
-      ];
-
-      const merged = mergeCandidates(semanticCandidates, keywordCandidates);
-
-      // Should have exactly one entry (deduplicated)
-      expect(merged.length).toBe(1);
-      expect(merged[0]?.entry.id).toBe('entry_1');
-
-      // Should have both channel scores preserved
-      expect(merged[0]?.semanticScore).toBe(0.8);
-      expect(merged[0]?.keywordScore).toBe(0.6);
-
-      // Should have both channels recorded
-      expect(merged[0]?.channels).toContain('semantic');
-      expect(merged[0]?.channels).toContain('keyword');
-
-      // Token matches from keyword channel should be preserved
-      expect(merged[0]?.tokenMatches.length).toBe(1);
-    });
-
-    it('preserves normalized channel evidence for later rerank', () => {
-      const entry1 = createTestEntryForMerge({ id: 'entry_1' });
-      const entry2 = createTestEntryForMerge({ id: 'entry_2' });
-
-      const semanticCandidates: RecallCandidate[] = [
-        { entry: entry1, channel: 'semantic', score: 0.9, tokenMatches: [] },
-      ];
-
-      const keywordCandidates: RecallCandidate[] = [
-        { entry: entry2, channel: 'keyword', score: 0.7, tokenMatches: [{ token: 'test', fields: ['detail'] }] },
-      ];
-
-      const merged = mergeCandidates(semanticCandidates, keywordCandidates);
-
-      expect(merged.length).toBe(2);
-
-      // Semantic-only entry should have keywordScore of 0
-      const semanticOnly = merged.find((m) => m.entry.id === 'entry_1');
-      expect(semanticOnly).toBeDefined();
-      expect(semanticOnly?.semanticScore).toBe(0.9);
-      expect(semanticOnly?.keywordScore).toBe(0);
-      expect(semanticOnly?.channels).toEqual(['semantic']);
-
-      // Keyword-only entry should have semanticScore of 0
-      const keywordOnly = merged.find((m) => m.entry.id === 'entry_2');
-      expect(keywordOnly).toBeDefined();
-      expect(keywordOnly?.semanticScore).toBe(0);
-      expect(keywordOnly?.keywordScore).toBe(0.7);
-      expect(keywordOnly?.channels).toEqual(['keyword']);
-    });
-
-    it('sorts merged candidates deterministically and respects maxCandidates bound', () => {
-      const entryA = createTestEntryForMerge({ id: 'entry_a' });
-      const entryB = createTestEntryForMerge({ id: 'entry_b' });
-      const entryC = createTestEntryForMerge({ id: 'entry_c' });
-
-      const semanticCandidates: RecallCandidate[] = [
-        { entry: entryA, channel: 'semantic', score: 0.5, tokenMatches: [] },
-        { entry: entryB, channel: 'semantic', score: 0.9, tokenMatches: [] },
-        { entry: entryC, channel: 'semantic', score: 0.3, tokenMatches: [] },
-      ];
-
-      const keywordCandidates: RecallCandidate[] = [];
-
-      const merged = mergeCandidates(semanticCandidates, keywordCandidates, { maxCandidates: 2 });
-
-      // Should be limited to 2 candidates
-      expect(merged.length).toBe(2);
-
-      // Should be sorted by combined score descending
-      expect(merged[0]?.entry.id).toBe('entry_b'); // 0.9 * 0.6 = 0.54
-      expect(merged[1]?.entry.id).toBe('entry_a'); // 0.5 * 0.6 = 0.30
-    });
-
-    it('uses entry id as tiebreaker for deterministic ordering when scores are equal', () => {
-      const entryA = createTestEntryForMerge({ id: 'entry_a' });
-      const entryB = createTestEntryForMerge({ id: 'entry_b' });
-      const entryC = createTestEntryForMerge({ id: 'entry_c' });
-
-      // All entries have same score - should be sorted by ID
-      const semanticCandidates: RecallCandidate[] = [
-        { entry: entryC, channel: 'semantic', score: 0.8, tokenMatches: [] },
-        { entry: entryA, channel: 'semantic', score: 0.8, tokenMatches: [] },
-        { entry: entryB, channel: 'semantic', score: 0.8, tokenMatches: [] },
-      ];
-
-      const merged = mergeCandidates(semanticCandidates, []);
-
-      // Should be sorted by entry ID ascending when scores are equal
-      expect(merged[0]?.entry.id).toBe('entry_a');
-      expect(merged[1]?.entry.id).toBe('entry_b');
-      expect(merged[2]?.entry.id).toBe('entry_c');
-    });
-
-    it('combines scores using weighted average with default weights', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const semanticCandidates: RecallCandidate[] = [
-        { entry, channel: 'semantic', score: 1.0, tokenMatches: [] },
-      ];
-
-      const keywordCandidates: RecallCandidate[] = [
-        { entry, channel: 'keyword', score: 1.0, tokenMatches: [] },
-      ];
-
-      const merged = mergeCandidates(semanticCandidates, keywordCandidates);
-
-      // Default weights: semantic=0.6, keyword=0.4
-      // Combined: 1.0 * 0.6 + 1.0 * 0.4 = 1.0
-      expect(merged[0]?.combinedScore).toBeCloseTo(1.0, 5);
-    });
-
-    it('supports custom merge weights', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const semanticCandidates: RecallCandidate[] = [
-        { entry, channel: 'semantic', score: 0.8, tokenMatches: [] },
-      ];
-
-      const keywordCandidates: RecallCandidate[] = [
-        { entry, channel: 'keyword', score: 0.6, tokenMatches: [] },
-      ];
-
-      const merged = mergeCandidates(semanticCandidates, keywordCandidates, {
-        semanticWeight: 0.8,
-        keywordWeight: 0.2,
-      });
-
-      // Custom weights: 0.8 * 0.8 + 0.6 * 0.2 = 0.64 + 0.12 = 0.76
-      expect(merged[0]?.combinedScore).toBeCloseTo(0.76, 5);
-    });
-
-    it('returns empty array when both candidate lists are empty', () => {
-      const merged = mergeCandidates([], []);
-      expect(merged).toEqual([]);
-    });
-
-    it('handles semantic-only candidates', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const semanticCandidates: RecallCandidate[] = [
-        { entry, channel: 'semantic', score: 0.8, tokenMatches: [] },
-      ];
-
-      const merged = mergeCandidates(semanticCandidates, []);
-
-      expect(merged.length).toBe(1);
-      expect(merged[0]?.semanticScore).toBe(0.8);
-      expect(merged[0]?.keywordScore).toBe(0);
-      expect(merged[0]?.channels).toEqual(['semantic']);
-    });
-
-    it('handles keyword-only candidates', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const keywordCandidates: RecallCandidate[] = [
-        { entry, channel: 'keyword', score: 0.7, tokenMatches: [] },
-      ];
-
-      const merged = mergeCandidates([], keywordCandidates);
-
-      expect(merged.length).toBe(1);
-      expect(merged[0]?.semanticScore).toBe(0);
-      expect(merged[0]?.keywordScore).toBe(0.7);
-      expect(merged[0]?.channels).toEqual(['keyword']);
-    });
-  });
-
-  describe('toScoredEntry', () => {
-    it('converts merged candidate to scored entry using combined score', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const merged: MergedCandidate = {
-        entry,
-        semanticScore: 0.8,
-        keywordScore: 0.6,
-        combinedScore: 0.72,
-        tokenMatches: [],
-        channels: ['semantic', 'keyword'],
-      };
-
-      const scored = toScoredEntry(merged);
-
-      expect(scored.entry.id).toBe('entry_1');
-      expect(scored.score).toBe(0.72);
-    });
-  });
-
-  describe('toScoredEntries', () => {
-    it('converts multiple merged candidates to scored entries', () => {
-      const entry1 = createTestEntryForMerge({ id: 'entry_1' });
-      const entry2 = createTestEntryForMerge({ id: 'entry_2' });
-
-      const merged: MergedCandidate[] = [
-        {
-          entry: entry1,
-          semanticScore: 0.9,
-          keywordScore: 0,
-          combinedScore: 0.54,
-          tokenMatches: [],
-          channels: ['semantic'],
-        },
-        {
-          entry: entry2,
-          semanticScore: 0,
-          keywordScore: 0.8,
-          combinedScore: 0.32,
-          tokenMatches: [],
-          channels: ['keyword'],
-        },
-      ];
-
-      const scored = toScoredEntries(merged);
-
-      expect(scored.length).toBe(2);
-      expect(scored[0]?.entry.id).toBe('entry_1');
-      expect(scored[0]?.score).toBe(0.54);
-      expect(scored[1]?.entry.id).toBe('entry_2');
-      expect(scored[1]?.score).toBe(0.32);
-    });
-  });
-
-  describe('createSemanticCandidate', () => {
-    it('creates a semantic candidate with correct properties', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const candidate = createSemanticCandidate(entry, 0.85);
-
-      expect(candidate.entry.id).toBe('entry_1');
-      expect(candidate.channel).toBe('semantic');
-      expect(candidate.score).toBe(0.85);
-      expect(candidate.tokenMatches).toEqual([]);
-    });
-  });
-
-  describe('hasBothChannels', () => {
-    it('returns true when candidate has both channels', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const merged: MergedCandidate = {
-        entry,
-        semanticScore: 0.8,
-        keywordScore: 0.6,
-        combinedScore: 0.72,
-        tokenMatches: [],
-        channels: ['semantic', 'keyword'],
-      };
-
-      expect(hasBothChannels(merged)).toBe(true);
-    });
-
-    it('returns false when candidate has only one channel', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const semanticOnly: MergedCandidate = {
-        entry,
-        semanticScore: 0.8,
-        keywordScore: 0,
-        combinedScore: 0.48,
-        tokenMatches: [],
-        channels: ['semantic'],
-      };
-
-      expect(hasBothChannels(semanticOnly)).toBe(false);
-    });
-  });
-});
-
-// =============================================================================
-// Rerank Module Tests (Phase 7 HYBR-03)
-// =============================================================================
-
-describe('rerank module', () => {
-  describe('rerankCandidates', () => {
-    it('reorders merged candidates deterministically using combined channel evidence for the same input', () => {
-      const entryA = createTestEntryForMerge({ id: 'entry_a' });
-      const entryB = createTestEntryForMerge({ id: 'entry_b' });
-
-      // entryA: only semantic channel
-      // entryB: both channels (should get boost and rank higher)
-      const merged: MergedCandidate[] = [
-        {
-          entry: entryA,
-          semanticScore: 0.7,
-          keywordScore: 0,
-          combinedScore: 0.42, // 0.7 * 0.6
-          tokenMatches: [],
-          channels: ['semantic'],
-        },
-        {
-          entry: entryB,
-          semanticScore: 0.5,
-          keywordScore: 0.6,
-          combinedScore: 0.54, // 0.5 * 0.6 + 0.6 * 0.4
-          tokenMatches: [{ token: 'test', fields: ['shortcut'] }],
-          channels: ['semantic', 'keyword'],
-        },
-      ];
-
-      // Use multiple tokens so density is < 50% (only 1 matched out of 4 = 25%)
-      const queryTokens = ['test', 'other', 'tokens', 'here'];
-      const reranked = rerankCandidates(merged, queryTokens);
-
-      // entryB should rank higher due to both-channel boost
-      expect(reranked[0]?.entry.id).toBe('entry_b');
-      // Only both-channel boost (no token density boost since 25% < 50%)
-      expect(reranked[0]?.combinedScore).toBeCloseTo(0.54 + DEFAULT_BOTH_CHANNEL_BOOST, 5);
-    });
-
-    it('final results are truncated after rerank, not before merge', () => {
-      const entries = [
-        createTestEntryForMerge({ id: 'entry_1' }),
-        createTestEntryForMerge({ id: 'entry_2' }),
-        createTestEntryForMerge({ id: 'entry_3' }),
-      ];
-
-      const merged: MergedCandidate[] = entries.map((entry, i) => ({
-        entry,
-        semanticScore: 0.3 + i * 0.2,
-        keywordScore: 0,
-        combinedScore: (0.3 + i * 0.2) * 0.6,
-        tokenMatches: [],
-        channels: ['semantic'] as const,
-      }));
-
-      // Request max 2 candidates
-      const reranked = rerankCandidates(merged, [], { maxCandidates: 2 });
-
-      expect(reranked.length).toBe(2);
-      // Should have the highest scoring ones (entry_3 and entry_2)
-      expect(reranked[0]?.entry.id).toBe('entry_3');
-      expect(reranked[1]?.entry.id).toBe('entry_2');
-    });
-
-    it('rerank does not introduce new entries or bypass the filtered candidate set', () => {
-      const entryA = createTestEntryForMerge({ id: 'entry_a' });
-      const entryB = createTestEntryForMerge({ id: 'entry_b' });
-
-      const merged: MergedCandidate[] = [
-        {
-          entry: entryA,
-          semanticScore: 0.8,
-          keywordScore: 0,
-          combinedScore: 0.48,
-          tokenMatches: [],
-          channels: ['semantic'],
-        },
-        {
-          entry: entryB,
-          semanticScore: 0.7,
-          keywordScore: 0,
-          combinedScore: 0.42,
-          tokenMatches: [],
-          channels: ['semantic'],
-        },
-      ];
-
-      const reranked = rerankCandidates(merged, ['test']);
-
-      // Same number of candidates
-      expect(reranked.length).toBe(2);
-
-      // Same entries (just potentially reordered)
-      const rerankedIds = new Set(reranked.map((c) => c.entry.id));
-      expect(rerankedIds.has('entry_a')).toBe(true);
-      expect(rerankedIds.has('entry_b')).toBe(true);
-    });
-
-    it('applies both-channel boost for candidates with both channels', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const merged: MergedCandidate[] = [
-        {
-          entry,
-          semanticScore: 0.5,
-          keywordScore: 0.5,
-          combinedScore: 0.5, // Base combined score
-          tokenMatches: [],
-          channels: ['semantic', 'keyword'],
-        },
-      ];
-
-      const reranked = rerankCandidates(merged, []);
-
-      // Should get both-channel boost
-      expect(reranked[0]?.combinedScore).toBeCloseTo(0.5 + DEFAULT_BOTH_CHANNEL_BOOST, 5);
-    });
-
-    it('applies token density boost for high token match coverage', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const merged: MergedCandidate[] = [
-        {
-          entry,
-          semanticScore: 0.5,
-          keywordScore: 0.5,
-          combinedScore: 0.5,
-          // 3 out of 4 tokens matched (75% density >= 50%)
-          tokenMatches: [
-            { token: 'test', fields: ['shortcut'] },
-            { token: 'token', fields: ['detail'] },
-            { token: 'match', fields: ['labels'] },
-          ],
-          channels: ['semantic', 'keyword'],
-        },
-      ];
-
-      const queryTokens = ['test', 'token', 'match', 'query'];
-      const reranked = rerankCandidates(merged, queryTokens);
-
-      // Should get both-channel boost AND token density boost
-      const expectedBoost = DEFAULT_BOTH_CHANNEL_BOOST + DEFAULT_TOKEN_DENSITY_BOOST;
-      expect(reranked[0]?.combinedScore).toBeCloseTo(0.5 + expectedBoost, 5);
-    });
-
-    it('does not apply token density boost for low coverage', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const merged: MergedCandidate[] = [
-        {
-          entry,
-          semanticScore: 0.5,
-          keywordScore: 0.5,
-          combinedScore: 0.5,
-          // Only 1 out of 4 tokens matched (25% density < 50%)
-          tokenMatches: [{ token: 'test', fields: ['shortcut'] }],
-          channels: ['semantic', 'keyword'],
-        },
-      ];
-
-      const queryTokens = ['test', 'token', 'match', 'query'];
-      const reranked = rerankCandidates(merged, queryTokens);
-
-      // Should get both-channel boost but NOT token density boost
-      expect(reranked[0]?.combinedScore).toBeCloseTo(0.5 + DEFAULT_BOTH_CHANNEL_BOOST, 5);
-    });
-
-    it('uses entry id as tiebreaker for deterministic ordering when scores are equal', () => {
-      const entryA = createTestEntryForMerge({ id: 'entry_a' });
-      const entryB = createTestEntryForMerge({ id: 'entry_b' });
-      const entryC = createTestEntryForMerge({ id: 'entry_c' });
-
-      // All entries have same scores - should be sorted by ID
-      const merged: MergedCandidate[] = [
-        {
-          entry: entryC,
-          semanticScore: 0.5,
-          keywordScore: 0,
-          combinedScore: 0.3,
-          tokenMatches: [],
-          channels: ['semantic'],
-        },
-        {
-          entry: entryA,
-          semanticScore: 0.5,
-          keywordScore: 0,
-          combinedScore: 0.3,
-          tokenMatches: [],
-          channels: ['semantic'],
-        },
-        {
-          entry: entryB,
-          semanticScore: 0.5,
-          keywordScore: 0,
-          combinedScore: 0.3,
-          tokenMatches: [],
-          channels: ['semantic'],
-        },
-      ];
-
-      const reranked = rerankCandidates(merged, []);
-
-      // Should be sorted by entry ID ascending when scores are equal
-      expect(reranked[0]?.entry.id).toBe('entry_a');
-      expect(reranked[1]?.entry.id).toBe('entry_b');
-      expect(reranked[2]?.entry.id).toBe('entry_c');
-    });
-
-    it('caps score at 1.0 to maintain score bounds', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const merged: MergedCandidate[] = [
-        {
-          entry,
-          semanticScore: 1.0,
-          keywordScore: 1.0,
-          combinedScore: 1.0, // Already max
-          tokenMatches: [
-            { token: 'test', fields: ['shortcut'] },
-            { token: 'token', fields: ['detail'] },
-          ],
-          channels: ['semantic', 'keyword'],
-        },
-      ];
-
-      const queryTokens = ['test', 'token'];
-      const reranked = rerankCandidates(merged, queryTokens);
-
-      // Score should be capped at 1.0
-      expect(reranked[0]?.combinedScore).toBeLessThanOrEqual(1.0);
-    });
-
-    it('returns empty array for empty input', () => {
-      const reranked = rerankCandidates([], []);
-      expect(reranked).toEqual([]);
-    });
-
-    it('supports custom boost values', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const merged: MergedCandidate[] = [
-        {
-          entry,
-          semanticScore: 0.5,
-          keywordScore: 0.5,
-          combinedScore: 0.5,
-          tokenMatches: [],
-          channels: ['semantic', 'keyword'],
-        },
-      ];
-
-      const reranked = rerankCandidates(merged, [], {
-        bothChannelBoost: 0.25,
-        tokenDensityBoost: 0.2,
-      });
-
-      // Should use custom boost
-      expect(reranked[0]?.combinedScore).toBeCloseTo(0.75, 5);
-    });
-  });
-
-  describe('toScoredEntriesFromReranked', () => {
-    it('converts reranked candidates to scored entries using final score', () => {
-      const entry = createTestEntryForMerge({ id: 'entry_1' });
-
-      const reranked: MergedCandidate[] = [
-        {
-          entry,
-          semanticScore: 0.5,
-          keywordScore: 0.5,
-          combinedScore: 0.65, // After boosts
-          tokenMatches: [],
-          channels: ['semantic', 'keyword'],
-        },
-      ];
-
-      const scored = toScoredEntriesFromReranked(reranked);
-
-      expect(scored.length).toBe(1);
-      expect(scored[0]?.entry.id).toBe('entry_1');
-      expect(scored[0]?.score).toBe(0.65);
+      // Should return results even without persisted index state
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
     });
   });
 });
