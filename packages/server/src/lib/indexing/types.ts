@@ -73,6 +73,8 @@ export interface KnowledgeIndexStateRecord {
   vector: AdapterSyncState;
   /** Keyword adapter sync state */
   keyword: AdapterSyncState;
+  /** Graph adapter sync state */
+  graph: AdapterSyncState;
 }
 
 /**
@@ -80,7 +82,7 @@ export interface KnowledgeIndexStateRecord {
  */
 export interface IndexSyncResult {
   /** Adapter kind */
-  adapterKind: 'vector' | 'keyword';
+  adapterKind: 'vector' | 'keyword' | 'graph';
   /** Whether sync succeeded */
   success: boolean;
   /** Error message if failed */
@@ -125,7 +127,7 @@ export interface ReconcileResult {
  */
 export interface IndexAdapter {
   /** Adapter kind for identification */
-  kind: 'vector' | 'keyword';
+  kind: 'vector' | 'keyword' | 'graph';
   /**
    * Sync or build index for the given document.
    * Should be idempotent - calling twice with same document should produce same state.

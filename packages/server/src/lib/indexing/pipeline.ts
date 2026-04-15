@@ -43,12 +43,14 @@ function initializeIndexState(
 ): KnowledgeIndexStateRecord {
   const vectorState = initializeAdapterState();
   const keywordState = initializeAdapterState();
+  const graphState = initializeAdapterState();
 
   return {
     contentHash: normalizedDocument.contentHash,
     normalizedAt: normalizedDocument.normalizedAt,
     vector: vectorState,
     keyword: keywordState,
+    graph: graphState,
   };
 }
 
@@ -158,7 +160,7 @@ export async function syncKnowledgeIndex(
   }
 
   // Sync to each adapter
-  const adapterKinds = ['vector', 'keyword'] as const;
+  const adapterKinds = ['vector', 'keyword', 'graph'] as const;
 
   for (const adapter of adapters) {
     const adapterKind = adapter.kind;
@@ -243,7 +245,8 @@ export async function reconcileKnowledgeIndexes(
       // Check if any adapter needs sync
       const needsAnySync =
         needsSync(entry.indexState.vector, normalizedDocument) ||
-        needsSync(entry.indexState.keyword, normalizedDocument);
+        needsSync(entry.indexState.keyword, normalizedDocument) ||
+        needsSync(entry.indexState.graph, normalizedDocument);
 
       if (needsAnySync) {
         await syncKnowledgeIndex({ store: services.store, data }, entry.id, adapters);

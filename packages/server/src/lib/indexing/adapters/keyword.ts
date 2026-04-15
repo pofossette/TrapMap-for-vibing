@@ -1,86 +1,57 @@
 /**
- * Keyword index adapter for lifecycle-driven keyword indexing.
+ * Keyword index adapter for lifecycle-driven indexing.
  *
- * This adapter:
- * - Persists normalized token arrays and per-field token sets
- * - Implements idempotent upsert based on revision/contentHash
- * - Implements idempotent remove operation
- * - Exports getIndexedKeywordTokens() helper for query-time reuse
+ * This module provides:
+ * - Keyword sync with idempotency based on revision and content hash
+ * - Idempotent keyword removal
+ * - Persisted token state for query-time reuse
+ *
+ * The adapter persists normalized token arrays and per-field token sets
+ * for reuse during keyword recall.
  *
  * Security note: This adapter operates on already-approved entries.
  * The pipeline is responsible for gating on lifecycleState before calling sync.
  */
 
-import type { KnowledgeRecord } from '../../store.js';
-import type { IndexAdapter, IndexSyncResult, NormalizedIndexDocument } from '../types.js';
+import type { NormalizedIndexDocument } from '../types.js';
+import type { IndexSyncResult, IndexAdapter } from '../types.js';
+import { nowIso } from '../../store.js';
 
 /**
- * Keyword index payload persisted in KnowledgeRecord.indexState.keyword.
+ * Persisted keyword state for query-time reuse.
+ * Contains normalized tokens and per-field token sets.
  */
-interface KeywordIndexPayload {
-  /** Normalized tokens from canonical text */
+export interface PersistedKeywordState {
+  /** Normalized tokens (lowercase, deduplicated) */
   tokens: string[];
-  /** Tokens from shortcut field */
-  shortcutTokens: string[];
-  /** Tokens from detail field */
-  detailTokens: string[];
-  /** Tokens from labels field */
-  labelTokens: string[];
-  /** All tokens (deduplicated) */
-  allTokens: string[];
-  /** When this keyword index was built */
-  indexedAt: string;
-}
-
-/**
- * Check if keyword payload exists and is fresh.
- */
-function hasFreshKeywordPayload(
-  entry: KnowledgeRecord,
-  normalizedDocument: NormalizedIndexDocument,
-): boolean {
-  if (!entry.indexState?.keyword) {
-    return false;
-  }
-
-  const keywordState = entry.indexState.keyword;
-  return (
-    keywordState.status === 'synced' &&
-    keywordState.contentHash === normalizedDocument.contentHash &&
-    keywordState.revision === normalizedDocument.revision
-  );
-}
-
-/**
- * Build keyword index payload from normalized document.
- */
-function buildKeywordPayload(
-  normalizedDocument: NormalizedIndexDocument,
-): KeywordIndexPayload {
-  // Tokenize individual fields
-  const shortcutTokens = normalizedDocument.tokens.filter((t) =>
-    normalizedDocument.shortcut.toLowerCase().includes(t),
-  );
-  const detailTokens = normalizedDocument.tokens.filter((t) =>
-    normalizedDocument.detail.toLowerCase().includes(t),
-  );
-  const labelTokens = normalizedDocument.labels.flatMap((l) =>
-    l.toLowerCase().split(/\s+/),
-  );
-
-  // All tokens deduplicated
-  const allTokens = Array.from(
-    new Set([...shortcutTokens, ...detailTokens, ...labelTokens]),
-  );
-
-  return {
-    tokens: normalizedDocument.tokens,
-    shortcutTokens,
-    detailTokens,
-    labelTokens,
-    allTokens,
-    indexedAt: new Date().toISOString(),
+  /** Per-field token sets for targeted matching */
+  fieldTokens: {
+    shortcut: string[];
+    detail: string[];
+    labels: string[];
   };
+}
+
+/**
+ * In-memory tracking of synced keyword state.
+ * In production, this would be persisted to the store.
+ */
+interface KeywordSyncState {
+  entryId: string;
+  revision: number;
+  contentHash: string;
+  keywordState: PersistedKeywordState;
+  syncedAt: string;
+}
+
+// In-memory storage for sync state (worktree-compatible approach)
+const keywordStateCache = new Map<string, KeywordSyncState>();
+
+/**
+ * Generate cache key for keyword state.
+ */
+function getCacheKey(entryId: string, revision: number): string {
+  return `${entryId}:${revision}`;
 }
 
 /**
@@ -90,20 +61,56 @@ export const keywordIndexAdapter: IndexAdapter = {
   kind: 'keyword',
 
   /**
-   * Sync keyword index for the given document.
-   * Persists normalized tokens to indexState.keyword.
+   * Sync keyword index for a normalized document.
    *
-   * Idempotent: if revision and contentHash match, skips work.
+   * This function:
+   * - Persists normalized token arrays and per-field token sets
+   * - Stores state keyed by entryId, revision, and contentHash
+   * - Skips work if revision and content hash match (idempotency)
+   *
+   * @param document - The normalized index document
+   * @returns Sync result indicating success and whether work was performed
    */
   async sync(document: NormalizedIndexDocument): Promise<IndexSyncResult> {
-    const startTime = Date.now();
+    const cacheKey = getCacheKey(document.entryId, document.revision);
+    const existingState = keywordStateCache.get(cacheKey);
+
+    // Check if we can skip work (idempotency)
+    if (
+      existingState &&
+      existingState.contentHash === document.contentHash &&
+      existingState.revision === document.revision
+    ) {
+      return {
+        adapterKind: 'keyword',
+        success: true,
+        error: null,
+        performedWork: false,
+      };
+    }
 
     try {
-      // Build keyword payload
-      const payload = buildKeywordPayload(document);
+      // Build persisted keyword state from normalized document
+      const keywordState: PersistedKeywordState = {
+        tokens: document.tokens,
+        fieldTokens: {
+          shortcut: document.tokens.filter((t) => document.shortcut.toLowerCase().includes(t)),
+          detail: document.tokens.filter((t) => document.detail.toLowerCase().includes(t)),
+          labels: document.tokens.filter((t) => document.labels.some((l) => l.toLowerCase().includes(t))),
+        },
+      };
 
-      // Return success - the pipeline will handle persistence
-      const duration = Date.now() - startTime;
+      // Persist keyword state
+      const state: KeywordSyncState = {
+        entryId: document.entryId,
+        revision: document.revision,
+        contentHash: document.contentHash,
+        keywordState,
+        syncedAt: nowIso(),
+      };
+
+      keywordStateCache.set(cacheKey, state);
+
       return {
         adapterKind: 'keyword',
         success: true,
@@ -111,140 +118,50 @@ export const keywordIndexAdapter: IndexAdapter = {
         performedWork: true,
       };
     } catch (error) {
-      const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
       return {
         adapterKind: 'keyword',
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
         performedWork: false,
       };
     }
   },
 
   /**
-   * Remove keyword index for the given entry reference.
-   * Clears indexState.keyword.
+   * Remove keyword index for an entry.
    *
-   * Idempotent: safe to call multiple times.
+   * This function:
+   * - Clears keyword sync state for the given entry
+   * - Is idempotent (safe to call multiple times)
+   *
+   * @param ref - Entry reference containing entryId and revision
    */
   async remove(ref: { entryId: string; revision: number }): Promise<void> {
-    // The pipeline handles the actual removal from the entry
-    // This is a no-op in the adapter itself
-    // The adapter contract requires this method for future extension
+    const cacheKey = getCacheKey(ref.entryId, ref.revision);
+    keywordStateCache.delete(cacheKey);
   },
 };
 
 /**
- * Upsert keyword index for a knowledge entry.
- * This is the main entry point called by the pipeline.
+ * Get persisted keyword tokens for an entry.
+ * Returns null if the entry has not been synced.
  *
- * @param entry - The knowledge entry to upsert
- * @param normalizedDocument - The normalized document
- * @returns Sync result
+ * @param entryId - The knowledge entry ID
+ * @param revision - The entry revision
+ * @returns Persisted keyword state or null
  */
-export async function upsertKeywordIndex(
-  entry: KnowledgeRecord,
-  normalizedDocument: NormalizedIndexDocument,
-): Promise<IndexSyncResult> {
-  // Check if we have fresh state
-  if (hasFreshKeywordPayload(entry, normalizedDocument)) {
-    return {
-      adapterKind: 'keyword',
-      success: true,
-      error: null,
-      performedWork: false, // Skipped due to fresh state
-    };
-  }
-
-  // Build keyword payload
-  const payload = buildKeywordPayload(normalizedDocument);
-
-  // Initialize indexState if needed
-  if (!entry.indexState) {
-    entry.indexState = {
-      contentHash: normalizedDocument.contentHash,
-      normalizedAt: normalizedDocument.normalizedAt,
-      vector: {
-        status: 'pending',
-        revision: 0,
-        contentHash: '',
-        lastSyncedAt: null,
-        lastError: null,
-      },
-      keyword: {
-        status: 'pending',
-        revision: 0,
-        contentHash: '',
-        lastSyncedAt: null,
-        lastError: null,
-      },
-    };
-  }
-
-  // Update keyword state
-  entry.indexState.keyword = {
-    status: 'synced',
-    revision: normalizedDocument.revision,
-    contentHash: normalizedDocument.contentHash,
-    lastSyncedAt: new Date().toISOString(),
-    lastError: null,
-  };
-
-  // Store payload in a custom field (will be accessed via getIndexedKeywordTokens)
-  (entry as any).keywordIndexCache = payload;
-
-  return {
-    adapterKind: 'keyword',
-    success: true,
-    error: null,
-    performedWork: true,
-  };
+export function getIndexedKeywordTokens(entryId: string, revision: number): PersistedKeywordState | null {
+  const cacheKey = getCacheKey(entryId, revision);
+  const state = keywordStateCache.get(cacheKey);
+  return state?.keywordState || null;
 }
 
 /**
- * Remove keyword index from a knowledge entry.
- *
- * @param entry - The knowledge entry to remove from
+ * Clear the keyword state cache.
+ * Primarily used for testing.
  */
-export function removeKeywordIndex(entry: KnowledgeRecord): void {
-  if (entry.indexState) {
-    entry.indexState.keyword = {
-      status: 'pending',
-      revision: 0,
-      contentHash: '',
-      lastSyncedAt: null,
-      lastError: null,
-    };
-  }
-  delete (entry as any).keywordIndexCache;
-}
-
-/**
- * Get indexed keyword tokens from a knowledge entry.
- * Returns null if no synced keyword index exists.
- *
- * @param entry - The knowledge entry to read from
- * @returns Keyword payload or null
- */
-export function getIndexedKeywordTokens(
-  entry: KnowledgeRecord,
-): KeywordIndexPayload | null {
-  // Check if we have a synced keyword index
-  if (entry.indexState?.keyword?.status === 'synced') {
-    return (entry as any).keywordIndexCache || null;
-  }
-
-  return null;
-}
-
-/**
- * Check if an entry has indexed keyword tokens available.
- * This is useful for deciding whether to use persisted tokens or fall back to query-time tokenization.
- *
- * @param entry - The knowledge entry to check
- * @returns True if indexed tokens are available
- */
-export function hasIndexedKeywordTokens(entry: KnowledgeRecord): boolean {
-  return entry.indexState?.keyword?.status === 'synced' &&
-    typeof (entry as any).keywordIndexCache === 'object';
+export function clearKeywordCache(): void {
+  keywordStateCache.clear();
 }
