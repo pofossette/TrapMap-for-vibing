@@ -265,22 +265,22 @@ const entitySchema = z.object({
 | A4 | Graph-assisted mode should be implemented as `hybrid + graph`, not graph-only. | Summary / Architecture Patterns | If false, the planner may over-couple Phase 9 to Phase 7 assumptions. |
 | A5 | Baseline red tests/type errors should be treated as Wave 0 planning work for this phase or a prerequisite fix. | Summary / Validation Architecture | If false, the plan may include extra stabilization work that should instead be split into another phase. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Where should the persisted graph live exactly?**  
    - What we know: `KnowledgeRecord.indexState` currently stores per-adapter sync state, but cross-entry traversal needs shared node/edge records. [VERIFIED: `packages/server/src/lib/store.ts`]  
    - What's unclear: whether the best shape is a top-level `StoreData.graphIndex` object, per-entry artifacts plus rebuild-time aggregation, or both. [ASSUMED]  
-   - Recommendation: use a top-level `graphIndex` for traversal plus per-entry graph sync state and optional extracted-artifact refs for fast remove/update. [ASSUMED]
+   - Resolution: Phase 9 planning will use a top-level `StoreData.graphIndex` for traversal plus per-entry graph sync state and optional extracted-artifact refs for fast remove/update. Plans 01-02 now assume that shape explicitly. [RESOLVED]
 
 2. **Should model-assisted extraction be in scope at all for Phase 9?**  
    - What we know: official LangChain JS supports structured output patterns, but the local environment currently has no `OPENAI_API_KEY`. [CITED: https://docs.langchain.com/oss/javascript/langchain/structured-output] [VERIFIED: local env]  
    - What's unclear: whether the project wants Phase 9 to ship with deterministic extraction only or to include an optional provider-backed path. [ASSUMED]  
-   - Recommendation: plan deterministic extraction as the only required path, and treat model-assisted extraction as optional/non-blocking if time remains. [ASSUMED]
+   - Resolution: deterministic extraction is the only required Phase 9 path; any model-assisted extraction is explicitly out of the required plan scope and non-blocking if considered later. [RESOLVED]
 
 3. **How much baseline repair belongs inside this phase?**  
    - What we know: current server typecheck and retrieval/indexing tests are not green. [VERIFIED: local commands run on 2026-04-15]  
    - What's unclear: whether the planner should fold these into Phase 9 Wave 0 or open a prerequisite stabilization task outside the requirement scope. [ASSUMED]  
-   - Recommendation: explicitly schedule a baseline-stabilization task before implementing graph logic if the plan requires green tests for sign-off. [ASSUMED]
+   - Resolution: baseline stabilization needed for trustworthy retrieval/indexing verification is in scope for this phase and is scheduled explicitly in Plans 01 and 04. [RESOLVED]
 
 ## Environment Availability
 
