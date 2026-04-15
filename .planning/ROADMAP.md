@@ -137,11 +137,13 @@
 
 **Goal:** 增加可审计的引用结构和可选摘要生成
 
-**Plans:**
-1. 实现 Citation Builder
-2. 增强 API 返回引用信息
-3. 实现 Summary Builder
-4. 更新 contracts 支持可选 summary
+**Plans:** 4 plans
+
+Plans:
+- [ ] `10-01-PLAN.md` — 吸收 server typecheck 红基线并定义 citation/summary shared contracts
+- [ ] `10-02-PLAN.md` — 在 server output stage 实现 Citation Builder 与可审计响应字段
+- [ ] `10-03-PLAN.md` — 接入只消费 safe hits 的 optional Summary Builder
+- [ ] `10-04-PLAN.md` — 更新 CLI/route 消费契约并执行 Phase 10 联合验证
 
 **Requirements:** CITE-01 ~ CITE-06, SUMM-01 ~ SUMM-06, BOUND-01 ~ BOUND-05
 **Success criteria:**

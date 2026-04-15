@@ -32,7 +32,7 @@
 | SUMM-03 | 摘要不绕过权限过滤 [VERIFIED: .planning/REQUIREMENTS.md] | Summary Builder 不应访问 `services.store.snapshot()` 或任何 recall helper。 [VERIFIED: packages/server/src/lib/retrieval/orchestrator.ts] [ASSUMED: a pure function builder is the safest design]
 | SUMM-04 | 摘要必须能返回引用 [VERIFIED: .planning/REQUIREMENTS.md] | `summary` 应返回结构化对象，至少包含 `text` 和 `citations`。 [VERIFIED: user prompt] [ASSUMED]
 | SUMM-05 | 摘要生成可以关闭 [VERIFIED: .planning/REQUIREMENTS.md] | 请求 contract 需要显式 summary 开关；默认值应保持不生成摘要。 [VERIFIED: packages/contracts/src/domain/retrieval.ts] [ASSUMED: default false is the least surprising for a new optional feature]
-| SUMM-06 | 更新 API 契约支持可选 answer/summary 字段 [VERIFIED: .planning/REQUIREMENTS.md] | 共享 contract 需要新增 citation/summary schema，并让 CLI 只消费这些 contract 变化。 [VERIFIED: packages/contracts/src/domain/retrieval.ts] [VERIFIED: packages/cli/src/commands/retrieval.ts] |
+| SUMM-06 | 更新 API 契约支持可选摘要字段（需求原文写作 `answer/summary`） [VERIFIED: .planning/REQUIREMENTS.md] | 按本研究决议，shared contract 采用单一 canonical `summary` schema，并让 CLI 只消费这些 contract 变化。 [VERIFIED: packages/contracts/src/domain/retrieval.ts] [VERIFIED: packages/cli/src/commands/retrieval.ts] |
 | BOUND-01 | contracts 仍然是唯一契约真源 [VERIFIED: .planning/REQUIREMENTS.md] | 所有新字段必须先落在 `packages/contracts/src/domain/retrieval.ts`。 [VERIFIED: packages/contracts/src/domain/retrieval.ts]
 | BOUND-02 | cli 继续只依赖 API 契约 [VERIFIED: .planning/REQUIREMENTS.md] | CLI 只能根据新增 contract 字段渲染 citation/summary，不读取 server-internal types。 [VERIFIED: packages/cli/src/commands/retrieval.ts]
 | BOUND-03 | RBAC、team 过滤、审批和审计仍在 server 内 [VERIFIED: .planning/REQUIREMENTS.md] | Citation Builder 和 Summary Builder 必须位于 server retrieval pipeline 内部，并只处理 safe hits。 [VERIFIED: packages/server/src/lib/retrieval/orchestrator.ts]
@@ -261,7 +261,7 @@ const retrievalSummarySchema = z.object({
 
 | Old Approach | Current Approach | When Changed | Impact |
 |--------------|------------------|--------------|--------|
-| `refinementSummary: string | null` is the only optional post-processing output. [VERIFIED: packages/contracts/src/domain/retrieval.ts] | Phase 10 needs a structured `summary`/`answer` contract that can return citations. [VERIFIED: .planning/REQUIREMENTS.md] | Planned in Phase 10 on roadmap dated 2026-04-14. [VERIFIED: .planning/ROADMAP.md] | Makes summary auditable and no longer provider-shaped. [ASSUMED] |
+| `refinementSummary: string | null` is the only optional post-processing output. [VERIFIED: packages/contracts/src/domain/retrieval.ts] | Phase 10 needs a structured canonical `summary` contract that can return citations. [VERIFIED: .planning/REQUIREMENTS.md] | Planned in Phase 10 on roadmap dated 2026-04-14. [VERIFIED: .planning/ROADMAP.md] | Makes summary auditable and no longer provider-shaped. [ASSUMED] |
 | recall channel evidence is internal-only. [VERIFIED: packages/server/src/lib/retrieval/types.ts] | Phase 10 should selectively expose auditable channel metadata through citations. [VERIFIED: .planning/REQUIREMENTS.md] | Enabled by Phase 7 and Phase 9 internal seams. [VERIFIED: packages/server/src/lib/retrieval/merge.ts] [VERIFIED: packages/server/src/lib/retrieval/recall/graph-assisted.ts] | Public results become explainable without changing filtering semantics. [ASSUMED] |
 | rerank overwrites `combinedScore`. [VERIFIED: packages/server/src/lib/retrieval/rerank.ts] | Phase 10 should preserve pre/post-rerank scores separately. [VERIFIED: .planning/REQUIREMENTS.md] | Needed now for citation auditability. [VERIFIED: user prompt] | Prevents score provenance ambiguity. [ASSUMED] |
 
@@ -279,17 +279,17 @@ const retrievalSummarySchema = z.object({
 | A4 | Request-side summary flag should default to `false`. | Phase Requirements | If wrong, API behavior might become more expensive/noisy by default. |
 | A5 | Typecheck baseline repair belongs in Wave 0 or first plan for this phase. | Common Pitfalls / Validation Architecture | If wrong, planning may absorb work that should be split elsewhere. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **是否保留 `includeRefinement` / `refinementSummary` 兼容别名？**
-   - What we know: 当前 request/response 合同已经公开这两个字段，CLI 和 tests 都在使用。 [VERIFIED: packages/contracts/src/domain/retrieval.ts] [VERIFIED: packages/cli/src/commands/retrieval.ts] [VERIFIED: packages/cli/src/commands/retrieval.test.ts]
-   - What's unclear: 本阶段是否允许直接迁移到 `includeSummary` / `summary`，还是要保留兼容窗口。 [ASSUMED]
-   - Recommendation: 研究建议以 `summary` 为主 contract；planner 需要决定是否做一阶段兼容映射。 [ASSUMED]
+1. **`includeRefinement` / `refinementSummary` 是否保留兼容别名？**
+   - Decision: 保留一阶段兼容别名，但 `includeSummary` / `summary` 是 Phase 10 的 canonical contract。 [RESOLVED]
+   - Rationale: 当前 request/response 合同、CLI 与测试已经公开使用 `includeRefinement` / `refinementSummary`；直接硬切会放大迁移面。保留兼容别名可以满足渐进迁移，同时保证 shared contracts 里有明确的新真源。 [VERIFIED: packages/contracts/src/domain/retrieval.ts] [VERIFIED: packages/cli/src/commands/retrieval.ts] [VERIFIED: packages/cli/src/commands/retrieval.test.ts] [ASSUMED]
+   - Planning consequence: Plan 01 必须把 `summary` 作为主 schema，同时定义旧字段的兼容语义；Plan 03/04 只允许在 output stage 和 CLI formatter 层处理兼容，不得把旧 provider-based refinement 路径重新变成核心逻辑。 [RESOLVED]
 
-2. **摘要契约是否需要 `answer` 与 `summary` 两个字段，还是只需要 `summary`？**
-   - What we know: 需求文本写的是“可选 answer/summary 字段”，但 roadmap 和 phase goal 更强调“摘要生成”。 [VERIFIED: .planning/REQUIREMENTS.md] [VERIFIED: .planning/ROADMAP.md]
-   - What's unclear: `answer` 是否只是命名偏好，还是确实需要第二个独立字段。 [ASSUMED]
-   - Recommendation: planner 先在 discuss/plan 中锁定命名；实现上不要同时引入两个语义相近但重复的字段。 [ASSUMED]
+2. **是否同时暴露 `answer` 与 `summary` 两个字段？**
+   - Decision: 不新增独立 `answer` 字段，Phase 10 只暴露结构化 `summary`。 [RESOLVED]
+   - Rationale: 路线图与 phase goal 聚焦“可选摘要生成”，而不是第二套并行回答字段；同时暴露 `answer` 与 `summary` 会造成语义重叠和 contract 膨胀。 [VERIFIED: .planning/REQUIREMENTS.md] [VERIFIED: .planning/ROADMAP.md] [ASSUMED]
+   - Planning consequence: 共享 contract、server output stage、route、CLI 与测试全部围绕 `summary` 单一字段设计；如未来确实需要 `answer`，应在后续 phase 单独引入。 [RESOLVED]
 
 ## Environment Availability
 
@@ -322,7 +322,7 @@ const retrievalSummarySchema = z.object({
 | CITE-01 | Citation Builder emits structured citations from reranked candidates only | unit | `pnpm --filter @skill-shareer/server test -- src/lib/retrieval/citations.test.ts` | ❌ Wave 0 |
 | CITE-02..CITE-06 | Citation contains source, snippet, tags, recall channels, and audit scores | unit | `pnpm --filter @skill-shareer/server test -- src/lib/retrieval/citations.test.ts src/lib/retrieval.test.ts` | ❌ Wave 0 |
 | SUMM-01..SUMM-05 | Summary Builder is optional and only consumes safe hits/citations | unit | `pnpm --filter @skill-shareer/server test -- src/lib/retrieval/summary.test.ts` | ❌ Wave 0 |
-| SUMM-06 | Contracts and route return optional summary/answer field(s) | contract + route | `pnpm --filter @skill-shareer/contracts test && pnpm --filter @skill-shareer/server test -- src/routes/retrieval.test.ts` | route file exists; contract cases need update |
+| SUMM-06 | Contracts and route return canonical optional `summary` field plus explicit compatibility handling for legacy refinement fields | contract + route | `pnpm --filter @skill-shareer/contracts test && pnpm --filter @skill-shareer/server test -- src/routes/retrieval.test.ts` | route file exists; contract cases need update |
 | BOUND-01 / BOUND-02 | CLI only uses new contract fields; no server-internal leakage | contract + cli | `pnpm --filter @skill-shareer/cli test -- src/commands/retrieval.test.ts` | ✅ existing file, new cases needed |
 | BOUND-03 / BOUND-05 | Summary/citation logic does not bypass filter-first ordering | integration | `pnpm --filter @skill-shareer/server test -- src/lib/retrieval.test.ts src/lib/retrieval-workflow.test.ts` | ✅ existing files, new cases needed |
 | BOUND-04 | global/project bucket semantics stay unchanged after adding citations/summary | integration | `pnpm --filter @skill-shareer/server test -- src/lib/retrieval.test.ts src/routes/retrieval.test.ts` | ✅ existing files, new cases needed |
@@ -396,7 +396,7 @@ const retrievalSummarySchema = z.object({
 
 **Confidence breakdown:**
 - Standard stack: HIGH - derived from current package manifests and code usage. [VERIFIED: package.json files]
-- Architecture: MEDIUM - seams are strongly evidenced by current code, but exact Phase 10 contract naming (`summary` vs `answer`) still requires planning choice. [VERIFIED: current codebase] [ASSUMED]
+- Architecture: HIGH - seams are strongly evidenced by current code, and this research now resolves Phase 10 to a single canonical `summary` contract with compatibility aliases for legacy refinement fields. [VERIFIED: current codebase] [RESOLVED]
 - Pitfalls: MEDIUM - based on concrete current pipeline behavior and one known red baseline, with some planner-facing implementation assumptions. [VERIFIED: current codebase] [ASSUMED]
 
 **Research date:** 2026-04-15 [VERIFIED: system date]  
