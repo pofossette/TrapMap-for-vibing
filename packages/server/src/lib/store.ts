@@ -178,6 +178,8 @@ export interface KnowledgeIndexStateRecord {
   vector: AdapterSyncState;
   /** Keyword adapter sync state */
   keyword: AdapterSyncState;
+  /** Graph adapter sync state */
+  graph: AdapterSyncState;
 }
 
 export interface KnowledgeRecord {
