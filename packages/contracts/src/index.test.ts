@@ -5,6 +5,7 @@ import {
   knowledgeSubmissionSchema,
   loginRequestSchema,
   retrievalQuerySchema,
+  retrievalResponseSchema,
   reviewDecisionRequestSchema,
   securityLevelSchema,
 } from './index.js';
@@ -28,6 +29,17 @@ describe('contracts package', () => {
     expect(parsed.maxResults).toBe(10);
     expect(parsed.filters.labels).toEqual([]);
     expect(parsed.filters.scopes).toEqual([]);
+    expect(parsed.mode).toBe('semantic');
+    expect(parsed.includeSummary).toBe(false);
+  });
+
+  it('allows explicit summary flag in retrieval query', () => {
+    const parsed = retrievalQuerySchema.parse({
+      seed: 'docker timeout',
+      includeSummary: true,
+    });
+
+    expect(parsed.includeSummary).toBe(true);
   });
 
   it('requires a structured knowledge submission', () => {
@@ -213,5 +225,176 @@ describe('contracts package', () => {
 
     expect(parsed.metadata.resubmissionCount).toBe(1);
     expect(parsed.latestSubmission?.reviewerDecision?.decision).toBe('reject');
+  });
+
+  describe('Phase 10: Citation and Summary contracts', () => {
+    it('parses retrieval response with structured citations', () => {
+      const response = {
+        globalConstraints: [
+          {
+            entryId: 'entry-1',
+            scope: 'global',
+            requiredLevel: 3,
+            shortcut: 'Validate JWT tokens',
+            detail: 'JWT tokens must be validated on every request',
+            labels: ['security', 'auth'],
+            score: 0.95,
+            reason: 'High semantic match',
+            citation: {
+              source: {
+                entryId: 'entry-1',
+                scope: 'global',
+                shortcut: 'Validate JWT tokens',
+              },
+              snippet: 'JWT tokens must be validated on every request',
+              tags: ['security', 'auth'],
+              recallChannels: ['semantic'],
+              scores: {
+                semantic: 0.95,
+                keyword: null,
+                graph: null,
+                preRerank: 0.92,
+                final: 0.95,
+              },
+            },
+          },
+        ],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      const parsed = retrievalResponseSchema.parse(response);
+      expect(parsed.globalConstraints[0]?.citation).toBeDefined();
+      expect(parsed.globalConstraints[0]?.citation?.recallChannels).toEqual(['semantic']);
+    });
+
+    it('parses retrieval response with optional summary', () => {
+      const response = {
+        globalConstraints: [],
+        projectKnowledge: [
+          {
+            entryId: 'entry-2',
+            scope: 'project',
+            requiredLevel: 5,
+            shortcut: 'TypeScript strict mode',
+            detail: 'Enable strictNullChecks in tsconfig',
+            labels: ['typescript'],
+            score: 0.88,
+            reason: 'Matches query terms',
+            citation: {
+              source: {
+                entryId: 'entry-2',
+                scope: 'project',
+                shortcut: 'TypeScript strict mode',
+              },
+              snippet: 'Enable strictNullChecks in tsconfig',
+              tags: ['typescript'],
+              recallChannels: ['semantic', 'keyword'],
+              scores: {
+                semantic: 0.85,
+                keyword: 0.90,
+                graph: null,
+                preRerank: 0.87,
+                final: 0.88,
+              },
+            },
+          },
+        ],
+        refinementSummary: null,
+        summary: {
+          text: 'Use TypeScript strict mode with null checks enabled.',
+          citations: [
+            {
+              source: {
+                entryId: 'entry-2',
+                scope: 'project',
+                shortcut: 'TypeScript strict mode',
+              },
+              snippet: 'Enable strictNullChecks in tsconfig',
+              tags: ['typescript'],
+              recallChannels: ['semantic', 'keyword'],
+              scores: {
+                semantic: 0.85,
+                keyword: 0.90,
+                graph: null,
+                preRerank: 0.87,
+                final: 0.88,
+              },
+            },
+          ],
+        },
+      };
+
+      const parsed = retrievalResponseSchema.parse(response);
+      expect(parsed.summary).toBeDefined();
+      expect(parsed.summary?.text).toBe('Use TypeScript strict mode with null checks enabled.');
+      expect(parsed.summary?.citations).toHaveLength(1);
+    });
+
+    it('allows null summary when not requested', () => {
+      const response = {
+        globalConstraints: [],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      const parsed = retrievalResponseSchema.parse(response);
+      expect(parsed.summary).toBeNull();
+    });
+
+    it('supports hybrid and graph-assisted recall channels in citations', () => {
+      const response = {
+        globalConstraints: [
+          {
+            entryId: 'entry-3',
+            scope: 'global',
+            requiredLevel: 0,
+            shortcut: 'Docker networking',
+            detail: 'Container networking basics',
+            labels: ['docker'],
+            score: 0.92,
+            reason: 'Graph-assisted match',
+            citation: {
+              source: {
+                entryId: 'entry-3',
+                scope: 'global',
+                shortcut: 'Docker networking',
+              },
+              snippet: 'Container networking basics',
+              tags: ['docker'],
+              recallChannels: ['semantic', 'graph'],
+              scores: {
+                semantic: 0.88,
+                keyword: null,
+                graph: 0.75,
+                preRerank: 0.90,
+                final: 0.92,
+              },
+            },
+          },
+        ],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      const parsed = retrievalResponseSchema.parse(response);
+      expect(parsed.globalConstraints[0]?.citation?.recallChannels).toEqual(['semantic', 'graph']);
+      expect(parsed.globalConstraints[0]?.citation?.scores.graph).toBe(0.75);
+    });
+
+    it('maintains backward compatibility with includeRefinement flag', () => {
+      const queryWithRefinement = retrievalQuerySchema.parse({
+        seed: 'test query',
+        includeRefinement: true,
+      });
+
+      // includeRefinement should still be recognized for compatibility
+      expect(queryWithRefinement.includeRefinement).toBe(true);
+      // But canonical summary flag should be false by default
+      expect(queryWithRefinement.includeSummary).toBe(false);
+    });
   });
 });
