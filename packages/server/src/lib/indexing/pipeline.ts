@@ -16,6 +16,7 @@ import type {
   AdapterSyncState,
   IndexAdapter,
   IndexSyncResult,
+  KeywordAdapterSyncState,
   KnowledgeIndexStateRecord,
   NormalizedIndexDocument,
   ReconcileResult,
@@ -142,7 +143,7 @@ export async function syncKnowledgeIndex(
         adapters.map((adapter) =>
           adapter.remove({
             entryId: entry.id,
-            revision: entry.history.length,
+            revision: entry.history?.length ?? 0, // Defensive: default to 0 if history is undefined
           }),
         ),
       );
@@ -199,7 +200,8 @@ export async function syncKnowledgeIndex(
       // The keyword adapter returns the persisted keyword state in the payload
       // Store it in the index state for query-time reuse
       const keywordState = result.payload as { tokens: string[]; fieldTokens: { shortcut: string[]; detail: string[]; labels: string[] } };
-      (entry.indexState[adapterKind] as any).persistedState = keywordState;
+      const keywordAdapterState = entry.indexState[adapterKind] as KeywordAdapterSyncState;
+      keywordAdapterState.persistedState = keywordState;
     }
   }
 
@@ -242,7 +244,7 @@ export async function reconcileKnowledgeIndexes(
             adapters.map((adapter) =>
               adapter.remove({
                 entryId: entry.id,
-                revision: entry.history.length,
+                revision: entry.history?.length ?? 0, // Defensive: default to 0 if history is undefined
               }),
             ),
           );
