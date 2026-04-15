@@ -19,6 +19,7 @@ import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
+import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 
 function requireRealUser(userId: string | undefined): string {
   if (!userId) {
@@ -182,6 +183,10 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       entryId,
     });
 
+    // Capture transition context for post-commit indexing
+    let previousState: string | undefined;
+    let nextState: string | undefined;
+
     const updatedEntry = await app.skillShareer.store.transact((data) => {
       const entry = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
 
@@ -206,6 +211,10 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         })();
 
       const submittedAt = nowIso();
+
+      // Capture previous state before update
+      previousState = entry.lifecycleState;
+
       updateKnowledgeEntry({
         store: app.skillShareer.store,
         data,
@@ -220,8 +229,27 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         updatedAt: submittedAt,
       });
 
+      // Capture new state after update (should be same as previous for update)
+      nextState = entry.lifecycleState;
+
       return toKnowledgeEntry(data, entry);
     });
+
+    // Trigger indexing AFTER the transaction commits (post-commit pattern)
+    // Only refresh indexes for approved entries (IDX-05, T-11-04)
+    if (previousState && nextState && nextState === 'approved') {
+      await runKnowledgeIndexEvent({
+        services: {
+          store: app.skillShareer.store,
+          data: await app.skillShareer.store.snapshot(),
+        },
+        entryId,
+        previousState: previousState as any,
+        nextState: nextState as any,
+        reason: 'updated',
+        adapters: app.skillShareer.indexAdapters,
+      });
+    }
 
     return knowledgeEntryResponseSchema.parse({ entry: updatedEntry });
   });

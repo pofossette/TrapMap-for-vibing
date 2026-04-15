@@ -209,7 +209,10 @@ describe('operations routes', () => {
           reviewNotes: [],
           lifecycleHistory: [],
           embeddingCache: {
+            textHash: 'test-hash',
             vector: [0.1, 0.2, 0.3],
+            createdAt: nowIso(),
+            revision: 1,
           },
           indexState: {
             contentHash: 'indexed-hash',

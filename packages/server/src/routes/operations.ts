@@ -21,6 +21,7 @@ import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
+import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 
 export const operationsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/operations/audit', async (request) => {
@@ -122,6 +123,10 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       entryId,
     });
 
+    // Capture transition context for post-commit indexing
+    let previousState: string | undefined;
+    let nextState: string | undefined;
+
     const updatedEntry = await app.skillShareer.store.transact((data) => {
       const entry = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
 
@@ -136,10 +141,13 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       requireHigherLevel(auth, entry.requiredLevel);
 
       const deactivatedAt = nowIso();
-      const previousState = entry.lifecycleState;
+
+      // Capture previous state before deactivation
+      previousState = entry.lifecycleState;
 
       // Set lifecycle state
       entry.lifecycleState = 'deactivated';
+      nextState = 'deactivated';
 
       // Add lifecycle event
       entry.lifecycleHistory.push({
@@ -169,6 +177,22 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
 
       return toKnowledgeEntry(data, entry);
     });
+
+    // Trigger indexing AFTER the transaction commits (post-commit pattern)
+    // Deactivation always removes index state (IDX-06, T-11-06)
+    if (previousState && nextState && previousState !== nextState) {
+      await runKnowledgeIndexEvent({
+        services: {
+          store: app.skillShareer.store,
+          data: await app.skillShareer.store.snapshot(),
+        },
+        entryId,
+        previousState: previousState as any,
+        nextState: nextState as any,
+        reason: 'deactivated',
+        adapters: app.skillShareer.indexAdapters,
+      });
+    }
 
     return knowledgeDeactivateResponseSchema.parse({ entry: updatedEntry });
   });
