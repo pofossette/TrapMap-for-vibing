@@ -16,6 +16,7 @@ import { keywordRecall, normalizeQuery } from './recall/keyword.js';
 import { graphAssistedRecall as graphRecall } from './recall/graph-assisted.js';
 import { buildEmbeddingText, cosineSimilarity, computeScore, getEntryEmbedding as semanticGetEntryEmbedding, getQueryEmbedding } from './recall/semantic.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
+import { buildCitations } from './citations.js';
 import type { MergedCandidate, RetrievalPipelineContext, ScoredEntry } from './types.js';
 
 /**
@@ -56,10 +57,15 @@ export async function searchKnowledge(
   }
 
   // Dispatch based on query mode
-  const topMatches = await dispatchByMode(parsed.mode, parsed.seed, eligibleEntries, parsed);
+  const { scoredEntries, mergedCandidates } = await dispatchByMode(parsed.mode, parsed.seed, eligibleEntries, parsed);
 
-  // Assemble response buckets
-  const { globalConstraints, projectKnowledge } = assembleResponseBuckets(topMatches, parsed.filters);
+  // Build citations from merged candidates (if available)
+  const citations = mergedCandidates
+    ? new Map(buildCitations(mergedCandidates).map((c) => [c.source.entryId, c]))
+    : undefined;
+
+  // Assemble response buckets with citations
+  const { globalConstraints, projectKnowledge } = assembleResponseBuckets(scoredEntries, parsed.filters, citations);
 
   // Generate refinement summary if requested and available
   const refinementSummary = parsed.includeRefinement
@@ -76,14 +82,14 @@ export async function searchKnowledge(
  * @param seed - Search query text
  * @param eligibleEntries - Entries that passed eligibility filters
  * @param parsed - Parsed retrieval query
- * @returns Scored entries sorted by relevance
+ * @returns Scored entries sorted by relevance, plus merged candidates for citations
  */
 async function dispatchByMode(
   mode: string,
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
-): Promise<ScoredEntry[]> {
+): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates?: MergedCandidate[] }> {
   switch (mode) {
     case 'semantic':
       return await semanticRecall(seed, eligibleEntries, parsed);
@@ -114,7 +120,7 @@ async function semanticRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
-): Promise<ScoredEntry[]> {
+): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates?: MergedCandidate[] }> {
   // Generate query embedding
   const queryVector = await getQueryEmbedding(seed);
 
@@ -132,7 +138,7 @@ async function semanticRecall(
   scoredEntries.sort((a, b) => b.score - a.score);
 
   // Take top maxResults
-  return scoredEntries.slice(0, parsed.maxResults);
+  return { scoredEntries: scoredEntries.slice(0, parsed.maxResults) };
 }
 
 /**
@@ -147,13 +153,13 @@ async function semanticRecall(
  * @param seed - Search query text
  * @param eligibleEntries - Entries that passed eligibility filters
  * @param parsed - Parsed retrieval query
- * @returns Scored entries sorted by combined relevance
+ * @returns Scored entries sorted by combined relevance, plus merged candidates for citations
  */
 async function hybridRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
-): Promise<ScoredEntry[]> {
+): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates: MergedCandidate[] }> {
   // Normalize query tokens for rerank stage
   const queryTokens = normalizeQuery(seed);
 
@@ -174,7 +180,9 @@ async function hybridRecall(
   });
 
   // Convert to scored entries for assembly
-  return toScoredEntriesFromReranked(rerankedCandidates);
+  const scoredEntries = toScoredEntriesFromReranked(rerankedCandidates);
+
+  return { scoredEntries, mergedCandidates: rerankedCandidates };
 }
 
 /**
@@ -221,13 +229,13 @@ async function computeSemanticCandidates(
  * @param seed - Search query text
  * @param eligibleEntries - Entries that passed eligibility filters
  * @param parsed - Parsed retrieval query
- * @returns Scored entries sorted by combined relevance
+ * @returns Scored entries sorted by combined relevance, plus merged candidates for citations
  */
 async function graphAssistedRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
-): Promise<ScoredEntry[]> {
+): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates: MergedCandidate[] }> {
   // Normalize query tokens for rerank stage
   const queryTokens = normalizeQuery(seed);
 
@@ -260,7 +268,9 @@ async function graphAssistedRecall(
   });
 
   // Convert to scored entries for assembly
-  return toScoredEntriesFromReranked(rerankedCandidates);
+  const scoredEntries = toScoredEntriesFromReranked(rerankedCandidates);
+
+  return { scoredEntries, mergedCandidates: rerankedCandidates };
 }
 
 /**

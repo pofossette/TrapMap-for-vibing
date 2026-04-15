@@ -821,5 +821,55 @@ describe('retrieval', () => {
       expect(match?.score).toBeGreaterThanOrEqual(0);
       expect(match?.score).toBeLessThanOrEqual(1);
     });
+
+    it('hybrid mode includes citations in response', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return results
+      expect(result.globalConstraints.length).toBeGreaterThan(0);
+
+      // Hybrid mode should include citations
+      const match = result.globalConstraints[0];
+      expect(match?.citation).toBeDefined();
+      expect(match?.citation?.source.entryId).toBeDefined();
+      expect(match?.citation?.source.scope).toBeDefined();
+      expect(match?.citation?.snippet).toBeDefined();
+      expect(match?.citation?.tags).toBeDefined();
+      expect(match?.citation?.recallChannels).toBeDefined();
+      expect(match?.citation?.scores).toBeDefined();
+      expect(match?.citation?.scores.preRerank).toBeDefined();
+      expect(match?.citation?.scores.final).toBeDefined();
+    });
+
+    it('graph-assisted mode includes citations with all channels', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        mode: 'graph-assisted',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return results
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+
+      // Graph-assisted mode should include citations
+      const match = result.globalConstraints[0] || result.projectKnowledge[0];
+      expect(match?.citation).toBeDefined();
+      // Graph-assisted mode should have at least semantic and keyword channels
+      expect(match?.citation?.recallChannels.length).toBeGreaterThanOrEqual(2);
+      // The graph score may be null if no graph relationships were found
+      expect(match?.citation?.scores).toBeDefined();
+    });
   });
 });
