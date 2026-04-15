@@ -20,7 +20,7 @@ describe('extractGraphEntities', () => {
       const document: NormalizedIndexDocument = {
         entryId: 'test-1',
         teamId: null,
-        scope: 'global-constraint',
+        scope: 'global',
         requiredLevel: 0,
         lifecycleState: 'approved',
         revision: 1,
@@ -45,7 +45,7 @@ describe('extractGraphEntities', () => {
       const document: NormalizedIndexDocument = {
         entryId: 'test-2',
         teamId: 'team-1',
-        scope: 'project-knowledge',
+        scope: 'project',
         requiredLevel: 0,
         lifecycleState: 'approved',
         revision: 1,
@@ -70,7 +70,7 @@ describe('extractGraphEntities', () => {
       const document: NormalizedIndexDocument = {
         entryId: 'test-3',
         teamId: null,
-        scope: 'global-constraint',
+        scope: 'global',
         requiredLevel: 0,
         lifecycleState: 'approved',
         revision: 1,
@@ -95,7 +95,7 @@ describe('extractGraphEntities', () => {
       const document: NormalizedIndexDocument = {
         entryId: 'test-4',
         teamId: 'team-1',
-        scope: 'project-knowledge',
+        scope: 'project',
         requiredLevel: 0,
         lifecycleState: 'approved',
         revision: 1,
@@ -119,7 +119,7 @@ describe('extractGraphEntities', () => {
       const document: NormalizedIndexDocument = {
         entryId: 'test-5',
         teamId: null,
-        scope: 'global-constraint',
+        scope: 'global',
         requiredLevel: 0,
         lifecycleState: 'approved',
         revision: 1,
@@ -143,7 +143,7 @@ describe('extractGraphEntities', () => {
       const document: NormalizedIndexDocument = {
         entryId: 'test-6',
         teamId: 'team-1',
-        scope: 'project-knowledge',
+        scope: 'project',
         requiredLevel: 0,
         lifecycleState: 'approved',
         revision: 1,
@@ -170,7 +170,7 @@ describe('extractGraphEntities', () => {
       const document: NormalizedIndexDocument = {
         entryId: 'test-7',
         teamId: null,
-        scope: 'global-constraint',
+        scope: 'global',
         requiredLevel: 0,
         lifecycleState: 'approved',
         revision: 1,
@@ -198,7 +198,7 @@ describe('extractGraphEntities', () => {
       const document: NormalizedIndexDocument = {
         entryId: 'test-8',
         teamId: null,
-        scope: 'global-constraint',
+        scope: 'global',
         requiredLevel: 0,
         lifecycleState: 'approved',
         revision: 1,
@@ -225,7 +225,7 @@ describe('extractGraphEntities', () => {
       const document: NormalizedIndexDocument = {
         entryId: 'test-9',
         teamId: null,
-        scope: 'global-constraint',
+        scope: 'global',
         requiredLevel: 0,
         lifecycleState: 'approved',
         revision: 1,
@@ -249,7 +249,7 @@ describe('extractGraphEntities', () => {
       const document: NormalizedIndexDocument = {
         entryId: 'test-10',
         teamId: null,
-        scope: 'global-constraint',
+        scope: 'global',
         requiredLevel: 0,
         lifecycleState: 'approved',
         revision: 1,
@@ -281,7 +281,7 @@ describe('extractGraphEntities', () => {
       const document: NormalizedIndexDocument = {
         entryId: 'test-11',
         teamId: null,
-        scope: 'global-constraint',
+        scope: 'global',
         requiredLevel: 0,
         lifecycleState: 'approved',
         revision: 1,
@@ -312,7 +312,7 @@ describe('extractGraphEntities', () => {
       const document: NormalizedIndexDocument = {
         entryId: 'test-12',
         teamId: null,
-        scope: 'global-constraint',
+        scope: 'global',
         requiredLevel: 0,
         lifecycleState: 'approved',
         revision: 1,
