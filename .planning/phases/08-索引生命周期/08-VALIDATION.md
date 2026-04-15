@@ -40,12 +40,12 @@ created: 2026-04-14
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
 | 08-01-01 | 01 | 1 | IDX-01 | T-08-01 | Pipeline syncs one normalized document across adapters without bypassing lifecycle rules | unit | `pnpm --filter @skill-shareer/server test -- src/lib/indexing/pipeline.test.ts` | ❌ W0 | ⬜ pending |
 | 08-01-02 | 01 | 1 | IDX-02 | T-08-01 | Normalization is deterministic and hash-based for equivalent content | unit | `pnpm --filter @skill-shareer/server test -- src/lib/indexing/normalize.test.ts` | ❌ W0 | ⬜ pending |
-| 08-02-01 | 02 | 1 | IDX-03 | T-08-02 | Approval, update, and deactivate transitions emit the correct index sync actions | unit | `pnpm --filter @skill-shareer/server test -- src/lib/indexing/events.test.ts` | ❌ W0 | ⬜ pending |
-| 08-02-02 | 02 | 1 | IDX-04 | T-08-02 | Approved entries become indexed automatically after review completion | integration | `pnpm --filter @skill-shareer/server test -- src/lib/retrieval-workflow.test.ts src/lib/indexing/pipeline.test.ts` | ❌ W0 | ⬜ pending |
-| 08-03-01 | 03 | 2 | IDX-05 | T-08-03 | Content-changing updates refresh index state without exposing stale content | integration | `pnpm --filter @skill-shareer/server test -- src/routes/operations.test.ts src/lib/indexing/pipeline.test.ts` | ❌ W0 | ⬜ pending |
-| 08-03-02 | 03 | 2 | IDX-06 | T-08-03 | Deactivated entries are removed from all index representations | integration | `pnpm --filter @skill-shareer/server test -- src/routes/operations.test.ts src/lib/indexing/pipeline.test.ts` | ❌ W0 | ⬜ pending |
-| 08-04-01 | 04 | 2 | IDX-07 | T-08-04 | Vector adapter upserts fresh vectors and skips stale rewrites | unit | `pnpm --filter @skill-shareer/server test -- src/lib/indexing/adapters/vector.test.ts` | ❌ W0 | ⬜ pending |
-| 08-04-02 | 04 | 2 | IDX-08 | T-08-04 | Keyword adapter materializes and removes persisted keyword state idempotently | unit | `pnpm --filter @skill-shareer/server test -- src/lib/indexing/adapters/keyword.test.ts` | ❌ W0 | ⬜ pending |
+| 08-02-01 | 02 | 2 | IDX-03 | T-08-05 | Approval, update, and deactivate transitions emit the correct index sync actions | unit | `pnpm --filter @skill-shareer/server test -- src/lib/indexing/events.test.ts` | ❌ W0 | ⬜ pending |
+| 08-02-02 | 02 | 2 | IDX-04 | T-08-06 | Approved entries become indexed automatically after review completion | integration | `pnpm --filter @skill-shareer/server test -- src/lib/indexing/events.test.ts src/lib/retrieval-workflow.test.ts` | ❌ W0 | ⬜ pending |
+| 08-03-01 | 03 | 2 | IDX-07 | T-08-09 | Vector adapter upserts fresh vectors and skips stale rewrites | unit | `pnpm --filter @skill-shareer/server test -- src/lib/indexing/adapters/vector.test.ts` | ❌ W0 | ⬜ pending |
+| 08-03-02 | 03 | 2 | IDX-08 | T-08-09 | Keyword adapter materializes and removes persisted keyword state idempotently | unit | `pnpm --filter @skill-shareer/server test -- src/lib/indexing/adapters/keyword.test.ts` | ❌ W0 | ⬜ pending |
+| 08-04-01 | 04 | 3 | IDX-05 | T-08-14 | Content-changing approved updates refresh index state without exposing stale content | integration | `pnpm --filter @skill-shareer/server test -- src/lib/retrieval-workflow.test.ts src/routes/operations.test.ts` | ❌ W0 | ⬜ pending |
+| 08-04-02 | 04 | 3 | IDX-06 | T-08-13 | Deactivated entries are removed from all index representations | integration | `pnpm --filter @skill-shareer/server test -- src/lib/retrieval-workflow.test.ts src/routes/operations.test.ts` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
