@@ -135,17 +135,23 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
     // Trigger indexing AFTER the transaction commits (post-commit pattern)
     // This prevents nested transactions and ensures the domain state is persisted
     if (entryId && previousState && nextState && previousState !== nextState) {
-      await runKnowledgeIndexEvent({
-        services: {
-          store: app.skillShareer.store,
-          data: await app.skillShareer.store.snapshot(),
-        },
-        entryId,
-        previousState: previousState as any,
-        nextState: nextState as any,
-        reason: `reviewer-${payload.decision}`,
-        adapters: app.skillShareer.indexAdapters,
-      });
+      try {
+        await runKnowledgeIndexEvent({
+          services: {
+            store: app.skillShareer.store,
+            data: await app.skillShareer.store.snapshot(),
+          },
+          entryId,
+          previousState: previousState as any,
+          nextState: nextState as any,
+          reason: `reviewer-${payload.decision}`,
+          adapters: app.skillShareer.indexAdapters,
+        });
+      } catch (indexingError) {
+        // Log but don't fail the request - domain state is already committed
+        app.log.error({ indexingError, entryId }, 'Post-commit indexing failed');
+        // Optionally: schedule retry or mark entry for reconciliation
+      }
     }
 
     return { entry: reviewedEntry };
