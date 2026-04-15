@@ -18,6 +18,23 @@ function formatMatch(match: {
   labels: string[];
   score: number;
   reason: string;
+  citation?: {
+    source: {
+      entryId: string;
+      scope: string;
+      shortcut: string;
+    };
+    snippet: string;
+    tags: string[];
+    recallChannels: string[];
+    scores: {
+      semantic: number | null;
+      keyword: number | null;
+      graph: number | null;
+      preRerank: number;
+      final: number;
+    };
+  };
 }): string {
   const lines = [
     `${match.entryId}`,
@@ -26,6 +43,13 @@ function formatMatch(match: {
     `Score: ${match.score.toFixed(2)}`,
     `Reason: ${match.reason}`,
   ];
+
+  // Add citation information if available (hybrid/graph-assisted modes)
+  if (match.citation) {
+    lines.push(`Channels: ${match.citation.recallChannels.join(', ')}`);
+    lines.push(`Source: ${match.citation.source.entryId} (${match.citation.source.scope})`);
+  }
+
   return lines.join('\n');
 }
 
@@ -53,6 +77,14 @@ function formatRetrievalResponse(response: RetrievalResponse): string {
     sections.push(response.refinementSummary);
   }
 
+  if (response.summary) {
+    if (sections.length > 0) {
+      sections.push('');
+    }
+    sections.push('Summary');
+    sections.push(response.summary.text);
+  }
+
   if (sections.length === 0) {
     return 'No results found';
   }
@@ -76,6 +108,7 @@ export function registerRetrievalCommands(
     .option('--scope <scope>', 'Filter by scope (global or project)')
     .option('--max-results <n>', 'Maximum number of results to return', '10')
     .option('--no-refinement', 'Disable LLM refinement')
+    .option('--summary', 'Enable summary generation')
     .option('--mode <mode>', 'Query mode (semantic, hybrid, graph-assisted)', 'semantic')
     .option('--stdin', 'Read search seed from stdin')
     .option('--json', 'Output JSON')
@@ -87,6 +120,7 @@ export function registerRetrievalCommands(
           scope?: string;
           maxResults: string;
           refinement?: boolean;
+          summary?: boolean;
           mode?: string;
           stdin?: boolean;
           json?: boolean;
@@ -119,6 +153,7 @@ export function registerRetrievalCommands(
           filters,
           maxResults: Number.parseInt(flags.maxResults, 10),
           includeRefinement: flags.refinement ?? true,
+          includeSummary: flags.summary ?? false,
           mode: flags.mode ?? 'semantic',
         };
 
