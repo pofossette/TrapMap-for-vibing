@@ -162,6 +162,7 @@ export async function syncKnowledgeIndex(
 
   // Sync to each adapter
   const adapterKinds = ['vector', 'keyword', 'graph'] as const;
+  let adapterFailures: Array<{kind: string; error: string}> = [];
 
   for (const adapter of adapters) {
     const adapterKind = adapter.kind;
@@ -181,6 +182,11 @@ export async function syncKnowledgeIndex(
       normalizedDocument,
       result,
     );
+
+    // Track failures for logging
+    if (!result.success) {
+      adapterFailures.push({ kind: adapterKind, error: result.error ?? 'Unknown error' });
+    }
 
     // Special handling for vector adapter: populate embeddingCache for backward compatibility
     if (adapterKind === 'vector' && result.success && result.payload) {
@@ -203,6 +209,13 @@ export async function syncKnowledgeIndex(
       const keywordAdapterState = entry.indexState[adapterKind] as KeywordAdapterSyncState;
       keywordAdapterState.persistedState = keywordState;
     }
+  }
+
+  // Log if any adapters failed
+  if (adapterFailures.length > 0) {
+    // Note: Partial sync occurred - some adapters may have succeeded while others failed
+    // Consider implementing retry logic or marking entry for reconciliation
+    console.warn(`[syncKnowledgeIndex] Entry ${entryId} had ${adapterFailures.length} adapter failure(s):`, adapterFailures);
   }
 
   // Update normalized timestamp
