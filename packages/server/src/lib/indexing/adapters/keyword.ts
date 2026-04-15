@@ -35,6 +35,19 @@ export interface PersistedKeywordState {
 }
 
 /**
+ * Index state for keyword adapter including persisted state.
+ * Extends the base index state with an optional persistedState field.
+ */
+export interface IndexStateKeyword {
+  status: 'pending' | 'synced' | 'failed';
+  revision: number;
+  contentHash: string;
+  lastSyncedAt: string | null;
+  lastError: string | null;
+  persistedState?: PersistedKeywordState;
+}
+
+/**
  * Keyword index adapter implementation.
  */
 export const keywordIndexAdapter = {
@@ -119,8 +132,8 @@ export const keywordIndexAdapter = {
           lastError: null,
         };
 
-        // Store persisted keyword state
-        (entry.indexState.keyword as any).persistedState = keywordState;
+        // Store persisted keyword state (typed as IndexStateKeyword)
+        (entry.indexState.keyword as IndexStateKeyword).persistedState = keywordState;
       }
 
       return {
@@ -166,8 +179,8 @@ export const keywordIndexAdapter = {
         lastSyncedAt: null,
         lastError: null,
       };
-      // Clear persisted state
-      delete (entry.indexState.keyword as any).persistedState;
+      // Clear persisted state (typed as IndexStateKeyword)
+      delete (entry.indexState.keyword as IndexStateKeyword).persistedState;
     }
   },
 };
@@ -181,7 +194,7 @@ export const keywordIndexAdapter = {
  */
 export function getIndexedKeywordTokens(entry: KnowledgeRecord): PersistedKeywordState | null {
   if (entry.indexState?.keyword?.status === 'synced') {
-    return (entry.indexState.keyword as any).persistedState || null;
+    return (entry.indexState.keyword as IndexStateKeyword).persistedState || null;
   }
   return null;
 }
