@@ -116,7 +116,8 @@ function generateExtractiveSummary(query: string, hits: SummaryHit[]): string {
 
   // For single hit, return the detail directly
   if (hits.length === 1) {
-    const hit = hits[0]!;
+    const hit = hits[0];
+    if (!hit) return '';
     return `${hit.shortcut}: ${hit.detail}`;
   }
 
