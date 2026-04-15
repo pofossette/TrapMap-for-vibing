@@ -69,14 +69,17 @@ export function mergeCandidates(
   // Process semantic candidates
   for (const candidate of semanticCandidates) {
     const entryId = candidate.entry.id;
+    const combinedScore = candidate.score * semanticWeight;
     mergedMap.set(entryId, {
       entry: candidate.entry,
       semanticScore: candidate.score,
       keywordScore: 0,
       graphScore: 0,
-      combinedScore: candidate.score * semanticWeight,
+      combinedScore,
       tokenMatches: [],
       channels: ['semantic'],
+      preRerankScore: combinedScore,
+      finalScore: combinedScore,
     });
   }
 
@@ -91,18 +94,24 @@ export function mergeCandidates(
       existing.tokenMatches = candidate.tokenMatches;
       existing.channels = ['semantic', 'keyword'];
       // Recalculate combined score with both channels
-      existing.combinedScore =
+      const combinedScore =
         existing.semanticScore * semanticWeight + candidate.score * keywordWeight;
+      existing.combinedScore = combinedScore;
+      existing.preRerankScore = combinedScore;
+      existing.finalScore = combinedScore;
     } else {
       // Entry only from keyword channel
+      const combinedScore = candidate.score * keywordWeight;
       mergedMap.set(entryId, {
         entry: candidate.entry,
         semanticScore: 0,
         keywordScore: candidate.score,
         graphScore: 0,
-        combinedScore: candidate.score * keywordWeight,
+        combinedScore,
         tokenMatches: candidate.tokenMatches,
         channels: ['keyword'],
+        preRerankScore: combinedScore,
+        finalScore: combinedScore,
       });
     }
   }

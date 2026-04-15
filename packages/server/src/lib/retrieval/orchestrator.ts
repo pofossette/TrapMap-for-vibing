@@ -284,18 +284,25 @@ function mergeCandidatesWithGraph(
       // Entry exists from hybrid - add graph evidence
       existing.channels.push('graph');
       existing.graphScore = graphCandidate.score;
-      // Boost combined score based on graph evidence
-      existing.combinedScore = Math.min(1, existing.combinedScore + graphCandidate.score * 0.2);
+      // Preserve pre-rerank score and boost final score based on graph evidence
+      const preRerankScore = existing.combinedScore;
+      const finalScore = Math.min(1, preRerankScore + graphCandidate.score * 0.2);
+      existing.combinedScore = finalScore;
+      existing.preRerankScore = preRerankScore;
+      existing.finalScore = finalScore;
     } else {
       // Entry only from graph channel
+      const score = graphCandidate.score;
       result.push({
         entry: graphCandidate.entry,
         semanticScore: 0,
         keywordScore: 0,
         graphScore: graphCandidate.score,
-        combinedScore: graphCandidate.score,
+        combinedScore: score,
         tokenMatches: [],
         channels: ['graph'],
+        preRerankScore: score,
+        finalScore: score,
       });
     }
   }
