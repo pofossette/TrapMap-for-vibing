@@ -13,6 +13,9 @@
  *
  * Phase 7 hybrid groundwork: This is the keyword recall channel that will be
  * merged with semantic recall and reranked in later plans.
+ *
+ * Phase 8: Prefers persisted keyword tokens from keywordIndexCache for synced
+ * entries, falling back to query-time tokenization for legacy entries.
  */
 
 import type { KnowledgeRecord } from '../../store.js';
@@ -50,12 +53,31 @@ export function normalizeQuery(query: string): string[] {
 /**
  * Tokenize entry fields for matching.
  * Returns a map from field name to set of tokens.
+ *
+ * Phase 8: For synced entries, prefers persisted keyword tokens from
+ * keywordIndexCache to avoid recomputing tokens on every query.
  */
 function tokenizeEntry(entry: KnowledgeRecord): {
   shortcut: Set<string>;
   detail: Set<string>;
   labels: Set<string>;
 } {
+  // Phase 8: Check for persisted keyword state in keywordIndexCache
+  const keywordCache = (entry as any).keywordIndexCache;
+  if (
+    entry.indexState?.keyword?.status === 'synced' &&
+    keywordCache?.tokens &&
+    Array.isArray(keywordCache.tokens)
+  ) {
+    // Use persisted tokens
+    return {
+      shortcut: new Set(keywordCache.shortcutTokens || []),
+      detail: new Set(keywordCache.detailTokens || []),
+      labels: new Set(keywordCache.labelTokens || []),
+    };
+  }
+
+  // Fall back to query-time tokenization for legacy entries
   return {
     shortcut: new Set(tokenize(entry.shortcut)),
     detail: new Set(tokenize(entry.detail)),
