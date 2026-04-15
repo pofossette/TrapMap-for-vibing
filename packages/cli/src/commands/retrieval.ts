@@ -45,7 +45,7 @@ function formatMatch(match: {
   ];
 
   // Add citation information if available (hybrid/graph-assisted modes)
-  if (match.citation) {
+  if (match.citation?.recallChannels?.length) {
     lines.push(`Channels: ${match.citation.recallChannels.join(', ')}`);
     lines.push(`Source: ${match.citation.source.entryId} (${match.citation.source.scope})`);
   }
