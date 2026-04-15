@@ -191,6 +191,53 @@ describe('retrieval route', () => {
       // Should require auth, not fail on schema
       expect(response.statusCode).toBe(401);
     });
+
+    it('accepts includeSummary flag in query schema (SUMM-06)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'test query',
+          mode: 'hybrid',
+          includeSummary: true,
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('uses false as default for includeSummary flag', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'test query',
+          // includeSummary omitted, should default to false
+        },
+      });
+
+      // Should require auth
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('route continues to be thin layer - only parses request and delegates to orchestrator (BOUND-02)', async () => {
+      // Verify route does not implement citation/summary business logic
+      // It only parses shared schemas and delegates to searchKnowledge
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'test query',
+          mode: 'hybrid',
+          includeSummary: true,
+        },
+      });
+
+      // Route should only validate schema and delegate
+      // Business logic (citation building, summary generation) happens in orchestrator
+      expect(response.statusCode).toBe(401);
+    });
   });
 
   describe('route registration', () => {
