@@ -47,26 +47,26 @@
 
 ### 回答与引用 (Phase E)
 
-- [ ] **CITE-01**: 创建 Citation Builder (`retrieval/citations.ts`)
+- [x] **CITE-01**: 创建 Citation Builder (`retrieval/citations.ts`)
 - [ ] **CITE-02**: 引用包含命中来源 (source)
 - [ ] **CITE-03**: 引用包含命中片段 (snippet)
 - [ ] **CITE-04**: 引用包含命中标签 (tags)
 - [ ] **CITE-05**: 引用包含召回通道 (recall channel)
-- [ ] **CITE-06**: 引用包含 rerank 后得分
-- [ ] **SUMM-01**: 创建 Summary Builder (`retrieval/summary.ts`)
+- [x] **CITE-06**: 引用包含 rerank 后得分
+- [x] **SUMM-01**: 创建 Summary Builder (`retrieval/summary.ts`)
 - [ ] **SUMM-02**: 摘要仅基于命中的批准知识生成
 - [ ] **SUMM-03**: 摘要不绕过权限过滤
 - [ ] **SUMM-04**: 摘要必须能返回引用
 - [ ] **SUMM-05**: 摘要生成可以关闭（可选功能）
-- [ ] **SUMM-06**: 更新 API 契约支持可选 answer/summary 字段
+- [x] **SUMM-06**: 更新 API 契约支持可选 answer/summary 字段
 
 ### 业务边界保护
 
-- [ ] **BOUND-01**: contracts 仍然是唯一契约真源
+- [x] **BOUND-01**: contracts 仍然是唯一契约真源
 - [ ] **BOUND-02**: cli 继续只依赖 API 契约
 - [ ] **BOUND-03**: RBAC、team 过滤、审批和审计仍在 server 内
 - [ ] **BOUND-04**: global/project 继续表示业务范围，不是检索模式
-- [ ] **BOUND-05**: 所有增强服从 审批 → 权限过滤 → 检索 → 输出 的顺序
+- [x] **BOUND-05**: 所有增强服从 审批 → 权限过滤 → 检索 → 输出 的顺序
 
 ## v2 Requirements
 
@@ -123,23 +123,23 @@
 | GRAPH-05 | Phase 09 | Pending |
 | GRAPH-06 | Phase 09 | Pending |
 | GRAPH-07 | Phase 09 | Pending |
-| CITE-01 | Phase 10 | Pending |
+| CITE-01 | Phase 10 | Complete |
 | CITE-02 | Phase 10 | Pending |
 | CITE-03 | Phase 10 | Pending |
 | CITE-04 | Phase 10 | Pending |
 | CITE-05 | Phase 10 | Pending |
-| CITE-06 | Phase 10 | Pending |
-| SUMM-01 | Phase 10 | Pending |
+| CITE-06 | Phase 10 | Complete |
+| SUMM-01 | Phase 10 | Complete |
 | SUMM-02 | Phase 10 | Pending |
 | SUMM-03 | Phase 10 | Pending |
 | SUMM-04 | Phase 10 | Pending |
 | SUMM-05 | Phase 10 | Pending |
-| SUMM-06 | Phase 10 | Pending |
-| BOUND-01 | All Phases | Pending |
+| SUMM-06 | Phase 10 | Complete |
+| BOUND-01 | All Phases | Complete |
 | BOUND-02 | All Phases | Pending |
 | BOUND-03 | All Phases | Pending |
 | BOUND-04 | All Phases | Pending |
-| BOUND-05 | All Phases | Pending |
+| BOUND-05 | All Phases | Complete |
 
 **Coverage:**
 - v1.1 requirements: 43 total
