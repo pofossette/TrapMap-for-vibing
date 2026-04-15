@@ -150,15 +150,21 @@ async function semanticRecall(
   // Generate query embedding
   const queryVector = await getQueryEmbedding(seed);
 
-  // Compute embeddings and scores for all eligible entries
-  const scoredEntries = await Promise.all(
+  // Compute embeddings and scores for all eligible entries with graceful error handling
+  const scoredEntries = (await Promise.all(
     eligibleEntries.map(async (entry) => {
-      const entryVector = await semanticGetEntryEmbedding(entry);
-      const similarity = cosineSimilarity(queryVector, entryVector);
-      const score = computeScore(similarity, entry, parsed.filters);
-      return { entry, score };
+      try {
+        const entryVector = await semanticGetEntryEmbedding(entry);
+        const similarity = cosineSimilarity(queryVector, entryVector);
+        const score = computeScore(similarity, entry, parsed.filters);
+        return { entry, score };
+      } catch (error) {
+        // Log error and skip this entry - graceful degradation
+        console.error(`Failed to get embedding for entry ${entry.id}:`, error);
+        return null;
+      }
     }),
-  );
+  )).filter((result): result is { entry: KnowledgeRecord; score: number } => result !== null);
 
   // Sort by score descending
   scoredEntries.sort((a, b) => b.score - a.score);
@@ -227,14 +233,21 @@ async function computeSemanticCandidates(
 ): Promise<ReturnType<typeof createSemanticCandidate>[]> {
   const queryVector = await getQueryEmbedding(seed);
 
-  const candidates = await Promise.all(
+  // Compute candidates with graceful error handling for embedding failures
+  const candidates = (await Promise.all(
     eligibleEntries.map(async (entry) => {
-      const entryVector = await semanticGetEntryEmbedding(entry);
-      const similarity = cosineSimilarity(queryVector, entryVector);
-      const score = computeScore(similarity, entry, filters);
-      return createSemanticCandidate(entry, score);
+      try {
+        const entryVector = await semanticGetEntryEmbedding(entry);
+        const similarity = cosineSimilarity(queryVector, entryVector);
+        const score = computeScore(similarity, entry, filters);
+        return createSemanticCandidate(entry, score);
+      } catch (error) {
+        // Log error and skip this entry - graceful degradation
+        console.error(`Failed to get embedding for entry ${entry.id}:`, error);
+        return null;
+      }
     }),
-  );
+  )).filter((result): result is NonNullable<ReturnType<typeof createSemanticCandidate>> => result !== null);
 
   // Sort by score descending for deterministic ordering
   candidates.sort((a, b) => b.score - a.score);
