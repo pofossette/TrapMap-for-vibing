@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 MVP** — Phases 1-5 (shipped 2026-04-14)
-- 🚧 **v1.1 RAG Structure Enhancement** — Phases 6-10 (in progress)
+- 🚧 **v1.1 RAG Structure Enhancement** — Phases 6-11 (in progress)
 
 ## Phases
 
@@ -37,6 +37,7 @@
 - [ ] Phase 8: 索引生命周期 — TBD
 - [ ] Phase 9: 图辅助检索 — TBD
 - [ ] Phase 10: 回答与引用 — TBD
+- [ ] Phase 11: 索引生命周期集成 — TBD (gap closure)
 
 **Planned Features:**
 - 检索编排层 (orchestrator) 与多路召回
@@ -68,6 +69,7 @@
 | 8. 索引生命周期 | v1.1 | 0/4 | Pending | — |
 | 9. 图辅助检索 | v1.1 | 0/4 | Pending | — |
 | 10. 回答与引用 | v1.1 | 4/4 | Complete    | 2026-04-15 |
+| 11. 索引生命周期集成 | v1.1 | 0/2 | Not started | — |
 
 ## Phase Details
 
@@ -152,6 +154,19 @@ Plans:
 - 摘要不绕过权限过滤
 - 摘要生成可关闭
 
+### Phase 11: 索引生命周期集成
+
+**Goal:** 连接索引事件触发器到知识生命周期，实现自动化索引管理
+
+**Gap Closure:** Closes gaps from v1.1 audit (IDX-03, IDX-04, IDX-05, IDX-06)
+
+**Requirements:** IDX-03 ~ IDX-06
+**Success criteria:**
+- 审批通过后自动调用索引同步
+- 知识更新时刷新索引状态
+- 知识停用时移除索引
+- 适配器正确注册并传递到事件处理器
+
 ## Dependencies
 
 ```
@@ -164,6 +179,8 @@ Phase 8 (索引生命周期) ─────┐
 Phase 9 (图辅助检索)         │
     ↓                        │
 Phase 10 (回答与引用) ◄──────┘
+    ↓
+Phase 11 (索引生命周期集成) ← gap closure for Phase 08
 ```
 
 **说明:**

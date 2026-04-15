@@ -110,10 +110,10 @@
 | HYBR-05 | Phase 07 | Pending |
 | IDX-01 | Phase 08 | Pending |
 | IDX-02 | Phase 08 | Pending |
-| IDX-03 | Phase 08 | Pending |
-| IDX-04 | Phase 08 | Pending |
-| IDX-05 | Phase 08 | Pending |
-| IDX-06 | Phase 08 | Pending |
+| IDX-03 | Phase 11 | Pending |
+| IDX-04 | Phase 11 | Pending |
+| IDX-05 | Phase 11 | Pending |
+| IDX-06 | Phase 11 | Pending |
 | IDX-07 | Phase 08 | Pending |
 | IDX-08 | Phase 08 | Pending |
 | GRAPH-01 | Phase 09 | Pending |
@@ -148,4 +148,4 @@
 
 ---
 *Requirements defined: 2026-04-14*
-*Last updated: 2026-04-14 after v1.1 milestone initiation*
+*Last updated: 2026-04-15 after gap closure planning (Phase 11 added)*
