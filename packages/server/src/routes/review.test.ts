@@ -200,6 +200,10 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
         },
       });
 
+      if (response.statusCode !== 200) {
+        console.log('Error response:', response.json());
+      }
+
       expect(response.statusCode).toBe(200);
 
       // Verify index state exists after the route completes

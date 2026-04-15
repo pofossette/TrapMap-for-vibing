@@ -180,6 +180,27 @@ export async function syncKnowledgeIndex(
       normalizedDocument,
       result,
     );
+
+    // Special handling for vector adapter: populate embeddingCache for backward compatibility
+    if (adapterKind === 'vector' && result.success && result.payload) {
+      // The vector adapter returns the generated vector in the payload
+      // Populate the embedding cache for backward compatibility with semantic recall
+      const vector = result.payload as number[];
+      entry.embeddingCache = {
+        textHash: normalizedDocument.contentHash,
+        vector,
+        createdAt: nowIso(),
+        revision: normalizedDocument.revision,
+      };
+    }
+
+    // Special handling for keyword adapter: persist the keyword state
+    if (adapterKind === 'keyword' && result.success && result.payload) {
+      // The keyword adapter returns the persisted keyword state in the payload
+      // Store it in the index state for query-time reuse
+      const keywordState = result.payload as { tokens: string[]; fieldTokens: { shortcut: string[]; detail: string[]; labels: string[] } };
+      (entry.indexState[adapterKind] as any).persistedState = keywordState;
+    }
   }
 
   // Update normalized timestamp

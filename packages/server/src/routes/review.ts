@@ -7,6 +7,7 @@ import { applyReviewDecision, toKnowledgeEntry } from '../lib/knowledge.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
+import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 
 export const reviewRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/knowledge/review-queue', async (request) => {
@@ -75,6 +76,12 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:review');
 
     const payload = reviewDecisionRequestSchema.parse(request.body);
+
+    // Capture transition context for post-commit indexing
+    let entryId: string | undefined;
+    let previousState: string | undefined;
+    let nextState: string | undefined;
+
     const reviewedEntry = await app.skillShareer.store.transact((data) => {
       const entry = data.knowledgeEntries.find((candidate) => candidate.id === payload.entryId);
 
@@ -95,7 +102,7 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
         })();
 
       const decidedAt = nowIso();
-      const previousState = entry.lifecycleState;
+      previousState = entry.lifecycleState;
       applyReviewDecision({
         store: app.skillShareer.store,
         data,
@@ -105,6 +112,10 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
         decision: payload.decision,
         notes: payload.notes,
       });
+
+      // Capture entry ID and new state for post-commit indexing
+      entryId = entry.id;
+      nextState = entry.lifecycleState;
 
       // Record audit event
       const auditEvent = createAuditEvent({
@@ -120,6 +131,22 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
 
       return toKnowledgeEntry(data, entry);
     });
+
+    // Trigger indexing AFTER the transaction commits (post-commit pattern)
+    // This prevents nested transactions and ensures the domain state is persisted
+    if (entryId && previousState && nextState && previousState !== nextState) {
+      await runKnowledgeIndexEvent({
+        services: {
+          store: app.skillShareer.store,
+          data: await app.skillShareer.store.snapshot(),
+        },
+        entryId,
+        previousState: previousState as any,
+        nextState: nextState as any,
+        reason: `reviewer-${payload.decision}`,
+        adapters: app.skillShareer.indexAdapters,
+      });
+    }
 
     return { entry: reviewedEntry };
   });

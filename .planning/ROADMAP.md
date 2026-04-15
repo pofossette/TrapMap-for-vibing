@@ -28,7 +28,7 @@
 </details>
 
 <details open>
-<summary>🚧 v1.1 RAG Structure Enhancement (Phases 6-10) — IN PROGRESS</summary>
+<summary>🚧 v1.1 RAG Structure Enhancement (Phases 6-11) — IN PROGRESS</summary>
 
 **Goal:** 从单路 embedding 检索演进为可扩展的多路 RAG 架构
 
@@ -159,6 +159,12 @@ Plans:
 **Goal:** 连接索引事件触发器到知识生命周期，实现自动化索引管理
 
 **Gap Closure:** Closes gaps from v1.1 audit (IDX-03, IDX-04, IDX-05, IDX-06)
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] `11-01-PLAN.md` — 注册默认索引适配器并把 reviewer approval 在提交后接到事件层
+- [ ] `11-02-PLAN.md` — 把 knowledge update / deactivate 在提交后接到索引刷新与移除，并补齐路由回归测试
 
 **Requirements:** IDX-03 ~ IDX-06
 **Success criteria:**

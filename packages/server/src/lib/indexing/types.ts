@@ -89,6 +89,8 @@ export interface IndexSyncResult {
   error: string | null;
   /** Whether the adapter actually performed work (false if skipped due to no change) */
   performedWork: boolean;
+  /** Optional payload data (e.g., vector for embedding cache) */
+  payload?: unknown;
 }
 
 /**

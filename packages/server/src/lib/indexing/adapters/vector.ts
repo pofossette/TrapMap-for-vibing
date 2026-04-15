@@ -15,18 +15,56 @@
 
 import type { KnowledgeRecord } from '../../store.js';
 import type { NormalizedIndexDocument } from '../types.js';
-import type { IndexSyncResult } from '../types.js';
+import type { IndexAdapter, IndexSyncResult } from '../types.js';
 import { generateEmbedding } from '../../embeddings.js';
 import { nowIso } from '../../store.js';
 
 /**
  * Vector index adapter implementation.
+ * Conforms to both the legacy upsert/remove interface and the pipeline sync/remove interface.
  */
-export const vectorIndexAdapter = {
-  kind: 'vector' as const,
+export const vectorIndexAdapter: IndexAdapter & {
+  upsert(entry: KnowledgeRecord, document: NormalizedIndexDocument): Promise<IndexSyncResult>;
+  remove(entry: KnowledgeRecord, ref: { entryId: string; revision: number }): Promise<void>;
+} = {
+  kind: 'vector',
 
   /**
-   * Upsert vector index for a knowledge entry.
+   * Sync vector index for a normalized document (pipeline interface).
+   */
+  async sync(document: NormalizedIndexDocument): Promise<IndexSyncResult> {
+    try {
+      // Generate embedding vector
+      const vector = await generateEmbedding(document.canonicalText);
+
+      return {
+        adapterKind: 'vector',
+        success: true,
+        error: null,
+        performedWork: true,
+        payload: vector, // Return vector for pipeline to populate embeddingCache
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      return {
+        adapterKind: 'vector',
+        success: false,
+        error: errorMessage,
+        performedWork: false,
+      };
+    }
+  },
+
+  /**
+   * Remove vector index (pipeline interface).
+   */
+  async remove(ref: { entryId: string; revision: number }): Promise<void> {
+    // No-op - pipeline handles clearing the index state
+  },
+
+  /**
+   * Upsert vector index for a knowledge entry (legacy interface).
    *
    * This function:
    * - Generates embedding vector for the normalized document
@@ -130,17 +168,9 @@ export const vectorIndexAdapter = {
   },
 
   /**
-   * Remove vector index for a knowledge entry.
-   *
-   * This function:
-   * - Clears vector sync state from entry.indexState.vector
-   * - Does NOT clear embeddingCache (kept for compatibility)
-   * - Is idempotent (safe to call multiple times)
-   *
-   * @param entry - The knowledge entry to update (mutated in place)
-   * @param ref - Entry reference containing entryId and revision
+   * Legacy remove method for backward compatibility.
    */
-  async remove(entry: KnowledgeRecord, ref: { entryId: string; revision: number }): Promise<void> {
+  async removeLegacy(entry: KnowledgeRecord, ref: { entryId: string; revision: number }): Promise<void> {
     if (entry.indexState?.vector) {
       entry.indexState.vector = {
         status: 'pending',
@@ -172,7 +202,7 @@ export async function removeVectorIndex(
   entry: KnowledgeRecord,
   ref: { entryId: string; revision: number },
 ): Promise<void> {
-  return vectorIndexAdapter.remove(entry, ref);
+  return vectorIndexAdapter.removeLegacy(entry, ref);
 }
 
 /**
