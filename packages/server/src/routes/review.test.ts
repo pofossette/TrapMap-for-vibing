@@ -81,9 +81,7 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
         data.users.push({
           id: userId,
           handle: 'reviewer',
-          securityLevel: 10,
-          roleTemplate: 'admin',
-          permissions: ['knowledge:review'],
+          notes: null,
           createdAt: nowIso(),
           updatedAt: nowIso(),
         });
@@ -93,6 +91,7 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
           id: teamId,
           name: 'Test Team',
           slug: 'test-team',
+          description: null,
           createdAt: nowIso(),
           updatedAt: nowIso(),
         });

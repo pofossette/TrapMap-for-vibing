@@ -21,6 +21,7 @@ describe('retrieval', () => {
     mockServices = {
       config: {} as any,
       store: mockStore,
+      indexAdapters: [],
     };
 
     teamId = 'team_1';
