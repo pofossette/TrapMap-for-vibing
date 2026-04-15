@@ -64,8 +64,8 @@ describe('vector index adapter', () => {
       expect(result1.performedWork).toBe(true);
 
       // Create a new document with different content (different hash)
-      const updatedEntry = { ...mockEntry };
-      const updatedDocument = normalizeKnowledgeIndexDocument(updatedDocument);
+      const updatedEntry = { ...mockEntry, detail: 'Updated detail content' };
+      const updatedDocument = normalizeKnowledgeIndexDocument(updatedEntry);
 
       // Second upsert with new content - should perform work
       const result2 = await vectorIndexAdapter.upsert(updatedEntry, updatedDocument);
