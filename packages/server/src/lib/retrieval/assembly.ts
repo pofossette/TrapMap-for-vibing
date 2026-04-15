@@ -12,7 +12,7 @@
  * transforming them into the API response shape.
  */
 
-import type { RetrievalQuery, RetrievalResponse, RetrievalCitation } from '@skill-shareer/contracts';
+import type { RetrievalQuery, RetrievalResponse, RetrievalCitation, RetrievalSummary } from '@skill-shareer/contracts';
 import { retrievalMatchSchema, retrievalResponseSchema } from '@skill-shareer/contracts';
 import type { ScoredEntry } from './types.js';
 
@@ -98,18 +98,19 @@ export function assembleResponseBuckets(
 
 /**
  * Build the complete retrieval response.
- * Includes match buckets and optional refinement summary.
+ * Includes match buckets, optional refinement summary, and optional summary.
  */
 export function buildRetrievalResponse(
   globalConstraints: RetrievalMatch[],
   projectKnowledge: RetrievalMatch[],
   refinementSummary: string | null,
+  summary: RetrievalSummary | null = null,
 ): RetrievalResponse {
   return retrievalResponseSchema.parse({
     globalConstraints,
     projectKnowledge,
     refinementSummary,
-    summary: null, // Summary will be populated by a future builder
+    summary,
   });
 }
 

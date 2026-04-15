@@ -872,4 +872,138 @@ describe('retrieval', () => {
       expect(match?.citation?.scores).toBeDefined();
     });
   });
+
+  describe('summary generation', () => {
+    it('returns null summary when includeSummary is false (default)', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false, // Default
+        mode: 'hybrid', // Use hybrid to get citations
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Summary should be null when disabled
+      expect(result.summary).toBeNull();
+    });
+
+    it('returns null summary when semantic mode (no citations available)', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: true,
+        mode: 'semantic', // Semantic mode doesn't generate citations
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Summary should be null when no citations available
+      expect(result.summary).toBeNull();
+    });
+
+    it('generates summary when includeSummary is true and mode provides citations', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: true,
+        mode: 'hybrid', // Hybrid mode provides citations
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return results
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+
+      // Summary should be generated
+      expect(result.summary).toBeDefined();
+      expect(result.summary).not.toBeNull();
+      expect(result.summary?.text).toBeDefined();
+      expect(result.summary?.text.length).toBeGreaterThan(0);
+      expect(result.summary?.citations).toBeDefined();
+      expect(result.summary?.citations.length).toBeGreaterThan(0);
+    });
+
+    it('summary only includes citations from already-filtered hits', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT',
+        filters: { labels: ['security'], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: true,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Summary should only reference entries that passed all filters
+      expect(result.summary).toBeDefined();
+      expect(result.summary?.citations.length).toBeGreaterThan(0);
+
+      // All citation entry IDs should match the returned hits
+      const returnedEntryIds = new Set([
+        ...result.globalConstraints.map((m) => m.entryId),
+        ...result.projectKnowledge.map((m) => m.entryId),
+      ]);
+
+      for (const citation of result.summary?.citations || []) {
+        expect(returnedEntryIds.has(citation.source.entryId)).toBe(true);
+      }
+    });
+
+    it('graph-assisted mode generates summary with citations', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: true,
+        mode: 'graph-assisted',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return results
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+
+      // Summary should be generated with citations
+      expect(result.summary).toBeDefined();
+      expect(result.summary?.citations.length).toBeGreaterThan(0);
+      // Citations should include at least one entry
+      expect(result.summary?.citations[0].source.entryId).toBeDefined();
+    });
+
+    it('summary does not introduce unapproved or unauthorized content', async () => {
+      // This test verifies that summary only uses content that passed
+      // all eligibility filters (approval, team, level, lifecycle state)
+
+      const query: RetrievalQuery = {
+        seed: 'security',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: true,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Summary should only reference approved entries for the user's team
+      expect(result.summary).toBeDefined();
+      if (result.summary?.citations) {
+        for (const citation of result.summary.citations) {
+          // All cited entries should be in the returned results
+          const inGlobal = result.globalConstraints.some((m) => m.entryId === citation.source.entryId);
+          const inProject = result.projectKnowledge.some((m) => m.entryId === citation.source.entryId);
+          expect(inGlobal || inProject).toBe(true);
+        }
+      }
+    });
+  });
 });

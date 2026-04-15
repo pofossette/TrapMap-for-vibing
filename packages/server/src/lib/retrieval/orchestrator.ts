@@ -17,6 +17,7 @@ import { graphAssistedRecall as graphRecall } from './recall/graph-assisted.js';
 import { buildEmbeddingText, cosineSimilarity, computeScore, getEntryEmbedding as semanticGetEntryEmbedding, getQueryEmbedding } from './recall/semantic.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
 import { buildCitations } from './citations.js';
+import { buildSummary } from './summary.js';
 import type { MergedCandidate, RetrievalPipelineContext, ScoredEntry } from './types.js';
 
 /**
@@ -26,7 +27,8 @@ import type { MergedCandidate, RetrievalPipelineContext, ScoredEntry } from './t
  * 1. Eligibility filtering (approval, team, level, metadata)
  * 2. Mode dispatch (semantic, hybrid, graph-assisted)
  * 3. Response assembly (bucket split and output shaping)
- * 4. Optional refinement (if requested and provider configured)
+ * 4. Optional summary generation (if requested and citations available)
+ * 5. Optional refinement (if requested and provider configured)
  *
  * Query modes:
  * - semantic: embedding-based retrieval (default)
@@ -67,12 +69,29 @@ export async function searchKnowledge(
   // Assemble response buckets with citations
   const { globalConstraints, projectKnowledge } = assembleResponseBuckets(scoredEntries, parsed.filters, citations);
 
+  // Generate summary if requested and citations are available
+  // Summary only works when we have citations (hybrid or graph-assisted modes)
+  const allMatches = [...globalConstraints, ...projectKnowledge];
+  const summaryCitations = citations ? Array.from(citations.values()) : undefined;
+  const summary = parsed.includeSummary && summaryCitations && summaryCitations.length > 0
+    ? buildSummary({
+        query: parsed.seed,
+        includeSummary: true,
+        hits: allMatches.map((m) => ({
+          shortcut: m.shortcut,
+          detail: m.detail,
+          labels: m.labels,
+        })),
+        citations: summaryCitations,
+      })
+    : null;
+
   // Generate refinement summary if requested and available
   const refinementSummary = parsed.includeRefinement
     ? await generateRefinement(parsed.seed, globalConstraints, projectKnowledge)
     : null;
 
-  return buildRetrievalResponse(globalConstraints, projectKnowledge, refinementSummary);
+  return buildRetrievalResponse(globalConstraints, projectKnowledge, refinementSummary, summary);
 }
 
 /**
