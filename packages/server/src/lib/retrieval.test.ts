@@ -239,6 +239,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -261,6 +262,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -278,6 +280,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -295,6 +298,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -312,6 +316,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -331,6 +336,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: ['global'] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -347,6 +353,7 @@ describe('retrieval', () => {
         filters: { labels: ['security'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -365,6 +372,7 @@ describe('retrieval', () => {
         filters: { labels: ['security', 'auth'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -386,6 +394,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -429,6 +438,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -455,6 +465,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -477,6 +488,7 @@ describe('retrieval', () => {
         filters: { labels: ['security'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -506,6 +518,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 1,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -522,6 +535,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -545,6 +559,7 @@ describe('retrieval', () => {
         filters: { labels: ['nonexistent'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -565,6 +580,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -593,6 +609,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -612,6 +629,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -626,6 +644,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: true, // Request refinement
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -642,6 +661,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: true,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -724,6 +744,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -741,6 +762,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'hybrid',
       };
 
@@ -764,6 +786,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'hybrid',
       };
 
@@ -785,6 +808,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -806,6 +830,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'graph-assisted',
       };
 
@@ -828,6 +853,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'hybrid',
       };
 
@@ -855,6 +881,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'graph-assisted',
       };
 
@@ -880,7 +907,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
-        includeSummary: false, // Default
+        includeSummary: false,
         mode: 'hybrid', // Use hybrid to get citations
       };
 
@@ -976,7 +1003,7 @@ describe('retrieval', () => {
       expect(result.summary).toBeDefined();
       expect(result.summary?.citations.length).toBeGreaterThan(0);
       // Citations should include at least one entry
-      expect(result.summary?.citations[0].source.entryId).toBeDefined();
+      expect(result.summary?.citations[0]?.source.entryId).toBeDefined();
     });
 
     it('summary does not introduce unapproved or unauthorized content', async () => {

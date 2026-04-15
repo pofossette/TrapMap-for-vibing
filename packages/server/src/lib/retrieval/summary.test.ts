@@ -153,8 +153,8 @@ describe('summary', () => {
       expect(result).not.toBeNull();
       expect(result?.citations).toBeDefined();
       expect(result?.citations.length).toBe(2);
-      expect(result?.citations[0].source.entryId).toBe('entry_1');
-      expect(result?.citations[1].source.entryId).toBe('entry_2');
+      expect(result?.citations[0]?.source.entryId).toBe('entry_1');
+      expect(result?.citations[1]?.source.entryId).toBe('entry_2');
     });
 
     it('summary is deterministic and does not depend on external services', () => {
