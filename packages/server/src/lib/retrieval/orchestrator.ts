@@ -21,6 +21,13 @@ import { buildSummary } from './summary.js';
 import type { MergedCandidate, RetrievalPipelineContext, ScoredEntry } from './types.js';
 
 /**
+ * Graph score boost factor for graph-assisted retrieval.
+ * When a candidate is found via graph relationships, its score is boosted
+ * by this fraction of the graph score to account for relationship relevance.
+ */
+const GRAPH_SCORE_BOOST_FACTOR = 0.2;
+
+/**
  * Main retrieval pipeline orchestrator.
  *
  * Pipeline order (enforced for security):
@@ -311,11 +318,12 @@ function mergeCandidatesWithGraph(
 
     if (existing) {
       // Entry exists from hybrid - add graph evidence
+      // Note: existing is guaranteed non-null by the if-check above (CR-02)
       existing.channels.push('graph');
       existing.graphScore = graphCandidate.score;
       // Preserve pre-rerank score and boost final score based on graph evidence
       const preRerankScore = existing.combinedScore;
-      const finalScore = Math.min(1, preRerankScore + graphCandidate.score * 0.2);
+      const finalScore = Math.min(1, preRerankScore + graphCandidate.score * GRAPH_SCORE_BOOST_FACTOR);
       existing.combinedScore = finalScore;
       existing.preRerankScore = preRerankScore;
       existing.finalScore = finalScore;
