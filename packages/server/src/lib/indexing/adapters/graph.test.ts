@@ -16,7 +16,7 @@ import { JsonStore, nowIso } from '../../store.js';
 import type { NormalizedIndexDocument } from '../types.js';
 
 // Import the adapter we're testing
-import { graphIndexAdapter } from './graph.js';
+import { graphIndexAdapter, clearGraphCache } from './graph.js';
 
 describe('graph index adapter', () => {
   let store: JsonStore;
@@ -38,6 +38,9 @@ describe('graph index adapter', () => {
   };
 
   beforeEach(async () => {
+    // Clear the adapter cache before each test
+    clearGraphCache();
+
     // Create temporary store
     const testDataFile = `/tmp/skill-shareer-graph-test-${Date.now()}.json`;
     store = new JsonStore(testDataFile);

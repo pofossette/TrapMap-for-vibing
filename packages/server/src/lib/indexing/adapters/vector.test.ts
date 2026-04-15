@@ -15,13 +15,15 @@ import { nowIso } from '../../store.js';
 import { normalizeKnowledgeIndexDocument } from '../normalize.js';
 
 // Import the adapter we're testing
-import { vectorIndexAdapter } from './vector.js';
+import { vectorIndexAdapter, clearVectorCache } from './vector.js';
 
 describe('vector index adapter', () => {
   let mockEntry: any;
   let mockDocument: NormalizedIndexDocument;
 
   beforeEach(() => {
+    // Clear the adapter cache before each test
+    clearVectorCache();
     // Create a mock knowledge entry
     mockEntry = {
       id: 'entry_1',

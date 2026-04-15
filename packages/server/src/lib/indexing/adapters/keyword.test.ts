@@ -15,13 +15,15 @@ import { nowIso } from '../../store.js';
 import { normalizeKnowledgeIndexDocument } from '../normalize.js';
 
 // Import the adapter we're testing
-import { keywordIndexAdapter } from './keyword.js';
+import { keywordIndexAdapter, clearKeywordCache } from './keyword.js';
 
 describe('keyword index adapter', () => {
   let mockEntry: any;
   let mockDocument: NormalizedIndexDocument;
 
   beforeEach(() => {
+    // Clear the adapter cache before each test
+    clearKeywordCache();
     // Create a mock knowledge entry
     mockEntry = {
       id: 'entry_1',
