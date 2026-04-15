@@ -69,7 +69,7 @@
 | 8. 索引生命周期 | v1.1 | 0/4 | Pending | — |
 | 9. 图辅助检索 | v1.1 | 0/4 | Pending | — |
 | 10. 回答与引用 | v1.1 | 4/4 | Complete    | 2026-04-15 |
-| 11. 索引生命周期集成 | v1.1 | 0/2 | Not started | — |
+| 11. 索引生命周期集成 | v1.1 | 2/2 | Complete    | 2026-04-15 |
 
 ## Phase Details
 
@@ -160,7 +160,7 @@ Plans:
 
 **Gap Closure:** Closes gaps from v1.1 audit (IDX-03, IDX-04, IDX-05, IDX-06)
 
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] `11-01-PLAN.md` — 注册默认索引适配器并把 reviewer approval 在提交后接到事件层

@@ -28,10 +28,10 @@
 
 - [ ] **IDX-01**: 创建索引管线 (`indexing/pipeline.ts`)
 - [ ] **IDX-02**: 创建内容标准化模块 (`indexing/normalize.ts`)
-- [ ] **IDX-03**: 创建索引事件触发器 (`indexing/events.ts`)
+- [x] **IDX-03**: 创建索引事件触发器 (`indexing/events.ts`)
 - [ ] **IDX-04**: 审批通过后自动建索引
 - [ ] **IDX-05**: 知识更新时刷新索引
-- [ ] **IDX-06**: 知识停用时移除索引
+- [x] **IDX-06**: 知识停用时移除索引
 - [ ] **IDX-07**: 实现向量索引 adapter (`indexing/adapters/vector.ts`)
 - [ ] **IDX-08**: 实现关键词索引 adapter (`indexing/adapters/keyword.ts`)
 
@@ -110,10 +110,10 @@
 | HYBR-05 | Phase 07 | Pending |
 | IDX-01 | Phase 08 | Pending |
 | IDX-02 | Phase 08 | Pending |
-| IDX-03 | Phase 11 | Pending |
+| IDX-03 | Phase 11 | Complete |
 | IDX-04 | Phase 11 | Pending |
 | IDX-05 | Phase 11 | Pending |
-| IDX-06 | Phase 11 | Pending |
+| IDX-06 | Phase 11 | Complete |
 | IDX-07 | Phase 08 | Pending |
 | IDX-08 | Phase 08 | Pending |
 | GRAPH-01 | Phase 09 | Pending |
