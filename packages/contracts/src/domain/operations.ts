@@ -251,6 +251,71 @@ export const auditListResponseSchema = z.object({
   total: z.number().int().min(0),
 });
 
+/**
+ * Export format selection for artifact-native exports.
+ * - bundle-json: Canonical transport with full file payloads
+ * - distilled-json: Compact projection of cached derived outputs
+ * - skill-dir: CLI-local format selector (server returns bundle-json)
+ */
+export const artifactExportFormatSchema = z.enum(['bundle-json', 'distilled-json', 'skill-dir']);
+
+/**
+ * Artifact-native export request.
+ * Targets one artifact by ID with explicit format selection.
+ */
+export const artifactExportRequestSchema = z.object({
+  /** Target artifact to export */
+  artifactId: entityIdSchema,
+  /** Export format selection */
+  format: artifactExportFormatSchema.default('bundle-json'),
+});
+
+/**
+ * Distilled artifact export projection.
+ * Compact view built from cached derived outputs.
+ */
+export const distilledArtifactSchema = z.object({
+  /** Artifact identifier */
+  artifactId: entityIdSchema,
+  /** Governance scope */
+  scope: scopeSchema,
+  /** Artifact labels */
+  labels: z.array(labelSchema).min(1),
+  /** Human-readable title */
+  title: z.string().min(1).max(280),
+  /** URL-safe slug */
+  slug: z.string().min(1).max(160),
+  /** Security level */
+  requiredLevel: securityLevelSchema,
+  /** Source kind */
+  sourceKind: z.enum(['skill-directory', 'single-skill-md', 'legacy-knowledge']),
+  /** Cached derived profile (if available) */
+  profile: z.record(z.string(), z.unknown()).nullable(),
+  /** Cached derived capsules (if available) */
+  capsules: z.array(z.record(z.string(), z.unknown())).nullable(),
+  /** Cached client manifest (if available) */
+  clientManifest: z.record(z.string(), z.unknown()).nullable(),
+  /** Export timestamp */
+  exportedAt: isoTimestampSchema,
+});
+
+/**
+ * Artifact-native export response.
+ * Returns either canonical bundle or distilled projection.
+ */
+export const artifactExportResponseSchema = z.object({
+  /** Export format used */
+  format: artifactExportFormatSchema,
+  /** Export timestamp */
+  exportedAt: isoTimestampSchema,
+  /** Exporting actor */
+  exportedBy: actorRefSchema,
+  /** Canonical bundle (when format is bundle-json or skill-dir) */
+  bundle: artifactBundleSchema.nullable(),
+  /** Distilled projection (when format is distilled-json) */
+  distilled: distilledArtifactSchema.nullable(),
+});
+
 export type ExportBundle = z.infer<typeof exportBundleSchema>;
 export type ImportEntry = z.infer<typeof importEntrySchema>;
 export type ImportRequest = z.infer<typeof importRequestSchema>;
@@ -271,3 +336,7 @@ export type AuditListResponse = z.infer<typeof auditListResponseSchema>;
 export type KnowledgeListRequest = z.infer<typeof knowledgeListRequestSchema>;
 export type KnowledgeListResponse = z.infer<typeof knowledgeListResponseSchema>;
 export type KnowledgeDeactivateResponse = z.infer<typeof knowledgeDeactivateResponseSchema>;
+export type ArtifactExportFormat = z.infer<typeof artifactExportFormatSchema>;
+export type ArtifactExportRequest = z.infer<typeof artifactExportRequestSchema>;
+export type DistilledArtifact = z.infer<typeof distilledArtifactSchema>;
+export type ArtifactExportResponse = z.infer<typeof artifactExportResponseSchema>;

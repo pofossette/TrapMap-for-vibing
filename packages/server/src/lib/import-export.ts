@@ -206,6 +206,27 @@ export function normalizeArtifactBundle(args: {
   // Validate all paths for security (T-13-01)
   validateBundlePaths(bundle);
 
+  // Validate sourceKind-specific constraints (T-13-05, T-13-06)
+  if (bundle.sourceKind === 'single-skill-md') {
+    // Single-file mode: exactly one SKILL.md file, no other files
+    if (bundle.files.length !== 1) {
+      throw new Error(
+        `single-skill-md imports must contain exactly one file, got ${bundle.files.length}`,
+      );
+    }
+    if (bundle.files[0].path !== 'SKILL.md') {
+      throw new Error(
+        `single-skill-md imports must contain only SKILL.md at root, got "${bundle.files[0].path}"`,
+      );
+    }
+    // No script descriptors for single-file mode
+    if (bundle.scriptDescriptors.length > 0) {
+      throw new Error(
+        `single-skill-md imports cannot contain script descriptors, got ${bundle.scriptDescriptors.length}`,
+      );
+    }
+  }
+
   // Convert bundle files to canonical artifact records
   const files = convertBundleFiles(bundle);
 

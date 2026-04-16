@@ -1,5 +1,6 @@
 import type {
   ArtifactBundle,
+  ArtifactExportResponse,
   ArtifactImportRequest,
   ArtifactImportResponse,
   ExportBundle,
@@ -9,6 +10,7 @@ import type {
   KnowledgeListResponse,
 } from '@skill-shareer/contracts';
 import {
+  artifactExportResponseSchema,
   artifactImportRequestSchema,
   artifactImportResponseSchema,
   exportBundleSchema,
@@ -26,12 +28,79 @@ import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
 import { resolveTextInput } from '../lib/input.js';
 import { printResult } from '../lib/output.js';
+import {
+  formatExportHuman,
+  formatExportJson,
+  materializeSkillDirectory,
+  validateOutputPath,
+} from '../lib/skill-artifact-export.js';
 
 interface OperationsCommandOptions {
   allowExport: boolean;
   allowEdit: boolean;
   allowDeactivate: boolean;
   allowImport: boolean;
+}
+
+/**
+ * Checks if a file path is a SKILL.md file (basename check).
+ */
+function isSkillMdFile(filePath: string): boolean {
+  const basename = filePath.split('/').pop() ?? filePath;
+  const basenameLower = basename.toLowerCase();
+  return basenameLower === 'skill.md';
+}
+
+/**
+ * Builds a minimal artifact bundle from a single SKILL.md file.
+ * Used for single-skill-md compatibility import (IMEX-03).
+ */
+async function buildSingleSkillMdBundle(args: {
+  filePath: string;
+  requestedLevel: number;
+}): Promise<ArtifactBundle> {
+  const { filePath, requestedLevel } = args;
+
+  // Read SKILL.md content
+  const content = await readFile(filePath, 'utf8');
+  const buffer = await readFile(filePath);
+  const sha256 = createHash('sha256').update(buffer).digest('hex');
+
+  // Parse metadata from frontmatter
+  const metadata = parseSkillMetadata(content);
+  const title = metadata?.title ?? 'Untitled Skill';
+  const labels = metadata?.labels ?? ['imported'];
+
+  // Generate slug from title
+  const slug = title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+
+  return {
+    scope: 'project',
+    labels,
+    title,
+    slug,
+    requiredLevel: requestedLevel,
+    sourceKind: 'single-skill-md',
+    files: [
+      {
+        path: 'SKILL.md',
+        kind: 'skill-markdown',
+        sha256,
+        sizeBytes: buffer.length,
+        mediaType: 'text/markdown',
+        source: 'SKILL.md',
+        includeInDerivation: true,
+        activationOnly: false,
+        content: content, // Text content, not base64
+      },
+    ],
+    scriptDescriptors: [],
+  };
 }
 
 /**
@@ -155,36 +224,44 @@ async function scanSkillDirectory(
   const assets: string[] = [];
   const scripts: string[] = [];
 
-  try {
-    const entries = await readdir(rootPath, { withFileTypes: true, recursive: true });
+  // Manual recursive scan to correctly handle nested paths
+  async function scanDir(dirPath: string) {
+    try {
+      const entries = await readdir(dirPath, { withFileTypes: true });
 
-    for (const entry of entries) {
-      if (!entry.isFile()) continue;
+      for (const entry of entries) {
+        const fullPath = join(dirPath, entry.name);
+        const relPath = relative(rootPath, fullPath);
 
-      const fullPath = join(rootPath, entry.name);
-      const relPath = relative(rootPath, fullPath);
+        // Skip hidden files and node_modules
+        if (relPath.startsWith('.') || relPath.includes('node_modules')) {
+          continue;
+        }
 
-      // Skip hidden files and node_modules
-      if (relPath.startsWith('.') || relPath.includes('node_modules')) {
-        continue;
+        if (entry.isFile()) {
+          // Classify file by directory
+          if (relPath === 'SKILL.md') {
+            // Will be handled separately
+          } else if (relPath.startsWith('references/')) {
+            references.push(relPath);
+          } else if (relPath.startsWith('assets/')) {
+            assets.push(relPath);
+          } else if (relPath.startsWith('scripts/')) {
+            scripts.push(relPath);
+          }
+        } else if (entry.isDirectory()) {
+          // Recursively scan subdirectories
+          await scanDir(fullPath);
+        }
       }
-
-      // Classify file by directory
-      if (relPath === 'SKILL.md') {
-        // Will be handled separately
-      } else if (relPath.startsWith('references/')) {
-        references.push(relPath);
-      } else if (relPath.startsWith('assets/')) {
-        assets.push(relPath);
-      } else if (relPath.startsWith('scripts/')) {
-        scripts.push(relPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
       }
-    }
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      throw error;
     }
   }
+
+  await scanDir(rootPath);
 
   // Check for SKILL.md at root
   try {
@@ -219,7 +296,7 @@ async function readFileContent(path: string): Promise<{ content: string; isBinar
 function parseSkillMetadata(content: string): { title: string; labels: string[] } | null {
   const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
 
-  if (!frontmatterMatch) {
+  if (!frontmatterMatch || !frontmatterMatch[1]) {
     return null;
   }
 
@@ -606,6 +683,79 @@ export function registerOperationsCommands(
           }
         },
       );
+
+    // Artifact export command (Phase 13: IMEX-02, COMP-01, COMP-02)
+    program
+      .command('artifact-export')
+      .description('Export a skill artifact by ID')
+      .requiredOption('--artifact <artifactId>', 'Artifact ID to export')
+      .option(
+        '--format <format>',
+        'Export format: bundle-json, distilled-json, or skill-dir',
+        'bundle-json',
+      )
+      .option('--output <path>', 'Output directory (required for skill-dir format)')
+      .option('--json', 'Output JSON')
+      .action(
+        async (flags: {
+          artifact: string;
+          format: 'bundle-json' | 'distilled-json' | 'skill-dir';
+          json?: boolean;
+          output?: string;
+        }) => {
+          const state = await loadCliState();
+          requireSessionToken(state);
+
+          const { artifact: artifactId, format, output } = flags;
+
+          // For skill-dir format, output directory is required
+          if (format === 'skill-dir' && !output) {
+            throw new Error('--output <path> is required for skill-dir format');
+          }
+
+          // Request export from server
+          // Note: skill-dir is normalized to bundle-json on server, CLI materializes locally
+          const serverFormat = format === 'skill-dir' ? 'bundle-json' : format;
+
+          const response = await apiRequest<ArtifactExportResponse>(state, {
+            method: 'POST',
+            path: '/v1/operations/artifacts/export',
+            body: {
+              artifactId,
+              format: serverFormat,
+            },
+          });
+          const parsed = artifactExportResponseSchema.parse(response.data);
+
+          if (format === 'skill-dir' && parsed.bundle && output) {
+            // Validate output path for safety (T-13-11)
+            const validatedOutput = validateOutputPath(output, process.cwd());
+
+            // Materialize skill directory locally
+            const { filesWritten, bytesWritten } = await materializeSkillDirectory({
+              bundle: parsed.bundle,
+              outputDir: validatedOutput,
+            });
+
+            console.log(
+              `Wrote ${filesWritten} files (${bytesWritten} bytes) to ${validatedOutput}`,
+            );
+          } else if (output) {
+            // Write JSON output to file
+            const { writeFile } = await import('node:fs/promises');
+            const jsonContent = formatExportJson(parsed);
+            await writeFile(output, jsonContent, 'utf8');
+            console.log(`Wrote export to ${output}`);
+          } else {
+            // Output to stdout
+            if (flags.json) {
+              console.log(formatExportJson(parsed));
+            } else {
+              console.log(formatExportHuman(parsed));
+            }
+          }
+        },
+      );
   }
 
   if (options.allowImport) {
@@ -652,71 +802,99 @@ export function registerOperationsCommands(
             ].join('\n'),
           );
         } else {
-          // File import: legacy knowledge entry or single SKILL.md
-          const fileContent = await resolveTextInput({ file: flags.file }, 'import');
-          let entries: Array<{
-            scope: string;
-            labels: string[];
-            shortcut: string;
-            detail: string;
-            source: 'json' | 'claude-skill';
-            requestedLevel: number;
-          }>;
+          // File import: check for single SKILL.md or legacy knowledge entry
+          const isSkillMd = isSkillMdFile(filePath);
 
-          // Try to parse as JSON array first
-          try {
-            const parsed = JSON.parse(fileContent);
-            if (Array.isArray(parsed)) {
-              entries = parsed.map((entry) => ({
-                scope: entry.scope ?? 'project',
-                labels: entry.labels ?? ['imported'],
-                shortcut: entry.shortcut,
-                detail: entry.detail,
-                source: 'json' as const,
-                requestedLevel: flags.level,
-              }));
-            } else if (parsed.items && Array.isArray(parsed.items)) {
-              // Export bundle format
-              entries = parsed.items.map(
-                (entry: { scope: string; labels: string[]; shortcut: string; detail: string }) => ({
+          if (isSkillMd) {
+            // Single SKILL.md: build minimal artifact bundle (IMEX-03)
+            const bundle = await buildSingleSkillMdBundle({
+              filePath,
+              requestedLevel: flags.level,
+            });
+
+            const response = await apiRequest<ArtifactImportResponse>(state, {
+              method: 'POST',
+              path: '/v1/operations/artifacts/import',
+              body: { bundles: [bundle] },
+            });
+            const parsed = artifactImportResponseSchema.parse(response.data);
+
+            printResult(parsed, flags, (value) =>
+              [
+                `Imported ${value.importedCount} artifacts, failed ${value.failedCount}`,
+                ...value.results.map(
+                  (r) =>
+                    `  ${r.success ? '✓' : '✗'} ${r.title ?? 'Unknown'}: ${r.error ?? 'OK'}`,
+                ),
+              ].join('\n'),
+            );
+          } else {
+            // Legacy knowledge entry import (JSON or non-SKILL.md files)
+            const fileContent = await resolveTextInput({ file: flags.file }, 'import');
+            let entries: Array<{
+              scope: string;
+              labels: string[];
+              shortcut: string;
+              detail: string;
+              source: 'json' | 'claude-skill';
+              requestedLevel: number;
+            }>;
+
+            // Try to parse as JSON array first
+            try {
+              const parsed = JSON.parse(fileContent);
+              if (Array.isArray(parsed)) {
+                entries = parsed.map((entry) => ({
                   scope: entry.scope ?? 'project',
                   labels: entry.labels ?? ['imported'],
                   shortcut: entry.shortcut,
                   detail: entry.detail,
                   source: 'json' as const,
                   requestedLevel: flags.level,
-                }),
-              );
-            } else {
-              throw new Error('JSON must be an array of entries or an export bundle');
-            }
-          } catch {
-            // Try to parse as SKILL.md format
-            const submission = parseClaudeSkill(fileContent);
+                }));
+              } else if (parsed.items && Array.isArray(parsed.items)) {
+                // Export bundle format
+                entries = parsed.items.map(
+                  (entry: { scope: string; labels: string[]; shortcut: string; detail: string }) => ({
+                    scope: entry.scope ?? 'project',
+                    labels: entry.labels ?? ['imported'],
+                    shortcut: entry.shortcut,
+                    detail: entry.detail,
+                    source: 'json' as const,
+                    requestedLevel: flags.level,
+                  }),
+                );
+              } else {
+                throw new Error('JSON must be an array of entries or an export bundle');
+              }
+            } catch {
+              // Try to parse as SKILL.md format
+              const submission = parseClaudeSkill(fileContent);
 
-            if (!submission) {
-              throw new Error('File must be a JSON array of entries or a valid SKILL.md format');
+              if (!submission) {
+                throw new Error('File must be a JSON array of entries or a valid SKILL.md format');
+              }
+
+              entries = [
+                {
+                  ...submission,
+                  source: 'claude-skill' as const,
+                  requestedLevel: flags.level,
+                },
+              ];
             }
 
-            entries = [
-              {
-                ...submission,
-                source: 'claude-skill' as const,
-                requestedLevel: flags.level,
-              },
-            ];
+            const response = await apiRequest<ImportResponse>(state, {
+              method: 'POST',
+              path: '/v1/operations/import',
+              body: { entries },
+            });
+            const parsed = importResponseSchema.parse(response.data);
+
+            printResult(parsed, flags, (value) =>
+              [`Imported ${value.importedCount} entries, failed ${value.failedCount}`].join('\n'),
+            );
           }
-
-          const response = await apiRequest<ImportResponse>(state, {
-            method: 'POST',
-            path: '/v1/operations/import',
-            body: { entries },
-          });
-          const parsed = importResponseSchema.parse(response.data);
-
-          printResult(parsed, flags, (value) =>
-            [`Imported ${value.importedCount} entries, failed ${value.failedCount}`].join('\n'),
-          );
         }
       });
   }

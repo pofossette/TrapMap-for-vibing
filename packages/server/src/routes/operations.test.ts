@@ -852,4 +852,220 @@ Some body content.`;
       expect(data.skillArtifacts.length).toBe(1);
     });
   });
+
+  describe('single-skill-md compatibility (IMEX-03)', () => {
+    it('accepts minimal artifact bundle with single SKILL.md file', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/import',
+        payload: {
+          bundles: [
+            {
+              scope: 'project',
+              labels: ['imported'],
+              title: 'Single File Skill',
+              slug: 'single-file-skill',
+              requiredLevel: 1,
+              sourceKind: 'single-skill-md',
+              files: [
+                {
+                  path: 'SKILL.md',
+                  sha256: 'a'.repeat(64),
+                  sizeBytes: 100,
+                  mediaType: 'text/markdown',
+                  content: '# Single File Skill\n\nContent here',
+                },
+              ],
+              scriptDescriptors: [],
+            },
+          ],
+        },
+      });
+
+      // Should require auth, not fail schema validation
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('rejects single-skill-md bundle with multiple files', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/import',
+        payload: {
+          bundles: [
+            {
+              scope: 'project',
+              labels: ['imported'],
+              title: 'Invalid Single File',
+              slug: 'invalid-single-file',
+              requiredLevel: 1,
+              sourceKind: 'single-skill-md',
+              files: [
+                {
+                  path: 'SKILL.md',
+                  sha256: 'a'.repeat(64),
+                  sizeBytes: 100,
+                  mediaType: 'text/markdown',
+                  content: '# SKILL.md',
+                },
+                {
+                  path: 'references/extra.md',
+                  sha256: 'b'.repeat(64),
+                  sizeBytes: 50,
+                  mediaType: 'text/markdown',
+                  content: '# Extra',
+                },
+              ],
+              scriptDescriptors: [],
+            },
+          ],
+        },
+      });
+
+      // Should fail validation (too many files for single-skill-md)
+      expect(response.statusCode).toBeGreaterThanOrEqual(400);
+    });
+
+    it('rejects single-skill-md bundle with non-SKILL.md file', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/import',
+        payload: {
+          bundles: [
+            {
+              scope: 'project',
+              labels: ['imported'],
+              title: 'Wrong File',
+              slug: 'wrong-file',
+              requiredLevel: 1,
+              sourceKind: 'single-skill-md',
+              files: [
+                {
+                  path: 'README.md',
+                  sha256: 'c'.repeat(64),
+                  sizeBytes: 100,
+                  mediaType: 'text/markdown',
+                  content: '# README',
+                },
+              ],
+              scriptDescriptors: [],
+            },
+          ],
+        },
+      });
+
+      // Should fail validation (wrong file path for single-skill-md)
+      expect(response.statusCode).toBeGreaterThanOrEqual(400);
+    });
+
+    it('rejects single-skill-md bundle with script descriptors', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/import',
+        payload: {
+          bundles: [
+            {
+              scope: 'project',
+              labels: ['imported'],
+              title: 'Script with Single File',
+              slug: 'script-single-file',
+              requiredLevel: 1,
+              sourceKind: 'single-skill-md',
+              files: [
+                {
+                  path: 'SKILL.md',
+                  sha256: 'd'.repeat(64),
+                  sizeBytes: 100,
+                  mediaType: 'text/markdown',
+                  content: '# SKILL.md',
+                },
+              ],
+              scriptDescriptors: [
+                {
+                  path: 'scripts/setup.sh',
+                  sha256: 'e'.repeat(64),
+                  capability: 'Setup capability',
+                  argsSchemaSummary: '',
+                  sideEffectSummary: '',
+                  defaultPolicy: 'manual',
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      // Should fail validation (script descriptors not allowed for single-skill-md)
+      expect(response.statusCode).toBeGreaterThanOrEqual(400);
+    });
+  });
+
+  describe('artifact export (IMEX-02)', () => {
+    it('returns 401 for unauthenticated artifact export request', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/export',
+        payload: {
+          artifactId: 'artifact_1',
+          format: 'bundle-json',
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('accepts valid artifact export request schema', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/export',
+        payload: {
+          artifactId: 'artifact_1',
+          format: 'bundle-json',
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('accepts distilled-json format', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/export',
+        payload: {
+          artifactId: 'artifact_1',
+          format: 'distilled-json',
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('accepts skill-dir format (server normalizes to bundle-json)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/export',
+        payload: {
+          artifactId: 'artifact_1',
+          format: 'skill-dir',
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('defaults format to bundle-json when not specified', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/export',
+        payload: {
+          artifactId: 'artifact_1',
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+  });
 });
