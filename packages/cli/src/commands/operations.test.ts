@@ -293,7 +293,7 @@ describe('CLI operations commands (Phase 13)', () => {
       await program.parseAsync(['node', 'test', 'import', '--file', join(testDir, 'skill.md'), '--level', '3']);
 
       // Verify legacy import endpoint was called
-      expect(mockApiRequest).toHaveBeenCalledWith(
+      expect(apiRequest).toHaveBeenCalledWith(
         mockState,
         expect.objectContaining({
           method: 'POST',
