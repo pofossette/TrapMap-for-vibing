@@ -160,6 +160,7 @@ export const retrievalV2QuerySchema = z.object({
  * Returns capsule-first distilled results instead of flat knowledge entries.
  * Capsules inherit governance from artifact root per T-14-01 mitigation.
  * Coexists with legacy retrievalResponseSchema for backward compatibility.
+ * Optional summary consumes only already-filtered distilled hits (T-14-08).
  */
 export const retrievalV2ResponseSchema = z.object({
   /** Ranked capsule matches with governance inheritance */
@@ -168,6 +169,8 @@ export const retrievalV2ResponseSchema = z.object({
   profileHints: z.array(profileHintSchema).default([]),
   /** Optional refinement summary over filtered capsules */
   refinementSummary: z.string().nullable(),
+  /** Optional summary over filtered distilled capsule hits */
+  summary: retrievalSummarySchema.nullable().default(null),
 });
 
 export type CapsuleMatch = z.infer<typeof capsuleMatchSchema>;

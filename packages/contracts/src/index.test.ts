@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import {
   artifactBundleSchema,
+  artifactExportFormatSchema,
+  artifactExportRequestSchema,
+  artifactExportResponseSchema,
   artifactFilePayloadRecordSchema,
   artifactImportRequestSchema,
   artifactImportResponseSchema,
   bundleFilePayloadSchema,
   bundleScriptDescriptorSchema,
   canonicalPathSchema,
+  distilledArtifactSchema,
   knowledgeEntrySchema,
   knowledgeSubmissionSchema,
   loginRequestSchema,
@@ -1367,6 +1371,105 @@ describe('contracts package', () => {
         expect(parsed.artifactId).toBe('artifact_1');
       });
     });
+
+    describe('Artifact export schemas (IMEX-02)', () => {
+      it('accepts valid export format selection', () => {
+        expect(artifactExportFormatSchema.parse('bundle-json')).toBe('bundle-json');
+        expect(artifactExportFormatSchema.parse('distilled-json')).toBe('distilled-json');
+        expect(artifactExportFormatSchema.parse('skill-dir')).toBe('skill-dir');
+        expect(() => artifactExportFormatSchema.parse('invalid')).toThrow();
+      });
+
+      it('artifactExportRequestSchema requires artifactId with optional format', () => {
+        const request = { artifactId: 'artifact_1' };
+        const parsed = artifactExportRequestSchema.parse(request);
+        expect(parsed.artifactId).toBe('artifact_1');
+        expect(parsed.format).toBe('bundle-json'); // default
+      });
+
+      it('distilledArtifactSchema accepts compact derived projection', () => {
+        const distilled = {
+          artifactId: 'artifact_1',
+          scope: 'project',
+          labels: ['imported'],
+          title: 'Test Skill',
+          slug: 'test-skill',
+          requiredLevel: 1,
+          sourceKind: 'skill-directory',
+          profile: { name: 'Test Profile' },
+          capsules: [],
+          clientManifest: { endpoints: [] },
+          exportedAt: '2026-04-16T12:00:00.000Z',
+        };
+
+        const parsed = distilledArtifactSchema.parse(distilled);
+        expect(parsed.artifactId).toBe('artifact_1');
+        expect(parsed.profile).toBeDefined();
+      });
+
+      it('artifactExportResponseSchema accepts bundle-json response', () => {
+        const response = {
+          format: 'bundle-json',
+          exportedAt: '2026-04-16T12:00:00.000Z',
+          exportedBy: { id: 'user_1', handle: 'testuser', securityLevel: 5 },
+          bundle: {
+            scope: 'project',
+            labels: ['imported'],
+            title: 'Test Skill',
+            slug: 'test-skill',
+            requiredLevel: 1,
+            sourceKind: 'skill-directory',
+            files: [
+              {
+                path: 'SKILL.md',
+                kind: 'skill-markdown',
+                sha256: 'a'.repeat(64),
+                sizeBytes: 100,
+                mediaType: 'text/markdown',
+                source: 'SKILL.md',
+                includeInDerivation: true,
+                activationOnly: false,
+                content: '# Test',
+              },
+            ],
+            scriptDescriptors: [],
+          },
+          distilled: null,
+        };
+
+        const parsed = artifactExportResponseSchema.parse(response);
+        expect(parsed.format).toBe('bundle-json');
+        expect(parsed.bundle).toBeDefined();
+        expect(parsed.distilled).toBeNull();
+      });
+
+      it('artifactExportResponseSchema accepts distilled-json response', () => {
+        const response = {
+          format: 'distilled-json',
+          exportedAt: '2026-04-16T12:00:00.000Z',
+          exportedBy: { id: 'user_1', handle: 'testuser', securityLevel: 5 },
+          bundle: null,
+          distilled: {
+            artifactId: 'artifact_1',
+            scope: 'project',
+            labels: ['imported'],
+            title: 'Test Skill',
+            slug: 'test-skill',
+            requiredLevel: 1,
+            sourceKind: 'skill-directory',
+            profile: null,
+            capsules: null,
+            clientManifest: null,
+            exportedAt: '2026-04-16T12:00:00.000Z',
+          },
+        };
+
+        const parsed = artifactExportResponseSchema.parse(response);
+        expect(parsed.format).toBe('distilled-json');
+        expect(parsed.distilled).toBeDefined();
+        expect(parsed.bundle).toBeNull();
+      });
+    });
   });
 
   describe('Phase 14: Seed-Only Retrieval v2 Contracts (RETR-01, RETR-02, COMP-01)', () => {
@@ -1554,6 +1657,143 @@ describe('contracts package', () => {
         // This test verifies that v2 schemas are exported from the contracts package
         expect(retrievalV2QuerySchema).toBeDefined();
         expect(retrievalV2ResponseSchema).toBeDefined();
+      });
+    });
+
+    describe('RETR-04: Distilled capsule-first output (Task 1)', () => {
+      it('v2 response schema accepts distilled capsule matches with artifact/profile metadata and optional summary', () => {
+        const response = {
+          capsules: [
+            {
+              capsuleId: 'capsule_1',
+              artifactId: 'artifact_1',
+              revision: 1,
+              sourcePaths: ['SKILL.md'],
+              content: 'Distilled capsule content',
+              situation: 'Deploying containers',
+              problem: 'Container fails to start',
+              goal: 'Fix the issue',
+              labels: ['docker'],
+              scope: 'project',
+              requiredLevel: 2,
+              score: 0.9,
+              reason: 'High match',
+            },
+          ],
+          profileHints: [
+            {
+              artifactId: 'artifact_1',
+              title: 'Docker Skills',
+              slug: 'docker-skills',
+              labels: ['docker'],
+            },
+          ],
+          refinementSummary: null,
+          summary: {
+            text: 'Container startup issues often relate to permission problems',
+            citations: [
+              {
+                source: {
+                  entryId: 'capsule_1',
+                  scope: 'project',
+                  shortcut: 'Docker Skills',
+                },
+                snippet: 'Container fails to start',
+                tags: ['docker'],
+                recallChannels: ['semantic'],
+                scores: {
+                  semantic: 0.9,
+                  keyword: null,
+                  graph: null,
+                  preRerank: 0.9,
+                  final: 0.9,
+                },
+              },
+            ],
+          },
+        };
+
+        const parsed = retrievalV2ResponseSchema.parse(response);
+        expect(parsed.capsules).toHaveLength(1);
+        expect(parsed.profileHints).toHaveLength(1);
+        expect(parsed.summary).not.toBeNull();
+        expect(parsed.summary?.text).toBe('Container startup issues often relate to permission problems');
+        expect(parsed.summary?.citations).toHaveLength(1);
+      });
+
+      it('default retrieval payloads do not require bundle file contents', () => {
+        // v2 response should work with minimal capsule data - no bundle/asset/script bodies
+        const minimalResponse = {
+          capsules: [
+            {
+              capsuleId: 'capsule_1',
+              artifactId: 'artifact_1',
+              revision: 1,
+              sourcePaths: ['SKILL.md'],
+              content: 'Distilled content only',
+              situation: 'Test',
+              problem: 'Test',
+              goal: 'Test',
+              labels: ['test'],
+              scope: 'global',
+              requiredLevel: 0,
+              score: 0.5,
+              reason: 'Match',
+            },
+          ],
+          profileHints: [],
+          refinementSummary: null,
+          // summary is optional and defaults to null
+        };
+
+        const parsed = retrievalV2ResponseSchema.parse(minimalResponse);
+        expect(parsed.capsules).toHaveLength(1);
+        // No asset/script bodies are included in the response
+        expect(parsed.capsules[0]?.content).toBe('Distilled content only');
+        // Verify no bundle file fields exist in capsule
+        expect(parsed.capsules[0]).not.toHaveProperty('assets');
+        expect(parsed.capsules[0]).not.toHaveProperty('scripts');
+        expect(parsed.capsules[0]).not.toHaveProperty('bundleContents');
+      });
+
+      it('legacy retrieval response schemas remain available for coexistence during migration', () => {
+        // Legacy v1 response should still parse
+        const legacyResponse = {
+          globalConstraints: [
+            {
+              entryId: 'entry_1',
+              scope: 'global',
+              requiredLevel: 0,
+              shortcut: 'Test',
+              detail: 'Test detail',
+              labels: ['test'],
+              score: 0.8,
+              reason: 'Match',
+            },
+          ],
+          projectKnowledge: [],
+          refinementSummary: null,
+          summary: null,
+        };
+
+        const legacyParsed = retrievalResponseSchema.parse(legacyResponse);
+        expect(legacyParsed.globalConstraints).toHaveLength(1);
+        expect(legacyParsed.projectKnowledge).toHaveLength(0);
+
+        // v2 response should work alongside legacy
+        const v2Response = {
+          capsules: [],
+          profileHints: [],
+          refinementSummary: null,
+        };
+
+        const v2Parsed = retrievalV2ResponseSchema.parse(v2Response);
+        expect(v2Parsed.capsules).toHaveLength(0);
+
+        // Both schemas can coexist - they don't interfere
+        expect(legacyParsed).not.toHaveProperty('capsules');
+        expect(v2Parsed).not.toHaveProperty('globalConstraints');
+        expect(v2Parsed).not.toHaveProperty('projectKnowledge');
       });
     });
   });
