@@ -33,8 +33,9 @@ describe('CLI operations commands (Phase 13)', () => {
   let program: Command;
   let testDir: string;
   const mockState = {
+    serverUrl: 'http://localhost:3000',
     sessionToken: 'test-token',
-    apiUrl: 'http://localhost:3000',
+    session: null,
   };
 
   beforeEach(async () => {
@@ -58,6 +59,7 @@ describe('CLI operations commands (Phase 13)', () => {
         importedCount: 1,
         failedCount: 0,
       },
+      sessionToken: 'test-token',
     } as any);
 
     // Create program and register commands
