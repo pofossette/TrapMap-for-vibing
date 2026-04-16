@@ -772,6 +772,26 @@ Some body content.`;
 
         // Add a skill artifact to the store (additive coexistence)
         data.counters.artifact = 1;
+        const artifactRevision = {
+          revision: 1,
+          sourceHash: 'c'.repeat(64),
+          files: [
+            {
+              path: 'SKILL.md',
+              kind: 'skill-markdown' as const,
+              sha256: 'd'.repeat(64),
+              sizeBytes: 100,
+              mediaType: 'text/markdown',
+              source: 'SKILL.md' as const,
+              includeInDerivation: true,
+              activationOnly: false,
+            },
+          ],
+          submittedAt: nowIso(),
+          submittedByUserId: userId,
+          scriptDescriptors: [],
+          derived: null,
+        };
         data.skillArtifacts = [
           {
             id: 'artifact_audit_1',
@@ -783,16 +803,8 @@ Some body content.`;
             requiredLevel: 0,
             lifecycleState: 'approved',
             ownerUserId: userId,
-            latestRevision: {
-              revision: 1,
-              sourceHash: 'c'.repeat(64),
-              files: [],
-              submittedAt: nowIso(),
-              submittedByUserId: userId,
-              scriptDescriptors: [],
-              derived: null,
-            },
-            history: [],
+            latestRevision: artifactRevision,
+            history: [artifactRevision],
             metadata: {
               sourceKind: 'skill-directory',
               submissionCount: 1,

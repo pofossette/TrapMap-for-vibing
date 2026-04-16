@@ -246,6 +246,8 @@ export function createSkillArtifactRecord(args: {
       defaultPolicy: 'manual' | 'auto' | 'blocked';
     }>;
     sourceKind: 'skill-directory' | 'single-skill-md' | 'legacy-knowledge';
+    /** Optional canonical source hash computed from derivation-eligible files */
+    sourceHash?: string;
   };
   requiredLevel: number;
   createdAt: string;
@@ -255,9 +257,11 @@ export function createSkillArtifactRecord(args: {
   const agentReview = toAgentReviewRecord(args.preReview);
 
   // Create initial revision
+  // Note: sourceHash should be computed from normalized bundle using computeSourceHash()
+  // The caller should provide a canonical source hash, not concatenated file hashes
   const revision: SkillArtifactRevisionRecord = {
     revision: 1,
-    sourceHash: args.payload.files.map((f) => f.sha256).join(''),
+    sourceHash: args.payload.sourceHash ?? args.payload.files.map((f) => f.sha256).join(''),
     files: args.payload.files,
     submittedAt: args.createdAt,
     submittedByUserId: args.ownerUserId,
@@ -356,6 +360,7 @@ export function appendSkillArtifactRevision(args: {
       sideEffectSummary: string;
       defaultPolicy: 'manual' | 'auto' | 'blocked';
     }>;
+    /** Canonical source hash computed from derivation-eligible files */
     sourceHash: string;
   };
   submittedAt: string;

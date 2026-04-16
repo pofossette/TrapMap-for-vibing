@@ -231,6 +231,8 @@ export const auditQuerySchema = z.object({
         'knowledge-exported',
         'knowledge-deactivated',
         'member-updated',
+        'artifact-imported',
+        'artifact-exported',
       ]),
     )
     .optional(),

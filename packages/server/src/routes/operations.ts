@@ -1,4 +1,7 @@
 import {
+  artifactImportRequestSchema,
+  artifactImportResponseSchema,
+  artifactImportResultItemSchema,
   auditListResponseSchema,
   auditQuerySchema,
   exportBundleSchema,
@@ -15,8 +18,11 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent, queryAuditEvents, toAuditEvent } from '../lib/audit.js';
 import { AppError } from '../lib/errors.js';
-import { createImportedEntry, detectDuplicates, parseClaudeSkill } from '../lib/import-export.js';
+import { createImportedEntry, detectDuplicates, parseClaudeSkill, normalizeArtifactBundle } from '../lib/import-export.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '../lib/knowledge.js';
+import { createSkillArtifactRecord, toSkillArtifact } from '../lib/artifacts/model.js';
+import { deriveSkillArtifactOutputs } from '../lib/artifacts/derive.js';
+import { applyDerivedArtifactOutputs } from '../lib/artifacts/model.js';
 import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
@@ -346,6 +352,146 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
           entry: r.entry,
           error: r.error,
           source: r.source,
+        }),
+      ),
+      importedCount,
+      failedCount,
+    });
+  });
+
+  // Artifact-native import route (Phase 13: IMEX-01, IMEX-04, COMP-02)
+  app.post('/v1/operations/artifacts/import', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:import');
+
+    // System-admin cannot import (needs real user as owner)
+    if (auth.subjectType === 'system-admin') {
+      throw new AppError(403, 'invalid_subject', 'System admin cannot import artifacts directly');
+    }
+
+    const ownerUserId = auth.user?.id;
+    if (!ownerUserId) {
+      throw new AppError(403, 'user_not_found', 'User record not found');
+    }
+
+    const body = artifactImportRequestSchema.parse((request.body as Record<string, unknown>) ?? {});
+
+    const results: Array<{
+      success: boolean;
+      artifactId: string | null;
+      title: string | null;
+      error: string | null;
+      sourceKind: 'skill-directory' | 'single-skill-md' | 'legacy-knowledge' | null;
+    }> = [];
+
+    let importedCount = 0;
+    let failedCount = 0;
+
+    await app.skillShareer.store.transact(async (data) => {
+      for (const bundle of body.bundles) {
+        try {
+          // Validate requestedLevel <= auth.securityLevel
+          if (bundle.requiredLevel > auth.securityLevel) {
+            results.push({
+              success: false,
+              artifactId: null,
+              title: bundle.title,
+              error: `requiredLevel ${bundle.requiredLevel} exceeds user level ${auth.securityLevel}`,
+              sourceKind: bundle.sourceKind,
+            });
+            failedCount++;
+            continue;
+          }
+
+          // Normalize bundle: validate paths, classify files, compute source hash
+          const artifactId = app.skillShareer.store.nextId(data, 'artifact');
+          const createdAt = nowIso();
+          const normalized = normalizeArtifactBundle({
+            bundle,
+            artifactId,
+            revision: 1,
+            storedAt: createdAt,
+          });
+
+          // Run pre-review (reuse existing pre-review for artifact validation)
+          const preReview = await runPreReview({
+            existingEntries: data.knowledgeEntries,
+            submission: {
+              scope: bundle.scope,
+              labels: bundle.labels,
+              shortcut: bundle.title,
+              detail: `Artifact import: ${bundle.title}`,
+            },
+          });
+
+          // Create artifact record with canonical source hash
+          const artifact = createSkillArtifactRecord({
+            store: app.skillShareer.store,
+            data,
+            ownerUserId,
+            teamId: auth.activeTeamId,
+            payload: {
+              ...bundle,
+              sourceHash: normalized.sourceHash,
+            },
+            requiredLevel: bundle.requiredLevel,
+            createdAt,
+            preReview,
+          });
+
+          // Store file payloads for round-trip export (IMEX-04)
+          data.artifactFilePayloads.push(...normalized.filePayloads);
+
+          // Derive outputs immediately after persistence (IMEX-04, COMP-02)
+          const derived = deriveSkillArtifactOutputs(artifact, artifact.latestRevision);
+          applyDerivedArtifactOutputs(data, artifact, artifact.latestRevision, derived);
+
+          // Record audit event (T-13-04 mitigation)
+          const auditEvent = createAuditEvent({
+            store: app.skillShareer.store,
+            data,
+            teamId: auth.activeTeamId,
+            actor: auth,
+            action: 'artifact-imported',
+            entityId: artifact.id,
+            payload: {
+              sourceKind: bundle.sourceKind,
+              requiredLevel: bundle.requiredLevel,
+              fileCount: bundle.files.length,
+              format: 'bundle-json',
+            },
+          });
+          data.auditEvents.push(auditEvent);
+
+          results.push({
+            success: true,
+            artifactId: artifact.id,
+            title: artifact.title,
+            error: null,
+            sourceKind: bundle.sourceKind,
+          });
+          importedCount++;
+        } catch (error) {
+          results.push({
+            success: false,
+            artifactId: null,
+            title: bundle.title,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            sourceKind: bundle.sourceKind,
+          });
+          failedCount++;
+        }
+      }
+    });
+
+    return artifactImportResponseSchema.parse({
+      results: results.map((r) =>
+        artifactImportResultItemSchema.parse({
+          success: r.success,
+          artifactId: r.artifactId,
+          title: r.title,
+          error: r.error,
+          sourceKind: r.sourceKind,
         }),
       ),
       importedCount,
