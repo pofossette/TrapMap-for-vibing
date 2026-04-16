@@ -13,7 +13,13 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-// Mock dependencies before importing
+// Import first
+import { Command } from 'commander';
+import { registerOperationsCommands } from './operations.js';
+import * as httpModule from '../lib/http.js';
+import * as configModule from '../lib/config.js';
+
+// Then mock
 vi.mock('../lib/http.js', () => ({
   apiRequest: vi.fn().mockResolvedValue({
     data: {
@@ -38,11 +44,8 @@ vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(),
 }));
 
-// Import after mocking
-import { Command } from 'commander';
-import { registerOperationsCommands } from './operations.js';
-import { apiRequest } from '../lib/http.js';
-import { loadCliState } from '../lib/config.js';
+const apiRequest = httpModule.apiRequest;
+const loadCliState = configModule.loadCliState;
 
 describe('CLI operations commands (Phase 13)', () => {
   let program: Command;
