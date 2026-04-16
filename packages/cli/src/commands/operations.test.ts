@@ -13,30 +13,9 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-// Import first
-import { Command } from 'commander';
-import { registerOperationsCommands } from './operations.js';
-import * as httpModule from '../lib/http.js';
-import * as configModule from '../lib/config.js';
-
-// Then mock
+// Mock dependencies before importing
 vi.mock('../lib/http.js', () => ({
-  apiRequest: vi.fn().mockResolvedValue({
-    data: {
-      results: [
-        {
-          success: true,
-          artifactId: 'artifact_1',
-          title: 'Test Skill',
-          error: null,
-          sourceKind: 'skill-directory',
-        },
-      ],
-      importedCount: 1,
-      failedCount: 0,
-    },
-    sessionToken: 'test-token',
-  }),
+  apiRequest: vi.fn(),
   requireSessionToken: vi.fn(),
 }));
 
@@ -44,8 +23,11 @@ vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(),
 }));
 
-const apiRequest = httpModule.apiRequest;
-const loadCliState = configModule.loadCliState;
+// Import after mocking
+import { Command } from 'commander';
+import { registerOperationsCommands } from './operations.js';
+import { apiRequest } from '../lib/http.js';
+import { loadCliState } from '../lib/config.js';
 
 describe('CLI operations commands (Phase 13)', () => {
   let program: Command;
@@ -61,8 +43,24 @@ describe('CLI operations commands (Phase 13)', () => {
     testDir = join(tmpdir(), `skill-shareer-test-${Date.now()}-${Math.random()}`);
     await mkdir(testDir, { recursive: true });
 
-    // Setup mocks
+    // Setup mocks - explicit implementation
     vi.mocked(loadCliState).mockResolvedValue(mockState);
+    vi.mocked(apiRequest).mockImplementation(async () => ({
+      data: {
+        results: [
+          {
+            success: true,
+            artifactId: 'artifact_1',
+            title: 'Test Skill',
+            error: null,
+            sourceKind: 'skill-directory',
+          },
+        ],
+        importedCount: 1,
+        failedCount: 0,
+      },
+      sessionToken: 'test-token',
+    }));
 
     // Create program and register commands
     program = new Command();
