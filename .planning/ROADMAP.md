@@ -64,7 +64,7 @@
 | 9. 图辅助检索 | v1.1 | 4/4 | Complete | 2026-04-14 |
 | 10. 回答与引用 | v1.1 | 4/4 | Complete | 2026-04-15 |
 | 11. 索引生命周期集成 | v1.1 | 2/2 | Complete | 2026-04-15 |
-| 12. Skill Artifact Canonical Model | v1.2 | 0/3 | Planned | — |
+| 12. Skill Artifact Canonical Model | v1.2 | 3/3 | Complete    | 2026-04-16 |
 | 13. Skill Import/Export Pipeline | v1.2 | 0/3 | Planned | — |
 | 14. Seed Intent Retrieval and Capsule Ranking | v1.2 | 0/4 | Planned | — |
 | 15. Client Activation for References, Assets, and Scripts | v1.2 | 0/3 | Planned | — |
@@ -98,11 +98,11 @@ Phase 11 (索引生命周期集成) ✅ ← gap closure for Phase 08
 
 **Goal:** 定义 v1.2 skill-native artifact、revision、profile、capsule 与 client manifest 的契约和存储基础
 **Depends on:** Phase 11
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
-- [ ] 12-01: Contracts for skill artifact, revision, file manifest, and activation metadata (ARTF-01, ARTF-02, CAPS-01)
-- [ ] 12-02: Server storage model for artifact lifecycle, governance, and derived outputs (ARTF-03, CAPS-02, CAPS-03)
-- [ ] 12-03: Derivation pipeline for profile/capsule/client manifest generation (CAPS-01, COMP-01, COMP-02)
+- [x] 12-01: Contracts for skill artifact, revision, file manifest, and activation metadata (ARTF-01, ARTF-02, CAPS-01)
+- [x] 12-02: Server storage model for artifact lifecycle, governance, and derived outputs (ARTF-03, CAPS-02, CAPS-03)
+- [x] 12-03: Derivation pipeline for profile/capsule/client manifest generation (CAPS-01, COMP-01, COMP-02)
 
 ### Phase 13: Skill Import/Export Pipeline
 

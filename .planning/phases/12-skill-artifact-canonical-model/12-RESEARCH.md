@@ -323,22 +323,16 @@ const skillArtifactDerivedSchema = z.object({
 | A4 | `derived.profile`, `derived.capsules`, and `derived.clientManifest` should be cached on revisions with `sourceHash` and `derivedAt`. | Summary, Architecture Patterns | If derivation is kept fully ephemeral, storage work would be smaller but retrieval/import/export phases would repeat work. |
 | A5 | Phase 12 should not yet introduce new public artifact routes and should stay focused on contracts/store/derivation seams. | Summary, Validation | If the planner wants vertical slices with routes now, tasks must widen. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should `title` be strictly sourced from frontmatter `name`, or can it fall back to body content when frontmatter is incomplete?** [VERIFIED: current parser requires `name` in frontmatter via `parseClaudeSkill()`]
-What we know: the current parser rejects skills without `name` and uses `description` plus body only for `detail`. [VERIFIED: `packages/server/src/lib/import-export.ts`]
-What's unclear: whether Phase 12 should preserve that strictness in canonical contracts or accept partially valid source trees for later review. [ASSUMED]
-Recommendation: keep canonical contracts strict in Phase 12 and let Phase 13 compatibility import wrap looser inputs. [ASSUMED]
+Resolution: keep the canonical artifact/profile contracts strict in Phase 12 and require the title to come from validated skill metadata, matching today’s `parseClaudeSkill()` expectation. [VERIFIED: `packages/server/src/lib/import-export.ts`] Looser inputs belong to Phase 13 compatibility import wrapping, not to the canonical Phase 12 contract layer. [VERIFIED: `.planning/ROADMAP.md`] [ASSUMED]
 
 2. **Should `references/` content be stored inline in revision records or only as file metadata plus detached content blobs?** [ASSUMED]
-What we know: current `JsonStore` stores everything inline in one JSON file. [VERIFIED: `packages/server/src/lib/store.ts`]
-What's unclear: whether large reference bodies will make a single-file store too heavy before a database migration. [ASSUMED]
-Recommendation: for this phase, keep inline storage but isolate file-content fields so a later persistence move is mechanical. [ASSUMED]
+Resolution: store text content inline for Phase 12 because the current `JsonStore` is a single durable JSON document and no detached blob store exists yet. [VERIFIED: `packages/server/src/lib/store.ts`] Keep file metadata and derived-output boundaries explicit so a later persistence move is mechanical rather than structural. [ASSUMED]
 
 3. **Does the team want artifact-scoped audit actions now, or is reusing generic `knowledge-*` audit actions acceptable until Phase 13/16?** [VERIFIED: current audit action enum is still knowledge-centric in `operations.ts` contracts]
-What we know: audit contracts and routes currently expose only `knowledge-reviewed/imported/exported/deactivated`. [VERIFIED: `packages/contracts/src/domain/operations.ts`] [VERIFIED: `packages/server/src/routes/operations.ts`]
-What's unclear: whether Phase 12 should add artifact-specific audit action enums immediately. [ASSUMED]
-Recommendation: add artifact-aware payload fields in Phase 12 and reserve enum expansion for the first route phase that actually emits them. [ASSUMED]
+Resolution: Phase 12 should preserve the current knowledge-centric audit route surface and prove coexistence with it; artifact-specific audit action enums should wait until the first route phase that can actually emit them. [VERIFIED: `packages/contracts/src/domain/operations.ts`] [VERIFIED: `packages/server/src/routes/operations.ts`] [VERIFIED: `.planning/ROADMAP.md`] This keeps Phase 12 additive and route-light while still meeting COMP-02 through coexistence regression coverage. [ASSUMED]
 
 ## Environment Availability
 
@@ -359,6 +353,7 @@ Recommendation: add artifact-aware payload fields in Phase 12 and reserve enum e
 |----------|-------|
 | Framework | Vitest `3.2.4` in workspace [VERIFIED: `package.json`] |
 | Config file | none; package scripts call `vitest run` directly [VERIFIED: `packages/server/package.json`] [VERIFIED: `packages/contracts/package.json`] |
+| Quick smoke command | `pnpm --filter @skill-shareer/contracts test -- src/index.test.ts` [ASSUMED: Phase 12 should keep one sub-30s contract smoke target] |
 | Quick run command | `pnpm --filter @skill-shareer/contracts test && pnpm --filter @skill-shareer/server test -- src/lib/indexing/pipeline.test.ts src/routes/operations.test.ts` [VERIFIED: local runs] [ASSUMED: add new Phase 12 tests to these targets] |
 | Full suite command | `pnpm test && pnpm --filter @skill-shareer/server typecheck` [VERIFIED: `package.json`] [VERIFIED: local runs] |
 
@@ -372,7 +367,7 @@ Recommendation: add artifact-aware payload fields in Phase 12 and reserve enum e
 | CAPS-02 | `assets/` are excluded from capsule derivation and retained only for activation metadata. [ASSUMED] | unit | `pnpm --filter @skill-shareer/server test -- src/lib/artifacts/derive.test.ts` [ASSUMED] | ❌ Wave 0 |
 | CAPS-03 | `scripts/` never become capsule content and only emit capability/policy metadata. [ASSUMED] | unit | `pnpm --filter @skill-shareer/server test -- src/lib/artifacts/derive.test.ts` [ASSUMED] | ❌ Wave 0 |
 | COMP-01 | Contracts remain the canonical shared truth for artifact/profile/capsule/client manifest shapes. [VERIFIED: `.planning/REQUIREMENTS.md`] | contract | `pnpm --filter @skill-shareer/contracts test` [VERIFIED: local run] | existing contract test file exists. [VERIFIED: repo files] |
-| COMP-02 | New artifact records do not break current governance boundaries. [VERIFIED: `.planning/REQUIREMENTS.md`] | smoke/manual + unit | `pnpm --filter @skill-shareer/server test -- src/routes/review.test.ts src/routes/knowledge.test.ts` [ASSUMED] | existing route tests exist; artifact coexistence coverage is missing. [VERIFIED: repo files] |
+| COMP-02 | New artifact records do not break current governance boundaries. [VERIFIED: `.planning/REQUIREMENTS.md`] | smoke/manual + unit | `pnpm --filter @skill-shareer/server test -- src/routes/review.test.ts src/routes/knowledge.test.ts src/routes/operations.test.ts` [ASSUMED] | existing route tests exist; Phase 12 should extend them with additive artifact coexistence coverage. [VERIFIED: repo files] |
 
 ### Sampling Rate
 

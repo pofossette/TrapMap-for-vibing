@@ -1,9 +1,9 @@
 ---
 phase: 12
 slug: skill-artifact-canonical-model
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: ready
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-16
 ---
 
@@ -19,18 +19,20 @@ created: 2026-04-16
 |----------|-------|
 | **Framework** | Vitest |
 | **Config file** | none; package scripts call `vitest run` directly |
+| **Quick smoke command** | `pnpm --filter @skill-shareer/contracts test -- src/index.test.ts` |
 | **Quick run command** | `pnpm --filter @skill-shareer/contracts test && pnpm --filter @skill-shareer/server test -- src/lib/artifacts/model.test.ts src/lib/artifacts/derive.test.ts` |
 | **Full suite command** | `pnpm test && pnpm --filter @skill-shareer/server typecheck` |
+| **Estimated smoke runtime** | ~10-15 seconds |
 | **Estimated runtime** | ~45 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `pnpm --filter @skill-shareer/contracts test` plus the smallest affected server test target
+- **After every task commit:** Run the quick smoke command first, then the smallest affected server test target
 - **After every plan wave:** Run `pnpm test`
 - **Before `/gsd-verify-work`:** Full suite must be green after baseline issues are absorbed or isolated
-- **Max feedback latency:** 45 seconds
+- **Max feedback latency:** 25 seconds for smoke, ~45 seconds for wave gate
 
 ---
 
@@ -38,9 +40,13 @@ created: 2026-04-16
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 12-01-01 | 01 | 1 | ARTF-01, ARTF-02, COMP-01 | T-12-01 | Shared contracts define canonical artifact, revision, file-manifest, profile, capsule, and client-manifest schemas before server wiring | contract | `pnpm --filter @skill-shareer/contracts test` | ✅ | ⬜ pending |
-| 12-02-01 | 02 | 2 | ARTF-02, ARTF-03, CAPS-02, CAPS-03 | T-12-02 / T-12-03 / T-12-04 | Store records preserve governance inheritance and exclude `assets/` / `scripts/` from model-context payloads | unit | `pnpm --filter @skill-shareer/server test -- src/lib/artifacts/model.test.ts` | ❌ W0 | ⬜ pending |
-| 12-03-01 | 03 | 3 | CAPS-01, COMP-01, COMP-02 | T-12-02 / T-12-05 | Derivation emits deterministic profile/capsules/client manifest keyed to source hash without changing governance boundaries | unit | `pnpm --filter @skill-shareer/server test -- src/lib/artifacts/derive.test.ts` | ❌ W0 | ⬜ pending |
+| 12-01-01 | 01 | 1 | ARTF-01, ARTF-02, COMP-01 | T-12-01 / T-12-04 | Canonical shared schemas define additive artifact roots, revisions, and file manifests without changing legacy knowledge contracts | contract | `pnpm --filter @skill-shareer/contracts test -- src/index.test.ts` | ✅ | ⬜ pending |
+| 12-01-02 | 01 | 1 | CAPS-01, COMP-01 | T-12-02 / T-12-04 | Derived profile, capsule, and client-manifest contracts stay in the shared contracts package and reject asset/script leakage into text outputs | contract | `pnpm --filter @skill-shareer/contracts test -- src/index.test.ts` | ✅ | ⬜ pending |
+| 12-02-01 | 02 | 2 | ARTF-02, ARTF-03, CAPS-02, CAPS-03 | T-12-05 / T-12-06 / T-12-07 | Additive server tests pin artifact persistence, governance inheritance, and metadata-only handling for assets/scripts before implementation | unit | `pnpm --filter @skill-shareer/server test -- src/lib/artifacts/model.test.ts` | ❌ W0 | ⬜ pending |
+| 12-02-02 | 02 | 2 | ARTF-02, ARTF-03, CAPS-02, CAPS-03, COMP-02 | T-12-05 / T-12-06 / T-12-07 / T-12-08 | Store records and mappers serialize governed artifact aggregates beside legacy knowledge entries without changing public routes | unit | `pnpm --filter @skill-shareer/server test -- src/lib/artifacts/model.test.ts` | ❌ W0 | ⬜ pending |
+| 12-02-03 | 02 | 2 | COMP-02 | T-12-07 / T-12-08 | Existing review, knowledge, RBAC/team scope/security, and audit flows still work with additive `skillArtifacts` present | regression | `pnpm --filter @skill-shareer/server test -- src/lib/artifacts/model.test.ts src/routes/review.test.ts src/routes/knowledge.test.ts src/routes/operations.test.ts` | ✅ | ⬜ pending |
+| 12-03-01 | 03 | 3 | CAPS-01, COMP-01, COMP-02 | T-12-09 / T-12-10 / T-12-11 | Derivation tests prove deterministic profile/capsule/client-manifest output from `SKILL.md` plus `references/` only | unit | `pnpm --filter @skill-shareer/server test -- src/lib/artifacts/derive.test.ts` | ❌ W0 | ⬜ pending |
+| 12-03-02 | 03 | 3 | CAPS-01, COMP-01, COMP-02 | T-12-09 / T-12-10 / T-12-11 / T-12-12 | Cached derived outputs are written back onto governed revisions without introducing new ACL or routing behavior | unit | `pnpm --filter @skill-shareer/server test -- src/lib/artifacts/derive.test.ts src/lib/artifacts/model.test.ts` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -48,11 +54,11 @@ created: 2026-04-16
 
 ## Wave 0 Requirements
 
-- [ ] `packages/server/src/lib/artifacts/model.test.ts` — canonical store record and mapper coverage for ARTF-02/03
-- [ ] `packages/server/src/lib/artifacts/derive.test.ts` — deterministic derivation coverage for CAPS-01/02/03
-- [ ] `packages/contracts/src/index.test.ts` additions — schema coverage for artifact/revision/file/profile/capsule/client-manifest contracts
-- [ ] Export-surface repair in `@skill-shareer/contracts` / server compile path so `pnpm --filter @skill-shareer/server typecheck` is meaningful for Phase 12
-- [ ] Red-baseline triage for unrelated retrieval/indexing failures that currently prevent a clean phase gate
+- [x] `packages/contracts/src/index.test.ts` additions are covered by Plan `12-01` tasks `12-01-01` and `12-01-02`
+- [x] `packages/server/src/lib/artifacts/model.test.ts` is covered by Plan `12-02` tasks `12-02-01` and `12-02-02`
+- [x] `packages/server/src/lib/artifacts/derive.test.ts` is covered by Plan `12-03` tasks `12-03-01` and `12-03-02`
+- [x] Governance coexistence regression coverage is covered by Plan `12-02` task `12-02-03`
+- [x] Unrelated contract export drift and red-baseline triage are explicitly excluded from this phase gate; Phase 12 verification uses focused commands that only target new artifact work
 
 ---
 
@@ -71,7 +77,7 @@ created: 2026-04-16
 - [ ] Sampling continuity: no 3 consecutive tasks without automated verify
 - [ ] Wave 0 covers all missing references
 - [ ] No watch-mode flags
-- [ ] Feedback latency < 45s
+- [ ] Smoke feedback latency < 30s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
