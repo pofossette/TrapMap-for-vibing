@@ -8,6 +8,7 @@
  * Phase 6: Establishing the architectural seam for future RAG enhancements.
  * Phase 7+: Will extend the orchestrator with hybrid recall, reranking,
  *           and query mode support without changing this facade.
+ * Phase 14: Added v2 retrieval path for capsule-native search (COMP-03).
  */
 
-export { searchKnowledge, updateEntryEmbeddingCache } from './retrieval/orchestrator.js';
+export { searchKnowledge, searchKnowledgeV2, updateEntryEmbeddingCache } from './retrieval/orchestrator.js';

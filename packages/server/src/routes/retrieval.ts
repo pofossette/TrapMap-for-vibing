@@ -1,12 +1,19 @@
 import type { FastifyPluginAsync } from 'fastify';
 
-import { retrievalQuerySchema, retrievalResponseSchema } from '@skill-shareer/contracts';
+import {
+  retrievalQuerySchema,
+  retrievalResponseSchema,
+  retrievalV2QuerySchema,
+  retrievalV2ResponseSchema,
+} from '@skill-shareer/contracts';
 
 import { requirePermission } from '../lib/rbac.js';
-import { searchKnowledge } from '../lib/retrieval.js';
+import { searchKnowledge, searchKnowledgeV2 } from '../lib/retrieval.js';
 import { resolveAuthContext } from '../lib/session.js';
 
 export const retrievalRoutes: FastifyPluginAsync = async (app) => {
+  // Legacy v1 retrieval path (COMP-03)
+  // Preserved for backward compatibility during v1.2 migration
   app.post('/v1/retrieval/search', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
 
@@ -21,5 +28,23 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
 
     // Validate and return response
     return retrievalResponseSchema.parse(result);
+  });
+
+  // v2 capsule-native retrieval path (RETR-01, RETR-04, COMP-03)
+  // Accepts seed-only input and returns capsule-first distilled results
+  app.post('/v2/retrieval/search', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+
+    // Enforce knowledge:search permission (T-14-10)
+    requirePermission(auth, 'knowledge:search');
+
+    // Parse and validate v2 query (seed-only contract)
+    const query = retrievalV2QuerySchema.parse(request.body);
+
+    // Execute capsule-native retrieval
+    const result = await searchKnowledgeV2(app.skillShareer, auth, query);
+
+    // Validate and return v2 response
+    return retrievalV2ResponseSchema.parse(result);
   });
 };
