@@ -43,9 +43,9 @@ describe('CLI operations commands (Phase 13)', () => {
     testDir = join(tmpdir(), `skill-shareer-test-${Date.now()}-${Math.random()}`);
     await mkdir(testDir, { recursive: true });
 
-    // Setup mocks
+    // Setup mocks - use mockImplementation for more reliable mocking
     vi.mocked(loadCliState).mockResolvedValue(mockState);
-    vi.mocked(apiRequest).mockResolvedValue({
+    vi.mocked(apiRequest).mockImplementation(async () => Promise.resolve({
       data: {
         results: [
           {
@@ -60,7 +60,7 @@ describe('CLI operations commands (Phase 13)', () => {
         failedCount: 0,
       },
       sessionToken: 'test-token',
-    } as any);
+    } as any));
 
     // Create program and register commands
     program = new Command();
@@ -90,7 +90,7 @@ describe('CLI operations commands (Phase 13)', () => {
       await writeFile(join(testDir, 'scripts/setup.sh'), '#!/bin/bash\necho "setup"');
 
       // Mock successful API response
-      vi.mocked(apiRequest).mockResolvedValue({
+      vi.mocked(apiRequest).mockImplementation(async () => Promise.resolve({
         data: {
           results: [
             {
