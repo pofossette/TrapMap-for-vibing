@@ -79,70 +79,127 @@ export const skillScriptDescriptorSchema = z.object({
 });
 
 /**
+ * Derived profile from SKILL.md and references/.
+ * Captures the distilled artifact-wide text shape for model context.
+ */
+export const skillProfileSchema = z.object({
+  /** Artifact identifier */
+  artifactId: entityIdSchema,
+  /** Revision number this profile was derived from */
+  revision: z.number().int().min(1),
+  /** Hash of all source files used for derivation */
+  sourceHash: z.string().length(64),
+  /** Human-readable title from skill metadata */
+  title: z.string().min(1).max(280),
+  /** Distilled summary of artifact content */
+  summary: z.string().min(1).max(1000),
+  /** Keywords extracted from skill content */
+  keywords: z.array(labelSchema).default([]),
+  /** Paths to reference files included in derivation */
+  referencePaths: z.array(z.string().max(512)).default([]),
+  /** Hash of the derived profile content for caching */
+  contentHash: z.string().length(64),
+});
+
+/**
+ * Knowledge capsule distilled from SKILL.md and references/.
+ * Carries deterministic capsule id, source paths, and governance inheritance.
+ * Does NOT embed asset or script bodies (T-12-02 mitigation).
+ */
+export const skillCapsuleSchema = z.object({
+  /** Unique capsule identifier */
+  capsuleId: entityIdSchema,
+  /** Artifact identifier */
+  artifactId: entityIdSchema,
+  /** Revision number this capsule was derived from */
+  revision: z.number().int().min(1),
+  /** Source file paths that contributed to this capsule */
+  sourcePaths: z.array(z.string().max(512)).min(1),
+  /** Distilled capsule content (text only, no asset/script bodies) */
+  content: z.string().min(1).max(5000),
+  /** Situation context */
+  situation: z.string().min(1).max(1000),
+  /** Problem statement */
+  problem: z.string().min(1).max(1000),
+  /** Goal or solution */
+  goal: z.string().min(1).max(1000),
+  /** Optional error text for error-specific capsules */
+  errorText: z.string().max(500).optional(),
+  /** Searchable labels */
+  labels: z.array(labelSchema).min(1),
+  /** Governance scope (inherited from artifact) */
+  scope: scopeSchema,
+  /** Required security level (inherited from artifact) */
+  requiredLevel: securityLevelSchema,
+});
+
+/**
+ * Client manifest reference entry.
+ * Metadata-only reference for activation-time delivery.
+ */
+export const clientManifestReferenceSchema = z.object({
+  path: z.string().min(1).max(512),
+  sha256: z.string().length(64),
+  sizeBytes: z.number().int().min(0),
+  mediaType: z.string().min(1).max(160),
+});
+
+/**
+ * Client manifest asset entry.
+ * Metadata-only asset for activation-time delivery.
+ */
+export const clientManifestAssetSchema = z.object({
+  path: z.string().min(1).max(512),
+  sha256: z.string().length(64),
+  sizeBytes: z.number().int().min(0),
+  mediaType: z.string().min(1).max(160),
+});
+
+/**
+ * Client manifest script entry.
+ * Metadata-only script descriptor (no body) for activation-time delivery.
+ * Excludes script body text (T-12-02 mitigation).
+ */
+export const clientManifestScriptSchema = z.object({
+  path: z.string().min(1).max(512),
+  sha256: z.string().length(64),
+  capability: z.string().min(1).max(280),
+  argsSchemaSummary: z.string().max(280).default(''),
+  sideEffectSummary: z.string().max(280).default(''),
+  defaultPolicy: z.enum(['manual', 'auto', 'blocked']),
+});
+
+/**
+ * Client activation manifest for references, assets, and scripts.
+ * Exposes activation metadata while remaining distinct from retrieval output defaults.
+ * Scripts are metadata-only (T-12-02 mitigation).
+ */
+export const clientManifestSchema = z.object({
+  /** Artifact identifier */
+  artifactId: entityIdSchema,
+  /** Revision number this manifest was derived from */
+  revision: z.number().int().min(1),
+  /** Reference file metadata */
+  references: z.array(clientManifestReferenceSchema).default([]),
+  /** Asset file metadata */
+  assets: z.array(clientManifestAssetSchema).default([]),
+  /** Script metadata (capability only, no bodies) */
+  scripts: z.array(clientManifestScriptSchema).default([]),
+  /** Hash of all source files for this manifest */
+  sourceHash: z.string().length(64),
+});
+
+/**
  * Derived output envelope for skill artifact revisions.
  * Contains cached deterministic outputs keyed by source content hash.
  */
 export const skillArtifactDerivedSchema = z.object({
   /** Distilled profile from SKILL.md and references/ */
-  profile: z.object({
-    artifactId: entityIdSchema,
-    revision: z.number().int().min(1),
-    sourceHash: z.string().length(64),
-    title: z.string().min(1).max(280),
-    summary: z.string().min(1).max(1000),
-    keywords: z.array(labelSchema).default([]),
-    referencePaths: z.array(z.string().max(512)).default([]),
-    contentHash: z.string().length(64),
-  }).nullable(),
+  profile: skillProfileSchema.nullable(),
   /** Knowledge capsules distilled from SKILL.md and references/ */
-  capsules: z.array(
-    z.object({
-      capsuleId: entityIdSchema,
-      artifactId: entityIdSchema,
-      revision: z.number().int().min(1),
-      sourcePaths: z.array(z.string().max(512)).min(1),
-      content: z.string().min(1).max(5000),
-      situation: z.string().min(1).max(1000),
-      problem: z.string().min(1).max(1000),
-      goal: z.string().min(1).max(1000),
-      errorText: z.string().max(500).optional(),
-      labels: z.array(labelSchema).min(1),
-      scope: scopeSchema,
-      requiredLevel: securityLevelSchema,
-    }),
-  ).default([]),
+  capsules: z.array(skillCapsuleSchema).default([]),
   /** Client activation manifest for references, assets, and scripts */
-  clientManifest: z.object({
-    artifactId: entityIdSchema,
-    revision: z.number().int().min(1),
-    references: z.array(
-      z.object({
-        path: z.string().min(1).max(512),
-        sha256: z.string().length(64),
-        sizeBytes: z.number().int().min(0),
-        mediaType: z.string().min(1).max(160),
-      }),
-    ).default([]),
-    assets: z.array(
-      z.object({
-        path: z.string().min(1).max(512),
-        sha256: z.string().length(64),
-        sizeBytes: z.number().int().min(0),
-        mediaType: z.string().min(1).max(160),
-      }),
-    ).default([]),
-    scripts: z.array(
-      z.object({
-        path: z.string().min(1).max(512),
-        sha256: z.string().length(64),
-        capability: z.string().min(1).max(280),
-        argsSchemaSummary: z.string().max(280).default(''),
-        sideEffectSummary: z.string().max(280).default(''),
-        defaultPolicy: z.enum(['manual', 'auto', 'blocked']),
-      }),
-    ).default([]),
-    sourceHash: z.string().length(64),
-  }).nullable(),
+  clientManifest: clientManifestSchema.nullable(),
   /** Hash of all source files used for derivation (SKILL.md + references/) */
   sourceHash: z.string().length(64),
   /** ISO timestamp when derivation was computed */
@@ -271,6 +328,12 @@ export type SkillArtifactFileKind = z.infer<typeof skillArtifactFileKindSchema>;
 export type SkillArtifactFileSource = z.infer<typeof skillArtifactFileSourceSchema>;
 export type SkillArtifactFile = z.infer<typeof skillArtifactFileSchema>;
 export type SkillScriptDescriptor = z.infer<typeof skillScriptDescriptorSchema>;
+export type SkillProfile = z.infer<typeof skillProfileSchema>;
+export type SkillCapsule = z.infer<typeof skillCapsuleSchema>;
+export type ClientManifestReference = z.infer<typeof clientManifestReferenceSchema>;
+export type ClientManifestAsset = z.infer<typeof clientManifestAssetSchema>;
+export type ClientManifestScript = z.infer<typeof clientManifestScriptSchema>;
+export type ClientManifest = z.infer<typeof clientManifestSchema>;
 export type SkillArtifactDerived = z.infer<typeof skillArtifactDerivedSchema>;
 export type SkillArtifactRevision = z.infer<typeof skillArtifactRevisionSchema>;
 export type SkillArtifactLifecycleEvent = z.infer<typeof skillArtifactLifecycleEventSchema>;
