@@ -517,4 +517,190 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
       expect(updatedArtifact.latestRevision.submittedAt).toBe(updatedAt);
     });
   });
+
+  describe('COMP-02: Additive artifact coexistence with legacy knowledge flows', () => {
+    it('should leave knowledgeEntries unchanged when creating artifacts (COMP-02, T-12-05)', async () => {
+      // Arrange: Create existing knowledge entries
+      storeData.counters.knowledge = 2;
+      const existingEntry1 = {
+        id: 'knowledge_1',
+        teamId: null,
+        scope: 'global' as const,
+        labels: ['legacy', 'test'],
+        shortcut: 'Legacy Entry 1',
+        detail: 'Legacy knowledge entry 1',
+        requiredLevel: 0,
+        lifecycleState: 'approved' as const,
+        ownerUserId: userId,
+        latestRevision: {
+          revision: 1,
+          submittedAt: createdAt,
+          submittedByUserId: userId,
+          shortcut: 'Legacy Entry 1',
+          detail: 'Legacy knowledge entry 1',
+          labels: ['legacy', 'test'],
+          reviewNotes: [],
+        },
+        history: [],
+        metadata: {
+          scopeLabel: 'global-constraint',
+          submissionCount: 1,
+          resubmissionCount: 0,
+          revisionCount: 1,
+          latestSubmissionId: null,
+          latestSubmittedAt: null,
+          latestReviewedAt: null,
+          latestDecision: null,
+        },
+        latestSubmissionId: null,
+        submissionHistory: [],
+        agentReview: null,
+        reviewHistory: [],
+        reviewNotes: [],
+        lifecycleHistory: [],
+        embeddingCache: null,
+        indexState: null,
+        createdAt,
+        updatedAt: createdAt,
+      };
+      const existingEntry2 = {
+        ...existingEntry1,
+        id: 'knowledge_2',
+        shortcut: 'Legacy Entry 2',
+        detail: 'Legacy knowledge entry 2',
+      };
+      storeData.knowledgeEntries.push(existingEntry1, existingEntry2);
+
+      const initialKnowledgeCount = storeData.knowledgeEntries.length;
+      const initialEntry1Id = storeData.knowledgeEntries[0].id;
+      const initialEntry2Id = storeData.knowledgeEntries[1].id;
+
+      // Act: Create an artifact
+      createSkillArtifactRecord({
+        store,
+        data: storeData,
+        ownerUserId: userId,
+        teamId: null,
+        payload: {
+          scope: 'global',
+          labels: ['docker'],
+          title: 'Docker Skill',
+          slug: 'docker-skill',
+          requiredLevel: 3,
+          files: [],
+          scriptDescriptors: [],
+          sourceKind: 'skill-directory',
+        },
+        requiredLevel: 3,
+        createdAt,
+        preReview: {
+          status: 'agent-pass',
+          duplicateRisk: 'low',
+          correctnessRisk: 'low',
+          completenessRisk: 'low',
+          checkedAt: createdAt,
+          notes: [],
+        },
+      });
+
+      // Assert: knowledgeEntries should be unchanged
+      expect(storeData.knowledgeEntries.length).toBe(initialKnowledgeCount);
+      expect(storeData.knowledgeEntries[0].id).toBe(initialEntry1Id);
+      expect(storeData.knowledgeEntries[1].id).toBe(initialEntry2Id);
+
+      // Assert: skillArtifacts should coexist
+      expect(storeData.skillArtifacts).toBeDefined();
+      expect(storeData.skillArtifacts.length).toBe(1);
+    });
+
+    it('should preserve knowledge entry governance when artifacts exist (COMP-02, T-12-07, T-12-08)', async () => {
+      // Arrange: Create a knowledge entry and an artifact
+      storeData.counters.knowledge = 1;
+      const knowledgeEntry = {
+        id: 'knowledge_1',
+        teamId: null,
+        scope: 'global' as const,
+        labels: ['security'],
+        shortcut: 'Security Best Practice',
+        detail: 'Important security practice',
+        requiredLevel: 5,
+        lifecycleState: 'approved' as const,
+        ownerUserId: userId,
+        latestRevision: {
+          revision: 1,
+          submittedAt: createdAt,
+          submittedByUserId: userId,
+          shortcut: 'Security Best Practice',
+          detail: 'Important security practice',
+          labels: ['security'],
+          reviewNotes: [],
+        },
+        history: [],
+        metadata: {
+          scopeLabel: 'global-constraint',
+          submissionCount: 1,
+          resubmissionCount: 0,
+          revisionCount: 1,
+          latestSubmissionId: null,
+          latestSubmittedAt: null,
+          latestReviewedAt: null,
+          latestDecision: null,
+        },
+        latestSubmissionId: null,
+        submissionHistory: [],
+        agentReview: null,
+        reviewHistory: [],
+        reviewNotes: [],
+        lifecycleHistory: [],
+        embeddingCache: null,
+        indexState: null,
+        createdAt,
+        updatedAt: createdAt,
+      };
+      storeData.knowledgeEntries.push(knowledgeEntry);
+
+      // Create an artifact with different governance
+      const artifact = createSkillArtifactRecord({
+        store,
+        data: storeData,
+        ownerUserId: userId,
+        teamId: teamId,
+        payload: {
+          scope: 'project',
+          labels: ['team-skill'],
+          title: 'Team Artifact',
+          slug: 'team-artifact',
+          requiredLevel: 3,
+          files: [],
+          scriptDescriptors: [],
+          sourceKind: 'skill-directory',
+        },
+        requiredLevel: 3,
+        createdAt,
+        preReview: {
+          status: 'agent-pass',
+          duplicateRisk: 'low',
+          correctnessRisk: 'low',
+          completenessRisk: 'low',
+          checkedAt: createdAt,
+          notes: [],
+        },
+      });
+
+      // Assert: Knowledge entry governance should be preserved
+      expect(storeData.knowledgeEntries[0].id).toBe('knowledge_1');
+      expect(storeData.knowledgeEntries[0].scope).toBe('global');
+      expect(storeData.knowledgeEntries[0].requiredLevel).toBe(5);
+      expect(storeData.knowledgeEntries[0].lifecycleState).toBe('approved');
+
+      // Assert: Artifact should have its own governance
+      expect(artifact.scope).toBe('project');
+      expect(artifact.requiredLevel).toBe(3);
+      expect(artifact.teamId).toBe(teamId);
+
+      // Assert: Both should coexist without interference
+      expect(storeData.knowledgeEntries.length).toBe(1);
+      expect(storeData.skillArtifacts.length).toBe(1);
+    });
+  });
 });

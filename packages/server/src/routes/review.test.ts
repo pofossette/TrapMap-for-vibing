@@ -284,4 +284,180 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       expect(entry?.indexState?.keyword?.status).toBe('synced');
     });
   });
+
+  describe('artifact coexistence (COMP-02, T-12-05)', () => {
+    it('should continue to enforce review permissions with skillArtifacts present (COMP-02)', async () => {
+      let reviewSessionId: string;
+      const reviewerId = 'user_reviewer';
+      const knowledgeEntryId = 'knowledge_coexist_1';
+
+      // Setup: Create a reviewer user, session, and a knowledge entry
+      await store.transact(async (data) => {
+        if (!data.counters) data.counters = {};
+        data.counters.user = 2;
+
+        // Create reviewer user
+        data.users.push({
+          id: reviewerId,
+          handle: 'reviewer_user',
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create admin membership for reviewer with knowledge:review permission
+        data.memberships.push({
+          id: 'membership_review_coexist',
+          userId: reviewerId,
+          teamId: null,
+          roleTemplate: 'admin',
+          securityLevel: 10,
+          permissions: ['knowledge:review'],
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create session for reviewer
+        const sessionToken = `session_review_${Date.now()}`;
+        data.sessions.push({
+          id: `session_${Date.now()}`,
+          userId: reviewerId,
+          tokenHash: hashSecret(sessionToken),
+          activeTeamId: null,
+          subjectType: 'user',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        });
+        reviewSessionId = sessionToken;
+
+        // Create a submitted knowledge entry with proper submission record
+        const submissionId = 'submission_coexist_1';
+        const revision = {
+          revision: 1,
+          submittedAt: nowIso(),
+          submittedByUserId: 'user_1',
+          shortcut: 'Coexistence Test',
+          detail: 'Testing artifact coexistence with knowledge review',
+          labels: ['coexistence'],
+          reviewNotes: [],
+        };
+        data.knowledgeEntries.push({
+          id: knowledgeEntryId,
+          teamId: null,
+          scope: 'global',
+          labels: ['coexistence'],
+          shortcut: 'Coexistence Test',
+          detail: 'Testing artifact coexistence with knowledge review',
+          requiredLevel: 0,
+          lifecycleState: 'submitted',
+          ownerUserId: 'user_1',
+          latestRevision: revision,
+          history: [revision],
+          metadata: {
+            scopeLabel: 'global-constraint',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: submissionId,
+            latestSubmittedAt: nowIso(),
+            latestReviewedAt: null,
+            latestDecision: null,
+          },
+          latestSubmissionId: submissionId,
+          submissionHistory: [
+            {
+              id: submissionId,
+              revision: 1,
+              submittedAt: nowIso(),
+              submittedByUserId: 'user_1',
+              lifecycleState: 'submitted',
+              resubmissionOf: null,
+              agentReview: null,
+              reviewerDecision: null,
+              reviewNotes: [],
+            },
+          ],
+          agentReview: null,
+          reviewHistory: [],
+          reviewNotes: [],
+          lifecycleHistory: [],
+          embeddingCache: null,
+          indexState: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Add a skill artifact to the store (additive coexistence)
+        data.counters.artifact = 1;
+        data.skillArtifacts = [
+          {
+            id: 'artifact_1',
+            teamId: null,
+            scope: 'global',
+            labels: ['artifact', 'skill'],
+            title: 'Test Artifact',
+            slug: 'test-artifact',
+            requiredLevel: 0,
+            lifecycleState: 'approved',
+            ownerUserId: 'user_1',
+            latestRevision: {
+              revision: 1,
+              sourceHash: 'a'.repeat(64),
+              files: [],
+              submittedAt: nowIso(),
+              submittedByUserId: 'user_1',
+              scriptDescriptors: [],
+              derived: null,
+            },
+            history: [],
+            metadata: {
+              sourceKind: 'skill-directory',
+              submissionCount: 1,
+              resubmissionCount: 0,
+              revisionCount: 1,
+              latestSubmissionId: null,
+              latestSubmittedAt: null,
+              latestReviewedAt: null,
+              latestDecision: null,
+            },
+            agentReview: null,
+            reviewHistory: [],
+            reviewNotes: [],
+            lifecycleHistory: [],
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          },
+        ];
+      });
+
+      // Act: Review the knowledge entry (should still work with skillArtifacts present)
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/knowledge/review',
+        headers: {
+          authorization: `Bearer ${reviewSessionId}`,
+        },
+        payload: {
+          entryId: knowledgeEntryId,
+          decision: 'approve',
+          notes: 'Approving with artifacts present',
+        },
+      });
+
+      // Assert: Review should succeed
+      expect(response.statusCode).toBe(200);
+
+      // Verify the knowledge entry was approved
+      const data = await store.snapshot();
+      const entry = data.knowledgeEntries.find((e) => e.id === knowledgeEntryId);
+      expect(entry?.lifecycleState).toBe('approved');
+
+      // Verify skillArtifacts still exist and were not affected
+      expect(data.skillArtifacts).toBeDefined();
+      expect(data.skillArtifacts.length).toBe(1);
+      expect(data.skillArtifacts[0].id).toBe('artifact_1');
+    });
+  });
 });

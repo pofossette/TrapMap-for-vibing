@@ -549,4 +549,229 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
       expect(entry?.indexState).toBeNull();
     });
   });
+
+  describe('artifact coexistence (COMP-02, T-12-05)', () => {
+    it('should continue to respect team scope and security level with skillArtifacts present (COMP-02)', async () => {
+      let updateSessionId: string;
+      const updaterId = 'user_updater';
+      const team1Id = 'team_coexist_1';
+      const team2Id = 'team_coexist_2';
+      const knowledgeEntryId = 'knowledge_coexist_1';
+
+      // Setup: Create two teams, a user with different security levels, and a knowledge entry
+      await store.transact(async (data) => {
+        if (!data.counters) data.counters = {};
+        data.counters.user = 2;
+        data.counters.team = 2;
+
+        // Create teams
+        data.teams.push(
+          {
+            id: team1Id,
+            name: 'Team 1',
+            slug: 'team-1',
+            description: null,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          },
+          {
+            id: team2Id,
+            name: 'Team 2',
+            slug: 'team-2',
+            description: null,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          },
+        );
+
+        // Create user with membership in team1 only
+        data.users.push({
+          id: updaterId,
+          handle: 'updater_user',
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Membership in team1 with knowledge:update permission
+        // User needs securityLevel > entry.requiredLevel for updates
+        data.memberships.push({
+          id: 'membership_coexist_1',
+          userId: updaterId,
+          teamId: team1Id,
+          roleTemplate: 'admin',
+          securityLevel: 6,
+          permissions: ['knowledge:update'],
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create session for user with team1 active
+        const sessionToken = `session_update_${Date.now()}`;
+        data.sessions.push({
+          id: `session_${Date.now()}`,
+          userId: updaterId,
+          tokenHash: hashSecret(sessionToken),
+          activeTeamId: team1Id,
+          subjectType: 'user',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        });
+        updateSessionId = sessionToken;
+
+        // Create a project-scoped knowledge entry for team1
+        const revision = {
+          revision: 1,
+          submittedAt: nowIso(),
+          submittedByUserId: updaterId,
+          shortcut: 'Team1 Knowledge',
+          detail: 'Team1 specific knowledge',
+          labels: ['team1'],
+          reviewNotes: [],
+        };
+        data.knowledgeEntries.push({
+          id: knowledgeEntryId,
+          teamId: team1Id,
+          scope: 'project',
+          labels: ['team1'],
+          shortcut: 'Team1 Knowledge',
+          detail: 'Team1 specific knowledge',
+          requiredLevel: 5,
+          lifecycleState: 'approved',
+          ownerUserId: updaterId,
+          latestRevision: revision,
+          history: [revision],
+          metadata: {
+            scopeLabel: 'project-knowledge',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: null,
+            latestSubmittedAt: null,
+            latestReviewedAt: null,
+            latestDecision: null,
+          },
+          latestSubmissionId: null,
+          submissionHistory: [],
+          agentReview: null,
+          reviewHistory: [],
+          reviewNotes: [],
+          lifecycleHistory: [],
+          embeddingCache: null,
+          indexState: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Add skill artifacts for both teams (additive coexistence)
+        data.counters.artifact = 2;
+        data.skillArtifacts = [
+          {
+            id: 'artifact_team1',
+            teamId: team1Id,
+            scope: 'project',
+            labels: ['artifact', 'team1'],
+            title: 'Team1 Artifact',
+            slug: 'team1-artifact',
+            requiredLevel: 5,
+            lifecycleState: 'approved',
+            ownerUserId: updaterId,
+            latestRevision: {
+              revision: 1,
+              sourceHash: 'a'.repeat(64),
+              files: [],
+              submittedAt: nowIso(),
+              submittedByUserId: updaterId,
+              scriptDescriptors: [],
+              derived: null,
+            },
+            history: [],
+            metadata: {
+              sourceKind: 'skill-directory',
+              submissionCount: 1,
+              resubmissionCount: 0,
+              revisionCount: 1,
+              latestSubmissionId: null,
+              latestSubmittedAt: null,
+              latestReviewedAt: null,
+              latestDecision: null,
+            },
+            agentReview: null,
+            reviewHistory: [],
+            reviewNotes: [],
+            lifecycleHistory: [],
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          },
+          {
+            id: 'artifact_team2',
+            teamId: team2Id,
+            scope: 'project',
+            labels: ['artifact', 'team2'],
+            title: 'Team2 Artifact',
+            slug: 'team2-artifact',
+            requiredLevel: 5,
+            lifecycleState: 'approved',
+            ownerUserId: 'user_2',
+            latestRevision: {
+              revision: 1,
+              sourceHash: 'b'.repeat(64),
+              files: [],
+              submittedAt: nowIso(),
+              submittedByUserId: 'user_2',
+              scriptDescriptors: [],
+              derived: null,
+            },
+            history: [],
+            metadata: {
+              sourceKind: 'skill-directory',
+              submissionCount: 1,
+              resubmissionCount: 0,
+              revisionCount: 1,
+              latestSubmissionId: null,
+              latestSubmittedAt: null,
+              latestReviewedAt: null,
+              latestDecision: null,
+            },
+            agentReview: null,
+            reviewHistory: [],
+            reviewNotes: [],
+            lifecycleHistory: [],
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          },
+        ];
+      });
+
+      // Act: Update the knowledge entry (should work for user's own team)
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/v1/knowledge/${knowledgeEntryId}`,
+        headers: {
+          authorization: `Bearer ${updateSessionId}`,
+        },
+        payload: {
+          labels: ['team1', 'updated'],
+          shortcut: 'Updated Team1 Knowledge',
+          detail: 'Updated detail',
+          requiredLevel: 5,
+        },
+      });
+
+      // Assert: Update should succeed
+      expect(response.statusCode).toBe(200);
+
+      // Verify the knowledge entry was updated
+      const data = await store.snapshot();
+      const entry = data.knowledgeEntries.find((e) => e.id === knowledgeEntryId);
+      expect(entry?.shortcut).toBe('Updated Team1 Knowledge');
+      expect(entry?.labels).toContain('updated');
+
+      // Verify skillArtifacts still exist and were not affected
+      expect(data.skillArtifacts).toBeDefined();
+      expect(data.skillArtifacts.length).toBe(2);
+    });
+  });
 });
