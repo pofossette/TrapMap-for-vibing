@@ -45,7 +45,7 @@ describe('CLI operations commands (Phase 13)', () => {
 
     // Setup mocks - use mockImplementation for more reliable mocking
     vi.mocked(loadCliState).mockResolvedValue(mockState);
-    vi.mocked(apiRequest).mockImplementation(async () => Promise.resolve({
+    vi.mocked(apiRequest).mockImplementation(() => Promise.resolve({
       data: {
         results: [
           {
@@ -90,7 +90,7 @@ describe('CLI operations commands (Phase 13)', () => {
       await writeFile(join(testDir, 'scripts/setup.sh'), '#!/bin/bash\necho "setup"');
 
       // Mock successful API response
-      vi.mocked(apiRequest).mockImplementation(async () => Promise.resolve({
+      vi.mocked(apiRequest).mockImplementation(() => Promise.resolve({
         data: {
           results: [
             {
