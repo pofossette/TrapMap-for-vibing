@@ -1,0 +1,278 @@
+import { z } from 'zod';
+
+import {
+  actorRefSchema,
+  auditMetadataSchema,
+  entityIdSchema,
+  isoTimestampSchema,
+  labelSchema,
+  lifecycleStateSchema,
+  reviewDecisionSchema,
+  reviewNoteSchema,
+  scopeSchema,
+  securityLevelSchema,
+} from './common.js';
+import { agentReviewResultSchema } from './knowledge.js';
+
+/**
+ * Canonical file kind discriminator for skill artifact files.
+ * Controls whether content may become model context and activation behavior.
+ */
+export const skillArtifactFileKindSchema = z.enum([
+  'skill-markdown',
+  'reference',
+  'asset',
+  'script',
+]);
+
+/**
+ * File source location discriminator.
+ * Indicates which directory within the skill artifact this file originates from.
+ */
+export const skillArtifactFileSourceSchema = z.enum([
+  'references/',
+  'assets/',
+  'scripts/',
+  'SKILL.md',
+]);
+
+/**
+ * Individual file metadata within a skill artifact revision.
+ * Carries path, hash, and inclusion flags without storing content bodies.
+ */
+export const skillArtifactFileSchema = z.object({
+  /** Canonical path within the skill directory (e.g., 'references/docker.md') */
+  path: z.string().min(1).max(512),
+  /** File kind controlling derivation and activation behavior */
+  kind: skillArtifactFileKindSchema,
+  /** SHA-256 hash of file content for integrity and derivation caching */
+  sha256: z.string().length(64),
+  /** File size in bytes for storage quota and transfer validation */
+  sizeBytes: z.number().int().min(0),
+  /** IANA media type (e.g., 'text/markdown', 'application/json') */
+  mediaType: z.string().min(1).max(160),
+  /** Source directory within the skill artifact */
+  source: skillArtifactFileSourceSchema,
+  /** If true, file content may be used for capsule/profile derivation */
+  includeInDerivation: z.boolean(),
+  /** If true, file is activation-only and should not be indexed for retrieval */
+  activationOnly: z.boolean(),
+});
+
+/**
+ * Script capability descriptor for executable scripts in skill artifacts.
+ * Captures intent and constraints without exposing script bodies in retrieval context.
+ */
+export const skillScriptDescriptorSchema = z.object({
+  /** Path to the script file within the skill directory */
+  path: z.string().min(1).max(512),
+  /** SHA-256 hash of the script content */
+  sha256: z.string().length(64),
+  /** Human-readable capability description (e.g., 'Docker container cleanup') */
+  capability: z.string().min(1).max(280),
+  /** Brief summary of expected argument schema */
+  argsSchemaSummary: z.string().max(280).default(''),
+  /** Brief summary of side effects (e.g., 'Modifies local files') */
+  sideEffectSummary: z.string().max(280).default(''),
+  /** Default execution policy (e.g., 'manual', 'auto', 'blocked') */
+  defaultPolicy: z.enum(['manual', 'auto', 'blocked']),
+});
+
+/**
+ * Derived output envelope for skill artifact revisions.
+ * Contains cached deterministic outputs keyed by source content hash.
+ */
+export const skillArtifactDerivedSchema = z.object({
+  /** Distilled profile from SKILL.md and references/ */
+  profile: z.object({
+    artifactId: entityIdSchema,
+    revision: z.number().int().min(1),
+    sourceHash: z.string().length(64),
+    title: z.string().min(1).max(280),
+    summary: z.string().min(1).max(1000),
+    keywords: z.array(labelSchema).default([]),
+    referencePaths: z.array(z.string().max(512)).default([]),
+    contentHash: z.string().length(64),
+  }).nullable(),
+  /** Knowledge capsules distilled from SKILL.md and references/ */
+  capsules: z.array(
+    z.object({
+      capsuleId: entityIdSchema,
+      artifactId: entityIdSchema,
+      revision: z.number().int().min(1),
+      sourcePaths: z.array(z.string().max(512)).min(1),
+      content: z.string().min(1).max(5000),
+      situation: z.string().min(1).max(1000),
+      problem: z.string().min(1).max(1000),
+      goal: z.string().min(1).max(1000),
+      errorText: z.string().max(500).optional(),
+      labels: z.array(labelSchema).min(1),
+      scope: scopeSchema,
+      requiredLevel: securityLevelSchema,
+    }),
+  ).default([]),
+  /** Client activation manifest for references, assets, and scripts */
+  clientManifest: z.object({
+    artifactId: entityIdSchema,
+    revision: z.number().int().min(1),
+    references: z.array(
+      z.object({
+        path: z.string().min(1).max(512),
+        sha256: z.string().length(64),
+        sizeBytes: z.number().int().min(0),
+        mediaType: z.string().min(1).max(160),
+      }),
+    ).default([]),
+    assets: z.array(
+      z.object({
+        path: z.string().min(1).max(512),
+        sha256: z.string().length(64),
+        sizeBytes: z.number().int().min(0),
+        mediaType: z.string().min(1).max(160),
+      }),
+    ).default([]),
+    scripts: z.array(
+      z.object({
+        path: z.string().min(1).max(512),
+        sha256: z.string().length(64),
+        capability: z.string().min(1).max(280),
+        argsSchemaSummary: z.string().max(280).default(''),
+        sideEffectSummary: z.string().max(280).default(''),
+        defaultPolicy: z.enum(['manual', 'auto', 'blocked']),
+      }),
+    ).default([]),
+    sourceHash: z.string().length(64),
+  }).nullable(),
+  /** Hash of all source files used for derivation (SKILL.md + references/) */
+  sourceHash: z.string().length(64),
+  /** ISO timestamp when derivation was computed */
+  derivedAt: isoTimestampSchema,
+});
+
+/**
+ * Immutable revision within a skill artifact.
+ * Captures source file manifest and derived outputs at a point in time.
+ */
+export const skillArtifactRevisionSchema = z.object({
+  /** Monotonically increasing revision number */
+  revision: z.number().int().min(1),
+  /** SHA-256 hash of all source files for this revision */
+  sourceHash: z.string().length(64),
+  /** All files in the skill directory at this revision */
+  files: z.array(skillArtifactFileSchema).min(1),
+  /** When this revision was submitted */
+  submittedAt: isoTimestampSchema,
+  /** Who submitted this revision */
+  submittedBy: actorRefSchema,
+  /** Script descriptors for executable scripts in this revision */
+  scriptDescriptors: z.array(skillScriptDescriptorSchema).default([]),
+  /** Cached derived outputs keyed by source hash */
+  derived: z
+    .object({
+      profile: skillArtifactDerivedSchema.shape.profile.nullable(),
+      capsules: skillArtifactDerivedSchema.shape.capsules,
+      clientManifest: skillArtifactDerivedSchema.shape.clientManifest.nullable(),
+      sourceHash: z.string().length(64),
+      derivedAt: isoTimestampSchema,
+    })
+    .nullable(),
+});
+
+/**
+ * Lifecycle event specific to skill artifacts.
+ * Extends knowledge lifecycle events with artifact-specific concerns.
+ */
+export const skillArtifactLifecycleEventSchema = z.object({
+  id: entityIdSchema,
+  type: z.enum([
+    'submitted',
+    'resubmitted',
+    'agent-reviewed',
+    'reviewer-approved',
+    'reviewer-rejected',
+    'updated',
+    'deactivated',
+  ]),
+  createdAt: isoTimestampSchema,
+  actor: actorRefSchema.nullable().default(null),
+  submissionId: entityIdSchema.nullable().default(null),
+  revision: z.number().int().min(1).nullable().default(null),
+  state: lifecycleStateSchema,
+  note: z.string().min(1).max(2000).nullable().default(null),
+});
+
+/**
+ * Metadata specific to skill artifacts.
+ * Tracks submission counts, revision history, and latest state.
+ */
+export const skillArtifactMetadataSchema = z.object({
+  /** How this artifact was originally created */
+  sourceKind: z.enum(['skill-directory', 'single-skill-md', 'legacy-knowledge']),
+  /** Total number of submissions across all revisions */
+  submissionCount: z.number().int().min(0),
+  /** Number of times this artifact was resubmitted after rejection */
+  resubmissionCount: z.number().int().min(0),
+  /** Total number of revisions */
+  revisionCount: z.number().int().min(1),
+  /** ID of the most recent submission */
+  latestSubmissionId: entityIdSchema.nullable().default(null),
+  /** When the most recent submission was created */
+  latestSubmittedAt: isoTimestampSchema.nullable().default(null),
+  /** When the most recent review was completed */
+  latestReviewedAt: isoTimestampSchema.nullable().default(null),
+  /** Most recent review decision (approve/reject) */
+  latestDecision: z.enum(['approve', 'reject']).nullable().default(null),
+});
+
+/**
+ * Canonical skill artifact aggregate root.
+ * Stores governance, lifecycle, and revision history for skill-native artifacts.
+ * Additive to legacy KnowledgeEntry - does not replace existing knowledge contracts.
+ */
+export const skillArtifactSchema = z
+  .object({
+    /** Unique artifact identifier */
+    id: entityIdSchema,
+    /** Team ID if this is a team-scoped artifact */
+    teamId: entityIdSchema.nullable(),
+    /** Global or project scope */
+    scope: scopeSchema,
+    /** Searchable labels for this artifact */
+    labels: z.array(labelSchema).min(1),
+    /** Human-readable title */
+    title: z.string().min(1).max(280),
+    /** URL-friendly slug for references */
+    slug: z.string().min(1).max(160),
+    /** Required security level to access this artifact */
+    requiredLevel: securityLevelSchema,
+    /** Current lifecycle state */
+    lifecycleState: lifecycleStateSchema,
+    /** Artifact owner/creator */
+    owner: actorRefSchema,
+    /** Currently active revision number */
+    latestRevision: z.number().int().min(1),
+    /** Complete revision history */
+    history: z.array(skillArtifactRevisionSchema).min(1),
+    /** Artifact-specific metadata */
+    metadata: skillArtifactMetadataSchema,
+    /** Agent review result (if applicable) */
+    agentReview: agentReviewResultSchema.nullable(),
+    /** Review decision history */
+    reviewHistory: z.array(reviewDecisionSchema).default([]),
+    /** Review notes from all reviewers */
+    reviewNotes: z.array(reviewNoteSchema).default([]),
+    /** Lifecycle event history */
+    lifecycleHistory: z.array(skillArtifactLifecycleEventSchema).default([]),
+  })
+  .merge(auditMetadataSchema);
+
+// Type exports
+export type SkillArtifactFileKind = z.infer<typeof skillArtifactFileKindSchema>;
+export type SkillArtifactFileSource = z.infer<typeof skillArtifactFileSourceSchema>;
+export type SkillArtifactFile = z.infer<typeof skillArtifactFileSchema>;
+export type SkillScriptDescriptor = z.infer<typeof skillScriptDescriptorSchema>;
+export type SkillArtifactDerived = z.infer<typeof skillArtifactDerivedSchema>;
+export type SkillArtifactRevision = z.infer<typeof skillArtifactRevisionSchema>;
+export type SkillArtifactLifecycleEvent = z.infer<typeof skillArtifactLifecycleEventSchema>;
+export type SkillArtifactMetadata = z.infer<typeof skillArtifactMetadataSchema>;
+export type SkillArtifact = z.infer<typeof skillArtifactSchema>;

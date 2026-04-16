@@ -1,3 +1,4 @@
+export * from './domain/artifacts.js';
 export * from './domain/auth.js';
 export * from './domain/common.js';
 export * from './domain/knowledge.js';

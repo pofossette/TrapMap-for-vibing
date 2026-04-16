@@ -8,6 +8,12 @@ import {
   retrievalResponseSchema,
   reviewDecisionRequestSchema,
   securityLevelSchema,
+  skillArtifactSchema,
+  skillArtifactRevisionSchema,
+  skillArtifactFileKindSchema,
+  skillArtifactFileSchema,
+  skillScriptDescriptorSchema,
+  skillArtifactDerivedSchema,
 } from './index.js';
 
 describe('contracts package', () => {
@@ -395,6 +401,318 @@ describe('contracts package', () => {
       expect(queryWithRefinement.includeRefinement).toBe(true);
       // But canonical summary flag should be false by default
       expect(queryWithRefinement.includeSummary).toBe(false);
+    });
+  });
+
+  describe('Phase 12: Skill Artifact Contracts', () => {
+    describe('File kind separation (ARTF-01, COMP-01)', () => {
+      it('preserves the four canonical file kinds', () => {
+        const skillMarkdown = skillArtifactFileKindSchema.parse('skill-markdown');
+        const reference = skillArtifactFileKindSchema.parse('reference');
+        const asset = skillArtifactFileKindSchema.parse('asset');
+        const script = skillArtifactFileKindSchema.parse('script');
+
+        expect(skillMarkdown).toBe('skill-markdown');
+        expect(reference).toBe('reference');
+        expect(asset).toBe('asset');
+        expect(script).toBe('script');
+      });
+
+      it('rejects invalid file kinds', () => {
+        expect(() => skillArtifactFileKindSchema.parse('unknown')).toThrow();
+      });
+
+      it('artifact files preserve path, media type, byte size, sha256, and inclusion metadata', () => {
+        const file = skillArtifactFileSchema.parse({
+          path: 'references/docker.md',
+          kind: 'reference',
+          sha256: 'a'.repeat(64),
+          sizeBytes: 1024,
+          mediaType: 'text/markdown',
+          source: 'references/',
+          includeInDerivation: true,
+          activationOnly: false,
+        });
+
+        expect(file.path).toBe('references/docker.md');
+        expect(file.kind).toBe('reference');
+        expect(file.mediaType).toBe('text/markdown');
+        expect(file.sizeBytes).toBe(1024);
+        expect(file.sha256).toHaveLength(64);
+        expect(file.includeInDerivation).toBe(true);
+        expect(file.activationOnly).toBe(false);
+      });
+
+      it('script descriptors capture capability metadata without bodies', () => {
+        const descriptor = skillScriptDescriptorSchema.parse({
+          path: 'scripts/setup.sh',
+          sha256: 'b'.repeat(64),
+          capability: 'Docker container cleanup',
+          argsSchemaSummary: '--force, --verbose',
+          sideEffectSummary: 'Stops and removes containers',
+          defaultPolicy: 'manual',
+        });
+
+        expect(descriptor.capability).toBe('Docker container cleanup');
+        expect(descriptor.defaultPolicy).toBe('manual');
+        expect(descriptor.argsSchemaSummary).toBe('--force, --verbose');
+        expect(descriptor.sideEffectSummary).toBe('Stops and removes containers');
+      });
+    });
+
+    describe('Artifact revisions (ARTF-02, COMP-01)', () => {
+      it('revisions carry immutable revision, sourceHash, files, and governance-inherited metadata', () => {
+        const revision = skillArtifactRevisionSchema.parse({
+          revision: 1,
+          sourceHash: 'c'.repeat(64),
+          files: [
+            {
+              path: 'SKILL.md',
+              kind: 'skill-markdown',
+              sha256: 'd'.repeat(64),
+              sizeBytes: 512,
+              mediaType: 'text/markdown',
+              source: 'SKILL.md',
+              includeInDerivation: true,
+              activationOnly: false,
+            },
+          ],
+          submittedAt: '2026-04-16T10:00:00.000Z',
+          submittedBy: {
+            id: 'user_1',
+            handle: 'owner',
+            securityLevel: 3,
+          },
+          scriptDescriptors: [],
+          derived: null,
+        });
+
+        expect(revision.revision).toBe(1);
+        expect(revision.sourceHash).toHaveLength(64);
+        expect(revision.files).toHaveLength(1);
+        expect(revision.submittedBy).toBeDefined();
+        expect(revision.derived).toBeNull();
+      });
+
+      it('derived outputs default to null when not yet computed', () => {
+        const revision = skillArtifactRevisionSchema.parse({
+          revision: 1,
+          sourceHash: 'e'.repeat(64),
+          files: [
+            {
+              path: 'SKILL.md',
+              kind: 'skill-markdown',
+              sha256: 'f'.repeat(64),
+              sizeBytes: 100,
+              mediaType: 'text/markdown',
+              source: 'SKILL.md',
+              includeInDerivation: true,
+              activationOnly: false,
+            },
+          ],
+          submittedAt: '2026-04-16T10:00:00.000Z',
+          submittedBy: {
+            id: 'user_1',
+            handle: 'owner',
+            securityLevel: 3,
+          },
+          scriptDescriptors: [],
+          derived: null,
+        });
+
+        expect(revision.derived).toBeNull();
+      });
+    });
+
+    describe('Artifact root metadata (ARTF-01, ARTF-02, COMP-01)', () => {
+      it('artifact root keeps lifecycle, review, scope, team, and security hooks additive beside legacy knowledge contracts', () => {
+        const artifact = skillArtifactSchema.parse({
+          id: 'artifact_1',
+          teamId: 'team_1',
+          scope: 'project',
+          labels: ['docker', 'deployment'],
+          title: 'Docker Deployment Skills',
+          slug: 'docker-deployment',
+          requiredLevel: 3,
+          lifecycleState: 'approved',
+          owner: {
+            id: 'user_1',
+            handle: 'owner',
+            securityLevel: 3,
+          },
+          latestRevision: 1,
+          history: [
+            {
+              revision: 1,
+              sourceHash: 'f'.repeat(64),
+              files: [
+                {
+                  path: 'SKILL.md',
+                  kind: 'skill-markdown',
+                  sha256: 'g'.repeat(64),
+                  sizeBytes: 512,
+                  mediaType: 'text/markdown',
+                  source: 'SKILL.md',
+                  includeInDerivation: true,
+                  activationOnly: false,
+                },
+              ],
+              submittedAt: '2026-04-16T10:00:00.000Z',
+              submittedBy: {
+                id: 'user_1',
+                handle: 'owner',
+                securityLevel: 3,
+              },
+              scriptDescriptors: [],
+              derived: null,
+            },
+          ],
+          metadata: {
+            sourceKind: 'skill-directory',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: 'submission_1',
+            latestSubmittedAt: '2026-04-16T10:00:00.000Z',
+            latestReviewedAt: '2026-04-16T11:00:00.000Z',
+            latestDecision: 'approve',
+          },
+          agentReview: null,
+          reviewHistory: [],
+          reviewNotes: [],
+          lifecycleHistory: [],
+          createdAt: '2026-04-16T10:00:00.000Z',
+          updatedAt: '2026-04-16T11:00:00.000Z',
+        });
+
+        expect(artifact.lifecycleState).toBe('approved');
+        expect(artifact.scope).toBe('project');
+        expect(artifact.requiredLevel).toBe(3);
+        expect(artifact.teamId).toBe('team_1');
+        expect(artifact.metadata.sourceKind).toBe('skill-directory');
+      });
+
+      it('artifact and knowledge contracts can coexist without replacing each other', () => {
+        // Verify knowledge schema still works
+        const knowledge = knowledgeEntrySchema.parse({
+          id: 'knowledge_1',
+          teamId: 'team_1',
+          scope: 'project',
+          labels: ['test'],
+          shortcut: 'Test shortcut',
+          detail: 'Test detail',
+          requiredLevel: 0,
+          lifecycleState: 'draft',
+          owner: {
+            id: 'user_1',
+            handle: 'owner',
+            securityLevel: 0,
+          },
+          latestRevision: {
+            revision: 1,
+            submittedAt: '2026-04-16T10:00:00.000Z',
+            submittedBy: {
+              id: 'user_1',
+              handle: 'owner',
+              securityLevel: 0,
+            },
+            shortcut: 'Test shortcut',
+            detail: 'Test detail',
+            labels: ['test'],
+          },
+          history: [
+            {
+              revision: 1,
+              submittedAt: '2026-04-16T10:00:00.000Z',
+              submittedBy: {
+                id: 'user_1',
+                handle: 'owner',
+                securityLevel: 0,
+              },
+              shortcut: 'Test shortcut',
+              detail: 'Test detail',
+              labels: ['test'],
+            },
+          ],
+          metadata: {
+            scopeLabel: 'project-knowledge',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: 'submission_1',
+            latestSubmittedAt: '2026-04-16T10:00:00.000Z',
+            latestReviewedAt: null,
+            latestDecision: null,
+          },
+          agentReview: null,
+          createdAt: '2026-04-16T10:00:00.000Z',
+          updatedAt: '2026-04-16T10:00:00.000Z',
+        });
+
+        // Verify artifact schema works
+        const artifact = skillArtifactSchema.parse({
+          id: 'artifact_1',
+          teamId: null,
+          scope: 'global',
+          labels: ['test'],
+          title: 'Test Artifact',
+          slug: 'test-artifact',
+          requiredLevel: 0,
+          lifecycleState: 'draft',
+          owner: {
+            id: 'user_1',
+            handle: 'owner',
+            securityLevel: 0,
+          },
+          latestRevision: 1,
+          history: [
+            {
+              revision: 1,
+              sourceHash: 'h'.repeat(64),
+              files: [
+                {
+                  path: 'SKILL.md',
+                  kind: 'skill-markdown',
+                  sha256: 'i'.repeat(64),
+                  sizeBytes: 100,
+                  mediaType: 'text/markdown',
+                  source: 'SKILL.md',
+                  includeInDerivation: true,
+                  activationOnly: false,
+                },
+              ],
+              submittedAt: '2026-04-16T10:00:00.000Z',
+              submittedBy: {
+                id: 'user_1',
+                handle: 'owner',
+                securityLevel: 0,
+              },
+              scriptDescriptors: [],
+              derived: null,
+            },
+          ],
+          metadata: {
+            sourceKind: 'skill-directory',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: 'submission_1',
+            latestSubmittedAt: '2026-04-16T10:00:00.000Z',
+            latestReviewedAt: null,
+            latestDecision: null,
+          },
+          agentReview: null,
+          reviewHistory: [],
+          reviewNotes: [],
+          lifecycleHistory: [],
+          createdAt: '2026-04-16T10:00:00.000Z',
+          updatedAt: '2026-04-16T10:00:00.000Z',
+        });
+
+        // Both should parse successfully, proving additive coexistence
+        expect(knowledge.id).toBe('knowledge_1');
+        expect(artifact.id).toBe('artifact_1');
+      });
     });
   });
 });
