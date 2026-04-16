@@ -13,6 +13,8 @@ import {
   loginRequestSchema,
   retrievalQuerySchema,
   retrievalResponseSchema,
+  retrievalV2QuerySchema,
+  retrievalV2ResponseSchema,
   reviewDecisionRequestSchema,
   securityLevelSchema,
   skillArtifactSchema,
@@ -1363,6 +1365,195 @@ describe('contracts package', () => {
 
         const parsed = artifactFilePayloadRecordSchema.parse(minimalRecord);
         expect(parsed.artifactId).toBe('artifact_1');
+      });
+    });
+  });
+
+  describe('Phase 14: Seed-Only Retrieval v2 Contracts (RETR-01, RETR-02, COMP-01)', () => {
+    describe('retrievalV2QuerySchema (RETR-01)', () => {
+      it('accepts seed-only request without structured intent fields', () => {
+        const query = retrievalV2QuerySchema.parse({
+          seed: 'docker container fails to start with permission denied error',
+        });
+
+        expect(query.seed).toBe('docker container fails to start with permission denied error');
+        expect(query.maxResults).toBe(10); // default
+        expect(query.filters.labels).toEqual([]); // default
+        expect(query.filters.scopes).toEqual([]); // default
+      });
+
+      it('rejects required structured intent fields on the client contract', () => {
+        // The v2 query schema should NOT accept situation/problem/goal/errorText
+        // These are server-internal per RETR-02
+        const queryWithStructuredIntent = {
+          seed: 'test query',
+          situation: 'deploying containers',
+          problem: 'permission denied',
+          goal: 'fix permissions',
+        };
+
+        // The schema should parse but ignore the structured intent fields
+        // (or reject them - we chose to accept and ignore for backward compatibility)
+        const parsed = retrievalV2QuerySchema.parse(queryWithStructuredIntent);
+
+        // seed should be preserved
+        expect(parsed.seed).toBe('test query');
+        // structured intent fields should NOT be in the parsed result
+        expect(parsed).not.toHaveProperty('situation');
+        expect(parsed).not.toHaveProperty('problem');
+        expect(parsed).not.toHaveProperty('goal');
+        expect(parsed).not.toHaveProperty('errorText');
+      });
+
+      it('accepts optional filters and flags while keeping seed required', () => {
+        const query = retrievalV2QuerySchema.parse({
+          seed: 'typescript strict mode',
+          filters: {
+            labels: ['typescript'],
+            scopes: ['project'],
+          },
+          maxResults: 20,
+        });
+
+        expect(query.seed).toBe('typescript strict mode');
+        expect(query.maxResults).toBe(20);
+        expect(query.filters.labels).toEqual(['typescript']);
+        expect(query.filters.scopes).toEqual(['project']);
+      });
+
+      it('requires seed field and rejects empty seed', () => {
+        expect(() => retrievalV2QuerySchema.parse({})).toThrow();
+        expect(() => retrievalV2QuerySchema.parse({ seed: '' })).toThrow();
+      });
+    });
+
+    describe('retrievalV2ResponseSchema (RETR-04, COMP-01)', () => {
+      it('accepts capsule-first distilled results with artifact metadata', () => {
+        const response = {
+          capsules: [
+            {
+              capsuleId: 'capsule_1',
+              artifactId: 'artifact_1',
+              revision: 1,
+              sourcePaths: ['SKILL.md'],
+              content: 'Use docker-compose for multi-container setups',
+              situation: 'Deploying multiple containers',
+              problem: 'Manual networking is error-prone',
+              goal: 'Simplify deployment with compose',
+              labels: ['docker'],
+              scope: 'project',
+              requiredLevel: 2,
+              score: 0.95,
+              reason: 'High match on problem and situation',
+            },
+          ],
+          profileHints: [
+            {
+              artifactId: 'artifact_1',
+              title: 'Docker Deployment Skills',
+              slug: 'docker-deployment',
+              labels: ['docker'],
+            },
+          ],
+          refinementSummary: null,
+        };
+
+        const parsed = retrievalV2ResponseSchema.parse(response);
+        expect(parsed.capsules).toHaveLength(1);
+        expect(parsed.capsules[0]?.capsuleId).toBe('capsule_1');
+        expect(parsed.capsules[0]?.score).toBe(0.95);
+        expect(parsed.profileHints).toHaveLength(1);
+      });
+
+      it('coexists with legacy retrievalResponseSchema without breaking existing contracts', () => {
+        // Legacy v1 response should still work
+        const legacyResponse = {
+          globalConstraints: [],
+          projectKnowledge: [],
+          refinementSummary: null,
+          summary: null,
+        };
+
+        const legacyParsed = retrievalResponseSchema.parse(legacyResponse);
+        expect(legacyParsed.globalConstraints).toEqual([]);
+        expect(legacyParsed.projectKnowledge).toEqual([]);
+
+        // v2 response should work independently
+        const v2Response = {
+          capsules: [],
+          profileHints: [],
+          refinementSummary: null,
+        };
+
+        const v2Parsed = retrievalV2ResponseSchema.parse(v2Response);
+        expect(v2Parsed.capsules).toEqual([]);
+        expect(v2Parsed.profileHints).toEqual([]);
+      });
+
+      it('capsules inherit governance from artifact root (T-14-01 mitigation)', () => {
+        const response = {
+          capsules: [
+            {
+              capsuleId: 'capsule_1',
+              artifactId: 'artifact_1',
+              revision: 1,
+              sourcePaths: ['SKILL.md'],
+              content: 'Test content',
+              situation: 'Test situation',
+              problem: 'Test problem',
+              goal: 'Test goal',
+              labels: ['test'],
+              scope: 'global',
+              requiredLevel: 5,
+              score: 0.8,
+              reason: 'Match found',
+            },
+          ],
+          profileHints: [],
+          refinementSummary: null,
+        };
+
+        const parsed = retrievalV2ResponseSchema.parse(response);
+        // Capsule has governance fields inherited from artifact
+        expect(parsed.capsules[0]?.scope).toBe('global');
+        expect(parsed.capsules[0]?.requiredLevel).toBe(5);
+      });
+
+      it('capsule match includes score and reason for ranking transparency', () => {
+        const response = {
+          capsules: [
+            {
+              capsuleId: 'capsule_1',
+              artifactId: 'artifact_1',
+              revision: 1,
+              sourcePaths: ['SKILL.md'],
+              content: 'Test content',
+              situation: 'Test situation',
+              problem: 'Test problem',
+              goal: 'Test goal',
+              labels: ['test'],
+              scope: 'project',
+              requiredLevel: 0,
+              score: 0.92,
+              reason: 'Problem text matched with 92% similarity',
+            },
+          ],
+          profileHints: [],
+          refinementSummary: 'Found 1 relevant capsule for your query',
+        };
+
+        const parsed = retrievalV2ResponseSchema.parse(response);
+        expect(parsed.capsules[0]?.score).toBe(0.92);
+        expect(parsed.capsules[0]?.reason).toBe('Problem text matched with 92% similarity');
+        expect(parsed.refinementSummary).toBe('Found 1 relevant capsule for your query');
+      });
+    });
+
+    describe('COMP-01: Shared contract as single source of truth', () => {
+      it('exports v2 retrieval schemas from contracts package index', () => {
+        // This test verifies that v2 schemas are exported from the contracts package
+        expect(retrievalV2QuerySchema).toBeDefined();
+        expect(retrievalV2ResponseSchema).toBeDefined();
       });
     });
   });
