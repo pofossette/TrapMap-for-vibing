@@ -4,13 +4,13 @@ milestone: v1.2
 milestone_name: Skill-Native Retrieval
 status: executing
 stopped_at: context exhaustion at 90% (2026-04-16)
-last_updated: "2026-04-16T13:04:05.896Z"
+last_updated: "2026-04-16T15:41:07.274Z"
 last_activity: 2026-04-16
 progress:
   total_phases: 5
-  completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  completed_phases: 3
+  total_plans: 10
+  completed_plans: 10
   percent: 100
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake
-**Current focus:** Phase 13 — skill-import-export-pipeline
+**Current focus:** Phase 14 — seed-intent-retrieval-and-capsule-ranking
 
 ## Current Position
 
-Phase: 14
+Phase: 15
 Plan: Not started
-Status: Executing Phase 13
+Status: Executing Phase 14
 Last activity: 2026-04-16
 
 ## Performance Metrics
@@ -35,7 +35,7 @@ Last activity: 2026-04-16
 **Previous Milestone (v1.0):**
 
 - Total phases completed: 5
-- Total plans completed: 35
+- Total plans completed: 39
 - Total execution time: ~2.1 hours
 - Average duration: 21.0min per plan
 

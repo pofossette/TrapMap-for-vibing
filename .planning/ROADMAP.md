@@ -66,7 +66,7 @@
 | 11. 索引生命周期集成 | v1.1 | 2/2 | Complete | 2026-04-15 |
 | 12. Skill Artifact Canonical Model | v1.2 | 3/3 | Complete    | 2026-04-16 |
 | 13. Skill Import/Export Pipeline | v1.2 | 3/3 | Complete    | 2026-04-16 |
-| 14. Seed Intent Retrieval and Capsule Ranking | v1.2 | 0/4 | Planned | — |
+| 14. Seed Intent Retrieval and Capsule Ranking | v1.2 | 4/4 | Complete    | 2026-04-16 |
 | 15. Client Activation for References, Assets, and Scripts | v1.2 | 0/3 | Planned | — |
 | 16. Compatibility Migration and Boundary Hardening | v1.2 | 0/3 | Planned | — |
 
@@ -118,12 +118,12 @@ Phase 11 (索引生命周期集成) ✅ ← gap closure for Phase 08
 
 **Goal:** 保留客户端单 seed 输入，但在服务端完成意图拆解与 capsule 级检索
 **Depends on:** Phase 13
-**Plans:** 4 plans
+**Plans:** 4/4 plans complete
 
-- [ ] 14-01: Single-seed retrieval contract and internal parsed-intent model (RETR-01, RETR-02)
-- [ ] 14-02: Profile recall and capsule ranking pipeline (RETR-03, CAPS-04)
-- [ ] 14-03: Distilled response shaping with capsule-first output (RETR-04)
-- [ ] 14-04: Route and CLI integration for seed-based retrieval v2 (COMP-01, COMP-03)
+- [x] 14-01: Single-seed retrieval contract and internal parsed-intent model (RETR-01, RETR-02)
+- [x] 14-02: Profile recall and capsule ranking pipeline (RETR-03, CAPS-04)
+- [x] 14-03: Distilled response shaping with capsule-first output (RETR-04)
+- [x] 14-04: Route and CLI integration for seed-based retrieval v2 (COMP-01, COMP-03)
 
 ### Phase 15: Client Activation for References, Assets, and Scripts
 
