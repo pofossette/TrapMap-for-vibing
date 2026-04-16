@@ -104,6 +104,7 @@ describe('CLI operations commands (Phase 13)', () => {
           importedCount: 1,
           failedCount: 0,
         },
+        sessionToken: 'test-token',
       });
 
       // Execute import command
@@ -158,6 +159,7 @@ describe('CLI operations commands (Phase 13)', () => {
           importedCount: 1,
           failedCount: 0,
         },
+        sessionToken: 'test-token',
       });
 
       await program.parseAsync(['node', 'test', 'import', '--file', testDir, '--level', '3']);
@@ -187,6 +189,7 @@ describe('CLI operations commands (Phase 13)', () => {
           importedCount: 1,
           failedCount: 0,
         },
+        sessionToken: 'test-token',
       });
 
       await program.parseAsync(['node', 'test', 'import', '--file', testDir, '--level', '3']);
@@ -216,6 +219,7 @@ describe('CLI operations commands (Phase 13)', () => {
           importedCount: 1,
           failedCount: 0,
         },
+        sessionToken: 'test-token',
       });
 
       await program.parseAsync(['node', 'test', 'import', '--file', testDir, '--level', '3']);
@@ -245,6 +249,7 @@ describe('CLI operations commands (Phase 13)', () => {
           importedCount: 1,
           failedCount: 0,
         },
+        sessionToken: 'test-token',
       });
 
       await program.parseAsync(['node', 'test', 'import', '--file', testDir, '--level', '3']);
@@ -282,6 +287,7 @@ describe('CLI operations commands (Phase 13)', () => {
           importedCount: 1,
           failedCount: 0,
         },
+        sessionToken: 'test-token',
       });
 
       await program.parseAsync(['node', 'test', 'import', '--file', join(testDir, 'skill.md'), '--level', '3']);
@@ -319,6 +325,7 @@ describe('CLI operations commands (Phase 13)', () => {
           importedCount: 1,
           failedCount: 0,
         },
+        sessionToken: 'test-token',
       });
 
       await program.parseAsync(['node', 'test', 'import', '--file', testDir, '--level', '3']);
@@ -350,6 +357,7 @@ describe('CLI operations commands (Phase 13)', () => {
           importedCount: 1,
           failedCount: 0,
         },
+        sessionToken: 'test-token',
       });
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -380,6 +388,7 @@ describe('CLI operations commands (Phase 13)', () => {
           importedCount: 1,
           failedCount: 0,
         },
+        sessionToken: 'test-token',
       });
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
