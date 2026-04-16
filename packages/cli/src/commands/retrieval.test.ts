@@ -61,6 +61,7 @@ describe('CLI retrieval commands', () => {
           },
         ],
         refinementSummary: null,
+        summary: null,
       };
 
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -114,6 +115,7 @@ describe('CLI retrieval commands', () => {
           },
         ],
         refinementSummary: null,
+        summary: null,
       };
 
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -161,6 +163,7 @@ describe('CLI retrieval commands', () => {
         ],
         projectKnowledge: [],
         refinementSummary: null,
+        summary: null,
       };
 
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -192,6 +195,7 @@ describe('CLI retrieval commands', () => {
         globalConstraints: [],
         projectKnowledge: [],
         refinementSummary: null,
+        summary: null,
       };
 
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -227,6 +231,7 @@ describe('CLI retrieval commands', () => {
         globalConstraints: [],
         projectKnowledge: [],
         refinementSummary: null,
+        summary: null,
       };
 
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -262,6 +267,7 @@ describe('CLI retrieval commands', () => {
         globalConstraints: [],
         projectKnowledge: [],
         refinementSummary: null,
+        summary: null,
       };
 
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -295,6 +301,7 @@ describe('CLI retrieval commands', () => {
         globalConstraints: [],
         projectKnowledge: [],
         refinementSummary: null,
+        summary: null,
       };
 
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -348,6 +355,7 @@ describe('CLI retrieval commands', () => {
         globalConstraints: [],
         projectKnowledge: [],
         refinementSummary: null,
+        summary: null,
       };
 
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -379,6 +387,7 @@ describe('CLI retrieval commands', () => {
         globalConstraints: [],
         projectKnowledge: [],
         refinementSummary: null,
+        summary: null,
       };
 
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -410,6 +419,7 @@ describe('CLI retrieval commands', () => {
         globalConstraints: [],
         projectKnowledge: [],
         refinementSummary: null,
+        summary: null,
       };
 
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -452,6 +462,7 @@ describe('CLI retrieval commands', () => {
         ],
         projectKnowledge: [],
         refinementSummary: null,
+        summary: null,
       };
 
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -473,6 +484,418 @@ describe('CLI retrieval commands', () => {
       expect(output).toContain('Global constraints');
       expect(output).toContain('Test shortcut');
       expect(output).toContain('Score: 0.9');
+
+      consoleLogSpy.mockRestore();
+    });
+  });
+
+  describe('Phase 10 - citations and summary support', () => {
+    it('should output full contract shape including citations in JSON mode', async () => {
+      const mockResponse: RetrievalResponse = {
+        globalConstraints: [
+          {
+            entryId: 'entry-1',
+            scope: 'global',
+            requiredLevel: 0,
+            shortcut: 'JWT Validation',
+            detail: 'Test detail content',
+            labels: ['security', 'auth'],
+            score: 0.95,
+            reason: 'Score: 0.95',
+            citation: {
+              source: {
+                entryId: 'entry-1',
+                scope: 'global',
+                shortcut: 'JWT Validation',
+              },
+              snippet: 'Test detail content',
+              tags: ['security', 'auth'],
+              recallChannels: ['semantic', 'keyword'],
+              scores: {
+                semantic: 0.92,
+                keyword: 0.85,
+                graph: null,
+                preRerank: 0.89,
+                final: 0.95,
+              },
+            },
+          },
+        ],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'JWT validation', '--json'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+
+      // Verify output is valid JSON matching contract schema
+      const parsedOutput = JSON.parse(output);
+      const validated = retrievalResponseSchema.parse(parsedOutput);
+
+      // Citations should be present in JSON output
+      expect(validated.globalConstraints[0].citation).toBeDefined();
+      expect(validated.globalConstraints[0].citation?.source.entryId).toBe('entry-1');
+      expect(validated.globalConstraints[0].citation?.recallChannels).toEqual(['semantic', 'keyword']);
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should output full contract shape including summary in JSON mode', async () => {
+      const mockResponse: RetrievalResponse = {
+        globalConstraints: [
+          {
+            entryId: 'entry-1',
+            scope: 'global',
+            requiredLevel: 0,
+            shortcut: 'JWT Validation',
+            detail: 'Test detail content',
+            labels: ['security'],
+            score: 0.95,
+            reason: 'Score: 0.95',
+            citation: {
+              source: {
+                entryId: 'entry-1',
+                scope: 'global',
+                shortcut: 'JWT Validation',
+              },
+              snippet: 'Test detail content',
+              tags: ['security'],
+              recallChannels: ['semantic'],
+              scores: {
+                semantic: 0.95,
+                keyword: null,
+                graph: null,
+                preRerank: 0.95,
+                final: 0.95,
+              },
+            },
+          },
+        ],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: {
+          text: 'JWT Validation: Test detail content',
+          citations: [
+            {
+              source: {
+                entryId: 'entry-1',
+                scope: 'global',
+                shortcut: 'JWT Validation',
+              },
+              snippet: 'Test detail content',
+              tags: ['security'],
+              recallChannels: ['semantic'],
+              scores: {
+                semantic: 0.95,
+                keyword: null,
+                graph: null,
+                preRerank: 0.95,
+                final: 0.95,
+              },
+            },
+          ],
+        },
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'JWT validation', '--json'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+
+      // Verify output is valid JSON matching contract schema
+      const parsedOutput = JSON.parse(output);
+      const validated = retrievalResponseSchema.parse(parsedOutput);
+
+      // Summary should be present in JSON output
+      expect(validated.summary).toBeDefined();
+      expect(validated.summary?.text).toBe('JWT Validation: Test detail content');
+      expect(validated.summary?.citations).toHaveLength(1);
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should display curated citation information in text mode', async () => {
+      const mockResponse: RetrievalResponse = {
+        globalConstraints: [
+          {
+            entryId: 'entry-1',
+            scope: 'global',
+            requiredLevel: 0,
+            shortcut: 'JWT Validation',
+            detail: 'Test detail content that shows how to validate JWT tokens properly',
+            labels: ['security', 'auth'],
+            score: 0.95,
+            reason: 'Score: 0.95',
+            citation: {
+              source: {
+                entryId: 'entry-1',
+                scope: 'global',
+                shortcut: 'JWT Validation',
+              },
+              snippet: 'Test detail content that shows how to validate...',
+              tags: ['security', 'auth'],
+              recallChannels: ['semantic', 'keyword'],
+              scores: {
+                semantic: 0.92,
+                keyword: 0.85,
+                graph: null,
+                preRerank: 0.89,
+                final: 0.95,
+              },
+            },
+          },
+        ],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'JWT validation'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+
+      // Text mode should show high-value citation info (source, tags, channels)
+      expect(output).toContain('entry-1');
+      expect(output).toContain('JWT Validation');
+      expect(output).toContain('security, auth');
+      expect(output).toContain('Score: 0.95');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should display summary in text mode when present', async () => {
+      const mockResponse: RetrievalResponse = {
+        globalConstraints: [
+          {
+            entryId: 'entry-1',
+            scope: 'global',
+            requiredLevel: 0,
+            shortcut: 'JWT Validation',
+            detail: 'Test detail content',
+            labels: ['security'],
+            score: 0.95,
+            reason: 'Score: 0.95',
+            citation: {
+              source: {
+                entryId: 'entry-1',
+                scope: 'global',
+                shortcut: 'JWT Validation',
+              },
+              snippet: 'Test detail content',
+              tags: ['security'],
+              recallChannels: ['semantic'],
+              scores: {
+                semantic: 0.95,
+                keyword: null,
+                graph: null,
+                preRerank: 0.95,
+                final: 0.95,
+              },
+            },
+          },
+        ],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: {
+          text: 'Based on 1 result:\n• JWT Validation: Test detail content',
+          citations: [
+            {
+              source: {
+                entryId: 'entry-1',
+                scope: 'global',
+                shortcut: 'JWT Validation',
+              },
+              snippet: 'Test detail content',
+              tags: ['security'],
+              recallChannels: ['semantic'],
+              scores: {
+                semantic: 0.95,
+                keyword: null,
+                graph: null,
+                preRerank: 0.95,
+                final: 0.95,
+              },
+            },
+          ],
+        },
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'JWT validation'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+
+      // Text mode should show summary section
+      expect(output).toContain('Summary');
+      expect(output).toContain('Based on 1 result');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should support --summary flag to enable summary generation', async () => {
+      const mockResponse: RetrievalResponse = {
+        globalConstraints: [],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test', '--summary'], { from: 'user' });
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          body: expect.objectContaining({
+            includeSummary: true,
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should default includeSummary to false when flag not provided', async () => {
+      const mockResponse: RetrievalResponse = {
+        globalConstraints: [],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test'], { from: 'user' });
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          body: expect.objectContaining({
+            includeSummary: false,
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should not compute citation fields in CLI - only display contract data', async () => {
+      const mockResponse: RetrievalResponse = {
+        globalConstraints: [
+          {
+            entryId: 'entry-1',
+            scope: 'global',
+            requiredLevel: 0,
+            shortcut: 'Test shortcut',
+            detail: 'Test detail',
+            labels: ['test'],
+            score: 0.9,
+            reason: 'Score: 0.9',
+            citation: {
+              source: {
+                entryId: 'entry-1',
+                scope: 'global',
+                shortcut: 'Test shortcut',
+              },
+              snippet: 'Test detail',
+              tags: ['test'],
+              recallChannels: ['semantic'],
+              scores: {
+                semantic: 0.9,
+                keyword: null,
+                graph: null,
+                preRerank: 0.9,
+                final: 0.9,
+              },
+            },
+          },
+        ],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test', '--json'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+      const parsedOutput = JSON.parse(output);
+
+      // Verify CLI only passes through contract data from server
+      // Citation fields come from server response, not computed in CLI
+      expect(parsedOutput.globalConstraints[0].citation).toBeDefined();
+      expect(parsedOutput.globalConstraints[0].citation?.scores.final).toBe(0.9);
 
       consoleLogSpy.mockRestore();
     });

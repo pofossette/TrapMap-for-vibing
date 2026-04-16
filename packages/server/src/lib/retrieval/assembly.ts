@@ -6,12 +6,13 @@
  * - Converting knowledge entries to retrieval match schema
  * - Assembling globalConstraints and projectKnowledge buckets
  * - Ensuring no entry appears in both buckets
+ * - Attaching citations to matches when available
  *
  * This module is called after recall candidates are generated and scored,
  * transforming them into the API response shape.
  */
 
-import type { RetrievalQuery, RetrievalResponse } from '@skill-shareer/contracts';
+import type { RetrievalQuery, RetrievalResponse, RetrievalCitation, RetrievalSummary } from '@skill-shareer/contracts';
 import { retrievalMatchSchema, retrievalResponseSchema } from '@skill-shareer/contracts';
 import type { ScoredEntry } from './types.js';
 
@@ -45,10 +46,12 @@ export function generateMatchReason(
 
 /**
  * Convert a scored entry to a retrieval match.
+ * Optionally includes citation if provided.
  */
 export function toRetrievalMatch(
   scoredEntry: ScoredEntry,
   filters: RetrievalQuery['filters'],
+  citation?: RetrievalCitation,
 ): RetrievalMatch {
   const { entry, score } = scoredEntry;
   return retrievalMatchSchema.parse({
@@ -60,16 +63,19 @@ export function toRetrievalMatch(
     labels: entry.labels,
     score,
     reason: generateMatchReason(entry, score, filters),
+    citation,
   });
 }
 
 /**
  * Assemble scored entries into globalConstraints and projectKnowledge buckets.
  * Ensures no entry appears in both buckets.
+ * Optionally includes citations if provided.
  */
 export function assembleResponseBuckets(
   scoredEntries: ScoredEntry[],
   filters: RetrievalQuery['filters'],
+  citations?: Map<string, RetrievalCitation>,
 ): {
   globalConstraints: RetrievalMatch[];
   projectKnowledge: RetrievalMatch[];
@@ -78,7 +84,8 @@ export function assembleResponseBuckets(
   const projectKnowledge: RetrievalMatch[] = [];
 
   for (const scoredEntry of scoredEntries) {
-    const match = toRetrievalMatch(scoredEntry, filters);
+    const citation = citations?.get(scoredEntry.entry.id);
+    const match = toRetrievalMatch(scoredEntry, filters, citation);
     if (scoredEntry.entry.scope === 'global') {
       globalConstraints.push(match);
     } else {
@@ -91,17 +98,19 @@ export function assembleResponseBuckets(
 
 /**
  * Build the complete retrieval response.
- * Includes match buckets and optional refinement summary.
+ * Includes match buckets, optional refinement summary, and optional summary.
  */
 export function buildRetrievalResponse(
   globalConstraints: RetrievalMatch[],
   projectKnowledge: RetrievalMatch[],
   refinementSummary: string | null,
+  summary: RetrievalSummary | null = null,
 ): RetrievalResponse {
   return retrievalResponseSchema.parse({
     globalConstraints,
     projectKnowledge,
     refinementSummary,
+    summary,
   });
 }
 
@@ -113,5 +122,6 @@ export function buildEmptyResponse(): RetrievalResponse {
     globalConstraints: [],
     projectKnowledge: [],
     refinementSummary: null,
+    summary: null,
   });
 }

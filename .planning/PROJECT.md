@@ -8,23 +8,18 @@ Skill Shareer is a CLI-first internal knowledge sharing system for software team
 
 Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
 
-## Current Milestone: v1.1 RAG Structure Enhancement
+## Current Milestone: Planning Next Milestone
 
-**Goal:** Evolve from single-path embedding retrieval to an extensible multi-path RAG architecture with orchestrator, hybrid recall, reranking, and lifecycle-driven indexing.
+**v1.1 RAG Structure Enhancement** — SHIPPED 2026-04-16
 
-**Target features:**
-- Retrieval orchestrator with query mode support (semantic / hybrid / graph-assisted)
-- Multi-path recall (vector + keyword) with result merging
-- Reranking for improved result ordering
-- Enhanced citations with source tracking, snippets, tags, and recall channel attribution
+All v1.1 features delivered:
+- Multi-path retrieval with orchestrator, hybrid recall (vector + keyword), and reranking
 - Lifecycle-driven indexing pipeline (approve → index, update → refresh, deactivate → remove)
-- Summary builder for optional LLM-generated answers based on retrieved knowledge
+- Enhanced citations with source tracking, snippets, tags, and recall channel attribution
+- Graph-assisted recall with lightweight entity extraction
+- Optional summary builder for LLM-generated answers
 
-**Key context:**
-- Inspired by LightRAG's structure but NOT integrating the project directly
-- All enhancements stay within the existing monorepo and TS stack
-- Must preserve existing boundaries: CLI, contracts, RBAC, approval, audit
-- Gradual evolution: A → B → C → D → E phases, no big-bang rewrite
+**Next Steps:** Run `/gsd-new-milestone` to define v1.2 scope
 
 ## Requirements
 
@@ -33,13 +28,14 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 - ✓ CLI-first retrieval and submission flows that are shell-friendly for both humans and agents — v1.0
 - ✓ Team-aware knowledge lifecycle with admin review, rejected-item feedback, and resubmission — v1.0
 - ✓ Text-only RAG with global constraints, project-scoped knowledge, and batch import/export — v1.0
+- ✓ Multi-path retrieval with orchestrator, hybrid recall (vector + keyword), and reranking — v1.1
+- ✓ Lifecycle-driven indexing pipeline tied to approval/update/deactivate events — v1.1
+- ✓ Enhanced citations with source tracking, snippets, tags, and recall channel attribution — v1.1
+- ✓ Query mode support (semantic / hybrid / graph-assisted) for extensible retrieval strategies — v1.1
 
 ### Active
 
-- Multi-path retrieval with orchestrator, hybrid recall (vector + keyword), and reranking — v1.1
-- Lifecycle-driven indexing pipeline tied to approval/update/deactivate events — v1.1
-- Enhanced citations with source tracking, snippets, tags, and recall channel attribution — v1.1
-- Query mode support (semantic / hybrid / graph-assisted) for extensible retrieval strategies — v1.1
+*None — define next milestone with `/gsd-new-milestone`*
 
 ### Out of Scope
 
@@ -50,14 +46,15 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 
 ## Context
 
-**Current State (v1.0 shipped 2026-04-14):**
+**Current State (v1.1 shipped 2026-04-16):**
 
 - **Tech stack:** TypeScript, pnpm monorepo, Fastify server, LangChain JS, CLI with Commander.js
-- **Lines of code:** ~13,600 TypeScript across CLI, server, and shared contracts
-- **Data model:** Knowledge entries with labels, shortcut, detail, scope (global/project), required security level (0-10)
+- **Lines of code:** ~14,500 TypeScript across CLI, server, and shared contracts
+- **Data model:** Knowledge entries with labels, shortcut, detail, scope (global/project), required security level (0-10), indexState
 - **Access control:** Role templates (user/admin) + explicit permissions, security level enforcement on all operations
-- **Search quality:** Embeddings-based retrieval with eligibility filtering (team/level/approval state), deterministic fallback, optional LLM refinement
-- **Operational features:** Import/export with validation, audit trail for review/import/export/deactivate actions
+- **Search quality:** Multi-path retrieval (semantic/hybrid/graph-assisted) with eligibility filtering, merging, reranking, and citations
+- **Indexing:** Lifecycle-driven pipeline with post-commit sync for approve/update/deactivate events
+- **Operational features:** Import/export with validation, audit trail for all mutating operations
 
 **User feedback themes:**
 - None yet — v1.0 is initial release
@@ -105,4 +102,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-14 after v1.1 milestone initiation*
+*Last updated: 2026-04-16 after v1.1 milestone completion*

@@ -5,10 +5,15 @@
  * - Vector adapter: generates and persists embeddings
  * - Keyword adapter: persists normalized tokens
  * - Helper functions for query-time token reuse
+ * - Default adapter list for server bootstrap
  *
  * Adapters are registered with the pipeline and called during
  * lifecycle transitions (approval, update, deactivation).
  */
+
+import type { IndexAdapter } from '../types.js';
+import { vectorIndexAdapter } from './vector.js';
+import { keywordIndexAdapter } from './keyword.js';
 
 export {
   vectorIndexAdapter,
@@ -26,3 +31,16 @@ export {
   hasIndexedKeywordTokens,
   type KeywordIndexPayload,
 } from './keyword.js';
+
+/**
+ * Get the default index adapter list for server bootstrap.
+ *
+ * This function returns the standard set of adapters that should be
+ * registered at server startup. The adapters are called in order during
+ * lifecycle transitions.
+ *
+ * @returns Array of registered index adapters
+ */
+export function buildDefaultIndexAdapters(): IndexAdapter[] {
+  return [vectorIndexAdapter, keywordIndexAdapter];
+}

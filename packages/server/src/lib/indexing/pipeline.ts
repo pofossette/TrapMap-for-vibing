@@ -16,6 +16,7 @@ import type {
   AdapterSyncState,
   IndexAdapter,
   IndexSyncResult,
+  KeywordAdapterSyncState,
   KnowledgeIndexStateRecord,
   NormalizedIndexDocument,
   ReconcileResult,
@@ -142,7 +143,7 @@ export async function syncKnowledgeIndex(
         adapters.map((adapter) =>
           adapter.remove({
             entryId: entry.id,
-            revision: entry.history.length,
+            revision: entry.history?.length ?? 0, // Defensive: default to 0 if history is undefined
           }),
         ),
       );
@@ -161,6 +162,7 @@ export async function syncKnowledgeIndex(
 
   // Sync to each adapter
   const adapterKinds = ['vector', 'keyword', 'graph'] as const;
+  let adapterFailures: Array<{kind: string; error: string}> = [];
 
   for (const adapter of adapters) {
     const adapterKind = adapter.kind;
@@ -180,6 +182,40 @@ export async function syncKnowledgeIndex(
       normalizedDocument,
       result,
     );
+
+    // Track failures for logging
+    if (!result.success) {
+      adapterFailures.push({ kind: adapterKind, error: result.error ?? 'Unknown error' });
+    }
+
+    // Special handling for vector adapter: populate embeddingCache for backward compatibility
+    if (adapterKind === 'vector' && result.success && result.payload) {
+      // The vector adapter returns the generated vector in the payload
+      // Populate the embedding cache for backward compatibility with semantic recall
+      const vector = result.payload as number[];
+      entry.embeddingCache = {
+        textHash: normalizedDocument.contentHash,
+        vector,
+        createdAt: nowIso(),
+        revision: normalizedDocument.revision,
+      };
+    }
+
+    // Special handling for keyword adapter: persist the keyword state
+    if (adapterKind === 'keyword' && result.success && result.payload) {
+      // The keyword adapter returns the persisted keyword state in the payload
+      // Store it in the index state for query-time reuse
+      const keywordState = result.payload as { tokens: string[]; fieldTokens: { shortcut: string[]; detail: string[]; labels: string[] } };
+      const keywordAdapterState = entry.indexState[adapterKind] as KeywordAdapterSyncState;
+      keywordAdapterState.persistedState = keywordState;
+    }
+  }
+
+  // Log if any adapters failed
+  if (adapterFailures.length > 0) {
+    // Note: Partial sync occurred - some adapters may have succeeded while others failed
+    // Consider implementing retry logic or marking entry for reconciliation
+    console.warn(`[syncKnowledgeIndex] Entry ${entryId} had ${adapterFailures.length} adapter failure(s):`, adapterFailures);
   }
 
   // Update normalized timestamp
@@ -221,7 +257,7 @@ export async function reconcileKnowledgeIndexes(
             adapters.map((adapter) =>
               adapter.remove({
                 entryId: entry.id,
-                revision: entry.history.length,
+                revision: entry.history?.length ?? 0, // Defensive: default to 0 if history is undefined
               }),
             ),
           );

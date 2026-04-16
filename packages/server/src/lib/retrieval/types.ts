@@ -98,10 +98,14 @@ export interface MergedCandidate {
   keywordScore: number;
   /** Graph channel score, or 0 if not recalled via graph (optional for backward compatibility) */
   graphScore?: number;
-  /** Combined score after merge, in [0, 1] */
+  /** Combined score after merge, in [0, 1] - this is the pre-rerank score */
   combinedScore: number;
   /** All token matches from keyword channel (empty if keyword not used) */
   tokenMatches: TokenMatchDetail[];
   /** Which channels contributed to this candidate */
   channels: RecallChannel[];
+  /** Pre-rerank score preserved for citation audit trail */
+  preRerankScore: number;
+  /** Final score after reranking (same as combinedScore if no rerank applied) */
+  finalScore: number;
 }

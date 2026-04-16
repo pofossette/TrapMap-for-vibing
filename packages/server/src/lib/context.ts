@@ -3,10 +3,12 @@ import type { FastifyRequest } from 'fastify';
 
 import type { ServerConfig } from '../config.js';
 import type { JsonStore, MembershipRecord, TeamRecord, UserRecord } from './store.js';
+import type { IndexAdapter } from './indexing/types.js';
 
 export interface SkillShareerServices {
   config: ServerConfig;
   store: JsonStore;
+  indexAdapters: IndexAdapter[];
 }
 
 export interface ResolvedAuthContext {

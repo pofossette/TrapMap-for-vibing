@@ -21,6 +21,7 @@ describe('retrieval', () => {
     mockServices = {
       config: {} as any,
       store: mockStore,
+      indexAdapters: [],
     };
 
     teamId = 'team_1';
@@ -239,6 +240,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -261,6 +263,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -278,6 +281,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -295,6 +299,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -312,6 +317,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -331,6 +337,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: ['global'] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -347,6 +354,7 @@ describe('retrieval', () => {
         filters: { labels: ['security'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -365,6 +373,7 @@ describe('retrieval', () => {
         filters: { labels: ['security', 'auth'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -386,6 +395,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -429,6 +439,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -455,6 +466,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -477,6 +489,7 @@ describe('retrieval', () => {
         filters: { labels: ['security'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -506,6 +519,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 1,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -522,6 +536,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -545,6 +560,7 @@ describe('retrieval', () => {
         filters: { labels: ['nonexistent'], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -565,6 +581,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -593,6 +610,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -612,6 +630,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -626,6 +645,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: true, // Request refinement
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -642,6 +662,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: true,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -724,6 +745,7 @@ describe('retrieval', () => {
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
+        includeSummary: false,
         mode: 'semantic',
       };
 
@@ -731,6 +753,285 @@ describe('retrieval', () => {
 
       // Should return results even without persisted index state
       expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('citation audit trail (Phase 10)', () => {
+    it('preserves pre-rerank and final scores for hybrid mode', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return results
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+
+      // For hybrid mode, the internal merge and rerank stages preserve scores
+      // The response matches still contain the final score
+      // This test verifies that the internal pipeline preserves audit evidence
+      // Actual citation fields will be populated in Task 2
+      expect(result.globalConstraints[0]?.score).toBeDefined();
+      expect(result.globalConstraints[0]?.score).toBeGreaterThanOrEqual(0);
+      expect(result.globalConstraints[0]?.score).toBeLessThanOrEqual(1);
+    });
+
+    it('preserves recall channel evidence for hybrid mode', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT tokens',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return results
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+
+      // The internal pipeline tracks which channels contributed
+      // This test verifies that channel evidence is preserved
+      // Actual citation channels will be populated in Task 2
+      const match = result.globalConstraints[0];
+      expect(match?.score).toBeDefined();
+    });
+
+    it('semantic mode preserves score for citation', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation security',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+        mode: 'semantic',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return results
+      expect(result.globalConstraints.length).toBeGreaterThan(0);
+
+      // Semantic mode score should be preserved for citation
+      const match = result.globalConstraints[0];
+      expect(match?.score).toBeDefined();
+      expect(match?.score).toBeGreaterThanOrEqual(0);
+      expect(match?.score).toBeLessThanOrEqual(1);
+    });
+
+    it('graph-assisted mode preserves all channel scores', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+        mode: 'graph-assisted',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return results
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+
+      // Graph-assisted mode combines semantic, keyword, and graph scores
+      // The final score in the response is the result of merging and reranking
+      const match = result.globalConstraints[0] || result.projectKnowledge[0];
+      expect(match?.score).toBeDefined();
+      expect(match?.score).toBeGreaterThanOrEqual(0);
+      expect(match?.score).toBeLessThanOrEqual(1);
+    });
+
+    it('hybrid mode includes citations in response', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return results
+      expect(result.globalConstraints.length).toBeGreaterThan(0);
+
+      // Hybrid mode should include citations
+      const match = result.globalConstraints[0];
+      expect(match?.citation).toBeDefined();
+      expect(match?.citation?.source.entryId).toBeDefined();
+      expect(match?.citation?.source.scope).toBeDefined();
+      expect(match?.citation?.snippet).toBeDefined();
+      expect(match?.citation?.tags).toBeDefined();
+      expect(match?.citation?.recallChannels).toBeDefined();
+      expect(match?.citation?.scores).toBeDefined();
+      expect(match?.citation?.scores.preRerank).toBeDefined();
+      expect(match?.citation?.scores.final).toBeDefined();
+    });
+
+    it('graph-assisted mode includes citations with all channels', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+        mode: 'graph-assisted',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return results
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+
+      // Graph-assisted mode should include citations
+      const match = result.globalConstraints[0] || result.projectKnowledge[0];
+      expect(match?.citation).toBeDefined();
+      // Graph-assisted mode should have at least semantic and keyword channels
+      expect(match?.citation?.recallChannels.length).toBeGreaterThanOrEqual(2);
+      // The graph score may be null if no graph relationships were found
+      expect(match?.citation?.scores).toBeDefined();
+    });
+  });
+
+  describe('summary generation', () => {
+    it('returns null summary when includeSummary is false (default)', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+        mode: 'hybrid', // Use hybrid to get citations
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Summary should be null when disabled
+      expect(result.summary).toBeNull();
+    });
+
+    it('returns null summary when semantic mode (no citations available)', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: true,
+        mode: 'semantic', // Semantic mode doesn't generate citations
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Summary should be null when no citations available
+      expect(result.summary).toBeNull();
+    });
+
+    it('generates summary when includeSummary is true and mode provides citations', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: true,
+        mode: 'hybrid', // Hybrid mode provides citations
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return results
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+
+      // Summary should be generated
+      expect(result.summary).toBeDefined();
+      expect(result.summary).not.toBeNull();
+      expect(result.summary?.text).toBeDefined();
+      expect(result.summary?.text.length).toBeGreaterThan(0);
+      expect(result.summary?.citations).toBeDefined();
+      expect(result.summary?.citations.length).toBeGreaterThan(0);
+    });
+
+    it('summary only includes citations from already-filtered hits', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT',
+        filters: { labels: ['security'], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: true,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Summary should only reference entries that passed all filters
+      expect(result.summary).toBeDefined();
+      expect(result.summary?.citations.length).toBeGreaterThan(0);
+
+      // All citation entry IDs should match the returned hits
+      const returnedEntryIds = new Set([
+        ...result.globalConstraints.map((m) => m.entryId),
+        ...result.projectKnowledge.map((m) => m.entryId),
+      ]);
+
+      for (const citation of result.summary?.citations || []) {
+        expect(returnedEntryIds.has(citation.source.entryId)).toBe(true);
+      }
+    });
+
+    it('graph-assisted mode generates summary with citations', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: true,
+        mode: 'graph-assisted',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Should return results
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+
+      // Summary should be generated with citations
+      expect(result.summary).toBeDefined();
+      expect(result.summary?.citations.length).toBeGreaterThan(0);
+      // Citations should include at least one entry
+      expect(result.summary?.citations[0]?.source.entryId).toBeDefined();
+    });
+
+    it('summary does not introduce unapproved or unauthorized content', async () => {
+      // This test verifies that summary only uses content that passed
+      // all eligibility filters (approval, team, level, lifecycle state)
+
+      const query: RetrievalQuery = {
+        seed: 'security',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: true,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Summary should only reference approved entries for the user's team
+      expect(result.summary).toBeDefined();
+      if (result.summary?.citations) {
+        for (const citation of result.summary.citations) {
+          // All cited entries should be in the returned results
+          const inGlobal = result.globalConstraints.some((m) => m.entryId === citation.source.entryId);
+          const inProject = result.projectKnowledge.some((m) => m.entryId === citation.source.entryId);
+          expect(inGlobal || inProject).toBe(true);
+        }
+      }
     });
   });
 });

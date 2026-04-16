@@ -62,6 +62,22 @@ export interface AdapterSyncState {
 }
 
 /**
+ * Extended sync state for keyword adapter with persisted keyword data.
+ * This extends the base AdapterSyncState with keyword-specific payload.
+ */
+export interface KeywordAdapterSyncState extends AdapterSyncState {
+  /** Persisted keyword state for query-time reuse */
+  persistedState?: {
+    tokens: string[];
+    fieldTokens: {
+      shortcut: string[];
+      detail: string[];
+      labels: string[];
+    };
+  };
+}
+
+/**
  * Complete index state record persisted on KnowledgeRecord.
  */
 export interface KnowledgeIndexStateRecord {
@@ -89,6 +105,8 @@ export interface IndexSyncResult {
   error: string | null;
   /** Whether the adapter actually performed work (false if skipped due to no change) */
   performedWork: boolean;
+  /** Optional payload data (e.g., vector for embedding cache) */
+  payload?: unknown;
 }
 
 /**

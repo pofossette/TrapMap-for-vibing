@@ -89,6 +89,8 @@ export async function runKnowledgeIndexEvent(args: {
             ),
           );
           entry.indexState = null;
+          // Also clear embedding cache when index is removed (IDX-06)
+          entry.embeddingCache = null;
         }
         break;
 

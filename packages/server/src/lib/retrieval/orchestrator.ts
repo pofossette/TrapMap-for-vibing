@@ -16,7 +16,16 @@ import { keywordRecall, normalizeQuery } from './recall/keyword.js';
 import { graphAssistedRecall as graphRecall } from './recall/graph-assisted.js';
 import { buildEmbeddingText, cosineSimilarity, computeScore, getEntryEmbedding as semanticGetEntryEmbedding, getQueryEmbedding } from './recall/semantic.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
+import { buildCitations } from './citations.js';
+import { buildSummary } from './summary.js';
 import type { MergedCandidate, RetrievalPipelineContext, ScoredEntry } from './types.js';
+
+/**
+ * Graph score boost factor for graph-assisted retrieval.
+ * When a candidate is found via graph relationships, its score is boosted
+ * by this fraction of the graph score to account for relationship relevance.
+ */
+const GRAPH_SCORE_BOOST_FACTOR = 0.2;
 
 /**
  * Main retrieval pipeline orchestrator.
@@ -25,7 +34,8 @@ import type { MergedCandidate, RetrievalPipelineContext, ScoredEntry } from './t
  * 1. Eligibility filtering (approval, team, level, metadata)
  * 2. Mode dispatch (semantic, hybrid, graph-assisted)
  * 3. Response assembly (bucket split and output shaping)
- * 4. Optional refinement (if requested and provider configured)
+ * 4. Optional summary generation (if requested and citations available)
+ * 5. Optional refinement (if requested and provider configured)
  *
  * Query modes:
  * - semantic: embedding-based retrieval (default)
@@ -56,17 +66,39 @@ export async function searchKnowledge(
   }
 
   // Dispatch based on query mode
-  const topMatches = await dispatchByMode(parsed.mode, parsed.seed, eligibleEntries, parsed);
+  const { scoredEntries, mergedCandidates } = await dispatchByMode(parsed.mode, parsed.seed, eligibleEntries, parsed);
 
-  // Assemble response buckets
-  const { globalConstraints, projectKnowledge } = assembleResponseBuckets(topMatches, parsed.filters);
+  // Build citations from merged candidates (if available)
+  const citations = mergedCandidates
+    ? new Map(buildCitations(mergedCandidates).map((c) => [c.source.entryId, c]))
+    : undefined;
+
+  // Assemble response buckets with citations
+  const { globalConstraints, projectKnowledge } = assembleResponseBuckets(scoredEntries, parsed.filters, citations);
+
+  // Generate summary if requested and citations are available
+  // Summary only works when we have citations (hybrid or graph-assisted modes)
+  const allMatches = [...globalConstraints, ...projectKnowledge];
+  const summaryCitations = citations ? Array.from(citations.values()) : undefined;
+  const summary = parsed.includeSummary && summaryCitations && summaryCitations.length > 0
+    ? buildSummary({
+        query: parsed.seed,
+        includeSummary: true,
+        hits: allMatches.map((m) => ({
+          shortcut: m.shortcut,
+          detail: m.detail,
+          labels: m.labels,
+        })),
+        citations: summaryCitations,
+      })
+    : null;
 
   // Generate refinement summary if requested and available
   const refinementSummary = parsed.includeRefinement
     ? await generateRefinement(parsed.seed, globalConstraints, projectKnowledge)
     : null;
 
-  return buildRetrievalResponse(globalConstraints, projectKnowledge, refinementSummary);
+  return buildRetrievalResponse(globalConstraints, projectKnowledge, refinementSummary, summary);
 }
 
 /**
@@ -76,14 +108,14 @@ export async function searchKnowledge(
  * @param seed - Search query text
  * @param eligibleEntries - Entries that passed eligibility filters
  * @param parsed - Parsed retrieval query
- * @returns Scored entries sorted by relevance
+ * @returns Scored entries sorted by relevance, plus merged candidates for citations
  */
 async function dispatchByMode(
   mode: string,
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
-): Promise<ScoredEntry[]> {
+): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates?: MergedCandidate[] }> {
   switch (mode) {
     case 'semantic':
       return await semanticRecall(seed, eligibleEntries, parsed);
@@ -114,25 +146,31 @@ async function semanticRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
-): Promise<ScoredEntry[]> {
+): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates?: MergedCandidate[] }> {
   // Generate query embedding
   const queryVector = await getQueryEmbedding(seed);
 
-  // Compute embeddings and scores for all eligible entries
-  const scoredEntries = await Promise.all(
+  // Compute embeddings and scores for all eligible entries with graceful error handling
+  const scoredEntries = (await Promise.all(
     eligibleEntries.map(async (entry) => {
-      const entryVector = await semanticGetEntryEmbedding(entry);
-      const similarity = cosineSimilarity(queryVector, entryVector);
-      const score = computeScore(similarity, entry, parsed.filters);
-      return { entry, score };
+      try {
+        const entryVector = await semanticGetEntryEmbedding(entry);
+        const similarity = cosineSimilarity(queryVector, entryVector);
+        const score = computeScore(similarity, entry, parsed.filters);
+        return { entry, score };
+      } catch (error) {
+        // Log error and skip this entry - graceful degradation
+        console.error(`Failed to get embedding for entry ${entry.id}:`, error);
+        return null;
+      }
     }),
-  );
+  )).filter((result): result is { entry: KnowledgeRecord; score: number } => result !== null);
 
   // Sort by score descending
   scoredEntries.sort((a, b) => b.score - a.score);
 
   // Take top maxResults
-  return scoredEntries.slice(0, parsed.maxResults);
+  return { scoredEntries: scoredEntries.slice(0, parsed.maxResults) };
 }
 
 /**
@@ -147,13 +185,13 @@ async function semanticRecall(
  * @param seed - Search query text
  * @param eligibleEntries - Entries that passed eligibility filters
  * @param parsed - Parsed retrieval query
- * @returns Scored entries sorted by combined relevance
+ * @returns Scored entries sorted by combined relevance, plus merged candidates for citations
  */
 async function hybridRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
-): Promise<ScoredEntry[]> {
+): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates: MergedCandidate[] }> {
   // Normalize query tokens for rerank stage
   const queryTokens = normalizeQuery(seed);
 
@@ -174,7 +212,9 @@ async function hybridRecall(
   });
 
   // Convert to scored entries for assembly
-  return toScoredEntriesFromReranked(rerankedCandidates);
+  const scoredEntries = toScoredEntriesFromReranked(rerankedCandidates);
+
+  return { scoredEntries, mergedCandidates: rerankedCandidates };
 }
 
 /**
@@ -193,14 +233,21 @@ async function computeSemanticCandidates(
 ): Promise<ReturnType<typeof createSemanticCandidate>[]> {
   const queryVector = await getQueryEmbedding(seed);
 
-  const candidates = await Promise.all(
+  // Compute candidates with graceful error handling for embedding failures
+  const candidates = (await Promise.all(
     eligibleEntries.map(async (entry) => {
-      const entryVector = await semanticGetEntryEmbedding(entry);
-      const similarity = cosineSimilarity(queryVector, entryVector);
-      const score = computeScore(similarity, entry, filters);
-      return createSemanticCandidate(entry, score);
+      try {
+        const entryVector = await semanticGetEntryEmbedding(entry);
+        const similarity = cosineSimilarity(queryVector, entryVector);
+        const score = computeScore(similarity, entry, filters);
+        return createSemanticCandidate(entry, score);
+      } catch (error) {
+        // Log error and skip this entry - graceful degradation
+        console.error(`Failed to get embedding for entry ${entry.id}:`, error);
+        return null;
+      }
     }),
-  );
+  )).filter((result): result is NonNullable<ReturnType<typeof createSemanticCandidate>> => result !== null);
 
   // Sort by score descending for deterministic ordering
   candidates.sort((a, b) => b.score - a.score);
@@ -221,13 +268,13 @@ async function computeSemanticCandidates(
  * @param seed - Search query text
  * @param eligibleEntries - Entries that passed eligibility filters
  * @param parsed - Parsed retrieval query
- * @returns Scored entries sorted by combined relevance
+ * @returns Scored entries sorted by combined relevance, plus merged candidates for citations
  */
 async function graphAssistedRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
-): Promise<ScoredEntry[]> {
+): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates: MergedCandidate[] }> {
   // Normalize query tokens for rerank stage
   const queryTokens = normalizeQuery(seed);
 
@@ -260,7 +307,9 @@ async function graphAssistedRecall(
   });
 
   // Convert to scored entries for assembly
-  return toScoredEntriesFromReranked(rerankedCandidates);
+  const scoredEntries = toScoredEntriesFromReranked(rerankedCandidates);
+
+  return { scoredEntries, mergedCandidates: rerankedCandidates };
 }
 
 /**
@@ -282,20 +331,28 @@ function mergeCandidatesWithGraph(
 
     if (existing) {
       // Entry exists from hybrid - add graph evidence
+      // Note: existing is guaranteed non-null by the if-check above (CR-02)
       existing.channels.push('graph');
       existing.graphScore = graphCandidate.score;
-      // Boost combined score based on graph evidence
-      existing.combinedScore = Math.min(1, existing.combinedScore + graphCandidate.score * 0.2);
+      // Preserve pre-rerank score and boost final score based on graph evidence
+      const preRerankScore = existing.combinedScore;
+      const finalScore = Math.min(1, preRerankScore + graphCandidate.score * GRAPH_SCORE_BOOST_FACTOR);
+      existing.combinedScore = finalScore;
+      existing.preRerankScore = preRerankScore;
+      existing.finalScore = finalScore;
     } else {
       // Entry only from graph channel
+      const score = graphCandidate.score;
       result.push({
         entry: graphCandidate.entry,
         semanticScore: 0,
         keywordScore: 0,
         graphScore: graphCandidate.score,
-        combinedScore: graphCandidate.score,
+        combinedScore: score,
         tokenMatches: [],
         channels: ['graph'],
+        preRerankScore: score,
+        finalScore: score,
       });
     }
   }

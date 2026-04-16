@@ -75,7 +75,9 @@ export function rerankCandidates(
 
   // Calculate rerank scores
   const reranked = mergedCandidates.map((candidate) => {
-    let finalScore = candidate.combinedScore;
+    // Preserve pre-rerank score for audit trail
+    const preRerankScore = candidate.combinedScore;
+    let finalScore = preRerankScore;
 
     // Boost for cross-channel agreement
     if (hasBothChannels(candidate)) {
@@ -97,6 +99,8 @@ export function rerankCandidates(
     return {
       ...candidate,
       combinedScore: finalScore,
+      preRerankScore,
+      finalScore,
     };
   });
 
