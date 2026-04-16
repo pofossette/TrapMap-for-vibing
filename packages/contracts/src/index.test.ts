@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  artifactBundleSchema,
+  artifactFilePayloadRecordSchema,
+  artifactImportRequestSchema,
+  artifactImportResponseSchema,
+  bundleFilePayloadSchema,
+  bundleScriptDescriptorSchema,
+  canonicalPathSchema,
   knowledgeEntrySchema,
   knowledgeSubmissionSchema,
   loginRequestSchema,
@@ -17,6 +24,8 @@ import {
   skillProfileSchema,
   skillCapsuleSchema,
   clientManifestSchema,
+  validateRelativePath,
+  PathValidationError,
 } from './index.js';
 
 describe('contracts package', () => {
@@ -954,6 +963,406 @@ describe('contracts package', () => {
           // only SKILL.md and references/ contribute to capsules
           expect(capsuleWithTextContent.content).toBe(' distilled troubleshooting steps for container issues');
         });
+      });
+    });
+  });
+
+  describe('Phase 13: Artifact Import/Export Contracts (IMEX-01, IMEX-04, COMP-01)', () => {
+    describe('Bundle file payload (IMEX-01)', () => {
+      it('accepts canonical file payload with inline content', () => {
+        const payload = {
+          path: 'references/docker.md',
+          kind: 'reference' as const,
+          sha256: 'a'.repeat(64),
+          sizeBytes: 1024,
+          mediaType: 'text/markdown',
+          source: 'references/' as const,
+          includeInDerivation: true,
+          activationOnly: false,
+          content: 'SGVsbG8gV29ybGQ=', // base64 "Hello World"
+        };
+
+        // The schema accepts either base64 string or UTF-8 text
+        expect(() =>
+          bundleFilePayloadSchema.parse({
+            ...payload,
+            content: 'Hello World', // UTF-8 text
+          }),
+        ).not.toThrow();
+
+        expect(() => bundleFilePayloadSchema.parse(payload)).not.toThrow();
+      });
+
+      it('requires path, kind, sha256, sizeBytes, mediaType, source, and content', () => {
+        const minimalPayload = {
+          path: 'SKILL.md',
+          kind: 'skill-markdown' as const,
+          sha256: 'b'.repeat(64),
+          sizeBytes: 512,
+          mediaType: 'text/markdown',
+          source: 'SKILL.md' as const,
+          includeInDerivation: true,
+          activationOnly: false,
+          content: 'Test content',
+        };
+
+        const parsed = bundleFilePayloadSchema.parse(minimalPayload);
+        expect(parsed.path).toBe('SKILL.md');
+        expect(parsed.kind).toBe('skill-markdown');
+      });
+
+      it('rejects empty or invalid SHA-256 hashes', () => {
+        const invalidPayload = {
+          path: 'test.md',
+          kind: 'reference' as const,
+          sha256: 'not-a-hash',
+          sizeBytes: 100,
+          mediaType: 'text/markdown',
+          source: 'references/' as const,
+          includeInDerivation: true,
+          activationOnly: false,
+          content: 'test',
+        };
+
+        expect(() => bundleFilePayloadSchema.parse(invalidPayload)).toThrow();
+      });
+
+      it('rejects negative or non-integer file sizes', () => {
+        const invalidPayload = {
+          path: 'test.md',
+          kind: 'reference' as const,
+          sha256: 'c'.repeat(64),
+          sizeBytes: -1,
+          mediaType: 'text/markdown',
+          source: 'references/' as const,
+          includeInDerivation: true,
+          activationOnly: false,
+          content: 'test',
+        };
+
+        expect(() => bundleFilePayloadSchema.parse(invalidPayload)).toThrow();
+      });
+    });
+
+    describe('Script descriptors (IMEX-04)', () => {
+      it('accepts script descriptor with capability metadata', () => {
+        const descriptor = {
+          path: 'scripts/setup.sh',
+          sha256: 'd'.repeat(64),
+          capability: 'Docker environment setup',
+          argsSchemaSummary: '{ env: string, projectName: string }',
+          sideEffectSummary: 'Creates docker-compose.yml and .env file',
+          defaultPolicy: 'manual' as const,
+        };
+
+        const parsed = bundleScriptDescriptorSchema.parse(descriptor);
+        expect(parsed.capability).toBe('Docker environment setup');
+        expect(parsed.defaultPolicy).toBe('manual');
+      });
+
+      it('requires path, sha256, capability, and defaultPolicy', () => {
+        const minimalDescriptor = {
+          path: 'scripts/deploy.sh',
+          sha256: 'e'.repeat(64),
+          capability: 'Deploy containers',
+          defaultPolicy: 'auto' as const,
+        };
+
+        const parsed = bundleScriptDescriptorSchema.parse(minimalDescriptor);
+        expect(parsed.capability).toBe('Deploy containers');
+        expect(parsed.argsSchemaSummary).toBe(''); // default
+        expect(parsed.sideEffectSummary).toBe(''); // default
+      });
+
+      it('rejects invalid default policies', () => {
+        const invalidDescriptor = {
+          path: 'scripts/test.sh',
+          sha256: 'f'.repeat(64),
+          capability: 'Test',
+          defaultPolicy: 'invalid',
+        };
+
+        expect(() => bundleScriptDescriptorSchema.parse(invalidDescriptor)).toThrow();
+      });
+    });
+
+    describe('Artifact bundle (IMEX-01, IMEX-04)', () => {
+      it('accepts canonical artifact bundle with governance fields and files', () => {
+        const bundle = {
+          scope: 'project' as const,
+          labels: ['docker', 'deployment'],
+          title: 'Docker Deployment Skills',
+          slug: 'docker-deployment',
+          requiredLevel: 3,
+          sourceKind: 'skill-directory' as const,
+          files: [
+            {
+              path: 'SKILL.md',
+              kind: 'skill-markdown' as const,
+              sha256: 'g'.repeat(64),
+              sizeBytes: 1024,
+              mediaType: 'text/markdown',
+              source: 'SKILL.md' as const,
+              includeInDerivation: true,
+              activationOnly: false,
+              content: '# Docker Deployment\n\nBest practices...',
+            },
+            {
+              path: 'references/docker-compose.md',
+              kind: 'reference' as const,
+              sha256: 'h'.repeat(64),
+              sizeBytes: 2048,
+              mediaType: 'text/markdown',
+              source: 'references/' as const,
+              includeInDerivation: true,
+              activationOnly: false,
+              content: 'Compose reference...',
+            },
+            {
+              path: 'assets/docker-compose.yml',
+              kind: 'asset' as const,
+              sha256: 'i'.repeat(64),
+              sizeBytes: 512,
+              mediaType: 'text/x-yaml',
+              source: 'assets/' as const,
+              includeInDerivation: false,
+              activationOnly: true,
+              content: 'version: "3.8"\n...',
+            },
+          ],
+          scriptDescriptors: [
+            {
+              path: 'scripts/setup.sh',
+              sha256: 'j'.repeat(64),
+              capability: 'Initialize Docker environment',
+              argsSchemaSummary: '--env, --force',
+              sideEffectSummary: 'Creates Docker network and volumes',
+              defaultPolicy: 'manual' as const,
+            },
+          ],
+        };
+
+        const parsed = artifactBundleSchema.parse(bundle);
+        expect(parsed.scope).toBe('project');
+        expect(parsed.files).toHaveLength(3);
+        expect(parsed.scriptDescriptors).toHaveLength(1);
+      });
+
+      it('requires at least one file in the bundle', () => {
+        const invalidBundle = {
+          scope: 'global' as const,
+          labels: ['test'],
+          title: 'Test',
+          slug: 'test',
+          requiredLevel: 0,
+          sourceKind: 'skill-directory' as const,
+          files: [],
+          scriptDescriptors: [],
+        };
+
+        expect(() => artifactBundleSchema.parse(invalidBundle)).toThrow();
+      });
+
+      it('accepts minimal bundle with only SKILL.md', () => {
+        const minimalBundle = {
+          scope: 'global' as const,
+          labels: ['test'],
+          title: 'Test Skill',
+          slug: 'test-skill',
+          requiredLevel: 0,
+          sourceKind: 'single-skill-md' as const,
+          files: [
+            {
+              path: 'SKILL.md',
+              kind: 'skill-markdown' as const,
+              sha256: 'k'.repeat(64),
+              sizeBytes: 100,
+              mediaType: 'text/markdown',
+              source: 'SKILL.md' as const,
+              includeInDerivation: true,
+              activationOnly: false,
+              content: '# Test',
+            },
+          ],
+          scriptDescriptors: [],
+        };
+
+        const parsed = artifactBundleSchema.parse(minimalBundle);
+        expect(parsed.sourceKind).toBe('single-skill-md');
+        expect(parsed.files).toHaveLength(1);
+      });
+    });
+
+    describe('Artifact import request/response (IMEX-01, COMP-01)', () => {
+      it('accepts artifact-native import request with one or more bundles', () => {
+        const request = {
+          bundles: [
+            {
+              scope: 'project' as const,
+              labels: ['docker'],
+              title: 'Docker Skills',
+              slug: 'docker-skills',
+              requiredLevel: 2,
+              sourceKind: 'skill-directory' as const,
+              files: [
+                {
+                  path: 'SKILL.md',
+                  kind: 'skill-markdown' as const,
+                  sha256: 'l'.repeat(64),
+                  sizeBytes: 500,
+                  mediaType: 'text/markdown',
+                  source: 'SKILL.md' as const,
+                  includeInDerivation: true,
+                  activationOnly: false,
+                  content: '# Docker',
+                },
+              ],
+              scriptDescriptors: [],
+            },
+          ],
+        };
+
+        const parsed = artifactImportRequestSchema.parse(request);
+        expect(parsed.bundles).toHaveLength(1);
+      });
+
+      it('requires at least one bundle in import request', () => {
+        const invalidRequest = {
+          bundles: [],
+        };
+
+        expect(() => artifactImportRequestSchema.parse(invalidRequest)).toThrow();
+      });
+
+      it('parses artifact import response with per-bundle results', () => {
+        const response = {
+          results: [
+            {
+              success: true,
+              artifactId: 'artifact_1',
+              title: 'Docker Skills',
+              error: null,
+              sourceKind: 'skill-directory' as const,
+            },
+            {
+              success: false,
+              artifactId: null,
+              title: null,
+              error: 'Invalid file path',
+              sourceKind: null,
+            },
+          ],
+          importedCount: 1,
+          failedCount: 1,
+        };
+
+        const parsed = artifactImportResponseSchema.parse(response);
+        expect(parsed.results).toHaveLength(2);
+        expect(parsed.importedCount).toBe(1);
+        expect(parsed.failedCount).toBe(1);
+      });
+    });
+
+    describe('Path validation security (T-13-01 mitigation)', () => {
+      it('accepts valid relative paths', () => {
+        const validPaths = [
+          'SKILL.md',
+          'references/docker.md',
+          'assets/images/logo.png',
+          'scripts/setup.sh',
+          'deep/nested/path/file.txt',
+        ];
+
+        for (const path of validPaths) {
+          expect(() => validateRelativePath(path)).not.toThrow();
+        }
+      });
+
+      it('rejects absolute Unix paths', () => {
+        const absolutePaths = ['/etc/passwd', '/usr/local/bin', '/root/.ssh'];
+
+        for (const path of absolutePaths) {
+          expect(() => validateRelativePath(path)).toThrow(PathValidationError.ABSOLUTE_PATH);
+        }
+      });
+
+      it('rejects parent traversal sequences', () => {
+        const traversalPaths = [
+          '../../etc/passwd',
+          '../references/escape.md',
+          'scripts/../../../etc/shadow',
+          './../escape',
+        ];
+
+        for (const path of traversalPaths) {
+          expect(() => validateRelativePath(path)).toThrow(PathValidationError.PARENT_TRAVERSAL);
+        }
+      });
+
+      it('rejects Windows absolute paths and drive letters', () => {
+        const windowsPaths = [
+          'C:\\Windows\\System32',
+          'D:\\data\\file.txt',
+          'C:/Windows/System32',
+          'C:file.txt',
+        ];
+
+        for (const path of windowsPaths) {
+          expect(() => validateRelativePath(path)).toThrow();
+        }
+      });
+
+      it('rejects empty paths', () => {
+        expect(() => validateRelativePath('')).toThrow(PathValidationError.EMPTY_PATH);
+        expect(() => validateRelativePath('   ')).toThrow(PathValidationError.EMPTY_PATH);
+      });
+
+      it('canonicalPathSchema enforces path validation at schema boundary', () => {
+        // Valid paths should parse
+        expect(() => canonicalPathSchema.parse('references/docker.md')).not.toThrow();
+        expect(() => canonicalPathSchema.parse('SKILL.md')).not.toThrow();
+
+        // Invalid paths should be rejected by the schema
+        expect(() => canonicalPathSchema.parse('/etc/passwd')).toThrow();
+        expect(() => canonicalPathSchema.parse('../../escape')).toThrow();
+        expect(() => canonicalPathSchema.parse('C:\\Windows\\System32')).toThrow();
+        expect(() => canonicalPathSchema.parse('')).toThrow();
+      });
+    });
+
+    describe('File payload storage record (IMEX-04)', () => {
+      it('accepts file payload storage record for additive storage', () => {
+        const record = {
+          artifactId: 'artifact_1',
+          revision: 1,
+          path: 'references/docker.md',
+          sha256: 'm'.repeat(64),
+          sizeBytes: 1024,
+          mediaType: 'text/markdown',
+          content: 'SGVsbG8=', // base64
+          storedAt: '2026-04-16T12:00:00.000Z',
+        };
+
+        const parsed = artifactFilePayloadRecordSchema.parse(record);
+        expect(parsed.artifactId).toBe('artifact_1');
+        expect(parsed.revision).toBe(1);
+        expect(parsed.storedAt).toBeDefined();
+      });
+
+      it('requires artifactId, revision, path, sha256, sizeBytes, mediaType, content, and storedAt', () => {
+        const minimalRecord = {
+          artifactId: 'artifact_1',
+          revision: 1,
+          path: 'SKILL.md',
+          sha256: 'n'.repeat(64),
+          sizeBytes: 100,
+          mediaType: 'text/markdown',
+          content: 'test',
+          storedAt: '2026-04-16T12:00:00.000Z',
+        };
+
+        const parsed = artifactFilePayloadRecordSchema.parse(minimalRecord);
+        expect(parsed.artifactId).toBe('artifact_1');
       });
     });
   });

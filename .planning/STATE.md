@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Skill-Native Retrieval
-status: Defining requirements and roadmap for v1.2
+status: executing
 stopped_at: Milestone v1.2 definition complete
-last_updated: "2026-04-16T10:22:42.889Z"
-last_activity: 2026-04-16
+last_updated: "2026-04-16T11:06:44.753Z"
+last_activity: 2026-04-16 -- Phase 13 execution started
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 3
+  total_plans: 6
   completed_plans: 3
-  percent: 100
+  percent: 50
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake
-**Current focus:** v1.2 requirements and roadmap definition
+**Current focus:** Phase 13 — skill-import-export-pipeline
 
 ## Current Position
 
-Phase: 13
-Plan: Not started
-Status: Defining requirements and roadmap for v1.2
-Last activity: 2026-04-16
+Phase: 13 (skill-import-export-pipeline) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 13
+Last activity: 2026-04-16 -- Phase 13 execution started
 
 ## Performance Metrics
 
