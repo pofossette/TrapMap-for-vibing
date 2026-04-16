@@ -65,7 +65,7 @@
 | 10. 回答与引用 | v1.1 | 4/4 | Complete | 2026-04-15 |
 | 11. 索引生命周期集成 | v1.1 | 2/2 | Complete | 2026-04-15 |
 | 12. Skill Artifact Canonical Model | v1.2 | 3/3 | Complete    | 2026-04-16 |
-| 13. Skill Import/Export Pipeline | v1.2 | 0/3 | Planned | — |
+| 13. Skill Import/Export Pipeline | v1.2 | 3/3 | Complete    | 2026-04-16 |
 | 14. Seed Intent Retrieval and Capsule Ranking | v1.2 | 0/4 | Planned | — |
 | 15. Client Activation for References, Assets, and Scripts | v1.2 | 0/3 | Planned | — |
 | 16. Compatibility Migration and Boundary Hardening | v1.2 | 0/3 | Planned | — |
@@ -108,11 +108,11 @@ Phase 11 (索引生命周期集成) ✅ ← gap closure for Phase 08
 
 **Goal:** 让导入导出以 skill 目录为主，而不是压平 `SKILL.md`
 **Depends on:** Phase 12
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
-- [ ] 13-01: Directory import path for canonical skill artifacts (IMEX-01, IMEX-04)
-- [ ] 13-02: Compatibility import for single `SKILL.md` with auto-wrap (IMEX-03)
-- [ ] 13-03: Export endpoints and CLI flows for skill-dir / distilled-json / bundle-json (IMEX-02, COMP-01)
+- [x] 13-01: Directory import path for canonical skill artifacts (IMEX-01, IMEX-04)
+- [x] 13-02: Compatibility import for single `SKILL.md` with auto-wrap (IMEX-03)
+- [x] 13-03: Export endpoints and CLI flows for skill-dir / distilled-json / bundle-json (IMEX-02, COMP-01)
 
 ### Phase 14: Seed Intent Retrieval and Capsule Ranking
 
