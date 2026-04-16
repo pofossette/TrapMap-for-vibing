@@ -109,3 +109,86 @@ export interface MergedCandidate {
   /** Final score after reranking (same as combinedScore if no rerank applied) */
   finalScore: number;
 }
+
+// =============================================================================
+// Phase 14: Seed Intent Parsing and Capsule Retrieval Types (RETR-02)
+// Internal types for server-side intent decomposition and capsule ranking.
+// These are NOT exported through contracts - server-internal only per RETR-02.
+// =============================================================================
+
+/**
+ * Normalized token extracted from a seed string.
+ * Used for deterministic intent parsing without external model dependencies.
+ */
+export interface NormalizedToken {
+  /** The normalized token text */
+  token: string;
+  /** Original form before normalization */
+  original: string;
+  /** Whether this token appears to be a technical term */
+  isTechnical: boolean;
+}
+
+/**
+ * Stack or path hint extracted from seed.
+ * Indicates technology stack, file paths, or domain context.
+ */
+export interface StackPathHint {
+  /** The extracted hint text */
+  hint: string;
+  /** Type classification */
+  kind: 'stack' | 'path' | 'domain';
+  /** Confidence level for this extraction */
+  confidence: number;
+}
+
+/**
+ * Parsed intent from a natural-language seed (RETR-02).
+ * Server-internal decomposition of seed into structured fields for capsule ranking.
+ * NOT part of the client contract - derived internally per RETR-02.
+ */
+export interface ParsedIntent {
+  /** Original seed string */
+  seed: string;
+  /** Normalized seed text for matching */
+  normalized: string;
+  /** Extracted situation context (e.g., "deploying containers") */
+  situation: string | null;
+  /** Extracted problem statement (e.g., "permission denied error") */
+  problem: string | null;
+  /** Extracted goal or intent (e.g., "fix permissions") */
+  goal: string | null;
+  /** Extracted error text if seed contains error message */
+  errorText: string | null;
+  /** Normalized tokens for keyword matching */
+  tokens: NormalizedToken[];
+  /** Stack and path hints for ranking boosts */
+  stackPathHints: StackPathHint[];
+}
+
+/**
+ * Capsule candidate with scoring breakdown.
+ * Used internally for capsule-level ranking before response assembly.
+ */
+export interface CapsuleCandidate {
+  /** Capsule identifier */
+  capsuleId: string;
+  /** Parent artifact identifier */
+  artifactId: string;
+  /** Revision number */
+  revision: number;
+  /** Situation match score [0, 1] */
+  situationScore: number;
+  /** Problem match score [0, 1] */
+  problemScore: number;
+  /** Goal match score [0, 1] */
+  goalScore: number;
+  /** Error text match score [0, 1] if applicable */
+  errorScore: number | null;
+  /** Stack/path boost factor */
+  stackPathBoost: number;
+  /** Combined final score after all factors */
+  finalScore: number;
+  /** Reason string for the match */
+  reason: string;
+}
