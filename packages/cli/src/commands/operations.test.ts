@@ -88,24 +88,6 @@ describe('CLI operations commands (Phase 13)', () => {
       await mkdir(join(testDir, 'scripts'), { recursive: true });
       await writeFile(join(testDir, 'scripts/setup.sh'), '#!/bin/bash\necho "setup"');
 
-      // Mock successful API response
-      vi.mocked(apiRequest).mockResolvedValue({
-        data: {
-          results: [
-            {
-              success: true,
-              artifactId: 'artifact_1',
-              title: 'Test Skill',
-              error: null,
-              sourceKind: 'skill-directory',
-            },
-          ],
-          importedCount: 1,
-          failedCount: 0,
-        },
-        sessionToken: 'test-token',
-      } as any);
-
       // Execute import command
       await program.parseAsync(['node', 'test', 'import', '--file', testDir, '--level', '3']);
 
