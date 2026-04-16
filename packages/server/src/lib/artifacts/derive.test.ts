@@ -17,12 +17,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type {
+  ArtifactFilePayloadRecord,
   JsonStore,
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
 } from '../store.js';
 import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
-import { deriveSkillArtifactOutputs } from './derive.js';
+import { deriveSkillArtifactOutputs, deriveFromPayloads } from './derive.js';
 import { applyDerivedArtifactOutputs } from './model.js';
 
 describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
@@ -441,6 +442,307 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
       expect(updatedArtifact.latestRevision.derived?.clientManifest?.artifactId).toBe(
         artifact.id,
       );
+    });
+  });
+});
+
+// =============================================================================
+// Phase 14 Task 1: Retrieval-grade derivation from actual file content
+// Tests that derived profile and capsule content is built from SKILL.md and
+// reference text, not just title/labels placeholders.
+// =============================================================================
+
+describe('retrieval-grade derivation (RETR-03, CAPS-04, Phase 14 Task 1)', () => {
+  let store: JsonStore;
+  let storeData: any;
+  const userId = 'user_1';
+  const teamId = 'team_1';
+  const createdAt = nowIso();
+
+  // Sample file content for testing derivation
+  const skillMdContent = `---
+title: Docker Node Version Mismatch
+labels:
+  - docker
+  - node
+  - version
+---
+
+# Docker Node Version Mismatch
+
+## Situation
+When deploying containers with a Node.js application, the Node version in the
+container may not match the version expected by the application.
+
+## Problem
+The application fails with "syntax error" or "unexpected token" because the
+container's Node version is older than the version used during development.
+
+## Goal
+Ensure the Dockerfile specifies an explicit Node version tag instead of using
+:latest to prevent runtime version mismatches.
+`;
+
+  const reference1Content = `# Docker Version Pinning
+
+Always pin your Node.js version in Dockerfile:
+
+\`\`\`dockerfile
+FROM node:20.11.1-alpine
+\`\`\`
+
+Never use :latest as it can introduce unexpected breaking changes.
+`;
+
+  const reference2Content = `# Common Node Version Errors
+
+If you see "unexpected token" errors in production but not development, check
+your Node version with:
+
+\`\`\`bash
+node --version
+docker exec <container> node --version
+\`\`\`
+
+The versions must match exactly for consistent behavior.
+`;
+
+  const assetContent = 'version: "3.8"\nservices:\n  app:\n    image: node:latest\n';
+  const scriptContent = '#!/bin/bash\necho "Setup script"\n';
+
+  beforeEach(async () => {
+    const testDataFile = `/tmp/skill-shareer-retrieval-derive-test-${Date.now()}-${Math.random()}.json`;
+    process.env.SKILL_SHAREER_DATA_FILE = testDataFile;
+    store = new JsonStoreClass(testDataFile);
+    storeData = await store.snapshot();
+    storeData.counters = { user: 1, team: 1, artifact: 0 };
+    storeData.users.push({
+      id: userId,
+      handle: 'skillowner',
+      notes: null,
+      createdAt,
+      updatedAt: createdAt,
+    });
+    storeData.teams.push({
+      id: teamId,
+      name: 'Test Team',
+      slug: 'test-team',
+      description: 'Test team for derivation',
+      createdAt,
+      updatedAt: createdAt,
+    });
+    storeData.memberships.push({
+      id: store.nextId(storeData, 'membership'),
+      userId,
+      teamId,
+      roleTemplate: 'user',
+      securityLevel: 3,
+      permissions: ['knowledge:read', 'knowledge:write'],
+      notes: null,
+      createdAt,
+      updatedAt: createdAt,
+    });
+  });
+
+  describe('deriveFromPayloads() with actual file content', () => {
+    it('should build profile summary from SKILL.md and reference text content', async () => {
+      // Create artifact with file payloads
+      const artifactId = store.nextId(storeData, 'artifact');
+      const filePayloads: ArtifactFilePayloadRecord[] = [
+        {
+          artifactId,
+          revision: 1,
+          path: 'SKILL.md',
+          sha256: 'a'.repeat(64),
+          sizeBytes: skillMdContent.length,
+          mediaType: 'text/markdown',
+          content: skillMdContent,
+          storedAt: createdAt,
+        },
+        {
+          artifactId,
+          revision: 1,
+          path: 'references/docker-version.md',
+          sha256: 'b'.repeat(64),
+          sizeBytes: reference1Content.length,
+          mediaType: 'text/markdown',
+          content: reference1Content,
+          storedAt: createdAt,
+        },
+        {
+          artifactId,
+          revision: 1,
+          path: 'references/node-errors.md',
+          sha256: 'c'.repeat(64),
+          sizeBytes: reference2Content.length,
+          mediaType: 'text/markdown',
+          content: reference2Content,
+          storedAt: createdAt,
+        },
+        // Asset and script should be excluded from derivation
+        {
+          artifactId,
+          revision: 1,
+          path: 'assets/docker-compose.yml',
+          sha256: 'd'.repeat(64),
+          sizeBytes: assetContent.length,
+          mediaType: 'text/yaml',
+          content: assetContent,
+          storedAt: createdAt,
+        },
+        {
+          artifactId,
+          revision: 1,
+          path: 'scripts/setup.sh',
+          sha256: 'e'.repeat(64),
+          sizeBytes: scriptContent.length,
+          mediaType: 'text/x-shellscript',
+          content: scriptContent,
+          storedAt: createdAt,
+        },
+      ];
+
+      // Derive from payloads
+      const derived = deriveFromPayloads(filePayloads, {
+        artifactId,
+        labels: ['docker', 'node', 'version'],
+        title: 'Docker Node Version Mismatch',
+        scope: 'project',
+        requiredLevel: 3,
+      });
+
+      // Profile should have meaningful summary, not just title placeholder
+      expect(derived.profile).toBeDefined();
+      expect(derived.profile?.summary).toBeDefined();
+      expect(derived.profile?.summary.length).toBeGreaterThan(10);
+      // Should contain words from actual content
+      expect(derived.profile?.summary.toLowerCase()).toMatch(/docker|node|version/);
+
+      // Keywords should be extracted from content
+      expect(derived.profile?.keywords.length).toBeGreaterThan(0);
+    });
+
+    it('should produce multiple capsules from meaningful text sections', async () => {
+      const artifactId = store.nextId(storeData, 'artifact');
+      const filePayloads: ArtifactFilePayloadRecord[] = [
+        {
+          artifactId,
+          revision: 1,
+          path: 'SKILL.md',
+          sha256: 'a'.repeat(64),
+          sizeBytes: skillMdContent.length,
+          mediaType: 'text/markdown',
+          content: skillMdContent,
+          storedAt: createdAt,
+        },
+        {
+          artifactId,
+          revision: 1,
+          path: 'references/docker-version.md',
+          sha256: 'b'.repeat(64),
+          sizeBytes: reference1Content.length,
+          mediaType: 'text/markdown',
+          content: reference1Content,
+          storedAt: createdAt,
+        },
+        {
+          artifactId,
+          revision: 1,
+          path: 'references/node-errors.md',
+          sha256: 'c'.repeat(64),
+          sizeBytes: reference2Content.length,
+          mediaType: 'text/markdown',
+          content: reference2Content,
+          storedAt: createdAt,
+        },
+      ];
+
+      const derived = deriveFromPayloads(filePayloads, {
+        artifactId,
+        labels: ['docker', 'node', 'version'],
+        title: 'Docker Node Version Mismatch',
+        scope: 'project',
+        requiredLevel: 3,
+      });
+
+      // Should produce at least one capsule from the content
+      expect(derived.capsules.length).toBeGreaterThanOrEqual(1);
+
+      // Each capsule should have meaningful content fields
+      for (const capsule of derived.capsules) {
+        expect(capsule.situation.length).toBeGreaterThan(5);
+        expect(capsule.problem.length).toBeGreaterThan(5);
+        expect(capsule.goal.length).toBeGreaterThan(5);
+        expect(capsule.content.length).toBeGreaterThan(10);
+
+        // Source paths should only reference derivation-eligible files
+        for (const path of capsule.sourcePaths) {
+          expect(path).not.toMatch(/^assets\//);
+          expect(path).not.toMatch(/^scripts\//);
+        }
+      }
+    });
+
+    it('should exclude assets and scripts from profile/capsule content', async () => {
+      const artifactId = store.nextId(storeData, 'artifact');
+      const filePayloads: ArtifactFilePayloadRecord[] = [
+        {
+          artifactId,
+          revision: 1,
+          path: 'SKILL.md',
+          sha256: 'a'.repeat(64),
+          sizeBytes: skillMdContent.length,
+          mediaType: 'text/markdown',
+          content: skillMdContent,
+          storedAt: createdAt,
+        },
+        {
+          artifactId,
+          revision: 1,
+          path: 'assets/docker-compose.yml',
+          sha256: 'd'.repeat(64),
+          sizeBytes: assetContent.length,
+          mediaType: 'text/yaml',
+          content: assetContent,
+          storedAt: createdAt,
+        },
+        {
+          artifactId,
+          revision: 1,
+          path: 'scripts/setup.sh',
+          sha256: 'e'.repeat(64),
+          sizeBytes: scriptContent.length,
+          mediaType: 'text/x-shellscript',
+          content: scriptContent,
+          storedAt: createdAt,
+        },
+      ];
+
+      const derived = deriveFromPayloads(filePayloads, {
+        artifactId,
+        labels: ['docker', 'node'],
+        title: 'Test Artifact',
+        scope: 'project',
+        requiredLevel: 3,
+      });
+
+      // Profile should not contain asset/script content
+      const profileContent = [
+        derived.profile?.summary,
+        ...(derived.profile?.keywords ?? []),
+      ].join(' ').toLowerCase();
+      expect(profileContent).not.toContain('setup script');
+      expect(profileContent).not.toContain('version: "3.8"');
+
+      // Capsules should not reference asset/script paths
+      for (const capsule of derived.capsules) {
+        for (const path of capsule.sourcePaths) {
+          expect(path).not.toMatch(/^assets\//);
+          expect(path).not.toMatch(/^scripts\//);
+        }
+        // Capsule content should not contain asset/script content
+        expect(capsule.content.toLowerCase()).not.toContain('setup script');
+      }
     });
   });
 });

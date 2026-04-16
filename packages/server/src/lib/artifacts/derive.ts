@@ -3,6 +3,7 @@
  *
  * This module provides:
  * - deriveSkillArtifactOutputs(): Deterministic derivation of profile, capsules, and client manifest
+ * - deriveFromPayloads(): Derivation from actual file content (Phase 14 Task 1)
  * - buildSkillProfile(): Distill profile from SKILL.md and references/
  * - buildSkillCapsules(): Generate knowledge capsules from derivation-eligible content
  * - buildClientManifest(): Assemble activation metadata for references, assets, and scripts
@@ -23,10 +24,12 @@ import type {
   DerivedSkillCapsuleRecord,
   DerivedSkillProfileRecord,
   SkillArtifactDerivedRecord,
+  SkillArtifactFileRecord,
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
   SkillScriptDescriptorRecord,
   StoreData,
+  ArtifactFilePayloadRecord,
 } from '../store.js';
 import { nowIso } from '../store.js';
 
@@ -364,4 +367,326 @@ export function applyDerivedArtifactOutputs(
   }
 
   return artifact;
+}
+
+// =============================================================================
+// Phase 14 Task 1: Retrieval-grade derivation from actual file content
+// These functions derive profile/capsule content from actual SKILL.md and reference
+// text, not just title/labels placeholders. (RETR-03, CAPS-04)
+// =============================================================================
+
+/**
+ * Context for derivation from file payloads.
+ */
+interface PayloadDerivationContext {
+  artifactId: string;
+  labels: string[];
+  title: string;
+  scope: 'global' | 'project';
+  requiredLevel: number;
+}
+
+/**
+ * Extract text content from file payloads for derivation.
+ * Only includes SKILL.md and references/ files (T-12-10).
+ *
+ * @param payloads - File payload records
+ * @returns Combined text content from derivation-eligible files
+ */
+function extractDerivationText(payloads: ArtifactFilePayloadRecord[]): string {
+  // Filter to derivation-eligible files (SKILL.md and references/)
+  const derivationEligible = payloads.filter((p) => {
+    const path = p.path;
+    return path === 'SKILL.md' || path.startsWith('references/');
+  });
+
+  // Sort by path for deterministic ordering
+  derivationEligible.sort((a, b) => a.path.localeCompare(b.path));
+
+  // Combine content
+  return derivationEligible.map((p) => p.content).join('\n\n');
+}
+
+/**
+ * Extract frontmatter metadata from SKILL.md content.
+ *
+ * @param content - SKILL.md content with optional frontmatter
+ * @returns Extracted title and labels
+ */
+function parseFrontmatter(content: string): { title: string | null; labels: string[] } {
+  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!frontmatterMatch) {
+    return { title: null, labels: [] };
+  }
+
+  const frontmatter = frontmatterMatch[1]!;
+  const titleMatch = frontmatter.match(/^title:\s*(.+)$/m);
+  const labelsMatch = frontmatter.match(/^labels:\s*\n((?:\s+-\s+.+\n?)+)/m);
+
+  const title = titleMatch?.[1]?.trim() ?? null;
+  const labels: string[] = [];
+
+  if (labelsMatch?.[1]) {
+    const labelLines = labelsMatch[1].split('\n');
+    for (const line of labelLines) {
+      const labelMatch = line.match(/^\s+-\s+(.+)$/);
+      if (labelMatch?.[1]) {
+        labels.push(labelMatch[1].trim());
+      }
+    }
+  }
+
+  return { title, labels };
+}
+
+/**
+ * Extract situation/problem/goal sections from SKILL.md content.
+ *
+ * @param content - SKILL.md content with sections
+ * @returns Extracted sections
+ */
+function extractSections(content: string): {
+  situation: string | null;
+  problem: string | null;
+  goal: string | null;
+} {
+  // Remove frontmatter
+  const body = content.replace(/^---\n[\s\S]*?\n---\n?/, '');
+
+  // Extract sections using markdown headers
+  const sectionPatterns = {
+    situation: /^##\s*Situation\s*\n([\s\S]*?)(?=\n##|\n#|$)/i,
+    problem: /^##\s*Problem\s*\n([\s\S]*?)(?=\n##|\n#|$)/i,
+    goal: /^##\s*Goal\s*\n([\s\S]*?)(?=\n##|\n#|$)/i,
+  };
+
+  const extractSection = (pattern: RegExp): string | null => {
+    const match = body.match(pattern);
+    if (!match) return null;
+    const text = match[1]!.trim();
+    // Truncate to max length for capsule fields
+    return text.length > 1000 ? text.slice(0, 997) + '...' : text;
+  };
+
+  return {
+    situation: extractSection(sectionPatterns.situation),
+    problem: extractSection(sectionPatterns.problem),
+    goal: extractSection(sectionPatterns.goal),
+  };
+}
+
+/**
+ * Build a summary from combined text content.
+ * Uses the first meaningful paragraph or extracts key sentences.
+ *
+ * @param text - Combined text content
+ * @returns Summary string
+ */
+function buildSummaryFromText(text: string): string {
+  // Remove frontmatter
+  let body = text.replace(/^---\n[\s\S]*?\n---\n?/, '');
+
+  // Remove code blocks
+  body = body.replace(/```[\s\S]*?```/g, '');
+
+  // Find first paragraph with meaningful content
+  const paragraphs = body.split(/\n\n+/);
+  for (const para of paragraphs) {
+    const cleaned = para.replace(/^#+\s*/gm, '').trim();
+    if (cleaned.length > 20) {
+      // Truncate to max 1000 chars
+      return cleaned.length > 1000 ? cleaned.slice(0, 997) + '...' : cleaned;
+    }
+  }
+
+  // Fallback: use first 500 chars
+  const fallback = body.replace(/[#*`\[\]]/g, '').trim();
+  return fallback.length > 500 ? fallback.slice(0, 497) + '...' : fallback;
+}
+
+/**
+ * Extract keywords from text content.
+ *
+ * @param text - Combined text content
+ * @param existingLabels - Labels from artifact/frontmatter
+ * @returns Array of keywords
+ */
+function extractKeywords(text: string, existingLabels: string[]): string[] {
+  const keywords = new Set<string>(existingLabels);
+
+  // Common technical terms to look for
+  const technicalPatterns = [
+    /\b(docker|kubernetes|node\.?js|typescript|javascript|python|rust|go|java)\b/gi,
+    /\b(react|vue|angular|express|fastify|next\.?js)\b/gi,
+    /\b(postgres|mysql|mongodb|redis|sqlite)\b/gi,
+    /\b(aws|gcp|azure|terraform|ansible)\b/gi,
+  ];
+
+  for (const pattern of technicalPatterns) {
+    const matches = text.match(pattern);
+    if (matches) {
+      for (const match of matches) {
+        // Normalize: lowercase, remove dots
+        const normalized = match.toLowerCase().replace(/\./g, '');
+        keywords.add(normalized);
+      }
+    }
+  }
+
+  return Array.from(keywords).sort().slice(0, 10);
+}
+
+/**
+ * Derive profile and capsules from actual file payloads.
+ * This is the retrieval-grade derivation that produces meaningful content
+ * from SKILL.md and reference text (RETR-03, CAPS-04).
+ *
+ * T-12-09: Derive hashes from ordered SKILL.md + references/ text only
+ * T-12-10: Exclude assets/ and scripts/ bodies from profile/capsule content
+ * T-12-11: Derived outputs inherit governance from artifact root
+ *
+ * @param payloads - File payload records with actual content
+ * @param context - Derivation context with artifact metadata
+ * @returns Derived artifact outputs
+ */
+export function deriveFromPayloads(
+  payloads: ArtifactFilePayloadRecord[],
+  context: PayloadDerivationContext,
+): DerivedArtifactOutputs {
+  const derivedAt = nowIso();
+
+  // Extract derivation-eligible text (SKILL.md + references/)
+  const derivationText = extractDerivationText(payloads);
+
+  // Get derivation-eligible payloads
+  const derivationEligible = payloads.filter((p) =>
+    p.path === 'SKILL.md' || p.path.startsWith('references/')
+  ).sort((a, b) => a.path.localeCompare(b.path));
+
+  // Compute source hash from content
+  const sourceHash = buildContentHash(derivationEligible.map((p) => p.sha256));
+
+  // Parse frontmatter from SKILL.md if present
+  const skillMdPayload = payloads.find((p) => p.path === 'SKILL.md');
+  const frontmatter = skillMdPayload ? parseFrontmatter(skillMdPayload.content) : { title: null, labels: [] };
+
+  // Use provided labels merged with frontmatter labels
+  const allLabels = [...new Set([...context.labels, ...frontmatter.labels])];
+
+  // Build profile from actual text
+  const summary = buildSummaryFromText(derivationText);
+  const keywords = extractKeywords(derivationText, allLabels);
+  const referencePaths = derivationEligible
+    .filter((p) => p.path.startsWith('references/'))
+    .map((p) => p.path);
+
+  // Build content hash from actual text
+  const contentHash = buildContentHash([derivationText]);
+
+  const profile: DerivedSkillProfileRecord | null = derivationEligible.length > 0 ? {
+    artifactId: context.artifactId,
+    revision: 1, // Will be set by caller
+    sourceHash,
+    title: frontmatter.title ?? context.title,
+    summary,
+    keywords,
+    referencePaths,
+    contentHash,
+  } : null;
+
+  // Extract sections for capsules
+  const sections = skillMdPayload ? extractSections(skillMdPayload.content) : { situation: null, problem: null, goal: null };
+
+  // Build capsule(s) from content
+  const capsules: DerivedSkillCapsuleRecord[] = [];
+
+  if (derivationEligible.length > 0) {
+    // Generate primary capsule from SKILL.md sections
+    const capsuleId = buildCapsuleId(context.artifactId, 1, sourceHash, 0);
+    const capsuleContent = buildSummaryFromText(derivationText);
+
+    capsules.push({
+      capsuleId,
+      artifactId: context.artifactId,
+      revision: 1,
+      sourcePaths: derivationEligible.map((p) => p.path),
+      content: capsuleContent,
+      situation: sections.situation ?? `When working with ${context.title}`,
+      problem: sections.problem ?? `The problem addressed by ${context.title}`,
+      goal: sections.goal ?? `Apply the solution from ${context.title}`,
+      errorText: null,
+      labels: allLabels.sort(),
+      scope: context.scope,
+      requiredLevel: context.requiredLevel,
+    });
+
+    // Generate additional capsules from reference files if they contain distinct content
+    const referencePayloads = derivationEligible.filter((p) => p.path.startsWith('references/'));
+
+    for (let i = 0; i < referencePayloads.length && capsules.length < 5; i++) {
+      const refPayload = referencePayloads[i]!;
+      const refContent = refPayload.content;
+
+      // Check if this reference has meaningful distinct content
+      const refSections = extractSections(refContent);
+      if (refSections.problem || refSections.situation) {
+        const refCapsuleId = buildCapsuleId(context.artifactId, 1, sourceHash, capsules.length);
+        const refCapsuleContent = buildSummaryFromText(refContent);
+
+        capsules.push({
+          capsuleId: refCapsuleId,
+          artifactId: context.artifactId,
+          revision: 1,
+          sourcePaths: [refPayload.path],
+          content: refCapsuleContent,
+          situation: refSections.situation ?? `When working with ${refPayload.path}`,
+          problem: refSections.problem ?? `Issue described in ${refPayload.path}`,
+          goal: refSections.goal ?? `Apply solution from ${refPayload.path}`,
+          errorText: null,
+          labels: allLabels.sort(),
+          scope: context.scope,
+          requiredLevel: context.requiredLevel,
+        });
+      }
+    }
+  }
+
+  // Build client manifest for all files
+  const referenceFiles = payloads.filter((p) => p.path.startsWith('references/'));
+  const assetFiles = payloads.filter((p) => p.path.startsWith('assets/'));
+  const scriptFiles = payloads.filter((p) => p.path.startsWith('scripts/'));
+
+  const clientManifest: ClientManifestRecord | null = (referenceFiles.length > 0 || assetFiles.length > 0 || scriptFiles.length > 0) ? {
+    artifactId: context.artifactId,
+    revision: 1,
+    references: referenceFiles.sort((a, b) => a.path.localeCompare(b.path)).map((p) => ({
+      path: p.path,
+      sha256: p.sha256,
+      sizeBytes: p.sizeBytes,
+      mediaType: p.mediaType,
+    })),
+    assets: assetFiles.sort((a, b) => a.path.localeCompare(b.path)).map((p) => ({
+      path: p.path,
+      sha256: p.sha256,
+      sizeBytes: p.sizeBytes,
+      mediaType: p.mediaType,
+    })),
+    scripts: scriptFiles.sort((a, b) => a.path.localeCompare(b.path)).map((p) => ({
+      path: p.path,
+      sha256: p.sha256,
+      capability: `Script: ${p.path}`,
+      argsSchemaSummary: '',
+      sideEffectSummary: '',
+      defaultPolicy: 'manual' as const,
+    })),
+    sourceHash,
+  } : null;
+
+  return {
+    profile,
+    capsules,
+    clientManifest,
+    sourceHash,
+    derivedAt,
+  };
 }
