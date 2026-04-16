@@ -519,6 +519,30 @@ export interface SkillArtifactRecord {
   updatedAt: string;
 }
 
+/**
+ * File payload storage record for imported artifact files.
+ * Stores inline file content keyed by artifact id + revision + path.
+ * Enables round-trip export without server-side filesystem behavior (IMEX-04).
+ */
+export interface ArtifactFilePayloadRecord {
+  /** Artifact identifier */
+  artifactId: string;
+  /** Revision number */
+  revision: number;
+  /** Canonical path within the skill directory */
+  path: string;
+  /** SHA-256 hash of file content */
+  sha256: string;
+  /** File size in bytes */
+  sizeBytes: number;
+  /** IANA media type */
+  mediaType: string;
+  /** Inline file content: base64-encoded bytes or UTF-8 text */
+  content: string;
+  /** When this payload was stored */
+  storedAt: string;
+}
+
 export interface StoreData {
   counters: Record<string, number>;
   users: UserRecord[];
@@ -530,6 +554,8 @@ export interface StoreData {
   auditEvents: AuditEventRecord[];
   /** Additive skill artifacts collection (ARTF-02, T-12-05) */
   skillArtifacts: SkillArtifactRecord[];
+  /** Additive file payload storage for imported artifacts (IMEX-04) */
+  artifactFilePayloads: ArtifactFilePayloadRecord[];
 }
 
 const EMPTY_STORE: StoreData = {
@@ -542,6 +568,7 @@ const EMPTY_STORE: StoreData = {
   knowledgeEntries: [],
   auditEvents: [],
   skillArtifacts: [],
+  artifactFilePayloads: [],
 };
 
 function cloneEmptyStore(): StoreData {
