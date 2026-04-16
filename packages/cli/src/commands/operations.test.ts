@@ -75,7 +75,7 @@ describe('CLI operations commands (Phase 13)', () => {
   afterEach(async () => {
     // Clean up test directory
     await rm(testDir, { recursive: true, force: true });
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   describe('Directory detection (IMEX-01)', () => {
