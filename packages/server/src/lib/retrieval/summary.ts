@@ -5,6 +5,7 @@
  * - Building optional summaries from filtered retrieval hits
  * - Generating extractive summaries from hit content
  * - Including citations with summary output
+ * - Building summaries from distilled capsule hits (Phase 14 v2)
  *
  * Security note: Summary builder only consumes already-filtered hits
  * and citations from the orchestrator. It never bypasses auth or
@@ -13,9 +14,11 @@
  *
  * Per threat model T-10-07: Summary Builder is designed as a pure function
  * that only accepts safe hits/citations from the orchestrator.
+ * Per threat model T-14-08: Summary builder is limited to filtered distilled
+ * hits/citations so it cannot bypass governance filters.
  */
 
-import type { RetrievalCitation, RetrievalSummary } from '@skill-shareer/contracts';
+import type { RetrievalCitation, RetrievalSummary, CapsuleMatch } from '@skill-shareer/contracts';
 import { retrievalSummarySchema } from '@skill-shareer/contracts';
 
 /**
@@ -146,4 +149,100 @@ function truncateText(text: string, maxLength: number): string {
   }
 
   return text.slice(0, maxLength) + '...';
+}
+
+// =============================================================================
+// Phase 14 v2 Summary: Capsule-first summary building (T-14-08)
+// Pure function that only consumes already-filtered distilled capsule hits.
+// =============================================================================
+
+/**
+ * Build an optional summary from distilled capsule hits.
+ *
+ * Per T-14-08: Summary builder is limited to filtered distilled hits/citations
+ * so it cannot bypass governance filters.
+ *
+ * This function:
+ * - Returns null if summary is disabled or no hits provided
+ * - Returns null if no citations are provided (citations are required by contract)
+ * - Generates summary text solely from the provided capsule hits
+ * - Does not call any external services or access the store
+ *
+ * @param options - Summary building options for capsules
+ * @returns Structured summary with citations, or null if disabled/empty
+ */
+export function buildCapsuleSummary(options: {
+  /** The search query */
+  query: string;
+  /** Whether summary generation is enabled */
+  includeSummary: boolean;
+  /** The filtered distilled capsule hits to summarize */
+  capsules: CapsuleMatch[];
+  /** Optional citations to include with the summary */
+  citations?: RetrievalCitation[];
+}): RetrievalSummary | null {
+  const { query, includeSummary, capsules, citations } = options;
+
+  // Return null if summary is disabled
+  if (!includeSummary) {
+    return null;
+  }
+
+  // Return null if no capsules to summarize
+  if (!capsules || capsules.length === 0) {
+    return null;
+  }
+
+  // Return null if no citations are provided
+  // The contract schema requires at least 1 citation
+  if (!citations || citations.length === 0) {
+    return null;
+  }
+
+  // Generate extractive summary text from capsules
+  const text = generateCapsuleExtractiveSummary(query, capsules);
+
+  // Build summary object
+  const summary = {
+    text,
+    citations,
+  };
+
+  // Validate against contract schema
+  return retrievalSummarySchema.parse(summary);
+}
+
+/**
+ * Generate an extractive summary from capsule hits.
+ *
+ * This is a deterministic baseline implementation that:
+ * - Extracts key information from the provided capsules
+ * - Does NOT call any external services
+ * - Produces consistent output for the same inputs
+ *
+ * @param query - The search query (for context)
+ * @param capsules - The filtered distilled capsule hits
+ * @returns Extractive summary text
+ */
+function generateCapsuleExtractiveSummary(query: string, capsules: CapsuleMatch[]): string {
+  if (capsules.length === 0) {
+    return '';
+  }
+
+  // For single capsule, return the problem/goal
+  if (capsules.length === 1) {
+    const capsule = capsules[0];
+    if (!capsule) return '';
+    return `${capsule.problem}: ${capsule.goal}`;
+  }
+
+  // For multiple capsules, create a concise extractive summary
+  const parts: string[] = [];
+
+  for (const capsule of capsules) {
+    // Add the problem as a bullet point
+    parts.push(`• ${capsule.problem}: ${truncateText(capsule.goal, 100)}`);
+  }
+
+  return `Found ${capsules.length} relevant capsules:\n${parts.join('\n')}`;
 }

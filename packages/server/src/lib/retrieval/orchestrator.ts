@@ -5,9 +5,9 @@ import {
   type RetrievalV2Response,
   type CapsuleMatch,
   type ProfileHint,
+  type RetrievalCitation,
   retrievalQuerySchema,
   retrievalV2QuerySchema,
-  retrievalV2ResponseSchema,
   capsuleMatchSchema,
   profileHintSchema,
 } from '@skill-shareer/contracts';
@@ -17,7 +17,15 @@ import { generateEmbedding, hashEmbeddingText } from '../embeddings.js';
 import { AppError } from '../errors.js';
 import type { KnowledgeRecord } from '../store.js';
 import { nowIso } from '../store.js';
-import { buildEmptyResponse, buildRetrievalResponse, assembleResponseBuckets } from './assembly.js';
+import {
+  buildEmptyResponse,
+  buildRetrievalResponse,
+  assembleResponseBuckets,
+  buildCapsuleMatch,
+  buildProfileHint,
+  buildV2RetrievalResponse,
+  buildEmptyV2Response,
+} from './assembly.js';
 import { filterEligibleEntries } from './filters.js';
 import { mergeCandidates, toScoredEntries, createSemanticCandidate } from './merge.js';
 import { keywordRecall, normalizeQuery } from './recall/keyword.js';
@@ -464,7 +472,8 @@ export async function updateEntryEmbeddingCache(
  * 2. Get governed artifacts from store snapshot
  * 3. Filter by approval, team, level (T-14-04)
  * 4. Rank capsules against parsed intent (CAPS-04)
- * 5. Assemble v2 response with capsule matches
+ * 5. Assemble v2 response with capsule matches using pure assembly helpers
+ * 6. Optional summary generation over filtered capsule hits (T-14-08)
  *
  * @param services - Server services (config, store)
  * @param auth - Resolved auth context
@@ -503,47 +512,27 @@ export async function searchKnowledgeV2(
     parsed.maxResults,
   );
 
+  // Early return if no matches
+  if (rankedCandidates.length === 0) {
+    return buildEmptyV2Response();
+  }
+
   // Get full capsule records for response
   const capsuleRecords = getCapsuleRecords(artifacts, rankedCandidates);
 
-  // Build capsule matches for response
+  // Build capsule matches using pure assembly helper (T-14-07)
   const capsules: CapsuleMatch[] = capsuleRecords.map(({ capsule, candidate }) =>
-    capsuleMatchSchema.parse({
-      capsuleId: capsule.capsuleId,
-      artifactId: capsule.artifactId,
-      revision: capsule.revision,
-      sourcePaths: capsule.sourcePaths,
-      content: capsule.content,
-      situation: capsule.situation,
-      problem: capsule.problem,
-      goal: capsule.goal,
-      errorText: capsule.errorText,
-      labels: capsule.labels,
-      scope: capsule.scope,
-      requiredLevel: capsule.requiredLevel,
-      score: candidate.finalScore,
-      reason: candidate.reason,
-    }),
+    buildCapsuleMatch(capsule, candidate),
   );
 
-  // Build profile hints from shortlist
+  // Build profile hints from shortlist using pure assembly helper
   const profileShortlist = buildProfileShortlist(artifacts, governanceFilters);
   const artifactIds = new Set(capsules.map((c) => c.artifactId));
 
   const profileHints: ProfileHint[] = profileShortlist
     .filter(({ artifact }) => artifactIds.has(artifact.id))
-    .map(({ artifact }) =>
-      profileHintSchema.parse({
-        artifactId: artifact.id,
-        title: artifact.title,
-        slug: artifact.slug,
-        labels: artifact.labels,
-      }),
-    );
+    .map(({ artifact }) => buildProfileHint(artifact));
 
-  return retrievalV2ResponseSchema.parse({
-    capsules,
-    profileHints,
-    refinementSummary: null, // No refinement in v2 baseline
-  });
+  // Build response using pure assembly helper
+  return buildV2RetrievalResponse(capsules, profileHints);
 }

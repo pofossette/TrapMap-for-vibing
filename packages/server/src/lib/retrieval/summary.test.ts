@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { RetrievalCitation } from '@skill-shareer/contracts';
-import { buildSummary } from './summary.js';
+import type { RetrievalCitation, CapsuleMatch } from '@skill-shareer/contracts';
+import { buildSummary, buildCapsuleSummary } from './summary.js';
 
 describe('summary', () => {
   describe('buildSummary', () => {
@@ -286,6 +286,289 @@ describe('summary', () => {
       expect(result).not.toBeNull();
       expect(result?.text).toBeDefined();
       expect(result?.text.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('buildCapsuleSummary (T-14-08)', () => {
+    it('returns null when summary is disabled', () => {
+      const result = buildCapsuleSummary({
+        query: 'test query',
+        includeSummary: false,
+        capsules: [],
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when no capsules are provided', () => {
+      const result = buildCapsuleSummary({
+        query: 'test query',
+        includeSummary: true,
+        capsules: [],
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when no citations are provided', () => {
+      const capsules: CapsuleMatch[] = [
+        {
+          capsuleId: 'capsule_1',
+          artifactId: 'artifact_1',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Test content',
+          situation: 'Test situation',
+          problem: 'Test problem',
+          goal: 'Test goal',
+          labels: ['test'],
+          scope: 'global',
+          requiredLevel: 0,
+          score: 0.9,
+          reason: 'High match',
+        },
+      ];
+
+      const result = buildCapsuleSummary({
+        query: 'test query',
+        includeSummary: true,
+        capsules,
+        // No citations provided
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('generates summary text from provided capsule hits', () => {
+      const capsules: CapsuleMatch[] = [
+        {
+          capsuleId: 'capsule_1',
+          artifactId: 'artifact_1',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Use docker-compose for container networking',
+          situation: 'Deploying containers',
+          problem: 'Container networking is complex',
+          goal: 'Simplify with docker-compose',
+          labels: ['docker'],
+          scope: 'project',
+          requiredLevel: 2,
+          score: 0.95,
+          reason: 'High match on problem',
+        },
+        {
+          capsuleId: 'capsule_2',
+          artifactId: 'artifact_1',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Check container logs for errors',
+          situation: 'Debugging containers',
+          problem: 'Container fails to start',
+          goal: 'Check logs for error details',
+          labels: ['docker', 'debugging'],
+          scope: 'project',
+          requiredLevel: 2,
+          score: 0.85,
+          reason: 'Moderate match on situation',
+        },
+      ];
+
+      const citations: RetrievalCitation[] = [
+        {
+          source: {
+            entryId: 'capsule_1',
+            scope: 'project',
+            shortcut: 'Docker Skills',
+          },
+          snippet: 'Container networking is complex',
+          tags: ['docker'],
+          recallChannels: ['semantic'],
+          scores: {
+            semantic: 0.95,
+            keyword: null,
+            graph: null,
+            preRerank: 0.95,
+            final: 0.95,
+          },
+        },
+      ];
+
+      const result = buildCapsuleSummary({
+        query: 'docker container issues',
+        includeSummary: true,
+        capsules,
+        citations,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result?.text).toBeDefined();
+      expect(result?.text.length).toBeGreaterThan(0);
+      // Summary should mention the capsules found
+      expect(result?.text.toLowerCase()).toContain('capsule');
+    });
+
+    it('includes citations for all provided hits', () => {
+      const capsules: CapsuleMatch[] = [
+        {
+          capsuleId: 'capsule_1',
+          artifactId: 'artifact_1',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Test',
+          situation: 'Test',
+          problem: 'Test problem',
+          goal: 'Test goal',
+          labels: ['test'],
+          scope: 'global',
+          requiredLevel: 0,
+          score: 0.9,
+          reason: 'Match',
+        },
+      ];
+
+      const citations: RetrievalCitation[] = [
+        {
+          source: {
+            entryId: 'capsule_1',
+            scope: 'global',
+            shortcut: 'Test Skill',
+          },
+          snippet: 'Test problem',
+          tags: ['test'],
+          recallChannels: ['semantic'],
+          scores: {
+            semantic: 0.9,
+            keyword: null,
+            graph: null,
+            preRerank: 0.9,
+            final: 0.9,
+          },
+        },
+      ];
+
+      const result = buildCapsuleSummary({
+        query: 'test',
+        includeSummary: true,
+        capsules,
+        citations,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result?.citations).toBeDefined();
+      expect(result?.citations.length).toBe(1);
+      expect(result?.citations[0]?.source.entryId).toBe('capsule_1');
+    });
+
+    it('summary is deterministic and does not depend on external services', () => {
+      const capsules: CapsuleMatch[] = [
+        {
+          capsuleId: 'capsule_1',
+          artifactId: 'artifact_1',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Test content',
+          situation: 'Test situation',
+          problem: 'Test problem',
+          goal: 'Test goal',
+          labels: ['test'],
+          scope: 'global',
+          requiredLevel: 0,
+          score: 0.9,
+          reason: 'Match',
+        },
+      ];
+
+      const citations: RetrievalCitation[] = [
+        {
+          source: {
+            entryId: 'capsule_1',
+            scope: 'global',
+            shortcut: 'Test Skill',
+          },
+          snippet: 'Test problem',
+          tags: ['test'],
+          recallChannels: ['semantic'],
+          scores: {
+            semantic: 0.9,
+            keyword: null,
+            graph: null,
+            preRerank: 0.9,
+            final: 0.9,
+          },
+        },
+      ];
+
+      const result1 = buildCapsuleSummary({
+        query: 'test',
+        includeSummary: true,
+        capsules,
+        citations,
+      });
+
+      const result2 = buildCapsuleSummary({
+        query: 'test',
+        includeSummary: true,
+        capsules,
+        citations,
+      });
+
+      // Same inputs should produce same outputs (deterministic)
+      expect(result1?.text).toBe(result2?.text);
+    });
+
+    it('only consumes already-filtered distilled hits (T-14-08 mitigation)', () => {
+      // This test verifies that buildCapsuleSummary is a pure function
+      // that only uses its inputs, never bypassing governance filters
+      const capsules: CapsuleMatch[] = [
+        {
+          capsuleId: 'capsule_1',
+          artifactId: 'artifact_1',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Pre-filtered capsule content',
+          situation: 'Pre-filtered situation',
+          problem: 'Pre-filtered problem',
+          goal: 'Pre-filtered goal',
+          labels: ['test'],
+          scope: 'project',
+          requiredLevel: 3,
+          score: 0.85,
+          reason: 'Filtered match',
+        },
+      ];
+
+      const citations: RetrievalCitation[] = [
+        {
+          source: {
+            entryId: 'capsule_1',
+            scope: 'project',
+            shortcut: 'Test',
+          },
+          snippet: 'Pre-filtered problem',
+          tags: ['test'],
+          recallChannels: ['semantic'],
+          scores: {
+            semantic: 0.85,
+            keyword: null,
+            graph: null,
+            preRerank: 0.85,
+            final: 0.85,
+          },
+        },
+      ];
+
+      // The function should work with just the inputs, no external dependencies
+      const result = buildCapsuleSummary({
+        query: 'test',
+        includeSummary: true,
+        capsules,
+        citations,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result?.text).toBeDefined();
+      // Verify it used the filtered content
+      expect(result?.text).toContain('Pre-filtered problem');
     });
   });
 });

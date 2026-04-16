@@ -8,13 +8,34 @@
  * - Ensuring no entry appears in both buckets
  * - Attaching citations to matches when available
  *
+ * v2 capsule-first assembly:
+ * - Building capsule matches from ranked capsule candidates
+ * - Building profile hints from artifact metadata
+ * - Assembling v2 responses with distilled capsule results
+ * - Never exposing raw bundle file contents (T-14-07)
+ *
  * This module is called after recall candidates are generated and scored,
  * transforming them into the API response shape.
  */
 
-import type { RetrievalQuery, RetrievalResponse, RetrievalCitation, RetrievalSummary } from '@skill-shareer/contracts';
-import { retrievalMatchSchema, retrievalResponseSchema } from '@skill-shareer/contracts';
-import type { ScoredEntry } from './types.js';
+import type {
+  RetrievalQuery,
+  RetrievalResponse,
+  RetrievalCitation,
+  RetrievalSummary,
+  CapsuleMatch,
+  ProfileHint,
+  RetrievalV2Response,
+} from '@skill-shareer/contracts';
+import {
+  retrievalMatchSchema,
+  retrievalResponseSchema,
+  retrievalV2ResponseSchema,
+  capsuleMatchSchema,
+  profileHintSchema,
+} from '@skill-shareer/contracts';
+import type { ScoredEntry, CapsuleCandidate } from './types.js';
+import type { DerivedSkillCapsuleRecord, SkillArtifactRecord } from '../store.js';
 
 // Type inference from schema - use the return type of parse()
 type RetrievalMatch = ReturnType<typeof retrievalMatchSchema.parse>;
@@ -121,6 +142,97 @@ export function buildEmptyResponse(): RetrievalResponse {
   return retrievalResponseSchema.parse({
     globalConstraints: [],
     projectKnowledge: [],
+    refinementSummary: null,
+    summary: null,
+  });
+}
+
+// =============================================================================
+// Phase 14 v2 Assembly: Capsule-first response shaping (RETR-04, T-14-07)
+// Pure helpers for building v2 responses from distilled capsule hits.
+// =============================================================================
+
+/**
+ * Build a capsule match from a capsule record and candidate.
+ * Per T-14-07: Emits distilled capsule/profile metadata only;
+ * does not include raw bundle file contents or activation-only payloads.
+ *
+ * @param capsule - Derived capsule record with distilled content
+ * @param candidate - Ranked capsule candidate with scores
+ * @returns CapsuleMatch for v2 response
+ */
+export function buildCapsuleMatch(
+  capsule: DerivedSkillCapsuleRecord,
+  candidate: CapsuleCandidate,
+): CapsuleMatch {
+  return capsuleMatchSchema.parse({
+    capsuleId: capsule.capsuleId,
+    artifactId: capsule.artifactId,
+    revision: capsule.revision,
+    sourcePaths: capsule.sourcePaths,
+    content: capsule.content,
+    situation: capsule.situation,
+    problem: capsule.problem,
+    goal: capsule.goal,
+    errorText: capsule.errorText,
+    labels: capsule.labels,
+    scope: capsule.scope,
+    requiredLevel: capsule.requiredLevel,
+    score: candidate.finalScore,
+    reason: candidate.reason,
+  });
+}
+
+/**
+ * Build a profile hint from artifact metadata.
+ * Provides lightweight artifact metadata without full profile content.
+ *
+ * @param artifact - Skill artifact record (partial with needed fields)
+ * @returns ProfileHint for v2 response
+ */
+export function buildProfileHint(
+  artifact: Pick<SkillArtifactRecord, 'id' | 'title' | 'slug' | 'labels'>,
+): ProfileHint {
+  return profileHintSchema.parse({
+    artifactId: artifact.id,
+    title: artifact.title,
+    slug: artifact.slug,
+    labels: artifact.labels,
+  });
+}
+
+/**
+ * Build the complete v2 retrieval response.
+ * Capsule-first distilled results with optional summary.
+ *
+ * Per T-14-07: Does not include raw bundle file contents or
+ * activation-only payloads in the response.
+ *
+ * @param capsules - Ranked capsule matches
+ * @param profileHints - Lightweight artifact metadata
+ * @param summary - Optional summary over filtered capsule hits
+ * @returns v2 retrieval response
+ */
+export function buildV2RetrievalResponse(
+  capsules: CapsuleMatch[],
+  profileHints: ProfileHint[],
+  summary?: RetrievalSummary | null,
+): RetrievalV2Response {
+  return retrievalV2ResponseSchema.parse({
+    capsules,
+    profileHints,
+    refinementSummary: null,
+    summary: summary ?? null,
+  });
+}
+
+/**
+ * Build an empty v2 retrieval response when no matches are found.
+ */
+export function buildEmptyV2Response(): RetrievalV2Response {
+  return retrievalV2ResponseSchema.parse({
+    capsules: [],
+    profileHints: [],
     refinementSummary: null,
     summary: null,
   });
