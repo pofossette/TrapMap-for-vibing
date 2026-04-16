@@ -15,7 +15,22 @@ import { tmpdir } from 'node:os';
 
 // Mock dependencies before importing
 vi.mock('../lib/http.js', () => ({
-  apiRequest: vi.fn(),
+  apiRequest: vi.fn().mockResolvedValue({
+    data: {
+      results: [
+        {
+          success: true,
+          artifactId: 'artifact_1',
+          title: 'Test Skill',
+          error: null,
+          sourceKind: 'skill-directory',
+        },
+      ],
+      importedCount: 1,
+      failedCount: 0,
+    },
+    sessionToken: 'test-token',
+  }),
   requireSessionToken: vi.fn(),
 }));
 
@@ -43,24 +58,8 @@ describe('CLI operations commands (Phase 13)', () => {
     testDir = join(tmpdir(), `skill-shareer-test-${Date.now()}-${Math.random()}`);
     await mkdir(testDir, { recursive: true });
 
-    // Setup mocks - use mockImplementation for more reliable mocking
+    // Setup mocks
     vi.mocked(loadCliState).mockResolvedValue(mockState);
-    vi.mocked(apiRequest).mockResolvedValue({
-      data: {
-        results: [
-          {
-            success: true,
-            artifactId: 'artifact_1',
-            title: 'Test Skill',
-            error: null,
-            sourceKind: 'skill-directory',
-          },
-        ],
-        importedCount: 1,
-        failedCount: 0,
-      },
-      sessionToken: 'test-token',
-    });
 
     // Create program and register commands
     program = new Command();
