@@ -1,5 +1,5 @@
-import type { RetrievalResponse } from '@skill-shareer/contracts';
-import { retrievalResponseSchema } from '@skill-shareer/contracts';
+import type { RetrievalResponse, RetrievalV2Response } from '@skill-shareer/contracts';
+import { retrievalResponseSchema, retrievalV2ResponseSchema } from '@skill-shareer/contracts';
 import { Command } from 'commander';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -896,6 +896,401 @@ describe('CLI retrieval commands', () => {
       // Citation fields come from server response, not computed in CLI
       expect(parsedOutput.globalConstraints[0].citation).toBeDefined();
       expect(parsedOutput.globalConstraints[0].citation?.scores.final).toBe(0.9);
+
+      consoleLogSpy.mockRestore();
+    });
+  });
+
+  // Phase 14: v2 retrieval CLI tests (COMP-03, RETR-01, RETR-04)
+  describe('v2 retrieval with --v2 flag', () => {
+    it('should call v2 endpoint when --v2 flag is provided', async () => {
+      const mockV2Response: RetrievalV2Response = {
+        capsules: [],
+        profileHints: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockV2Response,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test seed', '--v2'], { from: 'user' });
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          method: 'POST',
+          path: '/v2/retrieval/search',
+          body: expect.objectContaining({
+            seed: 'test seed',
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should send seed-only input to v2 endpoint (RETR-01)', async () => {
+      const mockV2Response: RetrievalV2Response = {
+        capsules: [],
+        profileHints: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockClear();
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockV2Response,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'my seed query', '--v2'], { from: 'user' });
+
+      // Verify v2 request body has only seed and allowed v2 fields
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          path: '/v2/retrieval/search',
+          body: expect.objectContaining({
+            seed: 'my seed query',
+            maxResults: 10, // default
+          }),
+        }),
+      );
+
+      // Verify v1-only fields are NOT sent
+      const callArgs = vi.mocked(http.apiRequest).mock.calls[0];
+      expect(callArgs).toBeDefined();
+      const body = callArgs[1].body as Record<string, unknown>;
+      expect(body).not.toHaveProperty('includeRefinement');
+      expect(body).not.toHaveProperty('includeSummary');
+      expect(body).not.toHaveProperty('mode');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should format capsule-first text output without bundle payloads (RETR-04, T-14-11)', async () => {
+      const mockV2Response: RetrievalV2Response = {
+        capsules: [
+          {
+            capsuleId: 'capsule-1',
+            artifactId: 'artifact-1',
+            revision: 1,
+            sourcePaths: ['SKILL.md'],
+            content: 'Distilled capsule content',
+            situation: 'Docker container fails to start',
+            problem: 'Missing environment variable',
+            goal: 'Add required ENV variable to docker-compose',
+            labels: ['docker', 'containers'],
+            scope: 'global',
+            requiredLevel: 0,
+            score: 0.95,
+            reason: 'High situation match',
+          },
+        ],
+        profileHints: [
+          {
+            artifactId: 'artifact-1',
+            title: 'Docker Debugging',
+            slug: 'docker-debugging',
+            labels: ['docker', 'debugging'],
+          },
+        ],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockV2Response,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'docker problem', '--v2'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+
+      // Verify capsule-first sections are present
+      expect(output).toContain('Capsules');
+      expect(output).toContain('capsule-1');
+      expect(output).toContain('Docker container fails to start');
+      expect(output).toContain('Missing environment variable');
+      expect(output).toContain('Add required ENV variable');
+      expect(output).toContain('Profile hints');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should output full v2 contract shape in JSON mode', async () => {
+      const mockV2Response: RetrievalV2Response = {
+        capsules: [
+          {
+            capsuleId: 'capsule-1',
+            artifactId: 'artifact-1',
+            revision: 1,
+            sourcePaths: ['SKILL.md'],
+            content: 'Distilled content',
+            situation: 'Situation text',
+            problem: 'Problem text',
+            goal: 'Goal text',
+            labels: ['test'],
+            scope: 'global',
+            requiredLevel: 0,
+            score: 0.9,
+            reason: 'Match reason',
+          },
+        ],
+        profileHints: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockV2Response,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test', '--v2', '--json'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+
+      // Verify output is valid JSON matching v2 contract schema
+      const parsedOutput = JSON.parse(output);
+      const validated = retrievalV2ResponseSchema.parse(parsedOutput);
+
+      expect(validated.capsules).toHaveLength(1);
+      expect(validated.capsules[0].capsuleId).toBe('capsule-1');
+      expect(validated.capsules[0].content).toBe('Distilled content');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should support --max-results flag with --v2', async () => {
+      const mockV2Response: RetrievalV2Response = {
+        capsules: [],
+        profileHints: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockV2Response,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test', '--v2', '--max-results', '5'], { from: 'user' });
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          body: expect.objectContaining({
+            maxResults: 5,
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should support filter flags with --v2', async () => {
+      const mockV2Response: RetrievalV2Response = {
+        capsules: [],
+        profileHints: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockV2Response,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(
+        ['search', 'test', '--v2', '--label', 'docker', '--scope', 'global'],
+        { from: 'user' },
+      );
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          body: expect.objectContaining({
+            filters: expect.objectContaining({
+              labels: ['docker'],
+              scopes: ['global'],
+            }),
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should display summary in v2 text mode when present', async () => {
+      const mockV2Response: RetrievalV2Response = {
+        capsules: [
+          {
+            capsuleId: 'capsule-1',
+            artifactId: 'artifact-1',
+            revision: 1,
+            sourcePaths: ['SKILL.md'],
+            content: 'Content',
+            situation: 'Situation',
+            problem: 'Problem',
+            goal: 'Goal',
+            labels: ['test'],
+            scope: 'global',
+            requiredLevel: 0,
+            score: 0.9,
+            reason: 'Match',
+          },
+        ],
+        profileHints: [],
+        refinementSummary: null,
+        summary: {
+          text: 'Summary of capsule matches',
+          citations: [
+            {
+              source: {
+                entryId: 'capsule-1',
+                scope: 'global',
+                shortcut: 'Capsule 1',
+              },
+              snippet: 'Content',
+              tags: ['test'],
+              recallChannels: ['semantic'],
+              scores: {
+                semantic: 0.9,
+                keyword: null,
+                graph: null,
+                preRerank: 0.9,
+                final: 0.9,
+              },
+            },
+          ],
+        },
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockV2Response,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test', '--v2'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+
+      expect(output).toContain('Summary');
+      expect(output).toContain('Summary of capsule matches');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should preserve single-seed UX when using --v2 flag (RETR-01)', async () => {
+      const mockV2Response: RetrievalV2Response = {
+        capsules: [],
+        profileHints: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockV2Response,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      // Just seed argument, no additional required flags
+      await program.parseAsync(['search', 'simple seed query', '--v2'], { from: 'user' });
+
+      // Verify seed was sent as-is
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          path: '/v2/retrieval/search',
+          body: expect.objectContaining({
+            seed: 'simple seed query',
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should ignore v1-only flags when using --v2', async () => {
+      const mockV2Response: RetrievalV2Response = {
+        capsules: [],
+        profileHints: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockClear();
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockV2Response,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      // Pass v1-only flags along with --v2
+      await program.parseAsync(
+        ['search', 'test', '--v2', '--no-refinement', '--mode', 'hybrid'],
+        { from: 'user' },
+      );
+
+      const callArgs = vi.mocked(http.apiRequest).mock.calls[0];
+      expect(callArgs).toBeDefined();
+      const body = callArgs[1].body as Record<string, unknown>;
+
+      // v2 endpoint should not receive v1-only fields
+      expect(body).not.toHaveProperty('includeRefinement');
+      expect(body).not.toHaveProperty('mode');
 
       consoleLogSpy.mockRestore();
     });

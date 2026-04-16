@@ -1,5 +1,5 @@
-import type { RetrievalResponse } from '@skill-shareer/contracts';
-import { retrievalResponseSchema } from '@skill-shareer/contracts';
+import type { RetrievalResponse, RetrievalV2Response } from '@skill-shareer/contracts';
+import { retrievalResponseSchema, retrievalV2ResponseSchema } from '@skill-shareer/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';
@@ -11,31 +11,9 @@ interface RetrievalCommandOptions {
   allowSearch: boolean;
 }
 
-function formatMatch(match: {
-  entryId: string;
-  shortcut: string;
-  detail: string;
-  labels: string[];
-  score: number;
-  reason: string;
-  citation?: {
-    source: {
-      entryId: string;
-      scope: string;
-      shortcut: string;
-    };
-    snippet: string;
-    tags: string[];
-    recallChannels: string[];
-    scores: {
-      semantic: number | null;
-      keyword: number | null;
-      graph: number | null;
-      preRerank: number;
-      final: number;
-    };
-  };
-}): string {
+type RetrievalMatch = NonNullable<RetrievalResponse['globalConstraints'][number]>;
+
+function formatMatch(match: RetrievalMatch): string {
   const lines = [
     `${match.entryId}`,
     `Shortcut: ${match.shortcut}`,
@@ -53,6 +31,49 @@ function formatMatch(match: {
   return lines.join('\n');
 }
 
+/**
+ * Format a capsule match for text output (Phase 14 v2 retrieval).
+ * Renders capsule-first distilled sections without exposing bundle payloads (T-14-11).
+ */
+function formatCapsuleMatch(capsule: {
+  capsuleId: string;
+  artifactId: string;
+  situation: string;
+  problem: string;
+  goal: string;
+  labels: string[];
+  scope: string;
+  requiredLevel: number;
+  score: number;
+  reason: string;
+}): string {
+  const lines = [
+    `${capsule.capsuleId}`,
+    `Artifact: ${capsule.artifactId}`,
+    `Situation: ${capsule.situation}`,
+    `Problem: ${capsule.problem}`,
+    `Goal: ${capsule.goal}`,
+    `Labels: ${capsule.labels.join(', ')}`,
+    `Scope: ${capsule.scope} (level ${capsule.requiredLevel})`,
+    `Score: ${capsule.score.toFixed(2)}`,
+    `Reason: ${capsule.reason}`,
+  ];
+
+  return lines.join('\n');
+}
+
+/**
+ * Format profile hint for text output (Phase 14 v2 retrieval).
+ */
+function formatProfileHint(hint: {
+  artifactId: string;
+  title: string;
+  slug: string;
+  labels: string[];
+}): string {
+  return `${hint.artifactId}: ${hint.title} (${hint.slug}) [${hint.labels.join(', ')}]`;
+}
+
 function formatRetrievalResponse(response: RetrievalResponse): string {
   const sections: string[] = [];
 
@@ -67,6 +88,49 @@ function formatRetrievalResponse(response: RetrievalResponse): string {
     }
     sections.push('Project knowledge');
     sections.push(response.projectKnowledge.map(formatMatch).join('\n\n'));
+  }
+
+  if (response.refinementSummary) {
+    if (sections.length > 0) {
+      sections.push('');
+    }
+    sections.push('Refinement summary');
+    sections.push(response.refinementSummary);
+  }
+
+  if (response.summary) {
+    if (sections.length > 0) {
+      sections.push('');
+    }
+    sections.push('Summary');
+    sections.push(response.summary.text);
+  }
+
+  if (sections.length === 0) {
+    return 'No results found';
+  }
+
+  return sections.join('\n');
+}
+
+/**
+ * Format v2 retrieval response for text output.
+ * Renders capsule-first distilled results (RETR-04, T-14-07).
+ */
+function formatV2RetrievalResponse(response: RetrievalV2Response): string {
+  const sections: string[] = [];
+
+  if (response.capsules.length > 0) {
+    sections.push('Capsules');
+    sections.push(response.capsules.map(formatCapsuleMatch).join('\n\n'));
+  }
+
+  if (response.profileHints.length > 0) {
+    if (sections.length > 0) {
+      sections.push('');
+    }
+    sections.push('Profile hints');
+    sections.push(response.profileHints.map(formatProfileHint).join('\n'));
   }
 
   if (response.refinementSummary) {
@@ -112,6 +176,7 @@ export function registerRetrievalCommands(
     .option('--mode <mode>', 'Query mode (semantic, hybrid, graph-assisted)', 'semantic')
     .option('--stdin', 'Read search seed from stdin')
     .option('--json', 'Output JSON')
+    .option('--v2', 'Use capsule-native v2 retrieval (Phase 14)')
     .action(
       async (
         seed: string | undefined,
@@ -124,6 +189,7 @@ export function registerRetrievalCommands(
           mode?: string;
           stdin?: boolean;
           json?: boolean;
+          v2?: boolean;
         },
       ) => {
         const state = await loadCliState();
@@ -147,25 +213,45 @@ export function registerRetrievalCommands(
           filters.scopes = [flags.scope];
         }
 
-        // Build request body
-        const body = {
-          seed: searchSeed,
-          filters,
-          maxResults: Number.parseInt(flags.maxResults, 10),
-          includeRefinement: flags.refinement ?? true,
-          includeSummary: flags.summary ?? false,
-          mode: flags.mode ?? 'semantic',
-        };
+        // Use v2 path if --v2 flag is set (Phase 14)
+        if (flags.v2) {
+          // v2 retrieval: seed-only input, capsule-first output (RETR-01, RETR-04)
+          const body = {
+            seed: searchSeed,
+            filters,
+            maxResults: Number.parseInt(flags.maxResults, 10),
+          };
 
-        const response = await apiRequest<RetrievalResponse>(state, {
-          method: 'POST',
-          path: '/v1/retrieval/search',
-          body,
-        });
+          const response = await apiRequest<RetrievalV2Response>(state, {
+            method: 'POST',
+            path: '/v2/retrieval/search',
+            body,
+          });
 
-        const parsed = retrievalResponseSchema.parse(response.data);
+          const parsed = retrievalV2ResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, formatRetrievalResponse);
+          printResult(parsed, flags, formatV2RetrievalResponse);
+        } else {
+          // Legacy v1 retrieval (COMP-03)
+          const body = {
+            seed: searchSeed,
+            filters,
+            maxResults: Number.parseInt(flags.maxResults, 10),
+            includeRefinement: flags.refinement ?? true,
+            includeSummary: flags.summary ?? false,
+            mode: flags.mode ?? 'semantic',
+          };
+
+          const response = await apiRequest<RetrievalResponse>(state, {
+            method: 'POST',
+            path: '/v1/retrieval/search',
+            body,
+          });
+
+          const parsed = retrievalResponseSchema.parse(response.data);
+
+          printResult(parsed, flags, formatRetrievalResponse);
+        }
       },
     );
 }
