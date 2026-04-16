@@ -44,7 +44,7 @@ describe('CLI operations commands (Phase 13)', () => {
 
     // Setup mocks
     vi.mocked(loadCliState).mockResolvedValue(mockState);
-    vi.mocked(apiRequest).mockResolvedValue({ as any
+    vi.mocked(apiRequest).mockResolvedValue({
       data: {
         results: [
           {
@@ -88,7 +88,7 @@ describe('CLI operations commands (Phase 13)', () => {
       await writeFile(join(testDir, 'scripts/setup.sh'), '#!/bin/bash\necho "setup"');
 
       // Mock successful API response
-      vi.mocked(apiRequest).mockResolvedValue({ as any
+      vi.mocked(apiRequest).mockResolvedValue({
         data: {
           results: [
             {
@@ -142,7 +142,7 @@ describe('CLI operations commands (Phase 13)', () => {
     });
 
     it('should classify SKILL.md as skill-markdown', async () => {
-      vi.mocked(apiRequest).mockResolvedValue({ as any
+      vi.mocked(apiRequest).mockResolvedValue({
         data: {
           results: [
             {
@@ -171,7 +171,7 @@ describe('CLI operations commands (Phase 13)', () => {
     });
 
     it('should classify references/ as reference with derivation eligibility', async () => {
-      vi.mocked(apiRequest).mockResolvedValue({ as any
+      vi.mocked(apiRequest).mockResolvedValue({
         data: {
           results: [
             {
@@ -200,7 +200,7 @@ describe('CLI operations commands (Phase 13)', () => {
     });
 
     it('should classify assets/ as asset with activation-only flag', async () => {
-      vi.mocked(apiRequest).mockResolvedValue({ as any
+      vi.mocked(apiRequest).mockResolvedValue({
         data: {
           results: [
             {
@@ -229,7 +229,7 @@ describe('CLI operations commands (Phase 13)', () => {
     });
 
     it('should classify scripts/ as script with activation-only flag', async () => {
-      vi.mocked(apiRequest).mockResolvedValue({ as any
+      vi.mocked(apiRequest).mockResolvedValue({
         data: {
           results: [
             {
@@ -263,7 +263,7 @@ describe('CLI operations commands (Phase 13)', () => {
       // Create single SKILL.md file
       await writeFile(join(testDir, 'skill.md'), '# Test Skill\n\nname: Test Skill\n\nTest content');
 
-      vi.mocked(apiRequest).mockResolvedValue({ as any
+      vi.mocked(apiRequest).mockResolvedValue({
         data: {
           results: [
             {
@@ -303,7 +303,7 @@ describe('CLI operations commands (Phase 13)', () => {
       await mkdir(join(testDir, 'node_modules'), { recursive: true });
       await writeFile(join(testDir, 'node_modules', 'package.json'), '{}');
 
-      vi.mocked(apiRequest).mockResolvedValue({ as any
+      vi.mocked(apiRequest).mockResolvedValue({
         data: {
           results: [
             {
@@ -334,7 +334,7 @@ describe('CLI operations commands (Phase 13)', () => {
     it('should provide stable human-readable output for successful import', async () => {
       await writeFile(join(testDir, 'SKILL.md'), '# Test Skill\n\nname: Test Skill');
 
-      vi.mocked(apiRequest).mockResolvedValue({ as any
+      vi.mocked(apiRequest).mockResolvedValue({
         data: {
           results: [
             {
@@ -364,7 +364,7 @@ describe('CLI operations commands (Phase 13)', () => {
     it('should provide stable JSON output when --json flag is used', async () => {
       await writeFile(join(testDir, 'SKILL.md'), '# Test Skill\n\nname: Test Skill');
 
-      vi.mocked(apiRequest).mockResolvedValue({ as any
+      vi.mocked(apiRequest).mockResolvedValue({
         data: {
           results: [
             {
