@@ -1,7 +1,15 @@
 import {
   type RetrievalQuery,
   type RetrievalResponse,
+  type RetrievalV2Query,
+  type RetrievalV2Response,
+  type CapsuleMatch,
+  type ProfileHint,
   retrievalQuerySchema,
+  retrievalV2QuerySchema,
+  retrievalV2ResponseSchema,
+  capsuleMatchSchema,
+  profileHintSchema,
 } from '@skill-shareer/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
@@ -19,6 +27,8 @@ import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
 import { buildCitations } from './citations.js';
 import { buildSummary } from './summary.js';
 import type { MergedCandidate, RetrievalPipelineContext, ScoredEntry } from './types.js';
+import { parseSeedIntent } from './intent.js';
+import { rankCapsules, getCapsuleRecords, buildProfileShortlist } from './capsule-recall.js';
 
 /**
  * Graph score boost factor for graph-assisted retrieval.
@@ -438,5 +448,102 @@ export async function updateEntryEmbeddingCache(
       revision: entry.history.length,
     };
     entry.updatedAt = nowIso();
+  });
+}
+
+// =============================================================================
+// Phase 14 v2 Retrieval: Capsule-native recall (RETR-03, CAPS-04)
+// Server-side capsule ranking from governed artifact-derived outputs.
+// =============================================================================
+
+/**
+ * v2 retrieval pipeline: capsule-native search.
+ *
+ * Pipeline order (enforced for security):
+ * 1. Parse seed intent internally (RETR-02)
+ * 2. Get governed artifacts from store snapshot
+ * 3. Filter by approval, team, level (T-14-04)
+ * 4. Rank capsules against parsed intent (CAPS-04)
+ * 5. Assemble v2 response with capsule matches
+ *
+ * @param services - Server services (config, store)
+ * @param auth - Resolved auth context
+ * @param query - v2 retrieval query with seed-only input
+ * @returns v2 retrieval response with capsule matches
+ */
+export async function searchKnowledgeV2(
+  services: SkillShareerServices,
+  auth: ResolvedAuthContext,
+  query: RetrievalV2Query,
+): Promise<RetrievalV2Response> {
+  // Parse and validate query
+  const parsed = retrievalV2QuerySchema.parse(query);
+
+  // Parse seed intent internally (RETR-02)
+  const intent = parseSeedIntent(parsed.seed);
+
+  // Get current data snapshot
+  const data = await services.store.snapshot();
+
+  // Build governance filters from auth context
+  const governanceFilters = {
+    teamId: auth.activeTeamId,
+    securityLevel: auth.securityLevel,
+    isSystemAdmin: auth.subjectType === 'system-admin',
+  };
+
+  // Get governed artifacts
+  const artifacts = data.skillArtifacts ?? [];
+
+  // Rank capsules against parsed intent (CAPS-04)
+  const rankedCandidates = rankCapsules(
+    artifacts,
+    intent,
+    governanceFilters,
+    parsed.maxResults,
+  );
+
+  // Get full capsule records for response
+  const capsuleRecords = getCapsuleRecords(artifacts, rankedCandidates);
+
+  // Build capsule matches for response
+  const capsules: CapsuleMatch[] = capsuleRecords.map(({ capsule, candidate }) =>
+    capsuleMatchSchema.parse({
+      capsuleId: capsule.capsuleId,
+      artifactId: capsule.artifactId,
+      revision: capsule.revision,
+      sourcePaths: capsule.sourcePaths,
+      content: capsule.content,
+      situation: capsule.situation,
+      problem: capsule.problem,
+      goal: capsule.goal,
+      errorText: capsule.errorText,
+      labels: capsule.labels,
+      scope: capsule.scope,
+      requiredLevel: capsule.requiredLevel,
+      score: candidate.finalScore,
+      reason: candidate.reason,
+    }),
+  );
+
+  // Build profile hints from shortlist
+  const profileShortlist = buildProfileShortlist(artifacts, governanceFilters);
+  const artifactIds = new Set(capsules.map((c) => c.artifactId));
+
+  const profileHints: ProfileHint[] = profileShortlist
+    .filter(({ artifact }) => artifactIds.has(artifact.id))
+    .map(({ artifact }) =>
+      profileHintSchema.parse({
+        artifactId: artifact.id,
+        title: artifact.title,
+        slug: artifact.slug,
+        labels: artifact.labels,
+      }),
+    );
+
+  return retrievalV2ResponseSchema.parse({
+    capsules,
+    profileHints,
+    refinementSummary: null, // No refinement in v2 baseline
   });
 }
