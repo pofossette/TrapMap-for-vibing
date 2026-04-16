@@ -8,18 +8,15 @@ Skill Shareer is a CLI-first internal knowledge sharing system for software team
 
 Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
 
-## Current Milestone: Planning Next Milestone
+## Current Milestone: v1.2 Skill-Native Retrieval
 
-**v1.1 RAG Structure Enhancement** — SHIPPED 2026-04-16
+**Goal:** Reshape the knowledge system around skill-native artifacts so a client can send one natural-language seed, the server can distill situation-and-problem intent into precise capsules, and assets/scripts stay under client control.
 
-All v1.1 features delivered:
-- Multi-path retrieval with orchestrator, hybrid recall (vector + keyword), and reranking
-- Lifecycle-driven indexing pipeline (approve → index, update → refresh, deactivate → remove)
-- Enhanced citations with source tracking, snippets, tags, and recall channel attribution
-- Graph-assisted recall with lightweight entity extraction
-- Optional summary builder for LLM-generated answers
-
-**Next Steps:** Run `/gsd-new-milestone` to define v1.2 scope
+**Target features:**
+- Skill directory import/export as first-class artifacts instead of flattening `SKILL.md` into `shortcut/detail`
+- Single-seed retrieval API that parses intent internally and returns distilled capsule-oriented knowledge
+- Client activation flow that downloads `references/`, `assets/`, and `scripts/` on demand with policy-aware execution
+- Compatibility path that migrates existing knowledge entries into minimal skill artifacts without breaking review and audit boundaries
 
 ## Requirements
 
@@ -35,7 +32,11 @@ All v1.1 features delivered:
 
 ### Active
 
-*None — define next milestone with `/gsd-new-milestone`*
+- [ ] Skill-native artifact storage becomes the canonical representation for imported knowledge bundles
+- [ ] Retrieval accepts a single natural-language seed and internally resolves situation, task, and error intent
+- [ ] Search results return distilled capsules and activation metadata instead of oversized raw knowledge blobs
+- [ ] Assets and scripts are handled entirely on the client with explicit execution policies and audit-safe metadata
+- [ ] Existing approval, RBAC, audit, and scope boundaries remain intact during the v1.2 transition
 
 ### Out of Scope
 
@@ -55,6 +56,13 @@ All v1.1 features delivered:
 - **Search quality:** Multi-path retrieval (semantic/hybrid/graph-assisted) with eligibility filtering, merging, reranking, and citations
 - **Indexing:** Lifecycle-driven pipeline with post-commit sync for approve/update/deactivate events
 - **Operational features:** Import/export with validation, audit trail for all mutating operations
+
+**v1.2 focus:**
+
+- Replace flattened skill imports with skill-native artifacts containing `SKILL.md`, `references/`, `assets/`, and `scripts/`
+- Keep the CLI user experience simple by preserving a single-seed query interface
+- Shift heavy context loading out of retrieval responses and into an explicit activation flow
+- Move script and asset handling to the client so the server only governs metadata, policy, and secure delivery
 
 **User feedback themes:**
 - None yet — v1.0 is initial release
@@ -77,12 +85,14 @@ All v1.1 features delivered:
 |----------|-----------|---------|
 | TypeScript-first monorepo with shared contracts | LangChain JS, CLI ergonomics, and shared runtime validation all fit a single TS stack well | ✓ Good — 93 contract imports wired across packages |
 | CLI is the default user surface | The product is meant to work from bash and agent runtimes, not only from a GUI | ✓ Good — all workflows work from terminal with JSON mode |
-| Knowledge uses `labels + shortcut + detail + scope` as the canonical model | Small, opinionated structure keeps entries retrievable and cheap to review | ✓ Good — retrieval quality confirmed via E2E tests |
+| Knowledge uses `labels + shortcut + detail + scope` as the canonical model | Small, opinionated structure kept v1 simple and reviewable | ⚠️ Revisit — v1.2 is moving canonical storage toward skill-native artifacts |
 | Review is mandatory before publication | Team knowledge is only valuable if it stays trustworthy and deduplicated | ✓ Good — agent pre-review + human approval gating working |
 | Retrieval stays text-only in v1 | Limits complexity and keeps the first milestone focused on useful search quality | ✓ Good — embeddings pipeline with deterministic fallback operational |
 | Skills must remain Claude-compatible | Anthropic skill compatibility is a stated product constraint, not a future nice-to-have | ✓ Good — skill scaffolding follows SKILL.md conventions |
 | Security level (0-10) on users and knowledge entries | Role templates alone too coarse-grained; level comparison simple to reason about | ✓ Good — RBAC enforcement across all 20 API routes verified |
 | Audit trail for all mutating operations | Teams need traceability for knowledge changes, especially for compliance debugging | ✓ Good — review/import/export/deactivate all logged, queryable via CLI |
+| Client sends one seed, server parses intent internally | Keeps CLI ergonomics simple while preserving richer retrieval semantics | — Pending |
+| Assets and scripts stay client-side at execution time | Server should govern metadata and policy, not execute untrusted skill payloads | — Pending |
 
 ## Evolution
 
@@ -102,4 +112,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-16 after v1.1 milestone completion*
+*Last updated: 2026-04-16 after starting v1.2 milestone*
