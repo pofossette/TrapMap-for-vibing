@@ -43,9 +43,9 @@ describe('CLI operations commands (Phase 13)', () => {
     testDir = join(tmpdir(), `skill-shareer-test-${Date.now()}-${Math.random()}`);
     await mkdir(testDir, { recursive: true });
 
-    // Setup mocks - explicit implementation
+    // Setup mocks - explicit implementation that handles parameters
     vi.mocked(loadCliState).mockResolvedValue(mockState);
-    vi.mocked(apiRequest).mockImplementation(async () => ({
+    vi.mocked(apiRequest).mockImplementation(async (state, options) => ({
       data: {
         results: [
           {
