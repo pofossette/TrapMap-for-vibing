@@ -60,7 +60,7 @@ describe('CLI operations commands (Phase 13)', () => {
         failedCount: 0,
       },
       sessionToken: 'test-token',
-    } as any));
+    });
 
     // Create program and register commands
     program = new Command();
