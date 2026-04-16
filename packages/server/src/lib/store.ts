@@ -220,6 +220,305 @@ export interface AuditEventRecord {
   updatedAt: string;
 }
 
+/**
+ * File record within a skill artifact revision.
+ * Stores path, hash, and inclusion flags without content bodies.
+ */
+export interface SkillArtifactFileRecord {
+  /** Canonical path within the skill directory (e.g., 'references/docker.md') */
+  path: string;
+  /** File kind controlling derivation and activation behavior */
+  kind: 'skill-markdown' | 'reference' | 'asset' | 'script';
+  /** SHA-256 hash of file content for integrity and derivation caching */
+  sha256: string;
+  /** File size in bytes for storage quota and transfer validation */
+  sizeBytes: number;
+  /** IANA media type (e.g., 'text/markdown', 'application/json') */
+  mediaType: string;
+  /** Source directory within the skill artifact */
+  source: 'references/' | 'assets/' | 'scripts/' | 'SKILL.md';
+  /** If true, file content may be used for capsule/profile derivation */
+  includeInDerivation: boolean;
+  /** If true, file is activation-only and should not be indexed for retrieval */
+  activationOnly: boolean;
+}
+
+/**
+ * Script capability descriptor for executable scripts in skill artifacts.
+ * Captures intent and constraints without exposing script bodies in retrieval context.
+ */
+export interface SkillScriptDescriptorRecord {
+  /** Path to the script file within the skill directory */
+  path: string;
+  /** SHA-256 hash of the script content */
+  sha256: string;
+  /** Human-readable capability description (e.g., 'Docker container cleanup') */
+  capability: string;
+  /** Brief summary of expected argument schema */
+  argsSchemaSummary: string;
+  /** Brief summary of side effects (e.g., 'Modifies local files') */
+  sideEffectSummary: string;
+  /** Default execution policy (e.g., 'manual', 'auto', 'blocked') */
+  defaultPolicy: 'manual' | 'auto' | 'blocked';
+}
+
+/**
+ * Derived profile record from SKILL.md and references/.
+ * Captures the distilled artifact-wide text shape for model context.
+ */
+export interface DerivedSkillProfileRecord {
+  /** Artifact identifier */
+  artifactId: string;
+  /** Revision number this profile was derived from */
+  revision: number;
+  /** Hash of all source files used for derivation */
+  sourceHash: string;
+  /** Human-readable title from skill metadata */
+  title: string;
+  /** Distilled summary of artifact content */
+  summary: string;
+  /** Keywords extracted from skill content */
+  keywords: string[];
+  /** Paths to reference files included in derivation */
+  referencePaths: string[];
+  /** Hash of the derived profile content for caching */
+  contentHash: string;
+}
+
+/**
+ * Knowledge capsule record distilled from SKILL.md and references/.
+ * Carries deterministic capsule id, source paths, and governance inheritance.
+ * Does NOT embed asset or script bodies (T-12-02 mitigation).
+ */
+export interface DerivedSkillCapsuleRecord {
+  /** Unique capsule identifier */
+  capsuleId: string;
+  /** Artifact identifier */
+  artifactId: string;
+  /** Revision number this capsule was derived from */
+  revision: number;
+  /** Source file paths that contributed to this capsule */
+  sourcePaths: string[];
+  /** Distilled capsule content (text only, no asset/script bodies) */
+  content: string;
+  /** Situation context */
+  situation: string;
+  /** Problem statement */
+  problem: string;
+  /** Goal or solution */
+  goal: string;
+  /** Optional error text for error-specific capsules */
+  errorText: string | null;
+  /** Searchable labels */
+  labels: string[];
+  /** Governance scope (inherited from artifact) */
+  scope: Scope;
+  /** Required security level (inherited from artifact) */
+  requiredLevel: number;
+}
+
+/**
+ * Client manifest reference entry.
+ * Metadata-only reference for activation-time delivery.
+ */
+export interface ClientManifestReferenceRecord {
+  path: string;
+  sha256: string;
+  sizeBytes: number;
+  mediaType: string;
+}
+
+/**
+ * Client manifest asset entry.
+ * Metadata-only asset for activation-time delivery.
+ */
+export interface ClientManifestAssetRecord {
+  path: string;
+  sha256: string;
+  sizeBytes: number;
+  mediaType: string;
+}
+
+/**
+ * Client manifest script entry.
+ * Metadata-only script descriptor (no body) for activation-time delivery.
+ * Excludes script body text (T-12-02 mitigation).
+ */
+export interface ClientManifestScriptRecord {
+  path: string;
+  sha256: string;
+  capability: string;
+  argsSchemaSummary: string;
+  sideEffectSummary: string;
+  defaultPolicy: 'manual' | 'auto' | 'blocked';
+}
+
+/**
+ * Client activation manifest record for references, assets, and scripts.
+ * Exposes activation metadata while remaining distinct from retrieval output defaults.
+ * Scripts are metadata-only (T-12-02 mitigation).
+ */
+export interface ClientManifestRecord {
+  /** Artifact identifier */
+  artifactId: string;
+  /** Revision number this manifest was derived from */
+  revision: number;
+  /** Reference file metadata */
+  references: ClientManifestReferenceRecord[];
+  /** Asset file metadata */
+  assets: ClientManifestAssetRecord[];
+  /** Script metadata (capability only, no bodies) */
+  scripts: ClientManifestScriptRecord[];
+  /** Hash of all source files for this manifest */
+  sourceHash: string;
+}
+
+/**
+ * Derived output envelope for skill artifact revisions.
+ * Contains cached deterministic outputs keyed by source content hash.
+ */
+export interface SkillArtifactDerivedRecord {
+  /** Distilled profile from SKILL.md and references/ */
+  profile: DerivedSkillProfileRecord | null;
+  /** Knowledge capsules distilled from SKILL.md and references/ */
+  capsules: DerivedSkillCapsuleRecord[];
+  /** Client activation manifest for references, assets, and scripts */
+  clientManifest: ClientManifestRecord | null;
+  /** Hash of all source files used for derivation (SKILL.md + references/) */
+  sourceHash: string;
+  /** ISO timestamp when derivation was computed */
+  derivedAt: string;
+}
+
+/**
+ * Review note record for skill artifacts.
+ */
+export interface SkillArtifactReviewNoteRecord {
+  id: string;
+  createdAt: string;
+  authorType: 'submitter' | 'agent' | 'reviewer' | 'system';
+  authorUserId: string | null;
+  message: string;
+}
+
+/**
+ * Review decision record for skill artifacts.
+ */
+export interface SkillArtifactReviewDecisionRecord {
+  decidedAt: string;
+  decidedByUserId: string;
+  decision: 'approve' | 'reject';
+  notes: string;
+}
+
+/**
+ * Lifecycle event record specific to skill artifacts.
+ */
+export interface SkillArtifactLifecycleEventRecord {
+  id: string;
+  type:
+    | 'submitted'
+    | 'resubmitted'
+    | 'agent-reviewed'
+    | 'reviewer-approved'
+    | 'reviewer-rejected'
+    | 'updated'
+    | 'deactivated';
+  createdAt: string;
+  actorUserId: string | null;
+  submissionId: string | null;
+  revision: number | null;
+  state: LifecycleState;
+  note: string | null;
+}
+
+/**
+ * Metadata record specific to skill artifacts.
+ */
+export interface SkillArtifactMetadataRecord {
+  /** How this artifact was originally created */
+  sourceKind: 'skill-directory' | 'single-skill-md' | 'legacy-knowledge';
+  /** Total number of submissions across all revisions */
+  submissionCount: number;
+  /** Number of times this artifact was resubmitted after rejection */
+  resubmissionCount: number;
+  /** Total number of revisions */
+  revisionCount: number;
+  /** ID of the most recent submission */
+  latestSubmissionId: string | null;
+  /** When the most recent submission was created */
+  latestSubmittedAt: string | null;
+  /** When the most recent review was completed */
+  latestReviewedAt: string | null;
+  /** Most recent review decision (approve/reject) */
+  latestDecision: 'approve' | 'reject' | null;
+}
+
+/**
+ * Immutable revision record within a skill artifact.
+ * Captures source file manifest and derived outputs at a point in time.
+ */
+export interface SkillArtifactRevisionRecord {
+  /** Monotonically increasing revision number */
+  revision: number;
+  /** SHA-256 hash of all source files for this revision */
+  sourceHash: string;
+  /** All files in the skill directory at this revision */
+  files: SkillArtifactFileRecord[];
+  /** When this revision was submitted */
+  submittedAt: string;
+  /** Who submitted this revision */
+  submittedByUserId: string;
+  /** Script descriptors for executable scripts in this revision */
+  scriptDescriptors: SkillScriptDescriptorRecord[];
+  /** Cached derived outputs keyed by source hash */
+  derived: SkillArtifactDerivedRecord | null;
+}
+
+/**
+ * Canonical skill artifact aggregate root.
+ * Stores governance, lifecycle, and revision history for skill-native artifacts.
+ * Additive to legacy KnowledgeEntry - does not replace existing knowledge contracts.
+ */
+export interface SkillArtifactRecord {
+  /** Unique artifact identifier */
+  id: string;
+  /** Team ID if this is a team-scoped artifact */
+  teamId: string | null;
+  /** Global or project scope */
+  scope: Scope;
+  /** Searchable labels for this artifact */
+  labels: string[];
+  /** Human-readable title */
+  title: string;
+  /** URL-friendly slug for references */
+  slug: string;
+  /** Required security level to access this artifact */
+  requiredLevel: number;
+  /** Current lifecycle state */
+  lifecycleState: LifecycleState;
+  /** Artifact owner/creator */
+  ownerUserId: string;
+  /** Currently active revision record */
+  latestRevision: SkillArtifactRevisionRecord;
+  /** Complete revision history */
+  history: SkillArtifactRevisionRecord[];
+  /** Artifact-specific metadata */
+  metadata: SkillArtifactMetadataRecord;
+  /** Agent review result (if applicable) */
+  agentReview: AgentReviewRecord | null;
+  /** Review decision history */
+  reviewHistory: SkillArtifactReviewDecisionRecord[];
+  /** Review notes from all reviewers */
+  reviewNotes: SkillArtifactReviewNoteRecord[];
+  /** Lifecycle event history */
+  lifecycleHistory: SkillArtifactLifecycleEventRecord[];
+  /** Created timestamp */
+  createdAt: string;
+  /** Updated timestamp */
+  updatedAt: string;
+}
+
 export interface StoreData {
   counters: Record<string, number>;
   users: UserRecord[];
@@ -229,6 +528,8 @@ export interface StoreData {
   sessions: SessionRecord[];
   knowledgeEntries: KnowledgeRecord[];
   auditEvents: AuditEventRecord[];
+  /** Additive skill artifacts collection (ARTF-02, T-12-05) */
+  skillArtifacts: SkillArtifactRecord[];
 }
 
 const EMPTY_STORE: StoreData = {
@@ -240,6 +541,7 @@ const EMPTY_STORE: StoreData = {
   sessions: [],
   knowledgeEntries: [],
   auditEvents: [],
+  skillArtifacts: [],
 };
 
 function cloneEmptyStore(): StoreData {

@@ -7,12 +7,10 @@ import {
   isoTimestampSchema,
   labelSchema,
   lifecycleStateSchema,
-  reviewDecisionSchema,
-  reviewNoteSchema,
   scopeSchema,
   securityLevelSchema,
 } from './common.js';
-import { agentReviewResultSchema } from './knowledge.js';
+import { agentReviewResultSchema, reviewDecisionSchema, reviewNoteSchema } from './knowledge.js';
 
 /**
  * Canonical file kind discriminator for skill artifact files.
