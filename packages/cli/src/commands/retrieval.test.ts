@@ -1295,4 +1295,213 @@ describe('CLI retrieval commands', () => {
       consoleLogSpy.mockRestore();
     });
   });
+
+  // Phase 16-02: CLI metadata-only output boundary (T-16-06)
+  describe('CLI metadata-only output boundary (Phase 16-02)', () => {
+    it('v2 text output does not surface raw bundle payloads', async () => {
+      // V2 response contains capsules with distilled content, not bundle payloads
+      const mockV2Response: RetrievalV2Response = {
+        capsules: [
+          {
+            capsuleId: 'capsule-1',
+            artifactId: 'artifact-1',
+            revision: 1,
+            sourcePaths: ['SKILL.md'],
+            content: 'Distilled capsule content',
+            situation: 'Docker container fails to start',
+            problem: 'Missing environment variable',
+            goal: 'Add required ENV variable',
+            labels: ['docker'],
+            scope: 'global',
+            requiredLevel: 0,
+            score: 0.95,
+            reason: 'High match',
+          },
+        ],
+        profileHints: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockV2Response,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test', '--v2'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+
+      // Output should show capsule metadata fields
+      expect(output).toContain('Docker container fails to start');
+      expect(output).toContain('Missing environment variable');
+      expect(output).toContain('Add required ENV variable');
+      // Should NOT contain any raw bundle payload markers
+      expect(output).not.toContain('bundle:');
+      expect(output).not.toContain('payload:');
+      expect(output).not.toContain('scriptBody:');
+      expect(output).not.toContain('assetContent:');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('v1 text output does not surface embedding vectors', async () => {
+      // V1 response contains entry metadata, not internal embedding data
+      const mockResponse: RetrievalResponse = {
+        globalConstraints: [
+          {
+            entryId: 'entry-1',
+            scope: 'global',
+            requiredLevel: 0,
+            shortcut: 'Test Entry',
+            detail: 'Test detail',
+            labels: ['test'],
+            score: 0.9,
+            reason: 'Score: 0.9',
+          },
+        ],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+
+      // Output should show entry metadata
+      expect(output).toContain('Test Entry');
+      expect(output).toContain('Score: 0.9');
+      // Should NOT contain embedding vector data
+      expect(output).not.toContain('embedding:');
+      expect(output).not.toContain('vector:');
+      expect(output).not.toContain('[0.');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('v2 JSON output does not include script bodies or asset payloads', async () => {
+      const mockV2Response: RetrievalV2Response = {
+        capsules: [
+          {
+            capsuleId: 'capsule-1',
+            artifactId: 'artifact-1',
+            revision: 1,
+            sourcePaths: ['SKILL.md'],
+            content: 'Capsule content',
+            situation: 'Situation',
+            problem: 'Problem',
+            goal: 'Goal',
+            labels: ['test'],
+            scope: 'global',
+            requiredLevel: 0,
+            score: 0.9,
+            reason: 'Match',
+          },
+        ],
+        profileHints: [
+          {
+            artifactId: 'artifact-1',
+            title: 'Test Artifact',
+            slug: 'test-artifact',
+            labels: ['test'],
+          },
+        ],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockV2Response,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test', '--v2', '--json'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+
+      // Parse output as JSON
+      const parsed = JSON.parse(output);
+
+      // Capsules should not have script body or asset payload fields
+      expect(parsed.capsules).toBeDefined();
+      expect(parsed.capsules[0]).not.toHaveProperty('scriptBody');
+      expect(parsed.capsules[0]).not.toHaveProperty('assetPayload');
+      expect(parsed.capsules[0]).not.toHaveProperty('bundlePayload');
+
+      // Profile hints should be metadata-only
+      expect(parsed.profileHints).toBeDefined();
+      expect(parsed.profileHints[0]).not.toHaveProperty('content');
+      expect(parsed.profileHints[0]).not.toHaveProperty('files');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('v1 JSON output does not include internal metadata fields', async () => {
+      const mockResponse: RetrievalResponse = {
+        globalConstraints: [
+          {
+            entryId: 'entry-1',
+            scope: 'global',
+            requiredLevel: 0,
+            shortcut: 'Test',
+            detail: 'Detail',
+            labels: ['test'],
+            score: 0.9,
+            reason: 'Score: 0.9',
+          },
+        ],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'test', '--json'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+
+      const parsed = JSON.parse(output);
+
+      // Entries should not expose internal fields
+      expect(parsed.globalConstraints[0]).not.toHaveProperty('embeddingCache');
+      expect(parsed.globalConstraints[0]).not.toHaveProperty('indexState');
+      expect(parsed.globalConstraints[0]).not.toHaveProperty('ownerUserId');
+
+      consoleLogSpy.mockRestore();
+    });
+  });
 });
