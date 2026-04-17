@@ -1994,4 +1994,92 @@ describe('contracts package', () => {
       });
     });
   });
+
+  // =============================================================================
+  // Phase 15 Plan 02: Activation Policy Contracts (ACTV-02, ACTV-03, ACTV-04)
+  // Tests for four-state script policy vocabulary and client override schema
+  // =============================================================================
+  describe('activation policy contracts (Phase 15-02)', () => {
+    it('accepts the four required execution policies', async () => {
+      const { scriptActivationPolicySchema, clientOverridePolicySchema } = await import('./index.js');
+
+      // Test all four ACTV-02 policies
+      expect(scriptActivationPolicySchema.parse('reference-only')).toBe('reference-only');
+      expect(scriptActivationPolicySchema.parse('needs-approval')).toBe('needs-approval');
+      expect(scriptActivationPolicySchema.parse('client-executable')).toBe('client-executable');
+      expect(scriptActivationPolicySchema.parse('blocked')).toBe('blocked');
+
+      // Reject invalid policies
+      expect(() => scriptActivationPolicySchema.parse('manual')).toThrow();
+      expect(() => scriptActivationPolicySchema.parse('auto')).toThrow();
+      expect(() => scriptActivationPolicySchema.parse('run-immediately')).toThrow();
+    });
+
+    it('accepts client override intent with stricter-only constraint', async () => {
+      const { clientOverridePolicySchema } = await import('./index.js');
+
+      // Test all four policy values for override intent
+      expect(clientOverridePolicySchema.parse('reference-only')).toBe('reference-only');
+      expect(clientOverridePolicySchema.parse('needs-approval')).toBe('needs-approval');
+      expect(clientOverridePolicySchema.parse('client-executable')).toBe('client-executable');
+      expect(clientOverridePolicySchema.parse('blocked')).toBe('blocked');
+
+      // Test null (no override)
+      expect(clientOverridePolicySchema.parse(null)).toBe(null);
+    });
+
+    it('accepts script metadata with four-state default policy and optional override intent', async () => {
+      const { scriptWithPolicyMetadataSchema } = await import('./index.js');
+
+      const metadata = {
+        path: 'scripts/deploy.sh',
+        sha256: 'a'.repeat(64),
+        capability: 'Deploy to staging',
+        argsSchemaSummary: 'environment: string',
+        sideEffectSummary: 'Creates staging deployment',
+        defaultPolicy: 'needs-approval' as const,
+        clientOverrideIntent: 'reference-only' as const,
+      };
+
+      const parsed = scriptWithPolicyMetadataSchema.parse(metadata);
+
+      expect(parsed.defaultPolicy).toBe('needs-approval');
+      expect(parsed.clientOverrideIntent).toBe('reference-only');
+    });
+
+    it('accepts script metadata without override intent', async () => {
+      const { scriptWithPolicyMetadataSchema } = await import('./index.js');
+
+      const metadata = {
+        path: 'scripts/cleanup.sh',
+        sha256: 'b'.repeat(64),
+        capability: 'Clean up temp files',
+        argsSchemaSummary: '',
+        sideEffectSummary: 'Deletes temp directories',
+        defaultPolicy: 'client-executable' as const,
+      };
+
+      const parsed = scriptWithPolicyMetadataSchema.parse(metadata);
+
+      expect(parsed.defaultPolicy).toBe('client-executable');
+      expect(parsed.clientOverrideIntent).toBeUndefined();
+    });
+
+    it('maintains backward compatibility with existing artifact and manifest schemas', async () => {
+      const { skillScriptDescriptorSchema, clientManifestScriptSchema } = await import('./index.js');
+
+      // Old schema should still parse three-state policy for backward compatibility
+      const oldDescriptor = {
+        path: 'scripts/old.sh',
+        sha256: 'c'.repeat(64),
+        capability: 'Old script',
+        argsSchemaSummary: '',
+        sideEffectSummary: '',
+        defaultPolicy: 'manual' as const,
+      };
+
+      expect(skillScriptDescriptorSchema.parse(oldDescriptor)).toMatchObject(oldDescriptor);
+      expect(clientManifestScriptSchema.parse(oldDescriptor)).toMatchObject(oldDescriptor);
+    });
+  });
 });

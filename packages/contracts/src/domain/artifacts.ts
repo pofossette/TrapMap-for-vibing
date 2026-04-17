@@ -12,6 +12,74 @@ import {
 } from './common.js';
 import { agentReviewResultSchema, reviewDecisionSchema, reviewNoteSchema } from './knowledge.js';
 
+// =============================================================================
+// Phase 15 Plan 02: Activation Policy Contracts (ACTV-02, ACTV-03, ACTV-04)
+// Four-state script policy vocabulary and client override schema
+// =============================================================================
+
+/**
+ * Script activation policy for governing script execution behavior.
+ *
+ * Policy meanings (ACTV-02):
+ * - `reference-only`: Script content may be read but never executed
+ * - `needs-approval`: Script requires explicit user approval before execution
+ * - `client-executable`: Script may be executed by the client without additional approval
+ * - `blocked`: Script is completely unavailable for any use
+ *
+ * Ordering from strictest to most permissive for effective policy resolution:
+ * blocked > reference-only > needs-approval > client-executable
+ *
+ * This replaces the ambiguous `manual | auto | blocked` vocabulary with explicit
+ * download vs execution semantics while keeping metadata-only (ACTV-03).
+ */
+export const scriptActivationPolicySchema = z.enum([
+  'reference-only',
+  'needs-approval',
+  'client-executable',
+  'blocked',
+]);
+
+/**
+ * Client override policy intent.
+ *
+ * Clients may specify a local override intent for a script that can only
+ * tighten the effective policy, never relax it (ACTV-04).
+ *
+ * The null value indicates no override intent - use the server default policy.
+ */
+export const clientOverridePolicySchema = scriptActivationPolicySchema.nullable();
+
+/**
+ * Script metadata with activation policy.
+ *
+ * Extends the base script descriptor with four-state policy vocabulary and
+ * optional client override intent. Used for policy-aware activation responses
+ * while keeping script bodies out of retrieval context (ACTV-03).
+ */
+export const scriptWithPolicyMetadataSchema = z.object({
+  /** Path to the script file within the skill directory */
+  path: z.string().min(1).max(512),
+  /** SHA-256 hash of the script content */
+  sha256: z.string().length(64),
+  /** Human-readable capability description */
+  capability: z.string().min(1).max(280),
+  /** Brief summary of expected argument schema */
+  argsSchemaSummary: z.string().max(280).default(''),
+  /** Brief summary of side effects */
+  sideEffectSummary: z.string().max(280).default(''),
+  /**
+   * Default execution policy from the server.
+   * This is the server's governance recommendation for this script.
+   */
+  defaultPolicy: scriptActivationPolicySchema,
+  /**
+   * Optional client override intent.
+   * If specified, the effective policy will be the stricter of defaultPolicy and clientOverrideIntent.
+   * If null, use the server defaultPolicy (ACTV-04).
+   */
+  clientOverrideIntent: clientOverridePolicySchema.optional(),
+});
+
 /**
  * Canonical file kind discriminator for skill artifact files.
  * Controls whether content may become model context and activation behavior.
@@ -337,3 +405,8 @@ export type SkillArtifactRevision = z.infer<typeof skillArtifactRevisionSchema>;
 export type SkillArtifactLifecycleEvent = z.infer<typeof skillArtifactLifecycleEventSchema>;
 export type SkillArtifactMetadata = z.infer<typeof skillArtifactMetadataSchema>;
 export type SkillArtifact = z.infer<typeof skillArtifactSchema>;
+
+// Phase 15-02: Activation policy type exports
+export type ScriptActivationPolicy = z.infer<typeof scriptActivationPolicySchema>;
+export type ClientOverridePolicy = z.infer<typeof clientOverridePolicySchema>;
+export type ScriptWithPolicyMetadata = z.infer<typeof scriptWithPolicyMetadataSchema>;
