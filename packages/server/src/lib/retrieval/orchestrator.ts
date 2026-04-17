@@ -25,6 +25,7 @@ import {
   buildProfileHint,
   buildV2RetrievalResponse,
   buildEmptyV2Response,
+  buildActivationHint,
 } from './assembly.js';
 import { filterEligibleEntries } from './filters.js';
 import { mergeCandidates, toScoredEntries, createSemanticCandidate } from './merge.js';
@@ -473,7 +474,8 @@ export async function updateEntryEmbeddingCache(
  * 3. Filter by approval, team, level (T-14-04)
  * 4. Rank capsules against parsed intent (CAPS-04)
  * 5. Assemble v2 response with capsule matches using pure assembly helpers
- * 6. Optional summary generation over filtered capsule hits (T-14-08)
+ * 6. Build activation hints from governed clientManifest (RETR-05, ACTV-01)
+ * 7. Optional summary generation over filtered capsule hits (T-14-08)
  *
  * @param services - Server services (config, store)
  * @param auth - Resolved auth context
@@ -533,6 +535,12 @@ export async function searchKnowledgeV2(
     .filter(({ artifact }) => artifactIds.has(artifact.id))
     .map(({ artifact }) => buildProfileHint(artifact));
 
+  // Build activation hints from clientManifest (RETR-05, ACTV-01)
+  // Per T-15-02: Source only from governed clientManifest, not CLI guesses
+  const activationHints = capsuleRecords
+    .filter(({ artifact }) => artifact.latestRevision.derived?.clientManifest)
+    .map(({ artifact }) => buildActivationHint(artifact.latestRevision.derived!.clientManifest!));
+
   // Build response using pure assembly helper
-  return buildV2RetrievalResponse(capsules, profileHints);
+  return buildV2RetrievalResponse(capsules, profileHints, undefined, activationHints);
 }
