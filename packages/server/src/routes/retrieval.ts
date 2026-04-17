@@ -4,7 +4,7 @@ import {
   retrievalQuerySchema,
   retrievalResponseSchema,
   retrievalV2QuerySchema,
-  retrievalV2ResponseSchema,
+  retrievalV2ResponseWithHintsSchema,
 } from '@skill-shareer/contracts';
 
 import { requirePermission } from '../lib/rbac.js';
@@ -32,6 +32,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
 
   // v2 capsule-native retrieval path (RETR-01, RETR-04, COMP-03)
   // Accepts seed-only input and returns capsule-first distilled results
+  // Phase 15: Returns activation hints from governed clientManifest (T-15-02)
   app.post('/v2/retrieval/search', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
 
@@ -44,7 +45,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
     // Execute capsule-native retrieval
     const result = await searchKnowledgeV2(app.skillShareer, auth, query);
 
-    // Validate and return v2 response
-    return retrievalV2ResponseSchema.parse(result);
+    // Validate and return v2 response with activation hints (T-15-03)
+    return retrievalV2ResponseWithHintsSchema.parse(result);
   });
 };

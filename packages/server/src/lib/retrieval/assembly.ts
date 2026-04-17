@@ -26,6 +26,10 @@ import type {
   CapsuleMatch,
   ProfileHint,
   RetrievalV2Response,
+  CapsuleActivationHints,
+  ReadNextReferenceHint,
+  AssetAvailabilityHint,
+  ScriptProfileHint,
 } from '@skill-shareer/contracts';
 import {
   retrievalMatchSchema,
@@ -33,9 +37,14 @@ import {
   retrievalV2ResponseSchema,
   capsuleMatchSchema,
   profileHintSchema,
+  capsuleActivationHintsSchema,
 } from '@skill-shareer/contracts';
 import type { ScoredEntry, CapsuleCandidate } from './types.js';
-import type { DerivedSkillCapsuleRecord, SkillArtifactRecord } from '../store.js';
+import type {
+  DerivedSkillCapsuleRecord,
+  SkillArtifactRecord,
+  ClientManifestRecord,
+} from '../store.js';
 
 // Type inference from schema - use the return type of parse()
 type RetrievalMatch = ReturnType<typeof retrievalMatchSchema.parse>;
@@ -203,26 +212,33 @@ export function buildProfileHint(
 
 /**
  * Build the complete v2 retrieval response.
- * Capsule-first distilled results with optional summary.
+ * Capsule-first distilled results with optional summary and activation hints.
  *
  * Per T-14-07: Does not include raw bundle file contents or
  * activation-only payloads in the response.
+ * Per T-15-01: Activation hints are metadata-only without file bodies.
  *
  * @param capsules - Ranked capsule matches
  * @param profileHints - Lightweight artifact metadata
  * @param summary - Optional summary over filtered capsule hits
+ * @param activationHints - Optional activation hints per capsule
  * @returns v2 retrieval response
  */
 export function buildV2RetrievalResponse(
   capsules: CapsuleMatch[],
   profileHints: ProfileHint[],
   summary?: RetrievalSummary | null,
+  activationHints?: CapsuleActivationHints[],
 ): RetrievalV2Response {
   return retrievalV2ResponseSchema.parse({
     capsules,
     profileHints,
     refinementSummary: null,
     summary: summary ?? null,
+    // Note: activationHints are added to the response shape
+    // but the base schema doesn't include them - they're optional
+    // The route will use retrievalV2ResponseWithHintsSchema if needed
+    ...(activationHints ? { activationHints } : {}),
   });
 }
 
@@ -235,5 +251,155 @@ export function buildEmptyV2Response(): RetrievalV2Response {
     profileHints: [],
     refinementSummary: null,
     summary: null,
+  });
+}
+
+// =============================================================================
+// Phase 15: Activation hint shaping (RETR-05, ACTV-01, T-15-01, T-15-02)
+// Pure helpers for building activation metadata from governed clientManifest.
+// All hints are metadata-only - no file bodies or script content included.
+// =============================================================================
+
+/**
+ * Build a read-next reference hint from client manifest reference metadata.
+ * Per T-15-01: Metadata-only, no file content.
+ *
+ * @param artifactId - Artifact identifier
+ * @param revision - Revision number
+ * @param ref - Client manifest reference record
+ * @returns ReadNextReferenceHint for activation guidance
+ */
+export function buildReadNextHint(
+  artifactId: string,
+  revision: number,
+  ref: ClientManifestRecord['references'][number],
+): ReadNextReferenceHint {
+  return {
+    artifactId,
+    revision,
+    path: ref.path,
+    sha256: ref.sha256,
+  };
+}
+
+/**
+ * Build an asset availability hint from client manifest asset metadata.
+ * Per T-15-01: Metadata-only, no asset body.
+ *
+ * @param artifactId - Artifact identifier
+ * @param revision - Revision number
+ * @param asset - Client manifest asset record
+ * @returns AssetAvailabilityHint for activation guidance
+ */
+export function buildAssetHint(
+  artifactId: string,
+  revision: number,
+  asset: ClientManifestRecord['assets'][number],
+): AssetAvailabilityHint {
+  return {
+    artifactId,
+    revision,
+    path: asset.path,
+    sha256: asset.sha256,
+    sizeBytes: asset.sizeBytes,
+    mediaType: asset.mediaType,
+  };
+}
+
+/**
+ * Build a script profile hint from client manifest script metadata.
+ * Per T-15-01, T-15-03: Metadata-only, no script body.
+ *
+ * @param artifactId - Artifact identifier
+ * @param revision - Revision number
+ * @param script - Client manifest script record
+ * @returns ScriptProfileHint for activation guidance
+ */
+export function buildScriptHint(
+  artifactId: string,
+  revision: number,
+  script: ClientManifestRecord['scripts'][number],
+): ScriptProfileHint {
+  return {
+    artifactId,
+    revision,
+    path: script.path,
+    sha256: script.sha256,
+    capability: script.capability,
+    argsSchemaSummary: script.argsSchemaSummary,
+    sideEffectSummary: script.sideEffectSummary,
+    defaultPolicy: script.defaultPolicy,
+  };
+}
+
+/**
+ * Build activation hints for a single capsule from its artifact's client manifest.
+ * Per T-15-02: Sources activation metadata only from governed clientManifest.
+ * Per T-15-01: All hints remain metadata-only without file bodies.
+ *
+ * @param capsule - Capsule match to build hints for
+ * @param manifest - Client manifest from artifact's latest revision (may be null)
+ * @returns CapsuleActivationHints for the capsule
+ */
+export function buildActivationHints(
+  capsule: CapsuleMatch,
+  manifest: ClientManifestRecord | null,
+): CapsuleActivationHints {
+  // If no manifest, return empty hints
+  if (!manifest) {
+    return capsuleActivationHintsSchema.parse({
+      capsuleId: capsule.capsuleId,
+      readNext: [],
+      assets: [],
+      scripts: [],
+    });
+  }
+
+  // Build read-next hints from manifest references
+  const readNext: ReadNextReferenceHint[] = manifest.references.map((ref) =>
+    buildReadNextHint(manifest.artifactId, manifest.revision, ref),
+  );
+
+  // Build asset hints from manifest assets
+  const assets: AssetAvailabilityHint[] = manifest.assets.map((asset) =>
+    buildAssetHint(manifest.artifactId, manifest.revision, asset),
+  );
+
+  // Build script hints from manifest scripts
+  const scripts: ScriptProfileHint[] = manifest.scripts.map((script) =>
+    buildScriptHint(manifest.artifactId, manifest.revision, script),
+  );
+
+  return capsuleActivationHintsSchema.parse({
+    capsuleId: capsule.capsuleId,
+    readNext,
+    assets,
+    scripts,
+  });
+}
+
+/**
+ * Build activation hints for all capsules from their artifacts.
+ * Maps capsule artifact IDs to their corresponding manifests.
+ *
+ * @param capsules - Ranked capsule matches
+ * @param artifacts - Skill artifacts with manifests
+ * @returns Array of activation hints, one per capsule (empty if no manifest)
+ */
+export function buildAllActivationHints(
+  capsules: CapsuleMatch[],
+  artifacts: SkillArtifactRecord[],
+): CapsuleActivationHints[] {
+  // Build artifact lookup by ID
+  const artifactMap = new Map<string, SkillArtifactRecord>();
+  for (const artifact of artifacts) {
+    artifactMap.set(artifact.id, artifact);
+  }
+
+  // Build hints for each capsule
+  return capsules.map((capsule) => {
+    const artifact = artifactMap.get(capsule.artifactId);
+    const manifest = artifact?.latestRevision.derived?.clientManifest ?? null;
+    return buildActivationHints(capsule, manifest);
   });
 }

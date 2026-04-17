@@ -22,6 +22,11 @@ import {
   retrievalResponseSchema,
   retrievalV2QuerySchema,
   retrievalV2ResponseSchema,
+  retrievalV2ResponseWithHintsSchema,
+  readNextReferenceHintSchema,
+  assetAvailabilityHintSchema,
+  scriptProfileHintSchema,
+  capsuleActivationHintsSchema,
   reviewDecisionRequestSchema,
   securityLevelSchema,
   skillArtifactSchema,
@@ -1941,6 +1946,359 @@ describe('contracts package', () => {
       };
 
       expect(() => activationFilePayloadSchema.parse(invalidPayload)).toThrow();
+    });
+  });
+});
+
+// =============================================================================
+// Phase 15: Activation hints for references, assets, and scripts (RETR-05, ACTV-01)
+// Metadata-only hints that tell clients what to read/fetch next.
+// =============================================================================
+
+describe('Phase 15: Activation hints', () => {
+  describe('readNextReferenceHintSchema', () => {
+    it('accepts valid read-next reference hint (Task 1, Test 1)', () => {
+      const hint = {
+        artifactId: 'artifact_1',
+        revision: 1,
+        path: 'references/docker-best-practices.md',
+        sha256: 'a'.repeat(64),
+        description: 'Docker deployment guidelines',
+      };
+
+      const parsed = readNextReferenceHintSchema.parse(hint);
+      expect(parsed.artifactId).toBe('artifact_1');
+      expect(parsed.path).toBe('references/docker-best-practices.md');
+      expect(parsed.description).toBe('Docker deployment guidelines');
+    });
+
+    it('accepts read-next hint without optional description', () => {
+      const hint = {
+        artifactId: 'artifact_1',
+        revision: 1,
+        path: 'references/api.md',
+        sha256: 'b'.repeat(64),
+      };
+
+      const parsed = readNextReferenceHintSchema.parse(hint);
+      expect(parsed.description).toBeUndefined();
+    });
+
+    it('is metadata-only and does not require file content (Task 1, Test 2)', () => {
+      const hint = {
+        artifactId: 'artifact_1',
+        revision: 1,
+        path: 'references/readme.md',
+        sha256: 'c'.repeat(64),
+      };
+
+      // Should parse without content field
+      const parsed = readNextReferenceHintSchema.parse(hint);
+      expect(parsed).not.toHaveProperty('content');
+      expect(parsed).not.toHaveProperty('body');
+    });
+
+    it('validates sha256 is exactly 64 characters', () => {
+      const hint = {
+        artifactId: 'artifact_1',
+        revision: 1,
+        path: 'references/test.md',
+        sha256: 'short-hash',
+      };
+
+      expect(() => readNextReferenceHintSchema.parse(hint)).toThrow();
+    });
+  });
+
+  describe('assetAvailabilityHintSchema', () => {
+    it('accepts valid asset availability hint (Task 1, Test 1)', () => {
+      const hint = {
+        artifactId: 'artifact_1',
+        revision: 1,
+        path: 'assets/config-template.yaml',
+        sha256: 'd'.repeat(64),
+        sizeBytes: 2048,
+        mediaType: 'application/yaml',
+      };
+
+      const parsed = assetAvailabilityHintSchema.parse(hint);
+      expect(parsed.artifactId).toBe('artifact_1');
+      expect(parsed.sizeBytes).toBe(2048);
+      expect(parsed.mediaType).toBe('application/yaml');
+    });
+
+    it('is metadata-only and does not require asset body (Task 1, Test 2)', () => {
+      const hint = {
+        artifactId: 'artifact_1',
+        revision: 1,
+        path: 'assets/data.json',
+        sha256: 'e'.repeat(64),
+        sizeBytes: 512,
+        mediaType: 'application/json',
+      };
+
+      const parsed = assetAvailabilityHintSchema.parse(hint);
+      expect(parsed).not.toHaveProperty('content');
+      expect(parsed).not.toHaveProperty('data');
+      expect(parsed).not.toHaveProperty('body');
+    });
+  });
+
+  describe('scriptProfileHintSchema', () => {
+    it('accepts valid script profile hint (Task 1, Test 1)', () => {
+      const hint = {
+        artifactId: 'artifact_1',
+        revision: 1,
+        path: 'scripts/deploy.sh',
+        sha256: 'f'.repeat(64),
+        capability: 'Deploy to production',
+        argsSchemaSummary: 'env: string',
+        sideEffectSummary: 'Pushes to remote server',
+        defaultPolicy: 'manual',
+      };
+
+      const parsed = scriptProfileHintSchema.parse(hint);
+      expect(parsed.capability).toBe('Deploy to production');
+      expect(parsed.defaultPolicy).toBe('manual');
+    });
+
+    it('is metadata-only and does not expose script body (Task 1, Test 2, T-15-03)', () => {
+      const hint = {
+        artifactId: 'artifact_1',
+        revision: 1,
+        path: 'scripts/setup.sh',
+        sha256: 'g'.repeat(64),
+        capability: 'Setup environment',
+        argsSchemaSummary: '',
+        sideEffectSummary: 'Creates config files',
+        defaultPolicy: 'auto',
+      };
+
+      const parsed = scriptProfileHintSchema.parse(hint);
+      expect(parsed).not.toHaveProperty('scriptBody');
+      expect(parsed).not.toHaveProperty('content');
+      expect(parsed).not.toHaveProperty('code');
+    });
+
+    it('accepts all valid default policy values', () => {
+      const policies = ['manual', 'auto', 'blocked'] as const;
+
+      for (const policy of policies) {
+        const hint = {
+          artifactId: 'artifact_1',
+          revision: 1,
+          path: 'scripts/test.sh',
+          sha256: 'h'.repeat(64),
+          capability: 'Test script',
+          defaultPolicy: policy,
+        };
+
+        const parsed = scriptProfileHintSchema.parse(hint);
+        expect(parsed.defaultPolicy).toBe(policy);
+      }
+    });
+  });
+
+  describe('capsuleActivationHintsSchema', () => {
+    it('aggregates read-next, assets, and scripts for a capsule', () => {
+      const hints = {
+        capsuleId: 'capsule_1',
+        readNext: [
+          {
+            artifactId: 'artifact_1',
+            revision: 1,
+            path: 'references/guide.md',
+            sha256: 'i'.repeat(64),
+          },
+        ],
+        assets: [
+          {
+            artifactId: 'artifact_1',
+            revision: 1,
+            path: 'assets/template.yaml',
+            sha256: 'j'.repeat(64),
+            sizeBytes: 1024,
+            mediaType: 'application/yaml',
+          },
+        ],
+        scripts: [
+          {
+            artifactId: 'artifact_1',
+            revision: 1,
+            path: 'scripts/run.sh',
+            sha256: 'k'.repeat(64),
+            capability: 'Run deployment',
+            defaultPolicy: 'manual',
+          },
+        ],
+      };
+
+      const parsed = capsuleActivationHintsSchema.parse(hints);
+      expect(parsed.capsuleId).toBe('capsule_1');
+      expect(parsed.readNext).toHaveLength(1);
+      expect(parsed.assets).toHaveLength(1);
+      expect(parsed.scripts).toHaveLength(1);
+    });
+
+    it('defaults to empty arrays for optional hint collections', () => {
+      const hints = {
+        capsuleId: 'capsule_1',
+      };
+
+      const parsed = capsuleActivationHintsSchema.parse(hints);
+      expect(parsed.readNext).toEqual([]);
+      expect(parsed.assets).toEqual([]);
+      expect(parsed.scripts).toEqual([]);
+    });
+  });
+
+  describe('retrievalV2ResponseWithHintsSchema', () => {
+    it('accepts v2 response with activation hints (Task 1, Test 1)', () => {
+      const response = {
+        capsules: [
+          {
+            capsuleId: 'capsule_1',
+            artifactId: 'artifact_1',
+            revision: 1,
+            sourcePaths: ['SKILL.md'],
+            content: 'Docker deployment guide',
+            situation: 'Deploying containers',
+            problem: 'Complex setup',
+            goal: 'Simple deployment',
+            labels: ['docker'],
+            scope: 'project',
+            requiredLevel: 3,
+            score: 0.85,
+            reason: 'High match on problem',
+          },
+        ],
+        profileHints: [
+          {
+            artifactId: 'artifact_1',
+            title: 'Docker Skills',
+            slug: 'docker-skills',
+            labels: ['docker'],
+          },
+        ],
+        activationHints: [
+          {
+            capsuleId: 'capsule_1',
+            readNext: [
+              {
+                artifactId: 'artifact_1',
+                revision: 1,
+                path: 'references/docker-advanced.md',
+                sha256: 'l'.repeat(64),
+              },
+            ],
+            assets: [],
+            scripts: [],
+          },
+        ],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      const parsed = retrievalV2ResponseWithHintsSchema.parse(response);
+      expect(parsed.capsules).toHaveLength(1);
+      expect(parsed.activationHints).toHaveLength(1);
+      expect(parsed.activationHints[0]?.readNext).toHaveLength(1);
+    });
+
+    it('response is metadata-only without file bodies (Task 1, Test 2)', () => {
+      const response = {
+        capsules: [],
+        profileHints: [],
+        activationHints: [
+          {
+            capsuleId: 'capsule_1',
+            readNext: [
+              {
+                artifactId: 'artifact_1',
+                revision: 1,
+                path: 'references/file.md',
+                sha256: 'm'.repeat(64),
+              },
+            ],
+            assets: [
+              {
+                artifactId: 'artifact_1',
+                revision: 1,
+                path: 'assets/data.yaml',
+                sha256: 'n'.repeat(64),
+                sizeBytes: 2048,
+                mediaType: 'application/yaml',
+              },
+            ],
+            scripts: [
+              {
+                artifactId: 'artifact_1',
+                revision: 1,
+                path: 'scripts/run.sh',
+                sha256: 'o'.repeat(64),
+                capability: 'Run task',
+                defaultPolicy: 'manual',
+              },
+            ],
+          },
+        ],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      const parsed = retrievalV2ResponseWithHintsSchema.parse(response);
+
+      // No file content anywhere
+      expect(parsed).not.toHaveProperty('fileBodies');
+      expect(parsed).not.toHaveProperty('bundleContents');
+
+      // Activation hints also don't have content
+      const activationHint = parsed.activationHints[0];
+      expect(activationHint?.readNext[0]).not.toHaveProperty('content');
+      expect(activationHint?.assets[0]).not.toHaveProperty('content');
+      expect(activationHint?.scripts[0]).not.toHaveProperty('scriptBody');
+    });
+
+    it('preserves legacy v2 response contract (Task 1, Test 3)', () => {
+      // Legacy v2 response without activation hints should still work
+      const legacyResponse = {
+        capsules: [
+          {
+            capsuleId: 'capsule_1',
+            artifactId: 'artifact_1',
+            revision: 1,
+            sourcePaths: ['SKILL.md'],
+            content: 'Test content',
+            situation: 'Test',
+            problem: 'Test',
+            goal: 'Test',
+            labels: ['test'],
+            scope: 'global',
+            requiredLevel: 0,
+            score: 0.5,
+            reason: 'Match',
+          },
+        ],
+        profileHints: [],
+        refinementSummary: null,
+        summary: null,
+      };
+
+      // Should parse with activationHints defaulting to empty
+      const parsed = retrievalV2ResponseWithHintsSchema.parse(legacyResponse);
+      expect(parsed.capsules).toHaveLength(1);
+      expect(parsed.activationHints).toEqual([]);
+    });
+
+    it('accepts empty response with all defaults', () => {
+      const response = {};
+
+      const parsed = retrievalV2ResponseWithHintsSchema.parse(response);
+      expect(parsed.capsules).toEqual([]);
+      expect(parsed.profileHints).toEqual([]);
+      expect(parsed.activationHints).toEqual([]);
+      expect(parsed.refinementSummary).toBeNull();
+      expect(parsed.summary).toBeNull();
     });
   });
 });
