@@ -558,4 +558,241 @@ describe('CLI operations commands (Phase 13)', () => {
       consoleSpy.mockRestore();
     });
   });
+
+  describe('CLI migration commands (Phase 16-01)', () => {
+    let migrationProgram: Command;
+
+    const mockMigrationResponse = {
+      data: {
+        results: [
+          { entryId: 'knowledge_1', artifactId: 'artifact_1', success: true, skipReason: null, error: null },
+          { entryId: 'knowledge_2', artifactId: null, success: false, skipReason: 'already-migrated', error: null },
+        ],
+        migratedCount: 1,
+        skippedCount: 1,
+        failedCount: 0,
+        remainingLegacyCount: 50,
+        migratedAt: '2024-01-01T00:00:00Z',
+      },
+      sessionToken: 'test-token',
+    };
+
+    const mockStatusResponse = {
+      data: {
+        totalLegacyEntries: 100,
+        migratedEntriesCount: 50,
+        unmigratedEntriesCount: 50,
+        totalArtifacts: 60,
+        artifactsBySourceKind: {
+          'skill-directory': 5,
+          'single-skill-md': 5,
+          'legacy-knowledge': 50,
+        },
+        unmigratedEntryIds: ['knowledge_10', 'knowledge_11'],
+        coexistenceActive: true,
+        sunsetReady: false,
+        sunsetBlockers: ['50 unmigrated entries remaining'],
+        reportedAt: '2024-01-01T00:00:00Z',
+      },
+      sessionToken: 'test-token',
+    };
+
+    beforeEach(async () => {
+      mockedApiRequest.mockReset();
+      mockedLoadCliState.mockReset();
+      mockedLoadCliState.mockResolvedValue(mockState);
+      mockedApiRequest.mockResolvedValue(mockMigrationResponse);
+
+      migrationProgram = new Command();
+      registerOperationsCommands(migrationProgram, {
+        allowImport: true,
+        allowExport: true,
+        allowEdit: false,
+        allowDeactivate: false,
+      });
+    });
+
+    describe('migrate command', () => {
+      it('should call migration endpoint with explicit entry IDs', async () => {
+        await migrationProgram.parseAsync([
+          'node',
+          'test',
+          'migrate',
+          '--entries',
+          'knowledge_1,knowledge_2',
+        ]);
+
+        expect(mockedApiRequest).toHaveBeenCalledWith(
+          mockState,
+          expect.objectContaining({
+            method: 'POST',
+            path: '/v1/operations/migrate',
+          }),
+        );
+
+        const callArgs = mockedApiRequest.mock.calls[0];
+        expect(callArgs).toBeDefined();
+        const args = callArgs![1] as { body: { mode: string; entryIds: string[] } };
+        expect(args.body.mode).toBe('explicit');
+        expect(args.body.entryIds).toEqual(['knowledge_1', 'knowledge_2']);
+      });
+
+      it('should call migration endpoint with all-approved mode', async () => {
+        await migrationProgram.parseAsync([
+          'node',
+          'test',
+          'migrate',
+          '--all-approved',
+          '--limit',
+          '25',
+        ]);
+
+        expect(mockedApiRequest).toHaveBeenCalledWith(
+          mockState,
+          expect.objectContaining({
+            method: 'POST',
+            path: '/v1/operations/migrate',
+          }),
+        );
+
+        const callArgs = mockedApiRequest.mock.calls[0];
+        expect(callArgs).toBeDefined();
+        const args = callArgs![1] as { body: { mode: string; limit: number } };
+        expect(args.body.mode).toBe('all-approved');
+        expect(args.body.limit).toBe(25);
+      });
+
+      it('should call migration endpoint with all-team mode', async () => {
+        await migrationProgram.parseAsync([
+          'node',
+          'test',
+          'migrate',
+          '--all-team',
+          'team_1',
+        ]);
+
+        const callArgs = mockedApiRequest.mock.calls[0];
+        expect(callArgs).toBeDefined();
+        const args = callArgs![1] as { body: { mode: string; teamId: string } };
+        expect(args.body.mode).toBe('all-team');
+        expect(args.body.teamId).toBe('team_1');
+      });
+
+      it('should provide human-readable output with migrated artifact IDs', async () => {
+        const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+        await migrationProgram.parseAsync([
+          'node',
+          'test',
+          'migrate',
+          '--entries',
+          'knowledge_1,knowledge_2',
+        ]);
+
+        const calls = consoleSpy.mock.calls;
+        expect(calls.length).toBeGreaterThan(0);
+        const output = calls[0]![0] as string;
+        expect(output).toContain('Migrated 1 entries');
+        expect(output).toContain('skipped 1');
+        expect(output).toContain('Remaining legacy entries: 50');
+
+        consoleSpy.mockRestore();
+      });
+
+      it('should provide stable JSON output with migration result fields', async () => {
+        const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+        await migrationProgram.parseAsync([
+          'node',
+          'test',
+          'migrate',
+          '--entries',
+          'knowledge_1',
+          '--json',
+        ]);
+
+        const calls = consoleSpy.mock.calls;
+        expect(calls.length).toBeGreaterThan(0);
+        const output = calls[0]![0] as string;
+        const parsed = JSON.parse(output);
+        expect(parsed.migratedCount).toBe(1);
+        expect(parsed.skippedCount).toBe(1);
+        expect(parsed.results).toHaveLength(2);
+        expect(parsed.results[0].entryId).toBe('knowledge_1');
+        expect(parsed.results[0].artifactId).toBe('artifact_1');
+
+        consoleSpy.mockRestore();
+      });
+
+      it('should require one of --entries, --all-approved, or --all-team', async () => {
+        await expect(
+          migrationProgram.parseAsync(['node', 'test', 'migrate']),
+        ).rejects.toThrow();
+      });
+    });
+
+    describe('status command', () => {
+      beforeEach(() => {
+        mockedApiRequest.mockResolvedValue(mockStatusResponse);
+      });
+
+      it('should call status endpoint', async () => {
+        await migrationProgram.parseAsync(['node', 'test', 'status']);
+
+        expect(mockedApiRequest).toHaveBeenCalledWith(
+          mockState,
+          expect.objectContaining({
+            path: '/v1/operations/status',
+          }),
+        );
+      });
+
+      it('should call status endpoint with team filter', async () => {
+        await migrationProgram.parseAsync(['node', 'test', 'status', '--team', 'team_1']);
+
+        expect(mockedApiRequest).toHaveBeenCalledWith(
+          mockState,
+          expect.objectContaining({
+            path: '/v1/operations/status?teamId=team_1',
+          }),
+        );
+      });
+
+      it('should provide human-readable output with migration status', async () => {
+        const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+        await migrationProgram.parseAsync(['node', 'test', 'status']);
+
+        const calls = consoleSpy.mock.calls;
+        expect(calls.length).toBeGreaterThan(0);
+        const output = calls[0]![0] as string;
+        expect(output).toContain('Legacy entries: 100');
+        expect(output).toContain('Migrated: 50');
+        expect(output).toContain('Unmigrated: 50');
+        expect(output).toContain('Total artifacts: 60');
+        expect(output).toContain('Sunset ready: false');
+
+        consoleSpy.mockRestore();
+      });
+
+      it('should provide stable JSON output with status fields', async () => {
+        const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+        await migrationProgram.parseAsync(['node', 'test', 'status', '--json']);
+
+        const calls = consoleSpy.mock.calls;
+        expect(calls.length).toBeGreaterThan(0);
+        const output = calls[0]![0] as string;
+        const parsed = JSON.parse(output);
+        expect(parsed.totalLegacyEntries).toBe(100);
+        expect(parsed.migratedEntriesCount).toBe(50);
+        expect(parsed.unmigratedEntriesCount).toBe(50);
+        expect(parsed.totalArtifacts).toBe(60);
+        expect(parsed.sunsetReady).toBe(false);
+        expect(parsed.sunsetBlockers).toHaveLength(1);
+
+        consoleSpy.mockRestore();
+      });
+    });
+  });
 });
