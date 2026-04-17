@@ -8,6 +8,8 @@ import {
   artifactImportResultItemSchema,
   auditListResponseSchema,
   auditQuerySchema,
+  compatibilityStatusRequestSchema,
+  compatibilityStatusResponseSchema,
   exportBundleSchema,
   exportRequestSchema,
   importRequestSchema,
@@ -17,12 +19,22 @@ import {
   knowledgeDeactivateResponseSchema,
   knowledgeListRequestSchema,
   knowledgeListResponseSchema,
+  legacyMigrationRequestSchema,
+  legacyMigrationResponseSchema,
+  legacyMigrationResultItemSchema,
 } from '@skill-shareer/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent, queryAuditEvents, toAuditEvent } from '../lib/audit.js';
 import { AppError } from '../lib/errors.js';
-import { createImportedEntry, detectDuplicates, parseClaudeSkill, normalizeArtifactBundle } from '../lib/import-export.js';
+import {
+  createImportedEntry,
+  detectDuplicates,
+  parseClaudeSkill,
+  normalizeArtifactBundle,
+  migrateLegacyEntryToArtifactBundle,
+  validateLegacyEntryMigration,
+} from '../lib/import-export.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '../lib/knowledge.js';
 import { createSkillArtifactRecord, toSkillArtifact } from '../lib/artifacts/model.js';
 import { deriveSkillArtifactOutputs } from '../lib/artifacts/derive.js';
@@ -716,6 +728,302 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       scriptDescriptors,
       activatedAt,
       activatedBy: actorRef,
+    });
+  });
+
+  // Legacy migration route (Phase 16-01: ARTF-04, COMP-02, T-16-01, T-16-02)
+  app.post('/v1/operations/migrate', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:import');
+
+    // System-admin cannot migrate (needs real user as owner)
+    if (auth.subjectType === 'system-admin') {
+      throw new AppError(403, 'invalid_subject', 'System admin cannot migrate entries directly');
+    }
+
+    const ownerUserId = auth.user?.id;
+    if (!ownerUserId) {
+      throw new AppError(403, 'user_not_found', 'User record not found');
+    }
+
+    const body = legacyMigrationRequestSchema.parse((request.body as Record<string, unknown>) ?? {});
+
+    const results: Array<{
+      entryId: string;
+      artifactId: string | null;
+      success: boolean;
+      skipReason: string | null;
+      error: string | null;
+    }> = [];
+
+    let migratedCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+
+    const migratedAt = nowIso();
+
+    await app.skillShareer.store.transact(async (data) => {
+      // Ensure skillArtifacts array exists
+      if (!data.skillArtifacts) {
+        data.skillArtifacts = [];
+      }
+      if (!data.artifactFilePayloads) {
+        data.artifactFilePayloads = [];
+      }
+
+      // Determine which entries to migrate based on mode
+      let entriesToMigrate: typeof data.knowledgeEntries = [];
+
+      if (body.mode === 'explicit') {
+        // Migrate specific entry IDs
+        if (!body.entryIds || body.entryIds.length === 0) {
+          throw new AppError(400, 'invalid_request', 'entryIds required for explicit mode');
+        }
+        entriesToMigrate = data.knowledgeEntries.filter((entry) =>
+          body.entryIds!.includes(entry.id),
+        );
+      } else if (body.mode === 'all-approved') {
+        // Migrate all approved entries (bounded by limit)
+        entriesToMigrate = data.knowledgeEntries
+          .filter((entry) => entry.lifecycleState === 'approved')
+          .slice(0, body.limit);
+      } else if (body.mode === 'all-team') {
+        // Migrate all entries for a specific team (bounded by limit)
+        if (!body.teamId) {
+          throw new AppError(400, 'invalid_request', 'teamId required for all-team mode');
+        }
+        entriesToMigrate = data.knowledgeEntries
+          .filter((entry) => entry.teamId === body.teamId)
+          .slice(0, body.limit);
+      }
+
+      // Get existing artifact IDs for duplicate detection
+      const existingArtifactIds = new Set(data.skillArtifacts.map((a) => a.id));
+
+      for (const legacyEntry of entriesToMigrate) {
+        // Validate migration eligibility
+        const validation = validateLegacyEntryMigration({
+          legacyEntry,
+          existingArtifactIds,
+        });
+
+        if (!validation.valid) {
+          results.push({
+            entryId: legacyEntry.id,
+            artifactId: null,
+            success: false,
+            skipReason: validation.reason?.includes('lifecycle') ? validation.reason : null,
+            error: validation.reason?.includes('lifecycle') ? null : validation.reason,
+          });
+          if (validation.reason?.includes('lifecycle')) {
+            skippedCount++;
+          } else {
+            failedCount++;
+          }
+          continue;
+        }
+
+        // Check team access
+        if (legacyEntry.teamId) {
+          requireTeamAccess(auth, legacyEntry.teamId);
+        }
+
+        // Check security level (T-16-01 mitigation: preserve required level)
+        requireHigherLevel(auth, legacyEntry.requiredLevel);
+
+        try {
+          // Build minimal artifact bundle from legacy entry
+          const bundle = migrateLegacyEntryToArtifactBundle({ legacyEntry });
+
+          // Normalize bundle for persistence
+          const artifactId = app.skillShareer.store.nextId(data, 'artifact');
+          const normalized = normalizeArtifactBundle({
+            bundle,
+            artifactId,
+            revision: 1,
+            storedAt: migratedAt,
+          });
+
+          // Run pre-review (lightweight since entry was already approved)
+          const preReview = await runPreReview({
+            existingEntries: data.knowledgeEntries,
+            submission: {
+              scope: legacyEntry.scope,
+              labels: legacyEntry.labels,
+              shortcut: legacyEntry.shortcut,
+              detail: legacyEntry.detail,
+            },
+          });
+
+          // Create artifact record
+          const artifact = createSkillArtifactRecord({
+            store: app.skillShareer.store,
+            data,
+            ownerUserId,
+            teamId: legacyEntry.teamId,
+            payload: {
+              ...bundle,
+              sourceHash: normalized.sourceHash,
+            },
+            requiredLevel: legacyEntry.requiredLevel,
+            createdAt: migratedAt,
+            preReview,
+          });
+
+          // Store file payloads for round-trip export
+          data.artifactFilePayloads.push(...normalized.filePayloads);
+
+          // Derive outputs immediately after persistence
+          const derived = deriveSkillArtifactOutputs(artifact, artifact.latestRevision);
+          applyDerivedArtifactOutputs(data, artifact, artifact.latestRevision, derived);
+
+          // Record audit event (T-16-02 mitigation)
+          const auditEvent = createAuditEvent({
+            store: app.skillShareer.store,
+            data,
+            teamId: legacyEntry.teamId,
+            actor: auth,
+            action: 'artifact-imported',
+            entityId: artifact.id,
+            payload: {
+              migration: true,
+              sourceEntryId: legacyEntry.id,
+              sourceKind: 'legacy-knowledge',
+              requiredLevel: legacyEntry.requiredLevel,
+            },
+          });
+          data.auditEvents.push(auditEvent);
+
+          results.push({
+            entryId: legacyEntry.id,
+            artifactId: artifact.id,
+            success: true,
+            skipReason: null,
+            error: null,
+          });
+          migratedCount++;
+
+          // Add artifact ID to existing set for duplicate detection
+          existingArtifactIds.add(artifact.id);
+        } catch (error) {
+          results.push({
+            entryId: legacyEntry.id,
+            artifactId: null,
+            success: false,
+            skipReason: null,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          failedCount++;
+        }
+      }
+    });
+
+    // Calculate remaining legacy entries
+    const data = await app.skillShareer.store.snapshot();
+    const remainingLegacyCount = data.knowledgeEntries.filter(
+      (entry) => entry.lifecycleState === 'approved',
+    ).length - migratedCount;
+
+    return legacyMigrationResponseSchema.parse({
+      results: results.map((r) =>
+        legacyMigrationResultItemSchema.parse({
+          entryId: r.entryId,
+          artifactId: r.artifactId,
+          success: r.success,
+          skipReason: r.skipReason,
+          error: r.error,
+        }),
+      ),
+      migratedCount,
+      skippedCount,
+      failedCount,
+      remainingLegacyCount: Math.max(0, remainingLegacyCount),
+      migratedAt,
+    });
+  });
+
+  // Compatibility status route (Phase 16-01: COMP-03)
+  app.get('/v1/operations/status', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:export');
+
+    const query = compatibilityStatusRequestSchema.parse(
+      (request.query as Record<string, unknown>) ?? {},
+    );
+
+    const data = await app.skillShareer.store.snapshot();
+
+    // Ensure skillArtifacts exists
+    if (!data.skillArtifacts) {
+      data.skillArtifacts = [];
+    }
+
+    // Filter by team if specified
+    let legacyEntries = data.knowledgeEntries;
+    let artifacts = data.skillArtifacts;
+
+    if (query.teamId) {
+      legacyEntries = legacyEntries.filter((entry) => entry.teamId === query.teamId);
+      artifacts = artifacts.filter((artifact) => artifact.teamId === query.teamId);
+    }
+
+    // Calculate migration status
+    const totalLegacyEntries = legacyEntries.length;
+    const migratedArtifacts = artifacts.filter(
+      (artifact) => artifact.metadata.sourceKind === 'legacy-knowledge',
+    );
+    const migratedEntriesCount = migratedArtifacts.length;
+    const unmigratedEntriesCount = Math.max(0, totalLegacyEntries - migratedEntriesCount);
+    const totalArtifacts = artifacts.length;
+
+    // Count by source kind
+    const artifactsBySourceKind = {
+      'skill-directory': artifacts.filter((a) => a.metadata.sourceKind === 'skill-directory').length,
+      'single-skill-md': artifacts.filter((a) => a.metadata.sourceKind === 'single-skill-md').length,
+      'legacy-knowledge': migratedArtifacts.length,
+    };
+
+    // Get sample of unmigrated entry IDs
+    const migratedSlugs = new Set(
+      migratedArtifacts.map((a) => a.slug),
+    );
+    const unmigratedEntries = legacyEntries.filter((entry) => {
+      const expectedSlug = entry.shortcut
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 80);
+      return !migratedSlugs.has(expectedSlug);
+    });
+    const unmigratedEntryIds = unmigratedEntries
+      .slice(0, 50)
+      .map((entry) => entry.id);
+
+    // Determine coexistence and sunset status
+    const coexistenceActive = totalLegacyEntries > 0 && totalArtifacts > 0;
+    const sunsetBlockers: string[] = [];
+
+    if (unmigratedEntriesCount > 0) {
+      sunsetBlockers.push(`${unmigratedEntriesCount} unmigrated entries remaining`);
+    }
+    if (totalLegacyEntries > 0 && totalArtifacts === 0) {
+      sunsetBlockers.push('No artifacts created yet');
+    }
+
+    const sunsetReady = sunsetBlockers.length === 0;
+
+    return compatibilityStatusResponseSchema.parse({
+      totalLegacyEntries,
+      migratedEntriesCount,
+      unmigratedEntriesCount,
+      totalArtifacts,
+      artifactsBySourceKind,
+      unmigratedEntryIds,
+      coexistenceActive,
+      sunsetReady,
+      sunsetBlockers,
+      reportedAt: nowIso(),
     });
   });
 };

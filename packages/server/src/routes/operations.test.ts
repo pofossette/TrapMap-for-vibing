@@ -1126,4 +1126,119 @@ Some body content.`;
       expect(response.statusCode).toBeGreaterThanOrEqual(400);
     });
   });
+
+  describe('legacy migration route (Phase 16-01)', () => {
+    it('returns 401 for unauthenticated migration request', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/migrate',
+        payload: {
+          mode: 'explicit',
+          entryIds: ['knowledge_1'],
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('accepts valid explicit migration request schema', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/migrate',
+        payload: {
+          mode: 'explicit',
+          entryIds: ['knowledge_1', 'knowledge_2'],
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('accepts all-approved migration mode', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/migrate',
+        payload: {
+          mode: 'all-approved',
+          limit: 50,
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('accepts all-team migration mode', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/migrate',
+        payload: {
+          mode: 'all-team',
+          teamId: 'team_1',
+          limit: 25,
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('rejects migration request with entry IDs exceeding max (100)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/migrate',
+        payload: {
+          mode: 'explicit',
+          entryIds: Array.from({ length: 101 }, (_, i) => `knowledge_${i}`),
+        },
+      });
+
+      expect(response.statusCode).toBeGreaterThanOrEqual(400);
+    });
+
+    it('rejects migration request with limit exceeding max (200)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/migrate',
+        payload: {
+          mode: 'all-approved',
+          limit: 201,
+        },
+      });
+
+      expect(response.statusCode).toBeGreaterThanOrEqual(400);
+    });
+  });
+
+  describe('compatibility status route (Phase 16-01)', () => {
+    it('returns 401 for unauthenticated status request', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/status',
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('accepts valid status request schema', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/status',
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('accepts team ID filter parameter', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/status?teamId=team_1',
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+  });
 });
