@@ -4,14 +4,14 @@ milestone: v1.2
 milestone_name: Skill-Native Retrieval
 status: executing
 stopped_at: context exhaustion at 90% (2026-04-16)
-last_updated: "2026-04-16T15:41:07.274Z"
-last_activity: 2026-04-16
+last_updated: "2026-04-17T04:18:07.583Z"
+last_activity: 2026-04-17 -- Phase 15 execution started
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 10
-  completed_plans: 10
-  percent: 100
+  total_plans: 13
+  completed_plans: 12
+  percent: 92
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake
-**Current focus:** Phase 14 — seed-intent-retrieval-and-capsule-ranking
+**Current focus:** Phase 15 — client-activation-for-references-assets-and-scripts
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
-Status: Executing Phase 14
-Last activity: 2026-04-16
+Phase: 15 (client-activation-for-references-assets-and-scripts) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 15
+Last activity: 2026-04-17 -- Phase 15 execution started
 
 ## Performance Metrics
 
