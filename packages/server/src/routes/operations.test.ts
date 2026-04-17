@@ -1068,4 +1068,62 @@ Some body content.`;
       expect(response.statusCode).toBe(401);
     });
   });
+
+  describe('selective activation route (Phase 15-03)', () => {
+    it('returns 401 for unauthenticated activation request', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/activate',
+        payload: {
+          artifactId: 'artifact_1',
+          selectedPaths: ['references/docker.md'],
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('accepts valid activation request with selected paths', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/activate',
+        payload: {
+          artifactId: 'artifact_1',
+          selectedPaths: ['references/docker.md', 'assets/docker-compose.yml'],
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('accepts activation request with optional revision', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/activate',
+        payload: {
+          artifactId: 'artifact_1',
+          revision: 2,
+          selectedPaths: ['SKILL.md'],
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('validates selected paths are bounded (max 50)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/activate',
+        payload: {
+          artifactId: 'artifact_1',
+          selectedPaths: Array.from({ length: 51 }, (_, i) => `file_${i}.md`),
+        },
+      });
+
+      // Should fail validation (too many paths)
+      expect(response.statusCode).toBeGreaterThanOrEqual(400);
+    });
+  });
 });

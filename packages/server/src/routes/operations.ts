@@ -1,4 +1,6 @@
 import {
+  activationRequestSchema,
+  activationResponseSchema,
   artifactExportRequestSchema,
   artifactExportResponseSchema,
   artifactImportRequestSchema,
@@ -611,5 +613,109 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
         distilled: null,
       });
     }
+  });
+
+  // Selective activation route (Phase 15-03: ACTV-01, T-15-07)
+  app.post('/v1/operations/artifacts/activate', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:export');
+
+    const body = activationRequestSchema.parse((request.body as Record<string, unknown>) ?? {});
+    const { artifactId, revision, selectedPaths } = body;
+
+    const data = await app.skillShareer.store.snapshot();
+
+    // Find the artifact
+    const artifact = data.skillArtifacts?.find((a) => a.id === artifactId);
+    if (!artifact) {
+      throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
+    }
+
+    // Check team access
+    if (artifact.teamId !== null) {
+      requireTeamAccess(auth, artifact.teamId);
+    }
+
+    // Check security level
+    if (auth.securityLevel < artifact.requiredLevel) {
+      throw new AppError(403, 'insufficient_level', `Security level ${auth.securityLevel} insufficient for artifact level ${artifact.requiredLevel}`);
+    }
+
+    // Resolve target revision
+    const targetRevision = revision ?? artifact.latestRevision;
+    const revisionRecord = artifact.history.find((r) => r.revision === targetRevision);
+    if (!revisionRecord) {
+      throw new AppError(404, 'revision_not_found', `Revision ${targetRevision} not found`);
+    }
+
+    // Validate selected paths against artifact manifest (T-15-07 mitigation)
+    const artifactPaths = new Set(revisionRecord.files.map((f) => f.path));
+    const invalidPaths = selectedPaths.filter((p) => !artifactPaths.has(p));
+    if (invalidPaths.length > 0) {
+      throw new AppError(400, 'invalid_paths', `Paths not found in artifact: ${invalidPaths.join(', ')}`);
+    }
+
+    // Fetch file payloads for selected paths only
+    const filePayloads = data.artifactFilePayloads?.filter(
+      (p) => p.artifactId === artifactId && p.revision === targetRevision && selectedPaths.includes(p.path),
+    ) ?? [];
+
+    // Build activation response with only selected files
+    const activationFiles = filePayloads.map((payload) => {
+      const fileMetadata = revisionRecord.files.find((f) => f.path === payload.path);
+      return {
+        path: payload.path,
+        kind: fileMetadata?.kind ?? 'reference',
+        sha256: payload.sha256,
+        sizeBytes: payload.sizeBytes,
+        mediaType: payload.mediaType,
+        source: fileMetadata?.source ?? 'references/',
+        content: payload.content,
+      };
+    });
+
+    // Include script descriptors for any selected script paths
+    const selectedScriptPaths = selectedPaths.filter((p) => p.startsWith('scripts/'));
+    const scriptDescriptors = revisionRecord.scriptDescriptors.filter((sd) =>
+      selectedScriptPaths.includes(sd.path),
+    );
+
+    const actorRef = {
+      id: auth.actorId,
+      handle: auth.handle,
+      securityLevel: auth.securityLevel,
+    };
+
+    const activatedAt = nowIso();
+
+    // Record audit event for activation
+    await app.skillShareer.store.transact((data) => {
+      const auditEvent = createAuditEvent({
+        store: app.skillShareer.store,
+        data,
+        teamId: artifact.teamId,
+        actor: auth,
+        action: 'artifact-exported', // Reuse existing audit action for activation
+        entityId: artifact.id,
+        payload: {
+          activation: true,
+          selectedPaths,
+          fileCount: activationFiles.length,
+          revision: targetRevision,
+        },
+      });
+      data.auditEvents.push(auditEvent);
+    });
+
+    return activationResponseSchema.parse({
+      artifactId: artifact.id,
+      title: artifact.title,
+      revision: targetRevision,
+      requiredLevel: artifact.requiredLevel,
+      files: activationFiles,
+      scriptDescriptors,
+      activatedAt,
+      activatedBy: actorRef,
+    });
   });
 };
