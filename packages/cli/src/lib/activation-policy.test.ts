@@ -61,8 +61,6 @@ describe('CLI activation policy resolution (Phase 15-02)', () => {
       path: 'scripts/deploy.sh',
       sha256: 'a'.repeat(64),
       capability: 'Deploy to staging',
-      argsSchemaSummary: 'environment: string',
-      sideEffectSummary: 'Creates staging deployment',
       defaultPolicy: 'client-executable',
     };
 

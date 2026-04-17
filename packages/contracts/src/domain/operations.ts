@@ -11,6 +11,10 @@ import {
   securityLevelSchema,
 } from './common.js';
 import {
+  skillArtifactFileKindSchema,
+  skillArtifactFileSourceSchema,
+} from './artifacts.js';
+import {
   knowledgeEntrySchema,
   knowledgeListItemSchema,
   knowledgeSubmissionSchema,
@@ -340,3 +344,64 @@ export type ArtifactExportFormat = z.infer<typeof artifactExportFormatSchema>;
 export type ArtifactExportRequest = z.infer<typeof artifactExportRequestSchema>;
 export type DistilledArtifact = z.infer<typeof distilledArtifactSchema>;
 export type ArtifactExportResponse = z.infer<typeof artifactExportResponseSchema>;
+
+/**
+ * Activation/download file payload.
+ * Selected file with inline content for activation-time delivery.
+ */
+export const activationFilePayloadSchema = z.object({
+  /** Canonical path within the skill directory */
+  path: z.string().min(1).max(512),
+  /** File kind */
+  kind: skillArtifactFileKindSchema,
+  /** SHA-256 hash of file content */
+  sha256: z.string().length(64),
+  /** File size in bytes */
+  sizeBytes: z.number().int().min(0),
+  /** IANA media type */
+  mediaType: z.string().min(1).max(160),
+  /** Source directory */
+  source: skillArtifactFileSourceSchema,
+  /** Inline file content: base64-encoded bytes or UTF-8 text */
+  content: z.union([z.string().base64(), z.string()]),
+});
+
+/**
+ * Selective activation request targeting one artifact revision.
+ * Allows bounded path selection for references, assets, and scripts.
+ */
+export const activationRequestSchema = z.object({
+  /** Target artifact identifier */
+  artifactId: entityIdSchema,
+  /** Optional revision number (defaults to latest) */
+  revision: z.number().int().min(1).optional(),
+  /** Selected paths to fetch (bounded set) */
+  selectedPaths: z.array(z.string().min(1).max(512)).min(1).max(50),
+});
+
+/**
+ * Selective activation response.
+ * Returns only requested files with metadata for policy-aware materialization.
+ */
+export const activationResponseSchema = z.object({
+  /** Artifact identifier */
+  artifactId: entityIdSchema,
+  /** Artifact title */
+  title: z.string().min(1).max(280),
+  /** Revision number */
+  revision: z.number().int().min(1),
+  /** Security level */
+  requiredLevel: securityLevelSchema,
+  /** Selected file payloads with inline content */
+  files: z.array(activationFilePayloadSchema),
+  /** Script descriptors for any scripts in selected paths */
+  scriptDescriptors: z.array(bundleScriptDescriptorSchema).default([]),
+  /** Activation timestamp */
+  activatedAt: isoTimestampSchema,
+  /** Activating actor */
+  activatedBy: actorRefSchema,
+});
+
+export type ActivationFilePayload = z.infer<typeof activationFilePayloadSchema>;
+export type ActivationRequest = z.infer<typeof activationRequestSchema>;
+export type ActivationResponse = z.infer<typeof activationResponseSchema>;

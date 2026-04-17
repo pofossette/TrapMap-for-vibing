@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { RetrievalQuery, RetrievalV2Query } from '@skill-shareer/contracts';
+import type { RetrievalQuery } from '@skill-shareer/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
-import type { ClientManifestRecord } from './store.js';
 import { createKnowledgeEntryRecord } from './knowledge.js';
 import { runPreReview } from './pre-review.js';
-import { searchKnowledge, searchKnowledgeV2, updateEntryEmbeddingCache } from './retrieval.js';
+import { searchKnowledge, updateEntryEmbeddingCache } from './retrieval.js';
 import { JsonStore, nowIso } from './store.js';
 
 describe('retrieval', () => {
@@ -1033,96 +1032,6 @@ describe('retrieval', () => {
           expect(inGlobal || inProject).toBe(true);
         }
       }
-    });
-  });
-
-  // Phase 15: Activation hint integration tests (RETR-05, ACTV-01)
-  describe('v2 retrieval with activation hints', () => {
-    it('activation hints are built from clientManifest when capsules match', async () => {
-      // This test verifies the buildActivationHint function directly
-      // rather than relying on capsule ranking which may not match
-
-      const clientManifest: ClientManifestRecord = {
-        artifactId: 'artifact_1',
-        revision: 1,
-        references: [
-          {
-            path: 'references/docker-compose.md',
-            sha256: 'c'.repeat(64),
-            sizeBytes: 2048,
-            mediaType: 'text/markdown',
-          },
-        ],
-        assets: [
-          {
-            path: 'assets/docker-compose.yml',
-            sha256: 'd'.repeat(64),
-            sizeBytes: 512,
-            mediaType: 'text/x-yaml',
-          },
-        ],
-        scripts: [
-          {
-            path: 'scripts/deploy.sh',
-            sha256: 'e'.repeat(64),
-            capability: 'Deploy containers',
-            argsSchemaSummary: 'env: string',
-            sideEffectSummary: 'Creates containers',
-            defaultPolicy: 'manual' as const,
-          },
-        ],
-        sourceHash: 'g'.repeat(64),
-      };
-
-      // Import buildActivationHint from assembly
-      const { buildActivationHint } = await import('./retrieval/assembly.js');
-
-      const activationHint = buildActivationHint(clientManifest);
-
-      expect(activationHint.artifactId).toBe('artifact_1');
-      expect(activationHint.readNextReferences).toHaveLength(1);
-      expect(activationHint.readNextReferences[0]?.path).toBe('references/docker-compose.md');
-      expect(activationHint.availableAssets).toHaveLength(1);
-      expect(activationHint.availableAssets[0]?.path).toBe('assets/docker-compose.yml');
-      expect(activationHint.availableScripts).toHaveLength(1);
-      expect(activationHint.availableScripts[0]?.capability).toBe('Deploy containers');
-    });
-
-    it('activation hints do not include file content or script bodies', async () => {
-      const clientManifest: ClientManifestRecord = {
-        artifactId: 'artifact_1',
-        revision: 1,
-        references: [
-          {
-            path: 'references/test.md',
-            sha256: 'f'.repeat(64),
-            sizeBytes: 2048,
-            mediaType: 'text/markdown',
-          },
-        ],
-        assets: [],
-        scripts: [
-          {
-            path: 'scripts/test.sh',
-            sha256: 'g'.repeat(64),
-            capability: 'Test capability',
-            argsSchemaSummary: '',
-            sideEffectSummary: '',
-            defaultPolicy: 'manual' as const,
-          },
-        ],
-        sourceHash: 'h'.repeat(64),
-      };
-
-      const { buildActivationHint } = await import('./retrieval/assembly.js');
-
-      const activationHint = buildActivationHint(clientManifest);
-
-      // Verify metadata-only - no content fields
-      expect(activationHint.readNextReferences[0]).not.toHaveProperty('content');
-      expect(activationHint.readNextReferences[0]).not.toHaveProperty('body');
-      expect(activationHint.availableScripts[0]).not.toHaveProperty('scriptBody');
-      expect(activationHint.availableScripts[0]).not.toHaveProperty('code');
     });
   });
 });

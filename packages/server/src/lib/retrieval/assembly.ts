@@ -35,7 +35,7 @@ import {
   profileHintSchema,
 } from '@skill-shareer/contracts';
 import type { ScoredEntry, CapsuleCandidate } from './types.js';
-import type { DerivedSkillCapsuleRecord, SkillArtifactRecord, ClientManifestRecord } from '../store.js';
+import type { DerivedSkillCapsuleRecord, SkillArtifactRecord } from '../store.js';
 
 // Type inference from schema - use the return type of parse()
 type RetrievalMatch = ReturnType<typeof retrievalMatchSchema.parse>;
@@ -203,53 +203,26 @@ export function buildProfileHint(
 
 /**
  * Build the complete v2 retrieval response.
- * Capsule-first distilled results with optional summary and activation hints.
+ * Capsule-first distilled results with optional summary.
  *
  * Per T-14-07: Does not include raw bundle file contents or
  * activation-only payloads in the response.
  *
- * Phase 15: Includes optional activation hints from governed clientManifest (RETR-05, ACTV-01).
- *
  * @param capsules - Ranked capsule matches
  * @param profileHints - Lightweight artifact metadata
  * @param summary - Optional summary over filtered capsule hits
- * @param activationHints - Optional activation hints for references/assets/scripts
  * @returns v2 retrieval response
  */
 export function buildV2RetrievalResponse(
   capsules: CapsuleMatch[],
   profileHints: ProfileHint[],
   summary?: RetrievalSummary | null,
-  activationHints?: Array<{
-    artifactId: string;
-    readNextReferences: Array<{
-      path: string;
-      sha256: string;
-      sizeBytes: number;
-      mediaType: string;
-    }>;
-    availableAssets: Array<{
-      path: string;
-      sha256: string;
-      sizeBytes: number;
-      mediaType: string;
-    }>;
-    availableScripts: Array<{
-      path: string;
-      sha256: string;
-      capability: string;
-      argsSchemaSummary: string;
-      sideEffectSummary: string;
-      defaultPolicy: 'manual' | 'auto' | 'blocked';
-    }>;
-  }>,
 ): RetrievalV2Response {
   return retrievalV2ResponseSchema.parse({
     capsules,
     profileHints,
     refinementSummary: null,
     summary: summary ?? null,
-    ...(activationHints && activationHints.length > 0 ? { activationHints } : {}),
   });
 }
 
@@ -263,65 +236,4 @@ export function buildEmptyV2Response(): RetrievalV2Response {
     refinementSummary: null,
     summary: null,
   });
-}
-
-// =============================================================================
-// Phase 15 Activation Hint Assembly (RETR-05, ACTV-01)
-// Pure helpers for building activation hints from governed clientManifest.
-// =============================================================================
-
-/**
- * Build activation hint from client manifest.
- * Per T-15-01: Emits metadata-only (path, hash, size, mediaType, capability)
- * without including file contents or script bodies.
- *
- * @param clientManifest - Client manifest from artifact derivation
- * @returns Activation hint for v2 response
- */
-export function buildActivationHint(clientManifest: ClientManifestRecord): {
-  artifactId: string;
-  readNextReferences: Array<{
-    path: string;
-    sha256: string;
-    sizeBytes: number;
-    mediaType: string;
-  }>;
-  availableAssets: Array<{
-    path: string;
-    sha256: string;
-    sizeBytes: number;
-    mediaType: string;
-  }>;
-  availableScripts: Array<{
-    path: string;
-    sha256: string;
-    capability: string;
-    argsSchemaSummary: string;
-    sideEffectSummary: string;
-    defaultPolicy: 'manual' | 'auto' | 'blocked';
-  }>;
-} {
-  return {
-    artifactId: clientManifest.artifactId,
-    readNextReferences: clientManifest.references.map((ref) => ({
-      path: ref.path,
-      sha256: ref.sha256,
-      sizeBytes: ref.sizeBytes,
-      mediaType: ref.mediaType,
-    })),
-    availableAssets: clientManifest.assets.map((asset) => ({
-      path: asset.path,
-      sha256: asset.sha256,
-      sizeBytes: asset.sizeBytes,
-      mediaType: asset.mediaType,
-    })),
-    availableScripts: clientManifest.scripts.map((script) => ({
-      path: script.path,
-      sha256: script.sha256,
-      capability: script.capability,
-      argsSchemaSummary: script.argsSchemaSummary,
-      sideEffectSummary: script.sideEffectSummary,
-      defaultPolicy: script.defaultPolicy,
-    })),
-  };
 }
