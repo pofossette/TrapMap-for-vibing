@@ -177,3 +177,111 @@ export type CapsuleMatch = z.infer<typeof capsuleMatchSchema>;
 export type ProfileHint = z.infer<typeof profileHintSchema>;
 export type RetrievalV2Query = z.infer<typeof retrievalV2QuerySchema>;
 export type RetrievalV2Response = z.infer<typeof retrievalV2ResponseSchema>;
+
+// =============================================================================
+// Phase 15: Activation Hints for References, Assets, and Scripts (RETR-05, ACTV-01)
+// Additive activation metadata that tells clients what to read/fetch next.
+// Stays metadata-only - never includes file bodies or script content.
+// =============================================================================
+
+/**
+ * Read-next reference hint for capsule matches.
+ * Points to reference files the client should read for additional context.
+ * Metadata-only - does not include file content (T-15-01).
+ */
+export const readNextReferenceHintSchema = z.object({
+  /** Artifact identifier containing the reference */
+  artifactId: entityIdSchema,
+  /** Revision number for cache validation */
+  revision: z.number().int().min(1),
+  /** Path to the reference file within the skill directory */
+  path: z.string().min(1).max(512),
+  /** SHA-256 hash for integrity verification */
+  sha256: z.string().length(64),
+  /** Human-readable description of what this reference provides */
+  description: z.string().max(280).optional(),
+});
+
+/**
+ * Asset availability hint for capsule matches.
+ * Describes assets the client can activate/download on demand.
+ * Metadata-only - does not include asset bodies (T-15-01).
+ */
+export const assetAvailabilityHintSchema = z.object({
+  /** Artifact identifier containing the asset */
+  artifactId: entityIdSchema,
+  /** Revision number for cache validation */
+  revision: z.number().int().min(1),
+  /** Path to the asset file within the skill directory */
+  path: z.string().min(1).max(512),
+  /** SHA-256 hash for integrity verification */
+  sha256: z.string().length(64),
+  /** File size in bytes for transfer planning */
+  sizeBytes: z.number().int().min(0),
+  /** IANA media type for content handling */
+  mediaType: z.string().min(1).max(160),
+});
+
+/**
+ * Script profile hint for capsule matches.
+ * Describes script capabilities without exposing script bodies.
+ * Metadata-only - does not include script content (T-15-01, T-15-03).
+ */
+export const scriptProfileHintSchema = z.object({
+  /** Artifact identifier containing the script */
+  artifactId: entityIdSchema,
+  /** Revision number for cache validation */
+  revision: z.number().int().min(1),
+  /** Path to the script file within the skill directory */
+  path: z.string().min(1).max(512),
+  /** SHA-256 hash for integrity verification */
+  sha256: z.string().length(64),
+  /** Human-readable capability description */
+  capability: z.string().min(1).max(280),
+  /** Brief summary of expected argument schema */
+  argsSchemaSummary: z.string().max(280).default(''),
+  /** Brief summary of side effects */
+  sideEffectSummary: z.string().max(280).default(''),
+  /** Default activation policy from server */
+  defaultPolicy: z.enum(['manual', 'auto', 'blocked']),
+});
+
+/**
+ * Activation hints for a single capsule match.
+ * Aggregates read-next references, available assets, and script profiles.
+ * All hints are metadata-only (T-15-01).
+ */
+export const capsuleActivationHintsSchema = z.object({
+  /** Capsule identifier these hints are associated with */
+  capsuleId: entityIdSchema,
+  /** Reference files the client should read next */
+  readNext: z.array(readNextReferenceHintSchema).default([]),
+  /** Assets available for activation/download */
+  assets: z.array(assetAvailabilityHintSchema).default([]),
+  /** Scripts with capability profiles (no bodies) */
+  scripts: z.array(scriptProfileHintSchema).default([]),
+});
+
+/**
+ * v2 retrieval response schema with activation hints (RETR-05, ACTV-01).
+ * Extends the base v2 response with optional activation metadata.
+ * Stays distilled-first and metadata-only (T-15-01, T-15-02).
+ */
+export const retrievalV2ResponseWithHintsSchema = z.object({
+  /** Ranked capsule matches with governance inheritance */
+  capsules: z.array(capsuleMatchSchema).default([]),
+  /** Lightweight artifact metadata for activation hints */
+  profileHints: z.array(profileHintSchema).default([]),
+  /** Activation hints per capsule (metadata-only) */
+  activationHints: z.array(capsuleActivationHintsSchema).default([]),
+  /** Optional refinement summary over filtered capsules */
+  refinementSummary: z.string().nullable().default(null),
+  /** Optional summary over filtered distilled capsule hits */
+  summary: retrievalSummarySchema.nullable().default(null),
+});
+
+export type ReadNextReferenceHint = z.infer<typeof readNextReferenceHintSchema>;
+export type AssetAvailabilityHint = z.infer<typeof assetAvailabilityHintSchema>;
+export type ScriptProfileHint = z.infer<typeof scriptProfileHintSchema>;
+export type CapsuleActivationHints = z.infer<typeof capsuleActivationHintsSchema>;
+export type RetrievalV2ResponseWithHints = z.infer<typeof retrievalV2ResponseWithHintsSchema>;
