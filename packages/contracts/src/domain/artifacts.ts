@@ -24,6 +24,32 @@ export const skillArtifactFileKindSchema = z.enum([
 ]);
 
 /**
+ * Script activation policy for client-side governance.
+ * Controls when and how scripts can be executed (ACTV-04).
+ */
+export const scriptActivationPolicySchema = z.enum([
+  'blocked',
+  'reference-only',
+  'needs-approval',
+  'client-executable',
+]);
+
+/**
+ * Script with policy metadata for activation decisions.
+ * Combines script descriptor with activation policy information.
+ */
+export const scriptWithPolicyMetadataSchema = z.object({
+  /** Path to the script file */
+  path: z.string().min(1).max(512),
+  /** SHA-256 hash of the script content */
+  sha256: z.string().length(64),
+  /** Human-readable capability description */
+  capability: z.string().min(1).max(280),
+  /** Default activation policy */
+  defaultPolicy: scriptActivationPolicySchema,
+});
+
+/**
  * File source location discriminator.
  * Indicates which directory within the skill artifact this file originates from.
  */
@@ -322,6 +348,8 @@ export const skillArtifactSchema = z
   .merge(auditMetadataSchema);
 
 // Type exports
+export type ScriptActivationPolicy = z.infer<typeof scriptActivationPolicySchema>;
+export type ScriptWithPolicyMetadata = z.infer<typeof scriptWithPolicyMetadataSchema>;
 export type SkillArtifactFileKind = z.infer<typeof skillArtifactFileKindSchema>;
 export type SkillArtifactFileSource = z.infer<typeof skillArtifactFileSourceSchema>;
 export type SkillArtifactFile = z.infer<typeof skillArtifactFileSchema>;

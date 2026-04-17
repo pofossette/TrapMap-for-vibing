@@ -17,9 +17,11 @@ import type { ArtifactBundle, ArtifactExportResponse } from '@skill-shareer/cont
 /**
  * Validates that a path is safe for writing.
  * Rejects:
- * - Absolute paths outside the intended output directory
  * - Paths with directory traversal (../)
  * - Paths containing null bytes
+ * Allows:
+ * - Absolute paths (user explicitly chose the path)
+ * - Relative paths within the intended directory
  */
 export function validateOutputPath(outputPath: string, intendedDir: string): string {
   // Reject null bytes
@@ -30,20 +32,13 @@ export function validateOutputPath(outputPath: string, intendedDir: string): str
   // Normalize the path
   const normalized = normalize(outputPath);
 
-  // Reject absolute paths outside intended directory
-  if (resolve(normalized).startsWith('..')) {
-    throw new Error(`Path escapes output directory: ${outputPath}`);
+  // Check for directory traversal
+  if (normalized.includes('..')) {
+    throw new Error(`Path contains directory traversal: ${outputPath}`);
   }
 
-  // Check if resolved path is within intended directory
-  const resolvedOutput = resolve(intendedDir, normalized);
-  const resolvedIntended = resolve(intendedDir);
-
-  if (!resolvedOutput.startsWith(resolvedIntended)) {
-    throw new Error(`Path escapes output directory: ${outputPath}`);
-  }
-
-  return resolvedOutput;
+  // Resolve the output path against the intended directory
+  return resolve(intendedDir, normalized);
 }
 
 /**

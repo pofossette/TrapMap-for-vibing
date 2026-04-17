@@ -295,4 +295,267 @@ describe('CLI operations commands (Phase 13)', () => {
       consoleSpy.mockRestore();
     });
   });
+
+  describe('CLI activation commands (Phase 15-03)', () => {
+    let activationProgram: Command;
+
+    beforeEach(async () => {
+      // Setup mocks for activation tests
+      mockedApiRequest.mockReset();
+      mockedLoadCliState.mockReset();
+
+      mockedLoadCliState.mockResolvedValue(mockState);
+
+      // Create program with activation commands enabled
+      activationProgram = new Command();
+      registerOperationsCommands(activationProgram, {
+        allowImport: true,
+        allowExport: true,
+        allowEdit: false,
+        allowDeactivate: false,
+      });
+    });
+
+    it('should call activation endpoint with selected paths', async () => {
+      const mockActivationResponse = {
+        data: {
+          artifactId: 'artifact_1',
+          title: 'Test Skill',
+          revision: 1,
+          requiredLevel: 3,
+          files: [
+            {
+              path: 'references/docker.md',
+              kind: 'reference',
+              sha256: 'a'.repeat(64),
+              sizeBytes: 1024,
+              mediaType: 'text/markdown',
+              source: 'references/',
+              content: '# Docker content',
+            },
+          ],
+          scriptDescriptors: [],
+          activatedAt: '2024-01-01T00:00:00Z',
+          activatedBy: {
+            id: 'user_1',
+            handle: 'testuser',
+            securityLevel: 5,
+          },
+        },
+        sessionToken: 'test-token',
+      };
+
+      mockedApiRequest.mockResolvedValue(mockActivationResponse);
+
+      await activationProgram.parseAsync([
+        'node',
+        'test',
+        'activate',
+        '--artifact',
+        'artifact_1',
+        '--paths',
+        'references/docker.md,assets/docker-compose.yml',
+        '--output',
+        testDir,
+      ]);
+
+      expect(mockedApiRequest).toHaveBeenCalledWith(
+        mockState,
+        expect.objectContaining({
+          method: 'POST',
+          path: '/v1/operations/artifacts/activate',
+        }),
+      );
+
+      const callArgs = mockedApiRequest.mock.calls[0];
+      expect(callArgs).toBeDefined();
+      const args = callArgs![1] as { body: { selectedPaths: string[] } };
+      expect(args.body.selectedPaths).toEqual(['references/docker.md', 'assets/docker-compose.yml']);
+    });
+
+    it('should materialize fetched files locally using safe path validation', async () => {
+      const mockActivationResponse = {
+        data: {
+          artifactId: 'artifact_1',
+          title: 'Test Skill',
+          revision: 1,
+          requiredLevel: 3,
+          files: [
+            {
+              path: 'SKILL.md',
+              kind: 'skill-markdown',
+              sha256: 'a'.repeat(64),
+              sizeBytes: 100,
+              mediaType: 'text/markdown',
+              source: 'SKILL.md',
+              content: '# Test Skill',
+            },
+          ],
+          scriptDescriptors: [],
+          activatedAt: '2024-01-01T00:00:00Z',
+          activatedBy: {
+            id: 'user_1',
+            handle: 'testuser',
+            securityLevel: 5,
+          },
+        },
+        sessionToken: 'test-token',
+      };
+
+      mockedApiRequest.mockResolvedValue(mockActivationResponse);
+
+      await activationProgram.parseAsync([
+        'node',
+        'test',
+        'activate',
+        '--artifact',
+        'artifact_1',
+        '--paths',
+        'SKILL.md',
+        '--output',
+        testDir,
+      ]);
+
+      // Verify file was written
+      const { readFile } = await import('node:fs/promises');
+      const content = await readFile(join(testDir, 'SKILL.md'), 'utf8');
+      expect(content).toBe('# Test Skill');
+    });
+
+    it('should enforce effective policy before staging scripts (T-15-09 mitigation)', async () => {
+      const mockActivationResponse = {
+        data: {
+          artifactId: 'artifact_1',
+          title: 'Test Skill',
+          revision: 1,
+          requiredLevel: 3,
+          files: [
+            {
+              path: 'scripts/setup.sh',
+              kind: 'script',
+              sha256: 'b'.repeat(64),
+              sizeBytes: 512,
+              mediaType: 'text/x-shellscript',
+              source: 'scripts/',
+              content: '#!/bin/bash\necho setup',
+            },
+          ],
+          scriptDescriptors: [
+            {
+              path: 'scripts/setup.sh',
+              sha256: 'b'.repeat(64),
+              capability: 'Environment setup',
+              argsSchemaSummary: 'None',
+              sideEffectSummary: 'Creates config files',
+              defaultPolicy: 'blocked',
+            },
+          ],
+          activatedAt: '2024-01-01T00:00:00Z',
+          activatedBy: {
+            id: 'user_1',
+            handle: 'testuser',
+            securityLevel: 5,
+          },
+        },
+        sessionToken: 'test-token',
+      };
+
+      mockedApiRequest.mockResolvedValue(mockActivationResponse);
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await activationProgram.parseAsync([
+        'node',
+        'test',
+        'activate',
+        '--artifact',
+        'artifact_1',
+        '--paths',
+        'scripts/setup.sh',
+        '--output',
+        testDir,
+      ]);
+
+      const calls = consoleSpy.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+
+      // Check stdout for success message
+      const stdout = calls.map((c) => c[0]).join('\n');
+      expect(stdout).toContain('Activated');
+
+      // Verify console.warn was called for blocked policy (T-15-09 mitigation)
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      // Re-run to capture warn output
+      await activationProgram.parseAsync([
+        'node',
+        'test',
+        'activate',
+        '--artifact',
+        'artifact_1',
+        '--paths',
+        'scripts/setup.sh',
+        '--output',
+        testDir,
+      ]);
+      expect(warnSpy.mock.calls.length).toBeGreaterThan(0);
+      const warnOutput = warnSpy.mock.calls.map((c) => c[0]).join('\n');
+      expect(warnOutput).toContain('blocked');
+      warnSpy.mockRestore();
+      consoleSpy.mockRestore();
+    });
+
+    it('should provide JSON output matching activation response contract', async () => {
+      const mockActivationResponse = {
+        data: {
+          artifactId: 'artifact_1',
+          title: 'Test Skill',
+          revision: 1,
+          requiredLevel: 3,
+          files: [
+            {
+              path: 'references/docker.md',
+              kind: 'reference',
+              sha256: 'a'.repeat(64),
+              sizeBytes: 1024,
+              mediaType: 'text/markdown',
+              source: 'references/',
+              content: '# Docker content',
+            },
+          ],
+          scriptDescriptors: [],
+          activatedAt: '2024-01-01T00:00:00Z',
+          activatedBy: {
+            id: 'user_1',
+            handle: 'testuser',
+            securityLevel: 5,
+          },
+        },
+        sessionToken: 'test-token',
+      };
+
+      mockedApiRequest.mockResolvedValue(mockActivationResponse);
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await activationProgram.parseAsync([
+        'node',
+        'test',
+        'activate',
+        '--artifact',
+        'artifact_1',
+        '--paths',
+        'references/docker.md',
+        '--json',
+      ]);
+
+      const calls = consoleSpy.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const output = calls[0]![0] as string;
+      const parsed = JSON.parse(output);
+      expect(parsed.artifactId).toBe('artifact_1');
+      expect(parsed.files).toHaveLength(1);
+
+      consoleSpy.mockRestore();
+    });
+  });
 });

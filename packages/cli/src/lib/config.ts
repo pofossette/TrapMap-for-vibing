@@ -2,7 +2,20 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import type { ActiveSession } from '@skill-shareer/contracts';
+import type { ActiveSession, ScriptActivationPolicy } from '@skill-shareer/contracts';
+
+/**
+ * Script policy override for local activation control.
+ * Allows clients to tighten (but never relax) server default policy (ACTV-04).
+ */
+export interface ScriptPolicyOverride {
+  /** Path to the script file */
+  path: string;
+  /** SHA-256 hash of the script content for validation */
+  sha256: string;
+  /** Override policy (must be stricter or equal to server default) */
+  overridePolicy: ScriptActivationPolicy;
+}
 
 export interface CliState {
   serverUrl: string;
