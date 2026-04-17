@@ -67,7 +67,7 @@
 | 12. Skill Artifact Canonical Model | v1.2 | 3/3 | Complete    | 2026-04-16 |
 | 13. Skill Import/Export Pipeline | v1.2 | 3/3 | Complete    | 2026-04-16 |
 | 14. Seed Intent Retrieval and Capsule Ranking | v1.2 | 4/4 | Complete    | 2026-04-16 |
-| 15. Client Activation for References, Assets, and Scripts | v1.2 | 2/3 | In Progress|  |
+| 15. Client Activation for References, Assets, and Scripts | v1.2 | 3/3 | Complete    | 2026-04-17 |
 | 16. Compatibility Migration and Boundary Hardening | v1.2 | 0/3 | Planned | — |
 
 ## Dependencies
@@ -129,11 +129,11 @@ Phase 11 (索引生命周期集成) ✅ ← gap closure for Phase 08
 
 **Goal:** 把 references/assets/scripts 的按需加载和执行控制正式下沉到客户端
 **Depends on:** Phase 14
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 - [x] 15-01: Activation response with read-next hints, asset metadata, and script profiles (RETR-05, ACTV-01)
 - [x] 15-02: Policy model for scripts and client-side override rules (ACTV-02, ACTV-03, ACTV-04)
-- [ ] 15-03: CLI activation/download workflows for references, assets, and scripts (ACTV-01, COMP-01)
+- [x] 15-03: CLI activation/download workflows for references, assets, and scripts (ACTV-01, COMP-01)
 
 ### Phase 16: Compatibility Migration and Boundary Hardening
 
