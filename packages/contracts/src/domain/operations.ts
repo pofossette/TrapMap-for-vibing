@@ -405,3 +405,108 @@ export const activationResponseSchema = z.object({
 export type ActivationFilePayload = z.infer<typeof activationFilePayloadSchema>;
 export type ActivationRequest = z.infer<typeof activationRequestSchema>;
 export type ActivationResponse = z.infer<typeof activationResponseSchema>;
+
+/**
+ * Migration mode for legacy knowledge entries.
+ * - explicit: Migrate specific entry IDs provided in entryIds
+ * - all-approved: Migrate all approved legacy entries (bounded by limit)
+ * - all-team: Migrate all entries for a specific team (bounded by limit)
+ */
+export const legacyMigrationModeSchema = z.enum(['explicit', 'all-approved', 'all-team']);
+
+/**
+ * Legacy entry migration request.
+ * Requests conversion of legacy knowledge entries into minimal skill artifacts.
+ */
+export const legacyMigrationRequestSchema = z.object({
+  /** Migration mode controlling which entries to migrate */
+  mode: legacyMigrationModeSchema,
+  /** Explicit entry IDs to migrate (required for 'explicit' mode) */
+  entryIds: z.array(entityIdSchema).max(100).optional(),
+  /** Team ID for 'all-team' mode */
+  teamId: entityIdSchema.optional(),
+  /** Maximum entries to migrate in bounded modes (default 50, max 200) */
+  limit: z.number().int().min(1).max(200).default(50),
+});
+
+/**
+ * Result item for a single legacy entry migration attempt.
+ */
+export const legacyMigrationResultItemSchema = z.object({
+  /** Source legacy entry ID */
+  entryId: entityIdSchema,
+  /** Created artifact ID (null on failure) */
+  artifactId: entityIdSchema.nullable(),
+  /** Migration outcome */
+  success: z.boolean(),
+  /** Skip reason (e.g., 'already-migrated', 'invalid-state') */
+  skipReason: z.string().max(280).nullable(),
+  /** Error message on failure */
+  error: z.string().max(500).nullable(),
+});
+
+/**
+ * Legacy entry migration response.
+ * Returns migration results and counts.
+ */
+export const legacyMigrationResponseSchema = z.object({
+  /** Per-entry migration results */
+  results: z.array(legacyMigrationResultItemSchema),
+  /** Count of successfully migrated entries */
+  migratedCount: z.number().int().min(0),
+  /** Count of skipped entries */
+  skippedCount: z.number().int().min(0),
+  /** Count of failed migrations */
+  failedCount: z.number().int().min(0),
+  /** Count of remaining unmigrated legacy entries */
+  remainingLegacyCount: z.number().int().min(0),
+  /** Migration timestamp */
+  migratedAt: isoTimestampSchema,
+});
+
+/**
+ * Compatibility status request.
+ * Requests current migration and compatibility window status.
+ */
+export const compatibilityStatusRequestSchema = z.object({
+  /** Optional team ID to filter status */
+  teamId: entityIdSchema.optional(),
+});
+
+/**
+ * Compatibility status response.
+ * Provides migration progress and sunset readiness information.
+ */
+export const compatibilityStatusResponseSchema = z.object({
+  /** Total legacy knowledge entries */
+  totalLegacyEntries: z.number().int().min(0),
+  /** Count of migrated entries (now artifacts) */
+  migratedEntriesCount: z.number().int().min(0),
+  /** Count of unmigrated entries */
+  unmigratedEntriesCount: z.number().int().min(0),
+  /** Count of total skill artifacts */
+  totalArtifacts: z.number().int().min(0),
+  /** Artifact count by source kind */
+  artifactsBySourceKind: z.object({
+    'skill-directory': z.number().int().min(0),
+    'single-skill-md': z.number().int().min(0),
+    'legacy-knowledge': z.number().int().min(0),
+  }),
+  /** IDs of unmigrated entries (bounded sample) */
+  unmigratedEntryIds: z.array(entityIdSchema).max(50),
+  /** Whether v1/v2 coexistence is active */
+  coexistenceActive: z.boolean(),
+  /** Ready to sunset v1 (no blockers remaining) */
+  sunsetReady: z.boolean(),
+  /** List of sunset blockers (if any) */
+  sunsetBlockers: z.array(z.string().max(500)),
+  /** Status timestamp */
+  reportedAt: isoTimestampSchema,
+});
+
+export type LegacyMigrationMode = z.infer<typeof legacyMigrationModeSchema>;
+export type LegacyMigrationRequest = z.infer<typeof legacyMigrationRequestSchema>;
+export type LegacyMigrationResultItem = z.infer<typeof legacyMigrationResultItemSchema>;
+export type LegacyMigrationResponse = z.infer<typeof legacyMigrationResponseSchema>;
+export type CompatibilityStatusRequest = z.infer<typeof compatibilityStatusRequestSchema>;
+export type CompatibilityStatusResponse = z.infer<typeof compatibilityStatusResponseSchema>;

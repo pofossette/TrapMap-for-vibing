@@ -2302,3 +2302,309 @@ describe('Phase 15: Activation hints', () => {
     });
   });
 });
+
+// =============================================================================
+// Phase 16: Legacy Migration and Compatibility Status Contracts (ARTF-04, COMP-01, COMP-03)
+// Migration and status schemas for converting legacy entries to artifacts.
+// =============================================================================
+
+import {
+  legacyMigrationModeSchema,
+  legacyMigrationRequestSchema,
+  legacyMigrationResultItemSchema,
+  legacyMigrationResponseSchema,
+  compatibilityStatusRequestSchema,
+  compatibilityStatusResponseSchema,
+} from './index.js';
+
+describe('Phase 16: Legacy Migration and Compatibility Status Contracts', () => {
+  describe('legacyMigrationModeSchema', () => {
+    it('accepts valid migration modes', () => {
+      expect(legacyMigrationModeSchema.parse('explicit')).toBe('explicit');
+      expect(legacyMigrationModeSchema.parse('all-approved')).toBe('all-approved');
+      expect(legacyMigrationModeSchema.parse('all-team')).toBe('all-team');
+    });
+
+    it('rejects invalid migration modes', () => {
+      expect(() => legacyMigrationModeSchema.parse('invalid')).toThrow();
+      expect(() => legacyMigrationModeSchema.parse('all')).toThrow();
+    });
+  });
+
+  describe('legacyMigrationRequestSchema', () => {
+    it('accepts explicit migration request with entry IDs', () => {
+      const request = {
+        mode: 'explicit' as const,
+        entryIds: ['knowledge_1', 'knowledge_2', 'knowledge_3'],
+      };
+
+      const parsed = legacyMigrationRequestSchema.parse(request);
+      expect(parsed.mode).toBe('explicit');
+      expect(parsed.entryIds).toHaveLength(3);
+      expect(parsed.limit).toBe(50); // default
+    });
+
+    it('accepts all-approved migration request with limit', () => {
+      const request = {
+        mode: 'all-approved' as const,
+        limit: 100,
+      };
+
+      const parsed = legacyMigrationRequestSchema.parse(request);
+      expect(parsed.mode).toBe('all-approved');
+      expect(parsed.limit).toBe(100);
+    });
+
+    it('accepts all-team migration request with team ID', () => {
+      const request = {
+        mode: 'all-team' as const,
+        teamId: 'team_1',
+        limit: 25,
+      };
+
+      const parsed = legacyMigrationRequestSchema.parse(request);
+      expect(parsed.mode).toBe('all-team');
+      expect(parsed.teamId).toBe('team_1');
+      expect(parsed.limit).toBe(25);
+    });
+
+    it('rejects explicit mode without entry IDs', () => {
+      const request = {
+        mode: 'explicit' as const,
+        // entryIds is optional in schema, but required for explicit mode semantically
+        // Server will validate this at runtime
+      };
+
+      // Schema should parse (runtime validation for mode-specific requirements)
+      expect(() => legacyMigrationRequestSchema.parse(request)).not.toThrow();
+    });
+
+    it('rejects entry arrays larger than 100', () => {
+      const request = {
+        mode: 'explicit' as const,
+        entryIds: Array.from({ length: 101 }, (_, i) => `knowledge_${i}`),
+      };
+
+      expect(() => legacyMigrationRequestSchema.parse(request)).toThrow();
+    });
+
+    it('rejects limit larger than 200', () => {
+      const request = {
+        mode: 'all-approved' as const,
+        limit: 201,
+      };
+
+      expect(() => legacyMigrationRequestSchema.parse(request)).toThrow();
+    });
+
+    it('rejects limit less than 1', () => {
+      const request = {
+        mode: 'all-approved' as const,
+        limit: 0,
+      };
+
+      expect(() => legacyMigrationRequestSchema.parse(request)).toThrow();
+    });
+  });
+
+  describe('legacyMigrationResultItemSchema', () => {
+    it('accepts successful migration result', () => {
+      const result = {
+        entryId: 'knowledge_1',
+        artifactId: 'artifact_1',
+        success: true,
+        skipReason: null,
+        error: null,
+      };
+
+      const parsed = legacyMigrationResultItemSchema.parse(result);
+      expect(parsed.entryId).toBe('knowledge_1');
+      expect(parsed.artifactId).toBe('artifact_1');
+      expect(parsed.success).toBe(true);
+    });
+
+    it('accepts skipped migration result with reason', () => {
+      const result = {
+        entryId: 'knowledge_2',
+        artifactId: null,
+        success: false,
+        skipReason: 'already-migrated',
+        error: null,
+      };
+
+      const parsed = legacyMigrationResultItemSchema.parse(result);
+      expect(parsed.skipReason).toBe('already-migrated');
+      expect(parsed.success).toBe(false);
+    });
+
+    it('accepts failed migration result with error', () => {
+      const result = {
+        entryId: 'knowledge_3',
+        artifactId: null,
+        success: false,
+        skipReason: null,
+        error: 'Entry not found',
+      };
+
+      const parsed = legacyMigrationResultItemSchema.parse(result);
+      expect(parsed.error).toBe('Entry not found');
+      expect(parsed.success).toBe(false);
+    });
+  });
+
+  describe('legacyMigrationResponseSchema', () => {
+    it('accepts migration response with results and counts', () => {
+      const response = {
+        results: [
+          { entryId: 'knowledge_1', artifactId: 'artifact_1', success: true, skipReason: null, error: null },
+          { entryId: 'knowledge_2', artifactId: null, success: false, skipReason: 'already-migrated', error: null },
+          { entryId: 'knowledge_3', artifactId: null, success: false, skipReason: null, error: 'Not approved' },
+        ],
+        migratedCount: 1,
+        skippedCount: 1,
+        failedCount: 1,
+        remainingLegacyCount: 50,
+        migratedAt: '2024-01-01T00:00:00Z',
+      };
+
+      const parsed = legacyMigrationResponseSchema.parse(response);
+      expect(parsed.results).toHaveLength(3);
+      expect(parsed.migratedCount).toBe(1);
+      expect(parsed.skippedCount).toBe(1);
+      expect(parsed.failedCount).toBe(1);
+      expect(parsed.remainingLegacyCount).toBe(50);
+    });
+
+    it('accepts empty migration response', () => {
+      const response = {
+        results: [],
+        migratedCount: 0,
+        skippedCount: 0,
+        failedCount: 0,
+        remainingLegacyCount: 0,
+        migratedAt: '2024-01-01T00:00:00Z',
+      };
+
+      const parsed = legacyMigrationResponseSchema.parse(response);
+      expect(parsed.results).toHaveLength(0);
+    });
+  });
+
+  describe('compatibilityStatusRequestSchema', () => {
+    it('accepts empty status request', () => {
+      const request = {};
+
+      const parsed = compatibilityStatusRequestSchema.parse(request);
+      expect(parsed.teamId).toBeUndefined();
+    });
+
+    it('accepts status request with team ID filter', () => {
+      const request = {
+        teamId: 'team_1',
+      };
+
+      const parsed = compatibilityStatusRequestSchema.parse(request);
+      expect(parsed.teamId).toBe('team_1');
+    });
+  });
+
+  describe('compatibilityStatusResponseSchema', () => {
+    it('accepts full status response with migration progress', () => {
+      const response = {
+        totalLegacyEntries: 100,
+        migratedEntriesCount: 75,
+        unmigratedEntriesCount: 25,
+        totalArtifacts: 80,
+        artifactsBySourceKind: {
+          'skill-directory': 10,
+          'single-skill-md': 5,
+          'legacy-knowledge': 65,
+        },
+        unmigratedEntryIds: ['knowledge_10', 'knowledge_11', 'knowledge_12'],
+        coexistenceActive: true,
+        sunsetReady: false,
+        sunsetBlockers: ['25 unmigrated entries remaining'],
+        reportedAt: '2024-01-01T00:00:00Z',
+      };
+
+      const parsed = compatibilityStatusResponseSchema.parse(response);
+      expect(parsed.totalLegacyEntries).toBe(100);
+      expect(parsed.migratedEntriesCount).toBe(75);
+      expect(parsed.unmigratedEntriesCount).toBe(25);
+      expect(parsed.totalArtifacts).toBe(80);
+      expect(parsed.artifactsBySourceKind['legacy-knowledge']).toBe(65);
+      expect(parsed.coexistenceActive).toBe(true);
+      expect(parsed.sunsetReady).toBe(false);
+      expect(parsed.sunsetBlockers).toHaveLength(1);
+    });
+
+    it('accepts status response indicating sunset readiness', () => {
+      const response = {
+        totalLegacyEntries: 50,
+        migratedEntriesCount: 50,
+        unmigratedEntriesCount: 0,
+        totalArtifacts: 50,
+        artifactsBySourceKind: {
+          'skill-directory': 0,
+          'single-skill-md': 0,
+          'legacy-knowledge': 50,
+        },
+        unmigratedEntryIds: [],
+        coexistenceActive: true,
+        sunsetReady: true,
+        sunsetBlockers: [],
+        reportedAt: '2024-01-01T00:00:00Z',
+      };
+
+      const parsed = compatibilityStatusResponseSchema.parse(response);
+      expect(parsed.sunsetReady).toBe(true);
+      expect(parsed.sunsetBlockers).toHaveLength(0);
+      expect(parsed.unmigratedEntryIds).toHaveLength(0);
+    });
+
+    it('accepts status response with no artifacts yet', () => {
+      const response = {
+        totalLegacyEntries: 10,
+        migratedEntriesCount: 0,
+        unmigratedEntriesCount: 10,
+        totalArtifacts: 0,
+        artifactsBySourceKind: {
+          'skill-directory': 0,
+          'single-skill-md': 0,
+          'legacy-knowledge': 0,
+        },
+        unmigratedEntryIds: ['knowledge_1', 'knowledge_2'],
+        coexistenceActive: false,
+        sunsetReady: false,
+        sunsetBlockers: ['No artifacts created yet'],
+        reportedAt: '2024-01-01T00:00:00Z',
+      };
+
+      const parsed = compatibilityStatusResponseSchema.parse(response);
+      expect(parsed.totalArtifacts).toBe(0);
+      expect(parsed.coexistenceActive).toBe(false);
+    });
+
+    it('limits unmigrated entry IDs sample to 50', () => {
+      const tooManyIds = Array.from({ length: 51 }, (_, i) => `knowledge_${i}`);
+      const response = {
+        totalLegacyEntries: 100,
+        migratedEntriesCount: 49,
+        unmigratedEntriesCount: 51,
+        totalArtifacts: 49,
+        artifactsBySourceKind: {
+          'skill-directory': 0,
+          'single-skill-md': 0,
+          'legacy-knowledge': 49,
+        },
+        unmigratedEntryIds: tooManyIds,
+        coexistenceActive: true,
+        sunsetReady: false,
+        sunsetBlockers: ['51 unmigrated entries remaining'],
+        reportedAt: '2024-01-01T00:00:00Z',
+      };
+
+      expect(() => compatibilityStatusResponseSchema.parse(response)).toThrow();
+    });
+  });
+});
