@@ -68,7 +68,7 @@
 | 13. Skill Import/Export Pipeline | v1.2 | 3/3 | Complete    | 2026-04-16 |
 | 14. Seed Intent Retrieval and Capsule Ranking | v1.2 | 4/4 | Complete    | 2026-04-16 |
 | 15. Client Activation for References, Assets, and Scripts | v1.2 | 3/3 | Complete    | 2026-04-17 |
-| 16. Compatibility Migration and Boundary Hardening | v1.2 | 0/3 | Planned | — |
+| 16. Compatibility Migration and Boundary Hardening | v1.2 | 1/3 | In Progress|  |
 
 ## Dependencies
 
@@ -139,9 +139,9 @@ Phase 11 (索引生命周期集成) ✅ ← gap closure for Phase 08
 
 **Goal:** 完成旧模型兼容迁移并收紧服务端边界
 **Depends on:** Phase 15
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
-- [ ] 16-01: Migrate legacy knowledge entries into minimal skill artifacts (ARTF-04, COMP-03)
+- [x] 16-01: Migrate legacy knowledge entries into minimal skill artifacts (ARTF-04, COMP-03)
 - [ ] 16-02: Preserve approval, audit, scope, and security behavior across v1/v2 coexistence (COMP-02, COMP-04)
 - [ ] 16-03: Sunset criteria, verification, and rollout safety for the v1 compatibility window (COMP-03, COMP-04)
 
