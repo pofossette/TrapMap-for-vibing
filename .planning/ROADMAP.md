@@ -123,5 +123,15 @@ Phase 15 (Client activation) ✅
 Phase 16 (Compatibility + hardening) ✅
 ```
 
+### Phase 17: monorepo新建子仓库，实现一个服务端的快速部署脚本工具
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 16
+**Plans:** 1/1 plans complete
+
+Plans:
+- [x] TBD (run /gsd-plan-phase 17 to break down) (completed 2026-04-17)
+
 ---
 *Roadmap updated: 2026-04-17 after v1.2 milestone completion*
