@@ -1795,6 +1795,203 @@ describe('contracts package', () => {
         expect(v2Parsed).not.toHaveProperty('globalConstraints');
         expect(v2Parsed).not.toHaveProperty('projectKnowledge');
       });
+
+      // Phase 15: Activation hint tests (RETR-05, ACTV-01)
+      describe('Phase 15: Activation hint metadata', () => {
+        it('v2 response schema accepts read-next reference hints, related asset metadata, and script profile metadata', () => {
+          const responseWithActivationHints = {
+            capsules: [
+              {
+                capsuleId: 'capsule_1',
+                artifactId: 'artifact_1',
+                revision: 1,
+                sourcePaths: ['SKILL.md', 'references/docker.md'],
+                content: 'Distilled content',
+                situation: 'Test situation',
+                problem: 'Test problem',
+                goal: 'Test goal',
+                labels: ['docker'],
+                scope: 'project',
+                requiredLevel: 2,
+                score: 0.9,
+                reason: 'Match',
+              },
+            ],
+            profileHints: [
+              {
+                artifactId: 'artifact_1',
+                title: 'Docker Skills',
+                slug: 'docker-skills',
+                labels: ['docker'],
+              },
+            ],
+            refinementSummary: null,
+            // New activation hint fields (optional per plan)
+            activationHints: [
+              {
+                artifactId: 'artifact_1',
+                readNextReferences: [
+                  {
+                    path: 'references/docker-compose.md',
+                    sha256: 'a'.repeat(64),
+                    sizeBytes: 1024,
+                    mediaType: 'text/markdown',
+                  },
+                ],
+                availableAssets: [
+                  {
+                    path: 'assets/docker-compose.yml',
+                    sha256: 'b'.repeat(64),
+                    sizeBytes: 512,
+                    mediaType: 'text/x-yaml',
+                  },
+                ],
+                availableScripts: [
+                  {
+                    path: 'scripts/deploy.sh',
+                    sha256: 'c'.repeat(64),
+                    capability: 'Deploy containers',
+                    argsSchemaSummary: 'env: string',
+                    sideEffectSummary: 'Creates containers',
+                    defaultPolicy: 'manual',
+                  },
+                ],
+              },
+            ],
+          };
+
+          const parsed = retrievalV2ResponseSchema.parse(responseWithActivationHints);
+          expect(parsed.capsules).toHaveLength(1);
+          expect(parsed.activationHints).toHaveLength(1);
+          expect(parsed.activationHints?.[0]?.readNextReferences).toHaveLength(1);
+          expect(parsed.activationHints?.[0]?.availableAssets).toHaveLength(1);
+          expect(parsed.activationHints?.[0]?.availableScripts).toHaveLength(1);
+        });
+
+        it('response payloads remain metadata-only and do not require file content or script bodies', () => {
+          const responseWithHints = {
+            capsules: [],
+            profileHints: [],
+            refinementSummary: null,
+            activationHints: [
+              {
+                artifactId: 'artifact_1',
+                readNextReferences: [
+                  {
+                    path: 'references/test.md',
+                    sha256: 'd'.repeat(64),
+                    sizeBytes: 2048,
+                    mediaType: 'text/markdown',
+                  },
+                ],
+                availableAssets: [],
+                availableScripts: [
+                  {
+                    path: 'scripts/test.sh',
+                    sha256: 'e'.repeat(64),
+                    capability: 'Test capability',
+                    argsSchemaSummary: '',
+                    sideEffectSummary: '',
+                    defaultPolicy: 'manual',
+                  },
+                ],
+              },
+            ],
+          };
+
+          const parsed = retrievalV2ResponseSchema.parse(responseWithHints);
+
+          // Verify metadata-only - no content fields
+          const referenceHint = parsed.activationHints?.[0]?.readNextReferences?.[0];
+          expect(referenceHint).not.toHaveProperty('content');
+          expect(referenceHint).not.toHaveProperty('body');
+
+          const scriptHint = parsed.activationHints?.[0]?.availableScripts?.[0];
+          expect(scriptHint).not.toHaveProperty('scriptBody');
+          expect(scriptHint).not.toHaveProperty('code');
+        });
+
+        it('empty responses parse cleanly when an artifact has no activation content', () => {
+          const minimalResponse = {
+            capsules: [],
+            profileHints: [],
+            refinementSummary: null,
+          };
+
+          const parsed = retrievalV2ResponseSchema.parse(minimalResponse);
+          expect(parsed.capsules).toHaveLength(0);
+          expect(parsed.profileHints).toHaveLength(0);
+          expect(parsed.activationHints).toBeUndefined();
+        });
+
+        it('activation hints reuse existing clientManifest field shapes', () => {
+          const responseWithHints = {
+            capsules: [],
+            profileHints: [],
+            refinementSummary: null,
+            activationHints: [
+              {
+                artifactId: 'artifact_1',
+                readNextReferences: [
+                  {
+                    path: 'references/test.md',
+                    sha256: 'f'.repeat(64),
+                    sizeBytes: 512,
+                    mediaType: 'text/markdown',
+                  },
+                ],
+                availableAssets: [
+                  {
+                    path: 'assets/test.json',
+                    sha256: 'g'.repeat(64),
+                    sizeBytes: 256,
+                    mediaType: 'application/json',
+                  },
+                ],
+                availableScripts: [
+                  {
+                    path: 'scripts/test.sh',
+                    sha256: 'h'.repeat(64),
+                    capability: 'Test',
+                    argsSchemaSummary: 'args',
+                    sideEffectSummary: 'side effects',
+                    defaultPolicy: 'manual',
+                  },
+                ],
+              },
+            ],
+          };
+
+          const parsed = retrievalV2ResponseSchema.parse(responseWithHints);
+
+          // Verify shapes match clientManifestSchema shapes
+          const reference = parsed.activationHints?.[0]?.readNextReferences?.[0];
+          expect(reference).toMatchObject({
+            path: expect.any(String),
+            sha256: expect.any(String),
+            sizeBytes: expect.any(Number),
+            mediaType: expect.any(String),
+          });
+
+          const asset = parsed.activationHints?.[0]?.availableAssets?.[0];
+          expect(asset).toMatchObject({
+            path: expect.any(String),
+            sha256: expect.any(String),
+            sizeBytes: expect.any(Number),
+            mediaType: expect.any(String),
+          });
+
+          const script = parsed.activationHints?.[0]?.availableScripts?.[0];
+          expect(script).toMatchObject({
+            path: expect.any(String),
+            sha256: expect.any(String),
+            capability: expect.any(String),
+            argsSchemaSummary: expect.any(String),
+            sideEffectSummary: expect.any(String),
+            defaultPolicy: expect.any(String),
+          });
+        });
+      });
     });
   });
 });

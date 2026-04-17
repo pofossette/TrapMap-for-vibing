@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
 import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema } from './common.js';
+import {
+  clientManifestReferenceSchema,
+  clientManifestAssetSchema,
+  clientManifestScriptSchema,
+} from './artifacts.js';
 
 /**
  * Query mode for retrieval requests.
@@ -161,6 +166,9 @@ export const retrievalV2QuerySchema = z.object({
  * Capsules inherit governance from artifact root per T-14-01 mitigation.
  * Coexists with legacy retrievalResponseSchema for backward compatibility.
  * Optional summary consumes only already-filtered distilled hits (T-14-08).
+ *
+ * Phase 15: Activation hint metadata (RETR-05, ACTV-01)
+ * Includes optional activation hints sourced from governed clientManifest.
  */
 export const retrievalV2ResponseSchema = z.object({
   /** Ranked capsule matches with governance inheritance */
@@ -171,6 +179,21 @@ export const retrievalV2ResponseSchema = z.object({
   refinementSummary: z.string().nullable(),
   /** Optional summary over filtered distilled capsule hits */
   summary: retrievalSummarySchema.nullable().default(null),
+  /** Optional activation hints for references, assets, and scripts (Phase 15) */
+  activationHints: z
+    .array(
+      z.object({
+        /** Artifact identifier */
+        artifactId: entityIdSchema,
+        /** Read-next references from clientManifest */
+        readNextReferences: z.array(clientManifestReferenceSchema).default([]),
+        /** Available assets from clientManifest */
+        availableAssets: z.array(clientManifestAssetSchema).default([]),
+        /** Available scripts from clientManifest (metadata-only) */
+        availableScripts: z.array(clientManifestScriptSchema).default([]),
+      }),
+    )
+    .optional(),
 });
 
 export type CapsuleMatch = z.infer<typeof capsuleMatchSchema>;
