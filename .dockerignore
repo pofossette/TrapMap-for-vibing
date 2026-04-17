@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+
+# Test files
+*.test.ts
+*.spec.ts
+**/*.test.ts
+**/*.spec.ts
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Claude/AI
+.claude/
+.agents/
+.planning/
+CLAUDE.md
+AGENTS.md
+
+# Misc
+.DS_Store
+*.tgz
+.data/
