@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  activationFilePayloadSchema,
+  activationRequestSchema,
+  activationResponseSchema,
   artifactBundleSchema,
   artifactExportFormatSchema,
   artifactExportRequestSchema,
@@ -1795,291 +1798,149 @@ describe('contracts package', () => {
         expect(v2Parsed).not.toHaveProperty('globalConstraints');
         expect(v2Parsed).not.toHaveProperty('projectKnowledge');
       });
-
-      // Phase 15: Activation hint tests (RETR-05, ACTV-01)
-      describe('Phase 15: Activation hint metadata', () => {
-        it('v2 response schema accepts read-next reference hints, related asset metadata, and script profile metadata', () => {
-          const responseWithActivationHints = {
-            capsules: [
-              {
-                capsuleId: 'capsule_1',
-                artifactId: 'artifact_1',
-                revision: 1,
-                sourcePaths: ['SKILL.md', 'references/docker.md'],
-                content: 'Distilled content',
-                situation: 'Test situation',
-                problem: 'Test problem',
-                goal: 'Test goal',
-                labels: ['docker'],
-                scope: 'project',
-                requiredLevel: 2,
-                score: 0.9,
-                reason: 'Match',
-              },
-            ],
-            profileHints: [
-              {
-                artifactId: 'artifact_1',
-                title: 'Docker Skills',
-                slug: 'docker-skills',
-                labels: ['docker'],
-              },
-            ],
-            refinementSummary: null,
-            // New activation hint fields (optional per plan)
-            activationHints: [
-              {
-                artifactId: 'artifact_1',
-                readNextReferences: [
-                  {
-                    path: 'references/docker-compose.md',
-                    sha256: 'a'.repeat(64),
-                    sizeBytes: 1024,
-                    mediaType: 'text/markdown',
-                  },
-                ],
-                availableAssets: [
-                  {
-                    path: 'assets/docker-compose.yml',
-                    sha256: 'b'.repeat(64),
-                    sizeBytes: 512,
-                    mediaType: 'text/x-yaml',
-                  },
-                ],
-                availableScripts: [
-                  {
-                    path: 'scripts/deploy.sh',
-                    sha256: 'c'.repeat(64),
-                    capability: 'Deploy containers',
-                    argsSchemaSummary: 'env: string',
-                    sideEffectSummary: 'Creates containers',
-                    defaultPolicy: 'manual',
-                  },
-                ],
-              },
-            ],
-          };
-
-          const parsed = retrievalV2ResponseSchema.parse(responseWithActivationHints);
-          expect(parsed.capsules).toHaveLength(1);
-          expect(parsed.activationHints).toHaveLength(1);
-          expect(parsed.activationHints?.[0]?.readNextReferences).toHaveLength(1);
-          expect(parsed.activationHints?.[0]?.availableAssets).toHaveLength(1);
-          expect(parsed.activationHints?.[0]?.availableScripts).toHaveLength(1);
-        });
-
-        it('response payloads remain metadata-only and do not require file content or script bodies', () => {
-          const responseWithHints = {
-            capsules: [],
-            profileHints: [],
-            refinementSummary: null,
-            activationHints: [
-              {
-                artifactId: 'artifact_1',
-                readNextReferences: [
-                  {
-                    path: 'references/test.md',
-                    sha256: 'd'.repeat(64),
-                    sizeBytes: 2048,
-                    mediaType: 'text/markdown',
-                  },
-                ],
-                availableAssets: [],
-                availableScripts: [
-                  {
-                    path: 'scripts/test.sh',
-                    sha256: 'e'.repeat(64),
-                    capability: 'Test capability',
-                    argsSchemaSummary: '',
-                    sideEffectSummary: '',
-                    defaultPolicy: 'manual',
-                  },
-                ],
-              },
-            ],
-          };
-
-          const parsed = retrievalV2ResponseSchema.parse(responseWithHints);
-
-          // Verify metadata-only - no content fields
-          const referenceHint = parsed.activationHints?.[0]?.readNextReferences?.[0];
-          expect(referenceHint).not.toHaveProperty('content');
-          expect(referenceHint).not.toHaveProperty('body');
-
-          const scriptHint = parsed.activationHints?.[0]?.availableScripts?.[0];
-          expect(scriptHint).not.toHaveProperty('scriptBody');
-          expect(scriptHint).not.toHaveProperty('code');
-        });
-
-        it('empty responses parse cleanly when an artifact has no activation content', () => {
-          const minimalResponse = {
-            capsules: [],
-            profileHints: [],
-            refinementSummary: null,
-          };
-
-          const parsed = retrievalV2ResponseSchema.parse(minimalResponse);
-          expect(parsed.capsules).toHaveLength(0);
-          expect(parsed.profileHints).toHaveLength(0);
-          expect(parsed.activationHints).toBeUndefined();
-        });
-
-        it('activation hints reuse existing clientManifest field shapes', () => {
-          const responseWithHints = {
-            capsules: [],
-            profileHints: [],
-            refinementSummary: null,
-            activationHints: [
-              {
-                artifactId: 'artifact_1',
-                readNextReferences: [
-                  {
-                    path: 'references/test.md',
-                    sha256: 'f'.repeat(64),
-                    sizeBytes: 512,
-                    mediaType: 'text/markdown',
-                  },
-                ],
-                availableAssets: [
-                  {
-                    path: 'assets/test.json',
-                    sha256: 'g'.repeat(64),
-                    sizeBytes: 256,
-                    mediaType: 'application/json',
-                  },
-                ],
-                availableScripts: [
-                  {
-                    path: 'scripts/test.sh',
-                    sha256: 'h'.repeat(64),
-                    capability: 'Test',
-                    argsSchemaSummary: 'args',
-                    sideEffectSummary: 'side effects',
-                    defaultPolicy: 'manual',
-                  },
-                ],
-              },
-            ],
-          };
-
-          const parsed = retrievalV2ResponseSchema.parse(responseWithHints);
-
-          // Verify shapes match clientManifestSchema shapes
-          const reference = parsed.activationHints?.[0]?.readNextReferences?.[0];
-          expect(reference).toMatchObject({
-            path: expect.any(String),
-            sha256: expect.any(String),
-            sizeBytes: expect.any(Number),
-            mediaType: expect.any(String),
-          });
-
-          const asset = parsed.activationHints?.[0]?.availableAssets?.[0];
-          expect(asset).toMatchObject({
-            path: expect.any(String),
-            sha256: expect.any(String),
-            sizeBytes: expect.any(Number),
-            mediaType: expect.any(String),
-          });
-
-          const script = parsed.activationHints?.[0]?.availableScripts?.[0];
-          expect(script).toMatchObject({
-            path: expect.any(String),
-            sha256: expect.any(String),
-            capability: expect.any(String),
-            argsSchemaSummary: expect.any(String),
-            sideEffectSummary: expect.any(String),
-            defaultPolicy: expect.any(String),
-          });
-        });
-      });
     });
   });
 
-  // =============================================================================
-  // Phase 15 Plan 02: Activation Policy Contracts (ACTV-02, ACTV-03, ACTV-04)
-  // Tests for four-state script policy vocabulary and client override schema
-  // =============================================================================
-  describe('activation policy contracts (Phase 15-02)', () => {
-    it('accepts the four required execution policies', async () => {
-      const { scriptActivationPolicySchema, clientOverridePolicySchema } = await import('./index.js');
+  describe('activation request and response schemas (Phase 15-03)', () => {
+    it('accepts valid activation request with artifact ID and selected paths', () => {
+      const request = {
+        artifactId: 'artifact_1',
+        selectedPaths: ['references/docker.md', 'assets/docker-compose.yml', 'scripts/setup.sh'],
+      };
 
-      // Test all four ACTV-02 policies
-      expect(scriptActivationPolicySchema.parse('reference-only')).toBe('reference-only');
-      expect(scriptActivationPolicySchema.parse('needs-approval')).toBe('needs-approval');
-      expect(scriptActivationPolicySchema.parse('client-executable')).toBe('client-executable');
-      expect(scriptActivationPolicySchema.parse('blocked')).toBe('blocked');
-
-      // Reject invalid policies
-      expect(() => scriptActivationPolicySchema.parse('manual')).toThrow();
-      expect(() => scriptActivationPolicySchema.parse('auto')).toThrow();
-      expect(() => scriptActivationPolicySchema.parse('run-immediately')).toThrow();
+      expect(() => activationRequestSchema.parse(request)).not.toThrow();
+      const parsed = activationRequestSchema.parse(request);
+      expect(parsed.artifactId).toBe('artifact_1');
+      expect(parsed.selectedPaths).toHaveLength(3);
     });
 
-    it('accepts client override intent with stricter-only constraint', async () => {
-      const { clientOverridePolicySchema } = await import('./index.js');
+    it('accepts activation request with optional revision number', () => {
+      const request = {
+        artifactId: 'artifact_1',
+        revision: 2,
+        selectedPaths: ['SKILL.md'],
+      };
 
-      // Test all four policy values for override intent
-      expect(clientOverridePolicySchema.parse('reference-only')).toBe('reference-only');
-      expect(clientOverridePolicySchema.parse('needs-approval')).toBe('needs-approval');
-      expect(clientOverridePolicySchema.parse('client-executable')).toBe('client-executable');
-      expect(clientOverridePolicySchema.parse('blocked')).toBe('blocked');
-
-      // Test null (no override)
-      expect(clientOverridePolicySchema.parse(null)).toBe(null);
+      const parsed = activationRequestSchema.parse(request);
+      expect(parsed.revision).toBe(2);
     });
 
-    it('accepts script metadata with four-state default policy and optional override intent', async () => {
-      const { scriptWithPolicyMetadataSchema } = await import('./index.js');
+    it('rejects activation request with empty selected paths', () => {
+      const request = {
+        artifactId: 'artifact_1',
+        selectedPaths: [],
+      };
 
-      const metadata = {
-        path: 'scripts/deploy.sh',
+      expect(() => activationRequestSchema.parse(request)).toThrow();
+    });
+
+    it('rejects activation request with too many selected paths (max 50)', () => {
+      const request = {
+        artifactId: 'artifact_1',
+        selectedPaths: Array.from({ length: 51 }, (_, i) => `file_${i}.md`),
+      };
+
+      expect(() => activationRequestSchema.parse(request)).toThrow();
+    });
+
+    it('accepts valid activation response with file payloads', () => {
+      const response = {
+        artifactId: 'artifact_1',
+        title: 'Test Skill',
+        revision: 1,
+        requiredLevel: 3,
+        files: [
+          {
+            path: 'references/docker.md',
+            kind: 'reference',
+            sha256: 'a'.repeat(64),
+            sizeBytes: 1024,
+            mediaType: 'text/markdown',
+            source: 'references/',
+            content: '# Docker content',
+          },
+        ],
+        scriptDescriptors: [],
+        activatedAt: '2024-01-01T00:00:00Z',
+        activatedBy: {
+          id: 'user_1',
+          handle: 'testuser',
+          securityLevel: 5,
+        },
+      };
+
+      expect(() => activationResponseSchema.parse(response)).not.toThrow();
+      const parsed = activationResponseSchema.parse(response);
+      expect(parsed.files).toHaveLength(1);
+      expect(parsed.files[0]?.path).toBe('references/docker.md');
+    });
+
+    it('includes script descriptors for selected script paths', () => {
+      const response = {
+        artifactId: 'artifact_1',
+        title: 'Test Skill',
+        revision: 1,
+        requiredLevel: 3,
+        files: [
+          {
+            path: 'scripts/setup.sh',
+            kind: 'script',
+            sha256: 'b'.repeat(64),
+            sizeBytes: 512,
+            mediaType: 'text/x-shellscript',
+            source: 'scripts/',
+            content: '#!/bin/bash\necho setup',
+          },
+        ],
+        scriptDescriptors: [
+          {
+            path: 'scripts/setup.sh',
+            sha256: 'b'.repeat(64),
+            capability: 'Environment setup',
+            argsSchemaSummary: 'None',
+            sideEffectSummary: 'Creates config files',
+            defaultPolicy: 'manual',
+          },
+        ],
+        activatedAt: '2024-01-01T00:00:00Z',
+        activatedBy: {
+          id: 'user_1',
+          handle: 'testuser',
+          securityLevel: 5,
+        },
+      };
+
+      const parsed = activationResponseSchema.parse(response);
+      expect(parsed.scriptDescriptors).toHaveLength(1);
+      expect(parsed.scriptDescriptors[0]?.capability).toBe('Environment setup');
+    });
+
+    it('validates file payload kinds are restricted to valid values', () => {
+      const invalidPayload = {
+        path: 'test.md',
+        kind: 'invalid-kind',
         sha256: 'a'.repeat(64),
-        capability: 'Deploy to staging',
-        argsSchemaSummary: 'environment: string',
-        sideEffectSummary: 'Creates staging deployment',
-        defaultPolicy: 'needs-approval' as const,
-        clientOverrideIntent: 'reference-only' as const,
+        sizeBytes: 100,
+        mediaType: 'text/markdown',
+        source: 'references/',
+        content: 'content',
       };
 
-      const parsed = scriptWithPolicyMetadataSchema.parse(metadata);
-
-      expect(parsed.defaultPolicy).toBe('needs-approval');
-      expect(parsed.clientOverrideIntent).toBe('reference-only');
+      expect(() => activationFilePayloadSchema.parse(invalidPayload)).toThrow();
     });
 
-    it('accepts script metadata without override intent', async () => {
-      const { scriptWithPolicyMetadataSchema } = await import('./index.js');
-
-      const metadata = {
-        path: 'scripts/cleanup.sh',
-        sha256: 'b'.repeat(64),
-        capability: 'Clean up temp files',
-        argsSchemaSummary: '',
-        sideEffectSummary: 'Deletes temp directories',
-        defaultPolicy: 'client-executable' as const,
+    it('validates file payload source is restricted to valid directories', () => {
+      const invalidPayload = {
+        path: 'test.md',
+        kind: 'reference',
+        sha256: 'a'.repeat(64),
+        sizeBytes: 100,
+        mediaType: 'text/markdown',
+        source: 'invalid/',
+        content: 'content',
       };
 
-      const parsed = scriptWithPolicyMetadataSchema.parse(metadata);
-
-      expect(parsed.defaultPolicy).toBe('client-executable');
-      expect(parsed.clientOverrideIntent).toBeUndefined();
-    });
-
-    it('maintains backward compatibility with existing artifact and manifest schemas', async () => {
-      const { skillScriptDescriptorSchema, clientManifestScriptSchema } = await import('./index.js');
-
-      // Old schema should still parse three-state policy for backward compatibility
-      const oldDescriptor = {
-        path: 'scripts/old.sh',
-        sha256: 'c'.repeat(64),
-        capability: 'Old script',
-        argsSchemaSummary: '',
-        sideEffectSummary: '',
-        defaultPolicy: 'manual' as const,
-      };
-
-      expect(skillScriptDescriptorSchema.parse(oldDescriptor)).toMatchObject(oldDescriptor);
-      expect(clientManifestScriptSchema.parse(oldDescriptor)).toMatchObject(oldDescriptor);
+      expect(() => activationFilePayloadSchema.parse(invalidPayload)).toThrow();
     });
   });
 });
