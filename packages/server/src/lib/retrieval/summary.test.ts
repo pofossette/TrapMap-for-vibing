@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { RetrievalCitation, CapsuleMatch } from '@skill-shareer/contracts';
-import { buildSummary, buildCapsuleSummary } from './summary.js';
+import type { CapsuleMatch, RetrievalCitation } from '@skill-shareer/contracts';
+import { buildCapsuleSummary, buildSummary } from './summary.js';
 
 describe('summary', () => {
   describe('buildSummary', () => {
@@ -53,7 +53,8 @@ describe('summary', () => {
         },
         {
           shortcut: 'Use HTTPS everywhere',
-          detail: 'Always use HTTPS to encrypt data in transit and prevent man-in-the-middle attacks.',
+          detail:
+            'Always use HTTPS to encrypt data in transit and prevent man-in-the-middle attacks.',
           labels: ['security'],
         },
       ];

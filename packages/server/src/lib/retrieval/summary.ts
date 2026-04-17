@@ -18,7 +18,7 @@
  * hits/citations so it cannot bypass governance filters.
  */
 
-import type { RetrievalCitation, RetrievalSummary, CapsuleMatch } from '@skill-shareer/contracts';
+import type { CapsuleMatch, RetrievalCitation, RetrievalSummary } from '@skill-shareer/contracts';
 import { retrievalSummarySchema } from '@skill-shareer/contracts';
 
 /**
@@ -148,7 +148,7 @@ function truncateText(text: string, maxLength: number): string {
     return text;
   }
 
-  return text.slice(0, maxLength) + '...';
+  return `${text.slice(0, maxLength)}...`;
 }
 
 // =============================================================================

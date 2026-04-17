@@ -31,7 +31,7 @@ describe('embeddings', () => {
 
   describe('getEmbeddingsAdapter', () => {
     it('returns fallback adapter when no provider is configured', async () => {
-      delete process.env.OPENAI_API_KEY;
+      process.env.OPENAI_API_KEY = undefined;
 
       const adapter = await getEmbeddingsAdapter();
       expect(adapter.isConfigured).toBe(false);
@@ -39,7 +39,7 @@ describe('embeddings', () => {
     });
 
     it('fallback adapter returns deterministic vectors', async () => {
-      delete process.env.OPENAI_API_KEY;
+      process.env.OPENAI_API_KEY = undefined;
 
       const adapter = await getEmbeddingsAdapter();
       const text = 'test embedding text';
@@ -52,7 +52,7 @@ describe('embeddings', () => {
     });
 
     it('fallback vectors have consistent magnitude', async () => {
-      delete process.env.OPENAI_API_KEY;
+      process.env.OPENAI_API_KEY = undefined;
 
       const adapter = await getEmbeddingsAdapter();
 
@@ -66,7 +66,7 @@ describe('embeddings', () => {
 
   describe('generateEmbedding', () => {
     it('returns embedding array for valid text', async () => {
-      delete process.env.OPENAI_API_KEY;
+      process.env.OPENAI_API_KEY = undefined;
 
       const embedding = await generateEmbedding('test content');
       expect(Array.isArray(embedding)).toBe(true);

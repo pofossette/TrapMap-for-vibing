@@ -93,7 +93,7 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
 
         // Create an approved knowledge entry with existing index state
         data.counters.knowledge = 1;
-        entryId = `knowledge_1`;
+        entryId = 'knowledge_1';
 
         data.knowledgeEntries.push({
           id: entryId,
@@ -376,7 +376,7 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
 
         // Create an approved, indexed knowledge entry
         data.counters.knowledge = 1;
-        entryId = `knowledge_1`;
+        entryId = 'knowledge_1';
 
         data.knowledgeEntries.push({
           id: entryId,

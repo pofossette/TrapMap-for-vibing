@@ -12,9 +12,9 @@
 
 import { createHash } from 'node:crypto';
 
+import { tokenize } from '../retrieval/recall/keyword.js';
 import type { KnowledgeRecord } from '../store.js';
 import type { NormalizedIndexDocument } from './types.js';
-import { tokenize } from '../retrieval/recall/keyword.js';
 
 /**
  * Build canonical text for indexing from a knowledge entry.
@@ -55,9 +55,7 @@ function buildContentHash(canonicalText: string): string {
  * @param entry - The knowledge entry to normalize
  * @returns A normalized index document suitable for all adapters
  */
-export function normalizeKnowledgeIndexDocument(
-  entry: KnowledgeRecord,
-): NormalizedIndexDocument {
+export function normalizeKnowledgeIndexDocument(entry: KnowledgeRecord): NormalizedIndexDocument {
   const canonicalText = buildCanonicalText(entry);
   const tokens = buildTokens(canonicalText);
   const contentHash = buildContentHash(canonicalText);

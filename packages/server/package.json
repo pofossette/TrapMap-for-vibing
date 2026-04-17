@@ -16,7 +16,6 @@
     "@langchain/openai": "^1.4.4",
     "@skill-shareer/contracts": "workspace:*",
     "fastify": "^5.6.1",
-    "pino": "^9.9.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {

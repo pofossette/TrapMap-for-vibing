@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { NormalizedIndexDocument } from '../types.js';
 import { nowIso } from '../../store.js';
 import { normalizeKnowledgeIndexDocument } from '../normalize.js';
+import type { NormalizedIndexDocument } from '../types.js';
 import { vectorIndexAdapter } from './vector.js';
 
 describe('vector index adapter', () => {
+  // biome-ignore lint/suspicious/noExplicitAny: Mock entry for testing
   let mockEntry: any;
   let mockDocument: NormalizedIndexDocument;
 
@@ -114,7 +115,10 @@ describe('vector index adapter', () => {
       expect(mockEntry.indexState?.vector).toBeDefined();
 
       // Remove should clear vector state
-      await vectorIndexAdapter.remove(mockEntry, { entryId: mockEntry.id, revision: mockDocument.revision });
+      await vectorIndexAdapter.remove(mockEntry, {
+        entryId: mockEntry.id,
+        revision: mockDocument.revision,
+      });
 
       expect(mockEntry.indexState?.vector.status).toBe('pending');
       expect(mockEntry.indexState?.vector.lastSyncedAt).toBeNull();
@@ -124,11 +128,17 @@ describe('vector index adapter', () => {
       await vectorIndexAdapter.upsert(mockEntry, mockDocument);
 
       // First remove
-      await vectorIndexAdapter.remove(mockEntry, { entryId: mockEntry.id, revision: mockDocument.revision });
+      await vectorIndexAdapter.remove(mockEntry, {
+        entryId: mockEntry.id,
+        revision: mockDocument.revision,
+      });
 
       // Second remove - should not throw
       await expect(
-        vectorIndexAdapter.remove(mockEntry, { entryId: mockEntry.id, revision: mockDocument.revision }),
+        vectorIndexAdapter.remove(mockEntry, {
+          entryId: mockEntry.id,
+          revision: mockDocument.revision,
+        }),
       ).resolves.not.toThrow();
     });
   });

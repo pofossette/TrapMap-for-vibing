@@ -279,6 +279,7 @@ describe('indexing pipeline', () => {
 
         // Simulate existing index state
         if (!entry.indexState) {
+          // biome-ignore lint/suspicious/noExplicitAny: Setting internal index state for test
           (entry as any).indexState = {
             contentHash: 'abc123',
             normalizedAt: createdAt,
@@ -320,6 +321,7 @@ describe('indexing pipeline', () => {
       // Index state should be cleared
       const data = await store.snapshot();
       const entry = data.knowledgeEntries.find((e) => e.id === entryId);
+      // biome-ignore lint/suspicious/noExplicitAny: Checking internal index state for test
       expect((entry as any).indexState).toBeNull();
     });
 
@@ -565,6 +567,7 @@ describe('indexing pipeline', () => {
         entry.lifecycleState = 'rejected';
 
         // Add existing index state
+        // biome-ignore lint/suspicious/noExplicitAny: Setting internal index state for test
         (entry as any).indexState = {
           contentHash: 'abc123',
           normalizedAt: createdAt,

@@ -20,13 +20,13 @@ import type { NormalizedIndexDocument } from '../types.js';
 
 // Import the adapter we're testing
 import {
-  graphIndexAdapter,
-  clearGraphCache,
-  getIndexedGraphState,
-  getGlobalGraphIndex,
-  buildGraphArtifact,
   type GraphEntity,
   type GraphRelation,
+  buildGraphArtifact,
+  clearGraphCache,
+  getGlobalGraphIndex,
+  getIndexedGraphState,
+  graphIndexAdapter,
 } from './graph.js';
 
 describe('graph index adapter', () => {
@@ -44,7 +44,19 @@ describe('graph index adapter', () => {
     labels: ['security', 'auth', 'jwt'],
     canonicalText:
       'JWT Authentication\nUse JWT tokens for API authentication with proper validation\nsecurity auth jwt',
-    tokens: ['jwt', 'authentication', 'use', 'tokens', 'for', 'api', 'with', 'proper', 'validation', 'security', 'auth'],
+    tokens: [
+      'jwt',
+      'authentication',
+      'use',
+      'tokens',
+      'for',
+      'api',
+      'with',
+      'proper',
+      'validation',
+      'security',
+      'auth',
+    ],
     contentHash: 'abc123hash',
     normalizedAt: nowIso(),
   };
@@ -169,7 +181,19 @@ describe('graph index adapter', () => {
         labels: ['Docker', 'timeout', 'error'],
         canonicalText:
           'Fix Docker timeout error\nUse Docker to fix the timeout issue in production environment\nDocker timeout error',
-        tokens: ['fix', 'docker', 'timeout', 'error', 'use', 'to', 'the', 'issue', 'in', 'production', 'environment'],
+        tokens: [
+          'fix',
+          'docker',
+          'timeout',
+          'error',
+          'use',
+          'to',
+          'the',
+          'issue',
+          'in',
+          'production',
+          'environment',
+        ],
       };
 
       const result = await graphIndexAdapter.sync(richDocument);
@@ -182,10 +206,17 @@ describe('graph index adapter', () => {
       expect(entityTypes.size).toBeGreaterThan(0);
 
       // All entity types should be from the required set
-      const validTypes = new Set(['service', 'tool', 'symptom', 'root-cause', 'fix', 'environment']);
-      entityTypes.forEach((type) => {
+      const validTypes = new Set([
+        'service',
+        'tool',
+        'symptom',
+        'root-cause',
+        'fix',
+        'environment',
+      ]);
+      for (const type of entityTypes) {
         expect(validTypes).toContain(type);
-      });
+      }
     });
 
     it('extracts relations with bounded relation types', async () => {
@@ -209,10 +240,17 @@ describe('graph index adapter', () => {
       expect(relations.length).toBeGreaterThanOrEqual(0);
 
       // All relation types should be from the bounded set
-      const validRelationTypes = new Set(['mentions', 'causes', 'fixed-by', 'observed-in', 'uses-tool', 'runs-in']);
-      relations.forEach((relation) => {
+      const validRelationTypes = new Set([
+        'mentions',
+        'causes',
+        'fixed-by',
+        'observed-in',
+        'uses-tool',
+        'runs-in',
+      ]);
+      for (const relation of relations) {
         expect(validRelationTypes).toContain(relation.type);
-      });
+      }
     });
 
     it('persists entities with normalized values for deduplication', async () => {
@@ -223,12 +261,12 @@ describe('graph index adapter', () => {
       const entities = graphState?.entities || [];
 
       // Each entity should have normalizedValue
-      entities.forEach((entity) => {
+      for (const entity of entities) {
         expect(entity.normalizedValue).toBeDefined();
         expect(typeof entity.normalizedValue).toBe('string');
         // Normalized value should be lowercase and hyphenated
         expect(entity.normalizedValue).toBe(entity.normalizedValue.toLowerCase());
-      });
+      }
     });
 
     it('updates global graph index for cross-entry traversal', async () => {

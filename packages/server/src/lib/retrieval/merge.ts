@@ -169,10 +169,7 @@ export function toScoredEntries(mergedCandidates: MergedCandidate[]): ScoredEntr
  * @param score - Semantic relevance score [0, 1]
  * @returns Recall candidate with semantic channel
  */
-export function createSemanticCandidate(
-  entry: KnowledgeRecord,
-  score: number,
-): RecallCandidate {
+export function createSemanticCandidate(entry: KnowledgeRecord, score: number): RecallCandidate {
   return {
     entry,
     channel: 'semantic',

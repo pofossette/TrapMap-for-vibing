@@ -1,13 +1,14 @@
 import { reviewDecisionRequestSchema, reviewQueueResponseSchema } from '@skill-shareer/contracts';
+import type { LifecycleState } from '@skill-shareer/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent } from '../lib/audit.js';
 import { AppError } from '../lib/errors.js';
+import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 import { applyReviewDecision, toKnowledgeEntry } from '../lib/knowledge.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
-import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 
 export const reviewRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/knowledge/review-queue', async (request) => {
@@ -79,8 +80,8 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
 
     // Capture transition context for post-commit indexing
     let entryId: string | undefined;
-    let previousState: string | undefined;
-    let nextState: string | undefined;
+    let previousState: LifecycleState | undefined;
+    let nextState: LifecycleState | undefined;
 
     const reviewedEntry = await app.skillShareer.store.transact((data) => {
       const entry = data.knowledgeEntries.find((candidate) => candidate.id === payload.entryId);
@@ -142,8 +143,8 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
             data: await app.skillShareer.store.snapshot(),
           },
           entryId,
-          previousState: previousState as any,
-          nextState: nextState as any,
+          previousState,
+          nextState,
           reason: `reviewer-${payload.decision}`,
           adapters: app.skillShareer.indexAdapters,
         });

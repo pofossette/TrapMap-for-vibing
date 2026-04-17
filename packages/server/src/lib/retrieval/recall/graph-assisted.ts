@@ -17,11 +17,11 @@
  * entries can never appear in results.
  */
 
-import type { KnowledgeRecord } from '../../store.js';
-import type { RecallCandidate } from '../types.js';
-import type { NormalizedIndexDocument } from '../../indexing/types.js';
-import { extractGraphEntities } from '../graph-extract.js';
 import { getGlobalGraphIndex } from '../../indexing/adapters/graph.js';
+import type { NormalizedIndexDocument } from '../../indexing/types.js';
+import type { KnowledgeRecord } from '../../store.js';
+import { extractGraphEntities } from '../graph-extract.js';
+import type { RecallCandidate } from '../types.js';
 
 /**
  * Scoring configuration for graph-assisted recall.
@@ -167,7 +167,8 @@ function expandOneHop(queryEntities: Set<string>): Set<string> {
   for (const [entryId, relations] of globalIndex.relations.entries()) {
     for (const relation of relations) {
       // Check if this relation connects to any query entity
-      const connectsToQuery = queryEntities.has(relation.fromEntity) || queryEntities.has(relation.toEntity);
+      const connectsToQuery =
+        queryEntities.has(relation.fromEntity) || queryEntities.has(relation.toEntity);
 
       if (connectsToQuery) {
         // Find entries that contain either end of the relation
@@ -244,8 +245,10 @@ function calculateRelationStrength(entryId: string, queryEntities: Set<string>):
         if (otherRelations) {
           for (const relation of otherRelations) {
             // Check if this relation connects the query entity to one of our entities
-            if ((queryEntities.has(relation.fromEntity) && entryEntities.has(relation.toEntity)) ||
-                (queryEntities.has(relation.toEntity) && entryEntities.has(relation.fromEntity))) {
+            if (
+              (queryEntities.has(relation.fromEntity) && entryEntities.has(relation.toEntity)) ||
+              (queryEntities.has(relation.toEntity) && entryEntities.has(relation.fromEntity))
+            ) {
               strength += relation.weight;
             }
           }

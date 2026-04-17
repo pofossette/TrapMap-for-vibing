@@ -51,9 +51,7 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       await app2.ready();
 
       // Both should have the same adapter configuration
-      expect(app.skillShareer.indexAdapters.length).toBe(
-        app2.skillShareer.indexAdapters.length,
-      );
+      expect(app.skillShareer.indexAdapters.length).toBe(app2.skillShareer.indexAdapters.length);
 
       const adapterKinds1 = app.skillShareer.indexAdapters.map((a) => a.kind);
       const adapterKinds2 = app2.skillShareer.indexAdapters.map((a) => a.kind);
@@ -128,7 +126,7 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
 
         // Create a submitted knowledge entry
         data.counters.knowledge = 1;
-        entryId = `knowledge_1`;
+        entryId = 'knowledge_1';
 
         data.knowledgeEntries.push({
           id: entryId,
@@ -287,7 +285,7 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
 
   describe('artifact coexistence (COMP-02, T-12-05)', () => {
     it('should continue to enforce review permissions with skillArtifacts present (COMP-02)', async () => {
-      let reviewSessionId: string;
+      let reviewSessionId!: string; // Will be assigned in transaction
       const reviewerId = 'user_reviewer';
       const knowledgeEntryId = 'knowledge_coexist_1';
 
@@ -295,6 +293,15 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       await store.transact(async (data) => {
         if (!data.counters) data.counters = {};
         data.counters.user = 2;
+
+        // Create owner user (user_1) - required for knowledge entry
+        data.users.push({
+          id: 'user_1',
+          handle: 'owner_user',
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
 
         // Create reviewer user
         data.users.push({
@@ -309,7 +316,7 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
         data.memberships.push({
           id: 'membership_review_coexist',
           userId: reviewerId,
-          teamId: null,
+          teamId: '', // Global membership uses empty string
           roleTemplate: 'admin',
           securityLevel: 10,
           permissions: ['knowledge:review'],
@@ -457,7 +464,7 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       // Verify skillArtifacts still exist and were not affected
       expect(data.skillArtifacts).toBeDefined();
       expect(data.skillArtifacts.length).toBe(1);
-      expect(data.skillArtifacts[0].id).toBe('artifact_1');
+      expect(data.skillArtifacts[0]?.id).toBe('artifact_1');
     });
   });
 });

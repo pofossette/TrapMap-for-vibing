@@ -16,10 +16,10 @@ import { skillArtifactSchema } from '@skill-shareer/contracts';
 import type {
   AgentReviewRecord,
   JsonStore,
+  SkillArtifactRecord as ServerSkillArtifactRecord,
   SkillArtifactLifecycleEventRecord,
   SkillArtifactMetadataRecord,
   SkillArtifactRecord,
-  SkillArtifactRecord as ServerSkillArtifactRecord,
   SkillArtifactReviewDecisionRecord,
   SkillArtifactReviewNoteRecord,
   SkillArtifactRevisionRecord,
@@ -118,9 +118,7 @@ function toLifecycleEvent(
     id: record.id,
     type: record.type,
     createdAt: record.createdAt,
-    actor: record.actorUserId
-      ? toActorRef(data, record.actorUserId, teamId, fallbackLevel)
-      : null,
+    actor: record.actorUserId ? toActorRef(data, record.actorUserId, teamId, fallbackLevel) : null,
     submissionId: record.submissionId,
     revision: record.revision,
     state: record.state,
@@ -390,7 +388,8 @@ export function appendSkillArtifactRevision(args: {
   args.artifact.metadata.latestDecision = null;
 
   // Update artifact
-  args.artifact.lifecycleState = args.preReview.status === 'agent-pass' ? 'agent-pass' : 'agent-rejected';
+  args.artifact.lifecycleState =
+    args.preReview.status === 'agent-pass' ? 'agent-pass' : 'agent-rejected';
   args.artifact.latestRevision = revision;
   args.artifact.history.push(revision);
   args.artifact.agentReview = agentReview;
@@ -426,10 +425,7 @@ export function appendSkillArtifactRevision(args: {
  * This preserves governance (scope, teamId, requiredLevel) and audit lineage
  * (reviewHistory, lifecycleHistory) as required by T-12-07 and T-12-08.
  */
-export function toSkillArtifact(
-  data: StoreData,
-  record: ServerSkillArtifactRecord,
-) {
+export function toSkillArtifact(data: StoreData, record: ServerSkillArtifactRecord) {
   const owner = toActorRef(data, record.ownerUserId, record.teamId, record.requiredLevel);
 
   return skillArtifactSchema.parse({

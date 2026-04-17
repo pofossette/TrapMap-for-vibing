@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
+import type { ScriptWithPolicyMetadata } from '@skill-shareer/contracts';
 import {
-  resolveEffectivePolicy,
-  resolveScriptEffectivePolicy,
   canExecuteImmediately,
-  requiresApproval,
+  explainEffectivePolicy,
+  getPolicyDescription,
   isBlocked,
   isReferenceOnly,
-  getPolicyDescription,
-  explainEffectivePolicy,
+  requiresApproval,
+  resolveEffectivePolicy,
+  resolveScriptEffectivePolicy,
 } from './activation-policy.js';
-import type { ScriptWithPolicyMetadata } from '@skill-shareer/contracts';
 import type { ScriptPolicyOverride } from './config.js';
 
 describe('CLI activation policy resolution (Phase 15-02)', () => {
@@ -49,7 +49,9 @@ describe('CLI activation policy resolution (Phase 15-02)', () => {
     });
 
     it('returns same policy when override equals server default', () => {
-      expect(resolveEffectivePolicy('client-executable', 'client-executable')).toBe('client-executable');
+      expect(resolveEffectivePolicy('client-executable', 'client-executable')).toBe(
+        'client-executable',
+      );
       expect(resolveEffectivePolicy('needs-approval', 'needs-approval')).toBe('needs-approval');
       expect(resolveEffectivePolicy('reference-only', 'reference-only')).toBe('reference-only');
       expect(resolveEffectivePolicy('blocked', 'blocked')).toBe('blocked');
@@ -134,10 +136,18 @@ describe('CLI activation policy resolution (Phase 15-02)', () => {
 
   describe('getPolicyDescription', () => {
     it('returns human-readable descriptions for all policies', () => {
-      expect(getPolicyDescription('blocked')).toBe('Blocked - This script is not available for any use');
-      expect(getPolicyDescription('reference-only')).toBe('Reference only - This script can be read but never executed');
-      expect(getPolicyDescription('needs-approval')).toBe('Needs approval - This script requires explicit approval before execution');
-      expect(getPolicyDescription('client-executable')).toBe('Executable - This script can be executed without additional approval');
+      expect(getPolicyDescription('blocked')).toBe(
+        'Blocked - This script is not available for any use',
+      );
+      expect(getPolicyDescription('reference-only')).toBe(
+        'Reference only - This script can be read but never executed',
+      );
+      expect(getPolicyDescription('needs-approval')).toBe(
+        'Needs approval - This script requires explicit approval before execution',
+      );
+      expect(getPolicyDescription('client-executable')).toBe(
+        'Executable - This script can be executed without additional approval',
+      );
     });
   });
 
@@ -171,11 +181,9 @@ describe('CLI activation policy resolution (Phase 15-02)', () => {
 
   describe('T-15-04 mitigation: stricter-only override resolution', () => {
     it('enforces monotonic policy tightening from all server defaults', () => {
-      const serverDefaults: Array<'client-executable' | 'needs-approval' | 'reference-only' | 'blocked'> = [
-        'client-executable',
-        'needs-approval',
-        'reference-only',
-      ];
+      const serverDefaults: Array<
+        'client-executable' | 'needs-approval' | 'reference-only' | 'blocked'
+      > = ['client-executable', 'needs-approval', 'reference-only'];
 
       // Blocked can override anything
       for (const serverDefault of serverDefaults) {

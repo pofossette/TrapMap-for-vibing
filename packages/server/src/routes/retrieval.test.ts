@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../app.js';
+import type { JsonStore } from '../lib/store.js';
 
 describe('retrieval route', () => {
   let app: FastifyInstance;
@@ -585,7 +586,7 @@ describe('retrieval route', () => {
   // Phase 16-02: Retrieval governance filtering integration (T-16-05)
   describe('retrieval governance filtering (Phase 16-02)', () => {
     let testApp: FastifyInstance;
-    let testStore: typeof import('../lib/store.js').JsonStore;
+    let testStore: JsonStore;
     let sessionId: string;
     const userId = 'user_retrieval_gov';
     const teamId = 'team_retrieval_gov';
@@ -735,6 +736,7 @@ describe('retrieval route', () => {
       const json = response.json();
       // Entry from other team should NOT appear in results
       const allResults = [...json.globalConstraints, ...json.projectKnowledge];
+      // biome-ignore lint/suspicious/noExplicitAny: Test helper for complex result type
       expect(allResults.find((r: any) => r.shortcut === 'Other Team Entry')).toBeUndefined();
     });
 
@@ -807,6 +809,7 @@ describe('retrieval route', () => {
       const json = response.json();
       // High-security entry should NOT appear (user level 5 < entry level 8)
       const allResults = [...json.globalConstraints, ...json.projectKnowledge];
+      // biome-ignore lint/suspicious/noExplicitAny: Test helper for complex result type
       expect(allResults.find((r: any) => r.shortcut === 'High Security Entry')).toBeUndefined();
     });
 
@@ -879,6 +882,7 @@ describe('retrieval route', () => {
       const json = response.json();
       // Pending entry should NOT appear in results
       const allResults = [...json.globalConstraints, ...json.projectKnowledge];
+      // biome-ignore lint/suspicious/noExplicitAny: Test helper for complex result type
       expect(allResults.find((r: any) => r.shortcut === 'Pending Entry')).toBeUndefined();
     });
   });

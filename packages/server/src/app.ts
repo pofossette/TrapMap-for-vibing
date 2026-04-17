@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 
 import { loadConfig } from './config.js';
 import { AppError, isAppError } from './lib/errors.js';
+import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
 import { JsonStore } from './lib/store.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
 import { authRoutes } from './routes/auth.js';
@@ -12,7 +13,6 @@ import { operationsRoutes } from './routes/operations.js';
 import { retrievalRoutes } from './routes/retrieval.js';
 import { reviewRoutes } from './routes/review.js';
 import { teamRoutes } from './routes/teams.js';
-import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
 
 const documentedRoutes = [
   'POST /v1/auth/login',

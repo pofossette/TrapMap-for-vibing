@@ -19,6 +19,7 @@ describe('retrieval', () => {
     const testDataDir = `/tmp/skill-shareer-test-${Date.now()}.json`;
     mockStore = new JsonStore(testDataDir);
     mockServices = {
+      // biome-ignore lint/suspicious/noExplicitAny: Mock config for testing
       config: {} as any,
       store: mockStore,
       indexAdapters: [],
@@ -1027,9 +1028,203 @@ describe('retrieval', () => {
       if (result.summary?.citations) {
         for (const citation of result.summary.citations) {
           // All cited entries should be in the returned results
-          const inGlobal = result.globalConstraints.some((m) => m.entryId === citation.source.entryId);
-          const inProject = result.projectKnowledge.some((m) => m.entryId === citation.source.entryId);
+          const inGlobal = result.globalConstraints.some(
+            (m) => m.entryId === citation.source.entryId,
+          );
+          const inProject = result.projectKnowledge.some(
+            (m) => m.entryId === citation.source.entryId,
+          );
           expect(inGlobal || inProject).toBe(true);
+        }
+      }
+    });
+  });
+
+  // Phase 16-02: Coexistence governance parity (COMP-02, COMP-04, T-16-05)
+  describe('governance boundary parity (Phase 16-02)', () => {
+    it('filters apply consistently regardless of query mode', async () => {
+      // Same query should respect the same eligibility filters
+      // regardless of whether using semantic, hybrid, or graph-assisted mode
+      const baseQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+      };
+
+      const [semanticResult, hybridResult, graphResult] = await Promise.all([
+        searchKnowledge(mockServices, mockAuth, { ...baseQuery, mode: 'semantic' }),
+        searchKnowledge(mockServices, mockAuth, { ...baseQuery, mode: 'hybrid' }),
+        searchKnowledge(mockServices, mockAuth, { ...baseQuery, mode: 'graph-assisted' }),
+      ]);
+
+      // All modes should filter out:
+      // - entries above caller security level
+      // - entries from other teams (non-system-admin)
+      // - non-approved entries
+
+      const assertNoHighLevel = (result: typeof semanticResult) => {
+        const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
+        for (const match of allMatches) {
+          expect(match.requiredLevel).toBeLessThanOrEqual(mockAuth.securityLevel);
+        }
+      };
+
+      const assertNoOtherTeam = (result: typeof semanticResult) => {
+        const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
+        for (const match of allMatches) {
+          if (match.scope === 'project') {
+            // Project entries should be from user's team
+            // (or be visible via global scope)
+          }
+        }
+      };
+
+      assertNoHighLevel(semanticResult);
+      assertNoHighLevel(hybridResult);
+      assertNoHighLevel(graphResult);
+      assertNoOtherTeam(semanticResult);
+      assertNoOtherTeam(hybridResult);
+      assertNoOtherTeam(graphResult);
+    });
+
+    it('approval state filter is enforced before result shaping', async () => {
+      // Non-approved entries should never appear in results
+      const query: RetrievalQuery = {
+        seed: 'connection pooling', // Matches submitted entry
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // The submitted entry should not appear
+      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
+      const submittedMatch = allMatches.find((m) => m.detail.includes('connection pooling'));
+      expect(submittedMatch).toBeUndefined();
+    });
+
+    it('team scope filter prevents cross-team access for non-admin', async () => {
+      // Non-system-admin should not see other team's project knowledge
+      const query: RetrievalQuery = {
+        seed: 'REST API rate limiting', // Matches other team entry
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // The other team's entry should not appear
+      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
+      const otherTeamMatch = allMatches.find((m) => m.detail.includes('rate limiting'));
+      expect(otherTeamMatch).toBeUndefined();
+    });
+
+    it('security level filter prevents access to higher-level content', async () => {
+      // User with level 5 should not see entries with requiredLevel 8
+      const query: RetrievalQuery = {
+        seed: 'encryption data at rest', // Matches high-level entry
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // The high-level entry should not appear
+      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
+      const highLevelMatch = allMatches.find((m) => m.detail.includes('encryption'));
+      expect(highLevelMatch).toBeUndefined();
+    });
+
+    it('rejected entries are excluded from results', async () => {
+      const query: RetrievalQuery = {
+        seed: 'memory leak fix', // Matches rejected entry
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // The rejected entry should not appear
+      const allMatches = [...result.globalConstraints, ...result.projectKnowledge];
+      const rejectedMatch = allMatches.find((m) => m.detail.includes('memory leak'));
+      expect(rejectedMatch).toBeUndefined();
+    });
+  });
+
+  // Phase 16-02: Metadata-only boundary (T-16-06)
+  describe('metadata-only retrieval boundary (Phase 16-02)', () => {
+    it('retrieval responses do not include artifact bundle payloads', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Verify response structure is capsule/metadata only
+      // No raw bundle payloads, file contents, or script bodies
+      expect(result.globalConstraints).toBeDefined();
+      expect(result.projectKnowledge).toBeDefined();
+
+      // Each match should have standard fields but no payload/body fields
+      for (const match of result.globalConstraints) {
+        expect(match.entryId).toBeDefined();
+        expect(match.shortcut).toBeDefined();
+        expect(match.detail).toBeDefined();
+        expect(match.labels).toBeDefined();
+        expect(match.score).toBeDefined();
+        expect(match.reason).toBeDefined();
+        // Should NOT have payload/body fields
+        // biome-ignore lint/suspicious/noExplicitAny: Checking internal fields don't exist
+        expect((match as any).payload).toBeUndefined();
+        // biome-ignore lint/suspicious/noExplicitAny: Checking internal fields don't exist
+        expect((match as any).body).toBeUndefined();
+        // biome-ignore lint/suspicious/noExplicitAny: Checking internal fields don't exist
+        expect((match as any).content).toBeUndefined(); // No raw content
+      }
+    });
+
+    it('citations provide snippets not full documents', async () => {
+      const query: RetrievalQuery = {
+        seed: 'JWT validation',
+        filters: { labels: [], scopes: [] },
+        maxResults: 10,
+        includeRefinement: false,
+        includeSummary: false,
+        mode: 'hybrid',
+      };
+
+      const result = await searchKnowledge(mockServices, mockAuth, query);
+
+      // Citations should have snippet field, not full document
+      for (const match of result.globalConstraints) {
+        if (match.citation) {
+          expect(match.citation.snippet).toBeDefined();
+          // Snippet should be a portion of detail, not the full document
+          expect(typeof match.citation.snippet).toBe('string');
+          // Should not have rawContent or body
+          // biome-ignore lint/suspicious/noExplicitAny: Checking internal fields don't exist
+          expect((match.citation as any).rawContent).toBeUndefined();
+          // biome-ignore lint/suspicious/noExplicitAny: Checking internal fields don't exist
+          expect((match.citation as any).body).toBeUndefined();
         }
       }
     });

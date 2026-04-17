@@ -15,9 +15,9 @@
  */
 
 import type { KnowledgeRecord } from '../../store.js';
+import { nowIso } from '../../store.js';
 import type { NormalizedIndexDocument } from '../types.js';
 import type { IndexAdapter, IndexSyncResult } from '../types.js';
-import { nowIso } from '../../store.js';
 
 /**
  * Persisted keyword state for query-time reuse.
@@ -65,7 +65,9 @@ function createKeywordAdapter(): IndexAdapter & {
           fieldTokens: {
             shortcut: document.tokens.filter((t) => document.shortcut.toLowerCase().includes(t)),
             detail: document.tokens.filter((t) => document.detail.toLowerCase().includes(t)),
-            labels: document.tokens.filter((t) => document.labels.some((l) => l.toLowerCase().includes(t))),
+            labels: document.tokens.filter((t) =>
+              document.labels.some((l) => l.toLowerCase().includes(t)),
+            ),
           },
         };
 
@@ -88,15 +90,29 @@ function createKeywordAdapter(): IndexAdapter & {
       }
     },
 
-    async remove(ref: { entryId: string; revision: number }): Promise<void> {
-      // No-op - pipeline handles clearing the index state
+    async remove(entry: KnowledgeRecord, ref: { entryId: string; revision: number }): Promise<void> {
+      // Clear the keyword index state
+      if (entry.indexState?.keyword) {
+        entry.indexState.keyword = {
+          status: 'pending',
+          revision: ref.revision,
+          contentHash: '',
+          lastSyncedAt: null,
+          lastError: null,
+        };
+        // Clear persisted state (typed as IndexStateKeyword)
+        (entry.indexState.keyword as IndexStateKeyword).persistedState = undefined;
+      }
     },
 
     /**
      * Legacy upsert method for backward compatibility.
      * This method mutates the entry directly and is used by non-pipeline code.
      */
-    async upsert(entry: KnowledgeRecord, document: NormalizedIndexDocument): Promise<IndexSyncResult> {
+    async upsert(
+      entry: KnowledgeRecord,
+      document: NormalizedIndexDocument,
+    ): Promise<IndexSyncResult> {
       // Check if we can skip work (idempotency)
       const currentKeywordState = entry.indexState?.keyword;
       if (
@@ -120,7 +136,9 @@ function createKeywordAdapter(): IndexAdapter & {
           fieldTokens: {
             shortcut: document.tokens.filter((t) => document.shortcut.toLowerCase().includes(t)),
             detail: document.tokens.filter((t) => document.detail.toLowerCase().includes(t)),
-            labels: document.tokens.filter((t) => document.labels.some((l) => l.toLowerCase().includes(t))),
+            labels: document.tokens.filter((t) =>
+              document.labels.some((l) => l.toLowerCase().includes(t)),
+            ),
           },
         };
 
@@ -194,7 +212,10 @@ function createKeywordAdapter(): IndexAdapter & {
     /**
      * Legacy remove method for backward compatibility.
      */
-    async removeLegacy(entry: KnowledgeRecord, ref: { entryId: string; revision: number }): Promise<void> {
+    async removeLegacy(
+      entry: KnowledgeRecord,
+      ref: { entryId: string; revision: number },
+    ): Promise<void> {
       if (entry.indexState?.keyword) {
         entry.indexState.keyword = {
           status: 'pending',
@@ -204,7 +225,7 @@ function createKeywordAdapter(): IndexAdapter & {
           lastError: null,
         };
         // Clear persisted state (typed as IndexStateKeyword)
-        delete (entry.indexState.keyword as IndexStateKeyword).persistedState;
+        (entry.indexState.keyword as IndexStateKeyword).persistedState = undefined;
       }
     },
   };
@@ -246,7 +267,9 @@ export async function upsertKeywordIndex(
       fieldTokens: {
         shortcut: document.tokens.filter((t) => document.shortcut.toLowerCase().includes(t)),
         detail: document.tokens.filter((t) => document.detail.toLowerCase().includes(t)),
-        labels: document.tokens.filter((t) => document.labels.some((l) => l.toLowerCase().includes(t))),
+        labels: document.tokens.filter((t) =>
+          document.labels.some((l) => l.toLowerCase().includes(t)),
+        ),
       },
     };
 

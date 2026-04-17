@@ -11,8 +11,8 @@
 
 import type { LifecycleState } from '@skill-shareer/contracts';
 import type { JsonStore, StoreData } from '../store.js';
-import type { IndexAdapter } from './types.js';
 import { syncKnowledgeIndex } from './pipeline.js';
+import type { IndexAdapter } from './types.js';
 
 /**
  * Determine the indexing action for a lifecycle transition.

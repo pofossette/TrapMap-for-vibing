@@ -271,7 +271,7 @@ describe('keyword recall', () => {
       // Label match (weight 3 each) should score higher than detail-only match (weight 1 each)
       // Each token: labelEntry gets 3, bodyEntry gets 1
       // Total: labelEntry=6, bodyEntry=2, normalized to same denominator
-      expect(labelEntry!.score).toBeGreaterThan(bodyEntry!.score);
+      expect(labelEntry?.score).toBeGreaterThan(bodyEntry?.score);
     });
 
     it('prefers shortcut matches over detail matches', async () => {
@@ -299,7 +299,7 @@ describe('keyword recall', () => {
 
       expect(shortcutEntry).toBeDefined();
       expect(detailEntry).toBeDefined();
-      expect(shortcutEntry!.score).toBeGreaterThan(detailEntry!.score);
+      expect(shortcutEntry?.score).toBeGreaterThan(detailEntry?.score);
     });
 
     it('includes token match details for each candidate', async () => {

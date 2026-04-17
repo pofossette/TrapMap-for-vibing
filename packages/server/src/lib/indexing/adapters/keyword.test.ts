@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { NormalizedIndexDocument } from '../types.js';
 import { nowIso } from '../../store.js';
 import { normalizeKnowledgeIndexDocument } from '../normalize.js';
+import type { NormalizedIndexDocument } from '../types.js';
 import { keywordIndexAdapter } from './keyword.js';
 
 describe('keyword index adapter', () => {
+  // biome-ignore lint/suspicious/noExplicitAny: Mock entry for testing
   let mockEntry: any;
   let mockDocument: NormalizedIndexDocument;
 
@@ -88,7 +89,10 @@ describe('keyword index adapter', () => {
       expect(mockEntry.indexState?.keyword).toBeDefined();
 
       // Remove should clear keyword state
-      await keywordIndexAdapter.remove(mockEntry, { entryId: mockEntry.id, revision: mockDocument.revision });
+      await keywordIndexAdapter.remove(mockEntry, {
+        entryId: mockEntry.id,
+        revision: mockDocument.revision,
+      });
 
       expect(mockEntry.indexState?.keyword.status).toBe('pending');
       expect(mockEntry.indexState?.keyword.lastSyncedAt).toBeNull();
@@ -98,11 +102,17 @@ describe('keyword index adapter', () => {
       await keywordIndexAdapter.upsert(mockEntry, mockDocument);
 
       // First remove
-      await keywordIndexAdapter.remove(mockEntry, { entryId: mockEntry.id, revision: mockDocument.revision });
+      await keywordIndexAdapter.remove(mockEntry, {
+        entryId: mockEntry.id,
+        revision: mockDocument.revision,
+      });
 
       // Second remove - should not throw
       await expect(
-        keywordIndexAdapter.remove(mockEntry, { entryId: mockEntry.id, revision: mockDocument.revision }),
+        keywordIndexAdapter.remove(mockEntry, {
+          entryId: mockEntry.id,
+          revision: mockDocument.revision,
+        }),
       ).resolves.not.toThrow();
     });
 
@@ -113,7 +123,10 @@ describe('keyword index adapter', () => {
       expect(mockEntry.indexState?.keyword.status).toBe('synced');
 
       // Remove
-      await keywordIndexAdapter.remove(mockEntry, { entryId: mockEntry.id, revision: mockDocument.revision });
+      await keywordIndexAdapter.remove(mockEntry, {
+        entryId: mockEntry.id,
+        revision: mockDocument.revision,
+      });
 
       // Verify state is cleared
       expect(mockEntry.indexState?.keyword.status).toBe('pending');

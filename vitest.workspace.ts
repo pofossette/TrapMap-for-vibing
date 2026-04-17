@@ -8,10 +8,7 @@ import { defineWorkspace } from 'vitest/config';
 const GB = 1024 * 1024 * 1024;
 const systemMemory = totalmem();
 
-const maxThreads =
-  systemMemory >= 16 * GB ? 4 :
-  systemMemory >= 8 * GB ? 2 :
-  1;
+const maxThreads = systemMemory >= 16 * GB ? 4 : systemMemory >= 8 * GB ? 2 : 1;
 
 export default defineWorkspace([
   {

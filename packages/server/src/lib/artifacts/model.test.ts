@@ -18,10 +18,15 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { JsonStore } from '../store.js';
 import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
-import { createSkillArtifactRecord, appendSkillArtifactRevision, toSkillArtifact } from './model.js';
+import {
+  appendSkillArtifactRevision,
+  createSkillArtifactRecord,
+  toSkillArtifact,
+} from './model.js';
 
 describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
   let store: JsonStore;
+  // biome-ignore lint/suspicious/noExplicitAny: Mock data for testing
   let storeData: any;
   const userId = 'user_1';
   const teamId = 'team_1';
@@ -356,10 +361,10 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
       const storedAsset = revision.files.find((f) => f.path === 'assets/config.json');
 
       expect(storedAsset).toBeDefined();
-      expect(storedAsset!.kind).toBe('asset');
-      expect(storedAsset!.source).toBe('assets/');
-      expect(storedAsset!.activationOnly).toBe(true);
-      expect(storedAsset!.includeInDerivation).toBe(false);
+      expect(storedAsset?.kind).toBe('asset');
+      expect(storedAsset?.source).toBe('assets/');
+      expect(storedAsset?.activationOnly).toBe(true);
+      expect(storedAsset?.includeInDerivation).toBe(false);
     });
 
     it('should store scripts as descriptor metadata only (CAPS-03, T-12-06)', () => {
@@ -425,8 +430,8 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
       // Script file should still exist in files manifest but without body
       const scriptFile = revision.files.find((f) => f.path === 'scripts/deploy.sh');
       expect(scriptFile).toBeDefined();
-      expect(scriptFile!.kind).toBe('script');
-      expect(scriptFile!.source).toBe('scripts/');
+      expect(scriptFile?.kind).toBe('script');
+      expect(scriptFile?.source).toBe('scripts/');
     });
   });
 

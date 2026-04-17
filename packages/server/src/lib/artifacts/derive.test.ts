@@ -23,11 +23,12 @@ import type {
   SkillArtifactRevisionRecord,
 } from '../store.js';
 import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
-import { deriveSkillArtifactOutputs, deriveFromPayloads } from './derive.js';
+import { deriveFromPayloads, deriveSkillArtifactOutputs } from './derive.js';
 import { applyDerivedArtifactOutputs } from './model.js';
 
 describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
   let store: JsonStore;
+  // biome-ignore lint/suspicious/noExplicitAny: Mock data for testing
   let storeData: any;
   let artifact: SkillArtifactRecord;
   let revision: SkillArtifactRevisionRecord;
@@ -210,7 +211,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
       // Check capsules have stable IDs
       expect(derived1.capsules).toHaveLength(derived2.capsules.length);
       for (let i = 0; i < derived1.capsules.length; i++) {
-        expect(derived1.capsules[i]!.capsuleId).toBe(derived2.capsules[i]!.capsuleId);
+        expect(derived1.capsules[i]?.capsuleId).toBe(derived2.capsules[i]?.capsuleId);
       }
 
       // Check reference paths are ordered
@@ -439,9 +440,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
       expect(updatedArtifact.latestRevision.derived?.profile?.artifactId).toBe(artifact.id);
 
       // Client manifest should reference artifact id
-      expect(updatedArtifact.latestRevision.derived?.clientManifest?.artifactId).toBe(
-        artifact.id,
-      );
+      expect(updatedArtifact.latestRevision.derived?.clientManifest?.artifactId).toBe(artifact.id);
     });
   });
 });
@@ -454,6 +453,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
 
 describe('retrieval-grade derivation (RETR-03, CAPS-04, Phase 14 Task 1)', () => {
   let store: JsonStore;
+  // biome-ignore lint/suspicious/noExplicitAny: Mock data for testing
   let storeData: any;
   const userId = 'user_1';
   const teamId = 'team_1';
@@ -727,10 +727,9 @@ The versions must match exactly for consistent behavior.
       });
 
       // Profile should not contain asset/script content
-      const profileContent = [
-        derived.profile?.summary,
-        ...(derived.profile?.keywords ?? []),
-      ].join(' ').toLowerCase();
+      const profileContent = [derived.profile?.summary, ...(derived.profile?.keywords ?? [])]
+        .join(' ')
+        .toLowerCase();
       expect(profileContent).not.toContain('setup script');
       expect(profileContent).not.toContain('version: "3.8"');
 

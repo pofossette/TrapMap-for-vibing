@@ -11,10 +11,14 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import {
+  type PersistedGraphState,
+  clearGraphCache,
+  getGlobalGraphIndex,
+} from '../../indexing/adapters/graph.js';
+import type { GraphEntity, GraphRelation } from '../../indexing/adapters/graph.js';
 import type { KnowledgeRecord } from '../../store.js';
 import { graphAssistedRecall } from './graph-assisted.js';
-import { clearGraphCache, getGlobalGraphIndex, type PersistedGraphState } from '../../indexing/adapters/graph.js';
-import type { GraphEntity, GraphRelation } from '../../indexing/adapters/graph.js';
 
 /**
  * Create a mock knowledge record for testing.
@@ -60,9 +64,27 @@ function createMockEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRec
     indexState: {
       contentHash: 'hash-1',
       normalizedAt: '2024-01-01T00:00:00Z',
-      vector: { status: 'synced', revision: 1, contentHash: 'hash-1', lastSyncedAt: null, lastError: null },
-      keyword: { status: 'synced', revision: 1, contentHash: 'hash-1', lastSyncedAt: null, lastError: null },
-      graph: { status: 'synced', revision: 1, contentHash: 'hash-1', lastSyncedAt: null, lastError: null },
+      vector: {
+        status: 'synced',
+        revision: 1,
+        contentHash: 'hash-1',
+        lastSyncedAt: null,
+        lastError: null,
+      },
+      keyword: {
+        status: 'synced',
+        revision: 1,
+        contentHash: 'hash-1',
+        lastSyncedAt: null,
+        lastError: null,
+      },
+      graph: {
+        status: 'synced',
+        revision: 1,
+        contentHash: 'hash-1',
+        lastSyncedAt: null,
+        lastError: null,
+      },
     },
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
@@ -86,7 +108,7 @@ function setupGraphIndex(entries: Map<string, PersistedGraphState>): void {
       if (!globalIndex.entities.has(entity.normalizedValue)) {
         globalIndex.entities.set(entity.normalizedValue, new Set());
       }
-      globalIndex.entities.get(entity.normalizedValue)!.add(entryId);
+      globalIndex.entities.get(entity.normalizedValue)?.add(entryId);
     }
 
     // Add relations
@@ -212,16 +234,16 @@ describe('graph-assisted recall', () => {
           { type: 'symptom', value: 'crash', normalizedValue: 'crash' },
           { type: 'environment', value: 'container', normalizedValue: 'container' },
         ],
-        relations: [
-          { type: 'observed-in', fromEntity: 'docker', toEntity: 'crash', weight: 1 },
-        ],
+        relations: [{ type: 'observed-in', fromEntity: 'docker', toEntity: 'crash', weight: 1 }],
         contentHash: 'hash-2',
       };
 
-      setupGraphIndex(new Map([
-        ['entry-1', graphState1],
-        ['entry-2', graphState2],
-      ]));
+      setupGraphIndex(
+        new Map([
+          ['entry-1', graphState1],
+          ['entry-2', graphState2],
+        ]),
+      );
 
       const candidates = await graphAssistedRecall('docker', eligibleEntries);
 
@@ -259,9 +281,7 @@ describe('graph-assisted recall', () => {
         entryId: 'entry-2',
         revision: 1,
         entities: [{ type: 'symptom', value: 'crash', normalizedValue: 'crash' }],
-        relations: [
-          { type: 'observed-in', fromEntity: 'docker', toEntity: 'crash', weight: 1 },
-        ],
+        relations: [{ type: 'observed-in', fromEntity: 'docker', toEntity: 'crash', weight: 1 }],
         contentHash: 'hash-2',
       };
 
@@ -269,17 +289,17 @@ describe('graph-assisted recall', () => {
         entryId: 'entry-3',
         revision: 1,
         entities: [{ type: 'symptom', value: 'leak', normalizedValue: 'leak' }],
-        relations: [
-          { type: 'causes', fromEntity: 'crash', toEntity: 'leak', weight: 1 },
-        ],
+        relations: [{ type: 'causes', fromEntity: 'crash', toEntity: 'leak', weight: 1 }],
         contentHash: 'hash-3',
       };
 
-      setupGraphIndex(new Map([
-        ['entry-1', graphState1],
-        ['entry-2', graphState2],
-        ['entry-3', graphState3],
-      ]));
+      setupGraphIndex(
+        new Map([
+          ['entry-1', graphState1],
+          ['entry-2', graphState2],
+          ['entry-3', graphState3],
+        ]),
+      );
 
       const candidates = await graphAssistedRecall('docker', eligibleEntries);
 
@@ -323,16 +343,16 @@ describe('graph-assisted recall', () => {
         entryId: 'entry-2',
         revision: 1,
         entities: [{ type: 'symptom', value: 'crash', normalizedValue: 'crash' }],
-        relations: [
-          { type: 'observed-in', fromEntity: 'docker', toEntity: 'crash', weight: 10 },
-        ],
+        relations: [{ type: 'observed-in', fromEntity: 'docker', toEntity: 'crash', weight: 10 }],
         contentHash: 'hash-2',
       };
 
-      setupGraphIndex(new Map([
-        ['entry-1', graphState1],
-        ['entry-2', graphState2],
-      ]));
+      setupGraphIndex(
+        new Map([
+          ['entry-1', graphState1],
+          ['entry-2', graphState2],
+        ]),
+      );
 
       const candidates = await graphAssistedRecall('docker crash', eligibleEntries);
 
@@ -377,10 +397,12 @@ describe('graph-assisted recall', () => {
         contentHash: 'hash-2',
       };
 
-      setupGraphIndex(new Map([
-        ['entry-1', graphState1],
-        ['entry-2', graphState2],
-      ]));
+      setupGraphIndex(
+        new Map([
+          ['entry-1', graphState1],
+          ['entry-2', graphState2],
+        ]),
+      );
 
       const candidates = await graphAssistedRecall('TypeScript', eligibleEntries);
 
@@ -433,10 +455,12 @@ describe('graph-assisted recall', () => {
         contentHash: 'hash-2',
       };
 
-      setupGraphIndex(new Map([
-        ['entry-1', graphState1],
-        ['entry-2', graphState2],
-      ]));
+      setupGraphIndex(
+        new Map([
+          ['entry-1', graphState1],
+          ['entry-2', graphState2],
+        ]),
+      );
 
       const candidates = await graphAssistedRecall('timeout', eligibleEntries);
 
@@ -471,9 +495,7 @@ describe('graph-assisted recall', () => {
         entryId: 'entry-2',
         revision: 1,
         entities: [{ type: 'environment', value: 'container', normalizedValue: 'container' }],
-        relations: [
-          { type: 'runs-in', fromEntity: 'container', toEntity: 'docker', weight: 1 },
-        ],
+        relations: [{ type: 'runs-in', fromEntity: 'container', toEntity: 'docker', weight: 1 }],
         contentHash: 'hash-2',
       };
 
@@ -487,11 +509,13 @@ describe('graph-assisted recall', () => {
         contentHash: 'hash-3',
       };
 
-      setupGraphIndex(new Map([
-        ['entry-1', graphState1],
-        ['entry-2', graphState2],
-        ['entry-3', graphState3],
-      ]));
+      setupGraphIndex(
+        new Map([
+          ['entry-1', graphState1],
+          ['entry-2', graphState2],
+          ['entry-3', graphState3],
+        ]),
+      );
 
       const candidates = await graphAssistedRecall('docker', eligibleEntries);
 
@@ -562,16 +586,16 @@ describe('graph-assisted recall', () => {
         entryId: 'entry-2',
         revision: 1,
         entities: [{ type: 'environment', value: 'container', normalizedValue: 'container' }],
-        relations: [
-          { type: 'runs-in', fromEntity: 'container', toEntity: 'docker', weight: 1 },
-        ],
+        relations: [{ type: 'runs-in', fromEntity: 'container', toEntity: 'docker', weight: 1 }],
         contentHash: 'hash-2',
       };
 
-      setupGraphIndex(new Map([
-        ['entry-1', graphState1],
-        ['entry-2', graphState2],
-      ]));
+      setupGraphIndex(
+        new Map([
+          ['entry-1', graphState1],
+          ['entry-2', graphState2],
+        ]),
+      );
 
       const candidates = await graphAssistedRecall('docker', eligibleEntries);
 
@@ -581,7 +605,7 @@ describe('graph-assisted recall', () => {
 
       expect(entry1Candidate).toBeDefined();
       expect(entry2Candidate).toBeDefined();
-      expect(entry1Candidate!.score).toBeGreaterThan(entry2Candidate!.score);
+      expect(entry1Candidate?.score).toBeGreaterThan(entry2Candidate?.score);
     });
   });
 });

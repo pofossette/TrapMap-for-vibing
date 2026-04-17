@@ -17,6 +17,7 @@
 import { createHash } from 'node:crypto';
 
 import type {
+  ArtifactFilePayloadRecord,
   ClientManifestAssetRecord,
   ClientManifestRecord,
   ClientManifestReferenceRecord,
@@ -29,7 +30,6 @@ import type {
   SkillArtifactRevisionRecord,
   SkillScriptDescriptorRecord,
   StoreData,
-  ArtifactFilePayloadRecord,
 } from '../store.js';
 import { nowIso } from '../store.js';
 
@@ -138,9 +138,7 @@ function buildSkillProfile(
   );
 
   // Extract reference paths in deterministic order
-  const referencePaths = referenceFiles
-    .map((f) => f.path)
-    .sort((a, b) => a.localeCompare(b));
+  const referencePaths = referenceFiles.map((f) => f.path).sort((a, b) => a.localeCompare(b));
 
   // Extract keywords from artifact labels
   const keywords = [...artifact.labels].sort();
@@ -419,7 +417,7 @@ function parseFrontmatter(content: string): { title: string | null; labels: stri
     return { title: null, labels: [] };
   }
 
-  const frontmatter = frontmatterMatch[1]!;
+  const frontmatter = frontmatterMatch[1] ?? '';
   const titleMatch = frontmatter.match(/^title:\s*(.+)$/m);
   const labelsMatch = frontmatter.match(/^labels:\s*\n((?:\s+-\s+.+\n?)+)/m);
 
@@ -463,9 +461,9 @@ function extractSections(content: string): {
   const extractSection = (pattern: RegExp): string | null => {
     const match = body.match(pattern);
     if (!match) return null;
-    const text = match[1]!.trim();
+    const text = match[1]?.trim();
     // Truncate to max length for capsule fields
-    return text.length > 1000 ? text.slice(0, 997) + '...' : text;
+    return text.length > 1000 ? `${text.slice(0, 997)}...` : text;
   };
 
   return {
@@ -495,13 +493,13 @@ function buildSummaryFromText(text: string): string {
     const cleaned = para.replace(/^#+\s*/gm, '').trim();
     if (cleaned.length > 20) {
       // Truncate to max 1000 chars
-      return cleaned.length > 1000 ? cleaned.slice(0, 997) + '...' : cleaned;
+      return cleaned.length > 1000 ? `${cleaned.slice(0, 997)}...` : cleaned;
     }
   }
 
   // Fallback: use first 500 chars
   const fallback = body.replace(/[#*`\[\]]/g, '').trim();
-  return fallback.length > 500 ? fallback.slice(0, 497) + '...' : fallback;
+  return fallback.length > 500 ? `${fallback.slice(0, 497)}...` : fallback;
 }
 
 /**
@@ -559,16 +557,18 @@ export function deriveFromPayloads(
   const derivationText = extractDerivationText(payloads);
 
   // Get derivation-eligible payloads
-  const derivationEligible = payloads.filter((p) =>
-    p.path === 'SKILL.md' || p.path.startsWith('references/')
-  ).sort((a, b) => a.path.localeCompare(b.path));
+  const derivationEligible = payloads
+    .filter((p) => p.path === 'SKILL.md' || p.path.startsWith('references/'))
+    .sort((a, b) => a.path.localeCompare(b.path));
 
   // Compute source hash from content
   const sourceHash = buildContentHash(derivationEligible.map((p) => p.sha256));
 
   // Parse frontmatter from SKILL.md if present
   const skillMdPayload = payloads.find((p) => p.path === 'SKILL.md');
-  const frontmatter = skillMdPayload ? parseFrontmatter(skillMdPayload.content) : { title: null, labels: [] };
+  const frontmatter = skillMdPayload
+    ? parseFrontmatter(skillMdPayload.content)
+    : { title: null, labels: [] };
 
   // Use provided labels merged with frontmatter labels
   const allLabels = [...new Set([...context.labels, ...frontmatter.labels])];
@@ -583,19 +583,24 @@ export function deriveFromPayloads(
   // Build content hash from actual text
   const contentHash = buildContentHash([derivationText]);
 
-  const profile: DerivedSkillProfileRecord | null = derivationEligible.length > 0 ? {
-    artifactId: context.artifactId,
-    revision: 1, // Will be set by caller
-    sourceHash,
-    title: frontmatter.title ?? context.title,
-    summary,
-    keywords,
-    referencePaths,
-    contentHash,
-  } : null;
+  const profile: DerivedSkillProfileRecord | null =
+    derivationEligible.length > 0
+      ? {
+          artifactId: context.artifactId,
+          revision: 1, // Will be set by caller
+          sourceHash,
+          title: frontmatter.title ?? context.title,
+          summary,
+          keywords,
+          referencePaths,
+          contentHash,
+        }
+      : null;
 
   // Extract sections for capsules
-  const sections = skillMdPayload ? extractSections(skillMdPayload.content) : { situation: null, problem: null, goal: null };
+  const sections = skillMdPayload
+    ? extractSections(skillMdPayload.content)
+    : { situation: null, problem: null, goal: null };
 
   // Build capsule(s) from content
   const capsules: DerivedSkillCapsuleRecord[] = [];
@@ -623,8 +628,8 @@ export function deriveFromPayloads(
     // Generate additional capsules from reference files if they contain distinct content
     const referencePayloads = derivationEligible.filter((p) => p.path.startsWith('references/'));
 
-    for (let i = 0; i < referencePayloads.length && capsules.length < 5; i++) {
-      const refPayload = referencePayloads[i]!;
+    for (const refPayload of referencePayloads) {
+      if (capsules.length >= 5) break;
       const refContent = refPayload.content;
 
       // Check if this reference has meaningful distinct content
@@ -656,31 +661,40 @@ export function deriveFromPayloads(
   const assetFiles = payloads.filter((p) => p.path.startsWith('assets/'));
   const scriptFiles = payloads.filter((p) => p.path.startsWith('scripts/'));
 
-  const clientManifest: ClientManifestRecord | null = (referenceFiles.length > 0 || assetFiles.length > 0 || scriptFiles.length > 0) ? {
-    artifactId: context.artifactId,
-    revision: 1,
-    references: referenceFiles.sort((a, b) => a.path.localeCompare(b.path)).map((p) => ({
-      path: p.path,
-      sha256: p.sha256,
-      sizeBytes: p.sizeBytes,
-      mediaType: p.mediaType,
-    })),
-    assets: assetFiles.sort((a, b) => a.path.localeCompare(b.path)).map((p) => ({
-      path: p.path,
-      sha256: p.sha256,
-      sizeBytes: p.sizeBytes,
-      mediaType: p.mediaType,
-    })),
-    scripts: scriptFiles.sort((a, b) => a.path.localeCompare(b.path)).map((p) => ({
-      path: p.path,
-      sha256: p.sha256,
-      capability: `Script: ${p.path}`,
-      argsSchemaSummary: '',
-      sideEffectSummary: '',
-      defaultPolicy: 'manual' as const,
-    })),
-    sourceHash,
-  } : null;
+  const clientManifest: ClientManifestRecord | null =
+    referenceFiles.length > 0 || assetFiles.length > 0 || scriptFiles.length > 0
+      ? {
+          artifactId: context.artifactId,
+          revision: 1,
+          references: referenceFiles
+            .sort((a, b) => a.path.localeCompare(b.path))
+            .map((p) => ({
+              path: p.path,
+              sha256: p.sha256,
+              sizeBytes: p.sizeBytes,
+              mediaType: p.mediaType,
+            })),
+          assets: assetFiles
+            .sort((a, b) => a.path.localeCompare(b.path))
+            .map((p) => ({
+              path: p.path,
+              sha256: p.sha256,
+              sizeBytes: p.sizeBytes,
+              mediaType: p.mediaType,
+            })),
+          scripts: scriptFiles
+            .sort((a, b) => a.path.localeCompare(b.path))
+            .map((p) => ({
+              path: p.path,
+              sha256: p.sha256,
+              capability: `Script: ${p.path}`,
+              argsSchemaSummary: '',
+              sideEffectSummary: '',
+              defaultPolicy: 'manual' as const,
+            })),
+          sourceHash,
+        }
+      : null;
 
   return {
     profile,

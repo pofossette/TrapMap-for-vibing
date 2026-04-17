@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto';
+import { readFile, readdir } from 'node:fs/promises';
+import { extname, join, relative } from 'node:path';
 import type {
   ActivationResponse,
   ArtifactBundle,
@@ -26,9 +29,6 @@ import {
   legacyMigrationResponseSchema,
 } from '@skill-shareer/contracts';
 import type { Command } from 'commander';
-import { createHash } from 'node:crypto';
-import { readdir, readFile } from 'node:fs/promises';
-import { extname, join, relative } from 'node:path';
 
 import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
@@ -148,12 +148,12 @@ function parseClaudeSkill(
     frontmatter[key] = unquoted;
   }
 
-  const name = frontmatter['name'];
+  const name = frontmatter.name;
   if (!name) {
     return null;
   }
 
-  const description = frontmatter['description'] ?? '';
+  const description = frontmatter.description ?? '';
   const detailContent = body.trim() || description;
 
   return {
@@ -322,13 +322,13 @@ function parseSkillMetadata(content: string): { title: string; labels: string[] 
     frontmatter[key] = unquoted;
   }
 
-  const name = frontmatter['name'];
+  const name = frontmatter.name;
   if (!name) {
     return null;
   }
 
   // Extract labels if present
-  const labelsRaw = frontmatter['labels'];
+  const labelsRaw = frontmatter.labels;
   const labels = labelsRaw
     ? labelsRaw
         .toString()
@@ -466,7 +466,7 @@ async function buildArtifactBundle(args: {
   // Build script descriptors (placeholder for now)
   const scriptDescriptors: ArtifactBundle['scriptDescriptors'] = scripts.map((relPath) => ({
     path: relPath,
-    sha256: files.find((f) => f.path === relPath)!.sha256,
+    sha256: files.find((f) => f.path === relPath)?.sha256,
     capability: `${relPath} execution`,
     argsSchemaSummary: '',
     sideEffectSummary: '',
@@ -778,7 +778,9 @@ export function registerOperationsCommands(
         requireSessionToken(state);
 
         const filePath = flags.file;
-        const stat = await import('node:fs/promises').then((fs) => fs.stat(filePath).catch(() => null));
+        const stat = await import('node:fs/promises').then((fs) =>
+          fs.stat(filePath).catch(() => null),
+        );
 
         // Detect if path is a directory
         const isDirectory = stat?.isDirectory() ?? false;
@@ -802,8 +804,7 @@ export function registerOperationsCommands(
             [
               `Imported ${value.importedCount} artifacts, failed ${value.failedCount}`,
               ...value.results.map(
-                (r) =>
-                  `  ${r.success ? '✓' : '✗'} ${r.title ?? 'Unknown'}: ${r.error ?? 'OK'}`,
+                (r) => `  ${r.success ? '✓' : '✗'} ${r.title ?? 'Unknown'}: ${r.error ?? 'OK'}`,
               ),
             ].join('\n'),
           );
@@ -829,8 +830,7 @@ export function registerOperationsCommands(
               [
                 `Imported ${value.importedCount} artifacts, failed ${value.failedCount}`,
                 ...value.results.map(
-                  (r) =>
-                    `  ${r.success ? '✓' : '✗'} ${r.title ?? 'Unknown'}: ${r.error ?? 'OK'}`,
+                  (r) => `  ${r.success ? '✓' : '✗'} ${r.title ?? 'Unknown'}: ${r.error ?? 'OK'}`,
                 ),
               ].join('\n'),
             );
@@ -861,7 +861,12 @@ export function registerOperationsCommands(
               } else if (parsed.items && Array.isArray(parsed.items)) {
                 // Export bundle format
                 entries = parsed.items.map(
-                  (entry: { scope: string; labels: string[]; shortcut: string; detail: string }) => ({
+                  (entry: {
+                    scope: string;
+                    labels: string[];
+                    shortcut: string;
+                    detail: string;
+                  }) => ({
                     scope: entry.scope ?? 'project',
                     labels: entry.labels ?? ['imported'],
                     shortcut: entry.shortcut,
@@ -912,7 +917,9 @@ export function registerOperationsCommands(
       .description('Selectively fetch and materialize artifact files (references, assets, scripts)')
       .requiredOption('--artifact <artifactId>', 'Artifact ID to activate')
       .requiredOption('--paths <paths>', 'Comma-separated list of file paths to fetch')
-      .option('--revision <n>', 'Specific revision number (defaults to latest)', (val) => Number(val))
+      .option('--revision <n>', 'Specific revision number (defaults to latest)', (val) =>
+        Number(val),
+      )
       .option('--output <path>', 'Output directory for materialized files')
       .option('--json', 'Output JSON')
       .action(
@@ -950,7 +957,9 @@ export function registerOperationsCommands(
                 console.warn(`⚠️  Script "${descriptor.path}" is blocked and cannot be executed`);
                 console.warn(`   Capability: ${descriptor.capability}`);
               } else if (policy === 'manual') {
-                console.warn(`⚠️  Script "${descriptor.path}" requires manual approval before execution`);
+                console.warn(
+                  `⚠️  Script "${descriptor.path}" requires manual approval before execution`,
+                );
                 console.warn(`   Capability: ${descriptor.capability}`);
               }
               // 'auto' policy scripts can execute without additional approval
@@ -1096,7 +1105,7 @@ export function registerOperationsCommands(
               `Remaining legacy entries: ${value.remainingLegacyCount}`,
               ...value.results.map(
                 (r) =>
-                  `  ${r.success ? '✓' : '✗'} ${r.entryId}: ${r.success ? r.artifactId : r.skipReason ?? r.error ?? 'Unknown error'}`,
+                  `  ${r.success ? '✓' : '✗'} ${r.entryId}: ${r.success ? r.artifactId : (r.skipReason ?? r.error ?? 'Unknown error')}`,
               ),
             ].join('\n'),
           );
@@ -1121,9 +1130,7 @@ export function registerOperationsCommands(
         }
 
         const path =
-          queryParams.size > 0
-            ? `/v1/operations/status?${queryParams}`
-            : '/v1/operations/status';
+          queryParams.size > 0 ? `/v1/operations/status?${queryParams}` : '/v1/operations/status';
 
         const response = await apiRequest<CompatibilityStatusResponse>(state, { path });
         const parsed = compatibilityStatusResponseSchema.parse(response.data);

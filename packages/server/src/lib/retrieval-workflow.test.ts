@@ -192,6 +192,7 @@ describe('End-to-end retrieval workflow', () => {
 
       // The unapproved entry should NOT appear in search results
       const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
+      // biome-ignore lint/suspicious/noExplicitAny: Test helper for complex result type
       const unapprovedMatch = allMatches.find((m: any) => m.entryId === entryId);
       expect(unapprovedMatch).toBeUndefined();
     });
@@ -255,6 +256,7 @@ describe('End-to-end retrieval workflow', () => {
 
       // The approved entry SHOULD appear in search results
       const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
+      // biome-ignore lint/suspicious/noExplicitAny: Test helper for complex result type
       const approvedMatch = allMatches.find((m: any) => m.entryId === entryId);
       expect(approvedMatch).toBeDefined();
       expect(approvedMatch.shortcut).toBe('Use strict types');
@@ -384,6 +386,7 @@ describe('End-to-end retrieval workflow', () => {
 
       // The approved corrected entry SHOULD appear in search results
       const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
+      // biome-ignore lint/suspicious/noExplicitAny: Test helper for complex result type
       const approvedMatch = allMatches.find((m: any) => m.entryId === entryId);
       expect(approvedMatch).toBeDefined();
       expect(approvedMatch.shortcut).toBe('Fix the memory leak in worker');
@@ -684,6 +687,7 @@ describe('End-to-end retrieval workflow', () => {
 
       // The unapproved entry should NOT appear in hybrid search results
       const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
+      // biome-ignore lint/suspicious/noExplicitAny: Test helper for complex result type
       const unapprovedMatch = allMatches.find((m: any) => m.entryId === entryId);
       expect(unapprovedMatch).toBeUndefined();
     });
@@ -750,6 +754,7 @@ describe('End-to-end retrieval workflow', () => {
 
       // The approved entry should appear in hybrid search results
       const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
+      // biome-ignore lint/suspicious/noExplicitAny: Test helper for complex result type
       const approvedMatch = allMatches.find((m: any) => m.entryId === entryId);
       expect(approvedMatch).toBeDefined();
 
@@ -815,6 +820,7 @@ describe('End-to-end retrieval workflow', () => {
 
       // The team-scoped entry should appear for team member
       const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
+      // biome-ignore lint/suspicious/noExplicitAny: Test helper for complex result type
       const teamMatch = allMatches.find((m: any) => m.entryId === entryId);
       expect(teamMatch).toBeDefined();
     });

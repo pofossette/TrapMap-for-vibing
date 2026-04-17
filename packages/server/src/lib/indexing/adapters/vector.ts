@@ -13,11 +13,11 @@
  * The pipeline is responsible for gating on lifecycleState before calling sync.
  */
 
+import { generateEmbedding } from '../../embeddings.js';
 import type { KnowledgeRecord } from '../../store.js';
+import { nowIso } from '../../store.js';
 import type { NormalizedIndexDocument } from '../types.js';
 import type { IndexAdapter, IndexSyncResult } from '../types.js';
-import { generateEmbedding } from '../../embeddings.js';
-import { nowIso } from '../../store.js';
 
 /**
  * Vector index adapter implementation.
@@ -59,8 +59,17 @@ export const vectorIndexAdapter: IndexAdapter & {
   /**
    * Remove vector index (pipeline interface).
    */
-  async remove(ref: { entryId: string; revision: number }): Promise<void> {
-    // No-op - pipeline handles clearing the index state
+  async remove(entry: KnowledgeRecord, ref: { entryId: string; revision: number }): Promise<void> {
+    // Clear the vector index state
+    if (entry.indexState?.vector) {
+      entry.indexState.vector = {
+        status: 'pending',
+        revision: ref.revision,
+        contentHash: '',
+        lastSyncedAt: null,
+        lastError: null,
+      };
+    }
   },
 
   /**
@@ -76,7 +85,10 @@ export const vectorIndexAdapter: IndexAdapter & {
    * @param document - The normalized index document
    * @returns Sync result indicating success and whether work was performed
    */
-  async upsert(entry: KnowledgeRecord, document: NormalizedIndexDocument): Promise<IndexSyncResult> {
+  async upsert(
+    entry: KnowledgeRecord,
+    document: NormalizedIndexDocument,
+  ): Promise<IndexSyncResult> {
     // Check if we can skip work (idempotency)
     const currentVectorState = entry.indexState?.vector;
     if (
@@ -170,7 +182,10 @@ export const vectorIndexAdapter: IndexAdapter & {
   /**
    * Legacy remove method for backward compatibility.
    */
-  async removeLegacy(entry: KnowledgeRecord, ref: { entryId: string; revision: number }): Promise<void> {
+  async removeLegacy(
+    entry: KnowledgeRecord,
+    ref: { entryId: string; revision: number },
+  ): Promise<void> {
     if (entry.indexState?.vector) {
       entry.indexState.vector = {
         status: 'pending',

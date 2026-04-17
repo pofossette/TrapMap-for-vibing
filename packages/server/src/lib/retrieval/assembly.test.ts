@@ -16,18 +16,18 @@ import { describe, expect, it } from 'vitest';
 
 import type { CapsuleMatch, ProfileHint, RetrievalSummary } from '@skill-shareer/contracts';
 import { capsuleMatchSchema, profileHintSchema } from '@skill-shareer/contracts';
+import type { ClientManifestRecord, SkillArtifactRecord } from '../store.js';
 import {
-  buildV2RetrievalResponse,
-  buildCapsuleMatch,
-  buildProfileHint,
   buildActivationHints,
   buildAllActivationHints,
-  buildReadNextHint,
   buildAssetHint,
+  buildCapsuleMatch,
+  buildProfileHint,
+  buildReadNextHint,
   buildScriptHint,
+  buildV2RetrievalResponse,
 } from './assembly.js';
 import type { CapsuleCandidate } from './types.js';
-import type { ClientManifestRecord, SkillArtifactRecord } from '../store.js';
 
 describe('assembly', () => {
   describe('buildCapsuleMatch', () => {
@@ -369,6 +369,7 @@ describe('Phase 15: Activation hints', () => {
 
   describe('buildReadNextHint', () => {
     it('builds read-next hint from manifest reference (Task 2, Test 1)', () => {
+      // biome-ignore lint/style/noNonNullAssertion: Mock manifest has this element
       const ref = mockManifest.references[0]!;
       const hint = buildReadNextHint('artifact_1', 1, ref);
 
@@ -379,6 +380,7 @@ describe('Phase 15: Activation hints', () => {
     });
 
     it('read-next hint is metadata-only without file content (Task 2, Test 2, T-15-01)', () => {
+      // biome-ignore lint/style/noNonNullAssertion: Mock manifest has this element
       const ref = mockManifest.references[0]!;
       const hint = buildReadNextHint('artifact_1', 1, ref);
 
@@ -389,6 +391,7 @@ describe('Phase 15: Activation hints', () => {
 
   describe('buildAssetHint', () => {
     it('builds asset hint from manifest asset (Task 2, Test 1)', () => {
+      // biome-ignore lint/style/noNonNullAssertion: Mock manifest has this element
       const asset = mockManifest.assets[0]!;
       const hint = buildAssetHint('artifact_1', 1, asset);
 
@@ -399,6 +402,7 @@ describe('Phase 15: Activation hints', () => {
     });
 
     it('asset hint is metadata-only without file body (Task 2, Test 2, T-15-01)', () => {
+      // biome-ignore lint/style/noNonNullAssertion: Mock manifest has this element
       const asset = mockManifest.assets[0]!;
       const hint = buildAssetHint('artifact_1', 1, asset);
 
@@ -410,6 +414,7 @@ describe('Phase 15: Activation hints', () => {
 
   describe('buildScriptHint', () => {
     it('builds script hint from manifest script (Task 2, Test 1)', () => {
+      // biome-ignore lint/style/noNonNullAssertion: Mock manifest has this element
       const script = mockManifest.scripts[0]!;
       const hint = buildScriptHint('artifact_1', 1, script);
 
@@ -420,6 +425,7 @@ describe('Phase 15: Activation hints', () => {
     });
 
     it('script hint is metadata-only without script body (Task 2, Test 2, T-15-01, T-15-03)', () => {
+      // biome-ignore lint/style/noNonNullAssertion: Mock manifest has this element
       const script = mockManifest.scripts[0]!;
       const hint = buildScriptHint('artifact_1', 1, script);
 

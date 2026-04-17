@@ -8,10 +8,10 @@
  * - Stable output routing (COMP-01)
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies before importing
 vi.mock('../lib/http.js', () => ({
@@ -25,9 +25,9 @@ vi.mock('../lib/config.js', () => ({
 
 // Import after mocking
 import { Command } from 'commander';
-import { registerOperationsCommands } from './operations.js';
-import { apiRequest } from '../lib/http.js';
 import { loadCliState } from '../lib/config.js';
+import { apiRequest } from '../lib/http.js';
+import { registerOperationsCommands } from './operations.js';
 
 // Mock the named import - get a reference to the mock function
 const mockedApiRequest = vi.mocked(apiRequest);
@@ -154,14 +154,15 @@ describe('CLI operations commands (Phase 13)', () => {
 
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();
-      const args = callArgs![1] as MockCallArgs;
+      const args = callArgs?.[1] as MockCallArgs;
+      // biome-ignore lint/style/noNonNullAssertion: Test ensures bundle exists
       const bundle = args.body.bundles[0]!;
 
       const skillMdFile = bundle.files.find((f) => f.path === 'SKILL.md');
       expect(skillMdFile).toBeDefined();
-      expect(skillMdFile!.kind).toBe('skill-markdown');
-      expect(skillMdFile!.includeInDerivation).toBe(true);
-      expect(skillMdFile!.activationOnly).toBe(false);
+      expect(skillMdFile?.kind).toBe('skill-markdown');
+      expect(skillMdFile?.includeInDerivation).toBe(true);
+      expect(skillMdFile?.activationOnly).toBe(false);
     });
 
     it('should classify references/ as reference with derivation eligibility', async () => {
@@ -169,14 +170,15 @@ describe('CLI operations commands (Phase 13)', () => {
 
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();
-      const args = callArgs![1] as MockCallArgs;
+      const args = callArgs?.[1] as MockCallArgs;
+      // biome-ignore lint/style/noNonNullAssertion: Test ensures bundle exists
       const bundle = args.body.bundles[0]!;
 
       const refFile = bundle.files.find((f) => f.path === 'references/docker.md');
       expect(refFile).toBeDefined();
-      expect(refFile!.kind).toBe('reference');
-      expect(refFile!.includeInDerivation).toBe(true);
-      expect(refFile!.activationOnly).toBe(false);
+      expect(refFile?.kind).toBe('reference');
+      expect(refFile?.includeInDerivation).toBe(true);
+      expect(refFile?.activationOnly).toBe(false);
     });
 
     it('should classify assets/ as asset with activation-only flag', async () => {
@@ -184,14 +186,15 @@ describe('CLI operations commands (Phase 13)', () => {
 
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();
-      const args = callArgs![1] as MockCallArgs;
+      const args = callArgs?.[1] as MockCallArgs;
+      // biome-ignore lint/style/noNonNullAssertion: Test ensures bundle exists
       const bundle = args.body.bundles[0]!;
 
       const assetFile = bundle.files.find((f) => f.path === 'assets/docker-compose.yml');
       expect(assetFile).toBeDefined();
-      expect(assetFile!.kind).toBe('asset');
-      expect(assetFile!.includeInDerivation).toBe(false);
-      expect(assetFile!.activationOnly).toBe(true);
+      expect(assetFile?.kind).toBe('asset');
+      expect(assetFile?.includeInDerivation).toBe(false);
+      expect(assetFile?.activationOnly).toBe(true);
     });
 
     it('should classify scripts/ as script with activation-only flag', async () => {
@@ -199,26 +202,38 @@ describe('CLI operations commands (Phase 13)', () => {
 
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();
-      const args = callArgs![1] as MockCallArgs;
+      const args = callArgs?.[1] as MockCallArgs;
+      // biome-ignore lint/style/noNonNullAssertion: Test ensures bundle exists
       const bundle = args.body.bundles[0]!;
 
       const scriptFile = bundle.files.find((f) => f.path === 'scripts/setup.sh');
       expect(scriptFile).toBeDefined();
-      expect(scriptFile!.kind).toBe('script');
-      expect(scriptFile!.includeInDerivation).toBe(false);
-      expect(scriptFile!.activationOnly).toBe(true);
+      expect(scriptFile?.kind).toBe('script');
+      expect(scriptFile?.includeInDerivation).toBe(false);
+      expect(scriptFile?.activationOnly).toBe(true);
     });
   });
 
   describe('Single SKILL.md compatibility (IMEX-03)', () => {
     it('should detect single SKILL.md file and use artifact import', async () => {
       // Create single SKILL.md file with YAML frontmatter
-      await writeFile(join(testDir, 'skill.md'), '---\nname: Test Skill\ndescription: Test description\n---\n\nTest content');
+      await writeFile(
+        join(testDir, 'skill.md'),
+        '---\nname: Test Skill\ndescription: Test description\n---\n\nTest content',
+      );
 
       // Note: mockArtifactImportResponse is already set up in beforeEach
       // The single SKILL.md should route to artifact import endpoint
 
-      await program.parseAsync(['node', 'test', 'import', '--file', join(testDir, 'skill.md'), '--level', '3']);
+      await program.parseAsync([
+        'node',
+        'test',
+        'import',
+        '--file',
+        join(testDir, 'skill.md'),
+        '--level',
+        '3',
+      ]);
 
       // Verify artifact import endpoint was called (not legacy import)
       expect(mockedApiRequest).toHaveBeenCalledWith(
@@ -232,11 +247,12 @@ describe('CLI operations commands (Phase 13)', () => {
       // Verify the bundle has single-skill-md source kind
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();
-      const args = callArgs![1] as MockCallArgs;
+      const args = callArgs?.[1] as MockCallArgs;
+      // biome-ignore lint/style/noNonNullAssertion: Test ensures bundle exists
       const bundle = args.body.bundles[0]!;
       expect(bundle.sourceKind).toBe('single-skill-md');
       expect(bundle.files.length).toBe(1);
-      expect(bundle.files[0]!.path).toBe('SKILL.md');
+      expect(bundle.files[0]?.path).toBe('SKILL.md');
     });
   });
 
@@ -252,12 +268,13 @@ describe('CLI operations commands (Phase 13)', () => {
 
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();
-      const args = callArgs![1] as MockCallArgs;
+      const args = callArgs?.[1] as MockCallArgs;
+      // biome-ignore lint/style/noNonNullAssertion: Test ensures bundle exists
       const bundle = args.body.bundles[0]!;
 
       // Should only have SKILL.md, not .env or node_modules files
       expect(bundle.files.length).toBe(1);
-      expect(bundle.files[0]!.path).toBe('SKILL.md');
+      expect(bundle.files[0]?.path).toBe('SKILL.md');
     });
   });
 
@@ -271,7 +288,7 @@ describe('CLI operations commands (Phase 13)', () => {
 
       const calls = consoleSpy.mock.calls;
       expect(calls.length).toBeGreaterThan(0);
-      const output = calls[0]![0] as string;
+      const output = calls[0]?.[0] as string;
       expect(output).toContain('Imported 1 artifacts');
       expect(output).toContain('✓ Test Skill: OK');
 
@@ -283,11 +300,20 @@ describe('CLI operations commands (Phase 13)', () => {
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-      await program.parseAsync(['node', 'test', 'import', '--file', testDir, '--level', '3', '--json']);
+      await program.parseAsync([
+        'node',
+        'test',
+        'import',
+        '--file',
+        testDir,
+        '--level',
+        '3',
+        '--json',
+      ]);
 
       const calls = consoleSpy.mock.calls;
       expect(calls.length).toBeGreaterThan(0);
-      const output = calls[0]![0] as string;
+      const output = calls[0]?.[0] as string;
       const parsed = JSON.parse(output);
       expect(parsed.importedCount).toBe(1);
       expect(parsed.results[0].artifactId).toBe('artifact_1');
@@ -369,8 +395,11 @@ describe('CLI operations commands (Phase 13)', () => {
 
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();
-      const args = callArgs![1] as { body: { selectedPaths: string[] } };
-      expect(args.body.selectedPaths).toEqual(['references/docker.md', 'assets/docker-compose.yml']);
+      const args = callArgs?.[1] as { body: { selectedPaths: string[] } };
+      expect(args.body.selectedPaths).toEqual([
+        'references/docker.md',
+        'assets/docker-compose.yml',
+      ]);
     });
 
     it('should materialize fetched files locally using safe path validation', async () => {
@@ -550,7 +579,7 @@ describe('CLI operations commands (Phase 13)', () => {
 
       const calls = consoleSpy.mock.calls;
       expect(calls.length).toBeGreaterThan(0);
-      const output = calls[0]![0] as string;
+      const output = calls[0]?.[0] as string;
       const parsed = JSON.parse(output);
       expect(parsed.artifactId).toBe('artifact_1');
       expect(parsed.files).toHaveLength(1);
@@ -565,8 +594,20 @@ describe('CLI operations commands (Phase 13)', () => {
     const mockMigrationResponse = {
       data: {
         results: [
-          { entryId: 'knowledge_1', artifactId: 'artifact_1', success: true, skipReason: null, error: null },
-          { entryId: 'knowledge_2', artifactId: null, success: false, skipReason: 'already-migrated', error: null },
+          {
+            entryId: 'knowledge_1',
+            artifactId: 'artifact_1',
+            success: true,
+            skipReason: null,
+            error: null,
+          },
+          {
+            entryId: 'knowledge_2',
+            artifactId: null,
+            success: false,
+            skipReason: 'already-migrated',
+            error: null,
+          },
         ],
         migratedCount: 1,
         skippedCount: 1,
@@ -632,7 +673,7 @@ describe('CLI operations commands (Phase 13)', () => {
 
         const callArgs = mockedApiRequest.mock.calls[0];
         expect(callArgs).toBeDefined();
-        const args = callArgs![1] as { body: { mode: string; entryIds: string[] } };
+        const args = callArgs?.[1] as { body: { mode: string; entryIds: string[] } };
         expect(args.body.mode).toBe('explicit');
         expect(args.body.entryIds).toEqual(['knowledge_1', 'knowledge_2']);
       });
@@ -657,23 +698,17 @@ describe('CLI operations commands (Phase 13)', () => {
 
         const callArgs = mockedApiRequest.mock.calls[0];
         expect(callArgs).toBeDefined();
-        const args = callArgs![1] as { body: { mode: string; limit: number } };
+        const args = callArgs?.[1] as { body: { mode: string; limit: number } };
         expect(args.body.mode).toBe('all-approved');
         expect(args.body.limit).toBe(25);
       });
 
       it('should call migration endpoint with all-team mode', async () => {
-        await migrationProgram.parseAsync([
-          'node',
-          'test',
-          'migrate',
-          '--all-team',
-          'team_1',
-        ]);
+        await migrationProgram.parseAsync(['node', 'test', 'migrate', '--all-team', 'team_1']);
 
         const callArgs = mockedApiRequest.mock.calls[0];
         expect(callArgs).toBeDefined();
-        const args = callArgs![1] as { body: { mode: string; teamId: string } };
+        const args = callArgs?.[1] as { body: { mode: string; teamId: string } };
         expect(args.body.mode).toBe('all-team');
         expect(args.body.teamId).toBe('team_1');
       });
@@ -691,7 +726,7 @@ describe('CLI operations commands (Phase 13)', () => {
 
         const calls = consoleSpy.mock.calls;
         expect(calls.length).toBeGreaterThan(0);
-        const output = calls[0]![0] as string;
+        const output = calls[0]?.[0] as string;
         expect(output).toContain('Migrated 1 entries');
         expect(output).toContain('skipped 1');
         expect(output).toContain('Remaining legacy entries: 50');
@@ -713,7 +748,7 @@ describe('CLI operations commands (Phase 13)', () => {
 
         const calls = consoleSpy.mock.calls;
         expect(calls.length).toBeGreaterThan(0);
-        const output = calls[0]![0] as string;
+        const output = calls[0]?.[0] as string;
         const parsed = JSON.parse(output);
         expect(parsed.migratedCount).toBe(1);
         expect(parsed.skippedCount).toBe(1);
@@ -725,9 +760,7 @@ describe('CLI operations commands (Phase 13)', () => {
       });
 
       it('should require one of --entries, --all-approved, or --all-team', async () => {
-        await expect(
-          migrationProgram.parseAsync(['node', 'test', 'migrate']),
-        ).rejects.toThrow();
+        await expect(migrationProgram.parseAsync(['node', 'test', 'migrate'])).rejects.toThrow();
       });
     });
 
@@ -765,7 +798,7 @@ describe('CLI operations commands (Phase 13)', () => {
 
         const calls = consoleSpy.mock.calls;
         expect(calls.length).toBeGreaterThan(0);
-        const output = calls[0]![0] as string;
+        const output = calls[0]?.[0] as string;
         expect(output).toContain('Legacy entries: 100');
         expect(output).toContain('Migrated: 50');
         expect(output).toContain('Unmigrated: 50');
@@ -782,7 +815,7 @@ describe('CLI operations commands (Phase 13)', () => {
 
         const calls = consoleSpy.mock.calls;
         expect(calls.length).toBeGreaterThan(0);
-        const output = calls[0]![0] as string;
+        const output = calls[0]?.[0] as string;
         const parsed = JSON.parse(output);
         expect(parsed.totalLegacyEntries).toBe(100);
         expect(parsed.migratedEntriesCount).toBe(50);

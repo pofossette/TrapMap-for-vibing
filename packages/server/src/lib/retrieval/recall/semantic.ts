@@ -12,8 +12,8 @@
  */
 
 import type { RetrievalQuery } from '@skill-shareer/contracts';
-import type { KnowledgeRecord } from '../../store.js';
 import { generateEmbedding, hashEmbeddingText } from '../../embeddings.js';
+import type { KnowledgeRecord } from '../../store.js';
 
 /**
  * Build the embedding text from a knowledge entry.

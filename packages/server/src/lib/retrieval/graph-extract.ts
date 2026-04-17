@@ -20,13 +20,7 @@ import type { NormalizedIndexDocument } from '../indexing/types.js';
 /**
  * Graph entity types supported for extraction.
  */
-export type GraphEntityType =
-  | 'service'
-  | 'tool'
-  | 'symptom'
-  | 'root-cause'
-  | 'fix'
-  | 'environment';
+export type GraphEntityType = 'service' | 'tool' | 'symptom' | 'root-cause' | 'fix' | 'environment';
 
 /**
  * Graph relation types supported.
@@ -75,16 +69,85 @@ export interface GraphExtractionResult {
  */
 const NOISE_WORDS = new Set([
   // Articles and prepositions
-  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
-  'by', 'from', 'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below',
+  'the',
+  'a',
+  'an',
+  'and',
+  'or',
+  'but',
+  'in',
+  'on',
+  'at',
+  'to',
+  'for',
+  'of',
+  'with',
+  'by',
+  'from',
+  'as',
+  'into',
+  'through',
+  'during',
+  'before',
+  'after',
+  'above',
+  'below',
   // Pronouns and conjunctions
-  'it', 'its', 'this', 'that', 'these', 'those', 'is', 'are', 'was', 'were', 'be',
-  'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
-  'should', 'could', 'may', 'might', 'can', 'need', 'must',
+  'it',
+  'its',
+  'this',
+  'that',
+  'these',
+  'those',
+  'is',
+  'are',
+  'was',
+  'were',
+  'be',
+  'been',
+  'being',
+  'have',
+  'has',
+  'had',
+  'do',
+  'does',
+  'did',
+  'will',
+  'would',
+  'should',
+  'could',
+  'may',
+  'might',
+  'can',
+  'need',
+  'must',
   // Generic terms
-  'use', 'when', 'ensure', 'provide', 'require', 'allow', 'make', 'get', 'set',
-  'call', 'check', 'find', 'help', 'work', 'way', 'issue', 'problem', 'thing',
-  'item', 'object', 'value', 'result', 'example', 'case', 'point', 'part',
+  'use',
+  'when',
+  'ensure',
+  'provide',
+  'require',
+  'allow',
+  'make',
+  'get',
+  'set',
+  'call',
+  'check',
+  'find',
+  'help',
+  'work',
+  'way',
+  'issue',
+  'problem',
+  'thing',
+  'item',
+  'object',
+  'value',
+  'result',
+  'example',
+  'case',
+  'point',
+  'part',
 ]);
 
 /**
@@ -152,20 +215,55 @@ function extractToolEntities(document: NormalizedIndexDocument): GraphEntity[] {
 
   // Common tool keywords (case-insensitive)
   const toolKeywords = [
-    'npm', 'pnpm', 'yarn', 'bun',
-    'docker', 'podman', 'kubernetes', 'k8s',
-    'git', 'github', 'gitlab',
-    'vitest', 'jest', 'mocha', 'jasmine',
-    'typescript', 'javascript', 'ts', 'js',
-    'node', 'deno', 'bun',
-    'webpack', 'vite', 'rollup', 'esbuild',
-    'eslint', 'prettier', 'biome',
-    'redis', 'postgres', 'postgresql', 'mysql', 'mongodb', 'sqlite',
-    'aws', 'azure', 'gcp',
-    'linux', 'macos', 'windows',
-    'bash', 'zsh', 'shell',
-    'ssh', 'curl', 'wget',
-    'nginx', 'apache',
+    'npm',
+    'pnpm',
+    'yarn',
+    'bun',
+    'docker',
+    'podman',
+    'kubernetes',
+    'k8s',
+    'git',
+    'github',
+    'gitlab',
+    'vitest',
+    'jest',
+    'mocha',
+    'jasmine',
+    'typescript',
+    'javascript',
+    'ts',
+    'js',
+    'node',
+    'deno',
+    'bun',
+    'webpack',
+    'vite',
+    'rollup',
+    'esbuild',
+    'eslint',
+    'prettier',
+    'biome',
+    'redis',
+    'postgres',
+    'postgresql',
+    'mysql',
+    'mongodb',
+    'sqlite',
+    'aws',
+    'azure',
+    'gcp',
+    'linux',
+    'macos',
+    'windows',
+    'bash',
+    'zsh',
+    'shell',
+    'ssh',
+    'curl',
+    'wget',
+    'nginx',
+    'apache',
   ];
 
   for (const tool of toolKeywords) {
@@ -206,10 +304,29 @@ function extractSymptomEntities(document: NormalizedIndexDocument): GraphEntity[
   const text = document.canonicalText.toLowerCase();
 
   const symptomPatterns = [
-    'error', 'exception', 'fail', 'failure', 'timeout', 'crash',
-    'cannot', 'could not', 'unable', 'undefined', 'null', 'nan',
-    'leak', 'overflow', 'underflow', 'infinite', 'deadlock',
-    'corrupt', 'invalid', 'missing', 'not found', '404', '500',
+    'error',
+    'exception',
+    'fail',
+    'failure',
+    'timeout',
+    'crash',
+    'cannot',
+    'could not',
+    'unable',
+    'undefined',
+    'null',
+    'nan',
+    'leak',
+    'overflow',
+    'underflow',
+    'infinite',
+    'deadlock',
+    'corrupt',
+    'invalid',
+    'missing',
+    'not found',
+    '404',
+    '500',
   ];
 
   for (const symptom of symptomPatterns) {
@@ -261,14 +378,38 @@ function extractFixEntities(document: NormalizedIndexDocument): GraphEntity[] {
   const text = document.canonicalText.toLowerCase();
 
   const fixPatterns = [
-    'fix', 'solution', 'resolve', 'remedy',
-    'use', 'using', 'utilize',
-    'enable', 'disable', 'activate', 'deactivate',
-    'set', 'add', 'remove', 'delete', 'configure',
-    'validate', 'verify', 'check', 'ensure',
-    'implement', 'apply', 'install', 'uninstall',
-    'update', 'upgrade', 'downgrade', 'patch',
-    'restart', 'reboot', 'reload', 'refresh',
+    'fix',
+    'solution',
+    'resolve',
+    'remedy',
+    'use',
+    'using',
+    'utilize',
+    'enable',
+    'disable',
+    'activate',
+    'deactivate',
+    'set',
+    'add',
+    'remove',
+    'delete',
+    'configure',
+    'validate',
+    'verify',
+    'check',
+    'ensure',
+    'implement',
+    'apply',
+    'install',
+    'uninstall',
+    'update',
+    'upgrade',
+    'downgrade',
+    'patch',
+    'restart',
+    'reboot',
+    'reload',
+    'refresh',
   ];
 
   for (const fix of fixPatterns) {
@@ -295,9 +436,22 @@ function extractEnvironmentEntities(document: NormalizedIndexDocument): GraphEnt
   const text = document.canonicalText.toLowerCase();
 
   const envPatterns = [
-    'ci', 'cd', 'local', 'localhost',
-    'production', 'prod', 'staging', 'stage', 'development', 'dev', 'test', 'testing',
-    'docker', 'container', 'vm', 'kubernetes',
+    'ci',
+    'cd',
+    'local',
+    'localhost',
+    'production',
+    'prod',
+    'staging',
+    'stage',
+    'development',
+    'dev',
+    'test',
+    'testing',
+    'docker',
+    'container',
+    'vm',
+    'kubernetes',
   ];
 
   for (const env of envPatterns) {
@@ -346,7 +500,7 @@ function extractRelations(entities: GraphEntity[]): GraphRelation[] {
     if (!byType.has(entity.type)) {
       byType.set(entity.type, []);
     }
-    byType.get(entity.type)!.push(entity);
+    byType.get(entity.type)?.push(entity);
   }
 
   const symptoms = byType.get('symptom') || [];
@@ -419,9 +573,7 @@ function extractRelations(entities: GraphEntity[]): GraphRelation[] {
  * @param document - The normalized index document to extract from
  * @returns Extracted entities and relations
  */
-export function extractGraphEntities(
-  document: NormalizedIndexDocument,
-): GraphExtractionResult {
+export function extractGraphEntities(document: NormalizedIndexDocument): GraphExtractionResult {
   // Extract entities by type
   const serviceEntities = extractServiceEntities(document);
   const toolEntities = extractToolEntities(document);

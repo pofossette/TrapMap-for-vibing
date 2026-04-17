@@ -160,7 +160,7 @@ describe('operations routes', () => {
 
         // Create an approved, indexed knowledge entry
         data.counters.knowledge = 1;
-        entryId = `knowledge_1`;
+        entryId = 'knowledge_1';
 
         data.knowledgeEntries.push({
           id: entryId,
@@ -837,12 +837,13 @@ Some body content.`;
       // Assert: Should succeed and return audit events
       expect(response.statusCode).toBe(200);
       const json = response.json();
-      expect(json.events).toBeDefined();
-      expect(json.events.length).toBeGreaterThanOrEqual(2);
+      expect(json.items).toBeDefined();
+      expect(json.items.length).toBeGreaterThanOrEqual(2);
 
       // Verify knowledge audit events are present
-      const knowledgeAuditEvents = json.events.filter(
-        (e: { action: string }) => e.action === 'knowledge-submitted' || e.action === 'knowledge-reviewed',
+      const knowledgeAuditEvents = json.items.filter(
+        (e: { action: string }) =>
+          e.action === 'knowledge-submitted' || e.action === 'knowledge-reviewed',
       );
       expect(knowledgeAuditEvents.length).toBeGreaterThanOrEqual(2);
 
@@ -1811,7 +1812,7 @@ Some body content.`;
       const data = await testStore.snapshot();
       const artifact = data.skillArtifacts?.find((a) => a.id === json.results[0].artifactId);
       expect(artifact).toBeDefined();
-      expect(artifact!.requiredLevel).toBe(requiredLevel);
+      expect(artifact?.requiredLevel).toBe(requiredLevel);
     });
   });
 

@@ -32,7 +32,7 @@ export const DEFAULT_BOTH_CHANNEL_BOOST = 0.15;
  * Default boost for candidates with high token match density.
  * When many query tokens match an entry, it indicates strong lexical relevance.
  */
-export const DEFAULT_TOKEN_DENSITY_BOOST = 0.10;
+export const DEFAULT_TOKEN_DENSITY_BOOST = 0.1;
 
 /**
  * Configuration for rerank behavior.

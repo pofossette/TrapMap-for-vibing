@@ -23,27 +23,28 @@ import {
   legacyMigrationResponseSchema,
   legacyMigrationResultItemSchema,
 } from '@skill-shareer/contracts';
+import type { LifecycleState } from '@skill-shareer/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
+import { deriveSkillArtifactOutputs } from '../lib/artifacts/derive.js';
+import { createSkillArtifactRecord, toSkillArtifact } from '../lib/artifacts/model.js';
+import { applyDerivedArtifactOutputs } from '../lib/artifacts/model.js';
 import { createAuditEvent, queryAuditEvents, toAuditEvent } from '../lib/audit.js';
 import { AppError } from '../lib/errors.js';
 import {
   createImportedEntry,
   detectDuplicates,
-  parseClaudeSkill,
-  normalizeArtifactBundle,
   migrateLegacyEntryToArtifactBundle,
+  normalizeArtifactBundle,
+  parseClaudeSkill,
   validateLegacyEntryMigration,
 } from '../lib/import-export.js';
+import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '../lib/knowledge.js';
-import { createSkillArtifactRecord, toSkillArtifact } from '../lib/artifacts/model.js';
-import { deriveSkillArtifactOutputs } from '../lib/artifacts/derive.js';
-import { applyDerivedArtifactOutputs } from '../lib/artifacts/model.js';
 import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
-import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 
 export const operationsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/operations/audit', async (request) => {
@@ -111,7 +112,8 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (query.requiredLevelMax !== undefined) {
-      entries = entries.filter((entry) => entry.requiredLevel <= query.requiredLevelMax!);
+      const maxLevel = query.requiredLevelMax;
+      entries = entries.filter((entry) => entry.requiredLevel <= maxLevel);
     }
 
     if (query.ownerUserId !== undefined) {
@@ -146,8 +148,8 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
     });
 
     // Capture transition context for post-commit indexing
-    let previousState: string | undefined;
-    let nextState: string | undefined;
+    let previousState: LifecycleState | undefined;
+    let nextState: LifecycleState | undefined;
 
     const updatedEntry = await app.skillShareer.store.transact((data) => {
       const entry = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
@@ -209,8 +211,8 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
           data: await app.skillShareer.store.snapshot(),
         },
         entryId,
-        previousState: previousState as any,
-        nextState: nextState as any,
+        previousState,
+        nextState,
         reason: 'deactivated',
         adapters: app.skillShareer.indexAdapters,
       });
@@ -538,7 +540,11 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
 
     // Check security level
     if (auth.securityLevel < artifact.requiredLevel) {
-      throw new AppError(403, 'insufficient_level', `Security level ${auth.securityLevel} insufficient for artifact level ${artifact.requiredLevel}`);
+      throw new AppError(
+        403,
+        'insufficient_level',
+        `Security level ${auth.securityLevel} insufficient for artifact level ${artifact.requiredLevel}`,
+      );
     }
 
     const actorRef = {
@@ -586,45 +592,45 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
           exportedAt,
         },
       });
-    } else {
-      // bundle-json or skill-dir: return canonical bundle
-      // Reconstruct bundle from stored artifact and file payloads
-      const filePayloads = data.artifactFilePayloads?.filter(
+    }
+    // bundle-json or skill-dir: return canonical bundle
+    // Reconstruct bundle from stored artifact and file payloads
+    const filePayloads =
+      data.artifactFilePayloads?.filter(
         (p) => p.artifactId === artifactId && p.revision === artifact.latestRevision.revision,
       ) ?? [];
 
-      const bundle = {
-        scope: artifact.scope,
-        labels: artifact.labels,
-        title: artifact.title,
-        slug: artifact.slug,
-        requiredLevel: artifact.requiredLevel,
-        sourceKind: artifact.metadata.sourceKind,
-        files: artifact.latestRevision.files.map((f) => {
-          const payload = filePayloads.find((p) => p.path === f.path);
-          return {
-            path: f.path,
-            kind: f.kind,
-            sha256: f.sha256,
-            sizeBytes: f.sizeBytes,
-            mediaType: f.mediaType,
-            source: f.source,
-            includeInDerivation: f.includeInDerivation,
-            activationOnly: f.activationOnly,
-            content: payload?.content ?? '',
-          };
-        }),
-        scriptDescriptors: artifact.latestRevision.scriptDescriptors,
-      };
+    const bundle = {
+      scope: artifact.scope,
+      labels: artifact.labels,
+      title: artifact.title,
+      slug: artifact.slug,
+      requiredLevel: artifact.requiredLevel,
+      sourceKind: artifact.metadata.sourceKind,
+      files: artifact.latestRevision.files.map((f) => {
+        const payload = filePayloads.find((p) => p.path === f.path);
+        return {
+          path: f.path,
+          kind: f.kind,
+          sha256: f.sha256,
+          sizeBytes: f.sizeBytes,
+          mediaType: f.mediaType,
+          source: f.source,
+          includeInDerivation: f.includeInDerivation,
+          activationOnly: f.activationOnly,
+          content: payload?.content ?? '',
+        };
+      }),
+      scriptDescriptors: artifact.latestRevision.scriptDescriptors,
+    };
 
-      return artifactExportResponseSchema.parse({
-        format: format === 'skill-dir' ? 'bundle-json' : format,
-        exportedAt,
-        exportedBy: actorRef,
-        bundle,
-        distilled: null,
-      });
-    }
+    return artifactExportResponseSchema.parse({
+      format: format === 'skill-dir' ? 'bundle-json' : format,
+      exportedAt,
+      exportedBy: actorRef,
+      bundle,
+      distilled: null,
+    });
   });
 
   // Selective activation route (Phase 15-03: ACTV-01, T-15-07)
@@ -650,7 +656,11 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
 
     // Check security level
     if (auth.securityLevel < artifact.requiredLevel) {
-      throw new AppError(403, 'insufficient_level', `Security level ${auth.securityLevel} insufficient for artifact level ${artifact.requiredLevel}`);
+      throw new AppError(
+        403,
+        'insufficient_level',
+        `Security level ${auth.securityLevel} insufficient for artifact level ${artifact.requiredLevel}`,
+      );
     }
 
     // Resolve target revision
@@ -664,13 +674,21 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
     const artifactPaths = new Set(revisionRecord.files.map((f) => f.path));
     const invalidPaths = selectedPaths.filter((p) => !artifactPaths.has(p));
     if (invalidPaths.length > 0) {
-      throw new AppError(400, 'invalid_paths', `Paths not found in artifact: ${invalidPaths.join(', ')}`);
+      throw new AppError(
+        400,
+        'invalid_paths',
+        `Paths not found in artifact: ${invalidPaths.join(', ')}`,
+      );
     }
 
     // Fetch file payloads for selected paths only
-    const filePayloads = data.artifactFilePayloads?.filter(
-      (p) => p.artifactId === artifactId && p.revision === targetRevision && selectedPaths.includes(p.path),
-    ) ?? [];
+    const filePayloads =
+      data.artifactFilePayloads?.filter(
+        (p) =>
+          p.artifactId === artifactId &&
+          p.revision === targetRevision &&
+          selectedPaths.includes(p.path),
+      ) ?? [];
 
     // Build activation response with only selected files
     const activationFiles = filePayloads.map((payload) => {
@@ -746,7 +764,9 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(403, 'user_not_found', 'User record not found');
     }
 
-    const body = legacyMigrationRequestSchema.parse((request.body as Record<string, unknown>) ?? {});
+    const body = legacyMigrationRequestSchema.parse(
+      (request.body as Record<string, unknown>) ?? {},
+    );
 
     const results: Array<{
       entryId: string;
@@ -780,7 +800,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
           throw new AppError(400, 'invalid_request', 'entryIds required for explicit mode');
         }
         entriesToMigrate = data.knowledgeEntries.filter((entry) =>
-          body.entryIds!.includes(entry.id),
+          body.entryIds?.includes(entry.id),
         );
       } else if (body.mode === 'all-approved') {
         // Migrate all approved entries (bounded by limit)
@@ -920,9 +940,9 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
 
     // Calculate remaining legacy entries
     const data = await app.skillShareer.store.snapshot();
-    const remainingLegacyCount = data.knowledgeEntries.filter(
-      (entry) => entry.lifecycleState === 'approved',
-    ).length - migratedCount;
+    const remainingLegacyCount =
+      data.knowledgeEntries.filter((entry) => entry.lifecycleState === 'approved').length -
+      migratedCount;
 
     return legacyMigrationResponseSchema.parse({
       results: results.map((r) =>
@@ -978,15 +998,15 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
 
     // Count by source kind
     const artifactsBySourceKind = {
-      'skill-directory': artifacts.filter((a) => a.metadata.sourceKind === 'skill-directory').length,
-      'single-skill-md': artifacts.filter((a) => a.metadata.sourceKind === 'single-skill-md').length,
+      'skill-directory': artifacts.filter((a) => a.metadata.sourceKind === 'skill-directory')
+        .length,
+      'single-skill-md': artifacts.filter((a) => a.metadata.sourceKind === 'single-skill-md')
+        .length,
       'legacy-knowledge': migratedArtifacts.length,
     };
 
     // Get sample of unmigrated entry IDs
-    const migratedSlugs = new Set(
-      migratedArtifacts.map((a) => a.slug),
-    );
+    const migratedSlugs = new Set(migratedArtifacts.map((a) => a.slug));
     const unmigratedEntries = legacyEntries.filter((entry) => {
       const expectedSlug = entry.shortcut
         .toLowerCase()
@@ -996,9 +1016,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
         .slice(0, 80);
       return !migratedSlugs.has(expectedSlug);
     });
-    const unmigratedEntryIds = unmigratedEntries
-      .slice(0, 50)
-      .map((entry) => entry.id);
+    const unmigratedEntryIds = unmigratedEntries.slice(0, 50).map((entry) => entry.id);
 
     // Determine coexistence and sunset status
     const coexistenceActive = totalLegacyEntries > 0 && totalArtifacts > 0;

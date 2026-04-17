@@ -548,7 +548,10 @@ describe('CLI retrieval commands', () => {
       // Citations should be present in JSON output
       expect(validated.globalConstraints[0].citation).toBeDefined();
       expect(validated.globalConstraints[0].citation?.source.entryId).toBe('entry-1');
-      expect(validated.globalConstraints[0].citation?.recallChannels).toEqual(['semantic', 'keyword']);
+      expect(validated.globalConstraints[0].citation?.recallChannels).toEqual([
+        'semantic',
+        'keyword',
+      ]);
 
       consoleLogSpy.mockRestore();
     });
@@ -1279,10 +1282,9 @@ describe('CLI retrieval commands', () => {
       registerRetrievalCommands(program, { allowSearch: true });
 
       // Pass v1-only flags along with --v2
-      await program.parseAsync(
-        ['search', 'test', '--v2', '--no-refinement', '--mode', 'hybrid'],
-        { from: 'user' },
-      );
+      await program.parseAsync(['search', 'test', '--v2', '--no-refinement', '--mode', 'hybrid'], {
+        from: 'user',
+      });
 
       const callArgs = vi.mocked(http.apiRequest).mock.calls[0];
       expect(callArgs).toBeDefined();

@@ -203,9 +203,9 @@ describe('normalizeKnowledgeIndexDocument', () => {
     const doc = normalizeKnowledgeIndexDocument(entry);
 
     // All tokens should be lowercase
-    doc.tokens.forEach((token) => {
+    for (const token of doc.tokens) {
       expect(token).toBe(token.toLowerCase());
-    });
+    }
   });
 
   it('removes duplicate tokens', () => {

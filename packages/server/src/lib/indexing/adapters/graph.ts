@@ -15,16 +15,16 @@
  * Graph payloads remain server-internal and are not exposed through contracts.
  */
 
-import type { NormalizedIndexDocument } from '../types.js';
-import type { IndexSyncResult, IndexAdapter } from '../types.js';
-import { nowIso } from '../../store.js';
 import { extractGraphEntities } from '../../retrieval/graph-extract.js';
 import type {
   GraphEntity,
-  GraphRelation,
   GraphEntityType,
+  GraphRelation,
   GraphRelationType,
 } from '../../retrieval/graph-extract.js';
+import { nowIso } from '../../store.js';
+import type { NormalizedIndexDocument } from '../types.js';
+import type { IndexAdapter, IndexSyncResult } from '../types.js';
 
 // Re-export types from graph-extract for API compatibility
 export type { GraphEntity, GraphRelation };
@@ -162,7 +162,7 @@ export const graphIndexAdapter: IndexAdapter = {
         if (!globalGraphIndex.entities.has(entity.normalizedValue)) {
           globalGraphIndex.entities.set(entity.normalizedValue, new Set());
         }
-        globalGraphIndex.entities.get(entity.normalizedValue)!.add(document.entryId);
+        globalGraphIndex.entities.get(entity.normalizedValue)?.add(document.entryId);
       }
 
       if (!globalGraphIndex.relations.has(document.entryId)) {
@@ -230,7 +230,10 @@ export const graphIndexAdapter: IndexAdapter = {
  * @param revision - The entry revision
  * @returns Persisted graph state or null
  */
-export function getIndexedGraphState(entryId: string, revision: number): PersistedGraphState | null {
+export function getIndexedGraphState(
+  entryId: string,
+  revision: number,
+): PersistedGraphState | null {
   const cacheKey = getCacheKey(entryId, revision);
   const state = graphStateCache.get(cacheKey);
   return state?.graphState || null;

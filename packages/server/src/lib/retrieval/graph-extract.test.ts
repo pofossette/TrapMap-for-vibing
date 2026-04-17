@@ -10,9 +10,9 @@
  * TDD Phase: RED - These tests fail before the implementation exists.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { extractGraphEntities } from './graph-extract.js';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { NormalizedIndexDocument } from '../indexing/types.js';
+import { extractGraphEntities } from './graph-extract.js';
 
 describe('extractGraphEntities', () => {
   describe('required entity classes', () => {
@@ -28,8 +28,23 @@ describe('extractGraphEntities', () => {
         shortcut: 'Fix TypeScript compilation errors',
         detail: 'When using TypeScript compiler, ensure tsconfig.json has correct settings',
         labels: ['TypeScript', 'Compiler', 'Config'],
-        canonicalText: 'Fix TypeScript compilation errors\nWhen using TypeScript compiler, ensure tsconfig.json has correct settings\nTypeScript Compiler Config',
-        tokens: ['fix', 'typescript', 'compilation', 'errors', 'when', 'using', 'compiler', 'ensure', 'tsconfig.json', 'has', 'correct', 'settings', 'config'],
+        canonicalText:
+          'Fix TypeScript compilation errors\nWhen using TypeScript compiler, ensure tsconfig.json has correct settings\nTypeScript Compiler Config',
+        tokens: [
+          'fix',
+          'typescript',
+          'compilation',
+          'errors',
+          'when',
+          'using',
+          'compiler',
+          'ensure',
+          'tsconfig.json',
+          'has',
+          'correct',
+          'settings',
+          'config',
+        ],
         contentHash: 'abc123',
         normalizedAt: '2026-04-15T00:00:00Z',
       };
@@ -53,8 +68,23 @@ describe('extractGraphEntities', () => {
         shortcut: 'Use pnpm for faster installs',
         detail: 'Switch from npm to pnpm to improve installation speed',
         labels: ['pnpm', 'package-manager'],
-        canonicalText: 'Use pnpm for faster installs\nSwitch from npm to pnpm to improve installation speed\npnpm package-manager',
-        tokens: ['use', 'pnpm', 'for', 'faster', 'installs', 'switch', 'from', 'npm', 'to', 'improve', 'installation', 'speed', 'package-manager'],
+        canonicalText:
+          'Use pnpm for faster installs\nSwitch from npm to pnpm to improve installation speed\npnpm package-manager',
+        tokens: [
+          'use',
+          'pnpm',
+          'for',
+          'faster',
+          'installs',
+          'switch',
+          'from',
+          'npm',
+          'to',
+          'improve',
+          'installation',
+          'speed',
+          'package-manager',
+        ],
         contentHash: 'def456',
         normalizedAt: '2026-04-15T00:00:00Z',
       };
@@ -78,8 +108,24 @@ describe('extractGraphEntities', () => {
         shortcut: 'Handle timeout errors in API calls',
         detail: 'When API calls timeout, implement retry logic with exponential backoff',
         labels: ['api', 'timeout', 'error-handling'],
-        canonicalText: 'Handle timeout errors in API calls\nWhen API calls timeout, implement retry logic with exponential backoff\napi timeout error-handling',
-        tokens: ['handle', 'timeout', 'errors', 'in', 'api', 'calls', 'when', 'implement', 'retry', 'logic', 'with', 'exponential', 'backoff', 'error-handling'],
+        canonicalText:
+          'Handle timeout errors in API calls\nWhen API calls timeout, implement retry logic with exponential backoff\napi timeout error-handling',
+        tokens: [
+          'handle',
+          'timeout',
+          'errors',
+          'in',
+          'api',
+          'calls',
+          'when',
+          'implement',
+          'retry',
+          'logic',
+          'with',
+          'exponential',
+          'backoff',
+          'error-handling',
+        ],
         contentHash: 'ghi789',
         normalizedAt: '2026-04-15T00:00:00Z',
       };
@@ -101,10 +147,30 @@ describe('extractGraphEntities', () => {
         revision: 1,
         updatedAt: '2026-04-15T00:00:00Z',
         shortcut: 'Fix memory leak caused by event listener',
-        detail: 'The issue occurred because event listeners were not removed after component unmount',
+        detail:
+          'The issue occurred because event listeners were not removed after component unmount',
         labels: ['memory', 'leak', 'event-listener'],
-        canonicalText: 'Fix memory leak caused by event listener\nThe issue occurred because event listeners were not removed after component unmount\nmemory leak event-listener',
-        tokens: ['fix', 'memory', 'leak', 'caused', 'by', 'event', 'listener', 'the', 'issue', 'occurred', 'because', 'were', 'not', 'removed', 'after', 'component', 'unmount'],
+        canonicalText:
+          'Fix memory leak caused by event listener\nThe issue occurred because event listeners were not removed after component unmount\nmemory leak event-listener',
+        tokens: [
+          'fix',
+          'memory',
+          'leak',
+          'caused',
+          'by',
+          'event',
+          'listener',
+          'the',
+          'issue',
+          'occurred',
+          'because',
+          'were',
+          'not',
+          'removed',
+          'after',
+          'component',
+          'unmount',
+        ],
         contentHash: 'jkl012',
         normalizedAt: '2026-04-15T00:00:00Z',
       };
@@ -127,8 +193,21 @@ describe('extractGraphEntities', () => {
         shortcut: 'Enable CORS headers',
         detail: 'Configure Access-Control-Allow-Origin header to fix cross-origin requests',
         labels: ['cors', 'http', 'headers'],
-        canonicalText: 'Enable CORS headers\nConfigure Access-Control-Allow-Origin header to fix cross-origin requests\ncors http headers',
-        tokens: ['enable', 'cors', 'headers', 'configure', 'access-control-allow-origin', 'header', 'to', 'fix', 'cross-origin', 'requests', 'http'],
+        canonicalText:
+          'Enable CORS headers\nConfigure Access-Control-Allow-Origin header to fix cross-origin requests\ncors http headers',
+        tokens: [
+          'enable',
+          'cors',
+          'headers',
+          'configure',
+          'access-control-allow-origin',
+          'header',
+          'to',
+          'fix',
+          'cross-origin',
+          'requests',
+          'http',
+        ],
         contentHash: 'mno345',
         normalizedAt: '2026-04-15T00:00:00Z',
       };
@@ -151,8 +230,21 @@ describe('extractGraphEntities', () => {
         shortcut: 'Set NODE_ENV to production in CI',
         detail: 'Ensure production environment variables are set in CI pipeline',
         labels: ['ci', 'environment', 'production'],
-        canonicalText: 'Set NODE_ENV to production in CI\nEnsure production environment variables are set in CI pipeline\nci environment production',
-        tokens: ['set', 'node_env', 'to', 'production', 'in', 'ci', 'ensure', 'environment', 'variables', 'are', 'pipeline'],
+        canonicalText:
+          'Set NODE_ENV to production in CI\nEnsure production environment variables are set in CI pipeline\nci environment production',
+        tokens: [
+          'set',
+          'node_env',
+          'to',
+          'production',
+          'in',
+          'ci',
+          'ensure',
+          'environment',
+          'variables',
+          'are',
+          'pipeline',
+        ],
         contentHash: 'pqr678',
         normalizedAt: '2026-04-15T00:00:00Z',
       };
@@ -178,8 +270,25 @@ describe('extractGraphEntities', () => {
         shortcut: 'Use the system to fix the issue',
         detail: 'This is a test of the system with no specific entities',
         labels: ['generic', 'test'],
-        canonicalText: 'Use the system to fix the issue\nThis is a test of the system with no specific entities\ngeneric test',
-        tokens: ['use', 'the', 'system', 'to', 'fix', 'issue', 'this', 'is', 'a', 'of', 'with', 'no', 'specific', 'entities', 'generic'],
+        canonicalText:
+          'Use the system to fix the issue\nThis is a test of the system with no specific entities\ngeneric test',
+        tokens: [
+          'use',
+          'the',
+          'system',
+          'to',
+          'fix',
+          'issue',
+          'this',
+          'is',
+          'a',
+          'of',
+          'with',
+          'no',
+          'specific',
+          'entities',
+          'generic',
+        ],
         contentHash: 'stu901',
         normalizedAt: '2026-04-15T00:00:00Z',
       };
@@ -206,8 +315,19 @@ describe('extractGraphEntities', () => {
         shortcut: 'Use Docker and docker for containers',
         detail: 'Docker provides containerization using docker-compose',
         labels: ['Docker', 'docker'],
-        canonicalText: 'Use Docker and docker for containers\nDocker provides containerization using docker-compose\nDocker docker',
-        tokens: ['use', 'docker', 'and', 'for', 'containers', 'provides', 'containerization', 'using', 'docker-compose'],
+        canonicalText:
+          'Use Docker and docker for containers\nDocker provides containerization using docker-compose\nDocker docker',
+        tokens: [
+          'use',
+          'docker',
+          'and',
+          'for',
+          'containers',
+          'provides',
+          'containerization',
+          'using',
+          'docker-compose',
+        ],
         contentHash: 'vwx234',
         normalizedAt: '2026-04-15T00:00:00Z',
       };
@@ -233,7 +353,8 @@ describe('extractGraphEntities', () => {
         shortcut: 'Fix npm install timeout',
         detail: 'Use npm registry mirror to fix timeout errors',
         labels: ['npm', 'timeout'],
-        canonicalText: 'Fix npm install timeout\nUse npm registry mirror to fix timeout errors\nnpm timeout',
+        canonicalText:
+          'Fix npm install timeout\nUse npm registry mirror to fix timeout errors\nnpm timeout',
         tokens: ['fix', 'npm', 'install', 'timeout', 'use', 'registry', 'mirror', 'errors'],
         contentHash: 'yza567',
         normalizedAt: '2026-04-15T00:00:00Z',
@@ -257,8 +378,18 @@ describe('extractGraphEntities', () => {
         shortcut: 'TypeScript configuration',
         detail: 'Enable strict mode in tsconfig.json',
         labels: ['TypeScript', 'tsconfig'],
-        canonicalText: 'TypeScript configuration\nEnable strict mode in tsconfig.json\nTypeScript tsconfig',
-        tokens: ['typescript', 'configuration', 'enable', 'strict', 'mode', 'in', 'tsconfig.json', 'tsconfig'],
+        canonicalText:
+          'TypeScript configuration\nEnable strict mode in tsconfig.json\nTypeScript tsconfig',
+        tokens: [
+          'typescript',
+          'configuration',
+          'enable',
+          'strict',
+          'mode',
+          'in',
+          'tsconfig.json',
+          'tsconfig',
+        ],
         contentHash: 'bcd890',
         normalizedAt: '2026-04-15T00:00:00Z',
       };
@@ -268,11 +399,11 @@ describe('extractGraphEntities', () => {
       // Result should include metadata about source fields
       expect(result.entities).toBeInstanceOf(Array);
       // Each entity should have type, value, and normalizedValue
-      result.entities.forEach((entity) => {
+      for (const entity of result.entities) {
         expect(entity).toHaveProperty('type');
         expect(entity).toHaveProperty('value');
         expect(entity).toHaveProperty('normalizedValue');
-      });
+      }
     });
   });
 
@@ -289,7 +420,8 @@ describe('extractGraphEntities', () => {
         shortcut: 'Fix Docker timeout error',
         detail: 'Restart Docker container to fix the timeout issue',
         labels: ['Docker', 'timeout', 'error'],
-        canonicalText: 'Fix Docker timeout error\nRestart Docker container to fix the timeout issue\nDocker timeout error',
+        canonicalText:
+          'Fix Docker timeout error\nRestart Docker container to fix the timeout issue\nDocker timeout error',
         tokens: ['fix', 'docker', 'timeout', 'error', 'restart', 'container', 'to', 'the', 'issue'],
         contentHash: 'def123',
         normalizedAt: '2026-04-15T00:00:00Z',
@@ -300,12 +432,12 @@ describe('extractGraphEntities', () => {
       // Should extract relations when symptoms and fixes co-occur
       expect(result.relations).toBeInstanceOf(Array);
       // Relations should have type, fromEntity, toEntity, weight
-      result.relations.forEach((relation) => {
+      for (const relation of result.relations) {
         expect(relation).toHaveProperty('type');
         expect(relation).toHaveProperty('fromEntity');
         expect(relation).toHaveProperty('toEntity');
         expect(relation).toHaveProperty('weight');
-      });
+      }
     });
 
     it('should support bounded relation types', () => {
@@ -320,8 +452,21 @@ describe('extractGraphEntities', () => {
         shortcut: 'Use npm to fix install error',
         detail: 'Enable npm cache to resolve the issue',
         labels: ['npm', 'error'],
-        canonicalText: 'Use npm to fix install error\nEnable npm cache to resolve the issue\nnpm error',
-        tokens: ['use', 'npm', 'to', 'fix', 'install', 'error', 'enable', 'cache', 'resolve', 'the', 'issue'],
+        canonicalText:
+          'Use npm to fix install error\nEnable npm cache to resolve the issue\nnpm error',
+        tokens: [
+          'use',
+          'npm',
+          'to',
+          'fix',
+          'install',
+          'error',
+          'enable',
+          'cache',
+          'resolve',
+          'the',
+          'issue',
+        ],
         contentHash: 'ghi456',
         normalizedAt: '2026-04-15T00:00:00Z',
       };
@@ -330,16 +475,11 @@ describe('extractGraphEntities', () => {
 
       const relationTypes = new Set(result.relations.map((r) => r.type));
       // Should use only the supported relation types
-      relationTypes.forEach((type) => {
-        expect([
-          'mentions',
-          'causes',
-          'fixed-by',
-          'observed-in',
-          'uses-tool',
-          'runs-in',
-        ]).toContain(type);
-      });
+      for (const type of relationTypes) {
+        expect(['mentions', 'causes', 'fixed-by', 'observed-in', 'uses-tool', 'runs-in']).toContain(
+          type,
+        );
+      }
     });
   });
 });

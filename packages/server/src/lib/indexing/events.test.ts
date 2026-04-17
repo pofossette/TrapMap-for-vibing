@@ -9,8 +9,8 @@
  * - T-08-07: All transition types are covered in tests
  */
 
-import { describe, expect, it, beforeEach } from 'vitest';
 import type { LifecycleState } from '@skill-shareer/contracts';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { JsonStore, StoreData } from '../store.js';
 import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
 import { determineKnowledgeIndexAction, runKnowledgeIndexEvent } from './events.js';

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { skillArtifactFileKindSchema, skillArtifactFileSourceSchema } from './artifacts.js';
 import {
   actorRefSchema,
   auditMetadataSchema,
@@ -10,10 +11,6 @@ import {
   scopeSchema,
   securityLevelSchema,
 } from './common.js';
-import {
-  skillArtifactFileKindSchema,
-  skillArtifactFileSourceSchema,
-} from './artifacts.js';
 import {
   knowledgeEntrySchema,
   knowledgeListItemSchema,
@@ -213,6 +210,7 @@ export const auditEventSchema = z
     teamId: entityIdSchema.nullable(),
     actor: actorRefSchema,
     action: z.enum([
+      'knowledge-submitted',
       'knowledge-reviewed',
       'knowledge-imported',
       'knowledge-exported',
@@ -245,7 +243,7 @@ export const auditQuerySchema = z.object({
   teamId: entityIdSchema.optional(),
   from: z.iso.datetime({ offset: true }).optional(),
   to: z.iso.datetime({ offset: true }).optional(),
-  limit: z.number().int().min(1).max(100).default(25),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
   cursor: z.string().min(1).max(128).optional(),
 });
 

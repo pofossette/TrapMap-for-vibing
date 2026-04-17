@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseSeedIntent, normalizeToken, extractStackPathHints } from './intent.js';
+import { extractStackPathHints, normalizeToken, parseSeedIntent } from './intent.js';
 
 describe('parseSeedIntent', () => {
   describe('basic parsing', () => {
@@ -94,6 +94,7 @@ describe('parseSeedIntent', () => {
       const seeds = stacks.map((s) => `How do I use ${s} for deployment`);
 
       for (let i = 0; i < stacks.length; i++) {
+        // biome-ignore lint/style/noNonNullAssertion: Array index is within bounds
         const result = parseSeedIntent(seeds[i]!);
         const stackHint = result.stackPathHints.find((h) => h.hint === stacks[i]);
         expect(stackHint, `Expected stack hint for: ${stacks[i]}`).toBeDefined();
@@ -114,7 +115,7 @@ describe('parseSeedIntent', () => {
       // This test verifies the parser is deterministic and has no external deps
       // by running in an environment without OPENAI_API_KEY
       const originalKey = process.env.OPENAI_API_KEY;
-      delete process.env.OPENAI_API_KEY;
+      process.env.OPENAI_API_KEY = undefined;
 
       const result = parseSeedIntent('test query without api key');
 
@@ -152,7 +153,11 @@ describe('parseSeedIntent', () => {
 
 describe('normalizeToken', () => {
   it('normalizes tokens to lowercase', () => {
-    expect(normalizeToken('Docker')).toEqual({ token: 'docker', original: 'Docker', isTechnical: true });
+    expect(normalizeToken('Docker')).toEqual({
+      token: 'docker',
+      original: 'Docker',
+      isTechnical: true,
+    });
   });
 
   it('identifies technical terms', () => {

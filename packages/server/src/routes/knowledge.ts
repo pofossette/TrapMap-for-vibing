@@ -5,9 +5,11 @@ import {
   knowledgeSubmissionSchema,
   knowledgeUpdateSchema,
 } from '@skill-shareer/contracts';
+import type { LifecycleState } from '@skill-shareer/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '../lib/errors.js';
+import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 import {
   createKnowledgeEntryRecord,
   createKnowledgeRevision,
@@ -19,7 +21,6 @@ import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
-import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 
 function requireRealUser(userId: string | undefined): string {
   if (!userId) {
@@ -184,8 +185,8 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     });
 
     // Capture transition context for post-commit indexing
-    let previousState: string | undefined;
-    let nextState: string | undefined;
+    let previousState: LifecycleState | undefined;
+    let nextState: LifecycleState | undefined;
 
     const updatedEntry = await app.skillShareer.store.transact((data) => {
       const entry = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
@@ -245,8 +246,8 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
             data: await app.skillShareer.store.snapshot(),
           },
           entryId,
-          previousState: previousState as any,
-          nextState: nextState as any,
+          previousState,
+          nextState,
           reason: 'updated',
           adapters: app.skillShareer.indexAdapters,
         });

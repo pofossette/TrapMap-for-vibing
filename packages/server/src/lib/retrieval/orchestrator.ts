@@ -1,15 +1,15 @@
 import {
+  type CapsuleMatch,
+  type ProfileHint,
+  type RetrievalCitation,
   type RetrievalQuery,
   type RetrievalResponse,
   type RetrievalV2Query,
   type RetrievalV2Response,
-  type CapsuleMatch,
-  type ProfileHint,
-  type RetrievalCitation,
-  retrievalQuerySchema,
-  retrievalV2QuerySchema,
   capsuleMatchSchema,
   profileHintSchema,
+  retrievalQuerySchema,
+  retrievalV2QuerySchema,
 } from '@skill-shareer/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
@@ -18,26 +18,32 @@ import { AppError } from '../errors.js';
 import type { KnowledgeRecord } from '../store.js';
 import { nowIso } from '../store.js';
 import {
-  buildEmptyResponse,
-  buildRetrievalResponse,
   assembleResponseBuckets,
-  buildCapsuleMatch,
-  buildProfileHint,
-  buildV2RetrievalResponse,
-  buildEmptyV2Response,
   buildAllActivationHints,
+  buildCapsuleMatch,
+  buildEmptyResponse,
+  buildEmptyV2Response,
+  buildProfileHint,
+  buildRetrievalResponse,
+  buildV2RetrievalResponse,
 } from './assembly.js';
-import { filterEligibleEntries } from './filters.js';
-import { mergeCandidates, toScoredEntries, createSemanticCandidate } from './merge.js';
-import { keywordRecall, normalizeQuery } from './recall/keyword.js';
-import { graphAssistedRecall as graphRecall } from './recall/graph-assisted.js';
-import { buildEmbeddingText, cosineSimilarity, computeScore, getEntryEmbedding as semanticGetEntryEmbedding, getQueryEmbedding } from './recall/semantic.js';
-import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
+import { buildProfileShortlist, getCapsuleRecords, rankCapsules } from './capsule-recall.js';
 import { buildCitations } from './citations.js';
+import { filterEligibleEntries } from './filters.js';
+import { parseSeedIntent } from './intent.js';
+import { createSemanticCandidate, mergeCandidates, toScoredEntries } from './merge.js';
+import { graphAssistedRecall as graphRecall } from './recall/graph-assisted.js';
+import { keywordRecall, normalizeQuery } from './recall/keyword.js';
+import {
+  buildEmbeddingText,
+  computeScore,
+  cosineSimilarity,
+  getQueryEmbedding,
+  getEntryEmbedding as semanticGetEntryEmbedding,
+} from './recall/semantic.js';
+import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
 import { buildSummary } from './summary.js';
 import type { MergedCandidate, RetrievalPipelineContext, ScoredEntry } from './types.js';
-import { parseSeedIntent } from './intent.js';
-import { rankCapsules, getCapsuleRecords, buildProfileShortlist } from './capsule-recall.js';
 
 /**
  * Graph score boost factor for graph-assisted retrieval.
@@ -85,7 +91,12 @@ export async function searchKnowledge(
   }
 
   // Dispatch based on query mode
-  const { scoredEntries, mergedCandidates } = await dispatchByMode(parsed.mode, parsed.seed, eligibleEntries, parsed);
+  const { scoredEntries, mergedCandidates } = await dispatchByMode(
+    parsed.mode,
+    parsed.seed,
+    eligibleEntries,
+    parsed,
+  );
 
   // Build citations from merged candidates (if available)
   const citations = mergedCandidates
@@ -93,24 +104,29 @@ export async function searchKnowledge(
     : undefined;
 
   // Assemble response buckets with citations
-  const { globalConstraints, projectKnowledge } = assembleResponseBuckets(scoredEntries, parsed.filters, citations);
+  const { globalConstraints, projectKnowledge } = assembleResponseBuckets(
+    scoredEntries,
+    parsed.filters,
+    citations,
+  );
 
   // Generate summary if requested and citations are available
   // Summary only works when we have citations (hybrid or graph-assisted modes)
   const allMatches = [...globalConstraints, ...projectKnowledge];
   const summaryCitations = citations ? Array.from(citations.values()) : undefined;
-  const summary = parsed.includeSummary && summaryCitations && summaryCitations.length > 0
-    ? buildSummary({
-        query: parsed.seed,
-        includeSummary: true,
-        hits: allMatches.map((m) => ({
-          shortcut: m.shortcut,
-          detail: m.detail,
-          labels: m.labels,
-        })),
-        citations: summaryCitations,
-      })
-    : null;
+  const summary =
+    parsed.includeSummary && summaryCitations && summaryCitations.length > 0
+      ? buildSummary({
+          query: parsed.seed,
+          includeSummary: true,
+          hits: allMatches.map((m) => ({
+            shortcut: m.shortcut,
+            detail: m.detail,
+            labels: m.labels,
+          })),
+          citations: summaryCitations,
+        })
+      : null;
 
   // Generate refinement summary if requested and available
   const refinementSummary = parsed.includeRefinement
@@ -170,20 +186,22 @@ async function semanticRecall(
   const queryVector = await getQueryEmbedding(seed);
 
   // Compute embeddings and scores for all eligible entries with graceful error handling
-  const scoredEntries = (await Promise.all(
-    eligibleEntries.map(async (entry) => {
-      try {
-        const entryVector = await semanticGetEntryEmbedding(entry);
-        const similarity = cosineSimilarity(queryVector, entryVector);
-        const score = computeScore(similarity, entry, parsed.filters);
-        return { entry, score };
-      } catch (error) {
-        // Log error and skip this entry - graceful degradation
-        console.error(`Failed to get embedding for entry ${entry.id}:`, error);
-        return null;
-      }
-    }),
-  )).filter((result): result is { entry: KnowledgeRecord; score: number } => result !== null);
+  const scoredEntries = (
+    await Promise.all(
+      eligibleEntries.map(async (entry) => {
+        try {
+          const entryVector = await semanticGetEntryEmbedding(entry);
+          const similarity = cosineSimilarity(queryVector, entryVector);
+          const score = computeScore(similarity, entry, parsed.filters);
+          return { entry, score };
+        } catch (error) {
+          // Log error and skip this entry - graceful degradation
+          console.error(`Failed to get embedding for entry ${entry.id}:`, error);
+          return null;
+        }
+      }),
+    )
+  ).filter((result): result is { entry: KnowledgeRecord; score: number } => result !== null);
 
   // Sort by score descending
   scoredEntries.sort((a, b) => b.score - a.score);
@@ -253,20 +271,24 @@ async function computeSemanticCandidates(
   const queryVector = await getQueryEmbedding(seed);
 
   // Compute candidates with graceful error handling for embedding failures
-  const candidates = (await Promise.all(
-    eligibleEntries.map(async (entry) => {
-      try {
-        const entryVector = await semanticGetEntryEmbedding(entry);
-        const similarity = cosineSimilarity(queryVector, entryVector);
-        const score = computeScore(similarity, entry, filters);
-        return createSemanticCandidate(entry, score);
-      } catch (error) {
-        // Log error and skip this entry - graceful degradation
-        console.error(`Failed to get embedding for entry ${entry.id}:`, error);
-        return null;
-      }
-    }),
-  )).filter((result): result is NonNullable<ReturnType<typeof createSemanticCandidate>> => result !== null);
+  const candidates = (
+    await Promise.all(
+      eligibleEntries.map(async (entry) => {
+        try {
+          const entryVector = await semanticGetEntryEmbedding(entry);
+          const similarity = cosineSimilarity(queryVector, entryVector);
+          const score = computeScore(similarity, entry, filters);
+          return createSemanticCandidate(entry, score);
+        } catch (error) {
+          // Log error and skip this entry - graceful degradation
+          console.error(`Failed to get embedding for entry ${entry.id}:`, error);
+          return null;
+        }
+      }),
+    )
+  ).filter(
+    (result): result is NonNullable<ReturnType<typeof createSemanticCandidate>> => result !== null,
+  );
 
   // Sort by score descending for deterministic ordering
   candidates.sort((a, b) => b.score - a.score);
@@ -355,7 +377,10 @@ function mergeCandidatesWithGraph(
       existing.graphScore = graphCandidate.score;
       // Preserve pre-rerank score and boost final score based on graph evidence
       const preRerankScore = existing.combinedScore;
-      const finalScore = Math.min(1, preRerankScore + graphCandidate.score * GRAPH_SCORE_BOOST_FACTOR);
+      const finalScore = Math.min(
+        1,
+        preRerankScore + graphCandidate.score * GRAPH_SCORE_BOOST_FACTOR,
+      );
       existing.combinedScore = finalScore;
       existing.preRerankScore = preRerankScore;
       existing.finalScore = finalScore;
@@ -507,12 +532,7 @@ export async function searchKnowledgeV2(
   const artifacts = data.skillArtifacts ?? [];
 
   // Rank capsules against parsed intent (CAPS-04)
-  const rankedCandidates = rankCapsules(
-    artifacts,
-    intent,
-    governanceFilters,
-    parsed.maxResults,
-  );
+  const rankedCandidates = rankCapsules(artifacts, intent, governanceFilters, parsed.maxResults);
 
   // Early return if no matches
   if (rankedCandidates.length === 0) {

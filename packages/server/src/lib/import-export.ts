@@ -292,12 +292,12 @@ export function parseClaudeSkill(content: string): KnowledgeSubmission | null {
     frontmatter[key] = unquoted;
   }
 
-  const name = frontmatter['name'];
+  const name = frontmatter.name;
   if (!name) {
     return null;
   }
 
-  const description = frontmatter['description'] ?? '';
+  const description = frontmatter.description ?? '';
   const detailContent = body.trim() || description;
 
   return {

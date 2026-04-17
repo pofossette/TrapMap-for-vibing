@@ -13,7 +13,7 @@ import type {
   DerivedSkillProfileRecord,
   SkillArtifactRecord,
 } from '../store.js';
-import type { ParsedIntent, CapsuleCandidate } from './types.js';
+import type { CapsuleCandidate, ParsedIntent } from './types.js';
 
 /**
  * Governance filters for artifact eligibility.
@@ -74,7 +74,8 @@ export function buildProfileShortlist(
   artifacts: SkillArtifactRecord[],
   filters: ArtifactGovernanceFilters,
 ): Array<{ artifact: SkillArtifactRecord; profile: DerivedSkillProfileRecord }> {
-  const shortlist: Array<{ artifact: SkillArtifactRecord; profile: DerivedSkillProfileRecord }> = [];
+  const shortlist: Array<{ artifact: SkillArtifactRecord; profile: DerivedSkillProfileRecord }> =
+    [];
 
   for (const artifact of artifacts) {
     // Apply governance filters
@@ -138,10 +139,16 @@ export function extractGovernedCapsules(
  */
 function computeTextSimilarity(query: string, target: string): number {
   const queryTokens = new Set(
-    query.toLowerCase().split(/\s+/).filter((t) => t.length > 2),
+    query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((t) => t.length > 2),
   );
   const targetTokens = new Set(
-    target.toLowerCase().split(/\s+/).filter((t) => t.length > 2),
+    target
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((t) => t.length > 2),
   );
 
   if (queryTokens.size === 0 || targetTokens.size === 0) {
@@ -166,10 +173,7 @@ function computeTextSimilarity(query: string, target: string): number {
  * @param capsule - Capsule to score
  * @returns Situation match score [0, 1]
  */
-function computeSituationScore(
-  intent: ParsedIntent,
-  capsule: DerivedSkillCapsuleRecord,
-): number {
+function computeSituationScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleRecord): number {
   if (!intent.situation) {
     return 0;
   }
@@ -183,10 +187,7 @@ function computeSituationScore(
  * @param capsule - Capsule to score
  * @returns Problem match score [0, 1]
  */
-function computeProblemScore(
-  intent: ParsedIntent,
-  capsule: DerivedSkillCapsuleRecord,
-): number {
+function computeProblemScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleRecord): number {
   const problemText = intent.problem ?? '';
   const errorText = intent.errorText ?? '';
   const queryText = `${problemText} ${errorText}`.trim();
@@ -206,10 +207,7 @@ function computeProblemScore(
  * @param capsule - Capsule to score
  * @returns Goal match score [0, 1]
  */
-function computeGoalScore(
-  intent: ParsedIntent,
-  capsule: DerivedSkillCapsuleRecord,
-): number {
+function computeGoalScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleRecord): number {
   if (!intent.goal) {
     return 0;
   }
@@ -246,10 +244,7 @@ function computeErrorScore(
  * @param capsule - Capsule to score
  * @returns Boost factor [1.0, 1.5]
  */
-function computeStackPathBoost(
-  intent: ParsedIntent,
-  capsule: DerivedSkillCapsuleRecord,
-): number {
+function computeStackPathBoost(intent: ParsedIntent, capsule: DerivedSkillCapsuleRecord): number {
   if (intent.stackPathHints.length === 0) {
     return 1.0;
   }
@@ -275,10 +270,7 @@ function computeStackPathBoost(
  * @param capsule - Capsule to score
  * @returns Keyword overlap score [0, 1]
  */
-function computeKeywordScore(
-  intent: ParsedIntent,
-  capsule: DerivedSkillCapsuleRecord,
-): number {
+function computeKeywordScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleRecord): number {
   // Combine capsule text for matching
   const capsuleText = `${capsule.content} ${capsule.labels.join(' ')}`.toLowerCase();
 

@@ -1,17 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MergedCandidate } from './types.js';
 import { buildCitation } from './citations.js';
+import type { MergedCandidate } from './types.js';
 
 // Helper to create a minimal KnowledgeRecord for tests
-function createMockEntry(overrides: Partial<{
-  id: string;
-  scope: 'global' | 'project';
-  shortcut: string;
-  detail: string;
-  labels: string[];
-  requiredLevel: number;
-}>): MergedCandidate['entry'] {
+function createMockEntry(
+  overrides: Partial<{
+    id: string;
+    scope: 'global' | 'project';
+    shortcut: string;
+    detail: string;
+    labels: string[];
+    requiredLevel: number;
+  }>,
+): MergedCandidate['entry'] {
   return {
     id: overrides.id ?? 'entry_1',
     teamId: null,

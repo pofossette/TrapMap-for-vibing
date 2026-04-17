@@ -15,8 +15,8 @@
  * retrieves additional data from the store.
  */
 
-import type { MergedCandidate } from './types.js';
 import { retrievalCitationSchema } from '@skill-shareer/contracts';
+import type { MergedCandidate } from './types.js';
 
 /**
  * Maximum length for citation snippet.
@@ -38,7 +38,8 @@ const MAX_SNIPPET_LENGTH = 200;
  * - scores: per-channel scores plus pre-rerank and final scores
  */
 export function buildCitation(candidate: MergedCandidate) {
-  const { entry, semanticScore, keywordScore, graphScore, preRerankScore, finalScore, channels } = candidate;
+  const { entry, semanticScore, keywordScore, graphScore, preRerankScore, finalScore, channels } =
+    candidate;
 
   // Build snippet with truncation
   const snippet = buildSnippet(entry.detail);
@@ -82,7 +83,7 @@ function buildSnippet(detail: string): string {
   }
 
   // Truncate and add ellipsis
-  return detail.slice(0, MAX_SNIPPET_LENGTH) + '...';
+  return `${detail.slice(0, MAX_SNIPPET_LENGTH)}...`;
 }
 
 /**

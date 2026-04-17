@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  PathValidationError,
   activationFilePayloadSchema,
   activationRequestSchema,
   activationResponseSchema,
@@ -11,35 +12,34 @@ import {
   artifactFilePayloadRecordSchema,
   artifactImportRequestSchema,
   artifactImportResponseSchema,
+  assetAvailabilityHintSchema,
   bundleFilePayloadSchema,
   bundleScriptDescriptorSchema,
   canonicalPathSchema,
+  capsuleActivationHintsSchema,
+  clientManifestSchema,
   distilledArtifactSchema,
   knowledgeEntrySchema,
   knowledgeSubmissionSchema,
   loginRequestSchema,
+  readNextReferenceHintSchema,
   retrievalQuerySchema,
   retrievalResponseSchema,
   retrievalV2QuerySchema,
   retrievalV2ResponseSchema,
   retrievalV2ResponseWithHintsSchema,
-  readNextReferenceHintSchema,
-  assetAvailabilityHintSchema,
-  scriptProfileHintSchema,
-  capsuleActivationHintsSchema,
   reviewDecisionRequestSchema,
+  scriptProfileHintSchema,
   securityLevelSchema,
-  skillArtifactSchema,
-  skillArtifactRevisionSchema,
+  skillArtifactDerivedSchema,
   skillArtifactFileKindSchema,
   skillArtifactFileSchema,
-  skillScriptDescriptorSchema,
-  skillArtifactDerivedSchema,
-  skillProfileSchema,
+  skillArtifactRevisionSchema,
+  skillArtifactSchema,
   skillCapsuleSchema,
-  clientManifestSchema,
+  skillProfileSchema,
+  skillScriptDescriptorSchema,
   validateRelativePath,
-  PathValidationError,
 } from './index.js';
 
 describe('contracts package', () => {
@@ -325,7 +325,7 @@ describe('contracts package', () => {
               recallChannels: ['semantic', 'keyword'],
               scores: {
                 semantic: 0.85,
-                keyword: 0.90,
+                keyword: 0.9,
                 graph: null,
                 preRerank: 0.87,
                 final: 0.88,
@@ -348,7 +348,7 @@ describe('contracts package', () => {
               recallChannels: ['semantic', 'keyword'],
               scores: {
                 semantic: 0.85,
-                keyword: 0.90,
+                keyword: 0.9,
                 graph: null,
                 preRerank: 0.87,
                 final: 0.88,
@@ -401,7 +401,7 @@ describe('contracts package', () => {
                 semantic: 0.88,
                 keyword: null,
                 graph: 0.75,
-                preRerank: 0.90,
+                preRerank: 0.9,
                 final: 0.92,
               },
             },
@@ -975,7 +975,9 @@ describe('contracts package', () => {
 
           // The schema accepts the text content - derivation logic must ensure
           // only SKILL.md and references/ contribute to capsules
-          expect(capsuleWithTextContent.content).toBe(' distilled troubleshooting steps for container issues');
+          expect(capsuleWithTextContent.content).toBe(
+            ' distilled troubleshooting steps for container issues',
+          );
         });
       });
     });
@@ -1725,7 +1727,9 @@ describe('contracts package', () => {
         expect(parsed.capsules).toHaveLength(1);
         expect(parsed.profileHints).toHaveLength(1);
         expect(parsed.summary).not.toBeNull();
-        expect(parsed.summary?.text).toBe('Container startup issues often relate to permission problems');
+        expect(parsed.summary?.text).toBe(
+          'Container startup issues often relate to permission problems',
+        );
         expect(parsed.summary?.citations).toHaveLength(1);
       });
 
@@ -2309,12 +2313,12 @@ describe('Phase 15: Activation hints', () => {
 // =============================================================================
 
 import {
-  legacyMigrationModeSchema,
-  legacyMigrationRequestSchema,
-  legacyMigrationResultItemSchema,
-  legacyMigrationResponseSchema,
   compatibilityStatusRequestSchema,
   compatibilityStatusResponseSchema,
+  legacyMigrationModeSchema,
+  legacyMigrationRequestSchema,
+  legacyMigrationResponseSchema,
+  legacyMigrationResultItemSchema,
 } from './index.js';
 
 describe('Phase 16: Legacy Migration and Compatibility Status Contracts', () => {
@@ -2456,9 +2460,27 @@ describe('Phase 16: Legacy Migration and Compatibility Status Contracts', () => 
     it('accepts migration response with results and counts', () => {
       const response = {
         results: [
-          { entryId: 'knowledge_1', artifactId: 'artifact_1', success: true, skipReason: null, error: null },
-          { entryId: 'knowledge_2', artifactId: null, success: false, skipReason: 'already-migrated', error: null },
-          { entryId: 'knowledge_3', artifactId: null, success: false, skipReason: null, error: 'Not approved' },
+          {
+            entryId: 'knowledge_1',
+            artifactId: 'artifact_1',
+            success: true,
+            skipReason: null,
+            error: null,
+          },
+          {
+            entryId: 'knowledge_2',
+            artifactId: null,
+            success: false,
+            skipReason: 'already-migrated',
+            error: null,
+          },
+          {
+            entryId: 'knowledge_3',
+            artifactId: null,
+            success: false,
+            skipReason: null,
+            error: 'Not approved',
+          },
         ],
         migratedCount: 1,
         skippedCount: 1,

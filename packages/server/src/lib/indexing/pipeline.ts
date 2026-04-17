@@ -12,6 +12,7 @@
 
 import type { JsonStore, StoreData } from '../store.js';
 import { nowIso } from '../store.js';
+import { normalizeKnowledgeIndexDocument } from './normalize.js';
 import type {
   AdapterSyncState,
   IndexAdapter,
@@ -21,7 +22,6 @@ import type {
   NormalizedIndexDocument,
   ReconcileResult,
 } from './types.js';
-import { normalizeKnowledgeIndexDocument } from './normalize.js';
 
 /**
  * Initialize or update adapter sync state.
@@ -162,7 +162,7 @@ export async function syncKnowledgeIndex(
 
   // Sync to each adapter
   const adapterKinds = ['vector', 'keyword', 'graph'] as const;
-  let adapterFailures: Array<{kind: string; error: string}> = [];
+  const adapterFailures: Array<{ kind: string; error: string }> = [];
 
   for (const adapter of adapters) {
     const adapterKind = adapter.kind;
@@ -177,11 +177,7 @@ export async function syncKnowledgeIndex(
     const result = await adapter.sync(normalizedDocument);
 
     // Update state
-    entry.indexState[adapterKind] = updateAdapterState(
-      currentState,
-      normalizedDocument,
-      result,
-    );
+    entry.indexState[adapterKind] = updateAdapterState(currentState, normalizedDocument, result);
 
     // Track failures for logging
     if (!result.success) {
@@ -205,7 +201,10 @@ export async function syncKnowledgeIndex(
     if (adapterKind === 'keyword' && result.success && result.payload) {
       // The keyword adapter returns the persisted keyword state in the payload
       // Store it in the index state for query-time reuse
-      const keywordState = result.payload as { tokens: string[]; fieldTokens: { shortcut: string[]; detail: string[]; labels: string[] } };
+      const keywordState = result.payload as {
+        tokens: string[];
+        fieldTokens: { shortcut: string[]; detail: string[]; labels: string[] };
+      };
       const keywordAdapterState = entry.indexState[adapterKind] as KeywordAdapterSyncState;
       keywordAdapterState.persistedState = keywordState;
     }
@@ -215,7 +214,10 @@ export async function syncKnowledgeIndex(
   if (adapterFailures.length > 0) {
     // Note: Partial sync occurred - some adapters may have succeeded while others failed
     // Consider implementing retry logic or marking entry for reconciliation
-    console.warn(`[syncKnowledgeIndex] Entry ${entryId} had ${adapterFailures.length} adapter failure(s):`, adapterFailures);
+    console.warn(
+      `[syncKnowledgeIndex] Entry ${entryId} had ${adapterFailures.length} adapter failure(s):`,
+      adapterFailures,
+    );
   }
 
   // Update normalized timestamp

@@ -12,8 +12,8 @@
  */
 
 import type { IndexAdapter } from '../types.js';
-import { vectorIndexAdapter } from './vector.js';
 import { keywordIndexAdapter } from './keyword.js';
+import { vectorIndexAdapter } from './vector.js';
 
 export {
   vectorIndexAdapter,

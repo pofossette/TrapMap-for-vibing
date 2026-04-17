@@ -19,32 +19,32 @@
  */
 
 import type {
-  RetrievalQuery,
-  RetrievalResponse,
-  RetrievalCitation,
-  RetrievalSummary,
+  AssetAvailabilityHint,
+  CapsuleActivationHints,
   CapsuleMatch,
   ProfileHint,
-  RetrievalV2Response,
-  CapsuleActivationHints,
   ReadNextReferenceHint,
-  AssetAvailabilityHint,
+  RetrievalCitation,
+  RetrievalQuery,
+  RetrievalResponse,
+  RetrievalSummary,
+  RetrievalV2Response,
   ScriptProfileHint,
 } from '@skill-shareer/contracts';
 import {
+  capsuleActivationHintsSchema,
+  capsuleMatchSchema,
+  profileHintSchema,
   retrievalMatchSchema,
   retrievalResponseSchema,
   retrievalV2ResponseSchema,
-  capsuleMatchSchema,
-  profileHintSchema,
-  capsuleActivationHintsSchema,
 } from '@skill-shareer/contracts';
-import type { ScoredEntry, CapsuleCandidate } from './types.js';
 import type {
+  ClientManifestRecord,
   DerivedSkillCapsuleRecord,
   SkillArtifactRecord,
-  ClientManifestRecord,
 } from '../store.js';
+import type { CapsuleCandidate, ScoredEntry } from './types.js';
 
 // Type inference from schema - use the return type of parse()
 type RetrievalMatch = ReturnType<typeof retrievalMatchSchema.parse>;

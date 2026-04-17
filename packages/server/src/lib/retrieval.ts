@@ -11,4 +11,8 @@
  * Phase 14: Added v2 retrieval path for capsule-native search (COMP-03).
  */
 
-export { searchKnowledge, searchKnowledgeV2, updateEntryEmbeddingCache } from './retrieval/orchestrator.js';
+export {
+  searchKnowledge,
+  searchKnowledgeV2,
+  updateEntryEmbeddingCache,
+} from './retrieval/orchestrator.js';

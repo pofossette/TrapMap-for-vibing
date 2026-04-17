@@ -63,10 +63,7 @@ export const relativePathRefinement = (path: string): boolean => {
  * Zod schema for canonical relative file paths.
  * Enforces security constraints at the schema boundary.
  */
-export const canonicalPathSchema = z
-  .string()
-  .min(1)
-  .max(512)
-  .refine(relativePathRefinement, {
-    message: 'Path must be relative, without absolute paths, parent traversal, or Windows drive letters',
-  });
+export const canonicalPathSchema = z.string().min(1).max(512).refine(relativePathRefinement, {
+  message:
+    'Path must be relative, without absolute paths, parent traversal, or Windows drive letters',
+});

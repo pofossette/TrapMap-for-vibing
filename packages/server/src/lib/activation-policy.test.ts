@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  mapLegacyPolicyToFourState,
-  getDefaultActivationPolicy,
-  buildScriptPolicyMetadata,
   buildActivationHints,
+  buildScriptPolicyMetadata,
+  getDefaultActivationPolicy,
+  mapLegacyPolicyToFourState,
 } from './activation-policy.js';
 
 describe('server activation policy helpers (Phase 15-02)', () => {
@@ -70,12 +70,8 @@ describe('server activation policy helpers (Phase 15-02)', () => {
     });
 
     it('handles all four new policy states', () => {
-      const policies: Array<'reference-only' | 'needs-approval' | 'client-executable' | 'blocked'> = [
-        'reference-only',
-        'needs-approval',
-        'client-executable',
-        'blocked',
-      ];
+      const policies: Array<'reference-only' | 'needs-approval' | 'client-executable' | 'blocked'> =
+        ['reference-only', 'needs-approval', 'client-executable', 'blocked'];
 
       for (const policy of policies) {
         const descriptor = {

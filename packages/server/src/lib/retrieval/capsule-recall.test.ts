@@ -16,14 +16,14 @@ import type {
   SkillArtifactRecord,
 } from '../store.js';
 import { nowIso } from '../store.js';
-import type { ParsedIntent } from './types.js';
 import {
   buildProfileShortlist,
   extractGovernedCapsules,
+  getCapsuleRecords,
   isArtifactGovernanceEligible,
   rankCapsules,
-  getCapsuleRecords,
 } from './capsule-recall.js';
+import type { ParsedIntent } from './types.js';
 
 describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
   const userId = 'user_1';
@@ -337,11 +337,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
 
   describe('extractGovernedCapsules', () => {
     it('should only extract capsules from governed artifacts', () => {
-      const artifacts = [
-        approvedGlobalArtifact,
-        approvedTeamArtifact,
-        unapprovedArtifact,
-      ];
+      const artifacts = [approvedGlobalArtifact, approvedTeamArtifact, unapprovedArtifact];
 
       const filters = {
         teamId: teamId,
@@ -417,9 +413,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
           { token: 'node', original: 'node', isTechnical: true },
           { token: 'container', original: 'container', isTechnical: true },
         ],
-        stackPathHints: [
-          { hint: 'node', kind: 'stack', confidence: 0.9 },
-        ],
+        stackPathHints: [{ hint: 'node', kind: 'stack', confidence: 0.9 }],
       };
 
       const filters = {
