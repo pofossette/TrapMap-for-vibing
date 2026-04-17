@@ -1,5 +1,22 @@
 # Milestones
 
+## v1.2 Skill-Native Retrieval (Shipped: 2026-04-17)
+
+**Phases completed:** 5 phases, 16 plans, 31 tasks
+
+**Key accomplishments:**
+
+- Defined additive shared contracts for skill-native artifacts with file-kind discrimination (skill-markdown, reference, asset, script)
+- Implemented artifact-native directory import with canonical bundle-json transport and path validation security
+- Created seed-only v2 retrieval schemas with server-internal parsed-intent parsing for capsule-native retrieval
+- Implemented retrieval-grade derivation and capsule ranking with governance enforcement for artifact-native retrieval
+- Extended v2 retrieval with metadata-only activation hints for read-next references, available assets, and executable scripts
+- Defined four-state script activation policy model with server-side pure policy helpers and client-side stricter-only resolution
+- Implemented deterministic legacy knowledge to minimal artifact migration while preserving all governance boundaries
+- Verified v1/v2 governance equivalence and metadata-only boundaries during migration coexistence window
+
+---
+
 ## v1.0 MVP (Shipped: 2026-04-14)
 
 **Phases completed:** 5 phases, 17 plans, 50 tasks
