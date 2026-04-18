@@ -1,4 +1,4 @@
-import type { AuditEvent } from '@skill-shareer/contracts';
+import type { AuditEvent } from '@trapmap/contracts';
 
 import type { JsonStore, StoreData } from './store.js';
 import { nowIso } from './store.js';

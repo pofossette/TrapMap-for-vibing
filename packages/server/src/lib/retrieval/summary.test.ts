@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { CapsuleMatch, RetrievalCitation } from '@skill-shareer/contracts';
+import type { CapsuleMatch, RetrievalCitation } from '@trapmap/contracts';
 import { buildCapsuleSummary, buildSummary } from './summary.js';
 
 describe('summary', () => {

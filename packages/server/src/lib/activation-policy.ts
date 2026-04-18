@@ -14,7 +14,7 @@
  * 2. Local override intent (ACTV-04)
  */
 
-import type { ScriptActivationPolicy, SkillScriptDescriptor } from '@skill-shareer/contracts';
+import type { ScriptActivationPolicy, SkillScriptDescriptor } from '@trapmap/contracts';
 
 /**
  * Map legacy three-state policy to four-state policy vocabulary.

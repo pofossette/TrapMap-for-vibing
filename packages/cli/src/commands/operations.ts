@@ -14,7 +14,7 @@ import type {
   KnowledgeEntryResponse,
   KnowledgeListResponse,
   LegacyMigrationResponse,
-} from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
 import {
   activationResponseSchema,
   artifactExportResponseSchema,
@@ -27,7 +27,7 @@ import {
   knowledgeEntryResponseSchema,
   knowledgeListResponseSchema,
   legacyMigrationResponseSchema,
-} from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';

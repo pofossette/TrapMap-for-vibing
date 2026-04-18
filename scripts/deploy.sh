@@ -13,7 +13,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml"
 ENV_FILE="$PROJECT_ROOT/.env"
 DATA_DIR="$PROJECT_ROOT/.data"
-CONTAINER_NAME="skill-shareer-server"
+CONTAINER_NAME="trapmap-server"
 
 # Helper functions
 log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
@@ -55,10 +55,10 @@ PORT=4000
 OPENAI_API_KEY=your-openai-api-key-here
 
 # Admin Security (Required - generate with: openssl rand -hex 32)
-SKILL_SHAREER_SYSTEM_ADMIN_KEY=$(openssl rand -hex 32)
+TRAPMAP_SYSTEM_ADMIN_KEY=$(openssl rand -hex 32)
 
 # Data Storage
-SKILL_SHAREER_DATA_FILE=/app/.data/skill-shareer.json
+TRAPMAP_DATA_FILE=/app/.data/trapmap.json
 EOF
         log_warn ".env file created. Please edit it with your API keys and configuration."
         log_warn "Required: OPENAI_API_KEY"
@@ -172,7 +172,7 @@ shell() {
 # Show help
 show_help() {
     cat << EOF
-Skill Shareer - Docker Deployment Script
+TrapMap - Docker Deployment Script
 
 Usage: $0 <command>
 

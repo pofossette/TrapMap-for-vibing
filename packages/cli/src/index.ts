@@ -47,7 +47,7 @@ const visibility = {
 const program = new Command();
 
 program
-  .name('skill-shareer')
+  .name('trapmap')
   .description('CLI-first knowledge sharing for engineering pitfall capture and retrieval')
   .version('0.1.0');
 

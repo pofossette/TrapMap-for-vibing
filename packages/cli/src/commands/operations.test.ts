@@ -76,7 +76,7 @@ describe('CLI operations commands (Phase 13)', () => {
 
   beforeEach(async () => {
     // Create test directory
-    testDir = join(tmpdir(), `skill-shareer-test-${Date.now()}-${Math.random()}`);
+    testDir = join(tmpdir(), `trapmap-test-${Date.now()}-${Math.random()}`);
     await mkdir(testDir, { recursive: true });
 
     // Setup mocks - reset and set implementation

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { KnowledgeSubmission } from '@skill-shareer/contracts';
+import type { KnowledgeSubmission } from '@trapmap/contracts';
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../app.js';
 import { detectDuplicates, parseClaudeSkill } from '../lib/import-export.js';
@@ -98,8 +98,8 @@ describe('operations routes', () => {
 
     beforeEach(async () => {
       // Use a unique data file for each test to avoid interference
-      const testDataFile = `/tmp/skill-shareer-test-${Date.now()}-${Math.random()}.json`;
-      process.env.SKILL_SHAREER_DATA_FILE = testDataFile;
+      const testDataFile = `/tmp/trapmap-test-${Date.now()}-${Math.random()}.json`;
+      process.env.TRAPMAP_DATA_FILE = testDataFile;
 
       testApp = buildServer();
       await testApp.ready();
@@ -1368,8 +1368,8 @@ Some body content.`;
     let highLevelEntryId: string;
 
     beforeEach(async () => {
-      const testDataFile = `/tmp/skill-shareer-test-${Date.now()}-${Math.random()}.json`;
-      process.env.SKILL_SHAREER_DATA_FILE = testDataFile;
+      const testDataFile = `/tmp/trapmap-test-${Date.now()}-${Math.random()}.json`;
+      process.env.TRAPMAP_DATA_FILE = testDataFile;
 
       testApp = buildServer();
       await testApp.ready();
@@ -1824,8 +1824,8 @@ Some body content.`;
     const userId = 'user_sunset_test';
 
     beforeEach(async () => {
-      const testDataFile = `/tmp/skill-shareer-test-sunset-${Date.now()}-${Math.random()}.json`;
-      process.env.SKILL_SHAREER_DATA_FILE = testDataFile;
+      const testDataFile = `/tmp/trapmap-test-sunset-${Date.now()}-${Math.random()}.json`;
+      process.env.TRAPMAP_DATA_FILE = testDataFile;
 
       testApp = buildServer();
       await testApp.ready();

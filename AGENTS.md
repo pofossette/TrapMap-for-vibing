@@ -1,9 +1,9 @@
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
-**Skill Shareer**
+**TrapMap**
 
-Skill Shareer is a monorepo-based internal knowledge sharing system for software teams that need a lower-friction way to capture and reuse "pitfall" knowledge during development. It centers on a command-oriented CLI client and a LangChain JS-powered server so agents and humans can both retrieve relevant experience, submit solved problems, and keep curated knowledge trustworthy through admin review.
+TrapMap is a monorepo-based internal knowledge sharing system for software teams that need a lower-friction way to capture and reuse "pitfall" knowledge during development. It centers on a command-oriented CLI client and a LangChain JS-powered server so agents and humans can both retrieve relevant experience, submit solved problems, and keep curated knowledge trustworthy through admin review.
 
 **Core Value:** Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
 

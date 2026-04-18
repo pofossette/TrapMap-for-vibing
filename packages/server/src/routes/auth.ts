@@ -4,7 +4,7 @@ import {
   logoutResponseSchema,
   selectTeamRequestSchema,
   sessionStatusResponseSchema,
-} from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { getSessionToken } from '../lib/context.js';

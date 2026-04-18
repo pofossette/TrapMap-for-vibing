@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ScriptWithPolicyMetadata } from '@skill-shareer/contracts';
+import type { ScriptWithPolicyMetadata } from '@trapmap/contracts';
 import {
   canExecuteImmediately,
   explainEffectivePolicy,

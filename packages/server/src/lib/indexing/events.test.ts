@@ -9,7 +9,7 @@
  * - T-08-07: All transition types are covered in tests
  */
 
-import type { LifecycleState } from '@skill-shareer/contracts';
+import type { LifecycleState } from '@trapmap/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { JsonStore, StoreData } from '../store.js';
 import { JsonStore as JsonStoreClass, nowIso } from '../store.js';

@@ -16,8 +16,8 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "paths": {
-      "@skill-shareer/contracts": ["./packages/contracts/src/index.ts"],
-      "@skill-shareer/contracts/*": ["./packages/contracts/src/*"]
+      "@trapmap/contracts": ["./packages/contracts/src/index.ts"],
+      "@trapmap/contracts/*": ["./packages/contracts/src/*"]
     }
   }
 }

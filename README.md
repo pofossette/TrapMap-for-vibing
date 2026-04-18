@@ -1,4 +1,4 @@
-# Skill Shareer
+# TrapMap
 
 A monorepo for skill sharing platform with server, CLI, and contracts packages.
 
@@ -73,7 +73,7 @@ docker compose down
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `OPENAI_API_KEY` | OpenAI API key | `sk-...` |
-| `SKILL_SHAREER_SYSTEM_ADMIN_KEY` | Admin secret key | Generate with `openssl rand -hex 32` |
+| `TRAPMAP_SYSTEM_ADMIN_KEY` | Admin secret key | Generate with `openssl rand -hex 32` |
 
 ### Optional Configuration
 
@@ -103,7 +103,7 @@ Expected response:
 ## 📁 Project Structure
 
 ```
-skill-shareer/
+trapmap/
 ├── packages/
 │   ├── server/      # Main server application
 │   ├── cli/         # Command-line interface

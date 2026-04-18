@@ -39,7 +39,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
   beforeEach(async () => {
     // Create an in-memory store for testing
     const testDataFile = `/tmp/skill-shareer-derive-test-${Date.now()}-${Math.random()}.json`;
-    process.env.SKILL_SHAREER_DATA_FILE = testDataFile;
+    process.env.TRAPMAP_DATA_FILE = testDataFile;
     store = new JsonStoreClass(testDataFile);
     storeData = await store.snapshot();
 
@@ -512,7 +512,7 @@ The versions must match exactly for consistent behavior.
 
   beforeEach(async () => {
     const testDataFile = `/tmp/skill-shareer-retrieval-derive-test-${Date.now()}-${Math.random()}.json`;
-    process.env.SKILL_SHAREER_DATA_FILE = testDataFile;
+    process.env.TRAPMAP_DATA_FILE = testDataFile;
     store = new JsonStoreClass(testDataFile);
     storeData = await store.snapshot();
     storeData.counters = { user: 1, team: 1, artifact: 0 };

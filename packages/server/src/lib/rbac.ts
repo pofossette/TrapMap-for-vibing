@@ -1,5 +1,5 @@
-import type { Permission, RoleTemplate } from '@skill-shareer/contracts';
-import { permissionSchema } from '@skill-shareer/contracts';
+import type { Permission, RoleTemplate } from '@trapmap/contracts';
+import { permissionSchema } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext } from './context.js';
 import { AppError } from './errors.js';

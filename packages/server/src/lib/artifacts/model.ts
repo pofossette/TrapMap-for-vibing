@@ -10,8 +10,8 @@
  * Assets are activation-only, scripts are descriptor-only (T-12-06).
  */
 
-import type { AgentReviewResult } from '@skill-shareer/contracts';
-import { skillArtifactSchema } from '@skill-shareer/contracts';
+import type { AgentReviewResult } from '@trapmap/contracts';
+import { skillArtifactSchema } from '@trapmap/contracts';
 
 import type {
   AgentReviewRecord,

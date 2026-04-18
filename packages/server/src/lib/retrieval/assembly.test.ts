@@ -14,8 +14,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { CapsuleMatch, ProfileHint, RetrievalSummary } from '@skill-shareer/contracts';
-import { capsuleMatchSchema, profileHintSchema } from '@skill-shareer/contracts';
+import type { CapsuleMatch, ProfileHint, RetrievalSummary } from '@trapmap/contracts';
+import { capsuleMatchSchema, profileHintSchema } from '@trapmap/contracts';
 import type { ClientManifestRecord, SkillArtifactRecord } from '../store.js';
 import {
   buildActivationHints,

@@ -11,7 +11,7 @@
  * keyword recall, graph-assisted recall, and hybrid merging.
  */
 
-import type { RetrievalQuery } from '@skill-shareer/contracts';
+import type { RetrievalQuery } from '@trapmap/contracts';
 import { generateEmbedding, hashEmbeddingText } from '../../embeddings.js';
 import type { KnowledgeRecord } from '../../store.js';
 

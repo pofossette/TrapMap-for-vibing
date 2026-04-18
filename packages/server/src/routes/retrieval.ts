@@ -5,7 +5,7 @@ import {
   retrievalResponseSchema,
   retrievalV2QuerySchema,
   retrievalV2ResponseWithHintsSchema,
-} from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
 
 import { requirePermission } from '../lib/rbac.js';
 import { searchKnowledge, searchKnowledgeV2 } from '../lib/retrieval.js';

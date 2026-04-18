@@ -1,5 +1,5 @@
-import type { RetrievalResponse, RetrievalV2Response } from '@skill-shareer/contracts';
-import { retrievalResponseSchema, retrievalV2ResponseSchema } from '@skill-shareer/contracts';
+import type { RetrievalResponse, RetrievalV2Response } from '@trapmap/contracts';
+import { retrievalResponseSchema, retrievalV2ResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';

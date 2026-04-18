@@ -5,14 +5,14 @@ import type {
   Member,
   Permission,
   Team,
-} from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
 import {
   accessKeySchema,
   activeSessionSchema,
   authContextSchema,
   memberSchema,
   teamSchema,
-} from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
 import type { FastifyRequest } from 'fastify';
 
 import type { ServerConfig } from '../config.js';
@@ -302,7 +302,7 @@ export function requireSystemAdminKey(config: ServerConfig, providedKey: string)
     throw new AppError(
       500,
       'system_admin_not_configured',
-      'SKILL_SHAREER_SYSTEM_ADMIN_KEY must be configured for system admin login',
+      'TRAPMAP_SYSTEM_ADMIN_KEY must be configured for system admin login',
     );
   }
 

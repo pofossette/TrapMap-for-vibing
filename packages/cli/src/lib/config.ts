@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import type { ActiveSession, ScriptActivationPolicy } from '@skill-shareer/contracts';
+import type { ActiveSession, ScriptActivationPolicy } from '@trapmap/contracts';
 
 /**
  * Script policy override for local activation control.
@@ -23,10 +23,10 @@ export interface CliState {
   session: ActiveSession | null;
 }
 
-const DEFAULT_SERVER_URL = process.env.SKILL_SHAREER_SERVER_URL ?? 'http://127.0.0.1:4000';
+const DEFAULT_SERVER_URL = process.env.TRAPMAP_SERVER_URL ?? 'http://127.0.0.1:4000';
 
 function getConfigPath(): string {
-  return path.join(os.homedir(), '.skill-shareer', 'cli.json');
+  return path.join(os.homedir(), '.trapmap', 'cli.json');
 }
 
 function getDefaultState(): CliState {

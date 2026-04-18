@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { LifecycleState, Permission, RoleTemplate, Scope } from '@skill-shareer/contracts';
+import type { LifecycleState, Permission, RoleTemplate, Scope } from '@trapmap/contracts';
 
 export interface UserRecord {
   id: string;

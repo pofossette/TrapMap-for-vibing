@@ -1,5 +1,5 @@
-import type { AccessKey, Member } from '@skill-shareer/contracts';
-import { issueAccessKeyResponseSchema, memberSchema } from '@skill-shareer/contracts';
+import type { AccessKey, Member } from '@trapmap/contracts';
+import { issueAccessKeyResponseSchema, memberSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';

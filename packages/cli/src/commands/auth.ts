@@ -1,5 +1,5 @@
-import type { LoginResponse, SessionStatusResponse } from '@skill-shareer/contracts';
-import { loginResponseSchema, sessionStatusResponseSchema } from '@skill-shareer/contracts';
+import type { LoginResponse, SessionStatusResponse } from '@trapmap/contracts';
+import { loginResponseSchema, sessionStatusResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { clearSession, loadCliState, updateCliState } from '../lib/config.js';

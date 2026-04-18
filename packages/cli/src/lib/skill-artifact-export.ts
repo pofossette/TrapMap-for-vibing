@@ -12,7 +12,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, normalize, resolve } from 'node:path';
 
-import type { ArtifactBundle, ArtifactExportResponse } from '@skill-shareer/contracts';
+import type { ArtifactBundle, ArtifactExportResponse } from '@trapmap/contracts';
 
 /**
  * Validates that a path is safe for writing.

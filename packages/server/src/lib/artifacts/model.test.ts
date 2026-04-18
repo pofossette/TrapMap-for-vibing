@@ -35,7 +35,7 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
   beforeEach(async () => {
     // Create an in-memory store for testing
     const testDataFile = `/tmp/skill-shareer-artifact-test-${Date.now()}-${Math.random()}.json`;
-    process.env.SKILL_SHAREER_DATA_FILE = testDataFile;
+    process.env.TRAPMAP_DATA_FILE = testDataFile;
     store = new JsonStoreClass(testDataFile);
     storeData = await store.snapshot();
 

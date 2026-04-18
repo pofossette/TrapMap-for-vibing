@@ -2,11 +2,11 @@ import type {
   KnowledgeEntry,
   KnowledgeEntryResponse,
   KnowledgeHistoryResponse,
-} from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
 import {
   knowledgeEntryResponseSchema,
   knowledgeHistoryResponseSchema,
-} from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';

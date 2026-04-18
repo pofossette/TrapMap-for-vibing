@@ -1,5 +1,5 @@
-import type { RetrievalResponse, RetrievalV2Response } from '@skill-shareer/contracts';
-import { retrievalResponseSchema, retrievalV2ResponseSchema } from '@skill-shareer/contracts';
+import type { RetrievalResponse, RetrievalV2Response } from '@trapmap/contracts';
+import { retrievalResponseSchema, retrievalV2ResponseSchema } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { describe, expect, it, vi } from 'vitest';
 

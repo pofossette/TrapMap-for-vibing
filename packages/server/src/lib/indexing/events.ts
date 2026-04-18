@@ -9,7 +9,7 @@
  * Only approved content receives index upserts.
  */
 
-import type { LifecycleState } from '@skill-shareer/contracts';
+import type { LifecycleState } from '@trapmap/contracts';
 import type { JsonStore, StoreData } from '../store.js';
 import { syncKnowledgeIndex } from './pipeline.js';
 import type { IndexAdapter } from './types.js';

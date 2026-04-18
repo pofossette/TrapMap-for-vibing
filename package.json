@@ -1,13 +1,13 @@
 {
-  "name": "skill-shareer",
+  "name": "trapmap",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "build": "tsc -b",
-    "dev:cli": "pnpm --filter @skill-shareer/cli dev",
-    "dev:server": "pnpm --filter @skill-shareer/server dev",
+    "dev:cli": "pnpm --filter @trapmap/cli dev",
+    "dev:server": "pnpm --filter @trapmap/server dev",
     "format": "biome format --write .",
     "knip": "knip",
     "knip:fix": "knip --fix",

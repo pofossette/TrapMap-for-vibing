@@ -1,5 +1,5 @@
 #!/bin/bash
-# Quick deploy script for Skill Shareer server
+# Quick deploy script for TrapMap server
 # Usage: ./scripts/deploy-quick.sh
 
 set -e
@@ -8,7 +8,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo -e "${GREEN}🚀 Skill Shareer - Quick Deployment${NC}"
+echo -e "${GREEN}🚀 TrapMap - Quick Deployment${NC}"
 echo ""
 
 # Check if .env exists
@@ -19,7 +19,7 @@ if [ ! -f .env ]; then
 OPENAI_API_KEY=your-openai-api-key-here
 
 # Admin Security
-SKILL_SHAREER_SYSTEM_ADMIN_KEY=$(openssl rand -hex 32)
+TRAPMAP_SYSTEM_ADMIN_KEY=$(openssl rand -hex 32)
 
 # Server Config
 NODE_ENV=production

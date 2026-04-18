@@ -3,7 +3,7 @@
  * These types are used within the retrieval module and are not part of the public API.
  */
 
-import type { RetrievalQuery } from '@skill-shareer/contracts';
+import type { RetrievalQuery } from '@trapmap/contracts';
 import type { ResolvedAuthContext } from '../context.js';
 import type { KnowledgeRecord } from '../store.js';
 

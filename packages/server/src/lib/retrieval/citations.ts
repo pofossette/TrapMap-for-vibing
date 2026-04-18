@@ -15,7 +15,7 @@
  * retrieves additional data from the store.
  */
 
-import { retrievalCitationSchema } from '@skill-shareer/contracts';
+import { retrievalCitationSchema } from '@trapmap/contracts';
 import type { MergedCandidate } from './types.js';
 
 /**

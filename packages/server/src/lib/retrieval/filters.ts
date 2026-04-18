@@ -12,7 +12,7 @@
  * ensuring security and eligibility gates are enforced before any semantic search.
  */
 
-import type { RetrievalQuery } from '@skill-shareer/contracts';
+import type { RetrievalQuery } from '@trapmap/contracts';
 import type { ResolvedAuthContext } from '../context.js';
 import type { KnowledgeRecord } from '../store.js';
 

@@ -596,8 +596,8 @@ describe('retrieval route', () => {
       const { JsonStore, nowIso, hashSecret } = await import('../lib/store.js');
       const { buildServer } = await import('../app.js');
 
-      const testDataFile = `/tmp/skill-shareer-test-${Date.now()}-${Math.random()}.json`;
-      process.env.SKILL_SHAREER_DATA_FILE = testDataFile;
+      const testDataFile = `/tmp/trapmap-test-${Date.now()}-${Math.random()}.json`;
+      process.env.TRAPMAP_DATA_FILE = testDataFile;
 
       testApp = buildServer();
       await testApp.ready();

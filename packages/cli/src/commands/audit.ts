@@ -1,4 +1,4 @@
-import { auditListResponseSchema } from '@skill-shareer/contracts';
+import { auditListResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';

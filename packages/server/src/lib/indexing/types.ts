@@ -8,7 +8,7 @@
  * - KnowledgeIndexStateRecord: persisted index state on KnowledgeRecord
  */
 
-import type { LifecycleState, Scope } from '@skill-shareer/contracts';
+import type { LifecycleState, Scope } from '@trapmap/contracts';
 
 /**
  * Normalized index document produced by the normalization stage.

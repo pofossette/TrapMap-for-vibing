@@ -7,7 +7,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@skill-shareer/contracts': resolve(__dirname, '../contracts/src/index.ts'),
+      '@trapmap/contracts': resolve(__dirname, '../contracts/src/index.ts'),
     },
   },
 });

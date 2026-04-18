@@ -13,7 +13,7 @@
  * stricter of server default and local override only.
  */
 
-import type { ScriptActivationPolicy, ScriptWithPolicyMetadata } from '@skill-shareer/contracts';
+import type { ScriptActivationPolicy, ScriptWithPolicyMetadata } from '@trapmap/contracts';
 import type { ScriptPolicyOverride } from './config.js';
 
 /**

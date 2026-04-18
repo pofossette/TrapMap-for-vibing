@@ -1,5 +1,5 @@
 {
-  "name": "@skill-shareer/server",
+  "name": "@trapmap/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
   "dependencies": {
     "@langchain/core": "^1.1.39",
     "@langchain/openai": "^1.4.4",
-    "@skill-shareer/contracts": "workspace:*",
+    "@trapmap/contracts": "workspace:*",
     "fastify": "^5.6.1",
     "zod": "^4.3.6"
   },

@@ -22,8 +22,8 @@ import {
   legacyMigrationRequestSchema,
   legacyMigrationResponseSchema,
   legacyMigrationResultItemSchema,
-} from '@skill-shareer/contracts';
-import type { LifecycleState } from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
+import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { deriveSkillArtifactOutputs } from '../lib/artifacts/derive.js';

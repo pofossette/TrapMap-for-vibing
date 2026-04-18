@@ -1,5 +1,5 @@
-import type { LoginResponse, Team, TeamListResponse } from '@skill-shareer/contracts';
-import { loginResponseSchema, teamListResponseSchema, teamSchema } from '@skill-shareer/contracts';
+import type { LoginResponse, Team, TeamListResponse } from '@trapmap/contracts';
+import { loginResponseSchema, teamListResponseSchema, teamSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState, updateCliState } from '../lib/config.js';

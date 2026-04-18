@@ -10,7 +10,7 @@ import {
   profileHintSchema,
   retrievalQuerySchema,
   retrievalV2QuerySchema,
-} from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import { generateEmbedding, hashEmbeddingText } from '../embeddings.js';

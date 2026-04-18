@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { RetrievalQuery } from '@skill-shareer/contracts';
+import type { RetrievalQuery } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { createKnowledgeEntryRecord } from './knowledge.js';
 import { runPreReview } from './pre-review.js';
@@ -16,7 +16,7 @@ describe('retrieval', () => {
 
   beforeEach(async () => {
     // Create a temporary store for testing
-    const testDataDir = `/tmp/skill-shareer-test-${Date.now()}.json`;
+    const testDataDir = `/tmp/trapmap-test-${Date.now()}.json`;
     mockStore = new JsonStore(testDataDir);
     mockServices = {
       // biome-ignore lint/suspicious/noExplicitAny: Mock config for testing

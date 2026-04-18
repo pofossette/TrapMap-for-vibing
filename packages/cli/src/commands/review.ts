@@ -1,5 +1,5 @@
-import type { KnowledgeEntryResponse, ReviewQueueResponse } from '@skill-shareer/contracts';
-import { knowledgeEntryResponseSchema, reviewQueueResponseSchema } from '@skill-shareer/contracts';
+import type { KnowledgeEntryResponse, ReviewQueueResponse } from '@trapmap/contracts';
+import { knowledgeEntryResponseSchema, reviewQueueResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';

@@ -1,4 +1,4 @@
-import type { Permission } from '@skill-shareer/contracts';
+import type { Permission } from '@trapmap/contracts';
 import type { FastifyRequest } from 'fastify';
 
 import type { ServerConfig } from '../config.js';

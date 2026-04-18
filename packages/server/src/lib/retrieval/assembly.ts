@@ -30,7 +30,7 @@ import type {
   RetrievalSummary,
   RetrievalV2Response,
   ScriptProfileHint,
-} from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
 import {
   capsuleActivationHintsSchema,
   capsuleMatchSchema,
@@ -38,7 +38,7 @@ import {
   retrievalMatchSchema,
   retrievalResponseSchema,
   retrievalV2ResponseSchema,
-} from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
 import type {
   ClientManifestRecord,
   DerivedSkillCapsuleRecord,

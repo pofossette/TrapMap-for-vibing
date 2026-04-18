@@ -22,8 +22,8 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
 
   beforeEach(async () => {
     // Use a unique data file for each test to avoid interference
-    const testDataFile = `/tmp/skill-shareer-test-${Date.now()}-${Math.random()}.json`;
-    process.env.SKILL_SHAREER_DATA_FILE = testDataFile;
+    const testDataFile = `/tmp/trapmap-test-${Date.now()}-${Math.random()}.json`;
+    process.env.TRAPMAP_DATA_FILE = testDataFile;
 
     app = buildServer();
     await app.ready();

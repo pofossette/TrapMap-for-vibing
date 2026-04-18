@@ -18,8 +18,8 @@
  * hits/citations so it cannot bypass governance filters.
  */
 
-import type { CapsuleMatch, RetrievalCitation, RetrievalSummary } from '@skill-shareer/contracts';
-import { retrievalSummarySchema } from '@skill-shareer/contracts';
+import type { CapsuleMatch, RetrievalCitation, RetrievalSummary } from '@trapmap/contracts';
+import { retrievalSummarySchema } from '@trapmap/contracts';
 
 /**
  * Input hit for summary generation.

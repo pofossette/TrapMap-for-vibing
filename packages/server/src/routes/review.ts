@@ -1,5 +1,5 @@
-import { reviewDecisionRequestSchema, reviewQueueResponseSchema } from '@skill-shareer/contracts';
-import type { LifecycleState } from '@skill-shareer/contracts';
+import { reviewDecisionRequestSchema, reviewQueueResponseSchema } from '@trapmap/contracts';
+import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent } from '../lib/audit.js';

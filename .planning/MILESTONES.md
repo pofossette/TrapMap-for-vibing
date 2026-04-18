@@ -1,5 +1,15 @@
 # Milestones
 
+## v1.0 milestone (Shipped: 2026-04-17)
+
+**Phases completed:** 1 phases, 1 plans, 0 tasks
+
+**Key accomplishments:**
+
+- Verification Criteria:
+
+---
+
 ## v1.2 Skill-Native Retrieval (Shipped: 2026-04-17)
 
 **Phases completed:** 5 phases, 16 plans, 31 tasks

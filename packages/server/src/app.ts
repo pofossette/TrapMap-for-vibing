@@ -49,7 +49,7 @@ export function buildServer() {
 
   app.get('/health', async () => ({
     status: 'ok',
-    product: 'skill-shareer',
+    product: 'trapmap',
     packages: ['cli', 'server', 'contracts'],
   }));
 

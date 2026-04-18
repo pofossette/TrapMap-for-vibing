@@ -3,8 +3,8 @@ import type {
   AgentReviewResult,
   ArtifactBundle,
   KnowledgeSubmission,
-} from '@skill-shareer/contracts';
-import { validateRelativePath } from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
+import { validateRelativePath } from '@trapmap/contracts';
 
 import { createKnowledgeEntryRecord } from './knowledge.js';
 import type {

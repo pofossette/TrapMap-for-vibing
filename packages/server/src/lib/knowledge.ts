@@ -5,7 +5,7 @@ import {
   type KnowledgeUpdate,
   knowledgeEntrySchema,
   knowledgeListItemSchema,
-} from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
 
 import { AppError } from './errors.js';
 import type {

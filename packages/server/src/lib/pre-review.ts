@@ -4,7 +4,7 @@ import {
   type AgentReviewResult,
   type KnowledgeSubmission,
   agentReviewResultSchema,
-} from '@skill-shareer/contracts';
+} from '@trapmap/contracts';
 
 import { type KnowledgeRecord, nowIso } from './store.js';
 
