@@ -5,6 +5,7 @@
 - ✅ **v1.0 MVP** — Phases 1-5 (shipped 2026-04-14)
 - ✅ **v1.1 RAG Structure Enhancement** — Phases 6-11 (shipped 2026-04-16)
 - ✅ **v1.2 Skill-Native Retrieval** — Phases 12-16 (shipped 2026-04-17)
+- 🚧 **v1.3 工程化调整&功能扩展及优化** — Phases 17-22 (in progress)
 
 ## Phases
 
@@ -70,6 +71,101 @@
 
 </details>
 
+### 🚧 v1.3 工程化调整&功能扩展及优化 (In Progress)
+
+**Milestone Goal:** 工程化补全 + Skill 编辑闭环 + 可开关双层日志系统
+
+#### Phase 17: Deployment Scripts (Complete)
+
+**Goal:** Provide quick deployment tooling for server setup
+**Requirements:** N/A (quick task)
+**Depends on:** Phase 16
+**Plans:** 1/1 plans complete
+
+Plans:
+- [x] 17-01: Docker configuration and deployment scripts (completed 2026-04-17)
+
+#### Phase 18: CLI Skill Lookup Commands
+
+**Goal:** Enable users to search skills by content and retrieve skill IDs with metadata
+**Depends on:** Phase 16
+**Requirements:** SKED-01
+**Success Criteria** (what must be TRUE):
+  1. User can invoke `skill search-by-content <text>` and receive matching skill IDs
+  2. Search results include skill ID, title, and brief metadata for each match
+  3. Command supports JSON output mode for agent-friendly consumption
+  4. Results are permission-filtered based on user's team and security level
+**Plans:** 2 plans
+
+Plans:
+- [ ] 18-01: Add shared contracts for skill lookup by content
+- [ ] 18-02: Implement CLI search-by-content command with server endpoint
+
+#### Phase 19: Skill Edit Flow with History
+
+**Goal:** Enable users to edit skills by ID with edit history preservation
+**Depends on:** Phase 18
+**Requirements:** SKED-02, SKED-04
+**Success Criteria** (what must be TRUE):
+  1. User can invoke `skill edit <id>` to modify skill content
+  2. Edit creates a pending revision that enters the review queue
+  3. Previous skill versions are preserved with timestamps
+  4. User can view edit history for a skill showing all past revisions
+**Plans:** 3 plans
+
+Plans:
+- [ ] 19-01: Define skill edit contracts and revision schema
+- [ ] 19-02: Implement server edit endpoint with history tracking
+- [ ] 19-03: Add CLI edit-by-id command and history view
+
+#### Phase 20: Skill Edit Review Workflow
+
+**Goal:** Enable reviewers to approve or reject skill edits with RBAC enforcement
+**Depends on:** Phase 19
+**Requirements:** SKED-03
+**Success Criteria** (what must be TRUE):
+  1. Reviewers with `skill:review` permission can see pending skill edits
+  2. Reviewer can approve or reject a skill edit with notes
+  3. Approved edits become the active skill version; rejected edits return to submitter for revision
+  4. Edit review decisions are recorded in audit trail
+**Plans:** 2 plans
+
+Plans:
+- [ ] 20-01: Implement skill edit review endpoint reusing existing RBAC patterns
+- [ ] 20-02: Add CLI commands for listing pending edits and submitting review decisions
+
+#### Phase 21: User Operations Logger
+
+**Goal:** Log user operations with independent .env switch
+**Depends on:** Phase 16
+**Requirements:** LOG-01, LOG-03 (partial)
+**Success Criteria** (what must be TRUE):
+  1. Server logs all user operations: search, submit, edit, review, import, export
+  2. Each log entry includes actor ID, action type, target ID, and timestamp
+  3. LOG_USER_OPS_ENABLED in .env controls user ops logging independently
+  4. Logs write to structured files in a dedicated logs directory
+**Plans:** 2 plans
+
+Plans:
+- [ ] 21-01: Define user ops logger with .env configuration and structured output
+- [ ] 21-02: Integrate user ops logging into existing API routes
+
+#### Phase 22: RAG Logger with File Rotation
+
+**Goal:** Log RAG retrieval details with independent switch and file rotation
+**Depends on:** Phase 21
+**Requirements:** LOG-02, LOG-03 (partial), LOG-04
+**Success Criteria** (what must be TRUE):
+  1. Server logs RAG retrieval details: retrieval strategy, pipeline steps, latency per query
+  2. LOG_RAG_ENABLED in .env controls RAG logging independently from user ops
+  3. Both log layers support size-based rotation (e.g., 10MB max file size)
+  4. Both log layers support time-based rotation (daily or configurable interval)
+**Plans:** 2 plans
+
+Plans:
+- [ ] 22-01: Define RAG logger with .env switch and structured output
+- [ ] 22-02: Implement file rotation for both log layers with size and time triggers
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -90,48 +186,42 @@
 | 14. Seed Intent Retrieval and Capsule Ranking | v1.2 | 4/4 | Complete | 2026-04-16 |
 | 15. Client Activation for References, Assets, and Scripts | v1.2 | 3/3 | Complete | 2026-04-17 |
 | 16. Compatibility Migration and Boundary Hardening | v1.2 | 3/3 | Complete | 2026-04-17 |
+| 17. Deployment Scripts | v1.3 | 1/1 | Complete | 2026-04-17 |
+| 18. CLI Skill Lookup Commands | v1.3 | 0/2 | Not started | - |
+| 19. Skill Edit Flow with History | v1.3 | 0/3 | Not started | - |
+| 20. Skill Edit Review Workflow | v1.3 | 0/2 | Not started | - |
+| 21. User Operations Logger | v1.3 | 0/2 | Not started | - |
+| 22. RAG Logger with File Rotation | v1.3 | 0/2 | Not started | - |
 
 ## Dependencies
 
-**Completed:** All milestone dependencies satisfied
+**Completed:** All v1.0, v1.1, v1.2 milestone dependencies satisfied
 
-**v1.1:**
+**v1.3:**
 ```
-Phase 6 (架构重构) ✅
+Phase 16 (v1.2 complete) ✅
+    │
+    ├─────────────────────┐
+    ↓                     ↓
+Phase 17 (Deployment) ✅   Phase 18 (Skill Lookup)
+    │                     │
+    │                     ↓
+    │                Phase 19 (Edit Flow)
+    │                     │
+    │                     ↓
+    │                Phase 20 (Edit Review)
+    │
+Phase 21 (User Ops Logger)
+    │
     ↓
-Phase 7 (混合检索) ✅
-    ↓
-Phase 8 (索引生命周期) ✅ ─────┐
-    ↓                        │
-Phase 9 (图辅助检索) ✅        │
-    ↓                        │
-Phase 10 (回答与引用) ✅ ◄──────┘
-    ↓
-Phase 11 (索引生命周期集成) ✅ ← gap closure for Phase 08
-```
-
-**v1.2:**
-```
-Phase 12 (Artifact model) ✅
-    ↓
-Phase 13 (Import/export) ✅
-    ↓
-Phase 14 (Seed intent retrieval) ✅
-    ↓
-Phase 15 (Client activation) ✅
-    ↓
-Phase 16 (Compatibility + hardening) ✅
+Phase 22 (RAG Logger + Rotation)
 ```
 
-### Phase 17: monorepo新建子仓库，实现一个服务端的快速部署脚本工具
-
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 16
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] TBD (run /gsd-plan-phase 17 to break down) (completed 2026-04-17)
+**Notes:**
+- Phase 18 (Skill Lookup) and Phase 21 (User Ops Logger) can run in parallel as they are independent
+- Phase 19 depends on Phase 18 (need lookup to edit)
+- Phase 20 depends on Phase 19 (need edit flow to review)
+- Phase 22 depends on Phase 21 (rotation applies to both log layers)
 
 ---
-*Roadmap updated: 2026-04-17 after v1.2 milestone completion*
+*Roadmap updated: 2026-04-19 for v1.3 milestone start*
