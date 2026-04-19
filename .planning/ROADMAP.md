@@ -144,11 +144,11 @@ Plans:
   2. Each log entry includes actor ID, action type, target ID, and timestamp
   3. LOG_USER_OPS_ENABLED in .env controls user ops logging independently
   4. Logs write to structured files in a dedicated logs directory
-**Plans:** 1/2 plans complete
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 21-01: Define user ops logger with .env configuration and structured output
-- [ ] 21-02: Integrate user ops logging into existing API routes
+- [x] 21-02: Integrate user ops logging into existing API routes
 
 #### Phase 22: RAG Logger with File Rotation
 
@@ -190,7 +190,7 @@ Plans:
 | 18. CLI Skill Lookup Commands | v1.3 | 2/2 | Complete   | 2026-04-19 |
 | 19. Skill Edit Flow with History | v1.3 | 3/3 | Complete | 2026-04-19 |
 | 20. Skill Edit Review Workflow | v1.3 | 2/2 | Complete | 2026-04-19 |
-| 21. User Operations Logger | v1.3 | 1/2 | In progress | - |
+| 21. User Operations Logger | v1.3 | 2/2 | Complete    | 2026-04-19 |
 | 22. RAG Logger with File Rotation | v1.3 | 0/2 | Not started | - |
 
 ## Dependencies

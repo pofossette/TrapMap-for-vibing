@@ -16,9 +16,9 @@ Requirements for v1.3 milestone: 工程化调整&功能扩展及优化
 
 ### Logging (LOG)
 
-- [ ] **LOG-01**: Server logs user operations (search, submit, edit, review, import, export) with actor, action, target, and timestamp
+- [x] **LOG-01**: Server logs user operations (search, submit, edit, review, import, export) with actor, action, target, and timestamp
 - [ ] **LOG-02**: Server logs RAG retrieval details including retrieval strategy, pipeline steps, and latency per query
-- [ ] **LOG-03**: Each log layer (user ops, RAG) can be independently enabled/disabled via .env configuration
+- [x] **LOG-03**: Each log layer (user ops, RAG) can be independently enabled/disabled via .env configuration
 - [ ] **LOG-04**: Log output writes to structured files with size-based and time-based rotation
 
 ## Out of Scope
@@ -39,9 +39,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SKED-02 | Phase 19 | Pending |
 | SKED-03 | Phase 20 | Pending |
 | SKED-04 | Phase 19 | Pending |
-| LOG-01 | Phase 21 | Pending |
+| LOG-01 | Phase 21 | Complete |
 | LOG-02 | Phase 22 | Pending |
-| LOG-03 | Phase 21, Phase 22 | Pending |
+| LOG-03 | Phase 21, Phase 22 | Complete |
 | LOG-04 | Phase 22 | Pending |
 
 **Coverage:**
