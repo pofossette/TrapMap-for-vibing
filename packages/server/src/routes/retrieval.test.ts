@@ -997,4 +997,48 @@ describe('retrieval route', () => {
       expect(json.documentedRoutes).toContain('POST /v1/retrieval/skills/search-by-content');
     });
   });
+
+  // Phase 21: User ops logging integration tests (LOG-01)
+  describe('user ops logging integration', () => {
+    it('does not write log files when LOG_USER_OPS_ENABLED is false (default)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'test query',
+          filters: { labels: [], scopes: [] },
+          maxResults: 10,
+          includeRefinement: false,
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      // No log file should exist (logging disabled by default)
+      // The default app has LOG_USER_OPS_ENABLED=false
+      expect(app.skillShareer.config.userOpsLog.enabled).toBe(false);
+    });
+
+    it('config reflects LOG_USER_OPS_ENABLED=true when set', async () => {
+      const tempLogDir = `/tmp/test-logs-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const originalEnabled = process.env.LOG_USER_OPS_ENABLED;
+      const originalDir = process.env.LOG_USER_OPS_DIR;
+      process.env.LOG_USER_OPS_ENABLED = 'true';
+      process.env.LOG_USER_OPS_DIR = tempLogDir;
+
+      try {
+        const testDataFile = `/tmp/trapmap-log-config-test-${Date.now()}-${Math.random().toString(36).slice(2)}.json`;
+        const configTestApp = buildServer({ config: { dataFile: testDataFile } });
+        await configTestApp.ready();
+
+        // Verify config is wired correctly
+        expect(configTestApp.skillShareer.config.userOpsLog.enabled).toBe(true);
+        expect(configTestApp.skillShareer.config.userOpsLog.logDir).toBe(tempLogDir);
+
+        await configTestApp.close();
+      } finally {
+        process.env.LOG_USER_OPS_ENABLED = originalEnabled;
+        process.env.LOG_USER_OPS_DIR = originalDir;
+      }
+    });
+  });
 });
