@@ -19,6 +19,8 @@ import {
   knowledgeEntrySchema,
   knowledgeListItemSchema,
   knowledgeSubmissionSchema,
+  agentReviewResultSchema,
+  reviewDecisionSchema,
 } from './knowledge.js';
 
 export const knowledgeDeactivateRequestSchema = z.object({
@@ -607,3 +609,68 @@ export type SkillEditResponse = z.infer<typeof skillEditResponseSchema>;
 export type SkillRevisionSummary = z.infer<typeof skillRevisionSummarySchema>;
 export type SkillHistoryRequest = z.infer<typeof skillHistoryRequestSchema>;
 export type SkillHistoryResponse = z.infer<typeof skillHistoryResponseSchema>;
+
+// ============================================================================
+// Phase 20: Skill Review Contracts (SKED-03)
+// ============================================================================
+
+/**
+ * Skill review queue item schema.
+ * Represents a single artifact pending review.
+ */
+export const skillReviewQueueItemSchema = z.object({
+  /** The artifact with pending review */
+  artifact: skillArtifactSchema,
+  /** The revision under review */
+  revision: z.number().int().min(1),
+  /** Agent review result */
+  agentReview: agentReviewResultSchema.nullable(),
+  /** Who submitted this revision */
+  submittedBy: actorRefSchema,
+  /** Previous review decision if any */
+  lastDecision: reviewDecisionSchema.nullable(),
+});
+
+/**
+ * Skill review queue response schema.
+ * Lists artifacts pending review.
+ */
+export const skillReviewQueueResponseSchema = z.object({
+  /** Queue items */
+  items: z.array(skillReviewQueueItemSchema),
+  /** Pagination cursor */
+  nextCursor: z.string().nullable(),
+  /** Total count */
+  total: z.number().int().min(0),
+});
+
+/**
+ * Skill review decision request schema.
+ * Used to submit approve/reject decisions.
+ */
+export const skillReviewDecisionRequestSchema = z.object({
+  /** The artifact to review */
+  artifactId: entityIdSchema,
+  /** The review decision */
+  decision: z.enum(['approve', 'reject']),
+  /** Reviewer notes (required, 1-2000 characters) */
+  notes: z.string().min(1).max(2000),
+});
+
+/**
+ * Skill review decision response schema.
+ * Returns the updated artifact and state transition.
+ */
+export const skillReviewDecisionResponseSchema = z.object({
+  /** The updated artifact */
+  artifact: skillArtifactSchema,
+  /** Lifecycle state before review */
+  previousState: lifecycleStateSchema,
+  /** Lifecycle state after review */
+  newState: lifecycleStateSchema,
+});
+
+export type SkillReviewQueueItem = z.infer<typeof skillReviewQueueItemSchema>;
+export type SkillReviewQueueResponse = z.infer<typeof skillReviewQueueResponseSchema>;
+export type SkillReviewDecisionRequest = z.infer<typeof skillReviewDecisionRequestSchema>;
+export type SkillReviewDecisionResponse = z.infer<typeof skillReviewDecisionResponseSchema>;

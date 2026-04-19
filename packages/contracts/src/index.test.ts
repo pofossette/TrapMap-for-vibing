@@ -3539,3 +3539,217 @@ describe('Phase 19: Skill Edit and History Contracts', () => {
     });
   });
 });
+
+// Phase 20: Skill Review Contracts (SKED-03)
+import {
+  skillReviewQueueItemSchema,
+  skillReviewQueueResponseSchema,
+  skillReviewDecisionRequestSchema,
+  skillReviewDecisionResponseSchema,
+} from './domain/operations.js';
+
+describe('Phase 20: Skill Review Contracts', () => {
+  describe('skillReviewDecisionRequestSchema', () => {
+    it('accepts valid approve decision', () => {
+      const request = {
+        artifactId: 'artifact_123',
+        decision: 'approve' as const,
+        notes: 'Looks good to me',
+      };
+      const parsed = skillReviewDecisionRequestSchema.parse(request);
+      expect(parsed.decision).toBe('approve');
+      expect(parsed.notes).toBe('Looks good to me');
+    });
+
+    it('accepts valid reject decision', () => {
+      const request = {
+        artifactId: 'artifact_123',
+        decision: 'reject' as const,
+        notes: 'Needs more detail in the SKILL.md',
+      };
+      const parsed = skillReviewDecisionRequestSchema.parse(request);
+      expect(parsed.decision).toBe('reject');
+    });
+
+    it('rejects notes shorter than 1 character', () => {
+      const request = {
+        artifactId: 'artifact_123',
+        decision: 'approve' as const,
+        notes: '',
+      };
+      expect(() => skillReviewDecisionRequestSchema.parse(request)).toThrow();
+    });
+
+    it('rejects notes longer than 2000 characters', () => {
+      const request = {
+        artifactId: 'artifact_123',
+        decision: 'approve' as const,
+        notes: 'x'.repeat(2001),
+      };
+      expect(() => skillReviewDecisionRequestSchema.parse(request)).toThrow();
+    });
+
+    it('rejects invalid decision value', () => {
+      const request = {
+        artifactId: 'artifact_123',
+        decision: 'maybe',
+        notes: 'Not sure',
+      };
+      expect(() => skillReviewDecisionRequestSchema.parse(request)).toThrow();
+    });
+  });
+
+  describe('skillReviewQueueResponseSchema', () => {
+    it('accepts valid queue response with items', () => {
+      const artifact = {
+        id: 'artifact_1',
+        teamId: null,
+        scope: 'global' as const,
+        labels: ['typescript'],
+        title: 'Test Skill',
+        slug: 'test-skill',
+        requiredLevel: 0,
+        lifecycleState: 'agent-pass' as const,
+        owner: { id: 'user_1', handle: 'alice', securityLevel: 1 },
+        latestRevision: 1,
+        history: [
+          {
+            revision: 1,
+            sourceHash: 'a'.repeat(64),
+            files: [
+              {
+                path: 'SKILL.md',
+                kind: 'skill-markdown' as const,
+                sha256: 'b'.repeat(64),
+                sizeBytes: 100,
+                mediaType: 'text/markdown',
+                source: 'SKILL.md' as const,
+                includeInDerivation: true,
+                activationOnly: false,
+              },
+            ],
+            submittedAt: '2024-01-01T00:00:00Z',
+            submittedBy: { id: 'user_1', handle: 'alice', securityLevel: 1 },
+            scriptDescriptors: [],
+            derived: null,
+          },
+        ],
+        metadata: {
+          sourceKind: 'skill-directory' as const,
+          submissionCount: 1,
+          resubmissionCount: 0,
+          revisionCount: 1,
+          latestSubmissionId: 'sub_1',
+          latestSubmittedAt: '2024-01-01T00:00:00Z',
+        },
+        agentReview: {
+          status: 'agent-pass' as const,
+          duplicateRisk: 'low' as const,
+          correctnessRisk: 'low' as const,
+          completenessRisk: 'low' as const,
+          checkedAt: '2024-01-01T00:00:00Z',
+          notes: [],
+        },
+        reviewHistory: [],
+        reviewNotes: [],
+        lifecycleHistory: [],
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      };
+      const response = {
+        items: [
+          {
+            artifact,
+            revision: 1,
+            agentReview: {
+              status: 'agent-pass' as const,
+              duplicateRisk: 'low' as const,
+              correctnessRisk: 'low' as const,
+              completenessRisk: 'low' as const,
+              checkedAt: '2024-01-01T00:00:00Z',
+              notes: [],
+            },
+            submittedBy: { id: 'user_1', handle: 'alice', securityLevel: 1 },
+            lastDecision: null,
+          },
+        ],
+        nextCursor: null,
+        total: 1,
+      };
+      const parsed = skillReviewQueueResponseSchema.parse(response);
+      expect(parsed.items).toHaveLength(1);
+      expect(parsed.total).toBe(1);
+    });
+
+    it('accepts empty queue', () => {
+      const response = {
+        items: [],
+        nextCursor: null,
+        total: 0,
+      };
+      const parsed = skillReviewQueueResponseSchema.parse(response);
+      expect(parsed.items).toHaveLength(0);
+    });
+  });
+
+  describe('skillReviewDecisionResponseSchema', () => {
+    it('accepts valid response with state transition', () => {
+      const artifact = {
+        id: 'artifact_1',
+        teamId: null,
+        scope: 'global' as const,
+        labels: ['typescript'],
+        title: 'Test Skill',
+        slug: 'test-skill',
+        requiredLevel: 0,
+        lifecycleState: 'approved' as const,
+        owner: { id: 'user_1', handle: 'alice', securityLevel: 1 },
+        latestRevision: 1,
+        history: [
+          {
+            revision: 1,
+            sourceHash: 'a'.repeat(64),
+            files: [
+              {
+                path: 'SKILL.md',
+                kind: 'skill-markdown' as const,
+                sha256: 'b'.repeat(64),
+                sizeBytes: 100,
+                mediaType: 'text/markdown',
+                source: 'SKILL.md' as const,
+                includeInDerivation: true,
+                activationOnly: false,
+              },
+            ],
+            submittedAt: '2024-01-01T00:00:00Z',
+            submittedBy: { id: 'user_1', handle: 'alice', securityLevel: 1 },
+            scriptDescriptors: [],
+            derived: null,
+          },
+        ],
+        metadata: {
+          sourceKind: 'skill-directory' as const,
+          submissionCount: 1,
+          resubmissionCount: 0,
+          revisionCount: 1,
+          latestSubmissionId: 'sub_1',
+          latestSubmittedAt: '2024-01-01T00:00:00Z',
+        },
+        agentReview: null,
+        reviewHistory: [],
+        reviewNotes: [],
+        lifecycleHistory: [],
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T01:00:00Z',
+      };
+      const response = {
+        artifact,
+        previousState: 'agent-pass' as const,
+        newState: 'approved' as const,
+      };
+      const parsed = skillReviewDecisionResponseSchema.parse(response);
+      expect(parsed.previousState).toBe('agent-pass');
+      expect(parsed.newState).toBe('approved');
+    });
+  });
+});
