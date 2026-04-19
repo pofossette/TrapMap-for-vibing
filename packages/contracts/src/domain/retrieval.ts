@@ -285,3 +285,72 @@ export type AssetAvailabilityHint = z.infer<typeof assetAvailabilityHintSchema>;
 export type ScriptProfileHint = z.infer<typeof scriptProfileHintSchema>;
 export type CapsuleActivationHints = z.infer<typeof capsuleActivationHintsSchema>;
 export type RetrievalV2ResponseWithHints = z.infer<typeof retrievalV2ResponseWithHintsSchema>;
+
+// =============================================================================
+// Phase 18: Skill Lookup by Content (SKED-01)
+// Artifact-first lookup contract for skill search-by-content CLI command.
+// Returns unique artifact IDs with brief metadata, not capsule content.
+// =============================================================================
+
+/**
+ * Source kind for skill artifacts.
+ * Indicates how the artifact was originally created.
+ */
+export const skillSourceKindSchema = z.enum([
+  'skill-directory',
+  'single-skill-md',
+  'legacy-knowledge',
+]);
+
+/**
+ * Skill lookup query schema (SKED-01).
+ * Accepts search text and optional result limit.
+ * Designed for CLI `skill search-by-content <text>` command.
+ */
+export const skillLookupQuerySchema = z.object({
+  /** Natural-language search text */
+  text: z.string().min(1).max(2000),
+  /** Maximum number of matches to return */
+  maxResults: z.number().int().min(1).max(50).default(10),
+});
+
+/**
+ * Single artifact match in skill lookup response (SKED-01).
+ * Artifact-first: returns skill ID with brief metadata.
+ * Does NOT include capsule content, activation hints, or file payloads.
+ */
+export const skillLookupResultItemSchema = z.object({
+  /** Unique artifact/skill identifier */
+  artifactId: entityIdSchema,
+  /** Human-readable title */
+  title: z.string().min(1).max(280),
+  /** URL-friendly slug for references */
+  slug: z.string().min(1).max(160),
+  /** Searchable labels */
+  labels: z.array(labelSchema),
+  /** Governance scope (global or project) */
+  scope: scopeSchema,
+  /** Required security level to access this artifact */
+  requiredLevel: securityLevelSchema,
+  /** How this artifact was originally created */
+  sourceKind: skillSourceKindSchema,
+  /** Final ranking score after all boosts applied */
+  score: z.number().min(0).max(1),
+  /** Human-readable explanation of why this artifact matched */
+  reason: z.string().min(1),
+});
+
+/**
+ * Skill lookup response schema (SKED-01).
+ * Returns artifact-first matches with metadata-only fields.
+ * Stays distinct from capsule-native retrievalV2ResponseWithHintsSchema.
+ */
+export const skillLookupResponseSchema = z.object({
+  /** Ranked artifact matches with brief metadata */
+  matches: z.array(skillLookupResultItemSchema).default([]),
+});
+
+export type SkillSourceKind = z.infer<typeof skillSourceKindSchema>;
+export type SkillLookupQuery = z.infer<typeof skillLookupQuerySchema>;
+export type SkillLookupResultItem = z.infer<typeof skillLookupResultItemSchema>;
+export type SkillLookupResponse = z.infer<typeof skillLookupResponseSchema>;
