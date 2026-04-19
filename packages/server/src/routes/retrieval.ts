@@ -5,10 +5,13 @@ import {
   retrievalResponseSchema,
   retrievalV2QuerySchema,
   retrievalV2ResponseWithHintsSchema,
+  skillLookupQuerySchema,
+  skillLookupResponseSchema,
 } from '@trapmap/contracts';
 
 import { requirePermission } from '../lib/rbac.js';
 import { searchKnowledge, searchKnowledgeV2 } from '../lib/retrieval.js';
+import { searchSkillsByContent } from '../lib/retrieval/skill-lookup.js';
 import { resolveAuthContext } from '../lib/session.js';
 
 export const retrievalRoutes: FastifyPluginAsync = async (app) => {
@@ -47,5 +50,24 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
 
     // Validate and return v2 response with activation hints (T-15-03)
     return retrievalV2ResponseWithHintsSchema.parse(result);
+  });
+
+  // Phase 18: Skill lookup by content (SKED-01)
+  // Returns artifact-first matches with metadata-only fields
+  // Enforces governance: team, security level, approval state (T-18-05)
+  app.post('/v1/retrieval/skills/search-by-content', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+
+    // Enforce knowledge:search permission (T-18-04)
+    requirePermission(auth, 'knowledge:search');
+
+    // Parse and validate lookup query
+    const query = skillLookupQuerySchema.parse(request.body);
+
+    // Execute artifact-first lookup
+    const result = await searchSkillsByContent(app.skillShareer, auth, query);
+
+    // Validate and return artifact-first response
+    return skillLookupResponseSchema.parse(result);
   });
 };
