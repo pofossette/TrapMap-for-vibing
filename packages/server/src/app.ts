@@ -39,6 +39,8 @@ const documentedRoutes = [
   'POST /v1/operations/export',
   'GET /v1/operations/knowledge',
   'POST /v1/operations/knowledge/:entryId/deactivate',
+  'POST /v1/operations/artifacts/:artifactId/edit',
+  'GET /v1/operations/artifacts/:artifactId/history',
 ] as const;
 
 interface BuildServerOptions {

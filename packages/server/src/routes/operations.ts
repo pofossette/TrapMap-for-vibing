@@ -22,11 +22,20 @@ import {
   legacyMigrationRequestSchema,
   legacyMigrationResponseSchema,
   legacyMigrationResultItemSchema,
+  skillEditRequestSchema,
+  skillEditResponseSchema,
+  skillHistoryRequestSchema,
+  skillHistoryResponseSchema,
 } from '@trapmap/contracts';
 import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { deriveSkillArtifactOutputs } from '../lib/artifacts/derive.js';
+import {
+  getSkillHistory,
+  mergeEditPayload,
+  submitSkillEdit,
+} from '../lib/artifacts/edit.js';
 import { createSkillArtifactRecord, toSkillArtifact } from '../lib/artifacts/model.js';
 import { applyDerivedArtifactOutputs } from '../lib/artifacts/model.js';
 import { createAuditEvent, queryAuditEvents, toAuditEvent } from '../lib/audit.js';
@@ -1042,6 +1051,176 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       sunsetReady,
       sunsetBlockers,
       reportedAt: nowIso(),
+    });
+  });
+
+  // Skill edit endpoint (Phase 19-02: SKED-02, T-19-04, T-19-05, T-19-07)
+  app.post('/v1/operations/artifacts/:artifactId/edit', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:submit');
+
+    // System-admin cannot edit (needs real user as editor)
+    if (auth.subjectType === 'system-admin') {
+      throw new AppError(403, 'invalid_subject', 'System admin cannot edit artifacts directly');
+    }
+
+    const editorUserId = auth.user?.id;
+    if (!editorUserId) {
+      throw new AppError(403, 'user_not_found', 'User record not found');
+    }
+
+    const artifactId = (request.params as { artifactId: string }).artifactId;
+    const body = skillEditRequestSchema.parse((request.body as Record<string, unknown>) ?? {});
+
+    const data = await app.skillShareer.store.snapshot();
+
+    // Ensure skillArtifacts exists
+    if (!data.skillArtifacts) {
+      data.skillArtifacts = [];
+    }
+
+    // Find the artifact
+    const artifact = data.skillArtifacts.find((a) => a.id === artifactId);
+    if (!artifact) {
+      throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
+    }
+
+    // Check team access (T-19-05)
+    if (artifact.teamId) {
+      requireTeamAccess(auth, artifact.teamId);
+    }
+
+    // Check security level
+    if (auth.securityLevel < artifact.requiredLevel) {
+      throw new AppError(403, 'insufficient_level', 'Security level insufficient');
+    }
+
+    // Check ownership or higher level (T-19-07)
+    const isOwner = artifact.owner.userId === editorUserId;
+    const isHigherLevel = auth.securityLevel > artifact.requiredLevel;
+    if (!isOwner && !isHigherLevel) {
+      throw new AppError(
+        403,
+        'edit_not_allowed',
+        'Only the owner or a user with higher security level may edit this artifact',
+      );
+    }
+
+    const submittedAt = nowIso();
+
+    // Submit the edit within a transaction
+    const result = await app.skillShareer.store.transact(async (data) => {
+      // Re-fetch artifact within transaction
+      const txArtifact = data.skillArtifacts?.find((a) => a.id === artifactId);
+      if (!txArtifact) {
+        throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
+      }
+
+      const editResult = await submitSkillEdit({
+        store: app.skillShareer.store,
+        data,
+        artifact: txArtifact,
+        editorUserId,
+        editPayload: {
+          title: body.title,
+          labels: body.labels,
+          files: body.files,
+          scriptDescriptors: body.scriptDescriptors,
+        },
+        submittedAt,
+        runPreReview,
+      });
+
+      // Record audit event (T-19-08)
+      const auditEvent = createAuditEvent({
+        store: app.skillShareer.store,
+        data,
+        teamId: txArtifact.teamId,
+        actor: auth,
+        action: 'artifact-edited',
+        entityId: txArtifact.id,
+        payload: {
+          previousRevision: editResult.previousRevision,
+          newRevision: editResult.artifact.latestRevision.revision,
+          lifecycleTransition: editResult.lifecycleTransition,
+        },
+      });
+      data.auditEvents.push(auditEvent);
+
+      return editResult;
+    });
+
+    return skillEditResponseSchema.parse({
+      artifact: toSkillArtifact(result.artifact, data),
+      previousRevision: result.previousRevision,
+      lifecycleTransition: result.lifecycleTransition,
+    });
+  });
+
+  // Skill history endpoint (Phase 19-02: SKED-04, T-19-09)
+  app.get('/v1/operations/artifacts/:artifactId/history', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:export');
+
+    const artifactId = (request.params as { artifactId: string }).artifactId;
+    const query = skillHistoryRequestSchema.parse(
+      (request.query as Record<string, unknown>) ?? {},
+    );
+
+    const data = await app.skillShareer.store.snapshot();
+
+    // Ensure skillArtifacts exists
+    if (!data.skillArtifacts) {
+      data.skillArtifacts = [];
+    }
+
+    // Find the artifact
+    const artifact = data.skillArtifacts.find((a) => a.id === artifactId);
+    if (!artifact) {
+      throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
+    }
+
+    // Check team access (T-19-09: same governance as export)
+    if (artifact.teamId) {
+      requireTeamAccess(auth, artifact.teamId);
+    }
+
+    // Check security level
+    if (auth.securityLevel < artifact.requiredLevel) {
+      throw new AppError(403, 'insufficient_level', 'Security level insufficient');
+    }
+
+    // Get history
+    const history = getSkillHistory({ data, artifactId });
+
+    // Record audit event
+    await app.skillShareer.store.transact((data) => {
+      const auditEvent = createAuditEvent({
+        store: app.skillShareer.store,
+        data,
+        teamId: artifact.teamId,
+        actor: auth,
+        action: 'artifact-history-viewed',
+        entityId: artifact.id,
+        payload: {
+          revisionCount: history.revisions.length,
+        },
+      });
+      data.auditEvents.push(auditEvent);
+    });
+
+    return skillHistoryResponseSchema.parse({
+      artifactId: history.artifactId,
+      title: history.title,
+      currentRevision: history.currentRevision,
+      lifecycleState: history.lifecycleState,
+      revisions: history.revisions.map((r) => ({
+        revision: r.revision,
+        submittedAt: r.submittedAt,
+        submittedBy: r.submittedBy,
+        summary: r.summary,
+        lifecycleState: r.lifecycleState,
+      })),
     });
   });
 };
