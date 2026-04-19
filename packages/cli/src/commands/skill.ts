@@ -1,5 +1,17 @@
-import type { SkillEditResponse, SkillHistoryResponse, SkillLookupResponse } from '@trapmap/contracts';
-import { skillEditResponseSchema, skillHistoryResponseSchema, skillLookupResponseSchema } from '@trapmap/contracts';
+import type {
+  SkillEditResponse,
+  SkillHistoryResponse,
+  SkillLookupResponse,
+  SkillReviewDecisionResponse,
+  SkillReviewQueueResponse,
+} from '@trapmap/contracts';
+import {
+  skillEditResponseSchema,
+  skillHistoryResponseSchema,
+  skillLookupResponseSchema,
+  skillReviewDecisionResponseSchema,
+  skillReviewQueueResponseSchema,
+} from '@trapmap/contracts';
 import type { Command } from 'commander';
 import { readFileSync } from 'node:fs';
 
@@ -11,6 +23,7 @@ interface SkillCommandOptions {
   allowSearch: boolean;
   allowSubmit: boolean;
   allowExport: boolean;
+  allowReview: boolean;
 }
 
 /**
@@ -237,6 +250,129 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
           const parsed = skillHistoryResponseSchema.parse(response.data);
 
           printResult(parsed, flags, formatSkillHistoryResponse);
+        },
+      );
+  }
+
+  // Phase 20: skill review commands (SKED-03)
+  if (options.allowReview) {
+    /**
+     * Format skill review queue for text output.
+     */
+    function formatSkillReviewQueue(response: SkillReviewQueueResponse): string {
+      if (response.items.length === 0) {
+        return 'Review queue is empty';
+      }
+
+      return response.items
+        .map(({ artifact, agentReview, lastDecision }) => {
+          const lines = [
+            `${artifact.id} [${artifact.lifecycleState}]`,
+            `Title: ${artifact.title}`,
+            `Required level: ${artifact.requiredLevel}`,
+            `Owner: ${artifact.owner.handle}`,
+            `Agent review: ${agentReview?.status ?? 'none'}`,
+            `Last decision: ${lastDecision ? `${lastDecision.decision} (${lastDecision.notes})` : 'none'}`,
+          ];
+          return lines.join('\n');
+        })
+        .join('\n\n');
+    }
+
+    /**
+     * Format skill review decision response for text output.
+     */
+    function formatSkillReviewDecisionResponse(response: SkillReviewDecisionResponse): string {
+      const lines = [
+        `Artifact ID: ${response.artifact.id}`,
+        `Title: ${response.artifact.title}`,
+        `Previous State: ${response.previousState}`,
+        `New State: ${response.newState}`,
+      ];
+      return lines.join('\n');
+    }
+
+    skill
+      .command('review:queue')
+      .description('View pending skill edits for review')
+      .option('--json', 'Output JSON')
+      .action(async (flags: { json?: boolean }) => {
+        const state = await loadCliState();
+        requireSessionToken(state);
+
+        const response = await apiRequest<SkillReviewQueueResponse>(state, {
+          method: 'GET',
+          path: '/v1/operations/artifacts/review-queue',
+        });
+
+        const parsed = skillReviewQueueResponseSchema.parse(response.data);
+
+        printResult(parsed, flags, formatSkillReviewQueue);
+      });
+
+    skill
+      .command('review:approve')
+      .description('Approve a pending skill edit')
+      .argument('<artifactId>', 'Artifact ID to approve')
+      .requiredOption('--notes <text>', 'Review notes (required)')
+      .option('--json', 'Output JSON')
+      .action(
+        async (
+          artifactId: string,
+          flags: {
+            notes: string;
+            json?: boolean;
+          },
+        ) => {
+          const state = await loadCliState();
+          requireSessionToken(state);
+
+          const response = await apiRequest<SkillReviewDecisionResponse>(state, {
+            method: 'POST',
+            path: `/v1/operations/artifacts/${artifactId}/review`,
+            body: {
+              artifactId,
+              decision: 'approve',
+              notes: flags.notes,
+            },
+          });
+
+          const parsed = skillReviewDecisionResponseSchema.parse(response.data);
+
+          printResult(parsed, flags, formatSkillReviewDecisionResponse);
+        },
+      );
+
+    skill
+      .command('review:reject')
+      .description('Reject a pending skill edit')
+      .argument('<artifactId>', 'Artifact ID to reject')
+      .requiredOption('--notes <text>', 'Review notes (required)')
+      .option('--json', 'Output JSON')
+      .action(
+        async (
+          artifactId: string,
+          flags: {
+            notes: string;
+            json?: boolean;
+          },
+        ) => {
+          const state = await loadCliState();
+          requireSessionToken(state);
+
+          const response = await apiRequest<SkillReviewDecisionResponse>(state, {
+            method: 'POST',
+            path: `/v1/operations/artifacts/${artifactId}/review`,
+            body: {
+              artifactId,
+              decision: 'reject',
+              notes: flags.notes,
+            },
+          });
+
+          const parsed = skillReviewDecisionResponseSchema.parse(response.data);
+
+          printResult(parsed, flags, formatSkillReviewDecisionResponse);
         },
       );
   }

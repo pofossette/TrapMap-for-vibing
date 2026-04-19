@@ -82,7 +82,7 @@ program
       ...(visibility.allowKnowledgeInspect ? ['review-status'] : []),
       ...(visibility.allowKnowledgeSearch ? ['search', 'skill search-by-content'] : []),
       ...(visibility.allowKnowledgeReview
-        ? ['review:queue', 'review:approve', 'review:reject']
+        ? ['review:queue', 'review:approve', 'review:reject', 'skill review:queue', 'skill review:approve', 'skill review:reject']
         : []),
       ...(visibility.allowKnowledgeExport ? ['list', 'export', 'skill history'] : []),
       ...(visibility.allowKnowledgeImport ? ['import'] : []),
@@ -128,6 +128,7 @@ registerSkillCommands(program, {
   allowSearch: visibility.allowKnowledgeSearch,
   allowSubmit: visibility.allowKnowledgeSubmit,
   allowExport: visibility.allowKnowledgeExport,
+  allowReview: visibility.allowKnowledgeReview,
 });
 
 program.parseAsync(process.argv).catch(printError);
