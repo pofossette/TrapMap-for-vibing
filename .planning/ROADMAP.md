@@ -95,11 +95,11 @@ Plans:
   2. Search results include skill ID, title, and brief metadata for each match
   3. Command supports JSON output mode for agent-friendly consumption
   4. Results are permission-filtered based on user's team and security level
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 18-01-PLAN.md — Define the shared artifact-first skill lookup contracts and tests
-- [ ] 18-02-PLAN.md — Implement the governed server endpoint and additive `skill search-by-content` CLI flow
+- [x] 18-01-PLAN.md — Define the shared artifact-first skill lookup contracts and tests
+- [x] 18-02-PLAN.md — Implement the governed server endpoint and additive `skill search-by-content` CLI flow
 
 #### Phase 19: Skill Edit Flow with History
 
@@ -187,7 +187,7 @@ Plans:
 | 15. Client Activation for References, Assets, and Scripts | v1.2 | 3/3 | Complete | 2026-04-17 |
 | 16. Compatibility Migration and Boundary Hardening | v1.2 | 3/3 | Complete | 2026-04-17 |
 | 17. Deployment Scripts | v1.3 | 1/1 | Complete | 2026-04-17 |
-| 18. CLI Skill Lookup Commands | v1.3 | 0/2 | Not started | - |
+| 18. CLI Skill Lookup Commands | v1.3 | 2/2 | Complete   | 2026-04-19 |
 | 19. Skill Edit Flow with History | v1.3 | 0/3 | Not started | - |
 | 20. Skill Edit Review Workflow | v1.3 | 0/2 | Not started | - |
 | 21. User Operations Logger | v1.3 | 0/2 | Not started | - |
