@@ -6,6 +6,7 @@ import { createAuditEvent } from '../lib/audit.js';
 import { AppError } from '../lib/errors.js';
 import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 import { applyReviewDecision, toKnowledgeEntry } from '../lib/knowledge.js';
+import { logUserOperation } from '../lib/user-ops-log.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
@@ -64,6 +65,17 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
               : null,
         };
       });
+
+    // Log user operation (fire-and-forget)
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'review-list',
+      targetId: null,
+      teamId: auth.activeTeamId,
+      metadata: { itemCount: items.length, status: rawQuery.status },
+    });
 
     return reviewQueueResponseSchema.parse({
       items,
@@ -154,6 +166,17 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
         // Optionally: schedule retry or mark entry for reconciliation
       }
     }
+
+    // Log user operation (fire-and-forget)
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'review',
+      targetId: payload.entryId,
+      teamId: auth.activeTeamId,
+      metadata: { decision: payload.decision },
+    });
 
     return { entry: reviewedEntry };
   });

@@ -57,6 +57,7 @@ import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
+import { logUserOperation } from '../lib/user-ops-log.js';
 
 export const operationsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/operations/audit', async (request) => {
@@ -285,6 +286,17 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       data.auditEvents.push(auditEvent);
     });
 
+    // Log user operation (fire-and-forget)
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'export',
+      targetId: null,
+      teamId: auth.activeTeamId,
+      metadata: { endpoint: 'legacy-export', entryCount },
+    });
+
     return exportBundleSchema.parse({
       exportedAt,
       exportedBy: actorRef,
@@ -373,6 +385,17 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
         });
         importedCount++;
       }
+    });
+
+    // Log user operation (fire-and-forget)
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'import',
+      targetId: null,
+      teamId: auth.activeTeamId,
+      metadata: { endpoint: 'legacy-import', importedCount, failedCount },
     });
 
     return importResponseSchema.parse({
@@ -514,6 +537,17 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       }
     });
 
+    // Log user operation (fire-and-forget)
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'import',
+      targetId: null,
+      teamId: auth.activeTeamId,
+      metadata: { endpoint: 'artifact-import', importedCount, failedCount },
+    });
+
     return artifactImportResponseSchema.parse({
       results: results.map((r) =>
         artifactImportResultItemSchema.parse({
@@ -579,6 +613,17 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
         payload: { format, artifactId, title: artifact.title },
       });
       data.auditEvents.push(auditEvent);
+    });
+
+    // Log user operation (fire-and-forget)
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'export',
+      targetId: artifactId,
+      teamId: auth.activeTeamId,
+      metadata: { endpoint: 'artifact-export', format },
     });
 
     // Build response based on format
@@ -1153,6 +1198,20 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       return editResult;
     });
 
+    // Log user operation (fire-and-forget)
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'edit',
+      targetId: artifactId,
+      teamId: auth.activeTeamId,
+      metadata: {
+        previousRevision: result.previousRevision,
+        newRevision: result.artifact.latestRevision.revision,
+      },
+    });
+
     return skillEditResponseSchema.parse({
       artifact: toSkillArtifact(result.artifact, data),
       previousRevision: result.previousRevision,
@@ -1284,6 +1343,17 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       };
     });
 
+    // Log user operation (fire-and-forget)
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'review-list',
+      targetId: null,
+      teamId: auth.activeTeamId,
+      metadata: { endpoint: 'artifact-review-queue', itemCount: items.length },
+    });
+
     return skillReviewQueueResponseSchema.parse({
       items,
       nextCursor: null,
@@ -1399,6 +1469,17 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
         previousState,
         newState: artifact.lifecycleState,
       };
+    });
+
+    // Log user operation (fire-and-forget)
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'review',
+      targetId: artifactId,
+      teamId: auth.activeTeamId,
+      metadata: { decision: body.decision, revision: result.artifact.latestRevision.revision },
     });
 
     return skillReviewDecisionResponseSchema.parse({
