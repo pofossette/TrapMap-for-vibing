@@ -111,12 +111,12 @@ Plans:
   2. Edit creates a pending revision that enters the review queue
   3. Previous skill versions are preserved with timestamps
   4. User can view edit history for a skill showing all past revisions
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 19-01: Define skill edit contracts and revision schema
-- [ ] 19-02: Implement server edit endpoint with history tracking
-- [ ] 19-03: Add CLI edit-by-id command and history view
+- [x] 19-01: Define skill edit contracts and revision schema
+- [x] 19-02: Implement server edit endpoint with history tracking
+- [x] 19-03: Add CLI edit-by-id command and history view
 
 #### Phase 20: Skill Edit Review Workflow
 
@@ -128,11 +128,11 @@ Plans:
   2. Reviewer can approve or reject a skill edit with notes
   3. Approved edits become the active skill version; rejected edits return to submitter for revision
   4. Edit review decisions are recorded in audit trail
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 20-01: Implement skill edit review endpoint reusing existing RBAC patterns
-- [ ] 20-02: Add CLI commands for listing pending edits and submitting review decisions
+- [x] 20-01: Implement skill edit review endpoint reusing existing RBAC patterns
+- [x] 20-02: Add CLI commands for listing pending edits and submitting review decisions
 
 #### Phase 21: User Operations Logger
 
@@ -144,10 +144,10 @@ Plans:
   2. Each log entry includes actor ID, action type, target ID, and timestamp
   3. LOG_USER_OPS_ENABLED in .env controls user ops logging independently
   4. Logs write to structured files in a dedicated logs directory
-**Plans:** 2 plans
+**Plans:** 1/2 plans complete
 
 Plans:
-- [ ] 21-01: Define user ops logger with .env configuration and structured output
+- [x] 21-01: Define user ops logger with .env configuration and structured output
 - [ ] 21-02: Integrate user ops logging into existing API routes
 
 #### Phase 22: RAG Logger with File Rotation
@@ -188,9 +188,9 @@ Plans:
 | 16. Compatibility Migration and Boundary Hardening | v1.2 | 3/3 | Complete | 2026-04-17 |
 | 17. Deployment Scripts | v1.3 | 1/1 | Complete    | 2026-04-19 |
 | 18. CLI Skill Lookup Commands | v1.3 | 2/2 | Complete   | 2026-04-19 |
-| 19. Skill Edit Flow with History | v1.3 | 0/3 | Not started | - |
-| 20. Skill Edit Review Workflow | v1.3 | 0/2 | Not started | - |
-| 21. User Operations Logger | v1.3 | 0/2 | Not started | - |
+| 19. Skill Edit Flow with History | v1.3 | 3/3 | Complete | 2026-04-19 |
+| 20. Skill Edit Review Workflow | v1.3 | 2/2 | Complete | 2026-04-19 |
+| 21. User Operations Logger | v1.3 | 1/2 | In progress | - |
 | 22. RAG Logger with File Rotation | v1.3 | 0/2 | Not started | - |
 
 ## Dependencies
