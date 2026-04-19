@@ -12,7 +12,7 @@
     "knip": "knip",
     "knip:fix": "knip --fix",
     "lint": "biome check .",
-    "test": "pnpm -r run test",
+    "test": "vitest run",
     "typecheck": "tsc -b --pretty false"
   },
   "devDependencies": {

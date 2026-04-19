@@ -2949,3 +2949,593 @@ describe('Phase 18: Skill Lookup by Content Contracts (SKED-01)', () => {
     });
   });
 });
+
+// =============================================================================
+// Phase 19: Skill Edit and History Contracts (SKED-02, SKED-04)
+// Edit request/response and history view schemas for skill editing flow.
+// =============================================================================
+
+import {
+  skillEditRequestSchema,
+  skillEditResponseSchema,
+  skillHistoryRequestSchema,
+  skillHistoryResponseSchema,
+  skillRevisionSummarySchema,
+} from './index.js';
+
+describe('Phase 19: Skill Edit and History Contracts', () => {
+  describe('skillEditRequestSchema', () => {
+    it('accepts valid edit request with artifactId and title only', () => {
+      const request = {
+        artifactId: 'artifact_123',
+        title: 'Updated Docker Troubleshooting Guide',
+      };
+
+      const parsed = skillEditRequestSchema.parse(request);
+      expect(parsed.artifactId).toBe('artifact_123');
+      expect(parsed.title).toBe('Updated Docker Troubleshooting Guide');
+      expect(parsed.labels).toBeUndefined();
+      expect(parsed.files).toBeUndefined();
+    });
+
+    it('accepts valid edit request with artifactId and labels only', () => {
+      const request = {
+        artifactId: 'artifact_456',
+        labels: ['docker', 'containers', 'updated'],
+      };
+
+      const parsed = skillEditRequestSchema.parse(request);
+      expect(parsed.artifactId).toBe('artifact_456');
+      expect(parsed.labels).toHaveLength(3);
+      expect(parsed.title).toBeUndefined();
+    });
+
+    it('accepts valid edit request with artifactId and files payload', () => {
+      const request = {
+        artifactId: 'artifact_789',
+        files: [
+          {
+            path: 'SKILL.md',
+            kind: 'skill-markdown',
+            sha256: 'a'.repeat(64),
+            sizeBytes: 2048,
+            mediaType: 'text/markdown',
+            source: 'SKILL.md',
+            includeInDerivation: true,
+            activationOnly: false,
+            content: '# Updated Skill Content',
+          },
+        ],
+      };
+
+      const parsed = skillEditRequestSchema.parse(request);
+      expect(parsed.artifactId).toBe('artifact_789');
+      expect(parsed.files).toHaveLength(1);
+      expect(parsed.files?.[0]?.path).toBe('SKILL.md');
+    });
+
+    it('accepts edit request with title, labels, and files together', () => {
+      const request = {
+        artifactId: 'artifact_full',
+        title: 'Complete Update',
+        labels: ['new-label'],
+        files: [
+          {
+            path: 'references/guide.md',
+            kind: 'reference',
+            sha256: 'b'.repeat(64),
+            sizeBytes: 1024,
+            mediaType: 'text/markdown',
+            source: 'references/',
+            includeInDerivation: true,
+            activationOnly: false,
+            content: 'Reference content',
+          },
+        ],
+      };
+
+      const parsed = skillEditRequestSchema.parse(request);
+      expect(parsed.title).toBe('Complete Update');
+      expect(parsed.labels).toHaveLength(1);
+      expect(parsed.files).toHaveLength(1);
+    });
+
+    it('defaults scriptDescriptors to empty array', () => {
+      const request = {
+        artifactId: 'artifact_1',
+        title: 'Test',
+      };
+
+      const parsed = skillEditRequestSchema.parse(request);
+      expect(parsed.scriptDescriptors).toEqual([]);
+    });
+
+    it('rejects edit request with no update fields (at least one required)', () => {
+      const request = {
+        artifactId: 'artifact_noupdate',
+      };
+
+      expect(() => skillEditRequestSchema.parse(request)).toThrow();
+    });
+
+    it('rejects edit request with empty labels array', () => {
+      const request = {
+        artifactId: 'artifact_1',
+        labels: [],
+      };
+
+      expect(() => skillEditRequestSchema.parse(request)).toThrow();
+    });
+
+    it('rejects edit request with empty files array', () => {
+      const request = {
+        artifactId: 'artifact_1',
+        files: [],
+      };
+
+      expect(() => skillEditRequestSchema.parse(request)).toThrow();
+    });
+
+    it('rejects edit request missing artifactId', () => {
+      const request = {
+        title: 'Missing artifactId',
+      };
+
+      expect(() => skillEditRequestSchema.parse(request)).toThrow();
+    });
+
+    it('rejects title longer than 280 characters', () => {
+      const request = {
+        artifactId: 'artifact_1',
+        title: 'a'.repeat(281),
+      };
+
+      expect(() => skillEditRequestSchema.parse(request)).toThrow();
+    });
+  });
+
+  describe('skillEditResponseSchema', () => {
+    const makeMinimalArtifact = () => ({
+      id: 'artifact_1',
+      teamId: null,
+      scope: 'global' as const,
+      labels: ['test'],
+      title: 'Test Artifact',
+      slug: 'test-artifact',
+      requiredLevel: 0,
+      lifecycleState: 'approved' as const,
+      owner: {
+        id: 'user_1',
+        handle: 'testuser',
+        securityLevel: 5,
+      },
+      latestRevision: 2,
+      history: [
+        {
+          revision: 1,
+          sourceHash: 'a'.repeat(64),
+          files: [
+            {
+              path: 'SKILL.md',
+              kind: 'skill-markdown' as const,
+              sha256: 'a'.repeat(64),
+              sizeBytes: 100,
+              mediaType: 'text/markdown',
+              source: 'SKILL.md' as const,
+              includeInDerivation: true,
+              activationOnly: false,
+            },
+          ],
+          submittedAt: '2024-01-01T00:00:00Z',
+          submittedBy: {
+            id: 'user_1',
+            handle: 'testuser',
+            securityLevel: 5,
+          },
+          scriptDescriptors: [],
+          derived: null,
+        },
+        {
+          revision: 2,
+          sourceHash: 'b'.repeat(64),
+          files: [
+            {
+              path: 'SKILL.md',
+              kind: 'skill-markdown' as const,
+              sha256: 'b'.repeat(64),
+              sizeBytes: 150,
+              mediaType: 'text/markdown',
+              source: 'SKILL.md' as const,
+              includeInDerivation: true,
+              activationOnly: false,
+            },
+          ],
+          submittedAt: '2024-01-02T00:00:00Z',
+          submittedBy: {
+            id: 'user_1',
+            handle: 'testuser',
+            securityLevel: 5,
+          },
+          scriptDescriptors: [],
+          derived: null,
+        },
+      ],
+      metadata: {
+        sourceKind: 'skill-directory' as const,
+        submissionCount: 2,
+        resubmissionCount: 0,
+        revisionCount: 2,
+        latestSubmissionId: 'submission_2',
+        latestSubmittedAt: '2024-01-02T00:00:00Z',
+        latestReviewedAt: '2024-01-02T01:00:00Z',
+        latestDecision: 'approve' as const,
+      },
+      agentReview: null,
+      reviewHistory: [],
+      reviewNotes: [],
+      lifecycleHistory: [],
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-02T01:00:00Z',
+    });
+
+    it('accepts valid edit response with updated artifact and revision info', () => {
+      const response = {
+        artifact: makeMinimalArtifact(),
+        previousRevision: 1,
+      };
+
+      const parsed = skillEditResponseSchema.parse(response);
+      expect(parsed.artifact.id).toBe('artifact_1');
+      expect(parsed.artifact.latestRevision).toBe(2);
+      expect(parsed.previousRevision).toBe(1);
+    });
+
+    it('accepts edit response with lifecycle transition', () => {
+      const response = {
+        artifact: {
+          ...makeMinimalArtifact(),
+          lifecycleState: 'submitted' as const,
+        },
+        previousRevision: 1,
+        lifecycleTransition: {
+          from: 'approved' as const,
+          to: 'submitted' as const,
+        },
+      };
+
+      const parsed = skillEditResponseSchema.parse(response);
+      expect(parsed.lifecycleTransition).toBeDefined();
+      expect(parsed.lifecycleTransition?.from).toBe('approved');
+      expect(parsed.lifecycleTransition?.to).toBe('submitted');
+    });
+
+    it('accepts edit response without lifecycle transition', () => {
+      const response = {
+        artifact: makeMinimalArtifact(),
+        previousRevision: 1,
+      };
+
+      const parsed = skillEditResponseSchema.parse(response);
+      expect(parsed.lifecycleTransition).toBeUndefined();
+    });
+
+    it('returns full skillArtifactSchema in artifact field', () => {
+      const artifact = makeMinimalArtifact();
+      const response = {
+        artifact,
+        previousRevision: 1,
+      };
+
+      const parsed = skillEditResponseSchema.parse(response);
+      // Verify key artifact fields are preserved
+      expect(parsed.artifact.id).toBe('artifact_1');
+      expect(parsed.artifact.title).toBe('Test Artifact');
+      expect(parsed.artifact.slug).toBe('test-artifact');
+      expect(parsed.artifact.history).toHaveLength(2);
+    });
+  });
+
+  describe('skillRevisionSummarySchema', () => {
+    it('accepts valid revision summary with required fields', () => {
+      const summary = {
+        revision: 1,
+        submittedAt: '2024-01-01T00:00:00Z',
+        submittedBy: {
+          id: 'user_1',
+          handle: 'testuser',
+          securityLevel: 5,
+        },
+        lifecycleState: 'approved' as const,
+      };
+
+      const parsed = skillRevisionSummarySchema.parse(summary);
+      expect(parsed.revision).toBe(1);
+      expect(parsed.submittedAt).toBe('2024-01-01T00:00:00Z');
+      expect(parsed.submittedBy.handle).toBe('testuser');
+      expect(parsed.lifecycleState).toBe('approved');
+    });
+
+    it('accepts revision summary with optional summary text', () => {
+      const summary = {
+        revision: 2,
+        submittedAt: '2024-01-02T00:00:00Z',
+        submittedBy: {
+          id: 'user_1',
+          handle: 'testuser',
+          securityLevel: 5,
+        },
+        lifecycleState: 'approved' as const,
+        summary: 'Updated title and labels',
+      };
+
+      const parsed = skillRevisionSummarySchema.parse(summary);
+      expect(parsed.summary).toBe('Updated title and labels');
+    });
+
+    it('rejects summary text longer than 500 characters', () => {
+      const summary = {
+        revision: 1,
+        submittedAt: '2024-01-01T00:00:00Z',
+        submittedBy: {
+          id: 'user_1',
+          handle: 'testuser',
+          securityLevel: 5,
+        },
+        lifecycleState: 'approved' as const,
+        summary: 'a'.repeat(501),
+      };
+
+      expect(() => skillRevisionSummarySchema.parse(summary)).toThrow();
+    });
+
+    it('does not include full file manifests', () => {
+      const summary = {
+        revision: 1,
+        submittedAt: '2024-01-01T00:00:00Z',
+        submittedBy: {
+          id: 'user_1',
+          handle: 'testuser',
+          securityLevel: 5,
+        },
+        lifecycleState: 'approved' as const,
+      };
+
+      const parsed = skillRevisionSummarySchema.parse(summary);
+      expect('files' in parsed).toBe(false);
+      expect('sourceHash' in parsed).toBe(false);
+    });
+  });
+
+  describe('skillHistoryRequestSchema', () => {
+    it('accepts valid history request with artifactId', () => {
+      const request = {
+        artifactId: 'artifact_123',
+      };
+
+      const parsed = skillHistoryRequestSchema.parse(request);
+      expect(parsed.artifactId).toBe('artifact_123');
+    });
+
+    it('rejects history request missing artifactId', () => {
+      expect(() => skillHistoryRequestSchema.parse({})).toThrow();
+    });
+
+    it('rejects invalid artifactId format', () => {
+      const request = {
+        artifactId: '',
+      };
+
+      expect(() => skillHistoryRequestSchema.parse(request)).toThrow();
+    });
+  });
+
+  describe('skillHistoryResponseSchema', () => {
+    it('accepts valid history response with revision summaries', () => {
+      const response = {
+        artifactId: 'artifact_1',
+        title: 'Docker Troubleshooting',
+        currentRevision: 3,
+        lifecycleState: 'approved' as const,
+        revisions: [
+          {
+            revision: 1,
+            submittedAt: '2024-01-01T00:00:00Z',
+            submittedBy: { id: 'user_1', handle: 'alice', securityLevel: 5 },
+            lifecycleState: 'approved' as const,
+          },
+          {
+            revision: 2,
+            submittedAt: '2024-01-15T00:00:00Z',
+            submittedBy: { id: 'user_2', handle: 'bob', securityLevel: 5 },
+            lifecycleState: 'approved' as const,
+            summary: 'Added docker-compose reference',
+          },
+          {
+            revision: 3,
+            submittedAt: '2024-02-01T00:00:00Z',
+            submittedBy: { id: 'user_1', handle: 'alice', securityLevel: 5 },
+            lifecycleState: 'approved' as const,
+            summary: 'Updated for v2 API',
+          },
+        ],
+      };
+
+      const parsed = skillHistoryResponseSchema.parse(response);
+      expect(parsed.artifactId).toBe('artifact_1');
+      expect(parsed.title).toBe('Docker Troubleshooting');
+      expect(parsed.currentRevision).toBe(3);
+      expect(parsed.lifecycleState).toBe('approved');
+      expect(parsed.revisions).toHaveLength(3);
+    });
+
+    it('accepts history response with empty revisions array', () => {
+      const response = {
+        artifactId: 'artifact_1',
+        title: 'New Artifact',
+        currentRevision: 1,
+        lifecycleState: 'draft' as const,
+        revisions: [],
+      };
+
+      const parsed = skillHistoryResponseSchema.parse(response);
+      expect(parsed.revisions).toHaveLength(0);
+    });
+
+    it('is distinct from artifact export response (no full file manifests)', () => {
+      const response = {
+        artifactId: 'artifact_1',
+        title: 'Test',
+        currentRevision: 1,
+        lifecycleState: 'approved' as const,
+        revisions: [
+          {
+            revision: 1,
+            submittedAt: '2024-01-01T00:00:00Z',
+            submittedBy: { id: 'user_1', handle: 'test', securityLevel: 5 },
+            lifecycleState: 'approved' as const,
+          },
+        ],
+      };
+
+      const parsed = skillHistoryResponseSchema.parse(response);
+
+      // History response should NOT have bundle or distilled fields
+      expect('bundle' in parsed).toBe(false);
+      expect('distilled' in parsed).toBe(false);
+      expect('format' in parsed).toBe(false);
+      expect('exportedAt' in parsed).toBe(false);
+
+      // Revisions should NOT have full file manifests
+      expect('files' in parsed.revisions[0]!).toBe(false);
+      expect('sourceHash' in parsed.revisions[0]!).toBe(false);
+    });
+
+    it('is distinct from skillArtifactSchema (metadata-only, no full history)', () => {
+      const response = {
+        artifactId: 'artifact_1',
+        title: 'Test',
+        currentRevision: 1,
+        lifecycleState: 'approved' as const,
+        revisions: [],
+      };
+
+      const parsed = skillHistoryResponseSchema.parse(response);
+
+      // History response should NOT have artifact-level fields like owner, history, metadata
+      expect('owner' in parsed).toBe(false);
+      expect('history' in parsed).toBe(false);
+      expect('metadata' in parsed).toBe(false);
+      expect('agentReview' in parsed).toBe(false);
+      expect('reviewHistory' in parsed).toBe(false);
+      expect('scope' in parsed).toBe(false);
+      expect('labels' in parsed).toBe(false);
+    });
+  });
+
+  describe('Edit and history schema integration', () => {
+    it('edit response preserves artifact history for history view', () => {
+      // After an edit, the artifact in the response should have history
+      // that can be queried via the history endpoint
+      const artifactWithHistory = {
+        id: 'artifact_1',
+        teamId: null,
+        scope: 'global' as const,
+        labels: ['test'],
+        title: 'Updated Title',
+        slug: 'test-artifact',
+        requiredLevel: 0,
+        lifecycleState: 'approved' as const,
+        owner: {
+          id: 'user_1',
+          handle: 'testuser',
+          securityLevel: 5,
+        },
+        latestRevision: 2,
+        history: [
+          {
+            revision: 1,
+            sourceHash: 'a'.repeat(64),
+            files: [
+              {
+                path: 'SKILL.md',
+                kind: 'skill-markdown' as const,
+                sha256: 'a'.repeat(64),
+                sizeBytes: 100,
+                mediaType: 'text/markdown',
+                source: 'SKILL.md' as const,
+                includeInDerivation: true,
+                activationOnly: false,
+              },
+            ],
+            submittedAt: '2024-01-01T00:00:00Z',
+            submittedBy: { id: 'user_1', handle: 'testuser', securityLevel: 5 },
+            scriptDescriptors: [],
+            derived: null,
+          },
+          {
+            revision: 2,
+            sourceHash: 'b'.repeat(64),
+            files: [
+              {
+                path: 'SKILL.md',
+                kind: 'skill-markdown' as const,
+                sha256: 'b'.repeat(64),
+                sizeBytes: 150,
+                mediaType: 'text/markdown',
+                source: 'SKILL.md' as const,
+                includeInDerivation: true,
+                activationOnly: false,
+              },
+            ],
+            submittedAt: '2024-01-02T00:00:00Z',
+            submittedBy: { id: 'user_1', handle: 'testuser', securityLevel: 5 },
+            scriptDescriptors: [],
+            derived: null,
+          },
+        ],
+        metadata: {
+          sourceKind: 'skill-directory' as const,
+          submissionCount: 2,
+          resubmissionCount: 0,
+          revisionCount: 2,
+          latestSubmissionId: 'submission_2',
+          latestSubmittedAt: '2024-01-02T00:00:00Z',
+          latestReviewedAt: '2024-01-02T01:00:00Z',
+          latestDecision: 'approve' as const,
+        },
+        agentReview: null,
+        reviewHistory: [],
+        reviewNotes: [],
+        lifecycleHistory: [],
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-02T01:00:00Z',
+      };
+
+      const editResponse = skillEditResponseSchema.parse({
+        artifact: artifactWithHistory,
+        previousRevision: 1,
+      });
+
+      // Artifact in edit response has full history
+      expect(editResponse.artifact.history).toHaveLength(2);
+
+      // History view would return summaries, not full history
+      const historyResponse = skillHistoryResponseSchema.parse({
+        artifactId: artifactWithHistory.id,
+        title: artifactWithHistory.title,
+        currentRevision: artifactWithHistory.latestRevision,
+        lifecycleState: artifactWithHistory.lifecycleState,
+        revisions: artifactWithHistory.history.map((h) => ({
+          revision: h.revision,
+          submittedAt: h.submittedAt,
+          submittedBy: h.submittedBy,
+          lifecycleState: artifactWithHistory.lifecycleState,
+        })),
+      });
+
+      // History response has summaries, not full file manifests
+      expect(historyResponse.revisions).toHaveLength(2);
+      expect('files' in historyResponse.revisions[0]!).toBe(false);
+    });
+  });
+});

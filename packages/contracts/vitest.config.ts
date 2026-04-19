@@ -1,18 +1,14 @@
-import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
     include: ['src/**/*.test.ts'],
+    exclude: ['**/node_modules/**', '**/dist/**'],
+    pool: 'threads',
     poolOptions: {
       threads: {
         singleThread: true,
       },
-    },
-  },
-  resolve: {
-    alias: {
-      '@trapmap/contracts': resolve(__dirname, '../contracts/src/index.ts'),
     },
   },
 });

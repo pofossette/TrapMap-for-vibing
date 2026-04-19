@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-import { skillArtifactFileKindSchema, skillArtifactFileSourceSchema } from './artifacts.js';
+import {
+  skillArtifactFileKindSchema,
+  skillArtifactFileSourceSchema,
+  skillArtifactSchema,
+} from './artifacts.js';
 import {
   actorRefSchema,
   auditMetadataSchema,
@@ -508,3 +512,98 @@ export type LegacyMigrationResultItem = z.infer<typeof legacyMigrationResultItem
 export type LegacyMigrationResponse = z.infer<typeof legacyMigrationResponseSchema>;
 export type CompatibilityStatusRequest = z.infer<typeof compatibilityStatusRequestSchema>;
 export type CompatibilityStatusResponse = z.infer<typeof compatibilityStatusResponseSchema>;
+
+// =============================================================================
+// Phase 19: Skill Edit and History Contracts (SKED-02, SKED-04)
+// =============================================================================
+
+/**
+ * Skill edit request schema.
+ * Allows partial updates to title, labels, or full file replacement.
+ * At least one update field must be provided.
+ */
+export const skillEditRequestSchema = z
+  .object({
+    /** Target artifact to edit */
+    artifactId: entityIdSchema,
+    /** New title (optional) */
+    title: z.string().min(1).max(280).optional(),
+    /** New labels (optional) */
+    labels: z.array(labelSchema).min(1).optional(),
+    /** Full file replacement (optional) */
+    files: z.array(bundleFilePayloadSchema).min(1).optional(),
+    /** Script descriptors for executable scripts */
+    scriptDescriptors: z.array(bundleScriptDescriptorSchema).default([]),
+  })
+  .refine((data) => data.title !== undefined || data.labels !== undefined || data.files !== undefined, {
+    message: 'At least one of title, labels, or files must be provided',
+  });
+
+/**
+ * Skill edit response schema.
+ * Returns updated artifact with revision tracking.
+ */
+export const skillEditResponseSchema = z.object({
+  /** Updated artifact with new revision */
+  artifact: skillArtifactSchema,
+  /** Revision number before this edit */
+  previousRevision: z.number().int().min(1),
+  /** Lifecycle state transition if applicable */
+  lifecycleTransition: z
+    .object({
+      from: lifecycleStateSchema,
+      to: lifecycleStateSchema,
+    })
+    .optional(),
+});
+
+/**
+ * Skill revision summary schema.
+ * Lightweight view of a revision without full file manifests.
+ * Used in history listing to avoid over-exposing artifact content.
+ */
+export const skillRevisionSummarySchema = z.object({
+  /** Revision number */
+  revision: z.number().int().min(1),
+  /** When this revision was submitted */
+  submittedAt: isoTimestampSchema,
+  /** Who submitted this revision */
+  submittedBy: actorRefSchema,
+  /** Brief description of changes (optional) */
+  summary: z.string().max(500).optional(),
+  /** Lifecycle state after this revision */
+  lifecycleState: lifecycleStateSchema,
+});
+
+/**
+ * Skill history request schema.
+ * Requests revision history for a specific artifact.
+ */
+export const skillHistoryRequestSchema = z.object({
+  /** Target artifact to view history for */
+  artifactId: entityIdSchema,
+});
+
+/**
+ * Skill history response schema.
+ * Returns revision summaries without full file manifests.
+ * Distinct from artifact export - metadata-only for history viewing.
+ */
+export const skillHistoryResponseSchema = z.object({
+  /** Artifact identifier */
+  artifactId: entityIdSchema,
+  /** Artifact title */
+  title: z.string().min(1).max(280),
+  /** Current (latest) revision number */
+  currentRevision: z.number().int().min(1),
+  /** Current lifecycle state */
+  lifecycleState: lifecycleStateSchema,
+  /** Revision history summaries */
+  revisions: z.array(skillRevisionSummarySchema),
+});
+
+export type SkillEditRequest = z.infer<typeof skillEditRequestSchema>;
+export type SkillEditResponse = z.infer<typeof skillEditResponseSchema>;
+export type SkillRevisionSummary = z.infer<typeof skillRevisionSummarySchema>;
+export type SkillHistoryRequest = z.infer<typeof skillHistoryRequestSchema>;
+export type SkillHistoryResponse = z.infer<typeof skillHistoryResponseSchema>;
