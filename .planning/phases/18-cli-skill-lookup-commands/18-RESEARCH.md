@@ -239,17 +239,17 @@ return true;
 | A2 | The best endpoint home is `POST /v1/retrieval/skills/search-by-content` rather than an operations route. [ASSUMED] | Summary, Architecture Patterns | Planner may place the route in the wrong module and create churn in Phase 18 implementation. |
 | A3 | Artifact search should rank capsules and collapse to artifacts instead of introducing a brand-new profile matcher. [ASSUMED] | Summary, Architecture Patterns, Don't Hand-Roll | If the team wants profile-only semantics, helper design and tests will need adjustment. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should skill lookup reuse `knowledge:search` permanently, or is this only a temporary bridge until a `skill:*` permission family exists?**
-   - What we know: the current permission enum, CLI visibility checks, and retrieval routes only expose `knowledge:search` for read-search behavior. [VERIFIED: codebase grep]
-   - What's unclear: whether product intent wants future separation between knowledge-entry search and artifact search. [ASSUMED]
-   - Recommendation: plan Phase 18 on `knowledge:search`, and only expand auth surface if a later phase explicitly requires it. [ASSUMED]
+1. **Permission model for Phase 18**
+   - Resolution: Phase 18 will reuse `knowledge:search` as the required permission for skill lookup.
+   - Reason: the current shared permission enum, CLI visibility checks, and retrieval routes already use `knowledge:search` for read-search behavior, and Phase 18 is scoped to additive lookup rather than auth-surface expansion. [VERIFIED: codebase grep]
+   - Follow-up boundary: if later milestones need separate policy between legacy knowledge search and artifact search, that should be introduced as a distinct auth phase rather than bundled into Phase 18. [ASSUMED]
 
-2. **Should the CLI result show `slug` only, or also `scope`, `requiredLevel`, and `sourceKind` as brief metadata?**
-   - What we know: artifact records already carry `title`, `slug`, `labels`, `scope`, `requiredLevel`, and `sourceKind`. [VERIFIED: codebase grep]
-   - What's unclear: the minimum metadata set the user expects in text mode. [ASSUMED]
-   - Recommendation: include `slug`, `labels`, `scope`, and `requiredLevel` in the contract; keep `sourceKind` optional if output feels noisy. [ASSUMED]
+2. **Minimum brief metadata returned by lookup**
+   - Resolution: the shared lookup contract should return `artifactId`, `title`, `slug`, `labels`, `scope`, `requiredLevel`, `sourceKind`, `score`, and `reason`.
+   - Reason: this satisfies the roadmap requirement for skill ID plus brief metadata, keeps text output informative enough for humans, and remains metadata-only without exposing capsule content or activation payloads. [ASSUMED]
+   - Output guidance: text mode may choose a compact rendering, but the JSON contract should include the full metadata set above. [ASSUMED]
 
 ## Environment Availability
 
