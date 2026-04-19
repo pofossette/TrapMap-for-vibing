@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm } from 'node:fs/promises';
+import { mkdir, readFile, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -14,20 +14,28 @@ describe('user-ops-log (Phase 21-01)', () => {
     it('returns disabled with default logDir when no env vars set', () => {
       const originalEnabled = process.env.LOG_USER_OPS_ENABLED;
       const originalDir = process.env.LOG_USER_OPS_DIR;
+      const originalSize = process.env.LOG_MAX_FILE_SIZE_MB;
+      const originalBackup = process.env.LOG_MAX_BACKUP_FILES;
 
       delete process.env.LOG_USER_OPS_ENABLED;
       delete process.env.LOG_USER_OPS_DIR;
+      delete process.env.LOG_MAX_FILE_SIZE_MB;
+      delete process.env.LOG_MAX_BACKUP_FILES;
 
       const config = loadUserOpsLogConfig();
 
       expect(config).toEqual({
         enabled: false,
         logDir: 'logs/user-ops',
+        maxFileSizeBytes: 10 * 1024 * 1024, // 10MB default
+        maxBackupFiles: 5,
       });
 
       // Restore
       if (originalEnabled !== undefined) process.env.LOG_USER_OPS_ENABLED = originalEnabled;
       if (originalDir !== undefined) process.env.LOG_USER_OPS_DIR = originalDir;
+      if (originalSize !== undefined) process.env.LOG_MAX_FILE_SIZE_MB = originalSize;
+      if (originalBackup !== undefined) process.env.LOG_MAX_BACKUP_FILES = originalBackup;
     });
 
     it('returns enabled: true when LOG_USER_OPS_ENABLED=true', () => {
@@ -98,7 +106,12 @@ describe('user-ops-log (Phase 21-01)', () => {
     });
 
     it('creates log directory if it does not exist', async () => {
-      const config: UserOpsLogConfig = { enabled: true, logDir: tempDir };
+      const config: UserOpsLogConfig = {
+        enabled: true,
+        logDir: tempDir,
+        maxFileSizeBytes: 1024 * 1024,
+        maxBackupFiles: 5,
+      };
       const entry: UserOpsLogEntry = {
         timestamp: '2026-04-19T12:00:00.000Z',
         actorId: 'user_1',
@@ -122,7 +135,12 @@ describe('user-ops-log (Phase 21-01)', () => {
     });
 
     it('writes JSON Lines to daily log file named YYYY-MM-DD.log', async () => {
-      const config: UserOpsLogConfig = { enabled: true, logDir: tempDir };
+      const config: UserOpsLogConfig = {
+        enabled: true,
+        logDir: tempDir,
+        maxFileSizeBytes: 1024 * 1024,
+        maxBackupFiles: 5,
+      };
       const entry: UserOpsLogEntry = {
         timestamp: '2026-04-19T12:00:00.000Z',
         actorId: 'user_1',
@@ -146,7 +164,12 @@ describe('user-ops-log (Phase 21-01)', () => {
     });
 
     it('does not write any file when config.enabled is false', async () => {
-      const config: UserOpsLogConfig = { enabled: false, logDir: tempDir };
+      const config: UserOpsLogConfig = {
+        enabled: false,
+        logDir: tempDir,
+        maxFileSizeBytes: 1024 * 1024,
+        maxBackupFiles: 5,
+      };
       const entry: UserOpsLogEntry = {
         timestamp: '2026-04-19T12:00:00.000Z',
         actorId: 'user_1',
@@ -166,7 +189,12 @@ describe('user-ops-log (Phase 21-01)', () => {
     });
 
     it('log entry contains all required fields', async () => {
-      const config: UserOpsLogConfig = { enabled: true, logDir: tempDir };
+      const config: UserOpsLogConfig = {
+        enabled: true,
+        logDir: tempDir,
+        maxFileSizeBytes: 1024 * 1024,
+        maxBackupFiles: 5,
+      };
       const entry: UserOpsLogEntry = {
         timestamp: '2026-04-19T12:00:00.000Z',
         actorId: 'user_42',
@@ -193,7 +221,12 @@ describe('user-ops-log (Phase 21-01)', () => {
     });
 
     it('appends multiple entries to the same daily log file', async () => {
-      const config: UserOpsLogConfig = { enabled: true, logDir: tempDir };
+      const config: UserOpsLogConfig = {
+        enabled: true,
+        logDir: tempDir,
+        maxFileSizeBytes: 1024 * 1024,
+        maxBackupFiles: 5,
+      };
 
       const entry1: UserOpsLogEntry = {
         timestamp: '2026-04-19T10:00:00.000Z',
@@ -229,7 +262,12 @@ describe('user-ops-log (Phase 21-01)', () => {
 
     it('does not throw when appendFile fails', { timeout: 10000 }, async () => {
       // Use a null byte in path to force an immediate ENAMETOOLONG/EINVAL error
-      const config: UserOpsLogConfig = { enabled: true, logDir: '/tmp/\x00invalid-path/user-ops' };
+      const config: UserOpsLogConfig = {
+        enabled: true,
+        logDir: '/tmp/\x00invalid-path/user-ops',
+        maxFileSizeBytes: 1024 * 1024,
+        maxBackupFiles: 5,
+      };
       const entry: UserOpsLogEntry = {
         timestamp: '2026-04-19T12:00:00.000Z',
         actorId: 'user_1',
@@ -242,6 +280,51 @@ describe('user-ops-log (Phase 21-01)', () => {
 
       // Should not throw - fire-and-forget
       await expect(logUserOperation(config, entry)).resolves.toBeUndefined();
+    });
+
+    it('rotates file when size limit exceeded', async () => {
+      const config: UserOpsLogConfig = {
+        enabled: true,
+        logDir: tempDir,
+        maxFileSizeBytes: 10, // Very small for testing
+        maxBackupFiles: 5,
+      };
+
+      const entry1: UserOpsLogEntry = {
+        timestamp: '2026-04-19T10:00:00.000Z',
+        actorId: 'user_1',
+        actorHandle: 'alice',
+        action: 'search',
+        targetId: null,
+        teamId: 'team_1',
+        metadata: { query: 'first entry that exceeds limit' },
+      };
+
+      const entry2: UserOpsLogEntry = {
+        timestamp: '2026-04-19T11:00:00.000Z',
+        actorId: 'user_2',
+        actorHandle: 'bob',
+        action: 'submit',
+        targetId: 'skill_1',
+        teamId: 'team_1',
+        metadata: {},
+      };
+
+      // First write creates the file
+      await logUserOperation(config, entry1);
+
+      // Second write should trigger rotation (entry1 > 10 bytes)
+      await logUserOperation(config, entry2);
+
+      const logFile = path.join(tempDir, '2026-04-19.log');
+
+      // Current file should have entry2
+      const currentContent = await readFile(logFile, 'utf-8');
+      expect(JSON.parse(currentContent.trim())).toEqual(entry2);
+
+      // Backup should have entry1
+      const backupContent = await readFile(`${logFile}.1`, 'utf-8');
+      expect(JSON.parse(backupContent.trim())).toEqual(entry1);
     });
   });
 });

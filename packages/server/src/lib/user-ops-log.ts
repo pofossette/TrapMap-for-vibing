@@ -1,5 +1,7 @@
-import { appendFile, mkdir } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
+
+import { appendWithRotation, loadRotationConfig } from './log-rotation.js';
 
 export type UserOpsAction =
   | 'search'
@@ -23,17 +25,22 @@ export interface UserOpsLogEntry {
 export interface UserOpsLogConfig {
   enabled: boolean;
   logDir: string;
+  maxFileSizeBytes: number;
+  maxBackupFiles: number;
 }
 
 /**
  * Load user ops log configuration from environment variables.
  * LOG_USER_OPS_ENABLED: 'true' to enable, any other value disables (default: false)
  * LOG_USER_OPS_DIR: directory for log files (default: logs/user-ops)
+ * LOG_MAX_FILE_SIZE_MB: max file size in MB before rotation (default: 10)
+ * LOG_MAX_BACKUP_FILES: max backup files to keep (default: 5)
  */
 export function loadUserOpsLogConfig(): UserOpsLogConfig {
   const enabled = process.env.LOG_USER_OPS_ENABLED === 'true';
   const logDir = process.env.LOG_USER_OPS_DIR ?? 'logs/user-ops';
-  return { enabled, logDir };
+  const rotation = loadRotationConfig();
+  return { enabled, logDir, ...rotation };
 }
 
 /**
@@ -73,8 +80,11 @@ export async function logUserOperation(
     // Format as JSON Lines (one JSON object per line)
     const line = JSON.stringify(entry) + '\n';
 
-    // Append to file
-    await appendFile(logFile, line, 'utf-8');
+    // Use rotation-aware append
+    await appendWithRotation(logFile, line, {
+      maxFileSizeBytes: config.maxFileSizeBytes,
+      maxBackupFiles: config.maxBackupFiles,
+    });
   } catch (error) {
     // Log error but don't throw - logging should not break the request
     console.error('[user-ops-log] Failed to write log entry:', error);
