@@ -26,6 +26,9 @@ import {
   skillEditResponseSchema,
   skillHistoryRequestSchema,
   skillHistoryResponseSchema,
+  skillReviewDecisionRequestSchema,
+  skillReviewDecisionResponseSchema,
+  skillReviewQueueResponseSchema,
 } from '@trapmap/contracts';
 import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
@@ -1221,6 +1224,187 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
         summary: r.summary,
         lifecycleState: r.lifecycleState,
       })),
+    });
+  });
+
+  // Skill review queue endpoint (Phase 20-01: SKED-03)
+  app.get('/v1/operations/artifacts/review-queue', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:review');
+
+    const data = await app.skillShareer.store.snapshot();
+
+    // Ensure skillArtifacts exists
+    if (!data.skillArtifacts) {
+      data.skillArtifacts = [];
+    }
+
+    // Filter artifacts for review queue
+    // Only show artifacts with lifecycleState of 'agent-pass' (pending review)
+    const pendingArtifacts = data.skillArtifacts.filter((artifact) => {
+      // Filter to agent-pass state
+      if (artifact.lifecycleState !== 'agent-pass') {
+        return false;
+      }
+
+      // Team access check for non-system-admin
+      if (artifact.teamId && auth.subjectType !== 'system-admin') {
+        try {
+          requireTeamAccess(auth, artifact.teamId);
+        } catch {
+          return false;
+        }
+      }
+
+      // Security level check: reviewer must have strictly higher level
+      if (auth.subjectType !== 'system-admin' && auth.securityLevel <= artifact.requiredLevel) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Map to queue items
+    const items = pendingArtifacts.map((artifact) => {
+      const lastRevision = artifact.history[artifact.history.length - 1];
+      const lastDecision = artifact.reviewHistory.length > 0
+        ? artifact.reviewHistory[artifact.reviewHistory.length - 1]
+        : null;
+
+      return {
+        artifact: toSkillArtifact(artifact, data),
+        revision: artifact.latestRevision.revision,
+        agentReview: artifact.agentReview,
+        submittedBy: lastRevision?.submittedBy ?? {
+          id: artifact.owner.userId,
+          handle: artifact.owner.handle,
+          securityLevel: artifact.owner.securityLevel,
+        },
+        lastDecision,
+      };
+    });
+
+    return skillReviewQueueResponseSchema.parse({
+      items,
+      nextCursor: null,
+      total: items.length,
+    });
+  });
+
+  // Skill review decision endpoint (Phase 20-01: SKED-03)
+  app.post('/v1/operations/artifacts/:artifactId/review', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:review');
+
+    // System admin cannot review (requires real user for decidedByUserId)
+    if (auth.subjectType === 'system-admin') {
+      throw new AppError(403, 'user_required', 'System admin cannot author review decisions');
+    }
+
+    const reviewerUserId = auth.user?.id;
+    if (!reviewerUserId) {
+      throw new AppError(403, 'user_not_found', 'User record not found');
+    }
+
+    const artifactId = (request.params as { artifactId: string }).artifactId;
+    const body = skillReviewDecisionRequestSchema.parse(
+      (request.body as Record<string, unknown>) ?? {},
+    );
+
+    const decidedAt = nowIso();
+
+    const result = await app.skillShareer.store.transact((data) => {
+      // Ensure skillArtifacts exists
+      if (!data.skillArtifacts) {
+        data.skillArtifacts = [];
+      }
+
+      // Find the artifact
+      const artifact = data.skillArtifacts.find((a) => a.id === artifactId);
+      if (!artifact) {
+        throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
+      }
+
+      // Capture previous state
+      const previousState = artifact.lifecycleState;
+
+      // Apply team access check
+      if (artifact.teamId) {
+        requireTeamAccess(auth, artifact.teamId);
+      }
+
+      // Apply strictly higher level check
+      requireHigherLevel(auth, artifact.requiredLevel);
+
+      // Create review decision record
+      const reviewDecision = {
+        decidedAt,
+        decidedByUserId: reviewerUserId,
+        decision: body.decision,
+        notes: body.notes,
+      };
+      artifact.reviewHistory.push(reviewDecision);
+
+      // Create review note
+      const note = {
+        id: app.skillShareer.store.nextId(data, 'artifact_note'),
+        createdAt: decidedAt,
+        authorType: 'reviewer' as const,
+        authorUserId: reviewerUserId,
+        message: body.notes,
+      };
+      artifact.reviewNotes.push(note);
+
+      // Update lifecycle state
+      artifact.lifecycleState = body.decision === 'approve' ? 'approved' : 'rejected';
+
+      // Update metadata
+      artifact.metadata.latestReviewedAt = decidedAt;
+      artifact.metadata.latestDecision = body.decision;
+
+      // Add lifecycle event
+      artifact.lifecycleHistory.push({
+        id: app.skillShareer.store.nextId(data, 'artifact_event'),
+        type: body.decision === 'approve' ? 'reviewer-approved' : 'reviewer-rejected',
+        createdAt: decidedAt,
+        actorUserId: reviewerUserId,
+        submissionId: artifact.metadata.latestSubmissionId ?? null,
+        revision: artifact.latestRevision.revision,
+        state: artifact.lifecycleState,
+        note: body.notes,
+      });
+
+      artifact.updatedAt = decidedAt;
+
+      // Create audit event
+      const auditEvent = createAuditEvent({
+        store: app.skillShareer.store,
+        data,
+        teamId: artifact.teamId,
+        actor: auth,
+        action: 'artifact-reviewed',
+        entityId: artifact.id,
+        payload: {
+          decision: body.decision,
+          notes: body.notes,
+          revision: artifact.latestRevision.revision,
+          previousState,
+          newState: artifact.lifecycleState,
+        },
+      });
+      data.auditEvents.push(auditEvent);
+
+      return {
+        artifact,
+        previousState,
+        newState: artifact.lifecycleState,
+      };
+    });
+
+    return skillReviewDecisionResponseSchema.parse({
+      artifact: toSkillArtifact(result.artifact, data),
+      previousState: result.previousState,
+      newState: result.newState,
     });
   });
 };
