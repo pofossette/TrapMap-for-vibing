@@ -76,6 +76,7 @@ Each task was committed atomically:
 3. **Task 3: Update RAG Logger to Use Rotation** - `afabc8b` (feat)
 4. **Task 4: Integrate RAG Logging into Retrieval Orchestrator** - `4eb1e59` (feat)
 5. **Task 5: Document Rotation Environment Variables** - `7622e53` (docs)
+6. **Test Fix: Add ragLog mock config** - `b2d3697` (test)
 
 ## Files Created/Modified
 - `packages/server/src/lib/log-rotation.ts` - Shared rotation module with RotationConfig, loadRotationConfig, getFileSize, rotateFile, appendWithRotation
