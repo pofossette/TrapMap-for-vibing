@@ -20,7 +20,14 @@ describe('retrieval', () => {
     mockStore = new JsonStore(testDataDir);
     mockServices = {
       // biome-ignore lint/suspicious/noExplicitAny: Mock config for testing
-      config: {} as any,
+      config: {
+        ragLog: {
+          enabled: false,
+          logDir: 'logs/rag',
+          maxFileSizeBytes: 10 * 1024 * 1024,
+          maxBackupFiles: 5,
+        },
+      } as any,
       store: mockStore,
       indexAdapters: [],
     };
