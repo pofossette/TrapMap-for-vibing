@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm } from 'node:fs/promises';
+import { mkdir, readFile, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -15,20 +15,28 @@ describe('rag-log (Phase 22-01)', () => {
     it('returns disabled with default logDir when no env vars set', () => {
       const originalEnabled = process.env.LOG_RAG_ENABLED;
       const originalDir = process.env.LOG_RAG_DIR;
+      const originalSize = process.env.LOG_MAX_FILE_SIZE_MB;
+      const originalBackup = process.env.LOG_MAX_BACKUP_FILES;
 
       delete process.env.LOG_RAG_ENABLED;
       delete process.env.LOG_RAG_DIR;
+      delete process.env.LOG_MAX_FILE_SIZE_MB;
+      delete process.env.LOG_MAX_BACKUP_FILES;
 
       const config = loadRagLogConfig();
 
       expect(config).toEqual({
         enabled: false,
         logDir: 'logs/rag',
+        maxFileSizeBytes: 10 * 1024 * 1024, // 10MB default
+        maxBackupFiles: 5,
       });
 
       // Restore
       if (originalEnabled !== undefined) process.env.LOG_RAG_ENABLED = originalEnabled;
       if (originalDir !== undefined) process.env.LOG_RAG_DIR = originalDir;
+      if (originalSize !== undefined) process.env.LOG_MAX_FILE_SIZE_MB = originalSize;
+      if (originalBackup !== undefined) process.env.LOG_MAX_BACKUP_FILES = originalBackup;
     });
 
     it('returns enabled: true when LOG_RAG_ENABLED=true', () => {
@@ -99,7 +107,12 @@ describe('rag-log (Phase 22-01)', () => {
     });
 
     it('creates log directory if it does not exist', async () => {
-      const config: RagLogConfig = { enabled: true, logDir: tempDir };
+      const config: RagLogConfig = {
+        enabled: true,
+        logDir: tempDir,
+        maxFileSizeBytes: 1024 * 1024,
+        maxBackupFiles: 5,
+      };
       const entry: RagLogEntry = {
         timestamp: '2026-04-19T12:00:00.000Z',
         queryId: 'qry_123456_abc123',
@@ -131,7 +144,12 @@ describe('rag-log (Phase 22-01)', () => {
     });
 
     it('writes JSON Lines to daily log file named YYYY-MM-DD.log', async () => {
-      const config: RagLogConfig = { enabled: true, logDir: tempDir };
+      const config: RagLogConfig = {
+        enabled: true,
+        logDir: tempDir,
+        maxFileSizeBytes: 1024 * 1024,
+        maxBackupFiles: 5,
+      };
       const entry: RagLogEntry = {
         timestamp: '2026-04-19T12:00:00.000Z',
         queryId: 'qry_123456_abc123',
@@ -162,7 +180,12 @@ describe('rag-log (Phase 22-01)', () => {
     });
 
     it('does not write any file when config.enabled is false', async () => {
-      const config: RagLogConfig = { enabled: false, logDir: tempDir };
+      const config: RagLogConfig = {
+        enabled: false,
+        logDir: tempDir,
+        maxFileSizeBytes: 1024 * 1024,
+        maxBackupFiles: 5,
+      };
       const entry: RagLogEntry = {
         timestamp: '2026-04-19T12:00:00.000Z',
         queryId: 'qry_123456_abc123',
@@ -189,7 +212,12 @@ describe('rag-log (Phase 22-01)', () => {
     });
 
     it('log entry contains all required fields', async () => {
-      const config: RagLogConfig = { enabled: true, logDir: tempDir };
+      const config: RagLogConfig = {
+        enabled: true,
+        logDir: tempDir,
+        maxFileSizeBytes: 1024 * 1024,
+        maxBackupFiles: 5,
+      };
       const entry: RagLogEntry = {
         timestamp: '2026-04-19T12:00:00.000Z',
         queryId: 'qry_789_xyz789',
@@ -241,7 +269,12 @@ describe('rag-log (Phase 22-01)', () => {
     });
 
     it('appends multiple entries to the same daily log file', async () => {
-      const config: RagLogConfig = { enabled: true, logDir: tempDir };
+      const config: RagLogConfig = {
+        enabled: true,
+        logDir: tempDir,
+        maxFileSizeBytes: 1024 * 1024,
+        maxBackupFiles: 5,
+      };
 
       const entry1: RagLogEntry = {
         timestamp: '2026-04-19T10:00:00.000Z',
@@ -294,7 +327,12 @@ describe('rag-log (Phase 22-01)', () => {
 
     it('does not throw when appendFile fails', { timeout: 10000 }, async () => {
       // Use a null byte in path to force an immediate ENAMETOOLONG/EINVAL error
-      const config: RagLogConfig = { enabled: true, logDir: '/tmp/\x00invalid-path/rag' };
+      const config: RagLogConfig = {
+        enabled: true,
+        logDir: '/tmp/\x00invalid-path/rag',
+        maxFileSizeBytes: 1024 * 1024,
+        maxBackupFiles: 5,
+      };
       const entry: RagLogEntry = {
         timestamp: '2026-04-19T12:00:00.000Z',
         queryId: 'qry_test',
@@ -314,6 +352,68 @@ describe('rag-log (Phase 22-01)', () => {
 
       // Should not throw - fire-and-forget
       await expect(logRagRetrieval(config, entry)).resolves.toBeUndefined();
+    });
+
+    it('rotates file when size limit exceeded', async () => {
+      const config: RagLogConfig = {
+        enabled: true,
+        logDir: tempDir,
+        maxFileSizeBytes: 10, // Very small for testing
+        maxBackupFiles: 5,
+      };
+
+      const entry1: RagLogEntry = {
+        timestamp: '2026-04-19T10:00:00.000Z',
+        queryId: 'qry_001_aaa',
+        seed: 'first entry that exceeds the small size limit',
+        mode: 'semantic',
+        actorId: 'user_1',
+        teamId: 'team_1',
+        pipelineSteps: [{ name: 'embedding', latencyMs: 40 }],
+        totalLatencyMs: 40,
+        resultCount: 8,
+        metadata: {
+          maxResults: 10,
+          includeSummary: true,
+          includeRefinement: false,
+        },
+      };
+
+      const entry2: RagLogEntry = {
+        timestamp: '2026-04-19T11:00:00.000Z',
+        queryId: 'qry_002_bbb',
+        seed: 'second entry',
+        mode: 'hybrid',
+        actorId: 'user_2',
+        teamId: 'team_1',
+        pipelineSteps: [
+          { name: 'embedding', latencyMs: 35 },
+          { name: 'keyword', latencyMs: 10 },
+        ],
+        totalLatencyMs: 45,
+        resultCount: 3,
+        metadata: {
+          maxResults: 5,
+          includeSummary: false,
+          includeRefinement: false,
+        },
+      };
+
+      // First write creates the file
+      await logRagRetrieval(config, entry1);
+
+      // Second write should trigger rotation (entry1 > 10 bytes)
+      await logRagRetrieval(config, entry2);
+
+      const logFile = path.join(tempDir, '2026-04-19.log');
+
+      // Current file should have entry2
+      const currentContent = await readFile(logFile, 'utf-8');
+      expect(JSON.parse(currentContent.trim())).toEqual(entry2);
+
+      // Backup should have entry1
+      const backupContent = await readFile(`${logFile}.1`, 'utf-8');
+      expect(JSON.parse(backupContent.trim())).toEqual(entry1);
     });
   });
 

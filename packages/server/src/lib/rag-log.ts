@@ -1,5 +1,7 @@
-import { appendFile, mkdir } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
+
+import { appendWithRotation, loadRotationConfig } from './log-rotation.js';
 
 /**
  * Configuration for RAG retrieval logging.
@@ -7,6 +9,8 @@ import path from 'node:path';
 export interface RagLogConfig {
   enabled: boolean;
   logDir: string;
+  maxFileSizeBytes: number;
+  maxBackupFiles: number;
 }
 
 /**
@@ -44,11 +48,14 @@ export interface RagLogEntry {
  * Load RAG log configuration from environment variables.
  * LOG_RAG_ENABLED: 'true' to enable, any other value disables (default: false)
  * LOG_RAG_DIR: directory for log files (default: logs/rag)
+ * LOG_MAX_FILE_SIZE_MB: max file size in MB before rotation (default: 10)
+ * LOG_MAX_BACKUP_FILES: max backup files to keep (default: 5)
  */
 export function loadRagLogConfig(): RagLogConfig {
   const enabled = process.env.LOG_RAG_ENABLED === 'true';
   const logDir = process.env.LOG_RAG_DIR ?? 'logs/rag';
-  return { enabled, logDir };
+  const rotation = loadRotationConfig();
+  return { enabled, logDir, ...rotation };
 }
 
 /**
@@ -96,8 +103,11 @@ export async function logRagRetrieval(
     // Format as JSON Lines (one JSON object per line)
     const line = JSON.stringify(entry) + '\n';
 
-    // Append to file
-    await appendFile(logFile, line, 'utf-8');
+    // Use rotation-aware append
+    await appendWithRotation(logFile, line, {
+      maxFileSizeBytes: config.maxFileSizeBytes,
+      maxBackupFiles: config.maxBackupFiles,
+    });
   } catch (error) {
     // Log error but don't throw - logging should not break the request
     console.error('[rag-log] Failed to write log entry:', error);
