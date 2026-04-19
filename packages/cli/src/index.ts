@@ -7,6 +7,7 @@ import { registerMemberCommands } from './commands/member.js';
 import { registerOperationsCommands } from './commands/operations.js';
 import { registerRetrievalCommands } from './commands/retrieval.js';
 import { registerReviewCommands } from './commands/review.js';
+import { registerSkillCommands } from './commands/skill.js';
 import { registerTeamCommands } from './commands/team.js';
 import { loadCliState } from './lib/config.js';
 import { printError } from './lib/output.js';
@@ -79,7 +80,7 @@ program
       ...(visibility.allowAccessKeyCreate ? ['access-key:create'] : []),
       ...(visibility.allowKnowledgeSubmit ? ['submit', 'resubmit'] : []),
       ...(visibility.allowKnowledgeInspect ? ['review-status'] : []),
-      ...(visibility.allowKnowledgeSearch ? ['search'] : []),
+      ...(visibility.allowKnowledgeSearch ? ['search', 'skill search-by-content'] : []),
       ...(visibility.allowKnowledgeReview
         ? ['review:queue', 'review:approve', 'review:reject']
         : []),
@@ -122,6 +123,9 @@ registerOperationsCommands(program, {
 });
 registerAuditCommands(program, {
   allowRead: visibility.allowAuditRead,
+});
+registerSkillCommands(program, {
+  allowSearch: visibility.allowKnowledgeSearch,
 });
 
 program.parseAsync(process.argv).catch(printError);
