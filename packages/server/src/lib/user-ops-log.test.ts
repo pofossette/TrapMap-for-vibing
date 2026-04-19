@@ -140,7 +140,7 @@ describe('user-ops-log (Phase 21-01)', () => {
       const lines = content.trim().split('\n');
 
       expect(lines).toHaveLength(1);
-      const parsed = JSON.parse(lines[0]);
+      const parsed = JSON.parse(lines[0]!);
 
       expect(parsed).toEqual(entry);
     });
@@ -223,13 +223,13 @@ describe('user-ops-log (Phase 21-01)', () => {
       const lines = content.trim().split('\n');
 
       expect(lines).toHaveLength(2);
-      expect(JSON.parse(lines[0])).toEqual(entry1);
-      expect(JSON.parse(lines[1])).toEqual(entry2);
+      expect(JSON.parse(lines[0]!)).toEqual(entry1);
+      expect(JSON.parse(lines[1]!)).toEqual(entry2);
     });
 
-    it('does not throw when appendFile fails', async () => {
-      // Use a path that cannot be written to
-      const config: UserOpsLogConfig = { enabled: true, logDir: '/proc/fake-no-write/user-ops' };
+    it('does not throw when appendFile fails', { timeout: 10000 }, async () => {
+      // Use a null byte in path to force an immediate ENAMETOOLONG/EINVAL error
+      const config: UserOpsLogConfig = { enabled: true, logDir: '/tmp/\x00invalid-path/user-ops' };
       const entry: UserOpsLogEntry = {
         timestamp: '2026-04-19T12:00:00.000Z',
         actorId: 'user_1',

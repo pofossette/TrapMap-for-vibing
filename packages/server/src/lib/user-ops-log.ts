@@ -1,5 +1,5 @@
-// Stub - TDD RED phase
-// This module will be implemented in the GREEN phase
+import { appendFile, mkdir } from 'node:fs/promises';
+import path from 'node:path';
 
 export type UserOpsAction =
   | 'search'
@@ -25,13 +25,58 @@ export interface UserOpsLogConfig {
   logDir: string;
 }
 
+/**
+ * Load user ops log configuration from environment variables.
+ * LOG_USER_OPS_ENABLED: 'true' to enable, any other value disables (default: false)
+ * LOG_USER_OPS_DIR: directory for log files (default: logs/user-ops)
+ */
 export function loadUserOpsLogConfig(): UserOpsLogConfig {
-  throw new Error('Not implemented');
+  const enabled = process.env.LOG_USER_OPS_ENABLED === 'true';
+  const logDir = process.env.LOG_USER_OPS_DIR ?? 'logs/user-ops';
+  return { enabled, logDir };
 }
 
+/**
+ * Format a date as YYYY-MM-DD for daily log file naming.
+ */
+function formatDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Write a user operation log entry to the daily log file.
+ * This function is fire-and-forget - it does not block the caller.
+ * Errors are logged to console but do not throw.
+ *
+ * @param config - User ops log configuration
+ * @param entry - Log entry to write
+ */
 export async function logUserOperation(
-  _config: UserOpsLogConfig,
-  _entry: UserOpsLogEntry,
+  config: UserOpsLogConfig,
+  entry: UserOpsLogEntry,
 ): Promise<void> {
-  throw new Error('Not implemented');
+  if (!config.enabled) {
+    return;
+  }
+
+  try {
+    // Ensure log directory exists
+    await mkdir(config.logDir, { recursive: true });
+
+    // Build daily log file path
+    const dateStr = formatDate(new Date(entry.timestamp));
+    const logFile = path.join(config.logDir, `${dateStr}.log`);
+
+    // Format as JSON Lines (one JSON object per line)
+    const line = JSON.stringify(entry) + '\n';
+
+    // Append to file
+    await appendFile(logFile, line, 'utf-8');
+  } catch (error) {
+    // Log error but don't throw - logging should not break the request
+    console.error('[user-ops-log] Failed to write log entry:', error);
+  }
 }
