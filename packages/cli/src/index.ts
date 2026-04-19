@@ -78,13 +78,13 @@ program
       ...(visibility.allowMemberCreate ? ['member create'] : []),
       ...(visibility.allowMemberUpdate ? ['member update'] : []),
       ...(visibility.allowAccessKeyCreate ? ['access-key:create'] : []),
-      ...(visibility.allowKnowledgeSubmit ? ['submit', 'resubmit'] : []),
+      ...(visibility.allowKnowledgeSubmit ? ['submit', 'resubmit', 'skill edit'] : []),
       ...(visibility.allowKnowledgeInspect ? ['review-status'] : []),
       ...(visibility.allowKnowledgeSearch ? ['search', 'skill search-by-content'] : []),
       ...(visibility.allowKnowledgeReview
         ? ['review:queue', 'review:approve', 'review:reject']
         : []),
-      ...(visibility.allowKnowledgeExport ? ['list', 'export'] : []),
+      ...(visibility.allowKnowledgeExport ? ['list', 'export', 'skill history'] : []),
       ...(visibility.allowKnowledgeImport ? ['import'] : []),
       ...(visibility.allowKnowledgeUpdate ? ['edit'] : []),
       ...(visibility.allowKnowledgeDeactivate ? ['deactivate'] : []),
@@ -126,6 +126,8 @@ registerAuditCommands(program, {
 });
 registerSkillCommands(program, {
   allowSearch: visibility.allowKnowledgeSearch,
+  allowSubmit: visibility.allowKnowledgeSubmit,
+  allowExport: visibility.allowKnowledgeExport,
 });
 
 program.parseAsync(process.argv).catch(printError);
