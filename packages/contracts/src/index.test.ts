@@ -37,6 +37,9 @@ import {
   skillArtifactRevisionSchema,
   skillArtifactSchema,
   skillCapsuleSchema,
+  skillLookupQuerySchema,
+  skillLookupResponseSchema,
+  skillLookupResultItemSchema,
   skillProfileSchema,
   skillScriptDescriptorSchema,
   validateRelativePath,
@@ -2627,6 +2630,322 @@ describe('Phase 16: Legacy Migration and Compatibility Status Contracts', () => 
       };
 
       expect(() => compatibilityStatusResponseSchema.parse(response)).toThrow();
+    });
+  });
+});
+
+// =============================================================================
+// Phase 18: Skill Lookup by Content Contracts (SKED-01)
+// Artifact-first lookup contract for skill search-by-content CLI command.
+// =============================================================================
+
+describe('Phase 18: Skill Lookup by Content Contracts (SKED-01)', () => {
+  describe('skillLookupQuerySchema', () => {
+    it('accepts valid lookup query with text and applies defaults', () => {
+      const query = skillLookupQuerySchema.parse({ text: 'docker container fails to start' });
+
+      expect(query.text).toBe('docker container fails to start');
+      expect(query.maxResults).toBe(10);
+    });
+
+    it('accepts explicit maxResults within bounds', () => {
+      const query = skillLookupQuerySchema.parse({
+        text: 'postgresql connection timeout',
+        maxResults: 25,
+      });
+
+      expect(query.maxResults).toBe(25);
+    });
+
+    it('rejects empty text', () => {
+      expect(() => skillLookupQuerySchema.parse({ text: '' })).toThrow();
+    });
+
+    it('rejects text longer than 2000 characters', () => {
+      const longText = 'a'.repeat(2001);
+      expect(() => skillLookupQuerySchema.parse({ text: longText })).toThrow();
+    });
+
+    it('rejects maxResults less than 1', () => {
+      expect(() =>
+        skillLookupQuerySchema.parse({ text: 'valid text', maxResults: 0 }),
+      ).toThrow();
+    });
+
+    it('rejects maxResults greater than 50', () => {
+      expect(() =>
+        skillLookupQuerySchema.parse({ text: 'valid text', maxResults: 51 }),
+      ).toThrow();
+    });
+
+    it('rejects missing text field', () => {
+      expect(() => skillLookupQuerySchema.parse({})).toThrow();
+    });
+  });
+
+  describe('skillLookupResultItemSchema', () => {
+    it('accepts valid artifact-first match with metadata-only fields', () => {
+      const match = skillLookupResultItemSchema.parse({
+        artifactId: 'artifact_123',
+        title: 'Docker container troubleshooting',
+        slug: 'docker-container-troubleshooting',
+        labels: ['docker', 'containers', 'devops'],
+        scope: 'global',
+        requiredLevel: 3,
+        sourceKind: 'skill-directory',
+        score: 0.92,
+        reason: 'Strong keyword match on docker and container terms',
+      });
+
+      expect(match.artifactId).toBe('artifact_123');
+      expect(match.title).toBe('Docker container troubleshooting');
+      expect(match.slug).toBe('docker-container-troubleshooting');
+      expect(match.labels).toHaveLength(3);
+      expect(match.scope).toBe('global');
+      expect(match.requiredLevel).toBe(3);
+      expect(match.sourceKind).toBe('skill-directory');
+      expect(match.score).toBe(0.92);
+      expect(match.reason).toBe('Strong keyword match on docker and container terms');
+    });
+
+    it('accepts all valid sourceKind values', () => {
+      const sourceKinds = ['skill-directory', 'single-skill-md', 'legacy-knowledge'] as const;
+
+      sourceKinds.forEach((kind) => {
+        const match = skillLookupResultItemSchema.parse({
+          artifactId: 'artifact_1',
+          title: 'Test',
+          slug: 'test',
+          labels: ['test'],
+          scope: 'project',
+          requiredLevel: 0,
+          sourceKind: kind,
+          score: 0.5,
+          reason: 'Test match',
+        });
+
+        expect(match.sourceKind).toBe(kind);
+      });
+    });
+
+    it('accepts both scope values', () => {
+      const globalMatch = skillLookupResultItemSchema.parse({
+        artifactId: 'artifact_1',
+        title: 'Test',
+        slug: 'test',
+        labels: ['test'],
+        scope: 'global',
+        requiredLevel: 0,
+        sourceKind: 'skill-directory',
+        score: 0.5,
+        reason: 'Test match',
+      });
+
+      const projectMatch = skillLookupResultItemSchema.parse({
+        artifactId: 'artifact_2',
+        title: 'Test',
+        slug: 'test',
+        labels: ['test'],
+        scope: 'project',
+        requiredLevel: 0,
+        sourceKind: 'skill-directory',
+        score: 0.5,
+        reason: 'Test match',
+      });
+
+      expect(globalMatch.scope).toBe('global');
+      expect(projectMatch.scope).toBe('project');
+    });
+
+    it('rejects invalid sourceKind', () => {
+      expect(() =>
+        skillLookupResultItemSchema.parse({
+          artifactId: 'artifact_1',
+          title: 'Test',
+          slug: 'test',
+          labels: ['test'],
+          scope: 'global',
+          requiredLevel: 0,
+          sourceKind: 'invalid-kind',
+          score: 0.5,
+          reason: 'Test match',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects score outside 0-1 range', () => {
+      expect(() =>
+        skillLookupResultItemSchema.parse({
+          artifactId: 'artifact_1',
+          title: 'Test',
+          slug: 'test',
+          labels: ['test'],
+          scope: 'global',
+          requiredLevel: 0,
+          sourceKind: 'skill-directory',
+          score: 1.5,
+          reason: 'Test match',
+        }),
+      ).toThrow();
+
+      expect(() =>
+        skillLookupResultItemSchema.parse({
+          artifactId: 'artifact_1',
+          title: 'Test',
+          slug: 'test',
+          labels: ['test'],
+          scope: 'global',
+          requiredLevel: 0,
+          sourceKind: 'skill-directory',
+          score: -0.1,
+          reason: 'Test match',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects requiredLevel outside 0-10 range', () => {
+      expect(() =>
+        skillLookupResultItemSchema.parse({
+          artifactId: 'artifact_1',
+          title: 'Test',
+          slug: 'test',
+          labels: ['test'],
+          scope: 'global',
+          requiredLevel: 11,
+          sourceKind: 'skill-directory',
+          score: 0.5,
+          reason: 'Test match',
+        }),
+      ).toThrow();
+    });
+
+    it('is distinct from capsuleMatchSchema (artifact-first, not capsule-first)', () => {
+      // skillLookupResultItemSchema should not have capsuleId, content, situation, problem, goal
+      const match = skillLookupResultItemSchema.parse({
+        artifactId: 'artifact_1',
+        title: 'Test',
+        slug: 'test',
+        labels: ['test'],
+        scope: 'global',
+        requiredLevel: 0,
+        sourceKind: 'skill-directory',
+        score: 0.5,
+        reason: 'Test match',
+      });
+
+      // Verify it does NOT have capsule-native fields
+      expect('capsuleId' in match).toBe(false);
+      expect('content' in match).toBe(false);
+      expect('situation' in match).toBe(false);
+      expect('problem' in match).toBe(false);
+      expect('goal' in match).toBe(false);
+      expect('capsuleId' in match).toBe(false);
+    });
+  });
+
+  describe('skillLookupResponseSchema', () => {
+    it('accepts valid response with matches', () => {
+      const response = skillLookupResponseSchema.parse({
+        matches: [
+          {
+            artifactId: 'artifact_1',
+            title: 'Docker troubleshooting',
+            slug: 'docker-troubleshooting',
+            labels: ['docker'],
+            scope: 'global',
+            requiredLevel: 0,
+            sourceKind: 'skill-directory',
+            score: 0.95,
+            reason: 'Strong match',
+          },
+          {
+            artifactId: 'artifact_2',
+            title: 'Container orchestration',
+            slug: 'container-orchestration',
+            labels: ['kubernetes', 'docker'],
+            scope: 'project',
+            requiredLevel: 5,
+            sourceKind: 'legacy-knowledge',
+            score: 0.78,
+            reason: 'Partial match',
+          },
+        ],
+      });
+
+      expect(response.matches).toHaveLength(2);
+      expect(response.matches[0]?.artifactId).toBe('artifact_1');
+      expect(response.matches[1]?.artifactId).toBe('artifact_2');
+    });
+
+    it('accepts empty matches array', () => {
+      const response = skillLookupResponseSchema.parse({ matches: [] });
+
+      expect(response.matches).toHaveLength(0);
+    });
+
+    it('defaults matches to empty array when omitted', () => {
+      const response = skillLookupResponseSchema.parse({});
+
+      expect(response.matches).toEqual([]);
+    });
+
+    it('is distinct from retrievalV2ResponseWithHintsSchema (no capsules or activationHints)', () => {
+      // skillLookupResponseSchema should not have capsules, profileHints, or activationHints
+      const response = skillLookupResponseSchema.parse({
+        matches: [
+          {
+            artifactId: 'artifact_1',
+            title: 'Test',
+            slug: 'test',
+            labels: ['test'],
+            scope: 'global',
+            requiredLevel: 0,
+            sourceKind: 'skill-directory',
+            score: 0.5,
+            reason: 'Test',
+          },
+        ],
+      });
+
+      // Verify it does NOT have capsule-native or activation fields
+      expect('capsules' in response).toBe(false);
+      expect('profileHints' in response).toBe(false);
+      expect('activationHints' in response).toBe(false);
+    });
+
+    it('ensures artifact-first design: each match has unique artifactId', () => {
+      // This test documents the contract: lookup results are artifact-unique
+      // Server-side logic will dedupe capsules to unique artifacts
+      const response = skillLookupResponseSchema.parse({
+        matches: [
+          {
+            artifactId: 'artifact_unique_1',
+            title: 'Skill A',
+            slug: 'skill-a',
+            labels: ['a'],
+            scope: 'global',
+            requiredLevel: 0,
+            sourceKind: 'skill-directory',
+            score: 0.9,
+            reason: 'Match',
+          },
+          {
+            artifactId: 'artifact_unique_2',
+            title: 'Skill B',
+            slug: 'skill-b',
+            labels: ['b'],
+            scope: 'global',
+            requiredLevel: 0,
+            sourceKind: 'skill-directory',
+            score: 0.8,
+            reason: 'Match',
+          },
+        ],
+      });
+
+      const artifactIds = response.matches.map((m) => m.artifactId);
+      const uniqueIds = new Set(artifactIds);
+      expect(uniqueIds.size).toBe(artifactIds.length);
     });
   });
 });
