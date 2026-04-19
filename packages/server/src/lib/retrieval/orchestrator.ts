@@ -15,6 +15,8 @@ import {
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import { generateEmbedding, hashEmbeddingText } from '../embeddings.js';
 import { AppError } from '../errors.js';
+import type { PipelineStep, RagLogEntry } from '../rag-log.js';
+import { generateQueryId, logRagRetrieval } from '../rag-log.js';
 import type { KnowledgeRecord } from '../store.js';
 import { nowIso } from '../store.js';
 import {
@@ -53,6 +55,27 @@ import type { MergedCandidate, RetrievalPipelineContext, ScoredEntry } from './t
 const GRAPH_SCORE_BOOST_FACTOR = 0.2;
 
 /**
+ * Time a pipeline step and record its latency.
+ * Used to capture detailed timing for RAG logging.
+ *
+ * @param name - Name of the pipeline step
+ * @param fn - Async function to execute
+ * @param steps - Array to append the step timing to
+ * @returns The result of the function
+ */
+async function timedStep<T>(
+  name: string,
+  fn: () => Promise<T>,
+  steps: PipelineStep[],
+): Promise<T> {
+  const start = Date.now();
+  const result = await fn();
+  const latencyMs = Date.now() - start;
+  steps.push({ name, latencyMs });
+  return result;
+}
+
+/**
  * Main retrieval pipeline orchestrator.
  *
  * Pipeline order (enforced for security):
@@ -77,63 +100,140 @@ export async function searchKnowledge(
   auth: ResolvedAuthContext,
   query: RetrievalQuery,
 ): Promise<RetrievalResponse> {
-  // Parse and validate query
-  const parsed = retrievalQuerySchema.parse(query);
+  const startMs = Date.now();
+  const queryId = generateQueryId();
+  const steps: PipelineStep[] = [];
 
-  // Get current data snapshot
-  const data = await services.store.snapshot();
+  try {
+    // Parse and validate query
+    const parsed = await timedStep('parse',
+      () => Promise.resolve(retrievalQuerySchema.parse(query)),
+      steps
+    );
 
-  // Filter eligible entries (approval, team, level, metadata)
-  const eligibleEntries = filterEligibleEntries(data.knowledgeEntries, auth, parsed.filters);
+    // Get current data snapshot
+    const data = await timedStep('snapshot',
+      () => services.store.snapshot(),
+      steps
+    );
 
-  if (eligibleEntries.length === 0) {
-    return buildEmptyResponse();
-  }
+    // Filter eligible entries (approval, team, level, metadata)
+    const eligibleEntries = await timedStep('eligibility',
+      () => Promise.resolve(filterEligibleEntries(data.knowledgeEntries, auth, parsed.filters)),
+      steps
+    );
 
-  // Dispatch based on query mode
-  const { scoredEntries, mergedCandidates } = await dispatchByMode(
-    parsed.mode,
-    parsed.seed,
-    eligibleEntries,
-    parsed,
-  );
+    if (eligibleEntries.length === 0) {
+      // Log even for empty results
+      void logRagRetrieval(services.config.ragLog, {
+        timestamp: new Date(startMs).toISOString(),
+        queryId,
+        seed: parsed.seed,
+        mode: parsed.mode,
+        actorId: auth.actorId,
+        teamId: auth.activeTeamId,
+        pipelineSteps: steps,
+        totalLatencyMs: Date.now() - startMs,
+        resultCount: 0,
+        metadata: {
+          filters: parsed.filters,
+          maxResults: parsed.maxResults,
+          includeSummary: parsed.includeSummary ?? false,
+          includeRefinement: parsed.includeRefinement ?? false,
+        },
+      });
+      return buildEmptyResponse();
+    }
 
-  // Build citations from merged candidates (if available)
-  const citations = mergedCandidates
-    ? new Map(buildCitations(mergedCandidates).map((c) => [c.source.entryId, c]))
-    : undefined;
+    // Dispatch based on query mode
+    const { scoredEntries, mergedCandidates } = await timedStep('recall',
+      () => dispatchByMode(parsed.mode, parsed.seed, eligibleEntries, parsed),
+      steps
+    );
 
-  // Assemble response buckets with citations
-  const { globalConstraints, projectKnowledge } = assembleResponseBuckets(
-    scoredEntries,
-    parsed.filters,
-    citations,
-  );
+    // Build citations from merged candidates (if available)
+    const citations = mergedCandidates
+      ? new Map(buildCitations(mergedCandidates).map((c) => [c.source.entryId, c]))
+      : undefined;
 
-  // Generate summary if requested and citations are available
-  // Summary only works when we have citations (hybrid or graph-assisted modes)
-  const allMatches = [...globalConstraints, ...projectKnowledge];
-  const summaryCitations = citations ? Array.from(citations.values()) : undefined;
-  const summary =
-    parsed.includeSummary && summaryCitations && summaryCitations.length > 0
-      ? buildSummary({
-          query: parsed.seed,
-          includeSummary: true,
-          hits: allMatches.map((m) => ({
-            shortcut: m.shortcut,
-            detail: m.detail,
-            labels: m.labels,
-          })),
-          citations: summaryCitations,
-        })
+    // Assemble response buckets with citations
+    const { globalConstraints, projectKnowledge } = await timedStep('assembly',
+      () => Promise.resolve(assembleResponseBuckets(scoredEntries, parsed.filters, citations)),
+      steps
+    );
+
+    // Generate summary if requested and citations are available
+    // Summary only works when we have citations (hybrid or graph-assisted modes)
+    const allMatches = [...globalConstraints, ...projectKnowledge];
+    const summaryCitations = citations ? Array.from(citations.values()) : undefined;
+    const summary =
+      parsed.includeSummary && summaryCitations && summaryCitations.length > 0
+        ? await timedStep('summary',
+            () => Promise.resolve(buildSummary({
+              query: parsed.seed,
+              includeSummary: true,
+              hits: allMatches.map((m) => ({
+                shortcut: m.shortcut,
+                detail: m.detail,
+                labels: m.labels,
+              })),
+              citations: summaryCitations,
+            })),
+            steps
+          )
+        : null;
+
+    // Generate refinement summary if requested and available
+    const refinementSummary = parsed.includeRefinement
+      ? await timedStep('refinement',
+          () => generateRefinement(parsed.seed, globalConstraints, projectKnowledge),
+          steps
+        )
       : null;
 
-  // Generate refinement summary if requested and available
-  const refinementSummary = parsed.includeRefinement
-    ? await generateRefinement(parsed.seed, globalConstraints, projectKnowledge)
-    : null;
+    const result = buildRetrievalResponse(globalConstraints, projectKnowledge, refinementSummary, summary);
 
-  return buildRetrievalResponse(globalConstraints, projectKnowledge, refinementSummary, summary);
+    // Log RAG retrieval (fire-and-forget)
+    void logRagRetrieval(services.config.ragLog, {
+      timestamp: new Date(startMs).toISOString(),
+      queryId,
+      seed: parsed.seed,
+      mode: parsed.mode,
+      actorId: auth.actorId,
+      teamId: auth.activeTeamId,
+      pipelineSteps: steps,
+      totalLatencyMs: Date.now() - startMs,
+      resultCount: globalConstraints.length + projectKnowledge.length,
+      metadata: {
+        filters: parsed.filters,
+        maxResults: parsed.maxResults,
+        includeSummary: parsed.includeSummary ?? false,
+        includeRefinement: parsed.includeRefinement ?? false,
+      },
+    });
+
+    return result;
+  } catch (error) {
+    // Log failed retrieval attempt
+    void logRagRetrieval(services.config.ragLog, {
+      timestamp: new Date(startMs).toISOString(),
+      queryId,
+      seed: query.seed ?? '',
+      mode: query.mode ?? 'semantic',
+      actorId: auth.actorId,
+      teamId: auth.activeTeamId,
+      pipelineSteps: steps,
+      totalLatencyMs: Date.now() - startMs,
+      resultCount: 0,
+      metadata: {
+        filters: query.filters,
+        maxResults: query.maxResults ?? 10,
+        includeSummary: query.includeSummary ?? false,
+        includeRefinement: query.includeRefinement ?? false,
+      },
+    });
+    throw error;
+  }
 }
 
 /**
@@ -512,53 +612,127 @@ export async function searchKnowledgeV2(
   auth: ResolvedAuthContext,
   query: RetrievalV2Query,
 ): Promise<RetrievalV2Response> {
-  // Parse and validate query
-  const parsed = retrievalV2QuerySchema.parse(query);
+  const startMs = Date.now();
+  const queryId = generateQueryId();
+  const steps: PipelineStep[] = [];
 
-  // Parse seed intent internally (RETR-02)
-  const intent = parseSeedIntent(parsed.seed);
+  try {
+    // Parse and validate query
+    const parsed = await timedStep('parse',
+      () => Promise.resolve(retrievalV2QuerySchema.parse(query)),
+      steps
+    );
 
-  // Get current data snapshot
-  const data = await services.store.snapshot();
+    // Parse seed intent internally (RETR-02)
+    const intent = await timedStep('intent',
+      () => Promise.resolve(parseSeedIntent(parsed.seed)),
+      steps
+    );
 
-  // Build governance filters from auth context
-  const governanceFilters = {
-    teamId: auth.activeTeamId,
-    securityLevel: auth.securityLevel,
-    isSystemAdmin: auth.subjectType === 'system-admin',
-  };
+    // Get current data snapshot
+    const data = await timedStep('snapshot',
+      () => services.store.snapshot(),
+      steps
+    );
 
-  // Get governed artifacts
-  const artifacts = data.skillArtifacts ?? [];
+    // Build governance filters from auth context
+    const governanceFilters = {
+      teamId: auth.activeTeamId,
+      securityLevel: auth.securityLevel,
+      isSystemAdmin: auth.subjectType === 'system-admin',
+    };
 
-  // Rank capsules against parsed intent (CAPS-04)
-  const rankedCandidates = rankCapsules(artifacts, intent, governanceFilters, parsed.maxResults);
+    // Get governed artifacts
+    const artifacts = data.skillArtifacts ?? [];
 
-  // Early return if no matches
-  if (rankedCandidates.length === 0) {
-    return buildEmptyV2Response();
+    // Rank capsules against parsed intent (CAPS-04)
+    const rankedCandidates = await timedStep('recall',
+      () => Promise.resolve(rankCapsules(artifacts, intent, governanceFilters, parsed.maxResults)),
+      steps
+    );
+
+    // Early return if no matches
+    if (rankedCandidates.length === 0) {
+      void logRagRetrieval(services.config.ragLog, {
+        timestamp: new Date(startMs).toISOString(),
+        queryId,
+        seed: parsed.seed,
+        mode: 'v2-capsule',
+        actorId: auth.actorId,
+        teamId: auth.activeTeamId,
+        pipelineSteps: steps,
+        totalLatencyMs: Date.now() - startMs,
+        resultCount: 0,
+        metadata: {
+          maxResults: parsed.maxResults,
+          includeSummary: false,
+          includeRefinement: false,
+        },
+      });
+      return buildEmptyV2Response();
+    }
+
+    // Get full capsule records for response
+    const capsuleRecords = await timedStep('assembly',
+      () => Promise.resolve(getCapsuleRecords(artifacts, rankedCandidates)),
+      steps
+    );
+
+    // Build capsule matches using pure assembly helper (T-14-07)
+    const capsules: CapsuleMatch[] = capsuleRecords.map(({ capsule, candidate }) =>
+      buildCapsuleMatch(capsule, candidate),
+    );
+
+    // Build profile hints from shortlist using pure assembly helper
+    const profileShortlist = buildProfileShortlist(artifacts, governanceFilters);
+    const artifactIds = new Set(capsules.map((c) => c.artifactId));
+
+    const profileHints: ProfileHint[] = profileShortlist
+      .filter(({ artifact }) => artifactIds.has(artifact.id))
+      .map(({ artifact }) => buildProfileHint(artifact));
+
+    // Build activation hints from governed clientManifest (T-15-02)
+    // Per T-15-01: Activation hints are metadata-only without file bodies
+    const activationHints = buildAllActivationHints(capsules, artifacts);
+
+    const result = buildV2RetrievalResponse(capsules, profileHints, null, activationHints);
+
+    // Log RAG retrieval (fire-and-forget)
+    void logRagRetrieval(services.config.ragLog, {
+      timestamp: new Date(startMs).toISOString(),
+      queryId,
+      seed: parsed.seed,
+      mode: 'v2-capsule',
+      actorId: auth.actorId,
+      teamId: auth.activeTeamId,
+      pipelineSteps: steps,
+      totalLatencyMs: Date.now() - startMs,
+      resultCount: capsules.length,
+      metadata: {
+        maxResults: parsed.maxResults,
+        includeSummary: false,
+        includeRefinement: false,
+      },
+    });
+
+    return result;
+  } catch (error) {
+    void logRagRetrieval(services.config.ragLog, {
+      timestamp: new Date(startMs).toISOString(),
+      queryId,
+      seed: query.seed ?? '',
+      mode: 'v2-capsule',
+      actorId: auth.actorId,
+      teamId: auth.activeTeamId,
+      pipelineSteps: steps,
+      totalLatencyMs: Date.now() - startMs,
+      resultCount: 0,
+      metadata: {
+        maxResults: query.maxResults ?? 10,
+        includeSummary: false,
+        includeRefinement: false,
+      },
+    });
+    throw error;
   }
-
-  // Get full capsule records for response
-  const capsuleRecords = getCapsuleRecords(artifacts, rankedCandidates);
-
-  // Build capsule matches using pure assembly helper (T-14-07)
-  const capsules: CapsuleMatch[] = capsuleRecords.map(({ capsule, candidate }) =>
-    buildCapsuleMatch(capsule, candidate),
-  );
-
-  // Build profile hints from shortlist using pure assembly helper
-  const profileShortlist = buildProfileShortlist(artifacts, governanceFilters);
-  const artifactIds = new Set(capsules.map((c) => c.artifactId));
-
-  const profileHints: ProfileHint[] = profileShortlist
-    .filter(({ artifact }) => artifactIds.has(artifact.id))
-    .map(({ artifact }) => buildProfileHint(artifact));
-
-  // Build activation hints from governed clientManifest (T-15-02)
-  // Per T-15-01: Activation hints are metadata-only without file bodies
-  const activationHints = buildAllActivationHints(capsules, artifacts);
-
-  // Build response using pure assembly helper
-  return buildV2RetrievalResponse(capsules, profileHints, null, activationHints);
 }
