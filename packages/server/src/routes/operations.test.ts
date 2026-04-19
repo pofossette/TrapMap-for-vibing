@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { KnowledgeSubmission } from '@trapmap/contracts';
 import type { FastifyInstance } from 'fastify';
@@ -14,6 +14,12 @@ describe('operations routes', () => {
   beforeEach(async () => {
     app = buildServer();
     await app.ready();
+  });
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
   });
 
   describe('GET /v1/operations/knowledge', () => {
@@ -99,9 +105,8 @@ describe('operations routes', () => {
     beforeEach(async () => {
       // Use a unique data file for each test to avoid interference
       const testDataFile = `/tmp/trapmap-test-${Date.now()}-${Math.random()}.json`;
-      process.env.TRAPMAP_DATA_FILE = testDataFile;
 
-      testApp = buildServer();
+      testApp = buildServer({ config: { dataFile: testDataFile } });
       await testApp.ready();
       testStore = testApp.skillShareer.store;
 
@@ -243,6 +248,12 @@ describe('operations routes', () => {
           updatedAt: nowIso(),
         });
       });
+    });
+
+    afterEach(async () => {
+      if (testApp) {
+        await testApp.close();
+      }
     });
 
     it('should clear index state when deactivating an indexed entry (IDX-06)', async () => {
@@ -1369,9 +1380,8 @@ Some body content.`;
 
     beforeEach(async () => {
       const testDataFile = `/tmp/trapmap-test-${Date.now()}-${Math.random()}.json`;
-      process.env.TRAPMAP_DATA_FILE = testDataFile;
 
-      testApp = buildServer();
+      testApp = buildServer({ config: { dataFile: testDataFile } });
       await testApp.ready();
       testStore = testApp.skillShareer.store;
 
@@ -1540,6 +1550,12 @@ Some body content.`;
         if (!data.skillArtifacts) data.skillArtifacts = [];
         if (!data.artifactFilePayloads) data.artifactFilePayloads = [];
       });
+    });
+
+    afterEach(async () => {
+      if (testApp) {
+        await testApp.close();
+      }
     });
 
     it('migration enforces team access for team-scoped entries (T-16-04)', async () => {
@@ -1825,9 +1841,8 @@ Some body content.`;
 
     beforeEach(async () => {
       const testDataFile = `/tmp/trapmap-test-sunset-${Date.now()}-${Math.random()}.json`;
-      process.env.TRAPMAP_DATA_FILE = testDataFile;
 
-      testApp = buildServer();
+      testApp = buildServer({ config: { dataFile: testDataFile } });
       await testApp.ready();
       testStore = testApp.skillShareer.store;
 
@@ -1871,6 +1886,12 @@ Some body content.`;
         });
         sessionId = sessionToken;
       });
+    });
+
+    afterEach(async () => {
+      if (testApp) {
+        await testApp.close();
+      }
     });
 
     it('status reports ready to sunset when no unmigrated entries remain', async () => {

@@ -22,8 +22,6 @@ describe('End-to-end retrieval workflow', () => {
     // Build server with temporary store
     server = buildServer();
     server.skillShareer.store = store;
-
-    await server.listen({ port: 0, host: '127.0.0.1' });
   });
 
   beforeEach(async () => {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../app.js';
@@ -10,6 +10,12 @@ describe('retrieval route', () => {
   beforeEach(async () => {
     app = buildServer();
     await app.ready();
+  });
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
   });
 
   describe('POST /v1/retrieval/search', () => {
@@ -597,9 +603,8 @@ describe('retrieval route', () => {
       const { buildServer } = await import('../app.js');
 
       const testDataFile = `/tmp/trapmap-test-${Date.now()}-${Math.random()}.json`;
-      process.env.TRAPMAP_DATA_FILE = testDataFile;
 
-      testApp = buildServer();
+      testApp = buildServer({ config: { dataFile: testDataFile } });
       await testApp.ready();
       testStore = testApp.skillShareer.store;
 
@@ -665,6 +670,12 @@ describe('retrieval route', () => {
         if (!data.skillArtifacts) data.skillArtifacts = [];
         if (!data.artifactFilePayloads) data.artifactFilePayloads = [];
       });
+    });
+
+    afterEach(async () => {
+      if (testApp) {
+        await testApp.close();
+      }
     });
 
     it('retrieval filters out entries from other teams', async () => {

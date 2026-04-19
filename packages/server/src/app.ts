@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import { ZodError } from 'zod';
 
+import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
 import { AppError, isAppError } from './lib/errors.js';
 import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
@@ -39,12 +40,19 @@ const documentedRoutes = [
   'POST /v1/operations/knowledge/:entryId/deactivate',
 ] as const;
 
-export function buildServer() {
-  const config = loadConfig();
+interface BuildServerOptions {
+  config?: Partial<ServerConfig>;
+}
+
+export function buildServer(options: BuildServerOptions = {}) {
+  const config = { ...loadConfig(), ...options.config };
+  const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
   const app = Fastify({
-    logger: {
-      level: process.env.LOG_LEVEL ?? 'info',
-    },
+    logger: isTestEnv
+      ? false
+      : {
+          level: process.env.LOG_LEVEL ?? 'info',
+        },
   });
 
   app.get('/health', async () => ({

@@ -9,7 +9,7 @@
  * - T-11-06: Deactivate clears persisted index state
  */
 
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../app.js';
@@ -23,11 +23,16 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
   beforeEach(async () => {
     // Use a unique data file for each test to avoid interference
     const testDataFile = `/tmp/trapmap-test-${Date.now()}-${Math.random()}.json`;
-    process.env.TRAPMAP_DATA_FILE = testDataFile;
 
-    app = buildServer();
+    app = buildServer({ config: { dataFile: testDataFile } });
     await app.ready();
     store = app.skillShareer.store;
+  });
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
   });
 
   describe('approved update refreshes indexes (IDX-05)', () => {
