@@ -160,11 +160,11 @@ Plans:
   2. LOG_RAG_ENABLED in .env controls RAG logging independently from user ops
   3. Both log layers support size-based rotation (e.g., 10MB max file size)
   4. Both log layers support time-based rotation (daily or configurable interval)
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 22-01: Define RAG logger with .env switch and structured output
-- [ ] 22-02: Implement file rotation for both log layers with size and time triggers
+- [x] 22-01: Define RAG logger with .env switch and structured output
+- [x] 22-02: Implement file rotation for both log layers with size and time triggers
 
 ## Progress
 
@@ -191,7 +191,7 @@ Plans:
 | 19. Skill Edit Flow with History | v1.3 | 3/3 | Complete | 2026-04-19 |
 | 20. Skill Edit Review Workflow | v1.3 | 2/2 | Complete | 2026-04-19 |
 | 21. User Operations Logger | v1.3 | 2/2 | Complete    | 2026-04-19 |
-| 22. RAG Logger with File Rotation | v1.3 | 0/2 | Not started | - |
+| 22. RAG Logger with File Rotation | v1.3 | 2/2 | Complete    | 2026-04-19 |
 
 ## Dependencies
 
