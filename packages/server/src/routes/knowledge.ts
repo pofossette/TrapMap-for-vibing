@@ -17,6 +17,7 @@ import {
   toKnowledgeEntry,
   updateKnowledgeEntry,
 } from '../lib/knowledge.js';
+import { logUserOperation } from '../lib/user-ops-log.js';
 import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
@@ -80,6 +81,17 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       data.knowledgeEntries.push(record);
 
       return toKnowledgeEntry(data, record);
+    });
+
+    // Log user operation (fire-and-forget)
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'submit',
+      targetId: entry.id,
+      teamId: auth.activeTeamId,
+      metadata: { scope: payload.scope, labels: payload.labels },
     });
 
     return knowledgeEntryResponseSchema.parse({ entry });
@@ -171,6 +183,17 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       return toKnowledgeEntry(data, entry);
     });
 
+    // Log user operation (fire-and-forget)
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'edit',
+      targetId: entryId,
+      teamId: auth.activeTeamId,
+      metadata: { endpoint: 'resubmit', labels: payload.labels },
+    });
+
     return knowledgeEntryResponseSchema.parse({ entry: updatedEntry });
   });
 
@@ -257,6 +280,17 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         // Optionally: schedule retry or mark entry for reconciliation
       }
     }
+
+    // Log user operation (fire-and-forget)
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'edit',
+      targetId: entryId,
+      teamId: auth.activeTeamId,
+      metadata: { endpoint: 'update', scope: payload.scope, labels: payload.labels },
+    });
 
     return knowledgeEntryResponseSchema.parse({ entry: updatedEntry });
   });
