@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 Phase: 17
 Plan: Not started
 Status: Executing Phase 17
-Last activity: 2026-04-17
+Last activity: 2026-04-19 - Completed quick task 260419-eux: 调节项目skill配置
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260417-ng2 | 给项目服务端提供docker配置 | 2026-04-17 | 1daa558 | [260417-ng2-docker](./quick/260417-ng2-docker/) |
+| 260419-eux | 调节项目skill配置，指导LLM工具查询与调用时机 | 2026-04-19 | c3ca986 | [260419-eux-skill-llm-help](./quick/260419-eux-skill-llm-help/) |
 
 ## Session Continuity
 
