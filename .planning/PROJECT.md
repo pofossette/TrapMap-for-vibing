@@ -24,9 +24,20 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 - ✓ Metadata-only activation flow for references, assets, and scripts with policy-aware execution — v1.2
 - ✓ Legacy knowledge migration path preserving all approval, RBAC, audit, and scope boundaries — v1.2
 
+## Current Milestone: v1.3 工程化调整&功能扩展及优化
+
+**Goal:** 工程化补全 + Skill 编辑闭环 + 可开关双层日志系统
+
+**Target features:**
+- Skill 编辑流程 — CLI 新增按内容检索 ID、按 ID 查数据、修改数据的命令；编辑走 review 审批
+- 双层日志系统 — 用户操作层 + RAG 层，独立开关，`.env` 控制，文件输出 + rotation
+- Phase 17 归档 — 已完成的部署脚本工具正式纳入 v1.3 里程碑追踪
+
 ### Active
 
-*(None — next milestone requirements to be defined)*
+- [ ] Skill editing with CLI lookup commands (search-by-content, get-by-id, edit) and review-based approval flow
+- [ ] Two-layer toggleable logging system (user operations + RAG retrieval paths) with independent .env switches and file rotation
+- [ ] Phase 17 deployment scripts tracked under v1.3 milestone
 
 ### Out of Scope
 
@@ -103,4 +114,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-17 after v1.2 milestone completion*
+*Last updated: 2026-04-19 after v1.3 milestone started*
