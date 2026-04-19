@@ -98,8 +98,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 18-01: Add shared contracts for skill lookup by content
-- [ ] 18-02: Implement CLI search-by-content command with server endpoint
+- [ ] 18-01-PLAN.md — Define the shared artifact-first skill lookup contracts and tests
+- [ ] 18-02-PLAN.md — Implement the governed server endpoint and additive `skill search-by-content` CLI flow
 
 #### Phase 19: Skill Edit Flow with History
 
