@@ -166,6 +166,32 @@ Plans:
 - [x] 22-01: Define RAG logger with .env switch and structured output
 - [x] 22-02: Implement file rotation for both log layers with size and time triggers
 
+#### Phase 23: v1.3 Milestone Verification
+
+**Goal:** Formally verify all v1.3 phases through goal-backward validation and close requirement gaps
+**Depends on:** Phase 22
+**Requirements:** SKED-01, SKED-02, SKED-03, SKED-04, LOG-01, LOG-02, LOG-03, LOG-04
+**Gap Closure:** Closes verification gaps from v1.3 milestone audit
+**Success Criteria** (what must be TRUE):
+  1. VERIFICATION.md exists for phases 17-22 with goal-backward analysis
+  2. VALIDATION.md exists for phases 17-22 with Nyquist compliance
+  3. All 8 v1.3 requirements verified as satisfied in codebase
+  4. Any issues found during verification are resolved
+**Plans:** 0/0 plans (verification execution)
+
+#### Phase 24: Docker Logging Configuration
+
+**Goal:** Wire Docker deployment to support file-based logging with proper volume mounts and env vars
+**Depends on:** Phase 23
+**Requirements:** LOG-01, LOG-02, LOG-03, LOG-04
+**Gap Closure:** Closes integration gap between Phase 17 (Docker) and Phase 21/22 (logging)
+**Success Criteria** (what must be TRUE):
+  1. docker-compose.yml mounts a persistent volume for log directories
+  2. LOG_USER_OPS_ENABLED and LOG_RAG_ENABLED env vars are passed through in docker-compose.yml
+  3. deploy.sh passes LOG_* env vars with sensible defaults
+  4. Logs survive container restarts in Docker deployment
+**Plans:** 0/0 plans (to be planned)
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -192,6 +218,8 @@ Plans:
 | 20. Skill Edit Review Workflow | v1.3 | 2/2 | Complete | 2026-04-19 |
 | 21. User Operations Logger | v1.3 | 2/2 | Complete    | 2026-04-19 |
 | 22. RAG Logger with File Rotation | v1.3 | 2/2 | Complete    | 2026-04-19 |
+| 23. v1.3 Milestone Verification | v1.3 | 0/0 | Pending | — |
+| 24. Docker Logging Configuration | v1.3 | 0/0 | Pending | — |
 
 ## Dependencies
 
@@ -215,6 +243,12 @@ Phase 21 (User Ops Logger)
     │
     ↓
 Phase 22 (RAG Logger + Rotation)
+    │
+    ↓
+Phase 23 (Milestone Verification)
+    │
+    ↓
+Phase 24 (Docker Logging Config)
 ```
 
 **Notes:**
@@ -222,6 +256,8 @@ Phase 22 (RAG Logger + Rotation)
 - Phase 19 depends on Phase 18 (need lookup to edit)
 - Phase 20 depends on Phase 19 (need edit flow to review)
 - Phase 22 depends on Phase 21 (rotation applies to both log layers)
+- Phase 23 depends on Phase 22 (verifies all prior phases)
+- Phase 24 depends on Phase 23 (fix integration gap after verification)
 
 ---
 *Roadmap updated: 2026-04-19 for v1.3 milestone start*
