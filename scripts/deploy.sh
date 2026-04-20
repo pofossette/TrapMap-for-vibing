@@ -13,6 +13,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml"
 ENV_FILE="$PROJECT_ROOT/.env"
 DATA_DIR="$PROJECT_ROOT/.data"
+LOGS_DIR="$PROJECT_ROOT/logs"
 CONTAINER_NAME="trapmap-server"
 
 # Helper functions
@@ -59,6 +60,14 @@ TRAPMAP_SYSTEM_ADMIN_KEY=$(openssl rand -hex 32)
 
 # Data Storage
 TRAPMAP_DATA_FILE=/app/.data/trapmap.json
+
+# Logging Configuration (Phase 24)
+LOG_USER_OPS_ENABLED=false
+LOG_USER_OPS_DIR=/app/logs/user-ops
+LOG_RAG_ENABLED=false
+LOG_RAG_DIR=/app/logs/rag
+LOG_MAX_FILE_SIZE_MB=10
+LOG_MAX_BACKUP_FILES=5
 EOF
         log_warn ".env file created. Please edit it with your API keys and configuration."
         log_warn "Required: OPENAI_API_KEY"
@@ -70,6 +79,11 @@ EOF
 # Create data directory
 create_data_dir() {
     mkdir -p "$DATA_DIR"
+}
+
+# Create logs directory
+create_logs_dir() {
+    mkdir -p "$LOGS_DIR"
 }
 
 # Build the Docker image
@@ -89,6 +103,7 @@ deploy() {
         exit 1
     }
     create_data_dir
+    create_logs_dir
     build_image
     log_info "Starting container..."
     cd "$PROJECT_ROOT"
@@ -102,6 +117,7 @@ start() {
     log_info "Starting service..."
     check_docker
     create_data_dir
+    create_logs_dir
     cd "$PROJECT_ROOT"
     $(get_compose_cmd) -f "$COMPOSE_FILE" up -d
     log_info "Service started."
