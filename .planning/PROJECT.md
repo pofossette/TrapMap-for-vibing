@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Skill Shareer is a CLI-first internal knowledge sharing system for software teams. Teams can capture "pitfall" knowledge during development, retrieve relevant experience via text search, and maintain trustworthiness through admin review workflows. Built as a TypeScript monorepo with LangChain JS-powered RAG. v1.2 introduces skill-native artifacts with structured directories (SKILL.md, references/, assets/, scripts/) and metadata-only activation for secure client-side execution.
+Skill Shareer is a CLI-first internal knowledge sharing system for software teams. Teams can capture "pitfall" knowledge during development, retrieve relevant experience via text search, and maintain trustworthiness through admin review workflows. Built as a TypeScript monorepo with LangChain JS-powered RAG. v1.3 adds skill editing with review workflow, two-layer toggleable logging system, and Docker deployment support.
 
 ## Core Value
 
@@ -23,21 +23,13 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 - ✓ Single-seed retrieval API with internal intent resolution and distilled capsule-oriented results — v1.2
 - ✓ Metadata-only activation flow for references, assets, and scripts with policy-aware execution — v1.2
 - ✓ Legacy knowledge migration path preserving all approval, RBAC, audit, and scope boundaries — v1.2
-
-## Current Milestone: v1.3 工程化调整&功能扩展及优化
-
-**Goal:** 工程化补全 + Skill 编辑闭环 + 可开关双层日志系统
-
-**Target features:**
-- Skill 编辑流程 — CLI 新增按内容检索 ID、按 ID 查数据、修改数据的命令；编辑走 review 审批
-- 双层日志系统 — 用户操作层 + RAG 层，独立开关，`.env` 控制，文件输出 + rotation
-- Phase 17 归档 — 已完成的部署脚本工具正式纳入 v1.3 里程碑追踪
+- ✓ Skill editing with CLI lookup commands (search-by-content, get-by-id, edit) and review-based approval flow — v1.3
+- ✓ Two-layer toggleable logging system (user operations + RAG) with independent .env switches and file rotation — v1.3
+- ✓ Docker deployment configuration with volume mounts for persistent logging — v1.3
 
 ### Active
 
-- [ ] Skill editing with CLI lookup commands (search-by-content, get-by-id, edit) and review-based approval flow
-- [ ] Two-layer toggleable logging system (user operations + RAG retrieval paths) with independent .env switches and file rotation
-- [ ] Phase 17 deployment scripts tracked under v1.3 milestone
+(Ready for next milestone planning via `/gsd-new-milestone`)
 
 ### Out of Scope
 
@@ -46,25 +38,30 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 - Fully automatic knowledge publication without admin approval — trust and curation matter more than throughput
 - Cross-company public marketplace for knowledge sharing — current focus is team-internal, not public distribution
 - Server-side script execution — security boundary keeps script execution on client with metadata-only governance
+- Real-time log streaming — file-based logging with rotation is sufficient for v1.x; streaming adds complexity
 
 ## Context
 
-**Current State (v1.2 shipped 2026-04-17):**
+**Current State (v1.3 shipped 2026-04-20):**
 
-- **Tech stack:** TypeScript, pnpm monorepo, Fastify server, LangChain JS, CLI with Commander.js
-- **Lines of code:** ~35,000 TypeScript across CLI, server, and shared contracts
+- **Tech stack:** TypeScript, pnpm monorepo, Fastify server, LangChain JS, CLI with Commander.js, Docker
+- **Lines of code:** ~192,000 TypeScript across CLI, server, and shared contracts
 - **Data model:** Skill artifacts with SKILL.md, references/, assets/, scripts/; derived profile, capsules, and client manifest; legacy knowledge entries for compatibility
 - **Access control:** Role templates (user/admin) + explicit permissions, security level enforcement on all operations
 - **Search quality:** Multi-path retrieval (semantic/hybrid/graph-assisted) with capsule-first v2 responses and metadata-only activation hints
 - **Indexing:** Lifecycle-driven pipeline with post-commit sync for approve/update/deactivate events
 - **Operational features:** Artifact directory import/export, legacy knowledge migration, audit trail for all mutating operations
-- **v1.2 delivered:**
-  - Skill-native artifact contracts with file-kind discrimination (skill-markdown, reference, asset, script)
-  - Directory import/export with canonical bundle-json transport
-  - Seed-only v2 retrieval with server-internal parsed-intent parsing
-  - Metadata-only activation hints for references, assets, and scripts
-  - Four-state script activation policy (blocked/reference-only/needs-approval/client-executable)
-  - Legacy knowledge migration with preserved governance boundaries
+- **Logging:** Two-layer toggleable logging (user ops + RAG) with JSON Lines output, size/time-based rotation, independent .env switches
+- **Deployment:** Docker configuration with production templates, volume mounts for logs
+
+**v1.3 delivered:**
+- Docker configuration and deployment scripts
+- CLI skill lookup commands (search-by-content, get-by-id)
+- Skill edit flow with revision history and review-based approval
+- Two-layer toggleable logging (user ops + RAG) with independent .env switches
+- File rotation for both log layers (size-based + time-based)
+- Goal-backward verification of all v1.3 requirements
+- Docker integration for file-based logging with volume mounts
 
 **User feedback themes:**
 - None yet — early development phase
@@ -95,6 +92,9 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 | Audit trail for all mutating operations | Teams need traceability for knowledge changes, especially for compliance debugging | ✓ Good — review/import/export/deactivate all logged, queryable via CLI |
 | Client sends one seed, server parses intent internally | Keeps CLI ergonomics simple while preserving richer retrieval semantics | ✓ Good — v2 retrieval uses seed-only contract with server-side intent parsing |
 | Assets and scripts stay client-side at execution time | Server should govern metadata and policy, not execute untrusted skill payloads | ✓ Good — four-state policy model with stricter-only client resolution |
+| Skill edits reuse existing RBAC and review patterns | Avoids new permission model complexity; consistent with knowledge review flow | ✓ Good — edit review workflow mirrors knowledge review patterns |
+| User ops logger defaults disabled, fire-and-forget | Production-friendly defaults; no performance impact unless explicitly enabled | ✓ Good — JSON Lines with daily rotation when enabled |
+| RAG logger follows user ops pattern | Consistent design between both log layers; independent toggles | ✓ Good — size-based rotation integrated for both layers |
 
 ## Evolution
 
@@ -114,4 +114,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-19 after v1.3 milestone started*
+*Last updated: 2026-04-20 after v1.3 milestone completion*
