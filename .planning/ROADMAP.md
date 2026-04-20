@@ -195,7 +195,7 @@ Plans:
   2. LOG_USER_OPS_ENABLED and LOG_RAG_ENABLED env vars are passed through in docker-compose.yml
   3. deploy.sh passes LOG_* env vars with sensible defaults
   4. Logs survive container restarts in Docker deployment
-**Plans:** 0/0 plans (to be planned)
+**Plans:** 1/1 plans complete
 
 ## Progress
 
@@ -224,7 +224,7 @@ Plans:
 | 21. User Operations Logger | v1.3 | 2/2 | Complete    | 2026-04-19 |
 | 22. RAG Logger with File Rotation | v1.3 | 2/2 | Complete    | 2026-04-19 |
 | 23. v1.3 Milestone Verification | v1.3 | 3/3 | Complete    | 2026-04-20 |
-| 24. Docker Logging Configuration | v1.3 | 0/0 | Pending | — |
+| 24. Docker Logging Configuration | v1.3 | 1/1 | Complete    | 2026-04-20 |
 
 ## Dependencies
 
