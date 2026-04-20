@@ -143,6 +143,24 @@ Phase 22 successfully delivers:
 
 All requirements (LOG-02, LOG-03, LOG-04) are complete and verified.
 
+## Nyquist Compliance
+
+- **Sampling rate:** After every plan wave
+- **Test infrastructure:** vitest
+- **Wave 0 complete:** Yes -- unit tests existed before orchestrator integration (22-01 tests predate 22-02)
+
+---
+
+## Re-verification Notes (2026-04-20)
+
+Cross-validated during Phase 23 milestone verification:
+
+- `grep -c "logRagRetrieval" packages/server/src/lib/retrieval/orchestrator.ts` returns 7 references (6 `void logRagRetrieval` calls + 1 import)
+- `grep "appendWithRotation" packages/server/src/lib/user-ops-log.ts packages/server/src/lib/rag-log.ts` confirms both loggers use shared rotation
+- LOG_RAG_ENABLED independent from LOG_USER_OPS_ENABLED (separate env var names confirmed)
+- Size-based rotation with LOG_MAX_FILE_SIZE_MB (default 10MB) and time-based via daily YYYY-MM-DD.log files confirmed
+
 ---
 
 *Verification completed: 2026-04-20*
+*Re-verified: 2026-04-20*
