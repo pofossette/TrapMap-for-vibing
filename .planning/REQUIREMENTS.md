@@ -9,17 +9,17 @@ Requirements for v1.3 milestone: 工程化调整&功能扩展及优化
 
 ### Skill Editing (SKED)
 
-- [ ] **SKED-01**: User can search skills by content text and receive matching skill IDs with brief metadata
-- [ ] **SKED-02**: User can edit an existing skill by ID; changes enter a review queue before taking effect
-- [ ] **SKED-03**: Reviewers with sufficient permissions can approve or reject skill edits
-- [ ] **SKED-04**: Edit history is preserved on the skill (previous versions, edit timestamps)
+- [x] **SKED-01**: User can search skills by content text and receive matching skill IDs with brief metadata
+- [x] **SKED-02**: User can edit an existing skill by ID; changes enter a review queue before taking effect
+- [x] **SKED-03**: Reviewers with sufficient permissions can approve or reject skill edits
+- [x] **SKED-04**: Edit history is preserved on the skill (previous versions, edit timestamps)
 
 ### Logging (LOG)
 
-- [ ] **LOG-01**: Server logs user operations (search, submit, edit, review, import, export) with actor, action, target, and timestamp
-- [ ] **LOG-02**: Server logs RAG retrieval details including retrieval strategy, pipeline steps, and latency per query
-- [ ] **LOG-03**: Each log layer (user ops, RAG) can be independently enabled/disabled via .env configuration
-- [ ] **LOG-04**: Log output writes to structured files with size-based and time-based rotation
+- [x] **LOG-01**: Server logs user operations (search, submit, edit, review, import, export) with actor, action, target, and timestamp
+- [x] **LOG-02**: Server logs RAG retrieval details including retrieval strategy, pipeline steps, and latency per query
+- [x] **LOG-03**: Each log layer (user ops, RAG) can be independently enabled/disabled via .env configuration
+- [x] **LOG-04**: Log output writes to structured files with size-based and time-based rotation
 
 ## Out of Scope
 
@@ -35,21 +35,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SKED-01 | Phase 18, Phase 23 | Pending |
-| SKED-02 | Phase 19, Phase 23 | Pending |
-| SKED-03 | Phase 20, Phase 23 | Pending |
-| SKED-04 | Phase 19, Phase 23 | Pending |
-| LOG-01 | Phase 21, Phase 23, Phase 24 | Pending |
-| LOG-02 | Phase 22, Phase 23, Phase 24 | Pending |
-| LOG-03 | Phase 21, Phase 22, Phase 23, Phase 24 | Pending |
-| LOG-04 | Phase 22, Phase 23, Phase 24 | Pending |
+| SKED-01 | Phase 18, Phase 23 | Complete |
+| SKED-02 | Phase 19, Phase 23 | Complete |
+| SKED-03 | Phase 20, Phase 23 | Complete |
+| SKED-04 | Phase 19, Phase 23 | Complete |
+| LOG-01 | Phase 21, Phase 23, Phase 24 | Complete |
+| LOG-02 | Phase 22, Phase 23, Phase 24 | Complete |
+| LOG-03 | Phase 21, Phase 22, Phase 23, Phase 24 | Complete |
+| LOG-04 | Phase 22, Phase 23, Phase 24 | Complete |
 
 **Coverage:**
 - v1.3 requirements: 8 total
 - Mapped to phases: 8
 - Unmapped: 0
-- Verified: 0 (audit reset — pending verification in Phase 23)
+- Verified: 8 (all v1.3 requirements verified in Phase 23)
 
 ---
 *Requirements defined: 2026-04-19*
-*Last updated: 2026-04-19 after roadmap creation*
+*Last updated: 2026-04-20 after Phase 23 milestone verification*
