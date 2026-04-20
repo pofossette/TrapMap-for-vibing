@@ -21,7 +21,7 @@ describe('CLI skill commands', () => {
 
   describe('registerSkillCommands', () => {
     it('registers skill command group when allowSearch is true', () => {
-      registerSkillCommands(program, { allowSearch: true });
+      registerSkillCommands(program, { allowSearch: true, allowSubmit: false, allowExport: false, allowReview: false });
 
       const commands = program.commands;
       const skillCommand = commands.find((cmd) => cmd.name() === 'skill');
@@ -31,7 +31,7 @@ describe('CLI skill commands', () => {
     });
 
     it('does not register skill command when allowSearch is false', () => {
-      registerSkillCommands(program, { allowSearch: false });
+      registerSkillCommands(program, { allowSearch: false, allowSubmit: false, allowExport: false, allowReview: false });
 
       const commands = program.commands;
       const skillCommand = commands.find((cmd) => cmd.name() === 'skill');
@@ -40,7 +40,7 @@ describe('CLI skill commands', () => {
     });
 
     it('registers search-by-content subcommand under skill', () => {
-      registerSkillCommands(program, { allowSearch: true });
+      registerSkillCommands(program, { allowSearch: true, allowSubmit: false, allowExport: false, allowReview: false });
 
       const skillCommand = program.commands.find((cmd) => cmd.name() === 'skill');
       const subcommands = skillCommand?.commands || [];
@@ -51,7 +51,7 @@ describe('CLI skill commands', () => {
     });
 
     it('search-by-content has correct argument and options', () => {
-      registerSkillCommands(program, { allowSearch: true });
+      registerSkillCommands(program, { allowSearch: true, allowSubmit: false, allowExport: false, allowReview: false });
 
       const skillCommand = program.commands.find((cmd) => cmd.name() === 'skill');
       const searchCommand = skillCommand?.commands.find((cmd) => cmd.name() === 'search-by-content');
@@ -78,7 +78,7 @@ describe('CLI skill commands', () => {
       program.command('test2').description('Test command 2');
 
       // Register skill commands
-      registerSkillCommands(program, { allowSearch: true });
+      registerSkillCommands(program, { allowSearch: true, allowSubmit: false, allowExport: false, allowReview: false });
 
       // Verify other commands still exist
       const test1 = program.commands.find((cmd) => cmd.name() === 'test1');
@@ -93,7 +93,7 @@ describe('CLI skill commands', () => {
     });
 
     it('when allowSearch is false, no skill commands are registered', () => {
-      registerSkillCommands(program, { allowSearch: false });
+      registerSkillCommands(program, { allowSearch: false, allowSubmit: false, allowExport: false, allowReview: false });
 
       const skillCommand = program.commands.find((cmd) => cmd.name() === 'skill');
       expect(skillCommand).toBeUndefined();
