@@ -135,6 +135,24 @@ All requirements (LOG-01, LOG-03) are fully implemented and verified:
 
 4. **Code Quality**: Fire-and-forget pattern ensures logging failures do not impact request handling.
 
+## Nyquist Compliance
+
+- **Sampling rate:** After every plan wave
+- **Test infrastructure:** vitest
+- **Wave 0 complete:** Yes -- unit tests existed before route instrumentation (21-01 tests predate 21-02)
+
+---
+
+## Re-verification Notes (2026-04-20)
+
+Cross-validated during Phase 23 milestone verification:
+
+- `grep -c "logUserOperation" packages/server/src/routes/*.ts` returns 19 total references (15 `void logUserOperation` calls + 4 additional references in test contexts)
+- 15 distinct route handlers instrumented as documented
+- LOG_USER_OPS_ENABLED present in both `.env.example` and `.env.production.example`
+- Independent from LOG_RAG_ENABLED (confirmed via separate env var names)
+
 ---
 
 *Verification completed: 2026-04-19*
+*Re-verified: 2026-04-20*
