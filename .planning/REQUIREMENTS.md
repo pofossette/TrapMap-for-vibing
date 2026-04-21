@@ -16,8 +16,8 @@ Requirements for v1.4 milestone: 评测系统构建
 
 ### Summary Evaluation (SEVAL)
 
-- [ ] **SEVAL-01**: Maintainer can run a summary/refinement evaluation flow that scores groundedness, coverage, and citation adherence for retrieval summaries
-- [ ] **SEVAL-02**: Summary evaluation uses milestone-owned evaluation cases with required facts and forbidden claims so hallucinations are visible in reports
+- [x] **SEVAL-01**: Maintainer can run a summary/refinement evaluation flow that scores groundedness, coverage, and citation adherence for retrieval summaries
+- [x] **SEVAL-02**: Summary evaluation uses milestone-owned evaluation cases with required facts and forbidden claims so hallucinations are visible in reports
 
 ### Operations and Regression Control (EOPS)
 
@@ -52,8 +52,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REVAL-02 | Phase 25 | Complete |
 | REVAL-03 | Phase 26 | Complete |
 | REVAL-04 | Phase 26, Phase 29 | Complete |
-| SEVAL-01 | Phase 27 | Pending |
-| SEVAL-02 | Phase 27 | Pending |
+| SEVAL-01 | Phase 27 | Complete |
+| SEVAL-02 | Phase 27 | Complete |
 | EOPS-01 | Phase 28 | Pending |
 | EOPS-02 | Phase 28 | Pending |
 | EOPS-03 | Phase 29 | Pending |

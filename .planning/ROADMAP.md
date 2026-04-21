@@ -211,7 +211,7 @@ Plans:
 | 24. Docker Logging Configuration | v1.3 | 1/1 | Complete | 2026-04-20 |
 | 25. Evaluation Contracts and Golden Dataset Foundation | v1.4 | 2/2 | Complete    | 2026-04-21 |
 | 26. Retrieval Metrics Runner and Governance Checks | v1.4 | 2/2 | Complete    | 2026-04-21 |
-| 27. Summary Evaluation and Judge Integration | v1.4 | 2/2 | Complete   | 2026-04-21 |
+| 27. Summary Evaluation and Judge Integration | v1.4 | 2/2 | Complete    | 2026-04-21 |
 | 28. CI Integration and Evaluation Reporting | v1.4 | 0/2 | Planned | — |
 | 29. Baseline Calibration and Milestone Verification | v1.4 | 0/2 | Planned | — |
 
