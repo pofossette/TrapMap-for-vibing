@@ -2,6 +2,24 @@
 
 This directory contains golden datasets and entrypoints for evaluating TrapMap's retrieval endpoints.
 
+## Quick Start
+
+Run retrieval evaluation from root pnpm scripts:
+
+```bash
+# Run smoke tier evaluation
+pnpm eval:retrieval:smoke
+
+# Run core tier evaluation
+pnpm eval:retrieval:core
+
+# Dry-run (validate layout without execution)
+pnpm eval:retrieval:dry-run
+
+# Run with options
+pnpm eval:retrieval --tier smoke --endpoint /v2/retrieval/search
+```
+
 ## Endpoints in Scope
 
 | Endpoint | Response Shape | Notes |
@@ -103,18 +121,49 @@ This separation ensures:
 
 ## Out of Scope for Phase 25
 
-- Metrics calculators (Hit@K, MRR, nDCG) → Phase 26
-- Report serialization → Phase 26
+- Metrics calculators (Hit@K, MRR, nDCG) → Phase 26 ✓ COMPLETE
+- Report serialization → Phase 26 ✓ COMPLETE
 - CI wiring → Phase 28
 - Summary/judge evaluation → Phase 27
+
+## Metrics (Phase 26)
+
+The runner computes the following ranking metrics per case and per slice:
+
+| Metric | Description |
+|--------|-------------|
+| Hit@K | Whether any relevant ID appears in top K results (K=1,5,10) |
+| MRR | Mean Reciprocal Rank: 1/rank of first relevant result |
+| nDCG | Normalized Discounted Cumulative Gain (binary relevance) |
+| Recall@K | Fraction of relevant items found in top K results (K=10) |
+
+Empty target policy: All metrics return 0 when no relevant IDs exist.
 
 ## Entrypoints
 
 | File | Purpose |
 |------|---------|
-| `run.ts` | Tier/endpoint-aware loader, supports `--dry-run --allow-empty` |
+| `run.ts` | Main runner entrypoint with execution, metrics, and reporting |
 | `smoke.ts` | Smoke-tier dataset export |
 | `core.ts` | Core-tier dataset export |
+| `lib/types.ts` | Shared runner result and slice types |
+| `lib/adapters.ts` | Endpoint execution boundary |
+| `lib/normalize.ts` | Endpoint-specific response normalization |
+| `lib/metrics.ts` | Ranking metric calculators |
+| `lib/governance.ts` | Governance assertion layer |
+| `lib/load.ts` | Case loading and validation |
+
+## Runner Options
+
+| Option | Description |
+|--------|-------------|
+| `--tier` | Evaluation tier: `smoke` or `core` (default: `smoke`) |
+| `--endpoint` | Filter by endpoint: `/v1/retrieval/search` or `/v2/retrieval/search` |
+| `--dry-run` | Validate layout without executing evaluation |
+| `--allow-empty` | Exit successfully if no cases found |
+| `--json` | Output JSON report |
+| `--json-path` | Write JSON report to file |
+| `--verbose` | Enable verbose output |
 
 ### Dry-Run Mode
 

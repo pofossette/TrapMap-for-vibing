@@ -13,7 +13,11 @@
     "knip:fix": "knip --fix",
     "lint": "biome check .",
     "test": "vitest run",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false",
+    "eval:retrieval": "pnpm exec tsx evals/retrieval/run.ts",
+    "eval:retrieval:smoke": "pnpm exec tsx evals/retrieval/run.ts --tier smoke",
+    "eval:retrieval:core": "pnpm exec tsx evals/retrieval/run.ts --tier core",
+    "eval:retrieval:dry-run": "pnpm exec tsx evals/retrieval/run.ts --tier smoke --dry-run"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
