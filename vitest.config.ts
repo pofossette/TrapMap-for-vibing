@@ -35,6 +35,18 @@ export default defineConfig({
           },
         },
       },
+      {
+        test: {
+          name: 'evals',
+          root: './evals',
+          include: ['**/*.test.ts'],
+        },
+        resolve: {
+          alias: {
+            '@trapmap/contracts': resolve(__dirname, './packages/contracts/src/index.ts'),
+          },
+        },
+      },
     ],
     pool: 'threads',
     poolOptions: {
