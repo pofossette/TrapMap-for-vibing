@@ -159,10 +159,10 @@ Plans:
   2. Evaluation reports clearly compare retrieval modes and endpoint slices
   3. Documentation explains how to add cases and interpret failures
   4. CI integration does not require a separate Python-first environment
-**Plans:** 2 plans expected
+**Plans:** 1/3 plans executed
 
 Plans:
-- [ ] 28-01: Wire pnpm scripts, docs, and report summaries for maintainer workflows
+- [x] 28-01: Wire pnpm scripts, docs, and report summaries for maintainer workflows
 - [ ] 28-02: Integrate smoke/core evaluation paths into CI-ready automation
 
 #### Phase 29: Baseline Calibration and Milestone Verification
@@ -212,7 +212,7 @@ Plans:
 | 25. Evaluation Contracts and Golden Dataset Foundation | v1.4 | 2/2 | Complete    | 2026-04-21 |
 | 26. Retrieval Metrics Runner and Governance Checks | v1.4 | 2/2 | Complete    | 2026-04-21 |
 | 27. Summary Evaluation and Judge Integration | v1.4 | 2/2 | Complete    | 2026-04-21 |
-| 28. CI Integration and Evaluation Reporting | v1.4 | 0/2 | Planned | — |
+| 28. CI Integration and Evaluation Reporting | v1.4 | 1/3 | In Progress|  |
 | 29. Baseline Calibration and Milestone Verification | v1.4 | 0/2 | Planned | — |
 
 ## Dependencies
