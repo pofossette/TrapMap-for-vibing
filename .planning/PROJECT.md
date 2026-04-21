@@ -2,11 +2,21 @@
 
 ## What This Is
 
-Skill Shareer is a CLI-first internal knowledge sharing system for software teams. Teams can capture "pitfall" knowledge during development, retrieve relevant experience via text search, and maintain trustworthiness through admin review workflows. Built as a TypeScript monorepo with LangChain JS-powered RAG. v1.3 adds skill editing with review workflow, two-layer toggleable logging system, and Docker deployment support.
+Skill Shareer is a CLI-first internal knowledge sharing system for software teams. Teams can capture "pitfall" knowledge during development, retrieve relevant experience via text search, and maintain trustworthiness through admin review workflows. v1.4 focuses on building an evaluation system so retrieval quality can be measured, regressed, and improved with confidence.
 
 ## Core Value
 
 Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
+
+## Current Milestone: v1.4 评测系统构建
+
+**Goal:** Build a practical evaluation system for TrapMap's retrieval stack so maintainers can measure search quality, detect regressions, and gate changes with repeatable benchmarks.
+
+**Target features:**
+- Golden evaluation datasets for retrieval and summary workflows
+- TypeScript retrieval evaluation runner with ranking and governance metrics
+- Summary evaluation flow with judge-based checks for faithfulness and coverage
+- CI-friendly reporting and baseline comparison for regression detection
 
 ## Requirements
 
@@ -29,7 +39,10 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 
 ### Active
 
-(Ready for next milestone planning via `/gsd-new-milestone`)
+- [ ] Build a milestone-scoped evaluation system for retrieval quality using golden datasets and deterministic ranking metrics
+- [ ] Enforce governance-safe evaluation so permission filters and leakage checks are measured alongside relevance
+- [ ] Add summary/refinement evaluation with groundedness-style judge checks over retrieved context
+- [ ] Make evaluation runnable from the repo and usable in CI for regression detection
 
 ### Out of Scope
 
@@ -39,35 +52,32 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 - Cross-company public marketplace for knowledge sharing — current focus is team-internal, not public distribution
 - Server-side script execution — security boundary keeps script execution on client with metadata-only governance
 - Real-time log streaming — file-based logging with rotation is sufficient for v1.x; streaming adds complexity
+- Full conversational QA-answer benchmarking for arbitrary generation endpoints — v1.4 prioritizes retrieval and summary evaluation on the existing API surface first
+- Python-first evaluation infrastructure as the primary path — the current milestone stays TypeScript-native to fit the existing monorepo and CI flow
 
 ## Context
 
 **Current State (v1.3 shipped 2026-04-20):**
 
 - **Tech stack:** TypeScript, pnpm monorepo, Fastify server, LangChain JS, CLI with Commander.js, Docker
-- **Lines of code:** ~192,000 TypeScript across CLI, server, and shared contracts
 - **Data model:** Skill artifacts with SKILL.md, references/, assets/, scripts/; derived profile, capsules, and client manifest; legacy knowledge entries for compatibility
 - **Access control:** Role templates (user/admin) + explicit permissions, security level enforcement on all operations
-- **Search quality:** Multi-path retrieval (semantic/hybrid/graph-assisted) with capsule-first v2 responses and metadata-only activation hints
-- **Indexing:** Lifecycle-driven pipeline with post-commit sync for approve/update/deactivate events
+- **Search quality surface:** Multi-path retrieval (semantic/hybrid/graph-assisted) with capsule-first v2 responses and metadata-only activation hints
 - **Operational features:** Artifact directory import/export, legacy knowledge migration, audit trail for all mutating operations
 - **Logging:** Two-layer toggleable logging (user ops + RAG) with JSON Lines output, size/time-based rotation, independent .env switches
-- **Deployment:** Docker configuration with production templates, volume mounts for logs
+- **Deployment:** Docker configuration with production templates and persistent log volumes
 
-**v1.3 delivered:**
-- Docker configuration and deployment scripts
-- CLI skill lookup commands (search-by-content, get-by-id)
-- Skill edit flow with revision history and review-based approval
-- Two-layer toggleable logging (user ops + RAG) with independent .env switches
-- File rotation for both log layers (size-based + time-based)
-- Goal-backward verification of all v1.3 requirements
-- Docker integration for file-based logging with volume mounts
+**What v1.4 needs to solve:**
 
-**User feedback themes:**
-- None yet — early development phase
+- Retrieval quality is observable through logs and tests, but not yet scored against a labeled golden dataset
+- The project needs hard metrics such as Hit@K, MRR, nDCG, Recall@K, and governance leakage checks for `/v1/retrieval/search` and `/v2/retrieval/search`
+- Summary and refinement outputs need a separate evaluation path because correctness depends on groundedness to returned retrieval results
+- Regression checks should fit the existing pnpm/TypeScript toolchain and run in CI without introducing a Python-first primary workflow
 
 **Known issues:**
-- None blocking
+
+- `.planning/REQUIREMENTS.md` is absent after v1.3 archival, so the next milestone needs a fresh active requirements file
+- RAG logs record timings and counts, but not the ground-truth labels needed to calculate accuracy directly
 
 ## Constraints
 
@@ -77,6 +87,8 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 - **Search Modality**: Text-only retrieval in v1.x — no images, attachments, or multimodal embeddings in current scope
 - **Delivery**: Fast prototype bias using LangChain JS on the server — optimize for end-to-end usability before deep platform polish
 - **Security**: Access control must combine role templates with explicit permissions — admin/user defaults alone are not precise enough for team operations
+- **Evaluation Stack**: Primary evaluation flow should stay in TypeScript/Node — this matches the existing monorepo, toolchain, and CI ergonomics
+- **Metrics**: Retrieval metrics must separate ranking quality from governance correctness — a high recall score cannot hide permission leakage
 
 ## Key Decisions
 
@@ -95,6 +107,8 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 | Skill edits reuse existing RBAC and review patterns | Avoids new permission model complexity; consistent with knowledge review flow | ✓ Good — edit review workflow mirrors knowledge review patterns |
 | User ops logger defaults disabled, fire-and-forget | Production-friendly defaults; no performance impact unless explicitly enabled | ✓ Good — JSON Lines with daily rotation when enabled |
 | RAG logger follows user ops pattern | Consistent design between both log layers; independent toggles | ✓ Good — size-based rotation integrated for both layers |
+| v1.4 evaluation stays TypeScript-native | The repository already has a strong TS/Node spine, so the primary path should integrate there before adding Python-side evaluators | — Pending |
+| Retrieval evaluation must score governance separately from relevance | Search quality numbers are misleading if forbidden or cross-scope results can still pass | — Pending |
 
 ## Evolution
 
@@ -114,4 +128,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-20 after v1.3 milestone completion*
+*Last updated: 2026-04-21 after v1.4 milestone start*
