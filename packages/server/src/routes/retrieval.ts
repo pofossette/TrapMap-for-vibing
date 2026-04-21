@@ -39,7 +39,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
       action: 'search',
       targetId: null,
       teamId: auth.activeTeamId,
-      metadata: { endpoint: 'v1-retrieval-search', resultCount: result.items.length },
+      metadata: { endpoint: 'v1-retrieval-search', resultCount: result.globalConstraints.length + result.projectKnowledge.length },
     });
 
     // Validate and return response
