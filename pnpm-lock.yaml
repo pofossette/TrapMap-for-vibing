@@ -26,7 +26,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@skill-shareer/contracts':
+      '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
       commander:
@@ -47,7 +47,7 @@ importers:
       '@langchain/openai':
         specifier: ^1.4.4
         version: 1.4.4(@langchain/core@1.1.39(openai@6.34.0(zod@4.3.6)))
-      '@skill-shareer/contracts':
+      '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
       fastify:
