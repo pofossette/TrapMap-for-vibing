@@ -208,3 +208,122 @@ export function formatCaseDetail(result: SummaryCaseResult): string {
 
   return lines.join('\n');
 }
+
+// =============================================================================
+// Slice Comparison Formatter
+// =============================================================================
+
+/**
+ * Format a slice comparison table for cross-endpoint analysis.
+ *
+ * Phase 28-01: EOPS-02
+ *
+ * Outputs a comparison table showing metrics by endpoint with columns:
+ * Endpoint, Cases, Avg Groundedness, Avg Coverage, Forbidden Hits.
+ * Includes a "Comparison Summary" section highlighting best/worst performing endpoints.
+ *
+ * @param report - The canonical summary evaluation report
+ * @returns Human-readable comparison table
+ */
+export function formatSliceComparison(report: SummaryEvalReport): string {
+  const lines: string[] = [];
+
+  if (report.cases.length === 0) {
+    return 'No cases to compare.';
+  }
+
+  // Group cases by endpoint
+  const endpointGroups = new Map<string, typeof report.cases>();
+
+  for (const caseResult of report.cases) {
+    const existing = endpointGroups.get(caseResult.endpoint) ?? [];
+    existing.push(caseResult);
+    endpointGroups.set(caseResult.endpoint, existing);
+  }
+
+  // Calculate per-endpoint metrics
+  const endpointMetrics = Array.from(endpointGroups.entries()).map(([endpoint, cases]) => {
+    const passedCases = cases.filter(c => c.passed).length;
+    const avgGroundedness = cases.reduce((sum, c) => sum + c.groundednessScore, 0) / cases.length;
+    const avgCoverage = cases.reduce((sum, c) => sum + c.coverageScore, 0) / cases.length;
+    const forbiddenHits = cases.reduce((sum, c) => sum + c.forbiddenClaimsFound.length, 0);
+    const totalClaims = cases.reduce((sum, c) => sum + c.claimsTotal, 0);
+    const supportedClaims = cases.reduce((sum, c) => sum + c.claimsSupported, 0);
+
+    return {
+      endpoint,
+      cases: cases.length,
+      passedCases,
+      failedCases: cases.length - passedCases,
+      passRate: passedCases / cases.length,
+      avgGroundedness,
+      avgCoverage,
+      forbiddenHits,
+      claimsRatio: totalClaims > 0 ? supportedClaims / totalClaims : 0,
+    };
+  });
+
+  // Sort by pass rate descending
+  endpointMetrics.sort((a, b) => b.passRate - a.passRate);
+
+  // Header
+  lines.push('');
+  lines.push('=== Endpoint Comparison ===');
+  lines.push('');
+
+  // Table header
+  lines.push('Endpoint              | Cases | Passed | Failed | Pass Rate | Avg Groundedness | Avg Coverage | Forbidden');
+  lines.push('----------------------|-------|--------|--------|-----------|------------------|--------------|----------');
+
+  // Table rows
+  for (const metric of endpointMetrics) {
+    const endpoint = metric.endpoint.padEnd(20);
+    const cases = String(metric.cases).padStart(5);
+    const passed = String(metric.passedCases).padStart(6);
+    const failed = String(metric.failedCases).padStart(6);
+    const passRate = `${(metric.passRate * 100).toFixed(1)}%`.padStart(9);
+    const groundedness = metric.avgGroundedness.toFixed(2).padStart(16);
+    const coverage = metric.avgCoverage.toFixed(2).padStart(12);
+    const forbidden = String(metric.forbiddenHits).padStart(8);
+
+    lines.push(`${endpoint} | ${cases} | ${passed} | ${failed} | ${passRate} | ${groundedness} | ${coverage} | ${forbidden}`);
+  }
+
+  lines.push('');
+
+  // Comparison Summary
+  lines.push('=== Comparison Summary ===');
+  lines.push('');
+
+  if (endpointMetrics.length > 0) {
+    const best = endpointMetrics[0];
+    const worst = endpointMetrics[endpointMetrics.length - 1];
+
+    lines.push(`Best performing endpoint:  ${best.endpoint} - ${(best.passRate * 100).toFixed(1)}% pass rate`);
+    lines.push(`Worst performing endpoint: ${worst.endpoint} - ${(worst.passRate * 100).toFixed(1)}% pass rate`);
+    lines.push('');
+  }
+
+  // Best by metrics
+  const byGroundedness = [...endpointMetrics].sort((a, b) => b.avgGroundedness - a.avgGroundedness);
+  const byCoverage = [...endpointMetrics].sort((a, b) => b.avgCoverage - a.avgCoverage);
+
+  if (byGroundedness[0] && byCoverage[0]) {
+    lines.push('Best by metric:');
+    lines.push(`  Groundedness: ${byGroundedness[0].endpoint} - ${byGroundedness[0].avgGroundedness.toFixed(2)}`);
+    lines.push(`  Coverage:     ${byCoverage[0].endpoint} - ${byCoverage[0].avgCoverage.toFixed(2)}`);
+    lines.push('');
+  }
+
+  // Forbidden claims warning
+  const withForbidden = endpointMetrics.filter(m => m.forbiddenHits > 0);
+  if (withForbidden.length > 0) {
+    lines.push('⚠️  Forbidden claims detected:');
+    for (const metric of withForbidden) {
+      lines.push(`  ${metric.endpoint}: ${metric.forbiddenHits} forbidden claim(s)`);
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}

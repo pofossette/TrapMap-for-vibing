@@ -1,0 +1,302 @@
+/**
+ * Human-readable terminal formatting for retrieval evaluation reports.
+ *
+ * Phase 26-02: REVAL-04
+ * Terminal summary for slices, metrics, and governance failures.
+ * Derived from the canonical report structure for consistency.
+ */
+
+import type {
+  RetrievalEvalReport,
+  RetrievalEvalSliceSummary,
+  RetrievalEvalFailureRecord,
+  RetrievalEvalWarningRecord,
+} from '../../../packages/contracts/src/domain/evals/report.js';
+
+// =============================================================================
+// Main Formatter
+// =============================================================================
+
+/**
+ * Format a retrieval evaluation report as terminal output.
+ * Shows per-slice metrics, case failures, and adapter warnings.
+ *
+ * @param report - The canonical retrieval evaluation report
+ * @returns Human-readable terminal output
+ */
+export function formatReport(report: RetrievalEvalReport): string {
+  const lines: string[] = [];
+
+  // Header
+  lines.push('');
+  lines.push('=== Evaluation Summary ===');
+  lines.push(`Total cases: ${report.summary.totalCases}`);
+  lines.push(`Passed: ${report.summary.passedCases}`);
+  lines.push(`Failed: ${report.summary.failedCases}`);
+  lines.push(`Pass rate: ${(report.summary.passRate * 100).toFixed(1)}%`);
+  lines.push(`Duration: ${report.meta.durationMs}ms`);
+  lines.push('');
+
+  // Slice metrics
+  if (report.slices.length > 0) {
+    lines.push('=== Slice Metrics ===');
+    for (const slice of report.slices) {
+      lines.push('');
+      lines.push(formatSliceSummary(slice));
+    }
+  }
+
+  // Governance failures
+  const govFailures = report.failures.filter(
+    (f) => f.kind === 'forbidden-hit' || f.kind === 'shape-mismatch',
+  );
+  if (govFailures.length > 0) {
+    lines.push('');
+    lines.push('=== Governance Failures ===');
+    for (const failure of govFailures) {
+      lines.push(formatFailure(failure));
+    }
+  }
+
+  // Outcome mismatches
+  const outcomeMismatches = report.failures.filter(
+    (f) => f.kind === 'unexpected-empty' || f.kind === 'unexpected-non-empty',
+  );
+  if (outcomeMismatches.length > 0) {
+    lines.push('');
+    lines.push('=== Outcome Mismatches ===');
+    for (const failure of outcomeMismatches) {
+      lines.push(formatFailure(failure));
+    }
+  }
+
+  // Execution issues
+  const execIssues = report.failures.filter((f) => f.kind === 'execution-error');
+  if (execIssues.length > 0) {
+    lines.push('');
+    lines.push('=== Execution Issues ===');
+    for (const failure of execIssues) {
+      lines.push(formatFailure(failure));
+    }
+  }
+
+  // Warnings
+  const degradedWarnings = report.warnings.filter((w) => w.degraded);
+  if (degradedWarnings.length > 0) {
+    lines.push('');
+    lines.push('=== Warnings ===');
+    for (const warning of degradedWarnings) {
+      lines.push(formatWarning(warning));
+    }
+  }
+
+  // Summary
+  lines.push('');
+  if (report.summary.passed) {
+    lines.push('Evaluation completed successfully.');
+  } else {
+    lines.push('Evaluation completed with failures.');
+  }
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Slice Formatter
+// =============================================================================
+
+/**
+ * Format a slice summary for terminal output.
+ */
+function formatSliceSummary(slice: RetrievalEvalSliceSummary): string {
+  const lines: string[] = [];
+  const modeStr = slice.slice.mode ? ` (${slice.slice.mode})` : '';
+
+  lines.push(`[${slice.slice.tier}] ${slice.slice.endpoint}${modeStr}`);
+  lines.push(`  Cases: ${slice.caseCount} (passed: ${slice.passedCount}, failed: ${slice.failedCount})`);
+  lines.push(`  Pass rate: ${(slice.passRate * 100).toFixed(1)}%`);
+  lines.push(`  Avg Hit@1: ${slice.avgHitAt1.toFixed(3)}`);
+  lines.push(`  Avg Hit@5: ${slice.avgHitAt5.toFixed(3)}`);
+  lines.push(`  Avg Hit@10: ${slice.avgHitAt10.toFixed(3)}`);
+  lines.push(`  Avg MRR: ${slice.avgMrr.toFixed(3)}`);
+  lines.push(`  Avg nDCG: ${slice.avgNdcg.toFixed(3)}`);
+  lines.push(`  Avg Recall@10: ${slice.avgRecallAt10.toFixed(3)}`);
+
+  // Failure counts
+  const failureParts: string[] = [];
+  if (slice.governanceFailureCount > 0) {
+    failureParts.push(`governance: ${slice.governanceFailureCount}`);
+  }
+  if (slice.outcomeMismatchCount > 0) {
+    failureParts.push(`outcome: ${slice.outcomeMismatchCount}`);
+  }
+  if (slice.executionIssueCount > 0) {
+    failureParts.push(`execution: ${slice.executionIssueCount}`);
+  }
+
+  if (failureParts.length > 0) {
+    lines.push(`  Failures: ${failureParts.join(', ')}`);
+  }
+
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Failure Formatter
+// =============================================================================
+
+/**
+ * Format a failure record for terminal output.
+ */
+function formatFailure(failure: RetrievalEvalFailureRecord): string {
+  const lines: string[] = [];
+
+  lines.push(`\n${failure.caseId} [${failure.tier}/${failure.endpoint}]:`);
+  lines.push(`  Kind: ${failure.kind}`);
+  lines.push(`  Description: ${failure.description}`);
+
+  if (failure.ids.length > 0) {
+    lines.push(`  IDs: ${failure.ids.join(', ')}`);
+  }
+
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Warning Formatter
+// =============================================================================
+
+/**
+ * Format a warning record for terminal output.
+ */
+function formatWarning(warning: RetrievalEvalWarningRecord): string {
+  return `\n${warning.caseId}: [${warning.code}] ${warning.message}`;
+}
+
+// =============================================================================
+// Compact Format for CI
+// =============================================================================
+
+/**
+ * Format a compact summary for CI logs.
+ * Single-line format suitable for CI log aggregation.
+ */
+export function formatCompactSummary(report: RetrievalEvalReport): string {
+  const status = report.summary.passed ? 'PASS' : 'FAIL';
+  const metrics = `H@1=${report.slices[0]?.avgHitAt1.toFixed(2) ?? 'N/A'} MRR=${report.slices[0]?.avgMrr.toFixed(2) ?? 'N/A'}`;
+
+  return `[${status}] ${report.summary.passedCases}/${report.summary.totalCases} cases passed | ${metrics} | ${report.failures.length} failures | ${report.warnings.filter((w) => w.degraded).length} warnings`;
+}
+
+// =============================================================================
+// Slice Comparison Formatter
+// =============================================================================
+
+/**
+ * Format a slice comparison table for cross-endpoint/mode analysis.
+ *
+ * Phase 28-01: EOPS-02
+ *
+ * Outputs a comparison table showing metrics by slice (endpoint + mode combination)
+ * with columns: Tier, Endpoint, Mode, Cases, Pass Rate, Avg Hit@1, Avg MRR, Avg nDCG.
+ * Includes a "Comparison Summary" section highlighting best/worst performing slices.
+ *
+ * @param report - The canonical retrieval evaluation report
+ * @returns Human-readable comparison table
+ */
+export function formatSliceComparison(report: RetrievalEvalReport): string {
+  const lines: string[] = [];
+
+  if (report.slices.length === 0) {
+    return 'No slices to compare.';
+  }
+
+  // Header
+  lines.push('');
+  lines.push('=== Slice Comparison ===');
+  lines.push('');
+
+  // Table header
+  lines.push('Tier     | Endpoint              | Mode          | Cases | Pass Rate | Avg Hit@1 | Avg MRR | Avg nDCG');
+  lines.push('---------|----------------------|---------------|-------|-----------|-----------|---------|----------');
+
+  // Sort slices for consistent display
+  const sortedSlices = [...report.slices].sort((a, b) => {
+    // Sort by tier, then endpoint, then mode
+    if (a.slice.tier !== b.slice.tier) {
+      return a.slice.tier === 'smoke' ? -1 : 1;
+    }
+    if (a.slice.endpoint !== b.slice.endpoint) {
+      return a.slice.endpoint.localeCompare(b.slice.endpoint);
+    }
+    const modeA = a.slice.mode ?? 'none';
+    const modeB = b.slice.mode ?? 'none';
+    return modeA.localeCompare(modeB);
+  });
+
+  // Table rows
+  for (const slice of sortedSlices) {
+    const mode = slice.slice.mode ?? 'default';
+    const tier = slice.slice.tier.padEnd(8);
+    const endpoint = slice.slice.endpoint.padEnd(20);
+    const modeStr = mode.padEnd(13);
+    const cases = String(slice.caseCount).padStart(5);
+    const passRate = `${(slice.passRate * 100).toFixed(1)}%`.padStart(9);
+    const hitAt1 = slice.avgHitAt1.toFixed(3).padStart(9);
+    const mrr = slice.avgMrr.toFixed(3).padStart(7);
+    const ndcg = slice.avgNdcg.toFixed(3).padStart(9);
+
+    lines.push(`${tier} | ${endpoint} | ${modeStr} | ${cases} | ${passRate} | ${hitAt1} | ${mrr} | ${ndcg}`);
+  }
+
+  lines.push('');
+
+  // Comparison Summary
+  lines.push('=== Comparison Summary ===');
+  lines.push('');
+
+  // Best and worst by pass rate
+  const byPassRate = [...sortedSlices].sort((a, b) => b.passRate - a.passRate);
+  const best = byPassRate[0];
+  const worst = byPassRate[byPassRate.length - 1];
+
+  if (best && worst) {
+    const bestMode = best.slice.mode ?? 'default';
+    const worstMode = worst.slice.mode ?? 'default';
+
+    lines.push(`Best performing slice:  ${best.slice.endpoint} (${bestMode}) - ${(best.passRate * 100).toFixed(1)}% pass rate`);
+    lines.push(`Worst performing slice: ${worst.slice.endpoint} (${worstMode}) - ${(worst.passRate * 100).toFixed(1)}% pass rate`);
+    lines.push('');
+  }
+
+  // Best by metrics
+  const byHitAt1 = [...sortedSlices].sort((a, b) => b.avgHitAt1 - a.avgHitAt1);
+  const byMrr = [...sortedSlices].sort((a, b) => b.avgMrr - a.avgMrr);
+  const byNdcg = [...sortedSlices].sort((a, b) => b.avgNdcg - a.avgNdcg);
+
+  if (byHitAt1[0] && byMrr[0] && byNdcg[0]) {
+    const bestHitAt1Mode = byHitAt1[0].slice.mode ?? 'default';
+    const bestMrrMode = byMrr[0].slice.mode ?? 'default';
+    const bestNdcgMode = byNdcg[0].slice.mode ?? 'default';
+
+    lines.push('Best by metric:');
+    lines.push(`  Hit@1:  ${byHitAt1[0].slice.endpoint} (${bestHitAt1Mode}) - ${byHitAt1[0].avgHitAt1.toFixed(3)}`);
+    lines.push(`  MRR:    ${byMrr[0].slice.endpoint} (${bestMrrMode}) - ${byMrr[0].avgMrr.toFixed(3)}`);
+    lines.push(`  nDCG:   ${byNdcg[0].slice.endpoint} (${bestNdcgMode}) - ${byNdcg[0].avgNdcg.toFixed(3)}`);
+    lines.push('');
+  }
+
+  // Governance summary
+  const governanceFailures = sortedSlices.filter(s => s.governanceFailureCount > 0);
+  if (governanceFailures.length > 0) {
+    lines.push('Governance issues detected in:');
+    for (const slice of governanceFailures) {
+      const mode = slice.slice.mode ?? 'default';
+      lines.push(`  ${slice.slice.endpoint} (${mode}): ${slice.governanceFailureCount} failure(s)`);
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
