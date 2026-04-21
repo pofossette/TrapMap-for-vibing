@@ -111,11 +111,11 @@
   2. Retrieval evaluation cases exist for both legacy v1 and capsule-first v2 endpoints
   3. Golden cases cover at least smoke and core tiers, including positive, empty-result, and forbidden-result scenarios
   4. Dataset schema is strict enough to support repeatable scoring and future extension
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 25-01: Define evaluation case schemas, fixture conventions, and `evals/` workspace layout
-- [ ] 25-02: Author the first milestone-owned smoke/core retrieval datasets with representative cases
+- [x] 25-02: Author the first milestone-owned smoke/core retrieval datasets with representative cases
 
 #### Phase 26: Retrieval Metrics Runner and Governance Checks
 
@@ -209,7 +209,7 @@ Plans:
 | 22. RAG Logger with File Rotation | v1.3 | 2/2 | Complete | 2026-04-19 |
 | 23. v1.3 Milestone Verification | v1.3 | 3/3 | Complete | 2026-04-20 |
 | 24. Docker Logging Configuration | v1.3 | 1/1 | Complete | 2026-04-20 |
-| 25. Evaluation Contracts and Golden Dataset Foundation | v1.4 | 1/2 | In Progress|  |
+| 25. Evaluation Contracts and Golden Dataset Foundation | v1.4 | 2/2 | Complete   | 2026-04-21 |
 | 26. Retrieval Metrics Runner and Governance Checks | v1.4 | 0/2 | Planned | — |
 | 27. Summary Evaluation and Judge Integration | v1.4 | 0/2 | Planned | — |
 | 28. CI Integration and Evaluation Reporting | v1.4 | 0/2 | Planned | — |
