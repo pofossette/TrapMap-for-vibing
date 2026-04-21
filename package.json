@@ -17,7 +17,11 @@
     "eval:retrieval": "pnpm exec tsx evals/retrieval/run.ts",
     "eval:retrieval:smoke": "pnpm exec tsx evals/retrieval/run.ts --tier smoke",
     "eval:retrieval:core": "pnpm exec tsx evals/retrieval/run.ts --tier core",
-    "eval:retrieval:dry-run": "pnpm exec tsx evals/retrieval/run.ts --tier smoke --dry-run"
+    "eval:retrieval:dry-run": "pnpm exec tsx evals/retrieval/run.ts --tier smoke --dry-run",
+    "eval:summary": "pnpm exec tsx evals/summary/run.ts",
+    "eval:summary:smoke": "pnpm exec tsx evals/summary/run.ts --tier smoke",
+    "eval:summary:core": "pnpm exec tsx evals/summary/run.ts --tier core",
+    "eval:summary:dry-run": "pnpm exec tsx evals/summary/run.ts --tier smoke --dry-run"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
