@@ -219,20 +219,49 @@ The unified runner shows:
 
 ## CI Integration
 
-Phase 28-02 will add automated CI integration:
+Evaluation runs automatically in GitHub Actions. The workflow is defined in `.github/workflows/eval.yml`.
 
-- GitHub Actions workflow for PR checks
-- Baseline comparison for regression detection
-- Automatic failure reporting
+### Automatic Triggers
 
-Current CI commands (ready for workflow integration):
+| Trigger | Tier | When |
+|---------|------|------|
+| Pull Request | Smoke | PRs to `main` that modify `packages/contracts/src/domain/evals/**`, `evals/**`, or `packages/server/src/**` |
+| Schedule | Core | Weekly on Monday at 6 AM UTC |
+| Manual Dispatch | Smoke or Core | Via GitHub Actions UI with tier selection |
+
+### Viewing Results
+
+1. **Check the Actions tab** in GitHub for workflow run status and logs
+2. **Download report artifacts** when a run fails - the workflow uploads `reports/` as an artifact
+3. **Review `eval-report.json`** for detailed per-case metrics, failures, and slice breakdowns
+4. Core evaluation reports are retained for 30 days; smoke reports for 7 days
+
+### CI Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `pnpm eval:ci` | CI-optimized runner with GitHub Actions output, writes report to `reports/eval-report.json` |
+| `pnpm eval:ci:core` | Core tier CI runner (sets `TIER=core`), used for scheduled runs |
+
+The CI runner (`evals/scripts/eval-ci.ts`) differs from the local runner:
+- Writes machine-readable JSON report to `reports/eval-report.json`
+- Sets GitHub Actions output variables (`passed`, `total_cases`, `passed_cases`, `failed_cases`)
+- Uses compact single-line summary format in grouped log output
+- Always writes the report, even on failure, for artifact upload
+
+### Local CI Simulation
+
+You can simulate CI behavior locally without GitHub Actions:
 
 ```bash
-# Exit code 0 on pass, 1 on any failure
-pnpm eval:smoke
+# Simulate CI smoke run
+pnpm eval:ci
 
-# JSON output for artifact upload
-pnpm eval:all:json
+# Simulate CI core run
+TIER=core pnpm eval:ci
+
+# Run with GitHub Actions output (for testing)
+GITHUB_OUTPUT=/tmp/gh-output pnpm eval:ci
 ```
 
 ## Governance vs Relevance
