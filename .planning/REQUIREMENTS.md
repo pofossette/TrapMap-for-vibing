@@ -9,8 +9,8 @@ Requirements for v1.4 milestone: 评测系统构建
 
 ### Retrieval Evaluation (REVAL)
 
-- [ ] **REVAL-01**: Maintainer can run a TypeScript-native retrieval evaluation command against current TrapMap retrieval endpoints from the monorepo
-- [ ] **REVAL-02**: Retrieval evaluation uses labeled golden datasets that cover smoke and core scenarios for `/v1/retrieval/search` and `/v2/retrieval/search`
+- [x] **REVAL-01**: Maintainer can run a TypeScript-native retrieval evaluation command against current TrapMap retrieval endpoints from the monorepo
+- [x] **REVAL-02**: Retrieval evaluation uses labeled golden datasets that cover smoke and core scenarios for `/v1/retrieval/search` and `/v2/retrieval/search`
 - [ ] **REVAL-03**: Retrieval evaluation reports ranking metrics including Hit@K, MRR, nDCG, and Recall@K per retrieval mode
 - [ ] **REVAL-04**: Retrieval evaluation detects governance failures including forbidden-result leakage, scope violations, and empty-result expectation mismatches
 
@@ -48,8 +48,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REVAL-01 | Phase 25, Phase 26 | Pending |
-| REVAL-02 | Phase 25 | Pending |
+| REVAL-01 | Phase 25, Phase 26 | Complete |
+| REVAL-02 | Phase 25 | Complete |
 | REVAL-03 | Phase 26 | Pending |
 | REVAL-04 | Phase 26, Phase 29 | Pending |
 | SEVAL-01 | Phase 27 | Pending |
