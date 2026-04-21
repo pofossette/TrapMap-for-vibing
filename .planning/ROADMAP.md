@@ -127,10 +127,10 @@ Plans:
   2. Reports include Hit@K, MRR, nDCG, and Recall@K for each evaluated slice
   3. Governance failures such as forbidden hits, scope mismatches, or unexpected empty/non-empty results fail clearly
   4. Output is available in both machine-readable and human-readable forms
-**Plans:** 2 plans expected
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 26-01: Implement shared metric calculators, case execution pipeline, and endpoint adapters
+- [x] 26-01: Implement shared metric calculators, case execution pipeline, and endpoint adapters
 - [ ] 26-02: Add governance assertions, per-slice reporting, and regression-friendly output serialization
 
 #### Phase 27: Summary Evaluation and Judge Integration
@@ -210,7 +210,7 @@ Plans:
 | 23. v1.3 Milestone Verification | v1.3 | 3/3 | Complete | 2026-04-20 |
 | 24. Docker Logging Configuration | v1.3 | 1/1 | Complete | 2026-04-20 |
 | 25. Evaluation Contracts and Golden Dataset Foundation | v1.4 | 2/2 | Complete    | 2026-04-21 |
-| 26. Retrieval Metrics Runner and Governance Checks | v1.4 | 0/2 | Planned | — |
+| 26. Retrieval Metrics Runner and Governance Checks | v1.4 | 1/2 | In Progress|  |
 | 27. Summary Evaluation and Judge Integration | v1.4 | 0/2 | Planned | — |
 | 28. CI Integration and Evaluation Reporting | v1.4 | 0/2 | Planned | — |
 | 29. Baseline Calibration and Milestone Verification | v1.4 | 0/2 | Planned | — |
