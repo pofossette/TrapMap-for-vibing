@@ -12,8 +12,8 @@ import type {
   SummaryEvalReportMeta,
   SummaryEvalCaseResult,
   SummaryEvalFailureRecord,
-} from '../../packages/contracts/src/domain/evals/report.js';
-import { summaryEvalReportSchema } from '../../packages/contracts/src/domain/evals/report.js';
+} from '../../../packages/contracts/src/domain/evals/report.js';
+import { summaryEvalReportSchema } from '../../../packages/contracts/src/domain/evals/report.js';
 import type { SummaryCaseResult, RunnerOptions, JudgeProvider } from './types.js';
 
 // =============================================================================

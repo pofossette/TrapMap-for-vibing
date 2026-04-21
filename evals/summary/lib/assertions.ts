@@ -14,7 +14,7 @@
  */
 
 import type { SummaryJudgeResult } from './types.js';
-import type { SummaryEvalCase } from '../../packages/contracts/src/index.js';
+import type { SummaryEvalCase } from '../../../packages/contracts/src/index.js';
 
 // =============================================================================
 // Verdict Types

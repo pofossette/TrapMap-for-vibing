@@ -10,7 +10,7 @@
 import type {
   SummaryEvalReport,
   SummaryEvalCaseResult,
-} from '../../packages/contracts/src/domain/evals/report.js';
+} from '../../../packages/contracts/src/domain/evals/report.js';
 import type { SummaryCaseResult } from './types.js';
 
 // =============================================================================
