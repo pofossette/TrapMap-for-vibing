@@ -9,6 +9,9 @@ build/
 *.tsbuildinfo
 *.log
 
+# Reports (keep directory, ignore generated JSON)
+reports/*.json
+
 # Environment files
 .env
 .env.*
