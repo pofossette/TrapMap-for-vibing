@@ -21,7 +21,11 @@
     "eval:summary": "pnpm exec tsx evals/summary/run.ts",
     "eval:summary:smoke": "pnpm exec tsx evals/summary/run.ts --tier smoke",
     "eval:summary:core": "pnpm exec tsx evals/summary/run.ts --tier core",
-    "eval:summary:dry-run": "pnpm exec tsx evals/summary/run.ts --tier smoke --dry-run"
+    "eval:summary:dry-run": "pnpm exec tsx evals/summary/run.ts --tier smoke --dry-run",
+    "eval:smoke": "pnpm exec tsx evals/scripts/eval-all.ts --tier smoke",
+    "eval:core": "pnpm exec tsx evals/scripts/eval-all.ts --tier core",
+    "eval:all": "pnpm exec tsx evals/scripts/eval-all.ts --tier core",
+    "eval:all:json": "pnpm exec tsx evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
