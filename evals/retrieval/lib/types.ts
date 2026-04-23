@@ -2,6 +2,7 @@
  * Shared runner result and slice types for retrieval evaluation.
  *
  * Phase 26-01: REVAL-01, REVAL-03
+ * Phase 29-03: EOPS-03 (baseline-aware eval result types)
  * These types support the execution substrate, normalization, and reporting.
  */
 
@@ -9,7 +10,9 @@ import type {
   RetrievalEvalCase,
   RetrievalEvalEndpoint,
   RetrievalEvalTier,
-} from '../../../packages/contracts/src/index.js';
+  RetrievalStrategy,
+  RoutingReason,
+} from '@trapmap/contracts';
 
 // =============================================================================
 // Execution Metadata Types
@@ -24,6 +27,7 @@ export type AdapterType = 'route' | 'direct';
 
 /**
  * Execution metadata recorded for each case run.
+ * Phase 29-03: EOPS-03 (routing trace fields)
  */
 export interface ExecutionMetadata {
   /** Which adapter was used for execution */
@@ -36,6 +40,12 @@ export interface ExecutionMetadata {
   endpoint: RetrievalEvalEndpoint;
   /** Time taken to execute (milliseconds) */
   durationMs: number;
+  /** The internal strategy selected by the router (Phase 29-03) */
+  selectedMode?: RetrievalStrategy;
+  /** Machine-readable reason code for the routing decision (Phase 29-03) */
+  routingReason?: RoutingReason;
+  /** Whether a fallback strategy was applied after initial selection (Phase 29-03) */
+  fallbackApplied: boolean;
 }
 
 // =============================================================================
@@ -153,6 +163,7 @@ export interface SliceKey {
 
 /**
  * Aggregated metrics for a slice.
+ * Phase 29-03: EOPS-03 (baseline-aware fields)
  */
 export interface SliceMetrics {
   /** Slice key */
@@ -173,6 +184,12 @@ export interface SliceMetrics {
   avgRecallAt10: number;
   /** Number of governance failures in slice */
   governanceFailures: number;
+  /** The internal strategy selected for this slice (Phase 29-03) */
+  selectedMode?: RetrievalStrategy;
+  /** Whether fallback was applied in this slice (Phase 29-03) */
+  fallbackApplied: boolean;
+  /** Regression status relative to baseline (Phase 29-03) */
+  regressionStatus: 'regressed' | 'stable' | 'improved' | 'no-baseline';
 }
 
 // =============================================================================
@@ -217,6 +234,7 @@ export interface CaseResult {
 
 /**
  * Options for the retrieval eval runner.
+ * Phase 29-03: EOPS-03 (baseline options)
  */
 export interface RunnerOptions {
   /** Evaluation tier to run */
@@ -233,6 +251,10 @@ export interface RunnerOptions {
   dryRun: boolean;
   /** Verbosity level (0=quiet, 1=normal, 2=verbose) */
   verbose: number;
+  /** Path to baseline report for comparison (Phase 29-03) */
+  baselinePath?: string;
+  /** Write current results as new baseline (Phase 29-03) */
+  writeBaseline?: boolean;
 }
 
 /**
