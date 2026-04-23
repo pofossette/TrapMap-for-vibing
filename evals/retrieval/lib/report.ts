@@ -129,6 +129,7 @@ function buildSliceSummaries(caseResults: CaseResult[]): RetrievalEvalSliceSumma
 
 /**
  * Build a single slice summary.
+ * Phase 29-03: EOPS-03 (baseline-aware routing trace fields)
  */
 function buildSliceSummary(results: CaseResult[]): RetrievalEvalSliceSummary {
   const slice: RetrievalEvalSliceKey = {
@@ -154,12 +155,36 @@ function buildSliceSummary(results: CaseResult[]): RetrievalEvalSliceSummary {
 
   // Count failures by category
   const governanceFailureCount = results.filter((r) => !r.governance.passed).length;
-  const outcomeMismatchCount = results.filter(
-    (r) => r.verdicts && !r.verdicts.outcome.matched,
-  ).length;
+  // Outcome mismatch: expected non-empty but got empty, or vice versa
+  const outcomeMismatchCount = results.filter((r) => {
+    const expectedEmpty = r.case.expected.outcome === 'empty';
+    const actualEmpty = r.result.isEmpty;
+    return expectedEmpty !== actualEmpty;
+  }).length;
+  // Execution issues: any case with warnings marked as degraded
   const executionIssueCount = results.filter(
-    (r) => r.verdicts?.verdicts.some((v) => v.kind === 'execution' && !v.passed),
+    (r) => r.warnings.some((w) => w.degraded),
   ).length;
+
+  // Phase 29-03: Routing trace fields
+  // Use the most common selectedMode in the slice
+  const modeCounts = new Map<string, number>();
+  for (const r of results) {
+    if (r.execution.selectedMode) {
+      modeCounts.set(r.execution.selectedMode, (modeCounts.get(r.execution.selectedMode) ?? 0) + 1);
+    }
+  }
+  let selectedMode: string | undefined;
+  let maxCount = 0;
+  for (const [mode, count] of modeCounts) {
+    if (count > maxCount) {
+      maxCount = count;
+      selectedMode = mode;
+    }
+  }
+
+  // Fallback applied if any case in slice had fallback
+  const fallbackApplied = results.some((r) => r.execution.fallbackApplied);
 
   return {
     slice,
@@ -171,6 +196,9 @@ function buildSliceSummary(results: CaseResult[]): RetrievalEvalSliceSummary {
     governanceFailureCount,
     outcomeMismatchCount,
     executionIssueCount,
+    selectedMode: selectedMode as 'naive' | 'local' | 'global' | 'hybrid' | 'mix' | 'auto' | undefined,
+    fallbackApplied,
+    regressionStatus: 'no-baseline', // Will be set during baseline comparison
   };
 }
 
@@ -180,14 +208,20 @@ function buildSliceSummary(results: CaseResult[]): RetrievalEvalSliceSummary {
 
 /**
  * Build a case summary from a case result.
+ * Phase 29-03: EOPS-03 (routing trace fields)
  */
 function buildCaseSummary(result: CaseResult): RetrievalEvalCaseSummary {
+  // Outcome match: expected non-empty and got non-empty, or expected empty and got empty
+  const expectedEmpty = result.case.expected.outcome === 'empty';
+  const actualEmpty = result.result.isEmpty;
+  const outcomeMatch = expectedEmpty === actualEmpty;
+
   return {
     caseId: result.case.caseId,
     endpoint: result.case.endpoint,
     tier: result.case.tier,
     passed: result.passed,
-    outcomeMatch: result.verdicts?.outcome.matched ?? true,
+    outcomeMatch,
     governancePassed: result.governance.passed,
     durationMs: result.execution.durationMs,
     hitAt1: result.metrics.hitAt1,
@@ -196,6 +230,9 @@ function buildCaseSummary(result: CaseResult): RetrievalEvalCaseSummary {
     mrr: result.metrics.mrr,
     ndcg: result.metrics.ndcg,
     recallAt10: result.metrics.recallAt10,
+    selectedMode: result.execution.selectedMode,
+    routingReason: result.execution.routingReason,
+    fallbackApplied: result.execution.fallbackApplied,
   };
 }
 
@@ -207,21 +244,7 @@ function buildCaseSummary(result: CaseResult): RetrievalEvalCaseSummary {
  * Build failure records from a case result.
  */
 function buildFailureRecords(result: CaseResult): RetrievalEvalFailureRecord[] {
-  // Use verdicts if available, otherwise fall back to governance failures
-  if (result.verdicts) {
-    return result.verdicts.verdicts
-      .filter((v) => !v.passed && v.failure)
-      .map((v) => ({
-        caseId: result.case.caseId,
-        kind: mapFailureKind(v.failure!.kind),
-        description: v.failure!.description,
-        ids: v.failure!.ids,
-        endpoint: result.case.endpoint,
-        tier: result.case.tier,
-      }));
-  }
-
-  // Fall back to governance failures
+  // Use governance failures directly
   return result.governance.failures.map((f) => ({
     caseId: result.case.caseId,
     kind: mapFailureKind(f.kind),

@@ -2,6 +2,7 @@
  * Tests for report builder and formatter.
  *
  * Phase 26-02: REVAL-04
+ * Phase 29-03: EOPS-03 (routing trace tests)
  * Tests for validated JSON report, terminal formatting, and slice summaries.
  */
 
@@ -46,6 +47,7 @@ const makeCaseResult = (overrides: Partial<CaseResult> = {}): CaseResult => ({
     fallbackUsed: false,
     endpoint: '/v1/retrieval/search',
     durationMs: 10,
+    fallbackApplied: false,
   },
   governance: { passed: true, failures: [], forbiddenHits: [] },
   metrics: {
@@ -285,5 +287,89 @@ describe('slice key stability', () => {
     expect(report1.slices[0]?.slice.tier).toBe(report2.slices[0]?.slice.tier);
     expect(report1.slices[0]?.slice.endpoint).toBe(report2.slices[0]?.slice.endpoint);
     expect(report1.slices[0]?.slice.mode).toBe(report2.slices[0]?.slice.mode);
+  });
+});
+
+// =============================================================================
+// Tests: Routing Trace Fields (Phase 29-03)
+// =============================================================================
+
+describe('routing trace fields', () => {
+  it('includes selectedMode in case summaries when present', () => {
+    const caseResults = [
+      makeCaseResult({
+        case: { ...makeCaseResult().case, caseId: 'case-with-mode' },
+        execution: {
+          ...makeCaseResult().execution,
+          selectedMode: 'local',
+          routingReason: 'explicit-mode',
+          fallbackApplied: false,
+        },
+      }),
+    ];
+
+    const report = buildReport(caseResults, makeOptions(), 100);
+
+    expect(report.cases[0]?.selectedMode).toBe('local');
+    expect(report.cases[0]?.routingReason).toBe('explicit-mode');
+    expect(report.cases[0]?.fallbackApplied).toBe(false);
+  });
+
+  it('includes selectedMode in slice summaries when present', () => {
+    const caseResults = [
+      makeCaseResult({
+        case: { ...makeCaseResult().case, caseId: 'case-1' },
+        execution: {
+          ...makeCaseResult().execution,
+          selectedMode: 'hybrid',
+          fallbackApplied: false,
+        },
+      }),
+      makeCaseResult({
+        case: { ...makeCaseResult().case, caseId: 'case-2' },
+        execution: {
+          ...makeCaseResult().execution,
+          selectedMode: 'hybrid',
+          fallbackApplied: true,
+        },
+      }),
+    ];
+
+    const report = buildReport(caseResults, makeOptions(), 100);
+
+    // Most common mode in slice
+    expect(report.slices[0]?.selectedMode).toBe('hybrid');
+    // Fallback applied if any case had fallback
+    expect(report.slices[0]?.fallbackApplied).toBe(true);
+    // Default regression status
+    expect(report.slices[0]?.regressionStatus).toBe('no-baseline');
+  });
+
+  it('per-mode slices use canonical stable identifiers', () => {
+    const caseResults = [
+      makeCaseResult({
+        case: { ...makeCaseResult().case, caseId: 'semantic-case', request: { seed: 'test', mode: 'semantic' } },
+        execution: {
+          ...makeCaseResult().execution,
+          selectedMode: 'local',
+        },
+      }),
+      makeCaseResult({
+        case: { ...makeCaseResult().case, caseId: 'hybrid-case', request: { seed: 'test', mode: 'hybrid' } },
+        execution: {
+          ...makeCaseResult().execution,
+          selectedMode: 'hybrid',
+        },
+      }),
+    ];
+
+    const report = buildReport(caseResults, makeOptions(), 100);
+
+    // Two distinct slices
+    expect(report.slices).toHaveLength(2);
+    // Slice keys use canonical mode identifiers
+    const sliceModes = report.slices.map(s => s.slice.mode);
+    expect(sliceModes).toContain('semantic');
+    expect(sliceModes).toContain('hybrid');
   });
 });
