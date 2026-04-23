@@ -73,3 +73,6 @@ pids/
 
 # Optional eslint cache
 .eslintcache
+
+# Data directory (generated at runtime)
+data/
