@@ -4,8 +4,10 @@ import {
   type RetrievalCitation,
   type RetrievalQuery,
   type RetrievalResponse,
+  type RetrievalStrategy,
   type RetrievalV2Query,
   type RetrievalV2Response,
+  type RoutingReason,
   capsuleMatchSchema,
   profileHintSchema,
   retrievalQuerySchema,
@@ -45,7 +47,7 @@ import {
 } from './recall/semantic.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
 import { buildSummary } from './summary.js';
-import type { MergedCandidate, RetrievalPipelineContext, ScoredEntry } from './types.js';
+import type { MergedCandidate, RetrievalDecision, RetrievalPipelineContext, RoutingChannel, ScoredEntry } from './types.js';
 
 /**
  * Graph score boost factor for graph-assisted retrieval.
@@ -53,6 +55,93 @@ import type { MergedCandidate, RetrievalPipelineContext, ScoredEntry } from './t
  * by this fraction of the graph score to account for relationship relevance.
  */
 const GRAPH_SCORE_BOOST_FACTOR = 0.2;
+
+// =============================================================================
+// Phase 29: Deterministic Router Selection (EOPS-03)
+// Extract routing logic into an explicit helper that produces RoutingDecision.
+// =============================================================================
+
+/**
+ * Map v1 public mode to internal strategy and channels.
+ * This mapping preserves backward compatibility while producing trace metadata.
+ */
+const V1_MODE_TO_STRATEGY: Record<string, RetrievalStrategy> = {
+  semantic: 'local',
+  hybrid: 'hybrid',
+  'graph-assisted': 'mix',
+};
+
+/**
+ * Get channels planned for a given v1 public mode.
+ */
+function getV1ChannelsPlanned(mode: string): RoutingChannel[] {
+  switch (mode) {
+    case 'semantic':
+      return ['semantic'];
+    case 'hybrid':
+      return ['semantic', 'keyword'];
+    case 'graph-assisted':
+      return ['semantic', 'keyword', 'graph'];
+    default:
+      return ['semantic'];
+  }
+}
+
+/**
+ * Select retrieval strategy for v1 (entry-based) endpoint.
+ *
+ * The router produces a deterministic RoutingDecision from:
+ * - The explicit mode requested by the client (if any)
+ * - Deterministic cues from parseSeedIntent (for auto mode)
+ *
+ * @param requestedMode - The v1 mode from the request (semantic, hybrid, graph-assisted)
+ * @param seed - The raw seed text (used for deterministic auto-routing)
+ * @returns RoutingDecision with selected strategy and trace metadata
+ */
+export function selectRetrievalStrategy(
+  requestedMode: string,
+  seed: string,
+): RetrievalDecision {
+  // v1 always uses explicit mode - no auto-routing needed yet
+  // Future: if requestedMode === 'auto', use parseSeedIntent for deterministic selection
+  const strategy = V1_MODE_TO_STRATEGY[requestedMode] ?? 'local';
+  const channelsPlanned = getV1ChannelsPlanned(requestedMode);
+  const routingReason: RoutingReason = 'explicit-mode';
+
+  return {
+    selectedMode: strategy,
+    routeFamily: 'entry',
+    routingReason,
+    fallbackApplied: strategy !== V1_MODE_TO_STRATEGY[requestedMode],
+    channelsPlanned,
+    channelsUsed: [], // Populated after recall execution
+  };
+}
+
+/**
+ * Select retrieval strategy for v2 (capsule-native) endpoint.
+ *
+ * v2 currently has no explicit mode field in the request contract,
+ * so the router always chooses the capsule strategy.
+ *
+ * @param seed - The raw seed text (for future auto-routing extensions)
+ * @returns RoutingDecision with selected strategy and trace metadata
+ */
+export function selectRetrievalStrategyV2(seed: string): RetrievalDecision {
+  // v2 defaults to capsule-native retrieval
+  // Future: add auto-routing based on parsed intent
+  const strategy: RetrievalStrategy = 'local';
+  const routingReason: RoutingReason = 'v2-default-capsule';
+
+  return {
+    selectedMode: strategy,
+    routeFamily: 'capsule',
+    routingReason,
+    fallbackApplied: false,
+    channelsPlanned: ['capsule', 'profile'],
+    channelsUsed: [], // Populated after recall execution
+  };
+}
 
 /**
  * Time a pipeline step and record its latency.
@@ -124,7 +213,8 @@ export async function searchKnowledge(
     );
 
     if (eligibleEntries.length === 0) {
-      // Log even for empty results
+      // Log even for empty results (with routing trace)
+      const emptyRouting = selectRetrievalStrategy(parsed.mode, parsed.seed);
       void logRagRetrieval(services.config.ragLog, {
         timestamp: new Date(startMs).toISOString(),
         queryId,
@@ -140,16 +230,32 @@ export async function searchKnowledge(
           maxResults: parsed.maxResults,
           includeSummary: parsed.includeSummary ?? false,
           includeRefinement: parsed.includeRefinement ?? false,
+          routingTrace: {
+            selectedMode: emptyRouting.selectedMode,
+            routeFamily: emptyRouting.routeFamily,
+            routingReason: emptyRouting.routingReason,
+            fallbackApplied: emptyRouting.fallbackApplied,
+            channelsUsed: emptyRouting.channelsUsed,
+          },
         },
       });
       return buildEmptyResponse();
     }
+
+    // Resolve routing strategy before dispatch (Phase 29)
+    const routingDecision = await timedStep('routing',
+      () => Promise.resolve(selectRetrievalStrategy(parsed.mode, parsed.seed)),
+      steps
+    );
 
     // Dispatch based on query mode
     const { scoredEntries, mergedCandidates } = await timedStep('recall',
       () => dispatchByMode(parsed.mode, parsed.seed, eligibleEntries, parsed),
       steps
     );
+
+    // Update routing channels used from recall results
+    routingDecision.channelsUsed = inferChannelsFromMerged(mergedCandidates);
 
     // Build citations from merged candidates (if available)
     const citations = mergedCandidates
@@ -193,7 +299,7 @@ export async function searchKnowledge(
 
     const result = buildRetrievalResponse(globalConstraints, projectKnowledge, refinementSummary, summary);
 
-    // Log RAG retrieval (fire-and-forget)
+    // Log RAG retrieval (fire-and-forget) with routing trace
     void logRagRetrieval(services.config.ragLog, {
       timestamp: new Date(startMs).toISOString(),
       queryId,
@@ -209,12 +315,20 @@ export async function searchKnowledge(
         maxResults: parsed.maxResults,
         includeSummary: parsed.includeSummary ?? false,
         includeRefinement: parsed.includeRefinement ?? false,
+        routingTrace: {
+          selectedMode: routingDecision.selectedMode,
+          routeFamily: routingDecision.routeFamily,
+          routingReason: routingDecision.routingReason,
+          fallbackApplied: routingDecision.fallbackApplied,
+          channelsUsed: routingDecision.channelsUsed,
+        },
       },
     });
 
     return result;
   } catch (error) {
-    // Log failed retrieval attempt
+    // Log failed retrieval attempt with routing trace
+    const failRouting = selectRetrievalStrategy(query.mode ?? 'semantic', query.seed ?? '');
     void logRagRetrieval(services.config.ragLog, {
       timestamp: new Date(startMs).toISOString(),
       queryId,
@@ -230,10 +344,37 @@ export async function searchKnowledge(
         maxResults: query.maxResults ?? 10,
         includeSummary: query.includeSummary ?? false,
         includeRefinement: query.includeRefinement ?? false,
+        routingTrace: {
+          selectedMode: failRouting.selectedMode,
+          routeFamily: failRouting.routeFamily,
+          routingReason: failRouting.routingReason,
+          fallbackApplied: failRouting.fallbackApplied,
+          channelsUsed: failRouting.channelsUsed,
+        },
       },
     });
     throw error;
   }
+}
+
+/**
+ * Infer routing channels from merged candidates after recall execution.
+ * Extracts the set of channels that actually contributed to results.
+ *
+ * @param mergedCandidates - Merged candidates from recall (may be undefined for semantic-only)
+ * @returns Array of channels that contributed to the result set
+ */
+function inferChannelsFromMerged(mergedCandidates?: MergedCandidate[]): RoutingChannel[] {
+  if (!mergedCandidates || mergedCandidates.length === 0) {
+    return ['semantic'];
+  }
+  const channelSet = new Set<RoutingChannel>();
+  for (const candidate of mergedCandidates) {
+    for (const ch of candidate.channels) {
+      channelSet.add(ch);
+    }
+  }
+  return Array.from(channelSet);
 }
 
 /**
@@ -629,6 +770,12 @@ export async function searchKnowledgeV2(
       steps
     );
 
+    // Resolve routing strategy for v2 (Phase 29)
+    const routingDecision = await timedStep('routing',
+      () => Promise.resolve(selectRetrievalStrategyV2(parsed.seed)),
+      steps
+    );
+
     // Get current data snapshot
     const data = await timedStep('snapshot',
       () => services.store.snapshot(),
@@ -651,6 +798,9 @@ export async function searchKnowledgeV2(
       steps
     );
 
+    // Update routing channels used from recall results
+    routingDecision.channelsUsed = rankedCandidates.length > 0 ? ['capsule'] : [];
+
     // Early return if no matches
     if (rankedCandidates.length === 0) {
       void logRagRetrieval(services.config.ragLog, {
@@ -667,6 +817,13 @@ export async function searchKnowledgeV2(
           maxResults: parsed.maxResults,
           includeSummary: false,
           includeRefinement: false,
+          routingTrace: {
+            selectedMode: routingDecision.selectedMode,
+            routeFamily: routingDecision.routeFamily,
+            routingReason: routingDecision.routingReason,
+            fallbackApplied: routingDecision.fallbackApplied,
+            channelsUsed: routingDecision.channelsUsed,
+          },
         },
       });
       return buildEmptyV2Response();
@@ -697,7 +854,7 @@ export async function searchKnowledgeV2(
 
     const result = buildV2RetrievalResponse(capsules, profileHints, null, activationHints);
 
-    // Log RAG retrieval (fire-and-forget)
+    // Log RAG retrieval (fire-and-forget) with routing trace
     void logRagRetrieval(services.config.ragLog, {
       timestamp: new Date(startMs).toISOString(),
       queryId,
@@ -712,11 +869,19 @@ export async function searchKnowledgeV2(
         maxResults: parsed.maxResults,
         includeSummary: false,
         includeRefinement: false,
+        routingTrace: {
+          selectedMode: routingDecision.selectedMode,
+          routeFamily: routingDecision.routeFamily,
+          routingReason: routingDecision.routingReason,
+          fallbackApplied: routingDecision.fallbackApplied,
+          channelsUsed: routingDecision.channelsUsed,
+        },
       },
     });
 
     return result;
   } catch (error) {
+    const failRouting = selectRetrievalStrategyV2(query.seed ?? '');
     void logRagRetrieval(services.config.ragLog, {
       timestamp: new Date(startMs).toISOString(),
       queryId,
@@ -731,6 +896,13 @@ export async function searchKnowledgeV2(
         maxResults: query.maxResults ?? 10,
         includeSummary: false,
         includeRefinement: false,
+        routingTrace: {
+          selectedMode: failRouting.selectedMode,
+          routeFamily: failRouting.routeFamily,
+          routingReason: failRouting.routingReason,
+          fallbackApplied: failRouting.fallbackApplied,
+          channelsUsed: failRouting.channelsUsed,
+        },
       },
     });
     throw error;
