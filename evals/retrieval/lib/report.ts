@@ -16,8 +16,8 @@ import type {
   RetrievalEvalSliceKey,
   RetrievalEvalFailureKind,
   ReportBuilderInput,
-} from '../../../packages/contracts/src/domain/evals/report.js';
-import { retrievalEvalReportSchema } from '../../../packages/contracts/src/domain/evals/report.js';
+} from '@trapmap/contracts';
+import { retrievalEvalReportSchema } from '@trapmap/contracts';
 import type { CaseResult, SliceMetrics, SliceKey } from './types.js';
 
 // =============================================================================

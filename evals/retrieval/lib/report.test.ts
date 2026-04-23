@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import type { CaseResult, NormalizedResult } from './types.js';
 import { buildReport } from './report.js';
 import { formatReport, formatCompactSummary } from './format.js';
-import { retrievalEvalReportSchema } from '../../../packages/contracts/src/domain/evals/report.js';
+import { retrievalEvalReportSchema } from '@trapmap/contracts';
 
 // =============================================================================
 // Test Fixtures
