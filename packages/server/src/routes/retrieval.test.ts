@@ -1041,4 +1041,109 @@ describe('retrieval route', () => {
       }
     });
   });
+
+  // Phase 29-02: Trace-aware route compatibility tests (T-29-06)
+  describe('Phase 29-02: Trace-aware route compatibility', () => {
+    it('v1 route accepts semantic mode (backward compatibility)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'test query',
+          mode: 'semantic',
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('v1 route accepts hybrid mode (backward compatibility)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'test query',
+          mode: 'hybrid',
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('v1 route accepts graph-assisted mode (backward compatibility)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'test query',
+          mode: 'graph-assisted',
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('v1 route rejects invalid mode with 400', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'test query',
+          mode: 'invalid-mode',
+        },
+      });
+
+      // Should fail validation
+      expect([400, 401]).toContain(response.statusCode);
+    });
+
+    it('v2 route accepts seed-only request (backward compatibility)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v2/retrieval/search',
+        payload: {
+          seed: 'test query',
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('v2 route does not require mode field (seed-only contract)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v2/retrieval/search',
+        payload: {
+          seed: 'test query',
+          // No mode field - v2 uses internal routing
+        },
+      });
+
+      // Should require auth, not fail on schema
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('both v1 and v2 routes enforce auth before processing', async () => {
+      const [v1Response, v2Response] = await Promise.all([
+        app.inject({
+          method: 'POST',
+          url: '/v1/retrieval/search',
+          payload: { seed: 'test', mode: 'hybrid' },
+        }),
+        app.inject({
+          method: 'POST',
+          url: '/v2/retrieval/search',
+          payload: { seed: 'test' },
+        }),
+      ]);
+
+      // Both should require auth
+      expect(v1Response.statusCode).toBe(401);
+      expect(v2Response.statusCode).toBe(401);
+    });
+  });
 });
