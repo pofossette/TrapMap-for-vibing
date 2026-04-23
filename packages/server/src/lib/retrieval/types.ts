@@ -3,7 +3,12 @@
  * These types are used within the retrieval module and are not part of the public API.
  */
 
-import type { RetrievalQuery } from '@trapmap/contracts';
+import type {
+  RouteFamily,
+  RetrievalStrategy,
+  RetrievalQuery,
+  RoutingReason,
+} from '@trapmap/contracts';
 import type { ResolvedAuthContext } from '../context.js';
 import type { KnowledgeRecord } from '../store.js';
 
@@ -191,4 +196,37 @@ export interface CapsuleCandidate {
   finalScore: number;
   /** Reason string for the match */
   reason: string;
+}
+
+// =============================================================================
+// Phase 29: Routing Decision Types (EOPS-03)
+// Server-local routing model that captures strategy selection and trace metadata.
+// Uses contracts-layer enums for stable strategy/reason identifiers.
+// =============================================================================
+
+/**
+ * Channel identifier used in routing trace metadata.
+ * Extends the entry-only RecallChannel with capsule and profile channels
+ * to cover both v1 and v2 retrieval paths.
+ */
+export type RoutingChannel = RecallChannel | 'capsule' | 'profile';
+
+/**
+ * Routing decision produced by the shared router.
+ * Captures the full provenance of a mode selection so the orchestrator
+ * can emit trace metadata and evaluation slices can compare behavior.
+ */
+export interface RoutingDecision {
+  /** The internal strategy selected by the router */
+  selectedMode: RetrievalStrategy;
+  /** Whether this retrieval follows the entry or capsule route family */
+  routeFamily: RouteFamily;
+  /** Machine-readable reason code for the routing decision */
+  routingReason: RoutingReason;
+  /** Whether a fallback strategy was applied after initial selection failed */
+  fallbackApplied: boolean;
+  /** Recall channels that the router plans to execute */
+  channelsPlanned: RoutingChannel[];
+  /** Channels that actually contributed to the final result set (populated after recall) */
+  channelsUsed: RoutingChannel[];
 }
