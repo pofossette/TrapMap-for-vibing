@@ -47,6 +47,7 @@ const documentedRoutes = [
 
 interface BuildServerOptions {
   config?: Partial<ServerConfig>;
+  bodyLimit?: number;
 }
 
 export function buildServer(options: BuildServerOptions = {}) {
@@ -58,6 +59,7 @@ export function buildServer(options: BuildServerOptions = {}) {
       : {
           level: process.env.LOG_LEVEL ?? 'info',
         },
+    bodyLimit: options.bodyLimit,
   });
 
   app.get('/health', async () => ({

@@ -27,7 +27,10 @@
     "eval:all": "pnpm exec tsx evals/scripts/eval-all.ts --tier core",
     "eval:all:json": "pnpm exec tsx evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json",
     "eval:ci": "pnpm exec tsx evals/scripts/eval-ci.ts",
-    "eval:ci:core": "TIER=core pnpm exec tsx evals/scripts/eval-ci.ts"
+    "eval:ci:core": "TIER=core pnpm exec tsx evals/scripts/eval-ci.ts",
+    "download:skills": "pnpm exec tsx scripts/batch-download-skills.ts",
+    "download:skills:dry": "pnpm exec tsx scripts/batch-download-skills.ts --dry-run --verbose",
+    "test:import-export": "pnpm exec tsx scripts/test-skill-import-export.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
