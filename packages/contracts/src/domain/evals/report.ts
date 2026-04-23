@@ -1,39 +1,26 @@
 /**
- * Summary Evaluation Report Contract
+ * Evaluation Report Contracts
  *
- * Phase 27-01: SEVAL-01, SEVAL-02
- * Canonical schema for machine-readable summary evaluation reports.
- * This contract validates through shared contracts so future CLI or automation
- * consumers can rely on one contract.
- *
- * Design:
- * - Reports are serializable JSON for CI tooling and regression detection
- * - LLM provider is tracked for judge reproducibility
- * - Groundedness and coverage scores are first-class metrics
- * - Forbidden claim hits are tracked for hallucination detection
+ * Phase 27-01: SEVAL-01, SEVAL-02 (Summary Eval)
+ * Phase 29-03: EOPS-03 (Retrieval Eval)
+ * Canonical schemas for machine-readable evaluation reports.
  */
 
 import { z } from 'zod';
 
 import { summaryEvalTierSchema, summaryEvalEndpointSchema } from './summary.js';
+import { retrievalEvalTierSchema, retrievalEvalEndpointSchema } from './retrieval.js';
+import { retrievalStrategySchema, routingReasonSchema } from '../retrieval.js';
 
 // =============================================================================
-// Report Metadata
+// Summary Evaluation Report Schemas
 // =============================================================================
 
-/**
- * Summary evaluation report metadata schema.
- */
 export const summaryEvalReportMetaSchema = z.object({
-  /** Report schema version */
   schemaVersion: z.literal(1),
-  /** Timestamp of report generation (ISO 8601) */
   timestamp: z.string().datetime(),
-  /** Duration of evaluation run in milliseconds */
   durationMs: z.number().int().min(0),
-  /** LLM provider used for judge-driven verification */
   llmProvider: z.enum(['openai', 'fallback']),
-  /** Runner options used for this evaluation */
   options: z.object({
     tier: summaryEvalTierSchema,
     endpoint: summaryEvalEndpointSchema.optional(),
@@ -45,69 +32,31 @@ export const summaryEvalReportMetaSchema = z.object({
 
 export type SummaryEvalReportMeta = z.infer<typeof summaryEvalReportMetaSchema>;
 
-// =============================================================================
-// Claim Result Schema
-// =============================================================================
-
-/**
- * Single claim verification result.
- * Represents the judge's assessment of whether a claim is supported by context.
- */
 export const summaryEvalClaimResultSchema = z.object({
-  /** The claim text from the summary */
   text: z.string(),
-  /** Whether the claim is supported by the retrieved context */
   supported: z.boolean(),
-  /** Supporting evidence from context (if supported) */
   evidence: z.string().optional(),
 });
 
 export type SummaryEvalClaimResult = z.infer<typeof summaryEvalClaimResultSchema>;
 
-// =============================================================================
-// Case Result Schema
-// =============================================================================
-
-/**
- * Single case evaluation result.
- * Contains all metrics and verification results for a summary eval case.
- */
 export const summaryEvalCaseResultSchema = z.object({
-  /** Case ID */
   caseId: z.string().min(1),
-  /** Endpoint evaluated */
   endpoint: summaryEvalEndpointSchema,
-  /** Tier of the case */
   tier: summaryEvalTierSchema,
-  /** Whether the case passed overall */
   passed: z.boolean(),
-  /** Groundedness score (ratio of supported claims) */
   groundednessScore: z.number().min(0).max(1),
-  /** Coverage score (ratio of required facts covered) */
   coverageScore: z.number().min(0).max(1),
-  /** Total number of claims extracted from summary */
   claimsTotal: z.number().int().min(0),
-  /** Number of claims supported by context */
   claimsSupported: z.number().int().min(0),
-  /** Required facts that were found in the summary */
   requiredFactsCovered: z.array(z.string()),
-  /** Required facts that were missing from the summary */
   requiredFactsMissing: z.array(z.string()),
-  /** Forbidden claims that were found in the summary (hallucinations) */
   forbiddenClaimsFound: z.array(z.string()),
-  /** Execution duration in milliseconds */
   durationMs: z.number().int().min(0),
 });
 
 export type SummaryEvalCaseResult = z.infer<typeof summaryEvalCaseResultSchema>;
 
-// =============================================================================
-// Failure Record Schema
-// =============================================================================
-
-/**
- * Failure kind enumeration for summary evaluation.
- */
 export const summaryEvalFailureKindSchema = z.enum([
   'groundedness-below-threshold',
   'coverage-below-threshold',
@@ -118,54 +67,159 @@ export const summaryEvalFailureKindSchema = z.enum([
 
 export type SummaryEvalFailureKind = z.infer<typeof summaryEvalFailureKindSchema>;
 
-/**
- * Single failure record for a case.
- */
 export const summaryEvalFailureRecordSchema = z.object({
-  /** Case ID where failure occurred */
   caseId: z.string().min(1),
-  /** Kind of failure */
   kind: summaryEvalFailureKindSchema,
-  /** Human-readable description */
   description: z.string().min(1),
 });
 
 export type SummaryEvalFailureRecord = z.infer<typeof summaryEvalFailureRecordSchema>;
 
-// =============================================================================
-// Full Report Schema
-// =============================================================================
-
-/**
- * Full summary evaluation report schema.
- * This is the canonical structure emitted by the runner.
- */
 export const summaryEvalReportSchema = z.object({
-  /** Report metadata */
   meta: summaryEvalReportMetaSchema,
-  /** Overall summary */
   summary: z.object({
-    /** Total cases evaluated */
     totalCases: z.number().int().min(0),
-    /** Cases passed */
     passedCases: z.number().int().min(0),
-    /** Cases failed */
     failedCases: z.number().int().min(0),
-    /** Overall pass rate (0-1) */
     passRate: z.number().min(0).max(1),
-    /** Whether evaluation passed overall */
     passed: z.boolean(),
-    /** Average groundedness score across all cases */
     avgGroundedness: z.number().min(0).max(1),
-    /** Average coverage score across all cases */
     avgCoverage: z.number().min(0).max(1),
-    /** Total forbidden claim hits across all cases */
     forbiddenClaimHits: z.number().int().min(0),
   }),
-  /** All case results, sorted by case ID */
   cases: z.array(summaryEvalCaseResultSchema),
-  /** All failure records, sorted by case ID, then by kind */
   failures: z.array(summaryEvalFailureRecordSchema),
 });
 
 export type SummaryEvalReport = z.infer<typeof summaryEvalReportSchema>;
+
+// =============================================================================
+// Retrieval Evaluation Report Schemas (Phase 29-03: EOPS-03)
+// =============================================================================
+
+export const retrievalEvalFailureKindSchema = z.enum([
+  'forbidden-hit',
+  'unexpected-empty',
+  'unexpected-non-empty',
+  'shape-mismatch',
+  'execution-error',
+]);
+
+export type RetrievalEvalFailureKind = z.infer<typeof retrievalEvalFailureKindSchema>;
+
+export const retrievalEvalSliceKeySchema = z.object({
+  tier: retrievalEvalTierSchema,
+  endpoint: retrievalEvalEndpointSchema,
+  mode: z.enum(['semantic', 'hybrid', 'graph-assisted']).optional(),
+});
+
+export type RetrievalEvalSliceKey = z.infer<typeof retrievalEvalSliceKeySchema>;
+
+export const retrievalEvalReportMetaSchema = z.object({
+  schemaVersion: z.literal(1),
+  timestamp: z.string().datetime(),
+  durationMs: z.number().int().min(0),
+  options: z.object({
+    tier: retrievalEvalTierSchema,
+    endpoint: retrievalEvalEndpointSchema.optional(),
+    dryRun: z.boolean(),
+    allowEmpty: z.boolean(),
+    verbose: z.number().int().min(0),
+  }),
+  baselinePath: z.string().optional(),
+  isBaselineWrite: z.boolean().default(false),
+});
+
+export type RetrievalEvalReportMeta = z.infer<typeof retrievalEvalReportMetaSchema>;
+
+export const retrievalEvalSliceSummarySchema = z.object({
+  slice: retrievalEvalSliceKeySchema,
+  caseCount: z.number().int().min(0),
+  passedCount: z.number().int().min(0),
+  failedCount: z.number().int().min(0),
+  passRate: z.number().min(0).max(1),
+  avgHitAt1: z.number().min(0).max(1),
+  avgHitAt5: z.number().min(0).max(1),
+  avgHitAt10: z.number().min(0).max(1),
+  avgMrr: z.number().min(0).max(1),
+  avgNdcg: z.number().min(0).max(1),
+  avgRecallAt10: z.number().min(0).max(1),
+  governanceFailureCount: z.number().int().min(0),
+  outcomeMismatchCount: z.number().int().min(0),
+  executionIssueCount: z.number().int().min(0),
+  selectedMode: retrievalStrategySchema.optional(),
+  fallbackApplied: z.boolean().default(false),
+  regressionStatus: z.enum(['regressed', 'stable', 'improved', 'no-baseline']).default('no-baseline'),
+});
+
+export type RetrievalEvalSliceSummary = z.infer<typeof retrievalEvalSliceSummarySchema>;
+
+export const retrievalEvalCaseSummarySchema = z.object({
+  caseId: z.string().min(1),
+  endpoint: retrievalEvalEndpointSchema,
+  tier: retrievalEvalTierSchema,
+  passed: z.boolean(),
+  outcomeMatch: z.boolean(),
+  governancePassed: z.boolean(),
+  durationMs: z.number().int().min(0),
+  hitAt1: z.number().min(0).max(1),
+  hitAt5: z.number().min(0).max(1),
+  hitAt10: z.number().min(0).max(1),
+  mrr: z.number().min(0).max(1),
+  ndcg: z.number().min(0).max(1),
+  recallAt10: z.number().min(0).max(1),
+  selectedMode: retrievalStrategySchema.optional(),
+  routingReason: routingReasonSchema.optional(),
+  fallbackApplied: z.boolean().default(false),
+});
+
+export type RetrievalEvalCaseSummary = z.infer<typeof retrievalEvalCaseSummarySchema>;
+
+export const retrievalEvalFailureRecordSchema = z.object({
+  caseId: z.string().min(1),
+  kind: retrievalEvalFailureKindSchema,
+  description: z.string().min(1),
+  ids: z.array(z.string()),
+  endpoint: retrievalEvalEndpointSchema,
+  tier: retrievalEvalTierSchema,
+});
+
+export type RetrievalEvalFailureRecord = z.infer<typeof retrievalEvalFailureRecordSchema>;
+
+export const retrievalEvalWarningRecordSchema = z.object({
+  caseId: z.string().min(1),
+  code: z.string().min(1),
+  message: z.string().min(1),
+  degraded: z.boolean(),
+});
+
+export type RetrievalEvalWarningRecord = z.infer<typeof retrievalEvalWarningRecordSchema>;
+
+export type ReportBuilderInput = {
+  meta: {
+    options: {
+      tier: string;
+      endpoint?: string;
+      dryRun: boolean;
+      allowEmpty: boolean;
+      verbose: number;
+    };
+  };
+};
+
+export const retrievalEvalReportSchema = z.object({
+  meta: retrievalEvalReportMetaSchema,
+  summary: z.object({
+    totalCases: z.number().int().min(0),
+    passedCases: z.number().int().min(0),
+    failedCases: z.number().int().min(0),
+    passRate: z.number().min(0).max(1),
+    passed: z.boolean(),
+  }),
+  slices: z.array(retrievalEvalSliceSummarySchema),
+  cases: z.array(retrievalEvalCaseSummarySchema),
+  failures: z.array(retrievalEvalFailureRecordSchema),
+  warnings: z.array(retrievalEvalWarningRecordSchema),
+});
+
+export type RetrievalEvalReport = z.infer<typeof retrievalEvalReportSchema>;
