@@ -164,6 +164,8 @@ Empty target policy: All metrics return 0 when no relevant IDs exist.
 | `--json` | Output JSON report |
 | `--json-path` | Write JSON report to file |
 | `--verbose` | Enable verbose output |
+| `--baseline` | Path to baseline report for comparison (Phase 29-03) |
+| `--write-baseline` | Write current results as new baseline (Phase 29-03) |
 
 ### Dry-Run Mode
 
@@ -172,3 +174,37 @@ Phase 25-01 defines the entrypoint convention before Plan 25-02 creates datasets
 ```bash
 pnpm exec tsx evals/retrieval/run.ts --tier smoke --dry-run --allow-empty
 ```
+
+### Baseline Flow (Phase 29-03)
+
+The runner supports baseline write and compare for regression detection:
+
+```bash
+# Write a new baseline
+pnpm eval:retrieval --tier smoke --write-baseline --baseline ./reports/baseline.json
+
+# Compare against baseline
+pnpm eval:retrieval --tier smoke --baseline ./reports/baseline.json
+```
+
+Baseline artifacts are stored at the path specified by `--baseline`. Comparison shows per-slice regression status:
+- `REGRESSED`: Hit@1 or MRR dropped >5% from baseline
+- `IMPROVED`: Hit@1 or MRR improved >5% from baseline
+- `STABLE`: Metrics within 5% of baseline
+- `NO-BASELINE`: No matching slice in baseline
+
+## Failure Policy (Phase 29-03)
+
+The evaluation runner enforces an explicit failure policy:
+
+| Failure Kind | Policy | Description |
+|--------------|--------|-------------|
+| Governance leaks | **Always fail** | Forbidden IDs appearing in results |
+| Empty-result mismatch | **Always fail** | Expected empty but got non-empty, or vice versa |
+| Ranking regression | **Report only** | Hit@1 or MRR dropped compared to baseline |
+
+**Governance leaks always fail** - Any case where a forbidden ID appears in results causes immediate failure, regardless of ranking metrics.
+
+**Empty-result expectation mismatches always fail** - If a case expects an empty result but gets results (or vice versa), this is a hard failure.
+
+**Ranking regressions compare against baseline** - When a baseline is provided, ranking drift is reported but does not cause exit code 1 unless accompanied by governance leaks or empty-result mismatches.

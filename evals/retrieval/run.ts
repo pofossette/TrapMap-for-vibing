@@ -48,10 +48,15 @@ interface RunOptions {
   json: boolean;
   jsonPath?: string;
   verbose: number;
+  /** Path to baseline report for comparison (Phase 29-03) */
+  baselinePath?: string;
+  /** Write current results as new baseline (Phase 29-03) */
+  writeBaseline?: boolean;
 }
 
 /**
  * Parse command-line arguments for the evaluation runner.
+ * Phase 29-03: EOPS-03 (baseline options)
  */
 function parseArgs_(): RunOptions {
   const { values } = parseArgs({
@@ -88,6 +93,15 @@ function parseArgs_(): RunOptions {
         short: 'v',
         default: false,
       },
+      baseline: {
+        type: 'string',
+        description: 'Path to baseline report for comparison',
+      },
+      'write-baseline': {
+        type: 'boolean',
+        default: false,
+        description: 'Write current results as new baseline',
+      },
     },
     strict: true,
   });
@@ -115,6 +129,8 @@ function parseArgs_(): RunOptions {
     json: values.json,
     jsonPath: values['json-path'],
     verbose: values.verbose ? 1 : 0,
+    baselinePath: values.baseline,
+    writeBaseline: values['write-baseline'],
   };
 }
 
@@ -202,6 +218,7 @@ async function executeAllCases(
 
 /**
  * Aggregate metrics by slice.
+ * Phase 29-03: EOPS-03 (baseline-aware fields)
  */
 function aggregateSliceMetrics(
   results: CaseResult[],
@@ -230,6 +247,24 @@ function aggregateSliceMetrics(
     const metrics = averageMetrics(sliceResults.map((r) => r.metrics));
     const governanceFailures = sliceResults.filter((r) => !r.governance.passed).length;
 
+    // Phase 29-03: Routing trace fields
+    const modeCounts = new Map<string, number>();
+    for (const r of sliceResults) {
+      if (r.execution.selectedMode) {
+        modeCounts.set(r.execution.selectedMode, (modeCounts.get(r.execution.selectedMode) ?? 0) + 1);
+      }
+    }
+    let selectedMode: string | undefined;
+    let maxCount = 0;
+    for (const [m, count] of modeCounts) {
+      if (count > maxCount) {
+        maxCount = count;
+        selectedMode = m;
+      }
+    }
+
+    const fallbackApplied = sliceResults.some((r) => r.execution.fallbackApplied);
+
     slices.push({
       slice: {
         tier: tier as RetrievalEvalTier,
@@ -244,6 +279,9 @@ function aggregateSliceMetrics(
       avgNdcg: metrics.ndcg,
       avgRecallAt10: metrics.recallAt10,
       governanceFailures,
+      selectedMode: selectedMode as 'naive' | 'local' | 'global' | 'hybrid' | 'mix' | 'auto' | undefined,
+      fallbackApplied,
+      regressionStatus: 'no-baseline',
     });
   }
 
@@ -352,6 +390,74 @@ async function main(): Promise<void> {
 
   // Print summary
   printSummary(results, slices);
+
+  // Phase 29-03: Baseline write/compare flow
+  if (options.writeBaseline && options.baselinePath) {
+    const fs = await import('node:fs/promises');
+    const baselineDir = options.baselinePath.replace(/\/[^/]+$/, '');
+    await fs.mkdir(baselineDir, { recursive: true }).catch(() => {});
+
+    const baselineReport = {
+      timestamp: new Date().toISOString(),
+      tier: options.tier,
+      slices: slices.map(s => ({
+        slice: s.slice,
+        avgHitAt1: s.avgHitAt1,
+        avgHitAt5: s.avgHitAt5,
+        avgHitAt10: s.avgHitAt10,
+        avgMrr: s.avgMrr,
+        avgNdcg: s.avgNdcg,
+        avgRecallAt10: s.avgRecallAt10,
+        selectedMode: s.selectedMode,
+        fallbackApplied: s.fallbackApplied,
+      })),
+      governanceFailures: results.filter(r => !r.governance.passed).map(r => ({
+        caseId: r.case.caseId,
+        failures: r.governance.failures,
+      })),
+    };
+
+    await fs.writeFile(options.baselinePath, JSON.stringify(baselineReport, null, 2));
+    console.log(`Baseline written to: ${options.baselinePath}\n`);
+  }
+
+  // Phase 29-03: Baseline comparison
+  if (options.baselinePath && !options.writeBaseline) {
+    const fs = await import('node:fs/promises');
+    try {
+      const baselineContent = await fs.readFile(options.baselinePath, 'utf-8');
+      const baseline = JSON.parse(baselineContent);
+
+      console.log('\n=== Baseline Comparison ===');
+      console.log(`Baseline from: ${baseline.timestamp}`);
+
+      // Compare slices
+      for (const currentSlice of slices) {
+        const key = `${currentSlice.slice.tier}:${currentSlice.slice.endpoint}:${currentSlice.slice.mode ?? 'none'}`;
+        const baselineSlice = baseline.slices?.find((s: { slice: { tier: string; endpoint: string; mode?: string } }) =>
+          `${s.slice.tier}:${s.slice.endpoint}:${s.slice.mode ?? 'none'}` === key
+        );
+
+        if (baselineSlice) {
+          const hitAt1Diff = currentSlice.avgHitAt1 - baselineSlice.avgHitAt1;
+          const mrrDiff = currentSlice.avgMrr - baselineSlice.avgMrr;
+
+          if (hitAt1Diff < -0.05 || mrrDiff < -0.05) {
+            console.log(`  REGRESSED: ${key} - Hit@1: ${currentSlice.avgHitAt1.toFixed(3)} (${hitAt1Diff >= 0 ? '+' : ''}${hitAt1Diff.toFixed(3)}), MRR: ${currentSlice.avgMrr.toFixed(3)} (${mrrDiff >= 0 ? '+' : ''}${mrrDiff.toFixed(3)})`);
+          } else if (hitAt1Diff > 0.05 || mrrDiff > 0.05) {
+            console.log(`  IMPROVED: ${key} - Hit@1: ${currentSlice.avgHitAt1.toFixed(3)} (${hitAt1Diff >= 0 ? '+' : ''}${hitAt1Diff.toFixed(3)}), MRR: ${currentSlice.avgMrr.toFixed(3)} (${mrrDiff >= 0 ? '+' : ''}${mrrDiff.toFixed(3)})`);
+          } else {
+            console.log(`  STABLE: ${key} - Hit@1: ${currentSlice.avgHitAt1.toFixed(3)}, MRR: ${currentSlice.avgMrr.toFixed(3)}`);
+          }
+        } else {
+          console.log(`  NO-BASELINE: ${key}`);
+        }
+      }
+      console.log('');
+    } catch {
+      console.error(`Warning: Could not read baseline from ${options.baselinePath}`);
+    }
+  }
 
   // Write JSON report if requested
   if (options.json) {
