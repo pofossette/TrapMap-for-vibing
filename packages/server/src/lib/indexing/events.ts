@@ -11,6 +11,7 @@
 
 import type { LifecycleState } from '@trapmap/contracts';
 import type { JsonStore, StoreData } from '../store.js';
+import { removeGraphIndexDocumentsForSource } from './graph-lite/store.js';
 import { syncKnowledgeIndex } from './pipeline.js';
 import type { IndexAdapter } from './types.js';
 
@@ -92,6 +93,8 @@ export async function runKnowledgeIndexEvent(args: {
           // Also clear embedding cache when index is removed (IDX-06)
           entry.embeddingCache = null;
         }
+        // Also remove graph index documents directly (T-36-13)
+        removeGraphIndexDocumentsForSource(data, 'trap', entry.id);
         break;
 
       case 'noop':
