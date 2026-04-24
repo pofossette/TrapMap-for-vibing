@@ -1,4 +1,6 @@
 import type {
+  DuplicateJobBundleResponse,
+  ManualResultResponse,
   SkillEditResponse,
   SkillHistoryResponse,
   SkillLookupResponse,
@@ -6,6 +8,8 @@ import type {
   SkillReviewQueueResponse,
 } from '@trapmap/contracts';
 import {
+  DuplicateJobBundleResponseSchema,
+  manualResultResponseSchema,
   skillEditResponseSchema,
   skillHistoryResponseSchema,
   skillLookupResponseSchema,
@@ -104,6 +108,87 @@ function formatSkillHistoryResponse(response: SkillHistoryResponse): string {
   });
 
   return [...header, ...revisions].join('\n');
+}
+
+/**
+ * Format duplicate job bundle for text output (Phase 34).
+ */
+function formatDuplicateJobBundle(response: DuplicateJobBundleResponse): string {
+  const lines = [
+    `Candidate ID: ${response.candidate.id}`,
+    `Source Type: ${response.candidate.sourceType}`,
+    `Status: ${response.candidate.status}`,
+    `Received: ${response.candidate.receivedAt}`,
+    '',
+    '=== ORIGINAL PAYLOAD ===',
+  ];
+
+  if (response.originalPayload.trap) {
+    const trap = response.originalPayload.trap;
+    lines.push(
+      `Type: Trap`,
+      `Shortcut: ${trap.shortcut}`,
+      `Detail: ${trap.detail.slice(0, 200)}${trap.detail.length > 200 ? '...' : ''}`,
+      `Labels: ${trap.labels.join(', ')}`,
+    );
+  } else if (response.originalPayload.skill) {
+    const skill = response.originalPayload.skill;
+    lines.push(
+      `Type: Skill`,
+      `Files: ${skill.files.length} file(s)`,
+      `Labels: ${skill.metadata.labels.join(', ')}`,
+    );
+    for (const file of skill.files) {
+      lines.push(`  - ${file.path} (${file.sizeBytes} bytes)`);
+    }
+  }
+
+  lines.push('', '=== MATCHES ===');
+  for (const entry of response.matches) {
+    const m = entry.match;
+    const e = entry.entity;
+    lines.push(
+      '',
+      `Match: ${e.title}`,
+      `  ID: ${e.entityId}`,
+      `  Type: ${e.entityType}`,
+      `  Similarity: ${(m.similarityScore * 100).toFixed(1)}%`,
+      `  Match Type: ${m.matchType}`,
+    );
+    if (e.entityType === 'trap' && e.detail) {
+      lines.push(`  Detail: ${e.detail.slice(0, 150)}${e.detail.length > 150 ? '...' : ''}`);
+    }
+  }
+
+  lines.push('', '=== EXPECTED MANUAL RESULT SCHEMA ===');
+  for (const field of response.expectedResultSchema.fields) {
+    const req = field.required ? 'required' : 'optional';
+    lines.push(`  ${field.name} (${field.type}, ${req}): ${field.description}`);
+  }
+
+  lines.push(
+    '',
+    '=== FETCH COMMAND ===',
+    `trapmap skill duplicate-job fetch ${response.candidate.id}`,
+  );
+
+  return lines.join('\n');
+}
+
+/**
+ * Format manual result response for text output (Phase 34).
+ */
+function formatManualResultResponse(response: ManualResultResponse): string {
+  const lines = [
+    `Candidate ID: ${response.candidateId}`,
+    `Decision: ${response.decision}`,
+    `Reviewed At: ${response.reviewedAt}`,
+    `Next State: ${response.nextState}`,
+    '',
+    'To fetch this job again:',
+    `  trapmap skill duplicate-job fetch ${response.candidateId}`,
+  ];
+  return lines.join('\n');
 }
 
 export function registerSkillCommands(program: Command, options: SkillCommandOptions): void {
@@ -373,6 +458,92 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
           const parsed = skillReviewDecisionResponseSchema.parse(response.data);
 
           printResult(parsed, flags, formatSkillReviewDecisionResponse);
+        },
+      );
+
+    // Phase 34: duplicate-job commands
+    const duplicateJob = skill
+      .command('duplicate-job')
+      .description('Manage duplicate job review workflow');
+
+    duplicateJob
+      .command('fetch')
+      .description('Fetch duplicate job bundle for offline review')
+      .argument('<candidateId>', 'Candidate ID to fetch')
+      .option('--json', 'Output raw JSON')
+      .action(async (candidateId: string, flags: { json?: boolean }) => {
+        const state = await loadCliState();
+        requireSessionToken(state);
+
+        const response = await apiRequest<DuplicateJobBundleResponse>(state, {
+          method: 'GET',
+          path: `/v1/duplicates/${candidateId}/bundle`,
+        });
+
+        const parsed = DuplicateJobBundleResponseSchema.parse(response.data);
+
+        printResult(parsed, flags, formatDuplicateJobBundle);
+      });
+
+    duplicateJob
+      .command('resolve')
+      .description('Submit manual resolution for duplicate candidate')
+      .argument('<candidateId>', 'Candidate ID to resolve')
+      .requiredOption('--decision <decision>', 'Decision: independent or merged')
+      .requiredOption('--notes <text>', 'Explanation of the decision')
+      .option('--merged-with <entityId>', 'Entity ID to merge with (required if decision is merged)')
+      .option('--merged-type <type>', 'Entity type: trap or skill (required if decision is merged)')
+      .option('--json', 'Output raw JSON')
+      .action(
+        async (
+          candidateId: string,
+          flags: {
+            decision: string;
+            notes: string;
+            mergedWith?: string;
+            mergedType?: string;
+            json?: boolean;
+          },
+        ) => {
+          const state = await loadCliState();
+          requireSessionToken(state);
+
+          // Validate decision value
+          if (flags.decision !== 'independent' && flags.decision !== 'merged') {
+            throw new Error('--decision must be "independent" or "merged"');
+          }
+
+          // Validate merged options
+          if (flags.decision === 'merged') {
+            if (!flags.mergedWith || !flags.mergedType) {
+              throw new Error('--merged-with and --merged-type are required when decision is "merged"');
+            }
+            if (flags.mergedType !== 'trap' && flags.mergedType !== 'skill') {
+              throw new Error('--merged-type must be "trap" or "skill"');
+            }
+          }
+
+          const body: Record<string, unknown> = {
+            decision: flags.decision,
+            notes: flags.notes,
+          };
+
+          if (flags.decision === 'merged' && flags.mergedWith && flags.mergedType) {
+            body.mergedWith = {
+              entityId: flags.mergedWith,
+              entityType: flags.mergedType,
+            };
+          }
+
+          const response = await apiRequest<ManualResultResponse>(state, {
+            method: 'POST',
+            path: `/v1/candidates/${candidateId}/manual-result`,
+            body,
+          });
+
+          const parsed = manualResultResponseSchema.parse(response.data);
+
+          printResult(parsed, flags, formatManualResultResponse);
         },
       );
   }
