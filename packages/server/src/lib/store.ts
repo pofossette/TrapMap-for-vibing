@@ -11,6 +11,8 @@ import type {
   Scope,
 } from '@trapmap/contracts';
 
+import type { GraphIndexDocumentRecord } from './indexing/graph-lite/documents.js';
+
 export interface UserRecord {
   id: string;
   handle: string;
@@ -594,6 +596,8 @@ export interface StoreData {
   duplicateCases: DuplicateCaseRecord[];
   /** Entity lineage records for tracking provenance */
   entityLineage: EntityLineageRecord[];
+  /** Durable graph index documents for GraphRAG-lite (P36-04) */
+  graphIndexDocuments: GraphIndexDocumentRecord[];
 }
 
 const EMPTY_STORE: StoreData = {
@@ -610,6 +614,7 @@ const EMPTY_STORE: StoreData = {
   candidateSubmissions: [],
   duplicateCases: [],
   entityLineage: [],
+  graphIndexDocuments: [],
 };
 
 function cloneEmptyStore(): StoreData {
