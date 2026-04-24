@@ -293,17 +293,15 @@ await runKnowledgeIndexEvent({
 | A2 | Relation metadata should include an explicit `strength` field in addition to the locked relation enum. [ASSUMED] | Common Pitfalls | Medium; if omitted, Phase 37 may need a schema migration or weaker compiler guarantees. |
 | A3 | A dedicated skill indexing event module beside artifact routes is cleaner than folding all logic into existing route files. [ASSUMED] | Architecture Patterns | Low; the plan can still succeed with a different file boundary. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Where should durable graph documents live inside the current JSON store schema?**
-   What we know: the current store persists `knowledgeEntries`, `skillArtifacts`, and their derived/index states, but there is no dedicated graph-document collection yet. [VERIFIED: codebase grep]
-   What's unclear: whether Phase 36 should add a top-level `graphIndexDocuments` store array or persist graph artifacts inside each domain aggregate. [VERIFIED: codebase grep]
-   Recommendation: prefer a top-level graph document collection keyed by `{sourceType, sourceId, revision}` so reconciliation and cross-domain graph assembly stay symmetric. [ASSUMED]
+   Resolution: add a top-level `graphIndexDocuments` collection on `StoreData`, keyed by `{sourceType, sourceId, revision}`.
+   Reason: this keeps trap and skill graph persistence symmetric, makes reconcile/remove operations cross-domain instead of aggregate-specific, and avoids overloading domain aggregates with graph-runtime concerns. [VERIFIED: codebase grep][ASSUMED]
 
 2. **Should trap and skill graph extraction share one extractor or two wrappers over shared primitives?**
-   What we know: current extraction is single-schema and generic, while Phase 36 needs domain-aware trap and skill semantics. [VERIFIED: codebase grep][VERIFIED: .planning/phases/36-graphrag-lite-indexing-pipeline-for-skill-trap-graph-extract/36-CONTEXT.md]
-   What's unclear: whether a unified normalized input model can stay readable once trap and skill evidence differ. [ASSUMED]
-   Recommendation: share normalization primitives and relation builders, but keep trap-source and skill-source extraction entry points separate. [ASSUMED]
+   Resolution: use two source-specific entry points over shared graph-document primitives.
+   Reason: trap and skill evidence shapes differ enough that forcing one fully unified extractor would reduce clarity, but shared node/edge builders and normalization helpers still preserve consistency. [VERIFIED: codebase grep][VERIFIED: .planning/phases/36-graphrag-lite-indexing-pipeline-for-skill-trap-graph-extract/36-CONTEXT.md][ASSUMED]
 
 ## Environment Availability
 
