@@ -12,6 +12,8 @@ import type {
   RetrievalEvalFailureRecord,
   RetrievalEvalWarningRecord,
   CohortSummary,
+  ModeComparison,
+  RoutingDistribution,
 } from '../../../packages/contracts/src/domain/evals/report.js';
 
 // =============================================================================
@@ -373,6 +375,101 @@ export function formatCohortComparison(report: RetrievalEvalReport): string {
     const avgPassRate = totalCases > 0 ? (totalPassed / totalCases) * 100 : 0;
     lines.push(`${queryType}: ${totalCases} cases, ${avgPassRate.toFixed(1)}% avg pass rate`);
   }
+
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Mode Comparison Formatter (Phase 31-02: EOPS-01)
+// =============================================================================
+
+/**
+ * Format mode comparison table showing client vs router-selected modes.
+ *
+ * Phase 31-02: EOPS-01
+ *
+ * Outputs a comparison table showing how client-requested modes map to
+ * router-selected modes with performance metrics.
+ *
+ * @param report - The canonical retrieval evaluation report
+ * @returns Human-readable mode comparison table
+ */
+export function formatModeComparison(report: RetrievalEvalReport): string {
+  const lines: string[] = [];
+
+  if (!report.modeComparisons || report.modeComparisons.length === 0) {
+    return 'No mode comparison data available.';
+  }
+
+  lines.push('');
+  lines.push('=== Mode Comparison ===');
+  lines.push('');
+
+  // Table header
+  lines.push('Client Mode   | Selected Mode | Routing Reason        | Fallback | Cases | Hit@1  | MRR');
+  lines.push('--------------|---------------|----------------------|----------|-------|--------|-------');
+
+  // Table rows
+  for (const mc of report.modeComparisons) {
+    const clientMode = (mc.clientMode ?? 'auto').padEnd(12);
+    const selectedMode = (mc.selectedMode ?? 'none').padEnd(13);
+    const routingReason = (mc.routingReason ?? 'none').padEnd(20);
+    const fallback = (mc.fallbackApplied ? 'yes' : 'no').padEnd(8);
+    const cases = String(mc.caseCount).padStart(5);
+    const hitAt1 = mc.avgHitAt1.toFixed(3).padStart(6);
+    const mrr = mc.avgMrr.toFixed(3).padStart(5);
+
+    lines.push(`${clientMode} | ${selectedMode} | ${routingReason} | ${fallback} | ${cases} | ${hitAt1} | ${mrr}`);
+  }
+
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+/**
+ * Format routing distribution showing breakdown of routing decisions.
+ *
+ * Phase 31-02: EOPS-01
+ *
+ * @param report - The canonical retrieval evaluation report
+ * @returns Human-readable routing distribution summary
+ */
+export function formatRoutingDistribution(report: RetrievalEvalReport): string {
+  const lines: string[] = [];
+
+  if (!report.routingDistribution || report.routingDistribution.length === 0) {
+    return 'No routing distribution data available.';
+  }
+
+  lines.push('');
+  lines.push('=== Routing Distribution ===');
+  lines.push('');
+
+  // Table header
+  lines.push('Routing Reason        | Count | Percentage');
+  lines.push('----------------------|-------|------------');
+
+  // Table rows
+  for (const rd of report.routingDistribution) {
+    const reason = rd.reason.padEnd(20);
+    const count = String(rd.count).padStart(5);
+    const percentage = `${rd.percentage.toFixed(1)}%`.padStart(10);
+
+    lines.push(`${reason} | ${count} | ${percentage}`);
+  }
+
+  lines.push('');
+
+  // Summary
+  const totalCases = report.routingDistribution.reduce((sum, rd) => sum + rd.count, 0);
+  const fallbackCount = report.modeComparisons?.filter(mc => mc.fallbackApplied).reduce((sum, mc) => sum + mc.caseCount, 0) ?? 0;
+  const fallbackPct = totalCases > 0 ? (fallbackCount / totalCases * 100).toFixed(1) : '0.0';
+
+  lines.push(`Total cases: ${totalCases}`);
+  lines.push(`Fallback applied: ${fallbackCount} (${fallbackPct}%)`);
 
   lines.push('');
 
