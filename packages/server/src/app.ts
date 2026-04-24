@@ -14,6 +14,7 @@ import { operationsRoutes } from './routes/operations.js';
 import { retrievalRoutes } from './routes/retrieval.js';
 import { reviewRoutes } from './routes/review.js';
 import { teamRoutes } from './routes/teams.js';
+import { trapRoutes } from './routes/traps.js';
 
 const documentedRoutes = [
   'POST /v1/auth/login',
@@ -25,6 +26,10 @@ const documentedRoutes = [
   'POST /v1/members',
   'PATCH /v1/members/:memberId',
   'POST /v1/access-keys',
+  'POST /v1/traps',
+  'GET /v1/traps',
+  'GET /v1/traps/:trapId',
+  'POST /v1/traps/:trapId/resubmit',
   'POST /v1/knowledge',
   'GET /v1/knowledge/mine',
   'GET /v1/knowledge/:entryId',
@@ -83,6 +88,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.register(memberRoutes);
   app.register(accessKeyRoutes);
   app.register(reviewRoutes);
+  app.register(trapRoutes);
   app.register(knowledgeRoutes);
   app.register(retrievalRoutes);
   app.register(operationsRoutes);

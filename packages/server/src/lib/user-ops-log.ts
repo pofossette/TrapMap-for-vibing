@@ -10,7 +10,9 @@ export type UserOpsAction =
   | 'review'
   | 'review-list'
   | 'import'
-  | 'export';
+  | 'export'
+  | 'trap-submit'
+  | 'trap-resubmit';
 
 export interface UserOpsLogEntry {
   timestamp: string;
