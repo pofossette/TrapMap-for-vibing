@@ -19,8 +19,19 @@
  *   TIER=core pnpm exec tsx evals/scripts/eval-ci.ts
  */
 
-import { writeFileSync, mkdirSync, existsSync, appendFileSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, appendFileSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import type {
+  BaselineReport,
+  RegressionThresholds,
+  RegressionResult,
+  RetrievalEvalReport,
+} from '../../packages/contracts/src/domain/evals/report.js';
+import {
+  TIER_THRESHOLDS,
+  baselineReportSchema,
+  regressionResultSchema,
+} from '../../packages/contracts/src/domain/evals/report.js';
 
 // =============================================================================
 // GitHub Actions Output Helpers
@@ -55,6 +66,249 @@ function startGroup(name: string): void {
  */
 function endGroup(): void {
   console.log('::endgroup::');
+}
+
+// =============================================================================
+// Baseline Path Helpers (Phase 31-03: EOPS-03)
+// =============================================================================
+
+const BASELINES_DIR = 'reports/baselines';
+
+/**
+ * Get the baseline file path for a tier.
+ */
+function getBaselinePath(tier: 'smoke' | 'core'): string {
+  return resolve(process.cwd(), BASELINES_DIR, `baseline-${tier}.json`);
+}
+
+/**
+ * Ensure baselines directory exists.
+ */
+function ensureBaselinesDir(): void {
+  const dir = resolve(process.cwd(), BASELINES_DIR);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+}
+
+/**
+ * Check if baseline is available for a tier.
+ */
+function isBaselineAvailable(tier: 'smoke' | 'core'): boolean {
+  return existsSync(getBaselinePath(tier));
+}
+
+/**
+ * Load baseline for a tier.
+ */
+function loadBaseline(tier: 'smoke' | 'core'): BaselineReport | null {
+  const path = getBaselinePath(tier);
+  if (!existsSync(path)) {
+    return null;
+  }
+  try {
+    const content = readFileSync(path, 'utf-8');
+    return baselineReportSchema.parse(JSON.parse(content));
+  } catch (error) {
+    console.error(`Failed to load baseline: ${error}`);
+    return null;
+  }
+}
+
+// =============================================================================
+// Regression Comparison (Phase 31-03: EOPS-03)
+// =============================================================================
+
+/**
+ * Compare current report against baseline.
+ */
+function compareWithBaseline(
+  report: RetrievalEvalReport,
+  baseline: BaselineReport,
+  thresholds: RegressionThresholds,
+): RegressionResult {
+  const regressedSlices: RegressionResult['regressedSlices'] = [];
+  const improvedSlices: RegressionResult['improvedSlices'] = [];
+  const regressedCohorts: RegressionResult['regressedCohorts'] = [];
+
+  // Compare slices
+  for (const currentSlice of report.slices) {
+    const key = `${currentSlice.slice.tier}:${currentSlice.slice.endpoint}:${currentSlice.slice.mode ?? 'none'}`;
+    const baselineSlice = baseline.slices.find(s =>
+      `${s.slice.tier}:${s.slice.endpoint}:${s.slice.mode ?? 'none'}` === key
+    );
+
+    if (baselineSlice) {
+      const hitAt1Delta = currentSlice.avgHitAt1 - baselineSlice.avgHitAt1;
+      const mrrDelta = currentSlice.avgMrr - baselineSlice.avgMrr;
+
+      if (hitAt1Delta < thresholds.hitAt1Threshold || mrrDelta < thresholds.mrrThreshold) {
+        regressedSlices.push({
+          slice: currentSlice.slice,
+          baselineHitAt1: baselineSlice.avgHitAt1,
+          currentHitAt1: currentSlice.avgHitAt1,
+          hitAt1Delta,
+          baselineMrr: baselineSlice.avgMrr,
+          currentMrr: currentSlice.avgMrr,
+          mrrDelta,
+        });
+      } else if (hitAt1Delta > Math.abs(thresholds.hitAt1Threshold) ||
+                 mrrDelta > Math.abs(thresholds.mrrThreshold)) {
+        improvedSlices.push({
+          slice: currentSlice.slice,
+          baselineHitAt1: baselineSlice.avgHitAt1,
+          currentHitAt1: currentSlice.avgHitAt1,
+          hitAt1Delta,
+          baselineMrr: baselineSlice.avgMrr,
+          currentMrr: currentSlice.avgMrr,
+          mrrDelta,
+        });
+      }
+    }
+  }
+
+  // Compare cohorts
+  if (report.cohorts && baseline.cohorts) {
+    for (const currentCohort of report.cohorts) {
+      const key = `${currentCohort.cohort.queryType}:${currentCohort.cohort.routeFamily}`;
+      const baselineCohort = baseline.cohorts.find(c =>
+        `${c.cohort.queryType}:${c.cohort.routeFamily}` === key
+      );
+
+      if (baselineCohort) {
+        const hitAt1Delta = currentCohort.avgHitAt1 - baselineCohort.avgHitAt1;
+        if (hitAt1Delta < thresholds.hitAt1Threshold) {
+          regressedCohorts.push({
+            cohort: currentCohort.cohort,
+            baselineHitAt1: baselineCohort.avgHitAt1,
+            currentHitAt1: currentCohort.avgHitAt1,
+            hitAt1Delta,
+          });
+        }
+      }
+    }
+  }
+
+  // Compare governance
+  const governanceRegressions = Math.max(
+    0,
+    report.failures.filter(f => f.kind === 'forbidden-hit').length -
+    baseline.governanceFailures.length
+  );
+
+  const hasRegressions = regressedSlices.length > 0 ||
+                         regressedCohorts.length > 0 ||
+                         governanceRegressions > thresholds.maxGovernanceIncrease;
+
+  return regressionResultSchema.parse({
+    hasRegressions,
+    regressedSlices,
+    improvedSlices,
+    regressedCohorts,
+    governanceRegressions,
+    baselineAvailable: true,
+    baselineTimestamp: baseline.timestamp,
+  });
+}
+
+/**
+ * Write current results as new baseline.
+ */
+function writeBaseline(
+  report: RetrievalEvalReport,
+  tier: 'smoke' | 'core',
+  durationMs: number,
+): void {
+  ensureBaselinesDir();
+
+  const baseline: BaselineReport = {
+    schemaVersion: 1,
+    timestamp: new Date().toISOString(),
+    tier,
+    commitSha: process.env.GITHUB_SHA?.substring(0, 7),
+    branch: process.env.GITHUB_REF_NAME,
+    slices: report.slices.map(s => ({
+      slice: s.slice,
+      routeFamily: s.routeFamily,
+      avgHitAt1: s.avgHitAt1,
+      avgHitAt5: s.avgHitAt5,
+      avgHitAt10: s.avgHitAt10,
+      avgMrr: s.avgMrr,
+      avgNdcg: s.avgNdcg,
+      avgRecallAt10: s.avgRecallAt10,
+      selectedMode: s.selectedMode,
+      fallbackApplied: s.fallbackApplied,
+      passRate: s.passRate,
+    })),
+    cohorts: report.cohorts?.map(c => ({
+      cohort: c.cohort,
+      avgHitAt1: c.avgHitAt1,
+      avgMrr: c.avgMrr,
+      passRate: c.passRate,
+      governanceFailureCount: c.governanceFailureCount,
+    })),
+    governanceFailures: report.failures
+      .filter(f => f.kind === 'forbidden-hit')
+      .map(f => ({
+        caseId: f.caseId,
+        endpoint: f.endpoint,
+        tier: f.tier,
+        failureKinds: [f.kind],
+      })),
+    totalCases: report.summary.totalCases,
+    passedCases: report.summary.passedCases,
+    passRate: report.summary.passRate,
+    durationMs,
+  };
+
+  const path = getBaselinePath(tier);
+  writeFileSync(path, JSON.stringify(baseline, null, 2), 'utf-8');
+  console.log(`Baseline written to: ${path}`);
+}
+
+/**
+ * Format regression result for CI output.
+ */
+function formatRegressionResult(regression: RegressionResult): string {
+  const lines: string[] = [];
+
+  if (!regression.baselineAvailable) {
+    lines.push('No baseline available for comparison.');
+    return lines.join('\n');
+  }
+
+  lines.push(`Baseline timestamp: ${regression.baselineTimestamp}`);
+  lines.push('');
+
+  if (regression.regressedSlices.length > 0) {
+    lines.push('=== REGRESSED SLICES ===');
+    for (const s of regression.regressedSlices) {
+      const mode = s.slice.mode ?? 'default';
+      lines.push(`  ${s.slice.endpoint} (${mode}):`);
+      lines.push(`    Hit@1: ${s.baselineHitAt1.toFixed(3)} -> ${s.currentHitAt1.toFixed(3)} (${s.hitAt1Delta >= 0 ? '+' : ''}${s.hitAt1Delta.toFixed(3)})`);
+      lines.push(`    MRR:   ${s.baselineMrr.toFixed(3)} -> ${s.currentMrr.toFixed(3)} (${s.mrrDelta >= 0 ? '+' : ''}${s.mrrDelta.toFixed(3)})`);
+    }
+    lines.push('');
+  }
+
+  if (regression.improvedSlices.length > 0) {
+    lines.push('=== IMPROVED SLICES ===');
+    for (const s of regression.improvedSlices) {
+      const mode = s.slice.mode ?? 'default';
+      lines.push(`  ${s.slice.endpoint} (${mode}):`);
+      lines.push(`    Hit@1: ${s.baselineHitAt1.toFixed(3)} -> ${s.currentHitAt1.toFixed(3)} (+${s.hitAt1Delta.toFixed(3)})`);
+    }
+    lines.push('');
+  }
+
+  if (regression.governanceRegressions > 0) {
+    lines.push(`Governance regressions: +${regression.governanceRegressions}`);
+    lines.push('');
+  }
+
+  lines.push(`Summary: ${regression.regressedSlices.length} regressed, ${regression.improvedSlices.length} improved`);
+
+  return lines.join('\n');
 }
 
 // =============================================================================
@@ -94,6 +348,8 @@ interface CIReport {
     passedCases: number;
     failedCases: number;
   };
+  /** Regression analysis (Phase 31-03: EOPS-03) */
+  regression?: RegressionResult;
 }
 
 // =============================================================================
@@ -293,6 +549,48 @@ async function main(): Promise<void> {
   setGitHubOutput('total_cases', report.overall.totalCases);
   setGitHubOutput('passed_cases', report.overall.passedCases);
   setGitHubOutput('failed_cases', report.overall.failedCases);
+
+  // Load baseline for comparison (Phase 31-03: EOPS-03)
+  const baseline = loadBaseline(tier);
+  let regression: RegressionResult | undefined;
+
+  if (baseline && retrievalResult?.report) {
+    console.log('Comparing against baseline...');
+    const thresholds = TIER_THRESHOLDS[tier];
+    regression = compareWithBaseline(
+      retrievalResult.report as RetrievalEvalReport,
+      baseline,
+      thresholds
+    );
+
+    // Set regression outputs
+    setGitHubOutput('has_regressions', regression.hasRegressions ? 'true' : 'false');
+    setGitHubOutput('regressed_count', regression.regressedSlices.length);
+    setGitHubOutput('improved_count', regression.improvedSlices.length);
+    setGitHubOutput('baseline_timestamp', regression.baselineTimestamp ?? '');
+    setGitHubOutput('baseline_status', 'available');
+
+    startGroup('Regression Analysis');
+    console.log(formatRegressionResult(regression));
+    endGroup();
+  } else {
+    console.log('No baseline available for comparison.');
+    setGitHubOutput('has_regressions', 'false');
+    setGitHubOutput('baseline_status', 'no-baseline');
+  }
+
+  // Write baseline if WRITE_BASELINE is set (Phase 31-03: EOPS-03)
+  if (process.env.WRITE_BASELINE === 'true' && retrievalResult?.report) {
+    console.log('Writing baseline...');
+    writeBaseline(
+      retrievalResult.report as RetrievalEvalReport,
+      tier,
+      report.durationMs
+    );
+  }
+
+  // Update report with regression data
+  report.regression = regression;
 
   // Output compact summary in a group
   console.log('');
