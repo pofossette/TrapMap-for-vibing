@@ -14,6 +14,7 @@
 import type { IndexAdapter } from '../types.js';
 import { keywordIndexAdapter } from './keyword.js';
 import { vectorIndexAdapter } from './vector.js';
+import { graphIndexAdapter } from './graph.js';
 
 export {
   vectorIndexAdapter,
@@ -32,6 +33,12 @@ export {
   type KeywordIndexPayload,
 } from './keyword.js';
 
+export {
+  graphIndexAdapter,
+  clearGraphCache,
+  getGlobalGraphIndex,
+} from './graph.js';
+
 /**
  * Get the default index adapter list for server bootstrap.
  *
@@ -42,5 +49,5 @@ export {
  * @returns Array of registered index adapters
  */
 export function buildDefaultIndexAdapters(): IndexAdapter[] {
-  return [vectorIndexAdapter, keywordIndexAdapter];
+  return [vectorIndexAdapter, keywordIndexAdapter, graphIndexAdapter];
 }

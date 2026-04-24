@@ -18,8 +18,11 @@
  */
 
 import { getGlobalGraphIndex } from '../../indexing/adapters/graph.js';
+import { getGraphIndexDocuments } from '../../indexing/graph-lite/store.js';
+import { buildGraphFromDocuments } from '../../indexing/graph-lite/graphology.js';
+import type { GraphIndexDocumentRecord } from '../../indexing/graph-lite/documents.js';
 import type { NormalizedIndexDocument } from '../../indexing/types.js';
-import type { KnowledgeRecord } from '../../store.js';
+import type { KnowledgeRecord, StoreData } from '../../store.js';
 import { extractGraphEntities } from '../graph-extract.js';
 import type { RecallCandidate } from '../types.js';
 
@@ -136,6 +139,15 @@ function extractQueryEntities(queryText: string): Set<string> {
 }
 
 /**
+ * Graph index shape used by expansion and strength calculation.
+ * Can come from the legacy in-memory cache or from store-backed documents.
+ */
+type GraphIndexSource = {
+  entities: Map<string, Set<string>>;
+  relations: Map<string, Array<{ type: string; fromEntity: string; toEntity: string; weight: number }>>;
+};
+
+/**
  * Perform one-hop graph expansion from query entities.
  *
  * This function:
@@ -144,15 +156,15 @@ function extractQueryEntities(queryText: string): Set<string> {
  * - Returns a set of candidate entry IDs (not yet intersected with eligible entries)
  *
  * @param queryEntities - Set of normalized entity values from the query
+ * @param graphIndex - Graph index source (store-backed or legacy in-memory)
  * @returns Set of entry IDs (direct matches + one-hop expansions)
  */
-function expandOneHop(queryEntities: Set<string>): Set<string> {
-  const globalIndex = getGlobalGraphIndex();
+function expandOneHop(queryEntities: Set<string>, graphIndex: GraphIndexSource = getGlobalGraphIndex()): Set<string> {
   const candidateIds = new Set<string>();
 
   // Direct entity matches
   for (const entityValue of queryEntities) {
-    const entrySet = globalIndex.entities.get(entityValue);
+    const entrySet = graphIndex.entities.get(entityValue);
     if (entrySet) {
       for (const entryId of entrySet) {
         candidateIds.add(entryId);
@@ -164,7 +176,7 @@ function expandOneHop(queryEntities: Set<string>): Set<string> {
   // Look at ALL entries' relations to find connections to query entities
   const oneHopIds = new Set<string>();
 
-  for (const [entryId, relations] of globalIndex.relations.entries()) {
+  for (const [entryId, relations] of graphIndex.relations.entries()) {
     for (const relation of relations) {
       // Check if this relation connects to any query entity
       const connectsToQuery =
@@ -172,8 +184,8 @@ function expandOneHop(queryEntities: Set<string>): Set<string> {
 
       if (connectsToQuery) {
         // Find entries that contain either end of the relation
-        const fromEntityEntries = globalIndex.entities.get(relation.fromEntity);
-        const toEntityEntries = globalIndex.entities.get(relation.toEntity);
+        const fromEntityEntries = graphIndex.entities.get(relation.fromEntity);
+        const toEntityEntries = graphIndex.entities.get(relation.toEntity);
 
         if (fromEntityEntries) {
           for (const relatedEntryId of fromEntityEntries) {
@@ -207,14 +219,14 @@ function expandOneHop(queryEntities: Set<string>): Set<string> {
  *
  * @param entryId - The candidate entry ID
  * @param queryEntities - Set of query entity values
+ * @param graphIndex - Graph index source (store-backed or legacy in-memory)
  * @returns Total relation weight supporting this candidate
  */
-function calculateRelationStrength(entryId: string, queryEntities: Set<string>): number {
-  const globalIndex = getGlobalGraphIndex();
+function calculateRelationStrength(entryId: string, queryEntities: Set<string>, graphIndex: GraphIndexSource = getGlobalGraphIndex()): number {
   let strength = 0;
 
   // Check this entry's own relations
-  const relations = globalIndex.relations.get(entryId);
+  const relations = graphIndex.relations.get(entryId);
   if (relations) {
     for (const relation of relations) {
       // Boost if relation connects to a query entity
@@ -227,7 +239,7 @@ function calculateRelationStrength(entryId: string, queryEntities: Set<string>):
   // Check other entries' relations that might connect to this entry
   // Get all entities for this entry
   const entryEntities = new Set<string>();
-  for (const [entityValue, entrySet] of globalIndex.entities.entries()) {
+  for (const [entityValue, entrySet] of graphIndex.entities.entries()) {
     if (entrySet.has(entryId)) {
       entryEntities.add(entityValue);
     }
@@ -236,12 +248,12 @@ function calculateRelationStrength(entryId: string, queryEntities: Set<string>):
   // For each query entity, check if any relations connect to this entry's entities
   for (const queryEntity of queryEntities) {
     // Find entries that have the query entity
-    const entriesWithQueryEntity = globalIndex.entities.get(queryEntity);
+    const entriesWithQueryEntity = graphIndex.entities.get(queryEntity);
     if (entriesWithQueryEntity) {
       for (const otherEntryId of entriesWithQueryEntity) {
         if (otherEntryId === entryId) continue; // Skip self
 
-        const otherRelations = globalIndex.relations.get(otherEntryId);
+        const otherRelations = graphIndex.relations.get(otherEntryId);
         if (otherRelations) {
           for (const relation of otherRelations) {
             // Check if this relation connects the query entity to one of our entities
@@ -261,6 +273,57 @@ function calculateRelationStrength(entryId: string, queryEntities: Set<string>):
 }
 
 /**
+ * Parameters for graph-assisted recall.
+ * Supports both the old in-memory path and the new store-backed path.
+ */
+export interface GraphAssistedRecallConfig extends GraphScoringConfig {
+  /** Optional store data snapshot for reading persisted graph documents.
+   * When provided, graph state is assembled from durable documents instead
+   * of the module-level in-memory cache. */
+  dataSnapshot?: StoreData;
+}
+
+/**
+ * Build a synthetic global-graph-index shape from persisted graph documents.
+ * Used when a data snapshot is provided so graph-assisted recall reads
+ * durable state instead of the module-level in-memory cache.
+ */
+function buildGlobalIndexFromDocuments(
+  documents: GraphIndexDocumentRecord[],
+): {
+  entities: Map<string, Set<string>>;
+  relations: Map<string, Array<{ type: string; fromEntity: string; toEntity: string; weight: number }>>;
+} {
+  const entities = new Map<string, Set<string>>();
+  const relations = new Map<string, Array<{ type: string; fromEntity: string; toEntity: string; weight: number }>>();
+
+  for (const doc of documents) {
+    for (const node of doc.nodes) {
+      const key = node.label.toLowerCase().trim().replace(/\s+/g, '-');
+      if (!entities.has(key)) {
+        entities.set(key, new Set());
+      }
+      entities.get(key)?.add(doc.sourceId);
+    }
+
+    if (!relations.has(doc.sourceId)) {
+      relations.set(doc.sourceId, []);
+    }
+    const entryRelations = relations.get(doc.sourceId)!;
+    for (const edge of doc.edges) {
+      entryRelations.push({
+        type: edge.relationType,
+        fromEntity: edge.sourceNodeId,
+        toEntity: edge.targetNodeId,
+        weight: edge.strength === 'hard' ? 2 : 1,
+      });
+    }
+  }
+
+  return { entities, relations };
+}
+
+/**
  * Perform graph-assisted recall over eligible entries.
  *
  * This function:
@@ -270,9 +333,13 @@ function calculateRelationStrength(entryId: string, queryEntities: Set<string>):
  * - Scores candidates based on entity matches and relation strength
  * - Returns internal candidates compatible with merge/rerank pipeline
  *
+ * When config.dataSnapshot is provided, graph state is assembled from persisted
+ * graph documents in the store. Otherwise, it falls back to the module-level
+ * in-memory global graph index for backward compatibility.
+ *
  * @param queryText - The search query text
  * @param eligibleEntries - Map of entry ID to already-filtered knowledge entries
- * @param config - Optional scoring configuration
+ * @param config - Optional scoring configuration (may include dataSnapshot)
  * @returns Array of recall candidates sorted by descending graph score
  *
  * Security: This function only returns entries from the eligibleEntries map.
@@ -282,7 +349,7 @@ function calculateRelationStrength(entryId: string, queryEntities: Set<string>):
 export async function graphAssistedRecall(
   queryText: string,
   eligibleEntries: Map<string, KnowledgeRecord>,
-  config?: GraphScoringConfig,
+  config?: GraphScoringConfig | GraphAssistedRecallConfig,
 ): Promise<RecallCandidate[]> {
   // Handle empty query
   if (!queryText || queryText.trim().length === 0) {
@@ -294,6 +361,13 @@ export async function graphAssistedRecall(
     return [];
   }
 
+  // Determine graph index source: store-backed or legacy in-memory
+  const graphConfig = config as GraphAssistedRecallConfig | undefined;
+  const graphIndex =
+    graphConfig?.dataSnapshot
+      ? buildGlobalIndexFromDocuments(getGraphIndexDocuments(graphConfig.dataSnapshot))
+      : getGlobalGraphIndex();
+
   // Extract entities from query
   const queryEntities = extractQueryEntities(queryText);
 
@@ -303,7 +377,7 @@ export async function graphAssistedRecall(
   }
 
   // Expand one hop through graph relationships
-  const graphCandidateIds = expandOneHop(queryEntities);
+  const graphCandidateIds = expandOneHop(queryEntities, graphIndex);
 
   // Intersect with eligible entries (T-09-07: authorization safety)
   const candidates: RecallCandidate[] = [];
@@ -327,7 +401,7 @@ export async function graphAssistedRecall(
     }
 
     // Calculate relation strength
-    const relationStrength = calculateRelationStrength(entryId, queryEntities);
+    const relationStrength = calculateRelationStrength(entryId, queryEntities, graphIndex);
 
     // Calculate graph score
     const score = calculateGraphScore(directMatches.size, relationStrength, config);
