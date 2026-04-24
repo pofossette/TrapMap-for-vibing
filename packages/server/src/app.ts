@@ -8,6 +8,7 @@ import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
 import { JsonStore } from './lib/store.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
 import { authRoutes } from './routes/auth.js';
+import { candidateRoutes } from './routes/candidates.js';
 import { knowledgeRoutes } from './routes/knowledge.js';
 import { memberRoutes } from './routes/members.js';
 import { operationsRoutes } from './routes/operations.js';
@@ -90,6 +91,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.register(reviewRoutes);
   app.register(trapRoutes);
   app.register(knowledgeRoutes);
+  app.register(candidateRoutes);
   app.register(retrievalRoutes);
   app.register(operationsRoutes);
 
