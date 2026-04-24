@@ -535,20 +535,9 @@ export function applyManualResultResolution(args: {
   // Step 1: Revalidate
   const revalidation = revalidateManualResult(args.data, args.candidateId);
 
-  if (!revalidation.valid) {
-    return {
-      success: false,
-      error: revalidation.error,
-      candidate: undefined,
-      outcome: undefined,
-      lineage: undefined,
-    };
-  }
-
-  const candidate = revalidation.candidate!;
-
-  // Check idempotency - if already resolved, return success
-  if (candidate.status === 'resolved') {
+  // Handle idempotency - if already resolved, return success
+  if (!revalidation.valid && revalidation.error?.code === REVALIDATION_ERRORS.ALREADY_RESOLVED) {
+    const candidate = revalidation.candidate!;
     const existingLineage = getLineageByCandidate(args.data, candidate.id)[0];
     return {
       success: true,
@@ -567,6 +556,18 @@ export function applyManualResultResolution(args: {
       error: undefined,
     };
   }
+
+  if (!revalidation.valid) {
+    return {
+      success: false,
+      error: revalidation.error,
+      candidate: undefined,
+      outcome: undefined,
+      lineage: undefined,
+    };
+  }
+
+  const candidate = revalidation.candidate!;
 
   const manualResult = candidate.manualResult!;
 
