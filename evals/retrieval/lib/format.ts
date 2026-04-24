@@ -11,6 +11,7 @@ import type {
   RetrievalEvalSliceSummary,
   RetrievalEvalFailureRecord,
   RetrievalEvalWarningRecord,
+  CohortSummary,
 } from '../../../packages/contracts/src/domain/evals/report.js';
 
 // =============================================================================
@@ -297,6 +298,83 @@ export function formatSliceComparison(report: RetrievalEvalReport): string {
     }
     lines.push('');
   }
+
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Cohort Comparison Formatter (Phase 31-01: EOPS-01)
+// =============================================================================
+
+/**
+ * Format a cohort comparison table for query-type analysis.
+ *
+ * Phase 31-01: EOPS-01
+ *
+ * Outputs a comparison table showing metrics by cohort (query type + route family)
+ * with columns: Query Type, Route, Cases, Pass Rate, Avg Hit@1, Avg MRR, Governance.
+ *
+ * @param report - The canonical retrieval evaluation report
+ * @returns Human-readable cohort comparison table
+ */
+export function formatCohortComparison(report: RetrievalEvalReport): string {
+  const lines: string[] = [];
+
+  if (!report.cohorts || report.cohorts.length === 0) {
+    return 'No cohort data to compare.';
+  }
+
+  lines.push('');
+  lines.push('=== Cohort Comparison ===');
+  lines.push('');
+
+  // Table header
+  lines.push('Query Type        | Route    | Cases | Pass Rate | Avg Hit@1 | Avg MRR | Governance');
+  lines.push('------------------|----------|-------|-----------|-----------|---------|------------');
+
+  // Sort cohorts
+  const sortedCohorts = [...report.cohorts].sort((a, b) => {
+    if (a.cohort.queryType !== b.cohort.queryType) {
+      return a.cohort.queryType.localeCompare(b.cohort.queryType);
+    }
+    return a.cohort.routeFamily.localeCompare(b.cohort.routeFamily);
+  });
+
+  // Table rows
+  for (const cohort of sortedCohorts) {
+    const queryType = cohort.cohort.queryType.padEnd(16);
+    const routeFamily = cohort.cohort.routeFamily.padEnd(8);
+    const cases = String(cohort.caseCount).padStart(5);
+    const passRate = `${(cohort.passRate * 100).toFixed(1)}%`.padStart(9);
+    const hitAt1 = cohort.avgHitAt1.toFixed(3).padStart(9);
+    const mrr = cohort.avgMrr.toFixed(3).padStart(7);
+    const governance = String(cohort.governanceFailureCount).padStart(10);
+
+    lines.push(`${queryType} | ${routeFamily} | ${cases} | ${passRate} | ${hitAt1} | ${mrr} | ${governance}`);
+  }
+
+  lines.push('');
+
+  // Summary section
+  lines.push('=== Cohort Summary ===');
+  lines.push('');
+
+  // Group by query type for summary
+  const byQueryType = new Map<string, CohortSummary[]>();
+  for (const c of sortedCohorts) {
+    const existing = byQueryType.get(c.cohort.queryType) ?? [];
+    existing.push(c);
+    byQueryType.set(c.cohort.queryType, existing);
+  }
+
+  for (const [queryType, cohorts] of byQueryType) {
+    const totalCases = cohorts.reduce((sum, c) => sum + c.caseCount, 0);
+    const totalPassed = cohorts.reduce((sum, c) => sum + c.passedCount, 0);
+    const avgPassRate = totalCases > 0 ? (totalPassed / totalCases) * 100 : 0;
+    lines.push(`${queryType}: ${totalCases} cases, ${avgPassRate.toFixed(1)}% avg pass rate`);
+  }
+
+  lines.push('');
 
   return lines.join('\n');
 }
