@@ -172,3 +172,34 @@ export function canRetryCandidate(candidate: CandidateSubmission): boolean {
 export function getMaxRetries(): number {
   return MAX_RETRIES;
 }
+
+/**
+ * Find candidates that were interrupted during processing.
+ * Returns candidates in 'queued' or 'analyzing' state that need recovery.
+ */
+export function findInterruptedCandidates(data: StoreData): CandidateSubmission[] {
+  return data.candidateSubmissions.filter(c =>
+    c.status === 'queued' || c.status === 'analyzing'
+  );
+}
+
+/**
+ * Reset interrupted candidates back to 'received' for reprocessing.
+ */
+export function resetInterruptedCandidates(args: {
+  data: StoreData;
+  reason: string;
+}): CandidateSubmission[] {
+  const interrupted = findInterruptedCandidates(args.data);
+  const now = nowIso();
+
+  for (const candidate of interrupted) {
+    candidate.status = 'received';
+    candidate.queuedAt = null;
+    candidate.analyzingAt = null;
+    candidate.lastError = `Reset on startup: ${args.reason}`;
+    candidate.retryCount += 1;
+  }
+
+  return interrupted;
+}
