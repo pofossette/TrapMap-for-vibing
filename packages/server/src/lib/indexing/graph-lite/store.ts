@@ -44,7 +44,7 @@ export function removeGraphIndexDocumentsForSource(
  * Get all graph documents from the store.
  */
 export function getGraphIndexDocuments(data: StoreData): GraphIndexDocumentRecord[] {
-  return data.graphIndexDocuments;
+  return data.graphIndexDocuments ?? [];
 }
 
 /**
@@ -55,7 +55,7 @@ export function getGraphIndexDocumentsForSource(
   sourceType: 'trap' | 'skill',
   sourceId: string,
 ): GraphIndexDocumentRecord[] {
-  return data.graphIndexDocuments.filter(
+  return (data.graphIndexDocuments ?? []).filter(
     (d) => d.sourceType === sourceType && d.sourceId === sourceId,
   );
 }

@@ -5,6 +5,7 @@ import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
 import { AppError, isAppError } from './lib/errors.js';
 import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
+import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
 import { JsonStore } from './lib/store.js';
 import {
   processPendingCandidates,
@@ -137,6 +138,19 @@ export function buildServer(options: BuildServerOptions = {}) {
       }
     } catch (error) {
       app.log.error({ error }, 'Failed to check for interrupted candidates');
+    }
+  });
+
+  // Graph index reconciliation on startup (T-36-16)
+  app.addHook('onReady', async () => {
+    try {
+      const result = await reconcileGraphIndexes({ store: app.skillShareer.store });
+      app.log.info(
+        { removed: result.removed, rebuilt: result.rebuilt },
+        'Graph index reconciliation complete',
+      );
+    } catch (error) {
+      app.log.error({ error }, 'Graph index reconciliation failed');
     }
   });
 
