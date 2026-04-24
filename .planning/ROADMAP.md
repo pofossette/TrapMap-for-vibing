@@ -51,35 +51,44 @@ Plans:
 **Goal:** Introduce asynchronous ingestion boundary for new skill and trap submissions so duplicate analysis happens after upload, not inline in the request path
 **Requirements**: N/A (infrastructure)
 **Depends on:** Phase 32
-**Plans:** 6 plans
+**Plans:** 6/7 plans complete
 
 Plans:
-- [ ] 33-01 - Candidate submission types and store integration
-- [ ] 33-02 - Fingerprint computation and unified duplicate detector
-- [ ] 33-03 - Candidate store CRUD operations
-- [ ] 33-04 - Async candidate processor
-- [ ] 33-05 - Candidate API routes
-- [ ] 33-06 - Startup recovery for in-flight candidates
+- [x] 33-01 - Candidate submission types and store integration
+- [x] 33-02 - Fingerprint computation and unified duplicate detector
+- [x] 33-03 - Candidate store CRUD operations
+- [x] 33-04 - Async candidate processor
+- [x] 33-05 - Candidate API routes
+- [x] 33-06 - Startup recovery for in-flight candidates
 
 ### Phase 34: builtin duplicate-job fetch command and manual result intake
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Add client-facing CLI commands for fetching duplicate-job bundles and submitting manual resolution decisions, enabling reviewers to review duplicates offline without raw curl
+**Requirements**: N/A (operator ergonomics)
 **Depends on:** Phase 33
-**Plans:** 0 plans
+**Plans:** 5/5 plans complete
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 34 to break down)
+- [x] 34-01 - Add duplicate job bundle and manual result types to contracts
+- [x] 34-02 - Add manual result store functions
+- [x] 34-03 - Add duplicate job bundle and manual result endpoints
+- [x] 34-04 - Add CLI commands for duplicate job fetch and resolve
+- [x] 34-05 - Verification and integration testing
 
 ### Phase 35: manual result revalidation and publish merge reconciliation
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Turn a manually edited duplicate job into a validated publish action while preserving the original upload, the old published item, and the full audit trail
+**Requirements**: N/A (operator ergonomics)
 **Depends on:** Phase 34
-**Plans:** 0 plans
+**Plans:** 6/6 plans complete
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 35 to break down)
+- [x] 35-01 - Contracts and types for resolution workflow
+- [x] 35-02 - Revalidation logic for manual results
+- [x] 35-03 - Publish independent path
+- [x] 35-04 - Merge path and lineage recording
+- [x] 35-05 - Main orchestrator and API endpoint
+- [x] 35-06 - CLI integration and end-to-end testing
 
 ### Phase 36: GraphRAG-lite indexing pipeline for skill-trap graph extraction
 
