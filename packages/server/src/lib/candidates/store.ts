@@ -1,6 +1,15 @@
 import type { JsonStore, StoreData } from '../store.js';
-import type { CandidateSubmission, DuplicateCase, CandidateStatus } from '@trapmap/contracts';
+import type { CandidateSubmission, DuplicateCase, CandidateStatus, ManualResultSubmission } from '@trapmap/contracts';
 import { nowIso } from '../store.js';
+
+/**
+ * Manual result record stored on candidate.
+ * Captures reviewer decision and allows correction before Phase 35 processing.
+ */
+export interface ManualResultRecord extends ManualResultSubmission {
+  submittedAt: string;
+  submittedBy: string;
+}
 
 const MAX_RETRIES = 3;
 
@@ -202,4 +211,49 @@ export function resetInterruptedCandidates(args: {
   }
 
   return interrupted;
+}
+
+/**
+ * Attach manual result to candidate.
+ * Only candidates in 'duplicate_detected' status can receive manual results.
+ */
+export function attachManualResult(args: {
+  data: StoreData;
+  candidateId: string;
+  result: ManualResultSubmission;
+  reviewedBy: string;
+}): { candidate: CandidateSubmission; previousResult: ManualResultRecord | null } {
+  const candidate = args.data.candidateSubmissions.find(c => c.id === args.candidateId);
+
+  if (!candidate) {
+    throw new Error(`Candidate ${args.candidateId} not found`);
+  }
+
+  if (candidate.status !== 'duplicate_detected') {
+    throw new Error(`Candidate ${args.candidateId} is not in duplicate_detected status (current: ${candidate.status})`);
+  }
+
+  const previousResult = (candidate as any).manualResult ?? null;
+
+  const manualResult: ManualResultRecord = {
+    ...args.result,
+    submittedAt: nowIso(),
+    submittedBy: args.reviewedBy,
+  };
+
+  // Store on candidate (allow correction)
+  (candidate as any).manualResult = manualResult;
+
+  return { candidate, previousResult };
+}
+
+/**
+ * Get manual result from candidate.
+ */
+export function getManualResult(data: StoreData, candidateId: string): ManualResultRecord | null {
+  const candidate = data.candidateSubmissions.find(c => c.id === candidateId);
+  if (!candidate) {
+    return null;
+  }
+  return (candidate as any).manualResult ?? null;
 }
