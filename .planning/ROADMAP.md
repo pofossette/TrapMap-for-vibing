@@ -29,10 +29,10 @@ Plans:
 **Goal:** [To be planned]
 **Requirements**: TBD
 **Depends on:** Phase 30
-**Plans:** 0 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 31 to break down)
+- [x] TBD (run /gsd-plan-phase 31 to break down) (completed 2026-04-24)
 
 ### Phase 32: 拆分 skill 与 trap 为独立 CLI 命令和服务端边界，抽离共享治理逻辑
 
@@ -73,3 +73,6 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 35 to break down)
+=======
+- [x] TBD (run /gsd-plan-phase 31 to break down) (completed 2026-04-24)
+>>>>>>> 9308914 (docs(phase-31): complete phase execution)
