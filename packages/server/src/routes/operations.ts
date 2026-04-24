@@ -1,6 +1,8 @@
 import {
   activationRequestSchema,
   activationResponseSchema,
+  artifactDeactivateRequestSchema,
+  artifactDeactivateResponseSchema,
   artifactExportRequestSchema,
   artifactExportResponseSchema,
   artifactImportRequestSchema,
@@ -52,6 +54,8 @@ import {
   validateLegacyEntryMigration,
 } from '../lib/import-export.js';
 import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
+import { artifactGraphIndexAdapter } from '../lib/indexing/adapters/artifact-graph.js';
+import { runSkillIndexEvent } from '../lib/indexing/skill-events.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '../lib/knowledge.js';
 import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
@@ -1212,6 +1216,22 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       },
     });
 
+    // Trigger skill graph indexing AFTER the transaction commits (P36-02)
+    // Only refresh graph if artifact ends in approved state after edit
+    if (result.lifecycleTransition && result.artifact.lifecycleState === 'approved') {
+      await runSkillIndexEvent({
+        services: {
+          store: app.skillShareer.store,
+          data: await app.skillShareer.store.snapshot(),
+        },
+        artifactId,
+        previousState: result.lifecycleTransition.from,
+        nextState: result.lifecycleTransition.to,
+        reason: 'updated',
+        adapters: [artifactGraphIndexAdapter],
+      });
+    }
+
     return skillEditResponseSchema.parse({
       artifact: toSkillArtifact(result.artifact, data),
       previousRevision: result.previousRevision,
@@ -1482,8 +1502,126 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       metadata: { decision: body.decision, revision: result.artifact.latestRevision.revision },
     });
 
+    // Trigger skill graph indexing AFTER the transaction commits (P36-02, T-36-11)
+    if (result.previousState !== result.newState) {
+      await runSkillIndexEvent({
+        services: {
+          store: app.skillShareer.store,
+          data: await app.skillShareer.store.snapshot(),
+        },
+        artifactId,
+        previousState: result.previousState,
+        nextState: result.newState,
+        reason: `reviewer-${body.decision}`,
+        adapters: [artifactGraphIndexAdapter],
+      });
+    }
+
     return skillReviewDecisionResponseSchema.parse({
       artifact: toSkillArtifact(result.artifact, data),
+      previousState: result.previousState,
+      newState: result.newState,
+    });
+  });
+
+  // Phase 36: Artifact deactivation route (P36-02, T-36-12)
+  app.post('/v1/operations/artifacts/:artifactId/deactivate', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:update');
+
+    const artifactId = (request.params as { artifactId: string }).artifactId;
+    const body = artifactDeactivateRequestSchema.parse(
+      (request.body as Record<string, unknown>) ?? {},
+    );
+
+    // Capture transition context for post-commit indexing
+    let previousState: LifecycleState | undefined;
+    let nextState: LifecycleState | undefined;
+
+    const result = await app.skillShareer.store.transact((data) => {
+      // Ensure skillArtifacts exists
+      if (!data.skillArtifacts) {
+        data.skillArtifacts = [];
+      }
+
+      const artifact = data.skillArtifacts.find((a) => a.id === artifactId);
+      if (!artifact) {
+        throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
+      }
+
+      // Capture previous state
+      previousState = artifact.lifecycleState;
+
+      // Apply team access check
+      if (artifact.teamId) {
+        requireTeamAccess(auth, artifact.teamId);
+      }
+
+      // Apply strictly higher level check
+      requireHigherLevel(auth, artifact.requiredLevel);
+
+      const deactivatedAt = nowIso();
+
+      // Set lifecycle state
+      artifact.lifecycleState = 'deactivated';
+      nextState = 'deactivated';
+
+      // Add lifecycle event
+      artifact.lifecycleHistory.push({
+        id: app.skillShareer.store.nextId(data, 'artifact_event'),
+        type: 'deactivated',
+        createdAt: deactivatedAt,
+        actorUserId: auth.user?.id ?? null,
+        submissionId: artifact.metadata.latestSubmissionId ?? null,
+        revision: artifact.latestRevision.revision,
+        state: 'deactivated',
+        note: body.reason,
+      });
+
+      artifact.updatedAt = deactivatedAt;
+
+      // Record audit event
+      const auditEvent = createAuditEvent({
+        store: app.skillShareer.store,
+        data,
+        teamId: artifact.teamId,
+        actor: auth,
+        action: 'artifact-deactivated',
+        entityId: artifact.id,
+        payload: { reason: body.reason, previousState },
+      });
+      data.auditEvents.push(auditEvent);
+
+      return {
+        artifact: toSkillArtifact(data, artifact),
+        previousState: previousState!,
+        newState: artifact.lifecycleState,
+      };
+    });
+
+    // Trigger skill graph indexing AFTER the transaction commits (P36-02, T-36-12)
+    // Indexing must complete before response so graph state is consistent
+    if (previousState && nextState && previousState !== nextState) {
+      try {
+        await runSkillIndexEvent({
+          services: {
+            store: app.skillShareer.store,
+            data: await app.skillShareer.store.snapshot(),
+          },
+          artifactId,
+          previousState,
+          nextState,
+          reason: 'deactivated',
+          adapters: [artifactGraphIndexAdapter],
+        });
+      } catch {
+        // Indexing failure should not block deactivation response
+        // Graph state will be reconciled on next lifecycle event
+      }
+    }
+
+    return artifactDeactivateResponseSchema.parse({
+      artifact: result.artifact,
       previousState: result.previousState,
       newState: result.newState,
     });
