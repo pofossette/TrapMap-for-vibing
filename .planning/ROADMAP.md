@@ -80,7 +80,7 @@ Plans:
 **Goal:** Turn a manually edited duplicate job into a validated publish action while preserving the original upload, the old published item, and the full audit trail
 **Requirements**: N/A (operator ergonomics)
 **Depends on:** Phase 34
-**Plans:** 6/6 plans complete
+**Plans:** 7/6 plans complete
 
 Plans:
 - [x] 35-01 - Contracts and types for resolution workflow
@@ -92,13 +92,16 @@ Plans:
 
 ### Phase 36: GraphRAG-lite indexing pipeline for skill-trap graph extraction
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Add a durable, governance-safe GraphRAG-lite indexing layer that extracts trap and skill graph documents from approved content and keeps them synchronized across approval, update, deactivation, and startup repair flows
+**Requirements**: P36-01, P36-02, P36-03, P36-04
 **Depends on:** Phase 35
-**Plans:** 0 plans
+**Plans:** 4 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 36 to break down)
+- [ ] 36-01-PLAN.md - Durable graph document contracts and graphology utilities
+- [ ] 36-02-PLAN.md - Trap extraction and durable graph adapter integration
+- [ ] 36-03-PLAN.md - Skill-derived graph indexing and lifecycle hooks
+- [ ] 36-04-PLAN.md - Cross-domain reconciliation and startup graph repair
 
 ### Phase 37: GraphRAG-lite retrieval compiler for trap-first skill plans
 
