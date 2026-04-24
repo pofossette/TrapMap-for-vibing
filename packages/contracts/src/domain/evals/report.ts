@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 import { summaryEvalTierSchema, summaryEvalEndpointSchema } from './summary.js';
 import { retrievalEvalTierSchema, retrievalEvalEndpointSchema } from './retrieval.js';
-import { retrievalStrategySchema, routingReasonSchema } from '../retrieval.js';
+import { retrievalStrategySchema, routingReasonSchema, routeFamilySchema } from '../retrieval.js';
 
 // =============================================================================
 // Summary Evaluation Report Schemas
@@ -115,6 +115,54 @@ export const retrievalEvalSliceKeySchema = z.object({
 
 export type RetrievalEvalSliceKey = z.infer<typeof retrievalEvalSliceKeySchema>;
 
+// =============================================================================
+// Query-Type Cohort Schemas (Phase 31-01: EOPS-01)
+// =============================================================================
+
+/**
+ * Query type cohort classification for cross-slice analysis.
+ * Groups evaluation cases by semantic query category rather than
+ * just endpoint/mode combinations.
+ */
+export const queryTypeCohortSchema = z.enum([
+  'error-debugging',
+  'how-to',
+  'global-constraints',
+  'governance-sensitive',
+  'general',
+]);
+
+export type QueryTypeCohort = z.infer<typeof queryTypeCohortSchema>;
+
+/**
+ * Cohort key for aggregating metrics by query type and route family.
+ * Route family distinguishes between entry-based (v1) and capsule-based (v2) retrieval.
+ */
+export const cohortKeySchema = z.object({
+  queryType: queryTypeCohortSchema,
+  routeFamily: routeFamilySchema,
+});
+
+export type CohortKey = z.infer<typeof cohortKeySchema>;
+
+/**
+ * Summary metrics for a single cohort.
+ * Aggregates cases by query type and route family for cross-slice analysis.
+ */
+export const cohortSummarySchema = z.object({
+  cohort: cohortKeySchema,
+  caseCount: z.number().int().min(0),
+  passedCount: z.number().int().min(0),
+  failedCount: z.number().int().min(0),
+  passRate: z.number().min(0).max(1),
+  avgHitAt1: z.number().min(0).max(1),
+  avgMrr: z.number().min(0).max(1),
+  governanceFailureCount: z.number().int().min(0),
+  regressionStatus: z.enum(['regressed', 'stable', 'improved', 'no-baseline']).default('no-baseline'),
+});
+
+export type CohortSummary = z.infer<typeof cohortSummarySchema>;
+
 export const retrievalEvalReportMetaSchema = z.object({
   schemaVersion: z.literal(1),
   timestamp: z.string().datetime(),
@@ -217,6 +265,7 @@ export const retrievalEvalReportSchema = z.object({
     passed: z.boolean(),
   }),
   slices: z.array(retrievalEvalSliceSummarySchema),
+  cohorts: z.array(cohortSummarySchema).optional(),
   cases: z.array(retrievalEvalCaseSummarySchema),
   failures: z.array(retrievalEvalFailureRecordSchema),
   warnings: z.array(retrievalEvalWarningRecordSchema),
