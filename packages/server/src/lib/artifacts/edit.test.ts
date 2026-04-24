@@ -303,6 +303,8 @@ describe('edit helper', () => {
         auditEvents: [],
         skillArtifacts: [],
         artifactFilePayloads: [],
+        candidateSubmissions: [],
+        duplicateCases: [],
       } as StoreData;
     });
 
@@ -519,6 +521,8 @@ describe('edit helper', () => {
         auditEvents: [],
         skillArtifacts: [],
         artifactFilePayloads: [],
+        candidateSubmissions: [],
+        duplicateCases: [],
       } as StoreData;
     });
 
