@@ -18,6 +18,8 @@ import type {
   ReportBuilderInput,
   CohortSummary,
   CohortKey,
+  ModeComparison,
+  RoutingDistribution,
 } from '@trapmap/contracts';
 import { retrievalEvalReportSchema } from '@trapmap/contracts';
 import type { CaseResult, SliceMetrics, SliceKey } from './types.js';
@@ -25,6 +27,7 @@ import {
   deriveQueryType,
   deriveRouteFamily,
   getCohortKeyString,
+  getModeComparisonKey,
 } from './types.js';
 
 // =============================================================================
@@ -78,6 +81,13 @@ export function buildReport(
     return a.cohort.routeFamily.localeCompare(b.cohort.routeFamily);
   });
 
+  // Build mode comparisons (sorted by case count)
+  const modeComparisons = buildModeComparisons(caseResults);
+  modeComparisons.sort((a, b) => b.caseCount - a.caseCount);
+
+  // Build routing distribution (sorted by count)
+  const routingDistribution = buildRoutingDistribution(caseResults);
+
   // Build case summaries (sorted by case ID)
   const caseSummaries = caseResults
     .map(buildCaseSummary)
@@ -108,6 +118,8 @@ export function buildReport(
     },
     slices: sliceSummaries,
     cohorts: cohortSummaries,
+    modeComparisons,
+    routingDistribution,
     cases: caseSummaries,
     failures: failureRecords,
     warnings: warningRecords,
@@ -203,8 +215,12 @@ function buildSliceSummary(results: CaseResult[]): RetrievalEvalSliceSummary {
   // Fallback applied if any case in slice had fallback
   const fallbackApplied = results.some((r) => r.execution.fallbackApplied);
 
+  // Phase 31-02: Route family derived from endpoint
+  const routeFamily = deriveRouteFamily(results[0]!.case.endpoint);
+
   return {
     slice,
+    routeFamily,
     caseCount,
     passedCount,
     failedCount,
@@ -278,6 +294,82 @@ function buildCohortSummary(results: CaseResult[]): CohortSummary {
     governanceFailureCount,
     regressionStatus: 'no-baseline',
   };
+}
+
+// =============================================================================
+// Mode Comparison Builder (Phase 31-02: EOPS-01)
+// =============================================================================
+
+/**
+ * Build mode comparisons from case results.
+ * Groups by client mode + selected mode + routing reason combination.
+ * Phase 31-02: EOPS-01
+ */
+function buildModeComparisons(caseResults: CaseResult[]): ModeComparison[] {
+  // Group by mode combination
+  const modeMap = new Map<string, CaseResult[]>();
+
+  for (const result of caseResults) {
+    const key = getModeComparisonKey({
+      clientMode: result.case.request.mode,
+      selectedMode: result.execution.selectedMode,
+      routingReason: result.execution.routingReason,
+      fallbackApplied: result.execution.fallbackApplied,
+    });
+
+    const existing = modeMap.get(key) ?? [];
+    existing.push(result);
+    modeMap.set(key, existing);
+  }
+
+  // Build comparison for each mode combination
+  return Array.from(modeMap.values()).map(buildModeComparison);
+}
+
+/**
+ * Build a single mode comparison summary.
+ * Phase 31-02: EOPS-01
+ */
+function buildModeComparison(results: CaseResult[]): ModeComparison {
+  const firstResult = results[0]!;
+
+  const caseCount = results.length;
+  const avgHitAt1 = average(results.map((r) => r.metrics.hitAt1));
+  const avgMrr = average(results.map((r) => r.metrics.mrr));
+
+  return {
+    clientMode: firstResult.case.request.mode,
+    selectedMode: firstResult.execution.selectedMode,
+    routingReason: firstResult.execution.routingReason,
+    fallbackApplied: firstResult.execution.fallbackApplied,
+    caseCount,
+    avgHitAt1,
+    avgMrr,
+  };
+}
+
+/**
+ * Build routing reason distribution from case results.
+ * Phase 31-02: EOPS-01
+ */
+function buildRoutingDistribution(caseResults: CaseResult[]): RoutingDistribution[] {
+  const reasonCounts = new Map<string, number>();
+
+  for (const result of caseResults) {
+    const reason = result.execution.routingReason ?? 'none';
+    reasonCounts.set(reason, (reasonCounts.get(reason) ?? 0) + 1);
+  }
+
+  const total = caseResults.length;
+
+  return Array.from(reasonCounts.entries())
+    .map(([reason, count]) => ({
+      reason: reason as 'explicit-mode' | 'auto-error-detected' | 'auto-goal-query' |
+              'auto-broad-context' | 'auto-multi-channel' | 'fallback-default' | 'v2-default-capsule',
+      count,
+      percentage: total > 0 ? (count / total) * 100 : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
 }
 
 // =============================================================================
