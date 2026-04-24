@@ -163,6 +163,48 @@ export const cohortSummarySchema = z.object({
 
 export type CohortSummary = z.infer<typeof cohortSummarySchema>;
 
+// =============================================================================
+// Mode Comparison Schemas (Phase 31-02: EOPS-01)
+// =============================================================================
+
+/**
+ * Mode comparison for analyzing client-requested vs router-selected modes.
+ * Phase 31-02: EOPS-01
+ */
+export const modeComparisonSchema = z.object({
+  /** Client-requested mode (v1 only) */
+  clientMode: z.enum(['semantic', 'hybrid', 'graph-assisted']).optional(),
+  /** Router-selected internal mode */
+  selectedMode: retrievalStrategySchema.optional(),
+  /** Routing reason code */
+  routingReason: routingReasonSchema.optional(),
+  /** Whether fallback was applied */
+  fallbackApplied: z.boolean().default(false),
+  /** Count of cases with this combination */
+  caseCount: z.number().int().min(0),
+  /** Average Hit@1 for this mode combination */
+  avgHitAt1: z.number().min(0).max(1),
+  /** Average MRR for this mode combination */
+  avgMrr: z.number().min(0).max(1),
+});
+
+export type ModeComparison = z.infer<typeof modeComparisonSchema>;
+
+/**
+ * Distribution of routing reasons across all cases.
+ * Phase 31-02: EOPS-01
+ */
+export const routingDistributionSchema = z.object({
+  /** Routing reason code */
+  reason: routingReasonSchema,
+  /** Count of cases with this reason */
+  count: z.number().int().min(0),
+  /** Percentage of total cases */
+  percentage: z.number().min(0).max(100),
+});
+
+export type RoutingDistribution = z.infer<typeof routingDistributionSchema>;
+
 export const retrievalEvalReportMetaSchema = z.object({
   schemaVersion: z.literal(1),
   timestamp: z.string().datetime(),
@@ -182,6 +224,7 @@ export type RetrievalEvalReportMeta = z.infer<typeof retrievalEvalReportMetaSche
 
 export const retrievalEvalSliceSummarySchema = z.object({
   slice: retrievalEvalSliceKeySchema,
+  routeFamily: routeFamilySchema.optional(),
   caseCount: z.number().int().min(0),
   passedCount: z.number().int().min(0),
   failedCount: z.number().int().min(0),
@@ -266,6 +309,8 @@ export const retrievalEvalReportSchema = z.object({
   }),
   slices: z.array(retrievalEvalSliceSummarySchema),
   cohorts: z.array(cohortSummarySchema).optional(),
+  modeComparisons: z.array(modeComparisonSchema).optional(),
+  routingDistribution: z.array(routingDistributionSchema).optional(),
   cases: z.array(retrievalEvalCaseSummarySchema),
   failures: z.array(retrievalEvalFailureRecordSchema),
   warnings: z.array(retrievalEvalWarningRecordSchema),
