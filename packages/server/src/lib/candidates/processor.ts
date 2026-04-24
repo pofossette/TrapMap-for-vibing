@@ -232,3 +232,18 @@ export async function processPendingCandidates(
 
   return { processed, errors };
 }
+
+/**
+ * Fire-and-forget wrapper for candidate processing.
+ * Safe to call from route handlers - won't block response.
+ */
+export function scheduleCandidateProcessing(
+  candidateId: string,
+  services: CandidateProcessorServices,
+): void {
+  // Fire-and-forget with void operator
+  void processCandidateWithRetry(candidateId, services).catch((error) => {
+    // Log error but don't throw - this is fire-and-forget
+    console.error(`Candidate processing failed for ${candidateId}:`, error);
+  });
+}
