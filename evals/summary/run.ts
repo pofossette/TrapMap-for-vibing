@@ -2,6 +2,7 @@
  * Summary Evaluation Runner Entry Point
  *
  * Phase 27-02: SEVAL-01, SEVAL-02
+ * Phase 30-03: Real endpoint execution with context trace fields
  *
  * Usage:
  *   pnpm eval:summary --tier smoke
@@ -19,11 +20,15 @@ import {
   type SummaryEvalCase,
   type SummaryEvalTier,
   type SummaryEvalEndpoint,
+  type RetrievalEvalScenario,
 } from '../../packages/contracts/src/index.js';
 
 // Import tier datasets
 import { summarySmokeCases } from './smoke.js';
 import { coreCases } from './core.js';
+
+// Import summary scenarios for fixture loading
+import { summarySmokeScenariosMap } from './scenarios/smoke/summary-smoke-scenarios.js';
 
 // Import evaluation modules
 import { createJudge, fallbackJudge } from './lib/judge.js';
@@ -31,6 +36,16 @@ import { evaluateSummaryVerdicts } from './lib/assertions.js';
 import { buildSummaryReport, summarizeReport } from './lib/report.js';
 import { formatSummaryReport, formatCompactSummary, formatCaseDetail } from './lib/format.js';
 import type { RunnerOptions, SummaryCaseResult, JudgeProvider } from './lib/types.js';
+
+// Import retrieval adapters for real endpoint execution
+import {
+  createExecutionContext as createRetrievalContext,
+  closeExecutionContext,
+  seedScenarioFixtures,
+  createActorSession,
+  executeThroughRoute,
+  type ExecutionContext as RetrievalExecutionContext,
+} from '../retrieval/lib/adapters.js';
 
 // =============================================================================
 // Command Line Argument Parsing
@@ -167,32 +182,54 @@ function filterByEndpoint(
 }
 
 // =============================================================================
+// Scenario Loading
+// =============================================================================
+
+/**
+ * Load a summary scenario by scenarioId.
+ * Returns the scenario fixture definition for seeding.
+ *
+ * @param scenarioId - Scenario identifier
+ * @returns Scenario definition or undefined
+ */
+function loadSummaryScenario(scenarioId: string): RetrievalEvalScenario | undefined {
+  // Check smoke scenarios
+  const smokeScenario = summarySmokeScenariosMap[scenarioId];
+  if (smokeScenario) return smokeScenario;
+
+  // Core scenarios not yet defined
+  return undefined;
+}
+
+// =============================================================================
 // Case Execution
 // =============================================================================
 
 /**
  * Execution context for summary evaluation.
+ * Wraps the retrieval execution context.
  */
 interface ExecutionContext {
   options: RunOptions;
+  retrievalCtx: RetrievalExecutionContext | null;
 }
 
 /**
  * Create an execution context.
  */
 function createExecutionContext(options: RunOptions): ExecutionContext {
-  return { options };
+  return { options, retrievalCtx: null };
 }
 
 /**
  * Execute a single summary evaluation case.
  *
- * For now, this uses mock data since we don't have actual endpoint execution.
- * The runner structure is in place for future integration.
+ * Executes against real endpoint with seeded fixtures, extracts summary and
+ * context from response, then runs judge evaluation.
  *
  * @param ctx - Execution context
  * @param case_ - Case to execute
- * @returns Case result
+ * @returns Case result with trace fields
  */
 export async function executeSummaryCase(
   ctx: ExecutionContext,
@@ -201,80 +238,120 @@ export async function executeSummaryCase(
   const startTime = Date.now();
   const warnings: Array<{ code: string; message: string }> = [];
 
-  // For Phase 27-02, we use mock summary execution.
-  // In a full implementation, this would:
-  // 1. Execute the retrieval request against the endpoint
-  // 2. Extract the summary from the response
-  // 3. Build context from returned hits/capsules content
+  // Create retrieval execution context
+  const retrievalCtx = await createRetrievalContext();
 
-  // Generate a mock summary for testing
-  const mockSummary = generateMockSummary(case_);
-  const mockContext = generateMockContext(case_);
+  try {
+    // Load scenario for fixture seeding
+    const scenario = loadSummaryScenario(case_.scenarioId);
 
-  // Run judge evaluation
-  const judge = createJudge({ provider: ctx.options.provider });
-  const judgeResult = judge.evaluate(
-    mockSummary,
-    mockContext,
-    {
-      requiredFacts: case_.expected.requiredFacts,
-      forbiddenClaims: case_.expected.forbiddenClaims,
-    },
-  );
+    if (!scenario) {
+      warnings.push({
+        code: 'scenario-not-found',
+        message: `Scenario not found: ${case_.scenarioId}`,
+      });
 
-  // Evaluate verdicts
-  const { verdicts, passed } = evaluateSummaryVerdicts({
-    case_,
-    judgeResult,
-  });
+      // Return early with empty result
+      const judgeResult = fallbackJudge({
+        summaryText: '',
+        context: [],
+        requiredFacts: case_.expected.requiredFacts,
+        forbiddenClaims: case_.expected.forbiddenClaims,
+      });
 
-  const durationMs = Date.now() - startTime;
+      return {
+        case: case_,
+        judgeResult,
+        passed: false,
+        durationMs: Date.now() - startTime,
+        warnings,
+        rawResponse: null,
+        contextTrace: [],
+        summaryText: null,
+      };
+    }
 
-  if (ctx.options.verbose > 0) {
-    console.log(`  ${case_.caseId}: ${passed ? 'PASS' : 'FAIL'} (G=${judgeResult.groundednessScore.toFixed(2)}, C=${judgeResult.coverageScore.toFixed(2)})`);
+    // Build a RetrievalEvalCase-compatible object for fixture seeding
+    const retrievalCase = {
+      scenarioId: case_.scenarioId,
+      endpoint: case_.endpoint,
+      request: case_.request,
+    };
+
+    // Seed fixtures for this scenario
+    await seedScenarioFixtures(retrievalCtx, retrievalCase as any);
+
+    // Set actor session with scenario permissions
+    await createActorSession(retrievalCtx, scenario.actor);
+
+    // Execute retrieval through the route
+    const adapterResult = await executeThroughRoute(retrievalCtx, retrievalCase as any);
+
+    // Extract raw response for trace
+    const rawResponse = adapterResult.result.rawResponse;
+
+    // Extract summary text from response
+    const rawResp = rawResponse as Record<string, any>;
+    const summaryText: string | null = rawResp?.summary?.text ?? null;
+
+    // Build context array based on endpoint type
+    let contextTrace: string[] = [];
+
+    if (case_.endpoint === '/v1/retrieval/search') {
+      // v1: Extract from globalConstraints and projectKnowledge
+      const globalConstraints = rawResp?.globalConstraints ?? [];
+      const projectKnowledge = rawResp?.projectKnowledge ?? [];
+
+      contextTrace = [
+        ...globalConstraints.map((e: any) => e?.detail ?? '').filter(Boolean),
+        ...projectKnowledge.map((e: any) => e?.detail ?? '').filter(Boolean),
+      ];
+    } else {
+      // v2: Extract from capsules
+      const capsules = rawResp?.capsules ?? [];
+
+      contextTrace = capsules
+        .map((c: any) => `${c?.content ?? ''} ${c?.problem ?? ''} ${c?.goal ?? ''}`.trim())
+        .filter(Boolean);
+    }
+
+    // Run judge evaluation with real summary and context
+    const judge = createJudge({ provider: ctx.options.provider });
+    const judgeResult = judge.evaluate(
+      summaryText ?? '',
+      contextTrace,
+      {
+        requiredFacts: case_.expected.requiredFacts,
+        forbiddenClaims: case_.expected.forbiddenClaims,
+      },
+    );
+
+    // Evaluate verdicts
+    const { verdicts, passed } = evaluateSummaryVerdicts({
+      case_,
+      judgeResult,
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    if (ctx.options.verbose > 0) {
+      console.log(`  ${case_.caseId}: ${passed ? 'PASS' : 'FAIL'} (G=${judgeResult.groundednessScore.toFixed(2)}, C=${judgeResult.coverageScore.toFixed(2)})`);
+    }
+
+    return {
+      case: case_,
+      judgeResult,
+      passed,
+      durationMs,
+      warnings,
+      rawResponse,
+      contextTrace,
+      summaryText,
+    };
+  } finally {
+    // Always close the retrieval context
+    await closeExecutionContext(retrievalCtx);
   }
-
-  return {
-    case: case_,
-    judgeResult,
-    passed,
-    durationMs,
-    warnings,
-  };
-}
-
-/**
- * Generate mock summary for testing.
- * In production, this would come from the actual endpoint response.
- */
-function generateMockSummary(case_: SummaryEvalCase): string {
-  // Include some required facts to simulate a reasonable summary
-  const parts: string[] = [];
-
-  if (case_.expected.requiredFacts.length > 0) {
-    // Include first required fact to simulate partial coverage
-    parts.push(case_.expected.requiredFacts[0]!);
-  }
-
-  // Add placeholder content
-  parts.push('This is a summary of the retrieved knowledge.');
-
-  return parts.join(' ');
-}
-
-/**
- * Generate mock context for testing.
- * In production, this would come from the retrieved hits/capsules.
- */
-function generateMockContext(case_: SummaryEvalCase): string[] {
-  // Generate mock context that includes required facts
-  const context: string[] = [];
-
-  for (const fact of case_.expected.requiredFacts) {
-    context.push(`Knowledge entry: ${fact}. This is relevant information.`);
-  }
-
-  return context;
 }
 
 // =============================================================================
