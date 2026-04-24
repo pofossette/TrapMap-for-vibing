@@ -1,4 +1,5 @@
 import type {
+  ApplyResolutionResponse,
   DuplicateJobBundleResponse,
   ManualResultResponse,
   SkillEditResponse,
@@ -8,6 +9,7 @@ import type {
   SkillReviewQueueResponse,
 } from '@trapmap/contracts';
 import {
+  applyResolutionResponseSchema,
   DuplicateJobBundleResponseSchema,
   manualResultResponseSchema,
   skillEditResponseSchema,
@@ -188,6 +190,30 @@ function formatManualResultResponse(response: ManualResultResponse): string {
     'To fetch this job again:',
     `  trapmap skill duplicate-job fetch ${response.candidateId}`,
   ];
+  return lines.join('\n');
+}
+
+/**
+ * Format apply-resolution response for text output (Phase 35).
+ */
+function formatApplyResolutionResponse(response: ApplyResolutionResponse): string {
+  const lines = [
+    `✅ Resolution applied successfully`,
+    `   Candidate: ${response.candidateId}`,
+    `   Status: ${response.status}`,
+    `   Decision: ${response.outcome.decision}`,
+  ];
+
+  if (response.outcome.decision === 'independent') {
+    lines.push(`   Published as: ${response.outcome.entityType} (${response.outcome.publishedEntityId})`);
+  } else {
+    lines.push(`   Merged into: ${response.outcome.entityType} (${response.outcome.mergedIntoEntityId})`);
+  }
+
+  if (response.lineage) {
+    lines.push(`   Lineage ID: ${response.lineage.id}`);
+  }
+
   return lines.join('\n');
 }
 
@@ -546,5 +572,24 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
           printResult(parsed, flags, formatManualResultResponse);
         },
       );
+
+    duplicateJob
+      .command('apply-resolution')
+      .description('Apply the stored manual resolution to publish or merge a candidate')
+      .argument('<candidateId>', 'Candidate ID to apply resolution for')
+      .option('--json', 'Output raw JSON')
+      .action(async (candidateId: string, flags: { json?: boolean }) => {
+        const state = await loadCliState();
+        requireSessionToken(state);
+
+        const response = await apiRequest<ApplyResolutionResponse>(state, {
+          method: 'POST',
+          path: `/v1/candidates/${candidateId}/apply-resolution`,
+        });
+
+        const parsed = applyResolutionResponseSchema.parse(response.data);
+
+        printResult(parsed, flags, formatApplyResolutionResponse);
+      });
   }
 }
