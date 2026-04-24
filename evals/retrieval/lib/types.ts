@@ -15,6 +15,8 @@ import type {
   QueryTypeCohort,
   CohortKey,
   CohortSummary,
+  ModeComparison,
+  RoutingDistribution,
 } from '@trapmap/contracts';
 
 // =============================================================================
@@ -244,6 +246,27 @@ export function deriveRouteFamily(endpoint: string): 'entry' | 'capsule' {
  */
 export function getCohortKeyString(key: CohortKey): string {
   return `${key.queryType}:${key.routeFamily}`;
+}
+
+// =============================================================================
+// Mode Comparison Types (Phase 31-02: EOPS-01)
+// =============================================================================
+
+/**
+ * Get a stable string key for mode comparison grouping.
+ * Phase 31-02: EOPS-01
+ */
+export function getModeComparisonKey(params: {
+  clientMode?: 'semantic' | 'hybrid' | 'graph-assisted';
+  selectedMode?: string;
+  routingReason?: string;
+  fallbackApplied: boolean;
+}): string {
+  const client = params.clientMode ?? 'none';
+  const selected = params.selectedMode ?? 'none';
+  const reason = params.routingReason ?? 'none';
+  const fallback = params.fallbackApplied ? 'fallback' : 'normal';
+  return `${client}:${selected}:${reason}:${fallback}`;
 }
 
 // =============================================================================
