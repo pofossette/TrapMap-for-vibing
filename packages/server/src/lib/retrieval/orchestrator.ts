@@ -46,7 +46,7 @@ import {
   getEntryEmbedding as semanticGetEntryEmbedding,
 } from './recall/semantic.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
-import { buildSummary } from './summary.js';
+import { buildCapsuleCitations, buildCapsuleSummary, buildSummary } from './summary.js';
 import type { MergedCandidate, RetrievalDecision, RetrievalPipelineContext, RoutingChannel, ScoredEntry } from './types.js';
 
 /**
@@ -815,7 +815,7 @@ export async function searchKnowledgeV2(
         resultCount: 0,
         metadata: {
           maxResults: parsed.maxResults,
-          includeSummary: false,
+          includeSummary: parsed.includeSummary ?? false,
           includeRefinement: false,
           routingTrace: {
             selectedMode: routingDecision.selectedMode,
@@ -852,7 +852,18 @@ export async function searchKnowledgeV2(
     // Per T-15-01: Activation hints are metadata-only without file bodies
     const activationHints = buildAllActivationHints(capsules, artifacts);
 
-    const result = buildV2RetrievalResponse(capsules, profileHints, null, activationHints);
+    // Build v2 summary if requested and capsules exist (T-30-02-01)
+    // Per T-30-02-02: Citations derived from already-governed CapsuleMatch records
+    const v2Summary = parsed.includeSummary && capsules.length > 0
+      ? buildCapsuleSummary({
+          query: parsed.seed,
+          includeSummary: true,
+          capsules,
+          citations: buildCapsuleCitations(capsules),
+        })
+      : null;
+
+    const result = buildV2RetrievalResponse(capsules, profileHints, v2Summary, activationHints);
 
     // Log RAG retrieval (fire-and-forget) with routing trace
     void logRagRetrieval(services.config.ragLog, {
@@ -867,7 +878,7 @@ export async function searchKnowledgeV2(
       resultCount: capsules.length,
       metadata: {
         maxResults: parsed.maxResults,
-        includeSummary: false,
+        includeSummary: parsed.includeSummary ?? false,
         includeRefinement: false,
         routingTrace: {
           selectedMode: routingDecision.selectedMode,
@@ -894,7 +905,7 @@ export async function searchKnowledgeV2(
       resultCount: 0,
       metadata: {
         maxResults: query.maxResults ?? 10,
-        includeSummary: false,
+        includeSummary: query.includeSummary ?? false,
         includeRefinement: false,
         routingTrace: {
           selectedMode: failRouting.selectedMode,

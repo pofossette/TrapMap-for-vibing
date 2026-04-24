@@ -213,6 +213,37 @@ export function buildCapsuleSummary(options: {
 }
 
 /**
+ * Build citations from capsule matches.
+ *
+ * Converts CapsuleMatch[] to RetrievalCitation[] for use in v2 summary generation.
+ * Per T-30-02-02: Citations are derived from already-governed CapsuleMatch records
+ * to preserve filtering guarantees.
+ *
+ * @param capsules - The filtered capsule matches to cite
+ * @returns Array of RetrievalCitation objects
+ */
+export function buildCapsuleCitations(capsules: CapsuleMatch[]): RetrievalCitation[] {
+  return capsules.map((capsule) => ({
+    source: {
+      entryId: capsule.capsuleId,
+      scope: capsule.scope,
+      shortcut: capsule.situation, // Closest analog to shortcut for capsules
+    },
+    snippet: capsule.content,
+    tags: capsule.labels,
+    // Use 'semantic' as safe fallback since capsule channel may not be in enum
+    recallChannels: ['semantic'] as ['semantic'],
+    scores: {
+      semantic: null,
+      keyword: null,
+      graph: null,
+      preRerank: capsule.score ?? 0,
+      final: capsule.score ?? 0,
+    },
+  }));
+}
+
+/**
  * Generate an extractive summary from capsule hits.
  *
  * This is a deterministic baseline implementation that:
