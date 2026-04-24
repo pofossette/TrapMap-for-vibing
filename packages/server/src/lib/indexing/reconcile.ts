@@ -1,0 +1,330 @@
+/**
+ * Cross-domain graph reconciliation and stale-state cleanup.
+ *
+ * This module provides:
+ * - reconcileGraphIndexes: Repair drift between approved content and persisted graph state
+ * - reconcileGraphIndexesFromSnapshot: Same operation with explicit data snapshot
+ *
+ * Security note: Stale graph documents for deactivated or rejected entities are
+ * treated as security-sensitive removals, not warnings. Hard dependency cycles
+ * in rebuild candidates are rejected, but removals persist.
+ *
+ * T-36-13: Remove stale graph documents (missing, deactivated, rejected, old revision)
+ * T-36-14: Rebuild missing approved trap and skill documents
+ * T-36-16: Derive allowed source set from current governance metadata
+ */
+
+import type { JsonStore, StoreData, KnowledgeRecord, SkillArtifactRecord } from '../store.js';
+import type { GraphIndexDocumentRecord } from './graph-lite/documents.js';
+import { assertNoHardDependencyCycles } from './graph-lite/graphology.js';
+import {
+  getGraphIndexDocuments,
+  removeGraphIndexDocumentsForSource,
+  upsertGraphIndexDocument,
+} from './graph-lite/store.js';
+import { buildTrapGraphDocument } from './adapters/graph-builders.js';
+import { buildSkillGraphDocument } from './skill-events.js';
+import { normalizeKnowledgeIndexDocument } from './normalize.js';
+import { extractTrapGraphEntities } from '../retrieval/graph-extract.js';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+/**
+ * Result of a graph reconciliation pass.
+ */
+export interface GraphReconcileResult {
+  /** Total graph documents processed */
+  totalDocuments: number;
+  /** Documents removed (stale/deactivated/rejected/old revision) */
+  documentsRemoved: number;
+  /** Documents rebuilt (missing approved sources) */
+  documentsRebuilt: number;
+  /** Documents unchanged */
+  documentsUnchanged: number;
+  /** Whether rebuild had validation errors */
+  rebuildHadErrors: boolean;
+  /** Error message if rebuild validation failed */
+  rebuildError: string | null;
+}
+
+/**
+ * Snapshot view of approved sources for reconciliation.
+ */
+interface ApprovedSource {
+  sourceType: 'trap' | 'skill';
+  sourceId: string;
+  revision: number;
+  teamId: string | null;
+  scope: import('@trapmap/contracts').Scope;
+  requiredLevel: number;
+  entity: KnowledgeRecord | SkillArtifactRecord;
+}
+
+// ---------------------------------------------------------------------------
+// Reconciliation helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Check if a knowledge entry is currently approved.
+ */
+function isApprovedKnowledge(entry: KnowledgeRecord): boolean {
+  return entry.lifecycleState === 'approved';
+}
+
+/**
+ * Check if a skill artifact is currently approved.
+ */
+function isApprovedSkill(artifact: SkillArtifactRecord): boolean {
+  return artifact.lifecycleState === 'approved';
+}
+
+/**
+ * Compute the set of approved sources from knowledge entries and skill artifacts.
+ */
+function computeApprovedSources(data: StoreData): ApprovedSource[] {
+  const sources: ApprovedSource[] = [];
+
+  // Add approved knowledge entries (traps)
+  for (const entry of data.knowledgeEntries) {
+    if (isApprovedKnowledge(entry)) {
+      sources.push({
+        sourceType: 'trap',
+        sourceId: entry.id,
+        revision: entry.history.length > 0 ? entry.history.length : 1,
+        teamId: entry.teamId,
+        scope: entry.scope,
+        requiredLevel: entry.requiredLevel,
+        entity: entry,
+      });
+    }
+  }
+
+  // Add approved skill artifacts
+  for (const artifact of data.skillArtifacts) {
+    if (isApprovedSkill(artifact)) {
+      sources.push({
+        sourceType: 'skill',
+        sourceId: artifact.id,
+        revision: artifact.latestRevision.revision,
+        teamId: artifact.teamId,
+        scope: artifact.scope,
+        requiredLevel: artifact.requiredLevel,
+        entity: artifact,
+      });
+    }
+  }
+
+  return sources;
+}
+
+/**
+ * Build a key for matching graph documents to approved sources.
+ */
+function sourceKey(sourceType: 'trap' | 'skill', sourceId: string): string {
+  return `${sourceType}:${sourceId}`;
+}
+
+/**
+ * Determine if a graph document is stale relative to approved sources.
+ *
+ * A document is stale if:
+ * - Its source is not in the approved set
+ * - Its source is deactivated or rejected
+ * - Its revision is not the current approved revision
+ */
+function isStaleDocument(
+  doc: GraphIndexDocumentRecord,
+  approvedSourcesByKey: Map<string, ApprovedSource>,
+): boolean {
+  const key = sourceKey(doc.sourceType, doc.sourceId);
+  const approved = approvedSourcesByKey.get(key);
+
+  // Source not in approved set (missing, deactivated, rejected)
+  if (!approved) {
+    return true;
+  }
+
+  // Revision mismatch (old revision)
+  if (doc.revision !== approved.revision) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Build a candidate graph document for a trap source.
+ */
+function buildCandidateForTrap(source: ApprovedSource): GraphIndexDocumentRecord | null {
+  const entry = source.entity as KnowledgeRecord;
+
+  // Normalize and extract graph entities
+  const normalized = normalizeKnowledgeIndexDocument(entry);
+  const extraction = extractTrapGraphEntities(normalized);
+
+  return buildTrapGraphDocument({
+    normalizedDocument: normalized,
+    nodes: extraction.nodes,
+    edges: extraction.edges,
+  });
+}
+
+/**
+ * Build a candidate graph document for a skill source.
+ */
+function buildCandidateForSkill(source: ApprovedSource): GraphIndexDocumentRecord | null {
+  const artifact = source.entity as SkillArtifactRecord;
+  return buildSkillGraphDocument(artifact);
+}
+
+// ---------------------------------------------------------------------------
+// Main reconciliation function
+// ---------------------------------------------------------------------------
+
+/**
+ * Reconcile graph indexes from an explicit data snapshot.
+ *
+ * This function:
+ * 1. Loads all persisted graph documents
+ * 2. Computes the allowed source set from approved knowledgeEntries and skillArtifacts
+ * 3. Removes stale documents (security-sensitive: missing, deactivated, rejected, old revision)
+ * 4. Builds candidates for missing approved documents
+ * 5. Validates rebuild candidates against post-removal state for hard-edge cycles
+ * 6. If validation fails, rejects rebuild upserts but keeps removals durable
+ *
+ * @param args - Store and data snapshot
+ * @returns Reconciliation result with counts and error status
+ */
+export async function reconcileGraphIndexesFromSnapshot(args: {
+  store: JsonStore;
+  data: StoreData;
+}): Promise<GraphReconcileResult> {
+  const { store, data } = args;
+
+  // Load current graph documents
+  const existingDocs = getGraphIndexDocuments(data);
+  const totalDocuments = existingDocs.length;
+
+  // Compute approved sources
+  const approvedSources = computeApprovedSources(data);
+  const approvedSourcesByKey = new Map<string, ApprovedSource>();
+  for (const source of approvedSources) {
+    approvedSourcesByKey.set(sourceKey(source.sourceType, source.sourceId), source);
+  }
+
+  // Track what documents exist by source key
+  const existingDocsByKey = new Map<string, GraphIndexDocumentRecord>();
+  for (const doc of existingDocs) {
+    existingDocsByKey.set(sourceKey(doc.sourceType, doc.sourceId), doc);
+  }
+
+  // Phase 1: Remove stale documents (security-sensitive)
+  let documentsRemoved = 0;
+  const staleSourceIds: Array<{ sourceType: 'trap' | 'skill'; sourceId: string }> = [];
+
+  for (const doc of existingDocs) {
+    if (isStaleDocument(doc, approvedSourcesByKey)) {
+      staleSourceIds.push({ sourceType: doc.sourceType, sourceId: doc.sourceId });
+      documentsRemoved++;
+    }
+  }
+
+  // Persist removals (security-sensitive, must happen before rebuild validation)
+  for (const { sourceType, sourceId } of staleSourceIds) {
+    removeGraphIndexDocumentsForSource(data, sourceType, sourceId);
+  }
+
+  // Phase 2: Build candidates for missing approved documents
+  const candidates: GraphIndexDocumentRecord[] = [];
+  let documentsUnchanged = 0;
+
+  for (const source of approvedSources) {
+    const key = sourceKey(source.sourceType, source.sourceId);
+    const existing = existingDocsByKey.get(key);
+
+    // Check if we already have a current document for this source
+    if (existing && !isStaleDocument(existing, approvedSourcesByKey)) {
+      documentsUnchanged++;
+      continue;
+    }
+
+    // Build candidate document
+    let candidate: GraphIndexDocumentRecord | null = null;
+    if (source.sourceType === 'trap') {
+      candidate = buildCandidateForTrap(source);
+    } else {
+      candidate = buildCandidateForSkill(source);
+    }
+
+    if (candidate) {
+      candidates.push(candidate);
+    }
+  }
+
+  // Phase 3: Validate rebuild candidates against post-removal state
+  let documentsRebuilt = 0;
+  let rebuildHadErrors = false;
+  let rebuildError: string | null = null;
+
+  if (candidates.length > 0) {
+    // Get post-removal durable state
+    const durableDocs = getGraphIndexDocuments(data);
+    const validationSet = [...durableDocs, ...candidates];
+
+    try {
+      assertNoHardDependencyCycles(validationSet);
+
+      // Validation passed: persist rebuild upserts
+      for (const candidate of candidates) {
+        upsertGraphIndexDocument(data, candidate);
+        documentsRebuilt++;
+      }
+    } catch (error) {
+      // Validation failed: reject rebuild upserts but keep removals
+      rebuildHadErrors = true;
+      rebuildError = error instanceof Error ? error.message : String(error);
+      // Do NOT roll back removals - they are security-sensitive
+    }
+  }
+
+  return {
+    totalDocuments,
+    documentsRemoved,
+    documentsRebuilt,
+    documentsUnchanged,
+    rebuildHadErrors,
+    rebuildError,
+  };
+}
+
+/**
+ * Reconcile graph indexes with automatic snapshot.
+ *
+ * Runs reconciliation within a transaction, ensuring atomic updates
+ * to the graph index.
+ *
+ * @param args - Store instance
+ * @returns Reconciliation result with counts and error status
+ */
+export async function reconcileGraphIndexes(args: {
+  store: JsonStore;
+}): Promise<GraphReconcileResult> {
+  const { store } = args;
+
+  let result: GraphReconcileResult = {
+    totalDocuments: 0,
+    documentsRemoved: 0,
+    documentsRebuilt: 0,
+    documentsUnchanged: 0,
+    rebuildHadErrors: false,
+    rebuildError: null,
+  };
+
+  await store.transact(async (data) => {
+    result = await reconcileGraphIndexesFromSnapshot({ store, data });
+  });
+
+  return result;
+}

@@ -472,4 +472,157 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       expect(data.skillArtifacts[0]?.id).toBe('artifact_1');
     });
   });
+
+  describe('graph document lifecycle (T-36-13)', () => {
+    it('should remove graph documents when approved entry transitions to deactivated', async () => {
+      let sessionId!: string;
+      const userId = 'user_deactivate_graph';
+      const teamId = 'team_deactivate_graph';
+      const entryId = 'knowledge_deactivate_graph';
+
+      await store.transact(async (data) => {
+        if (!data.counters) data.counters = {};
+        data.counters.user = 11;
+
+        // Create user
+        data.users.push({
+          id: userId,
+          handle: 'deactivate_user',
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create team
+        data.teams.push({
+          id: teamId,
+          name: 'Deactivate Test Team',
+          slug: 'deactivate-test-team',
+          description: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create membership with admin role
+        data.memberships.push({
+          id: 'membership_deactivate',
+          userId,
+          teamId,
+          roleTemplate: 'admin',
+          securityLevel: 10,
+          permissions: ['knowledge:review'],
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create session
+        const sessionToken = `session_deactivate_${Date.now()}`;
+        data.sessions.push({
+          id: `session_${Date.now()}`,
+          userId,
+          tokenHash: hashSecret(sessionToken),
+          activeTeamId: teamId,
+          subjectType: 'user',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        });
+        sessionId = sessionToken;
+
+        // Create an approved knowledge entry
+        const revision = {
+          revision: 1,
+          submittedAt: nowIso(),
+          submittedByUserId: userId,
+          shortcut: 'Deactivate Graph Test',
+          detail: 'Test detail for graph deactivation',
+          labels: ['test'],
+          reviewNotes: [],
+        };
+
+        data.knowledgeEntries.push({
+          id: entryId,
+          teamId: null,
+          scope: 'global',
+          labels: ['test'],
+          shortcut: 'Deactivate Graph Test',
+          detail: 'Test detail for graph deactivation',
+          requiredLevel: 0,
+          lifecycleState: 'approved',
+          ownerUserId: userId,
+          latestRevision: revision,
+          history: [revision],
+          metadata: {
+            scopeLabel: 'global-constraint',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: 'submission_deactivate_1',
+            latestSubmittedAt: nowIso(),
+            latestReviewedAt: nowIso(),
+            latestDecision: 'approve',
+          },
+          latestSubmissionId: 'submission_deactivate_1',
+          submissionHistory: [],
+          agentReview: null,
+          reviewHistory: [
+            {
+              decidedAt: nowIso(),
+              decidedByUserId: userId,
+              decision: 'approve',
+              notes: 'Initial approval',
+            },
+          ],
+          reviewNotes: [],
+          lifecycleHistory: [],
+          embeddingCache: null,
+          indexState: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Add a graph document for this entry
+        data.graphIndexDocuments.push({
+          id: 'graphdoc_deactivate',
+          sourceType: 'trap',
+          sourceId: entryId,
+          revision: 1,
+          contentHash: 'deactivate-hash',
+          teamId: null,
+          scope: 'global',
+          requiredLevel: 0,
+          nodes: [
+            { id: 'node_deactivate', kind: 'trap', label: 'Deactivate Node', evidence: 'Test' },
+          ],
+          edges: [],
+          evidence: 'Graph document for deactivation test',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+      });
+
+      // Verify graph document exists before deactivation
+      const beforeData = await store.snapshot();
+      expect(beforeData.graphIndexDocuments.find(d => d.sourceId === entryId)).toBeDefined();
+
+      // Deactivate via operations route
+      const response = await app.inject({
+        method: 'POST',
+        url: `/v1/operations/knowledge/${entryId}/deactivate`,
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+        payload: {
+          reason: 'Test deactivation for graph document removal',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      // Verify graph document was removed
+      const afterData = await store.snapshot();
+      expect(afterData.graphIndexDocuments.find(d => d.sourceId === entryId)).toBeUndefined();
+    });
+  });
 });
