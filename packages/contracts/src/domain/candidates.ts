@@ -195,6 +195,67 @@ export const CandidateSubmissionSchema = z.object({
 });
 
 // Type exports
+// Request schemas
+
+export const candidateTrapSubmissionSchema = z.object({
+  scope: scopeSchema,
+  labels: z.array(labelSchema).min(1),
+  shortcut: z.string().min(1).max(280),
+  detail: z.string().min(1).max(10000),
+  requiredLevel: securityLevelSchema.optional(),
+});
+
+export const candidateSkillSubmissionSchema = z.object({
+  // Matches artifact import bundle structure
+  files: z.array(z.object({
+    path: z.string(),
+    content: z.string(), // base64 or text
+    mediaType: z.string(),
+  })),
+  scope: scopeSchema,
+  labels: z.array(labelSchema).min(1),
+  requiredLevel: securityLevelSchema.optional(),
+});
+
+export const candidateSubmissionRequestSchema = z.discriminatedUnion('sourceType', [
+  z.object({
+    sourceType: z.literal('trap'),
+    payload: candidateTrapSubmissionSchema,
+  }),
+  z.object({
+    sourceType: z.literal('skill'),
+    payload: candidateSkillSubmissionSchema,
+  }),
+]);
+
+// Response schemas
+
+export const candidateSubmissionResponseSchema = z.object({
+  candidateId: entityIdSchema,
+  status: CandidateStatusSchema,
+  receivedAt: isoTimestampSchema,
+});
+
+export const candidateStatusResponseSchema = z.object({
+  candidate: CandidateSubmissionSchema,
+});
+
+export const candidateListResponseSchema = z.object({
+  items: z.array(CandidateSubmissionSchema),
+  total: z.number().int().min(0),
+});
+
+export const duplicateCaseListResponseSchema = z.object({
+  items: z.array(DuplicateCaseSchema),
+  total: z.number().int().min(0),
+});
+
+export const duplicateCaseResponseSchema = z.object({
+  duplicateCase: DuplicateCaseSchema,
+});
+
+// Type exports
+
 export type CandidateStatus = z.infer<typeof CandidateStatusSchema>;
 export type CandidateSource = z.infer<typeof CandidateSourceSchema>;
 export type DuplicateMatchType = z.infer<typeof DuplicateMatchTypeSchema>;
@@ -208,3 +269,11 @@ export type DuplicateOverlapDetails = z.infer<typeof DuplicateOverlapDetailsSche
 export type DuplicateMatch = z.infer<typeof DuplicateMatchSchema>;
 export type DuplicateCase = z.infer<typeof DuplicateCaseSchema>;
 export type CandidateSubmission = z.infer<typeof CandidateSubmissionSchema>;
+export type CandidateTrapSubmission = z.infer<typeof candidateTrapSubmissionSchema>;
+export type CandidateSkillSubmission = z.infer<typeof candidateSkillSubmissionSchema>;
+export type CandidateSubmissionRequest = z.infer<typeof candidateSubmissionRequestSchema>;
+export type CandidateSubmissionResponse = z.infer<typeof candidateSubmissionResponseSchema>;
+export type CandidateStatusResponse = z.infer<typeof candidateStatusResponseSchema>;
+export type CandidateListResponse = z.infer<typeof candidateListResponseSchema>;
+export type DuplicateCaseListResponse = z.infer<typeof duplicateCaseListResponseSchema>;
+export type DuplicateCaseResponse = z.infer<typeof duplicateCaseResponseSchema>;
