@@ -17,11 +17,11 @@ Plans:
 **Goal:** Turn the evaluation stack from partially wired infrastructure into a real executable regression surface by connecting scenarios, fixture seeding, live endpoint execution, and retrieval-context trace output
 **Requirements**: EOPS-01, EOPS-02, SEVAL-01, SEVAL-02
 **Depends on:** Phase 29
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
 Plans:
-- [ ] 30-01 - Scenario fixture seeding for real retrieval evaluation data
-- [ ] 30-02 - v2 summary integration in retrieval pipeline
+- [x] 30-01 - Scenario fixture seeding for real retrieval evaluation data
+- [x] 30-02 - v2 summary integration in retrieval pipeline
 - [ ] 30-03 - Real summary execution and context trace fields
 
 ### Phase 31: 模式维度基准集与 CI 回归报告增强
