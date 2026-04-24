@@ -31,3 +31,43 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 31 to break down)
+
+### Phase 32: 拆分 skill 与 trap 为独立 CLI 命令和服务端边界，抽离共享治理逻辑
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 31
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 32 to break down)
+
+### Phase 33: 异步候选入库与重复判定队列，保留原始上传快照
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 32
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 33 to break down)
+
+### Phase 34: builtin duplicate-job fetch command and manual result intake
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 33
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 34 to break down)
+
+### Phase 35: manual result revalidation and publish merge reconciliation
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 34
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 35 to break down)
