@@ -258,3 +258,34 @@ export function getManualResult(data: StoreData, candidateId: string): ManualRes
   }
   return candidate.manualResult;
 }
+
+/**
+ * Mark a candidate as resolved after applying the manual result.
+ * Sets status to 'resolved' and records the resolution timestamp.
+ */
+export function markCandidateResolved(args: {
+  data: StoreData;
+  candidateId: string;
+  resolvedBy: string;
+}): CandidateSubmission {
+  const candidate = args.data.candidateSubmissions.find(c => c.id === args.candidateId);
+
+  if (!candidate) {
+    throw new Error(`Candidate ${args.candidateId} not found`);
+  }
+
+  candidate.status = 'resolved';
+  candidate.completedAt = nowIso();
+
+  return candidate;
+}
+
+/**
+ * Get candidates that are ready for resolution application.
+ * These have duplicate_detected status and an attached manual result.
+ */
+export function getCandidatesReadyForResolution(data: StoreData): CandidateSubmission[] {
+  return data.candidateSubmissions.filter(c =>
+    c.status === 'duplicate_detected' && c.manualResult !== null
+  );
+}
