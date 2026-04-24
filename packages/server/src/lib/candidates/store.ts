@@ -41,6 +41,7 @@ export function createCandidateSubmission(args: {
     completedAt: null,
     lastError: null,
     retryCount: 0,
+    manualResult: null,
   };
 
   args.data.candidateSubmissions.push(candidate);
@@ -233,7 +234,7 @@ export function attachManualResult(args: {
     throw new Error(`Candidate ${args.candidateId} is not in duplicate_detected status (current: ${candidate.status})`);
   }
 
-  const previousResult = (candidate as any).manualResult ?? null;
+  const previousResult = candidate.manualResult;
 
   const manualResult: ManualResultRecord = {
     ...args.result,
@@ -242,7 +243,7 @@ export function attachManualResult(args: {
   };
 
   // Store on candidate (allow correction)
-  (candidate as any).manualResult = manualResult;
+  candidate.manualResult = manualResult;
 
   return { candidate, previousResult };
 }
@@ -255,5 +256,5 @@ export function getManualResult(data: StoreData, candidateId: string): ManualRes
   if (!candidate) {
     return null;
   }
-  return (candidate as any).manualResult ?? null;
+  return candidate.manualResult;
 }
