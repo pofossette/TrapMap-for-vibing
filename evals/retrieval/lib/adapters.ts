@@ -14,10 +14,17 @@ import type {
   RetrievalV2Query,
 } from '../../../packages/contracts/src/index.js';
 import { buildServer } from '../../../packages/server/src/app.js';
+import { createKnowledgeEntryRecord } from '../../../packages/server/src/lib/knowledge.js';
 import { hashSecret, nowIso } from '../../../packages/server/src/lib/store.js';
-import type { JsonStore } from '../../../packages/server/src/lib/store.js';
+import type {
+  JsonStore,
+  SkillArtifactRecord,
+  DerivedSkillCapsuleRecord,
+  KnowledgeRecord,
+} from '../../../packages/server/src/lib/store.js';
 import type { NormalizedResult, AdapterType, ExecutionMetadata, AdapterWarning } from './types.js';
 import { normalizeResponse } from './normalize.js';
+import { loadScenario } from './load.js';
 
 // =============================================================================
 // Execution Context
@@ -136,19 +143,157 @@ export async function closeExecutionContext(ctx: ExecutionContext): Promise<void
 
 /**
  * Seed fixture data for a scenario.
- * This is a simplified implementation that creates the necessary data structures.
+ * Loads the scenario by case.scenarioId and materializes knowledge entries
+ * and skill artifacts into the store with exact fixture IDs.
  */
 export async function seedScenarioFixtures(
   ctx: ExecutionContext,
   case_: RetrievalEvalCase,
 ): Promise<void> {
-  // For Phase 26-01, we use a simplified fixture seeding approach.
-  // The actual scenario fixtures would be materialized in a full implementation.
-  // For now, we rely on the in-process server with its default test configuration.
+  const scenario = loadScenario(case_.scenarioId);
+  if (!scenario) return;
 
-  // The scenario is referenced by case.scenarioId, but fixture materialization
-  // would require loading the scenario and populating the store.
-  // This is a placeholder for the full implementation.
+  const fixtureEntries = scenario.fixtures.knowledgeEntries as Array<{
+    id: string;
+    teamId: string | null;
+    scope: 'global' | 'project';
+    labels: string[];
+    shortcut: string;
+    detail: string;
+    requiredLevel: number;
+    lifecycleState: string;
+  }>;
+
+  const fixtureArtifacts = scenario.fixtures.skillArtifacts as Array<{
+    id: string;
+    teamId: string | null;
+    scope: 'global' | 'project';
+    labels: string[];
+    title: string;
+    slug: string;
+    requiredLevel: number;
+    lifecycleState: string;
+    capsules: Array<{
+      capsuleId: string;
+      content: string;
+      situation: string;
+      problem: string;
+      goal: string;
+      labels: string[];
+      scope: 'global' | 'project';
+      requiredLevel: number;
+    }>;
+  }>;
+
+  const createdAt = nowIso();
+
+  await ctx.store.transact(async (data) => {
+    // Seed knowledge entries
+    for (const entry of fixtureEntries) {
+      const preReview = {
+        status: (entry.lifecycleState === 'approved' || entry.lifecycleState === 'pending'
+          ? 'agent-pass'
+          : 'agent-rejected') as 'agent-pass' | 'agent-rejected',
+        duplicateRisk: 'low' as const,
+        correctnessRisk: 'low' as const,
+        completenessRisk: 'low' as const,
+        checkedAt: createdAt,
+        notes: [] as string[],
+        issues: [],
+        suggestions: [],
+        duplicateCandidates: [],
+      };
+
+      const record = createKnowledgeEntryRecord({
+        store: ctx.store,
+        data,
+        ownerUserId: ctx.actorId,
+        teamId: entry.teamId,
+        payload: {
+          scope: entry.scope,
+          labels: entry.labels,
+          shortcut: entry.shortcut,
+          detail: entry.detail,
+        },
+        requiredLevel: entry.requiredLevel,
+        createdAt,
+        preReview,
+      });
+
+      // Override with exact fixture ID and lifecycle state
+      record.id = entry.id;
+      record.lifecycleState = entry.lifecycleState as KnowledgeRecord['lifecycleState'];
+
+      data.knowledgeEntries.push(record);
+    }
+
+    // Seed skill artifacts
+    for (const artifact of fixtureArtifacts) {
+      const capsules: DerivedSkillCapsuleRecord[] = artifact.capsules.map((c) => ({
+        capsuleId: c.capsuleId,
+        artifactId: artifact.id,
+        revision: 1,
+        sourcePaths: [],
+        content: c.content,
+        situation: c.situation,
+        problem: c.problem,
+        goal: c.goal,
+        errorText: null,
+        labels: c.labels,
+        scope: c.scope,
+        requiredLevel: c.requiredLevel,
+      }));
+
+      const record: SkillArtifactRecord = {
+        id: artifact.id,
+        teamId: artifact.teamId,
+        scope: artifact.scope,
+        labels: artifact.labels,
+        title: artifact.title,
+        slug: artifact.slug,
+        requiredLevel: artifact.requiredLevel,
+        lifecycleState: artifact.lifecycleState as SkillArtifactRecord['lifecycleState'],
+        ownerUserId: ctx.actorId,
+        latestRevision: {
+          revision: 1,
+          sourceHash: '',
+          files: [],
+          submittedAt: createdAt,
+          submittedByUserId: ctx.actorId,
+          scriptDescriptors: [],
+          derived: {
+            profile: null,
+            capsules,
+            clientManifest: null,
+            sourceHash: '',
+            derivedAt: createdAt,
+          },
+        },
+        history: [],
+        metadata: {
+          sourceKind: 'skill-directory',
+          submissionCount: 1,
+          resubmissionCount: 0,
+          revisionCount: 1,
+          latestSubmissionId: null,
+          latestSubmittedAt: createdAt,
+          latestReviewedAt: null,
+          latestDecision: null,
+        },
+        agentReview: null,
+        reviewHistory: [],
+        reviewNotes: [],
+        lifecycleHistory: [],
+        createdAt,
+        updatedAt: createdAt,
+      };
+
+      data.skillArtifacts.push(record);
+    }
+  });
+
+  // Set up actor session with scenario permissions
+  await createActorSession(ctx, scenario.actor);
 }
 
 /**
