@@ -16,6 +16,10 @@
     "@langchain/openai": "^1.4.4",
     "@trapmap/contracts": "workspace:*",
     "fastify": "^5.6.1",
+    "graphology": "^0.26.0",
+    "graphology-dag": "^0.4.1",
+    "graphology-operators": "^1.6.1",
+    "graphology-shortest-path": "^2.1.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
