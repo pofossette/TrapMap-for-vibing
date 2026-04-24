@@ -8,6 +8,7 @@ import {
   DuplicateJobBundleResponseSchema,
   ManualResultSubmissionSchema,
   manualResultResponseSchema,
+  applyResolutionResponseSchema,
 } from '@trapmap/contracts';
 import type {
   DuplicateJobBundleResponse,
@@ -29,6 +30,9 @@ import {
   attachManualResult,
 } from '../lib/candidates/store.js';
 import { scheduleCandidateProcessing, type CandidateProcessorServices } from '../lib/candidates/processor.js';
+import { applyManualResultResolution } from '../lib/candidates/reconcile.js';
+import { createAuditEvent } from '../lib/audit.js';
+import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 import { logUserOperation } from '../lib/user-ops-log.js';
 
 function requireRealUser(userId: string | undefined): string {
@@ -369,6 +373,103 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
       reviewedAt: nowIso(),
       reviewedBy,
       nextState,
+    });
+  });
+
+  // POST /v1/candidates/:candidateId/apply-resolution - Apply manual resolution
+  app.post('/v1/candidates/:candidateId/apply-resolution', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:review');
+
+    const candidateId = (request.params as { candidateId: string }).candidateId;
+
+    // Capture context for post-commit indexing
+    let publishedEntityId: string | null = null;
+    let publishedEntityType: 'trap' | 'skill' | null = null;
+
+    const result = await app.skillShareer.store.transact((data) => {
+      const resolution = applyManualResultResolution({
+        store: app.skillShareer.store,
+        data,
+        candidateId,
+        actor: auth,
+      });
+
+      if (!resolution.success) {
+        throw new AppError(
+          resolution.error?.code === 'candidate_not_found' ? 404 : 400,
+          resolution.error?.code ?? 'resolution_failed',
+          resolution.error?.message ?? 'Resolution failed',
+        );
+      }
+
+      // Capture published entity info for indexing
+      if (resolution.outcome?.decision === 'independent' && resolution.outcome.publishedEntityId) {
+        publishedEntityId = resolution.outcome.publishedEntityId;
+        publishedEntityType = resolution.outcome.entityType;
+      }
+
+      // Record audit event
+      const auditEvent = createAuditEvent({
+        store: app.skillShareer.store,
+        data,
+        teamId: resolution.candidate?.teamId ?? null,
+        actor: auth,
+        action: resolution.outcome?.decision === 'independent'
+          ? 'duplicate-resolved-independent'
+          : 'duplicate-resolved-merged',
+        entityId: candidateId,
+        payload: {
+          decision: resolution.outcome?.decision,
+          publishedEntityId: resolution.outcome?.publishedEntityId,
+          mergedIntoEntityId: resolution.outcome?.mergedIntoEntityId,
+          notes: resolution.outcome?.notes,
+        },
+      });
+      data.auditEvents.push(auditEvent);
+
+      return resolution;
+    });
+
+    // Post-commit indexing for newly published entities
+    if (publishedEntityId && publishedEntityType === 'trap') {
+      try {
+        await runKnowledgeIndexEvent({
+          services: {
+            store: app.skillShareer.store,
+            data: await app.skillShareer.store.snapshot(),
+          },
+          entryId: publishedEntityId,
+          previousState: 'submitted',
+          nextState: 'agent-pass',
+          reason: 'duplicate-resolved-independent',
+          adapters: app.skillShareer.indexAdapters,
+        });
+      } catch (indexingError) {
+        app.log.error({ indexingError, entityId: publishedEntityId }, 'Post-commit indexing failed after resolution');
+      }
+    }
+
+    // Log user operation
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'apply-resolution',
+      targetId: candidateId,
+      teamId: auth.activeTeamId,
+      metadata: {
+        decision: result.outcome?.decision,
+        publishedEntityId: result.outcome?.publishedEntityId,
+        mergedIntoEntityId: result.outcome?.mergedIntoEntityId,
+      },
+    });
+
+    return applyResolutionResponseSchema.parse({
+      candidateId,
+      status: result.candidate!.status,
+      outcome: result.outcome,
+      lineage: result.lineage ?? null,
     });
   });
 };
