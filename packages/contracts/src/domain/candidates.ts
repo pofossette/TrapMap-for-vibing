@@ -192,6 +192,18 @@ export const CandidateSubmissionSchema = z.object({
   lastError: z.string().max(2000).nullable(),
   /** Number of retry attempts */
   retryCount: z.number().int().min(0),
+  /** Manual result from reviewer (null if no manual review yet) */
+  manualResult: z.object({
+    decision: z.enum(['independent', 'merged']),
+    notes: z.string().min(1).max(1000),
+    mergedWith: z.object({
+      entityType: z.enum(['trap', 'skill']),
+      entityId: entityIdSchema,
+      entityTitle: z.string().min(1).max(280).optional(),
+    }).optional(),
+    submittedAt: isoTimestampSchema,
+    submittedBy: entityIdSchema,
+  }).nullable(),
 });
 
 // Type exports
