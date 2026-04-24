@@ -83,7 +83,7 @@ program
       ...(visibility.allowKnowledgeInspect ? ['review-status', 'trap list', 'trap show'] : []),
       ...(visibility.allowKnowledgeSearch ? ['search', 'skill search-by-content'] : []),
       ...(visibility.allowKnowledgeReview
-        ? ['review:queue', 'review:approve', 'review:reject', 'skill review:queue', 'skill review:approve', 'skill review:reject']
+        ? ['review:queue', 'review:approve', 'review:reject', 'skill review:queue', 'skill review:approve', 'skill review:reject', 'skill duplicate-job fetch', 'skill duplicate-job resolve']
         : []),
       ...(visibility.allowKnowledgeExport ? ['list', 'export', 'skill history'] : []),
       ...(visibility.allowKnowledgeImport ? ['import'] : []),
