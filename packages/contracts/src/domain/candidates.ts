@@ -294,6 +294,54 @@ export const ManualResultSubmissionSchema = z.object({
 });
 
 /**
+ * Outcome of applying a manual resolution.
+ * Captures what action was taken and what entities were affected.
+ */
+export const ResolutionOutcomeSchema = z.object({
+  /** The candidate that was resolved */
+  candidateId: entityIdSchema,
+  /** The decision that was applied */
+  decision: ManualResultDecisionSchema,
+  /** For 'independent': ID of the newly created entity */
+  publishedEntityId: entityIdSchema.nullable(),
+  /** For 'merged': ID of the existing entity that absorbed the candidate */
+  mergedIntoEntityId: entityIdSchema.nullable(),
+  /** Type of the affected entity ('trap' or 'skill') */
+  entityType: z.enum(['trap', 'skill']).nullable(),
+  /** When the resolution was applied */
+  resolvedAt: isoTimestampSchema,
+  /** User who applied the resolution */
+  resolvedBy: entityIdSchema,
+  /** Notes from the manual result */
+  notes: z.string(),
+});
+
+/**
+ * Lineage relationship record for tracking entity provenance.
+ * Links candidates to their final published or merged outcomes.
+ */
+export const EntityLineageSchema = z.object({
+  /** Unique lineage record identifier */
+  id: entityIdSchema,
+  /** Source candidate ID */
+  candidateId: entityIdSchema,
+  /** Type of lineage relationship */
+  relationshipType: z.enum(['published_as', 'merged_into']),
+  /** Source entity type */
+  sourceType: z.enum(['candidate', 'trap', 'skill']),
+  /** Source entity ID (candidate ID or entity ID) */
+  sourceId: entityIdSchema,
+  /** Target entity type */
+  targetType: z.enum(['trap', 'skill']),
+  /** Target entity ID */
+  targetId: entityIdSchema,
+  /** When this lineage was recorded */
+  createdAt: isoTimestampSchema,
+  /** Notes explaining the relationship */
+  notes: z.string().nullable(),
+});
+
+/**
  * Response after submitting manual result.
  */
 export const manualResultResponseSchema = z.object({
@@ -388,6 +436,8 @@ export type DuplicateCaseResponse = z.infer<typeof duplicateCaseResponseSchema>;
 export type ManualResultDecision = z.infer<typeof ManualResultDecisionSchema>;
 export type MergedWithReference = z.infer<typeof MergedWithReferenceSchema>;
 export type ManualResultSubmission = z.infer<typeof ManualResultSubmissionSchema>;
+export type ResolutionOutcome = z.infer<typeof ResolutionOutcomeSchema>;
+export type EntityLineage = z.infer<typeof EntityLineageSchema>;
 export type ManualResultResponse = z.infer<typeof manualResultResponseSchema>;
 export type DuplicateJobMatchEntity = z.infer<typeof DuplicateJobMatchEntitySchema>;
 export type DuplicateJobMatchEntry = z.infer<typeof DuplicateJobMatchEntrySchema>;
