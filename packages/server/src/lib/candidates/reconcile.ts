@@ -400,3 +400,92 @@ export function publishSkillCandidate(args: {
 
   return { artifact, lineage };
 }
+
+/**
+ * Record a merge lineage relationship between candidate and existing entity.
+ * Does NOT modify the existing entity's content - only records the relationship.
+ *
+ * For more complex merge semantics (content merging), a future phase can extend this.
+ */
+export function recordMergeLineage(args: {
+  store: JsonStore;
+  data: StoreData;
+  candidate: CandidateSubmission;
+  existingEntityId: string;
+  existingEntityType: 'trap' | 'skill';
+  resolvedBy: string;
+  resolvedAt: string;
+  notes: string;
+}): { lineage: EntityLineageRecord } {
+  // Create lineage record
+  const lineage: EntityLineageRecord = {
+    id: args.store.nextId(args.data, 'lineage'),
+    candidateId: args.candidate.id,
+    relationshipType: 'merged_into',
+    sourceType: 'candidate',
+    sourceId: args.candidate.id,
+    targetType: args.existingEntityType,
+    targetId: args.existingEntityId,
+    createdAt: args.resolvedAt,
+    notes: args.notes,
+  };
+
+  args.data.entityLineage.push(lineage);
+
+  // Optionally add a review note to the existing entity (non-destructive)
+  if (args.existingEntityType === 'trap') {
+    const trap = args.data.knowledgeEntries.find(e => e.id === args.existingEntityId);
+    if (trap) {
+      trap.reviewNotes.push({
+        id: args.store.nextId(args.data, 'note'),
+        createdAt: args.resolvedAt,
+        authorType: 'system',
+        authorUserId: null,
+        message: `Duplicate candidate ${args.candidate.id} was merged into this entry. ${args.notes}`,
+      });
+      trap.updatedAt = args.resolvedAt;
+    }
+  } else if (args.existingEntityType === 'skill') {
+    const skill = args.data.skillArtifacts.find(a => a.id === args.existingEntityId);
+    if (skill) {
+      skill.reviewNotes.push({
+        id: args.store.nextId(args.data, 'note'),
+        createdAt: args.resolvedAt,
+        authorType: 'system',
+        authorUserId: null,
+        message: `Duplicate candidate ${args.candidate.id} was merged into this artifact. ${args.notes}`,
+      });
+      skill.updatedAt = args.resolvedAt;
+    }
+  }
+
+  return { lineage };
+}
+
+/**
+ * Get all lineage records for a candidate.
+ */
+export function getLineageByCandidate(data: StoreData, candidateId: string): EntityLineageRecord[] {
+  return data.entityLineage.filter(l => l.candidateId === candidateId);
+}
+
+/**
+ * Get all lineage records pointing to a specific entity.
+ * Useful for seeing what candidates were merged into an entity.
+ */
+export function getLineageByTarget(
+  data: StoreData,
+  entityId: string,
+  entityType: 'trap' | 'skill',
+): EntityLineageRecord[] {
+  return data.entityLineage.filter(
+    l => l.targetId === entityId && l.targetType === entityType
+  );
+}
+
+/**
+ * Get lineage record by ID.
+ */
+export function getLineageById(data: StoreData, lineageId: string): EntityLineageRecord | null {
+  return data.entityLineage.find(l => l.id === lineageId) ?? null;
+}
