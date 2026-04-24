@@ -153,6 +153,8 @@ export const retrievalV2QuerySchema = z.object({
   filters: retrievalFiltersSchema.default({ labels: [], scopes: [] }),
   /** Maximum number of capsules to return */
   maxResults: z.number().int().min(1).max(50).default(10),
+  /** Whether to include a summary over filtered capsule hits (backward-compatible, defaults false) */
+  includeSummary: z.boolean().default(false),
 });
 
 /**
