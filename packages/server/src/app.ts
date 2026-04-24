@@ -54,6 +54,8 @@ const documentedRoutes = [
   'GET /v1/operations/artifacts/:artifactId/history',
   'GET /v1/operations/artifacts/review-queue',
   'POST /v1/operations/artifacts/:artifactId/review',
+  'GET /v1/duplicates/:candidateId/bundle',
+  'POST /v1/candidates/:candidateId/manual-result',
 ] as const;
 
 interface BuildServerOptions {
