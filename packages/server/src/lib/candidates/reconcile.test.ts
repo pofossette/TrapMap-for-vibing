@@ -18,6 +18,10 @@ import {
   REVALIDATION_ERRORS,
   publishTrapCandidate,
   publishSkillCandidate,
+  recordMergeLineage,
+  getLineageByCandidate,
+  getLineageByTarget,
+  getLineageById,
 } from './reconcile.js';
 import type { CandidateSubmission, ManualResultSubmission } from '@trapmap/contracts';
 
@@ -734,5 +738,260 @@ describe('publishSkillCandidate', () => {
       resolvedBy: 'user_1',
       resolvedAt,
     })).toThrow('Candidate has no skill payload');
+  });
+});
+
+describe('recordMergeLineage', () => {
+  it('should create lineage with merged_into relationship', () => {
+    const { store, data } = createMockStore();
+    const candidate = createTestCandidate();
+    const trap = createTestTrap({ id: 'trap_1' });
+    data.knowledgeEntries.push(trap);
+    const resolvedAt = nowIso();
+
+    const { lineage } = recordMergeLineage({
+      store,
+      data,
+      candidate,
+      existingEntityId: 'trap_1',
+      existingEntityType: 'trap',
+      resolvedBy: 'user_1',
+      resolvedAt,
+      notes: 'Duplicate content',
+    });
+
+    expect(lineage.id).toBe('lineage_1');
+    expect(lineage.candidateId).toBe(candidate.id);
+    expect(lineage.relationshipType).toBe('merged_into');
+    expect(lineage.sourceType).toBe('candidate');
+    expect(lineage.sourceId).toBe(candidate.id);
+    expect(lineage.targetType).toBe('trap');
+    expect(lineage.targetId).toBe('trap_1');
+    expect(lineage.notes).toBe('Duplicate content');
+  });
+
+  it('should add review note to existing trap', () => {
+    const { store, data } = createMockStore();
+    const candidate = createTestCandidate();
+    const trap = createTestTrap({ id: 'trap_1', reviewNotes: [] });
+    data.knowledgeEntries.push(trap);
+    const resolvedAt = nowIso();
+
+    recordMergeLineage({
+      store,
+      data,
+      candidate,
+      existingEntityId: 'trap_1',
+      existingEntityType: 'trap',
+      resolvedBy: 'user_1',
+      resolvedAt,
+      notes: 'Duplicate content',
+    });
+
+    expect(trap.reviewNotes.length).toBe(1);
+    expect(trap.reviewNotes[0].authorType).toBe('system');
+    expect(trap.reviewNotes[0].message).toContain(candidate.id);
+    expect(trap.reviewNotes[0].message).toContain('merged into this entry');
+    expect(trap.updatedAt).toBe(resolvedAt);
+  });
+
+  it('should add review note to existing skill', () => {
+    const { store, data } = createMockStore();
+    const candidate = createTestCandidate({ sourceType: 'skill' });
+    const skill = createTestSkill({ id: 'skill_1', reviewNotes: [] });
+    data.skillArtifacts.push(skill);
+    const resolvedAt = nowIso();
+
+    recordMergeLineage({
+      store,
+      data,
+      candidate,
+      existingEntityId: 'skill_1',
+      existingEntityType: 'skill',
+      resolvedBy: 'user_1',
+      resolvedAt,
+      notes: 'Duplicate skill',
+    });
+
+    expect(skill.reviewNotes.length).toBe(1);
+    expect(skill.reviewNotes[0].authorType).toBe('system');
+    expect(skill.reviewNotes[0].message).toContain(candidate.id);
+    expect(skill.reviewNotes[0].message).toContain('merged into this artifact');
+    expect(skill.updatedAt).toBe(resolvedAt);
+  });
+
+  it('should not modify existing entity content fields', () => {
+    const { store, data } = createMockStore();
+    const candidate = createTestCandidate();
+    const originalShortcut = 'Original shortcut';
+    const originalDetail = 'Original detail';
+    const trap = createTestTrap({
+      id: 'trap_1',
+      shortcut: originalShortcut,
+      detail: originalDetail,
+      reviewNotes: [],
+    });
+    data.knowledgeEntries.push(trap);
+    const resolvedAt = nowIso();
+
+    recordMergeLineage({
+      store,
+      data,
+      candidate,
+      existingEntityId: 'trap_1',
+      existingEntityType: 'trap',
+      resolvedBy: 'user_1',
+      resolvedAt,
+      notes: 'Duplicate content',
+    });
+
+    // Content fields should remain unchanged
+    expect(trap.shortcut).toBe(originalShortcut);
+    expect(trap.detail).toBe(originalDetail);
+  });
+
+  it('should push lineage to entityLineage', () => {
+    const { store, data } = createMockStore();
+    const candidate = createTestCandidate();
+    const trap = createTestTrap({ id: 'trap_1' });
+    data.knowledgeEntries.push(trap);
+    const resolvedAt = nowIso();
+
+    const { lineage } = recordMergeLineage({
+      store,
+      data,
+      candidate,
+      existingEntityId: 'trap_1',
+      existingEntityType: 'trap',
+      resolvedBy: 'user_1',
+      resolvedAt,
+      notes: 'Duplicate content',
+    });
+
+    expect(data.entityLineage).toContain(lineage);
+    expect(data.entityLineage.length).toBe(1);
+  });
+});
+
+describe('getLineageByCandidate', () => {
+  it('should return lineage records for candidate', () => {
+    const data = createTestData({
+      entityLineage: [
+        {
+          id: 'lineage_1',
+          candidateId: 'candidate_1',
+          relationshipType: 'published_as',
+          sourceType: 'candidate',
+          sourceId: 'candidate_1',
+          targetType: 'trap',
+          targetId: 'trap_1',
+          createdAt: nowIso(),
+          notes: null,
+        },
+        {
+          id: 'lineage_2',
+          candidateId: 'candidate_2',
+          relationshipType: 'merged_into',
+          sourceType: 'candidate',
+          sourceId: 'candidate_2',
+          targetType: 'skill',
+          targetId: 'skill_1',
+          createdAt: nowIso(),
+          notes: null,
+        },
+      ],
+    });
+
+    const result = getLineageByCandidate(data, 'candidate_1');
+    expect(result.length).toBe(1);
+    expect(result[0].id).toBe('lineage_1');
+  });
+
+  it('should return empty array when no lineage found', () => {
+    const data = createTestData();
+    const result = getLineageByCandidate(data, 'candidate_nonexistent');
+    expect(result).toEqual([]);
+  });
+});
+
+describe('getLineageByTarget', () => {
+  it('should return lineage records pointing to entity', () => {
+    const data = createTestData({
+      entityLineage: [
+        {
+          id: 'lineage_1',
+          candidateId: 'candidate_1',
+          relationshipType: 'merged_into',
+          sourceType: 'candidate',
+          sourceId: 'candidate_1',
+          targetType: 'trap',
+          targetId: 'trap_1',
+          createdAt: nowIso(),
+          notes: null,
+        },
+        {
+          id: 'lineage_2',
+          candidateId: 'candidate_2',
+          relationshipType: 'merged_into',
+          sourceType: 'candidate',
+          sourceId: 'candidate_2',
+          targetType: 'trap',
+          targetId: 'trap_1',
+          createdAt: nowIso(),
+          notes: null,
+        },
+        {
+          id: 'lineage_3',
+          candidateId: 'candidate_3',
+          relationshipType: 'merged_into',
+          sourceType: 'candidate',
+          sourceId: 'candidate_3',
+          targetType: 'skill',
+          targetId: 'skill_1',
+          createdAt: nowIso(),
+          notes: null,
+        },
+      ],
+    });
+
+    const result = getLineageByTarget(data, 'trap_1', 'trap');
+    expect(result.length).toBe(2);
+    expect(result.every(l => l.targetId === 'trap_1' && l.targetType === 'trap')).toBe(true);
+  });
+
+  it('should return empty array when no lineage found', () => {
+    const data = createTestData();
+    const result = getLineageByTarget(data, 'trap_nonexistent', 'trap');
+    expect(result).toEqual([]);
+  });
+});
+
+describe('getLineageById', () => {
+  it('should return correct lineage record', () => {
+    const data = createTestData({
+      entityLineage: [
+        {
+          id: 'lineage_1',
+          candidateId: 'candidate_1',
+          relationshipType: 'published_as',
+          sourceType: 'candidate',
+          sourceId: 'candidate_1',
+          targetType: 'trap',
+          targetId: 'trap_1',
+          createdAt: nowIso(),
+          notes: null,
+        },
+      ],
+    });
+
+    const result = getLineageById(data, 'lineage_1');
+    expect(result).not.toBeNull();
+    expect(result?.id).toBe('lineage_1');
+  });
+
+  it('should return null for non-existent ID', () => {
+    const data = createTestData();
+    const result = getLineageById(data, 'lineage_nonexistent');
+    expect(result).toBeNull();
   });
 });
