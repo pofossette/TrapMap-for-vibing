@@ -12,7 +12,8 @@ import {
   computeCandidateFingerprint,
   createAnalysisSnapshot,
 } from './fingerprint.js';
-import { detectDuplicates, type DuplicateDetectionInput } from './detector.js';
+import { detectDuplicates } from './detector.js';
+import type { DuplicateDetectionInput } from './types.js';
 
 const RETRY_DELAY_MS = 5000;
 const DUPLICATE_THRESHOLD = 0.38; // Match pre-review.ts medium threshold
@@ -198,7 +199,8 @@ function buildFingerprintInput(candidate: CandidateSubmission) {
     return {
       sourceType: 'skill' as const,
       skillPayload: {
-        profile: skill.profile ?? null,
+        // Profile is null for initial skill submissions - derivation happens after approval
+        profile: null,
         files: skill.files,
       },
     };
