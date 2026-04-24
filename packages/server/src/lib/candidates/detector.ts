@@ -208,7 +208,7 @@ export async function detectDuplicates(
 
   // Determine if we have a duplicate case
   const hasMatches = matches.length > 0;
-  const highestSimilarity = hasMatches ? matches[0].similarityScore : 0;
+  const highestSimilarity = hasMatches && matches[0] ? matches[0].similarityScore : 0;
   const hasExactDuplicate = matches.some(m => m.matchType === 'exact');
 
   let duplicateType: 'exact' | 'semantic' | 'none' = 'none';
