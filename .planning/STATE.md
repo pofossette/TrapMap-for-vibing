@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Milestone complete
-last_updated: "2026-04-24T04:43:38.927Z"
+status: Executing Phase 33
+last_updated: "2026-04-24T08:56:23.996Z"
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
-  percent: 100
+  total_phases: 7
+  completed_phases: 4
+  total_plans: 19
+  completed_plans: 13
+  percent: 68
 ---
 
 ## Accumulated Context
@@ -23,3 +23,11 @@ progress:
 - Phase 33 added: 异步候选入库与重复判定队列，保留原始上传快照
 - Phase 34 added: builtin duplicate-job fetch command and manual result intake
 - Phase 35 added: manual result revalidation and publish merge reconciliation
+- Phase 36 added: GraphRAG-lite indexing pipeline for skill-trap graph extraction
+- Phase 37 added: GraphRAG-lite retrieval compiler for trap-first skill plans
+- Phase 38 added: GraphRAG-lite routing fallback and evaluation coverage
+- Phase 39 added: GraphRAG-lite unified graph schema for skill and trap outputs
+- Phase 40 added: Replace manual frontmatter and MIME parsing with library-backed utilities
+- Phase 41 added: Introduce graphology and parsing libraries to replace hand-rolled implementations
+- Phase 42 added: Replace hand-rolled graph operations with graphology-based GraphRAG runtime
+- Phase 43 added: Migrate store and indexing persistence to database-backed libraries

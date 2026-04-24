@@ -1,5 +1,4 @@
 
-
 ### Phase 29: 统一多模式检索策略层与路由
 
 **Goal:** Unify v1/v2 retrieval behind a shared deterministic routing layer with governance-first mode selection, stable routing traces, and baseline/failure-policy support for future regressions
@@ -36,23 +35,31 @@ Plans:
 
 ### Phase 32: 拆分 skill 与 trap 为独立 CLI 命令和服务端边界，抽离共享治理逻辑
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Split skill and trap into independent CLI commands and server-side boundaries, extracting shared governance logic into a reusable module
+**Requirements**: N/A (architectural refactoring)
 **Depends on:** Phase 31
-**Plans:** 0 plans
+**Plans:** 4/4 plans complete
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 32 to break down)
+- [x] 32-01 - Create shared governance module (eligibility types and functions)
+- [x] 32-02 - Refactor existing code to use shared governance module
+- [x] 32-03 - Create trap CLI command group
+- [x] 32-04 - Create trap server route boundary
 
 ### Phase 33: 异步候选入库与重复判定队列，保留原始上传快照
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Introduce asynchronous ingestion boundary for new skill and trap submissions so duplicate analysis happens after upload, not inline in the request path
+**Requirements**: N/A (infrastructure)
 **Depends on:** Phase 32
-**Plans:** 0 plans
+**Plans:** 6 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 33 to break down)
+- [ ] 33-01 - Candidate submission types and store integration
+- [ ] 33-02 - Fingerprint computation and unified duplicate detector
+- [ ] 33-03 - Candidate store CRUD operations
+- [ ] 33-04 - Async candidate processor
+- [ ] 33-05 - Candidate API routes
+- [ ] 33-06 - Startup recovery for in-flight candidates
 
 ### Phase 34: builtin duplicate-job fetch command and manual result intake
 
@@ -73,6 +80,83 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 35 to break down)
-=======
-- [x] TBD (run /gsd-plan-phase 31 to break down) (completed 2026-04-24)
->>>>>>> 9308914 (docs(phase-31): complete phase execution)
+
+### Phase 36: GraphRAG-lite indexing pipeline for skill-trap graph extraction
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 35
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 36 to break down)
+
+### Phase 37: GraphRAG-lite retrieval compiler for trap-first skill plans
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 36
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 37 to break down)
+
+### Phase 38: GraphRAG-lite routing fallback and evaluation coverage
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 37
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 38 to break down)
+
+### Phase 39: GraphRAG-lite unified graph schema for skill and trap outputs
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 38
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 39 to break down)
+
+### Phase 40: Replace manual frontmatter and MIME parsing with library-backed utilities
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 39
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 40 to break down)
+
+### Phase 41: Introduce graphology and parsing libraries to replace hand-rolled implementations
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 40
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 41 to break down)
+
+### Phase 42: Replace hand-rolled graph operations with graphology-based GraphRAG runtime
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 41
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 42 to break down)
+
+### Phase 43: Migrate store and indexing persistence to database-backed libraries
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 42
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 43 to break down)
