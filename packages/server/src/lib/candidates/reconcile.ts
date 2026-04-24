@@ -1,7 +1,9 @@
-import type { CandidateSubmission, ManualResultSubmission } from '@trapmap/contracts';
+import type { CandidateSubmission, ManualResultSubmission, ResolutionOutcome } from '@trapmap/contracts';
 import type { StoreData, KnowledgeRecord, SkillArtifactRecord, EntityLineageRecord } from '../store.js';
 import type { JsonStore } from '../store.js';
-import { getCandidateById } from './store.js';
+import type { ResolvedAuthContext } from '../context.js';
+import { nowIso } from '../store.js';
+import { getCandidateById, markCandidateResolved } from './store.js';
 
 /**
  * Validation result for a manual result before resolution.
@@ -481,6 +483,178 @@ export function getLineageByTarget(
   return data.entityLineage.filter(
     l => l.targetId === entityId && l.targetType === entityType
   );
+}
+
+/**
+ * Result of applying a manual resolution.
+ */
+export interface ApplyResolutionResult {
+  success: boolean;
+  candidate: CandidateSubmission | undefined;
+  outcome: ResolutionOutcome | undefined;
+  lineage: EntityLineageRecord | undefined;
+  error: {
+    code: string;
+    message: string;
+  } | undefined;
+}
+
+/**
+ * Main orchestrator for applying a manual resolution.
+ *
+ * Steps:
+ * 1. Revalidate the manual result
+ * 2. If 'independent': publish as new entity
+ * 3. If 'merged': record lineage to existing entity
+ * 4. Mark candidate as resolved
+ *
+ * Idempotent: if already resolved with same decision, returns success without re-processing.
+ */
+export function applyManualResultResolution(args: {
+  store: JsonStore;
+  data: StoreData;
+  candidateId: string;
+  actor: ResolvedAuthContext;
+}): ApplyResolutionResult {
+  const resolvedAt = nowIso();
+  const resolvedBy = args.actor.user?.id;
+
+  if (!resolvedBy) {
+    return {
+      success: false,
+      error: {
+        code: 'user_required',
+        message: 'Resolution requires a real user account',
+      },
+      candidate: undefined,
+      outcome: undefined,
+      lineage: undefined,
+    };
+  }
+
+  // Step 1: Revalidate
+  const revalidation = revalidateManualResult(args.data, args.candidateId);
+
+  if (!revalidation.valid) {
+    return {
+      success: false,
+      error: revalidation.error,
+      candidate: undefined,
+      outcome: undefined,
+      lineage: undefined,
+    };
+  }
+
+  const candidate = revalidation.candidate!;
+
+  // Check idempotency - if already resolved, return success
+  if (candidate.status === 'resolved') {
+    const existingLineage = getLineageByCandidate(args.data, candidate.id)[0];
+    return {
+      success: true,
+      candidate,
+      outcome: {
+        candidateId: candidate.id,
+        decision: candidate.manualResult!.decision,
+        publishedEntityId: existingLineage?.relationshipType === 'published_as' ? existingLineage.targetId : null,
+        mergedIntoEntityId: existingLineage?.relationshipType === 'merged_into' ? existingLineage.targetId : null,
+        entityType: existingLineage?.targetType ?? null,
+        resolvedAt: candidate.manualResult!.submittedAt,
+        resolvedBy: candidate.manualResult!.submittedBy,
+        notes: candidate.manualResult!.notes,
+      },
+      lineage: existingLineage,
+      error: undefined,
+    };
+  }
+
+  const manualResult = candidate.manualResult!;
+
+  // Step 2 & 3: Apply decision
+  let outcome: ResolutionOutcome;
+  let lineage: EntityLineageRecord;
+
+  if (manualResult.decision === 'independent') {
+    // Publish as new entity
+    if (candidate.sourceType === 'trap') {
+      const result = publishTrapCandidate({
+        store: args.store,
+        data: args.data,
+        candidate,
+        resolvedBy,
+        resolvedAt,
+      });
+      lineage = result.lineage;
+      outcome = {
+        candidateId: candidate.id,
+        decision: 'independent',
+        publishedEntityId: result.entry.id,
+        mergedIntoEntityId: null,
+        entityType: 'trap',
+        resolvedAt,
+        resolvedBy,
+        notes: manualResult.notes,
+      };
+    } else {
+      const result = publishSkillCandidate({
+        store: args.store,
+        data: args.data,
+        candidate,
+        resolvedBy,
+        resolvedAt,
+      });
+      lineage = result.lineage;
+      outcome = {
+        candidateId: candidate.id,
+        decision: 'independent',
+        publishedEntityId: result.artifact.id,
+        mergedIntoEntityId: null,
+        entityType: 'skill',
+        resolvedAt,
+        resolvedBy,
+        notes: manualResult.notes,
+      };
+    }
+  } else {
+    // Merged decision
+    const mergedWith = manualResult.mergedWith!;
+    const result = recordMergeLineage({
+      store: args.store,
+      data: args.data,
+      candidate,
+      existingEntityId: mergedWith.entityId,
+      existingEntityType: mergedWith.entityType,
+      resolvedBy,
+      resolvedAt,
+      notes: manualResult.notes,
+    });
+    lineage = result.lineage;
+    outcome = {
+      candidateId: candidate.id,
+      decision: 'merged',
+      publishedEntityId: null,
+      mergedIntoEntityId: mergedWith.entityId,
+      entityType: mergedWith.entityType,
+      resolvedAt,
+      resolvedBy,
+      notes: manualResult.notes,
+    };
+  }
+
+  // Step 4: Mark candidate as resolved
+  markCandidateResolved({
+    data: args.data,
+    candidateId: candidate.id,
+    resolvedBy,
+  });
+
+  return {
+    success: true,
+    candidate,
+    outcome,
+    lineage,
+    error: undefined,
+  };
 }
 
 /**
