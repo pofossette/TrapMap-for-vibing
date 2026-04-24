@@ -9,6 +9,7 @@ import { registerRetrievalCommands } from './commands/retrieval.js';
 import { registerReviewCommands } from './commands/review.js';
 import { registerSkillCommands } from './commands/skill.js';
 import { registerTeamCommands } from './commands/team.js';
+import { registerTrapCommands } from './commands/trap.js';
 import { loadCliState } from './lib/config.js';
 import { printError } from './lib/output.js';
 
@@ -78,8 +79,8 @@ program
       ...(visibility.allowMemberCreate ? ['member create'] : []),
       ...(visibility.allowMemberUpdate ? ['member update'] : []),
       ...(visibility.allowAccessKeyCreate ? ['access-key:create'] : []),
-      ...(visibility.allowKnowledgeSubmit ? ['submit', 'resubmit', 'skill edit'] : []),
-      ...(visibility.allowKnowledgeInspect ? ['review-status'] : []),
+      ...(visibility.allowKnowledgeSubmit ? ['submit', 'resubmit', 'skill edit', 'trap submit', 'trap resubmit'] : []),
+      ...(visibility.allowKnowledgeInspect ? ['review-status', 'trap list', 'trap show'] : []),
       ...(visibility.allowKnowledgeSearch ? ['search', 'skill search-by-content'] : []),
       ...(visibility.allowKnowledgeReview
         ? ['review:queue', 'review:approve', 'review:reject', 'skill review:queue', 'skill review:approve', 'skill review:reject']
@@ -106,6 +107,10 @@ registerMemberCommands(program, {
   allowMemberUpdate: visibility.allowMemberUpdate,
 });
 registerKnowledgeCommands(program, {
+  allowInspect: visibility.allowKnowledgeInspect,
+  allowSubmit: visibility.allowKnowledgeSubmit,
+});
+registerTrapCommands(program, {
   allowInspect: visibility.allowKnowledgeInspect,
   allowSubmit: visibility.allowKnowledgeSubmit,
 });
