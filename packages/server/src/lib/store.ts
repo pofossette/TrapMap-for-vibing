@@ -554,6 +554,27 @@ export interface CandidateSubmissionRecord extends CandidateSubmission {}
 
 export interface DuplicateCaseRecord extends DuplicateCase {}
 
+export interface EntityLineageRecord {
+  /** Unique lineage record identifier */
+  id: string;
+  /** Source candidate ID */
+  candidateId: string;
+  /** Type of lineage relationship */
+  relationshipType: 'published_as' | 'merged_into';
+  /** Source entity type */
+  sourceType: 'candidate' | 'trap' | 'skill';
+  /** Source entity ID (candidate ID or entity ID) */
+  sourceId: string;
+  /** Target entity type */
+  targetType: 'trap' | 'skill';
+  /** Target entity ID */
+  targetId: string;
+  /** When this lineage was recorded */
+  createdAt: string;
+  /** Notes explaining the relationship */
+  notes: string | null;
+}
+
 export interface StoreData {
   counters: Record<string, number>;
   users: UserRecord[];
@@ -571,6 +592,8 @@ export interface StoreData {
   candidateSubmissions: CandidateSubmissionRecord[];
   /** Detected duplicate cases for manual review */
   duplicateCases: DuplicateCaseRecord[];
+  /** Entity lineage records for tracking provenance */
+  entityLineage: EntityLineageRecord[];
 }
 
 const EMPTY_STORE: StoreData = {
@@ -586,6 +609,7 @@ const EMPTY_STORE: StoreData = {
   artifactFilePayloads: [],
   candidateSubmissions: [],
   duplicateCases: [],
+  entityLineage: [],
 };
 
 function cloneEmptyStore(): StoreData {
