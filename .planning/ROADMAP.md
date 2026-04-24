@@ -95,13 +95,13 @@ Plans:
 **Goal:** Add a durable, governance-safe GraphRAG-lite indexing layer that extracts trap and skill graph documents from approved content and keeps them synchronized across approval, update, deactivation, and startup repair flows
 **Requirements**: P36-01, P36-02, P36-03, P36-04
 **Depends on:** Phase 35
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 36-01-PLAN.md - Durable graph document contracts and graphology utilities
 - [x] 36-02-PLAN.md - Trap extraction and durable graph adapter integration
 - [x] 36-03-PLAN.md - Skill-derived graph indexing and lifecycle hooks
-- [ ] 36-04-PLAN.md - Cross-domain reconciliation and startup graph repair
+- [x] 36-04-PLAN.md - Cross-domain reconciliation and startup graph repair
 
 ### Phase 37: GraphRAG-lite retrieval compiler for trap-first skill plans
 
