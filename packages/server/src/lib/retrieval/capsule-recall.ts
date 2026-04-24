@@ -8,6 +8,7 @@
  * T-14-06: Rank only distilled profile/capsule text, not raw payloads
  */
 
+import { isGovernanceEligible } from '../governance/index.js';
 import type {
   DerivedSkillCapsuleRecord,
   DerivedSkillProfileRecord,
@@ -29,37 +30,31 @@ export interface ArtifactGovernanceFilters {
 
 /**
  * Check if an artifact passes governance filters.
+ * Delegates to shared governance module for unified eligibility logic.
  * T-14-04: Preserve approval/team/level filtering before ranking
  *
  * @param artifact - Skill artifact record
- * @param filters - Governance filters
+ * @param filters - Governance filters (teamId, securityLevel, isSystemAdmin)
  * @returns True if artifact is eligible for retrieval
  */
 export function isArtifactGovernanceEligible(
   artifact: SkillArtifactRecord,
   filters: ArtifactGovernanceFilters,
 ): boolean {
-  // Check lifecycle state - only approved artifacts
-  if (artifact.lifecycleState !== 'approved') {
-    return false;
-  }
+  const entity = {
+    teamId: artifact.teamId,
+    scope: artifact.scope,
+    requiredLevel: artifact.requiredLevel,
+    lifecycleState: artifact.lifecycleState,
+  };
 
-  // System admin can see everything
-  if (filters.isSystemAdmin) {
-    return true;
-  }
+  const context = {
+    teamId: filters.teamId,
+    securityLevel: filters.securityLevel,
+    isSystemAdmin: filters.isSystemAdmin,
+  };
 
-  // Check team access
-  if (artifact.teamId !== null && artifact.teamId !== filters.teamId) {
-    return false;
-  }
-
-  // Check security level
-  if (filters.securityLevel < artifact.requiredLevel) {
-    return false;
-  }
-
-  return true;
+  return isGovernanceEligible(entity, context);
 }
 
 /**
