@@ -42,12 +42,12 @@ const FORBIDDEN_RELATION_TYPES = new Set(['mentions', 'causes', 'fixed-by', 'obs
 // ---------------------------------------------------------------------------
 
 function makeApprovedTrapDoc(overrides: Partial<NormalizedIndexDocument> = {}): NormalizedIndexDocument {
-  return {
+  const defaults = {
     entryId: 'entry-1',
     teamId: 'team-abc',
-    scope: 'project',
+    scope: 'project' as const,
     requiredLevel: 5,
-    lifecycleState: 'approved',
+    lifecycleState: 'approved' as const,
     revision: 1,
     updatedAt: '2026-01-01T00:00:00Z',
     shortcut: 'Docker build timeout due to network proxy misconfiguration',
@@ -57,15 +57,24 @@ function makeApprovedTrapDoc(overrides: Partial<NormalizedIndexDocument> = {}): 
       'To mitigate, use --build-arg HTTP_PROXY=http://proxy:8080. ' +
       'Prerequisite: ensure the proxy is reachable and DNS resolves correctly.',
     labels: ['docker', 'network', 'timeout', 'proxy'],
-    canonicalText:
-      'Docker build timeout due to network proxy misconfiguration\n' +
-      'When running docker build behind a corporate proxy, the build must configure HTTP_PROXY before pulling base images.\n' +
-      'docker network timeout proxy',
     tokens: ['docker', 'build', 'timeout', 'network', 'proxy'],
     contentHash: 'abc123',
     normalizedAt: '2026-01-01T00:00:00Z',
-    ...overrides,
   };
+
+  const merged = { ...defaults, ...overrides };
+
+  // Recompute canonicalText from shortcut, detail, and labels if overridden
+  if (overrides.shortcut || overrides.detail || overrides.labels) {
+    merged.canonicalText = `${merged.shortcut}\n${merged.detail}\n${merged.labels.join(' ')}`;
+  } else {
+    merged.canonicalText =
+      'Docker build timeout due to network proxy misconfiguration\n' +
+      'When running docker build behind a corporate proxy, the build must configure HTTP_PROXY before pulling base images.\n' +
+      'docker network timeout proxy';
+  }
+
+  return merged as NormalizedIndexDocument;
 }
 
 // ---------------------------------------------------------------------------
