@@ -6,6 +6,11 @@ import { loadConfig } from './config.js';
 import { AppError, isAppError } from './lib/errors.js';
 import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
 import { JsonStore } from './lib/store.js';
+import {
+  processPendingCandidates,
+  resetInterruptedCandidates,
+  findInterruptedCandidates,
+} from './lib/candidates/index.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
 import { authRoutes } from './routes/auth.js';
 import { candidateRoutes } from './routes/candidates.js';
@@ -94,6 +99,44 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.register(candidateRoutes);
   app.register(retrievalRoutes);
   app.register(operationsRoutes);
+
+  // Recovery: Reprocess interrupted candidates on startup
+  app.addHook('onReady', async () => {
+    try {
+      const data = await app.skillShareer.store.snapshot();
+      const interrupted = findInterruptedCandidates(data);
+
+      if (interrupted.length > 0) {
+        app.log.info(
+          { count: interrupted.length },
+          'Found interrupted candidates, scheduling recovery',
+        );
+
+        // Reset them to 'received' status
+        await app.skillShareer.store.transact((txData) => {
+          resetInterruptedCandidates({
+            data: txData,
+            reason: 'Server restart recovery',
+          });
+        });
+
+        // Fire-and-forget processing
+        void processPendingCandidates({
+          store: app.skillShareer.store,
+          getSnapshot: () => app.skillShareer.store.snapshot(),
+        }).then(({ processed, errors }) => {
+          app.log.info(
+            { processed, errors },
+            'Candidate recovery complete',
+          );
+        }).catch((error) => {
+          app.log.error({ error }, 'Candidate recovery failed');
+        });
+      }
+    } catch (error) {
+      app.log.error({ error }, 'Failed to check for interrupted candidates');
+    }
+  });
 
   app.setErrorHandler((error, _request, reply) => {
     if (isAppError(error)) {
