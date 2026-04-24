@@ -12,6 +12,9 @@ import type {
   RetrievalEvalTier,
   RetrievalStrategy,
   RoutingReason,
+  QueryTypeCohort,
+  CohortKey,
+  CohortSummary,
 } from '@trapmap/contracts';
 
 // =============================================================================
@@ -197,6 +200,50 @@ export interface SliceMetrics {
   fallbackApplied: boolean;
   /** Regression status relative to baseline (Phase 29-03) */
   regressionStatus: 'regressed' | 'stable' | 'improved' | 'no-baseline';
+}
+
+// =============================================================================
+// Cohort Types (Phase 31-01: EOPS-01)
+// =============================================================================
+
+/**
+ * Query type tag constants for cohort classification.
+ * These canonical tags should be added to case definitions.
+ */
+export const QUERY_TYPE_TAGS: readonly QueryTypeCohort[] = [
+  'error-debugging',
+  'how-to',
+  'global-constraints',
+  'governance-sensitive',
+  'general',
+] as const;
+
+/**
+ * Derive query type cohort from case tags.
+ * Returns the first matching query-type tag, or 'general' as default.
+ */
+export function deriveQueryType(tags: string[]): QueryTypeCohort {
+  for (const tag of tags) {
+    if (QUERY_TYPE_TAGS.includes(tag as QueryTypeCohort)) {
+      return tag as QueryTypeCohort;
+    }
+  }
+  return 'general';
+}
+
+/**
+ * Derive route family from endpoint.
+ * v1 uses 'entry', v2 uses 'capsule'.
+ */
+export function deriveRouteFamily(endpoint: string): 'entry' | 'capsule' {
+  return endpoint.startsWith('/v1') ? 'entry' : 'capsule';
+}
+
+/**
+ * Get a stable string key for a cohort.
+ */
+export function getCohortKeyString(key: CohortKey): string {
+  return `${key.queryType}:${key.routeFamily}`;
 }
 
 // =============================================================================
