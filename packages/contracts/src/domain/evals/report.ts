@@ -205,6 +205,175 @@ export const routingDistributionSchema = z.object({
 
 export type RoutingDistribution = z.infer<typeof routingDistributionSchema>;
 
+// =============================================================================
+// Baseline Report Schemas (Phase 31-03: EOPS-02, EOPS-03)
+// =============================================================================
+
+/**
+ * Baseline slice data for comparison.
+ * Captures metrics from a single slice for regression detection.
+ */
+export const baselineSliceSchema = z.object({
+  slice: retrievalEvalSliceKeySchema,
+  routeFamily: routeFamilySchema.optional(),
+  avgHitAt1: z.number().min(0).max(1),
+  avgHitAt5: z.number().min(0).max(1),
+  avgHitAt10: z.number().min(0).max(1),
+  avgMrr: z.number().min(0).max(1),
+  avgNdcg: z.number().min(0).max(1),
+  avgRecallAt10: z.number().min(0).max(1),
+  selectedMode: retrievalStrategySchema.optional(),
+  fallbackApplied: z.boolean().default(false),
+  passRate: z.number().min(0).max(1),
+});
+
+export type BaselineSlice = z.infer<typeof baselineSliceSchema>;
+
+/**
+ * Baseline cohort data for comparison.
+ * Phase 31-03: EOPS-03
+ */
+export const baselineCohortSchema = z.object({
+  cohort: cohortKeySchema,
+  avgHitAt1: z.number().min(0).max(1),
+  avgMrr: z.number().min(0).max(1),
+  passRate: z.number().min(0).max(1),
+  governanceFailureCount: z.number().int().min(0),
+});
+
+export type BaselineCohort = z.infer<typeof baselineCohortSchema>;
+
+/**
+ * Governance failure record for baseline.
+ * Captures governance issues for trend analysis.
+ */
+export const baselineGovernanceFailureSchema = z.object({
+  caseId: z.string().min(1),
+  endpoint: retrievalEvalEndpointSchema,
+  tier: retrievalEvalTierSchema,
+  failureKinds: z.array(z.string()),
+});
+
+export type BaselineGovernanceFailure = z.infer<typeof baselineGovernanceFailureSchema>;
+
+/**
+ * Baseline report schema for CI artifact retention.
+ * Phase 31-03: EOPS-03
+ *
+ * This schema captures a snapshot of evaluation results for comparison
+ * against future runs. Baselines are written by scheduled core runs and
+ * compared against by PR smoke runs.
+ */
+export const baselineReportSchema = z.object({
+  /** Schema version for future compatibility */
+  schemaVersion: z.literal(1),
+  /** Timestamp when baseline was captured */
+  timestamp: z.string().datetime(),
+  /** Tier this baseline represents */
+  tier: retrievalEvalTierSchema,
+  /** Git commit SHA for traceability */
+  commitSha: z.string().min(7).optional(),
+  /** Git branch name */
+  branch: z.string().min(1).optional(),
+  /** Slice metrics captured in this baseline */
+  slices: z.array(baselineSliceSchema),
+  /** Cohort metrics captured in this baseline */
+  cohorts: z.array(baselineCohortSchema).optional(),
+  /** Governance failures captured in this baseline */
+  governanceFailures: z.array(baselineGovernanceFailureSchema),
+  /** Total cases in the baseline run */
+  totalCases: z.number().int().min(0),
+  /** Total passed cases */
+  passedCases: z.number().int().min(0),
+  /** Overall pass rate */
+  passRate: z.number().min(0).max(1),
+  /** Duration of baseline run in ms */
+  durationMs: z.number().int().min(0),
+});
+
+export type BaselineReport = z.infer<typeof baselineReportSchema>;
+
+/**
+ * Regression threshold configuration.
+ * Phase 31-03: EOPS-02
+ *
+ * Different thresholds for PR smoke vs scheduled core runs.
+ */
+export const regressionThresholdsSchema = z.object({
+  /** Minimum acceptable Hit@1 change (negative = regression) */
+  hitAt1Threshold: z.number().min(-1).max(0).default(-0.05),
+  /** Minimum acceptable MRR change (negative = regression) */
+  mrrThreshold: z.number().min(-1).max(0).default(-0.05),
+  /** Minimum acceptable pass rate change (negative = regression) */
+  passRateThreshold: z.number().min(-1).max(0).default(-0.05),
+  /** Maximum allowed governance failure increase */
+  maxGovernanceIncrease: z.number().int().min(0).default(0),
+});
+
+export type RegressionThresholds = z.infer<typeof regressionThresholdsSchema>;
+
+/**
+ * Predefined threshold presets by tier.
+ */
+export const TIER_THRESHOLDS: Record<'smoke' | 'core', RegressionThresholds> = {
+  smoke: {
+    hitAt1Threshold: -0.10,  // More lenient for PR smoke
+    mrrThreshold: -0.10,
+    passRateThreshold: -0.10,
+    maxGovernanceIncrease: 1,  // Allow 1 additional governance failure
+  },
+  core: {
+    hitAt1Threshold: -0.05,  // Stricter for scheduled core
+    mrrThreshold: -0.05,
+    passRateThreshold: -0.05,
+    maxGovernanceIncrease: 0,  // No additional governance failures allowed
+  },
+};
+
+/**
+ * Result of comparing current run against baseline.
+ * Phase 31-03: EOPS-03
+ */
+export const regressionResultSchema = z.object({
+  /** Whether any regressions were detected */
+  hasRegressions: z.boolean(),
+  /** Slices that regressed */
+  regressedSlices: z.array(z.object({
+    slice: retrievalEvalSliceKeySchema,
+    baselineHitAt1: z.number(),
+    currentHitAt1: z.number(),
+    hitAt1Delta: z.number(),
+    baselineMrr: z.number(),
+    currentMrr: z.number(),
+    mrrDelta: z.number(),
+  })),
+  /** Slices that improved */
+  improvedSlices: z.array(z.object({
+    slice: retrievalEvalSliceKeySchema,
+    baselineHitAt1: z.number(),
+    currentHitAt1: z.number(),
+    hitAt1Delta: z.number(),
+    baselineMrr: z.number(),
+    currentMrr: z.number(),
+    mrrDelta: z.number(),
+  })),
+  /** Cohorts that regressed */
+  regressedCohorts: z.array(z.object({
+    cohort: cohortKeySchema,
+    baselineHitAt1: z.number(),
+    currentHitAt1: z.number(),
+    hitAt1Delta: z.number(),
+  })),
+  /** Governance regression count */
+  governanceRegressions: z.number().int().min(0),
+  /** Whether baseline was available for comparison */
+  baselineAvailable: z.boolean(),
+  /** Timestamp of baseline used for comparison */
+  baselineTimestamp: z.string().datetime().optional(),
+});
+
+export type RegressionResult = z.infer<typeof regressionResultSchema>;
+
 export const retrievalEvalReportMetaSchema = z.object({
   schemaVersion: z.literal(1),
   timestamp: z.string().datetime(),
