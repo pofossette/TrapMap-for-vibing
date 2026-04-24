@@ -16,9 +16,16 @@ import type {
   RetrievalEvalSliceKey,
   RetrievalEvalFailureKind,
   ReportBuilderInput,
+  CohortSummary,
+  CohortKey,
 } from '@trapmap/contracts';
 import { retrievalEvalReportSchema } from '@trapmap/contracts';
 import type { CaseResult, SliceMetrics, SliceKey } from './types.js';
+import {
+  deriveQueryType,
+  deriveRouteFamily,
+  getCohortKeyString,
+} from './types.js';
 
 // =============================================================================
 // Report Builder
@@ -62,6 +69,15 @@ export function buildReport(
   const sliceSummaries = buildSliceSummaries(caseResults);
   sliceSummaries.sort(compareSliceSummaries);
 
+  // Build cohort summaries (sorted by query type, then route family)
+  const cohortSummaries = buildCohortSummaries(caseResults);
+  cohortSummaries.sort((a, b) => {
+    if (a.cohort.queryType !== b.cohort.queryType) {
+      return a.cohort.queryType.localeCompare(b.cohort.queryType);
+    }
+    return a.cohort.routeFamily.localeCompare(b.cohort.routeFamily);
+  });
+
   // Build case summaries (sorted by case ID)
   const caseSummaries = caseResults
     .map(buildCaseSummary)
@@ -91,6 +107,7 @@ export function buildReport(
       passed: failedCases === 0,
     },
     slices: sliceSummaries,
+    cohorts: cohortSummaries,
     cases: caseSummaries,
     failures: failureRecords,
     warnings: warningRecords,
@@ -199,6 +216,67 @@ function buildSliceSummary(results: CaseResult[]): RetrievalEvalSliceSummary {
     selectedMode: selectedMode as 'naive' | 'local' | 'global' | 'hybrid' | 'mix' | 'auto' | undefined,
     fallbackApplied,
     regressionStatus: 'no-baseline', // Will be set during baseline comparison
+  };
+}
+
+// =============================================================================
+// Cohort Summary Builder (Phase 31-01: EOPS-01)
+// =============================================================================
+
+/**
+ * Build cohort summaries from case results.
+ * Groups by query type and route family for cross-slice analysis.
+ * Phase 31-01: EOPS-01
+ */
+function buildCohortSummaries(caseResults: CaseResult[]): CohortSummary[] {
+  // Group by cohort key
+  const cohortMap = new Map<string, CaseResult[]>();
+
+  for (const result of caseResults) {
+    const key = getCohortKeyString({
+      queryType: deriveQueryType(result.case.tags),
+      routeFamily: deriveRouteFamily(result.case.endpoint),
+    });
+
+    const existing = cohortMap.get(key) ?? [];
+    existing.push(result);
+    cohortMap.set(key, existing);
+  }
+
+  // Build summary for each cohort
+  return Array.from(cohortMap.values()).map(buildCohortSummary);
+}
+
+/**
+ * Build a single cohort summary.
+ * Phase 31-01: EOPS-01
+ */
+function buildCohortSummary(results: CaseResult[]): CohortSummary {
+  const firstResult = results[0]!;
+  const cohort: CohortKey = {
+    queryType: deriveQueryType(firstResult.case.tags),
+    routeFamily: deriveRouteFamily(firstResult.case.endpoint),
+  };
+
+  const caseCount = results.length;
+  const passedCount = results.filter((r) => r.passed).length;
+  const failedCount = caseCount - passedCount;
+  const passRate = caseCount > 0 ? passedCount / caseCount : 0;
+
+  const avgHitAt1 = average(results.map((r) => r.metrics.hitAt1));
+  const avgMrr = average(results.map((r) => r.metrics.mrr));
+  const governanceFailureCount = results.filter((r) => !r.governance.passed).length;
+
+  return {
+    cohort,
+    caseCount,
+    passedCount,
+    failedCount,
+    passRate,
+    avgHitAt1,
+    avgMrr,
+    governanceFailureCount,
+    regressionStatus: 'no-baseline',
   };
 }
 
