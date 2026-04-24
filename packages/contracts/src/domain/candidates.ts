@@ -254,6 +254,43 @@ export const duplicateCaseResponseSchema = z.object({
   duplicateCase: DuplicateCaseSchema,
 });
 
+/**
+ * Manual resolution decision for a duplicate case.
+ * 'independent' means candidate is distinct and should proceed.
+ * 'merged' means candidate should be rejected/merged into existing entity.
+ */
+export const ManualResultDecisionSchema = z.enum(['independent', 'merged']);
+
+/**
+ * Reference to the existing entity for merged decisions.
+ */
+export const MergedWithReferenceSchema = z.object({
+  entityType: z.enum(['trap', 'skill']),
+  entityId: entityIdSchema,
+  entityTitle: z.string().min(1).max(280).optional(),
+});
+
+/**
+ * Manual result submission from reviewer.
+ * Stored on candidate record for Phase 35 processing.
+ */
+export const ManualResultSubmissionSchema = z.object({
+  decision: ManualResultDecisionSchema,
+  notes: z.string().min(1).max(1000),
+  mergedWith: MergedWithReferenceSchema.optional(),
+});
+
+/**
+ * Response after submitting manual result.
+ */
+export const manualResultResponseSchema = z.object({
+  candidateId: entityIdSchema,
+  decision: ManualResultDecisionSchema,
+  reviewedAt: isoTimestampSchema,
+  reviewedBy: entityIdSchema,
+  nextState: z.enum(['duplicate_detected', 'ready_for_review', 'rejected']),
+});
+
 // Type exports
 
 export type CandidateStatus = z.infer<typeof CandidateStatusSchema>;
@@ -277,3 +314,7 @@ export type CandidateStatusResponse = z.infer<typeof candidateStatusResponseSche
 export type CandidateListResponse = z.infer<typeof candidateListResponseSchema>;
 export type DuplicateCaseListResponse = z.infer<typeof duplicateCaseListResponseSchema>;
 export type DuplicateCaseResponse = z.infer<typeof duplicateCaseResponseSchema>;
+export type ManualResultDecision = z.infer<typeof ManualResultDecisionSchema>;
+export type MergedWithReference = z.infer<typeof MergedWithReferenceSchema>;
+export type ManualResultSubmission = z.infer<typeof ManualResultSubmissionSchema>;
+export type ManualResultResponse = z.infer<typeof manualResultResponseSchema>;
