@@ -188,28 +188,28 @@ export function publishTrapCandidate(args: {
   resolvedBy: string;
   resolvedAt: string;
 }): { entry: KnowledgeRecord; lineage: EntityLineageRecord } {
-  if (!candidate.originalPayload.trap) {
+  if (!args.candidate.originalPayload.trap) {
     throw new Error('Candidate has no trap payload');
   }
 
-  const trapPayload = candidate.originalPayload.trap;
+  const trapPayload = args.candidate.originalPayload.trap;
 
   // Create the knowledge entry with agent-pass state
   // (candidate already passed duplicate analysis, but needs reviewer approval)
   const entry: KnowledgeRecord = {
     id: args.store.nextId(args.data, 'knowledge'),
-    teamId: candidate.teamId,
+    teamId: args.candidate.teamId,
     scope: trapPayload.scope,
     labels: trapPayload.labels,
     shortcut: trapPayload.shortcut,
     detail: trapPayload.detail,
     requiredLevel: trapPayload.requiredLevel ?? 0,
     lifecycleState: 'agent-pass',
-    ownerUserId: candidate.submittedBy,
+    ownerUserId: args.candidate.submittedBy,
     latestRevision: {
       revision: 1,
       submittedAt: args.resolvedAt,
-      submittedByUserId: candidate.submittedBy,
+      submittedByUserId: args.candidate.submittedBy,
       shortcut: trapPayload.shortcut,
       detail: trapPayload.detail,
       labels: trapPayload.labels,
@@ -243,7 +243,7 @@ export function publishTrapCandidate(args: {
         id: args.store.nextId(args.data, 'knowledge_event'),
         type: 'submitted',
         createdAt: args.resolvedAt,
-        actorUserId: candidate.submittedBy,
+        actorUserId: args.candidate.submittedBy,
         submissionId: null,
         revision: 1,
         state: 'submitted',
@@ -272,10 +272,10 @@ export function publishTrapCandidate(args: {
   // Create lineage record
   const lineage: EntityLineageRecord = {
     id: args.store.nextId(args.data, 'lineage'),
-    candidateId: candidate.id,
+    candidateId: args.candidate.id,
     relationshipType: 'published_as',
     sourceType: 'candidate',
-    sourceId: candidate.id,
+    sourceId: args.candidate.id,
     targetType: 'trap',
     targetId: entry.id,
     createdAt: args.resolvedAt,
@@ -298,23 +298,23 @@ export function publishSkillCandidate(args: {
   resolvedBy: string;
   resolvedAt: string;
 }): { artifact: SkillArtifactRecord; lineage: EntityLineageRecord } {
-  if (!candidate.originalPayload.skill) {
+  if (!args.candidate.originalPayload.skill) {
     throw new Error('Candidate has no skill payload');
   }
 
-  const skillPayload = candidate.originalPayload.skill;
+  const skillPayload = args.candidate.originalPayload.skill;
 
   // Create skill artifact with agent-pass state
   const artifact: SkillArtifactRecord = {
     id: args.store.nextId(args.data, 'artifact'),
-    teamId: candidate.teamId,
+    teamId: args.candidate.teamId,
     scope: 'global', // Default scope for skills
     labels: skillPayload.metadata.labels,
     title: skillPayload.metadata.title || 'Untitled Skill',
     slug: skillPayload.metadata.slug || `skill-${Date.now()}`,
     requiredLevel: 0,
     lifecycleState: 'agent-pass',
-    ownerUserId: candidate.submittedBy,
+    ownerUserId: args.candidate.submittedBy,
     latestRevision: {
       revision: 1,
       sourceHash: '', // Will be computed from files
@@ -329,7 +329,7 @@ export function publishSkillCandidate(args: {
         activationOnly: false,
       })),
       submittedAt: args.resolvedAt,
-      submittedByUserId: candidate.submittedBy,
+      submittedByUserId: args.candidate.submittedBy,
       scriptDescriptors: [],
       derived: null,
     },
@@ -359,7 +359,7 @@ export function publishSkillCandidate(args: {
         id: args.store.nextId(args.data, 'artifact_event'),
         type: 'submitted',
         createdAt: args.resolvedAt,
-        actorUserId: candidate.submittedBy,
+        actorUserId: args.candidate.submittedBy,
         submissionId: null,
         revision: 1,
         state: 'submitted',
@@ -386,10 +386,10 @@ export function publishSkillCandidate(args: {
   // Create lineage record
   const lineage: EntityLineageRecord = {
     id: args.store.nextId(args.data, 'lineage'),
-    candidateId: candidate.id,
+    candidateId: args.candidate.id,
     relationshipType: 'published_as',
     sourceType: 'candidate',
-    sourceId: candidate.id,
+    sourceId: args.candidate.id,
     targetType: 'skill',
     targetId: artifact.id,
     createdAt: args.resolvedAt,
