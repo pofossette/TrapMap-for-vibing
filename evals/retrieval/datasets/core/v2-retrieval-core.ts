@@ -58,7 +58,7 @@ export const v2CapsuleRankedCore = retrievalEvalCaseSchema.parse({
       expectedCapsuleCount: 4,
     },
   },
-  tags: ['ranked', 'v2', 'core', 'capsule', 'multi-hit'],
+  tags: ['ranked', 'v2', 'core', 'capsule', 'multi-hit', 'how-to'],
 }) as RetrievalEvalCase;
 
 // =============================================================================
@@ -99,7 +99,7 @@ export const v2ProfileHintsCore = retrievalEvalCaseSchema.parse({
       expectedCapsuleCount: 2,
     },
   },
-  tags: ['profile-hints', 'v2', 'core', 'capsule'],
+  tags: ['profile-hints', 'v2', 'core', 'capsule', 'how-to'],
 }) as RetrievalEvalCase;
 
 // =============================================================================
@@ -138,7 +138,7 @@ export const v2GovernanceCore = retrievalEvalCaseSchema.parse({
       expectedCapsuleCount: 1,
     },
   },
-  tags: ['governance', 'v2', 'core', 'capsule', 'mixed-visibility'],
+  tags: ['governance', 'v2', 'core', 'capsule', 'mixed-visibility', 'governance-sensitive'],
 }) as RetrievalEvalCase;
 
 // =============================================================================
@@ -180,7 +180,7 @@ export const v2ScopeDistributionCore = retrievalEvalCaseSchema.parse({
       expectedCapsuleCount: 2,
     },
   },
-  tags: ['scope', 'v2', 'core', 'capsule', 'distribution'],
+  tags: ['scope', 'v2', 'core', 'capsule', 'distribution', 'global-constraints'],
 }) as RetrievalEvalCase;
 
 // =============================================================================

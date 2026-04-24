@@ -50,7 +50,7 @@ export const v1SemanticPositiveSmoke = retrievalEvalCaseSchema.parse({
       expectedProfileHintArtifactIds: [],
     },
   },
-  tags: ['positive', 'v1', 'smoke', 'semantic'],
+  tags: ['positive', 'v1', 'smoke', 'semantic', 'general'],
 }) as RetrievalEvalCase;
 
 // =============================================================================
@@ -89,7 +89,7 @@ export const v1SemanticEmptySmoke = retrievalEvalCaseSchema.parse({
       expectedProfileHintArtifactIds: [],
     },
   },
-  tags: ['empty', 'v1', 'smoke', 'semantic'],
+  tags: ['empty', 'v1', 'smoke', 'semantic', 'general'],
 }) as RetrievalEvalCase;
 
 // =============================================================================
@@ -138,7 +138,7 @@ export const v1SemanticForbiddenSmoke = retrievalEvalCaseSchema.parse({
       expectedProfileHintArtifactIds: [],
     },
   },
-  tags: ['forbidden', 'v1', 'smoke', 'semantic', 'governance'],
+  tags: ['forbidden', 'v1', 'smoke', 'semantic', 'governance', 'governance-sensitive'],
 }) as RetrievalEvalCase;
 
 // =============================================================================

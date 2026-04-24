@@ -60,7 +60,7 @@ export const v1SemanticRankedCore = retrievalEvalCaseSchema.parse({
       expectedProfileHintArtifactIds: [],
     },
   },
-  tags: ['ranked', 'v1', 'core', 'semantic', 'multi-hit'],
+  tags: ['ranked', 'v1', 'core', 'semantic', 'multi-hit', 'how-to'],
 }) as RetrievalEvalCase;
 
 // =============================================================================
@@ -109,7 +109,7 @@ export const v1HybridRankedCore = retrievalEvalCaseSchema.parse({
       expectedProfileHintArtifactIds: [],
     },
   },
-  tags: ['ranked', 'v1', 'core', 'hybrid'],
+  tags: ['ranked', 'v1', 'core', 'hybrid', 'how-to'],
 }) as RetrievalEvalCase;
 
 // =============================================================================
@@ -155,7 +155,7 @@ export const v1GraphAssistedRankedCore = retrievalEvalCaseSchema.parse({
       expectedProfileHintArtifactIds: [],
     },
   },
-  tags: ['ranked', 'v1', 'core', 'graph-assisted'],
+  tags: ['ranked', 'v1', 'core', 'graph-assisted', 'general'],
 }) as RetrievalEvalCase;
 
 // =============================================================================
@@ -201,7 +201,7 @@ export const v1BucketShapeCore = retrievalEvalCaseSchema.parse({
       expectedProfileHintArtifactIds: [],
     },
   },
-  tags: ['bucket-shape', 'v1', 'core', 'semantic', 'governance'],
+  tags: ['bucket-shape', 'v1', 'core', 'semantic', 'governance', 'global-constraints'],
 }) as RetrievalEvalCase;
 
 // =============================================================================
@@ -245,7 +245,7 @@ export const v1GovernanceCore = retrievalEvalCaseSchema.parse({
       expectedProfileHintArtifactIds: [],
     },
   },
-  tags: ['governance', 'v1', 'core', 'semantic', 'mixed-visibility'],
+  tags: ['governance', 'v1', 'core', 'semantic', 'mixed-visibility', 'governance-sensitive'],
 }) as RetrievalEvalCase;
 
 // =============================================================================

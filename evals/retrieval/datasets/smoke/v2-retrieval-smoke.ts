@@ -46,7 +46,7 @@ export const v2CapsulePositiveSmoke = retrievalEvalCaseSchema.parse({
       expectedCapsuleCount: 1,
     },
   },
-  tags: ['positive', 'v2', 'smoke', 'capsule'],
+  tags: ['positive', 'v2', 'smoke', 'capsule', 'general'],
 }) as RetrievalEvalCase;
 
 // =============================================================================
@@ -81,7 +81,7 @@ export const v2CapsuleEmptySmoke = retrievalEvalCaseSchema.parse({
       expectedCapsuleCount: 0,
     },
   },
-  tags: ['empty', 'v2', 'smoke', 'capsule'],
+  tags: ['empty', 'v2', 'smoke', 'capsule', 'general'],
 }) as RetrievalEvalCase;
 
 // =============================================================================
@@ -126,7 +126,7 @@ export const v2CapsuleForbiddenSmoke = retrievalEvalCaseSchema.parse({
       expectedCapsuleCount: 0,
     },
   },
-  tags: ['forbidden', 'v2', 'smoke', 'capsule', 'governance'],
+  tags: ['forbidden', 'v2', 'smoke', 'capsule', 'governance', 'governance-sensitive'],
 }) as RetrievalEvalCase;
 
 // =============================================================================
