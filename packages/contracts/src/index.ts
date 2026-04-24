@@ -11,3 +11,16 @@ export * from './domain/path-validation.js';
 export * from './domain/retrieval.js';
 export * from './domain/review.js';
 export * from './domain/team.js';
+
+// Re-export specific types for Phase 35 resolution workflow
+export type {
+  ResolutionOutcome,
+  EntityLineage,
+  ApplyResolutionResponse,
+} from './domain/candidates.js';
+
+export {
+  ResolutionOutcomeSchema,
+  EntityLineageSchema,
+  applyResolutionResponseSchema,
+} from './domain/candidates.js';
