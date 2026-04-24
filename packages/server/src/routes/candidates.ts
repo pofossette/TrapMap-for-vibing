@@ -5,6 +5,13 @@ import {
   candidateListResponseSchema,
   duplicateCaseListResponseSchema,
   duplicateCaseResponseSchema,
+  DuplicateJobBundleResponseSchema,
+  ManualResultSubmissionSchema,
+  manualResultResponseSchema,
+} from '@trapmap/contracts';
+import type {
+  DuplicateJobBundleResponse,
+  DuplicateJobMatchEntity,
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 import { createHash } from 'node:crypto';
@@ -12,13 +19,14 @@ import { createHash } from 'node:crypto';
 import { AppError } from '../lib/errors.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { requirePermission } from '../lib/rbac.js';
-import { nowIso } from '../lib/store.js';
+import { nowIso, type StoreData } from '../lib/store.js';
 import {
   createCandidateSubmission,
   getCandidateById,
   getCandidatesByStatus,
   getAllDuplicateCases,
   getDuplicateCaseByCandidateId,
+  attachManualResult,
 } from '../lib/candidates/store.js';
 import { scheduleCandidateProcessing, type CandidateProcessorServices } from '../lib/candidates/processor.js';
 import { logUserOperation } from '../lib/user-ops-log.js';
@@ -50,6 +58,46 @@ function computeSha256(content: string): string {
     buffer = Buffer.from(content, 'utf-8');
   }
   return createHash('sha256').update(buffer).digest('hex');
+}
+
+/**
+ * Helper to build entity data for matched trap.
+ */
+function buildTrapEntity(data: StoreData, entityId: string): DuplicateJobMatchEntity | null {
+  const trap = data.knowledgeEntries.find(e => e.id === entityId);
+  if (!trap) return null;
+
+  return {
+    entityType: 'trap',
+    entityId: trap.id,
+    title: trap.shortcut,
+    shortcut: trap.shortcut,
+    detail: trap.detail,
+    labels: trap.labels,
+    scope: trap.scope,
+    requiredLevel: trap.requiredLevel,
+  };
+}
+
+/**
+ * Helper to build entity data for matched skill.
+ */
+function buildSkillEntity(data: StoreData, entityId: string): DuplicateJobMatchEntity | null {
+  const skill = data.skillArtifacts.find(a => a.id === entityId);
+  if (!skill) return null;
+
+  return {
+    entityType: 'skill',
+    entityId: skill.id,
+    title: skill.title,
+    slug: skill.slug,
+    files: skill.latestRevision.files.map(f => ({
+      path: f.path,
+      sha256: f.sha256,
+      sizeBytes: f.sizeBytes,
+      mediaType: f.mediaType,
+    })),
+  };
 }
 
 export const candidateRoutes: FastifyPluginAsync = async (app) => {
@@ -207,5 +255,120 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return duplicateCaseResponseSchema.parse({ duplicateCase });
+  });
+
+  // GET /v1/duplicates/:candidateId/bundle - Get full bundle for offline review
+  app.get('/v1/duplicates/:candidateId/bundle', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:review');
+
+    const candidateId = (request.params as { candidateId: string }).candidateId;
+    const data = await app.skillShareer.store.snapshot();
+
+    const candidate = getCandidateById(data, candidateId);
+    if (!candidate) {
+      throw new AppError(404, 'candidate_not_found', 'Candidate not found');
+    }
+
+    const duplicateCase = candidate.duplicateCase;
+    if (!duplicateCase) {
+      throw new AppError(404, 'duplicate_case_not_found', 'No duplicate case for this candidate');
+    }
+
+    // Build match entries with entity data
+    const matches: DuplicateJobBundleResponse['matches'] = [];
+
+    for (const match of duplicateCase.matches) {
+      const entity = match.entityType === 'trap'
+        ? buildTrapEntity(data, match.entityId)
+        : buildSkillEntity(data, match.entityId);
+
+      if (entity) {
+        matches.push({ match, entity });
+      }
+    }
+
+    // Expected result schema for manual submission
+    const expectedResultSchema = {
+      description: 'Manual resolution decision for duplicate candidate',
+      fields: [
+        { name: 'decision', type: 'enum', required: true, description: "'independent' or 'merged'" },
+        { name: 'notes', type: 'string', required: true, description: 'Explanation of the decision (1-1000 chars)' },
+        { name: 'mergedWith', type: 'object', required: false, description: 'Required if decision is "merged": { entityType, entityId }' },
+      ],
+    };
+
+    const response: DuplicateJobBundleResponse = {
+      candidate: {
+        id: candidate.id,
+        sourceType: candidate.sourceType,
+        status: candidate.status,
+        receivedAt: candidate.receivedAt,
+        submittedBy: candidate.submittedBy,
+      },
+      originalPayload: candidate.originalPayload,
+      analysisSnapshot: candidate.analysisSnapshot,
+      matches,
+      expectedResultSchema,
+    };
+
+    return DuplicateJobBundleResponseSchema.parse(response);
+  });
+
+  // POST /v1/candidates/:candidateId/manual-result - Submit manual resolution
+  app.post('/v1/candidates/:candidateId/manual-result', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:review');
+
+    const candidateId = (request.params as { candidateId: string }).candidateId;
+    const reviewedBy = auth.user?.id;
+
+    if (!reviewedBy) {
+      throw new AppError(403, 'user_required', 'Manual result requires a real user account');
+    }
+
+    const body = ManualResultSubmissionSchema.parse(request.body);
+
+    // Validate mergedWith is present for merged decision
+    if (body.decision === 'merged' && !body.mergedWith) {
+      throw new AppError(
+        400,
+        'validation_error',
+        'mergedWith is required when decision is "merged"',
+      );
+    }
+
+    // Determine next state based on decision
+    // Phase 35 will handle actual state transition and publishing
+    // For now, keep status as duplicate_detected with manual result attached
+    const nextState = body.decision === 'independent' ? 'ready_for_review' : 'rejected';
+
+    await app.skillShareer.store.transact((data) => {
+      attachManualResult({
+        data,
+        candidateId,
+        result: body,
+        reviewedBy,
+      });
+    });
+
+    // Log user operation
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'manual-result',
+      targetId: candidateId,
+      teamId: auth.activeTeamId,
+      metadata: { decision: body.decision },
+    });
+
+    return manualResultResponseSchema.parse({
+      candidateId,
+      decision: body.decision,
+      reviewedAt: nowIso(),
+      reviewedBy,
+      nextState,
+    });
   });
 };
