@@ -291,6 +291,64 @@ export const manualResultResponseSchema = z.object({
   nextState: z.enum(['duplicate_detected', 'ready_for_review', 'rejected']),
 });
 
+/**
+ * Matched entity data included in bundle for offline review.
+ * Contains enough data for reviewer to make merge decision.
+ */
+export const DuplicateJobMatchEntitySchema = z.object({
+  entityType: z.enum(['trap', 'skill']),
+  entityId: entityIdSchema,
+  title: z.string().min(1).max(280),
+  // For traps
+  shortcut: z.string().optional(),
+  detail: z.string().optional(),
+  labels: z.array(labelSchema).optional(),
+  scope: scopeSchema.optional(),
+  requiredLevel: securityLevelSchema.optional(),
+  // For skills - include slug and file metadata
+  slug: z.string().optional(),
+  files: z.array(SkillBundleFileMetadataSchema).optional(),
+});
+
+/**
+ * Full match entry in bundle with match metadata and entity data.
+ */
+export const DuplicateJobMatchEntrySchema = z.object({
+  match: DuplicateMatchSchema,
+  entity: DuplicateJobMatchEntitySchema,
+});
+
+/**
+ * Expected result schema reference for manual submission.
+ */
+export const ExpectedManualResultSchemaSchema = z.object({
+  description: z.string(),
+  fields: z.array(z.object({
+    name: z.string(),
+    type: z.string(),
+    required: z.boolean(),
+    description: z.string(),
+  })),
+});
+
+/**
+ * Full duplicate job bundle for offline review.
+ * Contains all data needed to make and submit a manual decision.
+ */
+export const DuplicateJobBundleResponseSchema = z.object({
+  candidate: z.object({
+    id: entityIdSchema,
+    sourceType: CandidateSourceSchema,
+    status: CandidateStatusSchema,
+    receivedAt: isoTimestampSchema,
+    submittedBy: entityIdSchema,
+  }),
+  originalPayload: CandidatePayloadSchema,
+  analysisSnapshot: AnalysisSnapshotSchema.nullable(),
+  matches: z.array(DuplicateJobMatchEntrySchema),
+  expectedResultSchema: ExpectedManualResultSchemaSchema,
+});
+
 // Type exports
 
 export type CandidateStatus = z.infer<typeof CandidateStatusSchema>;
@@ -318,3 +376,7 @@ export type ManualResultDecision = z.infer<typeof ManualResultDecisionSchema>;
 export type MergedWithReference = z.infer<typeof MergedWithReferenceSchema>;
 export type ManualResultSubmission = z.infer<typeof ManualResultSubmissionSchema>;
 export type ManualResultResponse = z.infer<typeof manualResultResponseSchema>;
+export type DuplicateJobMatchEntity = z.infer<typeof DuplicateJobMatchEntitySchema>;
+export type DuplicateJobMatchEntry = z.infer<typeof DuplicateJobMatchEntrySchema>;
+export type ExpectedManualResultSchema = z.infer<typeof ExpectedManualResultSchemaSchema>;
+export type DuplicateJobBundleResponse = z.infer<typeof DuplicateJobBundleResponseSchema>;
