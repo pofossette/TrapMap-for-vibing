@@ -342,6 +342,16 @@ export const EntityLineageSchema = z.object({
 });
 
 /**
+ * Response after applying a manual resolution.
+ */
+export const applyResolutionResponseSchema = z.object({
+  candidateId: entityIdSchema,
+  status: CandidateStatusSchema,
+  outcome: ResolutionOutcomeSchema,
+  lineage: EntityLineageSchema.nullable(),
+});
+
+/**
  * Response after submitting manual result.
  */
 export const manualResultResponseSchema = z.object({
@@ -438,6 +448,7 @@ export type MergedWithReference = z.infer<typeof MergedWithReferenceSchema>;
 export type ManualResultSubmission = z.infer<typeof ManualResultSubmissionSchema>;
 export type ResolutionOutcome = z.infer<typeof ResolutionOutcomeSchema>;
 export type EntityLineage = z.infer<typeof EntityLineageSchema>;
+export type ApplyResolutionResponse = z.infer<typeof applyResolutionResponseSchema>;
 export type ManualResultResponse = z.infer<typeof manualResultResponseSchema>;
 export type DuplicateJobMatchEntity = z.infer<typeof DuplicateJobMatchEntitySchema>;
 export type DuplicateJobMatchEntry = z.infer<typeof DuplicateJobMatchEntrySchema>;
