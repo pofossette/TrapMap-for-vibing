@@ -28,6 +28,7 @@ import {
   createExecutionContext,
   closeExecutionContext,
   executeCase,
+  seedScenarioFixtures,
 } from './lib/adapters.js';
 import { loadCases, filterByEndpoint } from './lib/load.js';
 import { evaluateGovernance } from './lib/governance.js';
@@ -181,6 +182,7 @@ async function executeAllCases(
 
   try {
     for (const case_ of cases_) {
+      await seedScenarioFixtures(ctx, case_);
       const adapterResult = await executeCase(ctx, case_);
 
       // Evaluate governance
