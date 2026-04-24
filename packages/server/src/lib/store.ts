@@ -2,7 +2,14 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { LifecycleState, Permission, RoleTemplate, Scope } from '@trapmap/contracts';
+import type {
+  CandidateSubmission,
+  DuplicateCase,
+  LifecycleState,
+  Permission,
+  RoleTemplate,
+  Scope,
+} from '@trapmap/contracts';
 
 export interface UserRecord {
   id: string;
@@ -543,6 +550,10 @@ export interface ArtifactFilePayloadRecord {
   storedAt: string;
 }
 
+export interface CandidateSubmissionRecord extends CandidateSubmission {}
+
+export interface DuplicateCaseRecord extends DuplicateCase {}
+
 export interface StoreData {
   counters: Record<string, number>;
   users: UserRecord[];
@@ -556,6 +567,10 @@ export interface StoreData {
   skillArtifacts: SkillArtifactRecord[];
   /** Additive file payload storage for imported artifacts (IMEX-04) */
   artifactFilePayloads: ArtifactFilePayloadRecord[];
+  /** Candidate submissions awaiting duplicate analysis */
+  candidateSubmissions: CandidateSubmissionRecord[];
+  /** Detected duplicate cases for manual review */
+  duplicateCases: DuplicateCaseRecord[];
 }
 
 const EMPTY_STORE: StoreData = {
@@ -569,6 +584,8 @@ const EMPTY_STORE: StoreData = {
   auditEvents: [],
   skillArtifacts: [],
   artifactFilePayloads: [],
+  candidateSubmissions: [],
+  duplicateCases: [],
 };
 
 function cloneEmptyStore(): StoreData {
