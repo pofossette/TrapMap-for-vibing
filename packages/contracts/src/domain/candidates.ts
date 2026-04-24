@@ -18,6 +18,7 @@ export const CandidateStatusSchema = z.enum([
   'analyzing',
   'duplicate_detected',
   'ready_for_review',
+  'resolved',
   'error',
 ]);
 
@@ -300,7 +301,7 @@ export const manualResultResponseSchema = z.object({
   decision: ManualResultDecisionSchema,
   reviewedAt: isoTimestampSchema,
   reviewedBy: entityIdSchema,
-  nextState: z.enum(['duplicate_detected', 'ready_for_review', 'rejected']),
+  nextState: z.enum(['duplicate_detected', 'ready_for_review', 'rejected', 'resolved']),
 });
 
 /**
