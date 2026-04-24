@@ -95,6 +95,13 @@ export interface NormalizedResult {
   rawResponse: unknown;
   /** Endpoint that produced this result */
   endpoint: RetrievalEvalEndpoint;
+  /** Routing trace metadata from response */
+  routingTrace?: {
+    selectedMode: string;
+    routingReason: string;
+    fallbackApplied: boolean;
+    channelsUsed: string[];
+  };
 }
 
 // =============================================================================

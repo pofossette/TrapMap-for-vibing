@@ -97,6 +97,12 @@ export interface SummaryCaseResult {
   durationMs: number;
   /** Warnings encountered during evaluation */
   warnings: Array<{ code: string; message: string }>;
+  /** Raw retrieval response for trace/debug */
+  rawResponse?: unknown;
+  /** Context strings extracted from retrieval results */
+  contextTrace: string[];
+  /** Summary text that was evaluated */
+  summaryText: string | null;
 }
 
 // =============================================================================
