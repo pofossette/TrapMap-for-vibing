@@ -224,6 +224,7 @@ export const auditEventSchema = z
       'member-updated',
       'artifact-imported',
       'artifact-exported',
+      'artifact-deactivated',
     ]),
     entityId: entityIdSchema,
     payload: z.record(z.string(), z.unknown()),
@@ -241,6 +242,7 @@ export const auditQuerySchema = z.object({
         'member-updated',
         'artifact-imported',
         'artifact-exported',
+        'artifact-deactivated',
       ]),
     )
     .optional(),
@@ -674,3 +676,32 @@ export type SkillReviewQueueItem = z.infer<typeof skillReviewQueueItemSchema>;
 export type SkillReviewQueueResponse = z.infer<typeof skillReviewQueueResponseSchema>;
 export type SkillReviewDecisionRequest = z.infer<typeof skillReviewDecisionRequestSchema>;
 export type SkillReviewDecisionResponse = z.infer<typeof skillReviewDecisionResponseSchema>;
+
+// =============================================================================
+// Phase 36: Artifact Deactivation Contracts (P36-02)
+// =============================================================================
+
+/**
+ * Artifact deactivation request schema.
+ * Used to deactivate an approved skill artifact.
+ */
+export const artifactDeactivateRequestSchema = z.object({
+  /** Reason for deactivation (required) */
+  reason: z.string().min(1).max(500),
+});
+
+/**
+ * Artifact deactivation response schema.
+ * Returns the updated artifact with deactivated lifecycle state.
+ */
+export const artifactDeactivateResponseSchema = z.object({
+  /** The updated artifact */
+  artifact: skillArtifactSchema,
+  /** Lifecycle state before deactivation */
+  previousState: lifecycleStateSchema,
+  /** Lifecycle state after deactivation (always 'deactivated') */
+  newState: lifecycleStateSchema,
+});
+
+export type ArtifactDeactivateRequest = z.infer<typeof artifactDeactivateRequestSchema>;
+export type ArtifactDeactivateResponse = z.infer<typeof artifactDeactivateResponseSchema>;
