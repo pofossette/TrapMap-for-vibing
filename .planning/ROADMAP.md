@@ -105,13 +105,15 @@ Plans:
 
 ### Phase 37: GraphRAG-lite retrieval compiler for trap-first skill plans
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Compile governed trap and skill retrieval candidates into a minimal trap-first execution plan instead of returning another flat list of matches
+**Requirements**: P37-01, P37-02, P37-03, P37-04, P37-05
 **Depends on:** Phase 36
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 37 to break down)
+- [ ] 37-01-PLAN.md - Plan output schema contracts (TrapFirstPlan, PlanQuery)
+- [ ] 37-02-PLAN.md - Core plan compiler with TDD test suite
+- [ ] 37-03-PLAN.md - v3/retrieval/plan route integration
 
 ### Phase 38: GraphRAG-lite routing fallback and evaluation coverage
 
