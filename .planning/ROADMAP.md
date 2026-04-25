@@ -108,12 +108,12 @@ Plans:
 **Goal:** Compile governed trap and skill retrieval candidates into a minimal trap-first execution plan instead of returning another flat list of matches
 **Requirements**: P37-01, P37-02, P37-03, P37-04, P37-05
 **Depends on:** Phase 36
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 37-01-PLAN.md - Plan output schema contracts (TrapFirstPlan, PlanQuery)
-- [ ] 37-02-PLAN.md - Core plan compiler with TDD test suite
-- [ ] 37-03-PLAN.md - v3/retrieval/plan route integration
+- [x] 37-01-PLAN.md - Plan output schema contracts (TrapFirstPlan, PlanQuery)
+- [x] 37-02-PLAN.md - Core plan compiler with TDD test suite
+- [x] 37-03-PLAN.md - v3/retrieval/plan route integration
 
 ### Phase 38: GraphRAG-lite routing fallback and evaluation coverage
 
