@@ -100,7 +100,7 @@ Architecture not yet mapped. Follow existing patterns found in the codebase.
 <!-- GSD:skills-start source:skills/ -->
 ## Project Skills
 
-No project skills found. Add skills to any of: `.claude/skills/`, `.agents/skills/`, `.cursor/skills/`, or `.github/skills/` with a `SKILL.md` index file.
+- `trapmap-knowledge-workflow` (`.claude/skills/trapmap-knowledge-workflow/SKILL.md`) — Use when planning or implementing TrapMap work, operating the TrapMap CLI, or preserving solved engineering pitfalls. Enforces skill-before-plan and trap-before-implementation retrieval, trap-first plan compilation, CLI help verification, artifact activation/review, and compact experience capture.
 <!-- GSD:skills-end -->
 
 <!-- GSD:workflow-start source:GSD defaults -->

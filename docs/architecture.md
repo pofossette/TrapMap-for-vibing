@@ -35,6 +35,7 @@ docs/
 
 ## Skill Compatibility
 
-Project-specific skills live under `.agents/skills/` using Claude-compatible `SKILL.md`
-frontmatter and local assets. This keeps product-facing knowledge templates separate from
-the GSD runtime directories already present in the repository.
+Project-specific skills that should be auto-discovered by Claude-compatible agents live
+under `.claude/skills/` using Claude-compatible `SKILL.md` frontmatter and local assets.
+Product/importable skill bundles live under `packages/skills/`. Keep both shapes aligned
+when a skill is both a runtime playbook and a TrapMap artifact sample.

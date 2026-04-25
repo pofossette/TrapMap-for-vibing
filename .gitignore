@@ -29,6 +29,11 @@ reports/*.json
 # AI/Code Assistant tools
 .agent/
 .claude/
+!.claude/
+.claude/*
+!.claude/skills/
+!.claude/skills/trapmap-knowledge-workflow/
+!.claude/skills/trapmap-knowledge-workflow/**
 .codex/
 .gemini/
 .kilo/
