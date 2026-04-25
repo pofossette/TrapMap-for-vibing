@@ -1,18 +1,21 @@
 import type { FastifyPluginAsync } from 'fastify';
 
 import {
+  planQuerySchema,
   retrievalQuerySchema,
   retrievalResponseSchema,
   retrievalV2QuerySchema,
   retrievalV2ResponseWithHintsSchema,
   skillLookupQuerySchema,
   skillLookupResponseSchema,
+  trapFirstPlanSchema,
 } from '@trapmap/contracts';
 
 import { logUserOperation } from '../lib/user-ops-log.js';
 import { requirePermission } from '../lib/rbac.js';
 import { searchKnowledge, searchKnowledgeV2 } from '../lib/retrieval.js';
 import { searchSkillsByContent } from '../lib/retrieval/skill-lookup.js';
+import { compileTrapFirstPlan } from '../lib/retrieval/plan-compiler.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
 
@@ -104,5 +107,38 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
 
     // Validate and return artifact-first response
     return skillLookupResponseSchema.parse(result);
+  });
+
+  // Phase 37: Trap-first plan compilation (P37-05)
+  // Returns minimal typed execution plan instead of flat result list
+  app.post('/v3/retrieval/plan', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+
+    // Enforce knowledge:search permission
+    requirePermission(auth, 'knowledge:search');
+
+    // Parse and validate plan query
+    const query = planQuerySchema.parse(request.body);
+
+    // Compile trap-first plan
+    const result = await compileTrapFirstPlan(app.skillShareer, auth, query);
+
+    // Log user operation (fire-and-forget)
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'plan',
+      targetId: null,
+      teamId: auth.activeTeamId,
+      metadata: {
+        endpoint: 'v3-retrieval-plan',
+        trapCount: result.blockingTraps.length,
+        skillCount: result.recommendedSkills.length,
+      },
+    });
+
+    // Validate and return plan
+    return trapFirstPlanSchema.parse(result);
   });
 };
