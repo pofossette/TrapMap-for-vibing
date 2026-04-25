@@ -1148,7 +1148,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Check ownership or higher level (T-19-07)
-    const isOwner = artifact.owner.userId === editorUserId;
+    const isOwner = artifact.ownerUserId === editorUserId;
     const isHigherLevel = auth.securityLevel > artifact.requiredLevel;
     if (!isOwner && !isHigherLevel) {
       throw new AppError(
@@ -1174,10 +1174,12 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
         artifact: txArtifact,
         editorUserId,
         editPayload: {
-          title: body.title,
-          labels: body.labels,
-          files: body.files,
-          scriptDescriptors: body.scriptDescriptors,
+          ...(body.title !== undefined && { title: body.title }),
+          ...(body.labels !== undefined && { labels: body.labels }),
+          ...(body.files !== undefined && { files: body.files }),
+          ...(body.scriptDescriptors !== undefined && {
+            scriptDescriptors: body.scriptDescriptors,
+          }),
         },
         submittedAt,
         runPreReview,
@@ -1203,6 +1205,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
     });
 
     // Log user operation (fire-and-forget)
+    const editSnapshot = await app.skillShareer.store.snapshot();
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
       actorId: auth.actorId,
@@ -1233,7 +1236,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return skillEditResponseSchema.parse({
-      artifact: toSkillArtifact(result.artifact, data),
+      artifact: toSkillArtifact(editSnapshot, result.artifact),
       previousRevision: result.previousRevision,
       lifecycleTransition: result.lifecycleTransition,
     });
@@ -1345,20 +1348,17 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
 
     // Map to queue items
     const items = pendingArtifacts.map((artifact) => {
-      const lastRevision = artifact.history[artifact.history.length - 1];
+      const serializedArtifact = toSkillArtifact(data, artifact);
+      const lastHistoryItem = serializedArtifact.history[serializedArtifact.history.length - 1];
       const lastDecision = artifact.reviewHistory.length > 0
         ? artifact.reviewHistory[artifact.reviewHistory.length - 1]
         : null;
 
       return {
-        artifact: toSkillArtifact(artifact, data),
+        artifact: serializedArtifact,
         revision: artifact.latestRevision.revision,
         agentReview: artifact.agentReview,
-        submittedBy: lastRevision?.submittedBy ?? {
-          id: artifact.owner.userId,
-          handle: artifact.owner.handle,
-          securityLevel: artifact.owner.securityLevel,
-        },
+        submittedBy: lastHistoryItem?.submittedBy ?? serializedArtifact.owner,
         lastDecision,
       };
     });
@@ -1502,6 +1502,8 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       metadata: { decision: body.decision, revision: result.artifact.latestRevision.revision },
     });
 
+    const reviewedSnapshot = await app.skillShareer.store.snapshot();
+
     // Trigger skill graph indexing AFTER the transaction commits (P36-02, T-36-11)
     if (result.previousState !== result.newState) {
       await runSkillIndexEvent({
@@ -1518,7 +1520,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return skillReviewDecisionResponseSchema.parse({
-      artifact: toSkillArtifact(result.artifact, data),
+      artifact: toSkillArtifact(reviewedSnapshot, result.artifact),
       previousState: result.previousState,
       newState: result.newState,
     });

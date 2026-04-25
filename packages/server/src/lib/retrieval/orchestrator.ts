@@ -47,7 +47,32 @@ import {
 } from './recall/semantic.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
 import { buildCapsuleCitations, buildCapsuleSummary, buildSummary } from './summary.js';
-import type { MergedCandidate, RetrievalDecision, RetrievalPipelineContext, RoutingChannel, ScoredEntry } from './types.js';
+import type { MergedCandidate, RetrievalPipelineContext, RoutingChannel, ScoredEntry } from './types.js';
+
+interface RetrievalDecision {
+  selectedMode: RetrievalStrategy;
+  routeFamily: 'entry' | 'capsule' | 'graph-plan';
+  routingReason: RoutingReason;
+  fallbackApplied: boolean;
+  fallbackTarget: null;
+  confidenceScore: number | null;
+  confidenceBucket: 'low' | 'medium' | 'high' | null;
+  channelsPlanned: RoutingChannel[];
+  channelsUsed: RoutingChannel[];
+}
+
+function toRoutingTrace(decision: RetrievalDecision) {
+  return {
+    selectedMode: decision.selectedMode,
+    routeFamily: decision.routeFamily,
+    routingReason: decision.routingReason,
+    fallbackApplied: decision.fallbackApplied,
+    fallbackTarget: decision.fallbackTarget,
+    confidenceScore: decision.confidenceScore,
+    confidenceBucket: decision.confidenceBucket,
+    channelsUsed: decision.channelsUsed,
+  };
+}
 
 /**
  * Graph score boost factor for graph-assisted retrieval.
@@ -113,6 +138,9 @@ export function selectRetrievalStrategy(
     routeFamily: 'entry',
     routingReason,
     fallbackApplied: strategy !== V1_MODE_TO_STRATEGY[requestedMode],
+    fallbackTarget: null,
+    confidenceScore: null,
+    confidenceBucket: null,
     channelsPlanned,
     channelsUsed: [], // Populated after recall execution
   };
@@ -138,6 +166,9 @@ export function selectRetrievalStrategyV2(seed: string): RetrievalDecision {
     routeFamily: 'capsule',
     routingReason,
     fallbackApplied: false,
+    fallbackTarget: null,
+    confidenceScore: null,
+    confidenceBucket: null,
     channelsPlanned: ['capsule', 'profile'],
     channelsUsed: [], // Populated after recall execution
   };
@@ -230,13 +261,7 @@ export async function searchKnowledge(
           maxResults: parsed.maxResults,
           includeSummary: parsed.includeSummary ?? false,
           includeRefinement: parsed.includeRefinement ?? false,
-          routingTrace: {
-            selectedMode: emptyRouting.selectedMode,
-            routeFamily: emptyRouting.routeFamily,
-            routingReason: emptyRouting.routingReason,
-            fallbackApplied: emptyRouting.fallbackApplied,
-            channelsUsed: emptyRouting.channelsUsed,
-          },
+          routingTrace: toRoutingTrace(emptyRouting),
         },
       });
       return buildEmptyResponse();
@@ -315,13 +340,7 @@ export async function searchKnowledge(
         maxResults: parsed.maxResults,
         includeSummary: parsed.includeSummary ?? false,
         includeRefinement: parsed.includeRefinement ?? false,
-        routingTrace: {
-          selectedMode: routingDecision.selectedMode,
-          routeFamily: routingDecision.routeFamily,
-          routingReason: routingDecision.routingReason,
-          fallbackApplied: routingDecision.fallbackApplied,
-          channelsUsed: routingDecision.channelsUsed,
-        },
+        routingTrace: toRoutingTrace(routingDecision),
       },
     });
 
@@ -344,13 +363,7 @@ export async function searchKnowledge(
         maxResults: query.maxResults ?? 10,
         includeSummary: query.includeSummary ?? false,
         includeRefinement: query.includeRefinement ?? false,
-        routingTrace: {
-          selectedMode: failRouting.selectedMode,
-          routeFamily: failRouting.routeFamily,
-          routingReason: failRouting.routingReason,
-          fallbackApplied: failRouting.fallbackApplied,
-          channelsUsed: failRouting.channelsUsed,
-        },
+        routingTrace: toRoutingTrace(failRouting),
       },
     });
     throw error;
@@ -817,13 +830,7 @@ export async function searchKnowledgeV2(
           maxResults: parsed.maxResults,
           includeSummary: parsed.includeSummary ?? false,
           includeRefinement: false,
-          routingTrace: {
-            selectedMode: routingDecision.selectedMode,
-            routeFamily: routingDecision.routeFamily,
-            routingReason: routingDecision.routingReason,
-            fallbackApplied: routingDecision.fallbackApplied,
-            channelsUsed: routingDecision.channelsUsed,
-          },
+          routingTrace: toRoutingTrace(routingDecision),
         },
       });
       return buildEmptyV2Response();
@@ -880,13 +887,7 @@ export async function searchKnowledgeV2(
         maxResults: parsed.maxResults,
         includeSummary: parsed.includeSummary ?? false,
         includeRefinement: false,
-        routingTrace: {
-          selectedMode: routingDecision.selectedMode,
-          routeFamily: routingDecision.routeFamily,
-          routingReason: routingDecision.routingReason,
-          fallbackApplied: routingDecision.fallbackApplied,
-          channelsUsed: routingDecision.channelsUsed,
-        },
+        routingTrace: toRoutingTrace(routingDecision),
       },
     });
 
@@ -907,13 +908,7 @@ export async function searchKnowledgeV2(
         maxResults: query.maxResults ?? 10,
         includeSummary: query.includeSummary ?? false,
         includeRefinement: false,
-        routingTrace: {
-          selectedMode: failRouting.selectedMode,
-          routeFamily: failRouting.routeFamily,
-          routingReason: failRouting.routingReason,
-          fallbackApplied: failRouting.fallbackApplied,
-          channelsUsed: failRouting.channelsUsed,
-        },
+        routingTrace: toRoutingTrace(failRouting),
       },
     });
     throw error;

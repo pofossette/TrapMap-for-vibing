@@ -289,7 +289,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       action: 'edit',
       targetId: entryId,
       teamId: auth.activeTeamId,
-      metadata: { endpoint: 'update', scope: payload.scope, labels: payload.labels },
+      metadata: { endpoint: 'update', scope: updatedEntry.scope, labels: payload.labels },
     });
 
     return knowledgeEntryResponseSchema.parse({ entry: updatedEntry });

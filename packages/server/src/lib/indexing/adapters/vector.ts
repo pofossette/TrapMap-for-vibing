@@ -19,14 +19,20 @@ import { nowIso } from '../../store.js';
 import type { NormalizedIndexDocument } from '../types.js';
 import type { IndexAdapter, IndexSyncResult } from '../types.js';
 
+type EntryRef = { entryId: string; revision: number };
+
+export type VectorIndexAdapter = IndexAdapter & {
+  upsert(entry: KnowledgeRecord, document: NormalizedIndexDocument): Promise<IndexSyncResult>;
+  remove(ref: EntryRef): Promise<void>;
+  remove(entry: KnowledgeRecord, ref: EntryRef): Promise<void>;
+  removeLegacy(entry: KnowledgeRecord, ref: EntryRef): Promise<void>;
+};
+
 /**
  * Vector index adapter implementation.
  * Conforms to both the legacy upsert/remove interface and the pipeline sync/remove interface.
  */
-export const vectorIndexAdapter: IndexAdapter & {
-  upsert(entry: KnowledgeRecord, document: NormalizedIndexDocument): Promise<IndexSyncResult>;
-  remove(entry: KnowledgeRecord, ref: { entryId: string; revision: number }): Promise<void>;
-} = {
+export const vectorIndexAdapter: VectorIndexAdapter = {
   kind: 'vector',
 
   /**
@@ -59,7 +65,12 @@ export const vectorIndexAdapter: IndexAdapter & {
   /**
    * Remove vector index (pipeline interface).
    */
-  async remove(entry: KnowledgeRecord, ref: { entryId: string; revision: number }): Promise<void> {
+  async remove(entryOrRef: KnowledgeRecord | EntryRef, maybeRef?: EntryRef): Promise<void> {
+    if (!maybeRef) {
+      return;
+    }
+    const entry = entryOrRef as KnowledgeRecord;
+    const ref = maybeRef;
     // Clear the vector index state
     if (entry.indexState?.vector) {
       entry.indexState.vector = {
@@ -215,7 +226,7 @@ export async function upsertVectorIndex(
  */
 export async function removeVectorIndex(
   entry: KnowledgeRecord,
-  ref: { entryId: string; revision: number },
+  ref: EntryRef,
 ): Promise<void> {
   return vectorIndexAdapter.removeLegacy(entry, ref);
 }

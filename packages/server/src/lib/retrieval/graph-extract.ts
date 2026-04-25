@@ -506,7 +506,7 @@ export interface GraphEntity {
  * Legacy graph relation shape.
  * @deprecated Use GraphRelation instead.
  */
-export interface GraphRelation {
+export interface LegacyGraphRelation {
   type: LegacyGraphRelationType;
   fromEntity: string;
   toEntity: string;
@@ -519,7 +519,7 @@ export interface GraphRelation {
  */
 export interface GraphExtractionResult {
   entities: GraphEntity[];
-  relations: GraphRelation[];
+  relations: LegacyGraphRelation[];
 }
 
 /**
@@ -633,7 +633,7 @@ export function extractGraphEntities(document: NormalizedIndexDocument): GraphEx
     'order': 'mentions',
   };
 
-  const relations: GraphRelation[] = result.edges.map((edge) => ({
+  const relations: LegacyGraphRelation[] = result.edges.map((edge) => ({
     type: relationTypeMap[edge.relationType] ?? 'mentions',
     fromEntity: edge.sourceNodeId,
     toEntity: edge.targetNodeId,

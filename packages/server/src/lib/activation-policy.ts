@@ -59,16 +59,13 @@ export function mapLegacyPolicyToFourState(
 export function getDefaultActivationPolicy(
   descriptor: SkillScriptDescriptor,
 ): ScriptActivationPolicy {
-  // Check if descriptor already uses four-state policy
-  const fourStatePolicies: ScriptActivationPolicy[] = [
-    'reference-only',
-    'needs-approval',
-    'client-executable',
-    'blocked',
-  ];
-
-  if (fourStatePolicies.includes(descriptor.defaultPolicy as ScriptActivationPolicy)) {
-    return descriptor.defaultPolicy as ScriptActivationPolicy;
+  if (
+    descriptor.defaultPolicy === 'reference-only' ||
+    descriptor.defaultPolicy === 'needs-approval' ||
+    descriptor.defaultPolicy === 'client-executable' ||
+    descriptor.defaultPolicy === 'blocked'
+  ) {
+    return descriptor.defaultPolicy;
   }
 
   // Map legacy three-state policy to four-state

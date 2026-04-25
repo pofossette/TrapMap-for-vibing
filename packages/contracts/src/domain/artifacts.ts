@@ -35,6 +35,19 @@ export const scriptActivationPolicySchema = z.enum([
 ]);
 
 /**
+ * Legacy script activation policy vocabulary retained for backward compatibility.
+ */
+export const legacyScriptActivationPolicySchema = z.enum(['manual', 'auto', 'blocked']);
+
+/**
+ * Compatible script policy vocabulary that accepts both legacy and four-state values.
+ */
+export const compatibleScriptActivationPolicySchema = z.union([
+  scriptActivationPolicySchema,
+  legacyScriptActivationPolicySchema,
+]);
+
+/**
  * Script with policy metadata for activation decisions.
  * Combines script descriptor with activation policy information.
  */
@@ -98,8 +111,8 @@ export const skillScriptDescriptorSchema = z.object({
   argsSchemaSummary: z.string().max(280).default(''),
   /** Brief summary of side effects (e.g., 'Modifies local files') */
   sideEffectSummary: z.string().max(280).default(''),
-  /** Default execution policy (e.g., 'manual', 'auto', 'blocked') */
-  defaultPolicy: z.enum(['manual', 'auto', 'blocked']),
+  /** Default execution policy (legacy three-state or four-state vocabulary) */
+  defaultPolicy: compatibleScriptActivationPolicySchema,
 });
 
 /**
@@ -115,10 +128,16 @@ export const skillProfileSchema = z.object({
   sourceHash: z.string().length(64),
   /** Human-readable title from skill metadata */
   title: z.string().min(1).max(280),
+  /** Optional description derived from SKILL.md frontmatter */
+  description: z.string().max(1000).optional(),
   /** Distilled summary of artifact content */
   summary: z.string().min(1).max(1000),
   /** Keywords extracted from skill content */
   keywords: z.array(labelSchema).default([]),
+  /** Additive labels kept for compatibility with older lookup fixtures */
+  labels: z.array(labelSchema).default([]),
+  /** Optional prerequisite list extracted from skill metadata */
+  prerequisites: z.array(z.string().min(1).max(280)).default([]),
   /** Paths to reference files included in derivation */
   referencePaths: z.array(z.string().max(512)).default([]),
   /** Hash of the derived profile content for caching */
@@ -190,7 +209,7 @@ export const clientManifestScriptSchema = z.object({
   capability: z.string().min(1).max(280),
   argsSchemaSummary: z.string().max(280).default(''),
   sideEffectSummary: z.string().max(280).default(''),
-  defaultPolicy: z.enum(['manual', 'auto', 'blocked']),
+  defaultPolicy: compatibleScriptActivationPolicySchema,
 });
 
 /**

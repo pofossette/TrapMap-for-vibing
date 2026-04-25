@@ -18,6 +18,7 @@ import type {
   SkillShareerStore,
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
+  StoredScriptActivationPolicy,
   StoreData,
 } from '../store.js';
 import { appendSkillArtifactRevision } from './model.js';
@@ -84,7 +85,7 @@ export interface SkillEditPayload {
     capability: string;
     argsSchemaSummary: string;
     sideEffectSummary: string;
-    defaultPolicy: 'manual' | 'auto' | 'blocked';
+    defaultPolicy: StoredScriptActivationPolicy;
   }>;
 }
 

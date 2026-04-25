@@ -6,12 +6,61 @@
  * and produce graphology graph instances for validation and query-time use.
  */
 
-import Graph from 'graphology';
+import Graphology from 'graphology';
 import { hasCycle } from 'graphology-dag';
 import { subgraph } from 'graphology-operators';
 import { singleSourceLength } from 'graphology-shortest-path';
 
 import type { GraphEdgeRecord, GraphIndexDocumentRecord } from './documents.js';
+
+type GraphNodeAttributes = {
+  kind?: string;
+  label?: string;
+};
+
+type GraphEdgeAttributes = {
+  relationType?: string;
+  strength?: GraphEdgeRecord['strength'];
+};
+
+export interface Graph {
+  mergeNode(nodeId: string, attributes?: GraphNodeAttributes): void;
+  mergeEdgeWithKey(
+    edgeId: string,
+    sourceNodeId: string,
+    targetNodeId: string,
+    attributes?: GraphEdgeAttributes,
+  ): void;
+  neighbors(nodeId: string): string[];
+  hasNode(nodeId: string): boolean;
+  edges(nodeId?: string): string[];
+  extremities(edgeId: string): [string | undefined, string | undefined];
+  getEdgeAttributes(edgeId: string): GraphEdgeAttributes;
+  getNodeAttributes(nodeId: string): GraphNodeAttributes;
+  nodes(): string[];
+  forEachEdge(
+    callback: (
+      edgeKey: string,
+      attributes: GraphEdgeAttributes,
+      sourceNodeId: string,
+      targetNodeId: string,
+    ) => void,
+  ): void;
+  forEachEdge(
+    nodeId: string,
+    callback: (
+      edgeKey: string,
+      attributes: GraphEdgeAttributes,
+      sourceNodeId: string,
+      targetNodeId: string,
+    ) => void,
+  ): void;
+}
+
+const GraphCtor = Graphology as unknown as new (options?: {
+  type?: string;
+  multi?: boolean;
+}) => Graph;
 
 // ---------------------------------------------------------------------------
 // Graph assembly
@@ -24,7 +73,7 @@ import type { GraphEdgeRecord, GraphIndexDocumentRecord } from './documents.js';
  * Edges are keyed by their edge id with relationType/strength attributes.
  */
 export function buildGraphFromDocuments(documents: GraphIndexDocumentRecord[]): Graph {
-  const graph = new Graph({ type: 'directed', multi: true });
+  const graph = new GraphCtor({ type: 'directed', multi: true });
 
   for (const doc of documents) {
     for (const node of doc.nodes) {
@@ -210,7 +259,7 @@ const HARD_RELATION_TYPES: ReadonlySet<string> = new Set(['requires', 'risk-bloc
  * Excludes 'order', 'co-occurs-with', and soft edges from the DAG.
  */
 export function projectHardDependencyGraph(documents: GraphIndexDocumentRecord[]): Graph {
-  const dag = new Graph({ type: 'directed', multi: true });
+  const dag = new GraphCtor({ type: 'directed', multi: true });
 
   for (const doc of documents) {
     for (const edge of doc.edges) {
@@ -240,7 +289,7 @@ export function projectHardDependencyGraph(documents: GraphIndexDocumentRecord[]
  */
 export function assertNoHardDependencyCycles(documents: GraphIndexDocumentRecord[]): void {
   const dag = projectHardDependencyGraph(documents);
-  if (hasCycle(dag)) {
+  if (hasCycle(dag as never)) {
     throw new Error('hard dependency cycle detected');
   }
 }
@@ -286,7 +335,7 @@ export function buildLocalExpansionView(params: LocalExpansionParams): Graph {
     }
 
     // Get shortest path lengths from this seed
-    const distances = singleSourceLength(graph, seedId);
+    const distances = singleSourceLength(graph as never, seedId) as Record<string, number>;
 
     for (const [nodeId, distance] of Object.entries(distances)) {
       if (distance !== null && distance <= maxDepth) {
@@ -296,5 +345,5 @@ export function buildLocalExpansionView(params: LocalExpansionParams): Graph {
   }
 
   // Return subgraph containing only reachable nodes
-  return subgraph(graph, reachableNodeIds);
+  return subgraph(graph as never, reachableNodeIds) as Graph;
 }

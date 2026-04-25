@@ -173,7 +173,10 @@ export async function searchKnowledgeGraphPlan(
     );
     fallback = {
       routeFamily: 'capsule',
-      response,
+      response: {
+        ...response,
+        activationHints: [],
+      },
     };
   } else if (assessment.fallbackTarget === 'v1-graph-assisted') {
     const response = await timedStep(

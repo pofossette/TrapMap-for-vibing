@@ -20,10 +20,10 @@ import type {
   PlanEdge,
   PlanCitation,
 } from '@trapmap/contracts';
-import Graph from 'graphology';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import type { GraphIndexDocumentRecord, GraphNodeRecord } from '../indexing/graph-lite/documents.js';
+import type { Graph } from '../indexing/graph-lite/graphology.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 import { buildLocalExpansionView } from '../indexing/graph-lite/graphology.js';
 import { getGraphIndexDocuments } from '../indexing/graph-lite/store.js';
@@ -442,7 +442,8 @@ function buildPlanEdges(
 
     // Only include plan-relevant edge types
     const planEdgeTypes = ['risk-blocks', 'mitigates', 'requires', 'order'];
-    if (!planEdgeTypes.includes(attributes.relationType)) {
+    const relationType = attributes.relationType;
+    if (!relationType || !planEdgeTypes.includes(relationType)) {
       return;
     }
 
@@ -450,7 +451,7 @@ function buildPlanEdges(
       id: edgeKey,
       sourceNodeId,
       targetNodeId,
-      type: attributes.relationType as PlanEdge['type'],
+      type: relationType as PlanEdge['type'],
       strength: attributes.strength as PlanEdge['strength'],
     });
   });

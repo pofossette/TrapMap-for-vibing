@@ -358,15 +358,24 @@ async function buildArtifactBundle(args: {
     });
   }
 
-  // Build script descriptors (placeholder for now)
-  const scriptDescriptors: ArtifactBundle['scriptDescriptors'] = scripts.map((relPath) => ({
-    path: relPath,
-    sha256: files.find((f) => f.path === relPath)?.sha256,
-    capability: `${relPath} execution`,
-    argsSchemaSummary: '',
-    sideEffectSummary: '',
-    defaultPolicy: 'manual',
-  }));
+  const scriptHashes = new Map(
+    files.filter((file) => file.kind === 'script').map((file) => [file.path, file.sha256]),
+  );
+  const scriptDescriptors: ArtifactBundle['scriptDescriptors'] = scripts.map((relPath) => {
+    const sha256 = scriptHashes.get(relPath);
+    if (!sha256) {
+      throw new Error(`Missing script hash for ${relPath}`);
+    }
+
+    return {
+      path: relPath,
+      sha256,
+      capability: `${relPath} execution`,
+      argsSchemaSummary: '',
+      sideEffectSummary: '',
+      defaultPolicy: 'manual',
+    };
+  });
 
   return {
     scope: 'project',

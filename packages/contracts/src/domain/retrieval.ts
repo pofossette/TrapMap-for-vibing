@@ -1,3 +1,4 @@
+import { compatibleScriptActivationPolicySchema } from './artifacts.js';
 import { z } from 'zod';
 
 import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema } from './common.js';
@@ -246,7 +247,7 @@ export const scriptProfileHintSchema = z.object({
   /** Brief summary of side effects */
   sideEffectSummary: z.string().max(280).default(''),
   /** Default activation policy from server */
-  defaultPolicy: z.enum(['manual', 'auto', 'blocked']),
+  defaultPolicy: compatibleScriptActivationPolicySchema,
 });
 
 /**

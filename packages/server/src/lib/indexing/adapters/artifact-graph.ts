@@ -16,7 +16,6 @@
  */
 
 import type { SkillArtifactRecord, StoreData } from '../../store.js';
-import type { GraphIndexDocumentRecord } from '../graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
 import { getGraphIndexDocuments, removeGraphIndexDocumentsForSource, upsertGraphIndexDocument } from '../graph-lite/store.js';
 import { buildSkillGraphDocument } from '../skill-events.js';
@@ -30,7 +29,7 @@ import { buildSkillGraphDocument } from '../skill-events.js';
  */
 export interface ArtifactGraphAdapterInput {
   /** Store data (within transaction) */
-  data: StoreData;
+  data: Pick<StoreData, 'graphIndexDocuments'>;
   /** The skill artifact to index */
   artifact: SkillArtifactRecord;
 }
@@ -40,7 +39,7 @@ export interface ArtifactGraphAdapterInput {
  */
 export interface ArtifactGraphAdapterRemoveInput {
   /** Store data (within transaction) */
-  data: StoreData;
+  data: Pick<StoreData, 'graphIndexDocuments'>;
   /** The artifact ID to remove */
   artifactId: string;
 }

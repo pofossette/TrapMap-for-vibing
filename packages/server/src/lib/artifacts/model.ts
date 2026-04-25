@@ -23,6 +23,7 @@ import type {
   SkillArtifactReviewDecisionRecord,
   SkillArtifactReviewNoteRecord,
   SkillArtifactRevisionRecord,
+  StoredScriptActivationPolicy,
   StoreData,
 } from '../store.js';
 import { nowIso } from '../store.js';
@@ -241,7 +242,7 @@ export function createSkillArtifactRecord(args: {
       capability: string;
       argsSchemaSummary: string;
       sideEffectSummary: string;
-      defaultPolicy: 'manual' | 'auto' | 'blocked';
+      defaultPolicy: StoredScriptActivationPolicy;
     }>;
     sourceKind: 'skill-directory' | 'single-skill-md' | 'legacy-knowledge';
     /** Optional canonical source hash computed from derivation-eligible files */
@@ -356,7 +357,7 @@ export function appendSkillArtifactRevision(args: {
       capability: string;
       argsSchemaSummary: string;
       sideEffectSummary: string;
-      defaultPolicy: 'manual' | 'auto' | 'blocked';
+      defaultPolicy: StoredScriptActivationPolicy;
     }>;
     /** Canonical source hash computed from derivation-eligible files */
     sourceHash: string;
@@ -524,7 +525,7 @@ export function applyDerivedArtifactOutputs(
         capability: string;
         argsSchemaSummary: string;
         sideEffectSummary: string;
-        defaultPolicy: 'manual' | 'auto' | 'blocked';
+        defaultPolicy: StoredScriptActivationPolicy;
       }>;
       sourceHash: string;
     } | null;

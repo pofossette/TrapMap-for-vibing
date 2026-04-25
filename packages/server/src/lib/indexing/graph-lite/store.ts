@@ -6,15 +6,20 @@
  * the previous document for that source, keeping only the latest revision.
  */
 
-import type { StoreData } from '../store.js';
+import type { StoreData } from '../../store.js';
 import type { GraphIndexDocumentRecord } from './documents.js';
+
+type GraphDocumentStore = Pick<StoreData, 'graphIndexDocuments'>;
 
 /**
  * Upsert a graph document into the store.
  * Replaces any existing document with the same sourceType and sourceId.
  * This ensures only the latest revision is retained per source.
  */
-export function upsertGraphIndexDocument(data: StoreData, document: GraphIndexDocumentRecord): void {
+export function upsertGraphIndexDocument(
+  data: GraphDocumentStore,
+  document: GraphIndexDocumentRecord,
+): void {
   const idx = data.graphIndexDocuments.findIndex(
     (d) => d.sourceType === document.sourceType && d.sourceId === document.sourceId,
   );
@@ -31,7 +36,7 @@ export function upsertGraphIndexDocument(data: StoreData, document: GraphIndexDo
  * Does not affect documents from other sources.
  */
 export function removeGraphIndexDocumentsForSource(
-  data: StoreData,
+  data: GraphDocumentStore,
   sourceType: 'trap' | 'skill',
   sourceId: string,
 ): void {
@@ -43,7 +48,7 @@ export function removeGraphIndexDocumentsForSource(
 /**
  * Get all graph documents from the store.
  */
-export function getGraphIndexDocuments(data: StoreData): GraphIndexDocumentRecord[] {
+export function getGraphIndexDocuments(data: GraphDocumentStore): GraphIndexDocumentRecord[] {
   return data.graphIndexDocuments ?? [];
 }
 
@@ -51,7 +56,7 @@ export function getGraphIndexDocuments(data: StoreData): GraphIndexDocumentRecor
  * Get graph documents for a specific source.
  */
 export function getGraphIndexDocumentsForSource(
-  data: StoreData,
+  data: GraphDocumentStore,
   sourceType: 'trap' | 'skill',
   sourceId: string,
 ): GraphIndexDocumentRecord[] {

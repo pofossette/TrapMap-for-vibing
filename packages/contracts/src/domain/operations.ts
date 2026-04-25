@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import {
+  compatibleScriptActivationPolicySchema,
   skillArtifactFileKindSchema,
   skillArtifactFileSourceSchema,
   skillArtifactSchema,
@@ -133,7 +134,7 @@ export const bundleScriptDescriptorSchema = z.object({
   /** Brief summary of side effects */
   sideEffectSummary: z.string().max(280).default(''),
   /** Default execution policy */
-  defaultPolicy: z.enum(['manual', 'auto', 'blocked']),
+  defaultPolicy: compatibleScriptActivationPolicySchema,
 });
 
 /**

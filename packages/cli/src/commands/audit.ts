@@ -35,10 +35,10 @@ export function registerAuditCommands(program: Command, options: AuditCommandOpt
   program
     .command('audit')
     .description('Query audit trail for team operations')
-    .option('--action <action>', 'Filter by action type (can be repeated)', (value, previous) => [
-      ...(previous ?? []),
-      value,
-    ])
+    .option('--action <action>', 'Filter by action type (can be repeated)', (value, previous) => {
+      const prior = Array.isArray(previous) ? previous : [];
+      return [...prior, value];
+    })
     .option('--actor <userId>', 'Filter by actor user ID')
     .option('--entity <entityId>', 'Filter by entity ID')
     .option('--from <date>', 'Filter from ISO date')

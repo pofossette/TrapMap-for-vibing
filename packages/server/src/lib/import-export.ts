@@ -214,9 +214,10 @@ export function normalizeArtifactBundle(args: {
         `single-skill-md imports must contain exactly one file, got ${bundle.files.length}`,
       );
     }
-    if (bundle.files[0].path !== 'SKILL.md') {
+    const onlyFile = bundle.files[0];
+    if (!onlyFile || onlyFile.path !== 'SKILL.md') {
       throw new Error(
-        `single-skill-md imports must contain only SKILL.md at root, got "${bundle.files[0].path}"`,
+        `single-skill-md imports must contain only SKILL.md at root, got "${onlyFile?.path ?? 'unknown'}"`,
       );
     }
     // No script descriptors for single-file mode

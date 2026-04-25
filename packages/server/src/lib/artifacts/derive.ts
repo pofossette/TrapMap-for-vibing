@@ -151,6 +151,8 @@ function buildSkillProfile(
     title: artifact.title,
     summary: `Skill artifact: ${artifact.title}`, // Placeholder summary
     keywords,
+    labels: keywords,
+    prerequisites: [],
     referencePaths,
     contentHash,
   };
@@ -445,6 +447,7 @@ function extractSections(content: string): {
     const match = body.match(pattern);
     if (!match) return null;
     const text = match[1]?.trim();
+    if (!text) return null;
     // Truncate to max length for capsule fields
     return text.length > 1000 ? `${text.slice(0, 997)}...` : text;
   };

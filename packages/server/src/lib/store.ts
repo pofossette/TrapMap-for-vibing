@@ -9,9 +9,12 @@ import type {
   Permission,
   RoleTemplate,
   Scope,
+  ScriptActivationPolicy,
 } from '@trapmap/contracts';
 
 import type { GraphIndexDocumentRecord } from './indexing/graph-lite/documents.js';
+
+export type StoredScriptActivationPolicy = ScriptActivationPolicy | 'manual' | 'auto';
 
 export interface UserRecord {
   id: string;
@@ -267,8 +270,8 @@ export interface SkillScriptDescriptorRecord {
   argsSchemaSummary: string;
   /** Brief summary of side effects (e.g., 'Modifies local files') */
   sideEffectSummary: string;
-  /** Default execution policy (e.g., 'manual', 'auto', 'blocked') */
-  defaultPolicy: 'manual' | 'auto' | 'blocked';
+  /** Default execution policy (legacy three-state or four-state vocabulary) */
+  defaultPolicy: StoredScriptActivationPolicy;
 }
 
 /**
@@ -284,10 +287,16 @@ export interface DerivedSkillProfileRecord {
   sourceHash: string;
   /** Human-readable title from skill metadata */
   title: string;
+  /** Optional description derived from skill metadata */
+  description?: string;
   /** Distilled summary of artifact content */
   summary: string;
   /** Keywords extracted from skill content */
   keywords: string[];
+  /** Additive labels retained for backward compatibility with older fixtures */
+  labels?: string[];
+  /** Optional prerequisite list retained for backward compatibility */
+  prerequisites?: string[];
   /** Paths to reference files included in derivation */
   referencePaths: string[];
   /** Hash of the derived profile content for caching */
@@ -359,7 +368,7 @@ export interface ClientManifestScriptRecord {
   capability: string;
   argsSchemaSummary: string;
   sideEffectSummary: string;
-  defaultPolicy: 'manual' | 'auto' | 'blocked';
+  defaultPolicy: StoredScriptActivationPolicy;
 }
 
 /**

@@ -19,6 +19,15 @@ import { nowIso } from '../../store.js';
 import type { NormalizedIndexDocument } from '../types.js';
 import type { IndexAdapter, IndexSyncResult } from '../types.js';
 
+type EntryRef = { entryId: string; revision: number };
+
+export type KeywordIndexAdapter = IndexAdapter & {
+  upsert(entry: KnowledgeRecord, document: NormalizedIndexDocument): Promise<IndexSyncResult>;
+  remove(ref: EntryRef): Promise<void>;
+  remove(entry: KnowledgeRecord, ref: EntryRef): Promise<void>;
+  removeLegacy(entry: KnowledgeRecord, ref: EntryRef): Promise<void>;
+};
+
 /**
  * Persisted keyword state for query-time reuse.
  * Contains normalized tokens and per-field token sets.
@@ -50,10 +59,7 @@ export interface IndexStateKeyword {
 /**
  * Create a keyword index adapter that returns the persisted keyword state.
  */
-function createKeywordAdapter(): IndexAdapter & {
-  upsert(entry: KnowledgeRecord, document: NormalizedIndexDocument): Promise<IndexSyncResult>;
-  remove(entry: KnowledgeRecord, ref: { entryId: string; revision: number }): Promise<void>;
-} {
+function createKeywordAdapter(): KeywordIndexAdapter {
   return {
     kind: 'keyword',
 
@@ -90,7 +96,12 @@ function createKeywordAdapter(): IndexAdapter & {
       }
     },
 
-    async remove(entry: KnowledgeRecord, ref: { entryId: string; revision: number }): Promise<void> {
+    async remove(entryOrRef: KnowledgeRecord | EntryRef, maybeRef?: EntryRef): Promise<void> {
+      if (!maybeRef) {
+        return;
+      }
+      const entry = entryOrRef as KnowledgeRecord;
+      const ref = maybeRef;
       // Clear the keyword index state
       if (entry.indexState?.keyword) {
         entry.indexState.keyword = {
@@ -101,7 +112,7 @@ function createKeywordAdapter(): IndexAdapter & {
           lastError: null,
         };
         // Clear persisted state (typed as IndexStateKeyword)
-        (entry.indexState.keyword as IndexStateKeyword).persistedState = undefined;
+        delete (entry.indexState.keyword as IndexStateKeyword).persistedState;
       }
     },
 
@@ -214,7 +225,7 @@ function createKeywordAdapter(): IndexAdapter & {
      */
     async removeLegacy(
       entry: KnowledgeRecord,
-      ref: { entryId: string; revision: number },
+      ref: EntryRef,
     ): Promise<void> {
       if (entry.indexState?.keyword) {
         entry.indexState.keyword = {
@@ -225,7 +236,7 @@ function createKeywordAdapter(): IndexAdapter & {
           lastError: null,
         };
         // Clear persisted state (typed as IndexStateKeyword)
-        (entry.indexState.keyword as IndexStateKeyword).persistedState = undefined;
+        delete (entry.indexState.keyword as IndexStateKeyword).persistedState;
       }
     },
   };
@@ -234,7 +245,7 @@ function createKeywordAdapter(): IndexAdapter & {
 /**
  * Keyword index adapter implementation.
  */
-export const keywordIndexAdapter: IndexAdapter = createKeywordAdapter();
+export const keywordIndexAdapter: KeywordIndexAdapter = createKeywordAdapter();
 
 /**
  * Legacy upsert method for backward compatibility.

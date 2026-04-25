@@ -337,6 +337,9 @@ export function extractSkillGraphPrimitives(args: {
   // 3. Extract from capsules
   for (let i = 0; i < capsules.length; i++) {
     const capsule = capsules[i];
+    if (!capsule) {
+      continue;
+    }
     const capsuleText = `${capsule.situation} ${capsule.problem} ${capsule.goal} ${capsule.content} ${capsule.labels.join(' ')}`;
     const capsuleFieldRef = `capsules[${i}]`;
 
