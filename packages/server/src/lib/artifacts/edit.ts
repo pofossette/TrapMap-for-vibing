@@ -15,7 +15,7 @@ import { createHash } from 'node:crypto';
 import type { AgentReviewResult, LifecycleState } from '@trapmap/contracts';
 
 import type {
-  JsonStore,
+  SkillShareerStore,
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
   StoreData,
@@ -181,7 +181,7 @@ export interface SubmitSkillEditResult {
  * - This function focuses on the edit logic itself
  */
 export async function submitSkillEdit(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   artifact: SkillArtifactRecord;
   editorUserId: string;

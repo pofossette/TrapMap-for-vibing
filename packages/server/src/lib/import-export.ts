@@ -4,13 +4,13 @@ import type {
   ArtifactBundle,
   KnowledgeSubmission,
 } from '@trapmap/contracts';
-import { validateRelativePath } from '@trapmap/contracts';
+import { parseSkillMarkdown, validateRelativePath } from '@trapmap/contracts';
 
 import { createKnowledgeEntryRecord } from './knowledge.js';
 import type {
   ArtifactFilePayloadRecord,
-  JsonStore,
   KnowledgeRecord,
+  SkillShareerStore,
   SkillArtifactRevisionRecord,
   StoreData,
 } from './store.js';
@@ -261,49 +261,17 @@ export function normalizeArtifactBundle(args: {
  * @deprecated Use normalizeArtifactBundle for artifact-native imports
  */
 export function parseClaudeSkill(content: string): KnowledgeSubmission | null {
-  // Match frontmatter between --- markers
-  const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
-
-  if (!frontmatterMatch) {
+  const metadata = parseSkillMarkdown(content);
+  if (!metadata.hasFrontmatter || !metadata.name) {
     return null;
   }
 
-  const match = frontmatterMatch;
-  if (!match || !match[1] || !match[2]) {
-    return null;
-  }
-
-  const frontmatterRaw = match[1];
-  const body = match[2];
-
-  // Simple YAML parsing for the fields we care about
-  const lines = frontmatterRaw.split('\n');
-  const frontmatter: Record<string, string> = {};
-
-  for (const line of lines) {
-    const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) continue;
-
-    const key = line.slice(0, colonIndex).trim();
-    const value = line.slice(colonIndex + 1).trim();
-
-    // Remove quotes if present
-    const unquoted = value.replace(/^["']|["']$/g, '');
-    frontmatter[key] = unquoted;
-  }
-
-  const name = frontmatter.name;
-  if (!name) {
-    return null;
-  }
-
-  const description = frontmatter.description ?? '';
-  const detailContent = body.trim() || description;
+  const detailContent = metadata.body.trim() || metadata.description || '';
 
   return {
     scope: 'project',
     labels: ['imported', 'skill'],
-    shortcut: name,
+    shortcut: metadata.name,
     detail: detailContent,
   };
 }
@@ -372,7 +340,7 @@ function overlapScore(a: Set<string>, b: Set<string>): number {
  * @deprecated Use artifact-native import via normalizeArtifactBundle
  */
 export function createImportedEntry(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   ownerUserId: string;
   teamId: string | null;

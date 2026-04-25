@@ -30,7 +30,6 @@ import {
   executeCase,
   seedScenarioFixtures,
 } from './lib/adapters.js';
-import { loadCases, filterByEndpoint } from './lib/load.js';
 import { evaluateGovernance } from './lib/governance.js';
 import { calculateMetrics, averageMetrics } from './lib/metrics.js';
 import type {
@@ -45,7 +44,7 @@ interface RunOptions {
   tier: RetrievalEvalTier;
   dryRun: boolean;
   allowEmpty: boolean;
-  endpoint?: '/v1/retrieval/search' | '/v2/retrieval/search';
+  endpoint?: '/v1/retrieval/search' | '/v2/retrieval/search' | '/v3/retrieval/search';
   json: boolean;
   jsonPath?: string;
   verbose: number;
@@ -116,9 +115,17 @@ function parseArgs_(): RunOptions {
   const endpoint = values.endpoint as
     | '/v1/retrieval/search'
     | '/v2/retrieval/search'
+    | '/v3/retrieval/search'
     | undefined;
-  if (endpoint && endpoint !== '/v1/retrieval/search' && endpoint !== '/v2/retrieval/search') {
-    console.error(`Invalid endpoint: ${endpoint}. Must be '/v1/retrieval/search' or '/v2/retrieval/search'.`);
+  if (
+    endpoint &&
+    endpoint !== '/v1/retrieval/search' &&
+    endpoint !== '/v2/retrieval/search' &&
+    endpoint !== '/v3/retrieval/search'
+  ) {
+    console.error(
+      `Invalid endpoint: ${endpoint}. Must be '/v1/retrieval/search', '/v2/retrieval/search', or '/v3/retrieval/search'.`,
+    );
     process.exit(1);
   }
 
@@ -161,7 +168,7 @@ function loadCases(tier: RetrievalEvalTier): RetrievalEvalCase[] {
  */
 function filterByEndpoint(
   cases_: RetrievalEvalCase[],
-  endpoint?: '/v1/retrieval/search' | '/v2/retrieval/search',
+  endpoint?: '/v1/retrieval/search' | '/v2/retrieval/search' | '/v3/retrieval/search',
 ): RetrievalEvalCase[] {
   if (!endpoint) return cases_;
   return cases_.filter((c) => c.endpoint === endpoint);

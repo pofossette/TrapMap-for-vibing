@@ -12,7 +12,7 @@
  * Graph payloads remain server-internal and are not exposed through contracts.
  */
 
-import type { JsonStore, StoreData } from '../../store.js';
+import type { SkillShareerStore, StoreData } from '../../store.js';
 import { nowIso } from '../../store.js';
 import { extractTrapGraphEntities } from '../../retrieval/graph-extract.js';
 import { buildTrapGraphDocument } from './graph-builders.js';
@@ -21,6 +21,7 @@ import {
   upsertGraphIndexDocument,
   removeGraphIndexDocumentsForSource,
 } from '../graph-lite/store.js';
+import type { GraphIndexDocumentRecord } from '../graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
 import type { NormalizedIndexDocument } from '../types.js';
 import type { IndexAdapter, IndexSyncResult } from '../types.js';
@@ -41,11 +42,11 @@ interface LegacyGraphSyncState {
 
 const graphStateCache = new Map<string, LegacyGraphSyncState>();
 
-/** @deprecated Use store-backed helpers instead */
-const globalGraphIndex = {
-  entities: new Map<string, Set<string>>(),
-  relations: new Map<string, Array<{ type: string; fromEntity: string; toEntity: string; weight: number }>>(),
-};
+const cachedGraphDocuments = new Map<string, GraphIndexDocumentRecord>();
+
+function cacheDocument(document: GraphIndexDocumentRecord): void {
+  cachedGraphDocuments.set(`${document.sourceType}:${document.sourceId}`, document);
+}
 
 // ---------------------------------------------------------------------------
 // Adapter implementation
@@ -54,7 +55,7 @@ const globalGraphIndex = {
 /**
  * Graph index adapter implementation with store-backed persistence.
  *
- * sync(document, store?) accepts an optional JsonStore for durable persistence.
+ * sync(document, store?) accepts an optional shared store for durable persistence.
  * When a store is provided, the adapter writes GraphIndexDocumentRecord entries
  * to StoreData.graphIndexDocuments through the store-backed helpers.
  * Before persisting a trap document, the adapter validates that no hard-edge
@@ -64,12 +65,12 @@ const globalGraphIndex = {
  * index so existing graph-assisted recall callers continue to work during migration.
  */
 export const graphIndexAdapter: IndexAdapter & {
-  sync(document: NormalizedIndexDocument, store?: JsonStore): Promise<IndexSyncResult>;
-  remove(ref: { entryId: string; revision: number }, store?: JsonStore): Promise<void>;
+  sync(document: NormalizedIndexDocument, store?: SkillShareerStore): Promise<IndexSyncResult>;
+  remove(ref: { entryId: string; revision: number }, store?: SkillShareerStore): Promise<void>;
 } = {
   kind: 'graph',
 
-  async sync(document: NormalizedIndexDocument, store?: JsonStore): Promise<IndexSyncResult> {
+  async sync(document: NormalizedIndexDocument, store?: SkillShareerStore): Promise<IndexSyncResult> {
     const cacheKey = `${document.entryId}:${document.revision}`;
     const existingState = graphStateCache.get(cacheKey);
 
@@ -114,32 +115,14 @@ export const graphIndexAdapter: IndexAdapter & {
         });
       }
 
-      // Update in-memory cache for backward compat with graph-assisted recall
+      // Update in-memory cache for transitional graph-assisted recall
       graphStateCache.set(cacheKey, {
         entryId: document.entryId,
         revision: document.revision,
         contentHash: document.contentHash,
         syncedAt: nowIso(),
       });
-
-      // Update global in-memory index (backward compat)
-      for (const node of extractionResult.nodes) {
-        const entityKey = node.label.toLowerCase().trim().replace(/\s+/g, '-');
-        if (!globalGraphIndex.entities.has(entityKey)) {
-          globalGraphIndex.entities.set(entityKey, new Set());
-        }
-        globalGraphIndex.entities.get(entityKey)?.add(document.entryId);
-      }
-
-      globalGraphIndex.relations.set(
-        document.entryId,
-        extractionResult.edges.map((edge) => ({
-          type: edge.relationType,
-          fromEntity: edge.sourceNodeId,
-          toEntity: edge.targetNodeId,
-          weight: edge.strength === 'hard' ? 2 : 1,
-        })),
-      );
+      cacheDocument(candidateDoc);
 
       return {
         adapterKind: 'graph',
@@ -161,7 +144,7 @@ export const graphIndexAdapter: IndexAdapter & {
 
   async remove(
     ref: { entryId: string; revision: number },
-    store?: JsonStore,
+    store?: SkillShareerStore,
   ): Promise<void> {
     // Store-backed removal
     if (store) {
@@ -175,23 +158,10 @@ export const graphIndexAdapter: IndexAdapter & {
     const existingState = graphStateCache.get(cacheKey);
 
     if (existingState) {
-      // Remove from global in-memory index
-      const entityKeysToRemove: string[] = [];
-      for (const [entityKey, entrySet] of globalGraphIndex.entities.entries()) {
-        if (entrySet.has(ref.entryId)) {
-          entrySet.delete(ref.entryId);
-          if (entrySet.size === 0) {
-            entityKeysToRemove.push(entityKey);
-          }
-        }
-      }
-      for (const key of entityKeysToRemove) {
-        globalGraphIndex.entities.delete(key);
-      }
-
-      globalGraphIndex.relations.delete(ref.entryId);
       graphStateCache.delete(cacheKey);
     }
+
+    cachedGraphDocuments.delete(`trap:${ref.entryId}`);
   },
 };
 
@@ -199,17 +169,19 @@ export const graphIndexAdapter: IndexAdapter & {
 // Backward-compatible exports (used by existing graph-assisted recall tests)
 // ---------------------------------------------------------------------------
 
-/** @deprecated Use store-backed getGraphIndexDocuments instead */
-export function getGlobalGraphIndex() {
-  return {
-    entities: globalGraphIndex.entities,
-    relations: globalGraphIndex.relations,
-  };
+export function getCachedGraphIndexDocuments(): GraphIndexDocumentRecord[] {
+  return Array.from(cachedGraphDocuments.values());
+}
+
+export function setCachedGraphIndexDocuments(documents: GraphIndexDocumentRecord[]): void {
+  cachedGraphDocuments.clear();
+  for (const document of documents) {
+    cacheDocument(document);
+  }
 }
 
 /** @deprecated Use store-backed helpers instead */
 export function clearGraphCache(): void {
   graphStateCache.clear();
-  globalGraphIndex.entities.clear();
-  globalGraphIndex.relations.clear();
+  cachedGraphDocuments.clear();
 }

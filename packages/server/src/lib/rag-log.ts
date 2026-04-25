@@ -1,6 +1,9 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
+import type { RoutingTrace } from '@trapmap/contracts';
+
+import { createQueryId } from './ids.js';
 import { appendWithRotation, loadRotationConfig } from './log-rotation.js';
 
 /**
@@ -30,7 +33,7 @@ export interface RagLogEntry {
   timestamp: string;
   queryId: string;
   seed: string;
-  mode: 'semantic' | 'hybrid' | 'graph-assisted' | 'v2-capsule';
+  mode: 'semantic' | 'hybrid' | 'graph-assisted' | 'v2-capsule' | 'v3-graph-plan';
   actorId: string;
   teamId: string | null;
   pipelineSteps: PipelineStep[];
@@ -41,6 +44,7 @@ export interface RagLogEntry {
     maxResults: number;
     includeSummary: boolean;
     includeRefinement: boolean;
+    routingTrace?: RoutingTrace;
   };
 }
 
@@ -70,10 +74,10 @@ function formatDate(date: Date): string {
 
 /**
  * Generate a unique query ID for a RAG retrieval operation.
- * Format: qry_{timestamp}_{random_suffix}
+ * Format: qry_{id_segment}
  */
 export function generateQueryId(): string {
-  return `qry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return createQueryId();
 }
 
 /**

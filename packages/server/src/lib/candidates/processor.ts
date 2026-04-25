@@ -1,4 +1,4 @@
-import type { JsonStore, StoreData } from '../store.js';
+import type { SkillShareerStore, StoreData } from '../store.js';
 import type { CandidateSubmission } from '@trapmap/contracts';
 import {
   updateCandidateStatus,
@@ -22,7 +22,7 @@ const DUPLICATE_THRESHOLD = 0.38; // Match pre-review.ts medium threshold
  * Services needed for candidate processing.
  */
 export interface CandidateProcessorServices {
-  store: JsonStore;
+  store: SkillShareerStore;
   getSnapshot: () => Promise<StoreData>;
 }
 

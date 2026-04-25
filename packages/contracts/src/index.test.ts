@@ -3785,12 +3785,15 @@ describe('Phase 25: Retrieval Evaluation Contracts', () => {
   });
 
   describe('retrievalEvalEndpointSchema', () => {
-    it('accepts explicit v1 and v2 endpoint paths', () => {
+    it('accepts explicit v1, v2, and v3 endpoint paths', () => {
       expect(retrievalEvalEndpointSchema.parse('/v1/retrieval/search')).toBe(
         '/v1/retrieval/search',
       );
       expect(retrievalEvalEndpointSchema.parse('/v2/retrieval/search')).toBe(
         '/v2/retrieval/search',
+      );
+      expect(retrievalEvalEndpointSchema.parse('/v3/retrieval/search')).toBe(
+        '/v3/retrieval/search',
       );
     });
 
@@ -3798,7 +3801,7 @@ describe('Phase 25: Retrieval Evaluation Contracts', () => {
       // Should reject shorthand or normalized forms
       expect(() => retrievalEvalEndpointSchema.parse('v1/retrieval/search')).toThrow();
       expect(() => retrievalEvalEndpointSchema.parse('/retrieval/search')).toThrow();
-      expect(() => retrievalEvalEndpointSchema.parse('/v3/retrieval/search')).toThrow();
+      expect(() => retrievalEvalEndpointSchema.parse('/v4/retrieval/search')).toThrow();
     });
   });
 
@@ -4102,17 +4105,17 @@ describe('Phase 25: Retrieval Evaluation Contracts', () => {
       expect(parsed.expected.governance.forbiddenIds).toContain('entry_sensitive');
     });
 
-    it('rejects invalid endpoint values (Task 1, Test 4)', () => {
+    it('accepts valid v3 endpoint values (Task 1, Test 4)', () => {
       const testCase = {
         schemaVersion: 1,
-        caseId: 'invalid-endpoint',
+        caseId: 'valid-v3-endpoint',
         tier: 'smoke',
-        endpoint: '/v3/retrieval/search', // Invalid endpoint
+        endpoint: '/v3/retrieval/search',
         request: { seed: 'test' },
         scenarioId: 'test',
         expected: { outcome: 'non-empty', relevance: {}, governance: {} },
       };
-      expect(() => retrievalEvalCaseSchema.parse(testCase)).toThrow();
+      expect(retrievalEvalCaseSchema.parse(testCase).endpoint).toBe('/v3/retrieval/search');
     });
 
     it('rejects missing actor/security fields (Task 1, Test 4)', () => {

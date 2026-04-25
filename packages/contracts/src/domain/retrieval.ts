@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema } from './common.js';
+import { planQuerySchema, trapFirstPlanSchema } from './plans.js';
 
 /**
  * Query mode for retrieval requests.
@@ -392,7 +393,7 @@ export type RetrievalStrategy = z.infer<typeof retrievalStrategySchema>;
  * Route family distinguishes between legacy entry-based and capsule-native retrieval.
  * Used in routing trace metadata and evaluation slicing.
  */
-export const routeFamilySchema = z.enum(['entry', 'capsule']);
+export const routeFamilySchema = z.enum(['entry', 'capsule', 'graph-plan']);
 
 export type RouteFamily = z.infer<typeof routeFamilySchema>;
 
@@ -409,9 +410,32 @@ export const routingReasonSchema = z.enum([
   'auto-multi-channel',    // Auto mode chose hybrid based on query complexity
   'fallback-default',      // Fallback to default strategy when no explicit mode
   'v2-default-capsule',    // v2 endpoint default capsule strategy
+  'graph-plan-selected',   // Graph-plan route returned the plan directly
+  'graph-plan-low-confidence', // Graph-plan route fell back due to low readiness score
+  'graph-plan-insufficient-trap-evidence', // Plan had weak blocker evidence
+  'graph-plan-insufficient-skill-evidence', // Plan had no actionable skills
 ]);
 
 export type RoutingReason = z.infer<typeof routingReasonSchema>;
+
+/**
+ * Fallback target used by the GraphRAG-lite wrapper route.
+ * Distinguishes which legacy retrieval surface was used when the plan
+ * was not strong enough to return directly.
+ */
+export const graphPlanFallbackTargetSchema = z.enum([
+  'v2-capsule',
+  'v1-graph-assisted',
+]);
+
+export type GraphPlanFallbackTarget = z.infer<typeof graphPlanFallbackTargetSchema>;
+
+/**
+ * Deterministic confidence bucket for GraphRAG-lite routing.
+ */
+export const graphPlanConfidenceBucketSchema = z.enum(['high', 'medium', 'low']);
+
+export type GraphPlanConfidenceBucket = z.infer<typeof graphPlanConfidenceBucketSchema>;
 
 /**
  * Routing trace metadata attached to retrieval responses (EOPS-03).
@@ -431,7 +455,81 @@ export const routingTraceSchema = z.object({
   /** Whether a fallback strategy was applied after initial selection failed */
   fallbackApplied: z.boolean().default(false),
   /** Recall channels that contributed to the final result set */
-  channelsUsed: z.array(z.enum(['semantic', 'keyword', 'graph', 'capsule', 'profile'])).default([]),
+  channelsUsed: z.array(z.enum(['semantic', 'keyword', 'graph', 'capsule', 'profile', 'plan'])).default([]),
+  /** Fallback destination when fallbackApplied is true */
+  fallbackTarget: graphPlanFallbackTargetSchema.nullable().default(null),
+  /** Deterministic confidence score when available */
+  confidenceScore: z.number().min(0).max(1).nullable().default(null),
+  /** Confidence bucket derived from confidenceScore when available */
+  confidenceBucket: graphPlanConfidenceBucketSchema.nullable().default(null),
 });
 
 export type RoutingTrace = z.infer<typeof routingTraceSchema>;
+
+/**
+ * Query schema for the additive GraphRAG-lite wrapper route.
+ * Reuses the raw plan query and adds an optional fallback policy.
+ */
+export const graphPlanSearchQuerySchema = planQuerySchema.extend({
+  /** Optional explicit fallback target; auto chooses based on plan evidence */
+  fallbackMode: z.enum(['auto', 'v2-capsule', 'v1-graph-assisted']).default('auto'),
+});
+
+export type GraphPlanSearchQuery = z.infer<typeof graphPlanSearchQuerySchema>;
+
+/**
+ * Routing trace returned by the GraphRAG-lite wrapper route.
+ * Always includes non-null confidence details.
+ */
+export const graphPlanRoutingTraceSchema = routingTraceSchema.extend({
+  fallbackTarget: graphPlanFallbackTargetSchema.nullable().default(null),
+  confidenceScore: z.number().min(0).max(1),
+  confidenceBucket: graphPlanConfidenceBucketSchema,
+});
+
+export type GraphPlanRoutingTrace = z.infer<typeof graphPlanRoutingTraceSchema>;
+
+/**
+ * Capsule fallback payload for GraphRAG-lite wrapper responses.
+ */
+export const graphPlanCapsuleFallbackSchema = z.object({
+  routeFamily: z.literal('capsule'),
+  response: retrievalV2ResponseWithHintsSchema,
+});
+
+export type GraphPlanCapsuleFallback = z.infer<typeof graphPlanCapsuleFallbackSchema>;
+
+/**
+ * Entry fallback payload for GraphRAG-lite wrapper responses.
+ */
+export const graphPlanEntryFallbackSchema = z.object({
+  routeFamily: z.literal('entry'),
+  response: retrievalResponseSchema,
+});
+
+export type GraphPlanEntryFallback = z.infer<typeof graphPlanEntryFallbackSchema>;
+
+/**
+ * GraphRAG-lite wrapper fallback payload.
+ */
+export const graphPlanFallbackSchema = z.union([
+  graphPlanCapsuleFallbackSchema,
+  graphPlanEntryFallbackSchema,
+]);
+
+export type GraphPlanFallback = z.infer<typeof graphPlanFallbackSchema>;
+
+/**
+ * Wrapper response for additive GraphRAG-lite retrieval.
+ * Returns either a selected trap-first plan or a governed legacy fallback payload.
+ */
+export const graphPlanSearchResponseSchema = z.object({
+  /** Canonical routing and confidence metadata for the request */
+  routingTrace: graphPlanRoutingTraceSchema,
+  /** Selected plan when confidence is high enough */
+  plan: trapFirstPlanSchema.nullable().default(null),
+  /** Governed fallback payload when the plan is not selected */
+  fallback: graphPlanFallbackSchema.nullable().default(null),
+});
+
+export type GraphPlanSearchResponse = z.infer<typeof graphPlanSearchResponseSchema>;

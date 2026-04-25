@@ -1,3 +1,6 @@
+import { randomUUID } from 'node:crypto';
+import path from 'node:path';
+
 import Fastify from 'fastify';
 import { ZodError } from 'zod';
 
@@ -6,7 +9,7 @@ import { loadConfig } from './config.js';
 import { AppError, isAppError } from './lib/errors.js';
 import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
 import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
-import { JsonStore } from './lib/store.js';
+import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import {
   processPendingCandidates,
   resetInterruptedCandidates,
@@ -45,6 +48,7 @@ const documentedRoutes = [
   'GET /v1/knowledge/review-queue',
   'POST /v1/knowledge/review',
   'POST /v1/retrieval/search',
+  'POST /v3/retrieval/search',
   'POST /v1/retrieval/skills/search-by-content',
   'GET /v1/operations/audit',
   'POST /v1/operations/import',
@@ -65,15 +69,25 @@ interface BuildServerOptions {
 }
 
 export function buildServer(options: BuildServerOptions = {}) {
-  const config = { ...loadConfig(), ...options.config };
   const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+  const defaultTestDataFile =
+    isTestEnv &&
+    options.config?.dataFile === undefined &&
+    process.env.TRAPMAP_DATA_FILE === undefined
+      ? path.resolve(process.cwd(), '.tmp', 'trapmap-test-data', `skill-shareer-${process.pid}-${randomUUID()}.json`)
+      : undefined;
+  const config = {
+    ...loadConfig(),
+    ...(defaultTestDataFile ? { dataFile: defaultTestDataFile } : {}),
+    ...options.config,
+  };
   const app = Fastify({
     logger: isTestEnv
       ? false
       : {
           level: process.env.LOG_LEVEL ?? 'info',
         },
-    bodyLimit: options.bodyLimit,
+    ...(options.bodyLimit === undefined ? {} : { bodyLimit: options.bodyLimit }),
   });
 
   app.get('/health', async () => ({
@@ -88,7 +102,7 @@ export function buildServer(options: BuildServerOptions = {}) {
 
   app.decorate('skillShareer', {
     config,
-    store: new JsonStore(config.dataFile),
+    store: createSkillShareerStore(config),
     indexAdapters: buildDefaultIndexAdapters(),
   });
 
@@ -146,7 +160,7 @@ export function buildServer(options: BuildServerOptions = {}) {
     try {
       const result = await reconcileGraphIndexes({ store: app.skillShareer.store });
       app.log.info(
-        { removed: result.removed, rebuilt: result.rebuilt },
+        { removed: result.documentsRemoved, rebuilt: result.documentsRebuilt },
         'Graph index reconciliation complete',
       );
     } catch (error) {

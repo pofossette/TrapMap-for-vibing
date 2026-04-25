@@ -1,6 +1,11 @@
 import type { CandidateSubmission, ManualResultSubmission, ResolutionOutcome } from '@trapmap/contracts';
-import type { StoreData, KnowledgeRecord, SkillArtifactRecord, EntityLineageRecord } from '../store.js';
-import type { JsonStore } from '../store.js';
+import type {
+  EntityLineageRecord,
+  KnowledgeRecord,
+  SkillArtifactRecord,
+  SkillShareerStore,
+  StoreData,
+} from '../store.js';
 import type { ResolvedAuthContext } from '../context.js';
 import { nowIso } from '../store.js';
 import { getCandidateById, markCandidateResolved } from './store.js';
@@ -184,7 +189,7 @@ export function isAlreadyResolved(
  * The new entry starts at 'agent-pass' lifecycle state.
  */
 export function publishTrapCandidate(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   candidate: CandidateSubmission;
   resolvedBy: string;
@@ -294,7 +299,7 @@ export function publishTrapCandidate(args: {
  * The new artifact starts at 'agent-pass' lifecycle state.
  */
 export function publishSkillCandidate(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   candidate: CandidateSubmission;
   resolvedBy: string;
@@ -410,7 +415,7 @@ export function publishSkillCandidate(args: {
  * For more complex merge semantics (content merging), a future phase can extend this.
  */
 export function recordMergeLineage(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   candidate: CandidateSubmission;
   existingEntityId: string;
@@ -511,7 +516,7 @@ export interface ApplyResolutionResult {
  * Idempotent: if already resolved with same decision, returns success without re-processing.
  */
 export function applyManualResultResolution(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   candidateId: string;
   actor: ResolvedAuthContext;

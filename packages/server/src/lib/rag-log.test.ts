@@ -421,7 +421,7 @@ describe('rag-log (Phase 22-01)', () => {
     it('generates a query ID with correct format', () => {
       const queryId = generateQueryId();
 
-      expect(queryId).toMatch(/^qry_\d+_[a-z0-9]{6}$/);
+      expect(queryId).toMatch(/^qry_[a-z0-9]{12}$/);
     });
 
     it('generates unique query IDs', () => {

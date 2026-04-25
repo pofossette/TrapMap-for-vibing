@@ -36,7 +36,8 @@ export {
 export {
   graphIndexAdapter,
   clearGraphCache,
-  getGlobalGraphIndex,
+  getCachedGraphIndexDocuments,
+  setCachedGraphIndexDocuments,
 } from './graph.js';
 
 /**

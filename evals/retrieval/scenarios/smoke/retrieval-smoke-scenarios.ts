@@ -263,6 +263,243 @@ export const smokeForbiddenScenario = retrievalEvalScenarioSchema.parse({
   },
 }) as RetrievalEvalScenario;
 
+export const smokeGraphPlanSelectedScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'smoke-graph-plan-selected',
+  description:
+    'Graph-plan selected path with one approved trap, one approved skill, and matching graph documents.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_smoke_graph',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [
+      {
+        id: 'knowledge_smoke_graph_selected',
+        teamId: 'team_smoke_graph',
+        scope: 'project',
+        labels: ['docker', 'compose', 'deployment'],
+        shortcut: 'Docker compose rollout blocker',
+        detail: 'Docker compose rollout blocker that appears during deployment drift.',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+      },
+    ],
+    skillArtifacts: [
+      {
+        id: 'artifact_smoke_graph_selected',
+        teamId: 'team_smoke_graph',
+        scope: 'project',
+        labels: ['docker', 'compose', 'deployment'],
+        title: 'Docker compose rollout skill',
+        slug: 'docker-compose-rollout-skill',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_smoke_graph_selected',
+            content: 'Use docker compose rollout checks before deployment',
+            situation: 'Deploying compose workloads',
+            problem: 'Deployment drift blocks rollout',
+            goal: 'Stabilize compose deployment',
+            labels: ['docker', 'compose', 'deployment'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+    graphIndexDocuments: [
+      {
+        id: 'graphdoc_trap_knowledge_smoke_graph_selected_r1',
+        sourceType: 'trap',
+        sourceId: 'knowledge_smoke_graph_selected',
+        revision: 1,
+        contentHash: 'smoke-graph-plan-selected-trap',
+        teamId: 'team_smoke_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'trap:knowledge_smoke_graph_selected',
+            kind: 'trap',
+            label: 'compose rollout blocker',
+            evidence: 'deployment drift evidence',
+          },
+        ],
+        edges: [
+          {
+            id: 'trap:knowledge_smoke_graph_selected->cue:compose:risk-blocks',
+            sourceNodeId: 'trap:knowledge_smoke_graph_selected',
+            targetNodeId: 'cue:compose',
+            relationType: 'risk-blocks',
+            strength: 'hard',
+            evidence: 'compose risk blocks rollout',
+          },
+        ],
+        evidence: 'derived from smoke graph-plan selected trap',
+        createdAt: '2026-04-25T00:00:00.000Z',
+        updatedAt: '2026-04-25T00:00:00.000Z',
+      },
+      {
+        id: 'graphdoc_skill_artifact_smoke_graph_selected_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_smoke_graph_selected',
+        revision: 1,
+        contentHash: 'smoke-graph-plan-selected-skill',
+        teamId: 'team_smoke_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_smoke_graph_selected',
+            kind: 'skill',
+            label: 'compose rollout skill',
+            evidence: 'approved compose rollout guidance',
+          },
+        ],
+        edges: [
+          {
+            id: 'skill:artifact_smoke_graph_selected->trap:knowledge_smoke_graph_selected:mitigates',
+            sourceNodeId: 'skill:artifact_smoke_graph_selected',
+            targetNodeId: 'trap:knowledge_smoke_graph_selected',
+            relationType: 'mitigates',
+            strength: 'hard',
+            evidence: 'compose rollout skill mitigates blocker',
+          },
+        ],
+        evidence: 'derived from smoke graph-plan selected skill',
+        createdAt: '2026-04-25T00:00:00.000Z',
+        updatedAt: '2026-04-25T00:00:00.000Z',
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
+export const smokeGraphPlanFallbackV2Scenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'smoke-graph-plan-fallback-v2',
+  description:
+    'Graph-plan low trap evidence path with only a governed skill artifact and graph skill document.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_smoke_graph',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [],
+    skillArtifacts: [
+      {
+        id: 'artifact_smoke_graph_fallback_v2',
+        teamId: 'team_smoke_graph',
+        scope: 'project',
+        labels: ['fallback', 'capsule', 'deployment'],
+        title: 'Capsule fallback deployment skill',
+        slug: 'capsule-fallback-deployment-skill',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_smoke_graph_fallback_v2',
+            content: 'Fallback capsule for deployment guidance',
+            situation: 'Need deployment capsule fallback',
+            problem: 'Graph plan has no blocker evidence',
+            goal: 'Return governed capsule guidance',
+            labels: ['fallback', 'deployment'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+    graphIndexDocuments: [
+      {
+        id: 'graphdoc_skill_artifact_smoke_graph_fallback_v2_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_smoke_graph_fallback_v2',
+        revision: 1,
+        contentHash: 'smoke-graph-plan-fallback-v2-skill',
+        teamId: 'team_smoke_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_smoke_graph_fallback_v2',
+            kind: 'skill',
+            label: 'fallback capsule skill',
+            evidence: 'capsule fallback evidence',
+          },
+        ],
+        edges: [],
+        evidence: 'derived from smoke fallback v2 skill',
+        createdAt: '2026-04-25T00:00:00.000Z',
+        updatedAt: '2026-04-25T00:00:00.000Z',
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
+export const smokeGraphPlanFallbackV1Scenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'smoke-graph-plan-fallback-v1',
+  description:
+    'Graph-plan insufficient skill evidence path with only a governed trap entry and graph trap document.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_smoke_graph',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [
+      {
+        id: 'knowledge_smoke_graph_fallback_v1',
+        teamId: 'team_smoke_graph',
+        scope: 'project',
+        labels: ['trap', 'rollback', 'blocker'],
+        shortcut: 'Rollback blocker trap',
+        detail: 'Rollback blocker trap that should fall back to v1 graph-assisted retrieval.',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+      },
+    ],
+    skillArtifacts: [],
+    graphIndexDocuments: [
+      {
+        id: 'graphdoc_trap_knowledge_smoke_graph_fallback_v1_r1',
+        sourceType: 'trap',
+        sourceId: 'knowledge_smoke_graph_fallback_v1',
+        revision: 1,
+        contentHash: 'smoke-graph-plan-fallback-v1-trap',
+        teamId: 'team_smoke_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'trap:knowledge_smoke_graph_fallback_v1',
+            kind: 'trap',
+            label: 'rollback blocker',
+            evidence: 'rollback blocker evidence',
+          },
+        ],
+        edges: [
+          {
+            id: 'trap:knowledge_smoke_graph_fallback_v1->cue:rollback:risk-blocks',
+            sourceNodeId: 'trap:knowledge_smoke_graph_fallback_v1',
+            targetNodeId: 'cue:rollback',
+            relationType: 'risk-blocks',
+            strength: 'hard',
+            evidence: 'rollback trap blocks progress',
+          },
+        ],
+        evidence: 'derived from smoke fallback v1 trap',
+        createdAt: '2026-04-25T00:00:00.000Z',
+        updatedAt: '2026-04-25T00:00:00.000Z',
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
 // =============================================================================
 // Aggregated Smoke Scenarios Export
 // =============================================================================
@@ -274,6 +511,9 @@ export const smokeScenariosMap: Record<string, RetrievalEvalScenario> = {
   'smoke-positive-visible': smokePositiveVisibleScenario,
   'smoke-empty-result': smokeEmptyResultScenario,
   'smoke-forbidden': smokeForbiddenScenario,
+  'smoke-graph-plan-selected': smokeGraphPlanSelectedScenario,
+  'smoke-graph-plan-fallback-v2': smokeGraphPlanFallbackV2Scenario,
+  'smoke-graph-plan-fallback-v1': smokeGraphPlanFallbackV1Scenario,
 };
 
 /**

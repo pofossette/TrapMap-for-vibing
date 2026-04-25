@@ -26,15 +26,17 @@ pnpm eval:retrieval --tier smoke --endpoint /v2/retrieval/search
 |----------|----------------|-------|
 | `/v1/retrieval/search` | Bucketed (`globalConstraints`, `projectKnowledge`) | Legacy endpoint, compatibility-sensitive |
 | `/v2/retrieval/search` | Capsule-first (`capsules`, `profileHints`) | Current recommended endpoint |
+| `/v3/retrieval/search` | Graph-plan wrapper (`plan` or governed `fallback`) | Additive GraphRAG-lite route with routing trace |
 
-### v1 vs v2 Distinction
+### v1 vs v2 vs v3 Distinction
 
-v1 and v2 have materially different response contracts:
+The retrieval surfaces have materially different response contracts:
 
 - **v1** returns knowledge entries split into `globalConstraints` and `projectKnowledge` buckets
 - **v2** returns distilled capsules with `profileHints` for activation
+- **v3** returns either a trap-first execution plan or a governed fallback payload plus routing trace metadata
 
-Evaluation cases must specify the target endpoint explicitly. Do not normalize v1 and v2 into a single response shape at the dataset level.
+Evaluation cases must specify the target endpoint explicitly. Do not normalize these surfaces into a single response shape at the dataset level.
 
 ### v1 Compatibility Risk
 
@@ -58,6 +60,9 @@ Fast feedback, minimal coverage. Proves the evaluation pipeline is wired correct
 | `v2-capsule-positive-smoke` | `/v2/retrieval/search` | Positive visible hit |
 | `v2-capsule-empty-smoke` | `/v2/retrieval/search` | Empty result |
 | `v2-capsule-forbidden-smoke` | `/v2/retrieval/search` | Forbidden result |
+| `v3-graph-plan-selected-smoke` | `/v3/retrieval/search` | Graph-plan selected |
+| `v3-graph-plan-fallback-v2-smoke` | `/v3/retrieval/search` | Capsule fallback |
+| `v3-graph-plan-fallback-v1-smoke` | `/v3/retrieval/search` | Entry fallback |
 
 ### Core Tier
 
@@ -72,6 +77,8 @@ Broader coverage for regression detection. Includes mode variations and response
 | `v2-capsule-ranked-core` | `/v2/retrieval/search` | Capsule ranking |
 | `v2-profile-hints-core` | `/v2/retrieval/search` | Profile hints verification |
 | `v2-governance-core` | `/v2/retrieval/search` | Forbidden leakage |
+| `v3-graph-plan-selected-core` | `/v3/retrieval/search` | Multi-skill selected plan |
+| `v3-graph-plan-governance-core` | `/v3/retrieval/search` | Governance-sensitive graph-plan |
 
 ## Dataset Contract
 
@@ -158,7 +165,7 @@ Empty target policy: All metrics return 0 when no relevant IDs exist.
 | Option | Description |
 |--------|-------------|
 | `--tier` | Evaluation tier: `smoke` or `core` (default: `smoke`) |
-| `--endpoint` | Filter by endpoint: `/v1/retrieval/search` or `/v2/retrieval/search` |
+| `--endpoint` | Filter by endpoint: `/v1/retrieval/search`, `/v2/retrieval/search`, or `/v3/retrieval/search` |
 | `--dry-run` | Validate layout without executing evaluation |
 | `--allow-empty` | Exit successfully if no cases found |
 | `--json` | Output JSON report |

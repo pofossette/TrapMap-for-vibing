@@ -65,7 +65,7 @@ export function loadScenario(scenarioId: string): RetrievalEvalScenario | undefi
  */
 export function filterByEndpoint(
   cases: RetrievalEvalCase[],
-  endpoint?: '/v1/retrieval/search' | '/v2/retrieval/search',
+  endpoint?: '/v1/retrieval/search' | '/v2/retrieval/search' | '/v3/retrieval/search',
 ): RetrievalEvalCase[] {
   if (!endpoint) return cases;
   return cases.filter((c) => c.endpoint === endpoint);

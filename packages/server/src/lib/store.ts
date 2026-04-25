@@ -617,8 +617,18 @@ const EMPTY_STORE: StoreData = {
   graphIndexDocuments: [],
 };
 
-function cloneEmptyStore(): StoreData {
+export interface SkillShareerStore {
+  snapshot(): Promise<StoreData>;
+  transact<T>(mutator: (data: StoreData) => Promise<T> | T): Promise<T>;
+  nextId(data: StoreData, prefix: string): string;
+}
+
+export function createEmptyStoreData(): StoreData {
   return JSON.parse(JSON.stringify(EMPTY_STORE)) as StoreData;
+}
+
+export function cloneStoreData(data: StoreData): StoreData {
+  return JSON.parse(JSON.stringify(data)) as StoreData;
 }
 
 export function nowIso(): string {
@@ -642,7 +652,7 @@ export function createSlug(name: string): string {
     .slice(0, 80);
 }
 
-export class JsonStore {
+export class JsonStore implements SkillShareerStore {
   private writeChain: Promise<void> = Promise.resolve();
 
   constructor(private readonly filePath: string) {}
@@ -683,7 +693,7 @@ export class JsonStore {
     try {
       await readFile(this.filePath, 'utf8');
     } catch {
-      await writeFile(this.filePath, `${JSON.stringify(cloneEmptyStore(), null, 2)}\n`, 'utf8');
+      await writeFile(this.filePath, `${JSON.stringify(createEmptyStoreData(), null, 2)}\n`, 'utf8');
     }
   }
 }

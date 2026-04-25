@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../app.js';
-import type { JsonStore } from '../lib/store.js';
+import type { SkillShareerStore } from '../lib/store.js';
 
 describe('retrieval route', () => {
   let app: FastifyInstance;
@@ -257,6 +257,7 @@ describe('retrieval route', () => {
       expect(response.statusCode).toBe(200);
       const json = response.json();
       expect(json.documentedRoutes).toContain('POST /v1/retrieval/search');
+      expect(json.documentedRoutes).toContain('POST /v3/retrieval/search');
     });
   });
 
@@ -365,6 +366,48 @@ describe('retrieval route', () => {
       // Without auth, we get 401 before permission check
       // But the permission check is still in the route handler
       expect(response.statusCode).toBe(401);
+    });
+  });
+
+  describe('POST /v3/retrieval/search', () => {
+    it('returns 401 for unauthenticated request', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v3/retrieval/search',
+        payload: {
+          seed: 'deploy containers safely',
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('accepts valid graph-plan wrapper query schema', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v3/retrieval/search',
+        payload: {
+          seed: 'deploy containers safely',
+          skillBudget: 3,
+          maxDepth: 2,
+          fallbackMode: 'auto',
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('rejects invalid fallback mode with 400 or 401', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v3/retrieval/search',
+        payload: {
+          seed: 'deploy containers safely',
+          fallbackMode: 'invalid-mode',
+        },
+      });
+
+      expect([400, 401]).toContain(response.statusCode);
     });
   });
 
@@ -592,7 +635,7 @@ describe('retrieval route', () => {
   // Phase 16-02: Retrieval governance filtering integration (T-16-05)
   describe('retrieval governance filtering (Phase 16-02)', () => {
     let testApp: FastifyInstance;
-    let testStore: JsonStore;
+    let testStore: SkillShareerStore;
     let sessionId: string;
     const userId = 'user_retrieval_gov';
     const teamId = 'team_retrieval_gov';

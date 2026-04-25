@@ -9,6 +9,7 @@
  */
 
 import type {
+  GraphPlanSearchResponse,
   RetrievalResponse,
   RetrievalV2ResponseWithHints,
 } from '../../../packages/contracts/src/index.js';
@@ -107,6 +108,106 @@ export function normalizeV2Response(
 }
 
 // =============================================================================
+// V3 Graph-Plan Wrapper Response Normalization
+// =============================================================================
+
+/**
+ * Normalize a v3 GraphRAG-lite wrapper response.
+ * Selected plans normalize from recommendedSkills; fallback responses normalize
+ * from the legacy payload shape they wrap.
+ *
+ * @param response - Raw v3 graph-plan wrapper response
+ * @returns Normalized result with routing trace preserved
+ */
+export function normalizeV3Response(
+  response: GraphPlanSearchResponse,
+): NormalizedResult {
+  const routingTrace = response.routingTrace;
+
+  if (response.plan) {
+    const recommendedSkills = response.plan.graph.nodes
+      .filter((node) =>
+        node.kind === 'skill' &&
+        response.plan?.graph.focus.recommendedSkillNodeIds.includes(node.nodeId),
+      )
+      .slice()
+      .sort((a, b) => b.score - a.score);
+
+    const hits: NormalizedHit[] = recommendedSkills.map((skill) => ({
+      id: skill.capsuleId ?? skill.artifactId,
+      score: skill.score,
+      reason: skill.label,
+      scope: skill.scope,
+    }));
+
+    return {
+      hits,
+      returnedIds: hits.map((h) => h.id),
+      buckets: {
+        globalConstraints: [],
+        projectKnowledge: [],
+      },
+      profileHintArtifactIds: recommendedSkills.map((skill) => skill.artifactId),
+      isEmpty: hits.length === 0,
+      rawResponse: response,
+      endpoint: '/v3/retrieval/search',
+      routingTrace: {
+        selectedMode: routingTrace.selectedMode,
+        routingReason: routingTrace.routingReason,
+        fallbackApplied: routingTrace.fallbackApplied,
+        channelsUsed: routingTrace.channelsUsed,
+      },
+    };
+  }
+
+  if (response.fallback?.routeFamily === 'capsule') {
+    const normalized = normalizeV2Response(response.fallback.response);
+    return {
+      ...normalized,
+      rawResponse: response,
+      endpoint: '/v3/retrieval/search',
+      routingTrace: {
+        selectedMode: routingTrace.selectedMode,
+        routingReason: routingTrace.routingReason,
+        fallbackApplied: routingTrace.fallbackApplied,
+        channelsUsed: routingTrace.channelsUsed,
+      },
+    };
+  }
+
+  if (response.fallback?.routeFamily === 'entry') {
+    const normalized = normalizeV1Response(response.fallback.response);
+    return {
+      ...normalized,
+      rawResponse: response,
+      endpoint: '/v3/retrieval/search',
+      routingTrace: {
+        selectedMode: routingTrace.selectedMode,
+        routingReason: routingTrace.routingReason,
+        fallbackApplied: routingTrace.fallbackApplied,
+        channelsUsed: routingTrace.channelsUsed,
+      },
+    };
+  }
+
+  return {
+    hits: [],
+    returnedIds: [],
+    buckets: { globalConstraints: [], projectKnowledge: [] },
+    profileHintArtifactIds: [],
+    isEmpty: true,
+    rawResponse: response,
+    endpoint: '/v3/retrieval/search',
+    routingTrace: {
+      selectedMode: routingTrace.selectedMode,
+      routingReason: routingTrace.routingReason,
+      fallbackApplied: routingTrace.fallbackApplied,
+      channelsUsed: routingTrace.channelsUsed,
+    },
+  };
+}
+
+// =============================================================================
 // Generic Normalization Dispatcher
 // =============================================================================
 
@@ -120,12 +221,15 @@ export function normalizeV2Response(
  */
 export function normalizeResponse(
   response: unknown,
-  endpoint: '/v1/retrieval/search' | '/v2/retrieval/search',
+  endpoint: '/v1/retrieval/search' | '/v2/retrieval/search' | '/v3/retrieval/search',
 ): NormalizedResult {
   if (endpoint === '/v1/retrieval/search') {
     return normalizeV1Response(response as RetrievalResponse);
   }
-  return normalizeV2Response(response as RetrievalV2ResponseWithHints);
+  if (endpoint === '/v2/retrieval/search') {
+    return normalizeV2Response(response as RetrievalV2ResponseWithHints);
+  }
+  return normalizeV3Response(response as GraphPlanSearchResponse);
 }
 
 // =============================================================================

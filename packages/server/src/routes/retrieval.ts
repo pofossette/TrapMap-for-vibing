@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify';
 
 import {
+  graphPlanSearchQuerySchema,
+  graphPlanSearchResponseSchema,
   planQuerySchema,
   retrievalQuerySchema,
   retrievalResponseSchema,
@@ -14,6 +16,7 @@ import {
 import { logUserOperation } from '../lib/user-ops-log.js';
 import { requirePermission } from '../lib/rbac.js';
 import { searchKnowledge, searchKnowledgeV2 } from '../lib/retrieval.js';
+import { searchKnowledgeGraphPlan } from '../lib/retrieval/graph-plan-search.js';
 import { searchSkillsByContent } from '../lib/retrieval/skill-lookup.js';
 import { compileTrapFirstPlan } from '../lib/retrieval/plan-compiler.js';
 import { resolveAuthContext } from '../lib/session.js';
@@ -77,6 +80,44 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
 
     // Validate and return v2 response with activation hints (T-15-03)
     return retrievalV2ResponseWithHintsSchema.parse(result);
+  });
+
+  // Phase 38: Confidence-aware GraphRAG-lite wrapper route
+  // Returns a plan when confidence is high, otherwise a governed fallback payload.
+  app.post('/v3/retrieval/search', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+
+    requirePermission(auth, 'knowledge:search');
+
+    const query = graphPlanSearchQuerySchema.parse(request.body);
+    const result = await searchKnowledgeGraphPlan(app.skillShareer, auth, query);
+
+    const resultCount = result.plan
+      ? result.plan.recommendedSkills.length
+      : result.fallback?.routeFamily === 'capsule'
+        ? result.fallback.response.capsules.length
+        : (result.fallback?.response.globalConstraints.length ?? 0) +
+          (result.fallback?.response.projectKnowledge.length ?? 0);
+
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'search',
+      targetId: null,
+      teamId: auth.activeTeamId,
+      metadata: {
+        endpoint: 'v3-retrieval-search',
+        routeFamily: result.routingTrace.routeFamily,
+        fallbackTarget: result.routingTrace.fallbackTarget,
+        confidenceBucket: result.routingTrace.confidenceBucket,
+        trapCount: result.plan?.blockingTraps.length ?? 0,
+        skillCount: result.plan?.recommendedSkills.length ?? 0,
+        resultCount,
+      },
+    });
+
+    return graphPlanSearchResponseSchema.parse(result);
   });
 
   // Phase 18: Skill lookup by content (SKED-01)

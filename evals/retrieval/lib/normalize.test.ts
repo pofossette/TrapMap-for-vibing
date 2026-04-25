@@ -8,12 +8,17 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { RetrievalResponse, RetrievalV2ResponseWithHints } from '../../../packages/contracts/src/index.js';
+import type {
+  GraphPlanSearchResponse,
+  RetrievalResponse,
+  RetrievalV2ResponseWithHints,
+} from '../../../packages/contracts/src/index.js';
 import {
   extractV1Ids,
   extractV2CapsuleIds,
   extractV2ProfileHintArtifactIds,
   normalizeResponse,
+  normalizeV3Response,
   normalizeV1Response,
   normalizeV2Response,
 } from './normalize.js';
@@ -272,6 +277,185 @@ describe('normalize', () => {
       const result = normalizeV2Response(response);
 
       expect(result.rawResponse).toBe(response);
+    });
+  });
+
+  describe('normalizeV3Response', () => {
+    it('normalizes selected graph-plan response into shared result shape', () => {
+      const response: GraphPlanSearchResponse = {
+        routingTrace: {
+          selectedMode: 'mix',
+          routeFamily: 'graph-plan',
+          routingReason: 'graph-plan-selected',
+          fallbackApplied: false,
+          fallbackTarget: null,
+          confidenceScore: 0.9,
+          confidenceBucket: 'high',
+          channelsUsed: ['plan', 'graph', 'capsule'],
+        },
+        plan: {
+          blockingTraps: [],
+          recommendedSkills: [
+            {
+              nodeId: 'skill_node_1',
+              artifactId: 'artifact_1',
+              capsuleId: 'capsule_1',
+              label: 'Docker deployment guide',
+              situation: 'Deploying containers',
+              problem: 'Deployment drift',
+              goal: 'Stabilize rollout',
+              scope: 'project',
+              requiredLevel: 3,
+              score: 0.92,
+              activationRefs: {
+                references: [],
+                assets: [],
+                scripts: [],
+              },
+            },
+          ],
+          edges: [],
+          citations: [],
+          graph: {
+            nodes: [
+              {
+                kind: 'skill',
+                nodeId: 'skill_node_1',
+                artifactId: 'artifact_1',
+                capsuleId: 'capsule_1',
+                label: 'Docker deployment guide',
+                situation: 'Deploying containers',
+                problem: 'Deployment drift',
+                goal: 'Stabilize rollout',
+                scope: 'project',
+                requiredLevel: 3,
+                score: 0.92,
+                activationRefs: {
+                  references: [],
+                  assets: [],
+                  scripts: [],
+                },
+              },
+            ],
+            edges: [],
+            citations: [],
+            focus: {
+              blockingTrapNodeIds: [],
+              recommendedSkillNodeIds: ['skill_node_1'],
+            },
+          },
+        },
+        fallback: null,
+      };
+
+      const result = normalizeV3Response(response);
+
+      expect(result.endpoint).toBe('/v3/retrieval/search');
+      expect(result.hits).toHaveLength(1);
+      expect(result.hits[0]?.id).toBe('capsule_1');
+      expect(result.profileHintArtifactIds).toEqual(['artifact_1']);
+      expect(result.routingTrace?.routingReason).toBe('graph-plan-selected');
+      expect(result.routingTrace?.fallbackApplied).toBe(false);
+    });
+
+    it('normalizes capsule fallback response into shared result shape', () => {
+      const response: GraphPlanSearchResponse = {
+        routingTrace: {
+          selectedMode: 'mix',
+          routeFamily: 'capsule',
+          routingReason: 'graph-plan-insufficient-trap-evidence',
+          fallbackApplied: true,
+          fallbackTarget: 'v2-capsule',
+          confidenceScore: 0.3,
+          confidenceBucket: 'low',
+          channelsUsed: ['capsule', 'profile'],
+        },
+        plan: null,
+        fallback: {
+          routeFamily: 'capsule',
+          response: {
+            capsules: [
+              {
+                capsuleId: 'capsule_fallback_1',
+                artifactId: 'artifact_fallback_1',
+                revision: 1,
+                sourcePaths: ['SKILL.md'],
+                content: 'Capsule fallback content',
+                situation: 'Need fallback',
+                problem: 'Weak graph evidence',
+                goal: 'Still return governed capsules',
+                labels: ['fallback'],
+                scope: 'project',
+                requiredLevel: 3,
+                score: 0.81,
+                reason: 'Fallback capsule',
+              },
+            ],
+            profileHints: [
+              {
+                artifactId: 'artifact_fallback_1',
+                title: 'Fallback Skill',
+                slug: 'fallback-skill',
+                labels: ['fallback'],
+              },
+            ],
+            activationHints: [],
+            refinementSummary: null,
+            summary: null,
+          },
+        },
+      };
+
+      const result = normalizeV3Response(response);
+
+      expect(result.endpoint).toBe('/v3/retrieval/search');
+      expect(result.returnedIds).toEqual(['capsule_fallback_1']);
+      expect(result.profileHintArtifactIds).toEqual(['artifact_fallback_1']);
+      expect(result.routingTrace?.fallbackApplied).toBe(true);
+      expect(result.routingTrace?.routingReason).toBe('graph-plan-insufficient-trap-evidence');
+    });
+
+    it('normalizes entry fallback response into shared result shape', () => {
+      const response: GraphPlanSearchResponse = {
+        routingTrace: {
+          selectedMode: 'mix',
+          routeFamily: 'entry',
+          routingReason: 'graph-plan-insufficient-skill-evidence',
+          fallbackApplied: true,
+          fallbackTarget: 'v1-graph-assisted',
+          confidenceScore: 0.2,
+          confidenceBucket: 'low',
+          channelsUsed: ['semantic', 'keyword', 'graph'],
+        },
+        plan: null,
+        fallback: {
+          routeFamily: 'entry',
+          response: {
+            globalConstraints: [],
+            projectKnowledge: [
+              {
+                entryId: 'entry_fallback_1',
+                scope: 'project',
+                requiredLevel: 3,
+                shortcut: 'Fallback entry',
+                detail: 'Graph-assisted fallback result',
+                labels: ['fallback'],
+                score: 0.72,
+                reason: 'Fallback entry match',
+              },
+            ],
+            refinementSummary: null,
+            summary: null,
+          },
+        },
+      };
+
+      const result = normalizeV3Response(response);
+
+      expect(result.endpoint).toBe('/v3/retrieval/search');
+      expect(result.returnedIds).toEqual(['entry_fallback_1']);
+      expect(result.buckets.projectKnowledge).toEqual(['entry_fallback_1']);
+      expect(result.routingTrace?.routingReason).toBe('graph-plan-insufficient-skill-evidence');
     });
   });
 

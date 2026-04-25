@@ -117,60 +117,67 @@ Plans:
 
 ### Phase 38: GraphRAG-lite routing fallback and evaluation coverage
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Add confidence-aware GraphRAG-lite retrieval routing with governed fallback, auditable trace metadata, and evaluation coverage in the shared retrieval/eval surface
+**Requirements**: P38-01, P38-02, P38-03, P38-04, P38-05
 **Depends on:** Phase 37
-**Plans:** 0 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 38 to break down)
+- [x] 38-01-PLAN.md - Graph-plan contracts, routing trace, and eval normalization
+- [x] 38-02-PLAN.md - Deterministic graph-plan wrapper service and additive /v3/retrieval/search route
+- [x] 38-03-PLAN.md - v3 graph-plan datasets, adapter/report wiring, and eval runner coverage
 
 ### Phase 39: GraphRAG-lite unified graph schema for skill and trap outputs
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Define an additive unified graph schema for GraphRAG-lite trap and skill outputs, including metadata-only activation references and a consumer-ready node/edge surface that preserves current v3 compatibility
+**Requirements**: P39-01, P39-02, P39-03
 **Depends on:** Phase 38
-**Plans:** 0 plans
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 39 to break down)
+- [x] 39-01 - Add unified graph-plan contracts and metadata-only activation references
+- [x] 39-02 - Populate unified graph outputs and switch v3 normalization to the new surface
 
 ### Phase 40: Replace manual frontmatter and MIME parsing with library-backed utilities
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Replace manual SKILL frontmatter parsing and hand-maintained MIME lookup tables with shared library-backed utilities while preserving current CLI/server behavior
+**Requirements**: P40-01, P40-02, P40-03, P40-04
 **Depends on:** Phase 39
-**Plans:** 0 plans
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 40 to break down)
+- [x] 40-01 - Shared library-backed parsing and MIME utilities
+- [x] 40-02 - CLI and server integration plus regression coverage
 
 ### Phase 41: Introduce graphology and parsing libraries to replace hand-rolled implementations
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Formalize the graphology/parsing dependency baseline behind local wrappers and replace the remaining ad hoc server ID generation with a shared nanoid-backed utility
+**Requirements**: P41-01, P41-02, P41-03
 **Depends on:** Phase 40
-**Plans:** 0 plans
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 41 to break down)
+- [x] 41-01 - Complete dependency boundaries with shared server ID generation
 
 ### Phase 42: Replace hand-rolled graph operations with graphology-based GraphRAG runtime
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Replace the remaining hand-rolled query-time graph runtime with graphology-backed document traversal and scoring while preserving current governance behavior and public retrieval contracts
+**Requirements**: P42-01, P42-02, P42-03
 **Depends on:** Phase 41
-**Plans:** 0 plans
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 42 to break down)
+- [x] 42-01 - Graphology runtime snapshot and document-cache migration
+- [x] 42-02 - Graph-assisted recall migration and graph-document regression coverage
 
 ### Phase 43: Migrate store and indexing persistence to database-backed libraries
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Replace the file-backed `JsonStore` with a Drizzle/PostgreSQL-backed compatibility store that keeps the current `StoreData` snapshot/transaction contract and moves store plus indexing state off the filesystem without a route-by-route rewrite
+**Requirements**: P43-01, P43-02, P43-03
 **Depends on:** Phase 42
-**Plans:** 0 plans
+**Plans:** 0/3 plans complete
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 43 to break down)
+- [ ] 43-01 - Add Drizzle/PostgreSQL store foundation and runtime selection
+- [ ] 43-02 - Migrate production callers to the shared store contract and add regression coverage
+- [ ] 43-03 - Migrate store-facing tests to the shared contract and restore package-wide verification

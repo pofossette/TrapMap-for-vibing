@@ -14,7 +14,7 @@
  * T-36-16: Derive allowed source set from current governance metadata
  */
 
-import type { JsonStore, StoreData, KnowledgeRecord, SkillArtifactRecord } from '../store.js';
+import type { KnowledgeRecord, SkillArtifactRecord, SkillShareerStore, StoreData } from '../store.js';
 import type { GraphIndexDocumentRecord } from './graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from './graph-lite/graphology.js';
 import {
@@ -198,7 +198,7 @@ function buildCandidateForSkill(source: ApprovedSource): GraphIndexDocumentRecor
  * @returns Reconciliation result with counts and error status
  */
 export async function reconcileGraphIndexesFromSnapshot(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
 }): Promise<GraphReconcileResult> {
   const { store, data } = args;
@@ -309,7 +309,7 @@ export async function reconcileGraphIndexesFromSnapshot(args: {
  * @returns Reconciliation result with counts and error status
  */
 export async function reconcileGraphIndexes(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
 }): Promise<GraphReconcileResult> {
   const { store } = args;
 

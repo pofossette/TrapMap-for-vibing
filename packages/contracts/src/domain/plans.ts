@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+import {
+  clientManifestAssetSchema,
+  clientManifestReferenceSchema,
+  clientManifestScriptSchema,
+} from './artifacts.js';
 import { entityIdSchema, scopeSchema, securityLevelSchema } from './common.js';
 
 /**
@@ -22,6 +27,39 @@ export type PlanEdgeType = z.infer<typeof planEdgeTypeSchema>;
 export const planEdgeStrengthSchema = z.enum(['hard', 'soft']);
 
 export type PlanEdgeStrength = z.infer<typeof planEdgeStrengthSchema>;
+
+/**
+ * Unified public graph node kinds for GraphRAG-lite outputs.
+ */
+export const graphPlanNodeKindSchema = z.enum(['trap', 'skill']);
+
+export type GraphPlanNodeKind = z.infer<typeof graphPlanNodeKindSchema>;
+
+/**
+ * Unified public graph edge vocabulary.
+ * Adds citation-only co-occurrence links without widening the executable plan edge set.
+ */
+export const graphPlanEdgeTypeSchema = z.enum([
+  'risk-blocks',
+  'mitigates',
+  'requires',
+  'order',
+  'co-occurs-with',
+]);
+
+export type GraphPlanEdgeType = z.infer<typeof graphPlanEdgeTypeSchema>;
+
+/**
+ * Metadata-only activation references attached to selected skill nodes.
+ * Reuses client manifest shapes so retrieval never leaks raw file bodies.
+ */
+export const graphPlanSkillActivationRefsSchema = z.object({
+  references: z.array(clientManifestReferenceSchema).default([]),
+  assets: z.array(clientManifestAssetSchema).default([]),
+  scripts: z.array(clientManifestScriptSchema).default([]),
+});
+
+export type GraphPlanSkillActivationRefs = z.infer<typeof graphPlanSkillActivationRefsSchema>;
 
 /**
  * A trap node in the execution plan.
@@ -73,6 +111,12 @@ export const planSkillNodeSchema = z.object({
   requiredLevel: securityLevelSchema,
   /** Score relevance to query */
   score: z.number().min(0).max(1),
+  /** Metadata-only activation references from the governed client manifest */
+  activationRefs: graphPlanSkillActivationRefsSchema.default({
+    references: [],
+    assets: [],
+    scripts: [],
+  }),
 });
 
 export type PlanSkillNode = z.infer<typeof planSkillNodeSchema>;
@@ -114,6 +158,68 @@ export const planCitationSchema = z.object({
 export type PlanCitation = z.infer<typeof planCitationSchema>;
 
 /**
+ * Unified trap node shape for additive public graph outputs.
+ */
+export const graphPlanTrapNodeSchema = planTrapNodeSchema.extend({
+  kind: z.literal('trap'),
+});
+
+export type GraphPlanTrapNode = z.infer<typeof graphPlanTrapNodeSchema>;
+
+/**
+ * Unified skill node shape for additive public graph outputs.
+ */
+export const graphPlanSkillNodeSchema = planSkillNodeSchema.extend({
+  kind: z.literal('skill'),
+});
+
+export type GraphPlanSkillNode = z.infer<typeof graphPlanSkillNodeSchema>;
+
+/**
+ * Unified node union for graph-plan outputs.
+ */
+export const graphPlanNodeSchema = z.discriminatedUnion('kind', [
+  graphPlanTrapNodeSchema,
+  graphPlanSkillNodeSchema,
+]);
+
+export type GraphPlanNode = z.infer<typeof graphPlanNodeSchema>;
+
+/**
+ * Unified graph edge shape for public graph-plan outputs.
+ */
+export const graphPlanGraphEdgeSchema = planEdgeSchema.extend({
+  type: graphPlanEdgeTypeSchema,
+});
+
+export type GraphPlanGraphEdge = z.infer<typeof graphPlanGraphEdgeSchema>;
+
+/**
+ * Focus metadata so clients know which unified nodes correspond to blockers and recommended actions.
+ */
+export const graphPlanFocusSchema = z.object({
+  blockingTrapNodeIds: z.array(entityIdSchema).default([]),
+  recommendedSkillNodeIds: z.array(entityIdSchema).default([]),
+});
+
+export type GraphPlanFocus = z.infer<typeof graphPlanFocusSchema>;
+
+/**
+ * Additive unified graph view for trap-first plan outputs.
+ */
+export const graphPlanSchema = z.object({
+  nodes: z.array(graphPlanNodeSchema).default([]),
+  edges: z.array(graphPlanGraphEdgeSchema).default([]),
+  citations: z.array(planCitationSchema).default([]),
+  focus: graphPlanFocusSchema.default({
+    blockingTrapNodeIds: [],
+    recommendedSkillNodeIds: [],
+  }),
+});
+
+export type GraphPlan = z.infer<typeof graphPlanSchema>;
+
+/**
  * Trap-first execution plan (Phase 37 output).
  * A minimal typed graph with blockers surfaced first.
  */
@@ -126,6 +232,16 @@ export const trapFirstPlanSchema = z.object({
   edges: z.array(planEdgeSchema).default([]),
   /** Supporting evidence not promoted to nodes */
   citations: z.array(planCitationSchema).default([]),
+  /** Additive unified graph view spanning both trap and skill outputs */
+  graph: graphPlanSchema.default({
+    nodes: [],
+    edges: [],
+    citations: [],
+    focus: {
+      blockingTrapNodeIds: [],
+      recommendedSkillNodeIds: [],
+    },
+  }),
 });
 
 export type TrapFirstPlan = z.infer<typeof trapFirstPlanSchema>;

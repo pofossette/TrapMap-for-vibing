@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
+  buildGraphRuntimeSnapshot,
   buildGraphFromDocuments,
+  calculateSourceRelationStrength,
+  expandSourcesOneHop,
   projectHardDependencyGraph,
   assertNoHardDependencyCycles,
   buildLocalExpansionView,
@@ -265,6 +268,107 @@ describe('graph-lite/graphology', () => {
       expect(localView.hasNode('skill:s3')).toBe(false);
       // c1 is not reachable from seed
       expect(localView.hasNode('cue:c1')).toBe(false);
+    });
+  });
+
+  describe('buildGraphRuntimeSnapshot', () => {
+    it('indexes labels, nodes, and source ownership for query-time expansion', () => {
+      const doc1 = makeDoc(
+        'doc1',
+        'trap',
+        'entry-1',
+        1,
+        [
+          { id: 'tool:docker', kind: 'tool', label: 'docker', evidence: 'test' },
+          { id: 'cue:timeout', kind: 'cue', label: 'timeout', evidence: 'test' },
+        ],
+        [],
+      );
+      const doc2 = makeDoc(
+        'doc2',
+        'trap',
+        'entry-2',
+        1,
+        [
+          { id: 'cue:timeout', kind: 'cue', label: 'timeout', evidence: 'test' },
+          { id: 'mit:restart', kind: 'mitigation', label: 'restart', evidence: 'test' },
+        ],
+        [],
+      );
+
+      const runtime = buildGraphRuntimeSnapshot([doc1, doc2]);
+
+      expect(runtime.nodeIdsByNormalizedLabel.get('timeout')).toEqual(new Set(['cue:timeout']));
+      expect(runtime.sourceIdsByNormalizedLabel.get('timeout')).toEqual(new Set(['entry-1', 'entry-2']));
+      expect(runtime.sourceIdsByNodeId.get('cue:timeout')).toEqual(new Set(['entry-1', 'entry-2']));
+    });
+  });
+
+  describe('expandSourcesOneHop', () => {
+    it('returns direct and one-hop related sources from graphology neighbors', () => {
+      const doc1 = makeDoc(
+        'doc1',
+        'trap',
+        'entry-1',
+        1,
+        [{ id: 'tool:docker', kind: 'tool', label: 'docker', evidence: 'test' }],
+        [],
+      );
+      const doc2 = makeDoc(
+        'doc2',
+        'trap',
+        'entry-2',
+        1,
+        [
+          { id: 'tool:docker', kind: 'tool', label: 'docker', evidence: 'test' },
+          { id: 'cue:crash', kind: 'cue', label: 'crash', evidence: 'test' },
+        ],
+        [
+          {
+            id: 'docker->crash',
+            sourceNodeId: 'tool:docker',
+            targetNodeId: 'cue:crash',
+            relationType: 'risk-blocks',
+            strength: 'hard',
+            evidence: 'test',
+          },
+        ],
+      );
+
+      const runtime = buildGraphRuntimeSnapshot([doc1, doc2]);
+      const expanded = expandSourcesOneHop(runtime, new Set(['docker']));
+
+      expect(expanded).toEqual(new Set(['entry-1', 'entry-2']));
+    });
+  });
+
+  describe('calculateSourceRelationStrength', () => {
+    it('scores sources from graphology edge connectivity to query labels', () => {
+      const doc = makeDoc(
+        'doc',
+        'trap',
+        'entry-2',
+        1,
+        [
+          { id: 'tool:docker', kind: 'tool', label: 'docker', evidence: 'test' },
+          { id: 'cue:crash', kind: 'cue', label: 'crash', evidence: 'test' },
+        ],
+        [
+          {
+            id: 'docker->crash',
+            sourceNodeId: 'tool:docker',
+            targetNodeId: 'cue:crash',
+            relationType: 'risk-blocks',
+            strength: 'hard',
+            evidence: 'test',
+          },
+        ],
+      );
+
+      const runtime = buildGraphRuntimeSnapshot([doc]);
+
+      expect(calculateSourceRelationStrength(runtime, 'entry-2', new Set(['docker']))).toBe(2);
+      expect(calculateSourceRelationStrength(runtime, 'missing', new Set(['docker']))).toBe(0);
     });
   });
 });

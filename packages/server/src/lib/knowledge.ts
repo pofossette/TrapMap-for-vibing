@@ -10,12 +10,12 @@ import {
 import { AppError } from './errors.js';
 import type {
   AgentReviewRecord,
-  JsonStore,
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
   KnowledgeReviewDecisionRecord,
   KnowledgeReviewNoteRecord,
   KnowledgeRevisionRecord,
+  SkillShareerStore,
   StoreData,
 } from './store.js';
 
@@ -137,7 +137,7 @@ function toLifecycleEvent(data: StoreData, record: KnowledgeRecord, fallbackLeve
 }
 
 function toAgentNotes(
-  store: JsonStore,
+  store: SkillShareerStore,
   data: StoreData,
   review: AgentReviewResult,
 ): KnowledgeReviewNoteRecord[] {
@@ -151,7 +151,7 @@ function toAgentNotes(
 }
 
 function createLifecycleEvent(
-  store: JsonStore,
+  store: SkillShareerStore,
   data: StoreData,
   input: Omit<KnowledgeLifecycleEventRecord, 'id'>,
 ): KnowledgeLifecycleEventRecord {
@@ -162,7 +162,7 @@ function createLifecycleEvent(
 }
 
 function createSubmissionRecord(
-  store: JsonStore,
+  store: SkillShareerStore,
   data: StoreData,
   input: {
     submittedByUserId: string;
@@ -210,7 +210,7 @@ export function createKnowledgeRevision(
 }
 
 export function createKnowledgeEntryRecord(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   ownerUserId: string;
   teamId: string | null;
@@ -292,7 +292,7 @@ export function createKnowledgeEntryRecord(args: {
 }
 
 export function resubmitKnowledgeEntry(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   entry: KnowledgeRecord;
   ownerUserId: string;
@@ -363,7 +363,7 @@ export function resubmitKnowledgeEntry(args: {
 }
 
 export function applyReviewDecision(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   entry: KnowledgeRecord;
   reviewerUserId: string;
@@ -416,7 +416,7 @@ export function applyReviewDecision(args: {
 }
 
 export function updateKnowledgeEntry(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   entry: KnowledgeRecord;
   modifierUserId: string;

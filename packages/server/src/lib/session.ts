@@ -22,9 +22,9 @@ import { AppError } from './errors.js';
 import { resolveEffectivePermissions } from './rbac.js';
 import {
   type AccessKeyRecord,
-  type JsonStore,
   type MembershipRecord,
   type SessionRecord,
+  type SkillShareerStore,
   type StoreData,
   type TeamRecord,
   type UserRecord,
@@ -89,7 +89,7 @@ function findMembershipForTeam(
 }
 
 export async function createSession(
-  store: JsonStore,
+  store: SkillShareerStore,
   subjectType: SessionRecord['subjectType'],
   userId: string | null,
   activeTeamId: string | null,
@@ -118,7 +118,7 @@ export async function createSession(
   return { record, token };
 }
 
-export async function deleteSession(store: JsonStore, token: string): Promise<void> {
+export async function deleteSession(store: SkillShareerStore, token: string): Promise<void> {
   const tokenHash = hashSecret(token);
 
   await store.transact((data) => {

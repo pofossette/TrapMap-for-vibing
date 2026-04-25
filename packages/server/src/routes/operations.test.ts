@@ -4,8 +4,7 @@ import type { KnowledgeSubmission } from '@trapmap/contracts';
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../app.js';
 import { detectDuplicates, parseClaudeSkill } from '../lib/import-export.js';
-import type { KnowledgeRecord } from '../lib/store.js';
-import type { JsonStore } from '../lib/store.js';
+import type { KnowledgeRecord, SkillShareerStore } from '../lib/store.js';
 import { hashSecret, nowIso } from '../lib/store.js';
 
 describe('operations routes', () => {
@@ -96,7 +95,7 @@ describe('operations routes', () => {
 
   describe('deactivation with indexing integration (IDX-06)', () => {
     let testApp: FastifyInstance;
-    let testStore: JsonStore;
+    let testStore: SkillShareerStore;
     let sessionId: string;
     let entryId: string;
     const userId = 'user_idx_test';
@@ -475,6 +474,24 @@ Some body content.`;
 
         expect(result).not.toBeNull();
         expect(result?.shortcut).toBe('Skill Name');
+      });
+
+      it('handles quoted YAML values without changing legacy import output', () => {
+        const content = `---
+name: "Quoted Skill"
+description: 'Quoted description'
+labels:
+  - parsing
+  - mime
+---
+Quoted body content.`;
+
+        const result = parseClaudeSkill(content);
+
+        expect(result).not.toBeNull();
+        expect(result?.shortcut).toBe('Quoted Skill');
+        expect(result?.detail).toBe('Quoted body content.');
+        expect(result?.labels).toEqual(['imported', 'skill']);
       });
     });
 
@@ -1370,7 +1387,7 @@ Some body content.`;
   // Phase 16-02: Governance parity with integration tests (COMP-02, COMP-04, T-16-04, T-16-05)
   describe('migration governance parity integration (Phase 16-02)', () => {
     let testApp: FastifyInstance;
-    let testStore: JsonStore;
+    let testStore: SkillShareerStore;
     let sessionId: string;
     const userId = 'user_governance_test';
     const teamId = 'team_governance_test';
@@ -1835,7 +1852,7 @@ Some body content.`;
   // Phase 16-03: Sunset readiness criteria and status report verification (COMP-03, COMP-04)
   describe('compatibility status sunset readiness (Phase 16-03)', () => {
     let testApp: FastifyInstance;
-    let testStore: JsonStore;
+    let testStore: SkillShareerStore;
     let sessionId: string;
     const userId = 'user_sunset_test';
 

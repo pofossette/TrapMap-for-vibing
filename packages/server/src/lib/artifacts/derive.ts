@@ -15,6 +15,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { parseSkillMarkdown } from '@trapmap/contracts';
 
 import type {
   ArtifactFilePayloadRecord,
@@ -412,29 +413,11 @@ function extractDerivationText(payloads: ArtifactFilePayloadRecord[]): string {
  * @returns Extracted title and labels
  */
 function parseFrontmatter(content: string): { title: string | null; labels: string[] } {
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!frontmatterMatch) {
-    return { title: null, labels: [] };
-  }
-
-  const frontmatter = frontmatterMatch[1] ?? '';
-  const titleMatch = frontmatter.match(/^title:\s*(.+)$/m);
-  const labelsMatch = frontmatter.match(/^labels:\s*\n((?:\s+-\s+.+\n?)+)/m);
-
-  const title = titleMatch?.[1]?.trim() ?? null;
-  const labels: string[] = [];
-
-  if (labelsMatch?.[1]) {
-    const labelLines = labelsMatch[1].split('\n');
-    for (const line of labelLines) {
-      const labelMatch = line.match(/^\s+-\s+(.+)$/);
-      if (labelMatch?.[1]) {
-        labels.push(labelMatch[1].trim());
-      }
-    }
-  }
-
-  return { title, labels };
+  const metadata = parseSkillMarkdown(content);
+  return {
+    title: metadata.title,
+    labels: metadata.labels,
+  };
 }
 
 /**

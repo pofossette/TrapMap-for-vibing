@@ -5,7 +5,7 @@
  * These contracts support the repo-root `evals/` workspace and Phase 26 execution.
  *
  * Key design decisions:
- * - Endpoint specificity: `/v1/retrieval/search` and `/v2/retrieval/search` are distinct targets
+ * - Endpoint specificity: `/v1/retrieval/search`, `/v2/retrieval/search`, and `/v3/retrieval/search` are distinct targets
  * - Governance vs relevance separation: every case has separate assertion groups
  * - Scenario/case split: fixture state is reusable across endpoint slices
  */
@@ -35,9 +35,14 @@ export type RetrievalEvalTier = z.infer<typeof retrievalEvalTierSchema>;
  * Explicit endpoint targeting for retrieval eval cases.
  * v1 returns bucketed results (globalConstraints, projectKnowledge).
  * v2 returns capsule-first results with profile hints.
+ * v3 returns either a graph plan or a governed fallback payload with routing trace.
  * These are kept distinct to prevent endpoint adapter drift.
  */
-export const retrievalEvalEndpointSchema = z.enum(['/v1/retrieval/search', '/v2/retrieval/search']);
+export const retrievalEvalEndpointSchema = z.enum([
+  '/v1/retrieval/search',
+  '/v2/retrieval/search',
+  '/v3/retrieval/search',
+]);
 
 export type RetrievalEvalEndpoint = z.infer<typeof retrievalEvalEndpointSchema>;
 
@@ -110,8 +115,14 @@ export const retrievalEvalRequestSchema = z.object({
     .default({ labels: [], scopes: [] }),
   /** Maximum results to return (optional, uses defaults if omitted) */
   maxResults: z.number().int().min(1).max(50).optional(),
+  /** Maximum number of graph-plan skills to keep (v3 only) */
+  skillBudget: z.number().int().min(1).max(10).optional(),
+  /** Maximum graph expansion depth (v3 only) */
+  maxDepth: z.number().int().min(1).max(5).optional(),
   /** Query mode (optional, v1 only, uses default if omitted) */
   mode: z.enum(['semantic', 'hybrid', 'graph-assisted']).optional(),
+  /** Explicit fallback policy (v3 only, defaults to auto) */
+  fallbackMode: z.enum(['auto', 'v2-capsule', 'v1-graph-assisted']).optional(),
 });
 
 export type RetrievalEvalRequest = z.infer<typeof retrievalEvalRequestSchema>;
@@ -216,7 +227,7 @@ export type RetrievalEvalExpected = z.infer<typeof retrievalEvalExpectedSchema>;
  * Cases reference scenarios for fixture state and actor context.
  *
  * Design constraints enforced:
- * - Endpoint must be explicit ('/v1/retrieval/search' or '/v2/retrieval/search')
+ * - Endpoint must be explicit ('/v1/retrieval/search', '/v2/retrieval/search', or '/v3/retrieval/search')
  * - Relevance and governance are separate assertion groups
  * - Schema version field supports future contract evolution
  */

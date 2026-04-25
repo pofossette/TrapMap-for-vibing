@@ -10,7 +10,7 @@
  * Non-approved and deactivated entries have their index state removed.
  */
 
-import type { JsonStore, StoreData } from '../store.js';
+import type { SkillShareerStore, StoreData } from '../store.js';
 import { nowIso } from '../store.js';
 import { normalizeKnowledgeIndexDocument } from './normalize.js';
 import type {
@@ -120,7 +120,7 @@ function updateAdapterState(
  * @returns Entry sync result
  */
 export async function syncKnowledgeIndex(
-  services: { store: JsonStore; data: StoreData },
+  services: { store: SkillShareerStore; data: StoreData },
   entryId: string,
   adapters: IndexAdapter[],
 ): Promise<void> {
@@ -238,7 +238,7 @@ export async function syncKnowledgeIndex(
  * @returns Reconciliation result
  */
 export async function reconcileKnowledgeIndexes(
-  services: { store: JsonStore },
+  services: { store: SkillShareerStore },
   adapters: IndexAdapter[],
 ): Promise<ReconcileResult> {
   const startTime = Date.now();

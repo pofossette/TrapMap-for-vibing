@@ -10,7 +10,7 @@
  */
 
 import type { LifecycleState } from '@trapmap/contracts';
-import type { JsonStore, StoreData } from '../store.js';
+import type { SkillShareerStore, StoreData } from '../store.js';
 import { removeGraphIndexDocumentsForSource } from './graph-lite/store.js';
 import { syncKnowledgeIndex } from './pipeline.js';
 import type { IndexAdapter } from './types.js';
@@ -53,7 +53,7 @@ export function determineKnowledgeIndexAction(
  * @param args.adapters - Array of registered adapters
  */
 export async function runKnowledgeIndexEvent(args: {
-  services: { store: JsonStore; data: StoreData };
+  services: { store: SkillShareerStore; data: StoreData };
   entryId: string;
   previousState: LifecycleState;
   nextState: LifecycleState;

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
-import { extname, join, relative } from 'node:path';
+import { join, relative } from 'node:path';
 import type {
   ActivationResponse,
   ArtifactBundle,
@@ -21,12 +21,15 @@ import {
   artifactImportRequestSchema,
   artifactImportResponseSchema,
   compatibilityStatusResponseSchema,
+  detectMediaType,
   exportBundleSchema,
   importResponseSchema,
+  isTextLikeMediaType,
   knowledgeDeactivateResponseSchema,
   knowledgeEntryResponseSchema,
   knowledgeListResponseSchema,
   legacyMigrationResponseSchema,
+  parseSkillMarkdown,
 } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
@@ -117,98 +120,19 @@ async function buildSingleSkillMdBundle(args: {
 function parseClaudeSkill(
   content: string,
 ): { shortcut: string; detail: string; scope: string; labels: string[] } | null {
-  // Match frontmatter between --- markers
-  const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
-
-  if (!frontmatterMatch) {
+  const metadata = parseSkillMarkdown(content);
+  if (!metadata.hasFrontmatter || !metadata.name) {
     return null;
   }
 
-  const match = frontmatterMatch;
-  if (!match[1] || !match[2]) {
-    return null;
-  }
-
-  const frontmatterRaw = match[1];
-  const body = match[2];
-
-  // Simple YAML parsing for the fields we care about
-  const lines = frontmatterRaw.split('\n');
-  const frontmatter: Record<string, string> = {};
-
-  for (const line of lines) {
-    const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) continue;
-
-    const key = line.slice(0, colonIndex).trim();
-    const value = line.slice(colonIndex + 1).trim();
-
-    // Remove quotes if present
-    const unquoted = value.replace(/^["']|["']$/g, '');
-    frontmatter[key] = unquoted;
-  }
-
-  const name = frontmatter.name;
-  if (!name) {
-    return null;
-  }
-
-  const description = frontmatter.description ?? '';
-  const detailContent = body.trim() || description;
+  const detailContent = metadata.body.trim() || metadata.description || '';
 
   return {
     scope: 'project',
     labels: ['imported', 'skill'],
-    shortcut: name,
+    shortcut: metadata.name,
     detail: detailContent,
   };
-}
-
-/**
- * Detects MIME type based on file extension.
- */
-function detectMimeType(path: string): string {
-  const ext = extname(path).toLowerCase();
-  const mimeTypes: Record<string, string> = {
-    '.md': 'text/markdown',
-    '.txt': 'text/plain',
-    '.json': 'application/json',
-    '.yml': 'text/x-yaml',
-    '.yaml': 'text/x-yaml',
-    '.sh': 'text/x-shellscript',
-    '.bash': 'text/x-shellscript',
-    '.zsh': 'text/x-shellscript',
-    '.js': 'text/javascript',
-    '.ts': 'text/typescript',
-    '.py': 'text/x-python',
-    '.rb': 'text/x-ruby',
-    '.go': 'text/x-go',
-    '.rs': 'text/x-rust',
-    '.java': 'text/x-java',
-    '.c': 'text/x-c',
-    '.cpp': 'text/x-c++',
-    '.h': 'text/x-c',
-    '.hpp': 'text/x-c++',
-    '.css': 'text/css',
-    '.html': 'text/html',
-    '.xml': 'text/xml',
-    '.svg': 'image/svg+xml',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.pdf': 'application/pdf',
-    '.zip': 'application/zip',
-    '.tar': 'application/x-tar',
-    '.gz': 'application/gzip',
-    '.dockerfile': 'text/x-dockerfile',
-    '.dockerignore': 'text/plain',
-    '.gitignore': 'text/plain',
-    '.env': 'text/plain',
-    '.example': 'text/plain',
-  };
-
-  return mimeTypes[ext] || 'application/octet-stream';
 }
 
 /**
@@ -285,10 +209,9 @@ async function scanSkillDirectory(
  */
 async function readFileContent(path: string): Promise<{ content: string; isBinary: boolean }> {
   const buffer = await readFile(path);
-  const mimeType = detectMimeType(path);
+  const mimeType = detectMediaType(path);
 
-  // If MIME type starts with text/, return as UTF-8 string
-  if (mimeType.startsWith('text/')) {
+  if (isTextLikeMediaType(mimeType)) {
     return { content: buffer.toString('utf8'), isBinary: false };
   }
 
@@ -300,44 +223,16 @@ async function readFileContent(path: string): Promise<{ content: string; isBinar
  * Parses SKILL.md frontmatter to extract metadata.
  */
 function parseSkillMetadata(content: string): { title: string; labels: string[] } | null {
-  const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
-
-  if (!frontmatterMatch || !frontmatterMatch[1]) {
+  const metadata = parseSkillMarkdown(content);
+  const title = metadata.title ?? metadata.name;
+  if (!metadata.hasFrontmatter || !title) {
     return null;
   }
 
-  const frontmatterRaw = frontmatterMatch[1];
-  const lines = frontmatterRaw.split('\n');
-  const frontmatter: Record<string, string> = {};
-
-  for (const line of lines) {
-    const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) continue;
-
-    const key = line.slice(0, colonIndex).trim();
-    const value = line.slice(colonIndex + 1).trim();
-
-    // Remove quotes if present
-    const unquoted = value.replace(/^["']|["']$/g, '');
-    frontmatter[key] = unquoted;
-  }
-
-  const name = frontmatter.name;
-  if (!name) {
-    return null;
-  }
-
-  // Extract labels if present
-  const labelsRaw = frontmatter.labels;
-  const labels = labelsRaw
-    ? labelsRaw
-        .toString()
-        .split(',')
-        .map((l) => l.trim())
-        .filter(Boolean)
-    : ['imported'];
-
-  return { title: name, labels };
+  return {
+    title,
+    labels: metadata.labels.length > 0 ? metadata.labels : ['imported'],
+  };
 }
 
 /**
@@ -406,7 +301,7 @@ async function buildArtifactBundle(args: {
     const { content, isBinary } = await readFileContent(fullPath);
     const buffer = await readFile(fullPath);
     const sha256 = computeFileHash(buffer);
-    const mediaType = detectMimeType(relPath);
+    const mediaType = detectMediaType(relPath);
 
     files.push({
       path: relPath,
@@ -427,7 +322,7 @@ async function buildArtifactBundle(args: {
     const { content, isBinary } = await readFileContent(fullPath);
     const buffer = await readFile(fullPath);
     const sha256 = computeFileHash(buffer);
-    const mediaType = detectMimeType(relPath);
+    const mediaType = detectMediaType(relPath);
 
     files.push({
       path: relPath,
@@ -448,7 +343,7 @@ async function buildArtifactBundle(args: {
     const { content, isBinary } = await readFileContent(fullPath);
     const buffer = await readFile(fullPath);
     const sha256 = computeFileHash(buffer);
-    const mediaType = detectMimeType(relPath);
+    const mediaType = detectMediaType(relPath);
 
     files.push({
       path: relPath,

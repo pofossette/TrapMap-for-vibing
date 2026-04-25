@@ -15,7 +15,7 @@ import { skillArtifactSchema } from '@trapmap/contracts';
 
 import type {
   AgentReviewRecord,
-  JsonStore,
+  SkillShareerStore,
   SkillArtifactRecord as ServerSkillArtifactRecord,
   SkillArtifactLifecycleEventRecord,
   SkillArtifactMetadataRecord,
@@ -167,7 +167,7 @@ function toRevision(
  * Create a lifecycle event record.
  */
 function createLifecycleEvent(
-  store: JsonStore,
+  store: SkillShareerStore,
   data: StoreData,
   input: Omit<SkillArtifactLifecycleEventRecord, 'id'>,
 ): SkillArtifactLifecycleEventRecord {
@@ -195,7 +195,7 @@ function toAgentReviewRecord(review: AgentReviewResult): AgentReviewRecord {
  * Create review notes from agent review result.
  */
 function toAgentReviewNotes(
-  store: JsonStore,
+  store: SkillShareerStore,
   data: StoreData,
   review: AgentReviewResult,
 ): SkillArtifactReviewNoteRecord[] {
@@ -215,7 +215,7 @@ function toAgentReviewNotes(
  * Governance is stored at the artifact root (T-12-07).
  */
 export function createSkillArtifactRecord(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   ownerUserId: string;
   teamId: string | null;
@@ -335,7 +335,7 @@ export function createSkillArtifactRecord(args: {
  * This preserves governance at the artifact root while adding immutable revisions.
  */
 export function appendSkillArtifactRevision(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   artifact: ServerSkillArtifactRecord;
   ownerUserId: string;

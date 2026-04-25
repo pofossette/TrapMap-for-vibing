@@ -356,16 +356,20 @@ function buildRoutingDistribution(caseResults: CaseResult[]): RoutingDistributio
   const reasonCounts = new Map<string, number>();
 
   for (const result of caseResults) {
-    const reason = result.execution.routingReason ?? 'none';
-    reasonCounts.set(reason, (reasonCounts.get(reason) ?? 0) + 1);
+    if (!result.execution.routingReason) {
+      continue;
+    }
+    reasonCounts.set(
+      result.execution.routingReason,
+      (reasonCounts.get(result.execution.routingReason) ?? 0) + 1,
+    );
   }
 
   const total = caseResults.length;
 
   return Array.from(reasonCounts.entries())
     .map(([reason, count]) => ({
-      reason: reason as 'explicit-mode' | 'auto-error-detected' | 'auto-goal-query' |
-              'auto-broad-context' | 'auto-multi-channel' | 'fallback-default' | 'v2-default-capsule',
+      reason: reason as RoutingDistribution['reason'],
       count,
       percentage: total > 0 ? (count / total) * 100 : 0,
     }))

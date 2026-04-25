@@ -15,6 +15,7 @@ import type {
 // Import v1 and v2 smoke datasets
 import { v1RetrievalSmokeCases } from './datasets/smoke/v1-retrieval-smoke.js';
 import { v2RetrievalSmokeCases } from './datasets/smoke/v2-retrieval-smoke.js';
+import { v3GraphPlanSmokeCases } from './datasets/smoke/v3-graph-plan-smoke.js';
 
 // Import smoke scenarios
 import {
@@ -40,6 +41,7 @@ import {
 export const smokeCases: RetrievalEvalCase[] = [
   ...v1RetrievalSmokeCases,
   ...v2RetrievalSmokeCases,
+  ...v3GraphPlanSmokeCases,
 ];
 
 /**

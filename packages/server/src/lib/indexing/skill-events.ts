@@ -19,7 +19,7 @@ import { createHash } from 'node:crypto';
 import type { LifecycleState, Scope } from '@trapmap/contracts';
 
 import type {
-  JsonStore,
+  SkillShareerStore,
   SkillArtifactRecord,
   StoreData,
 } from '../store.js';
@@ -627,7 +627,7 @@ export function determineSkillIndexAction(
  * @param args - Event arguments
  */
 export async function runSkillIndexEvent(args: {
-  services: { store: JsonStore; data: StoreData };
+  services: { store: SkillShareerStore; data: StoreData };
   artifactId: string;
   previousState: LifecycleState;
   nextState: LifecycleState;

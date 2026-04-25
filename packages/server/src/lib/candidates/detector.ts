@@ -8,6 +8,7 @@
 import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 import type { DuplicateCase, DuplicateMatch } from '@trapmap/contracts';
 import type { DuplicateDetectionInput, DuplicateDetectionResult } from './types.js';
+import { createDuplicateCaseId } from '../ids.js';
 import { nowIso } from '../store.js';
 import { tokenize } from './fingerprint.js';
 
@@ -219,7 +220,7 @@ export async function detectDuplicates(
   }
 
   const duplicateCase: DuplicateCase | null = hasMatches ? {
-    id: `dupcase_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    id: createDuplicateCaseId(),
     candidateId: input.candidateId,
     detectedAt: nowIso(),
     detectionVersion: DETECTION_VERSION,

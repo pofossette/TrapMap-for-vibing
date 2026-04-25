@@ -44,6 +44,151 @@ export function buildGraphFromDocuments(documents: GraphIndexDocumentRecord[]): 
   return graph;
 }
 
+function normalizeGraphLabel(label: string): string {
+  return label.toLowerCase().trim().replace(/\s+/g, '-');
+}
+
+function edgeWeight(strength: GraphEdgeRecord['strength']): number {
+  return strength === 'hard' ? 2 : 1;
+}
+
+export interface GraphRuntimeSnapshot {
+  graph: Graph;
+  documentsBySourceId: Map<string, GraphIndexDocumentRecord>;
+  nodeIdsByNormalizedLabel: Map<string, Set<string>>;
+  sourceIdsByNormalizedLabel: Map<string, Set<string>>;
+  sourceIdsByNodeId: Map<string, Set<string>>;
+  nodeIdsBySourceId: Map<string, Set<string>>;
+}
+
+export function buildGraphRuntimeSnapshot(
+  documents: GraphIndexDocumentRecord[],
+): GraphRuntimeSnapshot {
+  const graph = buildGraphFromDocuments(documents);
+  const documentsBySourceId = new Map<string, GraphIndexDocumentRecord>();
+  const nodeIdsByNormalizedLabel = new Map<string, Set<string>>();
+  const sourceIdsByNormalizedLabel = new Map<string, Set<string>>();
+  const sourceIdsByNodeId = new Map<string, Set<string>>();
+  const nodeIdsBySourceId = new Map<string, Set<string>>();
+
+  for (const doc of documents) {
+    documentsBySourceId.set(doc.sourceId, doc);
+
+    if (!nodeIdsBySourceId.has(doc.sourceId)) {
+      nodeIdsBySourceId.set(doc.sourceId, new Set());
+    }
+
+    for (const node of doc.nodes) {
+      const normalizedLabel = normalizeGraphLabel(node.label);
+
+      if (!nodeIdsByNormalizedLabel.has(normalizedLabel)) {
+        nodeIdsByNormalizedLabel.set(normalizedLabel, new Set());
+      }
+      nodeIdsByNormalizedLabel.get(normalizedLabel)?.add(node.id);
+
+      if (!sourceIdsByNormalizedLabel.has(normalizedLabel)) {
+        sourceIdsByNormalizedLabel.set(normalizedLabel, new Set());
+      }
+      sourceIdsByNormalizedLabel.get(normalizedLabel)?.add(doc.sourceId);
+
+      if (!sourceIdsByNodeId.has(node.id)) {
+        sourceIdsByNodeId.set(node.id, new Set());
+      }
+      sourceIdsByNodeId.get(node.id)?.add(doc.sourceId);
+
+      nodeIdsBySourceId.get(doc.sourceId)?.add(node.id);
+    }
+  }
+
+  return {
+    graph,
+    documentsBySourceId,
+    nodeIdsByNormalizedLabel,
+    sourceIdsByNormalizedLabel,
+    sourceIdsByNodeId,
+    nodeIdsBySourceId,
+  };
+}
+
+export function expandSourcesOneHop(
+  runtime: GraphRuntimeSnapshot,
+  queryLabels: Set<string>,
+): Set<string> {
+  const candidateSourceIds = new Set<string>();
+  const seedNodeIds = new Set<string>();
+
+  for (const label of queryLabels) {
+    for (const sourceId of runtime.sourceIdsByNormalizedLabel.get(label) ?? []) {
+      candidateSourceIds.add(sourceId);
+    }
+
+    for (const nodeId of runtime.nodeIdsByNormalizedLabel.get(label) ?? []) {
+      seedNodeIds.add(nodeId);
+    }
+  }
+
+  for (const seedNodeId of seedNodeIds) {
+    for (const neighborNodeId of runtime.graph.neighbors(seedNodeId)) {
+      for (const sourceId of runtime.sourceIdsByNodeId.get(neighborNodeId) ?? []) {
+        candidateSourceIds.add(sourceId);
+      }
+    }
+  }
+
+  return candidateSourceIds;
+}
+
+export function calculateSourceRelationStrength(
+  runtime: GraphRuntimeSnapshot,
+  sourceId: string,
+  queryLabels: Set<string>,
+): number {
+  const sourceNodeIds = runtime.nodeIdsBySourceId.get(sourceId);
+  if (!sourceNodeIds || sourceNodeIds.size === 0) {
+    return 0;
+  }
+
+  const queryNodeIds = new Set<string>();
+  for (const label of queryLabels) {
+    for (const nodeId of runtime.nodeIdsByNormalizedLabel.get(label) ?? []) {
+      queryNodeIds.add(nodeId);
+    }
+  }
+
+  if (queryNodeIds.size === 0) {
+    return 0;
+  }
+
+  let strength = 0;
+  const countedEdgeIds = new Set<string>();
+
+  for (const nodeId of sourceNodeIds) {
+    if (!runtime.graph.hasNode(nodeId)) {
+      continue;
+    }
+
+    for (const edgeId of runtime.graph.edges(nodeId)) {
+      if (countedEdgeIds.has(edgeId)) {
+        continue;
+      }
+
+      const [sourceNodeId, targetNodeId] = runtime.graph.extremities(edgeId);
+      if (!sourceNodeId || !targetNodeId) {
+        continue;
+      }
+      if (!queryNodeIds.has(sourceNodeId) && !queryNodeIds.has(targetNodeId)) {
+        continue;
+      }
+
+      countedEdgeIds.add(edgeId);
+      const attributes = runtime.graph.getEdgeAttributes(edgeId) as { strength?: GraphEdgeRecord['strength'] };
+      strength += edgeWeight(attributes.strength ?? 'soft');
+    }
+  }
+
+  return strength;
+}
+
 // ---------------------------------------------------------------------------
 // Hard-edge projection
 // ---------------------------------------------------------------------------

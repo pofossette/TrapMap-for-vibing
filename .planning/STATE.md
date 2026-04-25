@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to plan
-last_updated: "2026-04-25T03:11:38.660Z"
+last_updated: "2026-04-25T09:51:49Z"
 progress:
   total_phases: 15
-  completed_phases: 9
-  total_plans: 37
-  completed_plans: 38
-  percent: 100
+  completed_phases: 13
+  total_plans: 48
+  completed_plans: 48
+  percent: 87
 ---
 
 ## Accumulated Context
@@ -26,8 +26,13 @@ progress:
 - Phase 36 added: GraphRAG-lite indexing pipeline for skill-trap graph extraction
 - Phase 37 added: GraphRAG-lite retrieval compiler for trap-first skill plans
 - Phase 38 added: GraphRAG-lite routing fallback and evaluation coverage
+- Phase 38 completed: confidence-aware `/v3/retrieval/search` routing, governed fallback, and eval coverage are in place
 - Phase 39 added: GraphRAG-lite unified graph schema for skill and trap outputs
+- Phase 39 completed: trap and skill outputs now share an additive unified graph schema with metadata-only activation references
 - Phase 40 added: Replace manual frontmatter and MIME parsing with library-backed utilities
+- Phase 40 completed: shared gray-matter and mime-types utilities now back SKILL parsing and MIME detection across CLI/server import flows
 - Phase 41 added: Introduce graphology and parsing libraries to replace hand-rolled implementations
+- Phase 41 completed: graphology/parsing adoption is now fully wrapped behind local boundaries and server-generated IDs use one shared nanoid-backed helper
 - Phase 42 added: Replace hand-rolled graph operations with graphology-based GraphRAG runtime
+- Phase 42 completed: graph-assisted recall and transitional graph reads now use graphology-backed document runtime helpers instead of the legacy synthetic graph index
 - Phase 43 added: Migrate store and indexing persistence to database-backed libraries

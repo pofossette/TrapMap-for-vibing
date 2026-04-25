@@ -1,12 +1,12 @@
 import type { AuditEvent } from '@trapmap/contracts';
 
-import type { JsonStore, StoreData } from './store.js';
+import type { SkillShareerStore, StoreData } from './store.js';
 import { nowIso } from './store.js';
 
 import type { ResolvedAuthContext } from './context.js';
 
 export interface CreateAuditEventArgs {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   teamId: string | null;
   actor: ResolvedAuthContext;

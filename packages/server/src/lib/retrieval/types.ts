@@ -206,10 +206,10 @@ export interface CapsuleCandidate {
 
 /**
  * Channel identifier used in routing trace metadata.
- * Extends the entry-only RecallChannel with capsule and profile channels
- * to cover both v1 and v2 retrieval paths.
+ * Extends the entry-only RecallChannel with capsule, profile, and plan channels
+ * to cover v1, v2, and GraphRAG-lite wrapper retrieval paths.
  */
-export type RoutingChannel = RecallChannel | 'capsule' | 'profile';
+export type RoutingChannel = RecallChannel | 'capsule' | 'profile' | 'plan';
 
 /**
  * Routing decision produced by the shared router.

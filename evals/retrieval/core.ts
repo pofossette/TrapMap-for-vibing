@@ -15,6 +15,7 @@ import type {
 // Import v1 and v2 core datasets
 import { v1RetrievalCoreCases } from './datasets/core/v1-retrieval-core.js';
 import { v2RetrievalCoreCases } from './datasets/core/v2-retrieval-core.js';
+import { v3GraphPlanCoreCases } from './datasets/core/v3-graph-plan-core.js';
 
 // Import core scenarios
 import {
@@ -43,6 +44,7 @@ import {
 export const coreCases: RetrievalEvalCase[] = [
   ...v1RetrievalCoreCases,
   ...v2RetrievalCoreCases,
+  ...v3GraphPlanCoreCases,
 ];
 
 /**

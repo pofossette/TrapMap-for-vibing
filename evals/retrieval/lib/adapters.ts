@@ -16,6 +16,7 @@ import type {
 import { buildServer } from '../../../packages/server/src/app.js';
 import { createKnowledgeEntryRecord } from '../../../packages/server/src/lib/knowledge.js';
 import { hashSecret, nowIso } from '../../../packages/server/src/lib/store.js';
+import type { GraphIndexDocumentRecord } from '../../../packages/server/src/lib/indexing/graph-lite/documents.js';
 import type {
   JsonStore,
   SkillArtifactRecord,
@@ -184,6 +185,7 @@ export async function seedScenarioFixtures(
       requiredLevel: number;
     }>;
   }>;
+  const fixtureGraphDocs = (scenario.fixtures.graphIndexDocuments ?? []) as GraphIndexDocumentRecord[];
 
   const createdAt = nowIso();
 
@@ -289,6 +291,10 @@ export async function seedScenarioFixtures(
       };
 
       data.skillArtifacts.push(record);
+    }
+
+    for (const graphDoc of fixtureGraphDocs) {
+      data.graphIndexDocuments.push(graphDoc);
     }
   });
 
@@ -434,15 +440,19 @@ export async function executeThroughRoute(
 
     const responseBody = response.json();
     const result = normalizeResponse(responseBody, case_.endpoint);
+    const routingTrace = result.routingTrace;
 
     return {
       result,
       execution: {
         adapterType,
-        fallbackUsed,
-        fallbackReason,
+        fallbackUsed: routingTrace?.fallbackApplied ?? fallbackUsed,
+        fallbackReason: routingTrace?.routingReason ?? fallbackReason,
         endpoint: case_.endpoint,
         durationMs,
+        selectedMode: routingTrace?.selectedMode as ExecutionMetadata['selectedMode'],
+        routingReason: routingTrace?.routingReason as ExecutionMetadata['routingReason'],
+        fallbackApplied: routingTrace?.fallbackApplied ?? false,
       },
       warnings,
     };

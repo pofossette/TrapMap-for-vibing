@@ -17,12 +17,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../app.js';
-import type { JsonStore } from '../lib/store.js';
+import type { SkillShareerStore } from '../lib/store.js';
 import { hashSecret, nowIso } from '../lib/store.js';
 
 describe('apply-resolution endpoint', () => {
   let app: FastifyInstance;
-  let store: JsonStore;
+  let store: SkillShareerStore;
   let sessionId: string;
   const userId = 'user_1';
   const teamId = 'team_1';

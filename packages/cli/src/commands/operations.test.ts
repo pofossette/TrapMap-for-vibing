@@ -254,6 +254,41 @@ describe('CLI operations commands (Phase 13)', () => {
       expect(bundle.files.length).toBe(1);
       expect(bundle.files[0]?.path).toBe('SKILL.md');
     });
+
+    it('should preserve YAML list labels from SKILL.md metadata', async () => {
+      await writeFile(
+        join(testDir, 'skill.md'),
+        [
+          '---',
+          'name: "Quoted Skill"',
+          'labels:',
+          '  - parsing',
+          '  - mime',
+          '---',
+          '',
+          'Body content',
+        ].join('\n'),
+      );
+
+      await program.parseAsync([
+        'node',
+        'test',
+        'import',
+        '--file',
+        join(testDir, 'skill.md'),
+        '--level',
+        '3',
+      ]);
+
+      const callArgs = mockedApiRequest.mock.calls[0];
+      expect(callArgs).toBeDefined();
+      const args = callArgs?.[1] as MockCallArgs;
+      const bundle = args.body.bundles[0];
+
+      expect(bundle).toBeDefined();
+      expect(bundle?.title).toBe('Quoted Skill');
+      expect(bundle?.labels).toEqual(['parsing', 'mime']);
+    });
   });
 
   describe('Path validation (T-13-01)', () => {

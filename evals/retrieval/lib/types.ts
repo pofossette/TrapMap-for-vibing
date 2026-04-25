@@ -235,10 +235,12 @@ export function deriveQueryType(tags: string[]): QueryTypeCohort {
 
 /**
  * Derive route family from endpoint.
- * v1 uses 'entry', v2 uses 'capsule'.
+ * v1 uses 'entry', v2 uses 'capsule', v3 uses 'graph-plan'.
  */
-export function deriveRouteFamily(endpoint: string): 'entry' | 'capsule' {
-  return endpoint.startsWith('/v1') ? 'entry' : 'capsule';
+export function deriveRouteFamily(endpoint: string): 'entry' | 'capsule' | 'graph-plan' {
+  if (endpoint.startsWith('/v1')) return 'entry';
+  if (endpoint.startsWith('/v2')) return 'capsule';
+  return 'graph-plan';
 }
 
 /**

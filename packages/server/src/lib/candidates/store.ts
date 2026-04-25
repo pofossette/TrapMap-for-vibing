@@ -1,4 +1,4 @@
-import type { JsonStore, StoreData } from '../store.js';
+import type { SkillShareerStore, StoreData } from '../store.js';
 import type { CandidateSubmission, DuplicateCase, CandidateStatus, ManualResultSubmission } from '@trapmap/contracts';
 import { nowIso } from '../store.js';
 
@@ -17,7 +17,7 @@ const MAX_RETRIES = 3;
  * Create a new candidate submission from an uploaded payload.
  */
 export function createCandidateSubmission(args: {
-  store: JsonStore;
+  store: SkillShareerStore;
   data: StoreData;
   sourceType: 'trap' | 'skill';
   submittedBy: string;

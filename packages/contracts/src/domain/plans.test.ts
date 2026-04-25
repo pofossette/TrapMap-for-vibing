@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
+  graphPlanEdgeTypeSchema,
+  graphPlanSchema,
+  graphPlanSkillActivationRefsSchema,
+  graphPlanNodeSchema,
   planEdgeTypeSchema,
   planEdgeStrengthSchema,
   planTrapNodeSchema,
@@ -83,6 +87,7 @@ describe('plans schema contracts', () => {
       expect(skill.goal).toBe('Reuse connections from a shared pool');
       expect(skill.scope).toBe('project');
       expect(skill.requiredLevel).toBe(3);
+      expect(skill.activationRefs).toEqual({ references: [], assets: [], scripts: [] });
     });
 
     it('allows optional capsuleId', () => {
@@ -99,6 +104,110 @@ describe('plans schema contracts', () => {
       });
 
       expect(skill.capsuleId).toBeUndefined();
+      expect(skill.activationRefs.references).toEqual([]);
+    });
+  });
+
+  describe('graphPlanEdgeTypeSchema', () => {
+    it('accepts additive graph-only edge types', () => {
+      expect(graphPlanEdgeTypeSchema.parse('co-occurs-with')).toBe('co-occurs-with');
+    });
+  });
+
+  describe('graphPlanSkillActivationRefsSchema', () => {
+    it('defaults to empty metadata-only activation collections', () => {
+      const activationRefs = graphPlanSkillActivationRefsSchema.parse({});
+
+      expect(activationRefs).toEqual({ references: [], assets: [], scripts: [] });
+    });
+  });
+
+  describe('graphPlanNodeSchema', () => {
+    it('parses discriminated trap and skill nodes', () => {
+      const trap = graphPlanNodeSchema.parse({
+        kind: 'trap',
+        nodeId: 'trap:entry-1',
+        sourceId: 'entry-1',
+        label: 'Trap node',
+        severity: 'hard',
+        scope: 'global',
+        requiredLevel: 1,
+        evidence: 'Trap evidence',
+        score: 0.9,
+      });
+
+      const skill = graphPlanNodeSchema.parse({
+        kind: 'skill',
+        nodeId: 'skill:artifact-1',
+        artifactId: 'artifact-1',
+        label: 'Skill node',
+        situation: 'During deploy',
+        problem: 'Drift',
+        goal: 'Stabilize rollout',
+        scope: 'project',
+        requiredLevel: 2,
+        score: 0.8,
+      });
+
+      expect(trap.kind).toBe('trap');
+      expect(skill.kind).toBe('skill');
+    });
+  });
+
+  describe('graphPlanSchema', () => {
+    it('parses unified graph outputs with focus metadata', () => {
+      const graph = graphPlanSchema.parse({
+        nodes: [
+          {
+            kind: 'trap',
+            nodeId: 'trap:e1',
+            sourceId: 'e1',
+            label: 'Trap node',
+            severity: 'hard',
+            scope: 'global',
+            requiredLevel: 0,
+            evidence: 'Evidence',
+            score: 0.9,
+          },
+          {
+            kind: 'skill',
+            nodeId: 'skill:a1',
+            artifactId: 'a1',
+            label: 'Skill node',
+            situation: 'S',
+            problem: 'P',
+            goal: 'G',
+            scope: 'project',
+            requiredLevel: 0,
+            score: 0.8,
+          },
+        ],
+        edges: [
+          {
+            id: 'edge-1',
+            sourceNodeId: 'skill:a1',
+            targetNodeId: 'trap:e1',
+            type: 'mitigates',
+            strength: 'hard',
+          },
+          {
+            id: 'edge-2',
+            sourceNodeId: 'skill:a1',
+            targetNodeId: 'trap:e1',
+            type: 'co-occurs-with',
+            strength: 'soft',
+          },
+        ],
+        citations: [],
+        focus: {
+          blockingTrapNodeIds: ['trap:e1'],
+          recommendedSkillNodeIds: ['skill:a1'],
+        },
+      });
+
+      expect(graph.nodes).toHaveLength(2);
+      expect(graph.edges[1]?.type).toBe('co-occurs-with');
+      expect(graph.focus.recommendedSkillNodeIds).toEqual(['skill:a1']);
     });
   });
 
@@ -199,12 +308,62 @@ describe('plans schema contracts', () => {
             score: 0.4,
           },
         ],
+        graph: {
+          nodes: [
+            {
+              kind: 'trap',
+              nodeId: 'trap:e1',
+              sourceId: 'e1',
+              label: 'Test trap',
+              severity: 'hard',
+              scope: 'global',
+              requiredLevel: 0,
+              evidence: 'Evidence text',
+              score: 0.9,
+            },
+            {
+              kind: 'skill',
+              nodeId: 'skill:a1',
+              artifactId: 'a1',
+              label: 'Test skill',
+              situation: 'S',
+              problem: 'P',
+              goal: 'G',
+              scope: 'global',
+              requiredLevel: 0,
+              score: 0.8,
+            },
+          ],
+          edges: [
+            {
+              id: 'edge-1',
+              sourceNodeId: 'skill:a1',
+              targetNodeId: 'trap:e1',
+              type: 'mitigates',
+              strength: 'hard',
+            },
+          ],
+          citations: [
+            {
+              sourceId: 'e2',
+              sourceKind: 'trap',
+              label: 'Related',
+              scope: 'global',
+              score: 0.4,
+            },
+          ],
+          focus: {
+            blockingTrapNodeIds: ['trap:e1'],
+            recommendedSkillNodeIds: ['skill:a1'],
+          },
+        },
       });
 
       expect(plan.blockingTraps).toHaveLength(1);
       expect(plan.recommendedSkills).toHaveLength(1);
       expect(plan.edges).toHaveLength(1);
       expect(plan.citations).toHaveLength(1);
+      expect(plan.graph.nodes).toHaveLength(2);
     });
 
     it('defaults to empty arrays when no fields provided', () => {
@@ -214,6 +373,15 @@ describe('plans schema contracts', () => {
       expect(plan.recommendedSkills).toEqual([]);
       expect(plan.edges).toEqual([]);
       expect(plan.citations).toEqual([]);
+      expect(plan.graph).toEqual({
+        nodes: [],
+        edges: [],
+        citations: [],
+        focus: {
+          blockingTrapNodeIds: [],
+          recommendedSkillNodeIds: [],
+        },
+      });
     });
   });
 

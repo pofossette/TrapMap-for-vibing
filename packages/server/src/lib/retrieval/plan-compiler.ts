@@ -10,6 +10,9 @@
  */
 
 import type {
+  GraphPlan,
+  GraphPlanGraphEdge,
+  GraphPlanNode,
   PlanQuery,
   TrapFirstPlan,
   PlanTrapNode,
@@ -93,7 +96,21 @@ export async function compileTrapFirstPlan(
 
   // Early return if no seeds
   if (seedNodeIds.length === 0) {
-    return { blockingTraps: [], recommendedSkills: [], edges: [], citations: [] };
+    return {
+      blockingTraps: [],
+      recommendedSkills: [],
+      edges: [],
+      citations: [],
+      graph: {
+        nodes: [],
+        edges: [],
+        citations: [],
+        focus: {
+          blockingTrapNodeIds: [],
+          recommendedSkillNodeIds: [],
+        },
+      },
+    };
   }
 
   // 7. Build local expansion view
@@ -138,11 +155,14 @@ export async function compileTrapFirstPlan(
     governanceFilters,
   );
 
+  const graph = buildUnifiedGraph(blockingTraps, selectedSkills, expansionGraph, citations);
+
   return {
     blockingTraps,
     recommendedSkills: selectedSkills,
     edges,
     citations,
+    graph,
   };
 }
 
@@ -391,6 +411,7 @@ function applySkillBudget(
       scope: item.artifact.scope,
       requiredLevel: item.artifact.requiredLevel,
       score: item.candidate.finalScore,
+      activationRefs: buildActivationRefs(item.artifact),
     };
   });
 }
@@ -488,6 +509,69 @@ function buildCitations(
 
   // Sort by score descending
   return citations.sort((a, b) => b.score - a.score);
+}
+
+function buildActivationRefs(
+  artifact: SkillArtifactRecord,
+): PlanSkillNode['activationRefs'] {
+  const manifest = artifact.latestRevision.derived?.clientManifest;
+
+  if (!manifest) {
+    return {
+      references: [],
+      assets: [],
+      scripts: [],
+    };
+  }
+
+  return {
+    references: manifest.references,
+    assets: manifest.assets,
+    scripts: manifest.scripts,
+  };
+}
+
+function buildUnifiedGraph(
+  traps: PlanTrapNode[],
+  skills: PlanSkillNode[],
+  graph: Graph,
+  citations: PlanCitation[],
+): GraphPlan {
+  const nodes: GraphPlanNode[] = [
+    ...traps.map((trap) => ({ kind: 'trap' as const, ...trap })),
+    ...skills.map((skill) => ({ kind: 'skill' as const, ...skill })),
+  ];
+  const nodeIds = new Set(nodes.map((node) => node.nodeId));
+
+  const edges: GraphPlanGraphEdge[] = [];
+  graph.forEachEdge((edgeKey, attributes, sourceNodeId, targetNodeId) => {
+    if (!nodeIds.has(sourceNodeId) || !nodeIds.has(targetNodeId)) {
+      return;
+    }
+
+    const edgeType = attributes.relationType as GraphPlanGraphEdge['type'];
+    if (!['risk-blocks', 'mitigates', 'requires', 'order', 'co-occurs-with'].includes(edgeType)) {
+      return;
+    }
+
+    edges.push({
+      id: edgeKey,
+      sourceNodeId,
+      targetNodeId,
+      type: edgeType,
+      strength: attributes.strength as GraphPlanGraphEdge['strength'],
+    });
+  });
+
+  return {
+    nodes,
+    edges,
+    citations,
+    focus: {
+      blockingTrapNodeIds: traps.map((trap) => trap.nodeId),
+      recommendedSkillNodeIds: skills.map((skill) => skill.nodeId),
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------

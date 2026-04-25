@@ -372,4 +372,46 @@ describe('routing trace fields', () => {
     expect(sliceModes).toContain('semantic');
     expect(sliceModes).toContain('hybrid');
   });
+
+  it('aggregates graph-plan cohorts and routing distribution for v3 cases', () => {
+    const caseResults = [
+      makeCaseResult({
+        case: {
+          ...makeCaseResult().case,
+          caseId: 'graph-plan-case',
+          endpoint: '/v3/retrieval/search',
+          request: { seed: 'docker graph rollout' },
+        },
+        result: {
+          ...makeCaseResult().result,
+          endpoint: '/v3/retrieval/search',
+        } as NormalizedResult,
+        execution: {
+          ...makeCaseResult().execution,
+          endpoint: '/v3/retrieval/search',
+          selectedMode: 'mix',
+          routingReason: 'graph-plan-selected',
+          fallbackApplied: false,
+        },
+      }),
+    ];
+
+    const report = buildReport(caseResults, makeOptions(), 100);
+
+    expect(report.slices[0]?.routeFamily).toBe('graph-plan');
+    expect(report.cohorts[0]?.cohort.routeFamily).toBe('graph-plan');
+    expect(report.routingDistribution).toEqual([
+      {
+        reason: 'graph-plan-selected',
+        count: 1,
+        percentage: 100,
+      },
+    ]);
+  });
+
+  it('omits missing routing reasons instead of emitting invalid synthetic values', () => {
+    const report = buildReport([makeCaseResult()], makeOptions(), 100);
+
+    expect(report.routingDistribution).toEqual([]);
+  });
 });
