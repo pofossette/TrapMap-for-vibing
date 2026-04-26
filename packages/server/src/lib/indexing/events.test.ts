@@ -11,7 +11,7 @@
 
 import type { LifecycleState } from '@trapmap/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { JsonStore, StoreData } from '../store.js';
+import type { SkillShareerStore, StoreData } from '../store.js';
 import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
 import { determineKnowledgeIndexAction, runKnowledgeIndexEvent } from './events.js';
 import type { IndexAdapter, NormalizedIndexDocument } from './types.js';
@@ -79,7 +79,7 @@ describe('lifecycle event mapping (IDX-03, T-08-06)', () => {
   });
 
   describe('runKnowledgeIndexEvent', () => {
-    let store: JsonStore;
+    let store: SkillShareerStore;
     let data: StoreData;
     let mockVectorAdapter: MockAdapter;
     let mockKeywordAdapter: MockAdapter;
@@ -334,7 +334,7 @@ describe('lifecycle event mapping (IDX-03, T-08-06)', () => {
  * Covers T-36-13: Stale, rejected, or deactivated graph documents are removed automatically.
  */
 describe('graph document lifecycle (T-36-13)', () => {
-  let store: JsonStore;
+  let store: SkillShareerStore;
   let data: StoreData;
 
   beforeEach(async () => {
