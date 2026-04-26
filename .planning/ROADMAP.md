@@ -51,7 +51,7 @@ Plans:
 **Goal:** Introduce asynchronous ingestion boundary for new skill and trap submissions so duplicate analysis happens after upload, not inline in the request path
 **Requirements**: N/A (infrastructure)
 **Depends on:** Phase 32
-**Plans:** 6/7 plans complete
+**Plans:** 6/6 plans complete
 
 Plans:
 - [x] 33-01 - Candidate submission types and store integration
