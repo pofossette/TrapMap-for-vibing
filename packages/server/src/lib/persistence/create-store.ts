@@ -1,12 +1,23 @@
-import type { ServerConfig } from '../../config.js';
-import { JsonStore, type SkillShareerStore } from '../store.js';
-import { PostgresStore } from './postgres-store.js';
+import pg from 'pg';
 
-export function createSkillShareerStore(config: Pick<ServerConfig, 'dataFile' | 'databaseUrl'>): SkillShareerStore {
+import { PostgresStore } from './postgres-store.js';
+import { JsonStore, type SkillShareerStore } from '../store.js';
+
+export interface StoreConfig {
+  dataFile: string;
+  databaseUrl: string | null;
+}
+
+/**
+ * Create the appropriate store implementation based on configuration.
+ *
+ * - When databaseUrl is set: returns a PostgresStore backed by Drizzle/PostgreSQL
+ * - Otherwise: returns the existing JsonStore file-backed implementation
+ */
+export function createSkillShareerStore(config: StoreConfig): SkillShareerStore {
   if (config.databaseUrl) {
-    return new PostgresStore({
-      databaseUrl: config.databaseUrl,
-    });
+    const pool = new pg.Pool({ connectionString: config.databaseUrl });
+    return new PostgresStore(pool);
   }
 
   return new JsonStore(config.dataFile);

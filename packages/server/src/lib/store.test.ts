@@ -9,9 +9,7 @@ import { JsonStore, nowIso } from './store.js';
 function createPostgresStore(): PostgresStore {
   const db = newDb();
   const { Pool } = db.adapters.createPg();
-  return new PostgresStore({
-    pool: new Pool() as unknown as Pool,
-  });
+  return new PostgresStore(new Pool() as unknown as Pool);
 }
 
 describe('PostgresStore', () => {

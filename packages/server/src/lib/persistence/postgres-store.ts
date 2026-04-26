@@ -1,67 +1,78 @@
-import { Pool as NodePgPool } from 'pg';
-import type { Pool, PoolClient } from 'pg';
+import type { Pool } from 'pg';
 
-import {
-  createEmptyStoreData,
-  cloneStoreData,
-  nowIso,
-  type SkillShareerStore,
-  type StoreData,
-} from '../store.js';
+import type { SkillShareerStore, StoreData } from '../store.js';
+import { createEmptyStoreData } from '../store.js';
 
-const DEFAULT_SNAPSHOT_KEY = 'primary';
-
-export interface PostgresStoreOptions {
-  databaseUrl?: string;
-  pool?: Pool;
-  snapshotKey?: string;
-}
-
+/**
+ * PostgreSQL-backed compatibility store.
+ *
+ * Persists one canonical StoreData snapshot row in JSONB.
+ * Preserves the snapshot/transact/nextId contract so domain logic
+ * does not need a repository rewrite.
+ *
+ * Uses row-level locking in transact to keep writes serialized from
+ * the caller's point of view, matching JsonStore's write-chain semantics.
+ *
+ * The Drizzle schema definition in schema.ts describes the table structure
+ * for future relational decomposition and migration tooling.
+ */
 export class PostgresStore implements SkillShareerStore {
-  private readonly pool: Pool;
-  private readonly ownsPool: boolean;
-  private readonly snapshotKey: string;
-  private initializationPromise: Promise<void> | null = null;
+  private initialized = false;
 
-  constructor(options: PostgresStoreOptions = {}) {
-    if (options.pool) {
-      this.pool = options.pool;
-      this.ownsPool = false;
-    } else if (options.databaseUrl) {
-      this.pool = new NodePgPool({
-        connectionString: options.databaseUrl,
-      });
-      this.ownsPool = true;
-    } else {
-      throw new Error('PostgresStore requires either a databaseUrl or a pool');
-    }
-
-    this.snapshotKey = options.snapshotKey ?? DEFAULT_SNAPSHOT_KEY;
-  }
+  constructor(private readonly pool: Pool) {}
 
   async snapshot(): Promise<StoreData> {
-    await this.ensureInitialized();
+    await this.ensureSchema();
+    const { rows } = await this.pool.query(
+      'SELECT data FROM store_snapshot WHERE key = $1',
+      ['main'],
+    );
 
-    return this.withClient(async (client) => this.loadSnapshot(client));
+    if (rows.length === 0) {
+      return createEmptyStoreData();
+    }
+
+    return rows[0].data ?? createEmptyStoreData();
   }
 
   async transact<T>(mutator: (data: StoreData) => Promise<T> | T): Promise<T> {
-    await this.ensureInitialized();
+    await this.ensureSchema();
 
-    return this.withClient(async (client) => {
+    // Use a database transaction with row-level locking to serialize writes
+    const client = await this.pool.connect();
+    try {
       await client.query('BEGIN');
 
-      try {
-        const data = await this.loadLockedSnapshot(client);
-        const result = await mutator(data);
-        await this.persistSnapshot(client, data);
-        await client.query('COMMIT');
-        return result;
-      } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
-      }
-    });
+      // Lock the snapshot row for update (or get empty if no row exists)
+      const { rows } = await client.query(
+        'SELECT data FROM store_snapshot WHERE key = $1 FOR UPDATE',
+        ['main'],
+      );
+
+      const data: StoreData =
+        rows.length > 0 && rows[0].data
+          ? (rows[0].data as StoreData)
+          : createEmptyStoreData();
+
+      const result = await mutator(data);
+
+      const jsonStr = JSON.stringify(data);
+      await client.query(
+        `INSERT INTO store_snapshot (key, data, updated_at)
+         VALUES ('main', $1::jsonb, NOW())
+         ON CONFLICT (key)
+         DO UPDATE SET data = $1::jsonb, updated_at = NOW()`,
+        [jsonStr],
+      );
+
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   nextId(data: StoreData, prefix: string): string {
@@ -70,100 +81,29 @@ export class PostgresStore implements SkillShareerStore {
     return `${prefix}_${nextValue}`;
   }
 
+  /**
+   * Close the underlying pool. Call during shutdown or test cleanup.
+   */
   async close(): Promise<void> {
-    if (this.ownsPool) {
-      await this.pool.end();
-    }
+    await this.pool.end();
   }
 
-  private async ensureInitialized(): Promise<void> {
-    if (!this.initializationPromise) {
-      this.initializationPromise = this.withClient(async (client) => {
-        await client.query(`
-          create table if not exists store_snapshots (
-            key text primary key,
-            state jsonb not null,
-            created_at text not null,
-            updated_at text not null
-          )
-        `);
+  /**
+   * Lazily create the store_snapshot table if it does not exist.
+   * This avoids requiring a separate manual bootstrap step just to start
+   * the server.
+   */
+  private async ensureSchema(): Promise<void> {
+    if (this.initialized) return;
 
-        const existing = await client.query<{ key: string }>(
-          'select key from store_snapshots where key = $1 limit 1',
-          [this.snapshotKey],
-        );
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS store_snapshot (
+        key TEXT PRIMARY KEY DEFAULT 'main',
+        data JSONB NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      )
+    `);
 
-        if (existing.rowCount === 0) {
-          const now = nowIso();
-          await client.query(
-            `
-              insert into store_snapshots (key, state, created_at, updated_at)
-              values ($1, $2::jsonb, $3, $4)
-            `,
-            [this.snapshotKey, JSON.stringify(createEmptyStoreData()), now, now],
-          );
-        }
-      });
-    }
-
-    try {
-      await this.initializationPromise;
-    } catch (error) {
-      this.initializationPromise = null;
-      throw error;
-    }
-  }
-
-  private async loadSnapshot(client: PoolClient): Promise<StoreData> {
-    const result = await client.query<{ state: unknown }>(
-      'select state from store_snapshots where key = $1 limit 1',
-      [this.snapshotKey],
-    );
-
-    return this.decodeSnapshotState(result.rows[0]?.state);
-  }
-
-  private async loadLockedSnapshot(client: PoolClient): Promise<StoreData> {
-    const result = await client.query<{ state: unknown }>(
-      'select state from store_snapshots where key = $1 for update',
-      [this.snapshotKey],
-    );
-
-    return this.decodeSnapshotState(result.rows[0]?.state);
-  }
-
-  private async persistSnapshot(client: PoolClient, data: StoreData): Promise<void> {
-    await client.query(
-      `
-        update store_snapshots
-        set state = $2::jsonb,
-            updated_at = $3
-        where key = $1
-      `,
-      [this.snapshotKey, JSON.stringify(data), nowIso()],
-    );
-  }
-
-  private async withClient<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
-    const client = await this.pool.connect();
-
-    try {
-      return await work(client);
-    } finally {
-      client.release();
-    }
-  }
-
-  private decodeSnapshotState(rawState: unknown): StoreData {
-    if (!rawState) {
-      return createEmptyStoreData();
-    }
-
-    const parsed =
-      typeof rawState === 'string'
-        ? (JSON.parse(rawState) as StoreData)
-        : (rawState as StoreData);
-
-    return cloneStoreData(parsed);
+    this.initialized = true;
   }
 }
