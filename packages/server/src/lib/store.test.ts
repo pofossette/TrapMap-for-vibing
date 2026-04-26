@@ -207,8 +207,13 @@ function runSharedStoreContractTests(
   });
 }
 
-// Run shared contract tests against PostgresStore
+// Run shared contract tests against both store implementations
 runSharedStoreContractTests('PostgresStore', () => createPostgresStore());
+
+runSharedStoreContractTests('JsonStore', () => {
+  const tmpFile = `/tmp/trapmap-jsonstore-contract-test-${Date.now()}-${Math.random()}.json`;
+  return new JsonStore(tmpFile);
+});
 
 describe('createSkillShareerStore', () => {
   const storesToClose: PostgresStore[] = [];
@@ -236,6 +241,126 @@ describe('createSkillShareerStore', () => {
 
     if (store instanceof PostgresStore) {
       storesToClose.push(store);
+    }
+  });
+
+  it('both store selections return a valid SkillShareerStore', async () => {
+    // Verify the JsonStore selection satisfies the contract
+    const jsonStore = createSkillShareerStore({
+      dataFile: `/tmp/trapmap-store-selection-json-${Date.now()}.json`,
+      databaseUrl: null,
+    });
+    const jsonSnapshot = await jsonStore.snapshot();
+    expect(jsonSnapshot.counters).toEqual({});
+
+    // Verify the PostgresStore selection using pg-mem (not a real DB connection)
+    const pgStore = createPostgresStore();
+    const pgSnapshot = await pgStore.snapshot();
+    expect(pgSnapshot.counters).toEqual({});
+
+    await pgStore.close();
+  });
+});
+
+describe('store assignability at route level', () => {
+  it('both JsonStore and PostgresStore are assignable to SkillShareerStore and support full operations', async () => {
+    // This test verifies that both store implementations can be used
+    // wherever SkillShareerStore is expected (e.g., app.skillShareer.store)
+    type AppStore = SkillShareerStore;
+
+    // Use direct instantiation (pg-mem for PostgresStore, temp file for JsonStore)
+    // rather than createSkillShareerStore which would try to connect to real PostgreSQL
+    const jsonStore: AppStore = new JsonStore(
+      `/tmp/trapmap-assign-test-json-${Date.now()}.json`,
+    );
+    const pgStore: AppStore = createPostgresStore();
+
+    // Both stores must support the SkillShareerStore operations
+    const jsonResult = await jsonStore.transact((data) => {
+      const id = jsonStore.nextId(data, 'user');
+      data.users.push({
+        id,
+        handle: 'assignability-test',
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+      return id;
+    });
+    expect(jsonResult).toBe('user_1');
+
+    const pgResult = await pgStore.transact((data) => {
+      const id = pgStore.nextId(data, 'user');
+      data.users.push({
+        id,
+        handle: 'assignability-test',
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+      return id;
+    });
+    expect(pgResult).toBe('user_1');
+
+    // Cleanup
+    if ('close' in pgStore && typeof pgStore.close === 'function') {
+      await pgStore.close();
+    }
+  });
+
+  it('both stores produce structurally equivalent snapshots', async () => {
+    const jsonStore: SkillShareerStore = new JsonStore(
+      `/tmp/trapmap-equiv-test-json-${Date.now()}.json`,
+    );
+    const pgStore: SkillShareerStore = createPostgresStore();
+
+    const jsonSnapshot = await jsonStore.snapshot();
+    const pgSnapshot = await pgStore.snapshot();
+
+    // Both empty snapshots should have the same structural keys
+    expect(Object.keys(jsonSnapshot).sort()).toEqual(Object.keys(pgSnapshot).sort());
+
+    // Both should have empty arrays for collection fields
+    expect(jsonSnapshot.users).toEqual([]);
+    expect(pgSnapshot.users).toEqual([]);
+    expect(jsonSnapshot.teams).toEqual([]);
+    expect(pgSnapshot.teams).toEqual([]);
+    expect(jsonSnapshot.knowledgeEntries).toEqual([]);
+    expect(pgSnapshot.knowledgeEntries).toEqual([]);
+    expect(jsonSnapshot.skillArtifacts).toEqual([]);
+    expect(pgSnapshot.skillArtifacts).toEqual([]);
+    expect(jsonSnapshot.graphIndexDocuments).toEqual([]);
+    expect(pgSnapshot.graphIndexDocuments).toEqual([]);
+
+    // Cleanup
+    if ('close' in pgStore && typeof pgStore.close === 'function') {
+      await pgStore.close();
+    }
+  });
+
+  it('runtime selection through createSkillShareerStore assigns correct concrete type', () => {
+    // Factory selection test (instanceof checks only, no actual DB connection needed)
+    const jsonStore = createSkillShareerStore({
+      dataFile: '/tmp/trapmap-runtime-selection-test.json',
+      databaseUrl: null,
+    });
+
+    // JsonStore should be directly usable as SkillShareerStore
+    const _assignabilityCheck: SkillShareerStore = jsonStore;
+    expect(_assignabilityCheck).toBeInstanceOf(JsonStore);
+
+    // PostgresStore returned from factory (with real URL) is also SkillShareerStore
+    // We test type assignability without calling methods that require a live connection
+    const pgStoreFromFactory = createSkillShareerStore({
+      dataFile: '/tmp/trapmap-runtime-selection-test.json',
+      databaseUrl: 'postgres://trapmap:trapmap@127.0.0.1:5432/trapmap',
+    });
+    const _pgAssignabilityCheck: SkillShareerStore = pgStoreFromFactory;
+    expect(_pgAssignabilityCheck).toBeInstanceOf(PostgresStore);
+
+    // Cleanup (pool was created but never connected)
+    if (pgStoreFromFactory instanceof PostgresStore) {
+      pgStoreFromFactory.close().catch(() => {});
     }
   });
 });
