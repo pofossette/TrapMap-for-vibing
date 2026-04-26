@@ -23,7 +23,7 @@ export class PostgresStore implements SkillShareerStore {
 
   async snapshot(): Promise<StoreData> {
     await this.ensureSchema();
-    const { rows } = await this.pool.query(
+    const { rows } = await this.pool.query<{ data: StoreData | null }>(
       'SELECT data FROM store_snapshot WHERE key = $1',
       ['main'],
     );
@@ -32,7 +32,7 @@ export class PostgresStore implements SkillShareerStore {
       return createEmptyStoreData();
     }
 
-    return rows[0].data ?? createEmptyStoreData();
+    return rows[0]!.data ?? createEmptyStoreData();
   }
 
   async transact<T>(mutator: (data: StoreData) => Promise<T> | T): Promise<T> {
@@ -44,15 +44,13 @@ export class PostgresStore implements SkillShareerStore {
       await client.query('BEGIN');
 
       // Lock the snapshot row for update (or get empty if no row exists)
-      const { rows } = await client.query(
+      const { rows } = await client.query<{ data: StoreData | null }>(
         'SELECT data FROM store_snapshot WHERE key = $1 FOR UPDATE',
         ['main'],
       );
 
-      const data: StoreData =
-        rows.length > 0 && rows[0].data
-          ? (rows[0].data as StoreData)
-          : createEmptyStoreData();
+      const rawData = rows.length > 0 ? rows[0]!.data : null;
+      const data: StoreData = rawData ?? createEmptyStoreData();
 
       const result = await mutator(data);
 
