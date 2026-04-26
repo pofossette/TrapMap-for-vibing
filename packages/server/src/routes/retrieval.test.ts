@@ -642,7 +642,7 @@ describe('retrieval route', () => {
     const otherTeamId = 'team_other_retrieval';
 
     beforeEach(async () => {
-      const { JsonStore, nowIso, hashSecret } = await import('../lib/store.js');
+      const { nowIso, hashSecret } = await import('../lib/store.js');
       const { buildServer } = await import('../app.js');
 
       const testDataFile = `/tmp/trapmap-test-${Date.now()}-${Math.random()}.json`;

@@ -5,10 +5,10 @@ import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { createKnowledgeEntryRecord } from './knowledge.js';
 import { runPreReview } from './pre-review.js';
 import { searchKnowledge, updateEntryEmbeddingCache } from './retrieval.js';
-import { JsonStore, nowIso } from './store.js';
+import { JsonStore, type SkillShareerStore, nowIso } from './store.js';
 
 describe('retrieval', () => {
-  let mockStore: JsonStore;
+  let mockStore: SkillShareerStore;
   let mockServices: SkillShareerServices;
   let mockAuth: ResolvedAuthContext;
   let teamId: string;

@@ -15,7 +15,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { JsonStore, StoreData } from '../store.js';
+import type { SkillShareerStore, StoreData } from '../store.js';
 import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
 import type { GraphIndexDocumentRecord } from './graph-lite/documents.js';
 import { getGraphIndexDocuments } from './graph-lite/store.js';
@@ -171,7 +171,7 @@ function createTestGraphDocument(overrides: Partial<GraphIndexDocumentRecord> = 
 // ---------------------------------------------------------------------------
 
 describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
-  let store: JsonStore;
+  let store: SkillShareerStore;
   let data: StoreData;
 
   beforeEach(async () => {

@@ -12,13 +12,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createKnowledgeEntryRecord } from '../knowledge.js';
 import { runPreReview } from '../pre-review.js';
-import { JsonStore, nowIso } from '../store.js';
+import { JsonStore, type SkillShareerStore, nowIso } from '../store.js';
 
 // Import the functions we're testing
 import { reconcileKnowledgeIndexes, syncKnowledgeIndex } from './pipeline.js';
 
 describe('indexing pipeline', () => {
-  let store: JsonStore;
+  let store: SkillShareerStore;
 
   beforeEach(async () => {
     // Create temporary store

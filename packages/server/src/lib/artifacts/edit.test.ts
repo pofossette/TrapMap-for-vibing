@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { AgentReviewResult } from '@trapmap/contracts';
 
-import type { JsonStore, SkillArtifactRecord, StoreData } from '../store.js';
+import type { SkillShareerStore, SkillArtifactRecord, StoreData } from '../store.js';
 import { nowIso } from '../store.js';
 import {
   type SkillEditPayload,
@@ -283,14 +283,14 @@ describe('edit helper', () => {
   });
 
   describe('submitSkillEdit', () => {
-    let mockStore: JsonStore;
+    let mockStore: SkillShareerStore;
     let mockData: StoreData;
 
     beforeEach(() => {
       // Create minimal mock store and data
       mockStore = {
         nextId: () => `id_${Date.now()}`,
-      } as unknown as JsonStore;
+      } as unknown as SkillShareerStore;
 
       mockData = {
         counters: { artifact: 1 },

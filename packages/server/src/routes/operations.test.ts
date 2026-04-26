@@ -2350,7 +2350,7 @@ Quoted body content.`;
   // Phase 36-03: Skill lifecycle graph indexing integration tests
   describe('POST /v1/operations/artifacts/:artifactId/deactivate', () => {
     let testApp: FastifyInstance;
-    let testStore: JsonStore;
+    let testStore: SkillShareerStore;
     let sessionId: string;
     let userId: string;
     let artifactId: string;

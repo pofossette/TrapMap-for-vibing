@@ -16,7 +16,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { JsonStore } from '../store.js';
+import type { SkillShareerStore } from '../store.js';
 import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
 import {
   appendSkillArtifactRevision,
@@ -25,7 +25,7 @@ import {
 } from './model.js';
 
 describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
-  let store: JsonStore;
+  let store: SkillShareerStore;
   // biome-ignore lint/suspicious/noExplicitAny: Mock data for testing
   let storeData: any;
   const userId = 'user_1';

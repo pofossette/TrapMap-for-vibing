@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { StoreData, KnowledgeRecord, SkillArtifactRecord } from '../store.js';
-import { nowIso, JsonStore } from '../store.js';
+import { nowIso, JsonStore, type SkillShareerStore } from '../store.js';
 import {
   revalidateManualResult,
   isAlreadyResolved,
@@ -455,8 +455,8 @@ describe('isAlreadyResolved', () => {
   });
 });
 
-// Mock JsonStore for testing
-function createMockStore(): { store: JsonStore; data: StoreData } {
+// Mock SkillShareerStore for testing
+function createMockStore(): { store: SkillShareerStore; data: StoreData } {
   const data = createTestData();
   const store = {
     nextId: (d: StoreData, prefix: string) => {
@@ -464,7 +464,7 @@ function createMockStore(): { store: JsonStore; data: StoreData } {
       d.counters[prefix] = nextValue;
       return `${prefix}_${nextValue}`;
     },
-  } as unknown as JsonStore;
+  } as unknown as SkillShareerStore;
   return { store, data };
 }
 

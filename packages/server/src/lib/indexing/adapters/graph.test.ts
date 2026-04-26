@@ -16,7 +16,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { JsonStore, nowIso } from '../../store.js';
+import { JsonStore, type SkillShareerStore, nowIso } from '../../store.js';
 import type { NormalizedIndexDocument } from '../types.js';
 import { extractTrapGraphEntities } from '../../retrieval/graph-extract.js';
 import { buildTrapGraphDocument } from './graph-builders.js';
@@ -208,7 +208,7 @@ describe('graph-builders: buildTrapGraphDocument', () => {
 // ---------------------------------------------------------------------------
 
 describe('graph index adapter: durable persistence', () => {
-  let store: JsonStore;
+  let store: SkillShareerStore;
   const testDocument: NormalizedIndexDocument = {
     entryId: 'test-entry-1',
     teamId: null,

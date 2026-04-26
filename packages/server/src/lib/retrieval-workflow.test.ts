@@ -3,11 +3,11 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { buildServer } from '../app.js';
 import { createKnowledgeEntryRecord } from './knowledge.js';
 import { runPreReview } from './pre-review.js';
-import { JsonStore, createOpaqueToken, hashSecret, nowIso } from './store.js';
+import { JsonStore, type SkillShareerStore, createOpaqueToken, hashSecret, nowIso } from './store.js';
 
 describe('End-to-end retrieval workflow', () => {
   let server: FastifyInstance;
-  let store: JsonStore;
+  let store: SkillShareerStore;
   let userId: string;
   let reviewerId: string;
   let teamId: string;
