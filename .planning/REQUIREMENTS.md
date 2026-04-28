@@ -54,9 +54,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REVAL-04 | Phase 26, Phase 29 | Complete |
 | SEVAL-01 | Phase 27 | Complete |
 | SEVAL-02 | Phase 27 | Complete |
-| EOPS-01 | Phase 28 | Pending |
-| EOPS-02 | Phase 28 | Pending |
-| EOPS-03 | Phase 29 | Pending |
+| EOPS-01 | Phase 28, Phase 45, Phase 47 | Pending |
+| EOPS-02 | Phase 28, Phase 45, Phase 46, Phase 47 | Pending |
+| EOPS-03 | Phase 29, Phase 44, Phase 47 | Pending |
 
 **Coverage:**
 - v1.4 requirements: 9 total
@@ -65,4 +65,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-04-21*
-*Last updated: 2026-04-21 after initial definition*
+*Last updated: 2026-04-28 gap closure phases 44-47 added*

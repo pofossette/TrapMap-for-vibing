@@ -175,9 +175,37 @@ Plans:
 **Goal:** Replace the file-backed `JsonStore` with a Drizzle/PostgreSQL-backed compatibility store that keeps the current `StoreData` snapshot/transaction contract and moves store plus indexing state off the filesystem without a route-by-route rewrite
 **Requirements**: P43-01, P43-02, P43-03
 **Depends on:** Phase 42
-**Plans:** 0/3 plans complete
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 43-01 - Add Drizzle/PostgreSQL store foundation and runtime selection
-- [ ] 43-02 - Migrate production callers to the shared store contract and add regression coverage
-- [ ] 43-03 - Migrate store-facing tests to the shared contract and restore package-wide verification
+- [x] 43-01 - Add Drizzle/PostgreSQL store foundation and runtime selection
+- [x] 43-02 - Migrate production callers to the shared store contract and add regression coverage
+- [x] 43-03 - Migrate store-facing tests to the shared contract and restore package-wide verification
+
+### Phase 44: Verification backfill for evaluation phases (25-29)
+
+**Goal:** Backfill VERIFICATION.md artifacts for evaluation phases 25-29, fix Nyquist non-compliance in Phase 26 and 27, and confirm REVAL/SEVAL/EOPS-03 requirements as satisfied
+**Requirements**: REVAL-01, REVAL-02, REVAL-03, REVAL-04, SEVAL-01, SEVAL-02, EOPS-03
+**Depends on:** Phase 43
+**Gap Closure:** Closes verification gaps from v1.0 milestone audit
+
+### Phase 45: Verification backfill for infrastructure phases (31-36)
+
+**Goal:** Backfill VERIFICATION.md artifacts for infrastructure phases 31-36, fill Phase 36 Nyquist wave 0 gaps, and verify EOPS-01/EOPS-02 infrastructure
+**Requirements**: EOPS-01, EOPS-02
+**Depends on:** Phase 44
+**Gap Closure:** Closes verification gaps from v1.0 milestone audit
+
+### Phase 46: Verification backfill for platform phases (43) + CI fix
+
+**Goal:** Backfill VERIFICATION.md for Phase 43 and fix the GitHub Actions eval.yml output variable integration gap
+**Requirements**: EOPS-02 (CI integration)
+**Depends on:** Phase 45
+**Gap Closure:** Closes integration gap (CI output variables) from v1.0 milestone audit
+
+### Phase 47: Final EOPS requirement verification and REQUIREMENTS.md closure
+
+**Goal:** Verify EOPS-01, EOPS-02, EOPS-03 are functionally satisfied by the codebase, update REQUIREMENTS.md checkboxes, and close the milestone audit gaps
+**Requirements**: EOPS-01, EOPS-02, EOPS-03
+**Depends on:** Phase 46
+**Gap Closure:** Closes all remaining requirement gaps from v1.0 milestone audit
