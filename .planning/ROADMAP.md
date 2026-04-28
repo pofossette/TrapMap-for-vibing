@@ -187,7 +187,13 @@ Plans:
 **Goal:** Backfill VERIFICATION.md artifacts for evaluation phases 25-29, fix Nyquist non-compliance in Phase 26 and 27, and confirm REVAL/SEVAL/EOPS-03 requirements as satisfied
 **Requirements**: REVAL-01, REVAL-02, REVAL-03, REVAL-04, SEVAL-01, SEVAL-02, EOPS-03
 **Depends on:** Phase 43
+**Plans:** 3 plans
 **Gap Closure:** Closes verification gaps from v1.0 milestone audit
+
+Plans:
+- [ ] 44-01-PLAN.md - Restore Nyquist-compliant validation artifacts for phases 26 and 27 using existing tests and direct runner commands
+- [ ] 44-02-PLAN.md - Backfill truthful verification docs for phases 25-27 with explicit capability vs pass/fail boundaries
+- [ ] 44-03-PLAN.md - Backfill Phase 28 and 29 verification, then create the Phase 44 closure matrix and roadmap sync
 
 ### Phase 45: Verification backfill for infrastructure phases (31-36)
 
