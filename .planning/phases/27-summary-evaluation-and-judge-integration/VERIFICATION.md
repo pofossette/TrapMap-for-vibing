@@ -1,119 +1,108 @@
+---
+phase: 27-summary-evaluation-and-judge-integration
+verified: 2026-04-28T15:05:00Z
+status: partial
+requirements_verified:
+  - SEVAL-02
+  - SEVAL-01-partial
+---
+
 # Phase 27 Verification: Summary Evaluation and Judge Integration
 
-**Verified:** 2026-04-21
-**Phase Goal:** Add summary/refinement evaluation that checks groundedness, coverage, and citation adherence against retrieved context
+**Phase scope:** Add summary/refinement evaluation that checks groundedness, coverage, and citation adherence against retrieved context.
+
+**Verification date:** 2026-04-28 (backfilled from current codebase evidence)
+**Plans verified:** 27-01, 27-02
 
 ---
 
 ## Executive Summary
 
-**Phase 27 PASSED verification.** All requirement IDs and must_haves are accounted for and verified in the codebase.
+Phase 27 is **PARTIALLY VERIFIED**. The summary evaluation system implements groundedness scoring, coverage scoring, and forbidden claims detection. However:
 
-| Requirement | Status |
-|-------------|--------|
-| SEVAL-01 | ✅ Complete |
-| SEVAL-02 | ✅ Complete |
+- **SEVAL-02 is fully verified** -- evaluation cases define required facts and forbidden claims
+- **SEVAL-01 is partial** -- groundedness and coverage are implemented, but citation adherence is not a first-class failure kind
 
----
-
-## Requirement Cross-Reference
-
-### SEVAL-01: Summary/refinement evaluation flow scores groundedness, coverage, and citation adherence
-
-**Status:** ✅ VERIFIED
-
-**Evidence:**
-
-1. **Runnable evaluation command:**
-   - `package.json` lines 21-24: `eval:summary`, `eval:summary:smoke`, `eval:summary:core`, `eval:summary:dry-run`
-   - Runner at `evals/summary/run.ts` with full CLI argument parsing
-
-2. **Groundedness scoring:**
-   - `evals/summary/lib/groundedness.ts`: `calculateGroundednessScore()` function
-   - Score = supported claims / total claims
-   - Report includes `groundednessScore` field (0.0-1.0)
-
-3. **Coverage scoring:**
-   - `evals/summary/lib/coverage.ts`: `calculateCoverageScore()` function
-   - Score = required facts covered / required facts total
-   - Report includes `coverageScore` field (0.0-1.0)
-
-4. **Citation adherence:**
-   - `evals/summary/lib/claims.ts`: Citation extraction via `[N]` and `[citation:xxx]` patterns
-   - `ClaimVerification` interface tracks evidence per claim
-
-**Verification Command:**
-```bash
-$ pnpm eval:summary:dry-run
-# Loads 3 smoke cases and exits successfully
-```
+The core tier remains empty (`evals/summary/core.ts` exports `[]`). The report schema and verdict surface do not expose citation adherence as a separate metric.
 
 ---
 
-### SEVAL-02: Evaluation cases define required facts and forbidden claims for judge-driven checks
+## Requirement Traceability
 
-**Status:** ✅ VERIFIED
-
-**Evidence:**
-
-1. **Schema definition:**
-   - `packages/contracts/src/domain/evals/summary.ts`:
-     - `summaryEvalExpectedSchema.requiredFacts: z.array(z.string().min(1))`
-     - `summaryEvalExpectedSchema.forbiddenClaims: z.array(z.string().min(1))`
-
-2. **Smoke-tier evaluation cases:**
-   - `evals/summary/datasets/smoke/summary-smoke.ts`:
-     - `summaryGroundedSmokeCase`: requiredFacts=['docker-compose', 'multi-container'], forbiddenClaims=['kubernetes', 'k8s', 'production credentials']
-     - `summaryHallucinationSmokeCase`: requiredFacts=[], forbiddenClaims=['Einstein', 'born in 1879', 'Nobel Prize']
-     - `summaryForbiddenClaimsSmokeCase`: requiredFacts=['rate limiting'], forbiddenClaims=['password', 'secret key', 'API token']
-
-3. **Hallucination visibility in reports:**
-   - `packages/contracts/src/domain/evals/report.ts`: `forbiddenClaimsFound` array field
-   - Report shows groundedness score, coverage score, and forbidden claims found per case
-
-**Verification Command:**
-```bash
-$ grep -r "forbiddenClaims" packages/contracts/src/domain/evals/summary.ts
-# Returns matches
-
-$ grep -r "requiredFacts" packages/contracts/src/domain/evals/summary.ts
-# Returns matches
-```
+| Requirement | Aspect | Status | Evidence |
+|-------------|--------|--------|----------|
+| SEVAL-01 | Groundedness scoring | **VERIFIED** | `evals/summary/lib/groundedness.ts`, `groundednessScore` in report |
+| SEVAL-01 | Coverage scoring | **VERIFIED** | `evals/summary/lib/coverage.ts`, `coverageScore` in report |
+| SEVAL-01 | Citation adherence | **NOT SIGNABLE** | Not a first-class failure kind in `summaryEvalFailureKindSchema`; extracted but not tracked separately |
+| SEVAL-02 | Required facts in cases | **VERIFIED** | `summaryEvalExpectedSchema.requiredFacts` in contracts |
+| SEVAL-02 | Forbidden claims in cases | **VERIFIED** | `summaryEvalExpectedSchema.forbiddenClaims` in contracts |
+| SEVAL-02 | Hallucination visibility | **VERIFIED** | `forbiddenClaimsFound` array in report |
 
 ---
 
-## Must_Haves Verification
+## Capability Verification
 
-### Plan 27-01 Must_Haves
+### Plan 27-01: Schemas and Datasets
 
-| Must_Have | Status | Evidence |
-|-----------|--------|----------|
-| Summary eval case schema with requiredFacts and forbiddenClaims fields | ✅ | `packages/contracts/src/domain/evals/summary.ts` lines 51-62 |
-| Summary eval report schema with groundedness and coverage scores | ✅ | `packages/contracts/src/domain/evals/report.ts` lines 75-100 |
-| Smoke-tier cases with concrete required facts and forbidden claims examples | ✅ | `evals/summary/datasets/smoke/summary-smoke.ts` - 3 cases |
-| Types module with JudgeProvider, ClaimVerification, SummaryJudgeResult | ✅ | `evals/summary/lib/types.ts` lines 23-80 |
-| All schemas validate correctly with TypeScript compilation | ✅ | `pnpm exec tsc -b packages/contracts` passes |
+| Capability | Evidence | Status |
+|------------|----------|--------|
+| Summary eval case schema | `packages/contracts/src/domain/evals/summary.ts`: `summaryEvalCaseSchema` | **IMPLEMENTED** |
+| Required facts field | `summaryEvalExpectedSchema.requiredFacts: z.array(z.string().min(1))` | **IMPLEMENTED** |
+| Forbidden claims field | `summaryEvalExpectedSchema.forbiddenClaims: z.array(z.string().min(1))` | **IMPLEMENTED** |
+| Report schema | `packages/contracts/src/domain/evals/report.ts`: `summaryEvalReportSchema` | **IMPLEMENTED** |
+| Smoke-tier scenarios | `evals/summary/scenarios/smoke/summary-smoke-scenarios.ts` (3 scenarios) | **IMPLEMENTED** |
+| Smoke-tier cases | `evals/summary/datasets/smoke/summary-smoke.ts` (3 cases) | **IMPLEMENTED** |
+| Core-tier cases | `evals/summary/core.ts`: `export const coreCases: SummaryEvalCase[] = [];` | **EMPTY PLACEHOLDER** |
 
-### Plan 27-02 Must_Haves
+### Plan 27-02: Runner and Judge
 
-| Must_Have | Status | Evidence |
-|-----------|--------|----------|
-| Summary evaluation runner that can execute cases and score summaries | ✅ | `evals/summary/run.ts` - full runner with loadCases(), executeSummaryCase(), main() |
-| Fallback judge that detects unsupported claims and forbidden content | ✅ | `evals/summary/lib/judge.ts` - fallbackVerifyClaims(), fallbackCheckForbidden(), fallbackJudge() |
-| Groundedness scoring (supported claims / total claims) | ✅ | `evals/summary/lib/groundedness.ts` line 26-34 |
-| Coverage scoring (required facts found / required facts total) | ✅ | `evals/summary/lib/coverage.ts` lines 24-54 |
-| Forbidden claims detection in summaries | ✅ | `evals/summary/lib/judge.ts` lines 110-130 |
-| Canonical report structure with groundedness and coverage metrics | ✅ | `packages/contracts/src/domain/evals/report.ts` - summaryEvalReportSchema |
-| pnpm scripts for eval:summary, eval:summary:smoke, eval:summary:core | ✅ | `package.json` lines 21-24 |
-| Unit tests for claims, judge, and scoring functions | ✅ | 43 tests pass in `evals/summary/__tests__/` |
+| Capability | Evidence | Status |
+|------------|----------|--------|
+| Summary evaluation runner | `evals/summary/run.ts`: CLI with `--tier`, `--dry-run`, `--provider` options | **IMPLEMENTED** |
+| Fallback judge | `evals/summary/lib/judge.ts`: `fallbackJudge()` with substring matching | **IMPLEMENTED** |
+| Groundedness scoring | `evals/summary/lib/groundedness.ts`: `calculateGroundednessScore()` | **IMPLEMENTED** |
+| Coverage scoring | `evals/summary/lib/coverage.ts`: `calculateCoverageScore()` | **IMPLEMENTED** |
+| Forbidden claims detection | `evals/summary/lib/judge.ts`: `fallbackCheckForbidden()` | **IMPLEMENTED** |
+| Verdict assertions | `evals/summary/lib/assertions.ts`: `evaluateSummaryVerdicts()` | **IMPLEMENTED** |
+| Report builder | `evals/summary/lib/report.ts`: `buildSummaryReport()` | **IMPLEMENTED** |
+| Terminal formatting | `evals/summary/lib/format.ts`: `formatSummaryReport()` | **IMPLEMENTED** |
 
 ---
 
-## Test Results
+## Citation Adherence Gap Analysis
+
+SEVAL-01 states: "scores groundedness, coverage, and citation adherence."
+
+**What exists:**
+
+- `evals/summary/lib/claims.ts`: `extractClaims()` and `extractCitations()` functions detect `[N]` and `[citation:xxx]` patterns
+- Claims are verified against context for groundedness scoring
+
+**What is missing:**
+
+- `summaryEvalFailureKindSchema` (in `packages/contracts/src/domain/evals/report.ts`) has no `citation-adherence` failure kind:
+  ```typescript
+  export const summaryEvalFailureKindSchema = z.enum([
+    'groundedness-below-threshold',
+    'coverage-below-threshold',
+    'forbidden-claim-found',
+    'missing-summary',
+    'execution-error',
+  ]);
+  ```
+- Citation extraction is used internally for groundedness but not tracked as a separate metric
+- No `citationAdherenceScore` in `summaryEvalCaseResultSchema`
+- Verdicts in `evals/summary/lib/assertions.ts` do not include a citation verdict kind
+
+**Conclusion:** SEVAL-01 is not fully signable for citation adherence. The infrastructure exists (claim extraction, citation detection), but it is not surfaced as a first-class metric or failure kind.
+
+---
+
+## Test Coverage
+
+From original Phase 27 execution:
 
 ```
-$ pnpm test evals/summary --run
-
  ✓ evals/summary/__tests__/claims.test.ts (14 tests)
  ✓ evals/summary/__tests__/judge.test.ts (13 tests)
  ✓ evals/summary/__tests__/scoring.test.ts (16 tests)
@@ -124,61 +113,46 @@ $ pnpm test evals/summary --run
 
 ---
 
-## Files Created
+## Empty Core Tier
 
-| File | Purpose |
-|------|---------|
-| `packages/contracts/src/domain/evals/summary.ts` | Summary evaluation case schema |
-| `packages/contracts/src/domain/evals/report.ts` | Summary evaluation report schema |
-| `evals/summary/lib/types.ts` | Types for judge-driven verification |
-| `evals/summary/lib/claims.ts` | Claims extraction functions |
-| `evals/summary/lib/judge.ts` | Fallback judge implementation |
-| `evals/summary/lib/groundedness.ts` | Groundedness scoring |
-| `evals/summary/lib/coverage.ts` | Coverage scoring |
-| `evals/summary/lib/assertions.ts` | Summary verdict assertions |
-| `evals/summary/lib/report.ts` | Report builder |
-| `evals/summary/lib/format.ts` | Report formatters |
-| `evals/summary/run.ts` | Main runner entry point |
-| `evals/summary/smoke.ts` | Smoke tier entry point |
-| `evals/summary/core.ts` | Core tier entry point (placeholder) |
-| `evals/summary/scenarios/smoke/summary-smoke-scenarios.ts` | Smoke scenarios |
-| `evals/summary/datasets/smoke/summary-smoke.ts` | Smoke cases |
-| `evals/summary/__tests__/claims.test.ts` | Claims tests |
-| `evals/summary/__tests__/judge.test.ts` | Judge tests |
-| `evals/summary/__tests__/scoring.test.ts` | Scoring tests |
+`evals/summary/core.ts` currently exports an empty array:
+
+```typescript
+export const coreCases: SummaryEvalCase[] = [];
+```
+
+This is intentional per Phase 27 scope: smoke-tier cases validate the runner; core-tier cases can be added as needed for regression coverage.
 
 ---
 
-## Pitfalls Avoided (from RESEARCH.md)
+## Scope Boundaries
 
-1. **Determinism:** Temperature=0 documented for future OpenAI integration; fallback judge is fully deterministic
-2. **API Cost:** Fallback judge implemented first, OpenAI integration is placeholder
-3. **Case Scope:** Separate `SummaryEvalCase` type created (not embedded in retrieval eval case)
-4. **Report Structure:** Dedicated `summaryEvalReportSchema` with groundedness and coverage as first-class metrics
+Phase 27 does not include:
 
----
-
-## User Decisions Honored (from CONTEXT.md)
-
-- ✅ All implementation choices at Claude's discretion - followed existing evaluation framework patterns
-- ✅ Summary evaluation integrates with existing framework from Phases 25-26
-- ✅ Judge integration checks groundedness, coverage, and citation adherence
-- ✅ Cases define required facts and forbidden claims for judge-driven checks
-- ✅ Fits existing Node/TypeScript workflow (tsx, pnpm, vitest)
+| Capability | Status |
+|------------|--------|
+| OpenAI LLM-as-judge integration | Placeholder exists; `--provider openai` requires `OPENAI_API_KEY` |
+| Core-tier evaluation cases | Empty placeholder for future authoring |
+| Citation adherence as first-class metric | Not surfaced in report or verdicts |
+| Integration with unified runner | Phase 28 |
 
 ---
 
-## Conclusion
+## Verification Summary
 
-**Phase 27 verification PASSED.** All SEVAL-01 and SEVAL-02 requirements are satisfied. The summary evaluation system provides:
+| Requirement | Aspect | Status |
+|-------------|--------|--------|
+| SEVAL-01 | Groundedness | **VERIFIED** |
+| SEVAL-01 | Coverage | **VERIFIED** |
+| SEVAL-01 | Citation adherence | **GAP** -- infrastructure exists, not surfaced as metric |
+| SEVAL-02 | Required facts | **VERIFIED** |
+| SEVAL-02 | Forbidden claims | **VERIFIED** |
 
-1. **Runnable evaluation command** via `pnpm eval:summary`
-2. **Groundedness scoring** based on claim verification against context
-3. **Coverage scoring** based on required facts inclusion
-4. **Forbidden claims detection** for hallucination visibility
-5. **Canonical report structure** validated through Zod schemas
-6. **Comprehensive unit tests** (43 tests passing)
+**Phase 27 Status: PARTIALLY VERIFIED**
+
+SEVAL-02 is complete. SEVAL-01 is partially signable -- groundedness and coverage are implemented, but citation adherence is not a distinct failure kind or report metric. The summary evaluator is functional for smoke-tier evaluation.
 
 ---
 
-*Verified: 2026-04-21*
+*Backfilled: 2026-04-28*
+*Original verification: 2026-04-21*
