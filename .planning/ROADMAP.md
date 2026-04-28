@@ -184,7 +184,7 @@ Plans:
 
 ### Phase 44: Verification backfill for evaluation phases (25-29)
 
-**Goal:** Backfill VERIFICATION.md artifacts for evaluation phases 25-29, fix Nyquist non-compliance in Phase 26 and 27, and confirm REVAL/SEVAL/EOPS-03 requirements as satisfied
+**Goal:** Backfill VERIFICATION.md artifacts for evaluation phases 25-29, fix Nyquist non-compliance in Phase 26 and 27, and produce a truthful REVAL/SEVAL/EOPS-03 closure matrix that confirms satisfied items while preserving caveats and deferred blockers where evidence is incomplete
 **Requirements**: REVAL-01, REVAL-02, REVAL-03, REVAL-04, SEVAL-01, SEVAL-02, EOPS-03
 **Depends on:** Phase 43
 **Plans:** 3 plans
