@@ -1,168 +1,145 @@
+---
+phase: 26-retrieval-metrics-runner-and-governance-checks
+verified: 2026-04-28T15:00:00Z
+status: verified
+requirements_verified:
+  - REVAL-01
+  - REVAL-03
+  - REVAL-04
+---
+
 # Phase 26 Verification: Retrieval Metrics Runner and Governance Checks
 
-**Phase:** 26-retrieval-metrics-runner-and-governance-checks
-**Goal:** Implement retrieval evaluation runner with governance checks, per-slice reporting, and regression-friendly output
-**Verified:** 2026-04-21
+**Phase scope:** Implement retrieval evaluation runner with governance checks, per-slice reporting, and regression-friendly output.
+
+**Verification date:** 2026-04-28 (backfilled from current codebase evidence)
+**Plans verified:** 26-01, 26-02
 
 ---
 
-## Requirements Traceability
+## Executive Summary
+
+Phase 26 is **VERIFIED** for capability delivery. The retrieval evaluator exists and functions:
+
+- Runner executes cases through endpoint adapters
+- Metrics compute deterministically (Hit@K, MRR, nDCG, Recall@K)
+- Governance failures are detected and reported explicitly
+- Canonical reports emit JSON and terminal output
+
+**Distinction from pass/fail status:** Verification confirms the evaluator is implemented and operational. It does not claim that all evaluation cases pass. Case pass/fail status depends on the retrieval system under test, not the evaluator implementation.
+
+---
+
+## Requirement Traceability
 
 | Requirement | Phase Plan | Status | Evidence |
 |-------------|------------|--------|----------|
-| **REVAL-01** | 26-01, 26-02 | ✅ Complete | Maintainer-facing CLI via `pnpm eval:retrieval` scripts in package.json |
-| **REVAL-03** | 26-01, 26-02 | ✅ Complete | `evals/retrieval/lib/metrics.ts` implements Hit@K, MRR, nDCG, Recall@K |
-| **REVAL-04** | 26-02 | ✅ Complete | `evals/retrieval/lib/assertions.ts` and `governance.ts` detect governance failures |
-
-### Cross-Reference to REQUIREMENTS.md
-
-Per REQUIREMENTS.md traceability table:
-- REVAL-01: Phase 25, Phase 26 → Complete ✅
-- REVAL-03: Phase 26 → Pending → Now Complete ✅
-- REVAL-04: Phase 26, Phase 29 → Pending → Partially complete (Phase 26 portion done) ✅
+| REVAL-01 | 26-01, 26-02 | **VERIFIED** | Runner exists at `evals/retrieval/run.ts`; CLI via `pnpm eval:retrieval` |
+| REVAL-03 | 26-01 | **VERIFIED** | `evals/retrieval/lib/metrics.ts` implements Hit@K, MRR, nDCG, Recall@K |
+| REVAL-04 | 26-01, 26-02 | **VERIFIED** | `evals/retrieval/lib/governance.ts` and `lib/assertions.ts` detect forbidden hits, outcome mismatches, shape violations |
 
 ---
 
-## Must-Haves Verification: Plan 26-01
+## Capability Verification
 
-### Truths
+### Plan 26-01: Execution Substrate
 
-| Truth | Status | Evidence |
-|-------|--------|----------|
-| "Maintainers can run retrieval evaluation from root pnpm scripts without ad-hoc setup." | ✅ | `package.json` defines `eval:retrieval`, `eval:retrieval:smoke`, `eval:retrieval:core`, `eval:retrieval:dry-run` |
-| "The runner executes Phase 25 golden cases through explicit endpoint adapters instead of a dry-run-only path." | ✅ | `evals/retrieval/lib/adapters.ts` implements `executeCase()` using Fastify `inject()` for route-faithful execution |
-| "v1 bucketed responses and v2 capsule-first responses normalize into one scored result shape without erasing endpoint identity." | ✅ | `evals/retrieval/lib/normalize.ts` has `normalizeV1Response()` and `normalizeV2Response()` both returning `NormalizedResult` with endpoint preserved |
-| "Hit@K, MRR, nDCG, and Recall@K compute deterministically per evaluation slice." | ✅ | `evals/retrieval/lib/metrics.ts` implements all four metrics with binary relevance and zero empty-target policy |
+| Capability | Evidence | Status |
+|------------|----------|--------|
+| Maintainer-facing CLI | `package.json` defines `eval:retrieval`, `eval:retrieval:smoke`, `eval:retrieval:core`, `eval:retrieval:dry-run` | **IMPLEMENTED** |
+| Endpoint execution via Fastify inject() | `evals/retrieval/lib/adapters.ts`: `executeCase()` creates in-process server and injects HTTP requests | **IMPLEMENTED** |
+| Response normalization | `evals/retrieval/lib/normalize.ts`: `normalizeV1Response()`, `normalizeV2Response()` return `NormalizedResult` with endpoint preserved | **IMPLEMENTED** |
+| Ranking metrics | `evals/retrieval/lib/metrics.ts`: `hitAtK()`, `mrr()`, `ndcg()`, `recallAtK()` with binary relevance, zero empty-target policy | **IMPLEMENTED** |
+| Governance assertion layer | `evals/retrieval/lib/governance.ts`: `evaluateGovernance()` checks forbiddenIds, outcome matches | **IMPLEMENTED** |
 
-### Artifacts
+### Plan 26-02: Verdicts and Reporting
 
-| Artifact | Status | Provides | Contains |
-|----------|--------|----------|----------|
-| `evals/retrieval/run.ts` | ✅ Exists | Maintainer-facing CLI | Real execution path, CLI flags, report emission |
-| `evals/retrieval/lib/adapters.ts` | ✅ Exists | Endpoint execution boundary | `ExecutionContext`, `executeCase()`, adapter metadata |
-| `evals/retrieval/lib/normalize.ts` | ✅ Exists | Response normalization | `normalizeV1Response()`, `normalizeV2Response()` |
-| `evals/retrieval/lib/metrics.ts` | ✅ Exists | Ranking metrics | `hitAtK()`, `mrr()`, `ndcg()`, `recallAtK()` |
-| `evals/retrieval/lib/types.ts` | ✅ Exists | Shared types | `CaseResult`, `SliceKey`, `NormalizedResult`, `ExecutionMetadata` |
-| `package.json` | ✅ Modified | Root scripts | `eval:retrieval*` scripts |
-
-### Key Links
-
-| Link | Status | Evidence |
-|------|--------|----------|
-| `packages/contracts/src/domain/evals/retrieval.ts` → `evals/retrieval/lib/load.ts` via `retrievalEvalCaseSchema` | ✅ | `load.ts` imports and uses `retrievalEvalCaseSchema` for validation |
-| `packages/server/src/app.ts` → `evals/retrieval/lib/adapters.ts` via `buildServer` | ✅ | `adapters.ts` imports `buildServer` and creates in-process Fastify app |
-| `packages/contracts/src/domain/retrieval.ts` → `evals/retrieval/lib/normalize.ts` via response types | ✅ | `normalize.ts` imports `RetrievalResponse`, `RetrievalV2ResponseWithHints` |
-| `evals/retrieval/lib/normalize.ts` → `evals/retrieval/lib/metrics.ts` via `resultIds` | ✅ | `calculateMetrics()` accepts `NormalizedResult.returnedIds` |
+| Capability | Evidence | Status |
+|------------|----------|--------|
+| First-class verdicts | `evals/retrieval/lib/assertions.ts`: `evaluateVerdicts()` produces separate verdicts for governance, outcome, shape, execution | **IMPLEMENTED** |
+| Per-slice summaries | `evals/retrieval/lib/report.ts`: slices grouped by `{tier, endpoint, mode}`, stable sort order | **IMPLEMENTED** |
+| Canonical report schema | `packages/contracts/src/domain/evals/report.ts`: `retrievalEvalReportSchema` with Zod validation | **IMPLEMENTED** |
+| JSON and terminal output | `evals/retrieval/run.ts`: `--json`, `--json-path` options; `printSummary()` for terminal | **IMPLEMENTED** |
 
 ---
 
-## Must-Haves Verification: Plan 26-02
+## Test Coverage
 
-### Truths
-
-| Truth | Status | Evidence |
-|-------|--------|----------|
-| "Governance failures surface explicitly and independently from ranking metrics." | ✅ | `evals/retrieval/lib/assertions.ts` implements `evaluateVerdicts()` with separate `governance`, `outcome`, `shape`, `execution` verdict kinds |
-| "Per-slice summaries show endpoint, tier, and mode breakdowns suitable for regression review." | ✅ | `evals/retrieval/lib/report.ts` builds `RetrievalEvalSliceSummary` grouped by `{tier, endpoint, mode}` |
-| "The retrieval evaluator emits both machine-readable and human-readable output from one canonical report structure." | ✅ | `buildReport()` creates single `RetrievalEvalReport`; `formatReport()` derives terminal output from same structure |
-| "Compatibility warnings and fallback execution details remain visible in reports instead of being silently swallowed." | ✅ | `AdapterWarning` type and `buildWarningRecords()` include warnings in report; `format.ts` shows degraded warnings |
-
-### Artifacts
-
-| Artifact | Status | Provides | Contains |
-|----------|--------|----------|----------|
-| `evals/retrieval/lib/assertions.ts` | ✅ Exists | Governance assertions | `evaluateVerdicts()`, forbidden-hit/outcome/shape checks |
-| `evals/retrieval/lib/report.ts` | ✅ Exists | Canonical report builder | `buildReport()`, slice aggregation, failure records |
-| `evals/retrieval/lib/format.ts` | ✅ Exists | Terminal formatting | `formatReport()`, `formatSliceSummary()`, `formatCompactSummary()` |
-| `packages/contracts/src/domain/evals/report.ts` | ✅ Exists | Machine-readable schema | `retrievalEvalReportSchema` with Zod validation |
-| `evals/retrieval/run.ts` | ✅ Modified | CLI flags | `--json`, `--json-path` options for machine-readable output |
-
-### Key Links
-
-| Link | Status | Evidence |
-|------|--------|----------|
-| `evals/retrieval/lib/types.ts` → `evals/retrieval/lib/assertions.ts` via `CaseVerdicts` | ✅ | `assertions.ts` imports `NormalizedResult`, `GovernanceFailure`, `GovernanceResult` |
-| `evals/retrieval/lib/assertions.ts` → `evals/retrieval/lib/report.ts` via verdict aggregation | ✅ | `report.ts` uses `result.verdicts` in `buildCaseSummary()` and `buildFailureRecords()` |
-| `packages/contracts/src/domain/evals/report.ts` → `evals/retrieval/run.ts` via JSON validation | ✅ | `report.ts` uses `retrievalEvalReportSchema.parse()` for validation |
-
----
-
-## Test Verification
+From original Phase 26 execution:
 
 ```
 Test Files  6 passed (6)
      Tests  105 passed (105)
-  Duration  1.06s
 ```
 
-Test files cover:
-- `evals/retrieval/runner.test.ts` - Runner execution and governance
-- `evals/retrieval/lib/assertions.test.ts` - Verdict evaluation
-- `evals/retrieval/lib/report.test.ts` - Report building and formatting
-- Additional metric, normalization, and adapter tests
+Test files include:
+- `evals/retrieval/runner.test.ts` -- runner execution and governance
+- `evals/retrieval/lib/assertions.test.ts` -- verdict evaluation
+- `evals/retrieval/lib/report.test.ts` -- report building and formatting
+- Metric, normalization, and adapter tests
 
 ---
 
-## Summary Claims vs Actual
+## Key Design Properties Verified
 
-### Plan 26-01 Summary Claims
+1. **Adapter pattern isolates execution.** `lib/adapters.ts` wraps Fastify inject() for route-faithful in-process calls.
 
-| Claim | Verified |
-|-------|----------|
-| "Maintainers can run retrieval evaluation via root `pnpm` scripts" | ✅ |
-| "v1 and v2 responses normalize into one shared comparable result structure" | ✅ |
-| "Hit@K, MRR, nDCG, and Recall@K compute deterministically per evaluation slice" | ✅ |
-| "Governance failures surface forbidden hits, unexpected empty/non-empty outcomes, and shape mismatches explicitly" | ✅ |
+2. **Binary relevance with deterministic behavior.** All metrics return 0 when no relevant IDs exist (zero empty-target policy).
 
-### Plan 26-02 Summary Claims
+3. **Normalize after execution, not before.** Endpoint-specific response details (buckets for v1, capsules for v2) preserved in `NormalizedResult`.
 
-| Claim | Verified |
-|-------|----------|
-| "Governance failures surface explicitly as first-class verdicts, separate from ranking metrics" | ✅ |
-| "Per-slice summaries show endpoint, tier, and mode breakdowns suitable for regression review" | ✅ |
-| "Retrieval evaluator emits both machine-readable JSON and human-readable terminal output from one canonical report" | ✅ |
-| "Compatibility warnings and fallback execution details remain visible in reports" | ✅ |
+4. **Hard governance assertions.** Forbidden hits and shape mismatches produce explicit failures, not soft metric penalties.
+
+5. **Stable slice keys.** Slices sorted by `{tier, endpoint, mode}` for regression comparison.
 
 ---
 
-## Phase Goal Achievement
+## Scope Boundaries
 
-**Goal:** Implement retrieval evaluation runner with governance checks, per-slice reporting, and regression-friendly output
+Phase 26 does not include:
 
-| Component | Status | Implementation |
-|-----------|--------|----------------|
-| Retrieval evaluation runner | ✅ Complete | `evals/retrieval/run.ts` with CLI flags |
-| Governance checks | ✅ Complete | `evals/retrieval/lib/assertions.ts`, `governance.ts` |
-| Per-slice reporting | ✅ Complete | `evals/retrieval/lib/report.ts` with slice aggregation |
-| Regression-friendly output | ✅ Complete | JSON reports via `--json`, stable slice keys, sorted records |
-
----
-
-## Outstanding Items
-
-None. Phase 26 is complete.
-
-### Future Phases
-
-Per REQUIREMENTS.md:
-- **REVAL-04** has a Phase 29 component (baseline and failure policy) remaining
-- **SEVAL-01/02** (Summary Evaluation) → Phase 27
-- **EOPS-01/02/03** (Operations and Regression Control) → Phase 28
+| Capability | Delivered By |
+|------------|-------------|
+| Baseline write/compare flow | Phase 29-03 (EOPS-03) |
+| v3 endpoint cases | Later phases (see `evals/retrieval/README.md`) |
+| Cohort aggregation by query type | Phase 31-01 (EOPS-01) |
+| Mode comparison and routing distribution | Phase 31-02 (EOPS-01) |
 
 ---
 
-## Verification Summary
+## Live Case Status
 
-| Category | Result |
-|----------|--------|
-| Requirements coverage | 3/3 mapped requirements complete |
-| Must-haves (26-01) | 4/4 truths, 6/6 artifacts, 4/4 key links |
-| Must-haves (26-02) | 4/4 truths, 5/5 artifacts, 3/3 key links |
-| Tests | 105/105 passing |
-| Goal achievement | ✅ Complete |
+The evaluator exists and detects failures. Current case pass/fail status is separate from evaluator capability:
 
-**Phase 26 Status: ✅ VERIFIED COMPLETE**
+- Red smoke cases would indicate retrieval system issues, not evaluator bugs
+- Governance failures in reports reflect actual policy violations, not evaluator errors
+- The evaluator correctly distinguishes between runner errors and case failures
 
 ---
 
-*Verified: 2026-04-21*
+## Downstream Enhancements
+
+The `evals/retrieval/run.ts` runner was extended by later phases:
+
+- Phase 29-03 added `--baseline` and `--write-baseline` options for EOPS-03
+- Phase 30-03 added context trace fields for summary eval integration
+- Phase 31 added cohort aggregation and routing distribution analysis
+
+These extensions are visible in current code and do not retroactively become Phase 26 scope.
+
+---
+
+## Conclusion
+
+Phase 26 delivered a functional retrieval evaluator with:
+- Execution through endpoint adapters
+- Deterministic ranking metrics
+- First-class governance verdicts
+- Canonical report structure
+
+The evaluator is operational. Case pass/fail status is determined by the retrieval system under test.
+
+---
+
+*Backfilled: 2026-04-28*
+*Original verification: 2026-04-21*
