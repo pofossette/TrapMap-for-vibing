@@ -42,9 +42,9 @@ created: 2026-04-24
 | 36-01-02 | 01 | 1 | P36-04 | T-36-03 / T-36-04 | Graphology helpers validate hard-edge cycles and build bounded graph views from persisted documents | unit | `pnpm --filter @trapmap/server test -- src/lib/indexing/graph-lite/graphology.test.ts` | ✅ | ⬜ pending |
 | 36-02-01 | 02 | 2 | P36-01 | T-36-05 | Trap extraction emits only the locked TrapMap graph vocabulary with explicit hard/soft evidence | integration | `pnpm --filter @trapmap/server test -- src/lib/indexing/adapters/graph.test.ts` | ✅ | ⬜ pending |
 | 36-02-02 | 02 | 2 | P36-01 | T-36-06 / T-36-07 / T-36-08 | Approved trap revisions persist durable graph documents and graph-assisted recall reads store-backed state after restart | integration | `pnpm --filter @trapmap/server test -- src/lib/indexing/adapters/graph.test.ts src/lib/indexing/pipeline.test.ts src/lib/retrieval/recall/graph-assisted.test.ts` | ✅ | ⬜ pending |
-| 36-03-01 | 03 | 2 | P36-02 | T-36-09 / T-36-10 | Skill graph documents derive only from approved profile/capsule text and preserve artifact governance metadata | integration | `pnpm --filter @trapmap/server test -- src/lib/indexing/skill-events.test.ts` | ❌ W0 | ⬜ pending |
+| 36-03-01 | 03 | 2 | P36-02 | T-36-09 / T-36-10 | Skill graph documents derive only from approved profile/capsule text and preserve artifact governance metadata | integration | `pnpm --filter @trapmap/server test -- src/lib/indexing/skill-events.test.ts` | ✅ | ⬜ pending |
 | 36-03-02 | 03 | 2 | P36-02 | T-36-11 / T-36-12 | Skill approve, edit, deactivate, and reapprove transitions drive post-commit graph indexing and removal | integration | `pnpm --filter @trapmap/server test -- src/routes/operations.test.ts` | ✅ | ⬜ pending |
-| 36-04-01 | 04 | 3 | P36-03 | T-36-13 / T-36-14 / T-36-16 | Reconciliation removes stale graph documents and rebuilds missing approved trap/skill graph state while rejecting invalid hard-edge graphs | integration | `pnpm --filter @trapmap/server test -- src/lib/indexing/events.test.ts src/routes/review.test.ts src/lib/indexing/reconcile.test.ts` | ❌ W0 | ⬜ pending |
+| 36-04-01 | 04 | 3 | P36-03 | T-36-13 / T-36-14 / T-36-16 | Reconciliation removes stale graph documents and rebuilds missing approved trap/skill graph state while rejecting invalid hard-edge graphs | integration | `pnpm --filter @trapmap/server test -- src/lib/indexing/events.test.ts src/routes/review.test.ts src/lib/indexing/reconcile.test.ts` | ✅ | ⬜ pending |
 | 36-04-02 | 04 | 3 | P36-04 | T-36-15 | Startup registration runs graph reconciliation after store readiness, keeps candidate recovery intact, and logs non-fatal repair failures | integration | `pnpm --filter @trapmap/server test -- src/app.test.ts src/lib/indexing/reconcile.test.ts` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
@@ -55,8 +55,8 @@ created: 2026-04-24
 
 - [x] `packages/server/src/lib/indexing/graph-lite/documents.test.ts` — durable graph document builder coverage
 - [x] `packages/server/src/lib/indexing/graph-lite/graphology.test.ts` — graph assembly, DAG validation, and local expansion coverage
-- [ ] `packages/server/src/lib/indexing/skill-events.test.ts` — skill lifecycle graph indexing coverage
-- [ ] `packages/server/src/lib/indexing/reconcile.test.ts` — cross-domain graph reconciliation coverage
+- [x] `packages/server/src/lib/indexing/skill-events.test.ts` — skill lifecycle graph indexing coverage
+- [x] `packages/server/src/lib/indexing/reconcile.test.ts` — cross-domain graph reconciliation coverage
 - [ ] `packages/server/src/app.test.ts` — startup hook registration, ordering, and non-fatal reconciliation failure coverage
 
 ---
