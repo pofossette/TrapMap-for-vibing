@@ -23,7 +23,7 @@ Requirements for v1.4 milestone: 评测系统构建
 
 - [x] **EOPS-01**: Evaluation outputs machine-readable and human-readable reports that compare results across endpoint and retrieval mode combinations
 - [x] **EOPS-02**: Repo scripts support a fast smoke evaluation path for pull requests and a broader core evaluation path for regression tracking
-- [ ] **EOPS-03**: The milestone defines a baseline and failure policy so future retrieval changes can be checked against regressions instead of ad-hoc judgment
+- [x] **EOPS-03**: The milestone defines a baseline and failure policy so future retrieval changes can be checked against regressions instead of ad-hoc judgment
 
 ## v2 Requirements
 
@@ -56,7 +56,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEVAL-02 | Phase 27 | Complete |
 | EOPS-01 | Phase 31, Phase 44 | Complete |
 | EOPS-02 | Phase 31, Phase 44 | Complete |
-| EOPS-03 | Phase 29, Phase 44, Phase 47 | Pending |
+| EOPS-03 | Phase 29, Phase 44, Phase 47 | Complete |
 
 **Coverage:**
 - v1.4 requirements: 9 total
@@ -65,4 +65,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-04-21*
-*Last updated: 2026-04-29 EOPS-01/EOPS-02 marked complete (Phase 45-02)*
+*Last updated: 2026-04-29 EOPS-03 marked complete — all v1.4 requirements satisfied (Phase 47)*
