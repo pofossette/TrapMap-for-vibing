@@ -9,19 +9,19 @@
  */
 
 import {
-  summaryEvalCaseSchema,
   type SummaryEvalCase,
-  type SummaryEvalTier,
   type SummaryEvalEndpoint,
+  type SummaryEvalTier,
+  summaryEvalCaseSchema,
 } from '../../../packages/contracts/src/index.js';
 
-import { summarySmokeCases } from '../smoke.js';
 import { coreCases } from '../core.js';
+import { summarySmokeCases } from '../smoke.js';
 
-import { createJudge, fallbackJudge } from './judge.js';
 import { evaluateSummaryVerdicts } from './assertions.js';
+import { createJudge, fallbackJudge } from './judge.js';
 import { buildSummaryReport } from './report.js';
-import type { SummaryCaseResult, RunnerOptions, JudgeProvider } from './types.js';
+import type { JudgeProvider, RunnerOptions, SummaryCaseResult } from './types.js';
 
 // =============================================================================
 // Types
@@ -188,14 +188,10 @@ export async function runSummaryEvaluation(options: RunSummaryOptions): Promise<
 
     // Run judge evaluation
     const judge = createJudge({ provider });
-    const judgeResult = judge.evaluate(
-      mockSummary,
-      mockContext,
-      {
-        requiredFacts: case_.expected.requiredFacts,
-        forbiddenClaims: case_.expected.forbiddenClaims,
-      },
-    );
+    const judgeResult = judge.evaluate(mockSummary, mockContext, {
+      requiredFacts: case_.expected.requiredFacts,
+      forbiddenClaims: case_.expected.forbiddenClaims,
+    });
 
     // Evaluate verdicts
     const { verdicts, passed } = evaluateSummaryVerdicts({
@@ -206,7 +202,7 @@ export async function runSummaryEvaluation(options: RunSummaryOptions): Promise<
     const durationMs = Date.now() - caseStartTime;
 
     caseResults.push({
-      case,
+      case: case_,
       judgeResult,
       passed,
       durationMs,

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type {
   ApplyResolutionResponse,
   DuplicateJobBundleResponse,
@@ -9,8 +10,8 @@ import type {
   SkillReviewQueueResponse,
 } from '@trapmap/contracts';
 import {
-  applyResolutionResponseSchema,
   DuplicateJobBundleResponseSchema,
+  applyResolutionResponseSchema,
   manualResultResponseSchema,
   skillEditResponseSchema,
   skillHistoryResponseSchema,
@@ -19,7 +20,6 @@ import {
   skillReviewQueueResponseSchema,
 } from '@trapmap/contracts';
 import type { Command } from 'commander';
-import { readFileSync } from 'node:fs';
 
 import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
@@ -85,7 +85,9 @@ function formatSkillEditResponse(response: SkillEditResponse): string {
   ];
 
   if (response.lifecycleTransition) {
-    lines.push(`Transition: ${response.lifecycleTransition.from} → ${response.lifecycleTransition.to}`);
+    lines.push(
+      `Transition: ${response.lifecycleTransition.from} → ${response.lifecycleTransition.to}`,
+    );
   }
 
   return lines.join('\n');
@@ -128,7 +130,7 @@ function formatDuplicateJobBundle(response: DuplicateJobBundleResponse): string 
   if (response.originalPayload.trap) {
     const trap = response.originalPayload.trap;
     lines.push(
-      `Type: Trap`,
+      'Type: Trap',
       `Shortcut: ${trap.shortcut}`,
       `Detail: ${trap.detail.slice(0, 200)}${trap.detail.length > 200 ? '...' : ''}`,
       `Labels: ${trap.labels.join(', ')}`,
@@ -136,7 +138,7 @@ function formatDuplicateJobBundle(response: DuplicateJobBundleResponse): string 
   } else if (response.originalPayload.skill) {
     const skill = response.originalPayload.skill;
     lines.push(
-      `Type: Skill`,
+      'Type: Skill',
       `Files: ${skill.files.length} file(s)`,
       `Labels: ${skill.metadata.labels.join(', ')}`,
     );
@@ -198,16 +200,20 @@ function formatManualResultResponse(response: ManualResultResponse): string {
  */
 function formatApplyResolutionResponse(response: ApplyResolutionResponse): string {
   const lines = [
-    `✅ Resolution applied successfully`,
+    '✅ Resolution applied successfully',
     `   Candidate: ${response.candidateId}`,
     `   Status: ${response.status}`,
     `   Decision: ${response.outcome.decision}`,
   ];
 
   if (response.outcome.decision === 'independent') {
-    lines.push(`   Published as: ${response.outcome.entityType} (${response.outcome.publishedEntityId})`);
+    lines.push(
+      `   Published as: ${response.outcome.entityType} (${response.outcome.publishedEntityId})`,
+    );
   } else {
-    lines.push(`   Merged into: ${response.outcome.entityType} (${response.outcome.mergedIntoEntityId})`);
+    lines.push(
+      `   Merged into: ${response.outcome.entityType} (${response.outcome.mergedIntoEntityId})`,
+    );
   }
 
   if (response.lineage) {
@@ -270,9 +276,13 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
       .argument('<artifactId>', 'Artifact ID to edit')
       .option('--title <title>', 'New title for the artifact')
       .option('--labels <labels>', 'Comma-separated new labels')
-      .option('--file <path>', 'Path to a file to include (SKILL.md)', (value, previous: string[]) => {
-        return previous ? [...previous, value] : [value];
-      })
+      .option(
+        '--file <path>',
+        'Path to a file to include (SKILL.md)',
+        (value, previous: string[]) => {
+          return previous ? [...previous, value] : [value];
+        },
+      )
       .option('--json', 'Output JSON')
       .action(
         async (
@@ -312,7 +322,7 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
                 path,
                 kind: filePath.endsWith('SKILL.md') ? 'skill-markdown' : 'reference',
                 content,
-                sha256: '',  // Server will compute
+                sha256: '', // Server will compute
                 sizeBytes: Buffer.byteLength(content, 'utf-8'),
                 mediaType: 'text/markdown',
                 source: filePath.endsWith('SKILL.md') ? 'SKILL.md' : 'references/',
@@ -517,7 +527,10 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
       .argument('<candidateId>', 'Candidate ID to resolve')
       .requiredOption('--decision <decision>', 'Decision: independent or merged')
       .requiredOption('--notes <text>', 'Explanation of the decision')
-      .option('--merged-with <entityId>', 'Entity ID to merge with (required if decision is merged)')
+      .option(
+        '--merged-with <entityId>',
+        'Entity ID to merge with (required if decision is merged)',
+      )
       .option('--merged-type <type>', 'Entity type: trap or skill (required if decision is merged)')
       .option('--json', 'Output raw JSON')
       .action(
@@ -542,7 +555,9 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
           // Validate merged options
           if (flags.decision === 'merged') {
             if (!flags.mergedWith || !flags.mergedType) {
-              throw new Error('--merged-with and --merged-type are required when decision is "merged"');
+              throw new Error(
+                '--merged-with and --merged-type are required when decision is "merged"',
+              );
             }
             if (flags.mergedType !== 'trap' && flags.mergedType !== 'skill') {
               throw new Error('--merged-type must be "trap" or "skill"');

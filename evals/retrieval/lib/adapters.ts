@@ -14,18 +14,18 @@ import type {
   RetrievalV2Query,
 } from '../../../packages/contracts/src/index.js';
 import { buildServer } from '../../../packages/server/src/app.js';
+import type { GraphIndexDocumentRecord } from '../../../packages/server/src/lib/indexing/graph-lite/documents.js';
 import { createKnowledgeEntryRecord } from '../../../packages/server/src/lib/knowledge.js';
 import { hashSecret, nowIso } from '../../../packages/server/src/lib/store.js';
-import type { GraphIndexDocumentRecord } from '../../../packages/server/src/lib/indexing/graph-lite/documents.js';
 import type {
-  JsonStore,
-  SkillArtifactRecord,
   DerivedSkillCapsuleRecord,
+  JsonStore,
   KnowledgeRecord,
+  SkillArtifactRecord,
 } from '../../../packages/server/src/lib/store.js';
-import type { NormalizedResult, AdapterType, ExecutionMetadata, AdapterWarning } from './types.js';
-import { normalizeResponse } from './normalize.js';
 import { loadScenario } from './load.js';
+import { normalizeResponse } from './normalize.js';
+import type { AdapterType, AdapterWarning, ExecutionMetadata, NormalizedResult } from './types.js';
 
 // =============================================================================
 // Execution Context
@@ -75,7 +75,9 @@ export interface AdapterResult {
 export async function createExecutionContext(options?: {
   dataFile?: string;
 }): Promise<ExecutionContext> {
-  const dataFile = options?.dataFile ?? `/tmp/trapmap-eval-${Date.now()}-${Math.random().toString(36).slice(2)}.json`;
+  const dataFile =
+    options?.dataFile ??
+    `/tmp/trapmap-eval-${Date.now()}-${Math.random().toString(36).slice(2)}.json`;
 
   const app = buildServer({ config: { dataFile } });
   await app.ready();
@@ -185,7 +187,8 @@ export async function seedScenarioFixtures(
       requiredLevel: number;
     }>;
   }>;
-  const fixtureGraphDocs = (scenario.fixtures.graphIndexDocuments ?? []) as GraphIndexDocumentRecord[];
+  const fixtureGraphDocs = (scenario.fixtures.graphIndexDocuments ??
+    []) as GraphIndexDocumentRecord[];
 
   const createdAt = nowIso();
 
@@ -381,8 +384,8 @@ export async function executeThroughRoute(
   const startTime = Date.now();
   const warnings: AdapterWarning[] = [];
 
-  let adapterType: AdapterType = 'route';
-  let fallbackUsed = false;
+  const adapterType: AdapterType = 'route';
+  const fallbackUsed = false;
   let fallbackReason: string | undefined;
 
   try {

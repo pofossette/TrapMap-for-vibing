@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { AgentReviewResult } from '@trapmap/contracts';
 
-import type { SkillShareerStore, SkillArtifactRecord, StoreData } from '../store.js';
+import type { SkillArtifactRecord, SkillShareerStore, StoreData } from '../store.js';
 import { nowIso } from '../store.js';
 import {
   type SkillEditPayload,
@@ -85,9 +85,9 @@ function createTestArtifact(overrides: Partial<SkillArtifactRecord> = {}): Skill
 }
 
 // Mock pre-review function
-function createMockPreReview(status: 'agent-pass' | 'agent-rejected' = 'agent-pass'): (
-  input: unknown,
-) => Promise<AgentReviewResult> {
+function createMockPreReview(
+  status: 'agent-pass' | 'agent-rejected' = 'agent-pass',
+): (input: unknown) => Promise<AgentReviewResult> {
   return async () => ({
     status,
     duplicateRisk: 'low',
@@ -294,7 +294,15 @@ describe('edit helper', () => {
 
       mockData = {
         counters: { artifact: 1 },
-        users: [{ id: 'user_1', handle: 'testuser', notes: null, createdAt: nowIso(), updatedAt: nowIso() }],
+        users: [
+          {
+            id: 'user_1',
+            handle: 'testuser',
+            notes: null,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          },
+        ],
         teams: [],
         memberships: [],
         accessKeys: [],
@@ -510,7 +518,13 @@ describe('edit helper', () => {
       mockData = {
         counters: {},
         users: [
-          { id: 'user_1', handle: 'submitter', notes: null, createdAt: nowIso(), updatedAt: nowIso() },
+          {
+            id: 'user_1',
+            handle: 'submitter',
+            notes: null,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          },
           { id: 'user_2', handle: 'editor', notes: null, createdAt: nowIso(), updatedAt: nowIso() },
         ],
         teams: [],

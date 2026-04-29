@@ -230,7 +230,9 @@ export function calculateSourceRelationStrength(
       }
 
       countedEdgeIds.add(edgeId);
-      const attributes = runtime.graph.getEdgeAttributes(edgeId) as { strength?: GraphEdgeRecord['strength'] };
+      const attributes = runtime.graph.getEdgeAttributes(edgeId) as {
+        strength?: GraphEdgeRecord['strength'];
+      };
       strength += edgeWeight(attributes.strength ?? 'soft');
     }
   }

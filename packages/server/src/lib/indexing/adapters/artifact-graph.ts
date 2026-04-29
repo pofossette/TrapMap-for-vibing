@@ -17,7 +17,11 @@
 
 import type { SkillArtifactRecord, StoreData } from '../../store.js';
 import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
-import { getGraphIndexDocuments, removeGraphIndexDocumentsForSource, upsertGraphIndexDocument } from '../graph-lite/store.js';
+import {
+  getGraphIndexDocuments,
+  removeGraphIndexDocumentsForSource,
+  upsertGraphIndexDocument,
+} from '../graph-lite/store.js';
 import { buildSkillGraphDocument } from '../skill-events.js';
 
 // ---------------------------------------------------------------------------

@@ -3,10 +3,7 @@ import type {
   KnowledgeEntryResponse,
   KnowledgeHistoryResponse,
 } from '@trapmap/contracts';
-import {
-  knowledgeEntryResponseSchema,
-  knowledgeHistoryResponseSchema,
-} from '@trapmap/contracts';
+import { knowledgeEntryResponseSchema, knowledgeHistoryResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';

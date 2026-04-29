@@ -15,8 +15,12 @@
  * The pipeline is responsible for gating on lifecycleState before calling extract.
  */
 
+import type {
+  GraphNodeKind,
+  GraphRelationStrength,
+  GraphRelationType,
+} from '../indexing/graph-lite/documents.js';
 import type { NormalizedIndexDocument } from '../indexing/types.js';
-import type { GraphNodeKind, GraphRelationType, GraphRelationStrength } from '../indexing/graph-lite/documents.js';
 
 // Re-export for backward compatibility
 export type { GraphNodeKind, GraphRelationType, GraphRelationStrength };
@@ -54,31 +58,122 @@ export interface TrapGraphExtractionResult {
  * Noise words to exclude from entity extraction.
  */
 const NOISE_WORDS = new Set([
-  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of',
-  'with', 'by', 'from', 'as', 'into', 'through', 'during', 'before', 'after',
-  'above', 'below', 'it', 'its', 'this', 'that', 'these', 'those', 'is', 'are',
-  'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does',
-  'did', 'will', 'would', 'should', 'could', 'may', 'might', 'can', 'need',
-  'must', 'use', 'when', 'ensure', 'provide', 'require', 'allow', 'make',
-  'get', 'set', 'call', 'check', 'find', 'help', 'work', 'way', 'issue',
-  'problem', 'thing', 'item', 'object', 'value', 'result', 'example', 'case',
-  'point', 'part', 'also', 'may', 'sometimes', 'often', 'usually', 'could',
+  'the',
+  'a',
+  'an',
+  'and',
+  'or',
+  'but',
+  'in',
+  'on',
+  'at',
+  'to',
+  'for',
+  'of',
+  'with',
+  'by',
+  'from',
+  'as',
+  'into',
+  'through',
+  'during',
+  'before',
+  'after',
+  'above',
+  'below',
+  'it',
+  'its',
+  'this',
+  'that',
+  'these',
+  'those',
+  'is',
+  'are',
+  'was',
+  'were',
+  'be',
+  'been',
+  'being',
+  'have',
+  'has',
+  'had',
+  'do',
+  'does',
+  'did',
+  'will',
+  'would',
+  'should',
+  'could',
+  'may',
+  'might',
+  'can',
+  'need',
+  'must',
+  'use',
+  'when',
+  'ensure',
+  'provide',
+  'require',
+  'allow',
+  'make',
+  'get',
+  'set',
+  'call',
+  'check',
+  'find',
+  'help',
+  'work',
+  'way',
+  'issue',
+  'problem',
+  'thing',
+  'item',
+  'object',
+  'value',
+  'result',
+  'example',
+  'case',
+  'point',
+  'part',
+  'also',
+  'may',
+  'sometimes',
+  'often',
+  'usually',
+  'could',
 ]);
 
 /**
  * Hard edge trigger phrases indicating mandatory dependencies.
  */
 const HARD_TRIGGER_PHRASES = [
-  'must', 'requires', 'required', 'blocked', 'blocked by', 'depends on',
-  'before', 'prerequisite', 'necessary', 'mandatory', 'needs to',
+  'must',
+  'requires',
+  'required',
+  'blocked',
+  'blocked by',
+  'depends on',
+  'before',
+  'prerequisite',
+  'necessary',
+  'mandatory',
+  'needs to',
 ];
 
 /**
  * Soft mitigation phrases indicating optional suggestions.
  */
 const SOFT_MITIGATION_PHRASES = [
-  'could', 'can try', 'sometimes helps', 'may help', 'might help',
-  'optionally', 'suggested', 'recommended', 'try', 'consider',
+  'could',
+  'can try',
+  'sometimes helps',
+  'may help',
+  'might help',
+  'optionally',
+  'suggested',
+  'recommended',
+  'try',
+  'consider',
 ];
 
 /**
@@ -132,12 +227,53 @@ function extractToolNodes(document: NormalizedIndexDocument): GraphNode[] {
   const labelsLower = document.labels.map((l) => l.toLowerCase());
 
   const toolKeywords = [
-    'npm', 'pnpm', 'yarn', 'bun', 'docker', 'podman', 'kubernetes', 'k8s',
-    'git', 'github', 'gitlab', 'vitest', 'jest', 'mocha', 'typescript',
-    'javascript', 'ts', 'js', 'node', 'deno', 'webpack', 'vite', 'rollup',
-    'esbuild', 'eslint', 'prettier', 'biome', 'redis', 'postgres', 'postgresql',
-    'mysql', 'mongodb', 'sqlite', 'aws', 'azure', 'gcp', 'linux', 'macos',
-    'windows', 'bash', 'zsh', 'shell', 'ssh', 'curl', 'wget', 'nginx', 'apache',
+    'npm',
+    'pnpm',
+    'yarn',
+    'bun',
+    'docker',
+    'podman',
+    'kubernetes',
+    'k8s',
+    'git',
+    'github',
+    'gitlab',
+    'vitest',
+    'jest',
+    'mocha',
+    'typescript',
+    'javascript',
+    'ts',
+    'js',
+    'node',
+    'deno',
+    'webpack',
+    'vite',
+    'rollup',
+    'esbuild',
+    'eslint',
+    'prettier',
+    'biome',
+    'redis',
+    'postgres',
+    'postgresql',
+    'mysql',
+    'mongodb',
+    'sqlite',
+    'aws',
+    'azure',
+    'gcp',
+    'linux',
+    'macos',
+    'windows',
+    'bash',
+    'zsh',
+    'shell',
+    'ssh',
+    'curl',
+    'wget',
+    'nginx',
+    'apache',
   ];
 
   for (const tool of toolKeywords) {
@@ -162,10 +298,32 @@ function extractCueNodes(document: NormalizedIndexDocument): GraphNode[] {
   const text = document.canonicalText.toLowerCase();
 
   const cuePatterns = [
-    'error', 'exception', 'fail', 'failure', 'timeout', 'crash', 'cannot',
-    'could not', 'unable', 'undefined', 'null', 'nan', 'leak', 'overflow',
-    'underflow', 'infinite', 'deadlock', 'corrupt', 'invalid', 'missing',
-    'not found', '404', '500', 'denied', 'refused', 'rejected',
+    'error',
+    'exception',
+    'fail',
+    'failure',
+    'timeout',
+    'crash',
+    'cannot',
+    'could not',
+    'unable',
+    'undefined',
+    'null',
+    'nan',
+    'leak',
+    'overflow',
+    'underflow',
+    'infinite',
+    'deadlock',
+    'corrupt',
+    'invalid',
+    'missing',
+    'not found',
+    '404',
+    '500',
+    'denied',
+    'refused',
+    'rejected',
   ];
 
   for (const pattern of cuePatterns) {
@@ -190,8 +348,20 @@ function extractEnvironmentNodes(document: NormalizedIndexDocument): GraphNode[]
   const text = document.canonicalText.toLowerCase();
 
   const envPatterns = [
-    'ci', 'cd', 'local', 'localhost', 'production', 'prod', 'staging', 'stage',
-    'development', 'dev', 'test', 'testing', 'container', 'vm',
+    'ci',
+    'cd',
+    'local',
+    'localhost',
+    'production',
+    'prod',
+    'staging',
+    'stage',
+    'development',
+    'dev',
+    'test',
+    'testing',
+    'container',
+    'vm',
   ];
 
   for (const env of envPatterns) {
@@ -375,7 +545,7 @@ function extractRelations(
       sourceNodeId: mit.id,
       targetNodeId: trapNode.id,
       strength: isMandatory ? 'hard' : 'soft',
-      evidence: `mitigation addresses trap`,
+      evidence: 'mitigation addresses trap',
     });
   }
 
@@ -436,7 +606,9 @@ function deduplicateNodes(nodes: GraphNode[]): GraphNode[] {
  * @param document - The normalized index document to extract from
  * @returns Extracted nodes and relations with TrapMap-specific semantics
  */
-export function extractTrapGraphEntities(document: NormalizedIndexDocument): TrapGraphExtractionResult {
+export function extractTrapGraphEntities(
+  document: NormalizedIndexDocument,
+): TrapGraphExtractionResult {
   // Extract all node types
   const trapNode = extractTrapNode(document);
   const toolNodes = extractToolNodes(document);
@@ -478,7 +650,13 @@ export function extractTrapGraphEntities(document: NormalizedIndexDocument): Tra
  * Kept for backward compatibility with existing callers during migration.
  * @deprecated Use extractTrapGraphEntities instead.
  */
-export type LegacyGraphEntityType = 'service' | 'tool' | 'symptom' | 'root-cause' | 'fix' | 'environment';
+export type LegacyGraphEntityType =
+  | 'service'
+  | 'tool'
+  | 'symptom'
+  | 'root-cause'
+  | 'fix'
+  | 'environment';
 
 /**
  * Legacy relation types from the old generic extractor.
@@ -626,11 +804,11 @@ export function extractGraphEntities(document: NormalizedIndexDocument): GraphEx
 
   // Map new relation types to legacy types for backward compat
   const relationTypeMap: Partial<Record<GraphRelationType, LegacyGraphRelationType>> = {
-    'mitigates': 'fixed-by',
-    'requires': 'uses-tool',
+    mitigates: 'fixed-by',
+    requires: 'uses-tool',
     'risk-blocks': 'observed-in',
     'co-occurs-with': 'mentions',
-    'order': 'mentions',
+    order: 'mentions',
   };
 
   const relations: LegacyGraphRelation[] = result.edges.map((edge) => ({

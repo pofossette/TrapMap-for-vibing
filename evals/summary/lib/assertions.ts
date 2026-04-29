@@ -13,8 +13,8 @@
  * - Overall case passes only if all verdicts pass
  */
 
-import type { SummaryJudgeResult } from './types.js';
 import type { SummaryEvalCase } from '../../../packages/contracts/src/index.js';
+import type { SummaryJudgeResult } from './types.js';
 
 // =============================================================================
 // Verdict Types
@@ -23,11 +23,7 @@ import type { SummaryEvalCase } from '../../../packages/contracts/src/index.js';
 /**
  * Kinds of verdicts for summary evaluation.
  */
-export type SummaryVerdictKind =
-  | 'groundedness'
-  | 'coverage'
-  | 'forbidden'
-  | 'execution';
+export type SummaryVerdictKind = 'groundedness' | 'coverage' | 'forbidden' | 'execution';
 
 /**
  * A single verdict for a summary evaluation case.
@@ -173,9 +169,7 @@ export function hasExecutionFailure(verdicts: SummaryVerdict[]): boolean {
 export function formatVerdictsSummary(verdicts: SummaryVerdict[]): string {
   const passed = verdicts.filter((v) => v.passed).length;
   const total = verdicts.length;
-  const failedKinds = verdicts
-    .filter((v) => !v.passed)
-    .map((v) => v.kind);
+  const failedKinds = verdicts.filter((v) => !v.passed).map((v) => v.kind);
 
   if (failedKinds.length === 0) {
     return `All verdicts passed (${passed}/${total})`;

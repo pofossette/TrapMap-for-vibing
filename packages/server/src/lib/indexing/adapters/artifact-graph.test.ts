@@ -22,10 +22,7 @@ import type { GraphIndexDocumentRecord } from '../graph-lite/documents.js';
 import { getGraphIndexDocuments, removeGraphIndexDocumentsForSource } from '../graph-lite/store.js';
 
 // Import the adapter and builders we're testing
-import {
-  type ArtifactGraphAdapterInput,
-  artifactGraphIndexAdapter,
-} from './artifact-graph.js';
+import { type ArtifactGraphAdapterInput, artifactGraphIndexAdapter } from './artifact-graph.js';
 
 // Helper to build a minimal test artifact
 function buildTestArtifact(overrides: Partial<SkillArtifactRecord> = {}): SkillArtifactRecord {
@@ -53,7 +50,8 @@ function buildTestArtifact(overrides: Partial<SkillArtifactRecord> = {}): SkillA
           revision: 1,
           sourceHash: 'hash-1',
           title: 'Docker Cache Reset',
-          summary: 'Reset Docker build cache when cache corruption causes build failures. Must run before rebuilding.',
+          summary:
+            'Reset Docker build cache when cache corruption causes build failures. Must run before rebuilding.',
           keywords: ['docker', 'cache', 'reset'],
           referencePaths: [],
           contentHash: 'profile-hash',
@@ -64,7 +62,8 @@ function buildTestArtifact(overrides: Partial<SkillArtifactRecord> = {}): SkillA
             artifactId: 'artifact-test-1',
             revision: 1,
             sourcePaths: ['SKILL.md'],
-            content: 'Docker cache corruption can cause mysterious build failures. The solution requires a full cache reset.',
+            content:
+              'Docker cache corruption can cause mysterious build failures. The solution requires a full cache reset.',
             situation: 'When Docker builds fail with cache-related errors',
             problem: 'Docker build cache becomes corrupted and causes unpredictable build failures',
             goal: 'Reset Docker cache to restore clean build state',
@@ -203,7 +202,14 @@ describe('artifact graph adapter', () => {
       const doc = testData.graphIndexDocuments[0];
       expect(doc).toBeDefined();
 
-      const allowedKinds = new Set(['skill', 'cue', 'tool', 'environment', 'prerequisite', 'mitigation']);
+      const allowedKinds = new Set([
+        'skill',
+        'cue',
+        'tool',
+        'environment',
+        'prerequisite',
+        'mitigation',
+      ]);
       for (const node of doc!.nodes) {
         expect(allowedKinds.has(node.kind)).toBe(true);
       }
@@ -220,7 +226,13 @@ describe('artifact graph adapter', () => {
       const doc = testData.graphIndexDocuments[0];
       expect(doc).toBeDefined();
 
-      const allowedRelations = new Set(['mitigates', 'requires', 'order', 'risk-blocks', 'co-occurs-with']);
+      const allowedRelations = new Set([
+        'mitigates',
+        'requires',
+        'order',
+        'risk-blocks',
+        'co-occurs-with',
+      ]);
       for (const edge of doc!.edges) {
         expect(allowedRelations.has(edge.relationType)).toBe(true);
       }
@@ -256,7 +268,8 @@ describe('artifact graph adapter', () => {
       expect(doc).toBeDefined();
 
       // Should contain evidence from profile summary
-      const evidenceText = doc!.nodes.map((n) => n.evidence).join(' ') + doc!.edges.map((e) => e.evidence).join(' ');
+      const evidenceText =
+        doc!.nodes.map((n) => n.evidence).join(' ') + doc!.edges.map((e) => e.evidence).join(' ');
 
       // Profile summary content should be included
       expect(evidenceText.toLowerCase()).toContain('docker');
@@ -274,13 +287,14 @@ describe('artifact graph adapter', () => {
       expect(doc).toBeDefined();
 
       // Evidence should reference capsule-derived content
-      const allEvidence = doc!.nodes.map((n) => n.evidence).join(' ') + doc!.edges.map((e) => e.evidence).join(' ');
+      const allEvidence =
+        doc!.nodes.map((n) => n.evidence).join(' ') + doc!.edges.map((e) => e.evidence).join(' ');
 
       // Should contain capsule field names or content
       expect(
         allEvidence.toLowerCase().includes('cache') ||
           allEvidence.toLowerCase().includes('docker') ||
-          allEvidence.toLowerCase().includes('build')
+          allEvidence.toLowerCase().includes('build'),
       ).toBe(true);
     });
 
@@ -333,7 +347,8 @@ describe('artifact graph adapter', () => {
               revision: 1,
               sourceHash: 'hash-1',
               title: 'Required Setup',
-              summary: 'This skill MUST be applied before deployment. Required for all environments.',
+              summary:
+                'This skill MUST be applied before deployment. Required for all environments.',
               keywords: ['setup'],
               referencePaths: [],
               contentHash: 'profile-hash',

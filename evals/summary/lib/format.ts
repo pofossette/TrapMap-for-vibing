@@ -8,8 +8,8 @@
  */
 
 import type {
-  SummaryEvalReport,
   SummaryEvalCaseResult,
+  SummaryEvalReport,
 } from '../../../packages/contracts/src/domain/evals/report.js';
 import type { SummaryCaseResult } from './types.js';
 
@@ -183,7 +183,10 @@ export function formatCaseDetail(result: SummaryCaseResult): string {
       lines.push(`  ✗ ${fact}`);
     }
   }
-  if (result.judgeResult.requiredFactsCovered.length === 0 && result.judgeResult.requiredFactsMissing.length === 0) {
+  if (
+    result.judgeResult.requiredFactsCovered.length === 0 &&
+    result.judgeResult.requiredFactsMissing.length === 0
+  ) {
     lines.push('  (none required)');
   }
   lines.push('');
@@ -243,7 +246,7 @@ export function formatSliceComparison(report: SummaryEvalReport): string {
 
   // Calculate per-endpoint metrics
   const endpointMetrics = Array.from(endpointGroups.entries()).map(([endpoint, cases]) => {
-    const passedCases = cases.filter(c => c.passed).length;
+    const passedCases = cases.filter((c) => c.passed).length;
     const avgGroundedness = cases.reduce((sum, c) => sum + c.groundednessScore, 0) / cases.length;
     const avgCoverage = cases.reduce((sum, c) => sum + c.coverageScore, 0) / cases.length;
     const forbiddenHits = cases.reduce((sum, c) => sum + c.forbiddenClaimsFound.length, 0);
@@ -272,8 +275,12 @@ export function formatSliceComparison(report: SummaryEvalReport): string {
   lines.push('');
 
   // Table header
-  lines.push('Endpoint              | Cases | Passed | Failed | Pass Rate | Avg Groundedness | Avg Coverage | Forbidden');
-  lines.push('----------------------|-------|--------|--------|-----------|------------------|--------------|----------');
+  lines.push(
+    'Endpoint              | Cases | Passed | Failed | Pass Rate | Avg Groundedness | Avg Coverage | Forbidden',
+  );
+  lines.push(
+    '----------------------|-------|--------|--------|-----------|------------------|--------------|----------',
+  );
 
   // Table rows
   for (const metric of endpointMetrics) {
@@ -286,7 +293,9 @@ export function formatSliceComparison(report: SummaryEvalReport): string {
     const coverage = metric.avgCoverage.toFixed(2).padStart(12);
     const forbidden = String(metric.forbiddenHits).padStart(8);
 
-    lines.push(`${endpoint} | ${cases} | ${passed} | ${failed} | ${passRate} | ${groundedness} | ${coverage} | ${forbidden}`);
+    lines.push(
+      `${endpoint} | ${cases} | ${passed} | ${failed} | ${passRate} | ${groundedness} | ${coverage} | ${forbidden}`,
+    );
   }
 
   lines.push('');
@@ -299,8 +308,12 @@ export function formatSliceComparison(report: SummaryEvalReport): string {
     const best = endpointMetrics[0];
     const worst = endpointMetrics[endpointMetrics.length - 1];
 
-    lines.push(`Best performing endpoint:  ${best.endpoint} - ${(best.passRate * 100).toFixed(1)}% pass rate`);
-    lines.push(`Worst performing endpoint: ${worst.endpoint} - ${(worst.passRate * 100).toFixed(1)}% pass rate`);
+    lines.push(
+      `Best performing endpoint:  ${best.endpoint} - ${(best.passRate * 100).toFixed(1)}% pass rate`,
+    );
+    lines.push(
+      `Worst performing endpoint: ${worst.endpoint} - ${(worst.passRate * 100).toFixed(1)}% pass rate`,
+    );
     lines.push('');
   }
 
@@ -310,13 +323,17 @@ export function formatSliceComparison(report: SummaryEvalReport): string {
 
   if (byGroundedness[0] && byCoverage[0]) {
     lines.push('Best by metric:');
-    lines.push(`  Groundedness: ${byGroundedness[0].endpoint} - ${byGroundedness[0].avgGroundedness.toFixed(2)}`);
-    lines.push(`  Coverage:     ${byCoverage[0].endpoint} - ${byCoverage[0].avgCoverage.toFixed(2)}`);
+    lines.push(
+      `  Groundedness: ${byGroundedness[0].endpoint} - ${byGroundedness[0].avgGroundedness.toFixed(2)}`,
+    );
+    lines.push(
+      `  Coverage:     ${byCoverage[0].endpoint} - ${byCoverage[0].avgCoverage.toFixed(2)}`,
+    );
     lines.push('');
   }
 
   // Forbidden claims warning
-  const withForbidden = endpointMetrics.filter(m => m.forbiddenHits > 0);
+  const withForbidden = endpointMetrics.filter((m) => m.forbiddenHits > 0);
   if (withForbidden.length > 0) {
     lines.push('⚠️  Forbidden claims detected:');
     for (const metric of withForbidden) {

@@ -14,8 +14,8 @@
  *   pnpm exec tsx evals/scripts/eval-all.ts --dry-run --allow-empty
  */
 
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { writeFileSync, mkdirSync } from 'node:fs';
 
 // =============================================================================
 // CLI Argument Parsing
@@ -241,10 +241,7 @@ async function runSummaryEval(options: EvalAllOptions): Promise<SummaryResult | 
 /**
  * Format the combined report for terminal output.
  */
-function formatCombinedReport(
-  report: CombinedReport,
-  options: EvalAllOptions,
-): string {
+function formatCombinedReport(report: CombinedReport, options: EvalAllOptions): string {
   const lines: string[] = [];
 
   // Header
@@ -277,8 +274,12 @@ function formatCombinedReport(
     if (ret.summary.slices.length > 0) {
       lines.push('=== Slice Comparison ===');
       lines.push('');
-      lines.push('Tier     | Endpoint              | Mode          | Cases | Pass Rate | Avg Hit@1 | Avg MRR | Avg nDCG');
-      lines.push('---------|----------------------|---------------|-------|-----------|-----------|---------|----------');
+      lines.push(
+        'Tier     | Endpoint              | Mode          | Cases | Pass Rate | Avg Hit@1 | Avg MRR | Avg nDCG',
+      );
+      lines.push(
+        '---------|----------------------|---------------|-------|-----------|-----------|---------|----------',
+      );
 
       for (const slice of ret.summary.slices) {
         const mode = slice.mode || 'default';
@@ -291,7 +292,9 @@ function formatCombinedReport(
         const mrr = slice.avgMrr.toFixed(3).padStart(7);
         const ndcg = slice.avgNdcg.toFixed(3).padStart(9);
 
-        lines.push(`${tier} | ${endpoint} | ${modeStr} | ${cases} | ${passRate} | ${hitAt1} | ${mrr} | ${ndcg}`);
+        lines.push(
+          `${tier} | ${endpoint} | ${modeStr} | ${cases} | ${passRate} | ${hitAt1} | ${mrr} | ${ndcg}`,
+        );
       }
       lines.push('');
 
@@ -301,8 +304,12 @@ function formatCombinedReport(
         const best = sortedByPassRate[0];
         const worst = sortedByPassRate[sortedByPassRate.length - 1];
         lines.push('=== Comparison Summary ===');
-        lines.push(`Best performing slice:  ${best.endpoint} (${best.mode || 'default'}) - ${(best.passRate * 100).toFixed(1)}% pass rate`);
-        lines.push(`Worst performing slice: ${worst.endpoint} (${worst.mode || 'default'}) - ${(worst.passRate * 100).toFixed(1)}% pass rate`);
+        lines.push(
+          `Best performing slice:  ${best.endpoint} (${best.mode || 'default'}) - ${(best.passRate * 100).toFixed(1)}% pass rate`,
+        );
+        lines.push(
+          `Worst performing slice: ${worst.endpoint} (${worst.mode || 'default'}) - ${(worst.passRate * 100).toFixed(1)}% pass rate`,
+        );
         lines.push('');
       }
     }
@@ -360,10 +367,7 @@ function formatCombinedReport(
 /**
  * Write combined JSON report to file.
  */
-function writeCombinedJsonReport(
-  path: string,
-  report: CombinedReport,
-): void {
+function writeCombinedJsonReport(path: string, report: CombinedReport): void {
   const dir = path.replace(/\/[^/]+$/, '');
   try {
     mkdirSync(dir, { recursive: true });
@@ -406,7 +410,9 @@ async function main(): Promise<void> {
   try {
     retrievalResult = await runRetrievalEval(options);
     if (retrievalResult) {
-      console.log(`  Completed: ${retrievalResult.summary.passedCases}/${retrievalResult.summary.totalCases} passed`);
+      console.log(
+        `  Completed: ${retrievalResult.summary.passedCases}/${retrievalResult.summary.totalCases} passed`,
+      );
     }
   } catch (error) {
     console.error('  Failed:', error);
@@ -421,7 +427,9 @@ async function main(): Promise<void> {
   try {
     summaryResult = await runSummaryEval(options);
     if (summaryResult) {
-      console.log(`  Completed: ${summaryResult.summary.passedCases}/${summaryResult.summary.totalCases} passed`);
+      console.log(
+        `  Completed: ${summaryResult.summary.passedCases}/${summaryResult.summary.totalCases} passed`,
+      );
     }
   } catch (error) {
     console.error('  Failed:', error);
@@ -432,8 +440,10 @@ async function main(): Promise<void> {
   console.log('');
 
   // Build combined report
-  const totalCases = (retrievalResult?.summary.totalCases ?? 0) + (summaryResult?.summary.totalCases ?? 0);
-  const passedCases = (retrievalResult?.summary.passedCases ?? 0) + (summaryResult?.summary.passedCases ?? 0);
+  const totalCases =
+    (retrievalResult?.summary.totalCases ?? 0) + (summaryResult?.summary.totalCases ?? 0);
+  const passedCases =
+    (retrievalResult?.summary.passedCases ?? 0) + (summaryResult?.summary.passedCases ?? 0);
   const failedCases = totalCases - passedCases;
 
   const combinedReport: CombinedReport = {

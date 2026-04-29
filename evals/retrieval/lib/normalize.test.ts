@@ -18,9 +18,9 @@ import {
   extractV2CapsuleIds,
   extractV2ProfileHintArtifactIds,
   normalizeResponse,
-  normalizeV3Response,
   normalizeV1Response,
   normalizeV2Response,
+  normalizeV3Response,
 } from './normalize.js';
 
 describe('normalize', () => {

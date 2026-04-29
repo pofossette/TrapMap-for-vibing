@@ -8,8 +8,8 @@
  */
 
 import {
-  retrievalEvalCaseSchema,
   type RetrievalEvalCase,
+  retrievalEvalCaseSchema,
 } from '../../../../packages/contracts/src/index.js';
 
 // =============================================================================
@@ -173,10 +173,7 @@ export const v2ScopeDistributionCore = retrievalEvalCaseSchema.parse({
       forbiddenReasons: [],
     },
     shape: {
-      expectedProfileHintArtifactIds: [
-        'artifact_core_global',
-        'artifact_core_project',
-      ],
+      expectedProfileHintArtifactIds: ['artifact_core_global', 'artifact_core_project'],
       expectedCapsuleCount: 2,
     },
   },

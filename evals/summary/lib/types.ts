@@ -7,8 +7,8 @@
 
 import type {
   SummaryEvalCase,
-  SummaryEvalTier,
   SummaryEvalEndpoint,
+  SummaryEvalTier,
 } from '../../../packages/contracts/src/index.js';
 
 // =============================================================================

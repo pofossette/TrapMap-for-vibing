@@ -4,9 +4,9 @@
  */
 
 import type {
-  RouteFamily,
-  RetrievalStrategy,
   RetrievalQuery,
+  RetrievalStrategy,
+  RouteFamily,
   RoutingReason,
 } from '@trapmap/contracts';
 import type { ResolvedAuthContext } from '../context.js';

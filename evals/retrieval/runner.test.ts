@@ -9,13 +9,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { RetrievalEvalCase } from '../../../packages/contracts/src/index.js';
-import {
-  closeExecutionContext,
-  createExecutionContext,
-  executeCase,
-} from './lib/adapters.js';
-import { loadCases, filterByEndpoint } from './lib/load.js';
+import { closeExecutionContext, createExecutionContext, executeCase } from './lib/adapters.js';
 import { evaluateGovernance } from './lib/governance.js';
+import { filterByEndpoint, loadCases } from './lib/load.js';
 import { calculateMetrics } from './lib/metrics.js';
 
 describe('retrieval runner', () => {
@@ -236,9 +232,7 @@ describe('retrieval runner', () => {
       };
 
       const result = {
-        hits: [
-          { id: 'expected_1', score: 0.9, reason: 'match', scope: 'project' as const },
-        ],
+        hits: [{ id: 'expected_1', score: 0.9, reason: 'match', scope: 'project' as const }],
         returnedIds: ['expected_1'],
         buckets: { globalConstraints: [], projectKnowledge: ['expected_1'] },
         profileHintArtifactIds: [],

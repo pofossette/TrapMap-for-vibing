@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { clearGraphCache, setCachedGraphIndexDocuments } from '../../indexing/adapters/graph.js';
-import type { GraphEdgeRecord, GraphIndexDocumentRecord, GraphNodeRecord } from '../../indexing/graph-lite/documents.js';
+import type {
+  GraphEdgeRecord,
+  GraphIndexDocumentRecord,
+  GraphNodeRecord,
+} from '../../indexing/graph-lite/documents.js';
 import type { KnowledgeRecord } from '../../store.js';
 import { graphAssistedRecall } from './graph-assisted.js';
 
@@ -46,9 +50,27 @@ function createMockEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRec
     indexState: {
       contentHash: 'hash-1',
       normalizedAt: '2024-01-01T00:00:00Z',
-      vector: { status: 'synced', revision: 1, contentHash: 'hash-1', lastSyncedAt: null, lastError: null },
-      keyword: { status: 'synced', revision: 1, contentHash: 'hash-1', lastSyncedAt: null, lastError: null },
-      graph: { status: 'synced', revision: 1, contentHash: 'hash-1', lastSyncedAt: null, lastError: null },
+      vector: {
+        status: 'synced',
+        revision: 1,
+        contentHash: 'hash-1',
+        lastSyncedAt: null,
+        lastError: null,
+      },
+      keyword: {
+        status: 'synced',
+        revision: 1,
+        contentHash: 'hash-1',
+        lastSyncedAt: null,
+        lastError: null,
+      },
+      graph: {
+        status: 'synced',
+        revision: 1,
+        contentHash: 'hash-1',
+        lastSyncedAt: null,
+        lastError: null,
+      },
     },
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
@@ -240,7 +262,9 @@ describe('graph-assisted recall', () => {
 
     await expect(graphAssistedRecall('', new Map())).resolves.toEqual([]);
     await expect(
-      graphAssistedRecall('docker', new Map(), { dataSnapshot: { graphIndexDocuments: [] } as never }),
+      graphAssistedRecall('docker', new Map(), {
+        dataSnapshot: { graphIndexDocuments: [] } as never,
+      }),
     ).resolves.toEqual([]);
   });
 });

@@ -159,9 +159,7 @@ export const retrievalEvalGovernanceExpectationsSchema = z.object({
   /** IDs of entries/capsules that must NOT appear in results */
   forbiddenIds: z.array(entityIdSchema).default([]),
   /** Reasons why items are forbidden (for precise failure categorization) */
-  forbiddenReasons: z
-    .array(z.enum(['cross-team', 'security-level', 'lifecycle']))
-    .default([]),
+  forbiddenReasons: z.array(z.enum(['cross-team', 'security-level', 'lifecycle'])).default([]),
 });
 
 export type RetrievalEvalGovernanceExpectations = z.infer<
@@ -190,9 +188,7 @@ export const retrievalEvalShapeExpectationsSchema = z.object({
   expectedCapsuleCount: z.number().int().min(0).optional(),
 });
 
-export type RetrievalEvalShapeExpectations = z.infer<
-  typeof retrievalEvalShapeExpectationsSchema
->;
+export type RetrievalEvalShapeExpectations = z.infer<typeof retrievalEvalShapeExpectationsSchema>;
 
 // =============================================================================
 // Retrieval Eval Expected Outcome Schema

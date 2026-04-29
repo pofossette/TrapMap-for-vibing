@@ -13,13 +13,15 @@
         "recommended": true
       },
       "suspicious": {
-        "recommended": true
+        "recommended": true,
+        "noExplicitAny": "off"
       },
       "complexity": {
         "recommended": true
       },
       "style": {
-        "recommended": true
+        "recommended": true,
+        "noNonNullAssertion": "off"
       },
       "a11y": {
         "recommended": true
@@ -31,6 +33,9 @@
       "dist",
       "coverage",
       "node_modules",
+      "data",
+      ".tmp",
+      ".data",
       ".agent",
       ".claude",
       ".codex",

@@ -8,9 +8,9 @@
 
 import { z } from 'zod';
 
-import { summaryEvalTierSchema, summaryEvalEndpointSchema } from './summary.js';
-import { retrievalEvalTierSchema, retrievalEvalEndpointSchema } from './retrieval.js';
-import { retrievalStrategySchema, routingReasonSchema, routeFamilySchema } from '../retrieval.js';
+import { retrievalStrategySchema, routeFamilySchema, routingReasonSchema } from '../retrieval.js';
+import { retrievalEvalEndpointSchema, retrievalEvalTierSchema } from './retrieval.js';
+import { summaryEvalEndpointSchema, summaryEvalTierSchema } from './summary.js';
 
 // =============================================================================
 // Summary Evaluation Report Schemas
@@ -158,7 +158,9 @@ export const cohortSummarySchema = z.object({
   avgHitAt1: z.number().min(0).max(1),
   avgMrr: z.number().min(0).max(1),
   governanceFailureCount: z.number().int().min(0),
-  regressionStatus: z.enum(['regressed', 'stable', 'improved', 'no-baseline']).default('no-baseline'),
+  regressionStatus: z
+    .enum(['regressed', 'stable', 'improved', 'no-baseline'])
+    .default('no-baseline'),
 });
 
 export type CohortSummary = z.infer<typeof cohortSummarySchema>;
@@ -317,16 +319,16 @@ export type RegressionThresholds = z.infer<typeof regressionThresholdsSchema>;
  */
 export const TIER_THRESHOLDS: Record<'smoke' | 'core', RegressionThresholds> = {
   smoke: {
-    hitAt1Threshold: -0.10,  // More lenient for PR smoke
-    mrrThreshold: -0.10,
-    passRateThreshold: -0.10,
-    maxGovernanceIncrease: 1,  // Allow 1 additional governance failure
+    hitAt1Threshold: -0.1, // More lenient for PR smoke
+    mrrThreshold: -0.1,
+    passRateThreshold: -0.1,
+    maxGovernanceIncrease: 1, // Allow 1 additional governance failure
   },
   core: {
-    hitAt1Threshold: -0.05,  // Stricter for scheduled core
+    hitAt1Threshold: -0.05, // Stricter for scheduled core
     mrrThreshold: -0.05,
     passRateThreshold: -0.05,
-    maxGovernanceIncrease: 0,  // No additional governance failures allowed
+    maxGovernanceIncrease: 0, // No additional governance failures allowed
   },
 };
 
@@ -338,32 +340,38 @@ export const regressionResultSchema = z.object({
   /** Whether any regressions were detected */
   hasRegressions: z.boolean(),
   /** Slices that regressed */
-  regressedSlices: z.array(z.object({
-    slice: retrievalEvalSliceKeySchema,
-    baselineHitAt1: z.number(),
-    currentHitAt1: z.number(),
-    hitAt1Delta: z.number(),
-    baselineMrr: z.number(),
-    currentMrr: z.number(),
-    mrrDelta: z.number(),
-  })),
+  regressedSlices: z.array(
+    z.object({
+      slice: retrievalEvalSliceKeySchema,
+      baselineHitAt1: z.number(),
+      currentHitAt1: z.number(),
+      hitAt1Delta: z.number(),
+      baselineMrr: z.number(),
+      currentMrr: z.number(),
+      mrrDelta: z.number(),
+    }),
+  ),
   /** Slices that improved */
-  improvedSlices: z.array(z.object({
-    slice: retrievalEvalSliceKeySchema,
-    baselineHitAt1: z.number(),
-    currentHitAt1: z.number(),
-    hitAt1Delta: z.number(),
-    baselineMrr: z.number(),
-    currentMrr: z.number(),
-    mrrDelta: z.number(),
-  })),
+  improvedSlices: z.array(
+    z.object({
+      slice: retrievalEvalSliceKeySchema,
+      baselineHitAt1: z.number(),
+      currentHitAt1: z.number(),
+      hitAt1Delta: z.number(),
+      baselineMrr: z.number(),
+      currentMrr: z.number(),
+      mrrDelta: z.number(),
+    }),
+  ),
   /** Cohorts that regressed */
-  regressedCohorts: z.array(z.object({
-    cohort: cohortKeySchema,
-    baselineHitAt1: z.number(),
-    currentHitAt1: z.number(),
-    hitAt1Delta: z.number(),
-  })),
+  regressedCohorts: z.array(
+    z.object({
+      cohort: cohortKeySchema,
+      baselineHitAt1: z.number(),
+      currentHitAt1: z.number(),
+      hitAt1Delta: z.number(),
+    }),
+  ),
   /** Governance regression count */
   governanceRegressions: z.number().int().min(0),
   /** Whether baseline was available for comparison */
@@ -409,7 +417,9 @@ export const retrievalEvalSliceSummarySchema = z.object({
   executionIssueCount: z.number().int().min(0),
   selectedMode: retrievalStrategySchema.optional(),
   fallbackApplied: z.boolean().default(false),
-  regressionStatus: z.enum(['regressed', 'stable', 'improved', 'no-baseline']).default('no-baseline'),
+  regressionStatus: z
+    .enum(['regressed', 'stable', 'improved', 'no-baseline'])
+    .default('no-baseline'),
 });
 
 export type RetrievalEvalSliceSummary = z.infer<typeof retrievalEvalSliceSummarySchema>;

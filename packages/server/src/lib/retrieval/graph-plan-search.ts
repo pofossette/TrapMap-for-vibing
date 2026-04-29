@@ -1,16 +1,16 @@
 import {
   type GraphPlanFallback,
   type GraphPlanFallbackTarget,
+  type GraphPlanRoutingTrace,
   type GraphPlanSearchQuery,
   type GraphPlanSearchResponse,
-  type GraphPlanRoutingTrace,
   type RoutingReason,
   graphPlanSearchQuerySchema,
   graphPlanSearchResponseSchema,
 } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
-import { generateQueryId, logRagRetrieval, type PipelineStep } from '../rag-log.js';
+import { type PipelineStep, generateQueryId, logRagRetrieval } from '../rag-log.js';
 import { searchKnowledge, searchKnowledgeV2 } from '../retrieval.js';
 import { compileTrapFirstPlan } from './plan-compiler.js';
 
@@ -24,11 +24,7 @@ interface GraphPlanAssessment {
   fallbackTarget: GraphPlanFallbackTarget | null;
 }
 
-async function timedStep<T>(
-  name: string,
-  fn: () => Promise<T>,
-  steps: PipelineStep[],
-): Promise<T> {
+async function timedStep<T>(name: string, fn: () => Promise<T>, steps: PipelineStep[]): Promise<T> {
   const start = Date.now();
   const result = await fn();
   steps.push({ name, latencyMs: Date.now() - start });
@@ -47,7 +43,8 @@ export function assessGraphPlanReadiness(
 ): GraphPlanAssessment {
   const skillCount = plan?.recommendedSkills.length ?? 0;
   const trapCount = plan?.blockingTraps.length ?? 0;
-  const hasStructure = plan?.edges.some((edge) => edge.type === 'mitigates' || edge.type === 'requires') ?? false;
+  const hasStructure =
+    plan?.edges.some((edge) => edge.type === 'mitigates' || edge.type === 'requires') ?? false;
   const hasSupportingEvidence = (plan?.citations.length ?? 0) > 0 || skillCount > 0;
 
   const score =
@@ -67,8 +64,7 @@ export function assessGraphPlanReadiness(
     };
   }
 
-  const explicitTarget =
-    fallbackMode === 'auto' ? null : fallbackMode;
+  const explicitTarget = fallbackMode === 'auto' ? null : fallbackMode;
 
   if (skillCount === 0) {
     return {

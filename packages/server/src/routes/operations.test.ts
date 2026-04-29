@@ -2581,14 +2581,6 @@ Quoted body content.`;
       expect(docsAfterDeactivate).toHaveLength(0);
 
       // Re-approve via review route
-      await testStore.transact(async (data) => {
-        const artifact = data.skillArtifacts?.find((a) => a.id === artifactId);
-        if (artifact) {
-          artifact.lifecycleState = 'approved';
-        }
-      });
-
-      // Trigger re-approval via review decision
       const reviewResponse = await testApp.inject({
         method: 'POST',
         url: `/v1/operations/artifacts/${artifactId}/review`,

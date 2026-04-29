@@ -8,8 +8,8 @@
  */
 
 import {
-  retrievalEvalCaseSchema,
   type RetrievalEvalCase,
+  retrievalEvalCaseSchema,
 } from '../../../../packages/contracts/src/index.js';
 
 // =============================================================================
@@ -51,10 +51,7 @@ export const v1SemanticRankedCore = retrievalEvalCaseSchema.parse({
     },
     shape: {
       bucketExpectations: {
-        projectKnowledge: [
-          'knowledge_core_docker_primary',
-          'knowledge_core_docker_secondary',
-        ],
+        projectKnowledge: ['knowledge_core_docker_primary', 'knowledge_core_docker_secondary'],
         globalConstraints: ['knowledge_core_docker_networking'],
       },
       expectedProfileHintArtifactIds: [],
@@ -85,10 +82,7 @@ export const v1HybridRankedCore = retrievalEvalCaseSchema.parse({
   expected: {
     outcome: 'non-empty',
     relevance: {
-      relevantIds: [
-        'knowledge_core_docker_primary',
-        'knowledge_core_docker_secondary',
-      ],
+      relevantIds: ['knowledge_core_docker_primary', 'knowledge_core_docker_secondary'],
       idealOrder: [
         'knowledge_core_docker_primary', // Contains "compose" keyword
         'knowledge_core_docker_secondary', // Contains "containers" keyword
@@ -100,10 +94,7 @@ export const v1HybridRankedCore = retrievalEvalCaseSchema.parse({
     },
     shape: {
       bucketExpectations: {
-        projectKnowledge: [
-          'knowledge_core_docker_primary',
-          'knowledge_core_docker_secondary',
-        ],
+        projectKnowledge: ['knowledge_core_docker_primary', 'knowledge_core_docker_secondary'],
         globalConstraints: [],
       },
       expectedProfileHintArtifactIds: [],
@@ -134,10 +125,7 @@ export const v1GraphAssistedRankedCore = retrievalEvalCaseSchema.parse({
   expected: {
     outcome: 'non-empty',
     relevance: {
-      relevantIds: [
-        'knowledge_core_docker_networking',
-        'knowledge_core_docker_primary',
-      ],
+      relevantIds: ['knowledge_core_docker_networking', 'knowledge_core_docker_primary'],
       idealOrder: [
         'knowledge_core_docker_networking', // Networking focus
         'knowledge_core_docker_primary', // Related through docker
@@ -180,10 +168,7 @@ export const v1BucketShapeCore = retrievalEvalCaseSchema.parse({
   expected: {
     outcome: 'non-empty',
     relevance: {
-      relevantIds: [
-        'knowledge_core_global_constraint',
-        'knowledge_core_project_knowledge',
-      ],
+      relevantIds: ['knowledge_core_global_constraint', 'knowledge_core_project_knowledge'],
       idealOrder: [
         'knowledge_core_project_knowledge', // More specific to CI/CD
         'knowledge_core_global_constraint', // General standards

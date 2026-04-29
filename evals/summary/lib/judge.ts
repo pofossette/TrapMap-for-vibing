@@ -13,8 +13,13 @@
  * - Scores are calculated deterministically for reproducibility
  */
 
-import type { JudgeProvider, ExtractedClaim, ClaimVerification, SummaryJudgeResult } from './types.js';
 import { extractClaims, simplifyClaim } from './claims.js';
+import type {
+  ClaimVerification,
+  ExtractedClaim,
+  JudgeProvider,
+  SummaryJudgeResult,
+} from './types.js';
 
 // =============================================================================
 // Judge Configuration
@@ -166,9 +171,8 @@ export function fallbackJudge(params: {
     }
   }
 
-  const coverageScore = requiredFacts.length > 0
-    ? requiredFactsCovered.length / requiredFacts.length
-    : 1.0;
+  const coverageScore =
+    requiredFacts.length > 0 ? requiredFactsCovered.length / requiredFacts.length : 1.0;
 
   // Check forbidden claims
   const forbiddenClaimsFound = fallbackCheckForbidden({

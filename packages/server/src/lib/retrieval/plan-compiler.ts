@@ -13,23 +13,26 @@ import type {
   GraphPlan,
   GraphPlanGraphEdge,
   GraphPlanNode,
-  PlanQuery,
-  TrapFirstPlan,
-  PlanTrapNode,
-  PlanSkillNode,
-  PlanEdge,
   PlanCitation,
+  PlanEdge,
+  PlanQuery,
+  PlanSkillNode,
+  PlanTrapNode,
+  TrapFirstPlan,
 } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
-import type { GraphIndexDocumentRecord, GraphNodeRecord } from '../indexing/graph-lite/documents.js';
+import type {
+  GraphIndexDocumentRecord,
+  GraphNodeRecord,
+} from '../indexing/graph-lite/documents.js';
 import type { Graph } from '../indexing/graph-lite/graphology.js';
-import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 import { buildLocalExpansionView } from '../indexing/graph-lite/graphology.js';
 import { getGraphIndexDocuments } from '../indexing/graph-lite/store.js';
+import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
+import { isArtifactGovernanceEligible, rankCapsules } from './capsule-recall.js';
 import { filterEligibleEntries } from './filters.js';
 import { parseSeedIntent } from './intent.js';
-import { isArtifactGovernanceEligible, rankCapsules } from './capsule-recall.js';
 import type { CapsuleCandidate, ParsedIntent } from './types.js';
 
 // Constants
@@ -66,11 +69,10 @@ export async function compileTrapFirstPlan(
   const data = await services.store.snapshot();
 
   // 3. Get governed trap candidates (from knowledgeEntries)
-  const trapCandidates = filterEligibleEntries(
-    data.knowledgeEntries ?? [],
-    auth,
-    { labels: [], scopes: [] },
-  );
+  const trapCandidates = filterEligibleEntries(data.knowledgeEntries ?? [], auth, {
+    labels: [],
+    scopes: [],
+  });
 
   // 4. Get governed skill candidates
   const governanceFilters = {
@@ -121,12 +123,7 @@ export async function compileTrapFirstPlan(
   });
 
   // 8. Identify blocking traps
-  const blockingTraps = findBlockingTraps(
-    expansionGraph,
-    graphDocs,
-    trapCandidates,
-    auth,
-  );
+  const blockingTraps = findBlockingTraps(expansionGraph, graphDocs, trapCandidates, auth);
 
   // 9. Find mitigating skills
   const mitigatingSkillNodeIds = findMitigatingSkills(
@@ -291,18 +288,12 @@ function findBlockingTraps(
  * Find skill node IDs that mitigate identified trap nodes.
  * Looks for mitigates edges pointing to trap node IDs.
  */
-function findMitigatingSkills(
-  graph: Graph,
-  trapNodeIds: string[],
-): string[] {
+function findMitigatingSkills(graph: Graph, trapNodeIds: string[]): string[] {
   const mitigatingSkillIds = new Set<string>();
 
   for (const trapNodeId of trapNodeIds) {
     graph.forEachEdge((edgeKey, attributes, sourceNodeId, targetNodeId) => {
-      if (
-        attributes.relationType === 'mitigates' &&
-        targetNodeId === trapNodeId
-      ) {
+      if (attributes.relationType === 'mitigates' && targetNodeId === trapNodeId) {
         const sourceAttrs = graph.getNodeAttributes(sourceNodeId);
         if (sourceAttrs.kind === 'skill') {
           mitigatingSkillIds.add(sourceNodeId);
@@ -351,31 +342,33 @@ function applySkillBudget(
   }
 
   // Score candidates with mitigation boost
-  const scoredCandidates = skillCandidates.map((candidate) => {
-    const artifact = artifactById.get(candidate.artifactId);
-    if (!artifact) return null;
+  const scoredCandidates = skillCandidates
+    .map((candidate) => {
+      const artifact = artifactById.get(candidate.artifactId);
+      if (!artifact) return null;
 
-    // Find node ID for this candidate
-    let nodeId: string | null = null;
-    for (const [nid, aid] of nodeIdToArtifactId) {
-      if (aid === candidate.artifactId) {
-        nodeId = nid;
-        break;
+      // Find node ID for this candidate
+      let nodeId: string | null = null;
+      for (const [nid, aid] of nodeIdToArtifactId) {
+        if (aid === candidate.artifactId) {
+          nodeId = nid;
+          break;
+        }
       }
-    }
 
-    // Boost score if mitigating a trap
-    const mitigationBoost = nodeId && mitigatingSkillNodeIds.includes(nodeId) ? 0.5 : 0;
-    const prioritizedScore = candidate.finalScore + mitigationBoost;
+      // Boost score if mitigating a trap
+      const mitigationBoost = nodeId && mitigatingSkillNodeIds.includes(nodeId) ? 0.5 : 0;
+      const prioritizedScore = candidate.finalScore + mitigationBoost;
 
-    return {
-      candidate,
-      artifact,
-      nodeId,
-      prioritizedScore,
-      isMitigating: nodeId ? mitigatingSkillNodeIds.includes(nodeId) : false,
-    };
-  }).filter((c): c is NonNullable<typeof c> => c !== null);
+      return {
+        candidate,
+        artifact,
+        nodeId,
+        prioritizedScore,
+        isMitigating: nodeId ? mitigatingSkillNodeIds.includes(nodeId) : false,
+      };
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null);
 
   // Sort by prioritized score (mitigating skills first among equal scores)
   scoredCandidates.sort((a, b) => {
@@ -420,18 +413,11 @@ function applySkillBudget(
  * Build plan edges from graph edges.
  * Only includes edges between nodes in the final plan.
  */
-function buildPlanEdges(
-  graph: Graph,
-  traps: PlanTrapNode[],
-  skills: PlanSkillNode[],
-): PlanEdge[] {
+function buildPlanEdges(graph: Graph, traps: PlanTrapNode[], skills: PlanSkillNode[]): PlanEdge[] {
   const edges: PlanEdge[] = [];
 
   // Build set of plan node IDs
-  const planNodeIds = new Set([
-    ...traps.map((t) => t.nodeId),
-    ...skills.map((s) => s.nodeId),
-  ]);
+  const planNodeIds = new Set([...traps.map((t) => t.nodeId), ...skills.map((s) => s.nodeId)]);
 
   // Collect edges between plan nodes
   graph.forEachEdge((edgeKey, attributes, sourceNodeId, targetNodeId) => {
@@ -512,9 +498,7 @@ function buildCitations(
   return citations.sort((a, b) => b.score - a.score);
 }
 
-function buildActivationRefs(
-  artifact: SkillArtifactRecord,
-): PlanSkillNode['activationRefs'] {
+function buildActivationRefs(artifact: SkillArtifactRecord): PlanSkillNode['activationRefs'] {
   const manifest = artifact.latestRevision.derived?.clientManifest;
 
   if (!manifest) {

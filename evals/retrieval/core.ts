@@ -19,8 +19,8 @@ import { v3GraphPlanCoreCases } from './datasets/core/v3-graph-plan-core.js';
 
 // Import core scenarios
 import {
-  coreScenarios as scenarios,
   coreScenariosMap,
+  coreScenarios as scenarios,
 } from './scenarios/core/retrieval-core-scenarios.js';
 
 // =============================================================================

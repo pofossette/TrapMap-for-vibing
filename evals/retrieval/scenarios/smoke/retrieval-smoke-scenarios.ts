@@ -14,8 +14,8 @@
  */
 
 import {
-  retrievalEvalScenarioSchema,
   type RetrievalEvalScenario,
+  retrievalEvalScenarioSchema,
 } from '../../../../packages/contracts/src/index.js';
 
 // =============================================================================
@@ -44,7 +44,8 @@ export const smokePositiveVisibleScenario = retrievalEvalScenarioSchema.parse({
         scope: 'project',
         labels: ['docker', 'deployment'],
         shortcut: 'Docker Compose Setup',
-        detail: 'Use docker-compose for multi-container setups. Simplifies deployment with compose files.',
+        detail:
+          'Use docker-compose for multi-container setups. Simplifies deployment with compose files.',
         requiredLevel: 3,
         lifecycleState: 'approved',
       },
@@ -102,7 +103,8 @@ export const smokeEmptyResultScenario = retrievalEvalScenarioSchema.parse({
         scope: 'project',
         labels: ['unrelated', 'topic'],
         shortcut: 'Unrelated Knowledge',
-        detail: 'This knowledge entry is about an unrelated topic that does not match the search query.',
+        detail:
+          'This knowledge entry is about an unrelated topic that does not match the search query.',
         requiredLevel: 3,
         lifecycleState: 'approved',
       },
@@ -173,7 +175,8 @@ export const smokeForbiddenScenario = retrievalEvalScenarioSchema.parse({
         scope: 'global',
         labels: ['security', 'credentials'],
         shortcut: 'Credential Management',
-        detail: 'Secure credential management for production environments. Requires elevated security clearance.',
+        detail:
+          'Secure credential management for production environments. Requires elevated security clearance.',
         requiredLevel: 8,
         lifecycleState: 'approved',
       },
@@ -184,7 +187,8 @@ export const smokeForbiddenScenario = retrievalEvalScenarioSchema.parse({
         scope: 'project',
         labels: ['testing', 'unit-tests'],
         shortcut: 'Unit Testing Best Practices',
-        detail: 'Write comprehensive unit tests for your code. Use mocking for external dependencies.',
+        detail:
+          'Write comprehensive unit tests for your code. Use mocking for external dependencies.',
         requiredLevel: 3,
         lifecycleState: 'pending',
       },

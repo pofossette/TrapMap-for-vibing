@@ -2667,15 +2667,11 @@ describe('Phase 18: Skill Lookup by Content Contracts (SKED-01)', () => {
     });
 
     it('rejects maxResults less than 1', () => {
-      expect(() =>
-        skillLookupQuerySchema.parse({ text: 'valid text', maxResults: 0 }),
-      ).toThrow();
+      expect(() => skillLookupQuerySchema.parse({ text: 'valid text', maxResults: 0 })).toThrow();
     });
 
     it('rejects maxResults greater than 50', () => {
-      expect(() =>
-        skillLookupQuerySchema.parse({ text: 'valid text', maxResults: 51 }),
-      ).toThrow();
+      expect(() => skillLookupQuerySchema.parse({ text: 'valid text', maxResults: 51 })).toThrow();
     });
 
     it('rejects missing text field', () => {
@@ -3542,10 +3538,10 @@ describe('Phase 19: Skill Edit and History Contracts', () => {
 
 // Phase 20: Skill Review Contracts (SKED-03)
 import {
-  skillReviewQueueItemSchema,
-  skillReviewQueueResponseSchema,
   skillReviewDecisionRequestSchema,
   skillReviewDecisionResponseSchema,
+  skillReviewQueueItemSchema,
+  skillReviewQueueResponseSchema,
 } from './domain/operations.js';
 
 describe('Phase 20: Skill Review Contracts', () => {
@@ -3863,9 +3859,7 @@ describe('Phase 25: Retrieval Evaluation Contracts', () => {
           permissions: ['knowledge:search'],
         },
         fixtures: {
-          knowledgeEntries: [
-            { id: 'entry_1', scope: 'global', lifecycleState: 'approved' },
-          ],
+          knowledgeEntries: [{ id: 'entry_1', scope: 'global', lifecycleState: 'approved' }],
           skillArtifacts: [],
         },
       };

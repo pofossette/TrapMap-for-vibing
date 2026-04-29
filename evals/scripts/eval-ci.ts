@@ -19,12 +19,12 @@
  *   TIER=core pnpm exec tsx evals/scripts/eval-ci.ts
  */
 
-import { writeFileSync, mkdirSync, existsSync, appendFileSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type {
   BaselineReport,
-  RegressionThresholds,
   RegressionResult,
+  RegressionThresholds,
   RetrievalEvalReport,
 } from '../../packages/contracts/src/domain/evals/report.js';
 import {
@@ -134,8 +134,8 @@ function compareWithBaseline(
   // Compare slices
   for (const currentSlice of report.slices) {
     const key = `${currentSlice.slice.tier}:${currentSlice.slice.endpoint}:${currentSlice.slice.mode ?? 'none'}`;
-    const baselineSlice = baseline.slices.find(s =>
-      `${s.slice.tier}:${s.slice.endpoint}:${s.slice.mode ?? 'none'}` === key
+    const baselineSlice = baseline.slices.find(
+      (s) => `${s.slice.tier}:${s.slice.endpoint}:${s.slice.mode ?? 'none'}` === key,
     );
 
     if (baselineSlice) {
@@ -152,8 +152,10 @@ function compareWithBaseline(
           currentMrr: currentSlice.avgMrr,
           mrrDelta,
         });
-      } else if (hitAt1Delta > Math.abs(thresholds.hitAt1Threshold) ||
-                 mrrDelta > Math.abs(thresholds.mrrThreshold)) {
+      } else if (
+        hitAt1Delta > Math.abs(thresholds.hitAt1Threshold) ||
+        mrrDelta > Math.abs(thresholds.mrrThreshold)
+      ) {
         improvedSlices.push({
           slice: currentSlice.slice,
           baselineHitAt1: baselineSlice.avgHitAt1,
@@ -171,8 +173,8 @@ function compareWithBaseline(
   if (report.cohorts && baseline.cohorts) {
     for (const currentCohort of report.cohorts) {
       const key = `${currentCohort.cohort.queryType}:${currentCohort.cohort.routeFamily}`;
-      const baselineCohort = baseline.cohorts.find(c =>
-        `${c.cohort.queryType}:${c.cohort.routeFamily}` === key
+      const baselineCohort = baseline.cohorts.find(
+        (c) => `${c.cohort.queryType}:${c.cohort.routeFamily}` === key,
       );
 
       if (baselineCohort) {
@@ -192,13 +194,14 @@ function compareWithBaseline(
   // Compare governance
   const governanceRegressions = Math.max(
     0,
-    report.failures.filter(f => f.kind === 'forbidden-hit').length -
-    baseline.governanceFailures.length
+    report.failures.filter((f) => f.kind === 'forbidden-hit').length -
+      baseline.governanceFailures.length,
   );
 
-  const hasRegressions = regressedSlices.length > 0 ||
-                         regressedCohorts.length > 0 ||
-                         governanceRegressions > thresholds.maxGovernanceIncrease;
+  const hasRegressions =
+    regressedSlices.length > 0 ||
+    regressedCohorts.length > 0 ||
+    governanceRegressions > thresholds.maxGovernanceIncrease;
 
   return regressionResultSchema.parse({
     hasRegressions,
@@ -227,7 +230,7 @@ function writeBaseline(
     tier,
     commitSha: process.env.GITHUB_SHA?.substring(0, 7),
     branch: process.env.GITHUB_REF_NAME,
-    slices: report.slices.map(s => ({
+    slices: report.slices.map((s) => ({
       slice: s.slice,
       routeFamily: s.routeFamily,
       avgHitAt1: s.avgHitAt1,
@@ -240,7 +243,7 @@ function writeBaseline(
       fallbackApplied: s.fallbackApplied,
       passRate: s.passRate,
     })),
-    cohorts: report.cohorts?.map(c => ({
+    cohorts: report.cohorts?.map((c) => ({
       cohort: c.cohort,
       avgHitAt1: c.avgHitAt1,
       avgMrr: c.avgMrr,
@@ -248,8 +251,8 @@ function writeBaseline(
       governanceFailureCount: c.governanceFailureCount,
     })),
     governanceFailures: report.failures
-      .filter(f => f.kind === 'forbidden-hit')
-      .map(f => ({
+      .filter((f) => f.kind === 'forbidden-hit')
+      .map((f) => ({
         caseId: f.caseId,
         endpoint: f.endpoint,
         tier: f.tier,
@@ -285,8 +288,12 @@ function formatRegressionResult(regression: RegressionResult): string {
     for (const s of regression.regressedSlices) {
       const mode = s.slice.mode ?? 'default';
       lines.push(`  ${s.slice.endpoint} (${mode}):`);
-      lines.push(`    Hit@1: ${s.baselineHitAt1.toFixed(3)} -> ${s.currentHitAt1.toFixed(3)} (${s.hitAt1Delta >= 0 ? '+' : ''}${s.hitAt1Delta.toFixed(3)})`);
-      lines.push(`    MRR:   ${s.baselineMrr.toFixed(3)} -> ${s.currentMrr.toFixed(3)} (${s.mrrDelta >= 0 ? '+' : ''}${s.mrrDelta.toFixed(3)})`);
+      lines.push(
+        `    Hit@1: ${s.baselineHitAt1.toFixed(3)} -> ${s.currentHitAt1.toFixed(3)} (${s.hitAt1Delta >= 0 ? '+' : ''}${s.hitAt1Delta.toFixed(3)})`,
+      );
+      lines.push(
+        `    MRR:   ${s.baselineMrr.toFixed(3)} -> ${s.currentMrr.toFixed(3)} (${s.mrrDelta >= 0 ? '+' : ''}${s.mrrDelta.toFixed(3)})`,
+      );
     }
     lines.push('');
   }
@@ -296,7 +303,9 @@ function formatRegressionResult(regression: RegressionResult): string {
     for (const s of regression.improvedSlices) {
       const mode = s.slice.mode ?? 'default';
       lines.push(`  ${s.slice.endpoint} (${mode}):`);
-      lines.push(`    Hit@1: ${s.baselineHitAt1.toFixed(3)} -> ${s.currentHitAt1.toFixed(3)} (+${s.hitAt1Delta.toFixed(3)})`);
+      lines.push(
+        `    Hit@1: ${s.baselineHitAt1.toFixed(3)} -> ${s.currentHitAt1.toFixed(3)} (+${s.hitAt1Delta.toFixed(3)})`,
+      );
     }
     lines.push('');
   }
@@ -306,7 +315,9 @@ function formatRegressionResult(regression: RegressionResult): string {
     lines.push('');
   }
 
-  lines.push(`Summary: ${regression.regressedSlices.length} regressed, ${regression.improvedSlices.length} improved`);
+  lines.push(
+    `Summary: ${regression.regressedSlices.length} regressed, ${regression.improvedSlices.length} improved`,
+  );
 
   return lines.join('\n');
 }
@@ -500,7 +511,9 @@ async function main(): Promise<void> {
   try {
     retrievalResult = await runRetrievalEval(tier);
     if (retrievalResult) {
-      console.log(`  Completed: ${retrievalResult.summary.passedCases}/${retrievalResult.summary.totalCases} passed`);
+      console.log(
+        `  Completed: ${retrievalResult.summary.passedCases}/${retrievalResult.summary.totalCases} passed`,
+      );
     } else {
       console.log('  Skipped or unavailable');
     }
@@ -513,7 +526,9 @@ async function main(): Promise<void> {
   try {
     summaryResult = await runSummaryEval(tier);
     if (summaryResult) {
-      console.log(`  Completed: ${summaryResult.summary.passedCases}/${summaryResult.summary.totalCases} passed`);
+      console.log(
+        `  Completed: ${summaryResult.summary.passedCases}/${summaryResult.summary.totalCases} passed`,
+      );
     } else {
       console.log('  Skipped or unavailable');
     }
@@ -522,8 +537,10 @@ async function main(): Promise<void> {
   }
 
   // Build combined report
-  const totalCases = (retrievalResult?.summary.totalCases ?? 0) + (summaryResult?.summary.totalCases ?? 0);
-  const passedCases = (retrievalResult?.summary.passedCases ?? 0) + (summaryResult?.summary.passedCases ?? 0);
+  const totalCases =
+    (retrievalResult?.summary.totalCases ?? 0) + (summaryResult?.summary.totalCases ?? 0);
+  const passedCases =
+    (retrievalResult?.summary.passedCases ?? 0) + (summaryResult?.summary.passedCases ?? 0);
   const failedCases = totalCases - passedCases;
 
   const report: CIReport = {
@@ -560,7 +577,7 @@ async function main(): Promise<void> {
     regression = compareWithBaseline(
       retrievalResult.report as RetrievalEvalReport,
       baseline,
-      thresholds
+      thresholds,
     );
 
     // Set regression outputs
@@ -582,11 +599,7 @@ async function main(): Promise<void> {
   // Write baseline if WRITE_BASELINE is set (Phase 31-03: EOPS-03)
   if (process.env.WRITE_BASELINE === 'true' && retrievalResult?.report) {
     console.log('Writing baseline...');
-    writeBaseline(
-      retrievalResult.report as RetrievalEvalReport,
-      tier,
-      report.durationMs
-    );
+    writeBaseline(retrievalResult.report as RetrievalEvalReport, tier, report.durationMs);
   }
 
   // Update report with regression data

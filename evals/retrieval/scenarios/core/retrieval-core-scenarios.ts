@@ -15,8 +15,8 @@
  */
 
 import {
-  retrievalEvalScenarioSchema,
   type RetrievalEvalScenario,
+  retrievalEvalScenarioSchema,
 } from '../../../../packages/contracts/src/index.js';
 
 // =============================================================================
@@ -46,7 +46,8 @@ export const coreRankedHitsScenario = retrievalEvalScenarioSchema.parse({
         scope: 'project',
         labels: ['docker', 'deployment', 'compose'],
         shortcut: 'Docker Compose Multi-Container',
-        detail: 'Deploy multiple containers with docker-compose. Use docker-compose.yml for orchestration. Configure networking and volumes.',
+        detail:
+          'Deploy multiple containers with docker-compose. Use docker-compose.yml for orchestration. Configure networking and volumes.',
         requiredLevel: 3,
         lifecycleState: 'approved',
       },
@@ -56,7 +57,8 @@ export const coreRankedHitsScenario = retrievalEvalScenarioSchema.parse({
         scope: 'project',
         labels: ['docker', 'containers', 'basics'],
         shortcut: 'Docker Container Basics',
-        detail: 'Basic Docker container commands. Run, stop, and manage containers. Understand images and layers.',
+        detail:
+          'Basic Docker container commands. Run, stop, and manage containers. Understand images and layers.',
         requiredLevel: 3,
         lifecycleState: 'approved',
       },
@@ -66,7 +68,8 @@ export const coreRankedHitsScenario = retrievalEvalScenarioSchema.parse({
         scope: 'global',
         labels: ['docker', 'networking', 'advanced'],
         shortcut: 'Docker Networking Guide',
-        detail: 'Advanced Docker networking concepts. Bridge, overlay, and host networks. Service discovery patterns.',
+        detail:
+          'Advanced Docker networking concepts. Bridge, overlay, and host networks. Service discovery patterns.',
         requiredLevel: 3,
         lifecycleState: 'approved',
       },
@@ -181,7 +184,8 @@ export const coreMixedVisibilityScenario = retrievalEvalScenarioSchema.parse({
         scope: 'project',
         labels: ['api', 'rest', 'design'],
         shortcut: 'REST API Design Guide',
-        detail: 'Design RESTful APIs with proper resource naming. Use HTTP methods correctly. Version your APIs.',
+        detail:
+          'Design RESTful APIs with proper resource naming. Use HTTP methods correctly. Version your APIs.',
         requiredLevel: 3,
         lifecycleState: 'approved',
       },
@@ -320,7 +324,8 @@ export const coreBucketShapeScenario = retrievalEvalScenarioSchema.parse({
         scope: 'global',
         labels: ['deployment', 'standards'],
         shortcut: 'Global Deployment Standards',
-        detail: 'Organization-wide deployment standards. Use blue-green deployments. Follow change management process.',
+        detail:
+          'Organization-wide deployment standards. Use blue-green deployments. Follow change management process.',
         requiredLevel: 3,
         lifecycleState: 'approved',
       },

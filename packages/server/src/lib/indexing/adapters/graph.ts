@@ -12,19 +12,19 @@
  * Graph payloads remain server-internal and are not exposed through contracts.
  */
 
+import { extractTrapGraphEntities } from '../../retrieval/graph-extract.js';
 import type { SkillShareerStore, StoreData } from '../../store.js';
 import { nowIso } from '../../store.js';
-import { extractTrapGraphEntities } from '../../retrieval/graph-extract.js';
-import { buildTrapGraphDocument } from './graph-builders.js';
-import {
-  getGraphIndexDocuments,
-  upsertGraphIndexDocument,
-  removeGraphIndexDocumentsForSource,
-} from '../graph-lite/store.js';
 import type { GraphIndexDocumentRecord } from '../graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
+import {
+  getGraphIndexDocuments,
+  removeGraphIndexDocumentsForSource,
+  upsertGraphIndexDocument,
+} from '../graph-lite/store.js';
 import type { NormalizedIndexDocument } from '../types.js';
 import type { IndexAdapter, IndexSyncResult } from '../types.js';
+import { buildTrapGraphDocument } from './graph-builders.js';
 
 // ---------------------------------------------------------------------------
 // Backward-compatible in-memory index (used by graph-assisted recall during
@@ -70,7 +70,10 @@ export const graphIndexAdapter: IndexAdapter & {
 } = {
   kind: 'graph',
 
-  async sync(document: NormalizedIndexDocument, store?: SkillShareerStore): Promise<IndexSyncResult> {
+  async sync(
+    document: NormalizedIndexDocument,
+    store?: SkillShareerStore,
+  ): Promise<IndexSyncResult> {
     const cacheKey = `${document.entryId}:${document.revision}`;
     const existingState = graphStateCache.get(cacheKey);
 
@@ -105,7 +108,12 @@ export const graphIndexAdapter: IndexAdapter & {
           // Validate hard-edge cycle: load existing docs excluding current source/revision,
           // append the candidate, and check for cycles
           const existingDocs = data.graphIndexDocuments.filter(
-            (d) => !(d.sourceType === 'trap' && d.sourceId === document.entryId && d.revision === document.revision),
+            (d) =>
+              !(
+                d.sourceType === 'trap' &&
+                d.sourceId === document.entryId &&
+                d.revision === document.revision
+              ),
           );
           existingDocs.push(candidateDoc);
           assertNoHardDependencyCycles(existingDocs);

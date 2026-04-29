@@ -17,11 +17,11 @@ import {
   toKnowledgeEntry,
   updateKnowledgeEntry,
 } from '../lib/knowledge.js';
-import { logUserOperation } from '../lib/user-ops-log.js';
 import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
+import { logUserOperation } from '../lib/user-ops-log.js';
 
 function requireRealUser(userId: string | undefined): string {
   if (!userId) {

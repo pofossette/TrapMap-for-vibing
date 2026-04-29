@@ -1,4 +1,9 @@
-import type { CandidateSubmission, ManualResultSubmission, ResolutionOutcome } from '@trapmap/contracts';
+import type {
+  CandidateSubmission,
+  ManualResultSubmission,
+  ResolutionOutcome,
+} from '@trapmap/contracts';
+import type { ResolvedAuthContext } from '../context.js';
 import type {
   EntityLineageRecord,
   KnowledgeRecord,
@@ -6,7 +11,6 @@ import type {
   SkillShareerStore,
   StoreData,
 } from '../store.js';
-import type { ResolvedAuthContext } from '../context.js';
 import { nowIso } from '../store.js';
 import { getCandidateById, markCandidateResolved } from './store.js';
 
@@ -49,10 +53,7 @@ export const REVALIDATION_ERRORS = {
  * @param candidateId - ID of the candidate to validate
  * @returns RevalidationResult with validation status and any error details
  */
-export function revalidateManualResult(
-  data: StoreData,
-  candidateId: string,
-): RevalidationResult {
+export function revalidateManualResult(data: StoreData, candidateId: string): RevalidationResult {
   // 1. Check candidate exists
   const candidate = getCandidateById(data, candidateId);
   if (!candidate) {
@@ -106,7 +107,7 @@ export function revalidateManualResult(
     const { entityType, entityId } = candidate.manualResult.mergedWith;
 
     if (entityType === 'trap') {
-      const existingTrap = data.knowledgeEntries.find(e => e.id === entityId);
+      const existingTrap = data.knowledgeEntries.find((e) => e.id === entityId);
       if (!existingTrap) {
         return {
           valid: false,
@@ -132,7 +133,7 @@ export function revalidateManualResult(
     }
 
     if (entityType === 'skill') {
-      const existingSkill = data.skillArtifacts.find(a => a.id === entityId);
+      const existingSkill = data.skillArtifacts.find((a) => a.id === entityId);
       if (!existingSkill) {
         return {
           valid: false,
@@ -325,7 +326,7 @@ export function publishSkillCandidate(args: {
     latestRevision: {
       revision: 1,
       sourceHash: '', // Will be computed from files
-      files: skillPayload.files.map(f => ({
+      files: skillPayload.files.map((f) => ({
         path: f.path,
         kind: 'skill-markdown' as const,
         sha256: f.sha256,
@@ -441,7 +442,7 @@ export function recordMergeLineage(args: {
 
   // Optionally add a review note to the existing entity (non-destructive)
   if (args.existingEntityType === 'trap') {
-    const trap = args.data.knowledgeEntries.find(e => e.id === args.existingEntityId);
+    const trap = args.data.knowledgeEntries.find((e) => e.id === args.existingEntityId);
     if (trap) {
       trap.reviewNotes.push({
         id: args.store.nextId(args.data, 'note'),
@@ -453,7 +454,7 @@ export function recordMergeLineage(args: {
       trap.updatedAt = args.resolvedAt;
     }
   } else if (args.existingEntityType === 'skill') {
-    const skill = args.data.skillArtifacts.find(a => a.id === args.existingEntityId);
+    const skill = args.data.skillArtifacts.find((a) => a.id === args.existingEntityId);
     if (skill) {
       skill.reviewNotes.push({
         id: args.store.nextId(args.data, 'note'),
@@ -473,7 +474,7 @@ export function recordMergeLineage(args: {
  * Get all lineage records for a candidate.
  */
 export function getLineageByCandidate(data: StoreData, candidateId: string): EntityLineageRecord[] {
-  return data.entityLineage.filter(l => l.candidateId === candidateId);
+  return data.entityLineage.filter((l) => l.candidateId === candidateId);
 }
 
 /**
@@ -485,9 +486,7 @@ export function getLineageByTarget(
   entityId: string,
   entityType: 'trap' | 'skill',
 ): EntityLineageRecord[] {
-  return data.entityLineage.filter(
-    l => l.targetId === entityId && l.targetType === entityType
-  );
+  return data.entityLineage.filter((l) => l.targetId === entityId && l.targetType === entityType);
 }
 
 /**
@@ -498,10 +497,12 @@ export interface ApplyResolutionResult {
   candidate: CandidateSubmission | undefined;
   outcome: ResolutionOutcome | undefined;
   lineage: EntityLineageRecord | undefined;
-  error: {
-    code: string;
-    message: string;
-  } | undefined;
+  error:
+    | {
+        code: string;
+        message: string;
+      }
+    | undefined;
 }
 
 /**
@@ -550,8 +551,10 @@ export function applyManualResultResolution(args: {
       outcome: {
         candidateId: candidate.id,
         decision: candidate.manualResult!.decision,
-        publishedEntityId: existingLineage?.relationshipType === 'published_as' ? existingLineage.targetId : null,
-        mergedIntoEntityId: existingLineage?.relationshipType === 'merged_into' ? existingLineage.targetId : null,
+        publishedEntityId:
+          existingLineage?.relationshipType === 'published_as' ? existingLineage.targetId : null,
+        mergedIntoEntityId:
+          existingLineage?.relationshipType === 'merged_into' ? existingLineage.targetId : null,
         entityType: existingLineage?.targetType ?? null,
         resolvedAt: candidate.manualResult!.submittedAt,
         resolvedBy: candidate.manualResult!.submittedBy,
@@ -667,5 +670,5 @@ export function applyManualResultResolution(args: {
  * Get lineage record by ID.
  */
 export function getLineageById(data: StoreData, lineageId: string): EntityLineageRecord | null {
-  return data.entityLineage.find(l => l.id === lineageId) ?? null;
+  return data.entityLineage.find((l) => l.id === lineageId) ?? null;
 }

@@ -14,8 +14,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { buildServer } from '../packages/server/src/app.js';
 import type { ArtifactBundle } from '../packages/contracts/src/index.js';
+import { buildServer } from '../packages/server/src/app.js';
 
 // =============================================================================
 // CLI
@@ -31,7 +31,7 @@ const { values } = parseArgs({
 });
 
 const BUNDLES_PATH = values['bundles-path'];
-const LIMIT = values.limit ? Number(values.limit) : Infinity;
+const LIMIT = values.limit ? Number(values.limit) : Number.POSITIVE_INFINITY;
 const VERBOSE = values.verbose;
 
 // =============================================================================
@@ -62,7 +62,7 @@ async function main() {
   const allBundles: ArtifactBundle[] = raw.bundles;
   const bundles = allBundles.slice(0, LIMIT);
 
-  log(`\n=== Skill Import/Export Round-trip Test ===`);
+  log('\n=== Skill Import/Export Round-trip Test ===');
   log(`Loaded ${allBundles.length} bundles, testing ${bundles.length}`);
 
   // Build server with system admin key
@@ -133,7 +133,7 @@ async function main() {
     if (patchRes.statusCode !== 200) {
       throw new Error(`Member update failed: ${patchRes.statusCode} ${patchRes.body}`);
     }
-    verbose(`Member security level set to 10`);
+    verbose('Member security level set to 10');
 
     // Step 5: Issue access key
     const keyRes = await app.inject({
@@ -165,7 +165,7 @@ async function main() {
       throw new Error(`User login failed: ${userLogin.statusCode} ${userLogin.body}`);
     }
     const userToken = userLogin.headers['x-session-token'];
-    verbose(`User login OK`);
+    verbose('User login OK');
 
     // Step 8: Select team
     const selectRes = await app.inject({
@@ -183,7 +183,7 @@ async function main() {
     // =========================================================================
     // IMPORT TEST
     // =========================================================================
-    log(`\n--- Import Test ---`);
+    log('\n--- Import Test ---');
     log(`Importing ${bundles.length} bundles...`);
 
     // Import one by one to isolate errors
@@ -236,7 +236,7 @@ async function main() {
     // =========================================================================
     // EXPORT TEST
     // =========================================================================
-    log(`\n--- Export Test ---`);
+    log('\n--- Export Test ---');
     log(`Exporting ${importedItems.length} artifacts...`);
 
     let exportOk = 0;
@@ -279,21 +279,23 @@ async function main() {
       exportOk++;
     }
 
-    log(`Exported: ${exportOk}, Failed: ${exportFail}, File count mismatches: ${fileMismatchCount}`);
+    log(
+      `Exported: ${exportOk}, Failed: ${exportFail}, File count mismatches: ${fileMismatchCount}`,
+    );
 
     // =========================================================================
     // SUMMARY
     // =========================================================================
-    log(`\n=== Summary ===`);
+    log('\n=== Summary ===');
     log(`Bundles tested: ${bundles.length}`);
     log(`Imported: ${importedTotal}, Failed: ${failedTotal}`);
     log(`Exported: ${exportOk}, Failed: ${exportFail}`);
     log(`Round-trip file count OK: ${exportOk - fileMismatchCount}/${exportOk}`);
 
     if (failedTotal > 0 || exportFail > 0 || fileMismatchCount > 0) {
-      log(`\nSome issues found — see above for details.`);
+      log('\nSome issues found — see above for details.');
     } else if (importedTotal > 0 && exportOk > 0) {
-      log(`\nAll good! Import/export round-trip passed.`);
+      log('\nAll good! Import/export round-trip passed.');
     }
   } finally {
     await app.close();

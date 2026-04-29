@@ -48,9 +48,7 @@ export function identifyUnsupportedClaims(claims: ClaimVerification[]): string[]
     return [];
   }
 
-  return claims
-    .filter((c) => !c.supported)
-    .map((c) => c.text);
+  return claims.filter((c) => !c.supported).map((c) => c.text);
 }
 
 // =============================================================================

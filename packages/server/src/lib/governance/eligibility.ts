@@ -3,7 +3,7 @@
  * Unifies logic from retrieval/filters.ts and retrieval/capsule-recall.ts.
  */
 
-import type { GovernanceContext, GovernedEntity, GovernanceFilters } from './types.js';
+import type { GovernanceContext, GovernanceFilters, GovernedEntity } from './types.js';
 
 /**
  * Check if an entity passes governance eligibility checks.
@@ -18,10 +18,7 @@ import type { GovernanceContext, GovernedEntity, GovernanceFilters } from './typ
  * @param context - Caller's governance context
  * @returns true if entity is eligible for access
  */
-export function isGovernanceEligible(
-  entity: GovernedEntity,
-  context: GovernanceContext,
-): boolean {
+export function isGovernanceEligible(entity: GovernedEntity, context: GovernanceContext): boolean {
   // Must be approved
   if (entity.lifecycleState !== 'approved') {
     return false;

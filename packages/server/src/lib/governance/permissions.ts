@@ -4,9 +4,9 @@
  */
 
 import type { Permission } from '@trapmap/contracts';
-import type { GovernanceContext } from './types.js';
 import type { ResolvedAuthContext } from '../context.js';
 import { AppError } from '../errors.js';
+import type { GovernanceContext } from './types.js';
 
 /**
  * Extract governance context from resolved auth context.

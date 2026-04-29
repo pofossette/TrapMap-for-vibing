@@ -8,8 +8,8 @@
  */
 
 import {
-  summaryEvalCaseSchema,
   type SummaryEvalCase,
+  summaryEvalCaseSchema,
 } from '../../../../packages/contracts/src/index.js';
 
 // =============================================================================

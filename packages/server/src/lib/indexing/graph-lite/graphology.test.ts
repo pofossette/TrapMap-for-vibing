@@ -1,14 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import type { GraphEdgeRecord, GraphIndexDocumentRecord, GraphNodeRecord } from './documents.js';
 import {
-  buildGraphRuntimeSnapshot,
+  assertNoHardDependencyCycles,
   buildGraphFromDocuments,
+  buildGraphRuntimeSnapshot,
+  buildLocalExpansionView,
   calculateSourceRelationStrength,
   expandSourcesOneHop,
   projectHardDependencyGraph,
-  assertNoHardDependencyCycles,
-  buildLocalExpansionView,
 } from './graphology.js';
-import type { GraphIndexDocumentRecord, GraphNodeRecord, GraphEdgeRecord } from './documents.js';
 
 function makeDoc(
   id: string,
@@ -23,7 +23,7 @@ function makeDoc(
     sourceType,
     sourceId,
     revision,
-    contentHash: 'hash-' + id,
+    contentHash: `hash-${id}`,
     teamId: null,
     scope: 'global',
     requiredLevel: 0,
@@ -299,7 +299,9 @@ describe('graph-lite/graphology', () => {
       const runtime = buildGraphRuntimeSnapshot([doc1, doc2]);
 
       expect(runtime.nodeIdsByNormalizedLabel.get('timeout')).toEqual(new Set(['cue:timeout']));
-      expect(runtime.sourceIdsByNormalizedLabel.get('timeout')).toEqual(new Set(['entry-1', 'entry-2']));
+      expect(runtime.sourceIdsByNormalizedLabel.get('timeout')).toEqual(
+        new Set(['entry-1', 'entry-2']),
+      );
       expect(runtime.sourceIdsByNodeId.get('cue:timeout')).toEqual(new Set(['entry-1', 'entry-2']));
     });
   });

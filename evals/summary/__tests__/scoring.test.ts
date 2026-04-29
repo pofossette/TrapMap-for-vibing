@@ -4,16 +4,13 @@
  * Phase 27-02: SEVAL-01, SEVAL-02
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { calculateCoverageScore, formatCoverageReport } from '../lib/coverage.js';
 import {
   calculateGroundednessScore,
-  identifyUnsupportedClaims,
   formatGroundednessReport,
+  identifyUnsupportedClaims,
 } from '../lib/groundedness.js';
-import {
-  calculateCoverageScore,
-  formatCoverageReport,
-} from '../lib/coverage.js';
 
 describe('calculateGroundednessScore', () => {
   it('should calculate score from mixed claims', () => {

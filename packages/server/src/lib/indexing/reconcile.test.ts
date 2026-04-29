@@ -20,16 +20,18 @@ import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
 import type { GraphIndexDocumentRecord } from './graph-lite/documents.js';
 import { getGraphIndexDocuments } from './graph-lite/store.js';
 import {
+  type GraphReconcileResult,
   reconcileGraphIndexes,
   reconcileGraphIndexesFromSnapshot,
-  type GraphReconcileResult,
 } from './reconcile.js';
 
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
 
-function createTestKnowledgeEntry(overrides: Partial<StoreData['knowledgeEntries'][0]> = {}): StoreData['knowledgeEntries'][0] {
+function createTestKnowledgeEntry(
+  overrides: Partial<StoreData['knowledgeEntries'][0]> = {},
+): StoreData['knowledgeEntries'][0] {
   return {
     id: 'knowledge_test',
     teamId: null,
@@ -74,7 +76,9 @@ function createTestKnowledgeEntry(overrides: Partial<StoreData['knowledgeEntries
   };
 }
 
-function createTestSkillArtifact(overrides: Partial<StoreData['skillArtifacts'][0]> = {}): StoreData['skillArtifacts'][0] {
+function createTestSkillArtifact(
+  overrides: Partial<StoreData['skillArtifacts'][0]> = {},
+): StoreData['skillArtifacts'][0] {
   return {
     id: 'artifact_test',
     teamId: null,
@@ -145,7 +149,9 @@ function createTestSkillArtifact(overrides: Partial<StoreData['skillArtifacts'][
   };
 }
 
-function createTestGraphDocument(overrides: Partial<GraphIndexDocumentRecord> = {}): GraphIndexDocumentRecord {
+function createTestGraphDocument(
+  overrides: Partial<GraphIndexDocumentRecord> = {},
+): GraphIndexDocumentRecord {
   return {
     id: 'graphdoc_test',
     sourceType: 'trap',
@@ -155,9 +161,7 @@ function createTestGraphDocument(overrides: Partial<GraphIndexDocumentRecord> = 
     teamId: null,
     scope: 'global',
     requiredLevel: 0,
-    nodes: [
-      { id: 'node_1', kind: 'trap', label: 'Test Node', evidence: 'Test evidence' },
-    ],
+    nodes: [{ id: 'node_1', kind: 'trap', label: 'Test Node', evidence: 'Test evidence' }],
     edges: [],
     evidence: 'Test graph document',
     createdAt: nowIso(),
@@ -203,10 +207,12 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
     it('should remove graph documents whose source trap is missing', async () => {
       // Create a graph document with no corresponding knowledge entry
       await store.transact(async (d) => {
-        d.graphIndexDocuments.push(createTestGraphDocument({
-          id: 'graphdoc_orphan',
-          sourceId: 'knowledge_missing',
-        }));
+        d.graphIndexDocuments.push(
+          createTestGraphDocument({
+            id: 'graphdoc_orphan',
+            sourceId: 'knowledge_missing',
+          }),
+        );
       });
 
       const result = await reconcileGraphIndexes({ store });
@@ -221,16 +227,20 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
     it('should remove graph documents whose source trap is deactivated', async () => {
       await store.transact(async (d) => {
         // Create deactivated trap
-        d.knowledgeEntries.push(createTestKnowledgeEntry({
-          id: 'knowledge_deactivated',
-          lifecycleState: 'deactivated',
-        }));
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'knowledge_deactivated',
+            lifecycleState: 'deactivated',
+          }),
+        );
 
         // Create graph document for the deactivated trap
-        d.graphIndexDocuments.push(createTestGraphDocument({
-          id: 'graphdoc_deactivated',
-          sourceId: 'knowledge_deactivated',
-        }));
+        d.graphIndexDocuments.push(
+          createTestGraphDocument({
+            id: 'graphdoc_deactivated',
+            sourceId: 'knowledge_deactivated',
+          }),
+        );
       });
 
       const result = await reconcileGraphIndexes({ store });
@@ -244,16 +254,20 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
     it('should remove graph documents whose source trap is rejected', async () => {
       await store.transact(async (d) => {
         // Create rejected trap
-        d.knowledgeEntries.push(createTestKnowledgeEntry({
-          id: 'knowledge_rejected',
-          lifecycleState: 'rejected',
-        }));
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'knowledge_rejected',
+            lifecycleState: 'rejected',
+          }),
+        );
 
         // Create graph document for the rejected trap
-        d.graphIndexDocuments.push(createTestGraphDocument({
-          id: 'graphdoc_rejected',
-          sourceId: 'knowledge_rejected',
-        }));
+        d.graphIndexDocuments.push(
+          createTestGraphDocument({
+            id: 'graphdoc_rejected',
+            sourceId: 'knowledge_rejected',
+          }),
+        );
       });
 
       const result = await reconcileGraphIndexes({ store });
@@ -267,19 +281,30 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
     it('should remove graph documents with old revision', async () => {
       await store.transact(async (d) => {
         // Create approved trap with revision 2
-        d.knowledgeEntries.push(createTestKnowledgeEntry({
-          id: 'knowledge_updated',
-          history: [
-            {
-              revision: 1,
-              submittedAt: nowIso(),
-              submittedByUserId: 'user_1',
-              shortcut: 'Test',
-              detail: 'Test detail',
-              labels: ['test'],
-              reviewNotes: [],
-            },
-            {
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'knowledge_updated',
+            history: [
+              {
+                revision: 1,
+                submittedAt: nowIso(),
+                submittedByUserId: 'user_1',
+                shortcut: 'Test',
+                detail: 'Test detail',
+                labels: ['test'],
+                reviewNotes: [],
+              },
+              {
+                revision: 2,
+                submittedAt: nowIso(),
+                submittedByUserId: 'user_1',
+                shortcut: 'Test Updated',
+                detail: 'Test detail updated',
+                labels: ['test'],
+                reviewNotes: [],
+              },
+            ],
+            latestRevision: {
               revision: 2,
               submittedAt: nowIso(),
               submittedByUserId: 'user_1',
@@ -288,24 +313,17 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
               labels: ['test'],
               reviewNotes: [],
             },
-          ],
-          latestRevision: {
-            revision: 2,
-            submittedAt: nowIso(),
-            submittedByUserId: 'user_1',
-            shortcut: 'Test Updated',
-            detail: 'Test detail updated',
-            labels: ['test'],
-            reviewNotes: [],
-          },
-        }));
+          }),
+        );
 
         // Create graph document with old revision 1
-        d.graphIndexDocuments.push(createTestGraphDocument({
-          id: 'graphdoc_old_revision',
-          sourceId: 'knowledge_updated',
-          revision: 1,
-        }));
+        d.graphIndexDocuments.push(
+          createTestGraphDocument({
+            id: 'graphdoc_old_revision',
+            sourceId: 'knowledge_updated',
+            revision: 1,
+          }),
+        );
       });
 
       const result = await reconcileGraphIndexes({ store });
@@ -321,17 +339,21 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
     it('should remove graph documents whose source skill is deactivated', async () => {
       await store.transact(async (d) => {
         // Create deactivated skill
-        d.skillArtifacts.push(createTestSkillArtifact({
-          id: 'artifact_deactivated',
-          lifecycleState: 'deactivated',
-        }));
+        d.skillArtifacts.push(
+          createTestSkillArtifact({
+            id: 'artifact_deactivated',
+            lifecycleState: 'deactivated',
+          }),
+        );
 
         // Create graph document for the deactivated skill
-        d.graphIndexDocuments.push(createTestGraphDocument({
-          id: 'graphdoc_skill_deactivated',
-          sourceType: 'skill',
-          sourceId: 'artifact_deactivated',
-        }));
+        d.graphIndexDocuments.push(
+          createTestGraphDocument({
+            id: 'graphdoc_skill_deactivated',
+            sourceType: 'skill',
+            sourceId: 'artifact_deactivated',
+          }),
+        );
       });
 
       const result = await reconcileGraphIndexes({ store });
@@ -347,12 +369,15 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
     it('should rebuild missing graph documents for approved traps', async () => {
       await store.transact(async (d) => {
         // Create approved trap without graph document
-        d.knowledgeEntries.push(createTestKnowledgeEntry({
-          id: 'knowledge_approved',
-          shortcut: 'Docker timeout trap',
-          detail: 'When Docker container times out, check the timeout settings and increase if needed.',
-          labels: ['docker', 'timeout'],
-        }));
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'knowledge_approved',
+            shortcut: 'Docker timeout trap',
+            detail:
+              'When Docker container times out, check the timeout settings and increase if needed.',
+            labels: ['docker', 'timeout'],
+          }),
+        );
       });
 
       const result = await reconcileGraphIndexes({ store });
@@ -369,45 +394,47 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
     it('should rebuild missing graph documents for approved skills', async () => {
       await store.transact(async (d) => {
         // Create approved skill without graph document
-        d.skillArtifacts.push(createTestSkillArtifact({
-          id: 'artifact_approved',
-          title: 'Docker Cache Clean',
-          latestRevision: {
-            ...createTestSkillArtifact().latestRevision,
-            artifactId: 'artifact_approved',
-            derived: {
-              profile: {
-                artifactId: 'artifact_approved',
-                revision: 1,
-                sourceHash: 'a'.repeat(64),
-                title: 'Docker Cache Clean Skill',
-                summary: 'Cleans Docker build cache to free disk space',
-                keywords: ['docker', 'cache'],
-                referencePaths: [],
-                contentHash: 'b'.repeat(64),
-              },
-              capsules: [
-                {
-                  capsuleId: 'capsule_docker',
+        d.skillArtifacts.push(
+          createTestSkillArtifact({
+            id: 'artifact_approved',
+            title: 'Docker Cache Clean',
+            latestRevision: {
+              ...createTestSkillArtifact().latestRevision,
+              artifactId: 'artifact_approved',
+              derived: {
+                profile: {
                   artifactId: 'artifact_approved',
                   revision: 1,
-                  sourcePaths: ['SKILL.md'],
-                  content: 'Run docker system prune to clean cache',
-                  situation: 'When disk space is low',
-                  problem: 'Docker cache fills disk',
-                  goal: 'Free disk space by cleaning cache',
-                  errorText: null,
-                  labels: ['docker', 'cache'],
-                  scope: 'global',
-                  requiredLevel: 0,
+                  sourceHash: 'a'.repeat(64),
+                  title: 'Docker Cache Clean Skill',
+                  summary: 'Cleans Docker build cache to free disk space',
+                  keywords: ['docker', 'cache'],
+                  referencePaths: [],
+                  contentHash: 'b'.repeat(64),
                 },
-              ],
-              clientManifest: null,
-              sourceHash: 'a'.repeat(64),
-              derivedAt: nowIso(),
+                capsules: [
+                  {
+                    capsuleId: 'capsule_docker',
+                    artifactId: 'artifact_approved',
+                    revision: 1,
+                    sourcePaths: ['SKILL.md'],
+                    content: 'Run docker system prune to clean cache',
+                    situation: 'When disk space is low',
+                    problem: 'Docker cache fills disk',
+                    goal: 'Free disk space by cleaning cache',
+                    errorText: null,
+                    labels: ['docker', 'cache'],
+                    scope: 'global',
+                    requiredLevel: 0,
+                  },
+                ],
+                clientManifest: null,
+                sourceHash: 'a'.repeat(64),
+                derivedAt: nowIso(),
+              },
             },
-          },
-        }));
+          }),
+        );
       });
 
       const result = await reconcileGraphIndexes({ store });
@@ -426,29 +453,33 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
     it('should persist stale removals even when rebuild candidates fail hard-edge cycle validation', async () => {
       await store.transact(async (d) => {
         // Create an old revision graph document for a trap that will be updated
-        d.knowledgeEntries.push(createTestKnowledgeEntry({
-          id: 'knowledge_stale',
-          lifecycleState: 'deactivated', // Source is deactivated, so document is stale
-        }));
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'knowledge_stale',
+            lifecycleState: 'deactivated', // Source is deactivated, so document is stale
+          }),
+        );
 
         // Stale graph document
-        d.graphIndexDocuments.push(createTestGraphDocument({
-          id: 'graphdoc_stale',
-          sourceId: 'knowledge_stale',
-          nodes: [
-            { id: 'node_a', kind: 'trap', label: 'Node A', evidence: 'Test' },
-          ],
-          edges: [],
-        }));
+        d.graphIndexDocuments.push(
+          createTestGraphDocument({
+            id: 'graphdoc_stale',
+            sourceId: 'knowledge_stale',
+            nodes: [{ id: 'node_a', kind: 'trap', label: 'Node A', evidence: 'Test' }],
+            edges: [],
+          }),
+        );
 
         // Create approved trap with nodes that would create a cycle
         // We need to create a scenario where rebuild candidates fail cycle validation
-        d.knowledgeEntries.push(createTestKnowledgeEntry({
-          id: 'knowledge_cycle',
-          shortcut: 'Cycle trap',
-          detail: 'Test trap that requires must before must requires before',
-          labels: ['cycle'],
-        }));
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'knowledge_cycle',
+            shortcut: 'Cycle trap',
+            detail: 'Test trap that requires must before must requires before',
+            labels: ['cycle'],
+          }),
+        );
       });
 
       // Reconcile should remove the stale document
@@ -461,38 +492,46 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
       const docs = updatedData.graphIndexDocuments;
 
       // The stale document should be gone
-      expect(docs.find(d => d.sourceId === 'knowledge_stale')).toBeUndefined();
+      expect(docs.find((d) => d.sourceId === 'knowledge_stale')).toBeUndefined();
     });
 
     it('should reject only rebuild upserts when candidates contain hard requires/risk-blocks cycles', async () => {
       await store.transact(async (d) => {
         // Create approved trap A with missing graph document (will be rebuilt)
-        d.knowledgeEntries.push(createTestKnowledgeEntry({
-          id: 'trap_a',
-          shortcut: 'Trap A',
-          detail: 'Trap A requires trap B must happen before',
-          labels: ['test'],
-        }));
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'trap_a',
+            shortcut: 'Trap A',
+            detail: 'Trap A requires trap B must happen before',
+            labels: ['test'],
+          }),
+        );
 
         // Create approved trap B with existing graph document
-        d.knowledgeEntries.push(createTestKnowledgeEntry({
-          id: 'trap_b',
-          shortcut: 'Trap B',
-          detail: 'Trap B requires trap A mandatory prerequisite',
-          labels: ['test'],
-        }));
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'trap_b',
+            shortcut: 'Trap B',
+            detail: 'Trap B requires trap A mandatory prerequisite',
+            labels: ['test'],
+          }),
+        );
 
         // Create a stale graph document that should be removed
-        d.graphIndexDocuments.push(createTestGraphDocument({
-          id: 'graphdoc_stale',
-          sourceId: 'knowledge_stale',
-        }));
+        d.graphIndexDocuments.push(
+          createTestGraphDocument({
+            id: 'graphdoc_stale',
+            sourceId: 'knowledge_stale',
+          }),
+        );
 
         // Add a deactivated trap for the stale document
-        d.knowledgeEntries.push(createTestKnowledgeEntry({
-          id: 'knowledge_stale',
-          lifecycleState: 'deactivated',
-        }));
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'knowledge_stale',
+            lifecycleState: 'deactivated',
+          }),
+        );
 
         // Persist existing graph doc for trap_b with a hard 'requires' edge to trap_a
         // This will form a cycle when trap_a is rebuilt with an edge back to trap_b
@@ -568,11 +607,11 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
       const docs = updatedData.graphIndexDocuments;
 
       // Stale document should be gone
-      expect(docs.find(doc => doc.sourceId === 'knowledge_stale')).toBeUndefined();
+      expect(docs.find((doc) => doc.sourceId === 'knowledge_stale')).toBeUndefined();
 
       // Documents for trap_a and trap_b should remain
-      expect(docs.find(doc => doc.sourceId === 'trap_a')).toBeDefined();
-      expect(docs.find(doc => doc.sourceId === 'trap_b')).toBeDefined();
+      expect(docs.find((doc) => doc.sourceId === 'trap_a')).toBeDefined();
+      expect(docs.find((doc) => doc.sourceId === 'trap_b')).toBeDefined();
     });
   });
 
@@ -580,64 +619,76 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
     it('should handle both trap and skill sources in single reconciliation pass', async () => {
       await store.transact(async (d) => {
         // Create approved trap
-        d.knowledgeEntries.push(createTestKnowledgeEntry({
-          id: 'trap_approved',
-          shortcut: 'Approved Trap',
-          detail: 'Test approved trap',
-          labels: ['test'],
-        }));
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'trap_approved',
+            shortcut: 'Approved Trap',
+            detail: 'Test approved trap',
+            labels: ['test'],
+          }),
+        );
 
         // Create deactivated trap with stale doc
-        d.knowledgeEntries.push(createTestKnowledgeEntry({
-          id: 'trap_deactivated',
-          lifecycleState: 'deactivated',
-        }));
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'trap_deactivated',
+            lifecycleState: 'deactivated',
+          }),
+        );
 
         // Create approved skill
-        d.skillArtifacts.push(createTestSkillArtifact({
-          id: 'skill_approved',
-          title: 'Approved Skill',
-          latestRevision: {
-            ...createTestSkillArtifact().latestRevision,
-            artifactId: 'skill_approved',
-            derived: {
-              profile: {
-                artifactId: 'skill_approved',
-                revision: 1,
+        d.skillArtifacts.push(
+          createTestSkillArtifact({
+            id: 'skill_approved',
+            title: 'Approved Skill',
+            latestRevision: {
+              ...createTestSkillArtifact().latestRevision,
+              artifactId: 'skill_approved',
+              derived: {
+                profile: {
+                  artifactId: 'skill_approved',
+                  revision: 1,
+                  sourceHash: 'a'.repeat(64),
+                  title: 'Approved Skill',
+                  summary: 'Test approved skill',
+                  keywords: ['test'],
+                  referencePaths: [],
+                  contentHash: 'b'.repeat(64),
+                },
+                capsules: [],
+                clientManifest: null,
                 sourceHash: 'a'.repeat(64),
-                title: 'Approved Skill',
-                summary: 'Test approved skill',
-                keywords: ['test'],
-                referencePaths: [],
-                contentHash: 'b'.repeat(64),
+                derivedAt: nowIso(),
               },
-              capsules: [],
-              clientManifest: null,
-              sourceHash: 'a'.repeat(64),
-              derivedAt: nowIso(),
             },
-          },
-        }));
+          }),
+        );
 
         // Create deactivated skill with stale doc
-        d.skillArtifacts.push(createTestSkillArtifact({
-          id: 'skill_deactivated',
-          lifecycleState: 'deactivated',
-        }));
+        d.skillArtifacts.push(
+          createTestSkillArtifact({
+            id: 'skill_deactivated',
+            lifecycleState: 'deactivated',
+          }),
+        );
 
         // Stale trap doc
-        d.graphIndexDocuments.push(createTestGraphDocument({
-          id: 'graphdoc_trap_stale',
-          sourceType: 'trap',
-          sourceId: 'trap_deactivated',
-        }));
+        d.graphIndexDocuments.push(
+          createTestGraphDocument({
+            id: 'graphdoc_trap_stale',
+            sourceType: 'trap',
+            sourceId: 'trap_deactivated',
+          }),
+        );
 
         // Stale skill doc
-        d.graphIndexDocuments.push(createTestGraphDocument({
-          id: 'graphdoc_skill_stale',
-          sourceType: 'skill',
-          sourceId: 'skill_deactivated',
-        }));
+        d.graphIndexDocuments.push(
+          createTestGraphDocument({
+            id: 'graphdoc_skill_stale',
+            sourceType: 'skill',
+            sourceId: 'skill_deactivated',
+          }),
+        );
       });
 
       const result = await reconcileGraphIndexes({ store });
@@ -652,12 +703,12 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
       const docs = updatedData.graphIndexDocuments;
 
       // Stale documents should be removed
-      expect(docs.find(d => d.sourceId === 'trap_deactivated')).toBeUndefined();
-      expect(docs.find(d => d.sourceId === 'skill_deactivated')).toBeUndefined();
+      expect(docs.find((d) => d.sourceId === 'trap_deactivated')).toBeUndefined();
+      expect(docs.find((d) => d.sourceId === 'skill_deactivated')).toBeUndefined();
 
       // New documents should exist for approved sources
-      expect(docs.find(d => d.sourceId === 'trap_approved')).toBeDefined();
-      expect(docs.find(d => d.sourceId === 'skill_approved')).toBeDefined();
+      expect(docs.find((d) => d.sourceId === 'trap_approved')).toBeDefined();
+      expect(docs.find((d) => d.sourceId === 'skill_approved')).toBeDefined();
     });
   });
 
@@ -665,17 +716,21 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
     it('should operate on provided data snapshot without additional transactions', async () => {
       await store.transact(async (d) => {
         // Setup test data
-        d.knowledgeEntries.push(createTestKnowledgeEntry({
-          id: 'trap_approved',
-          shortcut: 'Test',
-          detail: 'Test',
-          labels: ['test'],
-        }));
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'trap_approved',
+            shortcut: 'Test',
+            detail: 'Test',
+            labels: ['test'],
+          }),
+        );
 
-        d.graphIndexDocuments.push(createTestGraphDocument({
-          id: 'graphdoc_stale',
-          sourceId: 'trap_missing',
-        }));
+        d.graphIndexDocuments.push(
+          createTestGraphDocument({
+            id: 'graphdoc_stale',
+            sourceId: 'trap_missing',
+          }),
+        );
       });
 
       // Get snapshot

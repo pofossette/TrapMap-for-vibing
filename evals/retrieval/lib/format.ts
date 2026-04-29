@@ -7,12 +7,12 @@
  */
 
 import type {
-  RetrievalEvalReport,
-  RetrievalEvalSliceSummary,
-  RetrievalEvalFailureRecord,
-  RetrievalEvalWarningRecord,
   CohortSummary,
   ModeComparison,
+  RetrievalEvalFailureRecord,
+  RetrievalEvalReport,
+  RetrievalEvalSliceSummary,
+  RetrievalEvalWarningRecord,
   RoutingDistribution,
 } from '../../../packages/contracts/src/domain/evals/report.js';
 
@@ -117,7 +117,9 @@ function formatSliceSummary(slice: RetrievalEvalSliceSummary): string {
   const modeStr = slice.slice.mode ? ` (${slice.slice.mode})` : '';
 
   lines.push(`[${slice.slice.tier}] ${slice.slice.endpoint}${modeStr}`);
-  lines.push(`  Cases: ${slice.caseCount} (passed: ${slice.passedCount}, failed: ${slice.failedCount})`);
+  lines.push(
+    `  Cases: ${slice.caseCount} (passed: ${slice.passedCount}, failed: ${slice.failedCount})`,
+  );
   lines.push(`  Pass rate: ${(slice.passRate * 100).toFixed(1)}%`);
   lines.push(`  Avg Hit@1: ${slice.avgHitAt1.toFixed(3)}`);
   lines.push(`  Avg Hit@5: ${slice.avgHitAt5.toFixed(3)}`);
@@ -221,8 +223,12 @@ export function formatSliceComparison(report: RetrievalEvalReport): string {
   lines.push('');
 
   // Table header
-  lines.push('Tier     | Endpoint              | Mode          | Cases | Pass Rate | Avg Hit@1 | Avg MRR | Avg nDCG');
-  lines.push('---------|----------------------|---------------|-------|-----------|-----------|---------|----------');
+  lines.push(
+    'Tier     | Endpoint              | Mode          | Cases | Pass Rate | Avg Hit@1 | Avg MRR | Avg nDCG',
+  );
+  lines.push(
+    '---------|----------------------|---------------|-------|-----------|-----------|---------|----------',
+  );
 
   // Sort slices for consistent display
   const sortedSlices = [...report.slices].sort((a, b) => {
@@ -250,7 +256,9 @@ export function formatSliceComparison(report: RetrievalEvalReport): string {
     const mrr = slice.avgMrr.toFixed(3).padStart(7);
     const ndcg = slice.avgNdcg.toFixed(3).padStart(9);
 
-    lines.push(`${tier} | ${endpoint} | ${modeStr} | ${cases} | ${passRate} | ${hitAt1} | ${mrr} | ${ndcg}`);
+    lines.push(
+      `${tier} | ${endpoint} | ${modeStr} | ${cases} | ${passRate} | ${hitAt1} | ${mrr} | ${ndcg}`,
+    );
   }
 
   lines.push('');
@@ -268,8 +276,12 @@ export function formatSliceComparison(report: RetrievalEvalReport): string {
     const bestMode = best.slice.mode ?? 'default';
     const worstMode = worst.slice.mode ?? 'default';
 
-    lines.push(`Best performing slice:  ${best.slice.endpoint} (${bestMode}) - ${(best.passRate * 100).toFixed(1)}% pass rate`);
-    lines.push(`Worst performing slice: ${worst.slice.endpoint} (${worstMode}) - ${(worst.passRate * 100).toFixed(1)}% pass rate`);
+    lines.push(
+      `Best performing slice:  ${best.slice.endpoint} (${bestMode}) - ${(best.passRate * 100).toFixed(1)}% pass rate`,
+    );
+    lines.push(
+      `Worst performing slice: ${worst.slice.endpoint} (${worstMode}) - ${(worst.passRate * 100).toFixed(1)}% pass rate`,
+    );
     lines.push('');
   }
 
@@ -284,14 +296,20 @@ export function formatSliceComparison(report: RetrievalEvalReport): string {
     const bestNdcgMode = byNdcg[0].slice.mode ?? 'default';
 
     lines.push('Best by metric:');
-    lines.push(`  Hit@1:  ${byHitAt1[0].slice.endpoint} (${bestHitAt1Mode}) - ${byHitAt1[0].avgHitAt1.toFixed(3)}`);
-    lines.push(`  MRR:    ${byMrr[0].slice.endpoint} (${bestMrrMode}) - ${byMrr[0].avgMrr.toFixed(3)}`);
-    lines.push(`  nDCG:   ${byNdcg[0].slice.endpoint} (${bestNdcgMode}) - ${byNdcg[0].avgNdcg.toFixed(3)}`);
+    lines.push(
+      `  Hit@1:  ${byHitAt1[0].slice.endpoint} (${bestHitAt1Mode}) - ${byHitAt1[0].avgHitAt1.toFixed(3)}`,
+    );
+    lines.push(
+      `  MRR:    ${byMrr[0].slice.endpoint} (${bestMrrMode}) - ${byMrr[0].avgMrr.toFixed(3)}`,
+    );
+    lines.push(
+      `  nDCG:   ${byNdcg[0].slice.endpoint} (${bestNdcgMode}) - ${byNdcg[0].avgNdcg.toFixed(3)}`,
+    );
     lines.push('');
   }
 
   // Governance summary
-  const governanceFailures = sortedSlices.filter(s => s.governanceFailureCount > 0);
+  const governanceFailures = sortedSlices.filter((s) => s.governanceFailureCount > 0);
   if (governanceFailures.length > 0) {
     lines.push('Governance issues detected in:');
     for (const slice of governanceFailures) {
@@ -332,7 +350,9 @@ export function formatCohortComparison(report: RetrievalEvalReport): string {
 
   // Table header
   lines.push('Query Type        | Route    | Cases | Pass Rate | Avg Hit@1 | Avg MRR | Governance');
-  lines.push('------------------|----------|-------|-----------|-----------|---------|------------');
+  lines.push(
+    '------------------|----------|-------|-----------|-----------|---------|------------',
+  );
 
   // Sort cohorts
   const sortedCohorts = [...report.cohorts].sort((a, b) => {
@@ -352,7 +372,9 @@ export function formatCohortComparison(report: RetrievalEvalReport): string {
     const mrr = cohort.avgMrr.toFixed(3).padStart(7);
     const governance = String(cohort.governanceFailureCount).padStart(10);
 
-    lines.push(`${queryType} | ${routeFamily} | ${cases} | ${passRate} | ${hitAt1} | ${mrr} | ${governance}`);
+    lines.push(
+      `${queryType} | ${routeFamily} | ${cases} | ${passRate} | ${hitAt1} | ${mrr} | ${governance}`,
+    );
   }
 
   lines.push('');
@@ -408,8 +430,12 @@ export function formatModeComparison(report: RetrievalEvalReport): string {
   lines.push('');
 
   // Table header
-  lines.push('Client Mode   | Selected Mode | Routing Reason        | Fallback | Cases | Hit@1  | MRR');
-  lines.push('--------------|---------------|----------------------|----------|-------|--------|-------');
+  lines.push(
+    'Client Mode   | Selected Mode | Routing Reason        | Fallback | Cases | Hit@1  | MRR',
+  );
+  lines.push(
+    '--------------|---------------|----------------------|----------|-------|--------|-------',
+  );
 
   // Table rows
   for (const mc of report.modeComparisons) {
@@ -421,7 +447,9 @@ export function formatModeComparison(report: RetrievalEvalReport): string {
     const hitAt1 = mc.avgHitAt1.toFixed(3).padStart(6);
     const mrr = mc.avgMrr.toFixed(3).padStart(5);
 
-    lines.push(`${clientMode} | ${selectedMode} | ${routingReason} | ${fallback} | ${cases} | ${hitAt1} | ${mrr}`);
+    lines.push(
+      `${clientMode} | ${selectedMode} | ${routingReason} | ${fallback} | ${cases} | ${hitAt1} | ${mrr}`,
+    );
   }
 
   lines.push('');
@@ -465,8 +493,11 @@ export function formatRoutingDistribution(report: RetrievalEvalReport): string {
 
   // Summary
   const totalCases = report.routingDistribution.reduce((sum, rd) => sum + rd.count, 0);
-  const fallbackCount = report.modeComparisons?.filter(mc => mc.fallbackApplied).reduce((sum, mc) => sum + mc.caseCount, 0) ?? 0;
-  const fallbackPct = totalCases > 0 ? (fallbackCount / totalCases * 100).toFixed(1) : '0.0';
+  const fallbackCount =
+    report.modeComparisons
+      ?.filter((mc) => mc.fallbackApplied)
+      .reduce((sum, mc) => sum + mc.caseCount, 0) ?? 0;
+  const fallbackPct = totalCases > 0 ? ((fallbackCount / totalCases) * 100).toFixed(1) : '0.0';
 
   lines.push(`Total cases: ${totalCases}`);
   lines.push(`Fallback applied: ${fallbackCount} (${fallbackPct}%)`);

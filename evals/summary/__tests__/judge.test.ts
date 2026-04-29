@@ -4,12 +4,12 @@
  * Phase 27-02: SEVAL-01, SEVAL-02
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  fallbackVerifyClaims,
+  createJudge,
   fallbackCheckForbidden,
   fallbackJudge,
-  createJudge,
+  fallbackVerifyClaims,
 } from '../lib/judge.js';
 
 describe('fallbackVerifyClaims', () => {
@@ -147,11 +147,10 @@ describe('createJudge', () => {
     const judge = createJudge({ provider: 'fallback' });
     expect(judge.config.provider).toBe('fallback');
 
-    const result = judge.evaluate(
-      'Docker is a container tool',
-      ['Docker is a container tool'],
-      { requiredFacts: [], forbiddenClaims: [] },
-    );
+    const result = judge.evaluate('Docker is a container tool', ['Docker is a container tool'], {
+      requiredFacts: [],
+      forbiddenClaims: [],
+    });
 
     expect(result.provider).toBe('fallback');
   });
@@ -161,11 +160,10 @@ describe('createJudge', () => {
     expect(judge.config.provider).toBe('openai');
 
     // Currently falls back to rules-based judge
-    const result = judge.evaluate(
-      'Docker is a container tool',
-      ['Docker is a container tool'],
-      { requiredFacts: [], forbiddenClaims: [] },
-    );
+    const result = judge.evaluate('Docker is a container tool', ['Docker is a container tool'], {
+      requiredFacts: [],
+      forbiddenClaims: [],
+    });
 
     expect(result).toBeDefined();
   });

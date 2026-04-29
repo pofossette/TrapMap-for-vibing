@@ -3,8 +3,8 @@
  * Used for fingerprint computation and duplicate detection.
  */
 
-import type { KnowledgeRecord, SkillArtifactRecord, DerivedSkillProfileRecord } from '../store.js';
-import type { DuplicateMatch, DuplicateCase, AnalysisSnapshot } from '@trapmap/contracts';
+import type { AnalysisSnapshot, DuplicateCase, DuplicateMatch } from '@trapmap/contracts';
+import type { DerivedSkillProfileRecord, KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 
 /**
  * Input shape for computing candidate fingerprints.

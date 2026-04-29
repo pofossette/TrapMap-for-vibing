@@ -8,10 +8,10 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { CaseResult, NormalizedResult } from './types.js';
-import { buildReport } from './report.js';
-import { formatReport, formatCompactSummary } from './format.js';
 import { retrievalEvalReportSchema } from '@trapmap/contracts';
+import { formatCompactSummary, formatReport } from './format.js';
+import { buildReport } from './report.js';
+import type { CaseResult, NormalizedResult } from './types.js';
 
 // =============================================================================
 // Test Fixtures
@@ -78,7 +78,9 @@ describe('report building', () => {
   it('builds a validated JSON report suitable for regression tooling', () => {
     const caseResults = [
       makeCaseResult({ case: { ...makeCaseResult().case, caseId: 'case-1' } }),
-      makeCaseResult({ case: { ...makeCaseResult().case, caseId: 'case-2', endpoint: '/v2/retrieval/search' } }),
+      makeCaseResult({
+        case: { ...makeCaseResult().case, caseId: 'case-2', endpoint: '/v2/retrieval/search' },
+      }),
     ];
 
     const report = buildReport(caseResults, makeOptions(), 100);
@@ -196,7 +198,9 @@ describe('terminal formatting', () => {
         case: { ...makeCaseResult().case, caseId: 'case-with-failure' },
         governance: {
           passed: false,
-          failures: [{ kind: 'forbidden-hit', description: 'Forbidden ID found', ids: ['forbidden_1'] }],
+          failures: [
+            { kind: 'forbidden-hit', description: 'Forbidden ID found', ids: ['forbidden_1'] },
+          ],
           forbiddenHits: ['forbidden_1'],
         },
         passed: false,
@@ -270,13 +274,21 @@ describe('slice key stability', () => {
   it('slice keys are stable for comparison across runs', () => {
     const caseResults1 = [
       makeCaseResult({
-        case: { ...makeCaseResult().case, caseId: 'case-1', request: { seed: 'test', mode: 'semantic' } },
+        case: {
+          ...makeCaseResult().case,
+          caseId: 'case-1',
+          request: { seed: 'test', mode: 'semantic' },
+        },
       }),
     ];
 
     const caseResults2 = [
       makeCaseResult({
-        case: { ...makeCaseResult().case, caseId: 'case-2', request: { seed: 'test', mode: 'semantic' } },
+        case: {
+          ...makeCaseResult().case,
+          caseId: 'case-2',
+          request: { seed: 'test', mode: 'semantic' },
+        },
       }),
     ];
 
@@ -348,14 +360,22 @@ describe('routing trace fields', () => {
   it('per-mode slices use canonical stable identifiers', () => {
     const caseResults = [
       makeCaseResult({
-        case: { ...makeCaseResult().case, caseId: 'semantic-case', request: { seed: 'test', mode: 'semantic' } },
+        case: {
+          ...makeCaseResult().case,
+          caseId: 'semantic-case',
+          request: { seed: 'test', mode: 'semantic' },
+        },
         execution: {
           ...makeCaseResult().execution,
           selectedMode: 'local',
         },
       }),
       makeCaseResult({
-        case: { ...makeCaseResult().case, caseId: 'hybrid-case', request: { seed: 'test', mode: 'hybrid' } },
+        case: {
+          ...makeCaseResult().case,
+          caseId: 'hybrid-case',
+          request: { seed: 'test', mode: 'hybrid' },
+        },
         execution: {
           ...makeCaseResult().execution,
           selectedMode: 'hybrid',
@@ -368,7 +388,7 @@ describe('routing trace fields', () => {
     // Two distinct slices
     expect(report.slices).toHaveLength(2);
     // Slice keys use canonical mode identifiers
-    const sliceModes = report.slices.map(s => s.slice.mode);
+    const sliceModes = report.slices.map((s) => s.slice.mode);
     expect(sliceModes).toContain('semantic');
     expect(sliceModes).toContain('hybrid');
   });

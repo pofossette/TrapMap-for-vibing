@@ -36,11 +36,7 @@ import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { deriveSkillArtifactOutputs } from '../lib/artifacts/derive.js';
-import {
-  getSkillHistory,
-  mergeEditPayload,
-  submitSkillEdit,
-} from '../lib/artifacts/edit.js';
+import { getSkillHistory, mergeEditPayload, submitSkillEdit } from '../lib/artifacts/edit.js';
 import { createSkillArtifactRecord, toSkillArtifact } from '../lib/artifacts/model.js';
 import { applyDerivedArtifactOutputs } from '../lib/artifacts/model.js';
 import { createAuditEvent, queryAuditEvents, toAuditEvent } from '../lib/audit.js';
@@ -53,8 +49,8 @@ import {
   parseClaudeSkill,
   validateLegacyEntryMigration,
 } from '../lib/import-export.js';
-import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 import { artifactGraphIndexAdapter } from '../lib/indexing/adapters/artifact-graph.js';
+import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 import { runSkillIndexEvent } from '../lib/indexing/skill-events.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '../lib/knowledge.js';
 import { runPreReview } from '../lib/pre-review.js';
@@ -1248,9 +1244,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:export');
 
     const artifactId = (request.params as { artifactId: string }).artifactId;
-    const query = skillHistoryRequestSchema.parse(
-      (request.query as Record<string, unknown>) ?? {},
-    );
+    const query = skillHistoryRequestSchema.parse((request.query as Record<string, unknown>) ?? {});
 
     const data = await app.skillShareer.store.snapshot();
 
@@ -1350,9 +1344,10 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
     const items = pendingArtifacts.map((artifact) => {
       const serializedArtifact = toSkillArtifact(data, artifact);
       const lastHistoryItem = serializedArtifact.history[serializedArtifact.history.length - 1];
-      const lastDecision = artifact.reviewHistory.length > 0
-        ? artifact.reviewHistory[artifact.reviewHistory.length - 1]
-        : null;
+      const lastDecision =
+        artifact.reviewHistory.length > 0
+          ? artifact.reviewHistory[artifact.reviewHistory.length - 1]
+          : null;
 
       return {
         artifact: serializedArtifact,

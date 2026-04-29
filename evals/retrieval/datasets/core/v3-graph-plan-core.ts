@@ -6,8 +6,8 @@
  */
 
 import {
-  retrievalEvalCaseSchema,
   type RetrievalEvalCase,
+  retrievalEvalCaseSchema,
 } from '../../../../packages/contracts/src/index.js';
 
 export const v3GraphPlanSelectedCore = retrievalEvalCaseSchema.parse({
@@ -25,14 +25,8 @@ export const v3GraphPlanSelectedCore = retrievalEvalCaseSchema.parse({
   expected: {
     outcome: 'non-empty',
     relevance: {
-      relevantIds: [
-        'capsule_core_graph_selected_primary',
-        'capsule_core_graph_selected_secondary',
-      ],
-      idealOrder: [
-        'capsule_core_graph_selected_primary',
-        'capsule_core_graph_selected_secondary',
-      ],
+      relevantIds: ['capsule_core_graph_selected_primary', 'capsule_core_graph_selected_secondary'],
+      idealOrder: ['capsule_core_graph_selected_primary', 'capsule_core_graph_selected_secondary'],
     },
     governance: {
       forbiddenIds: [],

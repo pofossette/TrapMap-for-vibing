@@ -11,12 +11,7 @@ import { entityIdSchema, scopeSchema, securityLevelSchema } from './common.js';
  * Plan edge relation types (subset of GraphRAG-lite vocabulary).
  * Excludes 'co-occurs-with' because co-occurrence is citation-only, not a plan edge.
  */
-export const planEdgeTypeSchema = z.enum([
-  'risk-blocks',
-  'mitigates',
-  'requires',
-  'order',
-]);
+export const planEdgeTypeSchema = z.enum(['risk-blocks', 'mitigates', 'requires', 'order']);
 
 export type PlanEdgeType = z.infer<typeof planEdgeTypeSchema>;
 

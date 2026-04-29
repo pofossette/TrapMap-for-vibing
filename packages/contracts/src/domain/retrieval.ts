@@ -1,5 +1,5 @@
-import { compatibleScriptActivationPolicySchema } from './artifacts.js';
 import { z } from 'zod';
+import { compatibleScriptActivationPolicySchema } from './artifacts.js';
 
 import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema } from './common.js';
 import { planQuerySchema, trapFirstPlanSchema } from './plans.js';
@@ -404,14 +404,14 @@ export type RouteFamily = z.infer<typeof routeFamilySchema>;
  * These are stable identifiers for evaluation baselines and CI regression comparison.
  */
 export const routingReasonSchema = z.enum([
-  'explicit-mode',         // Client requested a specific v1 mode
-  'auto-error-detected',   // Auto mode detected error-like seed, chose naive
-  'auto-goal-query',       // Auto mode detected goal-oriented query, chose local
-  'auto-broad-context',    // Auto mode detected broad context need, chose global
-  'auto-multi-channel',    // Auto mode chose hybrid based on query complexity
-  'fallback-default',      // Fallback to default strategy when no explicit mode
-  'v2-default-capsule',    // v2 endpoint default capsule strategy
-  'graph-plan-selected',   // Graph-plan route returned the plan directly
+  'explicit-mode', // Client requested a specific v1 mode
+  'auto-error-detected', // Auto mode detected error-like seed, chose naive
+  'auto-goal-query', // Auto mode detected goal-oriented query, chose local
+  'auto-broad-context', // Auto mode detected broad context need, chose global
+  'auto-multi-channel', // Auto mode chose hybrid based on query complexity
+  'fallback-default', // Fallback to default strategy when no explicit mode
+  'v2-default-capsule', // v2 endpoint default capsule strategy
+  'graph-plan-selected', // Graph-plan route returned the plan directly
   'graph-plan-low-confidence', // Graph-plan route fell back due to low readiness score
   'graph-plan-insufficient-trap-evidence', // Plan had weak blocker evidence
   'graph-plan-insufficient-skill-evidence', // Plan had no actionable skills
@@ -424,10 +424,7 @@ export type RoutingReason = z.infer<typeof routingReasonSchema>;
  * Distinguishes which legacy retrieval surface was used when the plan
  * was not strong enough to return directly.
  */
-export const graphPlanFallbackTargetSchema = z.enum([
-  'v2-capsule',
-  'v1-graph-assisted',
-]);
+export const graphPlanFallbackTargetSchema = z.enum(['v2-capsule', 'v1-graph-assisted']);
 
 export type GraphPlanFallbackTarget = z.infer<typeof graphPlanFallbackTargetSchema>;
 
@@ -456,7 +453,9 @@ export const routingTraceSchema = z.object({
   /** Whether a fallback strategy was applied after initial selection failed */
   fallbackApplied: z.boolean().default(false),
   /** Recall channels that contributed to the final result set */
-  channelsUsed: z.array(z.enum(['semantic', 'keyword', 'graph', 'capsule', 'profile', 'plan'])).default([]),
+  channelsUsed: z
+    .array(z.enum(['semantic', 'keyword', 'graph', 'capsule', 'profile', 'plan']))
+    .default([]),
   /** Fallback destination when fallbackApplied is true */
   fallbackTarget: graphPlanFallbackTargetSchema.nullable().default(null),
   /** Deterministic confidence score when available */

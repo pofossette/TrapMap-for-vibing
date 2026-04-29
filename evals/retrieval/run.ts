@@ -14,30 +14,30 @@
 import { parseArgs } from 'node:util';
 
 import {
-  retrievalEvalCaseSchema,
   type RetrievalEvalCase,
   type RetrievalEvalTier,
+  retrievalEvalCaseSchema,
 } from '../../packages/contracts/src/index.js';
 
+import { coreCases } from './core.js';
 // Import tier datasets
 import { smokeCases } from './smoke.js';
-import { coreCases } from './core.js';
 
 // Import execution modules
 import {
-  createExecutionContext,
   closeExecutionContext,
+  createExecutionContext,
   executeCase,
   seedScenarioFixtures,
 } from './lib/adapters.js';
 import { evaluateGovernance } from './lib/governance.js';
-import { calculateMetrics, averageMetrics } from './lib/metrics.js';
+import { averageMetrics, calculateMetrics } from './lib/metrics.js';
 import type {
-  RunnerOptions,
   CaseResult,
-  SliceMetrics,
+  RunnerOptions,
   RunnerSummary,
   SliceKey,
+  SliceMetrics,
 } from './lib/types.js';
 
 interface RunOptions {
@@ -181,9 +181,7 @@ function filterByEndpoint(
 /**
  * Execute all cases and return results.
  */
-async function executeAllCases(
-  cases_: RetrievalEvalCase[],
-): Promise<CaseResult[]> {
+async function executeAllCases(cases_: RetrievalEvalCase[]): Promise<CaseResult[]> {
   const ctx = await createExecutionContext();
   const results: CaseResult[] = [];
 
@@ -229,9 +227,7 @@ async function executeAllCases(
  * Aggregate metrics by slice.
  * Phase 29-03: EOPS-03 (baseline-aware fields)
  */
-function aggregateSliceMetrics(
-  results: CaseResult[],
-): SliceMetrics[] {
+function aggregateSliceMetrics(results: CaseResult[]): SliceMetrics[] {
   // Group by slice key
   const sliceMap = new Map<string, CaseResult[]>();
 
@@ -260,7 +256,10 @@ function aggregateSliceMetrics(
     const modeCounts = new Map<string, number>();
     for (const r of sliceResults) {
       if (r.execution.selectedMode) {
-        modeCounts.set(r.execution.selectedMode, (modeCounts.get(r.execution.selectedMode) ?? 0) + 1);
+        modeCounts.set(
+          r.execution.selectedMode,
+          (modeCounts.get(r.execution.selectedMode) ?? 0) + 1,
+        );
       }
     }
     let selectedMode: string | undefined;
@@ -278,7 +277,7 @@ function aggregateSliceMetrics(
       slice: {
         tier: tier as RetrievalEvalTier,
         endpoint: endpoint as '/v1/retrieval/search' | '/v2/retrieval/search',
-        mode: mode === 'none' ? undefined : mode as 'semantic' | 'hybrid' | 'graph-assisted',
+        mode: mode === 'none' ? undefined : (mode as 'semantic' | 'hybrid' | 'graph-assisted'),
       },
       caseCount: sliceResults.length,
       avgHitAt1: metrics.hitAt1,
@@ -288,7 +287,14 @@ function aggregateSliceMetrics(
       avgNdcg: metrics.ndcg,
       avgRecallAt10: metrics.recallAt10,
       governanceFailures,
-      selectedMode: selectedMode as 'naive' | 'local' | 'global' | 'hybrid' | 'mix' | 'auto' | undefined,
+      selectedMode: selectedMode as
+        | 'naive'
+        | 'local'
+        | 'global'
+        | 'hybrid'
+        | 'mix'
+        | 'auto'
+        | undefined,
       fallbackApplied,
       regressionStatus: 'no-baseline',
     });
@@ -349,7 +355,7 @@ async function main(): Promise<void> {
   const startTime = Date.now();
   const options = parseArgs_();
 
-  console.log(`\n=== Retrieval Evaluation Runner ===`);
+  console.log('\n=== Retrieval Evaluation Runner ===');
   console.log(`Tier: ${options.tier}`);
   console.log(`Dry run: ${options.dryRun}`);
   console.log(`Allow empty: ${options.allowEmpty}`);
@@ -409,7 +415,7 @@ async function main(): Promise<void> {
     const baselineReport = {
       timestamp: new Date().toISOString(),
       tier: options.tier,
-      slices: slices.map(s => ({
+      slices: slices.map((s) => ({
         slice: s.slice,
         avgHitAt1: s.avgHitAt1,
         avgHitAt5: s.avgHitAt5,
@@ -420,10 +426,12 @@ async function main(): Promise<void> {
         selectedMode: s.selectedMode,
         fallbackApplied: s.fallbackApplied,
       })),
-      governanceFailures: results.filter(r => !r.governance.passed).map(r => ({
-        caseId: r.case.caseId,
-        failures: r.governance.failures,
-      })),
+      governanceFailures: results
+        .filter((r) => !r.governance.passed)
+        .map((r) => ({
+          caseId: r.case.caseId,
+          failures: r.governance.failures,
+        })),
     };
 
     await fs.writeFile(options.baselinePath, JSON.stringify(baselineReport, null, 2));
@@ -443,8 +451,9 @@ async function main(): Promise<void> {
       // Compare slices
       for (const currentSlice of slices) {
         const key = `${currentSlice.slice.tier}:${currentSlice.slice.endpoint}:${currentSlice.slice.mode ?? 'none'}`;
-        const baselineSlice = baseline.slices?.find((s: { slice: { tier: string; endpoint: string; mode?: string } }) =>
-          `${s.slice.tier}:${s.slice.endpoint}:${s.slice.mode ?? 'none'}` === key
+        const baselineSlice = baseline.slices?.find(
+          (s: { slice: { tier: string; endpoint: string; mode?: string } }) =>
+            `${s.slice.tier}:${s.slice.endpoint}:${s.slice.mode ?? 'none'}` === key,
         );
 
         if (baselineSlice) {
@@ -452,11 +461,17 @@ async function main(): Promise<void> {
           const mrrDiff = currentSlice.avgMrr - baselineSlice.avgMrr;
 
           if (hitAt1Diff < -0.05 || mrrDiff < -0.05) {
-            console.log(`  REGRESSED: ${key} - Hit@1: ${currentSlice.avgHitAt1.toFixed(3)} (${hitAt1Diff >= 0 ? '+' : ''}${hitAt1Diff.toFixed(3)}), MRR: ${currentSlice.avgMrr.toFixed(3)} (${mrrDiff >= 0 ? '+' : ''}${mrrDiff.toFixed(3)})`);
+            console.log(
+              `  REGRESSED: ${key} - Hit@1: ${currentSlice.avgHitAt1.toFixed(3)} (${hitAt1Diff >= 0 ? '+' : ''}${hitAt1Diff.toFixed(3)}), MRR: ${currentSlice.avgMrr.toFixed(3)} (${mrrDiff >= 0 ? '+' : ''}${mrrDiff.toFixed(3)})`,
+            );
           } else if (hitAt1Diff > 0.05 || mrrDiff > 0.05) {
-            console.log(`  IMPROVED: ${key} - Hit@1: ${currentSlice.avgHitAt1.toFixed(3)} (${hitAt1Diff >= 0 ? '+' : ''}${hitAt1Diff.toFixed(3)}), MRR: ${currentSlice.avgMrr.toFixed(3)} (${mrrDiff >= 0 ? '+' : ''}${mrrDiff.toFixed(3)})`);
+            console.log(
+              `  IMPROVED: ${key} - Hit@1: ${currentSlice.avgHitAt1.toFixed(3)} (${hitAt1Diff >= 0 ? '+' : ''}${hitAt1Diff.toFixed(3)}), MRR: ${currentSlice.avgMrr.toFixed(3)} (${mrrDiff >= 0 ? '+' : ''}${mrrDiff.toFixed(3)})`,
+            );
           } else {
-            console.log(`  STABLE: ${key} - Hit@1: ${currentSlice.avgHitAt1.toFixed(3)}, MRR: ${currentSlice.avgMrr.toFixed(3)}`);
+            console.log(
+              `  STABLE: ${key} - Hit@1: ${currentSlice.avgHitAt1.toFixed(3)}, MRR: ${currentSlice.avgMrr.toFixed(3)}`,
+            );
           }
         } else {
           console.log(`  NO-BASELINE: ${key}`);
@@ -492,7 +507,11 @@ async function main(): Promise<void> {
 
     if (options.jsonPath) {
       const fs = await import('node:fs/promises');
-      await fs.mkdir(new URL(options.jsonPath, import.meta.url).pathname.replace(/\/[^/]+$/, ''), { recursive: true }).catch(() => {});
+      await fs
+        .mkdir(new URL(options.jsonPath, import.meta.url).pathname.replace(/\/[^/]+$/, ''), {
+          recursive: true,
+        })
+        .catch(() => {});
       await fs.writeFile(options.jsonPath, JSON.stringify(summary, null, 2));
       console.log(`JSON report written to: ${options.jsonPath}\n`);
     } else {

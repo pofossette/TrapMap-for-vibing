@@ -604,7 +604,7 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
 
       // Verify graph document exists before deactivation
       const beforeData = await store.snapshot();
-      expect(beforeData.graphIndexDocuments.find(d => d.sourceId === entryId)).toBeDefined();
+      expect(beforeData.graphIndexDocuments.find((d) => d.sourceId === entryId)).toBeDefined();
 
       // Deactivate via operations route
       const response = await app.inject({
@@ -622,7 +622,7 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
 
       // Verify graph document was removed
       const afterData = await store.snapshot();
-      expect(afterData.graphIndexDocuments.find(d => d.sourceId === entryId)).toBeUndefined();
+      expect(afterData.graphIndexDocuments.find((d) => d.sourceId === entryId)).toBeUndefined();
     });
   });
 });

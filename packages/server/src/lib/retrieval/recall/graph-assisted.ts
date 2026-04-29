@@ -18,12 +18,12 @@
  */
 
 import { getCachedGraphIndexDocuments } from '../../indexing/adapters/graph.js';
-import { getGraphIndexDocuments } from '../../indexing/graph-lite/store.js';
 import {
   buildGraphRuntimeSnapshot,
   calculateSourceRelationStrength,
   expandSourcesOneHop,
 } from '../../indexing/graph-lite/graphology.js';
+import { getGraphIndexDocuments } from '../../indexing/graph-lite/store.js';
 import type { NormalizedIndexDocument } from '../../indexing/types.js';
 import type { KnowledgeRecord, StoreData } from '../../store.js';
 import { extractGraphEntities } from '../graph-extract.js';
@@ -134,10 +134,9 @@ export async function graphAssistedRecall(
   }
 
   const graphConfig = config as GraphAssistedRecallConfig | undefined;
-  const graphDocuments =
-    graphConfig?.dataSnapshot
-      ? getGraphIndexDocuments(graphConfig.dataSnapshot)
-      : getCachedGraphIndexDocuments();
+  const graphDocuments = graphConfig?.dataSnapshot
+    ? getGraphIndexDocuments(graphConfig.dataSnapshot)
+    : getCachedGraphIndexDocuments();
 
   const queryEntities = extractQueryEntities(queryText);
   if (queryEntities.size === 0) {

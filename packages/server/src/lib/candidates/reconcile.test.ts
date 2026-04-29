@@ -9,21 +9,21 @@
  * - Idempotency checks
  */
 
-import { describe, expect, it } from 'vitest';
-import type { StoreData, KnowledgeRecord, SkillArtifactRecord } from '../store.js';
-import { nowIso, JsonStore, type SkillShareerStore } from '../store.js';
-import {
-  revalidateManualResult,
-  isAlreadyResolved,
-  REVALIDATION_ERRORS,
-  publishTrapCandidate,
-  publishSkillCandidate,
-  recordMergeLineage,
-  getLineageByCandidate,
-  getLineageByTarget,
-  getLineageById,
-} from './reconcile.js';
 import type { CandidateSubmission, ManualResultSubmission } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
+import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '../store.js';
+import { JsonStore, type SkillShareerStore, nowIso } from '../store.js';
+import {
+  REVALIDATION_ERRORS,
+  getLineageByCandidate,
+  getLineageById,
+  getLineageByTarget,
+  isAlreadyResolved,
+  publishSkillCandidate,
+  publishTrapCandidate,
+  recordMergeLineage,
+  revalidateManualResult,
+} from './reconcile.js';
 
 // Helper to create minimal candidate
 function createTestCandidate(overrides: Partial<CandidateSubmission> = {}): CandidateSubmission {
@@ -578,13 +578,15 @@ describe('publishTrapCandidate', () => {
     });
     const resolvedAt = nowIso();
 
-    expect(() => publishTrapCandidate({
-      store,
-      data,
-      candidate,
-      resolvedBy: 'user_1',
-      resolvedAt,
-    })).toThrow('Candidate has no trap payload');
+    expect(() =>
+      publishTrapCandidate({
+        store,
+        data,
+        candidate,
+        resolvedBy: 'user_1',
+        resolvedAt,
+      }),
+    ).toThrow('Candidate has no trap payload');
   });
 });
 
@@ -731,13 +733,15 @@ describe('publishSkillCandidate', () => {
     const candidate = createTestCandidate(); // has trap payload
     const resolvedAt = nowIso();
 
-    expect(() => publishSkillCandidate({
-      store,
-      data,
-      candidate,
-      resolvedBy: 'user_1',
-      resolvedAt,
-    })).toThrow('Candidate has no skill payload');
+    expect(() =>
+      publishSkillCandidate({
+        store,
+        data,
+        candidate,
+        resolvedBy: 'user_1',
+        resolvedAt,
+      }),
+    ).toThrow('Candidate has no skill payload');
   });
 });
 
@@ -956,7 +960,7 @@ describe('getLineageByTarget', () => {
 
     const result = getLineageByTarget(data, 'trap_1', 'trap');
     expect(result.length).toBe(2);
-    expect(result.every(l => l.targetId === 'trap_1' && l.targetType === 'trap')).toBe(true);
+    expect(result.every((l) => l.targetId === 'trap_1' && l.targetType === 'trap')).toBe(true);
   });
 
   it('should return empty array when no lineage found', () => {

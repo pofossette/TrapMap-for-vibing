@@ -3,10 +3,7 @@ import type {
   KnowledgeEntryResponse,
   KnowledgeHistoryResponse,
 } from '@trapmap/contracts';
-import {
-  knowledgeEntryResponseSchema,
-  knowledgeHistoryResponseSchema,
-} from '@trapmap/contracts';
+import { knowledgeEntryResponseSchema, knowledgeHistoryResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';
@@ -56,11 +53,10 @@ function formatHistory(items: KnowledgeEntry[]): string {
   return items.map((entry) => formatEntry(entry)).join('\n\n');
 }
 
-export function registerTrapCommands(
-  program: Command,
-  options: TrapCommandOptions,
-): void {
-  const trap = program.command('trap').description('Manage trap entries (pitfall/warning knowledge)');
+export function registerTrapCommands(program: Command, options: TrapCommandOptions): void {
+  const trap = program
+    .command('trap')
+    .description('Manage trap entries (pitfall/warning knowledge)');
 
   if (options.allowSubmit) {
     trap

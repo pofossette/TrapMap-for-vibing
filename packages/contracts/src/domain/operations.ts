@@ -17,10 +17,10 @@ import {
   securityLevelSchema,
 } from './common.js';
 import {
+  agentReviewResultSchema,
   knowledgeEntrySchema,
   knowledgeListItemSchema,
   knowledgeSubmissionSchema,
-  agentReviewResultSchema,
   reviewDecisionSchema,
 } from './knowledge.js';
 
@@ -540,9 +540,12 @@ export const skillEditRequestSchema = z
     /** Script descriptors for executable scripts */
     scriptDescriptors: z.array(bundleScriptDescriptorSchema).default([]),
   })
-  .refine((data) => data.title !== undefined || data.labels !== undefined || data.files !== undefined, {
-    message: 'At least one of title, labels, or files must be provided',
-  });
+  .refine(
+    (data) => data.title !== undefined || data.labels !== undefined || data.files !== undefined,
+    {
+      message: 'At least one of title, labels, or files must be provided',
+    },
+  );
 
 /**
  * Skill edit response schema.

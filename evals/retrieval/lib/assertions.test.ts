@@ -9,14 +9,14 @@
 import { describe, expect, it } from 'vitest';
 
 import type { RetrievalEvalCase } from '../../../packages/contracts/src/index.js';
-import type { NormalizedResult, AdapterWarning } from './types.js';
 import {
   evaluateVerdicts,
   extractGovernanceFailures,
+  hasExecutionIssue,
   hasGovernanceFailure,
   hasOutcomeMismatch,
-  hasExecutionIssue,
 } from './assertions.js';
+import type { AdapterWarning, NormalizedResult } from './types.js';
 
 // =============================================================================
 // Test Fixtures

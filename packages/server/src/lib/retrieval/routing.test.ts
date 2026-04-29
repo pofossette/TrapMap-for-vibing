@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { ResolvedAuthContext } from '../context.js';
 import type { KnowledgeRecord } from '../store.js';
 import { nowIso } from '../store.js';
 import { filterEligibleEntries } from './filters.js';
 import { selectRetrievalStrategy, selectRetrievalStrategyV2 } from './orchestrator.js';
-import type { ResolvedAuthContext } from '../context.js';
 
 describe('selectRetrievalStrategy (v1)', () => {
   describe('explicit mode mapping', () => {
@@ -278,7 +278,13 @@ describe('Phase 29-02: Governance filtering for routed strategies', () => {
       expect(routing.selectedMode).toBe('local');
 
       const auth = createMockAuth({ activeTeamId: teamId, securityLevel: 5 });
-      const entries = [approvedGlobalEntry, approvedTeamEntry, pendingEntry, highLevelEntry, otherTeamEntry];
+      const entries = [
+        approvedGlobalEntry,
+        approvedTeamEntry,
+        pendingEntry,
+        highLevelEntry,
+        otherTeamEntry,
+      ];
       const filters = { labels: [], scopes: [] };
 
       const eligible = filterEligibleEntries(entries, auth, filters);
@@ -296,7 +302,13 @@ describe('Phase 29-02: Governance filtering for routed strategies', () => {
       expect(routing.selectedMode).toBe('hybrid');
 
       const auth = createMockAuth({ activeTeamId: teamId, securityLevel: 5 });
-      const entries = [approvedGlobalEntry, approvedTeamEntry, pendingEntry, highLevelEntry, otherTeamEntry];
+      const entries = [
+        approvedGlobalEntry,
+        approvedTeamEntry,
+        pendingEntry,
+        highLevelEntry,
+        otherTeamEntry,
+      ];
       const filters = { labels: [], scopes: [] };
 
       const eligible = filterEligibleEntries(entries, auth, filters);
@@ -314,7 +326,13 @@ describe('Phase 29-02: Governance filtering for routed strategies', () => {
       expect(routing.selectedMode).toBe('mix');
 
       const auth = createMockAuth({ activeTeamId: teamId, securityLevel: 5 });
-      const entries = [approvedGlobalEntry, approvedTeamEntry, pendingEntry, highLevelEntry, otherTeamEntry];
+      const entries = [
+        approvedGlobalEntry,
+        approvedTeamEntry,
+        pendingEntry,
+        highLevelEntry,
+        otherTeamEntry,
+      ];
       const filters = { labels: [], scopes: [] };
 
       const eligible = filterEligibleEntries(entries, auth, filters);
@@ -333,7 +351,13 @@ describe('Phase 29-02: Governance filtering for routed strategies', () => {
       expect(routing.fallbackApplied).toBe(true);
 
       const auth = createMockAuth({ activeTeamId: teamId, securityLevel: 5 });
-      const entries = [approvedGlobalEntry, approvedTeamEntry, pendingEntry, highLevelEntry, otherTeamEntry];
+      const entries = [
+        approvedGlobalEntry,
+        approvedTeamEntry,
+        pendingEntry,
+        highLevelEntry,
+        otherTeamEntry,
+      ];
       const filters = { labels: [], scopes: [] };
 
       const eligible = filterEligibleEntries(entries, auth, filters);

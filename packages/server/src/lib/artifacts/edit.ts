@@ -15,11 +15,11 @@ import { createHash } from 'node:crypto';
 import type { AgentReviewResult, LifecycleState } from '@trapmap/contracts';
 
 import type {
-  SkillShareerStore,
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
-  StoredScriptActivationPolicy,
+  SkillShareerStore,
   StoreData,
+  StoredScriptActivationPolicy,
 } from '../store.js';
 import { appendSkillArtifactRevision } from './model.js';
 
@@ -43,9 +43,7 @@ function computeHash(content: string): string {
  * Hash is computed from ordered derivation-eligible files only (SKILL.md + references/).
  * This ensures deterministic derivation caching.
  */
-export function computeEditSourceHash(
-  files: Array<{ path: string; sha256: string }>,
-): string {
+export function computeEditSourceHash(files: Array<{ path: string; sha256: string }>): string {
   // Filter to derivation-eligible files only
   const derivationEligible = files.filter((f) => isDerivationEligible(f.path));
 

@@ -12,20 +12,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  retrievalEvalCaseSchema,
-  retrievalEvalScenarioSchema,
-} from '@trapmap/contracts';
+import { retrievalEvalCaseSchema, retrievalEvalScenarioSchema } from '@trapmap/contracts';
 
+import { coreScenarios, coreScenariosMap } from '../scenarios/core/retrieval-core-scenarios.js';
 // Import scenarios
-import {
-  smokeScenariosMap,
-  smokeScenarios,
-} from '../scenarios/smoke/retrieval-smoke-scenarios.js';
-import {
-  coreScenariosMap,
-  coreScenarios,
-} from '../scenarios/core/retrieval-core-scenarios.js';
+import { smokeScenarios, smokeScenariosMap } from '../scenarios/smoke/retrieval-smoke-scenarios.js';
 
 // Import v1 smoke datasets
 import { v1RetrievalSmokeCases } from './smoke/v1-retrieval-smoke.js';
@@ -146,9 +137,7 @@ describe('retrieval dataset coverage matrix', () => {
       expect(outcomes.has('empty')).toBe(true);
 
       // Forbidden case exists (empty outcome but with forbiddenIds)
-      const forbiddenCases = v1Cases.filter(
-        (c) => c.expected.governance.forbiddenIds.length > 0,
-      );
+      const forbiddenCases = v1Cases.filter((c) => c.expected.governance.forbiddenIds.length > 0);
       expect(forbiddenCases.length).toBeGreaterThan(0);
     });
 
@@ -163,9 +152,7 @@ describe('retrieval dataset coverage matrix', () => {
       expect(outcomes.has('empty')).toBe(true);
 
       // Forbidden case exists (empty outcome but with forbiddenIds)
-      const forbiddenCases = v2Cases.filter(
-        (c) => c.expected.governance.forbiddenIds.length > 0,
-      );
+      const forbiddenCases = v2Cases.filter((c) => c.expected.governance.forbiddenIds.length > 0);
       expect(forbiddenCases.length).toBeGreaterThan(0);
     });
   });
@@ -274,9 +261,7 @@ describe('governance and relevance separation', () => {
   });
 
   it('forbidden cases document forbidden reasons', () => {
-    const forbiddenCases = allCases.filter(
-      (c) => c.expected.governance.forbiddenIds.length > 0,
-    );
+    const forbiddenCases = allCases.filter((c) => c.expected.governance.forbiddenIds.length > 0);
 
     for (const case_ of forbiddenCases) {
       expect(case_.expected.governance.forbiddenReasons.length).toBeGreaterThan(0);
@@ -298,9 +283,7 @@ describe('endpoint-specific shape expectations', () => {
   describe('v1 shape expectations', () => {
     it('v1 cases can express bucket expectations', () => {
       const v1Cases = [...v1RetrievalSmokeCases, ...v1RetrievalCoreCases];
-      const bucketCases = v1Cases.filter(
-        (c) => c.expected.shape.bucketExpectations !== undefined,
-      );
+      const bucketCases = v1Cases.filter((c) => c.expected.shape.bucketExpectations !== undefined);
 
       expect(bucketCases.length).toBeGreaterThan(0);
     });

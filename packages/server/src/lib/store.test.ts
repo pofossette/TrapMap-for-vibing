@@ -270,9 +270,7 @@ describe('store assignability at route level', () => {
 
     // Use direct instantiation (pg-mem for PostgresStore, temp file for JsonStore)
     // rather than createSkillShareerStore which would try to connect to real PostgreSQL
-    const jsonStore: AppStore = new JsonStore(
-      `/tmp/trapmap-assign-test-json-${Date.now()}.json`,
-    );
+    const jsonStore: AppStore = new JsonStore(`/tmp/trapmap-assign-test-json-${Date.now()}.json`);
     const pgStore: AppStore = createPostgresStore();
 
     // Both stores must support the SkillShareerStore operations

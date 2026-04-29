@@ -7,7 +7,11 @@
  */
 
 import { buildTrapGraphDocument as buildDocument } from '../graph-lite/documents.js';
-import type { GraphIndexDocumentRecord, GraphNodeRecord, GraphEdgeRecord } from '../graph-lite/documents.js';
+import type {
+  GraphEdgeRecord,
+  GraphIndexDocumentRecord,
+  GraphNodeRecord,
+} from '../graph-lite/documents.js';
 import type { NormalizedIndexDocument } from '../types.js';
 
 /**
@@ -34,7 +38,9 @@ export interface TrapGraphDocumentBuilderInput {
  * This is a pure function: it does NOT persist the document.
  * The caller (graph adapter or reconciliation) must validate and persist separately.
  */
-export function buildTrapGraphDocument(input: TrapGraphDocumentBuilderInput): GraphIndexDocumentRecord {
+export function buildTrapGraphDocument(
+  input: TrapGraphDocumentBuilderInput,
+): GraphIndexDocumentRecord {
   const { normalizedDocument: doc, nodes, edges } = input;
 
   const nodeRecords: GraphNodeRecord[] = nodes.map((n) => ({

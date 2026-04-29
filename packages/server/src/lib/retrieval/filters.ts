@@ -59,7 +59,9 @@ export function isEntryEligible(
     labels: filters.labels,
   };
 
-  return isGovernanceEligible(entity, context) && matchesGovernanceFilters(entity, governanceFilters);
+  return (
+    isGovernanceEligible(entity, context) && matchesGovernanceFilters(entity, governanceFilters)
+  );
 }
 
 /**

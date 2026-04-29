@@ -1,5 +1,10 @@
+import type {
+  CandidateStatus,
+  CandidateSubmission,
+  DuplicateCase,
+  ManualResultSubmission,
+} from '@trapmap/contracts';
 import type { SkillShareerStore, StoreData } from '../store.js';
-import type { CandidateSubmission, DuplicateCase, CandidateStatus, ManualResultSubmission } from '@trapmap/contracts';
 import { nowIso } from '../store.js';
 
 /**
@@ -57,7 +62,7 @@ export function updateCandidateStatus(args: {
   status: CandidateStatus;
   error?: string;
 }): CandidateSubmission {
-  const candidate = args.data.candidateSubmissions.find(c => c.id === args.candidateId);
+  const candidate = args.data.candidateSubmissions.find((c) => c.id === args.candidateId);
 
   if (!candidate) {
     throw new Error(`Candidate ${args.candidateId} not found`);
@@ -91,7 +96,7 @@ export function attachAnalysisSnapshot(args: {
   candidateId: string;
   snapshot: CandidateSubmission['analysisSnapshot'];
 }): CandidateSubmission {
-  const candidate = args.data.candidateSubmissions.find(c => c.id === args.candidateId);
+  const candidate = args.data.candidateSubmissions.find((c) => c.id === args.candidateId);
 
   if (!candidate) {
     throw new Error(`Candidate ${args.candidateId} not found`);
@@ -109,7 +114,7 @@ export function attachDuplicateCase(args: {
   candidateId: string;
   duplicateCase: DuplicateCase;
 }): CandidateSubmission {
-  const candidate = args.data.candidateSubmissions.find(c => c.id === args.candidateId);
+  const candidate = args.data.candidateSubmissions.find((c) => c.id === args.candidateId);
 
   if (!candidate) {
     throw new Error(`Candidate ${args.candidateId} not found`);
@@ -127,39 +132,43 @@ export function attachDuplicateCase(args: {
  * Get candidate by ID.
  */
 export function getCandidateById(data: StoreData, candidateId: string): CandidateSubmission | null {
-  return data.candidateSubmissions.find(c => c.id === candidateId) ?? null;
+  return data.candidateSubmissions.find((c) => c.id === candidateId) ?? null;
 }
 
 /**
  * Get all candidates in a specific status.
  */
-export function getCandidatesByStatus(data: StoreData, status: CandidateStatus): CandidateSubmission[] {
-  return data.candidateSubmissions.filter(c => c.status === status);
+export function getCandidatesByStatus(
+  data: StoreData,
+  status: CandidateStatus,
+): CandidateSubmission[] {
+  return data.candidateSubmissions.filter((c) => c.status === status);
 }
 
 /**
  * Get candidates that need processing (received or queued).
  */
 export function getPendingCandidates(data: StoreData): CandidateSubmission[] {
-  return data.candidateSubmissions.filter(c =>
-    c.status === 'received' || c.status === 'queued'
-  );
+  return data.candidateSubmissions.filter((c) => c.status === 'received' || c.status === 'queued');
 }
 
 /**
  * Get candidates in error state that can be retried.
  */
 export function getRetryableCandidates(data: StoreData): CandidateSubmission[] {
-  return data.candidateSubmissions.filter(c =>
-    c.status === 'error' && c.retryCount < MAX_RETRIES
+  return data.candidateSubmissions.filter(
+    (c) => c.status === 'error' && c.retryCount < MAX_RETRIES,
   );
 }
 
 /**
  * Get duplicate case by candidate ID.
  */
-export function getDuplicateCaseByCandidateId(data: StoreData, candidateId: string): DuplicateCase | null {
-  return data.duplicateCases.find(dc => dc.candidateId === candidateId) ?? null;
+export function getDuplicateCaseByCandidateId(
+  data: StoreData,
+  candidateId: string,
+): DuplicateCase | null {
+  return data.duplicateCases.find((dc) => dc.candidateId === candidateId) ?? null;
 }
 
 /**
@@ -188,9 +197,7 @@ export function getMaxRetries(): number {
  * Returns candidates in 'queued' or 'analyzing' state that need recovery.
  */
 export function findInterruptedCandidates(data: StoreData): CandidateSubmission[] {
-  return data.candidateSubmissions.filter(c =>
-    c.status === 'queued' || c.status === 'analyzing'
-  );
+  return data.candidateSubmissions.filter((c) => c.status === 'queued' || c.status === 'analyzing');
 }
 
 /**
@@ -224,14 +231,16 @@ export function attachManualResult(args: {
   result: ManualResultSubmission;
   reviewedBy: string;
 }): { candidate: CandidateSubmission; previousResult: ManualResultRecord | null } {
-  const candidate = args.data.candidateSubmissions.find(c => c.id === args.candidateId);
+  const candidate = args.data.candidateSubmissions.find((c) => c.id === args.candidateId);
 
   if (!candidate) {
     throw new Error(`Candidate ${args.candidateId} not found`);
   }
 
   if (candidate.status !== 'duplicate_detected') {
-    throw new Error(`Candidate ${args.candidateId} is not in duplicate_detected status (current: ${candidate.status})`);
+    throw new Error(
+      `Candidate ${args.candidateId} is not in duplicate_detected status (current: ${candidate.status})`,
+    );
   }
 
   const previousResult = candidate.manualResult;
@@ -252,7 +261,7 @@ export function attachManualResult(args: {
  * Get manual result from candidate.
  */
 export function getManualResult(data: StoreData, candidateId: string): ManualResultRecord | null {
-  const candidate = data.candidateSubmissions.find(c => c.id === candidateId);
+  const candidate = data.candidateSubmissions.find((c) => c.id === candidateId);
   if (!candidate) {
     return null;
   }
@@ -268,7 +277,7 @@ export function markCandidateResolved(args: {
   candidateId: string;
   resolvedBy: string;
 }): CandidateSubmission {
-  const candidate = args.data.candidateSubmissions.find(c => c.id === args.candidateId);
+  const candidate = args.data.candidateSubmissions.find((c) => c.id === args.candidateId);
 
   if (!candidate) {
     throw new Error(`Candidate ${args.candidateId} not found`);
@@ -285,7 +294,7 @@ export function markCandidateResolved(args: {
  * These have duplicate_detected status and an attached manual result.
  */
 export function getCandidatesReadyForResolution(data: StoreData): CandidateSubmission[] {
-  return data.candidateSubmissions.filter(c =>
-    c.status === 'duplicate_detected' && c.manualResult !== null
+  return data.candidateSubmissions.filter(
+    (c) => c.status === 'duplicate_detected' && c.manualResult !== null,
   );
 }

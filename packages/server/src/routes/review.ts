@@ -6,10 +6,10 @@ import { createAuditEvent } from '../lib/audit.js';
 import { AppError } from '../lib/errors.js';
 import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 import { applyReviewDecision, toKnowledgeEntry } from '../lib/knowledge.js';
-import { logUserOperation } from '../lib/user-ops-log.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
+import { logUserOperation } from '../lib/user-ops-log.js';
 
 export const reviewRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/knowledge/review-queue', async (request) => {

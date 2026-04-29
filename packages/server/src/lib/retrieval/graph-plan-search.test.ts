@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
+import { searchKnowledge, searchKnowledgeV2 } from '../retrieval.js';
 import { nowIso } from '../store.js';
 import { assessGraphPlanReadiness, searchKnowledgeGraphPlan } from './graph-plan-search.js';
 import { compileTrapFirstPlan } from './plan-compiler.js';
-import { searchKnowledge, searchKnowledgeV2 } from '../retrieval.js';
 
 vi.mock('./plan-compiler.js', () => ({
   compileTrapFirstPlan: vi.fn(),

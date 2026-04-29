@@ -1,7 +1,7 @@
 import pg from 'pg';
 
-import { PostgresStore } from './postgres-store.js';
 import { JsonStore, type SkillShareerStore } from '../store.js';
+import { PostgresStore } from './postgres-store.js';
 
 export interface StoreConfig {
   dataFile: string;

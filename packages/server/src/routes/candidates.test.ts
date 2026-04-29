@@ -247,7 +247,7 @@ describe('apply-resolution endpoint', () => {
 
       // Verify knowledge entry was created
       const data = await store.snapshot();
-      const entry = data.knowledgeEntries.find(e => e.id === body.outcome.publishedEntityId);
+      const entry = data.knowledgeEntries.find((e) => e.id === body.outcome.publishedEntityId);
       expect(entry).toBeDefined();
       expect(entry?.lifecycleState).toBe('agent-pass');
     });
@@ -265,7 +265,12 @@ describe('apply-resolution endpoint', () => {
           originalPayload: {
             skill: {
               files: [
-                { path: 'SKILL.md', sha256: 'a'.repeat(64), sizeBytes: 100, mediaType: 'text/markdown' },
+                {
+                  path: 'SKILL.md',
+                  sha256: 'a'.repeat(64),
+                  sizeBytes: 100,
+                  mediaType: 'text/markdown',
+                },
               ],
               metadata: { title: 'Test Skill', slug: 'test-skill', labels: ['test'] },
             },
@@ -305,7 +310,7 @@ describe('apply-resolution endpoint', () => {
 
       // Verify skill artifact was created
       const data = await store.snapshot();
-      const artifact = data.skillArtifacts.find(a => a.id === body.outcome.publishedEntityId);
+      const artifact = data.skillArtifacts.find((a) => a.id === body.outcome.publishedEntityId);
       expect(artifact).toBeDefined();
       expect(artifact?.lifecycleState).toBe('agent-pass');
     });
@@ -527,8 +532,8 @@ describe('apply-resolution endpoint', () => {
 
       // Verify audit event was created
       const data = await store.snapshot();
-      const auditEvent = data.auditEvents.find(e =>
-        e.entityId === candidateId && e.action === 'duplicate-resolved-independent'
+      const auditEvent = data.auditEvents.find(
+        (e) => e.entityId === candidateId && e.action === 'duplicate-resolved-independent',
       );
       expect(auditEvent).toBeDefined();
     });

@@ -1,17 +1,13 @@
 import { createHash } from 'node:crypto';
-import type {
-  AgentReviewResult,
-  ArtifactBundle,
-  KnowledgeSubmission,
-} from '@trapmap/contracts';
+import type { AgentReviewResult, ArtifactBundle, KnowledgeSubmission } from '@trapmap/contracts';
 import { parseSkillMarkdown, validateRelativePath } from '@trapmap/contracts';
 
 import { createKnowledgeEntryRecord } from './knowledge.js';
 import type {
   ArtifactFilePayloadRecord,
   KnowledgeRecord,
-  SkillShareerStore,
   SkillArtifactRevisionRecord,
+  SkillShareerStore,
   StoreData,
 } from './store.js';
 

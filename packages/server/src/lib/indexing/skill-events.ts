@@ -18,19 +18,23 @@ import { createHash } from 'node:crypto';
 
 import type { LifecycleState, Scope } from '@trapmap/contracts';
 
+import type { SkillArtifactRecord, SkillShareerStore, StoreData } from '../store.js';
+import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 import type {
-  SkillShareerStore,
-  SkillArtifactRecord,
-  StoreData,
-} from '../store.js';
-import type { GraphEdgeRecord, GraphIndexDocumentRecord, GraphNodeRecord } from './graph-lite/documents.js';
+  GraphEdgeRecord,
+  GraphIndexDocumentRecord,
+  GraphNodeRecord,
+} from './graph-lite/documents.js';
 import {
-  buildSkillGraphDocument as buildSkillGraphDocumentRecord,
   type SkillGraphDocumentInput,
+  buildSkillGraphDocument as buildSkillGraphDocumentRecord,
 } from './graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from './graph-lite/graphology.js';
-import { getGraphIndexDocuments, removeGraphIndexDocumentsForSource, upsertGraphIndexDocument } from './graph-lite/store.js';
-import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
+import {
+  getGraphIndexDocuments,
+  removeGraphIndexDocumentsForSource,
+  upsertGraphIndexDocument,
+} from './graph-lite/store.js';
 
 // ---------------------------------------------------------------------------
 // Locked vocabulary from D-04
@@ -40,13 +44,24 @@ import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
  * Node kinds in the TrapMap-specific vocabulary.
  * Locked to skill, cue, tool, environment, prerequisite, mitigation.
  */
-export type SkillGraphNodeKind = 'skill' | 'cue' | 'tool' | 'environment' | 'prerequisite' | 'mitigation';
+export type SkillGraphNodeKind =
+  | 'skill'
+  | 'cue'
+  | 'tool'
+  | 'environment'
+  | 'prerequisite'
+  | 'mitigation';
 
 /**
  * Relation types in the locked vocabulary.
  * Locked to mitigates, requires, order, risk-blocks, co-occurs-with.
  */
-export type SkillGraphRelationType = 'mitigates' | 'requires' | 'order' | 'risk-blocks' | 'co-occurs-with';
+export type SkillGraphRelationType =
+  | 'mitigates'
+  | 'requires'
+  | 'order'
+  | 'risk-blocks'
+  | 'co-occurs-with';
 
 /**
  * Edge strength distinguishing hard dependencies from soft precedence.
@@ -318,7 +333,7 @@ export function extractSkillGraphPrimitives(args: {
           id: prereqNodeId,
           kind: 'prerequisite',
           label: 'Profile prerequisites',
-          evidence: `profile.summary: mandatory requirement detected`,
+          evidence: 'profile.summary: mandatory requirement detected',
         });
         extractedPrerequisites.add(prereqNodeId);
 
@@ -328,7 +343,7 @@ export function extractSkillGraphPrimitives(args: {
           targetNodeId: prereqNodeId,
           relationType: 'requires',
           strength: 'hard',
-          evidence: `profile.summary: contains mandatory language`,
+          evidence: 'profile.summary: contains mandatory language',
         });
       }
     }
@@ -450,7 +465,7 @@ export function extractSkillGraphPrimitives(args: {
     }
 
     // Check for ordering constraints
-    if (capsule.situation && capsule.situation.toLowerCase().includes('before')) {
+    if (capsule.situation?.toLowerCase().includes('before')) {
       const orderNodeId = `prerequisite:${capsule.capsuleId}:order`;
       if (!extractedPrerequisites.has(orderNodeId)) {
         nodes.push({
@@ -512,7 +527,9 @@ export function extractSkillGraphPrimitives(args: {
  * - Calls extractSkillGraphPrimitives to build nodes and edges
  * - Returns a GraphIndexDocumentRecord ready for persistence
  */
-export function buildSkillGraphDocument(artifact: SkillArtifactRecord): GraphIndexDocumentRecord | null {
+export function buildSkillGraphDocument(
+  artifact: SkillArtifactRecord,
+): GraphIndexDocumentRecord | null {
   const derived = artifact.latestRevision.derived;
 
   // Skip if no derived content

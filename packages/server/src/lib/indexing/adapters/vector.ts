@@ -224,10 +224,7 @@ export async function upsertVectorIndex(
 /**
  * Remove vector index for a knowledge entry (wrapper function).
  */
-export async function removeVectorIndex(
-  entry: KnowledgeRecord,
-  ref: EntryRef,
-): Promise<void> {
+export async function removeVectorIndex(entry: KnowledgeRecord, ref: EntryRef): Promise<void> {
   return vectorIndexAdapter.removeLegacy(entry, ref);
 }
 

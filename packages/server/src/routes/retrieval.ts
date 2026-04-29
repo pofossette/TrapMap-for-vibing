@@ -13,14 +13,14 @@ import {
   trapFirstPlanSchema,
 } from '@trapmap/contracts';
 
-import { logUserOperation } from '../lib/user-ops-log.js';
 import { requirePermission } from '../lib/rbac.js';
 import { searchKnowledge, searchKnowledgeV2 } from '../lib/retrieval.js';
 import { searchKnowledgeGraphPlan } from '../lib/retrieval/graph-plan-search.js';
-import { searchSkillsByContent } from '../lib/retrieval/skill-lookup.js';
 import { compileTrapFirstPlan } from '../lib/retrieval/plan-compiler.js';
+import { searchSkillsByContent } from '../lib/retrieval/skill-lookup.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
+import { logUserOperation } from '../lib/user-ops-log.js';
 
 export const retrievalRoutes: FastifyPluginAsync = async (app) => {
   // Legacy v1 retrieval path (COMP-03)
@@ -45,7 +45,10 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
       action: 'search',
       targetId: null,
       teamId: auth.activeTeamId,
-      metadata: { endpoint: 'v1-retrieval-search', resultCount: result.globalConstraints.length + result.projectKnowledge.length },
+      metadata: {
+        endpoint: 'v1-retrieval-search',
+        resultCount: result.globalConstraints.length + result.projectKnowledge.length,
+      },
     });
 
     // Validate and return response
@@ -143,7 +146,10 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
       action: 'search',
       targetId: null,
       teamId: auth.activeTeamId,
-      metadata: { endpoint: 'v1-retrieval-skills-search-by-content', resultCount: result.matches.length },
+      metadata: {
+        endpoint: 'v1-retrieval-skills-search-by-content',
+        resultCount: result.matches.length,
+      },
     });
 
     // Validate and return artifact-first response

@@ -13,11 +13,7 @@ import type {
   RetrievalResponse,
   RetrievalV2ResponseWithHints,
 } from '../../../packages/contracts/src/index.js';
-import type {
-  BucketMap,
-  NormalizedHit,
-  NormalizedResult,
-} from './types.js';
+import type { BucketMap, NormalizedHit, NormalizedResult } from './types.js';
 
 // =============================================================================
 // V1 Response Normalization
@@ -30,15 +26,12 @@ import type {
  * @param response - Raw v1 response
  * @returns Normalized result with bucket map preserved
  */
-export function normalizeV1Response(
-  response: RetrievalResponse,
-): NormalizedResult {
+export function normalizeV1Response(response: RetrievalResponse): NormalizedResult {
   const globalConstraints = response.globalConstraints ?? [];
   const projectKnowledge = response.projectKnowledge ?? [];
 
   // Collect all matches and sort by score descending
-  const allMatches = [...globalConstraints, ...projectKnowledge]
-    .sort((a, b) => b.score - a.score);
+  const allMatches = [...globalConstraints, ...projectKnowledge].sort((a, b) => b.score - a.score);
 
   // Build normalized hits
   const hits: NormalizedHit[] = allMatches.map((match) => ({
@@ -76,9 +69,7 @@ export function normalizeV1Response(
  * @param response - Raw v2 response with activation hints
  * @returns Normalized result with profile hints preserved
  */
-export function normalizeV2Response(
-  response: RetrievalV2ResponseWithHints,
-): NormalizedResult {
+export function normalizeV2Response(response: RetrievalV2ResponseWithHints): NormalizedResult {
   const capsules = response.capsules ?? [];
   const profileHints = response.profileHints ?? [];
 
@@ -119,16 +110,15 @@ export function normalizeV2Response(
  * @param response - Raw v3 graph-plan wrapper response
  * @returns Normalized result with routing trace preserved
  */
-export function normalizeV3Response(
-  response: GraphPlanSearchResponse,
-): NormalizedResult {
+export function normalizeV3Response(response: GraphPlanSearchResponse): NormalizedResult {
   const routingTrace = response.routingTrace;
 
   if (response.plan) {
     const recommendedSkills = response.plan.graph.nodes
-      .filter((node) =>
-        node.kind === 'skill' &&
-        response.plan?.graph.focus.recommendedSkillNodeIds.includes(node.nodeId),
+      .filter(
+        (node) =>
+          node.kind === 'skill' &&
+          response.plan?.graph.focus.recommendedSkillNodeIds.includes(node.nodeId),
       )
       .slice()
       .sort((a, b) => b.score - a.score);
@@ -255,8 +245,6 @@ export function extractV2CapsuleIds(response: RetrievalV2ResponseWithHints): str
 /**
  * Extract profile hint artifact IDs from a v2 response.
  */
-export function extractV2ProfileHintArtifactIds(
-  response: RetrievalV2ResponseWithHints,
-): string[] {
+export function extractV2ProfileHintArtifactIds(response: RetrievalV2ResponseWithHints): string[] {
   return (response.profileHints ?? []).map((h) => h.artifactId);
 }

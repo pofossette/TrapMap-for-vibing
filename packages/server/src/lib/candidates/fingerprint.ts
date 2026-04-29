@@ -9,8 +9,8 @@ import { createHash } from 'node:crypto';
 
 import type { AnalysisSnapshot } from '@trapmap/contracts';
 
-import type { CandidateFingerprintInput } from './types.js';
 import { nowIso } from '../store.js';
+import type { CandidateFingerprintInput } from './types.js';
 
 /**
  * Tokenize text into significant words.
@@ -38,11 +38,11 @@ export function extractKeywords(text: string): string[] {
 
   // Extract quoted phrases
   const quoted = text.match(/"([^"]+)"/g) ?? [];
-  keywords.push(...quoted.map(q => q.replace(/"/g, '')));
+  keywords.push(...quoted.map((q) => q.replace(/"/g, '')));
 
   // Extract code-like identifiers (camelCase, snake_case, kebab-case)
   const identifiers = text.match(/\b[a-z]+[a-zA-Z0-9_/-]+\b/g) ?? [];
-  keywords.push(...identifiers.filter(id => id.length >= 4));
+  keywords.push(...identifiers.filter((id) => id.length >= 4));
 
   return [...new Set(keywords)];
 }
@@ -56,11 +56,9 @@ export function computeTrapFingerprint(payload: {
   detail: string;
   labels: string[];
 }): string {
-  const content = [
-    payload.shortcut,
-    payload.detail,
-    [...payload.labels].sort().join(','),
-  ].join('\n');
+  const content = [payload.shortcut, payload.detail, [...payload.labels].sort().join(',')].join(
+    '\n',
+  );
 
   return createHash('sha256').update(content, 'utf8').digest('hex');
 }
@@ -83,7 +81,7 @@ export function computeSkillFingerprint(payload: {
 
   // Include sorted file hashes for deterministic fingerprint
   const fileHashes = payload.files
-    .map(f => f.sha256)
+    .map((f) => f.sha256)
     .sort()
     .join(',');
   parts.push(fileHashes);
@@ -94,9 +92,11 @@ export function computeSkillFingerprint(payload: {
 /**
  * Compute fingerprint and analysis snapshot for a candidate.
  */
-export function computeCandidateFingerprint(
-  input: CandidateFingerprintInput,
-): { fingerprint: string; keywords: string[]; tokens: string[] } {
+export function computeCandidateFingerprint(input: CandidateFingerprintInput): {
+  fingerprint: string;
+  keywords: string[];
+  tokens: string[];
+} {
   let fingerprint: string;
   let keywords: string[] = [];
   let tokens: string[] = [];

@@ -7,12 +7,7 @@
  */
 
 import type { RetrievalEvalCase } from '../../../packages/contracts/src/index.js';
-import type {
-  BucketMap,
-  GovernanceFailure,
-  GovernanceResult,
-  NormalizedResult,
-} from './types.js';
+import type { BucketMap, GovernanceFailure, GovernanceResult, NormalizedResult } from './types.js';
 
 // =============================================================================
 // Governance Checks
@@ -176,10 +171,7 @@ export function evaluateGovernance(
   const failures: GovernanceFailure[] = [];
 
   // Check forbidden hits
-  const forbiddenFailure = checkForbiddenHits(
-    result,
-    case_.expected.governance.forbiddenIds,
-  );
+  const forbiddenFailure = checkForbiddenHits(result, case_.expected.governance.forbiddenIds);
   if (forbiddenFailure) failures.push(forbiddenFailure);
 
   // Check outcome expectation
@@ -191,10 +183,7 @@ export function evaluateGovernance(
 
   // Check endpoint-specific shape expectations
   if (case_.endpoint === '/v1/retrieval/search') {
-    const bucketFailure = checkV1BucketShape(
-      result,
-      case_.expected.shape.bucketExpectations,
-    );
+    const bucketFailure = checkV1BucketShape(result, case_.expected.shape.bucketExpectations);
     if (bucketFailure) failures.push(bucketFailure);
   }
 
@@ -214,9 +203,7 @@ export function evaluateGovernance(
 
   // Get all forbidden hits for reporting
   const returnedSet = new Set(result.returnedIds);
-  const forbiddenHits = case_.expected.governance.forbiddenIds.filter((id) =>
-    returnedSet.has(id),
-  );
+  const forbiddenHits = case_.expected.governance.forbiddenIds.filter((id) => returnedSet.has(id));
 
   return {
     passed: failures.length === 0,

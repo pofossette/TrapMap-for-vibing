@@ -1,47 +1,43 @@
+import { createHash } from 'node:crypto';
 import {
-  candidateSubmissionRequestSchema,
-  candidateSubmissionResponseSchema,
-  candidateStatusResponseSchema,
-  candidateListResponseSchema,
-  duplicateCaseListResponseSchema,
-  duplicateCaseResponseSchema,
   DuplicateJobBundleResponseSchema,
   ManualResultSubmissionSchema,
-  manualResultResponseSchema,
   applyResolutionResponseSchema,
+  candidateListResponseSchema,
+  candidateStatusResponseSchema,
+  candidateSubmissionRequestSchema,
+  candidateSubmissionResponseSchema,
+  duplicateCaseListResponseSchema,
+  duplicateCaseResponseSchema,
+  manualResultResponseSchema,
 } from '@trapmap/contracts';
-import type {
-  DuplicateJobBundleResponse,
-  DuplicateJobMatchEntity,
-} from '@trapmap/contracts';
+import type { DuplicateJobBundleResponse, DuplicateJobMatchEntity } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
-import { createHash } from 'node:crypto';
 
-import { AppError } from '../lib/errors.js';
-import { resolveAuthContext } from '../lib/session.js';
-import { requirePermission } from '../lib/rbac.js';
-import { nowIso, type StoreData } from '../lib/store.js';
+import { createAuditEvent } from '../lib/audit.js';
 import {
+  type CandidateProcessorServices,
+  scheduleCandidateProcessing,
+} from '../lib/candidates/processor.js';
+import { applyManualResultResolution } from '../lib/candidates/reconcile.js';
+import {
+  attachManualResult,
   createCandidateSubmission,
+  getAllDuplicateCases,
   getCandidateById,
   getCandidatesByStatus,
-  getAllDuplicateCases,
   getDuplicateCaseByCandidateId,
-  attachManualResult,
 } from '../lib/candidates/store.js';
-import { scheduleCandidateProcessing, type CandidateProcessorServices } from '../lib/candidates/processor.js';
-import { applyManualResultResolution } from '../lib/candidates/reconcile.js';
-import { createAuditEvent } from '../lib/audit.js';
+import { AppError } from '../lib/errors.js';
 import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
+import { requirePermission } from '../lib/rbac.js';
+import { resolveAuthContext } from '../lib/session.js';
+import { type StoreData, nowIso } from '../lib/store.js';
 import { logUserOperation } from '../lib/user-ops-log.js';
 
 function requireRealUser(userId: string | undefined): string {
   if (!userId) {
-    throw new AppError(
-      403,
-      'user_required',
-      'This workflow requires a real member account',
-    );
+    throw new AppError(403, 'user_required', 'This workflow requires a real member account');
   }
   return userId;
 }
@@ -68,7 +64,7 @@ function computeSha256(content: string): string {
  * Helper to build entity data for matched trap.
  */
 function buildTrapEntity(data: StoreData, entityId: string): DuplicateJobMatchEntity | null {
-  const trap = data.knowledgeEntries.find(e => e.id === entityId);
+  const trap = data.knowledgeEntries.find((e) => e.id === entityId);
   if (!trap) return null;
 
   return {
@@ -87,7 +83,7 @@ function buildTrapEntity(data: StoreData, entityId: string): DuplicateJobMatchEn
  * Helper to build entity data for matched skill.
  */
 function buildSkillEntity(data: StoreData, entityId: string): DuplicateJobMatchEntity | null {
-  const skill = data.skillArtifacts.find(a => a.id === entityId);
+  const skill = data.skillArtifacts.find((a) => a.id === entityId);
   if (!skill) return null;
 
   return {
@@ -95,7 +91,7 @@ function buildSkillEntity(data: StoreData, entityId: string): DuplicateJobMatchE
     entityId: skill.id,
     title: skill.title,
     slug: skill.slug,
-    files: skill.latestRevision.files.map(f => ({
+    files: skill.latestRevision.files.map((f) => ({
       path: f.path,
       sha256: f.sha256,
       sizeBytes: f.sizeBytes,
@@ -124,33 +120,34 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Build the payload for storage
-    const originalPayload = body.sourceType === 'trap'
-      ? {
-          trap: {
-            scope: body.payload.scope,
-            labels: body.payload.labels,
-            shortcut: body.payload.shortcut,
-            detail: body.payload.detail,
-            requiredLevel: body.payload.requiredLevel ?? auth.securityLevel,
-          },
-          skill: undefined,
-        }
-      : {
-          trap: undefined,
-          skill: {
-            files: body.payload.files.map((f) => ({
-              path: f.path,
-              sha256: computeSha256(f.content),
-              sizeBytes: Buffer.byteLength(f.content, 'utf-8'),
-              mediaType: f.mediaType,
-            })),
-            metadata: {
-              title: '', // Will be computed during processing
-              slug: '', // Will be computed during processing
+    const originalPayload =
+      body.sourceType === 'trap'
+        ? {
+            trap: {
+              scope: body.payload.scope,
               labels: body.payload.labels,
+              shortcut: body.payload.shortcut,
+              detail: body.payload.detail,
+              requiredLevel: body.payload.requiredLevel ?? auth.securityLevel,
             },
-          },
-        };
+            skill: undefined,
+          }
+        : {
+            trap: undefined,
+            skill: {
+              files: body.payload.files.map((f) => ({
+                path: f.path,
+                sha256: computeSha256(f.content),
+                sizeBytes: Buffer.byteLength(f.content, 'utf-8'),
+                mediaType: f.mediaType,
+              })),
+              metadata: {
+                title: '', // Will be computed during processing
+                slug: '', // Will be computed during processing
+                labels: body.payload.labels,
+              },
+            },
+          };
 
     const candidate = await app.skillShareer.store.transact((data) => {
       return createCandidateSubmission({
@@ -283,9 +280,10 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
     const matches: DuplicateJobBundleResponse['matches'] = [];
 
     for (const match of duplicateCase.matches) {
-      const entity = match.entityType === 'trap'
-        ? buildTrapEntity(data, match.entityId)
-        : buildSkillEntity(data, match.entityId);
+      const entity =
+        match.entityType === 'trap'
+          ? buildTrapEntity(data, match.entityId)
+          : buildSkillEntity(data, match.entityId);
 
       if (entity) {
         matches.push({ match, entity });
@@ -296,9 +294,24 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
     const expectedResultSchema = {
       description: 'Manual resolution decision for duplicate candidate',
       fields: [
-        { name: 'decision', type: 'enum', required: true, description: "'independent' or 'merged'" },
-        { name: 'notes', type: 'string', required: true, description: 'Explanation of the decision (1-1000 chars)' },
-        { name: 'mergedWith', type: 'object', required: false, description: 'Required if decision is "merged": { entityType, entityId }' },
+        {
+          name: 'decision',
+          type: 'enum',
+          required: true,
+          description: "'independent' or 'merged'",
+        },
+        {
+          name: 'notes',
+          type: 'string',
+          required: true,
+          description: 'Explanation of the decision (1-1000 chars)',
+        },
+        {
+          name: 'mergedWith',
+          type: 'object',
+          required: false,
+          description: 'Required if decision is "merged": { entityType, entityId }',
+        },
       ],
     };
 
@@ -415,9 +428,10 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
         data,
         teamId: resolution.candidate?.teamId ?? null,
         actor: auth,
-        action: resolution.outcome?.decision === 'independent'
-          ? 'duplicate-resolved-independent'
-          : 'duplicate-resolved-merged',
+        action:
+          resolution.outcome?.decision === 'independent'
+            ? 'duplicate-resolved-independent'
+            : 'duplicate-resolved-merged',
         entityId: candidateId,
         payload: {
           decision: resolution.outcome?.decision,
@@ -446,7 +460,10 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
           adapters: app.skillShareer.indexAdapters,
         });
       } catch (indexingError) {
-        app.log.error({ indexingError, entityId: publishedEntityId }, 'Post-commit indexing failed after resolution');
+        app.log.error(
+          { indexingError, entityId: publishedEntityId },
+          'Post-commit indexing failed after resolution',
+        );
       }
     }
 

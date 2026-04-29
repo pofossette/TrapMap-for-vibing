@@ -83,7 +83,7 @@ export async function logUserOperation(
     const logFile = path.join(config.logDir, `${dateStr}.log`);
 
     // Format as JSON Lines (one JSON object per line)
-    const line = JSON.stringify(entry) + '\n';
+    const line = `${JSON.stringify(entry)}\n`;
 
     // Use rotation-aware append
     await appendWithRotation(logFile, line, {

@@ -7,6 +7,11 @@ import {
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '../lib/errors.js';
+import {
+  requireHigherLevel,
+  requirePermission,
+  requireTeamAccess,
+} from '../lib/governance/index.js';
 import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 import {
   createKnowledgeEntryRecord,
@@ -14,11 +19,10 @@ import {
   resubmitKnowledgeEntry,
   toKnowledgeEntry,
 } from '../lib/knowledge.js';
-import { logUserOperation } from '../lib/user-ops-log.js';
 import { runPreReview } from '../lib/pre-review.js';
-import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/governance/index.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
+import { logUserOperation } from '../lib/user-ops-log.js';
 
 function requireRealUser(userId: string | undefined): string {
   if (!userId) {

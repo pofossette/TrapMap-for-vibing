@@ -406,9 +406,7 @@ describe('graph document lifecycle (T-36-13)', () => {
         teamId: null,
         scope: 'global',
         requiredLevel: 0,
-        nodes: [
-          { id: 'node_1', kind: 'trap', label: 'Deactivate Test', evidence: 'Test' },
-        ],
+        nodes: [{ id: 'node_1', kind: 'trap', label: 'Deactivate Test', evidence: 'Test' }],
         edges: [],
         evidence: 'Test graph document for deactivation',
         createdAt: nowIso(),
@@ -431,7 +429,7 @@ describe('graph document lifecycle (T-36-13)', () => {
     // Verify graph document was removed
     const updatedData = await store.snapshot();
     const remainingDocs = updatedData.graphIndexDocuments.filter(
-      d => d.sourceId === 'knowledge_deactivate_test',
+      (d) => d.sourceId === 'knowledge_deactivate_test',
     );
     expect(remainingDocs.length).toBe(0);
   });
@@ -491,9 +489,7 @@ describe('graph document lifecycle (T-36-13)', () => {
         teamId: null,
         scope: 'global',
         requiredLevel: 0,
-        nodes: [
-          { id: 'node_1', kind: 'trap', label: 'Reapprove Test', evidence: 'Test' },
-        ],
+        nodes: [{ id: 'node_1', kind: 'trap', label: 'Reapprove Test', evidence: 'Test' }],
         edges: [],
         evidence: 'Test graph document v1',
         createdAt: nowIso(),
@@ -516,7 +512,7 @@ describe('graph document lifecycle (T-36-13)', () => {
     // Verify no stale graph documents remain
     const updatedData = await store.snapshot();
     const docs = updatedData.graphIndexDocuments.filter(
-      d => d.sourceId === 'knowledge_reapprove_test',
+      (d) => d.sourceId === 'knowledge_reapprove_test',
     );
 
     // Should have exactly one document (upserted, not duplicated)

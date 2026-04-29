@@ -702,7 +702,11 @@ export class JsonStore implements SkillShareerStore {
     try {
       await readFile(this.filePath, 'utf8');
     } catch {
-      await writeFile(this.filePath, `${JSON.stringify(createEmptyStoreData(), null, 2)}\n`, 'utf8');
+      await writeFile(
+        this.filePath,
+        `${JSON.stringify(createEmptyStoreData(), null, 2)}\n`,
+        'utf8',
+      );
     }
   }
 }

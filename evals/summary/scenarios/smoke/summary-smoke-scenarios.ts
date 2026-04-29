@@ -14,8 +14,8 @@
  */
 
 import {
-  retrievalEvalScenarioSchema,
   type RetrievalEvalScenario,
+  retrievalEvalScenarioSchema,
 } from '../../../../packages/contracts/src/index.js';
 
 // =============================================================================
@@ -51,7 +51,8 @@ export const summarySmokeGroundedScenario = retrievalEvalScenarioSchema.parse({
         capsules: [
           {
             capsuleId: 'capsule_summary_docker_compose',
-            content: 'Use docker-compose for multi-container setups. Simplifies deployment with compose files.',
+            content:
+              'Use docker-compose for multi-container setups. Simplifies deployment with compose files.',
             situation: 'Deploying multiple containers',
             problem: 'Manual networking is error-prone',
             goal: 'Simplify deployment with compose',
@@ -145,7 +146,8 @@ export const summarySmokeForbiddenClaimScenario = retrievalEvalScenarioSchema.pa
         capsules: [
           {
             capsuleId: 'capsule_summary_rate_limiting',
-            content: 'Implement rate limiting for REST APIs. Use token bucket algorithm for throttling requests.',
+            content:
+              'Implement rate limiting for REST APIs. Use token bucket algorithm for throttling requests.',
             situation: 'Building public API endpoints',
             problem: 'API abuse and overload',
             goal: 'Protect API with rate limiting',

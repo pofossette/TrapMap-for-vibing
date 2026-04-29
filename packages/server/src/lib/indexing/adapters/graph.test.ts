@@ -16,32 +16,51 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { JsonStore, type SkillShareerStore, nowIso } from '../../store.js';
-import type { NormalizedIndexDocument } from '../types.js';
 import { extractTrapGraphEntities } from '../../retrieval/graph-extract.js';
-import { buildTrapGraphDocument } from './graph-builders.js';
-import { getGraphIndexDocuments, removeGraphIndexDocumentsForSource } from '../graph-lite/store.js';
+import { JsonStore, type SkillShareerStore, nowIso } from '../../store.js';
 import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
+import { getGraphIndexDocuments, removeGraphIndexDocumentsForSource } from '../graph-lite/store.js';
+import type { NormalizedIndexDocument } from '../types.js';
+import { buildTrapGraphDocument } from './graph-builders.js';
 
 // Import the adapter we're testing
-import {
-  clearGraphCache,
-  graphIndexAdapter,
-} from './graph.js';
+import { clearGraphCache, graphIndexAdapter } from './graph.js';
 
 // ---------------------------------------------------------------------------
 // Constants for locked vocabulary
 // ---------------------------------------------------------------------------
 
-const ALLOWED_NODE_KINDS = new Set(['trap', 'cue', 'tool', 'environment', 'prerequisite', 'mitigation']);
-const ALLOWED_RELATION_TYPES = new Set(['mitigates', 'requires', 'order', 'risk-blocks', 'co-occurs-with']);
-const FORBIDDEN_RELATION_TYPES = new Set(['mentions', 'causes', 'fixed-by', 'observed-in', 'uses-tool', 'runs-in']);
+const ALLOWED_NODE_KINDS = new Set([
+  'trap',
+  'cue',
+  'tool',
+  'environment',
+  'prerequisite',
+  'mitigation',
+]);
+const ALLOWED_RELATION_TYPES = new Set([
+  'mitigates',
+  'requires',
+  'order',
+  'risk-blocks',
+  'co-occurs-with',
+]);
+const FORBIDDEN_RELATION_TYPES = new Set([
+  'mentions',
+  'causes',
+  'fixed-by',
+  'observed-in',
+  'uses-tool',
+  'runs-in',
+]);
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeApprovedTrapDoc(overrides: Partial<NormalizedIndexDocument> = {}): NormalizedIndexDocument {
+function makeApprovedTrapDoc(
+  overrides: Partial<NormalizedIndexDocument> = {},
+): NormalizedIndexDocument {
   const defaults = {
     entryId: 'entry-1',
     teamId: 'team-abc',
@@ -150,7 +169,8 @@ describe('extractTrapGraphEntities: TrapMap-specific vocabulary', () => {
     it('emits mitigates as hard when phrased as required to clear the trap', () => {
       // "To mitigate, use ..." with "must" is a required mitigation
       const doc = makeApprovedTrapDoc({
-        detail: 'The trap causes data loss. To mitigate, you must restart the service before continuing.',
+        detail:
+          'The trap causes data loss. To mitigate, you must restart the service before continuing.',
       });
       const result = extractTrapGraphEntities(doc);
 
@@ -314,10 +334,13 @@ describe('graph index adapter: durable persistence', () => {
       expect(getGraphIndexDocuments(data).length).toBeGreaterThan(0);
 
       // Then remove it
-      await graphIndexAdapter.remove({
-        entryId: testDocument.entryId,
-        revision: testDocument.revision,
-      }, store);
+      await graphIndexAdapter.remove(
+        {
+          entryId: testDocument.entryId,
+          revision: testDocument.revision,
+        },
+        store,
+      );
 
       // Verify data was removed
       data = await store.snapshot();
@@ -329,17 +352,23 @@ describe('graph index adapter: durable persistence', () => {
       await graphIndexAdapter.sync(testDocument, store);
 
       // First remove
-      await graphIndexAdapter.remove({
-        entryId: testDocument.entryId,
-        revision: testDocument.revision,
-      }, store);
+      await graphIndexAdapter.remove(
+        {
+          entryId: testDocument.entryId,
+          revision: testDocument.revision,
+        },
+        store,
+      );
 
       // Second remove should not throw
       await expect(
-        graphIndexAdapter.remove({
-          entryId: testDocument.entryId,
-          revision: testDocument.revision,
-        }, store),
+        graphIndexAdapter.remove(
+          {
+            entryId: testDocument.entryId,
+            revision: testDocument.revision,
+          },
+          store,
+        ),
       ).resolves.not.toThrow();
     });
   });
@@ -383,7 +412,7 @@ describe('graph index adapter: durable persistence', () => {
       const graphDocs = getGraphIndexDocuments(data);
 
       // At minimum, docA should have been persisted
-      const docAExists = graphDocs.some(d => d.sourceId === 'entry-a');
+      const docAExists = graphDocs.some((d) => d.sourceId === 'entry-a');
       expect(docAExists).toBe(true);
     });
   });

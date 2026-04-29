@@ -7,22 +7,22 @@
  */
 
 import type {
+  CohortKey,
+  CohortSummary,
+  ModeComparison,
+  ReportBuilderInput,
+  RetrievalEvalCaseSummary,
+  RetrievalEvalFailureKind,
+  RetrievalEvalFailureRecord,
   RetrievalEvalReport,
   RetrievalEvalReportMeta,
-  RetrievalEvalSliceSummary,
-  RetrievalEvalCaseSummary,
-  RetrievalEvalFailureRecord,
-  RetrievalEvalWarningRecord,
   RetrievalEvalSliceKey,
-  RetrievalEvalFailureKind,
-  ReportBuilderInput,
-  CohortSummary,
-  CohortKey,
-  ModeComparison,
+  RetrievalEvalSliceSummary,
+  RetrievalEvalWarningRecord,
   RoutingDistribution,
 } from '@trapmap/contracts';
 import { retrievalEvalReportSchema } from '@trapmap/contracts';
-import type { CaseResult, SliceMetrics, SliceKey } from './types.js';
+import type { CaseResult, SliceKey, SliceMetrics } from './types.js';
 import {
   deriveQueryType,
   deriveRouteFamily,
@@ -94,13 +94,11 @@ export function buildReport(
     .sort((a, b) => a.caseId.localeCompare(b.caseId));
 
   // Build failure records (sorted by case ID, then kind)
-  const failureRecords = caseResults
-    .flatMap(buildFailureRecords)
-    .sort((a, b) => {
-      const caseCompare = a.caseId.localeCompare(b.caseId);
-      if (caseCompare !== 0) return caseCompare;
-      return a.kind.localeCompare(b.kind);
-    });
+  const failureRecords = caseResults.flatMap(buildFailureRecords).sort((a, b) => {
+    const caseCompare = a.caseId.localeCompare(b.caseId);
+    if (caseCompare !== 0) return caseCompare;
+    return a.kind.localeCompare(b.kind);
+  });
 
   // Build warning records (sorted by case ID)
   const warningRecords = caseResults
@@ -162,9 +160,9 @@ function buildSliceSummaries(caseResults: CaseResult[]): RetrievalEvalSliceSumma
  */
 function buildSliceSummary(results: CaseResult[]): RetrievalEvalSliceSummary {
   const slice: RetrievalEvalSliceKey = {
-    tier: results[0]!.case.tier,
-    endpoint: results[0]!.case.endpoint,
-    mode: results[0]!.case.request.mode,
+    tier: results[0]?.case.tier,
+    endpoint: results[0]?.case.endpoint,
+    mode: results[0]?.case.request.mode,
   };
 
   const caseCount = results.length;
@@ -191,9 +189,7 @@ function buildSliceSummary(results: CaseResult[]): RetrievalEvalSliceSummary {
     return expectedEmpty !== actualEmpty;
   }).length;
   // Execution issues: any case with warnings marked as degraded
-  const executionIssueCount = results.filter(
-    (r) => r.warnings.some((w) => w.degraded),
-  ).length;
+  const executionIssueCount = results.filter((r) => r.warnings.some((w) => w.degraded)).length;
 
   // Phase 29-03: Routing trace fields
   // Use the most common selectedMode in the slice
@@ -216,7 +212,7 @@ function buildSliceSummary(results: CaseResult[]): RetrievalEvalSliceSummary {
   const fallbackApplied = results.some((r) => r.execution.fallbackApplied);
 
   // Phase 31-02: Route family derived from endpoint
-  const routeFamily = deriveRouteFamily(results[0]!.case.endpoint);
+  const routeFamily = deriveRouteFamily(results[0]?.case.endpoint);
 
   return {
     slice,
@@ -229,7 +225,14 @@ function buildSliceSummary(results: CaseResult[]): RetrievalEvalSliceSummary {
     governanceFailureCount,
     outcomeMismatchCount,
     executionIssueCount,
-    selectedMode: selectedMode as 'naive' | 'local' | 'global' | 'hybrid' | 'mix' | 'auto' | undefined,
+    selectedMode: selectedMode as
+      | 'naive'
+      | 'local'
+      | 'global'
+      | 'hybrid'
+      | 'mix'
+      | 'auto'
+      | undefined,
     fallbackApplied,
     regressionStatus: 'no-baseline', // Will be set during baseline comparison
   };
@@ -268,7 +271,8 @@ function buildCohortSummaries(caseResults: CaseResult[]): CohortSummary[] {
  * Phase 31-01: EOPS-01
  */
 function buildCohortSummary(results: CaseResult[]): CohortSummary {
-  const firstResult = results[0]!;
+  const firstResult = results[0];
+  if (!firstResult) throw new Error('buildCohortSummary requires at least one result');
   const cohort: CohortKey = {
     queryType: deriveQueryType(firstResult.case.tags),
     routeFamily: deriveRouteFamily(firstResult.case.endpoint),
@@ -331,7 +335,8 @@ function buildModeComparisons(caseResults: CaseResult[]): ModeComparison[] {
  * Phase 31-02: EOPS-01
  */
 function buildModeComparison(results: CaseResult[]): ModeComparison {
-  const firstResult = results[0]!;
+  const firstResult = results[0];
+  if (!firstResult) throw new Error('buildModeComparison requires at least one result');
 
   const caseCount = results.length;
   const avgHitAt1 = average(results.map((r) => r.metrics.hitAt1));
@@ -479,10 +484,7 @@ function getSliceKeyString(key: SliceKey): string {
  * Compare slice summaries for sorting.
  * Sort by tier, then endpoint, then mode.
  */
-function compareSliceSummaries(
-  a: RetrievalEvalSliceSummary,
-  b: RetrievalEvalSliceSummary,
-): number {
+function compareSliceSummaries(a: RetrievalEvalSliceSummary, b: RetrievalEvalSliceSummary): number {
   // Compare tier
   if (a.slice.tier !== b.slice.tier) {
     return a.slice.tier === 'smoke' ? -1 : 1;

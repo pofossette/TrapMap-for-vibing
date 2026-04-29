@@ -4,11 +4,15 @@
  * into a minimal typed graph with blockers surfaced first.
  */
 
-import { describe, it, expect } from 'vitest';
-import type { GraphIndexDocumentRecord, GraphNodeRecord, GraphEdgeRecord } from '../indexing/graph-lite/documents.js';
-import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
-import type { StoreData, KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 import type { PlanQuery, TrapFirstPlan } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
+import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
+import type {
+  GraphEdgeRecord,
+  GraphIndexDocumentRecord,
+  GraphNodeRecord,
+} from '../indexing/graph-lite/documents.js';
+import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '../store.js';
 import { compileTrapFirstPlan } from './plan-compiler.js';
 
 // ---------------------------------------------------------------------------
@@ -359,9 +363,7 @@ describe('plan-compiler', () => {
       for (let i = 1; i <= skillCount; i++) {
         const skillId = `skill-${i}`;
         skillArtifacts.push(makeSkillArtifact(skillId));
-        graphDocs.push(
-          makeGraphDoc(skillId, 'skill', [makeSkillNode(skillId, `Skill ${i}`)], []),
-        );
+        graphDocs.push(makeGraphDoc(skillId, 'skill', [makeSkillNode(skillId, `Skill ${i}`)], []));
       }
 
       const services = makeMockServices({
@@ -379,7 +381,9 @@ describe('plan-compiler', () => {
       // Demoted skills should be in citations (rankCapsules returns up to budget*3)
       expect(result.citations.length).toBeGreaterThan(0);
       // Total selected + citations should not exceed rankCapsules limit
-      expect(result.recommendedSkills.length + result.citations.length).toBeLessThanOrEqual(skillCount);
+      expect(result.recommendedSkills.length + result.citations.length).toBeLessThanOrEqual(
+        skillCount,
+      );
     });
 
     it('links traps to mitigating skills via edges', async () => {
@@ -574,7 +578,9 @@ describe('plan-compiler', () => {
       const result = await compileTrapFirstPlan(services, auth, query);
 
       // Mitigating skill should be prioritized in the budget
-      expect(result.recommendedSkills.find((s) => s.nodeId === `skill:${mitigatingSkillId}`)).toBeDefined();
+      expect(
+        result.recommendedSkills.find((s) => s.nodeId === `skill:${mitigatingSkillId}`),
+      ).toBeDefined();
       // Budget is 2, mitigating skill should be first
       expect(result.recommendedSkills[0].nodeId).toBe(`skill:${mitigatingSkillId}`);
     });

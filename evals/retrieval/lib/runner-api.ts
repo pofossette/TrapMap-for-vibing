@@ -8,17 +8,21 @@
  * instead of writing directly to stdout.
  */
 
-import { retrievalEvalCaseSchema, type RetrievalEvalCase, type RetrievalEvalTier } from '../../../packages/contracts/src/index.js';
+import {
+  type RetrievalEvalCase,
+  type RetrievalEvalTier,
+  retrievalEvalCaseSchema,
+} from '../../../packages/contracts/src/index.js';
 
-import { smokeCases } from '../smoke.js';
 import { coreCases } from '../core.js';
+import { smokeCases } from '../smoke.js';
 
-import { createExecutionContext, closeExecutionContext, executeCase } from './adapters.js';
-import { loadCases, filterByEndpoint } from './load.js';
+import { closeExecutionContext, createExecutionContext, executeCase } from './adapters.js';
 import { evaluateGovernance } from './governance.js';
-import { calculateMetrics, averageMetrics } from './metrics.js';
+import { filterByEndpoint, loadCases } from './load.js';
+import { averageMetrics, calculateMetrics } from './metrics.js';
 import { buildReport } from './report.js';
-import type { CaseResult, SliceMetrics, SliceKey, RunnerSummary } from './types.js';
+import type { CaseResult, RunnerSummary, SliceKey, SliceMetrics } from './types.js';
 
 // =============================================================================
 // Types
@@ -64,7 +68,9 @@ export interface RunRetrievalResult {
  * @param options - Runner options
  * @returns Structured evaluation result
  */
-export async function runRetrievalEvaluation(options: RunRetrievalOptions): Promise<RunRetrievalResult> {
+export async function runRetrievalEvaluation(
+  options: RunRetrievalOptions,
+): Promise<RunRetrievalResult> {
   const startTime = Date.now();
   const tier = options.tier;
   const dryRun = options.dryRun ?? false;
@@ -91,7 +97,12 @@ export async function runRetrievalEvaluation(options: RunRetrievalOptions): Prom
     return {
       passed: true,
       report: null,
-      summary: { totalCases: filtered.length, passedCases: filtered.length, failedCases: 0, passRate: 1 },
+      summary: {
+        totalCases: filtered.length,
+        passedCases: filtered.length,
+        failedCases: 0,
+        passRate: 1,
+      },
       slices: [],
       durationMs: Date.now() - startTime,
     };
@@ -131,13 +142,17 @@ export async function runRetrievalEvaluation(options: RunRetrievalOptions): Prom
   }
 
   // Build canonical report
-  const report = buildReport(results, {
-    tier,
-    endpoint: options.endpoint,
-    dryRun,
-    allowEmpty,
-    verbose: options.verbose ?? 0,
-  }, Date.now() - startTime);
+  const report = buildReport(
+    results,
+    {
+      tier,
+      endpoint: options.endpoint,
+      dryRun,
+      allowEmpty,
+      verbose: options.verbose ?? 0,
+    },
+    Date.now() - startTime,
+  );
 
   // Aggregate slices
   const sliceMap = new Map<string, CaseResult[]>();

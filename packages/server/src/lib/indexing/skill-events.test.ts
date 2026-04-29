@@ -12,17 +12,17 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { nowIso } from '../store.js';
-import type { SkillArtifactRecord } from '../store.js';
 import type { GraphIndexDocumentRecord } from '../graph-lite/documents.js';
 import { getGraphIndexDocuments, removeGraphIndexDocumentsForSource } from '../graph-lite/store.js';
+import { nowIso } from '../store.js';
+import type { SkillArtifactRecord } from '../store.js';
 
 import {
+  type SkillGraphEdgePrimitive,
+  type SkillGraphNodePrimitive,
   buildSkillGraphDocument,
   determineSkillIndexAction,
   extractSkillGraphPrimitives,
-  type SkillGraphNodePrimitive,
-  type SkillGraphEdgePrimitive,
 } from './skill-events.js';
 
 // Helper to build a minimal test artifact
@@ -128,7 +128,14 @@ describe('skill-events', () => {
         capsules: [],
       });
 
-      const allowedKinds = new Set(['skill', 'cue', 'tool', 'environment', 'prerequisite', 'mitigation']);
+      const allowedKinds = new Set([
+        'skill',
+        'cue',
+        'tool',
+        'environment',
+        'prerequisite',
+        'mitigation',
+      ]);
       for (const node of result.nodes) {
         expect(allowedKinds.has(node.kind)).toBe(true);
       }
@@ -154,7 +161,13 @@ describe('skill-events', () => {
         ],
       });
 
-      const allowedRelations = new Set(['mitigates', 'requires', 'order', 'risk-blocks', 'co-occurs-with']);
+      const allowedRelations = new Set([
+        'mitigates',
+        'requires',
+        'order',
+        'risk-blocks',
+        'co-occurs-with',
+      ]);
       for (const edge of result.edges) {
         expect(allowedRelations.has(edge.relationType)).toBe(true);
       }
@@ -379,8 +392,8 @@ describe('skill-events', () => {
     it('contains the exact strings latestRevision.derived.profile and latestRevision.derived.capsules in source', async () => {
       // This test verifies the presence of the required strings in the source file
       // (acceptance criteria check)
-      const fs = await import('fs');
-      const path = await import('path');
+      const fs = await import('node:fs');
+      const path = await import('node:path');
       const sourcePath = path.join(__dirname, 'skill-events.ts');
       const source = fs.readFileSync(sourcePath, 'utf-8');
 
@@ -389,8 +402,8 @@ describe('skill-events', () => {
     });
 
     it('contains locked relation strings in source', async () => {
-      const fs = await import('fs');
-      const path = await import('path');
+      const fs = await import('node:fs');
+      const path = await import('node:path');
       const sourcePath = path.join(__dirname, 'skill-events.ts');
       const source = fs.readFileSync(sourcePath, 'utf-8');
 

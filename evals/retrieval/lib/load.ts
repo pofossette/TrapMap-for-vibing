@@ -6,14 +6,14 @@
  */
 
 import {
-  retrievalEvalCaseSchema,
   type RetrievalEvalCase,
   type RetrievalEvalScenario,
   type RetrievalEvalTier,
+  retrievalEvalCaseSchema,
 } from '../../../packages/contracts/src/index.js';
 
-import { smokeCases, smokeScenariosMap } from '../smoke.js';
 import { coreCases, coreScenariosMap } from '../core.js';
+import { smokeCases, smokeScenariosMap } from '../smoke.js';
 
 // =============================================================================
 // Case Loading
@@ -74,10 +74,7 @@ export function filterByEndpoint(
 /**
  * Filter cases by tags.
  */
-export function filterByTags(
-  cases: RetrievalEvalCase[],
-  tags: string[],
-): RetrievalEvalCase[] {
+export function filterByTags(cases: RetrievalEvalCase[], tags: string[]): RetrievalEvalCase[] {
   if (tags.length === 0) return cases;
   return cases.filter((c) => tags.some((tag) => c.tags.includes(tag)));
 }
@@ -106,7 +103,7 @@ export function getSliceKey(case_: RetrievalEvalCase): {
  */
 export function getUniqueSliceKeys(cases: RetrievalEvalCase[]): Array<{
   tier: RetrievalEvalTier;
-  endpoint: typeof cases[0]['endpoint'];
+  endpoint: (typeof cases)[0]['endpoint'];
   mode?: 'semantic' | 'hybrid' | 'graph-assisted';
 }> {
   const keys = new Map<string, ReturnType<typeof getSliceKey>>();

@@ -5,12 +5,12 @@
  * @module candidates/detector
  */
 
-import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 import type { DuplicateCase, DuplicateMatch } from '@trapmap/contracts';
-import type { DuplicateDetectionInput, DuplicateDetectionResult } from './types.js';
 import { createDuplicateCaseId } from '../ids.js';
+import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 import { nowIso } from '../store.js';
 import { tokenize } from './fingerprint.js';
+import type { DuplicateDetectionInput, DuplicateDetectionResult } from './types.js';
 
 const DETECTION_VERSION = '1.0.0';
 const HIGH_OVERLAP_THRESHOLD = 0.72;
@@ -43,8 +43,8 @@ function keywordOverlapPercent(a: string[], b: string[]): number {
     return 0;
   }
 
-  const setA = new Set(a.map(k => k.toLowerCase()));
-  const setB = new Set(b.map(k => k.toLowerCase()));
+  const setA = new Set(a.map((k) => k.toLowerCase()));
+  const setB = new Set(b.map((k) => k.toLowerCase()));
 
   let shared = 0;
   for (const kw of setA) {
@@ -59,7 +59,10 @@ function keywordOverlapPercent(a: string[], b: string[]): number {
 /**
  * Determine match type based on similarity score.
  */
-function toMatchType(score: number, isExactFingerprint: boolean): 'exact' | 'high-overlap' | 'semantic-similar' {
+function toMatchType(
+  score: number,
+  isExactFingerprint: boolean,
+): 'exact' | 'high-overlap' | 'semantic-similar' {
   if (isExactFingerprint) {
     return 'exact';
   }
@@ -89,9 +92,9 @@ function checkTrapDuplicate(
   }
 
   const isExact = false; // Traps don't have fingerprint stored yet
-  const sharedTokens = [...candidateTokens].filter(t => entryTokens.has(t));
-  const sharedKeywords = candidateKeywords.filter(k =>
-    entry.labels.some(l => l.toLowerCase() === k.toLowerCase())
+  const sharedTokens = [...candidateTokens].filter((t) => entryTokens.has(t));
+  const sharedKeywords = candidateKeywords.filter((k) =>
+    entry.labels.some((l) => l.toLowerCase() === k.toLowerCase()),
   );
 
   return {
@@ -103,7 +106,8 @@ function checkTrapDuplicate(
     overlapDetails: {
       sharedKeywords,
       sharedTokens: sharedTokens.slice(0, 50), // Limit for storage
-      textOverlapPercent: Math.round(keywordOverlapPercent(candidateKeywords, entry.labels) * 10) / 10,
+      textOverlapPercent:
+        Math.round(keywordOverlapPercent(candidateKeywords, entry.labels) * 10) / 10,
     },
   };
 }
@@ -135,9 +139,9 @@ function checkSkillDuplicate(
   // Check for exact fingerprint match
   const isExact = profile.contentHash === candidateFingerprint;
 
-  const sharedTokens = [...candidateTokens].filter(t => artifactTokens.has(t));
-  const sharedKeywords = candidateKeywords.filter(k =>
-    profile.keywords.some(pk => pk.toLowerCase() === k.toLowerCase())
+  const sharedTokens = [...candidateTokens].filter((t) => artifactTokens.has(t));
+  const sharedKeywords = candidateKeywords.filter((k) =>
+    profile.keywords.some((pk) => pk.toLowerCase() === k.toLowerCase()),
   );
 
   return {
@@ -149,7 +153,8 @@ function checkSkillDuplicate(
     overlapDetails: {
       sharedKeywords,
       sharedTokens: sharedTokens.slice(0, 50),
-      textOverlapPercent: Math.round(keywordOverlapPercent(candidateKeywords, profile.keywords) * 10) / 10,
+      textOverlapPercent:
+        Math.round(keywordOverlapPercent(candidateKeywords, profile.keywords) * 10) / 10,
     },
   };
 }
@@ -210,7 +215,7 @@ export async function detectDuplicates(
   // Determine if we have a duplicate case
   const hasMatches = matches.length > 0;
   const highestSimilarity = hasMatches && matches[0] ? matches[0].similarityScore : 0;
-  const hasExactDuplicate = matches.some(m => m.matchType === 'exact');
+  const hasExactDuplicate = matches.some((m) => m.matchType === 'exact');
 
   let duplicateType: 'exact' | 'semantic' | 'none' = 'none';
   if (hasExactDuplicate) {
@@ -219,16 +224,18 @@ export async function detectDuplicates(
     duplicateType = 'semantic';
   }
 
-  const duplicateCase: DuplicateCase | null = hasMatches ? {
-    id: createDuplicateCaseId(),
-    candidateId: input.candidateId,
-    detectedAt: nowIso(),
-    detectionVersion: DETECTION_VERSION,
-    matches: matches.slice(0, 10), // Limit to top 10 matches
-    highestSimilarity,
-    hasExactDuplicate,
-    duplicateType,
-  } : null;
+  const duplicateCase: DuplicateCase | null = hasMatches
+    ? {
+        id: createDuplicateCaseId(),
+        candidateId: input.candidateId,
+        detectedAt: nowIso(),
+        detectionVersion: DETECTION_VERSION,
+        matches: matches.slice(0, 10), // Limit to top 10 matches
+        highestSimilarity,
+        hasExactDuplicate,
+        duplicateType,
+      }
+    : null;
 
   return {
     duplicateCase,

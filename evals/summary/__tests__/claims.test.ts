@@ -4,7 +4,7 @@
  * Phase 27-02: SEVAL-01, SEVAL-02
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { extractClaims, extractClaimsFromSummary, simplifyClaim } from '../lib/claims.js';
 
 describe('extractClaims', () => {
@@ -26,7 +26,9 @@ describe('extractClaims', () => {
   });
 
   it('should extract citation references', () => {
-    const claims = extractClaims('Docker is a container tool [1]. Kubernetes is an orchestrator [2].');
+    const claims = extractClaims(
+      'Docker is a container tool [1]. Kubernetes is an orchestrator [2].',
+    );
     expect(claims).toHaveLength(2);
     expect(claims[0]!.citationId).toBe('1');
     expect(claims[1]!.citationId).toBe('2');
@@ -52,10 +54,7 @@ describe('extractClaimsFromSummary', () => {
   it('should extract claims from summary object', () => {
     const summary = {
       text: 'Docker is useful [1]. Kubernetes is powerful [2].',
-      citations: [
-        { source: { entryId: 'entry-1' } },
-        { source: { entryId: 'entry-2' } },
-      ],
+      citations: [{ source: { entryId: 'entry-1' } }, { source: { entryId: 'entry-2' } }],
     };
 
     const claims = extractClaimsFromSummary(summary);

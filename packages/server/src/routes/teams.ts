@@ -1,8 +1,4 @@
-import {
-  createTeamRequestSchema,
-  teamListResponseSchema,
-  teamSchema,
-} from '@trapmap/contracts';
+import { createTeamRequestSchema, teamListResponseSchema, teamSchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '../lib/errors.js';

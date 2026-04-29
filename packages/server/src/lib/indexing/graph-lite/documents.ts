@@ -19,12 +19,24 @@ import type { Scope } from '@trapmap/contracts';
 /**
  * Kinds of graph nodes in the TrapMap-specific vocabulary.
  */
-export type GraphNodeKind = 'trap' | 'skill' | 'cue' | 'tool' | 'environment' | 'prerequisite' | 'mitigation';
+export type GraphNodeKind =
+  | 'trap'
+  | 'skill'
+  | 'cue'
+  | 'tool'
+  | 'environment'
+  | 'prerequisite'
+  | 'mitigation';
 
 /**
  * Typed relation vocabulary for the GraphRAG-lite index.
  */
-export type GraphRelationType = 'mitigates' | 'requires' | 'order' | 'risk-blocks' | 'co-occurs-with';
+export type GraphRelationType =
+  | 'mitigates'
+  | 'requires'
+  | 'order'
+  | 'risk-blocks'
+  | 'co-occurs-with';
 
 /**
  * Edge strength distinguishing hard dependencies from soft precedence.
@@ -193,7 +205,9 @@ function computeDocumentHash(nodes: GraphNodeRecord[], edges: GraphEdgeRecord[])
     hash.update(`node:${node.id}:${node.kind}:${node.label}`);
   }
   for (const edge of edges) {
-    hash.update(`edge:${edge.id}:${edge.sourceNodeId}->${edge.targetNodeId}:${edge.relationType}:${edge.strength}`);
+    hash.update(
+      `edge:${edge.id}:${edge.sourceNodeId}->${edge.targetNodeId}:${edge.relationType}:${edge.strength}`,
+    );
   }
   return hash.digest('hex');
 }

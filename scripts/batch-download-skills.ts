@@ -11,17 +11,17 @@
  *   pnpm exec tsx scripts/batch-download-skills.ts --repos anthropics/skills --verbose
  */
 
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { extname, join, relative, basename } from 'node:path';
-import { spawn } from 'node:child_process';
+import { basename, extname, join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import {
-  artifactBundleSchema,
   type ArtifactBundle,
   type BundleFilePayload,
+  artifactBundleSchema,
 } from '../packages/contracts/src/index.js';
 
 // =============================================================================
@@ -161,7 +161,11 @@ interface DiscoveredSkill {
   repo: RepoConfig;
 }
 
-function discoverSkills(reposDir: string, repos: RepoConfig[], verbose: boolean): DiscoveredSkill[] {
+function discoverSkills(
+  reposDir: string,
+  repos: RepoConfig[],
+  verbose: boolean,
+): DiscoveredSkill[] {
   const skills: DiscoveredSkill[] = [];
 
   for (const repo of repos) {
@@ -636,7 +640,11 @@ async function buildArtifactBundle(skill: DiscoveredSkill): Promise<ArtifactBund
 // Output Writing
 // =============================================================================
 
-function writeOutput(bundles: ArtifactBundle[], outputDir: string, skills: DiscoveredSkill[]): void {
+function writeOutput(
+  bundles: ArtifactBundle[],
+  outputDir: string,
+  skills: DiscoveredSkill[],
+): void {
   // Ensure output directory exists
   if (!existsSync(outputDir)) {
     mkdirSync(outputDir, { recursive: true });
@@ -675,9 +683,7 @@ function printSummary(bundles: ArtifactBundle[], repos: RepoConfig[]): void {
   // Count by repo label
   const byRepo: Record<string, number> = {};
   for (const bundle of bundles) {
-    const repoLabel = bundle.labels.find((l) =>
-      repos.some((r) => r.label === l),
-    ) ?? 'unknown';
+    const repoLabel = bundle.labels.find((l) => repos.some((r) => r.label === l)) ?? 'unknown';
     byRepo[repoLabel] = (byRepo[repoLabel] ?? 0) + 1;
   }
 

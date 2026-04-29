@@ -54,13 +54,8 @@ export function mrr(returnedIds: string[], relevantIds: string[]): number {
 
   const relevantSet = new Set(relevantIds);
 
-  for (let i = 0; i < returnedIds.length; i++) {
-    if (relevantSet.has(returnedIds[i]!)) {
-      return 1 / (i + 1);
-    }
-  }
-
-  return 0;
+  const rank = returnedIds.findIndex((id) => relevantSet.has(id));
+  return rank >= 0 ? 1 / (rank + 1) : 0;
 }
 
 /**
@@ -73,11 +68,7 @@ export function mrr(returnedIds: string[], relevantIds: string[]): number {
  * @param idealOrder - Ideal ranking order (optional, uses relevantIds if not provided)
  * @returns nDCG score in [0, 1], 0 if no relevant IDs
  */
-export function ndcg(
-  returnedIds: string[],
-  relevantIds: string[],
-  idealOrder?: string[],
-): number {
+export function ndcg(returnedIds: string[], relevantIds: string[], idealOrder?: string[]): number {
   if (relevantIds.length === 0) return 0;
 
   const relevantSet = new Set(relevantIds);
@@ -85,7 +76,8 @@ export function ndcg(
   // DCG: sum of gain / log2(rank + 1) for each relevant item
   let dcg = 0;
   for (let i = 0; i < returnedIds.length; i++) {
-    if (relevantSet.has(returnedIds[i]!)) {
+    const id = returnedIds[i];
+    if (id !== undefined && relevantSet.has(id)) {
       // Binary gain: 1 if relevant
       dcg += 1 / Math.log2(i + 2); // i+2 because rank is 1-indexed
     }
@@ -96,7 +88,8 @@ export function ndcg(
   let idcg = 0;
   const idealRelevantSet = new Set(relevantIds);
   for (let i = 0; i < idealRanking.length; i++) {
-    if (idealRelevantSet.has(idealRanking[i]!)) {
+    const id = idealRanking[i];
+    if (id !== undefined && idealRelevantSet.has(id)) {
       idcg += 1 / Math.log2(i + 2);
     }
   }

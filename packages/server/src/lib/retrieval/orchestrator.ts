@@ -47,7 +47,12 @@ import {
 } from './recall/semantic.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
 import { buildCapsuleCitations, buildCapsuleSummary, buildSummary } from './summary.js';
-import type { MergedCandidate, RetrievalPipelineContext, RoutingChannel, ScoredEntry } from './types.js';
+import type {
+  MergedCandidate,
+  RetrievalPipelineContext,
+  RoutingChannel,
+  ScoredEntry,
+} from './types.js';
 
 interface RetrievalDecision {
   selectedMode: RetrievalStrategy;
@@ -123,10 +128,7 @@ function getV1ChannelsPlanned(mode: string): RoutingChannel[] {
  * @param seed - The raw seed text (used for deterministic auto-routing)
  * @returns RoutingDecision with selected strategy and trace metadata
  */
-export function selectRetrievalStrategy(
-  requestedMode: string,
-  seed: string,
-): RetrievalDecision {
+export function selectRetrievalStrategy(requestedMode: string, seed: string): RetrievalDecision {
   // v1 always uses explicit mode - no auto-routing needed yet
   // Future: if requestedMode === 'auto', use parseSeedIntent for deterministic selection
   const strategy = V1_MODE_TO_STRATEGY[requestedMode] ?? 'local';
@@ -183,11 +185,7 @@ export function selectRetrievalStrategyV2(seed: string): RetrievalDecision {
  * @param steps - Array to append the step timing to
  * @returns The result of the function
  */
-async function timedStep<T>(
-  name: string,
-  fn: () => Promise<T>,
-  steps: PipelineStep[],
-): Promise<T> {
+async function timedStep<T>(name: string, fn: () => Promise<T>, steps: PipelineStep[]): Promise<T> {
   const start = Date.now();
   const result = await fn();
   const latencyMs = Date.now() - start;
@@ -226,21 +224,20 @@ export async function searchKnowledge(
 
   try {
     // Parse and validate query
-    const parsed = await timedStep('parse',
+    const parsed = await timedStep(
+      'parse',
       () => Promise.resolve(retrievalQuerySchema.parse(query)),
-      steps
+      steps,
     );
 
     // Get current data snapshot
-    const data = await timedStep('snapshot',
-      () => services.store.snapshot(),
-      steps
-    );
+    const data = await timedStep('snapshot', () => services.store.snapshot(), steps);
 
     // Filter eligible entries (approval, team, level, metadata)
-    const eligibleEntries = await timedStep('eligibility',
+    const eligibleEntries = await timedStep(
+      'eligibility',
       () => Promise.resolve(filterEligibleEntries(data.knowledgeEntries, auth, parsed.filters)),
-      steps
+      steps,
     );
 
     if (eligibleEntries.length === 0) {
@@ -268,15 +265,17 @@ export async function searchKnowledge(
     }
 
     // Resolve routing strategy before dispatch (Phase 29)
-    const routingDecision = await timedStep('routing',
+    const routingDecision = await timedStep(
+      'routing',
       () => Promise.resolve(selectRetrievalStrategy(parsed.mode, parsed.seed)),
-      steps
+      steps,
     );
 
     // Dispatch based on query mode
-    const { scoredEntries, mergedCandidates } = await timedStep('recall',
+    const { scoredEntries, mergedCandidates } = await timedStep(
+      'recall',
       () => dispatchByMode(parsed.mode, parsed.seed, eligibleEntries, parsed),
-      steps
+      steps,
     );
 
     // Update routing channels used from recall results
@@ -288,9 +287,10 @@ export async function searchKnowledge(
       : undefined;
 
     // Assemble response buckets with citations
-    const { globalConstraints, projectKnowledge } = await timedStep('assembly',
+    const { globalConstraints, projectKnowledge } = await timedStep(
+      'assembly',
       () => Promise.resolve(assembleResponseBuckets(scoredEntries, parsed.filters, citations)),
-      steps
+      steps,
     );
 
     // Generate summary if requested and citations are available
@@ -299,30 +299,40 @@ export async function searchKnowledge(
     const summaryCitations = citations ? Array.from(citations.values()) : undefined;
     const summary =
       parsed.includeSummary && summaryCitations && summaryCitations.length > 0
-        ? await timedStep('summary',
-            () => Promise.resolve(buildSummary({
-              query: parsed.seed,
-              includeSummary: true,
-              hits: allMatches.map((m) => ({
-                shortcut: m.shortcut,
-                detail: m.detail,
-                labels: m.labels,
-              })),
-              citations: summaryCitations,
-            })),
-            steps
+        ? await timedStep(
+            'summary',
+            () =>
+              Promise.resolve(
+                buildSummary({
+                  query: parsed.seed,
+                  includeSummary: true,
+                  hits: allMatches.map((m) => ({
+                    shortcut: m.shortcut,
+                    detail: m.detail,
+                    labels: m.labels,
+                  })),
+                  citations: summaryCitations,
+                }),
+              ),
+            steps,
           )
         : null;
 
     // Generate refinement summary if requested and available
     const refinementSummary = parsed.includeRefinement
-      ? await timedStep('refinement',
+      ? await timedStep(
+          'refinement',
           () => generateRefinement(parsed.seed, globalConstraints, projectKnowledge),
-          steps
+          steps,
         )
       : null;
 
-    const result = buildRetrievalResponse(globalConstraints, projectKnowledge, refinementSummary, summary);
+    const result = buildRetrievalResponse(
+      globalConstraints,
+      projectKnowledge,
+      refinementSummary,
+      summary,
+    );
 
     // Log RAG retrieval (fire-and-forget) with routing trace
     void logRagRetrieval(services.config.ragLog, {
@@ -772,28 +782,28 @@ export async function searchKnowledgeV2(
 
   try {
     // Parse and validate query
-    const parsed = await timedStep('parse',
+    const parsed = await timedStep(
+      'parse',
       () => Promise.resolve(retrievalV2QuerySchema.parse(query)),
-      steps
+      steps,
     );
 
     // Parse seed intent internally (RETR-02)
-    const intent = await timedStep('intent',
+    const intent = await timedStep(
+      'intent',
       () => Promise.resolve(parseSeedIntent(parsed.seed)),
-      steps
+      steps,
     );
 
     // Resolve routing strategy for v2 (Phase 29)
-    const routingDecision = await timedStep('routing',
+    const routingDecision = await timedStep(
+      'routing',
       () => Promise.resolve(selectRetrievalStrategyV2(parsed.seed)),
-      steps
+      steps,
     );
 
     // Get current data snapshot
-    const data = await timedStep('snapshot',
-      () => services.store.snapshot(),
-      steps
-    );
+    const data = await timedStep('snapshot', () => services.store.snapshot(), steps);
 
     // Build governance filters from auth context
     const governanceFilters = {
@@ -806,9 +816,10 @@ export async function searchKnowledgeV2(
     const artifacts = data.skillArtifacts ?? [];
 
     // Rank capsules against parsed intent (CAPS-04)
-    const rankedCandidates = await timedStep('recall',
+    const rankedCandidates = await timedStep(
+      'recall',
       () => Promise.resolve(rankCapsules(artifacts, intent, governanceFilters, parsed.maxResults)),
-      steps
+      steps,
     );
 
     // Update routing channels used from recall results
@@ -837,9 +848,10 @@ export async function searchKnowledgeV2(
     }
 
     // Get full capsule records for response
-    const capsuleRecords = await timedStep('assembly',
+    const capsuleRecords = await timedStep(
+      'assembly',
       () => Promise.resolve(getCapsuleRecords(artifacts, rankedCandidates)),
-      steps
+      steps,
     );
 
     // Build capsule matches using pure assembly helper (T-14-07)
@@ -861,14 +873,15 @@ export async function searchKnowledgeV2(
 
     // Build v2 summary if requested and capsules exist (T-30-02-01)
     // Per T-30-02-02: Citations derived from already-governed CapsuleMatch records
-    const v2Summary = parsed.includeSummary && capsules.length > 0
-      ? buildCapsuleSummary({
-          query: parsed.seed,
-          includeSummary: true,
-          capsules,
-          citations: buildCapsuleCitations(capsules),
-        })
-      : null;
+    const v2Summary =
+      parsed.includeSummary && capsules.length > 0
+        ? buildCapsuleSummary({
+            query: parsed.seed,
+            includeSummary: true,
+            capsules,
+            citations: buildCapsuleCitations(capsules),
+          })
+        : null;
 
     const result = buildV2RetrievalResponse(capsules, profileHints, v2Summary, activationHints);
 

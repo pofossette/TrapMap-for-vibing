@@ -53,10 +53,7 @@ export async function getFileSize(filepath: string): Promise<number> {
  * @param filepath - Path to the log file to rotate
  * @param maxBackupFiles - Maximum number of backup files to keep
  */
-export async function rotateFile(
-  filepath: string,
-  maxBackupFiles: number,
-): Promise<void> {
+export async function rotateFile(filepath: string, maxBackupFiles: number): Promise<void> {
   try {
     // Delete oldest backup if it exists
     const oldestBackup = `${filepath}.${maxBackupFiles}`;

@@ -6,8 +6,8 @@
  */
 
 import {
-  retrievalEvalCaseSchema,
   type RetrievalEvalCase,
+  retrievalEvalCaseSchema,
 } from '../../../../packages/contracts/src/index.js';
 
 export const v3GraphPlanSelectedSmoke = retrievalEvalCaseSchema.parse({

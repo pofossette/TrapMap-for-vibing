@@ -8,13 +8,13 @@
  */
 
 import type {
-  SummaryEvalReport,
-  SummaryEvalReportMeta,
   SummaryEvalCaseResult,
   SummaryEvalFailureRecord,
+  SummaryEvalReport,
+  SummaryEvalReportMeta,
 } from '../../../packages/contracts/src/domain/evals/report.js';
 import { summaryEvalReportSchema } from '../../../packages/contracts/src/domain/evals/report.js';
-import type { SummaryCaseResult, RunnerOptions, JudgeProvider } from './types.js';
+import type { JudgeProvider, RunnerOptions, SummaryCaseResult } from './types.js';
 
 // =============================================================================
 // Report Builder
@@ -56,30 +56,22 @@ export function buildSummaryReport(params: {
   const passRate = totalCases > 0 ? passedCases / totalCases : 0;
 
   // Calculate averages
-  const avgGroundedness = average(
-    caseResults.map((r) => r.judgeResult.groundednessScore),
-  );
-  const avgCoverage = average(
-    caseResults.map((r) => r.judgeResult.coverageScore),
-  );
+  const avgGroundedness = average(caseResults.map((r) => r.judgeResult.groundednessScore));
+  const avgCoverage = average(caseResults.map((r) => r.judgeResult.coverageScore));
   const forbiddenClaimHits = caseResults.reduce(
     (sum, r) => sum + r.judgeResult.forbiddenClaimsFound.length,
     0,
   );
 
   // Build case summaries
-  const cases = caseResults
-    .map(buildCaseSummary)
-    .sort((a, b) => a.caseId.localeCompare(b.caseId));
+  const cases = caseResults.map(buildCaseSummary).sort((a, b) => a.caseId.localeCompare(b.caseId));
 
   // Build failure records
-  const failures = caseResults
-    .flatMap(buildFailureRecords)
-    .sort((a, b) => {
-      const caseCompare = a.caseId.localeCompare(b.caseId);
-      if (caseCompare !== 0) return caseCompare;
-      return a.kind.localeCompare(b.kind);
-    });
+  const failures = caseResults.flatMap(buildFailureRecords).sort((a, b) => {
+    const caseCompare = a.caseId.localeCompare(b.caseId);
+    if (caseCompare !== 0) return caseCompare;
+    return a.kind.localeCompare(b.kind);
+  });
 
   const report: SummaryEvalReport = {
     meta,

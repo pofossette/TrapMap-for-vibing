@@ -1,18 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import type { StoreData } from '../store.js';
 import {
-  buildTrapGraphDocument,
-  buildSkillGraphDocument,
+  type GraphEdgeRecord,
   type GraphIndexDocumentRecord,
   type GraphNodeRecord,
-  type GraphEdgeRecord,
+  buildSkillGraphDocument,
+  buildTrapGraphDocument,
 } from './documents.js';
 import {
-  upsertGraphIndexDocument,
-  removeGraphIndexDocumentsForSource,
   getGraphIndexDocuments,
   getGraphIndexDocumentsForSource,
+  removeGraphIndexDocumentsForSource,
+  upsertGraphIndexDocument,
 } from './store.js';
-import type { StoreData } from '../store.js';
 
 function makeEmptyStoreData(): StoreData {
   return {
@@ -37,8 +37,18 @@ describe('graph-lite/documents', () => {
   describe('buildTrapGraphDocument', () => {
     it('writes sourceType trap with sourceId, revision, teamId, scope, requiredLevel, and typed nodes/edges', () => {
       const nodes: GraphNodeRecord[] = [
-        { id: 'trap:entry-1', kind: 'trap', label: 'pnpm store corruption', evidence: 'shortcut text' },
-        { id: 'cue:docker-timeout', kind: 'cue', label: 'docker build timeout', evidence: 'detail text' },
+        {
+          id: 'trap:entry-1',
+          kind: 'trap',
+          label: 'pnpm store corruption',
+          evidence: 'shortcut text',
+        },
+        {
+          id: 'cue:docker-timeout',
+          kind: 'cue',
+          label: 'docker build timeout',
+          evidence: 'detail text',
+        },
       ];
       const edges: GraphEdgeRecord[] = [
         {
@@ -77,7 +87,12 @@ describe('graph-lite/documents', () => {
   describe('buildSkillGraphDocument', () => {
     it('writes sourceType skill with artifactId lineage and rejects activation-only body input', () => {
       const nodes: GraphNodeRecord[] = [
-        { id: 'skill:art-1', kind: 'skill', label: 'docker cache clean', evidence: 'capsule situation' },
+        {
+          id: 'skill:art-1',
+          kind: 'skill',
+          label: 'docker cache clean',
+          evidence: 'capsule situation',
+        },
       ];
       const edges: GraphEdgeRecord[] = [];
 
@@ -128,7 +143,7 @@ describe('graph-lite/documents', () => {
 describe('graph-lite/store', () => {
   describe('upsertGraphIndexDocument', () => {
     it('upserts by sourceType+sourceId+revision and replaces stale documents for same source', () => {
-      let data = makeEmptyStoreData();
+      const data = makeEmptyStoreData();
 
       const doc1: GraphIndexDocumentRecord = {
         id: 'gid_1',
@@ -164,7 +179,7 @@ describe('graph-lite/store', () => {
     });
 
     it('does not delete unrelated sources during upsert', () => {
-      let data = makeEmptyStoreData();
+      const data = makeEmptyStoreData();
 
       const trapDoc: GraphIndexDocumentRecord = {
         id: 'gid_trap',
@@ -213,17 +228,17 @@ describe('graph-lite/store', () => {
 
       const all = getGraphIndexDocuments(data);
       expect(all).toHaveLength(2);
-      const trapDocs = all.filter(d => d.sourceType === 'trap');
+      const trapDocs = all.filter((d) => d.sourceType === 'trap');
       expect(trapDocs).toHaveLength(1);
       expect(trapDocs[0]!.revision).toBe(2);
-      const skillDocs = all.filter(d => d.sourceType === 'skill');
+      const skillDocs = all.filter((d) => d.sourceType === 'skill');
       expect(skillDocs).toHaveLength(1);
     });
   });
 
   describe('removeGraphIndexDocumentsForSource', () => {
     it('removes stale documents for the same source without deleting unrelated sources', () => {
-      let data = makeEmptyStoreData();
+      const data = makeEmptyStoreData();
 
       const trapDoc: GraphIndexDocumentRecord = {
         id: 'gid_trap',
@@ -270,7 +285,7 @@ describe('graph-lite/store', () => {
 
   describe('getGraphIndexDocumentsForSource', () => {
     it('returns only documents matching the given sourceType and sourceId', () => {
-      let data = makeEmptyStoreData();
+      const data = makeEmptyStoreData();
 
       const doc1: GraphIndexDocumentRecord = {
         id: 'gid_1',

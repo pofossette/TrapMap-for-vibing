@@ -1,7 +1,4 @@
-import {
-  issueAccessKeyRequestSchema,
-  issueAccessKeyResponseSchema,
-} from '@trapmap/contracts';
+import { issueAccessKeyRequestSchema, issueAccessKeyResponseSchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '../lib/errors.js';

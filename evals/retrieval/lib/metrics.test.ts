@@ -9,13 +9,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  EMPTY_TARGET_POLICY,
   averageMetrics,
   calculateMetrics,
   hitAtK,
   mrr,
   ndcg,
   recallAtK,
-  EMPTY_TARGET_POLICY,
 } from './metrics.js';
 import type { NormalizedResult } from './types.js';
 
@@ -249,9 +249,7 @@ describe('metrics', () => {
 
     it('returns zeros for empty relevant IDs (empty target policy)', () => {
       const result: NormalizedResult = {
-        hits: [
-          { id: 'id_1', score: 0.9, reason: 'match', scope: 'project' },
-        ],
+        hits: [{ id: 'id_1', score: 0.9, reason: 'match', scope: 'project' }],
         returnedIds: ['id_1'],
         buckets: { globalConstraints: [], projectKnowledge: ['id_1'] },
         profileHintArtifactIds: [],
@@ -274,12 +272,20 @@ describe('metrics', () => {
   describe('averageMetrics', () => {
     it('averages metrics across multiple cases', () => {
       const metrics1 = {
-        hitAt1: 1, hitAt5: 1, hitAt10: 1,
-        mrr: 1, ndcg: 1, recallAt10: 1,
+        hitAt1: 1,
+        hitAt5: 1,
+        hitAt10: 1,
+        mrr: 1,
+        ndcg: 1,
+        recallAt10: 1,
       };
       const metrics2 = {
-        hitAt1: 0, hitAt5: 1, hitAt10: 1,
-        mrr: 0.5, ndcg: 0.8, recallAt10: 0.5,
+        hitAt1: 0,
+        hitAt5: 1,
+        hitAt10: 1,
+        mrr: 0.5,
+        ndcg: 0.8,
+        recallAt10: 0.5,
       };
 
       const avg = averageMetrics([metrics1, metrics2]);

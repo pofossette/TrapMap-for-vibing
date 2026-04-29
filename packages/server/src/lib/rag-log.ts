@@ -88,10 +88,7 @@ export function generateQueryId(): string {
  * @param config - RAG log configuration
  * @param entry - Log entry to write
  */
-export async function logRagRetrieval(
-  config: RagLogConfig,
-  entry: RagLogEntry,
-): Promise<void> {
+export async function logRagRetrieval(config: RagLogConfig, entry: RagLogEntry): Promise<void> {
   if (!config.enabled) {
     return;
   }
@@ -105,7 +102,7 @@ export async function logRagRetrieval(
     const logFile = path.join(config.logDir, `${dateStr}.log`);
 
     // Format as JSON Lines (one JSON object per line)
-    const line = JSON.stringify(entry) + '\n';
+    const line = `${JSON.stringify(entry)}\n`;
 
     // Use rotation-aware append
     await appendWithRotation(logFile, line, {

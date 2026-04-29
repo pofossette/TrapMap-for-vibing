@@ -6,15 +6,15 @@ import { ZodError } from 'zod';
 
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
+import {
+  findInterruptedCandidates,
+  processPendingCandidates,
+  resetInterruptedCandidates,
+} from './lib/candidates/index.js';
 import { AppError, isAppError } from './lib/errors.js';
 import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
 import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
-import {
-  processPendingCandidates,
-  resetInterruptedCandidates,
-  findInterruptedCandidates,
-} from './lib/candidates/index.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
 import { authRoutes } from './routes/auth.js';
 import { candidateRoutes } from './routes/candidates.js';
@@ -74,7 +74,12 @@ export function buildServer(options: BuildServerOptions = {}) {
     isTestEnv &&
     options.config?.dataFile === undefined &&
     process.env.TRAPMAP_DATA_FILE === undefined
-      ? path.resolve(process.cwd(), '.tmp', 'trapmap-test-data', `skill-shareer-${process.pid}-${randomUUID()}.json`)
+      ? path.resolve(
+          process.cwd(),
+          '.tmp',
+          'trapmap-test-data',
+          `skill-shareer-${process.pid}-${randomUUID()}.json`,
+        )
       : undefined;
   const config = {
     ...loadConfig(),
@@ -141,14 +146,13 @@ export function buildServer(options: BuildServerOptions = {}) {
         void processPendingCandidates({
           store: app.skillShareer.store,
           getSnapshot: () => app.skillShareer.store.snapshot(),
-        }).then(({ processed, errors }) => {
-          app.log.info(
-            { processed, errors },
-            'Candidate recovery complete',
-          );
-        }).catch((error) => {
-          app.log.error({ error }, 'Candidate recovery failed');
-        });
+        })
+          .then(({ processed, errors }) => {
+            app.log.info({ processed, errors }, 'Candidate recovery complete');
+          })
+          .catch((error) => {
+            app.log.error({ error }, 'Candidate recovery failed');
+          });
       }
     } catch (error) {
       app.log.error({ error }, 'Failed to check for interrupted candidates');

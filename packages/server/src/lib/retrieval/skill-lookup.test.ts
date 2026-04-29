@@ -117,7 +117,12 @@ describe('skill-lookup helper', () => {
           latestRevision: {
             ...createTestArtifact('artifact-1').latestRevision,
             derived: {
-              profile: { title: 'Docker Tips', description: '', labels: ['docker'], prerequisites: [] },
+              profile: {
+                title: 'Docker Tips',
+                description: '',
+                labels: ['docker'],
+                prerequisites: [],
+              },
               capsules: [
                 {
                   capsuleId: 'capsule-1',
@@ -142,7 +147,12 @@ describe('skill-lookup helper', () => {
           latestRevision: {
             ...createTestArtifact('artifact-2').latestRevision,
             derived: {
-              profile: { title: 'K8s Tips', description: '', labels: ['kubernetes'], prerequisites: [] },
+              profile: {
+                title: 'K8s Tips',
+                description: '',
+                labels: ['kubernetes'],
+                prerequisites: [],
+              },
               capsules: [
                 {
                   capsuleId: 'capsule-2',
@@ -183,7 +193,12 @@ describe('skill-lookup helper', () => {
           latestRevision: {
             ...createTestArtifact('artifact-low').latestRevision,
             derived: {
-              profile: { title: 'Public Tips', description: '', labels: ['public'], prerequisites: [] },
+              profile: {
+                title: 'Public Tips',
+                description: '',
+                labels: ['public'],
+                prerequisites: [],
+              },
               capsules: [
                 {
                   capsuleId: 'capsule-low',
@@ -208,7 +223,12 @@ describe('skill-lookup helper', () => {
           latestRevision: {
             ...createTestArtifact('artifact-high').latestRevision,
             derived: {
-              profile: { title: 'Secret Tips', description: '', labels: ['secret'], prerequisites: [] },
+              profile: {
+                title: 'Secret Tips',
+                description: '',
+                labels: ['secret'],
+                prerequisites: [],
+              },
               capsules: [
                 {
                   capsuleId: 'capsule-high',
@@ -255,7 +275,12 @@ describe('skill-lookup helper', () => {
           latestRevision: {
             ...createTestArtifact('artifact-1').latestRevision,
             derived: {
-              profile: { title: 'Admin Test', description: '', labels: ['admin-test'], prerequisites: [] },
+              profile: {
+                title: 'Admin Test',
+                description: '',
+                labels: ['admin-test'],
+                prerequisites: [],
+              },
               capsules: [
                 {
                   capsuleId: 'capsule-1',
@@ -281,7 +306,12 @@ describe('skill-lookup helper', () => {
           latestRevision: {
             ...createTestArtifact('artifact-2').latestRevision,
             derived: {
-              profile: { title: 'High Level', description: '', labels: ['admin-high'], prerequisites: [] },
+              profile: {
+                title: 'High Level',
+                description: '',
+                labels: ['admin-high'],
+                prerequisites: [],
+              },
               capsules: [
                 {
                   capsuleId: 'capsule-2',
@@ -321,7 +351,12 @@ describe('skill-lookup helper', () => {
           latestRevision: {
             ...createTestArtifact('artifact-approved').latestRevision,
             derived: {
-              profile: { title: 'Approved', description: '', labels: ['approved'], prerequisites: [] },
+              profile: {
+                title: 'Approved',
+                description: '',
+                labels: ['approved'],
+                prerequisites: [],
+              },
               capsules: [
                 {
                   capsuleId: 'capsule-approved',
@@ -346,7 +381,12 @@ describe('skill-lookup helper', () => {
           latestRevision: {
             ...createTestArtifact('artifact-pending').latestRevision,
             derived: {
-              profile: { title: 'Pending', description: '', labels: ['pending'], prerequisites: [] },
+              profile: {
+                title: 'Pending',
+                description: '',
+                labels: ['pending'],
+                prerequisites: [],
+              },
               capsules: [
                 {
                   capsuleId: 'capsule-pending',
@@ -389,7 +429,12 @@ describe('skill-lookup helper', () => {
           latestRevision: {
             ...createTestArtifact('artifact-multi').latestRevision,
             derived: {
-              profile: { title: 'Multi Capsule', description: '', labels: ['multi'], prerequisites: [] },
+              profile: {
+                title: 'Multi Capsule',
+                description: '',
+                labels: ['multi'],
+                prerequisites: [],
+              },
               capsules: [
                 {
                   capsuleId: 'capsule-1',
@@ -453,7 +498,12 @@ describe('skill-lookup helper', () => {
           latestRevision: {
             ...createTestArtifact('artifact-score').latestRevision,
             derived: {
-              profile: { title: 'Score Test', description: '', labels: ['score'], prerequisites: [] },
+              profile: {
+                title: 'Score Test',
+                description: '',
+                labels: ['score'],
+                prerequisites: [],
+              },
               capsules: [
                 {
                   capsuleId: 'capsule-high-score',
@@ -573,7 +623,12 @@ describe('skill-lookup helper', () => {
             latestRevision: {
               ...createTestArtifact(`artifact-${i}`).latestRevision,
               derived: {
-                profile: { title: `Artifact ${i}`, description: '', labels: ['limit-test'], prerequisites: [] },
+                profile: {
+                  title: `Artifact ${i}`,
+                  description: '',
+                  labels: ['limit-test'],
+                  prerequisites: [],
+                },
                 capsules: [
                   {
                     capsuleId: `capsule-${i}`,
@@ -624,7 +679,12 @@ describe('skill-lookup helper', () => {
           latestRevision: {
             ...createTestArtifact('artifact-other-team').latestRevision,
             derived: {
-              profile: { title: 'Other Team', description: '', labels: ['other'], prerequisites: [] },
+              profile: {
+                title: 'Other Team',
+                description: '',
+                labels: ['other'],
+                prerequisites: [],
+              },
               capsules: [
                 {
                   capsuleId: 'capsule-other',

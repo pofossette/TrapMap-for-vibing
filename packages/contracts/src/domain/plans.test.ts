@@ -1,17 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   graphPlanEdgeTypeSchema,
+  graphPlanNodeSchema,
   graphPlanSchema,
   graphPlanSkillActivationRefsSchema,
-  graphPlanNodeSchema,
-  planEdgeTypeSchema,
-  planEdgeStrengthSchema,
-  planTrapNodeSchema,
-  planSkillNodeSchema,
-  planEdgeSchema,
   planCitationSchema,
-  trapFirstPlanSchema,
+  planEdgeSchema,
+  planEdgeStrengthSchema,
+  planEdgeTypeSchema,
   planQuerySchema,
+  planSkillNodeSchema,
+  planTrapNodeSchema,
+  trapFirstPlanSchema,
 } from './plans.js';
 
 describe('plans schema contracts', () => {
@@ -406,21 +406,15 @@ describe('plans schema contracts', () => {
     });
 
     it('rejects skillBudget below 1', () => {
-      expect(() =>
-        planQuerySchema.parse({ seed: 'test', skillBudget: 0 }),
-      ).toThrow();
+      expect(() => planQuerySchema.parse({ seed: 'test', skillBudget: 0 })).toThrow();
     });
 
     it('rejects skillBudget above 10', () => {
-      expect(() =>
-        planQuerySchema.parse({ seed: 'test', skillBudget: 11 }),
-      ).toThrow();
+      expect(() => planQuerySchema.parse({ seed: 'test', skillBudget: 11 })).toThrow();
     });
 
     it('rejects maxDepth above 5', () => {
-      expect(() =>
-        planQuerySchema.parse({ seed: 'test', maxDepth: 6 }),
-      ).toThrow();
+      expect(() => planQuerySchema.parse({ seed: 'test', maxDepth: 6 })).toThrow();
     });
 
     it('rejects empty seed', () => {

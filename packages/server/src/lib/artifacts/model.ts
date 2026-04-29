@@ -15,7 +15,6 @@ import { skillArtifactSchema } from '@trapmap/contracts';
 
 import type {
   AgentReviewRecord,
-  SkillShareerStore,
   SkillArtifactRecord as ServerSkillArtifactRecord,
   SkillArtifactLifecycleEventRecord,
   SkillArtifactMetadataRecord,
@@ -23,8 +22,9 @@ import type {
   SkillArtifactReviewDecisionRecord,
   SkillArtifactReviewNoteRecord,
   SkillArtifactRevisionRecord,
-  StoredScriptActivationPolicy,
+  SkillShareerStore,
   StoreData,
+  StoredScriptActivationPolicy,
 } from '../store.js';
 import { nowIso } from '../store.js';
 

@@ -12,9 +12,9 @@
  */
 
 import type { IndexAdapter } from '../types.js';
+import { graphIndexAdapter } from './graph.js';
 import { keywordIndexAdapter } from './keyword.js';
 import { vectorIndexAdapter } from './vector.js';
-import { graphIndexAdapter } from './graph.js';
 
 export {
   vectorIndexAdapter,

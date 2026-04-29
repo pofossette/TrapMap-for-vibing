@@ -81,7 +81,7 @@ export function extractClaimsFromSummary(summary: {
       // Match citation indices to entry IDs
       const citationMatch = claim.text.match(/\[(\d+)\]/);
       if (citationMatch) {
-        const citationIndex = parseInt(citationMatch[1] ?? '0', 10) - 1;
+        const citationIndex = Number.parseInt(citationMatch[1] ?? '0', 10) - 1;
         if (citationIndex >= 0 && citationIndex < (summary.citations?.length ?? 0)) {
           return {
             ...claim,

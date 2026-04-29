@@ -194,17 +194,21 @@ export const CandidateSubmissionSchema = z.object({
   /** Number of retry attempts */
   retryCount: z.number().int().min(0),
   /** Manual result from reviewer (null if no manual review yet) */
-  manualResult: z.object({
-    decision: z.enum(['independent', 'merged']),
-    notes: z.string().min(1).max(1000),
-    mergedWith: z.object({
-      entityType: z.enum(['trap', 'skill']),
-      entityId: entityIdSchema,
-      entityTitle: z.string().min(1).max(280).optional(),
-    }).optional(),
-    submittedAt: isoTimestampSchema,
-    submittedBy: entityIdSchema,
-  }).nullable(),
+  manualResult: z
+    .object({
+      decision: z.enum(['independent', 'merged']),
+      notes: z.string().min(1).max(1000),
+      mergedWith: z
+        .object({
+          entityType: z.enum(['trap', 'skill']),
+          entityId: entityIdSchema,
+          entityTitle: z.string().min(1).max(280).optional(),
+        })
+        .optional(),
+      submittedAt: isoTimestampSchema,
+      submittedBy: entityIdSchema,
+    })
+    .nullable(),
 });
 
 // Type exports
@@ -220,11 +224,13 @@ export const candidateTrapSubmissionSchema = z.object({
 
 export const candidateSkillSubmissionSchema = z.object({
   // Matches artifact import bundle structure
-  files: z.array(z.object({
-    path: z.string(),
-    content: z.string(), // base64 or text
-    mediaType: z.string(),
-  })),
+  files: z.array(
+    z.object({
+      path: z.string(),
+      content: z.string(), // base64 or text
+      mediaType: z.string(),
+    }),
+  ),
   scope: scopeSchema,
   labels: z.array(labelSchema).min(1),
   requiredLevel: securityLevelSchema.optional(),
@@ -394,12 +400,14 @@ export const DuplicateJobMatchEntrySchema = z.object({
  */
 export const ExpectedManualResultSchemaSchema = z.object({
   description: z.string(),
-  fields: z.array(z.object({
-    name: z.string(),
-    type: z.string(),
-    required: z.boolean(),
-    description: z.string(),
-  })),
+  fields: z.array(
+    z.object({
+      name: z.string(),
+      type: z.string(),
+      required: z.boolean(),
+      description: z.string(),
+    }),
+  ),
 });
 
 /**

@@ -25,11 +25,7 @@ import type {
 /**
  * Kinds of verdicts that can be issued for a case.
  */
-export type VerdictKind =
-  | 'governance'
-  | 'outcome'
-  | 'shape'
-  | 'execution';
+export type VerdictKind = 'governance' | 'outcome' | 'shape' | 'execution';
 
 /**
  * A single verdict for a case.
@@ -70,10 +66,7 @@ export interface CaseVerdicts {
 /**
  * Assert no forbidden hits in results.
  */
-function assertNoForbiddenHits(
-  result: NormalizedResult,
-  forbiddenIds: string[],
-): Verdict {
+function assertNoForbiddenHits(result: NormalizedResult, forbiddenIds: string[]): Verdict {
   const returnedSet = new Set(result.returnedIds);
   const forbiddenHits = forbiddenIds.filter((id) => returnedSet.has(id));
 
@@ -102,17 +95,18 @@ function assertOutcomeMatch(
   const actualOutcome = result.isEmpty ? 'empty' : 'non-empty';
 
   if (expectedOutcome !== actualOutcome) {
-    const failure: GovernanceFailure = expectedOutcome === 'empty'
-      ? {
-          kind: 'unexpected-non-empty',
-          description: 'Expected empty results but got non-empty',
-          ids: result.returnedIds,
-        }
-      : {
-          kind: 'unexpected-empty',
-          description: 'Expected non-empty results but got empty',
-          ids: [],
-        };
+    const failure: GovernanceFailure =
+      expectedOutcome === 'empty'
+        ? {
+            kind: 'unexpected-non-empty',
+            description: 'Expected empty results but got non-empty',
+            ids: result.returnedIds,
+          }
+        : {
+            kind: 'unexpected-empty',
+            description: 'Expected non-empty results but got empty',
+            ids: [],
+          };
 
     return { kind: 'outcome', passed: false, failure };
   }
@@ -221,9 +215,7 @@ function assertV2CapsuleCount(
 /**
  * Assert execution completed without errors.
  */
-function assertExecutionSuccess(
-  warnings: AdapterWarning[],
-): Verdict | null {
+function assertExecutionSuccess(warnings: AdapterWarning[]): Verdict | null {
   const degradedWarnings = warnings.filter((w) => w.degraded);
 
   if (degradedWarnings.length > 0) {
@@ -263,10 +255,7 @@ export function evaluateVerdicts(
   const verdicts: Verdict[] = [];
 
   // 1. Governance verdict: forbidden hits
-  const forbiddenVerdict = assertNoForbiddenHits(
-    result,
-    case_.expected.governance.forbiddenIds,
-  );
+  const forbiddenVerdict = assertNoForbiddenHits(result, case_.expected.governance.forbiddenIds);
   verdicts.push(forbiddenVerdict);
 
   // 2. Outcome verdict: empty/non-empty match
@@ -275,10 +264,7 @@ export function evaluateVerdicts(
 
   // 3. Shape verdicts: endpoint-specific
   if (case_.endpoint === '/v1/retrieval/search') {
-    const bucketVerdict = assertV1BucketShape(
-      result,
-      case_.expected.shape.bucketExpectations,
-    );
+    const bucketVerdict = assertV1BucketShape(result, case_.expected.shape.bucketExpectations);
     if (bucketVerdict) verdicts.push(bucketVerdict);
   }
 
@@ -289,10 +275,7 @@ export function evaluateVerdicts(
     );
     if (profileVerdict) verdicts.push(profileVerdict);
 
-    const capsuleVerdict = assertV2CapsuleCount(
-      result,
-      case_.expected.shape.expectedCapsuleCount,
-    );
+    const capsuleVerdict = assertV2CapsuleCount(result, case_.expected.shape.expectedCapsuleCount);
     if (capsuleVerdict) verdicts.push(capsuleVerdict);
   }
 
@@ -302,14 +285,12 @@ export function evaluateVerdicts(
 
   // Collect failures for governance result
   const failures: GovernanceFailure[] = verdicts
-    .filter((v) => !v.passed && v.failure)
-    .map((v) => v.failure!);
+    .filter((v): v is typeof v & { failure: GovernanceFailure } => !v.passed && !!v.failure)
+    .map((v) => v.failure);
 
   // Get forbidden hits for reporting
   const returnedSet = new Set(result.returnedIds);
-  const forbiddenHits = case_.expected.governance.forbiddenIds.filter((id) =>
-    returnedSet.has(id),
-  );
+  const forbiddenHits = case_.expected.governance.forbiddenIds.filter((id) => returnedSet.has(id));
 
   // Build governance result (compatible with existing governance.ts)
   const governance: GovernanceResult = {
@@ -339,12 +320,10 @@ export function evaluateVerdicts(
  * Extract governance failures from verdicts.
  * Used for reporting while keeping verdicts as the source of truth.
  */
-export function extractGovernanceFailures(
-  verdicts: CaseVerdicts,
-): GovernanceFailure[] {
+export function extractGovernanceFailures(verdicts: CaseVerdicts): GovernanceFailure[] {
   return verdicts.verdicts
-    .filter((v) => !v.passed && v.failure)
-    .map((v) => v.failure!);
+    .filter((v): v is typeof v & { failure: GovernanceFailure } => !v.passed && !!v.failure)
+    .map((v) => v.failure);
 }
 
 /**
@@ -361,16 +340,12 @@ export function hasGovernanceFailure(verdicts: CaseVerdicts): boolean {
  * Check if verdicts have outcome mismatch.
  */
 export function hasOutcomeMismatch(verdicts: CaseVerdicts): boolean {
-  return verdicts.verdicts.some(
-    (v) => !v.passed && v.kind === 'outcome',
-  );
+  return verdicts.verdicts.some((v) => !v.passed && v.kind === 'outcome');
 }
 
 /**
  * Check if verdicts have execution issues.
  */
 export function hasExecutionIssue(verdicts: CaseVerdicts): boolean {
-  return verdicts.verdicts.some(
-    (v) => !v.passed && v.kind === 'execution',
-  );
+  return verdicts.verdicts.some((v) => !v.passed && v.kind === 'execution');
 }

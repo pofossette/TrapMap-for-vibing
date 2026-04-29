@@ -14,7 +14,14 @@
  * T-36-16: Derive allowed source set from current governance metadata
  */
 
-import type { KnowledgeRecord, SkillArtifactRecord, SkillShareerStore, StoreData } from '../store.js';
+import { extractTrapGraphEntities } from '../retrieval/graph-extract.js';
+import type {
+  KnowledgeRecord,
+  SkillArtifactRecord,
+  SkillShareerStore,
+  StoreData,
+} from '../store.js';
+import { buildTrapGraphDocument } from './adapters/graph-builders.js';
 import type { GraphIndexDocumentRecord } from './graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from './graph-lite/graphology.js';
 import {
@@ -22,10 +29,8 @@ import {
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
 } from './graph-lite/store.js';
-import { buildTrapGraphDocument } from './adapters/graph-builders.js';
-import { buildSkillGraphDocument } from './skill-events.js';
 import { normalizeKnowledgeIndexDocument } from './normalize.js';
-import { extractTrapGraphEntities } from '../retrieval/graph-extract.js';
+import { buildSkillGraphDocument } from './skill-events.js';
 
 // ---------------------------------------------------------------------------
 // Types

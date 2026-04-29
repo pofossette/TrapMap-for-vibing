@@ -7,16 +7,16 @@
  */
 
 import type {
+  CohortKey,
+  CohortSummary,
+  ModeComparison,
+  QueryTypeCohort,
   RetrievalEvalCase,
   RetrievalEvalEndpoint,
   RetrievalEvalTier,
   RetrievalStrategy,
-  RoutingReason,
-  QueryTypeCohort,
-  CohortKey,
-  CohortSummary,
-  ModeComparison,
   RoutingDistribution,
+  RoutingReason,
 } from '@trapmap/contracts';
 
 // =============================================================================
@@ -116,7 +116,11 @@ export interface NormalizedResult {
 /**
  * Governance failure kinds.
  */
-export type GovernanceFailureKind = 'forbidden-hit' | 'unexpected-empty' | 'unexpected-non-empty' | 'shape-mismatch';
+export type GovernanceFailureKind =
+  | 'forbidden-hit'
+  | 'unexpected-empty'
+  | 'unexpected-non-empty'
+  | 'shape-mismatch';
 
 /**
  * A single governance failure.

@@ -1,18 +1,15 @@
-import type { SkillShareerStore, StoreData } from '../store.js';
 import type { CandidateSubmission } from '@trapmap/contracts';
+import type { SkillShareerStore, StoreData } from '../store.js';
+import { detectDuplicates } from './detector.js';
+import { computeCandidateFingerprint, createAnalysisSnapshot } from './fingerprint.js';
 import {
-  updateCandidateStatus,
   attachAnalysisSnapshot,
   attachDuplicateCase,
-  getCandidateById,
   canRetryCandidate,
+  getCandidateById,
   getMaxRetries,
+  updateCandidateStatus,
 } from './store.js';
-import {
-  computeCandidateFingerprint,
-  createAnalysisSnapshot,
-} from './fingerprint.js';
-import { detectDuplicates } from './detector.js';
 import type { DuplicateDetectionInput } from './types.js';
 
 const RETRY_DELAY_MS = 5000;
@@ -116,7 +113,6 @@ export async function processCandidate(
         status: finalStatus,
       });
     });
-
   } catch (error) {
     // Handle error with retry tracking
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -216,8 +212,8 @@ export async function processPendingCandidates(
   services: CandidateProcessorServices,
 ): Promise<{ processed: number; errors: number }> {
   const data = await services.getSnapshot();
-  const pending = data.candidateSubmissions.filter(c =>
-    c.status === 'received' || c.status === 'queued' || c.status === 'analyzing'
+  const pending = data.candidateSubmissions.filter(
+    (c) => c.status === 'received' || c.status === 'queued' || c.status === 'analyzing',
   );
 
   let processed = 0;

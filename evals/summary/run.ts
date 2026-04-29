@@ -12,39 +12,39 @@
  *   pnpm eval:summary --tier smoke --provider fallback
  */
 
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { writeFileSync, mkdirSync } from 'node:fs';
 
 import {
-  summaryEvalCaseSchema,
-  type SummaryEvalCase,
-  type SummaryEvalTier,
-  type SummaryEvalEndpoint,
   type RetrievalEvalScenario,
+  type SummaryEvalCase,
+  type SummaryEvalEndpoint,
+  type SummaryEvalTier,
+  summaryEvalCaseSchema,
 } from '../../packages/contracts/src/index.js';
 
+import { coreCases } from './core.js';
 // Import tier datasets
 import { summarySmokeCases } from './smoke.js';
-import { coreCases } from './core.js';
 
 // Import summary scenarios for fixture loading
 import { summarySmokeScenariosMap } from './scenarios/smoke/summary-smoke-scenarios.js';
 
+import { evaluateSummaryVerdicts } from './lib/assertions.js';
+import { formatCaseDetail, formatCompactSummary, formatSummaryReport } from './lib/format.js';
 // Import evaluation modules
 import { createJudge, fallbackJudge } from './lib/judge.js';
-import { evaluateSummaryVerdicts } from './lib/assertions.js';
 import { buildSummaryReport, summarizeReport } from './lib/report.js';
-import { formatSummaryReport, formatCompactSummary, formatCaseDetail } from './lib/format.js';
-import type { RunnerOptions, SummaryCaseResult, JudgeProvider } from './lib/types.js';
+import type { JudgeProvider, RunnerOptions, SummaryCaseResult } from './lib/types.js';
 
 // Import retrieval adapters for real endpoint execution
 import {
-  createExecutionContext as createRetrievalContext,
-  closeExecutionContext,
-  seedScenarioFixtures,
-  createActorSession,
-  executeThroughRoute,
   type ExecutionContext as RetrievalExecutionContext,
+  closeExecutionContext,
+  createActorSession,
+  createExecutionContext as createRetrievalContext,
+  executeThroughRoute,
+  seedScenarioFixtures,
 } from '../retrieval/lib/adapters.js';
 
 // =============================================================================
@@ -116,7 +116,9 @@ function parseArgs_(): RunOptions {
 
   const endpoint = values.endpoint as SummaryEvalEndpoint | undefined;
   if (endpoint && endpoint !== '/v1/retrieval/search' && endpoint !== '/v2/retrieval/search') {
-    console.error(`Invalid endpoint: ${endpoint}. Must be '/v1/retrieval/search' or '/v2/retrieval/search'.`);
+    console.error(
+      `Invalid endpoint: ${endpoint}. Must be '/v1/retrieval/search' or '/v2/retrieval/search'.`,
+    );
     process.exit(1);
   }
 
@@ -317,14 +319,10 @@ export async function executeSummaryCase(
 
     // Run judge evaluation with real summary and context
     const judge = createJudge({ provider: ctx.options.provider });
-    const judgeResult = judge.evaluate(
-      summaryText ?? '',
-      contextTrace,
-      {
-        requiredFacts: case_.expected.requiredFacts,
-        forbiddenClaims: case_.expected.forbiddenClaims,
-      },
-    );
+    const judgeResult = judge.evaluate(summaryText ?? '', contextTrace, {
+      requiredFacts: case_.expected.requiredFacts,
+      forbiddenClaims: case_.expected.forbiddenClaims,
+    });
 
     // Evaluate verdicts
     const { verdicts, passed } = evaluateSummaryVerdicts({
@@ -335,7 +333,9 @@ export async function executeSummaryCase(
     const durationMs = Date.now() - startTime;
 
     if (ctx.options.verbose > 0) {
-      console.log(`  ${case_.caseId}: ${passed ? 'PASS' : 'FAIL'} (G=${judgeResult.groundednessScore.toFixed(2)}, C=${judgeResult.coverageScore.toFixed(2)})`);
+      console.log(
+        `  ${case_.caseId}: ${passed ? 'PASS' : 'FAIL'} (G=${judgeResult.groundednessScore.toFixed(2)}, C=${judgeResult.coverageScore.toFixed(2)})`,
+      );
     }
 
     return {
@@ -400,7 +400,9 @@ async function main(): Promise<void> {
   // Summary output
   console.log(`Loaded ${cases_.length} case(s):`);
   for (const c of cases_) {
-    console.log(`  - [${c.endpoint}] ${c.caseId} (facts: ${c.expected.requiredFacts.length}, forbidden: ${c.expected.forbiddenClaims.length})`);
+    console.log(
+      `  - [${c.endpoint}] ${c.caseId} (facts: ${c.expected.requiredFacts.length}, forbidden: ${c.expected.forbiddenClaims.length})`,
+    );
   }
   console.log('');
 

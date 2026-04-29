@@ -79,11 +79,22 @@ program
       ...(visibility.allowMemberCreate ? ['member create'] : []),
       ...(visibility.allowMemberUpdate ? ['member update'] : []),
       ...(visibility.allowAccessKeyCreate ? ['access-key:create'] : []),
-      ...(visibility.allowKnowledgeSubmit ? ['submit', 'resubmit', 'skill edit', 'trap submit', 'trap resubmit'] : []),
+      ...(visibility.allowKnowledgeSubmit
+        ? ['submit', 'resubmit', 'skill edit', 'trap submit', 'trap resubmit']
+        : []),
       ...(visibility.allowKnowledgeInspect ? ['review-status', 'trap list', 'trap show'] : []),
       ...(visibility.allowKnowledgeSearch ? ['search', 'skill search-by-content'] : []),
       ...(visibility.allowKnowledgeReview
-        ? ['review:queue', 'review:approve', 'review:reject', 'skill review:queue', 'skill review:approve', 'skill review:reject', 'skill duplicate-job fetch', 'skill duplicate-job resolve']
+        ? [
+            'review:queue',
+            'review:approve',
+            'review:reject',
+            'skill review:queue',
+            'skill review:approve',
+            'skill review:reject',
+            'skill duplicate-job fetch',
+            'skill duplicate-job resolve',
+          ]
         : []),
       ...(visibility.allowKnowledgeExport ? ['list', 'export', 'skill history'] : []),
       ...(visibility.allowKnowledgeImport ? ['import'] : []),
