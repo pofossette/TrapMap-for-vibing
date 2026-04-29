@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "outDir": "../dist/evals",
+    "noEmit": true
+  },
+  "include": ["./**/*.ts"],
+  "exclude": ["./**/*.test.ts"],
+  "references": [
+    { "path": "../packages/contracts" },
+    { "path": "../packages/server" }
+  ]
+}

@@ -1,33 +1,30 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-13T10:02:17.962Z",
-  "phase": "04",
-  "phase_name": "retrieval-and-cli-workflow",
-  "phase_dir": ".planning/phases/04-retrieval-and-cli-workflow",
-  "plan": 1,
-  "task": 2,
-  "total_tasks": 8,
+  "timestamp": "2026-04-29T07:26:57.005Z",
+  "phase": null,
+  "phase_name": null,
+  "phase_dir": null,
   "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "Build the retrieval pipeline against approved knowledge", "status": "done", "commit": "d9d3f30"},
-    {"id": 2, "name": "Expose POST /v1/retrieval/search through Fastify", "status": "done", "commit": "48762ac"}
+    {"id": 1, "name": "Create evals/tsconfig.json", "status": "done"},
+    {"id": 2, "name": "Fix runner-api.ts - add seedScenarioFixtures", "status": "done"},
+    {"id": 3, "name": "Isolate ExecutionContext per test case", "status": "done"},
+    {"id": 4, "name": "Fix capsule validation (sourcePaths, errorText)", "status": "done"}
   ],
   "remaining_tasks": [
-    {"id": 3, "name": "Separate global constraints from project knowledge", "status": "not_started"},
-    {"id": 4, "name": "Add optional refinement without mandatory credentials", "status": "not_started"},
-    {"id": 5, "name": "Add retrieval command to CLI", "status": "not_started"},
-    {"id": 6, "name": "Create CLI retrieval tests", "status": "not_started"},
-    {"id": 7, "name": "Wire CLI workflow end-to-end", "status": "not_started"},
-    {"id": 8, "name": "Add end-to-end workflow tests", "status": "not_started"}
+    {"id": 5, "name": "Fix test data isolation issue", "status": "not_started"},
+    {"id": 6, "name": "Fix v2-capsule-positive-smoke profileHints", "status": "not_started"},
+    {"id": 7, "name": "Fix summary evaluation scores", "status": "not_started"}
   ],
-  "blockers": [],
+  "blockers": [
+    {"description": "Test data accumulates between test cases despite isolated ExecutionContext", "type": "technical", "workaround": "Need to investigate data file isolation"}
+  ],
   "human_actions_pending": [],
   "decisions": [
-    {"decision": "Use provider-agnostic embeddings adapter with deterministic fallback", "rationale": "Allows local/CI environments without OpenAI credentials", "phase": "04"},
-    {"decision": "Filter by approval state, team, and level before ranking", "rationale": "Satisfies RAG-03 requirement for eligibility-based retrieval", "phase": "04"},
-    {"decision": "Persist embedding cache in KnowledgeRecord", "rationale": "Avoid recomputing embeddings across queries", "phase": "04"}
+    {"decision": "Create evals/tsconfig.json for tsx to resolve workspace packages", "rationale": "tsx couldn't resolve @trapmap/contracts", "phase": null},
+    {"decision": "Set sourcePaths=['mock-source.md'] and errorText=''", "rationale": "Capsule validation requires non-empty sourcePaths and non-null errorText", "phase": null}
   ],
-  "uncommitted_files": [],
-  "next_action": "Continue with Wave 2 (04-02): Implement global/project knowledge separation and optional refinement",
-  "context_notes": "Wave 1 complete. Retrieval core is built with embeddings, eligibility filtering, and POST /v1/retrieval/search endpoint. Tests pass (28 tests). TypeScript compilation passes. Ready to proceed with Wave 2 which adds global/project separation and refinement logic."
+  "uncommitted_files": ["evals/tsconfig.json", "evals/retrieval/lib/runner-api.ts", "evals/retrieval/lib/adapters.ts"],
+  "next_action": "Investigate why test data accumulates despite isolated ExecutionContext",
+  "context_notes": "Working on CI evaluation fixes. Retrieval: 5/9, Summary: 1/3, Total: 6/12 passed."
 }

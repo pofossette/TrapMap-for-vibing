@@ -17,7 +17,12 @@ import {
 import { coreCases } from '../core.js';
 import { smokeCases } from '../smoke.js';
 
-import { closeExecutionContext, createExecutionContext, executeCase } from './adapters.js';
+import {
+  closeExecutionContext,
+  createExecutionContext,
+  executeCase,
+  seedScenarioFixtures,
+} from './adapters.js';
 import { evaluateGovernance } from './governance.js';
 import { filterByEndpoint, loadCases } from './load.js';
 import { averageMetrics, calculateMetrics } from './metrics.js';
@@ -108,12 +113,17 @@ export async function runRetrievalEvaluation(
     };
   }
 
-  // Execute cases
-  const ctx = await createExecutionContext();
+  // Execute cases (each case gets isolated context to prevent data accumulation)
   const results: CaseResult[] = [];
 
-  try {
-    for (const case_ of filtered) {
+  for (const case_ of filtered) {
+    // Create isolated context for each case to prevent fixture bleeding
+    const ctx = await createExecutionContext();
+
+    try {
+      // Seed fixture data for this case's scenario
+      await seedScenarioFixtures(ctx, case_);
+
       const adapterResult = await executeCase(ctx, case_);
       const governance = evaluateGovernance(case_, adapterResult.result);
       const metrics = calculateMetrics(
@@ -136,9 +146,9 @@ export async function runRetrievalEvaluation(
         passed,
         warnings: adapterResult.warnings,
       });
+    } finally {
+      await closeExecutionContext(ctx);
     }
-  } finally {
-    await closeExecutionContext(ctx);
   }
 
   // Build canonical report
