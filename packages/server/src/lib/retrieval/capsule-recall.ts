@@ -399,8 +399,11 @@ export function rankCapsules(
   // Sort by final score descending
   candidates.sort((a, b) => b.finalScore - a.finalScore);
 
+  // Filter out zero-score candidates (no relevance signal)
+  const scored = candidates.filter((c) => c.finalScore > 0);
+
   // Return top results
-  return candidates.slice(0, maxResults);
+  return scored.slice(0, maxResults);
 }
 
 /**

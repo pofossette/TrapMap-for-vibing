@@ -267,7 +267,16 @@ export async function seedScenarioFixtures(
           submittedByUserId: ctx.actorId,
           scriptDescriptors: [],
           derived: {
-            profile: null,
+            profile: {
+              artifactId: artifact.id,
+              revision: 1,
+              sourceHash: '',
+              title: artifact.title,
+              summary: artifact.capsules.map((c: { content: string }) => c.content).join('. '),
+              keywords: artifact.labels,
+              referencePaths: [],
+              contentHash: '',
+            },
             capsules,
             clientManifest: null,
             sourceHash: '',

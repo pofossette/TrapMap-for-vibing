@@ -182,11 +182,13 @@ function filterByEndpoint(
  * Execute all cases and return results.
  */
 async function executeAllCases(cases_: RetrievalEvalCase[]): Promise<CaseResult[]> {
-  const ctx = await createExecutionContext();
   const results: CaseResult[] = [];
 
-  try {
-    for (const case_ of cases_) {
+  // Each case gets an isolated context to prevent fixture bleeding
+  for (const case_ of cases_) {
+    const ctx = await createExecutionContext();
+
+    try {
       await seedScenarioFixtures(ctx, case_);
       const adapterResult = await executeCase(ctx, case_);
 
@@ -215,9 +217,9 @@ async function executeAllCases(cases_: RetrievalEvalCase[]): Promise<CaseResult[
         passed,
         warnings: adapterResult.warnings,
       });
+    } finally {
+      await closeExecutionContext(ctx);
     }
-  } finally {
-    await closeExecutionContext(ctx);
   }
 
   return results;

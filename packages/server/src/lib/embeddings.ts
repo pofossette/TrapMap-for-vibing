@@ -26,23 +26,46 @@ class FallbackEmbeddings implements EmbeddingsAdapter {
 
   /**
    * Generate a deterministic embedding vector from text.
-   * Uses character codes and position weights to create stable vectors.
+   * Uses token-aware hashing so texts with shared tokens produce
+   * higher cosine similarity. Falls back to character-level hashing
+   * for short texts with no extractable tokens.
    */
   async embed(text: string): Promise<number[]> {
     const vector = new Array(this.dimension).fill(0);
     const normalizedText = text.toLowerCase().trim();
 
-    // Create a deterministic seed from the text
-    let seed = 0;
-    for (let i = 0; i < normalizedText.length; i++) {
-      seed = (seed * 31 + normalizedText.charCodeAt(i)) | 0;
-    }
+    // Extract tokens (words longer than 2 chars) for token-aware embedding
+    const tokens = normalizedText
+      .split(/\s+/)
+      .filter((t) => t.length > 2);
 
-    // Generate vector using seeded pseudo-random values
-    for (let i = 0; i < this.dimension; i++) {
-      // Simple deterministic pseudo-random number generator
-      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-      vector[i] = (seed % 10000) / 5000 - 1; // Map to [-1, 1]
+    if (tokens.length > 0) {
+      // Each token contributes a positive value to a deterministic set of dimensions.
+      // Shared tokens between two texts will overlap in the same dimensions,
+      // producing higher cosine similarity for related content.
+      for (const token of tokens) {
+        // Hash token to a set of dimension indices (3 per token for spread)
+        let hash = 0;
+        for (let i = 0; i < token.length; i++) {
+          hash = (hash * 31 + token.charCodeAt(i)) | 0;
+        }
+
+        for (let j = 0; j < 3; j++) {
+          const idx = Math.abs(hash) % this.dimension;
+          vector[idx] += 1.0;
+          hash = (hash * 1103515245 + 12345) | 0;
+        }
+      }
+    } else {
+      // Fallback for very short text with no extractable tokens
+      let seed = 0;
+      for (let i = 0; i < normalizedText.length; i++) {
+        seed = (seed * 31 + normalizedText.charCodeAt(i)) | 0;
+      }
+      for (let i = 0; i < this.dimension; i++) {
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+        vector[i] = (seed % 10000) / 5000 - 1;
+      }
     }
 
     // Normalize to unit length for cosine similarity

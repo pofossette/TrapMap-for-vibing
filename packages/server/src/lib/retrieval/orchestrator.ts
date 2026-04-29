@@ -470,8 +470,12 @@ async function semanticRecall(
   // Sort by score descending
   scoredEntries.sort((a, b) => b.score - a.score);
 
+  // Filter out low-relevance results (noise from embedding approximation)
+  const MIN_RELEVANCE_SCORE = 0.1;
+  const relevantEntries = scoredEntries.filter((e) => e.score >= MIN_RELEVANCE_SCORE);
+
   // Take top maxResults
-  return { scoredEntries: scoredEntries.slice(0, parsed.maxResults) };
+  return { scoredEntries: relevantEntries.slice(0, parsed.maxResults) };
 }
 
 /**

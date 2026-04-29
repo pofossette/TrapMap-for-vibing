@@ -17,7 +17,7 @@ import type {
   RetrievalStrategy,
   RoutingDistribution,
   RoutingReason,
-} from '@trapmap/contracts';
+} from '../../../packages/contracts/src/index.js';
 
 // =============================================================================
 // Execution Metadata Types
