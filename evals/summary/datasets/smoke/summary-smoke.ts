@@ -29,6 +29,7 @@ export const summaryGroundedSmokeCase = summaryEvalCaseSchema.parse({
   request: {
     seed: 'docker compose multi-container setup',
     maxResults: 10,
+    includeSummary: true,
   },
   scenarioId: 'summary-smoke-grounded',
   expected: {
@@ -59,6 +60,7 @@ export const summaryHallucinationSmokeCase = summaryEvalCaseSchema.parse({
   request: {
     seed: 'container orchestration best practices',
     maxResults: 10,
+    includeSummary: true,
   },
   scenarioId: 'summary-smoke-hallucination',
   expected: {
@@ -88,6 +90,7 @@ export const summaryForbiddenClaimsSmokeCase = summaryEvalCaseSchema.parse({
   request: {
     seed: 'api security configuration',
     maxResults: 10,
+    includeSummary: true,
   },
   scenarioId: 'summary-smoke-forbidden',
   expected: {

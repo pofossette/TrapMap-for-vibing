@@ -471,7 +471,8 @@ async function semanticRecall(
   scoredEntries.sort((a, b) => b.score - a.score);
 
   // Filter out low-relevance results (noise from embedding approximation)
-  const MIN_RELEVANCE_SCORE = 0.1;
+  // Use higher threshold for fallback embeddings to reduce false positives
+  const MIN_RELEVANCE_SCORE = 0.3;
   const relevantEntries = scoredEntries.filter((e) => e.score >= MIN_RELEVANCE_SCORE);
 
   // Take top maxResults

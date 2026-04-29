@@ -29,6 +29,9 @@ class FallbackEmbeddings implements EmbeddingsAdapter {
    * Uses token-aware hashing so texts with shared tokens produce
    * higher cosine similarity. Falls back to character-level hashing
    * for short texts with no extractable tokens.
+   *
+   * The embedding uses both positive and negative contributions to reduce
+   * false similarity between unrelated texts when using cosine similarity.
    */
   async embed(text: string): Promise<number[]> {
     const vector = new Array(this.dimension).fill(0);
@@ -40,19 +43,24 @@ class FallbackEmbeddings implements EmbeddingsAdapter {
       .filter((t) => t.length > 2);
 
     if (tokens.length > 0) {
-      // Each token contributes a positive value to a deterministic set of dimensions.
+      // Each token contributes to a deterministic set of dimensions.
+      // We use both positive and negative contributions to reduce false similarity.
       // Shared tokens between two texts will overlap in the same dimensions,
       // producing higher cosine similarity for related content.
+      // Unrelated texts will have mixed signs, producing near-zero similarity.
       for (const token of tokens) {
-        // Hash token to a set of dimension indices (3 per token for spread)
+        // Hash token to a set of dimension indices
         let hash = 0;
         for (let i = 0; i < token.length; i++) {
           hash = (hash * 31 + token.charCodeAt(i)) | 0;
         }
 
-        for (let j = 0; j < 3; j++) {
+        // Use 6 dimensions per token: 3 positive, 3 negative
+        // This creates better separation between unrelated texts
+        for (let j = 0; j < 6; j++) {
           const idx = Math.abs(hash) % this.dimension;
-          vector[idx] += 1.0;
+          // Alternate between positive and negative contributions
+          vector[idx] += (j < 3 ? 1.0 : -0.5);
           hash = (hash * 1103515245 + 12345) | 0;
         }
       }

@@ -148,12 +148,17 @@ export async function closeExecutionContext(ctx: ExecutionContext): Promise<void
  * Seed fixture data for a scenario.
  * Loads the scenario by case.scenarioId and materializes knowledge entries
  * and skill artifacts into the store with exact fixture IDs.
+ *
+ * @param ctx - Execution context
+ * @param case_ - Retrieval eval case (or case-like object with scenarioId)
+ * @param explicitScenario - Optional scenario to use directly (bypasses loadScenario)
  */
 export async function seedScenarioFixtures(
   ctx: ExecutionContext,
   case_: RetrievalEvalCase,
+  explicitScenario?: RetrievalEvalScenario,
 ): Promise<void> {
-  const scenario = loadScenario(case_.scenarioId);
+  const scenario = explicitScenario ?? loadScenario(case_.scenarioId);
   if (!scenario) return;
 
   const fixtureEntries = scenario.fixtures.knowledgeEntries as Array<{

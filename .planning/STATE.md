@@ -1,15 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: 评测系统构建
+milestone: v1.0
+milestone_name: milestone
 status: Milestone complete
-last_updated: "2026-04-29T12:00:00.000Z"
+last_updated: "2026-04-29T07:04:17.937Z"
 progress:
-  total_phases: 23
-  completed_phases: 23
-  total_plans: 59
-  completed_plans: 59
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 ## Project Reference

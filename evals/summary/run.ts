@@ -280,8 +280,8 @@ export async function executeSummaryCase(
       request: case_.request,
     };
 
-    // Seed fixtures for this scenario
-    await seedScenarioFixtures(retrievalCtx, retrievalCase as any);
+    // Seed fixtures for this scenario (pass scenario directly since loadScenario doesn't know summary scenarios)
+    await seedScenarioFixtures(retrievalCtx, retrievalCase as any, scenario);
 
     // Set actor session with scenario permissions
     await createActorSession(retrievalCtx, scenario.actor);

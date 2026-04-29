@@ -123,6 +123,8 @@ export const retrievalEvalRequestSchema = z.object({
   mode: z.enum(['semantic', 'hybrid', 'graph-assisted']).optional(),
   /** Explicit fallback policy (v3 only, defaults to auto) */
   fallbackMode: z.enum(['auto', 'v2-capsule', 'v1-graph-assisted']).optional(),
+  /** Whether to include summary in response (v2 only) */
+  includeSummary: z.boolean().optional(),
 });
 
 export type RetrievalEvalRequest = z.infer<typeof retrievalEvalRequestSchema>;

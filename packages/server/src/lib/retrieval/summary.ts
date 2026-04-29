@@ -260,19 +260,20 @@ function generateCapsuleExtractiveSummary(query: string, capsules: CapsuleMatch[
     return '';
   }
 
-  // For single capsule, return the problem/goal
+  // For single capsule, return the content (most information-dense field)
   if (capsules.length === 1) {
     const capsule = capsules[0];
     if (!capsule) return '';
-    return `${capsule.problem}: ${capsule.goal}`;
+    return capsule.content || `${capsule.problem}: ${capsule.goal}`;
   }
 
   // For multiple capsules, create a concise extractive summary
   const parts: string[] = [];
 
   for (const capsule of capsules) {
-    // Add the problem as a bullet point
-    parts.push(`• ${capsule.problem}: ${truncateText(capsule.goal, 100)}`);
+    // Use content for extractive summary (contains key information)
+    const text = capsule.content || `${capsule.problem}: ${capsule.goal}`;
+    parts.push(`• ${truncateText(text, 120)}`);
   }
 
   return `Found ${capsules.length} relevant capsules:\n${parts.join('\n')}`;

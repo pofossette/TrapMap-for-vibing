@@ -18,10 +18,23 @@ import {
 import { coreCases } from '../core.js';
 import { summarySmokeCases } from '../smoke.js';
 
+// Import summary scenarios for fixture loading
+import { summarySmokeScenariosMap } from '../scenarios/smoke/summary-smoke-scenarios.js';
+
 import { evaluateSummaryVerdicts } from './assertions.js';
 import { createJudge, fallbackJudge } from './judge.js';
 import { buildSummaryReport } from './report.js';
 import type { JudgeProvider, RunnerOptions, SummaryCaseResult } from './types.js';
+
+// Import retrieval adapters for real endpoint execution
+import {
+  type ExecutionContext as RetrievalExecutionContext,
+  closeExecutionContext,
+  createActorSession,
+  createExecutionContext as createRetrievalContext,
+  executeThroughRoute,
+  seedScenarioFixtures,
+} from '../../retrieval/lib/adapters.js';
 
 // =============================================================================
 // Types
@@ -175,39 +188,103 @@ export async function runSummaryEvaluation(options: RunSummaryOptions): Promise<
     };
   }
 
-  // Execute cases
+  // Execute cases with real endpoint
   const caseResults: SummaryCaseResult[] = [];
 
   for (const case_ of cases_) {
     const caseStartTime = Date.now();
     const warnings: Array<{ code: string; message: string }> = [];
 
-    // Generate mock summary and context (Phase 27-02 implementation)
-    const mockSummary = generateMockSummary(case_);
-    const mockContext = generateMockContext(case_);
+    // Create retrieval execution context
+    const retrievalCtx = await createRetrievalContext();
 
-    // Run judge evaluation
-    const judge = createJudge({ provider });
-    const judgeResult = judge.evaluate(mockSummary, mockContext, {
-      requiredFacts: case_.expected.requiredFacts,
-      forbiddenClaims: case_.expected.forbiddenClaims,
-    });
+    try {
+      // Load scenario for fixture seeding
+      const scenario = summarySmokeScenariosMap[case_.scenarioId];
 
-    // Evaluate verdicts
-    const { verdicts, passed } = evaluateSummaryVerdicts({
-      case_,
-      judgeResult,
-    });
+      if (!scenario) {
+        warnings.push({
+          code: 'scenario-not-found',
+          message: `Scenario not found: ${case_.scenarioId}`,
+        });
 
-    const durationMs = Date.now() - caseStartTime;
+        // Fall back to mock execution
+        const mockSummary = generateMockSummary(case_);
+        const mockContext = generateMockContext(case_);
+        const judge = createJudge({ provider });
+        const judgeResult = judge.evaluate(mockSummary, mockContext, {
+          requiredFacts: case_.expected.requiredFacts,
+          forbiddenClaims: case_.expected.forbiddenClaims,
+        });
+        const { passed } = evaluateSummaryVerdicts({ case_, judgeResult });
 
-    caseResults.push({
-      case: case_,
-      judgeResult,
-      passed,
-      durationMs,
-      warnings,
-    });
+        caseResults.push({
+          case: case_,
+          judgeResult,
+          passed,
+          durationMs: Date.now() - caseStartTime,
+          warnings,
+        });
+        continue;
+      }
+
+      // Build a RetrievalEvalCase-compatible object for fixture seeding
+      const retrievalCase = {
+        scenarioId: case_.scenarioId,
+        endpoint: case_.endpoint,
+        request: case_.request,
+      };
+
+      // Seed fixtures for this scenario (pass scenario directly)
+      await seedScenarioFixtures(retrievalCtx, retrievalCase as any, scenario);
+
+      // Set actor session with scenario permissions
+      await createActorSession(retrievalCtx, scenario.actor);
+
+      // Execute retrieval through the route
+      const adapterResult = await executeThroughRoute(retrievalCtx, retrievalCase as any);
+
+      // Extract raw response for trace
+      const rawResponse = adapterResult.result.rawResponse;
+      const rawResp = rawResponse as Record<string, any>;
+      const summaryText: string | null = rawResp?.summary?.text ?? null;
+
+      // Build context array based on endpoint type
+      let contextTrace: string[] = [];
+
+      if (case_.endpoint === '/v1/retrieval/search') {
+        const globalConstraints = rawResp?.globalConstraints ?? [];
+        const projectKnowledge = rawResp?.projectKnowledge ?? [];
+        contextTrace = [
+          ...globalConstraints.map((e: any) => e?.detail ?? '').filter(Boolean),
+          ...projectKnowledge.map((e: any) => e?.detail ?? '').filter(Boolean),
+        ];
+      } else {
+        const capsules = rawResp?.capsules ?? [];
+        contextTrace = capsules
+          .map((c: any) => `${c?.content ?? ''} ${c?.problem ?? ''} ${c?.goal ?? ''}`.trim())
+          .filter(Boolean);
+      }
+
+      // Run judge evaluation with real summary and context
+      const judge = createJudge({ provider });
+      const judgeResult = judge.evaluate(summaryText ?? '', contextTrace, {
+        requiredFacts: case_.expected.requiredFacts,
+        forbiddenClaims: case_.expected.forbiddenClaims,
+      });
+
+      const { passed } = evaluateSummaryVerdicts({ case_, judgeResult });
+
+      caseResults.push({
+        case: case_,
+        judgeResult,
+        passed,
+        durationMs: Date.now() - caseStartTime,
+        warnings,
+      });
+    } finally {
+      await closeExecutionContext(retrievalCtx);
+    }
   }
 
   // Build canonical report
