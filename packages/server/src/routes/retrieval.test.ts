@@ -790,8 +790,7 @@ describe('retrieval route', () => {
       const json = response.json();
       // Entry from other team should NOT appear in results
       const allResults = [...json.globalConstraints, ...json.projectKnowledge];
-      // biome-ignore lint/suspicious/noExplicitAny: Test helper for complex result type
-      expect(allResults.find((r: any) => r.shortcut === 'Other Team Entry')).toBeUndefined();
+      expect(allResults.find((r) => r.shortcut === 'Other Team Entry')).toBeUndefined();
     });
 
     it('retrieval filters out entries exceeding user security level', async () => {
@@ -863,8 +862,7 @@ describe('retrieval route', () => {
       const json = response.json();
       // High-security entry should NOT appear (user level 5 < entry level 8)
       const allResults = [...json.globalConstraints, ...json.projectKnowledge];
-      // biome-ignore lint/suspicious/noExplicitAny: Test helper for complex result type
-      expect(allResults.find((r: any) => r.shortcut === 'High Security Entry')).toBeUndefined();
+      expect(allResults.find((r) => r.shortcut === 'High Security Entry')).toBeUndefined();
     });
 
     it('retrieval filters out non-approved entries', async () => {
@@ -936,8 +934,7 @@ describe('retrieval route', () => {
       const json = response.json();
       // Pending entry should NOT appear in results
       const allResults = [...json.globalConstraints, ...json.projectKnowledge];
-      // biome-ignore lint/suspicious/noExplicitAny: Test helper for complex result type
-      expect(allResults.find((r: any) => r.shortcut === 'Pending Entry')).toBeUndefined();
+      expect(allResults.find((r) => r.shortcut === 'Pending Entry')).toBeUndefined();
     });
   });
 

@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   type RagLogConfig,
   type RagLogEntry,
+  generateQueryId,
   loadRagLogConfig,
   logRagRetrieval,
-  generateQueryId,
 } from './rag-log.js';
 
 describe('rag-log (Phase 22-01)', () => {
@@ -18,10 +18,10 @@ describe('rag-log (Phase 22-01)', () => {
       const originalSize = process.env.LOG_MAX_FILE_SIZE_MB;
       const originalBackup = process.env.LOG_MAX_BACKUP_FILES;
 
-      delete process.env.LOG_RAG_ENABLED;
-      delete process.env.LOG_RAG_DIR;
-      delete process.env.LOG_MAX_FILE_SIZE_MB;
-      delete process.env.LOG_MAX_BACKUP_FILES;
+      Reflect.deleteProperty(process.env, 'LOG_RAG_ENABLED');
+      Reflect.deleteProperty(process.env, 'LOG_RAG_DIR');
+      Reflect.deleteProperty(process.env, 'LOG_MAX_FILE_SIZE_MB');
+      Reflect.deleteProperty(process.env, 'LOG_MAX_BACKUP_FILES');
 
       const config = loadRagLogConfig();
 
@@ -51,7 +51,7 @@ describe('rag-log (Phase 22-01)', () => {
       if (original !== undefined) {
         process.env.LOG_RAG_ENABLED = original;
       } else {
-        delete process.env.LOG_RAG_ENABLED;
+        Reflect.deleteProperty(process.env, 'LOG_RAG_ENABLED');
       }
     });
 
@@ -66,7 +66,7 @@ describe('rag-log (Phase 22-01)', () => {
       if (original !== undefined) {
         process.env.LOG_RAG_ENABLED = original;
       } else {
-        delete process.env.LOG_RAG_ENABLED;
+        process.env.LOG_RAG_ENABLED = undefined;
       }
     });
 
@@ -85,12 +85,12 @@ describe('rag-log (Phase 22-01)', () => {
       if (originalEnabled !== undefined) {
         process.env.LOG_RAG_ENABLED = originalEnabled;
       } else {
-        delete process.env.LOG_RAG_ENABLED;
+        Reflect.deleteProperty(process.env, 'LOG_RAG_ENABLED');
       }
       if (originalDir !== undefined) {
         process.env.LOG_RAG_DIR = originalDir;
       } else {
-        delete process.env.LOG_RAG_DIR;
+        Reflect.deleteProperty(process.env, 'LOG_RAG_DIR');
       }
     });
   });
@@ -137,9 +137,7 @@ describe('rag-log (Phase 22-01)', () => {
       await expect(mkdir(tempDir, { recursive: true })).resolves.toBeUndefined();
 
       // File should be written
-      const files = await import('node:fs/promises').then((fs) =>
-        fs.readdir(tempDir),
-      );
+      const files = await import('node:fs/promises').then((fs) => fs.readdir(tempDir));
       expect(files.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -206,9 +204,7 @@ describe('rag-log (Phase 22-01)', () => {
       await logRagRetrieval(config, entry);
 
       // Directory should not be created
-      await expect(
-        import('node:fs/promises').then((fs) => fs.readdir(tempDir)),
-      ).rejects.toThrow();
+      await expect(import('node:fs/promises').then((fs) => fs.readdir(tempDir))).rejects.toThrow();
     });
 
     it('log entry contains all required fields', async () => {

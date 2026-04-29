@@ -2707,7 +2707,7 @@ describe('Phase 18: Skill Lookup by Content Contracts (SKED-01)', () => {
     it('accepts all valid sourceKind values', () => {
       const sourceKinds = ['skill-directory', 'single-skill-md', 'legacy-knowledge'] as const;
 
-      sourceKinds.forEach((kind) => {
+      for (const kind of sourceKinds) {
         const match = skillLookupResultItemSchema.parse({
           artifactId: 'artifact_1',
           title: 'Test',
@@ -2721,7 +2721,7 @@ describe('Phase 18: Skill Lookup by Content Contracts (SKED-01)', () => {
         });
 
         expect(match.sourceKind).toBe(kind);
-      });
+      }
     });
 
     it('accepts both scope values', () => {

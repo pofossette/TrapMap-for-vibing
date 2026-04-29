@@ -4,10 +4,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   type RotationConfig,
-  loadRotationConfig,
-  getFileSize,
-  rotateFile,
   appendWithRotation,
+  getFileSize,
+  loadRotationConfig,
+  rotateFile,
 } from './log-rotation.js';
 
 describe('log-rotation (Phase 22-02)', () => {
@@ -16,8 +16,8 @@ describe('log-rotation (Phase 22-02)', () => {
       const originalSize = process.env.LOG_MAX_FILE_SIZE_MB;
       const originalBackup = process.env.LOG_MAX_BACKUP_FILES;
 
-      delete process.env.LOG_MAX_FILE_SIZE_MB;
-      delete process.env.LOG_MAX_BACKUP_FILES;
+      Reflect.deleteProperty(process.env, 'LOG_MAX_FILE_SIZE_MB');
+      Reflect.deleteProperty(process.env, 'LOG_MAX_BACKUP_FILES');
 
       const config = loadRotationConfig();
 
@@ -49,12 +49,12 @@ describe('log-rotation (Phase 22-02)', () => {
       if (originalSize !== undefined) {
         process.env.LOG_MAX_FILE_SIZE_MB = originalSize;
       } else {
-        delete process.env.LOG_MAX_FILE_SIZE_MB;
+        Reflect.deleteProperty(process.env, 'LOG_MAX_FILE_SIZE_MB');
       }
       if (originalBackup !== undefined) {
         process.env.LOG_MAX_BACKUP_FILES = originalBackup;
       } else {
-        delete process.env.LOG_MAX_BACKUP_FILES;
+        Reflect.deleteProperty(process.env, 'LOG_MAX_BACKUP_FILES');
       }
     });
   });
@@ -63,7 +63,10 @@ describe('log-rotation (Phase 22-02)', () => {
     let tempDir: string;
 
     beforeEach(() => {
-      tempDir = path.join('/tmp', `log-rotation-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      tempDir = path.join(
+        '/tmp',
+        `log-rotation-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      );
     });
 
     afterEach(async () => {
@@ -96,7 +99,10 @@ describe('log-rotation (Phase 22-02)', () => {
     let tempDir: string;
 
     beforeEach(() => {
-      tempDir = path.join('/tmp', `log-rotation-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      tempDir = path.join(
+        '/tmp',
+        `log-rotation-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      );
     });
 
     afterEach(async () => {
@@ -172,7 +178,10 @@ describe('log-rotation (Phase 22-02)', () => {
     let tempDir: string;
 
     beforeEach(() => {
-      tempDir = path.join('/tmp', `log-rotation-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      tempDir = path.join(
+        '/tmp',
+        `log-rotation-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      );
     });
 
     afterEach(async () => {

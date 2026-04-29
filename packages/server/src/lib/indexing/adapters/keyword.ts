@@ -53,7 +53,7 @@ export interface IndexStateKeyword {
   contentHash: string;
   lastSyncedAt: string | null;
   lastError: string | null;
-  persistedState?: PersistedKeywordState;
+  persistedState?: PersistedKeywordState | undefined;
 }
 
 /**
@@ -112,7 +112,7 @@ function createKeywordAdapter(): KeywordIndexAdapter {
           lastError: null,
         };
         // Clear persisted state (typed as IndexStateKeyword)
-        delete (entry.indexState.keyword as IndexStateKeyword).persistedState;
+        (entry.indexState.keyword as IndexStateKeyword).persistedState = undefined;
       }
     },
 
@@ -223,10 +223,7 @@ function createKeywordAdapter(): KeywordIndexAdapter {
     /**
      * Legacy remove method for backward compatibility.
      */
-    async removeLegacy(
-      entry: KnowledgeRecord,
-      ref: EntryRef,
-    ): Promise<void> {
+    async removeLegacy(entry: KnowledgeRecord, ref: EntryRef): Promise<void> {
       if (entry.indexState?.keyword) {
         entry.indexState.keyword = {
           status: 'pending',
@@ -236,7 +233,7 @@ function createKeywordAdapter(): KeywordIndexAdapter {
           lastError: null,
         };
         // Clear persisted state (typed as IndexStateKeyword)
-        delete (entry.indexState.keyword as IndexStateKeyword).persistedState;
+        (entry.indexState.keyword as IndexStateKeyword).persistedState = undefined;
       }
     },
   };

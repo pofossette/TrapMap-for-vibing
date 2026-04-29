@@ -155,8 +155,7 @@ describe('CLI operations commands (Phase 13)', () => {
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();
       const args = callArgs?.[1] as MockCallArgs;
-      // biome-ignore lint/style/noNonNullAssertion: Test ensures bundle exists
-      const bundle = args.body.bundles[0]!;
+      const bundle = args.body.bundles[0];
 
       const skillMdFile = bundle.files.find((f) => f.path === 'SKILL.md');
       expect(skillMdFile).toBeDefined();
@@ -171,8 +170,7 @@ describe('CLI operations commands (Phase 13)', () => {
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();
       const args = callArgs?.[1] as MockCallArgs;
-      // biome-ignore lint/style/noNonNullAssertion: Test ensures bundle exists
-      const bundle = args.body.bundles[0]!;
+      const bundle = args.body.bundles[0];
 
       const refFile = bundle.files.find((f) => f.path === 'references/docker.md');
       expect(refFile).toBeDefined();
@@ -187,8 +185,7 @@ describe('CLI operations commands (Phase 13)', () => {
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();
       const args = callArgs?.[1] as MockCallArgs;
-      // biome-ignore lint/style/noNonNullAssertion: Test ensures bundle exists
-      const bundle = args.body.bundles[0]!;
+      const bundle = args.body.bundles[0];
 
       const assetFile = bundle.files.find((f) => f.path === 'assets/docker-compose.yml');
       expect(assetFile).toBeDefined();
@@ -203,8 +200,7 @@ describe('CLI operations commands (Phase 13)', () => {
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();
       const args = callArgs?.[1] as MockCallArgs;
-      // biome-ignore lint/style/noNonNullAssertion: Test ensures bundle exists
-      const bundle = args.body.bundles[0]!;
+      const bundle = args.body.bundles[0];
 
       const scriptFile = bundle.files.find((f) => f.path === 'scripts/setup.sh');
       expect(scriptFile).toBeDefined();
@@ -248,8 +244,7 @@ describe('CLI operations commands (Phase 13)', () => {
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();
       const args = callArgs?.[1] as MockCallArgs;
-      // biome-ignore lint/style/noNonNullAssertion: Test ensures bundle exists
-      const bundle = args.body.bundles[0]!;
+      const bundle = args.body.bundles[0];
       expect(bundle.sourceKind).toBe('single-skill-md');
       expect(bundle.files.length).toBe(1);
       expect(bundle.files[0]?.path).toBe('SKILL.md');
@@ -304,8 +299,7 @@ describe('CLI operations commands (Phase 13)', () => {
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();
       const args = callArgs?.[1] as MockCallArgs;
-      // biome-ignore lint/style/noNonNullAssertion: Test ensures bundle exists
-      const bundle = args.body.bundles[0]!;
+      const bundle = args.body.bundles[0];
 
       // Should only have SKILL.md, not .env or node_modules files
       expect(bundle.files.length).toBe(1);

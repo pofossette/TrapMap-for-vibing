@@ -279,8 +279,7 @@ describe('indexing pipeline', () => {
 
         // Simulate existing index state
         if (!entry.indexState) {
-          // biome-ignore lint/suspicious/noExplicitAny: Setting internal index state for test
-          (entry as any).indexState = {
+          (entry as { indexState: unknown }).indexState = {
             contentHash: 'abc123',
             normalizedAt: createdAt,
             vector: { status: 'synced', revision: 1, lastSyncedAt: createdAt },
@@ -321,8 +320,7 @@ describe('indexing pipeline', () => {
       // Index state should be cleared
       const data = await store.snapshot();
       const entry = data.knowledgeEntries.find((e) => e.id === entryId);
-      // biome-ignore lint/suspicious/noExplicitAny: Checking internal index state for test
-      expect((entry as any).indexState).toBeNull();
+      expect((entry as { indexState: unknown }).indexState).toBeNull();
     });
 
     it('repeated sync of unchanged approved content is idempotent', async () => {

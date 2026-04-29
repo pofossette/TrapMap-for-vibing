@@ -407,7 +407,8 @@ function extractPrerequisiteNodes(document: NormalizedIndexDocument): GraphNode[
   const requiresPattern = /requires?\s+([^.!\n]+)/gi;
   const mustPattern = /must\s+(?:be\s+)?([^.!\n]+)/gi;
 
-  let match;
+  let match: RegExpExecArray | null;
+  // biome-ignore lint/suspicious/noAssignInExpressions: Standard regex exec pattern
   while ((match = prereqPattern.exec(text)) !== null) {
     const prereqText = match[1]?.trim();
     if (prereqText && prereqText.length > 3 && !NOISE_WORDS.has(prereqText.toLowerCase())) {
@@ -420,6 +421,7 @@ function extractPrerequisiteNodes(document: NormalizedIndexDocument): GraphNode[
     }
   }
 
+  // biome-ignore lint/suspicious/noAssignInExpressions: Standard regex exec pattern
   while ((match = requiresPattern.exec(text)) !== null) {
     const reqText = match[1]?.trim();
     if (reqText && reqText.length > 3 && !NOISE_WORDS.has(reqText.toLowerCase())) {
@@ -449,7 +451,8 @@ function extractMitigationNodes(document: NormalizedIndexDocument): GraphNode[] 
   const solutionPattern = /solution[:\s]+([^.!\n]+)/gi;
   const usePattern = /use\s+([^.!\n]+)/gi;
 
-  let match;
+  let match: RegExpExecArray | null;
+  // biome-ignore lint/suspicious/noAssignInExpressions: Standard regex exec pattern
   while ((match = mitigatePattern.exec(text)) !== null) {
     const mitText = match[1]?.trim();
     if (mitText && mitText.length > 3 && !NOISE_WORDS.has(mitText.toLowerCase())) {
@@ -462,6 +465,7 @@ function extractMitigationNodes(document: NormalizedIndexDocument): GraphNode[] 
     }
   }
 
+  // biome-ignore lint/suspicious/noAssignInExpressions: Standard regex exec pattern
   while ((match = fixPattern.exec(text)) !== null) {
     const fixText = match[1]?.trim();
     if (fixText && fixText.length > 3 && !NOISE_WORDS.has(fixText.toLowerCase())) {

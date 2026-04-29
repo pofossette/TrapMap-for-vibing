@@ -17,10 +17,10 @@ describe('user-ops-log (Phase 21-01)', () => {
       const originalSize = process.env.LOG_MAX_FILE_SIZE_MB;
       const originalBackup = process.env.LOG_MAX_BACKUP_FILES;
 
-      delete process.env.LOG_USER_OPS_ENABLED;
-      delete process.env.LOG_USER_OPS_DIR;
-      delete process.env.LOG_MAX_FILE_SIZE_MB;
-      delete process.env.LOG_MAX_BACKUP_FILES;
+      Reflect.deleteProperty(process.env, 'LOG_USER_OPS_ENABLED');
+      Reflect.deleteProperty(process.env, 'LOG_USER_OPS_DIR');
+      Reflect.deleteProperty(process.env, 'LOG_MAX_FILE_SIZE_MB');
+      Reflect.deleteProperty(process.env, 'LOG_MAX_BACKUP_FILES');
 
       const config = loadUserOpsLogConfig();
 
@@ -50,7 +50,7 @@ describe('user-ops-log (Phase 21-01)', () => {
       if (original !== undefined) {
         process.env.LOG_USER_OPS_ENABLED = original;
       } else {
-        delete process.env.LOG_USER_OPS_ENABLED;
+        Reflect.deleteProperty(process.env, 'LOG_USER_OPS_ENABLED');
       }
     });
 
@@ -65,7 +65,7 @@ describe('user-ops-log (Phase 21-01)', () => {
       if (original !== undefined) {
         process.env.LOG_USER_OPS_ENABLED = original;
       } else {
-        delete process.env.LOG_USER_OPS_ENABLED;
+        process.env.LOG_USER_OPS_ENABLED = undefined;
       }
     });
 
@@ -84,12 +84,12 @@ describe('user-ops-log (Phase 21-01)', () => {
       if (originalEnabled !== undefined) {
         process.env.LOG_USER_OPS_ENABLED = originalEnabled;
       } else {
-        delete process.env.LOG_USER_OPS_ENABLED;
+        Reflect.deleteProperty(process.env, 'LOG_USER_OPS_ENABLED');
       }
       if (originalDir !== undefined) {
         process.env.LOG_USER_OPS_DIR = originalDir;
       } else {
-        delete process.env.LOG_USER_OPS_DIR;
+        Reflect.deleteProperty(process.env, 'LOG_USER_OPS_DIR');
       }
     });
   });
@@ -98,7 +98,10 @@ describe('user-ops-log (Phase 21-01)', () => {
     let tempDir: string;
 
     beforeEach(() => {
-      tempDir = path.join('/tmp', `user-ops-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      tempDir = path.join(
+        '/tmp',
+        `user-ops-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      );
     });
 
     afterEach(async () => {
@@ -128,9 +131,7 @@ describe('user-ops-log (Phase 21-01)', () => {
       await expect(mkdir(tempDir, { recursive: true })).resolves.toBeUndefined();
 
       // File should be written
-      const files = await import('node:fs/promises').then((fs) =>
-        fs.readdir(tempDir),
-      );
+      const files = await import('node:fs/promises').then((fs) => fs.readdir(tempDir));
       expect(files.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -183,9 +184,7 @@ describe('user-ops-log (Phase 21-01)', () => {
       await logUserOperation(config, entry);
 
       // Directory should not be created
-      await expect(
-        import('node:fs/promises').then((fs) => fs.readdir(tempDir)),
-      ).rejects.toThrow();
+      await expect(import('node:fs/promises').then((fs) => fs.readdir(tempDir))).rejects.toThrow();
     });
 
     it('log entry contains all required fields', async () => {
