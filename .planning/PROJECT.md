@@ -2,21 +2,15 @@
 
 ## What This Is
 
-Skill Shareer is a CLI-first internal knowledge sharing system for software teams. Teams can capture "pitfall" knowledge during development, retrieve relevant experience via text search, and maintain trustworthiness through admin review workflows. v1.4 focuses on building an evaluation system so retrieval quality can be measured, regressed, and improved with confidence.
+Skill Shareer is a CLI-first internal knowledge sharing system for software teams. Teams can capture "pitfall" knowledge during development, retrieve relevant experience via text search, and maintain trustworthiness through admin review workflows. The system includes a TypeScript-native evaluation stack for measuring retrieval quality, detecting regressions, and gating changes with repeatable benchmarks.
 
 ## Core Value
 
 Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
 
-## Current Milestone: v1.4 评测系统构建
+## Current Milestone: Planning next milestone
 
-**Goal:** Build a practical evaluation system for TrapMap's retrieval stack so maintainers can measure search quality, detect regressions, and gate changes with repeatable benchmarks.
-
-**Target features:**
-- Golden evaluation datasets for retrieval and summary workflows
-- TypeScript retrieval evaluation runner with ranking and governance metrics
-- Summary evaluation flow with judge-based checks for faithfulness and coverage
-- CI-friendly reporting and baseline comparison for regression detection
+**Status:** v1.4 shipped 2026-04-29. Planning next milestone via `/gsd-new-milestone`.
 
 ## Requirements
 
@@ -36,13 +30,14 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 - ✓ Skill editing with CLI lookup commands (search-by-content, get-by-id, edit) and review-based approval flow — v1.3
 - ✓ Two-layer toggleable logging system (user operations + RAG) with independent .env switches and file rotation — v1.3
 - ✓ Docker deployment configuration with volume mounts for persistent logging — v1.3
+- ✓ Retrieval evaluation system with golden datasets and deterministic ranking metrics (REVAL-01 through REVAL-04) — v1.4
+- ✓ Governance-safe evaluation measuring permission filters and leakage checks alongside relevance — v1.4
+- ✓ Summary/refinement evaluation with groundedness-style judge checks over retrieved context (SEVAL-01, SEVAL-02) — v1.4
+- ✓ CI-friendly evaluation with baseline comparison and regression detection (EOPS-01, EOPS-02, EOPS-03) — v1.4
 
 ### Active
 
-- [ ] Build a milestone-scoped evaluation system for retrieval quality using golden datasets and deterministic ranking metrics
-- [ ] Enforce governance-safe evaluation so permission filters and leakage checks are measured alongside relevance
-- [ ] Add summary/refinement evaluation with groundedness-style judge checks over retrieved context
-- [ ] Make evaluation runnable from the repo and usable in CI for regression detection
+(Awaiting next milestone requirements)
 
 ### Out of Scope
 
@@ -57,27 +52,25 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 
 ## Context
 
-**Current State (v1.3 shipped 2026-04-20):**
+**Current State (v1.4 shipped 2026-04-29):**
 
-- **Tech stack:** TypeScript, pnpm monorepo, Fastify server, LangChain JS, CLI with Commander.js, Docker
-- **Data model:** Skill artifacts with SKILL.md, references/, assets/, scripts/; derived profile, capsules, and client manifest; legacy knowledge entries for compatibility
-- **Access control:** Role templates (user/admin) + explicit permissions, security level enforcement on all operations
-- **Search quality surface:** Multi-path retrieval (semantic/hybrid/graph-assisted) with capsule-first v2 responses and metadata-only activation hints
-- **Operational features:** Artifact directory import/export, legacy knowledge migration, audit trail for all mutating operations
+- **Tech stack:** TypeScript, pnpm monorepo, Fastify server, LangChain JS, CLI with Commander.js, Docker, Drizzle/PostgreSQL, Graphology
+- **Data model:** Skill artifacts with SKILL.md, references/, assets/, scripts/; derived profile, capsules, and client manifest; legacy knowledge entries for compatibility; graph documents for GraphRAG-lite
+- **Access control:** Role templates (user/admin) + explicit permissions, security level enforcement on all operations, shared governance module
+- **Search quality surface:** Multi-path retrieval (semantic/hybrid/graph-assisted/graph-plan) with capsule-first v2 responses, trap-first plan compilation (/v3), and metadata-only activation hints
+- **Evaluation stack:** Retrieval eval with Hit@K, MRR, nDCG, Recall@K + governance assertions; summary eval with groundedness/coverage judge checks; CI smoke/core regression with baseline comparison
+- **Persistence:** PostgreSQL-backed store (PostgresStore) with shared SkillShareerStore contract; runtime selection via TRAPMAP_DATABASE_URL; file-backed JsonStore still available for local dev
+- **Operational features:** Artifact directory import/export, legacy knowledge migration, audit trail for all mutating operations, async candidate ingestion with duplicate detection
 - **Logging:** Two-layer toggleable logging (user ops + RAG) with JSON Lines output, size/time-based rotation, independent .env switches
 - **Deployment:** Docker configuration with production templates and persistent log volumes
 
-**What v1.4 needs to solve:**
+**Known issues / Tech debt:**
 
-- Retrieval quality is observable through logs and tests, but not yet scored against a labeled golden dataset
-- The project needs hard metrics such as Hit@K, MRR, nDCG, Recall@K, and governance leakage checks for `/v1/retrieval/search` and `/v2/retrieval/search`
-- Summary and refinement outputs need a separate evaluation path because correctness depends on groundedness to returned retrieval results
-- Regression checks should fit the existing pnpm/TypeScript toolchain and run in CI without introducing a Python-first primary workflow
-
-**Known issues:**
-
-- `.planning/REQUIREMENTS.md` is absent after v1.3 archival, so the next milestone needs a fresh active requirements file
-- RAG logs record timings and counts, but not the ground-truth labels needed to calculate accuracy directly
+- SEVAL-01 citation adherence implemented but not surfaced as first-class metric
+- Core tier summary cases empty placeholder (evals/summary/core.ts)
+- Unified eval runner (eval-all.ts) may have module resolution issues in some environments
+- No dedicated test file for candidates module
+- v3 graph-plan core scenarios minimal (only 2 core cases)
 
 ## Constraints
 
@@ -107,8 +100,12 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 | Skill edits reuse existing RBAC and review patterns | Avoids new permission model complexity; consistent with knowledge review flow | ✓ Good — edit review workflow mirrors knowledge review patterns |
 | User ops logger defaults disabled, fire-and-forget | Production-friendly defaults; no performance impact unless explicitly enabled | ✓ Good — JSON Lines with daily rotation when enabled |
 | RAG logger follows user ops pattern | Consistent design between both log layers; independent toggles | ✓ Good — size-based rotation integrated for both layers |
-| v1.4 evaluation stays TypeScript-native | The repository already has a strong TS/Node spine, so the primary path should integrate there before adding Python-side evaluators | — Pending |
-| Retrieval evaluation must score governance separately from relevance | Search quality numbers are misleading if forbidden or cross-scope results can still pass | — Pending |
+| v1.4 evaluation stays TypeScript-native | The repository already has a strong TS/Node spine, so the primary path should integrate there before adding Python-side evaluators | ✓ Good — eval runner, metrics, governance all in TS; Python evaluators deferred to v2 |
+| Retrieval evaluation must score governance separately from relevance | Search quality numbers are misleading if forbidden or cross-scope results can still pass | ✓ Good — governance assertions run independently from ranking metrics |
+| Shared governance module across skill and trap (Phase 32) | Avoids duplicated eligibility logic when trap CLI/server routes were split from skill | ✓ Good — single governance module used across both skill and trap boundaries |
+| Async candidate ingestion with post-upload duplicate detection (Phase 33) | Keeps submission latency low; duplicate analysis is too expensive for inline request path | ✓ Good — async processor with retry and startup recovery working |
+| Trap-first plan compilation for GraphRAG-lite (Phase 37) | Flat match lists don't capture trap-skill mitigation relationships; plans encode priorities | ✓ Good — /v3/retrieval/plan produces governed trap-first plans |
+| Database-backed persistence via shared SkillShareerStore (Phase 43) | File-backed store doesn't scale for production; shared contract avoids route-by-route rewrite | ✓ Good — PostgresStore + JsonStore both satisfy shared interface, runtime selection via env |
 
 ## Evolution
 
@@ -128,4 +125,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-21 after v1.4 milestone start*
+*Last updated: 2026-04-29 after v1.4 milestone*

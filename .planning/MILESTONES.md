@@ -1,5 +1,20 @@
 # Milestones
 
+## v1.4 评测系统构建 (Shipped: 2026-04-29)
+
+**Phases completed:** 19 phases, 59 plans, 122 tasks
+
+**Key accomplishments:**
+
+- Retrieval evaluation system with ranking metrics (Hit@K, MRR, nDCG, Recall@K) and governance failure detection against golden datasets
+- Summary evaluation with LLM-as-judge groundedness and coverage scoring over retrieval context
+- GraphRAG-lite indexing, trap-first plan compilation, and confidence-aware routing with /v3 retrieval endpoints
+- Async candidate ingestion, duplicate detection queue, and manual resolution CLI workflow for skill/trap deduplication
+- Database-backed persistence (PostgreSQL/Drizzle) replacing file-backed store with shared SkillShareerStore contract
+- CI regression detection with baseline comparison, cohort reports, and GitHub Actions smoke/core evaluation workflows
+
+---
+
 ## v1.3 工程化调整&功能扩展及优化 (Shipped: 2026-04-20)
 
 **Phases completed:** 8 phases, 16 plans, 33 tasks
