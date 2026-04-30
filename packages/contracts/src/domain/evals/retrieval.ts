@@ -90,6 +90,8 @@ export const retrievalEvalScenarioSchema = z.object({
     knowledgeEntries: z.array(z.unknown()).default([]),
     /** Skill artifacts with capsules (for v2 testing) */
     skillArtifacts: z.array(z.unknown()).default([]),
+    /** Graph index documents for v3 graph-plan testing */
+    graphIndexDocuments: z.array(z.unknown()).default([]),
   }),
 });
 
