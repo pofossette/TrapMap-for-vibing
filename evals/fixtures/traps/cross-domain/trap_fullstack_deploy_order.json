@@ -1,0 +1,10 @@
+{
+  "id": "trap_crossdomain_fullstack_deploy_order",
+  "teamId": "team_platform",
+  "scope": "project",
+  "labels": ["docker", "typescript", "ci", "deployment", "database", "backend", "frontend"],
+  "shortcut": "Full-stack deploy order causing API contract mismatch",
+  "detail": "When frontend and backend are deployed independently in CI/CD pipelines, the frontend may be deployed before the backend API changes are live. This causes API contract mismatch errors: 404 for new endpoints, undefined fields in responses, or schema validation failures. The error affects production users during the deployment window. Prerequisite: understanding API versioning and deployment orchestration. Requires coordinated deployment or backward-compatible API changes. To mitigate: always maintain backward compatibility for at least one release cycle, use API versioning headers. Fix: deploy backend before frontend, use feature flags for new endpoints, and run contract tests in CI with vitest to verify compatibility before deployment.",
+  "requiredLevel": 4,
+  "lifecycleState": "approved"
+}

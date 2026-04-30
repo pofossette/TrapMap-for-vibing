@@ -260,6 +260,18 @@ function makeMockServices(storeData: Partial<StoreData> = {}): SkillShareerServi
       nextId: () => 'test_id',
     } as any,
     indexAdapters: [],
+    ai: {
+      embeddings: {
+        provider: 'fallback',
+        isConfigured: false,
+        embed: async () => new Array(384).fill(0),
+      },
+      chat: {
+        provider: 'fallback',
+        isConfigured: false,
+        invoke: async () => '',
+      },
+    },
   };
 }
 

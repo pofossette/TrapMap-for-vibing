@@ -1,0 +1,10 @@
+{
+  "id": "trap_testing_test_environment_mismatch",
+  "teamId": "team_testing",
+  "scope": "project",
+  "labels": ["vitest", "jsdom", "node", "testing", "environment"],
+  "shortcut": "Test environment mismatch hiding browser bugs",
+  "detail": "Running tests designed for jsdom in node environment (or vice versa) hides environment-specific bugs. Code that depends on window, document, or DOM APIs passes in jsdom tests but fails in production because jsdom provides incomplete polyfills. Conversely, code using node-specific APIs passes tests but cannot run in the browser. This error is especially common in isomorphic TypeScript codebases. Prerequisite: understanding jsdom limitations and node vs browser APIs. Requires correct vitest environment configuration per test file. To mitigate: use @vitest/environment comments to explicitly set the test environment. Fix: verify test environments match deployment targets, test SSR code in node and browser code in jsdom.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "trap_backend_n_plus_1_query",
+  "teamId": "team_backend",
+  "scope": "project",
+  "labels": ["postgresql", "orm", "n+1", "query", "database", "performance"],
+  "shortcut": "N+1 query problem with ORM lazy loading",
+  "detail": "When iterating over a list of records and accessing a related entity on each one, the ORM issues one query to fetch the parent records plus N additional queries for each child relation. This results in hundreds or thousands of postgresql database queries where only a few are needed, causing severe performance degradation and timeout errors under load in production. The error is not apparent with small datasets in local development but becomes critical at scale. Prerequisite: understanding ORM query behavior and SQL join optimization. Requires eager loading strategy (e.g., includes/join fetching). To mitigate: enable ORM query logging in staging to detect N+1 patterns. Fix: use eager loading directives like includes() in Sequelize or select_related/prefetch_related in Django. Monitor slow query logs in production postgresql. Test query counts with vitest to prevent regression.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

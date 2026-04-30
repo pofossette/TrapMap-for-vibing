@@ -1,0 +1,10 @@
+{
+  "id": "trap_backend_race_condition_id_counter",
+  "teamId": "team_backend",
+  "scope": "project",
+  "labels": ["node", "concurrency", "race-condition", "typescript", "counter"],
+  "shortcut": "Race condition in auto-increment ID generation",
+  "detail": "When generating unique IDs by reading the current maximum ID from the postgresql database and incrementing by 1 in node, concurrent requests can read the same max ID and generate duplicate IDs. This causes data corruption and unique constraint violation errors. The failure is rare in local development with sequential requests but occurs frequently under concurrent load in production. Prerequisite: understanding database transaction isolation and atomic operations. Requires database-level atomic ID generation. To mitigate: use UUIDs instead of sequential IDs, or use database SERIAL/BIGSERIAL columns. Fix: replace application-level ID generation with database sequences or UUID v4. Use postgresql INSERT RETURNING to get the generated ID. Verify with vitest concurrency tests.",
+  "requiredLevel": 4,
+  "lifecycleState": "approved"
+}

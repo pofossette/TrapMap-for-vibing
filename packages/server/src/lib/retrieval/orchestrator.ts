@@ -322,7 +322,7 @@ export async function searchKnowledge(
     const refinementSummary = parsed.includeRefinement
       ? await timedStep(
           'refinement',
-          () => generateRefinement(parsed.seed, globalConstraints, projectKnowledge),
+          () => generateRefinement(services, parsed.seed, globalConstraints, projectKnowledge),
           steps,
         )
       : null;
@@ -680,28 +680,48 @@ function mergeCandidatesWithGraph(
  * Check if a refinement provider is configured.
  * Returns true if a chat model is available for refinement.
  */
-function isRefinementAvailable(): boolean {
-  // Check if OpenAI API key is configured for refinement
-  // In the future, this could support other providers
-  return typeof process.env.OPENAI_API_KEY === 'string' && process.env.OPENAI_API_KEY.length > 0;
+function isRefinementAvailable(services: SkillShareerServices): boolean {
+  return services.ai.chat.isConfigured;
+}
+
+/**
+ * Build a refinement prompt from search results.
+ */
+function buildRefinementPrompt(
+  query: string,
+  globalConstraints: unknown[],
+  projectKnowledge: unknown[],
+): string {
+  const parts: string[] = [];
+  for (const item of globalConstraints) {
+    const m = item as { shortcut?: string; detail?: string };
+    parts.push(`- [Global Constraint] ${m.shortcut ?? ''}: ${m.detail ?? ''}`);
+  }
+  for (const item of projectKnowledge) {
+    const m = item as { shortcut?: string; detail?: string };
+    parts.push(`- [Project Knowledge] ${m.shortcut ?? ''}: ${m.detail ?? ''}`);
+  }
+  return `Search results for "${query}":\n${parts.join('\n')}`;
 }
 
 /**
  * Generate a refinement summary for search results.
  * This is best-effort: returns null if no provider is configured.
  *
+ * @param services - Server services (for AI chat provider)
  * @param query - The original search query
  * @param globalConstraints - Matched global constraints
  * @param projectKnowledge - Matched project knowledge
  * @returns A summary string or null if refinement is unavailable
  */
 async function generateRefinement(
+  services: SkillShareerServices,
   query: string,
   globalConstraints: unknown[],
   projectKnowledge: unknown[],
 ): Promise<string | null> {
   // Best-effort: only refine if a provider is configured
-  if (!isRefinementAvailable()) {
+  if (!isRefinementAvailable(services)) {
     return null;
   }
 
@@ -710,20 +730,15 @@ async function generateRefinement(
     return null;
   }
 
-  // TODO: Implement actual LLM-based refinement here
-  // This would use a LangChain chat model to summarize the results
-  // For now, we return null to maintain best-effort behavior
-  // Future implementation could look like:
-  //
-  // const { ChatOpenAI } = await import('@langchain/openai');
-  // const chat = new ChatOpenAI({ modelName: 'gpt-4o-mini' });
-  // const summary = await chat.invoke([
-  //   new SystemMessage('Summarize the following search results...'),
-  //   new HumanMessage(buildRefinementPrompt(...))
-  // ]);
-  // return summary.content as string;
-
-  return null;
+  try {
+    return await services.ai.chat.invoke(
+      'You are a knowledge refinement assistant. Given search results, produce a concise summary that highlights the most relevant information. Keep the summary under 3 sentences.',
+      buildRefinementPrompt(query, globalConstraints, projectKnowledge),
+    );
+  } catch {
+    // Graceful degradation: if LLM call fails, return null
+    return null;
+  }
 }
 
 /**

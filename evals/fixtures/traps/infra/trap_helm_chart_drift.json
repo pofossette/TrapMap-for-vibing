@@ -1,0 +1,10 @@
+{
+  "id": "trap_infra_helm_chart_drift",
+  "teamId": "team_infra",
+  "scope": "project",
+  "labels": ["kubernetes", "helm", "gitops", "configuration", "drift"],
+  "shortcut": "Helm chart configuration drift from manual changes",
+  "detail": "When operators manually modify kubernetes resources with kubectl after a Helm deployment, the actual cluster state diverges from the Helm release state. Subsequent helm upgrade commands may fail or silently override manual changes, causing unexpected behavior in production. The error is detected only when a deployment fails or an outage occurs. Prerequisite: understanding Helm release management and GitOps principles. Requires strict policy of no manual cluster modifications. To mitigate: use GitOps with ArgoCD or Flux to detect and prevent drift. Fix: implement admission controllers that prevent manual changes, use helm diff to preview changes, and run drift detection in CI pipelines.",
+  "requiredLevel": 4,
+  "lifecycleState": "approved"
+}

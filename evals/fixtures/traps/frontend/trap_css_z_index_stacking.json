@@ -1,0 +1,10 @@
+{
+  "id": "trap_frontend_css_z_index_stacking",
+  "teamId": "team_frontend",
+  "scope": "project",
+  "labels": ["css", "z-index", "stacking-context", "layout", "frontend"],
+  "shortcut": "CSS z-index stacking context trap",
+  "detail": "Setting z-index on an element that is not positioned (position: static) has no effect. Furthermore, creating a new stacking context via transform, opacity, or filter will trap child z-index values within that context, making them unable to escape to higher layers. This leads to modal overlays being hidden behind other elements. The error is difficult to debug because the computed z-index appears correct in dev tools. Prerequisite: must understand CSS stacking context rules. Requires positioned element (relative, absolute, fixed, sticky) for z-index to take effect. To mitigate: audit stacking contexts using browser dev tools layer panel. Fix: move the overlay element to be a direct child of the body or a dedicated portal container. This is a common failure in production frontend deployments.",
+  "requiredLevel": 2,
+  "lifecycleState": "approved"
+}

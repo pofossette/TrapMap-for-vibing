@@ -1,0 +1,10 @@
+{
+  "id": "trap_infra_ci_timeout_slow_test",
+  "teamId": "team_infra",
+  "scope": "project",
+  "labels": ["ci", "github", "timeout", "testing", "pipeline"],
+  "shortcut": "CI pipeline timeout from slow integration tests",
+  "detail": "Integration tests that make real HTTP requests or start real services can take minutes per test. When the total test suite exceeds the CI job timeout (typically 30-60 minutes on GitHub Actions), the entire pipeline fails with a timeout error. This blocks all deployments and PR merges. The error is exacerbated by CI container resource limits that make tests slower than local execution. Prerequisite: understanding CI resource constraints and test performance optimization. Requires test suite timeout budgeting and performance monitoring. To mitigate: set per-test timeouts, use test sharding to parallelize across CI jobs. Fix: replace real HTTP calls with wiremock or similar tools, use in-memory databases for test environments, and parallelize with vitest --shard.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

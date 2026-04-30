@@ -1,0 +1,10 @@
+{
+  "id": "trap_frontend_react_stale_closure",
+  "teamId": "team_frontend",
+  "scope": "project",
+  "labels": ["react", "hooks", "closure", "stale-state", "typescript"],
+  "shortcut": "React useEffect stale closure trap",
+  "detail": "When accessing state inside a useEffect callback without including the state variable in the dependency array, the callback captures the stale value from the closure at mount time. This causes the effect to operate on outdated state, leading to undefined behavior and error in production. Prerequisite: understanding JavaScript closure semantics. Requires careful dependency array management. To mitigate: use useRef for mutable values that should not trigger re-renders, or add the state variable to the dependency array. Fix: extract the state read into a separate function passed as dependency. This error commonly occurs in React applications using TypeScript with vitest for testing.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

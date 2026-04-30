@@ -1,0 +1,10 @@
+{
+  "id": "trap_frontend_async_race_condition",
+  "teamId": "team_frontend",
+  "scope": "project",
+  "labels": ["async", "race-condition", "javascript", "promise", "fetch"],
+  "shortcut": "Async fetch race condition in component unmount",
+  "detail": "When a React component triggers an async fetch request and the user navigates away before the promise resolves, the setState call in the .then() handler will fail with a 'cannot update unmounted component' warning (or error in React 18 strict mode). This also causes memory leaks and potential state corruption. The timeout from slow network responses makes this more likely on staging and production environments. Prerequisite: understanding React component lifecycle and async JavaScript. Requires cleanup of pending promises on unmount. Fix: use an AbortController to cancel pending fetch requests in the useEffect cleanup function. To mitigate: always use the mounted ref pattern or abort signal. This bug is often missed in local development but appears in CI and production.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

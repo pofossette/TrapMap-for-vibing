@@ -1,0 +1,10 @@
+{
+  "id": "trap_backend_connection_pool_exhaustion",
+  "teamId": "team_backend",
+  "scope": "project",
+  "labels": ["postgresql", "connection-pool", "database", "timeout", "backend"],
+  "shortcut": "Database connection pool exhaustion under load",
+  "detail": "When postgresql queries are slow or connections are not properly released back to the pool, the connection pool becomes exhausted. New requests fail with timeout errors: 'cannot acquire connection from pool' or 'connection timeout'. This cascades across all API endpoints in production, causing a full service outage even for endpoints that don't directly use the database. The error is especially severe in docker containerized environments where connection limits are shared. Prerequisite: understanding node database connection pooling and resource lifecycle management. Requires proper connection release in finally blocks or using framework-managed transactions. To mitigate: set pool max connections based on database capacity, add connection timeout alerts. Fix: use connection pool monitoring with vitest integration tests, ensure all connections are released even on error paths.",
+  "requiredLevel": 4,
+  "lifecycleState": "approved"
+}

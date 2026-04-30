@@ -1,0 +1,10 @@
+{
+  "id": "trap_crossdomain_ci_test_infra_cascade",
+  "teamId": "team_platform",
+  "scope": "project",
+  "labels": ["ci", "testing", "docker", "kubernetes", "database", "infrastructure"],
+  "shortcut": "CI test failure cascade from infrastructure dependency",
+  "detail": "When CI integration tests depend on external services (databases, message queues, APIs) running in containers, a single infrastructure component failure cascades across all test suites. A postgresql container that fails to start within the timeout causes all database-dependent tests to fail, which then blocks all deployment pipelines. The error is amplified in kubernetes-based CI runners where container scheduling delays are common. Prerequisite: understanding CI infrastructure resilience and test isolation. Requires health checks and retry logic for CI service containers. To mitigate: add readiness health checks before running tests, use service containers with retry wrappers. Fix: implement wait-for-it scripts for CI service dependencies, use in-memory alternatives for non-critical tests, and parallelize independent test suites.",
+  "requiredLevel": 4,
+  "lifecycleState": "approved"
+}

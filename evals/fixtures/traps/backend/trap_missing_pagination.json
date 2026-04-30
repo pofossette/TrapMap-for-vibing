@@ -1,0 +1,10 @@
+{
+  "id": "trap_backend_missing_pagination",
+  "teamId": "team_backend",
+  "scope": "project",
+  "labels": ["api", "rest", "pagination", "database", "postgresql"],
+  "shortcut": "Missing pagination causing full table scan",
+  "detail": "API endpoints in node that return all records without LIMIT/OFFSET pagination load the entire postgresql table into memory. As the table grows, each request consumes more memory and takes longer, eventually causing timeout errors and OOM crashes in production. This is a common oversight in early-stage APIs that work fine with small datasets in local development. Prerequisite: understanding database query optimization and API design. Requires mandatory pagination with reasonable page size limits. To mitigate: enforce maximum page size in API middleware, add cursor-based pagination for large datasets. Fix: add LIMIT/OFFSET or cursor-based pagination to all list endpoints, set a maximum page size of 100. Monitor query execution time in CI and staging with vitest integration tests.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

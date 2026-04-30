@@ -1,0 +1,10 @@
+{
+  "id": "trap_frontend_css_layout_shift",
+  "teamId": "team_frontend",
+  "scope": "project",
+  "labels": ["css", "layout-shift", "performance", "cls", "browser"],
+  "shortcut": "Cumulative Layout Shift from unsized media",
+  "detail": "Loading images, videos, or ads without explicit width and height attributes causes cumulative layout shift (CLS). The browser reserves zero space initially, then shifts all content down when the resource loads. This creates a poor user experience and fails Google Core Web Vitals thresholds in production. The error is not visible in local development with fast connections but appears on staging and production with real network latency. Prerequisite: understanding browser rendering pipeline and layout. Requires explicit dimensions on all media elements. To mitigate: always set width and height attributes on img and video tags, use CSS aspect-ratio. Fix: add aspect-ratio boxes or skeleton placeholders for dynamically loaded content. This must be verified in CI with Lighthouse audits.",
+  "requiredLevel": 2,
+  "lifecycleState": "approved"
+}

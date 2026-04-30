@@ -1,0 +1,10 @@
+{
+  "id": "trap_infra_env_config_mismatch",
+  "teamId": "team_infra",
+  "scope": "project",
+  "labels": ["docker", "environment", "env", "configuration", "deployment"],
+  "shortcut": "Environment variable mismatch between container stages",
+  "detail": "When Docker containers use different environment variables between build stage and runtime, the application fails to start or misconfigures itself. Common in multi-stage builds where build-time ARGs are not passed as runtime ENV, or when .env files are excluded from the Docker image but expected at runtime. The error manifests as undefined configuration values or connection refused errors in production containers. Prerequisite: understanding Docker build stages and environment variable precedence. Requires explicit documentation of required environment variables. To mitigate: validate all required environment variables at application startup with fail-fast behavior. Fix: use explicit ENV declarations in Dockerfile, document required variables, and add startup validation that fails fast with missing configuration.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

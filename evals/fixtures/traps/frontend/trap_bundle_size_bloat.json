@@ -1,0 +1,10 @@
+{
+  "id": "trap_frontend_bundle_size_bloat",
+  "teamId": "team_frontend",
+  "scope": "project",
+  "labels": ["webpack", "vite", "bundle", "performance", "npm", "javascript"],
+  "shortcut": "Bundle size bloat from unoptimized npm imports",
+  "detail": "Importing entire npm packages instead of specific functions causes massive bundle size bloat. For example, importing all of lodash instead of lodash/deburr can add hundreds of kilobytes to the JavaScript bundle. This results in slow page loads, especially on mobile networks, and poor Core Web Vitals scores in production. The timeout on slow connections causes users to abandon the page. Prerequisite: understanding tree-shaking and module bundling with webpack or vite. Requires analysis of bundle composition using tools like webpack-bundle-analyzer. To mitigate: use named imports, configure sideEffects in package.json, and audit bundles in CI. Fix: replace full library imports with targeted imports or lighter alternatives. This must be addressed before deployment to production.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

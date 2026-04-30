@@ -1,0 +1,10 @@
+{
+  "id": "trap_frontend_ssr_hydration_mismatch",
+  "teamId": "team_frontend",
+  "scope": "project",
+  "labels": ["react", "ssr", "hydration", "nextjs", "node"],
+  "shortcut": "SSR hydration mismatch from client-only code",
+  "detail": "Rendering browser-only APIs (window, document, Date.now(), Math.random()) during server-side rendering causes hydration mismatches. The server HTML differs from the client's initial render, causing React to discard the server content and re-render from scratch, losing SSR benefits and causing a visible flash. This error is logged as 'Text content did not match' in development but can be silent in production. Prerequisite: understanding SSR lifecycle in Next.js or similar frameworks. Requires isomorphic code that works in both node and browser environments. To mitigate: use useEffect for client-only side effects, and typeof window checks. Fix: move dynamic content generation to useEffect or use suppressHydrationWarning for intentional mismatches. Test with vitest in both node and jsdom environments.",
+  "requiredLevel": 4,
+  "lifecycleState": "approved"
+}

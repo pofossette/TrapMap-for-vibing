@@ -1,0 +1,10 @@
+{
+  "id": "trap_infra_docker_cache_stale",
+  "teamId": "team_infra",
+  "scope": "project",
+  "labels": ["docker", "cache", "build", "container", "ci"],
+  "shortcut": "Docker build cache serving stale dependencies",
+  "detail": "Docker layer caching can serve outdated npm packages when package.json has not changed but transitive dependencies have been updated. The cache is keyed by the Dockerfile instruction, so COPY package.json && npm install is cached even if the registry has newer patch versions. This causes builds to succeed with stale dependencies that have known security vulnerabilities or bugs. The error manifests as runtime failures in production that cannot be reproduced locally. Prerequisite: understanding Docker layer caching and dependency lockfiles. Requires explicit cache busting for security updates. To mitigate: use pnpm with lockfile, pin dependency versions, and regularly bust the Docker cache in CI. Fix: use COPY pnpm-lock.yaml and run npm ci instead of npm install to respect exact lockfile versions.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

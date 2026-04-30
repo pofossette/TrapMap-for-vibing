@@ -1,0 +1,10 @@
+{
+  "id": "trap_crossdomain_monitoring_blind_spot",
+  "teamId": "team_platform",
+  "scope": "project",
+  "labels": ["monitoring", "production", "alerting", "observability", "backend", "infra"],
+  "shortcut": "Monitoring blind spot hiding production errors",
+  "detail": "When monitoring dashboards and alerts only cover HTTP 5xx errors but not 4xx errors, slow degradation patterns, or queue backlog growth, critical production issues go undetected. The error surfaces only when customers report problems, by which point the impact is severe. This is a cross-domain trap involving node backend API design, docker infrastructure monitoring, and frontend error tracking with typescript. Prerequisite: understanding observability pillars (metrics, logs, traces). Requires comprehensive monitoring coverage across all system components. To mitigate: implement RED metrics (Rate, Errors, Duration) for all services, add custom business metrics. Fix: deploy structured logging with correlation IDs, add distributed tracing, create alerts for error rate thresholds and latency percentiles in production. Test alerting rules in CI.",
+  "requiredLevel": 4,
+  "lifecycleState": "approved"
+}

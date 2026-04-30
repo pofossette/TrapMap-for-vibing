@@ -1,0 +1,10 @@
+{
+  "id": "trap_backend_unhandled_promise_rejection",
+  "teamId": "team_backend",
+  "scope": "project",
+  "labels": ["node", "async", "promise", "error-handling", "javascript"],
+  "shortcut": "Unhandled promise rejection crashing Node.js process",
+  "detail": "In node 15+, unhandled promise rejections terminate the process by default. When an async function throws and the error is not caught with try/catch or .catch(), the node process crashes entirely, taking down all active requests in production. Common causes include missing await keyword, forgotten .catch() on promise chains, and errors in event handlers. The error is silent until it crashes. Prerequisite: understanding JavaScript async error propagation. Requires comprehensive async error handling. To mitigate: add global unhandledRejection handler as a safety net, use async error boundaries. Fix: wrap all async route handlers with a catch-all middleware, ensure every promise chain has a .catch() handler. Test error paths with vitest.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

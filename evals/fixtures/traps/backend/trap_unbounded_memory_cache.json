@@ -1,0 +1,10 @@
+{
+  "id": "trap_backend_unbounded_memory_cache",
+  "teamId": "team_backend",
+  "scope": "project",
+  "labels": ["node", "redis", "cache", "memory-leak", "performance"],
+  "shortcut": "Unbounded in-memory cache causing OOM crashes",
+  "detail": "Using a plain JavaScript Map or object as an in-memory cache without size limits causes the node process to grow unbounded in memory usage. Over time in production, the process hits the V8 heap limit and crashes with an out-of-memory error. This is especially dangerous for long-running API servers where cache entries are added but never evicted. The timeout from GC pauses makes the API unresponsive before the crash. Prerequisite: understanding V8 memory management and cache eviction strategies. Requires bounded cache with LRU or TTL eviction. To mitigate: use an LRU cache library with a maximum size, or use redis for shared caching. Fix: replace plain Map with lru-cache or similar bounded cache, add monitoring for process memory in production.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

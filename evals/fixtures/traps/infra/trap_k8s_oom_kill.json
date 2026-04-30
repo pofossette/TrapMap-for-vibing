@@ -1,0 +1,10 @@
+{
+  "id": "trap_infra_k8s_oom_kill",
+  "teamId": "team_infra",
+  "scope": "project",
+  "labels": ["kubernetes", "k8s", "memory", "oom", "container", "node"],
+  "shortcut": "Kubernetes OOMKILL from missing memory limits",
+  "detail": "Deploying pods to kubernetes without setting memory limits allows a single misbehaving container to consume all node memory, causing the kernel OOM killer to terminate random processes. The node becomes unstable and other pods on the same node crash with OOMKILL status. This error is catastrophic in production because it affects unrelated services sharing the same kubernetes node. Prerequisite: understanding kubernetes resource management and QoS classes. Requires explicit memory requests and limits on all pod specifications. To mitigate: set memory limits based on load testing data, use LimitRanges for namespace defaults. Fix: add resources.requests.memory and resources.limits.memory to all Deployment manifests, monitor with Prometheus.",
+  "requiredLevel": 4,
+  "lifecycleState": "approved"
+}

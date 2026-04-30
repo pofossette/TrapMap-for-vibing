@@ -11,7 +11,9 @@ import {
   processPendingCandidates,
   resetInterruptedCandidates,
 } from './lib/candidates/index.js';
+import { createAiProviders } from './lib/ai/index.js';
 import { AppError, isAppError } from './lib/errors.js';
+import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
 import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
 import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
@@ -109,7 +111,12 @@ export function buildServer(options: BuildServerOptions = {}) {
     config,
     store: createSkillShareerStore(config),
     indexAdapters: buildDefaultIndexAdapters(),
+    ai: createAiProviders(config.ai),
   });
+
+  // Bridge: wire global embeddings provider so existing generateEmbedding() callers
+  // delegate through the new AI provider layer.
+  setGlobalEmbeddingsProvider(app.skillShareer.ai.embeddings);
 
   app.register(authRoutes);
   app.register(teamRoutes);

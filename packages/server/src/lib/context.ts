@@ -2,6 +2,7 @@ import type { Permission } from '@trapmap/contracts';
 import type { FastifyRequest } from 'fastify';
 
 import type { ServerConfig } from '../config.js';
+import type { AiProviders } from './ai/types.js';
 import type { IndexAdapter } from './indexing/types.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
 
@@ -9,6 +10,7 @@ export interface SkillShareerServices {
   config: ServerConfig;
   store: SkillShareerStore;
   indexAdapters: IndexAdapter[];
+  ai: AiProviders;
 }
 
 export interface ResolvedAuthContext {

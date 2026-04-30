@@ -1,0 +1,10 @@
+{
+  "id": "trap_testing_setup_teardown_order",
+  "teamId": "team_testing",
+  "scope": "project",
+  "labels": ["vitest", "testing", "setup", "teardown", "database"],
+  "shortcut": "Database seed order dependency in integration tests",
+  "detail": "Integration tests that share a database often depend on specific seed data order. If the test runner executes tests in a different order (which vitest may do for parallelism), tests fail because required seed data is missing or conflicts with data from other tests. The error manifests as foreign key constraint violations or not found errors. This is especially common in CI where container databases are fresh and test execution order varies. Prerequisite: understanding test isolation and database seeding strategies. Requires self-contained test fixtures that do not depend on execution order. To mitigate: use transactions that rollback after each test, or separate databases per test file. Fix: wrap each test in a transaction that rolls back, use beforeEach to seed only the data needed for each test.",
+  "requiredLevel": 4,
+  "lifecycleState": "approved"
+}

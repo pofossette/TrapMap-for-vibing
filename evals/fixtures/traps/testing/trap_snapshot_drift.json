@@ -1,0 +1,10 @@
+{
+  "id": "trap_testing_snapshot_drift",
+  "teamId": "team_testing",
+  "scope": "project",
+  "labels": ["vitest", "snapshot", "testing", "regression", "ci"],
+  "shortcut": "Snapshot test drift masking real regressions",
+  "detail": "Over-relying on snapshot tests creates a maintenance burden where developers blindly update snapshots with vitest -u without reviewing changes. This causes real regressions to slip through because the snapshots capture the current state including bugs. The error is that snapshots provide false confidence. Large snapshots are especially problematic as they become impossible to review manually in CI. Prerequisite: understanding when snapshot tests are appropriate vs explicit assertions. Requires purposeful snapshot sizes and regular review. To mitigate: keep snapshots small and focused, use inline snapshots for reviewability. Fix: replace large snapshot assertions with specific property checks, review all snapshot updates in PR reviews.",
+  "requiredLevel": 2,
+  "lifecycleState": "approved"
+}

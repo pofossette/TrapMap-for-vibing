@@ -1,0 +1,10 @@
+{
+  "id": "trap_frontend_react_key_duplicate",
+  "teamId": "team_frontend",
+  "scope": "project",
+  "labels": ["react", "virtual-dom", "key", "list", "rendering"],
+  "shortcut": "React list rendering duplicate key corruption",
+  "detail": "Using array index as the key prop in React list rendering causes state corruption when items are reordered, inserted, or removed. React uses keys to match children between renders; duplicate or unstable keys cause React to reuse the wrong component instances, leading to undefined state being displayed to users. This error manifests as form inputs showing wrong values or components rendering with stale props. Prerequisite: understanding React reconciliation algorithm. Requires stable unique identifiers for list items. To mitigate: always use a unique ID from your data as the key, never the array index. Fix: add an id field to each item and use it as the key. This failure is especially common in production dashboards with dynamic lists and vitest often misses it without proper snapshot testing.",
+  "requiredLevel": 2,
+  "lifecycleState": "approved"
+}

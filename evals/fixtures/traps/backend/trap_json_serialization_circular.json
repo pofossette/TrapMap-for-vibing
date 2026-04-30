@@ -1,0 +1,10 @@
+{
+  "id": "trap_backend_json_serialization_circular",
+  "teamId": "team_backend",
+  "scope": "project",
+  "labels": ["node", "javascript", "json", "serialization", "api"],
+  "shortcut": "Circular reference crash in JSON serialization",
+  "detail": "When a node API response contains objects with circular references (common with ORM models that have bidirectional relations), JSON.stringify fails with 'TypeError: cannot convert circular structure to JSON'. This crash takes down the request handler and returns a 500 error to the client. The error is especially common when using Sequelize or TypeORM with eager-loaded relations in production APIs. Prerequisite: understanding object graph structure and serialization. Requires careful selection of response DTOs or serialization layers. To mitigate: use response DTOs that explicitly map only needed fields, or use a serialization library that handles circular references. Fix: implement toJSON methods on model classes or use class-transformer with exclusion groups.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

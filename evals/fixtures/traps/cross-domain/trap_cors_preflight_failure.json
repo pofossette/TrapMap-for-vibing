@@ -1,0 +1,10 @@
+{
+  "id": "trap_crossdomain_cors_preflight_failure",
+  "teamId": "team_platform",
+  "scope": "project",
+  "labels": ["cors", "nginx", "api", "frontend", "backend", "browser", "typescript"],
+  "shortcut": "CORS preflight failure blocking frontend API calls",
+  "detail": "When the backend API does not properly handle CORS preflight OPTIONS requests, the browser blocks all cross-origin API calls from the frontend. This appears as opaque network errors in the browser console with no useful error message. The failure is caused by missing or misconfigured Access-Control-Allow headers on the backend, or nginx reverse proxy stripping CORS headers. This cross-domain error involves frontend browser security, backend API configuration, and nginx proxy setup. Prerequisite: understanding CORS protocol and browser security model. Requires coordinated CORS configuration across frontend, backend, and proxy layers. To mitigate: test CORS with actual browser requests in CI, not just node fetch. Fix: configure CORS middleware on the backend with correct allowed origins, ensure nginx passes through CORS headers, test with vitest and a real browser environment.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

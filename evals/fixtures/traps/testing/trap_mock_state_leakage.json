@@ -1,0 +1,10 @@
+{
+  "id": "trap_testing_mock_state_leakage",
+  "teamId": "team_testing",
+  "scope": "project",
+  "labels": ["vitest", "mock", "testing", "state-leak", "isolation"],
+  "shortcut": "Mock state leakage between test cases",
+  "detail": "When mocks or stubs are set up in one test but not properly restored, the mock state leaks into subsequent tests. This causes tests to fail when run together but pass individually, making the error difficult to diagnose. Common with vitest vi.fn() mocks on shared modules, global fetch mocks, or database state. The failure depends on test execution order, which can change between runs in CI. Prerequisite: understanding test isolation and mock lifecycle. Requires proper mock cleanup in afterEach or afterAll hooks. To mitigate: use vitest vi.restoreAllMocks() in afterEach, never share mock state between tests. Fix: set up and tear down mocks in each test or use beforeEach/afterEach consistently.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

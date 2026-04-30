@@ -1,0 +1,10 @@
+{
+  "id": "trap_frontend_memory_leak_event_listeners",
+  "teamId": "team_frontend",
+  "scope": "project",
+  "labels": ["javascript", "memory-leak", "event-listener", "dom", "browser"],
+  "shortcut": "Memory leak from unremoved DOM event listeners",
+  "detail": "Adding event listeners to window, document, or DOM elements without removing them on component unmount creates memory leaks. The listener closure holds references to component state and props, preventing garbage collection. Over time this causes the browser tab to crash with an out-of-memory error, especially in single-page applications that remain open for extended periods in production. Prerequisite: must understand JavaScript garbage collection and closure references. Requires cleanup in useEffect return function or componentWillUnmount. To mitigate: use a WeakRef-based event registry or the AbortController pattern. Fix: store listener references and call removeEventListener with the exact same function reference in the cleanup phase. Test with vitest and jsdom to verify cleanup behavior.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

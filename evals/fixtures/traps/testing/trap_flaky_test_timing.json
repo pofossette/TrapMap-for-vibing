@@ -1,0 +1,10 @@
+{
+  "id": "trap_testing_flaky_test_timing",
+  "teamId": "team_testing",
+  "scope": "project",
+  "labels": ["vitest", "testing", "flaky", "timing", "async"],
+  "shortcut": "Flaky test from timing-dependent assertions",
+  "detail": "Tests that rely on real timers (setTimeout, setInterval) or specific execution order are flaky. They pass locally but fail intermittently in CI due to different CPU load, container resource limits, or test runner parallelism. The failure manifests as timeout errors or assertion failures on async state. Prerequisite: understanding test isolation and deterministic testing patterns. Requires fake timers and proper async handling. To mitigate: use vitest vi.useFakeTimers() to control time, avoid real waits. Fix: replace real setTimeout with vi.advanceTimersByTime(), use waitFor utilities for async assertions. This must be fixed to maintain CI reliability in production pipelines.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

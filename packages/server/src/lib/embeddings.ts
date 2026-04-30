@@ -1,9 +1,22 @@
 import { createHash } from 'node:crypto';
 
+import type { EmbeddingsProvider } from './ai/types.js';
+
 interface EmbeddingsAdapter {
   provider: string;
   isConfigured: boolean;
   embed: (text: string) => Promise<number[]>;
+}
+
+/**
+ * Global provider bridge: when set, generateEmbedding() delegates here
+ * instead of using the cached adapter logic. This lets the new AI provider
+ * layer coexist with existing callers that use generateEmbedding() directly.
+ */
+let globalProvider: EmbeddingsProvider | null = null;
+
+export function setGlobalEmbeddingsProvider(p: EmbeddingsProvider): void {
+  globalProvider = p;
 }
 
 /**
@@ -157,6 +170,9 @@ export async function getEmbeddingsAdapter(): Promise<EmbeddingsAdapter> {
  * This is the main entry point for embedding generation.
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
+  if (globalProvider) {
+    return globalProvider.embed(text);
+  }
   const adapter = await getEmbeddingsAdapter();
   return adapter.embed(text);
 }

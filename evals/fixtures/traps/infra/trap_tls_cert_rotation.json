@@ -1,0 +1,10 @@
+{
+  "id": "trap_infra_tls_cert_rotation",
+  "teamId": "team_infra",
+  "scope": "project",
+  "labels": ["tls", "ssl", "nginx", "certificates", "security", "production"],
+  "shortcut": "TLS certificate expiration causing production outage",
+  "detail": "When TLS certificates are not rotated before expiration, nginx or other reverse proxies reject HTTPS connections with certificate validation errors. This causes a complete production outage for all HTTPS endpoints. The error is sudden and affects all users simultaneously. Manual certificate management is error-prone and often forgotten until the outage occurs. Prerequisite: understanding TLS certificate lifecycle and automated renewal. Requires automated certificate rotation with monitoring. To mitigate: use cert-manager in kubernetes for automatic renewal, set up expiration alerts at 30, 14, and 7 days. Fix: implement cert-manager with automatic renewal, add Prometheus alerts for certificate expiration, and test renewal in staging before production deployment.",
+  "requiredLevel": 5,
+  "lifecycleState": "approved"
+}

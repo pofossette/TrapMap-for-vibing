@@ -1,0 +1,10 @@
+{
+  "id": "trap_testing_assertion_async_gap",
+  "teamId": "team_testing",
+  "scope": "project",
+  "labels": ["vitest", "testing", "assertion", "async", "typescript"],
+  "shortcut": "Silent test pass from missing await on assertion",
+  "detail": "When an assertion library throws inside a .then() callback or inside an async function that is not awaited, the test passes silently because the rejected promise is never caught by the test runner. The assertion error is swallowed, and vitest reports the test as passing even though the assertion would have failed. This is a dangerous error because it gives false confidence in test coverage. Prerequisite: understanding promise error handling in test frameworks. Requires awaiting all async assertions. To mitigate: configure vitest to fail on unhandled rejections in test code. Fix: always await async expect() calls and use expect().rejects pattern for expected errors. This must be enforced with eslint rules in CI.",
+  "requiredLevel": 3,
+  "lifecycleState": "approved"
+}

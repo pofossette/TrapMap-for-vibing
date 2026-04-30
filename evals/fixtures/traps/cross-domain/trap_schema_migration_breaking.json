@@ -1,0 +1,10 @@
+{
+  "id": "trap_crossdomain_schema_migration_breaking",
+  "teamId": "team_platform",
+  "scope": "project",
+  "labels": ["postgresql", "typescript", "migration", "database", "api", "orm"],
+  "shortcut": "Breaking database schema migration blocking all deployments",
+  "detail": "A database migration that removes a column still referenced by the running application code causes immediate errors in production. The ORM throws 'column not found' exceptions, API responses return undefined for missing fields, and frontend displays break. This cross-domain failure requires coordinated changes to database schema, backend ORM models, API response DTOs, and frontend TypeScript interfaces. The error occurs because migrations are applied before the new code is deployed. Prerequisite: understanding database migration strategies and zero-downtime deployments. Requires multi-phase migration approach. To mitigate: never remove columns in a single migration, always add new columns first, then deploy code, then remove old columns. Fix: use expand-and-contract migration pattern, add column first, deploy code using new column, then remove old column in a separate migration.",
+  "requiredLevel": 5,
+  "lifecycleState": "approved"
+}

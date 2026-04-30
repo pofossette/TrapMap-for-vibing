@@ -43,6 +43,18 @@ function makeServices(): SkillShareerServices {
       snapshot: vi.fn(),
     },
     indexAdapters: [],
+    ai: {
+      embeddings: {
+        provider: 'fallback',
+        isConfigured: false,
+        embed: async () => new Array(384).fill(0),
+      },
+      chat: {
+        provider: 'fallback',
+        isConfigured: false,
+        invoke: async () => '',
+      },
+    },
   } as unknown as SkillShareerServices;
 }
 

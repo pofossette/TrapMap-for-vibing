@@ -1,0 +1,10 @@
+{
+  "id": "trap_backend_transaction_deadlock",
+  "teamId": "team_backend",
+  "scope": "project",
+  "labels": ["postgresql", "transaction", "deadlock", "locking", "database"],
+  "shortcut": "Database deadlock from inconsistent lock ordering",
+  "detail": "When two concurrent transactions in node acquire locks on multiple rows or tables in different orders, a deadlock occurs. Transaction A locks row 1 then tries to lock row 2, while Transaction B locks row 2 then tries to lock row 1. Both transactions wait indefinitely for the other, causing postgresql to detect the deadlock and abort one with an error. This failure is intermittent and hard to reproduce in local development but occurs frequently under concurrent load in production. Prerequisite: understanding database isolation levels and lock acquisition order. Requires consistent lock ordering across all transaction paths. To mitigate: always acquire locks in a consistent order (e.g., by primary key). Fix: use SELECT FOR UPDATE with ORDER BY to enforce consistent lock ordering, and implement retry logic for deadlock errors. Verify retry behavior with vitest.",
+  "requiredLevel": 5,
+  "lifecycleState": "approved"
+}
