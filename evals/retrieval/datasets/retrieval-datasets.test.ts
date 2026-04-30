@@ -12,7 +12,10 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { retrievalEvalCaseSchema, retrievalEvalScenarioSchema } from '../../../../packages/contracts/src/index.js';
+import {
+  retrievalEvalCaseSchema,
+  retrievalEvalScenarioSchema,
+} from '../../../../packages/contracts/src/index.js';
 
 import { coreScenarios, coreScenariosMap } from '../scenarios/core/retrieval-core-scenarios.js';
 // Import scenarios

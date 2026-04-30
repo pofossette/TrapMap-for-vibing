@@ -6,14 +6,14 @@ import { ZodError } from 'zod';
 
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
+import { createAiProviders } from './lib/ai/index.js';
 import {
   findInterruptedCandidates,
   processPendingCandidates,
   resetInterruptedCandidates,
 } from './lib/candidates/index.js';
-import { createAiProviders } from './lib/ai/index.js';
-import { AppError, isAppError } from './lib/errors.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
+import { AppError, isAppError } from './lib/errors.js';
 import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
 import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';

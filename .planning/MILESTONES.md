@@ -34,25 +34,6 @@
 
 ---
 
-## v1.3 工程化调整&功能扩展及优化 (Shipped: 2026-04-20)
-
-**Phases completed:** 8 phases, 16 plans, 33 tasks
-
-**Key accomplishments:**
-
-- Docker configuration and deployment scripts for server setup
-- Additive artifact-first skill lookup schemas in retrieval domain for CLI skill search-by-content command
-- Implemented governed artifact lookup endpoint and CLI skill namespace for artifact-first search-by-content functionality
-- User operations logger with JSON Lines file output, env-driven enable/disable toggle, and fire-and-forget design integrated into ServerConfig
-- All 15 user-facing route handlers instrumented with fire-and-forget logUserOperation calls, logging search/submit/edit/review/import/export actions with actor metadata
-- RAG-specific logging module following Phase 21 user-ops-log pattern, with env-driven enable/disable, JSON Lines output, and ServerConfig integration
-- Implement size-based file rotation for both user ops and RAG loggers, and integrate RAG logging into the retrieval orchestrator for pipeline timing capture.
-- Goal-backward verification of SKED-01 through SKED-04 across Phases 18-20, all requirements PASSED, CLI test gap fixed
-- Goal-backward verification of LOG-01 through LOG-04 requirements confirmed across Phases 17/21/22; contracts build verified working with inherited declaration:true
-- Created Nyquist-compliant VALIDATION.md for all 6 v1.3 phases, verified test suite results, and marked all 8 requirements complete in REQUIREMENTS.md
-
----
-
 ## v1.0 milestone (Shipped: 2026-04-17)
 
 **Phases completed:** 1 phases, 1 plans, 0 tasks

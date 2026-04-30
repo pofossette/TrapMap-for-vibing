@@ -1,4 +1,6 @@
-# Skill Shareer Architecture
+# Skill Shareer（已重命名为 TrapMap）
+
+> **注意**："Skill Shareer" 是项目曾用名，现已统一更名为 **TrapMap**。原架构文档保留供参考。
 
 ## Monorepo Layout
 

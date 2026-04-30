@@ -88,10 +88,7 @@ export function loadAiProviderConfig(): AiProviderConfig {
   const embeddingModel = process.env.AI_EMBEDDING_MODEL || defaults.embeddingModel;
 
   const isConfigured =
-    baseUrl.length > 0 &&
-    apiKey.length > 0 &&
-    chatModel.length > 0 &&
-    embeddingModel.length > 0;
+    baseUrl.length > 0 && apiKey.length > 0 && chatModel.length > 0 && embeddingModel.length > 0;
 
   return { provider, baseUrl, apiKey, chatModel, embeddingModel, isConfigured };
 }

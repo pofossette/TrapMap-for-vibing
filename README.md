@@ -2,6 +2,19 @@
 
 A monorepo for skill sharing platform with server, CLI, and contracts packages.
 
+## 📖 文档
+
+| 文档 | 说明 |
+|------|------|
+| [architecture.md](architecture.md) | 系统架构概览 |
+| [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | 本地开发环境搭建 |
+| [docs/DATA_MODEL.md](docs/DATA_MODEL.md) | 数据模型详解 |
+| [docs/architecture/](docs/architecture/) | 完整架构文档（API、CLI、部署、流程图等） |
+| [docs/api-surface.md](docs/api-surface.md) | v1 API 契约表面 |
+| [CHANGELOG.md](CHANGELOG.md) | 版本更新日志 |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | 投稿指南 |
+| [docs/GLOSSARY.md](docs/GLOSSARY.md) | 项目术语表 |
+
 ## 🚀 Quick Deploy
 
 The fastest way to deploy:
@@ -103,14 +116,17 @@ Expected response:
 ## 📁 Project Structure
 
 ```
-trapmap/
+Trap-Map/
 ├── packages/
-│   ├── server/      # Main server application
-│   ├── cli/         # Command-line interface
-│   └── contracts/   # Shared contracts
-├── scripts/
-│   ├── deploy.sh          # Full deployment script
-│   └── deploy-quick.sh    # Quick deployment script
+│   ├── cli/          # Commander.js CLI 客户端
+│   ├── server/       # Fastify API 服务器
+│   ├── contracts/    # 共享 Zod Schema
+│   └── skills/       # 项目 Skill 定义（占位）
+├── evals/             # 检索和摘要评估系统
+├── docs/              # 项目文档
+│   └── architecture/  # 详细架构文档
+├── scripts/           # 部署脚本
+├── .planning/        # GSD 规划文档
 ├── docker-compose.yml
 └── README.md
 ```
@@ -144,3 +160,5 @@ pnpm lint
 # Format
 pnpm format
 ```
+
+> 📘 本地开发环境详细搭建步骤请参阅 [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)。

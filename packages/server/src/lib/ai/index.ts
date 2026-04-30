@@ -1,4 +1,8 @@
-export { type AiProviderConfig, type AiProviderType, loadAiProviderConfig } from './provider-config.js';
+export {
+  type AiProviderConfig,
+  type AiProviderType,
+  loadAiProviderConfig,
+} from './provider-config.js';
 export {
   createAiProviders,
   FallbackChat,
@@ -6,4 +10,4 @@ export {
   OpenAICompatibleChat,
   OpenAICompatibleEmbeddings,
 } from './providers.js';
-export { type AiProviders, type ChatProvider, type EmbeddingsProvider } from './types.js';
+export type { AiProviders, ChatProvider, EmbeddingsProvider } from './types.js';

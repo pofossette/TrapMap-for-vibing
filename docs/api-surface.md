@@ -1,7 +1,9 @@
-# Skill Shareer API Surface
+# TrapMap API Surface
+
+> **文档关系说明**：本文档是 v1 API 契约表面的快速概览，列出所有端点的请求/响应 Schema 名称。若需完整端点详情（请求示例、响应字段说明），请参阅 [`architecture/API.md`](architecture/API.md)。
 
 This document fixes the initial v1 API contract surface before feature implementation.
-All routes are rooted at `/v1` and exchange JSON validated by `@skill-shareer/contracts`.
+All routes are rooted at `/v1` and exchange JSON validated by `@trapmap/contracts`.
 
 ## Auth
 
@@ -46,5 +48,5 @@ All routes are rooted at `/v1` and exchange JSON validated by `@skill-shareer/co
 
 ## Notes
 
-- CLI and server must treat `@skill-shareer/contracts` as the canonical schema surface.
+- CLI and server must treat `@trapmap/contracts` as the canonical schema surface.
 - Later phases may add internal helper routes, but new user-facing workflow routes should extend this list rather than replacing it.

@@ -51,9 +51,7 @@ class FallbackEmbeddings implements EmbeddingsAdapter {
     const normalizedText = text.toLowerCase().trim();
 
     // Extract tokens (words longer than 2 chars) for token-aware embedding
-    const tokens = normalizedText
-      .split(/\s+/)
-      .filter((t) => t.length > 2);
+    const tokens = normalizedText.split(/\s+/).filter((t) => t.length > 2);
 
     if (tokens.length > 0) {
       // Each token contributes to a deterministic set of dimensions.
@@ -73,7 +71,7 @@ class FallbackEmbeddings implements EmbeddingsAdapter {
         for (let j = 0; j < 6; j++) {
           const idx = Math.abs(hash) % this.dimension;
           // Alternate between positive and negative contributions
-          vector[idx] += (j < 3 ? 1.0 : -0.5);
+          vector[idx] += j < 3 ? 1.0 : -0.5;
           hash = (hash * 1103515245 + 12345) | 0;
         }
       }

@@ -138,7 +138,10 @@ export class OpenAICompatibleChat implements ChatProvider {
       throw new Error(`${this.provider} chat not configured`);
     }
     const { HumanMessage, SystemMessage } = await import('@langchain/core/messages');
-    const result = await this.impl.invoke([new SystemMessage(systemPrompt), new HumanMessage(userMessage)]);
+    const result = await this.impl.invoke([
+      new SystemMessage(systemPrompt),
+      new HumanMessage(userMessage),
+    ]);
     return typeof result.content === 'string' ? result.content : String(result.content);
   }
 }

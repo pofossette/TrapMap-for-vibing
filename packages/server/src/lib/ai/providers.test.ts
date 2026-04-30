@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AiProviderConfig } from './provider-config.js';
-import { createAiProviders, FallbackChat, FallbackEmbeddings, OpenAICompatibleChat, OpenAICompatibleEmbeddings } from './providers.js';
+import {
+  FallbackChat,
+  FallbackEmbeddings,
+  OpenAICompatibleChat,
+  OpenAICompatibleEmbeddings,
+  createAiProviders,
+} from './providers.js';
 
 const openaiConfig: AiProviderConfig = {
   provider: 'openai',
