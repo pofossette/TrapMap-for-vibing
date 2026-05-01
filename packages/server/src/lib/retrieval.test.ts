@@ -19,7 +19,6 @@ describe('retrieval', () => {
     const testDataDir = `/tmp/trapmap-test-${Date.now()}.json`;
     mockStore = new JsonStore(testDataDir);
     mockServices = {
-      // biome-ignore lint/suspicious/noExplicitAny: Mock config for testing
       config: {
         ragLog: {
           enabled: false,
@@ -1212,11 +1211,8 @@ describe('retrieval', () => {
         expect(match.score).toBeDefined();
         expect(match.reason).toBeDefined();
         // Should NOT have payload/body fields
-        // biome-ignore lint/suspicious/noExplicitAny: Checking internal fields don't exist
         expect((match as any).payload).toBeUndefined();
-        // biome-ignore lint/suspicious/noExplicitAny: Checking internal fields don't exist
         expect((match as any).body).toBeUndefined();
-        // biome-ignore lint/suspicious/noExplicitAny: Checking internal fields don't exist
         expect((match as any).content).toBeUndefined(); // No raw content
       }
     });
@@ -1240,9 +1236,7 @@ describe('retrieval', () => {
           // Snippet should be a portion of detail, not the full document
           expect(typeof match.citation.snippet).toBe('string');
           // Should not have rawContent or body
-          // biome-ignore lint/suspicious/noExplicitAny: Checking internal fields don't exist
           expect((match.citation as any).rawContent).toBeUndefined();
-          // biome-ignore lint/suspicious/noExplicitAny: Checking internal fields don't exist
           expect((match.citation as any).body).toBeUndefined();
         }
       }

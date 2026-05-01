@@ -6,7 +6,6 @@ import type { NormalizedIndexDocument } from '../types.js';
 import { vectorIndexAdapter } from './vector.js';
 
 describe('vector index adapter', () => {
-  // biome-ignore lint/suspicious/noExplicitAny: Mock entry for testing
   let mockEntry: any;
   let mockDocument: NormalizedIndexDocument;
 

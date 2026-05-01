@@ -565,7 +565,6 @@ describe('indexing pipeline', () => {
         entry.lifecycleState = 'rejected';
 
         // Add existing index state
-        // biome-ignore lint/suspicious/noExplicitAny: Setting internal index state for test
         (entry as any).indexState = {
           contentHash: 'abc123',
           normalizedAt: createdAt,

@@ -64,7 +64,6 @@ function tokenizeEntry(entry: KnowledgeRecord): {
 } {
   // Phase 8: Check for persisted keyword state
   if (entry.indexState?.keyword?.status === 'synced') {
-    // biome-ignore lint/suspicious/noExplicitAny: Accessing internal persistedState from index adapter
     const persistedState = (entry.indexState.keyword as any).persistedState;
     if (persistedState?.fieldTokens) {
       // Use persisted tokens

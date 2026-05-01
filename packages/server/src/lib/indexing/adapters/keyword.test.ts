@@ -6,7 +6,6 @@ import type { NormalizedIndexDocument } from '../types.js';
 import { keywordIndexAdapter } from './keyword.js';
 
 describe('keyword index adapter', () => {
-  // biome-ignore lint/suspicious/noExplicitAny: Mock entry for testing
   let mockEntry: any;
   let mockDocument: NormalizedIndexDocument;
 

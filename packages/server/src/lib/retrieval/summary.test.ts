@@ -568,8 +568,8 @@ describe('summary', () => {
 
       expect(result).not.toBeNull();
       expect(result?.text).toBeDefined();
-      // Verify it used the filtered content
-      expect(result?.text).toContain('Pre-filtered problem');
+      // Verify it used the filtered capsule content
+      expect(result?.text).toContain('Pre-filtered capsule content');
     });
   });
 });

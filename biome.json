@@ -42,7 +42,8 @@
       ".gemini",
       ".kilo",
       ".opencode",
-      ".planning"
+      ".planning",
+      "reports"
     ]
   },
   "javascript": {

@@ -26,7 +26,6 @@ import {
 
 describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
   let store: SkillShareerStore;
-  // biome-ignore lint/suspicious/noExplicitAny: Mock data for testing
   let storeData: any;
   const userId = 'user_1';
   const teamId = 'team_1';
