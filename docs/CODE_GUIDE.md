@@ -69,7 +69,7 @@ contracts → server (app → routes → lib) → cli → evals
 | `candidates.ts` | `/v1/candidates` | 异步摄取状态 |
 | `operations.ts` | `/v1/operations` | 批量导入/导出 |
 | `traps.ts` | `/v1/traps` | Trap 级别操作 |
-| `skills.ts` | `/v1/skills` | Skill 管理 |
+| `retrieval.ts` | `/v1/retrieval/skills/search-by-content` | Skill 内容检索 |
 
 ### 2.3 业务逻辑 — `src/lib/`
 
@@ -87,16 +87,21 @@ lib/ai/
 
 支持 OpenAI、OpenAI 兼容端点（如 vLLM）和 Ollama。核心概念是 **fallback 链**：主 provider 失败时自动切换到备用 provider。
 
-#### 存储抽象 — `lib/store/`
+#### 存储抽象 — `lib/store.ts` 与 `lib/persistence/`
 
 ```
-lib/store/
-├── types.ts          # SkillShareerStore 接口定义
-├── json-store.ts     # 文件级存储（开发用）
-└── postgres-store.ts # PostgreSQL + Drizzle ORM（生产用）
+lib/store.ts
+├── SkillShareerStore 接口与 JsonStore 文件存储
+└── 领域记录类型
+
+lib/persistence/
+├── create-store.ts   # 根据配置选择存储实现
+├── postgres-store.ts # PostgreSQL + Drizzle ORM（生产用）
+└── schema.ts         # Drizzle schema
 ```
 
-`SkillShareerStore` 是统一存储接口。两个实现共享相同的 API 签名，通过配置切换。
+`SkillShareerStore` 是统一存储接口。`createSkillShareerStore()` 根据 `TRAPMAP_DATABASE_URL`
+选择 PostgreSQL，否则使用 JSON 文件存储。
 
 #### 检索管道 — `lib/retrieval/`
 
@@ -218,7 +223,7 @@ CLI knowledge submit
   → 索引更新（vector + keyword + graph）
 ```
 
-对应代码路径：`cli/commands/knowledge.ts` → `server/routes/knowledge.ts` → `server/lib/` → `server/lib/store/`
+对应代码路径：`cli/commands/knowledge.ts` → `server/routes/knowledge.ts` → `server/lib/` → `server/lib/store.ts` / `server/lib/persistence/`
 
 ### 检索流程
 

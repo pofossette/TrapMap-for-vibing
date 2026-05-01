@@ -9,7 +9,7 @@
 | `packages/cli` | `src/index.ts` | Commander.js CLI 客户端，用户交互终端入口 |
 | `packages/server` | `src/index.ts` | Fastify API 服务器，业务逻辑编排 |
 | `packages/contracts` | `src/index.ts` | 共享 Zod Schema 和 TypeScript 类型 |
-| `packages/skills` | — | 项目 Skill 定义（占位符） |
+| `packages/skills` | `trapmap-knowledge-workflow/SKILL.md` | 项目级 Skill 工作流与参考资料 |
 
 ---
 
@@ -63,19 +63,15 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 | `routes/operations.ts` | `/v1/operations` | 导入/导出 |
 | `routes/candidates.ts` | `/v1/candidates` | 异步摄取 |
 | `routes/traps.ts` | `/v1/traps` | Trap 管理 |
-| `routes/skills.ts` | `/v1/skills` | Skill 管理 |
+| `routes/retrieval.ts` | `/v1/retrieval/skills/search-by-content` | Skill 内容检索 |
 
 ### 配置
 
 ```typescript
 // src/config.ts
-import { createServerConfig } from './lib/config.js';
+import { loadConfig } from './config.js';
 
-const config = createServerConfig({
-  port: Number(process.env.PORT ?? 4000),
-  host: process.env.HOST ?? '127.0.0.1',
-  aiProvider: process.env.AI_PROVIDER ?? 'openai',
-});
+const config = loadConfig();
 ```
 
 ---
@@ -103,10 +99,10 @@ const config = createServerConfig({
 
 ```bash
 # 人类可读输出（默认）
-pnpm cli knowledge search "如何处理 N+1"
+pnpm --filter @trapmap/cli dev -- knowledge search "如何处理 N+1"
 
 # JSON 模式（机器解析）
-pnpm cli knowledge search "如何处理 N+1" --json
+pnpm --filter @trapmap/cli dev -- knowledge search "如何处理 N+1" --json
 ```
 
 ### 状态管理
@@ -123,7 +119,8 @@ const session = cliState.session;
 
 ## packages/skills
 
-当前为占位符目录，待后续用于存放项目级 Skill 定义。
+当前包含 `trapmap-knowledge-workflow`，用于规范 TrapMap 相关规划、检索、评审和经验沉淀流程。入口文件是
+`packages/skills/trapmap-knowledge-workflow/SKILL.md`，参考资料位于同目录的 `references/`。
 
 ---
 

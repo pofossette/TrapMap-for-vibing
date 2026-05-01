@@ -162,7 +162,7 @@ LOG_MAX_BACKUP_FILES=5
 
 ```bash
 # 通过 CLI 创建
-pnpm cli member key:create <username> --name "CI Pipeline" --days 90
+pnpm --filter @trapmap/cli dev -- member key:create <username> --name "CI Pipeline" --days 90
 ```
 
 创建后密钥明文仅显示一次，务必立即保存到安全位置。
@@ -228,7 +228,7 @@ LOG_USER_OPS_DIR=logs/user-ops
 审计日志需要 `audit:read` 权限才能查看：
 
 ```bash
-pnpm cli audit list --limit 50
+pnpm --filter @trapmap/cli dev -- audit list --limit 50
 ```
 
 ---

@@ -13,8 +13,8 @@ npm install -g @trapmap/cli
 # 或使用 pnpm
 pnpm add -g @trapmap/cli
 
-# 或直接使用
-pnpm cli --help
+# 或在本 monorepo 中直接从源码运行
+pnpm --filter @trapmap/cli dev -- --help
 ```
 
 ## 全局选项

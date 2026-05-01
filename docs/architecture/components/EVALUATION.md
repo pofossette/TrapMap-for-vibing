@@ -442,7 +442,7 @@ jobs:
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
           
       - name: Start server
-        run: pnpm dev &
+        run: pnpm dev:server &
         shell: background
         
       - name: Wait for server

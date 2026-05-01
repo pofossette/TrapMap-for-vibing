@@ -441,7 +441,7 @@ RBAC 和资格检查。
 - `recall/` - Recall 实现
   - `semantic.ts` - 语义 Recall
   - `keyword.ts` - 关键词 Recall
-  - `graph.ts` - 图辅助 Recall
+  - `graph-assisted.ts` - 图辅助 Recall
 - `plan-compiler.ts` - 陷阱优先计划编译
 - `graph-plan-search.ts` - GraphRAG-lite 包装器
 
@@ -451,8 +451,8 @@ RBAC 和资格检查。
 **文件**：
 - `schema.ts` - Drizzle PostgreSQL schema
 - `postgres-store.ts` - PostgreSQL 存储
-- `json-store.ts` - 文件级 JSON 存储
 - `create-store.ts` - 存储工厂
+- 文件级 JSON 存储实现位于 `lib/store.ts`
 
 ---
 

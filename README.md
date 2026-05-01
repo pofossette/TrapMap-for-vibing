@@ -121,7 +121,7 @@ Trap-Map/
 │   ├── cli/          # Commander.js CLI 客户端
 │   ├── server/       # Fastify API 服务器
 │   ├── contracts/    # 共享 Zod Schema
-│   └── skills/       # 项目 Skill 定义（占位）
+│   └── skills/       # 项目级 Skill 工作流
 ├── evals/             # 检索和摘要评估系统
 ├── docs/              # 项目文档
 │   └── architecture/  # 详细架构文档

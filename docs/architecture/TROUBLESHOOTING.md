@@ -13,7 +13,7 @@
 #### 症状
 
 ```bash
-pnpm dev
+pnpm dev:server
 # Error: Cannot find module 'xxx'
 # 或
 # SyntaxError: Cannot use import statement outside a module
@@ -72,7 +72,7 @@ netstat -tlnp | grep 4000
 kill <PID>
 
 # 方案 2: 使用其他端口
-PORT=4001 pnpm dev
+PORT=4001 pnpm dev:server
 
 # 方案 3: Docker 中修改
 # docker-compose.yml 中修改 ports 配置

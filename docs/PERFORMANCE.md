@@ -144,7 +144,7 @@ curl http://localhost:4000/health
 
 ```bash
 # 查看最近的检索延迟
-LOG_RAG_ENABLED=true LOG_RAG_DIR=logs/rag pnpm dev
+LOG_RAG_ENABLED=true LOG_RAG_DIR=logs/rag pnpm dev:server
 
 # 分析日志
 ls logs/rag/

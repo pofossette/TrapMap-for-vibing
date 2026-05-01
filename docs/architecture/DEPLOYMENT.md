@@ -37,11 +37,11 @@ cp .env.example .env
 # 编辑 .env，填入 OPENAI_API_KEY
 
 # 4. 启动服务器（使用 JSON 文件存储）
-pnpm dev
+pnpm dev:server
 
 # 5. 另一个终端运行 CLI
-pnpm cli login <username> <password>
-pnpm cli --help
+pnpm --filter @trapmap/cli dev -- login <username> <password>
+pnpm --filter @trapmap/cli dev -- --help
 ```
 
 ### 环境变量 (.env)

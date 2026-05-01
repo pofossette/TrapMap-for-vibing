@@ -1,126 +1,46 @@
-<!-- GSD:project-start source:PROJECT.md -->
-## Project
+# TrapMap Agent Entry
 
-**TrapMap**
+本文件是智能体和贡献者的入口索引，不承载完整项目说明。需要细节时按链接逐步展开，避免在单个文件中复制过长内容。
 
-TrapMap is a monorepo-based internal knowledge sharing system for software teams that need a lower-friction way to capture and reuse "pitfall" knowledge during development. It centers on a command-oriented CLI client and a LangChain JS-powered server so agents and humans can both retrieve relevant experience, submit solved problems, and keep curated knowledge trustworthy through admin review.
+## 基本情况
 
-**Core Value:** Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
+TrapMap 是 pnpm + TypeScript monorepo，用于团队工程知识、陷阱经验和 Skill 工件的提交、审核、索引与检索。主包位于 [`packages/`](packages/)：
+[`packages/cli`](packages/cli/) 是 Commander CLI，[`packages/server`](packages/server/) 是 Fastify API，
+[`packages/contracts`](packages/contracts/) 是共享 Zod schema 和类型，[`evals/`](evals/) 是检索与摘要评测。
 
-### Constraints
+## 先读什么
 
-- **Architecture**: Monorepo with clear separation between CLI client, server, and shared contracts — shared schemas must stay consistent across components
-- **Interface**: Imperative CLI commands with predictable stdout and optional JSON mode — this keeps the system bash-friendly and agent-friendly
-- **Skill Standard**: Project skills must follow Claude Code / Anthropic skill conventions (`SKILL.md`, frontmatter, directory-scoped assets) — agents must be able to load and reason over them without custom parsing
-- **Search Modality**: Text-only retrieval in v1 — no images, attachments, or multimodal embeddings in initial scope
-- **Delivery**: Fast prototype bias using LangChain JS on the server — optimize for end-to-end usability before deep platform polish
-- **Security**: Access control must combine role templates with explicit permissions — admin/user defaults alone are not precise enough for team operations
-<!-- GSD:project-end -->
+- 项目总览和常用命令：[`README.md`](README.md)
+- 文档索引：[`docs/README.md`](docs/README.md)
+- 本地开发：[`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)
+- 代码阅读路径：[`docs/CODE_GUIDE.md`](docs/CODE_GUIDE.md)
+- 包职责：[`docs/PACKAGES.md`](docs/PACKAGES.md)
+- 短期计划：[`plan.md`](plan.md)
 
-<!-- GSD:stack-start source:research/STACK.md -->
-## Technology Stack
+## 按任务跳转
 
-## Recommended Stack
-### Core Technologies
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| Node.js | LTS (`v20+`) | Runtime for server and CLI | Keeps the whole product on one runtime while matching current TypeScript CLI tooling expectations |
-| TypeScript | 5.5+ | Shared implementation language for server, CLI, and contracts | Zod 4 and modern TS tooling assume recent TypeScript, and a single language keeps contracts and validation aligned |
-| `pnpm` workspaces | Current stable | Monorepo dependency and task management | Officially optimized for monorepos and a clean fit for a TS-first workspace |
-| Fastify | Current stable | HTTP API layer for auth, knowledge, review, and retrieval endpoints | Lightweight, fast, and well-suited to typed route contracts in TypeScript |
-| PostgreSQL + `pgvector` | Current stable | Source-of-truth storage plus vector search | Keeps team data, review history, and vector lookup in one durable system |
-| LangChain JS | Current stable | Embedding, LLM, review, and retrieval orchestration | Preserves the LangChain requirement while staying inside the TS stack |
-| Zod | 4.x | Shared runtime validation and schema inference | TypeScript-first schema validation with static type inference makes contracts reusable across CLI and server |
-| Drizzle ORM | Current stable | SQL-first relational access and migrations | TS-native and pgvector-friendly without forcing unsupported vector abstractions |
-### Supporting Libraries
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| Commander | Current stable | Imperative CLI with subcommands and flags | Use for shell-friendly commands, help output, and strict command parsing |
-| `tsx` | Current stable | TS execution in development | Use for fast local iteration without a separate build step |
-| Vitest | Current stable | Test runner | Use for contract tests, CLI tests, and service-level tests |
-| `pino` | Current stable | Structured logging | Use for server logs, audit traces, and CLI debug output |
-### Development Tools
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| Biome | Linting and formatting | Fast enough to keep the CLI and server feedback loop tight in a TS monorepo |
-| Vitest | Test runner | Use contract and workflow tests, not only unit tests |
-| `tsc --noEmit` | Type checking | Especially useful for permission matrices and response schemas |
-## Installation
-# Bootstrap the workspace
-# Run the API server
-# Run the CLI
-## Alternatives Considered
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| `pnpm` workspaces | Nx or Turborepo on top of `pnpm` | Use only if task orchestration complexity grows beyond simple package filters |
-| Fastify | NestJS | Use if the team later wants a more opinionated framework and accepts extra structure overhead |
-| Drizzle ORM | Prisma | Use Prisma only if Prisma Client ergonomics outweigh pgvector limitations for your workload |
-| Commander CLI | Pure bash scripts | Use bash only for thin wrappers around the real CLI; do not let bash become the core application layer |
-## What NOT to Use
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| Ad-hoc bash scripts as the primary client implementation | Hard to validate, hard to version, and brittle for permissions or JSON contracts | A real TypeScript CLI with shell-friendly ergonomics |
-| Prisma as the primary vector access layer for v1 | Prisma docs still require raw SQL or unsupported types for `pgvector` workflows | Drizzle or direct SQL for vector-aware tables |
-| Non-standard skill packaging | Agents cannot discover or reason over project skills consistently | Claude-compatible `SKILL.md` directories with frontmatter and local assets |
-## Stack Patterns by Variant
-- Keep admin operations in the same CLI namespace
-- Because it avoids building a second control plane too early
-- Add a web admin UI later without replacing the CLI
-- Because agent automation and human operations both still benefit from stable server APIs
-## Version Compatibility
-| Package A | Compatible With | Notes |
-|-----------|-----------------|-------|
-| TypeScript 5.5+ | Zod 4 | Zod 4 documents TypeScript 5.5+ as the supported baseline |
-| LangChain JS | Provider-specific chat and embedding integrations | Keep provider adapters isolated so switching models does not change domain logic |
-| Drizzle ORM | PostgreSQL + `pgvector` | Drizzle documents `pg_vector` support directly, which reduces friction for vector-aware schema work |
-| Fastify | Zod-backed route validation patterns | Keep shared contracts the canonical schema layer for both server and CLI |
-## Sources
-- https://code.claude.com/docs/en/skills — Claude Code skill layout and compatibility expectations
-- https://docs.anthropic.com/en/docs/claude-code/sub-agents — Markdown frontmatter and subagent conventions that inform skill packaging discipline
-- https://pnpm.io/ — workspace-oriented monorepo package management
-- https://fastify.dev/docs/latest/Reference/TypeScript/ — Fastify TypeScript support
-- https://docs.langchain.com/oss/javascript/langchain/overview — LangChain JavaScript/TypeScript architecture
-- https://zod.dev/ — TypeScript-first schema validation and supported TS baseline
-- https://orm.drizzle.team/docs/extensions/pg — Drizzle pgvector support
-- https://www.prisma.io/docs/postgres/database/postgres-extensions — Prisma pgvector limitations and raw-SQL workflow details
-<!-- GSD:stack-end -->
+- 改 CLI：从 [`packages/cli/src/index.ts`](packages/cli/src/index.ts) 和 [`packages/cli/src/commands/`](packages/cli/src/commands/) 开始。
+- 改 Server：从 [`packages/server/src/app.ts`](packages/server/src/app.ts)、[`packages/server/src/routes/`](packages/server/src/routes/) 和 [`packages/server/src/lib/`](packages/server/src/lib/) 开始。
+- 改契约：先看 [`packages/contracts/src/index.ts`](packages/contracts/src/index.ts) 与 [`packages/contracts/src/domain/`](packages/contracts/src/domain/)。
+- 改检索或摘要质量：先看 [`docs/TESTING.md`](docs/TESTING.md)、[`evals/retrieval/README.md`](evals/retrieval/README.md)、[`evals/summary/README.md`](evals/summary/README.md)。
+- 改安全、权限或配置：先看 [`docs/SECURITY.md`](docs/SECURITY.md)、[`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md)、[`docs/architecture/components/GOVERNANCE.md`](docs/architecture/components/GOVERNANCE.md)。
+- 改 Skill 工作流：先看 [`packages/skills/trapmap-knowledge-workflow/SKILL.md`](packages/skills/trapmap-knowledge-workflow/SKILL.md)。
 
-<!-- GSD:conventions-start source:CONVENTIONS.md -->
-## Conventions
+## 常用命令
 
-Conventions not yet established. Will populate as patterns emerge during development.
-<!-- GSD:conventions-end -->
+```bash
+pnpm install
+pnpm build
+pnpm dev:server
+pnpm dev:cli
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm eval:smoke
+```
 
-<!-- GSD:architecture-start source:ARCHITECTURE.md -->
-## Architecture
+Codex 在本仓库执行 shell 命令时应按本地约定加 `rtk` 前缀，例如 `rtk pnpm test`。
 
-Architecture not yet mapped. Follow existing patterns found in the codebase.
-<!-- GSD:architecture-end -->
+## 变更前检查
 
-<!-- GSD:skills-start source:skills/ -->
-## Project Skills
-
-- `trapmap-knowledge-workflow` (`.claude/skills/trapmap-knowledge-workflow/SKILL.md`) — Use when planning or implementing TrapMap work, operating the TrapMap CLI, or preserving solved engineering pitfalls. Enforces skill-before-plan and trap-before-implementation retrieval, trap-first plan compilation, CLI help verification, artifact activation/review, and compact experience capture.
-<!-- GSD:skills-end -->
-
-<!-- GSD:workflow-start source:GSD defaults -->
-## GSD Workflow Enforcement
-
-Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
-
-Use these entry points:
-- `/gsd-quick` for small fixes, doc updates, and ad-hoc tasks
-- `/gsd-debug` for investigation and bug fixing
-- `/gsd-execute-phase` for planned phase work
-
-Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
-<!-- GSD:workflow-end -->
-
-
-
-<!-- GSD:profile-start -->
-## Developer Profile
-
-> Profile not yet configured. Run `/gsd-profile-user` to generate your developer profile.
-> This section is managed by `generate-claude-profile` -- do not edit manually.
-<!-- GSD:profile-end -->
+共享类型和 API 形状以 `packages/contracts` 为准。提交前优先运行与改动相关的最小验证；涉及检索、摘要、治理或 fixtures 时至少运行 `pnpm eval:smoke`。提交规范、PR 要求和测试命名见 [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) 与 [`docs/TESTING.md`](docs/TESTING.md)。

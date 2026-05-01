@@ -78,10 +78,10 @@ cp .env.example .env
 # 编辑 .env，填入 OPENAI_API_KEY 和 TRAPMAP_SYSTEM_ADMIN_KEY
 
 # 启动服务器（使用 JSON 文件存储）
-pnpm dev
+pnpm dev:server
 
 # 另一个终端运行 CLI
-pnpm cli --help
+pnpm --filter @trapmap/cli dev -- --help
 ```
 
 ### Docker 部署
@@ -114,6 +114,7 @@ pnpm eval:ci
 ### 新手入门
 - [代码导读](CODE_GUIDE.md) - 源码导航与建议阅读顺序
 - [快速上手](GETTING_STARTED.md) - 本地开发环境搭建
+- [短期计划](../plan.md) - 当前库化改造优先级和验收标准
 - [数据模型](DATA_MODEL.md) - 核心数据实体及关系
 - [术语表](GLOSSARY.md) - 项目专用术语解释
 - [投稿指南](CONTRIBUTING.md) - 代码规范和 PR 流程
@@ -127,7 +128,7 @@ pnpm eval:ci
 - [架构详解（英文）](architecture/ARCHITECTURE_en.md) - English translation
 - [模块详解](architecture/MODULES.md) - 详细模块分解
 - [API 参考](architecture/API.md) - 完整 API 列表
-- [API 契约表面](../api-surface.md) - 端点 Schema 概览
+- [API 契约表面](api-surface.md) - 端点 Schema 概览
 - [数据流](architecture/FLOW.md) - 详细数据流图
 
 ### 部署与运维
@@ -175,7 +176,7 @@ Trap-Map/
 │   ├── cli/          # Commander.js CLI 客户端
 │   ├── server/       # Fastify API 服务器
 │   ├── contracts/    # 共享 Zod schema
-│   └── skills/       # 技能包（占位）
+│   └── skills/       # 项目级 Skill 工作流
 ├── evals/            # 评估数据集和运行器
 │   ├── retrieval/   # 检索测试用例
 │   └── summary/     # 摘要评判检查

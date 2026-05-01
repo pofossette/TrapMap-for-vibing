@@ -506,52 +506,23 @@ export class PostgresStore implements Store {
 ## 存储工厂
 
 ```typescript
-import { JsonStore } from './json-store';
-import { PostgresStore } from './postgres-store';
+import pg from 'pg';
 
-export type StoreType = 'json' | 'postgres';
+import { JsonStore, type SkillShareerStore } from '../store.js';
+import { PostgresStore } from './postgres-store.js';
 
 export interface StoreConfig {
-  type: StoreType;
-  
-  // For JsonStore
-  filePath?: string;
-  
-  // For PostgresStore
-  databaseUrl?: string;
+  dataFile: string;
+  databaseUrl: string | null;
 }
 
-export async function createStore(config: StoreConfig): Promise<Store> {
-  switch (config.type) {
-    case 'json':
-      const jsonStore = new JsonStore(config.filePath || '.data/skill-shareer.json');
-      await jsonStore.initialize();
-      return jsonStore;
-    
-    case 'postgres':
-      if (!config.databaseUrl) {
-        throw new Error('databaseUrl required for postgres store');
-      }
-      return new PostgresStore(config.databaseUrl);
-    
-    default:
-      throw new Error(`Unknown store type: ${config.type}`);
+export function createSkillShareerStore(config: StoreConfig): SkillShareerStore {
+  if (config.databaseUrl) {
+    const pool = new pg.Pool({ connectionString: config.databaseUrl });
+    return new PostgresStore(pool);
   }
-}
 
-// Auto-detect based on environment
-export async function createStoreFromEnv(): Promise<Store> {
-  if (process.env.TRAPMAP_DATABASE_URL) {
-    return createStore({
-      type: 'postgres',
-      databaseUrl: process.env.TRAPMAP_DATABASE_URL
-    });
-  }
-  
-  return createStore({
-    type: 'json',
-    filePath: process.env.TRAPMAP_DATA_FILE || '.data/skill-shareer.json'
-  });
+  return new JsonStore(config.dataFile);
 }
 ```
 
