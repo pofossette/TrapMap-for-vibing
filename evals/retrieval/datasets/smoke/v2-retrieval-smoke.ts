@@ -52,6 +52,7 @@ export const v2CapsulePositiveSmoke = retrievalEvalCaseSchema.parse({
 
 /**
  * Case: Search for non-existent knowledge, expect no capsules.
+ * Note: Using a very specific query that won't match any terms in the unrelated fixture.
  */
 export const v2CapsuleEmptySmoke = retrievalEvalCaseSchema.parse({
   schemaVersion: 1,
@@ -59,7 +60,7 @@ export const v2CapsuleEmptySmoke = retrievalEvalCaseSchema.parse({
   tier: 'smoke',
   endpoint: '/v2/retrieval/search',
   request: {
-    seed: 'quantum computing neural network fusion',
+    seed: 'xyzzy123 nonexistent query plugh456',
     maxResults: 10,
   },
   scenarioId: 'smoke-empty-result',

@@ -79,13 +79,14 @@ export const smokePositiveVisibleScenario = retrievalEvalScenarioSchema.parse({
 // =============================================================================
 
 /**
- * Scenario: Actor searches but no entries match or are visible.
+ * Scenario: Actor searches but no entries exist in the system.
  * Expectation: Empty result set returned.
+ * Note: This scenario has NO fixtures to ensure truly empty results.
  */
 export const smokeEmptyResultScenario = retrievalEvalScenarioSchema.parse({
   scenarioId: 'smoke-empty-result',
   description:
-    'Actor searches for knowledge but no entries match the query. Empty result set should be returned.',
+    'Actor searches for knowledge but no entries exist. Empty result set should be returned.',
   actor: {
     subjectType: 'user',
     activeTeamId: 'team_smoke',
@@ -93,43 +94,8 @@ export const smokeEmptyResultScenario = retrievalEvalScenarioSchema.parse({
     permissions: ['knowledge:search'],
   },
   fixtures: {
-    knowledgeEntries: [
-      {
-        id: 'knowledge_smoke_unrelated',
-        teamId: 'team_smoke',
-        scope: 'project',
-        labels: ['unrelated', 'topic'],
-        shortcut: 'Unrelated Knowledge',
-        detail:
-          'This knowledge entry is about an unrelated topic that does not match the search query.',
-        requiredLevel: 3,
-        lifecycleState: 'approved',
-      },
-    ],
-    skillArtifacts: [
-      {
-        id: 'artifact_smoke_unrelated',
-        teamId: 'team_smoke',
-        scope: 'project',
-        labels: ['unrelated', 'different'],
-        title: 'Unrelated Skills',
-        slug: 'unrelated-skills',
-        requiredLevel: 3,
-        lifecycleState: 'approved',
-        capsules: [
-          {
-            capsuleId: 'capsule_smoke_unrelated',
-            content: 'This capsule is about an unrelated topic',
-            situation: 'Unrelated situation',
-            problem: 'Unrelated problem',
-            goal: 'Unrelated goal',
-            labels: ['unrelated'],
-            scope: 'project',
-            requiredLevel: 3,
-          },
-        ],
-      },
-    ],
+    knowledgeEntries: [],
+    skillArtifacts: [],
   },
 }) as RetrievalEvalScenario;
 

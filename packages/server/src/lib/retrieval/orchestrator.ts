@@ -470,9 +470,9 @@ async function semanticRecall(
   // Sort by score descending
   scoredEntries.sort((a, b) => b.score - a.score);
 
-  // Take top maxResults (score threshold deferred to consumer;
-  // fallback embeddings produce near-zero scores, so a fixed
-  // threshold would filter all results in that case)
+  // Take top maxResults
+  // Note: Score threshold is not applied here because fallback embeddings
+  // produce uniform scores. Filtering should be done at recall stage.
   return { scoredEntries: scoredEntries.slice(0, parsed.maxResults) };
 }
 
