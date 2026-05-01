@@ -7,10 +7,7 @@
  * Coverage: mode variations, ranking expectations, response shape checks, governance.
  */
 
-import type {
-  RetrievalEvalCase,
-  RetrievalEvalScenario,
-} from '@trapmap/contracts';
+import type { RetrievalEvalCase, RetrievalEvalScenario } from '@trapmap/contracts';
 
 // Import v1 and v2 core datasets
 import { v1RetrievalCoreCases } from './datasets/core/v1-retrieval-core.js';

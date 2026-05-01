@@ -5,11 +5,7 @@
  * These types support the judge-driven verification, scoring, and reporting.
  */
 
-import type {
-  SummaryEvalCase,
-  SummaryEvalEndpoint,
-  SummaryEvalTier,
-} from '@trapmap/contracts';
+import type { SummaryEvalCase, SummaryEvalEndpoint, SummaryEvalTier } from '@trapmap/contracts';
 
 // =============================================================================
 // Judge Provider Type

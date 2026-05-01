@@ -6,10 +6,7 @@
  * and empty-result edge cases.
  */
 
-import {
-  type RetrievalEvalScenario,
-  retrievalEvalScenarioSchema,
-} from '@trapmap/contracts';
+import { type RetrievalEvalScenario, retrievalEvalScenarioSchema } from '@trapmap/contracts';
 
 // =============================================================================
 // Core Scenario: Mixed Groundedness
@@ -61,8 +58,7 @@ export const summaryCoreMixedGroundedScenario = retrievalEvalScenarioSchema.pars
 
 export const summaryCoreMultiFactScenario = retrievalEvalScenarioSchema.parse({
   scenarioId: 'summary-core-multi-fact',
-  description:
-    'Actor retrieves CI/CD knowledge with multiple distinct facts to cover.',
+  description: 'Actor retrieves CI/CD knowledge with multiple distinct facts to cover.',
   actor: {
     subjectType: 'user',
     activeTeamId: 'team_core',
@@ -149,8 +145,7 @@ export const summaryCoreGovernanceScenario = retrievalEvalScenarioSchema.parse({
 
 export const summaryCoreEmptyScenario = retrievalEvalScenarioSchema.parse({
   scenarioId: 'summary-core-empty',
-  description:
-    'Actor searches for non-existent topic. No capsules returned, no summary expected.',
+  description: 'Actor searches for non-existent topic. No capsules returned, no summary expected.',
   actor: {
     subjectType: 'user',
     activeTeamId: 'team_core',

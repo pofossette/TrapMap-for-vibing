@@ -1,7 +1,11 @@
 import type { CandidateSubmission } from '@trapmap/contracts';
+import type { Pool } from 'pg';
+import type { TaskHandler } from '../queue/task-queue.js';
+import { createTaskQueue } from '../queue/task-queue.js';
 import type { SkillShareerStore, StoreData } from '../store.js';
 import { detectDuplicates } from './detector.js';
-import { computeCandidateFingerprint, createAnalysisSnapshot } from './fingerprint.js';
+import { computeCandidateFingerprint } from './fingerprint.js';
+import { createPgDuplicateDetector } from './pg-detector.js';
 import {
   attachAnalysisSnapshot,
   attachDuplicateCase,
@@ -10,10 +14,20 @@ import {
   getMaxRetries,
   updateCandidateStatus,
 } from './store.js';
-import type { DuplicateDetectionInput } from './types.js';
+import type { DuplicateDetectionInput, DuplicateDetectionResult } from './types.js';
 
-const RETRY_DELAY_MS = 5000;
 const DUPLICATE_THRESHOLD = 0.38; // Match pre-review.ts medium threshold
+
+/** Task type for candidate processing */
+export const CANDIDATE_PROCESSING_TASK_TYPE = 'candidate_processing';
+
+/**
+ * Payload for candidate processing tasks.
+ */
+export interface CandidateProcessingPayload {
+  candidateId: string;
+  retryCount: number;
+}
 
 /**
  * Services needed for candidate processing.
@@ -21,6 +35,10 @@ const DUPLICATE_THRESHOLD = 0.38; // Match pre-review.ts medium threshold
 export interface CandidateProcessorServices {
   store: SkillShareerStore;
   getSnapshot: () => Promise<StoreData>;
+  /** Optional PostgreSQL pool for pgvector-based duplicate detection */
+  pool?: Pool;
+  /** Feature flag for using PostgreSQL-based detection */
+  usePgDuplicateDetection?: () => boolean;
 }
 
 /**
@@ -73,21 +91,50 @@ export async function processCandidate(
     const fingerprintInput = buildFingerprintInput(candidate);
     const { fingerprint, keywords, tokens } = computeCandidateFingerprint(fingerprintInput);
 
-    const snapshot = createAnalysisSnapshot(fingerprint, keywords, tokens);
-
     // Phase 4: Run duplicate detection
     const freshData = await services.getSnapshot();
-    const detectionInput: DuplicateDetectionInput = {
-      candidateId,
-      candidateFingerprint: fingerprint,
-      candidateKeywords: keywords,
-      candidateTokens: tokens,
-      trapEntries: freshData.knowledgeEntries,
-      skillArtifacts: freshData.skillArtifacts,
-      threshold: DUPLICATE_THRESHOLD,
-    };
+    let result: DuplicateDetectionResult;
 
-    const result = await detectDuplicates(detectionInput);
+    // Use PostgreSQL-based detection if pool is available and flag is set
+    if (services.pool && services.usePgDuplicateDetection?.()) {
+      const pgDetector = createPgDuplicateDetector({
+        pool: services.pool,
+        featureFlag: services.usePgDuplicateDetection,
+      });
+
+      // Build candidate text for embedding
+      const candidateText =
+        candidate.sourceType === 'trap' && candidate.originalPayload.trap
+          ? `${candidate.originalPayload.trap.shortcut}\n${candidate.originalPayload.trap.detail}`
+          : '';
+
+      result = await pgDetector(
+        {
+          candidateId,
+          candidateText,
+          candidateTokens: tokens,
+          candidateKeywords: keywords,
+          candidateFingerprint: fingerprint,
+          teamId: candidate.teamId,
+        },
+        {
+          trapEntries: freshData.knowledgeEntries,
+          skillArtifacts: freshData.skillArtifacts,
+        },
+      );
+    } else {
+      // Fall back to in-memory detection
+      const detectionInput: DuplicateDetectionInput = {
+        candidateId,
+        candidateFingerprint: fingerprint,
+        candidateKeywords: keywords,
+        candidateTokens: tokens,
+        trapEntries: freshData.knowledgeEntries,
+        skillArtifacts: freshData.skillArtifacts,
+        threshold: DUPLICATE_THRESHOLD,
+      };
+      result = await detectDuplicates(detectionInput);
+    }
 
     // Phase 5: Store results and determine final status
     const finalStatus = result.duplicateCase ? 'duplicate_detected' : 'ready_for_review';
@@ -131,7 +178,9 @@ export async function processCandidate(
 }
 
 /**
- * Process candidate with retry logic.
+ * Process candidate with retry logic using task queue.
+ * If pool is available, enqueues to persistent task queue.
+ * Otherwise falls back to immediate processing (for tests/JsonStore).
  */
 export async function processCandidateWithRetry(
   candidateId: string,
@@ -166,10 +215,20 @@ export async function processCandidateWithRetry(
     const updatedCandidate = getCandidateById(updatedData, candidateId);
 
     if (updatedCandidate && canRetryCandidate(updatedCandidate)) {
-      // Schedule retry after delay
-      setTimeout(() => {
-        void processCandidateWithRetry(candidateId, services);
-      }, RETRY_DELAY_MS);
+      // If pool is available, use task queue for retry with backoff
+      // Otherwise, the caller is responsible for scheduling (e.g., processPendingCandidates)
+      if (services.pool) {
+        const queue = createTaskQueue({ pool: services.pool });
+        const retryCount = updatedCandidate.retryCount;
+        // Exponential backoff: 5s, 10s, 20s
+        const delayMs = 5000 * 2 ** retryCount;
+
+        await queue.enqueue<CandidateProcessingPayload>(
+          CANDIDATE_PROCESSING_TASK_TYPE,
+          { candidateId, retryCount },
+          { delayMs, maxAttempts: getMaxRetries() - retryCount },
+        );
+      }
     }
   }
 }
@@ -233,15 +292,58 @@ export async function processPendingCandidates(
 
 /**
  * Fire-and-forget wrapper for candidate processing.
- * Safe to call from route handlers - won't block response.
+ * If pool is available, enqueues to task queue for persistent processing.
+ * Otherwise falls back to immediate in-memory processing (for tests/JsonStore).
  */
 export function scheduleCandidateProcessing(
   candidateId: string,
   services: CandidateProcessorServices,
 ): void {
-  // Fire-and-forget with void operator
-  void processCandidateWithRetry(candidateId, services).catch((error) => {
-    // Log error but don't throw - this is fire-and-forget
-    console.error(`Candidate processing failed for ${candidateId}:`, error);
-  });
+  // If pool is available, use task queue for reliable processing
+  if (services.pool) {
+    const queue = createTaskQueue({ pool: services.pool });
+    void queue
+      .enqueue<CandidateProcessingPayload>(
+        CANDIDATE_PROCESSING_TASK_TYPE,
+        { candidateId, retryCount: 0 },
+        { maxAttempts: getMaxRetries() },
+      )
+      .catch((error) => {
+        console.error(`Failed to enqueue candidate processing for ${candidateId}:`, error);
+      });
+  } else {
+    // Fall back to fire-and-forget immediate processing (for tests/JsonStore)
+    void processCandidateWithRetry(candidateId, services).catch((error) => {
+      console.error(`Candidate processing failed for ${candidateId}:`, error);
+    });
+  }
+}
+
+/**
+ * Create a task handler for candidate processing.
+ * Use this to register the handler with a task worker.
+ */
+export function createCandidateProcessingHandler(
+  services: CandidateProcessorServices,
+): TaskHandler<CandidateProcessingPayload> {
+  return {
+    type: CANDIDATE_PROCESSING_TASK_TYPE,
+    handle: async (task) => {
+      const { candidateId } = task.payload;
+      await processCandidate(candidateId, services);
+    },
+    onDead: async (task) => {
+      const { candidateId } = task.payload;
+      console.error(`Candidate processing dead-lettered for ${candidateId}:`, task.lastError);
+      // Mark candidate as permanently failed
+      await services.store.transact(async (txData) => {
+        updateCandidateStatus({
+          data: txData,
+          candidateId,
+          status: 'error',
+          error: `Max retries exceeded: ${task.lastError ?? 'Unknown error'}`,
+        });
+      });
+    },
+  };
 }

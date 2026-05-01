@@ -7,10 +7,7 @@
  * Phase 27-01: SEVAL-01, SEVAL-02
  */
 
-import {
-  type SummaryEvalCase,
-  summaryEvalCaseSchema,
-} from '@trapmap/contracts';
+import { type SummaryEvalCase, summaryEvalCaseSchema } from '@trapmap/contracts';
 
 // =============================================================================
 // Smoke Case: Grounded Summary

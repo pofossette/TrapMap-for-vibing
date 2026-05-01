@@ -8,6 +8,7 @@ import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
 import { createAiProviders } from './lib/ai/index.js';
 import {
+  createCandidateProcessingHandler,
   findInterruptedCandidates,
   processPendingCandidates,
   resetInterruptedCandidates,
@@ -17,6 +18,8 @@ import { AppError, isAppError } from './lib/errors.js';
 import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
 import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
+import { PostgresStore } from './lib/persistence/postgres-store.js';
+import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
 import { authRoutes } from './routes/auth.js';
 import { candidateRoutes } from './routes/candidates.js';
@@ -163,6 +166,38 @@ export function buildServer(options: BuildServerOptions = {}) {
       }
     } catch (error) {
       app.log.error({ error }, 'Failed to check for interrupted candidates');
+    }
+  });
+
+  // Start task worker for PostgreSQL-backed async processing
+  // Only runs when using PostgresStore (databaseUrl configured)
+  app.addHook('onReady', async () => {
+    // Check if store is PostgreSQL-backed
+    const store = app.skillShareer.store;
+    if (store instanceof PostgresStore) {
+      const pool = store.getPool();
+      const handler = createCandidateProcessingHandler({
+        store,
+        getSnapshot: () => store.snapshot(),
+        pool,
+        // Use PG-based duplicate detection if embeddings are configured
+        usePgDuplicateDetection: () => app.skillShareer.ai.embeddings.isConfigured,
+      });
+
+      const worker = createTaskWorker({
+        pool,
+        handlers: [handler as TaskHandler<unknown>],
+        pollIntervalMs: 1000,
+        concurrency: 1,
+      });
+
+      // Start worker in background
+      void worker.run();
+
+      app.log.info('Task worker started for candidate processing');
+
+      // Store worker reference for graceful shutdown
+      app.decorate('taskWorker', worker);
     }
   });
 

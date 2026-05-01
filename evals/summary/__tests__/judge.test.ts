@@ -143,27 +143,35 @@ describe('fallbackJudge', () => {
 });
 
 describe('createJudge', () => {
-  it('should create fallback judge', () => {
+  it('should create fallback judge', async () => {
     const judge = createJudge({ provider: 'fallback' });
     expect(judge.config.provider).toBe('fallback');
 
-    const result = judge.evaluate('Docker is a container tool', ['Docker is a container tool'], {
-      requiredFacts: [],
-      forbiddenClaims: [],
-    });
+    const result = await judge.evaluate(
+      'Docker is a container tool',
+      ['Docker is a container tool'],
+      {
+        requiredFacts: [],
+        forbiddenClaims: [],
+      },
+    );
 
     expect(result.provider).toBe('fallback');
   });
 
-  it('should create openai judge (falls back to fallback)', () => {
+  it('should create openai judge (falls back to fallback)', async () => {
     const judge = createJudge({ provider: 'openai', model: 'gpt-4o-mini' });
     expect(judge.config.provider).toBe('openai');
 
-    // Currently falls back to rules-based judge
-    const result = judge.evaluate('Docker is a container tool', ['Docker is a container tool'], {
-      requiredFacts: [],
-      forbiddenClaims: [],
-    });
+    // Currently falls back to rules-based judge when no API key
+    const result = await judge.evaluate(
+      'Docker is a container tool',
+      ['Docker is a container tool'],
+      {
+        requiredFacts: [],
+        forbiddenClaims: [],
+      },
+    );
 
     expect(result).toBeDefined();
   });

@@ -1,0 +1,252 @@
+/**
+ * PostgreSQL-based duplicate detector for candidate submissions.
+ *
+ * This module provides:
+ * - Vector-based similarity search using pgvector for semantic similarity
+ * - Keyword-based matching using JSONB array containment
+ * - Hybrid scoring combining both channels
+ * - Backward-compatible DuplicateCase output
+ *
+ * Phase: Replace Jaccard overlap with pgvector recall
+ */
+
+import { and, eq, sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import type { Pool } from 'pg';
+
+import type { DuplicateCase, DuplicateMatch } from '@trapmap/contracts';
+import { generateEmbedding } from '../embeddings.js';
+import { createDuplicateCaseId } from '../ids.js';
+import { knowledgeEmbeddings, knowledgeKeywords } from '../persistence/schema.js';
+import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
+import { nowIso } from '../store.js';
+
+// Thresholds (match detector.ts for compatibility)
+const HIGH_OVERLAP_THRESHOLD = 0.72;
+const MEDIUM_OVERLAP_THRESHOLD = 0.38;
+const DETECTION_VERSION = '2.0.0'; // Bumped for pgvector-based detection
+
+export interface PgDuplicateDetectorConfig {
+  /** PostgreSQL connection pool */
+  pool: Pool;
+  /** Optional feature flag - falls back to in-memory if false */
+  featureFlag?: () => boolean;
+}
+
+/**
+ * Create a PostgreSQL-based duplicate detector.
+ *
+ * Uses pgvector for semantic similarity and JSONB for keyword matching.
+ * Combines both channels for hybrid scoring.
+ */
+export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
+  const db = drizzle(config.pool, { schema: { knowledgeEmbeddings, knowledgeKeywords } });
+
+  return async function detectDuplicatesPg(
+    input: {
+      candidateId: string;
+      candidateText: string; // shortcut + detail for embedding
+      candidateTokens: string[];
+      candidateKeywords: string[];
+      candidateFingerprint: string;
+      teamId: string | null;
+      maxMatches?: number;
+    },
+    fallbackData?: {
+      trapEntries: KnowledgeRecord[];
+      skillArtifacts: SkillArtifactRecord[];
+    },
+  ): Promise<{
+    duplicateCase: DuplicateCase | null;
+    analysisSnapshot: {
+      normalizedAt: string;
+      fingerprint: string;
+      keywords: string[];
+      tokens: string[];
+    };
+  }> {
+    const maxMatches = input.maxMatches ?? 10;
+
+    // Feature flag check - fall back to in-memory if disabled
+    if (config.featureFlag && !config.featureFlag()) {
+      // Import and use the in-memory detector
+      const { detectDuplicates } = await import('./detector.js');
+      return detectDuplicates({
+        candidateId: input.candidateId,
+        candidateFingerprint: input.candidateFingerprint,
+        candidateKeywords: input.candidateKeywords,
+        candidateTokens: input.candidateTokens,
+        trapEntries: fallbackData?.trapEntries ?? [],
+        skillArtifacts: fallbackData?.skillArtifacts ?? [],
+        threshold: MEDIUM_OVERLAP_THRESHOLD,
+      });
+    }
+
+    const normalizedAt = nowIso();
+    const matches: DuplicateMatch[] = [];
+
+    // Channel 1: Vector similarity search
+    const candidateVector = await generateEmbedding(input.candidateText);
+    const vectorLiteral = `[${candidateVector.join(',')}]`;
+
+    // Build team filter for vector search
+    const teamFilter =
+      input.teamId !== null
+        ? sql`(${knowledgeEmbeddings.teamId} IS NULL OR ${knowledgeEmbeddings.teamId} = ${input.teamId})`
+        : sql`${knowledgeEmbeddings.teamId} IS NULL`;
+
+    const vectorResults = await db
+      .select({
+        entryId: knowledgeEmbeddings.entryId,
+        scope: knowledgeEmbeddings.scope,
+        labels: knowledgeEmbeddings.labels,
+        distance: sql<number>`(${knowledgeEmbeddings.vector} <=> ${sql.raw(`'${vectorLiteral}'::vector`)})`,
+      })
+      .from(knowledgeEmbeddings)
+      .where(and(eq(knowledgeEmbeddings.status, 'synced'), teamFilter))
+      .orderBy(sql`${knowledgeEmbeddings.vector} <=> ${sql.raw(`'${vectorLiteral}'::vector`)}`)
+      .limit(maxMatches * 2);
+
+    // Channel 2: Keyword matching
+    const tokenArray = input.candidateTokens.map((t) => `'${t}'`).join(',');
+    const keywordResults = await db
+      .select({
+        entryId: knowledgeKeywords.entryId,
+        tokens: knowledgeKeywords.tokens,
+        fieldTokens: knowledgeKeywords.fieldTokens,
+      })
+      .from(knowledgeKeywords)
+      .where(
+        and(
+          eq(knowledgeKeywords.status, 'synced'),
+          teamFilter,
+          sql`${knowledgeKeywords.tokens}::jsonb ?| ${sql.raw(`ARRAY[${tokenArray}]`)}`,
+        ),
+      )
+      .limit(maxMatches * 2);
+
+    // Build entry map for title lookup (would need to fetch from store or join)
+    // For now, we'll use entryId as title placeholder - this needs refinement
+
+    // Merge and score results
+    const entryScores = new Map<
+      string,
+      { vectorScore: number; keywordScore: number; sharedTokens: string[] }
+    >();
+
+    // Process vector results
+    for (const r of vectorResults) {
+      const vectorScore = 1 - (r.distance ?? 0);
+      const existing = entryScores.get(r.entryId) ?? {
+        vectorScore: 0,
+        keywordScore: 0,
+        sharedTokens: [],
+      };
+      existing.vectorScore = vectorScore;
+      entryScores.set(r.entryId, existing);
+    }
+
+    // Process keyword results
+    for (const r of keywordResults) {
+      const fieldTokens = r.fieldTokens as {
+        shortcut: string[];
+        detail: string[];
+        labels: string[];
+      };
+      const sharedTokens: string[] = [];
+
+      let keywordScore = 0;
+      const maxTokenScore = input.candidateTokens.length * 6; // 3+2+1 weights
+
+      for (const token of input.candidateTokens) {
+        if (fieldTokens.labels.includes(token)) {
+          keywordScore += 3;
+          sharedTokens.push(token);
+        }
+        if (fieldTokens.shortcut.includes(token)) {
+          keywordScore += 2;
+          sharedTokens.push(token);
+        }
+        if (fieldTokens.detail.includes(token)) {
+          keywordScore += 1;
+          sharedTokens.push(token);
+        }
+      }
+
+      keywordScore = maxTokenScore > 0 ? keywordScore / maxTokenScore : 0;
+
+      const existing = entryScores.get(r.entryId) ?? {
+        vectorScore: 0,
+        keywordScore: 0,
+        sharedTokens: [],
+      };
+      existing.keywordScore = keywordScore;
+      existing.sharedTokens = sharedTokens;
+      entryScores.set(r.entryId, existing);
+    }
+
+    // Combine scores and build matches
+    for (const [entryId, scores] of entryScores) {
+      // Hybrid score: weighted average (0.6 vector + 0.4 keyword)
+      const hybridScore = scores.vectorScore * 0.6 + scores.keywordScore * 0.4;
+
+      if (hybridScore < MEDIUM_OVERLAP_THRESHOLD) {
+        continue;
+      }
+
+      const matchType = hybridScore >= HIGH_OVERLAP_THRESHOLD ? 'high-overlap' : 'semantic-similar';
+
+      matches.push({
+        entityType: 'trap',
+        entityId: entryId,
+        entityTitle: `Entry ${entryId}`, // TODO: Fetch actual title
+        similarityScore: Math.round(hybridScore * 1000) / 1000,
+        matchType,
+        overlapDetails: {
+          sharedKeywords: input.candidateKeywords.slice(0, 10),
+          sharedTokens: scores.sharedTokens.slice(0, 50),
+          textOverlapPercent: Math.round(scores.keywordScore * 100),
+        },
+      });
+    }
+
+    // Sort by similarity and limit
+    matches.sort((a, b) => b.similarityScore - a.similarityScore);
+    const topMatches = matches.slice(0, maxMatches);
+
+    // Build duplicate case
+    const hasMatches = topMatches.length > 0;
+    const highestSimilarity = hasMatches && topMatches[0] ? topMatches[0].similarityScore : 0;
+    const hasExactDuplicate = topMatches.some((m) => m.matchType === 'exact');
+
+    let duplicateType: 'exact' | 'semantic' | 'none' = 'none';
+    if (hasExactDuplicate) {
+      duplicateType = 'exact';
+    } else if (highestSimilarity >= HIGH_OVERLAP_THRESHOLD) {
+      duplicateType = 'semantic';
+    }
+
+    const duplicateCase: DuplicateCase | null = hasMatches
+      ? {
+          id: createDuplicateCaseId(),
+          candidateId: input.candidateId,
+          detectedAt: normalizedAt,
+          detectionVersion: DETECTION_VERSION,
+          matches: topMatches,
+          highestSimilarity,
+          hasExactDuplicate,
+          duplicateType,
+        }
+      : null;
+
+    return {
+      duplicateCase,
+      analysisSnapshot: {
+        normalizedAt,
+        fingerprint: input.candidateFingerprint,
+        keywords: input.candidateKeywords,
+        tokens: input.candidateTokens,
+      },
+    };
+  };
+}

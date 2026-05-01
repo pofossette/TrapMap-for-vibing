@@ -13,10 +13,7 @@
  * Phase 25-02: REVAL-02
  */
 
-import {
-  type RetrievalEvalScenario,
-  retrievalEvalScenarioSchema,
-} from '@trapmap/contracts';
+import { type RetrievalEvalScenario, retrievalEvalScenarioSchema } from '@trapmap/contracts';
 
 // =============================================================================
 // Smoke Scenario: Positive Visible Hit

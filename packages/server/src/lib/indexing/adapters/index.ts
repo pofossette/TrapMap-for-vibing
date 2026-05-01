@@ -4,6 +4,7 @@
  * This module exports:
  * - Vector adapter: generates and persists embeddings
  * - Keyword adapter: persists normalized tokens
+ * - PostgreSQL adapters: pgvector and keyword storage for scalability
  * - Helper functions for query-time token reuse
  * - Default adapter list for server bootstrap
  *
@@ -11,9 +12,12 @@
  * lifecycle transitions (approval, update, deactivation).
  */
 
+import type { Pool } from 'pg';
 import type { IndexAdapter } from '../types.js';
 import { graphIndexAdapter } from './graph.js';
 import { keywordIndexAdapter } from './keyword.js';
+import { createPgKeywordAdapter } from './pg-keyword.js';
+import { createPgVectorAdapter } from './pg-vector.js';
 import { vectorIndexAdapter } from './vector.js';
 
 export {
@@ -40,6 +44,17 @@ export {
   setCachedGraphIndexDocuments,
 } from './graph.js';
 
+// PostgreSQL pgvector adapters
+export {
+  createPgVectorAdapter,
+  type PgVectorAdapterConfig,
+} from './pg-vector.js';
+
+export {
+  createPgKeywordAdapter,
+  type PgKeywordAdapterConfig,
+} from './pg-keyword.js';
+
 /**
  * Get the default index adapter list for server bootstrap.
  *
@@ -51,4 +66,49 @@ export {
  */
 export function buildDefaultIndexAdapters(): IndexAdapter[] {
   return [vectorIndexAdapter, keywordIndexAdapter, graphIndexAdapter];
+}
+
+/**
+ * Build hybrid adapters that support both in-memory and PostgreSQL storage.
+ *
+ * When a PostgreSQL pool is provided and feature flags are enabled,
+ * uses PostgreSQL adapters for scalable indexing. Otherwise falls back
+ * to in-memory adapters.
+ *
+ * @param pool - Optional PostgreSQL connection pool
+ * @param featureFlags - Feature flag getters for PostgreSQL adapters
+ * @returns Array of index adapters
+ */
+export function buildHybridIndexAdapters(config?: {
+  pool?: Pool;
+  usePgVector?: () => boolean;
+  usePgKeyword?: () => boolean;
+}): IndexAdapter[] {
+  const { pool, usePgVector, usePgKeyword } = config ?? {};
+
+  // If no pool, always use in-memory adapters
+  if (!pool) {
+    return buildDefaultIndexAdapters();
+  }
+
+  const adapters: IndexAdapter[] = [];
+
+  // Vector adapter - use pgvector if enabled
+  if (usePgVector) {
+    adapters.push(createPgVectorAdapter({ pool, featureFlag: usePgVector }));
+  } else {
+    adapters.push(vectorIndexAdapter);
+  }
+
+  // Keyword adapter - use PostgreSQL if enabled
+  if (usePgKeyword) {
+    adapters.push(createPgKeywordAdapter({ pool, featureFlag: usePgKeyword }));
+  } else {
+    adapters.push(keywordIndexAdapter);
+  }
+
+  // Graph adapter - always in-memory for now
+  adapters.push(graphIndexAdapter);
+
+  return adapters;
 }

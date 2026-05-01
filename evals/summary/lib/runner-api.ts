@@ -15,20 +15,19 @@ import {
   summaryEvalCaseSchema,
 } from '@trapmap/contracts';
 
-import { coreCases } from '../core.js';
+import { summaryCoreCases } from '../core.js';
 import { summarySmokeCases } from '../smoke.js';
 
 // Import summary scenarios for fixture loading
 import { summarySmokeScenariosMap } from '../scenarios/smoke/summary-smoke-scenarios.js';
 
 import { evaluateSummaryVerdicts } from './assertions.js';
-import { createJudge, fallbackJudge } from './judge.js';
+import { createJudge } from './judge.js';
 import { buildSummaryReport } from './report.js';
 import type { JudgeProvider, RunnerOptions, SummaryCaseResult } from './types.js';
 
 // Import retrieval adapters for real endpoint execution
 import {
-  type ExecutionContext as RetrievalExecutionContext,
   closeExecutionContext,
   createActorSession,
   createExecutionContext as createRetrievalContext,
@@ -72,7 +71,7 @@ export interface RunSummaryResult {
  * Load cases for the specified tier.
  */
 function loadCasesForTier(tier: SummaryEvalTier): SummaryEvalCase[] {
-  const rawCases = tier === 'smoke' ? summarySmokeCases : coreCases;
+  const rawCases = tier === 'smoke' ? summarySmokeCases : summaryCoreCases;
 
   const validatedCases: SummaryEvalCase[] = [];
   for (const rawCase of rawCases) {
@@ -212,7 +211,7 @@ export async function runSummaryEvaluation(options: RunSummaryOptions): Promise<
         const mockSummary = generateMockSummary(case_);
         const mockContext = generateMockContext(case_);
         const judge = createJudge({ provider });
-        const judgeResult = judge.evaluate(mockSummary, mockContext, {
+        const judgeResult = await judge.evaluate(mockSummary, mockContext, {
           requiredFacts: case_.expected.requiredFacts,
           forbiddenClaims: case_.expected.forbiddenClaims,
         });
@@ -224,6 +223,8 @@ export async function runSummaryEvaluation(options: RunSummaryOptions): Promise<
           passed,
           durationMs: Date.now() - caseStartTime,
           warnings,
+          contextTrace: mockContext,
+          summaryText: mockSummary,
         });
         continue;
       }
@@ -268,7 +269,7 @@ export async function runSummaryEvaluation(options: RunSummaryOptions): Promise<
 
       // Run judge evaluation with real summary and context
       const judge = createJudge({ provider });
-      const judgeResult = judge.evaluate(summaryText ?? '', contextTrace, {
+      const judgeResult = await judge.evaluate(summaryText ?? '', contextTrace, {
         requiredFacts: case_.expected.requiredFacts,
         forbiddenClaims: case_.expected.forbiddenClaims,
       });
@@ -281,6 +282,8 @@ export async function runSummaryEvaluation(options: RunSummaryOptions): Promise<
         passed,
         durationMs: Date.now() - caseStartTime,
         warnings,
+        contextTrace,
+        summaryText,
       });
     } finally {
       await closeExecutionContext(retrievalCtx);
@@ -290,14 +293,14 @@ export async function runSummaryEvaluation(options: RunSummaryOptions): Promise<
   // Build canonical report
   const runnerOptions: RunnerOptions = {
     tier,
-    endpoint: options.endpoint,
     json: false,
-    jsonPath: undefined,
     allowEmpty,
     dryRun,
     verbose: options.verbose ?? 0,
-    llmProvider: provider,
   };
+  if (options.endpoint !== undefined) {
+    runnerOptions.endpoint = options.endpoint;
+  }
 
   const report = buildSummaryReport({
     caseResults,
