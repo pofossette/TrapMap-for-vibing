@@ -9,7 +9,7 @@ import type {
   SummaryEvalCase,
   SummaryEvalEndpoint,
   SummaryEvalTier,
-} from '../../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 
 // =============================================================================
 // Judge Provider Type

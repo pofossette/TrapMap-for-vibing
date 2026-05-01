@@ -17,7 +17,7 @@
 import {
   type RetrievalEvalScenario,
   retrievalEvalScenarioSchema,
-} from '../../../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 
 // =============================================================================
 // Core Scenario: Multiple Relevant Hits with Ranking

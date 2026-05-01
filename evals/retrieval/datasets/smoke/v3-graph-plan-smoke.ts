@@ -8,7 +8,7 @@
 import {
   type RetrievalEvalCase,
   retrievalEvalCaseSchema,
-} from '../../../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 
 export const v3GraphPlanSelectedSmoke = retrievalEvalCaseSchema.parse({
   schemaVersion: 1,

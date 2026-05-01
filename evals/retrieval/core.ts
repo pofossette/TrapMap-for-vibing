@@ -10,7 +10,7 @@
 import type {
   RetrievalEvalCase,
   RetrievalEvalScenario,
-} from '../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 
 // Import v1 and v2 core datasets
 import { v1RetrievalCoreCases } from './datasets/core/v1-retrieval-core.js';

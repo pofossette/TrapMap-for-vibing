@@ -6,7 +6,7 @@
  * Hard-fail assertions for forbidden hits, outcome mismatches, and shape violations.
  */
 
-import type { RetrievalEvalCase } from '../../../packages/contracts/src/index.js';
+import type { RetrievalEvalCase } from '@trapmap/contracts';
 import type { BucketMap, GovernanceFailure, GovernanceResult, NormalizedResult } from './types.js';
 
 // =============================================================================

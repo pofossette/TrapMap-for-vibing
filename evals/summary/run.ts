@@ -21,13 +21,14 @@ import {
   type SummaryEvalEndpoint,
   type SummaryEvalTier,
   summaryEvalCaseSchema,
-} from '../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 
-import { coreCases } from './core.js';
+import { summaryCoreCases } from './core.js';
 // Import tier datasets
 import { summarySmokeCases } from './smoke.js';
 
 // Import summary scenarios for fixture loading
+import { summaryCoreScenariosMap } from './scenarios/core/summary-core-scenarios.js';
 import { summarySmokeScenariosMap } from './scenarios/smoke/summary-smoke-scenarios.js';
 
 import { evaluateSummaryVerdicts } from './lib/assertions.js';
@@ -151,7 +152,7 @@ function parseArgs_(): RunOptions {
  * @returns Array of validated cases
  */
 export function loadCases(tier: SummaryEvalTier): SummaryEvalCase[] {
-  const rawCases = tier === 'smoke' ? summarySmokeCases : coreCases;
+  const rawCases = tier === 'smoke' ? summarySmokeCases : summaryCoreCases;
 
   // Validate each case against the schema
   const validatedCases: SummaryEvalCase[] = [];
@@ -195,11 +196,14 @@ function filterByEndpoint(
  * @returns Scenario definition or undefined
  */
 function loadSummaryScenario(scenarioId: string): RetrievalEvalScenario | undefined {
+  // Check core scenarios
+  const coreScenario = summaryCoreScenariosMap[scenarioId];
+  if (coreScenario) return coreScenario;
+
   // Check smoke scenarios
   const smokeScenario = summarySmokeScenariosMap[scenarioId];
   if (smokeScenario) return smokeScenario;
 
-  // Core scenarios not yet defined
   return undefined;
 }
 

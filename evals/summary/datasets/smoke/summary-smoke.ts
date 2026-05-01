@@ -10,7 +10,7 @@
 import {
   type SummaryEvalCase,
   summaryEvalCaseSchema,
-} from '../../../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 
 // =============================================================================
 // Smoke Case: Grounded Summary

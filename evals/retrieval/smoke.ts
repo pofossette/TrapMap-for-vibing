@@ -10,7 +10,7 @@
 import type {
   RetrievalEvalCase,
   RetrievalEvalScenario,
-} from '../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 
 // Import v1 and v2 smoke datasets
 import { v1RetrievalSmokeCases } from './datasets/smoke/v1-retrieval-smoke.js';

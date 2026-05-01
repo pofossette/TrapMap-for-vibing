@@ -13,7 +13,7 @@
  * - Overall case passes only if all verdicts pass
  */
 
-import type { SummaryEvalCase } from '../../../packages/contracts/src/index.js';
+import type { SummaryEvalCase } from '@trapmap/contracts';
 import type { SummaryJudgeResult } from './types.js';
 
 // =============================================================================

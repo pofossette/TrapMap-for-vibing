@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest';
 import {
   retrievalEvalCaseSchema,
   retrievalEvalScenarioSchema,
-} from '../../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 
 import { coreScenarios, coreScenariosMap } from '../scenarios/core/retrieval-core-scenarios.js';
 // Import scenarios

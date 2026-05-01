@@ -16,7 +16,7 @@
 import {
   type RetrievalEvalScenario,
   retrievalEvalScenarioSchema,
-} from '../../../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 
 // =============================================================================
 // Smoke Scenario: Positive Visible Hit

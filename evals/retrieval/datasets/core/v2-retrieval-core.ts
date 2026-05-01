@@ -10,7 +10,7 @@
 import {
   type RetrievalEvalCase,
   retrievalEvalCaseSchema,
-} from '../../../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 
 // =============================================================================
 // v2 Core: Capsule Ranked Hits

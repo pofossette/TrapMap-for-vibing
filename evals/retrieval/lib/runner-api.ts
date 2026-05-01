@@ -12,7 +12,7 @@ import {
   type RetrievalEvalCase,
   type RetrievalEvalTier,
   retrievalEvalCaseSchema,
-} from '../../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 
 import { coreCases } from '../core.js';
 import { smokeCases } from '../smoke.js';

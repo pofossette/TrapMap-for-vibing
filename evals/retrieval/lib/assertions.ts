@@ -10,7 +10,7 @@
  * - Adapter warnings are elevated to verdict-level visibility
  */
 
-import type { RetrievalEvalCase } from '../../../packages/contracts/src/index.js';
+import type { RetrievalEvalCase } from '@trapmap/contracts';
 import type {
   AdapterWarning,
   GovernanceFailure,

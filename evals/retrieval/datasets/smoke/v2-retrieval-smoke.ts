@@ -12,7 +12,7 @@
 import {
   type RetrievalEvalCase,
   retrievalEvalCaseSchema,
-} from '../../../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 
 // =============================================================================
 // v2 Smoke: Positive Visible Hit

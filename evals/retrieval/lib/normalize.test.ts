@@ -12,7 +12,7 @@ import type {
   GraphPlanSearchResponse,
   RetrievalResponse,
   RetrievalV2ResponseWithHints,
-} from '../../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 import {
   extractV1Ids,
   extractV2CapsuleIds,

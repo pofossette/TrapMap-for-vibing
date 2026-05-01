@@ -13,7 +13,7 @@ import {
   type SummaryEvalEndpoint,
   type SummaryEvalTier,
   summaryEvalCaseSchema,
-} from '../../../packages/contracts/src/index.js';
+} from '@trapmap/contracts';
 
 import { coreCases } from '../core.js';
 import { summarySmokeCases } from '../smoke.js';
