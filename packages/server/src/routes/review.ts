@@ -116,16 +116,28 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
 
       const decidedAt = nowIso();
       previousState = entry.lifecycleState;
-      applyReviewDecision({
-        store: app.skillShareer.store,
-        data,
-        entry,
-        reviewerUserId: decidedByUserId,
-        decidedAt,
-        decision: payload.decision,
-        notes: payload.notes,
-        ...(payload.evidence !== undefined && { evidence: payload.evidence }),
-      });
+      applyReviewDecision(
+        payload.evidence !== undefined
+          ? {
+              store: app.skillShareer.store,
+              data,
+              entry,
+              reviewerUserId: decidedByUserId,
+              decidedAt,
+              decision: payload.decision,
+              notes: payload.notes,
+              evidence: payload.evidence,
+            }
+          : {
+              store: app.skillShareer.store,
+              data,
+              entry,
+              reviewerUserId: decidedByUserId,
+              decidedAt,
+              decision: payload.decision,
+              notes: payload.notes,
+            },
+      );
 
       // Capture entry ID and new state for post-commit indexing
       entryId = entry.id;
