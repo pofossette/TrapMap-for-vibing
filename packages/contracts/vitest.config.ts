@@ -4,11 +4,16 @@ export default defineConfig({
   test: {
     include: ['src/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**'],
-    pool: 'threads',
+    // 使用 forks 池，更稳定
+    pool: 'forks',
     poolOptions: {
-      threads: {
-        singleThread: true,
+      forks: {
+        singleFork: true,
       },
+    },
+    maxConcurrency: 1,
+    sequence: {
+      concurrent: false,
     },
   },
 });
