@@ -113,7 +113,7 @@ export const knowledgeEntrySchema = z
     reviewHistory: z.array(reviewDecisionSchema).default([]),
     reviewNotes: z.array(reviewNoteSchema).default([]),
     lifecycleHistory: z.array(knowledgeLifecycleEventSchema).default([]),
-    boundary: boundarySchema.nullable(),
+    boundary: boundarySchema.nullable().default(null),
   })
   .merge(auditMetadataSchema);
 
