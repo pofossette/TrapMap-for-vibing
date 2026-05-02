@@ -20,7 +20,7 @@
  * stage. It never introduces new entries or bypasses filter constraints.
  */
 
-import type { DecayState } from '@trapmap/contracts';
+import type { DecayState, FreshnessDecayConfig } from '@trapmap/contracts';
 import type { MergedCandidate, ScoredEntry } from './types.js';
 
 /**
@@ -54,6 +54,8 @@ export interface RerankConfig {
   maxCandidates?: number;
   /** Penalty applied to stale entries' scores (default 0.1). Set to 0 to disable. */
   staleDecayPenalty?: number;
+  /** Freshness decay configuration for time-based ranking adjustments */
+  freshnessConfig?: FreshnessDecayConfig;
 }
 
 /**
