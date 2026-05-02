@@ -10,8 +10,8 @@ Requirements for v1.5 milestone: 功能增强
 ### Decay & Retirement (DECAY)
 
 - [x] **DECAY-01**: Maintainer can configure knowledge lifecycle states (review-due / stale / expired / superseded) with automatic state transitions based on time and usage patterns
-- [ ] **DECAY-02**: Retrieval ranking applies freshness multiplier with configurable decay curves for three knowledge types (evergreen / versioned / volatile)
-- [ ] **DECAY-03**: Maintainer can perform batch management of outdated/erroneous knowledge through retrieval-based discovery interface
+- [x] **DECAY-02**: Retrieval ranking applies freshness multiplier with configurable decay curves for three knowledge types (evergreen / versioned / volatile)
+- [x] **DECAY-03**: Maintainer can perform batch management of outdated/erroneous knowledge through retrieval-based discovery interface
 - [x] **DECAY-04**: System applies soft decay (ranking penalty) for stale knowledge and hard decay (exclusion from default retrieval) for expired/superseded knowledge
 
 ### Applicability Boundary Model (BOUND)
@@ -64,8 +64,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | DECAY-01 | Phase 48 | Complete |
-| DECAY-02 | Phase 49 | Pending |
-| DECAY-03 | Phase 50 | Pending |
+| DECAY-02 | Phase 49 | Complete |
+| DECAY-03 | Phase 50 | Complete |
 | DECAY-04 | Phase 48 | Complete |
 | BOUND-01 | Phase 51 | Pending |
 | BOUND-02 | Phase 52 | Pending |
@@ -85,4 +85,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-05-02*
-*Last updated: 2026-05-02 after v1.5 milestone start*
+*Last updated: 2026-05-02 after Phase 50 verification*
