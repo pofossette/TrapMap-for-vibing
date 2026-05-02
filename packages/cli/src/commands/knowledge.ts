@@ -169,6 +169,30 @@ export function registerKnowledgeCommands(
           );
         },
       );
+
+    program
+      .command('supersede')
+      .description('Supersede a knowledge entry with a replacement')
+      .argument('<entryId>', 'Knowledge entry to supersede')
+      .requiredOption('--replacement <id>', 'ID of the replacement entry')
+      .option('--json', 'Output JSON')
+      .action(async (entryId: string, flags: { replacement: string; json?: boolean }) => {
+        const state = await loadCliState();
+        requireSessionToken(state);
+        const response = await apiRequest<KnowledgeEntryResponse>(state, {
+          method: 'POST',
+          path: `/v1/knowledge/${entryId}/supersede`,
+          body: { replacementId: flags.replacement },
+        });
+        const parsed = knowledgeEntryResponseSchema.parse(response.data);
+
+        printResult(parsed, flags, ({ entry }) =>
+          [
+            `Superseded ${entry.id}`,
+            `Lifecycle: ${entry.lifecycleState}`,
+          ].join('\n'),
+        );
+      });
   }
 
   if (options.allowInspect) {

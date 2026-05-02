@@ -6,6 +6,7 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
+import { supersedeEntry } from '../lib/decay/supersede.js';
 import { AppError } from '../lib/errors.js';
 import {
   requireHigherLevel,
@@ -197,5 +198,41 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return knowledgeEntryResponseSchema.parse({ entry: updatedEntry });
+  });
+
+  // POST /v1/traps/:trapId/supersede - Supersede a trap with a replacement
+  app.post('/v1/traps/:trapId/supersede', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:update');
+
+    const trapId = (request.params as { trapId: string }).trapId;
+    const body = request.body as { replacementId?: string } ?? {};
+    if (!body.replacementId || typeof body.replacementId !== 'string') {
+      throw new AppError(400, 'replacement_required', 'replacementId is required');
+    }
+
+    const supersededEntry = await app.skillShareer.store.transact((data) => {
+      return supersedeEntry({
+        store: app.skillShareer.store,
+        data,
+        entryId: trapId,
+        replacementId: body.replacementId!,
+        actorId: auth.actorId,
+      });
+    });
+
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'trap-supersede',
+      targetId: trapId,
+      teamId: auth.activeTeamId,
+      metadata: { replacementId: body.replacementId },
+    });
+
+    return knowledgeEntryResponseSchema.parse({
+      entry: toKnowledgeEntry(await app.skillShareer.store.snapshot(), supersededEntry),
+    });
   });
 };

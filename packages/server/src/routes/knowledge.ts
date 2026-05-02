@@ -22,6 +22,7 @@ import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
 import { logUserOperation } from '../lib/user-ops-log.js';
+import { supersedeEntry } from '../lib/decay/supersede.js';
 
 function requireRealUser(userId: string | undefined): string {
   if (!userId) {
@@ -293,5 +294,40 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return knowledgeEntryResponseSchema.parse({ entry: updatedEntry });
+  });
+
+  app.post('/v1/knowledge/:entryId/supersede', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:update');
+
+    const entryId = (request.params as { entryId: string }).entryId;
+    const body = request.body as { replacementId?: string } ?? {};
+    if (!body.replacementId || typeof body.replacementId !== 'string') {
+      throw new AppError(400, 'replacement_required', 'replacementId is required');
+    }
+
+    const supersededEntry = await app.skillShareer.store.transact((data) => {
+      return supersedeEntry({
+        store: app.skillShareer.store,
+        data,
+        entryId,
+        replacementId: body.replacementId!,
+        actorId: auth.actorId,
+      });
+    });
+
+    void logUserOperation(app.skillShareer.config.userOpsLog, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'supersede',
+      targetId: entryId,
+      teamId: auth.activeTeamId,
+      metadata: { replacementId: body.replacementId },
+    });
+
+    return knowledgeEntryResponseSchema.parse({
+      entry: toKnowledgeEntry(await app.skillShareer.store.snapshot(), supersededEntry),
+    });
   });
 };

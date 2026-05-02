@@ -13,6 +13,8 @@ export type UserOpsAction =
   | 'export'
   | 'trap-submit'
   | 'trap-resubmit'
+  | 'trap-supersede'
+  | 'supersede'
   | 'manual-result'
   | 'apply-resolution'
   | 'plan';
