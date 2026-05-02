@@ -6,6 +6,7 @@ import type {
   CandidateSubmission,
   DecayMeta,
   DuplicateCase,
+  FeedbackProblemType,
   LifecycleState,
   Permission,
   RoleTemplate,
@@ -591,6 +592,43 @@ export interface EntityLineageRecord {
   notes: string | null;
 }
 
+/**
+ * Feedback queue item for admin review.
+ * Stores user-submitted problem reports on knowledge entries.
+ */
+export interface FeedbackQueueItemRecord {
+  /** Unique feedback record identifier */
+  id: string;
+  /** ID of the entry being reported */
+  entryId: string;
+  /** Type of the entry being reported */
+  entryType: 'trap' | 'skill';
+  /** Problem classification from controlled vocabulary */
+  problemType: FeedbackProblemType;
+  /** User-provided description of the problem */
+  description: string;
+  /** Optional context about what the user was trying to do */
+  context: string | null;
+  /** Optional retrieval query that led to this entry */
+  querySeed: string | null;
+  /** Optional custom prompt answers from skill-defined prompts */
+  customAnswers: Array<{ prompt: string; answer: string }> | null;
+  /** When the feedback was submitted */
+  submittedAt: string;
+  /** User ID who submitted the feedback */
+  submittedByUserId: string;
+  /** Handle of the user who submitted (for display) */
+  submittedByHandle: string;
+  /** Current processing status */
+  status: 'new' | 'triaged' | 'resolved' | 'dismissed';
+  /** Admin notes added during review */
+  adminNotes: string | null;
+  /** Record creation timestamp */
+  createdAt: string;
+  /** Record update timestamp */
+  updatedAt: string;
+}
+
 export interface StoreData {
   counters: Record<string, number>;
   users: UserRecord[];
@@ -612,6 +650,8 @@ export interface StoreData {
   entityLineage: EntityLineageRecord[];
   /** Durable graph index documents for GraphRAG-lite (P36-04) */
   graphIndexDocuments: GraphIndexDocumentRecord[];
+  /** Feedback queue for admin review (FEEDBACK-01) */
+  feedbackQueue: FeedbackQueueItemRecord[];
 }
 
 const EMPTY_STORE: StoreData = {
@@ -629,6 +669,7 @@ const EMPTY_STORE: StoreData = {
   duplicateCases: [],
   entityLineage: [],
   graphIndexDocuments: [],
+  feedbackQueue: [],
 };
 
 export interface SkillShareerStore {

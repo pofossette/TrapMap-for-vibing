@@ -4,6 +4,7 @@ export * from './domain/candidates.js';
 export * from './domain/common.js';
 export * from './domain/decay.js';
 export * from './domain/evals/retrieval.js';
+export * from './domain/feedback.js';
 export * from './domain/evals/report.js';
 export * from './domain/evals/summary.js';
 export * from './domain/feedback.js';

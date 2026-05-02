@@ -22,6 +22,7 @@ import { PostgresStore } from './lib/persistence/postgres-store.js';
 import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
 import { authRoutes } from './routes/auth.js';
+import { feedbackRoutes } from './routes/feedback.js';
 import { candidateRoutes } from './routes/candidates.js';
 import { knowledgeRoutes } from './routes/knowledge.js';
 import { memberRoutes } from './routes/members.js';
@@ -66,6 +67,7 @@ const documentedRoutes = [
   'POST /v1/operations/artifacts/:artifactId/review',
   'GET /v1/duplicates/:candidateId/bundle',
   'POST /v1/candidates/:candidateId/manual-result',
+  'POST /v1/feedback',
 ] as const;
 
 interface BuildServerOptions {
@@ -131,6 +133,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.register(candidateRoutes);
   app.register(retrievalRoutes);
   app.register(operationsRoutes);
+  app.register(feedbackRoutes);
 
   // Recovery: Reprocess interrupted candidates on startup
   app.addHook('onReady', async () => {
