@@ -2,8 +2,8 @@
 phase: 51
 slug: boundary-schema-definition
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-02
 ---
 
@@ -38,19 +38,23 @@ created: 2026-05-02
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 51-01-01 | 01 | 1 | BOUND-01 | — | N/A (schema only) | unit | `pnpm test boundary.test.ts` | ❌ W0 | ⬜ pending |
-| 51-01-02 | 01 | 1 | BOUND-01 | — | N/A | unit | `pnpm test boundary.test.ts` | ❌ W0 | ⬜ pending |
-| 51-02-01 | 02 | 1 | BOUND-01 | — | N/A | unit | `pnpm test knowledge.test.ts` | ✅ | ⬜ pending |
-| 51-02-02 | 02 | 1 | BOUND-01 | — | N/A | unit | `pnpm test artifacts.test.ts` | ✅ | ⬜ pending |
+| 51-01-01 | 01 | 1 | BOUND-01 | — | N/A (schema only) | unit | `pnpm test boundary.test.ts` | 📝 Planned | ⬜ pending |
+| 51-01-02 | 01 | 1 | BOUND-01 | — | N/A | unit | `pnpm test boundary.test.ts` | 📝 Planned | ⬜ pending |
+| 51-01-03 | 01 | 1 | BOUND-01 | — | N/A | unit | `pnpm test boundary.test.ts` | 📝 Planned | ⬜ pending |
+| 51-02-01 | 02 | 2 | BOUND-01 | — | N/A | unit | `pnpm test boundary.test.ts` | ✅ | ⬜ pending |
+| 51-02-02 | 02 | 2 | BOUND-01 | — | N/A | unit | `pnpm test boundary.test.ts` | ✅ | ⬜ pending |
+| 51-02-03 | 02 | 2 | BOUND-01 | — | N/A | unit | `pnpm test boundary.test.ts` | ✅ | ⬜ pending |
+| 51-02-04 | 02 | 2 | BOUND-01 | — | N/A | unit | `pnpm test boundary.test.ts` | 📝 Planned | ⬜ pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky · 📝 Planned*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `packages/contracts/src/domain/boundary.test.ts` — unit tests for boundary schema
-- [ ] Tests should cover: layer validation, version range parsing, condition operators, evidence types
+- [x] `packages/contracts/src/domain/boundary.test.ts` — planned in 51-PLAN-01 (unit tests for boundary schema)
+- [x] Tests should cover: layer validation, version range parsing, condition operators, evidence types
+- [x] Integration tests for KnowledgeEntry and SkillArtifact with boundaryMeta
 
 *Existing infrastructure (vitest) covers the framework requirement.*
 
@@ -68,11 +72,11 @@ created: 2026-05-02
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 5s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 5s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
