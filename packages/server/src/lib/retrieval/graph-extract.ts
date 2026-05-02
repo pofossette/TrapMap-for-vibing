@@ -722,6 +722,10 @@ function mapKindToLegacyType(kind: GraphNodeKind): LegacyGraphEntityType {
       return 'fix';
     case 'skill':
       return 'service';
+    case 'boundary-context':
+    case 'boundary-version':
+    case 'boundary-platform':
+      return 'environment';
   }
 }
 

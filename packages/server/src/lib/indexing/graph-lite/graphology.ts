@@ -423,7 +423,11 @@ export function findEntriesByBoundaryConstraints(
     if (result === null) {
       result = new Set(contextSources);
     } else {
-      result = new Set([...result].filter((id) => contextSources.has(id)));
+      const intersected = new Set<string>();
+      for (const id of result) {
+        if (contextSources.has(id)) intersected.add(id);
+      }
+      result = intersected;
     }
   }
 
@@ -433,7 +437,11 @@ export function findEntriesByBoundaryConstraints(
     if (result === null) {
       result = new Set(pkgSources);
     } else {
-      result = new Set([...result].filter((id) => pkgSources.has(id)));
+      const intersected = new Set<string>();
+      for (const id of result) {
+        if (pkgSources.has(id)) intersected.add(id);
+      }
+      result = intersected;
     }
   }
 

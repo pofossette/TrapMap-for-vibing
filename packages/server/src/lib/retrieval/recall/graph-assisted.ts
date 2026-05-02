@@ -61,6 +61,7 @@ function toNormalizedDocument(entry: KnowledgeRecord): NormalizedIndexDocument {
     tokens: [],
     contentHash: '',
     normalizedAt: new Date().toISOString(),
+    boundary: entry.boundary ?? null,
   };
 }
 
@@ -104,6 +105,7 @@ function extractQueryEntities(queryText: string): Set<string> {
     tokens: [],
     contentHash: '',
     normalizedAt: new Date().toISOString(),
+    boundary: null,
   };
 
   const extractionResult = extractGraphEntities(normalizedDoc);
