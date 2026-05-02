@@ -18,7 +18,7 @@ Requirements for v1.5 milestone: 功能增强
 
 - [x] **BOUND-01**: Unified boundary schema shared across trap and skill artifacts with 6-layer structure (context / versions / prerequisites / signals / exclusions / evidence)
 - [x] **BOUND-02**: Authors can input boundary constraints during submission; agent can extract candidate boundaries; reviewers can confirm boundaries
-- [ ] **BOUND-03**: Boundary fields are indexed as facets and graph nodes with back-references to standardized boundary structures
+- [x] **BOUND-03**: Boundary fields are indexed as facets and graph nodes with back-references to standardized boundary structures
 - [ ] **BOUND-04**: Retrieval ranking filters on required constraint mismatch, penalizes on excluded constraint match, and boosts on preferred constraint match
 - [ ] **BOUND-05**: API responses include boundary explanations showing why results are applicable or potentially inapplicable
 
@@ -69,7 +69,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DECAY-04 | Phase 48 | Complete |
 | BOUND-01 | Phase 51 | Complete |
 | BOUND-02 | Phase 52 | Complete |
-| BOUND-03 | Phase 53 | Pending |
+| BOUND-03 | Phase 53 | Complete |
 | BOUND-04 | Phase 54 | Pending |
 | BOUND-05 | Phase 54 | Pending |
 | CONFLICT-01 | Phase 55 | Pending |
@@ -85,4 +85,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-05-02*
-*Last updated: 2026-05-02 after Phase 52 completion*
+*Last updated: 2026-05-02 after Phase 53 completion*
