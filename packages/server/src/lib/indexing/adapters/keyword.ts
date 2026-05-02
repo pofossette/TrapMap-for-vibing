@@ -16,6 +16,7 @@
 
 import type { KnowledgeRecord } from '../../store.js';
 import { nowIso } from '../../store.js';
+import { buildBoundaryFacetIndex, type BoundaryFacetIndex } from '../boundary-normalize.js';
 import type { NormalizedIndexDocument } from '../types.js';
 import type { IndexAdapter, IndexSyncResult } from '../types.js';
 
@@ -41,6 +42,8 @@ export interface PersistedKeywordState {
     detail: string[];
     labels: string[];
   };
+  /** Boundary facets for filtering */
+  boundaryFacets: BoundaryFacetIndex;
 }
 
 /**
@@ -75,6 +78,7 @@ function createKeywordAdapter(): KeywordIndexAdapter {
               document.labels.some((l) => l.toLowerCase().includes(t)),
             ),
           },
+          boundaryFacets: buildBoundaryFacetIndex(document.boundary),
         };
 
         return {
@@ -151,6 +155,7 @@ function createKeywordAdapter(): KeywordIndexAdapter {
               document.labels.some((l) => l.toLowerCase().includes(t)),
             ),
           },
+          boundaryFacets: buildBoundaryFacetIndex(document.boundary),
         };
 
         // Ensure indexState exists
@@ -279,6 +284,7 @@ export async function upsertKeywordIndex(
           document.labels.some((l) => l.toLowerCase().includes(t)),
         ),
       },
+      boundaryFacets: buildBoundaryFacetIndex(document.boundary),
     };
 
     // Ensure indexState exists
