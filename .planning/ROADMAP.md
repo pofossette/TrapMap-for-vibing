@@ -45,7 +45,7 @@
 
 ### Decay & Retirement
 
-- [ ] Phase 48: Lifecycle State Machine (DECAY-01, DECAY-04)
+- [x] Phase 48: Lifecycle State Machine (DECAY-01, DECAY-04) (completed 2026-05-02)
 - [ ] Phase 49: Time-based Decay in Retrieval (DECAY-02)
 - [ ] Phase 50: Batch Management Interface (DECAY-03)
 
