@@ -7,6 +7,7 @@ import {
   buildLocalExpansionView,
   calculateSourceRelationStrength,
   expandSourcesOneHop,
+  findEntriesByContext,
   projectHardDependencyGraph,
 } from './graphology.js';
 
@@ -372,5 +373,159 @@ describe('graph-lite/graphology', () => {
       expect(calculateSourceRelationStrength(runtime, 'entry-2', new Set(['docker']))).toBe(2);
       expect(calculateSourceRelationStrength(runtime, 'missing', new Set(['docker']))).toBe(0);
     });
+  });
+});
+
+describe('boundary node back-references', () => {
+  it('supports reverse lookup from boundary node to source entries', () => {
+    // Build documents with boundary nodes
+    const doc1: GraphIndexDocumentRecord = {
+      id: 'graphdoc_trap_entry1_r1',
+      sourceType: 'trap',
+      sourceId: 'entry1',
+      revision: 1,
+      contentHash: 'hash1',
+      teamId: null,
+      scope: 'global',
+      requiredLevel: 0,
+      nodes: [
+        { id: 'trap:entry1', kind: 'trap', label: 'Entry 1', evidence: 'test' },
+        {
+          id: 'boundary-context:frontend',
+          kind: 'boundary-context',
+          label: 'frontend',
+          evidence: 'context',
+        },
+      ],
+      edges: [
+        {
+          id: 'trap:entry1->boundary-context:frontend:applies-in',
+          sourceNodeId: 'trap:entry1',
+          targetNodeId: 'boundary-context:frontend',
+          relationType: 'applies-in',
+          strength: 'soft',
+          evidence: 'test',
+        },
+      ],
+      evidence: 'test',
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    const doc2: GraphIndexDocumentRecord = {
+      id: 'graphdoc_trap_entry2_r1',
+      sourceType: 'trap',
+      sourceId: 'entry2',
+      revision: 1,
+      contentHash: 'hash2',
+      teamId: null,
+      scope: 'global',
+      requiredLevel: 0,
+      nodes: [
+        { id: 'trap:entry2', kind: 'trap', label: 'Entry 2', evidence: 'test' },
+        {
+          id: 'boundary-context:frontend',
+          kind: 'boundary-context',
+          label: 'frontend',
+          evidence: 'context',
+        },
+      ],
+      edges: [
+        {
+          id: 'trap:entry2->boundary-context:frontend:applies-in',
+          sourceNodeId: 'trap:entry2',
+          targetNodeId: 'boundary-context:frontend',
+          relationType: 'applies-in',
+          strength: 'soft',
+          evidence: 'test',
+        },
+      ],
+      evidence: 'test',
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    const runtime = buildGraphRuntimeSnapshot([doc1, doc2]);
+
+    // Find all entries applicable in "frontend" context
+    const frontendNodeSources = runtime.sourceIdsByNodeId.get('boundary-context:frontend');
+
+    expect(frontendNodeSources).toBeInstanceOf(Set);
+    expect(frontendNodeSources?.has('entry1')).toBe(true);
+    expect(frontendNodeSources?.has('entry2')).toBe(true);
+    expect(frontendNodeSources?.size).toBe(2);
+  });
+
+  it('supports lookup by normalized label for boundary nodes', () => {
+    const doc: GraphIndexDocumentRecord = {
+      id: 'graphdoc_trap_entry1_r1',
+      sourceType: 'trap',
+      sourceId: 'entry1',
+      revision: 1,
+      contentHash: 'hash1',
+      teamId: null,
+      scope: 'global',
+      requiredLevel: 0,
+      nodes: [
+        { id: 'trap:entry1', kind: 'trap', label: 'Entry 1', evidence: 'test' },
+        {
+          id: 'boundary-version:react@>=16.8.0',
+          kind: 'boundary-version',
+          label: 'react@>=16.8.0',
+          evidence: 'version',
+        },
+      ],
+      edges: [],
+      evidence: 'test',
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    const runtime = buildGraphRuntimeSnapshot([doc]);
+
+    // Lookup by normalized label should find the node
+    const sources = runtime.sourceIdsByNormalizedLabel.get('react@>=16.8.0');
+    expect(sources?.has('entry1')).toBe(true);
+  });
+
+  it('findEntriesByContext returns correct entries', () => {
+    const doc: GraphIndexDocumentRecord = {
+      id: 'graphdoc_trap_entry1_r1',
+      sourceType: 'trap',
+      sourceId: 'entry1',
+      revision: 1,
+      contentHash: 'hash1',
+      teamId: null,
+      scope: 'global',
+      requiredLevel: 0,
+      nodes: [
+        { id: 'trap:entry1', kind: 'trap', label: 'Entry 1', evidence: 'test' },
+        {
+          id: 'boundary-context:production',
+          kind: 'boundary-context',
+          label: 'production',
+          evidence: 'context',
+        },
+      ],
+      edges: [
+        {
+          id: 'trap:entry1->boundary-context:production:applies-in',
+          sourceNodeId: 'trap:entry1',
+          targetNodeId: 'boundary-context:production',
+          relationType: 'applies-in',
+          strength: 'soft',
+          evidence: 'test',
+        },
+      ],
+      evidence: 'test',
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    const runtime = buildGraphRuntimeSnapshot([doc]);
+    const result = findEntriesByContext(runtime, 'production');
+
+    expect(result.has('entry1')).toBe(true);
+    expect(result.size).toBe(1);
   });
 });
