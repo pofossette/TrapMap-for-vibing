@@ -156,3 +156,9 @@ export type SignalMatcher = z.infer<typeof signalMatcherSchema>;
 export type ExclusionRule = z.infer<typeof exclusionRuleSchema>;
 export type EvidenceReference = z.infer<typeof evidenceReferenceSchema>;
 export type Boundary = z.infer<typeof boundarySchema>;
+
+/**
+ * Metadata wrapper for boundary on skill artifacts.
+ * Alias for boundarySchema used in artifact record definitions.
+ */
+export const boundaryMetaSchema = boundarySchema;

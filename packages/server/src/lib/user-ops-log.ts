@@ -21,7 +21,9 @@ export type UserOpsAction =
   | 'decay-list'
   | 'decay-batch'
   | 'decay-search'
-  | 'feedback';
+  | 'feedback'
+  | 'admin-feedback-list'
+  | 'admin-feedback-batch';
 
 export interface UserOpsLogEntry {
   timestamp: string;
