@@ -249,7 +249,7 @@ Plans:
 
 **Goal:** Add a minimal provenance and verification model so published knowledge can show where it came from, when it was verified, and how strong the evidence is.
 
-**Plans:** 0/2 plans executed
+**Plans:** 1/2 plans executed
 
 Plans:
 - [x] 58-01-PLAN.md — Core evidence schema contracts and exports
