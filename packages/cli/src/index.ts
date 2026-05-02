@@ -2,6 +2,7 @@ import { Command } from 'commander';
 
 import { registerAuditCommands } from './commands/audit.js';
 import { registerAuthCommands } from './commands/auth.js';
+import { registerDecayCommands } from './commands/decay.js';
 import { registerKnowledgeCommands } from './commands/knowledge.js';
 import { registerMemberCommands } from './commands/member.js';
 import { registerOperationsCommands } from './commands/operations.js';
@@ -137,6 +138,7 @@ registerOperationsCommands(program, {
   allowDeactivate: visibility.allowKnowledgeDeactivate,
   allowImport: visibility.allowKnowledgeImport,
 });
+registerDecayCommands(program, { allowManage: visibility.allowKnowledgeUpdate });
 registerAuditCommands(program, {
   allowRead: visibility.allowAuditRead,
 });
