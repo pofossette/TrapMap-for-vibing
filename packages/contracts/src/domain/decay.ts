@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
-import { entityIdSchema, isoTimestampSchema } from './common.js';
+import {
+  entityIdSchema,
+  isoTimestampSchema,
+  labelSchema,
+  lifecycleStateSchema,
+  scopeSchema,
+  securityLevelSchema,
+} from './common.js';
 
 /**
  * Freshness type for knowledge entries.
@@ -122,3 +129,115 @@ export const decayMetaSchema = z.object({
 export type DecayState = z.infer<typeof decayStateSchema>;
 export type DecayConfig = z.infer<typeof decayConfigSchema>;
 export type DecayMeta = z.infer<typeof decayMetaSchema>;
+
+// =============================================================================
+// Phase 50: Batch Management Interface Schemas (DECAY-03)
+// =============================================================================
+
+/**
+ * Batch action types for decay management.
+ *
+ * - extend: Reset lastVerifiedAt to now, pushing entry back to active state
+ * - mark-review: Explicitly set decayState to review-due regardless of age
+ * - deactivate: Set lifecycleState to deactivated
+ * - supersede: Replace entry with another (requires replacementId)
+ */
+export const batchActionSchema = z.enum(['extend', 'mark-review', 'deactivate', 'supersede']);
+
+/**
+ * Decay-aware list item with extended metadata for batch management.
+ *
+ * Extends the base knowledge list item with decay-specific fields
+ * for filtering and display in the batch management interface.
+ */
+export const decayAwareListItemSchema = z.object({
+  id: entityIdSchema,
+  scope: scopeSchema,
+  labels: z.array(labelSchema),
+  shortcut: z.string(),
+  lifecycleState: lifecycleStateSchema,
+  requiredLevel: securityLevelSchema,
+  updatedAt: z.string(),
+  // Decay-specific fields
+  decayState: decayStateSchema.nullable(),
+  freshnessType: freshnessTypeSchema.nullable(),
+  ageDays: z.number().nullable(),
+  lastVerifiedAt: isoTimestampSchema.nullable(),
+  supersededById: entityIdSchema.nullable(),
+});
+
+/**
+ * Request schema for listing entries with decay-state filters.
+ *
+ * Supports filtering by decay state, age range, labels, and scope
+ * for building the batch management discovery interface.
+ */
+export const decayEntryListRequestSchema = z.object({
+  decayStates: z.array(decayStateSchema).optional(),
+  ageMinDays: z.number().int().min(0).optional(),
+  ageMaxDays: z.number().int().min(0).optional(),
+  labels: z.array(labelSchema).optional(),
+  scope: scopeSchema.optional(),
+  limit: z.number().int().min(1).max(100).default(25),
+});
+
+/**
+ * Response schema for decay-aware entry listing.
+ */
+export const decayEntryListResponseSchema = z.object({
+  items: z.array(decayAwareListItemSchema),
+  total: z.number().int().min(0),
+});
+
+/**
+ * Request schema for batch operations on entries.
+ *
+ * Supports extend, mark-review, deactivate, and supersede actions
+ * with optional dry-run mode for previewing changes.
+ */
+export const batchOperationRequestSchema = z.object({
+  action: batchActionSchema,
+  entryIds: z.array(entityIdSchema).min(1).max(100),
+  dryRun: z.boolean().default(false),
+  extendDays: z.number().int().min(1).max(3650).optional(),
+  replacementId: entityIdSchema.optional(),
+});
+
+/**
+ * Individual item result in a batch operation response.
+ *
+ * Each entry in the batch gets an item describing the planned or applied change,
+ * eligibility status, and reason if ineligible.
+ */
+export const batchOperationItemSchema = z.object({
+  entryId: entityIdSchema,
+  shortcut: z.string(),
+  currentDecayState: decayStateSchema.nullable(),
+  proposedDecayState: decayStateSchema.nullable(),
+  changeDescription: z.string(),
+  eligible: z.boolean(),
+  ineligibilityReason: z.string().nullable(),
+});
+
+/**
+ * Response schema for batch operations.
+ *
+ * Returns the action taken, dry-run flag, per-entry items with eligibility,
+ * counts, and the applied timestamp (null for dry-run).
+ */
+export const batchOperationResponseSchema = z.object({
+  action: batchActionSchema,
+  dryRun: z.boolean(),
+  items: z.array(batchOperationItemSchema),
+  totalEligible: z.number().int().min(0),
+  totalIneligible: z.number().int().min(0),
+  appliedAt: isoTimestampSchema.nullable(),
+});
+
+export type BatchAction = z.infer<typeof batchActionSchema>;
+export type DecayAwareListItem = z.infer<typeof decayAwareListItemSchema>;
+export type DecayEntryListRequest = z.infer<typeof decayEntryListRequestSchema>;
+export type DecayEntryListResponse = z.infer<typeof decayEntryListResponseSchema>;
+export type BatchOperationRequest = z.infer<typeof batchOperationRequestSchema>;
+export type BatchOperationItem = z.infer<typeof batchOperationItemSchema>;
+export type BatchOperationResponse = z.infer<typeof batchOperationResponseSchema>;
