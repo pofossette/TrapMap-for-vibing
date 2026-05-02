@@ -22,6 +22,7 @@ import type {
   AssetAvailabilityHint,
   CapsuleActivationHints,
   CapsuleMatch,
+  ConflictHint,
   ProfileHint,
   ReadNextReferenceHint,
   RetrievalCitation,
@@ -77,11 +78,13 @@ export function generateMatchReason(
 /**
  * Convert a scored entry to a retrieval match.
  * Optionally includes citation if provided.
+ * Optionally includes conflict hints if provided.
  */
 export function toRetrievalMatch(
   scoredEntry: ScoredEntry,
   filters: RetrievalQuery['filters'],
   citation?: RetrievalCitation,
+  conflicts?: ConflictHint[],
 ): RetrievalMatch {
   const { entry, score } = scoredEntry;
   return retrievalMatchSchema.parse({
@@ -94,6 +97,7 @@ export function toRetrievalMatch(
     score,
     reason: generateMatchReason(entry, score, filters),
     citation,
+    ...(conflicts && conflicts.length > 0 ? { conflicts } : {}),
   });
 }
 
@@ -101,11 +105,13 @@ export function toRetrievalMatch(
  * Assemble scored entries into globalConstraints and projectKnowledge buckets.
  * Ensures no entry appears in both buckets.
  * Optionally includes citations if provided.
+ * Optionally includes conflict hints if provided.
  */
 export function assembleResponseBuckets(
   scoredEntries: ScoredEntry[],
   filters: RetrievalQuery['filters'],
   citations?: Map<string, RetrievalCitation>,
+  conflictHints?: Map<string, ConflictHint[]>,
 ): {
   globalConstraints: RetrievalMatch[];
   projectKnowledge: RetrievalMatch[];
@@ -115,7 +121,8 @@ export function assembleResponseBuckets(
 
   for (const scoredEntry of scoredEntries) {
     const citation = citations?.get(scoredEntry.entry.id);
-    const match = toRetrievalMatch(scoredEntry, filters, citation);
+    const conflicts = conflictHints?.get(scoredEntry.entry.id);
+    const match = toRetrievalMatch(scoredEntry, filters, citation, conflicts);
     if (scoredEntry.entry.scope === 'global') {
       globalConstraints.push(match);
     } else {
@@ -168,11 +175,13 @@ export function buildEmptyResponse(): RetrievalResponse {
  *
  * @param capsule - Derived capsule record with distilled content
  * @param candidate - Ranked capsule candidate with scores
+ * @param conflicts - Optional conflict hints for the capsule
  * @returns CapsuleMatch for v2 response
  */
 export function buildCapsuleMatch(
   capsule: DerivedSkillCapsuleRecord,
   candidate: CapsuleCandidate,
+  conflicts?: ConflictHint[],
 ): CapsuleMatch {
   return capsuleMatchSchema.parse({
     capsuleId: capsule.capsuleId,
@@ -189,6 +198,7 @@ export function buildCapsuleMatch(
     requiredLevel: capsule.requiredLevel,
     score: candidate.finalScore,
     reason: candidate.reason,
+    ...(conflicts && conflicts.length > 0 ? { conflicts } : {}),
   });
 }
 
