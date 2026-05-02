@@ -10,6 +10,7 @@ import {
   scopeSchema,
   securityLevelSchema,
 } from './common.js';
+import { boundaryMetaSchema } from './boundary.js';
 import { agentReviewResultSchema, reviewDecisionSchema, reviewNoteSchema } from './knowledge.js';
 
 /**
@@ -363,6 +364,8 @@ export const skillArtifactSchema = z
     reviewNotes: z.array(reviewNoteSchema).default([]),
     /** Lifecycle event history */
     lifecycleHistory: z.array(skillArtifactLifecycleEventSchema).default([]),
+    /** Boundary constraints for applicability */
+    boundaryMeta: boundaryMetaSchema.nullable().optional(),
   })
   .merge(auditMetadataSchema);
 

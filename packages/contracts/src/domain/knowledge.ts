@@ -10,6 +10,7 @@ import {
   scopeSchema,
   securityLevelSchema,
 } from './common.js';
+import { boundaryMetaSchema } from './boundary.js';
 
 export const reviewRiskSchema = z.enum(['low', 'medium', 'high']);
 
@@ -111,6 +112,7 @@ export const knowledgeEntrySchema = z
     reviewHistory: z.array(reviewDecisionSchema).default([]),
     reviewNotes: z.array(reviewNoteSchema).default([]),
     lifecycleHistory: z.array(knowledgeLifecycleEventSchema).default([]),
+    boundaryMeta: boundaryMetaSchema.nullable().optional(),
   })
   .merge(auditMetadataSchema);
 
