@@ -62,7 +62,7 @@
 
 ### Feedback Loop
 
-- [ ] Phase 56: CLI Feedback Entry Points (FEEDBACK-01)
+- [x] Phase 56: CLI Feedback Entry Points (FEEDBACK-01) (completed 2026-05-02)
 - [ ] Phase 57: Admin Feedback Management (FEEDBACK-02, FEEDBACK-03)
 
 ### Evidence & Maintenance

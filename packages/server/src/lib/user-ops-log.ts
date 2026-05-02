@@ -17,7 +17,8 @@ export type UserOpsAction =
   | 'supersede'
   | 'manual-result'
   | 'apply-resolution'
-  | 'plan';
+  | 'plan'
+  | 'feedback';
 
 export interface UserOpsLogEntry {
   timestamp: string;
