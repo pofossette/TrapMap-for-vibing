@@ -63,7 +63,7 @@
 ### Feedback Loop
 
 - [x] Phase 56: CLI Feedback Entry Points (FEEDBACK-01) (completed 2026-05-02)
-- [ ] Phase 57: Admin Feedback Management (FEEDBACK-02, FEEDBACK-03)
+- [x] Phase 57: Admin Feedback Management (FEEDBACK-02, FEEDBACK-03) (completed 2026-05-02)
 
 ### Evidence & Maintenance
 
@@ -249,7 +249,7 @@ Plans:
 
 **Goal:** Add a minimal provenance and verification model so published knowledge can show where it came from, when it was verified, and how strong the evidence is.
 
-**Plans:** 1/2 plans executed
+**Plans:** 3/2 plans complete
 
 Plans:
 - [x] 58-01-PLAN.md — Core evidence schema contracts and exports

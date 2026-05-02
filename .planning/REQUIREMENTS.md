@@ -30,8 +30,8 @@ Requirements for v1.5 milestone: 功能增强
 ### Feedback Loop (FEEDBACK)
 
 - [ ] **FEEDBACK-01**: CLI provides post-execution problem report entry point; skill artifacts can mount feedback capabilities
-- [ ] **FEEDBACK-02**: Admins can review and process user feedback in batch through management interface
-- [ ] **FEEDBACK-03**: Feedback signals contribute to knowledge lifecycle transitions and quality scoring
+- [x] **FEEDBACK-02**: Admins can review and process user feedback in batch through management interface
+- [x] **FEEDBACK-03**: Feedback signals contribute to knowledge lifecycle transitions and quality scoring
 
 ## v2 Requirements
 
@@ -75,8 +75,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONFLICT-01 | Phase 55 | Complete |
 | CONFLICT-02 | Phase 55 | Complete |
 | FEEDBACK-01 | Phase 56 | Pending |
-| FEEDBACK-02 | Phase 57 | Pending |
-| FEEDBACK-03 | Phase 57 | Pending |
+| FEEDBACK-02 | Phase 57 | Complete |
+| FEEDBACK-03 | Phase 57 | Complete |
 
 **Coverage:**
 - v1.5 requirements: 14 total
