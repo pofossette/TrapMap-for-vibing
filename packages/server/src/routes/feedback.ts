@@ -9,6 +9,15 @@ import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
 import { logUserOperation } from '../lib/user-ops-log.js';
 
+/**
+ * Threshold configuration for automatic transition triggers.
+ * When recurring patterns are detected, the entry is flagged for admin review.
+ */
+const TRANSITION_TRIGGERS = {
+  outdated: { threshold: 3, targetState: 'stale', timeWindowDays: 30 },
+  incorrect: { threshold: 5, targetState: 'review-due', timeWindowDays: 30 },
+} as const;
+
 export const feedbackRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/feedback', async (request, reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
@@ -26,6 +35,25 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
       const id = app.skillShareer.store.nextId(data, 'feedback');
       const now = nowIso();
 
+      // Check for automatic transition trigger
+      let flaggedForTransition: string | null = null;
+      if (payload.problemType === 'outdated' || payload.problemType === 'incorrect') {
+        const trigger = TRANSITION_TRIGGERS[payload.problemType];
+        const cutoffDate = new Date(Date.now() - trigger.timeWindowDays * 24 * 60 * 60 * 1000);
+
+        const recentSimilarFeedback = data.feedbackQueue.filter(
+          (f) =>
+            f.entryId === payload.entryId &&
+            f.problemType === payload.problemType &&
+            new Date(f.submittedAt) >= cutoffDate,
+        );
+
+        // Including this new feedback, check if threshold is met
+        if (recentSimilarFeedback.length + 1 >= trigger.threshold) {
+          flaggedForTransition = trigger.targetState;
+        }
+      }
+
       const record = {
         id,
         entryId: payload.entryId,
@@ -40,6 +68,9 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
         submittedByHandle: auth.handle,
         status: 'new' as const,
         adminNotes: null,
+        resolvedAt: null,
+        resolvedByUserId: null,
+        triggeredTransition: flaggedForTransition,
         createdAt: now,
         updatedAt: now,
       };

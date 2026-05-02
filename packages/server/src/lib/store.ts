@@ -7,6 +7,7 @@ import type {
   CandidateSubmission,
   ConflictRelation,
   DuplicateCase,
+  FeedbackProblemType,
   LifecycleState,
   Permission,
   RoleTemplate,
@@ -590,6 +591,49 @@ export interface EntityLineageRecord {
   notes: string | null;
 }
 
+/**
+ * Feedback queue record for admin review workflow.
+ * Stores user-submitted feedback about knowledge entries.
+ */
+export interface FeedbackQueueRecord {
+  /** Unique feedback record identifier */
+  id: string;
+  /** ID of the entry being reported */
+  entryId: string;
+  /** Type of the entry being reported */
+  entryType: 'trap' | 'skill';
+  /** Problem classification from controlled vocabulary */
+  problemType: FeedbackProblemType;
+  /** User-provided description of the problem */
+  description: string;
+  /** Optional context: what the user was trying to do */
+  context: string | null;
+  /** Optional: which retrieval query led to this entry */
+  querySeed: string | null;
+  /** Optional: custom prompt answers if skill defined feedbackPrompts */
+  customAnswers: Array<{ prompt: string; answer: string }> | null;
+  /** When the feedback was submitted */
+  submittedAt: string;
+  /** User ID who submitted the feedback */
+  submittedByUserId: string;
+  /** Handle of the user who submitted the feedback */
+  submittedByHandle: string;
+  /** Current processing status */
+  status: 'new' | 'triaged' | 'resolved' | 'dismissed';
+  /** Admin notes added during review */
+  adminNotes: string | null;
+  /** When the feedback was resolved (if applicable) */
+  resolvedAt: string | null;
+  /** User ID who resolved the feedback (if applicable) */
+  resolvedByUserId: string | null;
+  /** Transition triggered by this feedback (e.g., 'stale' for decay transition) */
+  triggeredTransition: string | null;
+  /** When this record was created */
+  createdAt: string;
+  /** When this record was last updated */
+  updatedAt: string;
+}
+
 export interface StoreData {
   counters: Record<string, number>;
   users: UserRecord[];
@@ -613,6 +657,8 @@ export interface StoreData {
   graphIndexDocuments: GraphIndexDocumentRecord[];
   /** Detected conflict relationships between knowledge entries (CONFLICT-01) */
   conflicts: ConflictRelation[];
+  /** Feedback queue for admin review workflow (FEEDBACK-02) */
+  feedbackQueue: FeedbackQueueRecord[];
 }
 
 const EMPTY_STORE: StoreData = {
@@ -631,6 +677,7 @@ const EMPTY_STORE: StoreData = {
   entityLineage: [],
   graphIndexDocuments: [],
   conflicts: [],
+  feedbackQueue: [],
 };
 
 export interface SkillShareerStore {
