@@ -22,6 +22,7 @@
 
 import type { DecayState, FreshnessDecayConfig } from '@trapmap/contracts';
 import type { MergedCandidate, ScoredEntry } from './types.js';
+import { computeFreshnessMultiplier, DEFAULT_FRESHNESS_CONFIG } from '../decay/freshness.js';
 
 /**
  * Default boost for candidates that appear in both channels.
