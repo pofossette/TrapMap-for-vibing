@@ -625,4 +625,221 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       expect(afterData.graphIndexDocuments.find((d) => d.sourceId === entryId)).toBeUndefined();
     });
   });
+
+  describe('review with evidence (EVIDENCE-01)', () => {
+    let sessionId: string;
+    let entryId: string;
+    const userId = 'user_evidence';
+    const teamId = 'team_evidence';
+
+    beforeEach(async () => {
+      // Setup: Create a user, team, membership, and session
+      await store.transact(async (data) => {
+        if (!data.counters) data.counters = {};
+        data.counters.user = 20;
+
+        // Create user
+        data.users.push({
+          id: userId,
+          handle: 'evidence_reviewer',
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create team
+        data.teams.push({
+          id: teamId,
+          name: 'Evidence Test Team',
+          slug: 'evidence-test-team',
+          description: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create membership
+        data.memberships.push({
+          id: 'membership_evidence',
+          userId,
+          teamId,
+          roleTemplate: 'admin',
+          securityLevel: 10,
+          permissions: ['knowledge:review'],
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create session
+        const sessionToken = `session_evidence_${Date.now()}`;
+        data.sessions.push({
+          id: `session_${Date.now()}`,
+          userId,
+          tokenHash: hashSecret(sessionToken),
+          activeTeamId: teamId,
+          subjectType: 'user',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        });
+
+        sessionId = sessionToken;
+
+        // Create a submitted knowledge entry
+        data.counters.knowledge = 20;
+        entryId = 'knowledge_evidence_1';
+
+        const revision = {
+          revision: 1,
+          submittedAt: nowIso(),
+          submittedByUserId: userId,
+          shortcut: 'Evidence Test Entry',
+          detail: 'Test detail for evidence metadata',
+          labels: ['evidence-test'],
+          reviewNotes: [],
+        };
+
+        data.knowledgeEntries.push({
+          id: entryId,
+          teamId: null,
+          scope: 'global',
+          labels: ['evidence-test'],
+          shortcut: 'Evidence Test Entry',
+          detail: 'Test detail for evidence metadata',
+          requiredLevel: 0,
+          lifecycleState: 'submitted',
+          ownerUserId: userId,
+          latestRevision: revision,
+          history: [revision],
+          metadata: {
+            scopeLabel: 'global-constraint',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: 'submission_evidence_1',
+            latestSubmittedAt: nowIso(),
+            latestReviewedAt: null,
+            latestDecision: null,
+          },
+          latestSubmissionId: 'submission_evidence_1',
+          submissionHistory: [
+            {
+              id: 'submission_evidence_1',
+              revision: 1,
+              submittedAt: nowIso(),
+              submittedByUserId: userId,
+              lifecycleState: 'submitted',
+              resubmissionOf: null,
+              agentReview: null,
+              reviewerDecision: null,
+              reviewNotes: [],
+            },
+          ],
+          agentReview: null,
+          reviewHistory: [],
+          reviewNotes: [],
+          lifecycleHistory: [],
+          embeddingCache: null,
+          indexState: null,
+          evidenceMeta: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+      });
+    });
+
+    it('should persist evidence metadata on approval', async () => {
+      // Approve with explicit evidence object
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/knowledge/review',
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+        payload: {
+          entryId,
+          decision: 'approve',
+          notes: 'Verified evidence',
+          evidence: {
+            sourceType: 'incident',
+            evidenceLevel: 'verified-in-prod',
+            sourceRef: 'INC-123',
+            verifiedAt: nowIso(),
+            verifiedBy: {
+              id: userId,
+              handle: 'evidence_reviewer',
+              securityLevel: 10,
+            },
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      // Verify evidence metadata was persisted
+      const data = await store.snapshot();
+      const entry = data.knowledgeEntries.find((e) => e.id === entryId);
+
+      expect(entry).toBeDefined();
+      expect(entry?.lifecycleState).toBe('approved');
+      expect(entry?.evidenceMeta).toBeDefined();
+      expect(entry?.evidenceMeta?.sourceType).toBe('incident');
+      expect(entry?.evidenceMeta?.evidenceLevel).toBe('verified-in-prod');
+      expect(entry?.evidenceMeta?.sourceRef).toBe('INC-123');
+    });
+
+    it('should create default evidence when not provided on approval', async () => {
+      // Approve without evidence
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/knowledge/review',
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+        payload: {
+          entryId,
+          decision: 'approve',
+          notes: 'Approved without explicit evidence',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      // Verify default evidence was created
+      const data = await store.snapshot();
+      const entry = data.knowledgeEntries.find((e) => e.id === entryId);
+
+      expect(entry).toBeDefined();
+      expect(entry?.lifecycleState).toBe('approved');
+      expect(entry?.evidenceMeta).toBeDefined();
+      expect(entry?.evidenceMeta?.sourceType).toBe('internal-experience');
+      expect(entry?.evidenceMeta?.evidenceLevel).toBe('anecdotal');
+    });
+
+    it('should not set evidence on rejection', async () => {
+      // Reject the entry
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/knowledge/review',
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+        payload: {
+          entryId,
+          decision: 'reject',
+          notes: 'Not acceptable',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      // Verify evidence metadata was NOT set
+      const data = await store.snapshot();
+      const entry = data.knowledgeEntries.find((e) => e.id === entryId);
+
+      expect(entry).toBeDefined();
+      expect(entry?.lifecycleState).toBe('rejected');
+      expect(entry?.evidenceMeta).toBeNull();
+    });
+  });
 });
