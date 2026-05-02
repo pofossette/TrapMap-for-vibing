@@ -142,7 +142,8 @@ export async function detectConflicts(
     if (!conflictType) continue;
 
     // Canonical ordering: lower entryId first
-    const [entryIdA, entryIdB] = [newEntry.id, existingEntry.id].sort();
+    const sortedIds = [newEntry.id, existingEntry.id].sort() as [string, string];
+    const [entryIdA, entryIdB] = sortedIds;
 
     // Check if this conflict already exists
     const existingConflict = data.conflicts.find(
