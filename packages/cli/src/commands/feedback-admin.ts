@@ -1,0 +1,174 @@
+import type { FeedbackListResponse, FeedbackBatchResponse } from '@trapmap/contracts';
+import {
+  feedbackListResponseSchema,
+  feedbackBatchResponseSchema,
+} from '@trapmap/contracts';
+import type { Command } from 'commander';
+
+import { loadCliState } from '../lib/config.js';
+import { apiRequest, requireSessionToken } from '../lib/http.js';
+import { printResult } from '../lib/output.js';
+
+export interface FeedbackAdminCommandOptions {
+  allowManage: boolean;
+}
+
+/**
+ * Formats a feedback list response for human-readable output.
+ */
+function formatFeedbackList(data: FeedbackListResponse): string {
+  if (data.items.length === 0) {
+    return 'No feedback found';
+  }
+
+  const lines: string[] = [];
+  lines.push(`Found ${data.total} feedback items\n`);
+
+  for (const item of data.items) {
+    const age = `${Math.round(item.ageDays)}d`;
+    const status = item.status;
+    lines.push(`${item.id}  [${status}]  ${age}  ${item.entryShortcut.slice(0, 40)}  ${item.problemType}`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Formats a batch operation response for human-readable output.
+ */
+function formatBatchResult(data: FeedbackBatchResponse): string {
+  const lines: string[] = [];
+  const mode = data.dryRun ? 'DRY RUN - ' : '';
+  lines.push(`${mode}Action: ${data.action}`);
+  lines.push(`Eligible: ${data.totalEligible}, Ineligible: ${data.totalIneligible}`);
+  if (data.appliedAt) {
+    lines.push(`Applied at: ${data.appliedAt}`);
+  }
+  lines.push('');
+
+  for (const item of data.items) {
+    const status = item.eligible ? '✓' : '✗';
+    const reason = item.reason ? ` (${item.reason})` : '';
+    const transition = item.transitionApplied ? ' [transitioned]' : '';
+    lines.push(`${status} ${item.feedbackId}${transition}${reason}`);
+  }
+
+  return lines.join('\n');
+}
+
+export function registerFeedbackAdminCommands(
+  program: Command,
+  options: FeedbackAdminCommandOptions,
+): void {
+  if (!options.allowManage) return;
+
+  // feedback-list command: List feedback queue with filters
+  program
+    .command('feedback-list')
+    .description('List feedback queue items with optional filters')
+    .option('--status <statuses>', 'Filter by status (comma-separated: new,triaged,resolved,dismissed)')
+    .option('--type <types>', 'Filter by problem type (comma-separated: incorrect,outdated,context-mismatch,incomplete,other)')
+    .option('--entry <id>', 'Filter by entry ID')
+    .option('--entry-type <type>', 'Filter by entry type (trap or skill)')
+    .option('--min-age <days>', 'Minimum age in days', parseInt)
+    .option('--max-age <days>', 'Maximum age in days', parseInt)
+    .option('--limit <n>', 'Maximum items to return', '25')
+    .option('--json', 'Output JSON')
+    .action(
+      async (flags: {
+        status?: string;
+        type?: string;
+        entry?: string;
+        entryType?: string;
+        minAge?: number;
+        maxAge?: number;
+        limit: string;
+        json?: boolean;
+      }) => {
+        const state = await loadCliState();
+        requireSessionToken(state);
+
+        const queryParams = new URLSearchParams();
+
+        if (flags.status) {
+          flags.status.split(',').forEach((s: string) => {
+            queryParams.append('status', s.trim());
+          });
+        }
+        if (flags.type) {
+          flags.type.split(',').forEach((t: string) => {
+            queryParams.append('problemType', t.trim());
+          });
+        }
+        if (flags.entry) {
+          queryParams.set('entryId', flags.entry);
+        }
+        if (flags.entryType) {
+          queryParams.set('entryType', flags.entryType);
+        }
+        if (flags.minAge !== undefined) {
+          queryParams.set('minAgeDays', String(flags.minAge));
+        }
+        if (flags.maxAge !== undefined) {
+          queryParams.set('maxAgeDays', String(flags.maxAge));
+        }
+        queryParams.set('limit', flags.limit);
+
+        const path = `/v1/operations/feedback?${queryParams}`;
+        const response = await apiRequest<FeedbackListResponse>(state, { path });
+        const parsed = feedbackListResponseSchema.parse(response.data);
+
+        printResult(parsed, flags, formatFeedbackList);
+      },
+    );
+
+  // feedback-batch command: Apply batch operations
+  program
+    .command('feedback-batch')
+    .description('Apply batch operations to feedback items')
+    .requiredOption(
+      '--action <action>',
+      'Action: resolve, dismiss, triage, transition',
+    )
+    .requiredOption('--ids <ids>', 'Comma-separated feedback IDs')
+    .option('--notes <text>', 'Admin notes for the action')
+    .option('--transition-target <state>', 'Target decay state (for transition action)')
+    .option('--dry-run', 'Show what would change without applying')
+    .option('--json', 'Output JSON')
+    .action(
+      async (flags: {
+        action: string;
+        ids: string;
+        notes?: string;
+        transitionTarget?: string;
+        dryRun?: boolean;
+        json?: boolean;
+      }) => {
+        const state = await loadCliState();
+        requireSessionToken(state);
+
+        const feedbackIds = flags.ids.split(',').map((id: string) => id.trim());
+        const body: Record<string, unknown> = {
+          action: flags.action,
+          feedbackIds,
+          dryRun: !!flags.dryRun,
+        };
+
+        if (flags.notes) {
+          body.notes = flags.notes;
+        }
+        if (flags.transitionTarget) {
+          body.transitionTarget = flags.transitionTarget;
+        }
+
+        const response = await apiRequest<FeedbackBatchResponse>(state, {
+          method: 'POST',
+          path: '/v1/operations/feedback/batch',
+          body,
+        });
+        const parsed = feedbackBatchResponseSchema.parse(response.data);
+
+        printResult(parsed, flags, formatBatchResult);
+      },
+    );
+}

@@ -5,6 +5,7 @@ import { registerAuthCommands } from './commands/auth.js';
 import { registerDecayCommands } from './commands/decay.js';
 import { registerEvidenceCommands } from './commands/evidence.js';
 import { registerFeedbackCommands } from './commands/feedback.js';
+import { registerFeedbackAdminCommands } from './commands/feedback-admin.js';
 import { registerKnowledgeCommands } from './commands/knowledge.js';
 import { registerMemberCommands } from './commands/member.js';
 import { registerOperationsCommands } from './commands/operations.js';
@@ -48,6 +49,8 @@ const visibility = {
     securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
   allowAuditRead: hasPermission(effectivePermissions, 'audit:read'),
   allowFeedbackSubmit: hasPermission(effectivePermissions, 'knowledge:search'),
+  allowFeedbackManage:
+    securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
 };
 
 const program = new Command();
@@ -106,6 +109,7 @@ program
       ...(visibility.allowKnowledgeDeactivate ? ['deactivate'] : []),
       ...(visibility.allowAuditRead ? ['audit'] : []),
       ...(visibility.allowFeedbackSubmit ? ['feedback'] : []),
+      ...(visibility.allowFeedbackManage ? ['feedback-list', 'feedback-batch'] : []),
     ];
 
     for (const commandName of availableCommands) {
@@ -158,5 +162,6 @@ registerSkillCommands(program, {
 registerFeedbackCommands(program, {
   allowSubmit: visibility.allowFeedbackSubmit,
 });
+registerFeedbackAdminCommands(program, { allowManage: visibility.allowFeedbackManage });
 
 program.parseAsync(process.argv).catch(printError);

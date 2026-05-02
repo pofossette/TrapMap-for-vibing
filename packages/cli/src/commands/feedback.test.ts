@@ -1,10 +1,11 @@
-import type { FeedbackResponse } from '@trapmap/contracts';
+import type { FeedbackResponse, FeedbackListResponse, FeedbackBatchResponse } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { describe, expect, it, vi } from 'vitest';
 
 import * as http from '../lib/http.js';
 import * as prompts from '../lib/prompts.js';
 import { registerFeedbackCommands } from './feedback.js';
+import { registerFeedbackAdminCommands } from './feedback-admin.js';
 
 // Mock the dependencies
 vi.mock('../lib/http.js', () => ({
@@ -308,6 +309,319 @@ describe('CLI feedback command', () => {
 
       const commands = program.commands.map((cmd) => cmd.name());
       expect(commands).toContain('feedback');
+    });
+  });
+});
+
+describe('CLI feedback admin commands', () => {
+  const mockListResponse: FeedbackListResponse = {
+    items: [
+      {
+        id: 'feedback_1',
+        entryId: 'trap_1',
+        entryType: 'trap',
+        entryShortcut: 'test-trap',
+        problemType: 'outdated',
+        description: 'This content is outdated',
+        context: null,
+        submittedAt: '2026-05-02T12:00:00Z',
+        submittedBy: { id: 'user_1', handle: 'tester', securityLevel: 0 },
+        status: 'new',
+        ageDays: 2,
+        adminNotes: null,
+      },
+    ],
+    total: 1,
+  };
+
+  const mockBatchResponse: FeedbackBatchResponse = {
+    action: 'resolve',
+    dryRun: false,
+    items: [
+      { feedbackId: 'feedback_1', eligible: true, reason: null, transitionApplied: false },
+    ],
+    totalEligible: 1,
+    totalIneligible: 0,
+    appliedAt: '2026-05-03T12:00:00Z',
+  };
+
+  describe('feedback-list command', () => {
+    it('calls API with correct query params', async () => {
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockListResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: true });
+
+      await program.parseAsync(
+        ['feedback-list', '--status', 'new', '--limit', '10'],
+        { from: 'user' },
+      );
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          path: expect.stringContaining('/v1/operations/feedback'),
+        }),
+      );
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          path: expect.stringContaining('status=new'),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('outputs human-readable format by default', async () => {
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockListResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: true });
+
+      await program.parseAsync(['feedback-list'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+      expect(output).toContain('feedback_1');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('outputs JSON with --json flag', async () => {
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockListResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: true });
+
+      await program.parseAsync(['feedback-list', '--json'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+      expect(output).toContain('"feedback_1"');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('handles empty results gracefully', async () => {
+      const emptyResponse: FeedbackListResponse = { items: [], total: 0 };
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: emptyResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: true });
+
+      await program.parseAsync(['feedback-list'], { from: 'user' });
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+      expect(output).toContain('No feedback found');
+
+      consoleLogSpy.mockRestore();
+    });
+  });
+
+  describe('feedback-batch command', () => {
+    it('calls API with resolve action', async () => {
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockBatchResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: true });
+
+      await program.parseAsync(
+        ['feedback-batch', '--action', 'resolve', '--ids', 'feedback_1'],
+        { from: 'user' },
+      );
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          method: 'POST',
+          path: '/v1/operations/feedback/batch',
+          body: expect.objectContaining({
+            action: 'resolve',
+            feedbackIds: ['feedback_1'],
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('calls API with dismiss action', async () => {
+      const dismissResponse: FeedbackBatchResponse = {
+        ...mockBatchResponse,
+        action: 'dismiss',
+      };
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: dismissResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: true });
+
+      await program.parseAsync(
+        ['feedback-batch', '--action', 'dismiss', '--ids', 'feedback_1'],
+        { from: 'user' },
+      );
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          body: expect.objectContaining({
+            action: 'dismiss',
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('includes notes when provided', async () => {
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockBatchResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: true });
+
+      await program.parseAsync(
+        ['feedback-batch', '--action', 'resolve', '--ids', 'feedback_1', '--notes', 'Fixed in v2'],
+        { from: 'user' },
+      );
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          body: expect.objectContaining({
+            notes: 'Fixed in v2',
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('handles dry-run mode', async () => {
+      const dryRunResponse: FeedbackBatchResponse = {
+        ...mockBatchResponse,
+        dryRun: true,
+        appliedAt: null,
+      };
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: dryRunResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: true });
+
+      await program.parseAsync(
+        ['feedback-batch', '--action', 'resolve', '--ids', 'feedback_1', '--dry-run'],
+        { from: 'user' },
+      );
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          body: expect.objectContaining({
+            dryRun: true,
+          }),
+        }),
+      );
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+      expect(output).toContain('DRY RUN');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('outputs eligible/ineligible items', async () => {
+      const mixedResponse: FeedbackBatchResponse = {
+        action: 'resolve',
+        dryRun: false,
+        items: [
+          { feedbackId: 'feedback_1', eligible: true, reason: null, transitionApplied: false },
+          { feedbackId: 'feedback_2', eligible: false, reason: 'Feedback already resolved', transitionApplied: false },
+        ],
+        totalEligible: 1,
+        totalIneligible: 1,
+        appliedAt: '2026-05-03T12:00:00Z',
+      };
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mixedResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: true });
+
+      await program.parseAsync(
+        ['feedback-batch', '--action', 'resolve', '--ids', 'feedback_1,feedback_2'],
+        { from: 'user' },
+      );
+
+      const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
+      const output = outputCalls.join('\n');
+      expect(output).toContain('Eligible: 1');
+      expect(output).toContain('Ineligible: 1');
+
+      consoleLogSpy.mockRestore();
+    });
+  });
+
+  describe('visibility control', () => {
+    it('does not register commands when allowManage is false', () => {
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: false });
+
+      const commands = program.commands.map((cmd) => cmd.name());
+      expect(commands).not.toContain('feedback-list');
+      expect(commands).not.toContain('feedback-batch');
+    });
+
+    it('registers commands when allowManage is true', () => {
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: true });
+
+      const commands = program.commands.map((cmd) => cmd.name());
+      expect(commands).toContain('feedback-list');
+      expect(commands).toContain('feedback-batch');
     });
   });
 });
