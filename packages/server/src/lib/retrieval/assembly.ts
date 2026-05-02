@@ -44,18 +44,25 @@ import type {
   DerivedSkillCapsuleRecord,
   SkillArtifactRecord,
 } from '../store.js';
-import type { CapsuleCandidate, ScoredEntry } from './types.js';
+import type { CapsuleCandidate, MergedCandidate, ScoredEntry } from './types.js';
 
 // Type inference from schema - use the return type of parse()
 type RetrievalMatch = ReturnType<typeof retrievalMatchSchema.parse>;
 
 /**
  * Generate a human-readable reason for the match.
+ * Includes freshness percentage when decay was applied (Phase 49: DECAY-02).
+ *
+ * @param entry - Entry with labels and scope for match explanation
+ * @param score - Final relevance score
+ * @param filters - Query filters used for matching
+ * @param decayMultiplier - Optional freshness decay multiplier (0-1, only shown when < 1)
  */
 export function generateMatchReason(
   entry: { labels: string[]; scope: string },
   score: number,
   filters: RetrievalQuery['filters'],
+  decayMultiplier?: number,
 ): string {
   const parts: string[] = [];
 
@@ -71,17 +78,30 @@ export function generateMatchReason(
   }
 
   const baseReason = parts.length > 0 ? parts.join('; ') : 'semantic similarity';
+
+  // Include freshness info if decay was applied (Phase 49: DECAY-02)
+  if (decayMultiplier !== undefined && decayMultiplier < 1.0) {
+    const freshnessPct = Math.round(decayMultiplier * 100);
+    return `${baseReason} (score: ${score.toFixed(2)}, freshness: ${freshnessPct}%)`;
+  }
+
   return `${baseReason} (score: ${score.toFixed(2)})`;
 }
 
 /**
  * Convert a scored entry to a retrieval match.
  * Optionally includes citation if provided.
+ *
+ * @param scoredEntry - Scored entry with knowledge record and score
+ * @param filters - Query filters used for match reason generation
+ * @param citation - Optional citation with score breakdown (includes decayMultiplier when applicable)
+ * @param decayMultiplier - Optional freshness decay multiplier for reason string (Phase 49: DECAY-02)
  */
 export function toRetrievalMatch(
   scoredEntry: ScoredEntry,
   filters: RetrievalQuery['filters'],
   citation?: RetrievalCitation,
+  decayMultiplier?: number,
 ): RetrievalMatch {
   const { entry, score } = scoredEntry;
   return retrievalMatchSchema.parse({
@@ -92,7 +112,7 @@ export function toRetrievalMatch(
     detail: entry.detail,
     labels: entry.labels,
     score,
-    reason: generateMatchReason(entry, score, filters),
+    reason: generateMatchReason(entry, score, filters, decayMultiplier),
     citation,
   });
 }
@@ -154,6 +174,48 @@ export function buildEmptyResponse(): RetrievalResponse {
     refinementSummary: null,
     summary: null,
   });
+}
+
+// =============================================================================
+// Phase 49: Citation Decay Multiplier Exposure (DECAY-02)
+// Build citations from merged candidates with decay multiplier transparency.
+// =============================================================================
+
+/**
+ * Build a retrieval citation from a merged candidate.
+ * Includes decay multiplier when freshness decay was applied.
+ *
+ * @param candidate - Merged candidate with scores and decay metadata
+ * @returns RetrievalCitation for the response
+ */
+export function buildCitationFromCandidate(
+  candidate: MergedCandidate,
+): RetrievalCitation {
+  const scores: RetrievalCitation['scores'] = {
+    semantic: candidate.semanticScore > 0 ? candidate.semanticScore : null,
+    keyword: candidate.keywordScore > 0 ? candidate.keywordScore : null,
+    graph: candidate.graphScore ?? null,
+    preRerank: candidate.preRerankScore,
+    final: candidate.finalScore,
+  };
+
+  // Include decay multiplier if applied (Phase 49: DECAY-02)
+  if (candidate.decayMultiplier !== undefined) {
+    scores.decayMultiplier = candidate.decayMultiplier;
+  }
+
+  return {
+    source: {
+      entryId: candidate.entry.id,
+      scope: candidate.entry.scope,
+      shortcut: candidate.entry.shortcut,
+    },
+    snippet: candidate.entry.detail.slice(0, 200),
+    tags: candidate.entry.labels,
+    // MergedCandidate.channels is already RecallChannel[] ('semantic' | 'keyword' | 'graph')
+    recallChannels: candidate.channels,
+    scores,
+  };
 }
 
 // =============================================================================

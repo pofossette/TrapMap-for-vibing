@@ -20,8 +20,9 @@
  * stage. It never introduces new entries or bypasses filter constraints.
  */
 
-import type { DecayState } from '@trapmap/contracts';
+import type { DecayState, FreshnessDecayConfig } from '@trapmap/contracts';
 import type { MergedCandidate, ScoredEntry } from './types.js';
+import { computeFreshnessMultiplier, DEFAULT_FRESHNESS_CONFIG } from '../decay/freshness.js';
 
 /**
  * Default boost for candidates that appear in both channels.
@@ -54,6 +55,8 @@ export interface RerankConfig {
   maxCandidates?: number;
   /** Penalty applied to stale entries' scores (default 0.1). Set to 0 to disable. */
   staleDecayPenalty?: number;
+  /** Freshness decay configuration for time-based ranking adjustments */
+  freshnessConfig?: FreshnessDecayConfig;
 }
 
 /**
@@ -69,6 +72,8 @@ export interface RerankConfig {
  * 2. Both-channel boost: +0.15 if candidate appears in semantic AND keyword
  * 3. Token density boost: +0.10 if >50% of query tokens matched
  * 4. Stale decay penalty: -0.10 if entry has decayState === 'stale'
+ * 5. Freshness decay multiplier: multiplicative factor based on entry type and age
+ * 6. Cap at [0, 1] to maintain score bounds
  *
  * Determinism: Results are sorted by final score, then by entry ID
  * for stable ordering when scores are equal.
@@ -84,6 +89,7 @@ export function rerankCandidates(
   const bothChannelBoost = config?.bothChannelBoost ?? DEFAULT_BOTH_CHANNEL_BOOST;
   const tokenDensityBoost = config?.tokenDensityBoost ?? DEFAULT_TOKEN_DENSITY_BOOST;
   const staleDecayPenalty = config?.staleDecayPenalty ?? DEFAULT_STALE_DECAY_PENALTY;
+  const freshnessConfig = config?.freshnessConfig ?? DEFAULT_FRESHNESS_CONFIG;
 
   // Calculate rerank scores
   const reranked = mergedCandidates.map((candidate) => {
@@ -110,6 +116,16 @@ export function rerankCandidates(
       finalScore -= staleDecayPenalty;
     }
 
+    // Apply freshness decay multiplier (Phase 49: DECAY-02)
+    // Multiplicative to preserve relative ranking differences
+    const freshnessMultiplier = computeFreshnessMultiplier(
+      candidate.entry,
+      freshnessConfig,
+    );
+    if (freshnessMultiplier < 1.0) {
+      finalScore *= freshnessMultiplier;
+    }
+
     // Cap at 1.0 to maintain score bounds
     finalScore = Math.min(1, Math.max(0, finalScore));
 
@@ -118,6 +134,7 @@ export function rerankCandidates(
       combinedScore: finalScore,
       preRerankScore,
       finalScore,
+      ...(freshnessMultiplier < 1.0 ? { decayMultiplier: freshnessMultiplier } : {}),
     };
   });
 

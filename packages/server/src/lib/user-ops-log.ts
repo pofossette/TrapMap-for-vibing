@@ -17,7 +17,10 @@ export type UserOpsAction =
   | 'supersede'
   | 'manual-result'
   | 'apply-resolution'
-  | 'plan';
+  | 'plan'
+  | 'decay-list'
+  | 'decay-batch'
+  | 'decay-search';
 
 export interface UserOpsLogEntry {
   timestamp: string;

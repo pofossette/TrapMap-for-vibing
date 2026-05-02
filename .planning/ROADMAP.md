@@ -46,8 +46,8 @@
 ### Decay & Retirement
 
 - [x] Phase 48: Lifecycle State Machine (DECAY-01, DECAY-04) (completed 2026-05-02)
-- [ ] Phase 49: Time-based Decay in Retrieval (DECAY-02)
-- [ ] Phase 50: Batch Management Interface (DECAY-03)
+- [x] Phase 49: Time-based Decay in Retrieval (DECAY-02) (completed 2026-05-02)
+- [x] Phase 50: Batch Management Interface (DECAY-03) (completed 2026-05-02)
 
 ### Applicability Boundary Model
 
