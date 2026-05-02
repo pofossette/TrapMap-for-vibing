@@ -20,10 +20,9 @@
 
 import type {
   AssetAvailabilityHint,
-  BoundaryContext,
-  BoundaryExplanation,
   CapsuleActivationHints,
   CapsuleMatch,
+  ConflictHint,
   ProfileHint,
   ReadNextReferenceHint,
   RetrievalCitation,
@@ -47,7 +46,6 @@ import type {
   SkillArtifactRecord,
 } from '../store.js';
 import type { CapsuleCandidate, ScoredEntry } from './types.js';
-import { buildBoundaryExplanation } from './boundary-match.js';
 
 // Type inference from schema - use the return type of parse()
 type RetrievalMatch = ReturnType<typeof retrievalMatchSchema.parse>;
@@ -80,17 +78,15 @@ export function generateMatchReason(
 /**
  * Convert a scored entry to a retrieval match.
  * Optionally includes citation if provided.
+ * Optionally includes conflict hints if provided.
  */
 export function toRetrievalMatch(
   scoredEntry: ScoredEntry,
   filters: RetrievalQuery['filters'],
   citation?: RetrievalCitation,
-  boundaryContext?: BoundaryContext,
+  conflicts?: ConflictHint[],
 ): RetrievalMatch {
   const { entry, score } = scoredEntry;
-  const boundaryExplanation = entry.boundary
-    ? buildBoundaryExplanation(scoredEntry.entry, boundaryContext, 0)
-    : undefined;
   return retrievalMatchSchema.parse({
     entryId: entry.id,
     scope: entry.scope,
@@ -101,7 +97,7 @@ export function toRetrievalMatch(
     score,
     reason: generateMatchReason(entry, score, filters),
     citation,
-    boundaryExplanation,
+    ...(conflicts && conflicts.length > 0 ? { conflicts } : {}),
   });
 }
 
@@ -109,12 +105,13 @@ export function toRetrievalMatch(
  * Assemble scored entries into globalConstraints and projectKnowledge buckets.
  * Ensures no entry appears in both buckets.
  * Optionally includes citations if provided.
+ * Optionally includes conflict hints if provided.
  */
 export function assembleResponseBuckets(
   scoredEntries: ScoredEntry[],
   filters: RetrievalQuery['filters'],
   citations?: Map<string, RetrievalCitation>,
-  boundaryContext?: BoundaryContext,
+  conflictHints?: Map<string, ConflictHint[]>,
 ): {
   globalConstraints: RetrievalMatch[];
   projectKnowledge: RetrievalMatch[];
@@ -124,7 +121,8 @@ export function assembleResponseBuckets(
 
   for (const scoredEntry of scoredEntries) {
     const citation = citations?.get(scoredEntry.entry.id);
-    const match = toRetrievalMatch(scoredEntry, filters, citation, boundaryContext);
+    const conflicts = conflictHints?.get(scoredEntry.entry.id);
+    const match = toRetrievalMatch(scoredEntry, filters, citation, conflicts);
     if (scoredEntry.entry.scope === 'global') {
       globalConstraints.push(match);
     } else {
@@ -177,11 +175,13 @@ export function buildEmptyResponse(): RetrievalResponse {
  *
  * @param capsule - Derived capsule record with distilled content
  * @param candidate - Ranked capsule candidate with scores
+ * @param conflicts - Optional conflict hints for the capsule
  * @returns CapsuleMatch for v2 response
  */
 export function buildCapsuleMatch(
   capsule: DerivedSkillCapsuleRecord,
   candidate: CapsuleCandidate,
+  conflicts?: ConflictHint[],
 ): CapsuleMatch {
   return capsuleMatchSchema.parse({
     capsuleId: capsule.capsuleId,
@@ -198,6 +198,7 @@ export function buildCapsuleMatch(
     requiredLevel: capsule.requiredLevel,
     score: candidate.finalScore,
     reason: candidate.reason,
+    ...(conflicts && conflicts.length > 0 ? { conflicts } : {}),
   });
 }
 

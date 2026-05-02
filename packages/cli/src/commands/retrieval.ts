@@ -1,4 +1,4 @@
-import type { RetrievalResponse, RetrievalV2Response } from '@trapmap/contracts';
+import type { ConflictHint, RetrievalResponse, RetrievalV2Response } from '@trapmap/contracts';
 import { retrievalResponseSchema, retrievalV2ResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
@@ -13,6 +13,24 @@ interface RetrievalCommandOptions {
 
 type RetrievalMatch = NonNullable<RetrievalResponse['globalConstraints'][number]>;
 
+/**
+ * Format conflict hints for display.
+ * Shows conflict type and context for each conflicting entry.
+ */
+function formatConflicts(conflicts: ConflictHint[]): string {
+  const lines = ['Conflicts:'];
+  for (const conflict of conflicts) {
+    const typeLabel: Record<string, string> = {
+      alternative: '[alt]',
+      contradictory: '[!]',
+      superseded: '[old]',
+    };
+    lines.push(`  ${typeLabel[conflict.conflictType] ?? '[?]'} ${conflict.shortcut} (${conflict.entryId})`);
+    lines.push(`      ${conflict.context}`);
+  }
+  return lines.join('\n');
+}
+
 function formatMatch(match: RetrievalMatch): string {
   const lines = [
     `${match.entryId}`,
@@ -26,6 +44,11 @@ function formatMatch(match: RetrievalMatch): string {
   if (match.citation?.recallChannels?.length) {
     lines.push(`Channels: ${match.citation.recallChannels.join(', ')}`);
     lines.push(`Source: ${match.citation.source.entryId} (${match.citation.source.scope})`);
+  }
+
+  // Add conflict information if available (Phase 55: CONFLICT-02)
+  if (match.conflicts?.length) {
+    lines.push(formatConflicts(match.conflicts));
   }
 
   return lines.join('\n');
@@ -46,6 +69,7 @@ function formatCapsuleMatch(capsule: {
   requiredLevel: number;
   score: number;
   reason: string;
+  conflicts?: ConflictHint[] | undefined;
 }): string {
   const lines = [
     `${capsule.capsuleId}`,
@@ -58,6 +82,11 @@ function formatCapsuleMatch(capsule: {
     `Score: ${capsule.score.toFixed(2)}`,
     `Reason: ${capsule.reason}`,
   ];
+
+  // Add conflict information if available (Phase 55: CONFLICT-02)
+  if (capsule.conflicts?.length) {
+    lines.push(formatConflicts(capsule.conflicts));
+  }
 
   return lines.join('\n');
 }

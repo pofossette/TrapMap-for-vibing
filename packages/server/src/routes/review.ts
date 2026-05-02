@@ -3,6 +3,7 @@ import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent } from '../lib/audit.js';
+import { detectConflicts } from '../lib/conflict/detect.js';
 import { AppError } from '../lib/errors.js';
 import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 import { applyReviewDecision, toKnowledgeEntry } from '../lib/knowledge.js';
@@ -187,6 +188,23 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
         // Log but don't fail the request - domain state is already committed
         app.log.error({ indexingError, entryId }, 'Post-commit indexing failed');
         // Optionally: schedule retry or mark entry for reconciliation
+      }
+
+      // Trigger conflict detection AFTER approval (post-commit pattern)
+      // Runs after indexing to avoid nested transactions
+      if (nextState === 'approved') {
+        try {
+          await detectConflicts({
+            services: {
+              store: app.skillShareer.store,
+              data: await app.skillShareer.store.snapshot(),
+            },
+            entryId,
+          });
+        } catch (conflictError) {
+          // Log but don't fail the request - domain state is already committed
+          app.log.error({ conflictError, entryId }, 'Post-commit conflict detection failed');
+        }
       }
     }
 
