@@ -10,6 +10,7 @@ import {
   scopeSchema,
   securityLevelSchema,
 } from './common.js';
+import { evidenceMetaSchema } from './evidence.js';
 
 export const reviewRiskSchema = z.enum(['low', 'medium', 'high']);
 
@@ -111,6 +112,8 @@ export const knowledgeEntrySchema = z
     reviewHistory: z.array(reviewDecisionSchema).default([]),
     reviewNotes: z.array(reviewNoteSchema).default([]),
     lifecycleHistory: z.array(knowledgeLifecycleEventSchema).default([]),
+    /** Evidence and provenance metadata (null if not yet verified) */
+    evidenceMeta: evidenceMetaSchema.nullable().default(null),
   })
   .merge(auditMetadataSchema);
 

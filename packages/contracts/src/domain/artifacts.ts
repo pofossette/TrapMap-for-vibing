@@ -10,6 +10,7 @@ import {
   scopeSchema,
   securityLevelSchema,
 } from './common.js';
+import { evidenceMetaSchema } from './evidence.js';
 import { agentReviewResultSchema, reviewDecisionSchema, reviewNoteSchema } from './knowledge.js';
 
 /**
@@ -363,6 +364,8 @@ export const skillArtifactSchema = z
     reviewNotes: z.array(reviewNoteSchema).default([]),
     /** Lifecycle event history */
     lifecycleHistory: z.array(skillArtifactLifecycleEventSchema).default([]),
+    /** Evidence and provenance metadata (null if not yet verified) */
+    evidenceMeta: evidenceMetaSchema.nullable().default(null),
   })
   .merge(auditMetadataSchema);
 
