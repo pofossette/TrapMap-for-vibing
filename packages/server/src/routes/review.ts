@@ -139,6 +139,11 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
             },
       );
 
+      // Update boundary if provided in payload
+      if (payload.boundary !== undefined) {
+        entry.boundary = payload.boundary;
+      }
+
       // Capture entry ID and new state for post-commit indexing
       entryId = entry.id;
       nextState = entry.lifecycleState;
