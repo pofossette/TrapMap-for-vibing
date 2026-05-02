@@ -23,6 +23,7 @@ import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
 import { authRoutes } from './routes/auth.js';
 import { candidateRoutes } from './routes/candidates.js';
+import { evidenceRoutes } from './routes/evidence.js';
 import { knowledgeRoutes } from './routes/knowledge.js';
 import { memberRoutes } from './routes/members.js';
 import { operationsRoutes } from './routes/operations.js';
@@ -128,6 +129,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.register(reviewRoutes);
   app.register(trapRoutes);
   app.register(knowledgeRoutes);
+  app.register(evidenceRoutes);
   app.register(candidateRoutes);
   app.register(retrievalRoutes);
   app.register(operationsRoutes);
