@@ -11,6 +11,7 @@
  * - Candidates appearing in both channels get a boost (cross-channel agreement)
  * - Token match density boosts keyword-heavy candidates
  * - Semantic scores are preserved for embedding similarity
+ * - Stale entries receive a ranking penalty (soft decay)
  *
  * This module is server-internal (BOUND-03, BOUND-05) and does not change
  * the public response schema.
@@ -19,6 +20,7 @@
  * stage. It never introduces new entries or bypasses filter constraints.
  */
 
+import type { DecayState } from '@trapmap/contracts';
 import type { MergedCandidate, ScoredEntry } from './types.js';
 
 /**
@@ -35,6 +37,12 @@ export const DEFAULT_BOTH_CHANNEL_BOOST = 0.15;
 export const DEFAULT_TOKEN_DENSITY_BOOST = 0.1;
 
 /**
+ * Default penalty for stale entries (soft decay).
+ * Entries with decayState === 'stale' have their score reduced by this amount.
+ */
+export const DEFAULT_STALE_DECAY_PENALTY = 0.1;
+
+/**
  * Configuration for rerank behavior.
  */
 export interface RerankConfig {
@@ -44,6 +52,8 @@ export interface RerankConfig {
   tokenDensityBoost?: number;
   /** Maximum candidates to return after rerank (default: no limit) */
   maxCandidates?: number;
+  /** Penalty applied to stale entries' scores (default 0.1). Set to 0 to disable. */
+  staleDecayPenalty?: number;
 }
 
 /**
@@ -58,6 +68,7 @@ export interface RerankConfig {
  * 1. Base score: combinedScore from merge stage
  * 2. Both-channel boost: +0.15 if candidate appears in semantic AND keyword
  * 3. Token density boost: +0.10 if >50% of query tokens matched
+ * 4. Stale decay penalty: -0.10 if entry has decayState === 'stale'
  *
  * Determinism: Results are sorted by final score, then by entry ID
  * for stable ordering when scores are equal.
@@ -72,6 +83,7 @@ export function rerankCandidates(
 ): MergedCandidate[] {
   const bothChannelBoost = config?.bothChannelBoost ?? DEFAULT_BOTH_CHANNEL_BOOST;
   const tokenDensityBoost = config?.tokenDensityBoost ?? DEFAULT_TOKEN_DENSITY_BOOST;
+  const staleDecayPenalty = config?.staleDecayPenalty ?? DEFAULT_STALE_DECAY_PENALTY;
 
   // Calculate rerank scores
   const reranked = mergedCandidates.map((candidate) => {
@@ -91,6 +103,11 @@ export function rerankCandidates(
       if (density >= 0.5) {
         finalScore += tokenDensityBoost;
       }
+    }
+
+    // Apply soft decay penalty for stale entries
+    if (staleDecayPenalty > 0 && hasStaleDecayState(candidate)) {
+      finalScore -= staleDecayPenalty;
     }
 
     // Cap at 1.0 to maintain score bounds
@@ -127,6 +144,14 @@ export function rerankCandidates(
  */
 function hasBothChannels(candidate: MergedCandidate): boolean {
   return candidate.channels.includes('semantic') && candidate.channels.includes('keyword');
+}
+
+/**
+ * Check if a merged candidate's associated entry has stale decay state.
+ * The entry must carry decay metadata with decayState === 'stale'.
+ */
+function hasStaleDecayState(candidate: MergedCandidate): boolean {
+  return candidate.entry.decayMeta?.decayState === 'stale';
 }
 
 /**

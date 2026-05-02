@@ -3,7 +3,7 @@
  * Unifies logic from retrieval/filters.ts and retrieval/capsule-recall.ts.
  */
 
-import type { GovernanceContext, GovernanceFilters, GovernedEntity } from './types.js';
+import type { EligibilityOptions, GovernanceContext, GovernanceFilters, GovernedEntity } from './types.js';
 
 /**
  * Check if an entity passes governance eligibility checks.
@@ -11,22 +11,36 @@ import type { GovernanceContext, GovernanceFilters, GovernedEntity } from './typ
  * Rules (all must pass):
  * 1. lifecycleState === 'approved'
  * 2. System admin bypass OR:
+ *    - Not in terminal decay state (expired/superseded)
  *    - Caller securityLevel >= entity.requiredLevel
  *    - Team access: entity has no team OR entity.teamId matches caller.teamId
  *
  * @param entity - The governed entity to check
  * @param context - Caller's governance context
+ * @param options - Optional eligibility options (e.g., excludeDecayed)
  * @returns true if entity is eligible for access
  */
-export function isGovernanceEligible(entity: GovernedEntity, context: GovernanceContext): boolean {
+export function isGovernanceEligible(
+  entity: GovernedEntity,
+  context: GovernanceContext,
+  options?: EligibilityOptions,
+): boolean {
   // Must be approved
   if (entity.lifecycleState !== 'approved') {
     return false;
   }
 
-  // System admin can access everything
+  // System admin can access everything (before decay check)
   if (context.isSystemAdmin) {
     return true;
+  }
+
+  // Hard decay: exclude expired and superseded from default retrieval
+  const excludeDecayed = options?.excludeDecayed !== false;
+  if (excludeDecayed && entity.decayState !== undefined) {
+    if (entity.decayState === 'expired' || entity.decayState === 'superseded') {
+      return false;
+    }
   }
 
   // Security level check: caller must have >= required level
@@ -77,14 +91,19 @@ export function matchesGovernanceFilters(
  * @param entity - The governed entity to check
  * @param context - Caller's governance context
  * @param filters - Optional scope and label filters
+ * @param eligibilityOptions - Optional eligibility options (e.g., excludeDecayed)
  * @returns true if entity passes all checks
  */
 export function isGovernedEntityAccessible(
   entity: GovernedEntity & { labels: string[] },
   context: GovernanceContext,
   filters: GovernanceFilters,
+  eligibilityOptions?: EligibilityOptions,
 ): boolean {
-  return isGovernanceEligible(entity, context) && matchesGovernanceFilters(entity, filters);
+  return (
+    isGovernanceEligible(entity, context, eligibilityOptions) &&
+    matchesGovernanceFilters(entity, filters)
+  );
 }
 
 /**
@@ -93,12 +112,16 @@ export function isGovernedEntityAccessible(
  * @param entities - Array of entities to filter
  * @param context - Caller's governance context
  * @param filters - Optional scope and label filters
+ * @param eligibilityOptions - Optional eligibility options (e.g., excludeDecayed)
  * @returns Filtered array of eligible entities
  */
 export function filterGovernedEntities<T extends GovernedEntity & { labels: string[] }>(
   entities: T[],
   context: GovernanceContext,
   filters: GovernanceFilters,
+  eligibilityOptions?: EligibilityOptions,
 ): T[] {
-  return entities.filter((entity) => isGovernedEntityAccessible(entity, context, filters));
+  return entities.filter((entity) =>
+    isGovernedEntityAccessible(entity, context, filters, eligibilityOptions),
+  );
 }

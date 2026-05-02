@@ -8,7 +8,12 @@
  */
 
 // Types
-export type { GovernanceContext, GovernedEntity, GovernanceFilters } from './types.js';
+export type {
+  GovernanceContext,
+  GovernedEntity,
+  GovernanceFilters,
+  EligibilityOptions,
+} from './types.js';
 
 // Eligibility functions
 export {

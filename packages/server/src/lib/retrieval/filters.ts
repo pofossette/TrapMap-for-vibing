@@ -7,6 +7,7 @@
  * - Team access (project entries match active team, unless system admin)
  * - Scope filters (global/project)
  * - Label filters (all labels must match)
+ * - Decay state (hard decay: exclude expired/superseded)
  *
  * This module is called by the orchestrator BEFORE recall candidate generation,
  * ensuring security and eligibility gates are enforced before any semantic search.
@@ -16,6 +17,8 @@
 
 import type { RetrievalQuery } from '@trapmap/contracts';
 import type { ResolvedAuthContext } from '../context.js';
+import { computeDecayState } from '../decay/state-machine.js';
+import { loadDecayConfig } from '../decay/config.js';
 import {
   extractGovernanceContext,
   isGovernanceEligible,
@@ -26,15 +29,25 @@ import type { KnowledgeRecord } from '../store.js';
 /**
  * Adapt a KnowledgeRecord to the GovernedEntity interface.
  * KnowledgeRecord has: lifecycleState, requiredLevel, teamId, scope, labels.
+ * Computes decay state from decayMeta when decay is enabled.
  */
 function toGovernedEntity(entry: KnowledgeRecord) {
-  return {
+  const config = loadDecayConfig();
+  const decayResult = config.enabled ? computeDecayState(entry.decayMeta, config) : null;
+
+  const base = {
     teamId: entry.teamId,
     scope: entry.scope,
     requiredLevel: entry.requiredLevel,
     lifecycleState: entry.lifecycleState,
     labels: entry.labels,
   };
+
+  // Only include decayState when computed (avoids exactOptionalPropertyTypes issue)
+  if (decayResult !== null) {
+    return { ...base, decayState: decayResult.decayState };
+  }
+  return base;
 }
 
 /**

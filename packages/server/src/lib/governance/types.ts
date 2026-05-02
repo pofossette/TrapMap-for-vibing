@@ -3,7 +3,7 @@
  * Used by both KnowledgeEntry (trap) and SkillArtifact domains.
  */
 
-import type { LifecycleState, Scope, SecurityLevel } from '@trapmap/contracts';
+import type { DecayState, LifecycleState, Scope, SecurityLevel } from '@trapmap/contracts';
 
 /**
  * Governance context representing the caller's access rights.
@@ -31,6 +31,8 @@ export interface GovernedEntity {
   requiredLevel: SecurityLevel;
   /** Current lifecycle state (only 'approved' is eligible for retrieval) */
   lifecycleState: LifecycleState;
+  /** Computed decay state (only meaningful when lifecycleState is 'approved') */
+  decayState?: DecayState;
 }
 
 /**
@@ -42,4 +44,12 @@ export interface GovernanceFilters {
   scopes: Scope[];
   /** Filter by labels (all must match) */
   labels: string[];
+}
+
+/**
+ * Options for governance eligibility checks.
+ */
+export interface EligibilityOptions {
+  /** When true (default), exclude expired and superseded entries. Set false for admin views. */
+  excludeDecayed?: boolean;
 }
