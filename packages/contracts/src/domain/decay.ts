@@ -115,6 +115,8 @@ export const decayMetaSchema = z.object({
   supersededById: entityIdSchema.nullable().default(null),
   /** When the decay state was last computed */
   decayStateComputedAt: isoTimestampSchema,
+  /** Freshness type determines decay curve (default: evergreen for backward compatibility) */
+  freshnessType: freshnessTypeSchema.default('evergreen'),
 });
 
 export type DecayState = z.infer<typeof decayStateSchema>;
