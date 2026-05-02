@@ -64,17 +64,28 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
     });
 
     // Return response with actor ref format
+    // Build response object, omitting null optional fields (Zod optional expects undefined, not null)
+    const feedback = {
+      id: feedbackRecord.id,
+      entryId: feedbackRecord.entryId,
+      entryType: feedbackRecord.entryType,
+      problemType: feedbackRecord.problemType,
+      description: feedbackRecord.description,
+      ...(feedbackRecord.context != null ? { context: feedbackRecord.context } : {}),
+      ...(feedbackRecord.querySeed != null ? { querySeed: feedbackRecord.querySeed } : {}),
+      ...(feedbackRecord.customAnswers != null ? { customAnswers: feedbackRecord.customAnswers } : {}),
+      submittedAt: feedbackRecord.submittedAt,
+      submittedBy: {
+        id: auth.user!.id,
+        handle: auth.handle,
+        securityLevel: auth.securityLevel,
+      },
+      status: feedbackRecord.status,
+      ...(feedbackRecord.adminNotes != null ? { adminNotes: feedbackRecord.adminNotes } : {}),
+    };
+
     return reply.status(201).send(
-      feedbackResponseSchema.parse({
-        feedback: {
-          ...feedbackRecord,
-          submittedBy: {
-            id: auth.user!.id,
-            handle: auth.handle,
-            securityLevel: auth.securityLevel,
-          },
-        },
-      }),
+      feedbackResponseSchema.parse({ feedback }),
     );
   });
 };
