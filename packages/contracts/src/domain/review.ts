@@ -6,7 +6,7 @@ import {
   lifecycleStateSchema,
   paginatedQuerySchema,
 } from './common.js';
-import { evidenceMetaSchema } from './evidence.js';
+import { boundarySchema } from './boundary.js';
 import {
   agentReviewResultSchema,
   knowledgeEntrySchema,
@@ -25,8 +25,7 @@ export const reviewDecisionRequestSchema = z.object({
   entryId: entityIdSchema,
   decision: z.enum(['approve', 'reject']),
   notes: z.string().min(1).max(2000),
-  /** Optional evidence metadata to attach with the review decision */
-  evidence: evidenceMetaSchema.optional(),
+  boundary: boundarySchema.nullable().optional(),
 });
 
 export const reviewQueueItemSchema = z.object({
