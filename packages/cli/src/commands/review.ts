@@ -91,24 +91,38 @@ export function registerReviewCommands(program: Command, options: ReviewCommandO
       .description(`${decisionLabel} a queued knowledge entry`)
       .argument('<entryId>', 'Knowledge entry identifier')
       .requiredOption('--notes <text>', 'Reviewer notes')
+      .option('--boundary <json>', 'Boundary constraints as JSON')
       .option('--json', 'Output JSON')
-      .action(async (entryId: string, flags: { json?: boolean; notes: string }) => {
-        const state = await loadCliState();
-        requireSessionToken(state);
-        const response = await apiRequest<KnowledgeEntryResponse>(state, {
-          method: 'POST',
-          path: '/v1/knowledge/review',
-          body: {
-            entryId,
-            decision,
-            notes: flags.notes,
-          },
-        });
-        const parsed = knowledgeEntryResponseSchema.parse(response.data);
+      .action(
+        async (entryId: string, flags: { boundary?: string; json?: boolean; notes: string }) => {
+          const state = await loadCliState();
+          requireSessionToken(state);
+          let boundary: unknown;
+          if (flags.boundary !== undefined) {
+            try {
+              boundary = JSON.parse(flags.boundary);
+            } catch (error) {
+              throw new Error(
+                `Invalid boundary JSON: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+          }
+          const response = await apiRequest<KnowledgeEntryResponse>(state, {
+            method: 'POST',
+            path: '/v1/knowledge/review',
+            body: {
+              entryId,
+              decision,
+              notes: flags.notes,
+              boundary,
+            },
+          });
+          const parsed = knowledgeEntryResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, ({ entry }) =>
-          [`${decision}d ${entry.id}`, `Lifecycle: ${entry.lifecycleState}`].join('\n'),
-        );
-      });
+          printResult(parsed, flags, ({ entry }) =>
+            [`${decision}d ${entry.id}`, `Lifecycle: ${entry.lifecycleState}`].join('\n'),
+          );
+        },
+      );
   }
 }
