@@ -17,6 +17,8 @@ import {
   versionConstraintSchema,
   versionsLayerSchema,
 } from './boundary.js';
+import { knowledgeEntrySchema } from './knowledge.js';
+import { skillArtifactSchema } from './artifacts.js';
 
 describe('boundary schema contracts', () => {
   describe('conditionOperatorSchema', () => {
@@ -408,5 +410,278 @@ describe('boundary schema contracts', () => {
         }),
       ).toThrow();
     });
+  });
+});
+
+describe('KnowledgeEntry with boundaryMeta', () => {
+  it('accepts entry with boundary metadata', () => {
+    const entry = knowledgeEntrySchema.parse({
+      id: 'entry-1',
+      teamId: null,
+      scope: 'global',
+      labels: ['docker', 'networking'],
+      shortcut: 'Docker network conflict',
+      detail: 'Container network conflicts with host network',
+      requiredLevel: 5,
+      lifecycleState: 'approved',
+      owner: { id: 'user-1', handle: 'alice', securityLevel: 5 },
+      latestRevision: {
+        revision: 1,
+        submittedAt: '2026-05-02T00:00:00Z',
+        submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 5 },
+        shortcut: 'Docker network conflict',
+        detail: 'Container network conflicts with host network',
+        labels: ['docker', 'networking'],
+        reviewNotes: [],
+      },
+      history: [
+        {
+          revision: 1,
+          submittedAt: '2026-05-02T00:00:00Z',
+          submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 5 },
+          shortcut: 'Docker network conflict',
+          detail: 'Container network conflicts with host network',
+          labels: ['docker', 'networking'],
+          reviewNotes: [],
+        },
+      ],
+      metadata: {
+        scopeLabel: 'global-constraint',
+        submissionCount: 1,
+        resubmissionCount: 0,
+        revisionCount: 1,
+        latestSubmissionId: null,
+        latestSubmittedAt: null,
+        latestReviewedAt: null,
+        latestDecision: null,
+      },
+      agentReview: null,
+      boundaryMeta: {
+        boundary: {
+          context: { environments: ['production'] },
+          versions: { constraints: [{ dependency: 'docker', range: '>=20.0' }] },
+        },
+        lastUpdated: '2026-05-02T00:00:00Z',
+        updatedBy: 'user-1',
+      },
+      createdAt: '2026-05-02T00:00:00Z',
+      updatedAt: '2026-05-02T00:00:00Z',
+    });
+
+    expect(entry.boundaryMeta?.boundary.context?.environments).toEqual(['production']);
+    expect(entry.boundaryMeta?.boundary.versions?.constraints?.[0]?.dependency).toBe('docker');
+  });
+
+  it('accepts entry without boundary metadata for backward compatibility', () => {
+    const entry = knowledgeEntrySchema.parse({
+      id: 'entry-2',
+      teamId: null,
+      scope: 'global',
+      labels: ['test'],
+      shortcut: 'Test entry',
+      detail: 'Test detail',
+      requiredLevel: 0,
+      lifecycleState: 'approved',
+      owner: { id: 'user-1', handle: 'alice', securityLevel: 5 },
+      latestRevision: {
+        revision: 1,
+        submittedAt: '2026-05-02T00:00:00Z',
+        submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 5 },
+        shortcut: 'Test entry',
+        detail: 'Test detail',
+        labels: ['test'],
+        reviewNotes: [],
+      },
+      history: [
+        {
+          revision: 1,
+          submittedAt: '2026-05-02T00:00:00Z',
+          submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 5 },
+          shortcut: 'Test entry',
+          detail: 'Test detail',
+          labels: ['test'],
+          reviewNotes: [],
+        },
+      ],
+      metadata: {
+        scopeLabel: 'global-constraint',
+        submissionCount: 1,
+        resubmissionCount: 0,
+        revisionCount: 1,
+        latestSubmissionId: null,
+        latestSubmittedAt: null,
+        latestReviewedAt: null,
+        latestDecision: null,
+      },
+      agentReview: null,
+      createdAt: '2026-05-02T00:00:00Z',
+      updatedAt: '2026-05-02T00:00:00Z',
+    });
+
+    expect(entry.boundaryMeta).toBeUndefined();
+  });
+
+  it('accepts entry with null boundaryMeta', () => {
+    const entry = knowledgeEntrySchema.parse({
+      id: 'entry-3',
+      teamId: null,
+      scope: 'global',
+      labels: ['test'],
+      shortcut: 'Test entry',
+      detail: 'Test detail',
+      requiredLevel: 0,
+      lifecycleState: 'approved',
+      owner: { id: 'user-1', handle: 'alice', securityLevel: 5 },
+      latestRevision: {
+        revision: 1,
+        submittedAt: '2026-05-02T00:00:00Z',
+        submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 5 },
+        shortcut: 'Test entry',
+        detail: 'Test detail',
+        labels: ['test'],
+        reviewNotes: [],
+      },
+      history: [
+        {
+          revision: 1,
+          submittedAt: '2026-05-02T00:00:00Z',
+          submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 5 },
+          shortcut: 'Test entry',
+          detail: 'Test detail',
+          labels: ['test'],
+          reviewNotes: [],
+        },
+      ],
+      metadata: {
+        scopeLabel: 'global-constraint',
+        submissionCount: 1,
+        resubmissionCount: 0,
+        revisionCount: 1,
+        latestSubmissionId: null,
+        latestSubmittedAt: null,
+        latestReviewedAt: null,
+        latestDecision: null,
+      },
+      agentReview: null,
+      boundaryMeta: null,
+      createdAt: '2026-05-02T00:00:00Z',
+      updatedAt: '2026-05-02T00:00:00Z',
+    });
+
+    expect(entry.boundaryMeta).toBeNull();
+  });
+});
+
+describe('SkillArtifact with boundaryMeta', () => {
+  it('accepts artifact with boundary metadata', () => {
+    const artifact = skillArtifactSchema.parse({
+      id: 'art-1',
+      teamId: null,
+      scope: 'project',
+      labels: ['typescript', 'testing'],
+      title: 'Vitest configuration for ESM',
+      slug: 'vitest-esm-config',
+      requiredLevel: 3,
+      lifecycleState: 'approved',
+      owner: { id: 'user-1', handle: 'bob', securityLevel: 5 },
+      latestRevision: 1,
+      history: [
+        {
+          revision: 1,
+          sourceHash: 'a'.repeat(64),
+          files: [
+            {
+              path: 'SKILL.md',
+              kind: 'skill-markdown',
+              sha256: 'b'.repeat(64),
+              sizeBytes: 1024,
+              mediaType: 'text/markdown',
+              source: 'SKILL.md',
+              includeInDerivation: true,
+              activationOnly: false,
+            },
+          ],
+          submittedAt: '2026-05-02T00:00:00Z',
+          submittedBy: { id: 'user-1', handle: 'bob', securityLevel: 5 },
+          scriptDescriptors: [],
+          derived: null,
+        },
+      ],
+      metadata: {
+        sourceKind: 'skill-directory',
+        submissionCount: 1,
+        resubmissionCount: 0,
+        revisionCount: 1,
+        latestSubmissionId: null,
+        latestSubmittedAt: null,
+        latestReviewedAt: null,
+        latestDecision: null,
+      },
+      agentReview: null,
+      boundaryMeta: {
+        boundary: {
+          context: { runtimes: ['node'] },
+          signals: { keywords: ['vitest', 'esm'] },
+        },
+        lastUpdated: '2026-05-02T00:00:00Z',
+      },
+      createdAt: '2026-05-02T00:00:00Z',
+      updatedAt: '2026-05-02T00:00:00Z',
+    });
+
+    expect(artifact.boundaryMeta?.boundary.context?.runtimes).toEqual(['node']);
+    expect(artifact.boundaryMeta?.boundary.signals?.keywords).toEqual(['vitest', 'esm']);
+  });
+
+  it('accepts artifact without boundary metadata for backward compatibility', () => {
+    const artifact = skillArtifactSchema.parse({
+      id: 'art-2',
+      teamId: null,
+      scope: 'global',
+      labels: ['test'],
+      title: 'Test artifact',
+      slug: 'test-artifact',
+      requiredLevel: 0,
+      lifecycleState: 'approved',
+      owner: { id: 'user-1', handle: 'bob', securityLevel: 5 },
+      latestRevision: 1,
+      history: [
+        {
+          revision: 1,
+          sourceHash: 'a'.repeat(64),
+          files: [
+            {
+              path: 'SKILL.md',
+              kind: 'skill-markdown',
+              sha256: 'b'.repeat(64),
+              sizeBytes: 1024,
+              mediaType: 'text/markdown',
+              source: 'SKILL.md',
+              includeInDerivation: true,
+              activationOnly: false,
+            },
+          ],
+          submittedAt: '2026-05-02T00:00:00Z',
+          submittedBy: { id: 'user-1', handle: 'bob', securityLevel: 5 },
+          scriptDescriptors: [],
+          derived: null,
+        },
+      ],
+      metadata: {
+        sourceKind: 'skill-directory',
+        submissionCount: 1,
+        resubmissionCount: 0,
+        revisionCount: 1,
+        latestSubmissionId: null,
+        latestSubmittedAt: null,
+        latestReviewedAt: null,
+        latestDecision: null,
+      },
+      agentReview: null,
+      createdAt: '2026-05-02T00:00:00Z',
+      updatedAt: '2026-05-02T00:00:00Z',
+    });
+
+    expect(artifact.boundaryMeta).toBeUndefined();
   });
 });
