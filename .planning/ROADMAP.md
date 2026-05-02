@@ -77,7 +77,7 @@
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 25-47 | v1.4 | 59/59 | Complete | 2026-04-29 |
-| 48-59 | v1.5 | 0/12 | In Progress | — |
+| 48-59 | v1.5 | 3/15 | In Progress | — |
 
 ---
 
@@ -236,6 +236,16 @@ Plans:
 **Requirements:** EVIDENCE-01, EVIDENCE-02
 
 **Goal:** Add a minimal provenance and verification model so published knowledge can show where it came from, when it was verified, and how strong the evidence is.
+
+**Plans:** 6 plans
+
+Plans:
+- [ ] 58-01-PLAN.md — Core evidence schema contracts and exports
+- [ ] 58-02-PLAN.md — Domain schema extensions (knowledge, artifacts, review, retrieval, operations)
+- [ ] 58-03-PLAN.md — Server data layer: store records and evidence validation helpers
+- [ ] 58-04-PLAN.md — Review flow integration for evidence persistence and audit
+- [ ] 58-05-PLAN.md — Retrieval exposure and operations filtering
+- [ ] 58-06-PLAN.md — CLI evidence commands, flags, output, and tests
 
 **Success Criteria:**
 1. Trap and skill records can store minimal evidence metadata: `sourceType`, `sourceRef`, `evidenceLevel`, `verifiedAt`, `verifiedBy`
