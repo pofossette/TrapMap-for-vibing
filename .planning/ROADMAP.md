@@ -89,6 +89,13 @@
 
 **Goal:** Implement knowledge lifecycle states with automatic transitions and decay application logic.
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 48-01-PLAN.md — Decay domain model: contracts, state machine, config, store records
+- [ ] 48-02-PLAN.md — Supersede feature: service, routes, CLI command
+- [ ] 48-03-PLAN.md — Governance integration: hard/soft decay in retrieval pipeline
+
 **Success Criteria:**
 1. Maintainer can configure lifecycle state thresholds (review-due days, stale days, expire days) via config file
 2. Knowledge entries automatically transition through states (active → review-due → stale → expired) based on age and last-verified timestamp
