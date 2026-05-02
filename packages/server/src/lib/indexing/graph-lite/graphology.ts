@@ -11,8 +11,8 @@ import { hasCycle } from 'graphology-dag';
 import { subgraph } from 'graphology-operators';
 import { singleSourceLength } from 'graphology-shortest-path';
 
-import type { GraphEdgeRecord, GraphIndexDocumentRecord } from './documents.js';
 import { buildContextNodeId } from '../boundary-normalize.js';
+import type { GraphEdgeRecord, GraphIndexDocumentRecord } from './documents.js';
 
 type GraphNodeAttributes = {
   kind?: string;

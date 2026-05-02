@@ -15,6 +15,7 @@
 import { extractTrapGraphEntities } from '../../retrieval/graph-extract.js';
 import type { SkillShareerStore, StoreData } from '../../store.js';
 import { nowIso } from '../../store.js';
+import { extractBoundaryGraphEntities } from '../boundary-extract.js';
 import type { GraphIndexDocumentRecord } from '../graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
 import {
@@ -24,7 +25,6 @@ import {
 } from '../graph-lite/store.js';
 import type { NormalizedIndexDocument } from '../types.js';
 import type { IndexAdapter, IndexSyncResult } from '../types.js';
-import { extractBoundaryGraphEntities } from '../boundary-extract.js';
 import { buildTrapGraphDocument } from './graph-builders.js';
 
 // ---------------------------------------------------------------------------

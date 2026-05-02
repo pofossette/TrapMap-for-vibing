@@ -9,11 +9,6 @@
  */
 
 import type { Boundary } from '@trapmap/contracts';
-import type {
-  GraphNodeKind,
-  GraphRelationStrength,
-  GraphRelationType,
-} from './graph-lite/documents.js';
 import {
   buildBoundaryFacetIndex,
   buildContextNodeId,
@@ -21,6 +16,11 @@ import {
   buildVersionNodeId,
   extractPlatformsFromExclusions,
 } from './boundary-normalize.js';
+import type {
+  GraphNodeKind,
+  GraphRelationStrength,
+  GraphRelationType,
+} from './graph-lite/documents.js';
 
 /**
  * Extracted boundary graph node.

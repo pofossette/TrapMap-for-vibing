@@ -16,7 +16,7 @@
 
 import type { KnowledgeRecord } from '../../store.js';
 import { nowIso } from '../../store.js';
-import { buildBoundaryFacetIndex, type BoundaryFacetIndex } from '../boundary-normalize.js';
+import { type BoundaryFacetIndex, buildBoundaryFacetIndex } from '../boundary-normalize.js';
 import type { NormalizedIndexDocument } from '../types.js';
 import type { IndexAdapter, IndexSyncResult } from '../types.js';
 
