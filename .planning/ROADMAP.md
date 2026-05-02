@@ -53,7 +53,7 @@
 
 - [x] Phase 51: Boundary Schema Definition (BOUND-01) (completed 2026-05-02)
 - [x] Phase 52: Boundary Capture in Submission Flow (BOUND-02) (completed 2026-05-02)
-- [ ] Phase 53: Boundary Indexing & Graph Integration (BOUND-03)
+- [x] Phase 53: Boundary Indexing & Graph Integration (BOUND-03) (completed 2026-05-02)
 - [ ] Phase 54: Boundary-aware Retrieval (BOUND-04, BOUND-05)
 
 ### Conflict Detection
@@ -179,6 +179,11 @@ Plans:
 **Requirements:** BOUND-04, BOUND-05
 
 **Goal:** Apply boundary logic in retrieval ranking and explain applicability in responses.
+
+**Plans:** 1 plan
+
+Plans:
+- [ ] 54-01-PLAN.md — Boundary filtering, scoring, explanation in retrieval pipeline
 
 **Success Criteria:**
 1. Retrieval accepts boundary context (platform, versions, environment) as input
@@ -336,4 +341,4 @@ Phase 59 (Ownership & SLA Management)
 
 ---
 
-*Roadmap updated: 2026-05-02 for v1.5 milestone*
+*Roadmap updated: 2026-05-03 for v1.5 milestone*
