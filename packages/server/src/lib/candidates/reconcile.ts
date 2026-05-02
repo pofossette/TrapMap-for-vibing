@@ -270,6 +270,7 @@ export function publishTrapCandidate(args: {
     ],
     embeddingCache: null,
     indexState: null,
+    decayMeta: null,
     createdAt: args.resolvedAt,
     updatedAt: args.resolvedAt,
   };
@@ -384,6 +385,7 @@ export function publishSkillCandidate(args: {
         note: 'Auto-approved after duplicate resolution',
       },
     ],
+    decayMeta: null,
     createdAt: args.resolvedAt,
     updatedAt: args.resolvedAt,
   };

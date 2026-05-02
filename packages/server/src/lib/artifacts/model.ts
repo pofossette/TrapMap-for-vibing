@@ -317,6 +317,7 @@ export function createSkillArtifactRecord(args: {
         note: args.preReview.notes[0] ?? null,
       }),
     ],
+    decayMeta: null,
     createdAt: args.createdAt,
     updatedAt: args.createdAt,
   };
