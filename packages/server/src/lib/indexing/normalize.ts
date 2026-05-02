@@ -76,5 +76,6 @@ export function normalizeKnowledgeIndexDocument(entry: KnowledgeRecord): Normali
     tokens,
     contentHash,
     normalizedAt,
+    boundary: entry.boundary, // Include boundary for indexing
   };
 }

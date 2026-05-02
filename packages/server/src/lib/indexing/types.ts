@@ -8,7 +8,7 @@
  * - KnowledgeIndexStateRecord: persisted index state on KnowledgeRecord
  */
 
-import type { LifecycleState, Scope } from '@trapmap/contracts';
+import type { Boundary, LifecycleState, Scope } from '@trapmap/contracts';
 
 /**
  * Normalized index document produced by the normalization stage.
@@ -43,6 +43,8 @@ export interface NormalizedIndexDocument {
   contentHash: string;
   /** When this document was normalized */
   normalizedAt: string;
+  /** Boundary constraints for indexing (Phase 53) */
+  boundary: Boundary | null;
 }
 
 /**
