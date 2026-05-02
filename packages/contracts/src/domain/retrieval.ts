@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { compatibleScriptActivationPolicySchema } from './artifacts.js';
 
 import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema } from './common.js';
-import { evidenceHintSchema } from './evidence.js';
 import { planQuerySchema, trapFirstPlanSchema } from './plans.js';
 
 /**
@@ -38,7 +37,6 @@ export const retrievalCitationSchema = z.object({
     graph: z.number().min(0).max(1).nullable(),
     preRerank: z.number().min(0).max(1),
     final: z.number().min(0).max(1),
-    decayMultiplier: z.number().min(0).max(1).optional(),
   }),
 });
 
@@ -55,6 +53,20 @@ export const retrievalSummarySchema = z.object({
 
 export type RetrievalSummary = z.infer<typeof retrievalSummarySchema>;
 
+export const boundaryContextSchema = z.object({
+  /** Platform the query originates from (e.g., 'linux', 'docker') */
+  platform: z.string().max(64).optional(),
+  /** Version constraints of the current environment */
+  versions: z.array(z.object({
+    package: z.string().min(1).max(128),
+    version: z.string().min(1).max(64),
+  })).max(10).default([]),
+  /** Active context labels (e.g., ['frontend', 'production']) */
+  contexts: z.array(z.string().min(1).max(64)).max(10).default([]),
+}).optional();
+
+export type BoundaryContext = z.infer<typeof boundaryContextSchema>;
+
 export const retrievalQuerySchema = z.object({
   seed: z.string().min(1).max(2000),
   filters: retrievalFiltersSchema.default({ labels: [], scopes: [] }),
@@ -62,7 +74,21 @@ export const retrievalQuerySchema = z.object({
   includeRefinement: z.boolean().default(true),
   includeSummary: z.boolean().default(false),
   mode: retrievalQueryModeSchema.default('semantic'),
+  boundaryContext: boundaryContextSchema,
 });
+
+export const boundaryExplanationSchema = z.object({
+  /** Whether boundary constraints were checked for this entry */
+  checked: z.boolean(),
+  /** Whether the entry's required constraints are satisfied by query context */
+  requiredSatisfied: z.boolean().default(true),
+  /** Reasons for inapplicability (empty if fully applicable) */
+  warnings: z.array(z.string()).default([]),
+  /** Reasons for strong applicability (empty if no boost applied) */
+  boosts: z.array(z.string()).default([]),
+});
+
+export type BoundaryExplanation = z.infer<typeof boundaryExplanationSchema>;
 
 export const retrievalMatchSchema = z.object({
   entryId: entityIdSchema,
@@ -74,8 +100,7 @@ export const retrievalMatchSchema = z.object({
   score: z.number().min(0).max(1),
   reason: z.string().min(1),
   citation: retrievalCitationSchema.optional(),
-  /** Compact evidence hint for retrieval responses */
-  evidence: evidenceHintSchema.optional(),
+  boundaryExplanation: boundaryExplanationSchema.optional(),
 });
 
 export const retrievalResponseSchema = z.object({
@@ -128,8 +153,6 @@ export const capsuleMatchSchema = z.object({
   score: z.number().min(0).max(1),
   /** Human-readable explanation of why this capsule matched */
   reason: z.string().min(1),
-  /** Compact evidence hint for retrieval responses */
-  evidence: evidenceHintSchema.optional(),
 });
 
 /**

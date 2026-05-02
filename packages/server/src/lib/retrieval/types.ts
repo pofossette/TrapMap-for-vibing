@@ -4,6 +4,8 @@
  */
 
 import type {
+  BoundaryContext,
+  BoundaryExplanation,
   RetrievalQuery,
   RetrievalStrategy,
   RouteFamily,
@@ -21,6 +23,8 @@ export interface RetrievalPipelineContext {
   auth: ResolvedAuthContext;
   /** Parsed and validated retrieval query */
   query: RetrievalQuery;
+  /** Boundary context from query for boundary-aware retrieval */
+  boundaryContext: BoundaryContext;
   /** Store data snapshot at query time */
   dataSnapshot: {
     knowledgeEntries: KnowledgeRecord[];
@@ -36,6 +40,8 @@ export interface ScoredEntry {
   entry: KnowledgeRecord;
   /** Relevance score [0, 1] */
   score: number;
+  /** Boundary explanation for why this entry is applicable */
+  boundaryExplanation?: BoundaryExplanation;
 }
 
 /**
@@ -113,8 +119,8 @@ export interface MergedCandidate {
   preRerankScore: number;
   /** Final score after reranking (same as combinedScore if no rerank applied) */
   finalScore: number;
-  /** Freshness decay multiplier applied during rerank (Phase 49: DECAY-02) */
-  decayMultiplier?: number;
+  /** Score delta from boundary matching (negative = penalty, positive = boost) */
+  boundaryScoreDelta?: number;
 }
 
 // =============================================================================
