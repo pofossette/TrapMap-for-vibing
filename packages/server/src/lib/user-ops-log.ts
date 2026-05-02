@@ -20,7 +20,8 @@ export type UserOpsAction =
   | 'plan'
   | 'decay-list'
   | 'decay-batch'
-  | 'decay-search';
+  | 'decay-search'
+  | 'feedback';
 
 export interface UserOpsLogEntry {
   timestamp: string;

@@ -9,6 +9,17 @@ export interface ParsedMarkdownFrontmatter {
   hasFrontmatter: boolean;
 }
 
+/**
+ * Custom feedback prompt definition for skill artifacts.
+ * Allows skill authors to gather structured feedback specific to their skill.
+ */
+export interface FeedbackPrompt {
+  /** The question to ask the user */
+  prompt: string;
+  /** Whether the user must answer this prompt */
+  required: boolean;
+}
+
 export interface ParsedSkillMarkdown {
   name: string | null;
   title: string | null;
@@ -16,6 +27,8 @@ export interface ParsedSkillMarkdown {
   labels: string[];
   body: string;
   hasFrontmatter: boolean;
+  /** Optional custom feedback prompts defined in skill frontmatter */
+  feedbackPrompts: FeedbackPrompt[] | undefined;
 }
 
 const MIME_OVERRIDES: Record<string, string> = {
@@ -86,6 +99,7 @@ export function parseSkillMarkdown(content: string): ParsedSkillMarkdown {
     labels: readLabels(data.labels),
     body: parsed.body,
     hasFrontmatter: parsed.hasFrontmatter,
+    feedbackPrompts: readFeedbackPrompts(data.feedbackPrompts),
   };
 }
 
@@ -150,4 +164,27 @@ function readLabels(value: unknown): string[] {
   }
 
   return [];
+}
+
+function readFeedbackPrompts(value: unknown): FeedbackPrompt[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const prompts: FeedbackPrompt[] = [];
+
+  for (const item of value) {
+    if (typeof item === 'object' && item !== null && 'prompt' in item) {
+      const obj = item as Record<string, unknown>;
+      const promptText = obj.prompt;
+      if (typeof promptText === 'string' && promptText.trim().length > 0) {
+        prompts.push({
+          prompt: promptText.trim(),
+          required: Boolean(obj.required ?? false),
+        });
+      }
+    }
+  }
+
+  return prompts.length > 0 ? prompts : undefined;
 }
