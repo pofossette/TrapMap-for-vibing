@@ -15,6 +15,57 @@ export const freshnessTypeSchema = z.enum(['evergreen', 'versioned', 'volatile']
 export type FreshnessType = z.infer<typeof freshnessTypeSchema>;
 
 /**
+ * Decay mode for freshness-based ranking.
+ */
+export const freshnessDecayModeSchema = z.enum(['exponential', 'linear', 'step']);
+
+/**
+ * Configuration for evergreen content decay.
+ * Evergreen content never decays by time (enabled is always false).
+ */
+export const evergreenDecayConfigSchema = z.object({
+  enabled: z.literal(false),
+});
+
+/**
+ * Configuration for versioned content decay.
+ * Uses step decay: full multiplier on match, reduced on mismatch.
+ */
+export const versionedDecayConfigSchema = z.object({
+  enabled: z.boolean().default(true),
+  mode: z.literal('step'),
+  matchMultiplier: z.number().min(0).max(1).default(1.0),
+  mismatchMultiplier: z.number().min(0).max(1).default(0.5),
+});
+
+/**
+ * Configuration for volatile content decay.
+ * Supports exponential or linear decay over time.
+ */
+export const volatileDecayConfigSchema = z.object({
+  enabled: z.boolean().default(true),
+  mode: z.enum(['exponential', 'linear']).default('exponential'),
+  halfLifeDays: z.number().int().min(1).max(3650).default(30),
+  zeroDays: z.number().int().min(1).max(3650).default(90),
+  floor: z.number().min(0).max(0.9).default(0.3),
+});
+
+/**
+ * Complete freshness decay configuration for all content types.
+ */
+export const freshnessDecayConfigSchema = z.object({
+  evergreen: evergreenDecayConfigSchema.default({ enabled: false }),
+  versioned: versionedDecayConfigSchema.default({ enabled: true, mode: 'step', matchMultiplier: 1.0, mismatchMultiplier: 0.5 }),
+  volatile: volatileDecayConfigSchema.default({ enabled: true, mode: 'exponential', halfLifeDays: 30, zeroDays: 90, floor: 0.3 }),
+});
+
+export type FreshnessDecayMode = z.infer<typeof freshnessDecayModeSchema>;
+export type EvergreenDecayConfig = z.infer<typeof evergreenDecayConfigSchema>;
+export type VersionedDecayConfig = z.infer<typeof versionedDecayConfigSchema>;
+export type VolatileDecayConfig = z.infer<typeof volatileDecayConfigSchema>;
+export type FreshnessDecayConfig = z.infer<typeof freshnessDecayConfigSchema>;
+
+/**
  * Decay state for knowledge lifecycle management.
  *
  * States transition based on age and configuration thresholds:
