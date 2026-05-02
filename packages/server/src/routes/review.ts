@@ -124,6 +124,7 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
         decidedAt,
         decision: payload.decision,
         notes: payload.notes,
+        ...(payload.evidence !== undefined && { evidence: payload.evidence }),
       });
 
       // Capture entry ID and new state for post-commit indexing
@@ -138,7 +139,12 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
         actor: auth,
         action: 'knowledge-reviewed',
         entityId: entry.id,
-        payload: { decision: payload.decision, notes: payload.notes, previousState },
+        payload: {
+          decision: payload.decision,
+          notes: payload.notes,
+          previousState,
+          ...(payload.evidence !== undefined && { evidence: payload.evidence }),
+        },
       });
       data.auditEvents.push(auditEvent);
 
