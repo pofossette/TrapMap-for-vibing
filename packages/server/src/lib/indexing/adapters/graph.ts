@@ -24,6 +24,7 @@ import {
 } from '../graph-lite/store.js';
 import type { NormalizedIndexDocument } from '../types.js';
 import type { IndexAdapter, IndexSyncResult } from '../types.js';
+import { extractBoundaryGraphEntities } from '../boundary-extract.js';
 import { buildTrapGraphDocument } from './graph-builders.js';
 
 // ---------------------------------------------------------------------------
@@ -95,11 +96,19 @@ export const graphIndexAdapter: IndexAdapter & {
       // Extract TrapMap-specific entities and relations
       const extractionResult = extractTrapGraphEntities(document);
 
+      // Extract boundary entities and relations
+      const trapNodeId = `trap:${document.entryId}`;
+      const boundaryResult = extractBoundaryGraphEntities(trapNodeId, document.boundary);
+
+      // Merge nodes and edges from trap and boundary extraction
+      const allNodes = [...extractionResult.nodes, ...boundaryResult.nodes];
+      const allEdges = [...extractionResult.edges, ...boundaryResult.edges];
+
       // Build a candidate graph document without persisting
       const candidateDoc = buildTrapGraphDocument({
         normalizedDocument: document,
-        nodes: extractionResult.nodes,
-        edges: extractionResult.edges,
+        nodes: allNodes,
+        edges: allEdges,
       });
 
       // Store-backed persistence path
