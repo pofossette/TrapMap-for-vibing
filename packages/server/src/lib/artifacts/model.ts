@@ -319,6 +319,7 @@ export function createSkillArtifactRecord(args: {
     ],
     decayMeta: null,
     evidenceMeta: null,
+    boundary: null,
     createdAt: args.createdAt,
     updatedAt: args.createdAt,
   };

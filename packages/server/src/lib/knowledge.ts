@@ -290,6 +290,7 @@ export function createKnowledgeEntryRecord(args: {
     indexState: null,
     decayMeta: null,
     evidenceMeta: null,
+    boundary: null,
     createdAt: args.createdAt,
     updatedAt: args.createdAt,
   };
