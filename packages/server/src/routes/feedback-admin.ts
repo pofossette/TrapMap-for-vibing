@@ -51,7 +51,7 @@ function computeQualityScore(feedback: FeedbackQueueRecord[]): QualityScore {
     feedback.length > 0
       ? feedback.reduce(
           (latest, f) => (f.submittedAt > latest ? f.submittedAt : latest),
-          feedback[0].submittedAt,
+          feedback[0]!.submittedAt,
         )
       : null;
 
