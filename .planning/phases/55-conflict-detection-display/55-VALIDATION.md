@@ -1,8 +1,8 @@
 ---
 phase: 55
 slug: conflict-detection-display
-status: draft
-nyquist_compliant: false
+status: ready
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-05-03
 ---
@@ -38,11 +38,18 @@ created: 2026-05-03
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 55-01-01 | 01 | 1 | CONFLICT-01 | — | N/A | unit | `pnpm test -- packages/contracts/src/domain/conflict.test.ts` | ❌ W0 | ⬜ pending |
-| 55-02-01 | 02 | 1 | CONFLICT-01 | — | N/A | unit | `pnpm test -- packages/server/src/lib/conflict/detect.test.ts` | ❌ W0 | ⬜ pending |
-| 55-03-01 | 03 | 1 | CONFLICT-01 | — | N/A | integration | `pnpm test -- packages/server/src/routes/review.test.ts` | ✅ existing | ⬜ pending |
-| 55-04-01 | 04 | 2 | CONFLICT-02 | T-55-01 | Conflict enrichment respects governance filters (team, level) | unit | `pnpm test -- packages/server/src/lib/conflict/enrich.test.ts` | ❌ W0 | ⬜ pending |
-| 55-05-01 | 05 | 2 | CONFLICT-02 | — | N/A | unit | `pnpm test -- packages/cli/src/commands/retrieval.test.ts` | ✅ existing | ⬜ pending |
+| 55-01-01 | 01 | 0 | CONFLICT-01 | — | N/A | unit | `pnpm test -- packages/contracts/src/domain/conflict.test.ts` | ❌ W0 | ⬜ pending |
+| 55-01-02 | 01 | 0 | CONFLICT-01 | — | N/A | unit | `pnpm test -- packages/contracts/src/domain/conflict.test.ts` | ❌ W0 | ⬜ pending |
+| 55-01-03 | 01 | 0 | CONFLICT-02 | — | N/A | unit | `pnpm build -- packages/contracts` | ✅ existing | ⬜ pending |
+| 55-01-04 | 01 | 0 | CONFLICT-01 | — | N/A | build | `pnpm build -- packages/contracts` | ✅ existing | ⬜ pending |
+| 55-02-01 | 02 | 1 | CONFLICT-01 | — | N/A | typecheck | `pnpm typecheck` | ✅ existing | ⬜ pending |
+| 55-02-02 | 02 | 1 | CONFLICT-01 | — | N/A | typecheck | `pnpm typecheck` | ❌ W0 | ⬜ pending |
+| 55-02-03 | 02 | 1 | CONFLICT-01 | — | N/A | unit | `pnpm test -- packages/server/src/lib/conflict/detect.test.ts` | ❌ W0 | ⬜ pending |
+| 55-03-01 | 03 | 2 | CONFLICT-02 | T-55-01 | Conflict enrichment respects governance filters (team, level) | unit | `pnpm test -- packages/server/src/lib/conflict/enrich.test.ts` | ❌ W0 | ⬜ pending |
+| 55-03-02 | 03 | 2 | CONFLICT-02 | T-55-01 | N/A | unit | `pnpm test -- packages/server/src/lib/conflict/enrich.test.ts` | ❌ W0 | ⬜ pending |
+| 55-03-03 | 03 | 2 | CONFLICT-01 | — | N/A | typecheck | `pnpm typecheck` | ✅ existing | ⬜ pending |
+| 55-03-04 | 03 | 2 | CONFLICT-02 | T-55-01 | Conflict enrichment respects governance filters | typecheck | `pnpm typecheck` | ✅ existing | ⬜ pending |
+| 55-04-01 | 04 | 3 | CONFLICT-02 | — | N/A | build | `pnpm build -- packages/cli` | ✅ existing | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -63,17 +70,17 @@ created: 2026-05-03
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Conflict display formatting in terminal | CONFLICT-02 | Visual formatting requires human inspection | Run retrieval with conflicting entries, verify conflict section appears and is readable |
+| Conflict display formatting in terminal | CONFLICT-02 | Visual formatting requires human inspection | Run retrieval with conflicting entries, verify conflict section appears with [alt], [!], [old] labels |
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
