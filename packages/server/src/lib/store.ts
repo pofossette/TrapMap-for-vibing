@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type {
+  Boundary,
   CandidateSubmission,
   DecayMeta,
   DuplicateCase,
@@ -224,6 +225,8 @@ export interface KnowledgeRecord {
   decayMeta: DecayMeta | null;
   /** Evidence and provenance metadata (null for legacy entries) */
   evidenceMeta: EvidenceMeta | null;
+  /** Boundary constraints for applicability (Phase 51) */
+  boundary: Boundary | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -542,6 +545,8 @@ export interface SkillArtifactRecord {
   decayMeta: DecayMeta | null;
   /** Evidence and provenance metadata (null for legacy entries) */
   evidenceMeta: EvidenceMeta | null;
+  /** Boundary constraints for applicability (Phase 51) */
+  boundary: Boundary | null;
   /** Created timestamp */
   createdAt: string;
   /** Updated timestamp */
