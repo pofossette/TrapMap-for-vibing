@@ -113,6 +113,8 @@ export interface MergedCandidate {
   preRerankScore: number;
   /** Final score after reranking (same as combinedScore if no rerank applied) */
   finalScore: number;
+  /** Freshness decay multiplier applied during rerank (Phase 49: DECAY-02) */
+  decayMultiplier?: number;
 }
 
 // =============================================================================

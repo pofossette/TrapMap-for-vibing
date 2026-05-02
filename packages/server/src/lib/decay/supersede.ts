@@ -82,6 +82,7 @@ export function supersedeEntry({
     decayState: 'superseded' as DecayState,
     supersededById: replacementId,
     decayStateComputedAt: nowIso(),
+    freshnessType: entry.decayMeta?.freshnessType ?? 'evergreen',
   };
 
   // Create lifecycle event
