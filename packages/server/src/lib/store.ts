@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import type {
   CandidateSubmission,
+  DecayMeta,
   DuplicateCase,
   LifecycleState,
   Permission,
@@ -217,6 +218,8 @@ export interface KnowledgeRecord {
   embeddingCache: EmbeddingCacheRecord | null;
   /** Index state for lifecycle-driven indexing (null if not yet indexed) */
   indexState: KnowledgeIndexStateRecord | null;
+  /** Decay state metadata for lifecycle management (null if not yet tracked) */
+  decayMeta: DecayMeta | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -531,6 +534,8 @@ export interface SkillArtifactRecord {
   reviewNotes: SkillArtifactReviewNoteRecord[];
   /** Lifecycle event history */
   lifecycleHistory: SkillArtifactLifecycleEventRecord[];
+  /** Decay state metadata for lifecycle management (null if not yet tracked) */
+  decayMeta: DecayMeta | null;
   /** Created timestamp */
   createdAt: string;
   /** Updated timestamp */
