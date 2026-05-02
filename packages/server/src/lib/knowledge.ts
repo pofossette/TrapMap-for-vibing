@@ -1,5 +1,6 @@
 import {
   type AgentReviewResult,
+  type Boundary,
   type EvidenceMeta,
   type KnowledgeResubmission,
   type KnowledgeSubmission,
@@ -220,6 +221,7 @@ export function createKnowledgeEntryRecord(args: {
   requiredLevel: number;
   createdAt: string;
   preReview: AgentReviewResult;
+  boundary?: Boundary | null;
 }): KnowledgeRecord {
   const agentNotes = toAgentNotes(args.store, args.data, args.preReview);
   const revision = createKnowledgeRevision(
@@ -290,7 +292,7 @@ export function createKnowledgeEntryRecord(args: {
     indexState: null,
     decayMeta: null,
     evidenceMeta: null,
-    boundary: null,
+    boundary: args.boundary ?? null,
     createdAt: args.createdAt,
     updatedAt: args.createdAt,
   };
@@ -304,6 +306,7 @@ export function resubmitKnowledgeEntry(args: {
   payload: KnowledgeResubmission;
   submittedAt: string;
   preReview: AgentReviewResult;
+  boundary?: Boundary | null;
 }): KnowledgeRecord {
   const previousSubmissionId = args.entry.latestSubmissionId;
   const revisionNumber = args.entry.history.length + 1;
@@ -363,6 +366,11 @@ export function resubmitKnowledgeEntry(args: {
     }),
   );
   args.entry.updatedAt = args.submittedAt;
+
+  // Update boundary if provided, otherwise preserve existing
+  if (args.boundary !== undefined) {
+    args.entry.boundary = args.boundary;
+  }
 
   return args.entry;
 }
@@ -518,6 +526,7 @@ export function toKnowledgeEntry(data: StoreData, record: KnowledgeRecord) {
     ),
     lifecycleHistory: toLifecycleEvent(data, record, record.requiredLevel),
     evidenceMeta: record.evidenceMeta,
+    boundary: record.boundary,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   });
