@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import type {
   CandidateSubmission,
+  ConflictRelation,
   DuplicateCase,
   LifecycleState,
   Permission,
@@ -607,6 +608,8 @@ export interface StoreData {
   entityLineage: EntityLineageRecord[];
   /** Durable graph index documents for GraphRAG-lite (P36-04) */
   graphIndexDocuments: GraphIndexDocumentRecord[];
+  /** Detected conflict relationships between knowledge entries (CONFLICT-01) */
+  conflicts: ConflictRelation[];
 }
 
 const EMPTY_STORE: StoreData = {
@@ -624,6 +627,7 @@ const EMPTY_STORE: StoreData = {
   duplicateCases: [],
   entityLineage: [],
   graphIndexDocuments: [],
+  conflicts: [],
 };
 
 export interface SkillShareerStore {
