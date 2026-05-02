@@ -24,8 +24,8 @@ Requirements for v1.5 milestone: 功能增强
 
 ### Conflict Detection (CONFLICT)
 
-- [ ] **CONFLICT-01**: System detects when multiple knowledge entries address the same problem with different solutions
-- [ ] **CONFLICT-02**: Retrieval results display conflict relationships with context allowing users to choose appropriate solutions
+- [x] **CONFLICT-01**: System detects when multiple knowledge entries address the same problem with different solutions
+- [x] **CONFLICT-02**: Retrieval results display conflict relationships with context allowing users to choose appropriate solutions
 
 ### Feedback Loop (FEEDBACK)
 
@@ -72,8 +72,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BOUND-03 | Phase 53 | Complete |
 | BOUND-04 | Phase 54 | Pending |
 | BOUND-05 | Phase 54 | Pending |
-| CONFLICT-01 | Phase 55 | Pending |
-| CONFLICT-02 | Phase 55 | Pending |
+| CONFLICT-01 | Phase 55 | Complete |
+| CONFLICT-02 | Phase 55 | Complete |
 | FEEDBACK-01 | Phase 56 | Pending |
 | FEEDBACK-02 | Phase 57 | Pending |
 | FEEDBACK-03 | Phase 57 | Pending |
