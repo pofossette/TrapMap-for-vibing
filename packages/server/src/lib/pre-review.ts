@@ -2,15 +2,20 @@ import { Document } from '@langchain/core/documents';
 import { RunnableLambda } from '@langchain/core/runnables';
 import {
   type AgentReviewResult,
+  type Boundary,
   type KnowledgeSubmission,
   agentReviewResultSchema,
 } from '@trapmap/contracts';
 
+import { type ChatProvider } from './ai/types.js';
+import { extractCandidateBoundaries } from './boundary-extract.js';
 import { type KnowledgeRecord, nowIso } from './store.js';
 
 interface PreReviewInput {
   existingEntries: KnowledgeRecord[];
   submission: Pick<KnowledgeSubmission, 'detail' | 'labels' | 'scope' | 'shortcut'>;
+  chatProvider?: ChatProvider;
+  authorBoundary?: Boundary | null;
 }
 
 function tokenize(text: string): Set<string> {
@@ -125,6 +130,24 @@ const preReviewChain = RunnableLambda.from(
       notes.push('Submission lacks strong fix/explanation evidence markers.');
     }
 
+    // Extract candidate boundaries via LLM if available and no author boundary provided
+    let extractedBoundary: Boundary | null = input.authorBoundary ?? null;
+
+    if (input.chatProvider?.isConfigured && input.authorBoundary === undefined) {
+      const candidates = await extractCandidateBoundaries(input.chatProvider, {
+        shortcut: input.submission.shortcut,
+        detail: input.submission.detail,
+        labels: input.submission.labels,
+      });
+
+      if (candidates) {
+        extractedBoundary = candidates;
+        notes.push('Agent extracted candidate boundary constraints.');
+      } else {
+        notes.push('Boundary extraction skipped (LLM unavailable).');
+      }
+    }
+
     return agentReviewResultSchema.parse({
       status: duplicateRisk === 'high' || completeness === 'high' ? 'agent-rejected' : 'agent-pass',
       duplicateRisk,
@@ -132,6 +155,7 @@ const preReviewChain = RunnableLambda.from(
       completenessRisk: completeness,
       checkedAt: nowIso(),
       notes,
+      boundary: extractedBoundary,
     });
   },
 );
