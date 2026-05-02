@@ -1,687 +1,392 @@
 import { describe, expect, it } from 'vitest';
 import {
-  boundaryMetaSchema,
+  boundaryConditionSchema,
   boundarySchema,
-  conditionOperatorSchema,
-  conditionSchema,
-  constraintModeSchema,
-  contextLayerSchema,
-  evidenceEntrySchema,
-  evidenceLayerSchema,
-  evidenceTypeSchema,
-  exclusionSchema,
-  exclusionsLayerSchema,
-  prerequisiteSchema,
-  prerequisitesLayerSchema,
-  signalsLayerSchema,
+  conditionKindSchema,
+  evidenceKindSchema,
+  evidenceReferenceSchema,
+  exclusionKindSchema,
+  exclusionRuleSchema,
+  signalKindSchema,
+  signalMatcherSchema,
   versionConstraintSchema,
-  versionsLayerSchema,
 } from './boundary.js';
-import { knowledgeEntrySchema } from './knowledge.js';
-import { skillArtifactSchema } from './artifacts.js';
 
 describe('boundary schema contracts', () => {
-  describe('conditionOperatorSchema', () => {
-    it('accepts valid condition operators', () => {
-      expect(conditionOperatorSchema.parse('equals')).toBe('equals');
-      expect(conditionOperatorSchema.parse('not-equals')).toBe('not-equals');
-      expect(conditionOperatorSchema.parse('contains')).toBe('contains');
-      expect(conditionOperatorSchema.parse('not-contains')).toBe('not-contains');
-      expect(conditionOperatorSchema.parse('matches')).toBe('matches');
-      expect(conditionOperatorSchema.parse('not-matches')).toBe('not-matches');
+  describe('conditionKindSchema', () => {
+    it('accepts valid condition kinds', () => {
+      expect(conditionKindSchema.parse('environment')).toBe('environment');
+      expect(conditionKindSchema.parse('permission')).toBe('permission');
+      expect(conditionKindSchema.parse('tool')).toBe('tool');
+      expect(conditionKindSchema.parse('configuration')).toBe('configuration');
+      expect(conditionKindSchema.parse('other')).toBe('other');
     });
 
-    it('rejects invalid condition operators', () => {
-      expect(() => conditionOperatorSchema.parse('invalid')).toThrow();
-    });
-  });
-
-  describe('evidenceTypeSchema', () => {
-    it('accepts valid evidence types', () => {
-      expect(evidenceTypeSchema.parse('user-reported')).toBe('user-reported');
-      expect(evidenceTypeSchema.parse('auto-detected')).toBe('auto-detected');
-      expect(evidenceTypeSchema.parse('inferred')).toBe('inferred');
-      expect(evidenceTypeSchema.parse('reviewed')).toBe('reviewed');
-    });
-
-    it('rejects invalid evidence types', () => {
-      expect(() => evidenceTypeSchema.parse('invalid')).toThrow();
+    it('rejects invalid condition kind', () => {
+      expect(() => conditionKindSchema.parse('invalid-kind')).toThrow();
     });
   });
 
-  describe('constraintModeSchema', () => {
-    it('accepts valid constraint modes', () => {
-      expect(constraintModeSchema.parse('required')).toBe('required');
-      expect(constraintModeSchema.parse('preferred')).toBe('preferred');
-      expect(constraintModeSchema.parse('excluded')).toBe('excluded');
+  describe('signalKindSchema', () => {
+    it('accepts valid signal kinds', () => {
+      expect(signalKindSchema.parse('exact')).toBe('exact');
+      expect(signalKindSchema.parse('keyword')).toBe('keyword');
+      expect(signalKindSchema.parse('regex')).toBe('regex');
+      expect(signalKindSchema.parse('error-code')).toBe('error-code');
+      expect(signalKindSchema.parse('log-pattern')).toBe('log-pattern');
     });
 
-    it('rejects invalid constraint modes', () => {
-      expect(() => constraintModeSchema.parse('optional')).toThrow();
+    it('rejects invalid signal kind', () => {
+      expect(() => signalKindSchema.parse('invalid')).toThrow();
     });
   });
 
-  describe('contextLayerSchema', () => {
-    it('accepts valid context with all fields', () => {
-      const context = contextLayerSchema.parse({
-        environments: ['production', 'staging'],
-        platforms: ['linux', 'darwin'],
-        runtimes: ['node', 'bun'],
-      });
-
-      expect(context.environments).toEqual(['production', 'staging']);
-      expect(context.platforms).toEqual(['linux', 'darwin']);
-      expect(context.runtimes).toEqual(['node', 'bun']);
+  describe('exclusionKindSchema', () => {
+    it('accepts valid exclusion kinds', () => {
+      expect(exclusionKindSchema.parse('platform')).toBe('platform');
+      expect(exclusionKindSchema.parse('version')).toBe('version');
+      expect(exclusionKindSchema.parse('context')).toBe('context');
+      expect(exclusionKindSchema.parse('configuration')).toBe('configuration');
+      expect(exclusionKindSchema.parse('other')).toBe('other');
     });
 
-    it('accepts empty context', () => {
-      const context = contextLayerSchema.parse({});
-      expect(context.environments).toBeUndefined();
+    it('rejects invalid exclusion kind', () => {
+      expect(() => exclusionKindSchema.parse('invalid')).toThrow();
+    });
+  });
+
+  describe('evidenceKindSchema', () => {
+    it('accepts valid evidence kinds', () => {
+      expect(evidenceKindSchema.parse('issue')).toBe('issue');
+      expect(evidenceKindSchema.parse('incident')).toBe('incident');
+      expect(evidenceKindSchema.parse('cve')).toBe('cve');
+      expect(evidenceKindSchema.parse('documentation')).toBe('documentation');
+      expect(evidenceKindSchema.parse('test')).toBe('test');
+      expect(evidenceKindSchema.parse('commit')).toBe('commit');
+      expect(evidenceKindSchema.parse('other')).toBe('other');
     });
 
-    it('rejects too many environments', () => {
-      expect(() =>
-        contextLayerSchema.parse({
-          environments: Array(11).fill('env'),
-        }),
-      ).toThrow();
-    });
-
-    it('rejects environment string exceeding max length', () => {
-      expect(() =>
-        contextLayerSchema.parse({
-          environments: ['a'.repeat(65)],
-        }),
-      ).toThrow();
+    it('rejects invalid evidence kind', () => {
+      expect(() => evidenceKindSchema.parse('invalid')).toThrow();
     });
   });
 
   describe('versionConstraintSchema', () => {
-    it('accepts valid version constraint with required fields', () => {
+    it('accepts valid semver range', () => {
       const constraint = versionConstraintSchema.parse({
-        dependency: 'react',
-        range: '^18.0.0',
+        package: 'react',
+        range: '>=16.8.0',
       });
-
-      expect(constraint.dependency).toBe('react');
-      expect(constraint.range).toBe('^18.0.0');
-      expect(constraint.mode).toBe('required');
+      expect(constraint.package).toBe('react');
+      expect(constraint.range).toBe('>=16.8.0');
     });
 
-    it('accepts version constraint with all optional fields', () => {
+    it('accepts with optional note', () => {
       const constraint = versionConstraintSchema.parse({
-        dependency: 'node',
+        package: 'node',
         range: '>=18',
-        displayName: 'Node.js 18+',
-        mode: 'preferred',
+        note: 'Required for native fetch',
       });
-
-      expect(constraint.displayName).toBe('Node.js 18+');
-      expect(constraint.mode).toBe('preferred');
+      expect(constraint.note).toBe('Required for native fetch');
     });
 
-    it('rejects missing dependency', () => {
+    it('rejects empty package name', () => {
       expect(() =>
         versionConstraintSchema.parse({
-          range: '^1.0.0',
+          package: '',
+          range: '>=1.0.0',
         }),
       ).toThrow();
     });
 
-    it('rejects missing range', () => {
+    it('rejects empty range', () => {
       expect(() =>
         versionConstraintSchema.parse({
-          dependency: 'react',
+          package: 'react',
+          range: '',
         }),
       ).toThrow();
     });
-  });
 
-  describe('versionsLayerSchema', () => {
-    it('accepts valid versions layer with constraints', () => {
-      const versions = versionsLayerSchema.parse({
-        constraints: [
-          { dependency: 'react', range: '^18.0.0' },
-          { dependency: 'node', range: '>=16' },
-        ],
-      });
-
-      expect(versions.constraints).toHaveLength(2);
-    });
-
-    it('rejects too many constraints', () => {
+    it('rejects package over 128 chars', () => {
       expect(() =>
-        versionsLayerSchema.parse({
-          constraints: Array(21).fill({ dependency: 'pkg', range: '*' }),
+        versionConstraintSchema.parse({
+          package: 'a'.repeat(129),
+          range: '>=1.0.0',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects range over 64 chars', () => {
+      expect(() =>
+        versionConstraintSchema.parse({
+          package: 'react',
+          range: 'a'.repeat(65),
         }),
       ).toThrow();
     });
   });
 
-  describe('conditionSchema', () => {
-    it('accepts valid condition', () => {
-      const condition = conditionSchema.parse({
-        field: 'environment',
-        operator: 'equals',
-        value: 'production',
+  describe('boundaryConditionSchema', () => {
+    it('accepts required condition', () => {
+      const condition = boundaryConditionSchema.parse({
+        description: 'Admin access required',
       });
-
-      expect(condition.field).toBe('environment');
-      expect(condition.operator).toBe('equals');
-      expect(condition.value).toBe('production');
+      expect(condition.description).toBe('Admin access required');
+      expect(condition.required).toBe(true);
     });
 
-    it('rejects missing fields', () => {
-      expect(() => conditionSchema.parse({ field: 'test' })).toThrow();
+    it('accepts optional condition', () => {
+      const condition = boundaryConditionSchema.parse({
+        description: 'Docker installed',
+        required: false,
+      });
+      expect(condition.required).toBe(false);
+    });
+
+    it('defaults required to true', () => {
+      const condition = boundaryConditionSchema.parse({
+        description: 'Test',
+      });
+      expect(condition.required).toBe(true);
+    });
+
+    it('accepts with kind', () => {
+      const condition = boundaryConditionSchema.parse({
+        description: 'Test',
+        kind: 'permission',
+      });
+      expect(condition.kind).toBe('permission');
+    });
+
+    it('rejects empty description', () => {
+      expect(() =>
+        boundaryConditionSchema.parse({
+          description: '',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects description over 280 chars', () => {
+      expect(() =>
+        boundaryConditionSchema.parse({
+          description: 'a'.repeat(281),
+        }),
+      ).toThrow();
     });
   });
 
-  describe('prerequisiteSchema', () => {
-    it('accepts valid prerequisite with required fields', () => {
-      const prereq = prerequisiteSchema.parse({
-        id: 'docker-desktop',
+  describe('signalMatcherSchema', () => {
+    it('accepts keyword pattern', () => {
+      const signal = signalMatcherSchema.parse({
+        pattern: 'ECONNREFUSED',
       });
-
-      expect(prereq.id).toBe('docker-desktop');
-      expect(prereq.mode).toBe('required');
+      expect(signal.pattern).toBe('ECONNREFUSED');
+      expect(signal.kind).toBe('keyword');
     });
 
-    it('accepts prerequisite with condition', () => {
-      const prereq = prerequisiteSchema.parse({
-        id: 'docker-running',
-        displayName: 'Docker Desktop running',
-        mode: 'required',
-        condition: {
-          field: 'docker.status',
-          operator: 'equals',
-          value: 'running',
-        },
+    it('defaults kind to keyword', () => {
+      const signal = signalMatcherSchema.parse({
+        pattern: 'test',
       });
+      expect(signal.kind).toBe('keyword');
+    });
 
-      expect(prereq.condition?.field).toBe('docker.status');
+    it('accepts regex pattern', () => {
+      const signal = signalMatcherSchema.parse({
+        pattern: '^Error:.*$',
+        kind: 'regex',
+      });
+      expect(signal.kind).toBe('regex');
+    });
+
+    it('accepts error-code pattern', () => {
+      const signal = signalMatcherSchema.parse({
+        pattern: 'ENOENT',
+        kind: 'error-code',
+      });
+      expect(signal.kind).toBe('error-code');
+    });
+
+    it('accepts with description', () => {
+      const signal = signalMatcherSchema.parse({
+        pattern: 'test',
+        description: 'When this fires',
+      });
+      expect(signal.description).toBe('When this fires');
+    });
+
+    it('rejects empty pattern', () => {
+      expect(() =>
+        signalMatcherSchema.parse({
+          pattern: '',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects pattern over 500 chars', () => {
+      expect(() =>
+        signalMatcherSchema.parse({
+          pattern: 'a'.repeat(501),
+        }),
+      ).toThrow();
     });
   });
 
-  describe('prerequisitesLayerSchema', () => {
-    it('accepts valid prerequisites layer', () => {
-      const prereqs = prerequisitesLayerSchema.parse({
-        items: [{ id: 'docker' }, { id: 'node' }],
-      });
-
-      expect(prereqs.items).toHaveLength(2);
-    });
-  });
-
-  describe('signalsLayerSchema', () => {
-    it('accepts valid signals layer', () => {
-      const signals = signalsLayerSchema.parse({
-        keywords: ['docker', 'container'],
-        errorPatterns: ['ECONNREFUSED', 'ENOTFOUND'],
-        symptoms: ['connection timeout', 'port already in use'],
-      });
-
-      expect(signals.keywords).toEqual(['docker', 'container']);
-      expect(signals.errorPatterns).toHaveLength(2);
-    });
-
-    it('accepts partial signals', () => {
-      const signals = signalsLayerSchema.parse({
-        keywords: ['test'],
-      });
-
-      expect(signals.keywords).toEqual(['test']);
-      expect(signals.errorPatterns).toBeUndefined();
-    });
-  });
-
-  describe('exclusionSchema', () => {
+  describe('exclusionRuleSchema', () => {
     it('accepts valid exclusion', () => {
-      const exclusion = exclusionSchema.parse({
-        id: 'wsl-mode',
-        reason: 'Not compatible with WSL file system',
+      const exclusion = exclusionRuleSchema.parse({
+        description: 'Not for Windows',
       });
-
-      expect(exclusion.id).toBe('wsl-mode');
-      expect(exclusion.reason).toBe('Not compatible with WSL file system');
+      expect(exclusion.description).toBe('Not for Windows');
     });
 
-    it('accepts exclusion with condition', () => {
-      const exclusion = exclusionSchema.parse({
-        id: 'rosetta',
-        condition: {
-          field: 'arch',
-          operator: 'equals',
-          value: 'arm64',
-        },
+    it('accepts with kind', () => {
+      const exclusion = exclusionRuleSchema.parse({
+        description: 'SSR only',
+        kind: 'context',
       });
-
-      expect(exclusion.condition?.value).toBe('arm64');
-    });
-  });
-
-  describe('exclusionsLayerSchema', () => {
-    it('accepts valid exclusions layer', () => {
-      const exclusions = exclusionsLayerSchema.parse({
-        items: [{ id: 'windows' }, { id: 'wsl' }],
-      });
-
-      expect(exclusions.items).toHaveLength(2);
-    });
-  });
-
-  describe('evidenceEntrySchema', () => {
-    it('accepts valid evidence entry with required fields', () => {
-      const evidence = evidenceEntrySchema.parse({
-        source: 'user-report',
-        type: 'user-reported',
-        confidence: 0.8,
-      });
-
-      expect(evidence.source).toBe('user-report');
-      expect(evidence.type).toBe('user-reported');
-      expect(evidence.confidence).toBe(0.8);
+      expect(exclusion.kind).toBe('context');
     });
 
-    it('accepts evidence with all optional fields', () => {
-      const evidence = evidenceEntrySchema.parse({
-        source: 'auto-detection',
-        type: 'auto-detected',
-        confidence: 0.95,
-        timestamp: '2026-05-02T00:00:00Z',
-        details: 'Detected from CI failure logs',
-      });
-
-      expect(evidence.timestamp).toBe('2026-05-02T00:00:00Z');
-      expect(evidence.details).toBe('Detected from CI failure logs');
-    });
-
-    it('rejects confidence below 0', () => {
+    it('rejects empty description', () => {
       expect(() =>
-        evidenceEntrySchema.parse({
-          source: 'test',
-          type: 'user-reported',
-          confidence: -0.1,
-        }),
-      ).toThrow();
-    });
-
-    it('rejects confidence above 1', () => {
-      expect(() =>
-        evidenceEntrySchema.parse({
-          source: 'test',
-          type: 'user-reported',
-          confidence: 1.1,
+        exclusionRuleSchema.parse({
+          description: '',
         }),
       ).toThrow();
     });
   });
 
-  describe('evidenceLayerSchema', () => {
-    it('accepts valid evidence layer', () => {
-      const evidence = evidenceLayerSchema.parse({
-        entries: [
-          { source: 'user', type: 'user-reported', confidence: 0.9 },
-          { source: 'system', type: 'auto-detected', confidence: 0.7 },
-        ],
+  describe('evidenceReferenceSchema', () => {
+    it('accepts valid evidence with URL', () => {
+      const evidence = evidenceReferenceSchema.parse({
+        kind: 'issue',
+        identifier: '123',
+        url: 'https://github.com/org/repo/issues/123',
       });
-
-      expect(evidence.entries).toHaveLength(2);
+      expect(evidence.kind).toBe('issue');
+      expect(evidence.identifier).toBe('123');
+      expect(evidence.url).toBe('https://github.com/org/repo/issues/123');
     });
 
-    it('rejects too many evidence entries', () => {
+    it('accepts evidence without URL', () => {
+      const evidence = evidenceReferenceSchema.parse({
+        kind: 'incident',
+        identifier: 'INC-2024-001',
+      });
+      expect(evidence.identifier).toBe('INC-2024-001');
+      expect(evidence.url).toBeUndefined();
+    });
+
+    it('accepts all evidence kinds', () => {
+      const kinds = ['issue', 'incident', 'cve', 'documentation', 'test', 'commit', 'other'] as const;
+      for (const kind of kinds) {
+        const evidence = evidenceReferenceSchema.parse({
+          kind,
+          identifier: 'test',
+        });
+        expect(evidence.kind).toBe(kind);
+      }
+    });
+
+    it('rejects empty identifier', () => {
       expect(() =>
-        evidenceLayerSchema.parse({
-          entries: Array(11).fill({ source: 'x', type: 'user-reported', confidence: 0.5 }),
+        evidenceReferenceSchema.parse({
+          kind: 'issue',
+          identifier: '',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects invalid URL', () => {
+      expect(() =>
+        evidenceReferenceSchema.parse({
+          kind: 'issue',
+          identifier: '123',
+          url: 'not-a-url',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects identifier over 128 chars', () => {
+      expect(() =>
+        evidenceReferenceSchema.parse({
+          kind: 'issue',
+          identifier: 'a'.repeat(129),
         }),
       ).toThrow();
     });
   });
 
   describe('boundarySchema', () => {
-    it('accepts empty boundary', () => {
+    it('defaults all layers to empty arrays', () => {
       const boundary = boundarySchema.parse({});
-      expect(boundary.context).toBeUndefined();
+
+      expect(boundary.context).toEqual([]);
+      expect(boundary.versions).toEqual([]);
+      expect(boundary.prerequisites).toEqual([]);
+      expect(boundary.signals).toEqual([]);
+      expect(boundary.exclusions).toEqual([]);
+      expect(boundary.evidence).toEqual([]);
     });
 
-    it('accepts boundary with all layers', () => {
+    it('accepts complete boundary with all layers', () => {
       const boundary = boundarySchema.parse({
-        context: { environments: ['production'] },
-        versions: { constraints: [{ dependency: 'node', range: '>=18' }] },
-        prerequisites: { items: [{ id: 'docker' }] },
-        signals: { keywords: ['test'] },
-        exclusions: { items: [{ id: 'windows' }] },
-        evidence: { entries: [{ source: 'user', type: 'user-reported', confidence: 0.9 }] },
+        context: ['frontend', 'production'],
+        versions: [{ package: 'react', range: '>=16.8.0' }],
+        prerequisites: [{ description: 'Admin access required' }],
+        signals: [{ pattern: 'ECONNREFUSED', kind: 'error-code' }],
+        exclusions: [{ description: 'Not for SSR' }],
+        evidence: [{ kind: 'issue', identifier: '123' }],
       });
 
-      expect(boundary.context?.environments).toEqual(['production']);
-      expect(boundary.versions?.constraints).toHaveLength(1);
-      expect(boundary.prerequisites?.items).toHaveLength(1);
-      expect(boundary.signals?.keywords).toEqual(['test']);
-      expect(boundary.exclusions?.items).toHaveLength(1);
-      expect(boundary.evidence?.entries).toHaveLength(1);
+      expect(boundary.context).toHaveLength(2);
+      expect(boundary.versions).toHaveLength(1);
+      expect(boundary.prerequisites).toHaveLength(1);
+      expect(boundary.signals).toHaveLength(1);
+      expect(boundary.exclusions).toHaveLength(1);
+      expect(boundary.evidence).toHaveLength(1);
     });
 
-    it('accepts boundary with partial layers', () => {
-      const boundary = boundarySchema.parse({
-        context: { platforms: ['linux'] },
-        signals: { keywords: ['docker'] },
-      });
-
-      expect(boundary.context?.platforms).toEqual(['linux']);
-      expect(boundary.versions).toBeUndefined();
-    });
-  });
-
-  describe('boundaryMetaSchema', () => {
-    it('accepts valid boundary meta with required fields', () => {
-      const meta = boundaryMetaSchema.parse({
-        boundary: { context: { environments: ['production'] } },
-        lastUpdated: '2026-05-02T00:00:00Z',
-      });
-
-      expect(meta.boundary.context?.environments).toEqual(['production']);
-      expect(meta.lastUpdated).toBe('2026-05-02T00:00:00Z');
-    });
-
-    it('accepts boundary meta with all optional fields', () => {
-      const meta = boundaryMetaSchema.parse({
-        boundary: {},
-        lastUpdated: '2026-05-02T00:00:00Z',
-        updatedBy: 'user-123',
-        notes: 'Updated for v2 API compatibility',
-      });
-
-      expect(meta.updatedBy).toBe('user-123');
-      expect(meta.notes).toBe('Updated for v2 API compatibility');
-    });
-
-    it('rejects missing boundary', () => {
+    it('rejects context over 10 items', () => {
       expect(() =>
-        boundaryMetaSchema.parse({
-          lastUpdated: '2026-05-02T00:00:00Z',
+        boundarySchema.parse({
+          context: Array(11).fill('item'),
         }),
       ).toThrow();
     });
 
-    it('rejects missing lastUpdated', () => {
+    it('rejects signals over 20 items', () => {
       expect(() =>
-        boundaryMetaSchema.parse({
-          boundary: {},
+        boundarySchema.parse({
+          signals: Array(21).fill({ pattern: 'test' }),
         }),
       ).toThrow();
     });
-  });
-});
 
-describe('KnowledgeEntry with boundaryMeta', () => {
-  it('accepts entry with boundary metadata', () => {
-    const entry = knowledgeEntrySchema.parse({
-      id: 'entry-1',
-      teamId: null,
-      scope: 'global',
-      labels: ['docker', 'networking'],
-      shortcut: 'Docker network conflict',
-      detail: 'Container network conflicts with host network',
-      requiredLevel: 5,
-      lifecycleState: 'approved',
-      owner: { id: 'user-1', handle: 'alice', securityLevel: 5 },
-      latestRevision: {
-        revision: 1,
-        submittedAt: '2026-05-02T00:00:00Z',
-        submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 5 },
-        shortcut: 'Docker network conflict',
-        detail: 'Container network conflicts with host network',
-        labels: ['docker', 'networking'],
-        reviewNotes: [],
-      },
-      history: [
-        {
-          revision: 1,
-          submittedAt: '2026-05-02T00:00:00Z',
-          submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 5 },
-          shortcut: 'Docker network conflict',
-          detail: 'Container network conflicts with host network',
-          labels: ['docker', 'networking'],
-          reviewNotes: [],
-        },
-      ],
-      metadata: {
-        scopeLabel: 'global-constraint',
-        submissionCount: 1,
-        resubmissionCount: 0,
-        revisionCount: 1,
-        latestSubmissionId: null,
-        latestSubmittedAt: null,
-        latestReviewedAt: null,
-        latestDecision: null,
-      },
-      agentReview: null,
-      boundaryMeta: {
-        boundary: {
-          context: { environments: ['production'] },
-          versions: { constraints: [{ dependency: 'docker', range: '>=20.0' }] },
-        },
-        lastUpdated: '2026-05-02T00:00:00Z',
-        updatedBy: 'user-1',
-      },
-      createdAt: '2026-05-02T00:00:00Z',
-      updatedAt: '2026-05-02T00:00:00Z',
+    it('rejects versions over 10 items', () => {
+      expect(() =>
+        boundarySchema.parse({
+          versions: Array(11).fill({ package: 'react', range: '>=1.0.0' }),
+        }),
+      ).toThrow();
     });
 
-    expect(entry.boundaryMeta?.boundary.context?.environments).toEqual(['production']);
-    expect(entry.boundaryMeta?.boundary.versions?.constraints?.[0]?.dependency).toBe('docker');
-  });
-
-  it('accepts entry without boundary metadata for backward compatibility', () => {
-    const entry = knowledgeEntrySchema.parse({
-      id: 'entry-2',
-      teamId: null,
-      scope: 'global',
-      labels: ['test'],
-      shortcut: 'Test entry',
-      detail: 'Test detail',
-      requiredLevel: 0,
-      lifecycleState: 'approved',
-      owner: { id: 'user-1', handle: 'alice', securityLevel: 5 },
-      latestRevision: {
-        revision: 1,
-        submittedAt: '2026-05-02T00:00:00Z',
-        submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 5 },
-        shortcut: 'Test entry',
-        detail: 'Test detail',
-        labels: ['test'],
-        reviewNotes: [],
-      },
-      history: [
-        {
-          revision: 1,
-          submittedAt: '2026-05-02T00:00:00Z',
-          submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 5 },
-          shortcut: 'Test entry',
-          detail: 'Test detail',
-          labels: ['test'],
-          reviewNotes: [],
-        },
-      ],
-      metadata: {
-        scopeLabel: 'global-constraint',
-        submissionCount: 1,
-        resubmissionCount: 0,
-        revisionCount: 1,
-        latestSubmissionId: null,
-        latestSubmittedAt: null,
-        latestReviewedAt: null,
-        latestDecision: null,
-      },
-      agentReview: null,
-      createdAt: '2026-05-02T00:00:00Z',
-      updatedAt: '2026-05-02T00:00:00Z',
+    it('rejects context item over 64 chars', () => {
+      expect(() =>
+        boundarySchema.parse({
+          context: ['a'.repeat(65)],
+        }),
+      ).toThrow();
     });
 
-    expect(entry.boundaryMeta).toBeUndefined();
-  });
-
-  it('accepts entry with null boundaryMeta', () => {
-    const entry = knowledgeEntrySchema.parse({
-      id: 'entry-3',
-      teamId: null,
-      scope: 'global',
-      labels: ['test'],
-      shortcut: 'Test entry',
-      detail: 'Test detail',
-      requiredLevel: 0,
-      lifecycleState: 'approved',
-      owner: { id: 'user-1', handle: 'alice', securityLevel: 5 },
-      latestRevision: {
-        revision: 1,
-        submittedAt: '2026-05-02T00:00:00Z',
-        submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 5 },
-        shortcut: 'Test entry',
-        detail: 'Test detail',
-        labels: ['test'],
-        reviewNotes: [],
-      },
-      history: [
-        {
-          revision: 1,
-          submittedAt: '2026-05-02T00:00:00Z',
-          submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 5 },
-          shortcut: 'Test entry',
-          detail: 'Test detail',
-          labels: ['test'],
-          reviewNotes: [],
-        },
-      ],
-      metadata: {
-        scopeLabel: 'global-constraint',
-        submissionCount: 1,
-        resubmissionCount: 0,
-        revisionCount: 1,
-        latestSubmissionId: null,
-        latestSubmittedAt: null,
-        latestReviewedAt: null,
-        latestDecision: null,
-      },
-      agentReview: null,
-      boundaryMeta: null,
-      createdAt: '2026-05-02T00:00:00Z',
-      updatedAt: '2026-05-02T00:00:00Z',
+    it('validates nested schema', () => {
+      expect(() =>
+        boundarySchema.parse({
+          versions: [{ package: '', range: '>=1.0.0' }],
+        }),
+      ).toThrow();
     });
-
-    expect(entry.boundaryMeta).toBeNull();
-  });
-});
-
-describe('SkillArtifact with boundaryMeta', () => {
-  it('accepts artifact with boundary metadata', () => {
-    const artifact = skillArtifactSchema.parse({
-      id: 'art-1',
-      teamId: null,
-      scope: 'project',
-      labels: ['typescript', 'testing'],
-      title: 'Vitest configuration for ESM',
-      slug: 'vitest-esm-config',
-      requiredLevel: 3,
-      lifecycleState: 'approved',
-      owner: { id: 'user-1', handle: 'bob', securityLevel: 5 },
-      latestRevision: 1,
-      history: [
-        {
-          revision: 1,
-          sourceHash: 'a'.repeat(64),
-          files: [
-            {
-              path: 'SKILL.md',
-              kind: 'skill-markdown',
-              sha256: 'b'.repeat(64),
-              sizeBytes: 1024,
-              mediaType: 'text/markdown',
-              source: 'SKILL.md',
-              includeInDerivation: true,
-              activationOnly: false,
-            },
-          ],
-          submittedAt: '2026-05-02T00:00:00Z',
-          submittedBy: { id: 'user-1', handle: 'bob', securityLevel: 5 },
-          scriptDescriptors: [],
-          derived: null,
-        },
-      ],
-      metadata: {
-        sourceKind: 'skill-directory',
-        submissionCount: 1,
-        resubmissionCount: 0,
-        revisionCount: 1,
-        latestSubmissionId: null,
-        latestSubmittedAt: null,
-        latestReviewedAt: null,
-        latestDecision: null,
-      },
-      agentReview: null,
-      boundaryMeta: {
-        boundary: {
-          context: { runtimes: ['node'] },
-          signals: { keywords: ['vitest', 'esm'] },
-        },
-        lastUpdated: '2026-05-02T00:00:00Z',
-      },
-      createdAt: '2026-05-02T00:00:00Z',
-      updatedAt: '2026-05-02T00:00:00Z',
-    });
-
-    expect(artifact.boundaryMeta?.boundary.context?.runtimes).toEqual(['node']);
-    expect(artifact.boundaryMeta?.boundary.signals?.keywords).toEqual(['vitest', 'esm']);
-  });
-
-  it('accepts artifact without boundary metadata for backward compatibility', () => {
-    const artifact = skillArtifactSchema.parse({
-      id: 'art-2',
-      teamId: null,
-      scope: 'global',
-      labels: ['test'],
-      title: 'Test artifact',
-      slug: 'test-artifact',
-      requiredLevel: 0,
-      lifecycleState: 'approved',
-      owner: { id: 'user-1', handle: 'bob', securityLevel: 5 },
-      latestRevision: 1,
-      history: [
-        {
-          revision: 1,
-          sourceHash: 'a'.repeat(64),
-          files: [
-            {
-              path: 'SKILL.md',
-              kind: 'skill-markdown',
-              sha256: 'b'.repeat(64),
-              sizeBytes: 1024,
-              mediaType: 'text/markdown',
-              source: 'SKILL.md',
-              includeInDerivation: true,
-              activationOnly: false,
-            },
-          ],
-          submittedAt: '2026-05-02T00:00:00Z',
-          submittedBy: { id: 'user-1', handle: 'bob', securityLevel: 5 },
-          scriptDescriptors: [],
-          derived: null,
-        },
-      ],
-      metadata: {
-        sourceKind: 'skill-directory',
-        submissionCount: 1,
-        resubmissionCount: 0,
-        revisionCount: 1,
-        latestSubmissionId: null,
-        latestSubmittedAt: null,
-        latestReviewedAt: null,
-        latestDecision: null,
-      },
-      agentReview: null,
-      createdAt: '2026-05-02T00:00:00Z',
-      updatedAt: '2026-05-02T00:00:00Z',
-    });
-
-    expect(artifact.boundaryMeta).toBeUndefined();
   });
 });
