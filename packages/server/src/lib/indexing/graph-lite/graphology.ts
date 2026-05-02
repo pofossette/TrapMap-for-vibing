@@ -12,6 +12,7 @@ import { subgraph } from 'graphology-operators';
 import { singleSourceLength } from 'graphology-shortest-path';
 
 import type { GraphEdgeRecord, GraphIndexDocumentRecord } from './documents.js';
+import { buildContextNodeId } from '../boundary-normalize.js';
 
 type GraphNodeAttributes = {
   kind?: string;
@@ -352,4 +353,89 @@ export function buildLocalExpansionView(params: LocalExpansionParams): Graph {
 
   // Return subgraph containing only reachable nodes
   return subgraph(graph as never, reachableNodeIds) as Graph;
+}
+
+// ---------------------------------------------------------------------------
+// Boundary query helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Find all source entries that apply in a given context.
+ *
+ * @param runtime - The graph runtime snapshot
+ * @param contextLabel - The context label to search for (e.g., 'frontend')
+ * @returns Set of source entry IDs that apply in this context
+ */
+export function findEntriesByContext(
+  runtime: GraphRuntimeSnapshot,
+  contextLabel: string,
+): Set<string> {
+  const nodeId = buildContextNodeId(contextLabel);
+  return runtime.sourceIdsByNodeId.get(nodeId) ?? new Set();
+}
+
+/**
+ * Find all source entries that require a specific package.
+ *
+ * @param runtime - The graph runtime snapshot
+ * @param packageName - The package name to search for (e.g., 'react')
+ * @returns Set of source entry IDs that require this package
+ */
+export function findEntriesByPackage(
+  runtime: GraphRuntimeSnapshot,
+  packageName: string,
+): Set<string> {
+  const normalizedPkg = packageName.toLowerCase();
+  const result = new Set<string>();
+
+  // Iterate over all boundary-version nodes for this package
+  for (const [nodeId, sourceIds] of runtime.sourceIdsByNodeId) {
+    if (nodeId.startsWith(`boundary-version:${normalizedPkg}@`)) {
+      for (const sourceId of sourceIds) {
+        result.add(sourceId);
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Find all source entries matching a compound boundary constraint.
+ * Returns entries that match ALL provided constraints (AND semantics).
+ *
+ * @param runtime - The graph runtime snapshot
+ * @param constraints - Boundary constraints to match
+ * @returns Set of source entry IDs matching all constraints
+ */
+export function findEntriesByBoundaryConstraints(
+  runtime: GraphRuntimeSnapshot,
+  constraints: {
+    contexts?: string[];
+    packages?: string[];
+  },
+): Set<string> {
+  let result: Set<string> | null = null;
+
+  // Intersect context constraints
+  for (const context of constraints.contexts ?? []) {
+    const contextSources = findEntriesByContext(runtime, context);
+    if (result === null) {
+      result = new Set(contextSources);
+    } else {
+      result = new Set([...result].filter((id) => contextSources.has(id)));
+    }
+  }
+
+  // Intersect package constraints
+  for (const pkg of constraints.packages ?? []) {
+    const pkgSources = findEntriesByPackage(runtime, pkg);
+    if (result === null) {
+      result = new Set(pkgSources);
+    } else {
+      result = new Set([...result].filter((id) => pkgSources.has(id)));
+    }
+  }
+
+  return result ?? new Set();
 }
