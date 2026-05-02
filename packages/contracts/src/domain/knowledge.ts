@@ -149,6 +149,8 @@ export const knowledgeListItemSchema = z.object({
   lifecycleState: lifecycleStateSchema,
   requiredLevel: securityLevelSchema,
   updatedAt: z.string(),
+  /** Evidence and provenance metadata (null if not yet verified) */
+  evidenceMeta: evidenceMetaSchema.nullable().optional(),
 });
 
 export const knowledgeEntryResponseSchema = z.object({

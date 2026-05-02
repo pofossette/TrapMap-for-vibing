@@ -2,6 +2,7 @@ import { Command } from 'commander';
 
 import { registerAuditCommands } from './commands/audit.js';
 import { registerAuthCommands } from './commands/auth.js';
+import { registerEvidenceCommands } from './commands/evidence.js';
 import { registerKnowledgeCommands } from './commands/knowledge.js';
 import { registerMemberCommands } from './commands/member.js';
 import { registerOperationsCommands } from './commands/operations.js';
@@ -129,6 +130,9 @@ registerRetrievalCommands(program, {
   allowSearch: visibility.allowKnowledgeSearch,
 });
 registerReviewCommands(program, {
+  allowReview: visibility.allowKnowledgeReview,
+});
+registerEvidenceCommands(program, {
   allowReview: visibility.allowKnowledgeReview,
 });
 registerOperationsCommands(program, {
