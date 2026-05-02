@@ -63,9 +63,14 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     const preReview = await runPreReview({
       existingEntries: (await app.skillShareer.store.snapshot()).knowledgeEntries,
       submission: payload,
+      chatProvider: app.skillShareer.ai.chat,
+      authorBoundary: payload.boundary ?? null,
     });
 
     const createdAt = nowIso();
+
+    // Use author boundary if provided, otherwise use extracted boundary from pre-review
+    const boundary = payload.boundary ?? preReview.boundary ?? null;
 
     const entry = await app.skillShareer.store.transact((data) => {
       const record = createKnowledgeEntryRecord({
@@ -77,6 +82,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         requiredLevel: payload.requiredLevel ?? auth.securityLevel,
         createdAt,
         preReview,
+        boundary,
       });
 
       data.knowledgeEntries.push(record);
@@ -153,6 +159,8 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         shortcut: payload.shortcut,
         detail: payload.detail,
       },
+      chatProvider: app.skillShareer.ai.chat,
+      authorBoundary: payload.boundary ?? null,
     });
 
     const updatedEntry = await app.skillShareer.store.transact((data) => {
@@ -171,6 +179,8 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const submittedAt = nowIso();
+      // Use payload boundary if provided, otherwise use extracted boundary from pre-review
+      const boundary = payload.boundary ?? preReview.boundary ?? null;
       resubmitKnowledgeEntry({
         store: app.skillShareer.store,
         data,
@@ -179,6 +189,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         payload,
         submittedAt,
         preReview,
+        boundary,
       });
 
       return toKnowledgeEntry(data, entry);
