@@ -173,12 +173,28 @@ export const decayAwareListItemSchema = z.object({
  * for building the batch management discovery interface.
  */
 export const decayEntryListRequestSchema = z.object({
-  decayStates: z.array(decayStateSchema).optional(),
-  ageMinDays: z.number().int().min(0).optional(),
-  ageMaxDays: z.number().int().min(0).optional(),
-  labels: z.array(labelSchema).optional(),
+  decayStates: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null) return undefined;
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
+      return val;
+    },
+    z.array(decayStateSchema).optional(),
+  ),
+  ageMinDays: z.coerce.number().int().min(0).optional(),
+  ageMaxDays: z.coerce.number().int().min(0).optional(),
+  labels: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null) return undefined;
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
+      return val;
+    },
+    z.array(labelSchema).optional(),
+  ),
   scope: scopeSchema.optional(),
-  limit: z.number().int().min(1).max(100).default(25),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
 });
 
 /**
