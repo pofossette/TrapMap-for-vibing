@@ -69,9 +69,11 @@ export function registerTrapCommands(program: Command, options: TrapCommandOptio
       .option('--file <path>', 'Read detail text from a file')
       .option('--stdin', 'Read detail text from stdin')
       .option('--required-level <n>', 'Override required security level')
+      .option('--boundary <json>', 'Boundary constraints as JSON')
       .option('--json', 'Output JSON')
       .action(
         async (flags: {
+          boundary?: string;
           detail?: string;
           file?: string;
           json?: boolean;
@@ -91,6 +93,16 @@ export function registerTrapCommands(program: Command, options: TrapCommandOptio
             },
             'detail',
           );
+          let boundary: unknown;
+          if (flags.boundary !== undefined) {
+            try {
+              boundary = JSON.parse(flags.boundary);
+            } catch (error) {
+              throw new Error(
+                `Invalid boundary JSON: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+          }
           const response = await apiRequest<KnowledgeEntryResponse>(state, {
             method: 'POST',
             path: '/v1/knowledge',
@@ -101,6 +113,7 @@ export function registerTrapCommands(program: Command, options: TrapCommandOptio
               detail,
               requiredLevel:
                 flags.requiredLevel !== undefined ? Number(flags.requiredLevel) : undefined,
+              boundary,
             },
           });
           const parsed = knowledgeEntryResponseSchema.parse(response.data);
@@ -124,11 +137,13 @@ export function registerTrapCommands(program: Command, options: TrapCommandOptio
       .option('--detail <text>', 'Updated detailed explanation')
       .option('--file <path>', 'Read updated detail text from a file')
       .option('--stdin', 'Read updated detail text from stdin')
+      .option('--boundary <json>', 'Boundary constraints as JSON')
       .option('--json', 'Output JSON')
       .action(
         async (
           entryId: string,
           flags: {
+            boundary?: string;
             detail?: string;
             file?: string;
             json?: boolean;
@@ -147,6 +162,16 @@ export function registerTrapCommands(program: Command, options: TrapCommandOptio
             },
             'detail',
           );
+          let boundary: unknown;
+          if (flags.boundary !== undefined) {
+            try {
+              boundary = JSON.parse(flags.boundary);
+            } catch (error) {
+              throw new Error(
+                `Invalid boundary JSON: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+          }
           const response = await apiRequest<KnowledgeEntryResponse>(state, {
             method: 'POST',
             path: `/v1/knowledge/${entryId}/resubmit`,
@@ -154,6 +179,7 @@ export function registerTrapCommands(program: Command, options: TrapCommandOptio
               labels: flags.label,
               shortcut: flags.shortcut,
               detail,
+              boundary,
             },
           });
           const parsed = knowledgeEntryResponseSchema.parse(response.data);
