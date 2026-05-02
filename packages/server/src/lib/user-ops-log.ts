@@ -15,7 +15,8 @@ export type UserOpsAction =
   | 'trap-resubmit'
   | 'manual-result'
   | 'apply-resolution'
-  | 'plan';
+  | 'plan'
+  | 'feedback';
 
 export interface UserOpsLogEntry {
   timestamp: string;
