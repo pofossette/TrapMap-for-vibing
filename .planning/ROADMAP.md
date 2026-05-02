@@ -51,7 +51,7 @@
 
 ### Applicability Boundary Model
 
-- [ ] Phase 51: Boundary Schema Definition (BOUND-01)
+- [x] Phase 51: Boundary Schema Definition (BOUND-01) (completed 2026-05-02)
 - [ ] Phase 52: Boundary Capture in Submission Flow (BOUND-02)
 - [ ] Phase 53: Boundary Indexing & Graph Integration (BOUND-03)
 - [ ] Phase 54: Boundary-aware Retrieval (BOUND-04, BOUND-05)

@@ -16,7 +16,7 @@ Requirements for v1.5 milestone: 功能增强
 
 ### Applicability Boundary Model (BOUND)
 
-- [ ] **BOUND-01**: Unified boundary schema shared across trap and skill artifacts with 6-layer structure (context / versions / prerequisites / signals / exclusions / evidence)
+- [x] **BOUND-01**: Unified boundary schema shared across trap and skill artifacts with 6-layer structure (context / versions / prerequisites / signals / exclusions / evidence)
 - [ ] **BOUND-02**: Authors can input boundary constraints during submission; agent can extract candidate boundaries; reviewers can confirm boundaries
 - [ ] **BOUND-03**: Boundary fields are indexed as facets and graph nodes with back-references to standardized boundary structures
 - [ ] **BOUND-04**: Retrieval ranking filters on required constraint mismatch, penalizes on excluded constraint match, and boosts on preferred constraint match
@@ -77,7 +77,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DECAY-02 | Phase 49 | Complete |
 | DECAY-03 | Phase 50 | Complete |
 | DECAY-04 | Phase 48 | Complete |
-| BOUND-01 | Phase 51 | Pending |
+| BOUND-01 | Phase 51 | Complete |
 | BOUND-02 | Phase 52 | Pending |
 | BOUND-03 | Phase 53 | Pending |
 | BOUND-04 | Phase 54 | Pending |
