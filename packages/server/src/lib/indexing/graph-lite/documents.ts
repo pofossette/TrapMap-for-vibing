@@ -26,7 +26,10 @@ export type GraphNodeKind =
   | 'tool'
   | 'environment'
   | 'prerequisite'
-  | 'mitigation';
+  | 'mitigation'
+  | 'boundary-context' // Context labels like "frontend", "production"
+  | 'boundary-version' // Version constraints like "react>=16.8.0"
+  | 'boundary-platform'; // Platform identifiers like "linux", "docker"
 
 /**
  * Typed relation vocabulary for the GraphRAG-lite index.
@@ -36,7 +39,11 @@ export type GraphRelationType =
   | 'requires'
   | 'order'
   | 'risk-blocks'
-  | 'co-occurs-with';
+  | 'co-occurs-with'
+  | 'applies-in' // Entry applies in this context (trap -> boundary-context)
+  | 'requires-version' // Entry requires this version (trap -> boundary-version)
+  | 'excludes-context' // Entry excluded in this context (trap -> boundary-context)
+  | 'excludes-version'; // Entry incompatible with this version (trap -> boundary-version)
 
 /**
  * Edge strength distinguishing hard dependencies from soft precedence.

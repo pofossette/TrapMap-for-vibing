@@ -246,10 +246,14 @@ export function calculateSourceRelationStrength(
 
 /**
  * Hard relation types that participate in the DAG projection.
- * Only 'requires' and 'risk-blocks' edges with strength 'hard' are included.
- * 'order' and 'co-occurs-with' must stay out of the DAG projection (D-05).
+ * Only 'requires', 'risk-blocks', and 'requires-version' edges with strength 'hard' are included.
+ * 'order', 'co-occurs-with', 'applies-in', 'excludes-context', and 'excludes-version' must stay out of the DAG projection (D-05).
  */
-const HARD_RELATION_TYPES: ReadonlySet<string> = new Set(['requires', 'risk-blocks']);
+const HARD_RELATION_TYPES: ReadonlySet<string> = new Set([
+  'requires',
+  'risk-blocks',
+  'requires-version', // Version requirements are hard dependencies
+]);
 
 /**
  * Project only hard dependency edges from documents into a directed graph.
