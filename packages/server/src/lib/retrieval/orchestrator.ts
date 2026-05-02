@@ -33,7 +33,7 @@ import {
 } from './assembly.js';
 import { buildProfileShortlist, getCapsuleRecords, rankCapsules } from './capsule-recall.js';
 import { buildCitations } from './citations.js';
-import { filterEligibleEntries } from './filters.js';
+import { filterEligibleEntries, filterByBoundaryContext } from './filters.js';
 import { parseSeedIntent } from './intent.js';
 import { createSemanticCandidate, mergeCandidates, toScoredEntries } from './merge.js';
 import { graphAssistedRecall as graphRecall } from './recall/graph-assisted.js';
@@ -240,7 +240,14 @@ export async function searchKnowledge(
       steps,
     );
 
-    if (eligibleEntries.length === 0) {
+    // Filter by boundary constraints (BOUND-04)
+    const boundaryFiltered = await timedStep(
+      'boundary-filter',
+      () => Promise.resolve(filterByBoundaryContext(eligibleEntries, parsed.boundaryContext)),
+      steps,
+    );
+
+    if (boundaryFiltered.length === 0) {
       // Log even for empty results (with routing trace)
       const emptyRouting = selectRetrievalStrategy(parsed.mode, parsed.seed);
       void logRagRetrieval(services.config.ragLog, {
@@ -274,7 +281,7 @@ export async function searchKnowledge(
     // Dispatch based on query mode
     const { scoredEntries, mergedCandidates } = await timedStep(
       'recall',
-      () => dispatchByMode(parsed.mode, parsed.seed, eligibleEntries, parsed),
+      () => dispatchByMode(parsed.mode, parsed.seed, boundaryFiltered, parsed),
       steps,
     );
 
@@ -289,7 +296,7 @@ export async function searchKnowledge(
     // Assemble response buckets with citations
     const { globalConstraints, projectKnowledge } = await timedStep(
       'assembly',
-      () => Promise.resolve(assembleResponseBuckets(scoredEntries, parsed.filters, citations)),
+      () => Promise.resolve(assembleResponseBuckets(scoredEntries, parsed.filters, citations, parsed.boundaryContext)),
       steps,
     );
 
@@ -512,6 +519,7 @@ async function hybridRecall(
   // Rerank merged candidates using heuristic boosts
   const rerankedCandidates = rerankCandidates(mergedCandidates, queryTokens, {
     maxCandidates: parsed.maxResults,
+    boundaryContext: parsed.boundaryContext,
   });
 
   // Convert to scored entries for assembly
@@ -611,6 +619,7 @@ async function graphAssistedRecall(
   // Rerank merged candidates using heuristic boosts
   const rerankedCandidates = rerankCandidates(finalMerged, queryTokens, {
     maxCandidates: parsed.maxResults,
+    boundaryContext: parsed.boundaryContext,
   });
 
   // Convert to scored entries for assembly

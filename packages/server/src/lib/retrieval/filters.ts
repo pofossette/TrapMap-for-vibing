@@ -15,7 +15,7 @@
  * Delegates to the shared governance module for unified eligibility logic.
  */
 
-import type { RetrievalQuery } from '@trapmap/contracts';
+import type { BoundaryContext, RetrievalQuery } from '@trapmap/contracts';
 import type { ResolvedAuthContext } from '../context.js';
 import { computeDecayState } from '../decay/state-machine.js';
 import { loadDecayConfig } from '../decay/config.js';
@@ -25,6 +25,7 @@ import {
   matchesGovernanceFilters,
 } from '../governance/index.js';
 import type { KnowledgeRecord } from '../store.js';
+import { filterByBoundary } from './boundary-match.js';
 
 /**
  * Adapt a KnowledgeRecord to the GovernedEntity interface.
@@ -91,4 +92,23 @@ export function filterEligibleEntries(
   filters: RetrievalQuery['filters'],
 ): KnowledgeRecord[] {
   return entries.filter((entry) => isEntryEligible(entry, auth, filters));
+}
+
+/**
+ * Filter knowledge entries by boundary constraints.
+ * Entries whose required version constraints are not satisfied by the
+ * query boundary context are excluded from results.
+ *
+ * @param entries - Eligible knowledge entries
+ * @param boundaryContext - Optional boundary context from the query
+ * @returns Entries that satisfy required boundary constraints
+ */
+export function filterByBoundaryContext(
+  entries: KnowledgeRecord[],
+  boundaryContext: BoundaryContext | undefined,
+): KnowledgeRecord[] {
+  if (!boundaryContext) {
+    return entries;
+  }
+  return filterByBoundary(entries, boundaryContext);
 }
