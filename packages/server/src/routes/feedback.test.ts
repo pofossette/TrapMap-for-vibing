@@ -8,6 +8,7 @@
  * - Optional context field persistence
  * - CustomAnswers persistence
  * - Store persistence to feedbackQueue
+ * - Admin routes for listing and batch operations (FEEDBACK-02)
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -22,8 +23,10 @@ describe('feedback routes', () => {
   let store: SkillShareerStore;
 
   const userId = 'user_1';
+  const adminUserId = 'admin_1';
   const teamId = 'team_1';
   let sessionToken: string;
+  let adminSessionToken: string;
 
   beforeEach(async () => {
     const testDataFile = `/tmp/trapmap-test-feedback-${Date.now()}-${Math.random()}.json`;
@@ -35,11 +38,19 @@ describe('feedback routes', () => {
     // Setup: Create user, team, membership, session
     await store.transact(async (data) => {
       if (!data.counters) data.counters = {};
-      data.counters.user = 1;
+      data.counters.user = 2;
 
       data.users.push({
         id: userId,
         handle: 'tester',
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+
+      data.users.push({
+        id: adminUserId,
+        handle: 'admin',
         notes: null,
         createdAt: nowIso(),
         updatedAt: nowIso(),
@@ -66,6 +77,19 @@ describe('feedback routes', () => {
         updatedAt: nowIso(),
       });
 
+      // Admin membership with knowledge:update permission
+      data.memberships.push({
+        id: 'membership_2',
+        userId: adminUserId,
+        teamId,
+        roleTemplate: 'admin',
+        securityLevel: 10,
+        permissions: ['knowledge:update'],
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+
       sessionToken = `session_token_feedback_${Date.now()}`;
       data.sessions.push({
         id: `session_${Date.now()}`,
@@ -76,6 +100,61 @@ describe('feedback routes', () => {
         createdAt: nowIso(),
         updatedAt: nowIso(),
         expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      });
+
+      adminSessionToken = `session_token_admin_${Date.now()}`;
+      data.sessions.push({
+        id: `session_admin_${Date.now()}`,
+        userId: adminUserId,
+        tokenHash: hashSecret(adminSessionToken),
+        activeTeamId: teamId,
+        subjectType: 'user',
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      });
+
+      // Add a knowledge entry for testing entryShortcut lookup
+      data.knowledgeEntries.push({
+        id: 'trap_1',
+        teamId: null,
+        scope: 'global',
+        labels: [],
+        shortcut: 'test-trap-shortcut',
+        detail: 'Test trap content',
+        requiredLevel: 0,
+        lifecycleState: 'approved',
+        ownerUserId: userId,
+        latestRevision: {
+          revision: 1,
+          submittedAt: nowIso(),
+          submittedByUserId: userId,
+          shortcut: 'test-trap-shortcut',
+          detail: 'Test trap content',
+          labels: [],
+          reviewNotes: [],
+        },
+        history: [],
+        metadata: {
+          scopeLabel: 'global-constraint',
+          submissionCount: 1,
+          resubmissionCount: 0,
+          revisionCount: 1,
+          latestSubmissionId: null,
+          latestSubmittedAt: null,
+          latestReviewedAt: null,
+          latestDecision: null,
+        },
+        submissionHistory: [],
+        agentReview: null,
+        reviewHistory: [],
+        reviewNotes: [],
+        lifecycleHistory: [],
+        embeddingCache: null,
+        indexState: null,
+        boundary: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
     });
   });
@@ -204,5 +283,485 @@ describe('feedback routes', () => {
     expect(data.feedbackQueue[0].status).toBe('new');
     expect(data.feedbackQueue[0].submittedByUserId).toBe(userId);
     expect(data.feedbackQueue[0].submittedByHandle).toBe('tester');
+  });
+});
+
+describe('feedback admin routes', () => {
+  let app: FastifyInstance;
+  let store: SkillShareerStore;
+
+  const userId = 'user_1';
+  const adminUserId = 'admin_1';
+  const teamId = 'team_1';
+  let sessionToken: string;
+  let adminSessionToken: string;
+
+  beforeEach(async () => {
+    const testDataFile = `/tmp/trapmap-test-feedback-admin-${Date.now()}-${Math.random()}.json`;
+
+    app = buildServer({ config: { dataFile: testDataFile } });
+    await app.ready();
+    store = app.skillShareer.store;
+
+    // Setup: Create user, team, membership, session
+    await store.transact(async (data) => {
+      if (!data.counters) data.counters = {};
+      data.counters.user = 2;
+
+      data.users.push({
+        id: userId,
+        handle: 'tester',
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+
+      data.users.push({
+        id: adminUserId,
+        handle: 'admin',
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+
+      data.teams.push({
+        id: teamId,
+        name: 'Test Team',
+        slug: 'test-team',
+        description: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+
+      data.memberships.push({
+        id: 'membership_1',
+        userId,
+        teamId,
+        roleTemplate: 'user',
+        securityLevel: 5,
+        permissions: [],
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+
+      // Admin membership with knowledge:update permission
+      data.memberships.push({
+        id: 'membership_2',
+        userId: adminUserId,
+        teamId,
+        roleTemplate: 'admin',
+        securityLevel: 10,
+        permissions: ['knowledge:update'],
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+
+      sessionToken = `session_token_feedback_${Date.now()}`;
+      data.sessions.push({
+        id: `session_${Date.now()}`,
+        userId,
+        tokenHash: hashSecret(sessionToken),
+        activeTeamId: teamId,
+        subjectType: 'user',
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      });
+
+      adminSessionToken = `session_token_admin_${Date.now()}`;
+      data.sessions.push({
+        id: `session_admin_${Date.now()}`,
+        userId: adminUserId,
+        tokenHash: hashSecret(adminSessionToken),
+        activeTeamId: teamId,
+        subjectType: 'user',
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      });
+
+      // Add a knowledge entry for testing entryShortcut lookup
+      data.knowledgeEntries.push({
+        id: 'trap_1',
+        teamId: null,
+        scope: 'global',
+        labels: [],
+        shortcut: 'test-trap-shortcut',
+        detail: 'Test trap content',
+        requiredLevel: 0,
+        lifecycleState: 'approved',
+        ownerUserId: userId,
+        latestRevision: {
+          revision: 1,
+          submittedAt: nowIso(),
+          submittedByUserId: userId,
+          shortcut: 'test-trap-shortcut',
+          detail: 'Test trap content',
+          labels: [],
+          reviewNotes: [],
+        },
+        history: [],
+        metadata: {
+          scopeLabel: 'global-constraint',
+          submissionCount: 1,
+          resubmissionCount: 0,
+          revisionCount: 1,
+          latestSubmissionId: null,
+          latestSubmittedAt: null,
+          latestReviewedAt: null,
+          latestDecision: null,
+        },
+        submissionHistory: [],
+        agentReview: null,
+        reviewHistory: [],
+        reviewNotes: [],
+        lifecycleHistory: [],
+        embeddingCache: null,
+        indexState: null,
+        boundary: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+
+      // Add some feedback records for testing
+      data.feedbackQueue.push({
+        id: 'feedback_1',
+        entryId: 'trap_1',
+        entryType: 'trap',
+        problemType: 'outdated',
+        description: 'This content is outdated.',
+        context: null,
+        querySeed: null,
+        customAnswers: null,
+        submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+        submittedByUserId: userId,
+        submittedByHandle: 'tester',
+        status: 'new',
+        adminNotes: null,
+        resolvedAt: null,
+        resolvedByUserId: null,
+        triggeredTransition: null,
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+
+      data.feedbackQueue.push({
+        id: 'feedback_2',
+        entryId: 'trap_1',
+        entryType: 'trap',
+        problemType: 'incorrect',
+        description: 'This solution has an error.',
+        context: 'Was trying to deploy to production',
+        querySeed: null,
+        customAnswers: null,
+        submittedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+        submittedByUserId: userId,
+        submittedByHandle: 'tester',
+        status: 'triaged',
+        adminNotes: 'Needs investigation',
+        resolvedAt: null,
+        resolvedByUserId: null,
+        triggeredTransition: null,
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+    });
+  });
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  describe('GET /v1/operations/feedback', () => {
+    it('returns 401 for unauthenticated request', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback',
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('returns empty list when no feedback', async () => {
+      // Clear feedback queue
+      await store.transact((data) => {
+        data.feedbackQueue = [];
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.items).toEqual([]);
+      expect(body.total).toBe(0);
+    });
+
+    it('returns feedback list with correct fields', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.items).toHaveLength(2);
+      expect(body.total).toBe(2);
+
+      // Check first item (most recent first due to sort)
+      const firstItem = body.items[0];
+      expect(firstItem.id).toBe('feedback_1');
+      expect(firstItem.entryId).toBe('trap_1');
+      expect(firstItem.entryType).toBe('trap');
+      expect(firstItem.entryShortcut).toBe('test-trap-shortcut');
+      expect(firstItem.problemType).toBe('outdated');
+      expect(firstItem.status).toBe('new');
+      expect(firstItem.ageDays).toBeGreaterThanOrEqual(1);
+    });
+
+    it('filters by status query param', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback?status=new',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.items).toHaveLength(1);
+      expect(body.items[0].status).toBe('new');
+    });
+
+    it('filters by problemType query param', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback?problemType=incorrect',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.items).toHaveLength(1);
+      expect(body.items[0].problemType).toBe('incorrect');
+    });
+
+    it('filters by entryId query param', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback?entryId=trap_1',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.items).toHaveLength(2);
+    });
+
+    it('computes ageDays correctly', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+
+      // Find feedback_1 which was submitted 2 days ago
+      const feedback1 = body.items.find((i: { id: string }) => i.id === 'feedback_1');
+      expect(feedback1.ageDays).toBeGreaterThanOrEqual(2);
+      expect(feedback1.ageDays).toBeLessThan(3);
+
+      // Find feedback_2 which was submitted 5 days ago
+      const feedback2 = body.items.find((i: { id: string }) => i.id === 'feedback_2');
+      expect(feedback2.ageDays).toBeGreaterThanOrEqual(5);
+      expect(feedback2.ageDays).toBeLessThan(6);
+    });
+
+    it('returns entry shortcut from knowledge entries', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.items[0].entryShortcut).toBe('test-trap-shortcut');
+    });
+  });
+
+  describe('POST /v1/operations/feedback/batch', () => {
+    it('returns 401 for unauthenticated request', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/feedback/batch',
+        payload: {
+          feedbackIds: ['feedback_1'],
+          action: 'resolve',
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('returns 403 for non-admin user', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/feedback/batch',
+        headers: { authorization: `Bearer ${sessionToken}` },
+        payload: {
+          feedbackIds: ['feedback_1'],
+          action: 'resolve',
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+    });
+
+    it('dry-run returns plan without persisting', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/feedback/batch',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+        payload: {
+          feedbackIds: ['feedback_1'],
+          action: 'resolve',
+          dryRun: true,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.dryRun).toBe(true);
+      expect(body.appliedAt).toBeNull();
+      expect(body.totalEligible).toBe(1);
+
+      // Verify not persisted
+      const data = await store.snapshot();
+      expect(data.feedbackQueue[0].status).toBe('new');
+    });
+
+    it('resolve action updates status and sets resolvedAt', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/feedback/batch',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+        payload: {
+          feedbackIds: ['feedback_1'],
+          action: 'resolve',
+          notes: 'Fixed in latest version',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.action).toBe('resolve');
+      expect(body.dryRun).toBe(false);
+      expect(body.appliedAt).not.toBeNull();
+      expect(body.totalEligible).toBe(1);
+
+      // Verify persisted
+      const data = await store.snapshot();
+      expect(data.feedbackQueue[0].status).toBe('resolved');
+      expect(data.feedbackQueue[0].resolvedAt).not.toBeNull();
+      expect(data.feedbackQueue[0].resolvedByUserId).toBe(adminUserId);
+      expect(data.feedbackQueue[0].adminNotes).toBe('Fixed in latest version');
+    });
+
+    it('dismiss action updates status', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/feedback/batch',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+        payload: {
+          feedbackIds: ['feedback_1'],
+          action: 'dismiss',
+          notes: 'Not reproducible',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.totalEligible).toBe(1);
+
+      // Verify persisted
+      const data = await store.snapshot();
+      expect(data.feedbackQueue[0].status).toBe('dismissed');
+      expect(data.feedbackQueue[0].adminNotes).toBe('Not reproducible');
+    });
+
+    it('triage action updates status', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/feedback/batch',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+        payload: {
+          feedbackIds: ['feedback_1'],
+          action: 'triage',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      // Verify persisted
+      const data = await store.snapshot();
+      expect(data.feedbackQueue[0].status).toBe('triaged');
+    });
+
+    it('transition action sets triggeredTransition field', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/feedback/batch',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+        payload: {
+          feedbackIds: ['feedback_1'],
+          action: 'transition',
+          transitionTarget: 'stale',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.items[0].transitionApplied).toBe(true);
+
+      // Verify persisted
+      const data = await store.snapshot();
+      expect(data.feedbackQueue[0].triggeredTransition).toBe('stale');
+    });
+
+    it('returns eligible/ineligible items with reasons', async () => {
+      // Mark feedback_1 as already resolved
+      await store.transact((data) => {
+        data.feedbackQueue[0].status = 'resolved';
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/feedback/batch',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+        payload: {
+          feedbackIds: ['feedback_1', 'feedback_2'],
+          action: 'resolve',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.totalEligible).toBe(1);
+      expect(body.totalIneligible).toBe(1);
+
+      const ineligible = body.items.find((i: { feedbackId: string }) => i.feedbackId === 'feedback_1');
+      expect(ineligible.eligible).toBe(false);
+      expect(ineligible.reason).toContain('already resolved');
+    });
   });
 });

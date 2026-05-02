@@ -40,6 +40,9 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
         submittedByHandle: auth.handle,
         status: 'new' as const,
         adminNotes: null,
+        resolvedAt: null,
+        resolvedByUserId: null,
+        triggeredTransition: null,
         createdAt: now,
         updatedAt: now,
       };

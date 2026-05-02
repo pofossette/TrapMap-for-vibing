@@ -23,6 +23,7 @@ import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
 import { authRoutes } from './routes/auth.js';
 import { feedbackRoutes } from './routes/feedback.js';
+import { feedbackAdminRoutes } from './routes/feedback-admin.js';
 import { candidateRoutes } from './routes/candidates.js';
 import { decayRoutes } from './routes/decay.js';
 import { evidenceRoutes } from './routes/evidence.js';
@@ -70,6 +71,8 @@ const documentedRoutes = [
   'GET /v1/duplicates/:candidateId/bundle',
   'POST /v1/candidates/:candidateId/manual-result',
   'POST /v1/feedback',
+  'GET /v1/operations/feedback',
+  'POST /v1/operations/feedback/batch',
 ] as const;
 
 interface BuildServerOptions {
@@ -138,6 +141,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.register(operationsRoutes);
   app.register(decayRoutes);
   app.register(feedbackRoutes);
+  app.register(feedbackAdminRoutes);
 
   // Recovery: Reprocess interrupted candidates on startup
   app.addHook('onReady', async () => {

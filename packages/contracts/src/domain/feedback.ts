@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { entityIdSchema, isoTimestampSchema, actorRefSchema } from './common.js';
+import { decayStateSchema } from './decay.js';
 
 /**
  * Problem type enum for feedback categorization.
@@ -79,6 +80,140 @@ export const feedbackResponseSchema = z.object({
   feedback: feedbackRecordSchema,
 });
 
+// =============================================================================
+// Phase 57: Admin Feedback Management Schemas (FEEDBACK-02)
+// =============================================================================
+
+/**
+ * Request schema for listing feedback queue items.
+ * Supports filtering by status, problem type, entry, and age.
+ */
+export const feedbackListRequestSchema = z.object({
+  /** Filter by feedback status (multiple allowed) */
+  status: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null) return undefined;
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
+      return val;
+    },
+    z.array(feedbackStatusSchema).optional(),
+  ),
+  /** Filter by problem type (multiple allowed) */
+  problemType: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null) return undefined;
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
+      return val;
+    },
+    z.array(feedbackProblemTypeSchema).optional(),
+  ),
+  /** Filter by specific entry ID */
+  entryId: entityIdSchema.optional(),
+  /** Filter by entry type */
+  entryType: z.enum(['trap', 'skill']).optional(),
+  /** Filter by minimum age in days */
+  minAgeDays: z.coerce.number().int().min(0).optional(),
+  /** Filter by maximum age in days */
+  maxAgeDays: z.coerce.number().int().min(0).optional(),
+  /** Maximum items to return */
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
+
+/**
+ * List item schema for feedback queue.
+ * Includes entry shortcut for display and age for filtering.
+ */
+export const feedbackListItemSchema = z.object({
+  /** Unique feedback record identifier */
+  id: entityIdSchema,
+  /** ID of the entry being reported */
+  entryId: entityIdSchema,
+  /** Type of the entry being reported */
+  entryType: z.enum(['trap', 'skill']),
+  /** Shortcut/slug of the entry for display */
+  entryShortcut: z.string(),
+  /** Problem classification */
+  problemType: feedbackProblemTypeSchema,
+  /** User-provided description */
+  description: z.string(),
+  /** Optional context */
+  context: z.string().nullable(),
+  /** When the feedback was submitted */
+  submittedAt: isoTimestampSchema,
+  /** User who submitted the feedback */
+  submittedBy: actorRefSchema,
+  /** Current processing status */
+  status: feedbackStatusSchema,
+  /** Age in days since submission */
+  ageDays: z.number(),
+  /** Admin notes added during review */
+  adminNotes: z.string().nullable(),
+});
+
+/**
+ * Response schema for feedback list endpoint.
+ */
+export const feedbackListResponseSchema = z.object({
+  items: z.array(feedbackListItemSchema),
+  total: z.number().int().min(0),
+});
+
+/**
+ * Batch action types for feedback processing.
+ */
+export const feedbackBatchActionSchema = z.enum(['resolve', 'dismiss', 'triage', 'transition']);
+
+/**
+ * Request schema for batch operations on feedback.
+ * Supports resolve, dismiss, triage, and transition actions.
+ */
+export const feedbackBatchRequestSchema = z.object({
+  /** Feedback IDs to process */
+  feedbackIds: z.array(entityIdSchema).min(1).max(100),
+  /** Action to perform */
+  action: feedbackBatchActionSchema,
+  /** Admin notes for the action */
+  notes: z.string().max(1000).optional(),
+  /** Target decay state for transition action */
+  transitionTarget: decayStateSchema.optional(),
+  /** Preview mode - return plan without persisting */
+  dryRun: z.boolean().default(false),
+});
+
+/**
+ * Individual item result in a batch operation response.
+ */
+export const feedbackBatchItemSchema = z.object({
+  /** Feedback record ID */
+  feedbackId: entityIdSchema,
+  /** Whether this feedback is eligible for the action */
+  eligible: z.boolean(),
+  /** Reason if ineligible */
+  reason: z.string().nullable(),
+  /** Whether a transition was applied (for transition action) */
+  transitionApplied: z.boolean(),
+});
+
+/**
+ * Response schema for batch operations on feedback.
+ */
+export const feedbackBatchResponseSchema = z.object({
+  /** Action performed */
+  action: feedbackBatchActionSchema,
+  /** Whether this was a dry-run */
+  dryRun: z.boolean(),
+  /** Per-feedback results */
+  items: z.array(feedbackBatchItemSchema),
+  /** Count of eligible feedbacks */
+  totalEligible: z.number().int().min(0),
+  /** Count of ineligible feedbacks */
+  totalIneligible: z.number().int().min(0),
+  /** When the action was applied (null for dry-run) */
+  appliedAt: isoTimestampSchema.nullable(),
+});
+
 // Type exports
 export type FeedbackProblemType = z.infer<typeof feedbackProblemTypeSchema>;
 export type FeedbackCustomAnswer = z.infer<typeof feedbackCustomAnswerSchema>;
@@ -86,3 +221,10 @@ export type FeedbackSubmission = z.infer<typeof feedbackSubmissionSchema>;
 export type FeedbackStatus = z.infer<typeof feedbackStatusSchema>;
 export type FeedbackRecord = z.infer<typeof feedbackRecordSchema>;
 export type FeedbackResponse = z.infer<typeof feedbackResponseSchema>;
+export type FeedbackListRequest = z.infer<typeof feedbackListRequestSchema>;
+export type FeedbackListItem = z.infer<typeof feedbackListItemSchema>;
+export type FeedbackListResponse = z.infer<typeof feedbackListResponseSchema>;
+export type FeedbackBatchAction = z.infer<typeof feedbackBatchActionSchema>;
+export type FeedbackBatchRequest = z.infer<typeof feedbackBatchRequestSchema>;
+export type FeedbackBatchItem = z.infer<typeof feedbackBatchItemSchema>;
+export type FeedbackBatchResponse = z.infer<typeof feedbackBatchResponseSchema>;
