@@ -1,553 +1,543 @@
 # Phase 51: Boundary Schema Definition - Research
 
 **Gathered:** 2026-05-02
-**Research Agent Output:** For planner reference
+**Status:** Research complete
+**Requirement:** BOUND-01
+
+## Summary
+
+Phase 51 requires defining a unified boundary schema with 6-layer structure (context, versions, prerequisites, signals, exclusions, evidence) that is shared across both trap and skill artifact types. This research identifies the key integration points, existing patterns to follow, and technical decisions needed for planning.
 
 ---
 
-## Executive Summary
+## 1. Requirement Analysis
 
-This research provides everything needed to plan Phase 51: Boundary Schema Definition. The phase builds directly on established patterns from the Decay feature (Phases 48-50) and integrates with both the Knowledge and Skill Artifact domains.
+### 1.1 BOUND-01 Requirement Statement
+
+> Unified boundary schema shared across trap and skill artifacts with 6-layer structure (context / versions / prerequisites / signals / exclusions / evidence)
+
+### 1.2 Success Criteria from Phase Description
+
+1. Schema defines 6 boundary layers: context, versions, prerequisites, signals, exclusions, evidence
+2. Each layer contains structured fields with defined types (string arrays, version ranges, condition objects)
+3. Schema shared across trap and skill artifact types with no divergence
+4. TypeScript types generated from schema with runtime validation
+
+### 1.3 Scope Boundary
+
+This phase is **schema definition only**. Subsequent phases handle:
+- **BOUND-02 (Phase 52)**: Input/authoring workflow for boundaries
+- **BOUND-03 (Phase 53)**: Indexing boundaries as facets and graph nodes
+- **BOUND-04 (Phase 54)**: Retrieval filtering and ranking with boundaries
+- **BOUND-05 (Phase 54)**: API boundary explanations in responses
 
 ---
 
-## 1. Existing Patterns to Follow
+## 2. Existing Schema Patterns
 
-### 1.1 Domain Schema File Structure (from `decay.ts`)
+### 2.1 Shared Domain Model Location
 
-**File:** `packages/contracts/src/domain/decay.ts`
+All shared schemas live in `packages/contracts/src/domain/`:
 
-The `decay.ts` file provides the canonical template for this phase:
+| File | Content |
+|------|---------|
+| `common.ts` | Base types: `EntityId`, `SecurityLevel`, `Scope`, `Label`, `LifecycleState`, `ActorRef` |
+| `knowledge.ts` | `KnowledgeEntry` and related submission/review schemas |
+| `artifacts.ts` | `SkillArtifact`, `SkillProfile`, `SkillCapsule`, `ClientManifest` |
+| `decay.ts` | `DecayState`, `DecayConfig`, `DecayMeta` (Phase 48) |
+| `retrieval.ts` | Retrieval query/response schemas for v1/v2/v3 |
+
+### 2.2 Schema Definition Pattern (from `decay.ts`)
 
 ```typescript
-// Pattern: Enum → Config Schema → Meta Schema → Type Exports
+import { z } from 'zod';
+import { entityIdSchema, isoTimestampSchema } from './common.js';
 
-// 1. Enums first
-export const freshnessTypeSchema = z.enum(['evergreen', 'versioned', 'volatile']);
-export type FreshnessType = z.infer<typeof freshnessTypeSchema>;
+export const decayStateSchema = z.enum([
+  'active',
+  'review-due',
+  'stale',
+  'expired',
+  'superseded',
+]);
 
-// 2. Config schemas for each variant
-export const evergreenDecayConfigSchema = z.object({
-  enabled: z.literal(false),
-});
-
-// 3. Composite config combining variants
-export const freshnessDecayConfigSchema = z.object({
-  evergreen: evergreenDecayConfigSchema.default({ enabled: false }),
-  versioned: versionedDecayConfigSchema.default({...}),
-  volatile: volatileDecayConfigSchema.default({...}),
-});
-
-// 4. Meta schema using shared primitives
 export const decayMetaSchema = z.object({
   lastVerifiedAt: isoTimestampSchema,
   decayState: decayStateSchema,
   supersededById: entityIdSchema.nullable().default(null),
   decayStateComputedAt: isoTimestampSchema,
-  freshnessType: freshnessTypeSchema.default('evergreen'),
+});
+
+export type DecayState = z.infer<typeof decayStateSchema>;
+export type DecayMeta = z.infer<typeof decayMetaSchema>;
+```
+
+**Pattern elements:**
+1. Zod import at top
+2. Reuse base types from `./common.js`
+3. Define enum schemas first (if any)
+4. Define object schemas with defaults
+5. Export inferred types at bottom
+6. JSDoc comments for each field
+
+### 2.3 Existing Boundary-Like Fields
+
+**In `SkillProfile` (`artifacts.ts` lines 122-145):**
+```typescript
+export const skillProfileSchema = z.object({
+  // ...
+  /** Optional prerequisite list extracted from skill metadata */
+  prerequisites: z.array(z.string().min(1).max(280)).default([]),
+  // ...
 });
 ```
 
-**Apply to Phase 51:** Follow same order:
-1. Define enums (ConditionOperator, EvidenceType)
-2. Define layer schemas (ContextLayer, VersionsLayer, etc.)
-3. Define composite BoundarySchema
-4. Define BoundaryMeta for attachment to entries
-
-### 1.2 Shared Primitives (from `common.ts`)
-
-**File:** `packages/contracts/src/domain/common.ts`
-
-Reusable primitives:
-- `entityIdSchema` — for IDs and references
-- `isoTimestampSchema` — for timestamps
-- `labelSchema` — for keyword arrays
-- `scopeSchema` — for governance scope
-- `securityLevelSchema` — for access control
-
-**Apply to Phase 51:**
-- Use `entityIdSchema` for prerequisite IDs
-- Use `isoTimestampSchema` for evidence timestamps
-- Use `labelSchema` for keywords in signals layer
-
-### 1.3 Integration Points
-
-**KnowledgeEntry schema** (`knowledge.ts:94-115`):
-```typescript
-export const knowledgeEntrySchema = z
-  .object({
-    id: entityIdSchema,
-    // ... existing fields ...
-    // ADD: boundaryMeta: boundaryMetaSchema.nullable().optional(),
-  })
-  .merge(auditMetadataSchema);
+**In SKILL.md fixtures (prose format, not structured):**
+```markdown
+Prerequisite: must understand JavaScript closures and React rendering model.
+Requires adding all used variables to the dependency array.
 ```
 
-**SkillArtifact schema** (`artifacts.ts:332-367`):
+**In `GovernedEntity` (`governance/types.ts` lines 25-34):**
 ```typescript
-export const skillArtifactSchema = z
-  .object({
-    id: entityIdSchema,
-    // ... existing fields ...
-    // ADD: boundaryMeta: boundaryMetaSchema.nullable().optional(),
-  })
-  .merge(auditMetadataSchema);
-```
-
-**Index export** (`index.ts`):
-```typescript
-// ADD: export * from './domain/boundary.js';
-```
-
----
-
-## 2. Technical Decisions Affecting Schema Design
-
-### 2.1 Layer Structure (from CONTEXT.md D-01 to D-07)
-
-| Layer | Structure | Rationale |
-|-------|-----------|-----------|
-| Context | `{environments?: string[], platforms?: string[], runtimes?: string[]}` | Optional string arrays for environment matching |
-| Versions | `VersionConstraint[]` | Array allows multiple dependency constraints |
-| Prerequisites | `Prerequisite[]` with optional conditions | Supports conditional prerequisites |
-| Signals | `{keywords?: string[], errorPatterns?: string[], symptoms?: string[]}` | Three distinct signal types for retrieval |
-| Exclusions | `Exclusion[]` with identifier + reason | Explicit exclusions with auditability |
-| Evidence | `EvidenceEntry[]` | Provenance tracking with confidence scores |
-
-### 2.2 Version Range Design (D-08 to D-10)
-
-```typescript
-// Proposed structure
-export const versionConstraintSchema = z.object({
-  dependency: z.string().min(1).max(128),     // e.g., "react", "node"
-  range: z.string().min(1).max(64),           // e.g., "^18.0.0", ">=16 <19"
-  displayName: z.string().max(128).optional(), // Human-readable: "React 18+"
-});
-
-// Validation note: Semver validation can be added via z.refine()
-// but may be deferred to runtime validation layer
-```
-
-**Operators to support (D-09):**
-- Exact: `1.2.3`
-- Caret: `^1.2.3`
-- Tilde: `~1.2.3`
-- Comparison: `>1.0.0`, `<2.0.0`, `>=1.0.0`, `<=2.0.0`
-- Wildcard: `*`, `1.x`, `1.2.x`
-
-### 2.3 Condition Object Model (D-11 to D-13)
-
-```typescript
-export const conditionOperatorSchema = z.enum([
-  'equals',
-  'not-equals',
-  'contains',
-  'not-contains',
-  'matches',      // regex match
-  'not-matches',  // regex not match
-]);
-
-export const conditionSchema = z.object({
-  field: z.string().min(1).max(128),
-  operator: conditionOperatorSchema,
-  value: z.string().min(1).max(512),
-});
-```
-
-**Use cases:**
-- Prerequisites with conditions: "Requires Docker Desktop running"
-- Exclusions with conditions: "Not applicable when in WSL mode"
-
-### 2.4 Evidence Structure (D-18 to D-20)
-
-```typescript
-export const evidenceTypeSchema = z.enum([
-  'user-reported',
-  'auto-detected',
-  'inferred',
-  'reviewed',
-]);
-
-export const evidenceEntrySchema = z.object({
-  source: z.string().min(1).max(256),      // Who/what provided this evidence
-  type: evidenceTypeSchema,
-  confidence: z.number().min(0).max(1),    // [0, 1] probability scale
-  timestamp: isoTimestampSchema.optional(),
-  details: z.string().max(1000).optional(),
-});
-```
-
----
-
-## 3. Integration with Existing Code
-
-### 3.1 Backward Compatibility
-
-**Principle:** Nullable/optional `boundaryMeta` field
-
-Both `KnowledgeEntry` and `SkillArtifact` schemas should add:
-```typescript
-boundaryMeta: boundaryMetaSchema.nullable().optional(),
-```
-
-This ensures:
-- Existing entries work without migration
-- Gradual adoption of boundary features
-- No breaking changes to API responses
-
-### 3.2 Future Integration: Phase 53 (Indexing)
-
-From Phase 53 CONTEXT.md:
-- Boundary projections will be materialized for indexing
-- Graph nodes will be created for standardized values (environments, versions)
-- The schema should use flat arrays (not nested objects) for easier querying
-
-**Design implication:** Keep layer fields as arrays of primitives or simple objects:
-```typescript
-// GOOD: Flat arrays
-environments: z.array(z.string()).optional(),
-
-// AVOID: Deeply nested structures
-environments: z.object({
-  production: z.object({ ... }),
-  staging: z.object({ ... }),
-}).optional(),
-```
-
-### 3.3 Future Integration: Phase 54 (Retrieval)
-
-From Phase 54 requirements (BOUND-04):
-- Required constraint mismatch → exclude from results
-- Excluded constraint match → penalize in ranking
-- Preferred constraint match → boost in ranking
-
-**Design implication:** The schema must support distinguishing required vs. preferred constraints. Consider adding a `mode` field to constraint objects:
-
-```typescript
-export const prerequisiteSchema = z.object({
-  id: z.string().min(1).max(128),
-  displayName: z.string().max(256).optional(),
-  mode: z.enum(['required', 'preferred']).default('required'),
-  condition: conditionSchema.optional(),
-});
-```
-
----
-
-## 4. Validation Architecture
-
-### 4.1 Zod Schema Validation
-
-**Pattern from existing code:**
-```typescript
-// Runtime validation via safeParse
-const result = boundaryMetaSchema.safeParse(input);
-if (!result.success) {
-  // Handle validation errors
+export interface GovernedEntity {
+  teamId: string | null;
+  scope: Scope;
+  requiredLevel: SecurityLevel;
+  lifecycleState: LifecycleState;
+  decayState?: DecayState;  // Added in Phase 48
 }
 ```
 
-**Type inference:**
+### 2.4 Schema Extension Pattern (from Phase 48)
+
+Phase 48 added `DecayMeta` to both `KnowledgeRecord` and `SkillArtifactRecord`:
+
 ```typescript
-export type BoundaryMeta = z.infer<typeof boundaryMetaSchema>;
-export type ContextLayer = z.infer<typeof contextLayerSchema>;
-// ... etc for each layer
+// In store.ts
+export interface KnowledgeRecord {
+  // ... existing fields
+  decayMeta: DecayMeta | null;  // Added field, nullable for backward compat
+}
 ```
-
-### 4.2 Validation Constraints
-
-**Maximum array lengths (Claude's discretion, suggest defaults):**
-- `environments`: max 10 items
-- `platforms`: max 10 items
-- `runtimes`: max 10 items
-- `versions`: max 20 items
-- `prerequisites`: max 20 items
-- `keywords`: max 20 items
-- `errorPatterns`: max 20 items
-- `symptoms`: max 20 items
-- `exclusions`: max 20 items
-- `evidence`: max 10 items
-
-**String length constraints:**
-- Use existing `labelSchema` for keywords (max 48 chars)
-- New string fields should have explicit max lengths
-
-### 4.3 Semver Range Validation (Optional Enhancement)
-
-For strict version range validation:
-```typescript
-import semver from 'semver';
-
-const versionRangeSchema = z.string().refine(
-  (val) => semver.validRange(val) !== null,
-  { message: 'Invalid semver range' }
-);
-```
-
-**Recommendation:** Keep validation simple in Phase 51, add strict semver validation later if needed.
 
 ---
 
-## 5. Proposed Schema Module Structure
+## 3. 6-Layer Boundary Structure Analysis
 
-**File:** `packages/contracts/src/domain/boundary.ts`
+### 3.1 Layer Definitions
+
+| Layer | Purpose | Example Values |
+|-------|---------|----------------|
+| **context** | Situational context where this knowledge applies | `"frontend"`, `"production"`, `"migration"`, `"CI/CD"` |
+| **versions** | Version constraints for tools/libraries | `"react >= 16.8"`, `"node >= 18"`, `"typescript < 5.0"` |
+| **prerequisites** | What must be true before applying | `"must have admin access"`, `"requires Docker installed"` |
+| **signals** | Conditions that indicate this is relevant | `"error: ECONNREFUSED"`, `"slow query > 5s"`, `"memory leak pattern"` |
+| **exclusions** | Conditions that make this NOT applicable | `"not for Windows"`, `"excludes SSR"`, `"only for monorepo"` |
+| **evidence** | Supporting evidence for boundary assertions | `"issue #123"`, `"incident 2024-03-15"`, `"CVE-2024-1234"` |
+
+### 3.2 Field Type Analysis
+
+| Layer | Proposed Type | Rationale |
+|-------|--------------|-----------|
+| `context` | `string[]` | Simple categorical labels, already have `Label` pattern |
+| `versions` | `VersionConstraint[]` | Need structured type for range semantics |
+| `prerequisites` | `Condition[]` | Structured conditions with optional values |
+| `signals` | `SignalMatcher[]` | Pattern matching for relevance detection |
+| `exclusions` | `ExclusionRule[]` | Negation conditions |
+| `evidence` | `EvidenceReference[]` | Structured references to supporting sources |
+
+### 3.3 Proposed Schema Structure
 
 ```typescript
-import { z } from 'zod';
-import { entityIdSchema, isoTimestampSchema, labelSchema } from './common.js';
-
-// =============================================================================
-// Enums
-// =============================================================================
-
-export const conditionOperatorSchema = z.enum([
-  'equals', 'not-equals', 'contains', 'not-contains', 'matches', 'not-matches',
-]);
-
-export const evidenceTypeSchema = z.enum([
-  'user-reported', 'auto-detected', 'inferred', 'reviewed',
-]);
-
-export const constraintModeSchema = z.enum(['required', 'preferred', 'excluded']);
-
-// =============================================================================
-// Layer Schemas
-// =============================================================================
-
-export const contextLayerSchema = z.object({
-  environments: z.array(z.string().max(64)).max(10).optional(),
-  platforms: z.array(z.string().max(64)).max(10).optional(),
-  runtimes: z.array(z.string().max(64)).max(10).optional(),
-});
-
+// Version constraint: "react >= 16.8.0"
 export const versionConstraintSchema = z.object({
-  dependency: z.string().min(1).max(128),
+  /** Package/tool name */
+  package: z.string().min(1).max(128),
+  /** Version range (semver-compatible) */
   range: z.string().min(1).max(64),
-  displayName: z.string().max(128).optional(),
-  mode: constraintModeSchema.default('required'),
+  /** Optional note about why this constraint exists */
+  note: z.string().max(280).optional(),
 });
 
-export const versionsLayerSchema = z.object({
-  constraints: z.array(versionConstraintSchema).max(20).optional(),
+// Condition: prerequisite or requirement
+export const boundaryConditionSchema = z.object({
+  /** Human-readable condition description */
+  description: z.string().min(1).max(280),
+  /** Optional structured type hint */
+  kind: z.enum(['environment', 'permission', 'tool', 'configuration', 'other']).optional(),
+  /** Whether this is required (default) or optional */
+  required: z.boolean().default(true),
 });
 
-export const conditionSchema = z.object({
-  field: z.string().min(1).max(128),
-  operator: conditionOperatorSchema,
-  value: z.string().min(1).max(512),
+// Signal matcher: pattern that indicates relevance
+export const signalMatcherSchema = z.object({
+  /** Pattern to match (regex, exact string, or keyword) */
+  pattern: z.string().min(1).max(500),
+  /** Pattern type for matching semantics */
+  kind: z.enum(['exact', 'keyword', 'regex', 'error-code', 'log-pattern']).default('keyword'),
+  /** Optional description of when this signal fires */
+  description: z.string().max(280).optional(),
 });
 
-export const prerequisiteSchema = z.object({
-  id: z.string().min(1).max(128),
-  displayName: z.string().max(256).optional(),
-  mode: constraintModeSchema.default('required'),
-  condition: conditionSchema.optional(),
+// Exclusion rule: condition that makes knowledge NOT apply
+export const exclusionRuleSchema = z.object({
+  /** Human-readable exclusion description */
+  description: z.string().min(1).max(280),
+  /** Category of exclusion */
+  kind: z.enum(['platform', 'version', 'context', 'configuration', 'other']).optional(),
 });
 
-export const prerequisitesLayerSchema = z.object({
-  items: z.array(prerequisiteSchema).max(20).optional(),
+// Evidence reference: supporting source
+export const evidenceReferenceSchema = z.object({
+  /** Evidence type */
+  kind: z.enum(['issue', 'incident', 'cve', 'documentation', 'test', 'commit', 'other']),
+  /** Reference identifier (issue number, CVE ID, etc.) */
+  identifier: z.string().min(1).max(128),
+  /** Optional URL to source */
+  url: z.string().url().max(512).optional(),
+  /** Optional note about relevance */
+  note: z.string().max(280).optional(),
 });
 
-export const signalsLayerSchema = z.object({
-  keywords: z.array(labelSchema).max(20).optional(),
-  errorPatterns: z.array(z.string().max(256)).max(20).optional(),
-  symptoms: z.array(z.string().max(256)).max(20).optional(),
-});
-
-export const exclusionSchema = z.object({
-  id: z.string().min(1).max(128),
-  reason: z.string().max(256).optional(),
-  condition: conditionSchema.optional(),
-});
-
-export const exclusionsLayerSchema = z.object({
-  items: z.array(exclusionSchema).max(20).optional(),
-});
-
-export const evidenceEntrySchema = z.object({
-  source: z.string().min(1).max(256),
-  type: evidenceTypeSchema,
-  confidence: z.number().min(0).max(1),
-  timestamp: isoTimestampSchema.optional(),
-  details: z.string().max(1000).optional(),
-});
-
-export const evidenceLayerSchema = z.object({
-  entries: z.array(evidenceEntrySchema).max(10).optional(),
-});
-
-// =============================================================================
-// Composite Boundary Schema
-// =============================================================================
-
+// Unified boundary schema
 export const boundarySchema = z.object({
-  context: contextLayerSchema.optional(),
-  versions: versionsLayerSchema.optional(),
-  prerequisites: prerequisitesLayerSchema.optional(),
-  signals: signalsLayerSchema.optional(),
-  exclusions: exclusionsLayerSchema.optional(),
-  evidence: evidenceLayerSchema.optional(),
+  /** Situational context labels */
+  context: z.array(z.string().min(1).max(64)).default([]),
+  /** Version constraints */
+  versions: z.array(versionConstraintSchema).default([]),
+  /** Prerequisites that must be satisfied */
+  prerequisites: z.array(boundaryConditionSchema).default([]),
+  /** Signals indicating relevance */
+  signals: z.array(signalMatcherSchema).default([]),
+  /** Exclusion conditions */
+  exclusions: z.array(exclusionRuleSchema).default([]),
+  /** Supporting evidence */
+  evidence: z.array(evidenceReferenceSchema).default([]),
 });
 
-// =============================================================================
-// BoundaryMeta for attachment to entries/artifacts
-// =============================================================================
-
-export const boundaryMetaSchema = z.object({
-  boundary: boundarySchema,
-  lastUpdated: isoTimestampSchema,
-  updatedBy: entityIdSchema.optional(),
-  // Optional raw notes field (Claude's discretion)
-  notes: z.string().max(1000).optional(),
-});
-
-// =============================================================================
-// Type Exports
-// =============================================================================
-
-export type ConditionOperator = z.infer<typeof conditionOperatorSchema>;
-export type EvidenceType = z.infer<typeof evidenceTypeSchema>;
-export type ConstraintMode = z.infer<typeof constraintModeSchema>;
-export type ContextLayer = z.infer<typeof contextLayerSchema>;
 export type VersionConstraint = z.infer<typeof versionConstraintSchema>;
-export type VersionsLayer = z.infer<typeof versionsLayerSchema>;
-export type Condition = z.infer<typeof conditionSchema>;
-export type Prerequisite = z.infer<typeof prerequisiteSchema>;
-export type PrerequisitesLayer = z.infer<typeof prerequisitesLayerSchema>;
-export type SignalsLayer = z.infer<typeof signalsLayerSchema>;
-export type Exclusion = z.infer<typeof exclusionSchema>;
-export type ExclusionsLayer = z.infer<typeof exclusionsLayerSchema>;
-export type EvidenceEntry = z.infer<typeof evidenceEntrySchema>;
-export type EvidenceLayer = z.infer<typeof evidenceLayerSchema>;
+export type BoundaryCondition = z.infer<typeof boundaryConditionSchema>;
+export type SignalMatcher = z.infer<typeof signalMatcherSchema>;
+export type ExclusionRule = z.infer<typeof exclusionRuleSchema>;
+export type EvidenceReference = z.infer<typeof evidenceReferenceSchema>;
 export type Boundary = z.infer<typeof boundarySchema>;
-export type BoundaryMeta = z.infer<typeof boundaryMetaSchema>;
 ```
 
 ---
 
-## 6. Gotchas and Constraints
+## 4. Integration Points
 
-### 6.1 Import Order
+### 4.1 KnowledgeRecord Extension
 
-When adding `boundaryMeta` to `knowledge.ts` and `artifacts.ts`, ensure the import is added:
 ```typescript
-import { boundaryMetaSchema } from './boundary.js';
+// In packages/server/src/lib/store.ts
+export interface KnowledgeRecord {
+  // ... existing fields
+  /** Boundary constraints for applicability (Phase 51) */
+  boundary: Boundary | null;
+}
 ```
 
-The index.ts export order doesn't matter for type resolution, but logical grouping helps maintainability.
+### 4.2 SkillArtifact Extension
 
-### 6.2 Nullable vs Optional
-
-**Pattern to follow:**
 ```typescript
-// For backward compatibility
-boundaryMeta: boundaryMetaSchema.nullable().optional(),
-
-// NOT just optional (undefined ≠ null in some contexts)
-boundaryMeta: boundaryMetaSchema.optional(),  // Less explicit
+// In packages/server/src/lib/store.ts
+export interface SkillArtifactRecord {
+  // ... existing fields
+  /** Boundary constraints for applicability (Phase 51) */
+  boundary: Boundary | null;
+}
 ```
 
-### 6.3 Default Values
+### 4.3 GovernedEntity Extension (Future Phase)
 
-Each layer schema should have sensible defaults:
+For retrieval filtering (BOUND-04), `GovernedEntity` will need boundary access:
+
 ```typescript
-// In the composite boundarySchema
-context: contextLayerSchema.default({}),  // Empty object, not undefined
+// In packages/server/src/lib/governance/types.ts
+export interface GovernedEntity {
+  teamId: string | null;
+  scope: Scope;
+  requiredLevel: SecurityLevel;
+  lifecycleState: LifecycleState;
+  decayState?: DecayState;
+  boundary?: Boundary | null;  // Phase 51 addition
+}
 ```
 
-This allows partial updates without specifying all layers.
+### 4.4 Barrel Export
 
-### 6.4 Condition Operator Complexity
-
-The `matches` and `not-matches` operators imply regex. Consider:
-- Documenting that `value` should be a valid regex pattern
-- Potentially adding regex validation (or deferring to runtime)
-- Security concern: ReDoS if user-provided regex is executed
-
-**Recommendation:** Document regex usage, defer validation to Phase 52 (capture flow) where input sanitization happens.
-
-### 6.5 Version Range Ambiguity
-
-Semver ranges like `*` or empty string should be handled:
-- `*` means "any version" — valid
-- Empty string — invalid
-- npm-style ranges like `18.x` — valid but may need normalization
-
-**Recommendation:** Accept npm-compatible syntax, normalize in Phase 53 indexing.
+```typescript
+// In packages/contracts/src/index.ts
+export * from './domain/boundary.js';
+```
 
 ---
 
-## 7. Testing Considerations
+## 5. Key Technical Decisions for Planning
 
-### 7.1 Unit Tests
+### 5.1 Required Decisions
 
-Test each layer schema independently:
+| Decision | Options | Recommendation |
+|----------|---------|----------------|
+| Where to define boundary schema? | New file `boundary.ts` vs extend `common.ts` | **New file** - cleaner separation, follows Phase 48 pattern with `decay.ts` |
+| Nullable or default empty? | `Boundary \| null` vs `Boundary` with defaults | **Nullable** - explicit opt-in, backward compatible, allows "no boundary" distinction |
+| Version range format? | Semver string vs structured components | **Semver string** - standard format, existing tooling, parse on demand |
+| Signal pattern types? | Fixed enum vs extensible string | **Fixed enum** - validation clarity, can extend later |
+| Evidence URL required? | Required vs optional | **Optional** - not all evidence has URLs (e.g., internal incidents) |
+| Max array lengths? | No limit vs explicit limits | **Explicit limits** - prevent abuse, consistent with existing patterns |
+
+### 5.2 Deferred to Later Phases
+
+| Question | Defers To |
+|----------|-----------|
+| How are boundaries authored? | BOUND-02 (Phase 52) |
+| How are boundaries indexed? | BOUND-03 (Phase 53) |
+| How are boundaries used in retrieval? | BOUND-04 (Phase 54) |
+| Version range parsing logic | Phase 53 (indexing) or Phase 54 (retrieval) |
+| Signal pattern matching | Phase 53 or Phase 54 |
+
+---
+
+## 6. Patterns to Follow
+
+### 6.1 Zod Schema Definition Pattern
+
+From `packages/contracts/src/domain/decay.ts`:
+1. Import Zod at top
+2. Reuse base types from `./common.js`
+3. Define constituent schemas first (enums, sub-objects)
+4. Define main schema with `.default()` for optional fields
+5. Export inferred types at bottom
+6. Add JSDoc comments for documentation
+
+### 6.2 Nullable Field Pattern
+
+From Phase 48's addition to `KnowledgeRecord`:
 ```typescript
-describe('contextLayerSchema', () => {
-  it('accepts valid context', () => {
-    const result = contextLayerSchema.safeParse({
-      environments: ['production', 'staging'],
-      platforms: ['linux', 'darwin'],
+decayMeta: DecayMeta | null;
+```
+
+This pattern:
+- Allows backward compatibility with existing records
+- Makes opt-in explicit (null = no boundary defined)
+- Avoids empty-object vs missing-field ambiguity
+
+### 6.3 String Constraints Pattern
+
+From `packages/contracts/src/domain/common.ts`:
+```typescript
+export const labelSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(48)
+  .regex(/^[a-z0-9:_/-]+$/i, 'labels may only contain letters, numbers, :, _, /, or -');
+```
+
+Apply similar constraints to context labels and other string fields.
+
+### 6.4 Enum Definition Pattern
+
+From `packages/contracts/src/domain/common.ts`:
+```typescript
+export const lifecycleStateSchema = z.enum([
+  'draft',
+  'submitted',
+  'agent-pass',
+  'agent-rejected',
+  'approved',
+  'rejected',
+  'deactivated',
+]);
+```
+
+Use `z.enum()` for closed vocabularies with explicit type inference.
+
+---
+
+## 7. Anti-Patterns to Avoid
+
+### 7.1 Diverging Schemas for Trap vs Skill
+
+**Anti-pattern:** Creating separate `TrapBoundary` and `SkillBoundary` schemas.
+
+**Why avoid:** BOUND-01 explicitly requires "shared across trap and skill artifact types with no divergence."
+
+**Instead:** Single `Boundary` schema that applies to both `KnowledgeRecord` and `SkillArtifactRecord`.
+
+### 7.2 Over-Engineering Pattern Matching
+
+**Anti-pattern:** Full regex engine in `SignalMatcher`.
+
+**Why avoid:** Security risk, complexity, overkill for v1.
+
+**Instead:** Fixed enum of pattern kinds (`exact`, `keyword`, `regex`, `error-code`, `log-pattern`) with server-side validation.
+
+### 7.3 Embedding Version Logic in Schema
+
+**Anti-pattern:** Parsing semver ranges in Zod schema.
+
+**Why avoid:** Schema should define shape, not business logic.
+
+**Instead:** Store raw semver string, parse at indexing/retrieval time (Phase 53/54).
+
+### 7.4 Required Fields Without Defaults
+
+**Anti-pattern:** Required fields in `Boundary` without defaults.
+
+**Why avoid:** Breaks backward compatibility, forces migration.
+
+**Instead:** All fields default to empty arrays, `boundary` field on records is nullable.
+
+---
+
+## 8. Testing Strategy
+
+### 8.1 Schema Validation Tests
+
+Following pattern from `packages/contracts/src/domain/plans.test.ts`:
+
+```typescript
+describe('boundary schema contracts', () => {
+  describe('versionConstraintSchema', () => {
+    it('accepts valid semver ranges', () => {
+      expect(versionConstraintSchema.parse({
+        package: 'react',
+        range: '>=16.8.0',
+      })).toMatchObject({ package: 'react', range: '>=16.8.0' });
     });
-    expect(result.success).toBe(true);
+
+    it('rejects empty package name', () => {
+      expect(() => versionConstraintSchema.parse({
+        package: '',
+        range: '>=1.0.0',
+      })).toThrow();
+    });
   });
 
-  it('rejects too many environments', () => {
-    const result = contextLayerSchema.safeParse({
-      environments: Array(11).fill('env'),
+  describe('boundarySchema', () => {
+    it('defaults all layers to empty arrays', () => {
+      expect(boundarySchema.parse({})).toMatchObject({
+        context: [],
+        versions: [],
+        prerequisites: [],
+        signals: [],
+        exclusions: [],
+        evidence: [],
+      });
     });
-    expect(result.success).toBe(false);
+
+    it('accepts complete boundary', () => {
+      const boundary = boundarySchema.parse({
+        context: ['frontend', 'production'],
+        versions: [{ package: 'react', range: '>=16.8.0' }],
+        prerequisites: [{ description: 'Admin access required' }],
+        signals: [{ pattern: 'ECONNREFUSED', kind: 'error-code' }],
+        exclusions: [{ description: 'Not for SSR' }],
+        evidence: [{ kind: 'issue', identifier: '123' }],
+      });
+      expect(boundary.context).toHaveLength(2);
+    });
   });
 });
 ```
 
-### 7.2 Integration Tests
+### 8.2 Test File Location
 
-Test BoundaryMeta attachment to KnowledgeEntry and SkillArtifact:
-```typescript
-describe('KnowledgeEntry with boundaryMeta', () => {
-  it('accepts entry with boundary metadata', () => {
-    const entry = {
-      // ... required fields ...
-      boundaryMeta: {
-        boundary: {
-          context: { environments: ['production'] },
-        },
-        lastUpdated: '2026-05-02T00:00:00Z',
-      },
-    };
-    expect(knowledgeEntrySchema.safeParse(entry).success).toBe(true);
-  });
-
-  it('accepts entry without boundary metadata (backward compat)', () => {
-    const entry = {
-      // ... required fields without boundaryMeta ...
-    };
-    expect(knowledgeEntrySchema.safeParse(entry).success).toBe(true);
-  });
-});
-```
+- New file: `packages/contracts/src/domain/boundary.test.ts`
+- Follow existing pattern from `plans.test.ts`
 
 ---
 
-## 8. Summary for Planner
+## 9. Files to Create/Modify
 
-**What's ready:**
-- Clear pattern from `decay.ts` to follow
-- All integration points identified
-- Schema structure defined with all 6 layers
-- Type constraints and validation approach specified
+### 9.1 New Files
 
-**What needs planning:**
-- Exact file organization (single file vs. split by layer)
-- Whether to add `notes` field for free-form boundary notes
-- Test coverage strategy
-- Documentation approach (JSDoc comments)
+| File | Purpose |
+|------|---------|
+| `packages/contracts/src/domain/boundary.ts` | Boundary schema definitions |
+| `packages/contracts/src/domain/boundary.test.ts` | Schema validation tests |
 
-**Dependencies for execution:**
-- No external dependencies needed (Zod already in use)
-- No database migrations (additive, nullable field)
-- No API changes required (internal schema only for Phase 51)
+### 9.2 Modified Files
+
+| File | Changes |
+|------|---------|
+| `packages/contracts/src/index.ts` | Add `export * from './domain/boundary.js';` |
+| `packages/server/src/lib/store.ts` | Add `boundary: Boundary \| null` to `KnowledgeRecord` and `SkillArtifactRecord` |
+| `packages/server/src/lib/governance/types.ts` | Add `boundary?: Boundary \| null` to `GovernedEntity` (for future phases) |
+
+---
+
+## 10. Open Questions
+
+### 10.1 For Planning Phase
+
+1. **Context labels vs existing `labels` field:**
+   - Knowledge entries already have `labels: string[]`
+   - Should `context` layer reuse `labels` or be separate?
+   - **Recommendation:** Keep separate. `labels` are for search categorization; `context` is for applicability constraints.
+
+2. **Prerequisite vs version overlap:**
+   - Version constraints are a type of prerequisite
+   - Should versions be a separate layer or merged into prerequisites?
+   - **Recommendation:** Keep separate per requirement. Versions have special parsing/matching needs.
+
+3. **Max array lengths:**
+   - What are reasonable limits for each layer?
+   - **Recommendation:** Follow existing patterns (e.g., labels max 48 items). Suggest:
+     - context: max 10
+     - versions: max 10
+     - prerequisites: max 10
+     - signals: max 20
+     - exclusions: max 10
+     - evidence: max 10
+
+### 10.2 Deferred to BOUND-02
+
+- How boundaries are authored (manual input vs extracted)
+- UI/UX for boundary input
+- Validation of version ranges (semver parsing)
+
+### 10.3 Deferred to BOUND-03
+
+- Indexing boundaries as facets
+- Graph node creation from boundaries
+- Version range indexing strategy
+
+### 10.4 Deferred to BOUND-04
+
+- Retrieval-time boundary evaluation
+- Filtering on required constraint mismatch
+- Penalizing on excluded constraint match
+- Boosting on preferred constraint match
+
+---
+
+## 11. References
+
+### 11.1 Codebase Files
+
+- `packages/contracts/src/domain/common.ts` - Base type patterns
+- `packages/contracts/src/domain/decay.ts` - Phase 48 schema addition pattern
+- `packages/contracts/src/domain/artifacts.ts` - SkillProfile with prerequisites
+- `packages/contracts/src/domain/knowledge.ts` - KnowledgeEntry schema
+- `packages/contracts/src/domain/plans.ts` - PlanTrapNode with evidence field
+- `packages/server/src/lib/store.ts` - Record type definitions
+- `packages/server/src/lib/governance/types.ts` - GovernedEntity interface
+
+### 11.2 Planning Documents
+
+- `.planning/REQUIREMENTS.md` - BOUND requirements definition
+- `.planning/PROJECT.md` - Project context and decisions
+- `.planning/phases/48-lifecycle-state-machine/48-RESEARCH.md` - Phase 48 research pattern
+- `.planning/phases/48-lifecycle-state-machine/48-PATTERNS.md` - Phase 48 pattern map
+
+### 11.3 External References
+
+- [Semver specification](https://semver.org/) - For version range format
+- [Zod documentation](https://zod.dev/) - Schema validation patterns
 
 ---
 
