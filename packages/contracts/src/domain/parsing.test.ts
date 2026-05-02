@@ -62,6 +62,84 @@ Shared parser body.`);
       expect(parsed.title).toBe('Shared Parser');
       expect(parsed.labels).toEqual(['parsing', 'mime', 'contracts']);
     });
+
+    it('returns undefined feedbackPrompts when not present in frontmatter', () => {
+      const content = `---
+name: test-skill
+---
+# Test Skill`;
+      const result = parseSkillMarkdown(content);
+      expect(result.feedbackPrompts).toBeUndefined();
+    });
+
+    it('parses feedbackPrompts array from frontmatter', () => {
+      const content = `---
+name: test-skill
+feedbackPrompts:
+  - prompt: "Which version?"
+    required: false
+  - prompt: "What error?"
+    required: true
+---
+# Test Skill`;
+      const result = parseSkillMarkdown(content);
+      expect(result.feedbackPrompts).toEqual([
+        { prompt: 'Which version?', required: false },
+        { prompt: 'What error?', required: true },
+      ]);
+    });
+
+    it('defaults required to false when not specified', () => {
+      const content = `---
+name: test-skill
+feedbackPrompts:
+  - prompt: "Optional question"
+---
+# Test Skill`;
+      const result = parseSkillMarkdown(content);
+      expect(result.feedbackPrompts).toEqual([
+        { prompt: 'Optional question', required: false },
+      ]);
+    });
+
+    it('ignores malformed feedbackPrompts entries without prompt field', () => {
+      const content = `---
+name: test-skill
+feedbackPrompts:
+  - prompt: "Valid question"
+    required: true
+  - notPrompt: "Invalid entry"
+  - prompt: ""
+  - prompt: "Another valid"
+---
+# Test Skill`;
+      const result = parseSkillMarkdown(content);
+      expect(result.feedbackPrompts).toEqual([
+        { prompt: 'Valid question', required: true },
+        { prompt: 'Another valid', required: false },
+      ]);
+    });
+
+    it('returns undefined when feedbackPrompts is empty after filtering invalid entries', () => {
+      const content = `---
+name: test-skill
+feedbackPrompts:
+  - notPrompt: "No prompt field"
+---
+# Test Skill`;
+      const result = parseSkillMarkdown(content);
+      expect(result.feedbackPrompts).toBeUndefined();
+    });
+
+    it('returns undefined when feedbackPrompts is not an array', () => {
+      const content = `---
+name: test-skill
+feedbackPrompts: "not an array"
+---
+# Test Skill`;
+      const result = parseSkillMarkdown(content);
+      expect(result.feedbackPrompts).toBeUndefined();
+    });
   });
 
   describe('detectMediaType', () => {
