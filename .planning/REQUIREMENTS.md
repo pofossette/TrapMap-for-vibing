@@ -35,8 +35,8 @@ Requirements for v1.5 milestone: 功能增强
 
 ### Evidence & Provenance (EVIDENCE)
 
-- [ ] **EVIDENCE-01**: Trap and skill records can store minimal evidence metadata (sourceType, sourceRef, evidenceLevel, verifiedAt, verifiedBy) with review flow capture and retrieval exposure
-- [ ] **EVIDENCE-02**: Evidence metadata is queryable in admin views with audit-friendly filtering by evidence level, source type, and verification date
+- [x] **EVIDENCE-01**: Trap and skill records can store minimal evidence metadata (sourceType, sourceRef, evidenceLevel, verifiedAt, verifiedBy) with review flow capture and retrieval exposure
+- [x] **EVIDENCE-02**: Evidence metadata is queryable in admin views with audit-friendly filtering by evidence level, source type, and verification date
 
 ### Maintenance & Ownership (MAINT)
 
@@ -87,8 +87,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FEEDBACK-01 | Phase 56 | Pending |
 | FEEDBACK-02 | Phase 57 | Pending |
 | FEEDBACK-03 | Phase 57 | Pending |
-| EVIDENCE-01 | Phase 58 | Pending |
-| EVIDENCE-02 | Phase 58 | Pending |
+| EVIDENCE-01 | Phase 58 | Complete |
+| EVIDENCE-02 | Phase 58 | Complete |
 | MAINT-01 | Phase 59 | Pending |
 | MAINT-02 | Phase 59 | Pending |
 
