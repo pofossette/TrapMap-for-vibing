@@ -11,6 +11,7 @@ import {
   securityLevelSchema,
 } from './common.js';
 import { boundaryMetaSchema } from './boundary.js';
+import { evidenceMetaSchema } from './evidence.js';
 
 export const reviewRiskSchema = z.enum(['low', 'medium', 'high']);
 
@@ -113,6 +114,8 @@ export const knowledgeEntrySchema = z
     reviewNotes: z.array(reviewNoteSchema).default([]),
     lifecycleHistory: z.array(knowledgeLifecycleEventSchema).default([]),
     boundaryMeta: boundaryMetaSchema.nullable().optional(),
+    /** Evidence and provenance metadata (null if not yet verified) */
+    evidenceMeta: evidenceMetaSchema.nullable().default(null),
   })
   .merge(auditMetadataSchema);
 
@@ -148,6 +151,8 @@ export const knowledgeListItemSchema = z.object({
   lifecycleState: lifecycleStateSchema,
   requiredLevel: securityLevelSchema,
   updatedAt: z.string(),
+  /** Evidence and provenance metadata (null if not yet verified) */
+  evidenceMeta: evidenceMetaSchema.nullable().optional(),
 });
 
 export const knowledgeEntryResponseSchema = z.object({

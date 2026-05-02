@@ -11,6 +11,7 @@ import {
   securityLevelSchema,
 } from './common.js';
 import { boundaryMetaSchema } from './boundary.js';
+import { evidenceMetaSchema } from './evidence.js';
 import { agentReviewResultSchema, reviewDecisionSchema, reviewNoteSchema } from './knowledge.js';
 
 /**
@@ -366,6 +367,8 @@ export const skillArtifactSchema = z
     lifecycleHistory: z.array(skillArtifactLifecycleEventSchema).default([]),
     /** Boundary constraints for applicability */
     boundaryMeta: boundaryMetaSchema.nullable().optional(),
+    /** Evidence and provenance metadata (null if not yet verified) */
+    evidenceMeta: evidenceMetaSchema.nullable().default(null),
   })
   .merge(auditMetadataSchema);
 

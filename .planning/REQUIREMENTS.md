@@ -33,6 +33,16 @@ Requirements for v1.5 milestone: 功能增强
 - [ ] **FEEDBACK-02**: Admins can review and process user feedback in batch through management interface
 - [ ] **FEEDBACK-03**: Feedback signals contribute to knowledge lifecycle transitions and quality scoring
 
+### Evidence & Provenance (EVIDENCE)
+
+- [x] **EVIDENCE-01**: Trap and skill records can store minimal evidence metadata (sourceType, sourceRef, evidenceLevel, verifiedAt, verifiedBy) with review flow capture and retrieval exposure
+- [x] **EVIDENCE-02**: Evidence metadata is queryable in admin views with audit-friendly filtering by evidence level, source type, and verification date
+
+### Maintenance & Ownership (MAINT)
+
+- [ ] **MAINT-01**: Trap and skill records store owner, reviewBy, and lastVerifiedAt with admin views for missing owner, overdue review, and stale verification
+- [ ] **MAINT-02**: Batch actions can assign owner, extend review date, or mark item re-verified; lifecycle and batch-management phases can reuse this data
+
 ## v2 Requirements
 
 Deferred to future release.
@@ -77,10 +87,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FEEDBACK-01 | Phase 56 | Complete |
 | FEEDBACK-02 | Phase 57 | Pending |
 | FEEDBACK-03 | Phase 57 | Pending |
+| EVIDENCE-01 | Phase 58 | Complete |
+| EVIDENCE-02 | Phase 58 | Complete |
+| MAINT-01 | Phase 59 | Pending |
+| MAINT-02 | Phase 59 | Pending |
 
 **Coverage:**
-- v1.5 requirements: 14 total
-- Mapped to phases: 14
+- v1.5 requirements: 18 total
+- Mapped to phases: 18
 - Unmapped: 0 ✓
 
 ---

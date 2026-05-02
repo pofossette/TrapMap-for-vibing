@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { compatibleScriptActivationPolicySchema } from './artifacts.js';
 
 import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema } from './common.js';
+import { evidenceHintSchema } from './evidence.js';
 import { planQuerySchema, trapFirstPlanSchema } from './plans.js';
 
 /**
@@ -73,6 +74,8 @@ export const retrievalMatchSchema = z.object({
   score: z.number().min(0).max(1),
   reason: z.string().min(1),
   citation: retrievalCitationSchema.optional(),
+  /** Compact evidence hint for retrieval responses */
+  evidence: evidenceHintSchema.optional(),
 });
 
 export const retrievalResponseSchema = z.object({
@@ -125,6 +128,8 @@ export const capsuleMatchSchema = z.object({
   score: z.number().min(0).max(1),
   /** Human-readable explanation of why this capsule matched */
   reason: z.string().min(1),
+  /** Compact evidence hint for retrieval responses */
+  evidence: evidenceHintSchema.optional(),
 });
 
 /**

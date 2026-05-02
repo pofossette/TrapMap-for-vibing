@@ -133,6 +133,35 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       entries = entries.filter((entry) => entry.ownerUserId === query.ownerUserId);
     }
 
+    // Apply evidence-based filters
+    if (query.evidenceLevel && query.evidenceLevel.length > 0) {
+      entries = entries.filter(
+        (entry) => entry.evidenceMeta && query.evidenceLevel!.includes(entry.evidenceMeta.evidenceLevel),
+      );
+    }
+
+    if (query.sourceType && query.sourceType.length > 0) {
+      entries = entries.filter(
+        (entry) => entry.evidenceMeta && query.sourceType!.includes(entry.evidenceMeta.sourceType),
+      );
+    }
+
+    if (query.verifiedBefore) {
+      entries = entries.filter(
+        (entry) => entry.evidenceMeta && entry.evidenceMeta.verifiedAt < query.verifiedBefore!,
+      );
+    }
+
+    if (query.verifiedAfter) {
+      entries = entries.filter(
+        (entry) => entry.evidenceMeta && entry.evidenceMeta.verifiedAt > query.verifiedAfter!,
+      );
+    }
+
+    if (query.missingEvidence) {
+      entries = entries.filter((entry) => !entry.evidenceMeta);
+    }
+
     // Sort by updatedAt descending
     entries.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 

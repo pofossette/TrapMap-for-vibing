@@ -116,15 +116,28 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
 
       const decidedAt = nowIso();
       previousState = entry.lifecycleState;
-      applyReviewDecision({
-        store: app.skillShareer.store,
-        data,
-        entry,
-        reviewerUserId: decidedByUserId,
-        decidedAt,
-        decision: payload.decision,
-        notes: payload.notes,
-      });
+      applyReviewDecision(
+        payload.evidence !== undefined
+          ? {
+              store: app.skillShareer.store,
+              data,
+              entry,
+              reviewerUserId: decidedByUserId,
+              decidedAt,
+              decision: payload.decision,
+              notes: payload.notes,
+              evidence: payload.evidence,
+            }
+          : {
+              store: app.skillShareer.store,
+              data,
+              entry,
+              reviewerUserId: decidedByUserId,
+              decidedAt,
+              decision: payload.decision,
+              notes: payload.notes,
+            },
+      );
 
       // Capture entry ID and new state for post-commit indexing
       entryId = entry.id;
@@ -138,7 +151,12 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
         actor: auth,
         action: 'knowledge-reviewed',
         entityId: entry.id,
-        payload: { decision: payload.decision, notes: payload.notes, previousState },
+        payload: {
+          decision: payload.decision,
+          notes: payload.notes,
+          previousState,
+          ...(payload.evidence !== undefined && { evidence: payload.evidence }),
+        },
       });
       data.auditEvents.push(auditEvent);
 

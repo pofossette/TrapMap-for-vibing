@@ -1,5 +1,10 @@
 import type { KnowledgeEntryResponse, ReviewQueueResponse } from '@trapmap/contracts';
-import { knowledgeEntryResponseSchema, reviewQueueResponseSchema } from '@trapmap/contracts';
+import {
+  evidenceLevelSchema,
+  evidenceSourceTypeSchema,
+  knowledgeEntryResponseSchema,
+  reviewQueueResponseSchema,
+} from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';
@@ -8,6 +13,36 @@ import { printResult } from '../lib/output.js';
 
 interface ReviewCommandOptions {
   allowReview: boolean;
+}
+
+interface ReviewDecisionFlags {
+  json?: boolean;
+  notes: string;
+  // Evidence flags
+  sourceType?: string;
+  sourceRef?: string;
+  evidenceLevel?: string;
+}
+
+/**
+ * Evidence level to ANSI color mapping per UI-SPEC.
+ */
+const EVIDENCE_COLORS: Record<string, string> = {
+  'verified-in-prod': '32', // green
+  documented: '33', // yellow
+  reproduced: '35', // magenta
+  anecdotal: '90', // dim
+};
+
+/**
+ * Apply ANSI color to text if terminal supports it.
+ * Respects NO_COLOR environment variable and isTTY check.
+ */
+function withColor(text: string, colorCode: string): string {
+  if (process.env.NO_COLOR || !process.stdout.isTTY) {
+    return text;
+  }
+  return `\x1b[${colorCode}m${text}\x1b[0m`;
 }
 
 function formatQueue(response: ReviewQueueResponse): string {
@@ -63,10 +98,59 @@ export function registerReviewCommands(program: Command, options: ReviewCommandO
       .description(`${decisionLabel} a queued knowledge entry`)
       .argument('<entryId>', 'Knowledge entry identifier')
       .requiredOption('--notes <text>', 'Reviewer notes')
+      .option(
+        '--source-type <type>',
+        'Evidence source type (internal-experience|incident|doc|code|external-reference)',
+      )
+      .option('--source-ref <ref>', 'Source reference (URL, doc ID, incident ID, etc.)')
+      .option(
+        '--evidence-level <level>',
+        'Evidence level (anecdotal|reproduced|documented|verified-in-prod)',
+      )
       .option('--json', 'Output JSON')
-      .action(async (entryId: string, flags: { json?: boolean; notes: string }) => {
+      .action(async (entryId: string, flags: ReviewDecisionFlags) => {
         const state = await loadCliState();
         requireSessionToken(state);
+
+        // Build evidence object if flags provided
+        interface EvidencePayload {
+          sourceType: string;
+          evidenceLevel: string;
+          sourceRef?: string;
+        }
+        let evidence: EvidencePayload | undefined;
+
+        if (flags.sourceType !== undefined || flags.evidenceLevel !== undefined) {
+          // Validate source type using zod safeParse
+          if (flags.sourceType !== undefined) {
+            const result = evidenceSourceTypeSchema.safeParse(flags.sourceType);
+            if (!result.success) {
+              throw new Error(
+                `Invalid source type: ${flags.sourceType}. Must be one of: internal-experience, incident, doc, code, external-reference`,
+              );
+            }
+          }
+
+          // Validate evidence level using zod safeParse
+          if (flags.evidenceLevel !== undefined) {
+            const result = evidenceLevelSchema.safeParse(flags.evidenceLevel);
+            if (!result.success) {
+              throw new Error(
+                `Invalid evidence level: ${flags.evidenceLevel}. Must be one of: anecdotal, reproduced, documented, verified-in-prod`,
+              );
+            }
+          }
+
+          evidence = {
+            sourceType: flags.sourceType ?? 'internal-experience',
+            evidenceLevel: flags.evidenceLevel ?? 'anecdotal',
+          };
+
+          if (flags.sourceRef !== undefined) {
+            evidence.sourceRef = flags.sourceRef;
+          }
+        }
+
         const response = await apiRequest<KnowledgeEntryResponse>(state, {
           method: 'POST',
           path: '/v1/knowledge/review',
@@ -74,13 +158,30 @@ export function registerReviewCommands(program: Command, options: ReviewCommandO
             entryId,
             decision,
             notes: flags.notes,
+            ...(evidence !== undefined ? { evidence } : {}),
           },
         });
         const parsed = knowledgeEntryResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, ({ entry }) =>
-          [`${decision}d ${entry.id}`, `Lifecycle: ${entry.lifecycleState}`].join('\n'),
-        );
+        printResult(parsed, flags, ({ entry }) => {
+          const lines = [`${decision}d ${entry.id}`, `Lifecycle: ${entry.lifecycleState}`];
+
+          // Show evidence metadata with colors
+          if (entry.evidenceMeta !== null && entry.evidenceMeta !== undefined) {
+            const level = entry.evidenceMeta.evidenceLevel;
+            const colorCode = EVIDENCE_COLORS[level] ?? '0';
+            lines.push(
+              `Evidence: ${withColor(level, colorCode)} (${entry.evidenceMeta.sourceType})`,
+            );
+            if (entry.evidenceMeta.sourceRef !== undefined) {
+              lines.push(`Source: ${entry.evidenceMeta.sourceRef}`);
+            }
+          } else {
+            lines.push('Evidence: (none)');
+          }
+
+          return lines.join('\n');
+        });
       });
   }
 }

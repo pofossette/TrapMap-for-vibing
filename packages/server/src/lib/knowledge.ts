@@ -1,5 +1,6 @@
 import {
   type AgentReviewResult,
+  type EvidenceMeta,
   type KnowledgeResubmission,
   type KnowledgeSubmission,
   type KnowledgeUpdate,
@@ -8,6 +9,7 @@ import {
 } from '@trapmap/contracts';
 
 import { AppError } from './errors.js';
+import { createDefaultEvidenceMeta } from './evidence/model.js';
 import type {
   AgentReviewRecord,
   KnowledgeLifecycleEventRecord,
@@ -287,6 +289,7 @@ export function createKnowledgeEntryRecord(args: {
     embeddingCache: null,
     indexState: null,
     decayMeta: null,
+    evidenceMeta: null,
     createdAt: args.createdAt,
     updatedAt: args.createdAt,
   };
@@ -371,6 +374,8 @@ export function applyReviewDecision(args: {
   decidedAt: string;
   decision: 'approve' | 'reject';
   notes: string;
+  /** Optional evidence metadata (new field) */
+  evidence?: EvidenceMeta;
 }): KnowledgeRecord {
   const reviewDecision: KnowledgeReviewDecisionRecord = {
     decidedAt: args.decidedAt,
@@ -391,6 +396,29 @@ export function applyReviewDecision(args: {
   args.entry.reviewNotes.push(note);
   args.entry.latestRevision.reviewNotes.push(note);
   args.entry.lifecycleState = args.decision === 'approve' ? 'approved' : 'rejected';
+
+  // On approval, persist evidence metadata
+  if (args.decision === 'approve') {
+    // Always derive reviewer identity for verifiedBy override
+    const reviewerActorRef = toActorRef(
+      args.data,
+      args.reviewerUserId,
+      args.entry.teamId,
+      args.entry.requiredLevel,
+    );
+    if (args.evidence) {
+      args.entry.evidenceMeta = {
+        ...args.evidence,
+        verifiedAt: args.evidence.verifiedAt ?? args.decidedAt,
+        // Always override verifiedBy with actual reviewer identity
+        verifiedBy: reviewerActorRef,
+      };
+    } else {
+      // Default evidence when not explicitly provided
+      args.entry.evidenceMeta = createDefaultEvidenceMeta(args.decidedAt, reviewerActorRef);
+    }
+  }
+
   args.entry.metadata.latestReviewedAt = args.decidedAt;
   args.entry.metadata.latestDecision = args.decision;
   args.entry.lifecycleHistory.push(
@@ -488,6 +516,7 @@ export function toKnowledgeEntry(data: StoreData, record: KnowledgeRecord) {
       toReviewNote(data, note, record.teamId, record.requiredLevel),
     ),
     lifecycleHistory: toLifecycleEvent(data, record, record.requiredLevel),
+    evidenceMeta: record.evidenceMeta,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   });

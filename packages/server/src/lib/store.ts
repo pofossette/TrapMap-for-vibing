@@ -6,6 +6,7 @@ import type {
   CandidateSubmission,
   DecayMeta,
   DuplicateCase,
+  EvidenceMeta,
   FeedbackProblemType,
   LifecycleState,
   Permission,
@@ -221,6 +222,8 @@ export interface KnowledgeRecord {
   indexState: KnowledgeIndexStateRecord | null;
   /** Decay state metadata for lifecycle management (null if not yet tracked) */
   decayMeta: DecayMeta | null;
+  /** Evidence and provenance metadata (null for legacy entries) */
+  evidenceMeta: EvidenceMeta | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -537,6 +540,8 @@ export interface SkillArtifactRecord {
   lifecycleHistory: SkillArtifactLifecycleEventRecord[];
   /** Decay state metadata for lifecycle management (null if not yet tracked) */
   decayMeta: DecayMeta | null;
+  /** Evidence and provenance metadata (null for legacy entries) */
+  evidenceMeta: EvidenceMeta | null;
   /** Created timestamp */
   createdAt: string;
   /** Updated timestamp */

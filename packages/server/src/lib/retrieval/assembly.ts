@@ -22,6 +22,9 @@ import type {
   AssetAvailabilityHint,
   CapsuleActivationHints,
   CapsuleMatch,
+  EvidenceHint,
+  EvidenceLevel,
+  EvidenceSourceType,
   ProfileHint,
   ReadNextReferenceHint,
   RetrievalCitation,
@@ -48,6 +51,26 @@ import type { CapsuleCandidate, MergedCandidate, ScoredEntry } from './types.js'
 
 // Type inference from schema - use the return type of parse()
 type RetrievalMatch = ReturnType<typeof retrievalMatchSchema.parse>;
+
+/**
+ * Extract compact evidence hint from a knowledge entry or artifact record.
+ * Returns null if the record has no evidence metadata.
+ *
+ * @param record - Record with optional evidenceMeta field
+ * @returns EvidenceHint or null if no evidence metadata
+ */
+export function extractEvidenceHint(record: {
+  evidenceMeta: { sourceType: EvidenceSourceType; evidenceLevel: EvidenceLevel; verifiedAt: string } | null;
+}): EvidenceHint | null {
+  if (!record.evidenceMeta) {
+    return null;
+  }
+  return {
+    evidenceLevel: record.evidenceMeta.evidenceLevel,
+    verifiedAt: record.evidenceMeta.verifiedAt,
+    sourceType: record.evidenceMeta.sourceType,
+  };
+}
 
 /**
  * Generate a human-readable reason for the match.
@@ -96,6 +119,8 @@ export function generateMatchReason(
  * @param filters - Query filters used for match reason generation
  * @param citation - Optional citation with score breakdown (includes decayMultiplier when applicable)
  * @param decayMultiplier - Optional freshness decay multiplier for reason string (Phase 49: DECAY-02)
+ *
+ * Includes evidence hint when entry has evidence metadata.
  */
 export function toRetrievalMatch(
   scoredEntry: ScoredEntry,
@@ -104,6 +129,7 @@ export function toRetrievalMatch(
   decayMultiplier?: number,
 ): RetrievalMatch {
   const { entry, score } = scoredEntry;
+  const evidence = extractEvidenceHint(entry);
   return retrievalMatchSchema.parse({
     entryId: entry.id,
     scope: entry.scope,
@@ -114,6 +140,7 @@ export function toRetrievalMatch(
     score,
     reason: generateMatchReason(entry, score, filters, decayMultiplier),
     citation,
+    ...(evidence ? { evidence } : {}),
   });
 }
 
@@ -230,12 +257,15 @@ export function buildCitationFromCandidate(
  *
  * @param capsule - Derived capsule record with distilled content
  * @param candidate - Ranked capsule candidate with scores
+ * @param artifact - Optional artifact record for evidence metadata
  * @returns CapsuleMatch for v2 response
  */
 export function buildCapsuleMatch(
   capsule: DerivedSkillCapsuleRecord,
   candidate: CapsuleCandidate,
+  artifact?: { evidenceMeta: EvidenceHint | null } | null,
 ): CapsuleMatch {
+  const evidence = artifact ? extractEvidenceHint(artifact) : null;
   return capsuleMatchSchema.parse({
     capsuleId: capsule.capsuleId,
     artifactId: capsule.artifactId,
@@ -251,6 +281,7 @@ export function buildCapsuleMatch(
     requiredLevel: capsule.requiredLevel,
     score: candidate.finalScore,
     reason: candidate.reason,
+    ...(evidence ? { evidence } : {}),
   });
 }
 
