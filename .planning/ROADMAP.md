@@ -58,7 +58,7 @@
 
 ### Conflict Detection
 
-- [ ] Phase 55: Conflict Detection & Display (CONFLICT-01, CONFLICT-02)
+- [x] Phase 55: Conflict Detection & Display (CONFLICT-01, CONFLICT-02) (completed 2026-05-02)
 
 ### Feedback Loop
 
@@ -166,6 +166,13 @@ Plans:
 
 **Goal:** Index boundary fields as facets and graph nodes with back-references.
 
+**Plans:** 3 plans
+
+Plans:
+- [x] 53-01-PLAN.md — Graph schema extension, boundary extraction, facet indexing (completed 2026-05-02)
+- [ ] 53-02-PLAN.md — Contracts layer: BoundaryContext, BoundaryExplanation, boundaryMetaSchema, barrel export, KnowledgeRecord.boundary
+- [ ] 53-03-PLAN.md — Back-reference query helpers with tests
+
 **Success Criteria:**
 1. Boundary fields indexed as facets in search index for filtering
 2. Standardized boundary values (versions, platforms) stored as graph nodes
@@ -242,7 +249,7 @@ Plans:
 
 **Goal:** Add a minimal provenance and verification model so published knowledge can show where it came from, when it was verified, and how strong the evidence is.
 
-**Plans:** 6/6 plans complete
+**Plans:** 1/1 plans complete
 
 Plans:
 - [x] 58-01-PLAN.md — Core evidence schema contracts and exports
