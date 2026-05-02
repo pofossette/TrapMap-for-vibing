@@ -3,6 +3,18 @@ import { z } from 'zod';
 import { entityIdSchema, isoTimestampSchema } from './common.js';
 
 /**
+ * Freshness type for knowledge entries.
+ *
+ * Determines which decay curve to apply for retrieval ranking:
+ * - evergreen: No time-based decay (reference docs, best practices)
+ * - versioned: Step decay on version mismatch (version-specific traps)
+ * - volatile: Time-based exponential decay (incident workarounds, temporary fixes)
+ */
+export const freshnessTypeSchema = z.enum(['evergreen', 'versioned', 'volatile']);
+
+export type FreshnessType = z.infer<typeof freshnessTypeSchema>;
+
+/**
  * Decay state for knowledge lifecycle management.
  *
  * States transition based on age and configuration thresholds:
