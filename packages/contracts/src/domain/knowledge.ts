@@ -10,8 +10,7 @@ import {
   scopeSchema,
   securityLevelSchema,
 } from './common.js';
-import { boundaryMetaSchema } from './boundary.js';
-import { evidenceMetaSchema } from './evidence.js';
+import { boundarySchema } from './boundary.js';
 
 export const reviewRiskSchema = z.enum(['low', 'medium', 'high']);
 
@@ -24,6 +23,7 @@ export const agentReviewResultSchema = z.object({
   completenessRisk: reviewRiskSchema,
   checkedAt: z.string(),
   notes: z.array(z.string()).default([]),
+  boundary: boundarySchema.nullable().optional(),
 });
 
 export const reviewDecisionSchema = z.object({
@@ -113,9 +113,7 @@ export const knowledgeEntrySchema = z
     reviewHistory: z.array(reviewDecisionSchema).default([]),
     reviewNotes: z.array(reviewNoteSchema).default([]),
     lifecycleHistory: z.array(knowledgeLifecycleEventSchema).default([]),
-    boundaryMeta: boundaryMetaSchema.nullable().optional(),
-    /** Evidence and provenance metadata (null if not yet verified) */
-    evidenceMeta: evidenceMetaSchema.nullable().default(null),
+    boundary: boundarySchema.nullable(),
   })
   .merge(auditMetadataSchema);
 
@@ -126,6 +124,7 @@ export const knowledgeSubmissionSchema = z.object({
   shortcut: z.string().min(1).max(280),
   detail: z.string().min(1).max(10000),
   requiredLevel: securityLevelSchema.optional(),
+  boundary: boundarySchema.nullable().optional(),
 });
 
 export const knowledgeResubmissionSchema = z.object({
@@ -133,6 +132,7 @@ export const knowledgeResubmissionSchema = z.object({
   labels: z.array(labelSchema).min(1),
   shortcut: z.string().min(1).max(280),
   detail: z.string().min(1).max(10000),
+  boundary: boundarySchema.nullable().optional(),
 });
 
 export const knowledgeUpdateSchema = z.object({
@@ -151,8 +151,6 @@ export const knowledgeListItemSchema = z.object({
   lifecycleState: lifecycleStateSchema,
   requiredLevel: securityLevelSchema,
   updatedAt: z.string(),
-  /** Evidence and provenance metadata (null if not yet verified) */
-  evidenceMeta: evidenceMetaSchema.nullable().optional(),
 });
 
 export const knowledgeEntryResponseSchema = z.object({
