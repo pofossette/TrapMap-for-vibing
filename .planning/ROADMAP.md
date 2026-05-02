@@ -2,12 +2,12 @@
 
 ## Milestones
 
-- ✅ **v1.0 MVP** — Phases 1-17 (shipped 2026-04-14)
-- ✅ **v1.1 Multi-path Retrieval** — Phases 18-24 (shipped 2026-04-17)
-- ✅ **v1.2 Skill-Native Retrieval** — Phases 18-24 (shipped 2026-04-17)
+- ✅ **v1.0 MVP** — Phases 1-5 (shipped 2026-04-14)
+- ✅ **v1.1 Multi-path Retrieval** — Phases 6-11 (shipped 2026-04-16)
+- ✅ **v1.2 Skill-Native Retrieval** — Phases 12-16 (shipped 2026-04-17)
 - ✅ **v1.3 工程化调整** — Phases 17-24 (shipped 2026-04-20)
 - ✅ **v1.4 评测系统构建** — Phases 25-47 (shipped 2026-04-29)
-- 🔄 **v1.5 功能增强** — Phases 48-57 (in progress)
+- 🔄 **v1.5 功能增强** — Phases 48-59 (in progress)
 
 ## Phases
 
@@ -41,7 +41,7 @@
 </details>
 
 <details>
-<summary>🔄 v1.5 功能增强 (Phases 48-57) — IN PROGRESS</summary>
+<summary>🔄 v1.5 功能增强 (Phases 48-59) — IN PROGRESS</summary>
 
 ### Decay & Retirement
 
@@ -65,6 +65,11 @@
 - [ ] Phase 56: CLI Feedback Entry Points (FEEDBACK-01)
 - [ ] Phase 57: Admin Feedback Management (FEEDBACK-02, FEEDBACK-03)
 
+### Evidence & Maintenance
+
+- [ ] Phase 58: Evidence Metadata & Verification Surface (EVIDENCE-01, EVIDENCE-02)
+- [ ] Phase 59: Ownership & Verification SLA Management (MAINT-01, MAINT-02)
+
 </details>
 
 ## Progress
@@ -72,7 +77,7 @@
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 25-47 | v1.4 | 59/59 | Complete | 2026-04-29 |
-| 48-57 | v1.5 | 0/10 | In Progress | — |
+| 48-59 | v1.5 | 0/12 | In Progress | — |
 
 ---
 
@@ -219,6 +224,34 @@
 
 ---
 
+### Phase 58: Evidence Metadata & Verification Surface
+
+**Requirements:** EVIDENCE-01, EVIDENCE-02
+
+**Goal:** Add a minimal provenance and verification model so published knowledge can show where it came from, when it was verified, and how strong the evidence is.
+
+**Success Criteria:**
+1. Trap and skill records can store minimal evidence metadata: `sourceType`, `sourceRef`, `evidenceLevel`, `verifiedAt`, `verifiedBy`
+2. Review flow can capture or edit evidence metadata before approval
+3. Retrieval responses expose evidence metadata in an additive, compact form
+4. Evidence metadata is queryable in admin views and audit-friendly
+
+---
+
+### Phase 59: Ownership & Verification SLA Management
+
+**Requirements:** MAINT-01, MAINT-02
+
+**Goal:** Add lightweight ownership and review-due tracking so maintainers can keep the corpus healthy without a heavy governance system.
+
+**Success Criteria:**
+1. Trap and skill records store `owner`, `reviewBy`, and `lastVerifiedAt`
+2. CLI/admin views can list entries with missing owner, overdue review, or stale verification
+3. Batch actions can assign owner, extend review date, or mark an item re-verified
+4. Lifecycle and batch-management phases can reuse this data without introducing a separate maintenance subsystem
+
+---
+
 ## Requirement Coverage Matrix
 
 | Requirement | Phase | Description |
@@ -237,10 +270,14 @@
 | FEEDBACK-01 | Phase 56 | CLI feedback entry points |
 | FEEDBACK-02 | Phase 57 | Admin feedback batch review |
 | FEEDBACK-03 | Phase 57 | Feedback signals for lifecycle/quality |
+| EVIDENCE-01 | Phase 58 | Minimal evidence and provenance metadata |
+| EVIDENCE-02 | Phase 58 | Retrieval/admin evidence visibility |
+| MAINT-01 | Phase 59 | Ownership and review-due metadata |
+| MAINT-02 | Phase 59 | Maintenance list and batch actions |
 
 **Coverage:**
-- Total v1.5 requirements: 14
-- Mapped to phases: 14
+- Total v1.5 requirements: 18
+- Mapped to phases: 18
 - Unmapped: 0 ✓
 
 ---
@@ -267,12 +304,18 @@ Phase 55 (Conflict Detection) ── independent
 Phase 56 (CLI Feedback)
     ↓
 Phase 57 (Admin Feedback Management)
+
+Phase 58 (Evidence Metadata) ── independent, but should align with Phase 51 boundary evidence fields
+    ↓
+Phase 59 (Ownership & SLA Management)
 ```
 
 **Parallelization Opportunities:**
 - Phases 48-50 (Decay) can run in parallel with Phases 51-54 (Boundary)
 - Phase 55 (Conflict) is independent, can run anytime
 - Phase 56 can start in parallel with decay/boundary work
+- Phase 58 can start in parallel with decay, boundary, or feedback work
+- Phase 59 should follow Phase 48 if it reuses lifecycle state and Phase 58 if it reuses verification metadata
 
 ---
 
