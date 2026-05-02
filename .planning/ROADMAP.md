@@ -166,12 +166,12 @@ Plans:
 
 **Goal:** Index boundary fields as facets and graph nodes with back-references.
 
-**Plans:** 2/2 plans complete
+**Plans:** 3/2 plans complete
 
 Plans:
 - [x] 53-01-PLAN.md — Graph schema extension, boundary extraction, facet indexing (completed 2026-05-02)
 - [x] 53-02-PLAN.md — Contracts layer: BoundaryContext, BoundaryExplanation, boundaryMetaSchema, barrel export, KnowledgeRecord.boundary
-- [ ] 53-03-PLAN.md — Back-reference query helpers with tests
+- [x] 53-03-PLAN.md — Back-reference query helpers with tests
 
 **Success Criteria:**
 1. Boundary fields indexed as facets in search index for filtering
