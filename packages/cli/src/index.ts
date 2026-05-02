@@ -2,6 +2,7 @@ import { Command } from 'commander';
 
 import { registerAuditCommands } from './commands/audit.js';
 import { registerAuthCommands } from './commands/auth.js';
+import { registerFeedbackCommands } from './commands/feedback.js';
 import { registerKnowledgeCommands } from './commands/knowledge.js';
 import { registerMemberCommands } from './commands/member.js';
 import { registerOperationsCommands } from './commands/operations.js';
@@ -44,6 +45,7 @@ const visibility = {
   allowKnowledgeDeactivate:
     securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
   allowAuditRead: hasPermission(effectivePermissions, 'audit:read'),
+  allowFeedbackSubmit: hasPermission(effectivePermissions, 'knowledge:search'),
 };
 
 const program = new Command();
@@ -101,6 +103,7 @@ program
       ...(visibility.allowKnowledgeUpdate ? ['edit'] : []),
       ...(visibility.allowKnowledgeDeactivate ? ['deactivate'] : []),
       ...(visibility.allowAuditRead ? ['audit'] : []),
+      ...(visibility.allowFeedbackSubmit ? ['feedback'] : []),
     ];
 
     for (const commandName of availableCommands) {
@@ -145,6 +148,9 @@ registerSkillCommands(program, {
   allowSubmit: visibility.allowKnowledgeSubmit,
   allowExport: visibility.allowKnowledgeExport,
   allowReview: visibility.allowKnowledgeReview,
+});
+registerFeedbackCommands(program, {
+  allowSubmit: visibility.allowFeedbackSubmit,
 });
 
 program.parseAsync(process.argv).catch(printError);
