@@ -17,6 +17,10 @@ import {
   securityLevelSchema,
 } from './common.js';
 import {
+  evidenceLevelSchema,
+  evidenceSourceTypeSchema,
+} from './evidence.js';
+import {
   agentReviewResultSchema,
   knowledgeEntrySchema,
   knowledgeListItemSchema,
@@ -34,6 +38,16 @@ export const knowledgeListRequestSchema = z.object({
   lifecycleState: z.array(lifecycleStateSchema).optional(),
   requiredLevelMax: securityLevelSchema.optional(),
   ownerUserId: entityIdSchema.optional(),
+  /** Filter by evidence level */
+  evidenceLevel: z.array(evidenceLevelSchema).optional(),
+  /** Filter by source type */
+  sourceType: z.array(evidenceSourceTypeSchema).optional(),
+  /** Filter entries verified before this timestamp */
+  verifiedBefore: isoTimestampSchema.optional(),
+  /** Filter entries verified after this timestamp */
+  verifiedAfter: isoTimestampSchema.optional(),
+  /** Filter entries with missing evidence metadata */
+  missingEvidence: z.boolean().optional(),
   limit: z.number().int().min(1).max(100).default(25),
   cursor: z.string().min(1).max(128).optional(),
 });
