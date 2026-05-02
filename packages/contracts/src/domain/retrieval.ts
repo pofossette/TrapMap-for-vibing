@@ -37,6 +37,7 @@ export const retrievalCitationSchema = z.object({
     graph: z.number().min(0).max(1).nullable(),
     preRerank: z.number().min(0).max(1),
     final: z.number().min(0).max(1),
+    decayMultiplier: z.number().min(0).max(1).optional(),
   }),
 });
 
