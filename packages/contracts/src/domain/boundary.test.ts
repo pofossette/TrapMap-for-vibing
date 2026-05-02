@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   boundaryConditionSchema,
+  boundaryContextSchema,
+  boundaryExplanationSchema,
+  boundaryMetaSchema,
   boundarySchema,
   conditionKindSchema,
   evidenceKindSchema,
@@ -387,6 +390,143 @@ describe('boundary schema contracts', () => {
           versions: [{ package: '', range: '>=1.0.0' }],
         }),
       ).toThrow();
+    });
+  });
+
+  describe('boundaryContextSchema', () => {
+    it('accepts valid context with all fields', () => {
+      const ctx = boundaryContextSchema.parse({
+        contexts: ['frontend', 'production'],
+        platform: 'linux',
+        versions: [{ package: 'react', version: '18.0.0' }],
+      });
+      expect(ctx.contexts).toEqual(['frontend', 'production']);
+      expect(ctx.platform).toBe('linux');
+      expect(ctx.versions).toHaveLength(1);
+    });
+
+    it('accepts context with only contexts field', () => {
+      const ctx = boundaryContextSchema.parse({ contexts: ['backend'] });
+      expect(ctx.contexts).toEqual(['backend']);
+      expect(ctx.platform).toBeUndefined();
+      expect(ctx.versions).toBeUndefined();
+    });
+
+    it('accepts context with only platform field', () => {
+      const ctx = boundaryContextSchema.parse({ platform: 'darwin' });
+      expect(ctx.platform).toBe('darwin');
+    });
+
+    it('accepts context with only versions field', () => {
+      const ctx = boundaryContextSchema.parse({
+        versions: [{ package: 'node', version: '22.0.0' }],
+      });
+      expect(ctx.versions).toHaveLength(1);
+    });
+
+    it('accepts empty versions array', () => {
+      const ctx = boundaryContextSchema.parse({ versions: [] });
+      expect(ctx.versions).toEqual([]);
+    });
+
+    it('accepts empty object (all optional)', () => {
+      const ctx = boundaryContextSchema.parse({});
+      expect(ctx.contexts).toBeUndefined();
+      expect(ctx.platform).toBeUndefined();
+      expect(ctx.versions).toBeUndefined();
+    });
+
+    it('rejects invalid platform type', () => {
+      expect(() =>
+        boundaryContextSchema.parse({ platform: 123 }),
+      ).toThrow();
+    });
+
+    it('rejects context item over 64 chars', () => {
+      expect(() =>
+        boundaryContextSchema.parse({ contexts: ['a'.repeat(65)] }),
+      ).toThrow();
+    });
+
+    it('rejects empty package in version query', () => {
+      expect(() =>
+        boundaryContextSchema.parse({
+          versions: [{ package: '', version: '1.0.0' }],
+        }),
+      ).toThrow();
+    });
+  });
+
+  describe('boundaryExplanationSchema', () => {
+    it('accepts valid explanation with all fields', () => {
+      const expl = boundaryExplanationSchema.parse({
+        checked: true,
+        requiredSatisfied: false,
+        warnings: ['Version mismatch: requires >=16'],
+        boosts: ['Context match: frontend'],
+      });
+      expect(expl.checked).toBe(true);
+      expect(expl.requiredSatisfied).toBe(false);
+      expect(expl.warnings).toHaveLength(1);
+      expect(expl.boosts).toHaveLength(1);
+    });
+
+    it('accepts explanation with empty arrays', () => {
+      const expl = boundaryExplanationSchema.parse({
+        checked: false,
+        requiredSatisfied: true,
+        warnings: [],
+        boosts: [],
+      });
+      expect(expl.warnings).toEqual([]);
+      expect(expl.boosts).toEqual([]);
+    });
+
+    it('rejects missing checked field', () => {
+      expect(() =>
+        boundaryExplanationSchema.parse({
+          requiredSatisfied: true,
+          warnings: [],
+          boosts: [],
+        }),
+      ).toThrow();
+    });
+
+    it('rejects wrong type for warnings', () => {
+      expect(() =>
+        boundaryExplanationSchema.parse({
+          checked: true,
+          requiredSatisfied: true,
+          warnings: 'not-an-array',
+          boosts: [],
+        }),
+      ).toThrow();
+    });
+  });
+
+  describe('boundaryMetaSchema', () => {
+    it('aliases boundarySchema (parses same data)', () => {
+      const data = {
+        context: ['frontend'],
+        versions: [{ package: 'react', range: '>=16.8.0' }],
+        prerequisites: [],
+        signals: [],
+        exclusions: [],
+        evidence: [],
+      };
+      const meta = boundaryMetaSchema.parse(data);
+      expect(meta.context).toEqual(['frontend']);
+      expect(meta.versions).toHaveLength(1);
+    });
+
+    it('defaults all layers to empty arrays like boundarySchema', () => {
+      const meta = boundaryMetaSchema.parse({});
+      expect(meta.context).toEqual([]);
+      expect(meta.versions).toEqual([]);
+      expect(meta.prerequisites).toEqual([]);
+      expect(meta.signals).toEqual([]);
+      expect(meta.exclusions).toEqual([]);
+      expect(meta.evidence).toEqual([]);
     });
   });
 });

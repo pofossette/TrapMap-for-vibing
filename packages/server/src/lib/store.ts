@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type {
+  Boundary,
   CandidateSubmission,
   ConflictRelation,
   DuplicateCase,
@@ -218,6 +219,8 @@ export interface KnowledgeRecord {
   embeddingCache: EmbeddingCacheRecord | null;
   /** Index state for lifecycle-driven indexing (null if not yet indexed) */
   indexState: KnowledgeIndexStateRecord | null;
+  /** Boundary constraints for knowledge applicability (null if no boundary defined) */
+  boundary: Boundary | null;
   createdAt: string;
   updatedAt: string;
 }
