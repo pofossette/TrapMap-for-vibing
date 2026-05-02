@@ -1,254 +1,158 @@
 import { z } from 'zod';
 
-import { entityIdSchema, isoTimestampSchema, labelSchema } from './common.js';
-
-// =============================================================================
-// Enums
-// =============================================================================
-
 /**
- * Condition operator for prerequisite and exclusion conditions.
- *
- * - equals: Field value equals the specified value
- * - not-equals: Field value does not equal the specified value
- * - contains: Field value contains the specified substring
- * - not-contains: Field value does not contain the specified substring
- * - matches: Field value matches the specified regex pattern
- * - not-matches: Field value does not match the specified regex pattern
+ * Kind of condition for prerequisites.
  */
-export const conditionOperatorSchema = z.enum([
-  'equals',
-  'not-equals',
-  'contains',
-  'not-contains',
-  'matches',
-  'not-matches',
+export const conditionKindSchema = z.enum([
+  'environment',
+  'permission',
+  'tool',
+  'configuration',
+  'other',
 ]);
 
 /**
- * Evidence type for boundary evidence entries.
- *
- * - user-reported: Manually reported by a user
- * - auto-detected: Automatically detected by the system
- * - inferred: Inferred from context or usage patterns
- * - reviewed: Confirmed through human review
+ * Kind of signal pattern for relevance detection.
  */
-export const evidenceTypeSchema = z.enum([
-  'user-reported',
-  'auto-detected',
-  'inferred',
-  'reviewed',
+export const signalKindSchema = z.enum([
+  'exact',
+  'keyword',
+  'regex',
+  'error-code',
+  'log-pattern',
 ]);
 
 /**
- * Constraint mode for version and prerequisite constraints.
- *
- * - required: Must match for entry to be applicable
- * - preferred: Matching boosts ranking, mismatch does not exclude
- * - excluded: Matching causes ranking penalty
+ * Kind of exclusion rule.
  */
-export const constraintModeSchema = z.enum(['required', 'preferred', 'excluded']);
-
-// =============================================================================
-// Layer Schemas
-// =============================================================================
+export const exclusionKindSchema = z.enum([
+  'platform',
+  'version',
+  'context',
+  'configuration',
+  'other',
+]);
 
 /**
- * Context layer: Environment, platform, and runtime constraints.
- *
- * All fields are optional string arrays with max length limits for indexing efficiency.
+ * Kind of evidence reference.
  */
-export const contextLayerSchema = z.object({
-  /** Target environments (e.g., 'production', 'staging', 'development') */
-  environments: z.array(z.string().max(64)).max(10).optional(),
-  /** Target platforms (e.g., 'linux', 'darwin', 'windows') */
-  platforms: z.array(z.string().max(64)).max(10).optional(),
-  /** Target runtimes (e.g., 'node', 'bun', 'deno') */
-  runtimes: z.array(z.string().max(64)).max(10).optional(),
-});
+export const evidenceKindSchema = z.enum([
+  'issue',
+  'incident',
+  'cve',
+  'documentation',
+  'test',
+  'commit',
+  'other',
+]);
 
 /**
- * Version constraint for dependency version matching.
+ * Version constraint for tools and libraries.
  *
- * Supports semver-compliant range syntax compatible with npm ecosystem.
+ * Package names follow npm naming conventions.
+ * Ranges use semver-compatible syntax (parsed at retrieval time).
  */
 export const versionConstraintSchema = z.object({
-  /** Dependency name (e.g., 'react', 'node') */
-  dependency: z.string().min(1).max(128),
-  /** Semver range (e.g., '^18.0.0', '>=16 <19', '*') */
+  /** Package or tool name (e.g., 'react', 'node', 'typescript') */
+  package: z.string().min(1).max(128),
+  /** Version range in semver-compatible syntax (e.g., '>=16.8.0', '^18.0.0') */
   range: z.string().min(1).max(64),
-  /** Human-readable display name (e.g., 'React 18+') */
-  displayName: z.string().max(128).optional(),
-  /** Constraint mode for retrieval filtering */
-  mode: constraintModeSchema.default('required'),
+  /** Optional note explaining why this constraint exists */
+  note: z.string().max(280).optional(),
 });
 
 /**
- * Versions layer: Dependency version constraints.
- */
-export const versionsLayerSchema = z.object({
-  /** Version constraints for dependencies */
-  constraints: z.array(versionConstraintSchema).max(20).optional(),
-});
-
-/**
- * Condition object for complex applicability rules.
+ * Condition for prerequisites and requirements.
  *
- * Used in prerequisites and exclusions for conditional matching.
+ * Describes what must be true before applying knowledge.
  */
-export const conditionSchema = z.object({
-  /** Field name to check */
-  field: z.string().min(1).max(128),
-  /** Comparison operator */
-  operator: conditionOperatorSchema,
-  /** Value to compare against */
-  value: z.string().min(1).max(512),
+export const boundaryConditionSchema = z.object({
+  /** Human-readable condition description */
+  description: z.string().min(1).max(280),
+  /** Optional structured type hint for categorization */
+  kind: conditionKindSchema.optional(),
+  /** Whether this condition is required (default) or optional */
+  required: z.boolean().default(true),
 });
 
 /**
- * Prerequisite entry with optional condition.
+ * Signal matcher for relevance detection.
  *
- * Describes requirements for the knowledge to be applicable.
+ * Patterns that indicate this knowledge is applicable.
  */
-export const prerequisiteSchema = z.object({
-  /** Prerequisite identifier */
-  id: z.string().min(1).max(128),
-  /** Human-readable display name */
-  displayName: z.string().max(256).optional(),
-  /** Constraint mode for retrieval filtering */
-  mode: constraintModeSchema.default('required'),
-  /** Optional condition for complex matching */
-  condition: conditionSchema.optional(),
+export const signalMatcherSchema = z.object({
+  /** Pattern to match (exact string, keyword, regex, error code, or log pattern) */
+  pattern: z.string().min(1).max(500),
+  /** Pattern type determining matching semantics */
+  kind: signalKindSchema.default('keyword'),
+  /** Optional description of when this signal fires */
+  description: z.string().max(280).optional(),
 });
 
 /**
- * Prerequisites layer: Required or preferred conditions.
- */
-export const prerequisitesLayerSchema = z.object({
-  /** Prerequisite entries */
-  items: z.array(prerequisiteSchema).max(20).optional(),
-});
-
-/**
- * Signals layer: Keywords and patterns for retrieval matching.
+ * Exclusion rule for applicability negation.
  *
- * Used for search and discovery of applicable knowledge.
+ * Conditions that make this knowledge NOT applicable.
  */
-export const signalsLayerSchema = z.object({
-  /** Keywords for search matching */
-  keywords: z.array(labelSchema).max(20).optional(),
-  /** Error patterns to match against (regex supported) */
-  errorPatterns: z.array(z.string().max(256)).max(20).optional(),
-  /** Symptom descriptions for problem matching */
-  symptoms: z.array(z.string().max(256)).max(20).optional(),
+export const exclusionRuleSchema = z.object({
+  /** Human-readable exclusion description */
+  description: z.string().min(1).max(280),
+  /** Category of exclusion for filtering */
+  kind: exclusionKindSchema.optional(),
 });
 
 /**
- * Exclusion entry with optional condition and reason.
+ * Evidence reference supporting boundary assertions.
  *
- * Describes cases where the knowledge is NOT applicable.
+ * Links to external sources that validate the boundary.
  */
-export const exclusionSchema = z.object({
-  /** Exclusion identifier */
-  id: z.string().min(1).max(128),
-  /** Human-readable reason for exclusion */
-  reason: z.string().max(256).optional(),
-  /** Optional condition for complex matching */
-  condition: conditionSchema.optional(),
+export const evidenceReferenceSchema = z.object({
+  /** Type of evidence source */
+  kind: evidenceKindSchema,
+  /** Reference identifier (issue number, CVE ID, commit hash, etc.) */
+  identifier: z.string().min(1).max(128),
+  /** Optional URL to the evidence source */
+  url: z.string().url().max(512).optional(),
+  /** Optional note about relevance to this boundary */
+  note: z.string().max(280).optional(),
 });
 
 /**
- * Exclusions layer: Cases where knowledge is not applicable.
- */
-export const exclusionsLayerSchema = z.object({
-  /** Exclusion entries */
-  items: z.array(exclusionSchema).max(20).optional(),
-});
-
-/**
- * Evidence entry for boundary provenance tracking.
+ * Unified boundary schema for knowledge applicability constraints.
  *
- * Tracks the source and confidence of boundary constraints.
- */
-export const evidenceEntrySchema = z.object({
-  /** Source of this evidence (who/what provided it) */
-  source: z.string().min(1).max(256),
-  /** Type of evidence */
-  type: evidenceTypeSchema,
-  /** Confidence score in range [0, 1] */
-  confidence: z.number().min(0).max(1),
-  /** When this evidence was collected */
-  timestamp: isoTimestampSchema.optional(),
-  /** Additional details about the evidence */
-  details: z.string().max(1000).optional(),
-});
-
-/**
- * Evidence layer: Provenance tracking for boundary constraints.
- */
-export const evidenceLayerSchema = z.object({
-  /** Evidence entries */
-  entries: z.array(evidenceEntrySchema).max(10).optional(),
-});
-
-// =============================================================================
-// Composite Boundary Schema
-// =============================================================================
-
-/**
- * Complete boundary schema with all 6 layers.
+ * Six layers define when knowledge is applicable:
+ * - context: Situational context labels (e.g., 'frontend', 'production')
+ * - versions: Version constraints for tools and libraries
+ * - prerequisites: Conditions that must be satisfied
+ * - signals: Patterns indicating relevance
+ * - exclusions: Conditions that make knowledge NOT applicable
+ * - evidence: Supporting evidence for boundary assertions
  *
- * Each layer is optional, allowing partial boundary specification.
- * Layers are designed for indexing efficiency with flat array structures.
+ * All layers default to empty arrays for backward compatibility.
+ * Nullable on records to distinguish "no boundary" from "empty boundary".
  */
 export const boundarySchema = z.object({
-  /** Context layer: environment, platform, runtime constraints */
-  context: contextLayerSchema.optional(),
-  /** Versions layer: dependency version constraints */
-  versions: versionsLayerSchema.optional(),
-  /** Prerequisites layer: required or preferred conditions */
-  prerequisites: prerequisitesLayerSchema.optional(),
-  /** Signals layer: keywords and patterns for retrieval */
-  signals: signalsLayerSchema.optional(),
-  /** Exclusions layer: cases where knowledge is not applicable */
-  exclusions: exclusionsLayerSchema.optional(),
-  /** Evidence layer: provenance tracking for boundary constraints */
-  evidence: evidenceLayerSchema.optional(),
+  /** Situational context labels where this knowledge applies */
+  context: z.array(z.string().min(1).max(64)).max(10).default([]),
+  /** Version constraints for tools and libraries */
+  versions: z.array(versionConstraintSchema).max(10).default([]),
+  /** Prerequisites that must be satisfied before applying */
+  prerequisites: z.array(boundaryConditionSchema).max(10).default([]),
+  /** Signals indicating this knowledge is relevant */
+  signals: z.array(signalMatcherSchema).max(20).default([]),
+  /** Exclusion conditions that make this knowledge NOT applicable */
+  exclusions: z.array(exclusionRuleSchema).max(10).default([]),
+  /** Supporting evidence for boundary assertions */
+  evidence: z.array(evidenceReferenceSchema).max(10).default([]),
 });
 
-/**
- * Boundary metadata for attachment to knowledge entries and skill artifacts.
- *
- * Wraps the boundary schema with tracking metadata for auditability.
- */
-export const boundaryMetaSchema = z.object({
-  /** The boundary constraints */
-  boundary: boundarySchema,
-  /** When the boundary was last updated */
-  lastUpdated: isoTimestampSchema,
-  /** Who last updated the boundary */
-  updatedBy: entityIdSchema.optional(),
-  /** Free-form notes about the boundary */
-  notes: z.string().max(1000).optional(),
-});
-
-// =============================================================================
-// Type Exports
-// =============================================================================
-
-export type ConditionOperator = z.infer<typeof conditionOperatorSchema>;
-export type EvidenceType = z.infer<typeof evidenceTypeSchema>;
-export type ConstraintMode = z.infer<typeof constraintModeSchema>;
-export type ContextLayer = z.infer<typeof contextLayerSchema>;
+export type ConditionKind = z.infer<typeof conditionKindSchema>;
+export type SignalKind = z.infer<typeof signalKindSchema>;
+export type ExclusionKind = z.infer<typeof exclusionKindSchema>;
+export type EvidenceKind = z.infer<typeof evidenceKindSchema>;
 export type VersionConstraint = z.infer<typeof versionConstraintSchema>;
-export type VersionsLayer = z.infer<typeof versionsLayerSchema>;
-export type Condition = z.infer<typeof conditionSchema>;
-export type Prerequisite = z.infer<typeof prerequisiteSchema>;
-export type PrerequisitesLayer = z.infer<typeof prerequisitesLayerSchema>;
-export type SignalsLayer = z.infer<typeof signalsLayerSchema>;
-export type Exclusion = z.infer<typeof exclusionSchema>;
-export type ExclusionsLayer = z.infer<typeof exclusionsLayerSchema>;
-export type EvidenceEntry = z.infer<typeof evidenceEntrySchema>;
-export type EvidenceLayer = z.infer<typeof evidenceLayerSchema>;
+export type BoundaryCondition = z.infer<typeof boundaryConditionSchema>;
+export type SignalMatcher = z.infer<typeof signalMatcherSchema>;
+export type ExclusionRule = z.infer<typeof exclusionRuleSchema>;
+export type EvidenceReference = z.infer<typeof evidenceReferenceSchema>;
 export type Boundary = z.infer<typeof boundarySchema>;
-export type BoundaryMeta = z.infer<typeof boundaryMetaSchema>;
