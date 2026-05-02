@@ -1,5 +1,6 @@
 export * from './domain/artifacts.js';
 export * from './domain/auth.js';
+export * from './domain/boundary.js';
 export * from './domain/candidates.js';
 export * from './domain/common.js';
 export * from './domain/conflict.js';

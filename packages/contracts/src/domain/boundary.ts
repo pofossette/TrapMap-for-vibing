@@ -156,3 +156,46 @@ export type SignalMatcher = z.infer<typeof signalMatcherSchema>;
 export type ExclusionRule = z.infer<typeof exclusionRuleSchema>;
 export type EvidenceReference = z.infer<typeof evidenceReferenceSchema>;
 export type Boundary = z.infer<typeof boundarySchema>;
+
+/**
+ * Boundary context for retrieval queries.
+ *
+ * Represents the runtime environment/constraints of a retrieval request.
+ * Used to determine which knowledge entries are applicable.
+ *
+ * Note: versions use {package, version} (specific query version), NOT {package, range} (constraint).
+ */
+export const boundaryVersionQuerySchema = z.object({
+  package: z.string().min(1).max(128),
+  version: z.string().min(1).max(64),
+});
+
+export const boundaryContextSchema = z.object({
+  contexts: z.array(z.string().min(1).max(64)).optional(),
+  platform: z.string().min(1).max(64).optional(),
+  versions: z.array(boundaryVersionQuerySchema).optional(),
+});
+
+export type BoundaryVersionQuery = z.infer<typeof boundaryVersionQuerySchema>;
+export type BoundaryContext = z.infer<typeof boundaryContextSchema>;
+
+/**
+ * Boundary explanation for retrieval results.
+ *
+ * Describes why a knowledge entry is applicable or potentially inapplicable
+ * given the boundary context of the query.
+ */
+export const boundaryExplanationSchema = z.object({
+  checked: z.boolean(),
+  requiredSatisfied: z.boolean(),
+  warnings: z.array(z.string()),
+  boosts: z.array(z.string()),
+});
+
+export type BoundaryExplanation = z.infer<typeof boundaryExplanationSchema>;
+
+/**
+ * Boundary metadata for artifact records.
+ * Aliases the full Boundary schema for artifact use.
+ */
+export const boundaryMetaSchema = boundarySchema;
