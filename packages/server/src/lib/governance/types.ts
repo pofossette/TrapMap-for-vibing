@@ -3,7 +3,7 @@
  * Used by both KnowledgeEntry (trap) and SkillArtifact domains.
  */
 
-import type { DecayState, LifecycleState, Scope, SecurityLevel } from '@trapmap/contracts';
+import type { Boundary, DecayState, LifecycleState, Scope, SecurityLevel } from '@trapmap/contracts';
 
 /**
  * Governance context representing the caller's access rights.
@@ -33,6 +33,8 @@ export interface GovernedEntity {
   lifecycleState: LifecycleState;
   /** Computed decay state (only meaningful when lifecycleState is 'approved') */
   decayState?: DecayState;
+  /** Boundary constraints for retrieval filtering (Phase 51) */
+  boundary?: Boundary | null;
 }
 
 /**
