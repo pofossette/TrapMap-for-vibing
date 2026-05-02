@@ -20,11 +20,10 @@
 
 import type {
   AssetAvailabilityHint,
+  BoundaryContext,
+  BoundaryExplanation,
   CapsuleActivationHints,
   CapsuleMatch,
-  EvidenceHint,
-  EvidenceLevel,
-  EvidenceSourceType,
   ProfileHint,
   ReadNextReferenceHint,
   RetrievalCitation,
@@ -47,45 +46,19 @@ import type {
   DerivedSkillCapsuleRecord,
   SkillArtifactRecord,
 } from '../store.js';
-import type { CapsuleCandidate, MergedCandidate, ScoredEntry } from './types.js';
+import type { CapsuleCandidate, ScoredEntry } from './types.js';
+import { buildBoundaryExplanation } from './boundary-match.js';
 
 // Type inference from schema - use the return type of parse()
 type RetrievalMatch = ReturnType<typeof retrievalMatchSchema.parse>;
 
 /**
- * Extract compact evidence hint from a knowledge entry or artifact record.
- * Returns null if the record has no evidence metadata.
- *
- * @param record - Record with optional evidenceMeta field
- * @returns EvidenceHint or null if no evidence metadata
- */
-export function extractEvidenceHint(record: {
-  evidenceMeta: { sourceType: EvidenceSourceType; evidenceLevel: EvidenceLevel; verifiedAt: string } | null;
-}): EvidenceHint | null {
-  if (!record.evidenceMeta) {
-    return null;
-  }
-  return {
-    evidenceLevel: record.evidenceMeta.evidenceLevel,
-    verifiedAt: record.evidenceMeta.verifiedAt,
-    sourceType: record.evidenceMeta.sourceType,
-  };
-}
-
-/**
  * Generate a human-readable reason for the match.
- * Includes freshness percentage when decay was applied (Phase 49: DECAY-02).
- *
- * @param entry - Entry with labels and scope for match explanation
- * @param score - Final relevance score
- * @param filters - Query filters used for matching
- * @param decayMultiplier - Optional freshness decay multiplier (0-1, only shown when < 1)
  */
 export function generateMatchReason(
   entry: { labels: string[]; scope: string },
   score: number,
   filters: RetrievalQuery['filters'],
-  decayMultiplier?: number,
 ): string {
   const parts: string[] = [];
 
@@ -101,35 +74,23 @@ export function generateMatchReason(
   }
 
   const baseReason = parts.length > 0 ? parts.join('; ') : 'semantic similarity';
-
-  // Include freshness info if decay was applied (Phase 49: DECAY-02)
-  if (decayMultiplier !== undefined && decayMultiplier < 1.0) {
-    const freshnessPct = Math.round(decayMultiplier * 100);
-    return `${baseReason} (score: ${score.toFixed(2)}, freshness: ${freshnessPct}%)`;
-  }
-
   return `${baseReason} (score: ${score.toFixed(2)})`;
 }
 
 /**
  * Convert a scored entry to a retrieval match.
  * Optionally includes citation if provided.
- *
- * @param scoredEntry - Scored entry with knowledge record and score
- * @param filters - Query filters used for match reason generation
- * @param citation - Optional citation with score breakdown (includes decayMultiplier when applicable)
- * @param decayMultiplier - Optional freshness decay multiplier for reason string (Phase 49: DECAY-02)
- *
- * Includes evidence hint when entry has evidence metadata.
  */
 export function toRetrievalMatch(
   scoredEntry: ScoredEntry,
   filters: RetrievalQuery['filters'],
   citation?: RetrievalCitation,
-  decayMultiplier?: number,
+  boundaryContext?: BoundaryContext,
 ): RetrievalMatch {
   const { entry, score } = scoredEntry;
-  const evidence = extractEvidenceHint(entry);
+  const boundaryExplanation = entry.boundary
+    ? buildBoundaryExplanation(scoredEntry.entry, boundaryContext, 0)
+    : undefined;
   return retrievalMatchSchema.parse({
     entryId: entry.id,
     scope: entry.scope,
@@ -138,9 +99,9 @@ export function toRetrievalMatch(
     detail: entry.detail,
     labels: entry.labels,
     score,
-    reason: generateMatchReason(entry, score, filters, decayMultiplier),
+    reason: generateMatchReason(entry, score, filters),
     citation,
-    ...(evidence ? { evidence } : {}),
+    boundaryExplanation,
   });
 }
 
@@ -153,6 +114,7 @@ export function assembleResponseBuckets(
   scoredEntries: ScoredEntry[],
   filters: RetrievalQuery['filters'],
   citations?: Map<string, RetrievalCitation>,
+  boundaryContext?: BoundaryContext,
 ): {
   globalConstraints: RetrievalMatch[];
   projectKnowledge: RetrievalMatch[];
@@ -162,7 +124,7 @@ export function assembleResponseBuckets(
 
   for (const scoredEntry of scoredEntries) {
     const citation = citations?.get(scoredEntry.entry.id);
-    const match = toRetrievalMatch(scoredEntry, filters, citation);
+    const match = toRetrievalMatch(scoredEntry, filters, citation, boundaryContext);
     if (scoredEntry.entry.scope === 'global') {
       globalConstraints.push(match);
     } else {
@@ -204,48 +166,6 @@ export function buildEmptyResponse(): RetrievalResponse {
 }
 
 // =============================================================================
-// Phase 49: Citation Decay Multiplier Exposure (DECAY-02)
-// Build citations from merged candidates with decay multiplier transparency.
-// =============================================================================
-
-/**
- * Build a retrieval citation from a merged candidate.
- * Includes decay multiplier when freshness decay was applied.
- *
- * @param candidate - Merged candidate with scores and decay metadata
- * @returns RetrievalCitation for the response
- */
-export function buildCitationFromCandidate(
-  candidate: MergedCandidate,
-): RetrievalCitation {
-  const scores: RetrievalCitation['scores'] = {
-    semantic: candidate.semanticScore > 0 ? candidate.semanticScore : null,
-    keyword: candidate.keywordScore > 0 ? candidate.keywordScore : null,
-    graph: candidate.graphScore ?? null,
-    preRerank: candidate.preRerankScore,
-    final: candidate.finalScore,
-  };
-
-  // Include decay multiplier if applied (Phase 49: DECAY-02)
-  if (candidate.decayMultiplier !== undefined) {
-    scores.decayMultiplier = candidate.decayMultiplier;
-  }
-
-  return {
-    source: {
-      entryId: candidate.entry.id,
-      scope: candidate.entry.scope,
-      shortcut: candidate.entry.shortcut,
-    },
-    snippet: candidate.entry.detail.slice(0, 200),
-    tags: candidate.entry.labels,
-    // MergedCandidate.channels is already RecallChannel[] ('semantic' | 'keyword' | 'graph')
-    recallChannels: candidate.channels,
-    scores,
-  };
-}
-
-// =============================================================================
 // Phase 14 v2 Assembly: Capsule-first response shaping (RETR-04, T-14-07)
 // Pure helpers for building v2 responses from distilled capsule hits.
 // =============================================================================
@@ -257,15 +177,12 @@ export function buildCitationFromCandidate(
  *
  * @param capsule - Derived capsule record with distilled content
  * @param candidate - Ranked capsule candidate with scores
- * @param artifact - Optional artifact record for evidence metadata
  * @returns CapsuleMatch for v2 response
  */
 export function buildCapsuleMatch(
   capsule: DerivedSkillCapsuleRecord,
   candidate: CapsuleCandidate,
-  artifact?: { evidenceMeta: EvidenceHint | null } | null,
 ): CapsuleMatch {
-  const evidence = artifact ? extractEvidenceHint(artifact) : null;
   return capsuleMatchSchema.parse({
     capsuleId: capsule.capsuleId,
     artifactId: capsule.artifactId,
@@ -281,7 +198,6 @@ export function buildCapsuleMatch(
     requiredLevel: capsule.requiredLevel,
     score: candidate.finalScore,
     reason: candidate.reason,
-    ...(evidence ? { evidence } : {}),
   });
 }
 
