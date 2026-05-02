@@ -7,6 +7,7 @@
 - ✅ **v1.2 Skill-Native Retrieval** — Phases 18-24 (shipped 2026-04-17)
 - ✅ **v1.3 工程化调整** — Phases 17-24 (shipped 2026-04-20)
 - ✅ **v1.4 评测系统构建** — Phases 25-47 (shipped 2026-04-29)
+- 🔄 **v1.5 功能增强** — Phases 48-57 (in progress)
 
 ## Phases
 
@@ -39,12 +40,240 @@
 
 </details>
 
+<details>
+<summary>🔄 v1.5 功能增强 (Phases 48-57) — IN PROGRESS</summary>
+
+### Decay & Retirement
+
+- [ ] Phase 48: Lifecycle State Machine (DECAY-01, DECAY-04)
+- [ ] Phase 49: Time-based Decay in Retrieval (DECAY-02)
+- [ ] Phase 50: Batch Management Interface (DECAY-03)
+
+### Applicability Boundary Model
+
+- [ ] Phase 51: Boundary Schema Definition (BOUND-01)
+- [ ] Phase 52: Boundary Capture in Submission Flow (BOUND-02)
+- [ ] Phase 53: Boundary Indexing & Graph Integration (BOUND-03)
+- [ ] Phase 54: Boundary-aware Retrieval (BOUND-04, BOUND-05)
+
+### Conflict Detection
+
+- [ ] Phase 55: Conflict Detection & Display (CONFLICT-01, CONFLICT-02)
+
+### Feedback Loop
+
+- [ ] Phase 56: CLI Feedback Entry Points (FEEDBACK-01)
+- [ ] Phase 57: Admin Feedback Management (FEEDBACK-02, FEEDBACK-03)
+
+</details>
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 25-47 | v1.4 | 59/59 | Complete | 2026-04-29 |
+| 48-57 | v1.5 | 0/10 | In Progress | — |
 
 ---
 
-*Next milestone: TBD via `/gsd-new-milestone`*
+## Phase Details
+
+### Phase 48: Lifecycle State Machine
+
+**Requirements:** DECAY-01, DECAY-04
+
+**Goal:** Implement knowledge lifecycle states with automatic transitions and decay application logic.
+
+**Success Criteria:**
+1. Maintainer can configure lifecycle state thresholds (review-due days, stale days, expire days) via config file
+2. Knowledge entries automatically transition through states (active → review-due → stale → expired) based on age and last-verified timestamp
+3. Retrieval results exclude expired/superseded entries from default responses (hard decay)
+4. Admin can manually supersede an entry, creating explicit supersession relationship
+
+---
+
+### Phase 49: Time-based Decay in Retrieval
+
+**Requirements:** DECAY-02
+
+**Goal:** Apply freshness multiplier in retrieval ranking with configurable decay curves.
+
+**Success Criteria:**
+1. Each knowledge entry has a freshness type: evergreen (no decay), versioned (decay on version mismatch), volatile (time-based decay)
+2. Retrieval ranking applies configurable decay multiplier based on entry age and freshness type
+3. Maintainer can configure decay curve parameters (half-life, floor) per freshness type
+4. Decay multiplier visible in retrieval explanation metadata
+
+---
+
+### Phase 50: Batch Management Interface
+
+**Requirements:** DECAY-03
+
+**Goal:** Enable maintainers to discover and manage outdated/erroneous knowledge in batches.
+
+**Success Criteria:**
+1. CLI command to list entries in stale/expired state with filtering by age, category, and state
+2. Batch actions: extend lifecycle, mark for review, deactivate, supersede with replacement
+3. Retrieval-based discovery: search for entries matching patterns with lifecycle state facet
+4. Dry-run mode shows what would change before applying batch operations
+
+---
+
+### Phase 51: Boundary Schema Definition
+
+**Requirements:** BOUND-01
+
+**Goal:** Define unified boundary schema across trap and skill artifacts.
+
+**Success Criteria:**
+1. Schema defines 6 boundary layers: context, versions, prerequisites, signals, exclusions, evidence
+2. Each layer contains structured fields with defined types (string arrays, version ranges, condition objects)
+3. Schema shared across trap and skill artifact types with no divergence
+4. TypeScript types generated from schema with runtime validation
+
+---
+
+### Phase 52: Boundary Capture in Submission Flow
+
+**Requirements:** BOUND-02
+
+**Goal:** Enable boundary input during submission with agent extraction and reviewer confirmation.
+
+**Success Criteria:**
+1. Submit CLI accepts `--boundary` flag with JSON input for all 6 layers
+2. Agent pre-review extracts candidate boundaries from content (LLM-based inference)
+3. Review UI shows extracted boundaries alongside content for reviewer confirmation
+4. Reviewer can modify, add, or remove boundary fields before approval
+
+---
+
+### Phase 53: Boundary Indexing & Graph Integration
+
+**Requirements:** BOUND-03
+
+**Goal:** Index boundary fields as facets and graph nodes with back-references.
+
+**Success Criteria:**
+1. Boundary fields indexed as facets in search index for filtering
+2. Standardized boundary values (versions, platforms) stored as graph nodes
+3. Graph edges connect knowledge entries to boundary nodes with relationship types
+4. Back-references queryable: find all entries matching a boundary constraint
+
+---
+
+### Phase 54: Boundary-aware Retrieval
+
+**Requirements:** BOUND-04, BOUND-05
+
+**Goal:** Apply boundary logic in retrieval ranking and explain applicability in responses.
+
+**Success Criteria:**
+1. Retrieval accepts boundary context (platform, versions, environment) as input
+2. Required constraint mismatch: entry excluded from results
+3. Excluded constraint match: entry penalized in ranking
+4. Preferred constraint match: entry boosted in ranking
+5. API response includes `boundary_explanation` field showing why entry is applicable or potentially inapplicable
+
+---
+
+### Phase 55: Conflict Detection & Display
+
+**Requirements:** CONFLICT-01, CONFLICT-02
+
+**Goal:** Detect conflicting knowledge entries and display relationships in retrieval.
+
+**Success Criteria:**
+1. Conflict detection runs on approval: identifies entries addressing same problem with different solutions
+2. Conflicts stored as relationships with conflict type (alternative, contradictory, superseded)
+3. Retrieval results include `conflicts` field showing related entries with conflict type
+4. Users can see conflicting options and context to choose appropriate solution
+
+---
+
+### Phase 56: CLI Feedback Entry Points
+
+**Requirements:** FEEDBACK-01
+
+**Goal:** Provide CLI post-execution feedback mechanism and skill-mounted feedback capabilities.
+
+**Success Criteria:**
+1. CLI command `feedback <entry-id>` opens interactive prompt for problem report
+2. Feedback captures: problem type (incorrect, outdated, context-mismatch, other), description, optional context
+3. Skill artifacts can define feedback prompts in SKILL.md frontmatter
+4. Feedback submission creates entry in feedback queue for admin review
+
+---
+
+### Phase 57: Admin Feedback Management
+
+**Requirements:** FEEDBACK-02, FEEDBACK-03
+
+**Goal:** Enable admins to review feedback in batch and connect feedback to lifecycle transitions.
+
+**Success Criteria:**
+1. Admin CLI lists feedback queue with filtering by type, age, and entry
+2. Batch actions: mark resolved, mark invalid, trigger lifecycle transition, request more info
+3. Feedback signals contribute to knowledge quality score (visible in admin views)
+4. Recurring feedback patterns trigger automatic lifecycle transitions (e.g., multiple "outdated" reports → stale state)
+
+---
+
+## Requirement Coverage Matrix
+
+| Requirement | Phase | Description |
+|-------------|-------|-------------|
+| DECAY-01 | Phase 48 | Lifecycle state machine with automatic transitions |
+| DECAY-02 | Phase 49 | Freshness multiplier in retrieval ranking |
+| DECAY-03 | Phase 50 | Batch management of outdated knowledge |
+| DECAY-04 | Phase 48 | Soft/hard decay application |
+| BOUND-01 | Phase 51 | Unified boundary schema (6 layers) |
+| BOUND-02 | Phase 52 | Boundary capture in submission flow |
+| BOUND-03 | Phase 53 | Boundary indexing and graph integration |
+| BOUND-04 | Phase 54 | Boundary-aware retrieval filtering/boosting |
+| BOUND-05 | Phase 54 | API boundary explanations |
+| CONFLICT-01 | Phase 55 | Conflict detection |
+| CONFLICT-02 | Phase 55 | Conflict display in retrieval |
+| FEEDBACK-01 | Phase 56 | CLI feedback entry points |
+| FEEDBACK-02 | Phase 57 | Admin feedback batch review |
+| FEEDBACK-03 | Phase 57 | Feedback signals for lifecycle/quality |
+
+**Coverage:**
+- Total v1.5 requirements: 14
+- Mapped to phases: 14
+- Unmapped: 0 ✓
+
+---
+
+## Dependency Graph
+
+```
+Phase 48 (State Machine)
+    ↓
+Phase 49 (Decay in Retrieval)
+    ↓
+Phase 50 (Batch Management)
+
+Phase 51 (Boundary Schema)
+    ↓
+Phase 52 (Boundary Capture)
+    ↓
+Phase 53 (Boundary Indexing)
+    ↓
+Phase 54 (Boundary-aware Retrieval)
+
+Phase 55 (Conflict Detection) ── independent
+
+Phase 56 (CLI Feedback)
+    ↓
+Phase 57 (Admin Feedback Management)
+```
+
+**Parallelization Opportunities:**
+- Phases 48-50 (Decay) can run in parallel with Phases 51-54 (Boundary)
+- Phase 55 (Conflict) is independent, can run anytime
+- Phase 56 can start in parallel with decay/boundary work
+
+---
+
+*Roadmap updated: 2026-05-02 for v1.5 milestone*

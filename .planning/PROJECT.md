@@ -8,11 +8,31 @@ Skill Shareer is a CLI-first internal knowledge sharing system for software team
 
 Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
 
-## Current Milestone: Planning next milestone
+## Current Milestone: v1.5 功能增强
 
-**Status:** v1.4 shipped 2026-04-29. Planning next milestone via `/gsd-new-milestone`.
+**Goal:** 升级 TrapMap 从"相关检索"到"相关且适用"，构建完整的知识生命周期管理
+
+**Target features:**
+- 淘汰机制：三态生命周期（review-due → stale → expired/superseded），软淘汰排序降权，硬淘汰下线
+- 时间权重：检索排序加入 freshness multiplier，三类时效配置（evergreen/versioned/volatile）
+- 适用边界模型：6层边界结构，区分 required/preferred/excluded，贯穿投稿/索引/检索/评测
+- 冲突发现与展示：同一问题多种解法的冲突检测与展示
+- 检索反馈闭环：CLI 执行后问题报告，管理员批量审核
 
 ## Requirements
+
+### Active
+
+- [ ] **DECAY-01**: 知识生命周期状态机（review-due / stale / expired / superseded）
+- [ ] **DECAY-02**: 时间衰减因子在检索排序中的应用
+- [ ] **DECAY-03**: 基于检索的批量管理能力
+- [ ] **BOUND-01**: 统一的适用边界 schema（trap/skill 共享）
+- [ ] **BOUND-02**: 边界在投稿/审核环节的采集
+- [ ] **BOUND-03**: 边界在索引/图谱环节的结构化
+- [ ] **BOUND-04**: 边界在检索/排序环节的过滤与降权
+- [ ] **CONFLICT-01**: 冲突关系检测与展示
+- [ ] **FEEDBACK-01**: CLI 执行后问题报告入口
+- [ ] **FEEDBACK-02**: 管理员反馈审核管理
 
 ### Validated
 
@@ -125,4 +145,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-29 after v1.4 milestone*
+*Last updated: 2026-05-02 after v1.5 milestone started*
