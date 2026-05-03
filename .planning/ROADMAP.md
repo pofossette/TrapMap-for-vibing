@@ -55,7 +55,7 @@
 
 #### Test Coverage
 
-- [ ] Phase 68: Fix failing unit tests (1 plan)
+- [x] Phase 68: Fix failing unit tests (1 plan) (completed 2026-05-03)
 - [ ] Phase 69: Governance and auth route tests (0 plans)
 - [ ] Phase 70: Retrieval and indexing core tests (0 plans)
 - [ ] Phase 71: CLI and contracts tests + coverage tooling (0 plans)
@@ -91,10 +91,10 @@
 **Goal:** Fix all failing unit tests to restore CI baseline before adding new test coverage
 **Requirements:** TEST-01
 **Depends on:** Phase 67
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 68-01-PLAN.md — Verify CI baseline restored (all tests passing after fix commit 3fb096a)
+- [x] 68-01-PLAN.md — Verify CI baseline restored (all tests passing after fix commit 3fb096a)
 
 **Success Criteria:**
 1. `pnpm test` exits with 0 (no failures)

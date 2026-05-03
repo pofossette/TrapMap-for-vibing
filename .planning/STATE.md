@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Test Coverage & Optimization
-status: executing
-last_updated: "2026-05-03T18:54:03.040Z"
-last_activity: 2026-05-03 -- Phase 68 planning complete
+status: ready_to_plan
+last_updated: "2026-05-03T18:55:06.038Z"
+last_activity: 2026-05-03 -- Phase 68 execution started
 progress:
   total_phases: 9
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 1
   completed_plans: 0
-  percent: 0
+  percent: 11
 ---
 
 ## Project Reference
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
-**Current focus:** Phase 68 — Fix failing unit tests
+**Current focus:** Phase 68 — fix-failing-unit-tests-restore-ci-baseline
 
 ## Current Position
 
-Phase: 68
+Phase: 69
 Plan: Not started
-Status: Ready to execute
-Last activity: 2026-05-03 -- Phase 68 planning complete
+Status: Ready to plan
+Last activity: 2026-05-03
 
 ## Accumulated Context
 
