@@ -330,6 +330,7 @@ export async function createSkillArtifactRecord(args: {
     ],
     decayMeta: null,
     evidenceMeta: null,
+    maintenanceMeta: null,
     boundary: null,
     createdAt: args.createdAt,
     updatedAt: args.createdAt,
@@ -415,7 +416,7 @@ export async function appendSkillArtifactRevision(args: {
   transitionLifecycleState(
     args.artifact,
     args.preReview.status === 'agent-pass' ? 'agent-pass' : 'agent-rejected',
-    'artifact revision resubmit'
+    'artifact revision resubmit',
   );
   args.artifact.latestRevision = revision;
   args.artifact.history.push(revision);

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { boundarySchema } from './boundary.js';
 import {
   actorRefSchema,
   auditMetadataSchema,
@@ -10,7 +11,7 @@ import {
   scopeSchema,
   securityLevelSchema,
 } from './common.js';
-import { boundarySchema } from './boundary.js';
+import { evidenceMetaSchema } from './evidence.js';
 import { maintenanceMetaSchema } from './maintenance.js';
 
 export const reviewRiskSchema = z.enum(['low', 'medium', 'high']);
@@ -115,6 +116,8 @@ export const knowledgeEntrySchema = z
     reviewNotes: z.array(reviewNoteSchema).default([]),
     lifecycleHistory: z.array(knowledgeLifecycleEventSchema).default([]),
     boundary: boundarySchema.nullable().default(null),
+    /** Evidence and provenance metadata (null if not yet verified) */
+    evidenceMeta: evidenceMetaSchema.nullable().default(null),
     /** Maintenance metadata for ownership and review-due tracking (MAINT-01) */
     maintenanceMeta: maintenanceMetaSchema.nullable().default(null),
   })
@@ -154,6 +157,8 @@ export const knowledgeListItemSchema = z.object({
   lifecycleState: lifecycleStateSchema,
   requiredLevel: securityLevelSchema,
   updatedAt: z.string(),
+  /** Evidence metadata for provenance tracking (null if no evidence recorded) */
+  evidenceMeta: evidenceMetaSchema.nullable().default(null),
 });
 
 export const knowledgeEntryResponseSchema = z.object({

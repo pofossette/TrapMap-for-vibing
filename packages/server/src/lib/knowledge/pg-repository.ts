@@ -8,23 +8,19 @@
  * Phase: 62 (WRITE-02)
  */
 
-import { eq, and, inArray } from 'drizzle-orm';
+import type { Boundary, DecayMeta, EvidenceMeta, LifecycleState } from '@trapmap/contracts';
+import { and, eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
-import type { Boundary, LifecycleState } from '@trapmap/contracts';
 
+import { transitionLifecycleState } from '../lifecycle/state-machine.js';
+import { knowledgeEntries, knowledgeRevisions, lifecycleEvents } from '../persistence/schema.js';
 import type {
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
   KnowledgeRevisionRecord,
 } from '../store.js';
 import type { KnowledgeRepository } from './repository.js';
-import { transitionLifecycleState } from '../lifecycle/state-machine.js';
-import {
-  knowledgeEntries,
-  knowledgeRevisions,
-  lifecycleEvents,
-} from '../persistence/schema.js';
 
 /**
  * PostgreSQL-backed repository for knowledge entry CRUD operations.
@@ -379,10 +375,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
   /**
    * Append a lifecycle event.
    */
-  async appendLifecycleEvent(
-    entryId: string,
-    event: KnowledgeLifecycleEventRecord,
-  ): Promise<void> {
+  async appendLifecycleEvent(entryId: string, event: KnowledgeLifecycleEventRecord): Promise<void> {
     await this.ensureSchema();
 
     await this.pool.query(
@@ -534,6 +527,20 @@ interface DrizzleKnowledgeEntryRow {
     maintainerLevel: number | null;
     reviewBy: string | null;
   } | null;
+  decay_meta: {
+    lastVerifiedAt: string;
+    decayState: string;
+    supersededById: string | null;
+    decayStateComputedAt: string;
+    freshnessType: string;
+  } | null;
+  evidence_meta: {
+    sourceType: string;
+    sourceRef?: string;
+    evidenceLevel: string;
+    verifiedAt: string;
+    verifiedBy: { userId: string };
+  } | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -602,6 +609,8 @@ function rowToKnowledgeEntry(row: DrizzleKnowledgeEntryRow): KnowledgeRecord {
     ownerUserId: row.owner_user_id,
     boundary: row.boundary,
     maintenanceMeta: row.maintenance_meta,
+    decayMeta: row.decay_meta as DecayMeta | null,
+    evidenceMeta: row.evidence_meta as EvidenceMeta | null,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
     // These fields are populated separately

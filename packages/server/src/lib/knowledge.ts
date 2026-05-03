@@ -5,13 +5,14 @@ import {
   type KnowledgeResubmission,
   type KnowledgeSubmission,
   type KnowledgeUpdate,
+  type MaintenanceMeta,
   knowledgeEntrySchema,
   knowledgeListItemSchema,
 } from '@trapmap/contracts';
 
 import { AppError } from './errors.js';
-import { transitionLifecycleState } from './lifecycle/state-machine.js';
 import { createDefaultEvidenceMeta } from './evidence/model.js';
+import { transitionLifecycleState } from './lifecycle/state-machine.js';
 import type {
   AgentReviewRecord,
   KnowledgeLifecycleEventRecord,
@@ -19,6 +20,7 @@ import type {
   KnowledgeReviewDecisionRecord,
   KnowledgeReviewNoteRecord,
   KnowledgeRevisionRecord,
+  MaintenanceMetaRecord,
   SkillShareerStore,
   StoreData,
 } from './store.js';
@@ -295,6 +297,7 @@ export function createKnowledgeEntryRecord(args: {
     indexState: null,
     decayMeta: null,
     evidenceMeta: null,
+    maintenanceMeta: null,
     boundary: args.boundary ?? null,
     createdAt: args.createdAt,
     updatedAt: args.createdAt,
@@ -410,7 +413,7 @@ export function applyReviewDecision(args: {
   transitionLifecycleState(
     args.entry,
     args.decision === 'approve' ? 'approved' : 'rejected',
-    'review decision'
+    'review decision',
   );
 
   // On approval, persist evidence metadata
@@ -507,6 +510,20 @@ export function toKnowledgeEntry(data: StoreData, record: KnowledgeRecord) {
   const owner = toActorRef(data, record.ownerUserId, record.teamId, record.requiredLevel);
   const submissionHistory = toSubmissionRecord(data, record, record.requiredLevel);
 
+  // Convert MaintenanceMetaRecord to MaintenanceMeta format
+  const maintenanceMeta = record.maintenanceMeta
+    ? {
+        maintainer: record.maintenanceMeta.maintainerUserId
+          ? {
+              id: record.maintenanceMeta.maintainerUserId,
+              handle: record.maintenanceMeta.maintainerHandle ?? '',
+              securityLevel: record.maintenanceMeta.maintainerLevel ?? record.requiredLevel,
+            }
+          : null,
+        reviewBy: record.maintenanceMeta.reviewBy,
+      }
+    : null;
+
   return knowledgeEntrySchema.parse({
     id: record.id,
     teamId: record.teamId,
@@ -533,6 +550,7 @@ export function toKnowledgeEntry(data: StoreData, record: KnowledgeRecord) {
     ),
     lifecycleHistory: toLifecycleEvent(data, record, record.requiredLevel),
     evidenceMeta: record.evidenceMeta,
+    maintenanceMeta,
     boundary: record.boundary,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
@@ -548,5 +566,6 @@ export function toKnowledgeListItem(record: KnowledgeRecord) {
     lifecycleState: record.lifecycleState,
     requiredLevel: record.requiredLevel,
     updatedAt: record.updatedAt,
+    evidenceMeta: record.evidenceMeta,
   });
 }

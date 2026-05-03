@@ -9,7 +9,7 @@
  * - No evidence when flags not provided
  */
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies before importing
 vi.mock('../lib/http.js', () => ({
@@ -51,7 +51,13 @@ interface MockReviewResponse {
         shortcut: string;
         detail: string;
         labels: string[];
-        reviewNotes: Array<{ id: string; createdAt: string; authorType: string; author: null; message: string }>;
+        reviewNotes: Array<{
+          id: string;
+          createdAt: string;
+          authorType: string;
+          author: null;
+          message: string;
+        }>;
       };
       history: Array<{
         revision: number;
@@ -60,7 +66,13 @@ interface MockReviewResponse {
         shortcut: string;
         detail: string;
         labels: string[];
-        reviewNotes: Array<{ id: string; createdAt: string; authorType: string; author: null; message: string }>;
+        reviewNotes: Array<{
+          id: string;
+          createdAt: string;
+          authorType: string;
+          author: null;
+          message: string;
+        }>;
       }>;
       metadata: {
         scopeLabel: 'global-constraint' | 'project-knowledge';
@@ -78,6 +90,7 @@ interface MockReviewResponse {
       reviewHistory: unknown[];
       reviewNotes: unknown[];
       lifecycleHistory: unknown[];
+      boundary: unknown;
       evidenceMeta: {
         evidenceLevel: string;
         sourceType: string;
@@ -85,6 +98,7 @@ interface MockReviewResponse {
         verifiedAt: string;
         verifiedBy: { id: string; handle: string; securityLevel: number };
       } | null;
+      maintenanceMeta: unknown;
       createdAt: string;
       updatedAt: string;
     };
@@ -115,15 +129,17 @@ const createMockResponse = (
         labels: ['test'],
         reviewNotes: [],
       },
-      history: [{
-        revision: 1,
-        submittedAt: '2026-05-02T00:00:00Z',
-        submittedBy: { id: 'user_1', handle: 'owner', securityLevel: 5 },
-        shortcut: 'Test shortcut',
-        detail: 'Test detail',
-        labels: ['test'],
-        reviewNotes: [],
-      }],
+      history: [
+        {
+          revision: 1,
+          submittedAt: '2026-05-02T00:00:00Z',
+          submittedBy: { id: 'user_1', handle: 'owner', securityLevel: 5 },
+          shortcut: 'Test shortcut',
+          detail: 'Test detail',
+          labels: ['test'],
+          reviewNotes: [],
+        },
+      ],
       metadata: {
         scopeLabel: 'global-constraint',
         submissionCount: 1,
@@ -140,7 +156,9 @@ const createMockResponse = (
       reviewHistory: [],
       reviewNotes: [],
       lifecycleHistory: [],
+      boundary: null,
       evidenceMeta,
+      maintenanceMeta: null,
       createdAt: '2026-05-02T00:00:00Z',
       updatedAt: '2026-05-02T00:00:00Z',
     },

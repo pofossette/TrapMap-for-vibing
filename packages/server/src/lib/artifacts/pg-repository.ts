@@ -8,10 +8,12 @@
  * Phase: 63 (WRITE-03)
  */
 
+import type { Boundary, DecayMeta, EvidenceMeta, LifecycleState, Scope } from '@trapmap/contracts';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
-import type { Boundary, LifecycleState, Scope } from '@trapmap/contracts';
 
+import { transitionLifecycleState } from '../lifecycle/state-machine.js';
+import { skillArtifacts } from '../persistence/schema.js';
 import type {
   AgentReviewRecord,
   SkillArtifactLifecycleEventRecord,
@@ -21,8 +23,6 @@ import type {
   StoredScriptActivationPolicy,
 } from '../store.js';
 import type { ArtifactRepository } from './repository.js';
-import { transitionLifecycleState } from '../lifecycle/state-machine.js';
-import { skillArtifacts } from '../persistence/schema.js';
 
 /**
  * PostgreSQL-backed repository for skill artifact CRUD operations.
@@ -413,15 +413,15 @@ export class PgArtifactRepository implements ArtifactRepository {
 
       // Update the revision's derived column
       await client.query(
-        `UPDATE artifact_revisions SET derived = $1 WHERE artifact_id = $2 AND revision = $3`,
+        'UPDATE artifact_revisions SET derived = $1 WHERE artifact_id = $2 AND revision = $3',
         [derived ? JSON.stringify(derived) : null, artifactId, revision],
       );
 
       // Update the artifact's updated_at
-      await client.query(
-        'UPDATE skill_artifacts SET updated_at = $1 WHERE id = $2',
-        [now, artifactId],
-      );
+      await client.query('UPDATE skill_artifacts SET updated_at = $1 WHERE id = $2', [
+        now,
+        artifactId,
+      ]);
 
       await client.query('COMMIT');
     } catch (e) {
@@ -603,6 +603,20 @@ interface DrizzleSkillArtifactRow {
     maintainerLevel: number | null;
     reviewBy: string | null;
   } | null;
+  decay_meta: {
+    lastVerifiedAt: string;
+    decayState: string;
+    supersededById: string | null;
+    decayStateComputedAt: string;
+    freshnessType: string;
+  } | null;
+  evidence_meta: {
+    sourceType: string;
+    sourceRef?: string;
+    evidenceLevel: string;
+    verifiedAt: string;
+    verifiedBy: { userId: string };
+  } | null;
   boundary: Boundary | null;
   created_at: Date;
   updated_at: Date;
@@ -750,6 +764,8 @@ function rowToSkillArtifact(row: DrizzleSkillArtifactRow): SkillArtifactRecord {
     metadata: row.metadata,
     agentReview: row.agent_review,
     maintenanceMeta: row.maintenance_meta,
+    decayMeta: row.decay_meta as DecayMeta | null,
+    evidenceMeta: row.evidence_meta as EvidenceMeta | null,
     boundary: row.boundary,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),

@@ -5,13 +5,10 @@
  * based on user-submitted feedback. Scores range from 0-100.
  */
 
-import type {
-  FeedbackProblemType,
-  FeedbackQualityScore,
-} from '@trapmap/contracts';
-import { feedbackQualityScoreSchema } from '@trapmap/contracts';
+import type { FeedbackProblemType, QualityScore } from '@trapmap/contracts';
+import { qualityScoreSchema } from '@trapmap/contracts';
 
-import type { FeedbackQueueItemRecord } from '../store.js';
+import type { FeedbackQueueRecord } from '../store.js';
 
 /**
  * Weights for each problem type (negative impact on quality).
@@ -30,8 +27,7 @@ const PROBLEM_TYPE_WEIGHTS: Record<FeedbackProblemType, number> = {
  * Newer feedback weighs more; exponential decay with 90-day half-life.
  */
 function ageWeight(submittedAt: string, now: Date): number {
-  const ageDays =
-    (now.getTime() - new Date(submittedAt).getTime()) / (1000 * 60 * 60 * 24);
+  const ageDays = (now.getTime() - new Date(submittedAt).getTime()) / (1000 * 60 * 60 * 24);
   return Math.exp(-ageDays / 90);
 }
 
@@ -45,9 +41,9 @@ function ageWeight(submittedAt: string, now: Date): number {
  */
 export function computeQualityScore(
   entryId: string,
-  feedbackQueue: FeedbackQueueItemRecord[],
+  feedbackQueue: FeedbackQueueRecord[],
   now: Date,
-): FeedbackQualityScore {
+): QualityScore {
   // Filter to non-dismissed feedback for this entry
   const entryFeedback = feedbackQueue.filter(
     (f) => f.entryId === entryId && f.status !== 'dismissed',
@@ -92,7 +88,7 @@ export function computeQualityScore(
   // Clamp to 0-100
   const score = Math.max(0, Math.min(100, weightedScore));
 
-  return feedbackQualityScoreSchema.parse({
+  return qualityScoreSchema.parse({
     entryId,
     score,
     breakdown,
@@ -106,10 +102,10 @@ export function computeQualityScore(
  */
 export function computeQualityScores(
   entryIds: string[],
-  feedbackQueue: FeedbackQueueItemRecord[],
+  feedbackQueue: FeedbackQueueRecord[],
   now: Date,
-): Map<string, FeedbackQualityScore> {
-  const scores = new Map<string, FeedbackQualityScore>();
+): Map<string, QualityScore> {
+  const scores = new Map<string, QualityScore>();
 
   for (const entryId of entryIds) {
     scores.set(entryId, computeQualityScore(entryId, feedbackQueue, now));

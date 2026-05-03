@@ -180,6 +180,10 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
       reviewHistory: [],
       reviewNotes: [],
       lifecycleHistory: [],
+      boundary: null,
+      decayMeta: null,
+      evidenceMeta: null,
+      maintenanceMeta: null,
       createdAt,
       updatedAt: createdAt,
     };
@@ -386,12 +390,17 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
    * T-12-12: keep derivation deterministic and revision-scoped with cached outputs
    */
   describe('applyDerivedArtifactOutputs() persistence', () => {
-    it('should persist derived outputs on the revision record', () => {
+    it('should persist derived outputs on the revision record', async () => {
       // First derive outputs
       const derived = deriveSkillArtifactOutputs(artifact, revision);
 
       // Apply derived outputs to record
-      const updatedArtifact = applyDerivedArtifactOutputs(storeData, artifact, revision, derived);
+      const updatedArtifact = await applyDerivedArtifactOutputs(
+        storeData,
+        artifact,
+        revision,
+        derived,
+      );
 
       // Verify derived outputs are cached on latestRevision
       expect(updatedArtifact.latestRevision.derived).toBeDefined();
@@ -406,9 +415,14 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
       );
     });
 
-    it('should cache derived outputs by sourceHash for downstream consumption', () => {
+    it('should cache derived outputs by sourceHash for downstream consumption', async () => {
       const derived = deriveSkillArtifactOutputs(artifact, revision);
-      const updatedArtifact = applyDerivedArtifactOutputs(storeData, artifact, revision, derived);
+      const updatedArtifact = await applyDerivedArtifactOutputs(
+        storeData,
+        artifact,
+        revision,
+        derived,
+      );
 
       // Source hash should be preserved
       expect(updatedArtifact.latestRevision.derived?.sourceHash).toBe(derived.sourceHash);
@@ -424,9 +438,14 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
       );
     });
 
-    it('should inherit governance from artifact root (T-12-11)', () => {
+    it('should inherit governance from artifact root (T-12-11)', async () => {
       const derived = deriveSkillArtifactOutputs(artifact, revision);
-      const updatedArtifact = applyDerivedArtifactOutputs(storeData, artifact, revision, derived);
+      const updatedArtifact = await applyDerivedArtifactOutputs(
+        storeData,
+        artifact,
+        revision,
+        derived,
+      );
 
       // Capsules should inherit artifact governance
       for (const capsule of updatedArtifact.latestRevision.derived?.capsules ?? []) {

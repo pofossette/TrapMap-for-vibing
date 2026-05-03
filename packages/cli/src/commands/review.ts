@@ -1,10 +1,25 @@
 import type { Boundary, KnowledgeEntryResponse, ReviewQueueResponse } from '@trapmap/contracts';
-import { knowledgeEntryResponseSchema, reviewQueueResponseSchema } from '@trapmap/contracts';
+import {
+  evidenceLevelSchema,
+  evidenceSourceTypeSchema,
+  knowledgeEntryResponseSchema,
+  reviewQueueResponseSchema,
+} from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
 import { printResult } from '../lib/output.js';
+
+/**
+ * Evidence input from CLI flags.
+ * The server fills in verifiedAt and verifiedBy based on the reviewer context.
+ */
+interface EvidenceInput {
+  sourceType: 'internal-experience' | 'incident' | 'doc' | 'code' | 'external-reference';
+  evidenceLevel: 'anecdotal' | 'reproduced' | 'documented' | 'verified-in-prod';
+  sourceRef?: string;
+}
 
 interface ReviewCommandOptions {
   allowReview: boolean;
@@ -92,11 +107,31 @@ export function registerReviewCommands(program: Command, options: ReviewCommandO
       .argument('<entryId>', 'Knowledge entry identifier')
       .requiredOption('--notes <text>', 'Reviewer notes')
       .option('--boundary <json>', 'Boundary constraints as JSON')
+      .option(
+        '--source-type <type>',
+        'Evidence source type (internal-experience, incident, doc, code, external-reference)',
+      )
+      .option('--source-ref <ref>', 'Source reference URL or identifier')
+      .option(
+        '--evidence-level <level>',
+        'Evidence level (anecdotal, reproduced, documented, verified-in-prod)',
+      )
       .option('--json', 'Output JSON')
       .action(
-        async (entryId: string, flags: { boundary?: string; json?: boolean; notes: string }) => {
+        async (
+          entryId: string,
+          flags: {
+            boundary?: string;
+            evidenceLevel?: string;
+            json?: boolean;
+            notes: string;
+            sourceRef?: string;
+            sourceType?: string;
+          },
+        ) => {
           const state = await loadCliState();
           requireSessionToken(state);
+
           let boundary: unknown;
           if (flags.boundary !== undefined) {
             try {
@@ -107,15 +142,58 @@ export function registerReviewCommands(program: Command, options: ReviewCommandO
               );
             }
           }
+
+          // Build evidence object if any evidence flags are provided
+          let evidence: EvidenceInput | undefined;
+          if (flags.sourceType !== undefined || flags.evidenceLevel !== undefined) {
+            // Validate source-type if provided
+            if (flags.sourceType !== undefined) {
+              const parsed = evidenceSourceTypeSchema.safeParse(flags.sourceType);
+              if (!parsed.success) {
+                const validOptions = evidenceSourceTypeSchema.options.join(', ');
+                throw new Error(
+                  `Invalid source type: ${flags.sourceType}. Valid options: ${validOptions}`,
+                );
+              }
+            }
+
+            // Validate evidence-level if provided
+            if (flags.evidenceLevel !== undefined) {
+              const parsed = evidenceLevelSchema.safeParse(flags.evidenceLevel);
+              if (!parsed.success) {
+                const validOptions = evidenceLevelSchema.options.join(', ');
+                throw new Error(
+                  `Invalid evidence level: ${flags.evidenceLevel}. Valid options: ${validOptions}`,
+                );
+              }
+            }
+
+            evidence = {
+              sourceType:
+                (flags.sourceType as EvidenceInput['sourceType']) ?? 'internal-experience',
+              evidenceLevel: (flags.evidenceLevel as EvidenceInput['evidenceLevel']) ?? 'anecdotal',
+              ...(flags.sourceRef !== undefined && { sourceRef: flags.sourceRef }),
+            };
+          }
+
+          const requestBody: Record<string, unknown> = {
+            entryId,
+            decision,
+            notes: flags.notes,
+          };
+
+          // Add optional fields only if defined
+          if (boundary !== undefined) {
+            requestBody.boundary = boundary;
+          }
+          if (evidence !== undefined) {
+            requestBody.evidence = evidence;
+          }
+
           const response = await apiRequest<KnowledgeEntryResponse>(state, {
             method: 'POST',
             path: '/v1/knowledge/review',
-            body: {
-              entryId,
-              decision,
-              notes: flags.notes,
-              boundary,
-            },
+            body: requestBody,
           });
           const parsed = knowledgeEntryResponseSchema.parse(response.data);
 

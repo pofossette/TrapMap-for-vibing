@@ -5,11 +5,7 @@
  * on feedback queue items. Follows patterns from decay/batch.ts.
  */
 
-import type {
-  FeedbackBatchAction,
-  DecayState,
-  FeedbackStatus,
-} from '@trapmap/contracts';
+import type { DecayState, FeedbackBatchAction, FeedbackStatus } from '@trapmap/contracts';
 
 import type { StoreData } from '../store.js';
 
@@ -84,9 +80,6 @@ function getProposedStatus(
     case 'dismiss':
       return 'dismissed';
     case 'triage':
-      return 'triaged';
-    case 'request-info':
-      // Request-info sets triaged status with a note
       return 'triaged';
     case 'transition':
       // Transition also resolves the feedback

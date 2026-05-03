@@ -530,6 +530,8 @@ export interface SkillArtifactRecord {
   boundary: Boundary | null;
   /** Decay metadata for lifecycle management (null if not decay-tracked) */
   decayMeta: DecayMeta | null;
+  /** Evidence metadata for provenance tracking (null if no evidence recorded) */
+  evidenceMeta: EvidenceMeta | null;
   /** Maintenance metadata for ownership and review-due tracking (null if not assigned) */
   maintenanceMeta: MaintenanceMetaRecord | null;
   /** Created timestamp */
