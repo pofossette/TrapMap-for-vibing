@@ -1,3 +1,4 @@
+export * from './domain/admin.js';
 export * from './domain/artifacts.js';
 export * from './domain/auth.js';
 export * from './domain/boundary.js';
