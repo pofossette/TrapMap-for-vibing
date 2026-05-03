@@ -54,7 +54,7 @@
 - [x] Phase 51: Boundary Schema Definition (BOUND-01) (completed 2026-05-02)
 - [x] Phase 52: Boundary Capture in Submission Flow (BOUND-02) (completed 2026-05-02)
 - [x] Phase 53: Boundary Indexing & Graph Integration (BOUND-03) (completed 2026-05-02)
-- [ ] Phase 54: Boundary-aware Retrieval (BOUND-04, BOUND-05)
+- [x] Phase 54: Boundary-aware Retrieval (BOUND-04, BOUND-05) (completed 2026-05-04 via Phase 66)
 
 ### Conflict Detection
 
@@ -80,8 +80,8 @@
 ### Gap Closure
 
 - [x] Phase 64: Retrieval Pipeline Integration (DECAY-02, CONFLICT-02) (completed 2026-05-03)
-- [ ] Phase 65: Feedback Lifecycle & Decay Route Wiring (FEEDBACK-03, DECAY-03)
-- [ ] Phase 66: Boundary-aware Retrieval Completion (BOUND-04, BOUND-05)
+- [x] Phase 65: Feedback Lifecycle & Decay Route Wiring (FEEDBACK-03, DECAY-03) (completed 2026-05-03)
+- [x] Phase 66: Boundary-aware Retrieval Completion (BOUND-04, BOUND-05) (completed 2026-05-04)
 - [ ] Phase 67: Audit Cleanup & Documentation
 
 </details>
@@ -414,11 +414,11 @@ Plans:
 
 **Depends on:** Phase 57, Phase 50
 
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 65-01-PLAN.md -- Contracts, import fixes, dead code removal
-- [ ] 65-02-PLAN.md -- Lifecycle trigger wiring, route registration, E2E tests
+- [x] 65-01-PLAN.md -- Contracts, import fixes, dead code removal
+- [x] 65-02-PLAN.md -- Lifecycle trigger wiring, route registration, E2E tests
 
 **Success Criteria:**
 1. `checkLifecycleTriggers` called after batch feedback execution -- feedback-driven lifecycle transitions fire automatically
