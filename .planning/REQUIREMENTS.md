@@ -10,7 +10,7 @@ Requirements for test coverage, performance optimization, code quality, and docu
 ### Test Coverage
 
 - [x] **TEST-01**: All 6 failing test files pass with 38 cases fixed (derive.test.ts, assembly.test.ts, etc.)
-- [ ] **TEST-02**: Governance module and auth routes have test coverage for security-critical paths
+- [x] **TEST-02**: Governance module and auth routes have test coverage for security-critical paths
 - [ ] **TEST-03**: Retrieval orchestrator, semantic, merge, and indexing pipelines have test coverage
 - [ ] **TEST-04**: CLI commands and contracts schemas have validation tests
 - [ ] **TEST-05**: Vitest coverage tooling integrated with CI thresholds (70% line coverage target)
@@ -50,7 +50,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | TEST-01 | Phase 68 | Complete |
-| TEST-02 | Phase 69 | Pending |
+| TEST-02 | Phase 69 | Complete |
 | TEST-03 | Phase 70 | Pending |
 | TEST-04 | Phase 71 | Pending |
 | TEST-05 | Phase 71 | Pending |
