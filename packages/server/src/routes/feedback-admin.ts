@@ -24,6 +24,7 @@ import { requirePermission } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import type { FeedbackQueueRecord } from '../lib/store.js';
 import { nowIso } from '../lib/store.js';
+import { checkLifecycleTriggers, getLifecycleTriggerRules } from '../lib/feedback/lifecycle-triggers.js';
 import { loadUserOpsLogConfig, logUserOperation } from '../lib/user-ops-log.js';
 
 /**
@@ -331,6 +332,50 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
       }
     });
 
+    // After batch execution, evaluate lifecycle triggers for affected entries
+    const lifecycleTransitions: Array<{ entryId: string; toState: string; reason: string }> = [];
+
+    if (!body.dryRun) {
+      const freshData = await app.skillShareer.store.snapshot();
+      const rules = getLifecycleTriggerRules();
+      const lifecycleNow = new Date();
+
+      // Collect unique entry IDs from eligible items
+      const affectedEntryIds = [...new Set(
+        resultItems
+          .filter(i => i.eligible)
+          .map(i => {
+            const feedback = freshData.feedbackQueue.find(f => f.id === i.feedbackId);
+            return feedback?.entryId;
+          })
+          .filter((id): id is string => id !== undefined)
+      )];
+
+      for (const entryId of affectedEntryIds) {
+        const result = checkLifecycleTriggers(entryId, freshData.feedbackQueue, rules, lifecycleNow);
+        if (result.shouldTransition && result.targetState) {
+          await app.skillShareer.store.transact((data) => {
+            const entry = data.knowledgeEntries.find(e => e.id === entryId);
+            if (entry) {
+              entry.decayMeta = {
+                lastVerifiedAt: entry.decayMeta?.lastVerifiedAt ?? entry.updatedAt,
+                decayState: result.targetState!,
+                supersededById: entry.decayMeta?.supersededById ?? null,
+                decayStateComputedAt: lifecycleNow.toISOString(),
+                freshnessType: entry.decayMeta?.freshnessType ?? 'evergreen',
+              };
+              entry.updatedAt = lifecycleNow.toISOString();
+            }
+          });
+          lifecycleTransitions.push({
+            entryId,
+            toState: result.targetState,
+            reason: result.reason,
+          });
+        }
+      }
+    }
+
     // Log operation
     const logConfig = loadUserOpsLogConfig();
     await logUserOperation(logConfig, {
@@ -345,6 +390,7 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
         dryRun: false,
         feedbackCount: body.feedbackIds.length,
         eligibleCount: totalEligible,
+        lifecycleTransitions,
       },
     });
 
