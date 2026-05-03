@@ -10,7 +10,7 @@ Requirements for v1.5 milestone: 功能增强
 ### Decay & Retirement (DECAY)
 
 - [x] **DECAY-01**: Maintainer can configure knowledge lifecycle states (review-due / stale / expired / superseded) with automatic state transitions based on time and usage patterns
-- [ ] **DECAY-02**: Retrieval ranking applies freshness multiplier with configurable decay curves for three knowledge types (evergreen / versioned / volatile)
+- [x] **DECAY-02**: Retrieval ranking applies freshness multiplier with configurable decay curves for three knowledge types (evergreen / versioned / volatile)
 - [ ] **DECAY-03**: Maintainer can perform batch management of outdated/erroneous knowledge through retrieval-based discovery interface
 - [x] **DECAY-04**: System applies soft decay (ranking penalty) for stale knowledge and hard decay (exclusion from default retrieval) for expired/superseded knowledge
 
@@ -25,7 +25,7 @@ Requirements for v1.5 milestone: 功能增强
 ### Conflict Detection (CONFLICT)
 
 - [x] **CONFLICT-01**: System detects when multiple knowledge entries address the same problem with different solutions
-- [ ] **CONFLICT-02**: Retrieval results display conflict relationships with context allowing users to choose appropriate solutions
+- [x] **CONFLICT-02**: Retrieval results display conflict relationships with context allowing users to choose appropriate solutions
 
 ### Feedback Loop (FEEDBACK)
 
@@ -85,7 +85,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | DECAY-01 | Phase 48 | Complete |
-| DECAY-02 | Phase 64 | Pending |
+| DECAY-02 | Phase 64 | Complete |
 | DECAY-03 | Phase 65 | Pending |
 | DECAY-04 | Phase 48 | Complete |
 | BOUND-01 | Phase 51 | Complete |
@@ -94,7 +94,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BOUND-04 | Phase 66 | Pending |
 | BOUND-05 | Phase 66 | Pending |
 | CONFLICT-01 | Phase 55 | Complete |
-| CONFLICT-02 | Phase 64 | Pending |
+| CONFLICT-02 | Phase 64 | Complete |
 | FEEDBACK-01 | Phase 56 | Complete |
 | FEEDBACK-02 | Phase 57 | Complete |
 | FEEDBACK-03 | Phase 65 | Pending |

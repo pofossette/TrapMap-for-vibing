@@ -79,7 +79,7 @@
 
 ### Gap Closure
 
-- [ ] Phase 64: Retrieval Pipeline Integration (DECAY-02, CONFLICT-02)
+- [x] Phase 64: Retrieval Pipeline Integration (DECAY-02, CONFLICT-02) (completed 2026-05-03)
 - [ ] Phase 65: Feedback Lifecycle & Decay Route Wiring (FEEDBACK-03, DECAY-03)
 - [ ] Phase 66: Boundary-aware Retrieval Completion (BOUND-04, BOUND-05)
 - [ ] Phase 67: Audit Cleanup & Documentation
@@ -393,10 +393,10 @@ Plans:
 
 **Depends on:** Phase 49, Phase 55
 
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 64-01-PLAN.md -- Freshness decay wiring in rerank, conflict hints and freshness config in orchestrator
+- [x] 64-01-PLAN.md -- Freshness decay wiring in rerank, conflict hints and freshness config in orchestrator
 
 **Success Criteria:**
 1. `computeFreshnessMultiplier` imported and called by `rerank.ts`; `RerankConfig` includes `freshnessConfig` field
