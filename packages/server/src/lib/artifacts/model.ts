@@ -28,6 +28,7 @@ import type {
   StoredScriptActivationPolicy,
 } from '../store.js';
 import { nowIso } from '../store.js';
+import type { ArtifactRepository } from './repository.js';
 
 /**
  * Get a user from the store data.
@@ -215,10 +216,14 @@ function toAgentReviewNotes(
  *
  * This creates an additive artifact aggregate beside knowledgeEntries (T-12-05).
  * Governance is stored at the artifact root (T-12-07).
+ *
+ * When artifactRepo is provided, uses repository for ID generation and persistence.
+ * Otherwise falls back to store-based mutation (for JsonStore compatibility).
  */
-export function createSkillArtifactRecord(args: {
+export async function createSkillArtifactRecord(args: {
   store: SkillShareerStore;
   data: StoreData;
+  artifactRepo?: ArtifactRepository;
   ownerUserId: string;
   teamId: string | null;
   payload: {
@@ -252,7 +257,7 @@ export function createSkillArtifactRecord(args: {
   requiredLevel: number;
   createdAt: string;
   preReview: AgentReviewResult;
-}): ServerSkillArtifactRecord {
+}): Promise<ServerSkillArtifactRecord> {
   const agentNotes = toAgentReviewNotes(args.store, args.data, args.preReview);
   const agentReview = toAgentReviewRecord(args.preReview);
 
@@ -269,6 +274,11 @@ export function createSkillArtifactRecord(args: {
     derived: null, // Derived outputs will be computed in a later phase
   };
 
+  // Generate artifact ID using repository if available
+  const artifactId = args.artifactRepo
+    ? await args.artifactRepo.nextId()
+    : args.store.nextId(args.data, 'artifact');
+
   // Create metadata
   const metadata: SkillArtifactMetadataRecord = {
     sourceKind: args.payload.sourceKind,
@@ -283,7 +293,7 @@ export function createSkillArtifactRecord(args: {
 
   // Create artifact record
   const artifact: ServerSkillArtifactRecord = {
-    id: args.store.nextId(args.data, 'artifact'),
+    id: artifactId,
     teamId: args.teamId,
     scope: args.payload.scope,
     labels: args.payload.labels,
@@ -325,11 +335,16 @@ export function createSkillArtifactRecord(args: {
     updatedAt: args.createdAt,
   };
 
-  // Add to skillArtifacts array (additive, not replacing knowledgeEntries)
-  if (!args.data.skillArtifacts) {
-    args.data.skillArtifacts = [];
+  // Persist using repository if available, otherwise use store mutation
+  if (args.artifactRepo) {
+    await args.artifactRepo.insert(artifact);
+  } else {
+    // Add to skillArtifacts array (additive, not replacing knowledgeEntries)
+    if (!args.data.skillArtifacts) {
+      args.data.skillArtifacts = [];
+    }
+    args.data.skillArtifacts.push(artifact);
   }
-  args.data.skillArtifacts.push(artifact);
 
   return artifact;
 }
@@ -338,10 +353,14 @@ export function createSkillArtifactRecord(args: {
  * Append a new revision to an existing skill artifact.
  *
  * This preserves governance at the artifact root while adding immutable revisions.
+ *
+ * When artifactRepo is provided, uses repository for persistence.
+ * Otherwise falls back to in-memory mutation (for JsonStore compatibility).
  */
-export function appendSkillArtifactRevision(args: {
+export async function appendSkillArtifactRevision(args: {
   store: SkillShareerStore;
   data: StoreData;
+  artifactRepo?: ArtifactRepository;
   artifact: ServerSkillArtifactRecord;
   ownerUserId: string;
   payload: {
@@ -368,7 +387,7 @@ export function appendSkillArtifactRevision(args: {
   };
   submittedAt: string;
   preReview: AgentReviewResult;
-}): ServerSkillArtifactRecord {
+}): Promise<ServerSkillArtifactRecord> {
   const agentNotes = toAgentReviewNotes(args.store, args.data, args.preReview);
   const agentReview = toAgentReviewRecord(args.preReview);
   const revisionNumber = args.artifact.history.length + 1;
@@ -423,6 +442,11 @@ export function appendSkillArtifactRevision(args: {
     }),
   );
   args.artifact.updatedAt = args.submittedAt;
+
+  // Persist using repository if available
+  if (args.artifactRepo) {
+    await args.artifactRepo.appendRevision(args.artifact.id, revision);
+  }
 
   return args.artifact;
 }
@@ -480,9 +504,10 @@ export function toSkillArtifact(data: StoreData, record: ServerSkillArtifactReco
  * @param artifact - Skill artifact record
  * @param revision - Artifact revision to update
  * @param derived - Derived outputs to apply
+ * @param artifactRepo - Optional repository for row-level persistence
  * @returns Updated artifact record
  */
-export function applyDerivedArtifactOutputs(
+export async function applyDerivedArtifactOutputs(
   data: StoreData,
   artifact: SkillArtifactRecord,
   revision: SkillArtifactRevisionRecord,
@@ -539,7 +564,8 @@ export function applyDerivedArtifactOutputs(
     sourceHash: string;
     derivedAt: string;
   },
-): SkillArtifactRecord {
+  artifactRepo?: ArtifactRepository,
+): Promise<SkillArtifactRecord> {
   // Create derived record
   const derivedRecord = {
     profile: derived.profile,
@@ -549,7 +575,12 @@ export function applyDerivedArtifactOutputs(
     derivedAt: derived.derivedAt,
   };
 
-  // Update the revision with derived outputs
+  // Update using repository if available
+  if (artifactRepo) {
+    await artifactRepo.updateRevisionDerived(artifact.id, revision.revision, derivedRecord);
+  }
+
+  // Update the revision with derived outputs (in-memory)
   revision.derived = derivedRecord;
 
   // Update the artifact's latestRevision reference
