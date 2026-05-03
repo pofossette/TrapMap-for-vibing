@@ -41,6 +41,18 @@ export const storeSnapshot = pgTable('store_snapshot', {
  * Knowledge entry Embedding vector for pgvector similarity search.
  * Stores one row per entry revision with the computed embedding.
  * Enables O(log n) similarity search via HNSW index vs O(n) in-memory scan.
+ *
+ * HNSW Index (created by ensureVectorIndex in db-search.ts):
+ * ```sql
+ * CREATE INDEX knowledge_embeddings_vector_idx
+ * ON knowledge_embeddings
+ * USING hnsw (vector vector_cosine_ops)
+ * WITH (m = 16, ef_construction = 64);
+ * ```
+ *
+ * The HNSW index is not defined here as Drizzle ORM doesn't natively support
+ * custom index types. The index is created programmatically during server
+ * startup via ensureVectorIndex() in packages/server/src/lib/retrieval/db-search.ts.
  */
 export const knowledgeEmbeddings = pgTable(
   'knowledge_embeddings',
@@ -120,6 +132,9 @@ export const knowledgeKeywords = pgTable(
   },
   (table) => [
     uniqueIndex('knowledge_keywords_entry_revision_idx').on(table.entryId, table.revision),
+    // GIN index for fast JSONB array containment queries using ?| operator
+    // Enables O(log n) token matching vs O(n) sequential scan
+    index('idx_knowledge_keywords_tokens_gin').using('gin', table.tokens),
   ],
 );
 
