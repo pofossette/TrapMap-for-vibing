@@ -58,7 +58,7 @@
 - [x] Phase 68: Fix failing unit tests (1 plan) (completed 2026-05-03)
 - [x] Phase 69: Governance and auth route tests (3/3 plans) (completed 2026-05-03)
 - [x] Phase 70: Retrieval and indexing core tests (3/3 plans) (completed 2026-05-04)
-- [ ] Phase 71: CLI and contracts tests + coverage tooling (1 plan)
+- [x] Phase 71: CLI and contracts tests + coverage tooling (3/3 plans) (completed 2026-05-04)
 
 #### Performance Optimization
 
@@ -80,7 +80,7 @@
 |-------|-----------|----------------|--------|-----------|
 | 1-47 | v1.0-v1.4 | 93/93 | Complete | 2026-04-29 |
 | 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
-| 68-76 | v1.6 | 6/9 | In progress | 2026-05-04 |
+| 68-76 | v1.6 | 9/9 | In progress | 2026-05-04 |
 
 ---
 
@@ -152,12 +152,12 @@ Plans:
 **Goal:** Add tests for CLI commands and contracts schemas, integrate Vitest coverage tooling, and establish coverage thresholds in CI
 **Requirements:** TEST-04, TEST-05
 **Depends on:** Phase 69, Phase 70
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [x] 71-01-PLAN.md -- HTTP client unit tests (completed 2026-05-04)
-- [x] 71-02-PLAN.md -- CLI knowledge and team command tests (48 tests) (completed 2026-05-04)
-- [ ] 71-03-PLAN.md -- Contracts schema validation tests + coverage tooling
+- [x] 71-01-PLAN.md -- HTTP client unit tests (24 tests)
+- [x] 71-02-PLAN.md -- CLI knowledge and team command tests (48 tests)
+- [x] 71-03-PLAN.md -- Contracts schema validation tests + coverage tooling (82 tests)
 
 **Success Criteria:**
 1. CLI commands have tests: `knowledge.test.ts`, `team.test.ts`, `http.test.ts`
