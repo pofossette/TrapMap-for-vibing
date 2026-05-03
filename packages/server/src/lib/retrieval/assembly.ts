@@ -79,6 +79,7 @@ export function generateMatchReason(
  * Convert a scored entry to a retrieval match.
  * Optionally includes citation if provided.
  * Optionally includes conflict hints if provided.
+ * Includes boundary explanation when present on the scored entry.
  */
 export function toRetrievalMatch(
   scoredEntry: ScoredEntry,
@@ -86,7 +87,7 @@ export function toRetrievalMatch(
   citation?: RetrievalCitation,
   conflicts?: ConflictHint[],
 ): RetrievalMatch {
-  const { entry, score } = scoredEntry;
+  const { entry, score, boundaryExplanation } = scoredEntry;
   return retrievalMatchSchema.parse({
     entryId: entry.id,
     scope: entry.scope,
@@ -98,6 +99,7 @@ export function toRetrievalMatch(
     reason: generateMatchReason(entry, score, filters),
     citation,
     ...(conflicts && conflicts.length > 0 ? { conflicts } : {}),
+    ...(boundaryExplanation ? { boundaryExplanation } : {}),
   });
 }
 
