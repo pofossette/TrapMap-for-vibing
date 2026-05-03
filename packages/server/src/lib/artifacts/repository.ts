@@ -358,8 +358,10 @@ export class InMemoryArtifactRepository implements ArtifactRepository {
 
 /**
  * Factory function to create the appropriate ArtifactRepository.
- * Returns DualWriteArtifactRepository when pool is available,
+ * Returns PgArtifactRepository when pool is available,
  * InMemoryArtifactRepository otherwise.
+ *
+ * Phase 63: PostgreSQL-only, no JSONB shadow writes.
  */
 export function createArtifactRepository(config: {
   pool?: Pool;
@@ -371,8 +373,8 @@ export function createArtifactRepository(config: {
     const { PgArtifactRepository } = require('./pg-repository.js') as {
       PgArtifactRepository: new (pool: Pool) => ArtifactRepository;
     };
-    const pgRepo = new PgArtifactRepository(config.pool);
-    return new DualWriteArtifactRepository(pgRepo, config.store);
+    // Phase 63: PostgreSQL-only, no JSONB shadow writes
+    return new PgArtifactRepository(config.pool);
   }
   return new InMemoryArtifactRepository(config.store);
 }
