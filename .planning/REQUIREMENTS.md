@@ -52,7 +52,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-01 | Phase 68 | Complete |
 | TEST-02 | Phase 69 | Complete |
 | TEST-03 | Phase 70 | Pending |
-| TEST-04 | Phase 71 | Pending |
+| TEST-04 | Phase 71 | In progress (CLI tests done, contracts pending) |
 | TEST-05 | Phase 71 | Pending |
 | PERF-01 | Phase 72 | Pending |
 | PERF-02 | Phase 72 | Pending |

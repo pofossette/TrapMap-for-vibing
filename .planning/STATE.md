@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Test Coverage & Optimization
-status: ready_to_plan
-last_updated: "2026-05-04T04:20:00Z"
-last_activity: 2026-05-04 -- Phase 70 completed (127 retrieval + indexing tests)
+status: planning
+last_updated: "2026-05-04T04:25:00Z"
+last_activity: 2026-05-04 -- Phase 71 Plan 02 completed (48 CLI command tests)
 progress:
   total_phases: 9
-  completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
-  percent: 44
+  completed_phases: 2
+  total_plans: 10
+  completed_plans: 7
+  percent: 70
 ---
 
 ## Project Reference
@@ -23,7 +23,7 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 ## Current Position
 
 Phase: 71
-Plan: Not started
+Plan: 03
 Status: Ready to plan
 Last activity: 2026-05-04
 
@@ -51,3 +51,11 @@ Last activity: 2026-05-04
 - Orchestrator tests mock external recall modules, store, and services
 - PostgresStore tests use mock pool instead of real DB for unit tests
 - All 127 new tests pass (total: 1945 tests, 0 failures)
+
+### Decisions (Phase 71 Plan 02)
+
+- Mock requireSessionToken to throw in authentication tests (Commander swallows errors without exitOverride)
+- Use createMockEntry/createMockTeam helper functions for test data consistency
+- Test both text and JSON output modes for all commands
+- Verify conditional command registration via allowSubmit/allowInspect/allowCreate flags
+- All 48 new tests pass (knowledge: 31, team: 17)
