@@ -2,17 +2,17 @@
 
 ## Milestones
 
-- ✅ **v1.0 MVP** — Phases 1-5 (shipped 2026-04-14)
-- ✅ **v1.1 Multi-path Retrieval** — Phases 6-11 (shipped 2026-04-16)
-- ✅ **v1.2 Skill-Native Retrieval** — Phases 12-16 (shipped 2026-04-17)
-- ✅ **v1.3 工程化调整** — Phases 17-24 (shipped 2026-04-20)
-- ✅ **v1.4 评测系统构建** — Phases 25-47 (shipped 2026-04-29)
-- 🔄 **v1.5 功能增强** — Phases 48-67 (in progress)
+- **v1.0 MVP** -- Phases 1-5 (shipped 2026-04-14)
+- **v1.1 Multi-path Retrieval** -- Phases 6-11 (shipped 2026-04-16)
+- **v1.2 Skill-Native Retrieval** -- Phases 12-16 (shipped 2026-04-17)
+- **v1.3** -- Phases 17-24 (shipped 2026-04-20)
+- **v1.4** -- Phases 25-47 (shipped 2026-04-29)
+- **v1.5** -- Phases 48-67 (in progress)
 
 ## Phases
 
 <details>
-<summary>✅ v1.4 评测系统构建 (Phases 25-47) — SHIPPED 2026-04-29</summary>
+<summary>v1.4  (Phases 25-47) -- SHIPPED 2026-04-29</summary>
 
 - [x] Phase 25: Evaluation contracts & golden datasets (3/3 plans)
 - [x] Phase 26: Retrieval evaluation runner & metrics (3/3 plans)
@@ -41,7 +41,7 @@
 </details>
 
 <details>
-<summary>🔄 v1.5 功能增强 (Phases 48-67) — IN PROGRESS</summary>
+<summary>v1.5  (Phases 48-67) -- IN PROGRESS</summary>
 
 ### Decay & Retirement
 
@@ -91,7 +91,7 @@
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 25-47 | v1.4 | 59/59 | Complete | 2026-04-29 |
-| 48-67 | v1.5 | —/— | In Progress | — |
+| 48-67 | v1.5 | --/-- | In Progress | -- |
 
 ---
 
@@ -106,13 +106,13 @@
 **Plans:** 3/3 plans complete
 
 Plans:
-- [x] 48-01-PLAN.md — Decay domain model: contracts, state machine, config, store records
-- [x] 48-02-PLAN.md — Supersede feature: service, routes, CLI command
-- [x] 48-03-PLAN.md — Governance integration: hard/soft decay in retrieval pipeline
+- [x] 48-01-PLAN.md -- Decay domain model: contracts, state machine, config, store records
+- [x] 48-02-PLAN.md -- Supersede feature: service, routes, CLI command
+- [x] 48-03-PLAN.md -- Governance integration: hard/soft decay in retrieval pipeline
 
 **Success Criteria:**
 1. Maintainer can configure lifecycle state thresholds (review-due days, stale days, expire days) via config file
-2. Knowledge entries automatically transition through states (active → review-due → stale → expired) based on age and last-verified timestamp
+2. Knowledge entries automatically transition through states (active -> review-due -> stale -> expired) based on age and last-verified timestamp
 3. Retrieval results exclude expired/superseded entries from default responses (hard decay)
 4. Admin can manually supersede an entry, creating explicit supersession relationship
 
@@ -183,9 +183,9 @@ Plans:
 **Plans:** 3/2 plans complete
 
 Plans:
-- [x] 53-01-PLAN.md — Graph schema extension, boundary extraction, facet indexing (completed 2026-05-02)
-- [x] 53-02-PLAN.md — Contracts layer: BoundaryContext, BoundaryExplanation, boundaryMetaSchema, barrel export, KnowledgeRecord.boundary
-- [x] 53-03-PLAN.md — Back-reference query helpers with tests
+- [x] 53-01-PLAN.md -- Graph schema extension, boundary extraction, facet indexing (completed 2026-05-02)
+- [x] 53-02-PLAN.md -- Contracts layer: BoundaryContext, BoundaryExplanation, boundaryMetaSchema, barrel export, KnowledgeRecord.boundary
+- [x] 53-03-PLAN.md -- Back-reference query helpers with tests
 
 **Success Criteria:**
 1. Boundary fields indexed as facets in search index for filtering
@@ -204,7 +204,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 54-01-PLAN.md — Boundary filtering, scoring, explanation in retrieval pipeline
+- [ ] 54-01-PLAN.md -- Boundary filtering, scoring, explanation in retrieval pipeline
 
 **Success Criteria:**
 1. Retrieval accepts boundary context (platform, versions, environment) as input
@@ -253,7 +253,7 @@ Plans:
 1. Admin CLI lists feedback queue with filtering by type, age, and entry
 2. Batch actions: mark resolved, mark invalid, trigger lifecycle transition, request more info
 3. Feedback signals contribute to knowledge quality score (visible in admin views)
-4. Recurring feedback patterns trigger automatic lifecycle transitions (e.g., multiple "outdated" reports → stale state)
+4. Recurring feedback patterns trigger automatic lifecycle transitions (e.g., multiple "outdated" reports -> stale state)
 
 ---
 
@@ -266,12 +266,12 @@ Plans:
 **Plans:** 3/2 plans complete
 
 Plans:
-- [x] 58-01-PLAN.md — Core evidence schema contracts and exports
-- [x] 58-02-PLAN.md — Domain schema extensions (knowledge, artifacts, review, retrieval, operations)
-- [x] 58-03-PLAN.md — Server data layer: store records and evidence validation helpers
-- [x] 58-04-PLAN.md — Review flow integration for evidence persistence and audit
-- [x] 58-05-PLAN.md — Retrieval exposure and operations filtering
-- [x] 58-06-PLAN.md — CLI evidence commands, flags, output, and tests
+- [x] 58-01-PLAN.md -- Core evidence schema contracts and exports
+- [x] 58-02-PLAN.md -- Domain schema extensions (knowledge, artifacts, review, retrieval, operations)
+- [x] 58-03-PLAN.md -- Server data layer: store records and evidence validation helpers
+- [x] 58-04-PLAN.md -- Review flow integration for evidence persistence and audit
+- [x] 58-05-PLAN.md -- Retrieval exposure and operations filtering
+- [x] 58-06-PLAN.md -- CLI evidence commands, flags, output, and tests
 
 **Success Criteria:**
 1. Trap and skill records can store minimal evidence metadata: `sourceType`, `sourceRef`, `evidenceLevel`, `verifiedAt`, `verifiedBy`
@@ -290,10 +290,10 @@ Plans:
 **Plans:** 4/4 plans complete
 
 Plans:
-- [x] 59-01-PLAN.md — Maintenance contracts: schema, knowledge/artifact extensions, store types
-- [x] 59-02-PLAN.md — Server module: model helpers, batch operations, route handlers
-- [x] 59-03-PLAN.md — CLI commands and test coverage
-- [x] 59-04-PLAN.md — Gap closure: fix assign-owner handle correctness, add MAINT requirements to REQUIREMENTS.md
+- [x] 59-01-PLAN.md -- Maintenance contracts: schema, knowledge/artifact extensions, store types
+- [x] 59-02-PLAN.md -- Server module: model helpers, batch operations, route handlers
+- [x] 59-03-PLAN.md -- CLI commands and test coverage
+- [x] 59-04-PLAN.md -- Gap closure: fix assign-owner handle correctness, add MAINT requirements to REQUIREMENTS.md
 
 **Success Criteria:**
 1. Trap and skill records store `owner`, `reviewBy`, and `lastVerifiedAt`
@@ -314,7 +314,7 @@ Plans:
 
 **Success Criteria:**
 1. `AdapterSyncState` and `KnowledgeIndexStateRecord` defined in exactly one place; all consumers import from that canonical location
-2. Lifecycle state transitions defined in a single transition map (from-state → allowed to-states)
+2. Lifecycle state transitions defined in a single transition map (from-state -> allowed to-states)
 3. All state transition sites call a centralized `transitionLifecycleState()` function that validates legality before mutating
 4. No direct `entry.lifecycleState = ...` assignments remain outside the state machine module
 5. Existing tests continue to pass without behavioral changes
@@ -325,21 +325,21 @@ Plans:
 
 **Requirements:** WRITE-01
 
-**Goal:** Extract candidate submissions from the single-row JSONB snapshot into a dedicated `candidates` table with row-level locking, eliminating the 3-4× transact amplification per candidate and enabling concurrent processing of independent candidates.
+**Goal:** Extract candidate submissions from the single-row JSONB snapshot into a dedicated `candidates` table with row-level locking, eliminating the 3-4x transact amplification per candidate and enabling concurrent processing of independent candidates.
 
 **Depends on:** Phase 60
 
 **Plans:** 3/3 plans complete
 
 Plans:
-- [x] 61-01-PLAN.md — Schema definition, CandidateRepository interface, PgCandidateRepository with row-level locking
-- [x] 61-02-PLAN.md — DualWrite adapter, InMemory fallback, processor integration, barrel exports
-- [x] 61-03-PLAN.md — Migration script (JSONB to candidates table backfill)
+- [x] 61-01-PLAN.md -- Schema definition, CandidateRepository interface, PgCandidateRepository with row-level locking
+- [x] 61-02-PLAN.md -- DualWrite adapter, InMemory fallback, processor integration, barrel exports
+- [x] 61-03-PLAN.md -- Migration script (JSONB to candidates table backfill)
 
 **Success Criteria:**
 1. `candidates` table exists with row-level granularity: each candidate is a separate row with its own lock scope
 2. `PgCandidateRepository` implements insert/updateStatus/attachAnalysis/attachDuplicateCase/listByStatus with single-row operations
-3. Candidate processor uses repository directly — no `transact()` calls for candidate status transitions (received→queued→analyzing→ready/duplicate_detected)
+3. Candidate processor uses repository directly -- no `transact()` calls for candidate status transitions (received->queued->analyzing->ready/duplicate_detected)
 4. Dual-write period: candidate mutations written to both the new table and the JSONB snapshot until Phase 63 removes JSONB
 5. Existing candidate tests pass unchanged (JsonStore path unaffected)
 6. Migration script backfills existing candidateSubmissions from JSONB to candidates table
@@ -389,13 +389,18 @@ Plans:
 
 **Requirements:** DECAY-02, CONFLICT-02
 
-**Goal:** Wire existing but disconnected retrieval features into the live pipeline — freshness decay scoring and conflict display in results.
+**Goal:** Wire existing but disconnected retrieval features into the live pipeline -- freshness decay scoring and conflict display in results.
 
 **Depends on:** Phase 49, Phase 55
 
+**Plans:** 1 plan
+
+Plans:
+- [ ] 64-01-PLAN.md -- Freshness decay wiring in rerank, conflict hints and freshness config in orchestrator
+
 **Success Criteria:**
 1. `computeFreshnessMultiplier` imported and called by `rerank.ts`; `RerankConfig` includes `freshnessConfig` field
-2. Orchestrator threads `conflictHints` Map to `assembleResponseBuckets` — conflict data visible in CLI output
+2. Orchestrator threads `conflictHints` Map to `assembleResponseBuckets` -- conflict data visible in CLI output
 3. Freshness decay scoring E2E flow: retrieval results reflect entry age and freshness type
 4. Conflict display E2E flow: conflicting entries shown with conflict type and context
 
@@ -405,14 +410,14 @@ Plans:
 
 **Requirements:** FEEDBACK-03, DECAY-03
 
-**Goal:** Activate dead-code paths — wire automatic lifecycle triggers from feedback and register undocumented decay routes.
+**Goal:** Activate dead-code paths -- wire automatic lifecycle triggers from feedback and register undocumented decay routes.
 
 **Depends on:** Phase 57, Phase 50
 
 **Success Criteria:**
-1. `checkLifecycleTriggers` called after batch feedback execution — feedback-driven lifecycle transitions fire automatically
+1. `checkLifecycleTriggers` called after batch feedback execution -- feedback-driven lifecycle transitions fire automatically
 2. Decay batch management routes registered in `documentedRoutes` array
-3. Automatic lifecycle trigger E2E flow: recurring feedback patterns trigger state transitions (e.g., multiple "outdated" → stale)
+3. Automatic lifecycle trigger E2E flow: recurring feedback patterns trigger state transitions (e.g., multiple "outdated" -> stale)
 4. Decay batch routes visible in documented API surface
 
 ---
@@ -421,7 +426,7 @@ Plans:
 
 **Requirements:** BOUND-04, BOUND-05
 
-**Goal:** Complete the unfinished Phase 54 — implement boundary-aware filtering, scoring, and explanations in the retrieval pipeline, and wire Phase 53 back-reference queries into production use.
+**Goal:** Complete the unfinished Phase 54 -- implement boundary-aware filtering, scoring, and explanations in the retrieval pipeline, and wire Phase 53 back-reference queries into production use.
 
 **Depends on:** Phase 53, Phase 54
 
@@ -437,7 +442,7 @@ Plans:
 
 ### Phase 67: Audit Cleanup & Documentation
 
-**Goal:** Resolve cross-cutting tech debt — fix stale checkboxes, complete traceability, register undocumented routes, remove dead code.
+**Goal:** Resolve cross-cutting tech debt -- fix stale checkboxes, complete traceability, register undocumented routes, remove dead code.
 
 **Success Criteria:**
 1. REQUIREMENTS.md checkboxes accurate (FEEDBACK-01 [x], CONFLICT-02 [ ], FEEDBACK-03 [ ])
@@ -478,7 +483,7 @@ Plans:
 **Coverage:**
 - Total requirements: 23
 - Mapped to phases: 23
-- Unmapped: 0 ✓
+- Unmapped: 0
 
 ---
 
@@ -486,41 +491,41 @@ Plans:
 
 ```
 Phase 48 (State Machine)
-    ↓
+    |
 Phase 49 (Decay in Retrieval)
-    ↓
+    |
 Phase 50 (Batch Management)
 
 Phase 51 (Boundary Schema)
-    ↓
+    |
 Phase 52 (Boundary Capture)
-    ↓
+    |
 Phase 53 (Boundary Indexing)
-    ↓
+    |
 Phase 54 (Boundary-aware Retrieval)
 
-Phase 55 (Conflict Detection) ── independent
+Phase 55 (Conflict Detection) -- independent
 
 Phase 56 (CLI Feedback)
-    ↓
+    |
 Phase 57 (Admin Feedback Management)
 
-Phase 58 (Evidence Metadata) ── independent, but should align with Phase 51 boundary evidence fields
-    ↓
+Phase 58 (Evidence Metadata) -- independent, but should align with Phase 51 boundary evidence fields
+    |
 Phase 59 (Ownership & SLA Management)
-    ↓
+    |
 Phase 60 (Type Consolidation & State Machine)
-    ↓
+    |
 Phase 61 (Candidate Pipeline Independent Table)
-    ↓
+    |
 Phase 62 (Knowledge Entry Row-Level Table)
-    ↓
+    |
 Phase 63 (Skill Artifact Row-Level Table & JSONB Cleanup)
 
-Phase 64 (Retrieval Pipeline Integration) ── depends on Phase 49, Phase 55
-Phase 65 (Feedback Lifecycle & Decay Route Wiring) ── depends on Phase 57, Phase 50
-Phase 66 (Boundary-aware Retrieval Completion) ── depends on Phase 53, Phase 54
-Phase 67 (Audit Cleanup & Documentation) ── independent
+Phase 64 (Retrieval Pipeline Integration) -- depends on Phase 49, Phase 55
+Phase 65 (Feedback Lifecycle & Decay Route Wiring) -- depends on Phase 57, Phase 50
+Phase 66 (Boundary-aware Retrieval Completion) -- depends on Phase 53, Phase 54
+Phase 67 (Audit Cleanup & Documentation) -- independent
 ```
 
 **Parallelization Opportunities:**
@@ -530,9 +535,9 @@ Phase 67 (Audit Cleanup & Documentation) ── independent
 - Phase 58 can start in parallel with decay, boundary, or feedback work
 - Phase 59 should follow Phase 48 if it reuses lifecycle state and Phase 58 if it reuses verification metadata
 - Phase 60 must complete before Phase 61 (clean type foundations)
-- Phases 61→62→63 are sequential (each builds on the repository pattern established by the previous)
+- Phases 61->62->63 are sequential (each builds on the repository pattern established by the previous)
 - Phases 64-66 are independent of each other (can run in parallel); Phase 67 is cleanup and can run last
 
 ---
 
-*Roadmap updated: 2026-05-03 — Gap closure phases 64-67 added*
+*Roadmap updated: 2026-05-03 -- Phase 64 plan added*
