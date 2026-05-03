@@ -57,7 +57,7 @@
 
 - [x] Phase 68: Fix failing unit tests (1 plan) (completed 2026-05-03)
 - [x] Phase 69: Governance and auth route tests (3/3 plans) (completed 2026-05-03)
-- [x] Phase 70: Retrieval and indexing core tests (3/3 plans)
+- [x] Phase 70: Retrieval and indexing core tests (3/3 plans) (completed 2026-05-04)
 - [ ] Phase 71: CLI and contracts tests + coverage tooling (0 plans)
 
 #### Performance Optimization
@@ -130,12 +130,12 @@ Plans:
 **Goal:** Add tests for uncovered retrieval and indexing modules (orchestrator, semantic, merge, artifact-pipeline) to protect core business logic
 **Requirements:** TEST-03
 **Depends on:** Phase 68
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 70-01-PLAN.md -- Retrieval merge and semantic unit tests
-- [ ] 70-02-PLAN.md -- Retrieval orchestrator tests
-- [x] 70-03-PLAN.md -- Artifact pipeline and postgres store tests (40 tests, completed 2026-05-04)
+- [x] 70-01-PLAN.md -- Retrieval merge and semantic unit tests (56 tests)
+- [x] 70-02-PLAN.md -- Retrieval orchestrator tests (31 tests)
+- [x] 70-03-PLAN.md -- Artifact pipeline and postgres store tests (40 tests)
 
 **Success Criteria:**
 1. `retrieval/orchestrator.test.ts` covers retrieval orchestration flow
