@@ -31,6 +31,7 @@ import {
   buildRetrievalResponse,
   buildV2RetrievalResponse,
 } from './assembly.js';
+import { buildBoundaryExplanation, computeBoundaryScoreDelta } from './boundary-match.js';
 import { buildProfileShortlist, getCapsuleRecords, rankCapsules } from './capsule-recall.js';
 import { buildCitations } from './citations.js';
 import { filterEligibleEntries, filterByBoundaryContext } from './filters.js';
@@ -473,7 +474,13 @@ async function semanticRecall(
           const entryVector = await semanticGetEntryEmbedding(entry);
           const similarity = cosineSimilarity(queryVector, entryVector);
           const score = computeScore(similarity, entry, parsed.filters);
-          return { entry, score };
+          // Apply boundary scoring if context provided (BOUND-04, BOUND-05)
+          const boundaryDelta = computeBoundaryScoreDelta(entry, parsed.boundaryContext);
+          const finalScore = Math.min(1, Math.max(0, score + boundaryDelta));
+          const boundaryExplanation = parsed.boundaryContext
+            ? buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
+            : undefined;
+          return { entry, score: finalScore, boundaryExplanation };
         } catch (error) {
           // Log error and skip this entry - graceful degradation
           console.error(`Failed to get embedding for entry ${entry.id}:`, error);
@@ -481,7 +488,7 @@ async function semanticRecall(
         }
       }),
     )
-  ).filter((result): result is { entry: KnowledgeRecord; score: number } => result !== null);
+  ).filter((result): result is { entry: KnowledgeRecord; score: number; boundaryExplanation?: unknown } => result !== null);
 
   // Sort by score descending
   scoredEntries.sort((a, b) => b.score - a.score);

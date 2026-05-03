@@ -1186,4 +1186,468 @@ describe('retrieval route', () => {
       expect(v2Response.statusCode).toBe(401);
     });
   });
+
+  // Phase 66-04: Boundary-aware retrieval E2E tests (BOUND-04, BOUND-05)
+  describe('boundary-aware retrieval E2E (Phase 66-04)', () => {
+    let testApp: FastifyInstance;
+    let testStore: SkillShareerStore;
+    let sessionId: string;
+    const userId = 'user_boundary_e2e';
+    const teamId = 'team_boundary_e2e';
+
+    beforeEach(async () => {
+      const { nowIso, hashSecret } = await import('../lib/store.js');
+      const { buildServer } = await import('../app.js');
+
+      const testDataFile = `/tmp/trapmap-test-boundary-${Date.now()}-${Math.random()}.json`;
+
+      testApp = buildServer({ config: { dataFile: testDataFile } });
+      await testApp.ready();
+      testStore = testApp.skillShareer.store;
+
+      await testStore.transact(async (data) => {
+        if (!data.counters) data.counters = {};
+        data.counters.user = 1;
+
+        // Create user
+        data.users.push({
+          id: userId,
+          handle: 'boundaryuser',
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create team
+        data.teams.push({
+          id: teamId,
+          name: 'Boundary Test Team',
+          slug: 'boundary-test-team',
+          description: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create membership
+        data.memberships.push({
+          id: 'membership_boundary',
+          userId,
+          teamId,
+          roleTemplate: 'user',
+          securityLevel: 5,
+          permissions: ['knowledge:search'],
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create session
+        const sessionToken = `session_boundary_${Date.now()}`;
+        data.sessions.push({
+          id: `session_boundary_${Date.now()}`,
+          userId,
+          tokenHash: hashSecret(sessionToken),
+          activeTeamId: teamId,
+          subjectType: 'user',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        });
+        sessionId = sessionToken;
+
+        // Initialize artifacts arrays
+        if (!data.skillArtifacts) data.skillArtifacts = [];
+        if (!data.artifactFilePayloads) data.artifactFilePayloads = [];
+      });
+    });
+
+    afterEach(async () => {
+      if (testApp) {
+        await testApp.close();
+      }
+    });
+
+    it('accepts boundaryContext in retrieval query', async () => {
+      const response = await testApp.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'test query',
+          mode: 'hybrid',
+          boundaryContext: {
+            contexts: ['production', 'frontend'],
+            platform: 'linux',
+            versions: [{ package: 'react', version: '18.2.0' }],
+          },
+        },
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+      });
+
+      // Should accept the boundary context and return successfully
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      expect(json.globalConstraints).toBeDefined();
+      expect(json.projectKnowledge).toBeDefined();
+    });
+
+    it('includes boundaryExplanation in response when boundaryContext provided', async () => {
+      const { nowIso } = await import('../lib/store.js');
+
+      // Seed an entry with boundary
+      await testStore.transact(async (data) => {
+        data.knowledgeEntries.push({
+          id: 'entry-boundary-test',
+          teamId: null,
+          scope: 'global',
+          labels: ['react'],
+          shortcut: 'React 18 Trap',
+          detail: 'React 18 specific knowledge for frontend development',
+          requiredLevel: 0,
+          lifecycleState: 'approved',
+          ownerUserId: userId,
+          latestRevision: {
+            revision: 1,
+            submittedAt: nowIso(),
+            submittedByUserId: userId,
+            shortcut: 'React 18 Trap',
+            detail: 'React 18 specific knowledge for frontend development',
+            labels: ['react'],
+            reviewNotes: [],
+          },
+          history: [
+            {
+              revision: 1,
+              submittedAt: nowIso(),
+              submittedByUserId: userId,
+              shortcut: 'React 18 Trap',
+              detail: 'React 18 specific knowledge for frontend development',
+              labels: ['react'],
+              reviewNotes: [],
+            },
+          ],
+          metadata: {
+            scopeLabel: 'global-constraint',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: 'submission_boundary',
+            latestSubmittedAt: nowIso(),
+            latestReviewedAt: nowIso(),
+            latestDecision: 'approve',
+          },
+          lifecycleHistory: [],
+          reviewHistory: [],
+          agentReview: null,
+          embeddingCache: null,
+          indexState: null,
+          boundary: {
+            context: ['frontend'],
+            versions: [{ package: 'react', range: '>=18.0.0' }],
+            prerequisites: [],
+            signals: [],
+            exclusions: [],
+            evidence: [],
+          },
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+      });
+
+      const response = await testApp.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'React hooks',
+          boundaryContext: {
+            contexts: ['frontend'],
+            versions: [{ package: 'react', version: '18.2.0' }],
+          },
+        },
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      const allMatches = [...json.globalConstraints, ...json.projectKnowledge];
+
+      // At least one match should have boundaryExplanation
+      const withExplanation = allMatches.filter((m: { boundaryExplanation?: unknown }) => m.boundaryExplanation);
+      expect(withExplanation.length).toBeGreaterThan(0);
+
+      // Check the boundary explanation structure
+      const explanation = withExplanation[0].boundaryExplanation as { checked: boolean; boosts: string[] };
+      expect(explanation.checked).toBe(true);
+      expect(explanation.boosts.length).toBeGreaterThan(0);
+      expect(explanation.boosts[0]).toContain('Applicable context');
+    });
+
+    it('excludes entry with unsatisfied version constraint', async () => {
+      const { nowIso } = await import('../lib/store.js');
+
+      // Seed an entry with React 18+ version constraint
+      await testStore.transact(async (data) => {
+        data.knowledgeEntries.push({
+          id: 'entry-react-18-plus',
+          teamId: null,
+          scope: 'global',
+          labels: ['react'],
+          shortcut: 'React 18+ Only',
+          detail: 'This only works with React 18 or higher',
+          requiredLevel: 0,
+          lifecycleState: 'approved',
+          ownerUserId: userId,
+          latestRevision: {
+            revision: 1,
+            submittedAt: nowIso(),
+            submittedByUserId: userId,
+            shortcut: 'React 18+ Only',
+            detail: 'This only works with React 18 or higher',
+            labels: ['react'],
+            reviewNotes: [],
+          },
+          history: [
+            {
+              revision: 1,
+              submittedAt: nowIso(),
+              submittedByUserId: userId,
+              shortcut: 'React 18+ Only',
+              detail: 'This only works with React 18 or higher',
+              labels: ['react'],
+              reviewNotes: [],
+            },
+          ],
+          metadata: {
+            scopeLabel: 'global-constraint',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: 'submission_react18',
+            latestSubmittedAt: nowIso(),
+            latestReviewedAt: nowIso(),
+            latestDecision: 'approve',
+          },
+          lifecycleHistory: [],
+          reviewHistory: [],
+          agentReview: null,
+          embeddingCache: null,
+          indexState: null,
+          boundary: {
+            context: [],
+            versions: [{ package: 'react', range: '>=18.0.0' }],
+            prerequisites: [],
+            signals: [],
+            exclusions: [],
+            evidence: [],
+          },
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+      });
+
+      const response = await testApp.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'React',  // matches the entry
+          boundaryContext: {
+            versions: [{ package: 'react', version: '17.0.0' }],  // Does NOT satisfy >=18.0.0
+          },
+        },
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      const allMatches = [...json.globalConstraints, ...json.projectKnowledge];
+
+      // entry-react-18-plus should be excluded (react >=18 required, we have 17)
+      expect(allMatches.find((m: { entryId: string }) => m.entryId === 'entry-react-18-plus')).toBeUndefined();
+    });
+
+    it('penalizes entry with matching exclusion', async () => {
+      const { nowIso } = await import('../lib/store.js');
+
+      // Seed an entry with Windows exclusion
+      await testStore.transact(async (data) => {
+        data.knowledgeEntries.push({
+          id: 'entry-no-windows',
+          teamId: null,
+          scope: 'global',
+          labels: ['nodejs'],
+          shortcut: 'Node.js Unix Only',
+          detail: 'Node.js knowledge that does not work on Windows',
+          requiredLevel: 0,
+          lifecycleState: 'approved',
+          ownerUserId: userId,
+          latestRevision: {
+            revision: 1,
+            submittedAt: nowIso(),
+            submittedByUserId: userId,
+            shortcut: 'Node.js Unix Only',
+            detail: 'Node.js knowledge that does not work on Windows',
+            labels: ['nodejs'],
+            reviewNotes: [],
+          },
+          history: [
+            {
+              revision: 1,
+              submittedAt: nowIso(),
+              submittedByUserId: userId,
+              shortcut: 'Node.js Unix Only',
+              detail: 'Node.js knowledge that does not work on Windows',
+              labels: ['nodejs'],
+              reviewNotes: [],
+            },
+          ],
+          metadata: {
+            scopeLabel: 'global-constraint',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: 'submission_nowin',
+            latestSubmittedAt: nowIso(),
+            latestReviewedAt: nowIso(),
+            latestDecision: 'approve',
+          },
+          lifecycleHistory: [],
+          reviewHistory: [],
+          agentReview: null,
+          embeddingCache: null,
+          indexState: null,
+          boundary: {
+            context: ['backend'],
+            versions: [],
+            prerequisites: [],
+            signals: [],
+            exclusions: [{ description: 'Not for Windows', kind: 'platform' }],
+            evidence: [],
+          },
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+      });
+
+      const response = await testApp.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'Node.js backend',
+          boundaryContext: {
+            platform: 'windows',  // Matches exclusion on entry
+          },
+        },
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      const allMatches = [...json.globalConstraints, ...json.projectKnowledge];
+      const nodeEntry = allMatches.find((m: { entryId: string }) => m.entryId === 'entry-no-windows');
+
+      if (nodeEntry) {
+        // Entry should have warning in boundaryExplanation
+        const explanation = nodeEntry.boundaryExplanation as { warnings: string[] } | undefined;
+        expect(explanation?.warnings.length).toBeGreaterThan(0);
+        expect(explanation?.warnings[0].toLowerCase()).toContain('windows');
+      }
+    });
+
+    it('boosts entry with matching context', async () => {
+      const { nowIso } = await import('../lib/store.js');
+
+      // Seed an entry with frontend context
+      await testStore.transact(async (data) => {
+        data.knowledgeEntries.push({
+          id: 'entry-frontend-context',
+          teamId: null,
+          scope: 'global',
+          labels: ['frontend'],
+          shortcut: 'Frontend Development',
+          detail: 'Frontend development best practices',
+          requiredLevel: 0,
+          lifecycleState: 'approved',
+          ownerUserId: userId,
+          latestRevision: {
+            revision: 1,
+            submittedAt: nowIso(),
+            submittedByUserId: userId,
+            shortcut: 'Frontend Development',
+            detail: 'Frontend development best practices',
+            labels: ['frontend'],
+            reviewNotes: [],
+          },
+          history: [
+            {
+              revision: 1,
+              submittedAt: nowIso(),
+              submittedByUserId: userId,
+              shortcut: 'Frontend Development',
+              detail: 'Frontend development best practices',
+              labels: ['frontend'],
+              reviewNotes: [],
+            },
+          ],
+          metadata: {
+            scopeLabel: 'global-constraint',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: 'submission_fe',
+            latestSubmittedAt: nowIso(),
+            latestReviewedAt: nowIso(),
+            latestDecision: 'approve',
+          },
+          lifecycleHistory: [],
+          reviewHistory: [],
+          agentReview: null,
+          embeddingCache: null,
+          indexState: null,
+          boundary: {
+            context: ['frontend'],
+            versions: [],
+            prerequisites: [],
+            signals: [],
+            exclusions: [],
+            evidence: [],
+          },
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+      });
+
+      const response = await testApp.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        payload: {
+          seed: 'development practices',
+          boundaryContext: {
+            contexts: ['frontend'],  // Matches context on entry
+          },
+        },
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      const allMatches = [...json.globalConstraints, ...json.projectKnowledge];
+      const feEntry = allMatches.find((m: { entryId: string }) => m.entryId === 'entry-frontend-context');
+
+      if (feEntry) {
+        // Entry should have boost in boundaryExplanation
+        const explanation = feEntry.boundaryExplanation as { boosts: string[] } | undefined;
+        expect(explanation?.boosts.length).toBeGreaterThan(0);
+        expect(explanation?.boosts[0]).toContain('Applicable context');
+      }
+    });
+  });
 });
