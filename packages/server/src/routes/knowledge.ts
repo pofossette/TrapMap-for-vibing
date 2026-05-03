@@ -17,6 +17,7 @@ import {
   toKnowledgeEntry,
   updateKnowledgeEntry,
 } from '../lib/knowledge.js';
+import type { KnowledgeRepository } from '../lib/knowledge/index.js';
 import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
@@ -72,6 +73,18 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     // Use author boundary if provided, otherwise use extracted boundary from pre-review
     const boundary = payload.boundary ?? preReview.boundary ?? null;
 
+    // Get knowledgeRepo for conditional repository operations
+    const knowledgeRepo = app.skillShareer.knowledgeRepo;
+
+    // Generate ID using repository (SEQUENCE) if available, fallback to store
+    let entryId: string;
+    if (knowledgeRepo) {
+      entryId = await knowledgeRepo.nextId();
+    } else {
+      const data = await app.skillShareer.store.snapshot();
+      entryId = app.skillShareer.store.nextId(data, 'knowledge');
+    }
+
     const entry = await app.skillShareer.store.transact((data) => {
       const record = createKnowledgeEntryRecord({
         store: app.skillShareer.store,
@@ -83,12 +96,28 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         createdAt,
         preReview,
         boundary,
+        idOverride: entryId,
       });
 
       data.knowledgeEntries.push(record);
 
       return toKnowledgeEntry(data, record);
     });
+
+    // Dual-write: Also insert to knowledge repository if available
+    // This is additive during the transition period
+    if (knowledgeRepo) {
+      try {
+        const data = await app.skillShareer.store.snapshot();
+        const record = data.knowledgeEntries.find((e) => e.id === entryId);
+        if (record) {
+          await knowledgeRepo.insert(record);
+        }
+      } catch (repoError) {
+        // Log but don't fail - JSONB is the source of truth during transition
+        app.log.error({ repoError, entryId }, 'Failed to insert to knowledge repository');
+      }
+    }
 
     // Log user operation (fire-and-forget)
     void logUserOperation(app.skillShareer.config.userOpsLog, {
@@ -195,6 +224,22 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       return toKnowledgeEntry(data, entry);
     });
 
+    // Dual-write: Also append revision to knowledge repository if available
+    // This is additive during the transition period
+    const knowledgeRepo = app.skillShareer.knowledgeRepo;
+    if (knowledgeRepo) {
+      try {
+        const data = await app.skillShareer.store.snapshot();
+        const entry = data.knowledgeEntries.find((e) => e.id === entryId);
+        if (entry && entry.latestRevision) {
+          await knowledgeRepo.appendRevision(entryId, entry.latestRevision);
+        }
+      } catch (repoError) {
+        // Log but don't fail - JSONB is the source of truth during transition
+        app.log.error({ repoError, entryId }, 'Failed to append revision to knowledge repository');
+      }
+    }
+
     // Log user operation (fire-and-forget)
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
@@ -290,6 +335,21 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         // Log but don't fail the request - domain state is already committed
         app.log.error({ indexingError, entryId }, 'Post-commit indexing failed after update');
         // Optionally: schedule retry or mark entry for reconciliation
+      }
+    }
+
+    // Dual-write: Also update governance in knowledge repository if available
+    // This is additive during the transition period
+    const knowledgeRepo = app.skillShareer.knowledgeRepo;
+    if (knowledgeRepo) {
+      try {
+        await knowledgeRepo.updateGovernance(entryId, {
+          labels: payload.labels,
+          requiredLevel: payload.requiredLevel,
+        });
+      } catch (repoError) {
+        // Log but don't fail - JSONB is the source of truth during transition
+        app.log.error({ repoError, entryId }, 'Failed to update governance in knowledge repository');
       }
     }
 

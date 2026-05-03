@@ -223,6 +223,8 @@ export function createKnowledgeEntryRecord(args: {
   createdAt: string;
   preReview: AgentReviewResult;
   boundary?: Boundary | null;
+  /** Optional ID override for repository-generated IDs (dual-write pattern) */
+  idOverride?: string;
 }): KnowledgeRecord {
   const agentNotes = toAgentNotes(args.store, args.data, args.preReview);
   const revision = createKnowledgeRevision(
@@ -243,7 +245,7 @@ export function createKnowledgeEntryRecord(args: {
   });
 
   return {
-    id: args.store.nextId(args.data, 'knowledge'),
+    id: args.idOverride ?? args.store.nextId(args.data, 'knowledge'),
     teamId: args.teamId,
     scope: args.payload.scope,
     labels: revision.labels,
