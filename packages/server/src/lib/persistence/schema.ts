@@ -323,3 +323,76 @@ export const lifecycleEvents = pgTable(
   },
   (table) => [index('idx_lifecycle_events_entry').on(table.entryId)],
 );
+
+// =============================================================================
+// Skill Artifact Tables (Phase 63: WRITE-03)
+// =============================================================================
+
+/**
+ * Skill artifacts table for row-level storage of skill artifact data.
+ * Each row represents a single skill artifact with its current state.
+ * Enables row-level locking and concurrent access without blocking other artifacts.
+ */
+export const skillArtifacts = pgTable(
+  'skill_artifacts',
+  {
+    /** Unique artifact identifier (e.g., artifact_123) */
+    id: text('id').primaryKey(),
+    /** Team ID if team-scoped, null for global */
+    teamId: text('team_id'),
+    /** Scope: 'global' or 'project' */
+    scope: text('scope').notNull(),
+    /** Labels for filtering and categorization */
+    labels: jsonb('labels').notNull().$type<string[]>().default([]),
+    /** Human-readable title */
+    title: text('title').notNull(),
+    /** URL-friendly slug for references */
+    slug: text('slug').notNull(),
+    /** Required security level for access control */
+    requiredLevel: integer('required_level').notNull().default(0),
+    /** Current lifecycle state */
+    lifecycleState: text('lifecycle_state').notNull().$type<LifecycleState>(),
+    /** Owner/creator user ID */
+    ownerUserId: text('owner_user_id').notNull(),
+    /** Artifact-specific metadata */
+    metadata: jsonb('metadata')
+      .notNull()
+      .$type<{
+        sourceKind: 'skill-directory' | 'single-skill-md' | 'legacy-knowledge';
+        submissionCount: number;
+        resubmissionCount: number;
+        revisionCount: number;
+        latestSubmissionId: string | null;
+        latestSubmittedAt: string | null;
+        latestReviewedAt: string | null;
+        latestDecision: 'approve' | 'reject' | null;
+      }>(),
+    /** Agent review result (if applicable) */
+    agentReview: jsonb('agent_review').$type<{
+      status: 'agent-pass' | 'agent-rejected';
+      duplicateRisk: 'low' | 'medium' | 'high';
+      correctnessRisk: 'low' | 'medium' | 'high';
+      completenessRisk: 'low' | 'medium' | 'high';
+      checkedAt: string;
+      notes: string[];
+    } | null>(),
+    /** Maintenance metadata for ownership and review-due tracking */
+    maintenanceMeta: jsonb('maintenance_meta').$type<{
+      maintainerUserId: string | null;
+      maintainerHandle: string | null;
+      maintainerLevel: number | null;
+      reviewBy: string | null;
+    } | null>(),
+    /** Boundary constraints for artifact applicability */
+    boundary: jsonb('boundary').$type<Boundary | null>(),
+    /** Record creation timestamp */
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Record update timestamp */
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_skill_artifacts_lifecycle_state').on(table.lifecycleState),
+    index('idx_skill_artifacts_team').on(table.teamId),
+    index('idx_skill_artifacts_slug').on(table.slug),
+  ],
+);
