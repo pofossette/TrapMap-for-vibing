@@ -186,6 +186,15 @@ export const knowledgeEntryIdSeq = pgSequence('knowledge_entry_id_seq', {
 });
 
 /**
+ * SEQUENCE for skill artifact ID generation.
+ * Provides monotonic ID values for skill_artifacts table.
+ */
+export const skillArtifactIdSeq = pgSequence('skill_artifact_id_seq', {
+  startWith: 1,
+  increment: 1,
+});
+
+/**
  * Knowledge entries table for row-level storage of knowledge data.
  * Each row represents a single knowledge entry with its current state.
  * Enables row-level locking and concurrent access without blocking other entries.
