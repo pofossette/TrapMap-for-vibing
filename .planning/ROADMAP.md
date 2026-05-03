@@ -73,7 +73,7 @@
 ### Write Path Optimization
 
 - [x] Phase 60: Type Consolidation & Lifecycle State Machine (TECH-DEBT-01, TECH-DEBT-02) (completed 2026-05-03)
-- [ ] Phase 61: Candidate Pipeline Independent Table (WRITE-01)
+- [x] Phase 61: Candidate Pipeline Independent Table (WRITE-01) (completed 2026-05-03)
 - [ ] Phase 62: Knowledge Entry Row-Level Table (WRITE-02)
 - [ ] Phase 63: Skill Artifact Row-Level Table & JSONB Cleanup (WRITE-03)
 
