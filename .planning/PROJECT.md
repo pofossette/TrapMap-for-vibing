@@ -54,6 +54,8 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 - ✓ Governance-safe evaluation measuring permission filters and leakage checks alongside relevance — v1.4
 - ✓ Summary/refinement evaluation with groundedness-style judge checks over retrieved context (SEVAL-01, SEVAL-02) — v1.4
 - ✓ CI-friendly evaluation with baseline comparison and regression detection (EOPS-01, EOPS-02, EOPS-03) — v1.4
+- ✓ Ownership and review-due metadata for knowledge entries and skill artifacts (MAINT-01) — v1.5
+- ✓ CLI and admin views for maintenance listing, filtering, and batch operations (MAINT-02) — v1.5
 
 ### Active
 
@@ -72,7 +74,9 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 
 ## Context
 
-**Current State (v1.4 shipped 2026-04-29):**
+**Current State (v1.5 in progress 2026-05-03):**
+
+Phase 59 complete — ownership and maintenance metadata tracking operational. Maintenance CLI commands (maintenance-list, maintenance-assign, maintenance-verify) and API endpoints live.
 
 - **Tech stack:** TypeScript, pnpm monorepo, Fastify server, LangChain JS, CLI with Commander.js, Docker, Drizzle/PostgreSQL, Graphology
 - **Data model:** Skill artifacts with SKILL.md, references/, assets/, scripts/; derived profile, capsules, and client manifest; legacy knowledge entries for compatibility; graph documents for GraphRAG-lite
@@ -145,4 +149,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-02 after v1.5 milestone started*
+*Last updated: 2026-05-03 after Phase 59 (ownership & maintenance metadata)*
