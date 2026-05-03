@@ -15,8 +15,10 @@ import {
   buildEmbeddingText,
   computeScore,
   cosineSimilarity,
+  getBatchEmbeddings,
   getEntryEmbedding,
   getQueryEmbedding,
+  optimizedSemanticRecall,
 } from './semantic.js';
 
 // Mock the embeddings module
@@ -374,6 +376,195 @@ describe('semantic recall', () => {
 
       expect(generateEmbedding).toHaveBeenCalledWith('JWT authentication');
       expect(vector).toEqual([0.1, 0.2, 0.3]);
+    });
+  });
+
+  describe('getBatchEmbeddings', () => {
+    it('returns cached embeddings for entries with valid cache', async () => {
+      vi.mocked(generateEmbedding).mockClear();
+      const cachedVector = [0.5, 0.6, 0.7];
+      const entry = createTestEntry({
+        id: 'cached_entry',
+        history: [{ revision: 1 } as any],
+        embeddingCache: {
+          textHash: 'mock-hash-123',
+          vector: cachedVector,
+          revision: 1,
+        },
+        indexState: null,
+      } as any);
+
+      const { embeddings, stats } = await getBatchEmbeddings([entry]);
+
+      expect(embeddings.size).toBe(1);
+      expect(embeddings.get('cached_entry')).toEqual({
+        vector: cachedVector,
+        fromCache: true,
+      });
+      expect(stats.cacheHits).toBe(1);
+      expect(stats.cacheMisses).toBe(0);
+      expect(stats.hitRate).toBe(1.0);
+      expect(generateEmbedding).not.toHaveBeenCalled();
+    });
+
+    it('computes embeddings for cache misses', async () => {
+      vi.mocked(generateEmbedding).mockClear();
+      const entry = createTestEntry({
+        id: 'miss_entry',
+        embeddingCache: null,
+        indexState: null,
+      } as any);
+
+      const { embeddings, stats } = await getBatchEmbeddings([entry]);
+
+      expect(embeddings.size).toBe(1);
+      expect(embeddings.get('miss_entry')).toEqual({
+        vector: [0.1, 0.2, 0.3],
+        fromCache: false,
+      });
+      expect(stats.cacheHits).toBe(0);
+      expect(stats.cacheMisses).toBe(1);
+      expect(stats.hitRate).toBe(0);
+      expect(generateEmbedding).toHaveBeenCalledTimes(1);
+    });
+
+    it('handles mix of cached and uncached entries', async () => {
+      vi.mocked(generateEmbedding).mockClear();
+      const cachedEntry = createTestEntry({
+        id: 'cached_entry',
+        history: [{ revision: 1 } as any],
+        embeddingCache: {
+          textHash: 'mock-hash-123',
+          vector: [0.5, 0.6, 0.7],
+          revision: 1,
+        },
+        indexState: null,
+      } as any);
+
+      const uncachedEntry = createTestEntry({
+        id: 'uncached_entry',
+        embeddingCache: null,
+        indexState: null,
+      } as any);
+
+      const { embeddings, stats } = await getBatchEmbeddings([cachedEntry, uncachedEntry]);
+
+      expect(embeddings.size).toBe(2);
+      expect(embeddings.get('cached_entry')?.fromCache).toBe(true);
+      expect(embeddings.get('uncached_entry')?.fromCache).toBe(false);
+      expect(stats.cacheHits).toBe(1);
+      expect(stats.cacheMisses).toBe(1);
+      expect(stats.hitRate).toBe(0.5);
+      expect(generateEmbedding).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns empty map and zero stats for empty entries array', async () => {
+      const { embeddings, stats } = await getBatchEmbeddings([]);
+
+      expect(embeddings.size).toBe(0);
+      expect(stats.totalEntries).toBe(0);
+      expect(stats.cacheHits).toBe(0);
+      expect(stats.cacheMisses).toBe(0);
+      expect(stats.hitRate).toBe(0);
+    });
+
+    it('skips entries when embedding computation fails', async () => {
+      vi.mocked(generateEmbedding).mockRejectedValueOnce(new Error('API error'));
+      const entry = createTestEntry({
+        id: 'error_entry',
+        embeddingCache: null,
+        indexState: null,
+      } as any);
+
+      const { embeddings, stats } = await getBatchEmbeddings([entry]);
+
+      // Entry with failed computation should not be in the map
+      expect(embeddings.has('error_entry')).toBe(false);
+      expect(stats.cacheMisses).toBe(1);
+    });
+  });
+
+  describe('optimizedSemanticRecall', () => {
+    it('returns scored entries sorted by score descending', async () => {
+      vi.mocked(generateEmbedding).mockClear();
+      const entry1 = createTestEntry({
+        id: 'entry_1',
+        labels: ['security'],
+        scope: 'global',
+        embeddingCache: null,
+        indexState: null,
+      } as any);
+
+      const entry2 = createTestEntry({
+        id: 'entry_2',
+        labels: ['security'],
+        scope: 'global',
+        embeddingCache: null,
+        indexState: null,
+      } as any);
+
+      const queryVector = [0.1, 0.2, 0.3];
+      const filters = { labels: ['security'], scopes: [] };
+
+      const { scoredEntries, cacheStats } = await optimizedSemanticRecall(queryVector, [
+        entry1,
+        entry2,
+      ], filters);
+
+      expect(scoredEntries.length).toBe(2);
+      expect(scoredEntries[0]?.score).toBeGreaterThanOrEqual(scoredEntries[1]?.score ?? 0);
+      expect(cacheStats.totalEntries).toBe(2);
+    });
+
+    it('applies score boosts from filters', async () => {
+      vi.mocked(generateEmbedding).mockClear();
+      const entry = createTestEntry({
+        id: 'boosted_entry',
+        labels: ['auth', 'security'],
+        scope: 'project',
+        embeddingCache: null,
+        indexState: null,
+      } as any);
+
+      const queryVector = [0.1, 0.2, 0.3];
+      const filters = { labels: ['auth'], scopes: ['project'] };
+
+      const { scoredEntries } = await optimizedSemanticRecall(queryVector, [entry], filters);
+
+      // Score should include label boost (0.05) and scope boost (0.03)
+      // Base similarity is 1.0 (same vector), so 1.0 + 0.05 + 0.03 = 1.08 -> clamped to 1.0
+      expect(scoredEntries[0]?.score).toBe(1.0);
+    });
+
+    it('includes cache statistics in result', async () => {
+      const cachedEntry = createTestEntry({
+        id: 'cached',
+        history: [{ revision: 1 } as any],
+        embeddingCache: {
+          textHash: 'mock-hash-123',
+          vector: [0.1, 0.2, 0.3],
+          revision: 1,
+        },
+        indexState: null,
+      } as any);
+
+      const queryVector = [0.1, 0.2, 0.3];
+      const filters = { labels: [], scopes: [] };
+
+      const { cacheStats } = await optimizedSemanticRecall(queryVector, [cachedEntry], filters);
+
+      expect(cacheStats.cacheHits).toBe(1);
+      expect(cacheStats.hitRate).toBe(1.0);
+    });
+
+    it('handles empty entries array', async () => {
+      const queryVector = [0.1, 0.2, 0.3];
+      const filters = { labels: [], scopes: [] };
+
+      const { scoredEntries, cacheStats } = await optimizedSemanticRecall(queryVector, [], filters);
+
+      expect(scoredEntries).toEqual([]);
+      expect(cacheStats.totalEntries).toBe(0);
     });
   });
 });

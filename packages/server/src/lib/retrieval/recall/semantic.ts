@@ -125,3 +125,171 @@ export async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[
 export async function getQueryEmbedding(queryText: string): Promise<number[]> {
   return generateEmbedding(queryText);
 }
+
+// =============================================================================
+// Batch Embedding Optimization (Phase 72-02)
+// =============================================================================
+
+/**
+ * Result of batch embedding retrieval for a single entry.
+ */
+export interface BatchEmbeddingResult {
+  vector: number[];
+  fromCache: boolean;
+}
+
+/**
+ * Cache hit rate statistics for a batch embedding operation.
+ */
+export interface BatchCacheStats {
+  totalEntries: number;
+  cacheHits: number;
+  cacheMisses: number;
+  hitRate: number;
+}
+
+/**
+ * Result of the optimized semantic recall operation.
+ */
+export interface OptimizedSemanticRecallResult {
+  scoredEntries: Array<{ entry: KnowledgeRecord; score: number }>;
+  cacheStats: BatchCacheStats;
+}
+
+/**
+ * Check whether an entry has a valid cached embedding.
+ * Returns the cached vector if available and fresh, otherwise null.
+ *
+ * This is the same logic as getEntryEmbedding() but non-async — it only
+ * checks caches and returns null on miss instead of computing.
+ */
+function getCachedEmbedding(entry: KnowledgeRecord): number[] | null {
+  const text = buildEmbeddingText(entry);
+  const textHash = hashEmbeddingText(text);
+
+  // Prefer persisted indexState.vector for synced entries
+  if (
+    entry.indexState?.vector?.status === 'synced' &&
+    entry.indexState.vector.revision === entry.history.length &&
+    entry.indexState.vector.contentHash === textHash
+  ) {
+    if (entry.embeddingCache?.vector) {
+      return entry.embeddingCache.vector;
+    }
+  }
+
+  // Fall back to embeddingCache for legacy entries
+  if (
+    entry.embeddingCache &&
+    entry.embeddingCache.revision === entry.history.length &&
+    entry.embeddingCache.textHash === textHash
+  ) {
+    return entry.embeddingCache.vector;
+  }
+
+  return null;
+}
+
+/**
+ * Batch fetch embeddings for multiple entries.
+ *
+ * For entries with cached vectors (indexState synced or embeddingCache fresh),
+ * returns the cached vector immediately. For cache misses, computes embeddings
+ * in parallel and returns them.
+ *
+ * This reduces per-query overhead from O(n) individual cache lookups to
+ * O(n) fast synchronous checks + O(miss_count) async computations.
+ *
+ * @param entries - Array of knowledge entries to fetch embeddings for
+ * @returns Map of entry ID to embedding result with cache hit tracking
+ */
+export async function getBatchEmbeddings(
+  entries: KnowledgeRecord[],
+): Promise<{ embeddings: Map<string, BatchEmbeddingResult>; stats: BatchCacheStats }> {
+  const embeddings = new Map<string, BatchEmbeddingResult>();
+  const misses: KnowledgeRecord[] = [];
+
+  // Phase 1: Synchronous cache check for all entries
+  for (const entry of entries) {
+    const cached = getCachedEmbedding(entry);
+    if (cached) {
+      embeddings.set(entry.id, { vector: cached, fromCache: true });
+    } else {
+      misses.push(entry);
+    }
+  }
+
+  // Phase 2: Compute embeddings only for cache misses
+  if (misses.length > 0) {
+    const computedVectors = await Promise.all(
+      misses.map(async (entry) => {
+        try {
+          const text = buildEmbeddingText(entry);
+          const vector = await generateEmbedding(text);
+          return { entryId: entry.id, vector };
+        } catch (error) {
+          console.error(`Failed to compute embedding for entry ${entry.id}:`, error);
+          return { entryId: entry.id, vector: null };
+        }
+      }),
+    );
+
+    for (const result of computedVectors) {
+      if (result.vector) {
+        embeddings.set(result.entryId, { vector: result.vector, fromCache: false });
+      }
+    }
+  }
+
+  const actualCacheHits = entries.length - misses.length;
+  const totalEntries = entries.length;
+  const stats: BatchCacheStats = {
+    totalEntries,
+    cacheHits: actualCacheHits,
+    cacheMisses: misses.length,
+    hitRate: totalEntries > 0 ? actualCacheHits / totalEntries : 0,
+  };
+
+  return { embeddings, stats };
+}
+
+/**
+ * Optimized semantic recall using batch embedding retrieval.
+ *
+ * Instead of calling getEntryEmbedding() for each entry individually,
+ * this function:
+ * 1. Fetches all cached embeddings in one synchronous pass
+ * 2. Computes embeddings only for cache misses in parallel
+ * 3. Computes similarity scores for all entries
+ *
+ * @param queryVector - Pre-computed query embedding vector
+ * @param entries - Eligible knowledge entries to search
+ * @param filters - Query filters for score boosting
+ * @returns Scored entries sorted by score descending, plus cache statistics
+ */
+export async function optimizedSemanticRecall(
+  queryVector: number[],
+  entries: KnowledgeRecord[],
+  filters: RetrievalQuery['filters'],
+): Promise<OptimizedSemanticRecallResult> {
+  const { embeddings, stats } = await getBatchEmbeddings(entries);
+
+  const scoredEntries: Array<{ entry: KnowledgeRecord; score: number }> = [];
+
+  for (const entry of entries) {
+    const embeddingResult = embeddings.get(entry.id);
+    if (!embeddingResult) {
+      // Skip entries where embedding computation failed
+      continue;
+    }
+
+    const similarity = cosineSimilarity(queryVector, embeddingResult.vector);
+    const score = computeScore(similarity, entry, filters);
+    scoredEntries.push({ entry, score });
+  }
+
+  // Sort by score descending
+  scoredEntries.sort((a, b) => b.score - a.score);
+
+  return { scoredEntries, cacheStats: stats };
+}
