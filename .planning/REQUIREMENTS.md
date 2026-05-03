@@ -33,6 +33,11 @@ Requirements for v1.5 milestone: 功能增强
 - [x] **FEEDBACK-02**: Admins can review and process user feedback in batch through management interface
 - [x] **FEEDBACK-03**: Feedback signals contribute to knowledge lifecycle transitions and quality scoring
 
+### Ownership & Maintenance (MAINT)
+
+- [x] **MAINT-01**: Knowledge entries and skill artifacts store ownership (maintainer) and review-due metadata for SLA-aware lifecycle management
+- [x] **MAINT-02**: CLI and admin views support listing, filtering, and batch operations (assign-owner, extend-review, mark-verified) on maintenance metadata
+
 ## v2 Requirements
 
 Deferred to future release.
@@ -77,12 +82,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FEEDBACK-01 | Phase 56 | Pending |
 | FEEDBACK-02 | Phase 57 | Complete |
 | FEEDBACK-03 | Phase 57 | Complete |
+| MAINT-01 | Phase 59 | Complete |
+| MAINT-02 | Phase 59 | Complete |
 
 **Coverage:**
-- v1.5 requirements: 14 total
-- Mapped to phases: 14
+- v1.5 requirements: 16 total
+- Mapped to phases: 16
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-02*
-*Last updated: 2026-05-02 after Phase 53 completion*
+*Last updated: 2026-05-03 after Phase 59 completion*
