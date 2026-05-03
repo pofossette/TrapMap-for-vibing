@@ -273,6 +273,13 @@ Plans:
 
 **Goal:** Add lightweight ownership and review-due tracking so maintainers can keep the corpus healthy without a heavy governance system.
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 59-01-PLAN.md — Maintenance contracts: schema, knowledge/artifact extensions, store types
+- [ ] 59-02-PLAN.md — Server module: model helpers, batch operations, route handlers
+- [ ] 59-03-PLAN.md — CLI commands and test coverage
+
 **Success Criteria:**
 1. Trap and skill records store `owner`, `reviewBy`, and `lastVerifiedAt`
 2. CLI/admin views can list entries with missing owner, overdue review, or stale verification
