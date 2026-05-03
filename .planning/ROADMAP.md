@@ -273,11 +273,11 @@ Plans:
 
 **Goal:** Add lightweight ownership and review-due tracking so maintainers can keep the corpus healthy without a heavy governance system.
 
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
 Plans:
-- [ ] 59-01-PLAN.md — Maintenance contracts: schema, knowledge/artifact extensions, store types
-- [ ] 59-02-PLAN.md — Server module: model helpers, batch operations, route handlers
+- [x] 59-01-PLAN.md — Maintenance contracts: schema, knowledge/artifact extensions, store types
+- [x] 59-02-PLAN.md — Server module: model helpers, batch operations, route handlers
 - [ ] 59-03-PLAN.md — CLI commands and test coverage
 
 **Success Criteria:**
@@ -352,6 +352,24 @@ Phase 59 (Ownership & SLA Management)
 - Phase 56 can start in parallel with decay/boundary work
 - Phase 58 can start in parallel with decay, boundary, or feedback work
 - Phase 59 should follow Phase 48 if it reuses lifecycle state and Phase 58 if it reuses verification metadata
+
+### Phase 60: Consolidate type definitions & lifecycle state machine
+
+**Goal:** Eliminate type duplication (AdapterSyncState, KnowledgeIndexStateRecord) by establishing a single canonical source, and centralize lifecycle state transition validation into a single state-machine module.
+
+**Requirements**: TECH-DEBT-01, TECH-DEBT-02
+**Depends on:** Phase 59
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 60 to break down)
+
+**Success Criteria:**
+1. `AdapterSyncState` and `KnowledgeIndexStateRecord` defined in exactly one place; all consumers import from that canonical location
+2. Lifecycle state transitions defined in a single transition map (from-state → allowed to-states)
+3. All state transition sites call a centralized `transitionLifecycleState()` function that validates legality before mutating
+4. No direct `entry.lifecycleState = ...` assignments remain outside the state machine module
+5. Existing tests continue to pass without behavioral changes
 
 ---
 
