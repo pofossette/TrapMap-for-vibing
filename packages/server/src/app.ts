@@ -17,6 +17,7 @@ import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
 import { AppError, isAppError } from './lib/errors.js';
 import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
 import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
+import { createKnowledgeRepository } from './lib/knowledge/index.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';
 import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
@@ -124,6 +125,8 @@ export function buildServer(options: BuildServerOptions = {}) {
     store: createSkillShareerStore(config),
     indexAdapters: buildDefaultIndexAdapters(),
     ai: createAiProviders(config.ai),
+    // knowledgeRepo is set when PostgreSQL pool is available (in onReady hook)
+    knowledgeRepo: undefined,
   });
 
   // Bridge: wire global embeddings provider so existing generateEmbedding() callers
@@ -190,6 +193,13 @@ export function buildServer(options: BuildServerOptions = {}) {
     const store = app.skillShareer.store;
     if (store instanceof PostgresStore) {
       const pool = store.getPool();
+
+      // Create knowledge repository for row-level operations
+      app.skillShareer.knowledgeRepo = createKnowledgeRepository({
+        pool,
+        store,
+      });
+
       const handler = createCandidateProcessingHandler({
         store,
         getSnapshot: () => store.snapshot(),
