@@ -627,13 +627,23 @@ export interface StoreData {
   memberships: MembershipRecord[];
   accessKeys: AccessKeyRecord[];
   sessions: SessionRecord[];
+  /**
+   * @deprecated Phase 62: Use knowledge_entries table via KnowledgeRepository.
+   * Kept for backward compatibility during transition.
+   */
   knowledgeEntries: KnowledgeRecord[];
   auditEvents: AuditEventRecord[];
-  /** Additive skill artifacts collection (ARTF-02, T-12-05) */
+  /**
+   * @deprecated Phase 63: Use skill_artifacts table via ArtifactRepository.
+   * Kept for backward compatibility during transition.
+   */
   skillArtifacts: SkillArtifactRecord[];
   /** Additive file payload storage for imported artifacts (IMEX-04) */
   artifactFilePayloads: ArtifactFilePayloadRecord[];
-  /** Candidate submissions awaiting duplicate analysis */
+  /**
+   * @deprecated Phase 61: Use candidates table via CandidateRepository.
+   * Kept for backward compatibility during transition.
+   */
   candidateSubmissions: CandidateSubmissionRecord[];
   /** Detected duplicate cases for manual review */
   duplicateCases: DuplicateCaseRecord[];
