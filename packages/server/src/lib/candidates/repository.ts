@@ -5,8 +5,17 @@ import type {
   DuplicateCase,
   ManualResultSubmission,
 } from '@trapmap/contracts';
+import type { Pool } from 'pg';
 
+import type { SkillShareerStore } from '../store.js';
 import type { ManualResultRecord } from './store.js';
+import {
+  attachAnalysisSnapshot,
+  attachDuplicateCase,
+  attachManualResult,
+  markCandidateResolved,
+  updateCandidateStatus,
+} from './store.js';
 
 /**
  * Repository interface for candidate CRUD operations.
@@ -98,4 +107,173 @@ export function createManualResultRecord(
     submittedAt: new Date().toISOString(),
     submittedBy: reviewedBy,
   };
+}
+
+/**
+ * Dual-write repository that writes to both primary and JSONB shadow.
+ * Used during transition from JSONB snapshot to row-level PostgreSQL tables.
+ *
+ * Writes go to primary first (PostgreSQL), then shadow to JSONB via store.transact().
+ * If shadow fails, relational data is authoritative.
+ */
+export class DualWriteCandidateRepository implements CandidateRepository {
+  constructor(
+    private readonly primary: CandidateRepository,
+    private readonly store: SkillShareerStore,
+  ) {}
+
+  async insert(candidate: CandidateSubmission): Promise<void> {
+    await this.primary.insert(candidate);
+    await this.store.transact((data) => {
+      data.candidateSubmissions.push(candidate);
+    });
+  }
+
+  async getById(candidateId: string): Promise<CandidateSubmission | null> {
+    return this.primary.getById(candidateId);
+  }
+
+  async updateStatus(
+    candidateId: string,
+    status: CandidateStatus,
+    error?: string,
+  ): Promise<void> {
+    await this.primary.updateStatus(candidateId, status, error);
+    await this.store.transact((data) => {
+      if (error !== undefined) {
+        updateCandidateStatus({ data, candidateId, status, error });
+      } else {
+        updateCandidateStatus({ data, candidateId, status });
+      }
+    });
+  }
+
+  async attachAnalysis(candidateId: string, snapshot: AnalysisSnapshot): Promise<void> {
+    await this.primary.attachAnalysis(candidateId, snapshot);
+    await this.store.transact((data) => {
+      attachAnalysisSnapshot({ data, candidateId, snapshot });
+    });
+  }
+
+  async attachDuplicateCase(
+    candidateId: string,
+    duplicateCase: DuplicateCase,
+  ): Promise<void> {
+    await this.primary.attachDuplicateCase(candidateId, duplicateCase);
+    await this.store.transact((data) => {
+      attachDuplicateCase({ data, candidateId, duplicateCase });
+    });
+  }
+
+  async attachManualResult(
+    candidateId: string,
+    result: ManualResultSubmission,
+    reviewedBy: string,
+  ): Promise<void> {
+    await this.primary.attachManualResult(candidateId, result, reviewedBy);
+    await this.store.transact((data) => {
+      attachManualResult({ data, candidateId, result, reviewedBy });
+    });
+  }
+
+  async listByStatus(status: CandidateStatus): Promise<CandidateSubmission[]> {
+    return this.primary.listByStatus(status);
+  }
+
+  async markResolved(candidateId: string, resolvedBy: string): Promise<void> {
+    await this.primary.markResolved(candidateId, resolvedBy);
+    await this.store.transact((data) => {
+      markCandidateResolved({ data, candidateId, resolvedBy });
+    });
+  }
+}
+
+/**
+ * In-memory repository that uses JsonStore for all operations.
+ * Used when no PostgreSQL pool is available (tests, local dev).
+ */
+export class InMemoryCandidateRepository implements CandidateRepository {
+  constructor(private readonly store: SkillShareerStore) {}
+
+  async insert(candidate: CandidateSubmission): Promise<void> {
+    await this.store.transact((data) => {
+      data.candidateSubmissions.push(candidate);
+    });
+  }
+
+  async getById(candidateId: string): Promise<CandidateSubmission | null> {
+    const data = await this.store.snapshot();
+    return data.candidateSubmissions.find((c) => c.id === candidateId) ?? null;
+  }
+
+  async updateStatus(
+    candidateId: string,
+    status: CandidateStatus,
+    error?: string,
+  ): Promise<void> {
+    await this.store.transact((data) => {
+      if (error !== undefined) {
+        updateCandidateStatus({ data, candidateId, status, error });
+      } else {
+        updateCandidateStatus({ data, candidateId, status });
+      }
+    });
+  }
+
+  async attachAnalysis(candidateId: string, snapshot: AnalysisSnapshot): Promise<void> {
+    await this.store.transact((data) => {
+      attachAnalysisSnapshot({ data, candidateId, snapshot });
+    });
+  }
+
+  async attachDuplicateCase(
+    candidateId: string,
+    duplicateCase: DuplicateCase,
+  ): Promise<void> {
+    await this.store.transact((data) => {
+      attachDuplicateCase({ data, candidateId, duplicateCase });
+    });
+  }
+
+  async attachManualResult(
+    candidateId: string,
+    result: ManualResultSubmission,
+    reviewedBy: string,
+  ): Promise<void> {
+    await this.store.transact((data) => {
+      attachManualResult({ data, candidateId, result, reviewedBy });
+    });
+  }
+
+  async listByStatus(status: CandidateStatus): Promise<CandidateSubmission[]> {
+    const data = await this.store.snapshot();
+    return data.candidateSubmissions.filter((c) => c.status === status);
+  }
+
+  async markResolved(candidateId: string, resolvedBy: string): Promise<void> {
+    await this.store.transact((data) => {
+      markCandidateResolved({ data, candidateId, resolvedBy });
+    });
+  }
+}
+
+/**
+ * Factory function to create the appropriate CandidateRepository.
+ * Returns DualWriteCandidateRepository when pool is available,
+ * InMemoryCandidateRepository otherwise.
+ */
+export function createCandidateRepository(config: {
+  pool?: Pool;
+  store: SkillShareerStore;
+}): CandidateRepository {
+  if (config.pool) {
+    // Dynamic import to avoid loading pg module in test environments
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { PgCandidateRepository } = require('./pg-repository.js') as {
+      PgCandidateRepository: new (pool: Pool) => CandidateRepository;
+    };
+    const pgRepo = new PgCandidateRepository(config.pool);
+    return new DualWriteCandidateRepository(pgRepo, config.store);
+  }
+  return new InMemoryCandidateRepository(config.store);
 }
