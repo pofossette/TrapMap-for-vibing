@@ -56,7 +56,7 @@
 #### Test Coverage
 
 - [x] Phase 68: Fix failing unit tests (1 plan) (completed 2026-05-03)
-- [ ] Phase 69: Governance and auth route tests (0 plans)
+- [ ] Phase 69: Governance and auth route tests (1/3 plans)
 - [ ] Phase 70: Retrieval and indexing core tests (0 plans)
 - [ ] Phase 71: CLI and contracts tests + coverage tooling (0 plans)
 
@@ -80,7 +80,7 @@
 |-------|-----------|----------------|--------|-----------|
 | 1-47 | v1.0-v1.4 | 93/93 | Complete | 2026-04-29 |
 | 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
-| 68-76 | v1.6 | 0/1 | Not started | - |
+| 68-76 | v1.6 | 1/1 | In progress | 2026-05-03 |
 
 ---
 
@@ -111,7 +111,7 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 69-01-PLAN.md -- Governance permissions and eligibility unit tests
+- [x] 69-01-PLAN.md -- Governance permissions and eligibility unit tests
 - [ ] 69-02-PLAN.md -- Candidate detector unit tests
 - [ ] 69-03-PLAN.md -- Auth and access-keys route integration tests
 
