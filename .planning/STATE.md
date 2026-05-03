@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Test Coverage & Optimization
 status: ready_to_execute
-last_updated: "2026-05-04T05:05:00Z"
-last_activity: 2026-05-04 -- Plan 72-03 complete (reranking optimization)
+last_updated: "2026-05-04T05:10:00Z"
+last_activity: 2026-05-04 -- Plan 72-04 complete (database-level vector search)
 progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 17
-  completed_plans: 12
-  percent: 47
+  completed_plans: 13
+  percent: 53
 ---
 
 ## Project Reference
@@ -23,7 +23,7 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 ## Current Position
 
 Phase: 72
-Plan: 72-04 (Wave 2: Database-Level Optimization)
+Plan: 72-05 (Wave 2: Database-Level Optimization)
 Status: Ready to execute
 Last activity: 2026-05-04
 
@@ -54,6 +54,9 @@ Last activity: 2026-05-04
 
 ### Decisions (Phase 72 Progress)
 
+- 72-04: Use HNSW index with m=16, ef_construction=64 for balanced speed/accuracy
+- 72-04: Create index programmatically via ensureVectorIndex() rather than schema migration
+- 72-04: Clamp similarity scores to [0, 1] range for consistent API
 - 72-03: Hoist Date creation outside candidate loop (O(n) -> O(1) per query)
 - 72-03: Cache freshness multiplier by lastVerifiedAt timestamp
 - 72-03: Add earlyTerminationThreshold option for pre-filtering candidates
@@ -62,12 +65,12 @@ Last activity: 2026-05-04
 ### Phase 72 Plan Summary
 
 **Wave 1: Benchmarking and In-Memory Optimization**
-- 72-01: Add retrieval performance benchmarking utilities
-- 72-02: Optimize semantic recall with batch embedding lookup
-- 72-03: Optimize reranking with early termination and caching
+- 72-01: Add retrieval performance benchmarking utilities ✓
+- 72-02: Optimize semantic recall with batch embedding lookup ✓
+- 72-03: Optimize reranking with early termination and caching ✓
 
 **Wave 2: Database-Level Optimization**
-- 72-04: Add database-level vector similarity search (HNSW index)
+- 72-04: Add database-level vector similarity search (HNSW index) ✓
 - 72-05: Add database-level keyword search with GIN index
 
 **Wave 3: Integration**
