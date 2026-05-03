@@ -343,10 +343,16 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     const knowledgeRepo = app.skillShareer.knowledgeRepo;
     if (knowledgeRepo) {
       try {
-        await knowledgeRepo.updateGovernance(entryId, {
-          labels: payload.labels,
-          requiredLevel: payload.requiredLevel,
-        });
+        const governanceUpdate: { labels?: string[]; requiredLevel?: number } = {};
+        if (payload.labels !== undefined) {
+          governanceUpdate.labels = payload.labels;
+        }
+        if (payload.requiredLevel !== undefined) {
+          governanceUpdate.requiredLevel = payload.requiredLevel;
+        }
+        if (Object.keys(governanceUpdate).length > 0) {
+          await knowledgeRepo.updateGovernance(entryId, governanceUpdate);
+        }
       } catch (repoError) {
         // Log but don't fail - JSONB is the source of truth during transition
         app.log.error({ repoError, entryId }, 'Failed to update governance in knowledge repository');
