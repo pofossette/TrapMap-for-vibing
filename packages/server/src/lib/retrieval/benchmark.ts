@@ -115,8 +115,8 @@ export async function runRetrievalBenchmark(
 
   // Measure eligibility filtering
   const [, eligibilityMs] = await measurePipelineStep('eligibility', async () => {
-    // Simulate filtering eligible entries
-    return entries.filter((e) => e.requiredLevel === 'user');
+    // Simulate filtering eligible entries (requiredLevel is numeric: 0=public, 1=user, 2=admin)
+    return entries.filter((e) => e.requiredLevel <= 1);
   });
 
   // Measure routing decision

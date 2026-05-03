@@ -8,7 +8,7 @@
 - ✅ **v1.3** — Phases 17-24 (shipped 2026-04-20)
 - ✅ **v1.4 评测系统构建** — Phases 25-47 (shipped 2026-04-29)
 - ✅ **v1.5 功能增强** — Phases 48-67 (shipped 2026-05-04)
-- 🚧 **v1.6 Test Coverage & Optimization** — Phases 68-76 (planned)
+- ✅ **v1.6 Test Coverage & Optimization** — Phases 68-76 (shipped 2026-05-04)
 
 ## Phases
 
@@ -51,7 +51,7 @@
 
 </details>
 
-### 🚧 v1.6 Test Coverage & Optimization (Phases 68-76) — Planned
+### ✅ v1.6 Test Coverage & Optimization (Phases 68-76) — SHIPPED 2026-05-04
 
 #### Test Coverage
 
@@ -62,17 +62,17 @@
 
 #### Performance Optimization
 
-- [ ] Phase 72: Query speed optimization (0 plans)
-- [ ] Phase 73: Memory usage optimization (0 plans)
+- [x] Phase 72: Query speed optimization (6/6 plans) (completed 2026-05-04)
+- [x] Phase 73: Memory usage optimization (1/1 plan) (completed 2026-05-04)
 
 #### Code Quality
 
-- [ ] Phase 74: Dead code removal (0 plans)
-- [ ] Phase 75: TypeScript strict mode compliance (0 plans)
+- [x] Phase 74: Dead code removal (1/1 plan) (completed 2026-05-04)
+- [x] Phase 75: TypeScript strict mode compliance (1/1 plan) (completed 2026-05-04)
 
 #### Documentation
 
-- [ ] Phase 76: Documentation completion (0 plans)
+- [x] Phase 76: Documentation completion (1/1 plan) (completed 2026-05-04)
 
 ## Progress
 
@@ -80,7 +80,7 @@
 |-------|-----------|----------------|--------|-----------|
 | 1-47 | v1.0-v1.4 | 93/93 | Complete | 2026-04-29 |
 | 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
-| 68-76 | v1.6 | 9/9 | In progress | 2026-05-04 |
+| 68-76 | v1.6 | 17/17 | Complete | 2026-05-04 |
 
 ---
 
@@ -174,10 +174,25 @@ Plans:
 **Goal:** Optimize retrieval query speed by reducing vector search latency and reranking overhead
 **Requirements:** PERF-01, PERF-02
 **Depends on:** Phase 71
-**Plans:** 3 plans
+**Plans:** 6 plans
+
+#### Wave 1: Benchmarking and In-Memory Optimization
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 72 to break down)
+- [ ] 72-01-PLAN.md — Add retrieval performance benchmarking utilities
+- [ ] 72-02-PLAN.md — Optimize semantic recall with batch embedding lookup
+- [ ] 72-03-PLAN.md — Optimize reranking with early termination and caching
+
+#### Wave 2: Database-Level Optimization
+
+Plans:
+- [ ] 72-04-PLAN.md — Add database-level vector similarity search
+- [ ] 72-05-PLAN.md — Add database-level keyword search with GIN index
+
+#### Wave 3: Integration
+
+Plans:
+- [ ] 72-06-PLAN.md — Integrate DB-level search into retrieval orchestrator
 
 **Success Criteria:**
 1. Vector search latency reduced (measured baseline vs optimized)
@@ -294,4 +309,4 @@ Phase 68 (Fix Failing Tests)
 
 ---
 
-*Roadmap updated: 2026-05-04 — Phase 71 plan 02 completed (48 CLI command tests)*
+*Roadmap updated: 2026-05-04 — Phase 72 plans created (6 plans for query speed optimization)*

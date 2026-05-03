@@ -232,73 +232,102 @@ export async function syncKnowledgeIndex(
  * - Syncs all approved entries that need it
  * - Removes index state for non-approved entries
  * - Repairs missing adapter state
+ * - Processes entries in batches to limit memory usage
  *
  * @param services - Store instance
  * @param adapters - Array of registered adapters
+ * @param options - Optional configuration
+ * @param options.batchSize - Number of entries to process per batch (default: 50)
  * @returns Reconciliation result
  */
 export async function reconcileKnowledgeIndexes(
   services: { store: SkillShareerStore },
   adapters: IndexAdapter[],
+  options?: { batchSize?: number },
 ): Promise<ReconcileResult> {
   const startTime = Date.now();
+  const batchSize = options?.batchSize ?? 50;
+  const startMemory = process.memoryUsage();
+
   let entriesSynced = 0;
   let entriesRemoved = 0;
   let entriesSkipped = 0;
+  let totalEntries = 0;
 
   await services.store.transact(async (data) => {
     const { knowledgeEntries } = data;
+    totalEntries = knowledgeEntries.length;
 
-    for (const entry of knowledgeEntries) {
-      const isApproved = entry.lifecycleState === 'approved';
+    // Process entries in batches to limit memory usage
+    for (let i = 0; i < knowledgeEntries.length; i += batchSize) {
+      const batch = knowledgeEntries.slice(i, i + batchSize);
 
-      if (!isApproved) {
-        // Remove index state for non-approved entries
-        if (entry.indexState) {
-          await Promise.all(
-            adapters.map((adapter) =>
-              adapter.remove({
-                entryId: entry.id,
-                revision: entry.history?.length ?? 0, // Defensive: default to 0 if history is undefined
-              }),
-            ),
-          );
-          entry.indexState = null;
-          entriesRemoved++;
+      for (const entry of batch) {
+        const isApproved = entry.lifecycleState === 'approved';
+
+        if (!isApproved) {
+          // Remove index state for non-approved entries
+          if (entry.indexState) {
+            await Promise.all(
+              adapters.map((adapter) =>
+                adapter.remove({
+                  entryId: entry.id,
+                  revision: entry.history?.length ?? 0, // Defensive: default to 0 if history is undefined
+                }),
+              ),
+            );
+            entry.indexState = null;
+            entriesRemoved++;
+          }
+          continue;
         }
-        continue;
+
+        // Entry is approved - check if sync is needed
+        const normalizedDocument = normalizeKnowledgeIndexDocument(entry);
+
+        if (!entry.indexState) {
+          // No index state exists - needs full sync
+          entry.indexState = initializeIndexState(normalizedDocument);
+          await syncKnowledgeIndex({ store: services.store, data }, entry.id, adapters);
+          entriesSynced++;
+          continue;
+        }
+
+        // Check if any adapter needs sync
+        const needsAnySync =
+          needsSync(entry.indexState.vector, normalizedDocument) ||
+          needsSync(entry.indexState.keyword, normalizedDocument) ||
+          needsSync(entry.indexState.graph, normalizedDocument);
+
+        if (needsAnySync) {
+          await syncKnowledgeIndex({ store: services.store, data }, entry.id, adapters);
+          entriesSynced++;
+        } else {
+          entriesSkipped++;
+        }
       }
 
-      // Entry is approved - check if sync is needed
-      const normalizedDocument = normalizeKnowledgeIndexDocument(entry);
-
-      if (!entry.indexState) {
-        // No index state exists - needs full sync
-        entry.indexState = initializeIndexState(normalizedDocument);
-        await syncKnowledgeIndex({ store: services.store, data }, entry.id, adapters);
-        entriesSynced++;
-        continue;
-      }
-
-      // Check if any adapter needs sync
-      const needsAnySync =
-        needsSync(entry.indexState.vector, normalizedDocument) ||
-        needsSync(entry.indexState.keyword, normalizedDocument) ||
-        needsSync(entry.indexState.graph, normalizedDocument);
-
-      if (needsAnySync) {
-        await syncKnowledgeIndex({ store: services.store, data }, entry.id, adapters);
-        entriesSynced++;
-      } else {
-        entriesSkipped++;
+      // Memory optimization: hint garbage collection between batches
+      // Only works if Node.js is run with --expose-gc flag
+      if (global.gc) {
+        global.gc();
       }
     }
   });
 
   const durationMs = Date.now() - startTime;
+  const endMemory = process.memoryUsage();
+
+  // Log memory usage for monitoring
+  const heapUsedMB = Math.round(endMemory.heapUsed / 1024 / 1024);
+  const heapTotalMB = Math.round(endMemory.heapTotal / 1024 / 1024);
+  const deltaMB = Math.round((endMemory.heapUsed - startMemory.heapUsed) / 1024 / 1024);
+  console.log(
+    `[reconcileKnowledgeIndexes] Memory: ${heapUsedMB}MB used / ${heapTotalMB}MB total (delta: ${deltaMB >= 0 ? '+' : ''}${deltaMB}MB)`,
+  );
 
   return {
-    totalEntries: entriesSynced + entriesRemoved + entriesSkipped,
+    totalEntries,
     entriesSynced,
     entriesRemoved,
     entriesSkipped,

@@ -506,12 +506,14 @@ async function semanticRecall(
     try {
       // Use DB-level vector search for O(log n) indexed retrieval
       const queryVector = await getQueryEmbedding(seed);
+      // Get first scope from filters if present
+      const scopeFilter = parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
       const dbResults = await vectorSimilaritySearch(dbConfig.pool, {
         queryVector,
         limit: parsed.maxResults * 2, // Get extra for reranking
         teamId: auth.activeTeamId,
         maxLevel: auth.securityLevel,
-        scope: parsed.filters?.scope,
+        ...(scopeFilter ? { scope: scopeFilter } : {}),
       });
 
       // Convert DB results to scored entries
@@ -641,17 +643,19 @@ async function hybridRecall(
           teamId: auth.activeTeamId,
           securityLevel: auth.securityLevel,
           isSystemAdmin: auth.subjectType === 'system-admin',
-          scopes: parsed.filters?.scope ? [parsed.filters.scope] : ['global', 'project'],
+          scopes: parsed.filters?.scopes?.length ? parsed.filters.scopes : ['global', 'project'],
         }, parsed.maxResults * 2),
       ]);
 
       // Run DB vector search
+      // Get first scope from filters if present
+      const dbScopeFilter = parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
       const dbVectorResults = await vectorSimilaritySearch(dbConfig.pool, {
         queryVector,
         limit: parsed.maxResults * 2,
         teamId: auth.activeTeamId,
         maxLevel: auth.securityLevel,
-        scope: parsed.filters?.scope,
+        ...(dbScopeFilter ? { scope: dbScopeFilter } : {}),
       });
 
       // Convert DB vector results to semantic candidates

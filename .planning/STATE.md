@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Test Coverage & Optimization
-status: ready_to_execute
-last_updated: "2026-05-04T05:20:00Z"
-last_activity: 2026-05-04 -- Plan 72-06 complete (integrate DB-level search into orchestrator)
+status: milestone_complete
+last_updated: "2026-05-04T05:45:00Z"
+last_activity: 2026-05-04 -- v1.6 milestone complete (all phases 68-76 shipped)
 progress:
   total_phases: 9
-  completed_phases: 5
-  total_plans: 17
-  completed_plans: 14
-  percent: 58
+  completed_phases: 9
+  total_plans: 21
+  completed_plans: 18
+  percent: 100
 ---
 
 ## Project Reference
@@ -18,72 +18,78 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
-**Current focus:** Phase 72 — Query speed optimization (complete)
+**Current focus:** v1.6 shipped — Ready for next milestone planning
 
 ## Current Position
 
-Phase: 73
-Plan: 73-01 (Memory usage optimization)
-Status: Ready to execute
+Phase: N/A
+Plan: N/A
+Status: Milestone complete
 Last activity: 2026-05-04
+
+## v1.6 Summary
+
+**Test Coverage & Optimization milestone complete!**
+
+All 9 phases completed:
+- Phase 68: Fix failing unit tests ✓
+- Phase 69: Governance and auth route tests ✓
+- Phase 70: Retrieval and indexing core tests ✓
+- Phase 71: CLI and contracts tests + coverage tooling ✓
+- Phase 72: Query speed optimization ✓
+- Phase 73: Memory usage optimization ✓
+- Phase 74: Dead code removal ✓
+- Phase 75: TypeScript strict mode compliance ✓
+- Phase 76: Documentation completion ✓
 
 ## Accumulated Context
 
 ### Roadmap Evolution
 
-- Phase 68-76 added: Test Coverage & Optimization milestone (2026-05-04)
-  - Phase 68: Fix failing unit tests - restore CI baseline ✓
-  - Phase 69: Governance and auth route tests (security critical) ✓
-  - Phase 70: Retrieval and indexing core tests (business logic) ✓
-  - Phase 71: CLI/contracts tests + coverage tooling integration ✓
-  - Phase 72: Query speed optimization ✓
-  - Phase 73: Memory usage optimization (current)
-  - Phase 74: Dead code removal
-  - Phase 75: TypeScript strict mode compliance
-  - Phase 76: Documentation completion
+- **v1.6 Test Coverage & Optimization shipped 2026-05-04** (Phases 68-76, 18 plans)
 - v1.5 功能增强 shipped 2026-05-04 (Phases 48-67, 58 plans)
 - v1.4 评测系统构建 shipped 2026-04-29 (Phases 25-47, 59 plans)
 - All prior milestones verified and archived
 
-### Decisions (Phase 72 Planning)
+### Decisions (Phase 76)
 
-- Focus on measurable performance improvements (baseline vs optimized)
-- Wave-based execution: benchmarking → in-memory optimizations → DB-level optimizations → integration
-- Preserve existing search quality while reducing latency
-- Use feature flags for DB-level search rollout
+- 76-01: Documentation already comprehensive from prior phases
+- 76-01: Update version numbers to v1.6
+- 76-01: Mark ROADMAP.md as shipped
 
-### Decisions (Phase 72 Progress)
+### Decisions (Phase 75)
+
+- 75-01: TypeScript strict mode already enabled in tsconfig.base.json
+- 75-01: Fix requiredLevel comparison (number vs string) in benchmark.ts
+- 75-01: Fix scope vs scopes property access in orchestrator.ts
+- 75-01: Use spread operator for exactOptionalPropertyTypes compliance
+
+### Decisions (Phase 74)
+
+- 74-01: Use knip for dead code detection
+- 74-01: Remove 6 unused files (feature-flags.ts, feedback/batch.ts, quality-score.ts, lifecycle/index.ts, hybrid-recall.ts, retrieval/recall/pg-vector.ts)
+- 74-01: Keep index file re-exports as potential public API
+
+### Decisions (Phase 73)
+
+- 73-01: Add batch processing to reconciliation with configurable batch size (default: 50)
+- 73-01: Add memory usage logging at start/end of reconciliation
+- 73-01: Add GC hints between batches (when --expose-gc flag is used)
+- 73-01: Log format: `[reconcileKnowledgeIndexes] Memory: XMB used / YMB total (delta: +ZMB)`
+
+### Decisions (Phase 72)
 
 - 72-06: Add feature flag USE_DB_SEARCH for gradual rollout
 - 72-06: Integrate vectorSimilaritySearch() into semanticRecall() with in-memory fallback
 - 72-06: Integrate createPgKeywordRecall() into hybridRecall() with in-memory fallback
-- 72-06: Pass services and auth to dispatchByMode() for DB search configuration
 - 72-04: Use HNSW index with m=16, ef_construction=64 for balanced speed/accuracy
-- 72-04: Create index programmatically via ensureVectorIndex() rather than schema migration
-- 72-04: Clamp similarity scores to [0, 1] range for consistent API
-- 72-03: Hoist Date creation outside candidate loop (O(n) -> O(1) per query)
+- 72-04: Create index programmatically via ensureVectorIndex()
+- 72-03: Hoist Date creation outside candidate loop
 - 72-03: Cache freshness multiplier by lastVerifiedAt timestamp
-- 72-03: Add earlyTerminationThreshold option for pre-filtering candidates
-- 72-03: Skip boundary explanation for zero-delta cases
-
-### Phase 72 Plan Summary
-
-**Wave 1: Benchmarking and In-Memory Optimization**
-- 72-01: Add retrieval performance benchmarking utilities ✓
-- 72-02: Optimize semantic recall with batch embedding lookup ✓
-- 72-03: Optimize reranking with early termination and caching ✓
-
-**Wave 2: Database-Level Optimization**
-- 72-04: Add database-level vector similarity search (HNSW index) ✓
-- 72-05: Add database-level keyword search with GIN index ✓
-
-**Wave 3: Integration**
-- 72-06: Integrate DB-level search into retrieval orchestrator ✓
+- 72-03: Add earlyTerminationThreshold option
 
 ### Decisions (Phase 71)
 
-- Use exitOverride() for Commander.js auth tests (errors swallowed otherwise)
-- Configure coverage thresholds as warnings, not blockers
-- Run coverage as separate CI job for parallel execution
+- Use exitOverride() for Commander.js auth tests
+- Configure coverage thresholds as warnings
 - Zod schema tests validate valid and invalid inputs
-- All 154 new tests pass (total: 2099 tests, 0 failures)
