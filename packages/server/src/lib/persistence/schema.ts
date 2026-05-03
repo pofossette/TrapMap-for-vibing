@@ -396,3 +396,113 @@ export const skillArtifacts = pgTable(
     index('idx_skill_artifacts_slug').on(table.slug),
   ],
 );
+
+/**
+ * Artifact revisions table for immutable revision history.
+ * Each row captures a snapshot of artifact files and derived outputs at a point in time.
+ */
+export const artifactRevisions = pgTable(
+  'artifact_revisions',
+  {
+    /** Composite key: {artifact_id}_rev{revision} */
+    id: text('id').primaryKey(),
+    /** Reference to parent skill artifact */
+    artifactId: text('artifact_id').notNull(),
+    /** Monotonically increasing revision number */
+    revision: integer('revision').notNull(),
+    /** SHA-256 hash of all source files for this revision */
+    sourceHash: text('source_hash').notNull(),
+    /** All files in the skill directory at this revision */
+    files: jsonb('files')
+      .notNull()
+      .$type<
+        Array<{
+          path: string;
+          kind: 'skill-markdown' | 'reference' | 'asset' | 'script';
+          sha256: string;
+          sizeBytes: number;
+          mediaType: string;
+          source: 'references/' | 'assets/' | 'scripts/' | 'SKILL.md';
+          includeInDerivation: boolean;
+          activationOnly: boolean;
+        }>
+      >(),
+    /** Script descriptors for executable scripts in this revision */
+    scriptDescriptors: jsonb('script_descriptors')
+      .notNull()
+      .$type<
+        Array<{
+          path: string;
+          sha256: string;
+          capability: string;
+          argsSchemaSummary: string;
+          sideEffectSummary: string;
+          defaultPolicy: string;
+        }>
+      >(),
+    /** Cached derived outputs keyed by source hash */
+    derived: jsonb('derived').$type<{
+      profile: {
+        artifactId: string;
+        revision: number;
+        sourceHash: string;
+        title: string;
+        summary: string;
+        keywords: string[];
+        referencePaths: string[];
+        contentHash: string;
+      } | null;
+      capsules: Array<{
+        capsuleId: string;
+        artifactId: string;
+        revision: number;
+        sourcePaths: string[];
+        content: string;
+        situation: string;
+        problem: string;
+        goal: string;
+        errorText: string | null;
+        labels: string[];
+        scope: string;
+        requiredLevel: number;
+      }>;
+      clientManifest: {
+        artifactId: string;
+        revision: number;
+        references: Array<{
+          path: string;
+          sha256: string;
+          sizeBytes: number;
+          mediaType: string;
+        }>;
+        assets: Array<{
+          path: string;
+          sha256: string;
+          sizeBytes: number;
+          mediaType: string;
+        }>;
+        scripts: Array<{
+          path: string;
+          sha256: string;
+          capability: string;
+          argsSchemaSummary: string;
+          sideEffectSummary: string;
+          defaultPolicy: string;
+        }>;
+        sourceHash: string;
+      } | null;
+      sourceHash: string;
+      derivedAt: string;
+    } | null>(),
+    /** When this revision was submitted */
+    submittedAt: timestamp('submitted_at', { withTimezone: true }).notNull(),
+    /** User who submitted this revision */
+    submittedByUserId: text('submitted_by_user_id').notNull(),
+    /** Record creation timestamp */
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_artifact_revisions_artifact').on(table.artifactId),
+    uniqueIndex('idx_artifact_revisions_artifact_revision').on(table.artifactId, table.revision),
+  ],
+);
