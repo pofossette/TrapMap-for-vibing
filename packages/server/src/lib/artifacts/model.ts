@@ -13,6 +13,7 @@
 import type { AgentReviewResult } from '@trapmap/contracts';
 import { skillArtifactSchema } from '@trapmap/contracts';
 
+import { transitionLifecycleState } from '../lifecycle/state-machine.js';
 import type {
   AgentReviewRecord,
   SkillArtifactRecord as ServerSkillArtifactRecord,
@@ -392,8 +393,11 @@ export function appendSkillArtifactRevision(args: {
   args.artifact.metadata.latestDecision = null;
 
   // Update artifact
-  args.artifact.lifecycleState =
-    args.preReview.status === 'agent-pass' ? 'agent-pass' : 'agent-rejected';
+  transitionLifecycleState(
+    args.artifact,
+    args.preReview.status === 'agent-pass' ? 'agent-pass' : 'agent-rejected',
+    'artifact revision resubmit'
+  );
   args.artifact.latestRevision = revision;
   args.artifact.history.push(revision);
   args.artifact.agentReview = agentReview;
