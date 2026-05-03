@@ -108,10 +108,12 @@ Plans:
 **Goal:** Add tests for governance module (permissions, eligibility), auth-related routes, and candidate detection system to ensure security-critical code paths are covered
 **Requirements:** TEST-02
 **Depends on:** Phase 68
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 69 to break down)
+- [ ] 69-01-PLAN.md -- Governance permissions and eligibility unit tests
+- [ ] 69-02-PLAN.md -- Candidate detector unit tests
+- [ ] 69-03-PLAN.md -- Auth and access-keys route integration tests
 
 **Success Criteria:**
 1. `governance/permissions.test.ts` covers RBAC permission checks
@@ -128,7 +130,7 @@ Plans:
 **Goal:** Add tests for uncovered retrieval and indexing modules (orchestrator, semantic, merge, artifact-pipeline) to protect core business logic
 **Requirements:** TEST-03
 **Depends on:** Phase 68
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 70 to break down)
@@ -148,7 +150,7 @@ Plans:
 **Goal:** Add tests for CLI commands and contracts schemas, integrate Vitest coverage tooling, and establish coverage thresholds in CI
 **Requirements:** TEST-04, TEST-05
 **Depends on:** Phase 69, Phase 70
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 71 to break down)
@@ -168,7 +170,7 @@ Plans:
 **Goal:** Optimize retrieval query speed by reducing vector search latency and reranking overhead
 **Requirements:** PERF-01, PERF-02
 **Depends on:** Phase 71
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 72 to break down)
@@ -186,7 +188,7 @@ Plans:
 **Goal:** Reduce memory footprint during indexing operations and optimize resource usage
 **Requirements:** PERF-03
 **Depends on:** Phase 72
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 73 to break down)
@@ -203,7 +205,7 @@ Plans:
 **Goal:** Remove unused functions, imports, and files across the codebase
 **Requirements:** QUAL-01
 **Depends on:** Phase 73
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 74 to break down)
@@ -221,7 +223,7 @@ Plans:
 **Goal:** Enable TypeScript strict mode and fix all resulting type errors, eliminate 'any' types
 **Requirements:** QUAL-02
 **Depends on:** Phase 74
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 75 to break down)
@@ -239,7 +241,7 @@ Plans:
 **Goal:** Complete API documentation, update README, and add architecture documentation
 **Requirements:** DOC-01, DOC-02, DOC-03
 **Depends on:** Phase 75
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 76 to break down)
