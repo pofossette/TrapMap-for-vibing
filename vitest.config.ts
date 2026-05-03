@@ -9,6 +9,22 @@ export default defineConfig({
           name: 'contracts',
           root: './packages/contracts',
           include: ['src/**/*.test.ts'],
+          coverage: {
+            provider: 'v8',
+            reporter: ['text', 'html', 'lcov'],
+            exclude: [
+              '**/*.test.ts',
+              '**/*.d.ts',
+              '**/dist/**',
+              '**/node_modules/**',
+            ],
+            thresholds: {
+              lines: 70,
+              functions: 70,
+              branches: 60,
+              statements: 70,
+            },
+          },
         },
       },
       {
@@ -16,6 +32,22 @@ export default defineConfig({
           name: 'server',
           root: './packages/server',
           include: ['src/**/*.test.ts'],
+          coverage: {
+            provider: 'v8',
+            reporter: ['text', 'html', 'lcov'],
+            exclude: [
+              '**/*.test.ts',
+              '**/*.d.ts',
+              '**/dist/**',
+              '**/node_modules/**',
+            ],
+            thresholds: {
+              lines: 70,
+              functions: 70,
+              branches: 60,
+              statements: 70,
+            },
+          },
         },
         resolve: {
           alias: {
@@ -28,6 +60,22 @@ export default defineConfig({
           name: 'cli',
           root: './packages/cli',
           include: ['src/**/*.test.ts'],
+          coverage: {
+            provider: 'v8',
+            reporter: ['text', 'html', 'lcov'],
+            exclude: [
+              '**/*.test.ts',
+              '**/*.d.ts',
+              '**/dist/**',
+              '**/node_modules/**',
+            ],
+            thresholds: {
+              lines: 70,
+              functions: 70,
+              branches: 60,
+              statements: 70,
+            },
+          },
         },
         resolve: {
           alias: {
@@ -40,6 +88,22 @@ export default defineConfig({
           name: 'evals',
           root: './evals',
           include: ['**/*.test.ts'],
+          coverage: {
+            provider: 'v8',
+            reporter: ['text', 'html', 'lcov'],
+            exclude: [
+              '**/*.test.ts',
+              '**/*.d.ts',
+              '**/dist/**',
+              '**/node_modules/**',
+            ],
+            thresholds: {
+              lines: 70,
+              functions: 70,
+              branches: 60,
+              statements: 70,
+            },
+          },
         },
         resolve: {
           alias: {

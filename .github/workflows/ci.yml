@@ -59,3 +59,28 @@ jobs:
       - run: pnpm test
         env:
           NODE_ENV: test
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10.33.0
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test:coverage
+        env:
+          NODE_ENV: test
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
