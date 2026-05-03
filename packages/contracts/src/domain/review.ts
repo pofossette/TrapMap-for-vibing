@@ -7,6 +7,7 @@ import {
   paginatedQuerySchema,
 } from './common.js';
 import { boundarySchema } from './boundary.js';
+import { evidenceMetaSchema } from './evidence.js';
 import {
   agentReviewResultSchema,
   knowledgeEntrySchema,
@@ -26,6 +27,8 @@ export const reviewDecisionRequestSchema = z.object({
   decision: z.enum(['approve', 'reject']),
   notes: z.string().min(1).max(2000),
   boundary: boundarySchema.nullable().optional(),
+  /** Optional evidence metadata for provenance tracking */
+  evidence: evidenceMetaSchema.optional(),
 });
 
 export const reviewQueueItemSchema = z.object({

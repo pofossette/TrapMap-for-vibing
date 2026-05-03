@@ -194,9 +194,14 @@ function hasStaleDecayState(candidate: MergedCandidate): boolean {
  * @returns Scored entries sorted by final score
  */
 export function toScoredEntriesFromReranked(rerankedCandidates: MergedCandidate[]): ScoredEntry[] {
-  return rerankedCandidates.map((candidate) => ({
-    entry: candidate.entry,
-    score: candidate.combinedScore,
-    boundaryExplanation: candidate.boundaryExplanation,
-  }));
+  return rerankedCandidates.map((candidate) => {
+    const result: ScoredEntry = {
+      entry: candidate.entry,
+      score: candidate.combinedScore,
+    };
+    if (candidate.boundaryExplanation !== undefined) {
+      result.boundaryExplanation = candidate.boundaryExplanation;
+    }
+    return result;
+  });
 }

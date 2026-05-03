@@ -1,4 +1,5 @@
 import {
+  type BoundaryExplanation,
   type CapsuleMatch,
   type ProfileHint,
   type RetrievalCitation,
@@ -480,7 +481,11 @@ async function semanticRecall(
           const boundaryExplanation = parsed.boundaryContext
             ? buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
             : undefined;
-          return { entry, score: finalScore, boundaryExplanation };
+          const result: ScoredEntry = { entry, score: finalScore };
+          if (boundaryExplanation !== undefined) {
+            result.boundaryExplanation = boundaryExplanation;
+          }
+          return result;
         } catch (error) {
           // Log error and skip this entry - graceful degradation
           console.error(`Failed to get embedding for entry ${entry.id}:`, error);
@@ -488,7 +493,7 @@ async function semanticRecall(
         }
       }),
     )
-  ).filter((result): result is { entry: KnowledgeRecord; score: number; boundaryExplanation?: unknown } => result !== null);
+  ).filter((result): result is ScoredEntry => result !== null);
 
   // Sort by score descending
   scoredEntries.sort((a, b) => b.score - a.score);
@@ -535,7 +540,7 @@ async function hybridRecall(
   // Rerank merged candidates using heuristic boosts
   const rerankedCandidates = rerankCandidates(mergedCandidates, queryTokens, {
     maxCandidates: parsed.maxResults,
-    boundaryContext: parsed.boundaryContext,
+    ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
     freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
   });
 
@@ -636,7 +641,7 @@ async function graphAssistedRecall(
   // Rerank merged candidates using heuristic boosts
   const rerankedCandidates = rerankCandidates(finalMerged, queryTokens, {
     maxCandidates: parsed.maxResults,
-    boundaryContext: parsed.boundaryContext,
+    ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
     freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
   });
 
