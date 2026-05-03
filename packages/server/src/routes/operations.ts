@@ -53,6 +53,7 @@ import { artifactGraphIndexAdapter } from '../lib/indexing/adapters/artifact-gra
 import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 import { runSkillIndexEvent } from '../lib/indexing/skill-events.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '../lib/knowledge.js';
+import { transitionLifecycleState } from '../lib/lifecycle/state-machine.js';
 import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
@@ -212,7 +213,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       previousState = entry.lifecycleState;
 
       // Set lifecycle state
-      entry.lifecycleState = 'deactivated';
+      transitionLifecycleState(entry, 'deactivated', 'knowledge deactivate');
       nextState = 'deactivated';
 
       // Add lifecycle event
@@ -1470,7 +1471,11 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       artifact.reviewNotes.push(note);
 
       // Update lifecycle state
-      artifact.lifecycleState = body.decision === 'approve' ? 'approved' : 'rejected';
+      transitionLifecycleState(
+        artifact,
+        body.decision === 'approve' ? 'approved' : 'rejected',
+        'artifact review decision'
+      );
 
       // Update metadata
       artifact.metadata.latestReviewedAt = decidedAt;
@@ -1589,7 +1594,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       const deactivatedAt = nowIso();
 
       // Set lifecycle state
-      artifact.lifecycleState = 'deactivated';
+      transitionLifecycleState(artifact, 'deactivated', 'artifact deactivate');
       nextState = 'deactivated';
 
       // Add lifecycle event
