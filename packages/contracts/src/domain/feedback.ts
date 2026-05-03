@@ -248,6 +248,38 @@ export const feedbackStatsResponseSchema = z.object({
   recentFeedback: z.array(feedbackListItemSchema).max(10),
 });
 
+// =============================================================================
+// Phase 65: Lifecycle Trigger Rules (FEEDBACK-03)
+// =============================================================================
+
+/**
+ * Rule for automatic lifecycle transitions triggered by feedback patterns.
+ * When a minimum number of feedback items of a specific problem type
+ * accumulate within a time window, the entry transitions to a target state.
+ */
+export const lifecycleTriggerRuleSchema = z.object({
+  /** Problem type that triggers this rule */
+  problemType: feedbackProblemTypeSchema,
+  /** Minimum feedback count to trigger */
+  minCount: z.number().int().min(1).default(3),
+  /** Time window in days for counting feedback */
+  timeWindowDays: z.number().int().min(1).default(30),
+  /** Decay state to transition to */
+  targetDecayState: decayStateSchema,
+});
+
+export type LifecycleTriggerRule = z.infer<typeof lifecycleTriggerRuleSchema>;
+
+/**
+ * Default lifecycle trigger rules.
+ * - 3 'outdated' feedback in 30 days -> stale
+ * - 5 'incorrect' feedback in 30 days -> review-due
+ */
+export const DEFAULT_LIFECYCLE_TRIGGER_RULES: LifecycleTriggerRule[] = [
+  { problemType: 'outdated', minCount: 3, timeWindowDays: 30, targetDecayState: 'stale' },
+  { problemType: 'incorrect', minCount: 5, timeWindowDays: 30, targetDecayState: 'review-due' },
+];
+
 // Type exports
 export type FeedbackProblemType = z.infer<typeof feedbackProblemTypeSchema>;
 export type FeedbackCustomAnswer = z.infer<typeof feedbackCustomAnswerSchema>;
