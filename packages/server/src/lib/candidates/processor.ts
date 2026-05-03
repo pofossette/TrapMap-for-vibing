@@ -6,6 +6,7 @@ import type { SkillShareerStore, StoreData } from '../store.js';
 import { detectDuplicates } from './detector.js';
 import { computeCandidateFingerprint } from './fingerprint.js';
 import { createPgDuplicateDetector } from './pg-detector.js';
+import type { CandidateRepository } from './repository.js';
 import {
   attachAnalysisSnapshot,
   attachDuplicateCase,
@@ -39,6 +40,8 @@ export interface CandidateProcessorServices {
   pool?: Pool;
   /** Feature flag for using PostgreSQL-based detection */
   usePgDuplicateDetection?: () => boolean;
+  /** Optional repository for direct candidate DB operations (bypasses transact) */
+  candidateRepo?: CandidateRepository;
 }
 
 /**
@@ -70,22 +73,30 @@ export async function processCandidate(
 
   try {
     // Phase 1: Queue the candidate
-    await services.store.transact(async (txData) => {
-      updateCandidateStatus({
-        data: txData,
-        candidateId,
-        status: 'queued',
+    if (services.candidateRepo) {
+      await services.candidateRepo.updateStatus(candidateId, 'queued');
+    } else {
+      await services.store.transact(async (txData) => {
+        updateCandidateStatus({
+          data: txData,
+          candidateId,
+          status: 'queued',
+        });
       });
-    });
+    }
 
     // Phase 2: Start analysis
-    await services.store.transact(async (txData) => {
-      updateCandidateStatus({
-        data: txData,
-        candidateId,
-        status: 'analyzing',
+    if (services.candidateRepo) {
+      await services.candidateRepo.updateStatus(candidateId, 'analyzing');
+    } else {
+      await services.store.transact(async (txData) => {
+        updateCandidateStatus({
+          data: txData,
+          candidateId,
+          status: 'analyzing',
+        });
       });
-    });
+    }
 
     // Phase 3: Compute fingerprint
     const fingerprintInput = buildFingerprintInput(candidate);
@@ -139,39 +150,51 @@ export async function processCandidate(
     // Phase 5: Store results and determine final status
     const finalStatus = result.duplicateCase ? 'duplicate_detected' : 'ready_for_review';
 
-    await services.store.transact(async (txData) => {
-      attachAnalysisSnapshot({
-        data: txData,
-        candidateId,
-        snapshot: result.analysisSnapshot,
-      });
-
+    if (services.candidateRepo) {
+      await services.candidateRepo.attachAnalysis(candidateId, result.analysisSnapshot);
       if (result.duplicateCase) {
-        attachDuplicateCase({
+        await services.candidateRepo.attachDuplicateCase(candidateId, result.duplicateCase);
+      }
+      await services.candidateRepo.updateStatus(candidateId, finalStatus);
+    } else {
+      await services.store.transact(async (txData) => {
+        attachAnalysisSnapshot({
           data: txData,
           candidateId,
-          duplicateCase: result.duplicateCase,
+          snapshot: result.analysisSnapshot,
         });
-      }
 
-      updateCandidateStatus({
-        data: txData,
-        candidateId,
-        status: finalStatus,
+        if (result.duplicateCase) {
+          attachDuplicateCase({
+            data: txData,
+            candidateId,
+            duplicateCase: result.duplicateCase,
+          });
+        }
+
+        updateCandidateStatus({
+          data: txData,
+          candidateId,
+          status: finalStatus,
+        });
       });
-    });
+    }
   } catch (error) {
     // Handle error with retry tracking
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    await services.store.transact(async (txData) => {
-      updateCandidateStatus({
-        data: txData,
-        candidateId,
-        status: 'error',
-        error: errorMessage,
+    if (services.candidateRepo) {
+      await services.candidateRepo.updateStatus(candidateId, 'error', errorMessage);
+    } else {
+      await services.store.transact(async (txData) => {
+        updateCandidateStatus({
+          data: txData,
+          candidateId,
+          status: 'error',
+          error: errorMessage,
+        });
       });
-    });
+    }
 
     throw error;
   }
@@ -196,14 +219,18 @@ export async function processCandidateWithRetry(
   // Check if already at max retries
   if (candidate.retryCount >= getMaxRetries()) {
     // Mark as permanently failed
-    await services.store.transact(async (txData) => {
-      updateCandidateStatus({
-        data: txData,
-        candidateId,
-        status: 'error',
-        error: 'Max retries exceeded',
+    if (services.candidateRepo) {
+      await services.candidateRepo.updateStatus(candidateId, 'error', 'Max retries exceeded');
+    } else {
+      await services.store.transact(async (txData) => {
+        updateCandidateStatus({
+          data: txData,
+          candidateId,
+          status: 'error',
+          error: 'Max retries exceeded',
+        });
       });
-    });
+    }
     return;
   }
 
@@ -336,14 +363,22 @@ export function createCandidateProcessingHandler(
       const { candidateId } = task.payload;
       console.error(`Candidate processing dead-lettered for ${candidateId}:`, task.lastError);
       // Mark candidate as permanently failed
-      await services.store.transact(async (txData) => {
-        updateCandidateStatus({
-          data: txData,
+      if (services.candidateRepo) {
+        await services.candidateRepo.updateStatus(
           candidateId,
-          status: 'error',
-          error: `Max retries exceeded: ${task.lastError ?? 'Unknown error'}`,
+          'error',
+          `Max retries exceeded: ${task.lastError ?? 'Unknown error'}`,
+        );
+      } else {
+        await services.store.transact(async (txData) => {
+          updateCandidateStatus({
+            data: txData,
+            candidateId,
+            status: 'error',
+            error: `Max retries exceeded: ${task.lastError ?? 'Unknown error'}`,
+          });
         });
-      });
+      }
     },
   };
 }

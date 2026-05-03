@@ -10,3 +10,5 @@ export * from './fingerprint.js';
 export * from './detector.js';
 export * from './store.js';
 export * from './processor.js';
+export * from './repository.js';
+export * from './pg-repository.js';
