@@ -7,7 +7,7 @@
 - ✅ **v1.2 Skill-Native Retrieval** — Phases 12-16 (shipped 2026-04-17)
 - ✅ **v1.3 工程化调整** — Phases 17-24 (shipped 2026-04-20)
 - ✅ **v1.4 评测系统构建** — Phases 25-47 (shipped 2026-04-29)
-- 🔄 **v1.5 功能增强** — Phases 48-63 (in progress)
+- 🔄 **v1.5 功能增强** — Phases 48-67 (in progress)
 
 ## Phases
 
@@ -41,7 +41,7 @@
 </details>
 
 <details>
-<summary>🔄 v1.5 功能增强 (Phases 48-63) — IN PROGRESS</summary>
+<summary>🔄 v1.5 功能增强 (Phases 48-67) — IN PROGRESS</summary>
 
 ### Decay & Retirement
 
@@ -77,6 +77,13 @@
 - [x] Phase 62: Knowledge Entry Row-Level Table (WRITE-02) (completed 2026-05-03)
 - [x] Phase 63: Skill Artifact Row-Level Table & JSONB Cleanup (WRITE-03) (completed 2026-05-03)
 
+### Gap Closure
+
+- [ ] Phase 64: Retrieval Pipeline Integration (DECAY-02, CONFLICT-02)
+- [ ] Phase 65: Feedback Lifecycle & Decay Route Wiring (FEEDBACK-03, DECAY-03)
+- [ ] Phase 66: Boundary-aware Retrieval Completion (BOUND-04, BOUND-05)
+- [ ] Phase 67: Audit Cleanup & Documentation
+
 </details>
 
 ## Progress
@@ -84,7 +91,7 @@
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 25-47 | v1.4 | 59/59 | Complete | 2026-04-29 |
-| 48-63 | v1.5 | —/— | In Progress | — |
+| 48-67 | v1.5 | —/— | In Progress | — |
 
 ---
 
@@ -378,24 +385,86 @@ Plans:
 
 ---
 
+### Phase 64: Retrieval Pipeline Integration
+
+**Requirements:** DECAY-02, CONFLICT-02
+
+**Goal:** Wire existing but disconnected retrieval features into the live pipeline — freshness decay scoring and conflict display in results.
+
+**Depends on:** Phase 49, Phase 55
+
+**Success Criteria:**
+1. `computeFreshnessMultiplier` imported and called by `rerank.ts`; `RerankConfig` includes `freshnessConfig` field
+2. Orchestrator threads `conflictHints` Map to `assembleResponseBuckets` — conflict data visible in CLI output
+3. Freshness decay scoring E2E flow: retrieval results reflect entry age and freshness type
+4. Conflict display E2E flow: conflicting entries shown with conflict type and context
+
+---
+
+### Phase 65: Feedback Lifecycle & Decay Route Wiring
+
+**Requirements:** FEEDBACK-03, DECAY-03
+
+**Goal:** Activate dead-code paths — wire automatic lifecycle triggers from feedback and register undocumented decay routes.
+
+**Depends on:** Phase 57, Phase 50
+
+**Success Criteria:**
+1. `checkLifecycleTriggers` called after batch feedback execution — feedback-driven lifecycle transitions fire automatically
+2. Decay batch management routes registered in `documentedRoutes` array
+3. Automatic lifecycle trigger E2E flow: recurring feedback patterns trigger state transitions (e.g., multiple "outdated" → stale)
+4. Decay batch routes visible in documented API surface
+
+---
+
+### Phase 66: Boundary-aware Retrieval Completion
+
+**Requirements:** BOUND-04, BOUND-05
+
+**Goal:** Complete the unfinished Phase 54 — implement boundary-aware filtering, scoring, and explanations in the retrieval pipeline, and wire Phase 53 back-reference queries into production use.
+
+**Depends on:** Phase 53, Phase 54
+
+**Success Criteria:**
+1. Retrieval accepts boundary context (platform, versions, environment) as input
+2. Required constraint mismatch: entry excluded from results
+3. Excluded constraint match: entry penalized in ranking
+4. Preferred constraint match: entry boosted in ranking
+5. API response includes `boundary_explanation` field showing why entry is applicable or potentially inapplicable
+6. Back-reference queries (`findEntriesByBoundaryConstraint`, `findEntriesByGraphNode`) consumed by production retrieval code
+
+---
+
+### Phase 67: Audit Cleanup & Documentation
+
+**Goal:** Resolve cross-cutting tech debt — fix stale checkboxes, complete traceability, register undocumented routes, remove dead code.
+
+**Success Criteria:**
+1. REQUIREMENTS.md checkboxes accurate (FEEDBACK-01 [x], CONFLICT-02 [ ], FEEDBACK-03 [ ])
+2. All 23 requirements present in REQUIREMENTS.md traceability table (including EVIDENCE, TECH-DEBT, WRITE)
+3. All 8 undocumented routes registered in `documentedRoutes` array
+4. Dead `admin-feedback.ts` route file removed or registered
+
+---
+
 ## Requirement Coverage Matrix
 
 | Requirement | Phase | Description |
 |-------------|-------|-------------|
 | DECAY-01 | Phase 48 | Lifecycle state machine with automatic transitions |
-| DECAY-02 | Phase 49 | Freshness multiplier in retrieval ranking |
-| DECAY-03 | Phase 50 | Batch management of outdated knowledge |
+| DECAY-02 | Phase 64 | Wire freshness multiplier into retrieval pipeline |
+| DECAY-03 | Phase 65 | Register decay routes & verify batch management |
 | DECAY-04 | Phase 48 | Soft/hard decay application |
 | BOUND-01 | Phase 51 | Unified boundary schema (6 layers) |
 | BOUND-02 | Phase 52 | Boundary capture in submission flow |
 | BOUND-03 | Phase 53 | Boundary indexing and graph integration |
-| BOUND-04 | Phase 54 | Boundary-aware retrieval filtering/boosting |
-| BOUND-05 | Phase 54 | API boundary explanations |
+| BOUND-04 | Phase 66 | Boundary-aware retrieval filtering/boosting |
+| BOUND-05 | Phase 66 | API boundary explanations |
 | CONFLICT-01 | Phase 55 | Conflict detection |
-| CONFLICT-02 | Phase 55 | Conflict display in retrieval |
+| CONFLICT-02 | Phase 64 | Wire conflict display through retrieval pipeline |
 | FEEDBACK-01 | Phase 56 | CLI feedback entry points |
 | FEEDBACK-02 | Phase 57 | Admin feedback batch review |
-| FEEDBACK-03 | Phase 57 | Feedback signals for lifecycle/quality |
+| FEEDBACK-03 | Phase 65 | Wire feedback lifecycle triggers |
 | EVIDENCE-01 | Phase 58 | Minimal evidence and provenance metadata |
 | EVIDENCE-02 | Phase 58 | Retrieval/admin evidence visibility |
 | MAINT-01 | Phase 59 | Ownership and review-due metadata |
@@ -447,6 +516,11 @@ Phase 61 (Candidate Pipeline Independent Table)
 Phase 62 (Knowledge Entry Row-Level Table)
     ↓
 Phase 63 (Skill Artifact Row-Level Table & JSONB Cleanup)
+
+Phase 64 (Retrieval Pipeline Integration) ── depends on Phase 49, Phase 55
+Phase 65 (Feedback Lifecycle & Decay Route Wiring) ── depends on Phase 57, Phase 50
+Phase 66 (Boundary-aware Retrieval Completion) ── depends on Phase 53, Phase 54
+Phase 67 (Audit Cleanup & Documentation) ── independent
 ```
 
 **Parallelization Opportunities:**
@@ -457,7 +531,8 @@ Phase 63 (Skill Artifact Row-Level Table & JSONB Cleanup)
 - Phase 59 should follow Phase 48 if it reuses lifecycle state and Phase 58 if it reuses verification metadata
 - Phase 60 must complete before Phase 61 (clean type foundations)
 - Phases 61→62→63 are sequential (each builds on the repository pattern established by the previous)
+- Phases 64-66 are independent of each other (can run in parallel); Phase 67 is cleanup and can run last
 
 ---
 
-*Roadmap updated: 2026-05-03 — Phase 61 planned with 3 plans across 2 waves*
+*Roadmap updated: 2026-05-03 — Gap closure phases 64-67 added*

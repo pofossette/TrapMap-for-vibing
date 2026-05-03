@@ -25,18 +25,34 @@ Requirements for v1.5 milestone: 功能增强
 ### Conflict Detection (CONFLICT)
 
 - [x] **CONFLICT-01**: System detects when multiple knowledge entries address the same problem with different solutions
-- [x] **CONFLICT-02**: Retrieval results display conflict relationships with context allowing users to choose appropriate solutions
+- [ ] **CONFLICT-02**: Retrieval results display conflict relationships with context allowing users to choose appropriate solutions
 
 ### Feedback Loop (FEEDBACK)
 
-- [ ] **FEEDBACK-01**: CLI provides post-execution problem report entry point; skill artifacts can mount feedback capabilities
+- [x] **FEEDBACK-01**: CLI provides post-execution problem report entry point; skill artifacts can mount feedback capabilities
 - [x] **FEEDBACK-02**: Admins can review and process user feedback in batch through management interface
-- [x] **FEEDBACK-03**: Feedback signals contribute to knowledge lifecycle transitions and quality scoring
+- [ ] **FEEDBACK-03**: Feedback signals contribute to knowledge lifecycle transitions and quality scoring
 
 ### Ownership & Maintenance (MAINT)
 
 - [x] **MAINT-01**: Knowledge entries and skill artifacts store ownership (maintainer) and review-due metadata for SLA-aware lifecycle management
 - [x] **MAINT-02**: CLI and admin views support listing, filtering, and batch operations (assign-owner, extend-review, mark-verified) on maintenance metadata
+
+### Evidence Metadata (EVIDENCE)
+
+- [x] **EVIDENCE-01**: Trap and skill records store minimal evidence metadata (sourceType, sourceRef, evidenceLevel, verifiedAt, verifiedBy) with review flow capture
+- [x] **EVIDENCE-02**: Retrieval responses expose evidence metadata; evidence queryable in admin views and audit-friendly
+
+### Type Consolidation (TECH-DEBT)
+
+- [x] **TECH-DEBT-01**: AdapterSyncState and KnowledgeIndexStateRecord defined in exactly one canonical location; all consumers import from that location
+- [x] **TECH-DEBT-02**: Lifecycle state transitions centralized in single state-machine module with validated transition function
+
+### Write Path Optimization (WRITE)
+
+- [x] **WRITE-01**: Candidate submissions extracted from JSONB into dedicated candidates table with row-level locking
+- [x] **WRITE-02**: Knowledge entries extracted from JSONB into knowledge_entries, knowledge_revisions, lifecycle_events tables with concurrent write support
+- [x] **WRITE-03**: Skill artifacts migrated to row-level table; JSONB shadow writes removed; store_snapshot downgraded to cold backup
 
 ## v2 Requirements
 
@@ -69,27 +85,34 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | DECAY-01 | Phase 48 | Complete |
-| DECAY-02 | Phase 49 | Pending |
-| DECAY-03 | Phase 50 | Pending |
+| DECAY-02 | Phase 64 | Pending |
+| DECAY-03 | Phase 65 | Pending |
 | DECAY-04 | Phase 48 | Complete |
 | BOUND-01 | Phase 51 | Complete |
 | BOUND-02 | Phase 52 | Complete |
 | BOUND-03 | Phase 53 | Complete |
-| BOUND-04 | Phase 54 | Pending |
-| BOUND-05 | Phase 54 | Pending |
+| BOUND-04 | Phase 66 | Pending |
+| BOUND-05 | Phase 66 | Pending |
 | CONFLICT-01 | Phase 55 | Complete |
-| CONFLICT-02 | Phase 55 | Complete |
-| FEEDBACK-01 | Phase 56 | Pending |
+| CONFLICT-02 | Phase 64 | Pending |
+| FEEDBACK-01 | Phase 56 | Complete |
 | FEEDBACK-02 | Phase 57 | Complete |
-| FEEDBACK-03 | Phase 57 | Complete |
+| FEEDBACK-03 | Phase 65 | Pending |
 | MAINT-01 | Phase 59 | Complete |
 | MAINT-02 | Phase 59 | Complete |
+| EVIDENCE-01 | Phase 58 | Complete |
+| EVIDENCE-02 | Phase 58 | Complete |
+| TECH-DEBT-01 | Phase 60 | Complete |
+| TECH-DEBT-02 | Phase 60 | Complete |
+| WRITE-01 | Phase 61 | Complete |
+| WRITE-02 | Phase 62 | Complete |
+| WRITE-03 | Phase 63 | Complete |
 
 **Coverage:**
-- v1.5 requirements: 16 total
-- Mapped to phases: 16
+- v1.5 requirements: 23 total
+- Mapped to phases: 23
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-02*
-*Last updated: 2026-05-03 after Phase 59 completion*
+*Last updated: 2026-05-03 after gap closure phase planning (64-67)*
