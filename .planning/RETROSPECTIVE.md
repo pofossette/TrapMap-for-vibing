@@ -2,6 +2,56 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v1.5 — 功能增强
+
+**Shipped:** 2026-05-04
+**Phases:** 20 | **Plans:** 58
+
+### What Was Built
+- Knowledge lifecycle state machine with 5 states (active, review-due, stale, expired, superseded) and automatic transitions
+- Time-based decay scoring in retrieval with configurable curves (exponential, linear, step) for three freshness types
+- Unified 6-layer boundary schema (context, versions, prerequisites, signals, exclusions, evidence) across trap and skill artifacts
+- Boundary-aware retrieval with required/preferred/excluded constraint handling and API explanations
+- Conflict detection for entries addressing the same problem with different solutions
+- CLI feedback entry points and admin batch management with automatic lifecycle triggers
+- Evidence metadata (sourceType, evidenceLevel, verifiedAt) with provenance tracking
+- Ownership and review-due metadata with maintenance CLI commands
+- Row-level PostgreSQL tables (candidates, knowledge_entries, skill_artifacts) replacing JSONB snapshot for concurrent write support
+
+### What Worked
+- Pure state machine pattern for decay transitions (Phase 48) enabled deterministic testing with 44 tests
+- Row-level table migration (Phases 61-63) eliminated 3-4x transact amplification and enabled concurrent writes
+- Unified boundary schema shared across both artifact types prevented type divergence
+- Gap closure phases (64-67) successfully wired disconnected features into production pipeline
+- Nullable boundary field pattern allowed backward compatibility with existing fixtures
+
+### What Was Inefficient
+- Phase 54 was left incomplete and required Phase 66 to complete boundary-aware retrieval
+- Some phases had duplicate directories in .planning/phases/ due to naming variations
+- Decay routes were implemented but not registered in documentedRoutes until Phase 65
+- Type duplication (AdapterSyncState, KnowledgeIndexStateRecord) required Phase 60 to consolidate
+
+### Patterns Established
+- Pure state machine functions with injected timestamp for deterministic testing
+- Row-level repository pattern with PostgreSQL SELECT FOR UPDATE for concurrent-safe operations
+- Dual-write period during migration (write to both old and new stores) before cutover
+- Optional schema fields for gradual adoption without breaking existing clients
+- Lifecycle trigger rules connecting feedback patterns to state transitions
+
+### Key Lessons
+1. Lifecycle management requires both soft decay (ranking penalty) and hard decay (exclusion) to balance relevance with freshness
+2. Boundary constraints need three-tier handling: required (exclusion), preferred (boost), excluded (penalty)
+3. Row-level tables with proper locking are essential for concurrent write scalability — JSONB snapshots create lock contention
+4. Feedback loops only matter if they connect to lifecycle transitions — otherwise feedback accumulates without action
+5. Gap closure phases should be planned upfront, not discovered during milestone verification
+
+### Cost Observations
+- Model mix: primarily balanced profile (sonnet for execution, opus for complex planning)
+- Timeline: 3 days for 20 phases, ~58 plans — roughly 19 plans/day with parallel agents
+- Notable: v1.5 was faster than v1.4 (3 days vs 4 days) despite similar plan count, likely due to established patterns from prior milestones
+
+---
+
 ## Milestone: v1.4 — 评测系统构建
 
 **Shipped:** 2026-04-29
@@ -54,9 +104,12 @@
 | Milestone | Phases | Plans | Key Change |
 |-----------|--------|-------|------------|
 | v1.4 | 23 | 59 | Evaluation system, GraphRAG-lite, DB persistence, CI regression |
+| v1.5 | 20 | 58 | Lifecycle management, boundaries, feedback loops, row-level tables |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Shared contracts with runtime selection enable clean incremental migration
 2. Governance and security must be measured independently from functionality
 3. Verification artifacts are not optional — backfill phases consistently find real gaps
+4. Pure functions with injected dependencies enable deterministic testing
+5. Row-level database design is essential for concurrent write scalability
