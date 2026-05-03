@@ -123,7 +123,7 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
       const initialKnowledgeCount = storeData.knowledgeEntries.length;
 
       // Act: Create a skill artifact
-      const artifact = createSkillArtifactRecord({
+      const artifact = await createSkillArtifactRecord({
         store,
         data: storeData,
         ownerUserId: userId,
@@ -212,8 +212,8 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
       expect(storeData.knowledgeEntries[0].id).toBe('knowledge_1');
     });
 
-    it('should store governance at artifact root (ARTF-03, T-12-07)', () => {
-      const artifact = createSkillArtifactRecord({
+    it('should store governance at artifact root (ARTF-03, T-12-07)', async () => {
+      const artifact = await createSkillArtifactRecord({
         store,
         data: storeData,
         ownerUserId: userId,
@@ -251,9 +251,9 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
   });
 
   describe('Test 2: toSkillArtifact() serializes through shared contract with governance preservation', () => {
-    it('should serialize artifact with scope, teamId, requiredLevel, review and lifecycle history (ARTF-03, T-12-08)', () => {
+    it('should serialize artifact with scope, teamId, requiredLevel, review and lifecycle history (ARTF-03, T-12-08)', async () => {
       // Arrange: Create an artifact with full governance
-      const artifactRecord = createSkillArtifactRecord({
+      const artifactRecord = await createSkillArtifactRecord({
         store,
         data: storeData,
         ownerUserId: userId,
@@ -315,7 +315,7 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
   });
 
   describe('Test 3: assets remain activation-only, scripts remain descriptor-only (CAPS-02, CAPS-03, T-12-06)', () => {
-    it('should store assets with activationOnly: true and includeInDerivation: false (CAPS-02, T-12-06)', () => {
+    it('should store assets with activationOnly: true and includeInDerivation: false (CAPS-02, T-12-06)', async () => {
       const assetFile = {
         path: 'assets/config.json',
         kind: 'asset' as const,
@@ -327,7 +327,7 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
         activationOnly: true,
       };
 
-      const artifact = createSkillArtifactRecord({
+      const artifact = await createSkillArtifactRecord({
         store,
         data: storeData,
         ownerUserId: userId,
@@ -365,7 +365,7 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
       expect(storedAsset?.includeInDerivation).toBe(false);
     });
 
-    it('should store scripts as descriptor metadata only (CAPS-03, T-12-06)', () => {
+    it('should store scripts as descriptor metadata only (CAPS-03, T-12-06)', async () => {
       const scriptDescriptor = {
         path: 'scripts/deploy.sh',
         sha256: 'g'.repeat(64),
@@ -375,7 +375,7 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
         defaultPolicy: 'manual' as const,
       };
 
-      const artifact = createSkillArtifactRecord({
+      const artifact = await createSkillArtifactRecord({
         store,
         data: storeData,
         ownerUserId: userId,
@@ -434,9 +434,9 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
   });
 
   describe('appendSkillArtifactRevision()', () => {
-    it('should append a new revision to existing artifact (ARTF-02)', () => {
+    it('should append a new revision to existing artifact (ARTF-02)', async () => {
       // Create initial artifact
-      const artifact = createSkillArtifactRecord({
+      const artifact = await createSkillArtifactRecord({
         store,
         data: storeData,
         ownerUserId: userId,
@@ -479,7 +479,7 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
 
       // Append a new revision
       const updatedAt = nowIso();
-      const updatedArtifact = appendSkillArtifactRevision({
+      const updatedArtifact = await appendSkillArtifactRevision({
         store,
         data: storeData,
         artifact,
@@ -579,7 +579,7 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
       const initialEntry2Id = storeData.knowledgeEntries[1].id;
 
       // Act: Create an artifact
-      createSkillArtifactRecord({
+      await createSkillArtifactRecord({
         store,
         data: storeData,
         ownerUserId: userId,
@@ -663,7 +663,7 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
       storeData.knowledgeEntries.push(knowledgeEntry);
 
       // Create an artifact with different governance
-      const artifact = createSkillArtifactRecord({
+      const artifact = await createSkillArtifactRecord({
         store,
         data: storeData,
         ownerUserId: userId,

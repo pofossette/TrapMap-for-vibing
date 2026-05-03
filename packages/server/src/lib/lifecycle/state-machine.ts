@@ -18,8 +18,8 @@ import type { LifecycleState } from '@trapmap/contracts';
 const VALID_TRANSITIONS: Record<LifecycleState, LifecycleState[]> = {
   draft: ['submitted'],
   submitted: ['agent-pass', 'agent-rejected'],
-  'agent-pass': ['approved', 'rejected', 'deactivated'],
-  'agent-rejected': ['agent-pass', 'rejected', 'deactivated'],
+  'agent-pass': ['approved', 'rejected', 'deactivated', 'agent-pass'], // Can stay when revision passes
+  'agent-rejected': ['agent-pass', 'rejected', 'approved', 'deactivated', 'agent-rejected'], // Can stay when revision fails, reviewer can approve
   approved: ['deactivated', 'agent-pass', 'agent-rejected'], // Can re-review
   rejected: ['agent-pass', 'agent-rejected', 'deactivated'], // Can resubmit
   deactivated: [], // Terminal state

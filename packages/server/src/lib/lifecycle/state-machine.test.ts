@@ -77,6 +77,10 @@ describe('lifecycle state machine', () => {
       expect(isValidTransition('agent-rejected', 'deactivated')).toBe(true);
     });
 
+    it('allows agent-rejected → approved (reviewer override)', () => {
+      expect(isValidTransition('agent-rejected', 'approved')).toBe(true);
+    });
+
     it('allows draft → submitted', () => {
       expect(isValidTransition('draft', 'submitted')).toBe(true);
     });
@@ -138,7 +142,8 @@ describe('lifecycle state machine', () => {
       expect(transitions).toContain('approved');
       expect(transitions).toContain('rejected');
       expect(transitions).toContain('deactivated');
-      expect(transitions).toHaveLength(3);
+      expect(transitions).toContain('agent-pass'); // Revision can stay in agent-pass
+      expect(transitions).toHaveLength(4);
     });
 
     it('returns empty array for deactivated', () => {
@@ -166,7 +171,9 @@ describe('lifecycle state machine', () => {
       expect(transitions).toContain('agent-pass');
       expect(transitions).toContain('rejected');
       expect(transitions).toContain('deactivated');
-      expect(transitions).toHaveLength(3);
+      expect(transitions).toContain('agent-rejected'); // Revision can stay in agent-rejected
+      expect(transitions).toContain('approved'); // Reviewer can override and approve
+      expect(transitions).toHaveLength(5);
     });
 
     it('returns correct transitions for draft', () => {
