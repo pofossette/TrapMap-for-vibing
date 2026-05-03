@@ -48,11 +48,20 @@ export const maintenanceActionSchema = z.enum([
  */
 export const maintenanceEntryListRequestSchema = z.object({
   /** Filter to entries without an assigned maintainer */
-  missingOwner: z.boolean().optional(),
+  missingOwner: z.preprocess(
+    (val) => val === 'true' || val === true,
+    z.boolean().optional(),
+  ),
   /** Filter to entries past their review-by date */
-  reviewOverdue: z.boolean().optional(),
+  reviewOverdue: z.preprocess(
+    (val) => val === 'true' || val === true,
+    z.boolean().optional(),
+  ),
   /** Filter to entries with stale verification (lastVerifiedAt older than staleDays) */
-  staleVerification: z.boolean().optional(),
+  staleVerification: z.preprocess(
+    (val) => val === 'true' || val === true,
+    z.boolean().optional(),
+  ),
   /** Number of days since last verification to consider stale (requires staleVerification) */
   staleDays: z.coerce.number().int().min(1).max(3650).optional(),
   /** Filter by scope */
