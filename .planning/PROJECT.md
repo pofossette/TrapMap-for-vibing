@@ -8,15 +8,31 @@ Skill Shareer is a CLI-first internal knowledge sharing system for software team
 
 Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
 
-## Current Milestone: v1.6 Test Coverage
+## Current Milestone: v1.6 Test Coverage & Optimization
 
-**Goal:** Restore CI baseline and establish comprehensive test coverage for security-critical and business logic code paths
+**Goal:** Restore CI baseline, establish comprehensive test coverage, and optimize performance, code quality, and documentation
 
 **Target features:**
-- Fix all failing unit tests to restore CI baseline
-- Add governance and auth route tests for security coverage
-- Add retrieval and indexing core tests for business logic protection
-- Integrate Vitest coverage tooling with CI thresholds
+
+*Test Coverage (Phases 68-71):*
+- Fix failing unit tests (6 files, 38 cases)
+- Governance and auth route tests
+- Retrieval and indexing core tests
+- CLI and contracts tests + coverage tooling
+
+*Performance Optimization (Phases 72-73):*
+- Retrieval query speed optimization
+- Database query optimization
+- Memory usage optimization
+
+*Code Quality (Phases 74-75):*
+- Dead code removal
+- TypeScript strict mode fixes
+
+*Documentation (Phase 76):*
+- API documentation
+- User-facing README updates
+- Architecture documentation
 
 ## Requirements
 
@@ -27,6 +43,14 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 - [ ] **TEST-03**: Retrieval and indexing core tests (business logic)
 - [ ] **TEST-04**: CLI and contracts tests
 - [ ] **TEST-05**: Coverage tooling integration with CI thresholds
+- [ ] **PERF-01**: Retrieval query speed optimization
+- [ ] **PERF-02**: Database query optimization (PostgreSQL)
+- [ ] **PERF-03**: Memory usage optimization during indexing
+- [ ] **QUAL-01**: Dead code removal across codebase
+- [ ] **QUAL-02**: TypeScript strict mode compliance
+- [ ] **DOC-01**: API endpoint documentation
+- [ ] **DOC-02**: User-facing README and getting started guide
+- [ ] **DOC-03**: Architecture documentation
 
 ### Validated
 

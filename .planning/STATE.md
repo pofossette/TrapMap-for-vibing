@@ -1,44 +1,46 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: executing
-last_updated: "2026-05-03T17:20:56.223Z"
-last_activity: 2026-05-03
+milestone: v1.6
+milestone_name: Test Coverage & Optimization
+status: planning
+last_updated: "2026-05-04T00:00:00.000Z"
+last_activity: 2026-05-04
 progress:
-  total_phases: 24
-  completed_phases: 15
-  total_plans: 54
-  completed_plans: 58
-  percent: 100
+  total_phases: 9
+  completed_phases: 0
+  total_plans: 1
+  completed_plans: 0
+  percent: 0
 ---
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-02)
+See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
-**Current focus:** Phase 67 — audit-cleanup-documentation
+**Current focus:** Phase 68 — Fix failing unit tests
 
 ## Current Position
 
 Phase: 68
 Plan: Not started
-Status: Executing Phase 67
-Last activity: 2026-05-03
+Status: Ready to plan
+Last activity: 2026-05-04 — Milestone v1.6 Test Coverage & Optimization started
 
 ## Accumulated Context
 
 ### Roadmap Evolution
 
-- Phase 68-71 added: Test coverage improvement initiative (2026-05-04)
+- Phase 68-76 added: Test Coverage & Optimization milestone (2026-05-04)
   - Phase 68: Fix failing unit tests - restore CI baseline
   - Phase 69: Governance and auth route tests (security critical)
   - Phase 70: Retrieval and indexing core tests (business logic)
   - Phase 71: CLI/contracts tests + coverage tooling integration
-- v1.5 功能增强 in progress (Phases 48-67)
-- Phase 66 complete: Boundary-aware Retrieval (BOUND-04, BOUND-05)
-- Phase 60 complete: Type consolidation & lifecycle state machine
-- Phases 61-63 added: Write path optimization — JSONB snapshot → row-level relational tables
+  - Phase 72: Query speed optimization
+  - Phase 73: Memory usage optimization
+  - Phase 74: Dead code removal
+  - Phase 75: TypeScript strict mode compliance
+  - Phase 76: Documentation completion
+- v1.5 功能增强 shipped 2026-05-04 (Phases 48-67, 58 plans)
 - v1.4 评测系统构建 shipped 2026-04-29 (Phases 25-47, 59 plans)
 - All prior milestones verified and archived

@@ -8,7 +8,7 @@
 - ✅ **v1.3** — Phases 17-24 (shipped 2026-04-20)
 - ✅ **v1.4 评测系统构建** — Phases 25-47 (shipped 2026-04-29)
 - ✅ **v1.5 功能增强** — Phases 48-67 (shipped 2026-05-04)
-- 🚧 **v1.6 Test Coverage** — Phases 68-71 (planned)
+- 🚧 **v1.6 Test Coverage & Optimization** — Phases 68-76 (planned)
 
 ## Phases
 
@@ -51,12 +51,28 @@
 
 </details>
 
-### 🚧 v1.6 Test Coverage (Phases 68-71) — Planned
+### 🚧 v1.6 Test Coverage & Optimization (Phases 68-76) — Planned
+
+#### Test Coverage
 
 - [ ] Phase 68: Fix failing unit tests (1 plan)
 - [ ] Phase 69: Governance and auth route tests (0 plans)
 - [ ] Phase 70: Retrieval and indexing core tests (0 plans)
 - [ ] Phase 71: CLI and contracts tests + coverage tooling (0 plans)
+
+#### Performance Optimization
+
+- [ ] Phase 72: Query speed optimization (0 plans)
+- [ ] Phase 73: Memory usage optimization (0 plans)
+
+#### Code Quality
+
+- [ ] Phase 74: Dead code removal (0 plans)
+- [ ] Phase 75: TypeScript strict mode compliance (0 plans)
+
+#### Documentation
+
+- [ ] Phase 76: Documentation completion (0 plans)
 
 ## Progress
 
@@ -64,7 +80,7 @@
 |-------|-----------|----------------|--------|-----------|
 | 1-47 | v1.0-v1.4 | 93/93 | Complete | 2026-04-29 |
 | 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
-| 68-71 | v1.6 | 0/1 | Not started | - |
+| 68-76 | v1.6 | 0/1 | Not started | - |
 
 ---
 
@@ -146,6 +162,95 @@ Plans:
 
 ---
 
+### Phase 72: Query speed optimization
+
+**Goal:** Optimize retrieval query speed by reducing vector search latency and reranking overhead
+**Requirements:** PERF-01, PERF-02
+**Depends on:** Phase 71
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 72 to break down)
+
+**Success Criteria:**
+1. Vector search latency reduced (measured baseline vs optimized)
+2. Database queries optimized with proper indexing
+3. Reranking overhead reduced
+4. No regression in search quality metrics
+
+---
+
+### Phase 73: Memory usage optimization
+
+**Goal:** Reduce memory footprint during indexing operations and optimize resource usage
+**Requirements:** PERF-03
+**Depends on:** Phase 72
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 73 to break down)
+
+**Success Criteria:**
+1. Memory usage during indexing reduced (measured baseline vs optimized)
+2. No memory leaks in long-running operations
+3. Resource cleanup verified
+
+---
+
+### Phase 74: Dead code removal
+
+**Goal:** Remove unused functions, imports, and files across the codebase
+**Requirements:** QUAL-01
+**Depends on:** Phase 73
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 74 to break down)
+
+**Success Criteria:**
+1. Unused functions removed (ts-prune or similar tool run)
+2. Unused imports cleaned
+3. Dead files removed
+4. All tests still pass after cleanup
+
+---
+
+### Phase 75: TypeScript strict mode compliance
+
+**Goal:** Enable TypeScript strict mode and fix all resulting type errors, eliminate 'any' types
+**Requirements:** QUAL-02
+**Depends on:** Phase 74
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 75 to break down)
+
+**Success Criteria:**
+1. `strict: true` enabled in tsconfig.json
+2. No 'any' types in production code
+3. All type errors resolved
+4. Build succeeds with strict mode
+
+---
+
+### Phase 76: Documentation completion
+
+**Goal:** Complete API documentation, update README, and add architecture documentation
+**Requirements:** DOC-01, DOC-02, DOC-03
+**Depends on:** Phase 75
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 76 to break down)
+
+**Success Criteria:**
+1. All API endpoints documented with request/response schemas
+2. README updated with getting started guide
+3. Architecture diagram created with module relationships
+4. Documentation verified against current codebase
+
+---
+
 ## Requirement Coverage Matrix (v1.6)
 
 | Requirement | Phase | Description |
@@ -155,6 +260,14 @@ Plans:
 | TEST-03 | Phase 70 | Retrieval and indexing core tests |
 | TEST-04 | Phase 71 | CLI and contracts tests |
 | TEST-05 | Phase 71 | Coverage tooling integration |
+| PERF-01 | Phase 72 | Retrieval query speed optimization |
+| PERF-02 | Phase 72 | Database query optimization |
+| PERF-03 | Phase 73 | Memory usage optimization |
+| QUAL-01 | Phase 74 | Dead code removal |
+| QUAL-02 | Phase 75 | TypeScript strict mode compliance |
+| DOC-01 | Phase 76 | API endpoint documentation |
+| DOC-02 | Phase 76 | User-facing README updates |
+| DOC-03 | Phase 76 | Architecture documentation |
 
 ---
 
@@ -165,8 +278,13 @@ Phase 68 (Fix Failing Tests)
     ├── Phase 69 (Governance & Auth Tests)
     └── Phase 70 (Retrieval & Indexing Tests)
             └── Phase 71 (CLI/Contracts Tests + Coverage)
+                    └── Phase 72 (Query Speed Optimization)
+                            └── Phase 73 (Memory Optimization)
+                                    └── Phase 74 (Dead Code Removal)
+                                            └── Phase 75 (TypeScript Strict Mode)
+                                                    └── Phase 76 (Documentation)
 ```
 
 ---
 
-*Roadmap updated: 2026-05-04 — v1.5 功能增强 shipped, v1.6 Test Coverage planned*
+*Roadmap updated: 2026-05-04 — v1.6 Test Coverage & Optimization expanded with 9 phases*
