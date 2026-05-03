@@ -506,3 +506,42 @@ export const artifactRevisions = pgTable(
     uniqueIndex('idx_artifact_revisions_artifact_revision').on(table.artifactId, table.revision),
   ],
 );
+
+/**
+ * Artifact lifecycle events table for audit trail of state transitions.
+ * Each row records a state change with actor and context.
+ */
+export const artifactLifecycleEvents = pgTable(
+  'artifact_lifecycle_events',
+  {
+    /** Unique event identifier */
+    id: text('id').primaryKey(),
+    /** Reference to parent skill artifact */
+    artifactId: text('artifact_id').notNull(),
+    /** Event type: submitted, resubmitted, agent-reviewed, etc. */
+    type: text('type')
+      .notNull()
+      .$type<
+        | 'submitted'
+        | 'resubmitted'
+        | 'agent-reviewed'
+        | 'reviewer-approved'
+        | 'reviewer-rejected'
+        | 'updated'
+        | 'deactivated'
+      >(),
+    /** When this event occurred */
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+    /** User who triggered this event (null for system events) */
+    actorUserId: text('actor_user_id'),
+    /** Related submission ID if applicable */
+    submissionId: text('submission_id'),
+    /** Related revision number if applicable */
+    revision: integer('revision'),
+    /** The lifecycle state after this event */
+    state: text('state').notNull().$type<LifecycleState>(),
+    /** Optional note explaining the transition */
+    note: text('note'),
+  },
+  (table) => [index('idx_artifact_lifecycle_events_artifact').on(table.artifactId)],
+);
