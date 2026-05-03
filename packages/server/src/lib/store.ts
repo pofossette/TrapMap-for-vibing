@@ -197,6 +197,21 @@ export interface KnowledgeIndexStateRecord {
   graph: AdapterSyncState;
 }
 
+/**
+ * Maintenance metadata record for ownership and review-due tracking.
+ * Nullable for backward compatibility with existing entries.
+ */
+export interface MaintenanceMetaRecord {
+  /** Current maintenance owner user ID (null if unassigned) */
+  maintainerUserId: string | null;
+  /** Owner handle for display */
+  maintainerHandle: string | null;
+  /** Owner security level */
+  maintainerLevel: number | null;
+  /** Scheduled review date for SLA tracking (ISO timestamp) */
+  reviewBy: string | null;
+}
+
 export interface KnowledgeRecord {
   id: string;
   teamId: string | null;
@@ -222,6 +237,8 @@ export interface KnowledgeRecord {
   indexState: KnowledgeIndexStateRecord | null;
   /** Boundary constraints for knowledge applicability (null if no boundary defined) */
   boundary: Boundary | null;
+  /** Maintenance metadata for ownership and review-due tracking (null if not assigned) */
+  maintenanceMeta: MaintenanceMetaRecord | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -536,6 +553,8 @@ export interface SkillArtifactRecord {
   reviewNotes: SkillArtifactReviewNoteRecord[];
   /** Lifecycle event history */
   lifecycleHistory: SkillArtifactLifecycleEventRecord[];
+  /** Maintenance metadata for ownership and review-due tracking (null if not assigned) */
+  maintenanceMeta: MaintenanceMetaRecord | null;
   /** Created timestamp */
   createdAt: string;
   /** Updated timestamp */
