@@ -273,12 +273,13 @@ Plans:
 
 **Goal:** Add lightweight ownership and review-due tracking so maintainers can keep the corpus healthy without a heavy governance system.
 
-**Plans:** 3/3 plans complete
+**Plans:** 4 plans
 
 Plans:
 - [x] 59-01-PLAN.md — Maintenance contracts: schema, knowledge/artifact extensions, store types
 - [x] 59-02-PLAN.md — Server module: model helpers, batch operations, route handlers
 - [x] 59-03-PLAN.md — CLI commands and test coverage
+- [ ] 59-04-PLAN.md — Gap closure: fix assign-owner handle correctness, add MAINT requirements to REQUIREMENTS.md
 
 **Success Criteria:**
 1. Trap and skill records store `owner`, `reviewBy`, and `lastVerifiedAt`
