@@ -12,6 +12,7 @@
 import type { BatchAction, DecayConfig, DecayState } from '@trapmap/contracts';
 
 import { AppError } from '../errors.js';
+import { transitionLifecycleState } from '../lifecycle/state-machine.js';
 import type { KnowledgeLifecycleEventRecord, KnowledgeRecord, SkillShareerStore, StoreData } from '../store.js';
 import { nowIso } from '../store.js';
 import { computeDecayState } from './state-machine.js';
@@ -336,7 +337,7 @@ export function executeBatchOperation(
         const nowStr = nowIso();
 
         // Update lifecycle state
-        entry.lifecycleState = 'deactivated';
+        transitionLifecycleState(entry, 'deactivated', 'batch deactivate');
 
         // Create lifecycle event
         const event: KnowledgeLifecycleEventRecord = {
