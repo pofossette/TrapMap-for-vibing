@@ -447,6 +447,41 @@ describe('maintenance routes', () => {
       expect(entry?.maintenanceMeta?.maintainerUserId).toBe('user_new');
     });
 
+    it('stores provided newMaintainerHandle instead of operator handle', async () => {
+      const auth = await getSystemAdminAuth(app);
+
+      await app.skillShareer.store.transact((data) => {
+        data.knowledgeEntries.push(
+          createTestEntry({
+            id: 'entry-handle-test',
+            shortcut: 'handle-test',
+            detail: 'Test handle',
+            teamId: null,
+            requiredLevel: 5,
+            lifecycleState: 'approved',
+          }),
+        );
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/maintenance/batch',
+        headers: auth,
+        payload: {
+          action: 'assign-owner',
+          entryIds: ['entry-handle-test'],
+          newMaintainerId: 'user_bob',
+          newMaintainerHandle: 'bob-the-builder',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const data = await app.skillShareer.store.snapshot();
+      const entry = data.knowledgeEntries.find((e) => e.id === 'entry-handle-test');
+      expect(entry?.maintenanceMeta?.maintainerUserId).toBe('user_bob');
+      expect(entry?.maintenanceMeta?.maintainerHandle).toBe('bob-the-builder');
+    });
+
     it('extends review date with extend-review action', async () => {
       const auth = await getSystemAdminAuth(app);
 

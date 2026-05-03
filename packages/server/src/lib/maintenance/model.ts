@@ -73,7 +73,7 @@ export function toActorRefFromRecord(record: MaintenanceMetaRecord): ActorRef | 
   if (record.maintainerUserId === null) return null;
   return {
     id: record.maintainerUserId,
-    handle: record.maintainerHandle ?? '',
+    handle: record.maintainerHandle ?? record.maintainerUserId,
     securityLevel: record.maintainerLevel ?? 0,
   };
 }

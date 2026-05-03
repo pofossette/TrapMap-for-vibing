@@ -116,6 +116,8 @@ export const maintenanceBatchOperationRequestSchema = z.object({
   dryRun: z.boolean().default(false),
   /** New maintainer user ID (required for assign-owner action) */
   newMaintainerId: entityIdSchema.optional(),
+  /** New maintainer handle (for assign-owner action display) */
+  newMaintainerHandle: z.string().max(200).optional(),
   /** Number of days to extend review-by (required for extend-review action) */
   extendDays: z.number().int().min(1).max(3650).optional(),
 });

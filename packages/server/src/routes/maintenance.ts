@@ -233,9 +233,7 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
       action: body.action,
       actorId: auth.actorId,
       ...(body.newMaintainerId !== undefined ? { newMaintainerId: body.newMaintainerId } : {}),
-      ...(body.newMaintainerId !== undefined && auth.handle
-        ? { newMaintainerHandle: auth.handle }
-        : {}),
+      ...(body.newMaintainerHandle !== undefined ? { newMaintainerHandle: body.newMaintainerHandle } : {}),
       ...(body.extendDays !== undefined ? { extendDays: body.extendDays } : {}),
     };
 
