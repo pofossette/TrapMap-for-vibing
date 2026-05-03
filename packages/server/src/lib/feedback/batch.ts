@@ -9,19 +9,9 @@ import type {
   FeedbackBatchAction,
   DecayState,
   FeedbackStatus,
-  LifecycleTriggerRule,
 } from '@trapmap/contracts';
-import { DEFAULT_LIFECYCLE_TRIGGER_RULES } from '@trapmap/contracts';
 
-import { AppError } from '../errors.js';
-import type {
-  FeedbackQueueItemRecord,
-  KnowledgeRecord,
-  SkillShareerStore,
-  StoreData,
-} from '../store.js';
-import { nowIso } from '../store.js';
-import { checkLifecycleTriggers } from './lifecycle-triggers.js';
+import type { StoreData } from '../store.js';
 
 /**
  * Input for feedback batch operation planning and execution.
@@ -195,69 +185,4 @@ export function planFeedbackBatch(
   }
 
   return results;
-}
-
-/**
- * Execute a feedback batch operation, mutating feedback items in the store.
- */
-export function executeFeedbackBatch(
-  store: SkillShareerStore,
-  data: StoreData,
-  input: FeedbackBatchInput,
-  now: Date,
-): FeedbackQueueItemRecord[] {
-  const plan = planFeedbackBatch(data, input, now);
-  const eligibleItems = plan.filter((item) => item.eligible);
-
-  const mutatedRecords: FeedbackQueueItemRecord[] = [];
-
-  for (const item of eligibleItems) {
-    const feedback = data.feedbackQueue.find((f) => f.id === item.feedbackId);
-    if (!feedback) continue;
-
-    const nowStr = nowIso();
-
-    // Update feedback status
-    feedback.status = item.proposedStatus;
-    feedback.updatedAt = nowStr;
-
-    // Add admin notes
-    if (input.notes) {
-      feedback.adminNotes = feedback.adminNotes
-        ? `${feedback.adminNotes}\n${nowStr}: ${input.notes}`
-        : `${nowStr}: ${input.notes}`;
-    }
-
-    // For transition action, update the entry's decay state
-    if (input.action === 'transition' && input.targetDecayState) {
-      const entry = data.knowledgeEntries.find((e) => e.id === feedback.entryId);
-      if (entry) {
-        entry.decayMeta = {
-          lastVerifiedAt: entry.decayMeta?.lastVerifiedAt ?? entry.updatedAt,
-          decayState: input.targetDecayState,
-          supersededById: entry.decayMeta?.supersededById ?? null,
-          decayStateComputedAt: nowStr,
-          freshnessType: entry.decayMeta?.freshnessType ?? 'evergreen',
-        };
-        entry.updatedAt = nowStr;
-      }
-
-      // Also check for skill artifacts
-      const skill = data.skillArtifacts.find((a) => a.id === feedback.entryId);
-      if (skill) {
-        skill.decayMeta = {
-          lastVerifiedAt: skill.decayMeta?.lastVerifiedAt ?? skill.updatedAt,
-          decayState: input.targetDecayState,
-          supersededById: skill.decayMeta?.supersededById ?? null,
-          decayStateComputedAt: nowStr,
-          freshnessType: skill.decayMeta?.freshnessType ?? 'evergreen',
-        };
-        skill.updatedAt = nowStr;
-      }
-    }
-
-    mutatedRecords.push(feedback);
-  }
-
-  return mutatedRecords;
 }

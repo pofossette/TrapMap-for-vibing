@@ -13,7 +13,7 @@ import type {
 import { DEFAULT_LIFECYCLE_TRIGGER_RULES } from '@trapmap/contracts';
 
 import type {
-  FeedbackQueueItemRecord,
+  FeedbackQueueRecord,
   KnowledgeRecord,
   SkillArtifactRecord,
 } from '../store.js';
@@ -41,7 +41,7 @@ export interface LifecycleTriggerResult {
  */
 export function checkLifecycleTriggers(
   entryId: string,
-  feedbackQueue: FeedbackQueueItemRecord[],
+  feedbackQueue: FeedbackQueueRecord[],
   rules: LifecycleTriggerRule[],
   now: Date,
 ): LifecycleTriggerResult {
@@ -84,7 +84,7 @@ export function checkLifecycleTriggers(
  */
 export function applyLifecycleTrigger(
   entry: KnowledgeRecord | SkillArtifactRecord,
-  feedbackQueue: FeedbackQueueItemRecord[],
+  feedbackQueue: FeedbackQueueRecord[],
   rules: LifecycleTriggerRule[],
   now: Date,
 ): boolean {
