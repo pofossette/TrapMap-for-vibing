@@ -26,10 +26,99 @@ import {
   buildReadNextHint,
   buildScriptHint,
   buildV2RetrievalResponse,
+  toRetrievalMatch,
 } from './assembly.js';
-import type { CapsuleCandidate } from './types.js';
+import type { CapsuleCandidate, ScoredEntry } from './types.js';
 
 describe('assembly', () => {
+  describe('toRetrievalMatch', () => {
+    it('includes boundaryExplanation when present on ScoredEntry (BOUND-05)', () => {
+      const mockEntry = {
+        id: 'test-1',
+        scope: 'global',
+        requiredLevel: 0,
+        shortcut: 'test-trap',
+        detail: 'Test detail',
+        labels: ['test'],
+        boundary: {
+          context: ['production'],
+          versions: [],
+          prerequisites: [],
+          signals: [],
+          exclusions: [],
+          evidence: [],
+        },
+      };
+
+      const scoredEntry: ScoredEntry = {
+        entry: mockEntry as any,
+        score: 0.8,
+        boundaryExplanation: {
+          checked: true,
+          requiredSatisfied: true,
+          warnings: [],
+          boosts: ['Applicable context: production'],
+        },
+      };
+
+      const match = toRetrievalMatch(scoredEntry, { labels: [], scopes: [] });
+
+      expect(match.boundaryExplanation).toBeDefined();
+      expect(match.boundaryExplanation?.checked).toBe(true);
+      expect(match.boundaryExplanation?.boosts).toContain('Applicable context: production');
+    });
+
+    it('omits boundaryExplanation when not present on ScoredEntry', () => {
+      const mockEntry = {
+        id: 'test-1',
+        scope: 'global',
+        requiredLevel: 0,
+        shortcut: 'test-trap',
+        detail: 'Test detail',
+        labels: ['test'],
+      };
+
+      const scoredEntry: ScoredEntry = {
+        entry: mockEntry as any,
+        score: 0.8,
+      };
+
+      const match = toRetrievalMatch(scoredEntry, { labels: [], scopes: [] });
+
+      expect(match.boundaryExplanation).toBeUndefined();
+    });
+
+    it('includes conflicts when provided', () => {
+      const mockEntry = {
+        id: 'test-1',
+        scope: 'global',
+        requiredLevel: 0,
+        shortcut: 'test-trap',
+        detail: 'Test detail',
+        labels: ['test'],
+      };
+
+      const scoredEntry: ScoredEntry = {
+        entry: mockEntry as any,
+        score: 0.8,
+      };
+
+      const conflicts = [
+        {
+          entryId: 'conflict-1',
+          shortcut: 'alternative-solution',
+          conflictType: 'alternative' as const,
+          context: 'Different approach to the same problem',
+        },
+      ];
+
+      const match = toRetrievalMatch(scoredEntry, { labels: [], scopes: [] }, undefined, conflicts);
+
+      expect(match.conflicts).toBeDefined();
+      expect(match.conflicts).toHaveLength(1);
+    });
+  });
+
   describe('buildCapsuleMatch', () => {
     it('creates capsule match from capsule record without exposing raw file bodies', () => {
       const capsule = {
