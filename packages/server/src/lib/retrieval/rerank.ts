@@ -20,9 +20,10 @@
  * stage. It never introduces new entries or bypasses filter constraints.
  */
 
-import type { BoundaryContext, DecayState } from '@trapmap/contracts';
+import type { BoundaryContext, DecayState, FreshnessDecayConfig } from '@trapmap/contracts';
 import type { MergedCandidate, ScoredEntry } from './types.js';
 import { computeBoundaryScoreDelta } from './boundary-match.js';
+import { computeFreshnessMultiplier } from '../decay/freshness.js';
 
 /**
  * Default boost for candidates that appear in both channels.
@@ -57,6 +58,8 @@ export interface RerankConfig {
   staleDecayPenalty?: number;
   /** Boundary context from query for boundary-aware scoring */
   boundaryContext?: BoundaryContext;
+  /** Freshness decay configuration for age-based scoring (DECAY-02) */
+  freshnessConfig?: FreshnessDecayConfig;
 }
 
 /**
@@ -118,6 +121,18 @@ export function rerankCandidates(
       const delta = computeBoundaryScoreDelta(candidate.entry, config.boundaryContext);
       finalScore += delta;
       candidate.boundaryScoreDelta = delta;
+    }
+
+    // Apply freshness decay multiplier if config provided (DECAY-02)
+    if (config?.freshnessConfig) {
+      const multiplier = computeFreshnessMultiplier(
+        candidate.entry,
+        config.freshnessConfig,
+      );
+      finalScore *= multiplier;
+      if (multiplier < 1.0) {
+        candidate.decayMultiplier = multiplier;
+      }
     }
 
     // Cap at 1.0 to maintain score bounds

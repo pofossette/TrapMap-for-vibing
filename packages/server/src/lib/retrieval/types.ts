@@ -121,6 +121,8 @@ export interface MergedCandidate {
   finalScore: number;
   /** Score delta from boundary matching (negative = penalty, positive = boost) */
   boundaryScoreDelta?: number;
+  /** Applied freshness decay multiplier (DECAY-02) */
+  decayMultiplier?: number;
 }
 
 // =============================================================================
