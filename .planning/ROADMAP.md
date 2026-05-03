@@ -105,7 +105,7 @@ Plans:
 
 ### Phase 69: Add governance and auth route tests - security critical coverage
 
-**Goal:** Add tests for governance module (permissions, eligibility) and auth-related routes to ensure security-critical code paths are covered
+**Goal:** Add tests for governance module (permissions, eligibility), auth-related routes, and candidate detection system to ensure security-critical code paths are covered
 **Requirements:** TEST-02
 **Depends on:** Phase 68
 **Plans:** 0 plans
@@ -118,7 +118,8 @@ Plans:
 2. `governance/eligibility.test.ts` covers security level filtering
 3. `routes/auth.test.ts` covers authentication flow
 4. `routes/access-keys.test.ts` covers API key management
-5. All new tests pass
+5. `candidates/detector.test.ts` covers duplicate detection logic
+6. All new tests pass
 
 ---
 

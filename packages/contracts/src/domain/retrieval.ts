@@ -3,6 +3,7 @@ import { compatibleScriptActivationPolicySchema } from './artifacts.js';
 
 import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema } from './common.js';
 import { conflictHintSchema } from './conflict.js';
+import { boundaryExplanationSchema, boundaryContextSchema } from './boundary.js';
 import { planQuerySchema, trapFirstPlanSchema } from './plans.js';
 
 /**
@@ -61,6 +62,8 @@ export const retrievalQuerySchema = z.object({
   includeRefinement: z.boolean().default(true),
   includeSummary: z.boolean().default(false),
   mode: retrievalQueryModeSchema.default('semantic'),
+  /** Boundary context for determining entry applicability (Phase 66) */
+  boundaryContext: boundaryContextSchema.optional(),
 });
 
 export const retrievalMatchSchema = z.object({
@@ -75,6 +78,8 @@ export const retrievalMatchSchema = z.object({
   citation: retrievalCitationSchema.optional(),
   /** Conflict hints showing related entries with different solutions */
   conflicts: z.array(conflictHintSchema).optional(),
+  /** Boundary explanation for why this entry is applicable (Phase 66) */
+  boundaryExplanation: boundaryExplanationSchema.optional(),
 });
 
 export const retrievalResponseSchema = z.object({
