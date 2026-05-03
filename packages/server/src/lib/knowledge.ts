@@ -10,6 +10,7 @@ import {
 } from '@trapmap/contracts';
 
 import { AppError } from './errors.js';
+import { transitionLifecycleState } from './lifecycle/state-machine.js';
 import { createDefaultEvidenceMeta } from './evidence/model.js';
 import type {
   AgentReviewRecord,
@@ -331,7 +332,7 @@ export function resubmitKnowledgeEntry(args: {
   args.entry.labels = revision.labels;
   args.entry.shortcut = revision.shortcut;
   args.entry.detail = revision.detail;
-  args.entry.lifecycleState = args.preReview.status;
+  transitionLifecycleState(args.entry, args.preReview.status, 'resubmit agent review');
   args.entry.latestRevision = revision;
   args.entry.history.push(revision);
   args.entry.agentReview = args.preReview;
@@ -404,7 +405,11 @@ export function applyReviewDecision(args: {
   args.entry.reviewHistory.push(reviewDecision);
   args.entry.reviewNotes.push(note);
   args.entry.latestRevision.reviewNotes.push(note);
-  args.entry.lifecycleState = args.decision === 'approve' ? 'approved' : 'rejected';
+  transitionLifecycleState(
+    args.entry,
+    args.decision === 'approve' ? 'approved' : 'rejected',
+    'review decision'
+  );
 
   // On approval, persist evidence metadata
   if (args.decision === 'approve') {
