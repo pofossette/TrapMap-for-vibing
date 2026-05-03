@@ -172,6 +172,21 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
     // Trigger indexing AFTER the transaction commits (post-commit pattern)
     // This prevents nested transactions and ensures the domain state is persisted
     if (entryId && previousState && nextState && previousState !== nextState) {
+      // Dual-write: Update lifecycle in knowledge repository if available
+      // This is additive during the transition period
+      const knowledgeRepo = app.skillShareer.knowledgeRepo;
+      if (knowledgeRepo) {
+        try {
+          await knowledgeRepo.updateLifecycle(entryId, nextState, {
+            actorId: auth.actorId,
+            note: `reviewer-${payload.decision}`,
+          });
+        } catch (repoError) {
+          // Log but don't fail - JSONB is the source of truth during transition
+          app.log.error({ repoError, entryId }, 'Failed to update lifecycle in knowledge repository');
+        }
+      }
+
       try {
         await runKnowledgeIndexEvent({
           services: {
