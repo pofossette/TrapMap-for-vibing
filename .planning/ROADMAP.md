@@ -322,12 +322,12 @@ Plans:
 
 **Depends on:** Phase 60
 
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 61-01-PLAN.md — Schema definition, CandidateRepository interface, PgCandidateRepository with row-level locking
-- [ ] 61-02-PLAN.md — DualWrite adapter, InMemory fallback, processor integration, barrel exports
-- [ ] 61-03-PLAN.md — Migration script (JSONB to candidates table backfill)
+- [x] 61-01-PLAN.md — Schema definition, CandidateRepository interface, PgCandidateRepository with row-level locking
+- [x] 61-02-PLAN.md — DualWrite adapter, InMemory fallback, processor integration, barrel exports
+- [x] 61-03-PLAN.md — Migration script (JSONB to candidates table backfill)
 
 **Success Criteria:**
 1. `candidates` table exists with row-level granularity: each candidate is a separate row with its own lock scope
