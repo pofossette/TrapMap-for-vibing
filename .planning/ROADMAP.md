@@ -88,17 +88,17 @@
 
 ### Phase 68: Fix failing unit tests - restore CI baseline
 
-**Goal:** Fix all failing unit tests (6 test files, 38 failing cases) to restore CI baseline before adding new test coverage
+**Goal:** Fix all failing unit tests to restore CI baseline before adding new test coverage
 **Requirements:** TEST-01
 **Depends on:** Phase 67
-**Plans:** 0 plans
+**Plans:** 1 plan
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 68 to break down)
+- [ ] 68-01-PLAN.md — Verify CI baseline restored (all tests passing after fix commit 3fb096a)
 
 **Success Criteria:**
-1. All 6 failing test files pass: `derive.test.ts`, `assembly.test.ts` and others
-2. `pnpm test` exits with 0 (no failures)
+1. `pnpm test` exits with 0 (no failures)
+2. `pnpm typecheck` exits with 0 (no type errors)
 3. CI pipeline green on test step
 
 ---
@@ -288,4 +288,4 @@ Phase 68 (Fix Failing Tests)
 
 ---
 
-*Roadmap updated: 2026-05-04 — v1.6 Test Coverage & Optimization expanded with 9 phases*
+*Roadmap updated: 2026-05-04 — Phase 68 planned (1 plan)*
