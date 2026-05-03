@@ -12,6 +12,7 @@ import {
 } from './common.js';
 import { boundaryMetaSchema } from './boundary.js';
 import { evidenceMetaSchema } from './evidence.js';
+import { maintenanceMetaSchema } from './maintenance.js';
 import { agentReviewResultSchema, reviewDecisionSchema, reviewNoteSchema } from './knowledge.js';
 
 /**
@@ -369,6 +370,8 @@ export const skillArtifactSchema = z
     boundaryMeta: boundaryMetaSchema.nullable().optional(),
     /** Evidence and provenance metadata (null if not yet verified) */
     evidenceMeta: evidenceMetaSchema.nullable().default(null),
+    /** Maintenance metadata for ownership and review-due tracking (MAINT-01) */
+    maintenanceMeta: maintenanceMetaSchema.nullable().default(null),
   })
   .merge(auditMetadataSchema);
 

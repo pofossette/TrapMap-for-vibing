@@ -11,6 +11,7 @@ import {
   securityLevelSchema,
 } from './common.js';
 import { boundarySchema } from './boundary.js';
+import { maintenanceMetaSchema } from './maintenance.js';
 
 export const reviewRiskSchema = z.enum(['low', 'medium', 'high']);
 
@@ -114,6 +115,8 @@ export const knowledgeEntrySchema = z
     reviewNotes: z.array(reviewNoteSchema).default([]),
     lifecycleHistory: z.array(knowledgeLifecycleEventSchema).default([]),
     boundary: boundarySchema.nullable().default(null),
+    /** Maintenance metadata for ownership and review-due tracking (MAINT-01) */
+    maintenanceMeta: maintenanceMetaSchema.nullable().default(null),
   })
   .merge(auditMetadataSchema);
 

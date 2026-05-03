@@ -10,6 +10,7 @@ export * from './domain/evals/report.js';
 export * from './domain/evals/summary.js';
 export * from './domain/feedback.js';
 export * from './domain/knowledge.js';
+export * from './domain/maintenance.js';
 export * from './domain/operations.js';
 export * from './domain/path-validation.js';
 export * from './domain/parsing.js';
