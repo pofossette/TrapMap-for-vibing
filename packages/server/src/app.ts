@@ -77,6 +77,12 @@ const documentedRoutes = [
   'GET /v1/operations/feedback',
   'POST /v1/operations/feedback/batch',
   'GET /v1/operations/feedback/stats/:entryId',
+  'GET /v1/operations/decay/entries',
+  'POST /v1/operations/decay/batch',
+  'POST /v1/operations/decay/search',
+  'PATCH /v1/knowledge/:id/evidence',
+  'GET /v1/operations/maintenance/entries',
+  'POST /v1/operations/maintenance/batch',
 ] as const;
 
 interface BuildServerOptions {
