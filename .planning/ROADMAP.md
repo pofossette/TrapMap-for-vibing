@@ -57,7 +57,7 @@
 
 - [x] Phase 68: Fix failing unit tests (1 plan) (completed 2026-05-03)
 - [x] Phase 69: Governance and auth route tests (3/3 plans) (completed 2026-05-03)
-- [ ] Phase 70: Retrieval and indexing core tests (0 plans)
+- [x] Phase 70: Retrieval and indexing core tests (3/3 plans)
 - [ ] Phase 71: CLI and contracts tests + coverage tooling (0 plans)
 
 #### Performance Optimization
@@ -133,7 +133,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 70 to break down)
+- [ ] 70-01-PLAN.md -- Retrieval merge and semantic unit tests
+- [ ] 70-02-PLAN.md -- Retrieval orchestrator tests
+- [ ] 70-03-PLAN.md -- Artifact pipeline and postgres store tests
 
 **Success Criteria:**
 1. `retrieval/orchestrator.test.ts` covers retrieval orchestration flow
