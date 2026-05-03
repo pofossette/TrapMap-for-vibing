@@ -23,7 +23,9 @@ export type UserOpsAction =
   | 'decay-search'
   | 'feedback'
   | 'feedback-list'
-  | 'feedback-batch';
+  | 'feedback-batch'
+  | 'maintenance-list'
+  | 'maintenance-batch';
 
 export interface UserOpsLogEntry {
   timestamp: string;
