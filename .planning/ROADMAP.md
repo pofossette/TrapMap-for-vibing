@@ -82,7 +82,7 @@
 - [x] Phase 64: Retrieval Pipeline Integration (DECAY-02, CONFLICT-02) (completed 2026-05-03)
 - [x] Phase 65: Feedback Lifecycle & Decay Route Wiring (FEEDBACK-03, DECAY-03) (completed 2026-05-03)
 - [x] Phase 66: Boundary-aware Retrieval Completion (BOUND-04, BOUND-05) (completed 2026-05-04)
-- [ ] Phase 67: Audit Cleanup & Documentation
+- [x] Phase 67: Audit Cleanup & Documentation (completed 2026-05-03)
 
 </details>
 
@@ -485,10 +485,15 @@ Plans:
 | WRITE-01 | Phase 61 | Candidate pipeline independent table |
 | WRITE-02 | Phase 62 | Knowledge entry row-level table |
 | WRITE-03 | Phase 63 | Skill artifact row-level table & JSONB cleanup |
+| TEST-01 | Phase 68 | Fix failing unit tests, restore CI baseline |
+| TEST-02 | Phase 69 | Governance and auth route tests |
+| TEST-03 | Phase 70 | Retrieval and indexing core tests |
+| TEST-04 | Phase 71 | CLI and contracts tests |
+| TEST-05 | Phase 71 | Coverage tooling integration |
 
 **Coverage:**
-- Total requirements: 23
-- Mapped to phases: 23
+- Total requirements: 28
+- Mapped to phases: 28
 - Unmapped: 0
 
 ---
@@ -543,6 +548,80 @@ Phase 67 (Audit Cleanup & Documentation) -- independent
 - Phase 60 must complete before Phase 61 (clean type foundations)
 - Phases 61->62->63 are sequential (each builds on the repository pattern established by the previous)
 - Phases 64-66 are independent of each other (can run in parallel); Phase 67 is cleanup and can run last
+
+### Phase 68: Fix failing unit tests - restore CI baseline
+
+**Goal:** Fix all failing unit tests (6 test files, 38 failing cases) to restore CI baseline before adding new test coverage
+**Requirements:** TEST-01
+**Depends on:** Phase 67
+**Plans:** 1/1 plans complete
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 68 to break down)
+
+**Success Criteria:**
+1. All 6 failing test files pass: `derive.test.ts`, `assembly.test.ts` and others
+2. `pnpm test` exits with 0 (no failures)
+3. CI pipeline green on test step
+
+---
+
+### Phase 69: Add governance and auth route tests - security critical coverage
+
+**Goal:** Add tests for governance module (permissions, eligibility) and auth-related routes to ensure security-critical code paths are covered
+**Requirements:** TEST-02
+**Depends on:** Phase 68
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 69 to break down)
+
+**Success Criteria:**
+1. `governance/permissions.test.ts` covers RBAC permission checks
+2. `governance/eligibility.test.ts` covers security level filtering
+3. `routes/auth.test.ts` covers authentication flow
+4. `routes/access-keys.test.ts` covers API key management
+5. All new tests pass
+
+---
+
+### Phase 70: Add retrieval and indexing core tests - business logic coverage
+
+**Goal:** Add tests for uncovered retrieval and indexing modules (orchestrator, semantic, merge, artifact-pipeline) to protect core business logic
+**Requirements:** TEST-03
+**Depends on:** Phase 68
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 70 to break down)
+
+**Success Criteria:**
+1. `retrieval/orchestrator.test.ts` covers retrieval orchestration flow
+2. `retrieval/semantic.test.ts` covers semantic recall
+3. `retrieval/merge.test.ts` covers multi-path merge strategy
+4. `indexing/artifact-pipeline.test.ts` covers artifact indexing flow
+5. `persistence/postgres-store.test.ts` covers database store operations
+6. All new tests pass
+
+---
+
+### Phase 71: Add CLI and contracts tests plus coverage tooling integration
+
+**Goal:** Add tests for CLI commands and contracts schemas, integrate Vitest coverage tooling, and establish coverage thresholds in CI
+**Requirements:** TEST-04, TEST-05
+**Depends on:** Phase 69, Phase 70
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 71 to break down)
+
+**Success Criteria:**
+1. CLI commands have tests: `knowledge.test.ts`, `team.test.ts`, `http.test.ts`
+2. Contracts schemas have validation tests: `knowledge.test.ts`, `retrieval.test.ts`
+3. `@vitest/coverage-v8` installed and configured
+4. `pnpm test:coverage` generates HTML and text reports
+5. Coverage threshold configured (target: 70% lines)
+6. CI workflow includes coverage step
 
 ---
 

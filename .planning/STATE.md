@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-03T16:55:40.350Z"
-last_activity: 2026-05-03 -- Phase 67 execution started
+last_updated: "2026-05-03T17:14:00.273Z"
+last_activity: 2026-05-03
 progress:
-  total_phases: 20
+  total_phases: 24
   completed_phases: 15
   total_plans: 54
-  completed_plans: 57
+  completed_plans: 58
   percent: 100
 ---
 
@@ -22,15 +22,20 @@ See: .planning/PROJECT.md (updated 2026-05-02)
 
 ## Current Position
 
-Phase: 67 (audit-cleanup-documentation) — EXECUTING
-Plan: 1 of 1
+Phase: 68
+Plan: Not started
 Status: Executing Phase 67
-Last activity: 2026-05-03 -- Phase 67 execution started
+Last activity: 2026-05-03
 
 ## Accumulated Context
 
 ### Roadmap Evolution
 
+- Phase 68-71 added: Test coverage improvement initiative (2026-05-04)
+  - Phase 68: Fix failing unit tests - restore CI baseline
+  - Phase 69: Governance and auth route tests (security critical)
+  - Phase 70: Retrieval and indexing core tests (business logic)
+  - Phase 71: CLI/contracts tests + coverage tooling integration
 - v1.5 功能增强 in progress (Phases 48-67)
 - Phase 66 complete: Boundary-aware Retrieval (BOUND-04, BOUND-05)
 - Phase 60 complete: Type consolidation & lifecycle state machine
