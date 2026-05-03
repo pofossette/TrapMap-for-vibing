@@ -1,106 +1,73 @@
-# Phase 62-02: PostgreSQL Knowledge Repository Implementation
+# Phase 62-03: Migration Script and Module Integration
 
 ## Summary
 
-Implemented `PgKnowledgeRepository` with row-level locking for concurrent-safe operations on knowledge entries. Created comprehensive tests for all repository methods including SEQUENCE-based ID generation and lifecycle state machine integration.
+Successfully implemented migration tooling to backfill existing knowledge entries from JSONB snapshot to the new relational tables, following the same pattern as Phase 61's migrate-candidates.ts.
 
 ## Tasks Completed
 
-### Task 1: Implement PgKnowledgeRepository
+### Task 1: Create Migration Script ✅
 
-Created `packages/server/src/lib/knowledge/pg-repository.ts` with:
+Created `packages/server/src/lib/persistence/migrate-knowledge.ts`:
+- `MigrationConfig` interface with pool, store, dryRun, batchSize, onProgress options
+- `MigrationResult` interface with totalEntries, migrated, skipped, errors, durationMs
+- `migrateKnowledgeEntries()` function that:
+  - Reads `data.knowledgeEntries` from store snapshot
+  - Checks if entries already exist in relational table (idempotent)
+  - Inserts entries via `PgKnowledgeRepository` including nested data
+  - Reports progress via callback
+  - Collects errors without stopping
+  - Supports dry-run mode
+  - Synchronizes SEQUENCE to max(existing_ids) + 1 after migration
 
-- Class implementing `KnowledgeRepository` interface
-- `ensureSchema()` method for idempotent table creation
-- `nextId()` using PostgreSQL SEQUENCE for monotonic ID generation
-- `insert()` with transaction for entries, revisions, and lifecycle events
-- `getById()` reconstructing full `KnowledgeRecord` from database rows
-- `updateLifecycle()` with SELECT FOR UPDATE row-level locking
-- `appendRevision()` with row-level locking and latest revision update
-- `appendLifecycleEvent()` for audit trail
-- `listByFilter()` for filtered queries (returns lightweight records)
-- `updateGovernance()` for labels and requiredLevel updates
+### Task 2: Create Migration Tests ✅
 
-### Task 2: Helper Functions for Row-to-Record Mapping
+Created `packages/server/src/lib/persistence/migrate-knowledge.test.ts`:
+- Dry-run mode test (no data written)
+- Basic migration test (entries moved correctly)
+- Idempotent migration test (safe to run multiple times)
+- Error handling test (errors recorded, processing continues)
+- Nested data migration test (revisions, lifecycle events)
+- SEQUENCE synchronization test
+- Progress callback test
+- Empty store handling test
+- Non-standard ID handling test
 
-Added mapping functions:
+Also created `packages/server/src/lib/lifecycle/state-machine.ts` which was missing but required by pg-repository.ts.
 
-- `rowToKnowledgeEntry()` - Maps database row to partial KnowledgeRecord
-- `rowToKnowledgeRevision()` - Maps revision row to KnowledgeRevisionRecord
-- `rowToLifecycleEvent()` - Maps lifecycle event row to record type
-- `reconstructKnowledgeRecord()` - Combines all rows into full record
+### Task 3: Update Knowledge Module Exports ✅
 
-Defined TypeScript interfaces:
+Updated `packages/server/src/lib/knowledge/index.ts` to export `PgKnowledgeRepository` from `./pg-repository.js`.
 
-- `DrizzleKnowledgeEntryRow`
-- `DrizzleKnowledgeRevisionRow`
-- `DrizzleLifecycleEventRow`
+## Acceptance Criteria Status
 
-### Task 3: Create Repository Tests
+- [x] Migration script exists with dry-run and progress callback support
+- [x] Migration handles nested data (revisions, lifecycle events)
+- [x] Migration is idempotent (safe to run multiple times)
+- [x] Migration preserves existing entry IDs
+- [x] Migration synchronizes SEQUENCE to max(existing_ids) + 1
+- [x] Migration records errors without stopping
+- [x] Tests cover all migration scenarios (9 tests pass)
+- [x] Knowledge module exports updated
+- [ ] All existing tests pass (pre-existing failures unrelated to changes)
+- [ ] Type checking passes (pre-existing errors unrelated to changes)
 
-Created `packages/server/src/lib/knowledge/pg-repository.test.ts` with tests for:
+## Files Modified
 
-- `nextId()` generates unique, monotonically increasing IDs
-- `insert` and `getById` round-trip with all nested data
-- `updateLifecycle` with valid transitions
-- `updateLifecycle` rejects invalid transitions
-- `appendRevision` updates entry's latest revision
-- `listByFilter` with lifecycleState, teamId, ownerUserId filters
-- Concurrent access with row-level locking
+- `packages/server/src/lib/persistence/migrate-knowledge.ts` (new)
+- `packages/server/src/lib/persistence/migrate-knowledge.test.ts` (new)
+- `packages/server/src/lib/lifecycle/state-machine.ts` (new - was missing)
+- `packages/server/src/lib/knowledge/index.ts` (modified)
 
-### Task 4: Verify Index Table Compatibility
+## Commits
 
-Added verification test that:
-
-- Inserts entry via PgKnowledgeRepository
-- Manually inserts row into knowledge_embeddings
-- Confirms the embedding can be queried by entry_id
-
-## Verification
-
-All acceptance criteria passed:
-
-```bash
-# Task 1
-grep -q "export class PgKnowledgeRepository" pg-repository.ts ✓
-grep -q "implements KnowledgeRepository" pg-repository.ts ✓
-grep -q "async insert(entry: KnowledgeRecord)" pg-repository.ts ✓
-grep -q "async getById(entryId: string)" pg-repository.ts ✓
-grep -q "async updateLifecycle" pg-repository.ts ✓
-grep -q "async nextId()" pg-repository.ts ✓
-grep -q "nextval" pg-repository.ts ✓
-grep -q "FOR UPDATE" pg-repository.ts ✓
-grep -q "BEGIN" pg-repository.ts ✓
-grep -q "COMMIT" pg-repository.ts ✓
-
-# Task 2
-grep -q "function rowToKnowledgeEntry" pg-repository.ts ✓
-grep -q "function rowToKnowledgeRevision" pg-repository.ts ✓
-grep -q "function rowToLifecycleEvent" pg-repository.ts ✓
-grep -q "interface DrizzleKnowledgeEntryRow" pg-repository.ts ✓
-
-# Task 3 & 4
-All test cases present and index table compatibility test included ✓
-```
-
-## Threat Model Mitigations
-
-| Threat | Mitigation | Status |
-|--------|------------|--------|
-| SQL injection | Parameterized queries via pg driver | ✓ |
-| Race condition on lifecycle transitions | SELECT FOR UPDATE row-level locking | ✓ |
-| Concurrent revision number assignment | Transaction-scoped INSERT | ✓ |
-
-## Files Created/Modified
-
-- `packages/server/src/lib/persistence/schema.ts` - Added knowledge_entries, knowledge_revisions, lifecycle_events tables
-- `packages/server/src/lib/knowledge/repository.ts` - Interface and in-memory/dual-write implementations
-- `packages/server/src/lib/knowledge/pg-repository.ts` - PostgreSQL implementation
-- `packages/server/src/lib/knowledge/index.ts` - Barrel export
-- `packages/server/src/lib/knowledge/pg-repository.test.ts` - Tests
+1. `feat(62-03): add migration script for knowledge entries to relational tables`
+2. `test(62-03): add tests for knowledge entry migration`
+3. `feat(62-03): add lifecycle state machine for knowledge entries`
+4. `feat(62-03): export PgKnowledgeRepository from knowledge module`
 
 ## Notes
 
-- Tests require `DATABASE_URL` or `TRAPMAP_DATABASE_URL` environment variable for PostgreSQL connection
-- The knowledge module (`knowledge/` directory) is created alongside existing `knowledge.ts` file for backward compatibility
-- Pre-existing type errors in the codebase (decayMeta, evidenceMeta) are unrelated to this implementation
+- The lifecycle state-machine module was referenced by pg-repository.ts but was missing from the codebase. Created it to enable tests to run.
+- Pre-existing test failures in evidence, rerank, and retrieval-workflow modules are unrelated to this phase's changes.
+- Build errors in CLI package are pre-existing issues with missing schema exports.
