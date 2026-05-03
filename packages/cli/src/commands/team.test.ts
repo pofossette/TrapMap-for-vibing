@@ -1,0 +1,486 @@
+import type { LoginResponse, Team, TeamListResponse } from '@trapmap/contracts';
+import { Command } from 'commander';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+
+import * as http from '../lib/http.js';
+import * as config from '../lib/config.js';
+
+// Mock the dependencies
+vi.mock('../lib/http.js', () => ({
+  apiRequest: vi.fn(),
+  requireSessionToken: vi.fn(),
+}));
+
+vi.mock('../lib/config.js', () => ({
+  loadCliState: vi.fn(() => ({
+    serverUrl: 'http://localhost:3000',
+    sessionToken: 'mock-token',
+    session: {
+      member: { handle: 'testuser', securityLevel: 0 },
+      effectivePermissions: ['team:list', 'team:select'],
+    },
+  })),
+  updateCliState: vi.fn(async (patch: unknown) => {
+    const current = {
+      serverUrl: 'http://localhost:3000',
+      sessionToken: 'mock-token',
+      session: {
+        member: { handle: 'testuser', securityLevel: 0 },
+        effectivePermissions: ['team:list', 'team:select'],
+      },
+    };
+    if (typeof patch === 'function') {
+      return patch(current);
+    }
+    return { ...current, ...patch };
+  }),
+}));
+
+// Import after mocking
+import { registerTeamCommands } from './team.js';
+
+// Helper to create minimal valid Team
+function createMockTeam(overrides: Partial<Team> = {}): Team {
+  return {
+    id: 'team-1',
+    name: 'Test Team',
+    slug: 'test-team',
+    description: 'A test team',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
+// Helper to create LoginResponse
+function createMockLoginResponse(teamId: string = 'team-1'): LoginResponse {
+  return {
+    session: {
+      sessionId: 'session-1',
+      member: {
+        id: 'member-1',
+        teamId: teamId,
+        handle: 'testuser',
+        roleTemplate: 'user',
+        securityLevel: 0,
+        permissions: [],
+        notes: null,
+        isSystem: false,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      activeTeam: createMockTeam({ id: teamId }),
+      effectivePermissions: ['team:list', 'team:select'],
+      expiresAt: null,
+      issuedAt: '2024-01-01T00:00:00Z',
+    },
+  };
+}
+
+describe('team commands', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('list command', () => {
+    it('lists available teams', async () => {
+      const mockResponse: TeamListResponse = {
+        teams: [createMockTeam({ id: 'team-1', name: 'Team One' }), createMockTeam({ id: 'team-2', name: 'Team Two' })],
+        activeTeamId: 'team-1',
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: false });
+
+      await program.parseAsync(['team', 'list'], { from: 'user' });
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          path: '/v1/teams',
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('marks active team with asterisk', async () => {
+      const mockResponse: TeamListResponse = {
+        teams: [createMockTeam({ id: 'team-1', name: 'Team One' }), createMockTeam({ id: 'team-2', name: 'Team Two' })],
+        activeTeamId: 'team-1',
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: false });
+
+      await program.parseAsync(['team', 'list'], { from: 'user' });
+
+      const output = consoleLogSpy.mock.calls.map((call) => call[0]).join('\n');
+      expect(output).toContain('* team-1 Team One');
+      expect(output).toContain('  team-2 Team Two');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('requires authentication', async () => {
+      vi.mocked(config.loadCliState).mockResolvedValueOnce({
+        serverUrl: 'http://localhost:3000',
+        sessionToken: null,
+        session: null,
+      });
+      vi.mocked(http.requireSessionToken).mockImplementationOnce(() => {
+        throw new Error('Not authenticated. Run `skill-shareer login` first.');
+      });
+
+      const program = new Command();
+      program.exitOverride(() => {
+        throw new Error('Command failed');
+      });
+      registerTeamCommands(program, { allowCreate: false });
+
+      await expect(program.parseAsync(['team', 'list'], { from: 'user' })).rejects.toThrow();
+
+      expect(http.requireSessionToken).toHaveBeenCalled();
+    });
+
+    it('outputs formatted result', async () => {
+      const mockResponse: TeamListResponse = {
+        teams: [createMockTeam({ id: 'team-1', name: 'Team One' })],
+        activeTeamId: 'team-1',
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: false });
+
+      await program.parseAsync(['team', 'list'], { from: 'user' });
+
+      const output = consoleLogSpy.mock.calls.map((call) => call[0]).join('\n');
+      expect(output).toContain('team-1');
+      expect(output).toContain('Team One');
+
+      consoleLogSpy.mockRestore();
+    });
+  });
+
+  describe('select command', () => {
+    it('selects team by ID', async () => {
+      const mockResponse = createMockLoginResponse('team-2');
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: false });
+
+      await program.parseAsync(['team', 'select', 'team-2'], { from: 'user' });
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          method: 'POST',
+          path: '/v1/teams/select',
+          body: { teamId: 'team-2' },
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('updates CLI state with new session', async () => {
+      const mockResponse = createMockLoginResponse('team-2');
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'new-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: false });
+
+      await program.parseAsync(['team', 'select', 'team-2'], { from: 'user' });
+
+      expect(config.updateCliState).toHaveBeenCalled();
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('requires authentication', async () => {
+      vi.mocked(config.loadCliState).mockResolvedValueOnce({
+        serverUrl: 'http://localhost:3000',
+        sessionToken: null,
+        session: null,
+      });
+      vi.mocked(http.requireSessionToken).mockImplementationOnce(() => {
+        throw new Error('Not authenticated. Run `skill-shareer login` first.');
+      });
+
+      const program = new Command();
+      program.exitOverride(() => {
+        throw new Error('Command failed');
+      });
+      registerTeamCommands(program, { allowCreate: false });
+
+      await expect(program.parseAsync(['team', 'select', 'team-1'], { from: 'user' })).rejects.toThrow();
+
+      expect(http.requireSessionToken).toHaveBeenCalled();
+    });
+
+    it('outputs formatted result with team name', async () => {
+      const mockResponse = createMockLoginResponse('team-2');
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: false });
+
+      await program.parseAsync(['team', 'select', 'team-2'], { from: 'user' });
+
+      const output = consoleLogSpy.mock.calls.map((call) => call[0]).join('\n');
+      expect(output).toContain('Active team:');
+      expect(output).toContain('Test Team');
+
+      consoleLogSpy.mockRestore();
+    });
+  });
+
+  describe('create command', () => {
+    it('creates team with name', async () => {
+      const newTeam = createMockTeam({ id: 'team-new', name: 'New Team' });
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: newTeam,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: true });
+
+      await program.parseAsync(['team', 'create', 'New Team'], { from: 'user' });
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          method: 'POST',
+          path: '/v1/teams',
+          body: expect.objectContaining({
+            name: 'New Team',
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('creates team with description option', async () => {
+      const newTeam = createMockTeam({
+        id: 'team-new',
+        name: 'New Team',
+        description: 'A description',
+      });
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: newTeam,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: true });
+
+      await program.parseAsync(['team', 'create', 'New Team', '--description', 'A description'], {
+        from: 'user',
+      });
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          body: expect.objectContaining({
+            name: 'New Team',
+            description: 'A description',
+          }),
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('requires authentication', async () => {
+      vi.mocked(config.loadCliState).mockResolvedValueOnce({
+        serverUrl: 'http://localhost:3000',
+        sessionToken: null,
+        session: null,
+      });
+      vi.mocked(http.requireSessionToken).mockImplementationOnce(() => {
+        throw new Error('Not authenticated. Run `skill-shareer login` first.');
+      });
+
+      const program = new Command();
+      program.exitOverride(() => {
+        throw new Error('Command failed');
+      });
+      registerTeamCommands(program, { allowCreate: true });
+
+      await expect(program.parseAsync(['team', 'create', 'New Team'], { from: 'user' })).rejects.toThrow();
+
+      expect(http.requireSessionToken).toHaveBeenCalled();
+    });
+
+    it('outputs formatted result', async () => {
+      const newTeam = createMockTeam({ id: 'team-new', name: 'New Team' });
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: newTeam,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: true });
+
+      await program.parseAsync(['team', 'create', 'New Team'], { from: 'user' });
+
+      const output = consoleLogSpy.mock.calls.map((call) => call[0]).join('\n');
+      expect(output).toContain('Created team team-new');
+      expect(output).toContain('New Team');
+
+      consoleLogSpy.mockRestore();
+    });
+  });
+
+  describe('command registration', () => {
+    it('registers all commands when allowCreate is true', async () => {
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: true });
+
+      const teamCommand = program.commands.find((cmd) => cmd.name() === 'team');
+      expect(teamCommand).toBeDefined();
+
+      const subCommands = teamCommand!.commands.map((cmd) => cmd.name());
+      expect(subCommands).toContain('list');
+      expect(subCommands).toContain('select');
+      expect(subCommands).toContain('create');
+    });
+
+    it('omits create command when allowCreate is false', async () => {
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: false });
+
+      const teamCommand = program.commands.find((cmd) => cmd.name() === 'team');
+      expect(teamCommand).toBeDefined();
+
+      const subCommands = teamCommand!.commands.map((cmd) => cmd.name());
+      expect(subCommands).toContain('list');
+      expect(subCommands).toContain('select');
+      expect(subCommands).not.toContain('create');
+    });
+  });
+
+  describe('JSON output', () => {
+    it('outputs JSON when --json flag is used for list', async () => {
+      const mockResponse: TeamListResponse = {
+        teams: [createMockTeam()],
+        activeTeamId: 'team-1',
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: false });
+
+      await program.parseAsync(['team', 'list', '--json'], { from: 'user' });
+
+      const output = consoleLogSpy.mock.calls[0][0];
+      const parsed = JSON.parse(output);
+      expect(parsed).toHaveProperty('teams');
+      expect(parsed).toHaveProperty('activeTeamId');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('outputs JSON when --json flag is used for select', async () => {
+      const mockResponse = createMockLoginResponse();
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: false });
+
+      await program.parseAsync(['team', 'select', 'team-1', '--json'], { from: 'user' });
+
+      const output = consoleLogSpy.mock.calls[0][0];
+      const parsed = JSON.parse(output);
+      expect(parsed).toHaveProperty('session');
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('outputs JSON when --json flag is used for create', async () => {
+      const newTeam = createMockTeam({ id: 'team-new', name: 'New Team' });
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: newTeam,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: true });
+
+      await program.parseAsync(['team', 'create', 'New Team', '--json'], { from: 'user' });
+
+      const output = consoleLogSpy.mock.calls[0][0];
+      const parsed = JSON.parse(output);
+      expect(parsed).toHaveProperty('id', 'team-new');
+      expect(parsed).toHaveProperty('name', 'New Team');
+
+      consoleLogSpy.mockRestore();
+    });
+  });
+});
