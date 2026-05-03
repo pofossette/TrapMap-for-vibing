@@ -6,7 +6,9 @@ import type {
   Boundary,
   CandidateSubmission,
   ConflictRelation,
+  DecayMeta,
   DuplicateCase,
+  EvidenceMeta,
   FeedbackProblemType,
   LifecycleState,
   Permission,
@@ -204,6 +206,10 @@ export interface KnowledgeRecord {
   indexState: KnowledgeIndexStateRecord | null;
   /** Boundary constraints for knowledge applicability (null if no boundary defined) */
   boundary: Boundary | null;
+  /** Decay metadata for lifecycle management (null if not decay-tracked) */
+  decayMeta: DecayMeta | null;
+  /** Evidence metadata for provenance tracking (null if no evidence recorded) */
+  evidenceMeta: EvidenceMeta | null;
   /** Maintenance metadata for ownership and review-due tracking (null if not assigned) */
   maintenanceMeta: MaintenanceMetaRecord | null;
   createdAt: string;
@@ -520,6 +526,10 @@ export interface SkillArtifactRecord {
   reviewNotes: SkillArtifactReviewNoteRecord[];
   /** Lifecycle event history */
   lifecycleHistory: SkillArtifactLifecycleEventRecord[];
+  /** Boundary constraints for artifact applicability (null if no boundary defined) */
+  boundary: Boundary | null;
+  /** Decay metadata for lifecycle management (null if not decay-tracked) */
+  decayMeta: DecayMeta | null;
   /** Maintenance metadata for ownership and review-due tracking (null if not assigned) */
   maintenanceMeta: MaintenanceMetaRecord | null;
   /** Created timestamp */
