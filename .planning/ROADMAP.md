@@ -56,7 +56,7 @@
 #### Test Coverage
 
 - [x] Phase 68: Fix failing unit tests (1 plan) (completed 2026-05-03)
-- [ ] Phase 69: Governance and auth route tests (2/3 plans)
+- [x] Phase 69: Governance and auth route tests (3/3 plans) (completed 2026-05-03)
 - [ ] Phase 70: Retrieval and indexing core tests (0 plans)
 - [ ] Phase 71: CLI and contracts tests + coverage tooling (0 plans)
 
@@ -80,7 +80,7 @@
 |-------|-----------|----------------|--------|-----------|
 | 1-47 | v1.0-v1.4 | 93/93 | Complete | 2026-04-29 |
 | 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
-| 68-76 | v1.6 | 1/1 | In progress | 2026-05-03 |
+| 68-76 | v1.6 | 2/2 | In progress | 2026-05-03 |
 
 ---
 
@@ -108,12 +108,12 @@ Plans:
 **Goal:** Add tests for governance module (permissions, eligibility), auth-related routes, and candidate detection system to ensure security-critical code paths are covered
 **Requirements:** TEST-02
 **Depends on:** Phase 68
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 69-01-PLAN.md -- Governance permissions and eligibility unit tests
 - [x] 69-02-PLAN.md -- Candidate detector unit tests (18 tests)
-- [ ] 69-03-PLAN.md -- Auth and access-keys route integration tests
+- [x] 69-03-PLAN.md -- Auth and access-keys route integration tests (17 tests)
 
 **Success Criteria:**
 1. `governance/permissions.test.ts` covers RBAC permission checks

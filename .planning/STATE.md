@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Test Coverage & Optimization
 status: executing
-last_updated: "2026-05-03T19:34:39Z"
-last_activity: 2026-05-03 -- Phase 69 plan 02 completed (18 detector tests)
+last_updated: "2026-05-03T19:42:07Z"
+last_activity: 2026-05-03 -- Phase 69 plan 03 completed (17 auth + access-keys integration tests)
 progress:
   total_phases: 9
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 ## Project Reference
@@ -22,10 +22,10 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 
 ## Current Position
 
-Phase: 69 (add-retrieval-and-indexing-core-tests-business-logic-coverag) — EXECUTING
-Plan: 2 of 3
-Status: Phase 69 plan 02 completed (18 detector tests)
-Last activity: 2026-05-03 -- Phase 69 plan 02 completed (18 detector tests)
+Phase: 69 (add-retrieval-and-indexing-core-tests-business-logic-coverag) — COMPLETE
+Plan: 3 of 3
+Status: Phase 69 plan 03 completed (17 auth + access-keys integration tests)
+Last activity: 2026-05-03 -- Phase 69 plan 03 completed (17 auth + access-keys integration tests)
 
 ## Accumulated Context
 
@@ -44,3 +44,9 @@ Last activity: 2026-05-03 -- Phase 69 plan 02 completed (18 detector tests)
 - v1.5 功能增强 shipped 2026-05-04 (Phases 48-67, 58 plans)
 - v1.4 评测系统构建 shipped 2026-04-29 (Phases 25-47, 59 plans)
 - All prior milestones verified and archived
+
+### Decisions (Phase 69)
+
+- Used separate buildServer instances for tests requiring systemAdminKey config to isolate config
+- Created target user with lower security level (5) than admin caller (10) to satisfy requireHigherLevel check
+- loginRequestSchema requires min(16) chars for both accessKey and systemAdminKey fields -- test payloads must comply
