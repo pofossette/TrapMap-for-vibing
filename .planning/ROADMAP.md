@@ -68,7 +68,7 @@
 ### Evidence & Maintenance
 
 - [x] Phase 58: Evidence Metadata & Verification Surface (EVIDENCE-01, EVIDENCE-02) (completed 2026-05-02)
-- [ ] Phase 59: Ownership & Verification SLA Management (MAINT-01, MAINT-02)
+- [x] Phase 59: Ownership & Verification SLA Management (MAINT-01, MAINT-02) (completed 2026-05-03)
 
 </details>
 
