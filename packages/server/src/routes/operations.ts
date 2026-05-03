@@ -508,9 +508,10 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
           });
 
           // Create artifact record with canonical source hash
-          const artifact = createSkillArtifactRecord({
+          const artifact = await createSkillArtifactRecord({
             store: app.skillShareer.store,
             data,
+            ...(app.skillShareer.artifactRepo ? { artifactRepo: app.skillShareer.artifactRepo } : {}),
             ownerUserId,
             teamId: auth.activeTeamId,
             payload: {
@@ -527,7 +528,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
 
           // Derive outputs immediately after persistence (IMEX-04, COMP-02)
           const derived = deriveSkillArtifactOutputs(artifact, artifact.latestRevision);
-          applyDerivedArtifactOutputs(data, artifact, artifact.latestRevision, derived);
+          await applyDerivedArtifactOutputs(data, artifact, artifact.latestRevision, derived, app.skillShareer.artifactRepo ?? undefined);
 
           // Record audit event (T-13-04 mitigation)
           const auditEvent = createAuditEvent({
@@ -963,9 +964,10 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
           });
 
           // Create artifact record
-          const artifact = createSkillArtifactRecord({
+          const artifact = await createSkillArtifactRecord({
             store: app.skillShareer.store,
             data,
+            ...(app.skillShareer.artifactRepo ? { artifactRepo: app.skillShareer.artifactRepo } : {}),
             ownerUserId,
             teamId: legacyEntry.teamId,
             payload: {
@@ -982,7 +984,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
 
           // Derive outputs immediately after persistence
           const derived = deriveSkillArtifactOutputs(artifact, artifact.latestRevision);
-          applyDerivedArtifactOutputs(data, artifact, artifact.latestRevision, derived);
+          await applyDerivedArtifactOutputs(data, artifact, artifact.latestRevision, derived, app.skillShareer.artifactRepo ?? undefined);
 
           // Record audit event (T-16-02 mitigation)
           const auditEvent = createAuditEvent({
@@ -1197,6 +1199,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
       const editResult = await submitSkillEdit({
         store: app.skillShareer.store,
         data,
+        ...(app.skillShareer.artifactRepo ? { artifactRepo: app.skillShareer.artifactRepo } : {}),
         artifact: txArtifact,
         editorUserId,
         editPayload: {

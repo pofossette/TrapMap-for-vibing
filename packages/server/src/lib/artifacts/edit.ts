@@ -21,6 +21,7 @@ import type {
   StoreData,
   StoredScriptActivationPolicy,
 } from '../store.js';
+import type { ArtifactRepository } from './repository.js';
 import { appendSkillArtifactRevision } from './model.js';
 
 /**
@@ -182,6 +183,7 @@ export interface SubmitSkillEditResult {
 export async function submitSkillEdit(args: {
   store: SkillShareerStore;
   data: StoreData;
+  artifactRepo?: ArtifactRepository;
   artifact: SkillArtifactRecord;
   editorUserId: string;
   editPayload: SkillEditPayload;
@@ -199,6 +201,7 @@ export async function submitSkillEdit(args: {
   const {
     store,
     data,
+    artifactRepo,
     artifact,
     editorUserId,
     editPayload,
@@ -239,9 +242,10 @@ export async function submitSkillEdit(args: {
   });
 
   // Append new revision
-  appendSkillArtifactRevision({
+  await appendSkillArtifactRevision({
     store,
     data,
+    ...(artifactRepo ? { artifactRepo } : {}),
     artifact,
     ownerUserId: editorUserId,
     payload: {
