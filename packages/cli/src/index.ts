@@ -6,6 +6,7 @@ import { registerDecayCommands } from './commands/decay.js';
 import { registerEvidenceCommands } from './commands/evidence.js';
 import { registerFeedbackCommands } from './commands/feedback.js';
 import { registerFeedbackAdminCommands } from './commands/feedback-admin.js';
+import { registerMaintenanceCommands } from './commands/maintenance.js';
 import { registerKnowledgeCommands } from './commands/knowledge.js';
 import { registerMemberCommands } from './commands/member.js';
 import { registerOperationsCommands } from './commands/operations.js';
@@ -150,6 +151,7 @@ registerOperationsCommands(program, {
   allowImport: visibility.allowKnowledgeImport,
 });
 registerDecayCommands(program, { allowManage: visibility.allowKnowledgeUpdate });
+registerMaintenanceCommands(program, { allowManage: visibility.allowKnowledgeUpdate });
 registerAuditCommands(program, {
   allowRead: visibility.allowAuditRead,
 });
