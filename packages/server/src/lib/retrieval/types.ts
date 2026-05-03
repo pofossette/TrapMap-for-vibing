@@ -123,6 +123,8 @@ export interface MergedCandidate {
   boundaryScoreDelta?: number;
   /** Applied freshness decay multiplier (DECAY-02) */
   decayMultiplier?: number;
+  /** Boundary explanation for applicability context (BOUND-05) */
+  boundaryExplanation?: BoundaryExplanation;
 }
 
 // =============================================================================

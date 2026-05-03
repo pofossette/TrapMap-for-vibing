@@ -20,9 +20,9 @@
  * stage. It never introduces new entries or bypasses filter constraints.
  */
 
-import type { BoundaryContext, DecayState, FreshnessDecayConfig } from '@trapmap/contracts';
+import type { BoundaryContext, BoundaryExplanation, DecayState, FreshnessDecayConfig } from '@trapmap/contracts';
 import type { MergedCandidate, ScoredEntry } from './types.js';
-import { computeBoundaryScoreDelta } from './boundary-match.js';
+import { buildBoundaryExplanation, computeBoundaryScoreDelta } from './boundary-match.js';
 import { computeFreshnessMultiplier } from '../decay/freshness.js';
 
 /**
@@ -121,6 +121,12 @@ export function rerankCandidates(
       const delta = computeBoundaryScoreDelta(candidate.entry, config.boundaryContext);
       finalScore += delta;
       candidate.boundaryScoreDelta = delta;
+      // Build boundary explanation for applicability context (BOUND-05)
+      candidate.boundaryExplanation = buildBoundaryExplanation(
+        candidate.entry,
+        config.boundaryContext,
+        delta,
+      );
     }
 
     // Apply freshness decay multiplier if config provided (DECAY-02)
@@ -182,6 +188,7 @@ function hasStaleDecayState(candidate: MergedCandidate): boolean {
 /**
  * Convert reranked candidates to scored entries for assembly.
  * Uses the final combined score after rerank.
+ * Includes boundary explanation when available (BOUND-05).
  *
  * @param rerankedCandidates - Reranked candidates from the rerank stage
  * @returns Scored entries sorted by final score
@@ -190,5 +197,6 @@ export function toScoredEntriesFromReranked(rerankedCandidates: MergedCandidate[
   return rerankedCandidates.map((candidate) => ({
     entry: candidate.entry,
     score: candidate.combinedScore,
+    boundaryExplanation: candidate.boundaryExplanation,
   }));
 }
