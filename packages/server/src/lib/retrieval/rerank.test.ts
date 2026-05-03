@@ -280,3 +280,89 @@ describe('rerankCandidates with freshness decay', () => {
     expect(result[0].combinedScore).toBeLessThan(0.8);
   });
 });
+
+// =============================================================================
+// Phase 54: Boundary-aware rerank scoring (BOUND-04)
+// =============================================================================
+
+describe('rerankCandidates with boundary context', () => {
+  function makeCandidate(
+    id: string,
+    score: number,
+    boundary?: { context?: string[]; exclusions?: { description: string; kind?: string }[] },
+  ): MergedCandidate {
+    return {
+      entry: {
+        id,
+        scope: 'global',
+        shortcut: `test-${id}`,
+        detail: `Test entry ${id}`,
+        labels: ['test'],
+        requiredLevel: 'user',
+        decayMeta: null,
+        boundary: boundary
+          ? {
+              context: boundary.context ?? [],
+              versions: [],
+              prerequisites: [],
+              signals: [],
+              exclusions: boundary.exclusions ?? [],
+              evidence: [],
+            }
+          : null,
+      } as any,
+      semanticScore: score,
+      keywordScore: 0,
+      combinedScore: score,
+      tokenMatches: [],
+      channels: ['semantic'],
+      preRerankScore: score,
+      finalScore: score,
+    };
+  }
+
+  it('applies excluded context penalty in rerank', () => {
+    const candidates = [
+      makeCandidate('no-boundary', 0.8),
+      makeCandidate('excluded', 0.8, {
+        exclusions: [{ description: 'not for frontend', kind: 'context' }],
+      }),
+    ];
+
+    const result = rerankCandidates(candidates, [], {
+      boundaryContext: { contexts: ['frontend'], versions: [] },
+    });
+
+    // no-boundary should rank first since excluded gets penalty
+    expect(result[0].entry.id).toBe('no-boundary');
+    expect(result[1].boundaryScoreDelta).toBe(-0.15);
+  });
+
+  it('applies preferred context boost in rerank', () => {
+    const candidates = [
+      makeCandidate('no-boundary', 0.8),
+      makeCandidate('preferred', 0.8, { context: ['docker'] }),
+    ];
+
+    const result = rerankCandidates(candidates, [], {
+      boundaryContext: { contexts: ['docker'], versions: [] },
+    });
+
+    // preferred should rank first
+    expect(result[0].entry.id).toBe('preferred');
+    expect(result[0].boundaryScoreDelta).toBe(0.10);
+  });
+
+  it('no boundary scoring when boundaryContext is not provided', () => {
+    const candidates = [
+      makeCandidate('entry-1', 0.8, {
+        exclusions: [{ description: 'not for frontend', kind: 'context' }],
+        context: ['docker'],
+      }),
+    ];
+
+    const result = rerankCandidates(candidates, []);
+
+    expect(result[0].boundaryScoreDelta).toBeUndefined();
+  });
+});
