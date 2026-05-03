@@ -2,37 +2,31 @@
 
 ## What This Is
 
-Skill Shareer is a CLI-first internal knowledge sharing system for software teams. Teams can capture "pitfall" knowledge during development, retrieve relevant experience via text search, and maintain trustworthiness through admin review workflows. The system includes a TypeScript-native evaluation stack for measuring retrieval quality, detecting regressions, and gating changes with repeatable benchmarks.
+Skill Shareer is a CLI-first internal knowledge sharing system for software teams. Teams can capture "pitfall" knowledge during development, retrieve relevant experience via text search, and maintain trustworthiness through admin review workflows. The system includes a TypeScript-native evaluation stack for measuring retrieval quality, detecting regressions, and gating changes with repeatable benchmarks. v1.5 adds knowledge lifecycle management with decay, applicability boundaries, conflict detection, and feedback loops.
 
 ## Core Value
 
 Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
 
-## Current Milestone: v1.5 功能增强
+## Current Milestone: v1.6 Test Coverage
 
-**Goal:** 升级 TrapMap 从"相关检索"到"相关且适用"，构建完整的知识生命周期管理
+**Goal:** Restore CI baseline and establish comprehensive test coverage for security-critical and business logic code paths
 
 **Target features:**
-- 淘汰机制：三态生命周期（review-due → stale → expired/superseded），软淘汰排序降权，硬淘汰下线
-- 时间权重：检索排序加入 freshness multiplier，三类时效配置（evergreen/versioned/volatile）
-- 适用边界模型：6层边界结构，区分 required/preferred/excluded，贯穿投稿/索引/检索/评测
-- 冲突发现与展示：同一问题多种解法的冲突检测与展示
-- 检索反馈闭环：CLI 执行后问题报告，管理员批量审核
+- Fix all failing unit tests to restore CI baseline
+- Add governance and auth route tests for security coverage
+- Add retrieval and indexing core tests for business logic protection
+- Integrate Vitest coverage tooling with CI thresholds
 
 ## Requirements
 
 ### Active
 
-- [ ] **DECAY-01**: 知识生命周期状态机（review-due / stale / expired / superseded）
-- [ ] **DECAY-02**: 时间衰减因子在检索排序中的应用
-- [ ] **DECAY-03**: 基于检索的批量管理能力
-- [ ] **BOUND-01**: 统一的适用边界 schema（trap/skill 共享）
-- [ ] **BOUND-02**: 边界在投稿/审核环节的采集
-- [ ] **BOUND-03**: 边界在索引/图谱环节的结构化
-- [ ] **BOUND-04**: 边界在检索/排序环节的过滤与降权
-- [ ] **CONFLICT-01**: 冲突关系检测与展示
-- [ ] **FEEDBACK-01**: CLI 执行后问题报告入口
-- [ ] **FEEDBACK-02**: 管理员反馈审核管理
+- [ ] **TEST-01**: Fix failing unit tests, restore CI baseline
+- [ ] **TEST-02**: Governance and auth route tests (security critical)
+- [ ] **TEST-03**: Retrieval and indexing core tests (business logic)
+- [ ] **TEST-04**: CLI and contracts tests
+- [ ] **TEST-05**: Coverage tooling integration with CI thresholds
 
 ### Validated
 
@@ -54,12 +48,20 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 - ✓ Governance-safe evaluation measuring permission filters and leakage checks alongside relevance — v1.4
 - ✓ Summary/refinement evaluation with groundedness-style judge checks over retrieved context (SEVAL-01, SEVAL-02) — v1.4
 - ✓ CI-friendly evaluation with baseline comparison and regression detection (EOPS-01, EOPS-02, EOPS-03) — v1.4
-- ✓ Ownership and review-due metadata for knowledge entries and skill artifacts (MAINT-01) — v1.5
-- ✓ CLI and admin views for maintenance listing, filtering, and batch operations (MAINT-02) — v1.5
-
-### Active
-
-(Awaiting next milestone requirements)
+- ✓ Knowledge lifecycle states with automatic transitions and decay application logic (DECAY-01, DECAY-04) — v1.5
+- ✓ Time-based decay multiplier in retrieval ranking with configurable curves (DECAY-02) — v1.5
+- ✓ Batch management interface for outdated/erroneous knowledge (DECAY-03) — v1.5
+- ✓ Unified boundary schema with 6-layer structure (BOUND-01) — v1.5
+- ✓ Boundary capture in submission flow with agent extraction (BOUND-02) — v1.5
+- ✓ Boundary indexing as facets and graph nodes (BOUND-03) — v1.5
+- ✓ Boundary-aware retrieval with filtering, boosting, and explanations (BOUND-04, BOUND-05) — v1.5
+- ✓ Conflict detection and display for entries with different solutions (CONFLICT-01, CONFLICT-02) — v1.5
+- ✓ CLI feedback entry points and skill-mounted feedback (FEEDBACK-01) — v1.5
+- ✓ Admin feedback batch management with lifecycle triggers (FEEDBACK-02, FEEDBACK-03) — v1.5
+- ✓ Evidence metadata with provenance and verification surface (EVIDENCE-01, EVIDENCE-02) — v1.5
+- ✓ Ownership and review-due metadata for maintenance (MAINT-01, MAINT-02) — v1.5
+- ✓ Type consolidation and centralized lifecycle state machine (TECH-DEBT-01, TECH-DEBT-02) — v1.5
+- ✓ Row-level PostgreSQL tables replacing JSONB snapshot (WRITE-01, WRITE-02, WRITE-03) — v1.5
 
 ### Out of Scope
 
@@ -71,28 +73,35 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 - Real-time log streaming — file-based logging with rotation is sufficient for v1.x; streaming adds complexity
 - Full conversational QA-answer benchmarking for arbitrary generation endpoints — v1.4 prioritizes retrieval and summary evaluation on the existing API surface first
 - Python-first evaluation infrastructure as the primary path — the current milestone stays TypeScript-native to fit the existing monorepo and CI flow
+- Implicit feedback collection (clicks/views) — Privacy considerations, prefer explicit signals first
+- Learning-to-rank optimization — Requires significant feedback volume; defer until feedback loop is mature
+- Automatic knowledge generation — Out of scope for lifecycle management focus
+- Multi-language knowledge support — Not a priority for current user base
 
 ## Context
 
-**Current State (v1.5 in progress 2026-05-03):**
+**Current State (v1.5 shipped 2026-05-04):**
 
-Phase 59 complete — ownership and maintenance metadata tracking operational. Maintenance CLI commands (maintenance-list, maintenance-assign, maintenance-verify) and API endpoints live.
+v1.5 功能增强 shipped with 20 phases, 58 plans, and 23 requirements validated. The system now supports knowledge lifecycle management from decay to retirement, applicability boundaries for contextual relevance, conflict detection for alternative solutions, and feedback-driven quality improvement.
 
 - **Tech stack:** TypeScript, pnpm monorepo, Fastify server, LangChain JS, CLI with Commander.js, Docker, Drizzle/PostgreSQL, Graphology
 - **Data model:** Skill artifacts with SKILL.md, references/, assets/, scripts/; derived profile, capsules, and client manifest; legacy knowledge entries for compatibility; graph documents for GraphRAG-lite
 - **Access control:** Role templates (user/admin) + explicit permissions, security level enforcement on all operations, shared governance module
-- **Search quality surface:** Multi-path retrieval (semantic/hybrid/graph-assisted/graph-plan) with capsule-first v2 responses, trap-first plan compilation (/v3), and metadata-only activation hints
+- **Search quality surface:** Multi-path retrieval (semantic/hybrid/graph-assisted/graph-plan) with capsule-first v2 responses, trap-first plan compilation (/v3), metadata-only activation hints, boundary-aware filtering, and decay scoring
 - **Evaluation stack:** Retrieval eval with Hit@K, MRR, nDCG, Recall@K + governance assertions; summary eval with groundedness/coverage judge checks; CI smoke/core regression with baseline comparison
-- **Persistence:** PostgreSQL-backed store (PostgresStore) with shared SkillShareerStore contract; runtime selection via TRAPMAP_DATABASE_URL; file-backed JsonStore still available for local dev
+- **Persistence:** Row-level PostgreSQL tables (candidates, knowledge_entries, skill_artifacts) with concurrent write support; JSONB shadow writes removed
+- **Lifecycle management:** Decay state machine with 5 states, time-based decay curves, batch management CLI, supersede feature
+- **Applicability:** 6-layer boundary schema (context, versions, prerequisites, signals, exclusions, evidence) integrated across submission, indexing, and retrieval
+- **Feedback loop:** CLI feedback entry points, admin batch management, automatic lifecycle triggers from feedback patterns
 - **Operational features:** Artifact directory import/export, legacy knowledge migration, audit trail for all mutating operations, async candidate ingestion with duplicate detection
 - **Logging:** Two-layer toggleable logging (user ops + RAG) with JSON Lines output, size/time-based rotation, independent .env switches
 - **Deployment:** Docker configuration with production templates and persistent log volumes
 
 **Known issues / Tech debt:**
 
+- 6 test files with 38 failing cases (Phase 68 target)
 - SEVAL-01 citation adherence implemented but not surfaced as first-class metric
 - Core tier summary cases empty placeholder (evals/summary/core.ts)
-- Unified eval runner (eval-all.ts) may have module resolution issues in some environments
 - No dedicated test file for candidates module
 - v3 graph-plan core scenarios minimal (only 2 core cases)
 
@@ -130,6 +139,12 @@ Phase 59 complete — ownership and maintenance metadata tracking operational. M
 | Async candidate ingestion with post-upload duplicate detection (Phase 33) | Keeps submission latency low; duplicate analysis is too expensive for inline request path | ✓ Good — async processor with retry and startup recovery working |
 | Trap-first plan compilation for GraphRAG-lite (Phase 37) | Flat match lists don't capture trap-skill mitigation relationships; plans encode priorities | ✓ Good — /v3/retrieval/plan produces governed trap-first plans |
 | Database-backed persistence via shared SkillShareerStore (Phase 43) | File-backed store doesn't scale for production; shared contract avoids route-by-route rewrite | ✓ Good — PostgresStore + JsonStore both satisfy shared interface, runtime selection via env |
+| Pure state machine for decay transitions (Phase 48) | Deterministic testing with injected timestamp; no hidden state dependencies | ✓ Good — computeDecayState pure function with 44 tests |
+| Row-level PostgreSQL tables for write scalability (Phases 61-63) | JSONB snapshot created 3-4x transact amplification; row-level enables concurrent writes | ✓ Good — candidates, knowledge_entries, skill_artifacts tables operational |
+| Unified boundary schema shared across trap and skill (Phase 51) | Avoids type divergence; single Boundary type for both artifact types | ✓ Good — 6-layer schema with Zod validation and 43 tests |
+| Boundary as nullable field for backward compatibility (Phase 51) | Existing fixtures work without migration; gradual adoption path | ✓ Good — null-safe defaults throughout codebase |
+| Freshness decay as multiplicative penalty after stale penalty (Phase 49) | Separates lifecycle state from age-based relevance; composable scoring | ✓ Good — decay curves (exponential, linear, step) configurable |
+| Feedback-driven lifecycle triggers (Phase 65) | Recurring feedback patterns can automatically transition state | ✓ Good — checkLifecycleTriggers wired into feedback batch execution |
 
 ## Evolution
 
@@ -149,4 +164,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-03 after Phase 59 (ownership & maintenance metadata)*
+*Last updated: 2026-05-04 after v1.5 功能增强 milestone*

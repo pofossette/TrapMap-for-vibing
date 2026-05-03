@@ -1,5 +1,68 @@
 # Milestones
 
+## v1.5 功能增强 (Shipped: 2026-05-03)
+
+**Phases completed:** 24 phases, 58 plans, 180 tasks
+
+**Key accomplishments:**
+
+- Decay domain contracts with Zod schemas, pure state machine for age-based transitions, environment config loader, and store record extensions
+- Manual supersede feature enabling admins to explicitly supersede knowledge/trap entries with replacements
+- Hard decay (exclusion) in governance eligibility, soft decay (ranking penalty) in retrieval rerank
+- Add freshness type schema and decay curve configuration to contracts layer for three knowledge types (evergreen, versioned, volatile).
+- Pure functions for computing freshness decay multipliers with exponential, linear, and step decay curves
+- Freshness decay multiplier integrated into retrieval rerank pipeline using multiplicative factor applied after stale penalty
+- Expose decay multiplier in retrieval citations for freshness transparency, enabling clients to see the exact penalty applied to each result.
+- Comprehensive unit and integration tests for freshness decay functions and rerank integration
+- Batch mutation contracts and pure functions for lifecycle management with dry-run support
+- Server routes for decay management with batch operations and decay-state filtering
+- CLI commands for decay management with human-readable output and JSON mode
+- Unified boundary schema module with 6 layers, enums, and TypeScript type exports following the decay.ts pattern
+- Integrated boundary schema into KnowledgeEntry and SkillArtifact with full backward compatibility
+- Boundary constraints integrated into submission-to-review pipeline with CLI input, LLM extraction, and reviewer confirmation
+- Boundary fields indexed as graph nodes with typed edges and facet index for retrieval filtering
+- BoundaryContext, BoundaryExplanation, boundaryMetaSchema schemas defined and exported; boundary field added to KnowledgeRecord
+- Back-reference query functions using pre-indexed boundary facets and graph nodes to find entries matching boundary constraints
+- Conflict detection and display system with token-based similarity, governance filtering, and CLI visualization
+- Zod schemas for feedback submission, problem type classification, and feedback record storage with status tracking
+- Added comprehensive test coverage for feedbackPrompts frontmatter parsing with graceful degradation for malformed input
+- 1. [Rule 3 - Blocking] Created feedback contracts inline (Plan 56-01 dependency)
+- CLI feedback command with interactive prompts via @inquirer/prompts and non-interactive flag mode for CI/script usage
+- CLI commands for admin feedback queue listing and batch processing, following decay.ts command patterns
+- Zod schemas for evidence source types, evidence levels, full metadata, and compact hints -- all exported from @trapmap/contracts
+- Extended 5 domain schemas to incorporate evidence metadata fields created in 58-01
+- Extended server record types with evidenceMeta field and created validation helpers with full test coverage for provenance tracking.
+- Extended review flow to persist evidence metadata during approval with default fallback and full test coverage.
+- Exposed evidence metadata in retrieval responses as compact hints and added evidence-based filtering to the operations admin endpoint.
+- Extended CLI review commands to accept evidence metadata flags and created admin evidence management commands with colored output.
+- Maintenance metadata contracts with ownership tracking, review-due scheduling, and batch operation schemas across knowledge entries and skill artifacts
+- Server-side maintenance module with validation helpers, batch operation logic, and HTTP route handlers for listing and mutating maintenance metadata on knowledge entries
+- CLI maintenance commands (list, assign, verify) with comprehensive test coverage for model helpers, batch operations, and route handlers
+- Fixed assign-owner data integrity bug where operator handle was stored instead of assigned maintainer handle, and added MAINT-01/MAINT-02 requirements traceability
+- Canonicalized AdapterSyncState and KnowledgeIndexStateRecord in indexing/types.ts, removed duplicate definitions from store.ts
+- Centralized lifecycle state machine for knowledge/artifact governance with transition validation and type guards
+- Removed dead embedding provider code and unnecessary LangChain wrapping from pre-review.ts
+- Migrated all direct lifecycleState assignments to centralized state machine validation across 4 files with 7 mutation sites.
+- Established candidates table schema with Drizzle ORM and PgCandidateRepository with row-level SELECT FOR UPDATE locking for concurrent-safe candidate processing
+- Wired DualWriteCandidateRepository into candidate processing pipeline, replacing transact() amplification with direct repository calls while maintaining JSONB shadow writes for transition compatibility
+- Created migrateCandidates() function for one-time backfill of candidate data from JSONB snapshot to relational candidates table with idempotency, dry-run mode, and error-tolerant processing
+- PostgreSQL table schemas for knowledge entries with KnowledgeRepository interface implementing dual-write pattern for JSONB/PostgreSQL transition
+- PgKnowledgeRepository with row-level locking for concurrent-safe operations, comprehensive test coverage for all CRUD methods, and index table compatibility verification
+- Integrated KnowledgeRepository into routes and processors following Phase 61's conditional repository pattern.
+- PostgreSQL schema definitions for skill artifact row-level tables enabling concurrent access without global lock contention
+- Repository pattern for skill artifacts with PostgreSQL row-level locking and dual-write transition support
+- Migration script for JSONB to PostgreSQL backfill with PostgreSQL-only artifact repository
+- 1. [Rule 1 - Bug] decayMultiplier set unconditionally when freshnessConfig present
+- LifecycleTriggerRule zod schema with DEFAULT_LIFECYCLE_TRIGGER_RULES constant, broken FeedbackQueueItemRecord renamed to FeedbackQueueRecord, dead executeFeedbackBatch removed
+- checkLifecycleTriggers wired into feedback batch execution, 6 undocumented routes registered, E2E tests proving both behaviors
+- Added boundary context input and explanation output fields to retrieval schemas, wiring boundary schemas into public API contracts
+- Wired boundary explanation through retrieval pipeline from rerank to API response.
+- POST /admin/boundary-search endpoint for finding knowledge entries by boundary constraints
+- Contract tests and E2E integration tests verify boundary-aware retrieval flow works end-to-end
+- Dead code removal and API surface documentation completion for v1.5 milestone
+
+---
+
 ## v1.4 评测系统构建 (Shipped: 2026-04-29)
 
 **Phases completed:** 19 phases, 59 plans, 122 tasks
