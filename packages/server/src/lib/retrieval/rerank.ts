@@ -60,6 +60,8 @@ export interface RerankConfig {
   boundaryContext?: BoundaryContext;
   /** Freshness decay configuration for age-based scoring (DECAY-02) */
   freshnessConfig?: FreshnessDecayConfig;
+  /** Skip candidates below this score threshold (optional optimization) */
+  earlyTerminationThreshold?: number;
 }
 
 /**
@@ -91,8 +93,21 @@ export function rerankCandidates(
   const tokenDensityBoost = config?.tokenDensityBoost ?? DEFAULT_TOKEN_DENSITY_BOOST;
   const staleDecayPenalty = config?.staleDecayPenalty ?? DEFAULT_STALE_DECAY_PENALTY;
 
+  // Performance optimization: hoist Date creation outside the loop (O(n) -> O(1))
+  const now = new Date();
+
+  // Performance optimization: cache freshness multiplier by lastVerifiedAt
+  const freshnessCache = new Map<string, number>();
+
+  // Performance optimization: pre-filter candidates below threshold
+  let candidates = mergedCandidates;
+  if (config?.earlyTerminationThreshold !== undefined) {
+    const threshold = config.earlyTerminationThreshold;
+    candidates = candidates.filter((c) => c.combinedScore >= threshold);
+  }
+
   // Calculate rerank scores
-  const reranked = mergedCandidates.map((candidate) => {
+  const reranked = candidates.map((candidate) => {
     // Preserve pre-rerank score for audit trail
     const preRerankScore = candidate.combinedScore;
     let finalScore = preRerankScore;
@@ -121,20 +136,34 @@ export function rerankCandidates(
       const delta = computeBoundaryScoreDelta(candidate.entry, config.boundaryContext);
       finalScore += delta;
       candidate.boundaryScoreDelta = delta;
-      // Build boundary explanation for applicability context (BOUND-05)
-      candidate.boundaryExplanation = buildBoundaryExplanation(
-        candidate.entry,
-        config.boundaryContext,
-        delta,
-      );
+      // Performance optimization: skip boundary explanation for zero-delta cases
+      if (delta !== 0) {
+        candidate.boundaryExplanation = buildBoundaryExplanation(
+          candidate.entry,
+          config.boundaryContext,
+          delta,
+        );
+      }
     }
 
     // Apply freshness decay multiplier if config provided (DECAY-02)
     if (config?.freshnessConfig) {
-      const multiplier = computeFreshnessMultiplier(
-        candidate.entry,
-        config.freshnessConfig,
-      );
+      // Performance optimization: use hoisted `now` instead of creating new Date per call
+      // and cache results by lastVerifiedAt for entries with same timestamp
+      const lastVerifiedAt = candidate.entry.decayMeta?.lastVerifiedAt;
+      let multiplier: number;
+      if (lastVerifiedAt !== undefined && lastVerifiedAt !== null && freshnessCache.has(lastVerifiedAt)) {
+        multiplier = freshnessCache.get(lastVerifiedAt)!;
+      } else {
+        multiplier = computeFreshnessMultiplier(
+          candidate.entry,
+          config.freshnessConfig,
+          now,
+        );
+        if (lastVerifiedAt !== undefined && lastVerifiedAt !== null) {
+          freshnessCache.set(lastVerifiedAt, multiplier);
+        }
+      }
       finalScore *= multiplier;
       if (multiplier < 1.0) {
         candidate.decayMultiplier = multiplier;

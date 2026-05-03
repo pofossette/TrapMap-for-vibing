@@ -462,4 +462,215 @@ describe('rerankCandidates with boundary context', () => {
 
     expect(result[0].boundaryExplanation).toBeUndefined();
   });
+
+  it('skips boundaryExplanation when boundary delta is zero (optimization)', () => {
+    // Entry without boundary context - delta will be 0
+    const candidates = [
+      makeCandidateWithBoundary('no-boundary', 0.8),
+    ];
+
+    const result = rerankCandidates(candidates, [], {
+      boundaryContext: { contexts: ['frontend'] },
+    });
+
+    // boundaryScoreDelta should be 0, and boundaryExplanation should be skipped
+    expect(result[0].boundaryScoreDelta).toBe(0);
+    expect(result[0].boundaryExplanation).toBeUndefined();
+  });
+});
+
+// =============================================================================
+// 72-03: Performance optimization tests
+// =============================================================================
+
+describe('rerankCandidates with early termination', () => {
+  function makeCandidate(
+    id: string,
+    score: number,
+  ): MergedCandidate {
+    return {
+      entry: {
+        id,
+        scope: 'global',
+        shortcut: `test-${id}`,
+        detail: `Test entry ${id}`,
+        labels: ['test'],
+        requiredLevel: 'user',
+        decayMeta: null,
+      } as KnowledgeRecord,
+      semanticScore: score,
+      keywordScore: 0,
+      combinedScore: score,
+      tokenMatches: [],
+      channels: ['semantic'],
+      preRerankScore: score,
+      finalScore: score,
+    };
+  }
+
+  it('filters candidates below early termination threshold', () => {
+    const candidates = [
+      makeCandidate('high', 0.9),
+      makeCandidate('medium', 0.5),
+      makeCandidate('low', 0.2),
+    ];
+
+    const result = rerankCandidates(candidates, [], {
+      earlyTerminationThreshold: 0.4,
+    });
+
+    // Only candidates with combinedScore >= 0.4 should be included
+    expect(result).toHaveLength(2);
+    expect(result.map((c) => c.entry.id)).toEqual(['high', 'medium']);
+  });
+
+  it('includes all candidates when threshold is 0', () => {
+    const candidates = [
+      makeCandidate('high', 0.9),
+      makeCandidate('low', 0.1),
+    ];
+
+    const result = rerankCandidates(candidates, [], {
+      earlyTerminationThreshold: 0,
+    });
+
+    expect(result).toHaveLength(2);
+  });
+
+  it('returns empty array when all candidates are below threshold', () => {
+    const candidates = [
+      makeCandidate('low-1', 0.2),
+      makeCandidate('low-2', 0.3),
+    ];
+
+    const result = rerankCandidates(candidates, [], {
+      earlyTerminationThreshold: 0.5,
+    });
+
+    expect(result).toHaveLength(0);
+  });
+
+  it('no filtering when earlyTerminationThreshold is undefined', () => {
+    const candidates = [
+      makeCandidate('high', 0.9),
+      makeCandidate('low', 0.1),
+    ];
+
+    const result = rerankCandidates(candidates, []);
+
+    expect(result).toHaveLength(2);
+  });
+});
+
+describe('rerankCandidates freshness caching optimization', () => {
+  function makeCandidateWithMeta(
+    id: string,
+    score: number,
+    decayMeta: DecayMeta,
+  ): MergedCandidate {
+    return {
+      entry: {
+        id,
+        scope: 'global',
+        shortcut: `test-${id}`,
+        detail: `Test entry ${id}`,
+        labels: ['test'],
+        requiredLevel: 'user',
+        decayMeta,
+      } as KnowledgeRecord,
+      semanticScore: score,
+      keywordScore: 0,
+      combinedScore: score,
+      tokenMatches: [],
+      channels: ['semantic'],
+      preRerankScore: score,
+      finalScore: score,
+    };
+  }
+
+  it('produces consistent results with caching (entries sharing lastVerifiedAt)', () => {
+    // Two entries with the same lastVerifiedAt should get the same multiplier
+    const sameTimestamp = '2026-04-02T00:00:00Z';
+    const metaA: DecayMeta = {
+      lastVerifiedAt: sameTimestamp,
+      decayState: 'active',
+      supersededById: null,
+      decayStateComputedAt: '2026-05-02T00:00:00Z',
+      freshnessType: 'volatile',
+    };
+    const metaB: DecayMeta = {
+      lastVerifiedAt: sameTimestamp,
+      decayState: 'active',
+      supersededById: null,
+      decayStateComputedAt: '2026-05-02T00:00:00Z',
+      freshnessType: 'volatile',
+    };
+
+    const candidates = [
+      makeCandidateWithMeta('entry-a', 0.8, metaA),
+      makeCandidateWithMeta('entry-b', 0.6, metaB),
+    ];
+
+    const result = rerankCandidates(candidates, [], {
+      freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
+    });
+
+    // Both should have the same decay multiplier since they share lastVerifiedAt
+    const entryA = result.find((c) => c.entry.id === 'entry-a')!;
+    const entryB = result.find((c) => c.entry.id === 'entry-b')!;
+
+    expect(entryA.decayMultiplier).toBeDefined();
+    expect(entryB.decayMultiplier).toBeDefined();
+    expect(entryA.decayMultiplier).toBe(entryB.decayMultiplier);
+
+    // Verify scores are proportional to their input scores
+    expect(entryA.combinedScore).toBeGreaterThan(entryB.combinedScore);
+  });
+
+  it('evergreen entries with null decayMeta are not cached', () => {
+    const candidates = [
+      makeCandidateWithMeta('evergreen-1', 0.8, {
+        lastVerifiedAt: '2025-05-02T00:00:00Z',
+        decayState: 'active',
+        supersededById: null,
+        decayStateComputedAt: '2026-05-02T00:00:00Z',
+        freshnessType: 'evergreen',
+      }),
+    ];
+
+    const result = rerankCandidates(candidates, [], {
+      freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
+    });
+
+    // Evergreen should have no decay multiplier
+    expect(result[0].decayMultiplier).toBeUndefined();
+    expect(result[0].combinedScore).toBe(0.8);
+  });
+
+  it('Date object created once affects all candidates consistently', () => {
+    // If Date was created per-candidate, slight timing differences could
+    // produce slightly different multipliers. With hoisted Date, all candidates
+    // use the exact same timestamp.
+    const volatileMeta: DecayMeta = {
+      lastVerifiedAt: '2026-04-02T00:00:00Z',
+      decayState: 'active',
+      supersededById: null,
+      decayStateComputedAt: '2026-05-02T00:00:00Z',
+      freshnessType: 'volatile',
+    };
+
+    // 10 candidates with same metadata but different IDs
+    const candidates = Array.from({ length: 10 }, (_, i) =>
+      makeCandidateWithMeta(`entry-${i}`, 0.5, { ...volatileMeta }),
+    );
+
+    const result = rerankCandidates(candidates, [], {
+      freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
+    });
+
+    // All should have the exact same decay multiplier
+    const multipliers = result.map((c) => c.decayMultiplier);
+    const uniqueMultipliers = new Set(multipliers);
+    expect(uniqueMultipliers.size).toBe(1);
+  });
 });
