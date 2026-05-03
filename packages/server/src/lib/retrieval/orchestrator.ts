@@ -14,10 +14,12 @@ import {
   retrievalQuerySchema,
   retrievalV2QuerySchema,
 } from '@trapmap/contracts';
+import type { Pool } from 'pg';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import { generateEmbedding, hashEmbeddingText } from '../embeddings.js';
 import { AppError } from '../errors.js';
+import { PostgresStore } from '../persistence/postgres-store.js';
 import type { PipelineStep, RagLogEntry } from '../rag-log.js';
 import { generateQueryId, logRagRetrieval } from '../rag-log.js';
 import type { KnowledgeRecord } from '../store.js';
@@ -35,11 +37,13 @@ import {
 import { buildBoundaryExplanation, computeBoundaryScoreDelta } from './boundary-match.js';
 import { buildProfileShortlist, getCapsuleRecords, rankCapsules } from './capsule-recall.js';
 import { buildCitations } from './citations.js';
+import { vectorSimilaritySearch } from './db-search.js';
 import { filterEligibleEntries, filterByBoundaryContext } from './filters.js';
 import { parseSeedIntent } from './intent.js';
 import { createSemanticCandidate, mergeCandidates, toScoredEntries } from './merge.js';
 import { graphAssistedRecall as graphRecall } from './recall/graph-assisted.js';
 import { keywordRecall, normalizeQuery } from './recall/keyword.js';
+import { createPgKeywordRecall, type KeywordRecallResult } from './recall/pg-keyword.js';
 import {
   buildEmbeddingText,
   computeScore,
@@ -68,6 +72,25 @@ interface RetrievalDecision {
   confidenceBucket: 'low' | 'medium' | 'high' | null;
   channelsPlanned: RoutingChannel[];
   channelsUsed: RoutingChannel[];
+}
+
+/**
+ * Configuration for DB-level search.
+ * Determines whether DB search is enabled and provides the connection pool.
+ */
+interface DbSearchConfig {
+  enabled: boolean;
+  pool: Pool | null;
+}
+
+/**
+ * Get DB search configuration from services.
+ * Checks the USE_DB_SEARCH environment variable and pool availability.
+ */
+function getDbSearchConfig(services: SkillShareerServices): DbSearchConfig {
+  const enabled = process.env.USE_DB_SEARCH === 'true';
+  const pool = services.store instanceof PostgresStore ? services.store.getPool() : null;
+  return { enabled: enabled && pool !== null, pool };
 }
 
 function toRoutingTrace(decision: RetrievalDecision) {
@@ -282,10 +305,10 @@ export async function searchKnowledge(
       steps,
     );
 
-    // Dispatch based on query mode
+    // Dispatch based on query mode (with DB-level search integration)
     const { scoredEntries, mergedCandidates } = await timedStep(
       'recall',
-      () => dispatchByMode(parsed.mode, parsed.seed, boundaryFiltered, parsed),
+      () => dispatchByMode(parsed.mode, parsed.seed, boundaryFiltered, parsed, services, auth),
       steps,
     );
 
@@ -425,6 +448,8 @@ function inferChannelsFromMerged(mergedCandidates?: MergedCandidate[]): RoutingC
  * @param seed - Search query text
  * @param eligibleEntries - Entries that passed eligibility filters
  * @param parsed - Parsed retrieval query
+ * @param services - Server services for DB search configuration
+ * @param auth - Auth context for access control filters
  * @returns Scored entries sorted by relevance, plus merged candidates for citations
  */
 async function dispatchByMode(
@@ -432,12 +457,14 @@ async function dispatchByMode(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
+  services?: SkillShareerServices,
+  auth?: ResolvedAuthContext,
 ): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates?: MergedCandidate[] }> {
   switch (mode) {
     case 'semantic':
-      return await semanticRecall(seed, eligibleEntries, parsed);
+      return await semanticRecall(seed, eligibleEntries, parsed, services, auth);
     case 'hybrid':
-      return await hybridRecall(seed, eligibleEntries, parsed);
+      return await hybridRecall(seed, eligibleEntries, parsed, services, auth);
     case 'graph-assisted':
       return await graphAssistedRecall(seed, eligibleEntries, parsed);
     default:
@@ -454,17 +481,76 @@ async function dispatchByMode(
  * Semantic recall using embeddings.
  * This is the current default retrieval path.
  *
+ * When DB search is enabled and PostgreSQL pool is available, uses
+ * vectorSimilaritySearch() for O(log n) indexed search instead of
+ * O(n) in-memory computation.
+ *
  * @param seed - Search query text
  * @param eligibleEntries - Entries that passed eligibility filters
  * @param parsed - Parsed retrieval query
+ * @param services - Server services for DB search configuration
+ * @param auth - Auth context for access control filters
  * @returns Scored entries sorted by relevance
  */
 async function semanticRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
+  services?: SkillShareerServices,
+  auth?: ResolvedAuthContext,
 ): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates?: MergedCandidate[] }> {
-  // Generate query embedding
+  // Check if DB search is enabled
+  const dbConfig = services ? getDbSearchConfig(services) : { enabled: false, pool: null };
+
+  if (dbConfig.enabled && dbConfig.pool && auth) {
+    try {
+      // Use DB-level vector search for O(log n) indexed retrieval
+      const queryVector = await getQueryEmbedding(seed);
+      const dbResults = await vectorSimilaritySearch(dbConfig.pool, {
+        queryVector,
+        limit: parsed.maxResults * 2, // Get extra for reranking
+        teamId: auth.activeTeamId,
+        maxLevel: auth.securityLevel,
+        scope: parsed.filters?.scope,
+      });
+
+      // Convert DB results to scored entries
+      // Filter to only include entries that are in eligibleEntries
+      const eligibleIds = new Set(eligibleEntries.map((e) => e.id));
+      const entryMap = new Map(eligibleEntries.map((e) => [e.id, e]));
+
+      const scoredEntries: ScoredEntry[] = [];
+      for (const result of dbResults) {
+        if (!eligibleIds.has(result.entryId)) continue;
+
+        const entry = entryMap.get(result.entryId);
+        if (!entry) continue;
+
+        // Apply boundary scoring if context provided
+        const boundaryDelta = computeBoundaryScoreDelta(entry, parsed.boundaryContext);
+        const finalScore = Math.min(1, Math.max(0, result.similarity + boundaryDelta));
+        const boundaryExplanation = parsed.boundaryContext
+          ? buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
+          : undefined;
+
+        const scoredEntry: ScoredEntry = { entry, score: finalScore };
+        if (boundaryExplanation !== undefined) {
+          scoredEntry.boundaryExplanation = boundaryExplanation;
+        }
+        scoredEntries.push(scoredEntry);
+      }
+
+      // Sort by score descending and take top results
+      scoredEntries.sort((a, b) => b.score - a.score);
+      return { scoredEntries: scoredEntries.slice(0, parsed.maxResults) };
+    } catch (error) {
+      // Log DB search failure and fall back to in-memory
+      console.error('[semanticRecall] DB search failed, falling back to in-memory:', error);
+      // Fall through to in-memory implementation
+    }
+  }
+
+  // In-memory fallback: Generate query embedding
   const queryVector = await getQueryEmbedding(seed);
 
   // Compute embeddings and scores for all eligible entries with graceful error handling
@@ -513,20 +599,107 @@ async function semanticRecall(
  * 3. Rerank merged candidates using heuristic boosts
  * 4. Return scored entries sorted by final score
  *
+ * When DB search is enabled, uses vectorSimilaritySearch() and pg-keyword
+ * for O(log n) indexed retrieval instead of O(n) in-memory computation.
+ *
  * @param seed - Search query text
  * @param eligibleEntries - Entries that passed eligibility filters
  * @param parsed - Parsed retrieval query
+ * @param services - Server services for DB search configuration
+ * @param auth - Auth context for access control filters
  * @returns Scored entries sorted by combined relevance, plus merged candidates for citations
  */
 async function hybridRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
+  services?: SkillShareerServices,
+  auth?: ResolvedAuthContext,
 ): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates: MergedCandidate[] }> {
   // Normalize query tokens for rerank stage
   const queryTokens = normalizeQuery(seed);
 
-  // Run both channels in parallel
+  // Check if DB search is enabled
+  const dbConfig = services ? getDbSearchConfig(services) : { enabled: false, pool: null };
+
+  if (dbConfig.enabled && dbConfig.pool && auth) {
+    try {
+      // Use DB-level search for both channels
+      const eligibleIds = new Set(eligibleEntries.map((e) => e.id));
+      const entryMap = new Map(eligibleEntries.map((e) => [e.id, e]));
+
+      // Create pg-keyword recall function
+      const pgKeywordRecall = createPgKeywordRecall({
+        pool: dbConfig.pool,
+        featureFlag: () => true,
+      });
+
+      // Run both DB channels in parallel
+      const [queryVector, keywordResults] = await Promise.all([
+        getQueryEmbedding(seed),
+        pgKeywordRecall(seed, {
+          teamId: auth.activeTeamId,
+          securityLevel: auth.securityLevel,
+          isSystemAdmin: auth.subjectType === 'system-admin',
+          scopes: parsed.filters?.scope ? [parsed.filters.scope] : ['global', 'project'],
+        }, parsed.maxResults * 2),
+      ]);
+
+      // Run DB vector search
+      const dbVectorResults = await vectorSimilaritySearch(dbConfig.pool, {
+        queryVector,
+        limit: parsed.maxResults * 2,
+        teamId: auth.activeTeamId,
+        maxLevel: auth.securityLevel,
+        scope: parsed.filters?.scope,
+      });
+
+      // Convert DB vector results to semantic candidates
+      const semanticCandidates = dbVectorResults
+        .filter((r) => eligibleIds.has(r.entryId))
+        .map((r) => {
+          const entry = entryMap.get(r.entryId);
+          if (!entry) return null;
+          return createSemanticCandidate(entry, r.similarity);
+        })
+        .filter((c): c is NonNullable<ReturnType<typeof createSemanticCandidate>> => c !== null);
+
+      // Convert DB keyword results to RecallCandidate format
+      const keywordCandidates: Awaited<ReturnType<typeof keywordRecall>> = keywordResults
+        .filter((r) => eligibleIds.has(r.entryId))
+        .map((r) => {
+          const entry = entryMap.get(r.entryId);
+          if (!entry) return null;
+          return {
+            entry,
+            score: r.score,
+            tokenMatches: r.tokenMatches,
+          };
+        })
+        .filter((c): c is NonNullable<Awaited<ReturnType<typeof keywordRecall>>[number]> => c !== null);
+
+      // Merge candidates from both channels
+      const mergedCandidates = mergeCandidates(semanticCandidates, keywordCandidates);
+
+      // Rerank merged candidates using heuristic boosts
+      const rerankedCandidates = rerankCandidates(mergedCandidates, queryTokens, {
+        maxCandidates: parsed.maxResults,
+        ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
+        freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
+      });
+
+      // Convert to scored entries for assembly
+      const scoredEntries = toScoredEntriesFromReranked(rerankedCandidates);
+
+      return { scoredEntries, mergedCandidates: rerankedCandidates };
+    } catch (error) {
+      // Log DB search failure and fall back to in-memory
+      console.error('[hybridRecall] DB search failed, falling back to in-memory:', error);
+      // Fall through to in-memory implementation
+    }
+  }
+
+  // In-memory fallback: Run both channels in parallel
   const [semanticCandidates, keywordCandidates] = await Promise.all([
     // Semantic channel: compute embeddings and scores
     computeSemanticCandidates(seed, eligibleEntries, parsed.filters),

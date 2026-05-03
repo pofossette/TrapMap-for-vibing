@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Test Coverage & Optimization
 status: ready_to_execute
-last_updated: "2026-05-04T05:10:00Z"
-last_activity: 2026-05-04 -- Plan 72-04 complete (database-level vector search)
+last_updated: "2026-05-04T05:20:00Z"
+last_activity: 2026-05-04 -- Plan 72-06 complete (integrate DB-level search into orchestrator)
 progress:
   total_phases: 9
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 17
-  completed_plans: 13
-  percent: 53
+  completed_plans: 14
+  percent: 58
 ---
 
 ## Project Reference
@@ -18,12 +18,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
-**Current focus:** Phase 72 — Query speed optimization
+**Current focus:** Phase 72 — Query speed optimization (complete)
 
 ## Current Position
 
-Phase: 72
-Plan: 72-05 (Wave 2: Database-Level Optimization)
+Phase: 73
+Plan: 73-01 (Memory usage optimization)
 Status: Ready to execute
 Last activity: 2026-05-04
 
@@ -36,8 +36,8 @@ Last activity: 2026-05-04
   - Phase 69: Governance and auth route tests (security critical) ✓
   - Phase 70: Retrieval and indexing core tests (business logic) ✓
   - Phase 71: CLI/contracts tests + coverage tooling integration ✓
-  - Phase 72: Query speed optimization (current - 6 plans)
-  - Phase 73: Memory usage optimization
+  - Phase 72: Query speed optimization ✓
+  - Phase 73: Memory usage optimization (current)
   - Phase 74: Dead code removal
   - Phase 75: TypeScript strict mode compliance
   - Phase 76: Documentation completion
@@ -54,6 +54,10 @@ Last activity: 2026-05-04
 
 ### Decisions (Phase 72 Progress)
 
+- 72-06: Add feature flag USE_DB_SEARCH for gradual rollout
+- 72-06: Integrate vectorSimilaritySearch() into semanticRecall() with in-memory fallback
+- 72-06: Integrate createPgKeywordRecall() into hybridRecall() with in-memory fallback
+- 72-06: Pass services and auth to dispatchByMode() for DB search configuration
 - 72-04: Use HNSW index with m=16, ef_construction=64 for balanced speed/accuracy
 - 72-04: Create index programmatically via ensureVectorIndex() rather than schema migration
 - 72-04: Clamp similarity scores to [0, 1] range for consistent API
@@ -71,10 +75,10 @@ Last activity: 2026-05-04
 
 **Wave 2: Database-Level Optimization**
 - 72-04: Add database-level vector similarity search (HNSW index) ✓
-- 72-05: Add database-level keyword search with GIN index
+- 72-05: Add database-level keyword search with GIN index ✓
 
 **Wave 3: Integration**
-- 72-06: Integrate DB-level search into retrieval orchestrator
+- 72-06: Integrate DB-level search into retrieval orchestrator ✓
 
 ### Decisions (Phase 71)
 

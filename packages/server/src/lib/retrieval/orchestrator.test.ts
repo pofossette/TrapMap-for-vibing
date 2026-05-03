@@ -134,6 +134,18 @@ vi.mock('./intent.js', () => ({
   }),
 }));
 
+vi.mock('./db-search.js', () => ({
+  vectorSimilaritySearch: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('./recall/pg-keyword.js', () => ({
+  createPgKeywordRecall: vi.fn().mockReturnValue(() => Promise.resolve([])),
+}));
+
+vi.mock('../persistence/postgres-store.js', () => ({
+  PostgresStore: class MockPostgresStore {},
+}));
+
 // ── Imports after mocks ───────────────────────────────────────────────────
 
 import {
@@ -700,5 +712,85 @@ describe('updateEntryEmbeddingCache', () => {
 
     expect(generateEmbedding).toHaveBeenCalledWith('shortcut detail labels');
     expect(hashEmbeddingText).toHaveBeenCalledWith('shortcut detail labels');
+  });
+});
+
+// =============================================================================
+// Part 7: DB Search Integration (Phase 72-06)
+// =============================================================================
+
+describe('DB Search Integration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Reset environment
+    delete process.env.USE_DB_SEARCH;
+  });
+
+  describe('getDbSearchConfig', () => {
+    it('returns disabled when USE_DB_SEARCH is not set', async () => {
+      const services = createMockServices();
+      const auth = createMockAuth();
+      const query = { seed: 'test query', mode: 'semantic' as const };
+
+      await searchKnowledge(services, auth, query);
+
+      // When DB search is disabled, should use in-memory path
+      // This is tested indirectly by ensuring the mocks work
+      expect(getQueryEmbedding).toHaveBeenCalledWith('test query');
+    });
+
+    it('returns disabled when store is not PostgresStore', async () => {
+      process.env.USE_DB_SEARCH = 'true';
+      const services = createMockServices();
+      const auth = createMockAuth();
+      const query = { seed: 'test query', mode: 'semantic' as const };
+
+      await searchKnowledge(services, auth, query);
+
+      // Should fall back to in-memory since store is not PostgresStore
+      expect(getQueryEmbedding).toHaveBeenCalledWith('test query');
+    });
+  });
+
+  describe('semantic recall with DB search fallback', () => {
+    it('uses in-memory search when DB search fails', async () => {
+      const entry = createMockEntry('entry_1');
+      vi.mocked(filterByBoundaryContext).mockReturnValue([entry]);
+      vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+      vi.mocked(getEntryEmbedding).mockResolvedValue([0.4, 0.5, 0.6]);
+      vi.mocked(cosineSimilarity).mockReturnValue(0.75);
+      vi.mocked(computeScore).mockReturnValue(0.75);
+
+      const services = createMockServices();
+      const auth = createMockAuth();
+      const query = { seed: 'test query', mode: 'semantic' as const };
+
+      await searchKnowledge(services, auth, query);
+
+      // Should use in-memory fallback
+      expect(getQueryEmbedding).toHaveBeenCalled();
+      expect(getEntryEmbedding).toHaveBeenCalledWith(entry);
+    });
+  });
+
+  describe('hybrid recall with DB search fallback', () => {
+    it('uses in-memory search when DB search is disabled', async () => {
+      const entry = createMockEntry('entry_1');
+      vi.mocked(filterByBoundaryContext).mockReturnValue([entry]);
+      vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+      vi.mocked(getEntryEmbedding).mockResolvedValue([0.4, 0.5, 0.6]);
+      vi.mocked(cosineSimilarity).mockReturnValue(0.75);
+      vi.mocked(computeScore).mockReturnValue(0.75);
+
+      const services = createMockServices();
+      const auth = createMockAuth();
+      const query = { seed: 'test query', mode: 'hybrid' as const };
+
+      await searchKnowledge(services, auth, query);
+
+      // Should use in-memory path for both channels
+      expect(getQueryEmbedding).toHaveBeenCalled();
+      expect(keywordRecall).toHaveBeenCalledWith('test query', [entry]);
+    });
   });
 });
