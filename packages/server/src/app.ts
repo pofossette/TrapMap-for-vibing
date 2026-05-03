@@ -23,6 +23,7 @@ import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';
 import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
+import { adminBoundarySearchRoutes } from './routes/admin-boundary-search.js';
 import { authRoutes } from './routes/auth.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { feedbackAdminRoutes } from './routes/feedback-admin.js';
@@ -83,6 +84,7 @@ const documentedRoutes = [
   'PATCH /v1/knowledge/:id/evidence',
   'GET /v1/operations/maintenance/entries',
   'POST /v1/operations/maintenance/batch',
+  'POST /admin/boundary-search',
 ] as const;
 
 interface BuildServerOptions {
@@ -157,6 +159,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.register(maintenanceRoutes);
   app.register(feedbackRoutes);
   app.register(feedbackAdminRoutes);
+  app.register(adminBoundarySearchRoutes);
 
   // Recovery: Reprocess interrupted candidates on startup
   app.addHook('onReady', async () => {
