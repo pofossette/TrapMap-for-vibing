@@ -16,6 +16,7 @@ import type {
 } from '@trapmap/contracts';
 
 import type { GraphIndexDocumentRecord } from './indexing/graph-lite/documents.js';
+import type { AdapterSyncState, KnowledgeIndexStateRecord } from './indexing/types.js';
 
 export type StoredScriptActivationPolicy = ScriptActivationPolicy | 'manual' | 'auto';
 
@@ -161,40 +162,6 @@ export interface EmbeddingCacheRecord {
   createdAt: string;
   /** The revision number this embedding was computed from */
   revision: number;
-}
-
-/**
- * Adapter-specific sync status tracked in the store.
- * Used by the indexing pipeline to track per-adapter state.
- */
-export interface AdapterSyncState {
-  /** Current sync status */
-  status: 'pending' | 'synced' | 'failed';
-  /** Revision that was last synced */
-  revision: number;
-  /** Content hash that was last synced */
-  contentHash: string;
-  /** When this adapter was last synced */
-  lastSyncedAt: string | null;
-  /** Last error message (if sync failed) */
-  lastError: string | null;
-}
-
-/**
- * Complete index state record persisted on KnowledgeRecord.
- * Tracks normalization and per-adapter sync status.
- */
-export interface KnowledgeIndexStateRecord {
-  /** SHA-256 hash of the normalized content */
-  contentHash: string;
-  /** When the content was last normalized */
-  normalizedAt: string;
-  /** Vector adapter sync state */
-  vector: AdapterSyncState;
-  /** Keyword adapter sync state */
-  keyword: AdapterSyncState;
-  /** Graph adapter sync state */
-  graph: AdapterSyncState;
 }
 
 /**
