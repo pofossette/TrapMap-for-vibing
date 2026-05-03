@@ -7,6 +7,7 @@ import { ZodError } from 'zod';
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
 import { createAiProviders } from './lib/ai/index.js';
+import { createArtifactRepository } from './lib/artifacts/index.js';
 import {
   createCandidateProcessingHandler,
   findInterruptedCandidates,
@@ -127,6 +128,8 @@ export function buildServer(options: BuildServerOptions = {}) {
     ai: createAiProviders(config.ai),
     // knowledgeRepo is set when PostgreSQL pool is available (in onReady hook)
     knowledgeRepo: undefined,
+    // artifactRepo is set when PostgreSQL pool is available (in onReady hook)
+    artifactRepo: undefined,
   });
 
   // Bridge: wire global embeddings provider so existing generateEmbedding() callers
@@ -196,6 +199,12 @@ export function buildServer(options: BuildServerOptions = {}) {
 
       // Create knowledge repository for row-level operations
       app.skillShareer.knowledgeRepo = createKnowledgeRepository({
+        pool,
+        store,
+      });
+
+      // Create artifact repository for row-level operations
+      app.skillShareer.artifactRepo = createArtifactRepository({
         pool,
         store,
       });

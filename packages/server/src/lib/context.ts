@@ -3,6 +3,7 @@ import type { FastifyRequest } from 'fastify';
 
 import type { ServerConfig } from '../config.js';
 import type { AiProviders } from './ai/types.js';
+import type { ArtifactRepository } from './artifacts/index.js';
 import type { IndexAdapter } from './indexing/types.js';
 import type { KnowledgeRepository } from './knowledge/index.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
@@ -14,6 +15,8 @@ export interface SkillShareerServices {
   ai: AiProviders;
   /** Knowledge repository for row-level PostgreSQL operations (undefined when using JsonStore) */
   knowledgeRepo: KnowledgeRepository | undefined;
+  /** Artifact repository for row-level PostgreSQL operations (undefined when using JsonStore) */
+  artifactRepo: ArtifactRepository | undefined;
 }
 
 export interface ResolvedAuthContext {
