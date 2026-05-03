@@ -414,6 +414,12 @@ Plans:
 
 **Depends on:** Phase 57, Phase 50
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 65-01-PLAN.md -- Contracts, import fixes, dead code removal
+- [ ] 65-02-PLAN.md -- Lifecycle trigger wiring, route registration, E2E tests
+
 **Success Criteria:**
 1. `checkLifecycleTriggers` called after batch feedback execution -- feedback-driven lifecycle transitions fire automatically
 2. Decay batch management routes registered in `documentedRoutes` array
@@ -540,4 +546,4 @@ Phase 67 (Audit Cleanup & Documentation) -- independent
 
 ---
 
-*Roadmap updated: 2026-05-03 -- Phase 64 plan added*
+*Roadmap updated: 2026-05-03 -- Phase 65 plans added*
