@@ -7,7 +7,7 @@
 - ✅ **v1.2 Skill-Native Retrieval** — Phases 12-16 (shipped 2026-04-17)
 - ✅ **v1.3 工程化调整** — Phases 17-24 (shipped 2026-04-20)
 - ✅ **v1.4 评测系统构建** — Phases 25-47 (shipped 2026-04-29)
-- 🔄 **v1.5 功能增强** — Phases 48-59 (in progress)
+- 🔄 **v1.5 功能增强** — Phases 48-63 (in progress)
 
 ## Phases
 
@@ -41,7 +41,7 @@
 </details>
 
 <details>
-<summary>🔄 v1.5 功能增强 (Phases 48-59) — IN PROGRESS</summary>
+<summary>🔄 v1.5 功能增强 (Phases 48-63) — IN PROGRESS</summary>
 
 ### Decay & Retirement
 
@@ -70,6 +70,13 @@
 - [x] Phase 58: Evidence Metadata & Verification Surface (EVIDENCE-01, EVIDENCE-02) (completed 2026-05-02)
 - [x] Phase 59: Ownership & Verification SLA Management (MAINT-01, MAINT-02) (completed 2026-05-03)
 
+### Write Path Optimization
+
+- [x] Phase 60: Type Consolidation & Lifecycle State Machine (TECH-DEBT-01, TECH-DEBT-02) (completed 2026-05-03)
+- [ ] Phase 61: Candidate Pipeline Independent Table (WRITE-01)
+- [ ] Phase 62: Knowledge Entry Row-Level Table (WRITE-02)
+- [ ] Phase 63: Skill Artifact Row-Level Table & JSONB Cleanup (WRITE-03)
+
 </details>
 
 ## Progress
@@ -77,7 +84,7 @@
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 25-47 | v1.4 | 59/59 | Complete | 2026-04-29 |
-| 48-59 | v1.5 | 3/15 | In Progress | — |
+| 48-63 | v1.5 | —/— | In Progress | — |
 
 ---
 
@@ -287,6 +294,88 @@ Plans:
 3. Batch actions can assign owner, extend review date, or mark an item re-verified
 4. Lifecycle and batch-management phases can reuse this data without introducing a separate maintenance subsystem
 
+### Phase 60: Consolidate type definitions & lifecycle state machine
+
+**Goal:** Eliminate type duplication (AdapterSyncState, KnowledgeIndexStateRecord) by establishing a single canonical source, and centralize lifecycle state transition validation into a single state-machine module.
+
+**Requirements**: TECH-DEBT-01, TECH-DEBT-02
+**Depends on:** Phase 59
+**Plans:** 4/4 plans complete
+
+Plans:
+- [x] TBD (run /gsd-plan-phase 60 to break down) (completed 2026-05-03)
+
+**Success Criteria:**
+1. `AdapterSyncState` and `KnowledgeIndexStateRecord` defined in exactly one place; all consumers import from that canonical location
+2. Lifecycle state transitions defined in a single transition map (from-state → allowed to-states)
+3. All state transition sites call a centralized `transitionLifecycleState()` function that validates legality before mutating
+4. No direct `entry.lifecycleState = ...` assignments remain outside the state machine module
+5. Existing tests continue to pass without behavioral changes
+
+---
+
+### Phase 61: Candidate Pipeline Independent Table
+
+**Requirements:** WRITE-01
+
+**Goal:** Extract candidate submissions from the single-row JSONB snapshot into a dedicated `candidates` table with row-level locking, eliminating the 3-4× transact amplification per candidate and enabling concurrent processing of independent candidates.
+
+**Depends on:** Phase 60
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 61-01-PLAN.md — Schema definition, CandidateRepository interface, PgCandidateRepository with row-level locking
+- [ ] 61-02-PLAN.md — DualWrite adapter, InMemory fallback, processor integration, barrel exports
+- [ ] 61-03-PLAN.md — Migration script (JSONB to candidates table backfill)
+
+**Success Criteria:**
+1. `candidates` table exists with row-level granularity: each candidate is a separate row with its own lock scope
+2. `PgCandidateRepository` implements insert/updateStatus/attachAnalysis/attachDuplicateCase/listByStatus with single-row operations
+3. Candidate processor uses repository directly — no `transact()` calls for candidate status transitions (received→queued→analyzing→ready/duplicate_detected)
+4. Dual-write period: candidate mutations written to both the new table and the JSONB snapshot until Phase 63 removes JSONB
+5. Existing candidate tests pass unchanged (JsonStore path unaffected)
+6. Migration script backfills existing candidateSubmissions from JSONB to candidates table
+
+---
+
+### Phase 62: Knowledge Entry Row-Level Table
+
+**Requirements:** WRITE-02
+
+**Goal:** Extract knowledge entries from the JSONB snapshot into `knowledge_entries`, `knowledge_revisions`, and `lifecycle_events` tables, enabling concurrent writes to different entries and separating mutable state from append-only history.
+
+**Depends on:** Phase 61
+
+**Success Criteria:**
+1. `knowledge_entries` table stores current state per entry (scope, lifecycleState, shortcut, detail, labels, governance)
+2. `knowledge_revisions` table stores append-only revision history (entry_id, revision, content snapshot)
+3. `lifecycle_events` table stores audit trail of state transitions (entry_id, from_state, to_state, actor_id, timestamp)
+4. `PgKnowledgeRepository` implements insert/getById/updateLifecycle/appendRevision/listByFilter
+5. `HybridStore.transact()` routes knowledge-entry-only mutations to the repository; mixed mutations fall back to JSONB
+6. ID generation uses PostgreSQL SEQUENCE (`nextval`) instead of in-memory counters for new entries
+7. Existing knowledge/embedding/keyword index tables continue to work (same entry_id foreign key)
+8. All knowledge route tests pass unchanged
+
+---
+
+### Phase 63: Skill Artifact Row-Level Table & JSONB Cleanup
+
+**Requirements:** WRITE-03
+
+**Goal:** Complete the row-level migration with `skill_artifacts` and `artifact_revisions` tables, then remove JSONB shadow writes and downgrade `store_snapshot` to a cold backup/legacy role.
+
+**Depends on:** Phase 62
+
+**Success Criteria:**
+1. `skill_artifacts` table mirrors `knowledge_entries` pattern with artifact-specific fields
+2. `artifact_revisions` table stores append-only revision history with derived outputs (profile, capsules, clientManifest)
+3. `PgArtifactRepository` implements full CRUD matching existing skill artifact mutation patterns
+4. JSONB shadow writes removed: `StoreData.candidateSubmissions`, `StoreData.knowledgeEntries`, `StoreData.skillArtifacts` no longer populated in `store_snapshot`
+5. `store_snapshot` retains only low-volume collections (users, teams, sessions, auditEvents, counters) or is deprecated entirely
+6. All production routes and tests pass without JSONB dependency for the three decomposed domains
+7. Migration script validates data consistency between decomposed tables and any remaining JSONB state
+
 ---
 
 ## Requirement Coverage Matrix
@@ -311,10 +400,15 @@ Plans:
 | EVIDENCE-02 | Phase 58 | Retrieval/admin evidence visibility |
 | MAINT-01 | Phase 59 | Ownership and review-due metadata |
 | MAINT-02 | Phase 59 | Maintenance list and batch actions |
+| TECH-DEBT-01 | Phase 60 | Consolidate type definitions |
+| TECH-DEBT-02 | Phase 60 | Centralize lifecycle state machine |
+| WRITE-01 | Phase 61 | Candidate pipeline independent table |
+| WRITE-02 | Phase 62 | Knowledge entry row-level table |
+| WRITE-03 | Phase 63 | Skill artifact row-level table & JSONB cleanup |
 
 **Coverage:**
-- Total v1.5 requirements: 18
-- Mapped to phases: 18
+- Total requirements: 23
+- Mapped to phases: 23
 - Unmapped: 0 ✓
 
 ---
@@ -345,6 +439,14 @@ Phase 57 (Admin Feedback Management)
 Phase 58 (Evidence Metadata) ── independent, but should align with Phase 51 boundary evidence fields
     ↓
 Phase 59 (Ownership & SLA Management)
+    ↓
+Phase 60 (Type Consolidation & State Machine)
+    ↓
+Phase 61 (Candidate Pipeline Independent Table)
+    ↓
+Phase 62 (Knowledge Entry Row-Level Table)
+    ↓
+Phase 63 (Skill Artifact Row-Level Table & JSONB Cleanup)
 ```
 
 **Parallelization Opportunities:**
@@ -353,25 +455,9 @@ Phase 59 (Ownership & SLA Management)
 - Phase 56 can start in parallel with decay/boundary work
 - Phase 58 can start in parallel with decay, boundary, or feedback work
 - Phase 59 should follow Phase 48 if it reuses lifecycle state and Phase 58 if it reuses verification metadata
-
-### Phase 60: Consolidate type definitions & lifecycle state machine
-
-**Goal:** Eliminate type duplication (AdapterSyncState, KnowledgeIndexStateRecord) by establishing a single canonical source, and centralize lifecycle state transition validation into a single state-machine module.
-
-**Requirements**: TECH-DEBT-01, TECH-DEBT-02
-**Depends on:** Phase 59
-**Plans:** 0 plans
-
-Plans:
-- [ ] TBD (run /gsd-plan-phase 60 to break down)
-
-**Success Criteria:**
-1. `AdapterSyncState` and `KnowledgeIndexStateRecord` defined in exactly one place; all consumers import from that canonical location
-2. Lifecycle state transitions defined in a single transition map (from-state → allowed to-states)
-3. All state transition sites call a centralized `transitionLifecycleState()` function that validates legality before mutating
-4. No direct `entry.lifecycleState = ...` assignments remain outside the state machine module
-5. Existing tests continue to pass without behavioral changes
+- Phase 60 must complete before Phase 61 (clean type foundations)
+- Phases 61→62→63 are sequential (each builds on the repository pattern established by the previous)
 
 ---
 
-*Roadmap updated: 2026-05-03 for v1.5 milestone*
+*Roadmap updated: 2026-05-03 — Phase 61 planned with 3 plans across 2 waves*
