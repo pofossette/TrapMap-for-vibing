@@ -7,12 +7,14 @@
  * - T-11-04: Non-approved updates remain indexing no-ops
  * - T-11-05: Post-commit refresh prevents nested transactions
  * - T-11-06: Deactivate clears persisted index state
+ * - WRITE-02: Repository integration for knowledge mutations
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../app.js';
+import type { KnowledgeRepository } from '../lib/knowledge/index.js';
 import type { SkillShareerStore } from '../lib/store.js';
 import { hashSecret, nowIso } from '../lib/store.js';
 
@@ -777,6 +779,221 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
       // Verify skillArtifacts still exist and were not affected
       expect(data.skillArtifacts).toBeDefined();
       expect(data.skillArtifacts.length).toBe(2);
+    });
+  });
+
+  describe('knowledge repository integration (WRITE-02)', () => {
+    let sessionId: string;
+    const userId = 'user_repo_test';
+    const teamId = 'team_repo_test';
+
+    beforeEach(async () => {
+      // Setup: Create a user, team, membership, session
+      await store.transact(async (data) => {
+        if (!data.counters) data.counters = {};
+        data.counters.user = 1;
+
+        // Create user
+        data.users.push({
+          id: userId,
+          handle: 'repo_tester',
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create team
+        data.teams.push({
+          id: teamId,
+          name: 'Repo Test Team',
+          slug: 'repo-test-team',
+          description: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create membership with knowledge:submit permission
+        data.memberships.push({
+          id: 'membership_repo_test',
+          userId,
+          teamId,
+          roleTemplate: 'admin',
+          securityLevel: 10,
+          permissions: ['knowledge:submit', 'knowledge:update'],
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        // Create session
+        const sessionToken = `session_repo_${Date.now()}`;
+        data.sessions.push({
+          id: `session_${Date.now()}`,
+          userId,
+          tokenHash: hashSecret(sessionToken),
+          activeTeamId: teamId,
+          subjectType: 'user',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        });
+
+        sessionId = sessionToken;
+      });
+    });
+
+    it('should fallback to store.transact without repository', async () => {
+      // knowledgeRepo is undefined in test environment (JsonStore)
+      expect(app.skillShareer.knowledgeRepo).toBeUndefined();
+
+      // Create knowledge entry
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/knowledge',
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+        payload: {
+          scope: 'global',
+          labels: ['test'],
+          shortcut: 'Test Entry',
+          detail: 'Test detail for repository fallback',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      // Verify entry was created via JSONB store
+      const data = await store.snapshot();
+      const entries = data.knowledgeEntries.filter(
+        (e) => e.shortcut === 'Test Entry',
+      );
+      expect(entries.length).toBe(1);
+    });
+
+    it('should use repository for knowledge creation when available', async () => {
+      // Mock knowledgeRepo
+      const mockRepo: KnowledgeRepository = {
+        nextId: vi.fn().mockResolvedValue('knowledge_123'),
+        insert: vi.fn().mockResolvedValue(undefined),
+        getById: vi.fn().mockResolvedValue(null),
+        updateLifecycle: vi.fn().mockResolvedValue(undefined),
+        appendRevision: vi.fn().mockResolvedValue(undefined),
+        appendLifecycleEvent: vi.fn().mockResolvedValue(undefined),
+        listByFilter: vi.fn().mockResolvedValue([]),
+        updateGovernance: vi.fn().mockResolvedValue(undefined),
+      };
+
+      // Inject mock repository
+      (app.skillShareer as { knowledgeRepo?: KnowledgeRepository }).knowledgeRepo = mockRepo;
+
+      // Create knowledge entry
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/knowledge',
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+        payload: {
+          scope: 'global',
+          labels: ['test'],
+          shortcut: 'Test Entry with Repo',
+          detail: 'Test detail for repository integration',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      // Verify repository was called for ID generation
+      expect(mockRepo.nextId).toHaveBeenCalled();
+
+      // Verify repository was called for insert (dual-write)
+      expect(mockRepo.insert).toHaveBeenCalled();
+    });
+
+    it('should update governance via repository on PATCH', async () => {
+      // Mock knowledgeRepo
+      const mockRepo: KnowledgeRepository = {
+        nextId: vi.fn().mockResolvedValue('knowledge_456'),
+        insert: vi.fn().mockResolvedValue(undefined),
+        getById: vi.fn().mockResolvedValue(null),
+        updateLifecycle: vi.fn().mockResolvedValue(undefined),
+        appendRevision: vi.fn().mockResolvedValue(undefined),
+        appendLifecycleEvent: vi.fn().mockResolvedValue(undefined),
+        listByFilter: vi.fn().mockResolvedValue([]),
+        updateGovernance: vi.fn().mockResolvedValue(undefined),
+      };
+
+      // Inject mock repository
+      (app.skillShareer as { knowledgeRepo?: KnowledgeRepository }).knowledgeRepo = mockRepo;
+
+      // Create an approved knowledge entry first
+      const entryId = 'knowledge_456';
+      await store.transact(async (data) => {
+        data.knowledgeEntries.push({
+          id: entryId,
+          teamId: null,
+          scope: 'global',
+          labels: ['test'],
+          shortcut: 'Test Entry for Update',
+          detail: 'Test detail',
+          requiredLevel: 0,
+          lifecycleState: 'approved',
+          ownerUserId: userId,
+          latestRevision: {
+            revision: 1,
+            submittedAt: nowIso(),
+            submittedByUserId: userId,
+            shortcut: 'Test Entry for Update',
+            detail: 'Test detail',
+            labels: ['test'],
+            reviewNotes: [],
+          },
+          history: [],
+          metadata: {
+            scopeLabel: 'global-constraint',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: null,
+            latestSubmittedAt: null,
+            latestReviewedAt: null,
+            latestDecision: null,
+          },
+          latestSubmissionId: null,
+          submissionHistory: [],
+          agentReview: null,
+          reviewHistory: [],
+          reviewNotes: [],
+          lifecycleHistory: [],
+          embeddingCache: null,
+          indexState: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+      });
+
+      // Update the entry
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/v1/knowledge/${entryId}`,
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+        payload: {
+          labels: ['test', 'updated'],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      // Verify repository was called for governance update
+      expect(mockRepo.updateGovernance).toHaveBeenCalledWith(
+        entryId,
+        expect.objectContaining({
+          labels: ['test', 'updated'],
+        }),
+      );
     });
   });
 });
