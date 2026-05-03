@@ -1,5 +1,6 @@
 import { integer, jsonb, pgTable, text, timestamp, uniqueIndex, vector } from 'drizzle-orm/pg-core';
 
+import type { AnalysisSnapshot, CandidatePayload, DuplicateCase } from '@trapmap/contracts';
 import type { StoreData } from '../store.js';
 
 /**
@@ -105,3 +106,52 @@ export const knowledgeKeywords = pgTable(
     uniqueIndex('knowledge_keywords_entry_revision_idx').on(table.entryId, table.revision),
   ],
 );
+
+// =============================================================================
+// Candidate Pipeline Tables (Phase 61: WRITE-01)
+// =============================================================================
+
+/**
+ * Candidate submission table for async ingestion pipeline.
+ * Each row represents a single candidate with its own lock scope,
+ * enabling concurrent processing without blocking other candidates.
+ *
+ * Replaces JSONB snapshot access for candidate data, providing row-level
+ * granularity via SELECT FOR UPDATE instead of whole-snapshot locking.
+ */
+export const candidates = pgTable('candidates', {
+  /** Unique candidate identifier (e.g., candidate_abc123) */
+  id: text('id').primaryKey(),
+  /** Source type: 'trap' or 'skill' */
+  sourceType: text('source_type').notNull(),
+  /** User who submitted this candidate */
+  submittedBy: text('submitted_by').notNull(),
+  /** Team ID if team-scoped, null for global */
+  teamId: text('team_id'),
+  /** Current processing status */
+  status: text('status').notNull(),
+  /** Original payload before any transformation */
+  originalPayload: jsonb('original_payload').notNull().$type<CandidatePayload>(),
+  /** Analysis snapshot (null until analysis completes) */
+  analysisSnapshot: jsonb('analysis_snapshot').$type<AnalysisSnapshot | null>(),
+  /** Duplicate case (null if no duplicates detected) */
+  duplicateCase: jsonb('duplicate_case').$type<DuplicateCase | null>(),
+  /** When the candidate was received */
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull(),
+  /** When the candidate was queued for processing */
+  queuedAt: timestamp('queued_at', { withTimezone: true }),
+  /** When analysis started */
+  analyzingAt: timestamp('analyzing_at', { withTimezone: true }),
+  /** When processing completed */
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  /** Last error message if status is 'error' */
+  lastError: text('last_error'),
+  /** Number of retry attempts */
+  retryCount: integer('retry_count').notNull().default(0),
+  /** Manual result from reviewer (null if no manual review yet) */
+  manualResult: jsonb('manual_result'),
+  /** Record creation timestamp */
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  /** Record update timestamp */
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
