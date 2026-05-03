@@ -46,6 +46,8 @@ import {
   getEntryEmbedding as semanticGetEntryEmbedding,
 } from './recall/semantic.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
+import { enrichMatchesWithConflicts } from '../conflict/enrich.js';
+import { DEFAULT_FRESHNESS_CONFIG } from '../decay/freshness.js';
 import { buildCapsuleCitations, buildCapsuleSummary, buildSummary } from './summary.js';
 import type {
   MergedCandidate,
@@ -293,10 +295,17 @@ export async function searchKnowledge(
       ? new Map(buildCitations(mergedCandidates).map((c) => [c.source.entryId, c]))
       : undefined;
 
+    // Build conflict hints from store data (CONFLICT-02)
+    const conflictHints = enrichMatchesWithConflicts(
+      scoredEntries.map((e) => ({ entryId: e.entry.id })),
+      data,
+      { teamId: auth.activeTeamId, requiredLevel: auth.securityLevel },
+    );
+
     // Assemble response buckets with citations
     const { globalConstraints, projectKnowledge } = await timedStep(
       'assembly',
-      () => Promise.resolve(assembleResponseBuckets(scoredEntries, parsed.filters, citations, parsed.boundaryContext)),
+      () => Promise.resolve(assembleResponseBuckets(scoredEntries, parsed.filters, citations, conflictHints)),
       steps,
     );
 
@@ -520,6 +529,7 @@ async function hybridRecall(
   const rerankedCandidates = rerankCandidates(mergedCandidates, queryTokens, {
     maxCandidates: parsed.maxResults,
     boundaryContext: parsed.boundaryContext,
+    freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
   });
 
   // Convert to scored entries for assembly
@@ -620,6 +630,7 @@ async function graphAssistedRecall(
   const rerankedCandidates = rerankCandidates(finalMerged, queryTokens, {
     maxCandidates: parsed.maxResults,
     boundaryContext: parsed.boundaryContext,
+    freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
   });
 
   // Convert to scored entries for assembly
