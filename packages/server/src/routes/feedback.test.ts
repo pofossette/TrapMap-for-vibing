@@ -764,4 +764,117 @@ describe('feedback admin routes', () => {
       expect(ineligible.reason).toContain('already resolved');
     });
   });
+
+  describe('lifecycle triggers', () => {
+    it('triggers lifecycle transition after batch feedback resolution', async () => {
+      // Setup: Create 3 "outdated" feedback items for the same entry within 30 days
+      await store.transact((data) => {
+        for (let i = 0; i < 3; i++) {
+          data.feedbackQueue.push({
+            id: `feedback_outdated_${i}`,
+            entryId: 'trap_1',
+            entryType: 'trap',
+            problemType: 'outdated',
+            description: `Outdated report ${i} with enough characters to pass validation`,
+            context: null,
+            querySeed: null,
+            customAnswers: null,
+            submittedAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
+            submittedByUserId: userId,
+            submittedByHandle: 'tester',
+            status: 'new',
+            adminNotes: null,
+            resolvedAt: null,
+            resolvedByUserId: null,
+            triggeredTransition: null,
+            createdAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
+            updatedAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
+          });
+        }
+      });
+
+      // Execute: Resolve all 3 outdated feedbacks in a batch
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/feedback/batch',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+        payload: {
+          feedbackIds: ['feedback_outdated_0', 'feedback_outdated_1', 'feedback_outdated_2'],
+          action: 'resolve',
+          notes: 'Batch resolved after review',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      // Verify: Entry decay state should have transitioned to 'stale'
+      const data = await store.snapshot();
+      const entry = data.knowledgeEntries.find(e => e.id === 'trap_1');
+      expect(entry?.decayMeta?.decayState).toBe('stale');
+    });
+
+    it('does not trigger lifecycle transitions during dry-run', async () => {
+      // Setup: Create 3 "outdated" feedback items
+      await store.transact((data) => {
+        for (let i = 0; i < 3; i++) {
+          data.feedbackQueue.push({
+            id: `feedback_dryrun_${i}`,
+            entryId: 'trap_1',
+            entryType: 'trap',
+            problemType: 'outdated',
+            description: `Dry-run outdated report ${i} with enough chars`,
+            context: null,
+            querySeed: null,
+            customAnswers: null,
+            submittedAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
+            submittedByUserId: userId,
+            submittedByHandle: 'tester',
+            status: 'new',
+            adminNotes: null,
+            resolvedAt: null,
+            resolvedByUserId: null,
+            triggeredTransition: null,
+            createdAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
+            updatedAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
+          });
+        }
+      });
+
+      // Execute dry-run
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/feedback/batch',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+        payload: {
+          feedbackIds: ['feedback_dryrun_0', 'feedback_dryrun_1', 'feedback_dryrun_2'],
+          action: 'resolve',
+          dryRun: true,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().dryRun).toBe(true);
+
+      // Verify: Entry decay state should NOT have changed
+      const data = await store.snapshot();
+      const entry = data.knowledgeEntries.find(e => e.id === 'trap_1');
+      expect(entry?.decayMeta?.decayState).not.toBe('stale');
+    });
+
+    it('includes decay, evidence, and maintenance routes in documented routes', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/meta/routes',
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      expect(json.documentedRoutes).toContain('GET /v1/operations/decay/entries');
+      expect(json.documentedRoutes).toContain('POST /v1/operations/decay/batch');
+      expect(json.documentedRoutes).toContain('POST /v1/operations/decay/search');
+      expect(json.documentedRoutes).toContain('PATCH /v1/knowledge/:id/evidence');
+      expect(json.documentedRoutes).toContain('GET /v1/operations/maintenance/entries');
+      expect(json.documentedRoutes).toContain('POST /v1/operations/maintenance/batch');
+    });
+  });
 });
