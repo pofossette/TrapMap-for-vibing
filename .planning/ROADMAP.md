@@ -80,7 +80,7 @@
 |-------|-----------|----------------|--------|-----------|
 | 1-47 | v1.0-v1.4 | 93/93 | Complete | 2026-04-29 |
 | 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
-| 68-76 | v1.6 | 2/2 | In progress | 2026-05-03 |
+| 68-76 | v1.6 | 5/9 | In progress | 2026-05-04 |
 
 ---
 
@@ -135,7 +135,7 @@ Plans:
 Plans:
 - [ ] 70-01-PLAN.md -- Retrieval merge and semantic unit tests
 - [ ] 70-02-PLAN.md -- Retrieval orchestrator tests
-- [ ] 70-03-PLAN.md -- Artifact pipeline and postgres store tests
+- [x] 70-03-PLAN.md -- Artifact pipeline and postgres store tests (40 tests, completed 2026-05-04)
 
 **Success Criteria:**
 1. `retrieval/orchestrator.test.ts` covers retrieval orchestration flow
@@ -292,4 +292,4 @@ Phase 68 (Fix Failing Tests)
 
 ---
 
-*Roadmap updated: 2026-05-04 — Phase 68 planned (1 plan)*
+*Roadmap updated: 2026-05-04 — Phase 70 plan 03 completed (40 tests)*
