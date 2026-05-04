@@ -10,11 +10,12 @@
  * - Adapter warnings are elevated to verdict-level visibility
  */
 
-import type { RetrievalEvalCase } from '@trapmap/contracts';
+import type { GraphPlanExpectations, RetrievalEvalCase } from '@trapmap/contracts';
 import type {
   AdapterWarning,
   GovernanceFailure,
   GovernanceResult,
+  GraphPlanStructure,
   NormalizedResult,
 } from './types.js';
 
@@ -235,6 +236,128 @@ function assertExecutionSuccess(warnings: AdapterWarning[]): Verdict | null {
 }
 
 // =============================================================================
+// Graph-Plan Structural Assertions
+// =============================================================================
+
+/**
+ * Graph-plan structural assertion result.
+ */
+export interface GraphPlanAssertionResult {
+  passed: boolean;
+  failures: GraphPlanFailure[];
+}
+
+export interface GraphPlanFailure {
+  kind:
+    | 'missing-trap-node'
+    | 'missing-skill-node'
+    | 'missing-edge'
+    | 'missing-blocking-trap'
+    | 'missing-recommended-skill'
+    | 'unexpected-empty-graph';
+  description: string;
+  expected: string[];
+  actual: string[];
+}
+
+/**
+ * Assert graph-plan structure matches expectations.
+ * Checks trap nodes, skill nodes, edges, blocking traps, and recommended skills.
+ */
+export function assertGraphPlanStructure(
+  structure: GraphPlanStructure | undefined,
+  expectations: GraphPlanExpectations,
+): GraphPlanAssertionResult {
+  const failures: GraphPlanFailure[] = [];
+
+  // Skip if no graph-plan structure (v1/v2 or fallback)
+  if (!structure) {
+    if (
+      expectations.expectedTrapNodeIds.length > 0 ||
+      expectations.expectedSkillNodeIds.length > 0
+    ) {
+      failures.push({
+        kind: 'unexpected-empty-graph',
+        description: 'Expected graph-plan structure but response had none',
+        expected: [...expectations.expectedTrapNodeIds, ...expectations.expectedSkillNodeIds],
+        actual: [],
+      });
+    }
+    return { passed: failures.length === 0, failures };
+  }
+
+  // Check trap nodes
+  for (const expectedId of expectations.expectedTrapNodeIds) {
+    if (!structure.trapNodeIds.includes(expectedId)) {
+      failures.push({
+        kind: 'missing-trap-node',
+        description: `Expected trap node ${expectedId} not found`,
+        expected: [expectedId],
+        actual: structure.trapNodeIds,
+      });
+    }
+  }
+
+  // Check skill nodes
+  for (const expectedId of expectations.expectedSkillNodeIds) {
+    if (!structure.skillNodeIds.includes(expectedId)) {
+      failures.push({
+        kind: 'missing-skill-node',
+        description: `Expected skill node ${expectedId} not found`,
+        expected: [expectedId],
+        actual: structure.skillNodeIds,
+      });
+    }
+  }
+
+  // Check edges
+  for (const expectedEdge of expectations.expectedEdges) {
+    const found = structure.edges.some(
+      (e) =>
+        e.sourceNodeId === expectedEdge.sourceNodeId &&
+        e.targetNodeId === expectedEdge.targetNodeId &&
+        e.type === expectedEdge.type,
+    );
+    if (!found) {
+      failures.push({
+        kind: 'missing-edge',
+        description: `Expected edge ${expectedEdge.sourceNodeId} -> ${expectedEdge.targetNodeId} (${expectedEdge.type}) not found`,
+        expected: [
+          `${expectedEdge.sourceNodeId}->${expectedEdge.targetNodeId}:${expectedEdge.type}`,
+        ],
+        actual: structure.edges.map((e) => `${e.sourceNodeId}->${e.targetNodeId}:${e.type}`),
+      });
+    }
+  }
+
+  // Check blocking traps
+  for (const expectedId of expectations.expectedBlockingTrapNodeIds) {
+    if (!structure.blockingTrapNodeIds.includes(expectedId)) {
+      failures.push({
+        kind: 'missing-blocking-trap',
+        description: `Expected blocking trap ${expectedId} not in focus`,
+        expected: [expectedId],
+        actual: structure.blockingTrapNodeIds,
+      });
+    }
+  }
+
+  // Check recommended skills
+  for (const expectedId of expectations.expectedRecommendedSkillNodeIds) {
+    if (!structure.recommendedSkillNodeIds.includes(expectedId)) {
+      failures.push({
+        kind: 'missing-recommended-skill',
+        description: `Expected recommended skill ${expectedId} not in focus`,
+        expected: [expectedId],
+        actual: structure.recommendedSkillNodeIds,
+      });
+    }
+  }
+
+  return { passed: failures.length === 0, failures };
+}
+
+// =============================================================================
 // Main Verdict Evaluation
 // =============================================================================
 
@@ -277,6 +400,31 @@ export function evaluateVerdicts(
 
     const capsuleVerdict = assertV2CapsuleCount(result, case_.expected.shape.expectedCapsuleCount);
     if (capsuleVerdict) verdicts.push(capsuleVerdict);
+  }
+
+  // 3c. Graph-plan structural verdict (v3 only)
+  if (
+    case_.endpoint === '/v3/retrieval/search' &&
+    case_.expected.shape.graphPlanExpectations
+  ) {
+    const graphPlanResult = assertGraphPlanStructure(
+      result.graphPlanStructure,
+      case_.expected.shape.graphPlanExpectations,
+    );
+    if (!graphPlanResult.passed) {
+      const descriptions = graphPlanResult.failures
+        .map((f) => `[${f.kind}] ${f.description}`)
+        .join('; ');
+      verdicts.push({
+        kind: 'shape',
+        passed: false,
+        failure: {
+          kind: 'shape-mismatch',
+          description: `Graph-plan structural assertion failed: ${descriptions}`,
+          ids: graphPlanResult.failures.flatMap((f) => f.expected),
+        },
+      });
+    }
   }
 
   // 4. Execution verdict: degraded operation
