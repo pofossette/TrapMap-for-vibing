@@ -2,21 +2,18 @@
  * Tests for retrieval orchestrator.
  *
  * Covers:
- * - selectRetrievalStrategy() - V1 strategy selection (pure)
- * - selectRetrievalStrategyV2() - V2 strategy selection (pure)
  * - searchKnowledge() - Main retrieval pipeline (with mocks)
  * - updateEntryEmbeddingCache() - Embedding cache update (with mocks)
  *
- * Note: toRoutingTrace() and inferChannelsFromMerged() are not exported.
- * Their behavior is tested indirectly through searchKnowledge() routing traces
- * and channel inference in the RAG log output.
+ * Routing tests are in routing.test.ts.
+ * Recall coordination tests are in recall-coordinator.test.ts.
+ * Refinement tests are in refinement.test.ts.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import type { KnowledgeRecord } from '../store.js';
-import type { MergedCandidate, RoutingChannel } from './types.js';
 
 // ── Mocks for recall modules ──────────────────────────────────────────────
 
@@ -150,6 +147,50 @@ vi.mock('../persistence/postgres-store.js', () => ({
   PostgresStore: class MockPostgresStore {},
 }));
 
+vi.mock('./routing.js', () => ({
+  selectRetrievalStrategy: vi.fn().mockImplementation((mode: string, _seed: string) => ({
+    selectedMode: mode === 'hybrid' ? 'hybrid' : mode === 'graph-assisted' ? 'mix' : 'local',
+    routeFamily: 'entry',
+    routingReason: 'explicit-mode',
+    fallbackApplied: false,
+    fallbackTarget: null,
+    confidenceScore: null,
+    confidenceBucket: null,
+    channelsPlanned: mode === 'hybrid' ? ['semantic', 'keyword'] : mode === 'graph-assisted' ? ['semantic', 'keyword', 'graph'] : ['semantic'],
+    channelsUsed: [],
+  })),
+  selectRetrievalStrategyV2: vi.fn().mockImplementation((_seed: string) => ({
+    selectedMode: 'local',
+    routeFamily: 'capsule',
+    routingReason: 'v2-default-capsule',
+    fallbackApplied: false,
+    fallbackTarget: null,
+    confidenceScore: null,
+    confidenceBucket: null,
+    channelsPlanned: ['capsule', 'profile'],
+    channelsUsed: [],
+  })),
+  toRoutingTrace: vi.fn().mockImplementation((d: Record<string, unknown>) => ({
+    selectedMode: d.selectedMode,
+    routeFamily: d.routeFamily,
+    routingReason: d.routingReason,
+    fallbackApplied: d.fallbackApplied,
+    fallbackTarget: d.fallbackTarget,
+    confidenceScore: d.confidenceScore,
+    confidenceBucket: d.confidenceBucket,
+    channelsUsed: d.channelsUsed,
+  })),
+}));
+
+vi.mock('./recall-coordinator.js', () => ({
+  dispatchByMode: vi.fn().mockResolvedValue({ scoredEntries: [], mergedCandidates: undefined }),
+  inferChannelsFromMerged: vi.fn().mockReturnValue(['semantic']),
+}));
+
+vi.mock('./refinement.js', () => ({
+  generateRefinement: vi.fn().mockResolvedValue(null),
+}));
+
 // ── Imports after mocks ───────────────────────────────────────────────────
 
 import { generateEmbedding, hashEmbeddingText } from '../embeddings.js';
@@ -162,17 +203,7 @@ import {
   searchKnowledge,
   updateEntryEmbeddingCache,
 } from './orchestrator.js';
-import { selectRetrievalStrategy, selectRetrievalStrategyV2 } from './routing.js';
-import { graphAssistedRecall } from './recall/graph-assisted.js';
-import { keywordRecall } from './recall/keyword.js';
-import {
-  computeScore,
-  cosineSimilarity,
-  getEntryEmbedding,
-  getQueryEmbedding,
-  optimizedSemanticRecall,
-} from './recall/semantic.js';
-import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
+import { dispatchByMode } from './recall-coordinator.js';
 
 // ── Test helpers ──────────────────────────────────────────────────────────
 
@@ -293,131 +324,7 @@ function createMockServices(overrides: Partial<SkillShareerServices> = {}): Skil
 }
 
 // =============================================================================
-// Part 1: selectRetrievalStrategy() - Pure Function Tests
-// =============================================================================
-
-describe('selectRetrievalStrategy (v1)', () => {
-  describe('mode mapping', () => {
-    it('maps semantic to local strategy with semantic channel', () => {
-      const decision = selectRetrievalStrategy('semantic', 'test query');
-
-      expect(decision.selectedMode).toBe('local');
-      expect(decision.channelsPlanned).toEqual(['semantic']);
-    });
-
-    it('maps hybrid to hybrid strategy with semantic+keyword channels', () => {
-      const decision = selectRetrievalStrategy('hybrid', 'test query');
-
-      expect(decision.selectedMode).toBe('hybrid');
-      expect(decision.channelsPlanned).toEqual(['semantic', 'keyword']);
-    });
-
-    it('maps graph-assisted to mix strategy with all entry channels', () => {
-      const decision = selectRetrievalStrategy('graph-assisted', 'test query');
-
-      expect(decision.selectedMode).toBe('mix');
-      expect(decision.channelsPlanned).toEqual(['semantic', 'keyword', 'graph']);
-    });
-
-    it('defaults unknown mode to local strategy', () => {
-      const decision = selectRetrievalStrategy('unknown-mode', 'test query');
-
-      expect(decision.selectedMode).toBe('local');
-      expect(decision.channelsPlanned).toEqual(['semantic']);
-    });
-  });
-
-  describe('RoutingDecision structure', () => {
-    it('returns routeFamily entry for v1', () => {
-      const decision = selectRetrievalStrategy('semantic', 'test');
-      expect(decision.routeFamily).toBe('entry');
-    });
-
-    it('sets routingReason to explicit-mode for valid modes', () => {
-      const modes = ['semantic', 'hybrid', 'graph-assisted'] as const;
-      for (const mode of modes) {
-        const decision = selectRetrievalStrategy(mode, 'test');
-        expect(decision.routingReason).toBe('explicit-mode');
-      }
-    });
-
-    it('fallbackApplied is false for valid modes', () => {
-      const modes = ['semantic', 'hybrid', 'graph-assisted'] as const;
-      for (const mode of modes) {
-        const decision = selectRetrievalStrategy(mode, 'test');
-        expect(decision.fallbackApplied).toBe(false);
-      }
-    });
-
-    it('fallbackApplied is true for unknown mode', () => {
-      const decision = selectRetrievalStrategy('invalid', 'test');
-      expect(decision.fallbackApplied).toBe(true);
-    });
-
-    it('channelsUsed starts empty (populated after recall)', () => {
-      const decision = selectRetrievalStrategy('hybrid', 'test');
-      expect(decision.channelsUsed).toEqual([]);
-    });
-
-    it('always returns complete decision object', () => {
-      const decision = selectRetrievalStrategy('semantic', 'test');
-      expect(decision).toHaveProperty('selectedMode');
-      expect(decision).toHaveProperty('routeFamily');
-      expect(decision).toHaveProperty('routingReason');
-      expect(decision).toHaveProperty('fallbackApplied');
-      expect(decision).toHaveProperty('fallbackTarget');
-      expect(decision).toHaveProperty('confidenceScore');
-      expect(decision).toHaveProperty('confidenceBucket');
-      expect(decision).toHaveProperty('channelsPlanned');
-      expect(decision).toHaveProperty('channelsUsed');
-    });
-  });
-});
-
-// =============================================================================
-// Part 2: selectRetrievalStrategyV2() - Pure Function Tests
-// =============================================================================
-
-describe('selectRetrievalStrategyV2', () => {
-  it('returns local strategy', () => {
-    const decision = selectRetrievalStrategyV2('test query');
-    expect(decision.selectedMode).toBe('local');
-  });
-
-  it('returns capsule route family', () => {
-    const decision = selectRetrievalStrategyV2('test query');
-    expect(decision.routeFamily).toBe('capsule');
-  });
-
-  it('returns v2-default-capsule routing reason', () => {
-    const decision = selectRetrievalStrategyV2('test query');
-    expect(decision.routingReason).toBe('v2-default-capsule');
-  });
-
-  it('channelsPlanned includes capsule and profile', () => {
-    const decision = selectRetrievalStrategyV2('test query');
-    expect(decision.channelsPlanned).toEqual(['capsule', 'profile']);
-  });
-
-  it('fallbackApplied is always false', () => {
-    const decision = selectRetrievalStrategyV2('test query');
-    expect(decision.fallbackApplied).toBe(false);
-  });
-
-  it('channelsUsed starts empty', () => {
-    const decision = selectRetrievalStrategyV2('test query');
-    expect(decision.channelsUsed).toEqual([]);
-  });
-
-  it('produces deterministic output for identical input', () => {
-    const d1 = selectRetrievalStrategyV2('docker networking');
-    const d2 = selectRetrievalStrategyV2('docker networking');
-    expect(d1).toEqual(d2);
-  });
-});
-
-// =============================================================================
-// Part 5: searchKnowledge() - With Mocks
+// searchKnowledge() - With Mocks
 // =============================================================================
 
 describe('searchKnowledge', () => {
@@ -463,11 +370,6 @@ describe('searchKnowledge', () => {
     it('dispatches to semantic recall for mode=semantic', async () => {
       const entry = createMockEntry('entry_1');
       vi.mocked(filterByBoundaryContext).mockReturnValue([entry]);
-      vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
-      vi.mocked(optimizedSemanticRecall).mockResolvedValue({
-        scoredEntries: [{ entry, score: 0.75 }],
-        cacheStats: { totalEntries: 1, cacheHits: 0, cacheMisses: 1, hitRate: 0 },
-      });
 
       const services = createMockServices();
       const auth = createMockAuth();
@@ -475,19 +377,20 @@ describe('searchKnowledge', () => {
 
       await searchKnowledge(services, auth, query);
 
-      // Semantic recall uses optimizedSemanticRecall for batch embedding retrieval
-      expect(getQueryEmbedding).toHaveBeenCalledWith('test query');
-      expect(optimizedSemanticRecall).toHaveBeenCalled();
+      // Orchestrator delegates to dispatchByMode with mode='semantic'
+      expect(dispatchByMode).toHaveBeenCalledWith(
+        'semantic',
+        'test query',
+        [entry],
+        expect.any(Object),
+        services,
+        auth,
+      );
     });
 
     it('dispatches to hybrid recall for mode=hybrid', async () => {
       const entry = createMockEntry('entry_1');
       vi.mocked(filterByBoundaryContext).mockReturnValue([entry]);
-      vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
-      vi.mocked(optimizedSemanticRecall).mockResolvedValue({
-        scoredEntries: [{ entry, score: 0.75 }],
-        cacheStats: { totalEntries: 1, cacheHits: 0, cacheMisses: 1, hitRate: 0 },
-      });
 
       const services = createMockServices();
       const auth = createMockAuth();
@@ -495,19 +398,19 @@ describe('searchKnowledge', () => {
 
       await searchKnowledge(services, auth, query);
 
-      // Hybrid recall calls keywordRecall in addition to semantic
-      expect(getQueryEmbedding).toHaveBeenCalled();
-      expect(keywordRecall).toHaveBeenCalledWith('test query', [entry]);
+      expect(dispatchByMode).toHaveBeenCalledWith(
+        'hybrid',
+        'test query',
+        [entry],
+        expect.any(Object),
+        services,
+        auth,
+      );
     });
 
     it('dispatches to graph-assisted recall for mode=graph-assisted', async () => {
       const entry = createMockEntry('entry_1');
       vi.mocked(filterByBoundaryContext).mockReturnValue([entry]);
-      vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
-      vi.mocked(optimizedSemanticRecall).mockResolvedValue({
-        scoredEntries: [{ entry, score: 0.75 }],
-        cacheStats: { totalEntries: 1, cacheHits: 0, cacheMisses: 1, hitRate: 0 },
-      });
 
       const services = createMockServices();
       const auth = createMockAuth();
@@ -515,10 +418,14 @@ describe('searchKnowledge', () => {
 
       await searchKnowledge(services, auth, query);
 
-      // Graph-assisted recall calls graphRecall in addition to semantic + keyword
-      expect(getQueryEmbedding).toHaveBeenCalled();
-      expect(keywordRecall).toHaveBeenCalled();
-      expect(graphAssistedRecall).toHaveBeenCalled();
+      expect(dispatchByMode).toHaveBeenCalledWith(
+        'graph-assisted',
+        'test query',
+        [entry],
+        expect.any(Object),
+        services,
+        auth,
+      );
     });
   });
 
@@ -746,87 +653,5 @@ describe('updateEntryEmbeddingCache', () => {
 
     expect(generateEmbedding).toHaveBeenCalledWith('shortcut detail labels');
     expect(hashEmbeddingText).toHaveBeenCalledWith('shortcut detail labels');
-  });
-});
-
-// =============================================================================
-// Part 7: DB Search Integration (Phase 72-06)
-// =============================================================================
-
-describe('DB Search Integration', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    // Reset environment
-    process.env.USE_DB_SEARCH = undefined;
-  });
-
-  describe('getDbSearchConfig', () => {
-    it('returns disabled when USE_DB_SEARCH is not set', async () => {
-      const services = createMockServices();
-      const auth = createMockAuth();
-      const query = { seed: 'test query', mode: 'semantic' as const };
-
-      await searchKnowledge(services, auth, query);
-
-      // When DB search is disabled, should use in-memory path
-      // This is tested indirectly by ensuring the mocks work
-      expect(getQueryEmbedding).toHaveBeenCalledWith('test query');
-    });
-
-    it('returns disabled when store is not PostgresStore', async () => {
-      process.env.USE_DB_SEARCH = 'true';
-      const services = createMockServices();
-      const auth = createMockAuth();
-      const query = { seed: 'test query', mode: 'semantic' as const };
-
-      await searchKnowledge(services, auth, query);
-
-      // Should fall back to in-memory since store is not PostgresStore
-      expect(getQueryEmbedding).toHaveBeenCalledWith('test query');
-    });
-  });
-
-  describe('semantic recall with DB search fallback', () => {
-    it('uses in-memory search when DB search fails', async () => {
-      const entry = createMockEntry('entry_1');
-      vi.mocked(filterByBoundaryContext).mockReturnValue([entry]);
-      vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
-      vi.mocked(optimizedSemanticRecall).mockResolvedValue({
-        scoredEntries: [{ entry, score: 0.75 }],
-        cacheStats: { totalEntries: 1, cacheHits: 0, cacheMisses: 1, hitRate: 0 },
-      });
-
-      const services = createMockServices();
-      const auth = createMockAuth();
-      const query = { seed: 'test query', mode: 'semantic' as const };
-
-      await searchKnowledge(services, auth, query);
-
-      // Should use in-memory fallback with optimizedSemanticRecall
-      expect(getQueryEmbedding).toHaveBeenCalled();
-      expect(optimizedSemanticRecall).toHaveBeenCalled();
-    });
-  });
-
-  describe('hybrid recall with DB search fallback', () => {
-    it('uses in-memory search when DB search is disabled', async () => {
-      const entry = createMockEntry('entry_1');
-      vi.mocked(filterByBoundaryContext).mockReturnValue([entry]);
-      vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
-      vi.mocked(optimizedSemanticRecall).mockResolvedValue({
-        scoredEntries: [{ entry, score: 0.75 }],
-        cacheStats: { totalEntries: 1, cacheHits: 0, cacheMisses: 1, hitRate: 0 },
-      });
-
-      const services = createMockServices();
-      const auth = createMockAuth();
-      const query = { seed: 'test query', mode: 'hybrid' as const };
-
-      await searchKnowledge(services, auth, query);
-
-      // Should use in-memory path for both channels
-      expect(getQueryEmbedding).toHaveBeenCalled();
-      expect(keywordRecall).toHaveBeenCalledWith('test query', [entry]);
-    });
   });
 });
