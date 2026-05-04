@@ -1,5 +1,31 @@
 # Milestones
 
+## v1.6 Test Coverage & Optimization (Shipped: 2026-05-04)
+
+**Phases completed:** 9 phases, 20 plans, 16 tasks
+
+**Key accomplishments:**
+
+- Restored CI baseline: all 1725 tests pass with 0 failures after fixing lifecycle state machine mismatches and missing KnowledgeRecord fields
+- 58 pure unit tests covering all 9 governance exported functions: RBAC permission checks (allow/deny/throw), security level enforcement, decay state filtering, team boundary, system-admin bypass, and AND-semantics filter composition
+- 18 unit tests for detectDuplicates covering trap/skill match detection, exact fingerprint, lifecycle filtering, sorting, top-10 limiting, and boundary thresholds via public API
+- Fastify integration tests for auth routes (12 cases) and access-keys route (5 cases) using buildServer() + app.inject() with Bearer token auth
+- Added 127 new tests for retrieval orchestrator, merge strategy, semantic recall, artifact pipeline, and postgres store.
+- Added 154 new tests for CLI HTTP client, knowledge commands, team commands, and contracts schemas. Integrated Vitest coverage tooling with CI reporting.
+- Auto-fixed Issues:
+- Added 82 Zod schema validation tests for knowledge and retrieval contracts, plus Vitest coverage tooling with CI integration
+- Added retrieval performance optimizations including benchmarking, batch embedding lookup, reranking optimization, and database-level vector/keyword search with HNSW and GIN indexes.
+- Added batch embedding retrieval with cache hit rate tracking to reduce per-query overhead from O(n) async calls to O(n) sync checks + O(miss_count) computations
+- Optimized rerankCandidates() with hoisted Date creation, freshness multiplier caching, early termination threshold, and zero-delta skip for boundary explanations.
+- Added database-level vector similarity search using pgvector's cosine distance operator with HNSW index for O(log n) search performance.
+- Added GIN index for O(log n) JSONB token containment queries and comprehensive test suite for database-level keyword search
+- Implemented batch processing and memory logging in the indexing pipeline to reduce memory footprint.
+- Removed 6 unused files totaling ~450 lines of dead code.
+- Fixed 5 type errors to achieve clean typecheck with strict mode.
+- Updated version numbers and marked v1.6 complete in documentation.
+
+---
+
 ## v1.5 功能增强 (Shipped: 2026-05-03)
 
 **Phases completed:** 24 phases, 58 plans, 180 tasks

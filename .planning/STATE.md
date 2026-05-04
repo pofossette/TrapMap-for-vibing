@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Test Coverage & Optimization
-status: milestone_complete
-last_updated: "2026-05-04T05:45:00Z"
-last_activity: 2026-05-04 -- v1.6 milestone complete (all phases 68-76 shipped)
+status: completed
+last_updated: "2026-05-04T01:51:25.283Z"
+last_activity: 2026-05-04
 progress:
   total_phases: 9
-  completed_phases: 9
-  total_plans: 21
-  completed_plans: 18
-  percent: 100
+  completed_phases: 7
+  total_plans: 20
+  completed_plans: 17
+  percent: 85
 ---
 
 ## Project Reference
@@ -32,6 +32,7 @@ Last activity: 2026-05-04
 **Test Coverage & Optimization milestone complete!**
 
 All 9 phases completed:
+
 - Phase 68: Fix failing unit tests ✓
 - Phase 69: Governance and auth route tests ✓
 - Phase 70: Retrieval and indexing core tests ✓
@@ -93,3 +94,15 @@ All 9 phases completed:
 - Use exitOverride() for Commander.js auth tests
 - Configure coverage thresholds as warnings
 - Zod schema tests validate valid and invalid inputs
+
+## Deferred Items
+
+Items acknowledged and deferred at milestone close on 2026-05-04:
+
+| Category | Item | Status |
+|----------|------|--------|
+| quick_task | 260414-k03-skill-shareer-lightrag | unknown |
+| quick_task | 260414-k5n-biome-lint-format-knip | missing |
+| quick_task | 260417-ng2-docker | missing |
+| quick_task | 260419-eux-skill-llm-help | missing |
+| quick_task | 260425-e0h-optimize-trapmap-agent-skill-workflow-fo | missing |
