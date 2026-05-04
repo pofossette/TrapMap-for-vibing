@@ -130,11 +130,20 @@ export function buildServer(options: BuildServerOptions = {}) {
     ...(options.bodyLimit === undefined ? {} : { bodyLimit: options.bodyLimit }),
   });
 
-  app.get('/health', async () => ({
-    status: 'ok',
-    product: 'trapmap',
-    packages: ['cli', 'server', 'contracts'],
-  }));
+  app.get('/health', async () => {
+    const mem = process.memoryUsage();
+    return {
+      status: 'ok',
+      product: 'trapmap',
+      packages: ['cli', 'server', 'contracts'],
+      memory: {
+        rssMb: Math.round(mem.rss / 1024 / 1024),
+        heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024),
+        heapTotalMb: Math.round(mem.heapTotal / 1024 / 1024),
+      },
+      uptimeSeconds: Math.round(process.uptime()),
+    };
+  });
 
   app.get('/meta/routes', async () => ({
     documentedRoutes,
