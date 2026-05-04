@@ -114,7 +114,7 @@ pnpm eval:ci
 ### 新手入门
 - [代码导读](CODE_GUIDE.md) - 源码导航与建议阅读顺序
 - [快速上手](GETTING_STARTED.md) - 本地开发环境搭建
-- [短期计划](../plan.md) - 当前库化改造优先级和验收标准
+- [短期计划](../.planning/ROADMAP.md) - 当前库化改造优先级和验收标准
 - [数据模型](DATA_MODEL.md) - 核心数据实体及关系
 - [术语表](GLOSSARY.md) - 项目专用术语解释
 - [投稿指南](CONTRIBUTING.md) - 代码规范和 PR 流程
