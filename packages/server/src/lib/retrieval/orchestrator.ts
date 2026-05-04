@@ -205,19 +205,40 @@ export function selectRetrievalStrategyV2(seed: string): RetrievalDecision {
 }
 
 /**
+ * Options for timedStep to record input/output sizes.
+ */
+interface TimedStepOptions {
+  inputSize?: number;
+  outputSize?: number | ((result: unknown) => number);
+}
+
+/**
  * Time a pipeline step and record its latency.
  * Used to capture detailed timing for RAG logging.
  *
  * @param name - Name of the pipeline step
  * @param fn - Async function to execute
  * @param steps - Array to append the step timing to
+ * @param options - Optional input/output size tracking
  * @returns The result of the function
  */
-async function timedStep<T>(name: string, fn: () => Promise<T>, steps: PipelineStep[]): Promise<T> {
+async function timedStep<T>(
+  name: string,
+  fn: () => Promise<T>,
+  steps: PipelineStep[],
+  options?: TimedStepOptions,
+): Promise<T> {
   const start = Date.now();
   const result = await fn();
   const latencyMs = Date.now() - start;
-  steps.push({ name, latencyMs });
+  const step: PipelineStep = { name, latencyMs };
+  if (options?.inputSize !== undefined) {
+    step.inputSize = options.inputSize;
+  }
+  if (options?.outputSize !== undefined) {
+    step.outputSize = typeof options.outputSize === 'function' ? options.outputSize(result) : options.outputSize;
+  }
+  steps.push(step);
   return result;
 }
 
@@ -259,13 +280,16 @@ export async function searchKnowledge(
     );
 
     // Get current data snapshot
-    const data = await timedStep('snapshot', () => services.store.snapshot(), steps);
+    const data = await timedStep('snapshot', () => services.store.snapshot(), steps, {
+      outputSize: (d) => (d as Awaited<ReturnType<typeof services.store.snapshot>>).knowledgeEntries.length,
+    });
 
     // Filter eligible entries (approval, team, level, metadata)
     const eligibleEntries = await timedStep(
       'eligibility',
       () => Promise.resolve(filterEligibleEntries(data.knowledgeEntries, auth, parsed.filters)),
       steps,
+      { inputSize: data.knowledgeEntries.length, outputSize: (r) => (r as KnowledgeRecord[]).length },
     );
 
     // Filter by boundary constraints (BOUND-04)
@@ -273,6 +297,7 @@ export async function searchKnowledge(
       'boundary-filter',
       () => Promise.resolve(filterByBoundaryContext(eligibleEntries, parsed.boundaryContext)),
       steps,
+      { inputSize: eligibleEntries.length, outputSize: (r) => (r as KnowledgeRecord[]).length },
     );
 
     if (boundaryFiltered.length === 0) {
@@ -311,6 +336,7 @@ export async function searchKnowledge(
       'recall',
       () => dispatchByMode(parsed.mode, parsed.seed, boundaryFiltered, parsed, services, auth),
       steps,
+      { inputSize: boundaryFiltered.length, outputSize: (r) => (r as { scoredEntries: ScoredEntry[] }).scoredEntries.length },
     );
 
     // Update routing channels used from recall results
@@ -333,6 +359,7 @@ export async function searchKnowledge(
       'assembly',
       () => Promise.resolve(assembleResponseBuckets(scoredEntries, parsed.filters, citations, conflictHints)),
       steps,
+      { inputSize: scoredEntries.length, outputSize: (r) => { const ar = r as { globalConstraints: unknown[]; projectKnowledge: unknown[] }; return ar.globalConstraints.length + ar.projectKnowledge.length; } },
     );
 
     // Generate summary if requested and citations are available
@@ -1019,7 +1046,9 @@ export async function searchKnowledgeV2(
     );
 
     // Get current data snapshot
-    const data = await timedStep('snapshot', () => services.store.snapshot(), steps);
+    const data = await timedStep('snapshot', () => services.store.snapshot(), steps, {
+      outputSize: (d) => (d as Awaited<ReturnType<typeof services.store.snapshot>>).skillArtifacts?.length ?? 0,
+    });
 
     // Build governance filters from auth context
     const governanceFilters = {
@@ -1036,6 +1065,7 @@ export async function searchKnowledgeV2(
       'recall',
       () => Promise.resolve(rankCapsules(artifacts, intent, governanceFilters, parsed.maxResults)),
       steps,
+      { inputSize: artifacts.length, outputSize: (r) => (r as unknown[]).length },
     );
 
     // Update routing channels used from recall results

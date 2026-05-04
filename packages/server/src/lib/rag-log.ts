@@ -22,6 +22,10 @@ export interface RagLogConfig {
 export interface PipelineStep {
   name: string;
   latencyMs: number;
+  /** 输入数据量（如 entries 数量） */
+  inputSize?: number;
+  /** 输出数据量（如匹配结果数量） */
+  outputSize?: number;
   metadata?: Record<string, unknown>;
 }
 
