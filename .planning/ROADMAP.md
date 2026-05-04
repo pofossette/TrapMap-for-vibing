@@ -115,8 +115,11 @@
   - [x] 83-04-PLAN.md — Migrate teams.ts and members.ts routes (Wave 4)
 
 ### Cleanup
-- [ ] Phase 84: Tech Debt Cleanup (0/? plans)
+- [x] Phase 84: Tech Debt Cleanup (3 plans) (completed 2026-05-05)
   - 清理过期 worktree (574 MB)、knip 警告、依赖更新
+  - [x] 84-01-PLAN.md — Prune stale worktrees, fix duplicate export (Wave 1)
+  - [x] 84-02-PLAN.md — Unexport unused types to reduce knip warnings (Wave 2)
+  - [x] 84-03-PLAN.md — Final verification, update STATE.md (Wave 3)
 - [ ] Phase 86: Gitignore Cleanup (0/? plans)
   - 排除 dist/ 版本控制，清理仓库体积，更新 CONTRIBUTING.md
 
@@ -129,8 +132,8 @@
 | 1-47 | v1.0-v1.4 | 93/93 | Complete | 2026-04-29 |
 | 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
 | 68-76 | v1.6 | 20/20 | Complete | 2026-05-04 |
-| 78-86 | v1.7 | 10/12 | In Progress | — |
+| 78-86 | v1.7 | 14/15 | In Progress | — |
 
 ---
 
-*Roadmap updated: 2026-05-05 — Phase 83 complete*
+*Roadmap updated: 2026-05-05 — Phase 84 complete*

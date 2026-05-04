@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Eval Structural Coverage & Architecture Health
 status: ready_to_execute
-last_updated: "2026-05-05T22:00:00.000Z"
+last_updated: "2026-05-05T23:00:00.000Z"
 last_activity: 2026-05-05
 progress:
   total_phases: 9
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 15
-  completed_plans: 12
-  percent: 33
+  completed_plans: 15
+  percent: 100
 ---
 
 ## Project Reference
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 ## Current Position
 
 Phase: 84
-Plan: 84-01, 84-02, 84-03 (3 plans, ready to execute)
-Status: Phase 84 planned (Tech Debt Cleanup)
+Plan: Complete (3/3 plans)
+Status: Phase 84 complete (Tech Debt Cleanup)
 Last activity: 2026-05-05
 
 ## v1.6 Summary
@@ -63,6 +63,15 @@ All 9 phases completed:
 - 83-04: Migrate routes/teams.ts and routes/members.ts to use repositories
 - 83-04: Update resolveAuthContext to use all repositories when available
 - All phases: Incremental migration pattern `if (repo) { use repo } else { fallback to store }`
+
+### Decisions (Phase 84)
+
+- 84-01: Prune 16 stale agent worktrees from `.claude/worktrees/`
+- 84-01: Fix duplicate export by using `export { boundarySchema as boundaryMetaSchema }`
+- 84-02: Unexport internal-only types (GraphNode, GraphRelation, TrapGraphExtractionResult, etc.)
+- 84-02: Unexport Config interfaces (MergeConfig, RerankConfig, GraphAssistedRecallConfig, PgKeywordRecallConfig)
+- 84-02: Unexport batch embedding types (BatchEmbeddingResult, BatchCacheStats, OptimizedSemanticRecallResult)
+- 84-02: Unexport internal routing types (RetrievalDecision, RoutingDecision, RetrievalPipelineContext, RetrievalStats)
 
 ### Decisions (Phase 81)
 
