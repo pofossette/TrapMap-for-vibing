@@ -12,8 +12,9 @@
  */
 
 import type { RetrievalQuery } from '@trapmap/contracts';
-import { generateEmbedding, hashEmbeddingText } from '../../embeddings.js';
+import { generateEmbedding, generateEmbeddingWithMeta, type EmbeddingResult, hashEmbeddingText } from '../../embeddings.js';
 import type { KnowledgeRecord } from '../../store.js';
+import type { PipelineStep } from '../../rag-log.js';
 
 /**
  * Build the embedding text from a knowledge entry.
@@ -124,6 +125,33 @@ export async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[
  */
 export async function getQueryEmbedding(queryText: string): Promise<number[]> {
   return generateEmbedding(queryText);
+}
+
+/**
+ * Generate embedding vector for a query text with timing metadata.
+ * Optionally records the embedding step to a PipelineStep array for observability.
+ *
+ * @param queryText - Text to embed
+ * @param steps - Optional PipelineStep array to record the embedding timing
+ * @returns Embedding vector
+ */
+export async function getQueryEmbeddingWithMeta(
+  queryText: string,
+  steps?: PipelineStep[],
+): Promise<number[]> {
+  const embResult = await generateEmbeddingWithMeta(queryText);
+  const queryVector = embResult.vector;
+
+  if (steps) {
+    steps.push({
+      name: 'embedding',
+      latencyMs: embResult.latencyMs,
+      inputSize: queryText.length,
+      metadata: { provider: embResult.provider, type: 'query' },
+    });
+  }
+
+  return queryVector;
 }
 
 // =============================================================================

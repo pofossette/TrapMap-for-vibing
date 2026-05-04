@@ -164,13 +164,58 @@ export async function getEmbeddingsAdapter(): Promise<EmbeddingsAdapter> {
 }
 
 /**
+ * Embedding result with timing metadata.
+ */
+export interface EmbeddingResult {
+  vector: number[];
+  latencyMs: number;
+  provider: string;
+  cached: boolean;
+}
+
+/**
+ * Generate an embedding vector with timing metadata.
+ * Returns both the vector and performance info for observability.
+ *
+ * @param text - Text to embed
+ * @returns Embedding result with vector, latency, provider, and cache status
+ */
+export async function generateEmbeddingWithMeta(text: string): Promise<EmbeddingResult> {
+  const t0 = performance.now();
+
+  if (globalProvider) {
+    try {
+      const vector = await globalProvider.embed(text);
+      return {
+        vector,
+        latencyMs: performance.now() - t0,
+        provider: globalProvider.provider ?? 'global',
+        cached: false,
+      };
+    } catch {
+      // fall through to legacy adapter
+    }
+  }
+
+  const adapter = await getEmbeddingsAdapter();
+  const vector = await adapter.embed(text);
+  return {
+    vector,
+    latencyMs: performance.now() - t0,
+    provider: adapter.provider,
+    cached: false,
+  };
+}
+
+/**
  * Generate an embedding vector for text using the configured provider.
  * This is the main entry point for embedding generation.
+ *
+ * If the global provider fails (e.g. endpoint does not support embeddings),
+ * falls back to the legacy adapter chain which ends at FallbackEmbeddings
+ * (deterministic hash vectors for local/CI use).
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  if (globalProvider) {
-    return globalProvider.embed(text);
-  }
-  const adapter = await getEmbeddingsAdapter();
-  return adapter.embed(text);
+  const result = await generateEmbeddingWithMeta(text);
+  return result.vector;
 }
