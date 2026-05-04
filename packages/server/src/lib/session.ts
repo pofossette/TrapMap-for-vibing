@@ -16,6 +16,7 @@ import {
 import type { FastifyRequest } from 'fastify';
 
 import type { ServerConfig } from '../config.js';
+import type { AccessKeyRepository, SessionRepository } from './auth/index.js';
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { getSessionToken } from './context.js';
 import { AppError } from './errors.js';
@@ -88,19 +89,36 @@ function findMembershipForTeam(
   );
 }
 
+/**
+ * Create a new session using the repository pattern.
+ * Uses SessionRepository if provided, falls back to store.transact() for backward compatibility.
+ */
 export async function createSession(
-  store: SkillShareerStore,
+  repoOrStore: SessionRepository | SkillShareerStore,
   subjectType: SessionRecord['subjectType'],
   userId: string | null,
   activeTeamId: string | null,
 ): Promise<{ record: SessionRecord; token: string }> {
   const token = createOpaqueToken('ssr_sess');
   const tokenHash = hashSecret(token);
-  const createdAt = nowIso();
 
-  const record = await store.transact((data) => {
+  // Check if first argument is a SessionRepository (has 'create' method)
+  if ('create' in repoOrStore) {
+    const record = await repoOrStore.create({
+      subjectType,
+      userId,
+      activeTeamId,
+      tokenHash,
+      expiresAt: null,
+    });
+    return { record, token };
+  }
+
+  // Fallback: use store.transact() for backward compatibility
+  const createdAt = nowIso();
+  const record = await repoOrStore.transact((data) => {
     const sessionRecord: SessionRecord = {
-      id: store.nextId(data, 'session'),
+      id: repoOrStore.nextId(data, 'session'),
       subjectType,
       userId,
       activeTeamId,
@@ -118,12 +136,46 @@ export async function createSession(
   return { record, token };
 }
 
-export async function deleteSession(store: SkillShareerStore, token: string): Promise<void> {
+/**
+ * Delete a session using the repository pattern.
+ * Uses SessionRepository if provided, falls back to store.transact() for backward compatibility.
+ */
+export async function deleteSession(
+  repoOrStore: SessionRepository | SkillShareerStore,
+  token: string,
+): Promise<void> {
   const tokenHash = hashSecret(token);
 
-  await store.transact((data) => {
+  // Check if first argument is a SessionRepository (has 'deleteByTokenHash' method)
+  if ('deleteByTokenHash' in repoOrStore) {
+    await repoOrStore.deleteByTokenHash(tokenHash);
+    return;
+  }
+
+  // Fallback: use store.transact() for backward compatibility
+  await repoOrStore.transact((data) => {
     data.sessions = data.sessions.filter((session) => session.tokenHash !== tokenHash);
   });
+}
+
+/**
+ * Find a session by token using the repository pattern.
+ * Uses SessionRepository if provided, falls back to store snapshot for backward compatibility.
+ */
+export async function findSessionByToken(
+  repoOrStore: SessionRepository | SkillShareerStore,
+  token: string,
+): Promise<SessionRecord | null> {
+  const tokenHash = hashSecret(token);
+
+  // Check if first argument is a SessionRepository (has 'getByTokenHash' method)
+  if ('getByTokenHash' in repoOrStore) {
+    return repoOrStore.getByTokenHash(tokenHash);
+  }
+
+  // Fallback: use store snapshot for backward compatibility
+  const data = await repoOrStore.snapshot();
+  return data.sessions.find((candidate) => candidate.tokenHash === tokenHash) ?? null;
 }
 
 export function issueAccessKeyPayload(
@@ -311,13 +363,27 @@ export function requireSystemAdminKey(config: ServerConfig, providedKey: string)
   }
 }
 
-export function findAccessKeyByToken(
-  data: StoreData,
+/**
+ * Find an access key by token using either repository or store data.
+ * Uses AccessKeyRepository if provided, falls back to StoreData for backward compatibility.
+ */
+export async function findAccessKeyByToken(
+  repoOrData: AccessKeyRepository | StoreData,
   providedToken: string,
-): AccessKeyRecord | null {
+): Promise<AccessKeyRecord | null> {
+  const tokenHash = hashSecret(providedToken);
+
+  // Check if first argument is an AccessKeyRepository (has 'getByTokenHash' method)
+  if ('getByTokenHash' in repoOrData) {
+    const key = await repoOrData.getByTokenHash(tokenHash);
+    // Return null if revoked
+    return key?.revokedAt === null ? key : null;
+  }
+
+  // Fallback: use StoreData for backward compatibility
   return (
-    data.accessKeys.find(
-      (record) => record.revokedAt === null && record.tokenHash === hashSecret(providedToken),
+    repoOrData.accessKeys.find(
+      (record) => record.revokedAt === null && record.tokenHash === tokenHash,
     ) ?? null
   );
 }
