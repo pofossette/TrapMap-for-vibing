@@ -147,7 +147,8 @@ export type GovernanceFailureKind =
   | 'forbidden-hit'
   | 'unexpected-empty'
   | 'unexpected-non-empty'
-  | 'shape-mismatch';
+  | 'shape-mismatch'
+  | 'graph-plan-mismatch';
 
 /**
  * A single governance failure.

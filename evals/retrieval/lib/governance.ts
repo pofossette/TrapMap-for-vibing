@@ -2,11 +2,12 @@
  * Governance assertion layer for retrieval evaluation.
  *
  * Phase 26-01: REVAL-04
+ * Phase 78-08: GPEVAL-03 (graph-plan structural assertions)
  * Evaluates governance correctness separately from ranking metrics.
  * Hard-fail assertions for forbidden hits, outcome mismatches, and shape violations.
  */
 
-import type { RetrievalEvalCase } from '@trapmap/contracts';
+import type { GraphPlanExpectations, RetrievalEvalCase } from '@trapmap/contracts';
 import type { BucketMap, GovernanceFailure, GovernanceResult, NormalizedResult } from './types.js';
 
 // =============================================================================
@@ -156,6 +157,101 @@ function checkV2CapsuleCount(
   return null;
 }
 
+/**
+ * Check v3 graph-plan structural expectations.
+ * Phase 78-08: GPEVAL-03
+ */
+function checkV3GraphPlanStructure(
+  result: NormalizedResult,
+  graphPlanExpectations?: GraphPlanExpectations,
+): GovernanceFailure[] {
+  if (!graphPlanExpectations) return [];
+
+  const failures: GovernanceFailure[] = [];
+  const structure = result.graphPlanStructure;
+
+  // Handle missing structure when expectations exist
+  if (!structure) {
+    if (
+      graphPlanExpectations.expectedTrapNodeIds.length > 0 ||
+      graphPlanExpectations.expectedSkillNodeIds.length > 0
+    ) {
+      failures.push({
+        kind: 'graph-plan-mismatch',
+        description: 'Expected graph-plan structure but response had none (fallback or v1/v2)',
+        ids: [
+          ...graphPlanExpectations.expectedTrapNodeIds,
+          ...graphPlanExpectations.expectedSkillNodeIds,
+        ],
+      });
+    }
+    return failures;
+  }
+
+  // Check trap nodes
+  for (const expectedId of graphPlanExpectations.expectedTrapNodeIds) {
+    if (!structure.trapNodeIds.includes(expectedId)) {
+      failures.push({
+        kind: 'graph-plan-mismatch',
+        description: `Expected trap node ${expectedId} not found in graph`,
+        ids: [expectedId],
+      });
+    }
+  }
+
+  // Check skill nodes
+  for (const expectedId of graphPlanExpectations.expectedSkillNodeIds) {
+    if (!structure.skillNodeIds.includes(expectedId)) {
+      failures.push({
+        kind: 'graph-plan-mismatch',
+        description: `Expected skill node ${expectedId} not found in graph`,
+        ids: [expectedId],
+      });
+    }
+  }
+
+  // Check edges
+  for (const expectedEdge of graphPlanExpectations.expectedEdges) {
+    const found = structure.edges.some(
+      (e) =>
+        e.sourceNodeId === expectedEdge.sourceNodeId &&
+        e.targetNodeId === expectedEdge.targetNodeId &&
+        e.type === expectedEdge.type,
+    );
+    if (!found) {
+      failures.push({
+        kind: 'graph-plan-mismatch',
+        description: `Expected edge ${expectedEdge.sourceNodeId} -> ${expectedEdge.targetNodeId} (${expectedEdge.type}) not found`,
+        ids: [`${expectedEdge.sourceNodeId}->${expectedEdge.targetNodeId}`],
+      });
+    }
+  }
+
+  // Check blocking trap node IDs
+  for (const expectedId of graphPlanExpectations.expectedBlockingTrapNodeIds) {
+    if (!structure.blockingTrapNodeIds.includes(expectedId)) {
+      failures.push({
+        kind: 'graph-plan-mismatch',
+        description: `Expected blocking trap ${expectedId} not in focus`,
+        ids: [expectedId],
+      });
+    }
+  }
+
+  // Check recommended skill node IDs
+  for (const expectedId of graphPlanExpectations.expectedRecommendedSkillNodeIds) {
+    if (!structure.recommendedSkillNodeIds.includes(expectedId)) {
+      failures.push({
+        kind: 'graph-plan-mismatch',
+        description: `Expected recommended skill ${expectedId} not in focus`,
+        ids: [expectedId],
+      });
+    }
+  }
+
+  return failures;
+}
+
 // =============================================================================
 // Main Governance Evaluation
 // =============================================================================
@@ -199,6 +295,15 @@ export function evaluateGovernance(
       case_.expected.shape.expectedCapsuleCount,
     );
     if (capsuleCountFailure) failures.push(capsuleCountFailure);
+  }
+
+  // Check v3 graph-plan shape expectations (Phase 78-08: GPEVAL-03)
+  if (case_.endpoint === '/v3/retrieval/search') {
+    const graphPlanFailures = checkV3GraphPlanStructure(
+      result,
+      case_.expected.shape.graphPlanExpectations,
+    );
+    failures.push(...graphPlanFailures);
   }
 
   // Get all forbidden hits for reporting
