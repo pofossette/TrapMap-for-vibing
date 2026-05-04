@@ -99,7 +99,7 @@
 - [ ] Phase 81: Orchestrator Decomposition (3 plans)
   - 拆分 `lib/retrieval/orchestrator.ts` (1195 行) 为 routing.ts, recall-coordinator.ts, refinement.ts 模块
   - [x] 81-01-PLAN.md — Extract routing, recall-coordinator, refinement modules, slim orchestrator (Wave 1)
-  - [ ] 81-02-PLAN.md — Split test files to match module structure (Wave 2)
+  - [x] 81-02-PLAN.md — Split test files to match module structure (Wave 2)
   - [ ] 81-03-PLAN.md — Final verification, line count checks, full test run (Wave 3)
 - [ ] Phase 85: CLI Operations Refactoring (0/? plans)
   - 拆分 `cli/commands/operations.ts` (1060 行) 为 list, edit, import, export, activate 等独立命令
@@ -125,8 +125,8 @@
 | 1-47 | v1.0-v1.4 | 93/93 | Complete | 2026-04-29 |
 | 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
 | 68-76 | v1.6 | 20/20 | Complete | 2026-05-04 |
-| 78-86 | v1.7 | 1/9 | In Progress | — |
+| 78-86 | v1.7 | 2/9 | In Progress | — |
 
 ---
 
-*Roadmap updated: 2026-05-05 — Phase 81 Plan 01 complete*
+*Roadmap updated: 2026-05-05 — Phase 81 Plan 02 complete*
