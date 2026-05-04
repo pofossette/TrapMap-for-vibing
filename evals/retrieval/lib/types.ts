@@ -54,6 +54,31 @@ export interface ExecutionMetadata {
 }
 
 // =============================================================================
+// Graph-Plan Structure Types
+// =============================================================================
+
+/**
+ * Graph-plan structure extracted from v3 responses.
+ * Provides node/edge/focus information for structural assertions.
+ */
+export interface GraphPlanStructure {
+  /** All trap node IDs */
+  trapNodeIds: string[];
+  /** All skill node IDs */
+  skillNodeIds: string[];
+  /** Edge tuples: {source, target, type} */
+  edges: Array<{
+    sourceNodeId: string;
+    targetNodeId: string;
+    type: string;
+  }>;
+  /** Focus blocking traps */
+  blockingTrapNodeIds: string[];
+  /** Focus recommended skills */
+  recommendedSkillNodeIds: string[];
+}
+
+// =============================================================================
 // Normalized Result Types
 // =============================================================================
 
@@ -107,6 +132,8 @@ export interface NormalizedResult {
     fallbackApplied: boolean;
     channelsUsed: string[];
   };
+  /** Graph-plan structure (v3 only, undefined for v1/v2) */
+  graphPlanStructure?: GraphPlanStructure;
 }
 
 // =============================================================================
