@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import type { LifecycleState } from '@trapmap/contracts';
 import {
   getValidTransitions,
   isTerminalState,
   isValidTransition,
   transitionLifecycleState,
 } from './state-machine.js';
-import type { LifecycleState } from '@trapmap/contracts';
 
 describe('lifecycle state machine', () => {
   describe('isValidTransition', () => {

@@ -97,9 +97,7 @@ feedbackPrompts:
 ---
 # Test Skill`;
       const result = parseSkillMarkdown(content);
-      expect(result.feedbackPrompts).toEqual([
-        { prompt: 'Optional question', required: false },
-      ]);
+      expect(result.feedbackPrompts).toEqual([{ prompt: 'Optional question', required: false }]);
     });
 
     it('ignores malformed feedbackPrompts entries without prompt field', () => {

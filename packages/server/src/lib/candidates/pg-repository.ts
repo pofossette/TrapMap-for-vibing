@@ -8,10 +8,6 @@
  * Phase: 61 (WRITE-01)
  */
 
-import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import type { InferSelectModel } from 'drizzle-orm';
-import type { Pool } from 'pg';
 import type {
   AnalysisSnapshot,
   CandidateStatus,
@@ -19,10 +15,14 @@ import type {
   DuplicateCase,
   ManualResultSubmission,
 } from '@trapmap/contracts';
+import { eq } from 'drizzle-orm';
+import type { InferSelectModel } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import type { Pool } from 'pg';
 
+import { candidates } from '../persistence/schema.js';
 import type { CandidateRepository } from './repository.js';
 import { createManualResultRecord } from './repository.js';
-import { candidates } from '../persistence/schema.js';
 
 /**
  * PostgreSQL-backed repository for candidate CRUD operations.
@@ -125,11 +125,7 @@ export class PgCandidateRepository implements CandidateRepository {
    * Update candidate status with proper timestamp handling.
    * Uses SELECT FOR UPDATE for row-level locking.
    */
-  async updateStatus(
-    candidateId: string,
-    status: CandidateStatus,
-    error?: string,
-  ): Promise<void> {
+  async updateStatus(candidateId: string, status: CandidateStatus, error?: string): Promise<void> {
     await this.ensureSchema();
 
     const client = await this.pool.connect();
@@ -179,10 +175,11 @@ export class PgCandidateRepository implements CandidateRepository {
           [status, now, candidateId],
         );
       } else {
-        await client.query(
-          'UPDATE candidates SET status = $1, updated_at = $2 WHERE id = $3',
-          [status, now, candidateId],
-        );
+        await client.query('UPDATE candidates SET status = $1, updated_at = $2 WHERE id = $3', [
+          status,
+          now,
+          candidateId,
+        ]);
       }
 
       await client.query('COMMIT');
@@ -233,10 +230,7 @@ export class PgCandidateRepository implements CandidateRepository {
   /**
    * Attach duplicate case to candidate.
    */
-  async attachDuplicateCase(
-    candidateId: string,
-    duplicateCase: DuplicateCase,
-  ): Promise<void> {
+  async attachDuplicateCase(candidateId: string, duplicateCase: DuplicateCase): Promise<void> {
     await this.ensureSchema();
 
     const client = await this.pool.connect();
@@ -316,10 +310,7 @@ export class PgCandidateRepository implements CandidateRepository {
   async listByStatus(status: CandidateStatus): Promise<CandidateSubmission[]> {
     await this.ensureSchema();
 
-    const result = await this.db
-      .select()
-      .from(candidates)
-      .where(eq(candidates.status, status));
+    const result = await this.db.select().from(candidates).where(eq(candidates.status, status));
 
     return result.map((row) => rowToCandidateSubmission(row as DrizzleCandidateRow));
   }

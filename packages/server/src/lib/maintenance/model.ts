@@ -53,7 +53,11 @@ export function isReviewOverdue(reviewBy: string | null, now: Date): boolean {
  * @param now - Current date for comparison
  * @returns true if verification is stale or never performed
  */
-export function isStaleVerification(lastVerifiedAt: string | null, staleDays: number, now: Date): boolean {
+export function isStaleVerification(
+  lastVerifiedAt: string | null,
+  staleDays: number,
+  now: Date,
+): boolean {
   if (lastVerifiedAt === null) return true;
   const verifiedAt = new Date(lastVerifiedAt);
   const ageMs = now.getTime() - verifiedAt.getTime();

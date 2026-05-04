@@ -360,9 +360,7 @@ function printSummary(results: CaseResult[], slices: SliceMetrics[]): void {
   }
 
   // Print graph-plan structural failures
-  const graphPlanFailures = results.filter(
-    (r) => r.graphPlanResult && !r.graphPlanResult.passed,
-  );
+  const graphPlanFailures = results.filter((r) => r.graphPlanResult && !r.graphPlanResult.passed);
   if (graphPlanFailures.length > 0) {
     console.log('\n=== Graph-Plan Structural Failures ===');
     for (const result of graphPlanFailures) {

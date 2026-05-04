@@ -4,10 +4,10 @@ import type {
   KnowledgeHistoryResponse,
 } from '@trapmap/contracts';
 import { Command } from 'commander';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as http from '../lib/http.js';
 import * as config from '../lib/config.js';
+import * as http from '../lib/http.js';
 import * as input from '../lib/input.js';
 
 // Mock the dependencies
@@ -613,10 +613,9 @@ describe('knowledge commands', () => {
       registerKnowledgeCommands(program, { allowInspect: false, allowSubmit: true });
 
       await expect(
-        program.parseAsync(
-          ['resubmit', 'entry-1', '--label', 'label1', '--shortcut', 'Test'],
-          { from: 'user' },
-        ),
+        program.parseAsync(['resubmit', 'entry-1', '--label', 'label1', '--shortcut', 'Test'], {
+          from: 'user',
+        }),
       ).rejects.toThrow();
 
       expect(http.requireSessionToken).toHaveBeenCalled();
@@ -648,10 +647,9 @@ describe('knowledge commands', () => {
       const program = new Command();
       registerKnowledgeCommands(program, { allowInspect: false, allowSubmit: true });
 
-      await program.parseAsync(
-        ['resubmit', 'entry-1', '--label', 'label1', '--shortcut', 'Test'],
-        { from: 'user' },
-      );
+      await program.parseAsync(['resubmit', 'entry-1', '--label', 'label1', '--shortcut', 'Test'], {
+        from: 'user',
+      });
 
       const output = consoleLogSpy.mock.calls.map((call) => call[0]).join('\n');
       expect(output).toContain('Resubmitted entry-1');
@@ -924,16 +922,7 @@ describe('knowledge commands', () => {
       registerKnowledgeCommands(program, { allowInspect: false, allowSubmit: true });
 
       await program.parseAsync(
-        [
-          'submit',
-          '--scope',
-          'global',
-          '--label',
-          'label1',
-          '--shortcut',
-          'Test',
-          '--json',
-        ],
+        ['submit', '--scope', 'global', '--label', 'label1', '--shortcut', 'Test', '--json'],
         { from: 'user' },
       );
 

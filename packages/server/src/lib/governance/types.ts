@@ -3,7 +3,13 @@
  * Used by both KnowledgeEntry (trap) and SkillArtifact domains.
  */
 
-import type { Boundary, DecayState, LifecycleState, Scope, SecurityLevel } from '@trapmap/contracts';
+import type {
+  Boundary,
+  DecayState,
+  LifecycleState,
+  Scope,
+  SecurityLevel,
+} from '@trapmap/contracts';
 
 /**
  * Governance context representing the caller's access rights.

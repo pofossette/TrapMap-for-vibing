@@ -7,8 +7,6 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { SkillArtifactRecord, StoreData } from '../store.js';
-import { createEmptyStoreData, nowIso } from '../store.js';
 import type { ArtifactGraphAdapter } from '../indexing/adapters/artifact-graph.js';
 import {
   getArtifactAdapters,
@@ -16,6 +14,8 @@ import {
   runArtifactAdapterFanOut,
   runArtifactAdapterRemoval,
 } from '../indexing/artifact-pipeline.js';
+import type { SkillArtifactRecord, StoreData } from '../store.js';
+import { createEmptyStoreData, nowIso } from '../store.js';
 
 function makeMockAdapter(overrides: Partial<ArtifactGraphAdapter> = {}): ArtifactGraphAdapter {
   return {
@@ -138,12 +138,8 @@ describe('Gap 4: Artifact pipeline processes indexing artifacts end-to-end', () 
       artifactId: 'artifact-xyz',
     });
 
-    expect(a1.remove).toHaveBeenCalledWith(
-      expect.objectContaining({ artifactId: 'artifact-xyz' }),
-    );
-    expect(a2.remove).toHaveBeenCalledWith(
-      expect.objectContaining({ artifactId: 'artifact-xyz' }),
-    );
+    expect(a1.remove).toHaveBeenCalledWith(expect.objectContaining({ artifactId: 'artifact-xyz' }));
+    expect(a2.remove).toHaveBeenCalledWith(expect.objectContaining({ artifactId: 'artifact-xyz' }));
   });
 
   it('override adapters parameter does not mutate registered adapters', async () => {

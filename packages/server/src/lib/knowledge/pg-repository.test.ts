@@ -10,10 +10,14 @@
  * - Index table compatibility
  */
 
-import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { Pool } from 'pg';
 import { Pool as PgPool } from 'pg';
-import type { KnowledgeRecord, KnowledgeRevisionRecord, KnowledgeLifecycleEventRecord } from '../store.js';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type {
+  KnowledgeLifecycleEventRecord,
+  KnowledgeRecord,
+  KnowledgeRevisionRecord,
+} from '../store.js';
 import { nowIso } from '../store.js';
 import { PgKnowledgeRepository } from './pg-repository.js';
 
@@ -103,7 +107,7 @@ describeIfDb('PgKnowledgeRepository', () => {
   let testPool: Pool;
 
   beforeAll(async () => {
-    testPool = await getPool() as Pool;
+    testPool = (await getPool()) as Pool;
     repository = new PgKnowledgeRepository(testPool);
   });
 
@@ -140,7 +144,7 @@ describeIfDb('PgKnowledgeRepository', () => {
 
       for (let i = 0; i < 5; i++) {
         const id = await repository.nextId();
-        const num = parseInt(id.replace('knowledge_', ''), 10);
+        const num = Number.parseInt(id.replace('knowledge_', ''), 10);
         ids.push(num);
       }
 
@@ -287,18 +291,24 @@ describeIfDb('PgKnowledgeRepository', () => {
 
   describe('listByFilter', () => {
     it('should list by lifecycle state', async () => {
-      await repository.insert(createTestEntry({
-        id: 'knowledge_test_list_1',
-        lifecycleState: 'approved',
-      }));
-      await repository.insert(createTestEntry({
-        id: 'knowledge_test_list_2',
-        lifecycleState: 'submitted',
-      }));
-      await repository.insert(createTestEntry({
-        id: 'knowledge_test_list_3',
-        lifecycleState: 'approved',
-      }));
+      await repository.insert(
+        createTestEntry({
+          id: 'knowledge_test_list_1',
+          lifecycleState: 'approved',
+        }),
+      );
+      await repository.insert(
+        createTestEntry({
+          id: 'knowledge_test_list_2',
+          lifecycleState: 'submitted',
+        }),
+      );
+      await repository.insert(
+        createTestEntry({
+          id: 'knowledge_test_list_3',
+          lifecycleState: 'approved',
+        }),
+      );
 
       const approved = await repository.listByFilter({ lifecycleState: 'approved' });
       expect(approved.length).toBeGreaterThanOrEqual(2);
@@ -306,14 +316,18 @@ describeIfDb('PgKnowledgeRepository', () => {
     });
 
     it('should list by team ID', async () => {
-      await repository.insert(createTestEntry({
-        id: 'knowledge_test_team_1',
-        teamId: 'team_alpha',
-      }));
-      await repository.insert(createTestEntry({
-        id: 'knowledge_test_team_2',
-        teamId: 'team_beta',
-      }));
+      await repository.insert(
+        createTestEntry({
+          id: 'knowledge_test_team_1',
+          teamId: 'team_alpha',
+        }),
+      );
+      await repository.insert(
+        createTestEntry({
+          id: 'knowledge_test_team_2',
+          teamId: 'team_beta',
+        }),
+      );
 
       const teamAlpha = await repository.listByFilter({ teamId: 'team_alpha' });
       expect(teamAlpha.length).toBeGreaterThanOrEqual(1);
@@ -321,14 +335,18 @@ describeIfDb('PgKnowledgeRepository', () => {
     });
 
     it('should list by owner user ID', async () => {
-      await repository.insert(createTestEntry({
-        id: 'knowledge_test_owner_1',
-        ownerUserId: 'user_alice',
-      }));
-      await repository.insert(createTestEntry({
-        id: 'knowledge_test_owner_2',
-        ownerUserId: 'user_bob',
-      }));
+      await repository.insert(
+        createTestEntry({
+          id: 'knowledge_test_owner_1',
+          ownerUserId: 'user_alice',
+        }),
+      );
+      await repository.insert(
+        createTestEntry({
+          id: 'knowledge_test_owner_2',
+          ownerUserId: 'user_bob',
+        }),
+      );
 
       const alices = await repository.listByFilter({ ownerUserId: 'user_alice' });
       expect(alices.length).toBeGreaterThanOrEqual(1);
@@ -419,7 +437,7 @@ describeIfDb('PgKnowledgeRepository concurrent access', () => {
   let testPool: Pool;
 
   beforeAll(async () => {
-    testPool = await getPool() as Pool;
+    testPool = (await getPool()) as Pool;
     repository = new PgKnowledgeRepository(testPool);
   });
 
@@ -431,8 +449,12 @@ describeIfDb('PgKnowledgeRepository concurrent access', () => {
 
   beforeEach(async () => {
     await testPool.query("DELETE FROM knowledge_entries WHERE id LIKE 'knowledge_concurrent_%'");
-    await testPool.query("DELETE FROM knowledge_revisions WHERE entry_id LIKE 'knowledge_concurrent_%'");
-    await testPool.query("DELETE FROM lifecycle_events WHERE entry_id LIKE 'knowledge_concurrent_%'");
+    await testPool.query(
+      "DELETE FROM knowledge_revisions WHERE entry_id LIKE 'knowledge_concurrent_%'",
+    );
+    await testPool.query(
+      "DELETE FROM lifecycle_events WHERE entry_id LIKE 'knowledge_concurrent_%'",
+    );
   });
 
   it('should handle concurrent lifecycle updates safely', async () => {

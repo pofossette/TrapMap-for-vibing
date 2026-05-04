@@ -34,11 +34,7 @@ export const maintenanceMetaSchema = z.object({
  * - extend-review: Extend the review-by deadline
  * - mark-verified: Mark entries as verified (resets review clock)
  */
-export const maintenanceActionSchema = z.enum([
-  'assign-owner',
-  'extend-review',
-  'mark-verified',
-]);
+export const maintenanceActionSchema = z.enum(['assign-owner', 'extend-review', 'mark-verified']);
 
 /**
  * Request schema for listing entries with maintenance-related filters.
@@ -48,34 +44,26 @@ export const maintenanceActionSchema = z.enum([
  */
 export const maintenanceEntryListRequestSchema = z.object({
   /** Filter to entries without an assigned maintainer */
-  missingOwner: z.preprocess(
-    (val) => val === 'true' || val === true,
-    z.boolean().optional(),
-  ),
+  missingOwner: z.preprocess((val) => val === 'true' || val === true, z.boolean().optional()),
   /** Filter to entries past their review-by date */
-  reviewOverdue: z.preprocess(
-    (val) => val === 'true' || val === true,
-    z.boolean().optional(),
-  ),
+  reviewOverdue: z.preprocess((val) => val === 'true' || val === true, z.boolean().optional()),
   /** Filter to entries with stale verification (lastVerifiedAt older than staleDays) */
-  staleVerification: z.preprocess(
-    (val) => val === 'true' || val === true,
-    z.boolean().optional(),
-  ),
+  staleVerification: z.preprocess((val) => val === 'true' || val === true, z.boolean().optional()),
   /** Number of days since last verification to consider stale (requires staleVerification) */
   staleDays: z.coerce.number().int().min(1).max(3650).optional(),
   /** Filter by scope */
   scope: scopeSchema.optional(),
   /** Filter by labels */
-  labels: z.preprocess(
-    (val) => {
-      if (val === undefined || val === null) return undefined;
-      if (Array.isArray(val)) return val;
-      if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
-      return val;
-    },
-    z.array(labelSchema).optional(),
-  ),
+  labels: z.preprocess((val) => {
+    if (val === undefined || val === null) return undefined;
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string')
+      return val
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    return val;
+  }, z.array(labelSchema).optional()),
   /** Maximum number of items to return */
   limit: z.coerce.number().int().min(1).max(100).default(25),
 });
@@ -171,6 +159,10 @@ export type MaintenanceAction = z.infer<typeof maintenanceActionSchema>;
 export type MaintenanceEntryListRequest = z.infer<typeof maintenanceEntryListRequestSchema>;
 export type MaintenanceAwareListItem = z.infer<typeof maintenanceAwareListItemSchema>;
 export type MaintenanceEntryListResponse = z.infer<typeof maintenanceEntryListResponseSchema>;
-export type MaintenanceBatchOperationRequest = z.infer<typeof maintenanceBatchOperationRequestSchema>;
+export type MaintenanceBatchOperationRequest = z.infer<
+  typeof maintenanceBatchOperationRequestSchema
+>;
 export type MaintenanceBatchOperationItem = z.infer<typeof maintenanceBatchOperationItemSchema>;
-export type MaintenanceBatchOperationResponse = z.infer<typeof maintenanceBatchOperationResponseSchema>;
+export type MaintenanceBatchOperationResponse = z.infer<
+  typeof maintenanceBatchOperationResponseSchema
+>;

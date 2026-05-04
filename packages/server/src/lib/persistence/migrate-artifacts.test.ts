@@ -209,7 +209,11 @@ function createMockPool(): MockPool {
     }
 
     // Handle DDL
-    if (sqlUpper.includes('CREATE SEQUENCE') || sqlUpper.includes('CREATE TABLE') || sqlUpper.includes('CREATE INDEX')) {
+    if (
+      sqlUpper.includes('CREATE SEQUENCE') ||
+      sqlUpper.includes('CREATE TABLE') ||
+      sqlUpper.includes('CREATE INDEX')
+    ) {
       return { rows: [] };
     }
 
@@ -415,7 +419,10 @@ describe('migrateSkillArtifacts', () => {
     const originalQuery = pool.query;
     pool.query = vi.fn(async (sql: string, params?: unknown[]) => {
       // For SELECT queries, check if we're trying to read a "bad" entry
-      if (sql.toUpperCase().includes('SELECT') && sql.toUpperCase().includes('FROM SKILL_ARTIFACTS')) {
+      if (
+        sql.toUpperCase().includes('SELECT') &&
+        sql.toUpperCase().includes('FROM SKILL_ARTIFACTS')
+      ) {
         // Return empty to simulate entry not existing yet
         return { rows: [] };
       }

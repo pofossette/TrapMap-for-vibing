@@ -1,6 +1,12 @@
 /**
  * AI provider configuration.
  * Follows the same sub-config pattern as RagLogConfig / loadRagLogConfig().
+ *
+ * Supports separate providers for chat and embedding:
+ * - Primary provider: AI_PROVIDER, AI_BASE_URL, AI_API_KEY, AI_CHAT_MODEL
+ * - Embedding override (optional): EMBEDDING_PROVIDER, EMBEDDING_BASE_URL, EMBEDDING_API_KEY, EMBEDDING_MODEL
+ *
+ * If embedding override is not set, uses primary provider for both.
  */
 
 export type AiProviderType = 'openai' | 'openai-compatible' | 'ollama' | 'fallback';
@@ -12,6 +18,16 @@ export interface AiProviderConfig {
   readonly chatModel: string;
   readonly embeddingModel: string;
   readonly isConfigured: boolean;
+  /** Embedding provider config if different from primary */
+  readonly embeddingProvider?:
+    | {
+        readonly provider: AiProviderType;
+        readonly baseUrl: string;
+        readonly apiKey: string;
+        readonly model: string;
+        readonly isConfigured: boolean;
+      }
+    | undefined;
 }
 
 const PROVIDER_DEFAULTS: Record<
@@ -64,6 +80,12 @@ function resolveProviderType(): AiProviderType {
  * - AI_API_KEY: override default API key
  * - AI_CHAT_MODEL: override default chat model
  * - AI_EMBEDDING_MODEL: override default embedding model
+ *
+ * Separate embedding provider (optional):
+ * - EMBEDDING_PROVIDER: openai | openai-compatible | ollama
+ * - EMBEDDING_BASE_URL: embedding API base URL
+ * - EMBEDDING_API_KEY: embedding API key
+ * - EMBEDDING_MODEL: embedding model name
  */
 export function loadAiProviderConfig(): AiProviderConfig {
   const provider = resolveProviderType();
@@ -90,5 +112,25 @@ export function loadAiProviderConfig(): AiProviderConfig {
   const isConfigured =
     baseUrl.length > 0 && apiKey.length > 0 && chatModel.length > 0 && embeddingModel.length > 0;
 
-  return { provider, baseUrl, apiKey, chatModel, embeddingModel, isConfigured };
+  // Check for separate embedding provider configuration
+  const embeddingProviderType = process.env.EMBEDDING_PROVIDER as AiProviderType | undefined;
+  let embeddingProvider: AiProviderConfig['embeddingProvider'];
+
+  if (embeddingProviderType && embeddingProviderType !== 'fallback') {
+    const embDefaults = PROVIDER_DEFAULTS[embeddingProviderType];
+    const embBaseUrl = process.env.EMBEDDING_BASE_URL || embDefaults.baseUrl;
+    const embApiKey = process.env.EMBEDDING_API_KEY || embDefaults.apiKey;
+    const embModel = process.env.EMBEDDING_MODEL || embDefaults.embeddingModel;
+    const embConfigured = embBaseUrl.length > 0 && embApiKey.length > 0 && embModel.length > 0;
+
+    embeddingProvider = {
+      provider: embeddingProviderType,
+      baseUrl: embBaseUrl,
+      apiKey: embApiKey,
+      model: embModel,
+      isConfigured: embConfigured,
+    };
+  }
+
+  return { provider, baseUrl, apiKey, chatModel, embeddingModel, isConfigured, embeddingProvider };
 }

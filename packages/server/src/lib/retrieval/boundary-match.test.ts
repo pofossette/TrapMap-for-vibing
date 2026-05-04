@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'vitest';
 import type { Boundary, BoundaryContext, BoundaryExplanation } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 import {
-  filterByBoundary,
-  computeBoundaryScoreDelta,
-  buildBoundaryExplanation,
   BOUNDARY_EXCLUDED_PENALTY,
   BOUNDARY_PREFERRED_BOOST,
+  buildBoundaryExplanation,
+  computeBoundaryScoreDelta,
+  filterByBoundary,
 } from './boundary-match.js';
 
 // ---------------------------------------------------------------------------
@@ -121,9 +121,13 @@ describe('filterByBoundary', () => {
       makeEntry(makeBoundary({ versions: [{ package: 'node', range: '^18.0.0' }] })),
     ];
     // Same major, higher minor — passes
-    expect(filterByBoundary(entries, makeCtx({ versions: [{ package: 'node', version: '18.5.0' }] }))).toHaveLength(1);
+    expect(
+      filterByBoundary(entries, makeCtx({ versions: [{ package: 'node', version: '18.5.0' }] })),
+    ).toHaveLength(1);
     // Different major — fails
-    expect(filterByBoundary(entries, makeCtx({ versions: [{ package: 'node', version: '19.0.0' }] }))).toHaveLength(0);
+    expect(
+      filterByBoundary(entries, makeCtx({ versions: [{ package: 'node', version: '19.0.0' }] })),
+    ).toHaveLength(0);
   });
 
   it('handles tilde range (~)', () => {
@@ -131,17 +135,23 @@ describe('filterByBoundary', () => {
       makeEntry(makeBoundary({ versions: [{ package: 'node', range: '~18.2.0' }] })),
     ];
     // Same major.minor, higher patch — passes
-    expect(filterByBoundary(entries, makeCtx({ versions: [{ package: 'node', version: '18.2.5' }] }))).toHaveLength(1);
+    expect(
+      filterByBoundary(entries, makeCtx({ versions: [{ package: 'node', version: '18.2.5' }] })),
+    ).toHaveLength(1);
     // Different minor — fails
-    expect(filterByBoundary(entries, makeCtx({ versions: [{ package: 'node', version: '18.3.0' }] }))).toHaveLength(0);
+    expect(
+      filterByBoundary(entries, makeCtx({ versions: [{ package: 'node', version: '18.3.0' }] })),
+    ).toHaveLength(0);
   });
 
   it('handles exact match range', () => {
-    const entries = [
-      makeEntry(makeBoundary({ versions: [{ package: 'node', range: '18.0.0' }] })),
-    ];
-    expect(filterByBoundary(entries, makeCtx({ versions: [{ package: 'node', version: '18.0.0' }] }))).toHaveLength(1);
-    expect(filterByBoundary(entries, makeCtx({ versions: [{ package: 'node', version: '18.0.1' }] }))).toHaveLength(0);
+    const entries = [makeEntry(makeBoundary({ versions: [{ package: 'node', range: '18.0.0' }] }))];
+    expect(
+      filterByBoundary(entries, makeCtx({ versions: [{ package: 'node', version: '18.0.0' }] })),
+    ).toHaveLength(1);
+    expect(
+      filterByBoundary(entries, makeCtx({ versions: [{ package: 'node', version: '18.0.1' }] })),
+    ).toHaveLength(0);
   });
 
   it('normalizes package names for matching', () => {

@@ -13,10 +13,7 @@ export interface PromptChoice<T> {
  * Prompt the user to select from a list of choices.
  * Wraps @inquirer/prompts select for testability.
  */
-export async function promptSelect<T>(
-  message: string,
-  choices: PromptChoice<T>[],
-): Promise<T> {
+export async function promptSelect<T>(message: string, choices: PromptChoice<T>[]): Promise<T> {
   return select({
     message,
     choices: choices.map((c) => ({
@@ -49,10 +46,7 @@ export async function promptInput(
  * Prompt the user for yes/no confirmation.
  * Wraps @inquirer/prompts confirm for testability.
  */
-export async function promptConfirm(
-  message: string,
-  defaultValue = false,
-): Promise<boolean> {
+export async function promptConfirm(message: string, defaultValue = false): Promise<boolean> {
   return confirm({
     message,
     default: defaultValue,

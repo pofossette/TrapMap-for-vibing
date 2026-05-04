@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  conflictTypeSchema,
-  conflictRelationSchema,
-  conflictHintSchema,
-} from './conflict.js';
+import { conflictHintSchema, conflictRelationSchema, conflictTypeSchema } from './conflict.js';
 
 describe('conflict schema', () => {
   describe('conflictTypeSchema', () => {

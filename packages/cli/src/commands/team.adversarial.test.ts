@@ -5,10 +5,10 @@
  */
 import type { LoginResponse, Team, TeamListResponse } from '@trapmap/contracts';
 import { Command } from 'commander';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as http from '../lib/http.js';
 import * as config from '../lib/config.js';
+import * as http from '../lib/http.js';
 
 // Mock the dependencies
 vi.mock('../lib/http.js', () => ({
@@ -58,7 +58,7 @@ function createMockTeam(overrides: Partial<Team> = {}): Team {
 }
 
 // Helper to create LoginResponse
-function createMockLoginResponse(teamId: string = 'team-1'): LoginResponse {
+function createMockLoginResponse(teamId = 'team-1'): LoginResponse {
   return {
     session: {
       sessionId: 'session-1',
@@ -226,7 +226,11 @@ describe('team commands adversarial tests', () => {
 
   describe('create command edge cases', () => {
     it('sends name and optional description in POST body', async () => {
-      const newTeam = createMockTeam({ id: 'team-new', name: 'New Team', description: 'Team desc' });
+      const newTeam = createMockTeam({
+        id: 'team-new',
+        name: 'New Team',
+        description: 'Team desc',
+      });
 
       vi.mocked(http.apiRequest).mockResolvedValue({
         data: newTeam,
@@ -238,10 +242,9 @@ describe('team commands adversarial tests', () => {
       const program = new Command();
       registerTeamCommands(program, { allowCreate: true });
 
-      await program.parseAsync(
-        ['team', 'create', 'New Team', '--description', 'Team desc'],
-        { from: 'user' },
-      );
+      await program.parseAsync(['team', 'create', 'New Team', '--description', 'Team desc'], {
+        from: 'user',
+      });
 
       expect(http.apiRequest).toHaveBeenCalledWith(
         expect.anything(),

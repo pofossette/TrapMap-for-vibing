@@ -62,8 +62,19 @@ export const volatileDecayConfigSchema = z.object({
  */
 export const freshnessDecayConfigSchema = z.object({
   evergreen: evergreenDecayConfigSchema.default({ enabled: false }),
-  versioned: versionedDecayConfigSchema.default({ enabled: true, mode: 'step', matchMultiplier: 1.0, mismatchMultiplier: 0.5 }),
-  volatile: volatileDecayConfigSchema.default({ enabled: true, mode: 'exponential', halfLifeDays: 30, zeroDays: 90, floor: 0.3 }),
+  versioned: versionedDecayConfigSchema.default({
+    enabled: true,
+    mode: 'step',
+    matchMultiplier: 1.0,
+    mismatchMultiplier: 0.5,
+  }),
+  volatile: volatileDecayConfigSchema.default({
+    enabled: true,
+    mode: 'exponential',
+    halfLifeDays: 30,
+    zeroDays: 90,
+    floor: 0.3,
+  }),
 });
 
 export type FreshnessDecayMode = z.infer<typeof freshnessDecayModeSchema>;
@@ -82,13 +93,7 @@ export type FreshnessDecayConfig = z.infer<typeof freshnessDecayConfigSchema>;
  * - expired: Age >= expireDays, should be retired
  * - superseded: Replaced by newer knowledge (regardless of age)
  */
-export const decayStateSchema = z.enum([
-  'active',
-  'review-due',
-  'stale',
-  'expired',
-  'superseded',
-]);
+export const decayStateSchema = z.enum(['active', 'review-due', 'stale', 'expired', 'superseded']);
 
 /**
  * Configuration for decay state transitions.
@@ -173,26 +178,28 @@ export const decayAwareListItemSchema = z.object({
  * for building the batch management discovery interface.
  */
 export const decayEntryListRequestSchema = z.object({
-  decayStates: z.preprocess(
-    (val) => {
-      if (val === undefined || val === null) return undefined;
-      if (Array.isArray(val)) return val;
-      if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
-      return val;
-    },
-    z.array(decayStateSchema).optional(),
-  ),
+  decayStates: z.preprocess((val) => {
+    if (val === undefined || val === null) return undefined;
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string')
+      return val
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    return val;
+  }, z.array(decayStateSchema).optional()),
   ageMinDays: z.coerce.number().int().min(0).optional(),
   ageMaxDays: z.coerce.number().int().min(0).optional(),
-  labels: z.preprocess(
-    (val) => {
-      if (val === undefined || val === null) return undefined;
-      if (Array.isArray(val)) return val;
-      if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
-      return val;
-    },
-    z.array(labelSchema).optional(),
-  ),
+  labels: z.preprocess((val) => {
+    if (val === undefined || val === null) return undefined;
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string')
+      return val
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    return val;
+  }, z.array(labelSchema).optional()),
   scope: scopeSchema.optional(),
   limit: z.coerce.number().int().min(1).max(100).default(25),
 });

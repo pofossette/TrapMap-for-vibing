@@ -14,8 +14,8 @@
 import { describe, expect, it } from 'vitest';
 import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 import { nowIso } from '../store.js';
-import { tokenize } from './fingerprint.js';
 import { detectDuplicates, getDetectionVersion } from './detector.js';
+import { tokenize } from './fingerprint.js';
 import type { DuplicateDetectionInput } from './types.js';
 
 function makeTrap(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord {
@@ -187,7 +187,10 @@ describe('Nyquist: detectDuplicates detects trap matches above threshold', () =>
   });
 
   it('produces no match when overlap is below threshold', async () => {
-    const trap = makeTrap({ shortcut: 'Completely different content', detail: 'No overlap at all' });
+    const trap = makeTrap({
+      shortcut: 'Completely different content',
+      detail: 'No overlap at all',
+    });
     const input = makeInput({
       candidateTokens: ['unique', 'tokens', 'only'],
       trapEntries: [trap],
@@ -292,8 +295,18 @@ describe('Nyquist: detectDuplicates sorts and limits results', () => {
   it('sorts matches by similarityScore descending', async () => {
     const textHigh = 'High similarity text content for sorting test';
     const textLow = 'Low similarity completely different topic discussion';
-    const trapHigh = makeTrap({ id: 'high', shortcut: textHigh, detail: 'details', lifecycleState: 'approved' });
-    const trapLow = makeTrap({ id: 'low', shortcut: textLow, detail: 'other stuff', lifecycleState: 'approved' });
+    const trapHigh = makeTrap({
+      id: 'high',
+      shortcut: textHigh,
+      detail: 'details',
+      lifecycleState: 'approved',
+    });
+    const trapLow = makeTrap({
+      id: 'low',
+      shortcut: textLow,
+      detail: 'other stuff',
+      lifecycleState: 'approved',
+    });
 
     const tokens = [...tokenize(`${textHigh}\ndetails`)];
     const input = makeInput({
@@ -314,12 +327,14 @@ describe('Nyquist: detectDuplicates sorts and limits results', () => {
     const traps: KnowledgeRecord[] = [];
     const text = 'Identical content for all traps';
     for (let i = 0; i < 15; i++) {
-      traps.push(makeTrap({
-        id: `trap_limit_${i}`,
-        shortcut: text,
-        detail: 'identical detail',
-        lifecycleState: 'approved',
-      }));
+      traps.push(
+        makeTrap({
+          id: `trap_limit_${i}`,
+          shortcut: text,
+          detail: 'identical detail',
+          lifecycleState: 'approved',
+        }),
+      );
     }
 
     const tokens = [...tokenize(`${text}\nidentical detail`)];

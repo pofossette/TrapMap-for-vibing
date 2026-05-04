@@ -138,7 +138,13 @@ describe('PostgresStore', () => {
       const existingData = createEmptyStoreData();
       existingData.counters = { knowledge: 5 };
       existingData.users = [
-        { id: 'user_1', handle: 'alice', notes: null, createdAt: '2024-01-01', updatedAt: '2024-01-01' },
+        {
+          id: 'user_1',
+          handle: 'alice',
+          notes: null,
+          createdAt: '2024-01-01',
+          updatedAt: '2024-01-01',
+        },
       ];
 
       const pool = createMockPool(existingData);
@@ -201,10 +207,14 @@ describe('PostgresStore', () => {
       expect(pool.connect).toHaveBeenCalled();
 
       // Check BEGIN, SELECT FOR UPDATE, INSERT upsert, COMMIT
-      const clientCalls = client.query.mock.calls.map((c: unknown[]) => (c[0] as string).toUpperCase().trim());
+      const clientCalls = client.query.mock.calls.map((c: unknown[]) =>
+        (c[0] as string).toUpperCase().trim(),
+      );
       expect(clientCalls).toContain('BEGIN');
       expect(clientCalls.some((s: string) => s.includes('FOR UPDATE'))).toBe(true);
-      expect(clientCalls.some((s: string) => s.includes('INSERT INTO') && s.includes('STORE_SNAPSHOT'))).toBe(true);
+      expect(
+        clientCalls.some((s: string) => s.includes('INSERT INTO') && s.includes('STORE_SNAPSHOT')),
+      ).toBe(true);
       expect(clientCalls).toContain('COMMIT');
     });
 
@@ -213,7 +223,7 @@ describe('PostgresStore', () => {
       const store = new PostgresStore(pool as never);
 
       const result = await store.transact((data) => {
-        data.counters['test'] = 42;
+        data.counters.test = 42;
         return { value: 'hello' };
       });
 
@@ -237,7 +247,7 @@ describe('PostgresStore', () => {
       const store = new PostgresStore(pool as never);
 
       await store.transact((data) => {
-        expect(data.counters['knowledge']).toBe(10);
+        expect(data.counters.knowledge).toBe(10);
       });
     });
 
@@ -253,7 +263,9 @@ describe('PostgresStore', () => {
         }),
       ).rejects.toThrow('mutation failed');
 
-      const clientCalls = pool._client.query.mock.calls.map((c: unknown[]) => (c[0] as string).toUpperCase().trim());
+      const clientCalls = pool._client.query.mock.calls.map((c: unknown[]) =>
+        (c[0] as string).toUpperCase().trim(),
+      );
       expect(clientCalls).toContain('BEGIN');
       expect(clientCalls).toContain('ROLLBACK');
     });
@@ -295,7 +307,11 @@ describe('PostgresStore', () => {
       const pool = createMockPool();
       const store = new PostgresStore(pool as never);
 
-      await expect(store.transact(() => { throw new Error('fail'); })).rejects.toThrow();
+      await expect(
+        store.transact(() => {
+          throw new Error('fail');
+        }),
+      ).rejects.toThrow();
 
       expect(pool._client.release).toHaveBeenCalledTimes(1);
     });
@@ -306,7 +322,7 @@ describe('PostgresStore', () => {
 
       const result = await store.transact(async (data) => {
         await new Promise((r) => setTimeout(r, 1));
-        data.counters['async'] = 1;
+        data.counters.async = 1;
         return 'async-result';
       });
 
@@ -322,7 +338,7 @@ describe('PostgresStore', () => {
 
       store.nextId(data, 'knowledge');
 
-      expect(data.counters['knowledge']).toBe(1);
+      expect(data.counters.knowledge).toBe(1);
     });
 
     it('returns formatted ID string', () => {
@@ -347,7 +363,7 @@ describe('PostgresStore', () => {
       expect(id1).toBe('knowledge_1');
       expect(id2).toBe('knowledge_2');
       expect(id3).toBe('knowledge_3');
-      expect(data.counters['knowledge']).toBe(3);
+      expect(data.counters.knowledge).toBe(3);
     });
 
     it('maintains separate counters per prefix', () => {
@@ -362,9 +378,9 @@ describe('PostgresStore', () => {
       store.nextId(data, 'skill');
       const teamId = store.nextId(data, 'team');
 
-      expect(data.counters['knowledge']).toBe(2);
-      expect(data.counters['skill']).toBe(3);
-      expect(data.counters['team']).toBe(1);
+      expect(data.counters.knowledge).toBe(2);
+      expect(data.counters.skill).toBe(3);
+      expect(data.counters.team).toBe(1);
       expect(skillId).toBe('skill_1');
       expect(teamId).toBe('team_1');
     });
@@ -378,9 +394,9 @@ describe('PostgresStore', () => {
       const id = store.nextId(data, 'new_prefix');
 
       expect(id).toBe('new_prefix_1');
-      expect(data.counters['new_prefix']).toBe(1);
+      expect(data.counters.new_prefix).toBe(1);
       // existing counter untouched
-      expect(data.counters['existing']).toBe(5);
+      expect(data.counters.existing).toBe(5);
     });
   });
 

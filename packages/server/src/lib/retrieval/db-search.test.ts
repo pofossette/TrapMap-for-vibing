@@ -11,14 +11,14 @@
  * Integration tests with a real database are in a separate test file.
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { VectorSearchOptions, VectorSearchResult } from './db-search.js';
 import {
-  ensureVectorIndex,
-  hasVectorIndex,
   dropVectorIndex,
+  ensureVectorIndex,
   getVectorIndexStats,
+  hasVectorIndex,
   vectorSimilaritySearch,
   vectorSimilaritySearchWithStats,
 } from './db-search.js';
@@ -134,7 +134,7 @@ describe('db-search', () => {
       await vectorSimilaritySearch(mockPool, options);
 
       const queryCall = mockQuery.mock.calls[0];
-      expect(queryCall[0]).toContain("scope = $");
+      expect(queryCall[0]).toContain('scope = $');
       expect(queryCall[1]).toContain('project');
     });
 

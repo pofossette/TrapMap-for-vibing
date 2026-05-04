@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
-  retrievalQueryModeSchema,
-  retrievalFiltersSchema,
-  retrievalCitationSchema,
-  retrievalQuerySchema,
-  retrievalMatchSchema,
   capsuleMatchSchema,
+  retrievalCitationSchema,
+  retrievalFiltersSchema,
+  retrievalMatchSchema,
+  retrievalQueryModeSchema,
+  retrievalQuerySchema,
+  retrievalStrategySchema,
   retrievalV2QuerySchema,
   retrievalV2ResponseSchema,
-  retrievalStrategySchema,
   routingTraceSchema,
 } from './retrieval.js';
 

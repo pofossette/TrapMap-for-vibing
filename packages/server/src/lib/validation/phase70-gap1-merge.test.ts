@@ -7,15 +7,15 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { KnowledgeRecord } from '../store.js';
 import {
-  createSemanticCandidate,
   DEFAULT_KEYWORD_WEIGHT,
   DEFAULT_SEMANTIC_WEIGHT,
+  createSemanticCandidate,
   hasBothChannels,
   mergeCandidates,
 } from '../retrieval/merge.js';
-import type { TokenMatchDetail, RecallCandidate } from '../retrieval/types.js';
+import type { RecallCandidate, TokenMatchDetail } from '../retrieval/types.js';
+import type { KnowledgeRecord } from '../store.js';
 
 function makeEntry(id: string): KnowledgeRecord {
   return {

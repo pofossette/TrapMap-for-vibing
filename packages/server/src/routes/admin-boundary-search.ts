@@ -57,10 +57,10 @@ export const adminBoundarySearchRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Find matching entries
-    const matches = findEntriesByBoundaryConstraint(
-      data.knowledgeEntries,
-      constraint,
-    ).slice(0, query.maxResults);
+    const matches = findEntriesByBoundaryConstraint(data.knowledgeEntries, constraint).slice(
+      0,
+      query.maxResults,
+    );
 
     // Build response
     return adminBoundarySearchResponseSchema.parse({

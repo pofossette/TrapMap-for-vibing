@@ -14,9 +14,9 @@ import { describe, expect, it } from 'vitest';
 
 import type { KnowledgeRecord } from '../store.js';
 import {
-  createSemanticCandidate,
   DEFAULT_KEYWORD_WEIGHT,
   DEFAULT_SEMANTIC_WEIGHT,
+  createSemanticCandidate,
   hasBothChannels,
   mergeCandidates,
   toScoredEntries,
@@ -126,9 +126,7 @@ describe('merge module', () => {
       it('combines scores when entry appears in both channels', () => {
         const entry = createTestEntry({ id: 'e1' });
         const semantic = [createSemanticCandidate(entry, 0.8)];
-        const keywordMatches: TokenMatchDetail[] = [
-          { token: 'test', fields: ['shortcut'] },
-        ];
+        const keywordMatches: TokenMatchDetail[] = [{ token: 'test', fields: ['shortcut'] }];
         const keyword = [createKeywordCandidate(entry, 0.6, keywordMatches)];
 
         const result = mergeCandidates(semantic, keyword);
@@ -136,8 +134,7 @@ describe('merge module', () => {
         expect(result).toHaveLength(1);
         expect(result[0]!.semanticScore).toBe(0.8);
         expect(result[0]!.keywordScore).toBe(0.6);
-        const expectedCombined =
-          0.8 * DEFAULT_SEMANTIC_WEIGHT + 0.6 * DEFAULT_KEYWORD_WEIGHT;
+        const expectedCombined = 0.8 * DEFAULT_SEMANTIC_WEIGHT + 0.6 * DEFAULT_KEYWORD_WEIGHT;
         expect(result[0]!.combinedScore).toBeCloseTo(expectedCombined);
         expect(result[0]!.channels).toEqual(['semantic', 'keyword']);
       });
@@ -276,10 +273,7 @@ describe('merge module', () => {
           { token: 'jwt', fields: ['shortcut', 'detail'] },
           { token: 'auth', fields: ['labels'] },
         ];
-        const result = mergeCandidates(
-          [],
-          [createKeywordCandidate(entry, 0.8, tokenMatches)],
-        );
+        const result = mergeCandidates([], [createKeywordCandidate(entry, 0.8, tokenMatches)]);
 
         expect(result[0]!.tokenMatches).toEqual(tokenMatches);
       });
@@ -293,9 +287,7 @@ describe('merge module', () => {
 
       it('uses keyword tokenMatches when entry is in both channels', () => {
         const entry = createTestEntry({ id: 'e1' });
-        const tokenMatches: TokenMatchDetail[] = [
-          { token: 'jwt', fields: ['shortcut'] },
-        ];
+        const tokenMatches: TokenMatchDetail[] = [{ token: 'jwt', fields: ['shortcut'] }];
         const result = mergeCandidates(
           [createSemanticCandidate(entry, 0.8)],
           [createKeywordCandidate(entry, 0.6, tokenMatches)],
@@ -333,10 +325,7 @@ describe('merge module', () => {
       });
 
       it('returns all candidates when maxCandidates is 0', () => {
-        const entries = [
-          createTestEntry({ id: 'e1' }),
-          createTestEntry({ id: 'e2' }),
-        ];
+        const entries = [createTestEntry({ id: 'e1' }), createTestEntry({ id: 'e2' })];
         const semantic = entries.map((e) => createSemanticCandidate(e, 0.5));
 
         const result = mergeCandidates(semantic, [], { maxCandidates: 0 });

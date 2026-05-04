@@ -28,7 +28,9 @@ function makeMockStore() {
  * Helper to create a test knowledge entry with default values.
  * Optionally accepts overrides for maintenanceMeta, decayMeta, lifecycleState.
  */
-function makeTestEntry(overrides: Partial<KnowledgeRecord> & { decayMeta?: any } = {}): KnowledgeRecord {
+function makeTestEntry(
+  overrides: Partial<KnowledgeRecord> & { decayMeta?: any } = {},
+): KnowledgeRecord {
   const now = nowIso();
   const { decayMeta, ...rest } = overrides;
   const entry: any = {

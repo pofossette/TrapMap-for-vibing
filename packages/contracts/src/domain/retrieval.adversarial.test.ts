@@ -9,15 +9,15 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  retrievalQueryModeSchema,
-  retrievalFiltersSchema,
-  retrievalCitationSchema,
-  retrievalQuerySchema,
-  retrievalMatchSchema,
   capsuleMatchSchema,
+  retrievalCitationSchema,
+  retrievalFiltersSchema,
+  retrievalMatchSchema,
+  retrievalQueryModeSchema,
+  retrievalQuerySchema,
+  retrievalStrategySchema,
   retrievalV2QuerySchema,
   retrievalV2ResponseSchema,
-  retrievalStrategySchema,
   routingTraceSchema,
 } from './retrieval.js';
 
@@ -33,13 +33,9 @@ describe('retrieval schema adversarial tests', () => {
 
   describe('retrievalQuerySchema boundary values', () => {
     it('accepts seed at exactly 2000 chars and rejects 2001', () => {
-      expect(() =>
-        retrievalQuerySchema.parse({ seed: 'a'.repeat(2000) }),
-      ).not.toThrow();
+      expect(() => retrievalQuerySchema.parse({ seed: 'a'.repeat(2000) })).not.toThrow();
 
-      expect(() =>
-        retrievalQuerySchema.parse({ seed: 'a'.repeat(2001) }),
-      ).toThrow();
+      expect(() => retrievalQuerySchema.parse({ seed: 'a'.repeat(2001) })).toThrow();
     });
 
     it('accepts seed at exactly 1 char', () => {
@@ -48,35 +44,23 @@ describe('retrieval schema adversarial tests', () => {
     });
 
     it('rejects empty seed', () => {
-      expect(() =>
-        retrievalQuerySchema.parse({ seed: '' }),
-      ).toThrow();
+      expect(() => retrievalQuerySchema.parse({ seed: '' })).toThrow();
     });
 
     it('accepts maxResults at minimum (1) and rejects 0', () => {
-      expect(() =>
-        retrievalQuerySchema.parse({ seed: 'test', maxResults: 1 }),
-      ).not.toThrow();
+      expect(() => retrievalQuerySchema.parse({ seed: 'test', maxResults: 1 })).not.toThrow();
 
-      expect(() =>
-        retrievalQuerySchema.parse({ seed: 'test', maxResults: 0 }),
-      ).toThrow();
+      expect(() => retrievalQuerySchema.parse({ seed: 'test', maxResults: 0 })).toThrow();
     });
 
     it('accepts maxResults at maximum (50) and rejects 51', () => {
-      expect(() =>
-        retrievalQuerySchema.parse({ seed: 'test', maxResults: 50 }),
-      ).not.toThrow();
+      expect(() => retrievalQuerySchema.parse({ seed: 'test', maxResults: 50 })).not.toThrow();
 
-      expect(() =>
-        retrievalQuerySchema.parse({ seed: 'test', maxResults: 51 }),
-      ).toThrow();
+      expect(() => retrievalQuerySchema.parse({ seed: 'test', maxResults: 51 })).toThrow();
     });
 
     it('rejects negative maxResults', () => {
-      expect(() =>
-        retrievalQuerySchema.parse({ seed: 'test', maxResults: -1 }),
-      ).toThrow();
+      expect(() => retrievalQuerySchema.parse({ seed: 'test', maxResults: -1 })).toThrow();
     });
   });
 
@@ -199,69 +183,47 @@ describe('retrieval schema adversarial tests', () => {
     });
 
     it('rejects empty content', () => {
-      expect(() =>
-        capsuleMatchSchema.parse({ ...validCapsuleBase, content: '' }),
-      ).toThrow();
+      expect(() => capsuleMatchSchema.parse({ ...validCapsuleBase, content: '' })).toThrow();
     });
 
     it('accepts score at 0 and 1 boundaries', () => {
-      expect(() =>
-        capsuleMatchSchema.parse({ ...validCapsuleBase, score: 0 }),
-      ).not.toThrow();
+      expect(() => capsuleMatchSchema.parse({ ...validCapsuleBase, score: 0 })).not.toThrow();
 
-      expect(() =>
-        capsuleMatchSchema.parse({ ...validCapsuleBase, score: 1 }),
-      ).not.toThrow();
+      expect(() => capsuleMatchSchema.parse({ ...validCapsuleBase, score: 1 })).not.toThrow();
     });
 
     it('rejects score of 1.01', () => {
-      expect(() =>
-        capsuleMatchSchema.parse({ ...validCapsuleBase, score: 1.01 }),
-      ).toThrow();
+      expect(() => capsuleMatchSchema.parse({ ...validCapsuleBase, score: 1.01 })).toThrow();
     });
 
     it('rejects negative score', () => {
-      expect(() =>
-        capsuleMatchSchema.parse({ ...validCapsuleBase, score: -0.01 }),
-      ).toThrow();
+      expect(() => capsuleMatchSchema.parse({ ...validCapsuleBase, score: -0.01 })).toThrow();
     });
 
     it('requires at least one label', () => {
-      expect(() =>
-        capsuleMatchSchema.parse({ ...validCapsuleBase, labels: [] }),
-      ).toThrow();
+      expect(() => capsuleMatchSchema.parse({ ...validCapsuleBase, labels: [] })).toThrow();
     });
 
     it('requires at least one sourcePath', () => {
-      expect(() =>
-        capsuleMatchSchema.parse({ ...validCapsuleBase, sourcePaths: [] }),
-      ).toThrow();
+      expect(() => capsuleMatchSchema.parse({ ...validCapsuleBase, sourcePaths: [] })).toThrow();
     });
 
     it('rejects revision of 0', () => {
-      expect(() =>
-        capsuleMatchSchema.parse({ ...validCapsuleBase, revision: 0 }),
-      ).toThrow();
+      expect(() => capsuleMatchSchema.parse({ ...validCapsuleBase, revision: 0 })).toThrow();
     });
   });
 
   describe('retrievalV2QuerySchema edge cases', () => {
     it('accepts seed at exactly 2000 chars', () => {
-      expect(() =>
-        retrievalV2QuerySchema.parse({ seed: 'x'.repeat(2000) }),
-      ).not.toThrow();
+      expect(() => retrievalV2QuerySchema.parse({ seed: 'x'.repeat(2000) })).not.toThrow();
     });
 
     it('rejects seed at 2001 chars', () => {
-      expect(() =>
-        retrievalV2QuerySchema.parse({ seed: 'x'.repeat(2001) }),
-      ).toThrow();
+      expect(() => retrievalV2QuerySchema.parse({ seed: 'x'.repeat(2001) })).toThrow();
     });
 
     it('rejects empty seed', () => {
-      expect(() =>
-        retrievalV2QuerySchema.parse({ seed: '' }),
-      ).toThrow();
+      expect(() => retrievalV2QuerySchema.parse({ seed: '' })).toThrow();
     });
 
     it('defaults maxResults to 10', () => {
@@ -277,9 +239,7 @@ describe('retrieval schema adversarial tests', () => {
 
   describe('retrievalV2ResponseSchema edge cases', () => {
     it('requires refinementSummary (not optional)', () => {
-      expect(() =>
-        retrievalV2ResponseSchema.parse({}),
-      ).toThrow();
+      expect(() => retrievalV2ResponseSchema.parse({})).toThrow();
     });
 
     it('accepts refinementSummary as null', () => {
@@ -312,7 +272,15 @@ describe('retrieval schema adversarial tests', () => {
 
   describe('retrievalStrategySchema completeness', () => {
     it('rejects common misspellings and near-misses', () => {
-      const nearMisses = ['hybrid-search', 'fulltext', 'dense', 'sparse', 'auto-detect', 'LOCAL', ''];
+      const nearMisses = [
+        'hybrid-search',
+        'fulltext',
+        'dense',
+        'sparse',
+        'auto-detect',
+        'LOCAL',
+        '',
+      ];
       for (const strategy of nearMisses) {
         expect(() => retrievalStrategySchema.parse(strategy)).toThrow();
       }
@@ -336,31 +304,21 @@ describe('retrieval schema adversarial tests', () => {
     });
 
     it('accepts confidenceScore at boundaries (0 and 1)', () => {
-      expect(() =>
-        routingTraceSchema.parse({ ...validTrace, confidenceScore: 0 }),
-      ).not.toThrow();
+      expect(() => routingTraceSchema.parse({ ...validTrace, confidenceScore: 0 })).not.toThrow();
 
-      expect(() =>
-        routingTraceSchema.parse({ ...validTrace, confidenceScore: 1 }),
-      ).not.toThrow();
+      expect(() => routingTraceSchema.parse({ ...validTrace, confidenceScore: 1 })).not.toThrow();
     });
 
     it('rejects confidenceScore above 1', () => {
-      expect(() =>
-        routingTraceSchema.parse({ ...validTrace, confidenceScore: 1.01 }),
-      ).toThrow();
+      expect(() => routingTraceSchema.parse({ ...validTrace, confidenceScore: 1.01 })).toThrow();
     });
 
     it('rejects confidenceScore below 0', () => {
-      expect(() =>
-        routingTraceSchema.parse({ ...validTrace, confidenceScore: -0.01 }),
-      ).toThrow();
+      expect(() => routingTraceSchema.parse({ ...validTrace, confidenceScore: -0.01 })).toThrow();
     });
 
     it('requires valid routeFamily', () => {
-      expect(() =>
-        routingTraceSchema.parse({ ...validTrace, routeFamily: 'invalid' }),
-      ).toThrow();
+      expect(() => routingTraceSchema.parse({ ...validTrace, routeFamily: 'invalid' })).toThrow();
     });
 
     it('accepts all valid routeFamily values', () => {

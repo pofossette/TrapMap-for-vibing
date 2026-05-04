@@ -16,10 +16,7 @@ import {
   scopeSchema,
   securityLevelSchema,
 } from './common.js';
-import {
-  evidenceLevelSchema,
-  evidenceSourceTypeSchema,
-} from './evidence.js';
+import { evidenceLevelSchema, evidenceSourceTypeSchema } from './evidence.js';
 import {
   agentReviewResultSchema,
   knowledgeEntrySchema,

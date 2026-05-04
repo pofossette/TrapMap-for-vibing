@@ -8,25 +8,25 @@
  */
 
 import {
+  type BatchOperationItem,
+  type DecayAwareListItem,
   batchOperationRequestSchema,
   batchOperationResponseSchema,
   decayAwareListItemSchema,
   decayEntryListRequestSchema,
   decayEntryListResponseSchema,
-  type BatchOperationItem,
-  type DecayAwareListItem,
 } from '@trapmap/contracts';
-import { z } from 'zod';
 import type { FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 
 import { executeBatchOperation, planBatchOperation } from '../lib/decay/batch.js';
 import { loadDecayConfig } from '../lib/decay/config.js';
 import { computeDecayState } from '../lib/decay/state-machine.js';
 import { AppError } from '../lib/errors.js';
-import { loadUserOpsLogConfig, logUserOperation } from '../lib/user-ops-log.js';
-import { nowIso } from '../lib/store.js';
 import { requirePermission } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
+import { nowIso } from '../lib/store.js';
+import { loadUserOpsLogConfig, logUserOperation } from '../lib/user-ops-log.js';
 
 /**
  * Compute age in days from lastVerifiedAt to now.

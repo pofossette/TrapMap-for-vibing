@@ -140,8 +140,5 @@ export function requiresAttention(state: DecayState): boolean {
  * reviewDueDays <= staleDays <= expireDays must hold.
  */
 export function validateDecayConfig(config: DecayConfig): boolean {
-  return (
-    config.reviewDueDays <= config.staleDays &&
-    config.staleDays <= config.expireDays
-  );
+  return config.reviewDueDays <= config.staleDays && config.staleDays <= config.expireDays;
 }

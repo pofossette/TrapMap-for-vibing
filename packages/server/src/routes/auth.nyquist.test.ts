@@ -11,8 +11,8 @@
  * - POST /v1/teams/select updates activeTeamId
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildServer } from '../app.js';
 import type { SkillShareerStore } from '../lib/store.js';
 import { hashSecret, nowIso } from '../lib/store.js';
@@ -116,23 +116,39 @@ describe('Nyquist: GET /v1/auth/session', () => {
       data.counters.user = 1;
 
       data.users.push({
-        id: userId, handle: 'nyquistuser', notes: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: userId,
+        handle: 'nyquistuser',
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.teams.push({
-        id: teamId, name: 'Nyq Team', slug: 'nyq-team', description: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: teamId,
+        name: 'Nyq Team',
+        slug: 'nyq-team',
+        description: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.memberships.push({
-        id: 'm_nyq_1', userId, teamId, roleTemplate: 'admin',
-        securityLevel: 10, permissions: [], notes: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: 'm_nyq_1',
+        userId,
+        teamId,
+        roleTemplate: 'admin',
+        securityLevel: 10,
+        permissions: [],
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.sessions.push({
-        id: `sess_${Date.now()}`, userId,
-        tokenHash: hashSecret(token), activeTeamId: teamId,
+        id: `sess_${Date.now()}`,
+        userId,
+        tokenHash: hashSecret(token),
+        activeTeamId: teamId,
         subjectType: 'user',
-        createdAt: nowIso(), updatedAt: nowIso(),
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
         expiresAt: new Date(Date.now() + 3600000).toISOString(),
       });
     });
@@ -176,23 +192,39 @@ describe('Nyquist: POST /v1/auth/logout', () => {
       data.counters.user = 2;
 
       data.users.push({
-        id: userId, handle: 'logoutuser', notes: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: userId,
+        handle: 'logoutuser',
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.teams.push({
-        id: teamId, name: 'Logout Team', slug: 'logout-team', description: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: teamId,
+        name: 'Logout Team',
+        slug: 'logout-team',
+        description: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.memberships.push({
-        id: 'm_logout_1', userId, teamId, roleTemplate: 'admin',
-        securityLevel: 10, permissions: [], notes: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: 'm_logout_1',
+        userId,
+        teamId,
+        roleTemplate: 'admin',
+        securityLevel: 10,
+        permissions: [],
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.sessions.push({
-        id: `sess_logout_${Date.now()}`, userId,
-        tokenHash: hashSecret(token), activeTeamId: teamId,
+        id: `sess_logout_${Date.now()}`,
+        userId,
+        tokenHash: hashSecret(token),
+        activeTeamId: teamId,
         subjectType: 'user',
-        createdAt: nowIso(), updatedAt: nowIso(),
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
         expiresAt: new Date(Date.now() + 3600000).toISOString(),
       });
     });
@@ -249,32 +281,58 @@ describe('Nyquist: POST /v1/teams/select', () => {
       data.counters.user = 3;
 
       data.users.push({
-        id: userId, handle: 'teamselect', notes: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: userId,
+        handle: 'teamselect',
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.teams.push({
-        id: team1, name: 'Team 1', slug: 'team-1', description: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: team1,
+        name: 'Team 1',
+        slug: 'team-1',
+        description: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.teams.push({
-        id: team2, name: 'Team 2', slug: 'team-2', description: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: team2,
+        name: 'Team 2',
+        slug: 'team-2',
+        description: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.memberships.push({
-        id: 'm_ts_1', userId, teamId: team1, roleTemplate: 'admin',
-        securityLevel: 10, permissions: [], notes: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: 'm_ts_1',
+        userId,
+        teamId: team1,
+        roleTemplate: 'admin',
+        securityLevel: 10,
+        permissions: [],
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.memberships.push({
-        id: 'm_ts_2', userId, teamId: team2, roleTemplate: 'admin',
-        securityLevel: 10, permissions: [], notes: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: 'm_ts_2',
+        userId,
+        teamId: team2,
+        roleTemplate: 'admin',
+        securityLevel: 10,
+        permissions: [],
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.sessions.push({
-        id: `sess_ts_${Date.now()}`, userId,
-        tokenHash: hashSecret(token), activeTeamId: team1,
+        id: `sess_ts_${Date.now()}`,
+        userId,
+        tokenHash: hashSecret(token),
+        activeTeamId: team1,
         subjectType: 'user',
-        createdAt: nowIso(), updatedAt: nowIso(),
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
         expiresAt: new Date(Date.now() + 3600000).toISOString(),
       });
     });

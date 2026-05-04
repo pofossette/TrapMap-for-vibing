@@ -8,6 +8,7 @@ import {
 import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
+import { supersedeEntry } from '../lib/decay/supersede.js';
 import { AppError } from '../lib/errors.js';
 import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
 import {
@@ -23,7 +24,6 @@ import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
 import { logUserOperation } from '../lib/user-ops-log.js';
-import { supersedeEntry } from '../lib/decay/supersede.js';
 
 function requireRealUser(userId: string | undefined): string {
   if (!userId) {
@@ -231,7 +231,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       try {
         const data = await app.skillShareer.store.snapshot();
         const entry = data.knowledgeEntries.find((e) => e.id === entryId);
-        if (entry && entry.latestRevision) {
+        if (entry?.latestRevision) {
           await knowledgeRepo.appendRevision(entryId, entry.latestRevision);
         }
       } catch (repoError) {
@@ -355,7 +355,10 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         }
       } catch (repoError) {
         // Log but don't fail - JSONB is the source of truth during transition
-        app.log.error({ repoError, entryId }, 'Failed to update governance in knowledge repository');
+        app.log.error(
+          { repoError, entryId },
+          'Failed to update governance in knowledge repository',
+        );
       }
     }
 
@@ -378,7 +381,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:update');
 
     const entryId = (request.params as { entryId: string }).entryId;
-    const body = request.body as { replacementId?: string } ?? {};
+    const body = (request.body as { replacementId?: string }) ?? {};
     if (!body.replacementId || typeof body.replacementId !== 'string') {
       throw new AppError(400, 'replacement_required', 'replacementId is required');
     }

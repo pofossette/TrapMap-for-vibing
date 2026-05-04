@@ -323,7 +323,7 @@ export async function executeSummaryCase(
 
     // Run judge evaluation with real summary and context
     const judge = createJudge({ provider: ctx.options.provider });
-    const judgeResult = judge.evaluate(summaryText ?? '', contextTrace, {
+    const judgeResult = await judge.evaluate(summaryText ?? '', contextTrace, {
       requiredFacts: case_.expected.requiredFacts,
       forbiddenClaims: case_.expected.forbiddenClaims,
     });

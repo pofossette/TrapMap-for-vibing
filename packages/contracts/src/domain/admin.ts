@@ -5,8 +5,8 @@
  */
 
 import { z } from 'zod';
-import { entityIdSchema, scopeSchema, labelSchema } from './common.js';
 import { boundarySchema } from './boundary.js';
+import { entityIdSchema, labelSchema, scopeSchema } from './common.js';
 
 /**
  * Query schema for admin boundary search.

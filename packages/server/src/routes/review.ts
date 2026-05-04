@@ -183,7 +183,10 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
           });
         } catch (repoError) {
           // Log but don't fail - JSONB is the source of truth during transition
-          app.log.error({ repoError, entryId }, 'Failed to update lifecycle in knowledge repository');
+          app.log.error(
+            { repoError, entryId },
+            'Failed to update lifecycle in knowledge repository',
+          );
         }
       }
 

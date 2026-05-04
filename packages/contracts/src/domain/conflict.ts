@@ -7,9 +7,9 @@ import { entityIdSchema, isoTimestampSchema } from './common.js';
  * Classifies how two entries with similar problems relate to each other.
  */
 export const conflictTypeSchema = z.enum([
-  'alternative',     // Different valid approaches (e.g., REST vs GraphQL)
-  'contradictory',   // Directly opposing solutions (e.g., "use X" vs "avoid X")
-  'superseded',      // Newer entry replaces older approach
+  'alternative', // Different valid approaches (e.g., REST vs GraphQL)
+  'contradictory', // Directly opposing solutions (e.g., "use X" vs "avoid X")
+  'superseded', // Newer entry replaces older approach
 ]);
 
 /**

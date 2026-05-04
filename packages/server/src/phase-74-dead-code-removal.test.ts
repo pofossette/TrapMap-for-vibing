@@ -1,3 +1,6 @@
+import * as cp from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 /**
  * Phase 74 Dead Code Removal Validation Tests
  *
@@ -5,10 +8,7 @@
  * Verifies that the 6 identified dead files are truly removed
  * and that no dangling imports or test references remain.
  */
-import { describe, it, expect } from 'vitest';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import * as cp from 'node:child_process';
+import { describe, expect, it } from 'vitest';
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../..');
 

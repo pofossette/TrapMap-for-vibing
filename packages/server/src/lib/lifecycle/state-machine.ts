@@ -81,9 +81,7 @@ export function transitionLifecycleState(
   const currentState = entry.lifecycleState;
 
   if (!isValidTransition(currentState, newState)) {
-    throw new Error(
-      `Invalid lifecycle transition: ${currentState} → ${newState} (${context})`,
-    );
+    throw new Error(`Invalid lifecycle transition: ${currentState} → ${newState} (${context})`);
   }
 
   entry.lifecycleState = newState;

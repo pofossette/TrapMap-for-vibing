@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeDefaultReviewBy, isReviewOverdue, isStaleVerification, validateMaintenanceMeta } from './model.js';
+import {
+  computeDefaultReviewBy,
+  isReviewOverdue,
+  isStaleVerification,
+  validateMaintenanceMeta,
+} from './model.js';
 
 describe('isReviewOverdue', () => {
   it('returns false for null reviewBy', () => {

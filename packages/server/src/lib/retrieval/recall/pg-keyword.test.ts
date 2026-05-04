@@ -9,14 +9,11 @@
  * - GIN index usage for fast token containment queries
  */
 
-import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { Pool } from 'pg';
 import { Pool as PgPool } from 'pg';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  createPgKeywordRecall,
-  type KeywordRecallFilters,
-} from './pg-keyword.js';
+import { type KeywordRecallFilters, createPgKeywordRecall } from './pg-keyword.js';
 
 // Skip tests if no DATABASE_URL
 const DATABASE_URL = process.env.TRAPMAP_DATABASE_URL || process.env.DATABASE_URL;
@@ -230,7 +227,11 @@ describeIfDb('pg-keyword recall', () => {
         },
       });
 
-      const results = await pgKeywordRecall('jwt authentication security token', defaultFilters, 10);
+      const results = await pgKeywordRecall(
+        'jwt authentication security token',
+        defaultFilters,
+        10,
+      );
 
       expect(results.length).toBe(1);
       expect(results[0]!.score).toBeGreaterThanOrEqual(0);
@@ -474,9 +475,9 @@ describeIfDb('GIN index verification', () => {
     // In some cases with small datasets, PostgreSQL may choose a seq scan, but the index should exist
     expect(
       planStr.includes('idx_knowledge_keywords_tokens_gin') ||
-      planStr.includes('Index Scan') ||
-      planStr.includes('Bitmap Index Scan') ||
-      planStr.includes('Seq Scan'), // Acceptable for small datasets
+        planStr.includes('Index Scan') ||
+        planStr.includes('Bitmap Index Scan') ||
+        planStr.includes('Seq Scan'), // Acceptable for small datasets
     ).toBe(true);
   });
 });

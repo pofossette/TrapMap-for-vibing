@@ -50,8 +50,7 @@ export function conflictToHint(
   allEntries: KnowledgeRecord[],
 ): ConflictHint | null {
   // Find the OTHER entry in this conflict
-  const otherEntryId =
-    conflict.entryIdA === targetEntryId ? conflict.entryIdB : conflict.entryIdA;
+  const otherEntryId = conflict.entryIdA === targetEntryId ? conflict.entryIdB : conflict.entryIdA;
 
   const otherEntry = allEntries.find((e) => e.id === otherEntryId);
   if (!otherEntry) return null;
@@ -82,8 +81,7 @@ export function getConflictHints(
 
   for (const conflict of conflicts) {
     // Find the other entry
-    const otherEntryId =
-      conflict.entryIdA === entryId ? conflict.entryIdB : conflict.entryIdA;
+    const otherEntryId = conflict.entryIdA === entryId ? conflict.entryIdB : conflict.entryIdA;
 
     const otherEntry = allEntries.find((e) => e.id === otherEntryId);
     if (!otherEntry) continue;

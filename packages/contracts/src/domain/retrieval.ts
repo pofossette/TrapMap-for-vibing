@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { compatibleScriptActivationPolicySchema } from './artifacts.js';
 
+import { boundaryContextSchema, boundaryExplanationSchema } from './boundary.js';
 import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema } from './common.js';
 import { conflictHintSchema } from './conflict.js';
-import { boundaryExplanationSchema, boundaryContextSchema } from './boundary.js';
 import { planQuerySchema, trapFirstPlanSchema } from './plans.js';
 
 /**

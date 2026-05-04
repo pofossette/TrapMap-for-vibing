@@ -35,10 +35,7 @@ interface EvidenceCommandOptions {
   allowReview: boolean;
 }
 
-export function registerEvidenceCommands(
-  program: Command,
-  options: EvidenceCommandOptions,
-): void {
+export function registerEvidenceCommands(program: Command, options: EvidenceCommandOptions): void {
   if (!options.allowReview) {
     return;
   }
@@ -64,7 +61,8 @@ export function registerEvidenceCommands(
       }
 
       const queryString = params.toString();
-      const path = queryString.length > 0 ? `/v1/knowledge/list?${queryString}` : '/v1/knowledge/list';
+      const path =
+        queryString.length > 0 ? `/v1/knowledge/list?${queryString}` : '/v1/knowledge/list';
 
       const response = await apiRequest<KnowledgeListResponse>(state, {
         path,
@@ -96,10 +94,7 @@ export function registerEvidenceCommands(
     .command('evidence:update')
     .description('Update evidence metadata on a knowledge entry')
     .argument('<id>', 'Knowledge entry identifier')
-    .option(
-      '--level <level>',
-      'Evidence level (verified-in-prod|documented|reproduced|anecdotal)',
-    )
+    .option('--level <level>', 'Evidence level (verified-in-prod|documented|reproduced|anecdotal)')
     .option(
       '--type <type>',
       'Source type (internal-experience|incident|doc|code|external-reference)',
@@ -141,6 +136,8 @@ export function registerEvidenceCommands(
 
       const level = flags.level ?? 'unknown';
       const colorCode = EVIDENCE_COLORS[flags.level ?? ''] ?? '0';
-      console.log(`Evidence updated: ${withColor(level, colorCode)} | ${flags.type ?? 'unchanged'}`);
+      console.log(
+        `Evidence updated: ${withColor(level, colorCode)} | ${flags.type ?? 'unchanged'}`,
+      );
     });
 }

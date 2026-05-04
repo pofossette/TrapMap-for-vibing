@@ -8,8 +8,8 @@
  * 4. requireHigherLevel enforces strictly-higher-level rule
  */
 
-import { describe, expect, it } from 'vitest';
 import type { Permission } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 import type { ResolvedAuthContext } from '../context.js';
 import { AppError } from '../errors.js';
 import {

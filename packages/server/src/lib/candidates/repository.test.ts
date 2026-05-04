@@ -1,15 +1,15 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { CandidateSubmission } from '@trapmap/contracts';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { JsonStore, createEmptyStoreData } from '../store.js';
 import {
+  type CandidateRepository,
   DualWriteCandidateRepository,
   InMemoryCandidateRepository,
   createCandidateRepository,
-  type CandidateRepository,
 } from './repository.js';
-import type { CandidateSubmission } from '@trapmap/contracts';
-import { unlinkSync, existsSync, mkdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 
 // Create a unique temp directory for each test run
 const testRunId = `repo-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;

@@ -3,7 +3,12 @@
  * Unifies logic from retrieval/filters.ts and retrieval/capsule-recall.ts.
  */
 
-import type { EligibilityOptions, GovernanceContext, GovernanceFilters, GovernedEntity } from './types.js';
+import type {
+  EligibilityOptions,
+  GovernanceContext,
+  GovernanceFilters,
+  GovernedEntity,
+} from './types.js';
 
 /**
  * Check if an entity passes governance eligibility checks.

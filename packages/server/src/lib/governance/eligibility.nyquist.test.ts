@@ -10,13 +10,18 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { EligibilityOptions, GovernanceContext, GovernanceFilters, GovernedEntity } from './types.js';
 import {
   filterGovernedEntities,
-  isGovernedEntityAccessible,
   isGovernanceEligible,
+  isGovernedEntityAccessible,
   matchesGovernanceFilters,
 } from './eligibility.js';
+import type {
+  EligibilityOptions,
+  GovernanceContext,
+  GovernanceFilters,
+  GovernedEntity,
+} from './types.js';
 
 type TestEntity = GovernedEntity & { labels: string[] };
 
@@ -179,7 +184,11 @@ describe('Nyquist: filterGovernedEntities composes eligibility and filters', () 
   it('returns only entities that pass BOTH eligibility AND filter checks', () => {
     const good = makeEntity({ scope: 'global', labels: ['x'] });
     const wrongScope = makeEntity({ scope: 'project', labels: ['x'] });
-    const wrongLifecycle = makeEntity({ lifecycleState: 'rejected', scope: 'global', labels: ['x'] });
+    const wrongLifecycle = makeEntity({
+      lifecycleState: 'rejected',
+      scope: 'global',
+      labels: ['x'],
+    });
 
     const result = filterGovernedEntities(
       [good, wrongScope, wrongLifecycle],

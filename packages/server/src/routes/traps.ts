@@ -222,7 +222,7 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       try {
         const data = await app.skillShareer.store.snapshot();
         const entry = data.knowledgeEntries.find((e) => e.id === trapId);
-        if (entry && entry.latestRevision) {
+        if (entry?.latestRevision) {
           await knowledgeRepo.appendRevision(trapId, entry.latestRevision);
         }
       } catch (repoError) {
@@ -250,7 +250,7 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:update');
 
     const trapId = (request.params as { trapId: string }).trapId;
-    const body = request.body as { replacementId?: string } ?? {};
+    const body = (request.body as { replacementId?: string }) ?? {};
     if (!body.replacementId || typeof body.replacementId !== 'string') {
       throw new AppError(400, 'replacement_required', 'replacementId is required');
     }

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { entityIdSchema, isoTimestampSchema, actorRefSchema } from './common.js';
+import { actorRefSchema, entityIdSchema, isoTimestampSchema } from './common.js';
 import { decayStateSchema } from './decay.js';
 
 /**
@@ -8,11 +8,11 @@ import { decayStateSchema } from './decay.js';
  * Ensures consistent categorization across all feedback submissions.
  */
 export const feedbackProblemTypeSchema = z.enum([
-  'incorrect',       // Solution is wrong or has errors
-  'outdated',        // Information is stale or no longer applies
+  'incorrect', // Solution is wrong or has errors
+  'outdated', // Information is stale or no longer applies
   'context-mismatch', // Doesn't apply to current situation
-  'incomplete',      // Missing critical information
-  'other',           // Catch-all for uncategorized feedback
+  'incomplete', // Missing critical information
+  'other', // Catch-all for uncategorized feedback
 ]);
 
 /**
@@ -50,9 +50,9 @@ export const feedbackSubmissionSchema = z.object({
  * Tracks processing state for admin review workflow.
  */
 export const feedbackStatusSchema = z.enum([
-  'new',       // Newly submitted, awaiting triage
-  'triaged',   // Reviewed by admin, action pending
-  'resolved',  // Issue addressed
+  'new', // Newly submitted, awaiting triage
+  'triaged', // Reviewed by admin, action pending
+  'resolved', // Issue addressed
   'dismissed', // Feedback rejected as invalid
 ]);
 
@@ -90,25 +90,27 @@ export const feedbackResponseSchema = z.object({
  */
 export const feedbackListRequestSchema = z.object({
   /** Filter by feedback status (multiple allowed) */
-  status: z.preprocess(
-    (val) => {
-      if (val === undefined || val === null) return undefined;
-      if (Array.isArray(val)) return val;
-      if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
-      return val;
-    },
-    z.array(feedbackStatusSchema).optional(),
-  ),
+  status: z.preprocess((val) => {
+    if (val === undefined || val === null) return undefined;
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string')
+      return val
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    return val;
+  }, z.array(feedbackStatusSchema).optional()),
   /** Filter by problem type (multiple allowed) */
-  problemType: z.preprocess(
-    (val) => {
-      if (val === undefined || val === null) return undefined;
-      if (Array.isArray(val)) return val;
-      if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
-      return val;
-    },
-    z.array(feedbackProblemTypeSchema).optional(),
-  ),
+  problemType: z.preprocess((val) => {
+    if (val === undefined || val === null) return undefined;
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string')
+      return val
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    return val;
+  }, z.array(feedbackProblemTypeSchema).optional()),
   /** Filter by specific entry ID */
   entryId: entityIdSchema.optional(),
   /** Filter by entry type */

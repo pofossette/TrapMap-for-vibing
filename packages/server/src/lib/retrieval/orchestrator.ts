@@ -16,7 +16,9 @@ import {
 } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
+import { enrichMatchesWithConflicts } from '../conflict/enrich.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
+import { DEFAULT_FRESHNESS_CONFIG } from '../decay/freshness.js';
 import { generateEmbedding, hashEmbeddingText } from '../embeddings.js';
 import { AppError } from '../errors.js';
 import { PostgresStore } from '../persistence/postgres-store.js';
@@ -38,23 +40,21 @@ import { buildBoundaryExplanation, computeBoundaryScoreDelta } from './boundary-
 import { buildProfileShortlist, getCapsuleRecords, rankCapsules } from './capsule-recall.js';
 import { buildCitations } from './citations.js';
 import { vectorSimilaritySearch } from './db-search.js';
-import { filterEligibleEntries, filterByBoundaryContext } from './filters.js';
+import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { parseSeedIntent } from './intent.js';
 import { createSemanticCandidate, mergeCandidates, toScoredEntries } from './merge.js';
 import { graphAssistedRecall as graphRecall } from './recall/graph-assisted.js';
 import { keywordRecall, normalizeQuery } from './recall/keyword.js';
-import { createPgKeywordRecall, type KeywordRecallResult } from './recall/pg-keyword.js';
+import { type KeywordRecallResult, createPgKeywordRecall } from './recall/pg-keyword.js';
 import {
   buildEmbeddingText,
   computeScore,
   cosineSimilarity,
   getQueryEmbedding,
-  getEntryEmbedding as semanticGetEntryEmbedding,
   optimizedSemanticRecall,
+  getEntryEmbedding as semanticGetEntryEmbedding,
 } from './recall/semantic.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
-import { enrichMatchesWithConflicts } from '../conflict/enrich.js';
-import { DEFAULT_FRESHNESS_CONFIG } from '../decay/freshness.js';
 import { buildCapsuleCitations, buildCapsuleSummary, buildSummary } from './summary.js';
 import type {
   MergedCandidate,
@@ -236,7 +236,8 @@ async function timedStep<T>(
     step.inputSize = options.inputSize;
   }
   if (options?.outputSize !== undefined) {
-    step.outputSize = typeof options.outputSize === 'function' ? options.outputSize(result) : options.outputSize;
+    step.outputSize =
+      typeof options.outputSize === 'function' ? options.outputSize(result) : options.outputSize;
   }
   steps.push(step);
   return result;
@@ -281,7 +282,8 @@ export async function searchKnowledge(
 
     // Get current data snapshot
     const data = await timedStep('snapshot', () => services.store.snapshot(), steps, {
-      outputSize: (d) => (d as Awaited<ReturnType<typeof services.store.snapshot>>).knowledgeEntries.length,
+      outputSize: (d) =>
+        (d as Awaited<ReturnType<typeof services.store.snapshot>>).knowledgeEntries.length,
     });
 
     // Filter eligible entries (approval, team, level, metadata)
@@ -289,7 +291,10 @@ export async function searchKnowledge(
       'eligibility',
       () => Promise.resolve(filterEligibleEntries(data.knowledgeEntries, auth, parsed.filters)),
       steps,
-      { inputSize: data.knowledgeEntries.length, outputSize: (r) => (r as KnowledgeRecord[]).length },
+      {
+        inputSize: data.knowledgeEntries.length,
+        outputSize: (r) => (r as KnowledgeRecord[]).length,
+      },
     );
 
     // Filter by boundary constraints (BOUND-04)
@@ -336,7 +341,10 @@ export async function searchKnowledge(
       'recall',
       () => dispatchByMode(parsed.mode, parsed.seed, boundaryFiltered, parsed, services, auth),
       steps,
-      { inputSize: boundaryFiltered.length, outputSize: (r) => (r as { scoredEntries: ScoredEntry[] }).scoredEntries.length },
+      {
+        inputSize: boundaryFiltered.length,
+        outputSize: (r) => (r as { scoredEntries: ScoredEntry[] }).scoredEntries.length,
+      },
     );
 
     // Update routing channels used from recall results
@@ -357,9 +365,18 @@ export async function searchKnowledge(
     // Assemble response buckets with citations
     const { globalConstraints, projectKnowledge } = await timedStep(
       'assembly',
-      () => Promise.resolve(assembleResponseBuckets(scoredEntries, parsed.filters, citations, conflictHints)),
+      () =>
+        Promise.resolve(
+          assembleResponseBuckets(scoredEntries, parsed.filters, citations, conflictHints),
+        ),
       steps,
-      { inputSize: scoredEntries.length, outputSize: (r) => { const ar = r as { globalConstraints: unknown[]; projectKnowledge: unknown[] }; return ar.globalConstraints.length + ar.projectKnowledge.length; } },
+      {
+        inputSize: scoredEntries.length,
+        outputSize: (r) => {
+          const ar = r as { globalConstraints: unknown[]; projectKnowledge: unknown[] };
+          return ar.globalConstraints.length + ar.projectKnowledge.length;
+        },
+      },
     );
 
     // Generate summary if requested and citations are available
@@ -535,7 +552,8 @@ async function semanticRecall(
       // Use DB-level vector search for O(log n) indexed retrieval
       const queryVector = await getQueryEmbedding(seed);
       // Get first scope from filters if present
-      const scopeFilter = parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
+      const scopeFilter =
+        parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
       const dbResults = await vectorSimilaritySearch(dbConfig.pool, {
         queryVector,
         limit: parsed.maxResults * 2, // Get extra for reranking
@@ -660,17 +678,22 @@ async function hybridRecall(
       // Run both DB channels in parallel
       const [queryVector, keywordResults] = await Promise.all([
         getQueryEmbedding(seed),
-        pgKeywordRecall(seed, {
-          teamId: auth.activeTeamId,
-          securityLevel: auth.securityLevel,
-          isSystemAdmin: auth.subjectType === 'system-admin',
-          scopes: parsed.filters?.scopes?.length ? parsed.filters.scopes : ['global', 'project'],
-        }, parsed.maxResults * 2),
+        pgKeywordRecall(
+          seed,
+          {
+            teamId: auth.activeTeamId,
+            securityLevel: auth.securityLevel,
+            isSystemAdmin: auth.subjectType === 'system-admin',
+            scopes: parsed.filters?.scopes?.length ? parsed.filters.scopes : ['global', 'project'],
+          },
+          parsed.maxResults * 2,
+        ),
       ]);
 
       // Run DB vector search
       // Get first scope from filters if present
-      const dbScopeFilter = parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
+      const dbScopeFilter =
+        parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
       const dbVectorResults = await vectorSimilaritySearch(dbConfig.pool, {
         queryVector,
         limit: parsed.maxResults * 2,
@@ -701,7 +724,9 @@ async function hybridRecall(
             tokenMatches: r.tokenMatches,
           };
         })
-        .filter((c): c is NonNullable<Awaited<ReturnType<typeof keywordRecall>>[number]> => c !== null);
+        .filter(
+          (c): c is NonNullable<Awaited<ReturnType<typeof keywordRecall>>[number]> => c !== null,
+        );
 
       // Merge candidates from both channels
       const mergedCandidates = mergeCandidates(semanticCandidates, keywordCandidates);
@@ -768,16 +793,10 @@ async function computeSemanticCandidates(
   const queryVector = await getQueryEmbedding(seed);
 
   // Use optimizedSemanticRecall for batch embedding retrieval (Phase 77)
-  const { scoredEntries } = await optimizedSemanticRecall(
-    queryVector,
-    eligibleEntries,
-    filters,
-  );
+  const { scoredEntries } = await optimizedSemanticRecall(queryVector, eligibleEntries, filters);
 
   // Convert scored entries to recall candidates
-  const candidates = scoredEntries.map(({ entry, score }) =>
-    createSemanticCandidate(entry, score),
-  );
+  const candidates = scoredEntries.map(({ entry, score }) => createSemanticCandidate(entry, score));
 
   // Sort by score descending for deterministic ordering
   candidates.sort((a, b) => b.score - a.score);
@@ -1047,7 +1066,8 @@ export async function searchKnowledgeV2(
 
     // Get current data snapshot
     const data = await timedStep('snapshot', () => services.store.snapshot(), steps, {
-      outputSize: (d) => (d as Awaited<ReturnType<typeof services.store.snapshot>>).skillArtifacts?.length ?? 0,
+      outputSize: (d) =>
+        (d as Awaited<ReturnType<typeof services.store.snapshot>>).skillArtifacts?.length ?? 0,
     });
 
     // Build governance filters from auth context

@@ -8,13 +8,10 @@
  * - findEntriesByGraphNode: graph-based entry lookup
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import {
-  findEntriesByBoundaryConstraint,
-  findEntriesByGraphNode,
-} from './boundary-query.js';
 import type { GraphIndexDocumentRecord } from '../indexing/graph-lite/documents.js';
+import { findEntriesByBoundaryConstraint, findEntriesByGraphNode } from './boundary-query.js';
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -32,9 +29,17 @@ function makeEntryWithFacets(
 ) {
   const entry: any = {
     id,
-    boundary: opts.hasBoundary !== false
-      ? { context: [], versions: [], exclusions: [], evidence: [], prerequisites: [], signals: [] }
-      : null,
+    boundary:
+      opts.hasBoundary !== false
+        ? {
+            context: [],
+            versions: [],
+            exclusions: [],
+            evidence: [],
+            prerequisites: [],
+            signals: [],
+          }
+        : null,
   };
   if (opts.hasIndexState !== false) {
     entry.indexState = {
@@ -94,7 +99,14 @@ describe('findEntriesByBoundaryConstraint', () => {
   it('returns empty for entries with failed index state', () => {
     const entry: any = {
       id: 'e1',
-      boundary: { context: [], versions: [], exclusions: [], evidence: [], prerequisites: [], signals: [] },
+      boundary: {
+        context: [],
+        versions: [],
+        exclusions: [],
+        evidence: [],
+        prerequisites: [],
+        signals: [],
+      },
       indexState: { keyword: { status: 'failed' } },
     };
     const result = findEntriesByBoundaryConstraint([entry], { context: 'frontend' });
@@ -110,7 +122,14 @@ describe('findEntriesByBoundaryConstraint', () => {
   it('returns empty for entries without boundary facets', () => {
     const entry: any = {
       id: 'e1',
-      boundary: { context: [], versions: [], exclusions: [], evidence: [], prerequisites: [], signals: [] },
+      boundary: {
+        context: [],
+        versions: [],
+        exclusions: [],
+        evidence: [],
+        prerequisites: [],
+        signals: [],
+      },
       indexState: { keyword: { status: 'synced', persistedState: {} } },
     };
     const result = findEntriesByBoundaryConstraint([entry], { context: 'frontend' });
@@ -153,7 +172,10 @@ describe('findEntriesByBoundaryConstraint', () => {
       makeEntryWithFacets('e2', { contexts: ['frontend'], platforms: ['windows'] }),
       makeEntryWithFacets('e3', { contexts: ['backend'], platforms: ['linux'] }),
     ];
-    const result = findEntriesByBoundaryConstraint(entries, { context: 'frontend', platform: 'linux' });
+    const result = findEntriesByBoundaryConstraint(entries, {
+      context: 'frontend',
+      platform: 'linux',
+    });
     expect(result).toHaveLength(1);
     expect(result[0]?.id).toBe('e1');
   });
@@ -212,17 +234,13 @@ describe('findEntriesByGraphNode', () => {
   });
 
   it('finds entries with matching boundary-version node', () => {
-    const docs = [
-      makeGraphDoc('e1', [{ kind: 'boundary-version', label: 'react@>=16.8.0' }]),
-    ];
+    const docs = [makeGraphDoc('e1', [{ kind: 'boundary-version', label: 'react@>=16.8.0' }])];
     const result = findEntriesByGraphNode(docs, 'boundary-version', 'react@>=16.8.0');
     expect(result).toEqual(['e1']);
   });
 
   it('returns empty array when no match', () => {
-    const docs = [
-      makeGraphDoc('e1', [{ kind: 'boundary-context', label: 'frontend' }]),
-    ];
+    const docs = [makeGraphDoc('e1', [{ kind: 'boundary-context', label: 'frontend' }])];
     const result = findEntriesByGraphNode(docs, 'boundary-platform', 'linux');
     expect(result).toEqual([]);
   });

@@ -110,14 +110,7 @@ export async function vectorSimilaritySearchWithStats(
 ): Promise<VectorSearchResultWithStats> {
   const startTime = Date.now();
 
-  const {
-    queryVector,
-    limit,
-    teamId,
-    maxLevel = 0,
-    scope,
-    entryIds,
-  } = options;
+  const { queryVector, limit, teamId, maxLevel = 0, scope, entryIds } = options;
 
   // Build the query with filters
   const conditions: string[] = ["status = 'synced'"];
@@ -127,7 +120,7 @@ export async function vectorSimilaritySearchWithStats(
   // Team filter: null teamId = global-only, specific teamId = global OR that team
   if (teamId !== undefined) {
     if (teamId === null) {
-      conditions.push(`team_id IS NULL`);
+      conditions.push('team_id IS NULL');
     } else {
       conditions.push(`(team_id IS NULL OR team_id = $${paramIndex})`);
       params.push(teamId);
@@ -277,9 +270,7 @@ export async function hasVectorIndex(pool: Pool): Promise<boolean> {
  * @param pool - PostgreSQL connection pool
  * @returns Index statistics or null if index doesn't exist
  */
-export async function getVectorIndexStats(
-  pool: Pool,
-): Promise<{
+export async function getVectorIndexStats(pool: Pool): Promise<{
   indexSize: string;
   rowCount: number;
 } | null> {
@@ -292,9 +283,7 @@ export async function getVectorIndexStats(
     pool.query<{ pg_size_pretty: string }>(
       `SELECT pg_size_pretty(pg_relation_size('knowledge_embeddings_vector_idx'))`,
     ),
-    pool.query<{ count: number }>(
-      `SELECT COUNT(*) as count FROM knowledge_embeddings`,
-    ),
+    pool.query<{ count: number }>('SELECT COUNT(*) as count FROM knowledge_embeddings'),
   ]);
 
   return {

@@ -13,18 +13,14 @@
 import type { Boundary, LifecycleState, Scope } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
+import { createKnowledgeEntryRecord, toKnowledgeEntry, toKnowledgeListItem } from '../knowledge.js';
+import { transitionLifecycleState } from '../lifecycle/state-machine.js';
 import type {
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
   KnowledgeRevisionRecord,
   SkillShareerStore,
 } from '../store.js';
-import {
-  createKnowledgeEntryRecord,
-  toKnowledgeEntry,
-  toKnowledgeListItem,
-} from '../knowledge.js';
-import { transitionLifecycleState } from '../lifecycle/state-machine.js';
 
 /**
  * Repository interface for knowledge entry CRUD operations.
@@ -151,10 +147,7 @@ export class DualWriteKnowledgeRepository implements KnowledgeRepository {
     });
   }
 
-  async appendLifecycleEvent(
-    entryId: string,
-    event: KnowledgeLifecycleEventRecord,
-  ): Promise<void> {
+  async appendLifecycleEvent(entryId: string, event: KnowledgeLifecycleEventRecord): Promise<void> {
     await this.primary.appendLifecycleEvent(entryId, event);
     await this.store.transact((data) => {
       const entry = data.knowledgeEntries.find((e) => e.id === entryId);
@@ -242,10 +235,7 @@ export class InMemoryKnowledgeRepository implements KnowledgeRepository {
     });
   }
 
-  async appendLifecycleEvent(
-    entryId: string,
-    event: KnowledgeLifecycleEventRecord,
-  ): Promise<void> {
+  async appendLifecycleEvent(entryId: string, event: KnowledgeLifecycleEventRecord): Promise<void> {
     await this.store.transact((data) => {
       const entry = data.knowledgeEntries.find((e) => e.id === entryId);
       if (!entry) {

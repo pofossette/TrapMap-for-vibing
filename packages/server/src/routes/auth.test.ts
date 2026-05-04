@@ -316,9 +316,7 @@ describe('auth routes', () => {
 
       // Verify session is removed
       const snapshot = await store.snapshot();
-      const remaining = snapshot.sessions.find(
-        (s) => s.tokenHash === hashSecret(sessionToken),
-      );
+      const remaining = snapshot.sessions.find((s) => s.tokenHash === hashSecret(sessionToken));
       expect(remaining).toBeUndefined();
     });
   });

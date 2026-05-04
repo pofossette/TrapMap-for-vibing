@@ -5,18 +5,10 @@
  * indicate quality issues with a knowledge entry.
  */
 
-import type {
-  DecayState,
-  FeedbackProblemType,
-  LifecycleTriggerRule,
-} from '@trapmap/contracts';
+import type { DecayState, FeedbackProblemType, LifecycleTriggerRule } from '@trapmap/contracts';
 import { DEFAULT_LIFECYCLE_TRIGGER_RULES } from '@trapmap/contracts';
 
-import type {
-  FeedbackQueueRecord,
-  KnowledgeRecord,
-  SkillArtifactRecord,
-} from '../store.js';
+import type { FeedbackQueueRecord, KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 
 /**
  * Result of checking lifecycle triggers for an entry.
@@ -55,9 +47,7 @@ export function checkLifecycleTriggers(
     const matchingFeedback = entryFeedback.filter((f) => {
       if (f.problemType !== rule.problemType) return false;
 
-      const ageDays =
-        (now.getTime() - new Date(f.submittedAt).getTime()) /
-        (1000 * 60 * 60 * 24);
+      const ageDays = (now.getTime() - new Date(f.submittedAt).getTime()) / (1000 * 60 * 60 * 24);
       return ageDays <= rule.timeWindowDays;
     });
 
@@ -88,12 +78,7 @@ export function applyLifecycleTrigger(
   rules: LifecycleTriggerRule[],
   now: Date,
 ): boolean {
-  const result = checkLifecycleTriggers(
-    entry.id,
-    feedbackQueue,
-    rules,
-    now,
-  );
+  const result = checkLifecycleTriggers(entry.id, feedbackQueue, rules, now);
 
   if (!result.shouldTransition || !result.targetState) {
     return false;
@@ -102,13 +87,7 @@ export function applyLifecycleTrigger(
   // Don't transition if already in target state or "worse" state
   const currentState = entry.decayMeta?.decayState;
   if (currentState) {
-    const stateOrder: DecayState[] = [
-      'active',
-      'review-due',
-      'stale',
-      'expired',
-      'superseded',
-    ];
+    const stateOrder: DecayState[] = ['active', 'review-due', 'stale', 'expired', 'superseded'];
     const currentIndex = stateOrder.indexOf(currentState);
     const targetIndex = stateOrder.indexOf(result.targetState);
 

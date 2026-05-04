@@ -9,26 +9,30 @@
 
 import type { DecayState } from '@trapmap/contracts';
 import {
+  type MaintenanceAwareListItem,
+  type MaintenanceBatchOperationItem,
+  maintenanceAwareListItemSchema,
   maintenanceBatchOperationItemSchema,
   maintenanceBatchOperationRequestSchema,
   maintenanceBatchOperationResponseSchema,
   maintenanceEntryListRequestSchema,
   maintenanceEntryListResponseSchema,
-  maintenanceAwareListItemSchema,
-  type MaintenanceBatchOperationItem,
-  type MaintenanceAwareListItem,
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { executeMaintenanceOperation, planMaintenanceOperation } from '../lib/maintenance/batch.js';
-import { isReviewOverdue, isStaleVerification, toActorRefFromRecord } from '../lib/maintenance/model.js';
-import { computeDecayState } from '../lib/decay/state-machine.js';
 import { loadDecayConfig } from '../lib/decay/config.js';
-import { reconcileKnowledgeIndexes } from '../lib/indexing/pipeline.js';
-import { nowIso } from '../lib/store.js';
-import { requirePermission } from '../lib/rbac.js';
+import { computeDecayState } from '../lib/decay/state-machine.js';
 import { AppError } from '../lib/errors.js';
+import { reconcileKnowledgeIndexes } from '../lib/indexing/pipeline.js';
+import { executeMaintenanceOperation, planMaintenanceOperation } from '../lib/maintenance/batch.js';
+import {
+  isReviewOverdue,
+  isStaleVerification,
+  toActorRefFromRecord,
+} from '../lib/maintenance/model.js';
+import { requirePermission } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
+import { nowIso } from '../lib/store.js';
 import { loadUserOpsLogConfig, logUserOperation } from '../lib/user-ops-log.js';
 
 /**
@@ -141,9 +145,7 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
       const supersededById = entryDecay?.supersededById ?? null;
 
       // Get maintenance metadata
-      const maintainer = entry.maintenanceMeta
-        ? toActorRefFromRecord(entry.maintenanceMeta)
-        : null;
+      const maintainer = entry.maintenanceMeta ? toActorRefFromRecord(entry.maintenanceMeta) : null;
       const reviewBy = entry.maintenanceMeta?.reviewBy ?? null;
 
       // Apply filters
@@ -236,7 +238,9 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
       action: body.action,
       actorId: auth.actorId,
       ...(body.newMaintainerId !== undefined ? { newMaintainerId: body.newMaintainerId } : {}),
-      ...(body.newMaintainerHandle !== undefined ? { newMaintainerHandle: body.newMaintainerHandle } : {}),
+      ...(body.newMaintainerHandle !== undefined
+        ? { newMaintainerHandle: body.newMaintainerHandle }
+        : {}),
       ...(body.extendDays !== undefined ? { extendDays: body.extendDays } : {}),
     };
 
@@ -354,10 +358,7 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
     const startTime = Date.now();
     const adapters = app.skillShareer.indexAdapters;
 
-    const result = await reconcileKnowledgeIndexes(
-      { store: app.skillShareer.store },
-      adapters,
-    );
+    const result = await reconcileKnowledgeIndexes({ store: app.skillShareer.store }, adapters);
 
     const durationMs = Date.now() - startTime;
 

@@ -184,11 +184,15 @@ export const graphPlanExpectationsSchema = z.object({
   /** Expected skill node IDs in graph.nodes (kind='skill') */
   expectedSkillNodeIds: z.array(entityIdSchema).default([]),
   /** Expected edge relations: {sourceId, targetId, type} tuples */
-  expectedEdges: z.array(z.object({
-    sourceNodeId: entityIdSchema,
-    targetNodeId: entityIdSchema,
-    type: z.enum(['risk-blocks', 'mitigates', 'requires', 'order', 'co-occurs-with']),
-  })).default([]),
+  expectedEdges: z
+    .array(
+      z.object({
+        sourceNodeId: entityIdSchema,
+        targetNodeId: entityIdSchema,
+        type: z.enum(['risk-blocks', 'mitigates', 'requires', 'order', 'co-occurs-with']),
+      }),
+    )
+    .default([]),
   /** Expected blocking trap node IDs in focus.blockingTrapNodeIds */
   expectedBlockingTrapNodeIds: z.array(entityIdSchema).default([]),
   /** Expected recommended skill node IDs in focus.recommendedSkillNodeIds */

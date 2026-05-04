@@ -84,9 +84,9 @@ export function createOpenAiJudgeProvider(config: {
   apiKey?: string;
   temperature?: number;
 }): LlmJudgeProvider {
-  const model = config.model ?? 'gpt-4o-mini';
-  const baseUrl = config.baseUrl ?? 'https://api.openai.com/v1';
-  const apiKey = config.apiKey ?? process.env.OPENAI_API_KEY ?? '';
+  const model = config.model ?? process.env.AI_CHAT_MODEL ?? 'gpt-4o-mini';
+  const baseUrl = config.baseUrl ?? process.env.AI_BASE_URL ?? 'https://api.openai.com/v1';
+  const apiKey = config.apiKey ?? process.env.AI_API_KEY ?? process.env.OPENAI_API_KEY ?? '';
   const temperature = config.temperature ?? 0;
 
   return {

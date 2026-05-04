@@ -878,8 +878,7 @@ export const coreGraphPlanOrchestrationScenario = retrievalEvalScenarioSchema.pa
         scope: 'project',
         labels: ['deployment', 'infrastructure', 'ordering'],
         shortcut: 'Deployment ordering blocker',
-        detail:
-          'Deployment fails when application deployed before infrastructure is ready.',
+        detail: 'Deployment fails when application deployed before infrastructure is ready.',
         requiredLevel: 3,
         lifecycleState: 'approved',
       },

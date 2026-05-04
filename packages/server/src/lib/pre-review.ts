@@ -7,7 +7,7 @@ import {
   agentReviewResultSchema,
 } from '@trapmap/contracts';
 
-import { type ChatProvider } from './ai/types.js';
+import type { ChatProvider } from './ai/types.js';
 import { extractCandidateBoundaries } from './boundary-extract.js';
 import { type KnowledgeRecord, nowIso } from './store.js';
 

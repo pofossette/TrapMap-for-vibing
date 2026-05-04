@@ -12,8 +12,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 import { nowIso } from '../store.js';
-import { tokenize } from './fingerprint.js';
 import { detectDuplicates, getDetectionVersion } from './detector.js';
+import { tokenize } from './fingerprint.js';
 import type { DuplicateDetectionInput } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -106,7 +106,9 @@ function createTestSkill(overrides: Partial<SkillArtifactRecord> = {}): SkillArt
   };
 }
 
-function createTestInput(overrides: Partial<DuplicateDetectionInput> = {}): DuplicateDetectionInput {
+function createTestInput(
+  overrides: Partial<DuplicateDetectionInput> = {},
+): DuplicateDetectionInput {
   return {
     candidateId: 'cand_1',
     candidateFingerprint: 'abc123hash',
@@ -305,7 +307,11 @@ describe('detectDuplicates', () => {
       lifecycleState: 'approved',
     });
 
-    const tokens = [...tokenize('Duplicate knowledge entry about React hooks\nThis trap explains how to use React hooks effectively')];
+    const tokens = [
+      ...tokenize(
+        'Duplicate knowledge entry about React hooks\nThis trap explains how to use React hooks effectively',
+      ),
+    ];
     const input = createTestInput({
       candidateTokens: tokens,
       candidateKeywords: ['react'],
@@ -335,7 +341,11 @@ describe('detectDuplicates', () => {
       lifecycleState: 'approved',
     });
 
-    const tokens = [...tokenize('Test knowledge entry for overlapping\nDetailed explanation about testing patterns')];
+    const tokens = [
+      ...tokenize(
+        'Test knowledge entry for overlapping\nDetailed explanation about testing patterns',
+      ),
+    ];
     const input = createTestInput({
       candidateTokens: tokens,
       candidateKeywords: ['testing'],
@@ -433,7 +443,9 @@ describe('detectDuplicates', () => {
       },
     });
 
-    const tokens = [...tokenize('Exact fingerprint test title\nExact fingerprint test summary content')];
+    const tokens = [
+      ...tokenize('Exact fingerprint test title\nExact fingerprint test summary content'),
+    ];
     const input = createTestInput({
       candidateTokens: tokens,
       candidateKeywords: ['fingerprint'],
@@ -504,7 +516,11 @@ describe('detectDuplicates', () => {
       lifecycleState: 'approved',
     });
 
-    const tokens = [...tokenize('Completely identical knowledge entry text\nCompletely identical knowledge entry detail text')];
+    const tokens = [
+      ...tokenize(
+        'Completely identical knowledge entry text\nCompletely identical knowledge entry detail text',
+      ),
+    ];
     const input = createTestInput({
       candidateTokens: tokens,
       candidateKeywords: ['test'],
@@ -537,7 +553,11 @@ describe('detectDuplicates', () => {
       );
     }
 
-    const tokens = [...tokenize('Duplicate knowledge entry text\nDuplicate knowledge entry detail text for limiting test')];
+    const tokens = [
+      ...tokenize(
+        'Duplicate knowledge entry text\nDuplicate knowledge entry detail text for limiting test',
+      ),
+    ];
     const input = createTestInput({
       candidateTokens: tokens,
       candidateKeywords: ['test'],
@@ -561,7 +581,9 @@ describe('detectDuplicates', () => {
       lifecycleState: 'approved',
     });
 
-    const tokens = [...tokenize('Structural verification test title\nStructural verification test detail')];
+    const tokens = [
+      ...tokenize('Structural verification test title\nStructural verification test detail'),
+    ];
     const input = createTestInput({
       candidateId: 'cand_struct',
       candidateTokens: tokens,
@@ -615,7 +637,11 @@ describe('detectDuplicates', () => {
       },
     });
 
-    const tokens = [...tokenize('Exact duplicate type testing title\nExact duplicate type testing summary content')];
+    const tokens = [
+      ...tokenize(
+        'Exact duplicate type testing title\nExact duplicate type testing summary content',
+      ),
+    ];
     const input = createTestInput({
       candidateTokens: tokens,
       candidateKeywords: ['test'],
@@ -639,7 +665,11 @@ describe('detectDuplicates', () => {
       lifecycleState: 'approved',
     });
 
-    const tokens = [...tokenize('Semantic type verification test title entry\nSemantic type verification test detail content explanation')];
+    const tokens = [
+      ...tokenize(
+        'Semantic type verification test title entry\nSemantic type verification test detail content explanation',
+      ),
+    ];
     const input = createTestInput({
       candidateTokens: tokens,
       candidateKeywords: ['test'],

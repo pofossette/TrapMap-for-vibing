@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { DecayConfig } from '@trapmap/contracts';
 import {
+  DEFAULT_DECAY_CONFIG,
   type DecayableEntry,
   computeDecayState,
-  DEFAULT_DECAY_CONFIG,
   isTerminalDecayState,
   requiresAttention,
   validateDecayConfig,
 } from './state-machine.js';
-import type { DecayConfig } from '@trapmap/contracts';
 
 /**
  * Helper to create test entries with defaults.

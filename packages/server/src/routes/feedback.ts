@@ -1,7 +1,4 @@
-import {
-  feedbackSubmissionSchema,
-  feedbackResponseSchema,
-} from '@trapmap/contracts';
+import { feedbackResponseSchema, feedbackSubmissionSchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '../lib/errors.js';
@@ -104,7 +101,9 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
       description: feedbackRecord.description,
       ...(feedbackRecord.context != null ? { context: feedbackRecord.context } : {}),
       ...(feedbackRecord.querySeed != null ? { querySeed: feedbackRecord.querySeed } : {}),
-      ...(feedbackRecord.customAnswers != null ? { customAnswers: feedbackRecord.customAnswers } : {}),
+      ...(feedbackRecord.customAnswers != null
+        ? { customAnswers: feedbackRecord.customAnswers }
+        : {}),
       submittedAt: feedbackRecord.submittedAt,
       submittedBy: {
         id: auth.user!.id,
@@ -115,8 +114,6 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
       ...(feedbackRecord.adminNotes != null ? { adminNotes: feedbackRecord.adminNotes } : {}),
     };
 
-    return reply.status(201).send(
-      feedbackResponseSchema.parse({ feedback }),
-    );
+    return reply.status(201).send(feedbackResponseSchema.parse({ feedback }));
   });
 };

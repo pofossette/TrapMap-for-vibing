@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { boundaryMetaSchema } from './boundary.js';
 import {
   actorRefSchema,
   auditMetadataSchema,
@@ -10,10 +11,9 @@ import {
   scopeSchema,
   securityLevelSchema,
 } from './common.js';
-import { boundaryMetaSchema } from './boundary.js';
 import { evidenceMetaSchema } from './evidence.js';
-import { maintenanceMetaSchema } from './maintenance.js';
 import { agentReviewResultSchema, reviewDecisionSchema, reviewNoteSchema } from './knowledge.js';
+import { maintenanceMetaSchema } from './maintenance.js';
 
 /**
  * Canonical file kind discriminator for skill artifact files.

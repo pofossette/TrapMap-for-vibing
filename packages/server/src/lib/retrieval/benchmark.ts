@@ -1,5 +1,5 @@
-import type { KnowledgeRecord } from '../store.js';
 import type { PipelineStep } from '../rag-log.js';
+import type { KnowledgeRecord } from '../store.js';
 
 /**
  * Benchmark result for a retrieval pipeline execution.
@@ -155,8 +155,8 @@ export async function runRetrievalBenchmark(
       assembly: assemblyMs,
     },
     memoryUsage: {
-      heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024 * 100) / 100,
-      heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024 * 100) / 100,
+      heapUsedMB: Math.round((memUsage.heapUsed / 1024 / 1024) * 100) / 100,
+      heapTotalMB: Math.round((memUsage.heapTotal / 1024 / 1024) * 100) / 100,
     },
   };
 }
@@ -173,9 +173,10 @@ export function compareBenchmarkResults(
   after: RetrievalBenchmarkResult,
 ): BenchmarkComparison {
   // Calculate overall improvement percentage
-  const totalImprovement = before.totalLatencyMs > 0
-    ? ((before.totalLatencyMs - after.totalLatencyMs) / before.totalLatencyMs) * 100
-    : 0;
+  const totalImprovement =
+    before.totalLatencyMs > 0
+      ? ((before.totalLatencyMs - after.totalLatencyMs) / before.totalLatencyMs) * 100
+      : 0;
 
   // Calculate per-step improvements
   const stepImprovements: Record<string, number> = {};
@@ -184,9 +185,7 @@ export function compareBenchmarkResults(
   for (const step of stepNames) {
     const beforeMs = before.steps[step];
     const afterMs = after.steps[step];
-    stepImprovements[step] = beforeMs > 0
-      ? ((beforeMs - afterMs) / beforeMs) * 100
-      : 0;
+    stepImprovements[step] = beforeMs > 0 ? ((beforeMs - afterMs) / beforeMs) * 100 : 0;
   }
 
   return {

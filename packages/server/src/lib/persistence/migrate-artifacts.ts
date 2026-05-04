@@ -164,7 +164,7 @@ async function synchronizeSequence(pool: Pool, artifacts: SkillArtifactRecord[])
     // Handle "artifact_N" format
     const match = artifact.id.match(/^artifact_(\d+)$/);
     if (match) {
-      numericIds.push(parseInt(match[1]!, 10));
+      numericIds.push(Number.parseInt(match[1]!, 10));
     } else {
       // For non-standard IDs, we still need to account for them
       // Use a hash-based approach to generate a reasonable numeric value
@@ -182,10 +182,7 @@ async function synchronizeSequence(pool: Pool, artifacts: SkillArtifactRecord[])
 
   // Set the sequence to maxId + 1
   // This ensures next nextval() will return a value greater than all existing IDs
-  await pool.query(
-    `SELECT setval('skill_artifact_id_seq', $1, false)`,
-    [maxId + 1],
-  );
+  await pool.query(`SELECT setval('skill_artifact_id_seq', $1, false)`, [maxId + 1]);
 }
 
 /**
@@ -196,7 +193,7 @@ function simpleHash(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash);

@@ -7,7 +7,6 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { KnowledgeRecord } from '../store.js';
 import {
   buildEmbeddingText,
   computeScore,
@@ -15,6 +14,7 @@ import {
   getBatchEmbeddings,
   optimizedSemanticRecall,
 } from '../retrieval/recall/semantic.js';
+import type { KnowledgeRecord } from '../store.js';
 
 vi.mock('../embeddings.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]),

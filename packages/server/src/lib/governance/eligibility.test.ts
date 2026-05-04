@@ -9,13 +9,18 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { EligibilityOptions, GovernanceContext, GovernanceFilters, GovernedEntity } from './types.js';
 import {
   filterGovernedEntities,
-  isGovernedEntityAccessible,
   isGovernanceEligible,
+  isGovernedEntityAccessible,
   matchesGovernanceFilters,
 } from './eligibility.js';
+import type {
+  EligibilityOptions,
+  GovernanceContext,
+  GovernanceFilters,
+  GovernedEntity,
+} from './types.js';
 
 type TestEntity = GovernedEntity & { labels: string[] };
 
@@ -272,7 +277,11 @@ describe('filterGovernedEntities', () => {
 
   it('returns only eligible entities that match filters from mixed input', () => {
     const eligible = createTestEntity({ scope: 'global', labels: ['a'] });
-    const ineligibleLifecycle = createTestEntity({ lifecycleState: 'rejected', scope: 'global', labels: ['a'] });
+    const ineligibleLifecycle = createTestEntity({
+      lifecycleState: 'rejected',
+      scope: 'global',
+      labels: ['a'],
+    });
     const wrongScope = createTestEntity({ scope: 'project', labels: ['a'] });
     const result = filterGovernedEntities(
       [eligible, ineligibleLifecycle, wrongScope],

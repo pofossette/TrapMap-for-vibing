@@ -9,8 +9,8 @@
  * - POST /v1/access-keys creates key with notes
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildServer } from '../app.js';
 import type { SkillShareerStore } from '../lib/store.js';
 import { hashSecret, nowIso } from '../lib/store.js';
@@ -36,36 +36,59 @@ describe('Nyquist: POST /v1/access-keys', () => {
       data.counters.user = 1;
 
       data.users.push({
-        id: adminUserId, handle: 'admin', notes: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: adminUserId,
+        handle: 'admin',
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.users.push({
-        id: targetUserId, handle: 'target', notes: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: targetUserId,
+        handle: 'target',
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.teams.push({
-        id: teamId, name: 'AK Team', slug: 'ak-team', description: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: teamId,
+        name: 'AK Team',
+        slug: 'ak-team',
+        description: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       // Admin membership with permission
       data.memberships.push({
-        id: 'm_ak_admin', userId: adminUserId, teamId,
-        roleTemplate: 'admin', securityLevel: 10,
-        permissions: ['member:key:create'], notes: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: 'm_ak_admin',
+        userId: adminUserId,
+        teamId,
+        roleTemplate: 'admin',
+        securityLevel: 10,
+        permissions: ['member:key:create'],
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       // Target membership at lower level
       data.memberships.push({
-        id: 'm_ak_target', userId: targetUserId, teamId,
-        roleTemplate: 'user', securityLevel: 5,
-        permissions: [], notes: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: 'm_ak_target',
+        userId: targetUserId,
+        teamId,
+        roleTemplate: 'user',
+        securityLevel: 5,
+        permissions: [],
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.sessions.push({
-        id: `sess_ak_${Date.now()}`, userId: adminUserId,
-        tokenHash: hashSecret(sessionToken), activeTeamId: teamId,
+        id: `sess_ak_${Date.now()}`,
+        userId: adminUserId,
+        tokenHash: hashSecret(sessionToken),
+        activeTeamId: teamId,
         subjectType: 'user',
-        createdAt: nowIso(), updatedAt: nowIso(),
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
         expiresAt: new Date(Date.now() + 3600000).toISOString(),
       });
     });
@@ -92,14 +115,23 @@ describe('Nyquist: POST /v1/access-keys', () => {
 
     await store.transact(async (data) => {
       data.teams.push({
-        id: otherTeamId, name: 'Other Team', slug: 'other-team', description: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: otherTeamId,
+        name: 'Other Team',
+        slug: 'other-team',
+        description: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
       data.memberships.push({
-        id: 'm_ak_other', userId: targetUserId, teamId: otherTeamId,
-        roleTemplate: 'user', securityLevel: 3,
-        permissions: [], notes: null,
-        createdAt: nowIso(), updatedAt: nowIso(),
+        id: 'm_ak_other',
+        userId: targetUserId,
+        teamId: otherTeamId,
+        roleTemplate: 'user',
+        securityLevel: 3,
+        permissions: [],
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
     });
 

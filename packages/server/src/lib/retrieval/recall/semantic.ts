@@ -12,9 +12,14 @@
  */
 
 import type { RetrievalQuery } from '@trapmap/contracts';
-import { generateEmbedding, generateEmbeddingWithMeta, type EmbeddingResult, hashEmbeddingText } from '../../embeddings.js';
-import type { KnowledgeRecord } from '../../store.js';
+import {
+  type EmbeddingResult,
+  generateEmbedding,
+  generateEmbeddingWithMeta,
+  hashEmbeddingText,
+} from '../../embeddings.js';
 import type { PipelineStep } from '../../rag-log.js';
+import type { KnowledgeRecord } from '../../store.js';
 
 /**
  * Build the embedding text from a knowledge entry.

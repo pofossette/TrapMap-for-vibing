@@ -213,10 +213,7 @@ export function registerKnowledgeCommands(
         const parsed = knowledgeEntryResponseSchema.parse(response.data);
 
         printResult(parsed, flags, ({ entry }) =>
-          [
-            `Superseded ${entry.id}`,
-            `Lifecycle: ${entry.lifecycleState}`,
-          ].join('\n'),
+          [`Superseded ${entry.id}`, `Lifecycle: ${entry.lifecycleState}`].join('\n'),
         );
       });
   }

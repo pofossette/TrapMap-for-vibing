@@ -21,8 +21,8 @@ import type {
   StoreData,
   StoredScriptActivationPolicy,
 } from '../store.js';
-import type { ArtifactRepository } from './repository.js';
 import { appendSkillArtifactRevision } from './model.js';
+import type { ArtifactRepository } from './repository.js';
 
 /**
  * Determines if a file path is derivation-eligible.

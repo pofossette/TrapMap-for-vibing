@@ -109,9 +109,7 @@ export interface ConflictDetectionInput {
  * @param input - Detection input with store services and entry ID
  * @returns Array of detected conflict relations (may be empty)
  */
-export async function detectConflicts(
-  input: ConflictDetectionInput,
-): Promise<ConflictRelation[]> {
+export async function detectConflicts(input: ConflictDetectionInput): Promise<ConflictRelation[]> {
   const { services, entryId } = input;
   const { data } = services;
 

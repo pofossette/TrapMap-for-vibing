@@ -16,7 +16,10 @@ vi.mock('../retrieval/recall/semantic.js', () => ({
   cosineSimilarity: vi.fn().mockReturnValue(0.8),
   computeScore: vi.fn().mockReturnValue(0.8),
   buildEmbeddingText: vi.fn().mockReturnValue('shortcut detail labels'),
-  optimizedSemanticRecall: vi.fn().mockResolvedValue({ scoredEntries: [], cacheStats: { totalEntries: 0, cacheHits: 0, cacheMisses: 0, hitRate: 0 } }),
+  optimizedSemanticRecall: vi.fn().mockResolvedValue({
+    scoredEntries: [],
+    cacheStats: { totalEntries: 0, cacheHits: 0, cacheMisses: 0, hitRate: 0 },
+  }),
 }));
 
 vi.mock('../retrieval/recall/keyword.js', () => ({
@@ -137,16 +140,16 @@ vi.mock('../persistence/postgres-store.js', () => ({
   PostgresStore: class MockPostgresStore {},
 }));
 
-import {
-  selectRetrievalStrategy,
-  selectRetrievalStrategyV2,
-  searchKnowledge,
-} from '../retrieval/orchestrator.js';
-import { keywordRecall } from '../retrieval/recall/keyword.js';
-import { graphAssistedRecall } from '../retrieval/recall/graph-assisted.js';
 import { logRagRetrieval } from '../rag-log.js';
 import { buildEmptyResponse } from '../retrieval/assembly.js';
 import { filterByBoundaryContext, filterEligibleEntries } from '../retrieval/filters.js';
+import {
+  searchKnowledge,
+  selectRetrievalStrategy,
+  selectRetrievalStrategyV2,
+} from '../retrieval/orchestrator.js';
+import { graphAssistedRecall } from '../retrieval/recall/graph-assisted.js';
+import { keywordRecall } from '../retrieval/recall/keyword.js';
 import { getQueryEmbedding } from '../retrieval/recall/semantic.js';
 
 function makeAuth(overrides: Partial<ResolvedAuthContext> = {}): ResolvedAuthContext {
@@ -185,7 +188,17 @@ function makeMockEntry(id: string): KnowledgeRecord {
       labels: ['test'],
       reviewNotes: [],
     },
-    history: [{ revision: 1, submittedAt: now, submittedByUserId: 'user_test', shortcut: `Entry ${id}`, detail: `Detail for ${id}`, labels: ['test'], reviewNotes: [] }],
+    history: [
+      {
+        revision: 1,
+        submittedAt: now,
+        submittedByUserId: 'user_test',
+        shortcut: `Entry ${id}`,
+        detail: `Detail for ${id}`,
+        labels: ['test'],
+        reviewNotes: [],
+      },
+    ],
     metadata: {
       scopeLabel: 'project-knowledge',
       submissionCount: 1,
@@ -216,10 +229,17 @@ function makeMockEntry(id: string): KnowledgeRecord {
 function makeServices(overrides: Partial<SkillShareerServices> = {}): SkillShareerServices {
   return {
     config: {
-      ragLog: { enabled: false, logDir: '/tmp/test', maxFileSizeBytes: 1024 * 1024, maxBackupFiles: 3 },
+      ragLog: {
+        enabled: false,
+        logDir: '/tmp/test',
+        maxFileSizeBytes: 1024 * 1024,
+        maxBackupFiles: 3,
+      },
     } as SkillShareerServices['config'],
     store: {
-      snapshot: vi.fn().mockResolvedValue({ knowledgeEntries: [], skillArtifacts: [], conflicts: [] }),
+      snapshot: vi
+        .fn()
+        .mockResolvedValue({ knowledgeEntries: [], skillArtifacts: [], conflicts: [] }),
       transact: vi.fn(),
       nextId: vi.fn(),
     } as unknown as SkillShareerServices['store'],
@@ -237,7 +257,7 @@ function makeServices(overrides: Partial<SkillShareerServices> = {}): SkillShare
 describe('Gap 3: Retrieval orchestrator combines multiple recall paths correctly', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.USE_DB_SEARCH;
+    process.env.USE_DB_SEARCH = undefined;
   });
 
   it('selectRetrievalStrategy maps unknown mode to semantic (local) fallback', () => {

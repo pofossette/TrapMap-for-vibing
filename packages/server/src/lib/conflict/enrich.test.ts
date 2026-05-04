@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
+import type { ConflictRelation } from '@trapmap/contracts';
+import type { KnowledgeRecord, StoreData } from '../store.js';
 import {
   buildConflictLookup,
   conflictToHint,
-  getConflictHints,
   enrichMatchesWithConflicts,
+  getConflictHints,
 } from './enrich.js';
-import type { ConflictRelation } from '@trapmap/contracts';
-import type { KnowledgeRecord, StoreData } from '../store.js';
 
 describe('conflict enrichment', () => {
   describe('buildConflictLookup', () => {
@@ -199,7 +199,7 @@ describe('conflict enrichment', () => {
       id: string,
       shortcut: string,
       teamId: string | null = null,
-      requiredLevel: number = 0,
+      requiredLevel = 0,
     ): KnowledgeRecord =>
       ({
         id,
@@ -465,11 +465,7 @@ describe('conflict enrichment', () => {
         conflicts: [], // No conflicts
       };
 
-      const matches = [
-        { entryId: 'entry-1' },
-        { entryId: 'entry-2' },
-        { entryId: 'entry-3' },
-      ];
+      const matches = [{ entryId: 'entry-1' }, { entryId: 'entry-2' }, { entryId: 'entry-3' }];
       const result = enrichMatchesWithConflicts(matches, data);
 
       expect(result.size).toBe(0); // No conflicts, so empty map

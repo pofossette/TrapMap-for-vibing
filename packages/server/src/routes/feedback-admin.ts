@@ -8,23 +8,26 @@
  */
 
 import {
-  feedbackListRequestSchema,
-  feedbackListResponseSchema,
+  type FeedbackBatchItem,
+  type FeedbackListItem,
+  type QualityScore,
   feedbackBatchRequestSchema,
   feedbackBatchResponseSchema,
+  feedbackListRequestSchema,
+  feedbackListResponseSchema,
   feedbackStatsResponseSchema,
-  type QualityScore,
-  type FeedbackListItem,
-  type FeedbackBatchItem,
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '../lib/errors.js';
+import {
+  checkLifecycleTriggers,
+  getLifecycleTriggerRules,
+} from '../lib/feedback/lifecycle-triggers.js';
 import { requirePermission } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import type { FeedbackQueueRecord } from '../lib/store.js';
 import { nowIso } from '../lib/store.js';
-import { checkLifecycleTriggers, getLifecycleTriggerRules } from '../lib/feedback/lifecycle-triggers.js';
 import { loadUserOpsLogConfig, logUserOperation } from '../lib/user-ops-log.js';
 
 /**
@@ -121,20 +124,20 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (query.minAgeDays !== undefined) {
-      filtered = filtered.filter((f) => (f as { _ageDays?: number })._ageDays! >= query.minAgeDays!);
+      filtered = filtered.filter(
+        (f) => (f as { _ageDays?: number })._ageDays! >= query.minAgeDays!,
+      );
     }
 
     if (query.maxAgeDays !== undefined) {
-      filtered = filtered.filter((f) => (f as { _ageDays?: number })._ageDays! <= query.maxAgeDays!);
+      filtered = filtered.filter(
+        (f) => (f as { _ageDays?: number })._ageDays! <= query.maxAgeDays!,
+      );
     }
 
     // Build lookup maps for entry shortcuts
-    const knowledgeEntryMap = new Map(
-      data.knowledgeEntries.map((e) => [e.id, e.shortcut]),
-    );
-    const skillArtifactMap = new Map(
-      data.skillArtifacts.map((a) => [a.id, a.slug]),
-    );
+    const knowledgeEntryMap = new Map(data.knowledgeEntries.map((e) => [e.id, e.shortcut]));
+    const skillArtifactMap = new Map(data.skillArtifacts.map((a) => [a.id, a.slug]));
 
     // Build response items
     const items: FeedbackListItem[] = filtered.map((f) => {
@@ -217,7 +220,7 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
       const feedback = feedbackMap.get(feedbackId);
       let eligible = false;
       let reason: string | null = null;
-      let transitionApplied = false;
+      const transitionApplied = false;
 
       if (!feedback) {
         reason = 'Feedback not found';
@@ -341,21 +344,28 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
       const lifecycleNow = new Date();
 
       // Collect unique entry IDs from eligible items
-      const affectedEntryIds = [...new Set(
-        resultItems
-          .filter(i => i.eligible)
-          .map(i => {
-            const feedback = freshData.feedbackQueue.find(f => f.id === i.feedbackId);
-            return feedback?.entryId;
-          })
-          .filter((id): id is string => id !== undefined)
-      )];
+      const affectedEntryIds = [
+        ...new Set(
+          resultItems
+            .filter((i) => i.eligible)
+            .map((i) => {
+              const feedback = freshData.feedbackQueue.find((f) => f.id === i.feedbackId);
+              return feedback?.entryId;
+            })
+            .filter((id): id is string => id !== undefined),
+        ),
+      ];
 
       for (const entryId of affectedEntryIds) {
-        const result = checkLifecycleTriggers(entryId, freshData.feedbackQueue, rules, lifecycleNow);
+        const result = checkLifecycleTriggers(
+          entryId,
+          freshData.feedbackQueue,
+          rules,
+          lifecycleNow,
+        );
         if (result.shouldTransition && result.targetState) {
           await app.skillShareer.store.transact((data) => {
-            const entry = data.knowledgeEntries.find(e => e.id === entryId);
+            const entry = data.knowledgeEntries.find((e) => e.id === entryId);
             if (entry) {
               entry.decayMeta = {
                 lastVerifiedAt: entry.decayMeta?.lastVerifiedAt ?? entry.updatedAt,

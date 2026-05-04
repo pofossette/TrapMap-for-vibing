@@ -9,15 +9,15 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  reviewRiskSchema,
-  agentReviewStatusSchema,
   agentReviewResultSchema,
+  agentReviewStatusSchema,
+  knowledgeEntrySchema,
+  knowledgeListItemSchema,
+  knowledgeRevisionSchema,
+  knowledgeSubmissionSchema,
   reviewDecisionSchema,
   reviewNoteSchema,
-  knowledgeRevisionSchema,
-  knowledgeEntrySchema,
-  knowledgeSubmissionSchema,
-  knowledgeListItemSchema,
+  reviewRiskSchema,
 } from './knowledge.js';
 
 // Valid actor reference matching actorRefSchema
@@ -180,9 +180,7 @@ describe('knowledge schema adversarial tests', () => {
         knowledgeRevisionSchema.parse({ ...base, shortcut: 'a'.repeat(280) }),
       ).not.toThrow();
 
-      expect(() =>
-        knowledgeRevisionSchema.parse({ ...base, shortcut: 'a'.repeat(281) }),
-      ).toThrow();
+      expect(() => knowledgeRevisionSchema.parse({ ...base, shortcut: 'a'.repeat(281) })).toThrow();
     });
 
     it('accepts detail at exactly 10000 chars and rejects 10001', () => {
@@ -198,9 +196,7 @@ describe('knowledge schema adversarial tests', () => {
         knowledgeRevisionSchema.parse({ ...base, detail: 'a'.repeat(10000) }),
       ).not.toThrow();
 
-      expect(() =>
-        knowledgeRevisionSchema.parse({ ...base, detail: 'a'.repeat(10001) }),
-      ).toThrow();
+      expect(() => knowledgeRevisionSchema.parse({ ...base, detail: 'a'.repeat(10001) })).toThrow();
     });
 
     it('rejects revision number 0', () => {
@@ -274,15 +270,11 @@ describe('knowledge schema adversarial tests', () => {
     });
 
     it('rejects securityLevel above 10', () => {
-      expect(() =>
-        knowledgeEntrySchema.parse({ ...baseEntry, requiredLevel: 11 }),
-      ).toThrow();
+      expect(() => knowledgeEntrySchema.parse({ ...baseEntry, requiredLevel: 11 })).toThrow();
     });
 
     it('rejects negative securityLevel', () => {
-      expect(() =>
-        knowledgeEntrySchema.parse({ ...baseEntry, requiredLevel: -1 }),
-      ).toThrow();
+      expect(() => knowledgeEntrySchema.parse({ ...baseEntry, requiredLevel: -1 })).toThrow();
     });
   });
 
@@ -304,14 +296,16 @@ describe('knowledge schema adversarial tests', () => {
         detail: 'Test detail',
         labels: ['test'],
       },
-      history: [{
-        revision: 1,
-        submittedAt: '2024-01-01T00:00:00Z',
-        submittedBy: validActorRef,
-        shortcut: 'Test',
-        detail: 'Test detail',
-        labels: ['test'],
-      }],
+      history: [
+        {
+          revision: 1,
+          submittedAt: '2024-01-01T00:00:00Z',
+          submittedBy: validActorRef,
+          shortcut: 'Test',
+          detail: 'Test detail',
+          labels: ['test'],
+        },
+      ],
       metadata: {
         scopeLabel: 'global-constraint',
         submissionCount: 1,
@@ -324,7 +318,15 @@ describe('knowledge schema adversarial tests', () => {
     };
 
     it('accepts all valid lifecycle states', () => {
-      const validStates = ['draft', 'submitted', 'agent-pass', 'agent-rejected', 'approved', 'rejected', 'deactivated'];
+      const validStates = [
+        'draft',
+        'submitted',
+        'agent-pass',
+        'agent-rejected',
+        'approved',
+        'rejected',
+        'deactivated',
+      ];
       for (const state of validStates) {
         expect(() =>
           knowledgeEntrySchema.parse({ ...baseEntry, lifecycleState: state }),
@@ -335,9 +337,7 @@ describe('knowledge schema adversarial tests', () => {
     it('rejects invalid lifecycle states', () => {
       const invalidStates = ['active', 'pending', 'closed', 'archived', ''];
       for (const state of invalidStates) {
-        expect(() =>
-          knowledgeEntrySchema.parse({ ...baseEntry, lifecycleState: state }),
-        ).toThrow();
+        expect(() => knowledgeEntrySchema.parse({ ...baseEntry, lifecycleState: state })).toThrow();
       }
     });
   });

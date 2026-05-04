@@ -9,10 +9,10 @@ import type {
   KnowledgeHistoryResponse,
 } from '@trapmap/contracts';
 import { Command } from 'commander';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as http from '../lib/http.js';
 import * as config from '../lib/config.js';
+import * as http from '../lib/http.js';
 import * as input from '../lib/input.js';
 
 // Mock the dependencies
@@ -123,10 +123,14 @@ describe('knowledge commands adversarial CRUD tests', () => {
       await program.parseAsync(
         [
           'submit',
-          '--scope', 'global',
-          '--label', 'auth',
-          '--shortcut', 'Test',
-          '--required-level', '7',
+          '--scope',
+          'global',
+          '--label',
+          'auth',
+          '--shortcut',
+          'Test',
+          '--required-level',
+          '7',
         ],
         { from: 'user' },
       );
@@ -191,10 +195,14 @@ describe('knowledge commands adversarial CRUD tests', () => {
       await program.parseAsync(
         [
           'submit',
-          '--scope', 'global',
-          '--label', 'label1',
-          '--shortcut', 'Test',
-          '--detail', 'My detailed description',
+          '--scope',
+          'global',
+          '--label',
+          'label1',
+          '--shortcut',
+          'Test',
+          '--detail',
+          'My detailed description',
         ],
         { from: 'user' },
       );
@@ -253,7 +261,16 @@ describe('knowledge commands adversarial CRUD tests', () => {
       registerKnowledgeCommands(program, { allowInspect: false, allowSubmit: true });
 
       await program.parseAsync(
-        ['resubmit', 'entry-1', '--label', 'label1', '--shortcut', 'Test', '--detail', 'Updated detail'],
+        [
+          'resubmit',
+          'entry-1',
+          '--label',
+          'label1',
+          '--shortcut',
+          'Test',
+          '--detail',
+          'Updated detail',
+        ],
         { from: 'user' },
       );
 
@@ -281,10 +298,9 @@ describe('knowledge commands adversarial CRUD tests', () => {
       const program = new Command();
       registerKnowledgeCommands(program, { allowInspect: false, allowSubmit: true });
 
-      await program.parseAsync(
-        ['supersede', 'entry-old', '--replacement', 'entry-new'],
-        { from: 'user' },
-      );
+      await program.parseAsync(['supersede', 'entry-old', '--replacement', 'entry-new'], {
+        from: 'user',
+      });
 
       expect(http.apiRequest).toHaveBeenCalledWith(
         expect.anything(),

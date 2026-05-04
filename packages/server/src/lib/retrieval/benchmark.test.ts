@@ -1,13 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import type { KnowledgeRecord } from '../store.js';
 import type { RetrievalBenchmarkResult } from './benchmark.js';
 import {
-  measurePipelineStep,
-  runRetrievalBenchmark,
+  BENCHMARK_SCENARIOS,
   compareBenchmarkResults,
   formatBenchmarkReport,
-  BENCHMARK_SCENARIOS,
+  measurePipelineStep,
+  runRetrievalBenchmark,
 } from './benchmark.js';
 
 /**
@@ -55,11 +55,7 @@ describe('benchmark', () => {
 
   describe('runRetrievalBenchmark', () => {
     it('produces latency breakdown per pipeline step', async () => {
-      const entries = [
-        makeEntry('entry-1'),
-        makeEntry('entry-2'),
-        makeEntry('entry-3'),
-      ];
+      const entries = [makeEntry('entry-1'), makeEntry('entry-2'), makeEntry('entry-3')];
 
       const result = await runRetrievalBenchmark(entries, 'test query', 'semantic');
 

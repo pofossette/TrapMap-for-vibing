@@ -1375,11 +1375,16 @@ describe('retrieval route', () => {
       const allMatches = [...json.globalConstraints, ...json.projectKnowledge];
 
       // At least one match should have boundaryExplanation
-      const withExplanation = allMatches.filter((m: { boundaryExplanation?: unknown }) => m.boundaryExplanation);
+      const withExplanation = allMatches.filter(
+        (m: { boundaryExplanation?: unknown }) => m.boundaryExplanation,
+      );
       expect(withExplanation.length).toBeGreaterThan(0);
 
       // Check the boundary explanation structure
-      const explanation = withExplanation[0].boundaryExplanation as { checked: boolean; boosts: string[] };
+      const explanation = withExplanation[0].boundaryExplanation as {
+        checked: boolean;
+        boosts: string[];
+      };
       expect(explanation.checked).toBe(true);
       expect(explanation.boosts.length).toBeGreaterThan(0);
       expect(explanation.boosts[0]).toContain('Applicable context');
@@ -1452,9 +1457,9 @@ describe('retrieval route', () => {
         method: 'POST',
         url: '/v1/retrieval/search',
         payload: {
-          seed: 'React',  // matches the entry
+          seed: 'React', // matches the entry
           boundaryContext: {
-            versions: [{ package: 'react', version: '17.0.0' }],  // Does NOT satisfy >=18.0.0
+            versions: [{ package: 'react', version: '17.0.0' }], // Does NOT satisfy >=18.0.0
           },
         },
         headers: {
@@ -1467,7 +1472,9 @@ describe('retrieval route', () => {
       const allMatches = [...json.globalConstraints, ...json.projectKnowledge];
 
       // entry-react-18-plus should be excluded (react >=18 required, we have 17)
-      expect(allMatches.find((m: { entryId: string }) => m.entryId === 'entry-react-18-plus')).toBeUndefined();
+      expect(
+        allMatches.find((m: { entryId: string }) => m.entryId === 'entry-react-18-plus'),
+      ).toBeUndefined();
     });
 
     it('penalizes entry with matching exclusion', async () => {
@@ -1539,7 +1546,7 @@ describe('retrieval route', () => {
         payload: {
           seed: 'Node.js backend',
           boundaryContext: {
-            platform: 'windows',  // Matches exclusion on entry
+            platform: 'windows', // Matches exclusion on entry
           },
         },
         headers: {
@@ -1550,7 +1557,9 @@ describe('retrieval route', () => {
       expect(response.statusCode).toBe(200);
       const json = response.json();
       const allMatches = [...json.globalConstraints, ...json.projectKnowledge];
-      const nodeEntry = allMatches.find((m: { entryId: string }) => m.entryId === 'entry-no-windows');
+      const nodeEntry = allMatches.find(
+        (m: { entryId: string }) => m.entryId === 'entry-no-windows',
+      );
 
       if (nodeEntry) {
         // Entry should have warning in boundaryExplanation
@@ -1629,7 +1638,7 @@ describe('retrieval route', () => {
         payload: {
           seed: 'development practices',
           boundaryContext: {
-            contexts: ['frontend'],  // Matches context on entry
+            contexts: ['frontend'], // Matches context on entry
           },
         },
         headers: {
@@ -1640,7 +1649,9 @@ describe('retrieval route', () => {
       expect(response.statusCode).toBe(200);
       const json = response.json();
       const allMatches = [...json.globalConstraints, ...json.projectKnowledge];
-      const feEntry = allMatches.find((m: { entryId: string }) => m.entryId === 'entry-frontend-context');
+      const feEntry = allMatches.find(
+        (m: { entryId: string }) => m.entryId === 'entry-frontend-context',
+      );
 
       if (feEntry) {
         // Entry should have boost in boundaryExplanation

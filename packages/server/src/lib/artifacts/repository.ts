@@ -13,13 +13,13 @@
 import type { Boundary, LifecycleState, Scope } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
+import { transitionLifecycleState } from '../lifecycle/state-machine.js';
 import type {
   SkillArtifactLifecycleEventRecord,
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
   SkillShareerStore,
 } from '../store.js';
-import { transitionLifecycleState } from '../lifecycle/state-machine.js';
 
 /**
  * Repository interface for skill artifact CRUD operations.
@@ -78,10 +78,7 @@ export interface ArtifactRepository {
   /**
    * Append a lifecycle event to an artifact's history.
    */
-  appendLifecycleEvent(
-    artifactId: string,
-    event: SkillArtifactLifecycleEventRecord,
-  ): Promise<void>;
+  appendLifecycleEvent(artifactId: string, event: SkillArtifactLifecycleEventRecord): Promise<void>;
 
   /**
    * List artifacts by filter criteria.
@@ -320,7 +317,10 @@ export class InMemoryArtifactRepository implements ArtifactRepository {
   }): Promise<SkillArtifactRecord[]> {
     const data = await this.store.snapshot();
     return (data.skillArtifacts ?? []).filter((artifact) => {
-      if (filter.lifecycleState !== undefined && artifact.lifecycleState !== filter.lifecycleState) {
+      if (
+        filter.lifecycleState !== undefined &&
+        artifact.lifecycleState !== filter.lifecycleState
+      ) {
         return false;
       }
       if (filter.teamId !== undefined && artifact.teamId !== filter.teamId) {

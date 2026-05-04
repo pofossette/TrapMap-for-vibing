@@ -8,9 +8,9 @@
  * All functions are pure (no side effects, no I/O).
  */
 
-import type { KnowledgeRecord } from '../store.js';
 import { normalizeContextLabel, normalizePackageName } from '../indexing/boundary-normalize.js';
 import type { GraphIndexDocumentRecord } from '../indexing/graph-lite/documents.js';
+import type { KnowledgeRecord } from '../store.js';
 
 /**
  * Constraint for back-reference queries.
@@ -34,7 +34,7 @@ export function findEntriesByBoundaryConstraint(
   entries: KnowledgeRecord[],
   constraint: BoundaryQueryConstraint,
 ): KnowledgeRecord[] {
-  return entries.filter(entry => {
+  return entries.filter((entry) => {
     if (!entry.indexState?.keyword || entry.indexState.keyword.status !== 'synced') return false;
 
     const facets = (entry.indexState.keyword as any).persistedState?.boundaryFacets;
@@ -70,9 +70,7 @@ export function findEntriesByGraphNode(
 ): string[] {
   const entryIds: string[] = [];
   for (const doc of graphDocs) {
-    const hasMatchingNode = doc.nodes.some(
-      n => n.kind === nodeKind && n.label === nodeLabel,
-    );
+    const hasMatchingNode = doc.nodes.some((n) => n.kind === nodeKind && n.label === nodeLabel);
     if (hasMatchingNode) {
       entryIds.push(doc.sourceId);
     }

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
+import type { KnowledgeRecord, SkillShareerStore, StoreData } from '../store.js';
 import {
-  tokenize,
-  overlapScore,
   classifyConflict,
-  generateConflictContext,
   detectConflicts,
+  generateConflictContext,
+  overlapScore,
+  tokenize,
 } from './detect.js';
-import type { KnowledgeRecord, StoreData, SkillShareerStore } from '../store.js';
 
 describe('conflict detection', () => {
   describe('tokenize', () => {
@@ -110,7 +110,9 @@ describe('conflict detection', () => {
         { shortcut: 'Disable cache' },
         'contradictory',
       );
-      expect(result).toBe('Opposing solutions for the same problem: "Enable cache" vs "Disable cache"');
+      expect(result).toBe(
+        'Opposing solutions for the same problem: "Enable cache" vs "Disable cache"',
+      );
     });
 
     it('generates context for superseded conflict', () => {

@@ -133,11 +133,7 @@ export class DualWriteCandidateRepository implements CandidateRepository {
     return this.primary.getById(candidateId);
   }
 
-  async updateStatus(
-    candidateId: string,
-    status: CandidateStatus,
-    error?: string,
-  ): Promise<void> {
+  async updateStatus(candidateId: string, status: CandidateStatus, error?: string): Promise<void> {
     await this.primary.updateStatus(candidateId, status, error);
     await this.store.transact((data) => {
       if (error !== undefined) {
@@ -155,10 +151,7 @@ export class DualWriteCandidateRepository implements CandidateRepository {
     });
   }
 
-  async attachDuplicateCase(
-    candidateId: string,
-    duplicateCase: DuplicateCase,
-  ): Promise<void> {
+  async attachDuplicateCase(candidateId: string, duplicateCase: DuplicateCase): Promise<void> {
     await this.primary.attachDuplicateCase(candidateId, duplicateCase);
     await this.store.transact((data) => {
       attachDuplicateCase({ data, candidateId, duplicateCase });
@@ -206,11 +199,7 @@ export class InMemoryCandidateRepository implements CandidateRepository {
     return data.candidateSubmissions.find((c) => c.id === candidateId) ?? null;
   }
 
-  async updateStatus(
-    candidateId: string,
-    status: CandidateStatus,
-    error?: string,
-  ): Promise<void> {
+  async updateStatus(candidateId: string, status: CandidateStatus, error?: string): Promise<void> {
     await this.store.transact((data) => {
       if (error !== undefined) {
         updateCandidateStatus({ data, candidateId, status, error });
@@ -226,10 +215,7 @@ export class InMemoryCandidateRepository implements CandidateRepository {
     });
   }
 
-  async attachDuplicateCase(
-    candidateId: string,
-    duplicateCase: DuplicateCase,
-  ): Promise<void> {
+  async attachDuplicateCase(candidateId: string, duplicateCase: DuplicateCase): Promise<void> {
     await this.store.transact((data) => {
       attachDuplicateCase({ data, candidateId, duplicateCase });
     });

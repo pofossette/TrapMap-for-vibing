@@ -1,5 +1,9 @@
-import type { EvidenceMeta, EvidenceLevel, EvidenceSourceType } from '@trapmap/contracts';
-import { evidenceLevelSchema, evidenceMetaSchema, evidenceSourceTypeSchema } from '@trapmap/contracts';
+import type { EvidenceLevel, EvidenceMeta, EvidenceSourceType } from '@trapmap/contracts';
+import {
+  evidenceLevelSchema,
+  evidenceMetaSchema,
+  evidenceSourceTypeSchema,
+} from '@trapmap/contracts';
 
 import type { ActorRef } from '@trapmap/contracts';
 
@@ -17,10 +21,7 @@ export const DEFAULT_SOURCE_TYPE: EvidenceSourceType = 'internal-experience';
  * Create default evidence metadata for an approval.
  * Used when reviewer approves without providing explicit evidence.
  */
-export function createDefaultEvidenceMeta(
-  verifiedAt: string,
-  verifiedBy: ActorRef,
-): EvidenceMeta {
+export function createDefaultEvidenceMeta(verifiedAt: string, verifiedBy: ActorRef): EvidenceMeta {
   return {
     sourceType: DEFAULT_SOURCE_TYPE,
     evidenceLevel: DEFAULT_EVIDENCE_LEVEL,

@@ -165,12 +165,31 @@ export class FallbackChat implements ChatProvider {
 /**
  * Create AI providers from configuration.
  * Returns live providers when configured, otherwise deterministic fallbacks.
+ *
+ * Supports separate embedding provider via config.embeddingProvider.
+ * This allows using Ollama for embeddings while using another provider for chat.
  */
 export function createAiProviders(config: AiProviderConfig): AiProviders {
   if (config.provider === 'fallback') {
     return {
       embeddings: new FallbackEmbeddings(),
       chat: new FallbackChat(),
+    };
+  }
+
+  // Use separate embedding provider if configured
+  if (config.embeddingProvider?.isConfigured) {
+    const embConfig: AiProviderConfig = {
+      provider: config.embeddingProvider.provider,
+      baseUrl: config.embeddingProvider.baseUrl,
+      apiKey: config.embeddingProvider.apiKey,
+      chatModel: '',
+      embeddingModel: config.embeddingProvider.model,
+      isConfigured: true,
+    };
+    return {
+      embeddings: new OpenAICompatibleEmbeddings(embConfig),
+      chat: new OpenAICompatibleChat(config),
     };
   }
 

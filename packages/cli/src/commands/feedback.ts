@@ -58,10 +58,7 @@ function formatFeedbackResult(response: FeedbackResponse): string {
   return lines.join('\n');
 }
 
-export function registerFeedbackCommands(
-  program: Command,
-  options: FeedbackCommandOptions,
-): void {
+export function registerFeedbackCommands(program: Command, options: FeedbackCommandOptions): void {
   if (!options.allowSubmit) {
     return;
   }
@@ -113,9 +110,7 @@ export function registerFeedbackCommands(
             PROBLEM_TYPE_CHOICES,
           );
         } else {
-          throw new Error(
-            'Non-interactive environment. Provide --type and --description flags.',
-          );
+          throw new Error('Non-interactive environment. Provide --type and --description flags.');
         }
 
         // Determine description
@@ -123,18 +118,11 @@ export function registerFeedbackCommands(
         if (flags.description) {
           description = flags.description;
         } else if (isInteractiveEnvironment()) {
-          description = await promptInput(
-            'Describe the problem (min 10 characters):',
-            {
-              validate: (value) =>
-                value.length >= 10 ||
-                'Please provide at least 10 characters',
-            },
-          );
+          description = await promptInput('Describe the problem (min 10 characters):', {
+            validate: (value) => value.length >= 10 || 'Please provide at least 10 characters',
+          });
         } else {
-          throw new Error(
-            'Non-interactive environment. Provide --description flag.',
-          );
+          throw new Error('Non-interactive environment. Provide --description flag.');
         }
 
         // Determine optional context

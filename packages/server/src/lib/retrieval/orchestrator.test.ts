@@ -26,7 +26,10 @@ vi.mock('./recall/semantic.js', () => ({
   cosineSimilarity: vi.fn().mockReturnValue(0.8),
   computeScore: vi.fn().mockReturnValue(0.8),
   buildEmbeddingText: vi.fn().mockReturnValue('shortcut detail labels'),
-  optimizedSemanticRecall: vi.fn().mockResolvedValue({ scoredEntries: [], cacheStats: { totalEntries: 0, cacheHits: 0, cacheMisses: 0, hitRate: 0 } }),
+  optimizedSemanticRecall: vi.fn().mockResolvedValue({
+    scoredEntries: [],
+    cacheStats: { totalEntries: 0, cacheHits: 0, cacheMisses: 0, hitRate: 0 },
+  }),
 }));
 
 vi.mock('./recall/keyword.js', () => ({
@@ -149,22 +152,28 @@ vi.mock('../persistence/postgres-store.js', () => ({
 
 // ── Imports after mocks ───────────────────────────────────────────────────
 
-import {
-  selectRetrievalStrategy,
-  selectRetrievalStrategyV2,
-  searchKnowledge,
-  updateEntryEmbeddingCache,
-} from './orchestrator.js';
-import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
-import { getQueryEmbedding, getEntryEmbedding, cosineSimilarity, computeScore, optimizedSemanticRecall } from './recall/semantic.js';
-import { keywordRecall } from './recall/keyword.js';
-import { graphAssistedRecall } from './recall/graph-assisted.js';
-import { logRagRetrieval } from '../rag-log.js';
-import { buildEmptyResponse, buildRetrievalResponse } from './assembly.js';
-import { mergeCandidates } from './merge.js';
-import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
 import { generateEmbedding, hashEmbeddingText } from '../embeddings.js';
 import { AppError } from '../errors.js';
+import { logRagRetrieval } from '../rag-log.js';
+import { buildEmptyResponse, buildRetrievalResponse } from './assembly.js';
+import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
+import { mergeCandidates } from './merge.js';
+import {
+  searchKnowledge,
+  selectRetrievalStrategy,
+  selectRetrievalStrategyV2,
+  updateEntryEmbeddingCache,
+} from './orchestrator.js';
+import { graphAssistedRecall } from './recall/graph-assisted.js';
+import { keywordRecall } from './recall/keyword.js';
+import {
+  computeScore,
+  cosineSimilarity,
+  getEntryEmbedding,
+  getQueryEmbedding,
+  optimizedSemanticRecall,
+} from './recall/semantic.js';
+import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
 
 // ── Test helpers ──────────────────────────────────────────────────────────
 
@@ -259,14 +268,18 @@ function createMockServices(overrides: Partial<SkillShareerServices> = {}): Skil
         skillArtifacts: [],
         conflicts: [],
       }),
-      transact: vi.fn().mockImplementation(async (mutator: (data: Record<string, unknown>) => Promise<void> | void) => {
-        const data = {
-          knowledgeEntries: [createMockEntry('entry_1')],
-          counters: {},
-        };
-        await mutator(data);
-        return data;
-      }),
+      transact: vi
+        .fn()
+        .mockImplementation(
+          async (mutator: (data: Record<string, unknown>) => Promise<void> | void) => {
+            const data = {
+              knowledgeEntries: [createMockEntry('entry_1')],
+              counters: {},
+            };
+            await mutator(data);
+            return data;
+          },
+        ),
       nextId: vi.fn(),
     } as unknown as SkillShareerServices['store'],
     indexAdapters: [],
@@ -539,7 +552,9 @@ describe('searchKnowledge', () => {
       vi.mocked(services.store.snapshot).mockRejectedValue(testError);
       const queryValid = { seed: 'test query', mode: 'semantic' as const };
 
-      await expect(searchKnowledge(services, auth, queryValid)).rejects.toThrow('Query parse failed');
+      await expect(searchKnowledge(services, auth, queryValid)).rejects.toThrow(
+        'Query parse failed',
+      );
 
       // Verify the log entry contains routing trace metadata
       expect(logRagRetrieval).toHaveBeenCalled();
@@ -613,20 +628,24 @@ describe('updateEntryEmbeddingCache', () => {
     let updatedEntry: KnowledgeRecord | undefined;
 
     const store = {
-      transact: vi.fn().mockImplementation(async (mutator: (data: Record<string, unknown>) => Promise<void>) => {
-        const data = {
-          knowledgeEntries: [entry],
-          counters: {},
-        };
-        await mutator(data);
-        updatedEntry = data.knowledgeEntries[0];
-        return data;
-      }),
+      transact: vi
+        .fn()
+        .mockImplementation(async (mutator: (data: Record<string, unknown>) => Promise<void>) => {
+          const data = {
+            knowledgeEntries: [entry],
+            counters: {},
+          };
+          await mutator(data);
+          updatedEntry = data.knowledgeEntries[0];
+          return data;
+        }),
       snapshot: vi.fn(),
       nextId: vi.fn(),
     };
 
-    const services = createMockServices({ store: store as unknown as SkillShareerServices['store'] });
+    const services = createMockServices({
+      store: store as unknown as SkillShareerServices['store'],
+    });
 
     await updateEntryEmbeddingCache(services, 'entry_1');
 
@@ -644,20 +663,24 @@ describe('updateEntryEmbeddingCache', () => {
     let updatedEntry: KnowledgeRecord | undefined;
 
     const store = {
-      transact: vi.fn().mockImplementation(async (mutator: (data: Record<string, unknown>) => Promise<void>) => {
-        const data = {
-          knowledgeEntries: [entry],
-          counters: {},
-        };
-        await mutator(data);
-        updatedEntry = data.knowledgeEntries[0];
-        return data;
-      }),
+      transact: vi
+        .fn()
+        .mockImplementation(async (mutator: (data: Record<string, unknown>) => Promise<void>) => {
+          const data = {
+            knowledgeEntries: [entry],
+            counters: {},
+          };
+          await mutator(data);
+          updatedEntry = data.knowledgeEntries[0];
+          return data;
+        }),
       snapshot: vi.fn(),
       nextId: vi.fn(),
     };
 
-    const services = createMockServices({ store: store as unknown as SkillShareerServices['store'] });
+    const services = createMockServices({
+      store: store as unknown as SkillShareerServices['store'],
+    });
 
     // Small delay to ensure different timestamp
     await new Promise((resolve) => setTimeout(resolve, 10));
@@ -669,19 +692,23 @@ describe('updateEntryEmbeddingCache', () => {
 
   it('throws AppError 404 for non-existent entry', async () => {
     const store = {
-      transact: vi.fn().mockImplementation(async (mutator: (data: Record<string, unknown>) => Promise<void>) => {
-        const data = {
-          knowledgeEntries: [],
-          counters: {},
-        };
-        await mutator(data);
-        return data;
-      }),
+      transact: vi
+        .fn()
+        .mockImplementation(async (mutator: (data: Record<string, unknown>) => Promise<void>) => {
+          const data = {
+            knowledgeEntries: [],
+            counters: {},
+          };
+          await mutator(data);
+          return data;
+        }),
       snapshot: vi.fn(),
       nextId: vi.fn(),
     };
 
-    const services = createMockServices({ store: store as unknown as SkillShareerServices['store'] });
+    const services = createMockServices({
+      store: store as unknown as SkillShareerServices['store'],
+    });
 
     await expect(updateEntryEmbeddingCache(services, 'nonexistent')).rejects.toThrow(AppError);
 
@@ -698,19 +725,23 @@ describe('updateEntryEmbeddingCache', () => {
     const entry = createMockEntry('entry_1');
 
     const store = {
-      transact: vi.fn().mockImplementation(async (mutator: (data: Record<string, unknown>) => Promise<void>) => {
-        const data = {
-          knowledgeEntries: [entry],
-          counters: {},
-        };
-        await mutator(data);
-        return data;
-      }),
+      transact: vi
+        .fn()
+        .mockImplementation(async (mutator: (data: Record<string, unknown>) => Promise<void>) => {
+          const data = {
+            knowledgeEntries: [entry],
+            counters: {},
+          };
+          await mutator(data);
+          return data;
+        }),
       snapshot: vi.fn(),
       nextId: vi.fn(),
     };
 
-    const services = createMockServices({ store: store as unknown as SkillShareerServices['store'] });
+    const services = createMockServices({
+      store: store as unknown as SkillShareerServices['store'],
+    });
 
     await updateEntryEmbeddingCache(services, 'entry_1');
 
@@ -727,7 +758,7 @@ describe('DB Search Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset environment
-    delete process.env.USE_DB_SEARCH;
+    process.env.USE_DB_SEARCH = undefined;
   });
 
   describe('getDbSearchConfig', () => {

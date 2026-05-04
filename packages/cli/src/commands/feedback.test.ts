@@ -1,11 +1,15 @@
-import type { FeedbackResponse, FeedbackListResponse, FeedbackBatchResponse } from '@trapmap/contracts';
+import type {
+  FeedbackBatchResponse,
+  FeedbackListResponse,
+  FeedbackResponse,
+} from '@trapmap/contracts';
 import { Command } from 'commander';
 import { describe, expect, it, vi } from 'vitest';
 
 import * as http from '../lib/http.js';
 import * as prompts from '../lib/prompts.js';
-import { registerFeedbackCommands } from './feedback.js';
 import { registerFeedbackAdminCommands } from './feedback-admin.js';
+import { registerFeedbackCommands } from './feedback.js';
 
 // Mock the dependencies
 vi.mock('../lib/http.js', () => ({
@@ -65,7 +69,14 @@ describe('CLI feedback command', () => {
       registerFeedbackCommands(program, { allowSubmit: true });
 
       await program.parseAsync(
-        ['feedback', 'trap_1', '--type', 'incorrect', '--description', 'This solution did not work'],
+        [
+          'feedback',
+          'trap_1',
+          '--type',
+          'incorrect',
+          '--description',
+          'This solution did not work',
+        ],
         { from: 'user' },
       );
 
@@ -125,9 +136,9 @@ describe('CLI feedback command', () => {
       const program = new Command();
       registerFeedbackCommands(program, { allowSubmit: true });
 
-      await expect(
-        program.parseAsync(['feedback', 'trap_1'], { from: 'user' }),
-      ).rejects.toThrow('Non-interactive environment. Provide --type and --description flags.');
+      await expect(program.parseAsync(['feedback', 'trap_1'], { from: 'user' })).rejects.toThrow(
+        'Non-interactive environment. Provide --type and --description flags.',
+      );
 
       consoleErrorSpy.mockRestore();
     });
@@ -172,7 +183,15 @@ describe('CLI feedback command', () => {
       registerFeedbackCommands(program, { allowSubmit: true });
 
       await program.parseAsync(
-        ['feedback', 'trap_1', '--type', 'incorrect', '--description', 'Test description here', '--json'],
+        [
+          'feedback',
+          'trap_1',
+          '--type',
+          'incorrect',
+          '--description',
+          'Test description here',
+          '--json',
+        ],
         { from: 'user' },
       );
 
@@ -228,7 +247,16 @@ describe('CLI feedback command', () => {
       registerFeedbackCommands(program, { allowSubmit: true });
 
       await program.parseAsync(
-        ['feedback', 'skill_1', '--type', 'outdated', '--description', 'Test description', '--entry-type', 'skill'],
+        [
+          'feedback',
+          'skill_1',
+          '--type',
+          'outdated',
+          '--description',
+          'Test description',
+          '--entry-type',
+          'skill',
+        ],
         { from: 'user' },
       );
 
@@ -255,7 +283,16 @@ describe('CLI feedback command', () => {
       registerFeedbackCommands(program, { allowSubmit: true });
 
       await program.parseAsync(
-        ['feedback', 'trap_1', '--type', 'incorrect', '--description', 'Test description', '--context', 'I was trying to deploy to production'],
+        [
+          'feedback',
+          'trap_1',
+          '--type',
+          'incorrect',
+          '--description',
+          'Test description',
+          '--context',
+          'I was trying to deploy to production',
+        ],
         { from: 'user' },
       );
 
@@ -279,7 +316,16 @@ describe('CLI feedback command', () => {
       registerFeedbackCommands(program, { allowSubmit: true });
 
       await program.parseAsync(
-        ['feedback', 'trap_1', '--type', 'incorrect', '--description', 'Test description', '--query-seed', 'how to fix deployment error'],
+        [
+          'feedback',
+          'trap_1',
+          '--type',
+          'incorrect',
+          '--description',
+          'Test description',
+          '--query-seed',
+          'how to fix deployment error',
+        ],
         { from: 'user' },
       );
 
@@ -337,9 +383,7 @@ describe('CLI feedback admin commands', () => {
   const mockBatchResponse: FeedbackBatchResponse = {
     action: 'resolve',
     dryRun: false,
-    items: [
-      { feedbackId: 'feedback_1', eligible: true, reason: null, transitionApplied: false },
-    ],
+    items: [{ feedbackId: 'feedback_1', eligible: true, reason: null, transitionApplied: false }],
     totalEligible: 1,
     totalIneligible: 0,
     appliedAt: '2026-05-03T12:00:00Z',
@@ -357,10 +401,9 @@ describe('CLI feedback admin commands', () => {
       const program = new Command();
       registerFeedbackAdminCommands(program, { allowManage: true });
 
-      await program.parseAsync(
-        ['feedback-list', '--status', 'new', '--limit', '10'],
-        { from: 'user' },
-      );
+      await program.parseAsync(['feedback-list', '--status', 'new', '--limit', '10'], {
+        from: 'user',
+      });
 
       expect(http.apiRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -452,10 +495,9 @@ describe('CLI feedback admin commands', () => {
       const program = new Command();
       registerFeedbackAdminCommands(program, { allowManage: true });
 
-      await program.parseAsync(
-        ['feedback-batch', '--action', 'resolve', '--ids', 'feedback_1'],
-        { from: 'user' },
-      );
+      await program.parseAsync(['feedback-batch', '--action', 'resolve', '--ids', 'feedback_1'], {
+        from: 'user',
+      });
 
       expect(http.apiRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -487,10 +529,9 @@ describe('CLI feedback admin commands', () => {
       const program = new Command();
       registerFeedbackAdminCommands(program, { allowManage: true });
 
-      await program.parseAsync(
-        ['feedback-batch', '--action', 'dismiss', '--ids', 'feedback_1'],
-        { from: 'user' },
-      );
+      await program.parseAsync(['feedback-batch', '--action', 'dismiss', '--ids', 'feedback_1'], {
+        from: 'user',
+      });
 
       expect(http.apiRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -575,7 +616,12 @@ describe('CLI feedback admin commands', () => {
         dryRun: false,
         items: [
           { feedbackId: 'feedback_1', eligible: true, reason: null, transitionApplied: false },
-          { feedbackId: 'feedback_2', eligible: false, reason: 'Feedback already resolved', transitionApplied: false },
+          {
+            feedbackId: 'feedback_2',
+            eligible: false,
+            reason: 'Feedback already resolved',
+            transitionApplied: false,
+          },
         ],
         totalEligible: 1,
         totalIneligible: 1,

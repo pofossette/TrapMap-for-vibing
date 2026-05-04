@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CliState } from './config.js';
 import { ApiError, apiRequest, requireSessionToken } from './http.js';
@@ -62,10 +62,7 @@ describe('apiRequest', () => {
 
       await apiRequest(defaultState, { path: '/api/test' });
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:4000/api/test',
-        expect.any(Object),
-      );
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:4000/api/test', expect.any(Object));
     });
 
     it('should use options.serverUrl when provided (override)', async () => {
@@ -264,7 +261,9 @@ describe('apiRequest', () => {
     it('should return sessionToken from x-session-token header', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        headers: { get: (name: string) => (name === 'x-session-token' ? 'new-session-token' : null) },
+        headers: {
+          get: (name: string) => (name === 'x-session-token' ? 'new-session-token' : null),
+        },
         text: () => Promise.resolve(JSON.stringify({ success: true })),
       });
 

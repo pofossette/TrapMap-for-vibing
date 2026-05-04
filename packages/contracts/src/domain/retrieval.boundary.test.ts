@@ -1,8 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import {
-  retrievalQuerySchema,
-  retrievalMatchSchema,
-} from './retrieval.js';
+import { describe, expect, it } from 'vitest';
+import { retrievalMatchSchema, retrievalQuerySchema } from './retrieval.js';
 
 describe('Retrieval schema boundary fields', () => {
   describe('retrievalQuerySchema.boundaryContext', () => {

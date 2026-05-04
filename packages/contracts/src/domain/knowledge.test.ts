@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
-  reviewRiskSchema,
-  agentReviewStatusSchema,
   agentReviewResultSchema,
+  agentReviewStatusSchema,
+  knowledgeEntrySchema,
+  knowledgeListItemSchema,
+  knowledgeRevisionSchema,
+  knowledgeSubmissionSchema,
   reviewDecisionSchema,
   reviewNoteSchema,
-  knowledgeRevisionSchema,
-  knowledgeEntrySchema,
-  knowledgeSubmissionSchema,
-  knowledgeListItemSchema,
+  reviewRiskSchema,
 } from './knowledge.js';
 
 // Valid actor reference matching actorRefSchema

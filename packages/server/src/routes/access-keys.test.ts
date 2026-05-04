@@ -265,9 +265,7 @@ describe('access-keys routes', () => {
 
       // Verify access key is stored
       const snapshot = await store.snapshot();
-      const storedKey = snapshot.accessKeys.find(
-        (k) => k.tokenHash === hashSecret(body.accessKey),
-      );
+      const storedKey = snapshot.accessKeys.find((k) => k.tokenHash === hashSecret(body.accessKey));
       expect(storedKey).toBeDefined();
       expect(storedKey?.memberId).toBe('membership_1');
     });

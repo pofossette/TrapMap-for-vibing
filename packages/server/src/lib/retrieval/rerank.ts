@@ -20,10 +20,15 @@
  * stage. It never introduces new entries or bypasses filter constraints.
  */
 
-import type { BoundaryContext, BoundaryExplanation, DecayState, FreshnessDecayConfig } from '@trapmap/contracts';
-import type { MergedCandidate, ScoredEntry } from './types.js';
-import { buildBoundaryExplanation, computeBoundaryScoreDelta } from './boundary-match.js';
+import type {
+  BoundaryContext,
+  BoundaryExplanation,
+  DecayState,
+  FreshnessDecayConfig,
+} from '@trapmap/contracts';
 import { computeFreshnessMultiplier } from '../decay/freshness.js';
+import { buildBoundaryExplanation, computeBoundaryScoreDelta } from './boundary-match.js';
+import type { MergedCandidate, ScoredEntry } from './types.js';
 
 /**
  * Default boost for candidates that appear in both channels.
@@ -160,14 +165,14 @@ export function rerankCandidates(
       // and cache results by lastVerifiedAt for entries with same timestamp
       const lastVerifiedAt = candidate.entry.decayMeta?.lastVerifiedAt;
       let multiplier: number;
-      if (lastVerifiedAt !== undefined && lastVerifiedAt !== null && freshnessCache.has(lastVerifiedAt)) {
+      if (
+        lastVerifiedAt !== undefined &&
+        lastVerifiedAt !== null &&
+        freshnessCache.has(lastVerifiedAt)
+      ) {
         multiplier = freshnessCache.get(lastVerifiedAt)!;
       } else {
-        multiplier = computeFreshnessMultiplier(
-          candidate.entry,
-          config.freshnessConfig,
-          now,
-        );
+        multiplier = computeFreshnessMultiplier(candidate.entry, config.freshnessConfig, now);
         if (lastVerifiedAt !== undefined && lastVerifiedAt !== null) {
           freshnessCache.set(lastVerifiedAt, multiplier);
         }

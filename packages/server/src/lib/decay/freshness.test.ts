@@ -1,13 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
+import type { DecayMeta } from '@trapmap/contracts';
 import {
+  DEFAULT_FRESHNESS_CONFIG,
+  computeFreshnessMultiplier,
   exponentialDecay,
   linearDecay,
   stepDecay,
-  computeFreshnessMultiplier,
-  DEFAULT_FRESHNESS_CONFIG,
 } from './freshness.js';
-import type { DecayMeta } from '@trapmap/contracts';
 
 describe('exponentialDecay', () => {
   it('returns 1.0 at age 0', () => {
@@ -79,11 +79,7 @@ describe('computeFreshnessMultiplier', () => {
   const now = new Date('2026-05-02T00:00:00Z');
 
   it('returns 1.0 for null decayMeta', () => {
-    const result = computeFreshnessMultiplier(
-      { decayMeta: null },
-      DEFAULT_FRESHNESS_CONFIG,
-      now,
-    );
+    const result = computeFreshnessMultiplier({ decayMeta: null }, DEFAULT_FRESHNESS_CONFIG, now);
     expect(result).toBe(1.0);
   });
 
@@ -95,11 +91,7 @@ describe('computeFreshnessMultiplier', () => {
       decayStateComputedAt: '2026-05-02T00:00:00Z',
       freshnessType: 'evergreen',
     };
-    const result = computeFreshnessMultiplier(
-      { decayMeta: meta },
-      DEFAULT_FRESHNESS_CONFIG,
-      now,
-    );
+    const result = computeFreshnessMultiplier({ decayMeta: meta }, DEFAULT_FRESHNESS_CONFIG, now);
     expect(result).toBe(1.0);
   });
 
@@ -111,11 +103,7 @@ describe('computeFreshnessMultiplier', () => {
       decayStateComputedAt: '2026-05-02T00:00:00Z',
       freshnessType: 'volatile',
     };
-    const result = computeFreshnessMultiplier(
-      { decayMeta: meta },
-      DEFAULT_FRESHNESS_CONFIG,
-      now,
-    );
+    const result = computeFreshnessMultiplier({ decayMeta: meta }, DEFAULT_FRESHNESS_CONFIG, now);
     expect(result).toBe(1.0);
   });
 
@@ -127,11 +115,7 @@ describe('computeFreshnessMultiplier', () => {
       decayStateComputedAt: '2026-05-02T00:00:00Z',
       freshnessType: 'volatile',
     };
-    const result = computeFreshnessMultiplier(
-      { decayMeta: meta },
-      DEFAULT_FRESHNESS_CONFIG,
-      now,
-    );
+    const result = computeFreshnessMultiplier({ decayMeta: meta }, DEFAULT_FRESHNESS_CONFIG, now);
     expect(result).toBeLessThan(1.0);
     expect(result).toBeGreaterThanOrEqual(0.3); // floor
   });
@@ -148,11 +132,7 @@ describe('computeFreshnessMultiplier', () => {
       ...DEFAULT_FRESHNESS_CONFIG,
       volatile: { ...DEFAULT_FRESHNESS_CONFIG.volatile, enabled: false },
     };
-    const result = computeFreshnessMultiplier(
-      { decayMeta: meta },
-      config,
-      now,
-    );
+    const result = computeFreshnessMultiplier({ decayMeta: meta }, config, now);
     expect(result).toBe(1.0);
   });
 
@@ -164,11 +144,7 @@ describe('computeFreshnessMultiplier', () => {
       decayStateComputedAt: '2026-05-02T00:00:00Z',
       freshnessType: 'versioned',
     };
-    const result = computeFreshnessMultiplier(
-      { decayMeta: meta },
-      DEFAULT_FRESHNESS_CONFIG,
-      now,
-    );
+    const result = computeFreshnessMultiplier({ decayMeta: meta }, DEFAULT_FRESHNESS_CONFIG, now);
     expect(result).toBe(1.0);
   });
 
@@ -181,11 +157,7 @@ describe('computeFreshnessMultiplier', () => {
       decayStateComputedAt: '2026-05-02T00:00:00Z',
       freshnessType: 'volatile',
     };
-    const result = computeFreshnessMultiplier(
-      { decayMeta: meta },
-      DEFAULT_FRESHNESS_CONFIG,
-      now,
-    );
+    const result = computeFreshnessMultiplier({ decayMeta: meta }, DEFAULT_FRESHNESS_CONFIG, now);
     expect(result).toBeCloseTo(0.65, 1);
   });
 });

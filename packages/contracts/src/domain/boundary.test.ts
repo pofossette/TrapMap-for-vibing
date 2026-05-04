@@ -283,7 +283,15 @@ describe('boundary schema contracts', () => {
     });
 
     it('accepts all evidence kinds', () => {
-      const kinds = ['issue', 'incident', 'cve', 'documentation', 'test', 'commit', 'other'] as const;
+      const kinds = [
+        'issue',
+        'incident',
+        'cve',
+        'documentation',
+        'test',
+        'commit',
+        'other',
+      ] as const;
       for (const kind of kinds) {
         const evidence = evidenceReferenceSchema.parse({
           kind,
@@ -437,15 +445,11 @@ describe('boundary schema contracts', () => {
     });
 
     it('rejects invalid platform type', () => {
-      expect(() =>
-        boundaryContextSchema.parse({ platform: 123 }),
-      ).toThrow();
+      expect(() => boundaryContextSchema.parse({ platform: 123 })).toThrow();
     });
 
     it('rejects context item over 64 chars', () => {
-      expect(() =>
-        boundaryContextSchema.parse({ contexts: ['a'.repeat(65)] }),
-      ).toThrow();
+      expect(() => boundaryContextSchema.parse({ contexts: ['a'.repeat(65)] })).toThrow();
     });
 
     it('rejects empty package in version query', () => {

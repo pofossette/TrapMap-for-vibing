@@ -3,7 +3,7 @@
  * Phase 71 Gap 1: Verifies edge cases in error handling, response parsing,
  * and authentication that existing tests may not cover deeply enough.
  */
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CliState } from './config.js';
 import { ApiError, apiRequest, requireSessionToken } from './http.js';
@@ -50,9 +50,7 @@ describe('HTTP client adversarial tests', () => {
     it('should propagate fetch network errors (rejected promise)', async () => {
       mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
 
-      await expect(
-        apiRequest(defaultState, { path: '/api/test' }),
-      ).rejects.toThrow(TypeError);
+      await expect(apiRequest(defaultState, { path: '/api/test' })).rejects.toThrow(TypeError);
     });
 
     it('should throw SyntaxError on non-JSON response body (unprotected parse)', async () => {
@@ -66,9 +64,7 @@ describe('HTTP client adversarial tests', () => {
         text: () => Promise.resolve('Internal Server Error'),
       });
 
-      await expect(
-        apiRequest(defaultState, { path: '/api/test' }),
-      ).rejects.toThrow(SyntaxError);
+      await expect(apiRequest(defaultState, { path: '/api/test' })).rejects.toThrow(SyntaxError);
     });
 
     it('should extract message from nested error payload with message field', async () => {

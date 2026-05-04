@@ -42,9 +42,11 @@ export const evidenceRoutes: FastifyPluginAsync = async (app) => {
 
       // Merge with existing or create new
       const mergedEvidence = {
-        sourceType: partialEvidence.sourceType ?? entry.evidenceMeta?.sourceType ?? 'internal-experience',
+        sourceType:
+          partialEvidence.sourceType ?? entry.evidenceMeta?.sourceType ?? 'internal-experience',
         sourceRef: partialEvidence.sourceRef ?? entry.evidenceMeta?.sourceRef ?? '',
-        evidenceLevel: partialEvidence.evidenceLevel ?? entry.evidenceMeta?.evidenceLevel ?? 'anecdotal',
+        evidenceLevel:
+          partialEvidence.evidenceLevel ?? entry.evidenceMeta?.evidenceLevel ?? 'anecdotal',
         verifiedAt: now,
         verifiedBy: reviewerActorRef,
       };

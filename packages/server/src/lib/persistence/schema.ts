@@ -1,13 +1,13 @@
 import {
+  index,
   integer,
   jsonb,
+  pgSequence,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
   vector,
-  pgSequence,
-  index,
 } from 'drizzle-orm/pg-core';
 
 import type {
@@ -238,15 +238,12 @@ export const knowledgeEntries = pgTable(
     /** Boundary constraints for knowledge applicability (null if no boundary) */
     boundary: jsonb('boundary').$type<Boundary | null>(),
     /** Maintenance metadata for ownership and review-due tracking (null if not assigned) */
-    maintenanceMeta: jsonb('maintenance_meta').$type<
-      | {
-          maintainerUserId: string | null;
-          maintainerHandle: string | null;
-          maintainerLevel: number | null;
-          reviewBy: string | null;
-        }
-      | null
-    >(),
+    maintenanceMeta: jsonb('maintenance_meta').$type<{
+      maintainerUserId: string | null;
+      maintainerHandle: string | null;
+      maintainerLevel: number | null;
+      reviewBy: string | null;
+    } | null>(),
     /** Record creation timestamp */
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     /** Record update timestamp */
@@ -370,18 +367,16 @@ export const skillArtifacts = pgTable(
     /** Owner/creator user ID */
     ownerUserId: text('owner_user_id').notNull(),
     /** Artifact-specific metadata */
-    metadata: jsonb('metadata')
-      .notNull()
-      .$type<{
-        sourceKind: 'skill-directory' | 'single-skill-md' | 'legacy-knowledge';
-        submissionCount: number;
-        resubmissionCount: number;
-        revisionCount: number;
-        latestSubmissionId: string | null;
-        latestSubmittedAt: string | null;
-        latestReviewedAt: string | null;
-        latestDecision: 'approve' | 'reject' | null;
-      }>(),
+    metadata: jsonb('metadata').notNull().$type<{
+      sourceKind: 'skill-directory' | 'single-skill-md' | 'legacy-knowledge';
+      submissionCount: number;
+      resubmissionCount: number;
+      revisionCount: number;
+      latestSubmissionId: string | null;
+      latestSubmittedAt: string | null;
+      latestReviewedAt: string | null;
+      latestDecision: 'approve' | 'reject' | null;
+    }>(),
     /** Agent review result (if applicable) */
     agentReview: jsonb('agent_review').$type<{
       status: 'agent-pass' | 'agent-rejected';
@@ -428,33 +423,29 @@ export const artifactRevisions = pgTable(
     /** SHA-256 hash of all source files for this revision */
     sourceHash: text('source_hash').notNull(),
     /** All files in the skill directory at this revision */
-    files: jsonb('files')
-      .notNull()
-      .$type<
-        Array<{
-          path: string;
-          kind: 'skill-markdown' | 'reference' | 'asset' | 'script';
-          sha256: string;
-          sizeBytes: number;
-          mediaType: string;
-          source: 'references/' | 'assets/' | 'scripts/' | 'SKILL.md';
-          includeInDerivation: boolean;
-          activationOnly: boolean;
-        }>
-      >(),
+    files: jsonb('files').notNull().$type<
+      Array<{
+        path: string;
+        kind: 'skill-markdown' | 'reference' | 'asset' | 'script';
+        sha256: string;
+        sizeBytes: number;
+        mediaType: string;
+        source: 'references/' | 'assets/' | 'scripts/' | 'SKILL.md';
+        includeInDerivation: boolean;
+        activationOnly: boolean;
+      }>
+    >(),
     /** Script descriptors for executable scripts in this revision */
-    scriptDescriptors: jsonb('script_descriptors')
-      .notNull()
-      .$type<
-        Array<{
-          path: string;
-          sha256: string;
-          capability: string;
-          argsSchemaSummary: string;
-          sideEffectSummary: string;
-          defaultPolicy: string;
-        }>
-      >(),
+    scriptDescriptors: jsonb('script_descriptors').notNull().$type<
+      Array<{
+        path: string;
+        sha256: string;
+        capability: string;
+        argsSchemaSummary: string;
+        sideEffectSummary: string;
+        defaultPolicy: string;
+      }>
+    >(),
     /** Cached derived outputs keyed by source hash */
     derived: jsonb('derived').$type<{
       profile: {

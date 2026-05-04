@@ -1,23 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import {
-  rerankCandidates,
-  DEFAULT_BOTH_CHANNEL_BOOST,
-  DEFAULT_TOKEN_DENSITY_BOOST,
-  DEFAULT_STALE_DECAY_PENALTY,
-} from './rerank.js';
-import { DEFAULT_FRESHNESS_CONFIG } from '../decay/freshness.js';
-import type { MergedCandidate } from './types.js';
 import type { DecayMeta, KnowledgeRecord } from '@trapmap/contracts';
+import { DEFAULT_FRESHNESS_CONFIG } from '../decay/freshness.js';
+import {
+  DEFAULT_BOTH_CHANNEL_BOOST,
+  DEFAULT_STALE_DECAY_PENALTY,
+  DEFAULT_TOKEN_DENSITY_BOOST,
+  rerankCandidates,
+} from './rerank.js';
+import type { MergedCandidate } from './types.js';
 
 /**
  * Helper to create mock candidate with decayMeta.
  */
-function makeCandidate(
-  id: string,
-  score: number,
-  decayMeta?: DecayMeta | null,
-): MergedCandidate {
+function makeCandidate(id: string, score: number, decayMeta?: DecayMeta | null): MergedCandidate {
   return {
     entry: {
       id,
@@ -153,11 +149,7 @@ describe('rerankCandidates', () => {
 
 describe('rerankCandidates with freshness decay', () => {
   // Helper to create mock candidate with decayMeta
-  function makeCandidate(
-    id: string,
-    score: number,
-    decayMeta?: DecayMeta | null,
-  ): MergedCandidate {
+  function makeCandidate(id: string, score: number, decayMeta?: DecayMeta | null): MergedCandidate {
     return {
       entry: {
         id,
@@ -248,8 +240,19 @@ describe('rerankCandidates with freshness decay', () => {
 
     const disabledConfig = {
       evergreen: { enabled: false },
-      versioned: { enabled: false, mode: 'step' as const, matchMultiplier: 1.0, mismatchMultiplier: 0.5 },
-      volatile: { enabled: false, mode: 'exponential' as const, halfLifeDays: 30, zeroDays: 90, floor: 0.3 },
+      versioned: {
+        enabled: false,
+        mode: 'step' as const,
+        matchMultiplier: 1.0,
+        mismatchMultiplier: 0.5,
+      },
+      volatile: {
+        enabled: false,
+        mode: 'exponential' as const,
+        halfLifeDays: 30,
+        zeroDays: 90,
+        floor: 0.3,
+      },
     };
 
     const result = rerankCandidates(candidates, [], {
@@ -454,9 +457,7 @@ describe('rerankCandidates with boundary context', () => {
   });
 
   it('does not build boundaryExplanation when boundaryContext is undefined', () => {
-    const candidates = [
-      makeCandidateWithBoundary('entry-1', 0.8, { context: ['frontend'] }),
-    ];
+    const candidates = [makeCandidateWithBoundary('entry-1', 0.8, { context: ['frontend'] })];
 
     const result = rerankCandidates(candidates, []);
 
@@ -465,9 +466,7 @@ describe('rerankCandidates with boundary context', () => {
 
   it('skips boundaryExplanation when boundary delta is zero (optimization)', () => {
     // Entry without boundary context - delta will be 0
-    const candidates = [
-      makeCandidateWithBoundary('no-boundary', 0.8),
-    ];
+    const candidates = [makeCandidateWithBoundary('no-boundary', 0.8)];
 
     const result = rerankCandidates(candidates, [], {
       boundaryContext: { contexts: ['frontend'] },
@@ -484,10 +483,7 @@ describe('rerankCandidates with boundary context', () => {
 // =============================================================================
 
 describe('rerankCandidates with early termination', () => {
-  function makeCandidate(
-    id: string,
-    score: number,
-  ): MergedCandidate {
+  function makeCandidate(id: string, score: number): MergedCandidate {
     return {
       entry: {
         id,
@@ -525,10 +521,7 @@ describe('rerankCandidates with early termination', () => {
   });
 
   it('includes all candidates when threshold is 0', () => {
-    const candidates = [
-      makeCandidate('high', 0.9),
-      makeCandidate('low', 0.1),
-    ];
+    const candidates = [makeCandidate('high', 0.9), makeCandidate('low', 0.1)];
 
     const result = rerankCandidates(candidates, [], {
       earlyTerminationThreshold: 0,
@@ -538,10 +531,7 @@ describe('rerankCandidates with early termination', () => {
   });
 
   it('returns empty array when all candidates are below relative threshold', () => {
-    const candidates = [
-      makeCandidate('low-1', 0.2),
-      makeCandidate('low-2', 0.3),
-    ];
+    const candidates = [makeCandidate('low-1', 0.2), makeCandidate('low-2', 0.3)];
 
     // With relative threshold of 0.5, threshold = 0.3 * 0.5 = 0.15
     // Both 0.2 and 0.3 >= 0.15, so both pass
@@ -566,14 +556,11 @@ describe('rerankCandidates with early termination', () => {
     });
 
     expect(result).toHaveLength(2);
-    expect(result.map(c => c.entry.id)).toEqual(['high', 'mid']);
+    expect(result.map((c) => c.entry.id)).toEqual(['high', 'mid']);
   });
 
   it('no filtering when earlyTerminationThreshold is undefined', () => {
-    const candidates = [
-      makeCandidate('high', 0.9),
-      makeCandidate('low', 0.1),
-    ];
+    const candidates = [makeCandidate('high', 0.9), makeCandidate('low', 0.1)];
 
     const result = rerankCandidates(candidates, []);
 
@@ -582,11 +569,7 @@ describe('rerankCandidates with early termination', () => {
 });
 
 describe('rerankCandidates freshness caching optimization', () => {
-  function makeCandidateWithMeta(
-    id: string,
-    score: number,
-    decayMeta: DecayMeta,
-  ): MergedCandidate {
+  function makeCandidateWithMeta(id: string, score: number, decayMeta: DecayMeta): MergedCandidate {
     return {
       entry: {
         id,

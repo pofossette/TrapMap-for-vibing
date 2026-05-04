@@ -25,7 +25,9 @@ function formatConflicts(conflicts: ConflictHint[]): string {
       contradictory: '[!]',
       superseded: '[old]',
     };
-    lines.push(`  ${typeLabel[conflict.conflictType] ?? '[?]'} ${conflict.shortcut} (${conflict.entryId})`);
+    lines.push(
+      `  ${typeLabel[conflict.conflictType] ?? '[?]'} ${conflict.shortcut} (${conflict.entryId})`,
+    );
     lines.push(`      ${conflict.context}`);
   }
   return lines.join('\n');

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   feedbackProblemTypeSchema,
-  feedbackSubmissionSchema,
   feedbackRecordSchema,
+  feedbackSubmissionSchema,
 } from './feedback.js';
 
 describe('feedback schema', () => {
@@ -48,9 +48,7 @@ describe('feedback schema', () => {
     it('accepts submission with customAnswers array', () => {
       const result = feedbackSubmissionSchema.parse({
         ...validSubmission,
-        customAnswers: [
-          { prompt: 'What version were you using?', answer: 'v1.2.3' },
-        ],
+        customAnswers: [{ prompt: 'What version were you using?', answer: 'v1.2.3' }],
       });
       expect(result.customAnswers).toHaveLength(1);
       expect(result.customAnswers?.[0]?.prompt).toBe('What version were you using?');

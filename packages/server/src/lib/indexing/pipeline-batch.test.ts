@@ -14,7 +14,7 @@ import type { SkillShareerStore } from '../store.js';
 import { JsonStore, nowIso } from '../store.js';
 
 import { reconcileKnowledgeIndexes } from './pipeline.js';
-import type { IndexAdapter, NormalizedIndexDocument, IndexSyncResult } from './types.js';
+import type { IndexAdapter, IndexSyncResult, NormalizedIndexDocument } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -144,11 +144,7 @@ describe('Phase 73: reconcileKnowledgeIndexes batch processing', () => {
 
     const { adapter, syncedEntryIds } = trackingAdapter();
 
-    const result = await reconcileKnowledgeIndexes(
-      { store },
-      [adapter],
-      { batchSize: 2 },
-    );
+    const result = await reconcileKnowledgeIndexes({ store }, [adapter], { batchSize: 2 });
 
     // All 5 entries must have been synced
     expect(result.totalEntries).toBe(5);
@@ -192,8 +188,7 @@ describe('Phase 73: reconcileKnowledgeIndexes batch processing', () => {
       // Find the memory log line
       const memoryLog = logSpy.mock.calls.find(
         (call) =>
-          typeof call[0] === 'string' &&
-          call[0].includes('[reconcileKnowledgeIndexes] Memory:'),
+          typeof call[0] === 'string' && call[0].includes('[reconcileKnowledgeIndexes] Memory:'),
       );
 
       expect(memoryLog).toBeDefined();

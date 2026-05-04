@@ -506,10 +506,11 @@ describe('semantic recall', () => {
       const queryVector = [0.1, 0.2, 0.3];
       const filters = { labels: ['security'], scopes: [] };
 
-      const { scoredEntries, cacheStats } = await optimizedSemanticRecall(queryVector, [
-        entry1,
-        entry2,
-      ], filters);
+      const { scoredEntries, cacheStats } = await optimizedSemanticRecall(
+        queryVector,
+        [entry1, entry2],
+        filters,
+      );
 
       expect(scoredEntries.length).toBe(2);
       expect(scoredEntries[0]?.score).toBeGreaterThanOrEqual(scoredEntries[1]?.score ?? 0);

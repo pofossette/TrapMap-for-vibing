@@ -6,10 +6,10 @@
  */
 
 import {
-  decayConfigSchema,
-  freshnessDecayConfigSchema,
   type DecayConfig,
   type FreshnessDecayConfig,
+  decayConfigSchema,
+  freshnessDecayConfigSchema,
 } from '@trapmap/contracts';
 
 /**
@@ -73,9 +73,7 @@ export function loadFreshnessConfig(): FreshnessDecayConfig {
     volatile: {
       enabled: process.env[FRESHNESS_ENV_VARS.volatileEnabled] !== 'false',
       mode: 'exponential',
-      halfLifeDays: Number(
-        process.env[FRESHNESS_ENV_VARS.volatileHalfLifeDays] ?? 30,
-      ),
+      halfLifeDays: Number(process.env[FRESHNESS_ENV_VARS.volatileHalfLifeDays] ?? 30),
       zeroDays: 90,
       floor: Number(process.env[FRESHNESS_ENV_VARS.volatileFloor] ?? 0.3),
     },

@@ -1,9 +1,9 @@
 import type { LoginResponse, Team, TeamListResponse } from '@trapmap/contracts';
 import { Command } from 'commander';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as http from '../lib/http.js';
 import * as config from '../lib/config.js';
+import * as http from '../lib/http.js';
 
 // Mock the dependencies
 vi.mock('../lib/http.js', () => ({
@@ -53,7 +53,7 @@ function createMockTeam(overrides: Partial<Team> = {}): Team {
 }
 
 // Helper to create LoginResponse
-function createMockLoginResponse(teamId: string = 'team-1'): LoginResponse {
+function createMockLoginResponse(teamId = 'team-1'): LoginResponse {
   return {
     session: {
       sessionId: 'session-1',
@@ -85,7 +85,10 @@ describe('team commands', () => {
   describe('list command', () => {
     it('lists available teams', async () => {
       const mockResponse: TeamListResponse = {
-        teams: [createMockTeam({ id: 'team-1', name: 'Team One' }), createMockTeam({ id: 'team-2', name: 'Team Two' })],
+        teams: [
+          createMockTeam({ id: 'team-1', name: 'Team One' }),
+          createMockTeam({ id: 'team-2', name: 'Team Two' }),
+        ],
         activeTeamId: 'team-1',
       };
 
@@ -113,7 +116,10 @@ describe('team commands', () => {
 
     it('marks active team with asterisk', async () => {
       const mockResponse: TeamListResponse = {
-        teams: [createMockTeam({ id: 'team-1', name: 'Team One' }), createMockTeam({ id: 'team-2', name: 'Team Two' })],
+        teams: [
+          createMockTeam({ id: 'team-1', name: 'Team One' }),
+          createMockTeam({ id: 'team-2', name: 'Team Two' }),
+        ],
         activeTeamId: 'team-1',
       };
 
@@ -247,7 +253,9 @@ describe('team commands', () => {
       });
       registerTeamCommands(program, { allowCreate: false });
 
-      await expect(program.parseAsync(['team', 'select', 'team-1'], { from: 'user' })).rejects.toThrow();
+      await expect(
+        program.parseAsync(['team', 'select', 'team-1'], { from: 'user' }),
+      ).rejects.toThrow();
 
       expect(http.requireSessionToken).toHaveBeenCalled();
     });
@@ -355,7 +363,9 @@ describe('team commands', () => {
       });
       registerTeamCommands(program, { allowCreate: true });
 
-      await expect(program.parseAsync(['team', 'create', 'New Team'], { from: 'user' })).rejects.toThrow();
+      await expect(
+        program.parseAsync(['team', 'create', 'New Team'], { from: 'user' }),
+      ).rejects.toThrow();
 
       expect(http.requireSessionToken).toHaveBeenCalled();
     });

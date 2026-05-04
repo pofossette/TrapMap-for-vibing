@@ -174,7 +174,8 @@ describe('feedback routes', () => {
         entryId: 'trap_1',
         entryType: 'trap',
         problemType: 'incorrect',
-        description: 'The solution described does not work with the current version of the library.',
+        description:
+          'The solution described does not work with the current version of the library.',
       },
     });
 
@@ -184,7 +185,9 @@ describe('feedback routes', () => {
     expect(body.feedback.entryId).toBe('trap_1');
     expect(body.feedback.entryType).toBe('trap');
     expect(body.feedback.problemType).toBe('incorrect');
-    expect(body.feedback.description).toBe('The solution described does not work with the current version of the library.');
+    expect(body.feedback.description).toBe(
+      'The solution described does not work with the current version of the library.',
+    );
     expect(body.feedback.status).toBe('new');
     expect(body.feedback.submittedBy).toBeDefined();
     expect(body.feedback.submittedBy.id).toBe(userId);
@@ -250,9 +253,7 @@ describe('feedback routes', () => {
         entryType: 'skill',
         problemType: 'incomplete',
         description: 'Missing critical steps in the deployment guide.',
-        customAnswers: [
-          { prompt: 'Which step failed?', answer: 'Step 3: database migration' },
-        ],
+        customAnswers: [{ prompt: 'Which step failed?', answer: 'Step 3: database migration' }],
       },
     });
 
@@ -759,7 +760,9 @@ describe('feedback admin routes', () => {
       expect(body.totalEligible).toBe(1);
       expect(body.totalIneligible).toBe(1);
 
-      const ineligible = body.items.find((i: { feedbackId: string }) => i.feedbackId === 'feedback_1');
+      const ineligible = body.items.find(
+        (i: { feedbackId: string }) => i.feedbackId === 'feedback_1',
+      );
       expect(ineligible.eligible).toBe(false);
       expect(ineligible.reason).toContain('already resolved');
     });
@@ -779,7 +782,7 @@ describe('feedback admin routes', () => {
             context: null,
             querySeed: null,
             customAnswers: null,
-            submittedAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
+            submittedAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
             submittedByUserId: userId,
             submittedByHandle: 'tester',
             status: 'new',
@@ -787,8 +790,8 @@ describe('feedback admin routes', () => {
             resolvedAt: null,
             resolvedByUserId: null,
             triggeredTransition: null,
-            createdAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
-            updatedAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
+            createdAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
+            updatedAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
           });
         }
       });
@@ -809,7 +812,7 @@ describe('feedback admin routes', () => {
 
       // Verify: Entry decay state should have transitioned to 'stale'
       const data = await store.snapshot();
-      const entry = data.knowledgeEntries.find(e => e.id === 'trap_1');
+      const entry = data.knowledgeEntries.find((e) => e.id === 'trap_1');
       expect(entry?.decayMeta?.decayState).toBe('stale');
     });
 
@@ -826,7 +829,7 @@ describe('feedback admin routes', () => {
             context: null,
             querySeed: null,
             customAnswers: null,
-            submittedAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
+            submittedAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
             submittedByUserId: userId,
             submittedByHandle: 'tester',
             status: 'new',
@@ -834,8 +837,8 @@ describe('feedback admin routes', () => {
             resolvedAt: null,
             resolvedByUserId: null,
             triggeredTransition: null,
-            createdAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
-            updatedAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
+            createdAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
+            updatedAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
           });
         }
       });
@@ -857,7 +860,7 @@ describe('feedback admin routes', () => {
 
       // Verify: Entry decay state should NOT have changed
       const data = await store.snapshot();
-      const entry = data.knowledgeEntries.find(e => e.id === 'trap_1');
+      const entry = data.knowledgeEntries.find((e) => e.id === 'trap_1');
       expect(entry?.decayMeta?.decayState).not.toBe('stale');
     });
 

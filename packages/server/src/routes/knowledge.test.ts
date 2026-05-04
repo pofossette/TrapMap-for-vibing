@@ -865,9 +865,7 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
 
       // Verify entry was created via JSONB store
       const data = await store.snapshot();
-      const entries = data.knowledgeEntries.filter(
-        (e) => e.shortcut === 'Test Entry',
-      );
+      const entries = data.knowledgeEntries.filter((e) => e.shortcut === 'Test Entry');
       expect(entries.length).toBe(1);
     });
 

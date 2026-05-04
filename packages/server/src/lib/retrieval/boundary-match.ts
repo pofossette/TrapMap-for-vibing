@@ -9,13 +9,18 @@
  * All functions are pure (no side effects, no I/O).
  */
 
-import type { Boundary, BoundaryContext, BoundaryExplanation, VersionConstraint } from '@trapmap/contracts';
+import type {
+  Boundary,
+  BoundaryContext,
+  BoundaryExplanation,
+  VersionConstraint,
+} from '@trapmap/contracts';
 import { normalizeContextLabel, normalizePackageName } from '../indexing/boundary-normalize.js';
 
 /** Penalty for excluded context match (BOUND-04) */
 export const BOUNDARY_EXCLUDED_PENALTY = -0.15;
 /** Boost for preferred context match (BOUND-04) */
-export const BOUNDARY_PREFERRED_BOOST = 0.10;
+export const BOUNDARY_PREFERRED_BOOST = 0.1;
 
 /**
  * Simple semver comparison: parse major.minor.patch into numeric tuple.
@@ -72,7 +77,11 @@ function satisfiesRange(queryVersion: string, constraintRange: string): boolean 
   if (range.startsWith('~')) {
     const constraint = parseSemver(range.slice(1));
     // Same major.minor and query >= constraint
-    return query[0] === constraint[0] && query[1] === constraint[1] && compareSemver(query, constraint) >= 0;
+    return (
+      query[0] === constraint[0] &&
+      query[1] === constraint[1] &&
+      compareSemver(query, constraint) >= 0
+    );
   }
   if (range.startsWith('>')) {
     const constraint = parseSemver(range.slice(1));
@@ -180,7 +189,10 @@ export function computeBoundaryScoreDelta(
         if (exclusion.kind === 'context') {
           // Check if query context appears in exclusion description (case-insensitive)
           const descLower = exclusion.description.toLowerCase();
-          if (descLower.includes(normalizedQueryContext) || descLower.includes(queryContext.toLowerCase())) {
+          if (
+            descLower.includes(normalizedQueryContext) ||
+            descLower.includes(queryContext.toLowerCase())
+          ) {
             delta += BOUNDARY_EXCLUDED_PENALTY;
           }
         }
@@ -263,7 +275,10 @@ export function buildBoundaryExplanation(
       for (const exclusion of entry.boundary.exclusions) {
         if (exclusion.kind === 'context') {
           const descLower = exclusion.description.toLowerCase();
-          if (descLower.includes(normalizedQueryContext) || descLower.includes(queryContext.toLowerCase())) {
+          if (
+            descLower.includes(normalizedQueryContext) ||
+            descLower.includes(queryContext.toLowerCase())
+          ) {
             warnings.push(`Excluded ${exclusion.kind}: ${exclusion.description}`);
           }
         }

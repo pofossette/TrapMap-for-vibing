@@ -524,14 +524,7 @@ describe('CLI decay commands (Phase 50)', () => {
     });
 
     it('should include label filters in body', async () => {
-      await program.parseAsync([
-        'node',
-        'test',
-        'decay-search',
-        'test',
-        '--label',
-        'api,legacy',
-      ]);
+      await program.parseAsync(['node', 'test', 'decay-search', 'test', '--label', 'api,legacy']);
 
       const callArgs = mockedApiRequest.mock.calls[0];
       expect(callArgs).toBeDefined();

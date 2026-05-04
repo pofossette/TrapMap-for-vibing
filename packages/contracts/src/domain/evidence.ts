@@ -7,11 +7,11 @@ import { actorRefSchema, isoTimestampSchema } from './common.js';
  * Intentionally small for v1 - expandable in future phases.
  */
 export const evidenceSourceTypeSchema = z.enum([
-  'internal-experience',  // Team's own experience, not externally documented
-  'incident',             // Derived from incident postmortem or outage
-  'doc',                  // Official documentation (internal or external)
-  'code',                 // Derived from source code analysis
-  'external-reference',   // External blog, article, or community knowledge
+  'internal-experience', // Team's own experience, not externally documented
+  'incident', // Derived from incident postmortem or outage
+  'doc', // Official documentation (internal or external)
+  'code', // Derived from source code analysis
+  'external-reference', // External blog, article, or community knowledge
 ]);
 
 /**
@@ -19,9 +19,9 @@ export const evidenceSourceTypeSchema = z.enum([
  * Higher levels indicate stronger verification.
  */
 export const evidenceLevelSchema = z.enum([
-  'anecdotal',        // Single occurrence, no reproduction
-  'reproduced',       // Reproduced in controlled environment
-  'documented',       // Supported by documentation
+  'anecdotal', // Single occurrence, no reproduction
+  'reproduced', // Reproduced in controlled environment
+  'documented', // Supported by documentation
   'verified-in-prod', // Verified in production environment
 ]);
 

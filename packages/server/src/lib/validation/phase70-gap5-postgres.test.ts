@@ -7,9 +7,9 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { PostgresStore } from '../persistence/postgres-store.js';
 import type { StoreData } from '../store.js';
 import { createEmptyStoreData } from '../store.js';
-import { PostgresStore } from '../persistence/postgres-store.js';
 
 function makeMockPool(initialData?: StoreData) {
   const storeSnapshot = new Map<string, StoreData>();
@@ -66,12 +66,12 @@ describe('Gap 5: Postgres store CRUD operations with proper error handling', () 
     const store = new PostgresStore(pool as never);
 
     await store.transact((data) => {
-      data.counters['test'] = 42;
+      data.counters.test = 42;
       return 'ok';
     });
 
     const result = await store.snapshot();
-    expect(result.counters['test']).toBe(42);
+    expect(result.counters.test).toBe(42);
   });
 
   it('transact rolls back and re-throws on mutator error', async () => {
@@ -84,8 +84,8 @@ describe('Gap 5: Postgres store CRUD operations with proper error handling', () 
       }),
     ).rejects.toThrow('mutation exploded');
 
-    const clientCalls = pool._client.query.mock.calls.map(
-      (c: unknown[]) => (c[0] as string).toUpperCase().trim(),
+    const clientCalls = pool._client.query.mock.calls.map((c: unknown[]) =>
+      (c[0] as string).toUpperCase().trim(),
     );
     expect(clientCalls).toContain('ROLLBACK');
   });
@@ -117,8 +117,8 @@ describe('Gap 5: Postgres store CRUD operations with proper error handling', () 
     expect(id2).toBe('knowledge_2');
     expect(id3).toBe('skill_1');
     expect(id4).toBe('knowledge_3');
-    expect(data.counters['knowledge']).toBe(3);
-    expect(data.counters['skill']).toBe(1);
+    expect(data.counters.knowledge).toBe(3);
+    expect(data.counters.skill).toBe(1);
   });
 
   it('transact returns mutator return value correctly', async () => {
@@ -169,8 +169,8 @@ describe('Gap 5: Postgres store CRUD operations with proper error handling', () 
 
     await store.transact(() => 'ok');
 
-    const clientCalls = pool._client.query.mock.calls.map(
-      (c: unknown[]) => (c[0] as string).toUpperCase().trim(),
+    const clientCalls = pool._client.query.mock.calls.map((c: unknown[]) =>
+      (c[0] as string).toUpperCase().trim(),
     );
     expect(clientCalls).toContain('BEGIN');
     expect(clientCalls).toContain('COMMIT');
@@ -184,7 +184,7 @@ describe('Gap 5: Postgres store CRUD operations with proper error handling', () 
     const store = new PostgresStore(pool as never);
 
     await store.transact((data) => {
-      expect(data.counters['knowledge']).toBe(10);
+      expect(data.counters.knowledge).toBe(10);
       return 'verified';
     });
   });

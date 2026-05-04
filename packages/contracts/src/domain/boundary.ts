@@ -14,13 +14,7 @@ export const conditionKindSchema = z.enum([
 /**
  * Kind of signal pattern for relevance detection.
  */
-export const signalKindSchema = z.enum([
-  'exact',
-  'keyword',
-  'regex',
-  'error-code',
-  'log-pattern',
-]);
+export const signalKindSchema = z.enum(['exact', 'keyword', 'regex', 'error-code', 'log-pattern']);
 
 /**
  * Kind of exclusion rule.

@@ -15,8 +15,8 @@
  * Phase: 61 (WRITE-01)
  */
 
-import type { Pool } from 'pg';
 import type { CandidateSubmission } from '@trapmap/contracts';
+import type { Pool } from 'pg';
 
 import { PgCandidateRepository } from '../candidates/pg-repository.js';
 import type { SkillShareerStore } from '../store.js';

@@ -21,16 +21,12 @@ import type { DecayMeta, FreshnessDecayConfig } from '@trapmap/contracts';
  * @param floor - Minimum multiplier (default 0.3)
  * @returns Multiplier in [floor, 1.0]
  */
-export function exponentialDecay(
-  ageDays: number,
-  halfLifeDays: number,
-  floor: number,
-): number {
+export function exponentialDecay(ageDays: number, halfLifeDays: number, floor: number): number {
   // Clamp age to non-negative
   const age = Math.max(0, ageDays);
 
   // Decay factor: 1.0 at age=0, approaches 0 as age→∞
-  const decayFactor = Math.pow(0.5, age / halfLifeDays);
+  const decayFactor = 0.5 ** (age / halfLifeDays);
 
   // Interpolate between floor and 1.0
   return floor + (1 - floor) * decayFactor;
@@ -46,11 +42,7 @@ export function exponentialDecay(
  * @param floor - Minimum multiplier
  * @returns Multiplier in [floor, 1.0]
  */
-export function linearDecay(
-  ageDays: number,
-  zeroDays: number,
-  floor: number,
-): number {
+export function linearDecay(ageDays: number, zeroDays: number, floor: number): number {
   // Clamp age to non-negative
   const age = Math.max(0, ageDays);
 
@@ -74,8 +66,8 @@ export function linearDecay(
  */
 export function stepDecay(
   matches: boolean,
-  matchMultiplier: number = 1.0,
-  mismatchMultiplier: number = 0.5,
+  matchMultiplier = 1.0,
+  mismatchMultiplier = 0.5,
 ): number {
   return matches ? matchMultiplier : mismatchMultiplier;
 }
@@ -133,16 +125,13 @@ export function computeFreshnessMultiplier(
       return computeVersionedMultiplier(config.versioned);
 
     case 'volatile':
-      return computeVolatileMultiplier(
-        entry.decayMeta.lastVerifiedAt,
-        config.volatile,
-        now,
-      );
+      return computeVolatileMultiplier(entry.decayMeta.lastVerifiedAt, config.volatile, now);
 
-    default:
+    default: {
       // Exhaustive check
       const _exhaustive: never = freshnessType;
       return 1.0;
+    }
   }
 }
 
@@ -150,9 +139,7 @@ export function computeFreshnessMultiplier(
  * Compute multiplier for evergreen content.
  * Always returns 1.0 since evergreen content doesn't decay.
  */
-function computeEvergreenMultiplier(
-  _config: FreshnessDecayConfig['evergreen'],
-): number {
+function computeEvergreenMultiplier(_config: FreshnessDecayConfig['evergreen']): number {
   // Evergreen content never decays
   return 1.0;
 }
@@ -161,9 +148,7 @@ function computeEvergreenMultiplier(
  * Compute multiplier for versioned content.
  * Currently returns 1.0 since version context is not yet available.
  */
-function computeVersionedMultiplier(
-  config: FreshnessDecayConfig['versioned'],
-): number {
+function computeVersionedMultiplier(config: FreshnessDecayConfig['versioned']): number {
   // Version mismatch detection requires boundary context (Phase 51+)
   // For now, assume match (no penalty)
   if (!config.enabled) {
@@ -192,7 +177,6 @@ function computeVolatileMultiplier(
   // Apply configured decay mode
   if (config.mode === 'exponential') {
     return exponentialDecay(ageDays, config.halfLifeDays, config.floor);
-  } else {
-    return linearDecay(ageDays, config.zeroDays, config.floor);
   }
+  return linearDecay(ageDays, config.zeroDays, config.floor);
 }
