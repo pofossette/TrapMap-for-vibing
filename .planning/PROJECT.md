@@ -67,6 +67,7 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 - ✓ API endpoint documentation with request/response schemas (DOC-01) — v1.6
 - ✓ User-facing README and getting started guide (DOC-02) — v1.6
 - ✓ Architecture documentation with module relationships (DOC-03) — v1.6
+- ✓ Graph-plan structural evaluation with node/edge/focus assertions (GPEVAL-01, GPEVAL-02, GPEVAL-03) — v1.6
 
 ### Out of Scope
 
