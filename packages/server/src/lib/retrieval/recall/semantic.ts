@@ -166,7 +166,7 @@ export async function getQueryEmbeddingWithMeta(
 /**
  * Result of batch embedding retrieval for a single entry.
  */
-export interface BatchEmbeddingResult {
+interface BatchEmbeddingResult {
   vector: number[];
   fromCache: boolean;
 }
@@ -174,7 +174,7 @@ export interface BatchEmbeddingResult {
 /**
  * Cache hit rate statistics for a batch embedding operation.
  */
-export interface BatchCacheStats {
+interface BatchCacheStats {
   totalEntries: number;
   cacheHits: number;
   cacheMisses: number;
@@ -184,7 +184,7 @@ export interface BatchCacheStats {
 /**
  * Result of the optimized semantic recall operation.
  */
-export interface OptimizedSemanticRecallResult {
+interface OptimizedSemanticRecallResult {
   scoredEntries: Array<{ entry: KnowledgeRecord; score: number }>;
   cacheStats: BatchCacheStats;
 }
