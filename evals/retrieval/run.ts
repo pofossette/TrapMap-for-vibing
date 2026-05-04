@@ -30,6 +30,7 @@ import {
   executeCase,
   seedScenarioFixtures,
 } from './lib/adapters.js';
+import { assertGraphPlanStructure } from './lib/assertions.js';
 import { evaluateGovernance } from './lib/governance.js';
 import { averageMetrics, calculateMetrics } from './lib/metrics.js';
 import type {
@@ -202,11 +203,21 @@ async function executeAllCases(cases_: RetrievalEvalCase[]): Promise<CaseResult[
         case_.expected.relevance.idealOrder,
       );
 
+      // Evaluate graph-plan structure (v3 only)
+      const graphPlanResult =
+        case_.endpoint === '/v3/retrieval/search' && case_.expected.shape.graphPlanExpectations
+          ? assertGraphPlanStructure(
+              adapterResult.result.graphPlanStructure,
+              case_.expected.shape.graphPlanExpectations,
+            )
+          : undefined;
+
       // Determine overall pass
       const outcomeMatch =
         (case_.expected.outcome === 'empty' && adapterResult.result.isEmpty) ||
         (case_.expected.outcome === 'non-empty' && !adapterResult.result.isEmpty);
-      const passed = governance.passed && outcomeMatch;
+      const graphPlanPassed = !graphPlanResult || graphPlanResult.passed;
+      const passed = governance.passed && outcomeMatch && graphPlanPassed;
 
       results.push({
         case: case_,
@@ -216,6 +227,7 @@ async function executeAllCases(cases_: RetrievalEvalCase[]): Promise<CaseResult[
         metrics,
         passed,
         warnings: adapterResult.warnings,
+        graphPlanResult,
       });
     } finally {
       await closeExecutionContext(ctx);
@@ -343,6 +355,26 @@ function printSummary(results: CaseResult[], slices: SliceMetrics[]): void {
       console.log(`\n${result.case.caseId}:`);
       for (const failure of result.governance.failures) {
         console.log(`  - [${failure.kind}] ${failure.description}`);
+      }
+    }
+  }
+
+  // Print graph-plan structural failures
+  const graphPlanFailures = results.filter(
+    (r) => r.graphPlanResult && !r.graphPlanResult.passed,
+  );
+  if (graphPlanFailures.length > 0) {
+    console.log('\n=== Graph-Plan Structural Failures ===');
+    for (const result of graphPlanFailures) {
+      console.log(`\n${result.case.caseId}:`);
+      for (const failure of result.graphPlanResult!.failures) {
+        console.log(`  - [${failure.kind}] ${failure.description}`);
+        if (failure.expected.length > 0) {
+          console.log(`    expected: ${failure.expected.join(', ')}`);
+        }
+        if (failure.actual.length > 0) {
+          console.log(`    actual: ${failure.actual.join(', ')}`);
+        }
       }
     }
   }

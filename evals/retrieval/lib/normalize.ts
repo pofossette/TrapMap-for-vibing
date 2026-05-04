@@ -13,7 +13,7 @@ import type {
   RetrievalResponse,
   RetrievalV2ResponseWithHints,
 } from '@trapmap/contracts';
-import type { BucketMap, NormalizedHit, NormalizedResult } from './types.js';
+import type { BucketMap, GraphPlanStructure, NormalizedHit, NormalizedResult } from './types.js';
 
 // =============================================================================
 // V1 Response Normalization
@@ -130,6 +130,23 @@ export function normalizeV3Response(response: GraphPlanSearchResponse): Normaliz
       scope: skill.scope,
     }));
 
+    // Extract graph-plan structure for structural assertions
+    const graphNodes = response.plan.graph.nodes;
+    const graphEdges = response.plan.graph.edges;
+    const graphFocus = response.plan.graph.focus;
+
+    const graphPlanStructure: GraphPlanStructure = {
+      trapNodeIds: graphNodes.filter((n) => n.kind === 'trap').map((n) => n.nodeId),
+      skillNodeIds: graphNodes.filter((n) => n.kind === 'skill').map((n) => n.nodeId),
+      edges: graphEdges.map((e) => ({
+        sourceNodeId: e.sourceNodeId,
+        targetNodeId: e.targetNodeId,
+        type: e.type,
+      })),
+      blockingTrapNodeIds: graphFocus.blockingTrapNodeIds,
+      recommendedSkillNodeIds: graphFocus.recommendedSkillNodeIds,
+    };
+
     return {
       hits,
       returnedIds: hits.map((h) => h.id),
@@ -147,6 +164,7 @@ export function normalizeV3Response(response: GraphPlanSearchResponse): Normaliz
         fallbackApplied: routingTrace.fallbackApplied,
         channelsUsed: routingTrace.channelsUsed,
       },
+      graphPlanStructure,
     };
   }
 

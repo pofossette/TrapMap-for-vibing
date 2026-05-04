@@ -852,6 +852,182 @@ export const coreGraphPlanGovernanceScenario = retrievalEvalScenarioSchema.parse
 }) as RetrievalEvalScenario;
 
 // =============================================================================
+// Core Scenario: Graph-Plan Multi-Skill Orchestration
+// =============================================================================
+
+/**
+ * Scenario: Multi-skill orchestration with order dependencies.
+ * Two skills connected by 'order' edge, both mitigating same trap.
+ * Tests: order edge, multiple mitigates edges, multi-skill focus.
+ */
+export const coreGraphPlanOrchestrationScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'core-graph-plan-orchestration',
+  description:
+    'Multi-skill orchestration with order dependencies. First skill sets up infrastructure, second skill deploys application. Both mitigate deployment blocker.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_core_graph',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [
+      {
+        id: 'knowledge_core_orchestration_trap',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['deployment', 'infrastructure', 'ordering'],
+        shortcut: 'Deployment ordering blocker',
+        detail:
+          'Deployment fails when application deployed before infrastructure is ready.',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+      },
+    ],
+    skillArtifacts: [
+      {
+        id: 'artifact_core_orchestration_infra',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['infrastructure', 'setup'],
+        title: 'Infrastructure Setup Skill',
+        slug: 'infrastructure-setup-skill',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_orchestration_infra',
+            content: 'Set up infrastructure before deployment',
+            situation: 'Preparing for application deployment',
+            problem: 'Missing infrastructure blocks deployment',
+            goal: 'Provision required infrastructure',
+            labels: ['infrastructure', 'setup'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_core_orchestration_deploy',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['deployment', 'application'],
+        title: 'Application Deployment Skill',
+        slug: 'application-deployment-skill',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_orchestration_deploy',
+            content: 'Deploy application after infrastructure ready',
+            situation: 'Infrastructure provisioned',
+            problem: 'Need to deploy application correctly',
+            goal: 'Successful application deployment',
+            labels: ['deployment', 'application'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+    graphIndexDocuments: [
+      {
+        id: 'graphdoc_trap_core_orchestration_r1',
+        sourceType: 'trap',
+        sourceId: 'knowledge_core_orchestration_trap',
+        revision: 1,
+        contentHash: 'core-orchestration-trap',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'trap:knowledge_core_orchestration_trap',
+            kind: 'trap',
+            label: 'deployment ordering blocker',
+            evidence: 'application deployed before infrastructure',
+          },
+        ],
+        edges: [],
+        evidence: 'derived from orchestration trap',
+        createdAt: '2026-05-04T00:00:00.000Z',
+        updatedAt: '2026-05-04T00:00:00.000Z',
+      },
+      {
+        id: 'graphdoc_skill_core_orchestration_infra_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_core_orchestration_infra',
+        revision: 1,
+        contentHash: 'core-orchestration-infra-skill',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_core_orchestration_infra',
+            kind: 'skill',
+            label: 'infrastructure setup skill',
+            evidence: 'provision infrastructure first',
+          },
+        ],
+        edges: [
+          {
+            id: 'skill:infra->trap:orchestration:mitigates',
+            sourceNodeId: 'skill:artifact_core_orchestration_infra',
+            targetNodeId: 'trap:knowledge_core_orchestration_trap',
+            relationType: 'mitigates',
+            strength: 'hard',
+            evidence: 'infrastructure setup mitigates ordering blocker',
+          },
+        ],
+        evidence: 'derived from infra skill',
+        createdAt: '2026-05-04T00:00:00.000Z',
+        updatedAt: '2026-05-04T00:00:00.000Z',
+      },
+      {
+        id: 'graphdoc_skill_core_orchestration_deploy_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_core_orchestration_deploy',
+        revision: 1,
+        contentHash: 'core-orchestration-deploy-skill',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_core_orchestration_deploy',
+            kind: 'skill',
+            label: 'application deployment skill',
+            evidence: 'deploy after infra ready',
+          },
+        ],
+        edges: [
+          {
+            id: 'skill:deploy->trap:orchestration:mitigates',
+            sourceNodeId: 'skill:artifact_core_orchestration_deploy',
+            targetNodeId: 'trap:knowledge_core_orchestration_trap',
+            relationType: 'mitigates',
+            strength: 'hard',
+            evidence: 'deployment skill mitigates ordering blocker',
+          },
+          {
+            id: 'skill:deploy->skill:infra:order',
+            sourceNodeId: 'skill:artifact_core_orchestration_deploy',
+            targetNodeId: 'skill:artifact_core_orchestration_infra',
+            relationType: 'order',
+            strength: 'soft',
+            evidence: 'deploy must come after infra setup',
+          },
+        ],
+        evidence: 'derived from deploy skill',
+        createdAt: '2026-05-04T00:00:00.000Z',
+        updatedAt: '2026-05-04T00:00:00.000Z',
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
+// =============================================================================
 // Aggregated Core Scenarios Export
 // =============================================================================
 
@@ -865,6 +1041,7 @@ export const coreScenariosMap: Record<string, RetrievalEvalScenario> = {
   'core-profile-hints': coreProfileHintsScenario,
   'core-graph-plan-selected': coreGraphPlanSelectedScenario,
   'core-graph-plan-governance': coreGraphPlanGovernanceScenario,
+  'core-graph-plan-orchestration': coreGraphPlanOrchestrationScenario,
 };
 
 /**
