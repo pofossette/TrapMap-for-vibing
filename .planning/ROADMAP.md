@@ -9,8 +9,7 @@
 - ✅ **v1.4 评测系统构建** — Phases 25-47 (shipped 2026-04-29)
 - ✅ **v1.5 功能增强** — Phases 48-67 (shipped 2026-05-04)
 - ✅ **v1.6 Test Coverage & Optimization** — Phases 68-76 (shipped 2026-05-04)
-- 🔵 **v1.7 Eval Structural Coverage** — Phase 78-79
-- 🟡 **v1.8 Architecture Health** — Phases 80-84
+- 🔵 **v1.7 Eval Structural Coverage & Architecture Health** — Phases 78-86
 
 ## Phases
 
@@ -89,23 +88,27 @@
 </details>
 
 <details>
-<summary>🟡 v1.8 Architecture Health (Phases 80-84) — PLANNED</summary>
+<summary>🔵 v1.7 Eval Structural Coverage & Architecture Health (Phases 78-86) — IN PROGRESS</summary>
 
 ### God File Refactoring
 - [ ] Phase 80: Operations Route Refactoring (0/? plans)
-  - 拆分 `routes/operations.ts` (1663 行) 为 audit-routes, activation-routes, import-export-routes, skill-edit-routes
+  - 拆分 `routes/operations.ts` (1663 行) 为 artifacts-import, artifacts-export, artifacts-activate, skill-edit, skill-review 等独立模块
 - [ ] Phase 81: Orchestrator Decomposition (0/? plans)
-  - 拆分 `lib/retrieval/orchestrator.ts` (1145 行) 为 search-strategy, ranking-service, citation-builder, search-coordinator
+  - 拆分 `lib/retrieval/orchestrator.ts` (1145 行) 为 strategies/, ranking/, refinement.ts 等模块
+- [ ] Phase 85: CLI Operations Refactoring (0/? plans)
+  - 拆分 `cli/commands/operations.ts` (1060 行) 为 list, edit, import, export, activate 等独立命令
 
 ### Infrastructure
 - [ ] Phase 82: Logging Unification (0/? plans)
-  - 统一 console.* 到 Pino logger，建立一致日志规范
+  - 引入 Pino 结构化日志，统一 console.* 输出，添加请求 ID 追踪
 - [ ] Phase 83: Store Decoupling (0/? plans)
   - 引入 Repository 接口层，解耦 store.ts (被 96 文件导入)
 
 ### Cleanup
 - [ ] Phase 84: Tech Debt Cleanup (0/? plans)
-  - 清理过期 worktree (574 MB)、死代码、knip 警告
+  - 清理过期 worktree (574 MB)、knip 警告、依赖更新
+- [ ] Phase 86: Gitignore Cleanup (0/? plans)
+  - 排除 dist/ 版本控制，清理仓库体积，更新 CONTRIBUTING.md
 
 </details>
 
@@ -116,9 +119,8 @@
 | 1-47 | v1.0-v1.4 | 93/93 | Complete | 2026-04-29 |
 | 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
 | 68-76 | v1.6 | 20/20 | Complete | 2026-05-04 |
-| 78-79 | v1.7 | 0/2 | In Progress | — |
-| 80-84 | v1.8 | 0/5 | Planned | — |
+| 78-86 | v1.7 | 0/9 | In Progress | — |
 
 ---
 
-*Roadmap updated: 2026-05-04 — Added v1.8 Architecture Health milestone (Phases 80-84)*
+*Roadmap updated: 2026-05-04 — Merged v1.8 into v1.7 (Phases 78-86)*
