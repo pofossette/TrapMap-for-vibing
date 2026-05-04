@@ -171,12 +171,40 @@ export type RetrievalEvalGovernanceExpectations = z.infer<
 >;
 
 // =============================================================================
+// Graph-Plan Structural Expectations Schema
+// =============================================================================
+
+/**
+ * Graph-plan structural expectations for v3 responses.
+ * These assertions verify the plan assembly correctness beyond capsule matching.
+ */
+export const graphPlanExpectationsSchema = z.object({
+  /** Expected trap node IDs in graph.nodes (kind='trap') */
+  expectedTrapNodeIds: z.array(entityIdSchema).default([]),
+  /** Expected skill node IDs in graph.nodes (kind='skill') */
+  expectedSkillNodeIds: z.array(entityIdSchema).default([]),
+  /** Expected edge relations: {sourceId, targetId, type} tuples */
+  expectedEdges: z.array(z.object({
+    sourceNodeId: entityIdSchema,
+    targetNodeId: entityIdSchema,
+    type: z.enum(['risk-blocks', 'mitigates', 'requires', 'order', 'co-occurs-with']),
+  })).default([]),
+  /** Expected blocking trap node IDs in focus.blockingTrapNodeIds */
+  expectedBlockingTrapNodeIds: z.array(entityIdSchema).default([]),
+  /** Expected recommended skill node IDs in focus.recommendedSkillNodeIds */
+  expectedRecommendedSkillNodeIds: z.array(entityIdSchema).default([]),
+});
+
+export type GraphPlanExpectations = z.infer<typeof graphPlanExpectationsSchema>;
+
+// =============================================================================
 // Retrieval Eval Shape Expectations Schema
 // =============================================================================
 
 /**
  * Shape expectations for endpoint-specific response validation.
  * v1 cases can assert bucket splits; v2 cases can assert capsule/profile shapes.
+ * v3 cases can assert graph-plan structure (nodes, edges, focus).
  */
 export const retrievalEvalShapeExpectationsSchema = z.object({
   /**
@@ -190,6 +218,8 @@ export const retrievalEvalShapeExpectationsSchema = z.object({
   expectedProfileHintArtifactIds: z.array(entityIdSchema).default([]),
   /** Expected capsule count for v2 responses (optional) */
   expectedCapsuleCount: z.number().int().min(0).optional(),
+  /** Graph-plan structural expectations (v3 only) */
+  graphPlanExpectations: graphPlanExpectationsSchema.optional(),
 });
 
 export type RetrievalEvalShapeExpectations = z.infer<typeof retrievalEvalShapeExpectationsSchema>;
