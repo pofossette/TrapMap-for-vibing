@@ -2,6 +2,8 @@ import type { Permission } from '@trapmap/contracts';
 import type { FastifyRequest } from 'fastify';
 
 import type { ServerConfig } from '../config.js';
+import type { AccessKeyRepository } from './auth/index.js';
+import type { SessionRepository } from './auth/index.js';
 import type { AiProviders } from './ai/types.js';
 import type { ArtifactRepository } from './artifacts/index.js';
 import type { IndexAdapter } from './indexing/types.js';
@@ -17,6 +19,10 @@ export interface SkillShareerServices {
   knowledgeRepo: KnowledgeRepository | undefined;
   /** Artifact repository for row-level PostgreSQL operations (undefined when using JsonStore) */
   artifactRepo: ArtifactRepository | undefined;
+  /** Session repository for auth operations (undefined when using JsonStore) */
+  sessionRepo: SessionRepository | undefined;
+  /** Access key repository for auth operations (undefined when using JsonStore) */
+  accessKeyRepo: AccessKeyRepository | undefined;
 }
 
 export interface ResolvedAuthContext {

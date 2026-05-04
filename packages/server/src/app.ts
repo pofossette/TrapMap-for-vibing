@@ -6,6 +6,10 @@ import { ZodError } from 'zod';
 
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
+import {
+  createAccessKeyRepository,
+  createSessionRepository,
+} from './lib/auth/index.js';
 import { createAiProviders } from './lib/ai/index.js';
 import { createArtifactRepository } from './lib/artifacts/index.js';
 import {
@@ -158,6 +162,10 @@ export function buildServer(options: BuildServerOptions = {}) {
     knowledgeRepo: undefined,
     // artifactRepo is set when PostgreSQL pool is available (in onReady hook)
     artifactRepo: undefined,
+    // sessionRepo is set when PostgreSQL pool is available (in onReady hook)
+    sessionRepo: undefined,
+    // accessKeyRepo is set when PostgreSQL pool is available (in onReady hook)
+    accessKeyRepo: undefined,
   });
 
   // Bridge: wire global embeddings provider so existing generateEmbedding() callers
@@ -234,6 +242,18 @@ export function buildServer(options: BuildServerOptions = {}) {
 
       // Create artifact repository for row-level operations
       app.skillShareer.artifactRepo = createArtifactRepository({
+        pool,
+        store,
+      });
+
+      // Create session repository for auth operations
+      app.skillShareer.sessionRepo = createSessionRepository({
+        pool,
+        store,
+      });
+
+      // Create access key repository for auth operations
+      app.skillShareer.accessKeyRepo = createAccessKeyRepository({
         pool,
         store,
       });
