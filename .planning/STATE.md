@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-04T20:23:11Z"
-last_activity: 2026-05-04 -- Phase 81 Plan 01 complete
+last_updated: "2026-05-04T20:35:00Z"
+last_activity: 2026-05-05 -- Phase 81 Plan 02 complete
 progress:
   total_phases: 20
   completed_phases: 10
   total_plans: 29
-  completed_plans: 27
-  percent: 93
+  completed_plans: 28
+  percent: 97
 ---
 
 ## Project Reference
@@ -23,9 +23,9 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 ## Current Position
 
 Phase: 81 (orchestrator-decomposition) — EXECUTING
-Plan: 2 of 3
-Status: Plan 01 complete (orchestrator module extraction)
-Last activity: 2026-05-04 -- Phase 81 Plan 01 complete
+Plan: 3 of 3
+Status: Plan 02 complete (test file split)
+Last activity: 2026-05-05 -- Phase 81 Plan 02 complete
 
 ## v1.6 Summary
 
@@ -58,6 +58,9 @@ All 9 phases completed:
 - 81-01: Extract all recall functions into recall-coordinator.ts
 - 81-01: Extract refinement generation into refinement.ts
 - 81-01: orchestrator.ts at 461 lines (target ~250) -- remaining code is pure pipeline orchestration
+- 81-02: Create recall-coordinator.test.ts with dispatchByMode and channel function tests
+- 81-02: Create refinement.test.ts with LLM refinement generation tests
+- 81-02: Update orchestrator.test.ts mode dispatch tests to verify dispatchByMode delegation
 
 ### Decisions (Phase 76)
 
