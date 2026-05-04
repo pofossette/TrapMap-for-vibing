@@ -1,8 +1,5 @@
-import type { FeedbackListResponse, FeedbackBatchResponse } from '@trapmap/contracts';
-import {
-  feedbackListResponseSchema,
-  feedbackBatchResponseSchema,
-} from '@trapmap/contracts';
+import type { FeedbackBatchResponse, FeedbackListResponse } from '@trapmap/contracts';
+import { feedbackBatchResponseSchema, feedbackListResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';
@@ -27,7 +24,9 @@ function formatFeedbackList(data: FeedbackListResponse): string {
   for (const item of data.items) {
     const age = `${Math.round(item.ageDays)}d`;
     const status = item.status;
-    lines.push(`${item.id}  [${status}]  ${age}  ${item.entryShortcut.slice(0, 40)}  ${item.problemType}`);
+    lines.push(
+      `${item.id}  [${status}]  ${age}  ${item.entryShortcut.slice(0, 40)}  ${item.problemType}`,
+    );
   }
 
   return lines.join('\n');
@@ -66,12 +65,18 @@ export function registerFeedbackAdminCommands(
   program
     .command('feedback-list')
     .description('List feedback queue items with optional filters')
-    .option('--status <statuses>', 'Filter by status (comma-separated: new,triaged,resolved,dismissed)')
-    .option('--type <types>', 'Filter by problem type (comma-separated: incorrect,outdated,context-mismatch,incomplete,other)')
+    .option(
+      '--status <statuses>',
+      'Filter by status (comma-separated: new,triaged,resolved,dismissed)',
+    )
+    .option(
+      '--type <types>',
+      'Filter by problem type (comma-separated: incorrect,outdated,context-mismatch,incomplete,other)',
+    )
     .option('--entry <id>', 'Filter by entry ID')
     .option('--entry-type <type>', 'Filter by entry type (trap or skill)')
-    .option('--min-age <days>', 'Minimum age in days', parseInt)
-    .option('--max-age <days>', 'Maximum age in days', parseInt)
+    .option('--min-age <days>', 'Minimum age in days', Number.parseInt)
+    .option('--max-age <days>', 'Maximum age in days', Number.parseInt)
     .option('--limit <n>', 'Maximum items to return', '25')
     .option('--json', 'Output JSON')
     .action(
@@ -91,14 +96,14 @@ export function registerFeedbackAdminCommands(
         const queryParams = new URLSearchParams();
 
         if (flags.status) {
-          flags.status.split(',').forEach((s: string) => {
+          for (const s of flags.status.split(',')) {
             queryParams.append('status', s.trim());
-          });
+          }
         }
         if (flags.type) {
-          flags.type.split(',').forEach((t: string) => {
+          for (const t of flags.type.split(',')) {
             queryParams.append('problemType', t.trim());
-          });
+          }
         }
         if (flags.entry) {
           queryParams.set('entryId', flags.entry);
@@ -126,10 +131,7 @@ export function registerFeedbackAdminCommands(
   program
     .command('feedback-batch')
     .description('Apply batch operations to feedback items')
-    .requiredOption(
-      '--action <action>',
-      'Action: resolve, dismiss, triage, transition',
-    )
+    .requiredOption('--action <action>', 'Action: resolve, dismiss, triage, transition')
     .requiredOption('--ids <ids>', 'Comma-separated feedback IDs')
     .option('--notes <text>', 'Admin notes for the action')
     .option('--transition-target <state>', 'Target decay state (for transition action)')

@@ -1,8 +1,5 @@
 import type { BatchOperationResponse, DecayEntryListResponse } from '@trapmap/contracts';
-import {
-  batchOperationResponseSchema,
-  decayEntryListResponseSchema,
-} from '@trapmap/contracts';
+import { batchOperationResponseSchema, decayEntryListResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';
@@ -56,10 +53,7 @@ function formatBatchResult(data: BatchOperationResponse): string {
   return lines.join('\n');
 }
 
-export function registerDecayCommands(
-  program: Command,
-  options: DecayCommandOptions,
-): void {
+export function registerDecayCommands(program: Command, options: DecayCommandOptions): void {
   if (!options.allowManage) return;
 
   // decay-stale command: List entries filtered by decay state
@@ -70,8 +64,8 @@ export function registerDecayCommands(
       '--state <states>',
       'Filter by decay state (comma-separated: active,review-due,stale,expired,superseded)',
     )
-    .option('--age-min <days>', 'Minimum age in days', parseInt)
-    .option('--age-max <days>', 'Maximum age in days', parseInt)
+    .option('--age-min <days>', 'Minimum age in days', Number.parseInt)
+    .option('--age-max <days>', 'Maximum age in days', Number.parseInt)
     .option('--label <labels>', 'Filter by labels (comma-separated)')
     .option('--scope <scope>', 'Filter by scope (global or project)')
     .option('--limit <n>', 'Maximum entries to return', '25')
@@ -92,9 +86,9 @@ export function registerDecayCommands(
         const queryParams = new URLSearchParams();
 
         if (flags.state) {
-          flags.state.split(',').forEach((s: string) => {
+          for (const s of flags.state.split(',')) {
             queryParams.append('decayStates', s.trim());
-          });
+          }
         }
         if (flags.ageMin !== undefined) {
           queryParams.set('ageMinDays', String(flags.ageMin));
@@ -103,9 +97,9 @@ export function registerDecayCommands(
           queryParams.set('ageMaxDays', String(flags.ageMax));
         }
         if (flags.label) {
-          flags.label.split(',').forEach((l: string) => {
+          for (const l of flags.label.split(',')) {
             queryParams.append('labels', l.trim());
-          });
+          }
         }
         if (flags.scope) {
           queryParams.set('scope', flags.scope);
@@ -124,12 +118,9 @@ export function registerDecayCommands(
   program
     .command('decay-batch')
     .description('Apply batch operations to decayed entries')
-    .requiredOption(
-      '--action <action>',
-      'Action: extend, mark-review, deactivate, supersede',
-    )
+    .requiredOption('--action <action>', 'Action: extend, mark-review, deactivate, supersede')
     .requiredOption('--entries <ids>', 'Comma-separated entry IDs')
-    .option('--extend-days <n>', 'Days to extend lifecycle (for extend action)', parseInt)
+    .option('--extend-days <n>', 'Days to extend lifecycle (for extend action)', Number.parseInt)
     .option('--replacement <id>', 'Replacement entry ID (for supersede action)')
     .option('--dry-run', 'Show what would change without applying')
     .option('--json', 'Output JSON')
@@ -196,7 +187,7 @@ export function registerDecayCommands(
 
         const body: Record<string, unknown> = {
           pattern: pattern ?? '',
-          limit: parseInt(flags.limit, 10),
+          limit: Number.parseInt(flags.limit, 10),
         };
 
         if (flags.state) {

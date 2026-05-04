@@ -15,14 +15,14 @@
  * 6. GIN index definition exists in schema for knowledge_keywords.tokens
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Gap 1: Benchmarking
 import {
-  measurePipelineStep,
-  runRetrievalBenchmark,
   compareBenchmarkResults,
   formatBenchmarkReport,
+  measurePipelineStep,
+  runRetrievalBenchmark,
 } from '../retrieval/benchmark.js';
 import type { KnowledgeRecord } from '../store.js';
 
@@ -34,9 +34,9 @@ vi.mock('../embeddings.js', () => ({
 
 import { generateEmbedding, hashEmbeddingText } from '../embeddings.js';
 import {
+  cosineSimilarity,
   getBatchEmbeddings,
   optimizedSemanticRecall,
-  cosineSimilarity,
 } from '../retrieval/recall/semantic.js';
 
 // Gap 3: Reranking early termination
@@ -45,9 +45,9 @@ import type { MergedCandidate } from '../retrieval/types.js';
 
 // Gap 4: DB-level search
 import {
-  vectorSimilaritySearch,
   ensureVectorIndex,
   hasVectorIndex,
+  vectorSimilaritySearch,
 } from '../retrieval/db-search.js';
 
 // Gap 6: Schema GIN index
@@ -297,10 +297,7 @@ describe('Gap 3: Reranking early termination handles edge cases', () => {
   });
 
   it('early termination does not alter the rerank scoring of surviving candidates', () => {
-    const candidates = [
-      makeCandidate('both', 0.9),
-      makeCandidate('semantic-only', 0.7),
-    ];
+    const candidates = [makeCandidate('both', 0.9), makeCandidate('semantic-only', 0.7)];
 
     // Give 'both' candidate both channels to get the cross-channel boost
     const bothCandidate: MergedCandidate = {
@@ -465,10 +462,12 @@ describe('Gap 4: DB-level vector search constructs correct SQL queries', () => {
 
 describe('Gap 5: USE_DB_SEARCH feature flag controls search path selection', () => {
   beforeEach(() => {
+    // biome-ignore lint/performance/noDelete: must use delete for process.env (assignment to undefined sets string 'undefined')
     delete process.env.USE_DB_SEARCH;
   });
 
   afterEach(() => {
+    // biome-ignore lint/performance/noDelete: must use delete for process.env (assignment to undefined sets string 'undefined')
     delete process.env.USE_DB_SEARCH;
   });
 
@@ -524,13 +523,10 @@ describe('Gap 6: GIN index definition exists in schema for knowledge_keywords.to
 
   it('GIN index definition exists in schema source code', async () => {
     // Read the schema source to verify the GIN index is declared correctly
-    const fs = await import('fs');
-    const path = await import('path');
+    const fs = await import('node:fs');
+    const path = await import('node:path');
 
-    const schemaPath = path.resolve(
-      __dirname,
-      '../persistence/schema.ts',
-    );
+    const schemaPath = path.resolve(__dirname, '../persistence/schema.ts');
 
     const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
 

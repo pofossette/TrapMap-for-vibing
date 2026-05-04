@@ -12,7 +12,7 @@ import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 const ROOT_DIR = resolve(__dirname, '../../../../..');
 const TSCONFIG_PATH = resolve(ROOT_DIR, 'tsconfig.base.json');
@@ -39,26 +39,27 @@ describe('Phase 75: TypeScript strict mode configuration', () => {
 // ── Gap 2: typecheck passes with 0 errors ────────────────────────────────
 
 describe('Phase 75: typecheck produces zero errors', () => {
-  it('pnpm typecheck exits with code 0 (no type errors)', () => {
-    // Run typecheck from project root; should succeed silently
-    const result = execSync('pnpm typecheck', {
-      cwd: ROOT_DIR,
-      encoding: 'utf-8',
-      timeout: 120_000,
-    });
-    // If we get here, typecheck succeeded (exit 0)
-    expect(result).toBeDefined();
-  });
+  it(
+    'pnpm typecheck exits with code 0 (no type errors)',
+    () => {
+      // Run typecheck from project root; should succeed silently
+      const result = execSync('pnpm typecheck', {
+        cwd: ROOT_DIR,
+        encoding: 'utf-8',
+        timeout: 120_000,
+      });
+      // If we get here, typecheck succeeded (exit 0)
+      expect(result).toBeDefined();
+    },
+    { timeout: 130_000 },
+  );
 });
 
 // ── Gap 4: previously-fixed type errors don't regress ────────────────────
 
 describe('Phase 75: fixed type errors remain correct', () => {
   it('benchmark.ts uses numeric requiredLevel comparison (not string)', () => {
-    const benchmarkPath = resolve(
-      ROOT_DIR,
-      'packages/server/src/lib/retrieval/benchmark.ts',
-    );
+    const benchmarkPath = resolve(ROOT_DIR, 'packages/server/src/lib/retrieval/benchmark.ts');
     const content = readFileSync(benchmarkPath, 'utf-8');
 
     // The fix changed from string comparison ('user') to numeric (<= 1)
@@ -70,10 +71,7 @@ describe('Phase 75: fixed type errors remain correct', () => {
   });
 
   it('orchestrator.ts uses scopes (array) not scope (singular)', () => {
-    const orchestratorPath = resolve(
-      ROOT_DIR,
-      'packages/server/src/lib/retrieval/orchestrator.ts',
-    );
+    const orchestratorPath = resolve(ROOT_DIR, 'packages/server/src/lib/retrieval/orchestrator.ts');
     const content = readFileSync(orchestratorPath, 'utf-8');
 
     // The fix changed parsed.filters?.scope to parsed.filters?.scopes
@@ -85,10 +83,7 @@ describe('Phase 75: fixed type errors remain correct', () => {
   });
 
   it('orchestrator.ts uses spread pattern for optional scope property', () => {
-    const orchestratorPath = resolve(
-      ROOT_DIR,
-      'packages/server/src/lib/retrieval/orchestrator.ts',
-    );
+    const orchestratorPath = resolve(ROOT_DIR, 'packages/server/src/lib/retrieval/orchestrator.ts');
     const content = readFileSync(orchestratorPath, 'utf-8');
 
     // For exactOptionalPropertyTypes compliance, optional properties are

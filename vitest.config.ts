@@ -12,12 +12,7 @@ export default defineConfig({
           coverage: {
             provider: 'v8',
             reporter: ['text', 'html', 'lcov'],
-            exclude: [
-              '**/*.test.ts',
-              '**/*.d.ts',
-              '**/dist/**',
-              '**/node_modules/**',
-            ],
+            exclude: ['**/*.test.ts', '**/*.d.ts', '**/dist/**', '**/node_modules/**'],
             thresholds: {
               lines: 70,
               functions: 70,
@@ -35,12 +30,7 @@ export default defineConfig({
           coverage: {
             provider: 'v8',
             reporter: ['text', 'html', 'lcov'],
-            exclude: [
-              '**/*.test.ts',
-              '**/*.d.ts',
-              '**/dist/**',
-              '**/node_modules/**',
-            ],
+            exclude: ['**/*.test.ts', '**/*.d.ts', '**/dist/**', '**/node_modules/**'],
             thresholds: {
               lines: 70,
               functions: 70,
@@ -63,12 +53,7 @@ export default defineConfig({
           coverage: {
             provider: 'v8',
             reporter: ['text', 'html', 'lcov'],
-            exclude: [
-              '**/*.test.ts',
-              '**/*.d.ts',
-              '**/dist/**',
-              '**/node_modules/**',
-            ],
+            exclude: ['**/*.test.ts', '**/*.d.ts', '**/dist/**', '**/node_modules/**'],
             thresholds: {
               lines: 70,
               functions: 70,
@@ -91,12 +76,7 @@ export default defineConfig({
           coverage: {
             provider: 'v8',
             reporter: ['text', 'html', 'lcov'],
-            exclude: [
-              '**/*.test.ts',
-              '**/*.d.ts',
-              '**/dist/**',
-              '**/node_modules/**',
-            ],
+            exclude: ['**/*.test.ts', '**/*.d.ts', '**/dist/**', '**/node_modules/**'],
             thresholds: {
               lines: 70,
               functions: 70,

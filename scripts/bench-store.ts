@@ -10,10 +10,10 @@
  *   pnpm tsx scripts/bench-store.ts --pg    # 同时对比 PostgreSQL（需要连接）
  */
 
-import { performance } from 'node:perf_hooks';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { performance } from 'node:perf_hooks';
 
 // 参数解析
 const args = process.argv.slice(2);
@@ -22,13 +22,15 @@ let iterations = 50;
 let includePg = false;
 
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === '--entries') entryCount = parseInt(args[++i]);
-  if (args[i] === '--iterations') iterations = parseInt(args[++i]);
+  if (args[i] === '--entries') entryCount = Number.parseInt(args[++i]);
+  if (args[i] === '--iterations') iterations = Number.parseInt(args[++i]);
   if (args[i] === '--pg') includePg = true;
 }
 
 // Dynamic imports for ESM modules
-const { JsonStore, createEmptyStoreData, nowIso } = await import('../packages/server/src/lib/store.js');
+const { JsonStore, createEmptyStoreData, nowIso } = await import(
+  '../packages/server/src/lib/store.js'
+);
 type SkillShareerStore = import('../packages/server/src/lib/store.js').SkillShareerStore;
 type StoreData = import('../packages/server/src/lib/store.js').StoreData;
 
@@ -109,7 +111,9 @@ async function benchStore(name: string, store: SkillShareerStore, data: StoreDat
     snapTimes.push(performance.now() - t0);
   }
   snapTimes.sort((a, b) => a - b);
-  console.log(`  snapshot: n=${iterations} avg=${(snapTimes.reduce((a, b) => a + b, 0) / iterations).toFixed(1)}ms p50=${percentile(snapTimes, 0.5).toFixed(1)}ms p95=${percentile(snapTimes, 0.95).toFixed(1)}ms`);
+  console.log(
+    `  snapshot: n=${iterations} avg=${(snapTimes.reduce((a, b) => a + b, 0) / iterations).toFixed(1)}ms p50=${percentile(snapTimes, 0.5).toFixed(1)}ms p95=${percentile(snapTimes, 0.95).toFixed(1)}ms`,
+  );
 
   // Benchmark: transact (read-only)
   const txTimes: number[] = [];
@@ -119,7 +123,9 @@ async function benchStore(name: string, store: SkillShareerStore, data: StoreDat
     txTimes.push(performance.now() - t0);
   }
   txTimes.sort((a, b) => a - b);
-  console.log(`  transact: n=${iterations} avg=${(txTimes.reduce((a, b) => a + b, 0) / iterations).toFixed(1)}ms p50=${percentile(txTimes, 0.5).toFixed(1)}ms p95=${percentile(txTimes, 0.95).toFixed(1)}ms`);
+  console.log(
+    `  transact: n=${iterations} avg=${(txTimes.reduce((a, b) => a + b, 0) / iterations).toFixed(1)}ms p50=${percentile(txTimes, 0.5).toFixed(1)}ms p95=${percentile(txTimes, 0.95).toFixed(1)}ms`,
+  );
 }
 
 async function main(): Promise<void> {
@@ -141,7 +147,9 @@ async function main(): Promise<void> {
     try {
       const { Pool } = await import('pg');
       const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-      const { PostgresStore } = await import('../packages/server/src/lib/persistence/postgres-store.js');
+      const { PostgresStore } = await import(
+        '../packages/server/src/lib/persistence/postgres-store.js'
+      );
       const pgStore = new PostgresStore(pool);
       await benchStore('PostgresStore', pgStore, data);
       await pool.end();

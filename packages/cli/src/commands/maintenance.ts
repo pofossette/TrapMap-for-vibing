@@ -71,7 +71,7 @@ export function registerMaintenanceCommands(
     .option('--missing-owner', 'Filter to entries without an assigned maintainer')
     .option('--overdue', 'Filter to entries past their review-by date')
     .option('--stale', 'Filter to entries with stale verification')
-    .option('--stale-days <n>', 'Days since last verification to consider stale', parseInt)
+    .option('--stale-days <n>', 'Days since last verification to consider stale', Number.parseInt)
     .option('--scope <scope>', 'Filter by scope (global or project)')
     .option('--label <labels>', 'Filter by labels (comma-separated)')
     .option('--limit <n>', 'Maximum entries to return', '25')
@@ -108,9 +108,9 @@ export function registerMaintenanceCommands(
           queryParams.set('scope', flags.scope);
         }
         if (flags.label) {
-          flags.label.split(',').forEach((l: string) => {
+          for (const l of flags.label.split(',')) {
             queryParams.append('labels', l.trim());
-          });
+          }
         }
         queryParams.set('limit', flags.limit);
 
@@ -170,7 +170,7 @@ export function registerMaintenanceCommands(
     .command('maintenance-verify')
     .description('Mark entries as re-verified')
     .requiredOption('--entries <ids>', 'Comma-separated entry IDs')
-    .option('--extend-days <n>', 'Days to extend review-by deadline', parseInt, 90)
+    .option('--extend-days <n>', 'Days to extend review-by deadline', Number.parseInt, 90)
     .option('--dry-run', 'Show what would change without applying')
     .option('--json', 'Output JSON')
     .action(

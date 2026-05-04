@@ -403,10 +403,7 @@ export function evaluateVerdicts(
   }
 
   // 3c. Graph-plan structural verdict (v3 only)
-  if (
-    case_.endpoint === '/v3/retrieval/search' &&
-    case_.expected.shape.graphPlanExpectations
-  ) {
+  if (case_.endpoint === '/v3/retrieval/search' && case_.expected.shape.graphPlanExpectations) {
     const graphPlanResult = assertGraphPlanStructure(
       result.graphPlanStructure,
       case_.expected.shape.graphPlanExpectations,
