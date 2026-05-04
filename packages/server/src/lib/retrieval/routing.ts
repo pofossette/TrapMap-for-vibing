@@ -15,7 +15,7 @@ import type { RoutingChannel } from './types.js';
  * Internal routing decision produced by the strategy selector.
  * Used by the orchestrator for RAG logging and channel tracking.
  */
-export interface RetrievalDecision {
+interface RetrievalDecision {
   selectedMode: RetrievalStrategy;
   routeFamily: 'entry' | 'capsule' | 'graph-plan';
   routingReason: RoutingReason;
