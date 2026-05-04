@@ -9,6 +9,7 @@
 - ✅ **v1.4 评测系统构建** — Phases 25-47 (shipped 2026-04-29)
 - ✅ **v1.5 功能增强** — Phases 48-67 (shipped 2026-05-04)
 - ✅ **v1.6 Test Coverage & Optimization** — Phases 68-76 (shipped 2026-05-04)
+- 🔵 **v1.7 Eval Structural Coverage** — Phase 78+
 
 ## Phases
 
@@ -73,6 +74,19 @@
 
 </details>
 
+<details>
+<summary>v1.7 Eval Structural Coverage (Phase 78+) — IN PROGRESS</summary>
+
+### Graph-Plan Evaluation
+- [ ] Phase 78: Graph-Plan Evaluation (2 plans)
+  - [ ] PLAN.md — Schema, normalization, assertions, scenarios, test cases, integration, normalization tests (Wave 1)
+  - [ ] 78-02-PLAN.md — Governance integration, verdict assertions, core case updates (Wave 2)
+
+### Prompt Architecture & Caching
+- [ ] Phase 79: Prompt Template Unification (0/? plans)
+
+</details>
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -80,7 +94,8 @@
 | 1-47 | v1.0-v1.4 | 93/93 | Complete | 2026-04-29 |
 | 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
 | 68-76 | v1.6 | 20/20 | Complete | 2026-05-04 |
+| 78-79 | v1.7 | 0/2 | In Progress | — |
 
 ---
 
-*Roadmap updated: 2026-05-04 — v1.6 Test Coverage & Optimization shipped*
+*Roadmap updated: 2026-05-04 — Phase 78 planning (2 plans in 2 waves)*
