@@ -107,8 +107,12 @@
 ### Infrastructure
 - [ ] Phase 82: Logging Unification (0/? plans)
   - 引入 Pino 结构化日志，统一 console.* 输出，添加请求 ID 追踪
-- [ ] Phase 83: Store Decoupling (0/? plans)
+- [x] Phase 83: Store Decoupling (4 plans) (completed 2026-05-05)
   - 引入 Repository 接口层，解耦 store.ts (被 96 文件导入)
+  - [x] 83-01-PLAN.md — SessionRepository + AccessKeyRepository interfaces (Wave 1)
+  - [x] 83-02-PLAN.md — Migrate auth.ts routes to repository pattern (Wave 2)
+  - [x] 83-03-PLAN.md — UserRepository + TeamRepository + MembershipRepository (Wave 3)
+  - [x] 83-04-PLAN.md — Migrate teams.ts and members.ts routes (Wave 4)
 
 ### Cleanup
 - [ ] Phase 84: Tech Debt Cleanup (0/? plans)
@@ -125,8 +129,8 @@
 | 1-47 | v1.0-v1.4 | 93/93 | Complete | 2026-04-29 |
 | 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
 | 68-76 | v1.6 | 20/20 | Complete | 2026-05-04 |
-| 78-86 | v1.7 | 6/9 | In Progress | — |
+| 78-86 | v1.7 | 10/12 | In Progress | — |
 
 ---
 
-*Roadmap updated: 2026-05-05 — Phase 81 complete*
+*Roadmap updated: 2026-05-05 — Phase 83 complete*

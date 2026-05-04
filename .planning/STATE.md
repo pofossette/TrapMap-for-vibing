@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.6
-milestone_name: milestone
-status: verifying
-last_updated: "2026-05-04T20:45:37.691Z"
-last_activity: 2026-05-04
+milestone: v1.7
+milestone_name: Eval Structural Coverage & Architecture Health
+status: in_progress
+last_updated: "2026-05-05T21:30:00.000Z"
+last_activity: 2026-05-05
 progress:
-  total_phases: 20
-  completed_phases: 11
-  total_plans: 29
-  completed_plans: 29
-  percent: 100
+  total_phases: 9
+  completed_phases: 3
+  total_plans: 12
+  completed_plans: 12
+  percent: 33
 ---
 
 ## Project Reference
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
-**Current focus:** Phase 81 — orchestrator-decomposition
+**Current focus:** Phase 83 — store-decoupling (complete)
 
 ## Current Position
 
-Phase: 82
+Phase: 84
 Plan: Not started
-Status: Phase 81 complete (orchestrator decomposition verified)
-Last activity: 2026-05-04
+Status: Phase 83 complete (Store Decoupling verified)
+Last activity: 2026-05-05
 
 ## v1.6 Summary
 
@@ -51,6 +51,18 @@ All 9 phases completed:
 - v1.5 功能增强 shipped 2026-05-04 (Phases 48-67, 58 plans)
 - v1.4 评测系统构建 shipped 2026-04-29 (Phases 25-47, 59 plans)
 - All prior milestones verified and archived
+
+### Decisions (Phase 83)
+
+- 83-01: Create SessionRepository and AccessKeyRepository interfaces with InMemory implementations
+- 83-01: Use factory pattern with optional PostgreSQL pool parameter
+- 83-02: Migrate routes/auth.ts to use sessionRepo with store fallback
+- 83-02: Update createSession/deleteSession to accept repositories via duck-typing
+- 83-03: Create UserRepository, TeamRepository, MembershipRepository interfaces
+- 83-03: Co-locate MembershipRepository with TeamRepository for semantic cohesion
+- 83-04: Migrate routes/teams.ts and routes/members.ts to use repositories
+- 83-04: Update resolveAuthContext to use all repositories when available
+- All phases: Incremental migration pattern `if (repo) { use repo } else { fallback to store }`
 
 ### Decisions (Phase 81)
 
