@@ -133,6 +133,14 @@ None. `pnpm lint` is not configured in the server package; used `pnpm typecheck`
 - All success criteria from ROADMAP met
 - Ready for any downstream phases that depend on the modularized operations structure
 
+## Self-Check: PASSED
+
+- SUMMARY.md exists at expected path: FOUND
+- Commit 7b54246 exists in git log: FOUND
+- operations.ts = 27 lines (< 100 target): PASS
+- All 9 source modules < 400 lines: PASS (range: 38-291)
+- Test files exceeding 400 lines (artifacts-import.test.ts=436, migrate.test.ts=637, status.test.ts=550) are expected; ROADMAP criteria applies to route files only
+
 ---
 *Phase: 80-operations-route-refactoring*
 *Completed: 2026-05-05*
