@@ -16,7 +16,7 @@ import { knowledgeKeywords } from '../../persistence/schema.js';
 import type { TokenMatchDetail } from '../types.js';
 import { normalizeQuery } from './keyword.js';
 
-export interface PgKeywordRecallConfig {
+interface PgKeywordRecallConfig {
   /** PostgreSQL connection pool */
   pool: Pool;
   /** Optional feature flag check - return empty if disabled */
