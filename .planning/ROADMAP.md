@@ -101,8 +101,11 @@
   - [x] 81-01-PLAN.md — Extract routing, recall-coordinator, refinement modules, slim orchestrator (Wave 1)
   - [x] 81-02-PLAN.md — Split test files to match module structure (Wave 2)
   - [x] 81-03-PLAN.md — Final verification, line count checks, full test run (Wave 3)
-- [ ] Phase 85: CLI Operations Refactoring (0/? plans)
+- [ ] Phase 85: CLI Operations Refactoring (3 plans)
   - 拆分 `cli/commands/operations.ts` (1060 行) 为 list, edit, import, export, activate 等独立命令
+  - [ ] 85-01-PLAN.md — Extract helpers to lib/artifact-bundle.ts (Wave 1)
+  - [ ] 85-02-PLAN.md — Extract command modules to operations/ subdirectory (Wave 2)
+  - [ ] 85-03-PLAN.md — Convert to thin router, verify tests and line counts (Wave 3)
 
 ### Infrastructure
 - [ ] Phase 82: Logging Unification (0/? plans)
@@ -136,4 +139,4 @@
 
 ---
 
-*Roadmap updated: 2026-05-05 — Phase 84 complete*
+*Roadmap updated: 2026-05-05 — Phase 85 planned*
