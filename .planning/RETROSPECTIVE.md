@@ -2,6 +2,54 @@
 
 *A living document updated after each milestone. Lessons feed forward into future planning.*
 
+## Milestone: v1.6 — Test Coverage & Optimization
+
+**Shipped:** 2026-05-04
+**Phases:** 9 | **Plans:** 20
+
+### What Was Built
+- CI baseline restored: 1725+ tests passing, 0 failures after fixing lifecycle state machine mismatches
+- 58 governance tests covering RBAC permissions, eligibility, security level enforcement, team boundaries
+- 93 security-critical tests for governance, auth routes, candidate detection, and access key management
+- 127 tests for retrieval orchestrator, merge strategy, semantic recall, artifact pipeline, and postgres store
+- 154 tests for CLI HTTP client, knowledge/team commands, contracts schemas, and Vitest coverage tooling
+- Query speed optimizations: batch embedding, reranking improvements, HNSW vector index, GIN keyword index
+- Memory optimization with batch processing and GC hints during indexing
+- Dead code removal (6 unused files, ~450 lines) and TypeScript strict mode compliance
+- Complete documentation updates including API surface, README, and architecture docs
+
+### What Worked
+- Test-first approach starting from Phase 68 (fix failing tests first) ensured clean baseline before adding coverage
+- Pure function testing pattern for governance/eligibility modules enabled 58 deterministic tests without mocking
+- Fastify buildServer() + app.inject() pattern for route integration tests avoided server startup overhead
+- Feature flag (USE_DB_SEARCH) for gradual rollout of DB-level search with in-memory fallback
+- YOLO mode with skip_discuss=true kept 9 phases moving efficiently without interactive gates
+
+### What Was Inefficient
+- 7 of 9 phases lack VERIFICATION.md files — only SUMMARY frontmatter claims completion
+- Performance optimizations (batch embedding, ensureVectorIndex) created but not wired into production pipeline
+- earlyTerminationThreshold defined in config but never passed by orchestrator — optimization exists but is dormant
+- REQUIREMENTS.md checkboxes never updated despite phases completing (11 of 13 still marked unchecked)
+
+### Patterns Established
+- Test coverage phases should verify CI baseline first (Phase 68 pattern) before adding new tests
+- Feature flags for performance optimizations enable safe rollout without committing to new code paths
+- Benchmark utilities as standalone exports for measuring before/after without coupling to production code
+
+### Key Lessons
+1. Fix failing tests before adding new coverage — a broken baseline makes all new test results unreliable
+2. Performance optimization phases must include integration verification — orphaned optimization code is tech debt
+3. VERIFICATION.md generation should be enforced, not optional — without it, only SUMMARY frontmatter validates work
+4. TypeScript strict mode is cheaper to enable incrementally during type consolidation phases than as a separate effort
+5. Test coverage tooling (Vitest coverage-v8) should be integrated early so coverage % is visible during all subsequent phases
+
+### Cost Observations
+- Model mix: primarily balanced profile (sonnet for execution, opus for complex planning)
+- Timeline: 1 day for 9 phases, ~20 plans — fastest milestone yet due to focused scope and established patterns
+- Notable: v1.6 was the fastest milestone (1 day vs 3 days for v1.5) despite adding 400+ new tests
+
+---
+
 ## Milestone: v1.5 — 功能增强
 
 **Shipped:** 2026-05-04
@@ -105,6 +153,7 @@
 |-----------|--------|-------|------------|
 | v1.4 | 23 | 59 | Evaluation system, GraphRAG-lite, DB persistence, CI regression |
 | v1.5 | 20 | 58 | Lifecycle management, boundaries, feedback loops, row-level tables |
+| v1.6 | 9 | 20 | Test coverage (2151+ tests), performance optimization, strict mode, documentation |
 
 ### Top Lessons (Verified Across Milestones)
 
