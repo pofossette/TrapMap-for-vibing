@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Eval Structural Coverage & Architecture Health
-status: in_progress
-last_updated: "2026-05-05T21:30:00.000Z"
+status: ready_to_execute
+last_updated: "2026-05-05T22:00:00.000Z"
 last_activity: 2026-05-05
 progress:
   total_phases: 9
   completed_phases: 3
-  total_plans: 12
+  total_plans: 15
   completed_plans: 12
   percent: 33
 ---
@@ -18,13 +18,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
-**Current focus:** Phase 83 — store-decoupling (complete)
+**Current focus:** Phase 84 — tech-debt-cleanup (ready to execute)
 
 ## Current Position
 
 Phase: 84
-Plan: Not started
-Status: Phase 83 complete (Store Decoupling verified)
+Plan: 84-01, 84-02, 84-03 (3 plans, ready to execute)
+Status: Phase 84 planned (Tech Debt Cleanup)
 Last activity: 2026-05-05
 
 ## v1.6 Summary

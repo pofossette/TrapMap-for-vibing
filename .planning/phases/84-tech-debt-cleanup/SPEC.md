@@ -35,11 +35,12 @@
 ### Out of Scope
 - TypeScript 配置变更
 - 依赖升级
+- 未使用导出的全面清理（剩余警告为公共 API 或需更大范围重构）
 
 ## Success Criteria
 
 - [ ] `git worktree list` 只显示有效 worktree
-- [ ] `pnpm knip` 无未使用导出警告
+- [ ] `pnpm knip` 无重复导出警告，未使用导出警告数量减少
 - [ ] 释放至少 500 MB 磁盘空间
 - [ ] 所有测试通过
 
