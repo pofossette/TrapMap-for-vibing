@@ -91,8 +91,11 @@
 <summary>🔵 v1.7 Eval Structural Coverage & Architecture Health (Phases 78-86) — IN PROGRESS</summary>
 
 ### God File Refactoring
-- [ ] Phase 80: Operations Route Refactoring (0/? plans)
-  - 拆分 `routes/operations.ts` (1663 行) 为 artifacts-import, artifacts-export, artifacts-activate, skill-edit, skill-review 等独立模块
+- [ ] Phase 80: Operations Route Refactoring (3 plans)
+  - 拆分 `routes/operations.ts` (1680 行) 为 9 个职责单一的路由模块
+  - [ ] 80-01-PLAN.md — Extract 9 sub-modules, create thin router, update app.ts (Wave 1)
+  - [ ] 80-02-PLAN.md — Split test file to match module structure (Wave 2)
+  - [ ] 80-03-PLAN.md — Final verification, line count checks, full test run (Wave 3)
 - [ ] Phase 81: Orchestrator Decomposition (0/? plans)
   - 拆分 `lib/retrieval/orchestrator.ts` (1145 行) 为 strategies/, ranking/, refinement.ts 等模块
 - [ ] Phase 85: CLI Operations Refactoring (0/? plans)
@@ -123,4 +126,4 @@
 
 ---
 
-*Roadmap updated: 2026-05-04 — Merged v1.8 into v1.7 (Phases 78-86)*
+*Roadmap updated: 2026-05-05 — Phase 80 planned (3 plans)*
