@@ -160,10 +160,9 @@ import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { mergeCandidates } from './merge.js';
 import {
   searchKnowledge,
-  selectRetrievalStrategy,
-  selectRetrievalStrategyV2,
   updateEntryEmbeddingCache,
 } from './orchestrator.js';
+import { selectRetrievalStrategy, selectRetrievalStrategyV2 } from './routing.js';
 import { graphAssistedRecall } from './recall/graph-assisted.js';
 import { keywordRecall } from './recall/keyword.js';
 import {

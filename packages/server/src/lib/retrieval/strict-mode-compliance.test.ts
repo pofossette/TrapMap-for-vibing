@@ -70,24 +70,25 @@ describe('Phase 75: fixed type errors remain correct', () => {
     expect(content).not.toMatch(/requiredLevel\s*===\s*['"]user['"]/);
   });
 
-  it('orchestrator.ts uses scopes (array) not scope (singular)', () => {
-    const orchestratorPath = resolve(ROOT_DIR, 'packages/server/src/lib/retrieval/orchestrator.ts');
-    const content = readFileSync(orchestratorPath, 'utf-8');
+  it('recall-coordinator.ts uses scopes (array) not scope (singular)', () => {
+    const recallPath = resolve(ROOT_DIR, 'packages/server/src/lib/retrieval/recall-coordinator.ts');
+    const content = readFileSync(recallPath, 'utf-8');
 
     // The fix changed parsed.filters?.scope to parsed.filters?.scopes
-    // Verify scopes is used when accessing filters
+    // Verify scopes is used when accessing filters (moved from orchestrator.ts in Phase 81)
     expect(content).toMatch(/filters\?\.scopes/);
 
     // Verify no raw .scope access on filters (the type uses scopes: string[])
     expect(content).not.toMatch(/filters\?\.scope\b(?!\s*:)/);
   });
 
-  it('orchestrator.ts uses spread pattern for optional scope property', () => {
-    const orchestratorPath = resolve(ROOT_DIR, 'packages/server/src/lib/retrieval/orchestrator.ts');
-    const content = readFileSync(orchestratorPath, 'utf-8');
+  it('recall-coordinator.ts uses spread pattern for optional scope property', () => {
+    const recallPath = resolve(ROOT_DIR, 'packages/server/src/lib/retrieval/recall-coordinator.ts');
+    const content = readFileSync(recallPath, 'utf-8');
 
     // For exactOptionalPropertyTypes compliance, optional properties are
     // conditionally included via spread: ...(condition ? { prop: val } : {})
+    // (moved from orchestrator.ts in Phase 81)
     expect(content).toMatch(/\.\.\.\s*\(.*\?\s*\{\s*scope:/);
   });
 });

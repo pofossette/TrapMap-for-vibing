@@ -4,7 +4,7 @@ import type { ResolvedAuthContext } from '../context.js';
 import type { KnowledgeRecord } from '../store.js';
 import { nowIso } from '../store.js';
 import { filterEligibleEntries } from './filters.js';
-import { selectRetrievalStrategy, selectRetrievalStrategyV2 } from './orchestrator.js';
+import { selectRetrievalStrategy, selectRetrievalStrategyV2 } from './routing.js';
 
 describe('selectRetrievalStrategy (v1)', () => {
   describe('explicit mode mapping', () => {

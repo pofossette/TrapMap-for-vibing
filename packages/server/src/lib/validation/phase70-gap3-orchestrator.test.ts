@@ -145,9 +145,8 @@ import { buildEmptyResponse } from '../retrieval/assembly.js';
 import { filterByBoundaryContext, filterEligibleEntries } from '../retrieval/filters.js';
 import {
   searchKnowledge,
-  selectRetrievalStrategy,
-  selectRetrievalStrategyV2,
 } from '../retrieval/orchestrator.js';
+import { selectRetrievalStrategy, selectRetrievalStrategyV2 } from '../retrieval/routing.js';
 import { graphAssistedRecall } from '../retrieval/recall/graph-assisted.js';
 import { keywordRecall } from '../retrieval/recall/keyword.js';
 import { getQueryEmbedding } from '../retrieval/recall/semantic.js';
