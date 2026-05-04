@@ -336,6 +336,8 @@ export interface CaseResult {
   passed: boolean;
   /** Any warnings from the adapter */
   warnings: AdapterWarning[];
+  /** Graph-plan structural assertion result (v3 only) */
+  graphPlanResult?: import('./assertions.js').GraphPlanAssertionResult;
 }
 
 // =============================================================================
