@@ -29,9 +29,23 @@ export const v3GraphPlanSelectedSmoke = retrievalEvalCaseSchema.parse({
       forbiddenIds: [],
       forbiddenReasons: [],
     },
-    shape: {},
+    shape: {
+      graphPlanExpectations: {
+        expectedTrapNodeIds: ['trap:knowledge_smoke_graph_selected'],
+        expectedSkillNodeIds: ['skill:artifact_smoke_graph_selected'],
+        expectedEdges: [
+          {
+            sourceNodeId: 'skill:artifact_smoke_graph_selected',
+            targetNodeId: 'trap:knowledge_smoke_graph_selected',
+            type: 'mitigates',
+          },
+        ],
+        expectedBlockingTrapNodeIds: ['trap:knowledge_smoke_graph_selected'],
+        expectedRecommendedSkillNodeIds: ['skill:artifact_smoke_graph_selected'],
+      },
+    },
   },
-  tags: ['smoke', 'v3', 'graph-plan', 'selected', 'how-to'],
+  tags: ['smoke', 'v3', 'graph-plan', 'selected', 'structure', 'mitigates-edge'],
 }) as RetrievalEvalCase;
 
 export const v3GraphPlanFallbackV2Smoke = retrievalEvalCaseSchema.parse({
