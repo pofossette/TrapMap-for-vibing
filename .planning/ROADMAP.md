@@ -9,7 +9,8 @@
 - ✅ **v1.4 评测系统构建** — Phases 25-47 (shipped 2026-04-29)
 - ✅ **v1.5 功能增强** — Phases 48-67 (shipped 2026-05-04)
 - ✅ **v1.6 Test Coverage & Optimization** — Phases 68-76 (shipped 2026-05-04)
-- 🔵 **v1.7 Eval Structural Coverage** — Phase 78+
+- 🔵 **v1.7 Eval Structural Coverage** — Phase 78-79
+- 🟡 **v1.8 Architecture Health** — Phases 80-84
 
 ## Phases
 
@@ -80,10 +81,31 @@
 ### Graph-Plan Evaluation
 - [ ] Phase 78: Graph-Plan Evaluation (2 plans)
   - [ ] PLAN.md — Schema, normalization, assertions, scenarios, test cases, integration, normalization tests (Wave 1)
-  - [ ] 78-02-PLAN.md — Governance integration, verdict assertions, core case updates (Wave 2)
+  - [x] 78-02-PLAN.md — Governance integration, verdict assertions, core case updates (Wave 2)
 
 ### Prompt Architecture & Caching
 - [ ] Phase 79: Prompt Template Unification (0/? plans)
+
+</details>
+
+<details>
+<summary>🟡 v1.8 Architecture Health (Phases 80-84) — PLANNED</summary>
+
+### God File Refactoring
+- [ ] Phase 80: Operations Route Refactoring (0/? plans)
+  - 拆分 `routes/operations.ts` (1663 行) 为 audit-routes, activation-routes, import-export-routes, skill-edit-routes
+- [ ] Phase 81: Orchestrator Decomposition (0/? plans)
+  - 拆分 `lib/retrieval/orchestrator.ts` (1145 行) 为 search-strategy, ranking-service, citation-builder, search-coordinator
+
+### Infrastructure
+- [ ] Phase 82: Logging Unification (0/? plans)
+  - 统一 console.* 到 Pino logger，建立一致日志规范
+- [ ] Phase 83: Store Decoupling (0/? plans)
+  - 引入 Repository 接口层，解耦 store.ts (被 96 文件导入)
+
+### Cleanup
+- [ ] Phase 84: Tech Debt Cleanup (0/? plans)
+  - 清理过期 worktree (574 MB)、死代码、knip 警告
 
 </details>
 
@@ -95,7 +117,8 @@
 | 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
 | 68-76 | v1.6 | 20/20 | Complete | 2026-05-04 |
 | 78-79 | v1.7 | 0/2 | In Progress | — |
+| 80-84 | v1.8 | 0/5 | Planned | — |
 
 ---
 
-*Roadmap updated: 2026-05-04 — Phase 78 planning (2 plans in 2 waves)*
+*Roadmap updated: 2026-05-04 — Added v1.8 Architecture Health milestone (Phases 80-84)*
