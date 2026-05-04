@@ -8,7 +8,9 @@ import type { AiProviders } from './ai/types.js';
 import type { ArtifactRepository } from './artifacts/index.js';
 import type { IndexAdapter } from './indexing/types.js';
 import type { KnowledgeRepository } from './knowledge/index.js';
+import type { MembershipRepository, TeamRepository } from './teams/index.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
+import type { UserRepository } from './users/index.js';
 
 export interface SkillShareerServices {
   config: ServerConfig;
@@ -23,6 +25,12 @@ export interface SkillShareerServices {
   sessionRepo: SessionRepository | undefined;
   /** Access key repository for auth operations (undefined when using JsonStore) */
   accessKeyRepo: AccessKeyRepository | undefined;
+  /** User repository for user operations (undefined when using JsonStore) */
+  userRepo: UserRepository | undefined;
+  /** Team repository for team operations (undefined when using JsonStore) */
+  teamRepo: TeamRepository | undefined;
+  /** Membership repository for membership operations (undefined when using JsonStore) */
+  membershipRepo: MembershipRepository | undefined;
 }
 
 export interface ResolvedAuthContext {

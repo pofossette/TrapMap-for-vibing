@@ -27,6 +27,11 @@ import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';
 import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
 import { ensureVectorIndex } from './lib/retrieval/db-search.js';
+import {
+  createMembershipRepository,
+  createTeamRepository,
+} from './lib/teams/index.js';
+import { createUserRepository } from './lib/users/index.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
 import { adminBoundarySearchRoutes } from './routes/admin-boundary-search.js';
 import { authRoutes } from './routes/auth.js';
@@ -166,6 +171,12 @@ export function buildServer(options: BuildServerOptions = {}) {
     sessionRepo: undefined,
     // accessKeyRepo is set when PostgreSQL pool is available (in onReady hook)
     accessKeyRepo: undefined,
+    // userRepo is set when PostgreSQL pool is available (in onReady hook)
+    userRepo: undefined,
+    // teamRepo is set when PostgreSQL pool is available (in onReady hook)
+    teamRepo: undefined,
+    // membershipRepo is set when PostgreSQL pool is available (in onReady hook)
+    membershipRepo: undefined,
   });
 
   // Bridge: wire global embeddings provider so existing generateEmbedding() callers
@@ -254,6 +265,24 @@ export function buildServer(options: BuildServerOptions = {}) {
 
       // Create access key repository for auth operations
       app.skillShareer.accessKeyRepo = createAccessKeyRepository({
+        pool,
+        store,
+      });
+
+      // Create user repository for user operations
+      app.skillShareer.userRepo = createUserRepository({
+        pool,
+        store,
+      });
+
+      // Create team repository for team operations
+      app.skillShareer.teamRepo = createTeamRepository({
+        pool,
+        store,
+      });
+
+      // Create membership repository for membership operations
+      app.skillShareer.membershipRepo = createMembershipRepository({
         pool,
         store,
       });
