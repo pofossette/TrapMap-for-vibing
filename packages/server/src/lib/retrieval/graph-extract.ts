@@ -22,13 +22,12 @@ import type {
 } from '../indexing/graph-lite/documents.js';
 import type { NormalizedIndexDocument } from '../indexing/types.js';
 
-// Re-export for backward compatibility
-export type { GraphNodeKind, GraphRelationType, GraphRelationStrength };
+// Types are imported for internal use; consumers should import from documents.js directly
 
 /**
  * Extracted graph node with kind and value.
  */
-export interface GraphNode {
+interface GraphNode {
   kind: GraphNodeKind;
   id: string;
   label: string;
@@ -38,7 +37,7 @@ export interface GraphNode {
 /**
  * Graph relation between nodes.
  */
-export interface GraphRelation {
+interface GraphRelation {
   relationType: GraphRelationType;
   sourceNodeId: string;
   targetNodeId: string;
@@ -49,7 +48,7 @@ export interface GraphRelation {
 /**
  * Result of trap graph extraction from a normalized document.
  */
-export interface TrapGraphExtractionResult {
+interface TrapGraphExtractionResult {
   nodes: GraphNode[];
   edges: GraphRelation[];
 }
@@ -654,7 +653,7 @@ export function extractTrapGraphEntities(
  * Kept for backward compatibility with existing callers during migration.
  * @deprecated Use extractTrapGraphEntities instead.
  */
-export type LegacyGraphEntityType =
+type LegacyGraphEntityType =
   | 'service'
   | 'tool'
   | 'symptom'
@@ -666,7 +665,7 @@ export type LegacyGraphEntityType =
  * Legacy relation types from the old generic extractor.
  * @deprecated Use TrapGraphExtractionResult instead.
  */
-export type LegacyGraphRelationType =
+type LegacyGraphRelationType =
   | 'mentions'
   | 'causes'
   | 'fixed-by'
@@ -678,7 +677,7 @@ export type LegacyGraphRelationType =
  * Legacy graph entity shape.
  * @deprecated Use GraphNode instead.
  */
-export interface GraphEntity {
+interface GraphEntity {
   type: LegacyGraphEntityType;
   value: string;
   normalizedValue: string;
@@ -688,7 +687,7 @@ export interface GraphEntity {
  * Legacy graph relation shape.
  * @deprecated Use GraphRelation instead.
  */
-export interface LegacyGraphRelation {
+interface LegacyGraphRelation {
   type: LegacyGraphRelationType;
   fromEntity: string;
   toEntity: string;
@@ -699,7 +698,7 @@ export interface LegacyGraphRelation {
  * Legacy extraction result shape.
  * @deprecated Use TrapGraphExtractionResult instead.
  */
-export interface GraphExtractionResult {
+interface GraphExtractionResult {
   entities: GraphEntity[];
   relations: LegacyGraphRelation[];
 }
