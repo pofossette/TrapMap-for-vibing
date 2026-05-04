@@ -52,7 +52,7 @@ export const DEFAULT_STALE_DECAY_PENALTY = 0.1;
 /**
  * Configuration for rerank behavior.
  */
-export interface RerankConfig {
+interface RerankConfig {
   /** Boost for candidates appearing in both channels (default 0.15) */
   bothChannelBoost?: number;
   /** Boost for high token match density (default 0.10) */
