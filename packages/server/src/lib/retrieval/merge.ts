@@ -31,7 +31,7 @@ export const DEFAULT_KEYWORD_WEIGHT = 0.4;
 /**
  * Configuration for merge behavior.
  */
-export interface MergeConfig {
+interface MergeConfig {
   /** Weight for semantic channel score (default 0.6) */
   semanticWeight?: number;
   /** Weight for keyword channel score (default 0.4) */
