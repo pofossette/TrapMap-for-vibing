@@ -1,0 +1,9 @@
+export { auditRoutes } from './audit.js';
+export { knowledgeLegacyRoutes } from './knowledge-legacy.js';
+export { artifactsImportRoutes } from './artifacts-import.js';
+export { artifactsExportRoutes } from './artifacts-export.js';
+export { artifactsActivateRoutes } from './artifacts-activate.js';
+export { migrateRoutes } from './migrate.js';
+export { statusRoutes } from './status.js';
+export { skillEditRoutes } from './skill-edit.js';
+export { skillReviewRoutes } from './skill-review.js';
