@@ -192,4 +192,5 @@ export type BoundaryExplanation = z.infer<typeof boundaryExplanationSchema>;
  * Boundary metadata for artifact records.
  * Aliases the full Boundary schema for artifact use.
  */
-export const boundaryMetaSchema = boundarySchema;
+export type BoundaryMeta = Boundary;
+export { boundarySchema as boundaryMetaSchema };
