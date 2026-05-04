@@ -660,4 +660,241 @@ describe('normalize', () => {
       expect(result.endpoint).toBe('/v2/retrieval/search');
     });
   });
+
+  describe('normalizeV3Response graph-plan structure', () => {
+    it('extracts trap and skill node IDs', () => {
+      const response: GraphPlanSearchResponse = {
+        routingTrace: {
+          selectedMode: 'mix',
+          routeFamily: 'graph-plan',
+          routingReason: 'graph-plan-selected',
+          fallbackApplied: false,
+          fallbackTarget: null,
+          confidenceScore: 0.9,
+          confidenceBucket: 'high',
+          channelsUsed: ['plan', 'graph'],
+        },
+        plan: {
+          blockingTraps: [],
+          recommendedSkills: [],
+          edges: [],
+          citations: [],
+          graph: {
+            nodes: [
+              {
+                kind: 'trap',
+                nodeId: 'trap:1',
+                sourceId: 'entry_1',
+                label: 'Test trap',
+                severity: 'hard',
+                scope: 'project',
+                requiredLevel: 3,
+                evidence: 'trap evidence',
+                score: 0.9,
+              },
+              {
+                kind: 'skill',
+                nodeId: 'skill:1',
+                artifactId: 'artifact_1',
+                label: 'Test skill',
+                situation: 'situation',
+                problem: 'problem',
+                goal: 'goal',
+                scope: 'project',
+                requiredLevel: 3,
+                score: 0.85,
+                activationRefs: { references: [], assets: [], scripts: [] },
+              },
+              {
+                kind: 'skill',
+                nodeId: 'skill:2',
+                artifactId: 'artifact_2',
+                label: 'Test skill 2',
+                situation: 'situation',
+                problem: 'problem',
+                goal: 'goal',
+                scope: 'project',
+                requiredLevel: 3,
+                score: 0.8,
+                activationRefs: { references: [], assets: [], scripts: [] },
+              },
+            ],
+            edges: [],
+            citations: [],
+            focus: {
+              blockingTrapNodeIds: ['trap:1'],
+              recommendedSkillNodeIds: ['skill:1', 'skill:2'],
+            },
+          },
+        },
+        fallback: null,
+      };
+
+      const result = normalizeV3Response(response);
+
+      expect(result.graphPlanStructure?.trapNodeIds).toEqual(['trap:1']);
+      expect(result.graphPlanStructure?.skillNodeIds).toEqual(['skill:1', 'skill:2']);
+    });
+
+    it('extracts edges with type information', () => {
+      const response: GraphPlanSearchResponse = {
+        routingTrace: {
+          selectedMode: 'mix',
+          routeFamily: 'graph-plan',
+          routingReason: 'graph-plan-selected',
+          fallbackApplied: false,
+          fallbackTarget: null,
+          confidenceScore: 0.9,
+          confidenceBucket: 'high',
+          channelsUsed: ['plan', 'graph'],
+        },
+        plan: {
+          blockingTraps: [],
+          recommendedSkills: [],
+          edges: [],
+          citations: [],
+          graph: {
+            nodes: [
+              {
+                kind: 'trap',
+                nodeId: 'trap:1',
+                sourceId: 'entry_1',
+                label: 'Test trap',
+                severity: 'hard',
+                scope: 'project',
+                requiredLevel: 3,
+                evidence: 'trap evidence',
+                score: 0.9,
+              },
+              {
+                kind: 'skill',
+                nodeId: 'skill:1',
+                artifactId: 'artifact_1',
+                label: 'Test skill',
+                situation: 'situation',
+                problem: 'problem',
+                goal: 'goal',
+                scope: 'project',
+                requiredLevel: 3,
+                score: 0.85,
+                activationRefs: { references: [], assets: [], scripts: [] },
+              },
+            ],
+            edges: [
+              {
+                id: 'edge:1',
+                sourceNodeId: 'skill:1',
+                targetNodeId: 'trap:1',
+                type: 'mitigates',
+                strength: 'hard',
+              },
+            ],
+            citations: [],
+            focus: {
+              blockingTrapNodeIds: ['trap:1'],
+              recommendedSkillNodeIds: ['skill:1'],
+            },
+          },
+        },
+        fallback: null,
+      };
+
+      const result = normalizeV3Response(response);
+
+      expect(result.graphPlanStructure?.edges).toEqual([
+        { sourceNodeId: 'skill:1', targetNodeId: 'trap:1', type: 'mitigates' },
+      ]);
+    });
+
+    it('extracts focus metadata (blocking traps and recommended skills)', () => {
+      const response: GraphPlanSearchResponse = {
+        routingTrace: {
+          selectedMode: 'mix',
+          routeFamily: 'graph-plan',
+          routingReason: 'graph-plan-selected',
+          fallbackApplied: false,
+          fallbackTarget: null,
+          confidenceScore: 0.9,
+          confidenceBucket: 'high',
+          channelsUsed: ['plan', 'graph'],
+        },
+        plan: {
+          blockingTraps: [],
+          recommendedSkills: [],
+          edges: [],
+          citations: [],
+          graph: {
+            nodes: [
+              {
+                kind: 'trap',
+                nodeId: 'trap:blocker',
+                sourceId: 'entry_1',
+                label: 'Blocker',
+                severity: 'hard',
+                scope: 'project',
+                requiredLevel: 3,
+                evidence: 'evidence',
+                score: 0.9,
+              },
+              {
+                kind: 'skill',
+                nodeId: 'skill:recommended',
+                artifactId: 'artifact_1',
+                label: 'Recommended',
+                situation: 's',
+                problem: 'p',
+                goal: 'g',
+                scope: 'project',
+                requiredLevel: 3,
+                score: 0.85,
+                activationRefs: { references: [], assets: [], scripts: [] },
+              },
+            ],
+            edges: [],
+            citations: [],
+            focus: {
+              blockingTrapNodeIds: ['trap:blocker'],
+              recommendedSkillNodeIds: ['skill:recommended'],
+            },
+          },
+        },
+        fallback: null,
+      };
+
+      const result = normalizeV3Response(response);
+
+      expect(result.graphPlanStructure?.blockingTrapNodeIds).toEqual(['trap:blocker']);
+      expect(result.graphPlanStructure?.recommendedSkillNodeIds).toEqual(['skill:recommended']);
+    });
+
+    it('returns undefined graphPlanStructure for fallback responses', () => {
+      const response: GraphPlanSearchResponse = {
+        routingTrace: {
+          selectedMode: 'mix',
+          routeFamily: 'capsule',
+          routingReason: 'graph-plan-insufficient-trap-evidence',
+          fallbackApplied: true,
+          fallbackTarget: 'v2-capsule',
+          confidenceScore: 0.3,
+          confidenceBucket: 'low',
+          channelsUsed: ['capsule'],
+        },
+        plan: null,
+        fallback: {
+          routeFamily: 'capsule',
+          response: {
+            capsules: [],
+            profileHints: [],
+            activationHints: [],
+            refinementSummary: null,
+            summary: null,
+          },
+        },
+      };
+
+      const result = normalizeV3Response(response);
+
+      expect(result.graphPlanStructure).toBeUndefined();
+    });
+  });
 });
