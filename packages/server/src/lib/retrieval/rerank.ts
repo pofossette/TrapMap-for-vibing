@@ -60,7 +60,11 @@ export interface RerankConfig {
   boundaryContext?: BoundaryContext;
   /** Freshness decay configuration for age-based scoring (DECAY-02) */
   freshnessConfig?: FreshnessDecayConfig;
-  /** Skip candidates below this score threshold (optional optimization) */
+  /**
+   * Skip candidates with combinedScore below this fraction of the top score.
+   * E.g., 0.3 means skip candidates with score < 30% of the highest score.
+   * This is a relative threshold, not absolute. (Phase 77)
+   */
   earlyTerminationThreshold?: number;
 }
 
@@ -99,10 +103,14 @@ export function rerankCandidates(
   // Performance optimization: cache freshness multiplier by lastVerifiedAt
   const freshnessCache = new Map<string, number>();
 
-  // Performance optimization: pre-filter candidates below threshold
+  // Performance optimization: pre-filter candidates below relative threshold
+  // Threshold is relative to top score (e.g., 0.3 means keep candidates with
+  // score >= 30% of the highest score). This avoids filtering out valid results
+  // when all scores are uniformly low. (Phase 77)
   let candidates = mergedCandidates;
-  if (config?.earlyTerminationThreshold !== undefined) {
-    const threshold = config.earlyTerminationThreshold;
+  if (config?.earlyTerminationThreshold !== undefined && mergedCandidates.length > 0) {
+    const topScore = Math.max(...mergedCandidates.map((c) => c.combinedScore));
+    const threshold = topScore * config.earlyTerminationThreshold;
     candidates = candidates.filter((c) => c.combinedScore >= threshold);
   }
 

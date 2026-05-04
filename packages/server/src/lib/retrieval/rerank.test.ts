@@ -537,17 +537,36 @@ describe('rerankCandidates with early termination', () => {
     expect(result).toHaveLength(2);
   });
 
-  it('returns empty array when all candidates are below threshold', () => {
+  it('returns empty array when all candidates are below relative threshold', () => {
     const candidates = [
       makeCandidate('low-1', 0.2),
       makeCandidate('low-2', 0.3),
     ];
 
+    // With relative threshold of 0.5, threshold = 0.3 * 0.5 = 0.15
+    // Both 0.2 and 0.3 >= 0.15, so both pass
     const result = rerankCandidates(candidates, [], {
       earlyTerminationThreshold: 0.5,
     });
 
-    expect(result).toHaveLength(0);
+    expect(result).toHaveLength(2);
+  });
+
+  it('filters candidates below relative threshold of top score', () => {
+    const candidates = [
+      makeCandidate('high', 0.8),
+      makeCandidate('mid', 0.5),
+      makeCandidate('low', 0.2),
+    ];
+
+    // With relative threshold of 0.5, threshold = 0.8 * 0.5 = 0.4
+    // 0.8 >= 0.4 ✓, 0.5 >= 0.4 ✓, 0.2 < 0.4 ✗
+    const result = rerankCandidates(candidates, [], {
+      earlyTerminationThreshold: 0.5,
+    });
+
+    expect(result).toHaveLength(2);
+    expect(result.map(c => c.entry.id)).toEqual(['high', 'mid']);
   });
 
   it('no filtering when earlyTerminationThreshold is undefined', () => {

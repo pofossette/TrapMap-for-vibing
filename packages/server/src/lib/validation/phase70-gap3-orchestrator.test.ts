@@ -16,6 +16,7 @@ vi.mock('../retrieval/recall/semantic.js', () => ({
   cosineSimilarity: vi.fn().mockReturnValue(0.8),
   computeScore: vi.fn().mockReturnValue(0.8),
   buildEmbeddingText: vi.fn().mockReturnValue('shortcut detail labels'),
+  optimizedSemanticRecall: vi.fn().mockResolvedValue({ scoredEntries: [], cacheStats: { totalEntries: 0, cacheHits: 0, cacheMisses: 0, hitRate: 0 } }),
 }));
 
 vi.mock('../retrieval/recall/keyword.js', () => ({

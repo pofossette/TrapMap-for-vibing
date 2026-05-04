@@ -25,7 +25,8 @@ export type UserOpsAction =
   | 'feedback-list'
   | 'feedback-batch'
   | 'maintenance-list'
-  | 'maintenance-batch';
+  | 'maintenance-batch'
+  | 'reconcile-knowledge-indexes';
 
 export interface UserOpsLogEntry {
   timestamp: string;

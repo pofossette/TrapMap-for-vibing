@@ -26,6 +26,7 @@ vi.mock('./recall/semantic.js', () => ({
   cosineSimilarity: vi.fn().mockReturnValue(0.8),
   computeScore: vi.fn().mockReturnValue(0.8),
   buildEmbeddingText: vi.fn().mockReturnValue('shortcut detail labels'),
+  optimizedSemanticRecall: vi.fn().mockResolvedValue({ scoredEntries: [], cacheStats: { totalEntries: 0, cacheHits: 0, cacheMisses: 0, hitRate: 0 } }),
 }));
 
 vi.mock('./recall/keyword.js', () => ({
@@ -155,7 +156,7 @@ import {
   updateEntryEmbeddingCache,
 } from './orchestrator.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
-import { getQueryEmbedding, getEntryEmbedding, cosineSimilarity, computeScore } from './recall/semantic.js';
+import { getQueryEmbedding, getEntryEmbedding, cosineSimilarity, computeScore, optimizedSemanticRecall } from './recall/semantic.js';
 import { keywordRecall } from './recall/keyword.js';
 import { graphAssistedRecall } from './recall/graph-assisted.js';
 import { logRagRetrieval } from '../rag-log.js';
@@ -451,9 +452,10 @@ describe('searchKnowledge', () => {
       const entry = createMockEntry('entry_1');
       vi.mocked(filterByBoundaryContext).mockReturnValue([entry]);
       vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
-      vi.mocked(getEntryEmbedding).mockResolvedValue([0.4, 0.5, 0.6]);
-      vi.mocked(cosineSimilarity).mockReturnValue(0.75);
-      vi.mocked(computeScore).mockReturnValue(0.75);
+      vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+        scoredEntries: [{ entry, score: 0.75 }],
+        cacheStats: { totalEntries: 1, cacheHits: 0, cacheMisses: 1, hitRate: 0 },
+      });
 
       const services = createMockServices();
       const auth = createMockAuth();
@@ -461,18 +463,19 @@ describe('searchKnowledge', () => {
 
       await searchKnowledge(services, auth, query);
 
-      // Semantic recall calls getQueryEmbedding and getEntryEmbedding
+      // Semantic recall uses optimizedSemanticRecall for batch embedding retrieval
       expect(getQueryEmbedding).toHaveBeenCalledWith('test query');
-      expect(getEntryEmbedding).toHaveBeenCalledWith(entry);
+      expect(optimizedSemanticRecall).toHaveBeenCalled();
     });
 
     it('dispatches to hybrid recall for mode=hybrid', async () => {
       const entry = createMockEntry('entry_1');
       vi.mocked(filterByBoundaryContext).mockReturnValue([entry]);
       vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
-      vi.mocked(getEntryEmbedding).mockResolvedValue([0.4, 0.5, 0.6]);
-      vi.mocked(cosineSimilarity).mockReturnValue(0.75);
-      vi.mocked(computeScore).mockReturnValue(0.75);
+      vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+        scoredEntries: [{ entry, score: 0.75 }],
+        cacheStats: { totalEntries: 1, cacheHits: 0, cacheMisses: 1, hitRate: 0 },
+      });
 
       const services = createMockServices();
       const auth = createMockAuth();
@@ -489,9 +492,10 @@ describe('searchKnowledge', () => {
       const entry = createMockEntry('entry_1');
       vi.mocked(filterByBoundaryContext).mockReturnValue([entry]);
       vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
-      vi.mocked(getEntryEmbedding).mockResolvedValue([0.4, 0.5, 0.6]);
-      vi.mocked(cosineSimilarity).mockReturnValue(0.75);
-      vi.mocked(computeScore).mockReturnValue(0.75);
+      vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+        scoredEntries: [{ entry, score: 0.75 }],
+        cacheStats: { totalEntries: 1, cacheHits: 0, cacheMisses: 1, hitRate: 0 },
+      });
 
       const services = createMockServices();
       const auth = createMockAuth();
@@ -757,9 +761,10 @@ describe('DB Search Integration', () => {
       const entry = createMockEntry('entry_1');
       vi.mocked(filterByBoundaryContext).mockReturnValue([entry]);
       vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
-      vi.mocked(getEntryEmbedding).mockResolvedValue([0.4, 0.5, 0.6]);
-      vi.mocked(cosineSimilarity).mockReturnValue(0.75);
-      vi.mocked(computeScore).mockReturnValue(0.75);
+      vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+        scoredEntries: [{ entry, score: 0.75 }],
+        cacheStats: { totalEntries: 1, cacheHits: 0, cacheMisses: 1, hitRate: 0 },
+      });
 
       const services = createMockServices();
       const auth = createMockAuth();
@@ -767,9 +772,9 @@ describe('DB Search Integration', () => {
 
       await searchKnowledge(services, auth, query);
 
-      // Should use in-memory fallback
+      // Should use in-memory fallback with optimizedSemanticRecall
       expect(getQueryEmbedding).toHaveBeenCalled();
-      expect(getEntryEmbedding).toHaveBeenCalledWith(entry);
+      expect(optimizedSemanticRecall).toHaveBeenCalled();
     });
   });
 
@@ -778,9 +783,10 @@ describe('DB Search Integration', () => {
       const entry = createMockEntry('entry_1');
       vi.mocked(filterByBoundaryContext).mockReturnValue([entry]);
       vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
-      vi.mocked(getEntryEmbedding).mockResolvedValue([0.4, 0.5, 0.6]);
-      vi.mocked(cosineSimilarity).mockReturnValue(0.75);
-      vi.mocked(computeScore).mockReturnValue(0.75);
+      vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+        scoredEntries: [{ entry, score: 0.75 }],
+        cacheStats: { totalEntries: 1, cacheHits: 0, cacheMisses: 1, hitRate: 0 },
+      });
 
       const services = createMockServices();
       const auth = createMockAuth();

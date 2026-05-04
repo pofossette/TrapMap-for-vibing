@@ -1,9 +1,10 @@
 /**
  * Maintenance management routes for ownership verification and SLA tracking.
  *
- * Provides two endpoints for the maintenance management interface (MAINT-02):
+ * Provides endpoints for the maintenance management interface (MAINT-02):
  * - GET /v1/operations/maintenance/entries: List entries with maintenance metadata filters
  * - POST /v1/operations/maintenance/batch: Batch operations (assign-owner/extend-review/mark-verified)
+ * - POST /v1/admin/reconcile-knowledge-indexes: Reconcile all knowledge indexes (Phase 77)
  */
 
 import type { DecayState } from '@trapmap/contracts';
@@ -23,8 +24,10 @@ import { executeMaintenanceOperation, planMaintenanceOperation } from '../lib/ma
 import { isReviewOverdue, isStaleVerification, toActorRefFromRecord } from '../lib/maintenance/model.js';
 import { computeDecayState } from '../lib/decay/state-machine.js';
 import { loadDecayConfig } from '../lib/decay/config.js';
+import { reconcileKnowledgeIndexes } from '../lib/indexing/pipeline.js';
 import { nowIso } from '../lib/store.js';
 import { requirePermission } from '../lib/rbac.js';
+import { AppError } from '../lib/errors.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { loadUserOpsLogConfig, logUserOperation } from '../lib/user-ops-log.js';
 
@@ -331,5 +334,54 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
       totalIneligible: items.length - eligibleCount,
       appliedAt,
     });
+  });
+
+  /**
+   * POST /v1/admin/reconcile-knowledge-indexes
+   *
+   * Reconcile all knowledge entries' indexes (vector, keyword, graph).
+   * This is a maintenance operation for bulk repair/sync of indexes.
+   * Requires system-admin privileges. (Phase 77)
+   */
+  app.post('/v1/admin/reconcile-knowledge-indexes', async (request, reply) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+
+    // Only system-admin can run reconciliation
+    if (auth.subjectType !== 'system-admin') {
+      throw new AppError(403, 'forbidden', 'Only system admins can reconcile knowledge indexes');
+    }
+
+    const startTime = Date.now();
+    const adapters = app.skillShareer.indexAdapters;
+
+    const result = await reconcileKnowledgeIndexes(
+      { store: app.skillShareer.store },
+      adapters,
+    );
+
+    const durationMs = Date.now() - startTime;
+
+    // Log operation
+    const logConfig = loadUserOpsLogConfig();
+    await logUserOperation(logConfig, {
+      timestamp: nowIso(),
+      actorId: auth.actorId,
+      actorHandle: auth.handle,
+      action: 'reconcile-knowledge-indexes',
+      targetId: null,
+      teamId: auth.activeTeamId,
+      metadata: {
+        totalEntries: result.totalEntries,
+        entriesSynced: result.entriesSynced,
+        entriesRemoved: result.entriesRemoved,
+        entriesSkipped: result.entriesSkipped,
+        durationMs,
+      },
+    });
+
+    return {
+      success: true,
+      ...result,
+    };
   });
 };

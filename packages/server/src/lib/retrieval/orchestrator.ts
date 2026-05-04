@@ -50,6 +50,7 @@ import {
   cosineSimilarity,
   getQueryEmbedding,
   getEntryEmbedding as semanticGetEntryEmbedding,
+  optimizedSemanticRecall,
 } from './recall/semantic.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
 import { enrichMatchesWithConflicts } from '../conflict/enrich.js';
@@ -552,38 +553,31 @@ async function semanticRecall(
     }
   }
 
-  // In-memory fallback: Generate query embedding
+  // In-memory fallback: Use batch embedding optimization (Phase 77)
   const queryVector = await getQueryEmbedding(seed);
 
-  // Compute embeddings and scores for all eligible entries with graceful error handling
-  const scoredEntries = (
-    await Promise.all(
-      eligibleEntries.map(async (entry) => {
-        try {
-          const entryVector = await semanticGetEntryEmbedding(entry);
-          const similarity = cosineSimilarity(queryVector, entryVector);
-          const score = computeScore(similarity, entry, parsed.filters);
-          // Apply boundary scoring if context provided (BOUND-04, BOUND-05)
-          const boundaryDelta = computeBoundaryScoreDelta(entry, parsed.boundaryContext);
-          const finalScore = Math.min(1, Math.max(0, score + boundaryDelta));
-          const boundaryExplanation = parsed.boundaryContext
-            ? buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
-            : undefined;
-          const result: ScoredEntry = { entry, score: finalScore };
-          if (boundaryExplanation !== undefined) {
-            result.boundaryExplanation = boundaryExplanation;
-          }
-          return result;
-        } catch (error) {
-          // Log error and skip this entry - graceful degradation
-          console.error(`Failed to get embedding for entry ${entry.id}:`, error);
-          return null;
-        }
-      }),
-    )
-  ).filter((result): result is ScoredEntry => result !== null);
+  // Use optimizedSemanticRecall for batch embedding retrieval
+  const { scoredEntries: rawScoredEntries } = await optimizedSemanticRecall(
+    queryVector,
+    eligibleEntries,
+    parsed.filters,
+  );
 
-  // Sort by score descending
+  // Apply boundary scoring if context provided (BOUND-04, BOUND-05)
+  const scoredEntries: ScoredEntry[] = rawScoredEntries.map(({ entry, score }) => {
+    const boundaryDelta = computeBoundaryScoreDelta(entry, parsed.boundaryContext);
+    const finalScore = Math.min(1, Math.max(0, score + boundaryDelta));
+    const boundaryExplanation = parsed.boundaryContext
+      ? buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
+      : undefined;
+    const result: ScoredEntry = { entry, score: finalScore };
+    if (boundaryExplanation !== undefined) {
+      result.boundaryExplanation = boundaryExplanation;
+    }
+    return result;
+  });
+
+  // Sort by score descending (already sorted by optimizedSemanticRecall, but re-sort after boundary adjustments)
   scoredEntries.sort((a, b) => b.score - a.score);
 
   // Take top maxResults
@@ -690,6 +684,7 @@ async function hybridRecall(
         maxCandidates: parsed.maxResults,
         ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
         freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
+        earlyTerminationThreshold: 0.3,
       });
 
       // Convert to scored entries for assembly
@@ -719,6 +714,7 @@ async function hybridRecall(
     maxCandidates: parsed.maxResults,
     ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
     freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
+    earlyTerminationThreshold: 0.3,
   });
 
   // Convert to scored entries for assembly
@@ -730,6 +726,7 @@ async function hybridRecall(
 /**
  * Compute semantic candidates for hybrid recall.
  * Returns RecallCandidate[] for merge compatibility.
+ * Uses batch embedding optimization (Phase 77).
  *
  * @param seed - Search query text
  * @param eligibleEntries - Entries that passed eligibility filters
@@ -743,24 +740,16 @@ async function computeSemanticCandidates(
 ): Promise<ReturnType<typeof createSemanticCandidate>[]> {
   const queryVector = await getQueryEmbedding(seed);
 
-  // Compute candidates with graceful error handling for embedding failures
-  const candidates = (
-    await Promise.all(
-      eligibleEntries.map(async (entry) => {
-        try {
-          const entryVector = await semanticGetEntryEmbedding(entry);
-          const similarity = cosineSimilarity(queryVector, entryVector);
-          const score = computeScore(similarity, entry, filters);
-          return createSemanticCandidate(entry, score);
-        } catch (error) {
-          // Log error and skip this entry - graceful degradation
-          console.error(`Failed to get embedding for entry ${entry.id}:`, error);
-          return null;
-        }
-      }),
-    )
-  ).filter(
-    (result): result is NonNullable<ReturnType<typeof createSemanticCandidate>> => result !== null,
+  // Use optimizedSemanticRecall for batch embedding retrieval (Phase 77)
+  const { scoredEntries } = await optimizedSemanticRecall(
+    queryVector,
+    eligibleEntries,
+    filters,
+  );
+
+  // Convert scored entries to recall candidates
+  const candidates = scoredEntries.map(({ entry, score }) =>
+    createSemanticCandidate(entry, score),
   );
 
   // Sort by score descending for deterministic ordering
@@ -820,6 +809,7 @@ async function graphAssistedRecall(
     maxCandidates: parsed.maxResults,
     ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
     freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
+    earlyTerminationThreshold: 0.3,
   });
 
   // Convert to scored entries for assembly
