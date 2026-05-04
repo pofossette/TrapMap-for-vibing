@@ -118,7 +118,7 @@ function extractQueryEntities(queryText: string): Set<string> {
   return entityValues;
 }
 
-export interface GraphAssistedRecallConfig extends GraphScoringConfig {
+interface GraphAssistedRecallConfig extends GraphScoringConfig {
   dataSnapshot?: StoreData;
 }
 
