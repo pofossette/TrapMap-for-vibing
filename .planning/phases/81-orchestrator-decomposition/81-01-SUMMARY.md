@@ -100,9 +100,14 @@ Decomposed the 1196-line orchestrator.ts god file into three focused modules (ro
 - **Issue:** After extraction, MergedCandidate and RetrievalDecision type imports were unused.
 - **Fix:** Removed unused imports to keep the file clean.
 
-## Self-Check
+## Self-Check: PASSED
 
-- All 4 new/modified source files exist
-- TypeScript compilation passes with zero errors
-- All affected test files pass
-- lib/retrieval.ts facade unchanged
+- FOUND: packages/server/src/lib/retrieval/routing.ts
+- FOUND: packages/server/src/lib/retrieval/recall-coordinator.ts
+- FOUND: packages/server/src/lib/retrieval/refinement.ts
+- FOUND: packages/server/src/lib/retrieval/orchestrator.ts
+- FOUND: packages/server/src/lib/retrieval.ts
+- FOUND: bd73449 feat(81-01): create routing.ts
+- FOUND: 3137109 feat(81-01): create recall-coordinator.ts
+- FOUND: 7c117be feat(81-01): create refinement.ts, slim orchestrator.ts
+- FOUND: cf434d8 docs(81-01): complete SUMMARY.md

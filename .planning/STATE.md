@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-04T20:09:59.489Z"
-last_activity: 2026-05-04 -- Phase 81 planning complete
+last_updated: "2026-05-04T20:23:11Z"
+last_activity: 2026-05-04 -- Phase 81 Plan 01 complete
 progress:
   total_phases: 20
   completed_phases: 10
   total_plans: 29
-  completed_plans: 26
-  percent: 90
+  completed_plans: 27
+  percent: 93
 ---
 
 ## Project Reference
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
-**Current focus:** Phase 79 — perf-observability-enhancement
+**Current focus:** Phase 81 — orchestrator-decomposition
 
 ## Current Position
 
-Phase: 81
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-05-04 -- Phase 81 planning complete
+Phase: 81 (orchestrator-decomposition) — EXECUTING
+Plan: 2 of 3
+Status: Plan 01 complete (orchestrator module extraction)
+Last activity: 2026-05-04 -- Phase 81 Plan 01 complete
 
 ## v1.6 Summary
 
@@ -51,6 +51,13 @@ All 9 phases completed:
 - v1.5 功能增强 shipped 2026-05-04 (Phases 48-67, 58 plans)
 - v1.4 评测系统构建 shipped 2026-04-29 (Phases 25-47, 59 plans)
 - All prior milestones verified and archived
+
+### Decisions (Phase 81)
+
+- 81-01: Extract routing (RetrievalDecision, selectRetrievalStrategy, selectRetrievalStrategyV2, toRoutingTrace) into routing.ts
+- 81-01: Extract all recall functions into recall-coordinator.ts
+- 81-01: Extract refinement generation into refinement.ts
+- 81-01: orchestrator.ts at 461 lines (target ~250) -- remaining code is pure pipeline orchestration
 
 ### Decisions (Phase 76)
 
