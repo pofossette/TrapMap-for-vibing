@@ -91,6 +91,25 @@ cases because the graph index wasn't populated.
 - 使用 Vitest 作为测试框架
 - 测试文件与源文件在同一目录下，命名 `*.test.ts`
 
+## Gitignore 与构建产物
+
+仓库根目录的 `.gitignore` 已配置忽略以下目录和文件：
+
+| 类别 | 忽略项 |
+|------|--------|
+| 构建输出 | `dist/`、`build/`、`*.tsbuildinfo` |
+| 依赖 | `node_modules/` |
+| 测试覆盖率 | `coverage/`、`*.lcov`、`.nyc_output/` |
+| 环境变量 | `.env`、`.env.*`（保留 `.env.example`） |
+| 运行时数据 | `data/`、`.data/`、`logs/` |
+
+**注意事项：**
+
+- `pnpm build` 生成的 `dist/` 目录不得提交到版本控制
+- 提交前运行 `git status` 确认无构建产物被暂存
+- 如需添加新的忽略规则，修改根目录 `.gitignore`（而非各包内的 `.gitignore`）
+- AI 工具目录（`.claude/`、`.agent/` 等）大部分已忽略，仅保留 `trapmap-knowledge-workflow` Skill 文件
+
 ## Pull Request 流程
 
 1. **创建分支**：`git checkout -b feat/my-feature`

@@ -7,7 +7,6 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
-*.log
 
 # Reports (keep directory, ignore generated JSON)
 reports/*.json
@@ -28,8 +27,6 @@ reports/*.json
 
 # AI/Code Assistant tools
 .agent/
-.claude/
-!.claude/
 .claude/*
 !.claude/skills/
 !.claude/skills/trapmap-knowledge-workflow/
@@ -56,7 +53,6 @@ temp/
 
 # OS generated files
 Thumbs.db
-.DS_Store
 
 # Logs
 logs/
