@@ -123,8 +123,9 @@
   - [x] 84-01-PLAN.md — Prune stale worktrees, fix duplicate export (Wave 1)
   - [x] 84-02-PLAN.md — Unexport unused types to reduce knip warnings (Wave 2)
   - [x] 84-03-PLAN.md — Final verification, update STATE.md (Wave 3)
-- [ ] Phase 86: Gitignore Cleanup (0/? plans)
+- [ ] Phase 86: Gitignore Cleanup (1 plan)
   - 排除 dist/ 版本控制，清理仓库体积，更新 CONTRIBUTING.md
+  - [ ] 86-01-PLAN.md — Fix .gitignore redundant patterns, prune git objects, update CONTRIBUTING.md (Wave 1)
 
 </details>
 
@@ -139,4 +140,4 @@
 
 ---
 
-*Roadmap updated: 2026-05-05 — Phase 85 planned*
+*Roadmap updated: 2026-05-05 — Phase 86 planned*
