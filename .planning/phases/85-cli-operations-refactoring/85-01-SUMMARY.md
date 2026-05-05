@@ -109,3 +109,18 @@ None - no external service configuration required.
 ---
 *Phase: 85-cli-operations-refactoring*
 *Completed: 2026-05-05*
+
+## Self-Check: PASSED
+
+All files verified present:
+- packages/cli/src/lib/artifact-bundle.ts
+- packages/cli/src/lib/artifact-bundle.test.ts
+- packages/cli/src/commands/operations.ts
+- .planning/phases/85-cli-operations-refactoring/85-01-SUMMARY.md
+
+All commits verified:
+- d4651a8 (feat: extract helper functions)
+- 2ca2301 (test: add unit tests)
+- 6b8d427 (refactor: update imports)
+- f923ebd (fix: test mkdir bug)
+- ed4e325 (docs: complete plan)
