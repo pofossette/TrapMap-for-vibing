@@ -170,7 +170,7 @@ describe('artifact-bundle utilities', () => {
     it('should skip hidden files and node_modules', async () => {
       await writeFile(join(testDir, 'SKILL.md'), '# Test');
       await writeFile(join(testDir, '.env'), 'SECRET=123');
-      await mkdir(join(testDir, 'node_modules'), { recursive: true });
+      await mkdir(join(testDir, 'node_modules', 'pkg'), { recursive: true });
       await writeFile(join(testDir, 'node_modules', 'pkg', 'index.js'), 'module.exports = {}');
       await mkdir(join(testDir, 'references'), { recursive: true });
       await writeFile(join(testDir, 'references', 'visible.md'), '# Visible');
