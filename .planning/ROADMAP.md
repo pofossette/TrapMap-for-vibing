@@ -9,7 +9,7 @@
 - ✅ **v1.4 评测系统构建** — Phases 25-47 (shipped 2026-04-29)
 - ✅ **v1.5 功能增强** — Phases 48-67 (shipped 2026-05-04)
 - ✅ **v1.6 Test Coverage & Optimization** — Phases 68-76 (shipped 2026-05-04)
-- 🔵 **v1.7 Eval Structural Coverage & Architecture Health** — Phases 78-86
+- ✅ **v1.7 Eval Structural Coverage & Architecture Health** — Phases 78-86
 
 ## Phases
 
@@ -123,9 +123,9 @@
   - [x] 84-01-PLAN.md — Prune stale worktrees, fix duplicate export (Wave 1)
   - [x] 84-02-PLAN.md — Unexport unused types to reduce knip warnings (Wave 2)
   - [x] 84-03-PLAN.md — Final verification, update STATE.md (Wave 3)
-- [ ] Phase 86: Gitignore Cleanup (1 plan)
+- [x] Phase 86: Gitignore Cleanup (1 plan) (completed 2026-05-05)
   - 排除 dist/ 版本控制，清理仓库体积，更新 CONTRIBUTING.md
-  - [ ] 86-01-PLAN.md — Fix .gitignore redundant patterns, prune git objects, update CONTRIBUTING.md (Wave 1)
+  - [x] 86-01-PLAN.md — Fix .gitignore redundant patterns, prune git objects, update CONTRIBUTING.md (Wave 1)
 
 </details>
 
@@ -136,8 +136,8 @@
 | 1-47 | v1.0-v1.4 | 93/93 | Complete | 2026-04-29 |
 | 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
 | 68-76 | v1.6 | 20/20 | Complete | 2026-05-04 |
-| 78-86 | v1.7 | 14/15 | In Progress | — |
+| 78-86 | v1.7 | 15/15 | Complete | 2026-05-05 |
 
 ---
 
-*Roadmap updated: 2026-05-05 — Phase 86 planned*
+*Roadmap updated: 2026-05-05 — Phase 86 complete, v1.7 shipped*

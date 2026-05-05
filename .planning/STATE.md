@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: milestone
 status: verifying
-last_updated: "2026-05-05T00:18:48.589Z"
+last_updated: "2026-05-05T08:45:00.000Z"
 last_activity: 2026-05-05
 progress:
   total_phases: 21
-  completed_phases: 13
-  total_plans: 35
-  completed_plans: 35
+  completed_phases: 14
+  total_plans: 36
+  completed_plans: 36
   percent: 100
 ---
 
@@ -22,10 +22,21 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 
 ## Current Position
 
-Phase: 85
-Plan: Not started
-Status: Phase 84 complete (Tech Debt Cleanup verified)
+Phase: 86
+Plan: Complete
+Status: Phase 86 complete (Gitignore Cleanup verified), v1.7 shipped
 Last activity: 2026-05-05
+
+## v1.7 Summary
+
+**Eval Structural Coverage & Architecture Health milestone complete!**
+
+- Phase 80: Operations Route Refactoring ✓
+- Phase 81: Orchestrator Decomposition ✓
+- Phase 83: Store Decoupling ✓
+- Phase 84: Tech Debt Cleanup ✓
+- Phase 85: CLI Operations Refactoring ✓
+- Phase 86: Gitignore Cleanup ✓
 
 ## v1.6 Summary
 
@@ -47,10 +58,24 @@ All 9 phases completed:
 
 ### Roadmap Evolution
 
+- **v1.7 Eval Structural Coverage & Architecture Health shipped 2026-05-05** (Phases 78-86, 15 plans)
 - **v1.6 Test Coverage & Optimization shipped 2026-05-04** (Phases 68-76, 18 plans)
 - v1.5 功能增强 shipped 2026-05-04 (Phases 48-67, 58 plans)
 - v1.4 评测系统构建 shipped 2026-04-29 (Phases 25-47, 59 plans)
 - All prior milestones verified and archived
+
+### Decisions (Phase 86)
+
+- 86-01: Fix conflicting .claude/ patterns (.claude/ then !.claude/ cancelled each other)
+- 86-01: Remove duplicate *.log and .DS_Store entries from .gitignore
+- 86-01: Prune 3816 loose objects (23.5 MiB → 0), repack 7 packs into 1 (4.9 MiB)
+- 86-01: Add "Gitignore 与构建产物" section to docs/CONTRIBUTING.md
+
+### Decisions (Phase 85)
+
+- 85-01: Extract artifact bundle helpers to lib/artifact-bundle.ts
+- 85-02: Extract command modules (list, edit, import, export, activate, status) to operations/ subdirectory
+- 85-03: Convert operations.ts to thin router, verify tests and line counts
 
 ### Decisions (Phase 83)
 
