@@ -1,0 +1,9 @@
+/**
+ * Options for operations commands registration.
+ */
+export interface OperationsCommandOptions {
+  allowExport: boolean;
+  allowEdit: boolean;
+  allowDeactivate: boolean;
+  allowImport: boolean;
+}
