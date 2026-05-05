@@ -2,6 +2,7 @@
  * AI provider implementations.
  * All providers use @langchain/openai, differing only in baseURL and apiKey.
  * Ollama's /v1/* endpoints are OpenAI-compatible, so no separate package is needed.
+ * Google GenAI uses direct REST API calls for embeddings.
  */
 
 import type { AiProviderConfig } from './provider-config.js';
@@ -46,6 +47,65 @@ export class OpenAICompatibleEmbeddings implements EmbeddingsProvider {
       throw new Error(`${this.provider} embeddings not configured`);
     }
     return this.impl.embedQuery(text);
+  }
+}
+
+/**
+ * Google GenAI embeddings provider using REST API.
+ * Supports text-embedding-004 and gemini-embedding-001 models.
+ *
+ * API reference: https://ai.google.dev/api/embeddings
+ */
+export class GoogleGenAIEmbeddings implements EmbeddingsProvider {
+  readonly provider = 'google-genai';
+  readonly isConfigured: boolean;
+  private readonly apiKey: string;
+  private readonly baseUrl: string;
+  private readonly model: string;
+
+  constructor(config: AiProviderConfig) {
+    this.apiKey = config.apiKey;
+    this.baseUrl = config.baseUrl;
+    this.model = config.embeddingModel;
+    this.isConfigured = config.isConfigured && this.apiKey.length > 0 && this.model.length > 0;
+  }
+
+  async embed(text: string): Promise<number[]> {
+    if (!this.isConfigured) {
+      throw new Error('Google GenAI embeddings not configured. Set GEMINI_API_KEY or AI_API_KEY.');
+    }
+
+    // Build the API URL: {baseUrl}/models/{model}:embedContent
+    const url = `${this.baseUrl}/models/${this.model}:embedContent`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': this.apiKey,
+      },
+      body: JSON.stringify({
+        content: {
+          parts: [{ text }],
+        },
+        taskType: 'RETRIEVAL_DOCUMENT',
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Google GenAI embeddings API error: ${response.status} ${errorText}`);
+    }
+
+    const data = (await response.json()) as {
+      embedding?: { values?: number[] };
+    };
+
+    if (!data.embedding?.values || !Array.isArray(data.embedding.values)) {
+      throw new Error('Google GenAI embeddings API returned invalid response');
+    }
+
+    return data.embedding.values;
   }
 }
 
@@ -177,6 +237,14 @@ export function createAiProviders(config: AiProviderConfig): AiProviders {
     };
   }
 
+  // Create embeddings provider based on provider type
+  const createEmbeddingsProvider = (cfg: AiProviderConfig): EmbeddingsProvider => {
+    if (cfg.provider === 'google-genai') {
+      return new GoogleGenAIEmbeddings(cfg);
+    }
+    return new OpenAICompatibleEmbeddings(cfg);
+  };
+
   // Use separate embedding provider if configured
   if (config.embeddingProvider?.isConfigured) {
     const embConfig: AiProviderConfig = {
@@ -188,13 +256,13 @@ export function createAiProviders(config: AiProviderConfig): AiProviders {
       isConfigured: true,
     };
     return {
-      embeddings: new OpenAICompatibleEmbeddings(embConfig),
+      embeddings: createEmbeddingsProvider(embConfig),
       chat: new OpenAICompatibleChat(config),
     };
   }
 
   return {
-    embeddings: new OpenAICompatibleEmbeddings(config),
+    embeddings: createEmbeddingsProvider(config),
     chat: new OpenAICompatibleChat(config),
   };
 }

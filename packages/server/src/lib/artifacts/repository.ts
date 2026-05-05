@@ -10,6 +10,7 @@
  * Phase: 63 (WRITE-03)
  */
 
+import { createRequire } from 'node:module';
 import type { Boundary, LifecycleState, Scope } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
@@ -369,7 +370,7 @@ export function createArtifactRepository(config: {
 }): ArtifactRepository {
   if (config.pool) {
     // Dynamic import to avoid loading pg module in test environments
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const require = createRequire(import.meta.url);
     const { PgArtifactRepository } = require('./pg-repository.js') as {
       PgArtifactRepository: new (pool: Pool) => ArtifactRepository;
     };

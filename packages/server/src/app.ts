@@ -6,12 +6,9 @@ import { ZodError } from 'zod';
 
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
-import {
-  createAccessKeyRepository,
-  createSessionRepository,
-} from './lib/auth/index.js';
 import { createAiProviders } from './lib/ai/index.js';
 import { createArtifactRepository } from './lib/artifacts/index.js';
+import { createAccessKeyRepository, createSessionRepository } from './lib/auth/index.js';
 import {
   createCandidateProcessingHandler,
   findInterruptedCandidates,
@@ -27,10 +24,7 @@ import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';
 import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
 import { ensureVectorIndex } from './lib/retrieval/db-search.js';
-import {
-  createMembershipRepository,
-  createTeamRepository,
-} from './lib/teams/index.js';
+import { createMembershipRepository, createTeamRepository } from './lib/teams/index.js';
 import { createUserRepository } from './lib/users/index.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
 import { adminBoundarySearchRoutes } from './routes/admin-boundary-search.js';

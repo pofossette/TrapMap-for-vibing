@@ -7,6 +7,7 @@ export {
   createAiProviders,
   FallbackChat,
   FallbackEmbeddings,
+  GoogleGenAIEmbeddings,
   OpenAICompatibleChat,
   OpenAICompatibleEmbeddings,
 } from './providers.js';

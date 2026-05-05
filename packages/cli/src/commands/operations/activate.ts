@@ -5,16 +5,10 @@ import type { Command } from 'commander';
 import { loadCliState } from '../../lib/config.js';
 import { apiRequest, requireSessionToken } from '../../lib/http.js';
 import { printResult } from '../../lib/output.js';
-import {
-  materializeSkillDirectory,
-  validateOutputPath,
-} from '../../lib/skill-artifact-export.js';
+import { materializeSkillDirectory, validateOutputPath } from '../../lib/skill-artifact-export.js';
 import type { OperationsCommandOptions } from './types.js';
 
-export function registerActivateCommand(
-  program: Command,
-  options: OperationsCommandOptions,
-): void {
+export function registerActivateCommand(program: Command, options: OperationsCommandOptions): void {
   if (!options.allowExport) return;
 
   // Activation command (Phase 15-03: ACTV-01, T-15-08, T-15-09)
@@ -23,9 +17,7 @@ export function registerActivateCommand(
     .description('Selectively fetch and materialize artifact files (references, assets, scripts)')
     .requiredOption('--artifact <artifactId>', 'Artifact ID to activate')
     .requiredOption('--paths <paths>', 'Comma-separated list of file paths to fetch')
-    .option('--revision <n>', 'Specific revision number (defaults to latest)', (val) =>
-      Number(val),
-    )
+    .option('--revision <n>', 'Specific revision number (defaults to latest)', (val) => Number(val))
     .option('--output <path>', 'Output directory for materialized files')
     .option('--json', 'Output JSON')
     .action(

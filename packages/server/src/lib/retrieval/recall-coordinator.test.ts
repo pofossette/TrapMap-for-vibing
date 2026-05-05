@@ -68,6 +68,7 @@ vi.mock('../decay/freshness.js', () => ({
 // ── Imports after mocks ───────────────────────────────────────────────────
 
 import { AppError } from '../errors.js';
+import { createSemanticCandidate, mergeCandidates } from './merge.js';
 import {
   GRAPH_SCORE_BOOST_FACTOR,
   computeSemanticCandidates,
@@ -82,7 +83,6 @@ import {
 import { graphAssistedRecall as graphRecall } from './recall/graph-assisted.js';
 import { keywordRecall } from './recall/keyword.js';
 import { getQueryEmbedding, optimizedSemanticRecall } from './recall/semantic.js';
-import { mergeCandidates, createSemanticCandidate } from './merge.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
 
 // ── Test helpers ──────────────────────────────────────────────────────────
@@ -406,7 +406,11 @@ describe('computeSemanticCandidates', () => {
       tokenMatches: [],
     }));
 
-    const candidates = await computeSemanticCandidates('test query', [entry1, entry2, entry3], undefined);
+    const candidates = await computeSemanticCandidates(
+      'test query',
+      [entry1, entry2, entry3],
+      undefined,
+    );
 
     expect(candidates.length).toBe(3);
     expect(candidates[0].score).toBeGreaterThanOrEqual(candidates[1].score);

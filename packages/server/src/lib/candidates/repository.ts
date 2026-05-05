@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import type {
   AnalysisSnapshot,
   CandidateStatus,
@@ -254,7 +255,7 @@ export function createCandidateRepository(config: {
 }): CandidateRepository {
   if (config.pool) {
     // Dynamic import to avoid loading pg module in test environments
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const require = createRequire(import.meta.url);
     const { PgCandidateRepository } = require('./pg-repository.js') as {
       PgCandidateRepository: new (pool: Pool) => CandidateRepository;
     };

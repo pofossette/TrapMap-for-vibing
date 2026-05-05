@@ -10,6 +10,7 @@
  * Phase: 62 (WRITE-02)
  */
 
+import { createRequire } from 'node:module';
 import type { Boundary, LifecycleState, Scope } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
@@ -296,7 +297,7 @@ export function createKnowledgeRepository(config: {
 }): KnowledgeRepository {
   if (config.pool) {
     // Dynamic import to avoid loading pg module in test environments
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const require = createRequire(import.meta.url);
     const { PgKnowledgeRepository } = require('./pg-repository.js') as {
       PgKnowledgeRepository: new (pool: Pool) => KnowledgeRepository;
     };

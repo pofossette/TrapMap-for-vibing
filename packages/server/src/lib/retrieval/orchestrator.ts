@@ -40,9 +40,9 @@ import { buildCitations } from './citations.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { parseSeedIntent } from './intent.js';
 import { dispatchByMode, inferChannelsFromMerged } from './recall-coordinator.js';
+import { buildEmbeddingText } from './recall/semantic.js';
 import { generateRefinement } from './refinement.js';
 import { selectRetrievalStrategy, selectRetrievalStrategyV2, toRoutingTrace } from './routing.js';
-import { buildEmbeddingText } from './recall/semantic.js';
 import { buildCapsuleCitations, buildCapsuleSummary, buildSummary } from './summary.js';
 import type { ScoredEntry } from './types.js';
 

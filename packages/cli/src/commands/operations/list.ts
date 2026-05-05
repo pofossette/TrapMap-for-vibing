@@ -2,16 +2,13 @@ import type { KnowledgeListResponse } from '@trapmap/contracts';
 import { knowledgeListResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
+import { formatListResponse } from '../../lib/artifact-bundle.js';
 import { loadCliState } from '../../lib/config.js';
 import { apiRequest, requireSessionToken } from '../../lib/http.js';
 import { printResult } from '../../lib/output.js';
-import { formatListResponse } from '../../lib/artifact-bundle.js';
 import type { OperationsCommandOptions } from './types.js';
 
-export function registerListCommand(
-  program: Command,
-  options: OperationsCommandOptions,
-): void {
+export function registerListCommand(program: Command, options: OperationsCommandOptions): void {
   if (!options.allowExport) return;
 
   program

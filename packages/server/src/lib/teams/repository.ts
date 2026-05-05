@@ -178,14 +178,9 @@ export class InMemoryMembershipRepository implements MembershipRepository {
     return data.memberships.find((m) => m.id === membershipId) ?? null;
   }
 
-  async findByUserAndTeam(
-    userId: string,
-    teamId: string,
-  ): Promise<MembershipRecord | null> {
+  async findByUserAndTeam(userId: string, teamId: string): Promise<MembershipRecord | null> {
     const data = await this.store.snapshot();
-    return (
-      data.memberships.find((m) => m.userId === userId && m.teamId === teamId) ?? null
-    );
+    return data.memberships.find((m) => m.userId === userId && m.teamId === teamId) ?? null;
   }
 
   async listByUser(userId: string): Promise<MembershipRecord[]> {

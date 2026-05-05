@@ -5,10 +5,7 @@
  * All functions are pure (no side effects, no services dependency).
  */
 
-import {
-  type RetrievalStrategy,
-  type RoutingReason,
-} from '@trapmap/contracts';
+import type { RetrievalStrategy, RoutingReason } from '@trapmap/contracts';
 import type { RoutingChannel } from './types.js';
 
 /**

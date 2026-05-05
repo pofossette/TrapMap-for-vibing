@@ -7,7 +7,6 @@
 
 import type { Command } from 'commander';
 
-import type { OperationsCommandOptions } from './operations/types.js';
 import {
   registerActivateCommand,
   registerDeactivateCommand,
@@ -18,6 +17,7 @@ import {
   registerMigrateCommand,
   registerStatusCommand,
 } from './operations/index.js';
+import type { OperationsCommandOptions } from './operations/types.js';
 
 /**
  * Register all operations commands on the Commander program.

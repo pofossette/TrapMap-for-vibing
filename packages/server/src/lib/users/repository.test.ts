@@ -8,12 +8,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../../app.js';
-import {
-  createUserRepository,
-  InMemoryUserRepository,
-} from './index.js';
 import type { SkillShareerStore } from '../store.js';
 import { nowIso } from '../store.js';
+import { InMemoryUserRepository, createUserRepository } from './index.js';
 
 describe('UserRepository', () => {
   let app: FastifyInstance;

@@ -9,15 +9,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../app.js';
-import {
-  InMemoryAccessKeyRepository,
-  InMemorySessionRepository,
-} from './auth/index.js';
-import {
-  InMemoryMembershipRepository,
-  InMemoryTeamRepository,
-} from './teams/index.js';
-import { InMemoryUserRepository } from './users/index.js';
+import { InMemoryAccessKeyRepository, InMemorySessionRepository } from './auth/index.js';
+import type { SkillShareerServices } from './context.js';
 import {
   createSession,
   deleteSession,
@@ -29,7 +22,8 @@ import {
 } from './session.js';
 import type { SkillShareerStore } from './store.js';
 import { hashSecret, nowIso } from './store.js';
-import type { SkillShareerServices } from './context.js';
+import { InMemoryMembershipRepository, InMemoryTeamRepository } from './teams/index.js';
+import { InMemoryUserRepository } from './users/index.js';
 
 describe('session.ts repository operations', () => {
   let app: FastifyInstance;
@@ -370,7 +364,12 @@ describe('session.ts repository-based auth context resolution', () => {
       });
 
       // Create session via repo
-      const { token } = await createSession(sessionRepo, 'user', 'user_resolve_1', 'team_resolve_1');
+      const { token } = await createSession(
+        sessionRepo,
+        'user',
+        'user_resolve_1',
+        'team_resolve_1',
+      );
 
       // Mock request with authorization header
       const mockRequest = {
@@ -489,7 +488,12 @@ describe('session.ts repository-based auth context resolution', () => {
       });
 
       // Create session via store (fallback)
-      const { token } = await createSession(store, 'user', 'user_fallback_resolve', 'team_fallback_resolve');
+      const { token } = await createSession(
+        store,
+        'user',
+        'user_fallback_resolve',
+        'team_fallback_resolve',
+      );
 
       const mockRequest = {
         headers: {
@@ -539,7 +543,12 @@ describe('session.ts repository-based auth context resolution', () => {
         });
       });
 
-      const { record } = await createSession(sessionRepo, 'user', 'user_response_1', 'team_response_1');
+      const { record } = await createSession(
+        sessionRepo,
+        'user',
+        'user_response_1',
+        'team_response_1',
+      );
 
       const services = createServicesWithRepos();
       const response = await getSessionResponse(services, record);
@@ -596,7 +605,12 @@ describe('session.ts repository-based auth context resolution', () => {
         });
       });
 
-      const { record } = await createSession(store, 'user', 'user_response_fallback', 'team_response_fallback');
+      const { record } = await createSession(
+        store,
+        'user',
+        'user_response_fallback',
+        'team_response_fallback',
+      );
 
       const services = createServicesWithoutRepos();
       const response = await getSessionResponse(services, record);
@@ -711,7 +725,12 @@ describe('session.ts repository-based auth context resolution', () => {
         });
       });
 
-      const { token } = await createSession(store, 'user', 'user_status_fallback', 'team_status_fallback');
+      const { token } = await createSession(
+        store,
+        'user',
+        'user_status_fallback',
+        'team_status_fallback',
+      );
 
       const mockRequest = {
         headers: {

@@ -7,10 +7,7 @@ import { apiRequest, requireSessionToken } from '../../lib/http.js';
 import { printResult } from '../../lib/output.js';
 import type { OperationsCommandOptions } from './types.js';
 
-export function registerEditCommand(
-  program: Command,
-  options: OperationsCommandOptions,
-): void {
+export function registerEditCommand(program: Command, options: OperationsCommandOptions): void {
   if (!options.allowEdit) return;
 
   program

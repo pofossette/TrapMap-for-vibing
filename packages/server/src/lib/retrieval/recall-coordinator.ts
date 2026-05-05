@@ -5,8 +5,8 @@
  * from the orchestration pipeline.
  */
 
+import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
 import type { Pool } from 'pg';
-import { type RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import { DEFAULT_FRESHNESS_CONFIG } from '../decay/freshness.js';
 import { AppError } from '../errors.js';

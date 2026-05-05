@@ -1,29 +1,20 @@
-import type {
-  ArtifactImportResponse,
-  ImportResponse,
-} from '@trapmap/contracts';
-import {
-  artifactImportResponseSchema,
-  importResponseSchema,
-} from '@trapmap/contracts';
+import type { ArtifactImportResponse, ImportResponse } from '@trapmap/contracts';
+import { artifactImportResponseSchema, importResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
-import { loadCliState } from '../../lib/config.js';
-import { apiRequest, requireSessionToken } from '../../lib/http.js';
-import { resolveTextInput } from '../../lib/input.js';
-import { printResult } from '../../lib/output.js';
 import {
   buildArtifactBundle,
   buildSingleSkillMdBundle,
   isSkillMdFile,
   parseClaudeSkill,
 } from '../../lib/artifact-bundle.js';
+import { loadCliState } from '../../lib/config.js';
+import { apiRequest, requireSessionToken } from '../../lib/http.js';
+import { resolveTextInput } from '../../lib/input.js';
+import { printResult } from '../../lib/output.js';
 import type { OperationsCommandOptions } from './types.js';
 
-export function registerImportCommand(
-  program: Command,
-  options: OperationsCommandOptions,
-): void {
+export function registerImportCommand(program: Command, options: OperationsCommandOptions): void {
   if (!options.allowImport) return;
 
   program

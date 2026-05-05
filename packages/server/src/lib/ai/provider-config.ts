@@ -9,7 +9,12 @@
  * If embedding override is not set, uses primary provider for both.
  */
 
-export type AiProviderType = 'openai' | 'openai-compatible' | 'ollama' | 'fallback';
+export type AiProviderType =
+  | 'openai'
+  | 'openai-compatible'
+  | 'ollama'
+  | 'google-genai'
+  | 'fallback';
 
 export interface AiProviderConfig {
   readonly provider: AiProviderType;
@@ -52,16 +57,31 @@ const PROVIDER_DEFAULTS: Record<
     chatModel: '',
     embeddingModel: '',
   },
+  'google-genai': {
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    apiKey: '',
+    chatModel: 'gemini-2.0-flash',
+    embeddingModel: 'text-embedding-004',
+  },
 };
 
 function resolveProviderType(): AiProviderType {
   const explicit = process.env.AI_PROVIDER;
-  if (explicit === 'openai' || explicit === 'openai-compatible' || explicit === 'ollama') {
+  if (
+    explicit === 'openai' ||
+    explicit === 'openai-compatible' ||
+    explicit === 'ollama' ||
+    explicit === 'google-genai'
+  ) {
     return explicit;
   }
   // Backward compatibility: OPENAI_API_KEY auto-detects as openai
   if (typeof process.env.OPENAI_API_KEY === 'string' && process.env.OPENAI_API_KEY.length > 0) {
     return 'openai';
+  }
+  // Google GenAI auto-detection via GEMINI_API_KEY
+  if (typeof process.env.GEMINI_API_KEY === 'string' && process.env.GEMINI_API_KEY.length > 0) {
+    return 'google-genai';
   }
   return 'fallback';
 }
@@ -72,17 +92,18 @@ function resolveProviderType(): AiProviderType {
  * Detection logic:
  * 1. AI_PROVIDER explicitly set → use that provider
  * 2. OPENAI_API_KEY exists → provider = openai (backward compat)
- * 3. Otherwise → provider = fallback (deterministic hash vectors)
+ * 3. GEMINI_API_KEY exists → provider = google-genai
+ * 4. Otherwise → provider = fallback (deterministic hash vectors)
  *
  * Environment variables:
- * - AI_PROVIDER: openai | openai-compatible | ollama
+ * - AI_PROVIDER: openai | openai-compatible | ollama | google-genai
  * - AI_BASE_URL: override default base URL
- * - AI_API_KEY: override default API key
+ * - AI_API_KEY: override default API key (fallback: OPENAI_API_KEY for openai, GEMINI_API_KEY for google-genai)
  * - AI_CHAT_MODEL: override default chat model
  * - AI_EMBEDDING_MODEL: override default embedding model
  *
  * Separate embedding provider (optional):
- * - EMBEDDING_PROVIDER: openai | openai-compatible | ollama
+ * - EMBEDDING_PROVIDER: openai | openai-compatible | ollama | google-genai
  * - EMBEDDING_BASE_URL: embedding API base URL
  * - EMBEDDING_API_KEY: embedding API key
  * - EMBEDDING_MODEL: embedding model name
@@ -105,7 +126,8 @@ export function loadAiProviderConfig(): AiProviderConfig {
   const baseUrl = process.env.AI_BASE_URL || defaults.baseUrl;
   const apiKey =
     process.env.AI_API_KEY ||
-    (provider === 'openai' ? process.env.OPENAI_API_KEY || '' : defaults.apiKey);
+    (provider === 'openai' ? process.env.OPENAI_API_KEY || '' : defaults.apiKey) ||
+    (provider === 'google-genai' ? process.env.GEMINI_API_KEY || '' : defaults.apiKey);
   const chatModel = process.env.AI_CHAT_MODEL || defaults.chatModel;
   const embeddingModel = process.env.AI_EMBEDDING_MODEL || defaults.embeddingModel;
 

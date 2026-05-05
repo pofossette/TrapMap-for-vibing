@@ -7,9 +7,11 @@
 | 工具 | 版本要求 | 说明 |
 |------|----------|------|
 | Node.js | ≥ 20 | 推荐使用 Node.js 20 LTS |
-| pnpm | ≥ 9 | 项目使用 pnpm workspace |
+| pnpm | 10.33.0 | **必须使用 pnpm，禁止使用 npm 或 yarn** |
 | Docker | ≥ 24 | 仅在使用 Docker 部署时需要 |
 | Docker Compose | ≥ 2 | 仅在使用 Docker 部署时需要 |
+
+> ⚠️ **重要**：本项目强制使用 pnpm。如果使用 npm 或 yarn 安装依赖会导致依赖解析错误和构建失败。
 
 ## 1. 克隆与依赖安装
 
@@ -18,7 +20,10 @@
 git clone <repository-url>
 cd Trap-Map
 
-# 安装根依赖
+# 使用 corepack 启用正确版本的 pnpm
+corepack prepare pnpm@10.33.0 --activate
+
+# 安装根依赖（必须使用 pnpm）
 pnpm install
 
 # 安装所有 workspace 依赖

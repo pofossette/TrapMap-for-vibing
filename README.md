@@ -2,6 +2,22 @@
 
 A monorepo for skill sharing platform with server, CLI, and contracts packages.
 
+## ⚠️ 包管理器说明
+
+**本项目强制使用 [pnpm](https://pnpm.io/) 作为包管理器。**
+
+- 请勿使用 `npm` 或 `yarn` 安装依赖
+- 项目已配置 `packageManager: pnpm@10.33.0`，建议使用 corepack 自动切换版本
+- pnpm-lock.yaml 是唯一的 lock 文件，请勿删除
+
+```bash
+# 使用 corepack 启用正确版本的 pnpm
+corepack prepare pnpm@10.33.0 --activate
+
+# 安装依赖
+pnpm install
+```
+
 ## 📖 文档
 
 | 文档 | 说明 |

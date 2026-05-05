@@ -28,9 +28,7 @@ export interface SessionRepository {
    * Create a new session.
    * Returns the created session record with generated id and timestamps.
    */
-  create(
-    session: Omit<SessionRecord, 'id' | 'createdAt' | 'updatedAt'>,
-  ): Promise<SessionRecord>;
+  create(session: Omit<SessionRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<SessionRecord>;
 
   /**
    * Get a session by its token hash.

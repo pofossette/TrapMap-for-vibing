@@ -13,10 +13,7 @@ import {
 } from '../../lib/skill-artifact-export.js';
 import type { OperationsCommandOptions } from './types.js';
 
-export function registerExportCommand(
-  program: Command,
-  options: OperationsCommandOptions,
-): void {
+export function registerExportCommand(program: Command, options: OperationsCommandOptions): void {
   if (!options.allowExport) return;
 
   program
@@ -118,9 +115,7 @@ export function registerExportCommand(
             outputDir: validatedOutput,
           });
 
-          console.log(
-            `Wrote ${filesWritten} files (${bytesWritten} bytes) to ${validatedOutput}`,
-          );
+          console.log(`Wrote ${filesWritten} files (${bytesWritten} bytes) to ${validatedOutput}`);
         } else if (output) {
           // Write JSON output to file
           const { writeFile } = await import('node:fs/promises');

@@ -4,6 +4,7 @@ import type { AiProviderConfig } from './provider-config.js';
 import {
   FallbackChat,
   FallbackEmbeddings,
+  GoogleGenAIEmbeddings,
   OpenAICompatibleChat,
   OpenAICompatibleEmbeddings,
   createAiProviders,
@@ -15,6 +16,15 @@ const openaiConfig: AiProviderConfig = {
   apiKey: 'sk-test',
   chatModel: 'gpt-4o-mini',
   embeddingModel: 'text-embedding-3-small',
+  isConfigured: true,
+};
+
+const googleGenaiConfig: AiProviderConfig = {
+  provider: 'google-genai',
+  baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+  apiKey: 'test-api-key',
+  chatModel: 'gemini-2.0-flash',
+  embeddingModel: 'text-embedding-004',
   isConfigured: true,
 };
 
@@ -45,6 +55,14 @@ describe('createAiProviders', () => {
     // isConfigured may be false if @langchain/openai fails to load
     expect(typeof providers.embeddings.isConfigured).toBe('boolean');
     expect(typeof providers.chat.isConfigured).toBe('boolean');
+  });
+
+  it('returns GoogleGenAIEmbeddings when provider is google-genai', () => {
+    const providers = createAiProviders(googleGenaiConfig);
+
+    expect(providers.embeddings).toBeInstanceOf(GoogleGenAIEmbeddings);
+    expect(providers.chat).toBeInstanceOf(OpenAICompatibleChat);
+    expect(providers.embeddings.isConfigured).toBe(true);
   });
 });
 
@@ -121,5 +139,30 @@ describe('OpenAICompatibleChat', () => {
     const chat = new OpenAICompatibleChat(unconfigured);
 
     await expect(chat.invoke('sys', 'user')).rejects.toThrow('not configured');
+  });
+});
+
+describe('GoogleGenAIEmbeddings', () => {
+  it('is not configured when config is not configured', () => {
+    const unconfigured: AiProviderConfig = { ...googleGenaiConfig, isConfigured: false };
+    const embeddings = new GoogleGenAIEmbeddings(unconfigured);
+
+    expect(embeddings.isConfigured).toBe(false);
+  });
+
+  it('is not configured when apiKey is empty', () => {
+    const noKey: AiProviderConfig = { ...googleGenaiConfig, apiKey: '' };
+    const embeddings = new GoogleGenAIEmbeddings(noKey);
+
+    expect(embeddings.isConfigured).toBe(false);
+  });
+
+  it('throws when embed is called without configuration', async () => {
+    const unconfigured: AiProviderConfig = { ...googleGenaiConfig, isConfigured: false };
+    const embeddings = new GoogleGenAIEmbeddings(unconfigured);
+
+    await expect(embeddings.embed('test')).rejects.toThrow(
+      'Google GenAI embeddings not configured',
+    );
   });
 });

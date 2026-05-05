@@ -653,13 +653,7 @@ export function extractTrapGraphEntities(
  * Kept for backward compatibility with existing callers during migration.
  * @deprecated Use extractTrapGraphEntities instead.
  */
-type LegacyGraphEntityType =
-  | 'service'
-  | 'tool'
-  | 'symptom'
-  | 'root-cause'
-  | 'fix'
-  | 'environment';
+type LegacyGraphEntityType = 'service' | 'tool' | 'symptom' | 'root-cause' | 'fix' | 'environment';
 
 /**
  * Legacy relation types from the old generic extractor.

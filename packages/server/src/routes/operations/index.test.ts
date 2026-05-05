@@ -15,24 +15,24 @@
  * - Thin router is under 100 lines
  */
 
-import { describe, expect, it } from 'vitest';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import type { FastifyPluginAsync } from 'fastify';
-import * as fs from 'fs';
-import * as path from 'path';
+import { describe, expect, it } from 'vitest';
 
 import { buildServer } from '../../app.js';
 
 // Import all route modules via barrel export
 import {
+  artifactsActivateRoutes,
+  artifactsExportRoutes,
+  artifactsImportRoutes,
   auditRoutes,
   knowledgeLegacyRoutes,
-  artifactsImportRoutes,
-  artifactsExportRoutes,
-  artifactsActivateRoutes,
   migrateRoutes,
-  statusRoutes,
   skillEditRoutes,
   skillReviewRoutes,
+  statusRoutes,
 } from './index.js';
 
 // Import thin router
@@ -42,7 +42,11 @@ import { operationsRoutes } from '../operations.js';
  * Helper to verify a route exists by making a minimal request.
  * Returns true if the route responds (even with 401), false if 404.
  */
-async function routeExists(app: Awaited<ReturnType<typeof buildServer>>, method: string, url: string): Promise<boolean> {
+async function routeExists(
+  app: Awaited<ReturnType<typeof buildServer>>,
+  method: string,
+  url: string,
+): Promise<boolean> {
   const response = await app.inject({
     method,
     url,

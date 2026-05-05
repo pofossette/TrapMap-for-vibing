@@ -7,10 +7,7 @@ import { apiRequest, requireSessionToken } from '../../lib/http.js';
 import { printResult } from '../../lib/output.js';
 import type { OperationsCommandOptions } from './types.js';
 
-export function registerStatusCommand(
-  program: Command,
-  options: OperationsCommandOptions,
-): void {
+export function registerStatusCommand(program: Command, options: OperationsCommandOptions): void {
   if (!options.allowExport) return;
 
   // Compatibility status command (Phase 16-01: COMP-03)

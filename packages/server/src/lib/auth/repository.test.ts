@@ -10,14 +10,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../../app.js';
-import {
-  createAccessKeyRepository,
-  createSessionRepository,
-  InMemoryAccessKeyRepository,
-  InMemorySessionRepository,
-} from './index.js';
 import type { SkillShareerStore } from '../store.js';
 import { hashSecret, nowIso } from '../store.js';
+import {
+  InMemoryAccessKeyRepository,
+  InMemorySessionRepository,
+  createAccessKeyRepository,
+  createSessionRepository,
+} from './index.js';
 
 describe('SessionRepository', () => {
   let app: FastifyInstance;
@@ -191,7 +191,9 @@ describe('SessionRepository', () => {
 
     it('does not throw for non-existent token hash', async () => {
       // Should not throw
-      await expect(sessionRepo.deleteByTokenHash(hashSecret('nonexistent'))).resolves.toBeUndefined();
+      await expect(
+        sessionRepo.deleteByTokenHash(hashSecret('nonexistent')),
+      ).resolves.toBeUndefined();
     });
 
     it('only deletes targeted session', async () => {

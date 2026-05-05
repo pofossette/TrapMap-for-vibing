@@ -8,14 +8,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../../app.js';
-import {
-  createTeamRepository,
-  createMembershipRepository,
-  InMemoryTeamRepository,
-  InMemoryMembershipRepository,
-} from './index.js';
 import type { SkillShareerStore } from '../store.js';
 import { nowIso } from '../store.js';
+import {
+  InMemoryMembershipRepository,
+  InMemoryTeamRepository,
+  createMembershipRepository,
+  createTeamRepository,
+} from './index.js';
 
 describe('TeamRepository', () => {
   let app: FastifyInstance;
@@ -341,7 +341,10 @@ describe('MembershipRepository', () => {
     });
 
     it('returns null when no membership exists', async () => {
-      const found = await membershipRepo.findByUserAndTeam('user_no_membership', 'team_no_membership');
+      const found = await membershipRepo.findByUserAndTeam(
+        'user_no_membership',
+        'team_no_membership',
+      );
       expect(found).toBeNull();
     });
 
@@ -422,7 +425,10 @@ describe('MembershipRepository', () => {
       const memberships = await membershipRepo.listByUser('user_list');
 
       expect(memberships).toHaveLength(2);
-      expect(memberships.map((m) => m.id).sort()).toEqual(['membership_listuser_1', 'membership_listuser_2']);
+      expect(memberships.map((m) => m.id).sort()).toEqual([
+        'membership_listuser_1',
+        'membership_listuser_2',
+      ]);
     });
 
     it('returns empty array for user with no memberships', async () => {
@@ -474,7 +480,10 @@ describe('MembershipRepository', () => {
       const memberships = await membershipRepo.listByTeam('team_list');
 
       expect(memberships).toHaveLength(2);
-      expect(memberships.map((m) => m.id).sort()).toEqual(['membership_listteam_1', 'membership_listteam_2']);
+      expect(memberships.map((m) => m.id).sort()).toEqual([
+        'membership_listteam_1',
+        'membership_listteam_2',
+      ]);
     });
 
     it('returns empty array for team with no memberships', async () => {
@@ -534,7 +543,9 @@ describe('MembershipRepository', () => {
     });
 
     it('does not throw for non-existent membership', async () => {
-      await expect(membershipRepo.update('membership_nonexistent', { securityLevel: 10 })).resolves.toBeUndefined();
+      await expect(
+        membershipRepo.update('membership_nonexistent', { securityLevel: 10 }),
+      ).resolves.toBeUndefined();
     });
   });
 });

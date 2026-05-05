@@ -7,10 +7,7 @@ import { apiRequest, requireSessionToken } from '../../lib/http.js';
 import { printResult } from '../../lib/output.js';
 import type { OperationsCommandOptions } from './types.js';
 
-export function registerMigrateCommand(
-  program: Command,
-  options: OperationsCommandOptions,
-): void {
+export function registerMigrateCommand(program: Command, options: OperationsCommandOptions): void {
   if (!options.allowImport) return;
 
   // Migration command (Phase 16-01: ARTF-04, COMP-03)

@@ -20,6 +20,7 @@ import {
   requireSystemAdminKey,
   resolveAuthContext,
 } from '../lib/session.js';
+import type { SessionRecord } from '../lib/store.js';
 import { hashSecret, nowIso } from '../lib/store.js';
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
@@ -52,7 +53,8 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
     // Get user ID from membership
     const data = await app.skillShareer.store.snapshot();
-    const userId = data.memberships.find((membership) => membership.id === accessKey.memberId)?.userId ?? null;
+    const userId =
+      data.memberships.find((membership) => membership.id === accessKey.memberId)?.userId ?? null;
 
     // Use sessionRepo if available, fallback to store
     const { record, token } = await createSession(
@@ -85,10 +87,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
     if (token) {
       // Use sessionRepo if available, fallback to store
-      await deleteSession(
-        app.skillShareer.sessionRepo ?? app.skillShareer.store,
-        token,
-      );
+      await deleteSession(app.skillShareer.sessionRepo ?? app.skillShareer.store, token);
     }
 
     return logoutResponseSchema.parse({ ok: true });
@@ -117,13 +116,16 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Use sessionRepo if available, fallback to store.transact
-    let updatedSession;
+    let updatedSession: SessionRecord | undefined;
     if (app.skillShareer.sessionRepo) {
       const session = await findSessionByToken(app.skillShareer.sessionRepo, token);
       if (!session) {
         throw new AppError(401, 'unauthorized', 'Session not found or expired');
       }
-      updatedSession = await app.skillShareer.sessionRepo.updateActiveTeam(session.id, payload.teamId);
+      updatedSession = await app.skillShareer.sessionRepo.updateActiveTeam(
+        session.id,
+        payload.teamId,
+      );
     } else {
       updatedSession = await app.skillShareer.store.transact((storeData) => {
         const sessionRecord = storeData.sessions.find(

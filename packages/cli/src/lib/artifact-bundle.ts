@@ -170,7 +170,9 @@ export async function scanSkillDirectory(
  * Reads a file and returns its content encoded for transport.
  * Text files are returned as UTF-8 strings, binary files as base64.
  */
-export async function readFileContent(path: string): Promise<{ content: string; isBinary: boolean }> {
+export async function readFileContent(
+  path: string,
+): Promise<{ content: string; isBinary: boolean }> {
   const buffer = await readFile(path);
   const mimeType = detectMediaType(path);
 

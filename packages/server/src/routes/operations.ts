@@ -1,15 +1,15 @@
 import type { FastifyPluginAsync } from 'fastify';
 
 import {
+  artifactsActivateRoutes,
+  artifactsExportRoutes,
+  artifactsImportRoutes,
   auditRoutes,
   knowledgeLegacyRoutes,
-  artifactsImportRoutes,
-  artifactsExportRoutes,
-  artifactsActivateRoutes,
   migrateRoutes,
-  statusRoutes,
   skillEditRoutes,
   skillReviewRoutes,
+  statusRoutes,
 } from './operations/index.js';
 
 export const operationsRoutes: FastifyPluginAsync = async (app) => {

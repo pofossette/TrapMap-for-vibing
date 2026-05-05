@@ -59,7 +59,7 @@ export const ServerConfigSchema = z.object({
   userOpsLog: UserOpsLogSchema,
   ragLog: RagLogSchema,
   ai: z.object({
-    provider: z.enum(['openai', 'openai-compatible', 'ollama', 'fallback']),
+    provider: z.enum(['openai', 'openai-compatible', 'ollama', 'google-genai', 'fallback']),
     baseUrl: z.string(),
     apiKey: z.string(),
     chatModel: z.string(),
