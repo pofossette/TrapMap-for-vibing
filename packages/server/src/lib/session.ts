@@ -34,6 +34,23 @@ import {
   nowIso,
 } from './store.js';
 
+/**
+ * Type guard: identifies SkillShareerStore by its unique `snapshot` method.
+ * More robust than checking for repository methods (e.g. 'create') which
+ * could theoretically be added to the store interface later.
+ */
+function isSessionStore(obj: SessionRepository | SkillShareerStore): obj is SkillShareerStore {
+  return 'snapshot' in obj;
+}
+
+/**
+ * Type guard: identifies StoreData by its `accessKeys` property.
+ * More robust than checking for repository methods which could collide.
+ */
+function isStoreData(obj: AccessKeyRepository | StoreData): obj is StoreData {
+  return 'accessKeys' in obj;
+}
+
 function toActorRef(
   user: UserRecord,
   membership: MembershipRecord | null,
@@ -123,8 +140,8 @@ export async function createSession(
   const token = createOpaqueToken('ssr_sess');
   const tokenHash = hashSecret(token);
 
-  // Check if first argument is a SessionRepository (has 'create' method)
-  if ('create' in repoOrStore) {
+  // Repository path: identified by NOT having store's snapshot method
+  if (!isSessionStore(repoOrStore)) {
     const record = await repoOrStore.create({
       subjectType,
       userId,
@@ -167,8 +184,8 @@ export async function deleteSession(
 ): Promise<void> {
   const tokenHash = hashSecret(token);
 
-  // Check if first argument is a SessionRepository (has 'deleteByTokenHash' method)
-  if ('deleteByTokenHash' in repoOrStore) {
+  // Repository path: identified by NOT having store's snapshot method
+  if (!isSessionStore(repoOrStore)) {
     await repoOrStore.deleteByTokenHash(tokenHash);
     return;
   }
@@ -189,8 +206,8 @@ export async function findSessionByToken(
 ): Promise<SessionRecord | null> {
   const tokenHash = hashSecret(token);
 
-  // Check if first argument is a SessionRepository (has 'getByTokenHash' method)
-  if ('getByTokenHash' in repoOrStore) {
+  // Repository path: identified by NOT having store's snapshot method
+  if (!isSessionStore(repoOrStore)) {
     return repoOrStore.getByTokenHash(tokenHash);
   }
 
@@ -365,9 +382,7 @@ export async function getSessionResponse(
   // Use repositories if available
   if (userRepo && teamRepo && membershipRepo) {
     if (session.subjectType === 'system-admin') {
-      const activeTeam = session.activeTeamId
-        ? await teamRepo.getById(session.activeTeamId)
-        : null;
+      const activeTeam = session.activeTeamId ? await teamRepo.getById(session.activeTeamId) : null;
       const issuedAt = session.createdAt;
 
       return activeSessionSchema.parse({
@@ -527,8 +542,8 @@ export async function findAccessKeyByToken(
 ): Promise<AccessKeyRecord | null> {
   const tokenHash = hashSecret(providedToken);
 
-  // Check if first argument is an AccessKeyRepository (has 'getByTokenHash' method)
-  if ('getByTokenHash' in repoOrData) {
+  // Repository path: identified by NOT having StoreData's accessKeys property
+  if (!isStoreData(repoOrData)) {
     const key = await repoOrData.getByTokenHash(tokenHash);
     // Return null if revoked
     return key?.revokedAt === null ? key : null;

@@ -4,7 +4,11 @@ import type { ResolvedAuthContext } from '../context.js';
 import type { KnowledgeRecord } from '../store.js';
 import { nowIso } from '../store.js';
 import { filterEligibleEntries } from './filters.js';
-import { selectRetrievalStrategy, selectRetrievalStrategyV2 } from './routing.js';
+import {
+  selectRetrievalStrategy,
+  selectRetrievalStrategyV2,
+  toRoutingTrace,
+} from './routing.js';
 
 describe('selectRetrievalStrategy (v1)', () => {
   describe('explicit mode mapping', () => {
@@ -115,6 +119,45 @@ describe('selectRetrievalStrategyV2', () => {
       expect(decision.routingReason).toBe('v2-default-capsule');
       expect(decision.routingReason).toBeTruthy();
     });
+  });
+});
+
+// =============================================================================
+// toRoutingTrace — converts a RetrievalDecision into a RAG log trace object
+// =============================================================================
+
+describe('toRoutingTrace', () => {
+  it('strips channelsPlanned from the decision', () => {
+    const decision = selectRetrievalStrategy('hybrid', 'test');
+    const trace = toRoutingTrace(decision);
+
+    expect(trace).not.toHaveProperty('channelsPlanned');
+  });
+
+  it('preserves selectedMode, routeFamily, routingReason, channelsUsed', () => {
+    const decision = selectRetrievalStrategy('semantic', 'test');
+    const trace = toRoutingTrace(decision);
+
+    expect(trace.selectedMode).toBe('local');
+    expect(trace.routeFamily).toBe('entry');
+    expect(trace.routingReason).toBe('explicit-mode');
+    expect(trace.channelsUsed).toEqual([]);
+  });
+
+  it('preserves fallback fields from a fallback decision', () => {
+    const decision = selectRetrievalStrategy('unknown-mode', 'test');
+    const trace = toRoutingTrace(decision);
+
+    expect(trace.fallbackApplied).toBe(true);
+    expect(trace.fallbackTarget).toBeNull();
+  });
+
+  it('preserves confidence fields from a v2 decision', () => {
+    const decision = selectRetrievalStrategyV2('test query');
+    const trace = toRoutingTrace(decision);
+
+    expect(trace.confidenceScore).toBeNull();
+    expect(trace.confidenceBucket).toBeNull();
   });
 });
 

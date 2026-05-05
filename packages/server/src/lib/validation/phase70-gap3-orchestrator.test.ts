@@ -143,13 +143,11 @@ vi.mock('../persistence/postgres-store.js', () => ({
 import { logRagRetrieval } from '../rag-log.js';
 import { buildEmptyResponse } from '../retrieval/assembly.js';
 import { filterByBoundaryContext, filterEligibleEntries } from '../retrieval/filters.js';
-import {
-  searchKnowledge,
-} from '../retrieval/orchestrator.js';
-import { selectRetrievalStrategy, selectRetrievalStrategyV2 } from '../retrieval/routing.js';
+import { searchKnowledge } from '../retrieval/orchestrator.js';
 import { graphAssistedRecall } from '../retrieval/recall/graph-assisted.js';
 import { keywordRecall } from '../retrieval/recall/keyword.js';
 import { getQueryEmbedding } from '../retrieval/recall/semantic.js';
+import { selectRetrievalStrategy, selectRetrievalStrategyV2 } from '../retrieval/routing.js';
 
 function makeAuth(overrides: Partial<ResolvedAuthContext> = {}): ResolvedAuthContext {
   return {

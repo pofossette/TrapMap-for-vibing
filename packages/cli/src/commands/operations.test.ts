@@ -858,3 +858,250 @@ describe('CLI operations commands (Phase 13)', () => {
     });
   });
 });
+
+// ============================================================================
+// Phase 85: CLI Operations Refactoring - Nyquist Validation
+// ============================================================================
+
+describe('Phase 85: Permission guards', () => {
+  let program: Command;
+
+  beforeEach(() => {
+    program = new Command();
+  });
+
+  describe('allowExport=false should hide export-dependent commands', () => {
+    it('should not register list command when allowExport=false', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: false,
+        allowEdit: true,
+        allowDeactivate: true,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).not.toContain('list');
+    });
+
+    it('should not register export command when allowExport=false', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: false,
+        allowEdit: true,
+        allowDeactivate: true,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).not.toContain('export');
+      expect(commands).not.toContain('artifact-export');
+    });
+
+    it('should not register activate command when allowExport=false', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: false,
+        allowEdit: true,
+        allowDeactivate: true,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).not.toContain('activate');
+    });
+
+    it('should not register status command when allowExport=false', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: false,
+        allowEdit: true,
+        allowDeactivate: true,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).not.toContain('status');
+    });
+  });
+
+  describe('allowEdit=false should hide edit command', () => {
+    it('should not register edit command when allowEdit=false', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: true,
+        allowEdit: false,
+        allowDeactivate: true,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).not.toContain('edit');
+    });
+
+    it('should register edit command when allowEdit=true', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: true,
+        allowEdit: true,
+        allowDeactivate: true,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).toContain('edit');
+    });
+  });
+
+  describe('allowDeactivate=false should hide deactivate command', () => {
+    it('should not register deactivate command when allowDeactivate=false', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: true,
+        allowEdit: true,
+        allowDeactivate: false,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).not.toContain('deactivate');
+    });
+
+    it('should register deactivate command when allowDeactivate=true', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: true,
+        allowEdit: true,
+        allowDeactivate: true,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).toContain('deactivate');
+    });
+  });
+
+  describe('allowImport=false should hide import-dependent commands', () => {
+    it('should not register import command when allowImport=false', () => {
+      registerOperationsCommands(program, {
+        allowImport: false,
+        allowExport: true,
+        allowEdit: true,
+        allowDeactivate: true,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).not.toContain('import');
+    });
+
+    it('should not register migrate command when allowImport=false', () => {
+      registerOperationsCommands(program, {
+        allowImport: false,
+        allowExport: true,
+        allowEdit: true,
+        allowDeactivate: true,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).not.toContain('migrate');
+    });
+
+    it('should register import command when allowImport=true', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: true,
+        allowEdit: true,
+        allowDeactivate: true,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).toContain('import');
+    });
+
+    it('should register migrate command when allowImport=true', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: true,
+        allowEdit: true,
+        allowDeactivate: true,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).toContain('migrate');
+    });
+  });
+
+  describe('All permissions enabled should register all commands', () => {
+    it('should register all 9 command names when all permissions are true', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: true,
+        allowEdit: true,
+        allowDeactivate: true,
+      });
+
+      const commands = program.commands.map((c) => c.name()).sort();
+      // 9 commands: list, edit, deactivate, export, artifact-export, import, activate, migrate, status
+      expect(commands).toEqual(
+        [
+          'activate',
+          'artifact-export',
+          'deactivate',
+          'edit',
+          'export',
+          'import',
+          'list',
+          'migrate',
+          'status',
+        ].sort(),
+      );
+    });
+  });
+
+  describe('No permissions enabled should register zero commands', () => {
+    it('should register zero commands when all permissions are false', () => {
+      registerOperationsCommands(program, {
+        allowImport: false,
+        allowExport: false,
+        allowEdit: false,
+        allowDeactivate: false,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).toEqual([]);
+    });
+  });
+});
+
+describe('Phase 85: Barrel export completeness', () => {
+  it('should export all 8 register functions from operations/index.ts', async () => {
+    const barrel = await import('./operations/index.js');
+
+    expect(typeof barrel.registerListCommand).toBe('function');
+    expect(typeof barrel.registerEditCommand).toBe('function');
+    expect(typeof barrel.registerDeactivateCommand).toBe('function');
+    expect(typeof barrel.registerExportCommand).toBe('function');
+    expect(typeof barrel.registerImportCommand).toBe('function');
+    expect(typeof barrel.registerActivateCommand).toBe('function');
+    expect(typeof barrel.registerMigrateCommand).toBe('function');
+    expect(typeof barrel.registerStatusCommand).toBe('function');
+  });
+
+  it('should export OperationsCommandOptions type from operations/index.ts', async () => {
+    const barrel = await import('./operations/index.js');
+    // TypeScript type re-export is compile-time only
+    // We verify the module loads without error
+    expect(barrel).toBeDefined();
+  });
+});
+
+describe('Phase 85: Thin router delegation', () => {
+  it('should have exactly 8 registerXxxCommand calls in operations.ts', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+
+    const operationsPath = resolve(__dirname, 'operations.ts');
+    const content = readFileSync(operationsPath, 'utf8');
+
+    // Count all registerXxxCommand(program, options) calls
+    const registerCalls = content.match(/register\w+Command\(program,\s*options\)/g);
+    expect(registerCalls).toHaveLength(8);
+  });
+
+  it('should have registerOperationsCommands export in operations.ts', async () => {
+    const operations = await import('./operations.js');
+    expect(typeof operations.registerOperationsCommands).toBe('function');
+  });
+});

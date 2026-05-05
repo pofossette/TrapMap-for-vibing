@@ -16,6 +16,7 @@ import {
   buildArtifactBundle,
   buildSingleSkillMdBundle,
   computeFileHash,
+  formatListResponse,
   isSkillMdFile,
   parseClaudeSkill,
   parseSkillMetadata,
@@ -236,9 +237,65 @@ describe('artifact-bundle utilities', () => {
     });
   });
 
+  describe('formatListResponse', () => {
+    it('should return "No knowledge entries found" for empty list', () => {
+      const response = { items: [] };
+      const result = formatListResponse(response as { items: never[] });
+      expect(result).toBe('No knowledge entries found');
+    });
+
+    it('should format single entry with all fields', () => {
+      const response = {
+        items: [
+          {
+            id: 'knowledge_1',
+            lifecycleState: 'approved',
+            scope: 'project',
+            requiredLevel: 5,
+            shortcut: 'my-shortcut',
+          },
+        ],
+      };
+      const result = formatListResponse(response as { items: unknown[] });
+      expect(result).toContain('knowledge_1 [approved]');
+      expect(result).toContain('Scope: project');
+      expect(result).toContain('Required level: 5');
+      expect(result).toContain('Shortcut: my-shortcut');
+    });
+
+    it('should format multiple entries separated by blank lines', () => {
+      const response = {
+        items: [
+          {
+            id: 'knowledge_1',
+            lifecycleState: 'approved',
+            scope: 'project',
+            requiredLevel: 5,
+            shortcut: 'shortcut-1',
+          },
+          {
+            id: 'knowledge_2',
+            lifecycleState: 'pending',
+            scope: 'global',
+            requiredLevel: 3,
+            shortcut: 'shortcut-2',
+          },
+        ],
+      };
+      const result = formatListResponse(response as { items: unknown[] });
+      expect(result).toContain('knowledge_1 [approved]');
+      expect(result).toContain('knowledge_2 [pending]');
+      // Entries should be separated by double newline
+      expect(result).toContain('\n\n');
+    });
+  });
+
   describe('buildArtifactBundle', () => {
     it('should build a canonical bundle from a skill directory', async () => {
-      await writeFile(join(testDir, 'SKILL.md'), '---\nname: Dir Skill\nlabels:\n  - dir\n---\n\nSkill body');
+      await writeFile(
+        join(testDir, 'SKILL.md'),
+        '---\nname: Dir Skill\nlabels:\n  - dir\n---\n\nSkill body',
+      );
       await mkdir(join(testDir, 'references'), { recursive: true });
       await writeFile(join(testDir, 'references', 'guide.md'), '# Guide');
       await mkdir(join(testDir, 'assets'), { recursive: true });

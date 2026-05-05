@@ -156,7 +156,12 @@ vi.mock('./routing.js', () => ({
     fallbackTarget: null,
     confidenceScore: null,
     confidenceBucket: null,
-    channelsPlanned: mode === 'hybrid' ? ['semantic', 'keyword'] : mode === 'graph-assisted' ? ['semantic', 'keyword', 'graph'] : ['semantic'],
+    channelsPlanned:
+      mode === 'hybrid'
+        ? ['semantic', 'keyword']
+        : mode === 'graph-assisted'
+          ? ['semantic', 'keyword', 'graph']
+          : ['semantic'],
     channelsUsed: [],
   })),
   selectRetrievalStrategyV2: vi.fn().mockImplementation((_seed: string) => ({
@@ -199,10 +204,7 @@ import { logRagRetrieval } from '../rag-log.js';
 import { buildEmptyResponse, buildRetrievalResponse } from './assembly.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { mergeCandidates } from './merge.js';
-import {
-  searchKnowledge,
-  updateEntryEmbeddingCache,
-} from './orchestrator.js';
+import { searchKnowledge, updateEntryEmbeddingCache } from './orchestrator.js';
 import { dispatchByMode } from './recall-coordinator.js';
 
 // ── Test helpers ──────────────────────────────────────────────────────────

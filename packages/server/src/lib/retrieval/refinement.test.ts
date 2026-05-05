@@ -11,15 +11,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { SkillShareerServices } from '../context.js';
 
-import {
-  buildRefinementPrompt,
-  generateRefinement,
-  isRefinementAvailable,
-} from './refinement.js';
+import { buildRefinementPrompt, generateRefinement, isRefinementAvailable } from './refinement.js';
 
 // ── Test helpers ──────────────────────────────────────────────────────────
 
-function createMockServices(chatConfigured: boolean = false): SkillShareerServices {
+function createMockServices(chatConfigured = false): SkillShareerServices {
   return {
     ai: {
       chat: {
@@ -52,12 +48,8 @@ describe('isRefinementAvailable', () => {
 
 describe('buildRefinementPrompt', () => {
   it('includes query and match details', () => {
-    const globalConstraints = [
-      { shortcut: 'GC1', detail: 'Global constraint detail' },
-    ];
-    const projectKnowledge = [
-      { shortcut: 'PK1', detail: 'Project knowledge detail' },
-    ];
+    const globalConstraints = [{ shortcut: 'GC1', detail: 'Global constraint detail' }];
+    const projectKnowledge = [{ shortcut: 'PK1', detail: 'Project knowledge detail' }];
 
     const prompt = buildRefinementPrompt('test query', globalConstraints, projectKnowledge);
 

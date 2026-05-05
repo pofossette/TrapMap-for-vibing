@@ -69,15 +69,21 @@ vi.mock('../decay/freshness.js', () => ({
 
 import { AppError } from '../errors.js';
 import {
+  GRAPH_SCORE_BOOST_FACTOR,
+  computeSemanticCandidates,
   dispatchByMode,
   getDbSearchConfig,
+  graphAssistedRecall,
   hybridRecall,
   inferChannelsFromMerged,
+  mergeCandidatesWithGraph,
   semanticRecall,
 } from './recall-coordinator.js';
+import { graphAssistedRecall as graphRecall } from './recall/graph-assisted.js';
 import { keywordRecall } from './recall/keyword.js';
 import { getQueryEmbedding, optimizedSemanticRecall } from './recall/semantic.js';
-import { graphAssistedRecall } from './recall/graph-assisted.js';
+import { mergeCandidates, createSemanticCandidate } from './merge.js';
+import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
 
 // ── Test helpers ──────────────────────────────────────────────────────────
 
@@ -236,7 +242,7 @@ describe('dispatchByMode', () => {
 
     const result = await dispatchByMode('graph-assisted', 'test query', [entry], parsed);
 
-    expect(graphAssistedRecall).toHaveBeenCalledWith('test query', expect.any(Map));
+    expect(graphRecall).toHaveBeenCalledWith('test query', expect.any(Map));
     expect(result.scoredEntries).toBeDefined();
   });
 
@@ -365,5 +371,250 @@ describe('inferChannelsFromMerged', () => {
     const channels = inferChannelsFromMerged(candidates);
     expect(channels).toContain('semantic');
     expect(channels).toContain('keyword');
+  });
+});
+
+// =============================================================================
+// Tests: computeSemanticCandidates
+// =============================================================================
+
+describe('computeSemanticCandidates', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.USE_DB_SEARCH = undefined;
+  });
+
+  it('returns candidates sorted by score descending', async () => {
+    const entry1 = createMockEntry('entry_1');
+    const entry2 = createMockEntry('entry_2');
+    const entry3 = createMockEntry('entry_3');
+
+    vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+    vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+      scoredEntries: [
+        { entry: entry1, score: 0.9 },
+        { entry: entry2, score: 0.7 },
+        { entry: entry3, score: 0.5 },
+      ],
+      cacheStats: { totalEntries: 3, cacheHits: 0, cacheMisses: 3, hitRate: 0 },
+    });
+    // Mock createSemanticCandidate to return a RecallCandidate with score
+    vi.mocked(createSemanticCandidate).mockImplementation((entry, score) => ({
+      entry,
+      channel: 'semantic' as const,
+      score,
+      tokenMatches: [],
+    }));
+
+    const candidates = await computeSemanticCandidates('test query', [entry1, entry2, entry3], undefined);
+
+    expect(candidates.length).toBe(3);
+    expect(candidates[0].score).toBeGreaterThanOrEqual(candidates[1].score);
+    expect(candidates[1].score).toBeGreaterThanOrEqual(candidates[2].score);
+  });
+
+  it('calls getQueryEmbedding with the seed', async () => {
+    const entry = createMockEntry('entry_1');
+    vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+    vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+      scoredEntries: [],
+      cacheStats: { totalEntries: 0, cacheHits: 0, cacheMisses: 0, hitRate: 0 },
+    });
+
+    await computeSemanticCandidates('my search query', [entry], undefined);
+
+    expect(getQueryEmbedding).toHaveBeenCalledWith('my search query');
+  });
+});
+
+// =============================================================================
+// Tests: graphAssistedRecall
+// =============================================================================
+
+describe('graphAssistedRecall', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.USE_DB_SEARCH = undefined;
+  });
+
+  it('calls all three recall channels (semantic, keyword, graph)', async () => {
+    const entry = createMockEntry('entry_1');
+    const parsed = createParsedQuery({ mode: 'graph-assisted' });
+
+    vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+    vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+      scoredEntries: [],
+      cacheStats: { totalEntries: 0, cacheHits: 0, cacheMisses: 0, hitRate: 0 },
+    });
+    vi.mocked(keywordRecall).mockResolvedValue([]);
+    vi.mocked(graphRecall).mockResolvedValue([]);
+
+    await graphAssistedRecall('test query', [entry], parsed);
+
+    expect(getQueryEmbedding).toHaveBeenCalled();
+    expect(keywordRecall).toHaveBeenCalledWith('test query', [entry]);
+    expect(graphRecall).toHaveBeenCalledWith('test query', expect.any(Map));
+  });
+
+  it('returns scored entries sorted by final score', async () => {
+    const entry1 = createMockEntry('entry_1');
+    const entry2 = createMockEntry('entry_2');
+    const parsed = createParsedQuery({ mode: 'graph-assisted' });
+
+    vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+    vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+      scoredEntries: [
+        { entry: entry1, score: 0.9 },
+        { entry: entry2, score: 0.7 },
+      ],
+      cacheStats: { totalEntries: 2, cacheHits: 0, cacheMisses: 2, hitRate: 0 },
+    });
+    vi.mocked(keywordRecall).mockResolvedValue([]);
+    vi.mocked(graphRecall).mockResolvedValue([]);
+    vi.mocked(mergeCandidates).mockReturnValue([
+      {
+        entry: entry1,
+        semanticScore: 0.9,
+        keywordScore: 0,
+        combinedScore: 0.9,
+        tokenMatches: [],
+        channels: ['semantic'],
+        preRerankScore: 0.9,
+        finalScore: 0.9,
+      },
+      {
+        entry: entry2,
+        semanticScore: 0.7,
+        keywordScore: 0,
+        combinedScore: 0.7,
+        tokenMatches: [],
+        channels: ['semantic'],
+        preRerankScore: 0.7,
+        finalScore: 0.7,
+      },
+    ]);
+    vi.mocked(rerankCandidates).mockImplementation((candidates) => candidates);
+    vi.mocked(toScoredEntriesFromReranked).mockImplementation((candidates) =>
+      candidates.map((c) => ({ entry: c.entry, score: c.finalScore })),
+    );
+
+    const result = await graphAssistedRecall('test query', [entry1, entry2], parsed);
+
+    expect(result.scoredEntries).toBeDefined();
+    expect(result.mergedCandidates).toBeDefined();
+  });
+});
+
+// =============================================================================
+// Tests: mergeCandidatesWithGraph
+// =============================================================================
+
+describe('mergeCandidatesWithGraph', () => {
+  it('adds graph channel to existing candidates', () => {
+    const entry = createMockEntry('entry_1');
+    const hybridMerged = [
+      {
+        entry,
+        semanticScore: 0.8,
+        keywordScore: 0.5,
+        combinedScore: 0.9,
+        tokenMatches: [],
+        channels: ['semantic', 'keyword'] as const,
+        preRerankScore: 0.9,
+        finalScore: 0.9,
+      },
+    ];
+    const graphCandidates = [{ entry, score: 0.7 }];
+
+    const result = mergeCandidatesWithGraph(hybridMerged, graphCandidates);
+
+    expect(result[0].channels).toContain('graph');
+    expect(result[0].graphScore).toBe(0.7);
+  });
+
+  it('applies GRAPH_SCORE_BOOST_FACTOR to combinedScore', () => {
+    const entry = createMockEntry('entry_1');
+    const hybridMerged = [
+      {
+        entry,
+        semanticScore: 0.8,
+        keywordScore: 0.5,
+        combinedScore: 0.9,
+        tokenMatches: [],
+        channels: ['semantic'] as const,
+        preRerankScore: 0.9,
+        finalScore: 0.9,
+      },
+    ];
+    const graphCandidates = [{ entry, score: 0.5 }];
+
+    const result = mergeCandidatesWithGraph(hybridMerged, graphCandidates);
+
+    // finalScore = min(1, preRerankScore + graphScore * GRAPH_SCORE_BOOST_FACTOR)
+    const expectedFinalScore = Math.min(1, 0.9 + 0.5 * GRAPH_SCORE_BOOST_FACTOR);
+    expect(result[0].finalScore).toBe(expectedFinalScore);
+  });
+
+  it('adds new candidates from graph that are not in hybrid', () => {
+    const entry1 = createMockEntry('entry_1');
+    const entry2 = createMockEntry('entry_2');
+    const hybridMerged = [
+      {
+        entry: entry1,
+        semanticScore: 0.8,
+        keywordScore: 0,
+        combinedScore: 0.8,
+        tokenMatches: [],
+        channels: ['semantic'] as const,
+        preRerankScore: 0.8,
+        finalScore: 0.8,
+      },
+    ];
+    const graphCandidates = [{ entry: entry2, score: 0.6 }];
+
+    const result = mergeCandidatesWithGraph(hybridMerged, graphCandidates);
+
+    expect(result.length).toBe(2);
+    const newCandidate = result.find((c) => c.entry.id === 'entry_2');
+    expect(newCandidate).toBeDefined();
+    expect(newCandidate!.channels).toEqual(['graph']);
+    expect(newCandidate!.graphScore).toBe(0.6);
+  });
+
+  it('sorts results by combinedScore descending', () => {
+    const entry1 = createMockEntry('entry_1');
+    const entry2 = createMockEntry('entry_2');
+    const hybridMerged = [
+      {
+        entry: entry1,
+        semanticScore: 0.9,
+        keywordScore: 0,
+        combinedScore: 0.9,
+        tokenMatches: [],
+        channels: ['semantic'] as const,
+        preRerankScore: 0.9,
+        finalScore: 0.9,
+      },
+    ];
+    const graphCandidates = [{ entry: entry2, score: 0.95 }];
+
+    const result = mergeCandidatesWithGraph(hybridMerged, graphCandidates);
+
+    expect(result[0].combinedScore).toBeGreaterThanOrEqual(result[1].combinedScore);
+  });
+});
+
+// =============================================================================
+// Tests: GRAPH_SCORE_BOOST_FACTOR constant
+// =============================================================================
+
+describe('GRAPH_SCORE_BOOST_FACTOR', () => {
+  it('is defined as 0.2', () => {
+    expect(GRAPH_SCORE_BOOST_FACTOR).toBe(0.2);
+  });
+
+  it('is a positive number less than 1', () => {
+    expect(GRAPH_SCORE_BOOST_FACTOR).toBeGreaterThan(0);
+    expect(GRAPH_SCORE_BOOST_FACTOR).toBeLessThan(1);
   });
 });
