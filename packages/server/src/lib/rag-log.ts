@@ -27,6 +27,8 @@ export interface PipelineStep {
   /** 输出数据量（如匹配结果数量） */
   outputSize?: number;
   metadata?: Record<string, unknown>;
+  /** Error message if the step failed */
+  error?: string;
 }
 
 /**

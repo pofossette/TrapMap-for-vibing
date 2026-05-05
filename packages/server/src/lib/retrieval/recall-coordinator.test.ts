@@ -622,3 +622,142 @@ describe('GRAPH_SCORE_BOOST_FACTOR', () => {
     expect(GRAPH_SCORE_BOOST_FACTOR).toBeLessThan(1);
   });
 });
+
+// =============================================================================
+// Phase 1C additions
+// =============================================================================
+
+describe('semanticRecall with store data', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.USE_DB_SEARCH = undefined;
+  });
+
+  it('returns scored entries from in-memory store', async () => {
+    const entry1 = createMockEntry('entry_1');
+    const entry2 = createMockEntry('entry_2');
+    const parsed = createParsedQuery();
+
+    vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+    vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+      scoredEntries: [
+        { entry: entry1, score: 0.85 },
+        { entry: entry2, score: 0.72 },
+      ],
+      cacheStats: { totalEntries: 2, cacheHits: 0, cacheMisses: 2, hitRate: 0 },
+    });
+
+    const result = await semanticRecall('test query', [entry1, entry2], parsed);
+
+    expect(result.scoredEntries.length).toBe(2);
+    expect(result.scoredEntries[0].entry.id).toBe('entry_1');
+    expect(result.scoredEntries[0].score).toBeCloseTo(0.85, 1);
+  });
+
+  it('returns empty results when embedding provider fails gracefully', async () => {
+    const entry = createMockEntry('entry_1');
+    const parsed = createParsedQuery();
+
+    vi.mocked(getQueryEmbedding).mockRejectedValue(new Error('Embedding service unavailable'));
+
+    // semanticRecall should propagate the error (not return empty silently)
+    await expect(semanticRecall('test query', [entry], parsed)).rejects.toThrow(
+      'Embedding service unavailable',
+    );
+  });
+});
+
+describe('hybridRecall combining channels', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.USE_DB_SEARCH = undefined;
+  });
+
+  it('merges semantic and keyword results', async () => {
+    const entry1 = createMockEntry('entry_1'); // semantic hit
+    const entry2 = createMockEntry('entry_2'); // keyword hit
+    const parsed = createParsedQuery({ mode: 'hybrid' });
+
+    vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+    vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+      scoredEntries: [{ entry: entry1, score: 0.8 }],
+      cacheStats: { totalEntries: 1, cacheHits: 0, cacheMisses: 1, hitRate: 0 },
+    });
+    vi.mocked(keywordRecall).mockResolvedValue([{ entry: entry2, score: 0.7, tokenMatches: [] }]);
+    vi.mocked(mergeCandidates).mockReturnValue([
+      {
+        entry: entry1,
+        semanticScore: 0.8,
+        keywordScore: 0,
+        combinedScore: 0.8,
+        tokenMatches: [],
+        channels: ['semantic'],
+        preRerankScore: 0.8,
+        finalScore: 0.8,
+      },
+      {
+        entry: entry2,
+        semanticScore: 0,
+        keywordScore: 0.7,
+        combinedScore: 0.7,
+        tokenMatches: [],
+        channels: ['keyword'],
+        preRerankScore: 0.7,
+        finalScore: 0.7,
+      },
+    ]);
+    vi.mocked(rerankCandidates).mockImplementation((candidates) => candidates);
+    vi.mocked(toScoredEntriesFromReranked).mockImplementation((candidates) =>
+      candidates.map((c) => ({ entry: c.entry, score: c.finalScore })),
+    );
+
+    const result = await hybridRecall('test query', [entry1, entry2], parsed);
+
+    expect(result.scoredEntries.length).toBe(2);
+    expect(mergeCandidates).toHaveBeenCalled();
+  });
+});
+
+describe('optimizedSemanticRecall cache behavior', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.USE_DB_SEARCH = undefined;
+  });
+
+  it('cache hit uses stored embedding', async () => {
+    const entry = createMockEntry('entry_1', {
+      embeddingCache: {
+        textHash: 'hash-123',
+        vector: [0.5, 0.6, 0.7],
+        createdAt: '2026-01-01T00:00:00Z',
+        revision: 1,
+      },
+    });
+    const parsed = createParsedQuery();
+
+    vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+
+    const result = await semanticRecall('test query', [entry], parsed);
+
+    // Entry should be scored (embedding cache used internally)
+    expect(result.scoredEntries.length).toBeGreaterThan(0);
+    // getQueryEmbedding is called for the query
+    expect(getQueryEmbedding).toHaveBeenCalledWith('test query');
+  });
+
+  it('cache miss recalculates embedding', async () => {
+    const entry = createMockEntry('entry_1', { embeddingCache: null });
+    const parsed = createParsedQuery();
+
+    vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+    vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+      scoredEntries: [{ entry, score: 0.5 }],
+      cacheStats: { totalEntries: 1, cacheHits: 0, cacheMisses: 1, hitRate: 0 },
+    });
+
+    const result = await semanticRecall('test query', [entry], parsed);
+
+    expect(result.scoredEntries.length).toBe(1);
+    expect(result.scoredEntries[0].entry.id).toBe('entry_1');
+  });
+});

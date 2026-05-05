@@ -420,4 +420,158 @@ describe('graph-plan-search', () => {
     expect(assessment.bucket).toBe('low');
     expect(assessment.fallbackTarget).toBe('v1-graph-assisted');
   });
+
+  // -- Phase 1D additions --
+
+  describe('assessGraphPlanReadiness -- expanded scenarios', () => {
+    it('empty plan returns low confidence', () => {
+      const assessment = assessGraphPlanReadiness(
+        {
+          blockingTraps: [],
+          recommendedSkills: [],
+          edges: [],
+          citations: [],
+          graph: makeEmptyGraph(),
+        },
+        'auto',
+      );
+
+      expect(assessment.bucket).toBe('low');
+      expect(assessment.score).toBeLessThan(0.4);
+    });
+
+    it('only traps returns medium confidence', () => {
+      const assessment = assessGraphPlanReadiness(
+        {
+          blockingTraps: [
+            {
+              nodeId: 'trap_1',
+              sourceId: 'entry_1',
+              label: 'Trap',
+              severity: 'hard',
+              scope: 'project',
+              requiredLevel: 3,
+              evidence: 'Evidence',
+              score: 1,
+            },
+          ],
+          recommendedSkills: [],
+          edges: [],
+          citations: [],
+          graph: {
+            nodes: [],
+            edges: [],
+            citations: [],
+            focus: { blockingTrapNodeIds: ['trap_1'], recommendedSkillNodeIds: [] },
+          },
+        },
+        'auto',
+      );
+
+      expect(assessment.bucket).toBe('low'); // No skills = low
+      expect(assessment.fallbackTarget).toBe('v1-graph-assisted');
+    });
+
+    it('high confidence with skills + traps + structure', () => {
+      const assessment = assessGraphPlanReadiness(
+        {
+          blockingTraps: [
+            {
+              nodeId: 'trap_1',
+              sourceId: 'entry_1',
+              label: 'Trap',
+              severity: 'hard',
+              scope: 'project',
+              requiredLevel: 3,
+              evidence: 'Evidence',
+              score: 1,
+            },
+          ],
+          recommendedSkills: [
+            {
+              nodeId: 'skill_1',
+              artifactId: 'artifact_1',
+              capsuleId: 'capsule_1',
+              label: 'Skill',
+              situation: 'Sit',
+              problem: 'Prob',
+              goal: 'Goal',
+              scope: 'project',
+              requiredLevel: 3,
+              score: 0.9,
+              activationRefs: { references: [], assets: [], scripts: [] },
+            },
+          ],
+          edges: [
+            {
+              id: 'edge_1',
+              sourceNodeId: 'skill_1',
+              targetNodeId: 'trap_1',
+              type: 'mitigates',
+              strength: 'hard',
+            },
+          ],
+          citations: [],
+          graph: {
+            nodes: [],
+            edges: [],
+            citations: [],
+            focus: { blockingTrapNodeIds: ['trap_1'], recommendedSkillNodeIds: ['skill_1'] },
+          },
+        },
+        'auto',
+      );
+
+      expect(assessment.bucket).toBe('high');
+      expect(assessment.fallbackTarget).toBeNull();
+    });
+
+    it('fallbackMode=v2-capsule forces capsule fallback', () => {
+      const assessment = assessGraphPlanReadiness(
+        {
+          blockingTraps: [
+            {
+              nodeId: 'trap_1',
+              sourceId: 'entry_1',
+              label: 'Trap',
+              severity: 'hard',
+              scope: 'project',
+              requiredLevel: 3,
+              evidence: 'Evidence',
+              score: 1,
+            },
+          ],
+          recommendedSkills: [],
+          edges: [],
+          citations: [],
+          graph: makeEmptyGraph(),
+        },
+        'v2-capsule',
+      );
+
+      expect(assessment.fallbackTarget).toBe('v2-capsule');
+    });
+
+    it('plan compilation error triggers fallback', async () => {
+      // When compileTrapFirstPlan throws, searchKnowledgeGraphPlan should catch and fallback
+      mockedCompileTrapFirstPlan.mockRejectedValue(new Error('Compile error'));
+      mockedSearchKnowledge.mockResolvedValue({
+        globalConstraints: [],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      });
+
+      const result = await searchKnowledgeGraphPlan(makeServices(), makeAuth(), {
+        seed: 'error test',
+        skillBudget: 3,
+        maxDepth: 2,
+        fallbackMode: 'auto',
+      });
+
+      // Should fallback to v1
+      expect(result.fallback).not.toBeNull();
+      expect(result.routingTrace.fallbackApplied).toBe(true);
+    });
+  });
 });

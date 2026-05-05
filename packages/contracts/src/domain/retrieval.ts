@@ -425,6 +425,7 @@ export const routingReasonSchema = z.enum([
   'graph-plan-low-confidence', // Graph-plan route fell back due to low readiness score
   'graph-plan-insufficient-trap-evidence', // Plan had weak blocker evidence
   'graph-plan-insufficient-skill-evidence', // Plan had no actionable skills
+  'graph-plan-compilation-failed', // Plan compilation threw an error, fell back
 ]);
 
 export type RoutingReason = z.infer<typeof routingReasonSchema>;

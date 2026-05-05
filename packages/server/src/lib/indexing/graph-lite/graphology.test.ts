@@ -1,4 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import {
+  buildCycleDataset,
+  buildDeployClusterDataset,
+  buildDisconnectedDataset,
+  makeDoc,
+} from '../../retrieval/__fixtures__/graph-fixtures.js';
 import type { GraphEdgeRecord, GraphIndexDocumentRecord, GraphNodeRecord } from './documents.js';
 import {
   assertNoHardDependencyCycles,
@@ -527,5 +533,241 @@ describe('boundary node back-references', () => {
 
     expect(result.has('entry1')).toBe(true);
     expect(result.size).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 1A: Expanded graph orchestration tests (large-scale fixtures)
+// ---------------------------------------------------------------------------
+
+describe('graph-lite/graphology — large-scale fixtures', () => {
+  describe('buildGraphFromDocuments -- large graph (25+ nodes)', () => {
+    it('assembles the full Deploy Cluster dataset into a connected graph', () => {
+      const dataset = buildDeployClusterDataset();
+      const graph = buildGraphFromDocuments(dataset.graphDocs);
+
+      // All trap nodes present
+      for (const node of dataset.trapNodes) {
+        expect(graph.hasNode(node.id), `trap node ${node.id}`).toBe(true);
+      }
+
+      // All skill nodes present
+      for (const node of dataset.skillNodes) {
+        expect(graph.hasNode(node.id), `skill node ${node.id}`).toBe(true);
+      }
+
+      // All cue nodes present
+      for (const node of dataset.cueNodes) {
+        expect(graph.hasNode(node.id), `cue node ${node.id}`).toBe(true);
+      }
+
+      // Total nodes should be 25+ (8 trap + 10 skill + 4 cue + 3 prereq)
+      expect(graph.nodes().length).toBeGreaterThanOrEqual(25);
+
+      // Mitigates edges should exist
+      const mitigatesEdges = dataset.edges.filter((e) => e.relationType === 'mitigates');
+      for (const edge of mitigatesEdges) {
+        expect(graph.hasEdge(edge.id), `mitigates edge ${edge.id}`).toBe(true);
+      }
+    });
+  });
+
+  describe('projectHardDependencyGraph on 25+ nodes', () => {
+    it('retains only hard requires and hard risk-blocks, filters soft edges', () => {
+      const dataset = buildDeployClusterDataset();
+      const hardGraph = projectHardDependencyGraph(dataset.graphDocs);
+
+      // Hard requires edges should exist
+      const hardRequires = dataset.edges.filter(
+        (e) => e.relationType === 'requires' && e.strength === 'hard',
+      );
+      for (const edge of hardRequires) {
+        expect(hardGraph.hasEdge(edge.id), `hard requires ${edge.id}`).toBe(true);
+      }
+
+      // Hard risk-blocks edges should exist
+      const hardRiskBlocks = dataset.edges.filter(
+        (e) => e.relationType === 'risk-blocks' && e.strength === 'hard',
+      );
+      for (const edge of hardRiskBlocks) {
+        expect(hardGraph.hasEdge(edge.id), `hard risk-blocks ${edge.id}`).toBe(true);
+      }
+
+      // Soft edges should be filtered out
+      const softEdges = dataset.edges.filter(
+        (e) =>
+          e.strength === 'soft' &&
+          (e.relationType === 'order' ||
+            e.relationType === 'co-occurs-with' ||
+            e.relationType === 'applies-in'),
+      );
+      for (const edge of softEdges) {
+        expect(hardGraph.hasEdge(edge.id), `soft edge ${edge.id} should be filtered`).toBe(false);
+      }
+    });
+  });
+
+  describe('buildLocalExpansionView multi-hop', () => {
+    it('expands from seed to 2-hop reachable skills in Deploy Cluster', () => {
+      const dataset = buildDeployClusterDataset();
+
+      // Seed from skill:k8s-rolling-update which has:
+      // - mitigates edge TO trap:mem-leak-rollback (outgoing)
+      // - requires edges FROM skill:blue-green-deploy and skill:canary-release (incoming)
+      // - co-occurs-with edges to skill:container-health-check
+      const localView = buildLocalExpansionView({
+        documents: dataset.graphDocs,
+        seedNodeIds: ['skill:k8s-rolling-update'],
+        maxDepth: 2,
+      });
+
+      // Seed is always included
+      expect(localView.hasNode('skill:k8s-rolling-update')).toBe(true);
+
+      // 1 hop via outgoing mitigates edge: trap:mem-leak-rollback
+      expect(localView.hasNode('trap:mem-leak-rollback')).toBe(true);
+
+      // 1 hop via co-occurs-with: skill:container-health-check
+      expect(localView.hasNode('skill:container-health-check')).toBe(true);
+
+      // Beyond maxDepth: skills requiring k8s-rolling-update would be at 2+ hops
+      // depending on edge direction (requires edges point TO k8s-rolling-update, not FROM it)
+    });
+  });
+
+  describe('buildGraphFromDocuments -- disconnected components', () => {
+    it('isolates nodes from different components', () => {
+      const { docs, isolatedNodeIds, clusterANodeIds, clusterBNodeIds } =
+        buildDisconnectedDataset();
+      const graph = buildGraphFromDocuments(docs);
+
+      // All nodes should exist in the graph
+      for (const id of [...isolatedNodeIds, ...clusterANodeIds, ...clusterBNodeIds]) {
+        expect(graph.hasNode(id), `node ${id} should exist`).toBe(true);
+      }
+
+      // Isolated nodes should have no edges
+      for (const id of isolatedNodeIds) {
+        expect(graph.degree(id), `isolated node ${id} degree`).toBe(0);
+      }
+
+      // Cluster A and B should be connected internally
+      const clusterAAtraps = clusterANodeIds.filter((id) => id.startsWith('trap:'));
+      for (const trapId of clusterAAtraps) {
+        expect(graph.degree(trapId), `cluster A trap ${trapId} degree`).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe('expandSourcesOneHop cross-component isolation', () => {
+    it('Cluster-A nodes do not return Cluster-B sources', () => {
+      const { docs, clusterANodeIds, clusterBNodeIds } = buildDisconnectedDataset();
+      const runtime = buildGraphRuntimeSnapshot(docs);
+
+      // Expand from a label unique to Cluster A (normalized form)
+      // Note: expandSourcesOneHop doesn't normalize the input label,
+      // so we pass the already-normalized form
+      const expanded = expandSourcesOneHop(runtime, new Set(['cluster-a-trap']));
+
+      // Should find Cluster A sources (the sourceId for the trap document is 'cluster-a-trap')
+      expect(expanded.has('cluster-a-trap')).toBe(true);
+
+      // Should NOT find Cluster B sources
+      expect(expanded.has('cluster-b-trap')).toBe(false);
+      expect(expanded.has('cluster-b-skill')).toBe(false);
+    });
+  });
+
+  describe('buildGraphFromDocuments -- empty/degenerate', () => {
+    it('handles empty documents array', () => {
+      const graph = buildGraphFromDocuments([]);
+      expect(graph.nodes().length).toBe(0);
+      expect(graph.edges().length).toBe(0);
+    });
+
+    it('handles documents with empty nodes', () => {
+      const doc = makeDoc('doc1', 'trap', 'entry-1', 1, [], []);
+      const graph = buildGraphFromDocuments([doc]);
+      expect(graph.nodes().length).toBe(0);
+    });
+
+    it('handles edges referencing non-existent nodes gracefully', () => {
+      const edges: GraphEdgeRecord[] = [
+        {
+          id: 'orphan-edge',
+          sourceNodeId: 'trap:nonexistent',
+          targetNodeId: 'skill:also-missing',
+          relationType: 'mitigates',
+          strength: 'hard',
+          evidence: 'orphan',
+        },
+      ];
+      const nodes: GraphNodeRecord[] = [];
+      const doc = makeDoc('doc-orphan', 'trap', 'entry-1', 1, nodes, edges);
+
+      // Note: buildGraphFromDocuments calls mergeNode for source/target,
+      // which creates the nodes if they don't exist. This is by design.
+      const graph = buildGraphFromDocuments([doc]);
+
+      // The nodes are auto-created by mergeNode calls
+      expect(graph.hasNode('trap:nonexistent')).toBe(true);
+      expect(graph.hasNode('skill:also-missing')).toBe(true);
+
+      // The edge is also created (mergeNode ensures nodes exist first)
+      expect(graph.edges().length).toBe(1);
+      expect(graph.hasEdge('orphan-edge')).toBe(true);
+    });
+  });
+
+  describe('assertNoHardDependencyCycles -- mixed strength', () => {
+    it('soft-edge cycle should pass (not treated as hard)', () => {
+      const { mixedCycleDoc } = buildCycleDataset();
+
+      // Mixed cycle: 2 hard + 1 soft edge. Only hard edges are checked.
+      // The soft edge completes the cycle but shouldn't trigger the assertion.
+      // However, assertNoHardDependencyCycles checks hard-only projection.
+      // With 2 hard requires (a->b, b->c) but c->a is soft, no hard cycle exists.
+      expect(() => assertNoHardDependencyCycles([mixedCycleDoc])).not.toThrow();
+    });
+
+    it('hard-edge cycle should throw', () => {
+      const { hardCycleDoc } = buildCycleDataset();
+      expect(() => assertNoHardDependencyCycles([hardCycleDoc])).toThrow(
+        'hard dependency cycle detected',
+      );
+    });
+  });
+
+  describe('assertNoHardDependencyCycles -- large cycle', () => {
+    it('detects a 5-node hard dependency cycle', () => {
+      const nodes = Array.from({ length: 5 }, (_, i) => ({
+        id: `skill:n${i}`,
+        kind: 'skill' as const,
+        label: `Node ${i}`,
+        evidence: 'test',
+      }));
+      const edges: GraphEdgeRecord[] = [];
+      for (let i = 0; i < 5; i++) {
+        const next = (i + 1) % 5;
+        edges.push({
+          id: `n${i}->n${next}:requires`,
+          sourceNodeId: `skill:n${i}`,
+          targetNodeId: `skill:n${next}`,
+          relationType: 'requires',
+          strength: 'hard',
+          evidence: 'test',
+        });
+      }
+      const doc = makeDoc('doc-5cycle', 'skill', 'art-1', 1, nodes, edges);
+
+      expect(() => assertNoHardDependencyCycles([doc])).toThrow('hard dependency cycle detected');
+    });
+  });
+
+  describe('assertNoHardDependencyCycles -- diamond (A→B,C→D)', () => {
+    it('diamond dependency should pass (no cycle)', () => {
+      const { diamondDoc } = buildCycleDataset();
+      expect(() => assertNoHardDependencyCycles([diamondDoc])).not.toThrow();
+    });
   });
 });

@@ -3,6 +3,18 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../app.js';
 import type { SkillShareerStore } from '../lib/store.js';
+import {
+  buildTestServer,
+  seedApprovedKnowledgeEntry,
+  seedApprovedSkillArtifact,
+  seedGraphDocument,
+} from '../lib/retrieval/__fixtures__/auth-store-helpers.js';
+import {
+  buildDeployClusterDataset,
+  makeMitigatesEdge,
+  makeTrapNode,
+  makeSkillNode,
+} from '../lib/retrieval/__fixtures__/graph-fixtures.js';
 
 describe('retrieval route', () => {
   let app: FastifyInstance;
@@ -1659,6 +1671,515 @@ describe('retrieval route', () => {
         expect(explanation?.boosts.length).toBeGreaterThan(0);
         expect(explanation?.boosts[0]).toContain('Applicable context');
       }
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 2A: Client-server integration tests using shared fixtures
+  // ---------------------------------------------------------------------------
+
+  describe('retrieval integration with fixtures (Phase 2A)', () => {
+    describe('authentication enforcement', () => {
+      it('returns 401 for /v1/retrieval/search without token', async () => {
+        const { app } = await buildTestServer();
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/retrieval/search',
+          payload: { seed: 'test query' },
+        });
+
+        expect(response.statusCode).toBe(401);
+        await app.close();
+      });
+
+      it('returns 401 for /v2/retrieval/search without token', async () => {
+        const { app } = await buildTestServer();
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v2/retrieval/search',
+          payload: { seed: 'test query' },
+        });
+
+        expect(response.statusCode).toBe(401);
+        await app.close();
+      });
+
+      it('returns 401 for /v3/retrieval/search without token', async () => {
+        const { app } = await buildTestServer();
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v3/retrieval/search',
+          payload: { seed: 'test query' },
+        });
+
+        expect(response.statusCode).toBe(401);
+        await app.close();
+      });
+
+      it('returns 401 for /v1/retrieval/skills/search-by-content without token', async () => {
+        const { app } = await buildTestServer();
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/retrieval/skills/search-by-content',
+          payload: { text: 'skill content' },
+        });
+
+        expect(response.statusCode).toBe(401);
+        await app.close();
+      });
+
+      it('returns 200 for valid token on /v1/retrieval/search', async () => {
+        const { app, authToken } = await buildTestServer();
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/retrieval/search',
+          headers: { authorization: `Bearer ${authToken}` },
+          payload: { seed: 'test query' },
+        });
+
+        expect(response.statusCode).toBe(200);
+        await app.close();
+      });
+
+      it('returns 200 for valid token on /v2/retrieval/search', async () => {
+        const { app, authToken } = await buildTestServer();
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v2/retrieval/search',
+          headers: { authorization: `Bearer ${authToken}` },
+          payload: { seed: 'test query' },
+        });
+
+        expect(response.statusCode).toBe(200);
+        await app.close();
+      });
+    });
+
+    describe('governance filtering with seeded data', () => {
+      it('filters out entries exceeding user security level', async () => {
+        const { app, authToken, userId } = await buildTestServer(
+          (data, auth) => {
+            // Seed entry with low security level (accessible)
+            seedApprovedKnowledgeEntry(data, auth.userId, {
+              id: 'knowledge-low-level',
+              shortcut: 'Low Security Entry',
+              requiredLevel: 0,
+            });
+
+            // Seed entry with high security level (inaccessible)
+            seedApprovedKnowledgeEntry(data, auth.userId, {
+              id: 'knowledge-high-level',
+              shortcut: 'High Security Entry',
+              requiredLevel: 15, // Exceeds default securityLevel of 10
+            });
+          },
+          { securityLevel: 10 },
+        );
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/retrieval/search',
+          headers: { authorization: `Bearer ${authToken}` },
+          payload: { seed: 'Security Entry' },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const json = response.json();
+        const allResults = [...json.globalConstraints, ...json.projectKnowledge];
+
+        // Low level entry should be present
+        expect(allResults.find((r) => r.shortcut === 'Low Security Entry')).toBeDefined();
+
+        // High level entry should be filtered out
+        expect(allResults.find((r) => r.shortcut === 'High Security Entry')).toBeUndefined();
+
+        await app.close();
+      });
+
+      it('filters out skill artifacts exceeding user security level', async () => {
+        // Note: Uses skill-lookup endpoint because v2 retrieval capsules response
+        // has a schema mismatch with errorText: null (contracts expects optional, not nullable)
+        const { app, authToken } = await buildTestServer(
+          (data, auth) => {
+            // Seed artifact with low security level (accessible)
+            seedApprovedSkillArtifact(data, auth.userId, {
+              id: 'skill-low-level',
+              title: 'Low Security Skill',
+              requiredLevel: 0,
+            });
+
+            // Seed artifact with high security level (inaccessible)
+            seedApprovedSkillArtifact(data, auth.userId, {
+              id: 'skill-high-level',
+              title: 'High Security Skill',
+              requiredLevel: 15,
+            });
+          },
+          { securityLevel: 10 },
+        );
+
+        // Use skill-lookup endpoint to test governance filtering
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/retrieval/skills/search-by-content',
+          headers: { authorization: `Bearer ${authToken}` },
+          payload: { text: 'Security Skill' },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const json = response.json();
+
+        // Low level skill should be present
+        expect(json.matches.find((m: { artifactId: string }) => m.artifactId === 'skill-low-level')).toBeDefined();
+
+        // High level skill should be filtered out
+        expect(json.matches.find((m: { artifactId: string }) => m.artifactId === 'skill-high-level')).toBeUndefined();
+
+        await app.close();
+      });
+
+      it('filters out entries from other teams', async () => {
+        const otherTeamId = 'team_other_fixture';
+        const { app, authToken, userId } = await buildTestServer(
+          (data, auth) => {
+            // Seed global entry (accessible)
+            seedApprovedKnowledgeEntry(data, auth.userId, {
+              id: 'knowledge-global',
+              shortcut: 'Global Entry',
+              scope: 'global',
+            });
+
+            // Seed project entry for another team (inaccessible)
+            const entry = seedApprovedKnowledgeEntry(data, auth.userId, {
+              id: 'knowledge-other-team',
+              shortcut: 'Other Team Entry',
+              scope: 'project',
+            });
+            // Manually set teamId after creation
+            const idx = data.knowledgeEntries.findIndex((e: { id: string }) => e.id === 'knowledge-other-team');
+            if (idx >= 0) {
+              data.knowledgeEntries[idx]!.teamId = otherTeamId;
+            }
+          },
+        );
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/retrieval/search',
+          headers: { authorization: `Bearer ${authToken}` },
+          payload: { seed: 'Entry' },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const json = response.json();
+        const allResults = [...json.globalConstraints, ...json.projectKnowledge];
+
+        // Global entry should be present
+        expect(allResults.find((r) => r.shortcut === 'Global Entry')).toBeDefined();
+
+        // Other team entry should be filtered out
+        expect(allResults.find((r) => r.shortcut === 'Other Team Entry')).toBeUndefined();
+
+        await app.close();
+      });
+
+      it('filters out non-approved entries', async () => {
+        const { app, authToken } = await buildTestServer((data, auth) => {
+          // Seed approved entry (accessible)
+          seedApprovedKnowledgeEntry(data, auth.userId, {
+            id: 'knowledge-approved',
+            shortcut: 'Approved Entry',
+          });
+
+          // Seed draft entry (inaccessible)
+          const draftEntry = seedApprovedKnowledgeEntry(data, auth.userId, {
+            id: 'knowledge-draft',
+            shortcut: 'Draft Entry',
+          });
+          // Manually set lifecycleState to draft
+          const idx = data.knowledgeEntries.findIndex((e: { id: string }) => e.id === 'knowledge-draft');
+          if (idx >= 0) {
+            data.knowledgeEntries[idx]!.lifecycleState = 'draft';
+          }
+        });
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/retrieval/search',
+          headers: { authorization: `Bearer ${authToken}` },
+          payload: { seed: 'Entry' },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const json = response.json();
+        const allResults = [...json.globalConstraints, ...json.projectKnowledge];
+
+        // Approved entry should be present
+        expect(allResults.find((r) => r.shortcut === 'Approved Entry')).toBeDefined();
+
+        // Draft entry should be filtered out
+        expect(allResults.find((r) => r.shortcut === 'Draft Entry')).toBeUndefined();
+
+        await app.close();
+      });
+    });
+
+    describe('graph document integration', () => {
+      it('seeds graph documents and verifies store state', async () => {
+        const { app, authToken, userId, store } = await buildTestServer((data, auth) => {
+          if (!data.graphIndexDocuments) data.graphIndexDocuments = [];
+
+          // Seed a trap graph document with nodes and edges
+          const trapNode = makeTrapNode('test-trap', 'Test Trap', 'evidence');
+          const skillNode = makeSkillNode('test-skill', 'Test Skill', 'evidence');
+          const edge = makeMitigatesEdge('test-skill', 'test-trap', 'hard');
+
+          seedGraphDocument(data, 'trap', 'test-trap', [trapNode, skillNode], [edge], 0);
+        });
+
+        // Verify graph document was seeded
+        const snapshot = await store.snapshot();
+        expect(snapshot.graphIndexDocuments).toBeDefined();
+        expect(snapshot.graphIndexDocuments?.length).toBe(1);
+
+        const doc = snapshot.graphIndexDocuments?.[0];
+        expect(doc?.sourceType).toBe('trap');
+        expect(doc?.sourceId).toBe('test-trap');
+        expect(doc?.nodes.length).toBe(2);
+        expect(doc?.edges.length).toBe(1);
+
+        await app.close();
+      });
+
+      it('seeds deploy cluster dataset into store', async () => {
+        const dataset = buildDeployClusterDataset();
+        const { app, authToken, store } = await buildTestServer((data, auth) => {
+          if (!data.graphIndexDocuments) data.graphIndexDocuments = [];
+          if (!data.knowledgeEntries) data.knowledgeEntries = [];
+          if (!data.skillArtifacts) data.skillArtifacts = [];
+
+          // Seed all graph documents
+          for (const doc of dataset.graphDocs) {
+            data.graphIndexDocuments.push(doc);
+          }
+
+          // Seed knowledge entries
+          for (const entry of dataset.knowledgeEntries) {
+            data.knowledgeEntries.push(entry);
+          }
+
+          // Seed skill artifacts
+          for (const artifact of dataset.skillArtifacts) {
+            data.skillArtifacts.push(artifact);
+          }
+        });
+
+        // Verify dataset was seeded
+        const snapshot = await store.snapshot();
+        expect(snapshot.graphIndexDocuments?.length).toBe(dataset.graphDocs.length);
+        expect(snapshot.knowledgeEntries.length).toBe(dataset.knowledgeEntries.length);
+        expect(snapshot.skillArtifacts?.length).toBe(dataset.skillArtifacts.length);
+
+        // Verify graph structure
+        expect(dataset.allNodes.length).toBeGreaterThanOrEqual(25);
+        expect(dataset.edges.length).toBeGreaterThanOrEqual(35);
+
+        await app.close();
+      });
+    });
+
+    describe('skill lookup with seeded artifacts', () => {
+      it('returns seeded skill artifacts in search-by-content', async () => {
+        const { app, authToken } = await buildTestServer((data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'skill-deploy',
+            title: 'Kubernetes Deployment',
+            labels: ['k8s', 'deployment'],
+            requiredLevel: 0,
+            withClientManifest: true,
+          });
+
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'skill-monitor',
+            title: 'Monitoring Setup',
+            labels: ['monitoring', 'observability'],
+            requiredLevel: 0,
+            withClientManifest: true,
+          });
+        });
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/retrieval/skills/search-by-content',
+          headers: { authorization: `Bearer ${authToken}` },
+          payload: { text: 'kubernetes deployment' },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const json = response.json();
+
+        // Should find the kubernetes skill
+        expect(json.matches.length).toBeGreaterThanOrEqual(1);
+
+        await app.close();
+      });
+
+      it('filters skill artifacts by governance in search-by-content', async () => {
+        const { app, authToken } = await buildTestServer(
+          (data, auth) => {
+            // Accessible skill
+            seedApprovedSkillArtifact(data, auth.userId, {
+              id: 'skill-public',
+              title: 'Public Skill',
+              requiredLevel: 0,
+            });
+
+            // Restricted skill
+            seedApprovedSkillArtifact(data, auth.userId, {
+              id: 'skill-restricted',
+              title: 'Restricted Skill',
+              requiredLevel: 20,
+            });
+          },
+          { securityLevel: 10 },
+        );
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/retrieval/skills/search-by-content',
+          headers: { authorization: `Bearer ${authToken}` },
+          payload: { text: 'skill' },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const json = response.json();
+
+        // Public skill should be present
+        expect(json.matches.find((m: { artifactId: string }) => m.artifactId === 'skill-public')).toBeDefined();
+
+        // Restricted skill should be filtered out
+        expect(json.matches.find((m: { artifactId: string }) => m.artifactId === 'skill-restricted')).toBeUndefined();
+
+        await app.close();
+      });
+    });
+
+    describe('v3 graph plan search with fixtures', () => {
+      it('returns valid response for graph-plan search with seeded data', async () => {
+        const dataset = buildDeployClusterDataset();
+        const { app, authToken } = await buildTestServer((data, auth) => {
+          if (!data.graphIndexDocuments) data.graphIndexDocuments = [];
+          if (!data.knowledgeEntries) data.knowledgeEntries = [];
+          if (!data.skillArtifacts) data.skillArtifacts = [];
+
+          for (const doc of dataset.graphDocs) {
+            data.graphIndexDocuments.push(doc);
+          }
+          for (const entry of dataset.knowledgeEntries) {
+            data.knowledgeEntries.push(entry);
+          }
+          for (const artifact of dataset.skillArtifacts) {
+            data.skillArtifacts.push(artifact);
+          }
+        });
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v3/retrieval/search',
+          headers: { authorization: `Bearer ${authToken}` },
+          payload: { seed: 'deployment rollback memory leak' },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const json = response.json();
+
+        // Should have routing trace
+        expect(json.routingTrace).toBeDefined();
+        expect(json.routingTrace.routeFamily).toBeDefined();
+
+        await app.close();
+      });
+
+      it('handles fallback when confidence is low', async () => {
+        const { app, authToken } = await buildTestServer((data, auth) => {
+          // Seed minimal data - not enough for high confidence
+          seedApprovedKnowledgeEntry(data, auth.userId, {
+            id: 'knowledge-minimal',
+            shortcut: 'Minimal Entry',
+          });
+        });
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v3/retrieval/search',
+          headers: { authorization: `Bearer ${authToken}` },
+          payload: { seed: 'ambiguous query with no clear match' },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const json = response.json();
+
+        // Should have valid response structure regardless of route
+        expect(json.routingTrace).toBeDefined();
+
+        await app.close();
+      });
+    });
+
+    describe('permission enforcement', () => {
+      it('requires authentication for retrieval endpoints', async () => {
+        const { app } = await buildTestServer((data, auth) => {
+          seedApprovedKnowledgeEntry(data, auth.userId, {
+            id: 'knowledge-test',
+            shortcut: 'Test Entry',
+          });
+        });
+
+        // Test without auth token
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/retrieval/search',
+          payload: { seed: 'test' },
+        });
+
+        // Should be unauthorized without token
+        expect(response.statusCode).toBe(401);
+
+        await app.close();
+      });
+
+      it('allows retrieval with knowledge:search permission', async () => {
+        const { app, authToken } = await buildTestServer(
+          (data, auth) => {
+            seedApprovedKnowledgeEntry(data, auth.userId, {
+              id: 'knowledge-test',
+              shortcut: 'Test Entry',
+            });
+          },
+          {
+            securityLevel: 10,
+            permissions: ['knowledge:search'],
+            roleTemplate: 'user', // Use 'user' role which has knowledge:search by default
+          },
+        );
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/retrieval/search',
+          headers: { authorization: `Bearer ${authToken}` },
+          payload: { seed: 'test' },
+        });
+
+        expect(response.statusCode).toBe(200);
+
+        await app.close();
+      });
     });
   });
 });

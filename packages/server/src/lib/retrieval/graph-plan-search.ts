@@ -5,6 +5,7 @@ import {
   type GraphPlanSearchQuery,
   type GraphPlanSearchResponse,
   type RoutingReason,
+  type TrapFirstPlan,
   graphPlanSearchQuerySchema,
   graphPlanSearchResponseSchema,
 } from '@trapmap/contracts';
@@ -146,13 +147,28 @@ export async function searchKnowledgeGraphPlan(
     steps,
   );
 
-  const plan = await timedStep(
-    'compile-plan',
-    () => compileTrapFirstPlan(services, auth, parsed),
-    steps,
-  );
+  let plan: TrapFirstPlan | null = null;
+  let compileError: Error | null = null;
 
-  const assessment = assessGraphPlanReadiness(plan, parsed.fallbackMode);
+  try {
+    plan = await timedStep(
+      'compile-plan',
+      () => compileTrapFirstPlan(services, auth, parsed),
+      steps,
+    );
+  } catch (err) {
+    compileError = err instanceof Error ? err : new Error(String(err));
+    steps.push({ name: 'compile-plan-error', latencyMs: 0, error: compileError.message });
+  }
+
+  const assessment = plan
+    ? assessGraphPlanReadiness(plan, parsed.fallbackMode)
+    : {
+        score: 0,
+        bucket: 'low' as const,
+        reason: 'graph-plan-compilation-failed' as RoutingReason,
+        fallbackTarget: 'v1-graph-assisted' as const,
+      };
 
   let fallback: GraphPlanFallback | null = null;
   if (assessment.fallbackTarget === 'v2-capsule') {
@@ -210,7 +226,7 @@ export async function searchKnowledgeGraphPlan(
     teamId: auth.activeTeamId,
     pipelineSteps: steps,
     totalLatencyMs: Date.now() - startMs,
-    resultCount: fallback ? fallbackResultCount(fallback) : plan.recommendedSkills.length,
+    resultCount: fallback ? fallbackResultCount(fallback) : plan!.recommendedSkills.length,
     metadata: {
       filters: { labels: [], scopes: [] },
       maxResults: parsed.skillBudget,

@@ -44,10 +44,19 @@ vi.mock('../rag-log.js', () => ({
 }));
 
 vi.mock('./assembly.js', () => ({
-  assembleResponseBuckets: vi.fn().mockReturnValue({
-    globalConstraints: [],
+  assembleResponseBuckets: vi.fn().mockImplementation((scoredEntries) => ({
+    globalConstraints: scoredEntries.map((e: { entry: { id: string } }) => ({
+      entryId: e.entry.id,
+      scope: 'project',
+      shortcut: `Entry ${e.entry.id}`,
+      detail: `Detail for ${e.entry.id}`,
+      labels: ['test'],
+      score: 0.9,
+      reason: 'test match',
+      requiredLevel: 0,
+    })),
     projectKnowledge: [],
-  }),
+  })),
   buildAllActivationHints: vi.fn().mockReturnValue([]),
   buildCapsuleMatch: vi.fn(),
   buildEmptyResponse: vi.fn().mockReturnValue({
@@ -655,5 +664,50 @@ describe('updateEntryEmbeddingCache', () => {
 
     expect(generateEmbedding).toHaveBeenCalledWith('shortcut detail labels');
     expect(hashEmbeddingText).toHaveBeenCalledWith('shortcut detail labels');
+  });
+});
+
+// =============================================================================
+// Phase 1E additions
+// =============================================================================
+
+describe('searchKnowledge with real store data', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('filters entries by governance securityLevel', async () => {
+    const entryLow = createMockEntry('entry_low', { requiredLevel: 0 });
+    const entryHigh = createMockEntry('entry_high', { requiredLevel: 10 });
+
+    // filterEligibleEntries should filter out high-level entry
+    vi.mocked(filterEligibleEntries).mockImplementation((entries, auth) => {
+      return entries.filter((e) => e.requiredLevel <= auth.securityLevel);
+    });
+    vi.mocked(filterByBoundaryContext).mockReturnValue([entryLow]);
+    vi.mocked(dispatchByMode).mockResolvedValue({
+      scoredEntries: [{ entry: entryLow, score: 0.9 }],
+    });
+
+    const services = createMockServices({
+      store: {
+        snapshot: vi.fn().mockResolvedValue({
+          knowledgeEntries: [entryLow, entryHigh],
+          skillArtifacts: [],
+          counters: {},
+        }),
+        transact: vi.fn(),
+        nextId: vi.fn(),
+      } as unknown as SkillShareerServices['store'],
+    });
+
+    const auth = createMockAuth({ securityLevel: 5 });
+    const query = { seed: 'governance filter', mode: 'semantic' as const };
+
+    const result = await searchKnowledge(services, auth, query);
+
+    // Only entryLow should be returned
+    const allResults = [...result.globalConstraints, ...result.projectKnowledge];
+    expect(allResults.find((r) => r.entryId === 'entry_high')).toBeUndefined();
   });
 });

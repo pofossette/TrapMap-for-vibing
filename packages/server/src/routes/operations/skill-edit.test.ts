@@ -4,6 +4,10 @@ import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../../app.js';
 import type { SkillShareerStore } from '../../lib/store.js';
 import { hashSecret, nowIso } from '../../lib/store.js';
+import {
+  buildTestServer,
+  seedApprovedSkillArtifact,
+} from '../../lib/retrieval/__fixtures__/auth-store-helpers.js';
 
 describe('operations routes', () => {
   let app: FastifyInstance;
@@ -218,6 +222,183 @@ describe('operations routes', () => {
       const data = await store.snapshot();
       expect(data.skillArtifacts).toBeDefined();
       expect(data.skillArtifacts.length).toBe(1);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 2B: Skill edit tests using shared fixtures
+// ---------------------------------------------------------------------------
+
+describe('skill edit routes with fixtures (Phase 2B)', () => {
+  describe('edit endpoint authentication', () => {
+    it('returns 401 for edit without authentication', async () => {
+      const { app } = await buildTestServer((data, auth) => {
+        seedApprovedSkillArtifact(data, auth.userId, {
+          id: 'artifact-edit-test',
+          title: 'Test Artifact',
+        });
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/artifact-edit-test/edit',
+        payload: { artifactId: 'artifact-edit-test', title: 'Updated Title' },
+      });
+
+      expect(response.statusCode).toBe(401);
+      await app.close();
+    });
+
+    it('returns 404 for non-existent artifact', async () => {
+      const { app, authToken } = await buildTestServer();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/non-existent-artifact/edit',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: { artifactId: 'non-existent-artifact', title: 'Updated Title' },
+      });
+
+      expect(response.statusCode).toBe(404);
+      await app.close();
+    });
+  });
+
+  describe('edit endpoint authorization', () => {
+    it('allows edit for artifact owner with knowledge:submit permission', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact-owner-test',
+            title: 'Owner Test',
+          });
+        },
+        {
+          permissions: ['knowledge:submit'],
+          roleTemplate: 'user',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/artifact-owner-test/edit',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: { artifactId: 'artifact-owner-test', title: 'Updated Title' },
+      });
+
+      // Owner can edit their own artifact
+      expect(response.statusCode).toBe(200);
+      await app.close();
+    });
+
+    it('rejects edit for non-owner with lower security level', async () => {
+      const otherUserId = 'other_user_for_edit';
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          // Seed artifact owned by another user with higher security level
+          seedApprovedSkillArtifact(data, otherUserId, {
+            id: 'artifact-other-owner',
+            title: 'Other Owner Artifact',
+            requiredLevel: 10, // Same level as test user
+          });
+        },
+        { securityLevel: 5 }, // Lower than artifact's required level
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/artifact-other-owner/edit',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: { artifactId: 'artifact-other-owner', title: 'Updated Title' },
+      });
+
+      // Should fail due to insufficient security level
+      expect(response.statusCode).toBe(403);
+      await app.close();
+    });
+  });
+
+  describe('history endpoint', () => {
+    it('returns 401 for history without authentication', async () => {
+      const { app } = await buildTestServer((data, auth) => {
+        seedApprovedSkillArtifact(data, auth.userId, {
+          id: 'artifact-history-test',
+          title: 'History Test',
+        });
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/artifacts/artifact-history-test/history',
+      });
+
+      expect(response.statusCode).toBe(401);
+      await app.close();
+    });
+
+    it('returns 404 for non-existent artifact history', async () => {
+      const { app, authToken } = await buildTestServer();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/artifacts/non-existent/history?artifactId=non-existent',
+        headers: { authorization: `Bearer ${authToken}` },
+      });
+
+      expect(response.statusCode).toBe(404);
+      await app.close();
+    });
+
+    it('requires knowledge:export permission', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact-export-test',
+            title: 'Export Test',
+          });
+        },
+        {
+          permissions: ['knowledge:search'], // No knowledge:export
+          roleTemplate: 'user',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/artifacts/artifact-export-test/history?artifactId=artifact-export-test',
+        headers: { authorization: `Bearer ${authToken}` },
+      });
+
+      expect(response.statusCode).toBe(403);
+      await app.close();
+    });
+
+    it('returns history for artifact with correct permissions', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact-with-history',
+            title: 'Artifact With History',
+          });
+        },
+        {
+          permissions: ['knowledge:export'],
+          roleTemplate: 'user',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/artifacts/artifact-with-history/history?artifactId=artifact-with-history',
+        headers: { authorization: `Bearer ${authToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      expect(json.artifactId).toBe('artifact-with-history');
+      expect(json.revisions).toBeDefined();
+      await app.close();
     });
   });
 });
