@@ -10,9 +10,9 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 
 ## Current Milestone: Planning Next
 
-**Goal:** v1.6 shipped — ready for next milestone planning
+**Goal:** v1.7 shipped — ready for next milestone planning
 
-**v1.6 shipped 2026-05-04:** 9 phases, 20 plans, 2151+ tests passing, TypeScript strict mode enabled
+**v1.7 shipped 2026-05-05:** 7 phases, 19 plans, 2593 tests passing, Nyquist-compliant validation
 
 ## Requirements
 
@@ -67,7 +67,12 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 - ✓ API endpoint documentation with request/response schemas (DOC-01) — v1.6
 - ✓ User-facing README and getting started guide (DOC-02) — v1.6
 - ✓ Architecture documentation with module relationships (DOC-03) — v1.6
-- ✓ Graph-plan structural evaluation with node/edge/focus assertions (GPEVAL-01, GPEVAL-02, GPEVAL-03) — v1.6
+- ✓ Graph-plan structural evaluation with node/edge/focus assertions (GPEVAL-01, GPEVAL-02, GPEVAL-03) — v1.7
+- ✓ Operations route decomposition (1680→27 lines, 9 focused modules) — v1.7
+- ✓ Orchestrator decomposition (1196→461+128+386+69 lines) — v1.7
+- ✓ Store decoupling with 5 repository interfaces — v1.7
+- ✓ CLI operations refactoring (1060→39 lines, 8 command modules) — v1.7
+- ✓ Tech debt cleanup (574 MB freed, 18 unused types unexported) — v1.7
 
 ### Out of Scope
 
@@ -86,9 +91,9 @@ Teams can retrieve concise, trustworthy, team-relevant engineering knowledge fro
 
 ## Context
 
-**Current State (v1.6 shipped 2026-05-04):**
+**Current State (v1.7 shipped 2026-05-05):**
 
-v1.6 Test Coverage & Optimization shipped with 9 phases, 20 plans, and 13 requirements validated. The system now has 2151+ tests passing, TypeScript strict mode enabled, query performance optimizations (HNSW vector + GIN keyword indexes), and complete documentation.
+v1.7 Eval Structural Coverage & Architecture Health shipped with 7 phases, 19 plans, and 2593 tests passing. All phases Nyquist-compliant with test coverage verified. Major accomplishments include graph-plan structural evaluation, operations route decomposition (1680→27 lines), orchestrator decomposition (1196→461+lines), store decoupling with 5 repository interfaces, CLI operations refactoring (1060→39 lines), and tech debt cleanup (574 MB freed).
 
 - **Tech stack:** TypeScript, pnpm monorepo, Fastify server, LangChain JS, CLI with Commander.js, Docker, Drizzle/PostgreSQL, Graphology
 - **Data model:** Skill artifacts with SKILL.md, references/, assets/, scripts/; derived profile, capsules, and client manifest; legacy knowledge entries for compatibility; graph documents for GraphRAG-lite
@@ -105,12 +110,10 @@ v1.6 Test Coverage & Optimization shipped with 9 phases, 20 plans, and 13 requir
 
 **Known issues / Tech debt:**
 
-- PERF-01/PERF-02: Batch embedding and HNSW index optimizations created but not fully wired into production pipeline (ensureVectorIndex not called at startup; getBatchEmbeddings orphaned)
-- 64 unused exports and 88 unused types remain after dead code removal
-- 7 phases (70-76) lack formal VERIFICATION.md files
-- 5 deferred quick tasks from earlier milestones (see STATE.md)
-- SEVAL-01 citation adherence implemented but not surfaced as first-class metric
-- Core tier summary cases empty placeholder (evals/summary/core.ts)
+- PERF-01/PERF-02: Batch embedding and HNSW index optimizations created but not fully wired into production pipeline
+- PostgreSQL repository implementations deferred (InMemory-only for now)
+- Dual-write pattern between repository and store not fully migrated
+- orchestrator.ts at 461 lines exceeds 300-line target (accepted deviation)
 
 ## Constraints
 
@@ -154,6 +157,10 @@ v1.6 Test Coverage & Optimization shipped with 9 phases, 20 plans, and 13 requir
 | Feedback-driven lifecycle triggers (Phase 65) | Recurring feedback patterns can automatically transition state | ✓ Good — checkLifecycleTriggers wired into feedback batch execution |
 | Feature flag for DB-level search rollout (Phase 72) | Gradual rollout of HNSW/GIN search with in-memory fallback | ⚠ Revisit — flag exists but ensureVectorIndex() not wired at startup |
 | Batch embedding optimization (Phase 72) | Reduce per-query embedding overhead from O(n) async to O(miss) sync | ⚠ Revisit — functions created but orphaned, not used by orchestrator |
+| Repository pattern with store fallback (Phase 83) | Backward compatibility during transition to PostgreSQL repositories | ✓ Good — 5 interfaces, InMemory implementations, routes use fallback |
+| Type guards over duck-typing (Phase 83 fix) | Robust runtime discrimination between repository and store | ✓ Good — isSessionStore(), isStoreData() guards |
+| Thin router for route decomposition (Phases 80, 85) | Minimal indirection, clear delegation to sub-modules | ✓ Good — 27-line and 39-line thin routers |
+| Orchestrator decomposition with facade (Phase 81) | Preserve backward compatibility while splitting god file | ✓ Good — retrieval.ts facade unchanged, 61% reduction |
 | Knip for dead code detection (Phase 74) | Static analysis for unused exports/types | ✓ Good — identified 6 unused files for removal |
 | TypeScript strict mode with noUncheckedIndexedAccess (Phase 75) | Maximum type safety across codebase | ✓ Good — builds clean, all type errors resolved |
 
@@ -175,4 +182,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-04 after v1.6 Test Coverage & Optimization milestone*
+*Last updated: 2026-05-05 after v1.7 Eval Structural Coverage & Architecture Health milestone*

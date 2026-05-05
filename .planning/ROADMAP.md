@@ -9,9 +9,51 @@
 - ✅ **v1.4 评测系统构建** — Phases 25-47 (shipped 2026-04-29)
 - ✅ **v1.5 功能增强** — Phases 48-67 (shipped 2026-05-04)
 - ✅ **v1.6 Test Coverage & Optimization** — Phases 68-76 (shipped 2026-05-04)
-- ✅ **v1.7 Eval Structural Coverage & Architecture Health** — Phases 78-86
+- ✅ **v1.7 Eval Structural Coverage & Architecture Health** — Phases 78-86 (shipped 2026-05-05)
 
 ## Phases
+
+<details>
+<summary>✅ v1.7 Eval Structural Coverage & Architecture Health (Phases 78-86) — SHIPPED 2026-05-05</summary>
+
+### Graph-Plan Evaluation
+- [x] Phase 78: Graph-Plan Evaluation (2/2 plans) — completed 2026-05-04
+
+### God File Refactoring
+- [x] Phase 80: Operations Route Refactoring (3/3 plans) — completed 2026-05-04
+- [x] Phase 81: Orchestrator Decomposition (3/3 plans) — completed 2026-05-05
+- [x] Phase 85: CLI Operations Refactoring (3/3 plans) — completed 2026-05-05
+
+### Infrastructure
+- [x] Phase 83: Store Decoupling (4/4 plans) — completed 2026-05-05
+
+### Cleanup
+- [x] Phase 84: Tech Debt Cleanup (3/3 plans) — completed 2026-05-05
+- [x] Phase 86: Gitignore Cleanup (1/1 plan) — completed 2026-05-05
+
+</details>
+
+<details>
+<summary>✅ v1.6 Test Coverage & Optimization (Phases 68-76) — SHIPPED 2026-05-04</summary>
+
+### Test Coverage
+- [x] Phase 68: Fix failing unit tests (1/1 plan)
+- [x] Phase 69: Governance and auth route tests (3/3 plans)
+- [x] Phase 70: Retrieval and indexing core tests (3/3 plans)
+- [x] Phase 71: CLI and contracts tests + coverage tooling (3/3 plans)
+
+### Performance Optimization
+- [x] Phase 72: Query speed optimization (6/6 plans)
+- [x] Phase 73: Memory usage optimization (1/1 plan)
+
+### Code Quality
+- [x] Phase 74: Dead code removal (1/1 plan)
+- [x] Phase 75: TypeScript strict mode compliance (1/1 plan)
+
+### Documentation
+- [x] Phase 76: Documentation completion (1/1 plan)
+
+</details>
 
 <details>
 <summary>✅ v1.5 功能增强 (Phases 48-67) — SHIPPED 2026-05-04</summary>
@@ -52,92 +94,15 @@
 
 </details>
 
-<details>
-<summary>✅ v1.6 Test Coverage & Optimization (Phases 68-76) — SHIPPED 2026-05-04</summary>
-
-### Test Coverage
-- [x] Phase 68: Fix failing unit tests (1/1 plan) (completed 2026-05-03)
-- [x] Phase 69: Governance and auth route tests (3/3 plans) (completed 2026-05-03)
-- [x] Phase 70: Retrieval and indexing core tests (3/3 plans) (completed 2026-05-04)
-- [x] Phase 71: CLI and contracts tests + coverage tooling (3/3 plans) (completed 2026-05-04)
-
-### Performance Optimization
-- [x] Phase 72: Query speed optimization (6/6 plans) (completed 2026-05-04)
-- [x] Phase 73: Memory usage optimization (1/1 plan) (completed 2026-05-04)
-
-### Code Quality
-- [x] Phase 74: Dead code removal (1/1 plan) (completed 2026-05-04)
-- [x] Phase 75: TypeScript strict mode compliance (1/1 plan) (completed 2026-05-04)
-
-### Documentation
-- [x] Phase 76: Documentation completion (1/1 plan) (completed 2026-05-04)
-
-</details>
-
-<details>
-<summary>v1.7 Eval Structural Coverage (Phase 78+) — IN PROGRESS</summary>
-
-### Graph-Plan Evaluation
-- [ ] Phase 78: Graph-Plan Evaluation (2 plans)
-  - [ ] PLAN.md — Schema, normalization, assertions, scenarios, test cases, integration, normalization tests (Wave 1)
-  - [x] 78-02-PLAN.md — Governance integration, verdict assertions, core case updates (Wave 2)
-
-### Prompt Architecture & Caching
-- [ ] Phase 79: Prompt Template Unification (0/? plans)
-
-</details>
-
-<details>
-<summary>🔵 v1.7 Eval Structural Coverage & Architecture Health (Phases 78-86) — IN PROGRESS</summary>
-
-### God File Refactoring
-- [x] Phase 80: Operations Route Refactoring (3 plans) (completed 2026-05-04)
-  - 拆分 `routes/operations.ts` (1680 行) 为 9 个职责单一的路由模块
-  - [x] 80-01-PLAN.md — Extract 9 sub-modules, create thin router, update app.ts (Wave 1)
-  - [x] 80-02-PLAN.md — Split test file to match module structure (Wave 2)
-  - [x] 80-03-PLAN.md — Final verification, line count checks, full test run (Wave 3)
-- [x] Phase 81: Orchestrator Decomposition (3 plans) (completed 2026-05-05)
-  - 拆分 `lib/retrieval/orchestrator.ts` (1195 行) 为 routing.ts, recall-coordinator.ts, refinement.ts 模块
-  - [x] 81-01-PLAN.md — Extract routing, recall-coordinator, refinement modules, slim orchestrator (Wave 1)
-  - [x] 81-02-PLAN.md — Split test files to match module structure (Wave 2)
-  - [x] 81-03-PLAN.md — Final verification, line count checks, full test run (Wave 3)
-- [x] Phase 85: CLI Operations Refactoring (3 plans) (completed 2026-05-05)
-  - 拆分 `cli/commands/operations.ts` (1060 行) 为 list, edit, import, export, activate 等独立命令
-  - [x] 85-01-PLAN.md — Extract helpers to lib/artifact-bundle.ts (Wave 1)
-  - [x] 85-02-PLAN.md — Extract command modules to operations/ subdirectory (Wave 2)
-  - [x] 85-03-PLAN.md — Convert to thin router, verify tests and line counts (Wave 3)
-
-### Infrastructure
-- [ ] Phase 82: Logging Unification (0/? plans)
-  - 引入 Pino 结构化日志，统一 console.* 输出，添加请求 ID 追踪
-- [x] Phase 83: Store Decoupling (4 plans) (completed 2026-05-05)
-  - 引入 Repository 接口层，解耦 store.ts (被 96 文件导入)
-  - [x] 83-01-PLAN.md — SessionRepository + AccessKeyRepository interfaces (Wave 1)
-  - [x] 83-02-PLAN.md — Migrate auth.ts routes to repository pattern (Wave 2)
-  - [x] 83-03-PLAN.md — UserRepository + TeamRepository + MembershipRepository (Wave 3)
-  - [x] 83-04-PLAN.md — Migrate teams.ts and members.ts routes (Wave 4)
-
-### Cleanup
-- [x] Phase 84: Tech Debt Cleanup (3 plans) (completed 2026-05-05)
-  - 清理过期 worktree (574 MB)、knip 警告、依赖更新
-  - [x] 84-01-PLAN.md — Prune stale worktrees, fix duplicate export (Wave 1)
-  - [x] 84-02-PLAN.md — Unexport unused types to reduce knip warnings (Wave 2)
-  - [x] 84-03-PLAN.md — Final verification, update STATE.md (Wave 3)
-- [x] Phase 86: Gitignore Cleanup (1 plan) (completed 2026-05-05)
-  - 排除 dist/ 版本控制，清理仓库体积，更新 CONTRIBUTING.md
-  - [x] 86-01-PLAN.md — Fix .gitignore redundant patterns, prune git objects, update CONTRIBUTING.md (Wave 1)
-
-</details>
-
 ## Progress
 
-| Phase | Milestone | Plans Complete | Status | Completed |
-|-------|-----------|----------------|--------|-----------|
-| 1-47 | v1.0-v1.4 | 93/93 | Complete | 2026-04-29 |
-| 48-67 | v1.5 | 58/58 | Complete | 2026-05-04 |
-| 68-76 | v1.6 | 20/20 | Complete | 2026-05-04 |
-| 78-86 | v1.7 | 15/15 | Complete | 2026-05-05 |
+| Milestone | Phases | Plans | Status | Shipped |
+|-----------|--------|-------|--------|---------|
+| v1.0-v1.4 | 1-47 | 93 | Complete | 2026-04-29 |
+| v1.5 | 48-67 | 58 | Complete | 2026-05-04 |
+| v1.6 | 68-76 | 20 | Complete | 2026-05-04 |
+| v1.7 | 78-86 | 19 | Complete | 2026-05-05 |
 
 ---
 
-*Roadmap updated: 2026-05-05 — Phase 86 complete, v1.7 shipped*
+*Roadmap updated: 2026-05-05 — v1.7 Eval Structural Coverage & Architecture Health shipped*
