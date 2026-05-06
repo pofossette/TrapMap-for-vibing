@@ -425,6 +425,7 @@ export function makeMockServices(storeData: Partial<StoreData> = {}): SkillShare
     userRepo: undefined,
     teamRepo: undefined,
     membershipRepo: undefined,
+    usageAnalyticsRepo: undefined,
   };
 }
 

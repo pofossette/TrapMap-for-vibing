@@ -129,7 +129,7 @@ export class PgUsageAnalyticsRepository implements UsageAnalyticsRepository {
 
     const conditions: string[] = [];
     const queryParams: (string | Date)[] = [];
-    let paramIndex = 1;
+    let paramIndex = 2; // $1 is reserved for granularity
 
     if (params.teamId !== undefined) {
       conditions.push(`team_id = $${paramIndex++}`);

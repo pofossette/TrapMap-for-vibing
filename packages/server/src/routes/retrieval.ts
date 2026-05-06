@@ -31,7 +31,7 @@ import { logUserOperation } from '../lib/user-ops-log.js';
  */
 function buildUsageEvents(
   auth: { actorId: string; activeTeamId: string | null },
-  result: { globalConstraints: Array<{ id: string }>; projectKnowledge: Array<{ id: string }> },
+  result: { globalConstraints: Array<{ entryId: string }>; projectKnowledge: Array<{ entryId: string }> },
   queryId: string,
   queryText?: string,
 ): UsageEventInput[] {
@@ -43,8 +43,8 @@ function buildUsageEvents(
       teamId: auth.activeTeamId,
       accountId: auth.actorId,
       entryType: 'knowledge',
-      entryId: entry.id,
-      queryText,
+      entryId: entry.entryId,
+      ...(queryText !== undefined && { queryText }),
     });
   }
 
@@ -54,8 +54,8 @@ function buildUsageEvents(
       teamId: auth.activeTeamId,
       accountId: auth.actorId,
       entryType: 'knowledge',
-      entryId: entry.id,
-      queryText,
+      entryId: entry.entryId,
+      ...(queryText !== undefined && { queryText }),
     });
   }
 
@@ -95,7 +95,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
     if (app.skillShareer.usageAnalyticsRepo) {
       const queryId = randomUUID();
       void app.skillShareer.usageAnalyticsRepo.recordEvents(
-        buildUsageEvents(auth, result, queryId, query.query),
+        buildUsageEvents(auth, result, queryId, query.seed),
       );
     }
 
@@ -192,7 +192,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
           teamId: auth.activeTeamId,
           accountId: auth.actorId,
           entryType: 'trap' as const,
-          entryId: trap.entryId,
+          entryId: trap.sourceId,
           queryText: query.seed,
         })),
         // Record skill recommendations

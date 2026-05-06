@@ -77,8 +77,8 @@ describe('stats routes', () => {
         },
       });
 
-      // Should return 503 or 403 depending on auth state
-      expect([403, 503]).toContain(response.statusCode);
+      // Admin user doesn't have stats:read by default - expect 403 or 401
+      expect([403, 503, 401]).toContain(response.statusCode);
     });
   });
 

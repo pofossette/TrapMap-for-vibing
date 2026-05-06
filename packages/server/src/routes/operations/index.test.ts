@@ -186,9 +186,9 @@ describe('Phase 80 Nyquist Validation', () => {
       const hasRouteHandlers = /app\.(get|post)\s*\(/.test(content);
       expect(hasRouteHandlers, 'Thin router should have no app.get/app.post handlers').toBe(false);
 
-      // Should have exactly 9 app.register calls
+      // Should have exactly 10 app.register calls
       const registerMatches = content.match(/app\.register\s*\(/g);
-      expect(registerMatches, 'Thin router should have 9 app.register calls').toHaveLength(9);
+      expect(registerMatches, 'Thin router should have 10 app.register calls').toHaveLength(10);
     });
   });
 

@@ -43,13 +43,13 @@ export const statsRoutes: FastifyPluginAsync = async (app) => {
     const query = statsUsageQuerySchema.parse(request.query as Record<string, unknown>);
 
     // Non-system-admin can only see their own team's data
-    const teamId = auth.subjectType === 'system-admin'
-      ? (query.teamId ?? undefined)
+    const resolvedTeamId = auth.subjectType === 'system-admin'
+      ? query.teamId
       : auth.activeTeamId ?? undefined;
 
     const result = await repo.queryUsageTimeSeries({
-      teamId,
-      accountId: query.accountId,
+      ...(resolvedTeamId !== undefined && { teamId: resolvedTeamId }),
+      ...(query.accountId !== undefined && { accountId: query.accountId }),
       from: new Date(query.from),
       to: new Date(query.to),
       granularity: query.granularity,
@@ -76,15 +76,15 @@ export const statsRoutes: FastifyPluginAsync = async (app) => {
     const query = statsHitRankingQuerySchema.parse(request.query as Record<string, unknown>);
 
     // Non-system-admin can only see their own team's data
-    const teamId = auth.subjectType === 'system-admin'
-      ? (query.teamId ?? undefined)
+    const resolvedTeamId = auth.subjectType === 'system-admin'
+      ? query.teamId
       : auth.activeTeamId ?? undefined;
 
     const result = await repo.queryHitRanking({
-      teamId,
-      entryType: query.entryType,
-      from: query.from ? new Date(query.from) : undefined,
-      to: query.to ? new Date(query.to) : undefined,
+      ...(resolvedTeamId !== undefined && { teamId: resolvedTeamId }),
+      ...(query.entryType !== undefined && { entryType: query.entryType }),
+      ...(query.from !== undefined && { from: new Date(query.from) }),
+      ...(query.to !== undefined && { to: new Date(query.to) }),
       limit: query.limit,
     });
 
@@ -114,8 +114,8 @@ export const statsRoutes: FastifyPluginAsync = async (app) => {
     const query = statsSummaryQuerySchema.parse(request.query as Record<string, unknown>);
 
     const result = await repo.querySystemSummary({
-      from: query.from ? new Date(query.from) : undefined,
-      to: query.to ? new Date(query.to) : undefined,
+      ...(query.from !== undefined && { from: new Date(query.from) }),
+      ...(query.to !== undefined && { to: new Date(query.to) }),
     });
 
     return statsSummaryResponseSchema.parse(result);

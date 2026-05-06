@@ -9,6 +9,7 @@ import {
   migrateRoutes,
   skillEditRoutes,
   skillReviewRoutes,
+  statsRoutes,
   statusRoutes,
 } from './operations/index.js';
 
@@ -24,4 +25,5 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
   await app.register(statusRoutes);
   await app.register(skillEditRoutes);
   await app.register(skillReviewRoutes);
+  await app.register(statsRoutes);
 };
