@@ -8,7 +8,7 @@ description: Use when planning or implementing TrapMap work, operating the TrapM
 ## Control Path
 
 1. Resolve the CLI invocation first: prefer `trapmap`; in this monorepo use `pnpm --filter @trapmap/cli dev -- <command>` when the built binary is unavailable.
-2. Before planning, read [references/retrieval.md](references/retrieval.md) and retrieve matching skills with a task seed. Use only the 1-3 most targeted matches as planning controls.
+2. Before planning, read [references/retrieval.md](references/retrieval.md) and retrieve matching skills with a task seed. Use `trapmap load "<seed>"` for pre-formatted agent context or `trapmap search` for raw retrieval. Use only the 1-3 most targeted matches as planning controls.
 3. Before implementation, retrieve matching traps with a risk/implementation seed. Treat matching traps as constraints before applying any skill guidance.
 4. Compile a trap-first plan: list blocking traps, then the skills/capsules that directly mitigate them, then verification commands. Keep extra matches as citations instead of loading them all into context.
 5. If the task scope changes materially, rerun retrieval with a seed that matches the new scope.

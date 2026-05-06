@@ -56,6 +56,18 @@ Use `--v2` when you need capsule-native output or activation hints:
 trapmap search "<planned implementation area or risk seed>" --scope project --v2 --max-results 5 --json
 ```
 
+## Agent Context Load
+
+Use `load` for pre-formatted agent-consumable context (markdown with routing, plan, and skill sections):
+
+```bash
+trapmap load "<seed>" --scope project --json
+```
+
+`load` flags: `--scope`, `--label` (repeatable), `--max-results`, `--skill-budget`, `--max-depth`, `--fallback`, `--stdin`, `--json`.
+
+Default output is markdown wrapped in `<!-- trapmap-load-context -->` markers. Use `--json` for raw structured data.
+
 ## Trap-First Selection
 
 Compile results in this order:
