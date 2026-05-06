@@ -720,3 +720,105 @@ export const artifactDeactivateResponseSchema = z.object({
 
 export type ArtifactDeactivateRequest = z.infer<typeof artifactDeactivateRequestSchema>;
 export type ArtifactDeactivateResponse = z.infer<typeof artifactDeactivateResponseSchema>;
+
+// =============================================================================
+// Phase 89: Usage Analytics Contracts
+// =============================================================================
+
+/**
+ * Entry type for usage analytics.
+ */
+export const statsEntryTypeSchema = z.enum(['skill', 'trap', 'knowledge']);
+
+/**
+ * Granularity for time-series aggregation.
+ */
+export const statsGranularitySchema = z.enum(['hour', 'day', 'week', 'month']);
+
+/**
+ * Usage time-series query schema.
+ * Request usage counts aggregated by time bucket.
+ */
+export const statsUsageQuerySchema = z.object({
+  teamId: entityIdSchema.optional(),
+  accountId: entityIdSchema.optional(),
+  from: isoTimestampSchema,
+  to: isoTimestampSchema,
+  granularity: statsGranularitySchema.default('day'),
+});
+
+/**
+ * Usage time-series item schema.
+ * Single time bucket with event count.
+ */
+export const statsUsageItemSchema = z.object({
+  period: z.string(),
+  count: z.number().int().min(0),
+});
+
+/**
+ * Usage time-series response schema.
+ */
+export const statsUsageResponseSchema = z.object({
+  items: z.array(statsUsageItemSchema),
+});
+
+/**
+ * Hit ranking query schema.
+ * Request top N entries by hit count.
+ */
+export const statsHitRankingQuerySchema = z.object({
+  teamId: entityIdSchema.optional(),
+  entryType: statsEntryTypeSchema.optional(),
+  from: isoTimestampSchema.optional(),
+  to: isoTimestampSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+/**
+ * Hit ranking item schema.
+ * Single entry with hit count.
+ */
+export const statsHitRankingItemSchema = z.object({
+  entryId: entityIdSchema,
+  entryType: statsEntryTypeSchema,
+  count: z.number().int().min(0),
+});
+
+/**
+ * Hit ranking response schema.
+ */
+export const statsHitRankingResponseSchema = z.object({
+  items: z.array(statsHitRankingItemSchema),
+});
+
+/**
+ * System summary query schema.
+ * Request system-wide statistics.
+ */
+export const statsSummaryQuerySchema = z.object({
+  from: isoTimestampSchema.optional(),
+  to: isoTimestampSchema.optional(),
+});
+
+/**
+ * System summary response schema.
+ * Aggregate statistics across the system.
+ */
+export const statsSummaryResponseSchema = z.object({
+  totalEvents: z.number().int().min(0),
+  uniqueQueries: z.number().int().min(0),
+  uniqueTeams: z.number().int().min(0),
+  uniqueAccounts: z.number().int().min(0),
+});
+
+export type StatsEntryType = z.infer<typeof statsEntryTypeSchema>;
+export type StatsGranularity = z.infer<typeof statsGranularitySchema>;
+export type StatsUsageQuery = z.infer<typeof statsUsageQuerySchema>;
+export type StatsUsageItem = z.infer<typeof statsUsageItemSchema>;
+export type StatsUsageResponse = z.infer<typeof statsUsageResponseSchema>;
+export type StatsHitRankingQuery = z.infer<typeof statsHitRankingQuerySchema>;
+export type StatsHitRankingItem = z.infer<typeof statsHitRankingItemSchema>;
+export type StatsHitRankingResponse = z.infer<typeof statsHitRankingResponseSchema>;
+export type StatsSummaryQuery = z.infer<typeof statsSummaryQuerySchema>;
+export type StatsSummaryResponse = z.infer<typeof statsSummaryResponseSchema>;

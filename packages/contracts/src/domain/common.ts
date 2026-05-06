@@ -32,6 +32,7 @@ export const permissionSchema = z.enum([
   'knowledge:export',
   'knowledge:import',
   'audit:read',
+  'stats:read',
 ]);
 
 export const lifecycleStateSchema = z.enum([

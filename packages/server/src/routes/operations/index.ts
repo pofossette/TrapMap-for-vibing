@@ -7,3 +7,4 @@ export { migrateRoutes } from './migrate.js';
 export { statusRoutes } from './status.js';
 export { skillEditRoutes } from './skill-edit.js';
 export { skillReviewRoutes } from './skill-review.js';
+export { statsRoutes } from './stats.js';

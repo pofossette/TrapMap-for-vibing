@@ -551,3 +551,41 @@ export const artifactLifecycleEvents = pgTable(
   },
   (table) => [index('idx_artifact_lifecycle_events_artifact').on(table.artifactId)],
 );
+
+// =============================================================================
+// Usage Analytics Tables (Phase 89)
+// =============================================================================
+
+/**
+ * Usage events table for recording retrieval hits.
+ * Each row represents one hit on a knowledge entry or skill artifact.
+ * Enables time-series analytics and hit ranking queries.
+ */
+export const usageEvents = pgTable(
+  'usage_events',
+  {
+    /** Unique event identifier */
+    id: text('id').primaryKey(),
+    /** Query ID grouping hits from same search request */
+    queryId: text('query_id').notNull(),
+    /** Team ID (maps to "organization" in requirements) */
+    teamId: text('team_id'),
+    /** Account ID of the user who made the request */
+    accountId: text('account_id').notNull(),
+    /** Entry type: 'skill' | 'trap' | 'knowledge' */
+    entryType: text('entry_type').notNull(),
+    /** The hit entry's ID */
+    entryId: text('entry_id').notNull(),
+    /** Optional original query text */
+    queryText: text('query_text'),
+    /** Event timestamp */
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // Composite indexes matching query patterns
+    index('idx_usage_events_team_created').on(table.teamId, table.createdAt),
+    index('idx_usage_events_account_created').on(table.accountId, table.createdAt),
+    index('idx_usage_events_entry_type_created').on(table.entryType, table.createdAt),
+    index('idx_usage_events_entry_id_created').on(table.entryId, table.createdAt),
+  ],
+);
