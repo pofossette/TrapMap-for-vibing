@@ -41,6 +41,7 @@ describe('Phase 75: TypeScript strict mode configuration', () => {
 describe('Phase 75: typecheck produces zero errors', () => {
   it(
     'pnpm typecheck exits with code 0 (no type errors)',
+    { timeout: 130_000 },
     () => {
       // Run typecheck from project root; should succeed silently
       const result = execSync('pnpm typecheck', {
@@ -51,7 +52,6 @@ describe('Phase 75: typecheck produces zero errors', () => {
       // If we get here, typecheck succeeded (exit 0)
       expect(result).toBeDefined();
     },
-    { timeout: 130_000 },
   );
 });
 
