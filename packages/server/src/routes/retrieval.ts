@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import type { FastifyPluginAsync } from 'fastify';
 
 import {
@@ -13,6 +15,7 @@ import {
   trapFirstPlanSchema,
 } from '@trapmap/contracts';
 
+import type { UsageEventInput } from '../lib/analytics/index.js';
 import { requirePermission } from '../lib/rbac.js';
 import { searchKnowledge, searchKnowledgeV2 } from '../lib/retrieval.js';
 import { searchKnowledgeGraphPlan } from '../lib/retrieval/graph-plan-search.js';
@@ -21,6 +24,43 @@ import { searchSkillsByContent } from '../lib/retrieval/skill-lookup.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
 import { logUserOperation } from '../lib/user-ops-log.js';
+
+/**
+ * Build usage events from v1 retrieval result.
+ * Creates one event per returned entry (hit).
+ */
+function buildUsageEvents(
+  auth: { actorId: string; activeTeamId: string | null },
+  result: { globalConstraints: Array<{ id: string }>; projectKnowledge: Array<{ id: string }> },
+  queryId: string,
+  queryText?: string,
+): UsageEventInput[] {
+  const events: UsageEventInput[] = [];
+
+  for (const entry of result.globalConstraints) {
+    events.push({
+      queryId,
+      teamId: auth.activeTeamId,
+      accountId: auth.actorId,
+      entryType: 'knowledge',
+      entryId: entry.id,
+      queryText,
+    });
+  }
+
+  for (const entry of result.projectKnowledge) {
+    events.push({
+      queryId,
+      teamId: auth.activeTeamId,
+      accountId: auth.actorId,
+      entryType: 'knowledge',
+      entryId: entry.id,
+      queryText,
+    });
+  }
+
+  return events;
+}
 
 export const retrievalRoutes: FastifyPluginAsync = async (app) => {
   // Legacy v1 retrieval path (COMP-03)
@@ -51,6 +91,14 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
       },
     });
 
+    // Record usage events (fire-and-forget)
+    if (app.skillShareer.usageAnalyticsRepo) {
+      const queryId = randomUUID();
+      void app.skillShareer.usageAnalyticsRepo.recordEvents(
+        buildUsageEvents(auth, result, queryId, query.query),
+      );
+    }
+
     // Validate and return response
     return retrievalResponseSchema.parse(result);
   });
@@ -80,6 +128,20 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
       teamId: auth.activeTeamId,
       metadata: { endpoint: 'v2-retrieval-search', resultCount: result.capsules.length },
     });
+
+    // Record usage events (fire-and-forget)
+    if (app.skillShareer.usageAnalyticsRepo) {
+      const queryId = randomUUID();
+      const events: UsageEventInput[] = result.capsules.map((capsule) => ({
+        queryId,
+        teamId: auth.activeTeamId,
+        accountId: auth.actorId,
+        entryType: 'skill' as const,
+        entryId: capsule.artifactId,
+        queryText: query.seed,
+      }));
+      void app.skillShareer.usageAnalyticsRepo.recordEvents(events);
+    }
 
     // Validate and return v2 response with activation hints (T-15-03)
     return retrievalV2ResponseWithHintsSchema.parse(result);
@@ -119,6 +181,32 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
         resultCount,
       },
     });
+
+    // Record usage events (fire-and-forget)
+    if (app.skillShareer.usageAnalyticsRepo && result.plan) {
+      const queryId = randomUUID();
+      const events: UsageEventInput[] = [
+        // Record trap hits
+        ...result.plan.blockingTraps.map((trap) => ({
+          queryId,
+          teamId: auth.activeTeamId,
+          accountId: auth.actorId,
+          entryType: 'trap' as const,
+          entryId: trap.entryId,
+          queryText: query.seed,
+        })),
+        // Record skill recommendations
+        ...result.plan.recommendedSkills.map((skill) => ({
+          queryId,
+          teamId: auth.activeTeamId,
+          accountId: auth.actorId,
+          entryType: 'skill' as const,
+          entryId: skill.artifactId,
+          queryText: query.seed,
+        })),
+      ];
+      void app.skillShareer.usageAnalyticsRepo.recordEvents(events);
+    }
 
     return graphPlanSearchResponseSchema.parse(result);
   });
