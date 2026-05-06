@@ -42,7 +42,7 @@ describe('CLI load command', () => {
       selectedMode: 'mix',
       routeFamily: 'graph-plan',
       routingReason: 'graph-plan-selected',
-      recallChannels: ['semantic'],
+      channelsUsed: ['semantic'],
       fallbackTarget: null,
       confidenceScore: 0.9,
       confidenceBucket: 'high',
@@ -193,6 +193,81 @@ describe('CLI load command', () => {
     // Markdown output uses formatLoadContext
     const loggedOutput = consoleLogSpy.mock.calls[0]?.[0];
     expect(loggedOutput).toContain('formatted:');
+
+    consoleLogSpy.mockRestore();
+  });
+});
+
+describe('CLI load command — integration with real formatter', () => {
+  // Use vi.importActual to get the real formatLoadContext (not the mocked version).
+  // This exercises the real formatter as required by review finding IN-01.
+
+  const realMockResponse: GraphPlanSearchResponse = {
+    routingTrace: {
+      selectedMode: 'mix',
+      routeFamily: 'graph-plan',
+      routingReason: 'graph-plan-selected',
+      channelsUsed: ['semantic'],
+      fallbackTarget: null,
+      confidenceScore: 0.9,
+      confidenceBucket: 'high',
+    },
+    plan: {
+      blockingTraps: [
+        {
+          nodeId: 'trap-1',
+          sourceId: 'entry-1',
+          label: 'Avoid global state',
+          severity: 'hard',
+          scope: 'project',
+          requiredLevel: 1,
+          evidence: 'Global state causes race conditions',
+          score: 0.9,
+        },
+      ],
+      recommendedSkills: [],
+      edges: [],
+      citations: [],
+      graph: { nodes: [], edges: [], focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] } },
+    },
+    fallback: null,
+  };
+
+  it('outputs real markdown with trapmap-load-context markers', async () => {
+    // Get the real formatter via vi.importActual (bypasses vi.mock hoisting)
+    const { formatLoadContext: realFormatter } = await vi.importActual<
+      typeof import('../lib/markdown-formatter.js')
+    >('../lib/markdown-formatter.js');
+
+    const output = realFormatter(realMockResponse);
+
+    expect(output).toContain('<!-- trapmap-load-context -->');
+    expect(output).toContain('<!-- /trapmap-load-context -->');
+    expect(output).toContain('### Blocking Traps');
+    expect(output).toContain('[HARD] Avoid global state');
+    expect(output).toContain('### Routing');
+    expect(output).toContain('Mode: mix');
+    expect(output).toContain('Channels: semantic');
+  });
+
+  it('outputs real JSON with routingTrace when --json is set', async () => {
+    // Verify the mock response data round-trips correctly as JSON (used by --json path)
+    vi.mocked(http.apiRequest).mockResolvedValue({
+      data: realMockResponse,
+      sessionToken: 'mock-token',
+    });
+
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const program = new Command();
+    registerLoadCommand(program, { allowSearch: true });
+
+    await program.parseAsync(['load', 'test seed', '--json'], { from: 'user' });
+
+    const loggedOutput = consoleLogSpy.mock.calls[0]?.[0] as string;
+    const parsed = JSON.parse(loggedOutput);
+    expect(parsed.routingTrace.channelsUsed).toEqual(['semantic']);
+    expect(parsed.routingTrace.selectedMode).toBe('mix');
 
     consoleLogSpy.mockRestore();
   });
