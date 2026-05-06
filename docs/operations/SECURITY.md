@@ -18,6 +18,62 @@ TrapMap 的安全模型基于三层防护：
 └──────────────┴──────────────────────────────┘
 ```
 
+### 认证流程图（Mermaid）
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant CLI as CLI/Browser
+    participant Auth as Auth Service
+    participant Store as Store
+
+    alt 会话认证
+        User->>CLI: 输入用户名密码
+        CLI->>Auth: POST /v1/auth/login
+        Auth->>Store: 查找用户
+        Store-->>Auth: 用户记录
+        Auth->>Auth: bcrypt 验证密码
+        Auth->>Store: 创建 Session
+        Store-->>Auth: Session ID
+        Auth-->>CLI: Set-Cookie: session=xxx
+        CLI-->>User: 登录成功
+    else 访问密钥认证
+        User->>CLI: 使用 API Key
+        CLI->>Auth: Authorization: Bearer ak_xxx
+        Auth->>Store: 验证密钥哈希
+        Store-->>Auth: 密钥信息
+        Auth->>Auth: 检查过期时间
+        Auth->>Auth: 加载权限
+        Auth-->>CLI: 认证成功
+    end
+```
+
+### 授权流程图（Mermaid）
+
+```mermaid
+flowchart TD
+    A[Request] --> B{已认证?}
+    B -->|No| C[401 Unauthorized]
+    B -->|Yes| D{检查权限}
+
+    D --> E{knowledge:submit?}
+    E -->|No| F[403 Forbidden]
+    E -->|Yes| G[允许提交]
+
+    D --> H{knowledge:review?}
+    H -->|No| F
+    H -->|Yes| I[允许审核]
+
+    D --> J{knowledge:search?}
+    J -->|No| F
+    J -->|Yes| K{检查安全等级}
+
+    K --> L{user.level >= entry.level?}
+    L -->|No| M[过滤结果]
+    L -->|Yes| N[返回结果]
+```
+
+
 ---
 
 ## 认证机制

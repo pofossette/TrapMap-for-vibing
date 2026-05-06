@@ -48,6 +48,69 @@
 └────────────────────────────────────────────────────────────────┘
 ```
 
+### 系统分层架构图（Mermaid）
+
+```mermaid
+flowchart TB
+    subgraph Presentation["表现层 (Presentation)"]
+        CLI["CLI Client<br/>(Commander.js)"]
+        HTTP["HTTP Clients<br/>(curl, Postman)"]
+    end
+
+    subgraph Route["路由层 (Route Layer - 薄)"]
+        Routes["Fastify Routes<br/>auth | teams | members | knowledge<br/>review | retrieval | operations | traps"]
+    end
+
+    subgraph Business["业务逻辑层 (Business Logic)"]
+        AI["AI Provider Abstraction<br/>(OpenAI/Ollama/Compatible)"]
+        Gov["Governance<br/>(RBAC + Eligibility)"]
+        Ret["Retrieval Pipeline<br/>(v1/v2/v3 modes)"]
+        Idx["Indexing Pipeline<br/>(Vector/Keyword/Graph)"]
+        Ing["Async Ingestion<br/>(Candidates + Duplicates)"]
+        Art["Artifact Derivation<br/>(Capsule/Profile/Manifest)"]
+    end
+
+    subgraph Persistence["持久层 (Persistence)"]
+        StoreInt["Store Interface<br/>(Abstract)"]
+        JsonStore["JsonStore<br/>(File-level, atomic)"]
+        PgStore["PostgresStore<br/>(PostgreSQL + Drizzle)"]
+    end
+
+    Presentation --> Route
+    Route --> Business
+    Business --> Persistence
+    StoreInt --> JsonStore
+    StoreInt --> PgStore
+```
+
+### 请求生命周期流程图
+
+```mermaid
+sequenceDiagram
+    participant Client as CLI/HTTP Client
+    participant Route as Route Handler
+    participant Auth as Auth Middleware
+    participant Gov as Governance Layer
+    participant Service as Business Service
+    participant Store as Store Interface
+
+    Client->>Route: HTTP Request
+    Route->>Auth: Validate Session/Key
+    Auth->>Auth: Load User Context
+    Auth->>Gov: Check Permissions
+    Gov->>Gov: Verify Eligibility
+
+    alt Permission Denied
+        Gov-->>Client: 403 Forbidden
+    else Permission Granted
+        Gov->>Service: Execute Business Logic
+        Service->>Store: Read/Write Data
+        Store-->>Service: Result
+        Service-->>Route: Response Data
+        Route-->>Client: HTTP Response
+    end
+```
+
 ## 模块划分
 
 ### 1. CLI 包 (`packages/cli`)

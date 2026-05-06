@@ -46,6 +46,44 @@ TrapMap 中的知识条目经历完整的状态转换生命周期，从创建到
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### 生命周期状态图（Mermaid）
+
+```mermaid
+stateDiagram-v2
+    [*] --> DRAFT: 创建条目
+
+    DRAFT --> SUBMITTED: submit()
+
+    SUBMITTED --> AGENT_PASS: 智能体审核通过
+    SUBMITTED --> AGENT_REJECTED: 智能体拒绝
+
+    AGENT_PASS --> APPROVED: 人工批准
+    AGENT_PASS --> REJECTED: 人工拒绝
+
+    AGENT_REJECTED --> SUBMITTED: resubmit()
+
+    REJECTED --> SUBMITTED: resubmit()
+
+    APPROVED --> DEACTIVATED: deactivate()
+
+    DEACTIVATED --> [*]
+
+    note right of DRAFT
+        用户编辑状态
+        可更新/删除
+    end note
+
+    note right of APPROVED
+        唯一可检索状态
+        触发索引更新
+    end note
+
+    note right of DEACTIVATED
+        终态
+        从索引移除
+    end note
+```
+
 ## 状态详细说明
 
 ### DRAFT (草稿)
