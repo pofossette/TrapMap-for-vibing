@@ -129,7 +129,7 @@ lib/persistence/
 
 ### 2.4 配置 — `src/config.ts`
 
-从环境变量构建运行时配置。关键变量见 `docs/ENVIRONMENT.md`。
+从环境变量构建运行时配置。关键变量见 `docs/operations/ENVIRONMENT.md`。
 
 ---
 
@@ -245,7 +245,7 @@ CLI retrieval search "如何处理 N+1"
 - **SecurityLevel**：0-10 整数，知识条目标记所需等级，用户必须 >= 该等级才能访问
 - **RBAC**：细粒度权限控制（`knowledge:submit`、`knowledge:review` 等 14 个权限）
 - **生命周期**：`draft → submitted → agent-pass → approved → deactivated`，每个状态转换都有权限约束
-- 详见 `docs/SECURITY.md`
+- 详见 `docs/operations/SECURITY.md`
 
 ---
 

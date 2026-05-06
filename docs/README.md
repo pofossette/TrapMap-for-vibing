@@ -112,30 +112,30 @@ pnpm eval:ci
 ## 文档
 
 ### 新手入门
-- [代码导读](CODE_GUIDE.md) - 源码导航与建议阅读顺序
-- [快速上手](GETTING_STARTED.md) - 本地开发环境搭建
+- [代码导读](guides/CODE_GUIDE.md) - 源码导航与建议阅读顺序
+- [快速上手](guides/GETTING_STARTED.md) - 本地开发环境搭建
 - [短期计划](../.planning/ROADMAP.md) - 当前库化改造优先级和验收标准
-- [数据模型](DATA_MODEL.md) - 核心数据实体及关系
-- [术语表](GLOSSARY.md) - 项目专用术语解释
-- [投稿指南](CONTRIBUTING.md) - 代码规范和 PR 流程
+- [数据模型](reference/DATA_MODEL.md) - 核心数据实体及关系
+- [术语表](reference/GLOSSARY.md) - 项目专用术语解释
+- [投稿指南](guides/CONTRIBUTING.md) - 代码规范和 PR 流程
 
 ### 测试与质量
-- [测试指南](TESTING.md) - 测试架构、运行方法和用例编写规范
+- [测试指南](operations/TESTING.md) - 测试架构、运行方法和用例编写规范
 
 ### 架构与 API
 - [架构概览](../architecture.md) - 四层架构概览
 - [架构详解](architecture/ARCHITECTURE.md) - 系统设计、流程图、模块划分（中文）
 - [模块详解](architecture/MODULES.md) - 详细模块分解
 - [API 参考](architecture/API.md) - 完整 API 列表
-- [API 契约表面](api-surface.md) - 端点 Schema 概览
+- [API 契约表面](reference/api-surface.md) - 端点 Schema 概览
 - [数据流](architecture/FLOW.md) - 详细数据流图
 
 ### 部署与运维
 - [部署指南](architecture/DEPLOYMENT.md) - Docker 部署详细步骤
 - [故障排查](architecture/TROUBLESHOOTING.md) - 常见问题及解决方案
-- [环境变量参考](ENVIRONMENT.md) - 所有环境变量完整参考
-- [性能指南](PERFORMANCE.md) - 性能调优与瓶颈排查
-- [安全指南](SECURITY.md) - 安全架构、配置清单与最佳实践
+- [环境变量参考](operations/ENVIRONMENT.md) - 所有环境变量完整参考
+- [性能指南](reference/PERFORMANCE.md) - 性能调优与瓶颈排查
+- [安全指南](operations/SECURITY.md) - 安全架构、配置清单与最佳实践
 
 ### 包结构
 - [包结构说明](PACKAGES.md) - packages/cli、server、contracts 各包职责与接口

@@ -234,7 +234,7 @@ pnpm vitest run evals/retrieval/runner.test.ts
 
 ## 相关文档
 
-- [评估框架详解](architecture/components/EVALUATION.md) — 框架架构和设计
-- [检索系统详解](architecture/components/RETRIEVAL.md) — 检索算法和模式
-- [治理模型详解](architecture/components/GOVERNANCE.md) — RBAC 和安全等级
+- [评估框架详解](../architecture/components/EVALUATION.md) — 框架架构和设计
+- [检索系统详解](../architecture/components/RETRIEVAL.md) — 检索算法和模式
+- [治理模型详解](../architecture/components/GOVERNANCE.md) — RBAC 和安全等级
 - [环境变量参考](ENVIRONMENT.md) — 测试相关环境变量

@@ -235,7 +235,7 @@ pnpm --filter @trapmap/cli dev -- audit list --limit 50
 
 ## 相关文档
 
-- [会话与认证详解](architecture/components/AUTH.md) — 认证流程实现细节
-- [治理模型详解](architecture/components/GOVERNANCE.md) — RBAC 和安全等级实现
+- [会话与认证详解](../architecture/components/AUTH.md) — 认证流程实现细节
+- [治理模型详解](../architecture/components/GOVERNANCE.md) — RBAC 和安全等级实现
 - [环境变量参考](ENVIRONMENT.md) — 完整环境变量列表
-- [部署指南](architecture/DEPLOYMENT.md) — 生产环境部署步骤
+- [部署指南](../architecture/DEPLOYMENT.md) — 生产环境部署步骤
