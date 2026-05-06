@@ -496,7 +496,9 @@ v1 检索（基于条目）。
 
 ---
 
-### POST /v3/retrieval/search
+### POST /v3/retrieval/search (v2 Capsule Retrieval)
+
+> **注意**：此端点路径为 `/v3/`，但实际提供 v2 胶囊检索功能。v3 陷阱优先计划功能请使用 `/v3/retrieval/plan`。
 
 v2 胶囊检索。
 
@@ -871,6 +873,711 @@ v3 陷阱优先计划生成。
   "artifactId": "artifact-xxx",
   "status": "published",
   "reviewedAt": "2026-04-30T16:00:00Z"
+}
+```
+
+---
+
+## 反馈端点
+
+### POST /v1/feedback
+
+提交知识条目反馈。
+
+**请求**:
+```json
+{
+  "entryId": "entry-xxx",
+  "entryType": "trap",
+  "problemType": "outdated" | "incorrect" | "unclear" | "other",
+  "description": "This guide is outdated",
+  "context": {
+    "queryUsed": "search query that led to this entry",
+    "resultPosition": 1
+  },
+  "querySeed": "optional original query seed",
+  "customAnswers": {
+    "wouldRecommend": false
+  }
+}
+```
+
+**响应** (201):
+```json
+{
+  "feedback": {
+    "id": "feedback-xxx",
+    "entryId": "entry-xxx",
+    "entryType": "trap",
+    "problemType": "outdated",
+    "description": "This guide is outdated",
+    "submittedAt": "2026-05-06T12:00:00Z",
+    "submittedBy": {
+      "id": "user-xxx",
+      "handle": "alice@example.com",
+      "securityLevel": 5
+    },
+    "status": "new"
+  }
+}
+```
+
+**自动触发**：当同类反馈达到阈值时（如 3 条 outdated），系统自动标记条目进入相应生命周期状态。
+
+---
+
+## 管理员反馈端点
+
+### GET /v1/operations/feedback
+
+管理员获取反馈列表。
+
+**查询参数**:
+- `limit`: 数量限制 (默认 50)
+- `status`: 按状态过滤 (`new`, `triaged`, `resolved`, `dismissed`)
+- `problemType`: 按问题类型过滤
+- `entryId`: 按条目 ID 过滤
+- `entryType`: 按条目类型过滤 (`trap`, `skill`)
+- `minAgeDays`: 最小天数
+- `maxAgeDays`: 最大天数
+
+**响应** (200):
+```json
+{
+  "items": [
+    {
+      "id": "feedback-xxx",
+      "entryId": "entry-xxx",
+      "entryType": "trap",
+      "entryShortcut": "oauth-setup",
+      "problemType": "outdated",
+      "description": "This guide is for old version",
+      "context": { "queryUsed": "oauth setup" },
+      "submittedAt": "2026-05-06T12:00:00Z",
+      "submittedBy": {
+        "id": "user-xxx",
+        "handle": "alice@example.com",
+        "securityLevel": 5
+      },
+      "status": "new",
+      "ageDays": 5,
+      "adminNotes": null
+    }
+  ],
+  "total": 150
+}
+```
+
+---
+
+### POST /v1/operations/feedback/batch
+
+批量处理反馈。
+
+**请求**:
+```json
+{
+  "feedbackIds": ["feedback-xxx", "feedback-yyy"],
+  "action": "resolve" | "dismiss" | "triage" | "transition",
+  "notes": "Action taken to address feedback",
+  "dryRun": false,
+  "transitionTarget": "stale"
+}
+```
+
+**响应** (200):
+```json
+{
+  "action": "resolve",
+  "dryRun": false,
+  "items": [
+    {
+      "feedbackId": "feedback-xxx",
+      "eligible": true,
+      "reason": null,
+      "transitionApplied": false
+    }
+  ],
+  "totalEligible": 2,
+  "totalIneligible": 0,
+  "appliedAt": "2026-05-06T14:00:00Z"
+}
+```
+
+---
+
+### GET /v1/operations/feedback/stats/:entryId
+
+获取条目的反馈统计和质量分数。
+
+**响应** (200):
+```json
+{
+  "entryId": "entry-xxx",
+  "entryType": "trap",
+  "quality": {
+    "totalFeedback": 15,
+    "unresolvedFeedback": 3,
+    "outdatedReports": 2,
+    "incorrectReports": 1,
+    "qualityScore": 0.55,
+    "lastFeedbackAt": "2026-05-06T12:00:00Z"
+  },
+  "recentFeedback": [...]
+}
+```
+
+---
+
+## Decay 管理端点
+
+### GET /v1/operations/decay/entries
+
+列出带有 decay 状态的知识条目。
+
+**查询参数**:
+- `limit`: 数量限制 (默认 50)
+- `decayStates`: 按 decay 状态过滤 (`fresh`, `stale`, `review-due`, `deprecated`)
+- `ageMinDays`: 最小年龄天数
+- `ageMaxDays`: 最大年龄天数
+- `labels`: 按标签过滤
+- `scope`: 按范围过滤 (`global`, `team`)
+
+**响应** (200):
+```json
+{
+  "items": [
+    {
+      "id": "entry-xxx",
+      "scope": "global",
+      "labels": ["auth", "oauth"],
+      "shortcut": "oauth-setup",
+      "lifecycleState": "approved",
+      "requiredLevel": 2,
+      "updatedAt": "2026-04-30T12:00:00Z",
+      "decayState": "stale",
+      "freshnessType": "evergreen",
+      "ageDays": 95,
+      "lastVerifiedAt": "2026-02-01T00:00:00Z",
+      "supersededById": null
+    }
+  ],
+  "total": 25
+}
+```
+
+---
+
+### POST /v1/operations/decay/batch
+
+批量执行 decay 操作。
+
+**请求**:
+```json
+{
+  "entryIds": ["entry-xxx", "entry-yyy"],
+  "action": "extend" | "mark-review" | "deactivate" | "supersede",
+  "extendDays": 30,
+  "replacementId": "entry-zzz",
+  "dryRun": false
+}
+```
+
+**响应** (200):
+```json
+{
+  "action": "extend",
+  "dryRun": false,
+  "items": [
+    {
+      "entryId": "entry-xxx",
+      "shortcut": "oauth-setup",
+      "currentDecayState": "stale",
+      "proposedDecayState": "fresh",
+      "changeDescription": "Extending verification by 30 days",
+      "eligible": true,
+      "ineligibilityReason": null
+    }
+  ],
+  "totalEligible": 2,
+  "totalIneligible": 0,
+  "appliedAt": "2026-05-06T14:00:00Z"
+}
+```
+
+---
+
+### POST /v1/operations/decay/search
+
+按模式搜索带有 decay 状态的条目。
+
+**请求**:
+```json
+{
+  "pattern": "oauth",
+  "decayStates": ["stale", "review-due"],
+  "limit": 20
+}
+```
+
+**响应** (200):
+```json
+{
+  "items": [...],
+  "total": 5
+}
+```
+
+---
+
+## Maintenance 管理端点
+
+### GET /v1/operations/maintenance/entries
+
+列出带有维护元数据的知识条目。
+
+**查询参数**:
+- `limit`: 数量限制 (默认 50)
+- `missingOwner`: 仅显示无所有者的条目
+- `reviewOverdue`: 仅显示审核逾期的条目
+- `staleVerification`: 仅显示验证过期的条目
+- `staleDays`: 过期天数阈值 (默认 180)
+- `labels`: 按标签过滤
+- `scope`: 按范围过滤
+
+**响应** (200):
+```json
+{
+  "items": [
+    {
+      "id": "entry-xxx",
+      "scope": "global",
+      "labels": ["auth"],
+      "shortcut": "oauth-setup",
+      "lifecycleState": "approved",
+      "requiredLevel": 2,
+      "updatedAt": "2026-04-30T12:00:00Z",
+      "decayState": "stale",
+      "ageDays": 95,
+      "lastVerifiedAt": "2026-02-01T00:00:00Z",
+      "maintainer": {
+        "id": "user-xxx",
+        "handle": "alice@example.com",
+        "securityLevel": 5
+      },
+      "reviewBy": "2026-05-01T00:00:00Z"
+    }
+  ],
+  "total": 10
+}
+```
+
+---
+
+### POST /v1/operations/maintenance/batch
+
+批量执行维护操作。
+
+**请求**:
+```json
+{
+  "entryIds": ["entry-xxx", "entry-yyy"],
+  "action": "assign-owner" | "extend-review" | "mark-verified",
+  "newMaintainerId": "user-xxx",
+  "newMaintainerHandle": "alice@example.com",
+  "extendDays": 30,
+  "dryRun": false
+}
+```
+
+**响应** (200):
+```json
+{
+  "action": "assign-owner",
+  "dryRun": false,
+  "items": [
+    {
+      "entryId": "entry-xxx",
+      "shortcut": "oauth-setup",
+      "currentMaintainer": null,
+      "currentReviewBy": null,
+      "proposedChange": "Assign owner: alice@example.com",
+      "eligible": true,
+      "ineligibilityReason": null
+    }
+  ],
+  "totalEligible": 2,
+  "totalIneligible": 0,
+  "appliedAt": "2026-05-06T14:00:00Z"
+}
+```
+
+---
+
+### POST /v1/admin/reconcile-knowledge-indexes
+
+重新同步所有知识索引（向量、关键词、图）。
+
+**权限**: 仅限系统管理员。
+
+**响应** (200):
+```json
+{
+  "success": true,
+  "totalEntries": 150,
+  "entriesSynced": 148,
+  "entriesRemoved": 2,
+  "entriesSkipped": 0
+}
+```
+
+---
+
+## Evidence 元数据端点
+
+### PATCH /v1/knowledge/:id/evidence
+
+更新知识条目的 evidence 元数据。
+
+**请求**:
+```json
+{
+  "sourceType": "stack-overflow" | "github-issue" | "official-docs" | "internal-experience",
+  "sourceRef": "https://stackoverflow.com/questions/xxx",
+  "evidenceLevel": "anecdotal" | "tested" | "verified" | "authoritative"
+}
+```
+
+**响应** (200):
+```json
+{
+  "evidence": {
+    "sourceType": "stack-overflow",
+    "sourceRef": "https://stackoverflow.com/questions/xxx",
+    "evidenceLevel": "tested",
+    "verifiedAt": "2026-05-06T12:00:00Z",
+    "verifiedBy": {
+      "id": "user-xxx",
+      "handle": "alice@example.com",
+      "securityLevel": 5
+    }
+  }
+}
+```
+
+---
+
+## Boundary Search 端点（管理员）
+
+### POST /admin/boundary-search
+
+搜索符合边界约束的知识条目。
+
+**权限**: 仅限系统管理员。
+
+**请求**:
+```json
+{
+  "context": "backend",
+  "platform": "node.js",
+  "package": "express",
+  "maxResults": 20
+}
+```
+
+**响应** (200):
+```json
+{
+  "matches": [
+    {
+      "entryId": "entry-xxx",
+      "scope": "global",
+      "shortcut": "express-middleware-order",
+      "detail": "Middleware execution order in Express.js...",
+      "labels": ["express", "middleware"],
+      "boundary": {
+        "context": ["backend"],
+        "versions": [{ "platform": "node.js", "min": "14.0.0" }],
+        "prerequisites": ["express"],
+        "signals": [],
+        "exclusions": [],
+        "evidence": []
+      }
+    }
+  ],
+  "query": {
+    "context": "backend",
+    "platform": "node.js",
+    "package": "express"
+  }
+}
+```
+
+---
+
+## 其他操作端点
+
+### POST /v1/operations/artifacts/activate
+
+激活工件（获取文件内容用于执行）。
+
+**请求**:
+```json
+{
+  "artifactId": "artifact-xxx",
+  "revision": "1.0.0",
+  "selectedPaths": ["references/guide.md", "scripts/setup.sh"]
+}
+```
+
+**响应** (200):
+```json
+{
+  "artifactId": "artifact-xxx",
+  "title": "OAuth2 Implementation",
+  "revision": "1.0.0",
+  "requiredLevel": 2,
+  "files": [
+    {
+      "path": "references/guide.md",
+      "kind": "reference",
+      "sha256": "abc123...",
+      "sizeBytes": 2048,
+      "mediaType": "text/markdown",
+      "source": "references/",
+      "content": "# OAuth2 Setup Guide..."
+    }
+  ],
+  "scriptDescriptors": [
+    {
+      "path": "scripts/setup.sh",
+      "runMode": "cli",
+      "policy": "user-opt-in"
+    }
+  ],
+  "activatedAt": "2026-05-06T12:00:00Z",
+  "activatedBy": {
+    "id": "user-xxx",
+    "handle": "alice@example.com",
+    "securityLevel": 5
+  }
+}
+```
+
+---
+
+### POST /v1/operations/artifacts/:artifactId/deactivate
+
+停用工件。
+
+**请求**:
+```json
+{
+  "reason": "Deprecated in favor of new implementation"
+}
+```
+
+**响应** (200):
+```json
+{
+  "artifact": {
+    "id": "artifact-xxx",
+    "title": "OAuth2 Implementation",
+    "lifecycleState": "deactivated"
+  },
+  "previousState": "approved",
+  "newState": "deactivated"
+}
+```
+
+---
+
+### POST /v1/operations/artifacts/:artifactId/edit
+
+编辑工件内容。
+
+**请求**:
+```json
+{
+  "title": "Updated OAuth2 Guide",
+  "labels": ["auth", "oauth2", "security"],
+  "files": [
+    {
+      "path": "SKILL.md",
+      "content": "Updated content...",
+      "language": "markdown"
+    }
+  ],
+  "scriptDescriptors": [
+    {
+      "path": "scripts/setup.sh",
+      "runMode": "cli",
+      "policy": "user-opt-in"
+    }
+  ]
+}
+```
+
+**响应** (200):
+```json
+{
+  "artifact": {
+    "id": "artifact-xxx",
+    "title": "Updated OAuth2 Guide",
+    "latestRevision": {
+      "revision": "1.1.0"
+    }
+  },
+  "previousRevision": "1.0.0",
+  "lifecycleTransition": {
+    "from": "approved",
+    "to": "agent-pass"
+  }
+}
+```
+
+---
+
+### GET /v1/operations/artifacts/review-queue
+
+获取待审核的工件队列。
+
+**查询参数**:
+- `limit`: 数量限制
+- `lifecycleState`: 过滤状态 (默认 `agent-pass`)
+
+**响应** (200):
+```json
+{
+  "queue": [
+    {
+      "id": "artifact-xxx",
+      "title": "OAuth2 Implementation",
+      "slug": "oauth2-implementation",
+      "lifecycleState": "agent-pass",
+      "submittedBy": {
+        "id": "user-xxx",
+        "handle": "alice@example.com",
+        "securityLevel": 5
+      },
+      "submittedAt": "2026-05-06T12:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### POST /v1/operations/artifacts/import
+
+导入工件目录。
+
+**请求**:
+```json
+{
+  "directoryPath": "/path/to/skill",
+  "scope": "global",
+  "teamId": null,
+  "requiredLevel": 2
+}
+```
+
+**响应** (200):
+```json
+{
+  "imported": 3,
+  "skipped": 1,
+  "errors": []
+}
+```
+
+---
+
+### POST /v1/operations/artifacts/export
+
+导出工件。
+
+**请求**:
+```json
+{
+  "artifactIds": ["artifact-xxx"],
+  "format": "directory"
+}
+```
+
+**响应** (200):
+```json
+{
+  "format": "directory",
+  "artifacts": [
+    {
+      "id": "artifact-xxx",
+      "title": "OAuth2 Implementation",
+      "files": [...]
+    }
+  ]
+}
+```
+
+---
+
+### POST /v1/operations/migrate
+
+迁移旧版知识条目到工件格式。
+
+**响应** (200):
+```json
+{
+  "migrated": 50,
+  "skipped": 5,
+  "errors": []
+}
+```
+
+---
+
+### GET /v1/operations/status
+
+获取系统兼容性状态。
+
+**查询参数**:
+- `teamId`: 按团队过滤
+
+**响应** (200):
+```json
+{
+  "totalLegacyEntries": 100,
+  "migratedEntriesCount": 75,
+  "unmigratedEntriesCount": 25,
+  "totalArtifacts": 80,
+  "artifactsBySourceKind": {
+    "skill-directory": 30,
+    "single-skill-md": 15,
+    "legacy-knowledge": 35
+  },
+  "unmigratedEntryIds": ["entry-xxx", "entry-yyy"],
+  "coexistenceActive": true,
+  "sunsetReady": false,
+  "sunsetBlockers": ["25 unmigrated entries remaining"],
+  "reportedAt": "2026-05-06T12:00:00Z"
+}
+```
+
+---
+
+### GET /v1/operations/knowledge
+
+列出所有知识条目（旧版，用于迁移）。
+
+**查询参数**:
+- `limit`: 数量限制
+- `scope`: 按范围过滤
+- `lifecycleState`: 按生命周期状态过滤
+
+**响应** (200):
+```json
+{
+  "entries": [...]
 }
 ```
 
