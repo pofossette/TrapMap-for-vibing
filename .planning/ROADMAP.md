@@ -116,11 +116,12 @@
 
 - [ ] Phase 96: Agent-Native CLI — trapmap load (0/? plans)
 - [ ] Phase 97: Agent-Native CLI — trapmap init (0/? plans)
-- [ ] Phase 99: Agent-Native Verification (2/2 plans)
+- [x] Phase 99: Agent-Native Verification (3/3 plans) — completed 2026-05-06
 
 Plans:
-- [ ] 099-01-PLAN.md — Extend markdown-formatter tests for assets/scripts edge cases and capsule fallback
-- [ ] 099-02-PLAN.md — Full verification gates (typecheck, tests, build) and SKILL.md consistency check
+- [x] 099-01-PLAN.md — Extend markdown-formatter tests for assets/scripts edge cases and capsule fallback
+- [x] 099-02-PLAN.md — Full verification gates (typecheck, tests, build) and SKILL.md consistency check
+- [x] 099-03-PLAN.md — Synchronize references/retrieval.md (SKILL.md consistency gap closure)
 
 ### Phase 88: Documentation Restructuring & Synchronization ✅
 
