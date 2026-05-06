@@ -191,4 +191,186 @@ describe('formatLoadContext', () => {
     const result = formatLoadContext(response, { maxTraps: 5 });
     expect(result).toContain('...and 10 more traps');
   });
+
+  it('formats plan with skills containing assets and scripts', () => {
+    const skill: PlanSkillNode = {
+      nodeId: 'skill-1',
+      artifactId: 'artifact-1',
+      label: 'Deploy with script',
+      situation: 'CI pipeline setup',
+      problem: 'Manual deployment steps',
+      goal: 'Automated deployment',
+      scope: 'project',
+      requiredLevel: 1,
+      score: 0.8,
+      activationRefs: {
+        references: [{ path: 'ref/deploy.md', sha256: 'abc123', sizeBytes: 200 }],
+        assets: [{ path: 'assets/config.json', sha256: 'def456', sizeBytes: 500 }],
+        scripts: [{ path: 'scripts/deploy.sh', defaultPolicy: 'allow-with-approval' }],
+      },
+    };
+    const response: GraphPlanSearchResponse = {
+      routingTrace: mockTrace,
+      plan: {
+        blockingTraps: [],
+        recommendedSkills: [skill],
+        edges: [],
+        citations: [],
+        graph: { nodes: [], edges: [], focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] } },
+      },
+      fallback: null,
+    };
+    const result = formatLoadContext(response);
+    expect(result).toContain('References: `ref/deploy.md`');
+    expect(result).toContain('Assets: `assets/config.json`');
+    expect(result).toContain('Scripts: `scripts/deploy.sh` (allow-with-approval)');
+  });
+
+  it('formats capsule fallback when plan is null', () => {
+    const response: GraphPlanSearchResponse = {
+      routingTrace: mockTrace,
+      plan: null,
+      fallback: {
+        routeFamily: 'capsule',
+        response: {
+          capsules: [{
+            capsuleId: 'cap-1',
+            artifactId: 'art-1',
+            revision: 1,
+            sourcePaths: ['src/main.ts'],
+            content: 'Deploy config capsule',
+            situation: 'CI pipeline setup',
+            problem: 'Manual deployment',
+            goal: 'Automated deployment',
+            labels: ['backend'],
+            scope: 'project',
+            requiredLevel: 1,
+            score: 0.8,
+            reason: 'semantic match',
+          }],
+          profileHints: [],
+          activationHints: [],
+          refinementSummary: null,
+          summary: null,
+        },
+      },
+    };
+    const result = formatLoadContext(response);
+    expect(result).toContain('### Capsules (from fallback)');
+    expect(result).toContain('cap-1');
+    expect(result).toContain('CI pipeline setup');
+    expect(result).toContain('Manual deployment');
+    expect(result).toContain('Automated deployment');
+  });
+
+  it('formats capsule fallback when plan has empty traps and skills', () => {
+    const response: GraphPlanSearchResponse = {
+      routingTrace: mockTrace,
+      plan: {
+        blockingTraps: [],
+        recommendedSkills: [],
+        edges: [],
+        citations: [],
+        graph: { nodes: [], edges: [], focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] } },
+      },
+      fallback: {
+        routeFamily: 'capsule',
+        response: {
+          capsules: [{
+            capsuleId: 'cap-2',
+            artifactId: 'art-2',
+            revision: 1,
+            sourcePaths: ['README.md'],
+            content: 'General guidance',
+            situation: 'New project setup',
+            problem: 'No conventions',
+            goal: 'Establish patterns',
+            labels: ['general'],
+            scope: 'global',
+            requiredLevel: 0,
+            score: 0.6,
+            reason: 'keyword match',
+          }],
+          profileHints: [],
+          activationHints: [],
+          refinementSummary: null,
+          summary: null,
+        },
+      },
+    };
+    const result = formatLoadContext(response);
+    expect(result).toContain('### Capsules (from fallback)');
+    expect(result).toContain('cap-2');
+  });
+
+  it('respects maxSkills option for capsule fallback', () => {
+    const capsules = Array.from({ length: 10 }, (_, i) => ({
+      capsuleId: `cap-${i}`,
+      artifactId: `art-${i}`,
+      revision: 1,
+      sourcePaths: [`src/file${i}.ts`],
+      content: `Content ${i}`,
+      situation: `Situation ${i}`,
+      problem: `Problem ${i}`,
+      goal: `Goal ${i}`,
+      labels: ['test'],
+      scope: 'project' as const,
+      requiredLevel: 1,
+      score: 0.5 + i * 0.04,
+      reason: 'match',
+    }));
+    const response: GraphPlanSearchResponse = {
+      routingTrace: mockTrace,
+      plan: null,
+      fallback: {
+        routeFamily: 'capsule',
+        response: {
+          capsules,
+          profileHints: [],
+          activationHints: [],
+          refinementSummary: null,
+          summary: null,
+        },
+      },
+    };
+    const result = formatLoadContext(response, { maxSkills: 3 });
+    expect(result).toContain('...and 7 more capsules');
+  });
+
+  it('formats plan with assets only and no scripts', () => {
+    const skill: PlanSkillNode = {
+      nodeId: 'skill-2',
+      artifactId: 'artifact-2',
+      label: 'Use template files',
+      situation: 'New service setup',
+      problem: 'Missing boilerplate',
+      goal: 'Consistent service structure',
+      scope: 'project',
+      requiredLevel: 1,
+      score: 0.75,
+      activationRefs: {
+        references: [],
+        assets: [
+          { path: 'templates/service.ts', sha256: 'aaa', sizeBytes: 300 },
+          { path: 'templates/config.yaml', sha256: 'bbb', sizeBytes: 150 },
+        ],
+        scripts: [],
+      },
+    };
+    const response: GraphPlanSearchResponse = {
+      routingTrace: mockTrace,
+      plan: {
+        blockingTraps: [],
+        recommendedSkills: [skill],
+        edges: [],
+        citations: [],
+        graph: { nodes: [], edges: [], focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] } },
+      },
+      fallback: null,
+    };
+    const result = formatLoadContext(response);
+    expect(result).toContain('Assets: `templates/service.ts`, `templates/config.yaml`');
+    expect(result).not.toContain('Scripts:');
+    expect(result).not.toContain('References:');
+  });
 });
