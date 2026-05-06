@@ -43,6 +43,69 @@
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
+### 异步摄取管道流程（Mermaid）
+
+```mermaid
+flowchart TD
+    subgraph Input["输入"]
+        Ext["外部来源<br/>(Documents, Code, APIs)"]
+    end
+
+    subgraph Submission["提交"]
+        Submit["POST /v1/candidates"]
+        Create["创建 CandidateSubmission<br/>status: received"]
+    end
+
+    subgraph Processing["后台处理"]
+        Queue["加入处理队列<br/>status: queued"]
+        Analyze["分析处理<br/>status: analyzing"]
+        Fingerprint["生成指纹"]
+        Embedding["生成 Embedding"]
+    end
+
+    subgraph Detection["重复检测"]
+        DupCheck{"重复检测"}
+        DupFound["status: duplicate_detected"]
+        NoDup["status: ready_for_review"]
+    end
+
+    subgraph Resolution["人工解决"]
+        Manual["管理员审核"]
+        Merge["合并 (merge)"]
+        Discard["丢弃 (discard)"]
+        KeepBoth["保留两者 (keep_both)"]
+    end
+
+    subgraph Output["输出"]
+        PublishTrap["发布为 Trap"]
+        PublishSkill["发布为 Skill"]
+    end
+
+    Ext --> Submit
+    Submit --> Create
+    Create --> Queue
+    Queue --> Analyze
+    Analyze --> Fingerprint
+    Analyze --> Embedding
+    Fingerprint --> DupCheck
+    Embedding --> DupCheck
+
+    DupCheck -->|相似度 >= 阈值| DupFound
+    DupCheck -->|唯一内容| NoDup
+
+    DupFound --> Manual
+    NoDup --> PublishTrap
+    NoDup --> PublishSkill
+
+    Manual --> Merge
+    Manual --> Discard
+    Manual --> KeepBoth
+
+    Merge --> PublishTrap
+    KeepBoth --> PublishTrap
+    KeepBoth --> PublishSkill
+```
+
 ## 候选状态机
 
 ```
