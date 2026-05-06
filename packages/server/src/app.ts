@@ -17,6 +17,10 @@ import {
 } from './lib/candidates/index.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
 import { AppError, isAppError } from './lib/errors.js';
+import { LifecycleEventBus } from './lib/lifecycle/event-bus.js';
+import { createIndexingSubscriber } from './lib/lifecycle/subscribers/indexing.js';
+import { createAuditSubscriber } from './lib/lifecycle/subscribers/audit.js';
+import { createConflictSubscriber } from './lib/lifecycle/subscribers/conflict.js';
 import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
 import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
 import { createKnowledgeRepository } from './lib/knowledge/index.js';
@@ -177,6 +181,7 @@ export function buildServer(options: BuildServerOptions = {}) {
     membershipRepo: undefined,
     // usageAnalyticsRepo is set when PostgreSQL pool is available (in onReady hook)
     usageAnalyticsRepo: undefined,
+    eventBus: new LifecycleEventBus(),
   });
 
   // Bridge: wire global embeddings provider so existing generateEmbedding() callers
@@ -334,6 +339,36 @@ export function buildServer(options: BuildServerOptions = {}) {
     } catch (error) {
       app.log.error({ error }, 'Graph index reconciliation failed');
     }
+  });
+
+  // Register lifecycle event subscribers
+  app.addHook('onReady', async () => {
+    const { eventBus, store, indexAdapters } = app.skillShareer;
+
+    // Indexing subscriber: syncs knowledge indexes on state transitions
+    eventBus.onDomainEvent('knowledge.approved', createIndexingSubscriber(store, indexAdapters));
+    eventBus.onDomainEvent('knowledge.deactivated', createIndexingSubscriber(store, indexAdapters));
+    eventBus.onDomainEvent('knowledge.agent-reviewed', createIndexingSubscriber(store, indexAdapters));
+    eventBus.onDomainEvent('knowledge.rejected', createIndexingSubscriber(store, indexAdapters));
+    eventBus.onDomainEvent('knowledge.resubmitted', createIndexingSubscriber(store, indexAdapters));
+    eventBus.onDomainEvent('knowledge.re-review', createIndexingSubscriber(store, indexAdapters));
+
+    // Audit subscriber: logs lifecycle transitions
+    eventBus.onDomainEvent('knowledge.approved', createAuditSubscriber(store, app.log));
+    eventBus.onDomainEvent('knowledge.deactivated', createAuditSubscriber(store, app.log));
+    eventBus.onDomainEvent('knowledge.rejected', createAuditSubscriber(store, app.log));
+    eventBus.onDomainEvent('knowledge.agent-reviewed', createAuditSubscriber(store, app.log));
+
+    // Conflict subscriber: detects conflicts on approval
+    eventBus.onDomainEvent('knowledge.approved', createConflictSubscriber(store));
+
+    // Error handler: log subscriber failures without crashing
+    eventBus.on('error', ({ event, error, handler }) => {
+      app.log.error(
+        { error, eventName: event.name, entryId: event.entryId, handler },
+        'Event subscriber error',
+      );
+    });
   });
 
   app.setErrorHandler((error, _request, reply) => {

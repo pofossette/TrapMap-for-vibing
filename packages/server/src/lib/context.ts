@@ -11,6 +11,7 @@ import type { KnowledgeRepository } from './knowledge/index.js';
 import type { UsageAnalyticsRepository } from './analytics/index.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
 import type { MembershipRepository, TeamRepository } from './teams/index.js';
+import type { LifecycleEventBus } from './lifecycle/event-bus.js';
 import type { UserRepository } from './users/index.js';
 
 export interface SkillShareerServices {
@@ -34,6 +35,8 @@ export interface SkillShareerServices {
   membershipRepo: MembershipRepository | undefined;
   /** Usage analytics repository for statistics (undefined when using JsonStore) */
   usageAnalyticsRepo: UsageAnalyticsRepository | undefined;
+  /** Lifecycle event bus for domain event emission and subscription */
+  eventBus: LifecycleEventBus;
 }
 
 export interface ResolvedAuthContext {
