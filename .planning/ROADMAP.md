@@ -170,10 +170,30 @@ Plans:
 - [x] 所有现有 import 路径不受影响（typecheck 通过）
 - [x] 现有测试全部通过
 
-### Phase 89: Usage Analytics & Statistics
+### Phase 89: Usage Analytics & Statistics ✅
 
 **Goal:** 实现面向组织管理员和系统管理员的使用统计功能，包括请求次数（按组织/账户）、skill/trap 检索命中计数、热门条目排行、以及统计查询 API
 **Depends on:** Phase 86
+**Completed:** 2026-05-06
+
+**Requirements:**
+1. Add `stats:read` permission to contracts
+2. Create `usageEvents` table schema for recording retrieval hits
+3. Implement `UsageAnalyticsRepository` with PostgreSQL backend
+4. Create stats API routes with permission and team scoping
+5. Wire repository in app.ts onReady hook
+6. Record usage events in retrieval routes (fire-and-forget)
+
+**Success Criteria:**
+- [x] `stats:read` permission exists in contracts
+- [x] `usageEvents` table schema with correct columns and indexes
+- [x] Stats query/response Zod schemas in contracts
+- [x] `UsageAnalyticsRepository` interface with 6 methods
+- [x] `PgUsageAnalyticsRepository` implementation with date_trunc aggregation
+- [x] Stats routes registered with auth and team scoping
+- [x] Repository wired in app.ts onReady hook
+- [x] Fire-and-forget event recording in retrieval routes
+- [x] TypeScript compiles, all tests pass
 
 ### Phase 96: Agent-Native CLI — trapmap load
 
