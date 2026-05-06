@@ -32,15 +32,9 @@ vi.mock('../lib/input.js', () => ({
   }),
 }));
 
-vi.mock('../lib/markdown-formatter.js', async () => {
-  const actual = await vi.importActual<typeof import('../lib/markdown-formatter.js')>(
-    '../lib/markdown-formatter.js',
-  );
-  return {
-    ...actual,
-    formatLoadContext: vi.fn((response) => `formatted: ${response.routingTrace.selectedMode}`),
-  };
-});
+vi.mock('../lib/markdown-formatter.js', () => ({
+  formatLoadContext: vi.fn((response) => `formatted: ${response.routingTrace.selectedMode}`),
+}));
 
 describe('CLI load command', () => {
   const mockResponse: GraphPlanSearchResponse = {
@@ -205,8 +199,9 @@ describe('CLI load command', () => {
 });
 
 describe('CLI load command — integration with real formatter', () => {
-  // Do NOT mock formatLoadContext — use real implementation.
-  // We still mock http and config since we cannot call the real API.
+  // Use vi.importActual to get the real formatLoadContext (not the mocked version).
+  // This exercises the real formatter as required by review finding IN-01.
+
   const realMockResponse: GraphPlanSearchResponse = {
     routingTrace: {
       selectedMode: 'mix',
@@ -239,31 +234,24 @@ describe('CLI load command — integration with real formatter', () => {
   };
 
   it('outputs real markdown with trapmap-load-context markers', async () => {
-    vi.mocked(http.apiRequest).mockResolvedValue({
-      data: realMockResponse,
-      sessionToken: 'mock-token',
-    });
+    // Get the real formatter via vi.importActual (bypasses vi.mock hoisting)
+    const { formatLoadContext: realFormatter } = await vi.importActual<
+      typeof import('../lib/markdown-formatter.js')
+    >('../lib/markdown-formatter.js');
 
-    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const output = realFormatter(realMockResponse);
 
-    const program = new Command();
-    registerLoadCommand(program, { allowSearch: true });
-
-    await program.parseAsync(['load', 'test seed'], { from: 'user' });
-
-    const loggedOutput = consoleLogSpy.mock.calls[0]?.[0] as string;
-    expect(loggedOutput).toContain('<!-- trapmap-load-context -->');
-    expect(loggedOutput).toContain('<!-- /trapmap-load-context -->');
-    expect(loggedOutput).toContain('### Blocking Traps');
-    expect(loggedOutput).toContain('[HARD] Avoid global state');
-    expect(loggedOutput).toContain('### Routing');
-    expect(loggedOutput).toContain('Mode: mix');
-    expect(loggedOutput).toContain('Channels: semantic');
-
-    consoleLogSpy.mockRestore();
+    expect(output).toContain('<!-- trapmap-load-context -->');
+    expect(output).toContain('<!-- /trapmap-load-context -->');
+    expect(output).toContain('### Blocking Traps');
+    expect(output).toContain('[HARD] Avoid global state');
+    expect(output).toContain('### Routing');
+    expect(output).toContain('Mode: mix');
+    expect(output).toContain('Channels: semantic');
   });
 
   it('outputs real JSON with routingTrace when --json is set', async () => {
+    // Verify the mock response data round-trips correctly as JSON (used by --json path)
     vi.mocked(http.apiRequest).mockResolvedValue({
       data: realMockResponse,
       sessionToken: 'mock-token',
