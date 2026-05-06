@@ -80,6 +80,39 @@
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### 知识提交流程（Mermaid）
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant CLI as CLI/API
+    participant Route as Route Handler
+    participant Store as Store
+    participant Agent as Agent Review
+    participant Index as Indexing Pipeline
+
+    User->>CLI: 提交知识
+    CLI->>Route: POST /v1/knowledge
+    Route->>Route: Zod 验证
+    Route->>Route: 权限检查
+    Route->>Store: 创建条目 (submitted)
+    Store-->>Route: entryId
+    Route-->>CLI: 201 Created
+    CLI-->>User: 提交成功
+
+    Route->>Agent: 异步审核
+    Agent->>Agent: 正确性评估
+    Agent->>Agent: 重复检测
+    Agent->>Store: 更新状态 (agent-pass/rejected)
+
+    Note over Agent,Store: 如果 agent-pass
+
+    Agent->>Index: 触发索引
+    Index->>Index: 生成 Embedding
+    Index->>Index: 提取关键词
+    Index->>Store: 更新索引状态
+```
+
 ## 2. 检索查询流程 (v1 语义)
 
 ```
@@ -174,6 +207,40 @@
 │            └───────────────┘         └───────────────┘                      │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 检索查询流程（Mermaid）
+
+```mermaid
+flowchart TD
+    A[Query Input] --> B[Query Validation]
+    B --> C[Auth Context Building]
+    C --> D[Eligibility Filter]
+
+    D --> E{Mode Selection}
+    E -->|semantic| F1[Generate Embedding]
+    E -->|hybrid| F2[Generate Embedding]
+    E -->|hybrid| F3[BM25 Scoring]
+    E -->|graph-assisted| F4[Generate Embedding]
+
+    F1 --> G1[Vector Similarity Search]
+    F2 --> G1
+    F3 --> G2[Keyword Results]
+    F4 --> G1
+    F4 --> G3[Graph Expansion]
+
+    G1 --> H[Merge + Rerank]
+    G2 --> H
+    G3 --> H
+
+    H --> I[Result Assembly]
+    I --> J[Global Constraints]
+    I --> K[Project Knowledge]
+    I --> L[Citations + Trace]
+
+    J --> M[Response]
+    K --> M
+    L --> M
 ```
 
 ## 3. 审核决策流程
