@@ -12,8 +12,8 @@ TrapMap 是 pnpm + TypeScript monorepo，用于团队工程知识、陷阱经验
 
 - 项目总览和常用命令：[`README.md`](README.md)
 - 文档索引：[`docs/README.md`](docs/README.md)
-- 本地开发：[`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)
-- 代码阅读路径：[`docs/CODE_GUIDE.md`](docs/CODE_GUIDE.md)
+- 本地开发：[`docs/guides/GETTING_STARTED.md`](docs/guides/GETTING_STARTED.md)
+- 代码阅读路径：[`docs/guides/CODE_GUIDE.md`](docs/guides/CODE_GUIDE.md)
 - 包职责：[`docs/PACKAGES.md`](docs/PACKAGES.md)
 - 短期计划：[`plan.md`](plan.md)
 
@@ -22,8 +22,8 @@ TrapMap 是 pnpm + TypeScript monorepo，用于团队工程知识、陷阱经验
 - 改 CLI：从 [`packages/cli/src/index.ts`](packages/cli/src/index.ts) 和 [`packages/cli/src/commands/`](packages/cli/src/commands/) 开始。
 - 改 Server：从 [`packages/server/src/app.ts`](packages/server/src/app.ts)、[`packages/server/src/routes/`](packages/server/src/routes/) 和 [`packages/server/src/lib/`](packages/server/src/lib/) 开始。
 - 改契约：先看 [`packages/contracts/src/index.ts`](packages/contracts/src/index.ts) 与 [`packages/contracts/src/domain/`](packages/contracts/src/domain/)。
-- 改检索或摘要质量：先看 [`docs/TESTING.md`](docs/TESTING.md)、[`evals/retrieval/README.md`](evals/retrieval/README.md)、[`evals/summary/README.md`](evals/summary/README.md)。
-- 改安全、权限或配置：先看 [`docs/SECURITY.md`](docs/SECURITY.md)、[`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md)、[`docs/architecture/components/GOVERNANCE.md`](docs/architecture/components/GOVERNANCE.md)。
+- 改检索或摘要质量：先看 [`docs/operations/TESTING.md`](docs/operations/TESTING.md)、[`evals/retrieval/README.md`](evals/retrieval/README.md)、[`evals/summary/README.md`](evals/summary/README.md)。
+- 改安全、权限或配置：先看 [`docs/operations/SECURITY.md`](docs/operations/SECURITY.md)、[`docs/operations/ENVIRONMENT.md`](docs/operations/ENVIRONMENT.md)、[`docs/architecture/components/GOVERNANCE.md`](docs/architecture/components/GOVERNANCE.md)。
 - 改 Skill 工作流：先看 [`packages/skills/trapmap-knowledge-workflow/SKILL.md`](packages/skills/trapmap-knowledge-workflow/SKILL.md)。
 
 ## 常用命令
@@ -43,4 +43,4 @@ Codex 在本仓库执行 shell 命令时应按本地约定加 `rtk` 前缀，例
 
 ## 变更前检查
 
-共享类型和 API 形状以 `packages/contracts` 为准。提交前优先运行与改动相关的最小验证；涉及检索、摘要、治理或 fixtures 时至少运行 `pnpm eval:smoke`。提交规范、PR 要求和测试命名见 [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) 与 [`docs/TESTING.md`](docs/TESTING.md)。
+共享类型和 API 形状以 `packages/contracts` 为准。提交前优先运行与改动相关的最小验证；涉及检索、摘要、治理或 fixtures 时至少运行 `pnpm eval:smoke`。提交规范、PR 要求和测试命名见 [`docs/guides/CONTRIBUTING.md`](docs/guides/CONTRIBUTING.md) 与 [`docs/operations/TESTING.md`](docs/operations/TESTING.md)。

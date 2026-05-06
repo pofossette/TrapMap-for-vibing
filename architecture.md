@@ -59,7 +59,7 @@ TrapMap 采用四层架构设计：
 - **SkillArtifact（技能工件）** — 技能目录形式的知识，具有版本历史和派生产物（Profile、Capsule、Manifest）
 - **AccessKey（访问密钥）** — 成员的身份凭证
 
-详细数据模型请参阅 [docs/DATA_MODEL.md](./docs/DATA_MODEL.md)。
+详细数据模型请参阅 [docs/reference/DATA_MODEL.md](./docs/reference/DATA_MODEL.md)。
 
 ## 版本
 

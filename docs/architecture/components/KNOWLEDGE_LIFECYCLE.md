@@ -222,7 +222,7 @@ stateDiagram-v2
 - 管理员调用 `POST /v1/operations/knowledge/:entryId/deactivate`
 
 **触发副作用**:
-1. 更新 `lifecycleState: 'deactivated'`
+1. 更新 `lifecycleState: 'DEACTIVATED'`
 2. 从所有索引中移除
 3. 发送审计事件 `knowledge.deactivated`
 
@@ -398,13 +398,13 @@ await store.transact(async (tx) => {
   const entry = await tx.getKnowledgeEntry(id);
   
   // 验证当前状态允许转换
-  if (entry.lifecycleState !== 'submitted') {
-    throw new InvalidStateTransitionError(id, entry.lifecycleState, 'agent-pass');
+  if (entry.lifecycleState !== 'SUBMITTED') {
+    throw new InvalidStateTransitionError(id, entry.lifecycleState, 'AGENT-PASS');
   }
-  
+
   // 更新状态
   await tx.updateKnowledgeEntry(id, {
-    lifecycleState: 'agent-pass',
+    lifecycleState: 'AGENT-PASS',
     agentReviewResult: result,
     reviewedBy: { actorId: 'SYSTEM', actorName: 'Agent' }
   });

@@ -124,15 +124,39 @@ const session = cliState.session;
 
 ---
 
-## 跨包依赖关系
+## 包依赖关系
 
-```
-contracts (共享 Schema)
-    ↑
-   / \
-  cli  server
+```mermaid
+flowchart LR
+    subgraph Contracts["@trapmap/contracts"]
+        Zod["Zod Schemas"]
+        Types["TypeScript Types"]
+    end
+
+    subgraph Server["@trapmap/server"]
+        Routes["Routes"]
+        Lib["Business Logic"]
+    end
+
+    subgraph CLI["@trapmap/cli"]
+        Commands["Commands"]
+        HTTP["HTTP Client"]
+    end
+
+    Contracts --> Server
+    Contracts --> CLI
+    Server --> CLI
+
+    subgraph Evals["evals/"]
+        Retrieval["Retrieval Tests"]
+        Summary["Summary Tests"]
+    end
+
+    Contracts --> Evals
 ```
 
-- `contracts` 无依赖，作为共享基础
-- `cli` 依赖 `contracts`，调用 `server` 的 HTTP API
-- `server` 依赖 `contracts`，实现业务逻辑
+**依赖说明:**
+- `@trapmap/contracts` 被所有其他包依赖，定义共享 Schema 和类型
+- `@trapmap/server` 依赖 contracts，提供 REST API
+- `@trapmap/cli` 依赖 contracts 和 server (via HTTP)
+- `evals/` 依赖 contracts 进行测试验证

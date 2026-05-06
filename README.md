@@ -23,13 +23,13 @@ pnpm install
 | 文档 | 说明 |
 |------|------|
 | [architecture.md](architecture.md) | 系统架构概览 |
-| [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | 本地开发环境搭建 |
-| [docs/DATA_MODEL.md](docs/DATA_MODEL.md) | 数据模型详解 |
+| [docs/guides/GETTING_STARTED.md](docs/guides/GETTING_STARTED.md) | 本地开发环境搭建 |
+| [docs/reference/DATA_MODEL.md](docs/reference/DATA_MODEL.md) | 数据模型详解 |
 | [docs/architecture/](docs/architecture/) | 完整架构文档（API、CLI、部署、流程图等） |
-| [docs/api-surface.md](docs/api-surface.md) | v1 API 契约表面 |
+| [docs/reference/api-surface.md](docs/reference/api-surface.md) | v1 API 契约表面 |
 | [CHANGELOG.md](CHANGELOG.md) | 版本更新日志 |
-| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | 投稿指南 |
-| [docs/GLOSSARY.md](docs/GLOSSARY.md) | 项目术语表 |
+| [docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md) | 投稿指南 |
+| [docs/reference/GLOSSARY.md](docs/reference/GLOSSARY.md) | 项目术语表 |
 
 ## 🚀 Quick Deploy
 
@@ -177,4 +177,4 @@ pnpm lint
 pnpm format
 ```
 
-> 📘 本地开发环境详细搭建步骤请参阅 [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)。
+> 📘 本地开发环境详细搭建步骤请参阅 [docs/guides/GETTING_STARTED.md](docs/guides/GETTING_STARTED.md)。

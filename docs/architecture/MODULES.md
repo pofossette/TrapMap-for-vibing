@@ -580,8 +580,6 @@ interface RetrievalTestCase {
 | 脚本 | 用途 |
 |------|------|
 | `deploy.sh` | 生产部署 |
-| `setup-db.sh` | 数据库初始化 |
-| `seed.sh` | 种子测试数据 |
 
 ---
 
