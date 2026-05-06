@@ -22,6 +22,62 @@ TrapMap 提供多版本检索能力，支持从简单的语义搜索到复杂的
 | `hybrid` | 语义 + 关键词混合 | embedding merge BM25 |
 | `graph-assisted` | 混合 + 图扩展 | embedding + graphology DAG |
 
+### v1 语义检索流程（Mermaid）
+
+```mermaid
+flowchart LR
+    A[Query] --> B[Validate]
+    B --> C[Auth Context]
+    C --> D[Eligibility Filter]
+    D --> E[Generate Embedding]
+    E --> F[Vector Similarity]
+    F --> G[Top-K Results]
+    G --> H[Assembly]
+    H --> I[Response]
+```
+
+### v1 混合检索流程（Mermaid）
+
+```mermaid
+flowchart TB
+    A[Query] --> B[Validate & Auth]
+    B --> C{Parallel Processing}
+
+    C -->|Semantic Path| D1[Generate Embedding]
+    D1 --> D2[Vector Similarity]
+    D2 --> D3[Top-K Semantic]
+
+    C -->|Keyword Path| E1[Tokenize Query]
+    E1 --> E2[BM25 Scoring]
+    E2 --> E3[Top-K Keyword]
+
+    D3 --> F[Score Fusion<br/>(RRF)]
+    E3 --> F
+    F --> G[Merge & Rerank]
+    G --> H[Assembly]
+    H --> I[Response]
+```
+
+### v3 陷阱优先计划编译（Mermaid）
+
+```mermaid
+flowchart TD
+    A[Query] --> B[GraphRAG-lite]
+    B --> C[Identify Trap Nodes]
+    C --> D[Find Related Skills]
+    D --> E[Build Graph Edges]
+    E --> F{Confidence Check}
+
+    F -->|>= 0.7| G[Compile Plan]
+    F -->|< 0.7| H[Fallback to v2]
+
+    G --> I[Topological Sort]
+    I --> J[Generate Citations]
+    J --> K[Return Plan]
+
+    H --> L[Return Capsules]
+```
+
 ### 语义检索流程 (Semantic Mode)
 
 ```
