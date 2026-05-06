@@ -35,6 +35,31 @@ export class LifecycleEventBus extends EventEmitter {
   }
 
   /**
+   * Emit a domain event and await all handlers.
+   * Like emitDomainEvent but collects async handler results and awaits them.
+   * Individual handler failures are caught and emitted as 'error' events.
+   */
+  async emitDomainEventAsync(event: DomainEvent): Promise<void> {
+    const handlers = this.listeners(event.name) as DomainEventHandler[];
+    const promises: Promise<void>[] = [];
+    for (const handler of handlers) {
+      try {
+        const result = handler(event);
+        if (result && typeof result === 'object' && 'catch' in result) {
+          promises.push(
+            (result as Promise<void>).catch((error) => {
+              this.emit('error', { event, error, handler: handler.name ?? 'anonymous' });
+            }),
+          );
+        }
+      } catch (error) {
+        this.emit('error', { event, error, handler: handler.name ?? 'anonymous' });
+      }
+    }
+    await Promise.all(promises);
+  }
+
+  /**
    * Register a domain event handler for a specific event name.
    * Returns `this` for chaining.
    */

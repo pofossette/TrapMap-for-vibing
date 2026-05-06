@@ -3,9 +3,8 @@ import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent } from '../lib/audit.js';
-import { detectConflicts } from '../lib/conflict/detect.js';
 import { AppError } from '../lib/errors.js';
-import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
+import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
 import { applyReviewDecision, toKnowledgeEntry } from '../lib/knowledge.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
@@ -169,11 +168,9 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
       return toKnowledgeEntry(data, entry);
     });
 
-    // Trigger indexing AFTER the transaction commits (post-commit pattern)
-    // This prevents nested transactions and ensures the domain state is persisted
+    // Post-commit: dual-write + event emission
     if (entryId && previousState && nextState && previousState !== nextState) {
       // Dual-write: Update lifecycle in knowledge repository if available
-      // This is additive during the transition period
       const knowledgeRepo = app.skillShareer.knowledgeRepo;
       if (knowledgeRepo) {
         try {
@@ -182,7 +179,6 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
             note: `reviewer-${payload.decision}`,
           });
         } catch (repoError) {
-          // Log but don't fail - JSONB is the source of truth during transition
           app.log.error(
             { repoError, entryId },
             'Failed to update lifecycle in knowledge repository',
@@ -190,39 +186,18 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
         }
       }
 
-      try {
-        await runKnowledgeIndexEvent({
-          services: {
-            store: app.skillShareer.store,
-            data: await app.skillShareer.store.snapshot(),
-          },
+      // Emit domain event — subscribers handle indexing, conflict detection, audit
+      const eventName = findTransitionEvent(previousState, nextState);
+      if (eventName) {
+        await app.skillShareer.eventBus.emitDomainEventAsync({
+          name: eventName,
           entryId,
           previousState,
           nextState,
+          actorId: auth.actorId,
           reason: `reviewer-${payload.decision}`,
-          adapters: app.skillShareer.indexAdapters,
+          timestamp: nowIso(),
         });
-      } catch (indexingError) {
-        // Log but don't fail the request - domain state is already committed
-        app.log.error({ indexingError, entryId }, 'Post-commit indexing failed');
-        // Optionally: schedule retry or mark entry for reconciliation
-      }
-
-      // Trigger conflict detection AFTER approval (post-commit pattern)
-      // Runs after indexing to avoid nested transactions
-      if (nextState === 'approved') {
-        try {
-          await detectConflicts({
-            services: {
-              store: app.skillShareer.store,
-              data: await app.skillShareer.store.snapshot(),
-            },
-            entryId,
-          });
-        } catch (conflictError) {
-          // Log but don't fail the request - domain state is already committed
-          app.log.error({ conflictError, entryId }, 'Post-commit conflict detection failed');
-        }
       }
     }
 
