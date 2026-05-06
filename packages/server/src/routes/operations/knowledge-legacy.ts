@@ -9,7 +9,7 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent } from '../../lib/audit.js';
 import { AppError } from '../../lib/errors.js';
-import { runKnowledgeIndexEvent } from '../../lib/indexing/events.js';
+import { findTransitionEvent } from '../../lib/lifecycle/transitions.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '../../lib/knowledge.js';
 import { transitionLifecycleState } from '../../lib/lifecycle/state-machine.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../../lib/rbac.js';
@@ -172,20 +172,20 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
       return toKnowledgeEntry(data, entry);
     });
 
-    // Trigger indexing AFTER the transaction commits (post-commit pattern)
-    // Deactivation always removes index state (IDX-06, T-11-06)
+    // Post-commit: emit event for deactivation
     if (previousState && nextState && previousState !== nextState) {
-      await runKnowledgeIndexEvent({
-        services: {
-          store: app.skillShareer.store,
-          data: await app.skillShareer.store.snapshot(),
-        },
-        entryId,
-        previousState,
-        nextState,
-        reason: 'deactivated',
-        adapters: app.skillShareer.indexAdapters,
-      });
+      const eventName = findTransitionEvent(previousState, nextState);
+      if (eventName) {
+        await app.skillShareer.eventBus.emitDomainEventAsync({
+          name: eventName,
+          entryId,
+          previousState,
+          nextState,
+          actorId: auth.actorId,
+          reason: 'deactivated',
+          timestamp: nowIso(),
+        });
+      }
     }
 
     return knowledgeDeactivateResponseSchema.parse({ entry: updatedEntry });

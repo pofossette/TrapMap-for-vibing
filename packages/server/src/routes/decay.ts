@@ -23,6 +23,7 @@ import { executeBatchOperation, planBatchOperation } from '../lib/decay/batch.js
 import { loadDecayConfig } from '../lib/decay/config.js';
 import { computeDecayState } from '../lib/decay/state-machine.js';
 import { AppError } from '../lib/errors.js';
+import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
 import { requirePermission } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
@@ -268,6 +269,26 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
     const mutatedRecords = await app.skillShareer.store.transact((data) => {
       return executeBatchOperation(app.skillShareer.store, data, input, config, now);
     });
+
+    // Post-commit: emit events for each mutated entry with lifecycle change
+    for (const record of mutatedRecords) {
+      const previousState = 'approved'; // Only approved entries can be batch-mutated
+      const nextState = record.lifecycleState;
+      if (previousState !== nextState) {
+        const eventName = findTransitionEvent(previousState, nextState);
+        if (eventName) {
+          await app.skillShareer.eventBus.emitDomainEventAsync({
+            name: eventName,
+            entryId: record.id,
+            previousState,
+            nextState,
+            actorId: auth.actorId,
+            reason: `batch-${body.action}`,
+            timestamp: nowIso(),
+          });
+        }
+      }
+    }
 
     // Get the plan for response
     const data = await app.skillShareer.store.snapshot();

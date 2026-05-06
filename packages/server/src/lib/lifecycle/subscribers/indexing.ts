@@ -6,7 +6,8 @@ import type { DomainEventHandler } from '../types.js';
 
 /**
  * Create an event subscriber that syncs knowledge indexes on lifecycle transitions.
- * Skips self-transitions (previousState === nextState).
+ * Skips self-transitions (previousState === nextState) unless reason is 'updated'
+ * (approved entry content changes need index refresh).
  */
 export function createIndexingSubscriber(
   store: SkillShareerStore,
@@ -17,7 +18,8 @@ export function createIndexingSubscriber(
     const nextState = event.nextState as LifecycleState;
 
     // Skip self-transitions (e.g., agent-pass → agent-pass on revision)
-    if (previousState === nextState) return;
+    // unless reason is 'updated' (approved entry content refresh)
+    if (previousState === nextState && event.reason !== 'updated') return;
 
     const data = await store.snapshot();
     await runKnowledgeIndexEvent({

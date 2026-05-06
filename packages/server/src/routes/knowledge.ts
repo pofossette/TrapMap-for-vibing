@@ -10,7 +10,7 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { supersedeEntry } from '../lib/decay/supersede.js';
 import { AppError } from '../lib/errors.js';
-import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
+import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
 import {
   createKnowledgeEntryRecord,
   createKnowledgeRevision,
@@ -316,26 +316,19 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       return toKnowledgeEntry(data, entry);
     });
 
-    // Trigger indexing AFTER the transaction commits (post-commit pattern)
+    // Post-commit: emit event for index refresh on approved entries
     // Only refresh indexes for approved entries (IDX-05, T-11-04)
     if (previousState && nextState && nextState === 'approved') {
-      try {
-        await runKnowledgeIndexEvent({
-          services: {
-            store: app.skillShareer.store,
-            data: await app.skillShareer.store.snapshot(),
-          },
-          entryId,
-          previousState,
-          nextState,
-          reason: 'updated',
-          adapters: app.skillShareer.indexAdapters,
-        });
-      } catch (indexingError) {
-        // Log but don't fail the request - domain state is already committed
-        app.log.error({ indexingError, entryId }, 'Post-commit indexing failed after update');
-        // Optionally: schedule retry or mark entry for reconciliation
-      }
+      const eventName = findTransitionEvent(previousState, nextState) ?? 'knowledge.approved';
+      await app.skillShareer.eventBus.emitDomainEventAsync({
+        name: eventName,
+        entryId,
+        previousState,
+        nextState,
+        actorId: auth.actorId,
+        reason: 'updated',
+        timestamp: nowIso(),
+      });
     }
 
     // Dual-write: Also update governance in knowledge repository if available

@@ -29,7 +29,7 @@ import {
   getDuplicateCaseByCandidateId,
 } from '../lib/candidates/store.js';
 import { AppError } from '../lib/errors.js';
-import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
+import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
 import { requirePermission } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { type StoreData, nowIso } from '../lib/store.js';
@@ -445,25 +445,19 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
       return resolution;
     });
 
-    // Post-commit indexing for newly published entities
+    // Post-commit: emit event for newly published entities
     if (publishedEntityId && publishedEntityType === 'trap') {
-      try {
-        await runKnowledgeIndexEvent({
-          services: {
-            store: app.skillShareer.store,
-            data: await app.skillShareer.store.snapshot(),
-          },
+      const eventName = findTransitionEvent('submitted', 'agent-pass');
+      if (eventName) {
+        await app.skillShareer.eventBus.emitDomainEventAsync({
+          name: eventName,
           entryId: publishedEntityId,
           previousState: 'submitted',
           nextState: 'agent-pass',
+          actorId: auth.actorId,
           reason: 'duplicate-resolved-independent',
-          adapters: app.skillShareer.indexAdapters,
+          timestamp: nowIso(),
         });
-      } catch (indexingError) {
-        app.log.error(
-          { indexingError, entityId: publishedEntityId },
-          'Post-commit indexing failed after resolution',
-        );
       }
     }
 
