@@ -64,7 +64,7 @@ Use `load` for pre-formatted agent-consumable context (markdown with routing, pl
 trapmap load "<seed>" --scope project --json
 ```
 
-`load` flags: `--scope`, `--label` (repeatable), `--max-results`, `--skill-budget`, `--max-depth`, `--fallback`, `--stdin`, `--json`.
+`load` flags: `--scope`, `--label` (repeatable), `--skill-budget`, `--max-depth`, `--fallback`, `--stdin`, `--json`.
 
 Default output is markdown wrapped in `<!-- trapmap-load-context -->` markers. Use `--json` for raw structured data.
 

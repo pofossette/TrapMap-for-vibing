@@ -21,7 +21,6 @@ export function registerLoadCommand(program: Command, options: LoadCommandOption
     .argument('[seed]', 'Search seed text or query')
     .option('--scope <scope>', 'Filter by scope (global or project)')
     .option('--label <label>', 'Filter by label (repeatable)', collectValues, [])
-    .option('--max-results <n>', 'Maximum capsules/entries in fallback (default: 10)', '10')
     .option('--skill-budget <n>', 'Maximum skills in plan (default: 3)', '3')
     .option('--max-depth <n>', 'Maximum graph expansion depth (default: 2)', '2')
     .option('--fallback <mode>', 'Fallback mode: auto, v2-capsule, v1-graph-assisted', 'auto')
@@ -33,7 +32,6 @@ export function registerLoadCommand(program: Command, options: LoadCommandOption
         flags: {
           scope?: string;
           label: string[];
-          maxResults: string;
           skillBudget: string;
           maxDepth: string;
           fallback: string;
@@ -66,12 +64,19 @@ export function registerLoadCommand(program: Command, options: LoadCommandOption
           filters.scopes = [flags.scope];
         }
 
+        // Parse and validate integer options
+        const skillBudget = Number.parseInt(flags.skillBudget, 10);
+        const maxDepth = Number.parseInt(flags.maxDepth, 10);
+        if (Number.isNaN(skillBudget) || Number.isNaN(maxDepth)) {
+          throw new Error('--skill-budget and --max-depth must be valid integers.');
+        }
+
         // Build v3 GraphRAG-lite query
         const body = {
           seed: searchSeed,
           filters,
-          skillBudget: Number.parseInt(flags.skillBudget, 10),
-          maxDepth: Number.parseInt(flags.maxDepth, 10),
+          skillBudget,
+          maxDepth,
           fallbackMode: flags.fallback,
         };
 
