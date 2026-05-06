@@ -24,6 +24,7 @@ import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';
 import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
 import { ensureVectorIndex } from './lib/retrieval/db-search.js';
+import { createUsageAnalyticsRepository } from './lib/analytics/index.js';
 import { createMembershipRepository, createTeamRepository } from './lib/teams/index.js';
 import { createUserRepository } from './lib/users/index.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
@@ -171,6 +172,8 @@ export function buildServer(options: BuildServerOptions = {}) {
     teamRepo: undefined,
     // membershipRepo is set when PostgreSQL pool is available (in onReady hook)
     membershipRepo: undefined,
+    // usageAnalyticsRepo is set when PostgreSQL pool is available (in onReady hook)
+    usageAnalyticsRepo: undefined,
   });
 
   // Bridge: wire global embeddings provider so existing generateEmbedding() callers
@@ -280,6 +283,9 @@ export function buildServer(options: BuildServerOptions = {}) {
         pool,
         store,
       });
+
+      // Create usage analytics repository for statistics
+      app.skillShareer.usageAnalyticsRepo = await createUsageAnalyticsRepository({ pool });
 
       // Ensure HNSW vector index exists for O(log n) similarity search (Phase 77)
       try {
