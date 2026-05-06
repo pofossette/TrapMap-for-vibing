@@ -8,6 +8,7 @@ import type { AccessKeyRepository } from './auth/index.js';
 import type { SessionRepository } from './auth/index.js';
 import type { IndexAdapter } from './indexing/types.js';
 import type { KnowledgeRepository } from './knowledge/index.js';
+import type { UsageAnalyticsRepository } from './analytics/index.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
 import type { MembershipRepository, TeamRepository } from './teams/index.js';
 import type { UserRepository } from './users/index.js';
@@ -31,6 +32,8 @@ export interface SkillShareerServices {
   teamRepo: TeamRepository | undefined;
   /** Membership repository for membership operations (undefined when using JsonStore) */
   membershipRepo: MembershipRepository | undefined;
+  /** Usage analytics repository for statistics (undefined when using JsonStore) */
+  usageAnalyticsRepo: UsageAnalyticsRepository | undefined;
 }
 
 export interface ResolvedAuthContext {
