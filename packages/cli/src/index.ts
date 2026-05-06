@@ -7,6 +7,7 @@ import { registerEvidenceCommands } from './commands/evidence.js';
 import { registerFeedbackAdminCommands } from './commands/feedback-admin.js';
 import { registerFeedbackCommands } from './commands/feedback.js';
 import { registerKnowledgeCommands } from './commands/knowledge.js';
+import { registerLoadCommand } from './commands/load.js';
 import { registerMaintenanceCommands } from './commands/maintenance.js';
 import { registerMemberCommands } from './commands/member.js';
 import { registerOperationsCommands } from './commands/operations.js';
@@ -91,7 +92,7 @@ program
         ? ['submit', 'resubmit', 'skill edit', 'trap submit', 'trap resubmit']
         : []),
       ...(visibility.allowKnowledgeInspect ? ['review-status', 'trap list', 'trap show'] : []),
-      ...(visibility.allowKnowledgeSearch ? ['search', 'skill search-by-content'] : []),
+      ...(visibility.allowKnowledgeSearch ? ['search', 'skill search-by-content', 'load'] : []),
       ...(visibility.allowKnowledgeReview
         ? [
             'review:queue',
@@ -138,6 +139,7 @@ registerTrapCommands(program, {
 registerRetrievalCommands(program, {
   allowSearch: visibility.allowKnowledgeSearch,
 });
+registerLoadCommand(program, { allowSearch: visibility.allowKnowledgeSearch });
 registerReviewCommands(program, {
   allowReview: visibility.allowKnowledgeReview,
 });
