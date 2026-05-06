@@ -38,7 +38,7 @@ describe('formatLoadContext', () => {
     selectedMode: 'graph-assisted' as const,
     routeFamily: 'capsule' as const,
     routingReason: 'test' as const,
-    recallChannels: ['semantic', 'keyword'],
+    channelsUsed: ['semantic', 'keyword'],
     fallbackTarget: null,
     confidenceScore: 0.85,
     confidenceBucket: 'high' as const,

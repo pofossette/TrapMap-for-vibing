@@ -85,7 +85,7 @@ export function registerLoadCommand(program: Command, options: LoadCommandOption
         const parsed = graphPlanSearchResponseSchema.parse(response.data);
 
         // Output formatted markdown or raw JSON
-        printResult(parsed, { json: flags.json }, formatLoadContext);
+        printResult(parsed, flags.json ? { json: true } : {}, formatLoadContext);
       },
     );
 }

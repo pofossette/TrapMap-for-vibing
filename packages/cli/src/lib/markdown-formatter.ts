@@ -98,7 +98,7 @@ function formatRoutingTrace(trace: GraphPlanRoutingTrace): string {
   const lines = [
     `- Mode: ${trace.selectedMode}`,
     `- Confidence: ${trace.confidenceScore.toFixed(2)} (${trace.confidenceBucket})`,
-    `- Channels: ${trace.recallChannels?.join(', ') ?? 'unknown'}`,
+    `- Channels: ${trace.channelsUsed?.join(', ') ?? 'unknown'}`,
   ];
   if (trace.fallbackTarget) {
     lines.push(`- Fallback: ${trace.fallbackTarget}`);
