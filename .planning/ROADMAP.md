@@ -209,17 +209,18 @@
 
 ### Type Hygiene
 
-- [ ] Phase 87: Type & State Machine Centralization (3 plans)
+- [x] Phase 87: Type & State Machine Centralization (3/3 plans) — completed 2026-05-06
 
 Plans:
-- [ ] 087-01-PLAN.md — Decompose store.ts into domain-separated store/ directory
-- [ ] 087-02-PLAN.md — Create state-machines/index.ts barrel export
-- [ ] 087-03-PLAN.md — Create lib/types.ts unified entry + compile verification test
+- [x] 087-01-PLAN.md — Decompose store.ts into domain-separated store/ directory
+- [x] 087-02-PLAN.md — Create state-machines/index.ts barrel export
+- [x] 087-03-PLAN.md — Create lib/types.ts unified entry + compile verification test
 
-### Phase 87: Type & State Machine Centralization
+### Phase 87: Type & State Machine Centralization ✅
 
 **Goal:** 集中导出 server 包的散落类型、枚举和状态机，建立统一的 barrel re-export 体系
 **Depends on:** Phase 86
+**Completed:** 2026-05-06
 
 **Requirements:**
 1. 将 `store.ts` 中 35+ 个 record 接口拆分到 `store/types/` 目录（按领域：knowledge-records.ts, skill-records.ts, system-records.ts 等）
@@ -229,11 +230,11 @@ Plans:
 5. 添加类型导出的编译验证测试
 
 **Success Criteria:**
-- [ ] store.ts 中的接口按领域拆分到独立文件
-- [ ] 存在 `lib/types.ts` 作为所有 server 类型的统一入口
-- [ ] 状态机有统一的 barrel 导出
-- [ ] 所有现有 import 路径不受影响（typecheck 通过）
-- [ ] 现有测试全部通过
+- [x] store.ts 中的接口按领域拆分到独立文件
+- [x] 存在 `lib/types.ts` 作为所有 server 类型的统一入口
+- [x] 状态机有统一的 barrel 导出
+- [x] 所有现有 import 路径不受影响（typecheck 通过）
+- [x] 现有测试全部通过
 
 ### Phase 89: Usage Analytics & Statistics
 

@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.7
-milestone_name: Eval Structural Coverage & Architecture Health
+milestone: v1.8
+milestone_name: Type Hygiene & Architecture Evolution
 status: executing
-last_updated: "2026-05-06T04:02:22.691Z"
-last_activity: 2026-05-06 -- Phase 87 planning complete
+last_updated: "2026-05-06T04:22:00.000Z"
+last_activity: 2026-05-06 -- Phase 87 completed
 progress:
   total_phases: 10
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 0
-  percent: 0
+  completed_plans: 3
+  percent: 10
 ---
 
 ## Project Reference
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Core value:** Teams can retrieve concise, trustworthy, team-relevant engineering knowledge from the terminal before they repeat a solved mistake.
-**Current focus:** Next phase in v1.7 milestone
+**Current focus:** Phase 88 — Documentation Restructuring & Synchronization
 
 ## Current Position
 
-Phase: 86
-Plan: Complete
-Status: Ready to execute
-Last activity: 2026-05-06 -- Phase 87 planning complete
+Phase: 87 (Type & State Machine Centralization) — COMPLETED ✓
+Next: Phase 88 — Documentation Restructuring & Synchronization
+Status: Phase 87 complete, ready for next phase
+Last activity: 2026-05-06 -- Phase 87 completed (3/3 plans)
 
 ## v1.7 Summary
 
@@ -69,6 +69,16 @@ All 9 phases completed:
 - Phase 101 edited: edited fields: goal, requirements, success_criteria
 - Phase 102 edited: edited fields: goal, requirements, success_criteria
 - Phase 103 edited: edited fields: goal, requirements, success_criteria
+
+### Decisions (Phase 87)
+
+- 87-01: Extract 35+ record types from store.ts into domain-organized store/types/ directory
+- 87-01: Create 5 domain type files: system-records.ts, knowledge-records.ts, artifact-records.ts, candidate-records.ts, feedback-records.ts
+- 87-01: Create store-data.ts, store-interface.ts, json-store.ts for utilities and interfaces
+- 87-01: Convert store.ts to backward-compatible shim re-exporting from ./store/index.js
+- 87-02: Create state-machines/index.ts barrel export for decay and lifecycle state machines
+- 87-03: Create lib/types.ts as unified entry point for all server package types
+- 87-03: Add compile verification test (types-export.test.ts) to ensure all exports are importable
 
 ### Decisions (Phase 86)
 
