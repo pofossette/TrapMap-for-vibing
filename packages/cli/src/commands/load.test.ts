@@ -42,7 +42,7 @@ describe('CLI load command', () => {
       selectedMode: 'mix',
       routeFamily: 'graph-plan',
       routingReason: 'graph-plan-selected',
-      recallChannels: ['semantic'],
+      channelsUsed: ['semantic'],
       fallbackTarget: null,
       confidenceScore: 0.9,
       confidenceBucket: 'high',
