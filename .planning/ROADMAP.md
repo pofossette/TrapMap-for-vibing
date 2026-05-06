@@ -220,22 +220,18 @@ Plans:
 **Goal:** 将 SkillShareerStore 的 snapshot/transact 裸操作替换为领域级 Repository 接口，使路由层不再直接依赖 StoreData 结构，同时让 Json/PG 双实现路径对称
 **Depends on:** Phase 99
 
-### Phase 101: Lifecycle State Machine with Event Bus — Explicit state machine for knowledge lifecycle with domain event system
+### Phase 101: Lifecycle State Machine with Event Bus — Explicit state machine for knowledge lifecycle with domain event system ✅
 
 **Goal:** 将知识条目的 LifecycleState 转换规则从散落在路由/if-else 中提升为显式状态机定义，并引入领域事件机制使索引同步、审计记录、通知等解耦为事件订阅者
 **Depends on:** Phase 100
-**Plans:** 4 plans
+**Completed:** 2026-05-07
+**Plans:** 4/4 complete
 
 Plans:
-- [ ] 101-01-PLAN.md — Foundation: types, event bus, transition table *(Wave 1)*
-- [ ] 101-02-PLAN.md — Orchestrator and event subscribers *(Wave 2 — blocked on 101-01)*
-- [ ] 101-03-PLAN.md — Service wiring (context.ts + app.ts) *(Wave 3 — blocked on 101-01, 101-02)*
-- [ ] 101-04-PLAN.md — Route migration to event emission *(Wave 4 — blocked on 101-03)*
-
-Cross-cutting constraints:
-- `eventBus.emitDomainEvent` pattern used in Plans 02, 03, 04
-- `findTransitionEvent` from transitions.ts used in Plans 02, 04
-- Audit stays inside `store.transact()` (Plans 02, 04)
+- [x] 101-01-PLAN.md — Foundation: types, event bus, transition table *(Wave 1)*
+- [x] 101-02-PLAN.md — Orchestrator and event subscribers *(Wave 2 — blocked on 101-01)*
+- [x] 101-03-PLAN.md — Service wiring (context.ts + app.ts) *(Wave 3 — blocked on 101-01, 101-02)*
+- [x] 101-04-PLAN.md — Route migration to event emission *(Wave 4 — blocked on 101-03)*
 
 ### Phase 102: IndexAdapter Generalization and Retrieval Plugin — Dynamic adapter registry with pluggable recall channels
 
