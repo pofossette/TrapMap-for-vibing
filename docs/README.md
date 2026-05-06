@@ -125,7 +125,6 @@ pnpm eval:ci
 ### 架构与 API
 - [架构概览](../architecture.md) - 四层架构概览
 - [架构详解](architecture/ARCHITECTURE.md) - 系统设计、流程图、模块划分（中文）
-- [架构详解（英文）](architecture/ARCHITECTURE_en.md) - English translation
 - [模块详解](architecture/MODULES.md) - 详细模块分解
 - [API 参考](architecture/API.md) - 完整 API 列表
 - [API 契约表面](api-surface.md) - 端点 Schema 概览
@@ -140,6 +139,9 @@ pnpm eval:ci
 
 ### 包结构
 - [包结构说明](PACKAGES.md) - packages/cli、server、contracts 各包职责与接口
+
+### 归档文档
+- [归档文档](archived/) - 历史参考文档
 
 ## 安全模型
 
