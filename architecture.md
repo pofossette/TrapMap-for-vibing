@@ -36,9 +36,9 @@ TrapMap 采用四层架构设计：
 
 ## 文档导航
 
-完整架构文档（包含模块详解、流程图、技术细节）请参阅：
+> **说明**：本文档为架构简洁概览。完整架构文档（包含模块详解、流程图、技术细节）请参阅下方链接。
 
-**[docs/architecture/ARCHITECTURE.md](./docs/architecture/ARCHITECTURE.md)**
+**[docs/architecture/ARCHITECTURE.md](./docs/architecture/ARCHITECTURE.md)** — 完整架构文档
 
 其他架构文档：
 
