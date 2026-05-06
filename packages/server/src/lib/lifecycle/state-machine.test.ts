@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LifecycleState } from '@trapmap/contracts';
+import { LifecycleEventBus } from './event-bus.js';
 import {
+  executeTransition,
   getValidTransitions,
   isTerminalState,
   isValidTransition,
   transitionLifecycleState,
 } from './state-machine.js';
+import type { DomainEvent } from './types.js';
 
 describe('lifecycle state machine', () => {
   describe('isValidTransition', () => {
@@ -188,5 +191,102 @@ describe('lifecycle state machine', () => {
       expect(transitions).toContain('agent-rejected');
       expect(transitions).toHaveLength(2);
     });
+  });
+});
+
+describe('executeTransition', () => {
+  it('mutates entry state and emits domain event', () => {
+    const bus = new LifecycleEventBus();
+    const entry = { lifecycleState: 'agent-pass' as LifecycleState };
+    const events: DomainEvent[] = [];
+    bus.onDomainEvent('knowledge.approved', (e) => events.push(e));
+
+    const event = executeTransition(
+      entry,
+      'approved',
+      { entryId: 'entry-1', actorId: 'user-1', reason: 'test' },
+      bus,
+    );
+
+    expect(entry.lifecycleState).toBe('approved');
+    expect(event.name).toBe('knowledge.approved');
+    expect(event.previousState).toBe('agent-pass');
+    expect(event.nextState).toBe('approved');
+    expect(events).toHaveLength(1);
+  });
+
+  it('includes previousState captured before mutation', () => {
+    const bus = new LifecycleEventBus();
+    const entry = { lifecycleState: 'agent-pass' as LifecycleState };
+    let capturedPrev: LifecycleState | undefined;
+    bus.onDomainEvent('knowledge.approved', (e) => {
+      capturedPrev = e.previousState;
+    });
+
+    executeTransition(
+      entry,
+      'approved',
+      { entryId: 'e1', actorId: 'u1', reason: 'r' },
+      bus,
+    );
+    expect(capturedPrev).toBe('agent-pass');
+  });
+
+  it('throws on invalid transition without emitting event', () => {
+    const bus = new LifecycleEventBus();
+    const entry = { lifecycleState: 'deactivated' as LifecycleState };
+    const events: DomainEvent[] = [];
+    bus.onDomainEvent('knowledge.approved', (e) => events.push(e));
+
+    expect(() =>
+      executeTransition(
+        entry,
+        'approved',
+        { entryId: 'e1', actorId: 'u1', reason: 'r' },
+        bus,
+      ),
+    ).toThrow('Invalid lifecycle transition');
+    expect(events).toHaveLength(0);
+  });
+
+  it('returns the emitted DomainEvent', () => {
+    const bus = new LifecycleEventBus();
+    const entry = { lifecycleState: 'draft' as LifecycleState };
+    const event = executeTransition(
+      entry,
+      'submitted',
+      { entryId: 'e1', actorId: 'u1', reason: 'submit' },
+      bus,
+    );
+    expect(event).toMatchObject({
+      name: 'knowledge.submitted',
+      entryId: 'e1',
+      previousState: 'draft',
+      nextState: 'submitted',
+    });
+  });
+
+  it('includes metadata when provided', () => {
+    const bus = new LifecycleEventBus();
+    const entry = { lifecycleState: 'agent-pass' as LifecycleState };
+    const event = executeTransition(
+      entry,
+      'approved',
+      { entryId: 'e1', actorId: 'u1', reason: 'r', metadata: { key: 'val' } },
+      bus,
+    );
+    expect(event.metadata).toEqual({ key: 'val' });
+  });
+
+  it('omits metadata when not provided', () => {
+    const bus = new LifecycleEventBus();
+    const entry = { lifecycleState: 'agent-pass' as LifecycleState };
+    const event = executeTransition(
+      entry,
+      'approved',
+      { entryId: 'e1', actorId: 'u1', reason: 'r' },
+      bus,
+    );
+    expect(event).not.toHaveProperty('metadata');
   });
 });
