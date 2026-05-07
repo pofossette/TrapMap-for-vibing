@@ -25,6 +25,10 @@ import { hashSecret, nowIso } from './store.js';
 import { InMemoryMembershipRepository, InMemoryTeamRepository } from './teams/index.js';
 import { InMemoryUserRepository } from './users/index.js';
 
+import { ChannelRegistry } from './retrieval/channel-registry.js';
+import { StrategyRegistry } from './retrieval/strategy-registry.js';
+
+
 describe('session.ts repository operations', () => {
   let app: FastifyInstance;
   let store: SkillShareerStore;
@@ -282,7 +286,15 @@ describe('session.ts repository-based auth context resolution', () => {
     return {
       config: app.skillShareer.config,
       store,
-      indexAdapters: [],
+      adapterRegistry: { register: () => {}, get: () => undefined, all: () => [], kinds: () => [], has: () => false } as any,
+      channelRegistry: new ChannelRegistry(),
+      strategyRegistry: (() => {
+        const sr = new StrategyRegistry();
+        sr.register({ version: 'semantic', async execute(q, _ch, entries) { return { scoredEntries: entries.map(e => ({ entry: e, score: 0.5 })) }; } });
+        sr.register({ version: 'hybrid', async execute(q, _ch, entries) { return { scoredEntries: entries.map(e => ({ entry: e, score: 0.5 })) }; } });
+        sr.register({ version: 'graph-assisted', async execute(q, _ch, entries) { return { scoredEntries: entries.map(e => ({ entry: e, score: 0.5 })) }; } });
+        return sr;
+      })(),
       ai: app.skillShareer.ai,
       knowledgeRepo: undefined,
       artifactRepo: undefined,
@@ -299,7 +311,15 @@ describe('session.ts repository-based auth context resolution', () => {
     return {
       config: app.skillShareer.config,
       store,
-      indexAdapters: [],
+      adapterRegistry: { register: () => {}, get: () => undefined, all: () => [], kinds: () => [], has: () => false } as any,
+      channelRegistry: new ChannelRegistry(),
+      strategyRegistry: (() => {
+        const sr = new StrategyRegistry();
+        sr.register({ version: 'semantic', async execute(q, _ch, entries) { return { scoredEntries: entries.map(e => ({ entry: e, score: 0.5 })) }; } });
+        sr.register({ version: 'hybrid', async execute(q, _ch, entries) { return { scoredEntries: entries.map(e => ({ entry: e, score: 0.5 })) }; } });
+        sr.register({ version: 'graph-assisted', async execute(q, _ch, entries) { return { scoredEntries: entries.map(e => ({ entry: e, score: 0.5 })) }; } });
+        return sr;
+      })(),
       ai: app.skillShareer.ai,
       knowledgeRepo: undefined,
       artifactRepo: undefined,

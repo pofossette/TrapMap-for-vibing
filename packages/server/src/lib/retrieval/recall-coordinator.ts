@@ -13,6 +13,7 @@ import { AppError } from '../errors.js';
 import { PostgresStore } from '../persistence/postgres-store.js';
 import type { KnowledgeRecord } from '../store.js';
 import { buildBoundaryExplanation, computeBoundaryScoreDelta } from './boundary-match.js';
+import type { ChannelRegistry } from './channel-registry.js';
 import { vectorSimilaritySearch } from './db-search.js';
 import { createSemanticCandidate, mergeCandidates } from './merge.js';
 import { graphAssistedRecall as graphRecall } from './recall/graph-assisted.js';
@@ -20,6 +21,7 @@ import { keywordRecall, normalizeQuery } from './recall/keyword.js';
 import { type KeywordRecallResult, createPgKeywordRecall } from './recall/pg-keyword.js';
 import { getQueryEmbedding, optimizedSemanticRecall } from './recall/semantic.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
+import type { StrategyRegistry } from './strategy-registry.js';
 import type { MergedCandidate, RoutingChannel, ScoredEntry } from './types.js';
 
 /**
@@ -59,12 +61,14 @@ export function inferChannelsFromMerged(mergedCandidates?: MergedCandidate[]): R
 }
 
 /**
- * Dispatch retrieval based on query mode.
+ * Dispatch retrieval based on query mode using StrategyRegistry lookup.
  *
  * @param mode - Query mode (semantic, hybrid, graph-assisted)
  * @param seed - Search query text
  * @param eligibleEntries - Entries that passed eligibility filters
  * @param parsed - Parsed retrieval query
+ * @param strategyRegistry - Registry of retrieval strategies
+ * @param channelRegistry - Registry of recall channels
  * @param services - Server services for DB search configuration
  * @param auth - Auth context for access control filters
  * @returns Scored entries sorted by relevance, plus merged candidates for citations
@@ -74,23 +78,20 @@ export async function dispatchByMode(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
+  strategyRegistry: StrategyRegistry,
+  channelRegistry: ChannelRegistry,
   services?: SkillShareerServices,
   auth?: ResolvedAuthContext,
 ): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates?: MergedCandidate[] }> {
-  switch (mode) {
-    case 'semantic':
-      return await semanticRecall(seed, eligibleEntries, parsed, services, auth);
-    case 'hybrid':
-      return await hybridRecall(seed, eligibleEntries, parsed, services, auth);
-    case 'graph-assisted':
-      return await graphAssistedRecall(seed, eligibleEntries, parsed);
-    default:
-      throw new AppError(
-        400,
-        'invalid_mode',
-        `Invalid query mode: ${mode}. Must be one of: semantic, hybrid, graph-assisted`,
-      );
+  const strategy = strategyRegistry.get(mode);
+  if (!strategy) {
+    throw new AppError(
+      400,
+      'invalid_mode',
+      `Invalid query mode: ${mode}. Must be one of: ${strategyRegistry.all().map(s => s.version).join(', ')}`,
+    );
   }
+  return strategy.execute(parsed, channelRegistry, eligibleEntries, services, auth);
 }
 
 /**

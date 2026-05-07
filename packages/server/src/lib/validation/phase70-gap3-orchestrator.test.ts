@@ -149,6 +149,10 @@ import { keywordRecall } from '../retrieval/recall/keyword.js';
 import { getQueryEmbedding } from '../retrieval/recall/semantic.js';
 import { selectRetrievalStrategy, selectRetrievalStrategyV2 } from '../retrieval/routing.js';
 
+import { ChannelRegistry } from '../retrieval/channel-registry.js';
+import { StrategyRegistry } from '../retrieval/strategy-registry.js';
+
+
 function makeAuth(overrides: Partial<ResolvedAuthContext> = {}): ResolvedAuthContext {
   return {
     subjectType: 'user',
@@ -240,7 +244,33 @@ function makeServices(overrides: Partial<SkillShareerServices> = {}): SkillShare
       transact: vi.fn(),
       nextId: vi.fn(),
     } as unknown as SkillShareerServices['store'],
-    indexAdapters: [],
+    adapterRegistry: { register: () => {}, get: () => undefined, all: () => [], kinds: () => [], has: () => false } as any,
+    channelRegistry: new ChannelRegistry(),
+    strategyRegistry: (() => {
+      const sr = new StrategyRegistry();
+      sr.register({
+        version: 'semantic',
+        async execute(query, _channels, eligibleEntries, services, auth) {
+          const { semanticRecall } = await import('../retrieval/recall-coordinator.js');
+          return semanticRecall(query.seed, eligibleEntries, query, services, auth);
+        },
+      });
+      sr.register({
+        version: 'hybrid',
+        async execute(query, _channels, eligibleEntries, services, auth) {
+          const { hybridRecall } = await import('../retrieval/recall-coordinator.js');
+          return hybridRecall(query.seed, eligibleEntries, query, services, auth);
+        },
+      });
+      sr.register({
+        version: 'graph-assisted',
+        async execute(query, _channels, eligibleEntries) {
+          const { graphAssistedRecall } = await import('../retrieval/recall-coordinator.js');
+          return graphAssistedRecall(query.seed, eligibleEntries, query);
+        },
+      });
+      return sr;
+    })(),
     ai: {
       embeddings: { isConfigured: false, embed: vi.fn() },
       chat: { isConfigured: false, invoke: vi.fn() },

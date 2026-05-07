@@ -158,7 +158,7 @@ export async function searchKnowledge(
 
     const { scoredEntries, mergedCandidates } = await timedStep(
       'recall',
-      () => dispatchByMode(parsed.mode, parsed.seed, boundaryFiltered, parsed, services, auth),
+      () => dispatchByMode(parsed.mode, parsed.seed, boundaryFiltered, parsed, services.strategyRegistry, services.channelRegistry, services, auth),
       steps,
       {
         inputSize: boundaryFiltered.length,

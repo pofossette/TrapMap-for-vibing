@@ -406,7 +406,9 @@ export function makeMockServices(storeData: Partial<StoreData> = {}): SkillShare
       transact: async () => {},
       nextId: () => 'test_id',
     } as SkillShareerServices['store'],
-    indexAdapters: new AdapterRegistry(),
+    adapterRegistry: new AdapterRegistry(),
+    channelRegistry: {} as any,
+    strategyRegistry: {} as any,
     ai: {
       embeddings: {
         provider: 'fallback',

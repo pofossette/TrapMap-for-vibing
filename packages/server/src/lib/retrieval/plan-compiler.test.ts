@@ -311,7 +311,9 @@ function makeMockServices(storeData: Partial<StoreData> = {}): SkillShareerServi
       transact: async () => {},
       nextId: () => 'test_id',
     } as any,
-    indexAdapters: [],
+    adapterRegistry: {} as any,
+      channelRegistry: {} as any,
+      strategyRegistry: {} as any,
     ai: {
       embeddings: {
         provider: 'fallback',

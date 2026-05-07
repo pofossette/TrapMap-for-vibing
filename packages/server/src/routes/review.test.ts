@@ -39,12 +39,12 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
     it('should expose indexAdapters registry in service container (IDX-04)', async () => {
       // Verify the service container has the indexAdapters field
       expect(app.skillShareer).toBeDefined();
-      expect(app.skillShareer.indexAdapters).toBeDefined();
+      expect(app.skillShareer.adapterRegistry).toBeDefined();
 
       // Verify it contains the expected adapters
-      expect(app.skillShareer.indexAdapters.all().length).toBeGreaterThan(0);
+      expect(app.skillShareer.adapterRegistry.all().length).toBeGreaterThan(0);
 
-      const adapterKinds = app.skillShareer.indexAdapters.kinds();
+      const adapterKinds = app.skillShareer.adapterRegistry.kinds();
       expect(adapterKinds).toContain('vector');
       expect(adapterKinds).toContain('keyword');
     });
@@ -55,10 +55,10 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       await app2.ready();
 
       // Both should have the same adapter configuration
-      expect(app.skillShareer.indexAdapters.kinds().length).toBe(app2.skillShareer.indexAdapters.kinds().length);
+      expect(app.skillShareer.adapterRegistry.kinds().length).toBe(app2.skillShareer.adapterRegistry.kinds().length);
 
-      const adapterKinds1 = app.skillShareer.indexAdapters.kinds();
-      const adapterKinds2 = app2.skillShareer.indexAdapters.kinds();
+      const adapterKinds1 = app.skillShareer.adapterRegistry.kinds();
+      const adapterKinds2 = app2.skillShareer.adapterRegistry.kinds();
 
       expect(adapterKinds1).toEqual(adapterKinds2);
 

@@ -6,6 +6,10 @@ import { nowIso } from '../store.js';
 import { assessGraphPlanReadiness, searchKnowledgeGraphPlan } from './graph-plan-search.js';
 import { compileTrapFirstPlan } from './plan-compiler.js';
 
+import { ChannelRegistry } from './retrieval/channel-registry.js';
+import { StrategyRegistry } from './retrieval/strategy-registry.js';
+
+
 vi.mock('./plan-compiler.js', () => ({
   compileTrapFirstPlan: vi.fn(),
 }));
@@ -42,7 +46,9 @@ function makeServices(): SkillShareerServices {
     store: {
       snapshot: vi.fn(),
     },
-    indexAdapters: [],
+    adapterRegistry: {} as any,
+      channelRegistry: {} as any,
+      strategyRegistry: {} as any,
     ai: {
       embeddings: {
         provider: 'fallback',
