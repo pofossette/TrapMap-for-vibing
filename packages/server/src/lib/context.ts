@@ -14,6 +14,7 @@ import type { UsageAnalyticsRepository } from './analytics/index.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
 import type { MembershipRepository, TeamRepository } from './teams/index.js';
 import type { LifecycleEventBus } from './lifecycle/event-bus.js';
+import type { SkillShareerRepos } from './repos/index.js';
 import type { UserRepository } from './users/index.js';
 
 export interface SkillShareerServices {
@@ -42,6 +43,8 @@ export interface SkillShareerServices {
   membershipRepo: MembershipRepository | undefined;
   /** Usage analytics repository for statistics (undefined when using JsonStore) */
   usageAnalyticsRepo: UsageAnalyticsRepository | undefined;
+  /** Unified repository object — always populated in both JSON and PG modes */
+  repos: SkillShareerRepos;
   /** Lifecycle event bus for domain event emission and subscription */
   eventBus: LifecycleEventBus;
 }
