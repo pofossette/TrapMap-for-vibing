@@ -83,14 +83,15 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
     // Parse query parameters
     const query = decayEntryListRequestSchema.parse(request.query);
 
-    // Get snapshot
-    const data = await app.skillShareer.store.snapshot();
+    // Get knowledge entries using repository
+    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
+    const allEntries = await knowledgeRepo.listByFilter({});
     const config = loadDecayConfig();
     const now = new Date();
 
     // Filter by permission first
     const permittedEntries = filterEntriesByPermission(
-      data.knowledgeEntries.map((e) => ({
+      allEntries.map((e) => ({
         id: e.id,
         teamId: e.teamId,
         requiredLevel: e.requiredLevel,
@@ -103,7 +104,7 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
     // Enrich entries with decay state
     const items: DecayAwareListItem[] = [];
 
-    for (const entry of data.knowledgeEntries) {
+    for (const entry of allEntries) {
       // Skip entries not permitted for this user
       if (!permittedIds.has(entry.id)) continue;
 
@@ -353,14 +354,15 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
     const pattern = body.pattern ?? '';
     const patternLower = pattern.toLowerCase();
 
-    // Get snapshot
-    const data = await app.skillShareer.store.snapshot();
+    // Get knowledge entries using repository
+    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
+    const allEntries = await knowledgeRepo.listByFilter({});
     const config = loadDecayConfig();
     const now = new Date();
 
     // Filter by permission first
     const permittedEntries = filterEntriesByPermission(
-      data.knowledgeEntries.map((e) => ({
+      allEntries.map((e) => ({
         id: e.id,
         teamId: e.teamId,
         requiredLevel: e.requiredLevel,
@@ -373,7 +375,7 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
     // Enrich and filter entries
     const items: DecayAwareListItem[] = [];
 
-    for (const entry of data.knowledgeEntries) {
+    for (const entry of allEntries) {
       // Skip entries not permitted for this user
       if (!permittedIds.has(entry.id)) continue;
 

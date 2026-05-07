@@ -90,32 +90,17 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
     // Parse query parameters
     const query = feedbackListRequestSchema.parse(request.query);
 
-    // Get snapshot
-    const data = await app.skillShareer.store.snapshot();
+    const { feedback: feedbackRepo, knowledge: knowledgeRepo, artifact: artifactRepo } =
+      app.skillShareer.repos;
     const now = new Date();
 
-    // Filter feedback queue
-    let filtered = [...data.feedbackQueue];
-
-    // Filter by status
-    if (query.status && query.status.length > 0) {
-      filtered = filtered.filter((f) => query.status!.includes(f.status));
-    }
-
-    // Filter by problem type
-    if (query.problemType && query.problemType.length > 0) {
-      filtered = filtered.filter((f) => query.problemType!.includes(f.problemType));
-    }
-
-    // Filter by entry ID
-    if (query.entryId) {
-      filtered = filtered.filter((f) => f.entryId === query.entryId);
-    }
-
-    // Filter by entry type
-    if (query.entryType) {
-      filtered = filtered.filter((f) => f.entryType === query.entryType);
-    }
+    // Filter feedback queue using repository
+    let filtered = await feedbackRepo.listByFilter({
+      status: query.status,
+      problemType: query.problemType,
+      entryId: query.entryId,
+      entryType: query.entryType,
+    });
 
     // Filter by age
     for (const f of filtered) {
@@ -135,8 +120,11 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
       );
     }
 
-    // Build lookup maps for entry shortcuts
-    const knowledgeEntryMap = new Map(data.knowledgeEntries.map((e) => [e.id, e.shortcut]));
+    // Build lookup maps for entry shortcuts using repositories
+    const knowledgeEntries = await knowledgeRepo.listByFilter({});
+    const knowledgeEntryMap = new Map(knowledgeEntries.map((e) => [e.id, e.shortcut]));
+    // skillArtifacts are read-only for shortcut lookup; keep store access for now
+    const data = await app.skillShareer.store.snapshot();
     const skillArtifactMap = new Map(data.skillArtifacts.map((a) => [a.id, a.slug]));
 
     // Build response items
@@ -209,15 +197,13 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
     const now = new Date();
     const appliedAt = nowIso();
 
-    // Get snapshot for dry-run or for planning
-    const data = await app.skillShareer.store.snapshot();
+    const { feedback: feedbackRepo, knowledge: knowledgeRepo } = app.skillShareer.repos;
 
-    // Build result items
+    // Build result items using repository
     const resultItems: FeedbackBatchItem[] = [];
-    const feedbackMap = new Map(data.feedbackQueue.map((f) => [f.id, f]));
 
     for (const feedbackId of body.feedbackIds) {
-      const feedback = feedbackMap.get(feedbackId);
+      const feedback = await feedbackRepo.getById(feedbackId);
       let eligible = false;
       let reason: string | null = null;
       const transitionApplied = false;
@@ -291,79 +277,75 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    // Execute the batch operation
-    await app.skillShareer.store.transact((txData) => {
-      const txFeedbackMap = new Map(txData.feedbackQueue.map((f) => [f.id, f]));
+    // Execute the batch operation using repository
+    for (const item of resultItems) {
+      if (!item.eligible) continue;
 
-      for (const item of resultItems) {
-        if (!item.eligible) continue;
+      const updates: Partial<FeedbackQueueRecord> = { updatedAt: appliedAt };
 
-        const feedback = txFeedbackMap.get(item.feedbackId);
-        if (!feedback) continue;
-
-        feedback.updatedAt = appliedAt;
-
-        switch (body.action) {
-          case 'resolve':
-            feedback.status = 'resolved';
-            feedback.resolvedAt = appliedAt;
-            feedback.resolvedByUserId = auth.user?.id ?? null;
-            if (body.notes) {
-              feedback.adminNotes = body.notes;
-            }
-            break;
-          case 'dismiss':
-            feedback.status = 'dismissed';
-            if (body.notes) {
-              feedback.adminNotes = body.notes;
-            }
-            break;
-          case 'triage':
-            feedback.status = 'triaged';
-            if (body.notes) {
-              feedback.adminNotes = body.notes;
-            }
-            break;
-          case 'transition':
-            feedback.triggeredTransition = body.transitionTarget ?? null;
-            item.transitionApplied = true;
-            if (body.notes) {
-              feedback.adminNotes = body.notes;
-            }
-            break;
-        }
+      switch (body.action) {
+        case 'resolve':
+          updates.status = 'resolved';
+          updates.resolvedAt = appliedAt;
+          updates.resolvedByUserId = auth.user?.id ?? null;
+          if (body.notes) {
+            updates.adminNotes = body.notes;
+          }
+          break;
+        case 'dismiss':
+          updates.status = 'dismissed';
+          if (body.notes) {
+            updates.adminNotes = body.notes;
+          }
+          break;
+        case 'triage':
+          updates.status = 'triaged';
+          if (body.notes) {
+            updates.adminNotes = body.notes;
+          }
+          break;
+        case 'transition':
+          updates.triggeredTransition = body.transitionTarget ?? null;
+          item.transitionApplied = true;
+          if (body.notes) {
+            updates.adminNotes = body.notes;
+          }
+          break;
       }
-    });
+
+      await feedbackRepo.update(item.feedbackId, updates);
+    }
 
     // After batch execution, evaluate lifecycle triggers for affected entries
     const lifecycleTransitions: Array<{ entryId: string; toState: string; reason: string }> = [];
 
     if (!body.dryRun) {
-      const freshData = await app.skillShareer.store.snapshot();
       const rules = getLifecycleTriggerRules();
       const lifecycleNow = new Date();
 
-      // Collect unique entry IDs from eligible items
+      // Collect unique entry IDs from eligible items using repository
       const affectedEntryIds = [
         ...new Set(
-          resultItems
-            .filter((i) => i.eligible)
-            .map((i) => {
-              const feedback = freshData.feedbackQueue.find((f) => f.id === i.feedbackId);
-              return feedback?.entryId;
-            })
-            .filter((id): id is string => id !== undefined),
+          (
+            await Promise.all(
+              resultItems
+                .filter((i) => i.eligible)
+                .map(async (i) => {
+                  const fb = await feedbackRepo.getById(i.feedbackId);
+                  return fb?.entryId;
+                }),
+            )
+          ).filter((id): id is string => id !== undefined),
         ),
       ];
 
       for (const entryId of affectedEntryIds) {
-        const result = checkLifecycleTriggers(
-          entryId,
-          freshData.feedbackQueue,
-          rules,
-          lifecycleNow,
-        );
+        // Get feedback for this entry using repository
+        const entryFeedback = await feedbackRepo.listByEntry(entryId);
+        const result = checkLifecycleTriggers(entryId, entryFeedback, rules, lifecycleNow);
         if (result.shouldTransition && result.targetState) {
+          // NOTE: No repo method exists for decayMeta updates.
+          // Using store.transact() for this specific mutation (deviation from plan).
           await app.skillShareer.store.transact((data) => {
             const entry = data.knowledgeEntries.find((e) => e.id === entryId);
             if (entry) {
@@ -427,13 +409,13 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
     const params = request.params as { entryId: string };
     const entryId = params.entryId;
 
-    // Get snapshot
-    const data = await app.skillShareer.store.snapshot();
+    const { feedback: feedbackRepo, knowledge: knowledgeRepo, artifact: artifactRepo } =
+      app.skillShareer.repos;
     const now = new Date();
 
-    // Find entry to determine type
-    const knowledgeEntry = data.knowledgeEntries.find((e) => e.id === entryId);
-    const skillArtifact = data.skillArtifacts.find((a) => a.id === entryId);
+    // Find entry to determine type using repositories
+    const knowledgeEntry = await knowledgeRepo.getById(entryId);
+    const skillArtifact = knowledgeEntry ? null : await artifactRepo.getById(entryId);
 
     if (!knowledgeEntry && !skillArtifact) {
       throw new AppError(404, 'not_found', 'Entry not found');
@@ -442,8 +424,8 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
     const entryType = knowledgeEntry ? 'trap' : 'skill';
     const entryShortcut = knowledgeEntry?.shortcut ?? skillArtifact?.slug ?? 'unknown';
 
-    // Filter feedback by entry ID
-    const entryFeedback = data.feedbackQueue.filter((f) => f.entryId === entryId);
+    // Filter feedback by entry ID using repository
+    const entryFeedback = await feedbackRepo.listByEntry(entryId);
 
     // Compute quality score
     const quality = computeQualityScore(entryFeedback);
