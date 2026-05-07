@@ -8,6 +8,9 @@
 import type { RetrievalStrategy, RoutingReason } from '@trapmap/contracts';
 import type { RoutingChannel } from './types.js';
 
+/** Contracts-layer channel union for type-safe boundary crossing */
+type ContractsChannel = 'semantic' | 'keyword' | 'graph' | 'capsule' | 'profile' | 'plan';
+
 /**
  * Internal routing decision produced by the strategy selector.
  * Used by the orchestrator for RAG logging and channel tracking.
@@ -120,6 +123,7 @@ export function toRoutingTrace(decision: RetrievalDecision) {
     fallbackTarget: decision.fallbackTarget,
     confidenceScore: decision.confidenceScore,
     confidenceBucket: decision.confidenceBucket,
-    channelsUsed: decision.channelsUsed,
+    // Cast to contracts-layer channel union at the type boundary
+    channelsUsed: decision.channelsUsed as ContractsChannel[],
   };
 }
