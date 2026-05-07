@@ -176,15 +176,8 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
       return toKnowledgeEntry(data, entry);
     });
 
-    // Post-commit: update lifecycle in repository + emit domain event
+    // Post-commit: emit domain event (lifecycle already updated in store transact above)
     if (entryId && previousState && nextState && previousState !== nextState) {
-      // Update lifecycle state in knowledge repository
-      const { knowledge: knowledgeRepo } = app.skillShareer.repos;
-      await knowledgeRepo.updateLifecycle(entryId, nextState, {
-        actorId: auth.actorId,
-        note: `reviewer-${payload.decision}`,
-      });
-
       // Emit domain event — subscribers handle indexing, conflict detection, audit
       const eventName = findTransitionEvent(previousState, nextState);
       if (eventName) {
