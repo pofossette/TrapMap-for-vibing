@@ -219,18 +219,23 @@ Plans:
 
 **Goal:** 将 SkillShareerStore 的 snapshot/transact 裸操作替换为领域级 Repository 接口，使路由层不再直接依赖 StoreData 结构，同时让 Json/PG 双实现路径对称
 **Depends on:** Phase 99
-**Plans:** 4 plans (0/4 complete)
+**Plans:** 5 plans (0/5 complete)
 
 Plans:
-**Wave 1** (parallel)
-- [ ] 100-01-PLAN.md — Create feedback, audit, duplicates repository modules
-- [ ] 100-02-PLAN.md — Create lineage, graph-index repos + repos factory + context.ts update
+**Wave 1**
+- [ ] 100-01-PLAN.md — Create feedback, audit, duplicates repository modules + unit tests
 
-**Wave 2** (blocked on Wave 1)
-- [ ] 100-03-PLAN.md — Wire repos in app.ts (decoration + onReady hook)
+**Wave 2** (blocked on 100-01)
+- [ ] 100-02-PLAN.md — Create lineage, graph-index repos + async repos factory + context.ts update + unit tests
 
-**Wave 3** (blocked on Wave 2)
+**Wave 3** (blocked on 100-02)
+- [ ] 100-03-PLAN.md — Wire async repos in app.ts (decoration + onReady hook)
+
+**Wave 4** (blocked on 100-03)
 - [ ] 100-04-PLAN.md — Migrate feedback, decay, candidates routes + session.ts to use repos
+
+**Wave 5** (blocked on 100-04)
+- [ ] 100-05-PLAN.md — Migrate knowledge.ts, review.ts, retrieval.ts, and operations sub-routes to use repos
 
 ### Phase 101: Lifecycle State Machine with Event Bus — Explicit state machine for knowledge lifecycle with domain event system ✅
 
@@ -266,4 +271,4 @@ Plans:
 
 ---
 
-*Roadmap updated: 2026-05-07 — Phase 100 planned (4 plans, 3 waves)*
+*Roadmap updated: 2026-05-07 — Phase 100 revised (5 plans, 5 waves)*
