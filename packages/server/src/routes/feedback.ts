@@ -27,54 +27,53 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
     // Validate request body
     const payload = feedbackSubmissionSchema.parse(request.body);
 
-    // Persist feedback to queue
-    const feedbackRecord = await app.skillShareer.store.transact((data) => {
-      const id = app.skillShareer.store.nextId(data, 'feedback');
-      const now = nowIso();
+    // Persist feedback to queue using repository
+    const { feedback: feedbackRepo } = app.skillShareer.repos;
+    const id = await feedbackRepo.nextId();
+    const now = nowIso();
 
-      // Check for automatic transition trigger
-      let flaggedForTransition: string | null = null;
-      if (payload.problemType === 'outdated' || payload.problemType === 'incorrect') {
-        const trigger = TRANSITION_TRIGGERS[payload.problemType];
-        const cutoffDate = new Date(Date.now() - trigger.timeWindowDays * 24 * 60 * 60 * 1000);
+    // Check for automatic transition trigger
+    let flaggedForTransition: string | null = null;
+    if (payload.problemType === 'outdated' || payload.problemType === 'incorrect') {
+      const trigger = TRANSITION_TRIGGERS[payload.problemType];
+      const cutoffDate = new Date(Date.now() - trigger.timeWindowDays * 24 * 60 * 60 * 1000);
 
-        const recentSimilarFeedback = data.feedbackQueue.filter(
-          (f) =>
-            f.entryId === payload.entryId &&
-            f.problemType === payload.problemType &&
-            new Date(f.submittedAt) >= cutoffDate,
-        );
-
-        // Including this new feedback, check if threshold is met
-        if (recentSimilarFeedback.length + 1 >= trigger.threshold) {
-          flaggedForTransition = trigger.targetState;
-        }
-      }
-
-      const record = {
-        id,
+      const recentSimilarFeedback = await feedbackRepo.listByFilter({
         entryId: payload.entryId,
-        entryType: payload.entryType,
-        problemType: payload.problemType,
-        description: payload.description,
-        context: payload.context ?? null,
-        querySeed: payload.querySeed ?? null,
-        customAnswers: payload.customAnswers ?? null,
-        submittedAt: now,
-        submittedByUserId: auth.user!.id,
-        submittedByHandle: auth.handle,
-        status: 'new' as const,
-        adminNotes: null,
-        resolvedAt: null,
-        resolvedByUserId: null,
-        triggeredTransition: flaggedForTransition,
-        createdAt: now,
-        updatedAt: now,
-      };
+        problemType: [payload.problemType],
+      });
+      const recentCount = recentSimilarFeedback.filter(
+        (f) => new Date(f.submittedAt) >= cutoffDate,
+      ).length;
 
-      data.feedbackQueue.push(record);
-      return record;
-    });
+      // Including this new feedback, check if threshold is met
+      if (recentCount + 1 >= trigger.threshold) {
+        flaggedForTransition = trigger.targetState;
+      }
+    }
+
+    const feedbackRecord = {
+      id,
+      entryId: payload.entryId,
+      entryType: payload.entryType,
+      problemType: payload.problemType,
+      description: payload.description,
+      context: payload.context ?? null,
+      querySeed: payload.querySeed ?? null,
+      customAnswers: payload.customAnswers ?? null,
+      submittedAt: now,
+      submittedByUserId: auth.user!.id,
+      submittedByHandle: auth.handle,
+      status: 'new' as const,
+      adminNotes: null,
+      resolvedAt: null,
+      resolvedByUserId: null,
+      triggeredTransition: flaggedForTransition,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await feedbackRepo.insert(feedbackRecord);
 
     // Log user operation (fire-and-forget)
     void logUserOperation(app.skillShareer.config.userOpsLog, {
