@@ -95,12 +95,12 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
     const now = new Date();
 
     // Filter feedback queue using repository
-    let filtered = await feedbackRepo.listByFilter({
-      status: query.status,
-      problemType: query.problemType,
-      entryId: query.entryId,
-      entryType: query.entryType,
-    });
+    const filter: { status?: string[]; problemType?: string[]; entryId?: string; entryType?: string } = {};
+    if (query.status) filter.status = query.status;
+    if (query.problemType) filter.problemType = query.problemType;
+    if (query.entryId) filter.entryId = query.entryId;
+    if (query.entryType) filter.entryType = query.entryType;
+    let filtered = await feedbackRepo.listByFilter(filter);
 
     // Filter by age
     for (const f of filtered) {

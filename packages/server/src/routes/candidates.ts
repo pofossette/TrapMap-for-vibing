@@ -90,7 +90,7 @@ async function buildSkillEntity(
     entityId: skill.id,
     title: skill.title,
     slug: skill.slug,
-    files: skill.latestRevision.files.map((f) => ({
+    files: skill.latestRevision.files.map((f: any) => ({
       path: f.path,
       sha256: f.sha256,
       sizeBytes: f.sizeBytes,
