@@ -26,6 +26,7 @@ import {
 import { getGraphIndexDocuments } from '../../indexing/graph-lite/store.js';
 import type { NormalizedIndexDocument } from '../../indexing/types.js';
 import type { KnowledgeRecord, StoreData } from '../../store.js';
+import type { RecallChannel } from '../channel-registry.js';
 import { extractGraphEntities } from '../graph-extract.js';
 import type { RecallCandidate } from '../types.js';
 
@@ -181,3 +182,15 @@ export async function graphAssistedRecall(
   candidates.sort((a, b) => b.score - a.score);
   return candidates;
 }
+
+/**
+ * Graph-assisted recall channel implementation.
+ * Wraps graphAssistedRecall as a RecallChannel.
+ */
+export const graphChannel: RecallChannel = {
+  name: 'graph',
+  async recall(queryText: string, entries: KnowledgeRecord[]) {
+    const entriesMap = new Map(entries.map((e) => [e.id, e]));
+    return graphAssistedRecall(queryText, entriesMap);
+  },
+};

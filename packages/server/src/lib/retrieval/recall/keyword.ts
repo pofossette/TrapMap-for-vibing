@@ -19,6 +19,7 @@
  */
 
 import type { KnowledgeRecord } from '../../store.js';
+import type { RecallChannel } from '../channel-registry.js';
 import type { RecallCandidate, TokenMatchDetail } from '../types.js';
 
 /**
@@ -222,3 +223,14 @@ export async function keywordRecall(
 
   return candidates;
 }
+
+/**
+ * Keyword recall channel implementation.
+ * Wraps keywordRecall as a RecallChannel.
+ */
+export const keywordChannel: RecallChannel = {
+  name: 'keyword',
+  async recall(queryText: string, entries: KnowledgeRecord[]) {
+    return keywordRecall(queryText, entries);
+  },
+};
