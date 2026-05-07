@@ -26,13 +26,15 @@ export const artifactsActivateRoutes: FastifyPluginAsync = async (app) => {
     const body = activationRequestSchema.parse((request.body as Record<string, unknown>) ?? {});
     const { artifactId, revision, selectedPaths } = body;
 
-    const data = await app.skillShareer.store.snapshot();
-
-    // Find the artifact
-    const artifact = data.skillArtifacts?.find((a) => a.id === artifactId);
+    // Use repository for artifact lookup (replaces store.snapshot() for initial find)
+    const { artifact: artifactRepo } = app.skillShareer.repos;
+    const artifact = await artifactRepo.getById(artifactId);
     if (!artifact) {
       throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
     }
+
+    // Still need store.snapshot() for artifactFilePayloads
+    const data = await app.skillShareer.store.snapshot();
 
     // Check team access
     if (artifact.teamId !== null) {

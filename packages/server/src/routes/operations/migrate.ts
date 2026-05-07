@@ -54,6 +54,9 @@ export const migrateRoutes: FastifyPluginAsync = async (app) => {
 
     const migratedAt = nowIso();
 
+    // store.transact() retained: complex multi-entity migration that creates artifacts,
+    // stores file payloads, derives outputs, and records audit events atomically.
+    // No single repository method provides this cross-entity transactional behavior.
     await app.skillShareer.store.transact(async (data) => {
       // Ensure skillArtifacts array exists
       if (!data.skillArtifacts) {

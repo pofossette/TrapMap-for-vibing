@@ -18,6 +18,10 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
       (request.query as Record<string, unknown>) ?? {},
     );
 
+    // Status route legitimately needs store.snapshot() for cross-entity diagnostics:
+    // it reads both knowledgeEntries and skillArtifacts in a single snapshot to compute
+    // migration status, unmigrated counts, and coexistence flags. No single repository
+    // method provides this cross-entity view, so store.snapshot() is the correct pattern here.
     const data = await app.skillShareer.store.snapshot();
 
     // Ensure skillArtifacts exists

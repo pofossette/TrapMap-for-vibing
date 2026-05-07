@@ -37,15 +37,9 @@ export const skillEditRoutes: FastifyPluginAsync = async (app) => {
     const artifactId = (request.params as { artifactId: string }).artifactId;
     const body = skillEditRequestSchema.parse((request.body as Record<string, unknown>) ?? {});
 
-    const data = await app.skillShareer.store.snapshot();
-
-    // Ensure skillArtifacts exists
-    if (!data.skillArtifacts) {
-      data.skillArtifacts = [];
-    }
-
-    // Find the artifact
-    const artifact = data.skillArtifacts.find((a) => a.id === artifactId);
+    // Use repository for artifact lookup (replaces store.snapshot() for initial find)
+    const { artifact: artifactRepo } = app.skillShareer.repos;
+    const artifact = await artifactRepo.getById(artifactId);
     if (!artifact) {
       throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
     }
@@ -164,18 +158,15 @@ export const skillEditRoutes: FastifyPluginAsync = async (app) => {
     const artifactId = (request.params as { artifactId: string }).artifactId;
     const query = skillHistoryRequestSchema.parse((request.query as Record<string, unknown>) ?? {});
 
-    const data = await app.skillShareer.store.snapshot();
-
-    // Ensure skillArtifacts exists
-    if (!data.skillArtifacts) {
-      data.skillArtifacts = [];
-    }
-
-    // Find the artifact
-    const artifact = data.skillArtifacts.find((a) => a.id === artifactId);
+    // Use repository for artifact lookup (replaces store.snapshot() for initial find)
+    const { artifact: artifactRepo } = app.skillShareer.repos;
+    const artifact = await artifactRepo.getById(artifactId);
     if (!artifact) {
       throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
     }
+
+    // Still need store.snapshot() for getSkillHistory() which reads full data
+    const data = await app.skillShareer.store.snapshot();
 
     // Check team access (T-19-09: same governance as export)
     if (artifact.teamId) {

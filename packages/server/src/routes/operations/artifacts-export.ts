@@ -21,9 +21,9 @@ export const artifactsExportRoutes: FastifyPluginAsync = async (app) => {
 
     const body = exportRequestSchema.parse((request.body as Record<string, unknown>) ?? {});
 
-    const data = await app.skillShareer.store.snapshot();
-
-    let entries = data.knowledgeEntries;
+    // Use repository for listing entries (replaces store.snapshot() for initial data load)
+    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
+    let entries = await knowledgeRepo.listByFilter({});
 
     // Filter by teamId if specified
     if (body.teamId !== undefined) {
@@ -41,6 +41,8 @@ export const artifactsExportRoutes: FastifyPluginAsync = async (app) => {
       entries = entries.filter((entry) => auth.securityLevel >= entry.requiredLevel);
     }
 
+    // toKnowledgeEntry needs StoreData for user handle resolution
+    const data = await app.skillShareer.store.snapshot();
     const items = entries.map((entry) => toKnowledgeEntry(data, entry));
 
     const actorRef = {
@@ -93,13 +95,15 @@ export const artifactsExportRoutes: FastifyPluginAsync = async (app) => {
     const body = artifactExportRequestSchema.parse((request.body as Record<string, unknown>) ?? {});
     const { artifactId, format } = body;
 
-    const data = await app.skillShareer.store.snapshot();
-
-    // Find the artifact
-    const artifact = data.skillArtifacts?.find((a) => a.id === artifactId);
+    // Use repository for artifact lookup (replaces store.snapshot() for initial find)
+    const { artifact: artifactRepo } = app.skillShareer.repos;
+    const artifact = await artifactRepo.getById(artifactId);
     if (!artifact) {
       throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
     }
+
+    // Still need store.snapshot() for artifactFilePayloads and toSkillArtifact() user handle resolution
+    const data = await app.skillShareer.store.snapshot();
 
     // Check team access
     if (artifact.teamId !== null) {

@@ -92,12 +92,11 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
     });
 
     // Record usage events (fire-and-forget)
-    if (app.skillShareer.usageAnalyticsRepo) {
-      const queryId = randomUUID();
-      void app.skillShareer.usageAnalyticsRepo.recordEvents(
-        buildUsageEvents(auth, result, queryId, query.seed),
-      );
-    }
+    const { usageAnalytics } = app.skillShareer.repos;
+    const queryId = randomUUID();
+    void usageAnalytics.recordEvents(
+      buildUsageEvents(auth, result, queryId, query.seed),
+    );
 
     // Validate and return response
     return retrievalResponseSchema.parse(result);
@@ -130,18 +129,17 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
     });
 
     // Record usage events (fire-and-forget)
-    if (app.skillShareer.usageAnalyticsRepo) {
-      const queryId = randomUUID();
-      const events: UsageEventInput[] = result.capsules.map((capsule) => ({
-        queryId,
-        teamId: auth.activeTeamId,
-        accountId: auth.actorId,
-        entryType: 'skill' as const,
-        entryId: capsule.artifactId,
-        queryText: query.seed,
-      }));
-      void app.skillShareer.usageAnalyticsRepo.recordEvents(events);
-    }
+    const { usageAnalytics } = app.skillShareer.repos;
+    const queryId = randomUUID();
+    const events: UsageEventInput[] = result.capsules.map((capsule) => ({
+      queryId,
+      teamId: auth.activeTeamId,
+      accountId: auth.actorId,
+      entryType: 'skill' as const,
+      entryId: capsule.artifactId,
+      queryText: query.seed,
+    }));
+    void usageAnalytics.recordEvents(events);
 
     // Validate and return v2 response with activation hints (T-15-03)
     return retrievalV2ResponseWithHintsSchema.parse(result);
@@ -183,7 +181,8 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
     });
 
     // Record usage events (fire-and-forget)
-    if (app.skillShareer.usageAnalyticsRepo && result.plan) {
+    if (result.plan) {
+      const { usageAnalytics } = app.skillShareer.repos;
       const queryId = randomUUID();
       const events: UsageEventInput[] = [
         // Record trap hits
@@ -205,7 +204,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
           queryText: query.seed,
         })),
       ];
-      void app.skillShareer.usageAnalyticsRepo.recordEvents(events);
+      void usageAnalytics.recordEvents(events);
     }
 
     return graphPlanSearchResponseSchema.parse(result);

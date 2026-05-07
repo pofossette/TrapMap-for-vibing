@@ -1,7 +1,7 @@
 import { auditListResponseSchema, auditQuerySchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { createAuditEvent, queryAuditEvents, toAuditEvent } from '../../lib/audit.js';
+import { toAuditEvent } from '../../lib/audit.js';
 import { requirePermission } from '../../lib/rbac.js';
 import { resolveAuthContext } from '../../lib/session.js';
 
@@ -11,22 +11,21 @@ export const auditRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'audit:read');
 
     const query = auditQuerySchema.parse(request.query as Record<string, unknown>);
-    const data = await app.skillShareer.store.snapshot();
 
-    const result = queryAuditEvents({
-      data,
-      query: {
-        ...(query.action !== undefined && { action: query.action }),
-        ...(query.actorId !== undefined && { actorId: query.actorId }),
-        ...(query.entityId !== undefined && { entityId: query.entityId }),
-        ...(query.teamId !== undefined && { teamId: query.teamId }),
-        ...(query.from !== undefined && { from: query.from }),
-        ...(query.to !== undefined && { to: query.to }),
-        limit: query.limit,
-      },
-      auth,
+    // Use repository for querying audit events (replaces store.snapshot() + queryAuditEvents())
+    const { audit: auditRepo } = app.skillShareer.repos;
+    const result = await auditRepo.listByFilter({
+      ...(query.action !== undefined && { action: query.action }),
+      ...(query.actorId !== undefined && { actorId: query.actorId }),
+      ...(query.entityId !== undefined && { entityId: query.entityId }),
+      ...(query.teamId !== undefined && { teamId: query.teamId }),
+      ...(query.from !== undefined && { from: query.from }),
+      ...(query.to !== undefined && { to: query.to }),
+      limit: query.limit,
     });
 
+    // Still need store.snapshot() for toAuditEvent() user handle resolution
+    const data = await app.skillShareer.store.snapshot();
     const items = result.items.map((record) => toAuditEvent(record, data));
 
     return auditListResponseSchema.parse({
