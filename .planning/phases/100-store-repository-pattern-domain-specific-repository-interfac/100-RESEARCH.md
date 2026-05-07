@@ -150,7 +150,7 @@ packages/server/src/lib/
 │   ├── repository.ts          # GraphIndexRepository interface + InMemory
 │   └── index.ts               # barrel export + factory
 └── repos/
-    └── index.ts               # createAllRepos() factory wiring all repos
+    └── index.ts               # createAllRepos() async factory wiring all repos
 ```
 
 ### Pattern 1: Repository Interface + InMemory + Factory
@@ -343,10 +343,11 @@ export function createFeedbackRepository(config: {
 import { createAllRepos } from './lib/repos/index.js';
 
 // In buildServer():
+const repos = await createAllRepos({ store: createSkillShareerStore(config) });
 app.decorate('skillShareer', {
   config,
   store: createSkillShareerStore(config),
-  repos: createAllRepos({ store: createSkillShareerStore(config) }),
+  repos,
   // ... other decorations
 });
 
@@ -355,8 +356,8 @@ app.addHook('onReady', async () => {
   const store = app.skillShareer.store;
   if (store instanceof PostgresStore) {
     const pool = store.getPool();
-    // Recreate repos with PG pool
-    app.skillShareer.repos = createAllRepos({ store, pool });
+    // Recreate repos with PG pool (async — createUsageAnalyticsRepository uses dynamic import)
+    app.skillShareer.repos = await createAllRepos({ store, pool });
   }
 });
 ```
@@ -446,8 +447,9 @@ const entry = await app.skillShareer.repos.knowledge.getById(entryId);
 
 ### Wave 0 Gaps
 
-- [ ] Test files for new repos (feedback, audit, duplicate, lineage, graph-index)
-- [ ] Test file for `createAllRepos()` factory
+- [x] Test files for new repos (feedback, audit, duplicate) — addressed in Plan 01 Task 3
+- [x] Test files for new repos (lineage, graph-index) — addressed in Plan 02 Task 3
+- [x] Test file for `createAllRepos()` factory — addressed in Plan 02 Task 3
 - [ ] Integration test verifying route migration doesn't break auth chain
 
 ## Assumptions Log
@@ -460,27 +462,19 @@ const entry = await app.skillShareer.repos.knowledge.getById(entryId);
 | A4 | Phase 100 can be done incrementally (per domain) without breaking existing functionality | Constraints | Big-bang migration may be required |
 | A5 | The 5 new domains (feedback, audit, duplicate, lineage, graphIndex) don't need PG implementations yet | Standard Stack | May need DualWrite from start |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should the `repos` object be typed as a discriminated union or a plain interface?**
-   - What we know: Current decoration uses `app.decorate('skillShareer', {...})` with typed properties
-   - What's unclear: Whether to use a `Repos` interface type or inline the object shape
-   - Recommendation: Create a `SkillShareerRepos` interface in a new file, reference it in Fastify type augmentation
+   - RESOLVED: Use a plain `SkillShareerRepos` interface defined in `packages/server/src/lib/repos/index.ts`. The interface has 14 typed properties (one per domain). Referenced in Fastify type augmentation via `SkillShareerServices.repos: SkillShareerRepos` in context.ts.
 
 2. **How to handle `resolveAuthContext` which accesses both sessions and users?**
-   - What we know: It's called from every route, accesses `store.snapshot()` for sessions and users
-   - What's unclear: Whether to pass repos as parameter or access from app.skillShareer
-   - Recommendation: Modify to accept `repos: { session: SessionRepo, user: UserRepo }` parameter, call from routes as `resolveAuthContext(app.skillShareer.repos, request)`
+   - RESOLVED: Modify `resolveAuthContext` to access `repos.session`, `repos.user`, `repos.team`, `repos.membership` from `app.skillShareer.repos`. Remove the conditional `if (sessionRepo && userRepo && ...)` guard — repos are always populated now. Migrated in Plan 04.
 
 3. **Should candidate store functions (createCandidateSubmission, updateCandidateStatus) be absorbed into CandidateRepository?**
-   - What we know: These are standalone functions in candidates/store.ts that operate on StoreData
-   - What's unclear: Whether to move logic into repo methods or keep as separate functions
-   - Recommendation: Move into repo methods — the repo should encapsulate all domain operations
+   - RESOLVED: Keep as separate functions for now. The CandidateRepository interface already covers the core CRUD operations. The standalone functions in candidates/store.ts can be migrated to repo methods in a future phase if needed.
 
 4. **What about the `store.transact()` calls in routes that do complex multi-step mutations?**
-   - What we know: Some routes do multiple reads/writes inside a single transact callback
-   - What's unclear: Whether repos should support transactional multi-step operations
-   - Recommendation: For complex operations, create domain service methods on the repo that encapsulate the multi-step logic (e.g., `knowledgeRepo.submitEntry(...)` that handles ID generation + record creation + push)
+   - RESOLVED: Break complex transact callbacks into separate repo calls. For example, a transact that reads + mutates + returns becomes: `const entry = await repo.getById(id)` -> `await repo.updateLifecycle(id, state, meta)` -> `const updated = await repo.getById(id)`. For operations that cannot be expressed through repo interfaces (e.g., migration scripts), document why and retain store access as a last resort.
 
 ## Sources
 
