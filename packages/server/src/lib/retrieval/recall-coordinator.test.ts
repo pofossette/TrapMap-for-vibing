@@ -13,6 +13,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import type { KnowledgeRecord } from '../store.js';
+import type { RecallChannel } from './channel-registry.js';
+import { ChannelRegistry } from './channel-registry.js';
+import type { RetrievalStrategy } from './strategy-registry.js';
+import { StrategyRegistry } from './strategy-registry.js';
 import type { MergedCandidate } from './types.js';
 
 // ── Mocks for recall modules ──────────────────────────────────────────────
@@ -181,7 +185,9 @@ function createMockServices(overrides: Partial<SkillShareerServices> = {}): Skil
       transact: vi.fn(),
       nextId: vi.fn(),
     } as unknown as SkillShareerServices['store'],
-    indexAdapters: [],
+    adapterRegistry: { register: vi.fn(), get: vi.fn(), all: vi.fn().mockReturnValue([]), kinds: vi.fn().mockReturnValue([]), has: vi.fn().mockReturnValue(false) } as unknown as SkillShareerServices['adapterRegistry'],
+    channelRegistry: buildTestChannelRegistry(),
+    strategyRegistry: buildTestStrategyRegistry(),
     ai: {
       embeddings: { isConfigured: false, embed: vi.fn() },
       chat: { isConfigured: false, invoke: vi.fn() },
@@ -203,13 +209,60 @@ function createParsedQuery(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/**
+ * Build a test StrategyRegistry with all three recall strategies registered.
+ * Uses the actual recall functions (mocked at module level) to preserve test behavior.
+ */
+function buildTestStrategyRegistry(): StrategyRegistry {
+  const registry = new StrategyRegistry();
+
+  const semanticStrategy: RetrievalStrategy = {
+    version: 'semantic',
+    async execute(query, _channels, eligibleEntries, services, auth) {
+      return semanticRecall(query.seed, eligibleEntries, query, services, auth);
+    },
+  };
+
+  const hybridStrategy: RetrievalStrategy = {
+    version: 'hybrid',
+    async execute(query, _channels, eligibleEntries, services, auth) {
+      return hybridRecall(query.seed, eligibleEntries, query, services, auth);
+    },
+  };
+
+  const graphAssistedStrategy: RetrievalStrategy = {
+    version: 'graph-assisted',
+    async execute(query, _channels, eligibleEntries) {
+      return graphAssistedRecall(query.seed, eligibleEntries, query);
+    },
+  };
+
+  registry.register(semanticStrategy);
+  registry.register(hybridStrategy);
+  registry.register(graphAssistedStrategy);
+
+  return registry;
+}
+
+/**
+ * Build a test ChannelRegistry (empty for now since dispatchByMode uses strategies, not channels directly).
+ */
+function buildTestChannelRegistry(): ChannelRegistry {
+  return new ChannelRegistry();
+}
+
 // =============================================================================
 // Tests: dispatchByMode
 // =============================================================================
 
 describe('dispatchByMode', () => {
+  let strategyRegistry: StrategyRegistry;
+  let channelRegistry: ChannelRegistry;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    strategyRegistry = buildTestStrategyRegistry();
+    channelRegistry = buildTestChannelRegistry();
   });
 
   it('dispatches to semanticRecall for mode=semantic', async () => {
@@ -217,7 +270,7 @@ describe('dispatchByMode', () => {
     const parsed = createParsedQuery();
     vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
 
-    const result = await dispatchByMode('semantic', 'test query', [entry], parsed);
+    const result = await dispatchByMode('semantic', 'test query', [entry], parsed, strategyRegistry, channelRegistry);
 
     expect(getQueryEmbedding).toHaveBeenCalledWith('test query');
     expect(optimizedSemanticRecall).toHaveBeenCalled();
@@ -229,7 +282,7 @@ describe('dispatchByMode', () => {
     const parsed = createParsedQuery({ mode: 'hybrid' });
     vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
 
-    const result = await dispatchByMode('hybrid', 'test query', [entry], parsed);
+    const result = await dispatchByMode('hybrid', 'test query', [entry], parsed, strategyRegistry, channelRegistry);
 
     expect(keywordRecall).toHaveBeenCalled();
     expect(result.scoredEntries).toBeDefined();
@@ -240,7 +293,7 @@ describe('dispatchByMode', () => {
     const parsed = createParsedQuery({ mode: 'graph-assisted' });
     vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
 
-    const result = await dispatchByMode('graph-assisted', 'test query', [entry], parsed);
+    const result = await dispatchByMode('graph-assisted', 'test query', [entry], parsed, strategyRegistry, channelRegistry);
 
     expect(graphRecall).toHaveBeenCalledWith('test query', expect.any(Map));
     expect(result.scoredEntries).toBeDefined();
@@ -250,12 +303,12 @@ describe('dispatchByMode', () => {
     const entry = createMockEntry('entry_1');
     const parsed = createParsedQuery();
 
-    await expect(dispatchByMode('invalid-mode', 'test query', [entry], parsed)).rejects.toThrow(
+    await expect(dispatchByMode('invalid-mode', 'test query', [entry], parsed, strategyRegistry, channelRegistry)).rejects.toThrow(
       AppError,
     );
 
     try {
-      await dispatchByMode('invalid-mode', 'test query', [entry], parsed);
+      await dispatchByMode('invalid-mode', 'test query', [entry], parsed, strategyRegistry, channelRegistry);
     } catch (error) {
       expect(error).toBeInstanceOf(AppError);
       expect((error as AppError).statusCode).toBe(400);

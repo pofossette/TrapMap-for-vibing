@@ -356,9 +356,9 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const startTime = Date.now();
-    const adapters = app.skillShareer.indexAdapters;
+    const registry = app.skillShareer.adapterRegistry;
 
-    const result = await reconcileKnowledgeIndexes({ store: app.skillShareer.store }, adapters);
+    const result = await reconcileKnowledgeIndexes({ store: app.skillShareer.store }, registry);
 
     const durationMs = Date.now() - startTime;
 

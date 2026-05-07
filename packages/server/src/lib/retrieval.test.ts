@@ -7,6 +7,11 @@ import { runPreReview } from './pre-review.js';
 import { searchKnowledge, updateEntryEmbeddingCache } from './retrieval.js';
 import { JsonStore, type SkillShareerStore, nowIso } from './store.js';
 
+import { ChannelRegistry } from './retrieval/channel-registry.js';
+import { StrategyRegistry } from './retrieval/strategy-registry.js';
+import type { RetrievalStrategy } from './retrieval/strategy-registry.js';
+
+
 describe('retrieval', () => {
   let mockStore: SkillShareerStore;
   let mockServices: SkillShareerServices;
@@ -28,7 +33,33 @@ describe('retrieval', () => {
         },
       } as any,
       store: mockStore,
-      indexAdapters: [],
+      adapterRegistry: { register: () => {}, get: () => undefined, all: () => [], kinds: () => [], has: () => false } as any,
+      channelRegistry: new ChannelRegistry(),
+      strategyRegistry: (() => {
+        const sr = new StrategyRegistry();
+        sr.register({
+          version: 'semantic',
+          async execute(query, _channels, eligibleEntries, services, auth) {
+            const { semanticRecall } = await import('./retrieval/recall-coordinator.js');
+            return semanticRecall(query.seed, eligibleEntries, query, services, auth);
+          },
+        });
+        sr.register({
+          version: 'hybrid',
+          async execute(query, _channels, eligibleEntries, services, auth) {
+            const { hybridRecall } = await import('./retrieval/recall-coordinator.js');
+            return hybridRecall(query.seed, eligibleEntries, query, services, auth);
+          },
+        });
+        sr.register({
+          version: 'graph-assisted',
+          async execute(query, _channels, eligibleEntries) {
+            const { graphAssistedRecall } = await import('./retrieval/recall-coordinator.js');
+            return graphAssistedRecall(query.seed, eligibleEntries, query);
+          },
+        });
+        return sr;
+      })(),
       ai: {
         embeddings: {
           provider: 'fallback',

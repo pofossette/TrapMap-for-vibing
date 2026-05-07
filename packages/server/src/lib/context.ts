@@ -8,6 +8,8 @@ import type { AccessKeyRepository } from './auth/index.js';
 import type { SessionRepository } from './auth/index.js';
 import type { AdapterRegistry } from './indexing/registry.js';
 import type { KnowledgeRepository } from './knowledge/index.js';
+import type { ChannelRegistry } from './retrieval/channel-registry.js';
+import type { StrategyRegistry } from './retrieval/strategy-registry.js';
 import type { UsageAnalyticsRepository } from './analytics/index.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
 import type { MembershipRepository, TeamRepository } from './teams/index.js';
@@ -17,7 +19,12 @@ import type { UserRepository } from './users/index.js';
 export interface SkillShareerServices {
   config: ServerConfig;
   store: SkillShareerStore;
-  indexAdapters: AdapterRegistry;
+  /** Adapter registry for indexing pipeline (replaces indexAdapters array) */
+  adapterRegistry: AdapterRegistry;
+  /** Channel registry for retrieval recall channels */
+  channelRegistry: ChannelRegistry;
+  /** Strategy registry for retrieval strategy dispatch */
+  strategyRegistry: StrategyRegistry;
   ai: AiProviders;
   /** Knowledge repository for row-level PostgreSQL operations (undefined when using JsonStore) */
   knowledgeRepo: KnowledgeRepository | undefined;

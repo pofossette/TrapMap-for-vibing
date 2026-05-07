@@ -323,7 +323,9 @@ function createMockServices(overrides: Partial<SkillShareerServices> = {}): Skil
         ),
       nextId: vi.fn(),
     } as unknown as SkillShareerServices['store'],
-    indexAdapters: [],
+    adapterRegistry: {} as any,
+      channelRegistry: {} as any,
+      strategyRegistry: {} as any,
     ai: {
       embeddings: { isConfigured: false, embed: vi.fn() },
       chat: { isConfigured: false, invoke: vi.fn() },
@@ -394,6 +396,8 @@ describe('searchKnowledge', () => {
         'test query',
         [entry],
         expect.any(Object),
+        services.strategyRegistry,
+        services.channelRegistry,
         services,
         auth,
       );
@@ -414,6 +418,8 @@ describe('searchKnowledge', () => {
         'test query',
         [entry],
         expect.any(Object),
+        services.strategyRegistry,
+        services.channelRegistry,
         services,
         auth,
       );
@@ -434,6 +440,8 @@ describe('searchKnowledge', () => {
         'test query',
         [entry],
         expect.any(Object),
+        services.strategyRegistry,
+        services.channelRegistry,
         services,
         auth,
       );

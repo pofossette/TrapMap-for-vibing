@@ -22,6 +22,13 @@ import { createIndexingSubscriber } from './lib/lifecycle/subscribers/indexing.j
 import { createAuditSubscriber } from './lib/lifecycle/subscribers/audit.js';
 import { createConflictSubscriber } from './lib/lifecycle/subscribers/conflict.js';
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
+import { ChannelRegistry } from './lib/retrieval/channel-registry.js';
+import { semanticChannel } from './lib/retrieval/recall/semantic.js';
+import { keywordChannel } from './lib/retrieval/recall/keyword.js';
+import { graphChannel } from './lib/retrieval/recall/graph-assisted.js';
+import { semanticRecall, hybridRecall, graphAssistedRecall } from './lib/retrieval/recall-coordinator.js';
+import type { RetrievalStrategy } from './lib/retrieval/strategy-registry.js';
+import { StrategyRegistry } from './lib/retrieval/strategy-registry.js';
 import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
 import { createKnowledgeRepository } from './lib/knowledge/index.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
@@ -163,7 +170,39 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.decorate('skillShareer', {
     config,
     store: createSkillShareerStore(config),
-    indexAdapters: buildDefaultAdapterRegistry(),
+    adapterRegistry: buildDefaultAdapterRegistry(),
+    channelRegistry: (() => {
+      const cr = new ChannelRegistry();
+      cr.register(semanticChannel);
+      cr.register(keywordChannel);
+      cr.register(graphChannel);
+      return cr;
+    })(),
+    strategyRegistry: (() => {
+      const sr = new StrategyRegistry();
+      const semanticStrategy: RetrievalStrategy = {
+        version: 'semantic',
+        async execute(query, _channels, eligibleEntries, services, auth) {
+          return semanticRecall(query.seed, eligibleEntries, query, services, auth);
+        },
+      };
+      const hybridStrategy: RetrievalStrategy = {
+        version: 'hybrid',
+        async execute(query, _channels, eligibleEntries, services, auth) {
+          return hybridRecall(query.seed, eligibleEntries, query, services, auth);
+        },
+      };
+      const graphAssistedStrategy: RetrievalStrategy = {
+        version: 'graph-assisted',
+        async execute(query, _channels, eligibleEntries) {
+          return graphAssistedRecall(query.seed, eligibleEntries, query);
+        },
+      };
+      sr.register(semanticStrategy);
+      sr.register(hybridStrategy);
+      sr.register(graphAssistedStrategy);
+      return sr;
+    })(),
     ai: createAiProviders(config.ai),
     // knowledgeRepo is set when PostgreSQL pool is available (in onReady hook)
     knowledgeRepo: undefined,
@@ -343,15 +382,15 @@ export function buildServer(options: BuildServerOptions = {}) {
 
   // Register lifecycle event subscribers
   app.addHook('onReady', async () => {
-    const { eventBus, store, indexAdapters } = app.skillShareer;
+    const { eventBus, store, adapterRegistry } = app.skillShareer;
 
     // Indexing subscriber: syncs knowledge indexes on state transitions
-    eventBus.onDomainEvent('knowledge.approved', createIndexingSubscriber(store, indexAdapters));
-    eventBus.onDomainEvent('knowledge.deactivated', createIndexingSubscriber(store, indexAdapters));
-    eventBus.onDomainEvent('knowledge.agent-reviewed', createIndexingSubscriber(store, indexAdapters));
-    eventBus.onDomainEvent('knowledge.rejected', createIndexingSubscriber(store, indexAdapters));
-    eventBus.onDomainEvent('knowledge.resubmitted', createIndexingSubscriber(store, indexAdapters));
-    eventBus.onDomainEvent('knowledge.re-review', createIndexingSubscriber(store, indexAdapters));
+    eventBus.onDomainEvent('knowledge.approved', createIndexingSubscriber(store, adapterRegistry));
+    eventBus.onDomainEvent('knowledge.deactivated', createIndexingSubscriber(store, adapterRegistry));
+    eventBus.onDomainEvent('knowledge.agent-reviewed', createIndexingSubscriber(store, adapterRegistry));
+    eventBus.onDomainEvent('knowledge.rejected', createIndexingSubscriber(store, adapterRegistry));
+    eventBus.onDomainEvent('knowledge.resubmitted', createIndexingSubscriber(store, adapterRegistry));
+    eventBus.onDomainEvent('knowledge.re-review', createIndexingSubscriber(store, adapterRegistry));
 
     // Audit subscriber: logs lifecycle transitions
     eventBus.onDomainEvent('knowledge.approved', createAuditSubscriber(store, app.log));
