@@ -8,6 +8,7 @@
 import type { Scope } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../../context.js';
+import { AdapterRegistry } from '../../indexing/registry.js';
 import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
@@ -405,7 +406,7 @@ export function makeMockServices(storeData: Partial<StoreData> = {}): SkillShare
       transact: async () => {},
       nextId: () => 'test_id',
     } as SkillShareerServices['store'],
-    indexAdapters: [],
+    indexAdapters: new AdapterRegistry(),
     ai: {
       embeddings: {
         provider: 'fallback',

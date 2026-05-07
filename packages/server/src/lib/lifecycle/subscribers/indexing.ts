@@ -1,5 +1,5 @@
 import type { LifecycleState } from '@trapmap/contracts';
-import type { IndexAdapter } from '../../indexing/types.js';
+import type { AdapterRegistry } from '../../indexing/registry.js';
 import { runKnowledgeIndexEvent } from '../../indexing/events.js';
 import type { SkillShareerStore } from '../../store.js';
 import type { DomainEventHandler } from '../types.js';
@@ -11,7 +11,7 @@ import type { DomainEventHandler } from '../types.js';
  */
 export function createIndexingSubscriber(
   store: SkillShareerStore,
-  adapters: IndexAdapter[],
+  registry: AdapterRegistry,
 ): DomainEventHandler {
   return async (event) => {
     const previousState = event.previousState as LifecycleState;
@@ -28,7 +28,7 @@ export function createIndexingSubscriber(
       previousState,
       nextState,
       reason: event.reason,
-      adapters,
+      registry,
     });
   };
 }

@@ -107,8 +107,8 @@ function createKeywordAdapter(): KeywordIndexAdapter {
       const entry = entryOrRef as KnowledgeRecord;
       const ref = maybeRef;
       // Clear the keyword index state
-      if (entry.indexState?.keyword) {
-        entry.indexState.keyword = {
+      if (entry.indexState?.adapters?.keyword) {
+        entry.indexState.adapters.keyword = {
           status: 'pending',
           revision: ref.revision,
           contentHash: '',
@@ -116,7 +116,7 @@ function createKeywordAdapter(): KeywordIndexAdapter {
           lastError: null,
         };
         // Clear persisted state (typed as IndexStateKeyword)
-        (entry.indexState.keyword as IndexStateKeyword).persistedState = undefined;
+        (entry.indexState.adapters.keyword as IndexStateKeyword).persistedState = undefined;
       }
     },
 
@@ -129,7 +129,7 @@ function createKeywordAdapter(): KeywordIndexAdapter {
       document: NormalizedIndexDocument,
     ): Promise<IndexSyncResult> {
       // Check if we can skip work (idempotency)
-      const currentKeywordState = entry.indexState?.keyword;
+      const currentKeywordState = entry.indexState?.adapters?.keyword;
       if (
         currentKeywordState &&
         currentKeywordState.status === 'synced' &&
@@ -160,36 +160,27 @@ function createKeywordAdapter(): KeywordIndexAdapter {
 
         // Ensure indexState exists
         if (!entry.indexState) {
+          const pendingState = {
+            status: 'pending' as const,
+            revision: 0,
+            contentHash: '',
+            lastSyncedAt: null,
+            lastError: null,
+          };
           entry.indexState = {
             contentHash: document.contentHash,
             normalizedAt: document.normalizedAt,
-            vector: {
-              status: 'pending',
-              revision: 0,
-              contentHash: '',
-              lastSyncedAt: null,
-              lastError: null,
-            },
-            keyword: {
-              status: 'pending',
-              revision: 0,
-              contentHash: '',
-              lastSyncedAt: null,
-              lastError: null,
-            },
-            graph: {
-              status: 'pending',
-              revision: 0,
-              contentHash: '',
-              lastSyncedAt: null,
-              lastError: null,
+            adapters: {
+              vector: { ...pendingState },
+              keyword: { ...pendingState },
+              graph: { ...pendingState },
             },
           };
         }
 
         // Update keyword sync state
         if (entry.indexState) {
-          entry.indexState.keyword = {
+          entry.indexState.adapters.keyword = {
             status: 'synced',
             revision: document.revision,
             contentHash: document.contentHash,
@@ -198,7 +189,7 @@ function createKeywordAdapter(): KeywordIndexAdapter {
           };
 
           // Store persisted keyword state (typed as IndexStateKeyword)
-          (entry.indexState.keyword as IndexStateKeyword).persistedState = keywordState;
+          (entry.indexState.adapters.keyword as IndexStateKeyword).persistedState = keywordState;
         }
 
         return {
@@ -229,8 +220,8 @@ function createKeywordAdapter(): KeywordIndexAdapter {
      * Legacy remove method for backward compatibility.
      */
     async removeLegacy(entry: KnowledgeRecord, ref: EntryRef): Promise<void> {
-      if (entry.indexState?.keyword) {
-        entry.indexState.keyword = {
+      if (entry.indexState?.adapters?.keyword) {
+        entry.indexState.adapters.keyword = {
           status: 'pending',
           revision: ref.revision,
           contentHash: '',
@@ -238,7 +229,7 @@ function createKeywordAdapter(): KeywordIndexAdapter {
           lastError: null,
         };
         // Clear persisted state (typed as IndexStateKeyword)
-        (entry.indexState.keyword as IndexStateKeyword).persistedState = undefined;
+        (entry.indexState.adapters.keyword as IndexStateKeyword).persistedState = undefined;
       }
     },
   };
@@ -258,7 +249,7 @@ export async function upsertKeywordIndex(
   document: NormalizedIndexDocument,
 ): Promise<IndexSyncResult> {
   // Check if we can skip work (idempotency)
-  const currentKeywordState = entry.indexState?.keyword;
+  const currentKeywordState = entry.indexState?.adapters?.keyword;
   if (
     currentKeywordState &&
     currentKeywordState.status === 'synced' &&
@@ -289,36 +280,27 @@ export async function upsertKeywordIndex(
 
     // Ensure indexState exists
     if (!entry.indexState) {
+      const pendingState = {
+        status: 'pending' as const,
+        revision: 0,
+        contentHash: '',
+        lastSyncedAt: null,
+        lastError: null,
+      };
       entry.indexState = {
         contentHash: document.contentHash,
         normalizedAt: document.normalizedAt,
-        vector: {
-          status: 'pending',
-          revision: 0,
-          contentHash: '',
-          lastSyncedAt: null,
-          lastError: null,
-        },
-        keyword: {
-          status: 'pending',
-          revision: 0,
-          contentHash: '',
-          lastSyncedAt: null,
-          lastError: null,
-        },
-        graph: {
-          status: 'pending',
-          revision: 0,
-          contentHash: '',
-          lastSyncedAt: null,
-          lastError: null,
+        adapters: {
+          vector: { ...pendingState },
+          keyword: { ...pendingState },
+          graph: { ...pendingState },
         },
       };
     }
 
     // Update keyword sync state
     if (entry.indexState) {
-      entry.indexState.keyword = {
+      entry.indexState.adapters.keyword = {
         status: 'synced',
         revision: document.revision,
         contentHash: document.contentHash,
@@ -327,7 +309,7 @@ export async function upsertKeywordIndex(
       };
 
       // Store persisted keyword state (typed as IndexStateKeyword)
-      (entry.indexState.keyword as IndexStateKeyword).persistedState = keywordState;
+      (entry.indexState.adapters.keyword as IndexStateKeyword).persistedState = keywordState;
     }
 
     return {
@@ -340,9 +322,9 @@ export async function upsertKeywordIndex(
     const errorMessage = error instanceof Error ? error.message : String(error);
 
     // Update state to failed
-    if (entry.indexState?.keyword) {
-      entry.indexState.keyword.status = 'failed';
-      entry.indexState.keyword.lastError = errorMessage;
+    if (entry.indexState?.adapters?.keyword) {
+      entry.indexState.adapters.keyword.status = 'failed';
+      entry.indexState.adapters.keyword.lastError = errorMessage;
     }
 
     return {
@@ -372,8 +354,8 @@ export async function removeKeywordIndex(
  * @returns Persisted keyword state or null
  */
 export function getIndexedKeywordTokens(entry: KnowledgeRecord): PersistedKeywordState | null {
-  if (entry.indexState?.keyword?.status === 'synced') {
-    return (entry.indexState.keyword as IndexStateKeyword).persistedState || null;
+  if (entry.indexState?.adapters?.keyword?.status === 'synced') {
+    return (entry.indexState.adapters.keyword as IndexStateKeyword).persistedState || null;
   }
   return null;
 }
@@ -385,7 +367,7 @@ export function getIndexedKeywordTokens(entry: KnowledgeRecord): PersistedKeywor
  * @returns true if the entry has synced keyword tokens
  */
 export function hasIndexedKeywordTokens(entry: KnowledgeRecord): boolean {
-  return entry.indexState?.keyword?.status === 'synced';
+  return entry.indexState?.adapters?.keyword?.status === 'synced';
 }
 
 /**

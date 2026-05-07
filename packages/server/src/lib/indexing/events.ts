@@ -13,7 +13,7 @@ import type { LifecycleState } from '@trapmap/contracts';
 import type { SkillShareerStore, StoreData } from '../store.js';
 import { removeGraphIndexDocumentsForSource } from './graph-lite/store.js';
 import { syncKnowledgeIndex } from './pipeline.js';
-import type { IndexAdapter } from './types.js';
+import type { AdapterRegistry } from './registry.js';
 
 /**
  * Determine the indexing action for a lifecycle transition.
@@ -50,7 +50,7 @@ export function determineKnowledgeIndexAction(
  * @param args.previousState - Previous lifecycle state
  * @param args.nextState - New lifecycle state
  * @param args.reason - Reason for the transition
- * @param args.adapters - Array of registered adapters
+ * @param args.registry - Adapter registry with all registered adapters
  */
 export async function runKnowledgeIndexEvent(args: {
   services: { store: SkillShareerStore; data: StoreData };
@@ -58,9 +58,9 @@ export async function runKnowledgeIndexEvent(args: {
   previousState: LifecycleState;
   nextState: LifecycleState;
   reason: string;
-  adapters: IndexAdapter[];
+  registry: AdapterRegistry;
 }): Promise<void> {
-  const { services, entryId, previousState, nextState, adapters } = args;
+  const { services, entryId, previousState, nextState, registry } = args;
   const { store } = services;
 
   const action = determineKnowledgeIndexAction(previousState, nextState);
@@ -75,14 +75,14 @@ export async function runKnowledgeIndexEvent(args: {
     switch (action) {
       case 'upsert':
         // Sync the entry to all adapters
-        await syncKnowledgeIndex({ store, data }, entryId, adapters);
+        await syncKnowledgeIndex({ store, data }, entryId, registry);
         break;
 
       case 'remove':
         // Remove from all adapters
         if (entry.indexState) {
           await Promise.all(
-            adapters.map((adapter) =>
+            registry.all().map((adapter) =>
               adapter.remove({
                 entryId: entry.id,
                 revision: entry.history.length,

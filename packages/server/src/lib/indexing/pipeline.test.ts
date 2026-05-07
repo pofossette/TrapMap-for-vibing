@@ -16,6 +16,14 @@ import { JsonStore, type SkillShareerStore, nowIso } from '../store.js';
 
 // Import the functions we're testing
 import { reconcileKnowledgeIndexes, syncKnowledgeIndex } from './pipeline.js';
+import { AdapterRegistry } from './registry.js';
+import type { IndexAdapter } from './types.js';
+
+function toRegistry(adapters: IndexAdapter[]): AdapterRegistry {
+  const registry = new AdapterRegistry();
+  for (const a of adapters) registry.register(a);
+  return registry;
+}
 
 describe('indexing pipeline', () => {
   let store: SkillShareerStore;
@@ -130,7 +138,7 @@ describe('indexing pipeline', () => {
         const entry = data.knowledgeEntries.find((e) => e.id === entryId);
         if (!entry) throw new Error('Entry not found');
 
-        await syncKnowledgeIndex({ store, data }, entryId, mockAdapters);
+        await syncKnowledgeIndex({ store, data }, entryId, toRegistry(mockAdapters));
       });
 
       // Both adapters should have been called exactly once
@@ -220,7 +228,7 @@ describe('indexing pipeline', () => {
 
       // Sync the entry
       await store.transact(async (data) => {
-        await syncKnowledgeIndex({ store, data }, entryId, mockAdapters);
+        await syncKnowledgeIndex({ store, data }, entryId, toRegistry(mockAdapters));
       });
 
       // Adapter should NOT have been called for non-approved entry
@@ -311,7 +319,7 @@ describe('indexing pipeline', () => {
 
       // Sync the deactivated entry
       await store.transact(async (data) => {
-        await syncKnowledgeIndex({ store, data }, entryId, mockAdapters);
+        await syncKnowledgeIndex({ store, data }, entryId, toRegistry(mockAdapters));
       });
 
       // Remove should have been called instead of sync
@@ -394,7 +402,7 @@ describe('indexing pipeline', () => {
 
       // First sync
       await store.transact(async (data) => {
-        await syncKnowledgeIndex({ store, data }, entryId, mockAdapters);
+        await syncKnowledgeIndex({ store, data }, entryId, toRegistry(mockAdapters));
       });
 
       const firstCallCount = adapterSpy.mock.calls.length;
@@ -402,7 +410,7 @@ describe('indexing pipeline', () => {
       // Second sync (should be idempotent - no-op if content unchanged)
       adapterSpy.mockClear();
       await store.transact(async (data) => {
-        await syncKnowledgeIndex({ store, data }, entryId, mockAdapters);
+        await syncKnowledgeIndex({ store, data }, entryId, toRegistry(mockAdapters));
       });
 
       // If content hasn't changed, adapter might not be called again
@@ -511,7 +519,7 @@ describe('indexing pipeline', () => {
       ];
 
       // Reconcile should sync both entries
-      await reconcileKnowledgeIndexes({ store }, mockAdapters);
+      await reconcileKnowledgeIndexes({ store }, toRegistry(mockAdapters));
 
       // Both approved entries should have been synced
       expect(adapterSpy).toHaveBeenCalledTimes(2);
@@ -591,7 +599,7 @@ describe('indexing pipeline', () => {
       ];
 
       // Reconcile should remove index state
-      await reconcileKnowledgeIndexes({ store }, mockAdapters);
+      await reconcileKnowledgeIndexes({ store }, toRegistry(mockAdapters));
 
       // Remove should have been called
       expect(removeSpy).toHaveBeenCalledTimes(1);

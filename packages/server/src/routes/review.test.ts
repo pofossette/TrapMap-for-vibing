@@ -36,16 +36,15 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
   });
 
   describe('adapter registration (IDX-04, T-11-02)', () => {
-    it('should expose indexAdapters array in service container (IDX-04)', async () => {
+    it('should expose indexAdapters registry in service container (IDX-04)', async () => {
       // Verify the service container has the indexAdapters field
       expect(app.skillShareer).toBeDefined();
       expect(app.skillShareer.indexAdapters).toBeDefined();
-      expect(Array.isArray(app.skillShareer.indexAdapters)).toBe(true);
 
       // Verify it contains the expected adapters
-      expect(app.skillShareer.indexAdapters.length).toBeGreaterThan(0);
+      expect(app.skillShareer.indexAdapters.all().length).toBeGreaterThan(0);
 
-      const adapterKinds = app.skillShareer.indexAdapters.map((a) => a.kind);
+      const adapterKinds = app.skillShareer.indexAdapters.kinds();
       expect(adapterKinds).toContain('vector');
       expect(adapterKinds).toContain('keyword');
     });
@@ -56,10 +55,10 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       await app2.ready();
 
       // Both should have the same adapter configuration
-      expect(app.skillShareer.indexAdapters.length).toBe(app2.skillShareer.indexAdapters.length);
+      expect(app.skillShareer.indexAdapters.kinds().length).toBe(app2.skillShareer.indexAdapters.kinds().length);
 
-      const adapterKinds1 = app.skillShareer.indexAdapters.map((a) => a.kind);
-      const adapterKinds2 = app2.skillShareer.indexAdapters.map((a) => a.kind);
+      const adapterKinds1 = app.skillShareer.indexAdapters.kinds();
+      const adapterKinds2 = app2.skillShareer.indexAdapters.kinds();
 
       expect(adapterKinds1).toEqual(adapterKinds2);
 
@@ -221,8 +220,8 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
 
       // The key assertion: indexState should exist and be synced
       expect(entry?.indexState).toBeDefined();
-      expect(entry?.indexState?.vector?.status).toBe('synced');
-      expect(entry?.indexState?.keyword?.status).toBe('synced');
+      expect(entry?.indexState?.adapters?.vector?.status).toBe('synced');
+      expect(entry?.indexState?.adapters?.keyword?.status).toBe('synced');
 
       // Verify embedding cache is populated (for compatibility)
       expect(entry?.embeddingCache).toBeDefined();
@@ -287,8 +286,8 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       const data = await store.snapshot();
       const entry = data.knowledgeEntries.find((e) => e.id === entryId);
 
-      expect(entry?.indexState?.vector?.status).toBe('synced');
-      expect(entry?.indexState?.keyword?.status).toBe('synced');
+      expect(entry?.indexState?.adapters?.vector?.status).toBe('synced');
+      expect(entry?.indexState?.adapters?.keyword?.status).toBe('synced');
     });
   });
 

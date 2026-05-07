@@ -36,22 +36,22 @@ describe('keyword index adapter', () => {
       expect(result.success).toBe(true);
       expect(result.performedWork).toBe(true);
       expect(mockEntry.indexState).toBeDefined();
-      expect(mockEntry.indexState?.keyword).toBeDefined();
-      expect(mockEntry.indexState?.keyword.status).toBe('synced');
-      expect(mockEntry.indexState?.keyword.revision).toBe(mockDocument.revision);
-      expect(mockEntry.indexState?.keyword.contentHash).toBe(mockDocument.contentHash);
+      expect(mockEntry.indexState?.adapters?.keyword).toBeDefined();
+      expect(mockEntry.indexState?.adapters?.keyword.status).toBe('synced');
+      expect(mockEntry.indexState?.adapters?.keyword.revision).toBe(mockDocument.revision);
+      expect(mockEntry.indexState?.adapters?.keyword.contentHash).toBe(mockDocument.contentHash);
     });
 
     it('persists normalized token arrays and per-field token sets', async () => {
       await keywordIndexAdapter.upsert(mockEntry, mockDocument);
 
       // Check that keyword state contains field tokens
-      const keywordState = mockEntry.indexState?.keyword;
+      const keywordState = mockEntry.indexState?.adapters?.keyword;
       expect(keywordState).toBeDefined();
 
       // The adapter should store tokens that can be reused during recall
       // We verify this through the indexState structure
-      expect(mockEntry.indexState?.keyword.revision).toBe(mockDocument.revision);
+      expect(mockEntry.indexState?.adapters?.keyword.revision).toBe(mockDocument.revision);
     });
 
     it('skips rewrites when revision and content hash match', async () => {
@@ -85,7 +85,7 @@ describe('keyword index adapter', () => {
     it('removes keyword state from entry', async () => {
       // First upsert to create state
       await keywordIndexAdapter.upsert(mockEntry, mockDocument);
-      expect(mockEntry.indexState?.keyword).toBeDefined();
+      expect(mockEntry.indexState?.adapters?.keyword).toBeDefined();
 
       // Remove should clear keyword state
       await keywordIndexAdapter.remove(mockEntry, {
@@ -93,8 +93,8 @@ describe('keyword index adapter', () => {
         revision: mockDocument.revision,
       });
 
-      expect(mockEntry.indexState?.keyword.status).toBe('pending');
-      expect(mockEntry.indexState?.keyword.lastSyncedAt).toBeNull();
+      expect(mockEntry.indexState?.adapters?.keyword.status).toBe('pending');
+      expect(mockEntry.indexState?.adapters?.keyword.lastSyncedAt).toBeNull();
     });
 
     it('is idempotent - calling remove twice does not error', async () => {
@@ -119,7 +119,7 @@ describe('keyword index adapter', () => {
       await keywordIndexAdapter.upsert(mockEntry, mockDocument);
 
       // Verify state exists before remove
-      expect(mockEntry.indexState?.keyword.status).toBe('synced');
+      expect(mockEntry.indexState?.adapters?.keyword.status).toBe('synced');
 
       // Remove
       await keywordIndexAdapter.remove(mockEntry, {
@@ -128,8 +128,8 @@ describe('keyword index adapter', () => {
       });
 
       // Verify state is cleared
-      expect(mockEntry.indexState?.keyword.status).toBe('pending');
-      expect(mockEntry.indexState?.keyword.lastSyncedAt).toBeNull();
+      expect(mockEntry.indexState?.adapters?.keyword.status).toBe('pending');
+      expect(mockEntry.indexState?.adapters?.keyword.lastSyncedAt).toBeNull();
     });
   });
 });

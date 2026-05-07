@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { DomainEvent } from '../types.js';
+import { AdapterRegistry } from '../../indexing/registry.js';
 import { createIndexingSubscriber } from './indexing.js';
 import { createAuditSubscriber } from './audit.js';
 import { createConflictSubscriber } from './conflict.js';
@@ -50,7 +51,7 @@ function mockStore() {
 describe('createIndexingSubscriber', () => {
   it('calls runKnowledgeIndexEvent for non-self transitions', async () => {
     const store = mockStore();
-    const subscriber = createIndexingSubscriber(store as any, []);
+    const subscriber = createIndexingSubscriber(store as any, new AdapterRegistry());
     const event = makeEvent({ previousState: 'agent-pass', nextState: 'approved' });
 
     await subscriber(event);
@@ -67,7 +68,7 @@ describe('createIndexingSubscriber', () => {
 
   it('skips self-transitions', async () => {
     const store = mockStore();
-    const subscriber = createIndexingSubscriber(store as any, []);
+    const subscriber = createIndexingSubscriber(store as any, new AdapterRegistry());
     const event = makeEvent({ previousState: 'agent-pass', nextState: 'agent-pass' });
 
     await subscriber(event);
@@ -75,16 +76,16 @@ describe('createIndexingSubscriber', () => {
     expect(runKnowledgeIndexEvent).not.toHaveBeenCalled();
   });
 
-  it('passes adapters to runKnowledgeIndexEvent', async () => {
+  it('passes registry to runKnowledgeIndexEvent', async () => {
     const store = mockStore();
-    const adapters = [{ name: 'test-adapter' }] as any;
-    const subscriber = createIndexingSubscriber(store as any, adapters);
+    const registry = new AdapterRegistry();
+    const subscriber = createIndexingSubscriber(store as any, registry);
     const event = makeEvent();
 
     await subscriber(event);
 
     expect(runKnowledgeIndexEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ adapters }),
+      expect.objectContaining({ registry }),
     );
   });
 });

@@ -15,7 +15,7 @@
  */
 
 import type { Pool } from 'pg';
-import { buildHybridIndexAdapters } from '../indexing/adapters/index.js';
+import { buildHybridAdapterRegistry } from '../indexing/adapters/index.js';
 import { normalizeKnowledgeIndexDocument } from '../indexing/normalize.js';
 import type { IndexSyncResult } from '../indexing/types.js';
 import type { SkillShareerStore } from '../store.js';
@@ -76,7 +76,7 @@ export async function backfillKnowledgeIndexes(config: BackfillConfig): Promise<
   };
 
   // Create adapters for backfill (always use PostgreSQL adapters)
-  const adapters = buildHybridIndexAdapters({
+  const registry = buildHybridAdapterRegistry({
     pool,
     usePgVector: () => true,
     usePgKeyword: () => true,
@@ -103,7 +103,7 @@ export async function backfillKnowledgeIndexes(config: BackfillConfig): Promise<
 
           // Sync to all adapters
           const syncResults: IndexSyncResult[] = [];
-          for (const adapter of adapters) {
+          for (const adapter of registry.all()) {
             const syncResult = await adapter.sync(document);
             syncResults.push(syncResult);
           }

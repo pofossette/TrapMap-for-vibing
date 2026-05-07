@@ -222,8 +222,8 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
       // Index state should exist and be refreshed (contentHash different from original)
       expect(entry?.indexState).toBeDefined();
       expect(entry?.indexState?.contentHash).not.toBe('original-hash');
-      expect(entry?.indexState?.vector?.status).toBe('synced');
-      expect(entry?.indexState?.keyword?.status).toBe('synced');
+      expect(entry?.indexState?.adapters?.vector?.status).toBe('synced');
+      expect(entry?.indexState?.adapters?.keyword?.status).toBe('synced');
     });
 
     it('should not create index state for non-approved entries (T-11-04)', async () => {
@@ -316,7 +316,7 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
       const entry = data.knowledgeEntries.find((e) => e.id === entryId);
 
       expect(entry?.indexState?.contentHash).not.toBe('before-update');
-      expect(entry?.indexState?.vector?.status).toBe('synced');
+      expect(entry?.indexState?.adapters?.vector?.status).toBe('synced');
     });
   });
 

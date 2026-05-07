@@ -14,7 +14,14 @@ import type { SkillShareerStore } from '../store.js';
 import { JsonStore, nowIso } from '../store.js';
 
 import { reconcileKnowledgeIndexes } from './pipeline.js';
+import { AdapterRegistry } from './registry.js';
 import type { IndexAdapter, IndexSyncResult, NormalizedIndexDocument } from './types.js';
+
+function toRegistry(adapters: IndexAdapter[]): AdapterRegistry {
+  const registry = new AdapterRegistry();
+  for (const a of adapters) registry.register(a);
+  return registry;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -144,7 +151,7 @@ describe('Phase 73: reconcileKnowledgeIndexes batch processing', () => {
 
     const { adapter, syncedEntryIds } = trackingAdapter();
 
-    const result = await reconcileKnowledgeIndexes({ store }, [adapter], { batchSize: 2 });
+    const result = await reconcileKnowledgeIndexes({ store }, toRegistry([adapter]), { batchSize: 2 });
 
     // All 5 entries must have been synced
     expect(result.totalEntries).toBe(5);
@@ -162,7 +169,7 @@ describe('Phase 73: reconcileKnowledgeIndexes batch processing', () => {
 
     const { adapter, syncedEntryIds } = trackingAdapter();
 
-    const result = await reconcileKnowledgeIndexes({ store }, [adapter]);
+    const result = await reconcileKnowledgeIndexes({ store }, toRegistry([adapter]));
 
     expect(result.entriesSynced).toBe(1);
     expect(syncedEntryIds()).toEqual(['solo_entry']);
@@ -183,7 +190,7 @@ describe('Phase 73: reconcileKnowledgeIndexes batch processing', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
-      await reconcileKnowledgeIndexes({ store }, [adapter]);
+      await reconcileKnowledgeIndexes({ store }, toRegistry([adapter]));
 
       // Find the memory log line
       const memoryLog = logSpy.mock.calls.find(
@@ -215,7 +222,7 @@ describe('Phase 73: reconcileKnowledgeIndexes batch processing', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
-      const result = await reconcileKnowledgeIndexes({ store }, [adapter]);
+      const result = await reconcileKnowledgeIndexes({ store }, toRegistry([adapter]));
 
       expect(result.totalEntries).toBe(0);
       expect(result.entriesSynced).toBe(0);

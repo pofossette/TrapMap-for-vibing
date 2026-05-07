@@ -13,6 +13,7 @@
  */
 
 import type { Pool } from 'pg';
+import { AdapterRegistry } from '../registry.js';
 import type { IndexAdapter } from '../types.js';
 import { graphIndexAdapter } from './graph.js';
 import { keywordIndexAdapter } from './keyword.js';
@@ -56,20 +57,22 @@ export {
 } from './pg-keyword.js';
 
 /**
- * Get the default index adapter list for server bootstrap.
+ * Build the default adapter registry for server bootstrap.
  *
- * This function returns the standard set of adapters that should be
- * registered at server startup. The adapters are called in order during
- * lifecycle transitions.
+ * Registers vector, keyword, and graph adapters in standard order.
  *
- * @returns Array of registered index adapters
+ * @returns AdapterRegistry with default adapters
  */
-export function buildDefaultIndexAdapters(): IndexAdapter[] {
-  return [vectorIndexAdapter, keywordIndexAdapter, graphIndexAdapter];
+export function buildDefaultAdapterRegistry(): AdapterRegistry {
+  const registry = new AdapterRegistry();
+  registry.register(vectorIndexAdapter);
+  registry.register(keywordIndexAdapter);
+  registry.register(graphIndexAdapter);
+  return registry;
 }
 
 /**
- * Build hybrid adapters that support both in-memory and PostgreSQL storage.
+ * Build a hybrid adapter registry that supports both in-memory and PostgreSQL storage.
  *
  * When a PostgreSQL pool is provided and feature flags are enabled,
  * uses PostgreSQL adapters for scalable indexing. Otherwise falls back
@@ -77,7 +80,53 @@ export function buildDefaultIndexAdapters(): IndexAdapter[] {
  *
  * @param pool - Optional PostgreSQL connection pool
  * @param featureFlags - Feature flag getters for PostgreSQL adapters
- * @returns Array of index adapters
+ * @returns AdapterRegistry with hybrid adapters
+ */
+export function buildHybridAdapterRegistry(config?: {
+  pool?: Pool;
+  usePgVector?: () => boolean;
+  usePgKeyword?: () => boolean;
+}): AdapterRegistry {
+  const { pool, usePgVector, usePgKeyword } = config ?? {};
+
+  // If no pool, always use in-memory adapters
+  if (!pool) {
+    return buildDefaultAdapterRegistry();
+  }
+
+  const registry = new AdapterRegistry();
+
+  // Vector adapter - use pgvector if enabled
+  if (usePgVector) {
+    registry.register(createPgVectorAdapter({ pool, featureFlag: usePgVector }));
+  } else {
+    registry.register(vectorIndexAdapter);
+  }
+
+  // Keyword adapter - use PostgreSQL if enabled
+  if (usePgKeyword) {
+    registry.register(createPgKeywordAdapter({ pool, featureFlag: usePgKeyword }));
+  } else {
+    registry.register(keywordIndexAdapter);
+  }
+
+  // Graph adapter - always in-memory for now
+  registry.register(graphIndexAdapter);
+
+  return registry;
+}
+
+/**
+ * @deprecated Use buildDefaultAdapterRegistry() instead.
+ * Get the default index adapter list for server bootstrap.
+ */
+export function buildDefaultIndexAdapters(): IndexAdapter[] {
+  return [vectorIndexAdapter, keywordIndexAdapter, graphIndexAdapter];
+}
+
+/**
+ * @deprecated Use buildHybridAdapterRegistry() instead.
+ * Build hybrid adapters that support both in-memory and PostgreSQL storage.
  */
 export function buildHybridIndexAdapters(config?: {
   pool?: Pool;
