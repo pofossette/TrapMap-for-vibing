@@ -20,19 +20,12 @@ import {
   scheduleCandidateProcessing,
 } from '../lib/candidates/processor.js';
 import { applyManualResultResolution } from '../lib/candidates/reconcile.js';
-import {
-  attachManualResult,
-  createCandidateSubmission,
-  getAllDuplicateCases,
-  getCandidateById,
-  getCandidatesByStatus,
-  getDuplicateCaseByCandidateId,
-} from '../lib/candidates/store.js';
+import { createCandidateSubmission } from '../lib/candidates/store.js';
 import { AppError } from '../lib/errors.js';
 import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
 import { requirePermission } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
-import { type StoreData, nowIso } from '../lib/store.js';
+import { nowIso } from '../lib/store.js';
 import { logUserOperation } from '../lib/user-ops-log.js';
 
 function requireRealUser(userId: string | undefined): string {
@@ -61,10 +54,13 @@ function computeSha256(content: string): string {
 }
 
 /**
- * Helper to build entity data for matched trap.
+ * Helper to build entity data for matched trap using repository.
  */
-function buildTrapEntity(data: StoreData, entityId: string): DuplicateJobMatchEntity | null {
-  const trap = data.knowledgeEntries.find((e) => e.id === entityId);
+async function buildTrapEntity(
+  repos: { knowledge: { getById(id: string): Promise<any> } },
+  entityId: string,
+): Promise<DuplicateJobMatchEntity | null> {
+  const trap = await repos.knowledge.getById(entityId);
   if (!trap) return null;
 
   return {
@@ -80,10 +76,13 @@ function buildTrapEntity(data: StoreData, entityId: string): DuplicateJobMatchEn
 }
 
 /**
- * Helper to build entity data for matched skill.
+ * Helper to build entity data for matched skill using repository.
  */
-function buildSkillEntity(data: StoreData, entityId: string): DuplicateJobMatchEntity | null {
-  const skill = data.skillArtifacts.find((a) => a.id === entityId);
+async function buildSkillEntity(
+  repos: { artifact: { getById(id: string): Promise<any> } },
+  entityId: string,
+): Promise<DuplicateJobMatchEntity | null> {
+  const skill = await repos.artifact.getById(entityId);
   if (!skill) return null;
 
   return {
@@ -190,8 +189,8 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     const candidateId = (request.params as { candidateId: string }).candidateId;
 
-    const data = await app.skillShareer.store.snapshot();
-    const candidate = getCandidateById(data, candidateId);
+    const { candidate: candidateRepo } = app.skillShareer.repos;
+    const candidate = await candidateRepo.getById(candidateId);
 
     if (!candidate) {
       throw new AppError(404, 'candidate_not_found', 'Candidate not found');
@@ -214,13 +213,18 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:review');
 
     const query = request.query as { status?: string };
-    const data = await app.skillShareer.store.snapshot();
+    const { candidate: candidateRepo } = app.skillShareer.repos;
 
-    let items = data.candidateSubmissions;
-
-    // Filter by status if provided
+    let items;
     if (query.status) {
-      items = getCandidatesByStatus(data, query.status as any);
+      items = await candidateRepo.listByStatus(query.status as any);
+    } else {
+      // List all candidates - use listByStatus for each known status
+      const allStatuses = ['received', 'queued', 'analyzing', 'ready_for_review', 'duplicate_detected', 'error', 'resolved'] as const;
+      const results = await Promise.all(
+        allStatuses.map((s) => candidateRepo.listByStatus(s as any)),
+      );
+      items = results.flat();
     }
 
     return candidateListResponseSchema.parse({
@@ -234,8 +238,8 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:review');
 
-    const data = await app.skillShareer.store.snapshot();
-    const items = getAllDuplicateCases(data);
+    const { duplicate: duplicateRepo } = app.skillShareer.repos;
+    const items = await duplicateRepo.listAll();
 
     return duplicateCaseListResponseSchema.parse({
       items,
@@ -248,8 +252,9 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     const candidateId = (request.params as { candidateId: string }).candidateId;
 
-    const data = await app.skillShareer.store.snapshot();
-    const duplicateCase = getDuplicateCaseByCandidateId(data, candidateId);
+    const { duplicate: duplicateRepo } = app.skillShareer.repos;
+    const duplicates = await duplicateRepo.listByCandidate(candidateId);
+    const duplicateCase = duplicates[0] ?? null;
 
     if (!duplicateCase) {
       throw new AppError(404, 'duplicate_case_not_found', 'Duplicate case not found');
@@ -264,9 +269,10 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:review');
 
     const candidateId = (request.params as { candidateId: string }).candidateId;
-    const data = await app.skillShareer.store.snapshot();
 
-    const candidate = getCandidateById(data, candidateId);
+    const { candidate: candidateRepo } = app.skillShareer.repos;
+    const candidate = await candidateRepo.getById(candidateId);
+
     if (!candidate) {
       throw new AppError(404, 'candidate_not_found', 'Candidate not found');
     }
@@ -276,14 +282,14 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(404, 'duplicate_case_not_found', 'No duplicate case for this candidate');
     }
 
-    // Build match entries with entity data
+    // Build match entries with entity data using repositories
     const matches: DuplicateJobBundleResponse['matches'] = [];
 
     for (const match of duplicateCase.matches) {
       const entity =
         match.entityType === 'trap'
-          ? buildTrapEntity(data, match.entityId)
-          : buildSkillEntity(data, match.entityId);
+          ? await buildTrapEntity(app.skillShareer.repos, match.entityId)
+          : await buildSkillEntity(app.skillShareer.repos, match.entityId);
 
       if (entity) {
         matches.push({ match, entity });
@@ -360,14 +366,8 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
     // For now, keep status as duplicate_detected with manual result attached
     const nextState = body.decision === 'independent' ? 'ready_for_review' : 'rejected';
 
-    await app.skillShareer.store.transact((data) => {
-      attachManualResult({
-        data,
-        candidateId,
-        result: body,
-        reviewedBy,
-      });
-    });
+    const { candidate: candidateRepo } = app.skillShareer.repos;
+    await candidateRepo.attachManualResult(candidateId, body, reviewedBy);
 
     // Log user operation
     void logUserOperation(app.skillShareer.config.userOpsLog, {

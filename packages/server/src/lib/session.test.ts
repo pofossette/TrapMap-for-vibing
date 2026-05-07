@@ -25,6 +25,8 @@ import { hashSecret, nowIso } from './store.js';
 import { InMemoryMembershipRepository, InMemoryTeamRepository } from './teams/index.js';
 import { InMemoryUserRepository } from './users/index.js';
 
+import type { SkillShareerRepos } from './repos/index.js';
+import { createAllRepos } from './repos/index.js';
 import { ChannelRegistry } from './retrieval/channel-registry.js';
 import { StrategyRegistry } from './retrieval/strategy-registry.js';
 
@@ -303,31 +305,7 @@ describe('session.ts repository-based auth context resolution', () => {
       userRepo,
       teamRepo,
       membershipRepo,
-    };
-  }
-
-  // Helper to create services without repos (store fallback)
-  function createServicesWithoutRepos(): SkillShareerServices {
-    return {
-      config: app.skillShareer.config,
-      store,
-      adapterRegistry: { register: () => {}, get: () => undefined, all: () => [], kinds: () => [], has: () => false } as any,
-      channelRegistry: new ChannelRegistry(),
-      strategyRegistry: (() => {
-        const sr = new StrategyRegistry();
-        sr.register({ version: 'semantic', async execute(q, _ch, entries) { return { scoredEntries: entries.map(e => ({ entry: e, score: 0.5 })) }; } });
-        sr.register({ version: 'hybrid', async execute(q, _ch, entries) { return { scoredEntries: entries.map(e => ({ entry: e, score: 0.5 })) }; } });
-        sr.register({ version: 'graph-assisted', async execute(q, _ch, entries) { return { scoredEntries: entries.map(e => ({ entry: e, score: 0.5 })) }; } });
-        return sr;
-      })(),
-      ai: app.skillShareer.ai,
-      knowledgeRepo: undefined,
-      artifactRepo: undefined,
-      sessionRepo: undefined,
-      accessKeyRepo: undefined,
-      userRepo: undefined,
-      teamRepo: undefined,
-      membershipRepo: undefined,
+      repos: app.skillShareer.repos,
     };
   }
 
@@ -474,60 +452,6 @@ describe('session.ts repository-based auth context resolution', () => {
       await expect(resolveAuthContext(services, mockRequest)).rejects.toThrow('Session not found');
     });
 
-    it('falls back to store when repos are undefined', async () => {
-      // Setup test data directly in store
-      await store.transact((data) => {
-        data.users.push({
-          id: 'user_fallback_resolve',
-          handle: 'fallbackuser',
-          notes: null,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-
-        data.teams.push({
-          id: 'team_fallback_resolve',
-          name: 'Fallback Team',
-          slug: 'fallback-team',
-          description: null,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-
-        data.memberships.push({
-          id: 'membership_fallback_resolve',
-          userId: 'user_fallback_resolve',
-          teamId: 'team_fallback_resolve',
-          roleTemplate: 'admin',
-          securityLevel: 10,
-          permissions: [],
-          notes: null,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-      });
-
-      // Create session via store (fallback)
-      const { token } = await createSession(
-        store,
-        'user',
-        'user_fallback_resolve',
-        'team_fallback_resolve',
-      );
-
-      const mockRequest = {
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
-      } as any;
-
-      const services = createServicesWithoutRepos();
-      const authContext = await resolveAuthContext(services, mockRequest);
-
-      expect(authContext.subjectType).toBe('user');
-      expect(authContext.actorId).toBe('user_fallback_resolve');
-      expect(authContext.handle).toBe('fallbackuser');
-    });
   });
 
   describe('getSessionResponse with repositories', () => {
@@ -593,51 +517,6 @@ describe('session.ts repository-based auth context resolution', () => {
       expect(response.activeTeam).toBeNull();
     });
 
-    it('falls back to store when repos are undefined', async () => {
-      await store.transact((data) => {
-        data.users.push({
-          id: 'user_response_fallback',
-          handle: 'responsefallback',
-          notes: null,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-
-        data.teams.push({
-          id: 'team_response_fallback',
-          name: 'Response Fallback Team',
-          slug: 'response-fallback-team',
-          description: null,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-
-        data.memberships.push({
-          id: 'membership_response_fallback',
-          userId: 'user_response_fallback',
-          teamId: 'team_response_fallback',
-          roleTemplate: 'admin',
-          securityLevel: 10,
-          permissions: [],
-          notes: null,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-      });
-
-      const { record } = await createSession(
-        store,
-        'user',
-        'user_response_fallback',
-        'team_response_fallback',
-      );
-
-      const services = createServicesWithoutRepos();
-      const response = await getSessionResponse(services, record);
-
-      expect(response.sessionId).toBe(record.id);
-      expect(response.member.handle).toBe('responsefallback');
-    });
   });
 
   describe('getSessionStatus with repositories', () => {
@@ -713,56 +592,5 @@ describe('session.ts repository-based auth context resolution', () => {
       expect(status).toBeNull();
     });
 
-    it('falls back to store when sessionRepo is undefined', async () => {
-      await store.transact((data) => {
-        data.users.push({
-          id: 'user_status_fallback',
-          handle: 'statusfallback',
-          notes: null,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-
-        data.teams.push({
-          id: 'team_status_fallback',
-          name: 'Status Fallback Team',
-          slug: 'status-fallback-team',
-          description: null,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-
-        data.memberships.push({
-          id: 'membership_status_fallback',
-          userId: 'user_status_fallback',
-          teamId: 'team_status_fallback',
-          roleTemplate: 'admin',
-          securityLevel: 10,
-          permissions: [],
-          notes: null,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-      });
-
-      const { token } = await createSession(
-        store,
-        'user',
-        'user_status_fallback',
-        'team_status_fallback',
-      );
-
-      const mockRequest = {
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
-      } as any;
-
-      const services = createServicesWithoutRepos();
-      const status = await getSessionStatus(services, mockRequest);
-
-      expect(status).not.toBeNull();
-      expect(status?.member.handle).toBe('statusfallback');
-    });
   });
 });
