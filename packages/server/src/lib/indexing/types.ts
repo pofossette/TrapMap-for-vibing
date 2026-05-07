@@ -87,12 +87,14 @@ export interface KnowledgeIndexStateRecord {
   contentHash: string;
   /** When the content was last normalized */
   normalizedAt: string;
-  /** Vector adapter sync state */
-  vector: AdapterSyncState;
-  /** Keyword adapter sync state */
-  keyword: AdapterSyncState;
-  /** Graph adapter sync state */
-  graph: AdapterSyncState;
+  /** Dynamic adapter states keyed by adapter.kind */
+  adapters: Record<string, AdapterSyncState>;
+  /** @deprecated Use adapters['vector'] */
+  vector?: AdapterSyncState;
+  /** @deprecated Use adapters['keyword'] */
+  keyword?: AdapterSyncState;
+  /** @deprecated Use adapters['graph'] */
+  graph?: AdapterSyncState;
 }
 
 /**
@@ -100,7 +102,7 @@ export interface KnowledgeIndexStateRecord {
  */
 export interface IndexSyncResult {
   /** Adapter kind */
-  adapterKind: 'vector' | 'keyword' | 'graph';
+  adapterKind: string;
   /** Whether sync succeeded */
   success: boolean;
   /** Error message if failed */
@@ -147,7 +149,7 @@ export interface ReconcileResult {
  */
 export interface IndexAdapter {
   /** Adapter kind for identification */
-  kind: 'vector' | 'keyword' | 'graph';
+  kind: string;
   /**
    * Sync or build index for the given document.
    * Should be idempotent - calling twice with same document should produce same state.

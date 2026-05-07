@@ -72,8 +72,8 @@ export const vectorIndexAdapter: VectorIndexAdapter = {
     const entry = entryOrRef as KnowledgeRecord;
     const ref = maybeRef;
     // Clear the vector index state
-    if (entry.indexState?.vector) {
-      entry.indexState.vector = {
+    if (entry.indexState?.adapters?.vector) {
+      entry.indexState.adapters.vector = {
         status: 'pending',
         revision: ref.revision,
         contentHash: '',
@@ -101,7 +101,7 @@ export const vectorIndexAdapter: VectorIndexAdapter = {
     document: NormalizedIndexDocument,
   ): Promise<IndexSyncResult> {
     // Check if we can skip work (idempotency)
-    const currentVectorState = entry.indexState?.vector;
+    const currentVectorState = entry.indexState?.adapters?.vector;
     if (
       currentVectorState &&
       currentVectorState.status === 'synced' &&
@@ -122,35 +122,26 @@ export const vectorIndexAdapter: VectorIndexAdapter = {
 
       // Ensure indexState exists
       if (!entry.indexState) {
+        const pendingState = {
+          status: 'pending' as const,
+          revision: 0,
+          contentHash: '',
+          lastSyncedAt: null,
+          lastError: null,
+        };
         entry.indexState = {
           contentHash: document.contentHash,
           normalizedAt: document.normalizedAt,
-          vector: {
-            status: 'pending',
-            revision: 0,
-            contentHash: '',
-            lastSyncedAt: null,
-            lastError: null,
-          },
-          keyword: {
-            status: 'pending',
-            revision: 0,
-            contentHash: '',
-            lastSyncedAt: null,
-            lastError: null,
-          },
-          graph: {
-            status: 'pending',
-            revision: 0,
-            contentHash: '',
-            lastSyncedAt: null,
-            lastError: null,
+          adapters: {
+            vector: { ...pendingState },
+            keyword: { ...pendingState },
+            graph: { ...pendingState },
           },
         };
       }
 
-      // Update vector sync state
-      entry.indexState.vector = {
+      // Update vector sync state (use adapters map; legacy vector field for backward compat)
+      entry.indexState.adapters.vector = {
         status: 'synced',
         revision: document.revision,
         contentHash: document.contentHash,
@@ -176,9 +167,9 @@ export const vectorIndexAdapter: VectorIndexAdapter = {
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // Update state to failed
-      if (entry.indexState?.vector) {
-        entry.indexState.vector.status = 'failed';
-        entry.indexState.vector.lastError = errorMessage;
+      if (entry.indexState?.adapters?.vector) {
+        entry.indexState.adapters.vector.status = 'failed';
+        entry.indexState.adapters.vector.lastError = errorMessage;
       }
 
       return {
@@ -197,8 +188,8 @@ export const vectorIndexAdapter: VectorIndexAdapter = {
     entry: KnowledgeRecord,
     ref: { entryId: string; revision: number },
   ): Promise<void> {
-    if (entry.indexState?.vector) {
-      entry.indexState.vector = {
+    if (entry.indexState?.adapters?.vector) {
+      entry.indexState.adapters.vector = {
         status: 'pending',
         revision: ref.revision,
         contentHash: '',

@@ -14,15 +14,16 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { SkillShareerStore, StoreData } from '../store.js';
 import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
 import { determineKnowledgeIndexAction, runKnowledgeIndexEvent } from './events.js';
+import { AdapterRegistry } from './registry.js';
 import type { IndexAdapter, NormalizedIndexDocument } from './types.js';
 
 // Mock adapter for testing
 class MockAdapter implements IndexAdapter {
-  kind: 'vector' | 'keyword';
+  kind: string;
   syncCalls: NormalizedIndexDocument[] = [];
   removeCalls: { entryId: string; revision: number }[] = [];
 
-  constructor(kind: 'vector' | 'keyword') {
+  constructor(kind: string) {
     this.kind = kind;
   }
 
@@ -39,6 +40,14 @@ class MockAdapter implements IndexAdapter {
   async remove(ref: { entryId: string; revision: number }) {
     this.removeCalls.push(ref);
   }
+}
+
+function createRegistry(...adapters: IndexAdapter[]): AdapterRegistry {
+  const registry = new AdapterRegistry();
+  for (const adapter of adapters) {
+    registry.register(adapter);
+  }
+  return registry;
 }
 
 describe('lifecycle event mapping (IDX-03, T-08-06)', () => {
@@ -155,7 +164,7 @@ describe('lifecycle event mapping (IDX-03, T-08-06)', () => {
         previousState: 'submitted',
         nextState: 'approved',
         reason: 'reviewer-approved',
-        adapters: [mockVectorAdapter, mockKeywordAdapter],
+        registry: createRegistry(mockVectorAdapter, mockKeywordAdapter),
       });
 
       // Verify sync was called on both adapters
@@ -242,7 +251,7 @@ describe('lifecycle event mapping (IDX-03, T-08-06)', () => {
         previousState: 'approved',
         nextState: 'deactivated',
         reason: 'deactivated',
-        adapters: [mockVectorAdapter, mockKeywordAdapter],
+        registry: createRegistry(mockVectorAdapter, mockKeywordAdapter),
       });
 
       // Verify remove was called on both adapters
@@ -310,7 +319,7 @@ describe('lifecycle event mapping (IDX-03, T-08-06)', () => {
         previousState: 'submitted',
         nextState: 'rejected',
         reason: 'reviewer-rejected',
-        adapters: [mockVectorAdapter, mockKeywordAdapter],
+        registry: createRegistry(mockVectorAdapter, mockKeywordAdapter),
       });
 
       // Verify no sync or remove calls were made
@@ -423,7 +432,7 @@ describe('graph document lifecycle (T-36-13)', () => {
       previousState: 'approved',
       nextState: 'deactivated',
       reason: 'admin-deactivate',
-      adapters: [], // Adapters not used for graph removal in this path
+      registry: new AdapterRegistry(), // Adapters not used for graph removal in this path
     });
 
     // Verify graph document was removed
@@ -506,7 +515,7 @@ describe('graph document lifecycle (T-36-13)', () => {
       previousState: 'approved',
       nextState: 'approved',
       reason: 'reapprove',
-      adapters: [], // Using empty adapters since we're testing graph doc behavior
+      registry: new AdapterRegistry(), // Using empty adapters since we're testing graph doc behavior
     });
 
     // Verify no stale graph documents remain

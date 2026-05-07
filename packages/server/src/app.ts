@@ -21,7 +21,7 @@ import { LifecycleEventBus } from './lib/lifecycle/event-bus.js';
 import { createIndexingSubscriber } from './lib/lifecycle/subscribers/indexing.js';
 import { createAuditSubscriber } from './lib/lifecycle/subscribers/audit.js';
 import { createConflictSubscriber } from './lib/lifecycle/subscribers/conflict.js';
-import { buildDefaultIndexAdapters } from './lib/indexing/adapters/index.js';
+import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
 import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
 import { createKnowledgeRepository } from './lib/knowledge/index.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
@@ -163,7 +163,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.decorate('skillShareer', {
     config,
     store: createSkillShareerStore(config),
-    indexAdapters: buildDefaultIndexAdapters(),
+    indexAdapters: buildDefaultAdapterRegistry(),
     ai: createAiProviders(config.ai),
     // knowledgeRepo is set when PostgreSQL pool is available (in onReady hook)
     knowledgeRepo: undefined,

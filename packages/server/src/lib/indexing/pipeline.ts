@@ -13,9 +13,9 @@
 import type { SkillShareerStore, StoreData } from '../store.js';
 import { nowIso } from '../store.js';
 import { normalizeKnowledgeIndexDocument } from './normalize.js';
+import { AdapterRegistry } from './registry.js';
 import type {
   AdapterSyncState,
-  IndexAdapter,
   IndexSyncResult,
   KeywordAdapterSyncState,
   KnowledgeIndexStateRecord,
@@ -37,21 +37,22 @@ function initializeAdapterState(): AdapterSyncState {
 }
 
 /**
- * Initialize or update complete index state record.
+ * Initialize complete index state record from registry.
+ * Builds a dynamic adapters map keyed by each registered adapter's kind.
  */
 function initializeIndexState(
   normalizedDocument: NormalizedIndexDocument,
+  registry: AdapterRegistry,
 ): KnowledgeIndexStateRecord {
-  const vectorState = initializeAdapterState();
-  const keywordState = initializeAdapterState();
-  const graphState = initializeAdapterState();
+  const adapters: Record<string, AdapterSyncState> = {};
+  for (const kind of registry.kinds()) {
+    adapters[kind] = initializeAdapterState();
+  }
 
   return {
     contentHash: normalizedDocument.contentHash,
     normalizedAt: normalizedDocument.normalizedAt,
-    vector: vectorState,
-    keyword: keywordState,
-    graph: graphState,
+    adapters,
   };
 }
 
@@ -116,13 +117,13 @@ function updateAdapterState(
  *
  * @param services - Store and data snapshot
  * @param entryId - ID of the entry to sync
- * @param adapters - Array of registered adapters
+ * @param registry - Adapter registry with all registered adapters
  * @returns Entry sync result
  */
 export async function syncKnowledgeIndex(
   services: { store: SkillShareerStore; data: StoreData },
   entryId: string,
-  adapters: IndexAdapter[],
+  registry: AdapterRegistry,
 ): Promise<void> {
   const { store, data } = services;
   const entry = data.knowledgeEntries.find((e) => e.id === entryId);
@@ -140,7 +141,7 @@ export async function syncKnowledgeIndex(
     if (entry.indexState) {
       // Remove from all adapters
       await Promise.all(
-        adapters.map((adapter) =>
+        registry.all().map((adapter) =>
           adapter.remove({
             entryId: entry.id,
             revision: entry.history?.length ?? 0, // Defensive: default to 0 if history is undefined
@@ -157,16 +158,23 @@ export async function syncKnowledgeIndex(
 
   // Initialize index state if needed
   if (!entry.indexState) {
-    entry.indexState = initializeIndexState(normalizedDocument);
+    entry.indexState = initializeIndexState(normalizedDocument, registry);
+  } else if (!entry.indexState.adapters) {
+    // Migrate old-format indexState (vector/keyword/graph top-level) to new adapters map
+    const old = entry.indexState as unknown as Record<string, AdapterSyncState>;
+    const adapters: Record<string, AdapterSyncState> = {};
+    for (const kind of registry.kinds()) {
+      adapters[kind] = old[kind] ?? initializeAdapterState();
+    }
+    entry.indexState.adapters = adapters;
   }
 
   // Sync to each adapter
-  const adapterKinds = ['vector', 'keyword', 'graph'] as const;
   const adapterFailures: Array<{ kind: string; error: string }> = [];
 
-  for (const adapter of adapters) {
+  for (const adapter of registry.all()) {
     const adapterKind = adapter.kind;
-    const currentState = entry.indexState[adapterKind];
+    const currentState = entry.indexState.adapters[adapterKind] ?? null;
 
     // Check if sync is needed
     if (!needsSync(currentState, normalizedDocument)) {
@@ -176,8 +184,9 @@ export async function syncKnowledgeIndex(
     // Perform sync
     const result = await adapter.sync(normalizedDocument);
 
-    // Update state
-    entry.indexState[adapterKind] = updateAdapterState(currentState, normalizedDocument, result);
+    // Update state — use current state or initialize if missing
+    const baseState = currentState ?? initializeAdapterState();
+    entry.indexState.adapters[adapterKind] = updateAdapterState(baseState, normalizedDocument, result);
 
     // Track failures for logging
     if (!result.success) {
@@ -205,7 +214,7 @@ export async function syncKnowledgeIndex(
         tokens: string[];
         fieldTokens: { shortcut: string[]; detail: string[]; labels: string[] };
       };
-      const keywordAdapterState = entry.indexState[adapterKind] as KeywordAdapterSyncState;
+      const keywordAdapterState = entry.indexState.adapters[adapterKind] as KeywordAdapterSyncState;
       keywordAdapterState.persistedState = keywordState;
     }
   }
@@ -235,14 +244,14 @@ export async function syncKnowledgeIndex(
  * - Processes entries in batches to limit memory usage
  *
  * @param services - Store instance
- * @param adapters - Array of registered adapters
+ * @param registry - Adapter registry with all registered adapters
  * @param options - Optional configuration
  * @param options.batchSize - Number of entries to process per batch (default: 50)
  * @returns Reconciliation result
  */
 export async function reconcileKnowledgeIndexes(
   services: { store: SkillShareerStore },
-  adapters: IndexAdapter[],
+  registry: AdapterRegistry,
   options?: { batchSize?: number },
 ): Promise<ReconcileResult> {
   const startTime = Date.now();
@@ -269,7 +278,7 @@ export async function reconcileKnowledgeIndexes(
           // Remove index state for non-approved entries
           if (entry.indexState) {
             await Promise.all(
-              adapters.map((adapter) =>
+              registry.all().map((adapter) =>
                 adapter.remove({
                   entryId: entry.id,
                   revision: entry.history?.length ?? 0, // Defensive: default to 0 if history is undefined
@@ -287,20 +296,19 @@ export async function reconcileKnowledgeIndexes(
 
         if (!entry.indexState) {
           // No index state exists - needs full sync
-          entry.indexState = initializeIndexState(normalizedDocument);
-          await syncKnowledgeIndex({ store: services.store, data }, entry.id, adapters);
+          entry.indexState = initializeIndexState(normalizedDocument, registry);
+          await syncKnowledgeIndex({ store: services.store, data }, entry.id, registry);
           entriesSynced++;
           continue;
         }
 
         // Check if any adapter needs sync
-        const needsAnySync =
-          needsSync(entry.indexState.vector, normalizedDocument) ||
-          needsSync(entry.indexState.keyword, normalizedDocument) ||
-          needsSync(entry.indexState.graph, normalizedDocument);
+        const needsAnySync = registry
+          .kinds()
+          .some((kind) => needsSync(entry.indexState!.adapters[kind] ?? null, normalizedDocument));
 
         if (needsAnySync) {
-          await syncKnowledgeIndex({ store: services.store, data }, entry.id, adapters);
+          await syncKnowledgeIndex({ store: services.store, data }, entry.id, registry);
           entriesSynced++;
         } else {
           entriesSkipped++;

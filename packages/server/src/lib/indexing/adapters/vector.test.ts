@@ -41,10 +41,10 @@ describe('vector index adapter', () => {
       expect(result.success).toBe(true);
       expect(result.performedWork).toBe(true);
       expect(mockEntry.indexState).toBeDefined();
-      expect(mockEntry.indexState?.vector).toBeDefined();
-      expect(mockEntry.indexState?.vector.status).toBe('synced');
-      expect(mockEntry.indexState?.vector.revision).toBe(mockDocument.revision);
-      expect(mockEntry.indexState?.vector.contentHash).toBe(mockDocument.contentHash);
+      expect(mockEntry.indexState?.adapters?.vector).toBeDefined();
+      expect(mockEntry.indexState?.adapters?.vector.status).toBe('synced');
+      expect(mockEntry.indexState?.adapters?.vector.revision).toBe(mockDocument.revision);
+      expect(mockEntry.indexState?.adapters?.vector.contentHash).toBe(mockDocument.contentHash);
     });
 
     it('skips stale rewrites when revision and content hash match', async () => {
@@ -111,7 +111,7 @@ describe('vector index adapter', () => {
     it('removes vector state from entry', async () => {
       // First upsert to create state
       await vectorIndexAdapter.upsert(mockEntry, mockDocument);
-      expect(mockEntry.indexState?.vector).toBeDefined();
+      expect(mockEntry.indexState?.adapters?.vector).toBeDefined();
 
       // Remove should clear vector state
       await vectorIndexAdapter.remove(mockEntry, {
@@ -119,8 +119,8 @@ describe('vector index adapter', () => {
         revision: mockDocument.revision,
       });
 
-      expect(mockEntry.indexState?.vector.status).toBe('pending');
-      expect(mockEntry.indexState?.vector.lastSyncedAt).toBeNull();
+      expect(mockEntry.indexState?.adapters?.vector.status).toBe('pending');
+      expect(mockEntry.indexState?.adapters?.vector.lastSyncedAt).toBeNull();
     });
 
     it('is idempotent - calling remove twice does not error', async () => {

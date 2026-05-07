@@ -6,7 +6,7 @@ import type { AiProviders } from './ai/types.js';
 import type { ArtifactRepository } from './artifacts/index.js';
 import type { AccessKeyRepository } from './auth/index.js';
 import type { SessionRepository } from './auth/index.js';
-import type { IndexAdapter } from './indexing/types.js';
+import type { AdapterRegistry } from './indexing/registry.js';
 import type { KnowledgeRepository } from './knowledge/index.js';
 import type { UsageAnalyticsRepository } from './analytics/index.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
@@ -17,7 +17,7 @@ import type { UserRepository } from './users/index.js';
 export interface SkillShareerServices {
   config: ServerConfig;
   store: SkillShareerStore;
-  indexAdapters: IndexAdapter[];
+  indexAdapters: AdapterRegistry;
   ai: AiProviders;
   /** Knowledge repository for row-level PostgreSQL operations (undefined when using JsonStore) */
   knowledgeRepo: KnowledgeRepository | undefined;
