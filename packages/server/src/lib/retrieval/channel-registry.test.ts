@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { KnowledgeRecord } from '../store.js';
-import type { RecallCandidate } from './types.js';
 import { ChannelRegistry, type RecallChannel } from './channel-registry.js';
+import type { RecallCandidate } from './types.js';
 
 function makeMockChannel(name: string): RecallChannel {
   return {
@@ -37,8 +37,6 @@ describe('ChannelRegistry', () => {
   it('register throws on duplicate name with message "already registered"', () => {
     const registry = new ChannelRegistry();
     registry.register(makeMockChannel('semantic'));
-    expect(() => registry.register(makeMockChannel('semantic'))).toThrowError(
-      /already registered/,
-    );
+    expect(() => registry.register(makeMockChannel('semantic'))).toThrowError(/already registered/);
   });
 });

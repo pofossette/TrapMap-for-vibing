@@ -11,10 +11,10 @@
  */
 
 import type { LifecycleState } from '@trapmap/contracts';
+import { nowIso } from '../store.js';
 import type { LifecycleEventBus } from './event-bus.js';
 import { findTransitionEvent } from './transitions.js';
 import type { DomainEvent, TransitionContext } from './types.js';
-import { nowIso } from '../store.js';
 
 /**
  * Valid state transitions map.
@@ -122,9 +122,7 @@ export function executeTransition(
   if (!eventName) {
     // This should never happen if transitionLifecycleState passed,
     // but defensive check
-    throw new Error(
-      `No event defined for transition: ${previousState} → ${newState}`,
-    );
+    throw new Error(`No event defined for transition: ${previousState} → ${newState}`);
   }
 
   // Build and emit domain event

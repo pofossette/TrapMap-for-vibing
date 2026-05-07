@@ -10,7 +10,6 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { supersedeEntry } from '../lib/decay/supersede.js';
 import { AppError } from '../lib/errors.js';
-import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
 import {
   createKnowledgeEntryRecord,
   createKnowledgeRevision,
@@ -18,6 +17,7 @@ import {
   toKnowledgeEntry,
   updateKnowledgeEntry,
 } from '../lib/knowledge.js';
+import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
 import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';

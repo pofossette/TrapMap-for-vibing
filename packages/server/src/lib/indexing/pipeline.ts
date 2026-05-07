@@ -13,7 +13,7 @@
 import type { SkillShareerStore, StoreData } from '../store.js';
 import { nowIso } from '../store.js';
 import { normalizeKnowledgeIndexDocument } from './normalize.js';
-import { AdapterRegistry } from './registry.js';
+import type { AdapterRegistry } from './registry.js';
 import type {
   AdapterSyncState,
   IndexSyncResult,
@@ -186,7 +186,11 @@ export async function syncKnowledgeIndex(
 
     // Update state — use current state or initialize if missing
     const baseState = currentState ?? initializeAdapterState();
-    entry.indexState.adapters[adapterKind] = updateAdapterState(baseState, normalizedDocument, result);
+    entry.indexState.adapters[adapterKind] = updateAdapterState(
+      baseState,
+      normalizedDocument,
+      result,
+    );
 
     // Track failures for logging
     if (!result.success) {

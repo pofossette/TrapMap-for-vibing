@@ -3,7 +3,6 @@ import {
   buildCycleDataset,
   buildDeployClusterDataset,
   buildDisconnectedDataset,
-  makeDoc,
 } from '../../retrieval/__fixtures__/graph-fixtures.js';
 import type { GraphEdgeRecord, GraphIndexDocumentRecord, GraphNodeRecord } from './documents.js';
 import {

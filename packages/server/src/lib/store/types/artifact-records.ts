@@ -1,4 +1,11 @@
-import type { Boundary, DecayMeta, EvidenceMeta, LifecycleState, Scope, ScriptActivationPolicy } from '@trapmap/contracts';
+import type {
+  Boundary,
+  DecayMeta,
+  EvidenceMeta,
+  LifecycleState,
+  Scope,
+  ScriptActivationPolicy,
+} from '@trapmap/contracts';
 import type { AgentReviewRecord, MaintenanceMetaRecord } from './knowledge-records.js';
 
 export type StoredScriptActivationPolicy = ScriptActivationPolicy | 'manual' | 'auto';

@@ -55,7 +55,9 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       await app2.ready();
 
       // Both should have the same adapter configuration
-      expect(app.skillShareer.adapterRegistry.kinds().length).toBe(app2.skillShareer.adapterRegistry.kinds().length);
+      expect(app.skillShareer.adapterRegistry.kinds().length).toBe(
+        app2.skillShareer.adapterRegistry.kinds().length,
+      );
 
       const adapterKinds1 = app.skillShareer.adapterRegistry.kinds();
       const adapterKinds2 = app2.skillShareer.adapterRegistry.kinds();

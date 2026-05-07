@@ -4,9 +4,9 @@
  * Phase: 89 (Usage Analytics & Statistics)
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { buildServer } from '../../app.js';
 import type { FastifyInstance } from 'fastify';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildServer } from '../../app.js';
 import type { UsageAnalyticsRepository } from '../../lib/analytics/index.js';
 
 // Mock repository

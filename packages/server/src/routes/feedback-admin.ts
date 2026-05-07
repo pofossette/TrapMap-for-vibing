@@ -90,12 +90,20 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
     // Parse query parameters
     const query = feedbackListRequestSchema.parse(request.query);
 
-    const { feedback: feedbackRepo, knowledge: knowledgeRepo, artifact: artifactRepo } =
-      app.skillShareer.repos;
+    const {
+      feedback: feedbackRepo,
+      knowledge: knowledgeRepo,
+      artifact: artifactRepo,
+    } = app.skillShareer.repos;
     const now = new Date();
 
     // Filter feedback queue using repository
-    const filter: { status?: string[]; problemType?: string[]; entryId?: string; entryType?: string } = {};
+    const filter: {
+      status?: string[];
+      problemType?: string[];
+      entryId?: string;
+      entryType?: string;
+    } = {};
     if (query.status) filter.status = query.status;
     if (query.problemType) filter.problemType = query.problemType;
     if (query.entryId) filter.entryId = query.entryId;
@@ -409,8 +417,11 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
     const params = request.params as { entryId: string };
     const entryId = params.entryId;
 
-    const { feedback: feedbackRepo, knowledge: knowledgeRepo, artifact: artifactRepo } =
-      app.skillShareer.repos;
+    const {
+      feedback: feedbackRepo,
+      knowledge: knowledgeRepo,
+      artifact: artifactRepo,
+    } = app.skillShareer.repos;
     const now = new Date();
 
     // Find entry to determine type using repositories

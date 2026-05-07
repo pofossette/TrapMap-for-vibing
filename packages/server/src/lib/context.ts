@@ -3,18 +3,18 @@ import type { FastifyRequest } from 'fastify';
 
 import type { ServerConfig } from '../config.js';
 import type { AiProviders } from './ai/types.js';
+import type { UsageAnalyticsRepository } from './analytics/index.js';
 import type { ArtifactRepository } from './artifacts/index.js';
 import type { AccessKeyRepository } from './auth/index.js';
 import type { SessionRepository } from './auth/index.js';
 import type { AdapterRegistry } from './indexing/registry.js';
 import type { KnowledgeRepository } from './knowledge/index.js';
-import type { ChannelRegistry } from './retrieval/channel-registry.js';
-import type { StrategyRegistry } from './retrieval/strategy-registry.js';
-import type { UsageAnalyticsRepository } from './analytics/index.js';
-import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
-import type { MembershipRepository, TeamRepository } from './teams/index.js';
 import type { LifecycleEventBus } from './lifecycle/event-bus.js';
 import type { SkillShareerRepos } from './repos/index.js';
+import type { ChannelRegistry } from './retrieval/channel-registry.js';
+import type { StrategyRegistry } from './retrieval/strategy-registry.js';
+import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
+import type { MembershipRepository, TeamRepository } from './teams/index.js';
 import type { UserRepository } from './users/index.js';
 
 export interface SkillShareerServices {

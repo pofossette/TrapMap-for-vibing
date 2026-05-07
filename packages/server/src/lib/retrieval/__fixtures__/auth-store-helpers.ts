@@ -199,18 +199,19 @@ export function seedApprovedSkillArtifact(
     activationOnly: false,
   };
 
-  const files = (overrides.files ?? []).length > 0
-    ? (overrides.files ?? []).map((f) => ({
-        path: f.path,
-        kind: f.kind,
-        sha256: FAKE_HASH,
-        sizeBytes: f.content.length,
-        mediaType: 'text/markdown',
-        source: f.path,
-        includeInDerivation: f.kind === 'skill-markdown',
-        activationOnly: f.kind !== 'skill-markdown',
-      }))
-    : [defaultFile];
+  const files =
+    (overrides.files ?? []).length > 0
+      ? (overrides.files ?? []).map((f) => ({
+          path: f.path,
+          kind: f.kind,
+          sha256: FAKE_HASH,
+          sizeBytes: f.content.length,
+          mediaType: 'text/markdown',
+          source: f.path,
+          includeInDerivation: f.kind === 'skill-markdown',
+          activationOnly: f.kind !== 'skill-markdown',
+        }))
+      : [defaultFile];
 
   const clientManifest = overrides.withClientManifest
     ? {
@@ -252,9 +253,7 @@ export function seedApprovedSkillArtifact(
           title,
           summary: `Summary for ${title}`,
           keywords: labels,
-          referencePaths: files
-            .filter((f: any) => f.kind === 'reference')
-            .map((f: any) => f.path),
+          referencePaths: files.filter((f: any) => f.kind === 'reference').map((f: any) => f.path),
           contentHash: FAKE_HASH,
         },
         capsules: [
@@ -283,19 +282,22 @@ export function seedApprovedSkillArtifact(
       {
         revision: 1,
         sourceHash: FAKE_HASH,
-        files: files.length > 0 ? files : [
-          // Ensure at least one file for schema compliance
-          {
-            path: 'SKILL.md',
-            kind: 'skill-markdown' as const,
-            sha256: FAKE_HASH,
-            sizeBytes: 100,
-            mediaType: 'text/markdown',
-            source: 'SKILL.md',
-            includeInDerivation: true,
-            activationOnly: false,
-          },
-        ],
+        files:
+          files.length > 0
+            ? files
+            : [
+                // Ensure at least one file for schema compliance
+                {
+                  path: 'SKILL.md',
+                  kind: 'skill-markdown' as const,
+                  sha256: FAKE_HASH,
+                  sizeBytes: 100,
+                  mediaType: 'text/markdown',
+                  source: 'SKILL.md',
+                  includeInDerivation: true,
+                  activationOnly: false,
+                },
+              ],
         submittedAt: nowIso(),
         submittedByUserId: userId,
         scriptDescriptors: [],

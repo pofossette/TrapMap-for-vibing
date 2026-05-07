@@ -13,32 +13,32 @@
 
 import type { Pool } from 'pg';
 
-import type { SkillShareerStore } from '../store.js';
-import type { KnowledgeRepository } from '../knowledge/index.js';
-import type { ArtifactRepository } from '../artifacts/index.js';
-import type { SessionRepository, AccessKeyRepository } from '../auth/index.js';
-import type { TeamRepository, MembershipRepository } from '../teams/index.js';
-import type { UserRepository } from '../users/index.js';
-import type { CandidateRepository } from '../candidates/index.js';
 import type { UsageAnalyticsRepository } from '../analytics/index.js';
-import type { FeedbackRepository } from '../feedback/index.js';
+import type { ArtifactRepository } from '../artifacts/index.js';
 import type { AuditRepository } from '../audit/index.js';
+import type { AccessKeyRepository, SessionRepository } from '../auth/index.js';
+import type { CandidateRepository } from '../candidates/index.js';
 import type { DuplicateRepository } from '../duplicates/index.js';
-import type { LineageRepository } from '../lineage/index.js';
+import type { FeedbackRepository } from '../feedback/index.js';
 import type { GraphIndexRepository } from '../graph-index/index.js';
+import type { KnowledgeRepository } from '../knowledge/index.js';
+import type { LineageRepository } from '../lineage/index.js';
+import type { SkillShareerStore } from '../store.js';
+import type { MembershipRepository, TeamRepository } from '../teams/index.js';
+import type { UserRepository } from '../users/index.js';
 
-import { createKnowledgeRepository } from '../knowledge/index.js';
-import { createArtifactRepository } from '../artifacts/index.js';
-import { createSessionRepository, createAccessKeyRepository } from '../auth/index.js';
-import { createTeamRepository, createMembershipRepository } from '../teams/index.js';
-import { createUserRepository } from '../users/index.js';
-import { createCandidateRepository } from '../candidates/index.js';
 import { createUsageAnalyticsRepository } from '../analytics/index.js';
-import { createFeedbackRepository } from '../feedback/index.js';
+import { createArtifactRepository } from '../artifacts/index.js';
 import { createAuditRepository } from '../audit/index.js';
+import { createAccessKeyRepository, createSessionRepository } from '../auth/index.js';
+import { createCandidateRepository } from '../candidates/index.js';
 import { createDuplicateRepository } from '../duplicates/index.js';
-import { createLineageRepository } from '../lineage/index.js';
+import { createFeedbackRepository } from '../feedback/index.js';
 import { createGraphIndexRepository } from '../graph-index/index.js';
+import { createKnowledgeRepository } from '../knowledge/index.js';
+import { createLineageRepository } from '../lineage/index.js';
+import { createMembershipRepository, createTeamRepository } from '../teams/index.js';
+import { createUserRepository } from '../users/index.js';
 
 /**
  * Unified repository object containing all domain repositories.
@@ -104,8 +104,12 @@ export async function createAllRepos(config: {
  */
 function createInMemoryUsageAnalyticsRepository(): UsageAnalyticsRepository {
   return {
-    async recordEvent() { /* no-op in JSON mode */ },
-    async recordEvents() { /* no-op in JSON mode */ },
+    async recordEvent() {
+      /* no-op in JSON mode */
+    },
+    async recordEvents() {
+      /* no-op in JSON mode */
+    },
     async queryUsageTimeSeries() {
       return [];
     },

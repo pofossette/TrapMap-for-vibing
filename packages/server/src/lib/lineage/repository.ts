@@ -65,16 +65,12 @@ export class InMemoryLineageRepository implements LineageRepository {
 
   async listBySource(sourceType: string, sourceId: string): Promise<EntityLineageRecord[]> {
     const data = await this.store.snapshot();
-    return data.entityLineage.filter(
-      (l) => l.sourceType === sourceType && l.sourceId === sourceId,
-    );
+    return data.entityLineage.filter((l) => l.sourceType === sourceType && l.sourceId === sourceId);
   }
 
   async listByTarget(targetType: string, targetId: string): Promise<EntityLineageRecord[]> {
     const data = await this.store.snapshot();
-    return data.entityLineage.filter(
-      (l) => l.targetType === targetType && l.targetId === targetId,
-    );
+    return data.entityLineage.filter((l) => l.targetType === targetType && l.targetId === targetId);
   }
 
   async listByCandidate(candidateId: string): Promise<EntityLineageRecord[]> {

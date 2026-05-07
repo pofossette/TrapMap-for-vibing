@@ -47,9 +47,6 @@ export const TRANSITIONS: TransitionDefinition[] = [
  * Look up the event name for a lifecycle transition.
  * Returns undefined if the (from, to) pair is not in the table.
  */
-export function findTransitionEvent(
-  from: LifecycleState,
-  to: LifecycleState,
-): string | undefined {
+export function findTransitionEvent(from: LifecycleState, to: LifecycleState): string | undefined {
   return TRANSITIONS.find((t) => t.from === from && t.to === to)?.event;
 }

@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../app.js';
-import type { SkillShareerStore } from '../lib/store.js';
 import {
   buildTestServer,
   seedApprovedKnowledgeEntry,
@@ -12,9 +11,10 @@ import {
 import {
   buildDeployClusterDataset,
   makeMitigatesEdge,
-  makeTrapNode,
   makeSkillNode,
+  makeTrapNode,
 } from '../lib/retrieval/__fixtures__/graph-fixtures.js';
+import type { SkillShareerStore } from '../lib/store.js';
 
 describe('retrieval route', () => {
   let app: FastifyInstance;
@@ -1836,38 +1836,42 @@ describe('retrieval route', () => {
         const json = response.json();
 
         // Low level skill should be present
-        expect(json.matches.find((m: { artifactId: string }) => m.artifactId === 'skill-low-level')).toBeDefined();
+        expect(
+          json.matches.find((m: { artifactId: string }) => m.artifactId === 'skill-low-level'),
+        ).toBeDefined();
 
         // High level skill should be filtered out
-        expect(json.matches.find((m: { artifactId: string }) => m.artifactId === 'skill-high-level')).toBeUndefined();
+        expect(
+          json.matches.find((m: { artifactId: string }) => m.artifactId === 'skill-high-level'),
+        ).toBeUndefined();
 
         await app.close();
       });
 
       it('filters out entries from other teams', async () => {
         const otherTeamId = 'team_other_fixture';
-        const { app, authToken, userId } = await buildTestServer(
-          (data, auth) => {
-            // Seed global entry (accessible)
-            seedApprovedKnowledgeEntry(data, auth.userId, {
-              id: 'knowledge-global',
-              shortcut: 'Global Entry',
-              scope: 'global',
-            });
+        const { app, authToken, userId } = await buildTestServer((data, auth) => {
+          // Seed global entry (accessible)
+          seedApprovedKnowledgeEntry(data, auth.userId, {
+            id: 'knowledge-global',
+            shortcut: 'Global Entry',
+            scope: 'global',
+          });
 
-            // Seed project entry for another team (inaccessible)
-            const entry = seedApprovedKnowledgeEntry(data, auth.userId, {
-              id: 'knowledge-other-team',
-              shortcut: 'Other Team Entry',
-              scope: 'project',
-            });
-            // Manually set teamId after creation
-            const idx = data.knowledgeEntries.findIndex((e: { id: string }) => e.id === 'knowledge-other-team');
-            if (idx >= 0) {
-              data.knowledgeEntries[idx]!.teamId = otherTeamId;
-            }
-          },
-        );
+          // Seed project entry for another team (inaccessible)
+          const entry = seedApprovedKnowledgeEntry(data, auth.userId, {
+            id: 'knowledge-other-team',
+            shortcut: 'Other Team Entry',
+            scope: 'project',
+          });
+          // Manually set teamId after creation
+          const idx = data.knowledgeEntries.findIndex(
+            (e: { id: string }) => e.id === 'knowledge-other-team',
+          );
+          if (idx >= 0) {
+            data.knowledgeEntries[idx]!.teamId = otherTeamId;
+          }
+        });
 
         const response = await app.inject({
           method: 'POST',
@@ -1903,7 +1907,9 @@ describe('retrieval route', () => {
             shortcut: 'Draft Entry',
           });
           // Manually set lifecycleState to draft
-          const idx = data.knowledgeEntries.findIndex((e: { id: string }) => e.id === 'knowledge-draft');
+          const idx = data.knowledgeEntries.findIndex(
+            (e: { id: string }) => e.id === 'knowledge-draft',
+          );
           if (idx >= 0) {
             data.knowledgeEntries[idx]!.lifecycleState = 'draft';
           }
@@ -2061,10 +2067,14 @@ describe('retrieval route', () => {
         const json = response.json();
 
         // Public skill should be present
-        expect(json.matches.find((m: { artifactId: string }) => m.artifactId === 'skill-public')).toBeDefined();
+        expect(
+          json.matches.find((m: { artifactId: string }) => m.artifactId === 'skill-public'),
+        ).toBeDefined();
 
         // Restricted skill should be filtered out
-        expect(json.matches.find((m: { artifactId: string }) => m.artifactId === 'skill-restricted')).toBeUndefined();
+        expect(
+          json.matches.find((m: { artifactId: string }) => m.artifactId === 'skill-restricted'),
+        ).toBeUndefined();
 
         await app.close();
       });

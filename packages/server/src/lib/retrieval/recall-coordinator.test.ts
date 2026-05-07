@@ -185,7 +185,13 @@ function createMockServices(overrides: Partial<SkillShareerServices> = {}): Skil
       transact: vi.fn(),
       nextId: vi.fn(),
     } as unknown as SkillShareerServices['store'],
-    adapterRegistry: { register: vi.fn(), get: vi.fn(), all: vi.fn().mockReturnValue([]), kinds: vi.fn().mockReturnValue([]), has: vi.fn().mockReturnValue(false) } as unknown as SkillShareerServices['adapterRegistry'],
+    adapterRegistry: {
+      register: vi.fn(),
+      get: vi.fn(),
+      all: vi.fn().mockReturnValue([]),
+      kinds: vi.fn().mockReturnValue([]),
+      has: vi.fn().mockReturnValue(false),
+    } as unknown as SkillShareerServices['adapterRegistry'],
     channelRegistry: buildTestChannelRegistry(),
     strategyRegistry: buildTestStrategyRegistry(),
     ai: {
@@ -270,7 +276,14 @@ describe('dispatchByMode', () => {
     const parsed = createParsedQuery();
     vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
 
-    const result = await dispatchByMode('semantic', 'test query', [entry], parsed, strategyRegistry, channelRegistry);
+    const result = await dispatchByMode(
+      'semantic',
+      'test query',
+      [entry],
+      parsed,
+      strategyRegistry,
+      channelRegistry,
+    );
 
     expect(getQueryEmbedding).toHaveBeenCalledWith('test query');
     expect(optimizedSemanticRecall).toHaveBeenCalled();
@@ -282,7 +295,14 @@ describe('dispatchByMode', () => {
     const parsed = createParsedQuery({ mode: 'hybrid' });
     vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
 
-    const result = await dispatchByMode('hybrid', 'test query', [entry], parsed, strategyRegistry, channelRegistry);
+    const result = await dispatchByMode(
+      'hybrid',
+      'test query',
+      [entry],
+      parsed,
+      strategyRegistry,
+      channelRegistry,
+    );
 
     expect(keywordRecall).toHaveBeenCalled();
     expect(result.scoredEntries).toBeDefined();
@@ -293,7 +313,14 @@ describe('dispatchByMode', () => {
     const parsed = createParsedQuery({ mode: 'graph-assisted' });
     vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
 
-    const result = await dispatchByMode('graph-assisted', 'test query', [entry], parsed, strategyRegistry, channelRegistry);
+    const result = await dispatchByMode(
+      'graph-assisted',
+      'test query',
+      [entry],
+      parsed,
+      strategyRegistry,
+      channelRegistry,
+    );
 
     expect(graphRecall).toHaveBeenCalledWith('test query', expect.any(Map));
     expect(result.scoredEntries).toBeDefined();
@@ -303,12 +330,26 @@ describe('dispatchByMode', () => {
     const entry = createMockEntry('entry_1');
     const parsed = createParsedQuery();
 
-    await expect(dispatchByMode('invalid-mode', 'test query', [entry], parsed, strategyRegistry, channelRegistry)).rejects.toThrow(
-      AppError,
-    );
+    await expect(
+      dispatchByMode(
+        'invalid-mode',
+        'test query',
+        [entry],
+        parsed,
+        strategyRegistry,
+        channelRegistry,
+      ),
+    ).rejects.toThrow(AppError);
 
     try {
-      await dispatchByMode('invalid-mode', 'test query', [entry], parsed, strategyRegistry, channelRegistry);
+      await dispatchByMode(
+        'invalid-mode',
+        'test query',
+        [entry],
+        parsed,
+        strategyRegistry,
+        channelRegistry,
+      );
     } catch (error) {
       expect(error).toBeInstanceOf(AppError);
       expect((error as AppError).statusCode).toBe(400);

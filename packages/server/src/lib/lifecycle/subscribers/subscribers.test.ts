@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { DomainEvent } from '../types.js';
 import { AdapterRegistry } from '../../indexing/registry.js';
-import { createIndexingSubscriber } from './indexing.js';
+import type { DomainEvent } from '../types.js';
 import { createAuditSubscriber } from './audit.js';
 import { createConflictSubscriber } from './conflict.js';
+import { createIndexingSubscriber } from './indexing.js';
 
 vi.mock('../../indexing/events.js', () => ({
   runKnowledgeIndexEvent: vi.fn().mockResolvedValue(undefined),
@@ -14,8 +14,8 @@ vi.mock('../../conflict/detect.js', () => ({
   detectConflicts: vi.fn().mockResolvedValue([]),
 }));
 
-import { runKnowledgeIndexEvent } from '../../indexing/events.js';
 import { detectConflicts } from '../../conflict/detect.js';
+import { runKnowledgeIndexEvent } from '../../indexing/events.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -84,9 +84,7 @@ describe('createIndexingSubscriber', () => {
 
     await subscriber(event);
 
-    expect(runKnowledgeIndexEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ registry }),
-    );
+    expect(runKnowledgeIndexEvent).toHaveBeenCalledWith(expect.objectContaining({ registry }));
   });
 });
 
@@ -121,9 +119,7 @@ describe('createConflictSubscriber', () => {
 
     await subscriber(event);
 
-    expect(detectConflicts).toHaveBeenCalledWith(
-      expect.objectContaining({ entryId: 'entry-1' }),
-    );
+    expect(detectConflicts).toHaveBeenCalledWith(expect.objectContaining({ entryId: 'entry-1' }));
   });
 
   it('skips when nextState is not approved', async () => {

@@ -223,12 +223,7 @@ describe('executeTransition', () => {
       capturedPrev = e.previousState;
     });
 
-    executeTransition(
-      entry,
-      'approved',
-      { entryId: 'e1', actorId: 'u1', reason: 'r' },
-      bus,
-    );
+    executeTransition(entry, 'approved', { entryId: 'e1', actorId: 'u1', reason: 'r' }, bus);
     expect(capturedPrev).toBe('agent-pass');
   });
 
@@ -239,12 +234,7 @@ describe('executeTransition', () => {
     bus.onDomainEvent('knowledge.approved', (e) => events.push(e));
 
     expect(() =>
-      executeTransition(
-        entry,
-        'approved',
-        { entryId: 'e1', actorId: 'u1', reason: 'r' },
-        bus,
-      ),
+      executeTransition(entry, 'approved', { entryId: 'e1', actorId: 'u1', reason: 'r' }, bus),
     ).toThrow('Invalid lifecycle transition');
     expect(events).toHaveLength(0);
   });

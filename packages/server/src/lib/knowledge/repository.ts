@@ -113,7 +113,9 @@ export class DualWriteKnowledgeRepository implements KnowledgeRepository {
   async insert(entry: KnowledgeRecord): Promise<void> {
     await this.primary.insert(entry);
     await this.store.transact((data) => {
-      data.knowledgeEntries.push(entry);
+      if (!data.knowledgeEntries.some((e) => e.id === entry.id)) {
+        data.knowledgeEntries.push(entry);
+      }
     });
   }
 
@@ -200,7 +202,9 @@ export class InMemoryKnowledgeRepository implements KnowledgeRepository {
 
   async insert(entry: KnowledgeRecord): Promise<void> {
     await this.store.transact((data) => {
-      data.knowledgeEntries.push(entry);
+      if (!data.knowledgeEntries.some((e) => e.id === entry.id)) {
+        data.knowledgeEntries.push(entry);
+      }
     });
   }
 

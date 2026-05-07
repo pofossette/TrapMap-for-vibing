@@ -5,9 +5,9 @@ import Fastify from 'fastify';
 import { ZodError } from 'zod';
 
 import type { ServerConfig } from './config.js';
-import type { SkillShareerServices } from './lib/context.js';
 import { loadConfig } from './config.js';
 import { createAiProviders } from './lib/ai/index.js';
+import { createUsageAnalyticsRepository } from './lib/analytics/index.js';
 import { createArtifactRepository } from './lib/artifacts/index.js';
 import { createAccessKeyRepository, createSessionRepository } from './lib/auth/index.js';
 import {
@@ -16,28 +16,32 @@ import {
   processPendingCandidates,
   resetInterruptedCandidates,
 } from './lib/candidates/index.js';
+import type { SkillShareerServices } from './lib/context.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
 import { AppError, isAppError } from './lib/errors.js';
-import { LifecycleEventBus } from './lib/lifecycle/event-bus.js';
-import { createIndexingSubscriber } from './lib/lifecycle/subscribers/indexing.js';
-import { createAuditSubscriber } from './lib/lifecycle/subscribers/audit.js';
-import { createConflictSubscriber } from './lib/lifecycle/subscribers/conflict.js';
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
-import { ChannelRegistry } from './lib/retrieval/channel-registry.js';
-import { semanticChannel } from './lib/retrieval/recall/semantic.js';
-import { keywordChannel } from './lib/retrieval/recall/keyword.js';
-import { graphChannel } from './lib/retrieval/recall/graph-assisted.js';
-import { semanticRecall, hybridRecall, graphAssistedRecall } from './lib/retrieval/recall-coordinator.js';
-import type { RetrievalStrategy } from './lib/retrieval/strategy-registry.js';
-import { StrategyRegistry } from './lib/retrieval/strategy-registry.js';
 import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
 import { createKnowledgeRepository } from './lib/knowledge/index.js';
-import { createAllRepos } from './lib/repos/index.js';
+import { LifecycleEventBus } from './lib/lifecycle/event-bus.js';
+import { createAuditSubscriber } from './lib/lifecycle/subscribers/audit.js';
+import { createConflictSubscriber } from './lib/lifecycle/subscribers/conflict.js';
+import { createIndexingSubscriber } from './lib/lifecycle/subscribers/indexing.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';
 import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
+import { createAllRepos } from './lib/repos/index.js';
+import { ChannelRegistry } from './lib/retrieval/channel-registry.js';
 import { ensureVectorIndex } from './lib/retrieval/db-search.js';
-import { createUsageAnalyticsRepository } from './lib/analytics/index.js';
+import {
+  graphAssistedRecall,
+  hybridRecall,
+  semanticRecall,
+} from './lib/retrieval/recall-coordinator.js';
+import { graphChannel } from './lib/retrieval/recall/graph-assisted.js';
+import { keywordChannel } from './lib/retrieval/recall/keyword.js';
+import { semanticChannel } from './lib/retrieval/recall/semantic.js';
+import type { RetrievalStrategy } from './lib/retrieval/strategy-registry.js';
+import { StrategyRegistry } from './lib/retrieval/strategy-registry.js';
 import { createMembershipRepository, createTeamRepository } from './lib/teams/index.js';
 import { createUserRepository } from './lib/users/index.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
@@ -402,10 +406,19 @@ export function buildServer(options: BuildServerOptions = {}) {
 
     // Indexing subscriber: syncs knowledge indexes on state transitions
     eventBus.onDomainEvent('knowledge.approved', createIndexingSubscriber(store, adapterRegistry));
-    eventBus.onDomainEvent('knowledge.deactivated', createIndexingSubscriber(store, adapterRegistry));
-    eventBus.onDomainEvent('knowledge.agent-reviewed', createIndexingSubscriber(store, adapterRegistry));
+    eventBus.onDomainEvent(
+      'knowledge.deactivated',
+      createIndexingSubscriber(store, adapterRegistry),
+    );
+    eventBus.onDomainEvent(
+      'knowledge.agent-reviewed',
+      createIndexingSubscriber(store, adapterRegistry),
+    );
     eventBus.onDomainEvent('knowledge.rejected', createIndexingSubscriber(store, adapterRegistry));
-    eventBus.onDomainEvent('knowledge.resubmitted', createIndexingSubscriber(store, adapterRegistry));
+    eventBus.onDomainEvent(
+      'knowledge.resubmitted',
+      createIndexingSubscriber(store, adapterRegistry),
+    );
     eventBus.onDomainEvent('knowledge.re-review', createIndexingSubscriber(store, adapterRegistry));
 
     // Audit subscriber: logs lifecycle transitions

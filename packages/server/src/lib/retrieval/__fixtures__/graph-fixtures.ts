@@ -8,12 +8,12 @@
 import type { Scope } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../../context.js';
-import { AdapterRegistry } from '../../indexing/registry.js';
 import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
 } from '../../indexing/graph-lite/documents.js';
+import { AdapterRegistry } from '../../indexing/registry.js';
 import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '../../store.js';
 
 // ---------------------------------------------------------------------------
@@ -29,7 +29,11 @@ export function makeGraphNode(
   return { id, kind, label, evidence };
 }
 
-export function makeTrapNode(id: string, label: string, evidence = 'trap evidence'): GraphNodeRecord {
+export function makeTrapNode(
+  id: string,
+  label: string,
+  evidence = 'trap evidence',
+): GraphNodeRecord {
   return { id: `trap:${id}`, kind: 'trap', label, evidence };
 }
 
@@ -260,8 +264,13 @@ export function makeSkillArtifact(
     withClientManifest?: boolean;
   } = {},
 ): SkillArtifactRecord {
-  const { requiredLevel = 0, scope = 'global', teamId = null, title, withClientManifest = false } =
-    options;
+  const {
+    requiredLevel = 0,
+    scope = 'global',
+    teamId = null,
+    title,
+    withClientManifest = false,
+  } = options;
   const fakeHash = 'a'.repeat(64);
 
   const clientManifest = withClientManifest
@@ -430,7 +439,12 @@ export function makeMockServices(storeData: Partial<StoreData> = {}): SkillShare
     membershipRepo: undefined,
     usageAnalyticsRepo: undefined,
     repos: {} as SkillShareerServices['repos'],
-    eventBus: { on: () => ({}), emit: () => false, onDomainEvent: () => ({}), emitDomainEvent: () => {} } as unknown as import('../../lifecycle/event-bus.js').LifecycleEventBus,
+    eventBus: {
+      on: () => ({}),
+      emit: () => false,
+      onDomainEvent: () => ({}),
+      emitDomainEvent: () => {},
+    } as unknown as import('../../lifecycle/event-bus.js').LifecycleEventBus,
   };
 }
 
@@ -473,7 +487,11 @@ export interface DeployClusterDataset {
 export function buildDeployClusterDataset(): DeployClusterDataset {
   // -- Trap nodes (8) --
   const trapNodes: GraphNodeRecord[] = [
-    makeTrapNode('mem-leak-rollback', 'Memory leak during rollback', 'OOM observed during rollback'),
+    makeTrapNode(
+      'mem-leak-rollback',
+      'Memory leak during rollback',
+      'OOM observed during rollback',
+    ),
     makeTrapNode('db-migration-fail', 'Database migration failure', 'Migration v42 failed on prod'),
     makeTrapNode(
       'image-version-mismatch',
@@ -482,9 +500,17 @@ export function buildDeployClusterDataset(): DeployClusterDataset {
     ),
     makeTrapNode('missing-env-var', 'Missing environment variable', 'ENV VAR DB_URL not set'),
     makeTrapNode('ssl-cert-expired', 'SSL certificate expired', 'Cert expired mid-deploy'),
-    makeTrapNode('concurrent-deploy-race', 'Concurrent deployment race condition', 'Two deploys ran in parallel'),
+    makeTrapNode(
+      'concurrent-deploy-race',
+      'Concurrent deployment race condition',
+      'Two deploys ran in parallel',
+    ),
     makeTrapNode('k8s-resource-limit', 'K8s resource limit exceeded', 'Pod OOMKilled by limits'),
-    makeTrapNode('rollback-data-loss', 'Rollback data loss', 'Data written during deploy lost on rollback'),
+    makeTrapNode(
+      'rollback-data-loss',
+      'Rollback data loss',
+      'Data written during deploy lost on rollback',
+    ),
   ];
 
   // -- Skill nodes (10) --

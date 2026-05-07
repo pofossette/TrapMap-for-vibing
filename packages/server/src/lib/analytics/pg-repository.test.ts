@@ -7,8 +7,8 @@
  * Phase: 89 (Usage Analytics & Statistics)
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Pool } from 'pg';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { PgUsageAnalyticsRepository } from './pg-repository.js';
 import type { UsageEventInput } from './repository.js';
@@ -58,10 +58,9 @@ describeIfDb('PgUsageAnalyticsRepository', () => {
 
       await repo.recordEvent(event);
 
-      const result = await testPool.query(
-        'SELECT * FROM usage_events WHERE query_id = $1',
-        ['test_query_1'],
-      );
+      const result = await testPool.query('SELECT * FROM usage_events WHERE query_id = $1', [
+        'test_query_1',
+      ]);
 
       expect(result.rows).toHaveLength(1);
       expect(result.rows[0]!.entry_id).toBe('knowledge_123');
@@ -90,10 +89,9 @@ describeIfDb('PgUsageAnalyticsRepository', () => {
 
       await repo.recordEvents(events);
 
-      const result = await testPool.query(
-        'SELECT * FROM usage_events WHERE query_id = $1',
-        ['test_batch_1'],
-      );
+      const result = await testPool.query('SELECT * FROM usage_events WHERE query_id = $1', [
+        'test_batch_1',
+      ]);
 
       expect(result.rows).toHaveLength(2);
     });
@@ -193,9 +191,9 @@ describeIfDb('PgUsageAnalyticsRepository', () => {
       });
 
       expect(result.length).toBeGreaterThanOrEqual(1);
-      result.forEach((item) => {
+      for (const item of result) {
         expect(item.entryType).toBe('skill');
-      });
+      }
     });
   });
 
@@ -246,10 +244,9 @@ describeIfDb('PgUsageAnalyticsRepository', () => {
       expect(result.archivedCount).toBeGreaterThanOrEqual(1);
 
       // Verify old event is gone
-      const check = await testPool.query(
-        'SELECT * FROM usage_events WHERE id = $1',
-        ['old_event_1'],
-      );
+      const check = await testPool.query('SELECT * FROM usage_events WHERE id = $1', [
+        'old_event_1',
+      ]);
       expect(check.rows).toHaveLength(0);
     });
   });

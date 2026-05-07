@@ -843,8 +843,9 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
     });
 
     it('should fallback to store.transact without repository', async () => {
-      // knowledgeRepo is undefined in test environment (JsonStore)
-      expect(app.skillShareer.knowledgeRepo).toBeUndefined();
+      // In test environment (JsonStore), repos.knowledge is an InMemoryKnowledgeRepository
+      // that wraps the same store — the idempotent insert prevents double-writes
+      expect(app.skillShareer.repos.knowledge).toBeDefined();
 
       // Create knowledge entry
       const response = await app.inject({
@@ -882,8 +883,8 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
         updateGovernance: vi.fn().mockResolvedValue(undefined),
       };
 
-      // Inject mock repository
-      (app.skillShareer as { knowledgeRepo?: KnowledgeRepository }).knowledgeRepo = mockRepo;
+      // Inject mock repository at new repos path
+      (app.skillShareer.repos as { knowledge: KnowledgeRepository }).knowledge = mockRepo;
 
       // Create knowledge entry
       const response = await app.inject({
@@ -922,8 +923,8 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
         updateGovernance: vi.fn().mockResolvedValue(undefined),
       };
 
-      // Inject mock repository
-      (app.skillShareer as { knowledgeRepo?: KnowledgeRepository }).knowledgeRepo = mockRepo;
+      // Inject mock repository at new repos path
+      (app.skillShareer.repos as { knowledge: KnowledgeRepository }).knowledge = mockRepo;
 
       // Create an approved knowledge entry first
       const entryId = 'knowledge_456';
@@ -985,13 +986,11 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
 
       expect(response.statusCode).toBe(200);
 
-      // Verify repository was called for governance update
-      expect(mockRepo.updateGovernance).toHaveBeenCalledWith(
-        entryId,
-        expect.objectContaining({
-          labels: ['test', 'updated'],
-        }),
-      );
+      // PATCH now updates governance directly via store.transact (no repo.updateGovernance call)
+      // Verify the entry was updated in the store
+      const data = await store.snapshot();
+      const updated = data.knowledgeEntries.find((e) => e.id === entryId);
+      expect(updated?.labels).toEqual(['test', 'updated']);
     });
   });
 });

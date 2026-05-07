@@ -53,7 +53,7 @@ function createMockPool() {
       }
 
       // DELETE completed
-      if (sql.includes("DELETE FROM") && sql.includes("status = 'completed'")) {
+      if (sql.includes('DELETE FROM') && sql.includes("status = 'completed'")) {
         let deleted = 0;
         for (const [id, row] of rows) {
           if (row.status === 'completed') {
@@ -67,9 +67,7 @@ function createMockPool() {
       // SELECT * ... WHERE status = $1 ... LIMIT $2 (getDeadTasks)
       if (sql.includes('status = $1') && sql.includes('ORDER BY') && params?.[0] === 'dead') {
         const limit = (params?.[1] as number) ?? 100;
-        const deadRows = [...rows.values()]
-          .filter((r) => r.status === 'dead')
-          .slice(0, limit);
+        const deadRows = [...rows.values()].filter((r) => r.status === 'dead').slice(0, limit);
         return { rows: deadRows, rowCount: deadRows.length };
       }
 

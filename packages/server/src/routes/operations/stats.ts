@@ -43,9 +43,8 @@ export const statsRoutes: FastifyPluginAsync = async (app) => {
     const query = statsUsageQuerySchema.parse(request.query as Record<string, unknown>);
 
     // Non-system-admin can only see their own team's data
-    const resolvedTeamId = auth.subjectType === 'system-admin'
-      ? query.teamId
-      : auth.activeTeamId ?? undefined;
+    const resolvedTeamId =
+      auth.subjectType === 'system-admin' ? query.teamId : (auth.activeTeamId ?? undefined);
 
     const result = await repo.queryUsageTimeSeries({
       ...(resolvedTeamId !== undefined && { teamId: resolvedTeamId }),
@@ -76,9 +75,8 @@ export const statsRoutes: FastifyPluginAsync = async (app) => {
     const query = statsHitRankingQuerySchema.parse(request.query as Record<string, unknown>);
 
     // Non-system-admin can only see their own team's data
-    const resolvedTeamId = auth.subjectType === 'system-admin'
-      ? query.teamId
-      : auth.activeTeamId ?? undefined;
+    const resolvedTeamId =
+      auth.subjectType === 'system-admin' ? query.teamId : (auth.activeTeamId ?? undefined);
 
     const result = await repo.queryHitRanking({
       ...(resolvedTeamId !== undefined && { teamId: resolvedTeamId }),

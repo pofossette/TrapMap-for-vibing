@@ -336,7 +336,11 @@ export const semanticChannel: RecallChannel = {
   name: 'semantic',
   async recall(queryText: string, entries: KnowledgeRecord[]) {
     const queryVector = await getQueryEmbedding(queryText);
-    const { scoredEntries } = await optimizedSemanticRecall(queryVector, entries, undefined as unknown as RetrievalQuery['filters']);
+    const { scoredEntries } = await optimizedSemanticRecall(
+      queryVector,
+      entries,
+      undefined as unknown as RetrievalQuery['filters'],
+    );
     return scoredEntries.map(({ entry, score }) => ({
       entry,
       channel: 'semantic' as const,

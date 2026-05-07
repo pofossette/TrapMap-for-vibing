@@ -12,10 +12,7 @@ import type { Pool } from 'pg';
 
 import type { StatsEntryType, StatsGranularity } from '@trapmap/contracts';
 
-import type {
-  UsageAnalyticsRepository,
-  UsageEventInput,
-} from './repository.js';
+import type { UsageAnalyticsRepository, UsageEventInput } from './repository.js';
 
 /**
  * PostgreSQL-backed repository for usage analytics operations.
@@ -98,7 +95,9 @@ export class PgUsageAnalyticsRepository implements UsageAnalyticsRepository {
 
     events.forEach((event, i) => {
       const base = i * 8;
-      values.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8})`);
+      values.push(
+        `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8})`,
+      );
       params.push(
         randomUUID(),
         event.queryId,
@@ -157,7 +156,7 @@ export class PgUsageAnalyticsRepository implements UsageAnalyticsRepository {
 
     return result.rows.map((row) => ({
       period: row.period.toISOString(),
-      count: parseInt(row.count, 10),
+      count: Number.parseInt(row.count, 10),
     }));
   }
 
@@ -207,7 +206,7 @@ export class PgUsageAnalyticsRepository implements UsageAnalyticsRepository {
     return result.rows.map((row) => ({
       entryId: row.entry_id,
       entryType: row.entry_type,
-      count: parseInt(row.count, 10),
+      count: Number.parseInt(row.count, 10),
     }));
   }
 
@@ -255,10 +254,10 @@ export class PgUsageAnalyticsRepository implements UsageAnalyticsRepository {
 
     const row = result.rows[0]!;
     return {
-      totalEvents: parseInt(row.total_events, 10),
-      uniqueQueries: parseInt(row.unique_queries, 10),
-      uniqueTeams: parseInt(row.unique_teams, 10),
-      uniqueAccounts: parseInt(row.unique_accounts, 10),
+      totalEvents: Number.parseInt(row.total_events, 10),
+      uniqueQueries: Number.parseInt(row.unique_queries, 10),
+      uniqueTeams: Number.parseInt(row.unique_teams, 10),
+      uniqueAccounts: Number.parseInt(row.unique_accounts, 10),
     };
   }
 
@@ -276,7 +275,7 @@ export class PgUsageAnalyticsRepository implements UsageAnalyticsRepository {
     );
 
     return {
-      archivedCount: parseInt(result.rows[0]!.count, 10),
+      archivedCount: Number.parseInt(result.rows[0]!.count, 10),
     };
   }
 }

@@ -1,8 +1,8 @@
 import type {
-  GraphPlanSearchResponse,
-  PlanTrapNode,
-  PlanSkillNode,
   GraphPlanRoutingTrace,
+  GraphPlanSearchResponse,
+  PlanSkillNode,
+  PlanTrapNode,
 } from '@trapmap/contracts';
 
 /** Configuration for markdown formatting */
@@ -40,7 +40,7 @@ export function escapeMarkdown(text: string): string {
  */
 export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength - 3) + '...';
+  return `${text.slice(0, maxLength - 3)}...`;
 }
 
 /**
@@ -75,15 +75,15 @@ function formatSkillNode(skill: PlanSkillNode, maxLen: number): string {
   // Add activation references if present
   const refs = skill.activationRefs;
   if (refs.references.length > 0) {
-    const refPaths = refs.references.map(r => `\`${r.path}\``).join(', ');
+    const refPaths = refs.references.map((r) => `\`${r.path}\``).join(', ');
     lines.push(`- References: ${refPaths}`);
   }
   if (refs.assets.length > 0) {
-    const assetPaths = refs.assets.map(a => `\`${a.path}\``).join(', ');
+    const assetPaths = refs.assets.map((a) => `\`${a.path}\``).join(', ');
     lines.push(`- Assets: ${assetPaths}`);
   }
   if (refs.scripts.length > 0) {
-    const scriptInfo = refs.scripts.map(s => `\`${s.path}\` (${s.defaultPolicy})`).join(', ');
+    const scriptInfo = refs.scripts.map((s) => `\`${s.path}\` (${s.defaultPolicy})`).join(', ');
     lines.push(`- Scripts: ${scriptInfo}`);
   }
 
@@ -169,7 +169,9 @@ export function formatLoadContext(
     sections.push('');
     sections.push('### Blocking Traps');
     const traps = response.plan.blockingTraps.slice(0, opts.maxTraps);
-    sections.push(traps.map((t, i) => `${i + 1}. ${formatTrapNode(t, opts.maxContentLength)}`).join('\n\n'));
+    sections.push(
+      traps.map((t, i) => `${i + 1}. ${formatTrapNode(t, opts.maxContentLength)}`).join('\n\n'),
+    );
     if (response.plan.blockingTraps.length > opts.maxTraps) {
       sections.push(`_...and ${response.plan.blockingTraps.length - opts.maxTraps} more traps_`);
     }
@@ -180,9 +182,13 @@ export function formatLoadContext(
     sections.push('');
     sections.push('### Recommended Skills');
     const skills = response.plan.recommendedSkills.slice(0, opts.maxSkills);
-    sections.push(skills.map((s, i) => `${i + 1}. ${formatSkillNode(s, opts.maxContentLength)}`).join('\n\n'));
+    sections.push(
+      skills.map((s, i) => `${i + 1}. ${formatSkillNode(s, opts.maxContentLength)}`).join('\n\n'),
+    );
     if (response.plan.recommendedSkills.length > opts.maxSkills) {
-      sections.push(`_...and ${response.plan.recommendedSkills.length - opts.maxSkills} more skills_`);
+      sections.push(
+        `_...and ${response.plan.recommendedSkills.length - opts.maxSkills} more skills_`,
+      );
     }
   }
 
@@ -195,7 +201,9 @@ export function formatLoadContext(
     sections.push('');
     if (response.fallback.routeFamily === 'capsule') {
       sections.push('### Capsules (from fallback)');
-      sections.push(formatCapsuleFallback(response.fallback, opts.maxContentLength, opts.maxSkills));
+      sections.push(
+        formatCapsuleFallback(response.fallback, opts.maxContentLength, opts.maxSkills),
+      );
     } else {
       sections.push('### Entries (from fallback)');
       sections.push('_Entry fallback rendering not implemented yet._');

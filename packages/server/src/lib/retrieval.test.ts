@@ -11,7 +11,6 @@ import { ChannelRegistry } from './retrieval/channel-registry.js';
 import { StrategyRegistry } from './retrieval/strategy-registry.js';
 import type { RetrievalStrategy } from './retrieval/strategy-registry.js';
 
-
 describe('retrieval', () => {
   let mockStore: SkillShareerStore;
   let mockServices: SkillShareerServices;
@@ -33,7 +32,13 @@ describe('retrieval', () => {
         },
       } as any,
       store: mockStore,
-      adapterRegistry: { register: () => {}, get: () => undefined, all: () => [], kinds: () => [], has: () => false } as any,
+      adapterRegistry: {
+        register: () => {},
+        get: () => undefined,
+        all: () => [],
+        kinds: () => [],
+        has: () => false,
+      } as any,
       channelRegistry: new ChannelRegistry(),
       strategyRegistry: (() => {
         const sr = new StrategyRegistry();

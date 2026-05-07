@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { DomainEvent } from './types.js';
 import { LifecycleEventBus } from './event-bus.js';
+import type { DomainEvent } from './types.js';
 
 function makeEvent(overrides?: Partial<DomainEvent>): DomainEvent {
   return {
@@ -56,9 +56,15 @@ describe('LifecycleEventBus', () => {
     it('executes handlers in registration order', () => {
       const bus = new LifecycleEventBus();
       const order: number[] = [];
-      bus.onDomainEvent('knowledge.approved', () => { order.push(1); });
-      bus.onDomainEvent('knowledge.approved', () => { order.push(2); });
-      bus.onDomainEvent('knowledge.approved', () => { order.push(3); });
+      bus.onDomainEvent('knowledge.approved', () => {
+        order.push(1);
+      });
+      bus.onDomainEvent('knowledge.approved', () => {
+        order.push(2);
+      });
+      bus.onDomainEvent('knowledge.approved', () => {
+        order.push(3);
+      });
 
       bus.emitDomainEvent(makeEvent());
 

@@ -1,15 +1,18 @@
+import type { RetrievalQuery } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import type { KnowledgeRecord } from '../store.js';
-import type { RetrievalQuery } from '@trapmap/contracts';
 import type { ChannelRegistry } from './channel-registry.js';
+import { type RetrievalStrategy, StrategyRegistry } from './strategy-registry.js';
 import type { MergedCandidate, ScoredEntry } from './types.js';
-import { StrategyRegistry, type RetrievalStrategy } from './strategy-registry.js';
 
 function makeMockStrategy(version: string): RetrievalStrategy {
   return {
     version,
     execute: vi.fn(
-      async (): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates?: MergedCandidate[] }> => ({
+      async (): Promise<{
+        scoredEntries: ScoredEntry[];
+        mergedCandidates?: MergedCandidate[];
+      }> => ({
         scoredEntries: [],
       }),
     ),

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AdapterRegistry } from './registry.js';
-import type { IndexAdapter, NormalizedIndexDocument, IndexSyncResult } from './types.js';
+import type { IndexAdapter, IndexSyncResult, NormalizedIndexDocument } from './types.js';
 
 function createMockAdapter(kind: string): IndexAdapter {
   return {

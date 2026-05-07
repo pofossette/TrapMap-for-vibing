@@ -171,8 +171,13 @@ function makeSkillArtifact(
     title?: string;
   } = {},
 ): SkillArtifactRecord {
-  const { requiredLevel = 0, scope = 'global', teamId = null, withClientManifest = false, title } =
-    options;
+  const {
+    requiredLevel = 0,
+    scope = 'global',
+    teamId = null,
+    withClientManifest = false,
+    title,
+  } = options;
   const fakeHash = 'a'.repeat(64);
 
   const clientManifest = withClientManifest
@@ -312,8 +317,8 @@ function makeMockServices(storeData: Partial<StoreData> = {}): SkillShareerServi
       nextId: () => 'test_id',
     } as any,
     adapterRegistry: {} as any,
-      channelRegistry: {} as any,
-      strategyRegistry: {} as any,
+    channelRegistry: {} as any,
+    strategyRegistry: {} as any,
     ai: {
       embeddings: {
         provider: 'fallback',
@@ -830,9 +835,7 @@ describe('plan-compiler', () => {
       const result = await compileTrapFirstPlan(services, auth, query);
 
       // level 8 trap should be excluded
-      expect(
-        result.blockingTraps.find((t) => t.nodeId === 'trap:trap-gov-8'),
-      ).toBeUndefined();
+      expect(result.blockingTraps.find((t) => t.nodeId === 'trap:trap-gov-8')).toBeUndefined();
 
       // levels 0, 3, 5 should be included
       expect(result.blockingTraps.find((t) => t.nodeId === 'trap:trap-gov-0')).toBeDefined();

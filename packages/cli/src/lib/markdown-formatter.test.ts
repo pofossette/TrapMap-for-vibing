@@ -1,6 +1,6 @@
+import type { GraphPlanSearchResponse, PlanSkillNode, PlanTrapNode } from '@trapmap/contracts';
 import { describe, expect, it } from 'vitest';
-import type { GraphPlanSearchResponse, PlanTrapNode, PlanSkillNode } from '@trapmap/contracts';
-import { escapeMarkdown, truncateText, formatLoadContext } from './markdown-formatter.js';
+import { escapeMarkdown, formatLoadContext, truncateText } from './markdown-formatter.js';
 
 describe('escapeMarkdown', () => {
   it('escapes backticks', () => {
@@ -74,7 +74,11 @@ describe('formatLoadContext', () => {
         recommendedSkills: [],
         edges: [],
         citations: [],
-        graph: { nodes: [], edges: [], focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] } },
+        graph: {
+          nodes: [],
+          edges: [],
+          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
+        },
       },
       fallback: null,
     };
@@ -95,7 +99,11 @@ describe('formatLoadContext', () => {
       scope: 'project',
       requiredLevel: 1,
       score: 0.85,
-      activationRefs: { references: [{ path: 'ref/guide.md', sha256: 'abc', sizeBytes: 100 }], assets: [], scripts: [] },
+      activationRefs: {
+        references: [{ path: 'ref/guide.md', sha256: 'abc', sizeBytes: 100 }],
+        assets: [],
+        scripts: [],
+      },
     };
     const response: GraphPlanSearchResponse = {
       routingTrace: mockTrace,
@@ -104,7 +112,11 @@ describe('formatLoadContext', () => {
         recommendedSkills: [skill],
         edges: [],
         citations: [],
-        graph: { nodes: [], edges: [], focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] } },
+        graph: {
+          nodes: [],
+          edges: [],
+          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
+        },
       },
       fallback: null,
     };
@@ -144,7 +156,11 @@ describe('formatLoadContext', () => {
         recommendedSkills: [skill],
         edges: [],
         citations: [],
-        graph: { nodes: [], edges: [], focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] } },
+        graph: {
+          nodes: [],
+          edges: [],
+          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
+        },
       },
       fallback: null,
     };
@@ -184,7 +200,11 @@ describe('formatLoadContext', () => {
         recommendedSkills: [],
         edges: [],
         citations: [],
-        graph: { nodes: [], edges: [], focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] } },
+        graph: {
+          nodes: [],
+          edges: [],
+          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
+        },
       },
       fallback: null,
     };
@@ -216,7 +236,11 @@ describe('formatLoadContext', () => {
         recommendedSkills: [skill],
         edges: [],
         citations: [],
-        graph: { nodes: [], edges: [], focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] } },
+        graph: {
+          nodes: [],
+          edges: [],
+          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
+        },
       },
       fallback: null,
     };
@@ -233,21 +257,23 @@ describe('formatLoadContext', () => {
       fallback: {
         routeFamily: 'capsule',
         response: {
-          capsules: [{
-            capsuleId: 'cap-1',
-            artifactId: 'art-1',
-            revision: 1,
-            sourcePaths: ['src/main.ts'],
-            content: 'Deploy config capsule',
-            situation: 'CI pipeline setup',
-            problem: 'Manual deployment',
-            goal: 'Automated deployment',
-            labels: ['backend'],
-            scope: 'project',
-            requiredLevel: 1,
-            score: 0.8,
-            reason: 'semantic match',
-          }],
+          capsules: [
+            {
+              capsuleId: 'cap-1',
+              artifactId: 'art-1',
+              revision: 1,
+              sourcePaths: ['src/main.ts'],
+              content: 'Deploy config capsule',
+              situation: 'CI pipeline setup',
+              problem: 'Manual deployment',
+              goal: 'Automated deployment',
+              labels: ['backend'],
+              scope: 'project',
+              requiredLevel: 1,
+              score: 0.8,
+              reason: 'semantic match',
+            },
+          ],
           profileHints: [],
           activationHints: [],
           refinementSummary: null,
@@ -271,26 +297,32 @@ describe('formatLoadContext', () => {
         recommendedSkills: [],
         edges: [],
         citations: [],
-        graph: { nodes: [], edges: [], focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] } },
+        graph: {
+          nodes: [],
+          edges: [],
+          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
+        },
       },
       fallback: {
         routeFamily: 'capsule',
         response: {
-          capsules: [{
-            capsuleId: 'cap-2',
-            artifactId: 'art-2',
-            revision: 1,
-            sourcePaths: ['README.md'],
-            content: 'General guidance',
-            situation: 'New project setup',
-            problem: 'No conventions',
-            goal: 'Establish patterns',
-            labels: ['general'],
-            scope: 'global',
-            requiredLevel: 0,
-            score: 0.6,
-            reason: 'keyword match',
-          }],
+          capsules: [
+            {
+              capsuleId: 'cap-2',
+              artifactId: 'art-2',
+              revision: 1,
+              sourcePaths: ['README.md'],
+              content: 'General guidance',
+              situation: 'New project setup',
+              problem: 'No conventions',
+              goal: 'Establish patterns',
+              labels: ['general'],
+              scope: 'global',
+              requiredLevel: 0,
+              score: 0.6,
+              reason: 'keyword match',
+            },
+          ],
           profileHints: [],
           activationHints: [],
           refinementSummary: null,
@@ -364,7 +396,11 @@ describe('formatLoadContext', () => {
         recommendedSkills: [skill],
         edges: [],
         citations: [],
-        graph: { nodes: [], edges: [], focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] } },
+        graph: {
+          nodes: [],
+          edges: [],
+          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
+        },
       },
       fallback: null,
     };

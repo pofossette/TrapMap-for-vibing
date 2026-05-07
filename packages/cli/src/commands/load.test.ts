@@ -137,10 +137,9 @@ describe('CLI load command', () => {
     const program = new Command();
     registerLoadCommand(program, { allowSearch: true });
 
-    await program.parseAsync(
-      ['load', 'test seed', '--skill-budget', '5', '--max-depth', '3'],
-      { from: 'user' },
-    );
+    await program.parseAsync(['load', 'test seed', '--skill-budget', '5', '--max-depth', '3'], {
+      from: 'user',
+    });
 
     expect(http.apiRequest).toHaveBeenCalledWith(
       expect.anything(),
@@ -228,7 +227,11 @@ describe('CLI load command — integration with real formatter', () => {
       recommendedSkills: [],
       edges: [],
       citations: [],
-      graph: { nodes: [], edges: [], focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] } },
+      graph: {
+        nodes: [],
+        edges: [],
+        focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
+      },
     },
     fallback: null,
   };

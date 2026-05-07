@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../../app.js';
-import type { SkillShareerStore } from '../../lib/store.js';
-import { hashSecret, nowIso } from '../../lib/store.js';
 import {
   buildTestServer,
   seedApprovedSkillArtifact,
 } from '../../lib/retrieval/__fixtures__/auth-store-helpers.js';
+import type { SkillShareerStore } from '../../lib/store.js';
+import { hashSecret, nowIso } from '../../lib/store.js';
 
 describe('operations routes', () => {
   let app: FastifyInstance;

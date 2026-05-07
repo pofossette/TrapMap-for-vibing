@@ -9,76 +9,59 @@
  * Phase: 87 (Type & State Machine Centralization)
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // Import all types from the unified entry point
 import type {
-  // Store record types
-  UserRecord,
-  TeamRecord,
-  MembershipRecord,
   AccessKeyRecord,
-  SessionRecord,
   AuditEventRecord,
-  KnowledgeRecord,
-  KnowledgeRevisionRecord,
-  KnowledgeSubmissionRecord,
-  SkillArtifactRecord,
-  SkillArtifactRevisionRecord,
   CandidateSubmissionRecord,
   DuplicateCaseRecord,
   EntityLineageRecord,
   FeedbackQueueRecord,
-  StoreData,
+  KnowledgeRecord,
+  KnowledgeRevisionRecord,
+  KnowledgeSubmissionRecord,
+  MembershipRecord,
+  SessionRecord,
+  SkillArtifactRecord,
+  SkillArtifactRevisionRecord,
   SkillShareerStore,
+  StoreData,
+  TeamRecord,
+  // Store record types
+  UserRecord,
 } from '../types.js';
 
 // Import state machine functions
 import {
   computeDecayState,
-  isTerminalDecayState,
-  isValidTransition,
   getValidTransitions,
+  isTerminalDecayState,
   isTerminalState,
+  isValidTransition,
 } from '../types.js';
 
 // Import utility functions
-import {
-  nowIso,
-  hashSecret,
-  createOpaqueToken,
-  createSlug,
-} from '../types.js';
+import { createOpaqueToken, createSlug, hashSecret, nowIso } from '../types.js';
 
 // Import JsonStore class
 import { JsonStore } from '../types.js';
 
 // Import sub-module types
-import type {
-  EmbeddingsProvider,
-  ChatProvider,
-} from '../types.js';
+import type { ChatProvider, EmbeddingsProvider } from '../types.js';
+
+import type { GovernanceContext, GovernedEntity } from '../types.js';
 
 import type {
-  GovernanceContext,
-  GovernedEntity,
-} from '../types.js';
-
-import type {
-  NormalizedIndexDocument,
   AdapterSyncState,
   KnowledgeIndexStateRecord,
+  NormalizedIndexDocument,
 } from '../types.js';
 
-import type {
-  RecallCandidate,
-  MergedCandidate,
-} from '../types.js';
+import type { MergedCandidate, RecallCandidate } from '../types.js';
 
-import type {
-  CandidateFingerprintInput,
-  DuplicateDetectionInput,
-} from '../types.js';
+import type { CandidateFingerprintInput, DuplicateDetectionInput } from '../types.js';
 
 import type { ResolvedAuthContext } from '../types.js';
 

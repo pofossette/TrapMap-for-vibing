@@ -1,6 +1,6 @@
 import type { LifecycleState } from '@trapmap/contracts';
-import type { AdapterRegistry } from '../../indexing/registry.js';
 import { runKnowledgeIndexEvent } from '../../indexing/events.js';
+import type { AdapterRegistry } from '../../indexing/registry.js';
 import type { SkillShareerStore } from '../../store.js';
 import type { DomainEventHandler } from '../types.js';
 

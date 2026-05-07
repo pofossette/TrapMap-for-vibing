@@ -152,7 +152,6 @@ import { selectRetrievalStrategy, selectRetrievalStrategyV2 } from '../retrieval
 import { ChannelRegistry } from '../retrieval/channel-registry.js';
 import { StrategyRegistry } from '../retrieval/strategy-registry.js';
 
-
 function makeAuth(overrides: Partial<ResolvedAuthContext> = {}): ResolvedAuthContext {
   return {
     subjectType: 'user',
@@ -244,7 +243,13 @@ function makeServices(overrides: Partial<SkillShareerServices> = {}): SkillShare
       transact: vi.fn(),
       nextId: vi.fn(),
     } as unknown as SkillShareerServices['store'],
-    adapterRegistry: { register: () => {}, get: () => undefined, all: () => [], kinds: () => [], has: () => false } as any,
+    adapterRegistry: {
+      register: () => {},
+      get: () => undefined,
+      all: () => [],
+      kinds: () => [],
+      has: () => false,
+    } as any,
     channelRegistry: new ChannelRegistry(),
     strategyRegistry: (() => {
       const sr = new StrategyRegistry();

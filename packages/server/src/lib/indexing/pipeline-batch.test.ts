@@ -151,7 +151,9 @@ describe('Phase 73: reconcileKnowledgeIndexes batch processing', () => {
 
     const { adapter, syncedEntryIds } = trackingAdapter();
 
-    const result = await reconcileKnowledgeIndexes({ store }, toRegistry([adapter]), { batchSize: 2 });
+    const result = await reconcileKnowledgeIndexes({ store }, toRegistry([adapter]), {
+      batchSize: 2,
+    });
 
     // All 5 entries must have been synced
     expect(result.totalEntries).toBe(5);

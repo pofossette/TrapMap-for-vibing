@@ -39,20 +39,16 @@ describe('Phase 75: TypeScript strict mode configuration', () => {
 // ── Gap 2: typecheck passes with 0 errors ────────────────────────────────
 
 describe('Phase 75: typecheck produces zero errors', () => {
-  it(
-    'pnpm typecheck exits with code 0 (no type errors)',
-    { timeout: 130_000 },
-    () => {
-      // Run typecheck from project root; should succeed silently
-      const result = execSync('pnpm typecheck', {
-        cwd: ROOT_DIR,
-        encoding: 'utf-8',
-        timeout: 120_000,
-      });
-      // If we get here, typecheck succeeded (exit 0)
-      expect(result).toBeDefined();
-    },
-  );
+  it('pnpm typecheck exits with code 0 (no type errors)', { timeout: 130_000 }, () => {
+    // Run typecheck from project root; should succeed silently
+    const result = execSync('pnpm typecheck', {
+      cwd: ROOT_DIR,
+      encoding: 'utf-8',
+      timeout: 120_000,
+    });
+    // If we get here, typecheck succeeded (exit 0)
+    expect(result).toBeDefined();
+  });
 });
 
 // ── Gap 4: previously-fixed type errors don't regress ────────────────────

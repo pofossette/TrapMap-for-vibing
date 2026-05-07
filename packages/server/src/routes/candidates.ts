@@ -215,12 +215,20 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
     const query = request.query as { status?: string };
     const { candidate: candidateRepo } = app.skillShareer.repos;
 
-    let items;
+    let items: Awaited<ReturnType<typeof candidateRepo.listByStatus>>;
     if (query.status) {
       items = await candidateRepo.listByStatus(query.status as any);
     } else {
       // List all candidates - use listByStatus for each known status
-      const allStatuses = ['received', 'queued', 'analyzing', 'ready_for_review', 'duplicate_detected', 'error', 'resolved'] as const;
+      const allStatuses = [
+        'received',
+        'queued',
+        'analyzing',
+        'ready_for_review',
+        'duplicate_detected',
+        'error',
+        'resolved',
+      ] as const;
       const results = await Promise.all(
         allStatuses.map((s) => candidateRepo.listByStatus(s as any)),
       );

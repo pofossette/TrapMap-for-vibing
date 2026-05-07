@@ -170,26 +170,20 @@ describe('createPgVectorAdapter', () => {
         featureFlag: () => false,
       });
 
-      await expect(
-        adapter.remove({ entryId: 'entry_1', revision: 1 }),
-      ).resolves.toBeUndefined();
+      await expect(adapter.remove({ entryId: 'entry_1', revision: 1 })).resolves.toBeUndefined();
     });
 
     it('calls delete with correct filters', async () => {
       const adapter = createPgVectorAdapter({ pool: {} as any });
 
-      await expect(
-        adapter.remove({ entryId: 'entry_1', revision: 1 }),
-      ).resolves.toBeUndefined();
+      await expect(adapter.remove({ entryId: 'entry_1', revision: 1 })).resolves.toBeUndefined();
     });
 
     it('is idempotent - calling remove twice does not error', async () => {
       const adapter = createPgVectorAdapter({ pool: {} as any });
 
       await adapter.remove({ entryId: 'entry_1', revision: 1 });
-      await expect(
-        adapter.remove({ entryId: 'entry_1', revision: 1 }),
-      ).resolves.toBeUndefined();
+      await expect(adapter.remove({ entryId: 'entry_1', revision: 1 })).resolves.toBeUndefined();
     });
   });
 });

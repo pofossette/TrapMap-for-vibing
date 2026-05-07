@@ -107,11 +107,7 @@ describe('InMemoryDuplicateRepository', () => {
 
     const results = await repo.listAll();
     expect(results).toHaveLength(3);
-    expect(results.map((d) => d.id).sort()).toEqual([
-      'dup_case_1',
-      'dup_case_2',
-      'dup_case_3',
-    ]);
+    expect(results.map((d) => d.id).sort()).toEqual(['dup_case_1', 'dup_case_2', 'dup_case_3']);
   });
 
   it('update() modifies case fields', async () => {

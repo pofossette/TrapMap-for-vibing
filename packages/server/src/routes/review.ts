@@ -4,8 +4,8 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent } from '../lib/audit.js';
 import { AppError } from '../lib/errors.js';
-import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
 import { applyReviewDecision, toKnowledgeEntry } from '../lib/knowledge.js';
+import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
@@ -45,9 +45,7 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
 
         const lastDecisionUserId = entry.reviewHistory.at(-1)?.decidedByUserId ?? owner.id;
         const lastDecisionUser =
-          lastDecisionUserId === owner.id
-            ? owner
-            : await userRepo.getById(lastDecisionUserId);
+          lastDecisionUserId === owner.id ? owner : await userRepo.getById(lastDecisionUserId);
 
         return {
           entry: toKnowledgeEntry(data, entry),

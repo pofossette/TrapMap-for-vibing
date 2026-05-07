@@ -30,7 +30,6 @@ import { createAllRepos } from './repos/index.js';
 import { ChannelRegistry } from './retrieval/channel-registry.js';
 import { StrategyRegistry } from './retrieval/strategy-registry.js';
 
-
 describe('session.ts repository operations', () => {
   let app: FastifyInstance;
   let store: SkillShareerStore;
@@ -288,13 +287,34 @@ describe('session.ts repository-based auth context resolution', () => {
     return {
       config: app.skillShareer.config,
       store,
-      adapterRegistry: { register: () => {}, get: () => undefined, all: () => [], kinds: () => [], has: () => false } as any,
+      adapterRegistry: {
+        register: () => {},
+        get: () => undefined,
+        all: () => [],
+        kinds: () => [],
+        has: () => false,
+      } as any,
       channelRegistry: new ChannelRegistry(),
       strategyRegistry: (() => {
         const sr = new StrategyRegistry();
-        sr.register({ version: 'semantic', async execute(q, _ch, entries) { return { scoredEntries: entries.map(e => ({ entry: e, score: 0.5 })) }; } });
-        sr.register({ version: 'hybrid', async execute(q, _ch, entries) { return { scoredEntries: entries.map(e => ({ entry: e, score: 0.5 })) }; } });
-        sr.register({ version: 'graph-assisted', async execute(q, _ch, entries) { return { scoredEntries: entries.map(e => ({ entry: e, score: 0.5 })) }; } });
+        sr.register({
+          version: 'semantic',
+          async execute(q, _ch, entries) {
+            return { scoredEntries: entries.map((e) => ({ entry: e, score: 0.5 })) };
+          },
+        });
+        sr.register({
+          version: 'hybrid',
+          async execute(q, _ch, entries) {
+            return { scoredEntries: entries.map((e) => ({ entry: e, score: 0.5 })) };
+          },
+        });
+        sr.register({
+          version: 'graph-assisted',
+          async execute(q, _ch, entries) {
+            return { scoredEntries: entries.map((e) => ({ entry: e, score: 0.5 })) };
+          },
+        });
         return sr;
       })(),
       ai: app.skillShareer.ai,
@@ -451,7 +471,6 @@ describe('session.ts repository-based auth context resolution', () => {
 
       await expect(resolveAuthContext(services, mockRequest)).rejects.toThrow('Session not found');
     });
-
   });
 
   describe('getSessionResponse with repositories', () => {
@@ -516,7 +535,6 @@ describe('session.ts repository-based auth context resolution', () => {
       expect(response.member.isSystem).toBe(true);
       expect(response.activeTeam).toBeNull();
     });
-
   });
 
   describe('getSessionStatus with repositories', () => {
@@ -591,6 +609,5 @@ describe('session.ts repository-based auth context resolution', () => {
 
       expect(status).toBeNull();
     });
-
   });
 });

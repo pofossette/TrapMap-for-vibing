@@ -324,8 +324,8 @@ function createMockServices(overrides: Partial<SkillShareerServices> = {}): Skil
       nextId: vi.fn(),
     } as unknown as SkillShareerServices['store'],
     adapterRegistry: {} as any,
-      channelRegistry: {} as any,
-      strategyRegistry: {} as any,
+    channelRegistry: {} as any,
+    strategyRegistry: {} as any,
     ai: {
       embeddings: { isConfigured: false, embed: vi.fn() },
       chat: { isConfigured: false, invoke: vi.fn() },

@@ -88,7 +88,10 @@ export async function dispatchByMode(
     throw new AppError(
       400,
       'invalid_mode',
-      `Invalid query mode: ${mode}. Must be one of: ${strategyRegistry.all().map(s => s.version).join(', ')}`,
+      `Invalid query mode: ${mode}. Must be one of: ${strategyRegistry
+        .all()
+        .map((s) => s.version)
+        .join(', ')}`,
     );
   }
   return strategy.execute(parsed, channelRegistry, eligibleEntries, services, auth);

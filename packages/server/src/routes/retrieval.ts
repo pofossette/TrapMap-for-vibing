@@ -31,7 +31,10 @@ import { logUserOperation } from '../lib/user-ops-log.js';
  */
 function buildUsageEvents(
   auth: { actorId: string; activeTeamId: string | null },
-  result: { globalConstraints: Array<{ entryId: string }>; projectKnowledge: Array<{ entryId: string }> },
+  result: {
+    globalConstraints: Array<{ entryId: string }>;
+    projectKnowledge: Array<{ entryId: string }>;
+  },
   queryId: string,
   queryText?: string,
 ): UsageEventInput[] {
@@ -94,9 +97,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
     // Record usage events (fire-and-forget)
     const { usageAnalytics } = app.skillShareer.repos;
     const queryId = randomUUID();
-    void usageAnalytics.recordEvents(
-      buildUsageEvents(auth, result, queryId, query.seed),
-    );
+    void usageAnalytics.recordEvents(buildUsageEvents(auth, result, queryId, query.seed));
 
     // Validate and return response
     return retrievalResponseSchema.parse(result);

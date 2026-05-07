@@ -9,9 +9,9 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent } from '../../lib/audit.js';
 import { AppError } from '../../lib/errors.js';
-import { findTransitionEvent } from '../../lib/lifecycle/transitions.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '../../lib/knowledge.js';
 import { transitionLifecycleState } from '../../lib/lifecycle/state-machine.js';
+import { findTransitionEvent } from '../../lib/lifecycle/transitions.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../../lib/rbac.js';
 import { resolveAuthContext } from '../../lib/session.js';
 import { nowIso } from '../../lib/store.js';
@@ -173,15 +173,9 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
       return toKnowledgeEntry(data, entry);
     });
 
-    // Post-commit: update lifecycle in repository + emit domain event
+    // Post-commit: emit domain event
+    // Note: store.transact() already updated lifecycle state; no repo.updateLifecycle() needed
     if (previousState && nextState && previousState !== nextState) {
-      // Update lifecycle state in knowledge repository
-      const { knowledge: knowledgeRepo } = app.skillShareer.repos;
-      await knowledgeRepo.updateLifecycle(entryId, nextState, {
-        actorId: auth.actorId,
-        note: payload.reason,
-      });
-
       // Emit domain event — subscribers handle indexing, conflict detection, audit
       const eventName = findTransitionEvent(previousState, nextState);
       if (eventName) {
