@@ -47,6 +47,9 @@ export const artifactsImportRoutes: FastifyPluginAsync = async (app) => {
     let importedCount = 0;
     let failedCount = 0;
 
+    // store.transact() retained: complex multi-entity import that creates knowledge entries,
+    // records audit events, and validates pre-review atomically.
+    // No single repository method provides this cross-entity transactional behavior.
     await app.skillShareer.store.transact(async (data) => {
       for (const entryPayload of body.entries) {
         // Validate requestedLevel <= auth.securityLevel
@@ -157,6 +160,9 @@ export const artifactsImportRoutes: FastifyPluginAsync = async (app) => {
     let importedCount = 0;
     let failedCount = 0;
 
+    // store.transact() retained: complex multi-entity import that creates artifacts,
+    // normalizes bundles, derives outputs, and records audit events atomically.
+    // No single repository method provides this cross-entity transactional behavior.
     await app.skillShareer.store.transact(async (data) => {
       for (const bundle of body.bundles) {
         try {

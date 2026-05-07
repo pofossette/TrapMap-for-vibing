@@ -22,9 +22,10 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:export');
 
     const query = knowledgeListRequestSchema.parse(request.query as Record<string, unknown>);
-    const data = await app.skillShareer.store.snapshot();
 
-    let entries = data.knowledgeEntries;
+    // Use repository for listing entries (replaces store.snapshot())
+    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
+    let entries = await knowledgeRepo.listByFilter({});
 
     // Filter based on user permissions
     if (auth.subjectType !== 'system-admin') {
@@ -172,8 +173,16 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
       return toKnowledgeEntry(data, entry);
     });
 
-    // Post-commit: emit event for deactivation
+    // Post-commit: update lifecycle in repository + emit domain event
     if (previousState && nextState && previousState !== nextState) {
+      // Update lifecycle state in knowledge repository
+      const { knowledge: knowledgeRepo } = app.skillShareer.repos;
+      await knowledgeRepo.updateLifecycle(entryId, nextState, {
+        actorId: auth.actorId,
+        note: payload.reason,
+      });
+
+      // Emit domain event — subscribers handle indexing, conflict detection, audit
       const eventName = findTransitionEvent(previousState, nextState);
       if (eventName) {
         await app.skillShareer.eventBus.emitDomainEventAsync({

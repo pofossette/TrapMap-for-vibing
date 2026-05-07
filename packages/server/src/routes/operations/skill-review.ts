@@ -22,21 +22,13 @@ export const skillReviewRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:review');
 
-    const data = await app.skillShareer.store.snapshot();
-
-    // Ensure skillArtifacts exists
-    if (!data.skillArtifacts) {
-      data.skillArtifacts = [];
-    }
+    // Use repository for listing artifacts (replaces store.snapshot() for initial data load)
+    const { artifact: artifactRepo } = app.skillShareer.repos;
+    const allArtifacts = await artifactRepo.listByFilter({ lifecycleState: 'agent-pass' });
 
     // Filter artifacts for review queue
     // Only show artifacts with lifecycleState of 'agent-pass' (pending review)
-    const pendingArtifacts = data.skillArtifacts.filter((artifact) => {
-      // Filter to agent-pass state
-      if (artifact.lifecycleState !== 'agent-pass') {
-        return false;
-      }
-
+    const pendingArtifacts = allArtifacts.filter((artifact) => {
       // Team access check for non-system-admin
       if (artifact.teamId && auth.subjectType !== 'system-admin') {
         try {
@@ -53,6 +45,9 @@ export const skillReviewRoutes: FastifyPluginAsync = async (app) => {
 
       return true;
     });
+
+    // toSkillArtifact needs StoreData for user handle resolution
+    const data = await app.skillShareer.store.snapshot();
 
     // Map to queue items
     const items = pendingArtifacts.map((artifact) => {
