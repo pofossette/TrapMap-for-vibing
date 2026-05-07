@@ -5,6 +5,7 @@ import Fastify from 'fastify';
 import { ZodError } from 'zod';
 
 import type { ServerConfig } from './config.js';
+import type { SkillShareerServices } from './lib/context.js';
 import { loadConfig } from './config.js';
 import { createAiProviders } from './lib/ai/index.js';
 import { createArtifactRepository } from './lib/artifacts/index.js';
@@ -220,6 +221,7 @@ export function buildServer(options: BuildServerOptions = {}) {
     membershipRepo: undefined,
     // usageAnalyticsRepo is set when PostgreSQL pool is available (in onReady hook)
     usageAnalyticsRepo: undefined,
+    repos: {} as SkillShareerServices['repos'],
     eventBus: new LifecycleEventBus(),
   });
 

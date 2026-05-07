@@ -429,6 +429,7 @@ export function makeMockServices(storeData: Partial<StoreData> = {}): SkillShare
     teamRepo: undefined,
     membershipRepo: undefined,
     usageAnalyticsRepo: undefined,
+    repos: {} as SkillShareerServices['repos'],
     eventBus: { on: () => ({}), emit: () => false, onDomainEvent: () => ({}), emitDomainEvent: () => {} } as unknown as import('../../lifecycle/event-bus.js').LifecycleEventBus,
   };
 }
