@@ -32,6 +32,7 @@ import type { RetrievalStrategy } from './lib/retrieval/strategy-registry.js';
 import { StrategyRegistry } from './lib/retrieval/strategy-registry.js';
 import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
 import { createKnowledgeRepository } from './lib/knowledge/index.js';
+import { createAllRepos } from './lib/repos/index.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';
 import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
@@ -366,6 +367,19 @@ export function buildServer(options: BuildServerOptions = {}) {
 
       // Store worker reference for graceful shutdown
       app.decorate('taskWorker', worker);
+    }
+  });
+
+  // Wire unified repos object (async — createUsageAnalyticsRepository uses dynamic import)
+  // In PG mode, recreates repos with pool after individual flat props are set above.
+  // In JSON mode, creates repos with store only (InMemory implementations).
+  app.addHook('onReady', async () => {
+    const store = app.skillShareer.store;
+    if (store instanceof PostgresStore) {
+      const pool = store.getPool();
+      app.skillShareer.repos = await createAllRepos({ store, pool });
+    } else {
+      app.skillShareer.repos = await createAllRepos({ store });
     }
   });
 
