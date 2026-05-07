@@ -110,7 +110,7 @@
 
 ### Usage Analytics
 
-- [ ] Phase 89: Usage Analytics & Statistics (0/? plans)
+- [x] Phase 89: Usage Analytics & Statistics (5/5 plans) — completed 2026-05-06
 
 ### Agent-Native CLI Integration
 
@@ -233,11 +233,11 @@ Plans:
 - [x] 101-03-PLAN.md — Service wiring (context.ts + app.ts) *(Wave 3 — blocked on 101-01, 101-02)*
 - [x] 101-04-PLAN.md — Route migration to event emission *(Wave 4 — blocked on 101-03)*
 
-### Phase 102: IndexAdapter Generalization and Retrieval Plugin — Dynamic adapter registry with pluggable recall channels
+### Phase 102: IndexAdapter Generalization and Retrieval Plugin — Dynamic adapter registry with pluggable recall channels — COMPLETE ✓ (2026-05-07)
 
 **Goal:** 将 IndexAdapter 的 kind 字段从固定联合类型泛化为字符串注册表，并将检索管道的召回通道抽象为可插拔接口，使新增索引/召回通道无需修改核心 pipeline 和 orchestrator
 **Depends on:** Phase 101
-**Plans:** 3 plans
+**Plans:** 3 plans (3/3 complete)
 
 Plans:
 **Wave 1**
