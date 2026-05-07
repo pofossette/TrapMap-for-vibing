@@ -38,9 +38,9 @@ created: 2026-05-06
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 99-01-01 | 01 | 1 | Verify Phase 96 | — | N/A | integration | `pnpm --filter cli test` | ✅ W0 | ⬜ pending |
-| 99-02-01 | 02 | 1 | Verify Phase 97 | — | N/A | integration | `pnpm --filter cli test` | ⬜ W0 | ⬜ pending |
-| 99-03-01 | 03 | 2 | Scripts/assets coverage | — | N/A | unit | `pnpm --filter cli test` | ⬜ W0 | ⬜ pending |
+| 99-01-01 | 01 | 1 | V99-02 (scripts/assets formatter tests) | — | N/A | unit/tdd | `pnpm --filter cli test -- packages/cli/src/lib/markdown-formatter.test.ts` | ✅ existing | ⬜ pending |
+| 99-02-01 | 02 | 2 | V99-01, V99-03, V99-04 (typecheck + tests + build gate) | — | N/A | gate | `pnpm typecheck && pnpm test && pnpm build` | N/A | ⬜ pending |
+| 99-02-02 | 02 | 2 | V99-05, V99-06 (SKILL.md consistency + Phase 97/98 conditional) | — | N/A | integration | `diff` + `grep` checks | conditional | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -50,9 +50,9 @@ created: 2026-05-06
 
 - [ ] Existing test infrastructure covers Phase 96 verification (321 tests baseline)
 - [ ] Phase 97 test stubs depend on Phase 97 implementation status
-- [ ] `packages/cli/src/__tests__/markdown-formatter.scripts-assets.test.ts` — stubs for scripts/assets edge cases
+- [ ] `packages/cli/src/lib/markdown-formatter.test.ts` — add test cases for scripts/assets edge cases and capsule fallback (V99-02, covered by Plan 01)
 
-*If Phase 97/98 not implemented: tests will verify Phase 96 only and stub Phase 97/98 tests.*
+*If Phase 97/98 not implemented: tests will verify Phase 96 only and conditionally skip Phase 97/98 verification.*
 
 ---
 
@@ -60,7 +60,7 @@ created: 2026-05-06
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| `trapmap init` end-to-end in clean env | Phase 97 | Requires npx/npm environment | Run `npx skills add` in a temp directory and verify SKILL.md is installed |
+| `trapmap init` end-to-end in clean env | Phase 97 (V99-05) | Requires npx/npm environment | Run `npx skills add` in a temp directory and verify SKILL.md is installed |
 
 *If Phase 97 not implemented: defer to Phase 97 verification.*
 
