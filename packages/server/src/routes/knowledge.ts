@@ -18,7 +18,6 @@ import {
   toKnowledgeEntry,
   updateKnowledgeEntry,
 } from '../lib/knowledge.js';
-import type { KnowledgeRepository } from '../lib/knowledge/index.js';
 import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
@@ -61,8 +60,10 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       );
     }
 
+    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
+
     const preReview = await runPreReview({
-      existingEntries: (await app.skillShareer.store.snapshot()).knowledgeEntries,
+      existingEntries: await knowledgeRepo.listByFilter({}),
       submission: payload,
       chatProvider: app.skillShareer.ai.chat,
       authorBoundary: payload.boundary ?? null,
@@ -73,20 +74,12 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     // Use author boundary if provided, otherwise use extracted boundary from pre-review
     const boundary = payload.boundary ?? preReview.boundary ?? null;
 
-    // Get knowledgeRepo for conditional repository operations
-    const knowledgeRepo = app.skillShareer.knowledgeRepo;
+    // Generate ID using repository
+    const entryId = await knowledgeRepo.nextId();
 
-    // Generate ID using repository (SEQUENCE) if available, fallback to store
-    let entryId: string;
-    if (knowledgeRepo) {
-      entryId = await knowledgeRepo.nextId();
-    } else {
-      const data = await app.skillShareer.store.snapshot();
-      entryId = app.skillShareer.store.nextId(data, 'knowledge');
-    }
-
-    const entry = await app.skillShareer.store.transact((data) => {
-      const record = createKnowledgeEntryRecord({
+    // store.transact() needed: createKnowledgeEntryRecord uses store.nextId() for sub-record IDs
+    const { entry, record } = await app.skillShareer.store.transact((data) => {
+      const rec = createKnowledgeEntryRecord({
         store: app.skillShareer.store,
         data,
         ownerUserId,
@@ -99,25 +92,12 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
         idOverride: entryId,
       });
 
-      data.knowledgeEntries.push(record);
+      data.knowledgeEntries.push(rec);
 
-      return toKnowledgeEntry(data, record);
+      return { entry: toKnowledgeEntry(data, rec), record: rec };
     });
 
-    // Dual-write: Also insert to knowledge repository if available
-    // This is additive during the transition period
-    if (knowledgeRepo) {
-      try {
-        const data = await app.skillShareer.store.snapshot();
-        const record = data.knowledgeEntries.find((e) => e.id === entryId);
-        if (record) {
-          await knowledgeRepo.insert(record);
-        }
-      } catch (repoError) {
-        // Log but don't fail - JSONB is the source of truth during transition
-        app.log.error({ repoError, entryId }, 'Failed to insert to knowledge repository');
-      }
-    }
+    await knowledgeRepo.insert(record);
 
     // Log user operation (fire-and-forget)
     void logUserOperation(app.skillShareer.config.userOpsLog, {
@@ -137,10 +117,12 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     const ownerUserId = requireRealUser(auth.user?.id);
 
+    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
+    const entries = await knowledgeRepo.listByFilter({ ownerUserId });
+
+    // toKnowledgeEntry needs StoreData for user handle resolution
     const data = await app.skillShareer.store.snapshot();
-    const items = data.knowledgeEntries
-      .filter((entry) => entry.ownerUserId === ownerUserId)
-      .map((entry) => toKnowledgeEntry(data, entry));
+    const items = entries.map((entry) => toKnowledgeEntry(data, entry));
 
     return knowledgeHistoryResponseSchema.parse({ items });
   });
@@ -148,8 +130,8 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/knowledge/:entryId', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     const entryId = (request.params as { entryId: string }).entryId;
-    const data = await app.skillShareer.store.snapshot();
-    const entry = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
+    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
+    const entry = await knowledgeRepo.getById(entryId);
 
     if (!entry) {
       throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
@@ -163,6 +145,8 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(403, 'forbidden', 'You do not have access to this knowledge entry');
     }
 
+    // toKnowledgeEntry needs StoreData for user handle resolution
+    const data = await app.skillShareer.store.snapshot();
     return knowledgeEntryResponseSchema.parse({
       entry: toKnowledgeEntry(data, entry),
     });
@@ -177,7 +161,8 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       entryId,
     });
 
-    const existingEntries = (await app.skillShareer.store.snapshot()).knowledgeEntries.filter(
+    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
+    const existingEntries = (await knowledgeRepo.listByFilter({})).filter(
       (entry) => entry.id !== entryId,
     );
     const preReview = await runPreReview({
@@ -192,6 +177,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       authorBoundary: payload.boundary ?? null,
     });
 
+    // store.transact() needed: resubmitKnowledgeEntry uses store.nextId() for sub-record IDs
     const updatedEntry = await app.skillShareer.store.transact((data) => {
       const entry = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
 
@@ -223,22 +209,6 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
 
       return toKnowledgeEntry(data, entry);
     });
-
-    // Dual-write: Also append revision to knowledge repository if available
-    // This is additive during the transition period
-    const knowledgeRepo = app.skillShareer.knowledgeRepo;
-    if (knowledgeRepo) {
-      try {
-        const data = await app.skillShareer.store.snapshot();
-        const entry = data.knowledgeEntries.find((e) => e.id === entryId);
-        if (entry?.latestRevision) {
-          await knowledgeRepo.appendRevision(entryId, entry.latestRevision);
-        }
-      } catch (repoError) {
-        // Log but don't fail - JSONB is the source of truth during transition
-        app.log.error({ repoError, entryId }, 'Failed to append revision to knowledge repository');
-      }
-    }
 
     // Log user operation (fire-and-forget)
     void logUserOperation(app.skillShareer.config.userOpsLog, {
@@ -331,30 +301,6 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    // Dual-write: Also update governance in knowledge repository if available
-    // This is additive during the transition period
-    const knowledgeRepo = app.skillShareer.knowledgeRepo;
-    if (knowledgeRepo) {
-      try {
-        const governanceUpdate: { labels?: string[]; requiredLevel?: number } = {};
-        if (payload.labels !== undefined) {
-          governanceUpdate.labels = payload.labels;
-        }
-        if (payload.requiredLevel !== undefined) {
-          governanceUpdate.requiredLevel = payload.requiredLevel;
-        }
-        if (Object.keys(governanceUpdate).length > 0) {
-          await knowledgeRepo.updateGovernance(entryId, governanceUpdate);
-        }
-      } catch (repoError) {
-        // Log but don't fail - JSONB is the source of truth during transition
-        app.log.error(
-          { repoError, entryId },
-          'Failed to update governance in knowledge repository',
-        );
-      }
-    }
-
     // Log user operation (fire-and-forget)
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
@@ -379,15 +325,19 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(400, 'replacement_required', 'replacementId is required');
     }
 
-    const supersededEntry = await app.skillShareer.store.transact((data) => {
-      return supersedeEntry({
-        store: app.skillShareer.store,
-        data,
-        entryId,
-        replacementId: body.replacementId!,
-        actorId: auth.actorId,
-      });
-    });
+    // store.transact() needed: supersedeEntry uses store.nextId() for lifecycle event IDs
+    const { entry: supersededEntry, data: txData } = await app.skillShareer.store.transact(
+      (data) => {
+        const result = supersedeEntry({
+          store: app.skillShareer.store,
+          data,
+          entryId,
+          replacementId: body.replacementId!,
+          actorId: auth.actorId,
+        });
+        return { entry: result, data };
+      },
+    );
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
@@ -400,7 +350,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return knowledgeEntryResponseSchema.parse({
-      entry: toKnowledgeEntry(await app.skillShareer.store.snapshot(), supersededEntry),
+      entry: toKnowledgeEntry(txData, supersededEntry),
     });
   });
 };

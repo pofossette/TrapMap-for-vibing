@@ -17,25 +17,37 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:review');
 
     const rawQuery = (request.query as Record<string, string | undefined>) ?? {};
+    const { knowledge: knowledgeRepo, user: userRepo } = app.skillShareer.repos;
+
+    const allEntries = await knowledgeRepo.listByFilter({});
+    const filteredEntries = allEntries.filter((entry) => {
+      if (entry.teamId && auth.subjectType !== 'system-admin') {
+        requireTeamAccess(auth, entry.teamId);
+      }
+
+      if (auth.subjectType !== 'system-admin' && auth.securityLevel <= entry.requiredLevel) {
+        return false;
+      }
+
+      return rawQuery.status ? entry.lifecycleState === rawQuery.status : true;
+    });
+
+    // toKnowledgeEntry needs StoreData for user handle resolution
     const data = await app.skillShareer.store.snapshot();
-    const items = data.knowledgeEntries
-      .filter((entry) => {
-        if (entry.teamId && auth.subjectType !== 'system-admin') {
-          requireTeamAccess(auth, entry.teamId);
-        }
 
-        if (auth.subjectType !== 'system-admin' && auth.securityLevel <= entry.requiredLevel) {
-          return false;
-        }
-
-        return rawQuery.status ? entry.lifecycleState === rawQuery.status : true;
-      })
-      .map((entry) => {
-        const owner = data.users.find((candidate) => candidate.id === entry.ownerUserId);
+    const items = await Promise.all(
+      filteredEntries.map(async (entry) => {
+        const owner = await userRepo.getById(entry.ownerUserId);
 
         if (!owner) {
           throw new AppError(404, 'owner_not_found', 'Entry owner not found');
         }
+
+        const lastDecisionUserId = entry.reviewHistory.at(-1)?.decidedByUserId ?? owner.id;
+        const lastDecisionUser =
+          lastDecisionUserId === owner.id
+            ? owner
+            : await userRepo.getById(lastDecisionUserId);
 
         return {
           entry: toKnowledgeEntry(data, entry),
@@ -50,13 +62,8 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
               ? {
                   decidedAt: entry.reviewHistory.at(-1)?.decidedAt,
                   decidedBy: {
-                    id: entry.reviewHistory.at(-1)?.decidedByUserId ?? owner.id,
-                    handle:
-                      data.users.find(
-                        (candidate) =>
-                          candidate.id ===
-                          (entry.reviewHistory.at(-1)?.decidedByUserId ?? owner.id),
-                      )?.handle ?? owner.handle,
+                    id: lastDecisionUserId,
+                    handle: lastDecisionUser?.handle ?? owner.handle,
                     securityLevel: entry.requiredLevel,
                   },
                   decision: entry.reviewHistory.at(-1)?.decision,
@@ -64,7 +71,8 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
                 }
               : null,
         };
-      });
+      }),
+    );
 
     // Log user operation (fire-and-forget)
     void logUserOperation(app.skillShareer.config.userOpsLog, {
@@ -168,23 +176,14 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
       return toKnowledgeEntry(data, entry);
     });
 
-    // Post-commit: dual-write + event emission
+    // Post-commit: update lifecycle in repository + emit domain event
     if (entryId && previousState && nextState && previousState !== nextState) {
-      // Dual-write: Update lifecycle in knowledge repository if available
-      const knowledgeRepo = app.skillShareer.knowledgeRepo;
-      if (knowledgeRepo) {
-        try {
-          await knowledgeRepo.updateLifecycle(entryId, nextState, {
-            actorId: auth.actorId,
-            note: `reviewer-${payload.decision}`,
-          });
-        } catch (repoError) {
-          app.log.error(
-            { repoError, entryId },
-            'Failed to update lifecycle in knowledge repository',
-          );
-        }
-      }
+      // Update lifecycle state in knowledge repository
+      const { knowledge: knowledgeRepo } = app.skillShareer.repos;
+      await knowledgeRepo.updateLifecycle(entryId, nextState, {
+        actorId: auth.actorId,
+        note: `reviewer-${payload.decision}`,
+      });
 
       // Emit domain event — subscribers handle indexing, conflict detection, audit
       const eventName = findTransitionEvent(previousState, nextState);
