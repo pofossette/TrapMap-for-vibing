@@ -240,8 +240,11 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
+**Wave 1**
 - [ ] 102-01-PLAN.md — Indexing registry and type generalization *(Wave 1)*
 - [ ] 102-02-PLAN.md — Retrieval registry and channel abstraction *(Wave 1)*
+
+**Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 102-03-PLAN.md — Service wiring and orchestrator integration *(Wave 2 — blocked on 102-01, 102-02)*
 
 ### Phase 103: CLI Dynamic Registration and Transport Abstraction — Plugin-based command discovery with pluggable transport layer
