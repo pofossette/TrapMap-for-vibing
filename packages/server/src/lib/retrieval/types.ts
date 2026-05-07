@@ -68,7 +68,7 @@ interface RetrievalStats {
  * The recall channel that produced a candidate.
  * Used to track evidence source during hybrid merge and rerank stages.
  */
-export type RecallChannel = 'semantic' | 'keyword' | 'graph';
+export type RecallChannel = string;
 
 /**
  * Token match detail for keyword recall evidence.
@@ -109,6 +109,8 @@ export interface MergedCandidate {
   keywordScore: number;
   /** Graph channel score, or 0 if not recalled via graph (optional for backward compatibility) */
   graphScore?: number;
+  /** Per-channel scores map for extensible channel tracking */
+  channelScores: Record<string, number>;
   /** Combined score after merge, in [0, 1] - this is the pre-rerank score */
   combinedScore: number;
   /** All token matches from keyword channel (empty if keyword not used) */
@@ -221,7 +223,7 @@ export interface CapsuleCandidate {
  * Extends the entry-only RecallChannel with capsule, profile, and plan channels
  * to cover v1, v2, and GraphRAG-lite wrapper retrieval paths.
  */
-export type RoutingChannel = RecallChannel | 'capsule' | 'profile' | 'plan';
+export type RoutingChannel = string;
 
 /**
  * Routing decision produced by the shared router.

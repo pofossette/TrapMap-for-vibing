@@ -372,6 +372,7 @@ export function mergeCandidatesWithGraph(
         semanticScore: 0,
         keywordScore: 0,
         graphScore: graphCandidate.score,
+        channelScores: { graph: graphCandidate.score },
         combinedScore: score,
         tokenMatches: [],
         channels: ['graph'],

@@ -20,6 +20,7 @@ import {
 } from '../../embeddings.js';
 import type { PipelineStep } from '../../rag-log.js';
 import type { KnowledgeRecord } from '../../store.js';
+import type { RecallChannel } from '../channel-registry.js';
 
 /**
  * Build the embedding text from a knowledge entry.
@@ -326,3 +327,21 @@ export async function optimizedSemanticRecall(
 
   return { scoredEntries, cacheStats: stats };
 }
+
+/**
+ * Semantic recall channel implementation.
+ * Wraps optimizedSemanticRecall as a RecallChannel.
+ */
+export const semanticChannel: RecallChannel = {
+  name: 'semantic',
+  async recall(queryText: string, entries: KnowledgeRecord[]) {
+    const queryVector = await getQueryEmbedding(queryText);
+    const { scoredEntries } = await optimizedSemanticRecall(queryVector, entries, undefined as unknown as RetrievalQuery['filters']);
+    return scoredEntries.map(({ entry, score }) => ({
+      entry,
+      channel: 'semantic' as const,
+      score,
+      tokenMatches: [],
+    }));
+  },
+};

@@ -75,6 +75,7 @@ export function mergeCandidates(
       semanticScore: candidate.score,
       keywordScore: 0,
       graphScore: 0,
+      channelScores: { semantic: candidate.score },
       combinedScore,
       tokenMatches: [],
       channels: ['semantic'],
@@ -91,6 +92,7 @@ export function mergeCandidates(
     if (existing) {
       // Entry exists from semantic - merge the evidence
       existing.keywordScore = candidate.score;
+      existing.channelScores.keyword = candidate.score;
       existing.tokenMatches = candidate.tokenMatches;
       existing.channels = ['semantic', 'keyword'];
       // Recalculate combined score with both channels
@@ -107,6 +109,7 @@ export function mergeCandidates(
         semanticScore: 0,
         keywordScore: candidate.score,
         graphScore: 0,
+        channelScores: { keyword: candidate.score },
         combinedScore,
         tokenMatches: candidate.tokenMatches,
         channels: ['keyword'],
