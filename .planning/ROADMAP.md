@@ -237,6 +237,12 @@ Plans:
 
 **Goal:** 将 IndexAdapter 的 kind 字段从固定联合类型泛化为字符串注册表，并将检索管道的召回通道抽象为可插拔接口，使新增索引/召回通道无需修改核心 pipeline 和 orchestrator
 **Depends on:** Phase 101
+**Plans:** 3 plans
+
+Plans:
+- [ ] 102-01-PLAN.md — Indexing registry and type generalization *(Wave 1)*
+- [ ] 102-02-PLAN.md — Retrieval registry and channel abstraction *(Wave 1)*
+- [ ] 102-03-PLAN.md — Service wiring and orchestrator integration *(Wave 2 — blocked on 102-01, 102-02)*
 
 ### Phase 103: CLI Dynamic Registration and Transport Abstraction — Plugin-based command discovery with pluggable transport layer
 
@@ -245,4 +251,4 @@ Plans:
 
 ---
 
-*Roadmap updated: 2026-05-06 — Merged Phase 98 into Phase 96; v1.8 now has 6 phases (87-99, skipping 98)*
+*Roadmap updated: 2026-05-07 — Phase 102 planned (3 plans, 2 waves)*
