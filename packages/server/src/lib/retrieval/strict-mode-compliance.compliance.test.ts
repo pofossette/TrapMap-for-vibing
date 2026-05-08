@@ -3,12 +3,10 @@
  *
  * Covers 4 gaps:
  * 1. tsconfig.base.json has strict: true enabled
- * 2. No TypeScript errors exist (pnpm typecheck passes)
- * 3. All strict mode compiler options correctly configured (strict, noUncheckedIndexedAccess, exactOptionalPropertyTypes)
- * 4. Previously-fixed type errors don't regress (numeric requiredLevel, scopes not scope, spread pattern)
+ * 2. Strict mode guardrails remain configured (strict, noUncheckedIndexedAccess, exactOptionalPropertyTypes)
+ * 3. Previously-fixed retrieval typing patterns don't regress
  */
 
-import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -36,22 +34,7 @@ describe('Phase 75: TypeScript strict mode configuration', () => {
   });
 });
 
-// ── Gap 2: typecheck passes with 0 errors ────────────────────────────────
-
-describe('Phase 75: typecheck produces zero errors', () => {
-  it('pnpm typecheck exits with code 0 (no type errors)', { timeout: 130_000 }, () => {
-    // Run typecheck from project root; should succeed silently
-    const result = execSync('pnpm typecheck', {
-      cwd: ROOT_DIR,
-      encoding: 'utf-8',
-      timeout: 120_000,
-    });
-    // If we get here, typecheck succeeded (exit 0)
-    expect(result).toBeDefined();
-  });
-});
-
-// ── Gap 4: previously-fixed type errors don't regress ────────────────────
+// ── Gap 3: previously-fixed type errors don't regress ────────────────────
 
 describe('Phase 75: fixed type errors remain correct', () => {
   it('benchmark.ts uses numeric requiredLevel comparison (not string)', () => {

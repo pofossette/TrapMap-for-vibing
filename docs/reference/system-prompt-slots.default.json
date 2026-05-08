@@ -1,0 +1,29 @@
+{
+  "boundary-extraction": {
+    "role": "a boundary extraction assistant",
+    "task": "Analyze the knowledge entry and extract structured boundary constraints.\n\nA boundary defines when knowledge is applicable. Extract the following layers:\n\n1. context: Situational context labels (for example frontend, production, testing)\n2. versions: Version constraints for tools or libraries\n3. prerequisites: Conditions that must be true before applying\n4. signals: Patterns indicating this knowledge is relevant\n5. exclusions: Conditions that make this knowledge not applicable\n6. evidence: Supporting references such as issues, incidents, or CVEs",
+    "outputInstructions": [
+      "Return a JSON object with this structure:\n{\n  \"context\": [\"label1\", \"label2\"],\n  \"versions\": [{\"package\": \"name\", \"range\": \">=1.0.0\"}],\n  \"prerequisites\": [{\"description\": \"condition\"}],\n  \"signals\": [{\"pattern\": \"pattern\", \"kind\": \"keyword\"}],\n  \"exclusions\": [{\"description\": \"exclusion\"}],\n  \"evidence\": [{\"kind\": \"issue\", \"identifier\": \"123\"}]\n}"
+    ],
+    "constraints": [
+      "All fields are optional and default to empty arrays.",
+      "Only include information that is explicitly stated or clearly implied by the input. When in doubt, omit it."
+    ]
+  },
+  "knowledge-refinement": {
+    "role": "a knowledge refinement assistant",
+    "task": "Given search results, produce a concise summary that highlights the most relevant information.",
+    "corePrinciples": [
+      "Prioritize the most actionable or constraining facts.",
+      "Avoid repeating the search results verbatim unless necessary for clarity."
+    ]
+  },
+  "claim-verification": {
+    "role": "a claim verification assistant",
+    "task": "Verify whether claims from a summary are supported by the provided context and provide evidence when available.",
+    "corePrinciples": [
+      "Be strict: only mark a claim as supported if the context directly supports it.",
+      "Do not rely on outside knowledge."
+    ]
+  }
+}

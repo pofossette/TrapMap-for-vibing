@@ -15,6 +15,7 @@
  */
 
 import { extractClaims, simplifyClaim } from './claims.js';
+import { buildClaimVerificationSystemPrompt } from '../../../packages/server/src/lib/ai/prompts.js';
 import type {
   ClaimVerification,
   ExtractedClaim,
@@ -107,10 +108,7 @@ export function createOpenAiJudgeProvider(config: {
         return fallbackVerifyClaims({ claims, context });
       }
 
-      const systemPrompt = `You are a claim verification assistant.
-Your task is to verify if claims from a summary are supported by the provided context.
-For each claim, determine if it is supported by the context and provide evidence if available.
-Be strict - only mark a claim as supported if the context directly supports it.`;
+      const systemPrompt = buildClaimVerificationSystemPrompt({ strict: true });
 
       const userMessage = `Context:
 ${context.map((c, i) => `[${i + 1}] ${c}`).join('\n\n')}

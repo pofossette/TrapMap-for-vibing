@@ -1,4 +1,6 @@
 export {
+  type AiPromptConfig,
+  type AiPromptFormat,
   type AiProviderConfig,
   type AiProviderType,
   loadAiProviderConfig,
@@ -11,4 +13,9 @@ export {
   OpenAICompatibleChat,
   OpenAICompatibleEmbeddings,
 } from './providers.js';
+export {
+  buildBoundaryExtractionSystemPrompt,
+  buildClaimVerificationSystemPrompt,
+  buildKnowledgeRefinementSystemPrompt,
+} from './prompts.js';
 export type { AiProviders, ChatProvider, EmbeddingsProvider } from './types.js';

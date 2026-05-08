@@ -1,6 +1,7 @@
 import type { Boundary } from '@trapmap/contracts';
 import { boundarySchema } from '@trapmap/contracts';
 
+import { buildBoundaryExtractionSystemPrompt } from './ai/prompts.js';
 import type { ChatProvider } from './ai/types.js';
 
 /**
@@ -28,30 +29,7 @@ export async function extractCandidateBoundaries(
     return null;
   }
 
-  const systemPrompt = `You are a boundary extraction assistant. Analyze the knowledge entry and extract structured boundary constraints.
-
-A boundary defines when knowledge is applicable. Extract the following layers:
-
-1. **context**: Situational context labels (e.g., "frontend", "production", "testing")
-2. **versions**: Version constraints for tools/libraries (e.g., {package: "react", range: ">=16.8.0"})
-3. **prerequisites**: Conditions that must be true before applying (e.g., "Docker installed")
-4. **signals**: Patterns indicating this knowledge is relevant (e.g., error codes, log patterns)
-5. **exclusions**: Conditions that make this knowledge NOT applicable
-6. **evidence**: Supporting references (issues, incidents, CVEs)
-
-Return a JSON object with this structure:
-{
-  "context": ["label1", "label2"],
-  "versions": [{"package": "name", "range": ">=1.0.0"}],
-  "prerequisites": [{"description": "condition"}],
-  "signals": [{"pattern": "pattern", "kind": "keyword"}],
-  "exclusions": [{"description": "exclusion"}],
-  "evidence": [{"kind": "issue", "identifier": "123"}]
-}
-
-All fields are optional and default to empty arrays.
-Only include constraints that are EXPLICITLY stated or clearly implied.
-When in doubt, omit the constraint.`;
+  const systemPrompt = buildBoundaryExtractionSystemPrompt();
 
   const userMessage = `Title: ${input.shortcut}
 

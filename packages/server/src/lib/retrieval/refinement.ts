@@ -5,6 +5,7 @@
  */
 
 import type { SkillShareerServices } from '../context.js';
+import { buildKnowledgeRefinementSystemPrompt } from '../ai/prompts.js';
 
 /**
  * Check if a refinement provider is configured.
@@ -60,7 +61,7 @@ export async function generateRefinement(
 
   try {
     return await services.ai.chat.invoke(
-      'You are a knowledge refinement assistant. Given search results, produce a concise summary that highlights the most relevant information. Keep the summary under 3 sentences.',
+      buildKnowledgeRefinementSystemPrompt({ maxSentences: 3 }),
       buildRefinementPrompt(query, globalConstraints, projectKnowledge),
     );
   } catch {

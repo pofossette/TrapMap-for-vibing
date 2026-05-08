@@ -9,6 +9,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { buildKnowledgeRefinementSystemPrompt } from '../ai/prompts.js';
 import type { SkillShareerServices } from '../context.js';
 
 import { buildRefinementPrompt, generateRefinement, isRefinementAvailable } from './refinement.js';
@@ -88,7 +89,7 @@ describe('generateRefinement', () => {
 
     expect(result).toBe('Refined summary result');
     expect(services.ai.chat.invoke).toHaveBeenCalledWith(
-      expect.stringContaining('knowledge refinement assistant'),
+      buildKnowledgeRefinementSystemPrompt({ maxSentences: 3 }),
       expect.stringContaining('test query'),
     );
   });

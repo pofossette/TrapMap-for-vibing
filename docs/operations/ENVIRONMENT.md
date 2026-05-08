@@ -33,6 +33,27 @@
 | `AI_API_KEY` | API 密钥 | `OPENAI_API_KEY` |
 | `AI_CHAT_MODEL` | 聊天模型名称 | `gpt-4o-mini` |
 | `AI_EMBEDDING_MODEL` | Embedding 模型名称 | `text-embedding-3-small` |
+| `AI_PROMPT_FORMAT_BOUNDARY_EXTRACTION` | boundary extraction 系统提示词格式：`xml`、`markdown`、`json` | `xml` |
+| `AI_PROMPT_FORMAT_KNOWLEDGE_REFINEMENT` | knowledge refinement 系统提示词格式：`xml`、`markdown`、`json` | `markdown` |
+| `AI_PROMPT_FORMAT_CLAIM_VERIFICATION` | claim verification 系统提示词格式：`xml`、`markdown`、`json` | `json` |
+| `AI_PROMPT_TEMPLATE_FILE` | 可选的本地 JSON 槽位模板覆盖文件路径 | `docs/reference/system-prompt-slots.default.json` |
+
+## 系统提示词模板
+
+TrapMap 的服务端 AI 提示词支持“插槽式”覆盖。你可以提供一个本地 JSON 文件，按任务覆盖以下字段：
+
+- `role`
+- `task`
+- `corePrinciples`
+- `outputInstructions`
+- `constraints`
+- `examples`
+
+注意：
+
+- 只支持覆盖槽位内容，不支持覆盖渲染骨架
+- XML / Markdown / JSON 是系统提示词文本组织格式，不是模型返回格式
+- XML 设计方法参考 [docs/reference/xml-system-prompt-methodology.md](../reference/xml-system-prompt-methodology.md)
 
 ## 日志配置
 

@@ -11,7 +11,7 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "dev": "tsx watch src/index.ts",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

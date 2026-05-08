@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { Boundary } from '@trapmap/contracts';
 
+import { buildBoundaryExtractionSystemPrompt } from './ai/prompts.js';
 import type { ChatProvider } from './ai/types.js';
 import { extractCandidateBoundaries } from './boundary-extract.js';
 
@@ -104,8 +105,9 @@ describe('extractCandidateBoundaries', () => {
     });
 
     expect(invokeSpy).toHaveBeenCalledTimes(1);
-    const [_systemPrompt, userMessage] = invokeSpy.mock.calls[0] ?? ['', ''];
+    const [systemPrompt, userMessage] = invokeSpy.mock.calls[0] ?? ['', ''];
 
+    expect(systemPrompt).toBe(buildBoundaryExtractionSystemPrompt());
     expect(userMessage).toContain('React hooks pitfall');
     expect(userMessage).toContain('Do not call hooks inside loops');
     expect(userMessage).toContain('react, hooks');

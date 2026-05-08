@@ -5,7 +5,9 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { buildClaimVerificationSystemPrompt } from '../../../packages/server/src/lib/ai/prompts.js';
 import {
+  createLlmJudgeProvider,
   createJudge,
   fallbackCheckForbidden,
   fallbackJudge,
@@ -174,5 +176,53 @@ describe('createJudge', () => {
     );
 
     expect(result).toBeDefined();
+  });
+});
+
+describe('createLlmJudgeProvider', () => {
+  it('uses the shared strict claim verification prompt when calling OpenAI', async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = async (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const body = JSON.parse(String(init?.body ?? '{}')) as {
+        messages?: Array<{ role: string; content: string }>;
+      };
+      const systemMessage = body.messages?.find((message) => message.role === 'system');
+
+      expect(systemMessage?.content).toBe(buildClaimVerificationSystemPrompt({ strict: true }));
+
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  verifications: [{ claimIndex: 0, supported: true, evidence: 'ctx' }],
+                }),
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    };
+
+    global.fetch = fetchMock as typeof global.fetch;
+
+    try {
+      const provider = createLlmJudgeProvider({
+        provider: 'openai',
+        apiKey: 'test-key',
+      });
+
+      const result = await provider.verifyClaims({
+        claims: [{ text: 'Docker is a container tool' }],
+        context: ['Docker is a container tool'],
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]?.supported).toBe(true);
+    } finally {
+      global.fetch = originalFetch;
+    }
   });
 });

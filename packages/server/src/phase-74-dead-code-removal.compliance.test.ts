@@ -11,6 +11,7 @@ import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../..');
+const PACKAGES_ROOT = path.join(PROJECT_ROOT, 'packages');
 
 const DELETED_FILES = [
   'packages/server/src/lib/config/feature-flags.ts',
@@ -20,6 +21,49 @@ const DELETED_FILES = [
   'packages/server/src/lib/retrieval/recall/hybrid-recall.ts',
   'packages/server/src/lib/retrieval/recall/pg-vector.ts',
 ];
+
+function collectFiles(rootDir: string, extensions: string[], filePaths: string[] = []): string[] {
+  for (const entry of fs.readdirSync(rootDir, { withFileTypes: true })) {
+    if (entry.name === 'dist' || entry.name === 'node_modules') {
+      continue;
+    }
+
+    const absolutePath = path.join(rootDir, entry.name);
+    if (entry.isDirectory()) {
+      collectFiles(absolutePath, extensions, filePaths);
+      continue;
+    }
+
+    if (extensions.some((extension) => absolutePath.endsWith(extension))) {
+      filePaths.push(absolutePath);
+    }
+  }
+
+  return filePaths;
+}
+
+function findImportReferences(filePaths: string[], importPatterns: string[]): string[] {
+  const importRegex = /\b(?:import|export)\b[\s\S]*?\bfrom\s*['"]([^'"]+)['"]/g;
+  const matches: string[] = [];
+
+  for (const filePath of filePaths) {
+    const content = fs.readFileSync(filePath, 'utf-8');
+
+    for (const match of content.matchAll(importRegex)) {
+      const specifier = match[1];
+      if (!specifier) {
+        continue;
+      }
+
+      if (importPatterns.some((pattern) => specifier.includes(pattern))) {
+        matches.push(path.relative(PROJECT_ROOT, filePath));
+        break;
+      }
+    }
+  }
+
+  return matches;
+}
 
 describe('Phase 74: Dead Code Removal (QUAL-01)', () => {
   describe('gap 1: all 6 dead files are deleted from disk', () => {
@@ -31,7 +75,6 @@ describe('Phase 74: Dead Code Removal (QUAL-01)', () => {
 
   describe('gap 2: no source imports reference deleted files', () => {
     it('no TypeScript source file imports any deleted module path', () => {
-      // These are the unique path fragments that would appear in import/from statements
       const importPatterns = [
         'config/feature-flags',
         'feedback/batch',
@@ -40,22 +83,12 @@ describe('Phase 74: Dead Code Removal (QUAL-01)', () => {
         'recall/hybrid-recall',
         'recall/pg-vector',
       ];
+      const sourceFiles = collectFiles(PACKAGES_ROOT, ['.ts', '.tsx']).filter(
+        (filePath) => !filePath.endsWith('.test.ts') && !filePath.endsWith('.spec.ts') && !filePath.endsWith('.compliance.test.ts'),
+      );
+      const matches = findImportReferences(sourceFiles, importPatterns);
 
-      for (const pat of importPatterns) {
-        try {
-          // Search for import statements referencing this deleted path
-          const result = cp.execSync(
-            `grep -rn --include='*.ts' --include='*.tsx' -E "from.*['\\\"]" packages/ | grep -F '${pat}' || true`,
-            { cwd: PROJECT_ROOT, encoding: 'utf-8' },
-          );
-
-          const lines = result.trim().split('\n').filter(Boolean);
-          // Each remaining line is an import referencing a deleted module
-          expect(lines).toHaveLength(0);
-        } catch {
-          // grep returns non-zero when no matches - that is fine
-        }
-      }
+      expect(matches).toEqual([]);
     });
   });
 
@@ -81,20 +114,10 @@ describe('Phase 74: Dead Code Removal (QUAL-01)', () => {
         'recall/hybrid-recall',
         'recall/pg-vector',
       ];
+      const testFiles = collectFiles(PACKAGES_ROOT, ['.test.ts', '.spec.ts', '.compliance.test.ts']);
+      const matches = findImportReferences(testFiles, importPatterns);
 
-      for (const pat of importPatterns) {
-        try {
-          const result = cp.execSync(
-            `grep -rn --include='*.test.ts' --include='*.spec.ts' -E "from.*['\\\"]" packages/ | grep -F '${pat}' || true`,
-            { cwd: PROJECT_ROOT, encoding: 'utf-8' },
-          );
-
-          const lines = result.trim().split('\n').filter(Boolean);
-          expect(lines).toHaveLength(0);
-        } catch {
-          // grep returns non-zero when no matches - acceptable
-        }
-      }
+      expect(matches).toEqual([]);
     });
   });
 });
