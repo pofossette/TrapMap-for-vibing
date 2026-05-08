@@ -78,7 +78,7 @@ const config = loadConfig();
 
 ## packages/cli
 
-命令行接口， imperative 命令格式，shell 友好输出，支持可选 JSON 模式。
+命令行接口，命令格式明确，shell 友好输出，支持可选 JSON 模式。
 
 ### 命令模块
 

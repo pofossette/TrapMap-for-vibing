@@ -1,8 +1,8 @@
-# Artifacts
+# 工件
 
-Use these commands when you need to export or activate a skill artifact.
+当需要导出或激活技能工件时使用这些命令。
 
-## Export
+## 导出
 
 ```bash
 trapmap artifact-export --artifact <artifactId> --format bundle-json --json
@@ -10,9 +10,9 @@ trapmap artifact-export --artifact <artifactId> --format distilled-json --json
 trapmap artifact-export --artifact <artifactId> --format skill-dir --output ./out
 ```
 
-Use `distilled-json` for quick agent inspection, `bundle-json` for complete archival, and `skill-dir` when materializing a Claude-compatible skill directory.
+使用 `distilled-json` 进行快速代理检查，使用 `bundle-json` 进行完整归档，使用 `skill-dir` 在物化 Claude 兼容技能目录时使用。
 
-## Selective Activation
+## 选择性激活
 
 ```bash
 trapmap activate \
@@ -22,6 +22,6 @@ trapmap activate \
   --json
 ```
 
-Activate only files needed for the current task. Do not fetch every reference/script by default.
+仅激活当前任务所需的文件。不要默认获取所有引用/脚本。
 
-Scripts may be blocked or require manual approval depending on their activation policy. Do not execute activated scripts unless the policy and the user/session permissions allow it.
+脚本可能会被阻止或需要手动批准，具体取决于其激活策略。除非策略和用户/会话权限允许，否则不要执行激活的脚本。

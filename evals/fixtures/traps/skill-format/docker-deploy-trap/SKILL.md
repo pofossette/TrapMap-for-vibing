@@ -1,6 +1,6 @@
 ---
 name: docker-deploy-trap
-description: Common docker deployment pitfalls and their mitigations for production environments
+description: 生产环境常见的 Docker 部署陷阱及其缓解方法
 labels:
   - docker
   - deployment
@@ -9,27 +9,27 @@ labels:
   - container
 ---
 
-# Docker Deployment Pitfalls
+# Docker 部署陷阱
 
-## Stale Build Cache in Multi-stage Builds
+## 多阶段构建中的过期构建缓存
 
-When using docker multi-stage builds, the build cache can become stale if the base image is updated but the docker cache layer is not invalidated. This causes production deployments to use outdated dependencies or security patches, leading to crash and error in production.
+使用 Docker 多阶段构建时，如果基础镜像更新但 Docker 缓存层未失效，构建缓存可能会过期。这会导致生产部署使用过时的依赖或安全补丁，从而导致生产环境崩溃和错误。
 
-Prerequisite: must understand docker layer caching and multi-stage build patterns.
-Requires explicit `--no-cache` flag or base image pinning with digest.
+前提条件：必须理解 Docker 层缓存和多阶段构建模式。
+需要显式使用 `--no-cache` 标志或通过摘要固定基础镜像。
 
-To mitigate: pin base images by SHA256 digest instead of tags. Fix: use `docker build --pull` to force base image updates, and add `COPY package.json package-lock.json ./` before `RUN npm ci` to ensure dependency changes invalidate the cache.
+缓解方法：通过 SHA256 摘要而非标签固定基础镜像。修复方法：使用 `docker build --pull` 强制基础镜像更新，并在 `RUN npm ci` 之前添加 `COPY package.json package-lock.json ./`，确保依赖变更使缓存失效。
 
-This error is especially common in CI pipelines where docker builds are cached across commits. The container appears to build successfully but contains stale code or dependencies.
+此错误在 CI 管道中尤为常见，其中 Docker 构建在提交之间被缓存。容器看似构建成功，但包含过时的代码或依赖。
 
-## OOM Kill from Missing Resource Limits
+## 缺少资源限制导致的 OOM Kill
 
-Kubernetes kills containers that exceed memory limits with an OOM error. When docker containers run without explicit memory limits in kubernetes, they can consume all node memory and get killed. The pod restarts with a CrashLoopBackOff status.
+Kubernetes 会用 OOM 错误杀死超出内存限制的容器。当 Docker 容器在 Kubernetes 中没有显式内存限制运行时，它们可能会消耗所有节点内存并被杀死。Pod 会以 CrashLoopBackOff 状态重启。
 
-Requires setting requests and limits in the kubernetes deployment manifest. Fix: add `resources.limits.memory` and `resources.requests.memory` to all container specs. Test resource behavior in staging before production deployment.
+需要在 Kubernetes 部署清单中设置 requests 和 limits。修复方法：为所有容器规格添加 `resources.limits.memory` 和 `resources.requests.memory`。在生产部署前在 Staging 环境中测试资源行为。
 
-## Environment Variable Mismatch Across Environments
+## 跨环境的环境变量不匹配
 
-When docker containers use different .env files between local development, staging, and production, configuration drift causes undefined behavior and crash. Common issues include missing DATABASE_URL, incorrect API endpoints, and mismatched feature flags.
+当 Docker 容器在本地开发、Staging 和生产环境之间使用不同的 .env 文件时，配置漂移会导致未定义行为和崩溃。常见问题包括缺少 DATABASE_URL、错误的 API 端点和不匹配的功能标志。
 
-To mitigate: use a single source of truth for configuration, validate environment variables at container startup. Fix: implement a startup validation script that checks all required environment variables before the main process starts.
+缓解方法：使用单一配置来源，在容器启动时验证环境变量。修复方法：实现启动验证脚本，在主进程启动前检查所有必需的环境变量。

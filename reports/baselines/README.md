@@ -1,10 +1,10 @@
-# Evaluation Baselines
+# 评测基线
 
-This directory stores baseline evaluation results for regression comparison.
+本目录存储用于回归比较的基线评测结果。
 
-Baselines are:
-- Written by scheduled core runs (weekly on Monday at 6 AM UTC)
-- Compared against by PR smoke runs
-- Retained for 90 days as CI artifacts
+基线：
+- 由定时 core 运行写入（每周一 UTC 6 AM）
+- 由 PR smoke 运行进行比较
+- 作为 CI 工件保留 90 天
 
-Do not commit baseline files directly. They are managed by CI.
+不要直接提交基线文件。它们由 CI 管理。

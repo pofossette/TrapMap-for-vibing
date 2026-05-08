@@ -1,43 +1,43 @@
-# Compact Experience Accumulation
+# 紧凑经验累积
 
-Use this when a human says a solved issue is worth preserving.
+当有人说已解决的问题值得保存时使用此流程。
 
-1. Summarize the reusable lesson in one sentence.
-2. Search existing skills and traps for duplicates.
-3. Choose `trap`, `skill`, or both.
-4. For traps, submit a concise warning with root cause, fix, and verification.
-5. For skills, create a small skill directory with compact `SKILL.md` guidance and optional `references/evidence.md`.
-6. Register through `trapmap trap submit` or `trapmap import`.
-7. Leave approval or duplicate resolution to the review workflow.
+1. 用一句话总结可复用的教训。
+2. 搜索现有技能和陷阱中的重复项。
+3. 选择 `trap`、`skill` 或两者。
+4. 对于陷阱，提交包含根本原因、修复和验证的简洁警告。
+5. 对于技能，创建小型技能目录，包含紧凑的 `SKILL.md` 指导和可选的 `references/evidence.md`。
+6. 通过 `trapmap trap submit` 或 `trapmap import` 注册。
+7. 将批准或重复解决方案留给审核工作流。
 
-## Strategy-Gene Shape
+## 策略基因形状
 
-Use compact, control-oriented content. This is the default shape for agent-facing TrapMap skills:
+使用紧凑、面向控制的内容。这是代理面向 TrapMap 技能的默认形状：
 
 ```text
-MATCH: when this applies
-GOAL: what the agent should achieve
-STRATEGY: 3-5 ordered steps
-AVOID: specific failure warning
-VERIFY: command or observable confirmation
+MATCH: 当此适用时
+GOAL: 代理应该实现的目标
+STRATEGY: 3-5 个有序步骤
+AVOID: 具体的失败警告
+VERIFY: 命令或可观察的确认
 ```
 
-The `AVOID` line is where failure history belongs. Distill the failure into a warning; do not append the whole failure transcript.
+`AVOID` 行是失败历史所属的地方。将失败提炼为警告；不要附加整个失败转录。
 
-## Capture Rules
+## 捕获规则
 
-- Prefer one targeted skill over a broad manual.
-- Keep examples short and only include them when they prevent a real mistake.
-- Put long evidence, if needed, in `references/evidence.md` and load it only during review.
-- Include the validation command actually run, or an observable confirmation if no command exists.
-- Do not paste raw chat logs, secrets, tokens, or private paths into reusable knowledge.
+- 优先使用一个针对性技能而非宽泛的手册。
+- 保持示例简短，仅在它们能防止真实错误时才包含。
+- 如果需要，将长证据放入 `references/evidence.md`，仅在审核时加载。
+- 包含实际运行的验证命令，或在没有命令时包含可观察的确认。
+- 不要将原始聊天日志、秘密、令牌或私有路径粘贴到可复用知识中。
 
-## Trap Detail Template
+## 陷阱详情模板
 
 ```text
-Problem: what failed
-Root cause: why it failed
-Fix: what resolved it
-Verification: command/output or observable confirmation
-Avoid: the shortest reusable warning
+Problem: 什么失败了
+Root cause: 为什么失败
+Fix: 什么解决了它
+Verification: 命令/输出或可观察的确认
+Avoid: 最短的可复用警告
 ```

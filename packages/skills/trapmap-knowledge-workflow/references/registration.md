@@ -1,43 +1,43 @@
-# Registration
+# 注册
 
-Use these commands when you need to submit new knowledge or import a skill directory.
+当需要提交新知识或导入技能目录时使用这些命令。
 
-## Choose the Artifact Type
+## 选择工件类型
 
-- Use a `trap` for a compact warning: known failure mode, root cause, fix, and verification.
-- Use a `skill` for a reusable workflow that teaches an agent how to operate tools.
-- Use both when a workflow is useful but has a recurring failure mode that deserves a separate `AVOID` warning.
+- 使用 `trap` 表示紧凑的警告：已知失败模式、根本原因、修复和验证。
+- 使用 `skill` 表示可复用的工作流，教导代理如何操作工具。
+- 当工作流有用但有值得单独 `AVOID` 警告的常见失败模式时，两者都使用。
 
-Before registering anything, search for duplicates with both skill and trap retrieval.
+在注册任何内容之前，使用技能和陷阱检索搜索重复项。
 
-## Trap Submission
+## 陷阱提交
 
 ```bash
 trapmap trap submit \
   --scope project \
   --label cli \
   --label pnpm \
-  --shortcut "Use -- when forwarding CLI args through pnpm scripts" \
-  --detail "Problem, root cause, fix, and verification." \
+  --shortcut "使用 -- 当通过 pnpm 脚本转发 CLI 参数时" \
+  --detail "问题、根本原因、修复和验证。" \
   --json
 
 trapmap trap resubmit <entryId> \
   --label retrieval \
-  --shortcut "Updated warning" \
+  --shortcut "更新的警告" \
   --file detail.md \
   --json
 ```
 
-Keep `shortcut` terminal-friendly. Put reusable organization-wide constraints in `global` scope and repository-specific knowledge in `project` scope.
+保持 `shortcut` 对终端友好。将可复用的组织级约束放在 `global` 范围，将仓库特定知识放在 `project` 范围。
 
-## Skill Import
+## 技能导入
 
 ```bash
 trapmap import --file path/to/skill-dir --level 0 --json
 trapmap import --file path/to/SKILL.md --level 0 --json
 ```
 
-Expected skill directory shape:
+期望的技能目录形状：
 
 ```text
 skill-name/
@@ -47,16 +47,16 @@ skill-name/
   scripts/
 ```
 
-Keep `SKILL.md` concise and move detailed operational notes into `references/`.
+保持 `SKILL.md` 简洁，将详细的操作说明移入 `references/`。
 
-Use this compact control block inside new skill guidance when possible:
+在可能时，在新的技能指导中使用此紧凑控制块：
 
 ```text
-MATCH: when this applies
-GOAL: what the agent should achieve
-STRATEGY: 3-5 ordered steps
-AVOID: specific failure warning
-VERIFY: command or observable confirmation
+MATCH: 当此适用时
+GOAL: 代理应该实现的目标
+STRATEGY: 3-5 个有序步骤
+AVOID: 具体的失败警告
+VERIFY: 命令或可观察的确认
 ```
 
-Do not register raw logs, secrets, private paths, or long documentation dumps.
+不要注册原始日志、秘密、私有路径或长篇文档转储。

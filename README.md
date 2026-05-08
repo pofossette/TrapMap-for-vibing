@@ -1,22 +1,6 @@
 # TrapMap
 
-A monorepo for skill sharing platform with server, CLI, and contracts packages.
-
-## ⚠️ 包管理器说明
-
-**本项目强制使用 [pnpm](https://pnpm.io/) 作为包管理器。**
-
-- 请勿使用 `npm` 或 `yarn` 安装依赖
-- 项目已配置 `packageManager: pnpm@10.33.0`，建议使用 corepack 自动切换版本
-- pnpm-lock.yaml 是唯一的 lock 文件，请勿删除
-
-```bash
-# 使用 corepack 启用正确版本的 pnpm
-corepack prepare pnpm@10.33.0 --activate
-
-# 安装依赖
-pnpm install
-```
+基于 pnpm + TypeScript monorepo 的技能共享平台，包含服务器、CLI 和契约包。
 
 ## 📖 文档
 
@@ -31,105 +15,105 @@ pnpm install
 | [docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md) | 投稿指南 |
 | [docs/reference/GLOSSARY.md](docs/reference/GLOSSARY.md) | 项目术语表 |
 
-## 🚀 Quick Deploy
+## 🚀 快速部署
 
-The fastest way to deploy:
+最快捷的部署方式：
 
 ```bash
-# 1. Configure environment
+# 1. 配置环境变量
 cp .env.production.example .env
-# Edit .env and add your OPENAI_API_KEY
+# 编辑 .env 并填入你的 OPENAI_API_KEY
 
-# 2. Run quick deploy
+# 2. 运行快速部署脚本
 ./scripts/deploy-quick.sh
 ```
 
-Server will be available at http://localhost:4000
+部署后服务将在 http://localhost:4000 可用。
 
 ---
 
-## 📋 Deployment Options
+## 📋 部署选项
 
-### Option 1: Quick Deploy (Recommended)
+### 选项一：快速部署（推荐）
 
-For simple deployments, use the quick deploy script:
+对于简单的部署场景，使用快速部署脚本：
 
 ```bash
 ./scripts/deploy-quick.sh
 ```
 
-### Option 2: Full Deploy Script
+### 选项二：完整部署脚本
 
-For more control over deployment:
+需要更多部署控制时：
 
 ```bash
 ./scripts/deploy.sh deploy
 ```
 
-### Available Commands
+### 可用命令
 
-| Command | Description |
+| 命令 | 说明 |
 |---------|-------------|
-| `./scripts/deploy.sh deploy` | Initial deployment |
-| `./scripts/deploy.sh start` | Start service |
-| `./scripts/deploy.sh stop` | Stop service |
-| `./scripts/deploy.sh restart` | Restart service |
-| `./scripts/deploy.sh logs` | View logs |
-| `./scripts/deploy.sh status` | Check status |
-| `./scripts/deploy.sh update` | Update and restart |
-| `./scripts/deploy.sh shell` | Access container |
-| `./scripts/deploy.sh clean` | Remove everything |
+| `./scripts/deploy.sh deploy` | 初始部署 |
+| `./scripts/deploy.sh start` | 启动服务 |
+| `./scripts/deploy.sh stop` | 停止服务 |
+| `./scripts/deploy.sh restart` | 重启服务 |
+| `./scripts/deploy.sh logs` | 查看日志 |
+| `./scripts/deploy.sh status` | 检查状态 |
+| `./scripts/deploy.sh update` | 更新并重启 |
+| `./scripts/deploy.sh shell` | 进入容器 |
+| `./scripts/deploy.sh clean` | 清理所有内容 |
 
-### Using Docker Compose Directly
+### 直接使用 Docker Compose
 
 ```bash
-# Build and start
+# 构建并启动
 docker compose up -d
 
-# View logs
+# 查看日志
 docker compose logs -f
 
-# Stop
+# 停止
 docker compose down
 ```
 
 ---
 
-## 🔧 Configuration
+## 🔧 配置
 
-### Required Environment Variables
+### 必需环境变量
 
-| Variable | Description | Example |
+| 变量 | 说明 | 示例 |
 |----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key | `sk-...` |
-| `TRAPMAP_SYSTEM_ADMIN_KEY` | Admin secret key | Generate with `openssl rand -hex 32` |
+| `OPENAI_API_KEY` | OpenAI API 密钥 | `sk-...` |
+| `TRAPMAP_SYSTEM_ADMIN_KEY` | 管理员密钥 | 使用 `openssl rand -hex 32` 生成 |
 
-### Optional Configuration
+### 可选配置
 
-| Variable | Description | Default |
+| 变量 | 说明 | 默认值 |
 |----------|-------------|---------|
-| `NODE_ENV` | Environment | `production` |
-| `HOST` | Bind address | `0.0.0.0` |
-| `PORT` | Server port | `4000` |
+| `NODE_ENV` | 运行环境 | `production` |
+| `HOST` | 绑定地址 | `0.0.0.0` |
+| `PORT` | 服务器端口 | `4000` |
 
 ---
 
-## 📊 Health Check
+## 📊 健康检查
 
-The service includes a health check endpoint:
+服务提供健康检查端点：
 
 ```bash
 curl http://localhost:4000/health
 ```
 
-Expected response:
+预期响应：
 ```json
 {"status":"ok","timestamp":"..."}
 ```
 
 ---
 
-## 📁 Project Structure
+## 📁 项目结构
 
 ```
 Trap-Map/
@@ -149,31 +133,31 @@ Trap-Map/
 
 ---
 
-## 🛠️ Development
+## 🛠️ 开发
 
 ```bash
-# Install dependencies
+# 安装依赖
 pnpm install
 
-# Build all packages
+# 构建所有包
 pnpm build
 
-# Run server in development
+# 开发模式运行服务器
 pnpm dev:server
 
-# Run CLI in development
+# 开发模式运行 CLI
 pnpm dev:cli
 
-# Run tests
+# 运行测试
 pnpm test
 
-# Type check
+# 类型检查
 pnpm typecheck
 
-# Lint
+# 代码检查
 pnpm lint
 
-# Format
+# 代码格式化
 pnpm format
 ```
 

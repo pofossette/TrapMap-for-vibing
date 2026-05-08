@@ -1,6 +1,6 @@
 ---
 name: ci-pipeline-trap
-description: CI/CD pipeline pitfalls including flaky tests, cache invalidation, and timeout cascades
+description: CI/CD 管道陷阱，包括不稳定测试、缓存失效和超时级联
 labels:
   - ci
   - cd
@@ -11,25 +11,25 @@ labels:
   - vitest
 ---
 
-# CI/CD Pipeline Pitfalls
+# CI/CD 管道陷阱
 
-## Flaky Test Timing in CI
+## CI 中的不稳定测试计时
 
-Tests that depend on timing (setTimeout, animation frames, debounce) fail intermittently in CI due to slower container resources. A test that passes consistently in local development with 100ms timeout fails randomly in CI where the container is under load. The failure is not reproducible locally, making debugging extremely difficult.
+依赖计时的测试（setTimeout、动画帧、防抖）会因为 CI 容器资源较慢而间歇性失败。在本地开发中以 100ms 超时稳定通过的测试，在负载下的 CI 容器中会随机失败。该失败在本地无法复现，使调试极其困难。
 
-Prerequisite: must understand test timing and deterministic testing patterns.
-Requires using fake timers and avoiding real waits in tests.
+前提条件：必须理解测试计时和确定性测试模式。
+需要在测试中使用伪造计时器并避免真实等待。
 
-To mitigate: use vitest fake timers (vi.useFakeTimers) instead of real waits. Fix: replace all setTimeout delays with vi.advanceTimersByTime, use waitFor utility for async assertions, and set appropriate retry counts for genuinely flaky tests in CI.
+缓解方法：使用 vitest 伪造计时器（vi.useFakeTimers）代替真实等待。修复方法：将所有 setTimeout 延迟替换为 vi.advanceTimersByTime，对异步断言使用 waitFor 工具，并为 CI 中真正不稳定的测试设置适当的重试次数。
 
-## Docker Layer Cache Invalidation
+## Docker 层缓存失效
 
-CI pipelines that cache docker layers suffer from cache invalidation when the base image or dependencies change. The cache serves stale layers, and the CI builds an image with outdated dependencies. This causes runtime errors in production that cannot be reproduced in local development because the local docker cache is different.
+缓存 Docker 层的 CI 管道在基础镜像或依赖变更时会遭遇缓存失效。缓存提供过时的层，CI 构建出包含过时依赖的镜像。这会导致生产中无法在本地开发中复现的运行时错误，因为本地 Docker 缓存不同。
 
-Fix: use multi-stage builds with explicit cache targets, pull the latest base image before building, and hash the lockfile as part of the cache key.
+修复方法：使用带显式缓存目标的多阶段构建，在构建前拉取最新基础镜像，并将锁文件哈希作为缓存键的一部分。
 
-## Test Container Startup Race Condition
+## 测试容器启动竞争条件
 
-When CI starts a database container and immediately runs tests, the tests fail because the database is not ready to accept connections. The error is "cannot connect to database" or "connection refused". This is a race condition between container startup and test execution.
+当 CI 启动数据库容器并立即运行测试时，测试会失败，因为数据库尚未准备好接受连接。错误为 "cannot connect to database" 或 "connection refused"。这是容器启动和测试执行之间的竞争条件。
 
-Requires a health check wait strategy. Fix: add a health check to the docker-compose service definition and wait for it before running tests. Use wait-for-it or a similar tool to poll the database port.
+需要健康检查等待策略。修复方法：为 docker-compose 服务定义添加健康检查，在运行测试前等待其就绪。使用 wait-for-it 或类似工具轮询数据库端口。

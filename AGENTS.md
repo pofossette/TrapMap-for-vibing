@@ -1,4 +1,4 @@
-# TrapMap Agent Entry
+# TrapMap 智能体入口
 
 本文件是智能体和贡献者的入口索引，不承载完整项目说明。需要细节时按链接逐步展开，避免在单个文件中复制过长内容。
 
@@ -8,14 +8,13 @@ TrapMap 是 pnpm + TypeScript monorepo，用于团队工程知识、陷阱经验
 [`packages/cli`](packages/cli/) 是 Commander CLI，[`packages/server`](packages/server/) 是 Fastify API，
 [`packages/contracts`](packages/contracts/) 是共享 Zod schema 和类型，[`evals/`](evals/) 是检索与摘要评测。
 
-## 先读什么
+## 推荐阅读顺序
 
 - 项目总览和常用命令：[`README.md`](README.md)
 - 文档索引：[`docs/README.md`](docs/README.md)
 - 本地开发：[`docs/guides/GETTING_STARTED.md`](docs/guides/GETTING_STARTED.md)
 - 代码阅读路径：[`docs/guides/CODE_GUIDE.md`](docs/guides/CODE_GUIDE.md)
 - 包职责：[`docs/PACKAGES.md`](docs/PACKAGES.md)
-- 短期计划：[`plan.md`](plan.md)
 
 ## 按任务跳转
 

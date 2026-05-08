@@ -1,88 +1,88 @@
-# Retrieval Evaluation Datasets
+# 检索评测数据集
 
-This directory contains golden datasets and entrypoints for evaluating TrapMap's retrieval endpoints.
+本目录包含用于评测 TrapMap 检索端点的黄金数据集和入口点。
 
-## Quick Start
+## 快速开始
 
-Run retrieval evaluation from root pnpm scripts:
+从根目录的 pnpm 脚本运行检索评测：
 
 ```bash
-# Run smoke tier evaluation
+# 运行 smoke 层级评测
 pnpm eval:retrieval:smoke
 
-# Run core tier evaluation
+# 运行 core 层级评测
 pnpm eval:retrieval:core
 
-# Dry-run (validate layout without execution)
+# 空跑（验证布局，不执行）
 pnpm eval:retrieval:dry-run
 
-# Run with options
+# 带选项运行
 pnpm eval:retrieval --tier smoke --endpoint /v2/retrieval/search
 ```
 
-## Endpoints in Scope
+## 端点范围
 
-| Endpoint | Response Shape | Notes |
-|----------|----------------|-------|
-| `/v1/retrieval/search` | Bucketed (`globalConstraints`, `projectKnowledge`) | Legacy endpoint, compatibility-sensitive |
-| `/v2/retrieval/search` | Capsule-first (`capsules`, `profileHints`) | Current recommended endpoint |
-| `/v3/retrieval/search` | Graph-plan wrapper (`plan` or governed `fallback`) | Additive GraphRAG-lite route with routing trace |
+| 端点 | 响应形状 | 说明 |
+|------|----------|------|
+| `/v1/retrieval/search` | 分桶（`globalConstraints`、`projectKnowledge`） | 旧版端点，兼容性敏感 |
+| `/v2/retrieval/search` | 胶囊优先（`capsules`、`profileHints`） | 当前推荐端点 |
+| `/v3/retrieval/search` | 图规划包装（`plan` 或 governed `fallback`） | 附加 GraphRAG-lite 路由，含路由追踪 |
 
-### v1 vs v2 vs v3 Distinction
+### v1 vs v2 vs v3 区别
 
-The retrieval surfaces have materially different response contracts:
+检索接口具有实质不同的响应契约：
 
-- **v1** returns knowledge entries split into `globalConstraints` and `projectKnowledge` buckets
-- **v2** returns distilled capsules with `profileHints` for activation
-- **v3** returns either a trap-first execution plan or a governed fallback payload plus routing trace metadata
+- **v1** 返回分为 `globalConstraints` 和 `projectKnowledge` 桶的知识条目
+- **v2** 返回提炼的胶囊，附带用于激活的 `profileHints`
+- **v3** 返回陷阱优先执行计划或治理回退载荷，外加路由追踪元数据
 
-Evaluation cases must specify the target endpoint explicitly. Do not normalize these surfaces into a single response shape at the dataset level.
+评测用例必须明确指定目标端点。不要在数据集层面将这些表面统一为单一响应形状。
 
-### v1 Compatibility Risk
+### v1 兼容性风险
 
-The `/v1/retrieval/search` endpoint has known route-path sensitivity. Current integration tests show governance scenarios returning 500 under authenticated route execution. This is a planning consideration for Phase 26 execution:
+`/v1/retrieval/search` 端点存在已知的路由路径敏感性。当前集成测试显示，在认证路由执行下，治理场景可能返回 500 错误。这是 Phase 26 执行的规划考虑因素：
 
-- The v1 endpoint remains an active contract per `docs/api-surface.md`
-- Phase 26 may need an internal adapter if route instability persists
-- Dataset authors should target v1 cases for coverage, but runners should handle execution failures gracefully
+- 根据 `docs/api-surface.md`，v1 端点仍然是活跃契约
+- 如果路由不稳定性持续存在，Phase 26 可能需要内部适配器
+- 数据集作者应以 v1 用例为目标进行覆盖，但运行器应优雅处理执行失败
 
-## Tier Organization
+## 层级组织
 
-### Smoke Tier
+### Smoke 层级
 
-Fast feedback, minimal coverage. Proves the evaluation pipeline is wired correctly.
+快速反馈，最小覆盖。证明评测管道连接正确。
 
-| Case ID | Endpoint | Scenario Type |
-|---------|----------|---------------|
-| `v1-semantic-positive-smoke` | `/v1/retrieval/search` | Positive visible hit |
-| `v1-semantic-empty-smoke` | `/v1/retrieval/search` | Empty result |
-| `v1-semantic-forbidden-smoke` | `/v1/retrieval/search` | Forbidden result |
-| `v2-capsule-positive-smoke` | `/v2/retrieval/search` | Positive visible hit |
-| `v2-capsule-empty-smoke` | `/v2/retrieval/search` | Empty result |
-| `v2-capsule-forbidden-smoke` | `/v2/retrieval/search` | Forbidden result |
-| `v3-graph-plan-selected-smoke` | `/v3/retrieval/search` | Graph-plan selected |
-| `v3-graph-plan-fallback-v2-smoke` | `/v3/retrieval/search` | Capsule fallback |
-| `v3-graph-plan-fallback-v1-smoke` | `/v3/retrieval/search` | Entry fallback |
+| 用例 ID | 端点 | 场景类型 |
+|---------|------|----------|
+| `v1-semantic-positive-smoke` | `/v1/retrieval/search` | 正向可见命中 |
+| `v1-semantic-empty-smoke` | `/v1/retrieval/search` | 空结果 |
+| `v1-semantic-forbidden-smoke` | `/v1/retrieval/search` | 禁止结果 |
+| `v2-capsule-positive-smoke` | `/v2/retrieval/search` | 正向可见命中 |
+| `v2-capsule-empty-smoke` | `/v2/retrieval/search` | 空结果 |
+| `v2-capsule-forbidden-smoke` | `/v2/retrieval/search` | 禁止结果 |
+| `v3-graph-plan-selected-smoke` | `/v3/retrieval/search` | 图规划选中 |
+| `v3-graph-plan-fallback-v2-smoke` | `/v3/retrieval/search` | 胶囊回退 |
+| `v3-graph-plan-fallback-v1-smoke` | `/v3/retrieval/search` | 条目回退 |
 
-### Core Tier
+### Core 层级
 
-Broader coverage for regression detection. Includes mode variations and response shape checks.
+更广泛的覆盖，用于回归检测。包括模式变化和响应形状检查。
 
-| Case ID | Endpoint | Slice |
-|---------|----------|-------|
-| `v1-semantic-ranked-core` | `/v1/retrieval/search` | Semantic mode, multiple relevant |
-| `v1-hybrid-ranked-core` | `/v1/retrieval/search` | Hybrid mode |
-| `v1-graph-assisted-ranked-core` | `/v1/retrieval/search` | Graph-assisted mode |
-| `v1-bucket-shape-core` | `/v1/retrieval/search` | Bucket split verification |
-| `v2-capsule-ranked-core` | `/v2/retrieval/search` | Capsule ranking |
-| `v2-profile-hints-core` | `/v2/retrieval/search` | Profile hints verification |
-| `v2-governance-core` | `/v2/retrieval/search` | Forbidden leakage |
-| `v3-graph-plan-selected-core` | `/v3/retrieval/search` | Multi-skill selected plan |
-| `v3-graph-plan-governance-core` | `/v3/retrieval/search` | Governance-sensitive graph-plan |
+| 用例 ID | 端点 | 切片 |
+|---------|------|------|
+| `v1-semantic-ranked-core` | `/v1/retrieval/search` | 语义模式，多个相关 |
+| `v1-hybrid-ranked-core` | `/v1/retrieval/search` | 混合模式 |
+| `v1-graph-assisted-ranked-core` | `/v1/retrieval/search` | 图辅助模式 |
+| `v1-bucket-shape-core` | `/v1/retrieval/search` | 桶分割验证 |
+| `v2-capsule-ranked-core` | `/v2/retrieval/search` | 胶囊排序 |
+| `v2-profile-hints-core` | `/v2/retrieval/search` | 配置文件提示验证 |
+| `v2-governance-core` | `/v2/retrieval/search` | 禁止泄漏 |
+| `v3-graph-plan-selected-core` | `/v3/retrieval/search` | 多技能选中计划 |
+| `v3-graph-plan-governance-core` | `/v3/retrieval/search` | 治理敏感图规划 |
 
-## Dataset Contract
+## 数据集契约
 
-Each dataset module exports plain objects validated against `@trapmap/contracts`:
+每个数据集模块导出由 `@trapmap/contracts` 验证的纯对象：
 
 ```typescript
 import { retrievalEvalCaseSchema } from '@trapmap/contracts';
@@ -102,116 +102,116 @@ export const myCase = retrievalEvalCaseSchema.parse({
 });
 ```
 
-## Governance Assertions
+## 治理断言
 
-Every case has separate `relevance` and `governance` sections in the `expected` field:
+每个用例在 `expected` 字段中有独立的 `relevance` 和 `governance` 部分：
 
 ```typescript
 expected: {
   outcome: 'empty',
   relevance: {
-    relevantIds: ['entry_1'],  // Would be relevant by content
+    relevantIds: ['entry_1'],  // 内容上可能相关
     idealOrder: [],
   },
   governance: {
-    forbiddenIds: ['entry_1'],  // But forbidden by policy
-    forbiddenReasons: ['cross-team'],  // Why forbidden
+    forbiddenIds: ['entry_1'],  // 但策略禁止
+    forbiddenReasons: ['cross-team'],  // 禁止原因
   },
 }
 ```
 
-This separation ensures:
+这种分离确保：
 
-1. Governance leaks are detected independently of ranking quality
-2. A forbidden result cannot hide in relevance metrics
-3. Failure reports clearly identify cross-team, security-level, or lifecycle issues
+1. 治理泄漏独立于排序质量被检测
+2. 禁止的结果不能隐藏在相关性指标中
+3. 失败报告能清晰识别跨团队、安全等级或生命周期问题
 
-## Out of Scope for Phase 25
+## Phase 25 范围外
 
-- Metrics calculators (Hit@K, MRR, nDCG) → Phase 26 ✓ COMPLETE
-- Report serialization → Phase 26 ✓ COMPLETE
-- CI wiring → Phase 28
-- Summary/judge evaluation → Phase 27
+- 指标计算器（Hit@K、MRR、nDCG）→ Phase 26 ✓ 完成
+- 报告序列化 → Phase 26 ✓ 完成
+- CI 接线 → Phase 28
+- 摘要/法官评测 → Phase 27
 
-## Metrics (Phase 26)
+## 指标（Phase 26）
 
-The runner computes the following ranking metrics per case and per slice:
+运行器为每个用例和切片计算以下排序指标：
 
-| Metric | Description |
-|--------|-------------|
-| Hit@K | Whether any relevant ID appears in top K results (K=1,5,10) |
-| MRR | Mean Reciprocal Rank: 1/rank of first relevant result |
-| nDCG | Normalized Discounted Cumulative Gain (binary relevance) |
-| Recall@K | Fraction of relevant items found in top K results (K=10) |
+| 指标 | 描述 |
+|------|------|
+| Hit@K | 前 K 个结果中是否出现相关 ID（K=1,5,10） |
+| MRR | 平均倒数排名：首个相关结果排名的倒数 |
+| nDCG | 归一化折扣累积增益（二元相关性） |
+| Recall@K | 前 K 个结果中找到的相关项占比（K=10） |
 
-Empty target policy: All metrics return 0 when no relevant IDs exist.
+空目标策略：当没有相关 ID 时，所有指标返回 0。
 
-## Entrypoints
+## 入口点
 
-| File | Purpose |
-|------|---------|
-| `run.ts` | Main runner entrypoint with execution, metrics, and reporting |
-| `smoke.ts` | Smoke-tier dataset export |
-| `core.ts` | Core-tier dataset export |
-| `lib/types.ts` | Shared runner result and slice types |
-| `lib/adapters.ts` | Endpoint execution boundary |
-| `lib/normalize.ts` | Endpoint-specific response normalization |
-| `lib/metrics.ts` | Ranking metric calculators |
-| `lib/governance.ts` | Governance assertion layer |
-| `lib/load.ts` | Case loading and validation |
+| 文件 | 用途 |
+|------|------|
+| `run.ts` | 主运行器入口，含执行、指标和报告 |
+| `smoke.ts` | Smoke 层级数据集导出 |
+| `core.ts` | Core 层级数据集导出 |
+| `lib/types.ts` | 共享运行器结果和切片类型 |
+| `lib/adapters.ts` | 端点执行边界 |
+| `lib/normalize.ts` | 端点特定响应归一化 |
+| `lib/metrics.ts` | 排序指标计算器 |
+| `lib/governance.ts` | 治理断言层 |
+| `lib/load.ts` | 用例加载和验证 |
 
-## Runner Options
+## 运行器选项
 
-| Option | Description |
-|--------|-------------|
-| `--tier` | Evaluation tier: `smoke` or `core` (default: `smoke`) |
-| `--endpoint` | Filter by endpoint: `/v1/retrieval/search`, `/v2/retrieval/search`, or `/v3/retrieval/search` |
-| `--dry-run` | Validate layout without executing evaluation |
-| `--allow-empty` | Exit successfully if no cases found |
-| `--json` | Output JSON report |
-| `--json-path` | Write JSON report to file |
-| `--verbose` | Enable verbose output |
-| `--baseline` | Path to baseline report for comparison (Phase 29-03) |
-| `--write-baseline` | Write current results as new baseline (Phase 29-03) |
+| 选项 | 描述 |
+|------|------|
+| `--tier` | 评测层级：`smoke` 或 `core`（默认：`smoke`） |
+| `--endpoint` | 按端点过滤：`/v1/retrieval/search`、`/v2/retrieval/search` 或 `/v3/retrieval/search` |
+| `--dry-run` | 验证布局，不执行评测 |
+| `--allow-empty` | 未找到用例时成功退出 |
+| `--json` | 输出 JSON 报告 |
+| `--json-path` | 将 JSON 报告写入文件 |
+| `--verbose` | 启用详细输出 |
+| `--baseline` | 基线报告路径，用于比较（Phase 29-03） |
+| `--write-baseline` | 将当前结果写入新基线（Phase 29-03） |
 
-### Dry-Run Mode
+### 空跑模式
 
-Phase 25-01 defines the entrypoint convention before Plan 25-02 creates datasets. Use `--dry-run --allow-empty` to validate layout and contract wiring without authored datasets:
+Phase 25-01 在 Plan 25-02 创建数据集之前定义入口点约定。使用 `--dry-run --allow-empty` 验证布局和契约接线，而无需已编写的数据集：
 
 ```bash
 pnpm exec tsx evals/retrieval/run.ts --tier smoke --dry-run --allow-empty
 ```
 
-### Baseline Flow (Phase 29-03)
+### 基线流程（Phase 29-03）
 
-The runner supports baseline write and compare for regression detection:
+运行器支持基线写入和比较，用于回归检测：
 
 ```bash
-# Write a new baseline
+# 写入新基线
 pnpm eval:retrieval --tier smoke --write-baseline --baseline ./reports/baseline.json
 
-# Compare against baseline
+# 与基线比较
 pnpm eval:retrieval --tier smoke --baseline ./reports/baseline.json
 ```
 
-Baseline artifacts are stored at the path specified by `--baseline`. Comparison shows per-slice regression status:
-- `REGRESSED`: Hit@1 or MRR dropped >5% from baseline
-- `IMPROVED`: Hit@1 or MRR improved >5% from baseline
-- `STABLE`: Metrics within 5% of baseline
-- `NO-BASELINE`: No matching slice in baseline
+基线工件存储在 `--baseline` 指定的路径。比较显示每个切片的回归状态：
+- `REGRESSED`：Hit@1 或 MRR 较基线下降超过 5%
+- `IMPROVED`：Hit@1 或 MRR 较基线提升超过 5%
+- `STABLE`：指标在基线的 5% 范围内
+- `NO-BASELINE`：基线中没有匹配的切片
 
-## Failure Policy (Phase 29-03)
+## 失败策略（Phase 29-03）
 
-The evaluation runner enforces an explicit failure policy:
+评测执行器强制执行明确的失败策略：
 
-| Failure Kind | Policy | Description |
-|--------------|--------|-------------|
-| Governance leaks | **Always fail** | Forbidden IDs appearing in results |
-| Empty-result mismatch | **Always fail** | Expected empty but got non-empty, or vice versa |
-| Ranking regression | **Report only** | Hit@1 or MRR dropped compared to baseline |
+| 失败类型 | 策略 | 描述 |
+|----------|------|------|
+| 治理泄漏 | **始终失败** | 禁止 ID 出现在结果中 |
+| 空结果不匹配 | **始终失败** | 期望空但得到非空，反之亦然 |
+| 排序回归 | **仅报告** | Hit@1 或 MRR 较基线下降 |
 
-**Governance leaks always fail** - Any case where a forbidden ID appears in results causes immediate failure, regardless of ranking metrics.
+**治理泄漏始终失败** - 任何禁止 ID 出现在结果中的用例都会立即失败，无论排序指标如何。
 
-**Empty-result expectation mismatches always fail** - If a case expects an empty result but gets results (or vice versa), this is a hard failure.
+**空结果预期不匹配始终失败** - 如果用例期望空结果但得到结果（或反之），这是硬性失败。
 
-**Ranking regressions compare against baseline** - When a baseline is provided, ranking drift is reported but does not cause exit code 1 unless accompanied by governance leaks or empty-result mismatches.
+**排序回归与基线比较** - 当提供基线时，排序漂移会被报告，但不会导致退出码 1，除非伴随治理泄漏或空结果不匹配。

@@ -1,87 +1,87 @@
-# Summary Evaluation
+# 摘要评测
 
-This directory contains the summary evaluation system for TrapMap's retrieval endpoints.
+本目录包含 TrapMap 检索端点的摘要评测系统。
 
-Summary evaluation scores the quality of LLM-generated summaries over retrieved context using judge-based verification.
+摘要评测使用基于法官验证的方式，对检索上下文中 LLM 生成摘要的质量进行评分。
 
-## Quick Start
+## 快速开始
 
-Run summary evaluation from root pnpm scripts:
+从根目录的 pnpm 脚本运行摘要评测：
 
 ```bash
-# Run smoke tier evaluation
+# 运行 smoke 层级评测
 pnpm eval:summary:smoke
 
-# Run core tier evaluation
+# 运行 core 层级评测
 pnpm eval:summary:core
 
-# Dry-run (validate layout without execution)
+# 空跑（验证布局，不执行）
 pnpm eval:summary:dry-run
 
-# Run with options
+# 带选项运行
 pnpm eval:summary --tier smoke --endpoint /v2/retrieval/search
 
-# Run with JSON output
+# 以 JSON 输出运行
 pnpm eval:summary --tier core --json --json-path ./reports/summary.json
 
-# Use specific judge provider
+# 使用特定法官提供商
 pnpm eval:summary --tier smoke --provider fallback
 ```
 
-## Summary Evaluation Concepts
+## 摘要评测概念
 
-Summary evaluation measures three key aspects of LLM-generated summaries:
+摘要评测衡量 LLM 生成摘要的三个关键方面：
 
-### Groundedness
+### 可 grounding 性（Groundedness）
 
-The ratio of claims in the summary that are supported by the retrieved context.
+摘要中的声明被检索上下文支持的比例。
 
-- **High groundedness** means the summary accurately reflects the source material
-- **Low groundedness** indicates hallucination or fabrication
-- **Threshold**: Default minimum is 0.8 (80% of claims must be supported)
+- **高 groundedness** 表示摘要准确反映源材料
+- **低 groundedness** 表示存在幻觉或捏造
+- **阈值**：默认最低为 0.8（80% 的声明必须被支持）
 
-Example:
+示例：
 ```
-Summary: "Docker Compose is a tool for defining multi-container Docker applications."
-Context: ["Docker Compose allows you to define and run multi-container Docker applications..."]
-Result: Grounded (claim is supported by context)
+摘要："Docker Compose 是用于定义多容器 Docker 应用程序的工具。"
+上下文：["Docker Compose 允许你定义和运行多容器 Docker 应用程序..."]
+结果：可 grounding（声明被上下文支持）
 ```
 
-### Coverage
+### 覆盖率（Coverage）
 
-The ratio of required facts that appear in the summary.
+摘要中出现的必需事实的比例。
 
-- **High coverage** means the summary includes essential information
-- **Low coverage** indicates missing important details
-- **Threshold**: Default minimum is 0.7 (70% of required facts must be present)
+- **高覆盖率** 表示摘要包含必要信息
+- **低覆盖率** 表示遗漏了重要细节
+- **阈值**：默认最低为 0.7（70% 的必需事实必须出现）
 
-Example:
+示例：
 ```typescript
 expected: {
   requiredFacts: ['docker-compose', 'multi-container'],
-  // Summary must mention both concepts
+  // 摘要必须提及这两个概念
 }
 ```
 
-### Forbidden Claims
+### 禁止声明（Forbidden Claims）
 
-Claims that must NOT appear in the summary (hallucination detection).
+摘要中不得出现的声明（幻觉检测）。
 
-- **Zero forbidden claims** is the goal
-- **Any forbidden claim found** triggers a failure
-- Used to detect sensitive information leakage or fabrication
+- **零禁止声明** 是目标
+- **发现任何禁止声明** 触发失败
+- 用于检测敏感信息泄漏或捏造
 
-Example:
+示例：
 ```typescript
 expected: {
   forbiddenClaims: ['kubernetes', 'production credentials', 'API token'],
-  // Summary must NOT mention these terms
+  // 摘要不得提及这些术语
 }
 ```
 
-## Case Structure
+## 用例结构
 
-Each summary evaluation case defines:
+每个摘要评测用例定义：
 
 ```typescript
 import { summaryEvalCaseSchema, type SummaryEvalCase } from '@trapmap/contracts';
@@ -89,74 +89,74 @@ import { summaryEvalCaseSchema, type SummaryEvalCase } from '@trapmap/contracts'
 export const myCase = summaryEvalCaseSchema.parse({
   schemaVersion: 1,
   caseId: 'unique-case-id',
-  tier: 'smoke', // or 'core'
-  endpoint: '/v2/retrieval/search', // or '/v1/retrieval/search'
+  tier: 'smoke', // 或 'core'
+  endpoint: '/v2/retrieval/search', // 或 '/v1/retrieval/search'
   request: {
     seed: 'search query',
     maxResults: 10,
   },
   scenarioId: 'scenario-for-fixtures',
   expected: {
-    requiredFacts: ['fact 1', 'fact 2'],  // Must appear in summary
-    forbiddenClaims: ['forbidden term'],  // Must NOT appear
-    minGroundedness: 0.8,  // Minimum groundedness score
-    minCoverage: 0.7,      // Minimum coverage score
-    expectSummary: true,   // Whether summary is expected
+    requiredFacts: ['fact 1', 'fact 2'],  // 必须出现在摘要中
+    forbiddenClaims: ['forbidden term'],  // 不得出现
+    minGroundedness: 0.8,  // 最低 groundedness 分数
+    minCoverage: 0.7,      // 最低覆盖率分数
+    expectSummary: true,   // 是否期望摘要
   },
   tags: ['tag1', 'tag2'],
 }) as SummaryEvalCase;
 ```
 
-## Judge Providers
+## 法官提供商
 
-The summary evaluation uses a judge to verify claims against context.
+摘要评测使用法官来验证声明与上下文的一致性。
 
-### Fallback Judge (Default)
+### Fallback 法官（默认）
 
-- Deterministic, rule-based verification
-- No external API calls
-- Suitable for CI and local development
-- Less sophisticated but reliable
+- 确定性的、基于规则的验证
+- 无外部 API 调用
+- 适合 CI 和本地开发
+- 不够复杂但可靠
 
 ```bash
 pnpm eval:summary --provider fallback
 ```
 
-### OpenAI Judge
+### OpenAI 法官
 
-- LLM-based verification using OpenAI models
-- More sophisticated claim extraction and verification
-- Requires `OPENAI_API_KEY` environment variable
-- Better for thorough evaluation
+- 使用 OpenAI 模型进行基于 LLM 的验证
+- 更复杂的声明提取和验证
+- 需要 `OPENAI_API_KEY` 环境变量
+- 更适合彻底评测
 
 ```bash
 export OPENAI_API_KEY=your-key
 pnpm eval:summary --provider openai
 ```
 
-## Tier Organization
+## 层级组织
 
-### Smoke Tier
+### Smoke 层级
 
-Fast feedback, minimal coverage. Proves the evaluation pipeline is wired correctly.
+快速反馈，最小覆盖。证明评测管道连接正确。
 
-| Case ID | Endpoint | Focus |
-|---------|----------|-------|
-| `summary-grounded-smoke` | `/v2/retrieval/search` | Groundedness verification |
-| `summary-hallucination-smoke` | `/v2/retrieval/search` | Hallucination detection |
-| `summary-forbidden-claims-smoke` | `/v2/retrieval/search` | Forbidden claim detection |
+| 用例 ID | 端点 | 重点 |
+|---------|------|------|
+| `summary-grounded-smoke` | `/v2/retrieval/search` | Groundedness 验证 |
+| `summary-hallucination-smoke` | `/v2/retrieval/search` | 幻觉检测 |
+| `summary-forbidden-claims-smoke` | `/v2/retrieval/search` | 禁止声明检测 |
 
-### Core Tier
+### Core 层级
 
-Broader coverage for regression detection.
+更广泛的覆盖，用于回归检测。
 
-| Case ID | Endpoint | Focus |
-|---------|----------|-------|
-| (Add core cases as needed) | `/v1/retrieval/search`, `/v2/retrieval/search` | Various scenarios |
+| 用例 ID | 端点 | 重点 |
+|---------|------|------|
+| （根据需要添加 core 用例） | `/v1/retrieval/search`、`/v2/retrieval/search` | 各种场景 |
 
-## Adding Cases
+## 添加用例
 
-1. **Create the case file** in `evals/summary/datasets/`:
+1. **在用例文件目录中创建用例文件** `evals/summary/datasets/`：
 
 ```typescript
 // evals/summary/datasets/smoke/my-new-case.ts
@@ -179,64 +179,64 @@ export const myNewCase = summaryEvalCaseSchema.parse({
 }) as SummaryEvalCase;
 ```
 
-2. **Export in the tier file** (`evals/summary/smoke.ts` or `evals/summary/core.ts`):
+2. **在层级文件中导出**（`evals/summary/smoke.ts` 或 `evals/summary/core.ts`）：
 
 ```typescript
 import { myNewCase } from './datasets/smoke/my-new-case.js';
 
 export const summarySmokeCases: SummaryEvalCase[] = [
-  // ... existing cases
+  // ... 已有用例
   myNewCase,
 ];
 ```
 
-3. **Add scenario** if needed in `evals/summary/scenarios/`.
+3. **如需要，在** `evals/summary/scenarios/` **中添加场景**。
 
-4. **Validate** with dry-run:
+4. **用空跑验证**：
 
 ```bash
 pnpm eval:summary:dry-run
 ```
 
-## Runner Options
+## 运行器选项
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--tier` | Evaluation tier: `smoke` or `core` | `smoke` |
-| `--endpoint` | Filter by endpoint | All endpoints |
-| `--dry-run` | Validate without executing | `false` |
-| `--allow-empty` | Exit successfully if no cases | `false` |
-| `--json` | Output JSON report | `false` |
-| `--json-path` | Write JSON to file | stdout |
-| `--verbose` | Enable verbose output | `false` |
-| `--provider` | Judge provider: `openai` or `fallback` | `fallback` |
+| 选项 | 描述 | 默认值 |
+|------|------|--------|
+| `--tier` | 评测层级：`smoke` 或 `core` | `smoke` |
+| `--endpoint` | 按端点过滤 | 所有端点 |
+| `--dry-run` | 验证而不执行 | `false` |
+| `--allow-empty` | 未找到用例时成功退出 | `false` |
+| `--json` | 输出 JSON 报告 | `false` |
+| `--json-path` | 将 JSON 写入文件 | stdout |
+| `--verbose` | 启用详细输出 | `false` |
+| `--provider` | 法官提供商：`openai` 或 `fallback` | `fallback` |
 
-## Output Format
+## 输出格式
 
-### Terminal Output
+### 终端输出
 
 ```
-=== Summary Evaluation Report ===
-Timestamp: 2026-04-21T...
-Duration: 150ms
-LLM Provider: fallback
-Tier: smoke
+=== 摘要评测报告 ===
+时间戳：2026-04-21T...
+耗时：150ms
+LLM 提供商：fallback
+层级：smoke
 
-=== Summary ===
-Total cases: 3
-Passed: 2
-Failed: 1
-Pass rate: 66.7%
-Average Groundedness: 0.85
-Average Coverage: 0.72
-Forbidden Claim Hits: 0
+=== 摘要 ===
+总计用例：3
+通过：2
+失败：1
+通过率：66.7%
+平均 Groundedness：0.85
+平均覆盖率：0.72
+禁止声明命中：0
 
-=== Case Results ===
-  ✓ summary-grounded-smoke [/v2/retrieval/search]: G=0.92 C=0.80 2/2 claims
-  ✗ summary-hallucination-smoke [/v2/retrieval/search]: G=0.45 C=0.50 1/3 claims | 1 forbidden
+=== 用例结果 ===
+  ✓ summary-grounded-smoke [/v2/retrieval/search]: G=0.92 C=0.80 2/2 声明
+  ✗ summary-hallucination-smoke [/v2/retrieval/search]: G=0.45 C=0.50 1/3 声明 | 1 禁止
 ```
 
-### JSON Output
+### JSON 输出
 
 ```json
 {
@@ -260,20 +260,20 @@ Forbidden Claim Hits: 0
 }
 ```
 
-## Integration with Unified Runner
+## 与统一运行器集成
 
-Summary evaluation is included in the unified evaluation runner:
+摘要评测包含在统一评测运行器中：
 
 ```bash
-# Runs both retrieval and summary
+# 同时运行检索和摘要
 pnpm eval:smoke
 pnpm eval:core
 ```
 
-The unified runner shows summary evaluation in its own section with groundedness/coverage averages.
+统一运行器在其自己的部分显示摘要评测，包含 groundedness/覆盖率平均值。
 
-## Related Documentation
+## 相关文档
 
-- [evals/README.md](../README.md) - Overall evaluation workspace
-- [Retrieval Eval README](../retrieval/README.md) - Retrieval evaluation details
-- [PROJECT.md](../../.planning/PROJECT.md) - Milestone requirements
+- [evals/README.md](../README.md) - 评测工作区总览
+- [检索评测 README](../retrieval/README.md) - 检索评测详情
+- [PROJECT.md](../../.planning/PROJECT.md) - 里程碑要求

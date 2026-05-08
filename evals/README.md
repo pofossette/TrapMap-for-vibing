@@ -1,74 +1,74 @@
-# Skill Shareer Evaluation Workspace
+# TrapMap 评测工作区
 
-This directory contains the evaluation datasets and runner entrypoints for TrapMap's retrieval and summary evaluation system.
+本目录包含 TrapMap 检索和摘要评测系统的数据集和运行器入口点。
 
-## Quick Start
+## 快速开始
 
-Run unified evaluation across both retrieval and summary:
+在检索和摘要上运行统一评测：
 
 ```bash
-# Run smoke tier (fast feedback)
+# 运行 smoke 层级（快速反馈）
 pnpm eval:smoke
 
-# Run core tier (broader coverage)
+# 运行 core 层级（更广泛覆盖）
 pnpm eval:core
 
-# Run full evaluation with JSON output
+# 运行完整评测，带 JSON 输出
 pnpm eval:all:json
 
-# Dry-run validation without execution
+# 空跑验证，不执行
 pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
 ```
 
-Run evaluation for a specific type:
+为特定类型运行评测：
 
 ```bash
-# Retrieval only
+# 仅检索
 pnpm eval:retrieval:smoke
 pnpm eval:retrieval:core
 
-# Summary only
+# 仅摘要
 pnpm eval:summary:smoke
 pnpm eval:summary:core
 ```
 
-## Workspace Layout
+## 工作区布局
 
 ```text
 evals/
-├── README.md                    # This file
+├── README.md                    # 本文件
 ├── scripts/
-│   └── eval-all.ts              # Unified runner for both eval types
+│   └── eval-all.ts              # 两种评测类型的统一运行器
 ├── retrieval/
-│   ├── README.md                # Retrieval eval conventions and endpoint specifics
-│   ├── run.ts                   # Retrieval runner entrypoint
-│   ├── smoke.ts                 # Smoke-tier dataset export
-│   ├── core.ts                  # Core-tier dataset export
-│   ├── datasets/                # Retrieval case definitions
-│   └── lib/                     # Runner infrastructure
+│   ├── README.md                # 检索评测约定和端点详情
+│   ├── run.ts                   # 检索运行器入口
+│   ├── smoke.ts                 # Smoke 层级数据集导出
+│   ├── core.ts                  # Core 层级数据集导出
+│   ├── datasets/                # 检索用例定义
+│   └── lib/                     # 运行器基础设施
 └── summary/
-    ├── README.md                # Summary eval documentation
-    ├── run.ts                   # Summary runner entrypoint
-    ├── smoke.ts                 # Smoke-tier dataset export
-    ├── core.ts                  # Core-tier dataset export
-    ├── datasets/                # Summary case definitions
-    └── lib/                     # Judge and scoring infrastructure
+    ├── README.md                # 摘要评测文档
+    ├── run.ts                   # 摘要运行器入口
+    ├── smoke.ts                 # Smoke 层级数据集导出
+    ├── core.ts                  # Core 层级数据集导出
+    ├── datasets/                # 摘要用例定义
+    └── lib/                     # 法官和评分基础设施
 ```
 
-## Phase Status
+## Phase 状态
 
-| Phase | Scope | Status |
-|-------|-------|--------|
-| Phase 25 | Contracts, workspace layout, thin entrypoints | Complete |
-| Phase 26 | Dataset authoring, metrics runner, report generation | Complete |
-| Phase 27 | Summary evaluation with judge-based checks | Complete |
-| Phase 28 | CI integration and regression gates | **Current** |
+| Phase | 范围 | 状态 |
+|-------|------|------|
+| Phase 25 | 契约、工作区布局、薄入口 | 完成 |
+| Phase 26 | 数据集编写、指标运行器、报告生成 | 完成 |
+| Phase 27 | 基于法官验证的摘要评测 | 完成 |
+| Phase 28 | CI 集成和回归门控 | **当前** |
 
-## How to Add Cases
+## 如何添加用例
 
-### Adding a Retrieval Case
+### 添加检索用例
 
-1. **Create the case definition** in the appropriate dataset file under `evals/retrieval/datasets/`:
+1. **在用例文件目录中创建用例定义** `evals/retrieval/datasets/` 下的适当数据集文件中：
 
 ```typescript
 import { retrievalEvalCaseSchema, type RetrievalEvalCase } from '@trapmap/contracts';
@@ -76,19 +76,19 @@ import { retrievalEvalCaseSchema, type RetrievalEvalCase } from '@trapmap/contra
 export const myNewCase = retrievalEvalCaseSchema.parse({
   schemaVersion: 1,
   caseId: 'my-new-case-id',
-  tier: 'smoke', // or 'core'
-  endpoint: '/v2/retrieval/search', // or '/v1/retrieval/search'
+  tier: 'smoke', // 或 'core'
+  endpoint: '/v2/retrieval/search', // 或 '/v1/retrieval/search'
   request: {
     seed: 'my search query',
-    mode: 'semantic', // optional: 'hybrid', 'graph-assisted'
+    mode: 'semantic', // 可选：'hybrid'、'graph-assisted'
     maxResults: 10,
   },
   scenarioId: 'my-scenario-id',
   expected: {
-    outcome: 'non-empty', // or 'empty'
+    outcome: 'non-empty', // 或 'empty'
     relevance: {
       relevantIds: ['entry_1', 'entry_2'],
-      idealOrder: ['entry_1', 'entry_2'], // optional
+      idealOrder: ['entry_1', 'entry_2'], // 可选
     },
     governance: {
       forbiddenIds: [],
@@ -98,13 +98,13 @@ export const myNewCase = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 ```
 
-2. **Export the case** in the tier file (`smoke.ts` or `core.ts`).
+2. **在层级文件中导出用例**（`smoke.ts` 或 `core.ts`）。
 
-3. **Add the scenario** if needed in `evals/retrieval/scenarios/` for fixture state.
+3. **如需要，在** `evals/retrieval/scenarios/` **中添加场景**用于 fixture 状态。
 
-### Adding a Summary Case
+### 添加摘要用例
 
-1. **Create the case definition** in the appropriate dataset file under `evals/summary/datasets/`:
+1. **在用例文件目录中创建用例定义** `evals/summary/datasets/` 下的适当数据集文件中：
 
 ```typescript
 import { summaryEvalCaseSchema, type SummaryEvalCase } from '@trapmap/contracts';
@@ -112,7 +112,7 @@ import { summaryEvalCaseSchema, type SummaryEvalCase } from '@trapmap/contracts'
 export const mySummaryCase = summaryEvalCaseSchema.parse({
   schemaVersion: 1,
   caseId: 'my-summary-case',
-  tier: 'smoke', // or 'core'
+  tier: 'smoke', // 或 'core'
   endpoint: '/v2/retrieval/search',
   request: {
     seed: 'my query for summary',
@@ -129,60 +129,60 @@ export const mySummaryCase = summaryEvalCaseSchema.parse({
 }) as SummaryEvalCase;
 ```
 
-2. **Export the case** in the tier file (`smoke.ts` or `core.ts`).
+2. **在层级文件中导出用例**（`smoke.ts` 或 `core.ts`）。
 
-### Schema Reference
+### Schema 参考
 
-All schemas are defined in `packages/contracts/src/domain/evals/`:
-- `retrieval.ts` - Retrieval case and request schemas
-- `summary.ts` - Summary case and expected outcome schemas
-- `report.ts` - Report structure schemas
+所有 schema 定义在 `packages/contracts/src/domain/evals/`：
+- `retrieval.ts` - 检索用例和请求 schema
+- `summary.ts` - 摘要用例和预期结果 schema
+- `report.ts` - 报告结构 schema
 
-## Interpreting Failures
+## 解读失败
 
-### Governance Failures
+### 治理失败
 
-Governance failures indicate permission or policy violations, not ranking issues:
+治理失败表示权限或策略违规，而非排序问题：
 
-| Failure Kind | Meaning |
-|--------------|---------|
-| `forbidden-hit` | A result was returned that should have been filtered by RBAC, security level, or lifecycle state |
-| `unexpected-empty` | Expected results but got none (possibly over-filtering) |
-| `unexpected-non-empty` | Expected no results but got some (possibly under-filtering) |
-| `shape-mismatch` | Response structure doesn't match endpoint contract |
+| 失败类型 | 含义 |
+|----------|------|
+| `forbidden-hit` | 返回了应被 RBAC、安全等级或生命周期状态过滤的结果 |
+| `unexpected-empty` | 期望有结果但得到空（可能过度过滤） |
+| `unexpected-non-empty` | 期望无结果但得到一些（可能过滤不足） |
+| `shape-mismatch` | 响应结构与端点契约不匹配 |
 
-**Action**: Check RBAC configuration, security levels, and lifecycle states for the affected entries.
+**操作**：检查受影响条目的 RBAC 配置、安全等级和生命周期状态。
 
-### Metric Failures (Retrieval)
+### 指标失败（检索）
 
-Low metric scores indicate ranking quality issues:
+低指标分数表示排序质量问题：
 
-| Metric | Target | Meaning |
-|--------|--------|---------|
-| Hit@1 | > 0.8 | First result is relevant |
-| Hit@5 | > 0.9 | Relevant result in top 5 |
-| MRR | > 0.7 | Mean reciprocal rank of first relevant |
-| nDCG | > 0.7 | Ranking quality normalized |
+| 指标 | 目标 | 含义 |
+|------|------|------|
+| Hit@1 | > 0.8 | 首个结果相关 |
+| Hit@5 | > 0.9 | 前 5 个中有相关结果 |
+| MRR | > 0.7 | 首个相关结果的平均倒数排名 |
+| nDCG | > 0.7 | 归一化排序质量 |
 
-**Action**: Check embedding quality, reranker configuration, and query preprocessing.
+**操作**：检查 embedding 质量、重排序器配置和查询预处理。
 
-### Groundedness/Coverage Failures (Summary)
+### Groundedness/覆盖率失败（摘要）
 
-Summary evaluation failures indicate hallucination or missing information:
+摘要评测失败表示幻觉或信息缺失：
 
-| Issue | Meaning |
-|-------|---------|
-| Low Groundedness | Summary contains claims not supported by retrieved context |
-| Low Coverage | Summary misses required facts from the expected set |
-| Forbidden Claims | Summary contains hallucinated or disallowed content |
+| 问题 | 含义 |
+|------|------|
+| 低 Groundedness | 摘要包含检索上下文不支持的声明 |
+| 低覆盖率 | 摘要遗漏预期集中的必需事实 |
+| 禁止声明 | 摘要包含幻觉或不允许的内容 |
 
-**Action**: Check judge configuration, retrieved context quality, and summary generation prompts.
+**操作**：检查法官配置、检索上下文质量和摘要生成提示。
 
-## Report Structure
+## 报告结构
 
-### JSON Report Format
+### JSON 报告格式
 
-Both retrieval and summary reports follow a common structure:
+检索和摘要报告遵循共同结构：
 
 ```typescript
 interface EvalReport {
@@ -204,88 +204,88 @@ interface EvalReport {
 }
 ```
 
-### Terminal Output
+### 终端输出
 
-Run with `--verbose` for detailed per-case output:
+使用 `--verbose` 获取详细的每个用例输出：
 
 ```bash
 pnpm eval:smoke -- --verbose
 ```
 
-The unified runner shows:
-- Retrieval Evaluation section with slice comparison table
-- Summary Evaluation section with groundedness/coverage averages
-- Overall Status with pass/fail summary
+统一运行器显示：
+- 检索评测部分，含切片比较表
+- 摘要评测部分，含 groundedness/覆盖率平均值
+- 总体状态，含通过/失败摘要
 
-## CI Integration
+## CI 集成
 
-Evaluation runs automatically in GitHub Actions. The workflow is defined in `.github/workflows/eval.yml`.
+评测在 GitHub Actions 中自动运行。工作流定义在 `.github/workflows/eval.yml`。
 
-### Automatic Triggers
+### 自动触发
 
-| Trigger | Tier | When |
-|---------|------|------|
-| Pull Request | Smoke | PRs to `main` that modify `packages/contracts/src/domain/evals/**`, `evals/**`, or `packages/server/src/**` |
-| Schedule | Core | Weekly on Monday at 6 AM UTC |
-| Manual Dispatch | Smoke or Core | Via GitHub Actions UI with tier selection |
+| 触发器 | 层级 | 何时 |
+|--------|------|------|
+| Pull Request | Smoke | 修改 `packages/contracts/src/domain/evals/**`、`evals/**` 或 `packages/server/src/**` 的 PR 到 `main` |
+| 定时 | Core | 每周一 UTC 6 AM |
+| 手动触发 | Smoke 或 Core | 通过 GitHub Actions UI 选择层级 |
 
-### Viewing Results
+### 查看结果
 
-1. **Check the Actions tab** in GitHub for workflow run status and logs
-2. **Download report artifacts** when a run fails - the workflow uploads `reports/` as an artifact
-3. **Review `eval-report.json`** for detailed per-case metrics, failures, and slice breakdowns
-4. Core evaluation reports are retained for 30 days; smoke reports for 7 days
+1. **在 GitHub 的 Actions 标签页中检查**工作流运行状态和日志
+2. **下载报告工件** - 运行失败时，工作流会将 `reports/` 上传为工件
+3. **查看** `eval-report.json` 获取每个用例的详细指标、失败和切片分解
+4. Core 评测报告保留 30 天；smoke 报告保留 7 天
 
-### CI Scripts
+### CI 脚本
 
-| Script | Purpose |
-|--------|---------|
-| `pnpm eval:ci` | CI-optimized runner with GitHub Actions output, writes report to `reports/eval-report.json` |
-| `pnpm eval:ci:core` | Core tier CI runner (sets `TIER=core`), used for scheduled runs |
+| 脚本 | 用途 |
+|------|------|
+| `pnpm eval:ci` | CI 优化运行器，带 GitHub Actions 输出，写入报告到 `reports/eval-report.json` |
+| `pnpm eval:ci:core` | Core 层级 CI 运行器（设置 `TIER=core`），用于定时运行 |
 
-The CI runner (`evals/scripts/eval-ci.ts`) differs from the local runner:
-- Writes machine-readable JSON report to `reports/eval-report.json`
-- Sets GitHub Actions output variables (`passed`, `total_cases`, `passed_cases`, `failed_cases`)
-- Uses compact single-line summary format in grouped log output
-- Always writes the report, even on failure, for artifact upload
+CI 运行器（`evals/scripts/eval-ci.ts`）与本地运行器不同：
+- 将机器可读的 JSON 报告写入 `reports/eval-report.json`
+- 设置 GitHub Actions 输出变量（`passed`、`total_cases`、`passed_cases`、`failed_cases`）
+- 在分组日志输出中使用紧凑的单行摘要格式
+- 即使失败也始终写入报告，用于工件上传
 
-### Local CI Simulation
+### 本地 CI 模拟
 
-You can simulate CI behavior locally without GitHub Actions:
+你可以在本地模拟 CI 行为，无需 GitHub Actions：
 
 ```bash
-# Simulate CI smoke run
+# 模拟 CI smoke 运行
 pnpm eval:ci
 
-# Simulate CI core run
+# 模拟 CI core 运行
 TIER=core pnpm eval:ci
 
-# Run with GitHub Actions output (for testing)
+# 带 GitHub Actions 输出运行（用于测试）
 GITHUB_OUTPUT=/tmp/gh-output pnpm eval:ci
 ```
 
-## Governance vs Relevance
+## 治理 vs 相关性
 
-Per REVAL-02 and the v1.4 milestone, retrieval evaluation separates two concerns:
+根据 REVAL-02 和 v1.4 里程碑，检索评测分离两个关注点：
 
-- **Relevance**: Ranking quality (Hit@K, MRR, nDCG)
-- **Governance**: Permission/policy correctness (cross-team, security-level, lifecycle leakage)
+- **相关性**：排序质量（Hit@K、MRR、nDCG）
+- **治理**：权限/策略正确性（跨团队、安全等级、生命周期泄漏）
 
-A high relevance score cannot hide a governance leak. Every eval case carries separate `relevance` and `governance` assertion groups.
+高相关性分数不能掩盖治理泄漏。每个评测用例都带有独立的 `relevance` 和 `governance` 断言组。
 
-## Key Principles
+## 关键原则
 
-1. **Contracts in `packages/contracts`**: All eval schemas live in the shared contracts package, not here. This workspace only contains datasets and entrypoints.
+1. **契约在** `packages/contracts`：所有评测 schema 位于共享契约包中，而非此处。此工作区仅包含数据集和入口点。
 
-2. **Datasets are milestone-owned**: Dataset files are `.ts` modules exporting plain objects that validate against the shared contracts.
+2. **数据集由里程碑拥有**：数据集文件是 `.ts` 模块，导出针对共享契约验证的纯对象。
 
-3. **Endpoint specificity**: Retrieval evaluation targets explicit endpoints (`/v1/retrieval/search`, `/v2/retrieval/search`). Each case declares its target endpoint explicitly.
+3. **端点特定性**：检索评测针对明确端点（`/v1/retrieval/search`、`/v2/retrieval/search`）。每个用例都明确声明其目标端点。
 
-4. **Separation of concerns**: Governance failures and relevance failures are tracked separately and both must pass for overall success.
+4. **关注点分离**：治理失败和相关性失败被分别跟踪，两者都必须通过才能整体成功。
 
-## Related Documentation
+## 相关文档
 
-- [Retrieval Eval README](./retrieval/README.md) - Endpoint-specific conventions
-- [Summary Eval README](./summary/README.md) - Judge-based evaluation details
-- [PROJECT.md](../.planning/PROJECT.md) - Milestone requirements
-- [ROADMAP.md](../.planning/ROADMAP.md) - Phase scope boundaries
+- [检索评测 README](./retrieval/README.md) - 端点特定约定
+- [摘要评测 README](./summary/README.md) - 基于法官的评测详情
+- [PROJECT.md](../.planning/PROJECT.md) - 里程碑要求
+- [ROADMAP.md](../.planning/ROADMAP.md) - Phase 范围边界

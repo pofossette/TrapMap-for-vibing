@@ -1,6 +1,6 @@
 ---
 name: typescript-strict-trap
-description: TypeScript strict mode pitfalls including type narrowing failures, any leakage, and declaration merging
+description: TypeScript strict 模式陷阱，包括类型收窄失败、any 泄漏和声明合并
 labels:
   - typescript
   - javascript
@@ -9,25 +9,25 @@ labels:
   - ts
 ---
 
-# TypeScript Strict Mode Pitfalls
+# TypeScript Strict 模式陷阱
 
-## Implicit Any from Missing Type Annotations
+## 缺少类型注解导致的隐式 Any
 
-When TypeScript strict mode is not enabled, function parameters and return types default to any, hiding type errors. Code that compiles without errors in non-strict mode fails at runtime with "undefined is not a function" or "cannot read property of null" errors. Migrating to strict mode later reveals hundreds of latent type errors.
+当 TypeScript strict 模式未启用时，函数参数和返回类型默认为 any，会隐藏类型错误。在非 strict 模式下编译无错误的代码，在运行时会因 "undefined is not a function" 或 "cannot read property of null" 错误而失败。稍后迁移到 strict 模式会暴露数百个潜在类型错误。
 
-Prerequisite: must enable strict mode from project inception.
-Requires explicit type annotations on all exported functions and class methods.
+前提条件：必须从项目开始时启用 strict 模式。
+需要对所有导出函数和类方法显式标注类型。
 
-To mitigate: enable strict mode in tsconfig.json from day one. Fix: add `"strict": true` to tsconfig.json and resolve all resulting errors incrementally. Use `// @ts-expect-error` temporarily only during migration.
+缓解方法：从第一天起在 tsconfig.json 中启用 strict 模式。修复方法：在 tsconfig.json 中添加 `"strict": true` 并逐步解决所有由此产生的错误。仅在迁移期间临时使用 `// @ts-expect-error`。
 
-## Type Narrowing Failure with Union Types
+## 联合类型中的类型收窄失败
 
-When using union types (e.g., string | null), TypeScript cannot narrow the type inside async callbacks or closures. The compiler reports "object is possibly null" even after a null check, because the variable might have changed between the check and the callback execution. This leads to runtime null reference errors.
+使用联合类型（如 string | null）时，TypeScript 无法在异步回调或闭包内收窄类型。编译器会报告 "object is possibly null"，即使在 null 检查之后也是如此，因为变量可能在检查和回调执行之间发生变化。这会导致运行时 null 引用错误。
 
-Fix: use type guards that return boolean predicates, or assign to a const before the async boundary. Requires understanding TypeScript control flow analysis.
+修复方法：使用返回布尔谓词的类型守卫，或在异步边界之前将值赋给 const。需要理解 TypeScript 的控制流分析。
 
-## Declaration Merging with Module Augmentation
+## 声明合并与模块增强
 
-When using declaration merging to extend third-party module types, incorrect augmentation can corrupt the type system silently. The types compile but do not match the runtime values, causing undefined behavior. This error is especially common when augmenting express Request type or vitest matchers.
+使用声明合并来扩展第三方模块类型时，不正确的增强会静默破坏类型系统。类型可以编译但与运行时值不匹配，导致未定义行为。此错误在增强 express Request 类型或 vitest 匹配器时尤为常见。
 
-To mitigate: keep augmentations minimal and test them with runtime assertions. Fix: use module augmentation only in dedicated .d.ts files, verify augmented types with type-level tests.
+缓解方法：保持增强最小化，并用运行时断言测试它们。修复方法：仅在专用的 .d.ts 文件中使用模块增强，用类型级测试验证增强的类型。

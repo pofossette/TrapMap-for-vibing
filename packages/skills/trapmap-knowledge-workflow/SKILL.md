@@ -1,33 +1,33 @@
 ---
 name: trapmap-knowledge-workflow
-description: Use when planning or implementing TrapMap work, operating the TrapMap CLI, or preserving solved engineering pitfalls. Enforces skill-before-plan and trap-before-implementation retrieval, trap-first plan compilation, CLI help verification, artifact activation/review, and compact experience capture.
+description: 用于规划或实施 TrapMap 工作、操作 TrapMap CLI 或保存已解决的工程陷阱。强制执行先技能后规划、先实现后检索、陷阱优先规划编译、CLI 帮助验证、工件激活/审核和紧凑经验捕获。
 ---
 
-# TrapMap Knowledge Workflow
+# TrapMap 知识工作流
 
-## Control Path
+## 控制路径
 
-1. Resolve the CLI invocation first: prefer `trapmap`; in this monorepo use `pnpm --filter @trapmap/cli dev -- <command>` when the built binary is unavailable.
-2. Before planning, read [references/retrieval.md](references/retrieval.md) and retrieve matching skills with a task seed. Use `trapmap load "<seed>"` for pre-formatted agent context or `trapmap search` for raw retrieval. Use only the 1-3 most targeted matches as planning controls.
-3. Before implementation, retrieve matching traps with a risk/implementation seed. Treat matching traps as constraints before applying any skill guidance.
-4. Compile a trap-first plan: list blocking traps, then the skills/capsules that directly mitigate them, then verification commands. Keep extra matches as citations instead of loading them all into context.
-5. If the task scope changes materially, rerun retrieval with a seed that matches the new scope.
-6. If TrapMap retrieval is blocked by auth, server, or install state, record the exact blocker. Do not claim there were no relevant traps or skills.
-7. After a solved issue, preserve reusable experience only when it is compact, verified, and non-secret. Use [references/accumulation.md](references/accumulation.md).
+1. 优先解析 CLI 调用：首选 `trapmap`；在此 monorepo 中，当内置二进制不可用时使用 `pnpm --filter @trapmap/cli dev -- <command>`。
+2. 在规划前，阅读 [references/retrieval.md](references/retrieval.md) 并使用任务种子检索匹配的技能。使用 `trapmap load "<seed>"` 获取预格式化的代理上下文，或使用 `trapmap search` 获取原始检索。仅使用 1-3 个最匹配的针对性结果作为规划控制。
+3. 在实现前，使用风险/实现种子检索匹配的陷阱。在应用任何技能指导之前，将匹配的陷阱视为约束。
+4. 编译陷阱优先计划：列出阻塞的陷阱，然后是直接缓解它们的技能/胶囊，最后是验证命令。将额外匹配项保留为引用，而不是全部加载到上下文中。
+5. 如果任务范围发生重大变化，使用与新范围匹配的种子重新运行检索。
+6. 如果 TrapMap 检索因认证、服务器或安装状态而受阻，记录确切的阻塞器。不要声称没有相关的陷阱或技能。
+7. 解决问题后，仅在经验紧凑、已验证且不包含敏感信息时，才保存可复用的经验。使用 [references/accumulation.md](references/accumulation.md)。
 
-## Reference Map
+## 引用地图
 
-Load only the reference needed for the current operation:
+仅加载当前操作所需的引用：
 
-- [references/retrieval.md](references/retrieval.md): auth preflight, exact search commands, trap-first selection rules.
-- [references/registration.md](references/registration.md): trap submission, skill import, and compact skill shape.
-- [references/review.md](references/review.md): review queues, approve/reject criteria, duplicate resolution.
-- [references/artifacts.md](references/artifacts.md): export, selective activation, script policy.
-- [references/accumulation.md](references/accumulation.md): Strategy-Gene-style `MATCH/GOAL/STRATEGY/AVOID/VERIFY` capture.
+- [references/retrieval.md](references/retrieval.md)：认证预检、精确搜索命令、陷阱优先选择规则。
+- [references/registration.md](references/registration.md)：陷阱提交、技能导入和紧凑技能形状。
+- [references/review.md](references/review.md)：审核队列、批准/拒绝标准、重复解决方案。
+- [references/artifacts.md](references/artifacts.md)：导出、选择性激活、脚本策略。
+- [references/accumulation.md](references/accumulation.md)：策略基因风格的 `MATCH/GOAL/STRATEGY/AVOID/VERIFY` 捕获。
 
-## Guardrails
+## 护栏
 
-- Verify uncertain commands with `trapmap --help` or `trapmap <command> --help`; the CLI source/help is authoritative.
-- Prefer JSON output for agent-to-agent/tool parsing.
-- Do not paste raw chat logs, secrets, access keys, private paths, or bulky documentation into reusable knowledge.
-- Do not naively compose many skills. A single targeted skill plus explicit `AVOID` warnings is usually stronger than a large bundle of partially relevant guidance.
+- 使用 `trapmap --help` 或 `trapmap <command> --help` 验证不确定的命令；CLI 源码/帮助是权威来源。
+- 代理对代理/工具解析时优先使用 JSON 输出。
+- 不要将原始聊天日志、秘密、访问密钥、私有路径或庞大的文档粘贴到可复用知识中。
+- 不要天真地组合许多技能。单一针对性技能加上显式 `AVOID` 警告通常比大量部分相关指导的捆绑更强大。
