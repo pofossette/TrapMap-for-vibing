@@ -1,14 +1,18 @@
 /**
  * Shared system prompt builders for server and evaluation flows.
  *
- * Prompts are composed from task-specific slot definitions and rendered into
- * markdown, XML, or JSON based on environment configuration.
+ * 四层架构中的内容标记层（XML 语义标记）：
+ * - JSON  = 传输协议（API 层）：消息结构、tool_use/tool_result
+ * - XML   = 语义标记（内容层）：系统指令、环境信息、技能列表
+ * - YAML  = 配置文件（Skill 文件头）：Frontmatter 元数据
+ * - MD    = 内容载体（Skill 正文）
+ *
+ * Prompts are composed from task-specific slot definitions and rendered as XML.
+ * Template overrides are loaded from a JSON file (AI_PROMPT_TEMPLATE_FILE env var).
  */
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-
-export type AiPromptFormat = 'json' | 'markdown' | 'xml';
 
 export type AiPromptTaskType =
   | 'boundary-extraction'
@@ -40,20 +44,6 @@ interface PromptTemplateOverride {
 
 type PromptTemplateOverrideFile = Partial<Record<AiPromptTaskType, PromptTemplateOverride>>;
 
-interface PromptSettings {
-  formatByTask: Record<AiPromptTaskType, AiPromptFormat>;
-  templateFile: string | null;
-}
-
-const DEFAULT_PROMPT_SETTINGS: PromptSettings = {
-  formatByTask: {
-    'boundary-extraction': 'xml',
-    'knowledge-refinement': 'markdown',
-    'claim-verification': 'json',
-  },
-  templateFile: null,
-};
-
 const DEFAULT_TEMPLATE_FILE = path.resolve(
   process.cwd(),
   'docs/reference/system-prompt-slots.default.json',
@@ -71,10 +61,6 @@ function isPromptTaskType(value: string): value is AiPromptTaskType {
     value === 'knowledge-refinement' ||
     value === 'claim-verification'
   );
-}
-
-function isPromptFormat(value: string): value is AiPromptFormat {
-  return value === 'json' || value === 'markdown' || value === 'xml';
 }
 
 function escapeXml(value: string): string {
@@ -163,40 +149,6 @@ function loadPromptTemplateOverrides(templateFile: string | null): PromptTemplat
   return parsePromptTemplateOverrideFile(raw, filePath);
 }
 
-function resolvePromptSettings(): PromptSettings {
-  const boundaryFormat = process.env.AI_PROMPT_FORMAT_BOUNDARY_EXTRACTION;
-  const refinementFormat = process.env.AI_PROMPT_FORMAT_KNOWLEDGE_REFINEMENT;
-  const claimFormat = process.env.AI_PROMPT_FORMAT_CLAIM_VERIFICATION;
-
-  if (boundaryFormat !== undefined && !isPromptFormat(boundaryFormat)) {
-    throw new Error(
-      'Invalid AI_PROMPT_FORMAT_BOUNDARY_EXTRACTION. Expected one of: json, markdown, xml.',
-    );
-  }
-  if (refinementFormat !== undefined && !isPromptFormat(refinementFormat)) {
-    throw new Error(
-      'Invalid AI_PROMPT_FORMAT_KNOWLEDGE_REFINEMENT. Expected one of: json, markdown, xml.',
-    );
-  }
-  if (claimFormat !== undefined && !isPromptFormat(claimFormat)) {
-    throw new Error(
-      'Invalid AI_PROMPT_FORMAT_CLAIM_VERIFICATION. Expected one of: json, markdown, xml.',
-    );
-  }
-
-  return {
-    formatByTask: {
-      'boundary-extraction':
-        boundaryFormat ?? DEFAULT_PROMPT_SETTINGS.formatByTask['boundary-extraction'],
-      'knowledge-refinement':
-        refinementFormat ?? DEFAULT_PROMPT_SETTINGS.formatByTask['knowledge-refinement'],
-      'claim-verification':
-        claimFormat ?? DEFAULT_PROMPT_SETTINGS.formatByTask['claim-verification'],
-    },
-    templateFile: process.env.AI_PROMPT_TEMPLATE_FILE ?? DEFAULT_PROMPT_SETTINGS.templateFile,
-  };
-}
-
 function mergeSlots(base: PromptSlots, override?: PromptTemplateOverride): PromptSlots {
   if (!override) {
     return base;
@@ -223,31 +175,6 @@ function normalizeSlots(slots: PromptSlots): PromptSlots {
     constraints: slots.constraints?.map((item) => item.trim()).filter(Boolean),
     examples: slots.examples?.map((item) => item.trim()).filter(Boolean),
   };
-}
-
-function renderMarkdownPrompt(slots: PromptSlots): string {
-  const sections: string[] = [];
-
-  if (slots.role) {
-    sections.push(`You are ${slots.role}.`);
-  }
-  if (slots.task) {
-    sections.push(slots.task);
-  }
-  if (slots.corePrinciples && slots.corePrinciples.length > 0) {
-    sections.push(slots.corePrinciples.map((item, index) => `${index + 1}. ${item}`).join('\n'));
-  }
-  if (slots.outputInstructions && slots.outputInstructions.length > 0) {
-    sections.push(slots.outputInstructions.map((item) => `- ${item}`).join('\n'));
-  }
-  if (slots.constraints && slots.constraints.length > 0) {
-    sections.push(slots.constraints.map((item) => `- ${item}`).join('\n'));
-  }
-  if (slots.examples && slots.examples.length > 0) {
-    sections.push(slots.examples.map((item) => `Example:\n${item}`).join('\n\n'));
-  }
-
-  return sections.filter((section) => section.trim().length > 0).join('\n\n');
 }
 
 function renderXmlList(tagName: string, values?: string[]): string {
@@ -291,41 +218,6 @@ function renderXmlPrompt(slots: PromptSlots): string {
 
   lines.push('</system_instructions>');
   return lines.join('\n');
-}
-
-function renderJsonPrompt(slots: PromptSlots): string {
-  const payload: Record<string, unknown> = {};
-
-  if (slots.role) {
-    payload.role = slots.role;
-  }
-  if (slots.task) {
-    payload.task = slots.task;
-  }
-  if (slots.corePrinciples && slots.corePrinciples.length > 0) {
-    payload.corePrinciples = slots.corePrinciples;
-  }
-  if (slots.outputInstructions && slots.outputInstructions.length > 0) {
-    payload.outputInstructions = slots.outputInstructions;
-  }
-  if (slots.constraints && slots.constraints.length > 0) {
-    payload.constraints = slots.constraints;
-  }
-  if (slots.examples && slots.examples.length > 0) {
-    payload.examples = slots.examples;
-  }
-
-  return JSON.stringify(payload, null, 2);
-}
-
-function renderPrompt(slots: PromptSlots, format: AiPromptFormat): string {
-  if (format === 'xml') {
-    return renderXmlPrompt(slots);
-  }
-  if (format === 'json') {
-    return renderJsonPrompt(slots);
-  }
-  return renderMarkdownPrompt(slots);
 }
 
 function buildBoundaryExtractionSlots(): PromptSlots {
@@ -402,10 +294,10 @@ function buildClaimVerificationSlots(config?: { strict?: boolean }): PromptSlots
 }
 
 function buildPrompt(taskType: AiPromptTaskType, slots: PromptSlots): string {
-  const settings = resolvePromptSettings();
-  const overrides = loadPromptTemplateOverrides(settings.templateFile);
+  const templateFile = process.env.AI_PROMPT_TEMPLATE_FILE ?? null;
+  const overrides = loadPromptTemplateOverrides(templateFile);
   const mergedSlots = normalizeSlots(mergeSlots(slots, overrides[taskType]));
-  return renderPrompt(mergedSlots, settings.formatByTask[taskType]);
+  return renderXmlPrompt(mergedSlots);
 }
 
 export function buildBoundaryExtractionSystemPrompt(): string {

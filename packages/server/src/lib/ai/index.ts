@@ -1,6 +1,4 @@
 export {
-  type AiPromptConfig,
-  type AiPromptFormat,
   type AiProviderConfig,
   type AiProviderType,
   loadAiProviderConfig,

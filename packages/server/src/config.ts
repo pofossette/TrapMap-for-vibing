@@ -65,14 +65,7 @@ export const ServerConfigSchema = z.object({
     chatModel: z.string(),
     embeddingModel: z.string(),
     isConfigured: z.boolean(),
-    prompt: z.object({
-      formatByTask: z.object({
-        boundaryExtraction: z.enum(['json', 'markdown', 'xml']),
-        knowledgeRefinement: z.enum(['json', 'markdown', 'xml']),
-        claimVerification: z.enum(['json', 'markdown', 'xml']),
-      }),
-      templateFile: z.string().nullable(),
-    }),
+    promptTemplateFile: z.string().nullable(),
   }),
 });
 
@@ -147,14 +140,7 @@ export function loadTestConfig(): ServerConfig {
     chatModel: '',
     embeddingModel: '',
     isConfigured: false,
-    prompt: {
-      formatByTask: {
-        boundaryExtraction: 'xml',
-        knowledgeRefinement: 'markdown',
-        claimVerification: 'json',
-      },
-      templateFile: null,
-    },
+    promptTemplateFile: null,
   };
 
   return {

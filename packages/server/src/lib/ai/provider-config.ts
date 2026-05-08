@@ -16,17 +16,6 @@ export type AiProviderType =
   | 'google-genai'
   | 'fallback';
 
-export type AiPromptFormat = 'json' | 'markdown' | 'xml';
-
-export interface AiPromptConfig {
-  readonly formatByTask: {
-    readonly boundaryExtraction: AiPromptFormat;
-    readonly knowledgeRefinement: AiPromptFormat;
-    readonly claimVerification: AiPromptFormat;
-  };
-  readonly templateFile: string | null;
-}
-
 export interface AiProviderConfig {
   readonly provider: AiProviderType;
   readonly baseUrl: string;
@@ -34,7 +23,8 @@ export interface AiProviderConfig {
   readonly chatModel: string;
   readonly embeddingModel: string;
   readonly isConfigured: boolean;
-  readonly prompt: AiPromptConfig;
+  /** Path to a JSON prompt template override file (defaults to docs/reference/system-prompt-slots.default.json) */
+  readonly promptTemplateFile: string | null;
   /** Embedding provider config if different from primary */
   readonly embeddingProvider?:
     | {
@@ -77,49 +67,8 @@ const PROVIDER_DEFAULTS: Record<
   },
 };
 
-const PROMPT_FORMAT_DEFAULTS: AiPromptConfig['formatByTask'] = {
-  boundaryExtraction: 'xml',
-  knowledgeRefinement: 'markdown',
-  claimVerification: 'json',
-};
-
-function resolvePromptFormat(
-  envValue: string | undefined,
-  envName: string,
-  fallback: AiPromptFormat,
-): AiPromptFormat {
-  if (envValue === undefined) {
-    return fallback;
-  }
-
-  if (envValue === 'json' || envValue === 'markdown' || envValue === 'xml') {
-    return envValue;
-  }
-
-  throw new Error(`Invalid ${envName}. Expected one of: json, markdown, xml.`);
-}
-
-function loadAiPromptConfig(): AiPromptConfig {
-  return {
-    formatByTask: {
-      boundaryExtraction: resolvePromptFormat(
-        process.env.AI_PROMPT_FORMAT_BOUNDARY_EXTRACTION,
-        'AI_PROMPT_FORMAT_BOUNDARY_EXTRACTION',
-        PROMPT_FORMAT_DEFAULTS.boundaryExtraction,
-      ),
-      knowledgeRefinement: resolvePromptFormat(
-        process.env.AI_PROMPT_FORMAT_KNOWLEDGE_REFINEMENT,
-        'AI_PROMPT_FORMAT_KNOWLEDGE_REFINEMENT',
-        PROMPT_FORMAT_DEFAULTS.knowledgeRefinement,
-      ),
-      claimVerification: resolvePromptFormat(
-        process.env.AI_PROMPT_FORMAT_CLAIM_VERIFICATION,
-        'AI_PROMPT_FORMAT_CLAIM_VERIFICATION',
-        PROMPT_FORMAT_DEFAULTS.claimVerification,
-      ),
-    },
-    templateFile: process.env.AI_PROMPT_TEMPLATE_FILE ?? null,
-  };
+function loadPromptTemplateFile(): string | null {
+  return process.env.AI_PROMPT_TEMPLATE_FILE ?? null;
 }
 
 function resolveProviderType(): AiProviderType {
@@ -167,7 +116,7 @@ function resolveProviderType(): AiProviderType {
  */
 export function loadAiProviderConfig(): AiProviderConfig {
   const provider = resolveProviderType();
-  const prompt = loadAiPromptConfig();
+  const promptTemplateFile = loadPromptTemplateFile();
 
   if (provider === 'fallback') {
     return {
@@ -177,7 +126,7 @@ export function loadAiProviderConfig(): AiProviderConfig {
       chatModel: '',
       embeddingModel: '',
       isConfigured: false,
-      prompt,
+      promptTemplateFile,
     };
   }
 
@@ -220,7 +169,7 @@ export function loadAiProviderConfig(): AiProviderConfig {
     chatModel,
     embeddingModel,
     isConfigured,
-    prompt,
+    promptTemplateFile,
     embeddingProvider,
   };
 }

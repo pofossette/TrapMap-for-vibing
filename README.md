@@ -239,19 +239,16 @@ docker compose down
 
 ### 插槽式系统提示词
 
-TrapMap 现在支持按任务类型切换系统提示词组织格式，并支持通过本地 JSON 模板覆盖可编辑槽位内容。
+系统提示词统一使用 XML 语义标记（四层架构中的内容层），支持通过本地 JSON 模板覆盖可编辑槽位内容。
 
-- 任务格式配置：
-  - `AI_PROMPT_FORMAT_BOUNDARY_EXTRACTION=xml|markdown|json`
-  - `AI_PROMPT_FORMAT_KNOWLEDGE_REFINEMENT=xml|markdown|json`
-  - `AI_PROMPT_FORMAT_CLAIM_VERIFICATION=xml|markdown|json`
 - 模板覆盖文件：
   - `AI_PROMPT_TEMPLATE_FILE=docs/reference/system-prompt-slots.default.json`
-
-建议：
-
-- `boundary extraction` 优先使用 `xml`
-- `knowledge refinement` 优先使用 `markdown`
+- 四层架构说明：
+  - JSON = 传输协议（API 层）：消息结构、工具参数 Schema
+  - XML = 语义标记（内容层）：系统指令、环境信息
+  - YAML = 配置文件（Skill 文件头）：Frontmatter 元数据
+  - Markdown = 内容载体（Skill 正文）
+- 详见 [docs/operations/ENVIRONMENT.md](docs/operations/ENVIRONMENT.md) 和 [docs/reference/xml-system-prompt-methodology.md](docs/reference/xml-system-prompt-methodology.md)
 - `claim verification` 优先使用 `json`
 
 XML 组织方法参考 [docs/reference/xml-system-prompt-methodology.md](docs/reference/xml-system-prompt-methodology.md)。默认可编辑槽位模板见 [docs/reference/system-prompt-slots.default.json](docs/reference/system-prompt-slots.default.json)。
