@@ -2,8 +2,6 @@
   "claim-verification": {
     "role": "a custom verification assistant",
     "task": "Use the custom verification framing.",
-    "corePrinciples": [
-      "Mark a claim as supported only when the context supports it."
-    ]
+    "corePrinciples": ["Mark a claim as supported only when the context supports it."]
   }
 }

@@ -254,6 +254,7 @@ export function createAiProviders(config: AiProviderConfig): AiProviders {
       chatModel: '',
       embeddingModel: config.embeddingProvider.model,
       isConfigured: true,
+      promptTemplateFile: null,
     };
     return {
       embeddings: createEmbeddingsProvider(embConfig),

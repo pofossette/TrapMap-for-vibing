@@ -1,0 +1,15 @@
+{
+  "_template": "openai",
+  "_format": "json",
+  "_doc": "OpenAI/GPT prompt template. JSON-native format for structured output. Renderer: json-renderer.ts",
+  "role": "{{role}}",
+  "task": "{{task}}",
+  "_if_corePrinciples": true,
+  "core_principles": ["{{#list corePrinciples}}", "{{item}}", "{{/list}}"],
+  "_if_outputInstructions": true,
+  "output_format": ["{{#list outputInstructions}}", "{{item}}", "{{/list}}"],
+  "_if_constraints": true,
+  "constraints": ["{{#list constraints}}", "{{item}}", "{{/list}}"],
+  "_if_examples": true,
+  "examples": ["{{#list examples}}", "{{item}}", "{{/list}}"]
+}

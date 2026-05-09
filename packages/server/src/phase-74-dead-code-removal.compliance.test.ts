@@ -84,7 +84,10 @@ describe('Phase 74: Dead Code Removal (QUAL-01)', () => {
         'recall/pg-vector',
       ];
       const sourceFiles = collectFiles(PACKAGES_ROOT, ['.ts', '.tsx']).filter(
-        (filePath) => !filePath.endsWith('.test.ts') && !filePath.endsWith('.spec.ts') && !filePath.endsWith('.compliance.test.ts'),
+        (filePath) =>
+          !filePath.endsWith('.test.ts') &&
+          !filePath.endsWith('.spec.ts') &&
+          !filePath.endsWith('.compliance.test.ts'),
       );
       const matches = findImportReferences(sourceFiles, importPatterns);
 
@@ -114,7 +117,11 @@ describe('Phase 74: Dead Code Removal (QUAL-01)', () => {
         'recall/hybrid-recall',
         'recall/pg-vector',
       ];
-      const testFiles = collectFiles(PACKAGES_ROOT, ['.test.ts', '.spec.ts', '.compliance.test.ts']);
+      const testFiles = collectFiles(PACKAGES_ROOT, [
+        '.test.ts',
+        '.spec.ts',
+        '.compliance.test.ts',
+      ]);
       const matches = findImportReferences(testFiles, importPatterns);
 
       expect(matches).toEqual([]);

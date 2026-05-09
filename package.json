@@ -11,7 +11,7 @@
     "format": "biome format --write .",
     "knip": "knip",
     "knip:fix": "knip --fix",
-    "lint": "biome check .",
+    "check": "biome check .",
     "test": "vitest",
     "test:compliance": "vitest --config vitest.compliance.config.ts",
     "test:coverage": "vitest run --coverage",

@@ -1,0 +1,7 @@
+{
+  "boundary-extraction": {
+    "role": "a boundary extraction assistant",
+    "task": "Analyze the knowledge entry and extract boundary constraints.",
+    "constraints": ["All fields are optional."]
+  }
+}

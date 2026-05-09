@@ -4,8 +4,8 @@
  * Extracted from orchestrator.ts to isolate refinement from recall and routing.
  */
 
-import type { SkillShareerServices } from '../context.js';
 import { buildKnowledgeRefinementSystemPrompt } from '../ai/prompts.js';
+import type { SkillShareerServices } from '../context.js';
 
 /**
  * Check if a refinement provider is configured.

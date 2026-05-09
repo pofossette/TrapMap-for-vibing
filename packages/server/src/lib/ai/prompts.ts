@@ -1,37 +1,39 @@
 /**
  * Shared system prompt builders for server and evaluation flows.
  *
+ * Provider-based template system: loads format-specific templates (XML/JSON),
+ * applies slot-level overrides, and renders via format-specific renderers.
+ *
+ * Template files live in providers/templates/ (anthropic.xml, openai.json, etc.).
+ * Slot overrides are loaded from AI_PROMPT_TEMPLATE_FILE env var (JSON).
+ *
  * 四层架构中的内容标记层（XML 语义标记）：
  * - JSON  = 传输协议（API 层）：消息结构、tool_use/tool_result
  * - XML   = 语义标记（内容层）：系统指令、环境信息、技能列表
  * - YAML  = 配置文件（Skill 文件头）：Frontmatter 元数据
  * - MD    = 内容载体（Skill 正文）
- *
- * Prompts are composed from task-specific slot definitions and rendered as XML.
- * Template overrides are loaded from a JSON file (AI_PROMPT_TEMPLATE_FILE env var).
  */
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-export type AiPromptTaskType =
-  | 'boundary-extraction'
-  | 'knowledge-refinement'
-  | 'claim-verification';
+import { CACHE_BOUNDARY_MARKER } from './cache/boundary-marker.js';
+import { loadProviderTemplate, resolveProvider, selectProvider } from './providers/index.js';
+import { renderJsonTemplate } from './providers/json-renderer.js';
+import type {
+  AiPromptProvider,
+  AiPromptTaskType,
+  CacheSection,
+  PromptSlots,
+} from './providers/types.js';
+import { renderXmlTemplate } from './providers/xml-renderer.js';
 
-export interface PromptSlots {
-  role?: string;
-  task?: string;
-  corePrinciples?: string[];
-  outputInstructions?: string[];
-  constraints?: string[];
-  examples?: string[];
-  metadata?: {
-    taskType: AiPromptTaskType;
-    title: string;
-    outputFormatHint?: string;
-  };
-}
+// Re-export types for consumers importing from './prompts.js'
+export type { AiPromptTaskType, PromptSlots, CacheSection } from './providers/types.js';
+
+// ---------------------------------------------------------------------------
+// Template override system (backward-compatible with AI_PROMPT_TEMPLATE_FILE)
+// ---------------------------------------------------------------------------
 
 interface PromptTemplateOverride {
   role?: string;
@@ -63,33 +65,19 @@ function isPromptTaskType(value: string): value is AiPromptTaskType {
   );
 }
 
-function escapeXml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&apos;');
-}
-
 function filterStrings(values: unknown, field: string): string[] | undefined {
-  if (values === undefined) {
-    return undefined;
-  }
-  if (!Array.isArray(values) || !values.every((value) => typeof value === 'string')) {
+  if (values === undefined) return undefined;
+  if (!Array.isArray(values) || !values.every((v) => typeof v === 'string')) {
     throw new Error(`Prompt template field "${field}" must be an array of strings`);
   }
-  return values.map((value) => value.trim()).filter((value) => value.length > 0);
+  return values.map((v) => v.trim()).filter((v) => v.length > 0);
 }
 
 function parseOverrideEntry(
   taskType: AiPromptTaskType,
   value: unknown,
 ): PromptTemplateOverride | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
+  if (value === undefined) return undefined;
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`Prompt template override for "${taskType}" must be an object`);
   }
@@ -103,19 +91,27 @@ function parseOverrideEntry(
     throw new Error(`Prompt template field "${taskType}.task" must be a string`);
   }
 
-  return {
-    role: typeof record.role === 'string' ? record.role.trim() : undefined,
-    task: typeof record.task === 'string' ? record.task.trim() : undefined,
-    corePrinciples: filterStrings(record.corePrinciples, `${taskType}.corePrinciples`),
-    outputInstructions: filterStrings(record.outputInstructions, `${taskType}.outputInstructions`),
-    constraints: filterStrings(record.constraints, `${taskType}.constraints`),
-    examples: filterStrings(record.examples, `${taskType}.examples`),
-  };
+  const result: PromptTemplateOverride = {};
+  const role = typeof record.role === 'string' ? record.role.trim() : undefined;
+  if (role !== undefined) result.role = role;
+  const task = typeof record.task === 'string' ? record.task.trim() : undefined;
+  if (task !== undefined) result.task = task;
+  const cp = filterStrings(record.corePrinciples, `${taskType}.corePrinciples`);
+  if (cp !== undefined) result.corePrinciples = cp;
+  const oi = filterStrings(record.outputInstructions, `${taskType}.outputInstructions`);
+  if (oi !== undefined) result.outputInstructions = oi;
+  const c = filterStrings(record.constraints, `${taskType}.constraints`);
+  if (c !== undefined) result.constraints = c;
+  const e = filterStrings(record.examples, `${taskType}.examples`);
+  if (e !== undefined) result.examples = e;
+  return result;
 }
 
-function parsePromptTemplateOverrideFile(raw: string, filePath: string): PromptTemplateOverrideFile {
+function parsePromptTemplateOverrideFile(
+  raw: string,
+  filePath: string,
+): PromptTemplateOverrideFile {
   let parsed: unknown;
-
   try {
     parsed = JSON.parse(raw);
   } catch (error) {
@@ -137,7 +133,8 @@ function parsePromptTemplateOverrideFile(raw: string, filePath: string): PromptT
     if (!isPromptTaskType(key)) {
       throw new Error(`Prompt template file "${filePath}" contains unknown task "${key}"`);
     }
-    overrides[key] = parseOverrideEntry(key, value);
+    const entry = parseOverrideEntry(key, value);
+    if (entry !== undefined) overrides[key] = entry;
   }
 
   return overrides;
@@ -149,76 +146,193 @@ function loadPromptTemplateOverrides(templateFile: string | null): PromptTemplat
   return parsePromptTemplateOverrideFile(raw, filePath);
 }
 
-function mergeSlots(base: PromptSlots, override?: PromptTemplateOverride): PromptSlots {
-  if (!override) {
-    return base;
-  }
+// ---------------------------------------------------------------------------
+// Slot merging and normalization
+// ---------------------------------------------------------------------------
 
-  return {
-    ...base,
-    role: override.role ?? base.role,
-    task: override.task ?? base.task,
-    corePrinciples: override.corePrinciples ?? base.corePrinciples,
-    outputInstructions: override.outputInstructions ?? base.outputInstructions,
-    constraints: override.constraints ?? base.constraints,
-    examples: override.examples ?? base.examples,
-  };
+function mergeSlots(base: PromptSlots, override?: PromptTemplateOverride): PromptSlots {
+  if (!override) return base;
+  const result: PromptSlots = { ...base };
+  const r = override.role ?? base.role;
+  if (r !== undefined) result.role = r;
+  const t = override.task ?? base.task;
+  if (t !== undefined) result.task = t;
+  const cp = override.corePrinciples ?? base.corePrinciples;
+  if (cp !== undefined) result.corePrinciples = cp;
+  const oi = override.outputInstructions ?? base.outputInstructions;
+  if (oi !== undefined) result.outputInstructions = oi;
+  const c = override.constraints ?? base.constraints;
+  if (c !== undefined) result.constraints = c;
+  const e = override.examples ?? base.examples;
+  if (e !== undefined) result.examples = e;
+  return result;
 }
 
 function normalizeSlots(slots: PromptSlots): PromptSlots {
-  return {
-    ...slots,
-    role: slots.role?.trim(),
-    task: slots.task?.trim(),
-    corePrinciples: slots.corePrinciples?.map((item) => item.trim()).filter(Boolean),
-    outputInstructions: slots.outputInstructions?.map((item) => item.trim()).filter(Boolean),
-    constraints: slots.constraints?.map((item) => item.trim()).filter(Boolean),
-    examples: slots.examples?.map((item) => item.trim()).filter(Boolean),
-  };
+  const result: PromptSlots = {};
+  if (slots.metadata !== undefined) result.metadata = slots.metadata;
+  const role = slots.role?.trim();
+  if (role !== undefined) result.role = role;
+  const task = slots.task?.trim();
+  if (task !== undefined) result.task = task;
+  const cp = slots.corePrinciples?.map((item) => item.trim()).filter(Boolean);
+  if (cp !== undefined) result.corePrinciples = cp;
+  const oi = slots.outputInstructions?.map((item) => item.trim()).filter(Boolean);
+  if (oi !== undefined) result.outputInstructions = oi;
+  const c = slots.constraints?.map((item) => item.trim()).filter(Boolean);
+  if (c !== undefined) result.constraints = c;
+  const e = slots.examples?.map((item) => item.trim()).filter(Boolean);
+  if (e !== undefined) result.examples = e;
+  return result;
 }
 
-function renderXmlList(tagName: string, values?: string[]): string {
-  if (!values || values.length === 0) {
-    return '';
-  }
+// ---------------------------------------------------------------------------
+// Template rendering dispatch
+// ---------------------------------------------------------------------------
 
-  const items = values.map((value) => `    <item>${escapeXml(value)}</item>`).join('\n');
-  return `  <${tagName}>\n${items}\n  </${tagName}>`;
+function renderWithTemplate(template: string, format: string, slots: PromptSlots): string {
+  if (format === 'json') {
+    return JSON.stringify(renderJsonTemplate(template, slots), null, 2);
+  }
+  // Default to XML rendering
+  return renderXmlTemplate(template, slots);
 }
 
-function renderXmlPrompt(slots: PromptSlots): string {
-  const lines: string[] = ['<system_instructions>'];
+// ---------------------------------------------------------------------------
+// Section classification helpers
+// ---------------------------------------------------------------------------
 
-  if (slots.role) {
-    lines.push(`  <role>${escapeXml(slots.role)}</role>`);
-  }
-  if (slots.task) {
-    lines.push(`  <task>${escapeXml(slots.task)}</task>`);
+/** Map slot names to template section identifiers for cache strategy matching. */
+const SLOT_SECTION_MAP: Record<string, string> = {
+  role: 'role',
+  task: 'task',
+  corePrinciples: 'core_principles',
+  outputInstructions: 'output_instructions',
+  constraints: 'constraints',
+  examples: 'examples',
+};
+
+/**
+ * Decompose a rendered prompt into CacheSection[] based on provider
+ * cache strategy. Each slot is classified as static (cacheable) or
+ * dynamic (per-request) based on the provider's cacheStrategy config.
+ */
+function classifySlotsIntoSections(
+  slots: PromptSlots,
+  staticSections: string[],
+  _dynamicSections: string[],
+): CacheSection[] {
+  const sections: CacheSection[] = [];
+
+  for (const [slotKey, sectionName] of Object.entries(SLOT_SECTION_MAP)) {
+    const value = slots[slotKey as keyof PromptSlots];
+    if (value === undefined) continue;
+
+    const content = Array.isArray(value) ? value.join('\n') : String(value);
+    if (!content.trim()) continue;
+
+    const isStatic = staticSections.includes(sectionName);
+
+    let cacheScope: 'global' | 'org' | null = null;
+    if (isStatic) cacheScope = 'global';
+    // Dynamic sections have null cacheScope (not cached)
+
+    sections.push({ name: sectionName, content, cacheScope });
   }
 
-  const corePrinciples = renderXmlList('core_principles', slots.corePrinciples);
-  if (corePrinciples) {
-    lines.push(corePrinciples);
+  // Append metadata as a dynamic section if present
+  if (slots.metadata) {
+    sections.push({
+      name: 'metadata',
+      content: JSON.stringify(slots.metadata),
+      cacheScope: null,
+    });
   }
 
-  const outputInstructions = renderXmlList('output_format', slots.outputInstructions);
-  if (outputInstructions) {
-    lines.push(outputInstructions);
-  }
-
-  const constraints = renderXmlList('constraints', slots.constraints);
-  if (constraints) {
-    lines.push(constraints);
-  }
-
-  const examples = renderXmlList('examples', slots.examples);
-  if (examples) {
-    lines.push(examples);
-  }
-
-  lines.push('</system_instructions>');
-  return lines.join('\n');
+  return sections;
 }
+
+// ---------------------------------------------------------------------------
+// Core prompt builder
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a system prompt using the provider template system.
+ *
+ * @param taskType - The prompt task type
+ * @param slots - Slot values to populate the template
+ * @param modelId - Optional model ID for automatic provider selection
+ */
+export function buildPrompt(
+  taskType: AiPromptTaskType,
+  slots: PromptSlots,
+  modelId?: string,
+): string {
+  const provider = modelId
+    ? selectProvider(modelId)
+    : resolveProvider(process.env.AI_PROMPT_PROVIDER as AiPromptProvider | undefined);
+
+  const template = loadProviderTemplate(provider.name);
+  const templateFile = process.env.AI_PROMPT_TEMPLATE_FILE ?? null;
+  const overrides = loadPromptTemplateOverrides(templateFile);
+  const mergedSlots = normalizeSlots(mergeSlots(slots, overrides[taskType]));
+
+  return renderWithTemplate(template, provider.format, mergedSlots);
+}
+
+/**
+ * Build a system prompt decomposed into CacheSection[] for cache control.
+ *
+ * Unlike `buildPrompt` which returns a single string, this function
+ * returns an array of sections classified as static (cacheable) or
+ * dynamic (per-request) based on the provider's cache strategy.
+ *
+ * A `__CACHE_BOUNDARY__` marker is inserted between the last static
+ * section and the first dynamic section.
+ *
+ * @param taskType - The prompt task type
+ * @param slots - Slot values to populate the template
+ * @param modelId - Optional model ID for automatic provider selection
+ */
+export function buildPromptWithCacheControl(
+  taskType: AiPromptTaskType,
+  slots: PromptSlots,
+  modelId?: string,
+): CacheSection[] {
+  const provider = modelId
+    ? selectProvider(modelId)
+    : resolveProvider(process.env.AI_PROMPT_PROVIDER as AiPromptProvider | undefined);
+
+  const templateFile = process.env.AI_PROMPT_TEMPLATE_FILE ?? null;
+  const overrides = loadPromptTemplateOverrides(templateFile);
+  const mergedSlots = normalizeSlots(mergeSlots(slots, overrides[taskType]));
+
+  const { staticSections, dynamicSections } = provider.cacheStrategy;
+  const sections = classifySlotsIntoSections(mergedSlots, staticSections, dynamicSections);
+
+  // Insert boundary marker: append a marker section between static and dynamic
+  const result: CacheSection[] = [];
+  let boundaryInserted = false;
+
+  for (const section of sections) {
+    if (!boundaryInserted && section.cacheScope === null) {
+      // First dynamic section — insert boundary marker before it
+      result.push({
+        name: '__boundary__',
+        content: CACHE_BOUNDARY_MARKER,
+        cacheScope: null,
+      });
+      boundaryInserted = true;
+    }
+    result.push(section);
+  }
+
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Slot definitions (task-specific defaults)
+// ---------------------------------------------------------------------------
 
 function buildBoundaryExtractionSlots(): PromptSlots {
   return {
@@ -258,7 +372,6 @@ A boundary defines when knowledge is applicable. Extract the following layers:
 
 function buildKnowledgeRefinementSlots(config?: { maxSentences?: number }): PromptSlots {
   const maxSentences = config?.maxSentences ?? 3;
-
   return {
     role: 'a knowledge refinement assistant',
     task: 'Given search results, produce a concise summary that highlights the most relevant information.',
@@ -276,7 +389,6 @@ function buildKnowledgeRefinementSlots(config?: { maxSentences?: number }): Prom
 
 function buildClaimVerificationSlots(config?: { strict?: boolean }): PromptSlots {
   const strict = config?.strict ?? true;
-
   return {
     role: 'a claim verification assistant',
     task: 'Verify whether claims from a summary are supported by the provided context and provide evidence when available.',
@@ -293,12 +405,9 @@ function buildClaimVerificationSlots(config?: { strict?: boolean }): PromptSlots
   };
 }
 
-function buildPrompt(taskType: AiPromptTaskType, slots: PromptSlots): string {
-  const templateFile = process.env.AI_PROMPT_TEMPLATE_FILE ?? null;
-  const overrides = loadPromptTemplateOverrides(templateFile);
-  const mergedSlots = normalizeSlots(mergeSlots(slots, overrides[taskType]));
-  return renderXmlPrompt(mergedSlots);
-}
+// ---------------------------------------------------------------------------
+// Exported prompt builders (backward-compatible API)
+// ---------------------------------------------------------------------------
 
 export function buildBoundaryExtractionSystemPrompt(): string {
   return buildPrompt('boundary-extraction', buildBoundaryExtractionSlots());
