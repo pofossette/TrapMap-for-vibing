@@ -14,8 +14,9 @@ services:
       - HOST=0.0.0.0
       - PORT=4000
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - TRAPMAP_DATA_FILE=/app/.data/trapmap.json
       - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
+      # Database (set to use PostgreSQL; omit for JSON file storage)
+      - TRAPMAP_DATABASE_URL=${TRAPMAP_DATABASE_URL:-}
       # Logging Configuration (Phase 24)
       - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
       - LOG_USER_OPS_DIR=${LOG_USER_OPS_DIR:-/app/logs/user-ops}
@@ -23,6 +24,9 @@ services:
       - LOG_RAG_DIR=${LOG_RAG_DIR:-/app/logs/rag}
       - LOG_MAX_FILE_SIZE_MB=${LOG_MAX_FILE_SIZE_MB:-10}
       - LOG_MAX_BACKUP_FILES=${LOG_MAX_BACKUP_FILES:-5}
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
       interval: 30s
@@ -30,3 +34,22 @@ services:
       start_period: 5s
       retries: 3
     restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: trapmap-postgres
+    environment:
+      POSTGRES_DB: trapmap
+      POSTGRES_USER: trapmap
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trapmap}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trapmap -d trapmap"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

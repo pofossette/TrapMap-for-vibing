@@ -341,14 +341,27 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
 
           const parsed = skillEditResponseSchema.parse(response.data);
 
-          printCommandResult({
-            action: 'skill-edit',
-            success: true,
-            summary: `Updated ${parsed.artifact.id} to revision ${parsed.artifact.latestRevision}.`,
-            artifacts: [{ id: parsed.artifact.id, title: parsed.artifact.title, newState: parsed.artifact.lifecycleState, revision: parsed.artifact.latestRevision }],
-            ...(parsed.lifecycleTransition ? { transition: parsed.lifecycleTransition } : {}),
-            nextSteps: [],
-          }, parsed, state, flags, formatSkillEditResponse);
+          printCommandResult(
+            {
+              action: 'skill-edit',
+              success: true,
+              summary: `Updated ${parsed.artifact.id} to revision ${parsed.artifact.latestRevision}.`,
+              artifacts: [
+                {
+                  id: parsed.artifact.id,
+                  title: parsed.artifact.title,
+                  newState: parsed.artifact.lifecycleState,
+                  revision: parsed.artifact.latestRevision,
+                },
+              ],
+              ...(parsed.lifecycleTransition ? { transition: parsed.lifecycleTransition } : {}),
+              nextSteps: [],
+            },
+            parsed,
+            state,
+            flags,
+            formatSkillEditResponse,
+          );
         },
       );
   }
@@ -377,13 +390,26 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
 
           const parsed = skillHistoryResponseSchema.parse(response.data);
 
-          printCommandResult({
-            action: 'skill-history',
-            success: true,
-            summary: `History for ${parsed.artifactId} (${parsed.currentRevision} revision(s)).`,
-            artifacts: [{ id: parsed.artifactId, title: parsed.title, newState: parsed.lifecycleState, revision: parsed.currentRevision }],
-            nextSteps: [],
-          }, parsed, state, flags, formatSkillHistoryResponse);
+          printCommandResult(
+            {
+              action: 'skill-history',
+              success: true,
+              summary: `History for ${parsed.artifactId} (${parsed.currentRevision} revision(s)).`,
+              artifacts: [
+                {
+                  id: parsed.artifactId,
+                  title: parsed.title,
+                  newState: parsed.lifecycleState,
+                  revision: parsed.currentRevision,
+                },
+              ],
+              nextSteps: [],
+            },
+            parsed,
+            state,
+            flags,
+            formatSkillHistoryResponse,
+          );
         },
       );
   }
@@ -441,13 +467,26 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
 
         const parsed = skillReviewQueueResponseSchema.parse(response.data);
 
-        printCommandResult({
-          action: 'review-queue',
-          success: true,
-          summary: parsed.items.length > 0 ? `${parsed.items.length} item(s) pending review.` : 'Review queue is empty.',
-          artifacts: parsed.items.map((item) => ({ id: item.artifact.id, title: item.artifact.title, newState: item.artifact.lifecycleState })),
-          nextSteps: [],
-        }, parsed, state, flags, formatSkillReviewQueue);
+        printCommandResult(
+          {
+            action: 'review-queue',
+            success: true,
+            summary:
+              parsed.items.length > 0
+                ? `${parsed.items.length} item(s) pending review.`
+                : 'Review queue is empty.',
+            artifacts: parsed.items.map((item) => ({
+              id: item.artifact.id,
+              title: item.artifact.title,
+              newState: item.artifact.lifecycleState,
+            })),
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          formatSkillReviewQueue,
+        );
       });
 
     skill
@@ -479,15 +518,23 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
 
           const parsed = skillReviewDecisionResponseSchema.parse(response.data);
 
-          printCommandResult({
-            action: 'review-approve',
-            success: true,
-            summary: `Approved ${parsed.artifact.id} (${parsed.artifact.title}).`,
-            artifacts: [{ id: parsed.artifact.id, title: parsed.artifact.title, newState: parsed.newState }],
-            previousState: parsed.previousState,
-            transition: { from: parsed.previousState, to: parsed.newState },
-            nextSteps: [],
-          }, parsed, state, flags, formatSkillReviewDecisionResponse);
+          printCommandResult(
+            {
+              action: 'review-approve',
+              success: true,
+              summary: `Approved ${parsed.artifact.id} (${parsed.artifact.title}).`,
+              artifacts: [
+                { id: parsed.artifact.id, title: parsed.artifact.title, newState: parsed.newState },
+              ],
+              previousState: parsed.previousState,
+              transition: { from: parsed.previousState, to: parsed.newState },
+              nextSteps: [],
+            },
+            parsed,
+            state,
+            flags,
+            formatSkillReviewDecisionResponse,
+          );
         },
       );
 
@@ -520,15 +567,23 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
 
           const parsed = skillReviewDecisionResponseSchema.parse(response.data);
 
-          printCommandResult({
-            action: 'review-reject',
-            success: true,
-            summary: `Rejected ${parsed.artifact.id} (${parsed.artifact.title}).`,
-            artifacts: [{ id: parsed.artifact.id, title: parsed.artifact.title, newState: parsed.newState }],
-            previousState: parsed.previousState,
-            transition: { from: parsed.previousState, to: parsed.newState },
-            nextSteps: [],
-          }, parsed, state, flags, formatSkillReviewDecisionResponse);
+          printCommandResult(
+            {
+              action: 'review-reject',
+              success: true,
+              summary: `Rejected ${parsed.artifact.id} (${parsed.artifact.title}).`,
+              artifacts: [
+                { id: parsed.artifact.id, title: parsed.artifact.title, newState: parsed.newState },
+              ],
+              previousState: parsed.previousState,
+              transition: { from: parsed.previousState, to: parsed.newState },
+              nextSteps: [],
+            },
+            parsed,
+            state,
+            flags,
+            formatSkillReviewDecisionResponse,
+          );
         },
       );
 
@@ -553,13 +608,27 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
 
         const parsed = DuplicateJobBundleResponseSchema.parse(response.data);
 
-        printCommandResult({
-          action: 'duplicate-job-fetch',
-          success: true,
-          summary: `Fetched bundle for candidate ${parsed.candidate.id} (${parsed.candidate.sourceType}, ${parsed.matches.length} match(es)).`,
-          artifacts: [{ id: parsed.candidate.id, title: parsed.candidate.sourceType, newState: parsed.candidate.status }],
-          nextSteps: [`Review matches and run: trapmap skill duplicate-job resolve ${parsed.candidate.id}`],
-        }, parsed, state, flags, formatDuplicateJobBundle);
+        printCommandResult(
+          {
+            action: 'duplicate-job-fetch',
+            success: true,
+            summary: `Fetched bundle for candidate ${parsed.candidate.id} (${parsed.candidate.sourceType}, ${parsed.matches.length} match(es)).`,
+            artifacts: [
+              {
+                id: parsed.candidate.id,
+                title: parsed.candidate.sourceType,
+                newState: parsed.candidate.status,
+              },
+            ],
+            nextSteps: [
+              `Review matches and run: trapmap skill duplicate-job resolve ${parsed.candidate.id}`,
+            ],
+          },
+          parsed,
+          state,
+          flags,
+          formatDuplicateJobBundle,
+        );
       });
 
     duplicateJob
@@ -625,13 +694,21 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
 
           const parsed = manualResultResponseSchema.parse(response.data);
 
-          printCommandResult({
-            action: 'duplicate-job-resolve',
-            success: true,
-            summary: `Resolved ${parsed.candidateId} as ${parsed.decision}.`,
-            artifacts: [{ id: parsed.candidateId, newState: parsed.nextState }],
-            nextSteps: [`Run: trapmap skill duplicate-job apply-resolution ${parsed.candidateId}`],
-          }, parsed, state, flags, formatManualResultResponse);
+          printCommandResult(
+            {
+              action: 'duplicate-job-resolve',
+              success: true,
+              summary: `Resolved ${parsed.candidateId} as ${parsed.decision}.`,
+              artifacts: [{ id: parsed.candidateId, newState: parsed.nextState }],
+              nextSteps: [
+                `Run: trapmap skill duplicate-job apply-resolution ${parsed.candidateId}`,
+              ],
+            },
+            parsed,
+            state,
+            flags,
+            formatManualResultResponse,
+          );
         },
       );
 
@@ -651,17 +728,27 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
 
         const parsed = applyResolutionResponseSchema.parse(response.data);
 
-        printCommandResult({
-          action: 'apply-resolution',
-          success: true,
-          summary: `Applied resolution for ${parsed.candidateId}: ${parsed.outcome.decision}.`,
-          artifacts: [{
-            id: parsed.candidateId,
-            newState: parsed.status,
-            ...(parsed.outcome.decision === 'independent' ? { publishedAs: parsed.outcome.entityType } : { mergedInto: parsed.outcome.mergedIntoEntityId }),
-          }],
-          nextSteps: [],
-        }, parsed, state, flags, formatApplyResolutionResponse);
+        printCommandResult(
+          {
+            action: 'apply-resolution',
+            success: true,
+            summary: `Applied resolution for ${parsed.candidateId}: ${parsed.outcome.decision}.`,
+            artifacts: [
+              {
+                id: parsed.candidateId,
+                newState: parsed.status,
+                ...(parsed.outcome.decision === 'independent'
+                  ? { publishedAs: parsed.outcome.entityType }
+                  : { mergedInto: parsed.outcome.mergedIntoEntityId }),
+              },
+            ],
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          formatApplyResolutionResponse,
+        );
       });
   }
 }

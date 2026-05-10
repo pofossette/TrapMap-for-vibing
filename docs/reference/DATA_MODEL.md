@@ -297,6 +297,71 @@ received → queued → analyzing → duplicate_detected / ready_for_review → 
 
 ---
 
+## FeedbackEntry（反馈条目）
+
+用户对知识条目的问题反馈，由管理员处理。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | EntityId | 唯一标识 |
+| `entryId` | EntityId | 关联的知识条目或工件 |
+| `entryType` | `'trap' \| 'skill'` | 条目类型 |
+| `problemType` | `'incorrect' \| 'outdated' \| 'context-mismatch' \| 'incomplete' \| 'other'` | 问题分类 |
+| `description` | string | 问题描述（10-2000 字符） |
+| `context` | string? | 用户操作上下文 |
+| `querySeed` | string? | 导致此条目的检索查询 |
+| `customAnswers` | FeedbackCustomAnswer[]? | 自定义提示答案 |
+| `status` | FeedbackStatus | 处理状态 |
+| `submittedBy` | ActorRef | 提交者 |
+| `submittedAt` | ISO8601 | 提交时间 |
+
+### FeedbackStatus（反馈状态机）
+
+```
+new → triaged → resolved
+              → dismissed
+```
+
+> 源码：`packages/contracts/src/domain/feedback.ts`
+
+---
+
+## DecayMeta（衰减元数据）
+
+附加在 KnowledgeEntry 上的衰减状态追踪。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `lastVerifiedAt` | ISO8601 | 最后一次人工验证时间 |
+| `decayState` | DecayState | 当前衰减状态 |
+| `supersededById` | EntityId? | 取代此条目的条目 ID |
+| `decayStateComputedAt` | ISO8601 | 衰减状态最后计算时间 |
+| `freshnessType` | `'evergreen' \| 'versioned' \| 'volatile'` | 新鲜度类型（决定衰减曲线） |
+
+### DecayState（衰减状态机）
+
+```
+active → review-due → stale → expired
+                            → superseded（被新条目取代）
+```
+
+> 源码：`packages/contracts/src/domain/decay.ts`
+
+---
+
+## MaintenanceMeta（维护元数据）
+
+附加在 KnowledgeEntry 上的维护责任追踪。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `maintainer` | ActorRef? | 当前维护者（null 表示未分配） |
+| `reviewBy` | ISO8601? | 计划审核日期（SLA 追踪） |
+
+> 源码：`packages/contracts/src/domain/maintenance.ts`
+
+---
+
 ## 检索相关类型
 
 ### RetrievalQuery（检索查询）
@@ -335,3 +400,6 @@ received → queued → analyzing → duplicate_detected / ready_for_review → 
 | `domain/review.ts` | ReviewDecision, ReviewNote, AgentReviewResult |
 | `domain/plans.ts` | TrapFirstPlan, GraphPlan, PlanTrapNode |
 | `domain/operations.ts` | Import/Export 相关类型 |
+| `domain/feedback.ts` | FeedbackEntry, FeedbackStatus, FeedbackBatchRequest |
+| `domain/decay.ts` | DecayMeta, DecayState, DecayConfig, BatchOperationRequest |
+| `domain/maintenance.ts` | MaintenanceMeta, MaintenanceAction, MaintenanceEntryListRequest |

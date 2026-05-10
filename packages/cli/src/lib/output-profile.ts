@@ -6,12 +6,12 @@ import type {
 } from '@trapmap/contracts';
 
 import {
-  getDefaultOutputProfile as getConfigDefaultOutputProfile,
   type OutputGraphPlanMode,
   type OutputModelHint,
   type OutputProfile,
   type OutputToolProfile,
   type OutputVerbosity,
+  getDefaultOutputProfile as getConfigDefaultOutputProfile,
 } from './config.js';
 import { formatLoadContext } from './markdown-formatter.js';
 
@@ -51,7 +51,10 @@ export type RenderPayload =
   | SkillLookupResponse
   | Record<string, unknown>;
 
-type RendererRegistry = Record<OutputToolProfile, Partial<Record<RenderKind, Renderer<RenderPayload>>>>;
+type RendererRegistry = Record<
+  OutputToolProfile,
+  Partial<Record<RenderKind, Renderer<RenderPayload>>>
+>;
 
 interface GraphPlanSummaryView {
   summary: string;
@@ -101,10 +104,7 @@ interface CommandResultView {
 }
 
 function xmlEscape(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function summarizeRetrievalV1(payload: RetrievalResponse): string {
@@ -139,7 +139,10 @@ function summarizeGraphPlan(payload: GraphPlanSearchResponse): string {
     return `${payload.plan?.recommendedSkills.length ?? 0} recommended skill(s), ${payload.plan?.blockingTraps.length ?? 0} blocking trap(s) in graph-plan summary`;
   }
   if (payload.fallback?.routeFamily === 'capsule') {
-    return payload.fallback.response.summary?.text ?? `Fallback to ${payload.fallback.response.capsules.length} capsule result(s)`;
+    return (
+      payload.fallback.response.summary?.text ??
+      `Fallback to ${payload.fallback.response.capsules.length} capsule result(s)`
+    );
   }
   if (payload.fallback?.routeFamily === 'entry') {
     return (
@@ -203,7 +206,9 @@ function buildExecutionOrder(payload: GraphPlanSearchResponse): string[] {
     .filter((value): value is string => Boolean(value));
 }
 
-function buildGraphPlanSummaryView(envelope: RenderEnvelope<GraphPlanSearchResponse>): GraphPlanSummaryView {
+function buildGraphPlanSummaryView(
+  envelope: RenderEnvelope<GraphPlanSearchResponse>,
+): GraphPlanSummaryView {
   const { payload, context } = envelope;
   const plan = payload.plan;
   const detailed = context.verbosity === 'detailed';
@@ -362,9 +367,7 @@ function buildCommandResultView(payload: Record<string, unknown>): CommandResult
       }))
     : [];
   const transition = payload.transition as { from: string; to: string } | undefined;
-  const nextSteps = Array.isArray(payload.nextSteps)
-    ? (payload.nextSteps as string[])
-    : [];
+  const nextSteps = Array.isArray(payload.nextSteps) ? (payload.nextSteps as string[]) : [];
 
   return {
     type: 'command-result',
@@ -513,7 +516,9 @@ function renderClaude(envelope: RenderEnvelope<RenderPayload>): string {
   const capsules = Array.isArray(codexObject.capsules) ? codexObject.capsules : [];
   const profileHints = Array.isArray(codexObject.profile_hints) ? codexObject.profile_hints : [];
   const nextSteps = Array.isArray(codexObject.next_steps) ? codexObject.next_steps : [];
-  const activationHints = Array.isArray(codexObject.activation_hints) ? codexObject.activation_hints : [];
+  const activationHints = Array.isArray(codexObject.activation_hints)
+    ? codexObject.activation_hints
+    : [];
   const planEdges = Array.isArray(codexObject.plan_edges) ? codexObject.plan_edges : [];
 
   const lines = [
@@ -525,26 +530,40 @@ function renderClaude(envelope: RenderEnvelope<RenderPayload>): string {
 
   if (capsules.length > 0) {
     lines.push('  <capsule_matches>');
-    lines.push(...capsules.map((capsule) => `    <capsule>${xmlEscape(JSON.stringify(capsule))}</capsule>`));
+    lines.push(
+      ...capsules.map((capsule) => `    <capsule>${xmlEscape(JSON.stringify(capsule))}</capsule>`),
+    );
     lines.push('  </capsule_matches>');
   }
 
   if (profileHints.length > 0) {
     lines.push('  <profile_hints>');
-    lines.push(...profileHints.map((hint) => `    <hint>${xmlEscape(JSON.stringify(hint))}</hint>`));
+    lines.push(
+      ...profileHints.map((hint) => `    <hint>${xmlEscape(JSON.stringify(hint))}</hint>`),
+    );
     lines.push('  </profile_hints>');
   }
 
   if (constraints.length > 0 || projectKnowledge.length > 0) {
     lines.push('  <retrieval_matches>');
-    lines.push(...constraints.map((item) => `    <constraint>${xmlEscape(JSON.stringify(item))}</constraint>`));
-    lines.push(...projectKnowledge.map((item) => `    <project_item>${xmlEscape(JSON.stringify(item))}</project_item>`));
+    lines.push(
+      ...constraints.map(
+        (item) => `    <constraint>${xmlEscape(JSON.stringify(item))}</constraint>`,
+      ),
+    );
+    lines.push(
+      ...projectKnowledge.map(
+        (item) => `    <project_item>${xmlEscape(JSON.stringify(item))}</project_item>`,
+      ),
+    );
     lines.push('  </retrieval_matches>');
   }
 
   if (skillMatches.length > 0) {
     lines.push('  <skill_matches>');
-    lines.push(...skillMatches.map((skill) => `    <match>${xmlEscape(JSON.stringify(skill))}</match>`));
+    lines.push(
+      ...skillMatches.map((skill) => `    <match>${xmlEscape(JSON.stringify(skill))}</match>`),
+    );
     lines.push('  </skill_matches>');
   }
 
@@ -562,18 +581,24 @@ function renderClaude(envelope: RenderEnvelope<RenderPayload>): string {
 
   if (activationHints.length > 0) {
     lines.push('  <activation_hints>');
-    lines.push(...activationHints.map((hint) => `    <hint>${xmlEscape(JSON.stringify(hint))}</hint>`));
+    lines.push(
+      ...activationHints.map((hint) => `    <hint>${xmlEscape(JSON.stringify(hint))}</hint>`),
+    );
     lines.push('  </activation_hints>');
   }
 
   lines.push(
     '  <next_steps>',
-    ...nextSteps.map((step, index) => `    <step>${xmlEscape(`${index + 1}. ${String(step)}`)}</step>`),
+    ...nextSteps.map(
+      (step, index) => `    <step>${xmlEscape(`${index + 1}. ${String(step)}`)}</step>`,
+    ),
     '  </next_steps>',
   );
 
   if (codexObject.fallback_notice) {
-    lines.push(`  <fallback_notice>${xmlEscape(String(codexObject.fallback_notice))}</fallback_notice>`);
+    lines.push(
+      `  <fallback_notice>${xmlEscape(String(codexObject.fallback_notice))}</fallback_notice>`,
+    );
   }
 
   if (planEdges.length > 0) {
@@ -584,7 +609,9 @@ function renderClaude(envelope: RenderEnvelope<RenderPayload>): string {
 
   if (envelope.context.includeRawHints && activationHints.length > 0) {
     lines.push('  <raw_hints>');
-    lines.push(...activationHints.map((hint) => `    <hint>${xmlEscape(JSON.stringify(hint))}</hint>`));
+    lines.push(
+      ...activationHints.map((hint) => `    <hint>${xmlEscape(JSON.stringify(hint))}</hint>`),
+    );
     lines.push('  </raw_hints>');
   }
 
@@ -647,14 +674,18 @@ function renderOpenCode(envelope: RenderEnvelope<RenderPayload>): string {
     if (view.constraints.length > 0) {
       lines.push('## Global Constraints');
       for (const item of view.constraints) {
-        lines.push(`- **${String(item.shortcut)}** (${Number(item.score).toFixed(2)}): ${String(item.reason)}`);
+        lines.push(
+          `- **${String(item.shortcut)}** (${Number(item.score).toFixed(2)}): ${String(item.reason)}`,
+        );
       }
       lines.push('');
     }
     if (view.projectKnowledge.length > 0) {
       lines.push('## Project Knowledge');
       for (const item of view.projectKnowledge) {
-        lines.push(`- **${String(item.shortcut)}** (${Number(item.score).toFixed(2)}): ${String(item.reason)}`);
+        lines.push(
+          `- **${String(item.shortcut)}** (${Number(item.score).toFixed(2)}): ${String(item.reason)}`,
+        );
       }
       lines.push('');
     }
@@ -679,7 +710,9 @@ function renderOpenCode(envelope: RenderEnvelope<RenderPayload>): string {
     if (view.capsules.length > 0) {
       lines.push('## Capsules');
       for (const capsule of view.capsules) {
-        lines.push(`- **${String(capsule.artifactId)}**: ${String(capsule.goal)} (${Number(capsule.score).toFixed(2)})`);
+        lines.push(
+          `- **${String(capsule.artifactId)}**: ${String(capsule.goal)} (${Number(capsule.score).toFixed(2)})`,
+        );
       }
       lines.push('');
     }
@@ -711,7 +744,9 @@ function renderOpenCode(envelope: RenderEnvelope<RenderPayload>): string {
     if (view.matches.length > 0) {
       lines.push('## Matches');
       for (const match of view.matches) {
-        lines.push(`- **${String(match.artifactId)}**: ${String(match.title)} (${Number(match.score).toFixed(2)}): ${String(match.reason)}`);
+        lines.push(
+          `- **${String(match.artifactId)}**: ${String(match.title)} (${Number(match.score).toFixed(2)}): ${String(match.reason)}`,
+        );
       }
       lines.push('');
     }
@@ -771,8 +806,12 @@ function renderGeneric(envelope: RenderEnvelope<RenderPayload>): string {
     return [
       'TrapMap retrieval-v1',
       view.querySummary,
-      ...view.constraints.map((item) => `Constraint: ${String(item.shortcut)} (${Number(item.score).toFixed(2)})`),
-      ...view.projectKnowledge.map((item) => `Project: ${String(item.shortcut)} (${Number(item.score).toFixed(2)})`),
+      ...view.constraints.map(
+        (item) => `Constraint: ${String(item.shortcut)} (${Number(item.score).toFixed(2)})`,
+      ),
+      ...view.projectKnowledge.map(
+        (item) => `Project: ${String(item.shortcut)} (${Number(item.score).toFixed(2)})`,
+      ),
     ].join('\n');
   }
   if (envelope.kind === 'retrieval-v2') {
@@ -793,10 +832,7 @@ function renderGeneric(envelope: RenderEnvelope<RenderPayload>): string {
   }
   if (envelope.kind === 'command-result') {
     const view = buildCommandResultView(envelope.payload as Record<string, unknown>);
-    const lines = [
-      `TrapMap ${view.action}`,
-      view.summary,
-    ];
+    const lines = [`TrapMap ${view.action}`, view.summary];
     for (const step of view.nextSteps) {
       lines.push(`Next: ${step}`);
     }
@@ -839,7 +875,7 @@ const registry: RendererRegistry = {
   },
 };
 
-export { type OutputProfile } from './config.js';
+export type { OutputProfile } from './config.js';
 
 export function getDefaultOutputProfile(): OutputProfile {
   return getConfigDefaultOutputProfile();
@@ -878,9 +914,7 @@ export function createRenderEnvelope<T>(
 }
 
 export function resolveRenderer(profile: OutputProfile, kind: RenderKind): Renderer {
-  return (
-    registry[profile.tool][kind] ??
+  return (registry[profile.tool][kind] ??
     registry.generic[kind] ??
-    registry.generic.generic
-  ) as Renderer;
+    registry.generic.generic) as Renderer;
 }

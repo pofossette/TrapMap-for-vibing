@@ -90,7 +90,13 @@ export function registerLoadCommand(program: Command, options: LoadCommandOption
         const parsed = graphPlanSearchResponseSchema.parse(response.data);
 
         // Output formatted markdown or raw JSON
-        printAdaptiveResult('graph-plan', parsed, state, flags.json ? { json: true } : {}, formatLoadContext);
+        printAdaptiveResult(
+          'graph-plan',
+          parsed,
+          state,
+          flags.json ? { json: true } : {},
+          formatLoadContext,
+        );
       },
     );
 }

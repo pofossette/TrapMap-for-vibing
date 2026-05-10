@@ -119,8 +119,18 @@ const session = cliState.session;
 
 ## packages/skills
 
-当前包含 `trapmap-knowledge-workflow`，用于规范 TrapMap 相关规划、检索、评审和经验沉淀流程。入口文件是
-`packages/skills/trapmap-knowledge-workflow/SKILL.md`，参考资料位于同目录的 `references/`。
+当前包含 `trapmap-knowledge-workflow`，用于规范 TrapMap 相关规划、检索、评审和经验沉淀流程。
+
+```
+trapmap-knowledge-workflow/
+├── SKILL.md          # 入口文件：工作流定义和控制路径
+├── agents/           # 子智能体定义
+└── references/       # 参考资料（架构、API、数据模型等）
+```
+
+**控制路径**：SKILL.md 定义了知识条目的完整工作流——从需求分析、检索、评审到经验沉淀的每一步骤和决策点。
+
+> 源码：`packages/skills/trapmap-knowledge-workflow/SKILL.md`
 
 ---
 
@@ -145,7 +155,7 @@ flowchart LR
 
     Contracts --> Server
     Contracts --> CLI
-    Server --> CLI
+    Server -. "HTTP API" .-> CLI
 
     subgraph Evals["evals/"]
         Retrieval["Retrieval Tests"]

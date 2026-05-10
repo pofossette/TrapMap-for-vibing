@@ -298,7 +298,7 @@ describe('CLI load command', () => {
                   },
                   snippet: 'Use staged rollout.',
                   tags: ['cache'],
-                    recallChannels: ['semantic'],
+                  recallChannels: ['semantic'],
                   scores: {
                     semantic: 0.9,
                     keyword: null,
@@ -352,11 +352,12 @@ describe('CLI load command', () => {
       data: mockResponse,
       sessionToken: 'mock-token',
     });
-    const resolveRendererSpy = vi
-      .spyOn(outputProfile, 'resolveRenderer')
-      .mockReturnValue({ id: 'codex:graph-plan', render: () => {
+    const resolveRendererSpy = vi.spyOn(outputProfile, 'resolveRenderer').mockReturnValue({
+      id: 'codex:graph-plan',
+      render: () => {
         throw new Error('forced render failure');
-      } });
+      },
+    });
 
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 

@@ -122,6 +122,24 @@ pnpm typecheck
 pnpm lint
 ```
 
+### 运行评测
+
+```bash
+# 冒烟测试（快速验证检索质量）
+pnpm eval:smoke
+
+# 完整评测
+pnpm eval:core
+
+# 单独运行检索评测
+pnpm eval:retrieval:smoke
+
+# 单独运行摘要评测
+pnpm eval:summary:smoke
+```
+
+> 评测系统详情参见 [`evals/README.md`](../../evals/README.md) 和 [`docs/operations/TESTING.md`](../operations/TESTING.md)。
+
 ## 5. 常用开发命令
 
 | 命令 | 说明 |
@@ -170,3 +188,36 @@ pnpm install
 ### Docker 构建失败
 
 确保 Docker 已启动并分配足够资源（推荐 4GB+ 内存）。
+
+### 如何配置 AI 提供商
+
+默认使用 OpenAI。如需使用其他提供商（如 Ollama 本地模型），在 `.env` 中设置：
+
+```bash
+AI_PROVIDER=ollama
+AI_BASE_URL=http://localhost:11434
+AI_CHAT_MODEL=llama3
+AI_EMBEDDING_MODEL=nomic-embed-text
+```
+
+如需使用独立的 embedding 提供商：
+
+```bash
+EMBEDDING_PROVIDER=google-genai
+EMBEDDING_API_KEY=your-gemini-key
+EMBEDDING_MODEL=text-embedding-004
+```
+
+### 如何运行评测
+
+评测系统用于验证检索和摘要质量。首次运行前需启动服务器：
+
+```bash
+# 终端 1：启动服务器
+pnpm dev:server
+
+# 终端 2：运行冒烟评测
+pnpm eval:smoke
+```
+
+CI 环境中评测会自动在 PR 时触发（路径匹配时），详见 [`docs/operations/CI_CD.md`](../operations/CI_CD.md)。

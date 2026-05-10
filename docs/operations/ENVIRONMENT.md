@@ -34,6 +34,18 @@
 | `AI_CHAT_MODEL` | 聊天模型名称 | `gpt-4o-mini` |
 | `AI_EMBEDDING_MODEL` | Embedding 模型名称 | `text-embedding-3-small` |
 | `AI_PROMPT_TEMPLATE_FILE` | 可选的本地 JSON 槽位模板覆盖文件路径 | `docs/reference/system-prompt-slots.default.json` |
+| `AI_PROMPT_PROVIDER` | Prompt provider 选择：`anthropic`、`openai`、`deepseek`、`kimi`、`gemini`、`default` | 自动从模型 ID 推断 |
+
+### 独立 Embedding Provider
+
+使用与 chat 不同的提供商处理 embedding：
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `EMBEDDING_PROVIDER` | Embedding 提供商类型 | 与 `AI_PROVIDER` 相同 |
+| `EMBEDDING_BASE_URL` | Embedding API Base URL | 提供商默认值 |
+| `EMBEDDING_API_KEY` | Embedding API 密钥 | 与 `AI_API_KEY` 相同 |
+| `EMBEDDING_MODEL` | Embedding 模型名称 | 提供商默认值 |
 
 ## 系统提示词模板
 
@@ -52,6 +64,13 @@ TrapMap 的服务端 AI 提示词支持“插槽式”覆盖。你可以提供�
 - JSON 仅用于 API 传输层（消息结构、工具参数 Schema）和模板覆盖文件
 - 只支持覆盖槽位内容，不支持覆盖渲染骨架
 - 四层架构详见 [docs/reference/xml-system-prompt-methodology.md](../reference/xml-system-prompt-methodology.md)
+
+## 安全配置
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `CORS_ALLOWED_ORIGINS` | 允许的 CORS 来源（逗号分隔，`*` 表示全部） | `*` |
+| `RATE_LIMIT_MAX` | 每分钟最大请求数（0 = 无限制） | `0` |
 
 ## 日志配置
 

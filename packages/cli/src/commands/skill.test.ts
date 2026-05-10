@@ -1,6 +1,6 @@
 import type { SkillLookupResponse } from '@trapmap/contracts';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Command } from 'commander';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as http from '../lib/http.js';
 import * as outputProfile from '../lib/output-profile.js';
@@ -192,7 +192,9 @@ describe('CLI skill commands', () => {
         allowReview: false,
       });
 
-      await program.parseAsync(['skill', 'search-by-content', 'database rollout'], { from: 'user' });
+      await program.parseAsync(['skill', 'search-by-content', 'database rollout'], {
+        from: 'user',
+      });
 
       const parsed = JSON.parse(String(consoleLogSpy.mock.calls[0]?.[0]));
       expect(parsed.type).toBe('skill-lookup');
@@ -227,11 +229,12 @@ describe('CLI skill commands', () => {
         data: mockResponse,
         sessionToken: 'mock-token',
       });
-      const resolveRendererSpy = vi
-        .spyOn(outputProfile, 'resolveRenderer')
-        .mockReturnValue({ id: 'codex:skill-lookup', render: () => {
+      const resolveRendererSpy = vi.spyOn(outputProfile, 'resolveRenderer').mockReturnValue({
+        id: 'codex:skill-lookup',
+        render: () => {
           throw new Error('forced render failure');
-        } });
+        },
+      });
 
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
@@ -242,7 +245,9 @@ describe('CLI skill commands', () => {
         allowReview: false,
       });
 
-      await program.parseAsync(['skill', 'search-by-content', 'database rollout'], { from: 'user' });
+      await program.parseAsync(['skill', 'search-by-content', 'database rollout'], {
+        from: 'user',
+      });
 
       const output = String(consoleLogSpy.mock.calls[0]?.[0]);
       expect(output).toContain('artifact.db');
@@ -290,13 +295,29 @@ describe('CLI skill commands', () => {
               {
                 revision: 3,
                 sourceHash: fakeHash,
-                files: [{ path: 'SKILL.md', kind: 'skill-markdown', sha256: fakeHash, sizeBytes: 100, mediaType: 'text/markdown', source: 'SKILL.md', includeInDerivation: true, activationOnly: false }],
+                files: [
+                  {
+                    path: 'SKILL.md',
+                    kind: 'skill-markdown',
+                    sha256: fakeHash,
+                    sizeBytes: 100,
+                    mediaType: 'text/markdown',
+                    source: 'SKILL.md',
+                    includeInDerivation: true,
+                    activationOnly: false,
+                  },
+                ],
                 submittedAt: '2026-05-09T10:00:00Z',
                 submittedBy: { id: 'user-1', handle: 'testuser', securityLevel: 0 },
                 derived: null,
               },
             ],
-            metadata: { sourceKind: 'single-skill-md', submissionCount: 3, resubmissionCount: 0, revisionCount: 3 },
+            metadata: {
+              sourceKind: 'single-skill-md',
+              submissionCount: 3,
+              resubmissionCount: 0,
+              revisionCount: 3,
+            },
             agentReview: null,
             createdAt: '2026-05-01T00:00:00Z',
             updatedAt: '2026-05-09T10:00:00Z',

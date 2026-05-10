@@ -118,37 +118,65 @@ LOG_LEVEL=info
 
 ### docker-compose.yml
 
-```yaml
-version: '3.8'
+实际 compose 文件位于项目根目录，当前使用 JSON 文件存储（开发/单机部署）：
 
+```yaml
 services:
-  app:
+  server:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: packages/server/Dockerfile
+    container_name: trapmap-server
     ports:
       - "4000:4000"
+    volumes:
+      - ./.data:/app/.data
+      - ./logs:/app/logs
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
       - PORT=4000
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY}
-      - TRAPMAP_DATABASE_URL=${TRAPMAP_DATABASE_URL}
-      - AI_PROVIDER=${AI_PROVIDER:-openai}
-      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-gpt-4o}
-      - AI_EMBEDDING_MODEL=${AI_EMBEDDING_MODEL:-text-embedding-3-small}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - TRAPMAP_DATA_FILE=/app/.data/trapmap.json
+      - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
+      # Logging Configuration
+      - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
+      - LOG_USER_OPS_DIR=${LOG_USER_OPS_DIR:-/app/logs/user-ops}
+      - LOG_RAG_ENABLED=${LOG_RAG_ENABLED:-false}
+      - LOG_RAG_DIR=${LOG_RAG_DIR:-/app/logs/rag}
+      - LOG_MAX_FILE_SIZE_MB=${LOG_MAX_FILE_SIZE_MB:-10}
+      - LOG_MAX_BACKUP_FILES=${LOG_MAX_BACKUP_FILES:-5}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 5s
+      retries: 3
+    restart: unless-stopped
+```
+
+> 源码：`docker-compose.yml`
+
+### 生产环境启用 PostgreSQL
+
+当前 compose 文件默认使用 JSON 文件存储。如需在生产中启用 PostgreSQL，需要：
+
+1. 添加 `postgres` 服务定义
+2. 设置 `TRAPMAP_DATABASE_URL` 环境变量
+3. 添加 `depends_on` 依赖
+
+示例扩展：
+
+```yaml
+services:
+  server:
+    # ... 以上配置 ...
+    environment:
+      # 替换 TRAPMAP_DATA_FILE 为数据库连接
+      - TRAPMAP_DATABASE_URL=postgresql://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
     depends_on:
       postgres:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
 
   postgres:
     image: postgres:16-alpine
@@ -158,7 +186,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trapmap}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U trapmap -d trapmap"]
       interval: 10s
@@ -168,53 +195,69 @@ services:
 
 volumes:
   postgres_data:
-
-networks:
-  default:
-    name: trapmap-network
-```
-
-### 初始化脚本
-
-```sql
--- scripts/init-db.sql
-
--- 启用向量扩展
-CREATE EXTENSION IF NOT EXISTS vector;
-
--- 创建表（如果使用 Drizzle migrations）
--- 这些通常由应用在启动时管理
 ```
 
 ### Dockerfile
 
-```dockerfile
-FROM node:20-alpine AS base
+实际 Dockerfile 位于 `packages/server/Dockerfile`，采用 3-stage 构建（deps → build → production）：
 
-FROM base AS builder
+```dockerfile
+# Stage 1: Dependencies
+FROM node:22-alpine AS deps
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 WORKDIR /app
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages ./packages
-COPY tsconfig.base.json ./
+COPY tsconfig.base.json tsconfig.json ./
+
+# Copy contracts package (server depends on it)
+COPY packages/contracts/package.json ./packages/contracts/
+COPY packages/contracts/tsconfig.json ./packages/contracts/
+COPY packages/contracts/src ./packages/contracts/src
+
+# Copy server package
+COPY packages/server/package.json ./packages/server/
+COPY packages/server/tsconfig.json ./packages/server/
+COPY packages/server/src ./packages/server/src
+
 RUN pnpm install --frozen-lockfile
 
-FROM base AS runner
+# Stage 2: Build
+FROM deps AS build
 WORKDIR /app
-ENV NODE_ENV=production
+RUN pnpm build
 
-# Copy packages
-COPY packages /app/packages
-COPY tsconfig.base.json /app/
+# Stage 3: Production
+FROM node:22-alpine AS production
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+WORKDIR /app
 
-# Install production deps only
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm deploy --filter=@trapmap/server --prod
+COPY tsconfig.base.json tsconfig.json ./
+
+COPY packages/contracts/package.json ./packages/contracts/
+COPY packages/contracts/tsconfig.json ./packages/contracts/
+COPY --from=build /app/packages/contracts/dist ./packages/contracts/dist
+
+COPY packages/server/package.json ./packages/server/
+COPY packages/server/tsconfig.json ./packages/server/
+COPY --from=build /app/packages/server/dist ./packages/server/dist
+
+RUN pnpm install --frozen-lockfile --prod
 
 WORKDIR /app/packages/server
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=4000
 EXPOSE 4000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:4000/health || exit 1
 
 CMD ["node", "dist/index.js"]
 ```
+
+> 源码：`packages/server/Dockerfile`
 
 ---
 
@@ -382,7 +425,7 @@ docker compose down
 docker compose up -d
 
 # 4. 运行迁移（如有）
-docker compose exec app pnpm migrate
+docker compose exec server pnpm migrate
 ```
 
 ### 数据库迁移
@@ -403,8 +446,7 @@ pnpm drizzle-kit push
 
 ```bash
 # Docker Compose
-docker compose logs -f app
-docker compose logs -f postgres
+docker compose logs -f server
 
 # Kubernetes
 kubectl logs -f deployment/trapmap
@@ -417,13 +459,11 @@ kubectl logs -f statefulset/postgres
 # API 健康
 curl http://localhost:4000/health
 
-# 数据库连接
-docker compose exec app node -e "
-  const { createStore } = require('./dist/persistence/create-store');
-  createStore({ type: 'postgres', databaseUrl: process.env.TRAPMAP_DATABASE_URL })
-    .then(s => s.db.execute(sql\`SELECT 1\`))
-    .then(() => console.log('OK'))
-    .catch(e => console.error('FAIL', e));
+# 数据库连接（ESM 项目，使用 --input-type=module）
+docker compose exec server node --input-type=module -e "
+  import { createStore } from './dist/persistence/create-store.js';
+  const store = await createStore({ type: 'postgres', databaseUrl: process.env.TRAPMAP_DATABASE_URL });
+  console.log('OK');
 "
 ```
 

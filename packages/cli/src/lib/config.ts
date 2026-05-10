@@ -64,7 +64,9 @@ export function getDefaultOutputProfile(): OutputProfile {
   };
 }
 
-function normalizeOutputProfile(profile: Partial<OutputProfile> | undefined): OutputProfile | undefined {
+function normalizeOutputProfile(
+  profile: Partial<OutputProfile> | undefined,
+): OutputProfile | undefined {
   if (!profile) {
     return undefined;
   }

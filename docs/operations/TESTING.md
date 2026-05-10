@@ -50,7 +50,27 @@ evals/
 
 ## 运行测试
 
-### 本地运行
+### 单元测试
+
+```bash
+# 运行所有包的测试
+pnpm test
+
+# 按包运行
+pnpm --filter @trapmap/server test
+pnpm --filter @trapmap/cli test
+pnpm --filter @trapmap/contracts test
+
+# 覆盖率报告
+pnpm test:coverage
+
+# 类型检查
+pnpm typecheck
+```
+
+### 评测（Eval）
+
+#### 本地运行
 
 ```bash
 # Smoke 层（快速，~10s）
@@ -234,7 +254,7 @@ pnpm vitest run evals/retrieval/runner.test.ts
 
 ## 相关文档
 
-- [评估框架详解](../architecture/components/EVALUATION.md) — 框架架构和设计
-- [检索系统详解](../architecture/components/RETRIEVAL.md) — 检索算法和模式
-- [治理模型详解](../architecture/components/GOVERNANCE.md) — RBAC 和安全等级
+- [模块详解](../architecture/MODULES.md) — 系统模块架构和设计
+- [API 参考 — 检索端点](../architecture/API.md#检索端点) — 检索算法和模式
+- [安全指南](SECURITY.md) — RBAC 和安全等级
 - [环境变量参考](ENVIRONMENT.md) — 测试相关环境变量

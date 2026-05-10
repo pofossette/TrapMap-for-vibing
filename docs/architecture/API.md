@@ -165,10 +165,9 @@ TrapMap 提供基于 Fastify 的 RESTful API，所有端点遵循 `/v1/` 或 `/v
 **请求**:
 ```json
 {
-  "username": "bob@example.com",
-  "password": "securepassword",
-  "role": "contributor",
-  "level": 1,
+  "handle": "bob@example.com",
+  "roleTemplate": "user",
+  "securityLevel": 1,
   "teamId": "team-xxx"
 }
 ```
@@ -177,9 +176,9 @@ TrapMap 提供基于 Fastify 的 RESTful API，所有端点遵循 `/v1/` 或 `/v
 ```json
 {
   "id": "member-xxx",
-  "username": "bob@example.com",
-  "role": "contributor",
-  "level": 1,
+  "handle": "bob@example.com",
+  "roleTemplate": "user",
+  "securityLevel": 1,
   "teamId": "team-xxx",
   "createdAt": "2026-04-30T12:00:00Z"
 }
@@ -194,8 +193,8 @@ TrapMap 提供基于 Fastify 的 RESTful API，所有端点遵循 `/v1/` 或 `/v
 **请求**:
 ```json
 {
-  "role": "reviewer",
-  "level": 5
+  "securityLevel": 5,
+  "permissions": ["knowledge:review"]
 }
 ```
 
@@ -203,9 +202,10 @@ TrapMap 提供基于 Fastify 的 RESTful API，所有端点遵循 `/v1/` 或 `/v
 ```json
 {
   "id": "member-xxx",
-  "username": "bob@example.com",
-  "role": "reviewer",
-  "level": 5
+  "handle": "bob@example.com",
+  "roleTemplate": "user",
+  "securityLevel": 5,
+  "permissions": ["knowledge:review"]
 }
 ```
 

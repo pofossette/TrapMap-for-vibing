@@ -538,7 +538,7 @@ trapmap audit [--limit <limit>] [--actor <actorId>]
 
 ### `evals/retrieval/`
 
-**测试用例**（`cases/`）：
+**测试用例**（`datasets/`）：
 - `smoke/` - 快速冒烟测试（5-10 个用例）
 - `core/` - 综合核心测试（20+ 用例）
 

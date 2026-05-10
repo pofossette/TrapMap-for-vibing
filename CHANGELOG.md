@@ -2,6 +2,37 @@
 
 所有重要的版本更新都会记录在此文档中。
 
+## v1.5 (2026-05-10)
+
+**CLI 渲染适配层、Prompt Provider 系统、存储仓库模式**
+
+### CLI 渲染适配层
+- 多工具输出 Profile（claude-code / codex / opencode / generic）
+- `RenderKind` 类型系统和 `RenderEnvelope` 统一结构
+- `output profile show/set` 命令
+- 所有命令迁移至 `printCommandResult` / `printAdaptiveResult` Profile 感知输出
+- `--json` 绕过机制和多层回退策略
+
+### Prompt Provider 系统
+- 多 Provider 支持（anthropic / openai / deepseek / kimi / gemini / default）
+- 自动从模型 ID 推断 Provider
+- XML 四层架构统一（XML = 内容标记层，JSON = 传输协议层）
+- Prompt 缓存系统（TTL、命中率追踪）
+- 动态 slot 注入（基于上下文的模板替换）
+- `AI_PROMPT_PROVIDER` / `AI_PROMPT_TEMPLATE_FILE` 环境变量
+
+### 存储仓库模式（Phase 100）
+- 异步 Repository 工厂模式替代直接 `store.snapshot()` 调用
+- 反馈、审计、去重、谱系、图索引 Repository 模块
+- 所有路由迁移至 Repository 访问模式
+
+### Skill 命令族
+- `skill search-by-content` / `edit` / `history` 命令
+- `skill review:queue` / `review:approve` / `review:reject` 命令
+- `skill duplicate-job fetch` / `resolve` / `apply-resolution` 命令
+
+---
+
 ## v1.4 (2026-04-29)
 
 **评测系统构建**

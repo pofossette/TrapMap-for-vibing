@@ -79,13 +79,30 @@ contracts → server (app → routes → lib) → cli → evals
 
 ```
 lib/ai/
-├── index.ts          # AI 初始化入口
-├── provider-config.ts # Provider 配置（模型名、端点）
-├── providers.ts      # 多 provider 支持 + fallback 链
-└── providers.test.ts # Provider 测试
+├── index.ts              # AI 初始化入口
+├── provider-config.ts    # Provider 配置（模型名、端点、embedding 独立配置）
+├── providers.ts          # 多 provider 支持 + fallback 链
+├── providers/            # 各 provider 实现
+│   ├── openai.ts
+│   ├── ollama.ts
+│   └── google-genai.ts
+├── prompts.ts            # Prompt 模板管理（XML 格式）
+├── providers.test.ts     # Provider 测试
+├── cache/                # Prompt 缓存系统
+│   └── prompt-cache.ts   # 缓存 TTL、命中率追踪
+└── dynamic/              # 动态 prompt 注入
+    └── slot-injector.ts  # 基于上下文的 slot 替换
 ```
 
-支持 OpenAI、OpenAI 兼容端点（如 vLLM）和 Ollama。核心概念是 **fallback 链**：主 provider 失败时自动切换到备用 provider。
+支持 OpenAI、OpenAI 兼容端点（如 vLLM）、Ollama 和 Google GenAI。核心概念是 **fallback 链**：主 provider 失败时自动切换到备用 provider。
+
+**Prompt Provider 子系统**（`AI_PROMPT_PROVIDER` 环境变量）：
+- 支持 `anthropic`、`openai`、`deepseek`、`kimi`、`gemini`、`default` 六种 provider
+- 自动从模型 ID 推断 provider（如 `claude-*` → anthropic）
+- 系统 prompt 统一使用 XML 四层架构（XML = 内容标记层，JSON = 传输协议层）
+- 模板覆盖通过 `AI_PROMPT_TEMPLATE_FILE` 指定 JSON slot 文件
+
+**Embedding 独立配置**：可通过 `EMBEDDING_PROVIDER`/`EMBEDDING_BASE_URL`/`EMBEDDING_API_KEY`/`EMBEDDING_MODEL` 将 embedding 能力与 chat 分离到不同提供商。
 
 #### 存储抽象 — `lib/store.ts` 与 `lib/persistence/`
 

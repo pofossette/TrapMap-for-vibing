@@ -24,7 +24,7 @@ jobs:
 
       - run: pnpm typecheck
 
-  lint:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +39,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm lint
+      - run: pnpm check
 
   test:
     runs-on: ubuntu-latest

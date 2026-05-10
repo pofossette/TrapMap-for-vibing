@@ -133,6 +133,18 @@ cases because the graph index wasn't populated.
 - 评估用例添加/修改后，运行 `pnpm eval:smoke` 验证
 - CI 评估变更需确保 `pnpm eval:ci` 通过
 
+### 评测质量门
+
+PR 修改以下路径时，`eval.yml` 的 smoke tier 会自动触发：
+
+- `packages/contracts/src/domain/evals/**`
+- `evals/**`
+- `packages/server/src/**`
+
+评测结果会以 PR 评论形式展示。若检测到回归（regression），PR 合并前需确认回归是否可接受。
+
+详见 [`docs/operations/CI_CD.md`](../operations/CI_CD.md)。
+
 ## 文档贡献
 
 - 新功能需同步更新相关文档

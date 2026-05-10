@@ -114,12 +114,14 @@ pnpm eval:ci
 ### 新手入门
 - [代码导读](guides/CODE_GUIDE.md) — 源码导航与建议阅读顺序
 - [快速上手](guides/GETTING_STARTED.md) — 本地开发环境搭建
+- [客户端集成](guides/CLIENT_INTEGRATION.md) — Skill 工件结构、检索→激活流程、各客户端落地方式
 - [数据模型](reference/DATA_MODEL.md) — 核心数据实体及关系
 - [术语表](reference/GLOSSARY.md) — 项目专用术语解释
 - [投稿指南](guides/CONTRIBUTING.md) — 代码规范和 PR 流程
 
 ### 测试与质量
 - [测试指南](operations/TESTING.md) — 测试架构、运行方法和用例编写规范
+- [CI/CD 流水线](operations/CI_CD.md) — GitHub Actions 流水线、评测质量门
 
 ### 架构与 API
 - [架构概览](../architecture.md) — 四层架构概览
@@ -127,6 +129,8 @@ pnpm eval:ci
 - [模块详解](architecture/MODULES.md) — 详细模块分解
 - [API 参考](architecture/API.md) — 完整 API 列表
 - [API 契约表面](reference/api-surface.md) — 端点 Schema 概览
+- [CLI 参考](architecture/CLI.md) — CLI 命令全量参考
+- [CLI 渲染适配层](architecture/RENDERING.md) — 多工具输出格式适配
 - [数据流](architecture/FLOW.md) — 详细数据流图
 
 ### 部署与运维
@@ -135,9 +139,11 @@ pnpm eval:ci
 - [环境变量参考](operations/ENVIRONMENT.md) — 所有环境变量完整参考
 - [性能指南](reference/PERFORMANCE.md) — 性能调优与瓶颈排查
 - [安全指南](operations/SECURITY.md) — 安全架构、配置清单与最佳实践
+- [Prompt Provider](operations/PROMPT_PROVIDERS.md) — 多 Provider 提示系统
+- [Prompt 缓存](operations/PROMPT_CACHING.md) — 提示缓存策略
 
 ### 包结构
-- [包结构说明](PACKAGES.md) — packages/cli、server、contracts 各包职责与接口
+- [包结构说明](PACKAGES.md) — packages/cli、server、contracts、skills 各包职责与接口
 
 ### 归档文档
 - [归档文档](archived/) — 历史参考文档

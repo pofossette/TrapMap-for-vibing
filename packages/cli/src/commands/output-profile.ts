@@ -1,18 +1,22 @@
 import type { Command } from 'commander';
 
 import {
-  getDefaultOutputProfile,
-  loadCliState,
-  updateCliState,
   type OutputGraphPlanMode,
   type OutputModelHint,
   type OutputToolProfile,
   type OutputVerbosity,
+  getDefaultOutputProfile,
+  loadCliState,
+  updateCliState,
 } from '../lib/config.js';
 
 export function registerOutputProfileCommands(program: Command): void {
-  const output = program.command('output').description('Manage local CLI output rendering profiles');
-  const profile = output.command('profile').description('Inspect or update output profile settings');
+  const output = program
+    .command('output')
+    .description('Manage local CLI output rendering profiles');
+  const profile = output
+    .command('profile')
+    .description('Inspect or update output profile settings');
 
   profile
     .command('show')
@@ -43,8 +47,7 @@ export function registerOutputProfileCommands(program: Command): void {
             tool: flags.tool,
             modelHint: flags.model ?? current.outputProfile?.modelHint ?? 'generic',
             verbosity: flags.verbosity ?? current.outputProfile?.verbosity ?? 'balanced',
-            graphPlanMode:
-              flags.graphPlanMode ?? current.outputProfile?.graphPlanMode ?? 'summary',
+            graphPlanMode: flags.graphPlanMode ?? current.outputProfile?.graphPlanMode ?? 'summary',
           },
         }));
 

@@ -1,10 +1,10 @@
-import { ApiError } from './http.js';
 import type { CliState } from './config.js';
+import { ApiError } from './http.js';
 import {
-  createRenderEnvelope,
-  resolveRenderer,
   type RenderKind,
   type RenderPayload,
+  createRenderEnvelope,
+  resolveRenderer,
 } from './output-profile.js';
 
 export interface JsonFlag {
@@ -43,7 +43,11 @@ export function printCommandResult<T>(
   }
 
   try {
-    const envelope = createRenderEnvelope('command-result', commandResultPayload, state.outputProfile);
+    const envelope = createRenderEnvelope(
+      'command-result',
+      commandResultPayload,
+      state.outputProfile,
+    );
     const renderer = resolveRenderer(state.outputProfile, 'command-result');
     console.log(renderer.render(envelope));
   } catch {

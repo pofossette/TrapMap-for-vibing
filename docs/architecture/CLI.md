@@ -31,7 +31,7 @@ trapmap about
 
 **输出**:
 ```
-Skill Shareer prototype
+TrapMap
 - packages/cli: imperative user-facing terminal commands
 - packages/server: Fastify API and LangChain-oriented service boundary
 - packages/contracts: shared Zod schemas and runtime-safe contracts
@@ -85,6 +85,54 @@ trapmap --version
 | `--url <url>` | API 服务器地址 (默认 http://localhost:4000) |
 | `--output <format>` | 输出格式: `table`, `json`, `yaml` (默认 `table`) |
 | `--no-color` | 禁用颜色输出 |
+
+---
+
+## 输出配置命令
+
+### `trapmap output profile show`
+
+显示当前输出配置文件。
+
+```bash
+trapmap output profile show
+```
+
+**输出**:
+```json
+{
+  "tool": "claude-code",
+  "verbosity": "balanced",
+  "graphPlanMode": "summary",
+  "modelHint": "generic",
+  "includeRawHints": false
+}
+```
+
+---
+
+### `trapmap output profile set`
+
+设置本地输出配置文件。
+
+```bash
+trapmap output profile set --tool <tool> [--model <hint>] [--verbosity <level>] [--graph-plan-mode <mode>]
+```
+
+**示例**:
+```bash
+trapmap output profile set --tool claude-code --verbosity detailed
+trapmap output profile set --tool codex --graph-plan-mode full
+trapmap output profile set --tool opencode --model claude
+```
+
+**选项**:
+- `--tool <tool>`: 目标工具配置（`claude-code` / `codex` / `opencode` / `generic`）
+- `--model <hint>`: 模型提示（`claude` / `generic`）
+- `--verbosity <level>`: 详细程度（`compact` / `balanced` / `detailed`）
+- `--graph-plan-mode <mode>`: 图计划渲染模式（`summary` / `skill-list` / `full`）
+
+> 详见 [RENDERING.md](RENDERING.md) 了解各工具配置的渲染差异。
 
 ---
 
@@ -1349,6 +1397,172 @@ Applied at: 2026-05-06T12:00:00Z
 
 ✓ entry-xxx: verifiedAt=2026-05-06, reviewBy=2026-08-04
 ✓ entry-yyy: verifiedAt=2026-05-06, reviewBy=2026-08-04
+```
+
+---
+
+## 技能命令（Skill）
+
+### `trapmap skill search-by-content`
+
+按内容搜索技能。
+
+```bash
+trapmap skill search-by-content <query> [--limit <n>] [--json]
+```
+
+**示例**:
+```bash
+trapmap skill search-by-content "JWT token validation" --limit 5
+```
+
+**选项**:
+- `--limit <n>`: 最大返回数量，默认 10
+- `--json`: 输出 JSON 格式
+
+---
+
+### `trapmap skill edit`
+
+编辑技能工件。
+
+```bash
+trapmap skill edit <artifactId> [--title <title>] [--labels <labels>] [--file <path>] [--json]
+```
+
+**示例**:
+```bash
+trapmap skill edit artifact-xxx --title "Updated OAuth2 Guide" --labels auth,oauth2
+trapmap skill edit artifact-xxx --file ./SKILL.md
+```
+
+**选项**:
+- `--title <title>`: 更新标题
+- `--labels <labels>`: 更新标签（逗号分隔）
+- `--file <path>`: 更新技能内容文件
+- `--json`: 输出 JSON 格式
+
+---
+
+### `trapmap skill history`
+
+查看技能工件版本历史。
+
+```bash
+trapmap skill history <artifactId> [--json]
+```
+
+**示例**:
+```bash
+trapmap skill history artifact-xxx
+```
+
+**输出**:
+```
+Artifact: artifact-xxx - OAuth2 Implementation
+Current Revision: 3
+Lifecycle: approved
+
+Revisions:
+  rev 1  2026-04-30  alice    Initial submission
+  rev 2  2026-05-01  alice    Updated provider config
+  rev 3  2026-05-05  bob      Added error handling section
+```
+
+---
+
+### `trapmap skill review:queue`
+
+查看待审核的技能队列。
+
+```bash
+trapmap skill review:queue [--json]
+```
+
+**输出**:
+```
+Review Queue:
+  ARTIFACT ID     TITLE                    REVISION  SUBMITTED BY
+  artifact-xxx    OAuth2 Implementation    3         alice
+  artifact-yyy    JWT Validation           1         charlie
+
+Showing 2 items
+```
+
+---
+
+### `trapmap skill review:approve`
+
+批准技能工件。
+
+```bash
+trapmap skill review:approve <artifactId> [--notes <notes>] [--json]
+```
+
+**示例**:
+```bash
+trapmap skill review:approve artifact-xxx --notes "LGTM"
+```
+
+---
+
+### `trapmap skill review:reject`
+
+拒绝技能工件。
+
+```bash
+trapmap skill review:reject <artifactId> --notes <notes> [--json]
+```
+
+**示例**:
+```bash
+trapmap skill review:reject artifact-xxx --notes "Missing error handling documentation"
+```
+
+---
+
+### `trapmap skill duplicate-job fetch`
+
+获取重复候选包供离线审核。
+
+```bash
+trapmap skill duplicate-job fetch <candidateId> [--json]
+```
+
+**输出**: 返回候选详情、匹配实体列表和期望的手动裁定 schema。
+
+---
+
+### `trapmap skill duplicate-job resolve`
+
+提交重复候选的人工裁定。
+
+```bash
+trapmap skill duplicate-job resolve <candidateId> --decision <decision> --notes <notes> [--merged-with <entityType:entityId>] [--json]
+```
+
+**示例**:
+```bash
+# 标记为独立
+trapmap skill duplicate-job resolve candidate-xxx --decision independent --notes "Different scope"
+
+# 标记为已合并
+trapmap skill duplicate-job resolve candidate-xxx --decision merged --notes "Duplicate" --merged-with trap:entry-yyy
+```
+
+**选项**:
+- `--decision <decision>`: 裁定结果（`independent` / `merged`）
+- `--notes <notes>`: 裁定理由
+- `--merged-with <ref>`: 合并目标（格式：`entityType:entityId`，merged 时必填）
+
+---
+
+### `trapmap skill duplicate-job apply-resolution`
+
+应用已存储的人工裁定（发布或合并候选）。
+
+```bash
+trapmap skill duplicate-job apply-resolution <candidateId> [--json]
 ```
 
 ---

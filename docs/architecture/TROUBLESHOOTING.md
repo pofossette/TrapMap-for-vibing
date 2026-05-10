@@ -155,9 +155,9 @@ docker compose exec postgres psql -U trapmap -d trapmap
 UPDATE members SET password_hash = '$2b$12$...' WHERE username = 'user@example.com';
 
 # 或创建新用户
-docker compose exec app node -e "
-  const { hashPassword } = require('./dist/lib/auth');
-  hashPassword('newpassword').then(h => console.log(h));
+docker compose exec server node --input-type=module -e "
+  import { hashPassword } from './dist/lib/auth.js';
+  console.log(await hashPassword('newpassword'));
 "
 # 然后更新数据库
 ```
@@ -182,7 +182,7 @@ trapmap session
 
 # 检查服务器时间
 date
-docker compose exec app date
+docker compose exec server date
 ```
 
 #### 解决方案
@@ -272,9 +272,9 @@ echo $AI_EMBEDDING_MODEL
 # 服务器启动时会自动索引
 
 # 如果索引失败，重建索引
-docker compose exec app node -e "
-  const { createStore } = require('./dist/persistence/create-store');
-  const { reconcile } = require('./dist/lib/indexing/reconciler');
+docker compose exec server node --input-type=module -e "
+  import { createStore } from './dist/persistence/create-store.js';
+  import { reconcile } from './dist/lib/indexing/reconciler.js';
   const store = await createStore({ type: 'postgres', databaseUrl: process.env.TRAPMAP_DATABASE_URL });
   await reconcile(store);
 "
@@ -353,18 +353,18 @@ docker compose exec postgres psql -U trapmap -d trapmap \
 
 ```bash
 # 运行协调进程
-docker compose exec app node -e "
-  const { createStore } = require('./dist/persistence/create-store');
-  const { reconcile } = require('./dist/lib/indexing/reconciler');
+docker compose exec server node --input-type=module -e "
+  import { createStore } from './dist/persistence/create-store.js';
+  import { reconcile } from './dist/lib/indexing/reconciler.js';
   const store = await createStore({ type: 'postgres', databaseUrl: process.env.TRAPMAP_DATABASE_URL });
   const report = await reconcile(store);
   console.log(JSON.stringify(report, null, 2));
 "
 
 # 或手动重新索引单个条目
-docker compose exec app node -e "
-  const { createStore } = require('./dist/persistence/create-store');
-  const { indexEntry } = require('./dist/lib/indexing');
+docker compose exec server node --input-type=module -e "
+  import { createStore } from './dist/persistence/create-store.js';
+  import { indexEntry } from './dist/lib/indexing/index.js';
   const store = await createStore({ type: 'postgres', databaseUrl: process.env.TRAPMAP_DATABASE_URL });
   await indexEntry('entry-id');
 "
@@ -413,9 +413,9 @@ CREATE INDEX ON knowledge_vectors USING ivfflat (embedding_vector vector_cosine_
 EOF
 
 # 然后重新索引所有条目
-docker compose exec app node -e "
-  const { createStore } = require('./dist/persistence/create-store');
-  const { reconcile } = require('./dist/lib/indexing/reconciler');
+docker compose exec server node --input-type=module -e "
+  import { createStore } from './dist/persistence/create-store.js';
+  import { reconcile } from './dist/lib/indexing/reconciler.js';
   const store = await createStore({ type: 'postgres', databaseUrl: process.env.TRAPMAP_DATABASE_URL });
   await reconcile(store);
 "
@@ -571,7 +571,7 @@ docker compose exec postgres pg_dump -U trapmap trapmap > backup_$(date +%Y%m%d)
 docker compose exec -T postgres psql -U trapmap trapmap < backup_20260430.sql
 
 # 重新创建表（如果没有备份）
-docker compose exec app pnpm drizzle-kit push
+docker compose exec server pnpm drizzle-kit push
 ```
 
 ---
@@ -587,7 +587,7 @@ docker compose exec app pnpm drizzle-kit push
 docker stats --no-stream
 
 # 2. 检查 Node.js 内存
-docker compose exec app node -e "
+docker compose exec server node -e "
   const mem = process.memoryUsage();
   console.log('RSS:', Math.round(mem.rss / 1024 / 1024), 'MB');
   console.log('Heap Used:', Math.round(mem.heapUsed / 1024 / 1024), 'MB');
@@ -720,5 +720,5 @@ v3 graph-plan 的核心场景仅包含 2 个核心用例，测试覆盖可能不
 如果问题无法解决：
 
 1. 收集日志：`docker compose logs > debug.log`
-2. 收集环境信息：`docker compose ps && docker compose exec app node --version`
+2. 收集环境信息：`docker compose ps && docker compose exec server node --version`
 3. 创建 Issue：https://github.com/your-org/Trap-Map/issues

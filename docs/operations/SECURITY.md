@@ -203,7 +203,10 @@ LOG_RAG_ENABLED=true                  # 记录检索请求
 
 ```bash
 # 限制 CORS 来源
-ALLOWED_ORIGINS=https://your-domain.com
+CORS_ALLOWED_ORIGINS=https://your-domain.com
+
+# 速率限制（每分钟最大请求数，0 = 无限制）
+RATE_LIMIT_MAX=100
 
 # 日志轮转
 LOG_MAX_FILE_SIZE_MB=10
@@ -280,6 +283,17 @@ LOG_USER_OPS_DIR=logs/user-ops
 | `auth.access_key_used` | 使用密钥认证 |
 | `auth.password_reset_requested` | 请求密码重置 |
 | `auth.password_reset_completed` | 完成密码重置 |
+| `knowledge-reviewed` | 审核知识条目（含 evidence 更新） |
+| `knowledge-deactivated` | 停用知识条目 |
+| `knowledge-exported` / `knowledge-imported` | 导出/导入知识 |
+| `artifact-edited` | 编辑工件 |
+| `artifact-reviewed` | 审核工件 |
+| `artifact-deactivated` | 停用工件 |
+| `artifact-exported` / `artifact-imported` | 导出/导入工件 |
+| `artifact-history-viewed` | 查看工件历史 |
+| `decay-batch` / `maintenance-batch` | 批量 decay/维护操作 |
+| `feedback` / `feedback-batch` | 反馈提交/批量处理 |
+| `reconcile-knowledge-indexes` | 索引重同步 |
 
 审计日志需要 `audit:read` 权限才能查看：
 
@@ -291,7 +305,7 @@ pnpm --filter @trapmap/cli dev -- audit list --limit 50
 
 ## 相关文档
 
-- [会话与认证详解](../architecture/components/AUTH.md) — 认证流程实现细节
-- [治理模型详解](../architecture/components/GOVERNANCE.md) — RBAC 和安全等级实现
+- [安全指南](SECURITY.md) — 认证流程、RBAC 和安全等级实现（本文档）
+- [API 参考 — 认证端点](../architecture/API.md#认证端点) — 认证 API 详情
 - [环境变量参考](ENVIRONMENT.md) — 完整环境变量列表
 - [部署指南](../architecture/DEPLOYMENT.md) — 生产环境部署步骤

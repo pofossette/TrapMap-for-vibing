@@ -107,6 +107,30 @@ draft → submitted → agent-pass/agent-rejected
 
 ---
 
+## 反馈与维护
+
+### Feedback（反馈）
+
+用户对知识条目的问题反馈。状态机：`new` → `triaged` → `resolved` / `dismissed`。当同类反馈达到阈值时，系统自动标记条目进入相应生命周期状态。
+
+### Decay（衰减）
+
+知识条目的新鲜度追踪机制。状态：`active` → `review-due` → `stale` → `expired`（或 `superseded`）。衰减曲线由 freshnessType 决定：`evergreen`（长期有效）、`versioned`（随版本更新）、`volatile`（快速过期）。
+
+### Maintenance（维护）
+
+知识条目的责任追踪机制。记录维护者（`maintainer`）和计划审核日期（`reviewBy`），支持批量分配、延长审核、标记已验证等操作。
+
+### Evidence（证据）
+
+知识条目的来源证明元数据。包含来源类型（`sourceType`：如 `internal-experience`、`stack-overflow`、`github-issue`、`official-docs`）和证据级别（`evidenceLevel`：`anecdotal` → `tested` → `verified` → `authoritative`）。
+
+### Boundary（边界约束）
+
+知识条目的适用范围约束，定义条目在哪些上下文、平台版本、前置条件下有效。用于边界搜索（`/admin/boundary-search`）和检索过滤。
+
+---
+
 ## 权限与安全
 
 ### RBAC（基于角色的访问控制）
@@ -192,3 +216,19 @@ Skill 工件的磁盘存储结构：
 ### Postgres Store
 
 生产环境使用的 PostgreSQL + Drizzle ORM 存储实现（`PostgresStore`）。
+
+### Activation Policy（激活策略）
+
+脚本执行策略的四状态模型：`blocked`（禁止）→ `reference-only`（仅可读）→ `needs-approval`（需批准）→ `client-executable`（可执行）。客户端只能收紧策略，不能放松。
+
+### Entity Lineage（实体谱系）
+
+候选提交从接收到发布为正式实体的完整追踪链，记录每一步的状态转换和关联实体。
+
+### Tool Profile（工具配置）
+
+CLI 输出渲染的目标工具类型：`claude-code`（XML 输出）、`codex`（JSON 输出）、`opencode`（Markdown 输出）、`generic`（纯文本输出）。
+
+### Render Kind（渲染类型）
+
+CLI 输出适配层的渲染分类：`retrieval-v1`、`retrieval-v2`、`graph-plan`、`skill-lookup`、`artifact-export`、`command-result`、`generic`。
