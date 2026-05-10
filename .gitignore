@@ -32,6 +32,7 @@ reports/*.json
 !.claude/skills/trapmap-knowledge-workflow/
 !.claude/skills/trapmap-knowledge-workflow/**
 .codex/
+.codex
 .gemini/
 .kilo/
 .opencode/
