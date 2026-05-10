@@ -906,6 +906,94 @@ describe('knowledge commands', () => {
     });
   });
 
+  describe('profile-aware output', () => {
+    it('renders codex command-result JSON for submit when output profile is configured', async () => {
+      const { loadCliState } = await import('../lib/config.js');
+      vi.mocked(loadCliState).mockResolvedValue({
+        serverUrl: 'http://localhost:3000',
+        sessionToken: 'mock-token',
+        session: {
+          member: { handle: 'testuser', securityLevel: 0 },
+          effectivePermissions: ['knowledge:submit'],
+        },
+        outputProfile: {
+          tool: 'codex',
+          modelHint: 'gpt',
+          renderMode: 'text',
+          graphPlanMode: 'summary',
+          verbosity: 'balanced',
+          includeRawHints: true,
+        },
+      });
+
+      const entry = createMockEntry({ id: 'entry-123', lifecycleState: 'submitted' });
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: { entry },
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerKnowledgeCommands(program, { allowInspect: false, allowSubmit: true });
+
+      await program.parseAsync(
+        ['submit', '--scope', 'global', '--label', 'label1', '--shortcut', 'Test shortcut'],
+        { from: 'user' },
+      );
+
+      const output = String(consoleLogSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('knowledge-submit');
+      expect(parsed.success).toBe(true);
+      expect(parsed.summary).toContain('entry-123');
+      expect(parsed.artifacts[0]).toMatchObject({ id: 'entry-123', newState: 'submitted' });
+      consoleLogSpy.mockRestore();
+    });
+
+    it('renders codex command-result JSON for review-status when output profile is configured', async () => {
+      const { loadCliState } = await import('../lib/config.js');
+      vi.mocked(loadCliState).mockResolvedValue({
+        serverUrl: 'http://localhost:3000',
+        sessionToken: 'mock-token',
+        session: {
+          member: { handle: 'testuser', securityLevel: 0 },
+          effectivePermissions: ['knowledge:submit'],
+        },
+        outputProfile: {
+          tool: 'codex',
+          modelHint: 'gpt',
+          renderMode: 'text',
+          graphPlanMode: 'summary',
+          verbosity: 'balanced',
+          includeRawHints: true,
+        },
+      });
+
+      const entry = createMockEntry({ id: 'entry-specific', lifecycleState: 'approved' });
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: { entry },
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerKnowledgeCommands(program, { allowInspect: true, allowSubmit: false });
+
+      await program.parseAsync(['review-status', 'entry-specific'], { from: 'user' });
+
+      const output = String(consoleLogSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('knowledge-review-status');
+      expect(parsed.success).toBe(true);
+      expect(parsed.artifacts[0]).toMatchObject({ id: 'entry-specific', newState: 'approved' });
+      consoleLogSpy.mockRestore();
+    });
+  });
+
   describe('JSON output', () => {
     it('outputs JSON when --json flag is used for submit', async () => {
       const entry = createMockEntry();

@@ -5,7 +5,7 @@ import type { Command } from 'commander';
 import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
 import { collectValues, resolveTextInput } from '../lib/input.js';
-import { printResult } from '../lib/output.js';
+import { printAdaptiveResult } from '../lib/output.js';
 
 interface RetrievalCommandOptions {
   allowSearch: boolean;
@@ -261,7 +261,7 @@ export function registerRetrievalCommands(
 
           const parsed = retrievalV2ResponseSchema.parse(response.data);
 
-          printResult(parsed, flags, formatV2RetrievalResponse);
+          printAdaptiveResult('retrieval-v2', parsed, state, flags, formatV2RetrievalResponse);
         } else {
           // Legacy v1 retrieval (COMP-03)
           const body = {
@@ -281,7 +281,7 @@ export function registerRetrievalCommands(
 
           const parsed = retrievalResponseSchema.parse(response.data);
 
-          printResult(parsed, flags, formatRetrievalResponse);
+          printAdaptiveResult('retrieval-v1', parsed, state, flags, formatRetrievalResponse);
         }
       },
     );

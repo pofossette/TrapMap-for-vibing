@@ -184,7 +184,6 @@ Trap-Map/
 ├── scripts/          # 部署脚本
 ├── docs/            # 文档
 │   └── architecture/
-├── .planning/       # 里程碑和路线图
 ├── docker-compose.yml
 └── package.json     # pnpm workspace 根目录
 ```

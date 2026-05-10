@@ -21,6 +21,22 @@ export interface CliState {
   serverUrl: string;
   sessionToken: string | null;
   session: ActiveSession | null;
+  outputProfile?: OutputProfile;
+}
+
+export type OutputToolProfile = 'claude-code' | 'codex' | 'opencode' | 'generic';
+export type OutputModelHint = 'claude' | 'gpt' | 'qwen' | 'generic';
+export type OutputRenderMode = 'text' | 'json';
+export type OutputGraphPlanMode = 'summary' | 'full' | 'skill-list';
+export type OutputVerbosity = 'compact' | 'balanced' | 'detailed';
+
+export interface OutputProfile {
+  tool: OutputToolProfile;
+  modelHint?: OutputModelHint;
+  renderMode: OutputRenderMode;
+  graphPlanMode: OutputGraphPlanMode;
+  verbosity: OutputVerbosity;
+  includeRawHints: boolean;
 }
 
 const DEFAULT_SERVER_URL = process.env.TRAPMAP_SERVER_URL ?? 'http://127.0.0.1:4000';
@@ -37,14 +53,39 @@ function getDefaultState(): CliState {
   };
 }
 
+export function getDefaultOutputProfile(): OutputProfile {
+  return {
+    tool: 'generic',
+    modelHint: 'generic',
+    renderMode: 'text',
+    graphPlanMode: 'summary',
+    verbosity: 'balanced',
+    includeRawHints: true,
+  };
+}
+
+function normalizeOutputProfile(profile: Partial<OutputProfile> | undefined): OutputProfile | undefined {
+  if (!profile) {
+    return undefined;
+  }
+
+  return {
+    ...getDefaultOutputProfile(),
+    ...profile,
+  };
+}
+
 export async function loadCliState(): Promise<CliState> {
   const configPath = getConfigPath();
 
   try {
     const raw = await readFile(configPath, 'utf8');
+    const parsed = JSON.parse(raw) as Partial<CliState>;
+    const outputProfile = normalizeOutputProfile(parsed.outputProfile);
     return {
       ...getDefaultState(),
-      ...(JSON.parse(raw) as Partial<CliState>),
+      ...parsed,
+      ...(outputProfile ? { outputProfile } : {}),
     };
   } catch {
     return getDefaultState();

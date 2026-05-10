@@ -6,7 +6,7 @@ import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
 import { collectValues, resolveTextInput } from '../lib/input.js';
 import { formatLoadContext } from '../lib/markdown-formatter.js';
-import { printResult } from '../lib/output.js';
+import { printAdaptiveResult } from '../lib/output.js';
 
 interface LoadCommandOptions {
   allowSearch: boolean;
@@ -90,7 +90,7 @@ export function registerLoadCommand(program: Command, options: LoadCommandOption
         const parsed = graphPlanSearchResponseSchema.parse(response.data);
 
         // Output formatted markdown or raw JSON
-        printResult(parsed, flags.json ? { json: true } : {}, formatLoadContext);
+        printAdaptiveResult('graph-plan', parsed, state, flags.json ? { json: true } : {}, formatLoadContext);
       },
     );
 }

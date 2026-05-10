@@ -283,7 +283,6 @@ Trap-Map/
 ├── docs/              # 项目文档
 │   └── architecture/  # 详细架构文档
 ├── scripts/           # 部署脚本
-├── .planning/        # GSD 规划文档
 ├── docker-compose.yml
 └── README.md
 ```

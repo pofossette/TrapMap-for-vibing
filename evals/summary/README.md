@@ -276,4 +276,3 @@ pnpm eval:core
 
 - [evals/README.md](../README.md) - 评测工作区总览
 - [检索评测 README](../retrieval/README.md) - 检索评测详情
-- [PROJECT.md](../../.planning/PROJECT.md) - 里程碑要求

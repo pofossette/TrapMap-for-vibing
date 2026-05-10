@@ -688,4 +688,86 @@ describe('CLI decay commands (Phase 50)', () => {
       expect(body.entryIds).toEqual(['k_1', 'k_2']);
     });
   });
+
+  describe('profile-aware output', () => {
+    const codexProfileState = {
+      serverUrl: 'http://localhost:3000',
+      sessionToken: 'test-token',
+      session: null,
+      outputProfile: {
+        tool: 'codex' as const,
+        modelHint: 'gpt' as const,
+        renderMode: 'text' as const,
+        graphPlanMode: 'summary' as const,
+        verbosity: 'balanced' as const,
+        includeRawHints: true,
+      },
+    };
+
+    it('renders codex command-result JSON for decay-stale', async () => {
+      const { loadCliState } = await import('../lib/config.js');
+      vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
+
+      mockedApiRequest.mockResolvedValue({ data: mockDecayListResponse, sessionToken: null });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await program.parseAsync(['node', 'test', 'decay-stale']);
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('decay-stale');
+      expect(parsed.success).toBe(true);
+      expect(parsed.summary).toContain('2');
+      expect(parsed.artifacts).toHaveLength(2);
+      consoleSpy.mockRestore();
+    });
+
+    it('renders codex command-result JSON for decay-batch', async () => {
+      const { loadCliState } = await import('../lib/config.js');
+      vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
+
+      mockedApiRequest.mockResolvedValue({ data: mockBatchResponse, sessionToken: null });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await program.parseAsync([
+        'node',
+        'test',
+        'decay-batch',
+        '--action',
+        'extend',
+        '--entries',
+        'k_1,k_2',
+      ]);
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('decay-batch');
+      expect(parsed.success).toBe(true);
+      expect(parsed.summary).toContain('extend');
+      consoleSpy.mockRestore();
+    });
+
+    it('renders codex command-result JSON for decay-search', async () => {
+      const { loadCliState } = await import('../lib/config.js');
+      vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
+
+      mockedApiRequest.mockResolvedValue({ data: mockSearchResponse, sessionToken: null });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await program.parseAsync(['node', 'test', 'decay-search', 'legacy']);
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('decay-search');
+      expect(parsed.success).toBe(true);
+      expect(parsed.summary).toContain('1');
+      consoleSpy.mockRestore();
+    });
+  });
 });

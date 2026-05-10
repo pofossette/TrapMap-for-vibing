@@ -9,7 +9,7 @@ import type { Command } from 'commander';
 import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
 import { collectValues, resolveTextInput } from '../lib/input.js';
-import { printResult } from '../lib/output.js';
+import { printCommandResult } from '../lib/output.js';
 
 interface KnowledgeCommandOptions {
   allowInspect: boolean;
@@ -120,12 +120,23 @@ export function registerKnowledgeCommands(
           });
           const parsed = knowledgeEntryResponseSchema.parse(response.data);
 
-          printResult(parsed, flags, ({ entry }) =>
-            [
-              `Submitted ${entry.id}`,
-              `Lifecycle: ${entry.lifecycleState}`,
-              `Shortcut: ${entry.shortcut}`,
-            ].join('\n'),
+          printCommandResult(
+            {
+              action: 'knowledge-submit',
+              success: true,
+              summary: `Submitted ${parsed.entry.id} (${parsed.entry.lifecycleState}).`,
+              artifacts: [{ id: parsed.entry.id, newState: parsed.entry.lifecycleState }],
+              nextSteps: [],
+            },
+            parsed,
+            state,
+            flags,
+            ({ entry }) =>
+              [
+                `Submitted ${entry.id}`,
+                `Lifecycle: ${entry.lifecycleState}`,
+                `Shortcut: ${entry.shortcut}`,
+              ].join('\n'),
           );
         },
       );
@@ -186,12 +197,29 @@ export function registerKnowledgeCommands(
           });
           const parsed = knowledgeEntryResponseSchema.parse(response.data);
 
-          printResult(parsed, flags, ({ entry }) =>
-            [
-              `Resubmitted ${entry.id}`,
-              `Lifecycle: ${entry.lifecycleState}`,
-              `Revision: ${entry.latestRevision.revision}`,
-            ].join('\n'),
+          printCommandResult(
+            {
+              action: 'knowledge-resubmit',
+              success: true,
+              summary: `Resubmitted ${parsed.entry.id} (${parsed.entry.lifecycleState}, revision ${parsed.entry.latestRevision.revision}).`,
+              artifacts: [
+                {
+                  id: parsed.entry.id,
+                  newState: parsed.entry.lifecycleState,
+                  revision: parsed.entry.latestRevision.revision,
+                },
+              ],
+              nextSteps: [],
+            },
+            parsed,
+            state,
+            flags,
+            ({ entry }) =>
+              [
+                `Resubmitted ${entry.id}`,
+                `Lifecycle: ${entry.lifecycleState}`,
+                `Revision: ${entry.latestRevision.revision}`,
+              ].join('\n'),
           );
         },
       );
@@ -212,8 +240,19 @@ export function registerKnowledgeCommands(
         });
         const parsed = knowledgeEntryResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, ({ entry }) =>
-          [`Superseded ${entry.id}`, `Lifecycle: ${entry.lifecycleState}`].join('\n'),
+        printCommandResult(
+          {
+            action: 'knowledge-supersede',
+            success: true,
+            summary: `Superseded ${parsed.entry.id} (${parsed.entry.lifecycleState}).`,
+            artifacts: [{ id: parsed.entry.id, newState: parsed.entry.lifecycleState }],
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          ({ entry }) =>
+            [`Superseded ${entry.id}`, `Lifecycle: ${entry.lifecycleState}`].join('\n'),
         );
       });
   }
@@ -234,7 +273,19 @@ export function registerKnowledgeCommands(
           });
           const parsed = knowledgeEntryResponseSchema.parse(response.data);
 
-          printResult(parsed, flags, ({ entry }) => formatEntry(entry));
+          printCommandResult(
+            {
+              action: 'knowledge-review-status',
+              success: true,
+              summary: `${parsed.entry.id} (${parsed.entry.lifecycleState}): ${parsed.entry.shortcut}`,
+              artifacts: [{ id: parsed.entry.id, newState: parsed.entry.lifecycleState }],
+              nextSteps: [],
+            },
+            parsed,
+            state,
+            flags,
+            ({ entry }) => formatEntry(entry),
+          );
           return;
         }
 
@@ -243,7 +294,25 @@ export function registerKnowledgeCommands(
         });
         const parsed = knowledgeHistoryResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, ({ items }) => formatHistory(items));
+        printCommandResult(
+          {
+            action: 'knowledge-review-history',
+            success: true,
+            summary:
+              parsed.items.length > 0
+                ? `${parsed.items.length} entry/entries found.`
+                : 'No submissions found.',
+            artifacts: parsed.items.map((entry) => ({
+              id: entry.id,
+              newState: entry.lifecycleState,
+            })),
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          ({ items }) => formatHistory(items),
+        );
       });
   }
 }

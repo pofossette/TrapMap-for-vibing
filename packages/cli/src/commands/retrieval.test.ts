@@ -1,7 +1,7 @@
 import type { RetrievalResponse, RetrievalV2Response } from '@trapmap/contracts';
 import { retrievalResponseSchema, retrievalV2ResponseSchema } from '@trapmap/contracts';
 import { Command } from 'commander';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as http from '../lib/http.js';
 import { registerRetrievalCommands } from './retrieval.js';
@@ -33,6 +33,18 @@ vi.mock('../lib/input.js', () => ({
 }));
 
 describe('CLI retrieval commands', () => {
+  beforeEach(async () => {
+    const { loadCliState } = await import('../lib/config.js');
+    vi.mocked(loadCliState).mockResolvedValue({
+      serverUrl: 'http://localhost:3000',
+      sessionToken: 'mock-token',
+      session: {
+        member: { handle: 'testuser', securityLevel: 0 },
+        effectivePermissions: ['knowledge:search'],
+      },
+    });
+  });
+
   describe('search command with text output', () => {
     it('should produce formatted search result from direct seed argument', async () => {
       const mockResponse: RetrievalResponse = {
@@ -185,6 +197,128 @@ describe('CLI retrieval commands', () => {
       const parsedOutput = JSON.parse(output);
       expect(retrievalResponseSchema.parse(parsedOutput)).toEqual(mockResponse);
 
+      consoleLogSpy.mockRestore();
+    });
+  });
+
+  describe('adaptive output profile rendering', () => {
+    it('renders claude-code text for v2 retrieval when output profile is configured', async () => {
+      const { loadCliState } = await import('../lib/config.js');
+      vi.mocked(loadCliState).mockResolvedValue({
+        serverUrl: 'http://localhost:3000',
+        sessionToken: 'mock-token',
+        session: {
+          member: { handle: 'testuser', securityLevel: 0 },
+          effectivePermissions: ['knowledge:search'],
+        },
+        outputProfile: {
+          tool: 'claude-code',
+          modelHint: 'claude',
+          renderMode: 'text',
+          graphPlanMode: 'summary',
+          verbosity: 'balanced',
+          includeRawHints: true,
+        },
+      });
+
+      const mockResponse: RetrievalV2Response = {
+        capsules: [
+          {
+            capsuleId: 'cap-1',
+            artifactId: 'skill-1',
+            revision: 1,
+            sourcePaths: ['SKILL.md'],
+            content: 'Use the cache invalidation skill.',
+            situation: 'Need cache guidance',
+            problem: 'Cache invalidation mistakes',
+            goal: 'Apply safer cache flow',
+            labels: ['cache'],
+            scope: 'project',
+            requiredLevel: 0,
+            score: 0.97,
+            reason: 'High semantic match',
+          },
+        ],
+        profileHints: [],
+        refinementSummary: null,
+        summary: {
+          text: 'Prefer the cache invalidation skill.',
+          citations: [
+            {
+              source: {
+                entryId: 'entry-1',
+                scope: 'project',
+                shortcut: 'Cache invalidation',
+              },
+              snippet: 'Use the cache invalidation skill.',
+              tags: ['cache'],
+              recallChannels: ['semantic'],
+              scores: {
+                semantic: 0.97,
+                keyword: null,
+                graph: null,
+                preRerank: 0.95,
+                final: 0.97,
+              },
+            },
+          ],
+        },
+      };
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'cache invalidation', '--v2'], { from: 'user' });
+
+      const output = String(consoleLogSpy.mock.calls[0]?.[0]);
+      expect(output).toContain('<trapmap_skill_pack>');
+      expect(output).toContain('cache invalidation skill');
+      consoleLogSpy.mockRestore();
+    });
+
+    it('falls back to legacy formatter when codex retrieval-v2 renderer fails', async () => {
+      const { loadCliState } = await import('../lib/config.js');
+      vi.mocked(loadCliState).mockResolvedValue({
+        serverUrl: 'http://localhost:3000',
+        sessionToken: 'mock-token',
+        session: {
+          member: { handle: 'testuser', securityLevel: 0 },
+          effectivePermissions: ['knowledge:search'],
+        },
+        outputProfile: {
+          tool: 'codex',
+          modelHint: 'gpt',
+          renderMode: 'text',
+          graphPlanMode: 'summary',
+          verbosity: 'balanced',
+          includeRawHints: true,
+        },
+      });
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: {
+          capsules: [],
+          profileHints: [],
+          refinementSummary: null,
+          summary: null,
+          failRender: true,
+        },
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+
+      await program.parseAsync(['search', 'cache invalidation', '--v2'], { from: 'user' });
+
+      expect(String(consoleLogSpy.mock.calls[0]?.[0])).toContain('No results found');
       consoleLogSpy.mockRestore();
     });
   });

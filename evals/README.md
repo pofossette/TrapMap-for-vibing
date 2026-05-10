@@ -287,5 +287,3 @@ GITHUB_OUTPUT=/tmp/gh-output pnpm eval:ci
 
 - [检索评测 README](./retrieval/README.md) - 端点特定约定
 - [摘要评测 README](./summary/README.md) - 基于法官的评测详情
-- [PROJECT.md](../.planning/PROJECT.md) - 里程碑要求
-- [ROADMAP.md](../.planning/ROADMAP.md) - Phase 范围边界

@@ -146,7 +146,6 @@ Trap-Map/
 ├── evals/            # 评估系统
 ├── scripts/          # 部署脚本
 ├── docs/             # 项目文档
-└── .planning/        # GSD 规划文档
 ```
 
 ## 7. 常见问题

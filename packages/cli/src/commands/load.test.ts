@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { describe, expect, it, vi } from 'vitest';
 
 import * as http from '../lib/http.js';
+import * as outputProfile from '../lib/output-profile.js';
 import { registerLoadCommand } from './load.js';
 
 // Mock the dependencies
@@ -193,6 +194,179 @@ describe('CLI load command', () => {
     const loggedOutput = consoleLogSpy.mock.calls[0]?.[0];
     expect(loggedOutput).toContain('formatted:');
 
+    consoleLogSpy.mockRestore();
+  });
+
+  it('should render codex profile output when configured', async () => {
+    const { loadCliState } = await import('../lib/config.js');
+    vi.mocked(loadCliState).mockResolvedValue({
+      serverUrl: 'http://localhost:3000',
+      sessionToken: 'mock-token',
+      session: {
+        member: { handle: 'testuser', securityLevel: 0 },
+        effectivePermissions: ['knowledge:search'],
+      },
+      outputProfile: {
+        tool: 'codex',
+        modelHint: 'gpt',
+        renderMode: 'text',
+        graphPlanMode: 'summary',
+        verbosity: 'balanced',
+        includeRawHints: true,
+      },
+    });
+
+    vi.mocked(http.apiRequest).mockResolvedValue({
+      data: mockResponse,
+      sessionToken: 'mock-token',
+    });
+
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const program = new Command();
+    registerLoadCommand(program, { allowSearch: true });
+
+    await program.parseAsync(['load', 'test seed'], { from: 'user' });
+
+    const output = String(consoleLogSpy.mock.calls[0]?.[0]);
+    expect(output).toContain('"type": "graph-plan"');
+    expect(output).toContain('"selected_path": "entry-fallback"');
+    consoleLogSpy.mockRestore();
+  });
+
+  it('should render opencode markdown fallback sections when configured', async () => {
+    const { loadCliState } = await import('../lib/config.js');
+    vi.mocked(loadCliState).mockResolvedValue({
+      serverUrl: 'http://localhost:3000',
+      sessionToken: 'mock-token',
+      session: {
+        member: { handle: 'testuser', securityLevel: 0 },
+        effectivePermissions: ['knowledge:search'],
+      },
+      outputProfile: {
+        tool: 'opencode',
+        modelHint: 'generic',
+        renderMode: 'text',
+        graphPlanMode: 'summary',
+        verbosity: 'balanced',
+        includeRawHints: true,
+      },
+    });
+
+    vi.mocked(http.apiRequest).mockResolvedValue({
+      data: {
+        routingTrace: {
+          selectedMode: 'mix',
+          routeFamily: 'capsule',
+          routingReason: 'graph-plan-low-confidence',
+          channelsUsed: ['capsule'],
+          fallbackTarget: 'v2-capsule',
+          confidenceScore: 0.4,
+          confidenceBucket: 'low',
+        },
+        plan: null,
+        fallback: {
+          routeFamily: 'capsule',
+          response: {
+            capsules: [
+              {
+                capsuleId: 'cap-1',
+                artifactId: 'artifact.cache',
+                revision: 1,
+                sourcePaths: ['SKILL.md'],
+                content: 'Use staged rollout.',
+                situation: 'Need cache rollout guidance',
+                problem: 'Invalidation can stampede caches',
+                goal: 'Roll out safely',
+                labels: ['cache'],
+                scope: 'project',
+                requiredLevel: 0,
+                score: 0.9,
+                reason: 'High semantic match',
+              },
+            ],
+            profileHints: [],
+            refinementSummary: null,
+            summary: {
+              text: 'Use fallback capsule guidance.',
+              citations: [
+                {
+                  source: {
+                    entryId: 'entry-1',
+                    scope: 'project',
+                    shortcut: 'Fallback cache skill',
+                  },
+                  snippet: 'Use staged rollout.',
+                  tags: ['cache'],
+                    recallChannels: ['semantic'],
+                  scores: {
+                    semantic: 0.9,
+                    keyword: null,
+                    graph: null,
+                    preRerank: 0.85,
+                    final: 0.9,
+                  },
+                },
+              ],
+            },
+          },
+        },
+      } satisfies GraphPlanSearchResponse,
+      sessionToken: 'mock-token',
+    });
+
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const program = new Command();
+    registerLoadCommand(program, { allowSearch: true });
+
+    await program.parseAsync(['load', 'test seed'], { from: 'user' });
+
+    const output = String(consoleLogSpy.mock.calls[0]?.[0]);
+    expect(output).toContain('## Fallback Notice');
+    expect(output).toContain('capsule fallback');
+    expect(output).toContain('## Recommended Skills');
+    consoleLogSpy.mockRestore();
+  });
+
+  it('should fall back to legacy graph formatter when tool-specific renderer fails', async () => {
+    const { loadCliState } = await import('../lib/config.js');
+    vi.mocked(loadCliState).mockResolvedValue({
+      serverUrl: 'http://localhost:3000',
+      sessionToken: 'mock-token',
+      session: {
+        member: { handle: 'testuser', securityLevel: 0 },
+        effectivePermissions: ['knowledge:search'],
+      },
+      outputProfile: {
+        tool: 'codex',
+        modelHint: 'gpt',
+        renderMode: 'text',
+        graphPlanMode: 'summary',
+        verbosity: 'balanced',
+        includeRawHints: true,
+      },
+    });
+
+    vi.mocked(http.apiRequest).mockResolvedValue({
+      data: mockResponse,
+      sessionToken: 'mock-token',
+    });
+    const resolveRendererSpy = vi
+      .spyOn(outputProfile, 'resolveRenderer')
+      .mockReturnValue({ id: 'codex:graph-plan', render: () => {
+        throw new Error('forced render failure');
+      } });
+
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const program = new Command();
+    registerLoadCommand(program, { allowSearch: true });
+
+    await program.parseAsync(['load', 'test seed'], { from: 'user' });
+
+    expect(String(consoleLogSpy.mock.calls[0]?.[0])).toContain('formatted:');
+    resolveRendererSpy.mockRestore();
     consoleLogSpy.mockRestore();
   });
 });

@@ -126,4 +126,3 @@
 
 ## 早期版本
 
-更多信息请参考 `.planning/MILESTONES.md`。

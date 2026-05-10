@@ -9,7 +9,6 @@
   "ignore": [
     "dist/**",
     "node_modules/**",
-    ".planning/**",
     ".claude/**",
     "**/*.test.ts",
     "**/*.spec.ts"

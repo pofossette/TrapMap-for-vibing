@@ -77,3 +77,4 @@ pids/
 
 # Data directory (generated at runtime)
 data/
+graphiy-out/

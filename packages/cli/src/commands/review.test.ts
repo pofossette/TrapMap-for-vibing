@@ -428,4 +428,107 @@ describe('CLI review commands with evidence flags (Phase 58-06)', () => {
       expect(args.body).not.toHaveProperty('evidence');
     });
   });
+
+  describe('profile-aware output', () => {
+    const codexProfileState = {
+      serverUrl: 'http://localhost:3000',
+      sessionToken: 'test-token',
+      session: null,
+      outputProfile: {
+        tool: 'codex' as const,
+        modelHint: 'gpt' as const,
+        renderMode: 'text' as const,
+        graphPlanMode: 'summary' as const,
+        verbosity: 'balanced' as const,
+        includeRawHints: true,
+      },
+    };
+
+    it('renders codex command-result JSON for review:approve', async () => {
+      const { loadCliState } = await import('../lib/config.js');
+      vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
+
+      const mockResponse = createMockResponse(null);
+      mockedApiRequest.mockResolvedValue(mockResponse);
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await program.parseAsync([
+        'node',
+        'test',
+        'review:approve',
+        'knowledge_1',
+        '--notes',
+        'LGTM',
+      ]);
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('review-approve');
+      expect(parsed.success).toBe(true);
+      expect(parsed.summary).toContain('knowledge_1');
+      consoleSpy.mockRestore();
+    });
+
+    it('renders codex command-result JSON for review:reject', async () => {
+      const { loadCliState } = await import('../lib/config.js');
+      vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
+
+      const mockResponse = createMockResponse(null);
+      mockedApiRequest.mockResolvedValue(mockResponse);
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await program.parseAsync([
+        'node',
+        'test',
+        'review:reject',
+        'knowledge_1',
+        '--notes',
+        'Needs revision',
+      ]);
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('review-reject');
+      expect(parsed.success).toBe(true);
+      expect(parsed.summary).toContain('knowledge_1');
+      consoleSpy.mockRestore();
+    });
+
+    it('renders codex command-result JSON for review:queue', async () => {
+      const { loadCliState } = await import('../lib/config.js');
+      vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
+
+      const mockEntry = createMockResponse(null).data.entry;
+      const queueResponse = {
+        items: [
+          {
+            entry: mockEntry,
+            agentReview: null,
+            submittedBy: { id: 'user_1', handle: 'owner', securityLevel: 5 },
+            lastDecision: null,
+            latestSubmission: null,
+            reviewNotes: [],
+          },
+        ],
+        nextCursor: null,
+        total: 1,
+      };
+      mockedApiRequest.mockResolvedValue({ data: queueResponse, sessionToken: 'test-token' });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await program.parseAsync(['node', 'test', 'review:queue']);
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('review-queue');
+      expect(parsed.success).toBe(true);
+      consoleSpy.mockRestore();
+    });
+  });
 });

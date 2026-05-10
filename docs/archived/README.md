@@ -7,7 +7,7 @@
 | 文件 | 归档日期 | 归档原因 |
 |------|----------|----------|
 | `retrieval-structure-adjustment.md` | 2026-05-06 | v1.x 早期检索架构调整决策背景，已整合入主架构文档 `docs/architecture/RETRIEVAL.md` |
-| `archived-plans/plan.md` | 2026-05-06 | 短期库化改造计划，已整合入 `.planning/ROADMAP.md` |
+| `archived-plans/plan.md` | 2026-05-06 | 短期库化改造计划，已过时 |
 
 ## 归档原则
 
