@@ -9,6 +9,10 @@
 | [AI_PROVIDER.md](AI_PROVIDER.md) | AI 提供商抽象层 |
 | [ARTIFACTS.md](ARTIFACTS.md) | 技能工件系统 |
 | [AUTH.md](AUTH.md) | 认证与会话管理 |
+| [CLIENT.md](CLIENT.md) | 客户端运行逻辑 |
+| [DECAY.md](DECAY.md) | 淘汰机制 |
+| [DEDUPLICATION.md](DEDUPLICATION.md) | 入库验重流程 |
+| [DELETION.md](DELETION.md) | 文档删除流程 |
 | [EVALUATION.md](EVALUATION.md) | 评估系统 |
 | [GOVERNANCE.md](GOVERNANCE.md) | 治理模型 (RBAC + 安全等级) |
 | [INDEXING.md](INDEXING.md) | 多适配器索引管道 |
@@ -16,6 +20,8 @@
 | [KNOWLEDGE_LIFECYCLE.md](KNOWLEDGE_LIFECYCLE.md) | 知识生命周期状态机 |
 | [PERSISTENCE.md](PERSISTENCE.md) | 持久层实现 |
 | [RETRIEVAL.md](RETRIEVAL.md) | 检索管道 (v1/v2/v3) |
+| [REVIEW.md](REVIEW.md) | 文档审批流程 |
+| [UPDATE.md](UPDATE.md) | 文档更新流程 |
 
 ## 相关文档
 

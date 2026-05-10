@@ -602,3 +602,187 @@ forbiddenClaims:
 1. 在 `evals/summary/cases/<tier>/` 创建 YAML 文件
 2. 提供 sourceContent、summary、requiredFacts、forbiddenClaims
 3. 运行 `pnpm eval:summary --tier <tier>` 验证
+
+---
+
+## 流程图
+
+### 检索评估流程
+
+```mermaid
+flowchart TD
+    A[加载测试用例] --> B[执行检索查询]
+    B --> C[计算指标]
+    C --> D[检查治理合规]
+    D --> E[生成报告]
+    
+    A --> A1[evals/retrieval/cases/]
+    A1 --> A2[smoke/]
+    A1 --> A3[core/]
+    
+    B --> B1[POST /v1/retrieval/search]
+    B1 --> B2[{ query, mode, filter }]
+    
+    C --> C1[计算相关性分数]
+    C1 --> C2[Hit@K, MRR, nDCG]
+    
+    D --> D1[检查安全等级]
+    D --> D2[检查团队作用域]
+    
+    E --> E1[{ hitRate, mrr, ndcg, passed, failed }]
+```
+
+### 摘要评估流程
+
+```mermaid
+flowchart TD
+    A[加载测试用例] --> B[Groundedness 检查]
+    B --> C[Coverage 检查]
+    C --> D[Hallucination 检查]
+    D --> E[生成报告]
+    
+    B --> B1[从摘要提取事实]
+    B1 --> B2[检查事实是否在源内容中]
+    B2 --> B3[计算 groundedness 分数]
+    
+    C --> C1[从源内容提取关键点]
+    C1 --> C2[检查关键点是否在摘要中]
+    C2 --> C3[计算 coverage 分数]
+    
+    D --> D1[检查摘要中的禁止声明]
+    D1 --> D2[验证无源外声明]
+    
+    E --> E1[{ groundedness, coverage, hallucination, passed }]
+```
+
+## 测试层级
+
+### 烟雾测试 (Smoke Tests)
+
+| 特性 | 描述 |
+|------|------|
+| 目的 | 快速验证核心功能 |
+| 运行时间 | < 1 分钟 |
+| 测试数量 | 5-10 个用例 |
+| 运行时机 | 每次提交 |
+
+### 核心测试 (Core Tests)
+
+| 特性 | 描述 |
+|------|------|
+| 目的 | 全面验证系统功能 |
+| 运行时间 | 5-15 分钟 |
+| 测试数量 | 20-50 个用例 |
+| 运行时机 | 合并前、定期运行 |
+
+## CI 集成
+
+### GitHub Actions 工作流
+
+```yaml
+# .github/workflows/eval.yml
+name: Evaluation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * *'  # Daily
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        run: pnpm install
+        
+      - name: Build
+        run: pnpm build
+        
+      - name: Start server
+        run: pnpm dev:server &
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/trapmap_test
+          
+      - name: Wait for server
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:4000/health > /dev/null; then
+              echo "Server is ready"
+              break
+            fi
+            sleep 1
+          done
+          
+      - name: Run smoke tests
+        run: pnpm eval:smoke
+        
+      - name: Run core tests
+        run: pnpm eval:core
+        if: github.event_name == 'schedule'
+```
+
+## 运行评估
+
+### 命令行运行
+
+```bash
+# 运行烟雾测试
+pnpm eval:smoke
+
+# 运行核心测试
+pnpm eval:core
+
+# 运行特定评估类型
+pnpm eval:retrieval
+pnpm eval:summary
+pnpm eval:governance
+```
+
+## 测试用例管理
+
+### 目录结构
+
+```
+evals/
+├── retrieval/
+│   ├── cases/
+│   │   ├── smoke/
+│   │   │   ├── query-config-auth.yaml
+│   │   │   └── query-oauth-setup.yaml
+│   │   └── core/
+│   │       ├── query-security-levels.yaml
+│   │       └── ...
+│   └── README.md
+├── summary/
+│   ├── cases/
+│   │   ├── smoke/
+│   │   └── core/
+│   └── README.md
+└── governance/
+    ├── cases/
+    │   ├── smoke/
+    │   └── core/
+    └── README.md
+```
+
+## 审计事件
+
+评估框架产生的审计事件：
+
+```typescript
+type EvaluationAuditEvent =
+  | { type: 'evaluation.started'; tier: 'smoke' | 'core'; testCount: number }
+  | { type: 'evaluation.completed'; tier: 'smoke' | 'core'; passed: number; failed: number }
+  | { type: 'evaluation.failed'; tier: 'smoke' | 'core'; error: string };
+```

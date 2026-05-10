@@ -156,6 +156,8 @@ interface ParameterDefinition {
 
 ## 工作流程
 
+### ASCII 流程图
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                    Artifact Lifecycle Flow                             │
@@ -211,6 +213,173 @@ interface ParameterDefinition {
 │  └─────────────────────────────────────────────────────────────────┘   │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Mermaid 流程图
+
+#### 工件生命周期
+
+```mermaid
+flowchart TD
+    A[创建工件] --> B[上传源文件]
+    B --> C[状态: draft]
+    C --> D[触发派生]
+    D --> E[状态: deriving]
+    
+    E --> F[生成 SkillProfile]
+    E --> G[提取 SkillCapsules]
+    E --> H[生成 ClientManifest]
+    
+    F --> I[派生完成]
+    G --> I
+    H --> I
+    
+    I --> J[状态: derived]
+    J --> K[提交审核]
+    K --> L{审核决策}
+    
+    L -->|批准| M[状态: published]
+    L -->|拒绝| N[状态: draft]
+    
+    M --> O[可被检索]
+    O --> P[版本更新]
+    P --> Q[创建新工件]
+    Q --> R[设置 parentId]
+    R --> B
+    
+    N --> B
+```
+
+#### 创建工件流程
+
+```mermaid
+flowchart TD
+    A[POST /v1/operations/artifacts] --> B{验证会话}
+    B -->|失败| C[401 Unauthorized]
+    B -->|成功| D{检查权限}
+    D -->|无权限| E[403 Forbidden]
+    D -->|有权限| F[解析请求体]
+    
+    F --> G[验证源文件]
+    G --> H{源文件有效}
+    H -->|否| I[400 Bad Request]
+    H -->|是| J[创建工件]
+    
+    J --> K[生成 EntityId]
+    K --> L[设置状态: draft]
+    L --> M[记录创建者和时间]
+    M --> N[初始化 lineage]
+    N --> O[返回工件 ID]
+```
+
+#### 派生过程
+
+```mermaid
+flowchart TD
+    A[POST /v1/operations/artifacts/:id/derive] --> B{验证会话}
+    B -->|失败| C[401 Unauthorized]
+    B -->|成功| D{检查工件存在}
+    D -->|不存在| E[404 Not Found]
+    D -->|存在| F{检查状态}
+    
+    F -->|非 draft| G[400 状态错误]
+    F -->|draft| H[开始派生]
+    
+    H --> I[更新状态: deriving]
+    I --> J[生成 SkillProfile]
+    I --> K[提取 SkillCapsules]
+    I --> L[生成 ClientManifest]
+    
+    J --> M[AI 摘要生成]
+    K --> N[AI 胶囊提取]
+    L --> O[AI 元数据分析]
+    
+    M --> P[保存 Profile]
+    N --> Q[保存 Capsules]
+    O --> R[保存 Manifest]
+    
+    P --> S[索引 Capsules]
+    Q --> S
+    R --> S
+    
+    S --> T[更新状态: derived]
+    T --> U[返回派生结果]
+```
+
+#### 审核和发布流程
+
+```mermaid
+flowchart TD
+    A[POST /v1/operations/artifacts/:id/review] --> B{验证会话}
+    B -->|失败| C[401 Unauthorized]
+    B -->|成功| D{检查 knowledge:review 权限}
+    D -->|无权限| E[403 Forbidden]
+    D -->|有权限| F[查找工件]
+    
+    F -->|不存在| G[404 Not Found]
+    F -->|存在| H{检查状态}
+    
+    H -->|非 derived| I[400 状态错误]
+    H -->|derived| J[应用审核决策]
+    
+    J --> K{决策类型}
+    K -->|approve| L[状态: published]
+    K -->|reject| M[状态: draft]
+    
+    L --> N[记录审核历史]
+    M --> N
+    
+    N --> O[创建审计事件]
+    O --> P[返回结果]
+```
+
+#### 版本更新
+
+```mermaid
+flowchart TD
+    A[版本更新请求] --> B[查找当前工件]
+    B --> C[创建新工件]
+    C --> D[设置 parentId]
+    D --> E[复制 lineage.rootId]
+    E --> F[递增 versionCount]
+    F --> G[上传新源文件]
+    G --> H[触发派生]
+    H --> I[审核新工件]
+    I --> J{审核通过}
+    
+    J -->|是| K[状态: published]
+    J -->|否| L[状态: draft]
+    
+    K --> M[弃用旧工件]
+    M --> N[状态: deprecated]
+```
+
+---
+
+## API 端点
+
+| 端点 | 方法 | 描述 | 权限 |
+|------|------|------|------|
+| `/v1/operations/artifacts` | POST | 创建工件 | knowledge:submit |
+| `/v1/operations/artifacts/:id` | GET | 获取工件详情 | knowledge:search |
+| `/v1/operations/artifacts/:id/derive` | POST | 触发派生 | knowledge:submit |
+| `/v1/operations/artifacts/:id/review` | POST | 审核工件 | knowledge:review |
+| `/v1/operations/artifacts/:id/history` | GET | 获取工件历史 | knowledge:search |
+| `/v1/retrieval/skills/search-by-content` | POST | 搜索胶囊 | knowledge:search |
+
+---
+
+## 审计事件
+
+工件系统产生的审计事件：
+
+```typescript
+type ArtifactAuditEvent =
+  | { type: 'artifact.created'; actorId: EntityId; artifactId: EntityId }
+  | { type: 'artifact.derived'; artifactId: EntityId }
+  | { type: 'artifact.published'; actorId: EntityId; artifactId: EntityId }
+  | { type: 'artifact.deprecated'; actorId: EntityId; artifactId: EntityId }
+  | { type: 'artifact.reviewed'; actorId: EntityId; artifactId: EntityId; decision: string };
 ```
 
 ---

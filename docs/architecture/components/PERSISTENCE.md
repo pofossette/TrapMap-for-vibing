@@ -609,3 +609,64 @@ CREATE INDEX idx_sessions_expires ON sessions(expires_at);
 CREATE INDEX idx_audit_timestamp ON audit_log(timestamp DESC);
 CREATE INDEX idx_audit_actor ON audit_log(actor_id);
 ```
+
+---
+
+## 流程图
+
+### 数据迁移流程
+
+```mermaid
+flowchart TD
+    A[启动迁移] --> B[读取 JSON 数据]
+    B --> C[连接 PostgreSQL]
+    C --> D[开始事务]
+    
+    D --> E[迁移 Teams]
+    E --> F[迁移 Members]
+    F --> G[迁移 Knowledge Entries]
+    G --> H[迁移 Sessions]
+    H --> I[迁移 Access Keys]
+    I --> J[迁移 Audit Logs]
+    J --> K[提交事务]
+    
+    K --> L[验证数据完整性]
+    L --> M[迁移完成]
+```
+
+### 事务流程
+
+```mermaid
+flowchart TD
+    A[调用 transact] --> B[获取连接]
+    B --> C[开始事务]
+    C --> D[执行操作]
+    D --> E{操作成功}
+    
+    E -->|是| F[提交事务]
+    E -->|否| G[回滚事务]
+    
+    F --> H[返回结果]
+    G --> I[抛出异常]
+    
+    H --> J[释放连接]
+    I --> J
+```
+
+### 乐观锁机制
+
+```mermaid
+flowchart TD
+    A[更新请求] --> B[读取当前版本]
+    B --> C[应用更新]
+    C --> D{检查版本号}
+    
+    D -->|匹配| E[更新成功]
+    D -->|不匹配| F[版本冲突]
+    
+    E --> G[version++]
+    G --> H[返回结果]
+    
+    F --> I[409 Conflict]
+    I --> J[重新读取最新数据]
+```
