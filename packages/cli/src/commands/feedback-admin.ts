@@ -4,7 +4,7 @@ import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
-import { printResult } from '../lib/output.js';
+import { printCommandResult } from '../lib/output.js';
 
 export interface FeedbackAdminCommandOptions {
   allowManage: boolean;
@@ -123,7 +123,26 @@ export function registerFeedbackAdminCommands(
         const response = await apiRequest<FeedbackListResponse>(state, { path });
         const parsed = feedbackListResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, formatFeedbackList);
+        printCommandResult(
+          {
+            action: 'feedback-list',
+            success: true,
+            summary:
+              parsed.items.length > 0
+                ? `${parsed.items.length} feedback item(s) found`
+                : 'No feedback found',
+            artifacts: parsed.items.map((item) => ({
+              id: item.id,
+              title: item.entryShortcut,
+              newState: item.status,
+            })),
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          formatFeedbackList,
+        );
       },
     );
 
@@ -170,7 +189,23 @@ export function registerFeedbackAdminCommands(
         });
         const parsed = feedbackBatchResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, formatBatchResult);
+        printCommandResult(
+          {
+            action: 'feedback-batch',
+            success: true,
+            summary: `${parsed.action}: ${parsed.totalEligible} eligible, ${parsed.totalIneligible} ineligible`,
+            artifacts: parsed.items.map((item) => ({
+              id: item.feedbackId,
+              eligible: item.eligible,
+              reason: item.reason,
+            })),
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          formatBatchResult,
+        );
       },
     );
 }

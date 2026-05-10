@@ -5,7 +5,7 @@ import { feedbackResponseSchema } from '@trapmap/contracts';
 
 import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
-import { printResult } from '../lib/output.js';
+import { printCommandResult } from '../lib/output.js';
 import {
   isInteractiveEnvironment,
   promptConfirm,
@@ -158,7 +158,25 @@ export function registerFeedbackCommands(program: Command, options: FeedbackComm
 
         const parsed = feedbackResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, formatFeedbackResult);
+        printCommandResult(
+          {
+            action: 'feedback-submit',
+            success: true,
+            summary: `Feedback submitted: ${parsed.feedback.id}`,
+            artifacts: [
+              {
+                id: parsed.feedback.id,
+                title: `${parsed.feedback.problemType} on ${parsed.feedback.entryId}`,
+                newState: parsed.feedback.status,
+              },
+            ],
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          formatFeedbackResult,
+        );
       },
     );
 }

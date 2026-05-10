@@ -110,7 +110,22 @@ export function registerDecayCommands(program: Command, options: DecayCommandOpt
         const response = await apiRequest<DecayEntryListResponse>(state, { path });
         const parsed = decayEntryListResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, formatDecayList);
+        printCommandResult(
+          {
+            action: 'decay-stale',
+            success: true,
+            summary: `Found ${parsed.total} entries.`,
+            artifacts: parsed.items.map((item) => ({
+              id: item.id,
+              decayState: item.decayState,
+            })),
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          formatDecayList,
+        );
       },
     );
 
@@ -157,7 +172,22 @@ export function registerDecayCommands(program: Command, options: DecayCommandOpt
         });
         const parsed = batchOperationResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, formatBatchResult);
+        printCommandResult(
+          {
+            action: 'decay-batch',
+            success: true,
+            summary: `${parsed.dryRun ? 'DRY RUN: ' : ''}Action ${parsed.action} — ${parsed.totalEligible} eligible, ${parsed.totalIneligible} ineligible.`,
+            artifacts: parsed.items.map((item) => ({
+              id: item.entryId,
+              eligible: item.eligible,
+            })),
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          formatBatchResult,
+        );
       },
     );
 
@@ -207,7 +237,22 @@ export function registerDecayCommands(program: Command, options: DecayCommandOpt
         });
         const parsed = decayEntryListResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, formatDecayList);
+        printCommandResult(
+          {
+            action: 'decay-search',
+            success: true,
+            summary: `Found ${parsed.total} entries.`,
+            artifacts: parsed.items.map((item) => ({
+              id: item.id,
+              decayState: item.decayState,
+            })),
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          formatDecayList,
+        );
       },
     );
 }

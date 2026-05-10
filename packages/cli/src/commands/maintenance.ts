@@ -10,7 +10,7 @@ import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
-import { printResult } from '../lib/output.js';
+import { printCommandResult } from '../lib/output.js';
 
 export interface MaintenanceCommandOptions {
   allowManage: boolean;
@@ -118,7 +118,26 @@ export function registerMaintenanceCommands(
         const response = await apiRequest<MaintenanceEntryListResponse>(state, { path });
         const parsed = maintenanceEntryListResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, formatMaintenanceList);
+        printCommandResult(
+          {
+            action: 'maintenance-list',
+            success: true,
+            summary:
+              parsed.items.length > 0
+                ? `${parsed.items.length} entry/entries need attention`
+                : 'No entries found',
+            artifacts: parsed.items.map((item) => ({
+              id: item.id,
+              title: item.shortcut,
+              newState: item.decayState ?? undefined,
+            })),
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          formatMaintenanceList,
+        );
       },
     );
 
@@ -161,7 +180,23 @@ export function registerMaintenanceCommands(
         });
         const parsed = maintenanceBatchOperationResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, formatMaintenanceBatch);
+        printCommandResult(
+          {
+            action: 'maintenance-assign',
+            success: true,
+            summary: `${parsed.action}: ${parsed.totalEligible} eligible, ${parsed.totalIneligible} ineligible`,
+            artifacts: parsed.items.map((item) => ({
+              id: item.entryId,
+              title: item.shortcut,
+              eligible: item.eligible,
+            })),
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          formatMaintenanceBatch,
+        );
       },
     );
 
@@ -198,7 +233,23 @@ export function registerMaintenanceCommands(
         });
         const parsed = maintenanceBatchOperationResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, formatMaintenanceBatch);
+        printCommandResult(
+          {
+            action: 'maintenance-verify',
+            success: true,
+            summary: `${parsed.action}: ${parsed.totalEligible} eligible, ${parsed.totalIneligible} ineligible`,
+            artifacts: parsed.items.map((item) => ({
+              id: item.entryId,
+              title: item.shortcut,
+              eligible: item.eligible,
+            })),
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          formatMaintenanceBatch,
+        );
       },
     );
 }

@@ -4,7 +4,7 @@ import type { Command } from 'commander';
 
 import { clearSession, loadCliState, updateCliState } from '../lib/config.js';
 import { apiRequest } from '../lib/http.js';
-import { printResult } from '../lib/output.js';
+import { printCommandResult } from '../lib/output.js';
 
 export function registerAuthCommands(program: Command): void {
   program
@@ -46,12 +46,23 @@ export function registerAuthCommands(program: Command): void {
           session: parsed.session,
         });
 
-        printResult(parsed, options, ({ session }) =>
-          [
-            `Logged in as ${session.member.handle}`,
-            `Security level: ${session.member.securityLevel}`,
-            `Active team: ${session.activeTeam?.name ?? 'none'}`,
-          ].join('\n'),
+        printCommandResult(
+          {
+            action: 'login',
+            success: true,
+            summary: `Logged in as ${parsed.session.member.handle} (level ${parsed.session.member.securityLevel})`,
+            artifacts: [{ id: parsed.session.sessionId, title: parsed.session.member.handle }],
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          options,
+          ({ session }) =>
+            [
+              `Logged in as ${session.member.handle}`,
+              `Security level: ${session.member.securityLevel}`,
+              `Active team: ${session.activeTeam?.name ?? 'none'}`,
+            ].join('\n'),
         );
       },
     );
@@ -71,7 +82,19 @@ export function registerAuthCommands(program: Command): void {
       }
 
       await clearSession();
-      printResult({ ok: true }, options, () => 'Logged out');
+      printCommandResult(
+        {
+          action: 'logout',
+          success: true,
+          summary: 'Logged out',
+          artifacts: [],
+          nextSteps: [],
+        },
+        { ok: true },
+        state,
+        options,
+        () => 'Logged out',
+      );
     });
 
   program
@@ -89,15 +112,30 @@ export function registerAuthCommands(program: Command): void {
         session: parsed.session,
       });
 
-      printResult(parsed, options, ({ session }) =>
-        session
-          ? [
-              'Authenticated: yes',
-              `User: ${session.member.handle}`,
-              `Security level: ${session.member.securityLevel}`,
-              `Active team: ${session.activeTeam?.name ?? 'none'}`,
-            ].join('\n')
-          : 'Authenticated: no',
+      printCommandResult(
+        {
+          action: 'session',
+          success: true,
+          summary: parsed.session
+            ? `Authenticated as ${parsed.session.member.handle}`
+            : 'Not authenticated',
+          artifacts: parsed.session
+            ? [{ id: parsed.session.sessionId, title: parsed.session.member.handle }]
+            : [],
+          nextSteps: [],
+        },
+        parsed,
+        state,
+        options,
+        ({ session }) =>
+          session
+            ? [
+                'Authenticated: yes',
+                `User: ${session.member.handle}`,
+                `Security level: ${session.member.securityLevel}`,
+                `Active team: ${session.activeTeam?.name ?? 'none'}`,
+              ].join('\n')
+            : 'Authenticated: no',
       );
     });
 }

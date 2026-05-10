@@ -77,15 +77,49 @@
   - `trap list`
   - `trap show`
 - 新增 `trap.test.ts` 测试文件，覆盖 trap 命令的注册、格式化和 profile-aware 输出
+- 本轮已迁移以下命令到 `printCommandResult`：
+  - `decay-stale`（decay）
+  - `decay-batch`（decay）
+  - `decay-search`（decay）
+  - `review:queue`（review）
+  - `review:approve`（review）
+  - `review:reject`（review）
+  - `admin:evidence`（evidence）
+  - `evidence:update`（evidence）
+- 新增 `evidence.test.ts` 测试文件，覆盖 evidence 命令的注册、API 调用、验证和 profile-aware 输出
+- `decay.test.ts` 和 `review.test.ts` 已补充 profile-aware 输出测试
+- 本轮已迁移以下命令到 `printCommandResult`：
+  - `feedback`（feedback）
+  - `feedback-list`（feedback-admin）
+  - `feedback-batch`（feedback-admin）
+  - `maintenance-list`（maintenance）
+  - `maintenance-assign`（maintenance）
+  - `maintenance-verify`（maintenance）
+- 新增 `maintenance.test.ts` 测试文件（21 个测试），覆盖 maintenance 命令的注册、API 调用、过滤参数和 profile-aware 输出
+- `feedback.test.ts` 已补充 profile-aware 输出测试（feedback submit、feedback-list、feedback-batch），并修复 mock 生命周期管理
+- `feedback.test.ts` 已重构为 `loadCliState` mock + `beforeEach/afterEach` 模式，与 decay/review/evidence 一致
+- 本轮已迁移以下命令到 `printCommandResult`：
+  - `member create`（member）
+  - `member update`（member）
+  - `access-key:create`（member）
+  - `team list`（team）
+  - `team select`（team）
+  - `team create`（team）
+  - `login`（auth）
+  - `logout`（auth）
+  - `session`（auth）
+- 新增 `member.test.ts` 测试文件（17 个测试），覆盖 member 命令的注册、API 调用、认证和 profile-aware 输出
+- `team.test.ts` 已重构为 `loadCliState` mock + `beforeEach/afterEach` 模式，并补充 profile-aware 输出测试（3 个），共 20 个测试
+- 新增 `auth.test.ts` 测试文件（15 个测试），覆盖 auth 命令的 login/logout/session、API 调用、认证和 profile-aware 输出
 
 ### 部分完成
 
-- “命令层统一接入 profile-aware 输出” 已覆盖 search / load / skill / knowledge / trap 五大类命令，但尚未覆盖 `decay` / `evidence` / `feedback` / `feedback-admin` / `maintenance` / `member` / `review` / `team` / `auth` / `audit` / `operations/*` 命令
+- “命令层统一接入 profile-aware 输出” 已覆盖 search / load / skill / knowledge / trap / decay / review / evidence / feedback / feedback-admin / maintenance / member / team / auth 十四大类命令，但尚未覆盖 `audit` / `operations/*` 命令
 - “Renderer 正确性” 已覆盖主要路径，主要 tool/kind 组合已有独立断言
 
 ### 未完成
 
-- 若需要更大范围推广，继续把更多 CLI 命令迁移到 `printCommandResult` 或其他 profile-aware 输出入口（decay / evidence / feedback / maintenance / member / review / team / auth / audit / operations/*）
+- 若需要更大范围推广，继续把更多 CLI 命令迁移到 `printCommandResult` 或其他 profile-aware 输出入口（audit / operations/*）
 - 当前仍保持”服务端零改动优先”，尚未评估是否真的需要新增 `suggestedOrderNodeIds`、`displaySummary` 等 tool-agnostic 元信息
 - 仍未扩展到 MCP、外部插件协议或 server-side prompt templating
 

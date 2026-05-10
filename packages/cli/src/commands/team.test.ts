@@ -1,8 +1,8 @@
 import type { LoginResponse, Team, TeamListResponse } from '@trapmap/contracts';
 import { Command } from 'commander';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as config from '../lib/config.js';
+import { loadCliState } from '../lib/config.js';
 import * as http from '../lib/http.js';
 
 // Mock the dependencies
@@ -12,14 +12,7 @@ vi.mock('../lib/http.js', () => ({
 }));
 
 vi.mock('../lib/config.js', () => ({
-  loadCliState: vi.fn(() => ({
-    serverUrl: 'http://localhost:3000',
-    sessionToken: 'mock-token',
-    session: {
-      member: { handle: 'testuser', securityLevel: 0 },
-      effectivePermissions: ['team:list', 'team:select'],
-    },
-  })),
+  loadCliState: vi.fn(),
   updateCliState: vi.fn(async (patch: unknown) => {
     const current = {
       serverUrl: 'http://localhost:3000',
@@ -38,6 +31,15 @@ vi.mock('../lib/config.js', () => ({
 
 // Import after mocking
 import { registerTeamCommands } from './team.js';
+
+const mockBaseState = {
+  serverUrl: 'http://localhost:3000',
+  sessionToken: 'mock-token',
+  session: {
+    member: { handle: 'testuser', securityLevel: 0 },
+    effectivePermissions: ['team:list', 'team:select'],
+  },
+};
 
 // Helper to create minimal valid Team
 function createMockTeam(overrides: Partial<Team> = {}): Team {
@@ -79,7 +81,11 @@ function createMockLoginResponse(teamId = 'team-1'): LoginResponse {
 
 describe('team commands', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.mocked(loadCliState).mockResolvedValue(mockBaseState);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('list command', () => {
@@ -143,7 +149,7 @@ describe('team commands', () => {
     });
 
     it('requires authentication', async () => {
-      vi.mocked(config.loadCliState).mockResolvedValueOnce({
+      vi.mocked(loadCliState).mockResolvedValueOnce({
         serverUrl: 'http://localhost:3000',
         sessionToken: null,
         session: null,
@@ -232,13 +238,14 @@ describe('team commands', () => {
 
       await program.parseAsync(['team', 'select', 'team-2'], { from: 'user' });
 
-      expect(config.updateCliState).toHaveBeenCalled();
+      const { updateCliState } = await import('../lib/config.js');
+      expect(updateCliState).toHaveBeenCalled();
 
       consoleLogSpy.mockRestore();
     });
 
     it('requires authentication', async () => {
-      vi.mocked(config.loadCliState).mockResolvedValueOnce({
+      vi.mocked(loadCliState).mockResolvedValueOnce({
         serverUrl: 'http://localhost:3000',
         sessionToken: null,
         session: null,
@@ -348,7 +355,7 @@ describe('team commands', () => {
     });
 
     it('requires authentication', async () => {
-      vi.mocked(config.loadCliState).mockResolvedValueOnce({
+      vi.mocked(loadCliState).mockResolvedValueOnce({
         serverUrl: 'http://localhost:3000',
         sessionToken: null,
         session: null,
@@ -491,6 +498,103 @@ describe('team commands', () => {
       expect(parsed).toHaveProperty('name', 'New Team');
 
       consoleLogSpy.mockRestore();
+    });
+  });
+
+  describe('profile-aware output', () => {
+    const codexProfileState = {
+      serverUrl: 'http://localhost:3000',
+      sessionToken: 'test-token',
+      session: null,
+      outputProfile: {
+        tool: 'codex' as const,
+        modelHint: 'gpt' as const,
+        renderMode: 'text' as const,
+        graphPlanMode: 'summary' as const,
+        verbosity: 'balanced' as const,
+        includeRawHints: true,
+      },
+    };
+
+    it('renders codex command-result JSON for team list', async () => {
+      vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
+
+      const mockResponse: TeamListResponse = {
+        teams: [createMockTeam({ id: 'team-1', name: 'Team One' })],
+        activeTeamId: 'team-1',
+      };
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: false });
+
+      await program.parseAsync(['team', 'list'], { from: 'user' });
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('team-list');
+      expect(parsed.success).toBe(true);
+      expect(parsed.summary).toContain('1 team');
+
+      consoleSpy.mockRestore();
+    });
+
+    it('renders codex command-result JSON for team select', async () => {
+      vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
+
+      const mockResponse = createMockLoginResponse('team-2');
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: false });
+
+      await program.parseAsync(['team', 'select', 'team-2'], { from: 'user' });
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('team-select');
+      expect(parsed.success).toBe(true);
+      expect(parsed.summary).toContain('Active team');
+
+      consoleSpy.mockRestore();
+    });
+
+    it('renders codex command-result JSON for team create', async () => {
+      vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
+
+      const newTeam = createMockTeam({ id: 'team-new', name: 'New Team' });
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: newTeam,
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerTeamCommands(program, { allowCreate: true });
+
+      await program.parseAsync(['team', 'create', 'New Team'], { from: 'user' });
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('team-create');
+      expect(parsed.success).toBe(true);
+      expect(parsed.summary).toContain('New Team');
+
+      consoleSpy.mockRestore();
     });
   });
 });

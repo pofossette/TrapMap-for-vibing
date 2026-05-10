@@ -9,7 +9,7 @@ import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
-import { printResult } from '../lib/output.js';
+import { printCommandResult } from '../lib/output.js';
 
 /**
  * Evidence input from CLI flags.
@@ -95,7 +95,25 @@ export function registerReviewCommands(program: Command, options: ReviewCommandO
       });
       const parsed = reviewQueueResponseSchema.parse(response.data);
 
-      printResult(parsed, flags, (value) => formatQueue(value));
+      printCommandResult(
+        {
+          action: 'review-queue',
+          success: true,
+          summary:
+            parsed.items.length > 0
+              ? `${parsed.items.length} item(s) in review queue.`
+              : 'Review queue is empty.',
+          artifacts: parsed.items.map((item) => ({
+            id: item.entry.id,
+            newState: item.entry.lifecycleState,
+          })),
+          nextSteps: [],
+        },
+        parsed,
+        state,
+        flags,
+        (value) => formatQueue(value),
+      );
     });
 
   for (const decision of ['approve', 'reject'] as const) {
@@ -197,8 +215,19 @@ export function registerReviewCommands(program: Command, options: ReviewCommandO
           });
           const parsed = knowledgeEntryResponseSchema.parse(response.data);
 
-          printResult(parsed, flags, ({ entry }) =>
-            [`${decision}d ${entry.id}`, `Lifecycle: ${entry.lifecycleState}`].join('\n'),
+          printCommandResult(
+            {
+              action: `review-${decision}`,
+              success: true,
+              summary: `${decision}d ${parsed.entry.id} (${parsed.entry.lifecycleState}).`,
+              artifacts: [{ id: parsed.entry.id, newState: parsed.entry.lifecycleState }],
+              nextSteps: [],
+            },
+            parsed,
+            state,
+            flags,
+            ({ entry }) =>
+              [`${decision}d ${entry.id}`, `Lifecycle: ${entry.lifecycleState}`].join('\n'),
           );
         },
       );

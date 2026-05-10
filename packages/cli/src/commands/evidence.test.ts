@@ -84,13 +84,7 @@ describe('CLI evidence commands', () => {
 
   describe('admin:evidence', () => {
     it('should call API with evidence level filter', async () => {
-      await program.parseAsync([
-        'node',
-        'test',
-        'admin:evidence',
-        '--level',
-        'documented',
-      ]);
+      await program.parseAsync(['node', 'test', 'admin:evidence', '--level', 'documented']);
 
       expect(mockedApiRequest).toHaveBeenCalledWith(
         mockState,
@@ -105,12 +99,7 @@ describe('CLI evidence commands', () => {
     });
 
     it('should call API with missing evidence filter', async () => {
-      await program.parseAsync([
-        'node',
-        'test',
-        'admin:evidence',
-        '--missing',
-      ]);
+      await program.parseAsync(['node', 'test', 'admin:evidence', '--missing']);
 
       const callArgs = mockedApiRequest.mock.calls[0];
       const path = callArgs?.[1]?.path as string;
@@ -236,14 +225,7 @@ describe('CLI evidence commands', () => {
       mockedApiRequest.mockResolvedValue({ data: {}, sessionToken: null });
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-      await program.parseAsync([
-        'node',
-        'test',
-        'evidence:update',
-        'k_1',
-        '--level',
-        'documented',
-      ]);
+      await program.parseAsync(['node', 'test', 'evidence:update', 'k_1', '--level', 'documented']);
 
       const output = String(consoleSpy.mock.calls[0]?.[0]);
       expect(output).toContain('Evidence updated');
@@ -254,40 +236,19 @@ describe('CLI evidence commands', () => {
 
     it('should validate evidence level', async () => {
       await expect(
-        program.parseAsync([
-          'node',
-          'test',
-          'evidence:update',
-          'k_1',
-          '--level',
-          'invalid',
-        ]),
+        program.parseAsync(['node', 'test', 'evidence:update', 'k_1', '--level', 'invalid']),
       ).rejects.toThrow('Invalid evidence level');
     });
 
     it('should validate source type', async () => {
       await expect(
-        program.parseAsync([
-          'node',
-          'test',
-          'evidence:update',
-          'k_1',
-          '--type',
-          'invalid',
-        ]),
+        program.parseAsync(['node', 'test', 'evidence:update', 'k_1', '--type', 'invalid']),
       ).rejects.toThrow('Invalid source type');
     });
 
     it('should require session token', async () => {
       mockedApiRequest.mockResolvedValue({ data: {}, sessionToken: null });
-      await program.parseAsync([
-        'node',
-        'test',
-        'evidence:update',
-        'k_1',
-        '--level',
-        'documented',
-      ]);
+      await program.parseAsync(['node', 'test', 'evidence:update', 'k_1', '--level', 'documented']);
 
       const { requireSessionToken } = await import('../lib/http.js');
       expect(requireSessionToken).toHaveBeenCalledWith(mockState);
@@ -359,14 +320,7 @@ describe('CLI evidence commands', () => {
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-      await program.parseAsync([
-        'node',
-        'test',
-        'evidence:update',
-        'k_1',
-        '--level',
-        'documented',
-      ]);
+      await program.parseAsync(['node', 'test', 'evidence:update', 'k_1', '--level', 'documented']);
 
       const output = String(consoleSpy.mock.calls[0]?.[0]);
       const parsed = JSON.parse(output);

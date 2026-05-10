@@ -4,7 +4,7 @@ import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
-import { printResult } from '../lib/output.js';
+import { printCommandResult } from '../lib/output.js';
 
 interface MemberCommandOptions {
   allowAccessKeyCreate: boolean;
@@ -44,8 +44,22 @@ export function registerMemberCommands(program: Command, options: MemberCommandO
             });
             const parsed = memberSchema.parse(response.data);
 
-            printResult(
+            printCommandResult(
+              {
+                action: 'member-create',
+                success: true,
+                summary: `Created member ${parsed.id} (${parsed.handle}) at level ${parsed.securityLevel}`,
+                artifacts: [
+                  {
+                    id: parsed.id,
+                    title: parsed.handle,
+                    newState: `level-${parsed.securityLevel}`,
+                  },
+                ],
+                nextSteps: [],
+              },
               parsed,
+              state,
               flags,
               (memberRecord) =>
                 `Created member ${memberRecord.id} (${memberRecord.handle}) at level ${memberRecord.securityLevel}`,
@@ -86,8 +100,22 @@ export function registerMemberCommands(program: Command, options: MemberCommandO
             });
             const parsed = memberSchema.parse(response.data);
 
-            printResult(
+            printCommandResult(
+              {
+                action: 'member-update',
+                success: true,
+                summary: `Updated member ${parsed.id} -> level ${parsed.securityLevel}`,
+                artifacts: [
+                  {
+                    id: parsed.id,
+                    title: parsed.handle,
+                    newState: `level-${parsed.securityLevel}`,
+                  },
+                ],
+                nextSteps: [],
+              },
               parsed,
+              state,
               flags,
               (memberRecord) =>
                 `Updated member ${memberRecord.id} -> level ${memberRecord.securityLevel}`,
@@ -119,12 +147,23 @@ export function registerMemberCommands(program: Command, options: MemberCommandO
         });
         const parsed = issueAccessKeyResponseSchema.parse(response.data);
 
-        printResult(parsed, flags, ({ accessKey, record }) =>
-          [
-            `Issued access key for member ${record.memberId}`,
-            `Preview: ${record.tokenPreview}`,
-            `Full key: ${accessKey}`,
-          ].join('\n'),
+        printCommandResult(
+          {
+            action: 'access-key-create',
+            success: true,
+            summary: `Issued access key for member ${parsed.record.memberId}`,
+            artifacts: [{ id: parsed.record.id, title: parsed.record.tokenPreview }],
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          ({ accessKey, record }) =>
+            [
+              `Issued access key for member ${record.memberId}`,
+              `Preview: ${record.tokenPreview}`,
+              `Full key: ${accessKey}`,
+            ].join('\n'),
         );
       });
   }

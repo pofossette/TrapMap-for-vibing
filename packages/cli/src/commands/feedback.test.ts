@@ -4,8 +4,9 @@ import type {
   FeedbackResponse,
 } from '@trapmap/contracts';
 import { Command } from 'commander';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { loadCliState } from '../lib/config.js';
 import * as http from '../lib/http.js';
 import * as prompts from '../lib/prompts.js';
 import { registerFeedbackAdminCommands } from './feedback-admin.js';
@@ -18,14 +19,7 @@ vi.mock('../lib/http.js', () => ({
 }));
 
 vi.mock('../lib/config.js', () => ({
-  loadCliState: vi.fn(() => ({
-    serverUrl: 'http://localhost:3000',
-    sessionToken: 'mock-token',
-    session: {
-      member: { handle: 'testuser', securityLevel: 0 },
-      effectivePermissions: ['knowledge:search'],
-    },
-  })),
+  loadCliState: vi.fn(),
 }));
 
 vi.mock('../lib/prompts.js', () => ({
@@ -35,7 +29,24 @@ vi.mock('../lib/prompts.js', () => ({
   promptConfirm: vi.fn(),
 }));
 
+const mockBaseState = {
+  serverUrl: 'http://localhost:3000',
+  sessionToken: 'mock-token',
+  session: {
+    member: { handle: 'testuser', securityLevel: 0 },
+    effectivePermissions: ['knowledge:search'],
+  },
+};
+
 describe('CLI feedback command', () => {
+  beforeEach(() => {
+    vi.mocked(loadCliState).mockResolvedValue(mockBaseState);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   const mockFeedbackResponse: FeedbackResponse = {
     feedback: {
       id: 'fb_test123',
@@ -357,9 +368,60 @@ describe('CLI feedback command', () => {
       expect(commands).toContain('feedback');
     });
   });
+
+  describe('profile-aware output', () => {
+    const codexProfileState = {
+      serverUrl: 'http://localhost:3000',
+      sessionToken: 'test-token',
+      session: null,
+      outputProfile: {
+        tool: 'codex' as const,
+        modelHint: 'gpt' as const,
+        renderMode: 'text' as const,
+        graphPlanMode: 'summary' as const,
+        verbosity: 'balanced' as const,
+        includeRawHints: true,
+      },
+    };
+
+    it('renders codex command-result JSON for feedback submit', async () => {
+      const { loadCliState } = await import('../lib/config.js');
+      vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockFeedbackResponse,
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackCommands(program, { allowSubmit: true });
+
+      await program.parseAsync(
+        ['feedback', 'trap_1', '--type', 'incorrect', '--description', 'Test description here'],
+        { from: 'user' },
+      );
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('feedback-submit');
+      expect(parsed.success).toBe(true);
+      expect(parsed.summary).toContain('fb_test123');
+      consoleSpy.mockRestore();
+    });
+  });
 });
 
 describe('CLI feedback admin commands', () => {
+  beforeEach(() => {
+    vi.mocked(loadCliState).mockResolvedValue(mockBaseState);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
   const mockListResponse: FeedbackListResponse = {
     items: [
       {
@@ -668,6 +730,74 @@ describe('CLI feedback admin commands', () => {
       const commands = program.commands.map((cmd) => cmd.name());
       expect(commands).toContain('feedback-list');
       expect(commands).toContain('feedback-batch');
+    });
+  });
+
+  describe('profile-aware output', () => {
+    const codexProfileState = {
+      serverUrl: 'http://localhost:3000',
+      sessionToken: 'test-token',
+      session: null,
+      outputProfile: {
+        tool: 'codex' as const,
+        modelHint: 'gpt' as const,
+        renderMode: 'text' as const,
+        graphPlanMode: 'summary' as const,
+        verbosity: 'balanced' as const,
+        includeRawHints: true,
+      },
+    };
+
+    it('renders codex command-result JSON for feedback-list', async () => {
+      const { loadCliState } = await import('../lib/config.js');
+      vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockListResponse,
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: true });
+
+      await program.parseAsync(['feedback-list'], { from: 'user' });
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('feedback-list');
+      expect(parsed.success).toBe(true);
+      expect(parsed.summary).toContain('1');
+      consoleSpy.mockRestore();
+    });
+
+    it('renders codex command-result JSON for feedback-batch', async () => {
+      const { loadCliState } = await import('../lib/config.js');
+      vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
+
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockBatchResponse,
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: true });
+
+      await program.parseAsync(['feedback-batch', '--action', 'resolve', '--ids', 'feedback_1'], {
+        from: 'user',
+      });
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      const parsed = JSON.parse(output);
+      expect(parsed.type).toBe('command-result');
+      expect(parsed.action).toBe('feedback-batch');
+      expect(parsed.success).toBe(true);
+      expect(parsed.summary).toContain('resolve');
+      consoleSpy.mockRestore();
     });
   });
 });

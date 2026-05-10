@@ -8,7 +8,7 @@ import type { Command } from 'commander';
 
 import { loadCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
-import { printResult } from '../lib/output.js';
+import { printCommandResult } from '../lib/output.js';
 
 /**
  * Evidence level to ANSI color mapping per UI-SPEC.
@@ -70,23 +70,42 @@ export function registerEvidenceCommands(program: Command, options: EvidenceComm
 
       const parsed = knowledgeListResponseSchema.parse(response.data);
 
-      printResult(parsed, flags, (result) => {
-        if (result.items.length === 0) {
-          return 'No entries found';
-        }
-        return result.items
-          .map((item) => {
-            const evidenceStr =
-              item.evidenceMeta !== null && item.evidenceMeta !== undefined
-                ? `${withColor(
-                    item.evidenceMeta.evidenceLevel,
-                    EVIDENCE_COLORS[item.evidenceMeta.evidenceLevel] ?? '0',
-                  )} (${item.evidenceMeta.sourceType})`
-                : '(none)';
-            return `${item.id} [${item.lifecycleState}] - ${item.shortcut} | Evidence: ${evidenceStr}`;
-          })
-          .join('\n');
-      });
+      printCommandResult(
+        {
+          action: 'admin-evidence',
+          success: true,
+          summary:
+            parsed.items.length > 0
+              ? `${parsed.items.length} entry/entries found.`
+              : 'No entries found.',
+          artifacts: parsed.items.map((item) => ({
+            id: item.id,
+            newState: item.lifecycleState,
+            evidenceLevel: item.evidenceMeta?.evidenceLevel ?? null,
+          })),
+          nextSteps: [],
+        },
+        parsed,
+        state,
+        flags,
+        (result) => {
+          if (result.items.length === 0) {
+            return 'No entries found';
+          }
+          return result.items
+            .map((item) => {
+              const evidenceStr =
+                item.evidenceMeta !== null && item.evidenceMeta !== undefined
+                  ? `${withColor(
+                      item.evidenceMeta.evidenceLevel,
+                      EVIDENCE_COLORS[item.evidenceMeta.evidenceLevel] ?? '0',
+                    )} (${item.evidenceMeta.sourceType})`
+                  : '(none)';
+              return `${item.id} [${item.lifecycleState}] - ${item.shortcut} | Evidence: ${evidenceStr}`;
+            })
+            .join('\n');
+        },
+      );
     });
 
   // Command: evidence:update - Update evidence metadata on an existing entry
@@ -136,8 +155,19 @@ export function registerEvidenceCommands(program: Command, options: EvidenceComm
 
       const level = flags.level ?? 'unknown';
       const colorCode = EVIDENCE_COLORS[flags.level ?? ''] ?? '0';
-      console.log(
-        `Evidence updated: ${withColor(level, colorCode)} | ${flags.type ?? 'unchanged'}`,
+
+      printCommandResult(
+        {
+          action: 'evidence-update',
+          success: true,
+          summary: `Updated evidence on ${id}.`,
+          artifacts: [{ id, evidenceLevel: flags.level ?? null, sourceType: flags.type ?? null }],
+          nextSteps: [],
+        },
+        { id, level: flags.level, type: flags.type, ref: flags.ref },
+        state,
+        {},
+        () => `Evidence updated: ${withColor(level, colorCode)} | ${flags.type ?? 'unchanged'}`,
       );
     });
 }

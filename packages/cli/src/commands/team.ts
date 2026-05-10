@@ -4,7 +4,7 @@ import type { Command } from 'commander';
 
 import { loadCliState, updateCliState } from '../lib/config.js';
 import { apiRequest, requireSessionToken } from '../lib/http.js';
-import { printResult } from '../lib/output.js';
+import { printCommandResult } from '../lib/output.js';
 
 interface TeamCommandOptions {
   allowCreate: boolean;
@@ -25,13 +25,24 @@ export function registerTeamCommands(program: Command, options: TeamCommandOptio
       });
       const parsed = teamListResponseSchema.parse(response.data);
 
-      printResult(parsed, flags, ({ teams, activeTeamId }) =>
-        teams
-          .map(
-            (teamRecord) =>
-              `${teamRecord.id === activeTeamId ? '*' : ' '} ${teamRecord.id} ${teamRecord.name}`,
-          )
-          .join('\n'),
+      printCommandResult(
+        {
+          action: 'team-list',
+          success: true,
+          summary: `Found ${parsed.teams.length} team(s).`,
+          artifacts: parsed.teams.map((t) => ({ id: t.id, title: t.name })),
+          nextSteps: [],
+        },
+        parsed,
+        state,
+        flags,
+        ({ teams, activeTeamId }) =>
+          teams
+            .map(
+              (teamRecord) =>
+                `${teamRecord.id === activeTeamId ? '*' : ' '} ${teamRecord.id} ${teamRecord.name}`,
+            )
+            .join('\n'),
       );
     });
 
@@ -55,8 +66,16 @@ export function registerTeamCommands(program: Command, options: TeamCommandOptio
         session: parsed.session,
       }));
 
-      printResult(
+      printCommandResult(
+        {
+          action: 'team-select',
+          success: true,
+          summary: `Active team: ${parsed.session.activeTeam?.name ?? parsed.session.member.teamId}`,
+          artifacts: [{ id: teamId, title: parsed.session.activeTeam?.name ?? teamId }],
+          nextSteps: [],
+        },
         parsed,
+        state,
         flags,
         ({ session }) => `Active team: ${session.activeTeam?.name ?? session.member.teamId}`,
       );
@@ -82,8 +101,16 @@ export function registerTeamCommands(program: Command, options: TeamCommandOptio
         });
         const parsed = teamSchema.parse(response.data);
 
-        printResult(
+        printCommandResult(
+          {
+            action: 'team-create',
+            success: true,
+            summary: `Created team ${parsed.id} (${parsed.name})`,
+            artifacts: [{ id: parsed.id, title: parsed.name }],
+            nextSteps: [],
+          },
           parsed,
+          state,
           flags,
           (teamRecord) => `Created team ${teamRecord.id} (${teamRecord.name})`,
         );
