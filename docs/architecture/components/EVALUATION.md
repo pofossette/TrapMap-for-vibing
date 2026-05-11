@@ -6,37 +6,34 @@ TrapMap 的评估框架用于验证系统核心功能的正确性，包括检索
 
 ## 架构概览
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Evaluation Framework Architecture                     │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Evaluation Runner                             │   │
-│  │                                                                    │   │
-│  │  - Load test cases by tier (smoke/core)                         │   │
-│  │  - Execute tests against running server                         │   │
-│  │  - Collect metrics                                              │   │
-│  │  - Generate report                                              │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                          │
-│              ┌───────────────┼───────────────┐                         │
-│              ▼               ▼               ▼                         │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐         │
-│  │    Retrieval   │ │    Summary     │ │    Governance  │         │
-│  │    Evals      │ │    Evals       │ │    Evals       │         │
-│  │                │ │                │ │                │         │
-│  │  - Hit@K      │ │  - Groundedness│ │  - Level check │         │
-│  │  - MRR        │ │  - Coverage    │ │  - RBAC check  │         │
-│  │  - nDCG       │ │  - Hallucination│ │  - Scope check │         │
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘         │
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    CI Integration                                 │   │
-│  │  GitHub Actions workflow: .github/workflows/eval.yml             │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Runner["Evaluation Runner"]
+        A["- Load test cases by tier (smoke/core)\n- Execute tests against running server\n- Collect metrics\n- Generate report"]
+    end
+
+    subgraph Evals["Evaluation Types"]
+        subgraph Retrieval["Retrieval Evals"]
+            B1["Hit@K\nMRR\nnDCG"]
+        end
+
+        subgraph Summary["Summary Evals"]
+            B2["Groundedness\nCoverage\nHallucination"]
+        end
+
+        subgraph Governance["Governance Evals"]
+            B3["Level check\nRBAC check\nScope check"]
+        end
+    end
+
+    subgraph CI["CI Integration"]
+        C["GitHub Actions workflow\n.github/workflows/eval.yml"]
+    end
+
+    Runner --> Retrieval
+    Runner --> Summary
+    Runner --> Governance
+    Evals --> CI
 ```
 
 ---
@@ -83,47 +80,26 @@ interface RetrievalTestCase {
 
 #### 评估流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Retrieval Evaluation Flow                             │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  Load Test Cases                                                        │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  evals/retrieval/cases/                                         │   │
-│  │  ├── smoke/                                                    │   │
-│  │  │   ├── query-config-auth.yaml                                │   │
-│  │  │   └── query-oauth-setup.yaml                                │   │
-│  │  └── core/                                                      │   │
-│  │      ├── query-security-levels.yaml                           │   │
-│  │      └── ...                                                    │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Execute Retrieval Query                       │   │
-│  │  POST /v1/retrieval/search                                     │   │
-│  │  { query, mode, filter }                                       │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Calculate Metrics                          │   │
-│  │                                                                    │   │
-│  │  1. For each result:                                            │   │
-│  │     - Compute relevance score (manual labeling)                 │   │
-│  │     - Check governance compliance                               │   │
-│  │                                                                    │   │
-│  │  2. Calculate Hit@K, MRR, nDCG                                 │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Generate Report                               │   │
-│  │  { hitRate, mrr, ndcg, passed, failed, errors }               │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph LoadCases["Load Test Cases"]
+        A["evals/retrieval/cases/\n├── smoke/\n│   ├── query-config-auth.yaml\n│   └── query-oauth-setup.yaml\n└── core/\n    ├── query-security-levels.yaml\n    └── ..."]
+    end
+
+    subgraph Execute["Execute Retrieval Query"]
+        B["POST /v1/retrieval/search\n{ query, mode, filter }"]
+    end
+
+    subgraph Metrics["Calculate Metrics"]
+        C1["1. For each result:\n   - Compute relevance score (manual labeling)\n   - Check governance compliance"]
+        C2["2. Calculate Hit@K, MRR, nDCG"]
+    end
+
+    subgraph Report["Generate Report"]
+        D["{ hitRate, mrr, ndcg, passed, failed, errors }"]
+    end
+
+    LoadCases --> Execute --> Metrics --> Report
 ```
 
 #### 测试用例示例
@@ -186,51 +162,29 @@ interface SummaryTestCase {
 
 #### 评估流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Summary Evaluation Flow                              │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  Load Test Case                                                        │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  {                                                               │   │
-│  │    sourceContent: "...",                                        │   │
-│  │    summary: "...",                                              │   │
-│  │    requiredFacts: ["fact1", "fact2"],                         │   │
-│  │    forbiddenClaims: ["claim1"]                                  │   │
-│  │  }                                                              │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Groundedness Check                            │   │
-│  │  1. Extract facts from summary                                  │   │
-│  │  2. Check if each fact appears in source                        │   │
-│  │  3. Calculate groundedness score                                 │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Coverage Check                                │   │
-│  │  1. Extract key points from source                             │   │
-│  │  2. Check if each key point in summary                          │   │
-│  │  3. Calculate coverage score                                   │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Hallucination Check                           │   │
-│  │  1. Check summary against forbidden claims                      │   │
-│  │  2. Validate no out-of-source claims                          │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Generate Report                               │   │
-│  │  { groundedness, coverage, hallucination, passed }            │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph LoadCase["Load Test Case"]
+        A["{ sourceContent, summary, requiredFacts, forbiddenClaims }"]
+    end
+
+    subgraph Groundedness["Groundedness Check"]
+        B1["1. Extract facts from summary\n2. Check if each fact appears in source\n3. Calculate groundedness score"]
+    end
+
+    subgraph Coverage["Coverage Check"]
+        C1["1. Extract key points from source\n2. Check if each key point in summary\n3. Calculate coverage score"]
+    end
+
+    subgraph Hallucination["Hallucination Check"]
+        D1["1. Check summary against forbidden claims\n2. Validate no out-of-source claims"]
+    end
+
+    subgraph Report["Generate Report"]
+        E["{ groundedness, coverage, hallucination, passed }"]
+    end
+
+    LoadCase --> Groundedness --> Coverage --> Hallucination --> Report
 ```
 
 ---

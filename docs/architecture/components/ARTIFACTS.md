@@ -156,63 +156,34 @@ interface ParameterDefinition {
 
 ## 工作流程
 
-### ASCII 流程图
+### 工件生命周期流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Artifact Lifecycle Flow                             │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Create Artifact                                                 │   │
-│  │  POST /v1/operations/artifacts                                   │   │
-│  │                                                                    │   │
-│  │  1. User uploads source files                                    │   │
-│  │  2. System creates draft artifact                                │   │
-│  │  3. User can preview and edit                                    │   │
-│  │  4. User triggers derivation                                     │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Derive Outputs                                                 │   │
-│  │  POST /v1/operations/artifacts/:id/derive                       │   │
-│  │                                                                    │   │
-│  │  1. Generate SkillProfile (summarize)                           │   │
-│  │  2. Extract SkillCapsules (chunk)                               │   │
-│  │  3. Generate ClientManifest (metadata)                          │   │
-│  │  4. Index capsules (vector + keyword)                            │   │
-│  │  5. Update artifact status → 'derived'                          │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Review & Publish                                               │   │
-│  │  POST /v1/operations/artifacts/:id/review                        │   │
-│  │                                                                    │   │
-│  │  1. Reviewer checks profile and capsules                         │   │
-│  │  2. Approve or request changes                                  │   │
-│  │  3. On approval: status → 'published'                           │   │
-│  │  4. Artifacts become searchable                                 │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Use in TrapFirstPlan                                          │   │
-│  │  v3 retrieval queries capsule knowledge                        │   │
-│  │  Capsules provide actionable content with activation hints     │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Version Update (Future)                                         │   │
-│  │  - Create new artifact with parent reference                    │   │
-│  │  - lineage.rootId stays same                                    │   │
-│  │  - Version count increments                                    │   │
-│  │  - Old artifact can be deprecated                              │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Create["Create Artifact"]
+        A1["POST /v1/operations/artifacts"]
+        A2["1. User uploads source files\n2. System creates draft artifact\n3. User can preview and edit\n4. User triggers derivation"]
+    end
+
+    subgraph Derive["Derive Outputs"]
+        B1["POST /v1/operations/artifacts/:id/derive"]
+        B2["1. Generate SkillProfile (summarize)\n2. Extract SkillCapsules (chunk)\n3. Generate ClientManifest (metadata)\n4. Index capsules (vector + keyword)\n5. Update artifact status → 'derived'"]
+    end
+
+    subgraph Review["Review & Publish"]
+        C1["POST /v1/operations/artifacts/:id/review"]
+        C2["1. Reviewer checks profile and capsules\n2. Approve or request changes\n3. On approval: status → 'published'\n4. Artifacts become searchable"]
+    end
+
+    subgraph Use["Use in TrapFirstPlan"]
+        D["v3 retrieval queries capsule knowledge\nCapsules provide actionable content with activation hints"]
+    end
+
+    subgraph Version["Version Update (Future)"]
+        E["- Create new artifact with parent reference\n- lineage.rootId stays same\n- Version count increments\n- Old artifact can be deprecated"]
+    end
+
+    Create --> Derive --> Review --> Use --> Version
 ```
 
 ### Mermaid 流程图

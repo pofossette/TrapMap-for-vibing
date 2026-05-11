@@ -20,17 +20,15 @@ TrapMap 的治理模型基于 RBAC (基于角色的访问控制) 和多层级安
 
 ### 等级继承
 
-```
-条目 requiredLevel
-       │
-       ▼
-┌─────────────────────┐
-│  继承规则            │
-│                     │
-│  - entry.requiredLevel 继承自 capsule (如果是胶囊派生)        │
-│  - capsule.requiredLevel 继承自 artifact                      │
-│  - artifact.requiredLevel 由创建者设置                        │
-└─────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Inheritance["继承规则"]
+        A["artifact.requiredLevel\n由创建者设置"]
+        B["capsule.requiredLevel\n继承自 artifact"]
+        C["entry.requiredLevel\n继承自 capsule"]
+    end
+
+    A --> B --> C
 ```
 
 ### 等级检查
@@ -132,46 +130,33 @@ const ROLES: Record<string, Role> = {
 
 ### 权限检查流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Permission Check Flow                                 │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  Request: POST /v1/knowledge/review                                      │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Session Validation                            │   │
-│  │  - Validate session cookie/token                                 │   │
-│  │  - Load user from session                                        │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Role & Level Check                           │   │
-│  │  - Get user's role                                              │   │
-│  │  - Get role's security level                                    │   │
-│  │  - Compare with required minimum level                          │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Permission Check                              │   │
-│  │  - Get user's role permissions                                  │   │
-│  │  - Check if required permission is in role permissions          │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Entry Level Check                            │   │
-│  │  - Get entry.requiredLevel                                      │   │
-│  │  - Check if user.level >= entry.requiredLevel                   │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│     Allowed or Denied                                                   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Request["Request"]
+        A["POST /v1/knowledge/review"]
+    end
+
+    subgraph Session["Session Validation"]
+        B["Validate session cookie/token\nLoad user from session"]
+    end
+
+    subgraph RoleCheck["Role & Level Check"]
+        C["Get user's role\nGet role's security level\nCompare with required minimum level"]
+    end
+
+    subgraph PermissionCheck["Permission Check"]
+        D["Get user's role permissions\nCheck if required permission is in role permissions"]
+    end
+
+    subgraph EntryCheck["Entry Level Check"]
+        E["Get entry.requiredLevel\nCheck if user.level >= entry.requiredLevel"]
+    end
+
+    subgraph Result["Result"]
+        F["Allowed or Denied"]
+    end
+
+    Request --> Session --> RoleCheck --> PermissionCheck --> EntryCheck --> Result
 ```
 
 ### 实现
@@ -366,43 +351,24 @@ interface AccessKey {
 
 ### 密钥流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Access Key Flow                                       │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Create Access Key                                              │   │
-│  │  POST /v1/access-keys { name, permissions, expiresIn }         │   │
-│  │                                                                    │   │
-│  │  1. Generate random key (32 bytes, base64url)                   │   │
-│  │  2. Hash key with SHA-256                                       │   │
-│  │  3. Store hash + metadata (NOT the actual key!)                 │   │
-│  │  4. Return key ONCE to user (shown only once)                   │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                          │
-│                              ▼                                          │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Use Access Key                                                │   │
-│  │                                                                    │   │
-│  │  CLI: trapmap login --access-key <key>                         │   │
-│  │                                                                    │   │
-│  │  1. Hash provided key                                          │   │
-│  │  2. Lookup hash in database                                   │   │
-│  │  3. If found and not expired → create session                 │   │
-│  │  4. Update lastUsedAt                                          │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                          │
-│                              ▼                                          │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Revoke Access Key                                              │   │
-│  │  DELETE /v1/access-keys/:keyId                                │   │
-│  │                                                                    │   │
-│  │  1. Delete key record                                          │   │
-│  │  2. Log revocation event                                       │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Create["Create Access Key"]
+        A1["POST /v1/access-keys { name, permissions, expiresIn }"]
+        A2["1. Generate random key (32 bytes, base64url)\n2. Hash key with SHA-256\n3. Store hash + metadata (NOT the actual key!)\n4. Return key ONCE to user (shown only once)"]
+    end
+
+    subgraph Use["Use Access Key"]
+        B1["CLI: trapmap login --access-key <key>"]
+        B2["1. Hash provided key\n2. Lookup hash in database\n3. If found and not expired → create session\n4. Update lastUsedAt"]
+    end
+
+    subgraph Revoke["Revoke Access Key"]
+        C1["DELETE /v1/access-keys/:keyId"]
+        C2["1. Delete key record\n2. Log revocation event"]
+    end
+
+    Create --> Use --> Revoke
 ```
 
 ### 实现

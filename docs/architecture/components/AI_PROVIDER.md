@@ -14,41 +14,33 @@ AI 提供商抽象层为 TrapMap 提供统一的 AI 接口，支持多种 AI 提
 
 ## 架构
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    AI Provider Abstraction Architecture                  │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    AI Module Export                             │   │
-│  │                                                                    │   │
-│  │  export { createAIProvider, type AIProvider }                    │   │
-│  │                                                                    │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                          │
-│                              ▼                                          │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Factory Function                              │   │
-│  │                                                                    │   │
-│  │  createAIProvider(config: AIProviderConfig): AIProvider          │   │
-│  │                                                                    │   │
-│  │  - Reads AI_PROVIDER env var                                     │   │
-│  │  - Instantiates appropriate provider                            │   │
-│  │  - Returns typed AIProvider instance                            │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                          │
-│              ┌───────────────┼───────────────┐                         │
-│              ▼               ▼               ▼                         │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐         │
-│  │     OpenAI     │ │OpenAI-Compatible│ │     Ollama     │         │
-│  │    Provider    │ │    Provider     │ │    Provider    │         │
-│  │                │ │                │ │                │         │
-│  │ - chat()      │ │ - chat()       │ │ - chat()      │         │
-│  │ - embed()     │ │ - embed()      │ │ - embed()     │         │
-│  │ - chatStream()│ │ - chatStream() │ │ - chatStream()│         │
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘         │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Export["AI Module Export"]
+        A["export { createAIProvider, type AIProvider }"]
+    end
+
+    subgraph Factory["Factory Function"]
+        B["createAIProvider(config: AIProviderConfig)\n- Reads AI_PROVIDER env var\n- Instantiates appropriate provider\n- Returns typed AIProvider instance"]
+    end
+
+    subgraph Providers["Provider Implementations"]
+        subgraph OpenAI["OpenAI Provider"]
+            C1["chat()\nembed()\nchatStream()"]
+        end
+
+        subgraph Compatible["OpenAI-Compatible Provider"]
+            C2["chat()\nembed()\nchatStream()"]
+        end
+
+        subgraph Ollama["Ollama Provider"]
+            C3["chat()\nembed()\nchatStream()"]
+        end
+    end
+
+    Export --> Factory --> OpenAI
+    Factory --> Compatible
+    Factory --> Ollama
 ```
 
 ## 接口定义

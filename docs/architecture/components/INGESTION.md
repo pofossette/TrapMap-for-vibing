@@ -383,51 +383,35 @@ interface ManualResolutionRequest {
 
 ### 解决流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Manual Resolution Flow                                 │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  Reviewer Action                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  GET /v1/duplicates/:candidateId/bundle                         │   │
-│  │  - Returns current candidate + duplicate candidates            │   │
-│  │  - Shows content comparison                                    │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    User Decision                               │   │
-│  │                                                                    │   │
-│  │  POST /v1/candidates/:id/manual-result                         │   │
-│  │  { resolution: "merge" | "discard" | "keep_both" }            │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Execute Resolution                            │   │
-│  │                                                                    │   │
-│  │  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐   │   │
-│  │  │     MERGE       │ │    DISCARD      │ │   KEEP_BOTH     │   │   │
-│  │  │                 │ │                │ │                 │   │   │
-│  │  │ 1. Combine     │ │ 1. Mark         │ │ 1. Convert     │   │   │
-│  │  │    content     │ │    candidate   │ │    current     │   │   │
-│  │  │ 2. Create new  │ │    as          │ │    to entry    │   │   │
-│  │  │    entry       │ │    rejected    │ │ 2. Convert     │   │   │
-│  │  │ 3. Link        │ │ 2. Update      │ │    duplicate   │   │   │
-│  │  │    candidates  │ │    duplicates  │ │    to entry    │   │   │
-│  │  └─────────────────┘ └─────────────────┘ └─────────────────┘   │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Status Update                                │   │
-│  │  - All involved candidates: status → 'resolved'                │   │
-│  │  - Record resolution in DuplicateCase                         │   │
-│  │  - Send audit event                                           │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph ReviewerAction["Reviewer Action"]
+        A["GET /v1/duplicates/:candidateId/bundle\nReturns current candidate + duplicate candidates\nShows content comparison"]
+    end
+
+    subgraph UserDecision["User Decision"]
+        B["POST /v1/candidates/:id/manual-result\n{ resolution: 'merge' | 'discard' | 'keep_both' }"]
+    end
+
+    subgraph Execute["Execute Resolution"]
+        subgraph Merge["MERGE"]
+            C1["1. Combine content\n2. Create new entry\n3. Link candidates"]
+        end
+
+        subgraph Discard["DISCARD"]
+            C2["1. Mark candidate as rejected\n2. Update duplicates"]
+        end
+
+        subgraph KeepBoth["KEEP_BOTH"]
+            C3["1. Convert current to entry\n2. Convert duplicate to entry"]
+        end
+    end
+
+    subgraph StatusUpdate["Status Update"]
+        D["All involved candidates: status → 'resolved'\nRecord resolution in DuplicateCase\nSend audit event"]
+    end
+
+    ReviewerAction --> UserDecision --> Execute --> StatusUpdate
 ```
 
 ---

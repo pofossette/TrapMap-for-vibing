@@ -80,177 +80,120 @@ flowchart TD
 
 ### 语义检索流程 (Semantic Mode)
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Semantic Retrieval Flow                             │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  Query Input                                                            │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  POST /v1/retrieval/search                                      │   │
-│  │  { query: "how to configure authentication", mode: "semantic" }│   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Query Validation                              │ │
-│  │  - query: non-empty string                                      │ │
-│  │  - limit: optional, default 10                                   │ │
-│  │  - filter: optional                                             │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Auth Context                                  │ │
-│  │  - session validation                                           │ │
-│  │  - load user security level                                     │ │
-│  │  - load user's team memberships                                 │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Eligibility Filter                          │ │
-│  │  1. approvalStatus = 'approved'                                 │ │
-│  │  2. teamId IN [user's teams] OR global                          │ │
-│  │  3. requiredLevel <= user.level                                 │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Embedding Generation                        │ │
-│  │  text-embedding-3-small (1536 dimensions)                      │ │
-│  │  Cache embedding for same query within TTL                      │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Vector Similarity Search                     │ │
-│  │  SELECT entry_id, embedding_vector <-> query_embedding          │ │
-│  │  WHERE entry_id IN eligible_entries                            │ │
-│  │  ORDER BY distance                                             │ │
-│  │  LIMIT limit                                                   │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Result Assembly                              │ │
-│  │  - Build buckets (global vs project)                            │ │
-│  │  - Attach citations                                             │ │
-│  │  - Generate routing trace                                       │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│                        Response                                        │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │  {                                                              │ │
-│  │    query, mode: "semantic",                                     │ │
-│  │    results: [{ entryId, title, score, snippet }],               │ │
-│  │    trace: { provider: "semantic", confidence, fallback }        │ │
-│  │  }                                                              │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph QueryInput["Query Input"]
+        A["POST /v1/retrieval/search\n{ query, mode: 'semantic' }"]
+    end
+
+    subgraph Validation["Query Validation"]
+        B["query: non-empty string\nlimit: optional, default 10\nfilter: optional"]
+    end
+
+    subgraph Auth["Auth Context"]
+        C["session validation\nload user security level\nload user's team memberships"]
+    end
+
+    subgraph Eligibility["Eligibility Filter"]
+        D["1. approvalStatus = 'approved'\n2. teamId IN [user's teams] OR global\n3. requiredLevel <= user.level"]
+    end
+
+    subgraph Embedding["Embedding Generation"]
+        E["text-embedding-3-small (1536 dimensions)\nCache embedding for same query within TTL"]
+    end
+
+    subgraph VectorSearch["Vector Similarity Search"]
+        F["SELECT entry_id, embedding_vector <-> query_embedding\nWHERE entry_id IN eligible_entries\nORDER BY distance\nLIMIT limit"]
+    end
+
+    subgraph Assembly["Result Assembly"]
+        G["Build buckets (global vs project)\nAttach citations\nGenerate routing trace"]
+    end
+
+    subgraph Response["Response"]
+        H["{ query, mode, results, trace }"]
+    end
+
+    QueryInput --> Validation --> Auth --> Eligibility --> Embedding --> VectorSearch --> Assembly --> Response
 ```
 
 ### 混合检索流程 (Hybrid Mode)
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Hybrid Retrieval Flow                                │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  Query Input                                                            │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │              Parallel Processing                                │ │
-│  │  ┌───────────────────┐         ┌───────────────────┐           │ │
-│  │  │   Semantic Path   │         │   Keyword Path    │           │ │
-│  │  │                   │         │                   │           │ │
-│  │  │ 1. Embedding     │         │ 1. Tokenize       │           │ │
-│  │  │    Generation    │         │ 2. BM25 Scoring   │           │ │
-│  │  │                 │         │ 3. Top-K Ranking  │           │ │
-│  │  │ 2. Vector       │         │                   │           │ │
-│  │  │    Similarity   │         │                   │           │ │
-│  │  │                 │         │                   │           │ │
-│  │  │ 3. Top-K       │         │                   │           │ │
-│  │  │    Results     │         │                   │           │ │
-│  │  └────────┬───────┘         └─────────┬───────────┘           │ │
-│  │          │                           │                       │ │
-│  │          └─────────────┬─────────────┘                       │ │
-│  │                        │                                     │ │
-│  │                        ▼                                     │ │
-│  │              ┌───────────────────┐                          │ │
-│  │              │   Score Fusion   │                          │ │
-│  │              │                   │                          │ │
-│  │              │  RRF (Reciprocal  │                          │ │
-│  │              │  Rank Fusion)     │                          │ │
-│  │              │                   │                          │ │
-│  │              │  score = 1/(2k+r) │                          │ │
-│  │              │                   │                          │ │
-│  │              └─────────┬─────────┘                          │ │
-│  │                        │                                   │ │
-│  │                        ▼                                   │ │
-│  │              ┌───────────────────┐                          │ │
-│  │              │  Merge + Rerank  │                          │ │
-│  │              │                   │                          │ │
-│  │              │  - Deduplicate   │                          │ │
-│  │              │  - Normalize    │                          │ │
-│  │              │  - Sort by score │                          │ │
-│  │              └───────────────────┘                          │ │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph QueryInput["Query Input"]
+        A["POST /v1/retrieval/search\n{ query, mode: 'hybrid' }"]
+    end
+
+    subgraph Parallel["Parallel Processing"]
+        subgraph SemanticPath["Semantic Path"]
+            B1["Embedding Generation"]
+            B2["Vector Similarity"]
+            B3["Top-K Results"]
+        end
+
+        subgraph KeywordPath["Keyword Path"]
+            C1["Tokenize Query"]
+            C2["BM25 Scoring"]
+            C3["Top-K Ranking"]
+        end
+
+        subgraph Fusion["Score Fusion (RRF)"]
+            D["score = 1/(2k+r)\nReciprocal Rank Fusion"]
+        end
+
+        subgraph Rerank["Merge + Rerank"]
+            E["Deduplicate\nNormalize\nSort by score"]
+        end
+    end
+
+    subgraph Response["Response"]
+        F["{ query, mode, results, trace }"]
+    end
+
+    QueryInput --> SemanticPath
+    QueryInput --> KeywordPath
+    B1 --> B2 --> B3 --> Fusion
+    C1 --> C2 --> C3 --> Fusion
+    Fusion --> Rerank --> Response
 ```
 
 ### 图辅助检索流程 (Graph-assisted Mode)
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Graph-Assisted Retrieval Flow                        │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  Query Input                                                            │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │           Base Retrieval (Hybrid)                               │ │
-│  │  - Same as hybrid flow                                          │ │
-│  │  - Returns top-K candidate entries                               │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Graph Expansion                              │ │
-│  │                                                                    │ │
-│  │  1. For each candidate entry:                                    │ │
-│  │     a. Find related entries via trapIds/capsuleIds              │ │
-│  │     b. Traverse graphology DAG                                   │ │
-│  │     c. Expand N hops                                            │ │
-│  │                                                                    │ │
-│  │  2. Build expansion set:                                        │ │
-│  │     - Direct neighbors (1 hop)                                   │ │
-│  │     - Transitive relations (2 hops)                             │ │
-│  │     - Prerequisite chains                                       │ │
-│  │                                                                    │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Score Reweighting                             │ │
-│  │                                                                    │ │
-│  │  original_score × boost_factor                                   │ │
-│  │                                                                    │ │
-│  │  boost_factor based on:                                         │ │
-│  │  - Distance from query (closer = higher)                        │ │
-│  │  - Relation type (prerequisite > provides > blocks)             │ │
-│  │  - Graph centrality                                              │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│                        Final Results                                   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph QueryInput["Query Input"]
+        A["POST /v1/retrieval/search\n{ query, mode: 'graph-assisted' }"]
+    end
+
+    subgraph BaseRetrieval["Base Retrieval (Hybrid)"]
+        B["Same as hybrid flow\nReturns top-K candidate entries"]
+    end
+
+    subgraph Expansion["Graph Expansion"]
+        subgraph Traverse["For each candidate entry"]
+            C1["Find related entries via trapIds/capsuleIds"]
+            C2["Traverse graphology DAG"]
+            C3["Expand N hops"]
+        end
+
+        subgraph BuildSet["Build expansion set"]
+            D1["Direct neighbors (1 hop)"]
+            D2["Transitive relations (2 hops)"]
+            D3["Prerequisite chains"]
+        end
+    end
+
+    subgraph Reweighting["Score Reweighting"]
+        E["original_score × boost_factor\n\nboost_factor based on:\n- Distance from query (closer = higher)\n- Relation type (prerequisite > provides > blocks)\n- Graph centrality"]
+    end
+
+    subgraph Response["Final Results"]
+        F["{ query, mode, results, trace }"]
+    end
+
+    QueryInput --> BaseRetrieval --> Expansion
+    Traverse --> BuildSet --> Reweighting --> Response
 ```
 
 ---

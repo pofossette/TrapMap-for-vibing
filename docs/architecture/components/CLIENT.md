@@ -6,28 +6,21 @@ TrapMap 的客户端（CLI）基于 Commander.js 构建，提供终端用户与 
 
 ## 客户端架构
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    CLI Client Architecture                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │                    Command Layer                          │ │
-│  │  auth | knowledge | retrieval | review | team | skill    │ │
-│  │  decay | maintenance | operations | feedback | audit     │ │
-│  └───────────────────────────────────────────────────────────┘ │
-│                              │                                  │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │                    Library Layer                          │ │
-│  │  config.ts  |  http.ts  |  input.ts  |  output.ts        │ │
-│  └───────────────────────────────────────────────────────────┘ │
-│                              │                                  │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │                    State Management                       │ │
-│  │  ~/.trapmap/cli.json - 本地配置和会话状态                 │ │
-│  └───────────────────────────────────────────────────────────┘ │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Commands["Command Layer"]
+        A["auth | knowledge | retrieval | review | team | skill\ndecay | maintenance | operations | feedback | audit"]
+    end
+
+    subgraph Library["Library Layer"]
+        B["config.ts | http.ts | input.ts | output.ts"]
+    end
+
+    subgraph State["State Management"]
+        C["~/.trapmap/cli.json\n本地配置和会话状态"]
+    end
+
+    Commands --> Library --> State
 ```
 
 ## 命令注册流程

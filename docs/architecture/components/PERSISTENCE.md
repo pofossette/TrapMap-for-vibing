@@ -6,35 +6,24 @@
 
 ## 架构
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Persistence Layer Architecture                        │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Store Interface                              │   │
-│  │                                                                    │   │
-│  │  interface Store {                                              │   │
-│  │    transact<T>(fn: (tx) => T): Promise<T>                       │   │
-│  │    createKnowledgeEntry(e): Promise<void>                       │   │
-│  │    getKnowledgeEntry(id): Promise<Entry | null>                 │   │
-│  │    // ... other methods                                        │   │
-│  │  }                                                              │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                          │
-│              ┌───────────────┼───────────────┐                        │
-│              ▼               ▼               ▼                         │
-│  ┌─────────────────┐ ┌─────────────────┐                              │
-│  │   JsonStore    │ │  PostgresStore  │                              │
-│  │  (Development) │ │  (Production)   │                              │
-│  │                │ │                │                              │
-│  │  - File-based  │ │  - PostgreSQL  │                              │
-│  │  - Atomic     │ │  - Drizzle ORM │                              │
-│  │    writes     │ │  - ACID       │                              │
-│  │  - JSON files │ │  - Pooled     │                              │
-│  └─────────────────┘ └─────────────────┘                              │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Interface["Store Interface"]
+        A["interface Store {\n  transact<T>(fn: (tx) => T): Promise<T>\n  createKnowledgeEntry(e): Promise<void>\n  getKnowledgeEntry(id): Promise<Entry | null>\n  // ... other methods\n}"]
+    end
+
+    subgraph Implementations["Store Implementations"]
+        subgraph JsonStore["JsonStore (Development)"]
+            B1["- File-based\n- Atomic writes\n- JSON files"]
+        end
+
+        subgraph PostgresStore["PostgresStore (Production)"]
+            B2["- PostgreSQL\n- Drizzle ORM\n- ACID\n- Pooled"]
+        end
+    end
+
+    Interface --> JsonStore
+    Interface --> PostgresStore
 ```
 
 ---

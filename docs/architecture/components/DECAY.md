@@ -8,19 +8,23 @@ TrapMap 的淘汰机制通过衰减状态机（Decay State Machine）管理知�
 
 ### 状态定义
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Decay State Machine                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  active ──────► review-due ──────► stale ──────► expired       │
-│    ▲              │                                                │
-│    │              │                                                │
-│    └── extend() ──┘                                                │
-│                                                                 │
-│  superseded (独立状态，由替代操作触发)                           │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph MainFlow["Main Decay Flow"]
+        A["active"] --> B["review-due"]
+        B --> C["stale"]
+        C --> D["expired"]
+    end
+
+    subgraph Transitions["Transitions"]
+        E["extend()"]
+    end
+
+    subgraph Independent["Independent State"]
+        F["superseded\n(由替代操作触发)"]
+    end
+
+    B -. extend() .-> A
 ```
 
 ### 状态转换规则

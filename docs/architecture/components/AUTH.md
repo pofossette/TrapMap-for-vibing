@@ -6,34 +6,28 @@ TrapMap 使用基于会话的身份验证系统，支持用户名/密码登录�
 
 ## 认证流程概览
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Authentication Flow Overview                          │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐   │
-│  │  Login Request  │────▶│  Credential    │────▶│  Create        │   │
-│  │                │     │  Validation    │     │  Session       │   │
-│  │ POST /v1/auth  │     │  (bcrypt)      │     │  (Cookie)      │   │
-│  │ /login         │     │                │     │                │   │
-│  └─────────────────┘     └─────────────────┘     └─────────────────┘   │
-│                                                                         │
-│  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐   │
-│  │  Session Check  │────▶│  Load Session  │────▶│  RBAC Check     │   │
-│  │                │     │  + User        │     │  + Level Check  │   │
-│  │ GET /v1/auth   │     │                │     │                │   │
-│  │ /session       │     │                │     │                │   │
-│  └─────────────────┘     └─────────────────┘     └─────────────────┘   │
-│                                                                         │
-│  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐   │
-│  │  Access Key    │────▶│  Hash + Lookup │────▶│  Create        │   │
-│  │  Login         │     │                │     │  Session       │   │
-│  │                │     │                │     │                │   │
-│  │ trapmap login  │     │ SHA-256        │     │                │   │
-│  │ --access-key   │     │                │     │                │   │
-│  └─────────────────┘     └─────────────────┘     └─────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph LoginFlow["Login Flow"]
+        A1["Login Request\nPOST /v1/auth/login"]
+        A2["Credential Validation\n(bcrypt)"]
+        A3["Create Session\n(Cookie)"]
+    end
+
+    subgraph SessionFlow["Session Flow"]
+        B1["Session Check\nGET /v1/auth/session"]
+        B2["Load Session + User"]
+        B3["RBAC Check + Level Check"]
+    end
+
+    subgraph AccessKeyFlow["Access Key Flow"]
+        C1["Access Key Login\ntrapmap login --access-key"]
+        C2["Hash + Lookup\nSHA-256"]
+        C3["Create Session"]
+    end
+
+    LoginFlow --> SessionFlow
+    AccessKeyFlow --> SessionFlow
 ```
 
 ---

@@ -71,24 +71,15 @@ flowchart TD
 
 ### 1. 权限验证阶段
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Permission Verification                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  1. Session Validation                                          │
-│     - 验证 JWT Cookie 或 Access Key                            │
-│     - 加载用户实体                                              │
-│                                                                 │
-│  2. Permission Check                                            │
-│     - 检查 knowledge:update 权限                               │
-│     - 验证用户安全等级 >= 条目 requiredLevel                   │
-│                                                                 │
-│  3. Team Access Check (if applicable)                          │
-│     - 验证用户是团队成员（team-scoped 条目）                   │
-│     - 全局条目跳过此检查                                       │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph PermissionVerification["Permission Verification"]
+        A["1. Session Validation\n验证 JWT Cookie 或 Access Key\n加载用户实体"]
+        B["2. Permission Check\n检查 knowledge:update 权限\n验证用户安全等级 >= 条目 requiredLevel"]
+        C["3. Team Access Check\n验证用户是团队成员（team-scoped 条目）\n全局条目跳过此检查"]
+    end
+
+    A --> B --> C
 ```
 
 ### 2. 状态检查阶段

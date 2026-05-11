@@ -39,44 +39,38 @@ packages/server/src/lib/
 
 ## 架构总览
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         Lifecycle State Change                              │
-│                    (approved / content update / deactivated)                 │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │
-                               ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│  events.ts: determineKnowledgeIndexAction(previous, next)                    │
-│                                                                              │
-│    next='approved'    → 'upsert'                                             │
-│    next='deactivated' → 'remove'                                             │
-│    其他                → 'noop'                                               │
-└──────────────────────────────┬───────────────────────────────────────────────┘
-                               │
-                               ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│  pipeline.ts: syncKnowledgeIndex()                                           │
-│                                                                              │
-│  1. 检查 lifecycleState（仅 approved 同步，其他移除）                          │
-│  2. normalize: KnowledgeRecord → NormalizedIndexDocument                     │
-│  3. 检查幂等性：revision + contentHash 未变 → 跳过                            │
-│  4. 顺序遍历 adapters，每个 adapter.sync(document)                           │
-│  5. 将 adapter 返回的 payload 写回 entry.indexState                          │
-└──────────────────────────────┬───────────────────────────────────────────────┘
-                               │
-           ┌───────────────────┼───────────────────┐
-           ▼                   ▼                   ▼
-   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-   │    Vector    │    │   Keyword    │    │    Graph     │
-   │   Adapter    │    │   Adapter    │    │   Adapter    │
-   │              │    │              │    │              │
-   │ embeddings   │    │ tokens +     │    │ nodes +      │
-   │ → embedding  │    │ fieldTokens  │    │ edges →      │
-   │    Cache     │    │ + facets →   │    │ graphIndex   │
-   │              │    │  persisted   │    │  Documents[] │
-   │              │    │    State     │    │              │
-   └──────────────┘    └──────────────┘    └──────────────┘
+```mermaid
+flowchart TB
+    subgraph LifecycleChange["Lifecycle State Change"]
+        A["approved / content update / deactivated"]
+    end
+
+    subgraph Events["events.ts: determineKnowledgeIndexAction"]
+        B["next='approved' → 'upsert'\nnext='deactivated' → 'remove'\n其他 → 'noop'"]
+    end
+
+    subgraph Pipeline["pipeline.ts: syncKnowledgeIndex"]
+        C["1. 检查 lifecycleState（仅 approved 同步，其他移除）\n2. normalize: KnowledgeRecord → NormalizedIndexDocument\n3. 检查幂等性：revision + contentHash 未变 → 跳过\n4. 顺序遍历 adapters，每个 adapter.sync(document)\n5. 将 adapter 返回的 payload 写回 entry.indexState"]
+    end
+
+    subgraph Adapters["Index Adapters"]
+        subgraph Vector["Vector Adapter"]
+            D1["embeddings → embedding Cache"]
+        end
+
+        subgraph Keyword["Keyword Adapter"]
+            D2["tokens + fieldTokens + facets → persisted State"]
+        end
+
+        subgraph Graph["Graph Adapter"]
+            D3["nodes + edges → graphIndex Documents[]"]
+        end
+    end
+
+    LifecycleChange --> Events --> Pipeline
+    Pipeline --> Vector
+    Pipeline --> Keyword
+    Pipeline --> Graph
 ```
 
 ---
@@ -146,18 +140,21 @@ interface IndexSyncResult {
 
 ### 入库流程
 
-```
-NormalizedIndexDocument.canonicalText
-         │
-         ▼
-  generateEmbedding()                // 调 OpenAI text-embedding-3-small (1536维)
-         │
-         ▼
-  返回 IndexSyncResult {
-    success: true,
-    performedWork: true,
-    payload: number[]                 // 1534 维浮点向量
-  }
+```mermaid
+flowchart TB
+    subgraph Input["Input"]
+        A["NormalizedIndexDocument.canonicalText"]
+    end
+
+    subgraph Embedding["generateEmbedding()"]
+        B["OpenAI text-embedding-3-small (1536维)"]
+    end
+
+    subgraph Output["Output"]
+        C["IndexSyncResult {\n  success: true,\n  performedWork: true,\n  payload: number[] (1534 维浮点向量)\n}"]
+    end
+
+    Input --> Embedding --> Output
 ```
 
 ### 持久化
@@ -185,27 +182,34 @@ Legacy `upsert()` 方法在 revision + contentHash 未变时返回 `{ performedW
 
 ### 入库流程
 
-```
-NormalizedIndexDocument
-         │
-         ▼
-  按字段分桶:
-    fieldTokens.shortcut = tokens ∩ shortcut 文本
-    fieldTokens.detail   = tokens ∩ detail 文本
-    fieldTokens.labels   = tokens ∩ labels 文本
-         │
-         ▼
-  boundaryFacets = buildBoundaryFacetIndex(document.boundary)
-    → contexts:          context labels 归一化 (小写, 空格→连字符)
-    → packages:          version constraints 的 package 名
-    → platforms:         exclusion 中提取的平台标识
-    → versionConstraints: package@range 完整字符串
-         │
-         ▼
-  返回 IndexSyncResult {
-    success: true,
-    payload: PersistedKeywordState { tokens, fieldTokens, boundaryFacets }
-  }
+```mermaid
+flowchart TB
+    subgraph Input["Input"]
+        A["NormalizedIndexDocument"]
+    end
+
+    subgraph FieldTokens["按字段分桶"]
+        B1["fieldTokens.shortcut = tokens ∩ shortcut 文本"]
+        B2["fieldTokens.detail = tokens ∩ detail 文本"]
+        B3["fieldTokens.labels = tokens ∩ labels 文本"]
+    end
+
+    subgraph BoundaryFacets["boundaryFacets = buildBoundaryFacetIndex"]
+        C1["contexts: context labels 归一化 (小写, 空格→连字符)"]
+        C2["packages: version constraints 的 package 名"]
+        C3["platforms: exclusion 中提取的平台标识"]
+        C4["versionConstraints: package@range 完整字符串"]
+    end
+
+    subgraph Output["Output"]
+        D["IndexSyncResult {\n  success: true,\n  payload: PersistedKeywordState { tokens, fieldTokens, boundaryFacets }\n}"]
+    end
+
+    Input --> FieldTokens
+    B1 --> BoundaryFacets
+    B2 --> BoundaryFacets
+    B3 --> BoundaryFacets
+    BoundaryFacets --> Output
 ```
 
 ### 持久化
@@ -240,30 +244,35 @@ Graph 适配器是最复杂的通道，分为**实体提取**和**持久化**两
 
 ### 入库流程
 
-```
-NormalizedIndexDocument
-         │
-         ├─→ extractTrapGraphEntities(document)          // retrieval/graph-extract.ts
-         │     从 shortcut/detail/labels 提取节点和边
-         │     节点类型: trap, cue, tool, environment, prerequisite, mitigation
-         │
-         └─→ extractBoundaryGraphEntities(trapNodeId, document.boundary)   // indexing/boundary-extract.ts
-               从 boundary 提取约束节点
-               节点类型: boundary-context, boundary-version, boundary-platform
-         │
-         ▼
-  合并 nodes + edges
-         │
-         ▼
-  buildTrapGraphDocument({ normalizedDocument, nodes, edges })   // adapters/graph-builders.ts
-    → GraphIndexDocumentRecord (纯函数，不持久化)
-         │
-         ▼
-  store.transact(data => {
-    // 加载现有文档（排除当前源）+ 候选文档
-    assertNoHardDependencyCycles(existingDocs + [candidate])   // graphology.ts
-    upsertGraphIndexDocument(data, candidate)                  // graph-lite/store.ts
-  })
+```mermaid
+flowchart TB
+    subgraph Input["Input"]
+        A["NormalizedIndexDocument"]
+    end
+
+    subgraph Extract["Entity Extraction"]
+        subgraph TrapEntities["extractTrapGraphEntities"]
+            B1["从 shortcut/detail/labels 提取节点和边\n节点类型: trap, cue, tool, environment, prerequisite, mitigation"]
+        end
+
+        subgraph BoundaryEntities["extractBoundaryGraphEntities"]
+            B2["从 boundary 提取约束节点\n节点类型: boundary-context, boundary-version, boundary-platform"]
+        end
+    end
+
+    subgraph Build["Build Graph Document"]
+        C["buildTrapGraphDocument\n→ GraphIndexDocumentRecord (纯函数，不持久化)"]
+    end
+
+    subgraph Persist["Persist with Cycle Detection"]
+        D["store.transact\nassertNoHardDependencyCycles\nupsertGraphIndexDocument"]
+    end
+
+    Input --> TrapEntities
+    Input --> BoundaryEntities
+    TrapEntities --> Build
+    BoundaryEntities --> Build
+    Build --> Persist
 ```
 
 ### 节点类型 (GraphNodeKind)

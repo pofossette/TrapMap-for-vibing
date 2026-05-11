@@ -105,34 +105,22 @@ function toRisk(score: number): 'low' | 'medium' | 'high' {
 
 ## 候选状态机
 
-```
-┌─────────────┐
-│  RECEIVED   │  ← 初始状态
-└──────┬──────┘
-       │ process()
-       ▼
-┌─────────────┐
-│   QUEUED    │  ← 在处理队列中
-└──────┬──────┘
-       │ start_processing()
-       ▼
-┌─────────────┐
-│  ANALYZING  │  ← 正在处理
-└──────┬──────┘
-       │
-       ├──────────────────────────────┐
-       ▼                              ▼
-┌────────────────────┐      ┌─────────────────┐
-│ DUPLICATE_DETECTED │      │READY_FOR_REVIEW │
-│                    │      │                 │
-│  需要人工解决       │      │  唯一内容        │
-│                    │      │  可发布          │
-└──────┬─────────────┘      └─────────────────┘
-       │ manual_resolution()
-       ▼
-┌─────────────┐
-│  RESOLVED   │  ← 终态
-└─────────────┘
+```mermaid
+flowchart TB
+    subgraph States["Candidate States"]
+        A["RECEIVED\n初始状态"]
+        B["QUEUED\n在处理队列中"]
+        C["ANALYZING\n正在处理"]
+        D["DUPLICATE_DETECTED\n需要人工解决"]
+        E["READY_FOR_REVIEW\n唯一内容\n可发布"]
+        F["RESOLVED\n终态"]
+    end
+
+    A -->|process()| B
+    B -->|start_processing()| C
+    C --> D
+    C --> E
+    D -->|manual_resolution()| F
 ```
 
 ## 候选提交流程
