@@ -363,21 +363,25 @@ interface Store {
 
 ### JsonStore（开发）
 
-```
-.json data file
-├── 原子写入（写入临时文件，然后重命名）
-├── 并发访问的文件锁定
-└── 启动时自动备份
+```mermaid
+flowchart TB
+    subgraph JsonStore["JsonStore 特性"]
+        A1["原子写入<br/>写入临时文件，然后重命名"]
+        A2["并发访问的文件锁定"]
+        A3["启动时自动备份"]
+    end
 ```
 
 ### PostgresStore（生产）
 
-```
-PostgreSQL
-├── Drizzle ORM schema
-├── 连接池
-├── ACID 事务
-└── 常用查询的索引
+```mermaid
+flowchart TB
+    subgraph PostgresStore["PostgresStore 特性"]
+        B1["Drizzle ORM schema"]
+        B2["连接池"]
+        B3["ACID 事务"]
+        B4["常用查询的索引"]
+    end
 ```
 
 ## 环境配置

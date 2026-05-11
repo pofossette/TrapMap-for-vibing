@@ -6,23 +6,27 @@ TrapMap 是一个多智能体知识共享平台，专为跨团队的安全、受
 
 ## 系统架构
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         TrapMap Monorepo                            │
-├─────────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
-│  │     CLI     │  │   Server    │  │  Contracts  │  │    Evals    │ │
-│  │ (Commander) │  │  (Fastify)  │  │    (Zod)    │  │  (Vitest)   │ │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
-      ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-      │   Vector    │  │   Keyword   │  │    Graph    │
-      │   Index     │  │    Index    │  │    Index    │
-      │ (Embeddings)│  │   (BM25)    │  │ (Graphology)│
-      └─────────────┘  └─────────────┘  └─────────────┘
+```mermaid
+flowchart TB
+    subgraph Monorepo["TrapMap Monorepo"]
+        subgraph Packages["核心包"]
+            CLI["CLI<br/>(Commander)"]
+            Server["Server<br/>(Fastify)"]
+            Contracts["Contracts<br/>(Zod)"]
+            Evals["Evals<br/>(Vitest)"]
+        end
+    end
+
+    subgraph Indexes["索引层"]
+        Vector["Vector Index<br/>(Embeddings)"]
+        Keyword["Keyword Index<br/>(BM25)"]
+        Graph["Graph Index<br/>(Graphology)"]
+    end
+
+    Monorepo --> Indexes
+    Packages --> Vector
+    Packages --> Keyword
+    Packages --> Graph
 ```
 
 ## 核心功能

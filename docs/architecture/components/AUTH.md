@@ -8,22 +8,22 @@ TrapMap 使用基于会话的身份验证系统，支持用户名/密码登录�
 
 ```mermaid
 flowchart TB
-    subgraph LoginFlow["Login Flow"]
-        A1["Login Request\nPOST /v1/auth/login"]
-        A2["Credential Validation\n(bcrypt)"]
-        A3["Create Session\n(Cookie)"]
+    subgraph LoginFlow["登录流程"]
+        A1["登录请求\nPOST /v1/auth/login"]
+        A2["凭证验证\n(bcrypt)"]
+        A3["创建会话\n(Cookie)"]
     end
 
-    subgraph SessionFlow["Session Flow"]
-        B1["Session Check\nGET /v1/auth/session"]
-        B2["Load Session + User"]
-        B3["RBAC Check + Level Check"]
+    subgraph SessionFlow["会话流程"]
+        B1["会话检查\nGET /v1/auth/session"]
+        B2["加载会话与用户"]
+        B3["RBAC 检查与等级检查"]
     end
 
-    subgraph AccessKeyFlow["Access Key Flow"]
-        C1["Access Key Login\ntrapmap login --access-key"]
-        C2["Hash + Lookup\nSHA-256"]
-        C3["Create Session"]
+    subgraph AccessKeyFlow["访问密钥流程"]
+        C1["访问密钥登录\ntrapmap login --access-key"]
+        C2["哈希与查找\nSHA-256"]
+        C3["创建会话"]
     end
 
     LoginFlow --> SessionFlow
@@ -405,25 +405,25 @@ async function logoutHandler(
 
 ```mermaid
 flowchart TB
-    subgraph PasswordReset["Password Reset Flow"]
-        subgraph Request["User Request"]
+    subgraph PasswordReset["密码重置流程"]
+        subgraph Request["用户请求"]
             A["POST /v1/auth/password-reset\n{ username: 'user@example.com' }"]
         end
 
-        subgraph Generate["Generate Reset Token"]
-            B["- Random 32 bytes (base64url)\n- Hash for storage\n- Set expiration (1 hour)\n- Send email with reset link"]
+        subgraph Generate["生成重置令牌"]
+            B["- 随机 32 字节（base64url）\n- 哈希存储\n- 设置过期时间（1 小时）\n- 发送包含重置链接的邮件"]
         end
 
-        subgraph Email["Email Notification"]
-            C["Email: 'Reset your TrapMap password'\nClick here: https://trapmap.example.com/reset?token=xxx"]
+        subgraph Email["邮件通知"]
+            C["邮件：'重置您的 TrapMap 密码'\n点击此处：https://trapmap.example.com/reset?token=xxx"]
         end
 
-        subgraph Confirm["User Clicks Link"]
+        subgraph Confirm["用户点击链接"]
             D["POST /v1/auth/password-reset/confirm\n{ token, newPassword }"]
         end
 
-        subgraph Update["Update Password"]
-            E["- Verify token\n- Hash new password\n- Update user record\n- Invalidate all sessions\n- Send confirmation email"]
+        subgraph Update["更新密码"]
+            E["- 验证令牌\n- 哈希新密码\n- 更新用户记录\n- 使所有会话失效\n- 发送确认邮件"]
         end
 
         Request --> Generate --> Email --> Confirm --> Update

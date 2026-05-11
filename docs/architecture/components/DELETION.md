@@ -40,11 +40,11 @@ if (entry.teamId) {
 ```mermaid
 flowchart TD
     A[DELETE /v1/knowledge/:entryId] --> B{验证会话}
-    B -->|失败| C[401 Unauthorized]
+    B -->|失败| C[401 未授权]
     B -->|成功| D{检查 knowledge:update 权限}
-    D -->|无权限| E[403 Forbidden]
+    D -->|无权限| E[403 禁止访问]
     D -->|有权限| F[查找条目]
-    F -->|不存在| G[404 Not Found]
+    F -->|不存在| G[404 未找到]
     F -->|存在| H{检查生命周期状态}
     
     H -->|DRAFT| I[允许删除]
@@ -63,7 +63,7 @@ flowchart TD
     O --> P[记录审计事件]
     P --> Q[返回 200 OK]
     
-    J --> R[400 Bad Request]
+    J --> R[400 错误请求]
     K --> R
 ```
 
@@ -73,10 +73,10 @@ flowchart TD
 
 ```mermaid
 flowchart TB
-    subgraph PermissionVerification["Permission Verification"]
-        A["1. Session Validation\n验证 JWT Cookie 或 Access Key\n加载用户实体"]
-        B["2. Permission Check\n检查 knowledge:update 权限\n验证用户安全等级 >= 条目 requiredLevel"]
-        C["3. Team Access Check\n验证用户是团队成员（team-scoped 条目）\n全局条目跳过此检查"]
+    subgraph PermissionVerification["权限验证"]
+        A["1. 会话验证\n验证 JWT Cookie 或访问密钥\n加载用户实体"]
+        B["2. 权限检查\n检查 knowledge:update 权限\n验证用户安全等级 >= 条目 requiredLevel"]
+        C["3. 团队访问检查\n验证用户是团队成员（team-scoped 条目）\n全局条目跳过此检查"]
     end
 
     A --> B --> C
@@ -167,15 +167,15 @@ interface KnowledgeRecord {
 
 ```mermaid
 flowchart TB
-    subgraph RecycleBin["Recycle Bin Flow"]
-        A["Deleted Entry"]
+    subgraph RecycleBin["回收站流程"]
+        A["已删除条目"]
         
-        subgraph Storage["Recycle Bin (30 days retention)"]
-            B["- Store soft-deleted entries\n- Track deletion metadata\n- Auto-purge after retention period"]
+        subgraph Storage["回收站（保留 30 天）"]
+            B["- 存储软删除条目\n- 追踪删除元数据\n- 保留期后自动清理"]
         end
 
-        C["Restore: Move back to original state"]
-        D["Purge: Permanent deletion after 30 days"]
+        C["恢复：移回原始状态"]
+        D["清除：30 天后永久删除"]
 
         A --> Storage
         Storage --> C

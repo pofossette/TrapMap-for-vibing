@@ -372,7 +372,7 @@ flowchart TD
     A[trapmap login --access-key <key>] --> B[加载 CLI 状态]
     B --> C[POST /v1/auth/login]
     C --> D{验证密钥}
-    D -->|失败| E[401 Unauthorized]
+    D -->|失败| E[401 未授权]
     D -->|成功| F[返回会话信息]
     F --> G[保存会话令牌]
     G --> H[更新 CLI 状态]

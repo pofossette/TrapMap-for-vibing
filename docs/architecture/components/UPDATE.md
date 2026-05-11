@@ -9,12 +9,12 @@ TrapMap 的文档更新流程允许授权用户修改现有知识条目的内容
 ```mermaid
 flowchart TD
     A[PATCH /v1/knowledge/:entryId] --> B{验证会话}
-    B -->|失败| C[401 Unauthorized]
+    B -->|失败| C[401 未授权]
     B -->|成功| D{检查 knowledge:update 权限}
-    D -->|无权限| E[403 Forbidden]
+    D -->|无权限| E[403 禁止访问]
     D -->|有权限| F[查找条目]
     
-    F -->|不存在| G[404 Not Found]
+    F -->|不存在| G[404 未找到]
     F -->|存在| H{检查团队访问}
     
     H -->|失败| E

@@ -26,56 +26,56 @@ TrapMap 提供多版本检索能力，支持从简单的语义搜索到复杂的
 
 ```mermaid
 flowchart LR
-    A[Query] --> B[Validate]
-    B --> C[Auth Context]
-    C --> D[Eligibility Filter]
-    D --> E[Generate Embedding]
-    E --> F[Vector Similarity]
-    F --> G[Top-K Results]
-    G --> H[Assembly]
-    H --> I[Response]
+    A[查询] --> B[验证]
+    B --> C[认证上下文]
+    C --> D[资格过滤]
+    D --> E[生成 Embedding]
+    E --> F[向量相似度]
+    F --> G[Top-K 结果]
+    G --> H[组装]
+    H --> I[响应]
 ```
 
 ### v1 混合检索流程（Mermaid）
 
 ```mermaid
 flowchart TB
-    A[Query] --> B[Validate & Auth]
-    B --> C{Parallel Processing}
+    A[查询] --> B[验证与认证]
+    B --> C{并行处理}
 
-    C -->|Semantic Path| D1[Generate Embedding]
-    D1 --> D2[Vector Similarity]
-    D2 --> D3[Top-K Semantic]
+    C -->|语义路径| D1[生成 Embedding]
+    D1 --> D2[向量相似度]
+    D2 --> D3[Top-K 语义结果]
 
-    C -->|Keyword Path| E1[Tokenize Query]
-    E1 --> E2[BM25 Scoring]
-    E2 --> E3[Top-K Keyword]
+    C -->|关键词路径| E1[分词]
+    E1 --> E2[BM25 评分]
+    E2 --> E3[Top-K 关键词结果]
 
-    D3 --> F[Score Fusion<br/>(RRF)]
+    D3 --> F[分数融合<br/>(RRF)]
     E3 --> F
-    F --> G[Merge & Rerank]
-    G --> H[Assembly]
-    H --> I[Response]
+    F --> G[合并与重排]
+    G --> H[组装]
+    H --> I[响应]
 ```
 
 ### v3 陷阱优先计划编译（Mermaid）
 
 ```mermaid
 flowchart TD
-    A[Query] --> B[GraphRAG-lite]
-    B --> C[Identify Trap Nodes]
-    C --> D[Find Related Skills]
-    D --> E[Build Graph Edges]
-    E --> F{Confidence Check}
+    A[查询] --> B[GraphRAG-lite]
+    B --> C[识别陷阱节点]
+    C --> D[查找相关技能]
+    D --> E[构建图边]
+    E --> F{置信度检查}
 
-    F -->|>= 0.7| G[Compile Plan]
-    F -->|< 0.7| H[Fallback to v2]
+    F -->|>= 0.7| G[编译计划]
+    F -->|< 0.7| H[降级到 v2]
 
-    G --> I[Topological Sort]
-    I --> J[Generate Citations]
-    J --> K[Return Plan]
+    G --> I[拓扑排序]
+    I --> J[生成引用]
+    J --> K[返回计划]
 
-    H --> L[Return Capsules]
+    H --> L[返回胶囊]
 ```
 
 ### 语义检索流程 (Semantic Mode)
@@ -259,19 +259,19 @@ POST /v3/retrieval/search
 
 ```mermaid
 flowchart TB
-    subgraph CapsuleRetrieval["Capsule-native Retrieval Flow"]
-        A["Query Input"]
+    subgraph CapsuleRetrieval["胶囊原生检索流程"]
+        A["查询输入"]
         
-        subgraph Eligibility["Eligibility Filter"]
-            B["- capsule.governanceInherited = true\n- user's level >= artifact.requiredLevel\n- (capsule can be used if artifact is accessible)"]
+        subgraph Eligibility["资格过滤"]
+            B["- capsule.governanceInherited = true\n- 用户等级 >= artifact.requiredLevel\n- (胶囊可用当工件可访问时)"]
         end
 
-        subgraph Search["Semantic Search"]
-            C["- Search capsule content (not entry content)\n- Use capsule-specific index"]
+        subgraph Search["语义搜索"]
+            C["- 搜索胶囊内容（非条目内容）\n- 使用胶囊专用索引"]
         end
 
-        subgraph Assembly["Capsule Assembly"]
-            D["- Attach parent artifact metadata\n- Include activationHint\n- Compute governance inheritance confirmation"]
+        subgraph Assembly["胶囊组装"]
+            D["- 附加父工件元数据\n- 包含 activationHint\n- 计算治理继承确认"]
         end
 
         A --> Eligibility --> Search --> Assembly
@@ -316,36 +316,36 @@ interface TrapFirstPlan {
 
 ```mermaid
 flowchart TB
-    subgraph TrapFirstPlan["Trap-First Plan Compilation Flow"]
-        subgraph Query["Query Input"]
-            A["POST /v3/retrieval/plan\n{ query: 'how to add auth to new service' }"]
+    subgraph TrapFirstPlan["陷阱优先计划编译流程"]
+        subgraph Query["查询输入"]
+            A["POST /v3/retrieval/plan\n{ query: '如何为新服务添加认证' }"]
         end
 
-        subgraph GraphRAG["GraphRAG-lite Wrapper"]
-            B["- Build query embedding\n- Query trap graph\n- Identify relevant trap nodes\n- Identify prerequisite chains"]
+        subgraph GraphRAG["GraphRAG-lite 封装器"]
+            B["- 构建查询 embedding\n- 查询陷阱图\n- 识别相关陷阱节点\n- 识别前置条件链"]
         end
 
-        subgraph Traps["Trap Identification"]
-            C["For each relevant entry:\n1. Extract trap conditions from content\n2. Classify as Blocker or Prerequisite\n3. Score importance to query\n\nOutput: PlanTrapNode[]"]
+        subgraph Traps["陷阱识别"]
+            C["对每个相关条目:\n1. 从内容中提取陷阱条件\n2. 分类为阻塞器或前置条件\n3. 评分对查询的重要性\n\n输出: PlanTrapNode[]"]
         end
 
-        subgraph Skills["Skill Mapping"]
-            D["For each identified trap:\n1. Find skills that resolve the trap\n2. Map trap → skill (provides/blocks relationship)\n3. Validate skill applicability\n\nOutput: PlanSkillNode[], PlanEdge[]"]
+        subgraph Skills["技能映射"]
+            D["对每个已识别陷阱:\n1. 查找解决陷阱的技能\n2. 映射陷阱 → 技能（提供/阻塞关系）\n3. 验证技能适用性\n\n输出: PlanSkillNode[], PlanEdge[]"]
         end
 
-        subgraph TopoSort["Topological Sort"]
-            E["Order nodes by dependency:\n1. No incoming edges = can start immediately\n2. Respect prerequisite relationships\n3. Prioritize blockers (high-priority traps)"]
+        subgraph TopoSort["拓扑排序"]
+            E["按依赖排序节点:\n1. 无入边 = 可立即开始\n2. 遵循前置条件关系\n3. 优先处理阻塞器（高优先级陷阱）"]
         end
 
-        subgraph Citations["Citation Generation"]
-            F["For each node, attach source snippets:\n- entryId: source knowledge entry\n- snippet: relevant text passage\n- relevance_score: how relevant to node"]
+        subgraph Citations["引用生成"]
+            F["为每个节点附加源片段:\n- entryId: 源知识条目\n- snippet: 相关文本段落\n- relevance_score: 与节点的相关度"]
         end
 
-        subgraph Confidence["Confidence Scoring"]
+        subgraph Confidence["置信度评分"]
             G["confidence = f(\n  trap_coverage,\n  skill_coverage,\n  graph_coherence\n)"]
         end
 
-        subgraph Response["Response"]
+        subgraph Response["响应"]
             H["{ planId, query, traps, skills, edges, citations, confidence }"]
         end
 

@@ -4,24 +4,27 @@
 
 ## 整体流程概览
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        文档入库流程                                  │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────────┐  │
-│  │ Candidate │───▶│ Duplicate│───▶│ Approval │───▶│   Pipeline   │  │
-│  │ Submission│    │ Detection│    │ Gate     │    │   (Adapters) │  │
-│  └──────────┘    └──────────┘    └──────────┘    └──────┬───────┘  │
-│                                                         │          │
-│                                          ┌──────────────┼───────┐  │
-│                                          │              │       │  │
-│                                    ┌─────▼─────┐ ┌─────▼────┐ ┌─▼──────┐ │
-│                                    │  Vector   │ │ Keyword  │ │ Graph  │ │
-│                                    │  Adapter  │ │ Adapter  │ │ Adapter│ │
-│                                    └───────────┘ └──────────┘ └────────┘ │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Ingestion["文档入库流程"]
+        Candidate["Candidate Submission"]
+        Duplicate["Duplicate Detection"]
+        Approval["Approval Gate"]
+        Pipeline["Pipeline (Adapters)"]
+
+        subgraph Adapters["索引适配器"]
+            Vector["Vector Adapter"]
+            Keyword["Keyword Adapter"]
+            Graph["Graph Adapter"]
+        end
+
+        Candidate --> Duplicate
+        Duplicate --> Approval
+        Approval --> Pipeline
+        Pipeline --> Vector
+        Pipeline --> Keyword
+        Pipeline --> Graph
+    end
 ```
 
 入库流程分为两个阶段：
@@ -465,17 +468,44 @@ for (let i = 0; i < knowledgeEntries.length; i += batchSize) {
 
 ## 七、流程总结
 
-```
-提交 → 指纹计算 → 重复检测 → 审核 → 规范化 → 多适配器索引 → 持久化
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    ▼                 ▼                 ▼
-                Vector            Keyword            Graph
-            (Embedding)       (Token + Facets)   (Entities + Edges)
-                    │                 │                 │
-                    ▼                 ▼                 ▼
-              embeddingCache    indexState.keyword  graphIndexDocuments
-              indexState.vector indexState.adapters  (Store-backed)
+```mermaid
+flowchart TB
+    subgraph Pipeline["入库流程"]
+        Submit["提交"]
+        Fingerprint["指纹计算"]
+        Duplicate["重复检测"]
+        Review["审核"]
+        Normalize["规范化"]
+        Index["多适配器索引"]
+        Persist["持久化"]
+        
+        Submit --> Fingerprint
+        Fingerprint --> Duplicate
+        Duplicate --> Review
+        Review --> Normalize
+        Normalize --> Index
+        Index --> Persist
+    end
+
+    subgraph Adapters["索引适配器"]
+        Vector["Vector<br/>(Embedding)"]
+        Keyword["Keyword<br/>(Token + Facets)"]
+        Graph["Graph<br/>(Entities + Edges)"]
+        
+        Index --> Vector
+        Index --> Keyword
+        Index --> Graph
+    end
+
+    subgraph Storage["持久化存储"]
+        EmbeddingCache["embeddingCache<br/>indexState.vector"]
+        KeywordState["indexState.keyword<br/>indexState.adapters"]
+        GraphDocs["graphIndexDocuments<br/>(Store-backed)"]
+        
+        Vector --> EmbeddingCache
+        Keyword --> KeywordState
+        Graph --> GraphDocs
+    end
 ```
 
 **关键设计原则：**

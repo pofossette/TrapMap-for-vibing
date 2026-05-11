@@ -8,20 +8,20 @@
 
 ```mermaid
 flowchart TB
-    subgraph ArtifactSystem["Artifact System Architecture"]
-        subgraph SkillArtifact["SkillArtifact (Immutable revision with source files)"]
+    subgraph ArtifactSystem["工件系统架构"]
+        subgraph SkillArtifact["SkillArtifact（不可变修订版与源文件）"]
             SF["sourceFiles: SourceFile[]"]
             META["name, version, scope, level"]
         end
 
-        subgraph Derivation["Derivation Process"]
-            DP["Process source files"]
+        subgraph Derivation["派生流程"]
+            DP["处理源文件"]
         end
 
-        subgraph Outputs["Derived Outputs"]
-            SP["SkillProfile (Distilled text + Keywords)"]
-            SC["SkillCapsule[] (Actionable knowledge)"]
-            CM["ClientManifest (Metadata for client use)"]
+        subgraph Outputs["派生输出"]
+            SP["SkillProfile（精炼文本与关键词）"]
+            SC["SkillCapsule[]（可操作知识）"]
+            CM["ClientManifest（客户端使用元数据）"]
         end
 
         SF --> DP
@@ -156,27 +156,27 @@ interface ParameterDefinition {
 
 ```mermaid
 flowchart TB
-    subgraph Create["Create Artifact"]
+    subgraph Create["创建工件"]
         A1["POST /v1/operations/artifacts"]
-        A2["1. User uploads source files\n2. System creates draft artifact\n3. User can preview and edit\n4. User triggers derivation"]
+        A2["1. 用户上传源文件\n2. 系统创建草稿工件\n3. 用户可预览和编辑\n4. 用户触发派生"]
     end
 
-    subgraph Derive["Derive Outputs"]
+    subgraph Derive["派生输出"]
         B1["POST /v1/operations/artifacts/:id/derive"]
-        B2["1. Generate SkillProfile (summarize)\n2. Extract SkillCapsules (chunk)\n3. Generate ClientManifest (metadata)\n4. Index capsules (vector + keyword)\n5. Update artifact status → 'derived'"]
+        B2["1. 生成 SkillProfile（摘要）\n2. 提取 SkillCapsules（分块）\n3. 生成 ClientManifest（元数据）\n4. 索引胶囊（向量与关键词）\n5. 更新工件状态 → 'derived'"]
     end
 
-    subgraph Review["Review & Publish"]
+    subgraph Review["审核与发布"]
         C1["POST /v1/operations/artifacts/:id/review"]
-        C2["1. Reviewer checks profile and capsules\n2. Approve or request changes\n3. On approval: status → 'published'\n4. Artifacts become searchable"]
+        C2["1. 审核者检查配置文件与胶囊\n2. 批准或请求修改\n3. 批准后：状态 → 'published'\n4. 工件变为可搜索"]
     end
 
-    subgraph Use["Use in TrapFirstPlan"]
-        D["v3 retrieval queries capsule knowledge\nCapsules provide actionable content with activation hints"]
+    subgraph Use["在 TrapFirstPlan 中使用"]
+        D["v3 检索查询胶囊知识\n胶囊提供可操作内容与激活提示"]
     end
 
-    subgraph Version["Version Update (Future)"]
-        E["- Create new artifact with parent reference\n- lineage.rootId stays same\n- Version count increments\n- Old artifact can be deprecated"]
+    subgraph Version["版本更新（未来）"]
+        E["- 创建带有父引用的新工件\n- lineage.rootId 保持不变\n- 版本计数递增\n- 旧工件可标记为废弃"]
     end
 
     Create --> Derive --> Review --> Use --> Version
@@ -222,14 +222,14 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[POST /v1/operations/artifacts] --> B{验证会话}
-    B -->|失败| C[401 Unauthorized]
+    B -->|失败| C[401 未授权]
     B -->|成功| D{检查权限}
-    D -->|无权限| E[403 Forbidden]
+    D -->|无权限| E[403 禁止访问]
     D -->|有权限| F[解析请求体]
     
     F --> G[验证源文件]
     G --> H{源文件有效}
-    H -->|否| I[400 Bad Request]
+    H -->|否| I[400 错误请求]
     H -->|是| J[创建工件]
     
     J --> K[生成 EntityId]
@@ -244,9 +244,9 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[POST /v1/operations/artifacts/:id/derive] --> B{验证会话}
-    B -->|失败| C[401 Unauthorized]
+    B -->|失败| C[401 未授权]
     B -->|成功| D{检查工件存在}
-    D -->|不存在| E[404 Not Found]
+    D -->|不存在| E[404 未找到]
     D -->|存在| F{检查状态}
     
     F -->|非 draft| G[400 状态错误]
@@ -278,12 +278,12 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[POST /v1/operations/artifacts/:id/review] --> B{验证会话}
-    B -->|失败| C[401 Unauthorized]
+    B -->|失败| C[401 未授权]
     B -->|成功| D{检查 knowledge:review 权限}
-    D -->|无权限| E[403 Forbidden]
+    D -->|无权限| E[403 禁止访问]
     D -->|有权限| F[查找工件]
     
-    F -->|不存在| G[404 Not Found]
+    F -->|不存在| G[404 未找到]
     F -->|存在| H{检查状态}
     
     H -->|非 derived| I[400 状态错误]
