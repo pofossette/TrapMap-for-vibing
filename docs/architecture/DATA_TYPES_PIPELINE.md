@@ -9,7 +9,7 @@
 
 ```mermaid
 flowchart TB
-    subgraph Phase1["阶段 1：用户提交"]
+    subgraph 阶段1["阶段 1：用户提交"]
         A1["CLI / Web Client"]
         A2["CandidateSubmission<br/>sourceType: trap/skill<br/>status: received"]
         A3["POST /v1/candidates<br/>createCandidateSubmission()<br/>scheduleCandidateProcessing()"]
@@ -18,7 +18,7 @@ flowchart TB
         A2 --> A3
     end
 
-    subgraph Phase2["阶段 2：异步分析"]
+    subgraph 阶段2["阶段 2：异步分析"]
         B1["status: received → queued → analyzing"]
         B2["AnalysisSnapshot<br/>fingerprint (SHA-256)<br/>keywords, tokens"]
         B3["DuplicateCase<br/>DuplicateMatch[]<br/>duplicateType: exact/semantic/none"]
@@ -29,7 +29,7 @@ flowchart TB
         B3 --> B4
     end
 
-    subgraph Phase3["阶段 3：人工裁定（仅去重分支）"]
+    subgraph 阶段3["阶段 3：人工裁定（仅去重分支）"]
         C1["GET /v1/duplicates/:candidateId/bundle<br/>DuplicateJobBundleResponse"]
         C2["ManualResultSubmission<br/>decision: independent/merged"]
         C3["ResolutionOutcome + EntityLineage<br/>publishedEntityId / mergedIntoEntityId"]
@@ -38,7 +38,7 @@ flowchart TB
         C2 --> C3
     end
 
-    subgraph Phase4["阶段 4：AI 预审 + 人工审核"]
+    subgraph 阶段4["阶段 4：AI 预审 + 人工审核"]
         D1["AgentReviewResult<br/>status: agent-pass/agent-rejected"]
         D2["ReviewDecision<br/>decision: approve/reject"]
         D3["LifecycleState 状态机:<br/>draft → submitted → agent-pass → approved ✓<br/>→ agent-rejected → rejected ✗"]
@@ -47,7 +47,7 @@ flowchart TB
         D2 --> D3
     end
 
-    subgraph Phase5["阶段 5：发布为正式实体"]
+    subgraph 阶段5["阶段 5：发布为正式实体"]
         E1["KnowledgeEntry<br/>latestRevision, history<br/>metadata, lifecycleHistory"]
         E2["SkillArtifact<br/>history, derived<br/>profile, capsules, clientManifest"]
         
@@ -55,10 +55,10 @@ flowchart TB
         D3 --> E2
     end
 
-    Phase1 --> Phase2
-    Phase2 --> Phase3
-    Phase3 --> Phase4
-    Phase4 --> Phase5
+    阶段1 --> 阶段2
+    阶段2 --> 阶段3
+    阶段3 --> 阶段4
+    阶段4 --> 阶段5
 ```
 
 ## 主线二：检索 → 返回（Retrieval Pipeline）
@@ -77,7 +77,7 @@ flowchart TB
     end
 
     subgraph V2["v2 胶囊优先检索"]
-        B1["RetrievalV2Query<br/>seed (唯一必填)"]
+        B1["RetrievalV2Query<br/>seed（唯一必填）"]
         B2["POST /v2/retrieval/search<br/>searchKnowledgeV2()"]
         B3["RetrievalV2ResponseWithHints<br/>capsules[], profileHints[]<br/>activationHints[]"]
         B4["CapsuleMatch<br/>capsuleId, artifactId<br/>content, situation, problem, goal<br/>score, reason, conflicts"]
@@ -87,7 +87,7 @@ flowchart TB
         B3 --> B4
     end
 
-    subgraph SKED["SKED 按内容搜索 Skill 工件"]
+    subgraph 技能查找["SKED 按内容搜索 Skill 工件"]
         C1["SkillLookupQuery<br/>text, maxResults"]
         C2["POST /v1/skills/search-by-content<br/>searchSkillsByContent()"]
         C3["SkillLookupResponse<br/>matches: SkillLookupResultItem[]"]
@@ -112,12 +112,12 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    subgraph Feedback["用户反馈"]
+    subgraph 用户反馈["用户反馈"]
         F1["FeedbackEntry<br/>entryId, entryType<br/>problemType: incorrect/outdated/etc<br/>status: new"]
         F2["POST /v1/feedback"]
         F3["FeedbackStatus 状态机:<br/>new → triaged → resolved/dismissed"]
-        F4["FeedbackBatchRequest<br/>action, feedbackIds<br/>dryRun (预览模式)"]
-        F5["QualityScore<br/>totalFeedback<br/>qualityScore (0-1)"]
+        F4["FeedbackBatchRequest<br/>action, feedbackIds<br/>dryRun（预览模式）"]
+        F5["QualityScore<br/>totalFeedback<br/>qualityScore（0-1）"]
         
         F1 --> F2
         F2 --> F3
@@ -125,8 +125,8 @@ flowchart TB
         F4 --> F5
     end
 
-    subgraph Decay["衰减管理（Decay）"]
-        D1["DecayMeta<br/>lastVerifiedAt, decayState<br/>freshnessType: evergreen/versioned/volatile<br/>supersededById (可选)"]
+    subgraph 衰减管理["衰减管理（Decay）"]
+        D1["DecayMeta<br/>lastVerifiedAt, decayState<br/>freshnessType: evergreen/versioned/volatile<br/>supersededById（可选）"]
         D2["DecayState 状态机:<br/>active → review-due → stale → expired/superseded"]
         D3["自动触发规则:<br/>3 条 outdated 反馈/30天 → stale<br/>5 条 incorrect 反馈/30天 → review-due"]
         
@@ -134,20 +134,20 @@ flowchart TB
         D2 --> D3
     end
 
-    subgraph Maintenance["维护管理（Maintenance）"]
+    subgraph 维护管理["维护管理（Maintenance）"]
         M1["MaintenanceMeta<br/>maintainer: ActorRef?<br/>reviewBy: ISO8601?"]
         
         D3 --> M1
     end
 
-    Feedback --> Decay
+    用户反馈 --> 衰减管理
 ```
 
 ## 全局关系图
 
 ```mermaid
 flowchart TB
-    subgraph Identity["身份认证 & 权限"]
+    subgraph 身份认证["身份认证 & 权限"]
         Team["Team"]
         Member["Member"]
         AccessKey["AccessKey"]
@@ -156,7 +156,7 @@ flowchart TB
         Member --> AccessKey
     end
 
-    subgraph Ingestion["知识入库入口"]
+    subgraph 知识入库["知识入库入口"]
         Candidate["CandidateSubmission<br/>(trap 或 skill)"]
         Analysis["AnalysisSnapshot<br/>(内容指纹)"]
         Duplicate["DuplicateCase<br/>DuplicateMatch<br/>ManualResult<br/>ResolutionOutcome<br/>EntityLineage"]
@@ -165,7 +165,7 @@ flowchart TB
         Analysis --> Duplicate
     end
 
-    subgraph Review["审核"]
+    subgraph 审核["审核"]
         AgentReview["AgentReviewResult"]
         ReviewDecision["ReviewDecision"]
         
@@ -173,15 +173,15 @@ flowchart TB
         AgentReview --> ReviewDecision
     end
 
-    subgraph Publish["发布为正式实体"]
-        subgraph Trap["Trap 类型"]
+    subgraph 发布["发布为正式实体"]
+        subgraph Trap实体["Trap 类型"]
             KnowledgeEntry["KnowledgeEntry"]
             KnowledgeRevision["KnowledgeRevision"]
             
             KnowledgeEntry --> KnowledgeRevision
         end
 
-        subgraph Skill["Skill 类型"]
+        subgraph Skill实体["Skill 类型"]
             SkillArtifact["SkillArtifact"]
             SkillRevision["SkillRevision"]
             SkillProfile["SkillProfile"]
@@ -198,32 +198,32 @@ flowchart TB
         ReviewDecision --> SkillArtifact
     end
 
-    subgraph Retrieval["检索层"]
-        V1["v1: RetrievalQuery → RetrievalResponse<br/>RetrievalCitation (引用溯源)"]
-        V2["v2: RetrievalV2Query → RetrievalV2Response<br/>CapsuleMatch + ProfileHint<br/>+ CapsuleActivationHints"]
-        SKED["SKED: SkillLookupQuery → SkillLookupResp<br/>(SkillArtifact 级别)"]
-        Graph["Graph: GraphPlanSearchQuery<br/>→ TrapFirstPlan + RoutingTrace"]
+    subgraph 检索层["检索层"]
+        V1检索["v1: RetrievalQuery → RetrievalResponse<br/>RetrievalCitation（引用溯源）"]
+        V2检索["v2: RetrievalV2Query → RetrievalV2Response<br/>CapsuleMatch + ProfileHint<br/>+ CapsuleActivationHints"]
+        SKED检索["SKED: SkillLookupQuery → SkillLookupResp<br/>(SkillArtifact 级别)"]
+        Graph检索["Graph: GraphPlanSearchQuery<br/>→ TrapFirstPlan + RoutingTrace"]
         
-        KnowledgeEntry --> V1
-        SkillCapsule --> V2
-        SkillArtifact --> SKED
-        KnowledgeEntry --> Graph
+        KnowledgeEntry --> V1检索
+        SkillCapsule --> V2检索
+        SkillArtifact --> SKED检索
+        KnowledgeEntry --> Graph检索
     end
 
-    subgraph Lifecycle["反馈 & 生命周期管理"]
+    subgraph 反馈生命周期["反馈 & 生命周期管理"]
         Feedback["FeedbackEntry → FeedbackBatchRequest"]
         Quality["QualityScore"]
-        Decay["DecayMeta (DecayState 状态机)"]
-        Maintenance["MaintenanceMeta (维护责任人 + SLA)"]
+        Decay["DecayMeta（DecayState 状态机）"]
+        Maintenance["MaintenanceMeta（维护责任人 + SLA）"]
         
         Feedback --> Quality
         Quality --> Decay
         Decay --> Maintenance
     end
 
-    Identity --> Candidate
-    Publish --> Retrieval
-    Retrieval --> Lifecycle
+    身份认证 --> 知识入库
+    发布 --> 检索层
+    检索层 --> 反馈生命周期
 ```
 
 ## 关键串联点总结

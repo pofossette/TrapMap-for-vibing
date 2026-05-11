@@ -8,17 +8,17 @@
 
 ```mermaid
 flowchart TB
-    subgraph ArtifactSystem["工件系统架构"]
-        subgraph SkillArtifact["SkillArtifact（不可变修订版与源文件）"]
+    subgraph 工件系统架构["工件系统架构"]
+        subgraph 技能工件["SkillArtifact（不可变修订版与源文件）"]
             SF["sourceFiles: SourceFile[]"]
             META["name, version, scope, level"]
         end
 
-        subgraph Derivation["派生流程"]
+        subgraph 派生流程["派生流程"]
             DP["处理源文件"]
         end
 
-        subgraph Outputs["派生输出"]
+        subgraph 派生输出["派生输出"]
             SP["SkillProfile（精炼文本与关键词）"]
             SC["SkillCapsule[]（可操作知识）"]
             CM["ClientManifest（客户端使用元数据）"]
@@ -156,30 +156,30 @@ interface ParameterDefinition {
 
 ```mermaid
 flowchart TB
-    subgraph Create["创建工件"]
+    subgraph 创建工件["创建工件"]
         A1["POST /v1/operations/artifacts"]
         A2["1. 用户上传源文件\n2. 系统创建草稿工件\n3. 用户可预览和编辑\n4. 用户触发派生"]
     end
 
-    subgraph Derive["派生输出"]
+    subgraph 派生输出["派生输出"]
         B1["POST /v1/operations/artifacts/:id/derive"]
         B2["1. 生成 SkillProfile（摘要）\n2. 提取 SkillCapsules（分块）\n3. 生成 ClientManifest（元数据）\n4. 索引胶囊（向量与关键词）\n5. 更新工件状态 → 'derived'"]
     end
 
-    subgraph Review["审核与发布"]
+    subgraph 审核发布["审核与发布"]
         C1["POST /v1/operations/artifacts/:id/review"]
         C2["1. 审核者检查配置文件与胶囊\n2. 批准或请求修改\n3. 批准后：状态 → 'published'\n4. 工件变为可搜索"]
     end
 
-    subgraph Use["在 TrapFirstPlan 中使用"]
+    subgraph 计划使用["在 TrapFirstPlan 中使用"]
         D["v3 检索查询胶囊知识\n胶囊提供可操作内容与激活提示"]
     end
 
-    subgraph Version["版本更新（未来）"]
+    subgraph 版本更新["版本更新（未来）"]
         E["- 创建带有父引用的新工件\n- lineage.rootId 保持不变\n- 版本计数递增\n- 旧工件可标记为废弃"]
     end
 
-    Create --> Derive --> Review --> Use --> Version
+    创建工件 --> 派生输出 --> 审核发布 --> 计划使用 --> 版本更新
 ```
 
 ### Mermaid 流程图
@@ -187,7 +187,7 @@ flowchart TB
 #### 工件生命周期
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[创建工件] --> B[上传源文件]
     B --> C[状态: draft]
     C --> D[触发派生]
@@ -220,7 +220,7 @@ flowchart TD
 #### 创建工件流程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[POST /v1/operations/artifacts] --> B{验证会话}
     B -->|失败| C[401 未授权]
     B -->|成功| D{检查权限}
@@ -242,7 +242,7 @@ flowchart TD
 #### 派生过程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[POST /v1/operations/artifacts/:id/derive] --> B{验证会话}
     B -->|失败| C[401 未授权]
     B -->|成功| D{检查工件存在}
@@ -276,7 +276,7 @@ flowchart TD
 #### 审核和发布流程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[POST /v1/operations/artifacts/:id/review] --> B{验证会话}
     B -->|失败| C[401 未授权]
     B -->|成功| D{检查 knowledge:review 权限}
@@ -303,7 +303,7 @@ flowchart TD
 #### 版本更新
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[版本更新请求] --> B[查找当前工件]
     B --> C[创建新工件]
     C --> D[设置 parentId]

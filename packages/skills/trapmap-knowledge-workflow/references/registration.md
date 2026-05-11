@@ -60,3 +60,12 @@ VERIFY: 命令或可观察的确认
 ```
 
 不要注册原始日志、秘密、私有路径或长篇文档转储。
+
+## 编辑已有条目
+
+```bash
+trapmap edit <entryId> --shortcut "更新的描述" --labels auth,security --json
+trapmap skill edit <artifactId> --title "新标题" --labels auth,oauth2 --json
+trapmap skill edit <artifactId> --file ./updated-SKILL.md --json
+trapmap skill history <artifactId> --json   # 查看版本历史
+```

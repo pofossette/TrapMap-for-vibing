@@ -8,7 +8,7 @@ TrapMap 的安全模型基于三层防护：
 
 ```mermaid
 flowchart TB
-    subgraph Security["安全层级"]
+    subgraph 安全层级["安全层级"]
         Auth["认证层<br/>会话 Cookie + 访问密钥"]
         Authz["授权层<br/>RBAC 权限 + 安全等级过滤"]
         Governance["治理层<br/>知识生命周期 + 审计日志"]
@@ -51,26 +51,26 @@ sequenceDiagram
 ### 授权流程图（Mermaid）
 
 ```mermaid
-flowchart TD
-    A[Request] --> B{已认证?}
-    B -->|No| C[401 Unauthorized]
-    B -->|Yes| D{检查权限}
+flowchart TB
+    A[请求] --> B{已认证?}
+    B -->|否| C[401 未授权]
+    B -->|是| D{检查权限}
 
     D --> E{knowledge:submit?}
-    E -->|No| F[403 Forbidden]
-    E -->|Yes| G[允许提交]
+    E -->|否| F[403 禁止访问]
+    E -->|是| G[允许提交]
 
     D --> H{knowledge:review?}
-    H -->|No| F
-    H -->|Yes| I[允许审核]
+    H -->|否| F
+    H -->|是| I[允许审核]
 
     D --> J{knowledge:search?}
-    J -->|No| F
-    J -->|Yes| K{检查安全等级}
+    J -->|否| F
+    J -->|是| K{检查安全等级}
 
-    K --> L{user.level >= entry.level?}
-    L -->|No| M[过滤结果]
-    L -->|Yes| N[返回结果]
+    K --> L{用户等级 >= 条目等级?}
+    L -->|否| M[过滤结果]
+    L -->|是| N[返回结果]
 ```
 
 

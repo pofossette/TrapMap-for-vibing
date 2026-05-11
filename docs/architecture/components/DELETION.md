@@ -38,7 +38,7 @@ if (entry.teamId) {
 ## 删除流程图
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[DELETE /v1/knowledge/:entryId] --> B{验证会话}
     B -->|失败| C[401 未授权]
     B -->|成功| D{检查 knowledge:update 权限}
@@ -73,7 +73,7 @@ flowchart TD
 
 ```mermaid
 flowchart TB
-    subgraph PermissionVerification["权限验证"]
+    subgraph 权限验证["权限验证"]
         A["1. 会话验证\n验证 JWT Cookie 或访问密钥\n加载用户实体"]
         B["2. 权限检查\n检查 knowledge:update 权限\n验证用户安全等级 >= 条目 requiredLevel"]
         C["3. 团队访问检查\n验证用户是团队成员（team-scoped 条目）\n全局条目跳过此检查"]
@@ -167,26 +167,26 @@ interface KnowledgeRecord {
 
 ```mermaid
 flowchart TB
-    subgraph RecycleBin["回收站流程"]
+    subgraph 回收站["回收站流程"]
         A["已删除条目"]
         
-        subgraph Storage["回收站（保留 30 天）"]
+        subgraph 存储["回收站（保留 30 天）"]
             B["- 存储软删除条目\n- 追踪删除元数据\n- 保留期后自动清理"]
         end
 
         C["恢复：移回原始状态"]
         D["清除：30 天后永久删除"]
 
-        A --> Storage
-        Storage --> C
-        Storage --> D
+        A --> 存储
+        存储 --> C
+        存储 --> D
     end
 ```
 
 ## 索引移除流程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[条目删除] --> B{检查索引状态}
     B -->|有向量索引| C[移除 Vector Index]
     B -->|有关键词索引| D[移除 Keyword Index]

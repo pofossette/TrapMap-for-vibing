@@ -8,22 +8,22 @@
 
 ```mermaid
 flowchart TB
-    subgraph Interface["Store Interface"]
-        A["interface Store {\n  transact<T>(fn: (tx) => T): Promise<T>\n  createKnowledgeEntry(e): Promise<void>\n  getKnowledgeEntry(id): Promise<Entry | null>\n  // ... other methods\n}"]
+    subgraph 存储接口["Store 接口"]
+        A["interface Store {\n  transact<T>(fn: (tx) => T): Promise<T>\n  createKnowledgeEntry(e): Promise<void>\n  getKnowledgeEntry(id): Promise<Entry | null>\n  // ... 其他方法\n}"]
     end
 
-    subgraph Implementations["Store Implementations"]
-        subgraph JsonStore["JsonStore (Development)"]
-            B1["- File-based\n- Atomic writes\n- JSON files"]
+    subgraph 存储实现["存储实现"]
+        subgraph Json存储["JsonStore（开发环境）"]
+            B1["- 基于文件\n- 原子写入\n- JSON 文件"]
         end
 
-        subgraph PostgresStore["PostgresStore (Production)"]
-            B2["- PostgreSQL\n- Drizzle ORM\n- ACID\n- Pooled"]
+        subgraph Postgres存储["PostgresStore（生产环境）"]
+            B2["- PostgreSQL\n- Drizzle ORM\n- ACID 事务\n- 连接池"]
         end
     end
 
-    Interface --> JsonStore
-    Interface --> PostgresStore
+    存储接口 --> Json存储
+    存储接口 --> Postgres存储
 ```
 
 ---
@@ -606,7 +606,7 @@ CREATE INDEX idx_audit_actor ON audit_log(actor_id);
 ### 数据迁移流程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[启动迁移] --> B[读取 JSON 数据]
     B --> C[连接 PostgreSQL]
     C --> D[开始事务]
@@ -626,7 +626,7 @@ flowchart TD
 ### 事务流程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[调用 transact] --> B[获取连接]
     B --> C[开始事务]
     C --> D[执行操作]
@@ -645,7 +645,7 @@ flowchart TD
 ### 乐观锁机制
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[更新请求] --> B[读取当前版本]
     B --> C[应用更新]
     C --> D{检查版本号}

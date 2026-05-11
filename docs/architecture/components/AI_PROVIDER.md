@@ -16,31 +16,31 @@ AI 提供商抽象层为 TrapMap 提供统一的 AI 接口，支持多种 AI 提
 
 ```mermaid
 flowchart TB
-    subgraph Export["AI Module Export"]
+    subgraph 导出模块["AI 模块导出"]
         A["export { createAIProvider, type AIProvider }"]
     end
 
-    subgraph Factory["Factory Function"]
-        B["createAIProvider(config: AIProviderConfig)\n- Reads AI_PROVIDER env var\n- Instantiates appropriate provider\n- Returns typed AIProvider instance"]
+    subgraph 工厂函数["工厂函数"]
+        B["createAIProvider(config: AIProviderConfig)\n- 读取 AI_PROVIDER 环境变量\n- 实例化适当的提供商\n- 返回类型化的 AIProvider 实例"]
     end
 
-    subgraph Providers["Provider Implementations"]
-        subgraph OpenAI["OpenAI Provider"]
+    subgraph 提供商实现["提供商实现"]
+        subgraph OpenAI提供商["OpenAI 提供商"]
             C1["chat()\nembed()\nchatStream()"]
         end
 
-        subgraph Compatible["OpenAI-Compatible Provider"]
+        subgraph 兼容提供商["OpenAI 兼容提供商"]
             C2["chat()\nembed()\nchatStream()"]
         end
 
-        subgraph Ollama["Ollama Provider"]
+        subgraph Ollama提供商["Ollama 提供商"]
             C3["chat()\nembed()\nchatStream()"]
         end
     end
 
-    Export --> Factory --> OpenAI
-    Factory --> Compatible
-    Factory --> Ollama
+    导出模块 --> 工厂函数 --> OpenAI提供商
+    工厂函数 --> 兼容提供商
+    工厂函数 --> Ollama提供商
 ```
 
 ## 接口定义

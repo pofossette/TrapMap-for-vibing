@@ -8,24 +8,24 @@
 
 ```mermaid
 flowchart TB
-    subgraph IngestionPipeline["异步摄取管道架构"]
-        subgraph Sources["外部来源"]
+    subgraph 摄取管道["异步摄取管道架构"]
+        subgraph 外部来源["外部来源"]
             Documents["文档"]
             Code["代码"]
             APIs["API"]
         end
         
-        subgraph Submission["候选提交"]
+        subgraph 候选提交["候选提交"]
             PostCandidates["POST /v1/candidates"]
         end
         
-        subgraph Processor["后台处理器"]
+        subgraph 后台处理["后台处理器"]
             Queue["队列"]
             Process["处理"]
             Detect["检测"]
         end
         
-        subgraph Analysis["分析结果"]
+        subgraph 分析结果["分析结果"]
             DuplicateDetector["重复检测器\n- 指纹\n- 语义"]
             AnalysisComplete["分析完成\n状态: ready_for_review"]
         end
@@ -33,10 +33,10 @@ flowchart TB
         ReviewQueue["审核队列\n重复项：需要人工解决\n唯一内容：自动发布或排队审核"]
     end
 
-    Sources --> PostCandidates
-    PostCandidates --> Processor
-    Processor --> DuplicateDetector
-    Processor --> AnalysisComplete
+    外部来源 --> 候选提交
+    候选提交 --> 后台处理
+    后台处理 --> DuplicateDetector
+    后台处理 --> AnalysisComplete
     DuplicateDetector --> ReviewQueue
     AnalysisComplete --> ReviewQueue
 ```
@@ -44,37 +44,37 @@ flowchart TB
 ### 异步摄取管道流程（Mermaid）
 
 ```mermaid
-flowchart TD
-    subgraph Input["输入"]
-        Ext["外部来源<br/>(Documents, Code, APIs)"]
+flowchart TB
+    subgraph 输入["输入"]
+        Ext["外部来源<br/>（文档、代码、API）"]
     end
 
-    subgraph Submission["提交"]
+    subgraph 提交["提交"]
         Submit["POST /v1/candidates"]
         Create["创建 CandidateSubmission<br/>status: received"]
     end
 
-    subgraph Processing["后台处理"]
+    subgraph 后台处理["后台处理"]
         Queue["加入处理队列<br/>status: queued"]
         Analyze["分析处理<br/>status: analyzing"]
         Fingerprint["生成指纹"]
-        Embedding["生成 Embedding"]
+        Embedding["生成嵌入向量"]
     end
 
-    subgraph Detection["重复检测"]
+    subgraph 重复检测["重复检测"]
         DupCheck{"重复检测"}
         DupFound["status: duplicate_detected"]
         NoDup["status: ready_for_review"]
     end
 
-    subgraph Resolution["人工解决"]
+    subgraph 人工解决["人工解决"]
         Manual["管理员审核"]
-        Merge["合并 (merge)"]
-        Discard["丢弃 (discard)"]
-        KeepBoth["保留两者 (keep_both)"]
+        Merge["合并（merge）"]
+        Discard["丢弃（discard）"]
+        KeepBoth["保留两者（keep_both）"]
     end
 
-    subgraph Output["输出"]
+    subgraph 输出["输出"]
         PublishTrap["发布为 Trap"]
         PublishSkill["发布为 Skill"]
     end
@@ -108,12 +108,12 @@ flowchart TD
 
 ```mermaid
 flowchart TB
-    subgraph CandidateStates["候选状态机"]
+    subgraph 候选状态机["候选状态机"]
         Received["已接收\n（初始状态）"]
         Queued["已排队\n（在处理队列中）"]
         Analyzing["分析中\n（正在处理）"]
         
-        subgraph BranchResult["分支结果"]
+        subgraph 分支结果["分支结果"]
             DuplicateDetected["检测到重复\n需要人工解决"]
             ReadyForReview["待审核\n唯一内容\n准备发布"]
         end
@@ -158,20 +158,20 @@ interface CandidateSubmissionRequest {
 
 ```mermaid
 flowchart TB
-    subgraph ExtSource["外部来源"]
+    subgraph 外部来源["外部来源"]
         Document["文档（PDF, MD, HTML）"]
         CodeFile["代码文件"]
         APIResp["API 响应"]
         DBDump["数据库转储"]
     end
     
-    subgraph ContentExt["内容提取"]
+    subgraph 内容提取["内容提取"]
         ExtractText["提取文本（去除格式、元数据）"]
         Normalize["标准化编码"]
         Chunk["如果过大则分块（>32K 字符）"]
     end
     
-    subgraph CandidateCreate["候选创建"]
+    subgraph 候选创建["候选创建"]
         GenId["生成 EntityId"]
         SetStatus["设置状态: 'received'"]
         RecordMeta["记录来源和元数据"]
@@ -180,9 +180,9 @@ flowchart TB
     
     QueueProc["排队等待处理"]
 
-    ExtSource --> ContentExt
-    ContentExt --> CandidateCreate
-    CandidateCreate --> QueueProc
+    外部来源 --> 内容提取
+    内容提取 --> 候选创建
+    候选创建 --> QueueProc
 ```
 
 ---
@@ -329,21 +329,21 @@ async function findDuplicates(
 
 ```mermaid
 flowchart TB
-    subgraph DupDetection["重复检测流程"]
+    subgraph 重复检测流程["重复检测流程"]
         NewCandidate["新候选"]
         
-        subgraph FingerprintCheck["指纹检查"]
+        subgraph 指纹检查["指纹检查"]
             SHA256["SHA-256 哈希（标准化内容）"]
             ExactMatch["精确匹配 → 立即判定为重复"]
         end
         
-        subgraph SemanticCheck["语义相似度检查"]
+        subgraph 语义相似度检查["语义相似度检查"]
             GenEmbed["生成 embedding"]
             Compare["与现有候选 embedding 比较"]
             Threshold["相似度 ≥ 0.95 → 可能重复"]
         end
         
-        subgraph MergeDecision["合并决策"]
+        subgraph 合并决策["合并决策"]
             DupFound["发现重复\n→ 排队等待人工解决"]
             NoDup["未发现重复\n→ 标记为 ready_for_review"]
         end
@@ -385,33 +385,33 @@ interface ManualResolutionRequest {
 
 ```mermaid
 flowchart TB
-    subgraph ReviewerAction["Reviewer Action"]
-        A["GET /v1/duplicates/:candidateId/bundle\nReturns current candidate + duplicate candidates\nShows content comparison"]
+    subgraph 审核者操作["审核者操作"]
+        A["GET /v1/duplicates/:candidateId/bundle\n返回当前候选 + 重复候选\n显示内容对比"]
     end
 
-    subgraph UserDecision["User Decision"]
+    subgraph 用户决策["用户决策"]
         B["POST /v1/candidates/:id/manual-result\n{ resolution: 'merge' | 'discard' | 'keep_both' }"]
     end
 
-    subgraph Execute["Execute Resolution"]
-        subgraph Merge["MERGE"]
-            C1["1. Combine content\n2. Create new entry\n3. Link candidates"]
+    subgraph 执行解决["执行解决"]
+        subgraph 合并["MERGE"]
+            C1["1. 合并内容\n2. 创建新条目\n3. 链接候选"]
         end
 
-        subgraph Discard["DISCARD"]
-            C2["1. Mark candidate as rejected\n2. Update duplicates"]
+        subgraph 丢弃["DISCARD"]
+            C2["1. 标记候选为已拒绝\n2. 更新重复项"]
         end
 
-        subgraph KeepBoth["KEEP_BOTH"]
-            C3["1. Convert current to entry\n2. Convert duplicate to entry"]
+        subgraph 保留两者["KEEP_BOTH"]
+            C3["1. 将当前候选转为条目\n2. 将重复候选转为条目"]
         end
     end
 
-    subgraph StatusUpdate["Status Update"]
-        D["All involved candidates: status → 'resolved'\nRecord resolution in DuplicateCase\nSend audit event"]
+    subgraph 状态更新["状态更新"]
+        D["所有涉及的候选：状态 → 'resolved'\n在 DuplicateCase 中记录解决结果\n发送审计事件"]
     end
 
-    ReviewerAction --> UserDecision --> Execute --> StatusUpdate
+    审核者操作 --> 用户决策 --> 执行解决 --> 状态更新
 ```
 
 ---

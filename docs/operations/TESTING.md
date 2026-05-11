@@ -8,7 +8,7 @@ TrapMap 采用两级评估体系：
 
 ```mermaid
 flowchart TB
-    subgraph Evaluation["评估层级"]
+    subgraph 评估层级["评估层级"]
         Smoke["Smoke 层<br/>快速反馈，验证核心路径正确性<br/>命令: pnpm eval:smoke"]
         Core["Core 层<br/>全面覆盖，验证边界条件和治理规则<br/>命令: pnpm eval:core"]
         

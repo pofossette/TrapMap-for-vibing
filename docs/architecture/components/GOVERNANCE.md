@@ -22,7 +22,7 @@ TrapMap 的治理模型基于 RBAC (基于角色的访问控制) 和多层级安
 
 ```mermaid
 flowchart TB
-    subgraph Inheritance["继承规则"]
+    subgraph 继承规则["继承规则"]
         A["artifact.requiredLevel\n由创建者设置"]
         B["capsule.requiredLevel\n继承自 artifact"]
         C["entry.requiredLevel\n继承自 capsule"]
@@ -132,31 +132,31 @@ const ROLES: Record<string, Role> = {
 
 ```mermaid
 flowchart TB
-    subgraph Request["Request"]
+    subgraph 请求["请求"]
         A["POST /v1/knowledge/review"]
     end
 
-    subgraph Session["Session Validation"]
-        B["Validate session cookie/token\nLoad user from session"]
+    subgraph 会话验证["会话验证"]
+        B["验证会话 cookie/token\n从会话加载用户"]
     end
 
-    subgraph RoleCheck["Role & Level Check"]
-        C["Get user's role\nGet role's security level\nCompare with required minimum level"]
+    subgraph 角色等级检查["角色和等级检查"]
+        C["获取用户角色\n获取角色的安全等级\n与所需最低等级比较"]
     end
 
-    subgraph PermissionCheck["Permission Check"]
-        D["Get user's role permissions\nCheck if required permission is in role permissions"]
+    subgraph 权限检查["权限检查"]
+        D["获取用户角色权限\n检查所需权限是否在角色权限中"]
     end
 
-    subgraph EntryCheck["Entry Level Check"]
-        E["Get entry.requiredLevel\nCheck if user.level >= entry.requiredLevel"]
+    subgraph 条目等级检查["条目等级检查"]
+        E["获取 entry.requiredLevel\n检查 user.level >= entry.requiredLevel"]
     end
 
-    subgraph Result["Result"]
-        F["Allowed or Denied"]
+    subgraph 结果["结果"]
+        F["允许或拒绝"]
     end
 
-    Request --> Session --> RoleCheck --> PermissionCheck --> EntryCheck --> Result
+    请求 --> 会话验证 --> 角色等级检查 --> 权限检查 --> 条目等级检查 --> 结果
 ```
 
 ### 实现
@@ -353,22 +353,22 @@ interface AccessKey {
 
 ```mermaid
 flowchart TB
-    subgraph Create["Create Access Key"]
+    subgraph 创建密钥["创建访问密钥"]
         A1["POST /v1/access-keys { name, permissions, expiresIn }"]
-        A2["1. Generate random key (32 bytes, base64url)\n2. Hash key with SHA-256\n3. Store hash + metadata (NOT the actual key!)\n4. Return key ONCE to user (shown only once)"]
+        A2["1. 生成随机密钥（32 字节，base64url）\n2. 使用 SHA-256 哈希密钥\n3. 存储哈希 + 元数据（不存储实际密钥！）\n4. 仅向用户返回密钥一次（仅显示一次）"]
     end
 
-    subgraph Use["Use Access Key"]
+    subgraph 使用密钥["使用访问密钥"]
         B1["CLI: trapmap login --access-key <key>"]
-        B2["1. Hash provided key\n2. Lookup hash in database\n3. If found and not expired → create session\n4. Update lastUsedAt"]
+        B2["1. 哈希提供的密钥\n2. 在数据库中查找哈希\n3. 如果找到且未过期 → 创建会话\n4. 更新 lastUsedAt"]
     end
 
-    subgraph Revoke["Revoke Access Key"]
+    subgraph 吊销密钥["吊销访问密钥"]
         C1["DELETE /v1/access-keys/:keyId"]
-        C2["1. Delete key record\n2. Log revocation event"]
+        C2["1. 删除密钥记录\n2. 记录吊销事件"]
     end
 
-    Create --> Use --> Revoke
+    创建密钥 --> 使用密钥 --> 吊销密钥
 ```
 
 ### 实现
@@ -451,7 +451,7 @@ type Scope = 'global' | 'project' | 'team';
 
 ```mermaid
 flowchart TB
-    subgraph ScopeInheritance["Scope Inheritance"]
+    subgraph 作用域继承["作用域继承"]
         A["SkillArtifact.scope"]
         B["SkillCapsule.governanceInherited = true"]
         C["KnowledgeEntry.governanceInherited = true"]

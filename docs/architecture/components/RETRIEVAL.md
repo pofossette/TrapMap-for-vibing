@@ -25,11 +25,11 @@ TrapMap 提供多版本检索能力，支持从简单的语义搜索到复杂的
 ### v1 语义检索流程（Mermaid）
 
 ```mermaid
-flowchart LR
+flowchart TB
     A[查询] --> B[验证]
     B --> C[认证上下文]
     C --> D[资格过滤]
-    D --> E[生成 Embedding]
+    D --> E[生成嵌入向量]
     E --> F[向量相似度]
     F --> G[Top-K 结果]
     G --> H[组装]
@@ -61,7 +61,7 @@ flowchart TB
 ### v3 陷阱优先计划编译（Mermaid）
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[查询] --> B[GraphRAG-lite]
     B --> C[识别陷阱节点]
     C --> D[查找相关技能]
@@ -82,118 +82,118 @@ flowchart TD
 
 ```mermaid
 flowchart TB
-    subgraph QueryInput["Query Input"]
+    subgraph 查询输入["查询输入"]
         A["POST /v1/retrieval/search\n{ query, mode: 'semantic' }"]
     end
 
-    subgraph Validation["Query Validation"]
-        B["query: non-empty string\nlimit: optional, default 10\nfilter: optional"]
+    subgraph 验证["查询验证"]
+        B["query: 非空字符串\nlimit: 可选，默认 10\nfilter: 可选"]
     end
 
-    subgraph Auth["Auth Context"]
-        C["session validation\nload user security level\nload user's team memberships"]
+    subgraph 认证["认证上下文"]
+        C["会话验证\n加载用户安全等级\n加载用户团队成员身份"]
     end
 
-    subgraph Eligibility["Eligibility Filter"]
-        D["1. approvalStatus = 'approved'\n2. teamId IN [user's teams] OR global\n3. requiredLevel <= user.level"]
+    subgraph 资格过滤["资格过滤"]
+        D["1. approvalStatus = 'approved'\n2. teamId IN [用户团队] 或全局\n3. requiredLevel <= 用户等级"]
     end
 
-    subgraph Embedding["Embedding Generation"]
-        E["text-embedding-3-small (1536 dimensions)\nCache embedding for same query within TTL"]
+    subgraph 嵌入生成["嵌入生成"]
+        E["text-embedding-3-small（1536 维）\nTTL 内相同查询缓存嵌入向量"]
     end
 
-    subgraph VectorSearch["Vector Similarity Search"]
+    subgraph 向量搜索["向量相似度搜索"]
         F["SELECT entry_id, embedding_vector <-> query_embedding\nWHERE entry_id IN eligible_entries\nORDER BY distance\nLIMIT limit"]
     end
 
-    subgraph Assembly["Result Assembly"]
-        G["Build buckets (global vs project)\nAttach citations\nGenerate routing trace"]
+    subgraph 结果组装["结果组装"]
+        G["构建分桶（全局 vs 项目）\n附加引用\n生成路由追踪"]
     end
 
-    subgraph Response["Response"]
+    subgraph 响应["响应"]
         H["{ query, mode, results, trace }"]
     end
 
-    QueryInput --> Validation --> Auth --> Eligibility --> Embedding --> VectorSearch --> Assembly --> Response
+    查询输入 --> 验证 --> 认证 --> 资格过滤 --> 嵌入生成 --> 向量搜索 --> 结果组装 --> 响应
 ```
 
 ### 混合检索流程 (Hybrid Mode)
 
 ```mermaid
 flowchart TB
-    subgraph QueryInput["Query Input"]
+    subgraph 查询输入["查询输入"]
         A["POST /v1/retrieval/search\n{ query, mode: 'hybrid' }"]
     end
 
-    subgraph Parallel["Parallel Processing"]
-        subgraph SemanticPath["Semantic Path"]
-            B1["Embedding Generation"]
-            B2["Vector Similarity"]
-            B3["Top-K Results"]
+    subgraph 并行处理["并行处理"]
+        subgraph 语义路径["语义路径"]
+            B1["嵌入生成"]
+            B2["向量相似度"]
+            B3["Top-K 结果"]
         end
 
-        subgraph KeywordPath["Keyword Path"]
-            C1["Tokenize Query"]
-            C2["BM25 Scoring"]
-            C3["Top-K Ranking"]
+        subgraph 关键词路径["关键词路径"]
+            C1["查询分词"]
+            C2["BM25 评分"]
+            C3["Top-K 排名"]
         end
 
-        subgraph Fusion["Score Fusion (RRF)"]
-            D["score = 1/(2k+r)\nReciprocal Rank Fusion"]
+        subgraph 分数融合["分数融合（RRF）"]
+            D["score = 1/(2k+r)\n倒数排名融合"]
         end
 
-        subgraph Rerank["Merge + Rerank"]
-            E["Deduplicate\nNormalize\nSort by score"]
+        subgraph 重排["合并与重排"]
+            E["去重\n归一化\n按分数排序"]
         end
     end
 
-    subgraph Response["Response"]
+    subgraph 响应["响应"]
         F["{ query, mode, results, trace }"]
     end
 
-    QueryInput --> SemanticPath
-    QueryInput --> KeywordPath
-    B1 --> B2 --> B3 --> Fusion
-    C1 --> C2 --> C3 --> Fusion
-    Fusion --> Rerank --> Response
+    查询输入 --> 语义路径
+    查询输入 --> 关键词路径
+    B1 --> B2 --> B3 --> 分数融合
+    C1 --> C2 --> C3 --> 分数融合
+    分数融合 --> 重排 --> 响应
 ```
 
 ### 图辅助检索流程 (Graph-assisted Mode)
 
 ```mermaid
 flowchart TB
-    subgraph QueryInput["Query Input"]
+    subgraph 查询输入["查询输入"]
         A["POST /v1/retrieval/search\n{ query, mode: 'graph-assisted' }"]
     end
 
-    subgraph BaseRetrieval["Base Retrieval (Hybrid)"]
-        B["Same as hybrid flow\nReturns top-K candidate entries"]
+    subgraph 基础检索["基础检索（混合）"]
+        B["同混合检索流程\n返回 Top-K 候选条目"]
     end
 
-    subgraph Expansion["Graph Expansion"]
-        subgraph Traverse["For each candidate entry"]
-            C1["Find related entries via trapIds/capsuleIds"]
-            C2["Traverse graphology DAG"]
-            C3["Expand N hops"]
+    subgraph 图扩展["图扩展"]
+        subgraph 遍历["对每个候选条目"]
+            C1["通过 trapIds/capsuleIds 查找相关条目"]
+            C2["遍历 graphology DAG"]
+            C3["扩展 N 跳"]
         end
 
-        subgraph BuildSet["Build expansion set"]
-            D1["Direct neighbors (1 hop)"]
-            D2["Transitive relations (2 hops)"]
-            D3["Prerequisite chains"]
+        subgraph 构建集合["构建扩展集合"]
+            D1["直接邻居（1 跳）"]
+            D2["传递关系（2 跳）"]
+            D3["前置条件链"]
         end
     end
 
-    subgraph Reweighting["Score Reweighting"]
-        E["original_score × boost_factor\n\nboost_factor based on:\n- Distance from query (closer = higher)\n- Relation type (prerequisite > provides > blocks)\n- Graph centrality"]
+    subgraph 分数重加权["分数重加权"]
+        E["original_score × boost_factor\n\nboost_factor 基于：\n- 距查询的距离（越近越高）\n- 关系类型（prerequisite > provides > blocks）\n- 图中心性"]
     end
 
-    subgraph Response["Final Results"]
+    subgraph 最终结果["最终结果"]
         F["{ query, mode, results, trace }"]
     end
 
-    QueryInput --> BaseRetrieval --> Expansion
-    Traverse --> BuildSet --> Reweighting --> Response
+    查询输入 --> 基础检索 --> 图扩展
+    遍历 --> 构建集合 --> 分数重加权 --> 最终结果
 ```
 
 ---
@@ -259,22 +259,22 @@ POST /v3/retrieval/search
 
 ```mermaid
 flowchart TB
-    subgraph CapsuleRetrieval["胶囊原生检索流程"]
+    subgraph 胶囊检索["胶囊原生检索流程"]
         A["查询输入"]
         
-        subgraph Eligibility["资格过滤"]
-            B["- capsule.governanceInherited = true\n- 用户等级 >= artifact.requiredLevel\n- (胶囊可用当工件可访问时)"]
+        subgraph 资格过滤["资格过滤"]
+            B["- capsule.governanceInherited = true\n- 用户等级 >= artifact.requiredLevel\n- （工件可访问时胶囊可用）"]
         end
 
-        subgraph Search["语义搜索"]
+        subgraph 语义搜索["语义搜索"]
             C["- 搜索胶囊内容（非条目内容）\n- 使用胶囊专用索引"]
         end
 
-        subgraph Assembly["胶囊组装"]
+        subgraph 胶囊组装["胶囊组装"]
             D["- 附加父工件元数据\n- 包含 activationHint\n- 计算治理继承确认"]
         end
 
-        A --> Eligibility --> Search --> Assembly
+        A --> 资格过滤 --> 语义搜索 --> 胶囊组装
     end
 ```
 
@@ -316,40 +316,40 @@ interface TrapFirstPlan {
 
 ```mermaid
 flowchart TB
-    subgraph TrapFirstPlan["陷阱优先计划编译流程"]
-        subgraph Query["查询输入"]
+    subgraph 陷阱优先计划["陷阱优先计划编译流程"]
+        subgraph 查询["查询输入"]
             A["POST /v3/retrieval/plan\n{ query: '如何为新服务添加认证' }"]
         end
 
-        subgraph GraphRAG["GraphRAG-lite 封装器"]
-            B["- 构建查询 embedding\n- 查询陷阱图\n- 识别相关陷阱节点\n- 识别前置条件链"]
+        subgraph 图检索["GraphRAG-lite 封装器"]
+            B["- 构建查询嵌入向量\n- 查询陷阱图\n- 识别相关陷阱节点\n- 识别前置条件链"]
         end
 
-        subgraph Traps["陷阱识别"]
+        subgraph 陷阱识别["陷阱识别"]
             C["对每个相关条目:\n1. 从内容中提取陷阱条件\n2. 分类为阻塞器或前置条件\n3. 评分对查询的重要性\n\n输出: PlanTrapNode[]"]
         end
 
-        subgraph Skills["技能映射"]
+        subgraph 技能映射["技能映射"]
             D["对每个已识别陷阱:\n1. 查找解决陷阱的技能\n2. 映射陷阱 → 技能（提供/阻塞关系）\n3. 验证技能适用性\n\n输出: PlanSkillNode[], PlanEdge[]"]
         end
 
-        subgraph TopoSort["拓扑排序"]
+        subgraph 拓扑排序["拓扑排序"]
             E["按依赖排序节点:\n1. 无入边 = 可立即开始\n2. 遵循前置条件关系\n3. 优先处理阻塞器（高优先级陷阱）"]
         end
 
-        subgraph Citations["引用生成"]
+        subgraph 引用生成["引用生成"]
             F["为每个节点附加源片段:\n- entryId: 源知识条目\n- snippet: 相关文本段落\n- relevance_score: 与节点的相关度"]
         end
 
-        subgraph Confidence["置信度评分"]
+        subgraph 置信度评分["置信度评分"]
             G["confidence = f(\n  trap_coverage,\n  skill_coverage,\n  graph_coherence\n)"]
         end
 
-        subgraph Response["响应"]
+        subgraph 响应["响应"]
             H["{ planId, query, traps, skills, edges, citations, confidence }"]
         end
 
-        Query --> GraphRAG --> Traps --> Skills --> TopoSort --> Citations --> Confidence --> Response
+        查询 --> GraphRAG --> 陷阱识别 --> 技能映射 --> 拓扑排序 --> 引用生成 --> 置信度评分 --> 响应
     end
 ```
 

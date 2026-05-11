@@ -8,8 +8,8 @@ TrapMap 是一个多智能体知识共享平台，专为跨团队的安全、受
 
 ```mermaid
 flowchart TB
-    subgraph Monorepo["TrapMap Monorepo"]
-        subgraph Packages["核心包"]
+    subgraph 代码仓库["TrapMap Monorepo"]
+        subgraph 核心包["核心包"]
             CLI["CLI<br/>(Commander)"]
             Server["Server<br/>(Fastify)"]
             Contracts["Contracts<br/>(Zod)"]
@@ -17,16 +17,16 @@ flowchart TB
         end
     end
 
-    subgraph Indexes["索引层"]
+    subgraph 索引层["索引层"]
         Vector["Vector Index<br/>(Embeddings)"]
         Keyword["Keyword Index<br/>(BM25)"]
         Graph["Graph Index<br/>(Graphology)"]
     end
 
-    Monorepo --> Indexes
-    Packages --> Vector
-    Packages --> Keyword
-    Packages --> Graph
+    代码仓库 --> 索引层
+    核心包 --> Vector
+    核心包 --> Keyword
+    核心包 --> Graph
 ```
 
 ## 核心功能

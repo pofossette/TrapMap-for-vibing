@@ -7,7 +7,7 @@ TrapMap 的文档审批流程采用两阶段审核机制：先由智能体进行
 ## 审批流程概览
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[用户提交文档] --> B[智能体审核 Agent Review]
     B --> C{风险评估}
     
@@ -100,7 +100,7 @@ function correctnessRisk(submission): 'low' | 'medium' | 'high' {
 ### 智能体审核流程图
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[提交文档] --> B[词元化处理 Tokenize]
     B --> C[与现有条目比较]
     C --> D[计算重复分数]
@@ -183,7 +183,7 @@ interface ReviewDecisionRequest {
 ### 审核流程图
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[POST /v1/knowledge/review] --> B{验证会话}
     B -->|失败| C[401 Unauthorized]
     B -->|成功| D{检查 knowledge:review 权限}
@@ -283,7 +283,7 @@ interface ReviewRecord {
 审核通过后，系统自动触发索引更新：
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[审核通过 APPROVED] --> B[触发领域事件]
     B --> C[Vector Indexing]
     B --> D[Keyword Indexing]
@@ -326,7 +326,7 @@ interface KnowledgeIndexStateRecord {
 被拒绝的条目可通过重新提交进入审核循环：
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[REJECTED / AGENT-REJECTED] --> B[用户修改内容]
     B --> C[POST /v1/knowledge/:entryId/resubmit]
     C --> D[运行预审核 Pre-Review]

@@ -8,32 +8,32 @@ TrapMap 的评估框架用于验证系统核心功能的正确性，包括检索
 
 ```mermaid
 flowchart TB
-    subgraph Runner["Evaluation Runner"]
-        A["- Load test cases by tier (smoke/core)\n- Execute tests against running server\n- Collect metrics\n- Generate report"]
+    subgraph 评估运行器["评估运行器"]
+        A["- 按层级加载测试用例（smoke/core）\n- 对运行中的服务器执行测试\n- 收集指标\n- 生成报告"]
     end
 
-    subgraph Evals["Evaluation Types"]
-        subgraph Retrieval["Retrieval Evals"]
+    subgraph 评估类型["评估类型"]
+        subgraph 检索评估["检索评估"]
             B1["Hit@K\nMRR\nnDCG"]
         end
 
-        subgraph Summary["Summary Evals"]
+        subgraph 摘要评估["摘要评估"]
             B2["Groundedness\nCoverage\nHallucination"]
         end
 
-        subgraph Governance["Governance Evals"]
-            B3["Level check\nRBAC check\nScope check"]
+        subgraph 治理评估["治理评估"]
+            B3["等级检查\nRBAC 检查\n作用域检查"]
         end
     end
 
-    subgraph CI["CI Integration"]
-        C["GitHub Actions workflow\n.github/workflows/eval.yml"]
+    subgraph 持续集成["持续集成"]
+        C["GitHub Actions 工作流\n.github/workflows/eval.yml"]
     end
 
-    Runner --> Retrieval
-    Runner --> Summary
-    Runner --> Governance
-    Evals --> CI
+    评估运行器 --> 检索评估
+    评估运行器 --> 摘要评估
+    评估运行器 --> 治理评估
+    评估类型 --> 持续集成
 ```
 
 ---
@@ -82,24 +82,24 @@ interface RetrievalTestCase {
 
 ```mermaid
 flowchart TB
-    subgraph LoadCases["Load Test Cases"]
+    subgraph 加载测试用例["加载测试用例"]
         A["evals/retrieval/cases/\n├── smoke/\n│   ├── query-config-auth.yaml\n│   └── query-oauth-setup.yaml\n└── core/\n    ├── query-security-levels.yaml\n    └── ..."]
     end
 
-    subgraph Execute["Execute Retrieval Query"]
+    subgraph 执行检索查询["执行检索查询"]
         B["POST /v1/retrieval/search\n{ query, mode, filter }"]
     end
 
-    subgraph Metrics["Calculate Metrics"]
-        C1["1. For each result:\n   - Compute relevance score (manual labeling)\n   - Check governance compliance"]
-        C2["2. Calculate Hit@K, MRR, nDCG"]
+    subgraph 计算指标["计算指标"]
+        C1["1. 对每个结果:\n   - 计算相关性分数（手动标注）\n   - 检查治理合规"]
+        C2["2. 计算 Hit@K, MRR, nDCG"]
     end
 
-    subgraph Report["Generate Report"]
+    subgraph 生成报告["生成报告"]
         D["{ hitRate, mrr, ndcg, passed, failed, errors }"]
     end
 
-    LoadCases --> Execute --> Metrics --> Report
+    加载测试用例 --> 执行检索查询 --> 计算指标 --> 生成报告
 ```
 
 #### 测试用例示例
@@ -164,27 +164,27 @@ interface SummaryTestCase {
 
 ```mermaid
 flowchart TB
-    subgraph LoadCase["Load Test Case"]
+    subgraph 加载测试用例["加载测试用例"]
         A["{ sourceContent, summary, requiredFacts, forbiddenClaims }"]
     end
 
-    subgraph Groundedness["Groundedness Check"]
-        B1["1. Extract facts from summary\n2. Check if each fact appears in source\n3. Calculate groundedness score"]
+    subgraph 真实性检查["真实性检查"]
+        B1["1. 从摘要提取事实\n2. 检查每个事实是否出现在源内容中\n3. 计算真实性分数"]
     end
 
-    subgraph Coverage["Coverage Check"]
-        C1["1. Extract key points from source\n2. Check if each key point in summary\n3. Calculate coverage score"]
+    subgraph 覆盖率检查["覆盖率检查"]
+        C1["1. 从源内容提取关键点\n2. 检查每个关键点是否在摘要中\n3. 计算覆盖率分数"]
     end
 
-    subgraph Hallucination["Hallucination Check"]
-        D1["1. Check summary against forbidden claims\n2. Validate no out-of-source claims"]
+    subgraph 幻觉检查["幻觉检查"]
+        D1["1. 检查摘要是否包含禁止声明\n2. 验证没有超出源内容的声明"]
     end
 
-    subgraph Report["Generate Report"]
+    subgraph 生成报告["生成报告"]
         E["{ groundedness, coverage, hallucination, passed }"]
     end
 
-    LoadCase --> Groundedness --> Coverage --> Hallucination --> Report
+    加载测试用例 --> 真实性检查 --> 覆盖率检查 --> 幻觉检查 --> 生成报告
 ```
 
 ---
@@ -564,7 +564,7 @@ forbiddenClaims:
 ### 检索评估流程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[加载测试用例] --> B[执行检索查询]
     B --> C[计算指标]
     C --> D[检查治理合规]
@@ -589,7 +589,7 @@ flowchart TD
 ### 摘要评估流程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[加载测试用例] --> B[Groundedness 检查]
     B --> C[Coverage 检查]
     C --> D[Hallucination 检查]

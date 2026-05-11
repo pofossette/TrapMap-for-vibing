@@ -73,7 +73,7 @@
 ### 5.1 调整后的服务内分层
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[CLI] --> B[Fastify Routes]
     B --> C[Auth / Team / RBAC / Audit]
     C --> D[Knowledge Lifecycle]
@@ -134,7 +134,7 @@ lib/
 ### 6.1 知识入库与索引刷新
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[提交知识] --> B[预审]
     B --> C[人工审核]
     C -->|approve| D[写入主存储]
@@ -153,7 +153,7 @@ flowchart TD
 ### 6.2 查询与结果组装
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[CLI search / API query] --> B[权限过滤]
     B --> C[Retrieval Orchestrator]
     C --> D{Query Mode}
@@ -236,7 +236,7 @@ flowchart TD
 ## 9. 结构性映射：当前实现到目标实现
 
 ```mermaid
-flowchart LR
+flowchart TB
     A[当前: retrieval.ts 单点检索] --> B[第一步: orchestrator + vector adapter]
     B --> C[第二步: keyword adapter + hybrid mode]
     C --> D[第三步: rerank + citation builder]

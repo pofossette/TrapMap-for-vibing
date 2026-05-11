@@ -25,3 +25,16 @@ trapmap activate \
 仅激活当前任务所需的文件。不要默认获取所有引用/脚本。
 
 脚本可能会被阻止或需要手动批准，具体取决于其激活策略。除非策略和用户/会话权限允许，否则不要执行激活的脚本。
+
+## 停用
+
+```bash
+trapmap deactivate <entryId> --reason "不再适用于当前架构" --json
+```
+
+## 迁移状态
+
+```bash
+trapmap status --json                                  # 查看遗留知识迁移状态
+trapmap migrate --all-approved --limit 50 --json       # 批量迁移
+```

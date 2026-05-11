@@ -85,3 +85,17 @@ trapmap load "<种子>" --scope project --json
 trapmap --help
 trapmap <command> --help
 ```
+
+## 输出配置
+
+首次使用或环境变化时，设置输出配置以获得最佳代理兼容性：
+
+```bash
+trapmap output profile show --json
+trapmap output profile set --tool claude-code --verbosity balanced
+```
+
+可选工具：`claude-code`、`codex`、`opencode`、`generic`。
+可选详细程度：`compact`、`balanced`、`detailed`。
+
+完整命令索引参见 [cli-index.md](cli-index.md)。

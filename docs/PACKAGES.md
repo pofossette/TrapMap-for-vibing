@@ -137,32 +137,32 @@ trapmap-knowledge-workflow/
 ## 包依赖关系
 
 ```mermaid
-flowchart LR
-    subgraph Contracts["@trapmap/contracts"]
+flowchart TB
+    subgraph 契约包["@trapmap/contracts"]
         Zod["Zod Schemas"]
         Types["TypeScript Types"]
     end
 
-    subgraph Server["@trapmap/server"]
+    subgraph 服务器包["@trapmap/server"]
         Routes["Routes"]
         Lib["Business Logic"]
     end
 
-    subgraph CLI["@trapmap/cli"]
+    subgraph CLI包["@trapmap/cli"]
         Commands["Commands"]
         HTTP["HTTP Client"]
     end
 
-    Contracts --> Server
-    Contracts --> CLI
-    Server -. "HTTP API" .-> CLI
+    契约包 --> 服务器包
+    契约包 --> CLI包
+    服务器包 -. "HTTP API" .-> CLI包
 
-    subgraph Evals["evals/"]
+    subgraph 评测包["evals/"]
         Retrieval["Retrieval Tests"]
         Summary["Summary Tests"]
     end
 
-    Contracts --> Evals
+    契约包 --> 评测包
 ```
 
 **依赖说明:**

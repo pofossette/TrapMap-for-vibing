@@ -6,24 +6,24 @@
 
 ```mermaid
 flowchart TB
-    subgraph Ingestion["文档入库流程"]
-        Candidate["Candidate Submission"]
-        Duplicate["Duplicate Detection"]
-        Approval["Approval Gate"]
-        Pipeline["Pipeline (Adapters)"]
+    subgraph 入库流程["文档入库流程"]
+        候选提交["Candidate Submission"]
+        重复检测["Duplicate Detection"]
+        审批门控["Approval Gate"]
+        管道["Pipeline (Adapters)"]
 
-        subgraph Adapters["索引适配器"]
-            Vector["Vector Adapter"]
-            Keyword["Keyword Adapter"]
-            Graph["Graph Adapter"]
+        subgraph 索引适配器["索引适配器"]
+            向量适配器["Vector Adapter"]
+            关键词适配器["Keyword Adapter"]
+            图适配器["Graph Adapter"]
         end
 
-        Candidate --> Duplicate
-        Duplicate --> Approval
-        Approval --> Pipeline
-        Pipeline --> Vector
-        Pipeline --> Keyword
-        Pipeline --> Graph
+        候选提交 --> 重复检测
+        重复检测 --> 审批门控
+        审批门控 --> 管道
+        管道 --> 向量适配器
+        管道 --> 关键词适配器
+        管道 --> 图适配器
     end
 ```
 
@@ -470,41 +470,41 @@ for (let i = 0; i < knowledgeEntries.length; i += batchSize) {
 
 ```mermaid
 flowchart TB
-    subgraph Pipeline["入库流程"]
-        Submit["提交"]
-        Fingerprint["指纹计算"]
-        Duplicate["重复检测"]
-        Review["审核"]
-        Normalize["规范化"]
-        Index["多适配器索引"]
-        Persist["持久化"]
+    subgraph 入库流程["入库流程"]
+        提交["提交"]
+        指纹计算["指纹计算"]
+        重复检测["重复检测"]
+        审核["审核"]
+        规范化["规范化"]
+        多适配器索引["多适配器索引"]
+        持久化["持久化"]
         
-        Submit --> Fingerprint
-        Fingerprint --> Duplicate
-        Duplicate --> Review
-        Review --> Normalize
-        Normalize --> Index
-        Index --> Persist
+        提交 --> 指纹计算
+        指纹计算 --> 重复检测
+        重复检测 --> 审核
+        审核 --> 规范化
+        规范化 --> 多适配器索引
+        多适配器索引 --> 持久化
     end
 
-    subgraph Adapters["索引适配器"]
-        Vector["Vector<br/>(Embedding)"]
-        Keyword["Keyword<br/>(Token + Facets)"]
-        Graph["Graph<br/>(Entities + Edges)"]
+    subgraph 索引适配器["索引适配器"]
+        向量["Vector<br/>(Embedding)"]
+        关键词["Keyword<br/>(Token + Facets)"]
+        图["Graph<br/>(Entities + Edges)"]
         
-        Index --> Vector
-        Index --> Keyword
-        Index --> Graph
+        多适配器索引 --> 向量
+        多适配器索引 --> 关键词
+        多适配器索引 --> 图
     end
 
-    subgraph Storage["持久化存储"]
-        EmbeddingCache["embeddingCache<br/>indexState.vector"]
-        KeywordState["indexState.keyword<br/>indexState.adapters"]
-        GraphDocs["graphIndexDocuments<br/>(Store-backed)"]
+    subgraph 持久化存储["持久化存储"]
+        嵌入缓存["embeddingCache<br/>indexState.vector"]
+        关键词状态["indexState.keyword<br/>indexState.adapters"]
+        图文档["graphIndexDocuments<br/>(Store-backed)"]
         
-        Vector --> EmbeddingCache
-        Keyword --> KeywordState
-        Graph --> GraphDocs
+        向量 --> 嵌入缓存
+        关键词 --> 关键词状态
+        图 --> 图文档
     end
 ```
 

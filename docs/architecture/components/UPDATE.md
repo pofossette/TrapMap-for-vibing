@@ -7,7 +7,7 @@ TrapMap 的文档更新流程允许授权用户修改现有知识条目的内容
 ## 更新流程概览
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[PATCH /v1/knowledge/:entryId] --> B{验证会话}
     B -->|失败| C[401 未授权]
     B -->|成功| D{检查 knowledge:update 权限}
@@ -110,7 +110,7 @@ interface KnowledgeRevisionRecord {
 ### 修订历史流程图
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[更新请求] --> B[获取当前条目]
     B --> C[创建新修订]
     C --> D[revision = history.length + 1]
@@ -150,7 +150,7 @@ if (result.rowCount === 0) {
 ### 乐观锁流程图
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[更新请求] --> B[读取当前版本]
     B --> C[应用更新]
     C --> D{检查版本号}
@@ -191,7 +191,7 @@ if (previousState === 'approved' && nextState === 'approved') {
 ### 索引刷新流程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[APPROVED 条目更新] --> B[触发领域事件]
     B --> C[Vector Indexing]
     B --> D[Keyword Indexing]
@@ -220,7 +220,7 @@ flowchart TD
 替代机制用于用新条目替换旧条目：
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[POST /v1/knowledge/:entryId/supersede] --> B{验证会话}
     B -->|失败| C[401 Unauthorized]
     B -->|成功| D{检查 knowledge:update 权限}

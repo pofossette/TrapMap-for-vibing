@@ -8,25 +8,25 @@ TrapMap 的客户端（CLI）基于 Commander.js 构建，提供终端用户与 
 
 ```mermaid
 flowchart TB
-    subgraph Commands["Command Layer"]
+    subgraph 命令层["Command Layer"]
         A["auth | knowledge | retrieval | review | team | skill\ndecay | maintenance | operations | feedback | audit"]
     end
 
-    subgraph Library["Library Layer"]
+    subgraph 库层["Library Layer"]
         B["config.ts | http.ts | input.ts | output.ts"]
     end
 
-    subgraph State["State Management"]
+    subgraph 状态管理["State Management"]
         C["~/.trapmap/cli.json\n本地配置和会话状态"]
     end
 
-    Commands --> Library --> State
+    命令层 --> 库层 --> 状态管理
 ```
 
 ## 命令注册流程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[CLI 启动] --> B[加载 CLI 状态]
     B --> C[解析会话权限]
     C --> D[计算可见性]
@@ -368,7 +368,7 @@ trapmap search --v2 "typescript async error handling"
 ## 登录流程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[trapmap login --access-key <key>] --> B[加载 CLI 状态]
     B --> C[POST /v1/auth/login]
     C --> D{验证密钥}
@@ -395,7 +395,7 @@ trapmap login --access-key <key> --server http://example.com:4000
 ## 提交流程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[trapmap submit --scope global --label trap --shortcut "xxx" --detail "yyy"] --> B[加载 CLI 状态]
     B --> C[检查会话令牌]
     C -->|无令牌| D[提示登录]
@@ -434,7 +434,7 @@ cat detail.md | trapmap submit --scope global --label trap --shortcut "xxx" --st
 ## 检索流程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[trapmap search "query"] --> B[加载 CLI 状态]
     B --> C[检查会话令牌]
     C -->|无令牌| D[提示登录]

@@ -41,36 +41,36 @@ packages/server/src/lib/
 
 ```mermaid
 flowchart TB
-    subgraph LifecycleChange["Lifecycle State Change"]
-        A["approved / content update / deactivated"]
+    subgraph 生命周期变更["生命周期状态变更"]
+        A["approved / 内容更新 / deactivated"]
     end
 
-    subgraph Events["events.ts: determineKnowledgeIndexAction"]
+    subgraph 事件处理["events.ts: determineKnowledgeIndexAction"]
         B["next='approved' → 'upsert'\nnext='deactivated' → 'remove'\n其他 → 'noop'"]
     end
 
-    subgraph Pipeline["pipeline.ts: syncKnowledgeIndex"]
+    subgraph 管道编排["pipeline.ts: syncKnowledgeIndex"]
         C["1. 检查 lifecycleState（仅 approved 同步，其他移除）\n2. normalize: KnowledgeRecord → NormalizedIndexDocument\n3. 检查幂等性：revision + contentHash 未变 → 跳过\n4. 顺序遍历 adapters，每个 adapter.sync(document)\n5. 将 adapter 返回的 payload 写回 entry.indexState"]
     end
 
-    subgraph Adapters["Index Adapters"]
-        subgraph Vector["Vector Adapter"]
-            D1["embeddings → embedding Cache"]
+    subgraph 索引适配器["索引适配器"]
+        subgraph 向量适配器["向量适配器"]
+            D1["embeddings → embedding 缓存"]
         end
 
-        subgraph Keyword["Keyword Adapter"]
-            D2["tokens + fieldTokens + facets → persisted State"]
+        subgraph 关键词适配器["关键词适配器"]
+            D2["tokens + fieldTokens + facets → 持久化状态"]
         end
 
-        subgraph Graph["Graph Adapter"]
-            D3["nodes + edges → graphIndex Documents[]"]
+        subgraph 图适配器["图适配器"]
+            D3["nodes + edges → graphIndex 文档[]"]
         end
     end
 
-    LifecycleChange --> Events --> Pipeline
-    Pipeline --> Vector
-    Pipeline --> Keyword
-    Pipeline --> Graph
+    生命周期变更 --> 事件处理 --> 管道编排
+    管道编排 --> 向量适配器
+    管道编排 --> 关键词适配器
+    管道编排 --> 图适配器
 ```
 
 ---
@@ -142,19 +142,19 @@ interface IndexSyncResult {
 
 ```mermaid
 flowchart TB
-    subgraph Input["Input"]
+    subgraph 输入["输入"]
         A["NormalizedIndexDocument.canonicalText"]
     end
 
-    subgraph Embedding["generateEmbedding()"]
-        B["OpenAI text-embedding-3-small (1536维)"]
+    subgraph 嵌入生成["generateEmbedding()"]
+        B["OpenAI text-embedding-3-small（1536维）"]
     end
 
-    subgraph Output["Output"]
-        C["IndexSyncResult {\n  success: true,\n  performedWork: true,\n  payload: number[] (1534 维浮点向量)\n}"]
+    subgraph 输出["输出"]
+        C["IndexSyncResult {\n  success: true,\n  performedWork: true,\n  payload: number[]（1534 维浮点向量）\n}"]
     end
 
-    Input --> Embedding --> Output
+    输入 --> 嵌入生成 --> 输出
 ```
 
 ### 持久化
@@ -184,32 +184,32 @@ Legacy `upsert()` 方法在 revision + contentHash 未变时返回 `{ performedW
 
 ```mermaid
 flowchart TB
-    subgraph Input["Input"]
+    subgraph 输入["输入"]
         A["NormalizedIndexDocument"]
     end
 
-    subgraph FieldTokens["按字段分桶"]
+    subgraph 字段分桶["按字段分桶"]
         B1["fieldTokens.shortcut = tokens ∩ shortcut 文本"]
         B2["fieldTokens.detail = tokens ∩ detail 文本"]
         B3["fieldTokens.labels = tokens ∩ labels 文本"]
     end
 
-    subgraph BoundaryFacets["boundaryFacets = buildBoundaryFacetIndex"]
-        C1["contexts: context labels 归一化 (小写, 空格→连字符)"]
+    subgraph 边界分面["boundaryFacets = buildBoundaryFacetIndex"]
+        C1["contexts: context labels 归一化（小写, 空格→连字符）"]
         C2["packages: version constraints 的 package 名"]
         C3["platforms: exclusion 中提取的平台标识"]
         C4["versionConstraints: package@range 完整字符串"]
     end
 
-    subgraph Output["Output"]
+    subgraph 输出["输出"]
         D["IndexSyncResult {\n  success: true,\n  payload: PersistedKeywordState { tokens, fieldTokens, boundaryFacets }\n}"]
     end
 
-    Input --> FieldTokens
-    B1 --> BoundaryFacets
-    B2 --> BoundaryFacets
-    B3 --> BoundaryFacets
-    BoundaryFacets --> Output
+    输入 --> 字段分桶
+    B1 --> 边界分面
+    B2 --> 边界分面
+    B3 --> 边界分面
+    边界分面 --> 输出
 ```
 
 ### 持久化
@@ -246,33 +246,33 @@ Graph 适配器是最复杂的通道，分为**实体提取**和**持久化**两
 
 ```mermaid
 flowchart TB
-    subgraph Input["Input"]
+    subgraph 输入["输入"]
         A["NormalizedIndexDocument"]
     end
 
-    subgraph Extract["Entity Extraction"]
-        subgraph TrapEntities["extractTrapGraphEntities"]
+    subgraph 实体提取["实体提取"]
+        subgraph 陷阱实体["extractTrapGraphEntities"]
             B1["从 shortcut/detail/labels 提取节点和边\n节点类型: trap, cue, tool, environment, prerequisite, mitigation"]
         end
 
-        subgraph BoundaryEntities["extractBoundaryGraphEntities"]
+        subgraph 边界实体["extractBoundaryGraphEntities"]
             B2["从 boundary 提取约束节点\n节点类型: boundary-context, boundary-version, boundary-platform"]
         end
     end
 
-    subgraph Build["Build Graph Document"]
-        C["buildTrapGraphDocument\n→ GraphIndexDocumentRecord (纯函数，不持久化)"]
+    subgraph 构建图文档["构建图文档"]
+        C["buildTrapGraphDocument\n→ GraphIndexDocumentRecord（纯函数，不持久化）"]
     end
 
-    subgraph Persist["Persist with Cycle Detection"]
+    subgraph 持久化与环检测["持久化与环检测"]
         D["store.transact\nassertNoHardDependencyCycles\nupsertGraphIndexDocument"]
     end
 
-    Input --> TrapEntities
-    Input --> BoundaryEntities
-    TrapEntities --> Build
-    BoundaryEntities --> Build
-    Build --> Persist
+    输入 --> 陷阱实体
+    输入 --> 边界实体
+    陷阱实体 --> 构建图文档
+    边界实体 --> 构建图文档
+    构建图文档 --> 持久化与环检测
 ```
 
 ### 节点类型 (GraphNodeKind)

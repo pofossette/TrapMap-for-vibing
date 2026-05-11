@@ -9,19 +9,19 @@ TrapMap 的淘汰机制通过衰减状态机（Decay State Machine）管理知�
 ### 状态定义
 
 ```mermaid
-flowchart LR
-    subgraph MainFlow["Main Decay Flow"]
+flowchart TB
+    subgraph 主流程["主衰减流程"]
         A["active"] --> B["review-due"]
         B --> C["stale"]
         C --> D["expired"]
     end
 
-    subgraph Transitions["Transitions"]
+    subgraph 转换["转换"]
         E["extend()"]
     end
 
-    subgraph Independent["Independent State"]
-        F["superseded\n(由替代操作触发)"]
+    subgraph 独立状态["独立状态"]
+        F["superseded\n（由替代操作触发）"]
     end
 
     B -. extend() .-> A
@@ -161,7 +161,7 @@ interface BatchOperationRequest {
 ### 批量操作流程图
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[POST /v1/operations/decay/batch] --> B{验证会话}
     B -->|失败| C[401 Unauthorized]
     B -->|成功| D{检查 knowledge:update 权限}
@@ -280,7 +280,7 @@ function isStaleVerification(
 淘汰机制需要确保索引与条目状态一致：
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[条目状态变更] --> B{检查索引状态}
     B -->|deactivated| C[移除所有索引]
     B -->|superseded| C
@@ -347,7 +347,7 @@ type DecayAuditEvent =
 ### 替代流程
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[POST /v1/knowledge/:entryId/supersede] --> B{验证会话}
     B -->|失败| C[401 Unauthorized]
     B -->|成功| D{检查 knowledge:update 权限}

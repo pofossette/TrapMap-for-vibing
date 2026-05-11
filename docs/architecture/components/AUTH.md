@@ -8,26 +8,26 @@ TrapMap 使用基于会话的身份验证系统，支持用户名/密码登录�
 
 ```mermaid
 flowchart TB
-    subgraph LoginFlow["登录流程"]
+    subgraph 登录流程["登录流程"]
         A1["登录请求\nPOST /v1/auth/login"]
-        A2["凭证验证\n(bcrypt)"]
-        A3["创建会话\n(Cookie)"]
+        A2["凭证验证\n（bcrypt）"]
+        A3["创建会话\n（Cookie）"]
     end
 
-    subgraph SessionFlow["会话流程"]
+    subgraph 会话流程["会话流程"]
         B1["会话检查\nGET /v1/auth/session"]
         B2["加载会话与用户"]
         B3["RBAC 检查与等级检查"]
     end
 
-    subgraph AccessKeyFlow["访问密钥流程"]
+    subgraph 访问密钥流程["访问密钥流程"]
         C1["访问密钥登录\ntrapmap login --access-key"]
         C2["哈希与查找\nSHA-256"]
         C3["创建会话"]
     end
 
-    LoginFlow --> SessionFlow
-    AccessKeyFlow --> SessionFlow
+    登录流程 --> 会话流程
+    访问密钥流程 --> 会话流程
 ```
 
 ---
@@ -405,28 +405,28 @@ async function logoutHandler(
 
 ```mermaid
 flowchart TB
-    subgraph PasswordReset["密码重置流程"]
-        subgraph Request["用户请求"]
+    subgraph 密码重置流程["密码重置流程"]
+        subgraph 用户请求["用户请求"]
             A["POST /v1/auth/password-reset\n{ username: 'user@example.com' }"]
         end
 
-        subgraph Generate["生成重置令牌"]
+        subgraph 生成重置令牌["生成重置令牌"]
             B["- 随机 32 字节（base64url）\n- 哈希存储\n- 设置过期时间（1 小时）\n- 发送包含重置链接的邮件"]
         end
 
-        subgraph Email["邮件通知"]
+        subgraph 邮件通知["邮件通知"]
             C["邮件：'重置您的 TrapMap 密码'\n点击此处：https://trapmap.example.com/reset?token=xxx"]
         end
 
-        subgraph Confirm["用户点击链接"]
+        subgraph 用户确认["用户点击链接"]
             D["POST /v1/auth/password-reset/confirm\n{ token, newPassword }"]
         end
 
-        subgraph Update["更新密码"]
+        subgraph 更新密码["更新密码"]
             E["- 验证令牌\n- 哈希新密码\n- 更新用户记录\n- 使所有会话失效\n- 发送确认邮件"]
         end
 
-        Request --> Generate --> Email --> Confirm --> Update
+        用户请求 --> 生成重置令牌 --> 邮件通知 --> 用户确认 --> 更新密码
     end
 ```
 

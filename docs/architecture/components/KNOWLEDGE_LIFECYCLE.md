@@ -8,7 +8,7 @@ TrapMap 中的知识条目经历完整的状态转换生命周期，从创建到
 
 ```mermaid
 flowchart TB
-    subgraph States["Knowledge Lifecycle States"]
+    subgraph 生命周期状态["知识生命周期状态"]
         A["DRAFT\n初始状态，用户创建但未提交"]
         B["SUBMITTED\n已提交，等待智能体审核"]
         C["AGENT-PASS"]
@@ -280,15 +280,15 @@ interface AgentReviewResult {
 
 ```mermaid
 flowchart TB
-    subgraph AgentReview["智能体审核流程"]
+    subgraph 智能体审核["智能体审核流程"]
         Submitted["条目已提交"]
         
-        subgraph Assessment["评估阶段"]
+        subgraph 评估阶段["评估阶段"]
             Correctness["正确性评估\nAI 分析内容\n- 事实一致性\n- 逻辑清晰度\n- 格式规范"]
             Duplicate["重复检测\n指纹 + 语义\n- fingerprint\n- embedding similarity"]
         end
         
-        subgraph Decision["决策阶段"]
+        subgraph 决策阶段["决策阶段"]
             RiskScoring["风险评分\n结合两个维度\n计算综合风险"]
             Pass["AGENT-PASS"]
             Rejected["AGENT-REJECTED"]

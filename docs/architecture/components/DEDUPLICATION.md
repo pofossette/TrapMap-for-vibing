@@ -7,7 +7,7 @@ TrapMap 的文档入库验重流程采用两阶段检测策略：先通过精确
 ## 验重流程概览
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[提交候选文档] --> B[创建 CandidateSubmission]
     B --> C[状态: received]
     C --> D[加入处理队列]
@@ -107,7 +107,7 @@ function toRisk(score: number): 'low' | 'medium' | 'high' {
 
 ```mermaid
 flowchart TB
-    subgraph States["Candidate States"]
+    subgraph 候选状态["候选状态"]
         A["RECEIVED\n初始状态"]
         B["QUEUED\n在处理队列中"]
         C["ANALYZING\n正在处理"]
@@ -152,7 +152,7 @@ interface CandidateSubmissionRequest {
 ### 提交流程图
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[POST /v1/candidates] --> B{验证会话}
     B -->|失败| C[401 Unauthorized]
     B -->|成功| D{检查 knowledge:submit 权限}
@@ -217,7 +217,7 @@ async function processCandidate(
 ## 重复检测流程图
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[新候选文档] --> B[指纹检查]
     B --> C[SHA-256 哈希]
     C --> D{精确匹配}
@@ -263,7 +263,7 @@ interface ManualResolutionRequest {
 ### 人工解决流程图
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[GET /v1/duplicates/:candidateId/bundle] --> B[获取重复案例]
     B --> C[获取候选内容]
     C --> D[获取匹配条目]
