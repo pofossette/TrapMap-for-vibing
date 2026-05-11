@@ -6,41 +6,39 @@
 
 ## 架构概览
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Async Ingestion Pipeline Architecture                 │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌───────────────┐     ┌───────────────┐     ┌───────────────┐         │
-│  │   External   │────▶│  Candidate    │────▶│  Background   │         │
-│  │   Sources    │     │  Submission   │     │  Processor    │         │
-│  │              │     │               │     │               │         │
-│  │  - Documents │     │  POST /v1/    │     │  - Queue      │         │
-│  │  - Code      │     │    candidates │     │  - Process    │         │
-│  │  - APIs      │     │               │     │  - Detect     │         │
-│  └───────────────┘     └───────────────┘     └───────┬───────┘         │
-│                                                       │                 │
-│                            ┌──────────────────────────┼─────────────┐   │
-│                            ▼                          ▼             │   │
-│                   ┌───────────────┐         ┌───────────────┐      │   │
-│                   │   Duplicate   │         │   Analysis    │      │   │
-│                   │   Detector    │         │   Complete    │      │   │
-│                   │               │         │               │      │   │
-│                   │  - Fingerprint│         │  Status:     │      │   │
-│                   │  - Semantic   │         │  ready_for   │      │   │
-│                   │               │         │  _review      │      │   │
-│                   └───────┬───────┘         └───────┬───────┘      │   │
-│                           │                          │                 │   │
-│                           │                          │                 │   │
-│                           ▼                          ▼                 │   │
-│                   ┌─────────────────────────────────────────────┐      │   │
-│                   │              Review Queue                   │      │   │
-│                   │                                             │      │   │
-│                   │  For duplicates: Manual resolution required │      │   │
-│                   │  For unique: Auto-publish or queue review   │      │   │
-│                   └─────────────────────────────────────────────┘      │   │
-│                                                                       │   │
-└───────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph IngestionPipeline["异步摄取管道架构"]
+        subgraph Sources["外部来源"]
+            Documents["文档"]
+            Code["代码"]
+            APIs["API"]
+        end
+        
+        subgraph Submission["候选提交"]
+            PostCandidates["POST /v1/candidates"]
+        end
+        
+        subgraph Processor["后台处理器"]
+            Queue["队列"]
+            Process["处理"]
+            Detect["检测"]
+        end
+        
+        subgraph Analysis["分析结果"]
+            DuplicateDetector["重复检测器\n- 指纹\n- 语义"]
+            AnalysisComplete["分析完成\n状态: ready_for_review"]
+        end
+        
+        ReviewQueue["审核队列\n重复项：需要人工解决\n唯一内容：自动发布或排队审核"]
+    end
+
+    Sources --> PostCandidates
+    PostCandidates --> Processor
+    Processor --> DuplicateDetector
+    Processor --> AnalysisComplete
+    DuplicateDetector --> ReviewQueue
+    AnalysisComplete --> ReviewQueue
 ```
 
 ### 异步摄取管道流程（Mermaid）
@@ -108,35 +106,27 @@ flowchart TD
 
 ## 候选状态机
 
-```
-┌─────────────┐
-│  RECEIVED   │  ← Initial state
-└──────┬──────┘
-       │ process()
-       ▼
-┌─────────────┐
-│   QUEUED    │  ← In processing queue
-└──────┬──────┘
-       │ start_processing()
-       ▼
-┌─────────────┐
-│  ANALYZING  │  ← Being processed
-└──────┬──────┘
-       │
-       ├──────────────────────────────┐
-       ▼                              ▼
-┌────────────────────┐      ┌─────────────────┐
-│ DUPLICATE_DETECTED │      │READY_FOR_REVIEW │
-│                    │      │                 │
-│  Requires manual   │      │  Unique content │
-│  resolution        │      │  Ready for      │
-└──────┬─────────────┘      │  publication    │
-       │                    └─────────────────┘
-       │ manual_resolution()
-       ▼
-┌─────────────┐
-│  RESOLVED   │  ← Final state
-└─────────────┘
+```mermaid
+flowchart TB
+    subgraph CandidateStates["候选状态机"]
+        Received["已接收\n（初始状态）"]
+        Queued["已排队\n（在处理队列中）"]
+        Analyzing["分析中\n（正在处理）"]
+        
+        subgraph BranchResult["分支结果"]
+            DuplicateDetected["检测到重复\n需要人工解决"]
+            ReadyForReview["待审核\n唯一内容\n准备发布"]
+        end
+        
+        Resolved["已解决\n（终态）"]
+    end
+
+    Received -->|process()| Queued
+    Queued -->|start_processing()| Analyzing
+    Analyzing --> DuplicateDetected
+    Analyzing --> ReadyForReview
+    DuplicateDetected -->|manual_resolution()| Resolved
+    ReadyForReview --> Resolved
 ```
 
 ---
@@ -166,42 +156,33 @@ interface CandidateSubmissionRequest {
 
 ### 提交流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Candidate Submission Flow                             │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  External Source                                                        │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  - Document (PDF, MD, HTML)                                    │   │
-│  │  - Code file                                                   │   │
-│  │  - API response                                                │   │
-│  │  - Database dump                                               │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Content Extraction                            │   │
-│  │  - Extract text (strip formatting, metadata)                    │   │
-│  │  - Normalize encoding                                          │   │
-│  │  - Chunk if too large (>32K chars)                             │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Candidate Creation                            │   │
-│  │  - Generate EntityId                                            │   │
-│  │  - Set status: 'received'                                       │   │
-│  │  - Record source and metadata                                   │   │
-│  │  - Record submittedAt                                           │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Queue for Processing                          │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph ExtSource["外部来源"]
+        Document["文档（PDF, MD, HTML）"]
+        CodeFile["代码文件"]
+        APIResp["API 响应"]
+        DBDump["数据库转储"]
+    end
+    
+    subgraph ContentExt["内容提取"]
+        ExtractText["提取文本（去除格式、元数据）"]
+        Normalize["标准化编码"]
+        Chunk["如果过大则分块（>32K 字符）"]
+    end
+    
+    subgraph CandidateCreate["候选创建"]
+        GenId["生成 EntityId"]
+        SetStatus["设置状态: 'received'"]
+        RecordMeta["记录来源和元数据"]
+        RecordTime["记录 submittedAt"]
+    end
+    
+    QueueProc["排队等待处理"]
+
+    ExtSource --> ContentExt
+    ContentExt --> CandidateCreate
+    CandidateCreate --> QueueProc
 ```
 
 ---
@@ -346,43 +327,35 @@ async function findDuplicates(
 
 ### 检测流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Duplicate Detection Flow                               │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  New Candidate                                                           │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Fingerprint Check                            │   │
-│  │  - SHA-256 hash of normalized content                           │   │
-│  │  - Exact match → immediate duplicate                           │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Semantic Similarity Check                     │   │
-│  │  - Generate embedding                                           │   │
-│  │  - Compare with existing candidate embeddings                   │   │
-│  │  - Similarity ≥ 0.95 → likely duplicate                        │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Merge Decision                              │   │
-│  │                                                                    │ │
-│  │  ┌─────────────────┐    ┌─────────────────┐                    │   │
-│  │  │ Duplicates      │    │ No Duplicates   │                    │   │
-│  │  │ Found          │    │ Found           │                    │   │
-│  │  │                 │    │                 │                    │   │
-│  │  │ → Queue for     │    │ → Mark as       │                    │   │
-│  │  │   manual       │    │   ready_for     │                    │   │
-│  │  │   resolution   │    │   _review      │                    │   │
-│  │  └─────────────────┘    └─────────────────┘                    │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph DupDetection["重复检测流程"]
+        NewCandidate["新候选"]
+        
+        subgraph FingerprintCheck["指纹检查"]
+            SHA256["SHA-256 哈希（标准化内容）"]
+            ExactMatch["精确匹配 → 立即判定为重复"]
+        end
+        
+        subgraph SemanticCheck["语义相似度检查"]
+            GenEmbed["生成 embedding"]
+            Compare["与现有候选 embedding 比较"]
+            Threshold["相似度 ≥ 0.95 → 可能重复"]
+        end
+        
+        subgraph MergeDecision["合并决策"]
+            DupFound["发现重复\n→ 排队等待人工解决"]
+            NoDup["未发现重复\n→ 标记为 ready_for_review"]
+        end
+    end
+
+    NewCandidate --> SHA256
+    SHA256 --> ExactMatch
+    ExactMatch --> GenEmbed
+    GenEmbed --> Compare
+    Compare --> Threshold
+    Threshold --> DupFound
+    Threshold --> NoDup
 ```
 
 ---

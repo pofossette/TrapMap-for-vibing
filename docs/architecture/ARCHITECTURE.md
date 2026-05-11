@@ -2,53 +2,7 @@
 
 ## 系统架构
 
-### 分层架构
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│                     Presentation Layer (表现层)                  │
-│  ┌─────────────────────┐        ┌─────────────────────────┐  │
-│  │   CLI Client        │        │   HTTP Clients          │  │
-│  │   (Commander.js)   │        │   (curl, Postman, etc.)  │  │
-│  └─────────┬───────────┘        └───────────┬─────────────┘  │
-└────────────┼────────────────────────────────┼────────────────┘
-             │                                │
-             ▼                                ▼
-┌────────────────────────────────────────────────────────────────┐
-│                      Route Layer (路由层 - 薄)                   │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │  auth.ts | teams.ts | members.ts | knowledge.ts | review  │ │
-│  │  retrieval.ts | operations.ts | candidates.ts | traps.ts   │ │
-│  └─────────────────────────────┬────────────────────────────┘ │
-└────────────────────────────────┼───────────────────────────────┘
-                                 │
-                                 ▼
-┌────────────────────────────────────────────────────────────────┐
-│                   Business Logic Layer (业务逻辑层)             │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │  AI Provider Abstraction (OpenAI/Ollama/兼容)              │ │
-│  │  Governance (RBAC + Eligibility)                        │ │
-│  │  Retrieval Pipeline (v1/v2/v3 modes)                      │ │
-│  │  Indexing Pipeline (Vector/Keyword/Graph adapters)      │ │
-│  │  Async Ingestion (Candidates + Duplicate Detection)     │ │
-│  │  Artifact Derivation (Capsule/Profile/Manifest)         │ │
-│  │  Session Management                                      │ │
-│  │  Audit Recording                                         │ │
-│  └─────────────────────────────┬────────────────────────────┘ │
-└────────────────────────────────┼───────────────────────────────┘
-                                 │
-                                 ▼
-┌────────────────────────────────────────────────────────────────┐
-│                      Persistence Layer (持久层)                  │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │  Store Interface (抽象)                                   │ │
-│  │  ├── JsonStore (文件级，原子写入)                         │ │
-│  │  └── PostgresStore (PostgreSQL + Drizzle ORM)             │ │
-│  └──────────────────────────────────────────────────────────┘ │
-└────────────────────────────────────────────────────────────────┘
-```
-
-### 系统分层架构图（Mermaid）
+### 系统分层架构图
 
 ```mermaid
 flowchart TB
@@ -223,33 +177,28 @@ AI_EMBEDDING_MODEL=text-embedding-3-small
 
 ### 多适配器索引
 
-```
-┌─────────────────────────────────────────────────────┐
-│              Indexing Pipeline (索引管道)            │
-├─────────────────────────────────────────────────────┤
-│  Entry State Change (条目状态变更)                   │
-│  (submitted → approved)                            │
-│           │                                        │
-│           ▼                                        │
-│  ┌─────────────────────┐                           │
-│  │  Index State Record │                           │
-│  │  (per-adapter sync) │                          │
-│  └──────────┬──────────┘                           │
-│             │                                      │
-│    ┌────────┼────────┐                            │
-│    ▼        ▼        ▼                            │
-│ ┌──────┐ ┌──────┐ ┌──────┐                        │
-│ │Vector│ │Keyword│ │Graph │                        │
-│ │Adapter│ │Adapter│ │Adapter│                       │
-│ └──────┘ └──────┘ └──────┘                        │
-│    │        │        │                             │
-│    └────────┼────────┘                             │
-│             ▼                                      │
-│  ┌─────────────────────┐                           │
-│  │  Reconciliation    │  ← On startup (启动时)   │
-│  │  (一致性检查)        │                           │
-│  └─────────────────────┘                           │
-└─────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph IndexingPipeline["索引管道"]
+        StateChange["条目状态变更\nsubmitted → approved"]
+        IndexState["索引状态记录\n（每个适配器独立同步）"]
+        
+        subgraph Adapters["多适配器"]
+            Vector["向量适配器\nVector Adapter"]
+            Keyword["关键词适配器\nKeyword Adapter"]
+            Graph["图适配器\nGraph Adapter"]
+        end
+        
+        Reconcile["一致性检查\n（启动时执行）"]
+    end
+
+    StateChange --> IndexState
+    IndexState --> Vector
+    IndexState --> Keyword
+    IndexState --> Graph
+    Vector --> Reconcile
+    Keyword --> Reconcile
+    Graph --> Reconcile
 ```
 
 **适配器**：
@@ -259,212 +208,133 @@ AI_EMBEDDING_MODEL=text-embedding-3-small
 
 ### 检索管道
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Retrieval Pipeline (检索管道)                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────┐    ┌──────────┐    ┌─────────────────┐             │
-│  │ Request │───▶│ Validate │───▶│ Auth Context    │             │
-│  │ (Query) │    │ (Zod)    │    │ (Session+Team) │             │
-│  └─────────┘    └──────────┘    └────────┬────────┘             │
-│                                          │                      │
-│                                          ▼                      │
-│                              ┌─────────────────────┐            │
-│                              │ Eligibility Filter  │            │
-│                              │ (approval+team+level)│           │
-│                              └──────────┬──────────┘            │
-│                                         │                      │
-│                                         ▼                      │
-│                              ┌─────────────────────┐            │
-│                              │   Mode Dispatch     │            │
-│                              │ (semantic|hybrid|   │            │
-│                              │  graph-assisted)   │            │
-│                              └──────────┬─────────┘            │
-│                                        │                       │
-│       ┌───────────────────────────────┼───────────────────┐     │
-│       ▼                               ▼                       ▼     │
-│  ┌─────────┐                    ┌─────────┐            ┌────────┐│
-│  │Semantic │                    │ Keyword │            │ Graph  ││
-│  │Recall   │                    │ Recall  │            │Expand  ││
-│  │         │                    │         │            │        ││
-│  └────┬────┘                    └────┬────┘            └───┬────┘│
-│       │                                │                    │     │
-│       └────────────────────────┬────────┴────────────────────┘     │
-│                                ▼                                    │
-│                      ┌─────────────────┐                            │
-│                      │  Merge + Rerank │                            │
-│                      └────────┬────────┘                            │
-│                               │                                     │
-│                               ▼                                     │
-│                      ┌─────────────────┐                            │
-│                      │    Assembly    │                            │
-│                      │ (buckets+      │                            │
-│                      │  citations)    │                            │
-│                      └────────┬────────┘                            │
-│                               │                                     │
-│              ┌────────────────┼────────────────┐                   │
-│              ▼                ▼                ▼                   │
-│       ┌───────────┐   ┌─────────────┐   ┌─────────────┐          │
-│       │  Global   │   │  Project    │   │  Team       │          │
-│       │Constraints│   │ Knowledge   │   │  Scope      │          │
-│       └───────────┘   └─────────────┘   └─────────────┘          │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph RetrievalPipeline["检索管道"]
+        Request["请求\n（查询）"]
+        Validate["验证\n（Zod）"]
+        Auth["认证上下文\n（会话+团队）"]
+        Eligibility["资格过滤\n（审批+团队+等级）"]
+        ModeDispatch["模式分发\n（语义|混合|图辅助）"]
+        
+        subgraph Recall["召回阶段"]
+            Semantic["语义召回"]
+            KeywordRecall["关键词召回"]
+            GraphExpand["图扩展"]
+        end
+        
+        Merge["合并+重排"]
+        Assembly["组装\n（分桶+引用）"]
+        
+        subgraph Constraints["约束条件"]
+            Global["全局约束"]
+            Project["项目知识"]
+            Team["团队范围"]
+        end
+    end
+
+    Request --> Validate
+    Validate --> Auth
+    Auth --> Eligibility
+    Eligibility --> ModeDispatch
+    ModeDispatch --> Semantic
+    ModeDispatch --> KeywordRecall
+    ModeDispatch --> GraphExpand
+    Semantic --> Merge
+    KeywordRecall --> Merge
+    GraphExpand --> Merge
+    Merge --> Assembly
+    Assembly --> Constraints
 ```
 
-### Trap 优先计划编译 (v3)
+### 陷阱优先计划编译 (v3)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              Trap-First Plan Compilation (陷阱优先计划编译)      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Query Input ──▶ ┌───────────┐                                 │
-│                  │  GraphRAG │                                 │
-│                  │  lite     │                                 │
-│                  │  Wrapper  │                                 │
-│                  └─────┬─────┘                                 │
-│                        │                                        │
-│                        ▼                                        │
-│              ┌───────────────────┐                             │
-│              │ Confidence-Aware  │                             │
-│              │    Routing        │                             │
-│              └─────────┬─────────┘                             │
-│                        │                                        │
-│           ┌───────────┴───────────┐                           │
-│           ▼                       ▼                           │
-│    ┌─────────────┐         ┌─────────────┐                    │
-│    │   High      │         │    Low      │                    │
-│    │ Confid-     │         │ Confid-     │                    │
-│    │ ance Path   │         │ ance Fall-  │                    │
-│    │             │         │ back        │                    │
-│    └──────┬──────┘         └──────┬──────┘                    │
-│           │                       │                            │
-│           ▼                       ▼                            │
-│    ┌─────────────┐         ┌─────────────┐                    │
-│    │ Trap-First  │         │   Governed   │                    │
-│    │ Plan        │         │   Retrieval │                    │
-│    │ (typed edges│         │   Response  │                    │
-│    │  + citations│         │   (v1/v2)  │                    │
-│    └─────────────┘         └─────────────┘                    │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph TrapFirstPlan["陷阱优先计划编译"]
+        Query["查询输入"]
+        GraphRAG["GraphRAG Lite 封装器"]
+        Routing["置信度感知路由"]
+        
+        subgraph HighPath["高置信度路径"]
+            TrapFirst["陷阱优先计划\n（类型边+引用）"]
+        end
+        
+        subgraph LowPath["低置信度降级路径"]
+            Governed["受控检索响应\n（v1/v2）"]
+        end
+    end
+
+    Query --> GraphRAG
+    GraphRAG --> Routing
+    Routing -->|高置信度| TrapFirst
+    Routing -->|低置信度| Governed
 ```
 
 ### 异步摄取管道
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              Async Ingestion Pipeline (异步摄取管道)              │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Candidate Submitted (候选提交)                                 │
-│        │                                                        │
-│        ▼                                                        │
-│  ┌──────────────┐                                               │
-│  │   Status:   │                                               │
-│  │   received  │────── (async processing)                       │
-│  └──────┬──────┘                                               │
-│         │                                                        │
-│         ▼                                                        │
-│  ┌──────────────┐                                               │
-│  │   Status:   │                                               │
-│  │   queued    │                                               │
-│  └──────┬──────┘                                               │
-│         │                                                        │
-│         ▼                                                        │
-│  ┌──────────────┐                                               │
-│  │   Status:   │                                               │
-│  │  analyzing  │────── 指纹检查                                │
-│  └──────┬──────┘       语义相似度检查                           │
-│         │                    │                                  │
-│         │         ┌─────────┴─────────┐                        │
-│         │         ▼                   ▼                        │
-│         │   ┌───────────┐      ┌───────────┐                   │
-│         │   │ Duplicate│      │ Analysis  │                   │
-│         │   │ Detected │      │Complete  │                   │
-│         │   └─────┬────┘      └─────┬────┘                   │
-│         │         │                  │                          │
-│         │         │                  ▼                          │
-│         │         │         ┌───────────────┐                    │
-│         │         │         │  Status:      │                    │
-│         │         │         │ready_for_rev  │                    │
-│         │         │         └───────────────┘                   │
-│         │         │                                               │
-│         ▼         ▼                                               │
-│  ┌─────────────────────────────────┐                           │
-│  │      Reviewer Action            │                           │
-│  │  POST /candidates/:id/manual-   │                           │
-│  │  result { resolution: "merge"  │                           │
-│  │  | "discard" | "keep_both" }    │                           │
-│  └───────────────┬─────────────────┘                           │
-│                  │                                              │
-│                  ▼                                              │
-│          ┌───────────────┐                                     │
-│          │ Resolution    │                                     │
-│          │ Applied       │                                     │
-│          │ (publish/     │                                     │
-│          │  merge)       │                                     │
-│          └───────────────┘                                     │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph AsyncIngestion["异步摄取管道"]
+        Submitted["候选提交"]
+        Received["状态：已接收"]
+        Queued["状态：已排队"]
+        Analyzing["状态：分析中\n（指纹检查+语义相似度检查）"]
+        
+        subgraph AnalysisResult["分析结果"]
+            Duplicate["检测到重复"]
+            AnalysisComplete["分析完成"]
+            ReadyForReview["状态：待审核"]
+        end
+        
+        ReviewerAction["审核员操作\nPOST /candidates/:id/manual-result\n{ resolution: merge|discard|keep_both }"]
+        Resolution["解决方案已应用\n（发布/合并）"]
+    end
+
+    Submitted --> Received
+    Received -->|异步处理| Queued
+    Queued --> Analyzing
+    Analyzing --> Duplicate
+    Analyzing --> AnalysisComplete
+    AnalysisComplete --> ReadyForReview
+    Duplicate --> ReviewerAction
+    ReadyForReview --> ReviewerAction
+    ReviewerAction --> Resolution
 ```
 
 ### 会话与认证
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              Session & Authentication Flow (会话认证流程)       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────┐                                                    │
-│  │  Login  │──▶ POST /v1/auth/login { username, password }     │
-│  └────┬────┘         │                                        │
-│       │                ▼                                        │
-│       │         ┌─────────────┐                                 │
-│       │         │  Validate   │                                 │
-│       │         │ Credentials │                                 │
-│       │         └──────┬──────┘                                 │
-│       │                │                                        │
-│       │         ┌──────▼──────┐                                 │
-│       │         │  Create     │                                 │
-│       │         │  Session    │                                 │
-│       │         └──────┬──────┘                                 │
-│       │                │                                        │
-│       │                ▼                                        │
-│       │         ┌─────────────┐                                 │
-│       │         │  Set-Cookie │                                 │
-│       │         │  + Return   │                                 │
-│       │         │  Session     │                                 │
-│       │         └─────────────┘                                 │
-│       │                                                              │
-│       ▼                                                              │
-│  ┌─────────────┐                                                    │
-│  │  Session    │◀── GET /v1/auth/session                           │
-│  │  Check      │         │                                        │
-│  └──────┬──────┘         │                                        │
-│         │                ▼                                        │
-│         │         ┌─────────────┐                                 │
-│         │         │  Validate   │                                 │
-│         │         │  Session ID │                                 │
-│         │         └──────┬──────┘                                 │
-│         │                │                                        │
-│         │         ┌──────▼──────┐                                 │
-│         │         │  Load User  │                                 │
-│         │         │  Context    │                                 │
-│         │         │  (team,     │                                 │
-│         │         │  permissions│                                 │
-│         │         │  level)     │                                 │
-│         │         └─────────────┘                                 │
-│         │                                                              │
-│         ▼                                                              │
-│  ┌─────────────┐                                                    │
-│  │  RBAC       │──▶ Permission Check                               │
-│  │  Middleware │      (knowledge:submit,                           │
-│  └─────────────┘       knowledge:review, etc.)                      │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph LoginFlow["登录流程"]
+        Login["登录请求"]
+        PostLogin["POST /v1/auth/login\n{ username, password }"]
+        Validate["验证凭据"]
+        CreateSession["创建会话"]
+        SetCookie["设置 Cookie\n并返回会话"]
+    end
+    
+    subgraph SessionCheck["会话检查"]
+        SessionCheckNode["会话检查\nGET /v1/auth/session"]
+        ValidateSession["验证会话 ID"]
+        LoadContext["加载用户上下文\n（团队、权限、等级）"]
+    end
+    
+    subgraph RBAC["权限控制"]
+        RBACMiddleware["RBAC 中间件"]
+        PermissionCheck["权限检查\n（knowledge:submit,\nknowledge:review 等）"]
+    end
+
+    Login --> PostLogin
+    PostLogin --> Validate
+    Validate --> CreateSession
+    CreateSession --> SetCookie
+    
+    SetCookie --> SessionCheckNode
+    SessionCheckNode --> ValidateSession
+    ValidateSession --> LoadContext
+    LoadContext --> RBACMiddleware
+    RBACMiddleware --> PermissionCheck
 ```
 
 ## 持久化架构

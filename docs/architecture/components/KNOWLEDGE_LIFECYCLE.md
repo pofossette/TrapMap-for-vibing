@@ -297,48 +297,28 @@ interface AgentReviewResult {
 
 ### 审核流程
 
-```
-┌─────────────────────────────────────────────────────────┐
-│              Agent Review Process                       │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  Entry Submitted                                        │
-│        │                                              │
-│        ▼                                              │
-│  ┌──────────────────┐                                 │
-│  │  Correctness    │                                 │
-│  │  Assessment     │──AI 分析内容                      │
-│  │  (正确性评估)    │  - 事实一致性                    │
-│  └────────┬─────────┘  - 逻辑清晰度                   │
-│           │              - 格式规范                    │
-│           ▼                                              │
-│  ┌──────────────────┐                                 │
-│  │  Duplicate      │                                 │
-│  │  Detection      │──指纹 + 语义                    │
-│  │  (重复检测)      │  - fingerprint                 │
-│  └────────┬─────────┘  - embedding similarity         │
-│           │                                              │
-│           ▼                                              │
-│  ┌──────────────────┐                                 │
-│  │  Risk Scoring   │                                 │
-│  │  (风险评分)      │  结合两个维度                   │
-│  └────────┬─────────┘  计算综合风险                  │
-│           │                                              │
-│           ▼                                              │
-│  ┌──────────────────┐                                 │
-│  │  Decision       │                                 │
-│  │  (决策)          │                                 │
-│  └────────┬─────────┘                                 │
-│           │                                              │
-│    ┌─────┴─────┐                                      │
-│    ▼           ▼                                      │
-│ ┌────────┐ ┌───────────┐                               │
-│ │  PASS  │ │ REJECTED  │                               │
-│ │ AGENT- │ │ AGENT-    │                               │
-│ │ PASS   │ │ REJECTED  │                               │
-│ └────────┘ └───────────┘                               │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph AgentReview["智能体审核流程"]
+        Submitted["条目已提交"]
+        
+        subgraph Assessment["评估阶段"]
+            Correctness["正确性评估\nAI 分析内容\n- 事实一致性\n- 逻辑清晰度\n- 格式规范"]
+            Duplicate["重复检测\n指纹 + 语义\n- fingerprint\n- embedding similarity"]
+        end
+        
+        subgraph Decision["决策阶段"]
+            RiskScoring["风险评分\n结合两个维度\n计算综合风险"]
+            Pass["AGENT-PASS"]
+            Rejected["AGENT-REJECTED"]
+        end
+    end
+
+    Submitted --> Correctness
+    Correctness --> Duplicate
+    Duplicate --> RiskScoring
+    RiskScoring -->|低风险| Pass
+    RiskScoring -->|高风险| Rejected
 ```
 
 ---
