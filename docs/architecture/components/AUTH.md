@@ -403,50 +403,31 @@ async function logoutHandler(
 
 ### 流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Password Reset Flow                                    │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  User Request                                                           │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  POST /v1/auth/password-reset                                   │   │
-│  │  { username: "user@example.com" }                               │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Generate Reset Token                         │   │
-│  │  - Random 32 bytes (base64url)                                  │   │
-│  │  - Hash for storage                                            │   │
-│  │  - Set expiration (1 hour)                                    │   │
-│  │  - Send email with reset link                                 │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Email: "Reset your TrapMap password"                          │   │
-│  │  Click here: https://trapmap.example.com/reset?token=xxx       │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  User Clicks Link                                               │   │
-│  │  POST /v1/auth/password-reset/confirm                           │   │
-│  │  { token, newPassword }                                        │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│        │                                                                │
-│        ▼                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    Update Password                              │   │
-│  │  - Verify token                                                 │   │
-│  │  - Hash new password                                            │   │
-│  │  - Update user record                                          │   │
-│  │  - Invalidate all sessions                                     │   │
-│  │  - Send confirmation email                                      │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph PasswordReset["Password Reset Flow"]
+        subgraph Request["User Request"]
+            A["POST /v1/auth/password-reset\n{ username: 'user@example.com' }"]
+        end
+
+        subgraph Generate["Generate Reset Token"]
+            B["- Random 32 bytes (base64url)\n- Hash for storage\n- Set expiration (1 hour)\n- Send email with reset link"]
+        end
+
+        subgraph Email["Email Notification"]
+            C["Email: 'Reset your TrapMap password'\nClick here: https://trapmap.example.com/reset?token=xxx"]
+        end
+
+        subgraph Confirm["User Clicks Link"]
+            D["POST /v1/auth/password-reset/confirm\n{ token, newPassword }"]
+        end
+
+        subgraph Update["Update Password"]
+            E["- Verify token\n- Hash new password\n- Update user record\n- Invalidate all sessions\n- Send confirmation email"]
+        end
+
+        Request --> Generate --> Email --> Confirm --> Update
+    end
 ```
 
 ### 实现

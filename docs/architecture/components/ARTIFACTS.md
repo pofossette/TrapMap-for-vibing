@@ -6,34 +6,30 @@
 
 ## 架构概览
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Artifact System Architecture                        │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    SkillArtifact                                  │   │
-│  │  (Immutable revision with source files)                           │   │
-│  │                                                                    │   │
-│  │  sourceFiles: SourceFile[]  ──────────────────────────────┐       │   │
-│  │  name, version, scope, level                    │                │   │
-│  │                                                    │                │   │
-│  │                                       ┌──────────▼──────────┐      │   │
-│  │                                       │   Derivation       │      │   │
-│  │                                       │   Process         │      │   │
-│  │                                       └──────────┬──────────┘      │   │
-│  │                                                  │                 │   │
-│  │                    ┌────────────────────────────┼────────────────┐ │   │
-│  │                    ▼                            ▼                ▼ │   │
-│  │  ┌──────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │   │
-│  │  │  SkillProfile    │  │  SkillCapsule[] │  │ ClientManifest │ │   │
-│  │  │  (Distilled text)│  │  (Actionable    │  │ (Metadata for  │ │   │
-│  │  │  + Keywords     │  │   knowledge)     │  │  client use)    │ │   │
-│  │  └──────────────────┘  └─────────────────┘  └─────────────────┘ │   │
-│  │                                                                    │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph ArtifactSystem["Artifact System Architecture"]
+        subgraph SkillArtifact["SkillArtifact (Immutable revision with source files)"]
+            SF["sourceFiles: SourceFile[]"]
+            META["name, version, scope, level"]
+        end
+
+        subgraph Derivation["Derivation Process"]
+            DP["Process source files"]
+        end
+
+        subgraph Outputs["Derived Outputs"]
+            SP["SkillProfile (Distilled text + Keywords)"]
+            SC["SkillCapsule[] (Actionable knowledge)"]
+            CM["ClientManifest (Metadata for client use)"]
+        end
+
+        SF --> DP
+        META --> DP
+        DP --> SP
+        DP --> SC
+        DP --> CM
+    end
 ```
 
 ---

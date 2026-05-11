@@ -257,37 +257,25 @@ POST /v3/retrieval/search
 
 ### 胶囊检索流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Capsule-native Retrieval Flow                      │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  Query Input                                                            │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Eligibility Filter                          │ │
-│  │  - capsule.governanceInherited = true                          │ │
-│  │  - user's level >= artifact.requiredLevel                      │ │
-│  │  - (capsule can be used if artifact is accessible)             │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Semantic Search                               │ │
-│  │  - Search capsule content (not entry content)                   │ │
-│  │  - Use capsule-specific index                                   │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Capsule Assembly                             │ │
-│  │  - Attach parent artifact metadata                              │ │
-│  │  - Include activationHint                                       │ │
-│  │  - Compute governance inheritance confirmation                 │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph CapsuleRetrieval["Capsule-native Retrieval Flow"]
+        A["Query Input"]
+        
+        subgraph Eligibility["Eligibility Filter"]
+            B["- capsule.governanceInherited = true\n- user's level >= artifact.requiredLevel\n- (capsule can be used if artifact is accessible)"]
+        end
+
+        subgraph Search["Semantic Search"]
+            C["- Search capsule content (not entry content)\n- Use capsule-specific index"]
+        end
+
+        subgraph Assembly["Capsule Assembly"]
+            D["- Attach parent artifact metadata\n- Include activationHint\n- Compute governance inheritance confirmation"]
+        end
+
+        A --> Eligibility --> Search --> Assembly
+    end
 ```
 
 ---
@@ -326,88 +314,43 @@ interface TrapFirstPlan {
 
 ### 计划编译流程
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Trap-First Plan Compilation Flow                     │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  Query Input                                                            │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  POST /v3/retrieval/plan                                        │   │
-│  │  { query: "how to add auth to new service" }                   │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    GraphRAG-lite Wrapper                         │ │
-│  │  - Build query embedding                                       │ │
-│  │  - Query trap graph                                            │ │
-│  │  - Identify relevant trap nodes                                │ │
-│  │  - Identify prerequisite chains                               │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Trap Identification                          │ │
-│  │                                                                    │ │
-│  │  For each relevant entry:                                       │ │
-│  │  1. Extract trap conditions from content                       │ │
-│  │  2. Classify as Blocker or Prerequisite                        │ │
-│  │  3. Score importance to query                                   │ │
-│  │                                                                    │ │
-│  │  Output: PlanTrapNode[]                                         │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Skill Mapping                                 │ │
-│  │                                                                    │ │
-│  │  For each identified trap:                                       │ │
-│  │  1. Find skills that resolve the trap                           │ │
-│  │  2. Map trap → skill (provides/blocks relationship)              │ │
-│  │  3. Validate skill applicability                                │ │
-│  │                                                                    │ │
-│  │  Output: PlanSkillNode[], PlanEdge[]                            │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Topological Sort                              │ │
-│  │                                                                    │ │
-│  │  Order nodes by dependency:                                     │ │
-│  │  1. No incoming edges = can start immediately                   │ │
-│  │  2. Respect prerequisite relationships                          │ │
-│  │  3. Prioritize blockers (high-priority traps)                  │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Citation Generation                          │ │
-│  │                                                                    │ │
-│  │  For each node, attach source snippets:                          │ │
-│  │  - entryId: source knowledge entry                             │ │
-│  │  - snippet: relevant text passage                              │ │
-│  │  - relevance_score: how relevant to node                       │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                    Confidence Scoring                          │ │
-│  │                                                                    │ │
-│  │  confidence = f(                                                  │ │
-│  │    trap_coverage,      // % of query traps covered              │ │
-│  │    skill_coverage,    // % of traps have mapped skills         │ │
-│  │    graph_coherence    // DAG is acyclic and complete           │ │
-│  │  )                                                                 │ │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                              │                                         │
-│                              ▼                                         │
-│                    Response                                              │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │  { planId, query, traps, skills, edges, citations, confidence }   │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph TrapFirstPlan["Trap-First Plan Compilation Flow"]
+        subgraph Query["Query Input"]
+            A["POST /v3/retrieval/plan\n{ query: 'how to add auth to new service' }"]
+        end
+
+        subgraph GraphRAG["GraphRAG-lite Wrapper"]
+            B["- Build query embedding\n- Query trap graph\n- Identify relevant trap nodes\n- Identify prerequisite chains"]
+        end
+
+        subgraph Traps["Trap Identification"]
+            C["For each relevant entry:\n1. Extract trap conditions from content\n2. Classify as Blocker or Prerequisite\n3. Score importance to query\n\nOutput: PlanTrapNode[]"]
+        end
+
+        subgraph Skills["Skill Mapping"]
+            D["For each identified trap:\n1. Find skills that resolve the trap\n2. Map trap → skill (provides/blocks relationship)\n3. Validate skill applicability\n\nOutput: PlanSkillNode[], PlanEdge[]"]
+        end
+
+        subgraph TopoSort["Topological Sort"]
+            E["Order nodes by dependency:\n1. No incoming edges = can start immediately\n2. Respect prerequisite relationships\n3. Prioritize blockers (high-priority traps)"]
+        end
+
+        subgraph Citations["Citation Generation"]
+            F["For each node, attach source snippets:\n- entryId: source knowledge entry\n- snippet: relevant text passage\n- relevance_score: how relevant to node"]
+        end
+
+        subgraph Confidence["Confidence Scoring"]
+            G["confidence = f(\n  trap_coverage,\n  skill_coverage,\n  graph_coherence\n)"]
+        end
+
+        subgraph Response["Response"]
+            H["{ planId, query, traps, skills, edges, citations, confidence }"]
+        end
+
+        Query --> GraphRAG --> Traps --> Skills --> TopoSort --> Citations --> Confidence --> Response
+    end
 ```
 
 ### 置信度感知路由

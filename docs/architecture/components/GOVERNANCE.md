@@ -449,12 +449,16 @@ type Scope = 'global' | 'project' | 'team';
 
 ### 作用域继承
 
-```
-SkillArtifact.scope
-       │
-       ├─→ SkillCapsule.governanceInherited = true
-       │
-       └─→ KnowledgeEntry.governanceInherited = true
+```mermaid
+flowchart TB
+    subgraph ScopeInheritance["Scope Inheritance"]
+        A["SkillArtifact.scope"]
+        B["SkillCapsule.governanceInherited = true"]
+        C["KnowledgeEntry.governanceInherited = true"]
+        
+        A --> B
+        A --> C
+    end
 ```
 
 当 governanceInherited 为 true 时，子实体继承父实体的作用域。

@@ -165,27 +165,22 @@ interface KnowledgeRecord {
 
 ### 回收站机制（建议）
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Recycle Bin Flow                              │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Deleted Entry                                                  │
-│        │                                                        │
-│        ▼                                                        │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Recycle Bin (30 days retention)                        │   │
-│  │                                                          │   │
-│  │  - Store soft-deleted entries                           │   │
-│  │  - Track deletion metadata                              │   │
-│  │  - Auto-purge after retention period                   │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│        │                                                        │
-│        ├──► Restore: Move back to original state               │
-│        │                                                        │
-│        └──► Purge: Permanent deletion after 30 days            │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph RecycleBin["Recycle Bin Flow"]
+        A["Deleted Entry"]
+        
+        subgraph Storage["Recycle Bin (30 days retention)"]
+            B["- Store soft-deleted entries\n- Track deletion metadata\n- Auto-purge after retention period"]
+        end
+
+        C["Restore: Move back to original state"]
+        D["Purge: Permanent deletion after 30 days"]
+
+        A --> Storage
+        Storage --> C
+        Storage --> D
+    end
 ```
 
 ## 索引移除流程
