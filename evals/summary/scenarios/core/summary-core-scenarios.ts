@@ -23,7 +23,19 @@ export const summaryCoreMixedGroundedScenario = retrievalEvalScenarioSchema.pars
     permissions: ['knowledge:search'],
   },
   fixtures: {
-    knowledgeEntries: [],
+    knowledgeEntries: [
+      {
+        id: 'knowledge_core_ts_strict',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['typescript', 'types', 'strict'],
+        shortcut: 'TypeScript Strict Mode',
+        detail:
+          'Use TypeScript strict mode for type safety. Enable noUncheckedIndexedAccess for array access. Prefer interfaces over type aliases for object shapes.',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+      },
+    ],
     skillArtifacts: [
       {
         id: 'artifact_core_ts_types',
@@ -162,11 +174,83 @@ export const summaryCoreEmptyScenario = retrievalEvalScenarioSchema.parse({
 // Aggregated Core Scenarios Export
 // =============================================================================
 
+// =============================================================================
+// Core Scenario: Label Filter Summary
+// =============================================================================
+
+/**
+ * Scenario: Actor retrieves knowledge filtered by label.
+ * Summary should only reflect filtered subset of knowledge.
+ */
+export const summaryCoreLabelFilterScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'summary-core-label-filter',
+  description:
+    'Actor retrieves backend knowledge filtered by label. Summary should reflect filtered subset.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_core',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [],
+    skillArtifacts: [
+      {
+        id: 'artifact_core_label_filter_node',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['nodejs', 'express', 'backend'],
+        title: 'Node.js Express Skills',
+        slug: 'nodejs-express-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_label_filter_node',
+            content:
+              'Use Express.js middleware for request processing. Implement error handling middleware. Use express.Router for modular routing.',
+            situation: 'Building REST API with Node.js',
+            problem: 'Unstructured API code',
+            goal: 'Organized Express.js application',
+            labels: ['nodejs', 'express'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_core_label_filter_python',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['python', 'flask', 'backend'],
+        title: 'Python Flask Skills',
+        slug: 'python-flask-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_label_filter_python',
+            content:
+              'Use Flask blueprints for modular applications. Implement Flask error handlers. Use Flask-SQLAlchemy for database integration.',
+            situation: 'Building REST API with Python',
+            problem: 'Monolithic Flask application',
+            goal: 'Modular Flask application',
+            labels: ['python', 'flask'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
 export const summaryCoreScenariosMap: Record<string, RetrievalEvalScenario> = {
   'summary-core-mixed-grounded': summaryCoreMixedGroundedScenario,
   'summary-core-multi-fact': summaryCoreMultiFactScenario,
   'summary-core-governance': summaryCoreGovernanceScenario,
   'summary-core-empty': summaryCoreEmptyScenario,
+  'summary-core-label-filter': summaryCoreLabelFilterScenario,
 };
 
 export const summaryCoreScenarios = Object.values(summaryCoreScenariosMap);

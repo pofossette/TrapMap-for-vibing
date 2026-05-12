@@ -136,10 +136,74 @@ export const summaryCoreV1Case = summaryEvalCaseSchema.parse({
 // Aggregated Core Cases Export
 // =============================================================================
 
+// =============================================================================
+// Core Case: Label Filter Summary
+// =============================================================================
+
+/**
+ * Case: Search with label filter, verify summary reflects filtered knowledge.
+ * Only Node.js content should appear in summary, not Python.
+ */
+export const summaryCoreLabelFilterCase = summaryEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'summary-core-label-filter',
+  tier: 'core',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'backend REST API middleware',
+    maxResults: 10,
+    includeSummary: true,
+    filters: {
+      labels: ['nodejs'],
+      scopes: [],
+    },
+  },
+  scenarioId: 'summary-core-label-filter',
+  expected: {
+    requiredFacts: ['Express', 'middleware'],
+    forbiddenClaims: ['Flask', 'Python', 'Django'],
+    minGroundedness: 0.7,
+    minCoverage: 0.5,
+    expectSummary: true,
+  },
+  tags: ['label-filter', 'core', 'v2', 'backend'],
+}) as SummaryEvalCase;
+
+// =============================================================================
+// Core Case: Low Confidence Detection
+// =============================================================================
+
+/**
+ * Case: Search for TypeScript knowledge, detect low-confidence claims.
+ * Lower groundedness threshold to catch edge-case claims.
+ */
+export const summaryCoreLowConfidenceCase = summaryEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'summary-core-low-confidence',
+  tier: 'core',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'typescript strict mode configuration',
+    maxResults: 10,
+    includeSummary: true,
+  },
+  scenarioId: 'summary-core-mixed-grounded',
+  expected: {
+    requiredFacts: ['strict mode'],
+    forbiddenClaims: ['any type is fine', 'disable strict mode'],
+    minGroundedness: 0.4,
+    minCoverage: 0.3,
+    expectSummary: true,
+  },
+  tags: ['groundedness', 'core', 'v2', 'low-confidence'],
+}) as SummaryEvalCase;
+
 export const summaryCoreCases: SummaryEvalCase[] = [
   summaryCoreMixedGroundedCase,
   summaryCoreMultiFactCase,
   summaryCoreGovernanceCase,
   summaryCoreEmptyCase,
   summaryCoreV1Case,
+  summaryCoreLabelFilterCase,
+  summaryCoreLowConfidenceCase,
 ];

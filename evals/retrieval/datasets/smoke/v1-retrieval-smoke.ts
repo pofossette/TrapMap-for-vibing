@@ -140,6 +140,86 @@ export const v1SemanticForbiddenSmoke = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 
 // =============================================================================
+// v1 Smoke: Hybrid Mode Positive Hit
+// =============================================================================
+
+/**
+ * Case: Search for docker knowledge using hybrid mode.
+ * Hybrid combines semantic and keyword search.
+ */
+export const v1HybridPositiveSmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v1-hybrid-positive-smoke',
+  tier: 'smoke',
+  endpoint: '/v1/retrieval/search',
+  request: {
+    seed: 'docker compose multi-container setup',
+    mode: 'hybrid',
+    maxResults: 10,
+  },
+  scenarioId: 'smoke-positive-visible',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['knowledge_smoke_approved'],
+      idealOrder: ['knowledge_smoke_approved'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      bucketExpectations: {
+        projectKnowledge: ['knowledge_smoke_approved'],
+        globalConstraints: [],
+      },
+      expectedProfileHintArtifactIds: [],
+    },
+  },
+  tags: ['positive', 'v1', 'smoke', 'hybrid', 'general'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
+// v1 Smoke: Graph-Assisted Mode Positive Hit
+// =============================================================================
+
+/**
+ * Case: Search for docker knowledge using graph-assisted mode.
+ * Graph-assisted leverages relationship information for retrieval.
+ */
+export const v1GraphAssistedPositiveSmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v1-graph-assisted-positive-smoke',
+  tier: 'smoke',
+  endpoint: '/v1/retrieval/search',
+  request: {
+    seed: 'docker compose multi-container setup',
+    mode: 'graph-assisted',
+    maxResults: 10,
+  },
+  scenarioId: 'smoke-positive-visible',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['knowledge_smoke_approved'],
+      idealOrder: ['knowledge_smoke_approved'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      bucketExpectations: {
+        projectKnowledge: ['knowledge_smoke_approved'],
+        globalConstraints: [],
+      },
+      expectedProfileHintArtifactIds: [],
+    },
+  },
+  tags: ['positive', 'v1', 'smoke', 'graph-assisted', 'general'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
 // Aggregated v1 Smoke Cases Export
 // =============================================================================
 
@@ -150,4 +230,6 @@ export const v1RetrievalSmokeCases: RetrievalEvalCase[] = [
   v1SemanticPositiveSmoke,
   v1SemanticEmptySmoke,
   v1SemanticForbiddenSmoke,
+  v1HybridPositiveSmoke,
+  v1GraphAssistedPositiveSmoke,
 ];

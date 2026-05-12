@@ -104,6 +104,64 @@ export const summaryForbiddenClaimsSmokeCase = summaryEvalCaseSchema.parse({
 // Aggregated Smoke Cases Export
 // =============================================================================
 
+// =============================================================================
+// Smoke Case: Multi-Fact Coverage
+// =============================================================================
+
+/**
+ * Case: Search for React hooks knowledge, expect summary covering multiple facts.
+ * Required facts: useState, useEffect, useCallback, custom hooks.
+ */
+export const summaryMultiFactSmokeCase = summaryEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'summary-smoke-multi-fact',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'react hooks state management side effects',
+    maxResults: 10,
+    includeSummary: true,
+  },
+  scenarioId: 'summary-smoke-multi-fact',
+  expected: {
+    requiredFacts: ['useState', 'useEffect'],
+    forbiddenClaims: ['class components are better', 'Redux is required'],
+    minGroundedness: 0.7,
+    minCoverage: 0.5,
+    expectSummary: true,
+  },
+  tags: ['coverage', 'smoke', 'v2', 'multi-fact'],
+}) as SummaryEvalCase;
+
+// =============================================================================
+// Smoke Case: Strict Groundedness
+// =============================================================================
+
+/**
+ * Case: Search for docker knowledge with high groundedness threshold.
+ * Same scenario as grounded smoke but stricter threshold.
+ */
+export const summaryStrictGroundedSmokeCase = summaryEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'summary-strict-grounded-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'docker compose multi-container setup',
+    maxResults: 10,
+    includeSummary: true,
+  },
+  scenarioId: 'summary-smoke-grounded',
+  expected: {
+    requiredFacts: ['docker-compose', 'multi-container'],
+    forbiddenClaims: ['kubernetes', 'k8s', 'production credentials', 'Einstein', 'Nobel Prize'],
+    minGroundedness: 0.9,
+    minCoverage: 0.8,
+    expectSummary: true,
+  },
+  tags: ['grounded', 'smoke', 'v2', 'strict'],
+}) as SummaryEvalCase;
+
 /**
  * All smoke-tier summary evaluation cases.
  */
@@ -111,4 +169,6 @@ export const summarySmokeCases: SummaryEvalCase[] = [
   summaryGroundedSmokeCase,
   summaryHallucinationSmokeCase,
   summaryForbiddenClaimsSmokeCase,
+  summaryMultiFactSmokeCase,
+  summaryStrictGroundedSmokeCase,
 ];

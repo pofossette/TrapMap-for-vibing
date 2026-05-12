@@ -128,6 +128,79 @@ export const v2CapsuleForbiddenSmoke = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 
 // =============================================================================
+// v2 Smoke: Capsule Ranked Smoke
+// =============================================================================
+
+/**
+ * Case: Search for docker knowledge, verify capsule ranking at smoke level.
+ * Same scenario as positive hit but verifies idealOrder for capsule IDs.
+ */
+export const v2CapsuleRankedSmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-capsule-ranked-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'docker compose deployment',
+    maxResults: 10,
+  },
+  scenarioId: 'smoke-positive-visible',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_smoke_docker'],
+      idealOrder: ['capsule_smoke_docker'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: ['artifact_smoke_approved'],
+      expectedCapsuleCount: 1,
+    },
+  },
+  tags: ['ranked', 'v2', 'smoke', 'capsule', 'how-to'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
+// v2 Smoke: Include Summary
+// =============================================================================
+
+/**
+ * Case: Search with includeSummary=true, expect non-empty result.
+ * Verifies summary generation path at smoke level.
+ */
+export const v2IncludeSummarySmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-include-summary-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'docker compose multi-container setup',
+    maxResults: 10,
+    includeSummary: true,
+  },
+  scenarioId: 'smoke-positive-visible',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_smoke_docker'],
+      idealOrder: ['capsule_smoke_docker'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: ['artifact_smoke_approved'],
+      expectedCapsuleCount: 1,
+    },
+  },
+  tags: ['summary', 'v2', 'smoke', 'capsule', 'general'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
 // Aggregated v2 Smoke Cases Export
 // =============================================================================
 
@@ -138,4 +211,6 @@ export const v2RetrievalSmokeCases: RetrievalEvalCase[] = [
   v2CapsulePositiveSmoke,
   v2CapsuleEmptySmoke,
   v2CapsuleForbiddenSmoke,
+  v2CapsuleRankedSmoke,
+  v2IncludeSummarySmoke,
 ];

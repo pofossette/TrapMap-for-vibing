@@ -973,20 +973,26 @@ describe('retrieval', () => {
       expect(result.summary).toBeNull();
     });
 
-    it('returns null summary when semantic mode (no citations available)', async () => {
+    it('generates summary when includeSummary is true and semantic mode', async () => {
       const query: RetrievalQuery = {
         seed: 'JWT validation',
         filters: { labels: [], scopes: [] },
         maxResults: 10,
         includeRefinement: false,
         includeSummary: true,
-        mode: 'semantic', // Semantic mode doesn't generate citations
+        mode: 'semantic', // Semantic mode now generates citations
       };
 
       const result = await searchKnowledge(mockServices, mockAuth, query);
 
-      // Summary should be null when no citations available
-      expect(result.summary).toBeNull();
+      // Should return results
+      expect(result.globalConstraints.length + result.projectKnowledge.length).toBeGreaterThan(0);
+
+      // Summary should be generated when citations are available
+      expect(result.summary).toBeDefined();
+      expect(result.summary).not.toBeNull();
+      expect(result.summary?.text).toBeDefined();
+      expect(result.summary?.text.length).toBeGreaterThan(0);
     });
 
     it('generates summary when includeSummary is true and mode provides citations', async () => {

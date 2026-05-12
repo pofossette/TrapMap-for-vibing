@@ -231,6 +231,90 @@ export const v1GovernanceCore = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 
 // =============================================================================
+// v1 Core: Label Filter
+// =============================================================================
+
+/**
+ * Case: Search with label filter for react/hooks knowledge.
+ * Only entries matching the label filter should appear.
+ */
+export const v1LabelFilterCore = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v1-label-filter-core',
+  tier: 'core',
+  endpoint: '/v1/retrieval/search',
+  request: {
+    seed: 'react hooks state management',
+    mode: 'semantic',
+    maxResults: 10,
+    filters: {
+      labels: ['react'],
+      scopes: [],
+    },
+  },
+  scenarioId: 'core-label-filter',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['knowledge_core_label_react'],
+      idealOrder: ['knowledge_core_label_react'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      bucketExpectations: {
+        projectKnowledge: ['knowledge_core_label_react'],
+        globalConstraints: [],
+      },
+      expectedProfileHintArtifactIds: [],
+    },
+  },
+  tags: ['label-filter', 'v1', 'core', 'semantic', 'how-to'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
+// v1 Core: Low maxResults
+// =============================================================================
+
+/**
+ * Case: Search for docker knowledge with maxResults=1.
+ * Only the top-ranked result should be returned.
+ */
+export const v1LowMaxResultsCore = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v1-low-maxresults-core',
+  tier: 'core',
+  endpoint: '/v1/retrieval/search',
+  request: {
+    seed: 'docker deployment orchestration',
+    mode: 'semantic',
+    maxResults: 1,
+  },
+  scenarioId: 'core-ranked-hits',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['knowledge_core_docker_primary'],
+      idealOrder: ['knowledge_core_docker_primary'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      bucketExpectations: {
+        projectKnowledge: ['knowledge_core_docker_primary'],
+        globalConstraints: [],
+      },
+      expectedProfileHintArtifactIds: [],
+    },
+  },
+  tags: ['ranked', 'v1', 'core', 'semantic', 'low-maxresults'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
 // Aggregated v1 Core Cases Export
 // =============================================================================
 
@@ -243,4 +327,6 @@ export const v1RetrievalCoreCases: RetrievalEvalCase[] = [
   v1GraphAssistedRankedCore,
   v1BucketShapeCore,
   v1GovernanceCore,
+  v1LabelFilterCore,
+  v1LowMaxResultsCore,
 ];

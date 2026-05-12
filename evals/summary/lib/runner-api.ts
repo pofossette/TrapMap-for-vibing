@@ -16,10 +16,12 @@ import {
 } from '@trapmap/contracts';
 
 import { summaryCoreCases } from '../core.js';
-import { summarySmokeCases } from '../smoke.js';
-
+import { summaryCoreScenariosMap } from '../scenarios/core/summary-core-scenarios.js';
 // Import summary scenarios for fixture loading
 import { summarySmokeScenariosMap } from '../scenarios/smoke/summary-smoke-scenarios.js';
+import { summarySmokeCases } from '../smoke.js';
+
+const allScenariosMap = { ...summarySmokeScenariosMap, ...summaryCoreScenariosMap };
 
 import { evaluateSummaryVerdicts } from './assertions.js';
 import { createJudge } from './judge.js';
@@ -199,7 +201,7 @@ export async function runSummaryEvaluation(options: RunSummaryOptions): Promise<
 
     try {
       // Load scenario for fixture seeding
-      const scenario = summarySmokeScenariosMap[case_.scenarioId];
+      const scenario = allScenariosMap[case_.scenarioId];
 
       if (!scenario) {
         warnings.push({

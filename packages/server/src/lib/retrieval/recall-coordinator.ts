@@ -149,7 +149,12 @@ export async function semanticRecall(
       }
 
       scoredEntries.sort((a, b) => b.score - a.score);
-      return { scoredEntries: scoredEntries.slice(0, parsed.maxResults) };
+      const sliced = scoredEntries.slice(0, parsed.maxResults);
+      const mergedCandidates = mergeCandidates(
+        sliced.map(({ entry, score }) => createSemanticCandidate(entry, score)),
+        [],
+      );
+      return { scoredEntries: sliced, mergedCandidates };
     } catch (error) {
       console.error('[semanticRecall] DB search failed, falling back to in-memory:', error);
     }
@@ -177,7 +182,12 @@ export async function semanticRecall(
   });
 
   scoredEntries.sort((a, b) => b.score - a.score);
-  return { scoredEntries: scoredEntries.slice(0, parsed.maxResults) };
+  const sliced = scoredEntries.slice(0, parsed.maxResults);
+  const mergedCandidates = mergeCandidates(
+    sliced.map(({ entry, score }) => createSemanticCandidate(entry, score)),
+    [],
+  );
+  return { scoredEntries: sliced, mergedCandidates };
 }
 
 /**

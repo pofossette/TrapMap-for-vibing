@@ -190,4 +190,4 @@ export interface ArtifactFilePayloadRecord {
 }
 
 // Re-export AgentReviewRecord and MaintenanceMetaRecord from knowledge-records for artifact use
-export { AgentReviewRecord, MaintenanceMetaRecord } from './knowledge-records.js';
+export type { AgentReviewRecord, MaintenanceMetaRecord } from './knowledge-records.js';

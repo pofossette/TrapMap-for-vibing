@@ -165,10 +165,59 @@ export const summarySmokeForbiddenClaimScenario = retrievalEvalScenarioSchema.pa
 /**
  * All smoke-tier summary scenarios indexed by scenarioId.
  */
+// =============================================================================
+// Smoke Scenario: Multi-Fact Coverage
+// =============================================================================
+
+/**
+ * Scenario: Actor retrieves frontend knowledge with multiple distinct facts.
+ * Expectation: Summary covers multiple required facts from context.
+ */
+export const summarySmokeMultiFactScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'summary-smoke-multi-fact',
+  description:
+    'Actor retrieves frontend React knowledge. Summary should cover multiple distinct facts.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_smoke',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [],
+    skillArtifacts: [
+      {
+        id: 'artifact_summary_react_hooks',
+        teamId: 'team_smoke',
+        scope: 'project',
+        labels: ['react', 'hooks', 'frontend'],
+        title: 'React Hooks Skills',
+        slug: 'react-hooks-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_summary_react_hooks',
+            content:
+              'Use useState for local component state. Use useEffect for side effects with cleanup. Use useCallback to memoize event handlers. Custom hooks extract reusable logic.',
+            situation: 'Building React functional components',
+            problem: 'State management and side effects in functional components',
+            goal: 'Use hooks for clean React patterns',
+            labels: ['react', 'hooks'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
 export const summarySmokeScenariosMap: Record<string, RetrievalEvalScenario> = {
   'summary-smoke-grounded': summarySmokeGroundedScenario,
   'summary-smoke-hallucination': summarySmokeHallucinationScenario,
   'summary-smoke-forbidden': summarySmokeForbiddenClaimScenario,
+  'summary-smoke-multi-fact': summarySmokeMultiFactScenario,
 };
 
 /**

@@ -1027,6 +1027,714 @@ export const coreGraphPlanOrchestrationScenario = retrievalEvalScenarioSchema.pa
 }) as RetrievalEvalScenario;
 
 // =============================================================================
+// Core Scenario: Label Filter
+// =============================================================================
+
+/**
+ * Scenario: Actor searches with label filter.
+ * Entries exist with different labels; only matching labels should appear.
+ */
+export const coreLabelFilterScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'core-label-filter',
+  description:
+    'Actor searches with label filter. Entries exist with different labels. Only entries matching the label filter should appear.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_core',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [
+      {
+        id: 'knowledge_core_label_react',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['react', 'hooks', 'frontend'],
+        shortcut: 'React Hooks Guide',
+        detail:
+          'Use React hooks for state management. useState for local state, useEffect for side effects.',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+      },
+      {
+        id: 'knowledge_core_label_node',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['nodejs', 'backend', 'express'],
+        shortcut: 'Node.js Express Setup',
+        detail: 'Set up Express.js server with middleware. Configure routing and error handling.',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+      },
+      {
+        id: 'knowledge_core_label_db',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['database', 'postgres', 'backend'],
+        shortcut: 'PostgreSQL Best Practices',
+        detail:
+          'Use connection pooling for PostgreSQL. Create indexes for frequently queried columns.',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+      },
+    ],
+    skillArtifacts: [
+      {
+        id: 'artifact_core_label_react',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['react', 'hooks'],
+        title: 'React Hooks Skills',
+        slug: 'react-hooks-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_label_react',
+            content: 'Use React hooks for state and effects',
+            situation: 'Building React components',
+            problem: 'Class components are verbose',
+            goal: 'Simplify with hooks',
+            labels: ['react', 'hooks'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_core_label_node',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['nodejs', 'express'],
+        title: 'Node.js Express Skills',
+        slug: 'nodejs-express-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_label_node',
+            content: 'Build REST APIs with Express.js',
+            situation: 'Creating backend services',
+            problem: 'Need structured API layer',
+            goal: 'Set up Express server',
+            labels: ['nodejs', 'express'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
+// =============================================================================
+// Core Scenario: Empty with Summary (v2)
+// =============================================================================
+
+/**
+ * Scenario: Actor searches for a topic with no matching entries.
+ * v2 endpoint with includeSummary=true should still return empty.
+ */
+export const coreEmptySummaryScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'core-empty-summary',
+  description:
+    'Actor searches for non-existent topic with includeSummary=true. No fixtures exist. Should return empty with no summary.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_core',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [],
+    skillArtifacts: [],
+  },
+}) as RetrievalEvalScenario;
+
+// =============================================================================
+// Core Scenario: Graph-Plan Multi-Trap Blocking
+// =============================================================================
+
+/**
+ * Scenario: Two independent traps block different cues, each mitigated by a separate skill.
+ * Tests multi-trap detection and per-trap mitigation routing.
+ */
+export const coreGraphPlanMultiTrapScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'core-graph-plan-multi-trap',
+  description:
+    'Two independent traps block different cues. Each trap has a dedicated mitigating skill. Tests multi-trap blocking detection.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_core_graph',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [
+      {
+        id: 'knowledge_core_multi_trap_memory',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['memory', 'leak', 'frontend'],
+        shortcut: 'Memory leak trap',
+        detail: 'Event listener memory leak that causes browser slowdown over time.',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+      },
+      {
+        id: 'knowledge_core_multi_trap_css',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['css', 'z-index', 'frontend'],
+        shortcut: 'CSS z-index stacking trap',
+        detail: 'z-index stacking context issues causing UI elements to be hidden.',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+      },
+    ],
+    skillArtifacts: [
+      {
+        id: 'artifact_core_multi_trap_cleanup',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['memory', 'cleanup', 'frontend'],
+        title: 'Event Listener Cleanup Skill',
+        slug: 'event-listener-cleanup',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_multi_trap_cleanup',
+            content: 'Clean up event listeners in useEffect return function',
+            situation: 'Adding event listeners in React components',
+            problem: 'Listeners persist after unmount causing memory leaks',
+            goal: 'Properly clean up side effects',
+            labels: ['memory', 'cleanup', 'react'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_core_multi_trap_zindex',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['css', 'z-index', 'frontend'],
+        title: 'Z-Index Management Skill',
+        slug: 'z-index-management',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_multi_trap_zindex',
+            content: 'Use CSS custom properties for z-index management',
+            situation: 'Managing overlapping UI elements',
+            problem: 'Arbitrary z-index values cause stacking conflicts',
+            goal: 'Systematic z-index layering',
+            labels: ['css', 'z-index'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+    graphIndexDocuments: [
+      {
+        id: 'graphdoc_trap_core_multi_trap_memory_r1',
+        sourceType: 'trap',
+        sourceId: 'knowledge_core_multi_trap_memory',
+        revision: 1,
+        contentHash: 'core-multi-trap-memory',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'trap:knowledge_core_multi_trap_memory',
+            kind: 'trap',
+            label: 'event listener memory leak',
+            evidence: 'memory leak from uncleaned listeners',
+          },
+        ],
+        edges: [
+          {
+            id: 'trap:memory->cue:memory:risk-blocks',
+            sourceNodeId: 'trap:knowledge_core_multi_trap_memory',
+            targetNodeId: 'cue:memory',
+            relationType: 'risk-blocks',
+            strength: 'hard',
+            evidence: 'memory leak blocks stable runtime',
+          },
+        ],
+        evidence: 'derived from memory leak trap',
+        createdAt: '2026-05-04T00:00:00.000Z',
+        updatedAt: '2026-05-04T00:00:00.000Z',
+      },
+      {
+        id: 'graphdoc_trap_core_multi_trap_css_r1',
+        sourceType: 'trap',
+        sourceId: 'knowledge_core_multi_trap_css',
+        revision: 1,
+        contentHash: 'core-multi-trap-css',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'trap:knowledge_core_multi_trap_css',
+            kind: 'trap',
+            label: 'z-index stacking trap',
+            evidence: 'z-index stacking context conflict',
+          },
+        ],
+        edges: [
+          {
+            id: 'trap:css->cue:layout:risk-blocks',
+            sourceNodeId: 'trap:knowledge_core_multi_trap_css',
+            targetNodeId: 'cue:layout',
+            relationType: 'risk-blocks',
+            strength: 'hard',
+            evidence: 'z-index conflict blocks correct layout',
+          },
+        ],
+        evidence: 'derived from z-index trap',
+        createdAt: '2026-05-04T00:00:00.000Z',
+        updatedAt: '2026-05-04T00:00:00.000Z',
+      },
+      {
+        id: 'graphdoc_skill_core_multi_trap_cleanup_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_core_multi_trap_cleanup',
+        revision: 1,
+        contentHash: 'core-multi-trap-cleanup',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_core_multi_trap_cleanup',
+            kind: 'skill',
+            label: 'event listener cleanup',
+            evidence: 'cleanup skill evidence',
+          },
+        ],
+        edges: [
+          {
+            id: 'skill:cleanup->trap:memory:mitigates',
+            sourceNodeId: 'skill:artifact_core_multi_trap_cleanup',
+            targetNodeId: 'trap:knowledge_core_multi_trap_memory',
+            relationType: 'mitigates',
+            strength: 'hard',
+            evidence: 'cleanup skill mitigates memory leak',
+          },
+        ],
+        evidence: 'derived from cleanup skill',
+        createdAt: '2026-05-04T00:00:00.000Z',
+        updatedAt: '2026-05-04T00:00:00.000Z',
+      },
+      {
+        id: 'graphdoc_skill_core_multi_trap_zindex_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_core_multi_trap_zindex',
+        revision: 1,
+        contentHash: 'core-multi-trap-zindex',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_core_multi_trap_zindex',
+            kind: 'skill',
+            label: 'z-index management',
+            evidence: 'z-index skill evidence',
+          },
+        ],
+        edges: [
+          {
+            id: 'skill:zindex->trap:css:mitigates',
+            sourceNodeId: 'skill:artifact_core_multi_trap_zindex',
+            targetNodeId: 'trap:knowledge_core_multi_trap_css',
+            relationType: 'mitigates',
+            strength: 'hard',
+            evidence: 'z-index skill mitigates stacking trap',
+          },
+        ],
+        evidence: 'derived from z-index skill',
+        createdAt: '2026-05-04T00:00:00.000Z',
+        updatedAt: '2026-05-04T00:00:00.000Z',
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
+// =============================================================================
+// Core Scenario: Graph-Plan Co-Occurs Edge
+// =============================================================================
+
+/**
+ * Scenario: Two skills co-occur (frequently used together) and both mitigate the same trap.
+ * Tests co-occurs-with edge type recognition.
+ */
+export const coreGraphPlanCoOccursScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'core-graph-plan-co-occurs',
+  description:
+    'Two skills co-occur and both mitigate the same trap. Tests co-occurs-with edge recognition.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_core_graph',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [
+      {
+        id: 'knowledge_core_co_occurs_trap',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['testing', 'flaky', 'ci'],
+        shortcut: 'Flaky test trap',
+        detail: 'Tests fail intermittently due to timing-dependent assertions.',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+      },
+    ],
+    skillArtifacts: [
+      {
+        id: 'artifact_core_co_occurs_retry',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['testing', 'retry', 'ci'],
+        title: 'Test Retry Strategy',
+        slug: 'test-retry-strategy',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_co_occurs_retry',
+            content: 'Add retry logic for flaky tests in CI pipeline',
+            situation: 'Tests fail intermittently in CI',
+            problem: 'Timing-dependent tests block deployments',
+            goal: 'Stabilize CI with retries',
+            labels: ['testing', 'retry'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_core_co_occurs_isolate',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['testing', 'isolation', 'ci'],
+        title: 'Test Isolation Strategy',
+        slug: 'test-isolation-strategy',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_co_occurs_isolate',
+            content: 'Isolate test state with beforeEach/afterEach cleanup',
+            situation: 'Tests share mutable state',
+            problem: 'Shared state causes order-dependent failures',
+            goal: 'Ensure test isolation',
+            labels: ['testing', 'isolation'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+    graphIndexDocuments: [
+      {
+        id: 'graphdoc_trap_core_co_occurs_r1',
+        sourceType: 'trap',
+        sourceId: 'knowledge_core_co_occurs_trap',
+        revision: 1,
+        contentHash: 'core-co-occurs-trap',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'trap:knowledge_core_co_occurs_trap',
+            kind: 'trap',
+            label: 'flaky test trap',
+            evidence: 'timing-dependent test failures',
+          },
+        ],
+        edges: [
+          {
+            id: 'trap:flaky->cue:ci:risk-blocks',
+            sourceNodeId: 'trap:knowledge_core_co_occurs_trap',
+            targetNodeId: 'cue:ci',
+            relationType: 'risk-blocks',
+            strength: 'hard',
+            evidence: 'flaky tests block CI pipeline',
+          },
+        ],
+        evidence: 'derived from flaky test trap',
+        createdAt: '2026-05-04T00:00:00.000Z',
+        updatedAt: '2026-05-04T00:00:00.000Z',
+      },
+      {
+        id: 'graphdoc_skill_core_co_occurs_retry_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_core_co_occurs_retry',
+        revision: 1,
+        contentHash: 'core-co-occurs-retry',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_core_co_occurs_retry',
+            kind: 'skill',
+            label: 'test retry strategy',
+            evidence: 'retry skill evidence',
+          },
+        ],
+        edges: [
+          {
+            id: 'skill:retry->trap:flaky:mitigates',
+            sourceNodeId: 'skill:artifact_core_co_occurs_retry',
+            targetNodeId: 'trap:knowledge_core_co_occurs_trap',
+            relationType: 'mitigates',
+            strength: 'soft',
+            evidence: 'retry mitigates flaky test impact',
+          },
+        ],
+        evidence: 'derived from retry skill',
+        createdAt: '2026-05-04T00:00:00.000Z',
+        updatedAt: '2026-05-04T00:00:00.000Z',
+      },
+      {
+        id: 'graphdoc_skill_core_co_occurs_isolate_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_core_co_occurs_isolate',
+        revision: 1,
+        contentHash: 'core-co-occurs-isolate',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_core_co_occurs_isolate',
+            kind: 'skill',
+            label: 'test isolation strategy',
+            evidence: 'isolation skill evidence',
+          },
+        ],
+        edges: [
+          {
+            id: 'skill:isolate->trap:flaky:mitigates',
+            sourceNodeId: 'skill:artifact_core_co_occurs_isolate',
+            targetNodeId: 'trap:knowledge_core_co_occurs_trap',
+            relationType: 'mitigates',
+            strength: 'hard',
+            evidence: 'isolation directly addresses root cause',
+          },
+          {
+            id: 'skill:isolate->skill:retry:co-occurs-with',
+            sourceNodeId: 'skill:artifact_core_co_occurs_isolate',
+            targetNodeId: 'skill:artifact_core_co_occurs_retry',
+            relationType: 'co-occurs-with',
+            strength: 'soft',
+            evidence: 'isolation and retry frequently used together',
+          },
+        ],
+        evidence: 'derived from isolation skill',
+        createdAt: '2026-05-04T00:00:00.000Z',
+        updatedAt: '2026-05-04T00:00:00.000Z',
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
+// =============================================================================
+// Core Scenario: Graph-Plan Requires Edge
+// =============================================================================
+
+/**
+ * Scenario: Skill B requires Skill A (prerequisite dependency).
+ * Tests requires edge type and dependency chain detection.
+ */
+export const coreGraphPlanRequiresScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'core-graph-plan-requires',
+  description:
+    'Skill B requires Skill A as prerequisite. Tests requires edge type and dependency chain.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_core_graph',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [
+      {
+        id: 'knowledge_core_requires_trap',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['kubernetes', 'oom', 'infrastructure'],
+        shortcut: 'K8s OOM kill trap',
+        detail: 'Containers get OOM killed due to missing resource limits.',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+      },
+    ],
+    skillArtifacts: [
+      {
+        id: 'artifact_core_requires_limits',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['kubernetes', 'resources', 'infrastructure'],
+        title: 'Resource Limits Skill',
+        slug: 'resource-limits-skill',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_requires_limits',
+            content: 'Set memory and CPU limits in Kubernetes manifests',
+            situation: 'Deploying to Kubernetes',
+            problem: 'Containers consume unbounded resources',
+            goal: 'Prevent OOM kills with limits',
+            labels: ['kubernetes', 'resources'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_core_requires_monitoring',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['kubernetes', 'monitoring', 'infrastructure'],
+        title: 'Resource Monitoring Skill',
+        slug: 'resource-monitoring-skill',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_requires_monitoring',
+            content: 'Set up Prometheus metrics for container resource usage',
+            situation: 'Need visibility into resource consumption',
+            problem: 'Cannot detect OOM risk before kill',
+            goal: 'Monitor and alert on resource usage',
+            labels: ['kubernetes', 'monitoring'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+    graphIndexDocuments: [
+      {
+        id: 'graphdoc_trap_core_requires_r1',
+        sourceType: 'trap',
+        sourceId: 'knowledge_core_requires_trap',
+        revision: 1,
+        contentHash: 'core-requires-trap',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'trap:knowledge_core_requires_trap',
+            kind: 'trap',
+            label: 'K8s OOM kill trap',
+            evidence: 'containers killed for exceeding memory',
+          },
+        ],
+        edges: [
+          {
+            id: 'trap:oom->cue:stability:risk-blocks',
+            sourceNodeId: 'trap:knowledge_core_requires_trap',
+            targetNodeId: 'cue:stability',
+            relationType: 'risk-blocks',
+            strength: 'hard',
+            evidence: 'OOM kills block production stability',
+          },
+        ],
+        evidence: 'derived from OOM trap',
+        createdAt: '2026-05-04T00:00:00.000Z',
+        updatedAt: '2026-05-04T00:00:00.000Z',
+      },
+      {
+        id: 'graphdoc_skill_core_requires_limits_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_core_requires_limits',
+        revision: 1,
+        contentHash: 'core-requires-limits',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_core_requires_limits',
+            kind: 'skill',
+            label: 'resource limits skill',
+            evidence: 'set memory limits evidence',
+          },
+        ],
+        edges: [
+          {
+            id: 'skill:limits->trap:oom:mitigates',
+            sourceNodeId: 'skill:artifact_core_requires_limits',
+            targetNodeId: 'trap:knowledge_core_requires_trap',
+            relationType: 'mitigates',
+            strength: 'hard',
+            evidence: 'resource limits directly prevent OOM',
+          },
+        ],
+        evidence: 'derived from limits skill',
+        createdAt: '2026-05-04T00:00:00.000Z',
+        updatedAt: '2026-05-04T00:00:00.000Z',
+      },
+      {
+        id: 'graphdoc_skill_core_requires_monitoring_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_core_requires_monitoring',
+        revision: 1,
+        contentHash: 'core-requires-monitoring',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_core_requires_monitoring',
+            kind: 'skill',
+            label: 'resource monitoring skill',
+            evidence: 'monitoring skill evidence',
+          },
+        ],
+        edges: [
+          {
+            id: 'skill:monitoring->trap:oom:mitigates',
+            sourceNodeId: 'skill:artifact_core_requires_monitoring',
+            targetNodeId: 'trap:knowledge_core_requires_trap',
+            relationType: 'mitigates',
+            strength: 'soft',
+            evidence: 'monitoring helps detect OOM risk early',
+          },
+          {
+            id: 'skill:monitoring->skill:limits:requires',
+            sourceNodeId: 'skill:artifact_core_requires_monitoring',
+            targetNodeId: 'skill:artifact_core_requires_limits',
+            relationType: 'requires',
+            strength: 'hard',
+            evidence: 'monitoring requires limits to be set first for meaningful thresholds',
+          },
+        ],
+        evidence: 'derived from monitoring skill',
+        createdAt: '2026-05-04T00:00:00.000Z',
+        updatedAt: '2026-05-04T00:00:00.000Z',
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
+// =============================================================================
 // Aggregated Core Scenarios Export
 // =============================================================================
 
@@ -1041,6 +1749,11 @@ export const coreScenariosMap: Record<string, RetrievalEvalScenario> = {
   'core-graph-plan-selected': coreGraphPlanSelectedScenario,
   'core-graph-plan-governance': coreGraphPlanGovernanceScenario,
   'core-graph-plan-orchestration': coreGraphPlanOrchestrationScenario,
+  'core-label-filter': coreLabelFilterScenario,
+  'core-empty-summary': coreEmptySummaryScenario,
+  'core-graph-plan-multi-trap': coreGraphPlanMultiTrapScenario,
+  'core-graph-plan-co-occurs': coreGraphPlanCoOccursScenario,
+  'core-graph-plan-requires': coreGraphPlanRequiresScenario,
 };
 
 /**

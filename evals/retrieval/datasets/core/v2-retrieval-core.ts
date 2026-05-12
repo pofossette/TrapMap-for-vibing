@@ -178,6 +178,133 @@ export const v2ScopeDistributionCore = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 
 // =============================================================================
+// v2 Core: Multi-Capsule Ranking
+// =============================================================================
+
+/**
+ * Case: Search for docker knowledge, verify multiple capsule ranking.
+ * Tests that all 4 capsules from core-ranked-hits scenario are returned in ideal order.
+ */
+export const v2MultiCapsuleCore = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-multi-capsule-core',
+  tier: 'core',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'docker compose swarm networking',
+    maxResults: 10,
+  },
+  scenarioId: 'core-ranked-hits',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: [
+        'capsule_core_docker_compose',
+        'capsule_core_docker_swarm',
+        'capsule_core_docker_net',
+        'capsule_core_docker_run',
+      ],
+      idealOrder: [
+        'capsule_core_docker_compose',
+        'capsule_core_docker_swarm',
+        'capsule_core_docker_net',
+        'capsule_core_docker_run',
+      ],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [
+        'artifact_core_docker_primary',
+        'artifact_core_docker_basics',
+        'artifact_core_docker_global',
+      ],
+      expectedCapsuleCount: 4,
+    },
+  },
+  tags: ['ranked', 'v2', 'core', 'capsule', 'multi-hit', 'how-to'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
+// v2 Core: Label Filter
+// =============================================================================
+
+/**
+ * Case: Search with label filter for react/hooks knowledge.
+ * Only capsules from matching-label artifacts should appear.
+ */
+export const v2LabelFilterCore = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-label-filter-core',
+  tier: 'core',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'react hooks state management',
+    maxResults: 10,
+    filters: {
+      labels: ['react'],
+      scopes: [],
+    },
+  },
+  scenarioId: 'core-label-filter',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_core_label_react'],
+      idealOrder: ['capsule_core_label_react'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: ['artifact_core_label_react'],
+      expectedCapsuleCount: 1,
+    },
+  },
+  tags: ['label-filter', 'v2', 'core', 'capsule', 'how-to'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
+// v2 Core: Empty with Summary
+// =============================================================================
+
+/**
+ * Case: Search for non-existent topic with includeSummary=true.
+ * Expect empty result set even with summary flag.
+ */
+export const v2EmptyWithSummaryCore = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-empty-with-summary-core',
+  tier: 'core',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'xyzzy123 nonexistent query plugh456',
+    maxResults: 10,
+    includeSummary: true,
+  },
+  scenarioId: 'core-empty-summary',
+  expected: {
+    outcome: 'empty',
+    relevance: {
+      relevantIds: [],
+      idealOrder: [],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [],
+      expectedCapsuleCount: 0,
+    },
+  },
+  tags: ['empty', 'v2', 'core', 'capsule', 'summary', 'boundary'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
 // Aggregated v2 Core Cases Export
 // =============================================================================
 
@@ -189,4 +316,7 @@ export const v2RetrievalCoreCases: RetrievalEvalCase[] = [
   v2ProfileHintsCore,
   v2GovernanceCore,
   v2ScopeDistributionCore,
+  v2MultiCapsuleCore,
+  v2LabelFilterCore,
+  v2EmptyWithSummaryCore,
 ];
