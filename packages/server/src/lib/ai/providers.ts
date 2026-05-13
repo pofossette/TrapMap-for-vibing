@@ -204,6 +204,17 @@ export class OpenAICompatibleChat implements ChatProvider {
     ]);
     return typeof result.content === 'string' ? result.content : String(result.content);
   }
+
+  async invokeWithBlocks(
+    blocks: import('./cache/api-integration.js').PromptBlock[],
+    userMessage: string,
+  ): Promise<string> {
+    if (!this.impl) {
+      throw new Error(`${this.provider} chat not configured`);
+    }
+    const mergedSystemPrompt = blocks.map((b) => b.content).join('\n');
+    return this.invoke(mergedSystemPrompt, userMessage);
+  }
 }
 
 /**

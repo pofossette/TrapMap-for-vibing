@@ -1,7 +1,10 @@
 import type { Boundary } from '@trapmap/contracts';
 import { boundarySchema } from '@trapmap/contracts';
 
-import { buildBoundaryExtractionSystemPrompt } from './ai/prompts.js';
+import {
+  buildBoundaryExtractionSystemPrompt,
+  buildBoundaryExtractionSystemPromptBlocks,
+} from './ai/prompts.js';
 import type { ChatProvider } from './ai/types.js';
 
 /**
@@ -29,8 +32,6 @@ export async function extractCandidateBoundaries(
     return null;
   }
 
-  const systemPrompt = buildBoundaryExtractionSystemPrompt();
-
   const userMessage = `Title: ${input.shortcut}
 
 Detail:
@@ -39,7 +40,9 @@ ${input.detail}
 Labels: ${input.labels.join(', ')}`;
 
   try {
-    const response = await chat.invoke(systemPrompt, userMessage);
+    const response = chat.invokeWithBlocks
+      ? await chat.invokeWithBlocks(buildBoundaryExtractionSystemPromptBlocks(), userMessage)
+      : await chat.invoke(buildBoundaryExtractionSystemPrompt(), userMessage);
 
     // Parse JSON response
     const parsed = JSON.parse(response);

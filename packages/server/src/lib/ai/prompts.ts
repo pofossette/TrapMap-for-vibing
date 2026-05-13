@@ -17,6 +17,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { type PromptBlock, buildSystemPromptBlocks } from './cache/api-integration.js';
 import { CACHE_BOUNDARY_MARKER } from './cache/boundary-marker.js';
 import { loadProviderTemplate, resolveProvider, selectProvider } from './providers/index.js';
 import { renderJsonTemplate } from './providers/json-renderer.js';
@@ -423,4 +424,28 @@ export function buildClaimVerificationSystemPrompt(config?: {
   strict?: boolean;
 }): string {
   return buildPrompt('claim-verification', buildClaimVerificationSlots(config));
+}
+
+/**
+ * Cache-aware variants that return PromptBlock[] with cache_control headers.
+ * The static prefix of the system prompt is marked with
+ * { type: 'ephemeral', scope: 'global' } for provider-level prompt caching.
+ */
+
+export function buildBoundaryExtractionSystemPromptBlocks(): PromptBlock[] {
+  const sections = buildPromptWithCacheControl(
+    'boundary-extraction',
+    buildBoundaryExtractionSlots(),
+  );
+  return buildSystemPromptBlocks(sections);
+}
+
+export function buildKnowledgeRefinementSystemPromptBlocks(config?: {
+  maxSentences?: number;
+}): PromptBlock[] {
+  const sections = buildPromptWithCacheControl(
+    'knowledge-refinement',
+    buildKnowledgeRefinementSlots(config),
+  );
+  return buildSystemPromptBlocks(sections);
 }

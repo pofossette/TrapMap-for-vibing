@@ -8,8 +8,10 @@ import {
 import { getDynamicInjections, injectDynamicContent } from './dynamic/index.js';
 import {
   buildBoundaryExtractionSystemPrompt,
+  buildBoundaryExtractionSystemPromptBlocks,
   buildClaimVerificationSystemPrompt,
   buildKnowledgeRefinementSystemPrompt,
+  buildKnowledgeRefinementSystemPromptBlocks,
   buildPrompt,
   buildPromptWithCacheControl,
 } from './prompts.js';
@@ -368,5 +370,45 @@ describe('injection + cache end-to-end', () => {
     for (let i = 1; i < blocks.length; i++) {
       expect(blocks[i].cache_control).toBeUndefined();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cache-aware prompt builder convenience functions
+// ---------------------------------------------------------------------------
+
+describe('buildBoundaryExtractionSystemPromptBlocks', () => {
+  it('returns PromptBlock[] with cache_control on first block', () => {
+    const blocks = withEnv({ AI_PROMPT_TEMPLATE_FILE: undefined }, () =>
+      buildBoundaryExtractionSystemPromptBlocks(),
+    );
+
+    expect(blocks.length).toBeGreaterThan(0);
+    expect(blocks[0].cache_control).toEqual({ type: 'ephemeral', scope: 'global' });
+    expect(blocks[0].content).toContain('boundary extraction assistant');
+  });
+
+  it('produces content equivalent to the string builder', () => {
+    const [blocks, stringPrompt] = withEnv({ AI_PROMPT_TEMPLATE_FILE: undefined }, () => [
+      buildBoundaryExtractionSystemPromptBlocks(),
+      buildBoundaryExtractionSystemPrompt(),
+    ]);
+
+    const merged = blocks.map((b) => b.content).join('\n');
+    // Both should contain the key role text
+    expect(merged).toContain('boundary extraction assistant');
+    expect(stringPrompt).toContain('boundary extraction assistant');
+  });
+});
+
+describe('buildKnowledgeRefinementSystemPromptBlocks', () => {
+  it('returns PromptBlock[] with cache_control on first block', () => {
+    const blocks = withEnv({ AI_PROMPT_TEMPLATE_FILE: undefined }, () =>
+      buildKnowledgeRefinementSystemPromptBlocks({ maxSentences: 3 }),
+    );
+
+    expect(blocks.length).toBeGreaterThan(0);
+    expect(blocks[0].cache_control).toEqual({ type: 'ephemeral', scope: 'global' });
+    expect(blocks[0].content).toContain('knowledge refinement assistant');
   });
 });

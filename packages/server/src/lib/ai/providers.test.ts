@@ -140,6 +140,20 @@ describe('OpenAICompatibleChat', () => {
 
     await expect(chat.invoke('sys', 'user')).rejects.toThrow('not configured');
   });
+
+  it('invokeWithBlocks throws when not configured', async () => {
+    const unconfigured: AiProviderConfig = { ...openaiConfig, isConfigured: false };
+    const chat = new OpenAICompatibleChat(unconfigured);
+
+    await expect(
+      chat.invokeWithBlocks([{ content: 'block1' }, { content: 'block2' }], 'user message'),
+    ).rejects.toThrow('not configured');
+  });
+
+  it('invokeWithBlocks is defined on the instance', () => {
+    const chat = new OpenAICompatibleChat(openaiConfig);
+    expect(typeof chat.invokeWithBlocks).toBe('function');
+  });
 });
 
 describe('GoogleGenAIEmbeddings', () => {

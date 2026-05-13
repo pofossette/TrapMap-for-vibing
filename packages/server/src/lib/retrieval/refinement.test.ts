@@ -9,6 +9,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
+import type { PromptBlock } from '../ai/cache/api-integration.js';
 import { buildKnowledgeRefinementSystemPrompt } from '../ai/prompts.js';
 import type { SkillShareerServices } from '../context.js';
 
@@ -102,5 +103,23 @@ describe('generateRefinement', () => {
     const result = await generateRefinement(services, 'test query', globalConstraints, []);
 
     expect(result).toBeNull();
+  });
+
+  it('uses invokeWithBlocks when available on chat provider', async () => {
+    const services = createMockServices(true);
+    const invokeWithBlocksSpy = vi.fn().mockResolvedValue('Refined via blocks');
+    (services.ai.chat as unknown as Record<string, unknown>).invokeWithBlocks = invokeWithBlocksSpy;
+
+    const globalConstraints = [{ shortcut: 'GC1', detail: 'A constraint' }];
+    const result = await generateRefinement(services, 'test query', globalConstraints, []);
+
+    expect(result).toBe('Refined via blocks');
+    expect(invokeWithBlocksSpy).toHaveBeenCalledTimes(1);
+    expect(services.ai.chat.invoke).not.toHaveBeenCalled();
+
+    const [blocks, userMessage] = invokeWithBlocksSpy.mock.calls[0] as [PromptBlock[], string];
+    expect(Array.isArray(blocks)).toBe(true);
+    expect(blocks.length).toBeGreaterThan(0);
+    expect(userMessage).toContain('test query');
   });
 });

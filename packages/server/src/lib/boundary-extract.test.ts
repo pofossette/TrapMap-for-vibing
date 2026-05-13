@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { Boundary } from '@trapmap/contracts';
 
+import type { PromptBlock } from './ai/cache/api-integration.js';
 import { buildBoundaryExtractionSystemPrompt } from './ai/prompts.js';
 import type { ChatProvider } from './ai/types.js';
 import { extractCandidateBoundaries } from './boundary-extract.js';
@@ -128,5 +129,49 @@ describe('extractCandidateBoundaries', () => {
     expect(result?.signals).toEqual([]);
     expect(result?.exclusions).toEqual([]);
     expect(result?.evidence).toEqual([]);
+  });
+
+  it('uses invokeWithBlocks when available on chat provider', async () => {
+    const invokeWithBlocksSpy = vi.fn().mockResolvedValue('{}');
+    const invokeSpy = vi.fn().mockResolvedValue('{}');
+    const chat: ChatProvider = {
+      provider: 'mock',
+      isConfigured: true,
+      invoke: invokeSpy,
+      invokeWithBlocks: invokeWithBlocksSpy,
+    };
+
+    await extractCandidateBoundaries(chat, {
+      shortcut: 'Test',
+      detail: 'Test detail',
+      labels: ['test'],
+    });
+
+    expect(invokeWithBlocksSpy).toHaveBeenCalledTimes(1);
+    expect(invokeSpy).not.toHaveBeenCalled();
+
+    const [blocks, userMessage] = invokeWithBlocksSpy.mock.calls[0] as [PromptBlock[], string];
+    expect(Array.isArray(blocks)).toBe(true);
+    expect(blocks.length).toBeGreaterThan(0);
+    expect(userMessage).toContain('Test');
+  });
+
+  it('falls back to invoke when invokeWithBlocks is not available', async () => {
+    const invokeSpy = vi.fn().mockResolvedValue('{}');
+    const chat: ChatProvider = {
+      provider: 'mock',
+      isConfigured: true,
+      invoke: invokeSpy,
+    };
+
+    await extractCandidateBoundaries(chat, {
+      shortcut: 'Test',
+      detail: 'Test detail',
+      labels: ['test'],
+    });
+
+    expect(invokeSpy).toHaveBeenCalledTimes(1);
+    const [systemPrompt] = invokeSpy.mock.calls[0] ?? [''];
+    expect(systemPrompt).toBe(buildBoundaryExtractionSystemPrompt());
   });
 });

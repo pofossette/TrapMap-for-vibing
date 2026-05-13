@@ -4,7 +4,10 @@
  * Extracted from orchestrator.ts to isolate refinement from recall and routing.
  */
 
-import { buildKnowledgeRefinementSystemPrompt } from '../ai/prompts.js';
+import {
+  buildKnowledgeRefinementSystemPrompt,
+  buildKnowledgeRefinementSystemPromptBlocks,
+} from '../ai/prompts.js';
 import type { SkillShareerServices } from '../context.js';
 
 /**
@@ -60,9 +63,14 @@ export async function generateRefinement(
   }
 
   try {
+    const userMessage = buildRefinementPrompt(query, globalConstraints, projectKnowledge);
+    if (services.ai.chat.invokeWithBlocks) {
+      const blocks = buildKnowledgeRefinementSystemPromptBlocks({ maxSentences: 3 });
+      return await services.ai.chat.invokeWithBlocks(blocks, userMessage);
+    }
     return await services.ai.chat.invoke(
       buildKnowledgeRefinementSystemPrompt({ maxSentences: 3 }),
-      buildRefinementPrompt(query, globalConstraints, projectKnowledge),
+      userMessage,
     );
   } catch {
     return null;
