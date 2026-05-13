@@ -61,7 +61,3 @@ const EMPTY_STORE: StoreData = {
 export function createEmptyStoreData(): StoreData {
   return JSON.parse(JSON.stringify(EMPTY_STORE)) as StoreData;
 }
-
-export function cloneStoreData(data: StoreData): StoreData {
-  return JSON.parse(JSON.stringify(data)) as StoreData;
-}

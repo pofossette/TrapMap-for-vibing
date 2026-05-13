@@ -416,7 +416,6 @@ function buildCodexObject(envelope: RenderEnvelope<RenderPayload>): Record<strin
       };
     }
     case 'graph-plan': {
-      const payload = envelope.payload as GraphPlanSearchResponse;
       const view = buildGraphPlanSummaryView(envelope as RenderEnvelope<GraphPlanSearchResponse>);
       if (envelope.context.graphPlanMode === 'skill-list') {
         return {

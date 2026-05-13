@@ -9,7 +9,6 @@ import type {
 import {
   accessKeySchema,
   activeSessionSchema,
-  authContextSchema,
   memberSchema,
   teamSchema,
 } from '@trapmap/contracts';
@@ -54,7 +53,7 @@ function isStoreData(obj: AccessKeyRepository | StoreData): obj is StoreData {
 function toActorRef(
   user: UserRecord,
   membership: MembershipRecord | null,
-  permissions: Permission[],
+  _permissions: Permission[],
 ): AuthContext['actor'] {
   return {
     id: user.id,
@@ -196,7 +195,7 @@ export async function findSessionByToken(
 }
 
 export function issueAccessKeyPayload(
-  data: StoreData,
+  _data: StoreData,
   accessKey: AccessKeyRecord,
   issuer: UserRecord,
   membership: MembershipRecord,

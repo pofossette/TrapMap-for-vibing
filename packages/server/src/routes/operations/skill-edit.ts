@@ -156,7 +156,9 @@ export const skillEditRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:export');
 
     const artifactId = (request.params as { artifactId: string }).artifactId;
-    const query = skillHistoryRequestSchema.parse((request.query as Record<string, unknown>) ?? {});
+
+    // Validate query parameters
+    skillHistoryRequestSchema.parse((request.query as Record<string, unknown>) ?? {});
 
     // Use repository for artifact lookup (replaces store.snapshot() for initial find)
     const { artifact: artifactRepo } = app.skillShareer.repos;

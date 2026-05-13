@@ -19,7 +19,7 @@ import { vectorSimilaritySearch } from './db-search.js';
 import { createSemanticCandidate, mergeCandidates } from './merge.js';
 import { graphAssistedRecall as graphRecall } from './recall/graph-assisted.js';
 import { keywordRecall, normalizeQuery } from './recall/keyword.js';
-import { type KeywordRecallResult, createPgKeywordRecall } from './recall/pg-keyword.js';
+import { createPgKeywordRecall } from './recall/pg-keyword.js';
 import { getQueryEmbedding, optimizedSemanticRecall } from './recall/semantic.js';
 import { rerankCandidates, toScoredEntriesFromReranked } from './rerank.js';
 import type { StrategyRegistry } from './strategy-registry.js';
@@ -76,7 +76,7 @@ export function inferChannelsFromMerged(mergedCandidates?: MergedCandidate[]): R
  */
 export async function dispatchByMode(
   mode: string,
-  seed: string,
+  _seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
   strategyRegistry: StrategyRegistry,

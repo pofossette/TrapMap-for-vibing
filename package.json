@@ -9,6 +9,8 @@
     "dev:cli": "pnpm --filter @trapmap/cli dev",
     "dev:server": "pnpm --filter @trapmap/server dev",
     "format": "biome format --write .",
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write",
     "knip": "knip",
     "knip:fix": "knip --fix",
     "check": "biome check .",

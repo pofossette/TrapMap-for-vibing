@@ -7,7 +7,7 @@ import type { DomainEventHandler } from '../types.js';
  * This subscriber provides supplementary post-commit logging.
  */
 export function createAuditSubscriber(
-  store: SkillShareerStore,
+  _store: SkillShareerStore,
   log: { info: (obj: Record<string, unknown>, msg: string) => void },
 ): DomainEventHandler {
   return (event) => {

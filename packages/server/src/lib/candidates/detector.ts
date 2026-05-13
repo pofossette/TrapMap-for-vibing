@@ -14,7 +14,6 @@ import type { DuplicateDetectionInput, DuplicateDetectionResult } from './types.
 
 const DETECTION_VERSION = '1.0.0';
 const HIGH_OVERLAP_THRESHOLD = 0.72;
-const MEDIUM_OVERLAP_THRESHOLD = 0.38;
 
 /**
  * Calculate Jaccard-like overlap score between two token sets.
@@ -78,7 +77,7 @@ function toMatchType(
 function checkTrapDuplicate(
   candidateTokens: Set<string>,
   candidateKeywords: string[],
-  candidateFingerprint: string,
+  _candidateFingerprint: string,
   entry: KnowledgeRecord,
   threshold: number,
 ): DuplicateMatch | null {

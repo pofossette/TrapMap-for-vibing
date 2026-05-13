@@ -12,7 +12,6 @@ import {
   type MaintenanceAwareListItem,
   type MaintenanceBatchOperationItem,
   maintenanceAwareListItemSchema,
-  maintenanceBatchOperationItemSchema,
   maintenanceBatchOperationRequestSchema,
   maintenanceBatchOperationResponseSchema,
   maintenanceEntryListRequestSchema,
@@ -82,7 +81,7 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
    * List knowledge entries with maintenance-related filters.
    * Supports filtering by missing owner, overdue review, stale verification, scope, and labels.
    */
-  app.get('/v1/operations/maintenance/entries', async (request, reply) => {
+  app.get('/v1/operations/maintenance/entries', async (request, _reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:export');
 
@@ -223,7 +222,7 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
    * Execute or preview a maintenance batch operation on knowledge entries.
    * Supports assign-owner, extend-review, and mark-verified actions.
    */
-  app.post('/v1/operations/maintenance/batch', async (request, reply) => {
+  app.post('/v1/operations/maintenance/batch', async (request, _reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:update');
 
@@ -347,7 +346,7 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
    * This is a maintenance operation for bulk repair/sync of indexes.
    * Requires system-admin privileges. (Phase 77)
    */
-  app.post('/v1/admin/reconcile-knowledge-indexes', async (request, reply) => {
+  app.post('/v1/admin/reconcile-knowledge-indexes', async (request, _reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
 
     // Only system-admin can run reconciliation

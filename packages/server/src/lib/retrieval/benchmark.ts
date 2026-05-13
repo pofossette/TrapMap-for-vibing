@@ -1,4 +1,3 @@
-import type { PipelineStep } from '../rag-log.js';
 import type { KnowledgeRecord } from '../store.js';
 
 /**
@@ -75,7 +74,7 @@ export const BENCHMARK_SCENARIOS: BenchmarkScenario[] = [
  * @returns Tuple of [result, latencyMs]
  */
 export async function measurePipelineStep<T>(
-  name: string,
+  _name: string,
   fn: () => Promise<T>,
 ): Promise<[T, number]> {
   const start = Date.now();

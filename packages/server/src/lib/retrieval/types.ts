@@ -18,7 +18,7 @@ import type { KnowledgeRecord } from '../store.js';
  * Internal pipeline context passed through retrieval stages.
  * Encapsulates auth, query, and data snapshot for consistent filtering and scoring.
  */
-interface RetrievalPipelineContext {
+export interface _RetrievalPipelineContext {
   /** Auth context of the caller */
   auth: ResolvedAuthContext;
   /** Parsed and validated retrieval query */
@@ -48,7 +48,7 @@ export interface ScoredEntry {
  * Retrieval pipeline statistics.
  * Used for debugging and monitoring retrieval behavior.
  */
-interface RetrievalStats {
+export interface _RetrievalStats {
   /** Total entries in the store */
   totalEntries: number;
   /** Entries that passed eligibility filters */
@@ -230,7 +230,7 @@ export type RoutingChannel = string;
  * Captures the full provenance of a mode selection so the orchestrator
  * can emit trace metadata and evaluation slices can compare behavior.
  */
-interface RoutingDecision {
+export interface _RoutingDecision {
   /** The internal strategy selected by the router */
   selectedMode: RetrievalStrategy;
   /** Whether this retrieval follows the entry or capsule route family */

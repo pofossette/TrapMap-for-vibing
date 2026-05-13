@@ -22,7 +22,6 @@ import { z } from 'zod';
 import { executeBatchOperation, planBatchOperation } from '../lib/decay/batch.js';
 import { loadDecayConfig } from '../lib/decay/config.js';
 import { computeDecayState } from '../lib/decay/state-machine.js';
-import { AppError } from '../lib/errors.js';
 import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
 import { requirePermission } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
@@ -76,7 +75,7 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
    * List knowledge entries enriched with computed decay state.
    * Supports filtering by decay state, age range, labels, and scope.
    */
-  app.get('/v1/operations/decay/entries', async (request, reply) => {
+  app.get('/v1/operations/decay/entries', async (request, _reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:export');
 
@@ -201,7 +200,7 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
    * Execute or preview a batch operation on knowledge entries.
    * Supports extend, mark-review, deactivate, and supersede actions.
    */
-  app.post('/v1/operations/decay/batch', async (request, reply) => {
+  app.post('/v1/operations/decay/batch', async (request, _reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:update');
 
@@ -342,7 +341,7 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
    *
    * Search entries by pattern with decay-state enrichment and filtering.
    */
-  app.post('/v1/operations/decay/search', async (request, reply) => {
+  app.post('/v1/operations/decay/search', async (request, _reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:export');
 

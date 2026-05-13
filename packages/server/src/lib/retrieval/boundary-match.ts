@@ -13,7 +13,6 @@ import type {
   Boundary,
   BoundaryContext,
   BoundaryExplanation,
-  VersionConstraint,
 } from '@trapmap/contracts';
 import { normalizeContextLabel, normalizePackageName } from '../indexing/boundary-normalize.js';
 

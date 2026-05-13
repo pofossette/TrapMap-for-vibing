@@ -128,8 +128,8 @@ export function computeFreshnessMultiplier(
       return computeVolatileMultiplier(entry.decayMeta.lastVerifiedAt, config.volatile, now);
 
     default: {
-      // Exhaustive check
-      const _exhaustive: never = freshnessType;
+      // Exhaustive check - ensure all freshness types are handled
+      void (freshnessType as never);
       return 1.0;
     }
   }

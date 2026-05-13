@@ -206,7 +206,7 @@ export async function reconcileGraphIndexesFromSnapshot(args: {
   store: SkillShareerStore;
   data: StoreData;
 }): Promise<GraphReconcileResult> {
-  const { store, data } = args;
+  const { store: _store, data } = args;
 
   // Load current graph documents
   const existingDocs = getGraphIndexDocuments(data);

@@ -10,7 +10,7 @@
  * timestamps for deterministic testing.
  */
 
-import { type DecayConfig, type DecayState, decayStateSchema } from '@trapmap/contracts';
+import { type DecayConfig, type DecayState } from '@trapmap/contracts';
 
 /**
  * Entry interface for decay state computation.

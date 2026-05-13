@@ -210,7 +210,6 @@ export function resetInterruptedCandidates(args: {
   reason: string;
 }): CandidateSubmission[] {
   const interrupted = findInterruptedCandidates(args.data);
-  const now = nowIso();
 
   for (const candidate of interrupted) {
     candidate.status = 'received';

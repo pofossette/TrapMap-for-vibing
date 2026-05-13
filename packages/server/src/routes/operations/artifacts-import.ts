@@ -238,7 +238,6 @@ export const artifactsImportRoutes: FastifyPluginAsync = async (app) => {
             artifact,
             artifact.latestRevision,
             derived,
-            app.skillShareer.artifactRepo ?? undefined,
           );
 
           // Record audit event (T-13-04 mitigation)

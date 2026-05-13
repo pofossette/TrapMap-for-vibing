@@ -11,7 +11,7 @@
  */
 
 import { createRequire } from 'node:module';
-import type { Boundary, LifecycleState, Scope } from '@trapmap/contracts';
+import type { LifecycleState } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
 import { transitionLifecycleState } from '../lifecycle/state-machine.js';

@@ -478,18 +478,8 @@ export function validateLegacyEntryMigration(args: {
   legacyEntry: KnowledgeRecord;
   existingArtifactIds: Set<string>;
 }): { valid: boolean; reason: string | null } {
-  const { legacyEntry, existingArtifactIds } = args;
-
-  // Check if entry has already been migrated (by checking for artifact with matching title/slug)
-  const expectedSlug = legacyEntry.shortcut
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
-
-  // Check for existing artifact with same source entry ID in provenance
-  // Note: This is a simple check - full provenance tracking would require store lookup
+  const { legacyEntry } = args;
+  // Note: existingArtifactIds would be used for full provenance tracking
 
   // Entry must be in a valid lifecycle state for migration
   const validStates = ['approved', 'agent-pass', 'agent-rejected'];

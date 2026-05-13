@@ -12,7 +12,6 @@ import { supersedeEntry } from '../lib/decay/supersede.js';
 import { AppError } from '../lib/errors.js';
 import {
   createKnowledgeEntryRecord,
-  createKnowledgeRevision,
   resubmitKnowledgeEntry,
   toKnowledgeEntry,
   updateKnowledgeEntry,

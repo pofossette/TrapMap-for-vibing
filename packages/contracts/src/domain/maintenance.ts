@@ -6,7 +6,6 @@ import {
   isoTimestampSchema,
   labelSchema,
   scopeSchema,
-  securityLevelSchema,
 } from './common.js';
 import { decayAwareListItemSchema } from './decay.js';
 

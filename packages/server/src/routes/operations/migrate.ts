@@ -188,7 +188,6 @@ export const migrateRoutes: FastifyPluginAsync = async (app) => {
             artifact,
             artifact.latestRevision,
             derived,
-            app.skillShareer.artifactRepo ?? undefined,
           );
 
           // Record audit event (T-16-02 mitigation)

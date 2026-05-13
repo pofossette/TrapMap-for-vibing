@@ -4,7 +4,6 @@ import type { Command } from 'commander';
 
 import { loadCliState } from '../../lib/config.js';
 import { apiRequest, requireSessionToken } from '../../lib/http.js';
-import { printResult } from '../../lib/output.js';
 import { materializeSkillDirectory, validateOutputPath } from '../../lib/skill-artifact-export.js';
 import type { OperationsCommandOptions } from './types.js';
 

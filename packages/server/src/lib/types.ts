@@ -19,7 +19,6 @@ export * from './store/types/index.js';
 export { type StoreData, type SkillShareerStore, JsonStore } from './store/index.js';
 export {
   createEmptyStoreData,
-  cloneStoreData,
   nowIso,
   hashSecret,
   createOpaqueToken,

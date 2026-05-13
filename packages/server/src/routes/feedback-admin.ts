@@ -83,7 +83,7 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
    *
    * List feedback queue items with filtering support.
    */
-  app.get('/v1/operations/feedback', async (request, reply) => {
+  app.get('/v1/operations/feedback', async (request, _reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:update');
 
@@ -93,7 +93,6 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
     const {
       feedback: feedbackRepo,
       knowledge: knowledgeRepo,
-      artifact: artifactRepo,
     } = app.skillShareer.repos;
     const now = new Date();
 
@@ -196,16 +195,15 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
    *
    * Execute batch operations on feedback items.
    */
-  app.post('/v1/operations/feedback/batch', async (request, reply) => {
+  app.post('/v1/operations/feedback/batch', async (request, _reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:update');
 
     // Parse body
     const body = feedbackBatchRequestSchema.parse(request.body);
-    const now = new Date();
     const appliedAt = nowIso();
 
-    const { feedback: feedbackRepo, knowledge: knowledgeRepo } = app.skillShareer.repos;
+    const { feedback: feedbackRepo } = app.skillShareer.repos;
 
     // Build result items using repository
     const resultItems: FeedbackBatchItem[] = [];
@@ -409,7 +407,7 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
    *
    * Get quality score for a knowledge entry.
    */
-  app.get('/v1/operations/feedback/stats/:entryId', async (request, reply) => {
+  app.get('/v1/operations/feedback/stats/:entryId', async (request, _reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:update');
 

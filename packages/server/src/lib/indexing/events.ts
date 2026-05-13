@@ -23,7 +23,7 @@ import type { AdapterRegistry } from './registry.js';
  * @returns The index action to perform: 'upsert', 'remove', or 'noop'
  */
 export function determineKnowledgeIndexAction(
-  previousState: LifecycleState,
+  _previousState: LifecycleState,
   nextState: LifecycleState,
 ): 'upsert' | 'remove' | 'noop' {
   // Transition to approved - sync index

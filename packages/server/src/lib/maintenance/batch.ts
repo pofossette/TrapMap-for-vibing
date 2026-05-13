@@ -71,7 +71,7 @@ export interface MaintenanceOperationPlanItem {
 export function planMaintenanceOperation(
   data: StoreData,
   input: MaintenanceOperationInput,
-  now: Date,
+  _now: Date,
 ): MaintenanceOperationPlanItem[] {
   const results: MaintenanceOperationPlanItem[] = [];
 
@@ -188,7 +188,7 @@ export function planMaintenanceOperation(
  * @returns Array of mutated knowledge records
  */
 export function executeMaintenanceOperation(
-  store: SkillShareerStore,
+  _store: SkillShareerStore,
   data: StoreData,
   input: MaintenanceOperationInput,
   now: Date,

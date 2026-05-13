@@ -16,7 +16,6 @@ import type {
   ManualResultSubmission,
 } from '@trapmap/contracts';
 import { eq } from 'drizzle-orm';
-import type { InferSelectModel } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
@@ -318,7 +317,7 @@ export class PgCandidateRepository implements CandidateRepository {
   /**
    * Mark a candidate as resolved.
    */
-  async markResolved(candidateId: string, resolvedBy: string): Promise<void> {
+  async markResolved(candidateId: string, _resolvedBy: string): Promise<void> {
     await this.ensureSchema();
 
     const client = await this.pool.connect();

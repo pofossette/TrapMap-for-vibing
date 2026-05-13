@@ -112,7 +112,7 @@ export function buildSummary(options: BuildSummaryOptions): RetrievalSummary | n
  * could include LLM-based abstractive summarization, but this baseline
  * ensures the summary builder is deterministic and has no external dependencies.
  */
-function generateExtractiveSummary(query: string, hits: SummaryHit[]): string {
+function generateExtractiveSummary(_query: string, hits: SummaryHit[]): string {
   if (hits.length === 0) {
     return '';
   }
@@ -255,7 +255,7 @@ export function buildCapsuleCitations(capsules: CapsuleMatch[]): RetrievalCitati
  * @param capsules - The filtered distilled capsule hits
  * @returns Extractive summary text
  */
-function generateCapsuleExtractiveSummary(query: string, capsules: CapsuleMatch[]): string {
+function generateCapsuleExtractiveSummary(_query: string, capsules: CapsuleMatch[]): string {
   if (capsules.length === 0) {
     return '';
   }

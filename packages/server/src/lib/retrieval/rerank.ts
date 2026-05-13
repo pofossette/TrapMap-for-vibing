@@ -22,8 +22,6 @@
 
 import type {
   BoundaryContext,
-  BoundaryExplanation,
-  DecayState,
   FreshnessDecayConfig,
 } from '@trapmap/contracts';
 import { computeFreshnessMultiplier } from '../decay/freshness.js';

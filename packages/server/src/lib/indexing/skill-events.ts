@@ -16,7 +16,7 @@
 
 import { createHash } from 'node:crypto';
 
-import type { LifecycleState, Scope } from '@trapmap/contracts';
+import type { LifecycleState } from '@trapmap/contracts';
 
 import type { SkillArtifactRecord, SkillShareerStore, StoreData } from '../store.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
@@ -32,8 +32,6 @@ import {
 import { assertNoHardDependencyCycles } from './graph-lite/graphology.js';
 import {
   getGraphIndexDocuments,
-  removeGraphIndexDocumentsForSource,
-  upsertGraphIndexDocument,
 } from './graph-lite/store.js';
 
 // ---------------------------------------------------------------------------
@@ -615,7 +613,7 @@ export function buildSkillGraphDocument(
  * @returns The index action to perform: 'upsert', 'remove', or 'noop'
  */
 export function determineSkillIndexAction(
-  previousState: LifecycleState,
+  _previousState: LifecycleState,
   nextState: LifecycleState,
 ): 'upsert' | 'remove' | 'noop' {
   // Transition to approved - sync index
@@ -655,7 +653,7 @@ export async function runSkillIndexEvent(args: {
   adapters: ArtifactGraphAdapter[];
 }): Promise<void> {
   const { services, artifactId, previousState, nextState, adapters } = args;
-  const { store, data } = services;
+  const { store, data: _data } = services;
 
   const action = determineSkillIndexAction(previousState, nextState);
 

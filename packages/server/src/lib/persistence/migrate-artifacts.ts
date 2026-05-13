@@ -80,7 +80,7 @@ export interface MigrationResult {
  * @returns Summary of migration operation
  */
 export async function migrateSkillArtifacts(config: MigrationConfig): Promise<MigrationResult> {
-  const { pool, store, dryRun = false, batchSize = 100, onProgress } = config;
+  const { pool, store, dryRun = false, onProgress } = config;
 
   const startTime = Date.now();
   const result: MigrationResult = {

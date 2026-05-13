@@ -24,7 +24,7 @@ export const adminBoundarySearchRoutes: FastifyPluginAsync = async (app) => {
    * Find knowledge entries matching boundary constraints.
    * Requires system admin authentication.
    */
-  app.post('/admin/boundary-search', async (request, reply) => {
+  app.post('/admin/boundary-search', async (request, _reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
 
     // Require system admin

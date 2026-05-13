@@ -24,7 +24,6 @@ import type {
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import type {
   GraphIndexDocumentRecord,
-  GraphNodeRecord,
 } from '../indexing/graph-lite/documents.js';
 import type { Graph } from '../indexing/graph-lite/graphology.js';
 import { buildLocalExpansionView } from '../indexing/graph-lite/graphology.js';
@@ -32,7 +31,7 @@ import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 import { isArtifactGovernanceEligible, rankCapsules } from './capsule-recall.js';
 import { filterEligibleEntries } from './filters.js';
 import { parseSeedIntent } from './intent.js';
-import type { CapsuleCandidate, ParsedIntent } from './types.js';
+import type { CapsuleCandidate } from './types.js';
 
 // Constants
 const DEFAULT_SKILL_BUDGET = 3;
@@ -218,7 +217,7 @@ function findBlockingTraps(
   const trapNodeIds = new Set<string>();
 
   // Find all trap nodes with risk-blocks edges
-  graph.forEachEdge((edgeKey, attributes, sourceNodeId, targetNodeId) => {
+  graph.forEachEdge((_edgeKey, attributes, sourceNodeId, _targetNodeId) => {
     if (attributes.relationType === 'risk-blocks') {
       // The source of risk-blocks is the trap that blocks execution
       trapNodeIds.add(sourceNodeId);
@@ -255,7 +254,7 @@ function findBlockingTraps(
 
     // Determine severity from risk-blocks edges
     let severity: 'hard' | 'soft' = 'soft';
-    graph.forEachEdge(nodeId, (edgeKey, attributes) => {
+    graph.forEachEdge(nodeId, (_edgeKey, attributes) => {
       if (attributes.relationType === 'risk-blocks' && attributes.strength === 'hard') {
         severity = 'hard';
       }
@@ -291,7 +290,7 @@ function findMitigatingSkills(graph: Graph, trapNodeIds: string[]): string[] {
   const mitigatingSkillIds = new Set<string>();
 
   for (const trapNodeId of trapNodeIds) {
-    graph.forEachEdge((edgeKey, attributes, sourceNodeId, targetNodeId) => {
+    graph.forEachEdge((_edgeKey, attributes, sourceNodeId, targetNodeId) => {
       if (attributes.relationType === 'mitigates' && targetNodeId === trapNodeId) {
         const sourceAttrs = graph.getNodeAttributes(sourceNodeId);
         if (sourceAttrs.kind === 'skill') {
@@ -313,7 +312,7 @@ function applySkillBudget(
   artifacts: SkillArtifactRecord[],
   mitigatingSkillNodeIds: string[],
   budget: number,
-  graph: Graph,
+  _graph: Graph,
   graphDocs: GraphIndexDocumentRecord[],
 ): PlanSkillNode[] {
   if (skillCandidates.length === 0) {

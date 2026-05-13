@@ -3,7 +3,7 @@
  * Used for fingerprint computation and duplicate detection.
  */
 
-import type { AnalysisSnapshot, DuplicateCase, DuplicateMatch } from '@trapmap/contracts';
+import type { AnalysisSnapshot, DuplicateCase } from '@trapmap/contracts';
 import type { DerivedSkillProfileRecord, KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 
 /**

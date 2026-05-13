@@ -257,7 +257,7 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/duplicates/:candidateId - Get duplicate case for a specific candidate
   app.get('/v1/duplicates/:candidateId', async (request) => {
-    const auth = await resolveAuthContext(app.skillShareer, request);
+    await resolveAuthContext(app.skillShareer, request);
     const candidateId = (request.params as { candidateId: string }).candidateId;
 
     const { duplicate: duplicateRepo } = app.skillShareer.repos;

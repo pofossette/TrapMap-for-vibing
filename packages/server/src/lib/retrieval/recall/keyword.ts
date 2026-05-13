@@ -97,7 +97,7 @@ function tokenizeEntry(entry: KnowledgeRecord): {
  */
 function scoreEntry(
   queryTokens: string[],
-  entry: KnowledgeRecord,
+  _entry: KnowledgeRecord,
   entryTokens: {
     shortcut: Set<string>;
     detail: Set<string>;

@@ -14,7 +14,7 @@ export const evidenceRoutes: FastifyPluginAsync = async (app) => {
   app.patch<{
     Params: { id: string };
     Body: { sourceType?: string; sourceRef?: string; evidenceLevel?: string };
-  }>('/v1/knowledge/:id/evidence', async (request, reply) => {
+  }>('/v1/knowledge/:id/evidence', async (request, _reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:review');
 

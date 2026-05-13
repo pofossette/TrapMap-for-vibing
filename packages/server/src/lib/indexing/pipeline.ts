@@ -125,7 +125,7 @@ export async function syncKnowledgeIndex(
   entryId: string,
   registry: AdapterRegistry,
 ): Promise<void> {
-  const { store, data } = services;
+  const { store: _store, data } = services;
   const entry = data.knowledgeEntries.find((e) => e.id === entryId);
 
   if (!entry) {

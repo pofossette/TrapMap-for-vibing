@@ -25,7 +25,7 @@ export const adminBenchmarkRoutes: FastifyPluginAsync = async (app) => {
    * Returns per-step latency breakdown and memory usage.
    * Requires system admin authentication.
    */
-  app.post('/admin/benchmark', async (request, reply) => {
+  app.post('/admin/benchmark', async (request, _reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
 
     if (auth.subjectType !== 'system-admin') {
@@ -46,7 +46,7 @@ export const adminBenchmarkRoutes: FastifyPluginAsync = async (app) => {
    * List predefined benchmark scenarios.
    * Requires system admin authentication.
    */
-  app.get('/admin/benchmark/scenarios', async (request, reply) => {
+  app.get('/admin/benchmark/scenarios', async (request, _reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
 
     if (auth.subjectType !== 'system-admin') {

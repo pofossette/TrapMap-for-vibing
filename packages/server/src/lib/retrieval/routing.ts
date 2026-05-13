@@ -64,7 +64,7 @@ function getV1ChannelsPlanned(mode: string): RoutingChannel[] {
  * @param seed - The raw seed text (used for deterministic auto-routing)
  * @returns RoutingDecision with selected strategy and trace metadata
  */
-export function selectRetrievalStrategy(requestedMode: string, seed: string): RetrievalDecision {
+export function selectRetrievalStrategy(requestedMode: string, _seed: string): RetrievalDecision {
   // v1 always uses explicit mode - no auto-routing needed yet
   const strategy = V1_MODE_TO_STRATEGY[requestedMode] ?? 'local';
   const channelsPlanned = getV1ChannelsPlanned(requestedMode);
@@ -92,7 +92,7 @@ export function selectRetrievalStrategy(requestedMode: string, seed: string): Re
  * @param seed - The raw seed text (for future auto-routing extensions)
  * @returns RoutingDecision with selected strategy and trace metadata
  */
-export function selectRetrievalStrategyV2(seed: string): RetrievalDecision {
+export function selectRetrievalStrategyV2(_seed: string): RetrievalDecision {
   // v2 defaults to capsule-native retrieval
   const strategy: RetrievalStrategy = 'local';
   const routingReason: RoutingReason = 'v2-default-capsule';

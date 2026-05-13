@@ -27,7 +27,6 @@ import type {
   StoreData,
   StoredScriptActivationPolicy,
 } from '../store.js';
-import { nowIso } from '../store.js';
 import type { ArtifactRepository } from './repository.js';
 
 /**
@@ -509,7 +508,7 @@ export function toSkillArtifact(data: StoreData, record: ServerSkillArtifactReco
  * @returns Updated artifact record
  */
 export async function applyDerivedArtifactOutputs(
-  data: StoreData,
+  _data: StoreData,
   artifact: SkillArtifactRecord,
   revision: SkillArtifactRevisionRecord,
   derived: {

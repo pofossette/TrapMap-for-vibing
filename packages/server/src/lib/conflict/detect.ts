@@ -12,7 +12,7 @@
 
 import type { ConflictRelation, ConflictType } from '@trapmap/contracts';
 
-import type { KnowledgeRecord, SkillShareerStore, StoreData } from '../store.js';
+import type { SkillShareerStore, StoreData } from '../store.js';
 import { nowIso } from '../store.js';
 
 /** Minimum problem overlap to consider entries as addressing the same problem */

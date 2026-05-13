@@ -9,7 +9,6 @@
  */
 
 import type { Boundary, DecayMeta, EvidenceMeta, LifecycleState } from '@trapmap/contracts';
-import { and, eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
@@ -27,11 +26,10 @@ import type { KnowledgeRepository } from './repository.js';
  * Implements row-level locking for concurrent-safe updates.
  */
 export class PgKnowledgeRepository implements KnowledgeRepository {
-  private db: ReturnType<typeof drizzle>;
   private initialized = false;
 
   constructor(private readonly pool: Pool) {
-    this.db = drizzle(pool, {
+    drizzle(pool, {
       schema: { knowledgeEntries, knowledgeRevisions, lifecycleEvents },
     });
   }

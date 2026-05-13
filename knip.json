@@ -3,9 +3,22 @@
   "entry": [
     "packages/cli/src/index.ts",
     "packages/server/src/index.ts",
-    "packages/contracts/src/index.ts"
+    "packages/contracts/src/index.ts",
+    "evals/retrieval/run.ts",
+    "evals/summary/run.ts",
+    "scripts/bench-store.ts"
   ],
   "project": "tsconfig.json",
-  "ignore": ["dist/**", "node_modules/**", ".claude/**", "**/*.test.ts", "**/*.spec.ts"],
-  "ignoreDependencies": ["@biomejs/biome"]
+  "ignore": [
+    "dist/**",
+    "node_modules/**",
+    ".claude/**",
+    "coverage/**",
+    "reports/**",
+    "graphify-out/**",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ],
+  "ignoreDependencies": ["@biomejs/biome"],
+  "ignoreExportsUsedInFile": true
 }

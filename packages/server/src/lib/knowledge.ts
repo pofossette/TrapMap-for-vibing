@@ -4,8 +4,6 @@ import {
   type EvidenceMeta,
   type KnowledgeResubmission,
   type KnowledgeSubmission,
-  type KnowledgeUpdate,
-  type MaintenanceMeta,
   knowledgeEntrySchema,
   knowledgeListItemSchema,
 } from '@trapmap/contracts';
@@ -20,7 +18,6 @@ import type {
   KnowledgeReviewDecisionRecord,
   KnowledgeReviewNoteRecord,
   KnowledgeRevisionRecord,
-  MaintenanceMetaRecord,
   SkillShareerStore,
   StoreData,
 } from './store.js';

@@ -8,15 +8,9 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { supersedeEntry } from '../lib/decay/supersede.js';
 import { AppError } from '../lib/errors.js';
-import {
-  requireHigherLevel,
-  requirePermission,
-  requireTeamAccess,
-} from '../lib/governance/index.js';
-import { runKnowledgeIndexEvent } from '../lib/indexing/events.js';
+import { requirePermission } from '../lib/rbac.js';
 import {
   createKnowledgeEntryRecord,
-  createKnowledgeRevision,
   resubmitKnowledgeEntry,
   toKnowledgeEntry,
 } from '../lib/knowledge.js';

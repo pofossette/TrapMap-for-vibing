@@ -1,9 +1,9 @@
 import path from 'node:path';
 import { z } from 'zod';
 
-import { type AiProviderConfig, loadAiProviderConfig } from './lib/ai/index.js';
-import { type RagLogConfig, loadRagLogConfig } from './lib/rag-log.js';
-import { type UserOpsLogConfig, loadUserOpsLogConfig } from './lib/user-ops-log.js';
+import { loadAiProviderConfig } from './lib/ai/index.js';
+import { loadRagLogConfig } from './lib/rag-log.js';
+import { loadUserOpsLogConfig } from './lib/user-ops-log.js';
 
 // =============================================================================
 // Zod Schemas for Configuration Validation
@@ -112,45 +112,4 @@ export function loadConfig(): ServerConfig {
   }
 
   return result.data;
-}
-
-/**
- * Load configuration for test environments with relaxed validation.
- * Provides sensible defaults for testing without requiring env vars.
- */
-export function loadTestConfig(): ServerConfig {
-  const userOpsLog: UserOpsLogConfig = {
-    enabled: false,
-    logDir: '.tmp/logs/user-ops',
-    maxFileSizeBytes: 10 * 1024 * 1024,
-    maxBackupFiles: 5,
-  };
-
-  const ragLog: RagLogConfig = {
-    enabled: false,
-    logDir: '.tmp/logs/rag',
-    maxFileSizeBytes: 10 * 1024 * 1024,
-    maxBackupFiles: 5,
-  };
-
-  const ai: AiProviderConfig = {
-    provider: 'fallback',
-    baseUrl: '',
-    apiKey: '',
-    chatModel: '',
-    embeddingModel: '',
-    isConfigured: false,
-    promptTemplateFile: null,
-  };
-
-  return {
-    dataFile: '.tmp/test-data/skill-shareer.json',
-    databaseUrl: null,
-    host: '127.0.0.1',
-    port: 4000,
-    systemAdminKey: null,
-    userOpsLog,
-    ragLog,
-    ai,
-  };
 }

@@ -194,14 +194,3 @@ export function createGraphChannel(graphIndexRepo: GraphIndexRepository): Recall
     },
   };
 }
-
-/**
- * @deprecated Use createGraphChannel(graphIndexRepo) instead.
- */
-export const graphChannel: RecallChannel = {
-  name: 'graph',
-  async recall(queryText: string, entries: KnowledgeRecord[]) {
-    const entriesMap = new Map(entries.map((e) => [e.id, e]));
-    return graphAssistedRecall(queryText, entriesMap);
-  },
-};

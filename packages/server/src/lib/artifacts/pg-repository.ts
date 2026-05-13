@@ -29,11 +29,10 @@ import type { ArtifactRepository } from './repository.js';
  * Implements row-level locking for concurrent-safe updates.
  */
 export class PgArtifactRepository implements ArtifactRepository {
-  private db: ReturnType<typeof drizzle>;
   private initialized = false;
 
   constructor(private readonly pool: Pool) {
-    this.db = drizzle(pool, {
+    drizzle(pool, {
       schema: { skillArtifacts },
     });
   }

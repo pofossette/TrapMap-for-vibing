@@ -26,11 +26,9 @@ import type {
   DerivedSkillCapsuleRecord,
   DerivedSkillProfileRecord,
   SkillArtifactDerivedRecord,
-  SkillArtifactFileRecord,
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
   SkillScriptDescriptorRecord,
-  StoreData,
 } from '../store.js';
 import { nowIso } from '../store.js';
 
@@ -129,7 +127,6 @@ function buildSkillProfile(
   // In a real implementation, this would parse SKILL.md frontmatter
   // and extract actual content. For now, we use placeholder values
   // that can be filled in during Phase 13 import work.
-  const skillMdFile = eligibleFiles.find((f) => f.source === 'SKILL.md');
   const referenceFiles = eligibleFiles.filter((f) => f.source === 'references/');
 
   // Placeholder content hash - will be computed from actual file contents
@@ -341,7 +338,6 @@ export function deriveSkillArtifactOutputs(
  * @returns Updated artifact record
  */
 export function applyDerivedArtifactOutputs(
-  data: StoreData,
   artifact: SkillArtifactRecord,
   revision: SkillArtifactRevisionRecord,
   derived: DerivedArtifactOutputs,

@@ -160,22 +160,6 @@ const HARD_TRIGGER_PHRASES = [
 ];
 
 /**
- * Soft mitigation phrases indicating optional suggestions.
- */
-const SOFT_MITIGATION_PHRASES = [
-  'could',
-  'can try',
-  'sometimes helps',
-  'may help',
-  'might help',
-  'optionally',
-  'suggested',
-  'recommended',
-  'try',
-  'consider',
-];
-
-/**
  * Normalize entity value for deduplication.
  */
 function normalizeValue(value: string): string {
@@ -404,7 +388,6 @@ function extractPrerequisiteNodes(document: NormalizedIndexDocument): GraphNode[
   // Look for prerequisite patterns
   const prereqPattern = /prerequisite[:\s]+([^.!\n]+)/gi;
   const requiresPattern = /requires?\s+([^.!\n]+)/gi;
-  const mustPattern = /must\s+(?:be\s+)?([^.!\n]+)/gi;
 
   let match: RegExpExecArray | null;
   // biome-ignore lint/suspicious/noAssignInExpressions: Standard regex exec pattern
@@ -447,8 +430,6 @@ function extractMitigationNodes(document: NormalizedIndexDocument): GraphNode[] 
   // Look for mitigation patterns
   const mitigatePattern = /(?:to\s+)?mitigate[,:\s]+([^.!\n]+)/gi;
   const fixPattern = /fix[:\s]+([^.!\n]+)/gi;
-  const solutionPattern = /solution[:\s]+([^.!\n]+)/gi;
-  const usePattern = /use\s+([^.!\n]+)/gi;
 
   let match: RegExpExecArray | null;
   // biome-ignore lint/suspicious/noAssignInExpressions: Standard regex exec pattern

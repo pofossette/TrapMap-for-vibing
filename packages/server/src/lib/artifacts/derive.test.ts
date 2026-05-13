@@ -400,6 +400,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
         artifact,
         revision,
         derived,
+        undefined,
       );
 
       // Verify derived outputs are cached on latestRevision
@@ -422,6 +423,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
         artifact,
         revision,
         derived,
+        undefined,
       );
 
       // Source hash should be preserved
@@ -445,6 +447,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
         artifact,
         revision,
         derived,
+        undefined,
       );
 
       // Capsules should inherit artifact governance
