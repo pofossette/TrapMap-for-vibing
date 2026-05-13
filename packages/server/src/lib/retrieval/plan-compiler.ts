@@ -28,7 +28,6 @@ import type {
 } from '../indexing/graph-lite/documents.js';
 import type { Graph } from '../indexing/graph-lite/graphology.js';
 import { buildLocalExpansionView } from '../indexing/graph-lite/graphology.js';
-import { getGraphIndexDocuments } from '../indexing/graph-lite/store.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 import { isArtifactGovernanceEligible, rankCapsules } from './capsule-recall.js';
 import { filterEligibleEntries } from './filters.js';
@@ -91,7 +90,7 @@ export async function compileTrapFirstPlan(
   );
 
   // 5. Load graph documents
-  const graphDocs = getGraphIndexDocuments(data);
+  const graphDocs = await services.repos.graphIndex.listAll();
 
   // 6. Build seed node IDs from candidates
   const seedNodeIds = extractSeedNodeIds(trapCandidates, skillCandidates, graphDocs);

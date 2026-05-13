@@ -42,9 +42,16 @@ export default defineConfig({
           },
         },
         resolve: {
-          alias: {
-            '@trapmap/contracts': resolve(__dirname, './packages/contracts/src/index.ts'),
-          },
+          alias: [
+            {
+              find: /^@trapmap\/contracts\/evals$/,
+              replacement: resolve(__dirname, './packages/contracts/src/domain/evals/index.ts'),
+            },
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+          ],
         },
       },
       {
@@ -66,9 +73,16 @@ export default defineConfig({
           },
         },
         resolve: {
-          alias: {
-            '@trapmap/contracts': resolve(__dirname, './packages/contracts/src/index.ts'),
-          },
+          alias: [
+            {
+              find: /^@trapmap\/contracts\/evals$/,
+              replacement: resolve(__dirname, './packages/contracts/src/domain/evals/index.ts'),
+            },
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+          ],
         },
       },
       {
@@ -90,9 +104,16 @@ export default defineConfig({
           },
         },
         resolve: {
-          alias: {
-            '@trapmap/contracts': resolve(__dirname, './packages/contracts/src/index.ts'),
-          },
+          alias: [
+            {
+              find: /^@trapmap\/contracts\/evals$/,
+              replacement: resolve(__dirname, './packages/contracts/src/domain/evals/index.ts'),
+            },
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+          ],
         },
       },
     ],

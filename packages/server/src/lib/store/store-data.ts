@@ -31,6 +31,7 @@ export interface StoreData {
   artifactFilePayloads: ArtifactFilePayloadRecord[];
   /** @deprecated Phase 61: Use candidates table via CandidateRepository. */
   candidateSubmissions: CandidateSubmissionRecord[];
+  /** @deprecated Phase 100-02: Use DuplicateRepository via repos.duplicate. */
   duplicateCases: DuplicateCaseRecord[];
   entityLineage: EntityLineageRecord[];
   graphIndexDocuments: GraphIndexDocumentRecord[];

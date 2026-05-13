@@ -13,7 +13,7 @@ import {
   type SummaryEvalEndpoint,
   type SummaryEvalTier,
   summaryEvalCaseSchema,
-} from '@trapmap/contracts';
+} from '@trapmap/contracts/evals';
 
 import { summaryCoreCases } from '../core.js';
 import { summaryCoreScenariosMap } from '../scenarios/core/summary-core-scenarios.js';

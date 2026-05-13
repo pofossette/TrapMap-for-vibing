@@ -163,6 +163,7 @@ export function getRetryableCandidates(data: StoreData): CandidateSubmission[] {
 
 /**
  * Get duplicate case by candidate ID.
+ * @deprecated Zero production callers. Use DuplicateRepository.listByCandidate() instead.
  */
 export function getDuplicateCaseByCandidateId(
   data: StoreData,
@@ -173,6 +174,7 @@ export function getDuplicateCaseByCandidateId(
 
 /**
  * Get all duplicate cases.
+ * @deprecated Zero production callers. Use DuplicateRepository.listAll() instead.
  */
 export function getAllDuplicateCases(data: StoreData): DuplicateCase[] {
   return data.duplicateCases;

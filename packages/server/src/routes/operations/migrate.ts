@@ -5,7 +5,7 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { deriveSkillArtifactOutputs } from '../../lib/artifacts/derive.js';
+import { deriveFromPayloads, deriveSkillArtifactOutputs } from '../../lib/artifacts/derive.js';
 import { createSkillArtifactRecord } from '../../lib/artifacts/model.js';
 import { applyDerivedArtifactOutputs } from '../../lib/artifacts/model.js';
 import { createAuditEvent } from '../../lib/audit.js';
@@ -172,7 +172,17 @@ export const migrateRoutes: FastifyPluginAsync = async (app) => {
           data.artifactFilePayloads.push(...normalized.filePayloads);
 
           // Derive outputs immediately after persistence
-          const derived = deriveSkillArtifactOutputs(artifact, artifact.latestRevision);
+          // Prefer deriveFromPayloads for retrieval-grade results; fallback to legacy
+          const derived =
+            normalized.filePayloads.length > 0
+              ? deriveFromPayloads(normalized.filePayloads, {
+                  artifactId: artifact.id,
+                  labels: artifact.labels,
+                  title: artifact.title,
+                  scope: artifact.scope,
+                  requiredLevel: artifact.requiredLevel,
+                })
+              : deriveSkillArtifactOutputs(artifact, artifact.latestRevision);
           await applyDerivedArtifactOutputs(
             data,
             artifact,

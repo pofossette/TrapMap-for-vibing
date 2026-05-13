@@ -32,7 +32,11 @@
     "eval:ci:core": "TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts",
     "download:skills": "pnpm exec tsx scripts/batch-download-skills.ts",
     "download:skills:dry": "pnpm exec tsx scripts/batch-download-skills.ts --dry-run --verbose",
-    "test:import-export": "pnpm exec tsx scripts/test-skill-import-export.ts"
+    "test:import-export": "pnpm exec tsx scripts/test-skill-import-export.ts",
+    "bench:store": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/bench-store.ts",
+    "rag:analyze": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/rag-analyze.ts",
+    "deploy": "bash scripts/deploy.sh",
+    "deploy:quick": "bash scripts/deploy-quick.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

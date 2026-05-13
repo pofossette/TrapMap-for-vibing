@@ -6,6 +6,7 @@
  * These types support the execution substrate, normalization, and reporting.
  */
 
+import type { RetrievalStrategy, RoutingReason } from '@trapmap/contracts';
 import type {
   CohortKey,
   CohortSummary,
@@ -14,10 +15,8 @@ import type {
   RetrievalEvalCase,
   RetrievalEvalEndpoint,
   RetrievalEvalTier,
-  RetrievalStrategy,
   RoutingDistribution,
-  RoutingReason,
-} from '@trapmap/contracts';
+} from '@trapmap/contracts/evals';
 
 // =============================================================================
 // Execution Metadata Types

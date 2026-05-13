@@ -17,7 +17,7 @@ import {
   type RetrievalEvalCase,
   type RetrievalEvalTier,
   retrievalEvalCaseSchema,
-} from '@trapmap/contracts';
+} from '@trapmap/contracts/evals';
 
 import { coreCases } from './core.js';
 // Import tier datasets

@@ -21,7 +21,7 @@ import {
   type SummaryEvalEndpoint,
   type SummaryEvalTier,
   summaryEvalCaseSchema,
-} from '@trapmap/contracts';
+} from '@trapmap/contracts/evals';
 
 import { summaryCoreCases } from './core.js';
 // Import tier datasets

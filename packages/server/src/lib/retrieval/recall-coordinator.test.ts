@@ -322,7 +322,7 @@ describe('dispatchByMode', () => {
       channelRegistry,
     );
 
-    expect(graphRecall).toHaveBeenCalledWith('test query', expect.any(Map));
+    expect(graphRecall).toHaveBeenCalledWith('test query', expect.any(Map), undefined);
     expect(result.scoredEntries).toBeDefined();
   });
 
@@ -551,7 +551,7 @@ describe('graphAssistedRecall', () => {
 
     expect(getQueryEmbedding).toHaveBeenCalled();
     expect(keywordRecall).toHaveBeenCalledWith('test query', [entry]);
-    expect(graphRecall).toHaveBeenCalledWith('test query', expect.any(Map));
+    expect(graphRecall).toHaveBeenCalledWith('test query', expect.any(Map), undefined);
   });
 
   it('returns scored entries sorted by final score', async () => {

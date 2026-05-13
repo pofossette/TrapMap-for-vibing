@@ -12,6 +12,7 @@ import { registerMaintenanceCommands } from './commands/maintenance.js';
 import { registerMemberCommands } from './commands/member.js';
 import { registerOperationsCommands } from './commands/operations.js';
 import { registerOutputProfileCommands } from './commands/output-profile.js';
+import { registerPolicyCommands } from './commands/policy.js';
 import { registerRetrievalCommands } from './commands/retrieval.js';
 import { registerReviewCommands } from './commands/review.js';
 import { registerSkillCommands } from './commands/skill.js';
@@ -169,5 +170,6 @@ registerFeedbackCommands(program, {
   allowSubmit: visibility.allowFeedbackSubmit,
 });
 registerFeedbackAdminCommands(program, { allowManage: visibility.allowFeedbackManage });
+registerPolicyCommands(program, { allowSearch: visibility.allowKnowledgeSearch });
 
 program.parseAsync(process.argv).catch(printError);

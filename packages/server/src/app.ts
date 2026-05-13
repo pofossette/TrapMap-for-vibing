@@ -37,7 +37,7 @@ import {
   hybridRecall,
   semanticRecall,
 } from './lib/retrieval/recall-coordinator.js';
-import { graphChannel } from './lib/retrieval/recall/graph-assisted.js';
+import { createGraphChannel } from './lib/retrieval/recall/graph-assisted.js';
 import { keywordChannel } from './lib/retrieval/recall/keyword.js';
 import { semanticChannel } from './lib/retrieval/recall/semantic.js';
 import type { RetrievalStrategy } from './lib/retrieval/strategy-registry.js';
@@ -45,6 +45,7 @@ import { StrategyRegistry } from './lib/retrieval/strategy-registry.js';
 import { createMembershipRepository, createTeamRepository } from './lib/teams/index.js';
 import { createUserRepository } from './lib/users/index.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
+import { adminBenchmarkRoutes } from './routes/admin-benchmark.js';
 import { adminBoundarySearchRoutes } from './routes/admin-boundary-search.js';
 import { authRoutes } from './routes/auth.js';
 import { candidateRoutes } from './routes/candidates.js';
@@ -181,7 +182,7 @@ export function buildServer(options: BuildServerOptions = {}) {
       const cr = new ChannelRegistry();
       cr.register(semanticChannel);
       cr.register(keywordChannel);
-      cr.register(graphChannel);
+      // graph channel registered in onReady hook (needs repos)
       return cr;
     })(),
     strategyRegistry: (() => {
@@ -200,8 +201,13 @@ export function buildServer(options: BuildServerOptions = {}) {
       };
       const graphAssistedStrategy: RetrievalStrategy = {
         version: 'graph-assisted',
-        async execute(query, _channels, eligibleEntries) {
-          return graphAssistedRecall(query.seed, eligibleEntries, query);
+        async execute(query, _channels, eligibleEntries, services) {
+          return graphAssistedRecall(
+            query.seed,
+            eligibleEntries,
+            query,
+            services?.repos.graphIndex,
+          );
         },
       };
       sr.register(semanticStrategy);
@@ -249,6 +255,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.register(maintenanceRoutes);
   app.register(feedbackRoutes);
   app.register(feedbackAdminRoutes);
+  app.register(adminBenchmarkRoutes);
   app.register(adminBoundarySearchRoutes);
 
   // Recovery: Reprocess interrupted candidates on startup
@@ -385,6 +392,11 @@ export function buildServer(options: BuildServerOptions = {}) {
     } else {
       app.skillShareer.repos = await createAllRepos({ store });
     }
+
+    // Register graph channel now that repos are available
+    app.skillShareer.channelRegistry.register(
+      createGraphChannel(app.skillShareer.repos.graphIndex),
+    );
   });
 
   // Graph index reconciliation on startup (T-36-16)

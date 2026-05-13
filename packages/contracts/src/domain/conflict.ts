@@ -6,6 +6,7 @@ import { entityIdSchema, isoTimestampSchema } from './common.js';
  * Conflict type enum for knowledge entry relationships.
  * Classifies how two entries with similar problems relate to each other.
  */
+/** @internal Schema not directly imported by server or CLI — type ConflictType IS used. */
 export const conflictTypeSchema = z.enum([
   'alternative', // Different valid approaches (e.g., REST vs GraphQL)
   'contradictory', // Directly opposing solutions (e.g., "use X" vs "avoid X")

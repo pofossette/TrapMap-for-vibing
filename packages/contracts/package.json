@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./evals": {
+      "types": "./dist/domain/evals/index.d.ts",
+      "import": "./dist/domain/evals/index.js"
     }
   },
   "scripts": {

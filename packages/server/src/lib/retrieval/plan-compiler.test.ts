@@ -331,6 +331,13 @@ function makeMockServices(storeData: Partial<StoreData> = {}): SkillShareerServi
         invoke: async () => '',
       },
     },
+    repos: {
+      graphIndex: {
+        async listAll() {
+          return data.graphIndexDocuments ?? [];
+        },
+      },
+    } as any,
   };
 }
 

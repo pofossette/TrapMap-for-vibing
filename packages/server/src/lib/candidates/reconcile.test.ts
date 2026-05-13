@@ -11,8 +11,10 @@
 
 import type { CandidateSubmission, ManualResultSubmission } from '@trapmap/contracts';
 import { describe, expect, it } from 'vitest';
+import type { LineageRepository } from '../lineage/index.js';
 import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '../store.js';
 import { JsonStore, type SkillShareerStore, nowIso } from '../store.js';
+import type { EntityLineageRecord } from '../store.js';
 import {
   REVALIDATION_ERRORS,
   getLineageByCandidate,
@@ -468,6 +470,27 @@ function createMockStore(): { store: SkillShareerStore; data: StoreData } {
   return { store, data };
 }
 
+function createMockLineageRepo(initial: EntityLineageRecord[] = []): LineageRepository {
+  const records = [...initial];
+  return {
+    async insert(lineage) {
+      records.push(lineage);
+    },
+    async getById(id) {
+      return records.find((r) => r.id === id) ?? null;
+    },
+    async listBySource(sourceType, sourceId) {
+      return records.filter((r) => r.sourceType === sourceType && r.sourceId === sourceId);
+    },
+    async listByTarget(targetType, targetId) {
+      return records.filter((r) => r.targetType === targetType && r.targetId === targetId);
+    },
+    async listByCandidate(candidateId) {
+      return records.filter((r) => r.candidateId === candidateId);
+    },
+  };
+}
+
 describe('publishTrapCandidate', () => {
   it('should create KnowledgeRecord with correct fields', () => {
     const { store, data } = createMockStore();
@@ -548,7 +571,7 @@ describe('publishTrapCandidate', () => {
     expect(data.knowledgeEntries.length).toBe(1);
   });
 
-  it('should push lineage to entityLineage', () => {
+  it('should return lineage but not push to data.entityLineage', () => {
     const { store, data } = createMockStore();
     const candidate = createTestCandidate();
     const resolvedAt = nowIso();
@@ -561,8 +584,8 @@ describe('publishTrapCandidate', () => {
       resolvedAt,
     });
 
-    expect(data.entityLineage).toContain(lineage);
-    expect(data.entityLineage.length).toBe(1);
+    expect(lineage).toBeDefined();
+    expect(data.entityLineage).not.toContain(lineage);
   });
 
   it('should throw when no trap payload', () => {
@@ -703,7 +726,7 @@ describe('publishSkillCandidate', () => {
     expect(data.skillArtifacts.length).toBe(1);
   });
 
-  it('should push lineage to entityLineage', () => {
+  it('should return lineage but not push to data.entityLineage', () => {
     const { store, data } = createMockStore();
     const candidate = createTestCandidate({
       sourceType: 'skill',
@@ -724,8 +747,8 @@ describe('publishSkillCandidate', () => {
       resolvedAt,
     });
 
-    expect(data.entityLineage).toContain(lineage);
-    expect(data.entityLineage.length).toBe(1);
+    expect(lineage).toBeDefined();
+    expect(data.entityLineage).not.toContain(lineage);
   });
 
   it('should throw when no skill payload', () => {
@@ -854,7 +877,7 @@ describe('recordMergeLineage', () => {
     expect(trap.detail).toBe(originalDetail);
   });
 
-  it('should push lineage to entityLineage', () => {
+  it('should return lineage but not push to data.entityLineage', () => {
     const { store, data } = createMockStore();
     const candidate = createTestCandidate();
     const trap = createTestTrap({ id: 'trap_1' });
@@ -872,130 +895,124 @@ describe('recordMergeLineage', () => {
       notes: 'Duplicate content',
     });
 
-    expect(data.entityLineage).toContain(lineage);
-    expect(data.entityLineage.length).toBe(1);
+    expect(lineage).toBeDefined();
+    expect(data.entityLineage).not.toContain(lineage);
   });
 });
 
 describe('getLineageByCandidate', () => {
-  it('should return lineage records for candidate', () => {
-    const data = createTestData({
-      entityLineage: [
-        {
-          id: 'lineage_1',
-          candidateId: 'candidate_1',
-          relationshipType: 'published_as',
-          sourceType: 'candidate',
-          sourceId: 'candidate_1',
-          targetType: 'trap',
-          targetId: 'trap_1',
-          createdAt: nowIso(),
-          notes: null,
-        },
-        {
-          id: 'lineage_2',
-          candidateId: 'candidate_2',
-          relationshipType: 'merged_into',
-          sourceType: 'candidate',
-          sourceId: 'candidate_2',
-          targetType: 'skill',
-          targetId: 'skill_1',
-          createdAt: nowIso(),
-          notes: null,
-        },
-      ],
-    });
+  it('should return lineage records for candidate', async () => {
+    const lineageRepo = createMockLineageRepo([
+      {
+        id: 'lineage_1',
+        candidateId: 'candidate_1',
+        relationshipType: 'published_as',
+        sourceType: 'candidate',
+        sourceId: 'candidate_1',
+        targetType: 'trap',
+        targetId: 'trap_1',
+        createdAt: nowIso(),
+        notes: null,
+      },
+      {
+        id: 'lineage_2',
+        candidateId: 'candidate_2',
+        relationshipType: 'merged_into',
+        sourceType: 'candidate',
+        sourceId: 'candidate_2',
+        targetType: 'skill',
+        targetId: 'skill_1',
+        createdAt: nowIso(),
+        notes: null,
+      },
+    ]);
 
-    const result = getLineageByCandidate(data, 'candidate_1');
+    const result = await getLineageByCandidate(lineageRepo, 'candidate_1');
     expect(result.length).toBe(1);
     expect(result[0].id).toBe('lineage_1');
   });
 
-  it('should return empty array when no lineage found', () => {
-    const data = createTestData();
-    const result = getLineageByCandidate(data, 'candidate_nonexistent');
+  it('should return empty array when no lineage found', async () => {
+    const lineageRepo = createMockLineageRepo();
+    const result = await getLineageByCandidate(lineageRepo, 'candidate_nonexistent');
     expect(result).toEqual([]);
   });
 });
 
 describe('getLineageByTarget', () => {
-  it('should return lineage records pointing to entity', () => {
-    const data = createTestData({
-      entityLineage: [
-        {
-          id: 'lineage_1',
-          candidateId: 'candidate_1',
-          relationshipType: 'merged_into',
-          sourceType: 'candidate',
-          sourceId: 'candidate_1',
-          targetType: 'trap',
-          targetId: 'trap_1',
-          createdAt: nowIso(),
-          notes: null,
-        },
-        {
-          id: 'lineage_2',
-          candidateId: 'candidate_2',
-          relationshipType: 'merged_into',
-          sourceType: 'candidate',
-          sourceId: 'candidate_2',
-          targetType: 'trap',
-          targetId: 'trap_1',
-          createdAt: nowIso(),
-          notes: null,
-        },
-        {
-          id: 'lineage_3',
-          candidateId: 'candidate_3',
-          relationshipType: 'merged_into',
-          sourceType: 'candidate',
-          sourceId: 'candidate_3',
-          targetType: 'skill',
-          targetId: 'skill_1',
-          createdAt: nowIso(),
-          notes: null,
-        },
-      ],
-    });
+  it('should return lineage records pointing to entity', async () => {
+    const lineageRepo = createMockLineageRepo([
+      {
+        id: 'lineage_1',
+        candidateId: 'candidate_1',
+        relationshipType: 'merged_into',
+        sourceType: 'candidate',
+        sourceId: 'candidate_1',
+        targetType: 'trap',
+        targetId: 'trap_1',
+        createdAt: nowIso(),
+        notes: null,
+      },
+      {
+        id: 'lineage_2',
+        candidateId: 'candidate_2',
+        relationshipType: 'merged_into',
+        sourceType: 'candidate',
+        sourceId: 'candidate_2',
+        targetType: 'trap',
+        targetId: 'trap_1',
+        createdAt: nowIso(),
+        notes: null,
+      },
+      {
+        id: 'lineage_3',
+        candidateId: 'candidate_3',
+        relationshipType: 'merged_into',
+        sourceType: 'candidate',
+        sourceId: 'candidate_3',
+        targetType: 'skill',
+        targetId: 'skill_1',
+        createdAt: nowIso(),
+        notes: null,
+      },
+    ]);
 
-    const result = getLineageByTarget(data, 'trap_1', 'trap');
+    const result = await getLineageByTarget(lineageRepo, 'trap_1', 'trap');
     expect(result.length).toBe(2);
     expect(result.every((l) => l.targetId === 'trap_1' && l.targetType === 'trap')).toBe(true);
   });
 
-  it('should return empty array when no lineage found', () => {
-    const data = createTestData();
-    const result = getLineageByTarget(data, 'trap_nonexistent', 'trap');
+  it('should return empty array when no lineage found', async () => {
+    const lineageRepo = createMockLineageRepo();
+    const result = await getLineageByTarget(lineageRepo, 'trap_nonexistent', 'trap');
     expect(result).toEqual([]);
   });
 });
 
 describe('getLineageById', () => {
-  it('should return correct lineage record', () => {
-    const data = createTestData({
-      entityLineage: [
-        {
-          id: 'lineage_1',
-          candidateId: 'candidate_1',
-          relationshipType: 'published_as',
-          sourceType: 'candidate',
-          sourceId: 'candidate_1',
-          targetType: 'trap',
-          targetId: 'trap_1',
-          createdAt: nowIso(),
-          notes: null,
-        },
-      ],
-    });
+  it('should return correct lineage record', async () => {
+    const lineageRepo = createMockLineageRepo([
+      {
+        id: 'lineage_1',
+        candidateId: 'candidate_1',
+        relationshipType: 'published_as',
+        sourceType: 'candidate',
+        sourceId: 'candidate_1',
+        targetType: 'trap',
+        targetId: 'trap_1',
+        createdAt: nowIso(),
+        notes: null,
+      },
+    ]);
 
-    const result = getLineageById(data, 'lineage_1');
+    const result = await getLineageById(lineageRepo, 'lineage_1');
     expect(result).not.toBeNull();
     expect(result?.id).toBe('lineage_1');
   });
 
-  it('should return null for non-existent ID', () => {
-    const data = createTestData();
-    const result = getLineageById(data, 'lineage_nonexistent');
+  it('should return null for non-existent ID', async () => {
+    const lineageRepo = createMockLineageRepo();
+    const result = await getLineageById(lineageRepo, 'lineage_nonexistent');
     expect(result).toBeNull();
   });
 });

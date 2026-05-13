@@ -3,6 +3,7 @@ import { extname } from 'node:path';
 import matter from 'gray-matter';
 import mime from 'mime-types';
 
+/** @internal Not directly imported by server or CLI — used internally by parseMarkdownFrontmatter. */
 export interface ParsedMarkdownFrontmatter {
   data: Record<string, unknown>;
   body: string;
@@ -20,6 +21,7 @@ export interface FeedbackPrompt {
   required: boolean;
 }
 
+/** @internal Not directly imported by server or CLI — used internally by parseSkillMarkdown. */
 export interface ParsedSkillMarkdown {
   name: string | null;
   title: string | null;
@@ -59,6 +61,7 @@ const BASENAME_MEDIA_TYPES: Record<string, string> = {
   dockerfile: 'text/x-dockerfile',
 };
 
+/** @internal Not directly imported by server or CLI — used internally by parseSkillMarkdown. */
 export function parseMarkdownFrontmatter(content: string): ParsedMarkdownFrontmatter {
   const hasFrontmatter = /^---(?:\r?\n)/.test(content);
 

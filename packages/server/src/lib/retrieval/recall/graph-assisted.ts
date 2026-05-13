@@ -17,15 +17,14 @@
  * entries can never appear in results.
  */
 
-import { getCachedGraphIndexDocuments } from '../../indexing/adapters/graph.js';
+import type { GraphIndexRepository } from '../../graph-index/repository.js';
 import {
   buildGraphRuntimeSnapshot,
   calculateSourceRelationStrength,
   expandSourcesOneHop,
 } from '../../indexing/graph-lite/graphology.js';
-import { getGraphIndexDocuments } from '../../indexing/graph-lite/store.js';
 import type { NormalizedIndexDocument } from '../../indexing/types.js';
-import type { KnowledgeRecord, StoreData } from '../../store.js';
+import type { KnowledgeRecord } from '../../store.js';
 import type { RecallChannel } from '../channel-registry.js';
 import { extractGraphEntities } from '../graph-extract.js';
 import type { RecallCandidate } from '../types.js';
@@ -120,7 +119,7 @@ function extractQueryEntities(queryText: string): Set<string> {
 }
 
 interface GraphAssistedRecallConfig extends GraphScoringConfig {
-  dataSnapshot?: StoreData;
+  graphIndexRepo?: GraphIndexRepository;
 }
 
 export async function graphAssistedRecall(
@@ -137,9 +136,9 @@ export async function graphAssistedRecall(
   }
 
   const graphConfig = config as GraphAssistedRecallConfig | undefined;
-  const graphDocuments = graphConfig?.dataSnapshot
-    ? getGraphIndexDocuments(graphConfig.dataSnapshot)
-    : getCachedGraphIndexDocuments();
+  const graphDocuments = graphConfig?.graphIndexRepo
+    ? await graphConfig.graphIndexRepo.listAll()
+    : [];
 
   const queryEntities = extractQueryEntities(queryText);
   if (queryEntities.size === 0) {
@@ -184,8 +183,20 @@ export async function graphAssistedRecall(
 }
 
 /**
- * Graph-assisted recall channel implementation.
- * Wraps graphAssistedRecall as a RecallChannel.
+ * Create a graph-assisted recall channel backed by a GraphIndexRepository.
+ */
+export function createGraphChannel(graphIndexRepo: GraphIndexRepository): RecallChannel {
+  return {
+    name: 'graph',
+    async recall(queryText: string, entries: KnowledgeRecord[]) {
+      const entriesMap = new Map(entries.map((e) => [e.id, e]));
+      return graphAssistedRecall(queryText, entriesMap, { graphIndexRepo });
+    },
+  };
+}
+
+/**
+ * @deprecated Use createGraphChannel(graphIndexRepo) instead.
  */
 export const graphChannel: RecallChannel = {
   name: 'graph',

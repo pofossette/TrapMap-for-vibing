@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { clearGraphCache, setCachedGraphIndexDocuments } from '../../indexing/adapters/graph.js';
+import type { GraphIndexRepository } from '../../graph-index/repository.js';
 import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
@@ -8,6 +8,14 @@ import type {
 } from '../../indexing/graph-lite/documents.js';
 import type { KnowledgeRecord } from '../../store.js';
 import { graphAssistedRecall } from './graph-assisted.js';
+
+function createMockGraphIndexRepo(docs: GraphIndexDocumentRecord[] = []): GraphIndexRepository {
+  return {
+    async listAll() {
+      return docs;
+    },
+  } as GraphIndexRepository;
+}
 
 function createMockEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord {
   return {
@@ -102,10 +110,6 @@ function makeDoc(
 }
 
 describe('graph-assisted recall', () => {
-  beforeEach(() => {
-    clearGraphCache();
-  });
-
   it('returns direct graph matches for query entities', async () => {
     const entry = createMockEntry({
       id: 'entry-1',
@@ -115,7 +119,7 @@ describe('graph-assisted recall', () => {
     });
     const eligibleEntries = new Map([[entry.id, entry]]);
 
-    setCachedGraphIndexDocuments([
+    const graphIndexRepo = createMockGraphIndexRepo([
       makeDoc(
         'doc-1',
         'entry-1',
@@ -127,7 +131,9 @@ describe('graph-assisted recall', () => {
       ),
     ]);
 
-    const candidates = await graphAssistedRecall('docker timeout', eligibleEntries);
+    const candidates = await graphAssistedRecall('docker timeout', eligibleEntries, {
+      graphIndexRepo,
+    });
 
     expect(candidates).toHaveLength(1);
     expect(candidates[0]?.entry.id).toBe('entry-1');
@@ -160,7 +166,7 @@ describe('graph-assisted recall', () => {
       [relatedEntry.id, relatedEntry],
     ]);
 
-    setCachedGraphIndexDocuments([
+    const graphIndexRepo = createMockGraphIndexRepo([
       makeDoc(
         'doc-1',
         'entry-1',
@@ -193,7 +199,9 @@ describe('graph-assisted recall', () => {
       ),
     ]);
 
-    const candidates = await graphAssistedRecall('docker', eligibleEntries);
+    const candidates = await graphAssistedRecall('docker', eligibleEntries, {
+      graphIndexRepo,
+    });
     const ids = candidates.map((candidate) => candidate.entry.id);
 
     expect(ids).toContain('entry-1');
@@ -220,7 +228,7 @@ describe('graph-assisted recall', () => {
       [relationOnlyEntry.id, relationOnlyEntry],
     ]);
 
-    setCachedGraphIndexDocuments([
+    const graphIndexRepo = createMockGraphIndexRepo([
       makeDoc(
         'doc-1',
         'entry-1',
@@ -250,7 +258,9 @@ describe('graph-assisted recall', () => {
       ),
     ]);
 
-    const candidates = await graphAssistedRecall('docker', eligibleEntries);
+    const candidates = await graphAssistedRecall('docker', eligibleEntries, {
+      graphIndexRepo,
+    });
 
     expect(candidates).toHaveLength(2);
     expect(candidates[0]?.entry.id).toBe('entry-1');
@@ -258,12 +268,10 @@ describe('graph-assisted recall', () => {
   });
 
   it('returns empty results for empty queries or empty eligible sets', async () => {
-    setCachedGraphIndexDocuments([]);
-
     await expect(graphAssistedRecall('', new Map())).resolves.toEqual([]);
     await expect(
       graphAssistedRecall('docker', new Map(), {
-        dataSnapshot: { graphIndexDocuments: [] } as never,
+        graphIndexRepo: { listAll: async () => [] } as never,
       }),
     ).resolves.toEqual([]);
   });

@@ -19,6 +19,8 @@ import path from 'node:path';
 
 import { type PromptBlock, buildSystemPromptBlocks } from './cache/api-integration.js';
 import { CACHE_BOUNDARY_MARKER } from './cache/boundary-marker.js';
+import { getCachedSection } from './cache/section-cache.js';
+import { getDynamicInjections, injectDynamicContent } from './dynamic/index.js';
 import { loadProviderTemplate, resolveProvider, selectProvider } from './providers/index.js';
 import { renderJsonTemplate } from './providers/json-renderer.js';
 import type {
@@ -278,7 +280,10 @@ export function buildPrompt(
   const overrides = loadPromptTemplateOverrides(templateFile);
   const mergedSlots = normalizeSlots(mergeSlots(slots, overrides[taskType]));
 
-  return renderWithTemplate(template, provider.format, mergedSlots);
+  const rendered = renderWithTemplate(template, provider.format, mergedSlots);
+  const injections = getDynamicInjections(taskType);
+  const { injected } = injectDynamicContent(rendered, injections);
+  return injected;
 }
 
 /**
@@ -312,6 +317,7 @@ export function buildPromptWithCacheControl(
   const sections = classifySlotsIntoSections(mergedSlots, staticSections, dynamicSections);
 
   // Insert boundary marker: append a marker section between static and dynamic
+  const injections = getDynamicInjections(taskType);
   const result: CacheSection[] = [];
   let boundaryInserted = false;
 
@@ -325,7 +331,18 @@ export function buildPromptWithCacheControl(
       });
       boundaryInserted = true;
     }
-    result.push(section);
+
+    if (section.cacheScope === 'global') {
+      // Static sections: wrap with LRU section cache for global reuse
+      result.push({
+        ...section,
+        content: getCachedSection(`${taskType}:${section.name}`, () => section.content),
+      });
+    } else {
+      // Dynamic sections: resolve runtime placeholders
+      const { injected } = injectDynamicContent(section.content, injections);
+      result.push({ ...section, content: injected });
+    }
   }
 
   return result;

@@ -8,7 +8,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { RetrievalEvalCase } from '@trapmap/contracts';
+import type { RetrievalEvalCase } from '@trapmap/contracts/evals';
 import { closeExecutionContext, createExecutionContext, executeCase } from './lib/adapters.js';
 import { evaluateGovernance } from './lib/governance.js';
 import { filterByEndpoint, loadCases } from './lib/load.js';

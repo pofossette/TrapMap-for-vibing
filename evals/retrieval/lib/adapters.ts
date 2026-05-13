@@ -8,7 +8,8 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import type { RetrievalEvalCase, RetrievalQuery, RetrievalV2Query } from '@trapmap/contracts';
+import type { RetrievalQuery, RetrievalV2Query } from '@trapmap/contracts';
+import type { RetrievalEvalCase } from '@trapmap/contracts/evals';
 import { buildServer } from '../../../packages/server/src/app.js';
 import type { GraphIndexDocumentRecord } from '../../../packages/server/src/lib/indexing/graph-lite/documents.js';
 import { createKnowledgeEntryRecord } from '../../../packages/server/src/lib/knowledge.js';

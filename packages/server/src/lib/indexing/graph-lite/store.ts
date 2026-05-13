@@ -15,6 +15,8 @@ type GraphDocumentStore = Pick<StoreData, 'graphIndexDocuments'>;
  * Upsert a graph document into the store.
  * Replaces any existing document with the same sourceType and sourceId.
  * This ensures only the latest revision is retained per source.
+ *
+ * @deprecated Use GraphIndexRepository.upsert() for new code.
  */
 export function upsertGraphIndexDocument(
   data: GraphDocumentStore,
@@ -34,6 +36,8 @@ export function upsertGraphIndexDocument(
  * Remove all graph documents for a given source.
  * Used during deactivation or when a source is no longer approved.
  * Does not affect documents from other sources.
+ *
+ * @deprecated Use GraphIndexRepository.removeBySource() for new code.
  */
 export function removeGraphIndexDocumentsForSource(
   data: GraphDocumentStore,
@@ -47,6 +51,8 @@ export function removeGraphIndexDocumentsForSource(
 
 /**
  * Get all graph documents from the store.
+ *
+ * @deprecated Use GraphIndexRepository.listAll() for new code.
  */
 export function getGraphIndexDocuments(data: GraphDocumentStore): GraphIndexDocumentRecord[] {
   return data.graphIndexDocuments ?? [];
@@ -54,6 +60,8 @@ export function getGraphIndexDocuments(data: GraphDocumentStore): GraphIndexDocu
 
 /**
  * Get graph documents for a specific source.
+ *
+ * @deprecated Use GraphIndexRepository.listBySource() for new code.
  */
 export function getGraphIndexDocumentsForSource(
   data: GraphDocumentStore,

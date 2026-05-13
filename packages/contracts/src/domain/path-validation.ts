@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 /**
  * Error codes for path validation failures.
+ * @internal Not directly imported by server or CLI — used internally by validateRelativePath.
  */
 export enum PathValidationError {
   ABSOLUTE_PATH = 'ABSOLUTE_PATH',
@@ -50,7 +51,7 @@ export function validateRelativePath(path: string): string {
  * Zod refinement for validating relative file paths.
  * Can be used in schema definitions for automatic path validation.
  */
-export const relativePathRefinement = (path: string): boolean => {
+const relativePathRefinement = (path: string): boolean => {
   try {
     validateRelativePath(path);
     return true;
@@ -62,6 +63,7 @@ export const relativePathRefinement = (path: string): boolean => {
 /**
  * Zod schema for canonical relative file paths.
  * Enforces security constraints at the schema boundary.
+ * @internal Not directly imported by server or CLI — composed into downstream schemas.
  */
 export const canonicalPathSchema = z.string().min(1).max(512).refine(relativePathRefinement, {
   message:

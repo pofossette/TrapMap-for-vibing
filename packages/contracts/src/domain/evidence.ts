@@ -6,6 +6,7 @@ import { actorRefSchema, isoTimestampSchema } from './common.js';
  * Source type vocabulary for knowledge provenance.
  * Intentionally small for v1 - expandable in future phases.
  */
+/** @internal Schema not directly imported by server or CLI — type EvidenceSourceType IS used. */
 export const evidenceSourceTypeSchema = z.enum([
   'internal-experience', // Team's own experience, not externally documented
   'incident', // Derived from incident postmortem or outage
@@ -46,6 +47,7 @@ export const evidenceMetaSchema = z.object({
  * Compact evidence hint for retrieval responses.
  * Excludes verbose fields (sourceRef, verifiedBy) for compact payload.
  */
+/** @internal Not directly imported by server or CLI. */
 export const evidenceHintSchema = z.object({
   /** Strength of evidence */
   evidenceLevel: evidenceLevelSchema,
@@ -58,4 +60,5 @@ export const evidenceHintSchema = z.object({
 export type EvidenceSourceType = z.infer<typeof evidenceSourceTypeSchema>;
 export type EvidenceLevel = z.infer<typeof evidenceLevelSchema>;
 export type EvidenceMeta = z.infer<typeof evidenceMetaSchema>;
+/** @internal */
 export type EvidenceHint = z.infer<typeof evidenceHintSchema>;

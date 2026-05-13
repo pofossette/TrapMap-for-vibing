@@ -50,6 +50,12 @@ export interface GraphIndexRepository {
    * Remove a graph index document by its ID.
    */
   remove(docId: string): Promise<void>;
+
+  /**
+   * Remove all graph index documents for a given source.
+   * Used during deactivation or when a source is no longer approved.
+   */
+  removeBySource(sourceType: 'trap' | 'skill', sourceId: string): Promise<void>;
 }
 
 /**
@@ -96,6 +102,14 @@ export class InMemoryGraphIndexRepository implements GraphIndexRepository {
   async remove(docId: string): Promise<void> {
     await this.store.transact((data) => {
       data.graphIndexDocuments = data.graphIndexDocuments.filter((d) => d.id !== docId);
+    });
+  }
+
+  async removeBySource(sourceType: 'trap' | 'skill', sourceId: string): Promise<void> {
+    await this.store.transact((data) => {
+      data.graphIndexDocuments = data.graphIndexDocuments.filter(
+        (d) => !(d.sourceType === sourceType && d.sourceId === sourceId),
+      );
     });
   }
 }

@@ -17,6 +17,7 @@
     "skipLibCheck": true,
     "paths": {
       "@trapmap/contracts": ["./packages/contracts/src/index.ts"],
+      "@trapmap/contracts/evals": ["./packages/contracts/src/domain/evals/index.ts"],
       "@trapmap/contracts/*": ["./packages/contracts/src/*"]
     }
   }

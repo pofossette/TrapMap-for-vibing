@@ -5,7 +5,7 @@
  * (`/v3/retrieval/search`).
  */
 
-import { type RetrievalEvalCase, retrievalEvalCaseSchema } from '@trapmap/contracts';
+import { type RetrievalEvalCase, retrievalEvalCaseSchema } from '@trapmap/contracts/evals';
 
 export const v3GraphPlanSelectedCore = retrievalEvalCaseSchema.parse({
   schemaVersion: 1,

@@ -4,6 +4,7 @@ import type {
   ResolutionOutcome,
 } from '@trapmap/contracts';
 import type { ResolvedAuthContext } from '../context.js';
+import type { LineageRepository } from '../lineage/index.js';
 import type {
   EntityLineageRecord,
   KnowledgeRecord,
@@ -294,8 +295,7 @@ export function publishTrapCandidate(args: {
     notes: 'Published as independent trap after duplicate resolution',
   };
 
-  args.data.entityLineage.push(lineage);
-
+  // Lineage is returned for the caller to flush via LineageRepository.
   return { entry, lineage };
 }
 
@@ -412,8 +412,7 @@ export function publishSkillCandidate(args: {
     notes: 'Published as independent skill after duplicate resolution',
   };
 
-  args.data.entityLineage.push(lineage);
-
+  // Lineage is returned for the caller to flush via LineageRepository.
   return { artifact, lineage };
 }
 
@@ -446,7 +445,7 @@ export function recordMergeLineage(args: {
     notes: args.notes,
   };
 
-  args.data.entityLineage.push(lineage);
+  // Lineage is returned for the caller to flush via LineageRepository.
 
   // Optionally add a review note to the existing entity (non-destructive)
   if (args.existingEntityType === 'trap') {
@@ -481,20 +480,23 @@ export function recordMergeLineage(args: {
 /**
  * Get all lineage records for a candidate.
  */
-export function getLineageByCandidate(data: StoreData, candidateId: string): EntityLineageRecord[] {
-  return data.entityLineage.filter((l) => l.candidateId === candidateId);
+export async function getLineageByCandidate(
+  lineageRepo: LineageRepository,
+  candidateId: string,
+): Promise<EntityLineageRecord[]> {
+  return lineageRepo.listByCandidate(candidateId);
 }
 
 /**
  * Get all lineage records pointing to a specific entity.
  * Useful for seeing what candidates were merged into an entity.
  */
-export function getLineageByTarget(
-  data: StoreData,
+export async function getLineageByTarget(
+  lineageRepo: LineageRepository,
   entityId: string,
   entityType: 'trap' | 'skill',
-): EntityLineageRecord[] {
-  return data.entityLineage.filter((l) => l.targetId === entityId && l.targetType === entityType);
+): Promise<EntityLineageRecord[]> {
+  return lineageRepo.listByTarget(entityType, entityId);
 }
 
 /**
@@ -524,12 +526,13 @@ export interface ApplyResolutionResult {
  *
  * Idempotent: if already resolved with same decision, returns success without re-processing.
  */
-export function applyManualResultResolution(args: {
+export async function applyManualResultResolution(args: {
   store: SkillShareerStore;
   data: StoreData;
   candidateId: string;
   actor: ResolvedAuthContext;
-}): ApplyResolutionResult {
+  lineageRepo: LineageRepository;
+}): Promise<ApplyResolutionResult> {
   const resolvedAt = nowIso();
   const resolvedBy = args.actor.user?.id;
 
@@ -552,7 +555,7 @@ export function applyManualResultResolution(args: {
   // Handle idempotency - if already resolved, return success
   if (!revalidation.valid && revalidation.error?.code === REVALIDATION_ERRORS.ALREADY_RESOLVED) {
     const candidate = revalidation.candidate!;
-    const existingLineage = getLineageByCandidate(args.data, candidate.id)[0];
+    const existingLineage = (await getLineageByCandidate(args.lineageRepo, candidate.id))[0];
     return {
       success: true,
       candidate,
@@ -677,6 +680,9 @@ export function applyManualResultResolution(args: {
 /**
  * Get lineage record by ID.
  */
-export function getLineageById(data: StoreData, lineageId: string): EntityLineageRecord | null {
-  return data.entityLineage.find((l) => l.id === lineageId) ?? null;
+export async function getLineageById(
+  lineageRepo: LineageRepository,
+  lineageId: string,
+): Promise<EntityLineageRecord | null> {
+  return lineageRepo.getById(lineageId);
 }

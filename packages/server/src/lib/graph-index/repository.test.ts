@@ -165,6 +165,45 @@ describe('InMemoryGraphIndexRepository', () => {
     const all = await repo.listAll();
     expect(all).toHaveLength(0);
   });
+
+  it('removeBySource() removes all documents for a source', async () => {
+    const doc1 = createTestGraphIndexDoc({
+      id: 'graphdoc_1',
+      sourceType: 'trap',
+      sourceId: 'trap_1',
+    });
+    const doc2 = createTestGraphIndexDoc({
+      id: 'graphdoc_2',
+      sourceType: 'skill',
+      sourceId: 'skill_1',
+    });
+    const doc3 = createTestGraphIndexDoc({
+      id: 'graphdoc_3',
+      sourceType: 'trap',
+      sourceId: 'trap_1',
+    });
+
+    await repo.insert(doc1);
+    await repo.insert(doc2);
+    await repo.insert(doc3);
+
+    await repo.removeBySource('trap', 'trap_1');
+
+    const remaining = await repo.listAll();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].id).toBe('graphdoc_2');
+  });
+
+  it('removeBySource() is a no-op when no matching documents exist', async () => {
+    await repo.insert(
+      createTestGraphIndexDoc({ id: 'graphdoc_1', sourceType: 'skill', sourceId: 'skill_1' }),
+    );
+
+    await repo.removeBySource('trap', 'nonexistent');
+
+    const all = await repo.listAll();
+    expect(all).toHaveLength(1);
+  });
 });
 
 describe('createGraphIndexRepository factory', () => {

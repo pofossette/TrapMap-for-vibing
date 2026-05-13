@@ -80,6 +80,8 @@ export async function createAllRepos(config: {
     usageAnalytics = createInMemoryUsageAnalyticsRepository();
   }
 
+  const duplicate = createDuplicateRepository(config);
+
   return {
     knowledge: createKnowledgeRepository(config),
     artifact: createArtifactRepository(config),
@@ -88,11 +90,11 @@ export async function createAllRepos(config: {
     team: createTeamRepository(config),
     membership: createMembershipRepository(config),
     user: createUserRepository(config),
-    candidate: createCandidateRepository(config),
+    candidate: createCandidateRepository({ ...config, duplicateRepo: duplicate }),
     usageAnalytics,
     feedback: createFeedbackRepository(config),
     audit: createAuditRepository(config),
-    duplicate: createDuplicateRepository(config),
+    duplicate,
     lineage: createLineageRepository(config),
     graphIndex: createGraphIndexRepository(config),
   };

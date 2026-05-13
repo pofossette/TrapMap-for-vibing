@@ -398,7 +398,7 @@ export const DuplicateJobMatchEntrySchema = z.object({
 /**
  * Expected result schema reference for manual submission.
  */
-export const ExpectedManualResultSchemaSchema = z.object({
+export const expectedManualResultDef = z.object({
   description: z.string(),
   fields: z.array(
     z.object({
@@ -425,7 +425,7 @@ export const DuplicateJobBundleResponseSchema = z.object({
   originalPayload: CandidatePayloadSchema,
   analysisSnapshot: AnalysisSnapshotSchema.nullable(),
   matches: z.array(DuplicateJobMatchEntrySchema),
-  expectedResultSchema: ExpectedManualResultSchemaSchema,
+  expectedResultSchema: expectedManualResultDef,
 });
 
 // Type exports
@@ -460,5 +460,5 @@ export type ApplyResolutionResponse = z.infer<typeof applyResolutionResponseSche
 export type ManualResultResponse = z.infer<typeof manualResultResponseSchema>;
 export type DuplicateJobMatchEntity = z.infer<typeof DuplicateJobMatchEntitySchema>;
 export type DuplicateJobMatchEntry = z.infer<typeof DuplicateJobMatchEntrySchema>;
-export type ExpectedManualResultSchema = z.infer<typeof ExpectedManualResultSchemaSchema>;
+export type ExpectedManualResultSchema = z.infer<typeof expectedManualResultDef>;
 export type DuplicateJobBundleResponse = z.infer<typeof DuplicateJobBundleResponseSchema>;

@@ -505,7 +505,7 @@ describe('Phase 15: Activation hints', () => {
       expect(hint.artifactId).toBe('artifact_1');
       expect(hint.path).toBe('scripts/deploy.sh');
       expect(hint.capability).toBe('Deploy to production');
-      expect(hint.defaultPolicy).toBe('manual');
+      expect(hint.defaultPolicy).toBe('needs-approval');
     });
 
     it('script hint is metadata-only without script body (Task 2, Test 2, T-15-01, T-15-03)', () => {

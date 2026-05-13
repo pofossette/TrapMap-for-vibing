@@ -40,6 +40,7 @@ import {
   retrievalResponseSchema,
   retrievalV2ResponseSchema,
 } from '@trapmap/contracts';
+import { getDefaultActivationPolicy } from '../activation-policy.js';
 import type {
   ClientManifestRecord,
   DerivedSkillCapsuleRecord,
@@ -340,7 +341,7 @@ export function buildScriptHint(
     capability: script.capability,
     argsSchemaSummary: script.argsSchemaSummary,
     sideEffectSummary: script.sideEffectSummary,
-    defaultPolicy: script.defaultPolicy,
+    defaultPolicy: getDefaultActivationPolicy(script),
   };
 }
 

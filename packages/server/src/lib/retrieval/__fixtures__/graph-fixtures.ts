@@ -438,7 +438,13 @@ export function makeMockServices(storeData: Partial<StoreData> = {}): SkillShare
     teamRepo: undefined,
     membershipRepo: undefined,
     usageAnalyticsRepo: undefined,
-    repos: {} as SkillShareerServices['repos'],
+    repos: {
+      graphIndex: {
+        async listAll() {
+          return data.graphIndexDocuments ?? [];
+        },
+      },
+    } as SkillShareerServices['repos'],
     eventBus: {
       on: () => ({}),
       emit: () => false,

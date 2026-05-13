@@ -10,6 +10,7 @@ import type { Pool } from 'pg';
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import { DEFAULT_FRESHNESS_CONFIG } from '../decay/freshness.js';
 import { AppError } from '../errors.js';
+import type { GraphIndexRepository } from '../graph-index/repository.js';
 import { PostgresStore } from '../persistence/postgres-store.js';
 import type { KnowledgeRecord } from '../store.js';
 import { buildBoundaryExplanation, computeBoundaryScoreDelta } from './boundary-match.js';
@@ -328,6 +329,7 @@ export async function graphAssistedRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
+  graphIndexRepo?: GraphIndexRepository,
 ): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates: MergedCandidate[] }> {
   const queryTokens = normalizeQuery(seed);
   const eligibleEntriesMap = new Map<string, KnowledgeRecord>();
@@ -338,7 +340,7 @@ export async function graphAssistedRecall(
   const [semanticCandidates, keywordCandidates, graphCandidates] = await Promise.all([
     computeSemanticCandidates(seed, eligibleEntries, parsed.filters),
     keywordRecall(seed, eligibleEntries),
-    graphRecall(seed, eligibleEntriesMap),
+    graphRecall(seed, eligibleEntriesMap, graphIndexRepo ? { graphIndexRepo } : undefined),
   ]);
 
   const hybridMerged = mergeCandidates(semanticCandidates, keywordCandidates);

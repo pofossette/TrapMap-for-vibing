@@ -7,7 +7,7 @@
  * Hard-fail assertions for forbidden hits, outcome mismatches, and shape violations.
  */
 
-import type { GraphPlanExpectations, RetrievalEvalCase } from '@trapmap/contracts';
+import type { GraphPlanExpectations, RetrievalEvalCase } from '@trapmap/contracts/evals';
 import type { BucketMap, GovernanceFailure, GovernanceResult, NormalizedResult } from './types.js';
 
 // =============================================================================

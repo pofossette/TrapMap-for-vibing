@@ -20,8 +20,8 @@ import type {
   RetrievalEvalSliceSummary,
   RetrievalEvalWarningRecord,
   RoutingDistribution,
-} from '@trapmap/contracts';
-import { retrievalEvalReportSchema } from '@trapmap/contracts';
+} from '@trapmap/contracts/evals';
+import { retrievalEvalReportSchema } from '@trapmap/contracts/evals';
 import type { CaseResult, SliceKey, SliceMetrics } from './types.js';
 import {
   deriveQueryType,

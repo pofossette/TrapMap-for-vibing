@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { CandidateSubmission } from '@trapmap/contracts';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { DuplicateRepository } from '../duplicates/index.js';
 import { JsonStore, createEmptyStoreData } from '../store.js';
 import {
   type CandidateRepository,
@@ -140,7 +141,20 @@ describe('DualWriteCandidateRepository', () => {
     });
 
     mockPrimary = new MockRepository();
-    repo = new DualWriteCandidateRepository(mockPrimary, store);
+    const mockDuplicateRepo: DuplicateRepository = {
+      async insert() {},
+      async getById() {
+        return null;
+      },
+      async listByCandidate() {
+        return [];
+      },
+      async listAll() {
+        return [];
+      },
+      async update() {},
+    };
+    repo = new DualWriteCandidateRepository(mockPrimary, store, mockDuplicateRepo);
   });
 
   it('insert() calls primary.insert() then shadows to store.transact()', async () => {

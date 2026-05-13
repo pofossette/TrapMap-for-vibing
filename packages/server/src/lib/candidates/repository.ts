@@ -8,11 +8,12 @@ import type {
 } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
+import type { DuplicateRepository } from '../duplicates/index.js';
 import type { SkillShareerStore } from '../store.js';
 import type { ManualResultRecord } from './store.js';
 import {
   attachAnalysisSnapshot,
-  attachDuplicateCase,
+  attachDuplicateCase as attachDuplicateCaseToStore,
   attachManualResult,
   markCandidateResolved,
   updateCandidateStatus,
@@ -121,6 +122,7 @@ export class DualWriteCandidateRepository implements CandidateRepository {
   constructor(
     private readonly primary: CandidateRepository,
     private readonly store: SkillShareerStore,
+    private readonly duplicateRepo: DuplicateRepository,
   ) {}
 
   async insert(candidate: CandidateSubmission): Promise<void> {
@@ -154,8 +156,9 @@ export class DualWriteCandidateRepository implements CandidateRepository {
 
   async attachDuplicateCase(candidateId: string, duplicateCase: DuplicateCase): Promise<void> {
     await this.primary.attachDuplicateCase(candidateId, duplicateCase);
+    await this.duplicateRepo.insert(duplicateCase as import('../store.js').DuplicateCaseRecord);
     await this.store.transact((data) => {
-      attachDuplicateCase({ data, candidateId, duplicateCase });
+      attachDuplicateCaseToStore({ data, candidateId, duplicateCase });
     });
   }
 
@@ -187,7 +190,10 @@ export class DualWriteCandidateRepository implements CandidateRepository {
  * Used when no PostgreSQL pool is available (tests, local dev).
  */
 export class InMemoryCandidateRepository implements CandidateRepository {
-  constructor(private readonly store: SkillShareerStore) {}
+  constructor(
+    private readonly store: SkillShareerStore,
+    private readonly duplicateRepo?: DuplicateRepository,
+  ) {}
 
   async insert(candidate: CandidateSubmission): Promise<void> {
     await this.store.transact((data) => {
@@ -217,8 +223,11 @@ export class InMemoryCandidateRepository implements CandidateRepository {
   }
 
   async attachDuplicateCase(candidateId: string, duplicateCase: DuplicateCase): Promise<void> {
+    if (this.duplicateRepo) {
+      await this.duplicateRepo.insert(duplicateCase as import('../store.js').DuplicateCaseRecord);
+    }
     await this.store.transact((data) => {
-      attachDuplicateCase({ data, candidateId, duplicateCase });
+      attachDuplicateCaseToStore({ data, candidateId, duplicateCase });
     });
   }
 
@@ -252,6 +261,7 @@ export class InMemoryCandidateRepository implements CandidateRepository {
 export function createCandidateRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
+  duplicateRepo?: DuplicateRepository;
 }): CandidateRepository {
   if (config.pool) {
     // Dynamic import to avoid loading pg module in test environments
@@ -260,7 +270,7 @@ export function createCandidateRepository(config: {
       PgCandidateRepository: new (pool: Pool) => CandidateRepository;
     };
     const pgRepo = new PgCandidateRepository(config.pool);
-    return new DualWriteCandidateRepository(pgRepo, config.store);
+    return new DualWriteCandidateRepository(pgRepo, config.store, config.duplicateRepo!);
   }
-  return new InMemoryCandidateRepository(config.store);
+  return new InMemoryCandidateRepository(config.store, config.duplicateRepo);
 }

@@ -17,6 +17,9 @@
 
 import type { SkillArtifactRecord, StoreData } from '../../store.js';
 import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
+// TODO: When this adapter is wired to production, migrate to GraphIndexRepository
+// methods (listBySource, upsert, removeBySource). Currently uses sync store helpers
+// because the adapter is designed to run inside store.transact() callbacks.
 import {
   getGraphIndexDocuments,
   removeGraphIndexDocumentsForSource,

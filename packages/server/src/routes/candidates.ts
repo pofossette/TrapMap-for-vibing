@@ -408,12 +408,13 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
     let publishedEntityId: string | null = null;
     let publishedEntityType: 'trap' | 'skill' | null = null;
 
-    const result = await app.skillShareer.store.transact((data) => {
-      const resolution = applyManualResultResolution({
+    const result = await app.skillShareer.store.transact(async (data) => {
+      const resolution = await applyManualResultResolution({
         store: app.skillShareer.store,
         data,
         candidateId,
         actor: auth,
+        lineageRepo: app.skillShareer.repos.lineage,
       });
 
       if (!resolution.success) {
@@ -452,6 +453,11 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
 
       return resolution;
     });
+
+    // Post-commit: flush lineage record via repository
+    if (result.lineage) {
+      await app.skillShareer.repos.lineage.insert(result.lineage);
+    }
 
     // Post-commit: emit event for newly published entities
     if (publishedEntityId && publishedEntityType === 'trap') {
