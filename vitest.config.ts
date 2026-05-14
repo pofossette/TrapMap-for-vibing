@@ -9,7 +9,7 @@ export default defineConfig({
           name: 'contracts',
           root: './packages/contracts',
           include: ['src/**/*.test.ts'],
-          exclude: ['src/**/*.compliance.test.ts'],
+
           coverage: {
             provider: 'v8',
             reporter: ['text', 'html', 'lcov'],
@@ -28,7 +28,7 @@ export default defineConfig({
           name: 'server',
           root: './packages/server',
           include: ['src/**/*.test.ts'],
-          exclude: ['src/**/*.compliance.test.ts'],
+
           coverage: {
             provider: 'v8',
             reporter: ['text', 'html', 'lcov'],
@@ -59,7 +59,7 @@ export default defineConfig({
           name: 'cli',
           root: './packages/cli',
           include: ['src/**/*.test.ts'],
-          exclude: ['src/**/*.compliance.test.ts'],
+
           coverage: {
             provider: 'v8',
             reporter: ['text', 'html', 'lcov'],
@@ -90,7 +90,7 @@ export default defineConfig({
           name: 'evals',
           root: './evals',
           include: ['**/*.test.ts'],
-          exclude: ['**/*.compliance.test.ts'],
+
           coverage: {
             provider: 'v8',
             reporter: ['text', 'html', 'lcov'],
