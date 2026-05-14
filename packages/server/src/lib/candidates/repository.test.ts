@@ -18,7 +18,7 @@ const tempDir = join(tmpdir(), testRunId);
 mkdirSync(tempDir, { recursive: true });
 
 function getUniqueStorePath(name: string): string {
-  return join(tempDir, `${name}-${Date.now()}.json`);
+  return join(tempDir, `${name}-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
 }
 
 /**

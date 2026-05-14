@@ -140,7 +140,7 @@ describe('PgCandidateRepository', () => {
 
   describe('updateStatus', () => {
     it('should set status=queued and queuedAt timestamp', async () => {
-      const candidate = createTestCandidate({ status: 'received' });
+      const _candidate = createTestCandidate({ status: 'received' });
 
       // Expected: updateStatus('candidate_1', 'queued') sets:
       // - status = 'queued'
@@ -178,7 +178,7 @@ describe('PgCandidateRepository', () => {
 
   describe('attachAnalysis', () => {
     it('should set analysisSnapshot JSONB column', async () => {
-      const snapshot = createTestAnalysisSnapshot();
+      const _snapshot = createTestAnalysisSnapshot();
 
       // Expected: attachAnalysis('candidate_1', snapshot) sets:
       // - analysisSnapshot = snapshot (as JSONB)
@@ -188,7 +188,7 @@ describe('PgCandidateRepository', () => {
 
   describe('attachDuplicateCase', () => {
     it('should set duplicateCase JSONB column', async () => {
-      const duplicateCase = createTestDuplicateCase();
+      const _duplicateCase = createTestDuplicateCase();
 
       // Expected: attachDuplicateCase('candidate_1', duplicateCase) sets:
       // - duplicateCase = duplicateCase (as JSONB)
@@ -198,7 +198,7 @@ describe('PgCandidateRepository', () => {
 
   describe('attachManualResult', () => {
     it('should set manualResult JSONB column with submittedAt and submittedBy', async () => {
-      const result: ManualResultSubmission = {
+      const _result: ManualResultSubmission = {
         decision: 'independent',
         notes: 'Test notes',
       };

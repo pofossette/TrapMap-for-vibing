@@ -236,7 +236,7 @@ export async function processCandidateWithRetry(
 
   try {
     await processCandidate(candidateId, services);
-  } catch (error) {
+  } catch (_error) {
     // Check if we can retry
     const updatedData = await services.getSnapshot();
     const updatedCandidate = getCandidateById(updatedData, candidateId);

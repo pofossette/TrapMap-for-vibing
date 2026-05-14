@@ -8,13 +8,13 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { supersedeEntry } from '../lib/decay/supersede.js';
 import { AppError } from '../lib/errors.js';
-import { requirePermission } from '../lib/rbac.js';
 import {
   createKnowledgeEntryRecord,
   resubmitKnowledgeEntry,
   toKnowledgeEntry,
 } from '../lib/knowledge.js';
 import { runPreReview } from '../lib/pre-review.js';
+import { requirePermission } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
 import { logUserOperation } from '../lib/user-ops-log.js';

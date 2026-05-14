@@ -113,11 +113,11 @@ async function getSystemAdminAuth(app: FastifyInstance): Promise<{ Authorization
 /**
  * Helper to create a regular user session with specific permissions.
  */
-async function getUserAuth(
+async function _getUserAuth(
   app: FastifyInstance,
   userId: string,
   teamId: string,
-  permissions: string[] = [],
+  _permissions: string[] = [],
 ): Promise<{ Authorization: string }> {
   const token = `test-user-token-${userId}`;
   const tokenHash = hashSecret(token);
@@ -208,7 +208,7 @@ describe('decay routes', () => {
 
       // Create test entries with different decay states
       const now = new Date();
-      const oldDate = new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000); // 100 days ago
+      const _oldDate = new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000); // 100 days ago
       const olderDate = new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000); // 200 days ago
 
       await app.skillShareer.store.transact((data) => {

@@ -90,10 +90,7 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
     // Parse query parameters
     const query = feedbackListRequestSchema.parse(request.query);
 
-    const {
-      feedback: feedbackRepo,
-      knowledge: knowledgeRepo,
-    } = app.skillShareer.repos;
+    const { feedback: feedbackRepo, knowledge: knowledgeRepo } = app.skillShareer.repos;
     const now = new Date();
 
     // Filter feedback queue using repository

@@ -7,9 +7,9 @@ import { runPreReview } from './pre-review.js';
 import { searchKnowledge, updateEntryEmbeddingCache } from './retrieval.js';
 import { JsonStore, type SkillShareerStore, nowIso } from './store.js';
 
-import { ChannelRegistry } from './retrieval/channel-registry.js';
-import { StrategyRegistry } from './retrieval/strategy-registry.js';
-import type { RetrievalStrategy } from './retrieval/strategy-registry.js';
+import { ChannelRegistry } from './retrieval/orchestration/channel-registry.js';
+import { StrategyRegistry } from './retrieval/orchestration/strategy-registry.js';
+import type { RetrievalStrategy } from './retrieval/orchestration/strategy-registry.js';
 
 describe('retrieval', () => {
   let mockStore: SkillShareerStore;
@@ -45,21 +45,27 @@ describe('retrieval', () => {
         sr.register({
           version: 'semantic',
           async execute(query, _channels, eligibleEntries, services, auth) {
-            const { semanticRecall } = await import('./retrieval/recall-coordinator.js');
+            const { semanticRecall } = await import(
+              './retrieval/orchestration/recall-coordinator.js'
+            );
             return semanticRecall(query.seed, eligibleEntries, query, services, auth);
           },
         });
         sr.register({
           version: 'hybrid',
           async execute(query, _channels, eligibleEntries, services, auth) {
-            const { hybridRecall } = await import('./retrieval/recall-coordinator.js');
+            const { hybridRecall } = await import(
+              './retrieval/orchestration/recall-coordinator.js'
+            );
             return hybridRecall(query.seed, eligibleEntries, query, services, auth);
           },
         });
         sr.register({
           version: 'graph-assisted',
           async execute(query, _channels, eligibleEntries) {
-            const { graphAssistedRecall } = await import('./retrieval/recall-coordinator.js');
+            const { graphAssistedRecall } = await import(
+              './retrieval/orchestration/recall-coordinator.js'
+            );
             return graphAssistedRecall(query.seed, eligibleEntries, query);
           },
         });
@@ -623,7 +629,7 @@ describe('retrieval', () => {
 
       // With a label that doesn't exist, we should get empty results
       // (unless the deterministic search happens to match by semantic similarity)
-      const totalMatches = result.globalConstraints.length + result.projectKnowledge.length;
+      const _totalMatches = result.globalConstraints.length + result.projectKnowledge.length;
       // The test might still get results due to deterministic fallback,
       // but the structure should be correct
       expect(Array.isArray(result.globalConstraints)).toBe(true);

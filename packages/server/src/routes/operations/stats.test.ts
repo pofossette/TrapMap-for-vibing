@@ -10,7 +10,7 @@ import { buildServer } from '../../app.js';
 import type { UsageAnalyticsRepository } from '../../lib/analytics/index.js';
 
 // Mock repository
-const mockRepo: UsageAnalyticsRepository = {
+const _mockRepo: UsageAnalyticsRepository = {
   recordEvent: vi.fn(),
   recordEvents: vi.fn(),
   queryUsageTimeSeries: vi.fn().mockResolvedValue([

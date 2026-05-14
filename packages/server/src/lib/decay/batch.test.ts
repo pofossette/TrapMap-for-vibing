@@ -347,7 +347,7 @@ describe('executeBatchOperation', () => {
         actorId: 'user_admin',
       };
 
-      const beforeExtend = nowIso();
+      const _beforeExtend = nowIso();
       const result = executeBatchOperation(store, data, input, TEST_DECAY_CONFIG, new Date());
 
       expect(result).toHaveLength(1);

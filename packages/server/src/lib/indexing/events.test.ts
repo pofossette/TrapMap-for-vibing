@@ -89,21 +89,21 @@ describe('lifecycle event mapping (IDX-03, T-08-06)', () => {
 
   describe('runKnowledgeIndexEvent', () => {
     let store: SkillShareerStore;
-    let data: StoreData;
+    let _data: StoreData;
     let mockVectorAdapter: MockAdapter;
     let mockKeywordAdapter: MockAdapter;
 
     beforeEach(async () => {
       const testDataFile = `/tmp/skill-shareer-events-test-${Date.now()}.json`;
       store = new JsonStoreClass(testDataFile);
-      data = await store.snapshot();
+      _data = await store.snapshot();
 
       await store.transact(async (d) => {
         d.counters = {};
         d.knowledgeEntries = [];
       });
 
-      data = await store.snapshot();
+      _data = await store.snapshot();
 
       mockVectorAdapter = new MockAdapter('vector');
       mockKeywordAdapter = new MockAdapter('keyword');

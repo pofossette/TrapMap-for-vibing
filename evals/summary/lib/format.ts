@@ -113,7 +113,7 @@ function formatCaseResultLine(result: SummaryEvalCaseResult): string {
  * @returns Single-line CI-friendly format
  */
 export function formatCompactSummary(report: SummaryEvalReport): string {
-  const status = report.summary.passed ? 'PASS' : 'FAIL';
+  const _status = report.summary.passed ? 'PASS' : 'FAIL';
   const groundedness = report.summary.avgGroundedness.toFixed(2);
   const coverage = report.summary.avgCoverage.toFixed(2);
 

@@ -30,9 +30,7 @@ import {
   buildSkillGraphDocument as buildSkillGraphDocumentRecord,
 } from './graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from './graph-lite/graphology.js';
-import {
-  getGraphIndexDocuments,
-} from './graph-lite/store.js';
+import { getGraphIndexDocuments } from './graph-lite/store.js';
 
 // ---------------------------------------------------------------------------
 // Locked vocabulary from D-04

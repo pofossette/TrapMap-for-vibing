@@ -241,7 +241,7 @@ async function runSummaryEval(options: EvalAllOptions): Promise<SummaryResult | 
 /**
  * Format the combined report for terminal output.
  */
-function formatCombinedReport(report: CombinedReport, options: EvalAllOptions): string {
+function formatCombinedReport(report: CombinedReport, _options: EvalAllOptions): string {
   const lines: string[] = [];
 
   // Header

@@ -77,7 +77,7 @@ describe('skill artifact model (ARTF-02, ARTF-03, CAPS-02, CAPS-03)', () => {
     it('should add artifact to skillArtifacts array (ARTF-02, T-12-05)', async () => {
       // Arrange: Create a pre-existing knowledge entry
       storeData.counters.knowledge = 1;
-      const initialKnowledgeLength = 1;
+      const _initialKnowledgeLength = 1;
       storeData.knowledgeEntries.push({
         id: 'knowledge_1',
         teamId: null,

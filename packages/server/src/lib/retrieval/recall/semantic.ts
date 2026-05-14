@@ -14,7 +14,7 @@
 import type { RetrievalQuery } from '@trapmap/contracts';
 import { generateEmbedding, hashEmbeddingText } from '../../embeddings.js';
 import type { KnowledgeRecord } from '../../store.js';
-import type { RecallChannel } from '../channel-registry.js';
+import type { RecallChannel } from '../orchestration/channel-registry.js';
 
 /**
  * Build the embedding text from a knowledge entry.

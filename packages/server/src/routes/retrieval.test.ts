@@ -33,7 +33,7 @@ describe('retrieval route', () => {
   describe('POST /v1/retrieval/search', () => {
     it('returns valid retrieval response for authenticated caller with knowledge:search permission', async () => {
       // First, create a session with knowledge:search permission
-      const loginResponse = await app.inject({
+      const _loginResponse = await app.inject({
         method: 'POST',
         url: '/v1/auth/login',
         payload: {
@@ -1763,7 +1763,7 @@ describe('retrieval route', () => {
 
     describe('governance filtering with seeded data', () => {
       it('filters out entries exceeding user security level', async () => {
-        const { app, authToken, userId } = await buildTestServer(
+        const { app, authToken } = await buildTestServer(
           (data, auth) => {
             // Seed entry with low security level (accessible)
             seedApprovedKnowledgeEntry(data, auth.userId, {
@@ -1850,7 +1850,7 @@ describe('retrieval route', () => {
 
       it('filters out entries from other teams', async () => {
         const otherTeamId = 'team_other_fixture';
-        const { app, authToken, userId } = await buildTestServer((data, auth) => {
+        const { app, authToken } = await buildTestServer((data, auth) => {
           // Seed global entry (accessible)
           seedApprovedKnowledgeEntry(data, auth.userId, {
             id: 'knowledge-global',
@@ -1859,7 +1859,7 @@ describe('retrieval route', () => {
           });
 
           // Seed project entry for another team (inaccessible)
-          const entry = seedApprovedKnowledgeEntry(data, auth.userId, {
+          const _entry = seedApprovedKnowledgeEntry(data, auth.userId, {
             id: 'knowledge-other-team',
             shortcut: 'Other Team Entry',
             scope: 'project',
@@ -1902,7 +1902,7 @@ describe('retrieval route', () => {
           });
 
           // Seed draft entry (inaccessible)
-          const draftEntry = seedApprovedKnowledgeEntry(data, auth.userId, {
+          const _draftEntry = seedApprovedKnowledgeEntry(data, auth.userId, {
             id: 'knowledge-draft',
             shortcut: 'Draft Entry',
           });
@@ -1938,7 +1938,7 @@ describe('retrieval route', () => {
 
     describe('graph document integration', () => {
       it('seeds graph documents and verifies store state', async () => {
-        const { app, authToken, userId, store } = await buildTestServer((data, auth) => {
+        const { app, store } = await buildTestServer((data, _auth) => {
           if (!data.graphIndexDocuments) data.graphIndexDocuments = [];
 
           // Seed a trap graph document with nodes and edges
@@ -1965,7 +1965,7 @@ describe('retrieval route', () => {
 
       it('seeds deploy cluster dataset into store', async () => {
         const dataset = buildDeployClusterDataset();
-        const { app, authToken, store } = await buildTestServer((data, auth) => {
+        const { app, store } = await buildTestServer((data, _auth) => {
           if (!data.graphIndexDocuments) data.graphIndexDocuments = [];
           if (!data.knowledgeEntries) data.knowledgeEntries = [];
           if (!data.skillArtifacts) data.skillArtifacts = [];
@@ -2083,7 +2083,7 @@ describe('retrieval route', () => {
     describe('v3 graph plan search with fixtures', () => {
       it('returns valid response for graph-plan search with seeded data', async () => {
         const dataset = buildDeployClusterDataset();
-        const { app, authToken } = await buildTestServer((data, auth) => {
+        const { app, authToken } = await buildTestServer((data, _auth) => {
           if (!data.graphIndexDocuments) data.graphIndexDocuments = [];
           if (!data.knowledgeEntries) data.knowledgeEntries = [];
           if (!data.skillArtifacts) data.skillArtifacts = [];

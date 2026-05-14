@@ -497,7 +497,7 @@ describe('publishTrapCandidate', () => {
     const candidate = createTestCandidate();
     const resolvedAt = nowIso();
 
-    const { entry, lineage } = publishTrapCandidate({
+    const { entry, lineage: _lineage } = publishTrapCandidate({
       store,
       data,
       candidate,
@@ -629,7 +629,7 @@ describe('publishSkillCandidate', () => {
     });
     const resolvedAt = nowIso();
 
-    const { artifact, lineage } = publishSkillCandidate({
+    const { artifact, lineage: _lineage } = publishSkillCandidate({
       store,
       data,
       candidate,

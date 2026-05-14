@@ -194,9 +194,9 @@ describe('PostgresStore', () => {
       const pool = createMockPool();
       const store = new PostgresStore(pool as never);
 
-      let mutatorData: StoreData | null = null;
+      let _mutatorData: StoreData | null = null;
       const result = await store.transact(async (data) => {
-        mutatorData = data;
+        _mutatorData = data;
         return 'test-result';
       });
 

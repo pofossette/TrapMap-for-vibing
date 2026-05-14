@@ -40,7 +40,7 @@ import {
 } from '../retrieval/recall/semantic.js';
 
 // Gap 3: Reranking early termination
-import { rerankCandidates } from '../retrieval/rerank.js';
+import { rerankCandidates } from '../retrieval/scoring/rerank.js';
 import type { MergedCandidate } from '../retrieval/types.js';
 
 // Gap 4: DB-level search
@@ -48,7 +48,7 @@ import {
   ensureVectorIndex,
   hasVectorIndex,
   vectorSimilaritySearch,
-} from '../retrieval/db-search.js';
+} from '../retrieval/recall/db-search.js';
 
 // Gap 6: Schema GIN index
 import { knowledgeKeywords } from '../persistence/schema.js';

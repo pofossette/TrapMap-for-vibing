@@ -6,12 +6,7 @@ import type {
   Permission,
   Team,
 } from '@trapmap/contracts';
-import {
-  accessKeySchema,
-  activeSessionSchema,
-  memberSchema,
-  teamSchema,
-} from '@trapmap/contracts';
+import { accessKeySchema, activeSessionSchema, memberSchema, teamSchema } from '@trapmap/contracts';
 import type { FastifyRequest } from 'fastify';
 
 import type { ServerConfig } from '../config.js';

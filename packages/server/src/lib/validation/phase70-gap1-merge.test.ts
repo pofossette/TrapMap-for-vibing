@@ -13,7 +13,7 @@ import {
   createSemanticCandidate,
   hasBothChannels,
   mergeCandidates,
-} from '../retrieval/merge.js';
+} from '../retrieval/scoring/merge.js';
 import type { RecallCandidate, TokenMatchDetail } from '../retrieval/types.js';
 import type { KnowledgeRecord } from '../store.js';
 

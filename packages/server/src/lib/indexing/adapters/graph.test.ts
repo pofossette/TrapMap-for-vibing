@@ -16,7 +16,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { extractTrapGraphEntities } from '../../retrieval/graph-extract.js';
+import { extractTrapGraphEntities } from '../../retrieval/recall/graph-extract.js';
 import { JsonStore, type SkillShareerStore, nowIso } from '../../store.js';
 import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
 import { getGraphIndexDocuments, removeGraphIndexDocumentsForSource } from '../graph-lite/store.js';
@@ -405,7 +405,7 @@ describe('graph index adapter: durable persistence', () => {
       // Sync docB - this should fail if it creates a hard cycle
       // Note: The actual cycle detection logic is in the adapter
       // This test verifies the behavior
-      const resultB = await graphIndexAdapter.sync(docB, store);
+      const _resultB = await graphIndexAdapter.sync(docB, store);
       // If the edges form a hard cycle, sync should fail
       // We check that previously persisted state is unchanged
       const data = await store.snapshot();

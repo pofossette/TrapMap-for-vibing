@@ -36,7 +36,7 @@ vi.mock('../rag-log.js', () => ({
   logRagRetrieval: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../retrieval/assembly.js', () => ({
+vi.mock('../retrieval/response/assembly.js', () => ({
   assembleResponseBuckets: vi.fn().mockReturnValue({
     globalConstraints: [],
     projectKnowledge: [],
@@ -65,32 +65,32 @@ vi.mock('../retrieval/assembly.js', () => ({
   buildV2RetrievalResponse: vi.fn(),
 }));
 
-vi.mock('../retrieval/filters.js', () => ({
+vi.mock('../retrieval/orchestration/filters.js', () => ({
   filterEligibleEntries: vi.fn().mockReturnValue([]),
   filterByBoundaryContext: vi.fn().mockReturnValue([]),
 }));
 
-vi.mock('../retrieval/merge.js', () => ({
+vi.mock('../retrieval/scoring/merge.js', () => ({
   createSemanticCandidate: vi.fn(),
   mergeCandidates: vi.fn().mockReturnValue([]),
   toScoredEntries: vi.fn().mockReturnValue([]),
 }));
 
-vi.mock('../retrieval/rerank.js', () => ({
+vi.mock('../retrieval/scoring/rerank.js', () => ({
   rerankCandidates: vi.fn().mockReturnValue([]),
   toScoredEntriesFromReranked: vi.fn().mockReturnValue([]),
 }));
 
-vi.mock('../retrieval/citations.js', () => ({
+vi.mock('../retrieval/response/citations.js', () => ({
   buildCitations: vi.fn().mockReturnValue([]),
 }));
 
-vi.mock('../retrieval/boundary-match.js', () => ({
+vi.mock('../retrieval/scoring/boundary-match.js', () => ({
   buildBoundaryExplanation: vi.fn(),
   computeBoundaryScoreDelta: vi.fn().mockReturnValue(0),
 }));
 
-vi.mock('../retrieval/summary.js', () => ({
+vi.mock('../retrieval/response/summary.js', () => ({
   buildCapsuleCitations: vi.fn().mockReturnValue([]),
   buildCapsuleSummary: vi.fn(),
   buildSummary: vi.fn(),
@@ -109,13 +109,13 @@ vi.mock('../embeddings.js', () => ({
   hashEmbeddingText: vi.fn().mockReturnValue('mock-hash-abc'),
 }));
 
-vi.mock('../retrieval/capsule-recall.js', () => ({
+vi.mock('../retrieval/capsules/capsule-recall.js', () => ({
   buildProfileShortlist: vi.fn().mockReturnValue([]),
   getCapsuleRecords: vi.fn().mockReturnValue([]),
   rankCapsules: vi.fn().mockReturnValue([]),
 }));
 
-vi.mock('../retrieval/intent.js', () => ({
+vi.mock('../retrieval/capsules/intent.js', () => ({
   parseSeedIntent: vi.fn().mockReturnValue({
     seed: 'test query',
     normalized: 'test query',
@@ -128,7 +128,7 @@ vi.mock('../retrieval/intent.js', () => ({
   }),
 }));
 
-vi.mock('../retrieval/db-search.js', () => ({
+vi.mock('../retrieval/recall/db-search.js', () => ({
   vectorSimilaritySearch: vi.fn().mockResolvedValue([]),
 }));
 
@@ -141,16 +141,22 @@ vi.mock('../persistence/postgres-store.js', () => ({
 }));
 
 import { logRagRetrieval } from '../rag-log.js';
-import { buildEmptyResponse } from '../retrieval/assembly.js';
-import { filterByBoundaryContext, filterEligibleEntries } from '../retrieval/filters.js';
-import { searchKnowledge } from '../retrieval/orchestrator.js';
+import {
+  filterByBoundaryContext,
+  filterEligibleEntries,
+} from '../retrieval/orchestration/filters.js';
+import { searchKnowledge } from '../retrieval/orchestration/orchestrator.js';
+import {
+  selectRetrievalStrategy,
+  selectRetrievalStrategyV2,
+} from '../retrieval/orchestration/routing.js';
 import { graphAssistedRecall } from '../retrieval/recall/graph-assisted.js';
 import { keywordRecall } from '../retrieval/recall/keyword.js';
 import { getQueryEmbedding } from '../retrieval/recall/semantic.js';
-import { selectRetrievalStrategy, selectRetrievalStrategyV2 } from '../retrieval/routing.js';
+import { buildEmptyResponse } from '../retrieval/response/assembly.js';
 
-import { ChannelRegistry } from '../retrieval/channel-registry.js';
-import { StrategyRegistry } from '../retrieval/strategy-registry.js';
+import { ChannelRegistry } from '../retrieval/orchestration/channel-registry.js';
+import { StrategyRegistry } from '../retrieval/orchestration/strategy-registry.js';
 
 function makeAuth(overrides: Partial<ResolvedAuthContext> = {}): ResolvedAuthContext {
   return {
@@ -256,21 +262,25 @@ function makeServices(overrides: Partial<SkillShareerServices> = {}): SkillShare
       sr.register({
         version: 'semantic',
         async execute(query, _channels, eligibleEntries, services, auth) {
-          const { semanticRecall } = await import('../retrieval/recall-coordinator.js');
+          const { semanticRecall } = await import(
+            '../retrieval/orchestration/recall-coordinator.js'
+          );
           return semanticRecall(query.seed, eligibleEntries, query, services, auth);
         },
       });
       sr.register({
         version: 'hybrid',
         async execute(query, _channels, eligibleEntries, services, auth) {
-          const { hybridRecall } = await import('../retrieval/recall-coordinator.js');
+          const { hybridRecall } = await import('../retrieval/orchestration/recall-coordinator.js');
           return hybridRecall(query.seed, eligibleEntries, query, services, auth);
         },
       });
       sr.register({
         version: 'graph-assisted',
         async execute(query, _channels, eligibleEntries) {
-          const { graphAssistedRecall } = await import('../retrieval/recall-coordinator.js');
+          const { graphAssistedRecall } = await import(
+            '../retrieval/orchestration/recall-coordinator.js'
+          );
           return graphAssistedRecall(query.seed, eligibleEntries, query);
         },
       });

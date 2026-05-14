@@ -77,7 +77,7 @@ export function extractClaimsFromSummary(summary: {
 
   // Map citation references to entry IDs if available
   if (summary.citations && summary.citations.length > 0) {
-    return claims.map((claim, index) => {
+    return claims.map((claim, _index) => {
       // Match citation indices to entry IDs
       const citationMatch = claim.text.match(/\[(\d+)\]/);
       if (citationMatch) {

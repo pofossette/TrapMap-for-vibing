@@ -154,7 +154,7 @@ describe('graph-assisted recall', () => {
       detail: 'Fix memory limit in containers',
       labels: ['crash'],
     });
-    const hiddenEntry = createMockEntry({
+    const _hiddenEntry = createMockEntry({
       id: 'entry-3',
       shortcut: 'Unauthorized crash fix',
       detail: 'Should not be returned',

@@ -50,7 +50,10 @@ describe('Phase 75: fixed type errors remain correct', () => {
   });
 
   it('recall-coordinator.ts uses scopes (array) not scope (singular)', () => {
-    const recallPath = resolve(ROOT_DIR, 'packages/server/src/lib/retrieval/recall-coordinator.ts');
+    const recallPath = resolve(
+      ROOT_DIR,
+      'packages/server/src/lib/retrieval/orchestration/recall-coordinator.ts',
+    );
     const content = readFileSync(recallPath, 'utf-8');
 
     // The fix changed parsed.filters?.scope to parsed.filters?.scopes
@@ -62,7 +65,10 @@ describe('Phase 75: fixed type errors remain correct', () => {
   });
 
   it('recall-coordinator.ts uses spread pattern for optional scope property', () => {
-    const recallPath = resolve(ROOT_DIR, 'packages/server/src/lib/retrieval/recall-coordinator.ts');
+    const recallPath = resolve(
+      ROOT_DIR,
+      'packages/server/src/lib/retrieval/orchestration/recall-coordinator.ts',
+    );
     const content = readFileSync(recallPath, 'utf-8');
 
     // For exactOptionalPropertyTypes compliance, optional properties are

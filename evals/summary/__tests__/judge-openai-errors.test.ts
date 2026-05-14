@@ -17,7 +17,7 @@ function mockResponse(body: unknown, status = 200): Response {
   });
 }
 
-function mockTextResponse(body: string, status = 200): Response {
+function _mockTextResponse(body: string, status = 200): Response {
   return new Response(body, {
     status,
     headers: { 'Content-Type': 'text/plain' },

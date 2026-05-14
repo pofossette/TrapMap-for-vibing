@@ -27,8 +27,8 @@ import { InMemoryUserRepository } from './users/index.js';
 
 import type { SkillShareerRepos } from './repos/index.js';
 import { createAllRepos } from './repos/index.js';
-import { ChannelRegistry } from './retrieval/channel-registry.js';
-import { StrategyRegistry } from './retrieval/strategy-registry.js';
+import { ChannelRegistry } from './retrieval/orchestration/channel-registry.js';
+import { StrategyRegistry } from './retrieval/orchestration/strategy-registry.js';
 
 describe('session.ts repository operations', () => {
   let app: FastifyInstance;
@@ -89,7 +89,7 @@ describe('session.ts repository operations', () => {
 
   describe('deleteSession with SessionRepository', () => {
     it('deletes session via repository', async () => {
-      const { record, token } = await createSession(sessionRepo, 'user', 'user_1', 'team_1');
+      const { token } = await createSession(sessionRepo, 'user', 'user_1', 'team_1');
 
       // Verify session exists
       const foundBefore = await sessionRepo.getByTokenHash(hashSecret(token));
@@ -299,19 +299,19 @@ describe('session.ts repository-based auth context resolution', () => {
         const sr = new StrategyRegistry();
         sr.register({
           version: 'semantic',
-          async execute(q, _ch, entries) {
+          async execute(_q, _ch, entries) {
             return { scoredEntries: entries.map((e) => ({ entry: e, score: 0.5 })) };
           },
         });
         sr.register({
           version: 'hybrid',
-          async execute(q, _ch, entries) {
+          async execute(_q, _ch, entries) {
             return { scoredEntries: entries.map((e) => ({ entry: e, score: 0.5 })) };
           },
         });
         sr.register({
           version: 'graph-assisted',
-          async execute(q, _ch, entries) {
+          async execute(_q, _ch, entries) {
             return { scoredEntries: entries.map((e) => ({ entry: e, score: 0.5 })) };
           },
         });

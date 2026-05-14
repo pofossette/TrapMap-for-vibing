@@ -405,7 +405,7 @@ describe('indexing pipeline', () => {
         await syncKnowledgeIndex({ store, data }, entryId, toRegistry(mockAdapters));
       });
 
-      const firstCallCount = adapterSpy.mock.calls.length;
+      const _firstCallCount = adapterSpy.mock.calls.length;
 
       // Second sync (should be idempotent - no-op if content unchanged)
       adapterSpy.mockClear();

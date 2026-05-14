@@ -18,9 +18,9 @@ import {
 import type { UsageEventInput } from '../lib/analytics/index.js';
 import { requirePermission } from '../lib/rbac.js';
 import { searchKnowledge, searchKnowledgeV2 } from '../lib/retrieval.js';
-import { searchKnowledgeGraphPlan } from '../lib/retrieval/graph-plan-search.js';
-import { compileTrapFirstPlan } from '../lib/retrieval/plan-compiler.js';
-import { searchSkillsByContent } from '../lib/retrieval/skill-lookup.js';
+import { searchSkillsByContent } from '../lib/retrieval/capsules/skill-lookup.js';
+import { searchKnowledgeGraphPlan } from '../lib/retrieval/graph-plan/graph-plan-search.js';
+import { compileTrapFirstPlan } from '../lib/retrieval/graph-plan/plan-compiler.js';
 import { resolveAuthContext } from '../lib/session.js';
 import { nowIso } from '../lib/store.js';
 import { logUserOperation } from '../lib/user-ops-log.js';

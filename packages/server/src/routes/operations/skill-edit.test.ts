@@ -295,7 +295,7 @@ describe('skill edit routes with fixtures (Phase 2B)', () => {
     it('rejects edit for non-owner with lower security level', async () => {
       const otherUserId = 'other_user_for_edit';
       const { app, authToken } = await buildTestServer(
-        (data, auth) => {
+        (data, _auth) => {
           // Seed artifact owned by another user with higher security level
           seedApprovedSkillArtifact(data, otherUserId, {
             id: 'artifact-other-owner',

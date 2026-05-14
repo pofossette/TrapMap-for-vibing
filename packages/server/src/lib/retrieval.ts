@@ -15,4 +15,4 @@ export {
   searchKnowledge,
   searchKnowledgeV2,
   updateEntryEmbeddingCache,
-} from './retrieval/orchestrator.js';
+} from './retrieval/orchestration/orchestrator.js';

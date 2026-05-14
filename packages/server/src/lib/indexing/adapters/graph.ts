@@ -12,7 +12,7 @@
  * Graph payloads remain server-internal and are not exposed through contracts.
  */
 
-import { extractTrapGraphEntities } from '../../retrieval/graph-extract.js';
+import { extractTrapGraphEntities } from '../../retrieval/recall/graph-extract.js';
 import type { SkillShareerStore } from '../../store.js';
 import { nowIso } from '../../store.js';
 import { extractBoundaryGraphEntities } from '../boundary-extract.js';

@@ -474,14 +474,14 @@ describe('processPendingCandidates', () => {
     // Make getSnapshot return different data for different calls
     // First call: returns candidate (for processCandidateWithRetry check)
     // Second call: returns same data for processCandidate
-    let callCount = 0;
+    let _callCount = 0;
     const services: CandidateProcessorServices = {
       store: {
         transact: vi.fn(async (fn: (d: StoreData) => Promise<any> | any) => fn(data)),
         nextId: vi.fn(() => 'next_id'),
       } as any,
       getSnapshot: vi.fn().mockImplementation(async () => {
-        callCount++;
+        _callCount++;
         return data;
       }),
     };
@@ -531,7 +531,7 @@ describe('scheduleCandidateProcessing', () => {
 
   it('enqueues to task queue when pool is available', async () => {
     const candidate = makeCandidate();
-    const mockEnqueue = vi.fn().mockResolvedValue(undefined);
+    const _mockEnqueue = vi.fn().mockResolvedValue(undefined);
     const mockPool = {
       query: vi.fn(),
     } as any;

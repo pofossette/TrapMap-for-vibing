@@ -329,7 +329,7 @@ export async function executeSummaryCase(
     });
 
     // Evaluate verdicts
-    const { verdicts, passed } = evaluateSummaryVerdicts({
+    const { passed } = evaluateSummaryVerdicts({
       case_,
       judgeResult,
     });

@@ -14,7 +14,7 @@ import {
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '../lib/errors.js';
-import { findEntriesByBoundaryConstraint } from '../lib/retrieval/boundary-query.js';
+import { findEntriesByBoundaryConstraint } from '../lib/retrieval/scoring/boundary-query.js';
 import { resolveAuthContext } from '../lib/session.js';
 
 export const adminBoundarySearchRoutes: FastifyPluginAsync = async (app) => {

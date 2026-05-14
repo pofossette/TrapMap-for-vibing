@@ -153,7 +153,7 @@ async function main(): Promise<void> {
       const pgStore = new PostgresStore(pool);
       await benchStore('PostgresStore', pgStore, data);
       await pool.end();
-    } catch (err) {
+    } catch (_err) {
       console.log('\n  PostgresStore: SKIPPED (no DATABASE_URL or pg not available)');
     }
   }

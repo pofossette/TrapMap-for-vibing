@@ -176,12 +176,12 @@ function createTestGraphDocument(
 
 describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
   let store: SkillShareerStore;
-  let data: StoreData;
+  let _data: StoreData;
 
   beforeEach(async () => {
     const testDataFile = `/tmp/trapmap-reconcile-test-${Date.now()}-${Math.random()}.json`;
     store = new JsonStoreClass(testDataFile);
-    data = await store.snapshot();
+    _data = await store.snapshot();
 
     // Initialize with empty arrays
     await store.transact(async (d) => {
@@ -200,7 +200,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
       ];
     });
 
-    data = await store.snapshot();
+    _data = await store.snapshot();
   });
 
   describe('stale document removal (T-36-13)', () => {

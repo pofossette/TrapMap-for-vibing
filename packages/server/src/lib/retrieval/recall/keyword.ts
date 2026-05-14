@@ -19,7 +19,7 @@
  */
 
 import type { KnowledgeRecord } from '../../store.js';
-import type { RecallChannel } from '../channel-registry.js';
+import type { RecallChannel } from '../orchestration/channel-registry.js';
 import type { RecallCandidate, TokenMatchDetail } from '../types.js';
 
 /**

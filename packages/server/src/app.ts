@@ -30,18 +30,18 @@ import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';
 import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
 import { createAllRepos } from './lib/repos/index.js';
-import { ChannelRegistry } from './lib/retrieval/channel-registry.js';
-import { ensureVectorIndex } from './lib/retrieval/db-search.js';
+import { ChannelRegistry } from './lib/retrieval/orchestration/channel-registry.js';
 import {
   graphAssistedRecall,
   hybridRecall,
   semanticRecall,
-} from './lib/retrieval/recall-coordinator.js';
+} from './lib/retrieval/orchestration/recall-coordinator.js';
+import type { RetrievalStrategy } from './lib/retrieval/orchestration/strategy-registry.js';
+import { StrategyRegistry } from './lib/retrieval/orchestration/strategy-registry.js';
+import { ensureVectorIndex } from './lib/retrieval/recall/db-search.js';
 import { createGraphChannel } from './lib/retrieval/recall/graph-assisted.js';
 import { keywordChannel } from './lib/retrieval/recall/keyword.js';
 import { semanticChannel } from './lib/retrieval/recall/semantic.js';
-import type { RetrievalStrategy } from './lib/retrieval/strategy-registry.js';
-import { StrategyRegistry } from './lib/retrieval/strategy-registry.js';
 import { createMembershipRepository, createTeamRepository } from './lib/teams/index.js';
 import { createUserRepository } from './lib/users/index.js';
 import { accessKeyRoutes } from './routes/access-keys.js';

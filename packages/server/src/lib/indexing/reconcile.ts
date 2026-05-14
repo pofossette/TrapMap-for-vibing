@@ -14,7 +14,7 @@
  * T-36-16: Derive allowed source set from current governance metadata
  */
 
-import { extractTrapGraphEntities } from '../retrieval/graph-extract.js';
+import { extractTrapGraphEntities } from '../retrieval/recall/graph-extract.js';
 import type {
   KnowledgeRecord,
   SkillArtifactRecord,

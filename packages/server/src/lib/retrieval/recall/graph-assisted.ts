@@ -25,9 +25,9 @@ import {
 } from '../../indexing/graph-lite/graphology.js';
 import type { NormalizedIndexDocument } from '../../indexing/types.js';
 import type { KnowledgeRecord } from '../../store.js';
-import type { RecallChannel } from '../channel-registry.js';
-import { extractGraphEntities } from '../graph-extract.js';
+import type { RecallChannel } from '../orchestration/channel-registry.js';
 import type { RecallCandidate } from '../types.js';
+import { extractGraphEntities } from './graph-extract.js';
 
 /**
  * Scoring configuration for graph-assisted recall.

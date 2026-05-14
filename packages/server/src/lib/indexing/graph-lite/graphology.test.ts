@@ -660,7 +660,11 @@ describe('graph-lite/graphology — large-scale fixtures', () => {
 
   describe('expandSourcesOneHop cross-component isolation', () => {
     it('Cluster-A nodes do not return Cluster-B sources', () => {
-      const { docs, clusterANodeIds, clusterBNodeIds } = buildDisconnectedDataset();
+      const {
+        docs,
+        clusterANodeIds: _clusterANodeIds,
+        clusterBNodeIds: _clusterBNodeIds,
+      } = buildDisconnectedDataset();
       const runtime = buildGraphRuntimeSnapshot(docs);
 
       // Expand from a label unique to Cluster A (normalized form)

@@ -94,7 +94,7 @@ function ensureBaselinesDir(): void {
 /**
  * Check if baseline is available for a tier.
  */
-function isBaselineAvailable(tier: 'smoke' | 'core'): boolean {
+function _isBaselineAvailable(tier: 'smoke' | 'core'): boolean {
   return existsSync(getBaselinePath(tier));
 }
 
@@ -371,7 +371,7 @@ interface CIReport {
  * Run retrieval evaluation and return CI-friendly result.
  */
 async function runRetrievalEval(tier: 'smoke' | 'core'): Promise<CIReport['retrieval']> {
-  const startTime = Date.now();
+  const _startTime = Date.now();
 
   try {
     const { runRetrievalEvaluation } = await import('../retrieval/lib/runner-api.js');
@@ -404,7 +404,7 @@ async function runRetrievalEval(tier: 'smoke' | 'core'): Promise<CIReport['retri
  * Run summary evaluation and return CI-friendly result.
  */
 async function runSummaryEval(tier: 'smoke' | 'core'): Promise<CIReport['summary']> {
-  const startTime = Date.now();
+  const _startTime = Date.now();
 
   try {
     const { runSummaryEvaluation } = await import('../summary/lib/runner-api.js');

@@ -340,7 +340,7 @@ describe('edit helper', () => {
 
     it('appends new revision with merged content', async () => {
       // Create artifact with existing history entry
-      const now = nowIso();
+      const _now = nowIso();
       const artifact = createTestArtifact();
       artifact.history = [artifact.latestRevision]; // Initialize history with current revision
       mockData.skillArtifacts = [artifact];
@@ -460,7 +460,7 @@ describe('edit helper', () => {
 
     it('returns previous revision number and lifecycle transition', async () => {
       // Create artifact with existing history entry
-      const now = nowIso();
+      const _now = nowIso();
       const artifact = createTestArtifact();
       artifact.history = [artifact.latestRevision]; // Initialize history with current revision
       mockData.skillArtifacts = [artifact];

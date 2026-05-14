@@ -97,7 +97,7 @@ describe('skill lifecycle flow (Phase 2C)', () => {
     });
 
     it('returns only agent-pass artifacts for review', async () => {
-      const { app, authToken, userId } = await buildTestServer(
+      const { app, authToken } = await buildTestServer(
         (data, auth) => {
           // Seed artifact in agent-pass state (should appear in queue)
           seedArtifactWithState(data, auth.userId, {
@@ -444,7 +444,7 @@ describe('skill lifecycle flow (Phase 2C)', () => {
 
   describe('rejected → deactivated flow', () => {
     it('transitions from rejected to deactivated', async () => {
-      const { app, authToken, store } = await buildTestServer(
+      const { app, authToken } = await buildTestServer(
         (data, auth) => {
           seedArtifactWithState(data, auth.userId, {
             id: 'artifact-rejected-deactivate',
@@ -473,7 +473,7 @@ describe('skill lifecycle flow (Phase 2C)', () => {
 
   describe('deactivated terminal state', () => {
     it('cannot transition from deactivated to any other state', async () => {
-      const { app, authToken, store } = await buildTestServer(
+      const { app, authToken } = await buildTestServer(
         (data, auth) => {
           seedArtifactWithState(data, auth.userId, {
             id: 'artifact-already-deactivated',

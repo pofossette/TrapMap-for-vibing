@@ -212,7 +212,7 @@ function findSkillsInDir(rootDir: string, repo: RepoConfig): DiscoveredSkill[] {
           scanDir(fullPath);
         }
       }
-    } catch (err) {
+    } catch (_err) {
       // Ignore permission errors, etc.
     }
   }
@@ -424,7 +424,7 @@ function scanSkillDirectory(rootPath: string): ScannedFiles {
           scanDir(fullPath);
         }
       }
-    } catch (err) {
+    } catch (_err) {
       // Ignore errors
     }
   }
@@ -459,7 +459,7 @@ async function buildArtifactBundle(skill: DiscoveredSkill): Promise<ArtifactBund
       title = metadata.title;
       labels = metadata.labels;
     }
-  } catch (err) {
+  } catch (_err) {
     console.warn(`  [warn] Failed to read SKILL.md: ${skillPath}`);
   }
 
@@ -495,7 +495,7 @@ async function buildArtifactBundle(skill: DiscoveredSkill): Promise<ArtifactBund
     if (buffer.length > MAX_FILE_SIZE) {
       console.warn(`  [warn] SKILL.md too large (${buffer.length} bytes): ${skillPath}`);
     } else {
-      const { content, isBinary } = await readFileContent(skillMd);
+      const { content } = await readFileContent(skillMd);
       const sha256 = computeFileHash(buffer);
 
       files.push({
@@ -510,7 +510,7 @@ async function buildArtifactBundle(skill: DiscoveredSkill): Promise<ArtifactBund
         content,
       });
     }
-  } catch (err) {
+  } catch (_err) {
     console.warn(`  [warn] Failed to read SKILL.md: ${skillPath}`);
   }
 
@@ -539,7 +539,7 @@ async function buildArtifactBundle(skill: DiscoveredSkill): Promise<ArtifactBund
         activationOnly: false,
         content,
       });
-    } catch (err) {
+    } catch (_err) {
       console.warn(`  [warn] Failed to read reference: ${relPath}`);
     }
   }
@@ -569,7 +569,7 @@ async function buildArtifactBundle(skill: DiscoveredSkill): Promise<ArtifactBund
         activationOnly: true,
         content,
       });
-    } catch (err) {
+    } catch (_err) {
       console.warn(`  [warn] Failed to read asset: ${relPath}`);
     }
   }
@@ -599,7 +599,7 @@ async function buildArtifactBundle(skill: DiscoveredSkill): Promise<ArtifactBund
         activationOnly: true,
         content,
       });
-    } catch (err) {
+    } catch (_err) {
       console.warn(`  [warn] Failed to read script: ${relPath}`);
     }
   }

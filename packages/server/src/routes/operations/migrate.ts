@@ -183,12 +183,7 @@ export const migrateRoutes: FastifyPluginAsync = async (app) => {
                   requiredLevel: artifact.requiredLevel,
                 })
               : deriveSkillArtifactOutputs(artifact, artifact.latestRevision);
-          await applyDerivedArtifactOutputs(
-            data,
-            artifact,
-            artifact.latestRevision,
-            derived,
-          );
+          await applyDerivedArtifactOutputs(data, artifact, artifact.latestRevision, derived);
 
           // Record audit event (T-16-02 mitigation)
           const auditEvent = createAuditEvent({
