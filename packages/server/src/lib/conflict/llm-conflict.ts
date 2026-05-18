@@ -26,7 +26,7 @@ export interface LlmConflictJudgment {
   /** Human-readable explanation of the judgment */
   reasoning: string;
   /** Optional suggested resolution strategy */
-  resolution?: string;
+  resolution?: string | undefined;
 }
 
 // ---------------------------------------------------------------------------

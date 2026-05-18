@@ -402,6 +402,8 @@ export function makeMockStoreData(data: Partial<StoreData> = {}): StoreData {
     graphIndexDocuments: [],
     conflicts: [],
     feedbackQueue: [],
+    promptVersion: null,
+    rebuildState: null,
     ...data,
   };
 }

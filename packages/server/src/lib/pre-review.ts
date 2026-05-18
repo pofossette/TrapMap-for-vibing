@@ -9,7 +9,6 @@ import {
 
 import type { ChatProvider } from './ai/types.js';
 import {
-  type BoundaryWithQuality,
   type EvidenceQuality,
   extractCandidateBoundaries,
   extractCandidateBoundariesWithQuality,
