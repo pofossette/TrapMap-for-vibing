@@ -8,23 +8,23 @@ TrapMap 中的知识条目经历完整的状态转换生命周期，从创建到
 
 ```mermaid
 flowchart TB
-    subgraph 生命周期状态["知识生命周期状态"]
+    subgraph LS["知识生命周期状态"]
         A["DRAFT\n初始状态，用户创建但未提交"]
         B["SUBMITTED\n已提交，等待智能体审核"]
-        C["AGENT-PASS"]
-        D["AGENT-REJECTED"]
+        C["AGENT PASS\n智能体审核通过"]
+        D["AGENT REJECTED\n智能体拒绝"]
         E["REJECTED\n终态：条目被拒绝"]
         F["APPROVED\n可被检索"]
         G["DEACTIVATED\n终态：条目被停用"]
     end
 
-    A -->|submit()| B
+    A -->|"submit()"| B
     B --> C
     B --> D
     C --> F
     C --> E
     D --> E
-    F -->|deactivate()| G
+    F -->|"deactivate()"| G
 ```
 
 ### 生命周期状态图（Mermaid）

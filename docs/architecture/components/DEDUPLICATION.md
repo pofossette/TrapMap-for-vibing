@@ -31,13 +31,11 @@ flowchart TB
     N --> O[人工解决工作流]
     
     O --> P{解决决策}
-    P -->|merge| Q[合并到现有条目]
-    P -->|discard| R[丢弃候选]
-    P -->|keep_both| S[保留两者]
-    
+    P -->|independent| Q[发布为独立条目]
+    P -->|merged| R[合并到已有条目]
+
     Q --> T[状态: resolved]
     R --> T
-    S --> T
 ```
 
 ## 两阶段重复检测
@@ -114,14 +112,27 @@ flowchart TB
         D["DUPLICATE_DETECTED\n需要人工解决"]
         E["READY_FOR_REVIEW\n唯一内容\n可发布"]
         F["RESOLVED\n终态"]
+        G["ERROR\n可重试（retryCount < 3）"]
     end
 
     A -->|process()| B
     B -->|start_processing()| C
     C --> D
     C --> E
+    C -->|"处理失败"| G
+    G -->|"指数退避重试\n5s → 10s → 20s"| B
+    G -->|"retryCount >= 3"| H["永久失败"]
     D -->|manual_resolution()| F
+    E -->|自动| F
 ```
+
+### 错误与重试
+
+`processCandidateWithRetry` 包裹 `processCandidate`，失败时：
+- 状态设为 `error`，`retryCount` 递增
+- 有 PostgreSQL 时入持久队列，指数退避（`5000 * 2^retryCount` ms）
+- 超过 `MAX_RETRIES`（3）进入死信队列，标记永久失败
+- 服务启动时 `processPendingCandidates()` 自动恢复卡在 `received`/`queued`/`analyzing` 状态的候选
 
 ## 候选提交流程
 
@@ -240,11 +251,12 @@ flowchart TB
 
 ### 解决选项
 
-| 选项 | 描述 | 结果 |
+| 决策 | 描述 | 结果 |
 |------|------|------|
-| **merge** | 合并到现有条目 | 候选被丢弃，内容合并 |
-| **discard** | 丢弃候选 | 候选被标记为 rejected |
-| **keep_both** | 保留两者 | 候选作为独立条目发布 |
+| **independent** | 候选是独立条目 | 通过 `publishTrapCandidate()` / `publishSkillCandidate()` 以 `agent-pass` 状态发布为正式条目，记录 `published_as` 谱系 |
+| **merged** | 候选应合并到已有条目 | 记录 `merged_into` 谱系，在已有实体上追加审核备注，不发布新条目 |
+
+操作幂等：已 `resolved` 的候选再次执行返回成功，不重复处理。
 
 ### API 端点
 
@@ -258,6 +270,9 @@ interface ManualResolutionRequest {
     entityId: EntityId;
   };
 }
+
+// POST /v1/candidates/:candidateId/apply-resolution
+// 执行实际的发布或合并操作
 ```
 
 ### 人工解决流程图
@@ -273,11 +288,11 @@ flowchart TB
     F --> G[POST /v1/candidates/:id/manual-result]
     
     G --> H{决策类型}
-    H -->|independent| I[标记为独立]
-    H -->|merged| J[标记为合并]
-    
-    I --> K[状态: ready_for_review]
-    J --> L[状态: rejected]
+    H -->|independent| I[publishTrapCandidate / publishSkillCandidate\n以 agent-pass 状态发布]
+    H -->|merged| J[recordMergeLineage\n追加审核备注到已有实体]
+
+    I --> K[记录 published_as 谱系]
+    J --> L[记录 merged_into 谱系]
     
     K --> M[POST /v1/candidates/:id/apply-resolution]
     L --> N[完成]
@@ -359,11 +374,26 @@ interface DuplicateJobBundleResponse {
 
 ## 检测策略对比
 
+两套实现，通过 `usePgDuplicateDetection` feature flag 切换：
+
+### 内存检测器（`detector.ts`）
+
 | 策略 | 方法 | 阈值 | 用途 | 性能 |
 |------|------|------|------|------|
 | 精确指纹 | SHA-256 哈希 | 100% 匹配 | 精确重复 | 快 |
-| 语义相似度 | 词元重叠度 | ≥ 0.72 (high) | 近似重复 | 中 |
-| 语义相似度 | 词元重叠度 | ≥ 0.38 (medium) | 可能重复 | 中 |
+| 高重叠 | Jaccard 词元重叠 | ≥ 0.72 | 近似重复 (`high-overlap`) | 中 |
+| 语义相似 | Jaccard 词元重叠 | ≥ 0.38 | 可能重复 (`semantic-similar`) | 中 |
+
+保留 top 10 匹配结果。
+
+### PostgreSQL 检测器（`pg-detector.ts`）
+
+| 权重 | 方法 | 说明 |
+|------|------|------|
+| 60% | pgvector 余弦距离 | 语义相似度 |
+| 40% | JSONB 关键词匹配 | 字段加权：labels=3, shortcut=2, detail=1 |
+
+检测阈值同为 0.38。feature flag 关闭时回退到内存检测器。
 
 ## 预审核集成
 

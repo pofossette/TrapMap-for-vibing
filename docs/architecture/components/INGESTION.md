@@ -69,9 +69,8 @@ flowchart TB
 
     subgraph 人工解决["人工解决"]
         Manual["管理员审核"]
-        Merge["合并（merge）"]
-        Discard["丢弃（discard）"]
-        KeepBoth["保留两者（keep_both）"]
+        Independent["独立发布（independent）"]
+        MergeInto["合并到已有条目（merged）"]
     end
 
     subgraph 输出["输出"]
@@ -95,13 +94,11 @@ flowchart TB
     NoDup --> PublishTrap
     NoDup --> PublishSkill
 
-    Manual --> Merge
-    Manual --> Discard
-    Manual --> KeepBoth
+    Manual --> Independent
+    Manual --> MergeInto
 
-    Merge --> PublishTrap
-    KeepBoth --> PublishTrap
-    KeepBoth --> PublishSkill
+    Independent --> PublishTrap
+    Independent --> PublishSkill
 ```
 
 ## 候选状态机
@@ -375,11 +372,10 @@ interface ManualResolutionRequest {
 
 ### 解决选项
 
-| 选项 | 描述 | 结果 |
+| 决策 | 描述 | 结果 |
 |------|------|------|
-| `merge` | 合并重复内容 | 创建单个条目，链接两个候选 |
-| `discard` | 丢弃当前候选 | 当前候选被拒绝 |
-| `keep_both` | 保留两者 | 两个候选都转为正式条目 |
+| `independent` | 候选是独立条目 | 以 `agent-pass` 状态发布为正式条目，记录 `published_as` 谱系 |
+| `merged` | 候选合并到已有条目 | 记录 `merged_into` 谱系，追加审核备注到已有实体 |
 
 ### 解决流程
 
@@ -390,25 +386,21 @@ flowchart TB
     end
 
     subgraph 用户决策["用户决策"]
-        B["POST /v1/candidates/:id/manual-result\n{ resolution: 'merge' | 'discard' | 'keep_both' }"]
+        B["POST /v1/candidates/:id/manual-result\n{ decision: 'independent' | 'merged' }"]
     end
 
     subgraph 执行解决["执行解决"]
-        subgraph 合并["MERGE"]
-            C1["1. 合并内容\n2. 创建新条目\n3. 链接候选"]
+        subgraph independent["INDEPENDENT"]
+            C1["publishTrapCandidate() / publishSkillCandidate()\n以 agent-pass 状态发布\n记录 published_as 谱系"]
         end
 
-        subgraph 丢弃["DISCARD"]
-            C2["1. 标记候选为已拒绝\n2. 更新重复项"]
-        end
-
-        subgraph 保留两者["KEEP_BOTH"]
-            C3["1. 将当前候选转为条目\n2. 将重复候选转为条目"]
+        subgraph merged["MERGED"]
+            C2["recordMergeLineage()\n记录 merged_into 谱系\n追加审核备注到已有实体"]
         end
     end
 
     subgraph 状态更新["状态更新"]
-        D["所有涉及的候选：状态 → 'resolved'\n在 DuplicateCase 中记录解决结果\n发送审计事件"]
+        D["候选状态 → 'resolved'\n在 DuplicateCase 中记录解决结果\n发送审计事件"]
     end
 
     审核者操作 --> 用户决策 --> 执行解决 --> 状态更新
@@ -524,15 +516,160 @@ interface IngestionMetrics {
 ```typescript
 async function getIngestionHealth(): Promise<HealthStatus> {
   const metrics = await getIngestionMetrics();
-  
+
   if (metrics.failedCount > 10) {
     return { status: 'unhealthy', reason: 'High failure count' };
   }
-  
+
   if (metrics.queueDepth > 1000) {
     return { status: 'degraded', reason: 'Large queue depth' };
   }
-  
+
   return { status: 'healthy' };
 }
 ```
+
+---
+
+## 切片策略 (Chunking Strategy)
+
+TrapMap **不使用传统的文档切片策略**，而是采用整条目标范文本作为 embedding 输入。
+
+### Knowledge Entry（Trap）的 embedding 输入
+
+```typescript
+// recall/semantic.ts:25
+`${entry.shortcut}\n${entry.detail}\n${labelsText}`.trim()
+```
+
+各字段约束（`contracts/src/domain/knowledge.ts`）：
+
+| 字段 | 约束 | 说明 |
+|------|------|------|
+| `shortcut` | ≤ 280 字符 | 精炼摘要 |
+| `detail` | ≤ 10,000 字符 | 详细描述 |
+| `labels` | 字符串数组 | 分类标签 |
+
+整条 canonical text 直接生成 embedding，不做切分。设计理由：
+
+- Knowledge entry 本身定位为精炼的陷阱/经验条目，不等同于长文档
+- 整条文本保留语义完整性，避免切片导致上下文丢失
+- 通过 keyword 索引和 graph 索引补充细粒度检索能力
+
+> **注意：** `detail` 上限为 10,000 字符，接近上限时 embedding 质量可能下降，这是当前设计的已知取舍点。
+
+### Skill Artifact 的 derivation
+
+Skill artifact 不做传统切片，而是通过**结构化派生（derivation）**将 SKILL.md + references/ 拆分为 typed records（profile、capsules、clientManifest），详见下节。
+
+---
+
+## Skill Artifact 入库 (Skill Artifact Ingestion)
+
+Skill 入库处理整个 skill 目录，不只是 SKILL.md。
+
+### 文件分类
+
+通过 `buildArtifactBundle()`（`cli/src/lib/artifact-bundle.ts:206-355`）扫描 skill 目录，按子目录分类：
+
+| 文件类型 | 路径 | Kind | 参与 derivation | 仅用于激活 |
+|---------|------|------|:---:|:---:|
+| Skill 主文件 | `SKILL.md` | `skill-markdown` | ✅ | ❌ |
+| 参考文档 | `references/` | `reference` | ✅ | ❌ |
+| 资源文件 | `assets/` | `asset` | ❌ | ✅ |
+| 脚本文件 | `scripts/` | `script` | ❌ | ✅ |
+
+约束 T-12-09、T-12-10：**只有 SKILL.md + references/ 参与 profile/capsule 的内容计算**，assets 和 scripts 仅出现在 clientManifest 的激活元数据中。
+
+### SKILL.md 解析
+
+由 `parseSkillMarkdown()`（`contracts/src/domain/parsing.ts:92-107`）使用 `gray-matter` 库提取 YAML frontmatter 字段：`name`、`title`、`description`、`labels`、`feedbackPrompts`。
+
+### Derivation 派生流程
+
+入口函数 `deriveFromPayloads()`（`server/src/lib/artifacts/derive.ts:532-688`）从 SKILL.md + references/ 文件内容生成三类输出：
+
+```mermaid
+flowchart TB
+    subgraph 输入["输入"]
+        SkillMd["SKILL.md"]
+        RefFiles["references/*.md"]
+    end
+
+    subgraph 派生["deriveFromPayloads()"]
+        ExtractText["extractDerivationText()\n合并 SKILL.md + references/ 文本"]
+        ParseFM["parseFrontmatter()\n提取 YAML 元数据"]
+        ExtractSec["extractSections()\n提取 Situation / Problem / Goal 段落"]
+    end
+
+    subgraph 输出["输出"]
+        Profile["Profile（1 条）\ntitle + summary + keywords + referencePaths"]
+        Capsules["Capsules（1-5 条）\n每条含 capsuleId + situation + problem + goal"]
+        Manifest["ClientManifest（1 条）\nreferences + assets + scripts 元数据"]
+    end
+
+    输入 --> 派生
+    ExtractText --> Profile
+    ParseFM --> Profile
+    ExtractSec --> Capsules
+    输入 --> Manifest
+```
+
+#### Profile（单条记录）
+
+`buildSkillProfile()` 将所有 derivation-eligible 文件合并为单一 profile：
+- `title`：来自 SKILL.md frontmatter
+- `summary`：由 `buildSummaryFromText()` 从合并文本生成
+- `keywords`：从 labels 提取
+- `referencePaths`：所有 references/ 文件路径
+
+#### Capsules（1-5 条记录）—— 核心拆分逻辑
+
+Capsule 生成分两步：
+
+1. **主 capsule**（始终生成）：从 SKILL.md 内容生成，通过 `extractSections()` 用 markdown header regex 提取 `## Situation` / `## Problem` / `## Goal` 段落
+2. **额外 capsules**（条件生成）：遍历每个 references/ 文件，检查是否包含独立的结构化段落：
+
+```typescript
+// derive.ts:618-619
+const refSections = extractSections(refContent);
+if (refSections.problem || refSections.situation) {
+  // 为该 reference 文件生成独立 capsule
+}
+```
+
+- 每个 capsule 是独立的检索单元，拥有自己的 `capsuleId`、`sourcePaths`、`situation`、`problem`、`goal`、`content`、`labels`
+- **上限 5 个 capsule**（`derive.ts:614`：`if (capsules.length >= 5) break`）
+- 没有 `## Situation` 或 `## Problem` 段落的 reference 不会生成独立 capsule，其内容仍包含在主 capsule 的合并文本中
+- 继承 artifact 的 `scope` 和 `requiredLevel`（约束 T-12-11）
+
+#### ClientManifest（单条记录）
+
+`buildClientManifest()` 汇集 references、assets、scripts 的元数据（path、sha256、sizeBytes、mediaType），用于客户端激活，不包含文件正文。
+
+### Graph 索引
+
+每个 capsule 在图索引阶段被独立分析（`skill-events.ts:241-513` 的 `extractSkillGraphPrimitives`），各自提取 graph nodes 和 edges（cue、tool、environment、prerequisite、mitigation 节点）。从 reference 拆出的独立 capsule 会各自贡献独立的图谱原语。
+
+---
+
+## 入库与检索版本的关系
+
+v1、v2、v3 是**检索管道（query-time）**，不是入库管道。入库只有一条统一管道，但三个检索版本使用不同的入库数据：
+
+| 检索版本 | 端点 | 数据源 | 说明 |
+|---------|------|--------|------|
+| v1 | `POST /v1/retrieval/search` | `KnowledgeEntry`（traps） | entry-level 检索，召回模式：semantic / hybrid / graph-assisted |
+| v2 | `POST /v2/retrieval/search` | `SkillArtifact` 的 capsules + profile | capsule-native 检索，使用结构化意图分解（situation/problem/goal） |
+| v3 | `POST /v1/retrieval/graph-plan` | `KnowledgeEntry` + `SkillArtifact` | trap-first 图检索，通过 `mitigates` / `risk-blocks` 边融合两者 |
+
+### v3 的 trap-first 设计
+
+v3 的 `compileTrapFirstPlan()`（`graph-plan/plan-compiler.ts:55`）流程：
+
+1. 解析 seed intent → 从 `knowledgeEntries` 获取 trap 候选 → 从 `skillArtifacts` 获取 skill 候选（复用 `rankCapsules`）
+2. 加载 graph document，构建局部图展开视图
+3. 找到阻塞 traps（risk-blocks 边）→ 找到缓解 skills（mitigates 边）
+4. 按 trap-缓解优先级分配 skill budget → 输出 `TrapFirstPlan`
+
+置信度评估：high (≥0.65) / medium (≥0.4) / low (<0.4)。低置信度时回退到 v2（capsule 检索）或 v1（graph-assisted entry 检索）。
