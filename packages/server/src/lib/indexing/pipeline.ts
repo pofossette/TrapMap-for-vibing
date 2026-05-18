@@ -10,8 +10,10 @@
  * Non-approved and deactivated entries have their index state removed.
  */
 
+import type { ChatProvider } from '../ai/types.js';
 import type { SkillShareerStore, StoreData } from '../store.js';
 import { nowIso } from '../store.js';
+import { graphIndexAdapter } from './adapters/graph.js';
 import { normalizeKnowledgeIndexDocument } from './normalize.js';
 import type { AdapterRegistry } from './registry.js';
 import type {
@@ -121,11 +123,11 @@ function updateAdapterState(
  * @returns Entry sync result
  */
 export async function syncKnowledgeIndex(
-  services: { store: SkillShareerStore; data: StoreData },
+  services: { store: SkillShareerStore; data: StoreData; ai?: { chat: ChatProvider } },
   entryId: string,
   registry: AdapterRegistry,
 ): Promise<void> {
-  const { store: _store, data } = services;
+  const { store: _store, data, ai } = services;
   const entry = data.knowledgeEntries.find((e) => e.id === entryId);
 
   if (!entry) {
@@ -181,8 +183,11 @@ export async function syncKnowledgeIndex(
       continue; // Skip if already synced and unchanged
     }
 
-    // Perform sync
-    const result = await adapter.sync(normalizedDocument);
+    // Perform sync — graph adapter gets ChatProvider for LLM extraction
+    const result =
+      adapter === graphIndexAdapter
+        ? await graphIndexAdapter.sync(normalizedDocument, undefined, ai?.chat)
+        : await adapter.sync(normalizedDocument);
 
     // Update state — use current state or initialize if missing
     const baseState = currentState ?? initializeAdapterState();

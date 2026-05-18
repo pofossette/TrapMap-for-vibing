@@ -18,6 +18,7 @@ import { createHash } from 'node:crypto';
 
 import type { LifecycleState } from '@trapmap/contracts';
 
+import type { ChatProvider } from '../ai/types.js';
 import type { SkillArtifactRecord, SkillShareerStore, StoreData } from '../store.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 import type {
@@ -30,6 +31,7 @@ import {
   buildSkillGraphDocument as buildSkillGraphDocumentRecord,
 } from './graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from './graph-lite/graphology.js';
+import { extractGraphEntitiesWithLLM } from './graph-lite/llm-extract.js';
 import { getGraphIndexDocuments } from './graph-lite/store.js';
 
 // ---------------------------------------------------------------------------
@@ -523,9 +525,10 @@ export function extractSkillGraphPrimitives(args: {
  * - Calls extractSkillGraphPrimitives to build nodes and edges
  * - Returns a GraphIndexDocumentRecord ready for persistence
  */
-export function buildSkillGraphDocument(
+export async function buildSkillGraphDocument(
   artifact: SkillArtifactRecord,
-): GraphIndexDocumentRecord | null {
+  chat?: ChatProvider,
+): Promise<GraphIndexDocumentRecord | null> {
   const derived = artifact.latestRevision.derived;
 
   // Skip if no derived content
@@ -552,37 +555,59 @@ export function buildSkillGraphDocument(
     labels: c.labels,
   }));
 
-  // Extract graph primitives
-  const primitives = extractSkillGraphPrimitives({
-    artifactId: artifact.id,
-    profile,
-    capsules,
-  });
-
-  // Convert to record types
-  const nodes: GraphNodeRecord[] = primitives.nodes.map((n) => ({
-    id: n.id,
-    kind: n.kind,
-    label: n.label,
-    evidence: n.evidence,
-  }));
-
-  const edges: GraphEdgeRecord[] = primitives.edges.map((e) => ({
-    id: e.id,
-    sourceNodeId: e.sourceNodeId,
-    targetNodeId: e.targetNodeId,
-    relationType: e.relationType,
-    strength: e.strength,
-    evidence: e.evidence,
-  }));
-
-  // Compute derived text hash for verification
-  const derivedTextContent = [
+  // Build canonical text for LLM extraction (same sources as rule engine)
+  const canonicalText = [
     profile?.summary ?? '',
     ...(profile?.keywords ?? []),
     ...capsules.flatMap((c) => [c.situation, c.problem, c.goal, c.content, ...c.labels]),
   ].join('\n');
-  const derivedTextHash = createHash('sha256').update(derivedTextContent).digest('hex');
+
+  let nodes: GraphNodeRecord[];
+  let edges: GraphEdgeRecord[];
+
+  if (chat?.isConfigured) {
+    // LLM extraction with rule engine fallback
+    const llmResult = await extractGraphEntitiesWithLLM(chat, canonicalText, { llmEnabled: true });
+    nodes = llmResult.nodes;
+    edges = llmResult.edges;
+  } else {
+    // Rule-based extraction
+    const primitives = extractSkillGraphPrimitives({
+      artifactId: artifact.id,
+      profile,
+      capsules,
+    });
+    nodes = primitives.nodes.map((n) => ({
+      id: n.id,
+      kind: n.kind,
+      label: n.label,
+      evidence: n.evidence,
+    }));
+    edges = primitives.edges.map((e) => ({
+      id: e.id,
+      sourceNodeId: e.sourceNodeId,
+      targetNodeId: e.targetNodeId,
+      relationType: e.relationType,
+      strength: e.strength,
+      evidence: e.evidence,
+    }));
+  }
+
+  // Always inject root skill node if not already present
+  const skillNodeId = `skill:${artifact.id}`;
+  if (!nodes.some((n) => n.id === skillNodeId)) {
+    nodes.unshift({
+      id: skillNodeId,
+      kind: 'skill',
+      label: profile?.title ?? 'Skill',
+      evidence: profile?.summary
+        ? `profile.summary: ${profile.summary.slice(0, 200)}`
+        : 'skill root node',
+    });
+  }
+
+  // Compute derived text hash for verification
+  const derivedTextHash = createHash('sha256').update(canonicalText).digest('hex');
 
   // Build the document input
   const input: SkillGraphDocumentInput = {
@@ -666,7 +691,7 @@ export async function runSkillIndexEvent(args: {
     switch (action) {
       case 'upsert': {
         // Build the graph document
-        const doc = buildSkillGraphDocument(artifact);
+        const doc = await buildSkillGraphDocument(artifact);
         if (!doc) {
           // No derived content, skip indexing
           return;

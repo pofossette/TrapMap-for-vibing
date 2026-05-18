@@ -20,7 +20,9 @@ export type AiPromptFormat = 'xml' | 'json' | 'markdown';
 export type AiPromptTaskType =
   | 'boundary-extraction'
   | 'knowledge-refinement'
-  | 'claim-verification';
+  | 'claim-verification'
+  | 'graph-extraction'
+  | 'graph-extraction-planner';
 
 // ---------------------------------------------------------------------------
 // Prompt slots

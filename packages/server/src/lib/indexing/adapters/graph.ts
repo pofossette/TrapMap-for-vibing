@@ -12,12 +12,13 @@
  * Graph payloads remain server-internal and are not exposed through contracts.
  */
 
-import { extractTrapGraphEntities } from '../../retrieval/recall/graph-extract.js';
+import type { ChatProvider } from '../../ai/types.js';
 import type { SkillShareerStore } from '../../store.js';
 import { nowIso } from '../../store.js';
 import { extractBoundaryGraphEntities } from '../boundary-extract.js';
 import type { GraphIndexDocumentRecord } from '../graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
+import { extractGraphEntitiesWithLLM } from '../graph-lite/llm-extract.js';
 import {
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
@@ -65,7 +66,11 @@ function cacheDocument(document: GraphIndexDocumentRecord): void {
  * index so existing graph-assisted recall callers continue to work during migration.
  */
 export const graphIndexAdapter: IndexAdapter & {
-  sync(document: NormalizedIndexDocument, store?: SkillShareerStore): Promise<IndexSyncResult>;
+  sync(
+    document: NormalizedIndexDocument,
+    store?: SkillShareerStore,
+    chat?: ChatProvider,
+  ): Promise<IndexSyncResult>;
   remove(ref: { entryId: string; revision: number }, store?: SkillShareerStore): Promise<void>;
 } = {
   kind: 'graph',
@@ -73,6 +78,7 @@ export const graphIndexAdapter: IndexAdapter & {
   async sync(
     document: NormalizedIndexDocument,
     store?: SkillShareerStore,
+    chat?: ChatProvider,
   ): Promise<IndexSyncResult> {
     const cacheKey = `${document.entryId}:${document.revision}`;
     const existingState = graphStateCache.get(cacheKey);
@@ -93,7 +99,14 @@ export const graphIndexAdapter: IndexAdapter & {
 
     try {
       // Extract TrapMap-specific entities and relations
-      const extractionResult = extractTrapGraphEntities(document);
+      // Use LLM extraction when ChatProvider is available, fall back to rule engine
+      const llmResult = await extractGraphEntitiesWithLLM(
+        chat ?? { provider: 'none', isConfigured: false, invoke: async () => '' },
+        document.canonicalText,
+        { llmEnabled: !!chat?.isConfigured },
+        document,
+      );
+      const extractionResult = { nodes: llmResult.nodes, edges: llmResult.edges };
 
       // Extract boundary entities and relations
       const trapNodeId = `trap:${document.entryId}`;

@@ -319,10 +319,10 @@ describe('skill-events', () => {
   });
 
   describe('buildSkillGraphDocument', () => {
-    it('builds document from artifact derived profile and capsules', () => {
+    it('builds document from artifact derived profile and capsules', async () => {
       const artifact = buildTestArtifact();
 
-      const doc = buildSkillGraphDocument(artifact);
+      const doc = await buildSkillGraphDocument(artifact);
 
       expect(doc).toBeDefined();
       expect(doc!.sourceType).toBe('skill');
@@ -330,21 +330,21 @@ describe('skill-events', () => {
       expect(doc!.revision).toBe(1);
     });
 
-    it('persists governance metadata from artifact root', () => {
+    it('persists governance metadata from artifact root', async () => {
       const artifact = buildTestArtifact({
         teamId: 'team-1',
         scope: 'project',
         requiredLevel: 5,
       });
 
-      const doc = buildSkillGraphDocument(artifact);
+      const doc = await buildSkillGraphDocument(artifact);
 
       expect(doc!.teamId).toBe('team-1');
       expect(doc!.scope).toBe('project');
       expect(doc!.requiredLevel).toBe(5);
     });
 
-    it('returns null if artifact has no derived content', () => {
+    it('returns null if artifact has no derived content', async () => {
       const now = nowIso();
       const artifact: SkillArtifactRecord = {
         id: 'artifact-no-derived',
@@ -384,7 +384,7 @@ describe('skill-events', () => {
         updatedAt: now,
       };
 
-      const doc = buildSkillGraphDocument(artifact);
+      const doc = await buildSkillGraphDocument(artifact);
 
       expect(doc).toBeNull();
     });

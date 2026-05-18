@@ -179,7 +179,9 @@ function buildCandidateForTrap(source: ApprovedSource): GraphIndexDocumentRecord
 /**
  * Build a candidate graph document for a skill source.
  */
-function buildCandidateForSkill(source: ApprovedSource): GraphIndexDocumentRecord | null {
+async function buildCandidateForSkill(
+  source: ApprovedSource,
+): Promise<GraphIndexDocumentRecord | null> {
   const artifact = source.entity as SkillArtifactRecord;
   return buildSkillGraphDocument(artifact);
 }
@@ -260,7 +262,7 @@ export async function reconcileGraphIndexesFromSnapshot(args: {
     if (source.sourceType === 'trap') {
       candidate = buildCandidateForTrap(source);
     } else {
-      candidate = buildCandidateForSkill(source);
+      candidate = await buildCandidateForSkill(source);
     }
 
     if (candidate) {

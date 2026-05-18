@@ -10,6 +10,7 @@
  */
 
 import type { LifecycleState } from '@trapmap/contracts';
+import type { ChatProvider } from '../ai/types.js';
 import type { SkillShareerStore, StoreData } from '../store.js';
 import { removeGraphIndexDocumentsForSource } from './graph-lite/store.js';
 import { syncKnowledgeIndex } from './pipeline.js';
@@ -53,7 +54,7 @@ export function determineKnowledgeIndexAction(
  * @param args.registry - Adapter registry with all registered adapters
  */
 export async function runKnowledgeIndexEvent(args: {
-  services: { store: SkillShareerStore; data: StoreData };
+  services: { store: SkillShareerStore; data: StoreData; ai?: { chat: ChatProvider } };
   entryId: string;
   previousState: LifecycleState;
   nextState: LifecycleState;
@@ -75,7 +76,15 @@ export async function runKnowledgeIndexEvent(args: {
     switch (action) {
       case 'upsert':
         // Sync the entry to all adapters
-        await syncKnowledgeIndex({ store, data }, entryId, registry);
+        {
+          const syncServices: {
+            store: typeof store;
+            data: typeof data;
+            ai?: { chat: ChatProvider };
+          } = { store, data };
+          if (args.services.ai) syncServices.ai = args.services.ai;
+          await syncKnowledgeIndex(syncServices, entryId, registry);
+        }
         break;
 
       case 'remove':

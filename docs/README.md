@@ -136,6 +136,8 @@ pnpm eval:ci
 - [CLI 参考](architecture/CLI.md) — CLI 命令全量参考
 - [CLI 渲染适配层](architecture/RENDERING.md) — 多工具输出格式适配
 - [数据流](architecture/FLOW.md) — 详细数据流图
+- [数据类型串联图](architecture/DATA_TYPES_PIPELINE.md) — 核心数据类型流转路径与 GraphRAG-lite 图构建详解
+- [LLM 图提取改造计划](architecture/HYBRID_GRAPH_EXTRACTION.md) — 用 LLM 替代规则引擎的图构建 + 入库智能增强（进行中）
 
 ### 部署与运维
 - [部署指南](architecture/DEPLOYMENT.md) — Docker 部署详细步骤

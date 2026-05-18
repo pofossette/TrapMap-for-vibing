@@ -15,6 +15,7 @@
  * T-36-10: Governance metadata inherited from artifact root
  */
 
+import type { ChatProvider } from '../../ai/types.js';
 import type { SkillArtifactRecord, StoreData } from '../../store.js';
 import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
 // TODO: When this adapter is wired to production, migrate to GraphIndexRepository
@@ -39,6 +40,8 @@ export interface ArtifactGraphAdapterInput {
   data: Pick<StoreData, 'graphIndexDocuments'>;
   /** The skill artifact to index */
   artifact: SkillArtifactRecord;
+  /** Optional ChatProvider for LLM-powered extraction */
+  chat?: ChatProvider;
 }
 
 /**
@@ -99,11 +102,11 @@ export const artifactGraphIndexAdapter: ArtifactGraphAdapter = {
    * clientManifest.assets and clientManifest.scripts bodies.
    */
   async sync(input: ArtifactGraphAdapterInput): Promise<ArtifactGraphAdapterSyncResult> {
-    const { data, artifact } = input;
+    const { data, artifact, chat } = input;
 
     try {
       // Build the graph document from derived text only
-      const doc = buildSkillGraphDocument(artifact);
+      const doc = await buildSkillGraphDocument(artifact, chat);
 
       if (!doc) {
         // No derived content, skip indexing
