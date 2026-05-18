@@ -12,6 +12,7 @@
  * T-36-13: Remove stale graph documents (missing, deactivated, rejected, old revision)
  * T-36-14: Rebuild missing approved trap and skill documents
  * T-36-16: Derive allowed source set from current governance metadata
+ * Phase 4: Full rebuild on prompt version change with interrupt recovery
  */
 
 import { extractTrapGraphEntities } from '../retrieval/recall/graph-extract.js';
@@ -24,6 +25,7 @@ import type {
 import { buildTrapGraphDocument } from './adapters/graph-builders.js';
 import type { GraphIndexDocumentRecord } from './graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from './graph-lite/graphology.js';
+import { PROMPT_VERSION } from './graph-lite/llm-cache.js';
 import {
   getGraphIndexDocuments,
   removeGraphIndexDocumentsForSource,
@@ -122,6 +124,38 @@ function computeApprovedSources(data: StoreData): ApprovedSource[] {
   }
 
   return sources;
+}
+
+/**
+ * Result of a full rebuild triggered by prompt version change.
+ */
+export interface FullRebuildResult {
+  /** Whether a rebuild was triggered */
+  triggered: boolean;
+  /** Previous prompt version (null if first run) */
+  previousVersion: number | null;
+  /** Current prompt version */
+  currentVersion: number;
+  /** Total sources to rebuild */
+  totalSources: number;
+  /** Sources rebuilt successfully in this pass */
+  sourcesRebuilt: number;
+  /** Sources that errored during rebuild */
+  sourcesErrored: number;
+  /** Whether the rebuild completed or was interrupted */
+  completed: boolean;
+  /** Error messages for failed sources */
+  errors: Array<{ sourceKey: string; error: string }>;
+}
+
+/**
+ * A candidate for rebuild: an approved source that needs its graph document regenerated.
+ */
+interface RebuildCandidate {
+  sourceKey: string;
+  sourceType: 'trap' | 'skill';
+  sourceId: string;
+  entity: KnowledgeRecord | SkillArtifactRecord;
 }
 
 /**
@@ -307,10 +341,148 @@ export async function reconcileGraphIndexesFromSnapshot(args: {
 }
 
 /**
+ * Perform a full rebuild of all graph index documents.
+ *
+ * This is triggered when PROMPT_VERSION changes. It regenerates graph documents
+ * for all approved sources using the current extraction logic, replacing stale
+ * documents that were built with an older prompt version.
+ *
+ * Supports interrupt recovery: if a previous rebuild was interrupted,
+ * it resumes from the last completed source (tracked in data.rebuildState).
+ *
+ * @param args - Store and data snapshot
+ * @returns Full rebuild result with counts and completion status
+ */
+export async function fullRebuildGraphIndexes(args: {
+  data: StoreData;
+}): Promise<FullRebuildResult> {
+  const { data } = args;
+
+  const currentVersion = PROMPT_VERSION;
+  const previousVersion = data.promptVersion;
+
+  // Compute all approved sources
+  const approvedSources = computeApprovedSources(data);
+
+  // Determine which sources need rebuild (resume from interrupt if applicable)
+  const completedKeys = new Set(data.rebuildState?.completedSourceKeys ?? []);
+  const pendingSources: RebuildCandidate[] = [];
+
+  for (const source of approvedSources) {
+    const key = sourceKey(source.sourceType, source.sourceId);
+    if (completedKeys.has(key)) continue;
+
+    pendingSources.push({
+      sourceKey: key,
+      sourceType: source.sourceType,
+      sourceId: source.sourceId,
+      entity: source.entity,
+    });
+  }
+
+  const totalSources = approvedSources.length;
+
+  // If nothing to rebuild (all completed or no sources), finalize
+  if (pendingSources.length === 0) {
+    data.promptVersion = currentVersion;
+    data.rebuildState = null;
+    return {
+      triggered: true,
+      previousVersion,
+      currentVersion,
+      totalSources,
+      sourcesRebuilt: 0,
+      sourcesErrored: 0,
+      completed: true,
+      errors: [],
+    };
+  }
+
+  console.log(
+    `[reconcile] Full rebuild triggered: promptVersion ${previousVersion ?? 'null'} -> ${currentVersion}. ` +
+      `${pendingSources.length}/${totalSources} sources pending.`,
+  );
+
+  let sourcesRebuilt = 0;
+  let sourcesErrored = 0;
+  const errors: Array<{ sourceKey: string; error: string }> = [];
+
+  for (const source of pendingSources) {
+    try {
+      // Remove existing document for this source
+      removeGraphIndexDocumentsForSource(data, source.sourceType, source.sourceId);
+
+      // Rebuild the document
+      let candidate: GraphIndexDocumentRecord | null = null;
+      if (source.sourceType === 'trap') {
+        const trapSource = computeApprovedSources(data).find(
+          (s) => s.sourceId === source.sourceId && s.sourceType === source.sourceType,
+        );
+        if (trapSource) {
+          candidate = buildCandidateForTrap(trapSource);
+        }
+      } else {
+        const skillSource = computeApprovedSources(data).find(
+          (s) => s.sourceId === source.sourceId && s.sourceType === source.sourceType,
+        );
+        if (skillSource) {
+          candidate = await buildCandidateForSkill(skillSource);
+        }
+      }
+
+      if (candidate) {
+        upsertGraphIndexDocument(data, candidate);
+        sourcesRebuilt++;
+        console.log(
+          `[reconcile] Rebuilt ${source.sourceType}:${source.sourceId} (${sourcesRebuilt}/${pendingSources.length})`,
+        );
+      }
+
+      // Update rebuild state for interrupt recovery
+      completedKeys.add(source.sourceKey);
+      data.rebuildState = {
+        targetVersion: currentVersion,
+        completedSourceKeys: [...completedKeys],
+      };
+    } catch (error) {
+      sourcesErrored++;
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      errors.push({ sourceKey: source.sourceKey, error: errorMsg });
+      console.error(`[reconcile] Error rebuilding ${source.sourceKey}: ${errorMsg}`);
+      // Continue with next source rather than aborting
+    }
+  }
+
+  // Mark rebuild as completed
+  const completed = sourcesErrored === 0;
+  if (completed) {
+    data.promptVersion = currentVersion;
+    data.rebuildState = null;
+    console.log(`[reconcile] Full rebuild completed: ${sourcesRebuilt} sources rebuilt.`);
+  } else {
+    console.log(
+      `[reconcile] Full rebuild partially completed: ${sourcesRebuilt} rebuilt, ${sourcesErrored} errored. Will resume on next reconcile.`,
+    );
+  }
+
+  return {
+    triggered: true,
+    previousVersion,
+    currentVersion,
+    totalSources,
+    sourcesRebuilt,
+    sourcesErrored,
+    completed,
+    errors,
+  };
+}
+
+/**
  * Reconcile graph indexes with automatic snapshot.
  *
  * Runs reconciliation within a transaction, ensuring atomic updates
- * to the graph index.
+ * to the graph index. After normal reconciliation, checks if the prompt
+ * version has changed and triggers a full rebuild if needed.
  *
  * @param args - Store instance
  * @returns Reconciliation result with counts and error status
@@ -330,7 +502,30 @@ export async function reconcileGraphIndexes(args: {
   };
 
   await store.transact(async (data) => {
+    // Normal reconciliation pass
     result = await reconcileGraphIndexesFromSnapshot({ store, data });
+
+    // Phase 4: Check if prompt version changed — trigger full rebuild
+    // Only trigger if a version was previously stored AND differs from current
+    // (null means first run — normal reconciliation handles initial build)
+    const storedVersion = data.promptVersion;
+    const hasPendingRebuild = data.rebuildState !== null;
+    const versionChanged = storedVersion !== null && storedVersion !== PROMPT_VERSION;
+    if (versionChanged || hasPendingRebuild) {
+      const rebuildResult = await fullRebuildGraphIndexes({ data });
+
+      // Merge rebuild errors into reconciliation result
+      if (rebuildResult.sourcesErrored > 0) {
+        result.rebuildHadErrors = true;
+        result.rebuildError = `Full rebuild: ${rebuildResult.sourcesErrored} source(s) failed. ${rebuildResult.errors.map((e) => `${e.sourceKey}: ${e.error}`).join('; ')}`;
+      }
+
+      // Increment documentsRebuilt count
+      result.documentsRebuilt += rebuildResult.sourcesRebuilt;
+    } else if (storedVersion === null) {
+      // First run: store the prompt version so future changes can be detected
+      data.promptVersion = PROMPT_VERSION;
+    }
   });
 
   return result;

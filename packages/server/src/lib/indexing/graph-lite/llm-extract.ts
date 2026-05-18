@@ -39,8 +39,7 @@ const MAX_RETRIES = 2;
 /** Base delay for exponential backoff (ms). */
 const BACKOFF_BASE_MS = 100;
 
-/** Prompt version — bump to invalidate all caches. */
-export const PROMPT_VERSION = 'v1';
+import type { LlmExtractionCache } from './llm-cache.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -59,6 +58,8 @@ export interface ExtractGraphOptions {
   llmEnabled?: boolean;
   /** Custom prompt version for cache keying. */
   promptVersion?: string;
+  /** Optional cache for Phase 1 (planning) and Phase 2 (extraction) results. */
+  cache?: LlmExtractionCache;
 }
 
 // ---------------------------------------------------------------------------
@@ -129,9 +130,19 @@ function parseExtractionPlan(raw: string): ExtractionPlan | null {
  * For short text (<= CHUNK_THRESHOLD), returns a single segment without LLM.
  * For longer text, calls the LLM to create a segment plan.
  */
-export async function planExtraction(chat: ChatProvider, text: string): Promise<ExtractionPlan> {
+export async function planExtraction(
+  chat: ChatProvider,
+  text: string,
+  cache?: LlmExtractionCache,
+): Promise<ExtractionPlan> {
   if (text.length <= CHUNK_THRESHOLD) {
     return { segments: [{ text, priority: 1 }] };
+  }
+
+  // Check cache
+  if (cache) {
+    const cached = cache.getPhase1(text);
+    if (cached) return cached;
   }
 
   if (!chat.isConfigured) {
@@ -147,6 +158,7 @@ export async function planExtraction(chat: ChatProvider, text: string): Promise<
     const response = await chat.invoke(systemPrompt, text);
     const plan = parseExtractionPlan(response);
     if (plan && plan.segments.length > 0) {
+      if (cache) cache.setPhase1(text, plan);
       return plan;
     }
   } catch {
@@ -419,9 +431,19 @@ export async function extractGraphEntitiesWithLLM(
   }
 
   try {
+    // Check Phase 2 cache first
+    const cache = options?.cache;
+    if (cache) {
+      const cachedResult = cache.getPhase2(text);
+      if (cachedResult) {
+        metrics.cacheHitCount = 1;
+        return { nodes: cachedResult.nodes, edges: cachedResult.edges, metrics };
+      }
+    }
+
     // Phase 1: Planning
     const phase1Start = Date.now();
-    const plan = await planExtraction(chat, text);
+    const plan = await planExtraction(chat, text, cache);
     metrics.phase1Ms = Date.now() - phase1Start;
 
     // Phase 2: Parallel segment extraction
@@ -478,6 +500,11 @@ export async function extractGraphEntitiesWithLLM(
       const fallback = ruleEngineFallback(fallbackDocument);
       metrics.fallbackCount = 1;
       return { nodes: fallback.nodes, edges: fallback.edges, metrics };
+    }
+
+    // Store in Phase 2 cache
+    if (cache && nodes.length > 0) {
+      cache.setPhase2(text, { nodes, edges, metrics });
     }
 
     return { nodes, edges, metrics };

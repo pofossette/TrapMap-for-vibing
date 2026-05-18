@@ -37,6 +37,13 @@ export interface StoreData {
   graphIndexDocuments: GraphIndexDocumentRecord[];
   conflicts: ConflictRelation[];
   feedbackQueue: FeedbackQueueRecord[];
+  /** Phase 4: Current prompt version for graph extraction cache invalidation. */
+  promptVersion: number | null;
+  /** Phase 4: Interrupt recovery state for full rebuilds. */
+  rebuildState: {
+    targetVersion: number;
+    completedSourceKeys: string[];
+  } | null;
 }
 
 const EMPTY_STORE: StoreData = {
@@ -56,6 +63,8 @@ const EMPTY_STORE: StoreData = {
   graphIndexDocuments: [],
   conflicts: [],
   feedbackQueue: [],
+  promptVersion: null,
+  rebuildState: null,
 };
 
 export function createEmptyStoreData(): StoreData {

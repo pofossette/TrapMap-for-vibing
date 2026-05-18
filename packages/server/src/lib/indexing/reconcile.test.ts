@@ -18,9 +18,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { SkillShareerStore, StoreData } from '../store.js';
 import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
 import type { GraphIndexDocumentRecord } from './graph-lite/documents.js';
+import { PROMPT_VERSION } from './graph-lite/llm-cache.js';
 import { getGraphIndexDocuments } from './graph-lite/store.js';
 import {
   type GraphReconcileResult,
+  fullRebuildGraphIndexes,
   reconcileGraphIndexes,
   reconcileGraphIndexesFromSnapshot,
 } from './reconcile.js';
@@ -744,6 +746,189 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
 
       // Note: The changes are made to the passed data object directly
       expect(snapshot.graphIndexDocuments.length).toBe(1);
+    });
+  });
+
+  describe('full rebuild on prompt version change', () => {
+    it('should trigger full rebuild when promptVersion is null (first run)', async () => {
+      await store.transact(async (d) => {
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'trap_1',
+            shortcut: 'Docker timeout trap',
+            detail: 'When Docker container times out, increase the timeout',
+            labels: ['docker'],
+          }),
+        );
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'trap_2',
+            shortcut: 'Node version issue',
+            detail: 'Node version must be 18 or higher',
+            labels: ['node'],
+          }),
+        );
+        // promptVersion starts as null by default
+        expect(d.promptVersion).toBeNull();
+      });
+
+      const snapshot = await store.snapshot();
+      const result = await fullRebuildGraphIndexes({ data: snapshot });
+
+      expect(result.triggered).toBe(true);
+      expect(result.previousVersion).toBeNull();
+      expect(result.currentVersion).toBe(PROMPT_VERSION);
+      expect(result.totalSources).toBe(2);
+      expect(result.sourcesRebuilt).toBe(2);
+      expect(result.completed).toBe(true);
+      expect(result.errors).toHaveLength(0);
+
+      // promptVersion should be updated
+      expect(snapshot.promptVersion).toBe(PROMPT_VERSION);
+      expect(snapshot.rebuildState).toBeNull();
+    });
+
+    it('should trigger full rebuild when promptVersion differs from current', async () => {
+      await store.transact(async (d) => {
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'trap_1',
+            shortcut: 'Docker timeout trap',
+            detail: 'When Docker container times out, increase the timeout',
+            labels: ['docker'],
+          }),
+        );
+        // Simulate an old prompt version
+        d.promptVersion = PROMPT_VERSION - 1;
+      });
+
+      const result = await reconcileGraphIndexes({ store });
+
+      // Rebuild should have been triggered
+      expect(result.rebuildHadErrors).toBe(false);
+
+      const updatedData = await store.snapshot();
+      expect(updatedData.promptVersion).toBe(PROMPT_VERSION);
+      expect(updatedData.rebuildState).toBeNull();
+    });
+
+    it('should not trigger rebuild when promptVersion matches', async () => {
+      await store.transact(async (d) => {
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'trap_1',
+            shortcut: 'Docker timeout trap',
+            detail: 'When Docker container times out, increase the timeout',
+            labels: ['docker'],
+          }),
+        );
+        d.promptVersion = PROMPT_VERSION;
+      });
+
+      // Run reconcile - should not trigger rebuild since version matches
+      const result = await reconcileGraphIndexes({ store });
+
+      // No rebuild errors since version matches
+      expect(result.rebuildHadErrors).toBe(false);
+
+      const updatedData = await store.snapshot();
+      expect(updatedData.promptVersion).toBe(PROMPT_VERSION);
+    });
+
+    it('should resume interrupted rebuild from last completed source', async () => {
+      await store.transact(async (d) => {
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'trap_1',
+            shortcut: 'Trap one',
+            detail: 'First trap detail',
+            labels: ['test'],
+          }),
+        );
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'trap_2',
+            shortcut: 'Trap two',
+            detail: 'Second trap detail',
+            labels: ['test'],
+          }),
+        );
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'trap_3',
+            shortcut: 'Trap three',
+            detail: 'Third trap detail',
+            labels: ['test'],
+          }),
+        );
+        // Simulate interrupted rebuild: trap_1 was already rebuilt
+        d.rebuildState = {
+          targetVersion: PROMPT_VERSION,
+          completedSourceKeys: ['trap:trap_1'],
+        };
+      });
+
+      const snapshot = await store.snapshot();
+      const result = await fullRebuildGraphIndexes({ data: snapshot });
+
+      expect(result.triggered).toBe(true);
+      // Should only rebuild trap_2 and trap_3 (trap_1 already done)
+      expect(result.sourcesRebuilt).toBe(2);
+      expect(result.totalSources).toBe(3);
+      expect(result.completed).toBe(true);
+
+      // promptVersion should be set since all sources completed
+      expect(snapshot.promptVersion).toBe(PROMPT_VERSION);
+      expect(snapshot.rebuildState).toBeNull();
+    });
+
+    it('should handle rebuild with both traps and skills', async () => {
+      await store.transact(async (d) => {
+        d.knowledgeEntries.push(
+          createTestKnowledgeEntry({
+            id: 'trap_1',
+            shortcut: 'Docker trap',
+            detail: 'Docker container timeout issue',
+            labels: ['docker'],
+          }),
+        );
+        d.skillArtifacts.push(
+          createTestSkillArtifact({
+            id: 'skill_1',
+            title: 'Docker Skill',
+            latestRevision: {
+              ...createTestSkillArtifact().latestRevision,
+              artifactId: 'skill_1',
+              derived: {
+                profile: {
+                  artifactId: 'skill_1',
+                  revision: 1,
+                  sourceHash: 'a'.repeat(64),
+                  title: 'Docker Skill',
+                  summary: 'Docker management skill',
+                  keywords: ['docker'],
+                  referencePaths: [],
+                  contentHash: 'b'.repeat(64),
+                },
+                capsules: [],
+                clientManifest: null,
+                sourceHash: 'a'.repeat(64),
+                derivedAt: nowIso(),
+              },
+            },
+          }),
+        );
+        d.promptVersion = null;
+      });
+
+      const snapshot = await store.snapshot();
+      const result = await fullRebuildGraphIndexes({ data: snapshot });
+
+      expect(result.triggered).toBe(true);
+      expect(result.totalSources).toBe(2);
+      expect(result.sourcesRebuilt).toBe(2);
+      expect(result.completed).toBe(true);
+      expect(snapshot.promptVersion).toBe(PROMPT_VERSION);
     });
   });
 });
