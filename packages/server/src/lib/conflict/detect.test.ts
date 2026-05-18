@@ -71,8 +71,8 @@ describe('conflict detection', () => {
   });
 
   describe('classifyConflict', () => {
-    it('returns null when problemOverlap < 0.5', () => {
-      expect(classifyConflict(0.4, 0.5)).toBeNull();
+    it('returns null when problemOverlap < 0.3', () => {
+      expect(classifyConflict(0.2, 0.5)).toBeNull();
     });
 
     it('returns null when solutionDiff < 0.3', () => {

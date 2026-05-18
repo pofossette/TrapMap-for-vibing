@@ -126,8 +126,8 @@ function createTestInput(
 // ---------------------------------------------------------------------------
 
 describe('getDetectionVersion', () => {
-  it('returns "1.0.0"', () => {
-    expect(getDetectionVersion()).toBe('1.0.0');
+  it('returns "2.0.0"', () => {
+    expect(getDetectionVersion()).toBe('2.0.0');
   });
 });
 
@@ -598,7 +598,7 @@ describe('detectDuplicates', () => {
     expect(dc.id).toMatch(/^dupcase_/);
     expect(dc.candidateId).toBe('cand_struct');
     expect(dc.detectedAt).toBeTruthy();
-    expect(dc.detectionVersion).toBe('1.0.0');
+    expect(dc.detectionVersion).toBe('2.0.0');
     expect(Array.isArray(dc.matches)).toBe(true);
     expect(dc.matches.length).toBeGreaterThanOrEqual(1);
     expect(typeof dc.highestSimilarity).toBe('number');

@@ -5,9 +5,10 @@
  * - Vector-based similarity search using pgvector for semantic similarity
  * - Keyword-based matching using JSONB array containment
  * - Hybrid scoring combining both channels
+ * - LLM refinement for top-K matches (Phase 2)
  * - Backward-compatible DuplicateCase output
  *
- * Phase: Replace Jaccard overlap with pgvector recall
+ * Phase: Replace Jaccard overlap with pgvector recall + LLM refinement
  */
 
 import { and, eq, sql } from 'drizzle-orm';
@@ -15,22 +16,32 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
 import type { DuplicateCase, DuplicateMatch } from '@trapmap/contracts';
+import type { ChatProvider } from '../ai/types.js';
 import { generateEmbedding } from '../embeddings.js';
 import { createDuplicateCaseId } from '../ids.js';
 import { knowledgeEmbeddings, knowledgeKeywords } from '../persistence/schema.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 import { nowIso } from '../store.js';
+import { judgeDuplicateWithLLM } from './llm-dedup.js';
 
 // Thresholds (match detector.ts for compatibility)
 const HIGH_OVERLAP_THRESHOLD = 0.72;
 const MEDIUM_OVERLAP_THRESHOLD = 0.38;
-const DETECTION_VERSION = '2.0.0'; // Bumped for pgvector-based detection
+const DETECTION_VERSION = '3.0.0'; // Bumped for LLM-enhanced detection
+
+/** Maximum number of top-K matches sent to LLM for refinement */
+const LLM_TOP_K = 5;
+
+/** Minimum LLM confidence to confirm a duplicate */
+const LLM_DUPLICATE_CONFIDENCE = 0.8;
 
 export interface PgDuplicateDetectorConfig {
   /** PostgreSQL connection pool */
   pool: Pool;
   /** Optional feature flag - falls back to in-memory if false */
   featureFlag?: () => boolean;
+  /** Optional ChatProvider for LLM-enhanced duplicate detection */
+  chat?: ChatProvider;
 }
 
 /**
@@ -71,15 +82,18 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
     if (config.featureFlag && !config.featureFlag()) {
       // Import and use the in-memory detector
       const { detectDuplicates } = await import('./detector.js');
-      return detectDuplicates({
-        candidateId: input.candidateId,
-        candidateFingerprint: input.candidateFingerprint,
-        candidateKeywords: input.candidateKeywords,
-        candidateTokens: input.candidateTokens,
-        trapEntries: fallbackData?.trapEntries ?? [],
-        skillArtifacts: fallbackData?.skillArtifacts ?? [],
-        threshold: MEDIUM_OVERLAP_THRESHOLD,
-      });
+      return detectDuplicates(
+        {
+          candidateId: input.candidateId,
+          candidateFingerprint: input.candidateFingerprint,
+          candidateKeywords: input.candidateKeywords,
+          candidateTokens: input.candidateTokens,
+          trapEntries: fallbackData?.trapEntries ?? [],
+          skillArtifacts: fallbackData?.skillArtifacts ?? [],
+          threshold: MEDIUM_OVERLAP_THRESHOLD,
+        },
+        config.chat,
+      );
     }
 
     const normalizedAt = nowIso();
@@ -212,7 +226,50 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
 
     // Sort by similarity and limit
     matches.sort((a, b) => b.similarityScore - a.similarityScore);
-    const topMatches = matches.slice(0, maxMatches);
+
+    // Stage 2: LLM refinement (if configured)
+    let finalMatches: DuplicateMatch[];
+    const useLLM = config.chat?.isConfigured ?? false;
+
+    if (useLLM && matches.length > 0) {
+      const topK = matches.slice(0, LLM_TOP_K);
+      const refinedMatches: DuplicateMatch[] = [];
+
+      for (const match of topK) {
+        // Use the entry ID to look up the candidate text for comparison
+        // The entryId from vector/keyword search maps to a knowledge entry
+        const existingTitle = match.entityTitle;
+        const existingBody = ''; // pg-detector doesn't have full body; use title-based comparison
+
+        const candidateTitle = input.candidateKeywords.slice(0, 5).join(', ');
+        const candidateBody = input.candidateTokens.slice(0, 100).join(' ');
+
+        const judgment = await judgeDuplicateWithLLM(
+          config.chat!,
+          { title: candidateTitle, body: candidateBody },
+          { title: existingTitle, body: existingBody },
+        );
+
+        if (judgment?.isDuplicate && judgment.confidence >= LLM_DUPLICATE_CONFIDENCE) {
+          refinedMatches.push({
+            ...match,
+            matchType:
+              judgment.overlapType === 'exact'
+                ? 'exact'
+                : judgment.overlapType === 'semantic'
+                  ? 'high-overlap'
+                  : match.matchType,
+            similarityScore: Math.max(match.similarityScore, judgment.confidence),
+          });
+        }
+      }
+
+      finalMatches = refinedMatches;
+    } else {
+      finalMatches = matches;
+    }
+
+    const topMatches = finalMatches.slice(0, maxMatches);
 
     // Build duplicate case
     const hasMatches = topMatches.length > 0;

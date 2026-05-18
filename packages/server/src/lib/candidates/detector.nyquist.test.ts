@@ -347,8 +347,8 @@ describe('Nyquist: detectDuplicates sorts and limits results', () => {
 });
 
 describe('Nyquist: getDetectionVersion returns correct version', () => {
-  it('returns "1.0.0"', () => {
-    expect(getDetectionVersion()).toBe('1.0.0');
+  it('returns "2.0.0"', () => {
+    expect(getDetectionVersion()).toBe('2.0.0');
   });
 });
 

@@ -7,24 +7,32 @@
  * - contradictory: Directly opposing solutions (e.g., "use X" vs "avoid X")
  * - superseded: Newer entry replaces older approach
  *
+ * Two-stage detection (Phase 2):
+ * 1. Jaccard pre-filter with relaxed threshold (0.3) to find candidate pairs
+ * 2. LLM judgment to classify conflict type (when ChatProvider available)
+ *
+ * Falls back to pure Jaccard classification when LLM is not configured.
+ *
  * CONFLICT-01: Conflict relationship detection and classification
  */
 
 import type { ConflictRelation, ConflictType } from '@trapmap/contracts';
 
+import type { ChatProvider } from '../ai/types.js';
 import type { SkillShareerStore, StoreData } from '../store.js';
 import { nowIso } from '../store.js';
+import { judgeConflictWithLLM } from './llm-conflict.js';
 
-/** Minimum problem overlap to consider entries as addressing the same problem */
-const PROBLEM_OVERLAP_THRESHOLD = 0.5;
+/** Relaxed problem overlap threshold for Jaccard pre-filter (was 0.5, now 0.3 for wider LLM net) */
+const PROBLEM_OVERLAP_THRESHOLD = 0.3;
 
-/** Minimum solution difference to consider entries as conflicting */
+/** Minimum solution difference to consider entries as conflicting (Jaccard fallback) */
 const SOLUTION_DIFF_THRESHOLD = 0.3;
 
-/** High solution difference threshold for "contradictory" classification */
+/** High solution difference threshold for "contradictory" classification (Jaccard fallback) */
 const CONTRADICTORY_THRESHOLD = 0.8;
 
-/** Medium solution difference threshold for "alternative" classification */
+/** Medium solution difference threshold for "alternative" classification (Jaccard fallback) */
 const ALTERNATIVE_THRESHOLD = 0.4;
 
 /**
@@ -98,20 +106,26 @@ export interface ConflictDetectionInput {
     data: StoreData;
   };
   entryId: string;
+  /** Optional ChatProvider for LLM-enhanced conflict classification */
+  chat?: ChatProvider;
 }
 
 /**
  * Detect conflicts between a newly approved entry and existing entries.
  *
- * Compares problem overlap (using shortcut tokens) and solution difference
- * (using detail tokens) to identify and classify conflicts.
+ * Two-stage approach:
+ * 1. Jaccard pre-filter with relaxed threshold to find candidate pairs
+ * 2. LLM judgment to classify conflict type (when ChatProvider available)
  *
- * @param input - Detection input with store services and entry ID
+ * Falls back to pure Jaccard classification when LLM is not configured.
+ *
+ * @param input - Detection input with store services, entry ID, and optional ChatProvider
  * @returns Array of detected conflict relations (may be empty)
  */
 export async function detectConflicts(input: ConflictDetectionInput): Promise<ConflictRelation[]> {
-  const { services, entryId } = input;
+  const { services, entryId, chat } = input;
   const { data } = services;
+  const useLLM = chat?.isConfigured ?? false;
 
   // Find the newly approved entry
   const newEntry = data.knowledgeEntries.find((e) => e.id === entryId);
@@ -136,7 +150,35 @@ export async function detectConflicts(input: ConflictDetectionInput): Promise<Co
     const solutionSimilarity = overlapScore(newSolutionTokens, existingSolutionTokens);
     const solutionDiff = 1 - solutionSimilarity;
 
-    const conflictType = classifyConflict(problemOverlap, solutionDiff);
+    // Stage 1: Jaccard pre-filter — relaxed threshold for LLM candidate selection
+    if (problemOverlap < PROBLEM_OVERLAP_THRESHOLD) continue;
+
+    let conflictType: ConflictType | null = null;
+    let llmResolution: string | undefined;
+
+    // Stage 2: LLM refinement (if configured)
+    if (useLLM) {
+      const judgment = await judgeConflictWithLLM(
+        chat!,
+        { title: newEntry.shortcut, body: newEntry.detail },
+        { title: existingEntry.shortcut, body: existingEntry.detail },
+      );
+
+      if (judgment && judgment.conflictType !== 'none') {
+        conflictType = judgment.conflictType;
+        llmResolution = judgment.resolution;
+      }
+      // If LLM returns 'none' or fails, fall through to Jaccard
+    }
+
+    // Jaccard fallback: use classic threshold-based classification
+    if (!conflictType) {
+      if (solutionDiff < SOLUTION_DIFF_THRESHOLD) continue;
+      if (solutionDiff >= CONTRADICTORY_THRESHOLD) conflictType = 'contradictory';
+      else if (solutionDiff >= ALTERNATIVE_THRESHOLD) conflictType = 'alternative';
+      else conflictType = 'superseded';
+    }
+
     if (!conflictType) continue;
 
     // Canonical ordering: lower entryId first
@@ -149,16 +191,18 @@ export async function detectConflicts(input: ConflictDetectionInput): Promise<Co
     );
     if (existingConflict) continue;
 
+    const context = generateConflictContext(
+      entryIdA === newEntry.id ? newEntry : existingEntry,
+      entryIdA === newEntry.id ? existingEntry : newEntry,
+      conflictType,
+    );
+
     const conflict: ConflictRelation = {
       id: services.store.nextId(data, 'conflict'),
       entryIdA,
       entryIdB,
       conflictType,
-      context: generateConflictContext(
-        entryIdA === newEntry.id ? newEntry : existingEntry,
-        entryIdA === newEntry.id ? existingEntry : newEntry,
-        conflictType,
-      ),
+      context: llmResolution ? `${context} | Resolution: ${llmResolution}` : context,
       problemOverlapScore: problemOverlap,
       solutionDiffScore: solutionDiff,
       detectedAt: nowIso(),
