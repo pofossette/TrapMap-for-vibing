@@ -230,6 +230,7 @@ draft → submitted → agent-pass/agent-rejected
 | `problem` | string | 问题描述 |
 | `goal` | string | 目标/解决方案 |
 | `errorText` | string? | 错误文本（可选） |
+| `contextualPrefix` | string? | LLM 生成的上下文前缀，用于提升检索效果（≤300 字符） |
 | `labels` | Label[] | 标签 |
 | `scope` | Scope | 继承自工件 |
 | `requiredLevel` | SecurityLevel | 继承自工件 |

@@ -103,7 +103,10 @@ interface SkillCapsule {
   artifactId: EntityId;
   name: string;
   content: string;  // Distilled, actionable content
-  
+
+  // Contextual prefix for retrieval (Contextual Enrichment)
+  contextualPrefix?: string;  // LLM-generated, max 300 chars
+
   // Activation hint (Phase 15)
   activationHint?: string;
   
@@ -542,9 +545,59 @@ async function generateManifest(
 }
 ```
 
----
+### 上下文丰富 (Contextual Enrichment)
 
-## 治理继承
+基于 Anthropic Contextual Retrieval 策略，为每个 Capsule 生成上下文前缀（`contextualPrefix`），显著提升检索效果。
+
+**模块**: `packages/server/src/lib/artifacts/contextual-enrichment.ts`
+
+**两阶段处理流程**：
+
+1. **阶段 1 — 生成 Capsule 清单**: 将完整文档发送给 LLM，输出结构化 JSON 清单（`CapsuleManifest`），描述每个 Capsule 的标题、描述、来源和标签。超过 8000 字符的文档会自动截断以减少 token 消耗。
+2. **阶段 2 — 并发生成上下文前缀**: 为清单中每个 Capsule 生成 ≤300 字符的上下文前缀。使用 prompt cache 优化（文档内容在前部共享），并发处理。单次 LLM 调用失败时自动重试（指数退避，最多 2 次重试）。
+
+```typescript
+// 阶段 1: 生成清单
+const manifest = await generateCapsuleManifest(chat, documentTitle, labels, documentContent);
+// manifest: { documentTitle, documentLabels, capsules: CapsuleManifestItem[] }
+
+// 阶段 2: 并发生成前缀（带重试）
+const results = await generateCapsuleContents(chat, documentTitle, labels, documentContent, manifest.capsules);
+// results: { capsuleIndex, contextualPrefix }[]
+
+// Fallback（LLM 不可用时）
+const prefix = buildFallbackPrefix(documentTitle, sourceType, sourcePath);
+```
+
+**关键类型**:
+
+```typescript
+interface CapsuleManifestItem {
+  capsuleIndex: number;
+  title: string;
+  description: string;
+  contentScope: string;
+  sourceType: 'skill-main' | 'reference';
+  sourcePath: string;
+  tags: string[];
+}
+
+// 性能监控指标
+interface EnrichmentMetrics {
+  totalCapsules: number;       // 处理的 Capsule 总数
+  llmSuccessCount: number;     // LLM 成功生成的数量
+  cacheHitCount: number;       // 缓存命中的数量
+  fallbackCount: number;       // 使用 fallback 的数量
+  manifestGenerated: boolean;  // 清单是否成功生成
+  durationMs: number;          // 总耗时（毫秒）
+}
+```
+
+**派生流程集成**: `deriveFromPayloads()` 接受可选的 `chat?: ChatProvider` 参数。传入时，生成 Capsule 后自动调用 `enrichCapsules()` 添加 `contextualPrefix`。未传入时保持向后兼容（无 `contextualPrefix`）。支持 `ContextualEnrichmentCache` 缓存 LLM 结果。
+
+**Feature Flag (D-4)**: `enrichmentEnabled` 选项提供显式开关控制。设为 `false` 时完全跳过 LLM 调用，Capsule 保持无 `contextualPrefix` 状态。默认行为：有 `chat` 参数时启用。
+
+---
 
 派生产物自动继承治理属性：
 

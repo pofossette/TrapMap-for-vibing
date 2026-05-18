@@ -80,7 +80,7 @@ flowchart TB
         B1["RetrievalV2Query<br/>seed（唯一必填）"]
         B2["POST /v2/retrieval/search<br/>searchKnowledgeV2()"]
         B3["RetrievalV2ResponseWithHints<br/>capsules[], profileHints[]<br/>activationHints[]"]
-        B4["CapsuleMatch<br/>capsuleId, artifactId<br/>content, situation, problem, goal<br/>score, reason, conflicts"]
+        B4["CapsuleMatch<br/>capsuleId, artifactId<br/>content, situation, problem, goal<br/>contextualPrefix (可选)<br/>score = problem×0.30 + situation×0.21<br/>+ goal×0.17 + keyword×0.17<br/>+ context×0.15, × stackPathBoost<br/>reason, conflicts"]
         
         B1 --> B2
         B2 --> B3
@@ -235,7 +235,7 @@ flowchart TB
 | **人工裁定** | `ManualResultSubmission` → `ResolutionOutcome` → `EntityLineage` | 决定独立发布还是合并 |
 | **审核** | `AgentReviewResult` → `ReviewDecision` → `LifecycleState` | AI 预审 + 人工审核 |
 | **发布（trap）** | → `KnowledgeEntry` + `KnowledgeRevision` | 知识条目，带版本历史 |
-| **发布（skill）** | → `SkillArtifact` → `SkillProfile` / `SkillCapsule` / `ClientManifest` | 技能工件，派生三种产物 |
+| **发布（skill）** | → `SkillArtifact` → `SkillProfile` / `SkillCapsule` / `ClientManifest` | 技能工件，派生三种产物。Capsule 支持可选的 `contextualPrefix`（Contextual Enrichment，见 ARTIFACTS.md） |
 | **检索 v1** | `RetrievalQuery` → `RetrievalResponse` + `RetrievalCitation` | 条目级检索 |
 | **检索 v2** | `RetrievalV2Query` → `CapsuleMatch` + `ProfileHint` + `ActivationHints` | 胶囊级检索 |
 | **检索 v3** | `GraphPlanSearchQuery` → `TrapFirstPlan` + `RoutingTrace` | GraphRAG-lite 图计划检索 |

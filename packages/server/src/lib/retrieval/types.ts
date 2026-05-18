@@ -204,6 +204,8 @@ export interface CapsuleCandidate {
   goalScore: number;
   /** Error text match score [0, 1] if applicable */
   errorScore: number | null;
+  /** Contextual prefix match score [0, 1] (Anthropic Contextual Retrieval) */
+  contextScore: number;
   /** Stack/path boost factor */
   stackPathBoost: number;
   /** Combined final score after all factors */

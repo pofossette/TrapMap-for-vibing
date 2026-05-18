@@ -1,9 +1,10 @@
 /**
- * Tests for capsule recall helpers (Phase 14 Task 2).
+ * Tests for capsule recall helpers (Phase 14 Task 2, Phase C Contextual Enrichment).
  *
  * This module covers:
  * - RETR-03: Capsule-native recall from artifact-derived outputs
  * - CAPS-04: Capsule ranking with intent signals and stack/path boosts
+ * - CAPS-04-CTX: Context-aware scoring using contextual prefixes
  * - T-14-04: Preserve approval/team/level filtering before ranking
  * - T-14-06: Rank only distilled profile/capsule text, not raw payloads
  */
@@ -92,6 +93,10 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
       reviewHistory: [],
       reviewNotes: [],
       lifecycleHistory: [],
+      boundary: null,
+      decayMeta: null,
+      evidenceMeta: null,
+      maintenanceMeta: null,
       createdAt,
       updatedAt: createdAt,
     };
@@ -107,6 +112,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
     labels: string[];
     scope: 'global' | 'project';
     requiredLevel: number;
+    contextualPrefix?: string;
   }): DerivedSkillCapsuleRecord {
     return {
       capsuleId: overrides.capsuleId,
@@ -118,6 +124,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
       problem: overrides.problem,
       goal: overrides.goal,
       errorText: null,
+      contextualPrefix: overrides.contextualPrefix,
       labels: overrides.labels,
       scope: overrides.scope,
       requiredLevel: overrides.requiredLevel,
@@ -497,17 +504,6 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
 
       const artifacts = [approvedGlobalArtifact];
 
-      const _intent: ParsedIntent = {
-        seed: 'test',
-        normalized: 'test',
-        situation: null,
-        problem: null,
-        goal: null,
-        errorText: null,
-        tokens: [],
-        stackPathHints: [],
-      };
-
       const filters = {
         teamId: teamId,
         securityLevel: 5,
@@ -521,6 +517,268 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
       // The artifact should remain unchanged
       expect(approvedGlobalArtifact.lifecycleState).toBe('approved');
       expect(approvedGlobalArtifact.latestRevision.derived?.capsules.length).toBe(1);
+    });
+  });
+
+  describe('context-aware scoring (CAPS-04-CTX)', () => {
+    let ctxArtifact: SkillArtifactRecord;
+    let noCtxArtifact: SkillArtifactRecord;
+
+    beforeEach(() => {
+      ctxArtifact = createMockArtifact({
+        id: 'artifact_ctx',
+        teamId: null,
+        scope: 'global',
+        lifecycleState: 'approved',
+        requiredLevel: 0,
+        title: 'Docker Node Version Mismatch',
+        labels: ['docker', 'node', 'version'],
+        capsules: [
+          createMockCapsule({
+            capsuleId: 'capsule_ctx',
+            artifactId: 'artifact_ctx',
+            situation: 'When deploying containers with a Node.js application',
+            problem: 'Container Node version older than development version',
+            goal: 'Pin Node version in Dockerfile',
+            labels: ['docker', 'node'],
+            scope: 'global',
+            requiredLevel: 0,
+            contextualPrefix:
+              'This is a Docker troubleshooting guide for Node.js container deployments, covering version mismatch issues between local and container environments.',
+          }),
+        ],
+      });
+
+      noCtxArtifact = createMockArtifact({
+        id: 'artifact_no_ctx',
+        teamId: null,
+        scope: 'global',
+        lifecycleState: 'approved',
+        requiredLevel: 0,
+        title: 'Docker Node Version Mismatch',
+        labels: ['docker', 'node', 'version'],
+        capsules: [
+          createMockCapsule({
+            capsuleId: 'capsule_no_ctx',
+            artifactId: 'artifact_no_ctx',
+            situation: 'When deploying containers with a Node.js application',
+            problem: 'Container Node version older than development version',
+            goal: 'Pin Node version in Dockerfile',
+            labels: ['docker', 'node'],
+            scope: 'global',
+            requiredLevel: 0,
+            // No contextualPrefix — backward compatibility
+          }),
+        ],
+      });
+    });
+
+    it('should include contextScore in candidate output', () => {
+      const artifacts = [ctxArtifact];
+      const intent: ParsedIntent = {
+        seed: 'docker container version',
+        normalized: 'docker container version',
+        situation: null,
+        problem: 'docker container version',
+        goal: null,
+        errorText: null,
+        tokens: [
+          { token: 'docker', original: 'docker', isTechnical: true },
+          { token: 'container', original: 'container', isTechnical: true },
+        ],
+        stackPathHints: [],
+      };
+      const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
+
+      const ranked = rankCapsules(artifacts, intent, filters, 10);
+
+      expect(ranked.length).toBe(1);
+      expect(ranked[0]?.contextScore).toBeGreaterThanOrEqual(0);
+      expect(ranked[0]?.contextScore).toBeLessThanOrEqual(1);
+    });
+
+    it('should compute higher contextScore when contextualPrefix matches intent', () => {
+      const artifacts = [ctxArtifact, noCtxArtifact];
+      const intent: ParsedIntent = {
+        seed: 'docker troubleshooting container deployment',
+        normalized: 'docker troubleshooting container deployment',
+        situation: null,
+        problem: 'docker troubleshooting container deployment',
+        goal: null,
+        errorText: null,
+        tokens: [
+          { token: 'docker', original: 'docker', isTechnical: true },
+          { token: 'troubleshooting', original: 'troubleshooting', isTechnical: false },
+          { token: 'container', original: 'container', isTechnical: true },
+        ],
+        stackPathHints: [],
+      };
+      const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
+
+      const ranked = rankCapsules(artifacts, intent, filters, 10);
+
+      const ctxCandidate = ranked.find((c) => c.capsuleId === 'capsule_ctx');
+      const noCtxCandidate = ranked.find((c) => c.capsuleId === 'capsule_no_ctx');
+
+      expect(ctxCandidate).toBeDefined();
+      expect(noCtxCandidate).toBeDefined();
+
+      // Capsule with contextualPrefix should have higher context score
+      expect(ctxCandidate!.contextScore).toBeGreaterThan(noCtxCandidate!.contextScore);
+    });
+
+    it('should rank capsule with matching contextualPrefix higher overall', () => {
+      const artifacts = [ctxArtifact, noCtxArtifact];
+      // Intent that strongly matches the contextualPrefix content
+      const intent: ParsedIntent = {
+        seed: 'docker troubleshooting Node.js container deployment version mismatch environments',
+        normalized:
+          'docker troubleshooting node.js container deployment version mismatch environments',
+        situation: null,
+        problem:
+          'docker troubleshooting Node.js container deployment version mismatch environments',
+        goal: null,
+        errorText: null,
+        tokens: [
+          { token: 'docker', original: 'docker', isTechnical: true },
+          { token: 'troubleshooting', original: 'troubleshooting', isTechnical: false },
+          { token: 'node.js', original: 'Node.js', isTechnical: true },
+          { token: 'container', original: 'container', isTechnical: true },
+          { token: 'deployment', original: 'deployment', isTechnical: false },
+        ],
+        stackPathHints: [],
+      };
+      const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
+
+      const ranked = rankCapsules(artifacts, intent, filters, 10);
+
+      // Capsule with contextualPrefix should rank first
+      expect(ranked[0]?.capsuleId).toBe('capsule_ctx');
+      expect(ranked[0]?.contextScore).toBeGreaterThan(0);
+    });
+
+    it('should return contextScore = 0 when no contextualPrefix present', () => {
+      const artifacts = [noCtxArtifact];
+      const intent: ParsedIntent = {
+        seed: 'docker node version',
+        normalized: 'docker node version',
+        situation: null,
+        problem: 'docker node version',
+        goal: null,
+        errorText: null,
+        tokens: [],
+        stackPathHints: [],
+      };
+      const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
+
+      const ranked = rankCapsules(artifacts, intent, filters, 10);
+
+      expect(ranked.length).toBe(1);
+      expect(ranked[0]?.contextScore).toBe(0);
+    });
+
+    it('should include context match in reason when contextScore > 0.3', () => {
+      const artifacts = [ctxArtifact];
+      // Intent with many tokens matching the contextualPrefix
+      const intent: ParsedIntent = {
+        seed: 'docker troubleshooting guide Node.js container deployments version mismatch environments',
+        normalized:
+          'docker troubleshooting guide node.js container deployments version mismatch environments',
+        situation: null,
+        problem:
+          'docker troubleshooting guide Node.js container deployments version mismatch environments',
+        goal: null,
+        errorText: null,
+        tokens: [
+          { token: 'docker', original: 'docker', isTechnical: true },
+          { token: 'troubleshooting', original: 'troubleshooting', isTechnical: false },
+          { token: 'container', original: 'container', isTechnical: true },
+          { token: 'deployments', original: 'deployments', isTechnical: false },
+          { token: 'version', original: 'version', isTechnical: false },
+          { token: 'mismatch', original: 'mismatch', isTechnical: false },
+          { token: 'environments', original: 'environments', isTechnical: false },
+        ],
+        stackPathHints: [],
+      };
+      const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
+
+      const ranked = rankCapsules(artifacts, intent, filters, 10);
+
+      expect(ranked.length).toBe(1);
+      // If contextScore > 0.3, reason should mention it
+      if (ranked[0]!.contextScore > 0.3) {
+        expect(ranked[0]!.reason).toContain('context match');
+      }
+    });
+
+    it('should maintain backward compatibility with capsules without contextualPrefix', () => {
+      // Mix of capsules with and without contextualPrefix
+      const mixedArtifact = createMockArtifact({
+        id: 'artifact_mixed',
+        teamId: null,
+        scope: 'global',
+        lifecycleState: 'approved',
+        requiredLevel: 0,
+        title: 'Mixed Artifact',
+        labels: ['mixed'],
+        capsules: [
+          createMockCapsule({
+            capsuleId: 'capsule_with_ctx',
+            artifactId: 'artifact_mixed',
+            situation: 'When building APIs',
+            problem: 'REST API authentication',
+            goal: 'Implement OAuth2',
+            labels: ['api', 'auth'],
+            scope: 'global',
+            requiredLevel: 0,
+            contextualPrefix: 'Guide for API authentication using OAuth2 in REST services.',
+          }),
+          createMockCapsule({
+            capsuleId: 'capsule_without_ctx',
+            artifactId: 'artifact_mixed',
+            situation: 'When building APIs',
+            problem: 'REST API rate limiting',
+            goal: 'Implement rate limiting',
+            labels: ['api', 'rate-limit'],
+            scope: 'global',
+            requiredLevel: 0,
+            // No contextualPrefix
+          }),
+        ],
+      });
+
+      const artifacts = [mixedArtifact];
+      const intent: ParsedIntent = {
+        seed: 'api authentication oauth2',
+        normalized: 'api authentication oauth2',
+        situation: null,
+        problem: 'api authentication oauth2',
+        goal: null,
+        errorText: null,
+        tokens: [
+          { token: 'api', original: 'api', isTechnical: true },
+          { token: 'authentication', original: 'authentication', isTechnical: true },
+          { token: 'oauth2', original: 'oauth2', isTechnical: true },
+        ],
+        stackPathHints: [],
+      };
+      const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
+
+      const ranked = rankCapsules(artifacts, intent, filters, 10);
+
+      // Should return both capsules without errors
+      expect(ranked.length).toBe(2);
+
+      const withCtx = ranked.find((c) => c.capsuleId === 'capsule_with_ctx');
+      const withoutCtx = ranked.find((c) => c.capsuleId === 'capsule_without_ctx');
+
+      expect(withCtx).toBeDefined();
+      expect(withoutCtx).toBeDefined();
+
+      // Capsule with contextualPrefix should have context score
+      expect(withCtx!.contextScore).toBeGreaterThanOrEqual(0);
+      // Capsule without contextualPrefix should have 0 context score
+      expect(withoutCtx!.contextScore).toBe(0);
     });
   });
 });

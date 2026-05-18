@@ -171,6 +171,8 @@ export const skillCapsuleSchema = z.object({
   goal: z.string().min(1).max(1000),
   /** Optional error text for error-specific capsules */
   errorText: z.string().max(500).optional(),
+  /** LLM-generated contextual prefix for improved retrieval (Anthropic Contextual Retrieval) */
+  contextualPrefix: z.string().max(300).optional(),
   /** Searchable labels */
   labels: z.array(labelSchema).min(1),
   /** Governance scope (inherited from artifact) */

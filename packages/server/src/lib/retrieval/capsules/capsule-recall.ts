@@ -4,6 +4,7 @@
  *
  * RETR-03: Capsule-native recall from artifact-derived outputs
  * CAPS-04: Capsule ranking with intent signals and stack/path boosts
+ * CAPS-04-CTX: Context-aware scoring using Anthropic Contextual Retrieval prefixes
  * T-14-04: Preserve approval/team/level filtering before ranking
  * T-14-06: Rank only distilled profile/capsule text, not raw payloads
  */
@@ -285,6 +286,27 @@ function computeKeywordScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleR
 }
 
 /**
+ * Compute contextual prefix match score from parsed intent.
+ * Matches the query against the capsule's contextualPrefix (Anthropic Contextual Retrieval).
+ * Returns 0 when no contextualPrefix is present.
+ *
+ * CAPS-04-CTX: Context-aware scoring using LLM-generated contextual prefixes
+ *
+ * @param intent - Parsed intent from seed
+ * @param capsule - Capsule to score
+ * @returns Context match score [0, 1]
+ */
+function computeContextMatchScore(
+  intent: ParsedIntent,
+  capsule: DerivedSkillCapsuleRecord,
+): number {
+  if (!capsule.contextualPrefix) {
+    return 0;
+  }
+  return computeTextSimilarity(intent.normalized, capsule.contextualPrefix);
+}
+
+/**
  * Build a human-readable reason string for a capsule match.
  *
  * @param capsule - Capsule record
@@ -298,6 +320,7 @@ function buildMatchReason(
     problemScore: number;
     goalScore: number;
     keywordScore: number;
+    contextScore: number;
     stackPathBoost: number;
   },
 ): string {
@@ -319,6 +342,10 @@ function buildMatchReason(
     parts.push(`keyword match (${(scores.keywordScore * 100).toFixed(0)}%)`);
   }
 
+  if (scores.contextScore > 0.3) {
+    parts.push(`context match (${(scores.contextScore * 100).toFixed(0)}%)`);
+  }
+
   if (scores.stackPathBoost > 1.1) {
     parts.push('stack/path boost');
   }
@@ -335,9 +362,12 @@ function buildMatchReason(
  *
  * Pipeline:
  * 1. Extract governed capsules (T-14-04)
- * 2. Score each capsule against intent signals
+ * 2. Score each capsule against intent signals (situation, problem, goal, keyword, context)
  * 3. Apply stack/path boosts
  * 4. Sort by final score descending
+ *
+ * Weight distribution (CAPS-04-CTX):
+ *   problem 0.30 | situation 0.21 | goal 0.17 | keyword 0.17 | context 0.15
  *
  * @param artifacts - Skill artifact records
  * @param intent - Parsed intent from seed
@@ -363,14 +393,16 @@ export function rankCapsules(
     const goalScore = computeGoalScore(intent, capsule);
     const errorScore = computeErrorScore(intent, capsule);
     const keywordScore = computeKeywordScore(intent, capsule);
+    const contextScore = computeContextMatchScore(intent, capsule);
     const stackPathBoost = computeStackPathBoost(intent, capsule);
 
-    // Weighted combination
+    // Weighted combination (CAPS-04-CTX: 15% weight for contextual prefix)
     const baseScore =
-      problemScore * 0.35 + // Problem is most important
-      situationScore * 0.25 +
-      goalScore * 0.2 +
-      keywordScore * 0.2;
+      problemScore * 0.3 + // Problem is most important
+      situationScore * 0.21 +
+      goalScore * 0.17 +
+      keywordScore * 0.17 +
+      contextScore * 0.15; // Anthropic Contextual Retrieval
 
     const finalScore = Math.min(1, baseScore * stackPathBoost);
 
@@ -379,6 +411,7 @@ export function rankCapsules(
       problemScore,
       goalScore,
       keywordScore,
+      contextScore,
       stackPathBoost,
     });
 
@@ -390,6 +423,7 @@ export function rankCapsules(
       problemScore,
       goalScore,
       errorScore,
+      contextScore,
       stackPathBoost,
       finalScore,
       reason,

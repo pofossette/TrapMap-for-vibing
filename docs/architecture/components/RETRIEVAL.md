@@ -261,7 +261,7 @@ POST /v3/retrieval/search
 flowchart TB
     subgraph 胶囊检索["胶囊原生检索流程"]
         A["查询输入"]
-        
+
         subgraph 资格过滤["资格过滤"]
             B["- capsule.governanceInherited = true\n- 用户等级 >= artifact.requiredLevel\n- （工件可访问时胶囊可用）"]
         end
@@ -270,13 +270,40 @@ flowchart TB
             C["- 搜索胶囊内容（非条目内容）\n- 使用胶囊专用索引"]
         end
 
-        subgraph 胶囊组装["胶囊组装"]
-            D["- 附加父工件元数据\n- 包含 activationHint\n- 计算治理继承确认"]
+        subgraph 评分["多维评分 (CAPS-04-CTX)"]
+            D["- problem × 0.30\n- situation × 0.21\n- goal × 0.17\n- keyword × 0.17\n- contextualPrefix × 0.15"]
         end
 
-        A --> 资格过滤 --> 语义搜索 --> 胶囊组装
+        subgraph 胶囊组装["胶囊组装"]
+            E["- 附加父工件元数据\n- 包含 activationHint\n- 计算治理继承确认"]
+        end
+
+        A --> 资格过滤 --> 语义搜索 --> 评分 --> 胶囊组装
     end
 ```
+
+### Context-Aware Capsule Scoring (CAPS-04-CTX)
+
+v2 检索评分支持 Anthropic Contextual Retrieval 策略。派生阶段生成的 `contextualPrefix`（LLM 生成的上下文前缀）在检索时作为额外评分维度参与排名。
+
+**评分权重分配：**
+
+| 维度 | 权重 | 说明 |
+|------|------|------|
+| problem | 0.30 | 查询问题与胶囊问题匹配度 |
+| situation | 0.21 | 情境上下文匹配 |
+| goal | 0.17 | 目标匹配 |
+| keyword | 0.17 | 关键词重叠度 |
+| contextualPrefix | 0.15 | 上下文前缀匹配（Anthropic Contextual Retrieval） |
+
+**contextualPrefix 评分逻辑：**
+- 使用与其它维度相同的 token overlap 算法（`computeTextSimilarity`）
+- 将归一化查询与 contextualPrefix 文本进行 Jaccard-like 相似度计算
+- 当 capsule 无 contextualPrefix 时（向后兼容），该维度得分为 0
+
+**相关代码：**
+- `packages/server/src/lib/retrieval/capsules/capsule-recall.ts` — `computeContextMatchScore()` 函数
+- `packages/server/src/lib/artifacts/contextual-enrichment.ts` — 派生阶段的上下文生成
 
 ---
 

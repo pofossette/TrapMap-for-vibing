@@ -621,7 +621,7 @@ The versions must match exactly for consistent behavior.
       ];
 
       // Derive from payloads
-      const derived = deriveFromPayloads(filePayloads, {
+      const derived = await deriveFromPayloads(filePayloads, {
         artifactId,
         labels: ['docker', 'node', 'version'],
         title: 'Docker Node Version Mismatch',
@@ -675,7 +675,7 @@ The versions must match exactly for consistent behavior.
         },
       ];
 
-      const derived = deriveFromPayloads(filePayloads, {
+      const derived = await deriveFromPayloads(filePayloads, {
         artifactId,
         labels: ['docker', 'node', 'version'],
         title: 'Docker Node Version Mismatch',
@@ -736,7 +736,7 @@ The versions must match exactly for consistent behavior.
         },
       ];
 
-      const derived = deriveFromPayloads(filePayloads, {
+      const derived = await deriveFromPayloads(filePayloads, {
         artifactId,
         labels: ['docker', 'node'],
         title: 'Test Artifact',
@@ -760,6 +760,168 @@ The versions must match exactly for consistent behavior.
         // Capsule content should not contain asset/script content
         expect(capsule.content.toLowerCase()).not.toContain('setup script');
       }
+    });
+  });
+
+  describe('deriveFromPayloads() with contextual enrichment', () => {
+    function mockChat(response: string) {
+      let callCount = 0;
+      return {
+        provider: 'mock',
+        isConfigured: true,
+        invoke: async () => {
+          callCount++;
+          // First call = manifest, subsequent calls = content generation
+          if (callCount === 1) {
+            return JSON.stringify({
+              documentTitle: 'Docker Node Version Mismatch',
+              documentLabels: ['docker', 'node'],
+              capsules: [
+                {
+                  capsuleIndex: 0,
+                  title: 'Docker Node Version',
+                  description: 'Resolving version conflicts',
+                  contentScope: 'Docker with Node.js',
+                  sourceType: 'skill-main',
+                  sourcePath: 'SKILL.md',
+                  tags: ['docker', 'node'],
+                },
+              ],
+            });
+          }
+          return response;
+        },
+      };
+    }
+
+    it('should add contextualPrefix when chat provider is given', async () => {
+      const artifactId = store.nextId(storeData, 'artifact');
+      const filePayloads: ArtifactFilePayloadRecord[] = [
+        {
+          artifactId,
+          revision: 1,
+          path: 'SKILL.md',
+          sha256: 'a'.repeat(64),
+          sizeBytes: skillMdContent.length,
+          mediaType: 'text/markdown',
+          content: skillMdContent,
+          storedAt: createdAt,
+        },
+      ];
+
+      const chat = mockChat('Docker skills doc — main section on version mismatch resolution');
+      const derived = await deriveFromPayloads(filePayloads, {
+        artifactId,
+        labels: ['docker', 'node'],
+        title: 'Docker Node Version Mismatch',
+        scope: 'project',
+        requiredLevel: 3,
+        chat,
+      });
+
+      expect(derived.capsules.length).toBeGreaterThan(0);
+      expect(derived.capsules[0]!.contextualPrefix).toBeDefined();
+      expect(derived.capsules[0]!.contextualPrefix!.length).toBeLessThanOrEqual(300);
+      expect(derived.capsules[0]!.contextualPrefix!.length).toBeGreaterThan(0);
+    });
+
+    it('should omit contextualPrefix when no chat provider is given (backward compat)', async () => {
+      const artifactId = store.nextId(storeData, 'artifact');
+      const filePayloads: ArtifactFilePayloadRecord[] = [
+        {
+          artifactId,
+          revision: 1,
+          path: 'SKILL.md',
+          sha256: 'a'.repeat(64),
+          sizeBytes: skillMdContent.length,
+          mediaType: 'text/markdown',
+          content: skillMdContent,
+          storedAt: createdAt,
+        },
+      ];
+
+      const derived = await deriveFromPayloads(filePayloads, {
+        artifactId,
+        labels: ['docker', 'node'],
+        title: 'Docker Node Version Mismatch',
+        scope: 'project',
+        requiredLevel: 3,
+      });
+
+      expect(derived.capsules.length).toBeGreaterThan(0);
+      // No chat provided → contextualPrefix should not be set
+      expect(derived.capsules[0]!.contextualPrefix).toBeUndefined();
+    });
+
+    it('should use fallback prefix when LLM manifest generation fails', async () => {
+      const artifactId = store.nextId(storeData, 'artifact');
+      const filePayloads: ArtifactFilePayloadRecord[] = [
+        {
+          artifactId,
+          revision: 1,
+          path: 'SKILL.md',
+          sha256: 'a'.repeat(64),
+          sizeBytes: skillMdContent.length,
+          mediaType: 'text/markdown',
+          content: skillMdContent,
+          storedAt: createdAt,
+        },
+      ];
+
+      const failingChat = {
+        provider: 'mock',
+        isConfigured: true,
+        invoke: async () => {
+          throw new Error('LLM failed');
+        },
+      };
+      const derived = await deriveFromPayloads(filePayloads, {
+        artifactId,
+        labels: ['docker', 'node'],
+        title: 'Docker Node Version Mismatch',
+        scope: 'project',
+        requiredLevel: 3,
+        chat: failingChat,
+      });
+
+      expect(derived.capsules[0]!.contextualPrefix).toBeDefined();
+      // Should contain fallback prefix text
+      expect(derived.capsules[0]!.contextualPrefix).toContain('Docker Node Version Mismatch');
+    });
+
+    it('should use fallback prefix when chat is not configured', async () => {
+      const artifactId = store.nextId(storeData, 'artifact');
+      const filePayloads: ArtifactFilePayloadRecord[] = [
+        {
+          artifactId,
+          revision: 1,
+          path: 'SKILL.md',
+          sha256: 'a'.repeat(64),
+          sizeBytes: skillMdContent.length,
+          mediaType: 'text/markdown',
+          content: skillMdContent,
+          storedAt: createdAt,
+        },
+      ];
+
+      const unconfiguredChat = {
+        provider: 'fallback',
+        isConfigured: false,
+        invoke: async () => {
+          throw new Error('Should not be called');
+        },
+      };
+      const derived = await deriveFromPayloads(filePayloads, {
+        artifactId,
+        labels: ['docker', 'node'],
+        title: 'Docker Node Version Mismatch',
+        scope: 'project',
+        requiredLevel: 3,
+        chat: unconfiguredChat,
+      });
+
+      expect(derived.capsules[0]!.contextualPrefix).toBeDefined();
+      expect(derived.capsules[0]!.contextualPrefix).toContain('main document');
     });
   });
 });

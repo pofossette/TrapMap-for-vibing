@@ -54,6 +54,7 @@ export interface DerivedSkillCapsuleRecord {
   problem: string;
   goal: string;
   errorText: string | null;
+  contextualPrefix?: string;
   labels: string[];
   scope: Scope;
   requiredLevel: number;

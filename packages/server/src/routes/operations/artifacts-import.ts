@@ -225,12 +225,13 @@ export const artifactsImportRoutes: FastifyPluginAsync = async (app) => {
           // Prefer deriveFromPayloads for retrieval-grade results; fallback to legacy
           const derived =
             normalized.filePayloads.length > 0
-              ? deriveFromPayloads(normalized.filePayloads, {
+              ? await deriveFromPayloads(normalized.filePayloads, {
                   artifactId: artifact.id,
                   labels: artifact.labels,
                   title: artifact.title,
                   scope: artifact.scope,
                   requiredLevel: artifact.requiredLevel,
+                  chat: app.skillShareer.ai.chat,
                 })
               : deriveSkillArtifactOutputs(artifact, artifact.latestRevision);
           await applyDerivedArtifactOutputs(data, artifact, artifact.latestRevision, derived);

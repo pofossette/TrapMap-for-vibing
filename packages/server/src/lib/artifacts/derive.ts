@@ -17,6 +17,7 @@
 import { createHash } from 'node:crypto';
 import { parseSkillMarkdown } from '@trapmap/contracts';
 
+import type { ChatProvider } from '../ai/types.js';
 import type {
   ArtifactFilePayloadRecord,
   ClientManifestAssetRecord,
@@ -31,6 +32,7 @@ import type {
   SkillScriptDescriptorRecord,
 } from '../store.js';
 import { nowIso } from '../store.js';
+import { type ContextualEnrichmentCache, enrichCapsules } from './contextual-enrichment.js';
 
 /**
  * Result of deriving outputs from a skill artifact revision.
@@ -381,6 +383,12 @@ interface PayloadDerivationContext {
   title: string;
   scope: 'global' | 'project';
   requiredLevel: number;
+  /** Optional AI provider for contextual enrichment (Phase B) */
+  chat?: ChatProvider;
+  /** Optional cache for contextual enrichment results */
+  enrichmentCache?: ContextualEnrichmentCache;
+  /** Explicit kill-switch for enrichment (D-4). Defaults to true when chat is provided. */
+  enrichmentEnabled?: boolean;
 }
 
 /**
@@ -529,10 +537,10 @@ function extractKeywords(text: string, existingLabels: string[]): string[] {
  * @param context - Derivation context with artifact metadata
  * @returns Derived artifact outputs
  */
-export function deriveFromPayloads(
+export async function deriveFromPayloads(
   payloads: ArtifactFilePayloadRecord[],
   context: PayloadDerivationContext,
-): DerivedArtifactOutputs {
+): Promise<DerivedArtifactOutputs> {
   const derivedAt = nowIso();
 
   // Extract derivation-eligible text (SKILL.md + references/)
@@ -636,6 +644,22 @@ export function deriveFromPayloads(
         });
       }
     }
+  }
+
+  // Contextual enrichment: generate contextualPrefix for each capsule
+  if (context.chat && capsules.length > 0) {
+    const enrichmentResult = await enrichCapsules(capsules, {
+      chat: context.chat,
+      documentTitle: context.title,
+      labels: allLabels,
+      documentContent: derivationText,
+      sourceHash,
+      ...(context.enrichmentCache ? { cache: context.enrichmentCache } : {}),
+      ...(context.enrichmentEnabled !== undefined
+        ? { enrichmentEnabled: context.enrichmentEnabled }
+        : {}),
+    });
+    capsules.splice(0, capsules.length, ...enrichmentResult.capsules);
   }
 
   // Build client manifest for all files
