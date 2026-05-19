@@ -400,11 +400,13 @@ async function llmClassify(
     const { judgeConflictWithLLM } = await import(
       '../../packages/server/src/lib/conflict/llm-conflict.js'
     );
-    const { createChatProvider } = await import(
-      '../../packages/server/src/lib/ai/providers/index.js'
+    const { createAiProviders } = await import('../../packages/server/src/lib/ai/providers.js');
+    const { loadAiProviderConfig } = await import(
+      '../../packages/server/src/lib/ai/provider-config.js'
     );
 
-    const chat = createChatProvider();
+    const config = loadAiProviderConfig();
+    const { chat } = createAiProviders(config);
     if (!chat.isConfigured) {
       console.warn('Chat provider not configured, falling back to Jaccard');
       return jaccardClassify(entryA, entryB);

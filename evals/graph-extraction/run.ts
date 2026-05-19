@@ -228,11 +228,13 @@ async function performLLMExtraction(text: string, dryRun: boolean): Promise<LlmG
     const { extractSegmentEntities } = await import(
       '../../packages/server/src/lib/indexing/graph-lite/llm-extract.js'
     );
-    const { createChatProvider } = await import(
-      '../../packages/server/src/lib/ai/providers/index.js'
+    const { createAiProviders } = await import('../../packages/server/src/lib/ai/providers.js');
+    const { loadAiProviderConfig } = await import(
+      '../../packages/server/src/lib/ai/provider-config.js'
     );
 
-    const chat = createChatProvider();
+    const config = loadAiProviderConfig();
+    const { chat } = createAiProviders(config);
     if (!chat.isConfigured) {
       console.warn('WARNING: Chat provider not configured, falling back to rule engine');
       return simulateRuleEngineExtraction(text);

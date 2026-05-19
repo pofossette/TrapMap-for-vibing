@@ -112,8 +112,7 @@ export function parseConflictJudgmentResponse(raw: string): LlmConflictJudgment 
     const cleaned = stripCodeFences(raw);
     const parsed = JSON.parse(cleaned);
     const result = llmConflictJudgmentSchema.safeParse(parsed);
-    if (!result.success) return null;
-    return result.data;
+    return result.success ? result.data : null;
   } catch {
     return null;
   }

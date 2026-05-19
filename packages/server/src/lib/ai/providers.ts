@@ -20,33 +20,31 @@ export class OpenAICompatibleEmbeddings implements EmbeddingsProvider {
   readonly provider: string;
   readonly isConfigured: boolean;
   private impl: import('@langchain/openai').OpenAIEmbeddings | null = null;
+  private readonly embConfig: AiProviderConfig;
 
   constructor(config: AiProviderConfig) {
     this.provider = config.provider;
     this.isConfigured = config.isConfigured;
+    this.embConfig = config;
+  }
 
-    if (this.isConfigured) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { OpenAIEmbeddings } = require('@langchain/openai');
-        this.impl = new OpenAIEmbeddings({
-          modelName: config.embeddingModel,
-          openAIApiKey: config.apiKey,
-          configuration: {
-            baseURL: config.baseUrl,
-          },
-        });
-      } catch {
-        this.isConfigured = false;
-      }
+  private async ensureImpl(): Promise<import('@langchain/openai').OpenAIEmbeddings> {
+    if (!this.impl) {
+      const { OpenAIEmbeddings } = await import('@langchain/openai');
+      this.impl = new OpenAIEmbeddings({
+        modelName: this.embConfig.embeddingModel,
+        apiKey: this.embConfig.apiKey,
+        configuration: {
+          baseURL: this.embConfig.baseUrl,
+        },
+      });
     }
+    return this.impl;
   }
 
   async embed(text: string): Promise<number[]> {
-    if (!this.impl) {
-      throw new Error(`${this.provider} embeddings not configured`);
-    }
-    return this.impl.embedQuery(text);
+    const impl = await this.ensureImpl();
+    return impl.embedQuery(text);
   }
 }
 
@@ -171,34 +169,32 @@ export class OpenAICompatibleChat implements ChatProvider {
   readonly provider: string;
   readonly isConfigured: boolean;
   private impl: import('@langchain/openai').ChatOpenAI | null = null;
+  private readonly chatConfig: AiProviderConfig;
 
   constructor(config: AiProviderConfig) {
     this.provider = config.provider;
     this.isConfigured = config.isConfigured;
+    this.chatConfig = config;
+  }
 
-    if (this.isConfigured) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { ChatOpenAI } = require('@langchain/openai');
-        this.impl = new ChatOpenAI({
-          modelName: config.chatModel,
-          openAIApiKey: config.apiKey,
-          configuration: {
-            baseURL: config.baseUrl,
-          },
-        });
-      } catch {
-        this.isConfigured = false;
-      }
+  private async ensureImpl(): Promise<import('@langchain/openai').ChatOpenAI> {
+    if (!this.impl) {
+      const { ChatOpenAI } = await import('@langchain/openai');
+      this.impl = new ChatOpenAI({
+        modelName: this.chatConfig.chatModel,
+        apiKey: this.chatConfig.apiKey,
+        configuration: {
+          baseURL: this.chatConfig.baseUrl,
+        },
+      });
     }
+    return this.impl;
   }
 
   async invoke(systemPrompt: string, userMessage: string): Promise<string> {
-    if (!this.impl) {
-      throw new Error(`${this.provider} chat not configured`);
-    }
+    const impl = await this.ensureImpl();
     const { HumanMessage, SystemMessage } = await import('@langchain/core/messages');
-    const result = await this.impl.invoke([
+    const result = await impl.invoke([
       new SystemMessage(systemPrompt),
       new HumanMessage(userMessage),
     ]);
@@ -209,9 +205,6 @@ export class OpenAICompatibleChat implements ChatProvider {
     blocks: import('./cache/api-integration.js').PromptBlock[],
     userMessage: string,
   ): Promise<string> {
-    if (!this.impl) {
-      throw new Error(`${this.provider} chat not configured`);
-    }
     const mergedSystemPrompt = blocks.map((b) => b.content).join('\n');
     return this.invoke(mergedSystemPrompt, userMessage);
   }

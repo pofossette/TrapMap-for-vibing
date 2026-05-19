@@ -139,9 +139,6 @@ export function loadAiProviderConfig(): AiProviderConfig {
   const chatModel = process.env.AI_CHAT_MODEL || defaults.chatModel;
   const embeddingModel = process.env.AI_EMBEDDING_MODEL || defaults.embeddingModel;
 
-  const isConfigured =
-    baseUrl.length > 0 && apiKey.length > 0 && chatModel.length > 0 && embeddingModel.length > 0;
-
   // Check for separate embedding provider configuration
   const embeddingProviderType = process.env.EMBEDDING_PROVIDER as AiProviderType | undefined;
   let embeddingProvider: AiProviderConfig['embeddingProvider'];
@@ -161,6 +158,10 @@ export function loadAiProviderConfig(): AiProviderConfig {
       isConfigured: embConfigured,
     };
   }
+
+  const hasEmbedding = embeddingModel.length > 0 || !!embeddingProvider?.isConfigured;
+  const isConfigured =
+    baseUrl.length > 0 && apiKey.length > 0 && chatModel.length > 0 && hasEmbedding;
 
   return {
     provider,

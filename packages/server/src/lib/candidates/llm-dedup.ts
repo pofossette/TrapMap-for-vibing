@@ -112,8 +112,7 @@ export function parseDuplicateJudgmentResponse(raw: string): LlmDuplicateJudgmen
     const cleaned = stripCodeFences(raw);
     const parsed = JSON.parse(cleaned);
     const result = llmDuplicateJudgmentSchema.safeParse(parsed);
-    if (!result.success) return null;
-    return result.data;
+    return result.success ? result.data : null;
   } catch {
     return null;
   }
