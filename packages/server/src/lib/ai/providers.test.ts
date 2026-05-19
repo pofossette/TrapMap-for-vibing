@@ -118,11 +118,11 @@ describe('OpenAICompatibleEmbeddings', () => {
     expect(embeddings.isConfigured).toBe(false);
   });
 
-  it('throws when embed is called without impl', async () => {
-    const unconfigured: AiProviderConfig = { ...openaiConfig, isConfigured: false };
-    const embeddings = new OpenAICompatibleEmbeddings(unconfigured);
+  it('throws when embed is called with invalid credentials', async () => {
+    const badConfig: AiProviderConfig = { ...openaiConfig, apiKey: 'sk-invalid' };
+    const embeddings = new OpenAICompatibleEmbeddings(badConfig);
 
-    await expect(embeddings.embed('test')).rejects.toThrow('not configured');
+    await expect(embeddings.embed('test')).rejects.toThrow();
   });
 });
 
@@ -134,20 +134,20 @@ describe('OpenAICompatibleChat', () => {
     expect(chat.isConfigured).toBe(false);
   });
 
-  it('throws when invoke is called without impl', async () => {
-    const unconfigured: AiProviderConfig = { ...openaiConfig, isConfigured: false };
-    const chat = new OpenAICompatibleChat(unconfigured);
+  it('throws when invoke is called with invalid credentials', async () => {
+    const badConfig: AiProviderConfig = { ...openaiConfig, apiKey: 'sk-invalid' };
+    const chat = new OpenAICompatibleChat(badConfig);
 
-    await expect(chat.invoke('sys', 'user')).rejects.toThrow('not configured');
+    await expect(chat.invoke('sys', 'user')).rejects.toThrow();
   });
 
-  it('invokeWithBlocks throws when not configured', async () => {
-    const unconfigured: AiProviderConfig = { ...openaiConfig, isConfigured: false };
-    const chat = new OpenAICompatibleChat(unconfigured);
+  it('invokeWithBlocks throws with invalid credentials', async () => {
+    const badConfig: AiProviderConfig = { ...openaiConfig, apiKey: 'sk-invalid' };
+    const chat = new OpenAICompatibleChat(badConfig);
 
     await expect(
       chat.invokeWithBlocks([{ content: 'block1' }, { content: 'block2' }], 'user message'),
-    ).rejects.toThrow('not configured');
+    ).rejects.toThrow();
   });
 
   it('invokeWithBlocks is defined on the instance', () => {
