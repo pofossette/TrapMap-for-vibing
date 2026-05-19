@@ -28,8 +28,8 @@ FROM deps AS build
 
 WORKDIR /app
 
-# Build TypeScript
-RUN pnpm build
+# Build TypeScript (only contracts + server, not CLI)
+RUN pnpm exec tsc -b packages/contracts/tsconfig.json packages/server/tsconfig.json
 
 # Stage 3: Production
 FROM node:22-alpine AS production
@@ -68,7 +68,7 @@ EXPOSE 4000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:4000/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:4000/health || exit 1
 
 # Run the server
 CMD ["node", "dist/index.js"]
