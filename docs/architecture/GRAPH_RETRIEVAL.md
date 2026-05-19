@@ -91,50 +91,53 @@
 
 ## 三、写入路径：图如何被构建
 
-### 3.1 实体抽取 (确定性规则，无 LLM)
+### 3.1 实体抽取 (LLM 主路径 + 规则 fallback)
 
-**Trap 侧** (`graph-extract.ts` -> `extractTrapGraphEntities()`):
+**Trap 侧** (`llm-extract.ts` -> `extractGraphEntitiesWithLLM()`):
 
 ```
 知识条目 (shortcut + detail + labels)
   |
-  +-> 创建 trap 节点 (来自条目 ID + shortcut)
-  +-> 匹配 ~50 个技术关键词 -> tool 节点
-  +-> 匹配 ~25 个错误/症状模式 -> cue 节点
-  +-> 匹配环境关键词 + 版本模式 -> environment 节点
-  +-> 正则 "prerequisite: / requires: / must" -> prerequisite 节点
-  +-> 正则 "mitigate: / fix: / solution: / use" -> mitigation 节点
+  +-> Phase 1: planExtraction() — 长文本(>2000字符)切分为 segments
+  +-> Phase 2: extractSegmentEntities() × N — 并行 LLM 提取 (maxConcurrent=3)
+  +-> Gleaning: 二次追问提取遗漏实体
   |
-  +-> 构建关系：
-       trap --risk-blocks--> cue         (hard 如果含触发短语)
+  +-> LLM 输出:
+       创建 trap 节点 (来自条目 ID + shortcut)
+       识别技术工具 -> tool 节点 (语义理解，不限于关键词列表)
+       识别错误/症状 -> cue 节点
+       识别运行环境 -> environment 节点
+       识别前置条件 -> prerequisite 节点
+       识别修复方案 -> mitigation 节点
+  |
+  +-> LLM 直接输出关系 + hard/soft 强度:
+       trap --risk-blocks--> cue         (LLM 判定强度)
        trap --co-occurs-with--> tool     (soft)
        trap --co-occurs-with--> env      (soft)
-       trap --requires--> prereq         (hard)
-       mitigation --mitigates--> trap    (hard 如果含强制措辞)
+       trap --requires--> prereq         (LLM 理解否定句)
+       mitigation --mitigates--> trap    (LLM 判定修复强制性)
        prereq --order--> prereq          (soft)
+  |
+  +-> 三层降级: LLM 失败 -> 缓存 -> extractTrapGraphEntities() 规则引擎
 ```
 
-**Boundary 侧** (`boundary-extract.ts` -> `extractBoundaryGraphEntities()`):
+**Boundary 侧** (`boundary-extract.ts` -> `extractBoundaryGraphEntities()`): 纯代码路径，不变。
 
-```
-Boundary 对象
-  +-> context labels -> boundary-context 节点 + applies-in 边
-  +-> version constraints -> boundary-version 节点 + requires-version 边 (hard)
-  +-> platform exclusions -> boundary-platform 节点 + excludes-context 边 (soft)
-```
+**Skill 侧** (`artifact-graph.ts`): 调用同一 `extractGraphEntitiesWithLLM()`，从 `derived.profile` 和 `derived.capsules` 提取（安全约束 D-01/D-02）。
 
-**Skill 侧** (`artifact-graph.ts`): 从 `derived.profile` 和 `derived.capsules` 提取（永远不读原始脚本体，安全约束 D-01/D-02）
+**LLM 提取缓存** (`llm-cache.ts`): `SHA-256(text + promptVersion)` 两层缓存（Phase 1 + Phase 2），promptVersion 递增时触发全量重建。
 
 ### 3.2 索引管线
 
 ```
 知识条目 生命周期变更 (approved/updated/deactivated)
-  -> syncKnowledgeIndex()
+  -> syncKnowledgeIndex(chat?)
     -> fan out 到三个适配器：
        +-- vectorIndexAdapter   (embedding)
        +-- keywordIndexAdapter  (token)
        +-- graphIndexAdapter:
-           +-- extractTrapGraphEntities()
+           +-- extractGraphEntitiesWithLLM(chat?, text)  <- LLM 两阶段提取
+           |     (三层降级: LLM -> 缓存 -> extractTrapGraphEntities() 规则引擎)
            +-- extractBoundaryGraphEntities()
            +-- buildTrapGraphDocument()
            +-- assertNoHardDependencyCycles()  <- graphology-dag 环路检测
@@ -284,8 +287,8 @@ edges:
 
 ## 七、关键设计特点
 
-1. **确定性规则抽取** -- 不依赖 LLM，使用硬编码关键词 + 正则模式，保证一致性
-2. **Hard/Soft 边强度** -- 只有 hard 边参与环路检测，soft 边可自由重排
+1. **LLM 驱动抽取** -- 两阶段 LLM 提取 + gleaning，语义理解替代关键词/正则，规则引擎保留为 fallback
+2. **Hard/Soft 边强度** -- LLM 直接输出强度，理解否定句和句级作用域；只有 hard 边参与环路检测
 3. **治理安全** -- 图召回结果始终与 eligible entries 取交集，防止越权
 4. **置信度感知回退** -- v3 图计划评分不足时自动降级到 v2/v1
 5. **有界 BFS 扩展** -- `maxDepth=2` 限制子图大小，避免爆炸式扩展
@@ -308,9 +311,14 @@ edges:
 
 | 文件 | 职责 |
 |------|------|
-| `packages/server/src/lib/retrieval/graph-extract.ts` | Trap 侧规则抽取 (tool, cue, env, prereq, mitigation) |
+| `packages/server/src/lib/indexing/graph-lite/llm-extract.ts` | **LLM 两阶段实体提取** (planExtraction + extractSegmentEntities + gleaning) |
+| `packages/server/src/lib/indexing/graph-lite/llm-cache.ts` | **LLM 提取缓存** (contentHash + promptVersion) |
+| `packages/server/src/lib/retrieval/graph-extract.ts` | Trap 侧规则抽取 (LLM fallback 时使用) |
 | `packages/server/src/lib/indexing/boundary-extract.ts` | Boundary 侧抽取 (context, version, platform) |
 | `packages/server/src/lib/indexing/boundary-normalize.ts` | Boundary 节点 ID 构建与值标准化 |
+| `packages/contracts/src/domain/graph-extraction.ts` | LLM 提取 Zod schema (节点/边/计划/指标) |
+| `packages/server/src/lib/candidates/llm-dedup.ts` | LLM 重复判定 (exact/semantic/none) |
+| `packages/server/src/lib/conflict/llm-conflict.ts` | LLM 冲突判定 (contradictory/alternative/superseded/none) |
 
 ### 索引适配器
 
@@ -368,3 +376,5 @@ edges:
 | `packages/server/src/lib/indexing/graph-lite/graphology.test.ts` | 图组装与遍历测试 |
 | `packages/server/src/lib/indexing/adapters/graph.test.ts` | Trap 图适配器测试 |
 | `packages/server/src/lib/indexing/adapters/artifact-graph.test.ts` | Skill 图适配器测试 |
+
+> **LLM 图提取架构详解**见 [`HYBRID_GRAPH_EXTRACTION.md`](HYBRID_GRAPH_EXTRACTION.md)。

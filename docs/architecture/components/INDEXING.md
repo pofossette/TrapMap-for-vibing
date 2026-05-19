@@ -30,9 +30,17 @@ packages/server/src/lib/
 │   └── graph-lite/                # GraphRAG-lite 持久层
 │       ├── documents.ts           # GraphIndexDocumentRecord 类型 + 文档构建器
 │       ├── store.ts               # Store-backed CRUD：upsertGraphIndexDocument / removeGraphIndexDocumentsForSource
-│       └── graphology.ts          # Graphology 组装 + 硬边投影 + 环检测 + 局部扩展
+│       ├── graphology.ts          # Graphology 组装 + 硬边投影 + 环检测 + 局部扩展
+│       ├── llm-extract.ts         # LLM 两阶段实体提取 (planExtraction + extractSegmentEntities)
+│       └── llm-cache.ts           # LLM 提取缓存 (contentHash + promptVersion 两层)
+├── candidates/
+│   ├── llm-dedup.ts               # LLM 重复判定 (exact/semantic/none)
+│   └── ...
+├── conflict/
+│   ├── llm-conflict.ts            # LLM 冲突判定 (contradictory/alternative/superseded/none)
+│   └── ...
 └── retrieval/
-    └── graph-extract.ts           # TrapMap 实体提取：extractTrapGraphEntities / extractGraphEntities
+    └── graph-extract.ts           # TrapMap 实体提取（规则引擎，LLM fallback 时使用）
 ```
 
 ---
@@ -250,9 +258,9 @@ flowchart TB
         A["NormalizedIndexDocument"]
     end
 
-    subgraph 实体提取["实体提取"]
-        subgraph 陷阱实体["extractTrapGraphEntities"]
-            B1["从 shortcut/detail/labels 提取节点和边\n节点类型: trap, cue, tool, environment, prerequisite, mitigation"]
+    subgraph 实体提取["实体提取（LLM 主路径 + 规则 fallback）"]
+        subgraph LLM提取["extractGraphEntitiesWithLLM(chat?, text)"]
+            B1["Phase 1: planExtraction → ExtractionPlan (长文本切分)\nPhase 2: extractSegmentEntities × N (并行)\nGleaning: 二次提取追问\n三层降级: LLM → 缓存 → 规则引擎"]
         end
 
         subgraph 边界实体["extractBoundaryGraphEntities"]
@@ -280,11 +288,11 @@ flowchart TB
 | 类型 | 来源 | ID 模式 | 示例 |
 |------|------|---------|------|
 | `trap` | 知识条目本身 | `trap:{entryId}` | `trap:entry-123` |
-| `cue` | 错误/异常模式匹配 | `cue:{pattern}` | `cue:error`, `cue:timeout` |
-| `tool` | 工具关键词匹配 | `tool:{name}` | `tool:docker`, `tool:typescript` |
-| `environment` | 环境关键词匹配 | `env:{name}` | `env:production`, `env:node-18` |
-| `prerequisite` | 正则提取前提条件 | `prereq:{text}` | `prereq:node.js-18-or-higher` |
-| `mitigation` | 正则提取修复方案 | `mit:{text}` | `mit:update-config-file` |
+| `cue` | LLM 语义理解症状/错误模式 | `cue:{pattern}` | `cue:error`, `cue:timeout` |
+| `tool` | LLM 识别工具/框架 | `tool:{name}` | `tool:docker`, `tool:typescript` |
+| `environment` | LLM 识别运行环境 | `env:{name}` | `env:production`, `env:node-18` |
+| `prerequisite` | LLM 识别前置条件 | `prereq:{text}` | `prereq:node.js-18-or-higher` |
+| `mitigation` | LLM 识别修复方案 | `mit:{text}` | `mit:update-config-file` |
 | `skill` | Skill 工件本身 | `skill:{artifactId}` | `skill:artifact-456` |
 | `boundary-context` | boundary.context[] | `boundary-context:{label}` | `boundary-context:frontend` |
 | `boundary-version` | boundary.versions[] | `boundary-version:{pkg}@{range}` | `boundary-version:react@>=16.8.0` |
@@ -403,7 +411,7 @@ Skill 工件走独立的图入索引管道，与知识条目共用 `StoreData.gr
 
 ### 实体提取
 
-`extractSkillGraphPrimitives()` 从 profile + capsules 提取：
+`extractGraphEntitiesWithLLM(chat, profile+capsules text)` 使用与 Trap 侧相同的 LLM 提取入口，从 profile + capsules 提取（安全约束：不读原始脚本体）：
 
 | 文本源 | 提取的节点类型 |
 |--------|---------------|

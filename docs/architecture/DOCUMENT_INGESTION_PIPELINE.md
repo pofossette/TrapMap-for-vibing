@@ -75,10 +75,10 @@ fingerprint = createHash('sha256')
 
 ### 1.3 重复检测算法
 
-重复检测在 [`detectDuplicates`](file:///home/wunai/Disks/Data/my-project/Trap-Map/packages/server/src/lib/candidates/detector.ts#L160-L240) 中实现，采用 Jaccard 相似度算法：
+重复检测在 [`detectDuplicates`](file:///home/wunai/Disks/Data/my-project/Trap-Map/packages/server/src/lib/candidates/detector.ts#L160-L240) 中实现，采用 **Jaccard 预筛 + LLM 语义判定** 两阶段管道：
 
 ```typescript
-// Token 重叠分数
+// 阶段 1: Jaccard 预筛（快速，确定性）
 function overlapScore(candidateTokens, entryTokens): number {
   let shared = 0
   for (const token of candidateTokens) {
@@ -87,10 +87,11 @@ function overlapScore(candidateTokens, entryTokens): number {
   return shared / union.size  // 交集 / 并集
 }
 
-// 关键词重叠百分比
-function keywordOverlapPercent(candidateKeywords, entryKeywords): number {
-  return shared / max(setA.size, setB.size) * 100
-}
+// 阶段 2: LLM 语义判定（chat.isConfigured 时启用）
+async function judgeDuplicateWithLLM(chat, candidate, existing):
+  → { isDuplicate, confidence, overlapType: 'exact'|'semantic'|'none', reasoning }
+  isDuplicate=true && confidence >= 0.8 → 标记为 duplicate
+  LLM 未配置或失败 → 退化为纯 Jaccard
 ```
 
 **判定阈值：**
@@ -98,9 +99,9 @@ function keywordOverlapPercent(candidateKeywords, entryKeywords): number {
 |----------|------|------|
 | `exact` | 指纹完全一致 | 内容完全相同 |
 | `high-overlap` | ≥ 0.72 | 高度重叠 |
-| `semantic-similar` | ≥ 0.38 | 语义相似（默认阈值） |
+| `semantic-similar` | ≥ 0.38 | Jaccard 预筛阈值 |
 
-检测范围覆盖所有 `lifecycleState === 'approved'` 的知识条目和技能工件，按相似度降序排列，最多保留前 10 个匹配。
+检测范围覆盖所有 `lifecycleState === 'approved'` 的知识条目和技能工件，按相似度降序排列，最多保留前 10 个匹配。LLM 判定能识别 Jaccard 漏检的同义词场景（如 "deploy docker" vs "ship docker"）。
 
 ---
 
@@ -301,7 +302,8 @@ boundary.exclusions    // 排除项：[{kind: "platform", description: "..."}]
 ```
 NormalizedDocument
        │
-       ├──▶ extractTrapGraphEntities()  ──▶ Trap 节点和边
+       ├──▶ extractGraphEntitiesWithLLM(chat?, text)  ──▶ LLM 两阶段提取: nodes + edges
+       │     (三层降级: LLM → 缓存 → extractTrapGraphEntities() 规则引擎)
        │
        ├──▶ extractBoundaryGraphEntities() ──▶ 边界节点和边
        │
@@ -314,40 +316,38 @@ NormalizedDocument
 
 ### 5.2 Trap 实体提取
 
-实体提取在 [`extractTrapGraphEntities`](file:///home/wunai/Disks/Data/my-project/Trap-Map/packages/server/src/lib/retrieval/graph-extract.ts#L623-L656) 中实现，采用**基于规则的确定性提取**：
+实体提取在 [`extractGraphEntitiesWithLLM`](file:///home/wunai/Disks/Data/my-project/Trap-Map/packages/server/src/lib/indexing/graph-lite/llm-extract.ts) 中实现，采用**两阶段 LLM 提取 + 规则引擎 fallback**：
+
+**两阶段 LLM 提取**（详见 `HYBRID_GRAPH_EXTRACTION.md`）：
+1. **Phase 1（切分策略）**：长文本（>2000 字符）经 LLM 规划分为多个 segment
+2. **Phase 2（并行提取）**：每个 segment 并行调用 LLM 提取实体和关系（maxConcurrent=3）
+3. **Gleaning**：二次追问提取遗漏的实体和关系
+4. **缓存**：contentHash + promptVersion 两层缓存，避免重复调用
 
 **节点类型（Node Kinds）：**
 
 | 节点类型 | 提取来源 | 示例 ID |
 |----------|---------|---------|
 | `trap` | 条目 shortcut | `trap:entry-123` |
-| `cue` | 错误模式匹配 | `cue:error`, `cue:timeout` |
-| `tool` | 工具关键词匹配 | `tool:npm`, `tool:docker` |
-| `environment` | 环境模式 + 版本正则 | `env:production`, `env:node-18` |
-| `prerequisite` | "prerequisite:", "requires" 模式 | `prereq:install-dependencies` |
-| `mitigation` | "mitigate:", "fix:", "solution:" 模式 | `mit:clear-cache` |
+| `cue` | LLM 语义理解症状/错误 | `cue:error`, `cue:timeout` |
+| `tool` | LLM 识别工具/框架 | `tool:npm`, `tool:docker` |
+| `environment` | LLM 识别运行环境 | `env:production`, `env:node-18` |
+| `prerequisite` | LLM 识别前置条件 | `prereq:install-dependencies` |
+| `mitigation` | LLM 识别修复方案 | `mit:clear-cache` |
 
 **关系类型（Relation Types）：**
 
 | 关系 | 方向 | 强度 | 说明 |
 |------|------|------|------|
-| `risk-blocks` | trap → cue | hard/soft | 陷阱触发错误信号 |
+| `risk-blocks` | trap → cue | hard/soft | LLM 判定触发强度 |
 | `co-occurs-with` | trap → tool/env | soft | 陷阱涉及的工具/环境 |
-| `requires` | trap → prerequisite | hard | 陷阱的前置条件 |
-| `mitigates` | mitigation → trap | hard/soft | 修复方案解决陷阱 |
+| `requires` | trap → prerequisite | hard | LLM 理解否定句（"does NOT require" 不提取） |
+| `mitigates` | mitigation → trap | hard/soft | LLM 判定修复强制性 |
 | `order` | prereq → prereq | soft | 前置条件顺序 |
 
-**强度判定规则：**
-```typescript
-// Hard 触发词：must, requires, blocked, depends on, prerequisite...
-const HARD_TRIGGER_PHRASES = ['must', 'requires', 'blocked', ...]
+**强度判定**（LLM 主路径）：LLM 直接输出 hard/soft，语义理解否定句和句级作用域。规则引擎 fallback 使用触发词匹配（HARD_TRIGGER_PHRASES / SOFT_MITIGATION_PHRASES）。
 
-// Soft 缓解词：could, may help, optionally, suggested, recommended...
-const SOFT_MITIGATION_PHRASES = ['could', 'may help', 'optionally', ...]
-
-// 包含 hard 触发词 → hard 边
-// 包含 soft 缓解词 → soft 边
-```
+**三层降级**：LLM → 缓存 → `extractTrapGraphEntities()` 规则引擎
 
 ### 5.3 边界实体提取
 
@@ -512,5 +512,5 @@ flowchart TB
 1. **生命周期驱动**：只有 `approved` 状态的条目才会被索引
 2. **幂等性**：通过 `contentHash` + `revision` 保证重复操作安全
 3. **多通道索引**：向量（语义）+ 关键词（精确）+ 图（结构）互补
-4. **确定性提取**：图实体提取基于规则，相同输入产生相同输出
+4. **LLM 驱动提取**：图实体提取由 LLM 语义理解驱动，规则引擎保留为 fallback（详见 `HYBRID_GRAPH_EXTRACTION.md`）
 5. **向后兼容**：保留 `embeddingCache` 等旧格式，支持渐进迁移

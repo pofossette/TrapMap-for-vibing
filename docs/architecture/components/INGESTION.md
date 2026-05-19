@@ -321,6 +321,7 @@ async function findDuplicates(
 |------|------|------|------|
 | 精确指纹 | SHA-256 哈希 | 100% 匹配 | 精确重复 |
 | 语义相似度 | 余弦相似度 | ≥ 0.95 | 近似重复 |
+| LLM 语义判定 | Jaccard 预筛 + LLM 判定 | confidence ≥ 0.8 | 同义词/语义重复（如 "deploy docker" ≈ "ship docker"） |
 
 ### 检测流程
 
@@ -649,7 +650,7 @@ if (refSections.problem || refSections.situation) {
 
 ### Graph 索引
 
-每个 capsule 在图索引阶段被独立分析（`skill-events.ts:241-513` 的 `extractSkillGraphPrimitives`），各自提取 graph nodes 和 edges（cue、tool、environment、prerequisite、mitigation 节点）。从 reference 拆出的独立 capsule 会各自贡献独立的图谱原语。
+每个 capsule 在图索引阶段被独立分析（`llm-extract.ts` 的 `extractGraphEntitiesWithLLM`），使用两阶段 LLM 提取 graph nodes 和 edges（cue、tool、environment、prerequisite、mitigation 节点）。从 reference 拆出的独立 capsule 会各自贡献独立的图谱原语。LLM 不可用时退化为 `skill-events.ts` 的 `extractSkillGraphPrimitives` 规则引擎。
 
 ---
 

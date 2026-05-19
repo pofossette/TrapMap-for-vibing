@@ -295,7 +295,14 @@ flowchart TB
 │  excludes-version │  soft    │  trap → boundary-version：不兼容的版本        │
 └───────────────────┴──────────┴─────────────────────────────────────────────┘
 
-强度判定规则：
+强度判定规则（LLM 驱动 + 规则 fallback）：
+
+  主路径（LLM 提取，见 HYBRID_GRAPH_EXTRACTION.md）:
+  • LLM 直接输出 hard/soft，语义理解否定句和句级作用域
+  • 例如 "does NOT require X" 不生成 requires 边
+  • 例如 "must" 仅影响当前句的边，不会全文误判
+
+  Fallback 路径（规则引擎，LLM 不可用时）:
   • requires / prerequisite 节点 → 始终 hard
   • risk-blocks → 文本含 "must/blocked/requires/mandatory" 时 hard，否则 soft
   • mitigates → 文本含 "to mitigate ... must" 模式时 hard，否则 soft
@@ -363,7 +370,7 @@ GraphIndexDocumentRecord {
 
 #### A.2.2 Trap 侧图构建（详细流程）
 
-以一条 KnowledgeEntry 为例说明完整的图构建过程：
+以一条 KnowledgeEntry 为例说明完整的图构建过程。提取由**两阶段 LLM** 驱动（详见 `HYBRID_GRAPH_EXTRACTION.md`），规则引擎保留为 fallback。
 
 **示例输入**：
 ```
@@ -380,63 +387,69 @@ KnowledgeEntry:
     exclusions: [{kind: "platform", description: "windows"}]
 ```
 
-**构建流程**：
+**构建流程（LLM 主路径）**：
 
 ```
-extractTrapGraphEntities(document)
+graphIndexAdapter.sync(document, store, chat?)
 │
-├── extractTrapNode()
-│     → { kind: "trap", id: "trap:entry-001",
-│          label: "Docker build fails with COPY error in multi-stage..." }
+├── extractGraphEntitiesWithLLM(chat, document.canonicalText)
+│     │
+│     ├── Phase 1: planExtraction(chat, text)
+│     │     文本 <= 2000 chars → 单段 plan (跳过 Phase 2)
+│     │     文本 > 2000 chars → LLM 返回 ExtractionPlan:
+│     │       { segments: [{ text, contextHint, priority }] }
+│     │     缓存: contentHash → ExtractionPlan
+│     │
+│     ├── Phase 2: extractSegmentEntities(chat, segment)
+│     │     对每个 segment 并行调用 (maxConcurrent=3)
+│     │     LLM 输出 { nodes[], edges[] } (Zod 校验)
+│     │     合并所有段结果 (按 label 去重，同 label 取更长 description)
+│     │     缓存: contentHash → LlmExtractionResult
+│     │
+│     ├── Gleaning: 二次提取追问
+│     │     首次结果 + gleaning 结果 → 并集合并
+│     │
+│     └── 返回 LlmExtractionResult:
+│           nodes: [
+│             { kind: "trap",          label: "Docker build fails..." },
+│             { kind: "tool",          label: "docker" },
+│             { kind: "cue",           label: "cannot copy error" },
+│             { kind: "cue",           label: "build failure" },
+│             { kind: "environment",   label: "ci" },
+│             { kind: "environment",   label: "production" },
+│             { kind: "prerequisite",  label: "docker 17.05+" },
+│             { kind: "mitigation",    label: "ensure source path exists..." },
+│           ]
+│           edges: [
+│             { src: "trap", tgt: "cue",           type: "risk-blocks",    strength: "hard" },
+│             { src: "trap", tgt: "tool",          type: "co-occurs-with", strength: "soft" },
+│             { src: "trap", tgt: "env",           type: "co-occurs-with", strength: "soft" },
+│             { src: "trap", tgt: "prereq",        type: "requires",       strength: "hard" },
+│             { src: "mit",  tgt: "trap",          type: "mitigates",      strength: "soft" },
+│           ]
 │
-├── extractToolNodes()  ← 扫描 ~50 个工具关键词
-│     text 含 "docker" → { kind: "tool", id: "tool:docker", label: "docker" }
-│     text 含 "ci"     → 跳过（ci 不在 toolKeywords 中）
+├── 注入 trap 根节点 + nodeId 映射 (buildNodeId(kind, label))
+│     → { kind: "trap", id: "trap:entry-001", label: "Docker build fails..." }
 │
-├── extractCueNodes()   ← 扫描 ~25 个症状模式
-│     text 含 "error"   → { kind: "cue", id: "cue:error", label: "error" }
-│     text 含 "fail"    → { kind: "cue", id: "cue:fail", label: "fail" }
+├── extractBoundaryGraphEntities("trap:entry-001", boundary)
+│     （不变 — 纯代码路径）
 │
-├── extractEnvironmentNodes()
-│     text 含 "ci"        → { kind: "environment", id: "env:ci", label: "ci" }
-│     text 含 "production" → { kind: "environment", id: "env:production", label: "production" }
-│     匹配 "docker 17.05" → { kind: "environment", id: "env:docker-17.05",
-│                               label: "docker 17.05" }
+├── 合并 LLM 结果 + boundary 结果 → buildTrapGraphDocument()
 │
-├── extractPrerequisiteNodes()
-│     匹配 "requires: Docker 17.05+"
-│     → { kind: "prerequisite", id: "prereq:docker-17.05+",
-│          label: "docker 17.05+" }
-│
-├── extractMitigationNodes()
-│     匹配 "To fix: ensure source path exists..."
-│     → { kind: "mitigation", id: "mit:ensure-source-path-exists-in-...",
-│          label: "ensure source path exists in the referenced..." }
-│
-└── extractRelations()
-      ├── trap:entry-001 → cue:error      [risk-blocks, hard*]
-      ├── trap:entry-001 → cue:fail        [risk-blocks, hard*]
-      ├── trap:entry-001 → tool:docker     [co-occurs-with, soft]
-      ├── trap:entry-001 → env:ci          [co-occurs-with, soft]
-      ├── trap:entry-001 → env:production  [co-occurs-with, soft]
-      ├── trap:entry-001 → prereq:docker-17.05+  [requires, hard]
-      └── mit:ensure-source... → trap:entry-001  [mitigates, soft]
+└── assertNoHardDependencyCycles() + upsertGraphIndexDocument()
 
-      * hard 因为文本含 "requires"
-
-extractBoundaryGraphEntities("trap:entry-001", boundary)
-│
-├── context "ci"         → { kind: "boundary-context", id: "boundary-ctx:ci" }
-│   edge: trap:entry-001 → boundary-ctx:ci  [applies-in, soft]
-├── context "production" → { kind: "boundary-context", id: "boundary-ctx:production" }
-│   edge: trap:entry-001 → boundary-ctx:production  [applies-in, soft]
-├── version docker>=17.05.0 → { kind: "boundary-version", id: "boundary-ver:docker@>=17.05.0" }
-│   edge: trap:entry-001 → boundary-ver:docker@>=17.05.0  [requires-version, hard]
-└── platform "windows"   → { kind: "boundary-platform", id: "boundary-plat:windows" }
-    edge: trap:entry-001 → boundary-plat:windows  [excludes-context, soft]
+LLM 不可用时的降级路径:
+  LLM 失败 → 缓存命中? → 使用缓存
+           → 无缓存  → extractTrapGraphEntities() 规则引擎 fallback
 ```
 
-**生成的图文档**：
+**LLM 提取的优势**（相比规则引擎）：
+- 理解否定句："does NOT require X" 不会生成 requires 边
+- 句级作用域：单个 "must" 仅影响当前句的边
+- 识别新技术：无需维护关键词列表即可识别 Cloudflare Workers、Turbopack 等
+- 更精确的症状/工具分类：语义理解替代子串匹配
+
+**生成的图文档**（LLM 结果经过 nodeId 映射 + boundary 合并后）：
 
 ```
 GraphIndexDocumentRecord {
@@ -492,19 +505,20 @@ store.transact(data => {
 
 #### A.2.3 Skill 侧图构建
 
-Skill 图构建与 Trap 类似，但数据来源不同：
+Skill 图构建使用与 Trap 侧相同的 LLM 提取入口 `extractGraphEntitiesWithLLM()`，但数据来源不同：
 
 ```
 SkillArtifact approved
        │
        ▼
-runSkillIndexEvent()
+runSkillIndexEvent(chat?)
        │
        ▼
-extractSkillGraphPrimitives(derived.profile, derived.capsules)
-│   ※ 安全约束：仅读 profile.summary/keywords 和 capsules 的
+extractGraphEntitiesWithLLM(chat, profile+capsules text)
+│   ※ 安全约束：仅读 profile.summary/keywords + capsules 的
 │     situation/problem/goal/content/labels，绝不读 asset/script 内容
 │
+│   提取结果 (LLM 理解后)：
 ├── 从 profile.summary 提取 tool, environment 节点
 ├── 从 profile.keywords 提取 tool 节点
 ├── 从 capsules[].situation 提取 cue 节点
@@ -524,18 +538,22 @@ assertNoHardDependencyCycles()
 upsertGraphIndexDocument()
 ```
 
+**LLM 不可用时**：退化为 `extractSkillGraphPrimitives()` 规则引擎（关键词匹配 + 正则提取），保持向后兼容。
+
 #### A.2.4 启动时一致性对账
 
 ```
 reconcileKnowledgeIndexes()  ← 服务启动时
 │
 ├── 遍历所有 knowledgeEntries（批次大小 50）
-│   ├── approved → syncKnowledgeIndex(entry)
+│   ├── approved → syncKnowledgeIndex(entry, chat?)  ← chat 透传给 LLM 提取
 │   └── 非 approved → removeGraphIndexDocumentsForSource(entry.id)
 │
 └── 遍历所有 skillArtifacts（批次大小 50）
-    ├── approved → artifactGraphIndexAdapter.sync(artifact)
+    ├── approved → artifactGraphIndexAdapter.sync(artifact, chat?)
     └── 非 approved → removeGraphIndexDocumentsForSource(artifact.id)
+
+promptVersion 变化时 → 触发全量缓存失效 + 后台重建
 ```
 
 ### A.3 查询时图组装
@@ -837,7 +855,12 @@ POST /v3/retrieval/search  { seed: "部署 Docker 到生产环境", skillBudget:
 | graphology 组装与扩展 | `packages/server/src/lib/indexing/graph-lite/graphology.ts` |
 | 文档 CRUD | `packages/server/src/lib/indexing/graph-lite/store.ts` |
 | GraphIndexRepository 接口 | `packages/server/src/lib/graph-index/repository.ts` |
-| Trap 实体提取（规则引擎） | `packages/server/src/lib/retrieval/recall/graph-extract.ts` |
+| **LLM 实体提取（主路径）** | **`packages/server/src/lib/indexing/graph-lite/llm-extract.ts`** |
+| **LLM 提取缓存** | **`packages/server/src/lib/indexing/graph-lite/llm-cache.ts`** |
+| Trap 实体提取（规则引擎 fallback） | `packages/server/src/lib/retrieval/recall/graph-extract.ts` |
+| **LLM 重复判定** | **`packages/server/src/lib/candidates/llm-dedup.ts`** |
+| **LLM 冲突判定** | **`packages/server/src/lib/conflict/llm-conflict.ts`** |
+| **图提取 Zod Schema** | **`packages/contracts/src/domain/graph-extraction.ts`** |
 | 边界约束提取 | `packages/server/src/lib/indexing/boundary-extract.ts` |
 | Skill 实体提取 | `packages/server/src/lib/indexing/skill-events.ts` |
 | Trap 图适配器 | `packages/server/src/lib/indexing/adapters/graph.ts` |
@@ -849,6 +872,8 @@ POST /v3/retrieval/search  { seed: "部署 Docker 到生产环境", skillBudget:
 | v3 计划编译器 | `packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts` |
 | v3 搜索入口 | `packages/server/src/lib/retrieval/graph-plan/graph-plan-search.ts` |
 
+> **LLM 图提取架构详解**见 [`HYBRID_GRAPH_EXTRACTION.md`](HYBRID_GRAPH_EXTRACTION.md)。
+
 ## 相关文档
 
 - [数据模型定义](../reference/DATA_MODEL.md) - 实体字段详情
@@ -858,3 +883,4 @@ POST /v3/retrieval/search  { seed: "部署 Docker 到生产环境", skillBudget:
 - [检索系统](components/RETRIEVAL.md) - v1/v2/v3 检索算法详情
 - [工件系统](components/ARTIFACTS.md) - SkillArtifact 派生详情
 - [GraphRAG-lite 检索](GRAPH_RETRIEVAL.md) - 图检索系统完整文档
+- [LLM 图提取架构](HYBRID_GRAPH_EXTRACTION.md) - 两阶段 LLM 图实体提取、重复/冲突检测增强
