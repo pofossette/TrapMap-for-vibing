@@ -1,0 +1,9 @@
+{
+  "scope": "global",
+  "labels": ["docker", "deployment", "production", "container"],
+  "title": "Docker Deployment Best Practices",
+  "slug": "docker-deploy",
+  "requiredLevel": 3,
+  "sourceKind": "skill-directory",
+  "scriptDescriptors": []
+}

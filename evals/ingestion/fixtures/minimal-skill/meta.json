@@ -1,0 +1,9 @@
+{
+  "scope": "project",
+  "labels": ["git", "workflow"],
+  "title": "Quick Git Workflow",
+  "slug": "quick-git-workflow",
+  "requiredLevel": 1,
+  "sourceKind": "single-skill-md",
+  "scriptDescriptors": []
+}

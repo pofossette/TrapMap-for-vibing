@@ -1,0 +1,9 @@
+{
+  "name": "fullstack-app-config",
+  "version": "1.0.0",
+  "buildTarget": "production",
+  "features": {
+    "typescript": true,
+    "monorepo": true
+  }
+}

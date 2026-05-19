@@ -11,6 +11,8 @@
 
 import { parseArgs } from 'node:util';
 
+import { realSkillConflictFixtures } from './conflict-fixtures-real.js';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -41,11 +43,12 @@ function parseArgs_() {
   const { values } = parseArgs({
     options: {
       'dry-run': { type: 'boolean', short: 'd', default: false },
+      smoke: { type: 'boolean', short: 's', default: false },
       verbose: { type: 'boolean', short: 'v', default: false },
     },
     strict: true,
   });
-  return { dryRun: values['dry-run'] ?? false, verbose: values.verbose ? 1 : 0 };
+  return { dryRun: values['dry-run'] ?? false, smoke: values.smoke ?? false, verbose: values.verbose ? 1 : 0 };
 }
 
 // ---------------------------------------------------------------------------
@@ -558,10 +561,15 @@ async function main(): Promise<void> {
   console.log('');
   console.log('=== Conflict Detection Evaluation ===');
   console.log(`Mode: ${options.dryRun ? 'dry-run' : 'live'}`);
-  console.log(`Fixtures: ${conflictFixtures.length}`);
+  console.log(`Smoke: ${options.smoke}`);
+
+  const allFixtures = options.smoke
+    ? conflictFixtures
+    : [...conflictFixtures, ...realSkillConflictFixtures];
+  console.log(`Fixtures: ${allFixtures.length}`);
   console.log('');
 
-  const expected = conflictFixtures.map((f) => f.expectedConflictType);
+  const expected = allFixtures.map((f) => f.expectedConflictType);
   const jaccardPredictions: ConflictType[] = [];
   const llmPredictions: ConflictType[] = [];
   const caseResults: Array<{
@@ -571,7 +579,7 @@ async function main(): Promise<void> {
     llm: ConflictType;
   }> = [];
 
-  for (const fixture of conflictFixtures) {
+  for (const fixture of allFixtures) {
     const jResult = jaccardClassify(fixture.entryA, fixture.entryB);
     const lResult = await llmClassify(fixture.entryA, fixture.entryB, options.dryRun);
 

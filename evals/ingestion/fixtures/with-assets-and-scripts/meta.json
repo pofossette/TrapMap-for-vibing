@@ -1,0 +1,18 @@
+{
+  "scope": "project",
+  "labels": ["fullstack", "typescript", "deployment"],
+  "title": "Full-Stack Application Setup",
+  "slug": "fullstack-app",
+  "requiredLevel": 2,
+  "sourceKind": "skill-directory",
+  "scriptDescriptors": [
+    {
+      "path": "scripts/setup.sh",
+      "sha256": "placeholder",
+      "capability": "Build frontend and backend",
+      "argsSchemaSummary": "",
+      "sideEffectSummary": "Creates dist/ directories",
+      "defaultPolicy": "manual"
+    }
+  ]
+}

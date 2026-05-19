@@ -234,7 +234,7 @@ export const artifactsImportRoutes: FastifyPluginAsync = async (app) => {
                   chat: app.skillShareer.ai.chat,
                 })
               : deriveSkillArtifactOutputs(artifact, artifact.latestRevision);
-          await applyDerivedArtifactOutputs(data, artifact, artifact.latestRevision, derived);
+          await applyDerivedArtifactOutputs(data, artifact, artifact.latestRevision, derived, app.skillShareer.artifactRepo);
 
           // Record audit event (T-13-04 mitigation)
           const auditEvent = createAuditEvent({

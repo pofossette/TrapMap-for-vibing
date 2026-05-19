@@ -131,6 +131,15 @@ interface GraphExtractionResult {
   durationMs: number;
 }
 
+interface IngestionResult {
+  passed: boolean;
+  totalBundles: number;
+  passedBundles: number;
+  failedBundles: number;
+  passRate: number;
+  durationMs: number;
+}
+
 interface CombinedReport {
   schemaVersion: 1;
   timestamp: string;
@@ -139,6 +148,7 @@ interface CombinedReport {
   retrieval: RetrievalResult | null;
   summary: SummaryResult | null;
   graphExtraction: GraphExtractionResult | null;
+  ingestion: IngestionResult | null;
   overall: {
     passed: boolean;
     totalCases: number;
@@ -290,6 +300,54 @@ async function runGraphExtractionEval(
       return null;
     }
     console.error('Graph extraction evaluation failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Run ingestion/derivation evaluation and return results.
+ * Always dry-run in the unified runner (uses bundled fixtures, no downloaded data).
+ */
+async function runIngestionEval(options: EvalAllOptions): Promise<IngestionResult | null> {
+  const startTime = Date.now();
+
+  try {
+    const { derivationFixtures, getSmokeFixtures } = await import('../ingestion/fixtures/index.js');
+    const { bundleToPayloads, buildDerivationContext, makeDeterministicId } = await import('../ingestion/adapter.js');
+    const { runAssertions } = await import('../ingestion/assertions.js');
+    const { aggregateMetrics } = await import('../ingestion/metrics.js');
+    const { deriveFromPayloads } = await import('../../packages/server/src/lib/artifacts/derive.js');
+
+    const fixtures = options.tier === 'smoke' ? getSmokeFixtures() : derivationFixtures;
+    const results = [];
+    const capsuleCounts: number[] = [];
+
+    for (const fixture of fixtures) {
+      const artifactId = makeDeterministicId(fixture.bundle.slug);
+      const payloads = bundleToPayloads(fixture.bundle, artifactId);
+      const context = buildDerivationContext(fixture.bundle, artifactId);
+      const output = await deriveFromPayloads(payloads, context);
+      const result = runAssertions(fixture.id, fixture.bundle, output as any);
+      results.push(result);
+      capsuleCounts.push(output.capsules.length);
+    }
+
+    const metrics = aggregateMetrics(results, capsuleCounts);
+
+    return {
+      passed: results.every((r) => r.passed),
+      totalBundles: metrics.totalBundles,
+      passedBundles: metrics.passedBundles,
+      failedBundles: metrics.failedBundles,
+      passRate: metrics.passRate,
+      durationMs: Date.now() - startTime,
+    };
+  } catch (error) {
+    if (options.dryRun) {
+      console.log('  Ingestion evaluation: dry-run mode (not available)');
+      return null;
+    }
+    console.error('Ingestion evaluation failed:', error);
     return null;
   }
 }
@@ -467,6 +525,26 @@ function formatCombinedReport(report: CombinedReport, _options: EvalAllOptions):
     lines.push('');
   }
 
+  // Ingestion / Derivation Evaluation Section
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('               Ingestion / Derivation Evaluation');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+  if (report.ingestion) {
+    const ing = report.ingestion;
+    lines.push('');
+    lines.push(`Total bundles: ${ing.totalBundles}`);
+    lines.push(`Passed: ${ing.passedBundles}`);
+    lines.push(`Failed: ${ing.failedBundles}`);
+    lines.push(`Pass rate: ${(ing.passRate * 100).toFixed(1)}%`);
+    lines.push(`Duration: ${ing.durationMs}ms`);
+    lines.push('');
+  } else {
+    lines.push('');
+    lines.push('(No ingestion evaluation data - dry-run or skipped)');
+    lines.push('');
+  }
+
   // Overall Status
   lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   lines.push('                      Overall Status');
@@ -580,15 +658,35 @@ async function main(): Promise<void> {
   }
   console.log('');
 
+  // Run ingestion/derivation evaluation
+  let ingestionResult: IngestionResult | null = null;
+  console.log('--- Ingestion / Derivation Evaluation ---');
+  try {
+    ingestionResult = await runIngestionEval(options);
+    if (ingestionResult) {
+      console.log(
+        `  Completed: ${ingestionResult.passedBundles}/${ingestionResult.totalBundles} passed`,
+      );
+    }
+  } catch (error) {
+    console.error('  Failed:', error);
+    if (!options.allowEmpty && !options.dryRun) {
+      process.exit(1);
+    }
+  }
+  console.log('');
+
   // Build combined report
   const totalCases =
     (retrievalResult?.summary.totalCases ?? 0) +
     (summaryResult?.summary.totalCases ?? 0) +
-    (graphExtractionResult?.totalFixtures ?? 0);
+    (graphExtractionResult?.totalFixtures ?? 0) +
+    (ingestionResult?.totalBundles ?? 0);
   const passedCases =
     (retrievalResult?.summary.passedCases ?? 0) +
     (summaryResult?.summary.passedCases ?? 0) +
-    (graphExtractionResult?.passed ? (graphExtractionResult?.totalFixtures ?? 0) : 0);
+    (graphExtractionResult?.passed ? (graphExtractionResult?.totalFixtures ?? 0) : 0) +
+    (ingestionResult?.passedBundles ?? 0);
   const failedCases = totalCases - passedCases;
 
   const combinedReport: CombinedReport = {
@@ -599,10 +697,11 @@ async function main(): Promise<void> {
     retrieval: retrievalResult,
     summary: summaryResult,
     graphExtraction: graphExtractionResult,
+    ingestion: ingestionResult,
     overall: {
       passed:
         failedCases === 0 &&
-        (retrievalResult !== null || summaryResult !== null || graphExtractionResult !== null),
+        (retrievalResult !== null || summaryResult !== null || graphExtractionResult !== null || ingestionResult !== null),
       totalCases,
       passedCases,
       failedCases,

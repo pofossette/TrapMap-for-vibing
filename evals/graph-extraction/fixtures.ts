@@ -50,11 +50,13 @@ export interface GraphExtractionFixture {
   expectedEdges: ExpectedEdge[];
 }
 
+import { realSkillGraphFixtures } from './fixtures-real.js';
+
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
 
-export const graphExtractionFixtures: GraphExtractionFixture[] = [
+const handCraftedFixtures: GraphExtractionFixture[] = [
   // 1. Simple trap with one tool
   {
     id: 'simple-tool-trap',
@@ -383,8 +385,16 @@ export const graphExtractionFixtures: GraphExtractionFixture[] = [
 ];
 
 /**
- * Get a subset of fixtures for smoke tests (first 5 entries).
+ * All graph extraction fixtures: hand-crafted + real-skill derived.
+ */
+export const graphExtractionFixtures: GraphExtractionFixture[] = [
+  ...handCraftedFixtures,
+  ...realSkillGraphFixtures,
+];
+
+/**
+ * Get a subset of fixtures for smoke tests (first 5 hand-crafted entries).
  */
 export function getSmokeFixtures(): GraphExtractionFixture[] {
-  return graphExtractionFixtures.slice(0, 5);
+  return handCraftedFixtures.slice(0, 5);
 }

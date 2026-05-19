@@ -34,7 +34,10 @@ interface RepoConfig {
   label: string;
 }
 
-const DEFAULT_REPOS: RepoConfig[] = [
+/**
+ * All available repositories. Use --repos all to download from all sources.
+ */
+const ALL_REPOS: RepoConfig[] = [
   { owner: 'anthropics', name: 'skills', label: 'anthropics' },
   { owner: 'ComposioHQ', name: 'awesome-claude-skills', label: 'composio' },
   { owner: 'alirezarezvani', name: 'claude-skills', label: 'alirezarezvani' },
@@ -42,6 +45,14 @@ const DEFAULT_REPOS: RepoConfig[] = [
   { owner: 'daymade', name: 'claude-code-skills', label: 'daymade' },
   { owner: 'testcontainers', name: 'claude-skills', label: 'testcontainers' },
   { owner: 'ykdojo', name: 'claude-code-tips', label: 'ykdojo' },
+];
+
+/**
+ * Default repos (curated subset). Use --repos all for all 7 repos.
+ */
+const DEFAULT_REPOS: RepoConfig[] = [
+  { owner: 'anthropics', name: 'skills', label: 'anthropics' },
+  { owner: 'daymade', name: 'claude-code-skills', label: 'daymade' },
 ];
 
 // =============================================================================
@@ -94,13 +105,18 @@ function parseCliArgs(): CliOptions {
   // Parse repos if provided
   let repos = DEFAULT_REPOS;
   if (values.repos) {
-    repos = values.repos.split(',').map((repo) => {
-      const [owner, name] = repo.trim().split('/');
-      if (!owner || !name) {
-        throw new Error(`Invalid repo format: ${repo}. Expected format: owner/name`);
-      }
-      return { owner, name, label: owner.toLowerCase() };
-    });
+    const reposArg = values.repos.trim();
+    if (reposArg === 'all') {
+      repos = ALL_REPOS;
+    } else {
+      repos = reposArg.split(',').map((repo) => {
+        const [owner, name] = repo.trim().split('/');
+        if (!owner || !name) {
+          throw new Error(`Invalid repo format: ${repo}. Expected format: owner/name`);
+        }
+        return { owner, name, label: owner.toLowerCase() };
+      });
+    }
   }
 
   return {

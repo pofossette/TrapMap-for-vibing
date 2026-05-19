@@ -11,6 +11,8 @@
 
 import { parseArgs } from 'node:util';
 
+import { realSkillDedupFixtures } from './dedup-fixtures-real.js';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -41,11 +43,12 @@ function parseArgs_() {
   const { values } = parseArgs({
     options: {
       'dry-run': { type: 'boolean', short: 'd', default: false },
+      smoke: { type: 'boolean', short: 's', default: false },
       verbose: { type: 'boolean', short: 'v', default: false },
     },
     strict: true,
   });
-  return { dryRun: values['dry-run'] ?? false, verbose: values.verbose ? 1 : 0 };
+  return { dryRun: values['dry-run'] ?? false, smoke: values.smoke ?? false, verbose: values.verbose ? 1 : 0 };
 }
 
 // ---------------------------------------------------------------------------
@@ -555,10 +558,15 @@ async function main(): Promise<void> {
   console.log('');
   console.log('=== Duplicate Detection Evaluation ===');
   console.log(`Mode: ${options.dryRun ? 'dry-run' : 'live'}`);
-  console.log(`Fixtures: ${dedupFixtures.length}`);
+  console.log(`Smoke: ${options.smoke}`);
+
+  const allFixtures = options.smoke
+    ? dedupFixtures
+    : [...dedupFixtures, ...realSkillDedupFixtures];
+  console.log(`Fixtures: ${allFixtures.length}`);
   console.log('');
 
-  const expected = dedupFixtures.map((f) => f.expectedOverlapType);
+  const expected = allFixtures.map((f) => f.expectedOverlapType);
   const jaccardPredictions: OverlapType[] = [];
   const llmPredictions: OverlapType[] = [];
   const caseResults: Array<{
@@ -568,7 +576,7 @@ async function main(): Promise<void> {
     llm: OverlapType;
   }> = [];
 
-  for (const fixture of dedupFixtures) {
+  for (const fixture of allFixtures) {
     const jResult = jaccardClassify(fixture.candidate, fixture.existing);
     const lResult = await llmClassify(fixture.candidate, fixture.existing, options.dryRun);
 
