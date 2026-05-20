@@ -2,7 +2,7 @@
  * Migration script to backfill existing knowledge entries from JSONB snapshot to relational tables.
  *
  * Run once after deploying the knowledge_entries table infrastructure:
- * 1. Ensure knowledge_entries table exists (via PgKnowledgeRepository.ensureSchema)
+ * 1. Ensure knowledge_entries table exists (created via Drizzle migration)
  * 2. Run this migration script
  *
  * Usage:

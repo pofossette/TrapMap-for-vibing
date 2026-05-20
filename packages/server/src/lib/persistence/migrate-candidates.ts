@@ -2,7 +2,7 @@
  * Migration script to backfill existing candidates from JSONB snapshot to relational table.
  *
  * Run once after deploying the candidates table infrastructure:
- * 1. Ensure candidates table exists (via PgCandidateRepository.ensureSchema)
+ * 1. Ensure candidates table exists (created via Drizzle migration)
  * 2. Run this migration script
  *
  * Usage:

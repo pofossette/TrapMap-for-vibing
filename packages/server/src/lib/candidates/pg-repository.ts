@@ -29,58 +29,15 @@ import { createManualResultRecord } from './repository.js';
  */
 export class PgCandidateRepository implements CandidateRepository {
   private db: ReturnType<typeof drizzle>;
-  private initialized = false;
 
   constructor(private readonly pool: Pool) {
     this.db = drizzle(pool, { schema: { candidates } });
   }
 
   /**
-   * Ensure the candidates table and indexes exist.
-   * Called idempotently before each operation.
-   */
-  private async ensureSchema(): Promise<void> {
-    if (this.initialized) return;
-
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS candidates (
-        id TEXT PRIMARY KEY,
-        source_type TEXT NOT NULL,
-        submitted_by TEXT NOT NULL,
-        team_id TEXT,
-        status TEXT NOT NULL,
-        original_payload JSONB NOT NULL,
-        analysis_snapshot JSONB,
-        duplicate_case JSONB,
-        received_at TIMESTAMP WITH TIME ZONE NOT NULL,
-        queued_at TIMESTAMP WITH TIME ZONE,
-        analyzing_at TIMESTAMP WITH TIME ZONE,
-        completed_at TIMESTAMP WITH TIME ZONE,
-        last_error TEXT,
-        retry_count INTEGER NOT NULL DEFAULT 0,
-        manual_result JSONB,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-      )
-    `);
-
-    await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_candidates_status ON candidates (status)
-    `);
-
-    await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_candidates_team ON candidates (team_id) WHERE team_id IS NOT NULL
-    `);
-
-    this.initialized = true;
-  }
-
-  /**
    * Insert a new candidate submission.
    */
   async insert(candidate: CandidateSubmission): Promise<void> {
-    await this.ensureSchema();
-
     await this.db.insert(candidates).values({
       id: candidate.id,
       sourceType: candidate.sourceType,
@@ -105,8 +62,6 @@ export class PgCandidateRepository implements CandidateRepository {
    * Returns null if not found.
    */
   async getById(candidateId: string): Promise<CandidateSubmission | null> {
-    await this.ensureSchema();
-
     const result = await this.db
       .select()
       .from(candidates)
@@ -125,8 +80,6 @@ export class PgCandidateRepository implements CandidateRepository {
    * Uses SELECT FOR UPDATE for row-level locking.
    */
   async updateStatus(candidateId: string, status: CandidateStatus, error?: string): Promise<void> {
-    await this.ensureSchema();
-
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -194,8 +147,6 @@ export class PgCandidateRepository implements CandidateRepository {
    * Attach analysis snapshot to candidate.
    */
   async attachAnalysis(candidateId: string, snapshot: AnalysisSnapshot): Promise<void> {
-    await this.ensureSchema();
-
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -230,8 +181,6 @@ export class PgCandidateRepository implements CandidateRepository {
    * Attach duplicate case to candidate.
    */
   async attachDuplicateCase(candidateId: string, duplicateCase: DuplicateCase): Promise<void> {
-    await this.ensureSchema();
-
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -270,8 +219,6 @@ export class PgCandidateRepository implements CandidateRepository {
     result: ManualResultSubmission,
     reviewedBy: string,
   ): Promise<void> {
-    await this.ensureSchema();
-
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -307,8 +254,6 @@ export class PgCandidateRepository implements CandidateRepository {
    * List all candidates with a specific status.
    */
   async listByStatus(status: CandidateStatus): Promise<CandidateSubmission[]> {
-    await this.ensureSchema();
-
     const result = await this.db.select().from(candidates).where(eq(candidates.status, status));
 
     return result.map((row) => rowToCandidateSubmission(row as DrizzleCandidateRow));
@@ -318,8 +263,6 @@ export class PgCandidateRepository implements CandidateRepository {
    * Mark a candidate as resolved.
    */
   async markResolved(candidateId: string, _resolvedBy: string): Promise<void> {
-    await this.ensureSchema();
-
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');

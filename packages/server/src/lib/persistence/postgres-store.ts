@@ -95,24 +95,12 @@ export class PostgresStore implements SkillShareerStore {
   }
 
   /**
-   * Lazily create the store_snapshot table and enable pgvector extension.
-   * This avoids requiring a separate manual bootstrap step just to start
-   * the server.
+   * Lazily create the store_snapshot compatibility table.
+   * This legacy shim will be removed in Round 2 (store_snapshot elimination).
+   * The pgvector extension is now handled by the migration runner.
    */
   private async ensureSchema(): Promise<void> {
     if (this.initialized) return;
-
-    // Enable pgvector extension for similarity search
-    // Requires PostgreSQL superuser or CREATE EXTENSION privileges
-    try {
-      await this.pool.query('CREATE EXTENSION IF NOT EXISTS vector');
-    } catch (error) {
-      // Log warning but don't fail - pgvector is optional for basic operation
-      console.warn(
-        '[PostgresStore] Could not enable pgvector extension:',
-        error instanceof Error ? error.message : String(error),
-      );
-    }
 
     await this.pool.query(`
       CREATE TABLE IF NOT EXISTS store_snapshot (

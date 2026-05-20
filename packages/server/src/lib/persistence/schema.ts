@@ -150,42 +150,49 @@ export const knowledgeKeywords = pgTable(
  * Replaces JSONB snapshot access for candidate data, providing row-level
  * granularity via SELECT FOR UPDATE instead of whole-snapshot locking.
  */
-export const candidates = pgTable('candidates', {
-  /** Unique candidate identifier (e.g., candidate_abc123) */
-  id: text('id').primaryKey(),
-  /** Source type: 'trap' or 'skill' */
-  sourceType: text('source_type').notNull(),
-  /** User who submitted this candidate */
-  submittedBy: text('submitted_by').notNull(),
-  /** Team ID if team-scoped, null for global */
-  teamId: text('team_id'),
-  /** Current processing status */
-  status: text('status').notNull(),
-  /** Original payload before any transformation */
-  originalPayload: jsonb('original_payload').notNull().$type<CandidatePayload>(),
-  /** Analysis snapshot (null until analysis completes) */
-  analysisSnapshot: jsonb('analysis_snapshot').$type<AnalysisSnapshot | null>(),
-  /** Duplicate case (null if no duplicates detected) */
-  duplicateCase: jsonb('duplicate_case').$type<DuplicateCase | null>(),
-  /** When the candidate was received */
-  receivedAt: timestamp('received_at', { withTimezone: true }).notNull(),
-  /** When the candidate was queued for processing */
-  queuedAt: timestamp('queued_at', { withTimezone: true }),
-  /** When analysis started */
-  analyzingAt: timestamp('analyzing_at', { withTimezone: true }),
-  /** When processing completed */
-  completedAt: timestamp('completed_at', { withTimezone: true }),
-  /** Last error message if status is 'error' */
-  lastError: text('last_error'),
-  /** Number of retry attempts */
-  retryCount: integer('retry_count').notNull().default(0),
-  /** Manual result from reviewer (null if no manual review yet) */
-  manualResult: jsonb('manual_result'),
-  /** Record creation timestamp */
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  /** Record update timestamp */
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const candidates = pgTable(
+  'candidates',
+  {
+    /** Unique candidate identifier (e.g., candidate_abc123) */
+    id: text('id').primaryKey(),
+    /** Source type: 'trap' or 'skill' */
+    sourceType: text('source_type').notNull(),
+    /** User who submitted this candidate */
+    submittedBy: text('submitted_by').notNull(),
+    /** Team ID if team-scoped, null for global */
+    teamId: text('team_id'),
+    /** Current processing status */
+    status: text('status').notNull(),
+    /** Original payload before any transformation */
+    originalPayload: jsonb('original_payload').notNull().$type<CandidatePayload>(),
+    /** Analysis snapshot (null until analysis completes) */
+    analysisSnapshot: jsonb('analysis_snapshot').$type<AnalysisSnapshot | null>(),
+    /** Duplicate case (null if no duplicates detected) */
+    duplicateCase: jsonb('duplicate_case').$type<DuplicateCase | null>(),
+    /** When the candidate was received */
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull(),
+    /** When the candidate was queued for processing */
+    queuedAt: timestamp('queued_at', { withTimezone: true }),
+    /** When analysis started */
+    analyzingAt: timestamp('analyzing_at', { withTimezone: true }),
+    /** When processing completed */
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    /** Last error message if status is 'error' */
+    lastError: text('last_error'),
+    /** Number of retry attempts */
+    retryCount: integer('retry_count').notNull().default(0),
+    /** Manual result from reviewer (null if no manual review yet) */
+    manualResult: jsonb('manual_result'),
+    /** Record creation timestamp */
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Record update timestamp */
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_candidates_status').on(table.status),
+    index('idx_candidates_team').on(table.teamId),
+  ],
+);
 
 // =============================================================================
 // Knowledge Entry Tables (Phase 62: WRITE-02)
@@ -587,5 +594,30 @@ export const usageEvents = pgTable(
     index('idx_usage_events_account_created').on(table.accountId, table.createdAt),
     index('idx_usage_events_entry_type_created').on(table.entryType, table.createdAt),
     index('idx_usage_events_entry_id_created').on(table.entryId, table.createdAt),
+  ],
+);
+
+// =============================================================================
+// Task Queue Table
+// =============================================================================
+
+export const taskQueue = pgTable(
+  'task_queue',
+  {
+    id: text('id').primaryKey(),
+    type: text('type').notNull(),
+    payload: text('payload').notNull(),
+    status: text('status').notNull().default('pending'),
+    priority: integer('priority').notNull().default(0),
+    attempts: integer('attempts').notNull().default(0),
+    maxAttempts: integer('max_attempts').notNull().default(3),
+    lastError: text('last_error'),
+    processAfter: timestamp('process_after', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('task_queue_type_status_priority_idx').on(table.type, table.status, table.priority),
   ],
 );

@@ -14,8 +14,6 @@
  * - nextId() maintains separate counters per prefix
  * - close() calls pool.end()
  * - getPool() returns the pool instance
- * - ensureSchema() creates table and extension on first call
- * - ensureSchema() is idempotent
  *
  * Phase: 70 (TEST-03)
  */
@@ -58,11 +56,6 @@ function createMockPool(initialData?: StoreData): MockPool {
 
   const handleQuery = async (sql: string, params?: unknown[]) => {
     const sqlUpper = sql.toUpperCase().trim();
-
-    // DDL queries (CREATE TABLE, CREATE EXTENSION)
-    if (sqlUpper.startsWith('CREATE')) {
-      return { rows: [] };
-    }
 
     // SELECT data FROM store_snapshot
     if (sqlUpper.includes('SELECT') && sqlUpper.includes('STORE_SNAPSHOT')) {
@@ -163,7 +156,6 @@ describe('PostgresStore', () => {
       // Override the pool query to return a row with null data
       pool.query.mockImplementation(async (sql: string) => {
         const sqlUpper = sql.toUpperCase().trim();
-        if (sqlUpper.includes('CREATE')) return { rows: [] };
         if (sqlUpper.includes('SELECT') && sqlUpper.includes('STORE_SNAPSHOT')) {
           return { rows: [{ data: null }] };
         }
@@ -174,18 +166,6 @@ describe('PostgresStore', () => {
       const result = await store.snapshot();
 
       expect(result).toEqual(createEmptyStoreData());
-    });
-
-    it('calls ensureSchema before querying', async () => {
-      const pool = createMockPool();
-      const store = new PostgresStore(pool as never);
-
-      await store.snapshot();
-
-      // First call should be CREATE EXTENSION, second CREATE TABLE, third SELECT
-      expect(pool.query).toHaveBeenCalledTimes(3);
-      const firstCall = pool.query.mock.calls[0]![0] as string;
-      expect(firstCall.toUpperCase()).toContain('CREATE EXTENSION');
     });
   });
 
@@ -397,45 +377,6 @@ describe('PostgresStore', () => {
       expect(data.counters.new_prefix).toBe(1);
       // existing counter untouched
       expect(data.counters.existing).toBe(5);
-    });
-  });
-
-  describe('ensureSchema (integration with snapshot/transact)', () => {
-    it('creates table and extension only once (idempotent)', async () => {
-      const pool = createMockPool();
-      const store = new PostgresStore(pool as never);
-
-      await store.snapshot();
-      const firstCallCount = pool.query.mock.calls.length;
-
-      await store.snapshot();
-      const secondCallCount = pool.query.mock.calls.length;
-
-      // Second call should only add the SELECT query, not CREATE queries
-      expect(secondCallCount - firstCallCount).toBe(1);
-      // The extra call is just the SELECT query
-      const extraCall = pool.query.mock.calls[firstCallCount]![0] as string;
-      expect(extraCall.toUpperCase()).toContain('SELECT');
-    });
-
-    it('logs warning when pgvector extension creation fails', async () => {
-      const pool = createMockPool();
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      // Make CREATE EXTENSION fail
-      pool.query.mockImplementationOnce(async () => {
-        throw new Error('permission denied');
-      });
-
-      const store = new PostgresStore(pool as never);
-      await store.snapshot();
-
-      expect(warnSpy).toHaveBeenCalledWith(
-        '[PostgresStore] Could not enable pgvector extension:',
-        'permission denied',
-      );
-
-      warnSpy.mockRestore();
     });
   });
 });

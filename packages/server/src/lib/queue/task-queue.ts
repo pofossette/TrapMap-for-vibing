@@ -121,34 +121,6 @@ export function createTaskQueue(config: TaskQueueConfig) {
 
   const db = drizzle(pool, { schema: { taskQueue } });
 
-  // Ensure table exists
-  let initialized = false;
-
-  async function ensureSchema(): Promise<void> {
-    if (initialized) return;
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS task_queue (
-        id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        payload TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pending',
-        priority INTEGER NOT NULL DEFAULT 0,
-        attempts INTEGER NOT NULL DEFAULT 0,
-        max_attempts INTEGER NOT NULL DEFAULT 3,
-        last_error TEXT,
-        process_after TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        completed_at TIMESTAMP WITH TIME ZONE
-      )
-    `);
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS task_queue_type_status_priority_idx
-      ON task_queue (type, status, priority DESC)
-    `);
-    initialized = true;
-  }
-
   /**
    * Generate a unique task ID.
    */
@@ -174,8 +146,6 @@ export function createTaskQueue(config: TaskQueueConfig) {
     payload: T,
     options: EnqueueOptions = {},
   ): Promise<Task<T>> {
-    await ensureSchema();
-
     const id = generateTaskId();
     const processAfter = options.delayMs ? new Date(Date.now() + options.delayMs) : new Date();
 
@@ -210,8 +180,6 @@ export function createTaskQueue(config: TaskQueueConfig) {
    * Dequeue the next pending task for a given type (with SKIP LOCKED).
    */
   async function dequeue<T>(type: string): Promise<Task<T> | null> {
-    await ensureSchema();
-
     // Use SKIP LOCKED for safe concurrent processing
     const result = await pool.query<TaskRow>(
       `

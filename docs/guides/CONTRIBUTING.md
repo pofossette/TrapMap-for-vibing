@@ -91,6 +91,22 @@ cases because the graph index wasn't populated.
 - 使用 Vitest 作为测试框架
 - 测试文件与源文件在同一目录下，命名 `*.test.ts`
 
+## 数据库迁移
+
+数据库表结构通过 Drizzle ORM 管理，所有 DDL 变更必须通过迁移文件交付：
+
+```bash
+# 生成迁移（修改 packages/server/src/lib/persistence/schema.ts 后）
+pnpm run db:generate
+
+# 手动运行迁移
+pnpm run db:migrate
+```
+
+- 迁移文件位于 `packages/server/drizzle/`
+- 服务器启动时会通过 migration runner 自动运行迁移
+- 禁止在 repository 中通过 `ensureSchema()` 等运行时方法建表
+
 ## Gitignore 与构建产物
 
 仓库根目录的 `.gitignore` 已配置忽略以下目录和文件：

@@ -13,6 +13,7 @@
 | [CLIENT.md](CLIENT.md) | 客户端运行逻辑 |
 | [DECAY.md](DECAY.md) | 淘汰机制 |
 | [DEDUPLICATION.md](DEDUPLICATION.md) | 入库验重流程 |
+| [DEPENDENCY_ANALYSIS.md](DEPENDENCY_ANALYSIS.md) | 外部依赖使用分析（LangChain & Graphology） |
 | [DELETION.md](DELETION.md) | 文档删除流程 |
 | [FEEDBACK.md](FEEDBACK.md) | 用户反馈机制 |
 | [EVALUATION.md](EVALUATION.md) | 评估系统 |

@@ -18,58 +18,9 @@ import type { UsageAnalyticsRepository, UsageEventInput } from './repository.js'
  * PostgreSQL-backed repository for usage analytics operations.
  */
 export class PgUsageAnalyticsRepository implements UsageAnalyticsRepository {
-  private initialized = false;
-
   constructor(private readonly pool: Pool) {}
 
-  /**
-   * Ensure the usage_events table exists.
-   * Called idempotently before each operation.
-   */
-  private async ensureSchema(): Promise<void> {
-    if (this.initialized) return;
-
-    // Create usage_events table
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS usage_events (
-        id TEXT PRIMARY KEY,
-        query_id TEXT NOT NULL,
-        team_id TEXT,
-        account_id TEXT NOT NULL,
-        entry_type TEXT NOT NULL,
-        entry_id TEXT NOT NULL,
-        query_text TEXT,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-      )
-    `);
-
-    // Create composite indexes
-    await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_usage_events_team_created
-      ON usage_events (team_id, created_at)
-    `);
-
-    await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_usage_events_account_created
-      ON usage_events (account_id, created_at)
-    `);
-
-    await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_usage_events_entry_type_created
-      ON usage_events (entry_type, created_at)
-    `);
-
-    await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_usage_events_entry_id_created
-      ON usage_events (entry_id, created_at)
-    `);
-
-    this.initialized = true;
-  }
-
   async recordEvent(event: UsageEventInput): Promise<void> {
-    await this.ensureSchema();
-
     await this.pool.query(
       `INSERT INTO usage_events (id, query_id, team_id, account_id, entry_type, entry_id, query_text, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
@@ -87,8 +38,6 @@ export class PgUsageAnalyticsRepository implements UsageAnalyticsRepository {
 
   async recordEvents(events: UsageEventInput[]): Promise<void> {
     if (events.length === 0) return;
-    await this.ensureSchema();
-
     const now = new Date().toISOString();
     const values: string[] = [];
     const params: (string | null)[] = [];
@@ -124,8 +73,6 @@ export class PgUsageAnalyticsRepository implements UsageAnalyticsRepository {
     to: Date;
     granularity: StatsGranularity;
   }): Promise<Array<{ period: string; count: number }>> {
-    await this.ensureSchema();
-
     const conditions: string[] = [];
     const queryParams: (string | Date)[] = [];
     let paramIndex = 2; // $1 is reserved for granularity
@@ -167,8 +114,6 @@ export class PgUsageAnalyticsRepository implements UsageAnalyticsRepository {
     to?: Date;
     limit: number;
   }): Promise<Array<{ entryId: string; entryType: string; count: number }>> {
-    await this.ensureSchema();
-
     const conditions: string[] = [];
     const queryParams: (string | Date | number)[] = [];
     let paramIndex = 1;
@@ -219,8 +164,6 @@ export class PgUsageAnalyticsRepository implements UsageAnalyticsRepository {
     uniqueTeams: number;
     uniqueAccounts: number;
   }> {
-    await this.ensureSchema();
-
     const conditions: string[] = [];
     const queryParams: Date[] = [];
     let paramIndex = 1;
@@ -262,8 +205,6 @@ export class PgUsageAnalyticsRepository implements UsageAnalyticsRepository {
   }
 
   async archiveOldEvents(olderThanDays: number): Promise<{ archivedCount: number }> {
-    await this.ensureSchema();
-
     const result = await this.pool.query<{ count: string }>(
       `WITH deleted AS (
          DELETE FROM usage_events

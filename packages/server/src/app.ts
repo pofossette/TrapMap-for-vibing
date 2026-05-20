@@ -27,6 +27,7 @@ import { createAuditSubscriber } from './lib/lifecycle/subscribers/audit.js';
 import { createConflictSubscriber } from './lib/lifecycle/subscribers/conflict.js';
 import { createIndexingSubscriber } from './lib/lifecycle/subscribers/indexing.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
+import { runMigrations } from './lib/persistence/migration-runner.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';
 import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
 import { createAllRepos } from './lib/repos/index.js';
@@ -302,6 +303,15 @@ export function buildServer(options: BuildServerOptions = {}) {
     const store = app.skillShareer.store;
     if (store instanceof PostgresStore) {
       const pool = store.getPool();
+
+      // Run Drizzle migrations before any repository access
+      try {
+        await runMigrations(pool);
+        app.log.info('Database migrations applied');
+      } catch (error) {
+        app.log.error({ error }, 'Failed to apply database migrations');
+        throw error;
+      }
 
       // Create knowledge repository for row-level operations
       app.skillShareer.knowledgeRepo = createKnowledgeRepository({

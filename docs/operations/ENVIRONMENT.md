@@ -16,6 +16,8 @@
 | `TRAPMAP_DATABASE_URL` | PostgreSQL 连接字符串（设置后启用 PostgresStore） | 空（使用 JsonStore） |
 | `TRAPMAP_DATA_FILE` | JSON 文件存储路径（开发默认） | `.data/trapmap.json` |
 
+> 设置 `TRAPMAP_DATABASE_URL` 后，服务器启动时会自动通过 Drizzle migration runner 运行数据库迁移（位于 `packages/server/drizzle/`）。迁移包含所有核心表、索引和 pgvector 扩展的创建。
+
 ## 服务器配置
 
 | 变量 | 说明 | 默认值 |

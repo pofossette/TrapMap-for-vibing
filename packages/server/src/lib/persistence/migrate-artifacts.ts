@@ -2,7 +2,7 @@
  * Migration script to backfill existing skill artifacts from JSONB snapshot to relational tables.
  *
  * Run once after deploying the skill_artifacts table infrastructure:
- * 1. Ensure skill_artifacts table exists (via PgArtifactRepository.ensureSchema)
+ * 1. Ensure skill_artifacts table exists (created via Drizzle migration)
  * 2. Run this migration script
  *
  * Usage:

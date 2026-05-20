@@ -253,64 +253,56 @@ flowchart TB
 
 #### 节点类型（GraphNodeKind）
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        GraphNodeKind                            │
-├──────────────────┬──────────────────────────────────────────────┤
-│  核心节点         │                                              │
-│  ─────────       │                                              │
-│  trap            │  知识条目（KnowledgeEntry）的根节点             │
-│  skill           │  技能工件（SkillArtifact）的根节点              │
-├──────────────────┼──────────────────────────────────────────────┤
-│  内容节点         │                                              │
-│  ─────────       │                                              │
-│  cue             │  错误症状/警告信号（如 "error", "timeout"）     │
-│  tool            │  工具/框架（如 "docker", "typescript"）         │
-│  environment     │  运行环境（如 "production", "ci"）             │
-│  prerequisite    │  前置条件（从 "requires" 文本提取）             │
-│  mitigation      │  修复方案（从 "fix:" / "mitigate:" 文本提取）  │
-├──────────────────┼──────────────────────────────────────────────┤
-│  边界节点         │                                              │
-│  ─────────       │                                              │
-│  boundary-context │  上下文标签（如 "frontend", "production"）    │
-│  boundary-version │  版本约束（如 "react@>=16.8.0"）             │
-│  boundary-platform│  平台标识（如 "linux", "docker"）             │
-└──────────────────┴──────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph 核心节点
+        trap["trap — 知识条目 KnowledgeEntry 的根节点"]
+        skill["skill — 技能工件 SkillArtifact 的根节点"]
+    end
+    subgraph 内容节点
+        cue["cue — 错误症状/警告信号（如 'error', 'timeout'）"]
+        tool["tool — 工具/框架（如 'docker', 'typescript'）"]
+        environment["environment — 运行环境（如 'production', 'ci'）"]
+        prerequisite["prerequisite — 前置条件（从 'requires' 文本提取）"]
+        mitigation["mitigation — 修复方案（从 'fix:' / 'mitigate:' 文本提取）"]
+    end
+    subgraph 边界节点
+        boundary_context["boundary-context — 上下文标签（如 'frontend', 'production'）"]
+        boundary_version["boundary-version — 版本约束（如 'react@>=16.8.0'）"]
+        boundary_platform["boundary-platform — 平台标识（如 'linux', 'docker'）"]
+    end
 ```
 
 #### 边类型（GraphRelationType）与强度（GraphRelationStrength）
 
+```mermaid
+flowchart LR
+    subgraph 边类型 GraphRelationType
+        direction LR
+        risk_blocks["risk-blocks｜视文本｜trap → cue：陷阱触发的症状"]
+        co_occurs["co-occurs-with｜soft｜trap → tool/env：陷阱涉及的工具或环境"]
+        requires["requires｜hard｜trap → prerequisite：必须满足的前置条件"]
+        mitigates_edge["mitigates｜视文本｜mitigation → trap：修复方案对应的陷阱"]
+        order["order｜soft｜prerequisite[i] → prerequisite[i+1]：顺序"]
+        applies_in["applies-in｜soft｜trap → boundary-context：适用上下文"]
+        requires_version["requires-version｜hard｜trap → boundary-version：版本依赖"]
+        excludes_context["excludes-context｜soft｜trap → boundary-platform：排除的平台"]
+        excludes_version["excludes-version｜soft｜trap → boundary-version：不兼容的版本"]
+    end
 ```
-┌───────────────────┬──────────┬─────────────────────────────────────────────┐
-│  边类型            │  默认强度 │  含义                                       │
-├───────────────────┼──────────┼─────────────────────────────────────────────┤
-│  risk-blocks      │  视文本   │  trap → cue：陷阱触发的症状                  │
-│  co-occurs-with   │  soft    │  trap → tool/env：陷阱涉及的工具或环境        │
-│  requires         │  hard    │  trap → prerequisite：必须满足的前置条件       │
-│  mitigates        │  视文本   │  mitigation → trap：修复方案对应的陷阱        │
-│  order            │  soft    │  prerequisite[i] → prerequisite[i+1]：顺序   │
-│  applies-in       │  soft    │  trap → boundary-context：适用上下文          │
-│  requires-version │  hard    │  trap → boundary-version：版本依赖            │
-│  excludes-context │  soft    │  trap → boundary-platform：排除的平台         │
-│  excludes-version │  soft    │  trap → boundary-version：不兼容的版本        │
-└───────────────────┴──────────┴─────────────────────────────────────────────┘
 
 强度判定规则（LLM 驱动 + 规则 fallback）：
 
-  主路径（LLM 提取，见 HYBRID_GRAPH_EXTRACTION.md）:
-  • LLM 直接输出 hard/soft，语义理解否定句和句级作用域
-  • 例如 "does NOT require X" 不生成 requires 边
-  • 例如 "must" 仅影响当前句的边，不会全文误判
+| 路径 | 规则 |
+|------|------|
+| **主路径（LLM 提取）** | LLM 直接输出 hard/soft，语义理解否定句和句级作用域。例如 "does NOT require X" 不生成 requires 边；"must" 仅影响当前句的边 |
+| **requires / prerequisite** | 始终 hard |
+| **risk-blocks** | 文本含 "must/blocked/requires/mandatory" 时 hard，否则 soft |
+| **mitigates** | 文本含 "to mitigate ... must" 模式时 hard，否则 soft |
+| **requires-version** | 始终 hard |
+| **其余** | soft |
 
-  Fallback 路径（规则引擎，LLM 不可用时）:
-  • requires / prerequisite 节点 → 始终 hard
-  • risk-blocks → 文本含 "must/blocked/requires/mandatory" 时 hard，否则 soft
-  • mitigates → 文本含 "to mitigate ... must" 模式时 hard，否则 soft
-  • requires-version → 始终 hard
-  • 其余 → soft
-
-硬边参与 DAG 环路检测（仅 requires, risk-blocks, requires-version + strength=hard）
-```
+> 硬边参与 DAG 环路检测（仅 requires, risk-blocks, requires-version + strength=hard）
 
 #### 持久化记录（GraphIndexDocumentRecord）
 
@@ -337,35 +329,17 @@ GraphIndexDocumentRecord {
 
 #### A.2.1 管道总览
 
-```
-                   KnowledgeEntry / SkillArtifact
-                            │
-                   lifecycleState 变更
-                  ┌─────────┴─────────┐
-                  │                   │
-           approved/deactivated  deactivated
-                  │                   │
-                  ▼                   ▼
-          determineIndexAction   determineIndexAction
-           → 'upsert'            → 'remove'
-                  │                   │
-                  ▼                   ▼
-         syncKnowledgeIndex()    removeGraphIndexDocumentsForSource()
-                  │
-                  ▼
-         normalizeKnowledgeIndexDocument()
-           → canonicalText, contentHash, tokens, boundary
-                  │
-                  ▼
-           needsSync()?  ─── revision + contentHash 未变 → 跳过
-                  │
-                  ▼
-         ┌────────┼────────┐
-         ▼        ▼        ▼
-      vector   keyword   graph      ← 三个适配器并行
-                           │
-                           ▼
-                   graphIndexAdapter.sync(document, store)
+```mermaid
+flowchart TB
+    A["KnowledgeEntry / SkillArtifact"] --> B{"lifecycleState 变更"}
+    B -->|"approved / deactivated"| C["determineIndexAction → 'upsert'"]
+    B -->|"deactivated"| D["determineIndexAction → 'remove'"]
+    C --> E["syncKnowledgeIndex()"]
+    D --> F["removeGraphIndexDocumentsForSource()"]
+    E --> G["normalizeKnowledgeIndexDocument()\n→ canonicalText, contentHash, tokens, boundary"]
+    G --> H{"needsSync()?\nrevision + contentHash 未变 → 跳过"}
+    H --> I["vector ｜ keyword ｜ graph\n三个适配器并行"]
+    I --> J["graphIndexAdapter.sync(document, store)"]
 ```
 
 #### A.2.2 Trap 侧图构建（详细流程）
@@ -389,59 +363,22 @@ KnowledgeEntry:
 
 **构建流程（LLM 主路径）**：
 
+```mermaid
+flowchart TB
+    A["graphIndexAdapter.sync(document, store, chat?)"] --> B["extractGraphEntitiesWithLLM(chat, document.canonicalText)"]
+    B --> C["Phase 1: planExtraction(chat, text)\n文本 <= 2000 chars → 单段 plan（跳过 Phase 2）\n文本 > 2000 chars → LLM 返回 ExtractionPlan\n缓存: contentHash → ExtractionPlan"]
+    C --> D["Phase 2: extractSegmentEntities(chat, segment)\n对每个 segment 并行调用（maxConcurrent=3）\nLLM 输出 nodes[] + edges[]（Zod 校验）\n合并所有段结果（按 label 去重）\n缓存: contentHash → LlmExtractionResult"]
+    D --> E["Gleaning: 二次提取追问\n首次结果 + gleaning 结果 → 并集合并"]
+    E --> F["返回 LlmExtractionResult\nnodes: trap / tool / cue / environment / prerequisite / mitigation\nedges: risk-blocks / co-occurs-with / requires / mitigates"]
+    B --> G["注入 trap 根节点 + nodeId 映射\n→ kind: trap, id: trap:entry-001"]
+    B --> H["extractBoundaryGraphEntities()\n纯代码路径"]
+    F --> I["合并 LLM 结果 + boundary 结果\n→ buildTrapGraphDocument()"]
+    G --> I
+    H --> I
+    I --> J["assertNoHardDependencyCycles()\n+ upsertGraphIndexDocument()"]
 ```
-graphIndexAdapter.sync(document, store, chat?)
-│
-├── extractGraphEntitiesWithLLM(chat, document.canonicalText)
-│     │
-│     ├── Phase 1: planExtraction(chat, text)
-│     │     文本 <= 2000 chars → 单段 plan (跳过 Phase 2)
-│     │     文本 > 2000 chars → LLM 返回 ExtractionPlan:
-│     │       { segments: [{ text, contextHint, priority }] }
-│     │     缓存: contentHash → ExtractionPlan
-│     │
-│     ├── Phase 2: extractSegmentEntities(chat, segment)
-│     │     对每个 segment 并行调用 (maxConcurrent=3)
-│     │     LLM 输出 { nodes[], edges[] } (Zod 校验)
-│     │     合并所有段结果 (按 label 去重，同 label 取更长 description)
-│     │     缓存: contentHash → LlmExtractionResult
-│     │
-│     ├── Gleaning: 二次提取追问
-│     │     首次结果 + gleaning 结果 → 并集合并
-│     │
-│     └── 返回 LlmExtractionResult:
-│           nodes: [
-│             { kind: "trap",          label: "Docker build fails..." },
-│             { kind: "tool",          label: "docker" },
-│             { kind: "cue",           label: "cannot copy error" },
-│             { kind: "cue",           label: "build failure" },
-│             { kind: "environment",   label: "ci" },
-│             { kind: "environment",   label: "production" },
-│             { kind: "prerequisite",  label: "docker 17.05+" },
-│             { kind: "mitigation",    label: "ensure source path exists..." },
-│           ]
-│           edges: [
-│             { src: "trap", tgt: "cue",           type: "risk-blocks",    strength: "hard" },
-│             { src: "trap", tgt: "tool",          type: "co-occurs-with", strength: "soft" },
-│             { src: "trap", tgt: "env",           type: "co-occurs-with", strength: "soft" },
-│             { src: "trap", tgt: "prereq",        type: "requires",       strength: "hard" },
-│             { src: "mit",  tgt: "trap",          type: "mitigates",      strength: "soft" },
-│           ]
-│
-├── 注入 trap 根节点 + nodeId 映射 (buildNodeId(kind, label))
-│     → { kind: "trap", id: "trap:entry-001", label: "Docker build fails..." }
-│
-├── extractBoundaryGraphEntities("trap:entry-001", boundary)
-│     （不变 — 纯代码路径）
-│
-├── 合并 LLM 结果 + boundary 结果 → buildTrapGraphDocument()
-│
-└── assertNoHardDependencyCycles() + upsertGraphIndexDocument()
 
-LLM 不可用时的降级路径:
-  LLM 失败 → 缓存命中? → 使用缓存
-           → 无缓存  → extractTrapGraphEntities() 规则引擎 fallback
-```
+LLM 不可用时的降级路径：LLM 失败 → 缓存命中 → 使用缓存 → 无缓存 → `extractTrapGraphEntities()` 规则引擎 fallback
 
 **LLM 提取的优势**（相比规则引擎）：
 - 理解否定句："does NOT require X" 不会生成 requires 边
@@ -507,345 +444,173 @@ store.transact(data => {
 
 Skill 图构建使用与 Trap 侧相同的 LLM 提取入口 `extractGraphEntitiesWithLLM()`，但数据来源不同：
 
-```
-SkillArtifact approved
-       │
-       ▼
-runSkillIndexEvent(chat?)
-       │
-       ▼
-extractGraphEntitiesWithLLM(chat, profile+capsules text)
-│   ※ 安全约束：仅读 profile.summary/keywords + capsules 的
-│     situation/problem/goal/content/labels，绝不读 asset/script 内容
-│
-│   提取结果 (LLM 理解后)：
-├── 从 profile.summary 提取 tool, environment 节点
-├── 从 profile.keywords 提取 tool 节点
-├── 从 capsules[].situation 提取 cue 节点
-├── 从 capsules[].problem 提取 cue 节点
-├── 从 capsules[].goal 提取 mitigation 节点
-├── 从 capsules[].labels 提取 tool, environment 节点
-│
-└── 生成 skill 根节点: { kind: "skill", id: "skill:{artifactId}" }
-       │
-       ▼
-buildSkillGraphDocument()  → GraphIndexDocumentRecord { sourceType: "skill" }
-       │
-       ▼
-assertNoHardDependencyCycles()
-       │
-       ▼
-upsertGraphIndexDocument()
+```mermaid
+flowchart TB
+    A["SkillArtifact approved"] --> B["runSkillIndexEvent(chat?)"]
+    B --> C["extractGraphEntitiesWithLLM(chat, profile + capsules text)\n安全约束：仅读 profile.summary/keywords + capsules 的\nsituation/problem/goal/content/labels，绝不读 asset/script 内容"]
+    C --> D["从 profile.summary 提取 tool, environment 节点"]
+    C --> E["从 profile.keywords 提取 tool 节点"]
+    C --> F["从 capsules[].situation 提取 cue 节点"]
+    C --> G["从 capsules[].problem 提取 cue 节点"]
+    C --> H["从 capsules[].goal 提取 mitigation 节点"]
+    C --> I["从 capsules[].labels 提取 tool, environment 节点"]
+    D --> J["生成 skill 根节点\n{ kind: skill, id: skill:artifactId }"]
+    E --> J
+    F --> J
+    G --> J
+    H --> J
+    I --> J
+    J --> K["buildSkillGraphDocument()\n→ GraphIndexDocumentRecord { sourceType: skill }"]
+    K --> L["assertNoHardDependencyCycles()"]
+    L --> M["upsertGraphIndexDocument()"]
 ```
 
-**LLM 不可用时**：退化为 `extractSkillGraphPrimitives()` 规则引擎（关键词匹配 + 正则提取），保持向后兼容。
+LLM 不可用时：退化为 `extractSkillGraphPrimitives()` 规则引擎（关键词匹配 + 正则提取），保持向后兼容。
 
 #### A.2.4 启动时一致性对账
 
-```
-reconcileKnowledgeIndexes()  ← 服务启动时
-│
-├── 遍历所有 knowledgeEntries（批次大小 50）
-│   ├── approved → syncKnowledgeIndex(entry, chat?)  ← chat 透传给 LLM 提取
-│   └── 非 approved → removeGraphIndexDocumentsForSource(entry.id)
-│
-└── 遍历所有 skillArtifacts（批次大小 50）
-    ├── approved → artifactGraphIndexAdapter.sync(artifact, chat?)
-    └── 非 approved → removeGraphIndexDocumentsForSource(artifact.id)
+```mermaid
+flowchart TB
+    A["reconcileKnowledgeIndexes() ← 服务启动时"] --> B["遍历所有 knowledgeEntries（批次大小 50）"]
+    B --> C{"approved?"}
+    C -->|"是"| D["syncKnowledgeIndex(entry, chat?)\nchat 透传给 LLM 提取"]
+    C -->|"否"| E["removeGraphIndexDocumentsForSource(entry.id)"]
+    A --> F["遍历所有 skillArtifacts（批次大小 50）"]
+    F --> G{"approved?"}
+    G -->|"是"| H["artifactGraphIndexAdapter.sync(artifact, chat?)"]
+    G -->|"否"| I["removeGraphIndexDocumentsForSource(artifact.id)"]
 
-promptVersion 变化时 → 触发全量缓存失效 + 后台重建
+    J["promptVersion 变化"] --> K["触发全量缓存失效 + 后台重建"]
 ```
 
 ### A.3 查询时图组装
 
 检索时将所有 `GraphIndexDocumentRecord` 组装为 graphology 有向多重图：
 
-```
-buildGraphRuntimeSnapshot(graphIndexDocuments)
-│
-├── buildGraphFromDocuments(documents)
-│     → Graphology directed multigraph
-│     → 节点按 nodeId 去重（mergeNode）
-│     → 边按 edgeId 去重（mergeEdgeWithKey）
-│
-└── 预计算 5 个查找索引:
-      ├── documentsBySourceId:       sourceId → document
-      ├── nodeIdsByNormalizedLabel:  label → nodeIds
-      ├── sourceIdsByNormalizedLabel:label → sourceIds
-      ├── sourceIdsByNodeId:         nodeId → sourceIds
-      └── nodeIdsBySourceId:         sourceId → nodeIds
+```mermaid
+flowchart TB
+    A["buildGraphRuntimeSnapshot(graphIndexDocuments)"] --> B["buildGraphFromDocuments(documents)\n→ Graphology directed multigraph\n→ 节点按 nodeId 去重（mergeNode）\n→ 边按 edgeId 去重（mergeEdgeWithKey）"]
+    A --> C["预计算 5 个查找索引"]
+    C --> D["documentsBySourceId: sourceId → document"]
+    C --> E["nodeIdsByNormalizedLabel: label → nodeIds"]
+    C --> F["sourceIdsByNormalizedLabel: label → sourceIds"]
+    C --> G["sourceIdsByNodeId: nodeId → sourceIds"]
+    C --> H["nodeIdsBySourceId: sourceId → nodeIds"]
 ```
 
 **示例**：上文 entry-001 + 另一条 entry-002（含 "docker timeout in CI"）组装后：
 
+```mermaid
+flowchart LR
+    entry001["trap:entry-001"] -->|"risk-blocks"| cue_error["cue:error"]
+    entry001 -->|"risk-blocks"| cue_fail["cue:fail"]
+    entry001 -->|"co-occurs"| tool_docker["tool:docker"]
+    entry002["trap:entry-002"] -->|"co-occurs"| tool_docker
+    entry001 -->|"requires"| prereq["prereq:docker-17.05+"]
+    entry001 -->|"applies-in"| ctx_ci["boundary-ctx:ci"]
+    entry002 -->|"applies-in"| ctx_ci
+    entry002 -->|"risk-blocks"| cue_timeout["cue:timeout"]
+    mit["mit:ensure-source..."] -->|"mitigates"| entry001
 ```
-  [trap:entry-001] ──risk-blocks──→ [cue:error]
-        │                                  ↑
-        ├──risk-blocks──→ [cue:fail]       │
-        │                                  │
-        ├──co-occurs──→ [tool:docker] ←──co-occurs── [trap:entry-002]
-        │                    ↑                          │
-        ├──requires──→ [prereq:docker-17.05+]           ├──risk-blocks──→ [cue:timeout]
-        │                                               │
-        ├──applies-in─→ [boundary-ctx:ci] ←──applies-in─┘
-        │                    ↑
-  [mit:ensure-source...]     │
-    │                        │
-    └──mitigates──→ [trap:entry-001]
 
-  查找索引示例:
-    nodeIdsByNormalizedLabel["docker"] → {"tool:docker"}
-    sourceIdsByNodeId["tool:docker"]   → {"entry-001", "entry-002"}
-    sourceIdsByNormalizedLabel["error"]→ {"entry-001"}
-```
+查找索引示例：
+
+| 索引 | 键 | 值 |
+|------|----|----|
+| `nodeIdsByNormalizedLabel` | `"docker"` | `{"tool:docker"}` |
+| `sourceIdsByNodeId` | `"tool:docker"` | `{"entry-001", "entry-002"}` |
+| `sourceIdsByNormalizedLabel` | `"error"` | `{"entry-001"}` |
 
 ### A.4 v1 Graph-Assisted 检索详解
 
 v1 将图作为**辅助通道**（权重 20%），与语义通道和关键词通道并行后融合。
 
-```
-POST /v1/retrieval/search  { seed: "docker COPY fails in CI", mode: "graph-assisted" }
-│
-├── 1. 权限过滤 → eligibleEntries (approved, team, level)
-│
-├── 2. 三通道并行召回:
-│     ├── semanticRecall()      ← 向量相似度
-│     ├── keywordRecall()       ← BM25 关键词
-│     └── graphAssistedRecall() ← 图辅助（见下）
-│
-│   graphAssistedRecall 详细流程:
-│     │
-│     ├── extractQueryEntities("docker COPY fails in CI")
-│     │     → {"docker", "fail"}   ← 同 extractGraphEntities 逻辑
-│     │
-│     ├── buildGraphRuntimeSnapshot(graphDocuments)
-│     │
-│     ├── expandSourcesOneHop(runtime, {"docker", "fail"})
-│     │     │
-│     │     ├── 直接匹配: sourceIdsByNormalizedLabel["docker"]
-│     │     │     → {"entry-001", "entry-002"}
-│     │     │
-│     │     ├── 直接匹配: sourceIdsByNormalizedLabel["fail"]
-│     │     │     → {"entry-001"}
-│     │     │
-│     │     └── 一跳扩展: 对每个匹配的 nodeId，找邻居的 sourceId
-│     │           nodeIds["docker"] → {"tool:docker"}
-│     │           neighbors("tool:docker") → {"trap:entry-001", "trap:entry-002"}
-│     │           neighbors 可能还有来自其他文档的邻居...
-│     │           → candidateSourceIds = {"entry-001", "entry-002", ...}
-│     │
-│     └── 对每个候选计分:
-│           ├── 直接实体匹配数 > 0 → base 0.7 + relationStrength × 0.01
-│           └── 仅关系匹配       → base 0.3 + relationStrength × 0.01
-│
-├── 3. 通道融合:
-│     mergeCandidatesWithGraph(semantic, keyword, graph)
-│       graph 权重 = GRAPH_SCORE_BOOST_FACTOR = 0.2
-│       最终分 = (1 - 0.2) × (semantic + keyword 融合分) + 0.2 × graph 分
-│
-└── 4. 重排序 → RetrievalResponse
+```mermaid
+flowchart TB
+    A["POST /v1/retrieval/search\nseed: docker COPY fails in CI, mode: graph-assisted"] --> B["1. 权限过滤\n→ eligibleEntries（approved, team, level）"]
+    B --> C["semanticRecall() ← 向量相似度"]
+    B --> D["keywordRecall() ← BM25 关键词"]
+    B --> E["graphAssistedRecall() ← 图辅助"]
+    E --> E1["extractQueryEntities()\n→ {docker, fail}"]
+    E1 --> E2["buildGraphRuntimeSnapshot(graphDocuments)"]
+    E2 --> E3["expandSourcesOneHop(runtime, entities)\n直接匹配: sourceIdsByNormalizedLabel\n一跳扩展: neighbors → candidateSourceIds"]
+    E3 --> E4["对每个候选计分\n直接实体匹配: base 0.7 + relationStrength × 0.01\n仅关系匹配: base 0.3 + relationStrength × 0.01"]
+    C --> F["3. 通道融合\nmergeCandidatesWithGraph(semantic, keyword, graph)\ngraph 权重 = 0.2\n最终分 = 0.8 × (semantic + keyword 融合分) + 0.2 × graph 分"]
+    D --> F
+    E4 --> F
+    F --> G["4. 重排序 → RetrievalResponse"]
 ```
 
 **图在 v1 中的作用示意**：
 
-```
-  查询: "docker COPY fails in CI"
-
-  语义通道 ──→ [entry-001: 0.85, entry-003: 0.72, entry-005: 0.61]
-  关键词通道 ─→ [entry-001: 0.90, entry-002: 0.78]
-  图通道 ────→ [entry-001: 0.73, entry-002: 0.30]
-                        │                 │
-                   直接匹配 docker    仅通过 tool:docker 邻居
-                   + fail = 2 项       关系连接
-
-  融合后:
-  entry-001: 0.80 × 0.87 + 0.20 × 0.73 = 0.844  ← 图提升
-  entry-002: 0.80 × 0.78 + 0.20 × 0.30 = 0.684  ← 图小幅提升
-  entry-003: 0.80 × 0.72 + 0.20 × 0.00 = 0.576
-  entry-005: 0.80 × 0.61 + 0.20 × 0.00 = 0.488
-```
+| 通道 | entry-001 | entry-002 | entry-003 | entry-005 |
+|------|-----------|-----------|-----------|-----------|
+| 语义通道 | 0.85 | — | 0.72 | 0.61 |
+| 关键词通道 | 0.90 | 0.78 | — | — |
+| 图通道 | 0.73（直接匹配 docker + fail = 2 项） | 0.30（仅通过 tool:docker 邻居关系连接） | — | — |
+| **融合后** | **0.844**（图提升） | **0.684**（图小幅提升） | **0.576** | **0.488** |
 
 ### A.5 v3 Graph Plan 检索详解
 
 v3 将图作为**主干机制**，构建结构化执行计划（TrapFirstPlan），而非简单评分列表。
 
-```
-POST /v3/retrieval/search  { seed: "部署 Docker 到生产环境", skillBudget: 3 }
-│
-├── 1. parseSeedIntent(seed)
-│     → { situation: "部署 Docker 到生产环境", tokens: ["docker", "production"] }
-│
-├── 2. 获取治理合格候选:
-│     ├── trapCandidates = filterEligibleEntries(knowledgeEntries)
-│     └── skillCandidates = rankCapsules(skillArtifacts, intent)  ← 3× budget
-│
-├── 3. 加载图: graphDocs = graphIndexRepo.listAll()
-│
-├── 4. extractSeedNodeIds(trapCandidates, skillCandidates, graphDocs)
-│     │
-│     ├── 遍历 trap 候选 → 找 sourceType="trap" 的 doc 中 kind="trap" 的节点
-│     │     → seedNodeIds += ["trap:entry-001", "trap:entry-002"]
-│     │
-│     └── 遍历 skill 候选 → 找 sourceType="skill" 的 doc 中 kind="skill" 的节点
-│           → seedNodeIds += ["skill:artifact-A"]
-│
-├── 5. buildLocalExpansionView({ documents, seedNodeIds, maxDepth: 2 })
-│     │
-│     │   从种子节点做有界 BFS，最多 2 跳：
-│     │
-│     │   depth 0:  [trap:entry-001]  [trap:entry-002]  [skill:artifact-A]
-│     │                        │                │               │
-│     │   depth 1:        [cue:error]    [tool:docker]   [cue:timeout]
-│     │                   [cue:fail]     [env:ci]        [env:ci]
-│     │                   [tool:docker]  [env:production][tool:docker]
-│     │                   [env:ci]       [cue:timeout]
-│     │                   [env:production]
-│     │                        │
-│     │   depth 2:    [prereq:docker-17.05+]   ← 通过 tool:docker 一跳可达
-│     │               [boundary-ctx:ci]
-│     │               [boundary-ver:docker@>=17.05.0]
-│     │
-│     └── 返回子图（仅包含可达节点和它们之间的边）
-│
-├── 6. findBlockingTraps(subgraph)
-│     │
-│     ├── 遍历子图中所有 edge:
-│     │     若 edge.type == "risk-blocks" → 收集 sourceNodeId（即 trap 节点）
-│     │
-│     ├── 也收集子图中 kind="trap" 且在 trapCandidates 中的种子节点
-│     │
-│     ├── 治理检查: requiredLevel <= auth.securityLevel
-│     │
-│     └── 按 severity 排序: hard 优先，同 severity 按 score 降序
-│           → blockingTraps = [
-│               { nodeId: "trap:entry-001", severity: "hard", label: "Docker build fails..." },
-│               { nodeId: "trap:entry-002", severity: "soft", label: "Docker timeout in CI..." }
-│             ]
-│
-├── 7. findMitigatingSkills(subgraph, blockingTrapNodeIds)
-│     │
-│     ├── 遍历子图中所有 edge:
-│     │     若 edge.type == "mitigates" && targetNodeId ∈ blockingTrapNodeIds
-│     │       → 收集 sourceNodeId（必须 kind="skill"）
-│     │
-│     └── → mitigatingSkillNodeIds = ["skill:artifact-A"]
-│           （因为 skill:artifact-A 有一条 mitigates → trap:entry-001 的边）
-│
-├── 8. applySkillBudget(skillCandidates, mitigatingSkillNodeIds, budget=3)
-│     │
-│     ├── mitigating 技能: finalScore + 0.5 → 优先排入
-│     └── 非 mitigating 技能: 原始 finalScore → 按分排序补齐
-│           → selectedSkills = [PlanSkillNode...]（最多 3 个）
-│
-├── 9. buildPlanEdges(subgraph, blockingTraps, selectedSkills)
-│     │
-│     │   仅保留在计划节点之间的边，且类型 ∈ {risk-blocks, mitigates, requires, order}
-│     │
-│     └── → edges = [
-│           { src: "trap:entry-001", tgt: "cue:error",       type: "risk-blocks" },
-│           { src: "skill:artifact-A", tgt: "trap:entry-001", type: "mitigates" },
-│           { src: "trap:entry-001", tgt: "prereq:docker-17.05+", type: "requires" },
-│         ]
-│
-├── 10. assessGraphPlanReadiness(plan)
-│     │
-│     │   评分公式:
-│     │     skillCount > 0 ? +0.4 : 0    ← 最高权重
-│     │     trapCount > 0  ? +0.25 : 0
-│     │     hasStructure   ? +0.2  : 0   ← 有 mitigates/requires 边
-│     │     hasEvidence    ? +0.15 : 0   ← 有 citations 或 skills
-│     │
-│     └── 判定:
-│           score >= 0.65 && skillCount > 0  → "high" → 返回计划
-│           skillCount == 0                  → fallback v1-graph-assisted
-│           trapCount == 0                   → fallback v2-capsule
-│           其他                              → fallback v2-capsule
-│
-└── 11. 返回 GraphPlanSearchResponse
-        {
-          routingTrace: { selectedMode: "mix", routeFamily: "graph-plan", ... },
-          plan: TrapFirstPlan {
-            blockingTraps:    [PlanTrapNode...],
-            recommendedSkills:[PlanSkillNode...],
-            edges:            [PlanEdge...],
-            citations:        [PlanCitation...],    ← 被 budget 排除的 skill
-            graph:            { nodes, edges, focus }  ← 统一图视图
-          }
-        }
+```mermaid
+flowchart TB
+    A["POST /v3/retrieval/search\nseed: 部署 Docker 到生产环境, skillBudget: 3"] --> B["1. parseSeedIntent(seed)\n→ situation + tokens"]
+    B --> C["2. 获取治理合格候选\ntrapCandidates = filterEligibleEntries()\nskillCandidates = rankCapsules(intent, 3× budget)"]
+    C --> D["3. 加载图: graphDocs = graphIndexRepo.listAll()"]
+    D --> E["4. extractSeedNodeIds(trapCandidates, skillCandidates, graphDocs)\n遍历 trap 候选 → kind=trap 节点\n遍历 skill 候选 → kind=skill 节点"]
+    E --> F["5. buildLocalExpansionView()\n从种子节点做有界 BFS，最多 2 跳\ndepth 0: trap:entry-001, trap:entry-002, skill:artifact-A\ndepth 1: cue, tool, environment 节点\ndepth 2: prereq, boundary 节点"]
+    F --> G["6. findBlockingTraps(subgraph)\n遍历 edge.type == risk-blocks → 收集 trap 节点\n治理检查: requiredLevel <= auth.securityLevel\n按 severity 排序: hard 优先"]
+    G --> H["7. findMitigatingSkills(subgraph)\nedge.type == mitigates 且 target ∈ blockingTraps\n→ mitigatingSkillNodeIds"]
+    H --> I["8. applySkillBudget(budget=3)\nmitigating 技能: +0.5 加分 → 优先排入\n非 mitigating: 按 finalScore 补齐"]
+    I --> J["9. buildPlanEdges()\n仅保留计划节点之间的边\ntype ∈ {risk-blocks, mitigates, requires, order}"]
+    J --> K["10. assessGraphPlanReadiness(plan)\nskills>0: +0.4, traps>0: +0.25\nhasStructure: +0.2, hasEvidence: +0.15"]
+    K --> L{"score >= 0.65\n且 skillCount > 0?"}
+    L -->|"是"| M["返回 GraphPlanSearchResponse\n含 TrapFirstPlan + RoutingTrace"]
+    L -->|"skillCount == 0"| N["fallback v1-graph-assisted"]
+    L -->|"trapCount == 0"| O["fallback v2-capsule"]
 ```
 
 **v3 输出的 TrapFirstPlan 可视化**：
 
-```
-                    ┌──────────────────────┐
-                    │    blockingTraps     │
-                    │                      │
-                    │  ┌────────────────┐  │
-                    │  │ trap:entry-001 │  │
-                    │  │ severity: hard │  │
-                    │  │ "Docker build  │  │
-                    │  │  fails with    │  │
-                    │  │  COPY error"   │  │
-                    │  └───────┬────────┘  │
-                    │          │           │
-                    │     risk-blocks      │
-                    │     ┌────┴────┐      │
-                    │     ▼         ▼      │
-                    │ [cue:error] [cue:fail]│
-                    └──────────────────────┘
-                              │
-                          mitigates
-                              │
-                              ▼
-                    ┌──────────────────────┐
-                    │  recommendedSkills   │
-                    │                      │
-                    │  ┌────────────────┐  │
-                    │  │ skill:artifact │  │
-                    │  │ -A             │  │
-                    │  │ score: 0.85    │  │
-                    │  │ situation:     │  │
-                    │  │ "Docker deploy │  │
-                    │  │  playbook"     │  │
-                    │  └────────────────┘  │
-                    └──────────────────────┘
+```mermaid
+flowchart TB
+    subgraph blockingTraps["blockingTraps"]
+        T1["trap:entry-001\nseverity: hard\nDocker build fails with COPY error"]
+        T1 -->|"risk-blocks"| CE["cue:error"]
+        T1 -->|"risk-blocks"| CF["cue:fail"]
+    end
 
-  edges:
-    trap:entry-001 → cue:error          [risk-blocks, hard]
-    trap:entry-001 → cue:fail            [risk-blocks, hard]
-    skill:artifact-A → trap:entry-001    [mitigates, soft]
-    trap:entry-001 → prereq:docker-17.05+[requires, hard]
+    subgraph recommendedSkills["recommendedSkills"]
+        S1["skill:artifact-A\nscore: 0.85\nsituation: Docker deploy playbook"]
+    end
+
+    S1 -->|"mitigates"| T1
+    T1 -->|"requires"| PR["prereq:docker-17.05+"]
 ```
+
+| 边 | 源 | 目标 | 类型 | 强度 |
+|----|----|----|------|------|
+| 1 | trap:entry-001 | cue:error | risk-blocks | hard |
+| 2 | trap:entry-001 | cue:fail | risk-blocks | hard |
+| 3 | skill:artifact-A | trap:entry-001 | mitigates | soft |
+| 4 | trap:entry-001 | prereq:docker-17.05+ | requires | hard |
 
 ### A.6 v1 vs v3 图使用对比
 
-```
-┌─────────────────┬─────────────────────────┬──────────────────────────────┐
-│      维度        │   v1 Graph-Assisted     │   v3 Graph Plan              │
-├─────────────────┼─────────────────────────┼──────────────────────────────┤
-│  图的角色        │  辅助通道（20% 权重）     │  主干机制（决定计划结构）      │
-│  扩展深度        │  1 跳（expandSources     │  有界 BFS 最多 2 跳           │
-│                 │  OneHop）                │  (buildLocalExpansionView)   │
-│  输出格式        │  评分条目列表             │  TrapFirstPlan（结构化计划）   │
-│                 │  (RecallCandidate[])     │  含 traps + skills + edges   │
-│  数据源          │  KnowledgeEntry only     │  KnowledgeEntry +            │
-│                 │                          │  SkillArtifact               │
-│  边类型使用      │  所有边类型参与遍历        │  仅 risk-blocks, mitigates,  │
-│                 │                          │  requires, order 参与计划     │
-│  Skill 集成      │  无（仅条目级）           │  mitigating skill +0.5 加分   │
-│                 │                          │  有 skill budget（默认 3）    │
-│  置信度评估      │  无                      │  显式评分:                    │
-│                 │                          │  skills(0.4) + traps(0.25)   │
-│                 │                          │  + structure(0.2)            │
-│                 │                          │  + evidence(0.15)            │
-│  降级策略        │  本身就是降级目标          │  score < 0.65 → fallback     │
-│                 │                          │  v2-capsule 或 v1-graph      │
-│  评分方式        │  直接匹配 0.7 +          │  图结构决定计划；              │
-│                 │  关系匹配 0.3 +          │  置信度阈值 0.65              │
-│                 │  关系强度 × 0.01          │                              │
-│  环路保护        │  共享同一套 DAG 检测      │  共享同一套 DAG 检测          │
-└─────────────────┴─────────────────────────┴──────────────────────────────┘
-```
+| 维度 | v1 Graph-Assisted | v3 Graph Plan |
+|------|-------------------|---------------|
+| 图的角色 | 辅助通道（20% 权重） | 主干机制（决定计划结构） |
+| 扩展深度 | 1 跳（expandSourcesOneHop） | 有界 BFS 最多 2 跳（buildLocalExpansionView） |
+| 输出格式 | 评分条目列表（RecallCandidate[]） | TrapFirstPlan（结构化计划，含 traps + skills + edges） |
+| 数据源 | KnowledgeEntry only | KnowledgeEntry + SkillArtifact |
+| 边类型使用 | 所有边类型参与遍历 | 仅 risk-blocks, mitigates, requires, order 参与计划 |
+| Skill 集成 | 无（仅条目级） | mitigating skill +0.5 加分，有 skill budget（默认 3） |
+| 置信度评估 | 无 | 显式评分: skills(0.4) + traps(0.25) + structure(0.2) + evidence(0.15) |
+| 降级策略 | 本身就是降级目标 | score < 0.65 → fallback v2-capsule 或 v1-graph |
+| 评分方式 | 直接匹配 0.7 + 关系匹配 0.3 + 关系强度 × 0.01 | 图结构决定计划；置信度阈值 0.65 |
+| 环路保护 | 共享同一套 DAG 检测 | 共享同一套 DAG 检测 |
 
 ### A.7 关键源文件索引
 

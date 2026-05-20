@@ -44,6 +44,22 @@ cp .env.example .env
 | `TRAPMAP_SYSTEM_ADMIN_KEY` | 管理员密钥（必填） | `openssl rand -hex 32` 生成 |
 | `OPENAI_API_KEY` | OpenAI API 密钥（用于 AI 能力） | `sk-...` |
 | `TRAPMAP_DATA_FILE` | JSON 存储路径（开发默认） | `.data/trapmap.json` |
+| `TRAPMAP_DATABASE_URL` | PostgreSQL 连接字符串（启用 PG 模式） | `postgresql://localhost:5432/trapmap` |
+
+### PostgreSQL 模式（可选）
+
+设置 `TRAPMAP_DATABASE_URL` 后，服务器会使用 PostgreSQL 替代 JSON 文件存储。首次启动时自动运行 Drizzle 数据库迁移。
+
+```bash
+# 创建数据库
+createdb trapmap
+
+# 手动运行迁移（可选，服务器启动时自动执行）
+pnpm run db:migrate
+
+# 生成新迁移（修改 schema 后）
+pnpm run db:generate
+```
 
 ### AI 提供商配置（可选）
 

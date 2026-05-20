@@ -26,8 +26,6 @@ import type { KnowledgeRepository } from './repository.js';
  * Implements row-level locking for concurrent-safe updates.
  */
 export class PgKnowledgeRepository implements KnowledgeRepository {
-  private initialized = false;
-
   constructor(private readonly pool: Pool) {
     drizzle(pool, {
       schema: { knowledgeEntries, knowledgeRevisions, lifecycleEvents },
@@ -35,97 +33,9 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
   }
 
   /**
-   * Ensure the knowledge tables and indexes exist.
-   * Called idempotently before each operation.
-   */
-  private async ensureSchema(): Promise<void> {
-    if (this.initialized) return;
-
-    // Create SEQUENCE for ID generation
-    await this.pool.query(`
-      CREATE SEQUENCE IF NOT EXISTS knowledge_entry_id_seq START 1
-    `);
-
-    // Create knowledge_entries table
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS knowledge_entries (
-        id TEXT PRIMARY KEY,
-        team_id TEXT,
-        scope TEXT NOT NULL,
-        labels JSONB NOT NULL DEFAULT '[]',
-        shortcut TEXT NOT NULL,
-        detail TEXT NOT NULL,
-        required_level INTEGER NOT NULL DEFAULT 0,
-        lifecycle_state TEXT NOT NULL,
-        owner_user_id TEXT NOT NULL,
-        boundary JSONB,
-        maintenance_meta JSONB,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-      )
-    `);
-
-    // Create knowledge_revisions table
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS knowledge_revisions (
-        id TEXT PRIMARY KEY,
-        entry_id TEXT NOT NULL,
-        revision INTEGER NOT NULL,
-        submitted_at TIMESTAMP WITH TIME ZONE NOT NULL,
-        submitted_by_user_id TEXT NOT NULL,
-        shortcut TEXT NOT NULL,
-        detail TEXT NOT NULL,
-        labels JSONB NOT NULL DEFAULT '[]',
-        review_notes JSONB NOT NULL DEFAULT '[]',
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-      )
-    `);
-
-    // Create lifecycle_events table
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS lifecycle_events (
-        id TEXT PRIMARY KEY,
-        entry_id TEXT NOT NULL,
-        type TEXT NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-        actor_user_id TEXT,
-        submission_id TEXT,
-        revision INTEGER,
-        state TEXT NOT NULL,
-        note TEXT
-      )
-    `);
-
-    // Create indexes
-    await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_knowledge_entries_lifecycle_state
-      ON knowledge_entries (lifecycle_state)
-    `);
-
-    await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_knowledge_entries_team
-      ON knowledge_entries (team_id) WHERE team_id IS NOT NULL
-    `);
-
-    await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_knowledge_revisions_entry
-      ON knowledge_revisions (entry_id)
-    `);
-
-    await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_lifecycle_events_entry
-      ON lifecycle_events (entry_id)
-    `);
-
-    this.initialized = true;
-  }
-
-  /**
    * Generate a new unique knowledge entry ID using PostgreSQL SEQUENCE.
    */
   async nextId(): Promise<string> {
-    await this.ensureSchema();
-
     const result = await this.pool.query<{ id: string }>(
       "SELECT nextval('knowledge_entry_id_seq')::text AS id",
     );
@@ -136,8 +46,6 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
    * Insert a new knowledge entry with all related data.
    */
   async insert(entry: KnowledgeRecord): Promise<void> {
-    await this.ensureSchema();
-
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -221,8 +129,6 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
    * Get a knowledge entry by ID with all related data.
    */
   async getById(entryId: string): Promise<KnowledgeRecord | null> {
-    await this.ensureSchema();
-
     // Query the entry
     const entryResult = await this.pool.query<DrizzleKnowledgeEntryRow>(
       'SELECT * FROM knowledge_entries WHERE id = $1',
@@ -258,8 +164,6 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
     newState: LifecycleState,
     context: { actorId: string; note?: string },
   ): Promise<void> {
-    await this.ensureSchema();
-
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -315,8 +219,6 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
    * Append a revision with row-level locking.
    */
   async appendRevision(entryId: string, revision: KnowledgeRevisionRecord): Promise<void> {
-    await this.ensureSchema();
-
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -374,8 +276,6 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
    * Append a lifecycle event.
    */
   async appendLifecycleEvent(entryId: string, event: KnowledgeLifecycleEventRecord): Promise<void> {
-    await this.ensureSchema();
-
     await this.pool.query(
       `INSERT INTO lifecycle_events (
         id, entry_id, type, created_at, actor_user_id,
@@ -404,8 +304,6 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
     teamId?: string;
     ownerUserId?: string;
   }): Promise<KnowledgeRecord[]> {
-    await this.ensureSchema();
-
     const conditions: string[] = [];
     const params: (string | number)[] = [];
     let paramIndex = 1;
@@ -450,8 +348,6 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
     entryId: string,
     governance: { labels?: string[]; requiredLevel?: number },
   ): Promise<void> {
-    await this.ensureSchema();
-
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
