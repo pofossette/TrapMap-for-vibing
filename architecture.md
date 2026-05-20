@@ -18,6 +18,21 @@ TrapMap 采用四层架构设计：
 持久层（存储抽象，支持 JSON 文件和 PostgreSQL）
 ```
 
+## 持久化基线
+
+Round 0 已冻结数据库演进方向，后续轮次必须遵守以下边界：
+
+- PostgreSQL 是目标唯一业务事实源，结构化主表优先于单行 `JSONB` 快照。
+- `store_snapshot` 仅保留给尚未迁移的兼容域，不能再承接新的核心业务主路径。
+- `DualWrite*Repository` 这类双写真相仅允许作为短期迁移策略，必须带明确删除轮次。
+- 检索索引、capsule、profile、manifest、usage 统计属于派生层，不是业务真相来源。
+
+当前状态：
+
+- 知识、技能工件、候选、任务队列已切到 PostgreSQL 主路径。
+- 用户、团队、成员、会话、访问密钥等域仍通过 `SkillShareerStore` / `store_snapshot` 兼容层运行。
+- 所有正式 DDL 目标应由 Drizzle migration 管理，不再通过 repository 运行时建表兜底。
+
 **关键设计原则：**
 - 存储接口抽象（`JsonStore` 用于开发/测试，`PostgresStore` 用于生产）
 - AI 提供商抽象（支持 OpenAI、OpenAI 兼容接口、Ollama）

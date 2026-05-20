@@ -4,6 +4,48 @@
 
 > **Round 2 更新**：知识条目（knowledge）、技能工件（artifact）和候选提交（candidate）的核心读写路径已从单行 `store_snapshot` JSONB 切换为 PostgreSQL 结构化表。`DualWrite*Repository` 兼容层已删除，`store_snapshot` 仅保留为用户/团队/会话等尚未迁移域的运行时存储。知识序列化中的 `StoreData` 依赖已替换为 `UserLookupContext` 轻量接口。
 
+## 基线冻结（Round 0）
+
+Round 0 的目标不是立即改完所有表，而是冻结后续数据库现代化的边界，避免后续轮次继续引入与目标模型冲突的新持久化方案。
+
+### 当前事实源边界
+
+| 领域 | 当前主事实源 | 说明 |
+|------|-------------|------|
+| Knowledge | PostgreSQL 结构化表 | 主表、版本表、生命周期/索引相关表承担主读写 |
+| Skill Artifact | PostgreSQL 结构化表 | 工件、版本、文件、capsule/profile/manifest 等为主路径 |
+| Candidate | PostgreSQL 结构化表 | 候选、重复检测、处理状态与队列已切到 PG 主路径 |
+| Task Queue | PostgreSQL 结构化表 | 队列表和相关索引由 Drizzle migration 管理 |
+| Team / User / Member / Session / AccessKey | `store_snapshot` JSONB | 仍通过 `SkillShareerStore` 兼容抽象提供运行时存储 |
+| Audit / Feedback / Duplicates / Lineage / Graph Index 等辅助域 | 混合状态，以 JSONB 为主 | 后续轮次再逐步拆分，当前不再新增新的快照依赖面 |
+
+### JSONB 保留与拆分准则
+
+- 必须拆分为结构化列或子表的字段：
+  - 参与筛选、排序、分页的字段
+  - 参与唯一约束、外键、状态校验的字段
+  - 参与治理、统计、权限、检索召回的字段
+  - 需要局部更新、并发写入或精确回填的字段
+- 允许暂时保留在 `JSONB` 的字段：
+  - 低频扩展元数据
+  - 外部原始响应快照
+  - 仅用于迁移期核对的过渡字段
+
+### 目标分层约定
+
+- 业务主表：承载聚合根当前态，是业务唯一事实源。
+- 历史表：承载 revision、版本快照和可追溯历史。
+- 事件表：承载生命周期变更、人工审核、状态流转、发布关系。
+- 派生索引表：承载 embeddings、关键词索引、capsule、profile、manifest、usage rollup，不得成为新的业务真相来源。
+
+### 迁移策略约定
+
+1. 先冻结目标模型和命名规范，再写 migration。
+2. 先建立 PostgreSQL 真表与索引，再提供回填脚本。
+3. 如存在兼容期，兼容层必须有明确删除轮次，不允许长期双写。
+4. 完成影子核对后停止双写，主路径只保留一个事实源。
+5. 仅在全部调用点迁移完成后删除旧表/旧快照依赖。
+
 ## 实体概览
 
 ```

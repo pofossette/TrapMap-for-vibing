@@ -2,6 +2,21 @@
 
 ## 系统架构
 
+## 持久化演进边界
+
+Round 0 已对数据库现代化方案完成基线冻结，后续架构演进遵守以下约定：
+
+- 业务主事实进入 PostgreSQL 结构化主表与历史/事件表。
+- `store_snapshot` 单行 `JSONB` 仅作为尚未迁移领域的兼容存储，不再接纳新的核心业务主路径。
+- 双写兼容层只允许短期存在，必须在后续轮次停止双写并删除旧层。
+- 检索索引、embedding、capsule、profile、manifest、usage rollup 属于派生层，不得反向成为业务真相。
+
+当前收敛状态：
+
+- Knowledge / Artifact / Candidate / Task Queue 已由 PostgreSQL 主表和 migration 驱动。
+- Team / User / Member / Session / AccessKey 及部分辅助域仍通过 `SkillShareerStore` 抽象与 `store_snapshot` 兼容层承载。
+- 应用启动负责执行 migration，不负责为核心领域动态建表。
+
 ### 系统分层架构图
 
 ```mermaid

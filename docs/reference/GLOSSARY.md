@@ -527,6 +527,38 @@ Skill 工件的磁盘存储结构：
 | `packages/server/src/lib/persistence/postgres-store.ts:19` | TS 类 (`PostgresStore`) | 实现 `SkillShareerStore`，JSONB + 行级锁 |
 | `packages/server/src/lib/persistence/schema.ts:27-34` | DB 表 (`store_snapshot`) | 单行 JSONB 持久化：key='main', data=StoreData, updatedAt |
 
+### Single Source of Truth（唯一事实源）
+
+某一业务领域在运行时允许存在且只允许存在一个主事实写入目标。其他索引、缓存、导出和派生产物都不能反向成为业务真相来源。
+
+| 位置 | 形式 | 说明 |
+|------|------|------|
+| `plan.md:1` | 计划文档 | 明确 PostgreSQL 收敛目标、禁止长期双真相 |
+| `docs/reference/DATA_MODEL.md:1` | 参考文档 | 说明各领域当前主事实源与过渡边界 |
+| `packages/server/src/lib/knowledge/repository.ts` | Impl | Knowledge 已在 Round 2 切换到 PG-only 主写 |
+| `packages/server/src/lib/artifacts/repository.ts` | Impl | Artifact 已移除 DualWrite，PG 为唯一主写 |
+| `packages/server/src/lib/candidates/repository.ts` | Impl | Candidate 已移除 DualWrite，PG 为唯一主写 |
+
+### DualWrite（双写兼容层）
+
+迁移期的兼容策略：同一业务操作同时写入 PostgreSQL 真表和旧快照/旧仓库，以支持逐步切换。该策略只允许短期存在，必须带明确删除轮次。
+
+| 位置 | 形式 | 说明 |
+|------|------|------|
+| `plan.md:570-582` | 计划文档 | Round 2 要求移除双写兼容层 |
+| `docs/reference/DATA_MODEL.md:422-428` | 参考文档 | 记录哪些 DualWrite 仓库已删除 |
+| `docs/architecture/ARCHITECTURE.md` | 架构文档 | 描述当前 PG-only 与遗留 `store_snapshot` 的职责边界 |
+
+### Migration Baseline（迁移基线）
+
+Round 0 冻结后的数据库演进约定：先定目标模型和命名规范，再写 migration、回填、核对和删除旧层，禁止绕过目标模型继续引入临时持久化方案。
+
+| 位置 | 形式 | 说明 |
+|------|------|------|
+| `plan.md:535-568` | 计划文档 | Round 0 与 Round 1 的完成标志和操作边界 |
+| `packages/server/src/lib/persistence/migration-runner.ts` | Impl | 应用启动时统一执行 Drizzle migration |
+| `packages/server/drizzle/` | Migration 目录 | DDL、索引、快照和迁移顺序的唯一入口 |
+
 ### Activation Policy（激活策略）
 
 脚本执行策略的四状态模型：`blocked`（禁止）→ `reference-only`（仅可读）→ `needs-approval`（需批准）→ `client-executable`（可执行）。客户端只能收紧策略，不能放松。
