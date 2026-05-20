@@ -1,7 +1,7 @@
 /**
  * Feedback module exports.
  *
- * Phase: 100-01 (Store Repository Pattern)
+ * Round 6: Added PgFeedbackRepository export.
  */
 
 export {
@@ -9,3 +9,4 @@ export {
   type FeedbackRepository,
   InMemoryFeedbackRepository,
 } from './repository.js';
+export { PgFeedbackRepository } from './pg-repository.js';

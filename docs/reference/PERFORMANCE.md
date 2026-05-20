@@ -77,6 +77,8 @@ TRAPMAP_DATABASE_URL=postgresql://user:pass@localhost:5432/trapmap
   - `skill_artifacts` / `artifact_revisions` / `artifact_lifecycle_events` — 技能工件结构化存储
   - `candidates` — 候选提交行级存储
   - `usage_events` — 使用统计
+  - `feedback_records` / `feedback_custom_answers` — 反馈结构化存储（Round 6）
+  - `usage_events_daily_rollup` — 使用统计预聚合（Round 6）
   - `knowledge_embeddings` / `knowledge_keywords` — 检索索引
 - 连接池配置建议：
 

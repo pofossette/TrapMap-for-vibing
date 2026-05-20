@@ -3,6 +3,8 @@
 本文档描述 TrapMap 系统的核心数据实体及其关系。所有 Schema 定义位于 `packages/contracts/src/domain/`。
 
 > **Round 2 更新**：知识条目（knowledge）、技能工件（artifact）和候选提交（candidate）的核心读写路径已从单行 `store_snapshot` JSONB 切换为 PostgreSQL 结构化表。`DualWrite*Repository` 兼容层已删除，`store_snapshot` 仅保留为用户/团队/会话等尚未迁移域的运行时存储。知识序列化中的 `StoreData` 依赖已替换为 `UserLookupContext` 轻量接口。
+>
+> **Round 6 更新**：反馈（feedback）已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表（`feedback_records` + `feedback_custom_answers`）。`PgFeedbackRepository` 替代 `InMemoryFeedbackRepository` 成为主路径。用法统计新增 `usage_events_daily_rollup` 预聚合表。
 
 ## 基线冻结（Round 0）
 
@@ -17,7 +19,9 @@ Round 0 的目标不是立即改完所有表，而是冻结后续数据库现代
 | Candidate | PostgreSQL 结构化表 | 候选、重复检测、处理状态与队列已切到 PG 主路径 |
 | Task Queue | PostgreSQL 结构化表 | 队列表和相关索引由 Drizzle migration 管理 |
 | Team / User / Member / Session / AccessKey | `store_snapshot` JSONB | 仍通过 `SkillShareerStore` 兼容抽象提供运行时存储 |
-| Audit / Feedback / Duplicates / Lineage / Graph Index 等辅助域 | 混合状态，以 JSONB 为主 | 后续轮次再逐步拆分，当前不再新增新的快照依赖面 |
+| Audit / Duplicates / Lineage / Graph Index 等辅助域 | 混合状态，以 JSONB 为主 | 后续轮次再逐步拆分，当前不再新增新的快照依赖面 |
+| Feedback | PostgreSQL 结构化表 | `feedback_records` + `feedback_custom_answers`，Round 6 迁移 |
+| Usage Analytics | PostgreSQL 结构化表 | `usage_events` + `usage_events_daily_rollup`，Rollup 为派生表 |
 
 ### JSONB 保留与拆分准则
 
@@ -387,6 +391,8 @@ new → triaged → resolved
               → dismissed
 ```
 
+> **Round 6 更新**：反馈已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表。`feedback_records` 表包含所有反馈主字段，`feedback_custom_answers` 表存储自定义问答对。`entryType`、`problemType`、`status` 已补齐 `CHECK` 约束。索引覆盖 `entryId`、`entryType`、`status`、`problemType`、`submittedByUserId` 维度。
+
 > 源码：`packages/contracts/src/domain/feedback.ts`
 
 ---
@@ -482,8 +488,9 @@ active → review-due → stale → expired
 | Candidate | `CandidateRepository` (PG) | `PgCandidateRepository` | `candidates` + `candidate_analyses` / `candidate_duplicate_cases` / `candidate_duplicate_matches` / `candidate_manual_results` / `candidate_resolution_outcomes` |
 | Duplicate | `DuplicateRepository` (PG) | `PgDuplicateRepository` | `candidate_duplicate_cases` / `candidate_duplicate_matches` |
 | Lineage | `LineageRepository` (PG) | `PgLineageRepository` | `entity_lineage` |
-| Usage Analytics | `UsageAnalyticsRepository` (PG) | `PgUsageAnalyticsRepository` | `usage_events` |
-| User / Team / Session / AccessKey / Audit / Feedback 等 | InMemory repo → `store_snapshot` JSONB | InMemory repo → `store_snapshot` JSONB | `store_snapshot` (JSONB 单行) |
+| Usage Analytics | `UsageAnalyticsRepository` (PG) | `PgUsageAnalyticsRepository` | `usage_events` / `usage_events_daily_rollup` |
+| Feedback | `FeedbackRepository` (PG) | `PgFeedbackRepository` | `feedback_records` / `feedback_custom_answers` |
+| User / Team / Session / AccessKey / Audit 等 | InMemory repo → `store_snapshot` JSONB | InMemory repo → `store_snapshot` JSONB | `store_snapshot` (JSONB 单行) |
 
 ### 已删除的兼容层
 

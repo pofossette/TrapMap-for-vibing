@@ -1061,3 +1061,133 @@ export const taskQueue = pgTable(
     index('task_queue_type_status_priority_idx').on(table.type, table.status, table.priority),
   ],
 );
+
+// =============================================================================
+// Feedback Tables (Round 6: Structural Refactoring)
+// =============================================================================
+
+/**
+ * Feedback records table for structured feedback persistence.
+ * Replaces the feedbackQueue array inside store_snapshot JSONB.
+ * Each row represents a single user feedback submission against
+ * a knowledge entry or skill artifact.
+ */
+export const feedbackRecords = pgTable(
+  'feedback_records',
+  {
+    /** Unique feedback identifier (e.g., feedback_abc123) */
+    id: text('id').primaryKey(),
+    /** Target entry ID (knowledge or artifact) */
+    entryId: text('entry_id').notNull(),
+    /** Target entry type */
+    entryType: text('entry_type').notNull(),
+    /** Problem category */
+    problemType: text('problem_type').notNull(),
+    /** User-provided description of the problem */
+    description: text('description').notNull(),
+    /** Optional context about when/where the problem occurred */
+    context: text('context'),
+    /** Original query that surfaced the problem */
+    querySeed: text('query_seed'),
+    /** When the feedback was submitted */
+    submittedAt: timestamp('submitted_at', { withTimezone: true }).notNull(),
+    /** User who submitted the feedback */
+    submittedByUserId: text('submitted_by_user_id').notNull(),
+    /** Submitter handle for read-optimization */
+    submittedByHandle: text('submitted_by_handle').notNull(),
+    /** Processing status */
+    status: text('status').notNull().default('new'),
+    /** Admin notes from triage/review */
+    adminNotes: text('admin_notes'),
+    /** When the feedback was resolved (null if unresolved) */
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    /** User who resolved the feedback */
+    resolvedByUserId: text('resolved_by_user_id'),
+    /** Lifecycle transition triggered by this feedback */
+    triggeredTransition: text('triggered_transition'),
+    /** Record creation timestamp */
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Record update timestamp */
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_feedback_records_entry').on(table.entryId),
+    index('idx_feedback_records_entry_type').on(table.entryType),
+    index('idx_feedback_records_status').on(table.status),
+    index('idx_feedback_records_problem_type').on(table.problemType),
+    index('idx_feedback_records_submitted_by').on(table.submittedByUserId),
+    check(
+      'ck_feedback_records_entry_type',
+      sql`${table.entryType} IN ('trap', 'skill')`,
+    ),
+    check(
+      'ck_feedback_records_problem_type',
+      sql`${table.problemType} IN ('incorrect', 'outdated', 'context-mismatch', 'incomplete', 'other')`,
+    ),
+    check(
+      'ck_feedback_records_status',
+      sql`${table.status} IN ('new', 'triaged', 'resolved', 'dismissed')`,
+    ),
+  ],
+);
+
+/**
+ * Custom Q&A answers attached to feedback records.
+ * Stores user-provided answers to structured prompts during feedback submission.
+ */
+export const feedbackCustomAnswers = pgTable(
+  'feedback_custom_answers',
+  {
+    /** Internal primary key */
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    /** Reference to parent feedback record */
+    feedbackId: text('feedback_id').notNull(),
+    /** Prompt key identifying the question */
+    questionKey: text('question_key').notNull(),
+    /** User's answer text */
+    answerText: text('answer_text').notNull(),
+    /** Record creation timestamp */
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_feedback_custom_answers_feedback').on(table.feedbackId),
+  ],
+);
+
+// =============================================================================
+// Usage Analytics Rollup Tables (Round 6)
+// =============================================================================
+
+/**
+ * Daily rollup table for usage event aggregation.
+ * Pre-aggregated counts per (day, team, entry_type, entry_id) to avoid
+ * scanning the full usage_events table for common analytics queries.
+ */
+export const usageEventsDailyRollup = pgTable(
+  'usage_events_daily_rollup',
+  {
+    /** Internal primary key */
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    /** Aggregation day (date only, no time) */
+    day: timestamp('day', { withTimezone: true }).notNull(),
+    /** Team ID (null for global) */
+    teamId: text('team_id'),
+    /** Entry type: 'skill' | 'trap' | 'knowledge' */
+    entryType: text('entry_type').notNull(),
+    /** The hit entry's ID */
+    entryId: text('entry_id').notNull(),
+    /** Number of hits on this day */
+    hitCount: integer('hit_count').notNull(),
+    /** Number of distinct queries */
+    uniqueQueries: integer('unique_queries').notNull(),
+    /** Number of distinct accounts */
+    uniqueAccounts: integer('unique_accounts').notNull(),
+    /** When this rollup was last updated */
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('idx_usage_rollup_day_team_entry').on(table.day, table.teamId, table.entryType, table.entryId),
+    index('idx_usage_rollup_entry_type_day').on(table.entryType, table.day),
+    index('idx_usage_rollup_entry_id_day').on(table.entryId, table.day),
+  ],
+);

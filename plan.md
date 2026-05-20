@@ -694,18 +694,25 @@ Round 5 落地说明：
 - 统计模块具备稳定的可查询结构，并为增长预留汇总/分区能力。
 
 要做的内容：
-- [ ] 为 `feedback` 建立正式 PostgreSQL repository，并替换当前 `InMemoryFeedbackRepository` 主路径。
-- [ ] 将反馈的自定义问答、状态流转、管理员备注、质量统计依赖字段结构化。
-- [ ] 为 `feedback` 建立按 `entryId`、`entryType`、`status`、`problemType` 的索引体系。
-- [ ] 评估 `usage_events` 的增长风险，补充时间范围查询、排行查询所需的归档或汇总设计。
-- [ ] 视数据量预期增加日汇总或周期汇总表，避免长期只扫明细。
-- [ ] 确保统计能力不再依赖旧 JSONB 存储路径。
+- [x] 为 `feedback` 建立正式 PostgreSQL repository，并替换当前 `InMemoryFeedbackRepository` 主路径。
+- [x] 将反馈的自定义问答、状态流转、管理员备注、质量统计依赖字段结构化。
+- [x] 为 `feedback` 建立按 `entryId`、`entryType`、`status`、`problemType` 的索引体系。
+- [x] 评估 `usage_events` 的增长风险，补充时间范围查询、排行查询所需的归档或汇总设计。
+- [x] 视数据量预期增加日汇总或周期汇总表，避免长期只扫明细。
+- [x] 确保统计能力不再依赖旧 JSONB 存储路径。
 
 对应要求修改的文档：
-- [ ] `docs/reference/DATA_MODEL.md`
-- [ ] `docs/reference/api-surface.md`
-- [ ] `docs/reference/PERFORMANCE.md`
-- [ ] `docs/operations/TESTING.md`
+- [x] `docs/reference/DATA_MODEL.md`
+- [x] `docs/reference/api-surface.md`
+- [x] `docs/reference/PERFORMANCE.md`
+- [x] `docs/operations/TESTING.md`
+
+Round 6 落地说明：
+- `feedback_records` 表已创建，存储反馈主字段。`feedback_custom_answers` 表存储自定义问答对。`entryType`、`problemType`、`status` 已补齐 `CHECK` 约束。索引覆盖 `entryId`、`entryType`、`status`、`problemType`、`submittedByUserId` 维度。
+- `PgFeedbackRepository` 已创建，替代 `InMemoryFeedbackRepository` 成为主路径。工厂函数 `createFeedbackRepository` 在有 pool 时使用 PG 实现，否则回退到 InMemory。
+- `usage_events_daily_rollup` 表已创建，预聚合 `(day, team_id, entry_type, entry_id)` 维度的命中数、去重查询数、去重账户数。支持按条目类型、条目 ID 和时间范围查询。
+- 迁移脚本 `0004_round6_feedback_usage.sql` 包含 DDL 和从 `store_snapshot` JSONB `feedbackQueue` 到 `feedback_records` + `feedback_custom_answers` 的回填逻辑，以及从 `usage_events` 到 `usage_events_daily_rollup` 的初始聚合。
+- 测试已新增 `pg-repository.test.ts`，覆盖反馈 CRUD、过滤、自定义问答往返和 CHECK 约束验证。
 
 ## 轮次 7：检索索引模型优化
 

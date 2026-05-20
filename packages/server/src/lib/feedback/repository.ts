@@ -4,11 +4,13 @@
  * This module provides:
  * - FeedbackRepository interface for feedback CRUD operations
  * - InMemoryFeedbackRepository implementation using SkillShareerStore
+ * - PgFeedbackRepository implementation using PostgreSQL structured tables
  * - Factory function for repository creation
  *
- * Phase: 100-01 (Store Repository Pattern)
+ * Round 6: Added PgFeedbackRepository, replacing InMemory as default when pool available.
  */
 
+import { createRequire } from 'node:module';
 import type { Pool } from 'pg';
 
 import type { FeedbackQueueRecord, SkillShareerStore } from '../store.js';
@@ -129,16 +131,20 @@ export class InMemoryFeedbackRepository implements FeedbackRepository {
 
 /**
  * Factory function to create the appropriate FeedbackRepository.
- * Returns InMemoryFeedbackRepository (Pg implementation to be added in future phase).
+ * Returns PgFeedbackRepository when pool is available (Round 6: PG-only),
+ * InMemoryFeedbackRepository otherwise.
  */
 export function createFeedbackRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): FeedbackRepository {
-  // TODO: When Pg implementation is added, use DualWrite pattern like KnowledgeRepository
-  // if (config.pool) {
-  //   const pgRepo = new PgFeedbackRepository(config.pool);
-  //   return new DualWriteFeedbackRepository(pgRepo, config.store);
-  // }
+  if (config.pool) {
+    // Dynamic import to avoid loading pg module in test environments
+    const require = createRequire(import.meta.url);
+    const { PgFeedbackRepository } = require('./pg-repository.js') as {
+      PgFeedbackRepository: new (pool: Pool) => FeedbackRepository;
+    };
+    return new PgFeedbackRepository(config.pool);
+  }
   return new InMemoryFeedbackRepository(config.store);
 }

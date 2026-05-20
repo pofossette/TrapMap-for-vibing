@@ -248,6 +248,24 @@ pnpm vitest run evals/retrieval/runner.test.ts
 
 测试文件遵循 `*.test.ts` 命名约定，放置在对应模块目录下。
 
+### PostgreSQL 集成测试
+
+部分模块包含需要真实 PostgreSQL 连接的集成测试。这些测试通过 `TRAPMAP_DATABASE_URL` 或 `DATABASE_URL` 环境变量控制，未设置时自动跳过。
+
+```bash
+# 运行 PG 集成测试（需要数据库）
+TRAPMAP_DATABASE_URL=postgresql://user:pass@localhost:5432/trapmap pnpm --filter @trapmap/server test
+```
+
+包含 PG 集成测试的模块：
+
+| 模块 | 测试文件 | 说明 |
+|------|----------|------|
+| Feedback | `src/lib/feedback/pg-repository.test.ts` | 反馈 CRUD、过滤、约束验证 |
+| Usage Analytics | `src/lib/analytics/pg-repository.test.ts` | 使用统计写入、查询、归档 |
+| Candidates | `src/lib/candidates/pg-repository.test.ts` | 候选提交、分析、判重 |
+| Duplicates | `src/lib/duplicates/pg-repository.test.ts` | 重复检测 |
+
 ---
 
 ## 相关文档

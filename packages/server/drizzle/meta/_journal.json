@@ -29,6 +29,13 @@
       "when": 1779303856155,
       "tag": "0003_round5_candidate_structural",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779310999610,
+      "tag": "0004_round6_feedback_usage",
+      "breakpoints": true
     }
   ]
 }

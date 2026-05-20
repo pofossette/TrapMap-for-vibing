@@ -96,6 +96,8 @@
 | `POST` | `/v1/operations/feedback/batch` | `feedbackBatchRequestSchema` | `feedbackBatchResponseSchema` | 批量处理反馈（resolve/dismiss/triage/transition） |
 | `GET` | `/v1/operations/feedback/stats/:entryId` | 无 | `feedbackStatsResponseSchema` | 获取条目的反馈统计和质量分数 |
 
+> **Round 6 更新**：反馈持久化已从 `store_snapshot` JSONB 迁移为 `feedback_records` + `feedback_custom_answers` PostgreSQL 结构化表。API 契约不变。
+
 > 源码：`packages/server/src/routes/feedback.ts`、`packages/server/src/routes/feedback-admin.ts`
 
 ## Decay 管理
