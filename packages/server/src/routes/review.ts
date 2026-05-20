@@ -125,7 +125,6 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
       applyReviewDecision(
         payload.evidence !== undefined
           ? {
-              store: app.skillShareer.store,
               data,
               entry,
               reviewerUserId: decidedByUserId,
@@ -135,7 +134,6 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
               evidence: payload.evidence,
             }
           : {
-              store: app.skillShareer.store,
               data,
               entry,
               reviewerUserId: decidedByUserId,

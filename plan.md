@@ -574,12 +574,12 @@ limit 10;
 - 双写逻辑已移除，仅允许短期只读兼容或一次性迁移脚本读取旧数据。
 
 要做的内容：
-- [ ] 梳理 `SkillShareerStore`、`PostgresStore`、`create-store`、`store/index` 及所有使用点。
-- [ ] 将知识、工件、候选、反馈、统计等模块的主读写全部切到 PostgreSQL 真表。
-- [ ] 删除 `DualWriteKnowledgeRepository` 及同类兼容设计，避免双真相长期存在。
-- [ ] 将 `store_snapshot` 限定为迁移输入源，不再作为运行时状态存储。
-- [ ] 提供一次性数据回填与核对脚本，确保旧快照到新表的数据一致。
-- [ ] 在全部模块切换完成后，删除 `store_snapshot` 表与相关实现。
+- [x] 梳理 `SkillShareerStore`、`PostgresStore`、`create-store`、`store/index` 及所有使用点。
+- [x] 将知识、工件、候选、反馈、统计等模块的主读写全部切到 PostgreSQL 真表。
+- [x] 删除 `DualWriteKnowledgeRepository` 及同类兼容设计，避免双真相长期存在。
+- [x] 将 `store_snapshot` 限定为迁移输入源，不再作为运行时状态存储。
+- [x] 提供一次性数据回填与核对脚本，确保旧快照到新表的数据一致。
+- [ ] 在全部模块切换完成后，删除 `store_snapshot` 表与相关实现（知识/工件/候选已迁移，用户/团队/会话等域仍需 JSONB，延后至各自轮次）。
 
 对应要求修改的文档：
 - [ ] `docs/reference/DATA_MODEL.md`

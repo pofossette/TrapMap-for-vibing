@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { RetrievalQuery } from '@trapmap/contracts';
@@ -129,8 +130,6 @@ describe('retrieval', () => {
     await mockStore.transact(async (data) => {
       // Approved global constraint
       const globalEntry = createKnowledgeEntryRecord({
-        store: mockStore,
-        data,
         ownerUserId: 'user_2',
         teamId: null,
         payload: {
@@ -151,14 +150,13 @@ describe('retrieval', () => {
               'JWT tokens must be validated on every request to prevent authorization bypass.',
           },
         }),
+        entryId: `knowledge_${randomUUID()}`,
       });
       globalEntry.lifecycleState = 'approved';
       data.knowledgeEntries.push(globalEntry);
 
       // Approved project entry for user's team
       const projectEntry = createKnowledgeEntryRecord({
-        store: mockStore,
-        data,
         ownerUserId: 'user_2',
         teamId: teamId,
         payload: {
@@ -180,14 +178,13 @@ describe('retrieval', () => {
               'Enable strictNullChecks in tsconfig to catch null reference errors at compile time.',
           },
         }),
+        entryId: `knowledge_${randomUUID()}`,
       });
       projectEntry.lifecycleState = 'approved';
       data.knowledgeEntries.push(projectEntry);
 
       // Approved project entry for other team (should not be visible)
       const otherTeamEntry = createKnowledgeEntryRecord({
-        store: mockStore,
-        data,
         ownerUserId: 'user_3',
         teamId: otherTeamId,
         payload: {
@@ -207,14 +204,13 @@ describe('retrieval', () => {
             detail: 'Implement rate limiting on all public endpoints to prevent abuse.',
           },
         }),
+        entryId: `knowledge_${randomUUID()}`,
       });
       otherTeamEntry.lifecycleState = 'approved';
       data.knowledgeEntries.push(otherTeamEntry);
 
       // Submitted entry (should not be visible)
       const submittedEntry = createKnowledgeEntryRecord({
-        store: mockStore,
-        data,
         ownerUserId: 'user_2',
         teamId: teamId,
         payload: {
@@ -234,14 +230,13 @@ describe('retrieval', () => {
             detail: 'Configure pgBouncer for efficient PostgreSQL connection management.',
           },
         }),
+        entryId: `knowledge_${randomUUID()}`,
       });
       // Keep it in submitted state (not approved)
       data.knowledgeEntries.push(submittedEntry);
 
       // Entry above user's security level (should not be visible)
       const highLevelEntry = createKnowledgeEntryRecord({
-        store: mockStore,
-        data,
         ownerUserId: 'user_2',
         teamId: teamId,
         payload: {
@@ -261,14 +256,13 @@ describe('retrieval', () => {
             detail: 'Use AES-256 encryption for all sensitive data stored in the database.',
           },
         }),
+        entryId: `knowledge_${randomUUID()}`,
       });
       highLevelEntry.lifecycleState = 'approved';
       data.knowledgeEntries.push(highLevelEntry);
 
       // Rejected entry (should not be visible)
       const rejectedEntry = createKnowledgeEntryRecord({
-        store: mockStore,
-        data,
         ownerUserId: 'user_2',
         teamId: teamId,
         payload: {
@@ -288,6 +282,7 @@ describe('retrieval', () => {
             detail: 'Memory leak in the worker process causes crashes after 24h.',
           },
         }),
+        entryId: `knowledge_${randomUUID()}`,
       });
       rejectedEntry.lifecycleState = 'rejected';
       data.knowledgeEntries.push(rejectedEntry);

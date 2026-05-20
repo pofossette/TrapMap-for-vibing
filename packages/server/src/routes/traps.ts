@@ -56,56 +56,35 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const preReview = await runPreReview({
-      existingEntries: (await app.skillShareer.store.snapshot()).knowledgeEntries,
+      existingEntries: await app.skillShareer.knowledgeRepo.listByFilter({}),
       submission: payload,
     });
 
     const createdAt = nowIso();
 
-    // Get knowledgeRepo for conditional repository operations
+    // Get knowledgeRepo for repository operations
     const knowledgeRepo = app.skillShareer.knowledgeRepo;
-
-    // Generate ID using repository (SEQUENCE) if available, fallback to store
-    let entryId: string;
-    if (knowledgeRepo) {
-      entryId = await knowledgeRepo.nextId();
-    } else {
-      const data = await app.skillShareer.store.snapshot();
-      entryId = app.skillShareer.store.nextId(data, 'knowledge');
+    if (!knowledgeRepo) {
+      throw new AppError(500, 'repo_unavailable', 'Knowledge repository not available');
     }
 
-    const entry = await app.skillShareer.store.transact((data) => {
-      const record = createKnowledgeEntryRecord({
-        store: app.skillShareer.store,
-        data,
-        ownerUserId,
-        teamId: payload.scope === 'project' ? auth.activeTeamId : null,
-        payload,
-        requiredLevel: payload.requiredLevel ?? auth.securityLevel,
-        createdAt,
-        preReview,
-        idOverride: entryId,
-      });
+    const entryId = await knowledgeRepo.nextId();
 
-      data.knowledgeEntries.push(record);
-
-      return toKnowledgeEntry(data, record);
+    const record = createKnowledgeEntryRecord({
+      ownerUserId,
+      teamId: payload.scope === 'project' ? auth.activeTeamId : null,
+      payload,
+      requiredLevel: payload.requiredLevel ?? auth.securityLevel,
+      createdAt,
+      preReview,
+      entryId,
     });
 
-    // Dual-write: Also insert to knowledge repository if available
-    // This is additive during the transition period
-    if (knowledgeRepo) {
-      try {
-        const data = await app.skillShareer.store.snapshot();
-        const record = data.knowledgeEntries.find((e) => e.id === entryId);
-        if (record) {
-          await knowledgeRepo.insert(record);
-        }
-      } catch (repoError) {
-        // Log but don't fail - JSONB is the source of truth during transition
-        app.log.error({ repoError, entryId }, 'Failed to insert trap to knowledge repository');
-      }
-    }
+    await knowledgeRepo.insert(record);
+
+    // Serialize using store data for user handle resolution
+    const data = await app.skillShareer.store.snapshot();
+    const entry = toKnowledgeEntry(data, record);
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
@@ -125,10 +104,13 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     const ownerUserId = requireRealUser(auth.user?.id);
 
+    const knowledgeRepo = app.skillShareer.knowledgeRepo;
+    if (!knowledgeRepo) {
+      throw new AppError(500, 'repo_unavailable', 'Knowledge repository not available');
+    }
+    const entries = await knowledgeRepo.listByFilter({ ownerUserId });
     const data = await app.skillShareer.store.snapshot();
-    const items = data.knowledgeEntries
-      .filter((entry) => entry.ownerUserId === ownerUserId)
-      .map((entry) => toKnowledgeEntry(data, entry));
+    const items = entries.map((entry) => toKnowledgeEntry(data, entry));
 
     return knowledgeHistoryResponseSchema.parse({ items });
   });
@@ -137,8 +119,11 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/traps/:trapId', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     const trapId = (request.params as { trapId: string }).trapId;
-    const data = await app.skillShareer.store.snapshot();
-    const entry = data.knowledgeEntries.find((candidate) => candidate.id === trapId);
+    const knowledgeRepo = app.skillShareer.knowledgeRepo;
+    if (!knowledgeRepo) {
+      throw new AppError(500, 'repo_unavailable', 'Knowledge repository not available');
+    }
+    const entry = await knowledgeRepo.getById(trapId);
 
     if (!entry) {
       throw new AppError(404, 'trap_not_found', 'Trap entry not found');
@@ -152,6 +137,7 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(403, 'forbidden', 'You do not have access to this trap entry');
     }
 
+    const data = await app.skillShareer.store.snapshot();
     return knowledgeEntryResponseSchema.parse({
       entry: toKnowledgeEntry(data, entry),
     });
@@ -167,7 +153,13 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       entryId: trapId,
     });
 
-    const existingEntries = (await app.skillShareer.store.snapshot()).knowledgeEntries.filter(
+    // Get knowledgeRepo
+    const knowledgeRepo = app.skillShareer.knowledgeRepo;
+    if (!knowledgeRepo) {
+      throw new AppError(500, 'repo_unavailable', 'Knowledge repository not available');
+    }
+
+    const existingEntries = (await knowledgeRepo.listByFilter({})).filter(
       (entry) => entry.id !== trapId,
     );
     const preReview = await runPreReview({
@@ -180,50 +172,36 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       },
     });
 
-    const updatedEntry = await app.skillShareer.store.transact((data) => {
-      const entry = data.knowledgeEntries.find((candidate) => candidate.id === trapId);
+    const existingEntry = await knowledgeRepo.getById(trapId);
 
-      if (!entry) {
-        throw new AppError(404, 'trap_not_found', 'Trap entry not found');
-      }
+    if (!existingEntry) {
+      throw new AppError(404, 'trap_not_found', 'Trap entry not found');
+    }
 
-      if (entry.ownerUserId !== ownerUserId) {
-        throw new AppError(403, 'forbidden', 'Only the original submitter may resubmit this trap');
-      }
+    if (existingEntry.ownerUserId !== ownerUserId) {
+      throw new AppError(403, 'forbidden', 'Only the original submitter may resubmit this trap');
+    }
 
-      if (!['rejected', 'agent-rejected'].includes(entry.lifecycleState)) {
-        throw new AppError(400, 'invalid_state', 'Only rejected traps may be resubmitted');
-      }
+    if (!['rejected', 'agent-rejected'].includes(existingEntry.lifecycleState)) {
+      throw new AppError(400, 'invalid_state', 'Only rejected traps may be resubmitted');
+    }
 
-      const submittedAt = nowIso();
-      resubmitKnowledgeEntry({
-        store: app.skillShareer.store,
-        data,
-        entry,
-        ownerUserId,
-        payload,
-        submittedAt,
-        preReview,
-      });
-
-      return toKnowledgeEntry(data, entry);
+    const submittedAt = nowIso();
+    resubmitKnowledgeEntry({
+      entry: existingEntry,
+      ownerUserId,
+      payload,
+      submittedAt,
+      preReview,
     });
 
-    // Dual-write: Also append revision to knowledge repository if available
-    // This is additive during the transition period
-    const knowledgeRepo = app.skillShareer.knowledgeRepo;
-    if (knowledgeRepo) {
-      try {
-        const data = await app.skillShareer.store.snapshot();
-        const entry = data.knowledgeEntries.find((e) => e.id === trapId);
-        if (entry?.latestRevision) {
-          await knowledgeRepo.appendRevision(trapId, entry.latestRevision);
-        }
-      } catch (repoError) {
-        // Log but don't fail - JSONB is the source of truth during transition
-        app.log.error({ repoError, trapId }, 'Failed to append revision to knowledge repository');
-      }
+    // Persist revision via PG repository
+    if (existingEntry.latestRevision) {
+      await knowledgeRepo.appendRevision(trapId, existingEntry.latestRevision);
     }
+
+    const data = await app.skillShareer.store.snapshot();
+    const updatedEntry = toKnowledgeEntry(data, existingEntry);
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),

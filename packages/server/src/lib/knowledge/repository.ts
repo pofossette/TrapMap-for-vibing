@@ -3,11 +3,14 @@
  *
  * This module provides:
  * - KnowledgeRepository interface abstracting CRUD operations
- * - DualWriteKnowledgeRepository for transition from JSONB to PostgreSQL
  * - InMemoryKnowledgeRepository for tests without PostgreSQL
  * - Factory function for repository selection
  *
- * Phase: 62 (WRITE-02)
+ * Phase: 62 (WRITE-02) — Round 2: DualWrite removed, PG-only when pool available.
+ *
+ * store_snapshot is no longer used for knowledge reads/writes.
+ * Remaining non-knowledge domains without PG tables (users, teams, etc.)
+ * will be addressed in later rounds.
  */
 
 import { createRequire } from 'node:module';
@@ -93,100 +96,9 @@ export interface KnowledgeRepository {
   ): Promise<void>;
 }
 
-/**
- * Dual-write repository that writes to both primary and JSONB shadow.
- * Used during transition from JSONB snapshot to row-level PostgreSQL tables.
- *
- * Writes go to primary first (PostgreSQL), then shadow to JSONB via store.transact().
- * If shadow fails, relational data is authoritative.
- */
-export class DualWriteKnowledgeRepository implements KnowledgeRepository {
-  constructor(
-    private readonly primary: KnowledgeRepository,
-    private readonly store: SkillShareerStore,
-  ) {}
-
-  async nextId(): Promise<string> {
-    return this.primary.nextId();
-  }
-
-  async insert(entry: KnowledgeRecord): Promise<void> {
-    await this.primary.insert(entry);
-    await this.store.transact((data) => {
-      if (!data.knowledgeEntries.some((e) => e.id === entry.id)) {
-        data.knowledgeEntries.push(entry);
-      }
-    });
-  }
-
-  async getById(entryId: string): Promise<KnowledgeRecord | null> {
-    return this.primary.getById(entryId);
-  }
-
-  async updateLifecycle(
-    entryId: string,
-    newState: LifecycleState,
-    context: { actorId: string; note?: string },
-  ): Promise<void> {
-    await this.primary.updateLifecycle(entryId, newState, context);
-    await this.store.transact((data) => {
-      const entry = data.knowledgeEntries.find((e) => e.id === entryId);
-      if (entry) {
-        transitionLifecycleState(entry, newState, 'dual-write update');
-        entry.updatedAt = new Date().toISOString();
-      }
-    });
-  }
-
-  async appendRevision(entryId: string, revision: KnowledgeRevisionRecord): Promise<void> {
-    await this.primary.appendRevision(entryId, revision);
-    await this.store.transact((data) => {
-      const entry = data.knowledgeEntries.find((e) => e.id === entryId);
-      if (entry) {
-        entry.history.push(revision);
-        entry.latestRevision = revision;
-        entry.updatedAt = new Date().toISOString();
-      }
-    });
-  }
-
-  async appendLifecycleEvent(entryId: string, event: KnowledgeLifecycleEventRecord): Promise<void> {
-    await this.primary.appendLifecycleEvent(entryId, event);
-    await this.store.transact((data) => {
-      const entry = data.knowledgeEntries.find((e) => e.id === entryId);
-      if (entry) {
-        entry.lifecycleHistory.push(event);
-      }
-    });
-  }
-
-  async listByFilter(filter: {
-    lifecycleState?: LifecycleState;
-    teamId?: string;
-    ownerUserId?: string;
-  }): Promise<KnowledgeRecord[]> {
-    return this.primary.listByFilter(filter);
-  }
-
-  async updateGovernance(
-    entryId: string,
-    governance: { labels?: string[]; requiredLevel?: number },
-  ): Promise<void> {
-    await this.primary.updateGovernance(entryId, governance);
-    await this.store.transact((data) => {
-      const entry = data.knowledgeEntries.find((e) => e.id === entryId);
-      if (entry) {
-        if (governance.labels !== undefined) {
-          entry.labels = governance.labels;
-        }
-        if (governance.requiredLevel !== undefined) {
-          entry.requiredLevel = governance.requiredLevel;
-        }
-        entry.updatedAt = new Date().toISOString();
-      }
-    });
-  }
-}
+// Round 2: DualWriteKnowledgeRepository removed.
+// Writes go exclusively to PostgreSQL via PgKnowledgeRepository.
+// store_snapshot JSONB is no longer a write target for knowledge operations.
 
 /**
  * In-memory repository that uses JsonStore for all operations.
@@ -292,7 +204,7 @@ export class InMemoryKnowledgeRepository implements KnowledgeRepository {
 
 /**
  * Factory function to create the appropriate KnowledgeRepository.
- * Returns DualWriteKnowledgeRepository when pool is available,
+ * Returns PgKnowledgeRepository when pool is available (Round 2: PG-only, no DualWrite),
  * InMemoryKnowledgeRepository otherwise.
  */
 export function createKnowledgeRepository(config: {
@@ -305,8 +217,8 @@ export function createKnowledgeRepository(config: {
     const { PgKnowledgeRepository } = require('./pg-repository.js') as {
       PgKnowledgeRepository: new (pool: Pool) => KnowledgeRepository;
     };
-    const pgRepo = new PgKnowledgeRepository(config.pool);
-    return new DualWriteKnowledgeRepository(pgRepo, config.store);
+    // Round 2: PG-only, no JSONB shadow writes
+    return new PgKnowledgeRepository(config.pool);
   }
   return new InMemoryKnowledgeRepository(config.store);
 }

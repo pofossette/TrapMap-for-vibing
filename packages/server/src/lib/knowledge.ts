@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   type AgentReviewResult,
   type Boundary,
@@ -18,11 +19,36 @@ import type {
   KnowledgeReviewDecisionRecord,
   KnowledgeReviewNoteRecord,
   KnowledgeRevisionRecord,
-  SkillShareerStore,
   StoreData,
 } from './store.js';
 
-function getUser(data: StoreData, userId: string) {
+/**
+ * Lightweight lookup context for knowledge serialization.
+ * Carries only the data needed to resolve user handles and membership levels.
+ *
+ * Replaces the full StoreData dependency in toKnowledgeEntry and its helpers.
+ * StoreData is structurally assignable to this type, so existing callers
+ * passing StoreData continue to work without changes.
+ */
+export interface UserLookupContext {
+  users: Array<{ id: string; handle: string }>;
+  memberships: Array<{ userId: string; teamId: string; securityLevel: number }>;
+}
+
+/** Round 2: Build UserLookupContext from StoreData for callers that still use store_snapshot. */
+export function buildUserLookupFromStoreData(data: StoreData): UserLookupContext {
+  return {
+    users: data.users,
+    memberships: data.memberships,
+  };
+}
+
+/** Round 2: Internal sub-ID generator replacing store.nextId(). */
+function nextSubId(): string {
+  return randomUUID();
+}
+
+function getUser(data: UserLookupContext, userId: string) {
   const user = data.users.find((candidate) => candidate.id === userId);
 
   if (!user) {
@@ -33,7 +59,7 @@ function getUser(data: StoreData, userId: string) {
 }
 
 function getMembershipLevel(
-  data: StoreData,
+  data: UserLookupContext,
   userId: string,
   teamId: string | null,
   fallbackLevel: number,
@@ -48,7 +74,12 @@ function getMembershipLevel(
   );
 }
 
-function toActorRef(data: StoreData, userId: string, teamId: string | null, fallbackLevel: number) {
+function toActorRef(
+  data: UserLookupContext,
+  userId: string,
+  teamId: string | null,
+  fallbackLevel: number,
+) {
   const user = getUser(data, userId);
 
   return {
@@ -59,7 +90,7 @@ function toActorRef(data: StoreData, userId: string, teamId: string | null, fall
 }
 
 function toReviewDecision(
-  data: StoreData,
+  data: UserLookupContext,
   record: KnowledgeReviewDecisionRecord,
   teamId: string | null,
   fallbackLevel: number,
@@ -73,7 +104,7 @@ function toReviewDecision(
 }
 
 function toReviewNote(
-  data: StoreData,
+  data: UserLookupContext,
   record: KnowledgeReviewNoteRecord,
   teamId: string | null,
   fallbackLevel: number,
@@ -90,7 +121,7 @@ function toReviewNote(
 }
 
 function toRevision(
-  data: StoreData,
+  data: UserLookupContext,
   record: KnowledgeRevisionRecord,
   teamId: string | null,
   fallbackLevel: number,
@@ -106,7 +137,11 @@ function toRevision(
   };
 }
 
-function toSubmissionRecord(data: StoreData, record: KnowledgeRecord, fallbackLevel: number) {
+function toSubmissionRecord(
+  data: UserLookupContext,
+  record: KnowledgeRecord,
+  fallbackLevel: number,
+) {
   return record.submissionHistory.map((submission) => ({
     id: submission.id,
     revision: submission.revision,
@@ -124,7 +159,7 @@ function toSubmissionRecord(data: StoreData, record: KnowledgeRecord, fallbackLe
   }));
 }
 
-function toLifecycleEvent(data: StoreData, record: KnowledgeRecord, fallbackLevel: number) {
+function toLifecycleEvent(data: UserLookupContext, record: KnowledgeRecord, fallbackLevel: number) {
   return record.lifecycleHistory.map((event) => ({
     id: event.id,
     type: event.type,
@@ -139,13 +174,9 @@ function toLifecycleEvent(data: StoreData, record: KnowledgeRecord, fallbackLeve
   }));
 }
 
-function toAgentNotes(
-  store: SkillShareerStore,
-  data: StoreData,
-  review: AgentReviewResult,
-): KnowledgeReviewNoteRecord[] {
+function toAgentNotes(review: AgentReviewResult): KnowledgeReviewNoteRecord[] {
   return review.notes.map((message) => ({
-    id: store.nextId(data, 'note'),
+    id: nextSubId(),
     createdAt: review.checkedAt,
     authorType: 'agent',
     authorUserId: null,
@@ -154,31 +185,25 @@ function toAgentNotes(
 }
 
 function createLifecycleEvent(
-  store: SkillShareerStore,
-  data: StoreData,
   input: Omit<KnowledgeLifecycleEventRecord, 'id'>,
 ): KnowledgeLifecycleEventRecord {
   return {
-    id: store.nextId(data, 'knowledge_event'),
+    id: nextSubId(),
     ...input,
   };
 }
 
-function createSubmissionRecord(
-  store: SkillShareerStore,
-  data: StoreData,
-  input: {
-    submittedByUserId: string;
-    submittedAt: string;
-    revision: number;
-    lifecycleState: KnowledgeRecord['lifecycleState'];
-    resubmissionOf: string | null;
-    agentReview: AgentReviewRecord | null;
-    reviewNotes?: KnowledgeReviewNoteRecord[];
-  },
-) {
+function createSubmissionRecord(input: {
+  submittedByUserId: string;
+  submittedAt: string;
+  revision: number;
+  lifecycleState: KnowledgeRecord['lifecycleState'];
+  resubmissionOf: string | null;
+  agentReview: AgentReviewRecord | null;
+  reviewNotes?: KnowledgeReviewNoteRecord[];
+}) {
   return {
-    id: store.nextId(data, 'submission'),
+    id: nextSubId(),
     revision: input.revision,
     submittedAt: input.submittedAt,
     submittedByUserId: input.submittedByUserId,
@@ -213,8 +238,6 @@ export function createKnowledgeRevision(
 }
 
 export function createKnowledgeEntryRecord(args: {
-  store: SkillShareerStore;
-  data: StoreData;
   ownerUserId: string;
   teamId: string | null;
   payload: KnowledgeSubmission;
@@ -222,10 +245,10 @@ export function createKnowledgeEntryRecord(args: {
   createdAt: string;
   preReview: AgentReviewResult;
   boundary?: Boundary | null;
-  /** Optional ID override for repository-generated IDs (dual-write pattern) */
-  idOverride?: string;
+  /** Entry ID from repository (recommended). Falls back to randomUUID if not provided. */
+  entryId: string;
 }): KnowledgeRecord {
-  const agentNotes = toAgentNotes(args.store, args.data, args.preReview);
+  const agentNotes = toAgentNotes(args.preReview);
   const revision = createKnowledgeRevision(
     args.ownerUserId,
     args.payload,
@@ -233,7 +256,7 @@ export function createKnowledgeEntryRecord(args: {
     args.createdAt,
     agentNotes,
   );
-  const latestSubmission = createSubmissionRecord(args.store, args.data, {
+  const latestSubmission = createSubmissionRecord({
     submittedByUserId: args.ownerUserId,
     submittedAt: args.createdAt,
     revision: revision.revision,
@@ -244,7 +267,7 @@ export function createKnowledgeEntryRecord(args: {
   });
 
   return {
-    id: args.idOverride ?? args.store.nextId(args.data, 'knowledge'),
+    id: args.entryId,
     teamId: args.teamId,
     scope: args.payload.scope,
     labels: revision.labels,
@@ -271,7 +294,7 @@ export function createKnowledgeEntryRecord(args: {
     reviewHistory: [],
     reviewNotes: agentNotes,
     lifecycleHistory: [
-      createLifecycleEvent(args.store, args.data, {
+      createLifecycleEvent({
         type: 'submitted',
         createdAt: args.createdAt,
         actorUserId: args.ownerUserId,
@@ -280,7 +303,7 @@ export function createKnowledgeEntryRecord(args: {
         state: 'submitted',
         note: null,
       }),
-      createLifecycleEvent(args.store, args.data, {
+      createLifecycleEvent({
         type: 'agent-reviewed',
         createdAt: args.preReview.checkedAt,
         actorUserId: null,
@@ -302,8 +325,6 @@ export function createKnowledgeEntryRecord(args: {
 }
 
 export function resubmitKnowledgeEntry(args: {
-  store: SkillShareerStore;
-  data: StoreData;
   entry: KnowledgeRecord;
   ownerUserId: string;
   payload: KnowledgeResubmission;
@@ -313,7 +334,7 @@ export function resubmitKnowledgeEntry(args: {
 }): KnowledgeRecord {
   const previousSubmissionId = args.entry.latestSubmissionId;
   const revisionNumber = args.entry.history.length + 1;
-  const agentNotes = toAgentNotes(args.store, args.data, args.preReview);
+  const agentNotes = toAgentNotes(args.preReview);
   const revision = createKnowledgeRevision(
     args.ownerUserId,
     args.payload,
@@ -321,7 +342,7 @@ export function resubmitKnowledgeEntry(args: {
     args.submittedAt,
     agentNotes,
   );
-  const latestSubmission = createSubmissionRecord(args.store, args.data, {
+  const latestSubmission = createSubmissionRecord({
     submittedByUserId: args.ownerUserId,
     submittedAt: args.submittedAt,
     revision: revisionNumber,
@@ -349,7 +370,7 @@ export function resubmitKnowledgeEntry(args: {
   args.entry.metadata.latestReviewedAt = args.preReview.checkedAt;
   args.entry.metadata.latestDecision = null;
   args.entry.lifecycleHistory.push(
-    createLifecycleEvent(args.store, args.data, {
+    createLifecycleEvent({
       type: 'resubmitted',
       createdAt: args.submittedAt,
       actorUserId: args.ownerUserId,
@@ -358,7 +379,7 @@ export function resubmitKnowledgeEntry(args: {
       state: 'submitted',
       note: previousSubmissionId ? `Resubmission of ${previousSubmissionId}` : null,
     }),
-    createLifecycleEvent(args.store, args.data, {
+    createLifecycleEvent({
       type: 'agent-reviewed',
       createdAt: args.preReview.checkedAt,
       actorUserId: null,
@@ -379,8 +400,7 @@ export function resubmitKnowledgeEntry(args: {
 }
 
 export function applyReviewDecision(args: {
-  store: SkillShareerStore;
-  data: StoreData;
+  data: UserLookupContext;
   entry: KnowledgeRecord;
   reviewerUserId: string;
   decidedAt: string;
@@ -396,7 +416,7 @@ export function applyReviewDecision(args: {
     notes: args.notes,
   };
   const note: KnowledgeReviewNoteRecord = {
-    id: args.store.nextId(args.data, 'note'),
+    id: nextSubId(),
     createdAt: args.decidedAt,
     authorType: 'reviewer',
     authorUserId: args.reviewerUserId,
@@ -438,7 +458,7 @@ export function applyReviewDecision(args: {
   args.entry.metadata.latestReviewedAt = args.decidedAt;
   args.entry.metadata.latestDecision = args.decision;
   args.entry.lifecycleHistory.push(
-    createLifecycleEvent(args.store, args.data, {
+    createLifecycleEvent({
       type: args.decision === 'approve' ? 'reviewer-approved' : 'reviewer-rejected',
       createdAt: args.decidedAt,
       actorUserId: args.reviewerUserId,
@@ -461,8 +481,6 @@ export function applyReviewDecision(args: {
 }
 
 export function updateKnowledgeEntry(args: {
-  store: SkillShareerStore;
-  data: StoreData;
   entry: KnowledgeRecord;
   modifierUserId: string;
   payload: {
@@ -488,7 +506,7 @@ export function updateKnowledgeEntry(args: {
   args.entry.history.push(revision);
   args.entry.metadata.revisionCount = args.entry.history.length;
   args.entry.lifecycleHistory.push(
-    createLifecycleEvent(args.store, args.data, {
+    createLifecycleEvent({
       type: 'updated',
       createdAt: args.updatedAt,
       actorUserId: args.modifierUserId,
@@ -503,7 +521,7 @@ export function updateKnowledgeEntry(args: {
   return args.entry;
 }
 
-export function toKnowledgeEntry(data: StoreData, record: KnowledgeRecord) {
+export function toKnowledgeEntry(data: UserLookupContext, record: KnowledgeRecord) {
   const owner = toActorRef(data, record.ownerUserId, record.teamId, record.requiredLevel);
   const submissionHistory = toSubmissionRecord(data, record, record.requiredLevel);
 

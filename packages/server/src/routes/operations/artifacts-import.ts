@@ -72,8 +72,6 @@ export const artifactsImportRoutes: FastifyPluginAsync = async (app) => {
 
         // Create imported entry
         const importedRecord = createImportedEntry({
-          store: app.skillShareer.store,
-          data,
           ownerUserId,
           teamId: auth.activeTeamId,
           payload: entryPayload,

@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   DuplicateJobBundleResponseSchema,
   ManualResultSubmissionSchema,
@@ -11,7 +11,11 @@ import {
   duplicateCaseResponseSchema,
   manualResultResponseSchema,
 } from '@trapmap/contracts';
-import type { DuplicateJobBundleResponse, DuplicateJobMatchEntity } from '@trapmap/contracts';
+import type {
+  CandidateSubmission,
+  DuplicateJobBundleResponse,
+  DuplicateJobMatchEntity,
+} from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent } from '../lib/audit.js';
@@ -20,7 +24,6 @@ import {
   scheduleCandidateProcessing,
 } from '../lib/candidates/processor.js';
 import { applyManualResultResolution } from '../lib/candidates/reconcile.js';
-import { createCandidateSubmission } from '../lib/candidates/store.js';
 import { AppError } from '../lib/errors.js';
 import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
 import { requirePermission } from '../lib/rbac.js';
@@ -148,21 +151,37 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
             },
           };
 
-    const candidate = await app.skillShareer.store.transact((data) => {
-      return createCandidateSubmission({
-        store: app.skillShareer.store,
-        data,
-        sourceType: body.sourceType,
-        submittedBy,
-        teamId: scope === 'project' ? auth.activeTeamId : null,
-        originalPayload,
-      });
-    });
+    const { candidate: candidateRepo } = app.skillShareer.repos;
+
+    // Build candidate using repository-generated ID
+    const candidateId = `candidate_${randomUUID()}`;
+    const now = new Date().toISOString();
+
+    const candidate: CandidateSubmission = {
+      id: candidateId,
+      sourceType: body.sourceType,
+      submittedBy,
+      teamId: scope === 'project' ? auth.activeTeamId : null,
+      status: 'received',
+      originalPayload,
+      analysisSnapshot: null,
+      duplicateCase: null,
+      receivedAt: now,
+      queuedAt: null,
+      analyzingAt: null,
+      completedAt: null,
+      lastError: null,
+      retryCount: 0,
+      manualResult: null,
+    };
+
+    await candidateRepo.insert(candidate);
 
     // Fire-and-forget async processing
     const services: CandidateProcessorServices = {
       store: app.skillShareer.store,
       getSnapshot: () => app.skillShareer.store.snapshot(),
+      candidateRepo, // Round 2: candidate processing via PG repo
     };
     scheduleCandidateProcessing(candidate.id, services);
 

@@ -8,6 +8,7 @@
  * - Non-approved/deactivated entries have index state removed
  */
 
+import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createKnowledgeEntryRecord } from '../knowledge.js';
@@ -84,8 +85,6 @@ describe('indexing pipeline', () => {
         const userIdForTransact = (await store.snapshot()).users[0]?.id;
         if (!userIdForTransact) throw new Error('User not found');
         const entry = createKnowledgeEntryRecord({
-          store,
-          data,
           ownerUserId: userIdForTransact,
           teamId: null,
           payload: {
@@ -97,6 +96,7 @@ describe('indexing pipeline', () => {
           requiredLevel: 0,
           createdAt,
           preReview,
+          entryId: `knowledge_${randomUUID()}`,
         });
 
         // Manually approve the entry for testing
@@ -189,8 +189,6 @@ describe('indexing pipeline', () => {
         const userIdForTransact = (await store.snapshot()).users[0]?.id;
         if (!userIdForTransact) throw new Error('User not found');
         const entry = createKnowledgeEntryRecord({
-          store,
-          data,
           ownerUserId: userIdForTransact,
           teamId: null,
           payload: {
@@ -202,6 +200,7 @@ describe('indexing pipeline', () => {
           requiredLevel: 0,
           createdAt,
           preReview,
+          entryId: `knowledge_${randomUUID()}`,
         });
 
         // Keep it in non-approved state
@@ -268,8 +267,6 @@ describe('indexing pipeline', () => {
         const userIdForTransact = (await store.snapshot()).users[0]?.id;
         if (!userIdForTransact) throw new Error('User not found');
         const entry = createKnowledgeEntryRecord({
-          store,
-          data,
           ownerUserId: userIdForTransact,
           teamId: null,
           payload: {
@@ -281,6 +278,7 @@ describe('indexing pipeline', () => {
           requiredLevel: 0,
           createdAt,
           preReview,
+          entryId: `knowledge_${randomUUID()}`,
         });
 
         entry.lifecycleState = 'approved';
@@ -364,8 +362,6 @@ describe('indexing pipeline', () => {
         const userIdForTransact = (await store.snapshot()).users[0]?.id;
         if (!userIdForTransact) throw new Error('User not found');
         const entry = createKnowledgeEntryRecord({
-          store,
-          data,
           ownerUserId: userIdForTransact,
           teamId: null,
           payload: {
@@ -377,6 +373,7 @@ describe('indexing pipeline', () => {
           requiredLevel: 0,
           createdAt,
           preReview,
+          entryId: `knowledge_${randomUUID()}`,
         });
 
         entry.lifecycleState = 'approved';
@@ -467,8 +464,6 @@ describe('indexing pipeline', () => {
         if (!userIdForTransact) throw new Error('User not found');
 
         const entry1 = createKnowledgeEntryRecord({
-          store,
-          data,
           ownerUserId: userIdForTransact,
           teamId: null,
           payload: {
@@ -480,12 +475,11 @@ describe('indexing pipeline', () => {
           requiredLevel: 0,
           createdAt,
           preReview: preReview1,
+          entryId: `knowledge_${randomUUID()}`,
         });
         entry1.lifecycleState = 'approved';
 
         const entry2 = createKnowledgeEntryRecord({
-          store,
-          data,
           ownerUserId: userIdForTransact,
           teamId: null,
           payload: {
@@ -497,6 +491,7 @@ describe('indexing pipeline', () => {
           requiredLevel: 0,
           createdAt,
           preReview: preReview2,
+          entryId: `knowledge_${randomUUID()}`,
         });
         entry2.lifecycleState = 'approved';
 
@@ -556,8 +551,6 @@ describe('indexing pipeline', () => {
         const userIdForTransact = (await store.snapshot()).users[0]?.id;
         if (!userIdForTransact) throw new Error('User not found');
         const entry = createKnowledgeEntryRecord({
-          store,
-          data,
           ownerUserId: userIdForTransact,
           teamId: null,
           payload: {
@@ -569,6 +562,7 @@ describe('indexing pipeline', () => {
           requiredLevel: 0,
           createdAt,
           preReview,
+          entryId: `knowledge_${randomUUID()}`,
         });
         entry.lifecycleState = 'rejected';
 

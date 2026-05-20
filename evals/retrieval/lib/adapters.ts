@@ -212,8 +212,6 @@ export async function seedScenarioFixtures(
       };
 
       const record = createKnowledgeEntryRecord({
-        store: ctx.store,
-        data,
         ownerUserId: ctx.actorId,
         teamId: entry.teamId,
         payload: {
@@ -225,10 +223,10 @@ export async function seedScenarioFixtures(
         requiredLevel: entry.requiredLevel,
         createdAt,
         preReview,
+        entryId: entry.id,
       });
 
-      // Override with exact fixture ID and lifecycle state
-      record.id = entry.id;
+      // Override with exact fixture ID and lifecycle state (entry.id already set above)
       record.lifecycleState = entry.lifecycleState as KnowledgeRecord['lifecycleState'];
 
       data.knowledgeEntries.push(record);

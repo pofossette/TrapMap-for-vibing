@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { AgentReviewResult, ArtifactBundle, KnowledgeSubmission } from '@trapmap/contracts';
 import { parseSkillMarkdown, validateRelativePath } from '@trapmap/contracts';
 
@@ -7,8 +7,6 @@ import type {
   ArtifactFilePayloadRecord,
   KnowledgeRecord,
   SkillArtifactRevisionRecord,
-  SkillShareerStore,
-  StoreData,
 } from './store.js';
 
 /**
@@ -337,8 +335,6 @@ function overlapScore(a: Set<string>, b: Set<string>): number {
  * @deprecated Use artifact-native import via normalizeArtifactBundle
  */
 export function createImportedEntry(args: {
-  store: SkillShareerStore;
-  data: StoreData;
   ownerUserId: string;
   teamId: string | null;
   payload: KnowledgeSubmission;
@@ -348,14 +344,13 @@ export function createImportedEntry(args: {
   preReview: AgentReviewResult;
 }): KnowledgeRecord {
   return createKnowledgeEntryRecord({
-    store: args.store,
-    data: args.data,
     ownerUserId: args.ownerUserId,
     teamId: args.teamId,
     payload: args.payload,
     requiredLevel: args.requestedLevel,
     createdAt: args.createdAt,
     preReview: args.preReview,
+    entryId: `knowledge_${randomUUID()}`,
   });
 }
 

@@ -265,19 +265,42 @@ export function buildServer(options: BuildServerOptions = {}) {
       const data = await app.skillShareer.store.snapshot();
       const interrupted = findInterruptedCandidates(data);
 
-      if (interrupted.length > 0) {
+      // Round 2: Also check PG candidates for interrupted state
+      const { candidate: candidateRepo } = app.skillShareer.repos;
+      const interruptedPg = await Promise.all([
+        candidateRepo.listByStatus('queued' as any),
+        candidateRepo.listByStatus('analyzing' as any),
+      ]).then(([queued, analyzing]) => [...queued, ...analyzing]);
+
+      const allInterrupted = [
+        ...interrupted,
+        ...interruptedPg.filter((pg) => !interrupted.some((im) => im.id === pg.id)),
+      ];
+
+      if (allInterrupted.length > 0) {
         app.log.info(
-          { count: interrupted.length },
+          { count: allInterrupted.length },
           'Found interrupted candidates, scheduling recovery',
         );
 
         // Reset them to 'received' status
-        await app.skillShareer.store.transact((txData) => {
-          resetInterruptedCandidates({
-            data: txData,
-            reason: 'Server restart recovery',
+        // JSONB-based candidates via store.transact
+        if (interrupted.length > 0) {
+          await app.skillShareer.store.transact((txData) => {
+            resetInterruptedCandidates({
+              data: txData,
+              reason: 'Server restart recovery',
+            });
           });
-        });
+        }
+        // PG-based candidates via repository
+        for (const pgCandidate of interruptedPg) {
+          await candidateRepo.updateStatus(
+            pgCandidate.id,
+            'received' as any,
+            'Server restart recovery',
+          );
+        }
 
         // Fire-and-forget processing
         void processPendingCandidates({
@@ -372,6 +395,8 @@ export function buildServer(options: BuildServerOptions = {}) {
         pool,
         // Use PG-based duplicate detection if embeddings are configured
         usePgDuplicateDetection: () => app.skillShareer.ai.embeddings.isConfigured,
+        // Round 2: candidate processing via PG repository
+        candidateRepo: app.skillShareer.repos.candidate,
       });
 
       const worker = createTaskWorker({
