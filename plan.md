@@ -607,19 +607,32 @@ Round 0 落地说明：
 - 知识条目中承担过滤、治理、统计职责的字段不再依赖大块 `JSONB`。
 
 要做的内容：
-- [ ] 为知识主表补齐数据库级约束：`scope`、`lifecycle_state`、`required_level` 的 `CHECK` 或 enum。
-- [ ] 将 `labels` 从 `JSONB` 改为结构化存储。
-- [ ] 将 `boundary` 拆为可查询子结构，至少覆盖 context、version、prerequisite、signal、exclusion、evidence 等查询维度。
-- [ ] 将 `maintenance_meta` 拆为结构化列或独立子表，支持维护人、复核时间、治理筛选。
-- [ ] 为知识版本表、生命周期事件表补齐外键与唯一约束。
-- [ ] 明确“当前态字段”和“历史版本字段”的职责，避免重复存储失控。
-- [ ] 为知识域建立必要组合索引，如团队、状态、安全等级、更新时间、标签过滤路径。
+- [x] 为知识主表补齐数据库级约束：`scope`、`lifecycle_state`、`required_level` 的 `CHECK` 或 enum。
+- [x] 将 `labels` 从 `JSONB` 改为结构化存储。
+- [x] 将 `boundary` 拆为可查询子结构，至少覆盖 context、version、prerequisite、signal、exclusion、evidence 等查询维度。
+- [x] 将 `maintenance_meta` 拆为结构化列或独立子表，支持维护人、复核时间、治理筛选。
+- [x] 为知识版本表、生命周期事件表补齐外键与唯一约束。
+- [x] 明确”当前态字段”和”历史版本字段”的职责，避免重复存储失控。
+- [x] 为知识域建立必要组合索引，如团队、状态、安全等级、更新时间、标签过滤路径。
 
 对应要求修改的文档：
 - [ ] `docs/reference/DATA_MODEL.md`
 - [ ] `docs/reference/GLOSSARY.md`
 - [ ] `docs/reference/api-surface.md`
 - [ ] `docs/architecture/components/GOVERNANCE.md`
+
+Round 3 落地说明：
+- `knowledge_entries` 表已补齐 `CHECK` 约束：`scope IN ('global', 'project')`、`lifecycle_state` 限定为合法状态枚举、`required_level BETWEEN 0 AND 10`。
+- `lifecycle_events` 表已补齐 `CHECK` 约束：`type` 限定为合法事件类型枚举。
+- `knowledge_labels` 表已创建，`(entry_id, label)` 唯一索引支持标签过滤。`knowledge_entries.labels` JSONB 列保留为读优化缓存字段，与结构化表同步。
+- 边界（boundary）已拆为六个子表：`knowledge_boundary_contexts`、`knowledge_boundary_versions`、`knowledge_boundary_prerequisites`、`knowledge_boundary_signals`、`knowledge_boundary_exclusions`、`knowledge_boundary_evidence`。各表均有 `entry_id` 索引和唯一约束。`knowledge_entries.boundary` JSONB 列保留为读优化缓存。
+- `knowledge_maintenance_assignments` 表已创建，`(entry_id)` 主键，支持 `maintainer_user_id` 和 `review_by` 索引筛选。`knowledge_entries.maintenance_meta` JSONB 列保留为读优化缓存。
+- `knowledge_revisions` 表已补齐 `(entry_id, revision)` 唯一索引。
+- `knowledge_entries` 表已补齐 `(scope, required_level)` 和 `(owner_user_id)` 组合索引。
+- `PgKnowledgeRepository` 已更新：`insert` 同步写入所有子表，`getById` 从子表读取结构化数据，`listByFilter` 支持 `labels` 过滤（AND 语义），`updateGovernance` 和 `appendRevision` 同步维护 `knowledge_labels`。
+- `InMemoryKnowledgeRepository` 已同步支持 `labels` 过滤。
+- 迁移脚本 `0002_round3_knowledge_structural.sql` 包含 DDL 和从 JSONB 到结构化表的回填逻辑。
+- 测试已更新，覆盖标签过滤、边界子表往返、维护分配往返和 CHECK 约束验证。
 
 ## 轮次 4：技能工件与派生产物结构化改造
 
@@ -754,10 +767,10 @@ Round 0 落地说明：
 
 ### 二、功能回归验证
 
-- [ ] 运行 `rtk pnpm test`
-- [ ] 运行 `rtk pnpm typecheck`
-- [ ] 运行 `rtk pnpm lint`
-- [ ] 运行 `rtk pnpm eval:smoke`
+- [ ] 运行 `pnpm test`
+- [ ] 运行 `pnpm typecheck`
+- [ ] 运行 `pnpm check`
+- [ ] 运行 `pnpm eval:smoke`
 - [ ] 对检索、审核、反馈、统计、导入导出执行关键路径手工回归。
 - [ ] 为迁移影响最大的 repository 与 service 增补专项测试。
 

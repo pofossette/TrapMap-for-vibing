@@ -6,18 +6,32 @@
  * and lifecycle events in child tables.
  *
  * Phase: 62 (WRITE-02)
+ * Round 3: Adds structured sub-tables for labels, boundary, and maintenance.
  */
 
-import type { Boundary, DecayMeta, EvidenceMeta, LifecycleState } from '@trapmap/contracts';
+import type { Boundary, LifecycleState } from '@trapmap/contracts';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
 import { transitionLifecycleState } from '../lifecycle/state-machine.js';
-import { knowledgeEntries, knowledgeRevisions, lifecycleEvents } from '../persistence/schema.js';
+import {
+  knowledgeBoundaryContexts,
+  knowledgeBoundaryEvidence,
+  knowledgeBoundaryExclusions,
+  knowledgeBoundaryPrerequisites,
+  knowledgeBoundarySignals,
+  knowledgeBoundaryVersions,
+  knowledgeEntries,
+  knowledgeLabels,
+  knowledgeMaintenanceAssignments,
+  knowledgeRevisions,
+  lifecycleEvents,
+} from '../persistence/schema.js';
 import type {
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
   KnowledgeRevisionRecord,
+  MaintenanceMetaRecord,
 } from '../store.js';
 import type { KnowledgeRepository } from './repository.js';
 
@@ -28,7 +42,19 @@ import type { KnowledgeRepository } from './repository.js';
 export class PgKnowledgeRepository implements KnowledgeRepository {
   constructor(private readonly pool: Pool) {
     drizzle(pool, {
-      schema: { knowledgeEntries, knowledgeRevisions, lifecycleEvents },
+      schema: {
+        knowledgeEntries,
+        knowledgeRevisions,
+        lifecycleEvents,
+        knowledgeLabels,
+        knowledgeBoundaryContexts,
+        knowledgeBoundaryVersions,
+        knowledgeBoundaryPrerequisites,
+        knowledgeBoundarySignals,
+        knowledgeBoundaryExclusions,
+        knowledgeBoundaryEvidence,
+        knowledgeMaintenanceAssignments,
+      },
     });
   }
 
@@ -44,6 +70,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
 
   /**
    * Insert a new knowledge entry with all related data.
+   * Round 3: Also writes to structured sub-tables (labels, boundary, maintenance).
    */
   async insert(entry: KnowledgeRecord): Promise<void> {
     const client = await this.pool.connect();
@@ -116,6 +143,35 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
         );
       }
 
+      // Round 3: Insert into knowledge_labels
+      for (const label of entry.labels) {
+        await client.query(
+          `INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [entry.id, label],
+        );
+      }
+
+      // Round 3: Insert boundary sub-tables
+      if (entry.boundary) {
+        await insertBoundarySubTables(client, entry.id, entry.boundary);
+      }
+
+      // Round 3: Insert maintenance assignment
+      if (entry.maintenanceMeta) {
+        await client.query(
+          `INSERT INTO knowledge_maintenance_assignments (
+            entry_id, maintainer_user_id, maintainer_handle, maintainer_level, review_by
+          ) VALUES ($1, $2, $3, $4, $5)`,
+          [
+            entry.id,
+            entry.maintenanceMeta.maintainerUserId,
+            entry.maintenanceMeta.maintainerHandle,
+            entry.maintenanceMeta.maintainerLevel,
+            entry.maintenanceMeta.reviewBy,
+          ],
+        );
+      }
+
       await client.query('COMMIT');
     } catch (e) {
       await client.query('ROLLBACK').catch(() => {});
@@ -127,6 +183,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
 
   /**
    * Get a knowledge entry by ID with all related data.
+   * Round 3: Also reads from structured sub-tables.
    */
   async getById(entryId: string): Promise<KnowledgeRecord | null> {
     // Query the entry
@@ -153,7 +210,33 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
       [entryId],
     );
 
-    return reconstructKnowledgeRecord(entryRow, revisionsResult.rows, eventsResult.rows);
+    // Round 3: Query structured labels
+    const labelsResult = await this.pool.query<{ label: string }>(
+      'SELECT label FROM knowledge_labels WHERE entry_id = $1 ORDER BY label',
+      [entryId],
+    );
+    const structuredLabels = labelsResult.rows.map((r) => r.label);
+
+    // Round 3: Query boundary sub-tables
+    const boundary = await loadBoundaryFromSubTables(this.pool, entryId);
+
+    // Round 3: Query maintenance assignment
+    const maintenanceResult = await this.pool.query<MaintenanceAssignmentRow>(
+      'SELECT * FROM knowledge_maintenance_assignments WHERE entry_id = $1',
+      [entryId],
+    );
+    const maintenanceMeta = maintenanceResult.rows.length > 0
+      ? rowToMaintenanceMeta(maintenanceResult.rows[0]!)
+      : null;
+
+    return reconstructKnowledgeRecord(
+      entryRow,
+      revisionsResult.rows,
+      eventsResult.rows,
+      structuredLabels,
+      boundary,
+      maintenanceMeta,
+    );
   }
 
   /**
@@ -217,6 +300,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
 
   /**
    * Append a revision with row-level locking.
+   * Round 3: Also syncs knowledge_labels when labels change.
    */
   async appendRevision(entryId: string, revision: KnowledgeRevisionRecord): Promise<void> {
     const client = await this.pool.connect();
@@ -263,6 +347,15 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
         [revision.shortcut, revision.detail, JSON.stringify(revision.labels), now, entryId],
       );
 
+      // Round 3: Sync knowledge_labels with new revision's labels
+      await client.query('DELETE FROM knowledge_labels WHERE entry_id = $1', [entryId]);
+      for (const label of revision.labels) {
+        await client.query(
+          `INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [entryId, label],
+        );
+      }
+
       await client.query('COMMIT');
     } catch (e) {
       await client.query('ROLLBACK').catch(() => {});
@@ -298,33 +391,44 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
   /**
    * List entries by filter criteria.
    * Returns lightweight records without full revision history.
+   * Round 3: Supports label filtering via knowledge_labels table.
    */
   async listByFilter(filter: {
     lifecycleState?: LifecycleState;
     teamId?: string;
     ownerUserId?: string;
+    labels?: string[];
   }): Promise<KnowledgeRecord[]> {
     const conditions: string[] = [];
-    const params: (string | number)[] = [];
+    const params: (string | number | string[])[] = [];
     let paramIndex = 1;
 
     if (filter.lifecycleState !== undefined) {
-      conditions.push(`lifecycle_state = $${paramIndex++}`);
+      conditions.push(`ke.lifecycle_state = $${paramIndex++}`);
       params.push(filter.lifecycleState);
     }
     if (filter.teamId !== undefined) {
-      conditions.push(`team_id = $${paramIndex++}`);
+      conditions.push(`ke.team_id = $${paramIndex++}`);
       params.push(filter.teamId);
     }
     if (filter.ownerUserId !== undefined) {
-      conditions.push(`owner_user_id = $${paramIndex++}`);
+      conditions.push(`ke.owner_user_id = $${paramIndex++}`);
       params.push(filter.ownerUserId);
+    }
+    if (filter.labels !== undefined && filter.labels.length > 0) {
+      // Round 3: Filter by labels using knowledge_labels table
+      // Requires ALL labels to match (AND semantics)
+      conditions.push(
+        `(SELECT COUNT(DISTINCT kl.label) FROM knowledge_labels kl WHERE kl.entry_id = ke.id AND kl.label = ANY($${paramIndex++})) = $${paramIndex++}`,
+      );
+      params.push(filter.labels);
+      params.push(filter.labels.length);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const result = await this.pool.query<DrizzleKnowledgeEntryRow>(
-      `SELECT * FROM knowledge_entries ${whereClause}`,
+      `SELECT ke.* FROM knowledge_entries ke ${whereClause}`,
       params,
     );
 
@@ -343,6 +447,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
 
   /**
    * Update governance fields with row-level locking.
+   * Round 3: Also syncs knowledge_labels when labels change.
    */
   async updateGovernance(
     entryId: string,
@@ -386,6 +491,17 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
         params,
       );
 
+      // Round 3: Sync knowledge_labels when labels change
+      if (governance.labels !== undefined) {
+        await client.query('DELETE FROM knowledge_labels WHERE entry_id = $1', [entryId]);
+        for (const label of governance.labels) {
+          await client.query(
+            `INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+            [entryId, label],
+          );
+        }
+      }
+
       await client.query('COMMIT');
     } catch (e) {
       await client.query('ROLLBACK').catch(() => {});
@@ -415,26 +531,7 @@ interface DrizzleKnowledgeEntryRow {
   lifecycle_state: LifecycleState;
   owner_user_id: string;
   boundary: Boundary | null;
-  maintenance_meta: {
-    maintainerUserId: string | null;
-    maintainerHandle: string | null;
-    maintainerLevel: number | null;
-    reviewBy: string | null;
-  } | null;
-  decay_meta: {
-    lastVerifiedAt: string;
-    decayState: string;
-    supersededById: string | null;
-    decayStateComputedAt: string;
-    freshnessType: string;
-  } | null;
-  evidence_meta: {
-    sourceType: string;
-    sourceRef?: string;
-    evidenceLevel: string;
-    verifiedAt: string;
-    verifiedBy: { userId: string };
-  } | null;
+  maintenance_meta: MaintenanceMetaRecord | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -483,6 +580,19 @@ interface DrizzleLifecycleEventRow {
   note: string | null;
 }
 
+/**
+ * Database row shape for knowledge_maintenance_assignments table.
+ */
+interface MaintenanceAssignmentRow {
+  entry_id: string;
+  maintainer_user_id: string | null;
+  maintainer_handle: string | null;
+  maintainer_level: number | null;
+  review_by: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
 // =============================================================================
 // Helper Functions for Row-to-Record Mapping
 // =============================================================================
@@ -503,8 +613,8 @@ function rowToKnowledgeEntry(row: DrizzleKnowledgeEntryRow): KnowledgeRecord {
     ownerUserId: row.owner_user_id,
     boundary: row.boundary,
     maintenanceMeta: row.maintenance_meta,
-    decayMeta: row.decay_meta as DecayMeta | null,
-    evidenceMeta: row.evidence_meta as EvidenceMeta | null,
+    decayMeta: null,
+    evidenceMeta: null,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
     // These fields are populated separately
@@ -571,14 +681,179 @@ function rowToLifecycleEvent(row: DrizzleLifecycleEventRow): KnowledgeLifecycleE
 }
 
 /**
+ * Map a maintenance assignment row to MaintenanceMetaRecord.
+ */
+function rowToMaintenanceMeta(row: MaintenanceAssignmentRow): MaintenanceMetaRecord {
+  return {
+    maintainerUserId: row.maintainer_user_id,
+    maintainerHandle: row.maintainer_handle,
+    maintainerLevel: row.maintainer_level,
+    reviewBy: row.review_by ? row.review_by.toISOString() : null,
+  };
+}
+
+/**
+ * Insert boundary sub-tables for a knowledge entry.
+ */
+async function insertBoundarySubTables(
+  client: import('pg').PoolClient,
+  entryId: string,
+  boundary: Boundary,
+): Promise<void> {
+  // Context labels
+  for (const ctx of boundary.context) {
+    await client.query(
+      `INSERT INTO knowledge_boundary_contexts (entry_id, context_value) VALUES ($1, $2)`,
+      [entryId, ctx],
+    );
+  }
+
+  // Version constraints
+  for (const ver of boundary.versions) {
+    await client.query(
+      `INSERT INTO knowledge_boundary_versions (entry_id, package_name, range_value, note) VALUES ($1, $2, $3, $4)`,
+      [entryId, ver.package, ver.range, ver.note ?? null],
+    );
+  }
+
+  // Prerequisites
+  for (const prereq of boundary.prerequisites) {
+    await client.query(
+      `INSERT INTO knowledge_boundary_prerequisites (entry_id, description, kind, required) VALUES ($1, $2, $3, $4)`,
+      [entryId, prereq.description, prereq.kind ?? null, prereq.required ? 1 : 0],
+    );
+  }
+
+  // Signals
+  for (const sig of boundary.signals) {
+    await client.query(
+      `INSERT INTO knowledge_boundary_signals (entry_id, pattern, kind, description) VALUES ($1, $2, $3, $4)`,
+      [entryId, sig.pattern, sig.kind, sig.description ?? null],
+    );
+  }
+
+  // Exclusions
+  for (const exc of boundary.exclusions) {
+    await client.query(
+      `INSERT INTO knowledge_boundary_exclusions (entry_id, description, kind) VALUES ($1, $2, $3)`,
+      [entryId, exc.description, exc.kind ?? null],
+    );
+  }
+
+  // Evidence
+  for (const ev of boundary.evidence) {
+    await client.query(
+      `INSERT INTO knowledge_boundary_evidence (entry_id, kind, identifier, url, note) VALUES ($1, $2, $3, $4, $5)`,
+      [entryId, ev.kind, ev.identifier, ev.url ?? null, ev.note ?? null],
+    );
+  }
+}
+
+/**
+ * Load boundary data from sub-tables for a knowledge entry.
+ */
+async function loadBoundaryFromSubTables(
+  pool: Pool,
+  entryId: string,
+): Promise<Boundary | null> {
+  const [contexts, versions, prerequisites, signals, exclusions, evidence] = await Promise.all([
+    pool.query<{ context_value: string }>(
+      'SELECT context_value FROM knowledge_boundary_contexts WHERE entry_id = $1 ORDER BY id',
+      [entryId],
+    ),
+    pool.query<{ package_name: string; range_value: string; note: string | null }>(
+      'SELECT package_name, range_value, note FROM knowledge_boundary_versions WHERE entry_id = $1 ORDER BY id',
+      [entryId],
+    ),
+    pool.query<{ description: string; kind: string | null; required: number }>(
+      'SELECT description, kind, required FROM knowledge_boundary_prerequisites WHERE entry_id = $1 ORDER BY id',
+      [entryId],
+    ),
+    pool.query<{ pattern: string; kind: string; description: string | null }>(
+      'SELECT pattern, kind, description FROM knowledge_boundary_signals WHERE entry_id = $1 ORDER BY id',
+      [entryId],
+    ),
+    pool.query<{ description: string; kind: string | null }>(
+      'SELECT description, kind FROM knowledge_boundary_exclusions WHERE entry_id = $1 ORDER BY id',
+      [entryId],
+    ),
+    pool.query<{ kind: string; identifier: string; url: string | null; note: string | null }>(
+      'SELECT kind, identifier, url, note FROM knowledge_boundary_evidence WHERE entry_id = $1 ORDER BY id',
+      [entryId],
+    ),
+  ]);
+
+  // If no boundary data exists in sub-tables, return null
+  if (
+    contexts.rows.length === 0 &&
+    versions.rows.length === 0 &&
+    prerequisites.rows.length === 0 &&
+    signals.rows.length === 0 &&
+    exclusions.rows.length === 0 &&
+    evidence.rows.length === 0
+  ) {
+    return null;
+  }
+
+  return {
+    context: contexts.rows.map((r) => r.context_value),
+    versions: versions.rows.map((r) => ({
+      package: r.package_name,
+      range: r.range_value,
+      note: r.note ?? undefined,
+    })),
+    prerequisites: prerequisites.rows.map((r) => ({
+      description: r.description,
+      kind: (r.kind ?? undefined) as Boundary['prerequisites'][number]['kind'],
+      required: r.required === 1,
+    })),
+    signals: signals.rows.map((r) => ({
+      pattern: r.pattern,
+      kind: r.kind as Boundary['signals'][number]['kind'],
+      description: r.description ?? undefined,
+    })),
+    exclusions: exclusions.rows.map((r) => ({
+      description: r.description,
+      kind: (r.kind ?? undefined) as Boundary['exclusions'][number]['kind'],
+    })),
+    evidence: evidence.rows.map((r) => ({
+      kind: r.kind as Boundary['evidence'][number]['kind'],
+      identifier: r.identifier,
+      url: r.url ?? undefined,
+      note: r.note ?? undefined,
+    })),
+  };
+}
+
+/**
  * Reconstruct a full KnowledgeRecord from database rows.
+ * Round 3: Accepts structured labels, boundary, and maintenance meta.
  */
 function reconstructKnowledgeRecord(
   entryRow: DrizzleKnowledgeEntryRow,
   revisionRows: DrizzleKnowledgeRevisionRow[],
   eventRows: DrizzleLifecycleEventRow[],
+  structuredLabels: string[],
+  boundary: Boundary | null,
+  maintenanceMeta: MaintenanceMetaRecord | null,
 ): KnowledgeRecord {
   const entry = rowToKnowledgeEntry(entryRow);
+
+  // Round 3: Use structured labels from knowledge_labels table
+  // Fall back to JSONB labels if structured labels are empty (migration period)
+  if (structuredLabels.length > 0 || entryRow.labels.length === 0) {
+    entry.labels = structuredLabels;
+  }
+
+  // Round 3: Use boundary from sub-tables, fall back to JSONB
+  if (boundary !== null) {
+    entry.boundary = boundary;
+  }
+
+  // Round 3: Use maintenance from structured table, fall back to JSONB
+  if (maintenanceMeta !== null) {
+    entry.maintenanceMeta = maintenanceMeta;
+  }
 
   // Populate revisions
   const revisions = revisionRows.map(rowToKnowledgeRevision);

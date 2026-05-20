@@ -10,6 +10,7 @@
  * - Index table compatibility
  */
 
+import type { Boundary } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 import { Pool as PgPool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -17,6 +18,7 @@ import type {
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
   KnowledgeRevisionRecord,
+  MaintenanceMetaRecord,
 } from '../store.js';
 import { nowIso } from '../store.js';
 import { PgKnowledgeRepository } from './pg-repository.js';
@@ -102,6 +104,28 @@ function createTestEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRec
   };
 }
 
+// Helper to create a test boundary
+function createTestBoundary(): Boundary {
+  return {
+    context: ['frontend', 'production'],
+    versions: [{ package: 'react', range: '>=18.0.0', note: 'React 18+' }],
+    prerequisites: [{ description: 'Node.js 18+', kind: 'environment', required: true }],
+    signals: [{ pattern: 'useEffect', kind: 'keyword', description: 'React hook' }],
+    exclusions: [{ description: 'Not for SSR', kind: 'platform' }],
+    evidence: [{ kind: 'documentation', identifier: 'react-docs', url: 'https://react.dev', note: 'Official docs' }],
+  };
+}
+
+// Helper to create a test maintenance meta
+function createTestMaintenanceMeta(): MaintenanceMetaRecord {
+  return {
+    maintainerUserId: 'user_maintainer_1',
+    maintainerHandle: 'maintainer_alice',
+    maintainerLevel: 5,
+    reviewBy: '2026-12-31T23:59:59.000Z',
+  };
+}
+
 describeIfDb('PgKnowledgeRepository', () => {
   let repository: PgKnowledgeRepository;
   let testPool: Pool;
@@ -122,6 +146,14 @@ describeIfDb('PgKnowledgeRepository', () => {
     await testPool.query("DELETE FROM knowledge_entries WHERE id LIKE 'knowledge_test_%'");
     await testPool.query("DELETE FROM knowledge_revisions WHERE entry_id LIKE 'knowledge_test_%'");
     await testPool.query("DELETE FROM lifecycle_events WHERE entry_id LIKE 'knowledge_test_%'");
+    await testPool.query("DELETE FROM knowledge_labels WHERE entry_id LIKE 'knowledge_test_%'");
+    await testPool.query("DELETE FROM knowledge_boundary_contexts WHERE entry_id LIKE 'knowledge_test_%'");
+    await testPool.query("DELETE FROM knowledge_boundary_versions WHERE entry_id LIKE 'knowledge_test_%'");
+    await testPool.query("DELETE FROM knowledge_boundary_prerequisites WHERE entry_id LIKE 'knowledge_test_%'");
+    await testPool.query("DELETE FROM knowledge_boundary_signals WHERE entry_id LIKE 'knowledge_test_%'");
+    await testPool.query("DELETE FROM knowledge_boundary_exclusions WHERE entry_id LIKE 'knowledge_test_%'");
+    await testPool.query("DELETE FROM knowledge_boundary_evidence WHERE entry_id LIKE 'knowledge_test_%'");
+    await testPool.query("DELETE FROM knowledge_maintenance_assignments WHERE entry_id LIKE 'knowledge_test_%'");
   });
 
   describe('nextId()', () => {
@@ -390,6 +422,186 @@ describeIfDb('PgKnowledgeRepository', () => {
 
       const retrieved = await repository.getById('knowledge_test_gov_2');
       expect(retrieved!.requiredLevel).toBe(5);
+    });
+  });
+
+  describe('label filtering (Round 3)', () => {
+    it('should filter by single label', async () => {
+      await repository.insert(
+        createTestEntry({
+          id: 'knowledge_test_label_1',
+          labels: ['postgres', 'migration'],
+        }),
+      );
+      await repository.insert(
+        createTestEntry({
+          id: 'knowledge_test_label_2',
+          labels: ['react', 'frontend'],
+        }),
+      );
+
+      const results = await repository.listByFilter({ labels: ['postgres'] });
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      expect(results.every((e) => e.labels.includes('postgres'))).toBe(true);
+    });
+
+    it('should filter by multiple labels (AND semantics)', async () => {
+      await repository.insert(
+        createTestEntry({
+          id: 'knowledge_test_label_and_1',
+          labels: ['postgres', 'migration', 'locking'],
+        }),
+      );
+      await repository.insert(
+        createTestEntry({
+          id: 'knowledge_test_label_and_2',
+          labels: ['postgres', 'backup'],
+        }),
+      );
+
+      const results = await repository.listByFilter({ labels: ['postgres', 'migration'] });
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      expect(results.every((e) => e.labels.includes('postgres') && e.labels.includes('migration'))).toBe(true);
+    });
+
+    it('should combine label filter with other filters', async () => {
+      await repository.insert(
+        createTestEntry({
+          id: 'knowledge_test_label_combo_1',
+          labels: ['postgres'],
+          lifecycleState: 'approved',
+        }),
+      );
+      await repository.insert(
+        createTestEntry({
+          id: 'knowledge_test_label_combo_2',
+          labels: ['postgres'],
+          lifecycleState: 'submitted',
+        }),
+      );
+
+      const results = await repository.listByFilter({
+        labels: ['postgres'],
+        lifecycleState: 'approved',
+      });
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      expect(results.every((e) => e.labels.includes('postgres') && e.lifecycleState === 'approved')).toBe(true);
+    });
+  });
+
+  describe('boundary sub-tables (Round 3)', () => {
+    it('should insert and retrieve entry with boundary', async () => {
+      const entry = createTestEntry({
+        id: 'knowledge_test_boundary_1',
+        boundary: createTestBoundary(),
+      });
+      await repository.insert(entry);
+
+      const retrieved = await repository.getById('knowledge_test_boundary_1');
+
+      expect(retrieved).not.toBeNull();
+      expect(retrieved!.boundary).not.toBeNull();
+      expect(retrieved!.boundary!.context).toEqual(['frontend', 'production']);
+      expect(retrieved!.boundary!.versions).toHaveLength(1);
+      expect(retrieved!.boundary!.versions[0]!.package).toBe('react');
+      expect(retrieved!.boundary!.versions[0]!.range).toBe('>=18.0.0');
+      expect(retrieved!.boundary!.prerequisites).toHaveLength(1);
+      expect(retrieved!.boundary!.prerequisites[0]!.description).toBe('Node.js 18+');
+      expect(retrieved!.boundary!.signals).toHaveLength(1);
+      expect(retrieved!.boundary!.signals[0]!.pattern).toBe('useEffect');
+      expect(retrieved!.boundary!.exclusions).toHaveLength(1);
+      expect(retrieved!.boundary!.exclusions[0]!.description).toBe('Not for SSR');
+      expect(retrieved!.boundary!.evidence).toHaveLength(1);
+      expect(retrieved!.boundary!.evidence[0]!.identifier).toBe('react-docs');
+    });
+
+    it('should handle entry with null boundary', async () => {
+      const entry = createTestEntry({
+        id: 'knowledge_test_boundary_null_1',
+        boundary: null,
+      });
+      await repository.insert(entry);
+
+      const retrieved = await repository.getById('knowledge_test_boundary_null_1');
+
+      expect(retrieved).not.toBeNull();
+      expect(retrieved!.boundary).toBeNull();
+    });
+  });
+
+  describe('maintenance assignments (Round 3)', () => {
+    it('should insert and retrieve entry with maintenance meta', async () => {
+      const entry = createTestEntry({
+        id: 'knowledge_test_maint_1',
+        maintenanceMeta: createTestMaintenanceMeta(),
+      });
+      await repository.insert(entry);
+
+      const retrieved = await repository.getById('knowledge_test_maint_1');
+
+      expect(retrieved).not.toBeNull();
+      expect(retrieved!.maintenanceMeta).not.toBeNull();
+      expect(retrieved!.maintenanceMeta!.maintainerUserId).toBe('user_maintainer_1');
+      expect(retrieved!.maintenanceMeta!.maintainerHandle).toBe('maintainer_alice');
+      expect(retrieved!.maintenanceMeta!.maintainerLevel).toBe(5);
+      expect(retrieved!.maintenanceMeta!.reviewBy).toBe('2026-12-31T23:59:59.000Z');
+    });
+
+    it('should handle entry with null maintenance meta', async () => {
+      const entry = createTestEntry({
+        id: 'knowledge_test_maint_null_1',
+        maintenanceMeta: null,
+      });
+      await repository.insert(entry);
+
+      const retrieved = await repository.getById('knowledge_test_maint_null_1');
+
+      expect(retrieved).not.toBeNull();
+      expect(retrieved!.maintenanceMeta).toBeNull();
+    });
+  });
+
+  describe('CHECK constraints (Round 3)', () => {
+    it('should reject invalid scope value', async () => {
+      const entry = createTestEntry({
+        id: 'knowledge_test_check_scope_1',
+        scope: 'global' as 'global' | 'project',
+      });
+      // Insert valid entry first
+      await repository.insert(entry);
+
+      // Try to update with invalid scope directly via SQL
+      await expect(
+        testPool.query(
+          "UPDATE knowledge_entries SET scope = 'invalid' WHERE id = 'knowledge_test_check_scope_1'",
+        ),
+      ).rejects.toThrow();
+    });
+
+    it('should reject invalid lifecycle_state value', async () => {
+      const entry = createTestEntry({
+        id: 'knowledge_test_check_lifecycle_1',
+      });
+      await repository.insert(entry);
+
+      await expect(
+        testPool.query(
+          "UPDATE knowledge_entries SET lifecycle_state = 'invalid_state' WHERE id = 'knowledge_test_check_lifecycle_1'",
+        ),
+      ).rejects.toThrow();
+    });
+
+    it('should reject required_level out of range', async () => {
+      const entry = createTestEntry({
+        id: 'knowledge_test_check_level_1',
+      });
+      await repository.insert(entry);
+
+      await expect(
+        testPool.query(
+          "UPDATE knowledge_entries SET required_level = 11 WHERE id = 'knowledge_test_check_level_1'",
+        ),
+      ).rejects.toThrow();
     });
   });
 

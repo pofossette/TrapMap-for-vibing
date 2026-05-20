@@ -1,4 +1,5 @@
 import {
+  check,
   index,
   integer,
   jsonb,
@@ -9,6 +10,7 @@ import {
   uniqueIndex,
   vector,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 import type {
   AnalysisSnapshot,
@@ -259,6 +261,20 @@ export const knowledgeEntries = pgTable(
   (table) => [
     index('idx_knowledge_entries_lifecycle_state').on(table.lifecycleState),
     index('idx_knowledge_entries_team').on(table.teamId),
+    index('idx_knowledge_entries_scope_level').on(table.scope, table.requiredLevel),
+    index('idx_knowledge_entries_owner').on(table.ownerUserId),
+    check(
+      'ck_knowledge_entries_scope',
+      sql`${table.scope} IN ('global', 'project')`,
+    ),
+    check(
+      'ck_knowledge_entries_lifecycle_state',
+      sql`${table.lifecycleState} IN ('draft', 'submitted', 'agent-pass', 'agent-rejected', 'approved', 'rejected', 'deactivated')`,
+    ),
+    check(
+      'ck_knowledge_entries_required_level',
+      sql`${table.requiredLevel} >= 0 AND ${table.requiredLevel} <= 10`,
+    ),
   ],
 );
 
@@ -301,7 +317,10 @@ export const knowledgeRevisions = pgTable(
     /** Record creation timestamp */
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('idx_knowledge_revisions_entry').on(table.entryId)],
+  (table) => [
+    index('idx_knowledge_revisions_entry').on(table.entryId),
+    uniqueIndex('idx_knowledge_revisions_entry_revision').on(table.entryId, table.revision),
+  ],
 );
 
 /**
@@ -340,7 +359,198 @@ export const lifecycleEvents = pgTable(
     /** Optional note explaining the transition */
     note: text('note'),
   },
-  (table) => [index('idx_lifecycle_events_entry').on(table.entryId)],
+  (table) => [
+    index('idx_lifecycle_events_entry').on(table.entryId),
+    check(
+      'ck_lifecycle_events_type',
+      sql`${table.type} IN ('submitted', 'resubmitted', 'agent-reviewed', 'reviewer-approved', 'reviewer-rejected', 'updated', 'deactivated')`,
+    ),
+  ],
+);
+
+// =============================================================================
+// Knowledge Domain Sub-Tables (Round 3: Structural Refactoring)
+// =============================================================================
+
+/**
+ * Structured label storage for knowledge entries.
+ * Replaces JSONB labels array for queryable, indexable label filtering.
+ * Each row is one (entry, label) pair.
+ */
+export const knowledgeLabels = pgTable(
+  'knowledge_labels',
+  {
+    /** Reference to parent knowledge entry */
+    entryId: text('entry_id').notNull(),
+    /** Label value */
+    label: text('label').notNull(),
+    /** Record creation timestamp */
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('idx_knowledge_labels_entry_label').on(table.entryId, table.label),
+    index('idx_knowledge_labels_label').on(table.label),
+  ],
+);
+
+/**
+ * Boundary context labels for knowledge entries.
+ * Stores the situational context labels (e.g., 'frontend', 'production').
+ */
+export const knowledgeBoundaryContexts = pgTable(
+  'knowledge_boundary_contexts',
+  {
+    /** Internal primary key */
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    /** Reference to parent knowledge entry */
+    entryId: text('entry_id').notNull(),
+    /** Context label value */
+    contextValue: text('context_value').notNull(),
+    /** Record creation timestamp */
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_knowledge_boundary_contexts_entry').on(table.entryId),
+    uniqueIndex('idx_knowledge_boundary_contexts_entry_value').on(table.entryId, table.contextValue),
+  ],
+);
+
+/**
+ * Boundary version constraints for knowledge entries.
+ * Stores semver-compatible version ranges for tools and libraries.
+ */
+export const knowledgeBoundaryVersions = pgTable(
+  'knowledge_boundary_versions',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    entryId: text('entry_id').notNull(),
+    /** Package or tool name (e.g., 'react', 'node') */
+    packageName: text('package_name').notNull(),
+    /** Version range in semver-compatible syntax (e.g., '>=16.8.0') */
+    rangeValue: text('range_value').notNull(),
+    /** Optional note explaining the constraint */
+    note: text('note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_knowledge_boundary_versions_entry').on(table.entryId),
+  ],
+);
+
+/**
+ * Boundary prerequisites for knowledge entries.
+ * Stores conditions that must be satisfied before applying knowledge.
+ */
+export const knowledgeBoundaryPrerequisites = pgTable(
+  'knowledge_boundary_prerequisites',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    entryId: text('entry_id').notNull(),
+    /** Human-readable condition description */
+    description: text('description').notNull(),
+    /** Condition type: environment, permission, tool, configuration, other */
+    kind: text('kind'),
+    /** Whether this condition is required (default) or optional */
+    required: integer('required').notNull().default(1),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_knowledge_boundary_prerequisites_entry').on(table.entryId),
+  ],
+);
+
+/**
+ * Boundary signal matchers for knowledge entries.
+ * Stores patterns indicating knowledge relevance.
+ */
+export const knowledgeBoundarySignals = pgTable(
+  'knowledge_boundary_signals',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    entryId: text('entry_id').notNull(),
+    /** Pattern to match */
+    pattern: text('pattern').notNull(),
+    /** Pattern type: exact, keyword, regex, error-code, log-pattern */
+    kind: text('kind').notNull().default('keyword'),
+    /** Optional description of when this signal fires */
+    description: text('description'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_knowledge_boundary_signals_entry').on(table.entryId),
+  ],
+);
+
+/**
+ * Boundary exclusion rules for knowledge entries.
+ * Stores conditions that make knowledge NOT applicable.
+ */
+export const knowledgeBoundaryExclusions = pgTable(
+  'knowledge_boundary_exclusions',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    entryId: text('entry_id').notNull(),
+    /** Human-readable exclusion description */
+    description: text('description').notNull(),
+    /** Exclusion category: platform, version, context, configuration, other */
+    kind: text('kind'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_knowledge_boundary_exclusions_entry').on(table.entryId),
+  ],
+);
+
+/**
+ * Boundary evidence references for knowledge entries.
+ * Stores links to external sources that validate the boundary.
+ */
+export const knowledgeBoundaryEvidence = pgTable(
+  'knowledge_boundary_evidence',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    entryId: text('entry_id').notNull(),
+    /** Evidence source type: issue, incident, cve, documentation, test, commit, other */
+    kind: text('kind').notNull(),
+    /** Reference identifier (issue number, CVE ID, commit hash, etc.) */
+    identifier: text('identifier').notNull(),
+    /** Optional URL to the evidence source */
+    url: text('url'),
+    /** Optional note about relevance */
+    note: text('note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_knowledge_boundary_evidence_entry').on(table.entryId),
+  ],
+);
+
+/**
+ * Structured maintenance assignments for knowledge entries.
+ * Replaces JSONB maintenance_meta for queryable ownership and review tracking.
+ */
+export const knowledgeMaintenanceAssignments = pgTable(
+  'knowledge_maintenance_assignments',
+  {
+    /** Reference to parent knowledge entry (1:1 relationship) */
+    entryId: text('entry_id').primaryKey(),
+    /** Maintainer user ID (null if unassigned) */
+    maintainerUserId: text('maintainer_user_id'),
+    /** Maintainer handle for read-optimization */
+    maintainerHandle: text('maintainer_handle'),
+    /** Maintainer security level */
+    maintainerLevel: integer('maintainer_level'),
+    /** Review deadline (null if not set) */
+    reviewBy: timestamp('review_by', { withTimezone: true }),
+    /** Record creation timestamp */
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Record update timestamp */
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_knowledge_maintenance_assignments_maintainer').on(table.maintainerUserId),
+    index('idx_knowledge_maintenance_assignments_review_by').on(table.reviewBy),
+  ],
 );
 
 // =============================================================================

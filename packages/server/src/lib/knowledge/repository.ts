@@ -79,11 +79,13 @@ export interface KnowledgeRepository {
   /**
    * List entries by filter criteria.
    * Returns lightweight records without full revision history.
+   * Round 3: Supports label filtering (ALL labels must match).
    */
   listByFilter(filter: {
     lifecycleState?: LifecycleState;
     teamId?: string;
     ownerUserId?: string;
+    labels?: string[];
   }): Promise<KnowledgeRecord[]>;
 
   /**
@@ -166,6 +168,7 @@ export class InMemoryKnowledgeRepository implements KnowledgeRepository {
     lifecycleState?: LifecycleState;
     teamId?: string;
     ownerUserId?: string;
+    labels?: string[];
   }): Promise<KnowledgeRecord[]> {
     const data = await this.store.snapshot();
     return data.knowledgeEntries.filter((entry) => {
@@ -177,6 +180,11 @@ export class InMemoryKnowledgeRepository implements KnowledgeRepository {
       }
       if (filter.ownerUserId !== undefined && entry.ownerUserId !== filter.ownerUserId) {
         return false;
+      }
+      // Round 3: ALL labels must match (AND semantics)
+      if (filter.labels !== undefined && filter.labels.length > 0) {
+        const hasAllLabels = filter.labels.every((label) => entry.labels.includes(label));
+        if (!hasAllLabels) return false;
       }
       return true;
     });
