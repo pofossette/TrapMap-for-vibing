@@ -36,6 +36,13 @@
       "when": 1779310999610,
       "tag": "0004_round6_feedback_usage",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779315000000,
+      "tag": "0005_round7_retrieval_index_structural",
+      "breakpoints": true
     }
   ]
 }

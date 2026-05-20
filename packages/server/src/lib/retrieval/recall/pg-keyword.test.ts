@@ -2,11 +2,11 @@
  * Tests for PostgreSQL keyword recall (pg-keyword.ts).
  *
  * Covers:
- * - Token matching using JSONB array operators
+ * - Token matching using text[] overlap (&& operator)
  * - Field-weighted scoring (label > shortcut > detail)
  * - Team, scope, and security level filtering
  * - Feature flag support
- * - GIN index usage for fast token containment queries
+ * - GIN index usage for fast token overlap queries
  */
 
 import type { Pool } from 'pg';
@@ -53,22 +53,26 @@ async function insertTestKeyword(
   } = options;
 
   await testPool.query(
-    `INSERT INTO knowledge_keywords (id, entry_id, revision, content_hash, tokens, field_tokens, team_id, scope, required_level, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    `INSERT INTO knowledge_keywords (id, entry_id, revision, content_hash, tokens, field_tokens_shortcut, field_tokens_detail, field_tokens_labels, team_id, scope, required_level, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      ON CONFLICT (id) DO UPDATE SET
        tokens = $5,
-       field_tokens = $6,
-       team_id = $7,
-       scope = $8,
-       required_level = $9,
-       status = $10`,
+       field_tokens_shortcut = $6,
+       field_tokens_detail = $7,
+       field_tokens_labels = $8,
+       team_id = $9,
+       scope = $10,
+       required_level = $11,
+       status = $12`,
     [
       `entry_${entryId}_rev1`,
       entryId,
       1,
       'test_hash',
-      JSON.stringify(tokens),
-      JSON.stringify(fieldTokens),
+      tokens,
+      fieldTokens.shortcut,
+      fieldTokens.detail,
+      fieldTokens.labels,
       teamId,
       scope,
       requiredLevel,
@@ -449,20 +453,20 @@ describeIfDb('GIN index verification', () => {
     expect(result.rows[0]?.indexdef).toMatch(/USING gin/i);
   });
 
-  it('should use GIN index for token containment queries', async () => {
-    // Insert test data
+  it('should use GIN index for token overlap queries', async () => {
+    // Insert test data using text[] columns
     await testPool.query(
-      `INSERT INTO knowledge_keywords (id, entry_id, revision, content_hash, tokens, field_tokens, scope, required_level, status)
-       VALUES ('test_gin_idx_1', 'test_gin_idx_1', 1, 'hash', '["test", "gin", "index"]', '{"shortcut": [], "detail": [], "labels": []}', 'global', 0, 'synced')
-       ON CONFLICT (id) DO UPDATE SET tokens = '["test", "gin", "index"]'`,
+      `INSERT INTO knowledge_keywords (id, entry_id, revision, content_hash, tokens, field_tokens_shortcut, field_tokens_detail, field_tokens_labels, scope, required_level, status)
+       VALUES ('test_gin_idx_1', 'test_gin_idx_1', 1, 'hash', ARRAY['test', 'gin', 'index'], '{}', '{}', '{}', 'global', 0, 'synced')
+       ON CONFLICT (id) DO UPDATE SET tokens = ARRAY['test', 'gin', 'index']`,
     );
 
-    // Run EXPLAIN ANALYZE on the query
+    // Run EXPLAIN ANALYZE on the query using text[] overlap operator
     const result = await testPool.query(
       `EXPLAIN (FORMAT JSON)
        SELECT * FROM knowledge_keywords
        WHERE status = 'synced'
-       AND tokens::jsonb ?| ARRAY['test', 'gin']`,
+       AND tokens && ARRAY['test', 'gin']`,
     );
 
     const plan = result.rows[0]?.['QUERY PLAN']?.[0];
@@ -472,7 +476,6 @@ describeIfDb('GIN index verification', () => {
     await testPool.query("DELETE FROM knowledge_keywords WHERE entry_id = 'test_gin_idx_1'");
 
     // Check that the plan mentions GIN index usage or at least doesn't do a full seq scan
-    // In some cases with small datasets, PostgreSQL may choose a seq scan, but the index should exist
     expect(
       planStr.includes('idx_knowledge_keywords_tokens_gin') ||
         planStr.includes('Index Scan') ||

@@ -127,14 +127,16 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
       .select({
         entryId: knowledgeKeywords.entryId,
         tokens: knowledgeKeywords.tokens,
-        fieldTokens: knowledgeKeywords.fieldTokens,
+        fieldTokensShortcut: knowledgeKeywords.fieldTokensShortcut,
+        fieldTokensDetail: knowledgeKeywords.fieldTokensDetail,
+        fieldTokensLabels: knowledgeKeywords.fieldTokensLabels,
       })
       .from(knowledgeKeywords)
       .where(
         and(
           eq(knowledgeKeywords.status, 'synced'),
           teamFilter,
-          sql`${knowledgeKeywords.tokens}::jsonb ?| ${sql.raw(`ARRAY[${tokenArray}]`)}`,
+          sql`${knowledgeKeywords.tokens} && ${sql.raw(`ARRAY[${tokenArray}]::text[]`)}`,
         ),
       )
       .limit(maxMatches * 2);
@@ -162,10 +164,10 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
 
     // Process keyword results
     for (const r of keywordResults) {
-      const fieldTokens = r.fieldTokens as {
-        shortcut: string[];
-        detail: string[];
-        labels: string[];
+      const fieldTokens = {
+        shortcut: r.fieldTokensShortcut,
+        detail: r.fieldTokensDetail,
+        labels: r.fieldTokensLabels,
       };
       const sharedTokens: string[] = [];
 

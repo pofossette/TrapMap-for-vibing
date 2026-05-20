@@ -215,3 +215,16 @@ pnpm eval:retrieval --tier smoke --baseline ./reports/baseline.json
 **空结果预期不匹配始终失败** - 如果用例期望空结果但得到结果（或反之），这是硬性失败。
 
 **排序回归与基线比较** - 当提供基线时，排序漂移会被报告，但不会导致退出码 1，除非伴随治理泄漏或空结果不匹配。
+
+## 底层索引结构（Round 7）
+
+检索端点依赖以下 PostgreSQL 派生索引表，均通过迁移脚本 `0005_round7_retrieval_index_structural.sql` 管理：
+
+| 索引表 | 类型 | 用途 | 关键列 |
+|--------|------|------|--------|
+| `knowledge_embeddings` | pgvector HNSW | 语义相似性搜索 | `vector` (384维), `labels` (text[]) |
+| `knowledge_keywords` | text[] GIN | 关键词匹配 | `tokens` (text[]), `field_tokens_shortcut/detail/labels` (text[]) |
+| `knowledge_search_documents` | tsvector GIN | 全文检索 | `document` (tsvector), `labels` (text[]) |
+| `graph_index_documents` | JSONB | GraphRAG-lite 图检索 | `nodes` (jsonb), `edges` (jsonb) |
+
+所有索引表均为派生视图，不承载业务真相。索引同步通过 `PgVectorAdapter`、`PgKeywordAdapter` 和 `PgGraphIndexRepository` 完成，基于 `(entry_id, revision)` 唯一约束保证幂等性。同步状态通过 `status` 和 `last_error` 字段跟踪，支持失败重试和运维监控。

@@ -4,14 +4,22 @@
  * This module provides:
  * - GraphIndexRepository interface for graph document CRUD operations
  * - InMemoryGraphIndexRepository implementation using SkillShareerStore
+ * - PgGraphIndexRepository implementation using PostgreSQL
  * - Factory function for repository creation
  *
  * Phase: 100-02 (Store Repository Pattern)
  */
 
+import { and, eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import type { GraphIndexDocumentRecord } from '../indexing/graph-lite/documents.js';
+import type {
+  GraphEdgeRecord,
+  GraphIndexDocumentRecord,
+  GraphNodeRecord,
+} from '../indexing/graph-lite/documents.js';
+import { graphIndexDocuments } from '../persistence/schema.js';
 import type { SkillShareerStore } from '../store.js';
 
 /**
@@ -115,17 +123,150 @@ export class InMemoryGraphIndexRepository implements GraphIndexRepository {
 }
 
 /**
+ * PostgreSQL repository for graph index document persistence.
+ * Uses the graph_index_documents table with JSONB nodes/edges columns.
+ */
+export class PgGraphIndexRepository implements GraphIndexRepository {
+  private readonly db;
+
+  constructor(pool: Pool) {
+    this.db = drizzle(pool, { schema: { graphIndexDocuments } });
+  }
+
+  async insert(doc: GraphIndexDocumentRecord): Promise<void> {
+    await this.db.insert(graphIndexDocuments).values({
+      id: doc.id,
+      sourceType: doc.sourceType,
+      sourceId: doc.sourceId,
+      revision: doc.revision,
+      contentHash: doc.contentHash,
+      teamId: doc.teamId,
+      scope: doc.scope,
+      requiredLevel: doc.requiredLevel,
+      nodes: doc.nodes,
+      edges: doc.edges,
+      evidence: doc.evidence,
+      createdAt: new Date(doc.createdAt),
+      updatedAt: new Date(doc.updatedAt),
+    });
+  }
+
+  async getById(docId: string): Promise<GraphIndexDocumentRecord | null> {
+    const rows = await this.db
+      .select()
+      .from(graphIndexDocuments)
+      .where(eq(graphIndexDocuments.id, docId))
+      .limit(1);
+    if (rows.length === 0) return null;
+    return this.toRecord(rows[0]!);
+  }
+
+  async listBySource(sourceType: string, sourceId: string): Promise<GraphIndexDocumentRecord[]> {
+    const rows = await this.db
+      .select()
+      .from(graphIndexDocuments)
+      .where(
+        and(
+          eq(graphIndexDocuments.sourceType, sourceType),
+          eq(graphIndexDocuments.sourceId, sourceId),
+        ),
+      );
+    return rows.map((r) => this.toRecord(r));
+  }
+
+  async listAll(): Promise<GraphIndexDocumentRecord[]> {
+    const rows = await this.db.select().from(graphIndexDocuments);
+    return rows.map((r) => this.toRecord(r));
+  }
+
+  async upsert(doc: GraphIndexDocumentRecord): Promise<void> {
+    await this.db
+      .insert(graphIndexDocuments)
+      .values({
+        id: doc.id,
+        sourceType: doc.sourceType,
+        sourceId: doc.sourceId,
+        revision: doc.revision,
+        contentHash: doc.contentHash,
+        teamId: doc.teamId,
+        scope: doc.scope,
+        requiredLevel: doc.requiredLevel,
+        nodes: doc.nodes,
+        edges: doc.edges,
+        evidence: doc.evidence,
+        createdAt: new Date(doc.createdAt),
+        updatedAt: new Date(doc.updatedAt),
+      })
+      .onConflictDoUpdate({
+        target: graphIndexDocuments.id,
+        set: {
+          contentHash: doc.contentHash,
+          nodes: doc.nodes,
+          edges: doc.edges,
+          evidence: doc.evidence,
+          updatedAt: new Date(doc.updatedAt),
+        },
+      });
+  }
+
+  async remove(docId: string): Promise<void> {
+    await this.db.delete(graphIndexDocuments).where(eq(graphIndexDocuments.id, docId));
+  }
+
+  async removeBySource(sourceType: 'trap' | 'skill', sourceId: string): Promise<void> {
+    await this.db
+      .delete(graphIndexDocuments)
+      .where(
+        and(
+          eq(graphIndexDocuments.sourceType, sourceType),
+          eq(graphIndexDocuments.sourceId, sourceId),
+        ),
+      );
+  }
+
+  private toRecord(row: {
+    id: string;
+    sourceType: string;
+    sourceId: string;
+    revision: number;
+    contentHash: string;
+    teamId: string | null;
+    scope: string;
+    requiredLevel: number;
+    nodes: Array<{ id: string; kind: string; label: string; evidence: string }>;
+    edges: Array<{ id: string; sourceNodeId: string; targetNodeId: string; relationType: string; strength: string; evidence: string }>;
+    evidence: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }): GraphIndexDocumentRecord {
+    return {
+      id: row.id,
+      sourceType: row.sourceType as 'trap' | 'skill',
+      sourceId: row.sourceId,
+      revision: row.revision,
+      contentHash: row.contentHash,
+      teamId: row.teamId,
+      scope: row.scope as 'global' | 'project',
+      requiredLevel: row.requiredLevel,
+      nodes: row.nodes as unknown as GraphNodeRecord[],
+      edges: row.edges as unknown as GraphEdgeRecord[],
+      evidence: row.evidence,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+}
+
+/**
  * Factory function to create the appropriate GraphIndexRepository.
- * Returns InMemoryGraphIndexRepository (Pg implementation to be added in future phase).
+ * Returns PgGraphIndexRepository when a pool is available, InMemory otherwise.
  */
 export function createGraphIndexRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): GraphIndexRepository {
-  // TODO: When Pg implementation is added, use DualWrite pattern like KnowledgeRepository
-  // if (config.pool) {
-  //   const pgRepo = new PgGraphIndexRepository(config.pool);
-  //   return new DualWriteGraphIndexRepository(pgRepo, config.store);
-  // }
+  if (config.pool) {
+    return new PgGraphIndexRepository(config.pool);
+  }
   return new InMemoryGraphIndexRepository(config.store);
 }

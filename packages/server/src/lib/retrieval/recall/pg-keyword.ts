@@ -2,7 +2,7 @@
  * PostgreSQL keyword recall for lexical search.
  *
  * This module provides:
- * - Token-based matching using JSONB array containment
+ * - Token-based matching using text[] overlap (&& operator)
  * - Field-weighted scoring (label > shortcut > detail)
  * - Team, scope, and security level filtering
  * - Feature flag support for gradual rollout
@@ -95,15 +95,17 @@ export function createPgKeywordRecall(config: PgKeywordRecallConfig) {
     }
 
     // Check if ANY query token is in the tokens array
-    // Using JSONB containment: tokens::jsonb ?| array[...]
+    // Using text[] overlap: tokens && array[...]
     const tokenArray = queryTokens.map((t) => `'${t}'`).join(',');
-    conditions.push(sql`${knowledgeKeywords.tokens}::jsonb ?| ${sql.raw(`ARRAY[${tokenArray}]`)}`);
+    conditions.push(sql`${knowledgeKeywords.tokens} && ${sql.raw(`ARRAY[${tokenArray}]::text[]`)}`);
 
     const results = await db
       .select({
         entryId: knowledgeKeywords.entryId,
         tokens: knowledgeKeywords.tokens,
-        fieldTokens: knowledgeKeywords.fieldTokens,
+        fieldTokensShortcut: knowledgeKeywords.fieldTokensShortcut,
+        fieldTokensDetail: knowledgeKeywords.fieldTokensDetail,
+        fieldTokensLabels: knowledgeKeywords.fieldTokensLabels,
       })
       .from(knowledgeKeywords)
       .where(and(...conditions))
@@ -111,10 +113,10 @@ export function createPgKeywordRecall(config: PgKeywordRecallConfig) {
 
     // Score results based on token overlap
     const scored: KeywordRecallResult[] = results.map((r) => {
-      const fieldTokens = r.fieldTokens as {
-        shortcut: string[];
-        detail: string[];
-        labels: string[];
+      const fieldTokens = {
+        shortcut: r.fieldTokensShortcut,
+        detail: r.fieldTokensDetail,
+        labels: r.fieldTokensLabels,
       };
 
       const tokenMatches: TokenMatchDetail[] = [];

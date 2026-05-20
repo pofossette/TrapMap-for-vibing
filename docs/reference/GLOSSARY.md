@@ -93,8 +93,10 @@
 | `packages/server/src/routes/retrieval.ts:71` | Route | `POST /v1/retrieval/search` — v1 检索（接受 `mode` 参数） |
 | `packages/server/src/routes/retrieval.ts` | Route | `POST /v2/retrieval/search` — v2 检索（Capsule + Profile） |
 | `packages/server/src/routes/retrieval.ts` | Route | `POST /v3/retrieval/search` — v3 检索（graphPlan + Fallback） |
-| `packages/server/src/lib/persistence/schema.ts:57` | DB 表 (`knowledge_embeddings`) | 语义检索的向量索引 |
-| `packages/server/src/lib/persistence/schema.ts:96` | DB 表 (`knowledge_keywords`) | 关键词检索的词元索引 |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`knowledge_embeddings`) | 语义检索的向量索引（pgvector HNSW），labels 为 text[] |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`knowledge_keywords`) | 关键词检索的词元索引（text[] GIN），tokens 和 field_tokens_* 均为 text[] |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`knowledge_search_documents`) | 全文检索索引（tsvector GIN），Round 7 新增 |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`graph_index_documents`) | GraphRAG-lite 图索引持久化，Round 7 新增，替代 store_snapshot 内存存储 |
 
 ### Capsule（技能胶囊）
 

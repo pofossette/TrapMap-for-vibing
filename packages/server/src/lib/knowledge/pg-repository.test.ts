@@ -624,7 +624,7 @@ describeIfDb('PgKnowledgeRepository', () => {
           '[0.1, 0.2, 0.3]', // Minimal vector for test
           'global',
           0,
-          '[]',
+          '{}',
         ],
       );
 

@@ -73,11 +73,9 @@ export function createPgKeywordAdapter(config: PgKeywordAdapterConfig): IndexAda
 
         // Build keyword state from normalized document
         const tokens = document.tokens;
-        const fieldTokens = {
-          shortcut: tokens.filter((t) => document.shortcut.toLowerCase().includes(t)),
-          detail: tokens.filter((t) => document.detail.toLowerCase().includes(t)),
-          labels: tokens.filter((t) => document.labels.some((l) => l.toLowerCase().includes(t))),
-        };
+        const fieldTokensShortcut = tokens.filter((t) => document.shortcut.toLowerCase().includes(t));
+        const fieldTokensDetail = tokens.filter((t) => document.detail.toLowerCase().includes(t));
+        const fieldTokensLabels = tokens.filter((t) => document.labels.some((l) => l.toLowerCase().includes(t)));
 
         // Build primary key
         const id = `entry_${document.entryId}_rev${document.revision}`;
@@ -91,7 +89,9 @@ export function createPgKeywordAdapter(config: PgKeywordAdapterConfig): IndexAda
             revision: document.revision,
             contentHash: document.contentHash,
             tokens,
-            fieldTokens,
+            fieldTokensShortcut,
+            fieldTokensDetail,
+            fieldTokensLabels,
             teamId: document.teamId,
             scope: document.scope,
             requiredLevel: document.requiredLevel,
@@ -102,7 +102,9 @@ export function createPgKeywordAdapter(config: PgKeywordAdapterConfig): IndexAda
             set: {
               contentHash: document.contentHash,
               tokens,
-              fieldTokens,
+              fieldTokensShortcut,
+              fieldTokensDetail,
+              fieldTokensLabels,
               status: 'synced',
               updatedAt: new Date(),
             },
@@ -113,7 +115,7 @@ export function createPgKeywordAdapter(config: PgKeywordAdapterConfig): IndexAda
           success: true,
           error: null,
           performedWork: true,
-          payload: { tokens, fieldTokens },
+          payload: { tokens, fieldTokens: { shortcut: fieldTokensShortcut, detail: fieldTokensDetail, labels: fieldTokensLabels } },
         };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);

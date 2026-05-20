@@ -265,6 +265,8 @@ TRAPMAP_DATABASE_URL=postgresql://user:pass@localhost:5432/trapmap pnpm --filter
 | Usage Analytics | `src/lib/analytics/pg-repository.test.ts` | 使用统计写入、查询、归档 |
 | Candidates | `src/lib/candidates/pg-repository.test.ts` | 候选提交、分析、判重 |
 | Duplicates | `src/lib/duplicates/pg-repository.test.ts` | 重复检测 |
+| Keyword Recall | `src/lib/retrieval/recall/pg-keyword.test.ts` | 关键词检索：text[] 重叠匹配、字段权重评分、GIN 索引验证 |
+| Knowledge PG | `src/lib/knowledge/pg-repository.test.ts` | 知识条目 CRUD、标签过滤、约束验证 |
 
 ---
 

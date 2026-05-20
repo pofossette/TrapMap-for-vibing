@@ -79,7 +79,10 @@ TRAPMAP_DATABASE_URL=postgresql://user:pass@localhost:5432/trapmap
   - `usage_events` — 使用统计
   - `feedback_records` / `feedback_custom_answers` — 反馈结构化存储（Round 6）
   - `usage_events_daily_rollup` — 使用统计预聚合（Round 6）
-  - `knowledge_embeddings` / `knowledge_keywords` — 检索索引
+  - `knowledge_embeddings` — 向量索引（pgvector HNSW），labels 已从 JSONB 迁移为 `text[]`（Round 7）
+  - `knowledge_keywords` — 关键词索引，tokens 已从 JSONB 迁移为 `text[]`，field_tokens 拆为三列 `text[]`（Round 7）
+  - `knowledge_search_documents` — tsvector 全文检索索引（Round 7）
+  - `graph_index_documents` — GraphRAG-lite 图索引持久化（Round 7）
 - 连接池配置建议：
 
 | 参数 | 建议值 | 说明 |

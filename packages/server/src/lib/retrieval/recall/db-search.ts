@@ -151,17 +151,17 @@ export async function vectorSimilaritySearchWithStats(
   const vectorLiteral = formatVectorLiteral(queryVector);
 
   // Build the SQL query
-  // Note: We use a subquery to get shortcut and labels from knowledge_entries
-  // joined with knowledge_embeddings. If the join fails, we use placeholder values.
+  // Join with knowledge_entries to get shortcut and labels for metadata
   const query = `
     SELECT
       ke.entry_id,
       1 - (ke.vector <=> $${paramIndex}::vector) as similarity,
-      COALESCE(ke_shortcut, ke.entry_id) as shortcut,
-      COALESCE(ke_labels, '[]'::jsonb) as labels,
+      COALESCE(ke2.shortcut, ke.entry_id) as shortcut,
+      COALESCE(ke2.labels, '{}'::text[]) as labels,
       ke.scope,
       ke.required_level
     FROM knowledge_embeddings ke
+    LEFT JOIN knowledge_entries ke2 ON ke2.id = ke.entry_id
     WHERE ${conditions.join(' AND ')}
     ORDER BY ke.vector <=> $${paramIndex}::vector
     LIMIT $${paramIndex + 1}

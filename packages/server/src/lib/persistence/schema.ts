@@ -75,8 +75,8 @@ export const knowledgeEmbeddings = pgTable(
     scope: text('scope').notNull(),
     /** Required security level for access control */
     requiredLevel: integer('required_level').notNull().default(0),
-    /** Labels for filtering and boosting */
-    labels: jsonb('labels').notNull().$type<string[]>().default([]),
+    /** Labels for filtering and boosting — native text[] */
+    labels: text('labels').array().notNull().default([]),
     /** Sync status: 'synced' | 'failed' */
     status: text('status').notNull().default('synced'),
     /** Last error message if sync failed */
@@ -106,17 +106,14 @@ export const knowledgeKeywords = pgTable(
     revision: integer('revision').notNull(),
     /** SHA-256 hash of canonical text for change detection */
     contentHash: text('content_hash').notNull(),
-    /** Normalized tokens (lowercase, deduplicated) */
-    tokens: jsonb('tokens').notNull().$type<string[]>().default([]),
-    /** Per-field token sets for targeted matching with weights */
-    fieldTokens: jsonb('field_tokens')
-      .notNull()
-      .$type<{
-        shortcut: string[];
-        detail: string[];
-        labels: string[];
-      }>()
-      .default({ shortcut: [], detail: [], labels: [] }),
+    /** Normalized tokens (lowercase, deduplicated) — native text[] for GIN array overlap */
+    tokens: text('tokens').array().notNull().default([]),
+    /** Per-field token sets: shortcut field tokens */
+    fieldTokensShortcut: text('field_tokens_shortcut').array().notNull().default([]),
+    /** Per-field token sets: detail field tokens */
+    fieldTokensDetail: text('field_tokens_detail').array().notNull().default([]),
+    /** Per-field token sets: label field tokens */
+    fieldTokensLabels: text('field_tokens_labels').array().notNull().default([]),
     /** Team ID (null for global entries) */
     teamId: text('team_id'),
     /** Scope: 'global' or 'project' */
@@ -134,9 +131,98 @@ export const knowledgeKeywords = pgTable(
   },
   (table) => [
     uniqueIndex('knowledge_keywords_entry_revision_idx').on(table.entryId, table.revision),
-    // GIN index for fast JSONB array containment queries using ?| operator
-    // Enables O(log n) token matching vs O(n) sequential scan
+    // GIN index for fast text[] overlap queries using && operator
     index('idx_knowledge_keywords_tokens_gin').using('gin', table.tokens),
+  ],
+);
+
+/**
+ * Knowledge search documents for PostgreSQL full-text search using tsvector.
+ * Derived index table — not a source of business truth.
+ * Replaces keyword-level JSONB token matching with native tsvector ranking.
+ */
+export const knowledgeSearchDocuments = pgTable(
+  'knowledge_search_documents',
+  {
+    /** Reference to knowledge entry */
+    entryId: text('entry_id').notNull(),
+    /** Revision number for idempotent sync */
+    revisionNo: integer('revision_no').notNull(),
+    /** tsvector document for full-text search */
+    document: text('document').notNull(), // stored as tsvector via raw SQL
+    /** Lightweight label copy for array filtering */
+    labels: text('labels').array().notNull().default([]),
+    /** Sync status: 'synced' | 'stale' | 'failed' */
+    status: text('status').notNull().default('synced'),
+    /** Last error if sync failed */
+    lastError: text('last_error'),
+    /** When this document was last updated */
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('idx_knowledge_search_documents_entry_revision').on(table.entryId, table.revisionNo),
+  ],
+);
+
+/**
+ * Graph index documents for GraphRAG-lite persistence.
+ * Derived index table — not a source of business truth.
+ * Replaces in-memory JSONB store_snapshot.graphIndexDocuments.
+ */
+export const graphIndexDocuments = pgTable(
+  'graph_index_documents',
+  {
+    /** Unique document identifier (e.g., graphdoc_trap_knowledge_123_r1) */
+    id: text('id').primaryKey(),
+    /** Source type: 'trap' or 'skill' */
+    sourceType: text('source_type').notNull(),
+    /** Source entity identifier */
+    sourceId: text('source_id').notNull(),
+    /** Source revision number */
+    revision: integer('revision').notNull(),
+    /** SHA-256 hash of document content */
+    contentHash: text('content_hash').notNull(),
+    /** Team ID (null for global) */
+    teamId: text('team_id'),
+    /** Governance scope */
+    scope: text('scope').notNull(),
+    /** Required security level */
+    requiredLevel: integer('required_level').notNull().default(0),
+    /** Graph nodes (JSONB array of typed node records) */
+    nodes: jsonb('nodes').notNull().$type<Array<{
+      id: string;
+      kind: string;
+      label: string;
+      evidence: string;
+    }>>().default([]),
+    /** Graph edges (JSONB array of typed edge records) */
+    edges: jsonb('edges').notNull().$type<Array<{
+      id: string;
+      sourceNodeId: string;
+      targetNodeId: string;
+      relationType: string;
+      strength: string;
+      evidence: string;
+    }>>().default([]),
+    /** Human-readable evidence description */
+    evidence: text('evidence').notNull().default(''),
+    /** Record creation timestamp */
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Record update timestamp */
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_graph_index_documents_source').on(table.sourceType, table.sourceId),
+    uniqueIndex('idx_graph_index_documents_source_revision').on(table.sourceType, table.sourceId, table.revision),
+    index('idx_graph_index_documents_team').on(table.teamId),
+    check(
+      'ck_graph_index_documents_source_type',
+      sql`${table.sourceType} IN ('trap', 'skill')`,
+    ),
+    check(
+      'ck_graph_index_documents_scope',
+      sql`${table.scope} IN ('global', 'project')`,
+    ),
   ],
 );
 

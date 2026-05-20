@@ -721,17 +721,30 @@ Round 6 落地说明：
 - 检索与治理过滤链路可解释、可验证、可维护。
 
 要做的内容：
-- [ ] 评估 `knowledge_keywords.tokens`、`field_tokens` 的结构，优先改为 `text[]` 或 `tsvector`。
-- [ ] 评估 `labels`、边界字段在检索过程中的过滤与 boost 路径，改为更适合索引的结构。
-- [ ] 确认向量表、关键词表、图索引表与主领域表的同步机制和幂等约束。
-- [ ] 为索引回填、重建、失败重试建立明确状态字段和运维流程。
-- [ ] 避免检索索引与业务主表之间出现新的双真相问题。
+- [x] 评估 `knowledge_keywords.tokens`、`field_tokens` 的结构，优先改为 `text[]` 或 `tsvector`。
+- [x] 评估 `labels`、边界字段在检索过程中的过滤与 boost 路径，改为更适合索引的结构。
+- [x] 确认向量表、关键词表、图索引表与主领域表的同步机制和幂等约束。
+- [x] 为索引回填、重建、失败重试建立明确状态字段和运维流程。
+- [x] 避免检索索引与业务主表之间出现新的双真相问题。
 
 对应要求修改的文档：
-- [ ] `docs/reference/PERFORMANCE.md`
-- [ ] `docs/reference/DATA_MODEL.md`
-- [ ] `docs/operations/TESTING.md`
-- [ ] `evals/retrieval/README.md`
+- [x] `docs/reference/PERFORMANCE.md`
+- [x] `docs/reference/DATA_MODEL.md`
+- [x] `docs/operations/TESTING.md`
+- [x] `evals/retrieval/README.md`
+
+Round 7 落地说明：
+- `knowledge_keywords.tokens` 已从 `jsonb` 迁移为原生 `text[]` 类型，GIN 索引从 JSONB `?|` 操作符切换为 `&&`（数组重叠）操作符。
+- `knowledge_keywords.field_tokens` JSONB 列已拆为三个独立 `text[]` 列：`field_tokens_shortcut`、`field_tokens_detail`、`field_tokens_labels`，支持按字段独立索引和查询。
+- `knowledge_embeddings.labels` 已从 `jsonb` 迁移为 `text[]` 类型。
+- `PgKeywordAdapter` 和 `createPgKeywordRecall()` 已更新，写入和查询均使用新列结构。`PgCandidateRepository` 中的关键词匹配查询已同步更新。
+- `db-search.ts` 中的向量搜索查询已修复 `ke_shortcut`/`ke_labels` 列引用 bug，改为通过 `LEFT JOIN knowledge_entries` 获取元数据。
+- 新增 `knowledge_search_documents` 表，使用 `tsvector` 实现 PostgreSQL 原生全文检索，支持 `setweight` 加权（shortcut=A, detail=B, labels=C），包含 GIN 索引。初始数据从 `knowledge_entries` + `knowledge_labels` 回填。
+- 新增 `graph_index_documents` 表，替代 `store_snapshot.graphIndexDocuments` 内存存储，实现 `PgGraphIndexRepository`。图索引数据从 `store_snapshot` JSONB 回填。工厂函数 `createGraphIndexRepository` 在有 pool 时使用 PG 实现，否则回退到 InMemory。
+- 所有三个索引表（vector、keyword、graph）均具备 `(entry_id, revision)` 唯一约束保证幂等性，`status` 和 `last_error` 字段支持同步状态跟踪和失败重试。
+- 为 `knowledge_keywords` 和 `knowledge_embeddings` 补齐 `status` 字段索引，支持运维监控。
+- 迁移脚本 `0005_round7_retrieval_index_structural.sql` 包含 DDL 变更、数据迁移和回填逻辑。
+- 测试已更新：`pg-keyword.test.ts` 使用新列结构和 `&&` 操作符，`pg-repository.test.ts` 的 embedding labels 使用 text[] 格式。
 
 ## 轮次 8：约束、命名、索引与清理收尾
 
