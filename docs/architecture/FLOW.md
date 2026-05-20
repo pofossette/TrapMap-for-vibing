@@ -111,13 +111,13 @@ flowchart TB
     
     subgraph 查询验证["查询验证（Zod）"]
         Query["query: 必填，非空"]
-        Mode["mode: 'semantic' | 'hybrid' | 'graph-assisted'"]
+        Mode["mode: 'semantic' ／ 'hybrid' ／ 'graph-assisted'"]
         Limit["limit: 可选，默认 10"]
         Filter["filter: 可选"]
     end
     
     subgraph 认证上下文["认证上下文构建"]
-        Session["验证会话 cookie/token"]
+        VerifySession["验证会话 cookie/token"]
         LoadUser["加载用户实体及权限"]
         GetTeam["获取活动团队（如果有）"]
         GetLevel["获取用户安全等级"]
