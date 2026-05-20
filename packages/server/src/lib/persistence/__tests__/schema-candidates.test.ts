@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { candidates } from '../schema.js';
+import {
+  candidates,
+  candidateAnalyses,
+  candidateDuplicateCases,
+  candidateDuplicateMatches,
+  candidateManualResults,
+  candidateResolutionOutcomes,
+  entityLineage,
+} from '../schema.js';
 
 describe('candidates table schema', () => {
   it('exports a candidates pgTable with all required columns', () => {
@@ -33,8 +41,6 @@ describe('candidates table schema', () => {
   });
 
   it('uses snake_case column names for PostgreSQL compatibility', () => {
-    // Drizzle stores the actual column name in the column object
-    // These are the PostgreSQL column names (snake_case)
     expect(candidates.sourceType.name).toBe('source_type');
     expect(candidates.submittedBy.name).toBe('submitted_by');
     expect(candidates.teamId.name).toBe('team_id');
@@ -49,5 +55,164 @@ describe('candidates table schema', () => {
     expect(candidates.manualResult.name).toBe('manual_result');
     expect(candidates.createdAt.name).toBe('created_at');
     expect(candidates.updatedAt.name).toBe('updated_at');
+  });
+});
+
+describe('candidate sub-tables schema (Round 5)', () => {
+  describe('candidate_analyses', () => {
+    it('exports a candidateAnalyses pgTable', () => {
+      expect(candidateAnalyses).toBeDefined();
+      const columnNames = Object.keys(candidateAnalyses);
+      expect(columnNames).toContain('candidateId');
+      expect(columnNames).toContain('normalizedAt');
+      expect(columnNames).toContain('fingerprint');
+      expect(columnNames).toContain('keywords');
+      expect(columnNames).toContain('tokens');
+      expect(columnNames).toContain('createdAt');
+    });
+
+    it('has candidateId as primary key', () => {
+      expect(candidateAnalyses.candidateId.primary).toBe(true);
+    });
+
+    it('uses snake_case column names', () => {
+      expect(candidateAnalyses.candidateId.name).toBe('candidate_id');
+      expect(candidateAnalyses.normalizedAt.name).toBe('normalized_at');
+    });
+  });
+
+  describe('candidate_duplicate_cases', () => {
+    it('exports a candidateDuplicateCases pgTable', () => {
+      expect(candidateDuplicateCases).toBeDefined();
+      const columnNames = Object.keys(candidateDuplicateCases);
+      expect(columnNames).toContain('id');
+      expect(columnNames).toContain('candidateId');
+      expect(columnNames).toContain('detectedAt');
+      expect(columnNames).toContain('detectionVersion');
+      expect(columnNames).toContain('highestSimilarity');
+      expect(columnNames).toContain('hasExactDuplicate');
+      expect(columnNames).toContain('duplicateType');
+      expect(columnNames).toContain('createdAt');
+    });
+
+    it('has id as primary key', () => {
+      expect(candidateDuplicateCases.id.primary).toBe(true);
+    });
+
+    it('uses snake_case column names', () => {
+      expect(candidateDuplicateCases.candidateId.name).toBe('candidate_id');
+      expect(candidateDuplicateCases.detectedAt.name).toBe('detected_at');
+      expect(candidateDuplicateCases.detectionVersion.name).toBe('detection_version');
+      expect(candidateDuplicateCases.highestSimilarity.name).toBe('highest_similarity');
+      expect(candidateDuplicateCases.hasExactDuplicate.name).toBe('has_exact_duplicate');
+      expect(candidateDuplicateCases.duplicateType.name).toBe('duplicate_type');
+    });
+  });
+
+  describe('candidate_duplicate_matches', () => {
+    it('exports a candidateDuplicateMatches pgTable', () => {
+      expect(candidateDuplicateMatches).toBeDefined();
+      const columnNames = Object.keys(candidateDuplicateMatches);
+      expect(columnNames).toContain('id');
+      expect(columnNames).toContain('duplicateCaseId');
+      expect(columnNames).toContain('entityType');
+      expect(columnNames).toContain('entityId');
+      expect(columnNames).toContain('entityTitle');
+      expect(columnNames).toContain('similarityScore');
+      expect(columnNames).toContain('matchType');
+      expect(columnNames).toContain('sharedKeywords');
+      expect(columnNames).toContain('sharedTokens');
+      expect(columnNames).toContain('textOverlapPercent');
+    });
+
+    it('uses snake_case column names', () => {
+      expect(candidateDuplicateMatches.duplicateCaseId.name).toBe('duplicate_case_id');
+      expect(candidateDuplicateMatches.entityType.name).toBe('entity_type');
+      expect(candidateDuplicateMatches.entityId.name).toBe('entity_id');
+      expect(candidateDuplicateMatches.entityTitle.name).toBe('entity_title');
+      expect(candidateDuplicateMatches.similarityScore.name).toBe('similarity_score');
+      expect(candidateDuplicateMatches.matchType.name).toBe('match_type');
+      expect(candidateDuplicateMatches.sharedKeywords.name).toBe('shared_keywords');
+      expect(candidateDuplicateMatches.sharedTokens.name).toBe('shared_tokens');
+      expect(candidateDuplicateMatches.textOverlapPercent.name).toBe('text_overlap_percent');
+    });
+  });
+
+  describe('candidate_manual_results', () => {
+    it('exports a candidateManualResults pgTable', () => {
+      expect(candidateManualResults).toBeDefined();
+      const columnNames = Object.keys(candidateManualResults);
+      expect(columnNames).toContain('candidateId');
+      expect(columnNames).toContain('decision');
+      expect(columnNames).toContain('notes');
+      expect(columnNames).toContain('mergedWithEntityType');
+      expect(columnNames).toContain('mergedWithEntityId');
+      expect(columnNames).toContain('mergedWithEntityTitle');
+      expect(columnNames).toContain('submittedAt');
+      expect(columnNames).toContain('submittedBy');
+      expect(columnNames).toContain('createdAt');
+    });
+
+    it('has candidateId as primary key', () => {
+      expect(candidateManualResults.candidateId.primary).toBe(true);
+    });
+
+    it('uses snake_case column names', () => {
+      expect(candidateManualResults.candidateId.name).toBe('candidate_id');
+      expect(candidateManualResults.mergedWithEntityType.name).toBe('merged_with_entity_type');
+      expect(candidateManualResults.mergedWithEntityId.name).toBe('merged_with_entity_id');
+      expect(candidateManualResults.mergedWithEntityTitle.name).toBe('merged_with_entity_title');
+      expect(candidateManualResults.submittedAt.name).toBe('submitted_at');
+      expect(candidateManualResults.submittedBy.name).toBe('submitted_by');
+    });
+  });
+
+  describe('candidate_resolution_outcomes', () => {
+    it('exports a candidateResolutionOutcomes pgTable', () => {
+      expect(candidateResolutionOutcomes).toBeDefined();
+      const columnNames = Object.keys(candidateResolutionOutcomes);
+      expect(columnNames).toContain('candidateId');
+      expect(columnNames).toContain('decision');
+      expect(columnNames).toContain('publishedEntityId');
+      expect(columnNames).toContain('mergedIntoEntityId');
+      expect(columnNames).toContain('entityType');
+      expect(columnNames).toContain('resolvedAt');
+      expect(columnNames).toContain('resolvedBy');
+      expect(columnNames).toContain('notes');
+      expect(columnNames).toContain('createdAt');
+    });
+
+    it('has candidateId as primary key', () => {
+      expect(candidateResolutionOutcomes.candidateId.primary).toBe(true);
+    });
+  });
+
+  describe('entity_lineage', () => {
+    it('exports an entityLineage pgTable', () => {
+      expect(entityLineage).toBeDefined();
+      const columnNames = Object.keys(entityLineage);
+      expect(columnNames).toContain('id');
+      expect(columnNames).toContain('candidateId');
+      expect(columnNames).toContain('relationshipType');
+      expect(columnNames).toContain('sourceType');
+      expect(columnNames).toContain('sourceId');
+      expect(columnNames).toContain('targetType');
+      expect(columnNames).toContain('targetId');
+      expect(columnNames).toContain('createdAt');
+      expect(columnNames).toContain('notes');
+    });
+
+    it('has id as primary key', () => {
+      expect(entityLineage.id.primary).toBe(true);
+    });
+
+    it('uses snake_case column names', () => {
+      expect(entityLineage.candidateId.name).toBe('candidate_id');
+      expect(entityLineage.relationshipType.name).toBe('relationship_type');
+      expect(entityLineage.sourceType.name).toBe('source_type');
+      expect(entityLineage.sourceId.name).toBe('source_id');
+      expect(entityLineage.targetType.name).toBe('target_type');
+      expect(entityLineage.targetId.name).toBe('target_id');
+    });
   });
 });

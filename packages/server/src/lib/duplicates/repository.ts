@@ -9,6 +9,7 @@
  * Phase: 100-01 (Store Repository Pattern)
  */
 
+import { createRequire } from 'node:module';
 import type { Pool } from 'pg';
 
 import type { DuplicateCaseRecord, SkillShareerStore } from '../store.js';
@@ -85,16 +86,20 @@ export class InMemoryDuplicateRepository implements DuplicateRepository {
 
 /**
  * Factory function to create the appropriate DuplicateRepository.
- * Returns InMemoryDuplicateRepository (Pg implementation to be added in future phase).
+ * Returns PgDuplicateRepository when pool is available (Round 5: PG-only),
+ * InMemoryDuplicateRepository otherwise.
  */
 export function createDuplicateRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): DuplicateRepository {
-  // TODO: When Pg implementation is added, use DualWrite pattern like KnowledgeRepository
-  // if (config.pool) {
-  //   const pgRepo = new PgDuplicateRepository(config.pool);
-  //   return new DualWriteDuplicateRepository(pgRepo, config.store);
-  // }
+  if (config.pool) {
+    // Dynamic import to avoid loading pg module in test environments
+    const require = createRequire(import.meta.url);
+    const { PgDuplicateRepository } = require('./pg-repository.js') as {
+      PgDuplicateRepository: new (pool: Pool) => DuplicateRepository;
+    };
+    return new PgDuplicateRepository(config.pool);
+  }
   return new InMemoryDuplicateRepository(config.store);
 }

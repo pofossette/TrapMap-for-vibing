@@ -235,7 +235,10 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/candidates.ts:15-23` | Zod enum (`CandidateStatusSchema`) | 管道状态：`['received', 'queued', 'analyzing', 'duplicate_detected', 'ready_for_review', 'resolved', 'error']` |
 | `packages/contracts/src/domain/candidates.ts:167-212` | Zod schema (`CandidateSubmissionSchema`) | 完整记录：id, sourceType, submittedBy, status, originalPayload, analysisSnapshot, duplicateCase, manualResult, timestamps |
 | `packages/contracts/src/domain/candidates.ts:445` | TS 类型 (`CandidateSubmission`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema.ts:153-188` | DB 表 (`candidates`) | 行级持久化 |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`candidates`) | 行级持久化主表 |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`candidate_analyses`) | 结构化分析结果子表（Round 5） |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`candidate_manual_results`) | 结构化人工审核结果子表（Round 5） |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`candidate_resolution_outcomes`) | 解决结果子表（Round 5） |
 | `packages/server/src/lib/candidates/processor.ts` | Impl | `scheduleCandidateProcessing()`, `processCandidate()`, `processPendingCandidates()` |
 | `packages/server/src/routes/candidates.ts:104` | Route | `POST /v1/candidates` — 提交新候选 |
 | `packages/server/src/routes/candidates.ts:188` | Route | `GET /v1/candidates/:candidateId` — 查询状态 |
@@ -251,7 +254,10 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/candidates.ts:125-138` | Zod schema (`DuplicateMatchSchema`) | 单条匹配：entityType, entityId, entityTitle, similarityScore, matchType, overlapDetails |
 | `packages/contracts/src/domain/candidates.ts:144-161` | Zod schema (`DuplicateCaseSchema`) | 完整案例：id, candidateId, detectedAt, detectionVersion, matches[], highestSimilarity, hasExactDuplicate, duplicateType |
 | `packages/contracts/src/domain/candidates.ts:444` | TS 类型 (`DuplicateCase`) | 推断类型 |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`candidate_duplicate_cases`) | 判重主记录结构化表（Round 5） |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`candidate_duplicate_matches`) | 匹配详情行结构化表（Round 5） |
 | `packages/server/src/lib/candidates/pg-detector.ts` | Impl | `createPgDuplicateDetector()` — PostgreSQL 去重检测 |
+| `packages/server/src/lib/duplicates/pg-repository.ts` | Impl | `PgDuplicateRepository` — PG 判重案例 CRUD（Round 5） |
 | `packages/server/src/routes/candidates.ts:245` | Route | `GET /v1/duplicates` — 列表 |
 | `packages/server/src/routes/candidates.ts:259` | Route | `GET /v1/duplicates/:candidateId` — 查询 |
 | `packages/server/src/routes/candidates.ts:275` | Route | `GET /v1/duplicates/:candidateId/bundle` — 离线审核包 |
@@ -582,7 +588,9 @@ Round 0 冻结后的数据库演进约定：先定目标模型和命名规范，
 |------|------|------|
 | `packages/contracts/src/domain/candidates.ts:329-348` | Zod schema (`EntityLineageSchema`) | 记录：id, candidateId, relationshipType (`published_as`/`merged_into`), sourceType, sourceId, targetType, targetId, createdAt, notes |
 | `packages/contracts/src/domain/candidates.ts:358` | TS 类型 (`EntityLineage`) | 推断类型 |
-| `packages/server/src/lib/lineage/index.ts` | Impl | `createLineageRepository()`, `LineageRepository` 接口, `InMemoryLineageRepository` |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`entity_lineage`) | PostgreSQL 结构化表（Round 5），支持按候选、来源、目标三维度查询 |
+| `packages/server/src/lib/lineage/pg-repository.ts` | Impl | `PgLineageRepository` — PG 血缘 CRUD（Round 5） |
+| `packages/server/src/lib/lineage/index.ts` | Impl | `createLineageRepository()`, `LineageRepository` 接口 |
 
 ### Tool Profile（工具配置）
 

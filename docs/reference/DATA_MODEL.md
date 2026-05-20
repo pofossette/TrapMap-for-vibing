@@ -319,6 +319,8 @@ draft → submitted → agent-pass/agent-rejected
 | `retryCount` | number | 重试次数 |
 | `manualResult` | ManualResult? | 人工裁定结果 |
 
+> **Round 5 更新**：`analysisSnapshot`、`duplicateCase`（含 `matches[]`）、`manualResult` 已从 JSONB 列拆分为结构化子表（`candidate_analyses`、`candidate_duplicate_cases`、`candidate_duplicate_matches`、`candidate_manual_results`）。JSONB 列保留为读优化缓存，与结构化表同步。候选状态、来源类型已补齐 `CHECK` 约束。
+
 ### CandidateStatus（候选状态）
 
 ```
@@ -339,6 +341,24 @@ received → queued → analyzing → duplicate_detected / ready_for_review → 
 | `highestSimilarity` | number | 最高相似度 |
 | `hasExactDuplicate` | boolean | 是否有完全重复 |
 | `duplicateType` | `'exact' \| 'semantic' \| 'none'` | 重复类型 |
+
+> **Round 5 结构化子表**：`candidate_duplicate_cases` 存储判重主记录，`candidate_duplicate_matches` 存储匹配详情行。`highestSimilarity` 和 `similarityScore` 在数据库中以整数百分比（0-100）存储。
+
+### EntityLineage（实体血缘）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | EntityId | 唯一标识 |
+| `candidateId` | EntityId | 来源候选 |
+| `relationshipType` | `'published_as' \| 'merged_into'` | 血缘关系类型 |
+| `sourceType` | `'candidate' \| 'trap' \| 'skill'` | 来源实体类型 |
+| `sourceId` | EntityId | 来源实体 ID |
+| `targetType` | `'trap' \| 'skill'` | 目标实体类型 |
+| `targetId` | EntityId | 目标实体 ID |
+| `createdAt` | ISO8601 | 记录时间 |
+| `notes` | string? | 说明 |
+
+> **Round 5 更新**：`entity_lineage` 表已从 in-memory `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表，支持按来源、目标、候选三个维度查询。
 
 ---
 
@@ -451,7 +471,7 @@ active → review-due → stale → expired
 
 ---
 
-## 持久化架构（Round 2）
+## 持久化架构（Round 5）
 
 ### 当前状态
 
@@ -459,7 +479,9 @@ active → review-due → stale → expired
 |------|--------|--------|----------|
 | Knowledge | `KnowledgeRepository` (PG) | `PgKnowledgeRepository` | `knowledge_entries` / `knowledge_revisions` / `lifecycle_events` |
 | Artifact | `ArtifactRepository` (PG) | `PgArtifactRepository` | `skill_artifacts` / `artifact_revisions` / `artifact_lifecycle_events` |
-| Candidate | `CandidateRepository` (PG) | `PgCandidateRepository` | `candidates` |
+| Candidate | `CandidateRepository` (PG) | `PgCandidateRepository` | `candidates` + `candidate_analyses` / `candidate_duplicate_cases` / `candidate_duplicate_matches` / `candidate_manual_results` / `candidate_resolution_outcomes` |
+| Duplicate | `DuplicateRepository` (PG) | `PgDuplicateRepository` | `candidate_duplicate_cases` / `candidate_duplicate_matches` |
+| Lineage | `LineageRepository` (PG) | `PgLineageRepository` | `entity_lineage` |
 | Usage Analytics | `UsageAnalyticsRepository` (PG) | `PgUsageAnalyticsRepository` | `usage_events` |
 | User / Team / Session / AccessKey / Audit / Feedback 等 | InMemory repo → `store_snapshot` JSONB | InMemory repo → `store_snapshot` JSONB | `store_snapshot` (JSONB 单行) |
 

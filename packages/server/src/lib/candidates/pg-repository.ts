@@ -5,6 +5,10 @@
  * Each candidate is stored as a separate row, enabling concurrent operations
  * on different candidates without blocking the entire store_snapshot.
  *
+ * Round 5: Writes to structured sub-tables (candidate_analyses,
+ * candidate_duplicate_cases, candidate_duplicate_matches,
+ * candidate_manual_results) alongside JSONB columns for read-optimization.
+ *
  * Phase: 61 (WRITE-01)
  */
 
@@ -19,7 +23,13 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { candidates } from '../persistence/schema.js';
+import {
+  candidates,
+  candidateAnalyses,
+  candidateDuplicateCases,
+  candidateDuplicateMatches,
+  candidateManualResults,
+} from '../persistence/schema.js';
 import type { CandidateRepository } from './repository.js';
 import { createManualResultRecord } from './repository.js';
 
@@ -55,11 +65,23 @@ export class PgCandidateRepository implements CandidateRepository {
       retryCount: candidate.retryCount,
       manualResult: candidate.manualResult,
     });
+
+    // Write to structured sub-tables if data is present
+    if (candidate.analysisSnapshot) {
+      await this.writeAnalysisToSubTable(candidate.id, candidate.analysisSnapshot);
+    }
+    if (candidate.duplicateCase) {
+      await this.writeDuplicateCaseToSubTables(candidate.duplicateCase);
+    }
+    if (candidate.manualResult) {
+      await this.writeManualResultToSubTable(candidate.id, candidate.manualResult);
+    }
   }
 
   /**
    * Get a candidate by ID.
    * Returns null if not found.
+   * Reads structured data from sub-tables, falling back to JSONB columns.
    */
   async getById(candidateId: string): Promise<CandidateSubmission | null> {
     const result = await this.db
@@ -72,7 +94,21 @@ export class PgCandidateRepository implements CandidateRepository {
       return null;
     }
 
-    return rowToCandidateSubmission(result[0]! as DrizzleCandidateRow);
+    const row = result[0]! as DrizzleCandidateRow;
+    const submission = rowToCandidateSubmission(row);
+
+    // Enrich with structured sub-table data
+    const [analysis, duplicateCase, manualResult] = await Promise.all([
+      this.readAnalysisFromSubTable(candidateId),
+      this.readDuplicateCaseFromSubTables(candidateId),
+      this.readManualResultFromSubTable(candidateId),
+    ]);
+
+    if (analysis) submission.analysisSnapshot = analysis;
+    if (duplicateCase) submission.duplicateCase = duplicateCase;
+    if (manualResult) submission.manualResult = manualResult;
+
+    return submission;
   }
 
   /**
@@ -145,6 +181,7 @@ export class PgCandidateRepository implements CandidateRepository {
 
   /**
    * Attach analysis snapshot to candidate.
+   * Writes to both structured sub-table and JSONB column.
    */
   async attachAnalysis(candidateId: string, snapshot: AnalysisSnapshot): Promise<void> {
     const client = await this.pool.connect();
@@ -163,9 +200,28 @@ export class PgCandidateRepository implements CandidateRepository {
 
       const now = new Date().toISOString();
 
+      // Write to JSONB column (read-optimization cache)
       await client.query(
         'UPDATE candidates SET analysis_snapshot = $1, updated_at = $2 WHERE id = $3',
         [JSON.stringify(snapshot), now, candidateId],
+      );
+
+      // Write to structured sub-table
+      await client.query(
+        `INSERT INTO candidate_analyses (candidate_id, normalized_at, fingerprint, keywords, tokens)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (candidate_id) DO UPDATE SET
+           normalized_at = EXCLUDED.normalized_at,
+           fingerprint = EXCLUDED.fingerprint,
+           keywords = EXCLUDED.keywords,
+           tokens = EXCLUDED.tokens`,
+        [
+          candidateId,
+          snapshot.normalizedAt,
+          snapshot.fingerprint,
+          JSON.stringify(snapshot.keywords),
+          JSON.stringify(snapshot.tokens),
+        ],
       );
 
       await client.query('COMMIT');
@@ -179,6 +235,7 @@ export class PgCandidateRepository implements CandidateRepository {
 
   /**
    * Attach duplicate case to candidate.
+   * Writes to both structured sub-tables and JSONB column.
    */
   async attachDuplicateCase(candidateId: string, duplicateCase: DuplicateCase): Promise<void> {
     const client = await this.pool.connect();
@@ -197,10 +254,57 @@ export class PgCandidateRepository implements CandidateRepository {
 
       const now = new Date().toISOString();
 
+      // Write to JSONB column (read-optimization cache)
       await client.query(
         'UPDATE candidates SET duplicate_case = $1, updated_at = $2 WHERE id = $3',
         [JSON.stringify(duplicateCase), now, candidateId],
       );
+
+      // Write to structured sub-tables
+      await client.query(
+        `INSERT INTO candidate_duplicate_cases (id, candidate_id, detected_at, detection_version, highest_similarity, has_exact_duplicate, duplicate_type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (id) DO UPDATE SET
+           candidate_id = EXCLUDED.candidate_id,
+           detected_at = EXCLUDED.detected_at,
+           detection_version = EXCLUDED.detection_version,
+           highest_similarity = EXCLUDED.highest_similarity,
+           has_exact_duplicate = EXCLUDED.has_exact_duplicate,
+           duplicate_type = EXCLUDED.duplicate_type`,
+        [
+          duplicateCase.id,
+          candidateId,
+          duplicateCase.detectedAt,
+          duplicateCase.detectionVersion,
+          Math.round(duplicateCase.highestSimilarity * 100),
+          duplicateCase.hasExactDuplicate ? 1 : 0,
+          duplicateCase.duplicateType,
+        ],
+      );
+
+      // Delete existing matches and re-insert
+      await client.query(
+        'DELETE FROM candidate_duplicate_matches WHERE duplicate_case_id = $1',
+        [duplicateCase.id],
+      );
+
+      for (const match of duplicateCase.matches) {
+        await client.query(
+          `INSERT INTO candidate_duplicate_matches (duplicate_case_id, entity_type, entity_id, entity_title, similarity_score, match_type, shared_keywords, shared_tokens, text_overlap_percent)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [
+            duplicateCase.id,
+            match.entityType,
+            match.entityId,
+            match.entityTitle,
+            Math.round(match.similarityScore * 100),
+            match.matchType,
+            JSON.stringify(match.overlapDetails.sharedKeywords),
+            JSON.stringify(match.overlapDetails.sharedTokens),
+            match.overlapDetails.textOverlapPercent,
+          ],
+        );
+      }
 
       await client.query('COMMIT');
     } catch (e) {
@@ -213,6 +317,7 @@ export class PgCandidateRepository implements CandidateRepository {
 
   /**
    * Attach manual result from reviewer.
+   * Writes to both structured sub-table and JSONB column.
    */
   async attachManualResult(
     candidateId: string,
@@ -236,9 +341,34 @@ export class PgCandidateRepository implements CandidateRepository {
       const now = new Date().toISOString();
       const manualResult = createManualResultRecord(result, reviewedBy);
 
+      // Write to JSONB column (read-optimization cache)
       await client.query(
         'UPDATE candidates SET manual_result = $1, updated_at = $2 WHERE id = $3',
         [JSON.stringify(manualResult), now, candidateId],
+      );
+
+      // Write to structured sub-table
+      await client.query(
+        `INSERT INTO candidate_manual_results (candidate_id, decision, notes, merged_with_entity_type, merged_with_entity_id, merged_with_entity_title, submitted_at, submitted_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (candidate_id) DO UPDATE SET
+           decision = EXCLUDED.decision,
+           notes = EXCLUDED.notes,
+           merged_with_entity_type = EXCLUDED.merged_with_entity_type,
+           merged_with_entity_id = EXCLUDED.merged_with_entity_id,
+           merged_with_entity_title = EXCLUDED.merged_with_entity_title,
+           submitted_at = EXCLUDED.submitted_at,
+           submitted_by = EXCLUDED.submitted_by`,
+        [
+          candidateId,
+          manualResult.decision,
+          manualResult.notes,
+          manualResult.mergedWith?.entityType ?? null,
+          manualResult.mergedWith?.entityId ?? null,
+          manualResult.mergedWith?.entityTitle ?? null,
+          manualResult.submittedAt,
+          manualResult.submittedBy,
+        ],
       );
 
       await client.query('COMMIT');
@@ -291,6 +421,205 @@ export class PgCandidateRepository implements CandidateRepository {
     } finally {
       client.release();
     }
+  }
+
+  // =============================================================================
+  // Private helpers for structured sub-table I/O
+  // =============================================================================
+
+  private async writeAnalysisToSubTable(
+    candidateId: string,
+    snapshot: AnalysisSnapshot,
+  ): Promise<void> {
+    await this.db
+      .insert(candidateAnalyses)
+      .values({
+        candidateId,
+        normalizedAt: new Date(snapshot.normalizedAt),
+        fingerprint: snapshot.fingerprint,
+        keywords: snapshot.keywords,
+        tokens: snapshot.tokens,
+      })
+      .onConflictDoUpdate({
+        target: candidateAnalyses.candidateId,
+        set: {
+          normalizedAt: new Date(snapshot.normalizedAt),
+          fingerprint: snapshot.fingerprint,
+          keywords: snapshot.keywords,
+          tokens: snapshot.tokens,
+        },
+      });
+  }
+
+  private async writeDuplicateCaseToSubTables(duplicateCase: DuplicateCase): Promise<void> {
+    await this.db
+      .insert(candidateDuplicateCases)
+      .values({
+        id: duplicateCase.id,
+        candidateId: duplicateCase.candidateId,
+        detectedAt: new Date(duplicateCase.detectedAt),
+        detectionVersion: duplicateCase.detectionVersion,
+        highestSimilarity: Math.round(duplicateCase.highestSimilarity * 100),
+        hasExactDuplicate: duplicateCase.hasExactDuplicate ? 1 : 0,
+        duplicateType: duplicateCase.duplicateType,
+      })
+      .onConflictDoUpdate({
+        target: candidateDuplicateCases.id,
+        set: {
+          candidateId: duplicateCase.candidateId,
+          detectedAt: new Date(duplicateCase.detectedAt),
+          detectionVersion: duplicateCase.detectionVersion,
+          highestSimilarity: Math.round(duplicateCase.highestSimilarity * 100),
+          hasExactDuplicate: duplicateCase.hasExactDuplicate ? 1 : 0,
+          duplicateType: duplicateCase.duplicateType,
+        },
+      });
+
+    // Delete and re-insert matches
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        'DELETE FROM candidate_duplicate_matches WHERE duplicate_case_id = $1',
+        [duplicateCase.id],
+      );
+      for (const match of duplicateCase.matches) {
+        await client.query(
+          `INSERT INTO candidate_duplicate_matches (duplicate_case_id, entity_type, entity_id, entity_title, similarity_score, match_type, shared_keywords, shared_tokens, text_overlap_percent)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [
+            duplicateCase.id,
+            match.entityType,
+            match.entityId,
+            match.entityTitle,
+            Math.round(match.similarityScore * 100),
+            match.matchType,
+            JSON.stringify(match.overlapDetails.sharedKeywords),
+            JSON.stringify(match.overlapDetails.sharedTokens),
+            match.overlapDetails.textOverlapPercent,
+          ],
+        );
+      }
+    } finally {
+      client.release();
+    }
+  }
+
+  private async writeManualResultToSubTable(
+    candidateId: string,
+    manualResult: CandidateSubmission['manualResult'],
+  ): Promise<void> {
+    if (!manualResult) return;
+
+    await this.db
+      .insert(candidateManualResults)
+      .values({
+        candidateId,
+        decision: manualResult.decision,
+        notes: manualResult.notes,
+        mergedWithEntityType: manualResult.mergedWith?.entityType ?? null,
+        mergedWithEntityId: manualResult.mergedWith?.entityId ?? null,
+        mergedWithEntityTitle: manualResult.mergedWith?.entityTitle ?? null,
+        submittedAt: new Date(manualResult.submittedAt),
+        submittedBy: manualResult.submittedBy,
+      })
+      .onConflictDoUpdate({
+        target: candidateManualResults.candidateId,
+        set: {
+          decision: manualResult.decision,
+          notes: manualResult.notes,
+          mergedWithEntityType: manualResult.mergedWith?.entityType ?? null,
+          mergedWithEntityId: manualResult.mergedWith?.entityId ?? null,
+          mergedWithEntityTitle: manualResult.mergedWith?.entityTitle ?? null,
+          submittedAt: new Date(manualResult.submittedAt),
+          submittedBy: manualResult.submittedBy,
+        },
+      });
+  }
+
+  private async readAnalysisFromSubTable(
+    candidateId: string,
+  ): Promise<AnalysisSnapshot | null> {
+    const result = await this.db
+      .select()
+      .from(candidateAnalyses)
+      .where(eq(candidateAnalyses.candidateId, candidateId))
+      .limit(1);
+
+    if (result.length === 0) return null;
+    const row = result[0]!;
+    return {
+      normalizedAt: row.normalizedAt.toISOString(),
+      fingerprint: row.fingerprint,
+      keywords: row.keywords as string[],
+      tokens: row.tokens as string[],
+    };
+  }
+
+  private async readDuplicateCaseFromSubTables(
+    candidateId: string,
+  ): Promise<DuplicateCase | null> {
+    const caseResult = await this.db
+      .select()
+      .from(candidateDuplicateCases)
+      .where(eq(candidateDuplicateCases.candidateId, candidateId))
+      .limit(1);
+
+    if (caseResult.length === 0) return null;
+    const caseRow = caseResult[0]!;
+
+    const matchRows = await this.db
+      .select()
+      .from(candidateDuplicateMatches)
+      .where(eq(candidateDuplicateMatches.duplicateCaseId, caseRow.id));
+
+    return {
+      id: caseRow.id,
+      candidateId: caseRow.candidateId,
+      detectedAt: caseRow.detectedAt.toISOString(),
+      detectionVersion: caseRow.detectionVersion,
+      highestSimilarity: caseRow.highestSimilarity / 100,
+      hasExactDuplicate: caseRow.hasExactDuplicate === 1,
+      duplicateType: caseRow.duplicateType as 'exact' | 'semantic' | 'none',
+      matches: matchRows.map((m) => ({
+        entityType: m.entityType as 'trap' | 'skill',
+        entityId: m.entityId,
+        entityTitle: m.entityTitle,
+        similarityScore: m.similarityScore / 100,
+        matchType: m.matchType as 'exact' | 'high-overlap' | 'semantic-similar',
+        overlapDetails: {
+          sharedKeywords: m.sharedKeywords as string[],
+          sharedTokens: m.sharedTokens as string[],
+          textOverlapPercent: m.textOverlapPercent,
+        },
+      })),
+    };
+  }
+
+  private async readManualResultFromSubTable(
+    candidateId: string,
+  ): Promise<CandidateSubmission['manualResult'] | null> {
+    const result = await this.db
+      .select()
+      .from(candidateManualResults)
+      .where(eq(candidateManualResults.candidateId, candidateId))
+      .limit(1);
+
+    if (result.length === 0) return null;
+    const row = result[0]!;
+
+    return {
+      decision: row.decision as 'independent' | 'merged',
+      notes: row.notes,
+      mergedWith: row.mergedWithEntityType
+        ? {
+            entityType: row.mergedWithEntityType as 'trap' | 'skill',
+            entityId: row.mergedWithEntityId!,
+            entityTitle: row.mergedWithEntityTitle ?? undefined,
+          }
+        : undefined,
+      submittedAt: row.submittedAt.toISOString(),
+      submittedBy: row.submittedBy,
+    };
   }
 }
 

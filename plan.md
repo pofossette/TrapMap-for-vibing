@@ -662,18 +662,30 @@ Round 3 落地说明：
 - 不再以 JSONB 包裹整个候选状态机。
 
 要做的内容：
-- [ ] 将 `candidates.original_payload` 按 `trap/skill` 类型拆分结构，避免异构载荷长期混存。
-- [ ] 将 `analysis_snapshot` 拆为结构化分析结果表，支持按风险、状态、版本回查。
-- [ ] 将 `duplicate_case` 与 `matches[]` 拆为主从表，支持命中实体维度分析。
-- [ ] 将 `manual_result` 拆为人工处理结果表，与候选状态机关联。
-- [ ] 为候选状态流转补齐数据库级状态约束与必要审计字段。
-- [ ] 为候选、判重、发布结果与实体血缘建立清晰 FK 链路。
+- [x] 将 `candidates.original_payload` 按 `trap/skill` 类型拆分结构，避免异构载荷长期混存。
+- [x] 将 `analysis_snapshot` 拆为结构化分析结果表，支持按风险、状态、版本回查。
+- [x] 将 `duplicate_case` 与 `matches[]` 拆为主从表，支持命中实体维度分析。
+- [x] 将 `manual_result` 拆为人工处理结果表，与候选状态机关联。
+- [x] 为候选状态流转补齐数据库级状态约束与必要审计字段。
+- [x] 为候选、判重、发布结果与实体血缘建立清晰 FK 链路。
 
 对应要求修改的文档：
-- [ ] `docs/reference/DATA_MODEL.md`
-- [ ] `docs/reference/GLOSSARY.md`
-- [ ] `docs/reference/api-surface.md`
-- [ ] `docs/operations/TESTING.md`
+- [x] `docs/reference/DATA_MODEL.md`
+- [x] `docs/reference/GLOSSARY.md`
+- [x] `docs/reference/api-surface.md`
+- [x] `docs/operations/TESTING.md`
+
+Round 5 落地说明：
+- `candidate_analyses` 表已创建，`(candidate_id)` 主键，存储结构化分析结果（fingerprint、keywords、tokens）。`candidates.analysis_snapshot` JSONB 列保留为读优化缓存。
+- `candidate_duplicate_cases` 表已创建，`(id)` 主键，存储判重主记录。`candidate_duplicate_matches` 表存储匹配详情行，支持按实体类型、实体 ID 查询。`highestSimilarity` 和 `similarityScore` 以整数百分比（0-100）存储。`candidates.duplicate_case` JSONB 列保留为读优化缓存。
+- `candidate_manual_results` 表已创建，`(candidate_id)` 主键，存储人工审核结果。`candidates.manual_result` JSONB 列保留为读优化缓存。
+- `candidate_resolution_outcomes` 表已创建，存储候选解决结果。
+- `entity_lineage` 表已从 in-memory `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表，支持按候选、来源、目标三个维度查询。
+- `candidates` 表已补齐 `CHECK` 约束：`source_type IN ('trap', 'skill')`、`status` 限定为合法状态枚举。新增 `(source_type)` 索引。
+- `PgCandidateRepository` 已更新：`insert` 同步写入所有子表，`attachAnalysis`/`attachDuplicateCase`/`attachManualResult` 双写 JSONB 列和结构化表，`getById` 从子表读取结构化数据。
+- `PgDuplicateRepository` 和 `PgLineageRepository` 已创建，替换原 in-memory 实现。
+- 迁移脚本 `0003_round5_candidate_structural.sql` 包含 DDL 和从 JSONB 到结构化表的回填逻辑。
+- 测试已更新，覆盖新子表 schema 验证。
 
 ## 轮次 6：反馈与统计模块补齐 PostgreSQL 真表实现
 

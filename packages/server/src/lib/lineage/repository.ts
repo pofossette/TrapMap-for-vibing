@@ -9,6 +9,7 @@
  * Phase: 100-02 (Store Repository Pattern)
  */
 
+import { createRequire } from 'node:module';
 import type { Pool } from 'pg';
 
 import type { EntityLineageRecord, SkillShareerStore } from '../store.js';
@@ -81,16 +82,20 @@ export class InMemoryLineageRepository implements LineageRepository {
 
 /**
  * Factory function to create the appropriate LineageRepository.
- * Returns InMemoryLineageRepository (Pg implementation to be added in future phase).
+ * Returns PgLineageRepository when pool is available (Round 5: PG-only),
+ * InMemoryLineageRepository otherwise.
  */
 export function createLineageRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): LineageRepository {
-  // TODO: When Pg implementation is added, use DualWrite pattern like KnowledgeRepository
-  // if (config.pool) {
-  //   const pgRepo = new PgLineageRepository(config.pool);
-  //   return new DualWriteLineageRepository(pgRepo, config.store);
-  // }
+  if (config.pool) {
+    // Dynamic import to avoid loading pg module in test environments
+    const require = createRequire(import.meta.url);
+    const { PgLineageRepository } = require('./pg-repository.js') as {
+      PgLineageRepository: new (pool: Pool) => LineageRepository;
+    };
+    return new PgLineageRepository(config.pool);
+  }
   return new InMemoryLineageRepository(config.store);
 }
