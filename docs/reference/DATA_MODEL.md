@@ -2,6 +2,8 @@
 
 本文档描述 TrapMap 系统的核心数据实体及其关系。所有 Schema 定义位于 `packages/contracts/src/domain/`。
 
+> **Round 2 更新**：知识条目（knowledge）、技能工件（artifact）和候选提交（candidate）的核心读写路径已从单行 `store_snapshot` JSONB 切换为 PostgreSQL 结构化表。`DualWrite*Repository` 兼容层已删除，`store_snapshot` 仅保留为用户/团队/会话等尚未迁移域的运行时存储。知识序列化中的 `StoreData` 依赖已替换为 `UserLookupContext` 轻量接口。
+
 ## 实体概览
 
 ```
@@ -404,3 +406,27 @@ active → review-due → stale → expired
 | `domain/feedback.ts` | FeedbackEntry, FeedbackStatus, FeedbackBatchRequest |
 | `domain/decay.ts` | DecayMeta, DecayState, DecayConfig, BatchOperationRequest |
 | `domain/maintenance.ts` | MaintenanceMeta, MaintenanceAction, MaintenanceEntryListRequest |
+
+---
+
+## 持久化架构（Round 2）
+
+### 当前状态
+
+| 领域 | 读路径 | 写路径 | 存储后端 |
+|------|--------|--------|----------|
+| Knowledge | `KnowledgeRepository` (PG) | `PgKnowledgeRepository` | `knowledge_entries` / `knowledge_revisions` / `lifecycle_events` |
+| Artifact | `ArtifactRepository` (PG) | `PgArtifactRepository` | `skill_artifacts` / `artifact_revisions` / `artifact_lifecycle_events` |
+| Candidate | `CandidateRepository` (PG) | `PgCandidateRepository` | `candidates` |
+| Usage Analytics | `UsageAnalyticsRepository` (PG) | `PgUsageAnalyticsRepository` | `usage_events` |
+| User / Team / Session / AccessKey / Audit / Feedback 等 | InMemory repo → `store_snapshot` JSONB | InMemory repo → `store_snapshot` JSONB | `store_snapshot` (JSONB 单行) |
+
+### 已删除的兼容层
+
+- `DualWriteKnowledgeRepository` — Round 2 删除，知识写入仅走 PG
+- `DualWriteCandidateRepository` — Round 2 删除，候选写入仅走 PG
+- `DualWriteArtifactRepository` — 已为死代码，Round 2 清理
+
+### 子记录 ID 生成
+
+知识/工件/候选的子记录 ID（lifecycle event、submission、note 等）已从 `store.nextId(data, prefix)` 计数器模式改为 `randomUUID()`，消除对 `SkillShareerStore` 的同步依赖。

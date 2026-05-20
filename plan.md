@@ -582,10 +582,10 @@ limit 10;
 - [ ] 在全部模块切换完成后，删除 `store_snapshot` 表与相关实现（知识/工件/候选已迁移，用户/团队/会话等域仍需 JSONB，延后至各自轮次）。
 
 对应要求修改的文档：
-- [ ] `docs/reference/DATA_MODEL.md`
-- [ ] `docs/reference/api-surface.md`
-- [ ] `docs/reference/PERFORMANCE.md`
-- [ ] `docs/PACKAGES.md`
+- [x] `docs/reference/DATA_MODEL.md`
+- [x] `docs/reference/api-surface.md`
+- [x] `docs/reference/PERFORMANCE.md`
+- [x] `docs/PACKAGES.md`
 
 ## 轮次 3：知识域模型结构化改造
 

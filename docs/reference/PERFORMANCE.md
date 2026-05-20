@@ -63,6 +63,7 @@ AI_EMBEDDING_MODEL=text-embedding-3-large   # 更高质量，更高延迟
 - 适用场景：开发环境、小规模部署（< 1000 条目）
 - 优点：零配置、易于调试
 - 注意：大量条目时文件 IO 成为瓶颈
+- **Round 2**：知识/工件/候选的运行时读写不再走 JSONB 单行快照；JSON 文件存储仍用于用户/团队/会话等辅助域。`DualWrite*Repository` 影子写入已删除。
 
 ### PostgreSQL 存储（生产）
 
@@ -71,6 +72,12 @@ TRAPMAP_DATABASE_URL=postgresql://user:pass@localhost:5432/trapmap
 ```
 
 - 适用场景：生产环境、大规模部署
+- **Round 2**：以下表已投入使用并替代 `store_snapshot` JSONB 单行快照：
+  - `knowledge_entries` / `knowledge_revisions` / `lifecycle_events` — 知识条目结构化存储
+  - `skill_artifacts` / `artifact_revisions` / `artifact_lifecycle_events` — 技能工件结构化存储
+  - `candidates` — 候选提交行级存储
+  - `usage_events` — 使用统计
+  - `knowledge_embeddings` / `knowledge_keywords` — 检索索引
 - 连接池配置建议：
 
 | 参数 | 建议值 | 说明 |
