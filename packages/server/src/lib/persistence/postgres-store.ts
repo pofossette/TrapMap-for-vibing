@@ -17,8 +17,6 @@ import { createEmptyStoreData } from '../store.js';
  * for future relational decomposition and migration tooling.
  */
 export class PostgresStore implements SkillShareerStore {
-  private initialized = false;
-
   constructor(protected readonly pool: Pool) {}
 
   /**
@@ -30,7 +28,6 @@ export class PostgresStore implements SkillShareerStore {
   }
 
   async snapshot(): Promise<StoreData> {
-    await this.ensureSchema();
     const { rows } = await this.pool.query<{ data: StoreData | null }>(
       'SELECT data FROM store_snapshot WHERE key = $1',
       ['main'],
@@ -44,8 +41,6 @@ export class PostgresStore implements SkillShareerStore {
   }
 
   async transact<T>(mutator: (data: StoreData) => Promise<T> | T): Promise<T> {
-    await this.ensureSchema();
-
     // Use a database transaction with row-level locking to serialize writes
     const client = await this.pool.connect();
     try {
@@ -92,24 +87,5 @@ export class PostgresStore implements SkillShareerStore {
    */
   async close(): Promise<void> {
     await this.pool.end();
-  }
-
-  /**
-   * Lazily create the store_snapshot compatibility table.
-   * This legacy shim will be removed in Round 2 (store_snapshot elimination).
-   * The pgvector extension is now handled by the migration runner.
-   */
-  private async ensureSchema(): Promise<void> {
-    if (this.initialized) return;
-
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS store_snapshot (
-        key TEXT PRIMARY KEY DEFAULT 'main',
-        data JSONB NOT NULL,
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-      )
-    `);
-
-    this.initialized = true;
   }
 }

@@ -5,6 +5,7 @@
  * - snapshot() returns empty store data when no row exists
  * - snapshot() returns parsed data from store_snapshot row
  * - snapshot() handles null data field gracefully
+ * - snapshot() does not issue runtime DDL
  * - transact() success path (begin, lock, mutate, upsert, commit)
  * - transact() rolls back on error
  * - transact() handles rollback failure gracefully
@@ -167,6 +168,18 @@ describe('PostgresStore', () => {
 
       expect(result).toEqual(createEmptyStoreData());
     });
+
+    it('does not issue runtime DDL before reading', async () => {
+      const pool = createMockPool();
+      const store = new PostgresStore(pool as never);
+
+      await store.snapshot();
+
+      const poolCalls = pool.query.mock.calls.map((c: unknown[]) => c[0] as string);
+      expect(
+        poolCalls.some((sql) => sql.toUpperCase().includes('CREATE TABLE IF NOT EXISTS')),
+      ).toBe(false);
+    });
   });
 
   describe('transact', () => {
@@ -307,6 +320,21 @@ describe('PostgresStore', () => {
       });
 
       expect(result).toBe('async-result');
+    });
+
+    it('does not issue runtime DDL before transaction work', async () => {
+      const pool = createMockPool();
+      const store = new PostgresStore(pool as never);
+
+      await store.transact(() => 'ok');
+
+      const poolCalls = pool.query.mock.calls.map((c: unknown[]) => c[0] as string);
+      const clientCalls = pool._client.query.mock.calls.map((c: unknown[]) => c[0] as string);
+      expect(
+        [...poolCalls, ...clientCalls].some((sql) =>
+          sql.toUpperCase().includes('CREATE TABLE IF NOT EXISTS'),
+        ),
+      ).toBe(false);
     });
   });
 
