@@ -121,10 +121,6 @@ export function createAuditRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): AuditRepository {
-  // TODO: When Pg implementation is added, use DualWrite pattern like KnowledgeRepository
-  // if (config.pool) {
-  //   const pgRepo = new PgAuditRepository(config.pool);
-  //   return new DualWriteAuditRepository(pgRepo, config.store);
-  // }
+  // TODO[post-Round-8]: Add PgAuditRepository when audit domain migrates to structured tables.
   return new InMemoryAuditRepository(config.store);
 }

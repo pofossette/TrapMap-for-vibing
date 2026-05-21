@@ -83,7 +83,7 @@ export class PgArtifactRepository implements ArtifactRepository {
       for (const revision of artifact.history) {
         await client.query(
           `INSERT INTO artifact_revisions (
-            id, artifact_id, revision, source_hash, files, submitted_at,
+            id, artifact_id, revision_no, source_hash, files, submitted_at,
             submitted_by_user_id, script_descriptors, derived, created_at
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
@@ -106,7 +106,7 @@ export class PgArtifactRepository implements ArtifactRepository {
         await client.query(
           `INSERT INTO artifact_lifecycle_events (
             id, artifact_id, type, created_at, actor_user_id,
-            submission_id, revision, state, note
+            submission_id, revision_no, state, note
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
           [
             event.id,
@@ -149,7 +149,7 @@ export class PgArtifactRepository implements ArtifactRepository {
 
     // Query revisions
     const revisionsResult = await this.pool.query<DrizzleArtifactRevisionRow>(
-      'SELECT * FROM artifact_revisions WHERE artifact_id = $1 ORDER BY revision',
+      'SELECT * FROM artifact_revisions WHERE artifact_id = $1 ORDER BY revision_no',
       [artifactId],
     );
 
@@ -244,7 +244,7 @@ export class PgArtifactRepository implements ArtifactRepository {
       // Insert the revision
       await client.query(
         `INSERT INTO artifact_revisions (
-          id, artifact_id, revision, source_hash, files, submitted_at,
+          id, artifact_id, revision_no, source_hash, files, submitted_at,
           submitted_by_user_id, script_descriptors, derived, created_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
@@ -305,7 +305,7 @@ export class PgArtifactRepository implements ArtifactRepository {
 
       // Update the revision's derived column
       await client.query(
-        'UPDATE artifact_revisions SET derived = $1 WHERE artifact_id = $2 AND revision = $3',
+        'UPDATE artifact_revisions SET derived = $1 WHERE artifact_id = $2 AND revision_no = $3',
         [derived ? JSON.stringify(derived) : null, artifactId, revision],
       );
 
@@ -334,7 +334,7 @@ export class PgArtifactRepository implements ArtifactRepository {
     await this.pool.query(
       `INSERT INTO artifact_lifecycle_events (
         id, artifact_id, type, created_at, actor_user_id,
-        submission_id, revision, state, note
+        submission_id, revision_no, state, note
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         event.id,
@@ -597,7 +597,7 @@ interface ArtifactDerivedRow {
 interface DrizzleArtifactRevisionRow {
   id: string;
   artifact_id: string;
-  revision: number;
+  revision_no: number;
   source_hash: string;
   files: ArtifactRevisionFileRow[];
   submitted_at: Date;
@@ -624,7 +624,7 @@ interface DrizzleArtifactLifecycleEventRow {
   created_at: Date;
   actor_user_id: string | null;
   submission_id: string | null;
-  revision: number | null;
+  revision_no: number | null;
   state: LifecycleState;
   note: string | null;
 }
@@ -677,7 +677,7 @@ function rowToSkillArtifact(row: DrizzleSkillArtifactRow): SkillArtifactRecord {
  */
 function rowToArtifactRevision(row: DrizzleArtifactRevisionRow): SkillArtifactRevisionRecord {
   return {
-    revision: row.revision,
+    revision: row.revision_no,
     sourceHash: row.source_hash,
     files: row.files,
     submittedAt: row.submitted_at.toISOString(),
@@ -699,7 +699,7 @@ function rowToArtifactLifecycleEvent(
     createdAt: row.created_at.toISOString(),
     actorUserId: row.actor_user_id,
     submissionId: row.submission_id,
-    revision: row.revision,
+    revision: row.revision_no,
     state: row.state,
     note: row.note,
   };

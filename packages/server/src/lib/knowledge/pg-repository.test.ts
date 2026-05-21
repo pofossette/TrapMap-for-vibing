@@ -614,7 +614,7 @@ describeIfDb('PgKnowledgeRepository', () => {
 
       // Manually insert into knowledge_embeddings
       await testPool.query(
-        `INSERT INTO knowledge_embeddings (id, entry_id, revision, content_hash, vector, scope, required_level, labels)
+        `INSERT INTO knowledge_embeddings (id, entry_id, revision_no, content_hash, vector, scope, required_level, labels)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [
           `entry_${id}_rev1`,

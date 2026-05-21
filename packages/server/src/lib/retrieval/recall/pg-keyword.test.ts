@@ -53,7 +53,7 @@ async function insertTestKeyword(
   } = options;
 
   await testPool.query(
-    `INSERT INTO knowledge_keywords (id, entry_id, revision, content_hash, tokens, field_tokens_shortcut, field_tokens_detail, field_tokens_labels, team_id, scope, required_level, status)
+    `INSERT INTO knowledge_keywords (id, entry_id, revision_no, content_hash, tokens, field_tokens_shortcut, field_tokens_detail, field_tokens_labels, team_id, scope, required_level, status)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      ON CONFLICT (id) DO UPDATE SET
        tokens = $5,
@@ -456,7 +456,7 @@ describeIfDb('GIN index verification', () => {
   it('should use GIN index for token overlap queries', async () => {
     // Insert test data using text[] columns
     await testPool.query(
-      `INSERT INTO knowledge_keywords (id, entry_id, revision, content_hash, tokens, field_tokens_shortcut, field_tokens_detail, field_tokens_labels, scope, required_level, status)
+      `INSERT INTO knowledge_keywords (id, entry_id, revision_no, content_hash, tokens, field_tokens_shortcut, field_tokens_detail, field_tokens_labels, scope, required_level, status)
        VALUES ('test_gin_idx_1', 'test_gin_idx_1', 1, 'hash', ARRAY['test', 'gin', 'index'], '{}', '{}', '{}', 'global', 0, 'synced')
        ON CONFLICT (id) DO UPDATE SET tokens = ARRAY['test', 'gin', 'index']`,
     );

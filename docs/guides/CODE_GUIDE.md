@@ -117,8 +117,7 @@ lib/persistence/
 └── schema.ts         # Drizzle schema
 ```
 
-`SkillShareerStore` 是统一存储接口。`createSkillShareerStore()` 根据 `TRAPMAP_DATABASE_URL`
-选择 PostgreSQL，否则使用 JSON 文件存储。
+`SkillShareerStore` 是遗留存储接口，用于尚未迁移到 PostgreSQL 结构化表的域（用户、团队、成员、会话、访问密钥、审计）。核心业务域（知识、工件、候选、反馈、统计、检索索引）已直接通过各自的 `Pg*Repository` 访问 PostgreSQL。`createSkillShareerStore()` 根据 `TRAPMAP_DATABASE_URL` 选择 PostgreSQL，否则使用 JSON 文件存储。
 
 #### 检索管道 — `lib/retrieval/`
 

@@ -51,6 +51,8 @@ import { reviewDecisionRequestSchema } from '@trapmap/contracts';
 HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 
 > **Round 2 更新**：知识、工件、候选的持久化已迁移到 PostgreSQL 专用表。`DualWriteKnowledgeRepository`、`DualWriteCandidateRepository`、`DualWriteArtifactRepository` 已删除。路由层不再对 `store_snapshot` 进行业务读写（审查/衰减/维护等操作仍用于审计/索引等辅助目的，延后至各轮次处理）。
+>
+> **Round 8 更新**：命名规范已统一（`revision` → `revision_no`，`submitted_by` → `submitted_by_user_id`）。所有核心表已补齐外键约束。`store_snapshot` 仍用于用户、团队、成员、会话、访问密钥、审计等尚未结构化的域，这些域的迁移将在后续轮次完成。
 
 ### 持久化层
 

@@ -19,7 +19,7 @@ import type { DuplicateCase, DuplicateMatch } from '@trapmap/contracts';
 import type { ChatProvider } from '../ai/types.js';
 import { generateEmbedding } from '../embeddings.js';
 import { createDuplicateCaseId } from '../ids.js';
-import { knowledgeEmbeddings, knowledgeKeywords } from '../persistence/schema.js';
+import { knowledgeEmbeddings, knowledgeEntries, knowledgeKeywords } from '../persistence/schema.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
 import { nowIso } from '../store.js';
 import { judgeDuplicateWithLLM } from './llm-dedup.js';
@@ -112,11 +112,13 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
     const vectorResults = await db
       .select({
         entryId: knowledgeEmbeddings.entryId,
+        entryTitle: knowledgeEntries.shortcut,
         scope: knowledgeEmbeddings.scope,
         labels: knowledgeEmbeddings.labels,
         distance: sql<number>`(${knowledgeEmbeddings.vector} <=> ${sql.raw(`'${vectorLiteral}'::vector`)})`,
       })
       .from(knowledgeEmbeddings)
+      .innerJoin(knowledgeEntries, eq(knowledgeEmbeddings.entryId, knowledgeEntries.id))
       .where(and(eq(knowledgeEmbeddings.status, 'synced'), teamFilter))
       .orderBy(sql`${knowledgeEmbeddings.vector} <=> ${sql.raw(`'${vectorLiteral}'::vector`)}`)
       .limit(maxMatches * 2);
@@ -126,12 +128,14 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
     const keywordResults = await db
       .select({
         entryId: knowledgeKeywords.entryId,
+        entryTitle: knowledgeEntries.shortcut,
         tokens: knowledgeKeywords.tokens,
         fieldTokensShortcut: knowledgeKeywords.fieldTokensShortcut,
         fieldTokensDetail: knowledgeKeywords.fieldTokensDetail,
         fieldTokensLabels: knowledgeKeywords.fieldTokensLabels,
       })
       .from(knowledgeKeywords)
+      .innerJoin(knowledgeEntries, eq(knowledgeKeywords.entryId, knowledgeEntries.id))
       .where(
         and(
           eq(knowledgeKeywords.status, 'synced'),
@@ -141,13 +145,10 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
       )
       .limit(maxMatches * 2);
 
-    // Build entry map for title lookup (would need to fetch from store or join)
-    // For now, we'll use entryId as title placeholder - this needs refinement
-
     // Merge and score results
     const entryScores = new Map<
       string,
-      { vectorScore: number; keywordScore: number; sharedTokens: string[] }
+      { vectorScore: number; keywordScore: number; sharedTokens: string[]; title: string }
     >();
 
     // Process vector results
@@ -157,8 +158,10 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
         vectorScore: 0,
         keywordScore: 0,
         sharedTokens: [],
+        title: r.entryTitle,
       };
       existing.vectorScore = vectorScore;
+      existing.title = r.entryTitle;
       entryScores.set(r.entryId, existing);
     }
 
@@ -195,9 +198,11 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
         vectorScore: 0,
         keywordScore: 0,
         sharedTokens: [],
+        title: r.entryTitle,
       };
       existing.keywordScore = keywordScore;
       existing.sharedTokens = sharedTokens;
+      existing.title = r.entryTitle;
       entryScores.set(r.entryId, existing);
     }
 
@@ -215,7 +220,7 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
       matches.push({
         entityType: 'trap',
         entityId: entryId,
-        entityTitle: `Entry ${entryId}`, // TODO: Fetch actual title
+        entityTitle: scores.title ?? entryId,
         similarityScore: Math.round(hybridScore * 1000) / 1000,
         matchType,
         overlapDetails: {

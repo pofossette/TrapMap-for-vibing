@@ -57,7 +57,7 @@ export function createPgKeywordAdapter(config: PgKeywordAdapterConfig): IndexAda
           .where(
             and(
               eq(knowledgeKeywords.entryId, document.entryId),
-              eq(knowledgeKeywords.revision, document.revision),
+              eq(knowledgeKeywords.revisionNo, document.revision),
             ),
           )
           .limit(1);
@@ -86,7 +86,7 @@ export function createPgKeywordAdapter(config: PgKeywordAdapterConfig): IndexAda
           .values({
             id,
             entryId: document.entryId,
-            revision: document.revision,
+            revisionNo: document.revision,
             contentHash: document.contentHash,
             tokens,
             fieldTokensShortcut,
@@ -138,7 +138,7 @@ export function createPgKeywordAdapter(config: PgKeywordAdapterConfig): IndexAda
         .where(
           and(
             eq(knowledgeKeywords.entryId, ref.entryId),
-            eq(knowledgeKeywords.revision, ref.revision),
+            eq(knowledgeKeywords.revisionNo, ref.revision),
           ),
         );
     },

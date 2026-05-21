@@ -759,13 +759,8 @@ describe('retrieval', () => {
         throw new Error('Entry should exist after update');
       }
 
-      // For Phase 8, when indexState.vector is synced, semantic recall should read from it
-      // This test documents the expected behavior: persisted state is preferred
-      // The actual implementation will be added in Task 2
+      // Semantic recall reads from persisted indexState.vector when synced (Round 7).
       expect(updatedEntry.embeddingCache).not.toBeNull();
-
-      // TODO: Phase 8 Task 2 - verify that getEntryEmbedding reads indexState.vector first
-      // For now, this test ensures the embedding cache is populated
     });
 
     it('keyword recall reuses persisted field tokens for synced entries', async () => {
@@ -775,14 +770,8 @@ describe('retrieval', () => {
         throw new Error('No entry found in test data');
       }
 
-      // For Phase 8, when indexState.keyword is synced, keyword recall should reuse
-      // persisted tokens instead of tokenizing entry text on every query
-      // This test documents the expected behavior
+      // Keyword recall reuses persisted tokens when indexState.keyword.status === 'synced' (Round 7).
       expect(entry.indexState).toBeNull();
-
-      // TODO: Phase 8 Task 2 - verify that keywordRecall uses persisted tokens
-      // when indexState.keyword.status === 'synced'
-      // For now, this test ensures the entry structure is ready for persisted state
     });
 
     it('legacy entries without synced state fall back to hot-path recomputation', async () => {

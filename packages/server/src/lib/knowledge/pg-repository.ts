@@ -104,7 +104,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
       for (const revision of entry.history) {
         await client.query(
           `INSERT INTO knowledge_revisions (
-            id, entry_id, revision, submitted_at, submitted_by_user_id,
+            id, entry_id, revision_no, submitted_at, submitted_by_user_id,
             shortcut, detail, labels, review_notes, created_at
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
@@ -127,7 +127,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
         await client.query(
           `INSERT INTO lifecycle_events (
             id, entry_id, type, created_at, actor_user_id,
-            submission_id, revision, state, note
+            submission_id, revision_no, state, note
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
           [
             event.id,
@@ -200,7 +200,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
 
     // Query revisions
     const revisionsResult = await this.pool.query<DrizzleKnowledgeRevisionRow>(
-      'SELECT * FROM knowledge_revisions WHERE entry_id = $1 ORDER BY revision',
+      'SELECT * FROM knowledge_revisions WHERE entry_id = $1 ORDER BY revision_no',
       [entryId],
     );
 
@@ -322,7 +322,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
       // Insert the revision
       await client.query(
         `INSERT INTO knowledge_revisions (
-          id, entry_id, revision, submitted_at, submitted_by_user_id,
+          id, entry_id, revision_no, submitted_at, submitted_by_user_id,
           shortcut, detail, labels, review_notes, created_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
@@ -542,7 +542,7 @@ interface DrizzleKnowledgeEntryRow {
 interface DrizzleKnowledgeRevisionRow {
   id: string;
   entry_id: string;
-  revision: number;
+  revision_no: number;
   submitted_at: Date;
   submitted_by_user_id: string;
   shortcut: string;
@@ -575,7 +575,7 @@ interface DrizzleLifecycleEventRow {
   created_at: Date;
   actor_user_id: string | null;
   submission_id: string | null;
-  revision: number | null;
+  revision_no: number | null;
   state: LifecycleState;
   note: string | null;
 }
@@ -654,7 +654,7 @@ function rowToKnowledgeEntry(row: DrizzleKnowledgeEntryRow): KnowledgeRecord {
  */
 function rowToKnowledgeRevision(row: DrizzleKnowledgeRevisionRow): KnowledgeRevisionRecord {
   return {
-    revision: row.revision,
+    revision: row.revision_no,
     submittedAt: row.submitted_at.toISOString(),
     submittedByUserId: row.submitted_by_user_id,
     shortcut: row.shortcut,
@@ -674,7 +674,7 @@ function rowToLifecycleEvent(row: DrizzleLifecycleEventRow): KnowledgeLifecycleE
     createdAt: row.created_at.toISOString(),
     actorUserId: row.actor_user_id,
     submissionId: row.submission_id,
-    revision: row.revision,
+    revision: row.revision_no,
     state: row.state,
     note: row.note,
   };

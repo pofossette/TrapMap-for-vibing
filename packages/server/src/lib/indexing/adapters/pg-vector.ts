@@ -58,7 +58,7 @@ export function createPgVectorAdapter(config: PgVectorAdapterConfig): IndexAdapt
           .where(
             and(
               eq(knowledgeEmbeddings.entryId, document.entryId),
-              eq(knowledgeEmbeddings.revision, document.revision),
+              eq(knowledgeEmbeddings.revisionNo, document.revision),
             ),
           )
           .limit(1);
@@ -84,7 +84,7 @@ export function createPgVectorAdapter(config: PgVectorAdapterConfig): IndexAdapt
           .values({
             id,
             entryId: document.entryId,
-            revision: document.revision,
+            revisionNo: document.revision,
             contentHash: document.contentHash,
             vector,
             teamId: document.teamId,
@@ -135,7 +135,7 @@ export function createPgVectorAdapter(config: PgVectorAdapterConfig): IndexAdapt
         .where(
           and(
             eq(knowledgeEmbeddings.entryId, ref.entryId),
-            eq(knowledgeEmbeddings.revision, ref.revision),
+            eq(knowledgeEmbeddings.revisionNo, ref.revision),
           ),
         );
     },

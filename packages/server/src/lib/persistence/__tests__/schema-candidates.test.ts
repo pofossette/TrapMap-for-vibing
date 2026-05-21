@@ -19,7 +19,7 @@ describe('candidates table schema', () => {
     const columnNames = Object.keys(candidates);
     expect(columnNames).toContain('id');
     expect(columnNames).toContain('sourceType');
-    expect(columnNames).toContain('submittedBy');
+    expect(columnNames).toContain('submittedByUserId');
     expect(columnNames).toContain('teamId');
     expect(columnNames).toContain('status');
     expect(columnNames).toContain('originalPayload');
@@ -42,7 +42,7 @@ describe('candidates table schema', () => {
 
   it('uses snake_case column names for PostgreSQL compatibility', () => {
     expect(candidates.sourceType.name).toBe('source_type');
-    expect(candidates.submittedBy.name).toBe('submitted_by');
+    expect(candidates.submittedByUserId.name).toBe('submitted_by_user_id');
     expect(candidates.teamId.name).toBe('team_id');
     expect(candidates.analysisSnapshot.name).toBe('analysis_snapshot');
     expect(candidates.duplicateCase.name).toBe('duplicate_case');
@@ -149,7 +149,7 @@ describe('candidate sub-tables schema (Round 5)', () => {
       expect(columnNames).toContain('mergedWithEntityId');
       expect(columnNames).toContain('mergedWithEntityTitle');
       expect(columnNames).toContain('submittedAt');
-      expect(columnNames).toContain('submittedBy');
+      expect(columnNames).toContain('submittedByUserId');
       expect(columnNames).toContain('createdAt');
     });
 
@@ -163,7 +163,7 @@ describe('candidate sub-tables schema (Round 5)', () => {
       expect(candidateManualResults.mergedWithEntityId.name).toBe('merged_with_entity_id');
       expect(candidateManualResults.mergedWithEntityTitle.name).toBe('merged_with_entity_title');
       expect(candidateManualResults.submittedAt.name).toBe('submitted_at');
-      expect(candidateManualResults.submittedBy.name).toBe('submitted_by');
+      expect(candidateManualResults.submittedByUserId.name).toBe('submitted_by_user_id');
     });
   });
 

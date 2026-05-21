@@ -535,6 +535,8 @@ Skill 工件的磁盘存储结构：
 | `packages/server/src/lib/persistence/postgres-store.ts:19` | TS 类 (`PostgresStore`) | 实现 `SkillShareerStore`，JSONB + 行级锁 |
 | `packages/server/src/lib/persistence/schema.ts:27-34` | DB 表 (`store_snapshot`) | 单行 JSONB 持久化：key='main', data=StoreData, updatedAt |
 
+> **Round 8 备注**：核心业务域（知识、工件、候选、反馈、统计、检索索引）已通过各自的 `Pg*Repository` 直接访问 PostgreSQL 结构化表。`PostgresStore` 仅用于尚未迁移的域（用户、团队、成员、会话、访问密钥、审计）。
+
 ### Single Source of Truth（唯一事实源）
 
 某一业务领域在运行时允许存在且只允许存在一个主事实写入目标。其他索引、缓存、导出和派生产物都不能反向成为业务真相来源。
@@ -549,7 +551,7 @@ Skill 工件的磁盘存储结构：
 
 ### DualWrite（双写兼容层）
 
-迁移期的兼容策略：同一业务操作同时写入 PostgreSQL 真表和旧快照/旧仓库，以支持逐步切换。该策略只允许短期存在，必须带明确删除轮次。
+迁移期的兼容策略：同一业务操作同时写入 PostgreSQL 真表和旧快照/旧仓库，以支持逐步切换。该策略只允许短期存在，必须带明确删除轮次。**Round 2 已全部删除，不再作为后续域迁移的策略。**
 
 | 位置 | 形式 | 说明 |
 |------|------|------|

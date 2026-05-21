@@ -51,7 +51,7 @@ export class PgCandidateRepository implements CandidateRepository {
     await this.db.insert(candidates).values({
       id: candidate.id,
       sourceType: candidate.sourceType,
-      submittedBy: candidate.submittedBy,
+      submittedByUserId: candidate.submittedBy,
       teamId: candidate.teamId,
       status: candidate.status,
       originalPayload: candidate.originalPayload,
@@ -349,7 +349,7 @@ export class PgCandidateRepository implements CandidateRepository {
 
       // Write to structured sub-table
       await client.query(
-        `INSERT INTO candidate_manual_results (candidate_id, decision, notes, merged_with_entity_type, merged_with_entity_id, merged_with_entity_title, submitted_at, submitted_by)
+        `INSERT INTO candidate_manual_results (candidate_id, decision, notes, merged_with_entity_type, merged_with_entity_id, merged_with_entity_title, submitted_at, submitted_by_user_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (candidate_id) DO UPDATE SET
            decision = EXCLUDED.decision,
@@ -358,7 +358,7 @@ export class PgCandidateRepository implements CandidateRepository {
            merged_with_entity_id = EXCLUDED.merged_with_entity_id,
            merged_with_entity_title = EXCLUDED.merged_with_entity_title,
            submitted_at = EXCLUDED.submitted_at,
-           submitted_by = EXCLUDED.submitted_by`,
+           submitted_by_user_id = EXCLUDED.submitted_by_user_id`,
         [
           candidateId,
           manualResult.decision,
@@ -520,7 +520,7 @@ export class PgCandidateRepository implements CandidateRepository {
         mergedWithEntityId: manualResult.mergedWith?.entityId ?? null,
         mergedWithEntityTitle: manualResult.mergedWith?.entityTitle ?? null,
         submittedAt: new Date(manualResult.submittedAt),
-        submittedBy: manualResult.submittedBy,
+        submittedByUserId: manualResult.submittedBy,
       })
       .onConflictDoUpdate({
         target: candidateManualResults.candidateId,
@@ -531,7 +531,7 @@ export class PgCandidateRepository implements CandidateRepository {
           mergedWithEntityId: manualResult.mergedWith?.entityId ?? null,
           mergedWithEntityTitle: manualResult.mergedWith?.entityTitle ?? null,
           submittedAt: new Date(manualResult.submittedAt),
-          submittedBy: manualResult.submittedBy,
+          submittedByUserId: manualResult.submittedBy,
         },
       });
   }
@@ -618,7 +618,7 @@ export class PgCandidateRepository implements CandidateRepository {
           }
         : undefined,
       submittedAt: row.submittedAt.toISOString(),
-      submittedBy: row.submittedBy,
+      submittedBy: row.submittedByUserId,
     };
   }
 }
@@ -634,7 +634,7 @@ export class PgCandidateRepository implements CandidateRepository {
 interface DrizzleCandidateRow {
   id: string;
   sourceType: string;
-  submittedBy: string;
+  submittedByUserId: string;
   teamId: string | null;
   status: string;
   originalPayload: CandidateSubmission['originalPayload'];
@@ -659,7 +659,7 @@ function rowToCandidateSubmission(row: DrizzleCandidateRow): CandidateSubmission
   return {
     id: row.id,
     sourceType: row.sourceType as 'trap' | 'skill',
-    submittedBy: row.submittedBy,
+    submittedBy: row.submittedByUserId,
     teamId: row.teamId,
     status: row.status as CandidateStatus,
     originalPayload: row.originalPayload,

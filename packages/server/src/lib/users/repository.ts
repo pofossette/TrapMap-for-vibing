@@ -93,10 +93,6 @@ export function createUserRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): UserRepository {
-  // TODO: When Pg implementation is added, use DualWrite pattern like KnowledgeRepository
-  // if (config.pool) {
-  //   const pgRepo = new PgUserRepository(config.pool);
-  //   return new DualWriteUserRepository(pgRepo, config.store);
-  // }
+  // TODO[post-Round-8]: Add PgUserRepository when users domain migrates to structured tables.
   return new InMemoryUserRepository(config.store);
 }

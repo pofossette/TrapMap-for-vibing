@@ -753,19 +753,32 @@ Round 7 落地说明：
 - 数据库设计达到“可长期维护”状态，而非“迁移刚能跑通”状态。
 
 要做的内容：
-- [ ] 补齐所有外键、唯一键、非空约束、检查约束、删除策略与更新策略。
-- [ ] 统一主键、业务 ID、版本号、时间戳、状态字段命名。
-- [ ] 删除已废弃的 repository、store shim、兼容分支与迁移期影子逻辑。
-- [ ] 清理已失效文档、注释、TODO、过时测试夹具与基于旧模型的辅助脚本。
-- [ ] 为关键表补充索引复查，确认无明显缺失、重复或冗余索引。
-- [ ] 为高频查询与后台任务明确读写路径与锁粒度，避免新设计留下并发隐患。
+- [x] 补齐所有外键、唯一键、非空约束、检查约束、删除策略与更新策略。
+- [x] 统一主键、业务 ID、版本号、时间戳、状态字段命名。
+- [x] 删除已废弃的 repository、store shim、兼容分支与迁移期影子逻辑。
+- [x] 清理已失效文档、注释、TODO、过时测试夹具与基于旧模型的辅助脚本。
+- [x] 为关键表补充索引复查，确认无明显缺失、重复或冗余索引。
+- [x] 为高频查询与后台任务明确读写路径与锁粒度，避免新设计留下并发隐患。
 
 对应要求修改的文档：
-- [ ] `README.md`
-- [ ] `docs/PACKAGES.md`
-- [ ] `docs/guides/CODE_GUIDE.md`
-- [ ] `docs/guides/CONTRIBUTING.md`
-- [ ] `docs/reference/GLOSSARY.md`
+- [x] `README.md`
+- [x] `docs/PACKAGES.md`
+- [x] `docs/guides/CODE_GUIDE.md`
+- [x] `docs/guides/CONTRIBUTING.md`
+- [x] `docs/reference/GLOSSARY.md`
+
+Round 8 落地说明：
+- 命名规范已统一：`revision` → `revision_no`（7 张表：knowledge_embeddings、knowledge_keywords、knowledge_revisions、lifecycle_events、artifact_revisions、artifact_lifecycle_events、graph_index_documents），`submitted_by` → `submitted_by_user_id`（2 张表：candidates、candidate_manual_results）。迁移脚本 `0006_round8_naming_constraints.sql` 包含所有列重命名和索引重命名。
+- 外键约束已补齐：knowledge_entries 的 13 张子表/关联表已添加 FK（派生索引表 ON DELETE CASCADE，历史表 ON DELETE RESTRICT）。candidates 的 5 张子表已添加 FK（ON DELETE CASCADE）。candidate_duplicate_matches → candidate_duplicate_cases、feedback_custom_answers → feedback_records 已添加 FK。
+- schema.ts 已同步修复：
+  - 5 个缺失索引已补齐（knowledge_embeddings.status、knowledge_keywords.status、knowledge_search_documents.entry_id、knowledge_search_documents.status）。
+  - knowledge_search_documents 已从 uniqueIndex 改为复合主键 primaryKey(entryId, revisionNo)。
+  - 所有索引名称已与迁移脚本对齐。
+- 6 处过时 DualWrite TODO 已更新为 `TODO[post-Round-8]` 标记，明确不再使用 DualWrite 策略。
+- pg-detector.ts 中的占位符 entityTitle 已修复为通过 JOIN knowledge_entries 获取实际标题。
+- artifact-graph.ts 的 TODO 已更新，说明 PgGraphIndexRepository 已可用。
+- retrieval.test.ts 中的 Phase 8 Task 2 TODO 已清理。
+- 文档已同步更新：PACKAGES.md（Round 8 备注）、CODE_GUIDE.md（SkillShareerStore 定位更新）、GLOSSARY.md（DualWrite 和 Postgres Store 条目更新）。
 
 ## 每轮次通用完成检查
 

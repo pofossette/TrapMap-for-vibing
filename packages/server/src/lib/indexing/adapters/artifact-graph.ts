@@ -18,9 +18,8 @@
 import type { ChatProvider } from '../../ai/types.js';
 import type { SkillArtifactRecord, StoreData } from '../../store.js';
 import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
-// TODO: When this adapter is wired to production, migrate to GraphIndexRepository
-// methods (listBySource, upsert, removeBySource). Currently uses sync store helpers
-// because the adapter is designed to run inside store.transact() callbacks.
+// Uses sync store helpers because the adapter runs inside store.transact() callbacks.
+// PgGraphIndexRepository is available (Round 7) for async paths.
 import {
   getGraphIndexDocuments,
   removeGraphIndexDocumentsForSource,

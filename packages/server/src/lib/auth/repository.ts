@@ -182,11 +182,7 @@ export function createSessionRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): SessionRepository {
-  // TODO: When Pg implementation is added, use DualWrite pattern like KnowledgeRepository
-  // if (config.pool) {
-  //   const pgRepo = new PgSessionRepository(config.pool);
-  //   return new DualWriteSessionRepository(pgRepo, config.store);
-  // }
+  // TODO[post-Round-8]: Add PgSessionRepository when sessions domain migrates to structured tables.
   return new InMemorySessionRepository(config.store);
 }
 
@@ -198,10 +194,6 @@ export function createAccessKeyRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): AccessKeyRepository {
-  // TODO: When Pg implementation is added, use DualWrite pattern like KnowledgeRepository
-  // if (config.pool) {
-  //   const pgRepo = new PgAccessKeyRepository(config.pool);
-  //   return new DualWriteAccessKeyRepository(pgRepo, config.store);
-  // }
+  // TODO[post-Round-8]: Add PgAccessKeyRepository when access keys domain migrates to structured tables.
   return new InMemoryAccessKeyRepository(config.store);
 }

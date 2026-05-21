@@ -138,7 +138,7 @@ export class PgGraphIndexRepository implements GraphIndexRepository {
       id: doc.id,
       sourceType: doc.sourceType,
       sourceId: doc.sourceId,
-      revision: doc.revision,
+      revisionNo: doc.revision,
       contentHash: doc.contentHash,
       teamId: doc.teamId,
       scope: doc.scope,
@@ -186,7 +186,7 @@ export class PgGraphIndexRepository implements GraphIndexRepository {
         id: doc.id,
         sourceType: doc.sourceType,
         sourceId: doc.sourceId,
-        revision: doc.revision,
+        revisionNo: doc.revision,
         contentHash: doc.contentHash,
         teamId: doc.teamId,
         scope: doc.scope,
@@ -228,7 +228,7 @@ export class PgGraphIndexRepository implements GraphIndexRepository {
     id: string;
     sourceType: string;
     sourceId: string;
-    revision: number;
+    revisionNo: number;
     contentHash: string;
     teamId: string | null;
     scope: string;
@@ -243,7 +243,7 @@ export class PgGraphIndexRepository implements GraphIndexRepository {
       id: row.id,
       sourceType: row.sourceType as 'trap' | 'skill',
       sourceId: row.sourceId,
-      revision: row.revision,
+      revision: row.revisionNo,
       contentHash: row.contentHash,
       teamId: row.teamId,
       scope: row.scope as 'global' | 'project',

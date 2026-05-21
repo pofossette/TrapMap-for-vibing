@@ -104,11 +104,9 @@ export function createTeamRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): TeamRepository {
-  // TODO: When Pg implementation is added, use DualWrite pattern like KnowledgeRepository
-  // if (config.pool) {
-  //   const pgRepo = new PgTeamRepository(config.pool);
-  //   return new DualWriteTeamRepository(pgRepo, config.store);
-  // }
+  // TODO[post-Round-8]: Add PgTeamRepository when teams domain migrates to structured tables.
+  // Per plan.md Round 2, DualWrite is no longer the migration strategy — use PG-only with
+  // one-time data backfill from store_snapshot instead.
   return new InMemoryTeamRepository(config.store);
 }
 
@@ -212,10 +210,6 @@ export function createMembershipRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): MembershipRepository {
-  // TODO: When Pg implementation is added, use DualWrite pattern like KnowledgeRepository
-  // if (config.pool) {
-  //   const pgRepo = new PgMembershipRepository(config.pool);
-  //   return new DualWriteMembershipRepository(pgRepo, config.store);
-  // }
+  // TODO[post-Round-8]: Add PgMembershipRepository when memberships domain migrates to structured tables.
   return new InMemoryMembershipRepository(config.store);
 }

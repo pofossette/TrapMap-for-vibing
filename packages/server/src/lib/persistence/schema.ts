@@ -5,6 +5,7 @@ import {
   jsonb,
   pgSequence,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -59,12 +60,12 @@ export const storeSnapshot = pgTable('store_snapshot', {
 export const knowledgeEmbeddings = pgTable(
   'knowledge_embeddings',
   {
-    /** Composite key: entry_{entryId}_rev{revision} */
+    /** Composite key: entry_{entryId}_rev{revisionNo} */
     id: text('id').primaryKey(),
     /** Foreign key reference to knowledge entry */
     entryId: text('entry_id').notNull(),
     /** Entry revision number for idempotency checks */
-    revision: integer('revision').notNull(),
+    revisionNo: integer('revision_no').notNull(),
     /** SHA-256 hash of canonical text for change detection */
     contentHash: text('content_hash').notNull(),
     /** Embedding vector (384 dimensions, compatible with fallback provider) */
@@ -87,7 +88,8 @@ export const knowledgeEmbeddings = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex('knowledge_embeddings_entry_revision_idx').on(table.entryId, table.revision),
+    uniqueIndex('knowledge_embeddings_entry_revision_no_idx').on(table.entryId, table.revisionNo),
+    index('idx_knowledge_embeddings_status').on(table.status),
   ],
 );
 
@@ -98,12 +100,12 @@ export const knowledgeEmbeddings = pgTable(
 export const knowledgeKeywords = pgTable(
   'knowledge_keywords',
   {
-    /** Composite key: entry_{entryId}_rev{revision} */
+    /** Composite key: entry_{entryId}_rev{revisionNo} */
     id: text('id').primaryKey(),
     /** Foreign key reference to knowledge entry */
     entryId: text('entry_id').notNull(),
     /** Entry revision number for idempotency checks */
-    revision: integer('revision').notNull(),
+    revisionNo: integer('revision_no').notNull(),
     /** SHA-256 hash of canonical text for change detection */
     contentHash: text('content_hash').notNull(),
     /** Normalized tokens (lowercase, deduplicated) — native text[] for GIN array overlap */
@@ -130,9 +132,10 @@ export const knowledgeKeywords = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex('knowledge_keywords_entry_revision_idx').on(table.entryId, table.revision),
+    uniqueIndex('knowledge_keywords_entry_revision_no_idx').on(table.entryId, table.revisionNo),
     // GIN index for fast text[] overlap queries using && operator
     index('idx_knowledge_keywords_tokens_gin').using('gin', table.tokens),
+    index('idx_knowledge_keywords_status').on(table.status),
   ],
 );
 
@@ -160,7 +163,12 @@ export const knowledgeSearchDocuments = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex('idx_knowledge_search_documents_entry_revision').on(table.entryId, table.revisionNo),
+    primaryKey({ columns: [table.entryId, table.revisionNo] }),
+    index('idx_knowledge_search_documents_entry').on(table.entryId),
+    index('idx_knowledge_search_documents_status').on(table.status),
+    // GIN index on tsvector document is created in migration 0005.
+    // Cannot be declared here because Drizzle schema uses text() for the column
+    // (tsvector has no native Drizzle type) and GIN on text is invalid.
   ],
 );
 
@@ -179,7 +187,7 @@ export const graphIndexDocuments = pgTable(
     /** Source entity identifier */
     sourceId: text('source_id').notNull(),
     /** Source revision number */
-    revision: integer('revision').notNull(),
+    revisionNo: integer('revision_no').notNull(),
     /** SHA-256 hash of document content */
     contentHash: text('content_hash').notNull(),
     /** Team ID (null for global) */
@@ -213,7 +221,7 @@ export const graphIndexDocuments = pgTable(
   },
   (table) => [
     index('idx_graph_index_documents_source').on(table.sourceType, table.sourceId),
-    uniqueIndex('idx_graph_index_documents_source_revision').on(table.sourceType, table.sourceId, table.revision),
+    uniqueIndex('idx_graph_index_documents_source_revision_no').on(table.sourceType, table.sourceId, table.revisionNo),
     index('idx_graph_index_documents_team').on(table.teamId),
     check(
       'ck_graph_index_documents_source_type',
@@ -246,7 +254,7 @@ export const candidates = pgTable(
     /** Source type: 'trap' or 'skill' */
     sourceType: text('source_type').notNull(),
     /** User who submitted this candidate */
-    submittedBy: text('submitted_by').notNull(),
+    submittedByUserId: text('submitted_by_user_id').notNull(),
     /** Team ID if team-scoped, null for global */
     teamId: text('team_id'),
     /** Current processing status */
@@ -420,7 +428,7 @@ export const candidateManualResults = pgTable(
     /** When the review was submitted */
     submittedAt: timestamp('submitted_at', { withTimezone: true }).notNull(),
     /** User who submitted the review */
-    submittedBy: text('submitted_by').notNull(),
+    submittedByUserId: text('submitted_by_user_id').notNull(),
     /** Record creation timestamp */
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -606,7 +614,7 @@ export const knowledgeRevisions = pgTable(
     /** Reference to parent knowledge entry */
     entryId: text('entry_id').notNull(),
     /** Monotonically increasing revision number */
-    revision: integer('revision').notNull(),
+    revisionNo: integer('revision_no').notNull(),
     /** When this revision was submitted */
     submittedAt: timestamp('submitted_at', { withTimezone: true }).notNull(),
     /** User who submitted this revision */
@@ -635,7 +643,7 @@ export const knowledgeRevisions = pgTable(
   },
   (table) => [
     index('idx_knowledge_revisions_entry').on(table.entryId),
-    uniqueIndex('idx_knowledge_revisions_entry_revision').on(table.entryId, table.revision),
+    uniqueIndex('idx_knowledge_revisions_entry_revision_no').on(table.entryId, table.revisionNo),
   ],
 );
 
@@ -669,7 +677,7 @@ export const lifecycleEvents = pgTable(
     /** Related submission ID if applicable */
     submissionId: text('submission_id'),
     /** Related revision number if applicable */
-    revision: integer('revision'),
+    revisionNo: integer('revision_no'),
     /** The lifecycle state after this event */
     state: text('state').notNull().$type<LifecycleState>(),
     /** Optional note explaining the transition */
@@ -952,7 +960,7 @@ export const artifactRevisions = pgTable(
     /** Reference to parent skill artifact */
     artifactId: text('artifact_id').notNull(),
     /** Monotonically increasing revision number */
-    revision: integer('revision').notNull(),
+    revisionNo: integer('revision_no').notNull(),
     /** SHA-256 hash of all source files for this revision */
     sourceHash: text('source_hash').notNull(),
     /** All files in the skill directory at this revision */
@@ -1042,7 +1050,7 @@ export const artifactRevisions = pgTable(
   },
   (table) => [
     index('idx_artifact_revisions_artifact').on(table.artifactId),
-    uniqueIndex('idx_artifact_revisions_artifact_revision').on(table.artifactId, table.revision),
+    uniqueIndex('idx_artifact_revisions_artifact_revision_no').on(table.artifactId, table.revisionNo),
   ],
 );
 
@@ -1076,7 +1084,7 @@ export const artifactLifecycleEvents = pgTable(
     /** Related submission ID if applicable */
     submissionId: text('submission_id'),
     /** Related revision number if applicable */
-    revision: integer('revision'),
+    revisionNo: integer('revision_no'),
     /** The lifecycle state after this event */
     state: text('state').notNull().$type<LifecycleState>(),
     /** Optional note explaining the transition */
