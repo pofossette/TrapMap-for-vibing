@@ -53,10 +53,20 @@ function classifyFile(relPath: string): {
   activationOnly: boolean;
 } {
   if (relPath === 'SKILL.md') {
-    return { kind: 'skill-markdown', source: 'SKILL.md', includeInDerivation: true, activationOnly: false };
+    return {
+      kind: 'skill-markdown',
+      source: 'SKILL.md',
+      includeInDerivation: true,
+      activationOnly: false,
+    };
   }
   if (relPath.startsWith('references/')) {
-    return { kind: 'reference', source: 'references/', includeInDerivation: true, activationOnly: false };
+    return {
+      kind: 'reference',
+      source: 'references/',
+      includeInDerivation: true,
+      activationOnly: false,
+    };
   }
   if (relPath.startsWith('assets/')) {
     return { kind: 'asset', source: 'assets/', includeInDerivation: false, activationOnly: true };
@@ -64,10 +74,15 @@ function classifyFile(relPath: string): {
   if (relPath.startsWith('scripts/')) {
     return { kind: 'script', source: 'scripts/', includeInDerivation: false, activationOnly: true };
   }
-  return { kind: 'reference', source: 'references/', includeInDerivation: true, activationOnly: false };
+  return {
+    kind: 'reference',
+    source: 'references/',
+    includeInDerivation: true,
+    activationOnly: false,
+  };
 }
 
-function collectFiles(dir: string, base: string = ''): Array<{ relPath: string; fullPath: string }> {
+function collectFiles(dir: string, base = ''): Array<{ relPath: string; fullPath: string }> {
   const results: Array<{ relPath: string; fullPath: string }> = [];
   for (const entry of readdirSync(dir)) {
     if (entry === 'meta.json' || entry === '.gitkeep') continue;

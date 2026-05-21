@@ -165,10 +165,9 @@ export class PgDuplicateRepository implements DuplicateRepository {
       }
 
       if (updates.matches !== undefined) {
-        await client.query(
-          'DELETE FROM candidate_duplicate_matches WHERE duplicate_case_id = $1',
-          [caseId],
-        );
+        await client.query('DELETE FROM candidate_duplicate_matches WHERE duplicate_case_id = $1', [
+          caseId,
+        ]);
         for (const match of updates.matches) {
           await client.query(
             `INSERT INTO candidate_duplicate_matches (duplicate_case_id, entity_type, entity_id, entity_title, similarity_score, match_type, shared_keywords, shared_tokens, text_overlap_percent)

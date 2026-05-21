@@ -7,7 +7,7 @@
  * Round 5: Structural Refactoring
  */
 
-import { eq, and } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
@@ -54,9 +54,7 @@ export class PgLineageRepository implements LineageRepository {
     const result = await this.db
       .select()
       .from(entityLineage)
-      .where(
-        and(eq(entityLineage.sourceType, sourceType), eq(entityLineage.sourceId, sourceId)),
-      );
+      .where(and(eq(entityLineage.sourceType, sourceType), eq(entityLineage.sourceId, sourceId)));
 
     return result.map(rowToEntityLineage);
   }
@@ -65,9 +63,7 @@ export class PgLineageRepository implements LineageRepository {
     const result = await this.db
       .select()
       .from(entityLineage)
-      .where(
-        and(eq(entityLineage.targetType, targetType), eq(entityLineage.targetId, targetId)),
-      );
+      .where(and(eq(entityLineage.targetType, targetType), eq(entityLineage.targetId, targetId)));
 
     return result.map(rowToEntityLineage);
   }

@@ -9,11 +9,11 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { eq, and, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { feedbackRecords, feedbackCustomAnswers } from '../persistence/schema.js';
+import { feedbackCustomAnswers, feedbackRecords } from '../persistence/schema.js';
 import type { FeedbackQueueRecord } from '../store.js';
 import type { FeedbackRepository } from './repository.js';
 
@@ -134,18 +134,17 @@ export class PgFeedbackRepository implements FeedbackRepository {
     if (updates.adminNotes !== undefined) setValues.adminNotes = updates.adminNotes;
     if (updates.resolvedAt !== undefined)
       setValues.resolvedAt = updates.resolvedAt ? new Date(updates.resolvedAt) : null;
-    if (updates.resolvedByUserId !== undefined) setValues.resolvedByUserId = updates.resolvedByUserId;
-    if (updates.triggeredTransition !== undefined) setValues.triggeredTransition = updates.triggeredTransition;
+    if (updates.resolvedByUserId !== undefined)
+      setValues.resolvedByUserId = updates.resolvedByUserId;
+    if (updates.triggeredTransition !== undefined)
+      setValues.triggeredTransition = updates.triggeredTransition;
     if (updates.description !== undefined) setValues.description = updates.description;
     if (updates.context !== undefined) setValues.context = updates.context;
     if (updates.querySeed !== undefined) setValues.querySeed = updates.querySeed;
 
     setValues.updatedAt = new Date();
 
-    await this.db
-      .update(feedbackRecords)
-      .set(setValues)
-      .where(eq(feedbackRecords.id, feedbackId));
+    await this.db.update(feedbackRecords).set(setValues).where(eq(feedbackRecords.id, feedbackId));
   }
 
   // ---------------------------------------------------------------------------
@@ -202,9 +201,7 @@ export class PgFeedbackRepository implements FeedbackRepository {
       answersByFeedbackId.set(ans.feedbackId, list);
     }
 
-    return rows.map((row) =>
-      rowToFeedbackRecord(row, answersByFeedbackId.get(row.id) ?? []),
-    );
+    return rows.map((row) => rowToFeedbackRecord(row, answersByFeedbackId.get(row.id) ?? []));
   }
 }
 

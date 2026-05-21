@@ -5,6 +5,8 @@
 > **路径前缀**：所有路径相对于项目根目录。
 >
 > **形式缩写**：`TS` = TypeScript 类型/接口，`Zod` = Zod schema，`DB` = PostgreSQL 表（Drizzle），`Route` = HTTP API 端点，`Impl` = 业务逻辑实现模块。
+>
+> **Round 4 更新**：知识域的 labels/boundary/maintenance 与 Skill Artifact 域的 metadata/files/script descriptors/profile/capsules/client manifest/boundary/maintenance/agent review 均已从“仅 JSONB 聚合”推进到“结构化 PostgreSQL 真表 + JSONB 兼容缓存”模式。见下文对应条目。
 
 ---
 
@@ -36,8 +38,12 @@
 | `packages/contracts/src/domain/artifacts.ts:395` | TS 类型 (`SkillArtifact`) | 推断类型，server 和 CLI 全局使用 |
 | `packages/contracts/src/domain/candidates.ts:29` | Zod enum (`z.literal('skill')`) | `CandidateSourceSchema` 中的判别值 |
 | `packages/contracts/src/domain/candidates.ts:79-82` | Zod schema (`SkillCandidatePayloadSchema`) | Skill 候选提交载荷：files, metadata |
-| `packages/server/src/lib/persistence/schema.ts:348-408` | DB 表 (`skill_artifacts`) | Skill 工件的行级持久化 |
-| `packages/server/src/lib/persistence/schema.ts:414` | DB 表 (`artifact_revisions`) | Skill 修订历史，含派生产物（Profile, Capsules, Manifest） |
+| `packages/server/src/lib/persistence/schema.ts:898-951` | DB 表 (`skill_artifacts`) | Skill 工件的行级持久化主表，保留 JSONB 缓存列 |
+| `packages/server/src/lib/persistence/schema.ts:954-1048` | DB 表 (`artifact_revisions`) | Skill 修订历史，保留 revision 级派生产物缓存 |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`skill_artifact_metadata`) | Skill 元数据结构化真表（source kind / submission counters / latest decision） |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`skill_artifact_files`, `skill_artifact_script_descriptors`) | 文件事实与脚本语义真表 |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`skill_artifact_profiles`, `skill_artifact_capsules`, `skill_artifact_client_manifests`, `skill_artifact_manifest_*`) | 派生产物结构化真表 |
+| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`skill_artifact_boundary_*`, `skill_artifact_maintenance_assignments`, `skill_artifact_agent_reviews`) | 工件治理结构化真表 |
 | `packages/server/src/routes/operations/artifacts-import.ts:136` | Route | `POST /v1/operations/artifacts/import` — 导入 Skill 工件 |
 | `packages/server/src/routes/operations/artifacts-export.ts:91` | Route | `POST /v1/operations/artifacts/export` — 导出 Skill 工件 |
 | `packages/server/src/routes/operations/artifacts-activate.ts:22` | Route | `POST /v1/operations/artifacts/activate` — 激活（下载）工件文件 |
@@ -50,12 +56,17 @@
 
 系统中可检索的知识单元，对应 `KnowledgeEntry` 数据实体。可能是 Trap 或经批准的 Skill。
 
+> **Round 3 结构化**：`knowledge_entries` 表已补齐 `CHECK` 约束（`scope`、`lifecycle_state`、`required_level`）。`labels`、`boundary`、`maintenance_meta` 的 JSONB 列保留为读优化缓存，对应结构化子表（见下方位置表）在写入时同步维护。
+
 | 位置 | 形式 | 说明 |
 |------|------|------|
 | `packages/contracts/src/domain/knowledge.ts:98-124` | Zod schema (`knowledgeEntrySchema`) | 聚合根定义：id, teamId, scope, labels, shortcut, detail, requiredLevel, lifecycleState, owner, latestRevision, history, metadata, agentReview, boundary, evidenceMeta, maintenanceMeta |
 | `packages/contracts/src/domain/knowledge.ts:191` | TS 类型 (`KnowledgeEntry`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema.ts:217-256` | DB 表 (`knowledge_entries`) | 行级持久化：id, teamId, scope, labels, shortcut, detail, requiredLevel, lifecycleState, ownerUserId, boundary, maintenanceMeta |
-| `packages/server/src/lib/persistence/schema.ts:262` | DB 表 (`knowledge_revisions`) | 修订历史 |
+| `packages/server/src/lib/persistence/schema.ts:551-603` | DB 表 (`knowledge_entries`) | 行级持久化主表，含 `CHECK` 约束和组合索引 |
+| `packages/server/src/lib/persistence/schema.ts:704-718` | DB 表 (`knowledge_labels`) | 标签结构化子表，`unique(entry_id, label)` |
+| `packages/server/src/lib/persistence/schema.ts:724-878` | DB 表 (`knowledge_boundary_*` ×6, `knowledge_maintenance_assignments`) | 边界六子表 + 维护分配表（Round 3） |
+| `packages/server/src/lib/persistence/schema.ts:610-648` | DB 表 (`knowledge_revisions`) | 版本历史，`unique(entry_id, revision_no)` |
+| `packages/server/src/lib/persistence/schema.ts:654-693` | DB 表 (`lifecycle_events`) | 生命周期事件，`type` 受 `CHECK` 约束 |
 | `packages/server/src/lib/store/types/knowledge-records.ts` | TS 接口 | JSON Store 的内存记录形态 |
 | `packages/server/src/routes/knowledge.ts:39` | Route | `POST /v1/knowledge` — 提交新条目 |
 | `packages/server/src/routes/knowledge.ts:115` | Route | `GET /v1/knowledge/mine` — 列出当前用户条目 |
@@ -196,8 +207,8 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/server/src/lib/lifecycle/state-machine.ts:81` | Impl 函数 (`transitionLifecycleState`) | 纯校验 + 变更 |
 | `packages/server/src/lib/lifecycle/state-machine.ts:109` | Impl 函数 (`executeTransition`) | 编排器：校验 → 变更 → 发布领域事件 |
 | `packages/server/src/lib/lifecycle/transitions.ts:18-44` | TS 常量 (`TRANSITIONS`) | `TransitionDefinition[]` — 完整 (from, to) → event 映射表 |
-| `packages/server/src/lib/persistence/schema.ts:304` | DB 表 (`lifecycle_events`) | KnowledgeEntry 生命周期事件 |
-| `packages/server/src/lib/persistence/schema.ts:520` | DB 表 (`artifact_lifecycle_events`) | SkillArtifact 生命周期事件 |
+| `packages/server/src/lib/persistence/schema.ts:654-693` | DB 表 (`lifecycle_events`) | KnowledgeEntry 生命周期事件，`type` 字段受 `CHECK` 约束（Round 3） |
+| `packages/server/src/lib/persistence/schema.ts:1062-1093` | DB 表 (`artifact_lifecycle_events`) | SkillArtifact 生命周期事件 |
 
 ### Agent Review（AI 预审）
 
@@ -318,11 +329,14 @@ draft → submitted → agent-pass/agent-rejected
 
 知识条目的责任追踪机制。记录维护者（`maintainer`）和计划审核日期（`reviewBy`），支持批量分配、延长审核、标记已验证等操作。
 
+> **Round 3 结构化**：`knowledge_entries.maintenance_meta` JSONB 列已拆为 `knowledge_maintenance_assignments` 表（1:1 关系），支持按 `maintainer_user_id` 和 `review_by` 索引筛选。
+
 | 位置 | 形式 | 说明 |
 |------|------|------|
 | `packages/contracts/src/domain/maintenance.ts:22-27` | Zod schema (`maintenanceMetaSchema`) | 字段：maintainer (ActorRef, nullable), reviewBy (ISO timestamp, nullable) |
 | `packages/contracts/src/domain/maintenance.ts:36` | Zod enum (`maintenanceActionSchema`) | 批量操作：`['assign-owner', 'extend-review', 'mark-verified']` |
 | `packages/contracts/src/domain/maintenance.ts:156` | TS 类型 (`MaintenanceMeta`) | 推断类型 |
+| `packages/server/src/lib/persistence/schema.ts:856-878` | DB 表 (`knowledge_maintenance_assignments`) | 维护分配结构化表（Round 3），`entry_id` 为主键 |
 | `packages/server/src/routes/maintenance.ts:84` | Route | `GET /v1/operations/maintenance/entries` — 按维护过滤列出 |
 | `packages/server/src/routes/maintenance.ts:225` | Route | `POST /v1/operations/maintenance/batch` — 批量维护操作 |
 
@@ -342,12 +356,15 @@ draft → submitted → agent-pass/agent-rejected
 
 知识条目的适用范围约束，定义条目在哪些上下文、平台版本、前置条件下有效。用于边界搜索和检索过滤。
 
+> **Round 3 结构化**：边界已从 `knowledge_entries.boundary` JSONB 列拆分为六个独立子表（见下方 DB 引用），JSONB 列保留为读优化缓存。各子表均含 `entry_id` 索引，支持按维度独立查询和过滤。
+
 | 位置 | 形式 | 说明 |
 |------|------|------|
 | `packages/contracts/src/domain/boundary.ts:128-141` | Zod schema (`boundarySchema`) | 统一边界：context[], versions[], prerequisites[], signals[], exclusions[], evidence[] |
 | `packages/contracts/src/domain/boundary.ts:152` | TS 类型 (`Boundary`) | 推断类型 |
 | `packages/contracts/src/domain/boundary.ts:167-171` | Zod schema (`boundaryContextSchema`) | 运行时查询上下文：contexts[], platform, versions[] |
 | `packages/contracts/src/domain/boundary.ts:182-188` | Zod schema (`boundaryExplanationSchema`) | 检索解释：checked, requiredSatisfied, warnings[], boosts[] |
+| `packages/server/src/lib/persistence/schema.ts:724-850` | DB 表 (`knowledge_boundary_contexts/versions/prerequisites/signals/exclusions/evidence`) | 边界六子表（Round 3） |
 | `packages/server/src/lib/boundary-extract.ts` | Impl | `extractCandidateBoundaries()` — 基于 LLM 的边界提取 |
 | `packages/server/src/routes/admin-boundary-search.ts:27` | Route | `POST /admin/boundary-search` — 管理员边界搜索 |
 
@@ -478,10 +495,13 @@ Role-Based Access Control。TrapMap 使用角色模板（user/admin/system-admin
 
 知识条目的分类标签，格式：`a-z0-9:_/-` 的组合，最大 48 字符。
 
+> **Round 3 结构化**：标签已从 `knowledge_entries.labels` JSONB 列拆为 `knowledge_labels` 表，每行一个 `(entry_id, label)` 对。支持 `unique(entry_id, label)` 唯一约束、AND 语义过滤和按标签聚合。JSONB 列保留为读优化缓存。
+
 | 位置 | 形式 | 说明 |
 |------|------|------|
 | `packages/contracts/src/domain/common.ts:13-18` | Zod schema (`labelSchema`) | `z.string().trim().min(1).max(48).regex(/^[a-z0-9:_/-]+$/i)` |
 | `packages/contracts/src/domain/common.ts:79` | TS 类型 (`Label`) | 推断类型 |
+| `packages/server/src/lib/persistence/schema.ts:704-718` | DB 表 (`knowledge_labels`) | 标签结构化子表（Round 3） |
 
 ---
 

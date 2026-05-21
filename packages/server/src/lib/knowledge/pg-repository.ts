@@ -146,7 +146,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
       // Round 3: Insert into knowledge_labels
       for (const label of entry.labels) {
         await client.query(
-          `INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          'INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING',
           [entry.id, label],
         );
       }
@@ -225,9 +225,8 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
       'SELECT * FROM knowledge_maintenance_assignments WHERE entry_id = $1',
       [entryId],
     );
-    const maintenanceMeta = maintenanceResult.rows.length > 0
-      ? rowToMaintenanceMeta(maintenanceResult.rows[0]!)
-      : null;
+    const maintenanceMeta =
+      maintenanceResult.rows.length > 0 ? rowToMaintenanceMeta(maintenanceResult.rows[0]!) : null;
 
     return reconstructKnowledgeRecord(
       entryRow,
@@ -351,7 +350,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
       await client.query('DELETE FROM knowledge_labels WHERE entry_id = $1', [entryId]);
       for (const label of revision.labels) {
         await client.query(
-          `INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          'INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING',
           [entryId, label],
         );
       }
@@ -496,7 +495,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
         await client.query('DELETE FROM knowledge_labels WHERE entry_id = $1', [entryId]);
         for (const label of governance.labels) {
           await client.query(
-            `INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+            'INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING',
             [entryId, label],
           );
         }
@@ -703,7 +702,7 @@ async function insertBoundarySubTables(
   // Context labels
   for (const ctx of boundary.context) {
     await client.query(
-      `INSERT INTO knowledge_boundary_contexts (entry_id, context_value) VALUES ($1, $2)`,
+      'INSERT INTO knowledge_boundary_contexts (entry_id, context_value) VALUES ($1, $2)',
       [entryId, ctx],
     );
   }
@@ -711,7 +710,7 @@ async function insertBoundarySubTables(
   // Version constraints
   for (const ver of boundary.versions) {
     await client.query(
-      `INSERT INTO knowledge_boundary_versions (entry_id, package_name, range_value, note) VALUES ($1, $2, $3, $4)`,
+      'INSERT INTO knowledge_boundary_versions (entry_id, package_name, range_value, note) VALUES ($1, $2, $3, $4)',
       [entryId, ver.package, ver.range, ver.note ?? null],
     );
   }
@@ -719,7 +718,7 @@ async function insertBoundarySubTables(
   // Prerequisites
   for (const prereq of boundary.prerequisites) {
     await client.query(
-      `INSERT INTO knowledge_boundary_prerequisites (entry_id, description, kind, required) VALUES ($1, $2, $3, $4)`,
+      'INSERT INTO knowledge_boundary_prerequisites (entry_id, description, kind, required) VALUES ($1, $2, $3, $4)',
       [entryId, prereq.description, prereq.kind ?? null, prereq.required ? 1 : 0],
     );
   }
@@ -727,7 +726,7 @@ async function insertBoundarySubTables(
   // Signals
   for (const sig of boundary.signals) {
     await client.query(
-      `INSERT INTO knowledge_boundary_signals (entry_id, pattern, kind, description) VALUES ($1, $2, $3, $4)`,
+      'INSERT INTO knowledge_boundary_signals (entry_id, pattern, kind, description) VALUES ($1, $2, $3, $4)',
       [entryId, sig.pattern, sig.kind, sig.description ?? null],
     );
   }
@@ -735,7 +734,7 @@ async function insertBoundarySubTables(
   // Exclusions
   for (const exc of boundary.exclusions) {
     await client.query(
-      `INSERT INTO knowledge_boundary_exclusions (entry_id, description, kind) VALUES ($1, $2, $3)`,
+      'INSERT INTO knowledge_boundary_exclusions (entry_id, description, kind) VALUES ($1, $2, $3)',
       [entryId, exc.description, exc.kind ?? null],
     );
   }
@@ -743,7 +742,7 @@ async function insertBoundarySubTables(
   // Evidence
   for (const ev of boundary.evidence) {
     await client.query(
-      `INSERT INTO knowledge_boundary_evidence (entry_id, kind, identifier, url, note) VALUES ($1, $2, $3, $4, $5)`,
+      'INSERT INTO knowledge_boundary_evidence (entry_id, kind, identifier, url, note) VALUES ($1, $2, $3, $4, $5)',
       [entryId, ev.kind, ev.identifier, ev.url ?? null, ev.note ?? null],
     );
   }
@@ -752,10 +751,7 @@ async function insertBoundarySubTables(
 /**
  * Load boundary data from sub-tables for a knowledge entry.
  */
-async function loadBoundaryFromSubTables(
-  pool: Pool,
-  entryId: string,
-): Promise<Boundary | null> {
+async function loadBoundaryFromSubTables(pool: Pool, entryId: string): Promise<Boundary | null> {
   const [contexts, versions, prerequisites, signals, exclusions, evidence] = await Promise.all([
     pool.query<{ context_value: string }>(
       'SELECT context_value FROM knowledge_boundary_contexts WHERE entry_id = $1 ORDER BY id',

@@ -13,14 +13,13 @@ import { AppError } from '../lib/errors.js';
 import {
   createKnowledgeEntryRecord,
   createKnowledgeRevision,
-  resubmitKnowledgeEntry,
   toKnowledgeEntry,
 } from '../lib/knowledge.js';
-import type { KnowledgeRecord } from '../lib/store.js';
 import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
 import { runPreReview } from '../lib/pre-review.js';
 import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
 import { resolveAuthContext } from '../lib/session.js';
+import type { KnowledgeRecord } from '../lib/store.js';
 import { nowIso } from '../lib/store.js';
 import { logUserOperation } from '../lib/user-ops-log.js';
 

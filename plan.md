@@ -1,839 +1,188 @@
-# TrapMap 数据库修复与调整计划
-
-本文档用于跟踪 TrapMap 当前数据库设计问题的系统性修复，目标是将 PostgreSQL 收敛为唯一事实源，消除长期兼容层和结构性技术债，完成后使数据模型、迁移机制、约束体系、检索索引、统计能力与文档保持一致。
-
-## 目标与原则
-
-- [ ] 以 PostgreSQL 行式模型替代 `store_snapshot` 单行 `JSONB` 主路径。
-- [ ] 消除“双真相”问题，停止业务读写依赖 JSON 快照。
-- [ ] 将核心查询字段、过滤字段、约束字段从 `JSONB` 拆分为结构化列或子表。
-- [ ] 为核心实体补齐主键、唯一键、外键、检查约束与必要索引。
-- [ ] 将 DDL 统一收敛到 Drizzle migration，移除运行时 `ensureSchema()` 建表模式。
-- [ ] 保证迁移后检索、治理、候选、反馈、统计能力无功能倒退。
-- [ ] 所有改动同步更新代码、迁移、测试、评测与文档，尽量不遗留“后补”事项。
-
-## 全局完成标准
-
-- [ ] PostgreSQL 成为唯一业务事实源。
-- [ ] `store_snapshot` 不再承载任何核心业务读写。
-- [ ] `DualWrite*Repository` 与同类兼容逻辑已删除。
-- [ ] 核心领域模型具备结构化 schema 与数据库级完整性约束。
-- [ ] 反馈、候选、知识、技能工件、检索索引、统计模块全部完成一致性改造。
-- [ ] 所有文档已同步，且没有“实现已变更但文档仍描述旧模型”的遗留问题。
-- [ ] 测试、typecheck、lint、eval smoke 与专项回归验证全部通过。
-
-## 目标模型总览
-
-本次调整后的数据库模型采用四层结构：
-
-1. 基础维表
-   - 团队、用户、成员、访问密钥等被多个领域复用的基础表。
-2. 业务主表
-   - 知识、技能工件、候选、反馈等聚合根表。
-3. 历史与事件表
-   - revision、lifecycle event、状态流转、人工处理记录、血缘记录。
-4. 派生与索引表
-   - embedding、关键词索引、capsule、profile、manifest、usage rollup。
-
-设计原则：
-- 业务事实进入业务主表和历史表，不放入单行快照。
-- 会被筛选、排序、聚合、联表、约束校验的字段必须结构化。
-- `JSONB` 仅允许承载低频扩展数据、外部原始响应快照或短期过渡字段。
-- 检索索引表是派生视图，不是新的业务真相来源。
-
-## 推荐命名与字段约定
-
-- 主键：
-  - 内部主键优先使用 `bigint` 或 `uuid`。
-  - 对外业务 ID 单独保留 `public_id text unique`，例如 `knowledge_123`。
-- 外键：
-  - 统一使用 `<entity>_id`，例如 `team_id`、`entry_id`、`artifact_id`。
-- 版本号：
-  - 统一使用 `revision_no integer not null`。
-- 状态字段：
-  - 统一使用 `<name>_state` 或 `status`，并加 `CHECK` 或 enum。
-- 时间字段：
-  - 统一使用 `created_at`、`updated_at`、`submitted_at`、`processed_at`、`resolved_at`。
-- 审计字段：
-  - 统一显式记录 `created_by`、`updated_by`、`actor_user_id`、`submitted_by_user_id` 等，不隐藏在 JSONB 中。
-
-## 目标表结构细化
-
-以下结构不是最终 SQL 定稿，但应作为实现基线。若后续实现偏离，必须在文档中明确记录原因。
-
-### 一、基础维表
-
-#### `teams`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `public_id` | `text` UNIQUE | 对外团队 ID |
-| `slug` | `text` UNIQUE | 团队唯一标识 |
-| `name` | `text` | 团队名称 |
-| `description` | `text null` | 描述 |
-| `created_at` | `timestamptz` | 创建时间 |
-| `updated_at` | `timestamptz` | 更新时间 |
-
-#### `users`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `public_id` | `text` UNIQUE | 对外用户 ID |
-| `handle` | `text` UNIQUE | 用户句柄 |
-| `created_at` | `timestamptz` | 创建时间 |
-| `updated_at` | `timestamptz` | 更新时间 |
-
-#### `members`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `public_id` | `text` UNIQUE | 对外成员 ID |
-| `team_id` | FK -> `teams.id` | 所属团队 |
-| `user_id` | FK -> `users.id` | 关联用户 |
-| `role_template` | `text` | 角色模板 |
-| `security_level` | `integer` | 安全等级 |
-| `notes` | `text null` | 备注 |
-| `is_system` | `boolean` | 是否系统成员 |
-| `created_at` | `timestamptz` | 创建时间 |
-| `updated_at` | `timestamptz` | 更新时间 |
-
-### 二、知识域
-
-#### `knowledge_entries`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `public_id` | `text` UNIQUE | 对外知识 ID，如 `knowledge_123` |
-| `team_id` | FK -> `teams.id` null | 团队作用域 |
-| `scope` | `text` | `global` / `project` |
-| `required_level` | `integer` | 访问等级，范围 0-10 |
-| `lifecycle_state` | `text` | 生命周期状态 |
-| `owner_user_id` | FK -> `users.id` | 所有者 |
-| `current_revision_no` | `integer` | 当前版本号 |
-| `shortcut_current` | `text` | 当前摘要，保留为读优化字段 |
-| `detail_current` | `text` | 当前详情，保留为读优化字段 |
-| `created_at` | `timestamptz` | 创建时间 |
-| `updated_at` | `timestamptz` | 更新时间 |
-
-约束要求：
-- `scope in ('global', 'project')`
-- `required_level between 0 and 10`
-- `lifecycle_state` 必须受状态机枚举约束
-
-#### `knowledge_revisions`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `entry_id` | FK -> `knowledge_entries.id` | 父知识条目 |
-| `revision_no` | `integer` | 版本号 |
-| `submitted_by_user_id` | FK -> `users.id` | 提交人 |
-| `shortcut` | `text` | 该版本摘要 |
-| `detail` | `text` | 该版本正文 |
-| `submitted_at` | `timestamptz` | 提交时间 |
-| `created_at` | `timestamptz` | 创建时间 |
-
-唯一约束：
-- `unique(entry_id, revision_no)`
-
-#### `knowledge_labels`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `entry_id` | FK -> `knowledge_entries.id` | 知识条目 |
-| `label` | `text` | 标签值 |
-| `created_at` | `timestamptz` | 创建时间 |
-
-唯一约束：
-- `unique(entry_id, label)`
-
-说明：
-- 若未来需要“标签按版本变化”，再补 `revision_no` 维度，不建议一开始继续把版本标签塞回 `JSONB`。
-
-#### `knowledge_boundary_contexts`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `entry_id` | FK -> `knowledge_entries.id` | 知识条目 |
-| `context_type` | `text` | 上下文类型 |
-| `context_value` | `text` | 上下文值 |
-| `created_at` | `timestamptz` | 创建时间 |
-
-类似拆分还应覆盖：
-- `knowledge_boundary_versions`
-- `knowledge_boundary_prerequisites`
-- `knowledge_boundary_signals`
-- `knowledge_boundary_exclusions`
-- `knowledge_evidence`
-- `knowledge_maintenance_assignments`
-
-### 三、技能工件域
-
-#### `skill_artifacts`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `public_id` | `text` UNIQUE | 对外工件 ID |
-| `team_id` | FK -> `teams.id` null | 团队作用域 |
-| `scope` | `text` | `global` / `project` |
-| `slug` | `text` | 工件 slug |
-| `title` | `text` | 标题 |
-| `required_level` | `integer` | 安全等级 |
-| `lifecycle_state` | `text` | 生命周期状态 |
-| `owner_user_id` | FK -> `users.id` | 所有者 |
-| `current_revision_no` | `integer` | 当前版本号 |
-| `created_at` | `timestamptz` | 创建时间 |
-| `updated_at` | `timestamptz` | 更新时间 |
-
-唯一约束建议：
-- `unique(team_id, slug)` 或按 `scope + team_id + slug` 建唯一约束
-
-#### `skill_artifact_revisions`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `artifact_id` | FK -> `skill_artifacts.id` | 父工件 |
-| `revision_no` | `integer` | 版本号 |
-| `source_hash` | `text` | 源文件哈希 |
-| `submitted_by_user_id` | FK -> `users.id` | 提交人 |
-| `submitted_at` | `timestamptz` | 提交时间 |
-| `created_at` | `timestamptz` | 创建时间 |
-
-唯一约束：
-- `unique(artifact_id, revision_no)`
-
-#### `skill_artifact_files`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `artifact_revision_id` | FK -> `skill_artifact_revisions.id` | 所属版本 |
-| `path` | `text` | 文件路径 |
-| `kind` | `text` | `skill-markdown/reference/asset/script` |
-| `sha256` | `text` | 文件内容哈希 |
-| `size_bytes` | `integer` | 文件大小 |
-| `media_type` | `text` | 媒体类型 |
-| `source_group` | `text` | `SKILL.md/references/assets/scripts` |
-| `include_in_derivation` | `boolean` | 是否参与派生 |
-| `activation_only` | `boolean` | 是否仅激活时使用 |
-
-唯一约束：
-- `unique(artifact_revision_id, path)`
-
-#### `skill_capsules`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `public_id` | `text` UNIQUE | 对外胶囊 ID |
-| `artifact_revision_id` | FK -> `skill_artifact_revisions.id` | 来源版本 |
-| `content` | `text` | 胶囊正文 |
-| `situation` | `text` | 场景 |
-| `problem` | `text` | 问题 |
-| `goal` | `text` | 目标 |
-| `error_text` | `text null` | 相关错误文本 |
-| `scope` | `text` | 继承作用域 |
-| `required_level` | `integer` | 继承等级 |
-| `created_at` | `timestamptz` | 创建时间 |
-
-相关子表：
-- `skill_capsule_source_paths`
-- `skill_capsule_labels`
-- `skill_profiles`
-- `skill_manifest_references`
-- `skill_manifest_assets`
-- `skill_manifest_scripts`
-
-### 四、候选与去重域
-
-#### `candidate_submissions`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `public_id` | `text` UNIQUE | 对外候选 ID |
-| `source_type` | `text` | `trap` / `skill` |
-| `submitted_by_user_id` | FK -> `users.id` | 提交人 |
-| `team_id` | FK -> `teams.id` null | 团队作用域 |
-| `status` | `text` | 候选处理状态 |
-| `received_at` | `timestamptz` | 接收时间 |
-| `queued_at` | `timestamptz null` | 入队时间 |
-| `analyzing_at` | `timestamptz null` | 分析时间 |
-| `completed_at` | `timestamptz null` | 完成时间 |
-| `retry_count` | `integer` | 重试次数 |
-| `last_error` | `text null` | 最近错误 |
-| `created_at` | `timestamptz` | 创建时间 |
-| `updated_at` | `timestamptz` | 更新时间 |
-
-#### `candidate_trap_payloads`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `candidate_id` | FK -> `candidate_submissions.id` | 候选 |
-| `shortcut` | `text` | 摘要 |
-| `detail` | `text` | 详情 |
-| `scope` | `text` | 作用域 |
-| `required_level` | `integer` | 安全等级 |
-
-#### `candidate_skill_payloads`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `candidate_id` | FK -> `candidate_submissions.id` | 候选 |
-| `title` | `text` | 标题 |
-| `slug` | `text` | slug |
-| `scope` | `text` | 作用域 |
-| `required_level` | `integer` | 安全等级 |
-
-#### `candidate_analyses`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `candidate_id` | FK -> `candidate_submissions.id` | 候选 |
-| `analysis_version` | `text` | 分析器版本 |
-| `correctness_risk` | `text` | 正确性风险 |
-| `duplicate_risk` | `text` | 重复风险 |
-| `completeness_risk` | `text` | 完整性风险 |
-| `notes` | `text` | 文本说明 |
-| `created_at` | `timestamptz` | 创建时间 |
-
-#### `candidate_duplicate_cases`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `candidate_id` | FK -> `candidate_submissions.id` | 候选 |
-| `detected_at` | `timestamptz` | 检出时间 |
-| `detection_version` | `text` | 判重版本 |
-| `highest_similarity` | `numeric` | 最高相似度 |
-| `duplicate_type` | `text` | 重复类型 |
-| `has_exact_duplicate` | `boolean` | 是否完全重复 |
-
-#### `candidate_duplicate_matches`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `duplicate_case_id` | FK -> `candidate_duplicate_cases.id` | 判重案例 |
-| `entity_type` | `text` | 命中实体类型 |
-| `entity_public_id` | `text` | 命中实体业务 ID |
-| `similarity_score` | `numeric` | 相似度 |
-| `match_type` | `text` | 命中类型 |
-| `overlap_summary` | `text null` | 重叠摘要 |
-
-### 五、反馈与统计域
-
-#### `feedback_records`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `public_id` | `text` UNIQUE | 对外反馈 ID |
-| `entry_type` | `text` | `knowledge` / `artifact` / `capsule` |
-| `entry_public_id` | `text` | 目标实体业务 ID |
-| `problem_type` | `text` | 问题类型 |
-| `description` | `text` | 问题描述 |
-| `context` | `text null` | 上下文 |
-| `query_seed` | `text null` | 原始查询 |
-| `submitted_by_user_id` | FK -> `users.id` null | 提交人 |
-| `status` | `text` | `new/triaged/resolved/dismissed` |
-| `admin_notes` | `text null` | 管理备注 |
-| `submitted_at` | `timestamptz` | 提交时间 |
-| `updated_at` | `timestamptz` | 更新时间 |
-
-#### `feedback_custom_answers`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK | 内部主键 |
-| `feedback_id` | FK -> `feedback_records.id` | 反馈 |
-| `question_key` | `text` | 提示 key |
-| `answer_text` | `text` | 回答 |
-
-#### `usage_events`
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `bigint` PK 或 `uuid` PK | 主键 |
-| `query_id` | `text` | 查询链路 ID |
-| `team_id` | FK -> `teams.id` null | 团队 |
-| `account_id` | `text` | 账户标识 |
-| `entry_type` | `text` | 命中实体类型 |
-| `entry_public_id` | `text` | 命中实体业务 ID |
-| `query_text` | `text null` | 查询文本 |
-| `created_at` | `timestamptz` | 记录时间 |
-
-配套汇总表建议：
-- `usage_events_daily_rollup`
-- `entry_quality_snapshots`
-
-### 六、检索索引域
-
-#### `knowledge_embeddings`
-
-保留独立派生表，但要求：
-- `entry_id` 指向结构化主表主键
-- `revision_no` 与知识版本严格对应
-- 建立 `unique(entry_id, revision_no)`
-- 向量索引重建不改变业务主数据
-
-#### `knowledge_search_documents`
-
-建议替代当前 `knowledge_keywords` 的 `tokens JSONB` 设计：
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `entry_id` | FK -> `knowledge_entries.id` | 知识条目 |
-| `revision_no` | `integer` | 版本号 |
-| `document` | `tsvector` | 搜索文档 |
-| `labels` | `text[]` | 轻量标签副本 |
-| `status` | `text` | 索引状态 |
-| `updated_at` | `timestamptz` | 更新时间 |
-
-## JSONB 保留与拆分规则
-
-允许保留 `JSONB` 的场景：
-- 外部模型原始输出快照，需要审计但不作为主查询条件。
-- 临时调试元数据，不参与约束和聚合。
-- 明确标注为扩展字段，且不会演化为核心业务对象。
-
-必须拆分的场景：
-- 会按字段过滤、排序、统计、联表查询。
-- 需要唯一性、非空、值域或引用完整性校验。
-- 数组中的每个对象将来会独立被查询、更新、审计或统计。
-
-## 少量示例
-
-### 示例 1：知识标签从 JSONB 拆为子表
-
-旧模式：
-
-```json
-{
-  "labels": ["postgres", "migration", "locking"]
-}
-```
-
-新模式：
-
-```sql
-insert into knowledge_labels (entry_id, label)
-values
-  (101, 'postgres'),
-  (101, 'migration'),
-  (101, 'locking');
-```
-
-收益：
-- 可以直接按标签过滤和聚合。
-- 可以为 `(label, entry_id)` 建索引。
-- 避免对整块 JSONB 做包含判断。
-
-### 示例 2：候选判重结果从 `matches[]` 拆为主从表
-
-旧模式：
-
-```json
-{
-  "duplicateCase": {
-    "highestSimilarity": 0.93,
-    "matches": [
-      { "entityId": "knowledge_12", "matchType": "semantic", "similarityScore": 0.93 },
-      { "entityId": "artifact_7", "matchType": "label-overlap", "similarityScore": 0.71 }
-    ]
-  }
-}
-```
-
-新模式：
-
-```sql
-insert into candidate_duplicate_cases (
-  id, candidate_id, detected_at, detection_version, highest_similarity, duplicate_type, has_exact_duplicate
-) values (
-  5001, 301, now(), 'dedup-v2', 0.93, 'semantic-near-duplicate', false
-);
-
-insert into candidate_duplicate_matches (
-  duplicate_case_id, entity_type, entity_public_id, similarity_score, match_type, overlap_summary
-) values
-  (5001, 'knowledge', 'knowledge_12', 0.93, 'semantic', null),
-  (5001, 'artifact', 'artifact_7', 0.71, 'label-overlap', null);
-```
-
-收益：
-- 可以直接统计“最常被判重的实体”。
-- 可以筛选某类重复类型、某阈值以上相似度。
-- 更容易做审计和人工复核工作台。
-
-### 示例 3：关键词索引从 `JSONB tokens` 改为 `tsvector`
-
-建议结构：
-
-```sql
-create table knowledge_search_documents (
-  entry_id bigint not null references knowledge_entries(id) on delete cascade,
-  revision_no integer not null,
-  document tsvector not null,
-  labels text[] not null default '{}',
-  status text not null default 'synced',
-  updated_at timestamptz not null default now(),
-  primary key (entry_id, revision_no)
-);
-
-create index idx_knowledge_search_documents_gin
-on knowledge_search_documents using gin (document);
-```
-
-示例查询：
-
-```sql
-select d.entry_id
-from knowledge_search_documents d
-join knowledge_entries e on e.id = d.entry_id
-where d.document @@ plainto_tsquery('postgres migration')
-  and e.lifecycle_state = 'approved'
-  and e.required_level <= 3
-order by ts_rank(d.document, plainto_tsquery('postgres migration')) desc
-limit 10;
-```
-
-### 示例 4：迁移执行顺序示例
-
-建议顺序：
-
-```text
-1. 创建新表和新约束，但不切流量
-2. 编写回填脚本，从旧 JSONB / snapshot 导入新表
-3. 对账：行数、抽样、哈希、关键查询结果
-4. 应用读路径切到新表
-5. 应用写路径切到新表
-6. 删除双写
-7. 删除旧表和旧代码
-```
-
-## 实施边界说明
-
-本计划默认：
-- 优先修复数据库设计和持久化边界，不在本轮顺手扩展新的业务功能。
-- 若某个模块暂时无法一次性完全结构化，必须给出明确的临时表述、删除时点和后续动作，不允许出现“先留着以后看”的无主技术债。
-- 任一轮次若新增字段或表结构偏离本计划，应同步回写 `plan.md` 与对应正式文档。
-
-## 轮次 0：基线冻结与设计定稿
-
-完成标志：
-- 当前数据库现状、迁移范围、目标模型、淘汰对象、验收标准全部定稿。
-- 本轮结束后，不再新增绕过目标模型的临时持久化方案。
+# TrapMap Round 4 后续增强计划
+
+本文档用于承接 Round 4 完成后的两项后续工作：
+
+1. cross-table 一致性约束增强
+2. 端到端集成测试补齐
+
+边界说明：
+- 不考虑历史数据库升级路径。
+- 不考虑部署、上线、灰度、回滚方案。
+- 默认场景是“可以从 0 新建数据库”的小型项目或 demo 环境。
+- 现有结构化真表已经是事实源，`skill_artifacts` 与 `artifact_revisions` 上的 JSONB 字段仅作为兼容缓存保留。
+
+## 当前基线
+
+Skill Artifact 域已经完成以下结构化真表落地：
+
+- `skill_artifact_metadata`
+- `skill_artifact_files`
+- `skill_artifact_script_descriptors`
+- `skill_artifact_profiles`
+- `skill_artifact_capsules`
+- `skill_artifact_client_manifests`
+- `skill_artifact_manifest_references`
+- `skill_artifact_manifest_assets`
+- `skill_artifact_manifest_scripts`
+- `skill_artifact_boundary_contexts`
+- `skill_artifact_boundary_versions`
+- `skill_artifact_boundary_prerequisites`
+- `skill_artifact_boundary_signals`
+- `skill_artifact_boundary_exclusions`
+- `skill_artifact_boundary_evidence`
+- `skill_artifact_maintenance_assignments`
+- `skill_artifact_agent_reviews`
+
+`PgArtifactRepository` 已接入上述真表的写入与优先读取。当前剩余问题不在“有没有结构化表”，而在“数据库层约束是否足够强”和“端到端读写链路是否被完整验证”。
+
+## 一、Cross-Table 一致性约束
+
+目标：
+- 降低“结构化表存在，但跨表字段值互相打架”的风险。
+- 让错误尽可能在数据库层或 repository 层被拒绝，而不是在下游检索、导出、激活时才暴露。
+
+### 1. revision 级派生产物一致性
 
 要做的内容：
-- [x] 审计当前所有持久化路径，确认哪些模块仍依赖 `store_snapshot`、`SkillShareerStore`、`InMemory*Repository` 或双写兼容层。
-- [x] 盘点所有核心表、运行时建表逻辑、现有 migration、索引、序列、统计表与检索索引表。
-- [x] 按领域拆分目标模型：知识、技能工件、候选、反馈、统计、检索索引、团队与用户引用。
-- [x] 明确哪些 `JSONB` 必须拆分，哪些允许保留为低频扩展字段。
-- [x] 明确每个领域的“唯一事实源表”“历史表”“事件表”“派生索引表”。
-- [x] 明确迁移策略：一次性切换字段、分批回填、影子校验、停止双写、删除旧层。
-- [x] 确定命名规范：主键、业务 ID、外键、索引、约束、时间字段、状态字段命名统一。
+- [ ] 为 `skill_artifact_profiles`、`skill_artifact_capsules`、`skill_artifact_client_manifests` 建立更强的一致性校验，确保：
+  - `artifact_id` 与所属 `artifact_revision_id` 对应的 `artifact_revisions.artifact_id` 一致
+  - `revision_no` 与所属 `artifact_revision_id` 对应的 `artifact_revisions.revision_no` 一致
+  - `source_hash` 与所属 revision 的 `source_hash` 在允许范围内保持一致
+- [ ] 为 `skill_artifact_manifest_references/assets/scripts` 增补约束，保证它们不能脱离对应 `skill_artifact_client_manifests` 单独存在。
+- [ ] 明确 `capsule_id` 的稳定性规则：
+  - 是否允许同一 artifact 不同 revision 复用同一 `capsule_id`
+  - 若不允许，补唯一性约束与测试
+  - 若允许，明确“跨 revision 复用”的含义与读取优先级
 
-对应要求修改的文档：
-- [x] `plan.md`
-- [x] `docs/reference/DATA_MODEL.md`
-- [x] `docs/reference/GLOSSARY.md`
-- [x] `architecture.md`
+建议方案：
+- 优先选择 repository 侧断言 + 数据库约束的组合方式。
+- 对小 demo，避免引入过重的触发器系统；优先考虑：
+  - 复合唯一键
+  - 复合外键
+  - 插入前 repository 校验
+  - 必要时少量 trigger 做最终兜底
 
-Round 0 落地说明：
-- 已在本文档中冻结目标模型、命名约定、迁移顺序与完成标准，后续轮次以此为唯一基线。
-- 持久化现状已收敛为两类：
-  - PostgreSQL 结构化主表：知识、技能工件、候选、任务队列及其派生索引。
-  - `store_snapshot` 兼容快照：用户、团队、成员、会话、访问密钥、审计、反馈、重复检测、谱系、图索引等尚未结构化的域。
-- 双写兼容层已仅作为 Round 2 前的过渡策略；Round 2 起知识、工件、候选主路径已切为 PostgreSQL 真表，剩余域不再允许新增新的双写设计。
-- `JSONB` 使用边界已明确：
-  - 必须拆分：会被筛选、排序、聚合、联表、唯一约束、权限校验、治理统计使用的字段。
-  - 允许保留：低频扩展字段、外部原始响应快照、短期迁移过渡字段。
-- 唯一事实源约定已明确：
-  - 业务主事实写入业务主表与历史/事件表。
-  - 检索索引、capsule、profile、manifest、usage rollup 仅为派生层，不得反向成为业务真相。
+完成标准：
+- 任意 profile/capsule/manifest 如果声称属于某个 revision，但字段与 `artifact_revisions` 不一致，应在写入时失败。
 
-## 轮次 1：持久化基线收敛与迁移机制整改
-
-完成标志：
-- 所有数据库对象通过 Drizzle migration 管理。
-- 应用启动不再负责创建核心表、序列、索引。
+### 2. artifact 根级治理字段一致性
 
 要做的内容：
-- [x] 统一梳理 `packages/server/drizzle/` 与 `packages/server/src/lib/persistence/schema.ts`，修正 schema 与运行时代码的职责边界。
-- [x] 为所有现存核心表补充正式 migration，避免继续依赖 repository 中的 `CREATE TABLE IF NOT EXISTS`。
-- [x] 删除或下线各 `Pg*Repository.ensureSchema()` 中的 DDL 逻辑，仅保留运行时数据访问职责。
-- [x] 规范迁移顺序：基础维表、业务主表、历史表、事件表、派生索引表、回填脚本、约束切换。
-- [x] 建立迁移回滚策略与数据核对脚本规范。
-- [x] 为每轮 schema 迁移定义明确的"可回滚点"和"不可回滚点"。
+- [ ] 保证 `skill_artifact_metadata.artifact_id`、`skill_artifact_maintenance_assignments.artifact_id`、`skill_artifact_agent_reviews.artifact_id` 与 `skill_artifacts.id` 强绑定。
+- [ ] 检查 `skill_artifact_metadata.revision_count` 与 `artifact_revisions` 实际数量的关系，明确规则：
+  - 是否要求严格相等
+  - 若只是缓存值，repository 更新时如何保证同步
+- [ ] 明确 `latestSubmissionId`、`latestSubmittedAt`、`latestReviewedAt`、`latestDecision` 是否完全来自 artifact 根元数据缓存，还是需要进一步拆为独立历史表。
+- [ ] 明确 `boundary`、`maintenance_meta`、`agent_review` 的 JSONB 缓存列和结构化子表之间的优先级规则，并写入注释/文档。
 
-对应要求修改的文档：
-- [x] `README.md`
-- [x] `docs/guides/GETTING_STARTED.md`
-- [x] `docs/guides/CONTRIBUTING.md`
-- [x] `docs/operations/TESTING.md`
-- [x] `docs/operations/ENVIRONMENT.md`
+完成标准：
+- repository 对 artifact 根级治理数据的读取顺序、覆盖顺序、缓存回写顺序必须固定且可解释。
 
-## 轮次 2：淘汰 `store_snapshot` 主路径与双写兼容层
-
-完成标志：
-- 业务主路径不再读取 `store_snapshot`。
-- 双写逻辑已移除，仅允许短期只读兼容或一次性迁移脚本读取旧数据。
+### 3. 约束落地方式
 
 要做的内容：
-- [x] 梳理 `SkillShareerStore`、`PostgresStore`、`create-store`、`store/index` 及所有使用点。
-- [x] 将知识、工件、候选、反馈、统计等模块的主读写全部切到 PostgreSQL 真表。
-- [x] 删除 `DualWriteKnowledgeRepository` 及同类兼容设计，避免双真相长期存在。
-- [x] 将 `store_snapshot` 限定为迁移输入源，不再作为运行时状态存储。
-- [x] 提供一次性数据回填与核对脚本，确保旧快照到新表的数据一致。
-- [ ] 在全部模块切换完成后，删除 `store_snapshot` 表与相关实现（知识/工件/候选已迁移，用户/团队/会话等域仍需 JSONB，延后至各自轮次）。
+- [ ] 梳理哪些一致性适合数据库层硬约束，哪些适合 repository 层校验。
+- [ ] 新增一个专门的 Round 4+ 约束迁移，避免把增强约束继续塞进 `0007_round4_artifact_structural.sql`。
+- [ ] 为每一类约束补“允许失败”的负例测试，而不是只测 happy path。
 
-对应要求修改的文档：
-- [x] `docs/reference/DATA_MODEL.md`
-- [x] `docs/reference/api-surface.md`
-- [x] `docs/reference/PERFORMANCE.md`
-- [x] `docs/PACKAGES.md`
+建议分层：
+- 数据库层：
+  - 孤儿行禁止
+  - 引用对象不存在禁止
+  - 枚举值/范围非法禁止
+- repository 层：
+  - `artifact_id` / `revision_no` / `source_hash` 三元一致性
+  - metadata 汇总字段与 revision 计数同步
 
-## 轮次 3：知识域模型结构化改造
+## 二、端到端集成测试
 
-完成标志：
-- `knowledge_entries`、`knowledge_revisions`、`lifecycle_events` 形成清晰主从结构。
-- 知识条目中承担过滤、治理、统计职责的字段不再依赖大块 `JSONB`。
+目标：
+- 验证 Skill Artifact 从写入到读取、审核、检索、导出、激活的链路在结构化真表模式下仍然正确。
+- 不只验证“写了某张表”，而是验证“功能行为没有回退”。
 
-要做的内容：
-- [x] 为知识主表补齐数据库级约束：`scope`、`lifecycle_state`、`required_level` 的 `CHECK` 或 enum。
-- [x] 将 `labels` 从 `JSONB` 改为结构化存储。
-- [x] 将 `boundary` 拆为可查询子结构，至少覆盖 context、version、prerequisite、signal、exclusion、evidence 等查询维度。
-- [x] 将 `maintenance_meta` 拆为结构化列或独立子表，支持维护人、复核时间、治理筛选。
-- [x] 为知识版本表、生命周期事件表补齐外键与唯一约束。
-- [x] 明确”当前态字段”和”历史版本字段”的职责，避免重复存储失控。
-- [x] 为知识域建立必要组合索引，如团队、状态、安全等级、更新时间、标签过滤路径。
-
-对应要求修改的文档：
-- [ ] `docs/reference/DATA_MODEL.md`
-- [ ] `docs/reference/GLOSSARY.md`
-- [ ] `docs/reference/api-surface.md`
-- [ ] `docs/architecture/components/GOVERNANCE.md`
-
-Round 3 落地说明：
-- `knowledge_entries` 表已补齐 `CHECK` 约束：`scope IN ('global', 'project')`、`lifecycle_state` 限定为合法状态枚举、`required_level BETWEEN 0 AND 10`。
-- `lifecycle_events` 表已补齐 `CHECK` 约束：`type` 限定为合法事件类型枚举。
-- `knowledge_labels` 表已创建，`(entry_id, label)` 唯一索引支持标签过滤。`knowledge_entries.labels` JSONB 列保留为读优化缓存字段，与结构化表同步。
-- 边界（boundary）已拆为六个子表：`knowledge_boundary_contexts`、`knowledge_boundary_versions`、`knowledge_boundary_prerequisites`、`knowledge_boundary_signals`、`knowledge_boundary_exclusions`、`knowledge_boundary_evidence`。各表均有 `entry_id` 索引和唯一约束。`knowledge_entries.boundary` JSONB 列保留为读优化缓存。
-- `knowledge_maintenance_assignments` 表已创建，`(entry_id)` 主键，支持 `maintainer_user_id` 和 `review_by` 索引筛选。`knowledge_entries.maintenance_meta` JSONB 列保留为读优化缓存。
-- `knowledge_revisions` 表已补齐 `(entry_id, revision)` 唯一索引。
-- `knowledge_entries` 表已补齐 `(scope, required_level)` 和 `(owner_user_id)` 组合索引。
-- `PgKnowledgeRepository` 已更新：`insert` 同步写入所有子表，`getById` 从子表读取结构化数据，`listByFilter` 支持 `labels` 过滤（AND 语义），`updateGovernance` 和 `appendRevision` 同步维护 `knowledge_labels`。
-- `InMemoryKnowledgeRepository` 已同步支持 `labels` 过滤。
-- 迁移脚本 `0002_round3_knowledge_structural.sql` 包含 DDL 和从 JSONB 到结构化表的回填逻辑。
-- 测试已更新，覆盖标签过滤、边界子表往返、维护分配往返和 CHECK 约束验证。
-
-## 轮次 4：技能工件与派生产物结构化改造
-
-完成标志：
-- SkillArtifact 不再使用 `metadata/files/derived/script_descriptors` 作为核心结构化信息容器。
-- 文件、脚本、胶囊、画像、清单成为独立可索引对象。
+### 1. repository 集成测试
 
 要做的内容：
-- [ ] 为 `skill_artifacts` 增加数据库级约束与唯一性规则，特别是 `slug` 的作用域唯一性。
-- [ ] 将 `metadata` 中参与治理或展示排序的字段拆出。
-- [ ] 将 `artifact_revisions.files` 拆为 `skill_artifact_files` 类子表。
-- [ ] 将 `script_descriptors` 拆为独立脚本描述表，支持 capability、策略与审计。
-- [ ] 将 `derived` 拆为独立派生产物结构，如 profile、capsule、manifest 及其子项。
-- [ ] 将 `agent_review`、`boundary`、`maintenance_meta` 从大块 JSONB 逐步结构化。
-- [ ] 为工件主表、版本表、文件表、派生产物表建立外键、唯一键和查询索引。
+- [ ] 新增面向真实 PostgreSQL 的 `PgArtifactRepository` 集成测试文件，对以下链路做 round-trip：
+  - insert -> getById
+  - appendRevision -> getById
+  - updateRevisionDerived -> getById
+  - listByFilter(maintainerUserId) -> 返回正确工件
+- [ ] 对以下结构化字段补 round-trip：
+  - metadata
+  - boundary
+  - maintenanceMeta
+  - agentReview
+  - files
+  - scriptDescriptors
+  - derived.profile
+  - derived.capsules
+  - derived.clientManifest
+- [ ] 增加负例：
+  - 写入不一致 revision 数据
+  - 缺失依赖 manifest 的子项
+  - 非法 review risk/status
 
-对应要求修改的文档：
-- [ ] `docs/reference/DATA_MODEL.md`
-- [ ] `docs/reference/GLOSSARY.md`
-- [ ] `README.md`
-- [ ] `docs/PACKAGES.md`
-
-## 轮次 5：候选、去重、审核链路结构化改造
-
-完成标志：
-- 候选处理链具备独立主表、分析结果表、判重结果表、人工处理表、血缘表。
-- 不再以 JSONB 包裹整个候选状态机。
-
-要做的内容：
-- [x] 将 `candidates.original_payload` 按 `trap/skill` 类型拆分结构，避免异构载荷长期混存。
-- [x] 将 `analysis_snapshot` 拆为结构化分析结果表，支持按风险、状态、版本回查。
-- [x] 将 `duplicate_case` 与 `matches[]` 拆为主从表，支持命中实体维度分析。
-- [x] 将 `manual_result` 拆为人工处理结果表，与候选状态机关联。
-- [x] 为候选状态流转补齐数据库级状态约束与必要审计字段。
-- [x] 为候选、判重、发布结果与实体血缘建立清晰 FK 链路。
-
-对应要求修改的文档：
-- [x] `docs/reference/DATA_MODEL.md`
-- [x] `docs/reference/GLOSSARY.md`
-- [x] `docs/reference/api-surface.md`
-- [x] `docs/operations/TESTING.md`
-
-Round 5 落地说明：
-- `candidate_analyses` 表已创建，`(candidate_id)` 主键，存储结构化分析结果（fingerprint、keywords、tokens）。`candidates.analysis_snapshot` JSONB 列保留为读优化缓存。
-- `candidate_duplicate_cases` 表已创建，`(id)` 主键，存储判重主记录。`candidate_duplicate_matches` 表存储匹配详情行，支持按实体类型、实体 ID 查询。`highestSimilarity` 和 `similarityScore` 以整数百分比（0-100）存储。`candidates.duplicate_case` JSONB 列保留为读优化缓存。
-- `candidate_manual_results` 表已创建，`(candidate_id)` 主键，存储人工审核结果。`candidates.manual_result` JSONB 列保留为读优化缓存。
-- `candidate_resolution_outcomes` 表已创建，存储候选解决结果。
-- `entity_lineage` 表已从 in-memory `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表，支持按候选、来源、目标三个维度查询。
-- `candidates` 表已补齐 `CHECK` 约束：`source_type IN ('trap', 'skill')`、`status` 限定为合法状态枚举。新增 `(source_type)` 索引。
-- `PgCandidateRepository` 已更新：`insert` 同步写入所有子表，`attachAnalysis`/`attachDuplicateCase`/`attachManualResult` 双写 JSONB 列和结构化表，`getById` 从子表读取结构化数据。
-- `PgDuplicateRepository` 和 `PgLineageRepository` 已创建，替换原 in-memory 实现。
-- 迁移脚本 `0003_round5_candidate_structural.sql` 包含 DDL 和从 JSONB 到结构化表的回填逻辑。
-- 测试已更新，覆盖新子表 schema 验证。
-
-## 轮次 6：反馈与统计模块补齐 PostgreSQL 真表实现
-
-完成标志：
-- 反馈模块不再使用仅内存/快照 repository。
-- 统计模块具备稳定的可查询结构，并为增长预留汇总/分区能力。
+### 2. route / service 级端到端测试
 
 要做的内容：
-- [x] 为 `feedback` 建立正式 PostgreSQL repository，并替换当前 `InMemoryFeedbackRepository` 主路径。
-- [x] 将反馈的自定义问答、状态流转、管理员备注、质量统计依赖字段结构化。
-- [x] 为 `feedback` 建立按 `entryId`、`entryType`、`status`、`problemType` 的索引体系。
-- [x] 评估 `usage_events` 的增长风险，补充时间范围查询、排行查询所需的归档或汇总设计。
-- [x] 视数据量预期增加日汇总或周期汇总表，避免长期只扫明细。
-- [x] 确保统计能力不再依赖旧 JSONB 存储路径。
+- [ ] 导入一个 artifact 后，验证：
+  - `GET history`
+  - `POST review`
+  - `POST edit`
+  - `POST export`
+  - `POST activate`
+  都仍能得到正确结果
+- [ ] 补一条“审核通过 -> 检索可见 -> activation hint 可见”的完整链路测试。
+- [ ] 补一条“有 boundary / maintenance / agent review 的 artifact 被读取与导出”的完整链路测试。
+- [ ] 验证 graph-plan fallback、capsule recall、skill lookup 仍能消费当前结构化事实源，不因缓存存在而行为漂移。
 
-对应要求修改的文档：
-- [x] `docs/reference/DATA_MODEL.md`
-- [x] `docs/reference/api-surface.md`
-- [x] `docs/reference/PERFORMANCE.md`
-- [x] `docs/operations/TESTING.md`
-
-Round 6 落地说明：
-- `feedback_records` 表已创建，存储反馈主字段。`feedback_custom_answers` 表存储自定义问答对。`entryType`、`problemType`、`status` 已补齐 `CHECK` 约束。索引覆盖 `entryId`、`entryType`、`status`、`problemType`、`submittedByUserId` 维度。
-- `PgFeedbackRepository` 已创建，替代 `InMemoryFeedbackRepository` 成为主路径。工厂函数 `createFeedbackRepository` 在有 pool 时使用 PG 实现，否则回退到 InMemory。
-- `usage_events_daily_rollup` 表已创建，预聚合 `(day, team_id, entry_type, entry_id)` 维度的命中数、去重查询数、去重账户数。支持按条目类型、条目 ID 和时间范围查询。
-- 迁移脚本 `0004_round6_feedback_usage.sql` 包含 DDL 和从 `store_snapshot` JSONB `feedbackQueue` 到 `feedback_records` + `feedback_custom_answers` 的回填逻辑，以及从 `usage_events` 到 `usage_events_daily_rollup` 的初始聚合。
-- 测试已新增 `pg-repository.test.ts`，覆盖反馈 CRUD、过滤、自定义问答往返和 CHECK 约束验证。
-
-## 轮次 7：检索索引模型优化
-
-完成标志：
-- 检索索引字段与 PostgreSQL 索引能力匹配，避免继续把核心搜索结构放在 `JSONB` 中。
-- 检索与治理过滤链路可解释、可验证、可维护。
+### 3. demo 验收测试
 
 要做的内容：
-- [x] 评估 `knowledge_keywords.tokens`、`field_tokens` 的结构，优先改为 `text[]` 或 `tsvector`。
-- [x] 评估 `labels`、边界字段在检索过程中的过滤与 boost 路径，改为更适合索引的结构。
-- [x] 确认向量表、关键词表、图索引表与主领域表的同步机制和幂等约束。
-- [x] 为索引回填、重建、失败重试建立明确状态字段和运维流程。
-- [x] 避免检索索引与业务主表之间出现新的双真相问题。
+- [ ] 构造一个最小 skill fixture：
+  - 一个 `SKILL.md`
+  - 一个 `references/` 文件
+  - 一个 `assets/` 文件
+  - 一个 `scripts/` 文件
+  - 一组 boundary / maintenance / agent review / metadata
+- [ ] 从 0 初始化数据库后，跑一条 demo 验收脚本，覆盖：
+  - import
+  - review approve
+  - artifact get/history
+  - retrieval / capsule recall
+  - export
+  - activate
+- [ ] 输出一份简短验收记录，说明 demo 级交付时依赖哪些能力、哪些能力已被验证。
 
-对应要求修改的文档：
-- [x] `docs/reference/PERFORMANCE.md`
-- [x] `docs/reference/DATA_MODEL.md`
-- [x] `docs/operations/TESTING.md`
-- [x] `evals/retrieval/README.md`
+## 三、优先级建议
 
-Round 7 落地说明：
-- `knowledge_keywords.tokens` 已从 `jsonb` 迁移为原生 `text[]` 类型，GIN 索引从 JSONB `?|` 操作符切换为 `&&`（数组重叠）操作符。
-- `knowledge_keywords.field_tokens` JSONB 列已拆为三个独立 `text[]` 列：`field_tokens_shortcut`、`field_tokens_detail`、`field_tokens_labels`，支持按字段独立索引和查询。
-- `knowledge_embeddings.labels` 已从 `jsonb` 迁移为 `text[]` 类型。
-- `PgKeywordAdapter` 和 `createPgKeywordRecall()` 已更新，写入和查询均使用新列结构。`PgCandidateRepository` 中的关键词匹配查询已同步更新。
-- `db-search.ts` 中的向量搜索查询已修复 `ke_shortcut`/`ke_labels` 列引用 bug，改为通过 `LEFT JOIN knowledge_entries` 获取元数据。
-- 新增 `knowledge_search_documents` 表，使用 `tsvector` 实现 PostgreSQL 原生全文检索，支持 `setweight` 加权（shortcut=A, detail=B, labels=C），包含 GIN 索引。初始数据从 `knowledge_entries` + `knowledge_labels` 回填。
-- 新增 `graph_index_documents` 表，替代 `store_snapshot.graphIndexDocuments` 内存存储，实现 `PgGraphIndexRepository`。图索引数据从 `store_snapshot` JSONB 回填。工厂函数 `createGraphIndexRepository` 在有 pool 时使用 PG 实现，否则回退到 InMemory。
-- 所有三个索引表（vector、keyword、graph）均具备 `(entry_id, revision)` 唯一约束保证幂等性，`status` 和 `last_error` 字段支持同步状态跟踪和失败重试。
-- 为 `knowledge_keywords` 和 `knowledge_embeddings` 补齐 `status` 字段索引，支持运维监控。
-- 迁移脚本 `0005_round7_retrieval_index_structural.sql` 包含 DDL 变更、数据迁移和回填逻辑。
-- 测试已更新：`pg-keyword.test.ts` 使用新列结构和 `&&` 操作符，`pg-repository.test.ts` 的 embedding labels 使用 text[] 格式。
+如果只做小 demo 交付，建议顺序如下：
 
-## 轮次 8：约束、命名、索引与清理收尾
+1. repository 级 round-trip 集成测试
+2. route 级审核/导出/激活链路测试
+3. revision 派生产物 cross-table 一致性校验
+4. metadata 汇总字段一致性校验
+5. demo 验收脚本
 
-完成标志：
-- 所有新旧混合命名、遗留字段、兼容接口、临时脚本完成清理。
-- 数据库设计达到“可长期维护”状态，而非“迁移刚能跑通”状态。
+理由：
+- demo 风险主要来自“功能链路断了”，不是来自极端并发或历史升级。
+- 所以先补集成测试，再补更硬的一致性约束，收益更高。
 
-要做的内容：
-- [x] 补齐所有外键、唯一键、非空约束、检查约束、删除策略与更新策略。
-- [x] 统一主键、业务 ID、版本号、时间戳、状态字段命名。
-- [x] 删除已废弃的 repository、store shim、兼容分支与迁移期影子逻辑。
-- [x] 清理已失效文档、注释、TODO、过时测试夹具与基于旧模型的辅助脚本。
-- [x] 为关键表补充索引复查，确认无明显缺失、重复或冗余索引。
-- [x] 为高频查询与后台任务明确读写路径与锁粒度，避免新设计留下并发隐患。
+## 四、完成标准
 
-对应要求修改的文档：
-- [x] `README.md`
-- [x] `docs/PACKAGES.md`
-- [x] `docs/guides/CODE_GUIDE.md`
-- [x] `docs/guides/CONTRIBUTING.md`
-- [x] `docs/reference/GLOSSARY.md`
+- [ ] Skill Artifact 的 cross-table 一致性规则已文档化。
+- [ ] 至少一部分关键一致性规则已落实到数据库层或 repository 层。
+- [ ] `PgArtifactRepository` 的真实 PG round-trip 集成测试已覆盖结构化字段。
+- [ ] 导入/审核/检索/导出/激活至少有一条端到端主链路测试通过。
+- [ ] demo 环境可从 0 新建数据库，并跑通最小 Skill 验收场景。
 
-Round 8 落地说明：
-- 命名规范已统一：`revision` → `revision_no`（7 张表：knowledge_embeddings、knowledge_keywords、knowledge_revisions、lifecycle_events、artifact_revisions、artifact_lifecycle_events、graph_index_documents），`submitted_by` → `submitted_by_user_id`（2 张表：candidates、candidate_manual_results）。迁移脚本 `0006_round8_naming_constraints.sql` 包含所有列重命名和索引重命名。
-- 外键约束已补齐：knowledge_entries 的 13 张子表/关联表已添加 FK（派生索引表 ON DELETE CASCADE，历史表 ON DELETE RESTRICT）。candidates 的 5 张子表已添加 FK（ON DELETE CASCADE）。candidate_duplicate_matches → candidate_duplicate_cases、feedback_custom_answers → feedback_records 已添加 FK。
-- schema.ts 已同步修复：
-  - 5 个缺失索引已补齐（knowledge_embeddings.status、knowledge_keywords.status、knowledge_search_documents.entry_id、knowledge_search_documents.status）。
-  - knowledge_search_documents 已从 uniqueIndex 改为复合主键 primaryKey(entryId, revisionNo)。
-  - 所有索引名称已与迁移脚本对齐。
-- 6 处过时 DualWrite TODO 已更新为 `TODO[post-Round-8]` 标记，明确不再使用 DualWrite 策略。
-- pg-detector.ts 中的占位符 entityTitle 已修复为通过 JOIN knowledge_entries 获取实际标题。
-- artifact-graph.ts 的 TODO 已更新，说明 PgGraphIndexRepository 已可用。
-- retrieval.test.ts 中的 Phase 8 Task 2 TODO 已清理。
-- 文档已同步更新：PACKAGES.md（Round 8 备注）、CODE_GUIDE.md（SkillShareerStore 定位更新）、GLOSSARY.md（DualWrite 和 Postgres Store 条目更新）。
+## 五、非目标
 
-## 每轮次通用完成检查
+以下内容不属于本计划：
 
-每轮次结束前都必须满足以下复选框：
-
-- [ ] 本轮代码改动已完成并通过最小相关测试。
-- [ ] 本轮 migration 已编写并能在空库与升级库上执行。
-- [ ] 本轮回填/迁移脚本已验证幂等性或重复执行行为。
-- [ ] 本轮涉及的旧实现已明确下线或标记待删除，不保留模糊状态。
-- [ ] 本轮相关文档已同步更新。
-- [ ] 本轮完成标志已满足，且无未记录的临时妥协方案。
-
-## 明确禁止遗留的技术债
-
-- [ ] 不新增新的“先放 JSONB，后面再拆”的核心结构字段。
-- [ ] 不保留长期双写作为默认运行模式。
-- [ ] 不继续新增运行时自动建表逻辑。
-- [ ] 不允许文档仍声称“生产可用”，但核心模块仍依赖快照兼容层。
-- [ ] 不允许核心实体继续缺失外键与唯一约束而依赖应用层兜底。
-- [ ] 不允许“测试通过但数据模型未定稿”的半完成状态进入收尾阶段。
-
-## 所有任务完成后的验证计划
-
-### 一、数据库与迁移验证
-
-- [ ] 在全新数据库上执行完整 migration，确认可从零建库成功。
-- [ ] 在包含历史数据的升级数据库上执行 migration，确认可平滑升级。
-- [ ] 执行全量数据核对，确认旧快照与新表回填结果一致。
-- [ ] 对关键实体执行抽样人工核对：知识、技能工件、候选、反馈、统计数据。
-- [ ] 验证旧表/旧字段/旧兼容层删除后系统仍能完整启动与运行。
-
-### 二、功能回归验证
-
-- [ ] 运行 `pnpm test`
-- [ ] 运行 `pnpm typecheck`
-- [ ] 运行 `pnpm check`
-- [ ] 运行 `pnpm eval:smoke`
-- [ ] 对检索、审核、反馈、统计、导入导出执行关键路径手工回归。
-- [ ] 为迁移影响最大的 repository 与 service 增补专项测试。
-
-### 三、性能与并发验证
-
-- [ ] 对知识检索、工件检索、反馈列表、统计排行、候选处理执行基准对比。
-- [ ] 验证高频查询是否命中预期索引，必要时使用 `EXPLAIN ANALYZE` 复核。
-- [ ] 验证候选处理、版本追加、生命周期流转在并发场景下无明显锁争用异常。
-- [ ] 验证索引回填、派生产物重建、批量迁移不会导致不可接受的数据库负载。
-
-### 四、文档与运维验证
-
-- [ ] 确认 README、数据模型、术语表、测试指南、环境文档、贡献指南全部反映新设计。
-- [ ] 确认开发者按文档即可完成本地建库、迁移、测试与排障。
-- [ ] 确认生产部署文档不再引用过期的快照/兼容持久化描述。
-
-### 五、会话收尾验证
-
-- [ ] 完成代码修改后运行 `graphify update .`
-- [ ] 检查 `graphify-out/GRAPH_REPORT.md` 对核心节点变化是否仍可导航。
-- [ ] 在最终交付前复核 `plan.md` 中全部复选框状态与实际进度是否一致。
+- 历史数据库平滑升级
+- 生产环境部署与回滚
+- 大规模并发压测
+- graphify 权限问题修复
+- 全仓所有旧测试红项清零

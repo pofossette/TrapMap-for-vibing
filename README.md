@@ -7,6 +7,10 @@ TrapMap 有两类典型使用方式：
 - 作为服务端知识库运行，提供检索、审核、导入导出和治理能力。
 - 作为 Skill 工件源，被 Claude Code 等智能体工具检索后安装到本地技能目录中使用。
 
+当前数据库状态：
+- Knowledge 域已经完成结构化拆表。
+- Skill Artifact 域已进入 Round 4：主路径在 PostgreSQL，`files`、`script_descriptors`、`profile/capsules/clientManifest` 已补入结构化子表；原 `artifact_revisions` JSONB 列继续保留为兼容缓存，不再是唯一事实源。
+
 ## 📖 文档
 
 | 文档 | 说明 |

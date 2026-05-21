@@ -31,7 +31,7 @@ export const realSkillConflictFixtures: ConflictFixture[] = [
     id: 'real-contradictory-debug-approach',
     entryA: {
       title: 'Debugging Network Issues',
-      body: 'Evidence-driven investigation methodology: apply falsification-first approach with layered isolation experiments. Never diagnose from one log line or one circumstantial data point. Slow down the reflex to jump to conclusions. The skill\'s job is to prevent assumption-stacking that wastes hours when a 10-minute layered experiment would resolve the issue.',
+      body: "Evidence-driven investigation methodology: apply falsification-first approach with layered isolation experiments. Never diagnose from one log line or one circumstantial data point. Slow down the reflex to jump to conclusions. The skill's job is to prevent assumption-stacking that wastes hours when a 10-minute layered experiment would resolve the issue.",
     },
     entryB: {
       title: 'Quick Debug Shortcut',

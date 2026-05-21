@@ -4,6 +4,8 @@
 
 TrapMap 的治理模型基于 RBAC (基于角色的访问控制) 和多层级安全模型，确保知识条目在正确的权限级别下被访问和操作。
 
+> **Round 3 更新**：知识域治理约束已从纯应用层校验升级为数据库级约束。`knowledge_entries` 表补齐 `CHECK` 约束（`scope`、`lifecycle_state`、`required_level`），`lifecycle_events` 表补齐 `type` CHECK 约束。标签、边界、维护分配已从 JSONB 拆为结构化子表（见 [数据库级治理约束](#数据库级治理约束)），支持按治理维度直接查询、过滤和索引。
+
 ## 安全等级 (Security Levels)
 
 ### 定义
@@ -462,3 +464,60 @@ flowchart TB
 ```
 
 当 governanceInherited 为 true 时，子实体继承父实体的作用域。
+
+---
+
+## 数据库级治理约束（Round 3）
+
+Round 3 将知识域的核心治理规则从纯应用层校验升级为数据库级约束，同时将嵌入 JSONB 的治理元数据拆分为结构化可查询子表。
+
+### knowledge_entries CHECK 约束
+
+```sql
+-- 作用域约束：仅允许 'global' 或 'project'
+ALTER TABLE knowledge_entries ADD CONSTRAINT ck_knowledge_entries_scope
+  CHECK (scope IN ('global', 'project'));
+
+-- 生命周期约束：仅允许合法状态枚举值
+ALTER TABLE knowledge_entries ADD CONSTRAINT ck_knowledge_entries_lifecycle_state
+  CHECK (lifecycle_state IN ('draft', 'submitted', 'agent-pass',
+    'agent-rejected', 'approved', 'rejected', 'deactivated'));
+
+-- 安全等级约束：仅允许 0-10
+ALTER TABLE knowledge_entries ADD CONSTRAINT ck_knowledge_entries_required_level
+  CHECK (required_level >= 0 AND required_level <= 10);
+```
+
+### lifecycle_events CHECK 约束
+
+```sql
+ALTER TABLE lifecycle_events ADD CONSTRAINT ck_lifecycle_events_type
+  CHECK (type IN ('submitted', 'resubmitted', 'agent-reviewed',
+    'reviewer-approved', 'reviewer-rejected', 'updated', 'deactivated'));
+```
+
+### 治理相关索引
+
+| 索引 | 用途 |
+|------|------|
+| `idx_knowledge_entries_scope_level` ON `(scope, required_level)` | 按作用域 + 安全等级筛选可访问条目 |
+| `idx_knowledge_entries_owner` ON `(owner_user_id)` | 按所有者筛选 |
+| `idx_knowledge_entries_lifecycle_state` ON `(lifecycle_state)` | 按生命周期状态过滤（审核队列等） |
+| `idx_knowledge_labels_label` ON `(label)` | 按标签过滤（AND 语义） |
+| `idx_knowledge_maintenance_assignments_maintainer` ON `(maintainer_user_id)` | 按维护者筛选 |
+| `idx_knowledge_maintenance_assignments_review_by` ON `(review_by)` | 按复核截止时间筛选 |
+
+### 治理结构化子表
+
+| 表 | 说明 | 关键治理用途 |
+|----|------|------------|
+| `knowledge_labels` | `(entry_id, label)` 对，含唯一约束 | 标签过滤、分类统计、检索召回 |
+| `knowledge_boundary_contexts` | 上下文标签（如 `frontend`） | 边界感知过滤、跨上下文访问控制 |
+| `knowledge_boundary_versions` | 包/工具版本约束 | 版本匹配、兼容性检查 |
+| `knowledge_boundary_prerequisites` | 前置条件（环境/权限/工具等） | 适用性检查 |
+| `knowledge_boundary_signals` | 信号模式匹配器 | 自动触发匹配 |
+| `knowledge_boundary_exclusions` | 排除规则 | 不适用场景判定 |
+| `knowledge_boundary_evidence` | 证据引用（issue/CVE/commit 等） | 治理审计追踪 |
+| `knowledge_maintenance_assignments` | 维护者和复核时间（1:1 PK） | 责任制追踪、SLA 监控 |
+
+所有子表通过 `PgKnowledgeRepository` 与 `knowledge_entries` JSONB 缓存列同步写入，读路径从子表读取结构化数据，保证查询性同时保持 API 契约兼容。

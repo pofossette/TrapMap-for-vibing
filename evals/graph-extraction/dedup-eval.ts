@@ -48,7 +48,11 @@ function parseArgs_() {
     },
     strict: true,
   });
-  return { dryRun: values['dry-run'] ?? false, smoke: values.smoke ?? false, verbose: values.verbose ? 1 : 0 };
+  return {
+    dryRun: values['dry-run'] ?? false,
+    smoke: values.smoke ?? false,
+    verbose: values.verbose ? 1 : 0,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -560,9 +564,7 @@ async function main(): Promise<void> {
   console.log(`Mode: ${options.dryRun ? 'dry-run' : 'live'}`);
   console.log(`Smoke: ${options.smoke}`);
 
-  const allFixtures = options.smoke
-    ? dedupFixtures
-    : [...dedupFixtures, ...realSkillDedupFixtures];
+  const allFixtures = options.smoke ? dedupFixtures : [...dedupFixtures, ...realSkillDedupFixtures];
   console.log(`Fixtures: ${allFixtures.length}`);
   console.log('');
 

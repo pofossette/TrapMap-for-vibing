@@ -42,7 +42,14 @@ interface ClientManifest {
   revision: number;
   references: Array<{ path: string; sha256: string; sizeBytes: number; mediaType: string }>;
   assets: Array<{ path: string; sha256: string; sizeBytes: number; mediaType: string }>;
-  scripts: Array<{ path: string; sha256: string; capability: string; argsSchemaSummary: string; sideEffectSummary: string; defaultPolicy: string }>;
+  scripts: Array<{
+    path: string;
+    sha256: string;
+    capability: string;
+    argsSchemaSummary: string;
+    sideEffectSummary: string;
+    defaultPolicy: string;
+  }>;
   sourceHash: string;
 }
 
@@ -100,18 +107,22 @@ export function runAssertions(
     capsulesNonEmpty: output.capsules.length >= 1,
     capsulesMaxFive: output.capsules.length <= 5,
     allCapsulesHaveContent:
-      output.capsules.length > 0 && output.capsules.every((c: DerivedCapsule) => c.content.length > 0),
+      output.capsules.length > 0 &&
+      output.capsules.every((c: DerivedCapsule) => c.content.length > 0),
     allCapsulesHaveSituation:
-      output.capsules.length > 0 && output.capsules.every((c: DerivedCapsule) => c.situation.length > 0),
+      output.capsules.length > 0 &&
+      output.capsules.every((c: DerivedCapsule) => c.situation.length > 0),
     allCapsulesHaveProblem:
-      output.capsules.length > 0 && output.capsules.every((c: DerivedCapsule) => c.problem.length > 0),
+      output.capsules.length > 0 &&
+      output.capsules.every((c: DerivedCapsule) => c.problem.length > 0),
     allCapsulesHaveGoal:
       output.capsules.length > 0 && output.capsules.every((c: DerivedCapsule) => c.goal.length > 0),
     allCapsulesHaveLabels:
-      output.capsules.length > 0 && output.capsules.every((c: DerivedCapsule) => c.labels.length >= 1),
+      output.capsules.length > 0 &&
+      output.capsules.every((c: DerivedCapsule) => c.labels.length >= 1),
     clientManifestMatchesInput: checkClientManifest(bundle, output),
     sourceHashNonEmpty: output.sourceHash.length === 64,
-    derivedAtValid: !isNaN(Date.parse(output.derivedAt)),
+    derivedAtValid: !Number.isNaN(Date.parse(output.derivedAt)),
     noLLMCalls: output.capsules.every((c: DerivedCapsule) => !c.contextualPrefix),
   };
 
@@ -148,7 +159,9 @@ function checkClientManifest(bundle: ArtifactBundle, output: DerivedOutput): boo
       .filter((f) => f.source === 'references/')
       .map((f) => f.path)
       .sort();
-    const actualPaths = output.clientManifest.references.map((r: { path: string }) => r.path).sort();
+    const actualPaths = output.clientManifest.references
+      .map((r: { path: string }) => r.path)
+      .sort();
     if (JSON.stringify(expectedPaths) !== JSON.stringify(actualPaths)) return false;
   }
 

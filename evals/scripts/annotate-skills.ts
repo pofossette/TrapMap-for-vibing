@@ -36,7 +36,7 @@ function parseArgs_(): Options {
     strict: true,
   });
   return {
-    limit: parseInt(values.limit ?? '0', 10),
+    limit: Number.parseInt(values.limit ?? '0', 10),
     repo: values.repo ?? '',
   };
 }
@@ -114,9 +114,18 @@ async function main(): Promise<void> {
 
     const output = await deriveFromPayloads(payloads, context);
 
-    const repoLabel = bundle.labels.find((l) =>
-      ['anthropics', 'composio', 'alirezarezvani', 'jezweb', 'daymade', 'testcontainers', 'ykdojo'].includes(l),
-    ) ?? 'unknown';
+    const repoLabel =
+      bundle.labels.find((l) =>
+        [
+          'anthropics',
+          'composio',
+          'alirezarezvani',
+          'jezweb',
+          'daymade',
+          'testcontainers',
+          'ykdojo',
+        ].includes(l),
+      ) ?? 'unknown';
 
     summaries.push({
       repo: repoLabel,
@@ -125,18 +134,16 @@ async function main(): Promise<void> {
       summary: output.profile?.summary?.slice(0, 120) ?? '(no summary)',
       keywords: output.profile?.keywords ?? [],
       capsuleCount: output.capsules.length,
-      capsuleSituations: output.capsules.map((c: { situation: string }) => c.situation?.slice(0, 80) ?? ''),
+      capsuleSituations: output.capsules.map(
+        (c: { situation: string }) => c.situation?.slice(0, 80) ?? '',
+      ),
     });
   }
 
   // Print table
   console.log('=== Skill Summaries for Annotation ===\n');
-  console.log(
-    '#  | Repo           | Title                                  | Caps | Keywords',
-  );
-  console.log(
-    '---|----------------|----------------------------------------|------|----------',
-  );
+  console.log('#  | Repo           | Title                                  | Caps | Keywords');
+  console.log('---|----------------|----------------------------------------|------|----------');
 
   for (let i = 0; i < summaries.length; i++) {
     const s = summaries[i];

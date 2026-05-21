@@ -89,6 +89,7 @@ export interface ArtifactRepository {
     lifecycleState?: LifecycleState;
     teamId?: string;
     ownerUserId?: string;
+    maintainerUserId?: string;
   }): Promise<SkillArtifactRecord[]>;
 
   /**
@@ -196,6 +197,7 @@ export class InMemoryArtifactRepository implements ArtifactRepository {
     lifecycleState?: LifecycleState;
     teamId?: string;
     ownerUserId?: string;
+    maintainerUserId?: string;
   }): Promise<SkillArtifactRecord[]> {
     const data = await this.store.snapshot();
     return (data.skillArtifacts ?? []).filter((artifact) => {
@@ -209,6 +211,12 @@ export class InMemoryArtifactRepository implements ArtifactRepository {
         return false;
       }
       if (filter.ownerUserId !== undefined && artifact.ownerUserId !== filter.ownerUserId) {
+        return false;
+      }
+      if (
+        filter.maintainerUserId !== undefined &&
+        artifact.maintenanceMeta?.maintainerUserId !== filter.maintainerUserId
+      ) {
         return false;
       }
       return true;

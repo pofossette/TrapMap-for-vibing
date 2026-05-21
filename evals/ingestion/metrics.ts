@@ -70,7 +70,8 @@ export function aggregateMetrics(
     profileNonNullRate: count((r) => r.assertions.profileNonNull),
     profileSummaryNonEmptyRate: count((r) => r.assertions.profileSummaryNonEmpty),
     avgSummaryLength: 0, // computed separately
-    avgCapsulesPerSkill: capsuleCounts.length > 0 ? capsuleCounts.reduce((a, b) => a + b, 0) / n : 0,
+    avgCapsulesPerSkill:
+      capsuleCounts.length > 0 ? capsuleCounts.reduce((a, b) => a + b, 0) / n : 0,
     minCapsules: capsuleCounts.length > 0 ? Math.min(...capsuleCounts) : 0,
     maxCapsules: capsuleCounts.length > 0 ? Math.max(...capsuleCounts) : 0,
     capsulesNonEmptyRate: count((r) => r.assertions.capsulesNonEmpty),
@@ -111,11 +112,17 @@ export function formatDerivationReport(
   lines.push('Metric                      | Value');
   lines.push('----------------------------|--------');
   lines.push(`Profile non-null rate       | ${(metrics.profileNonNullRate * 100).toFixed(1)}%`);
-  lines.push(`Summary non-empty rate      | ${(metrics.profileSummaryNonEmptyRate * 100).toFixed(1)}%`);
+  lines.push(
+    `Summary non-empty rate      | ${(metrics.profileSummaryNonEmptyRate * 100).toFixed(1)}%`,
+  );
   lines.push(`Keywords non-empty rate     | ${(metrics.keywordsNonEmptyRate * 100).toFixed(1)}%`);
   lines.push(`Capsules non-empty rate     | ${(metrics.capsulesNonEmptyRate * 100).toFixed(1)}%`);
-  lines.push(`All capsules have content   | ${(metrics.allCapsulesHaveContentRate * 100).toFixed(1)}%`);
-  lines.push(`Client manifest match rate  | ${(metrics.clientManifestNonNullRate * 100).toFixed(1)}%`);
+  lines.push(
+    `All capsules have content   | ${(metrics.allCapsulesHaveContentRate * 100).toFixed(1)}%`,
+  );
+  lines.push(
+    `Client manifest match rate  | ${(metrics.clientManifestNonNullRate * 100).toFixed(1)}%`,
+  );
   lines.push(`Avg capsules per skill      | ${metrics.avgCapsulesPerSkill.toFixed(1)}`);
   lines.push(`Min / Max capsules          | ${metrics.minCapsules} / ${metrics.maxCapsules}`);
   lines.push(`All source hashes valid     | ${metrics.allSourceHashesValid ? 'YES' : 'NO'}`);

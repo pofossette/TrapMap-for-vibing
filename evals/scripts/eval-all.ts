@@ -313,10 +313,14 @@ async function runIngestionEval(options: EvalAllOptions): Promise<IngestionResul
 
   try {
     const { derivationFixtures, getSmokeFixtures } = await import('../ingestion/fixtures/index.js');
-    const { bundleToPayloads, buildDerivationContext, makeDeterministicId } = await import('../ingestion/adapter.js');
+    const { bundleToPayloads, buildDerivationContext, makeDeterministicId } = await import(
+      '../ingestion/adapter.js'
+    );
     const { runAssertions } = await import('../ingestion/assertions.js');
     const { aggregateMetrics } = await import('../ingestion/metrics.js');
-    const { deriveFromPayloads } = await import('../../packages/server/src/lib/artifacts/derive.js');
+    const { deriveFromPayloads } = await import(
+      '../../packages/server/src/lib/artifacts/derive.js'
+    );
 
     const fixtures = options.tier === 'smoke' ? getSmokeFixtures() : derivationFixtures;
     const results = [];
@@ -701,7 +705,10 @@ async function main(): Promise<void> {
     overall: {
       passed:
         failedCases === 0 &&
-        (retrievalResult !== null || summaryResult !== null || graphExtractionResult !== null || ingestionResult !== null),
+        (retrievalResult !== null ||
+          summaryResult !== null ||
+          graphExtractionResult !== null ||
+          ingestionResult !== null),
       totalCases,
       passedCases,
       failedCases,

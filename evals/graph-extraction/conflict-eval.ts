@@ -48,7 +48,11 @@ function parseArgs_() {
     },
     strict: true,
   });
-  return { dryRun: values['dry-run'] ?? false, smoke: values.smoke ?? false, verbose: values.verbose ? 1 : 0 };
+  return {
+    dryRun: values['dry-run'] ?? false,
+    smoke: values.smoke ?? false,
+    verbose: values.verbose ? 1 : 0,
+  };
 }
 
 // ---------------------------------------------------------------------------

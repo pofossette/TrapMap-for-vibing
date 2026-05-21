@@ -10,8 +10,8 @@
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { PgFeedbackRepository } from './pg-repository.js';
 import type { FeedbackQueueRecord } from '../store.js';
+import { PgFeedbackRepository } from './pg-repository.js';
 
 const DATABASE_URL = process.env.TRAPMAP_DATABASE_URL || process.env.DATABASE_URL;
 const describeIfDb = DATABASE_URL ? describe : describe.skip;
@@ -68,7 +68,9 @@ describeIfDb('PgFeedbackRepository', () => {
 
   beforeEach(async () => {
     // Clean up test data before each test
-    await testPool.query("DELETE FROM feedback_custom_answers WHERE feedback_id LIKE 'feedback_test_%'");
+    await testPool.query(
+      "DELETE FROM feedback_custom_answers WHERE feedback_id LIKE 'feedback_test_%'",
+    );
     await testPool.query("DELETE FROM feedback_records WHERE id LIKE 'feedback_test_%'");
   });
 
@@ -86,10 +88,9 @@ describeIfDb('PgFeedbackRepository', () => {
 
       await repo.insert(feedback);
 
-      const result = await testPool.query(
-        'SELECT * FROM feedback_records WHERE id = $1',
-        ['feedback_test_1'],
-      );
+      const result = await testPool.query('SELECT * FROM feedback_records WHERE id = $1', [
+        'feedback_test_1',
+      ]);
       expect(result.rows).toHaveLength(1);
       expect(result.rows[0]!.entry_id).toBe('entry_test_1');
       expect(result.rows[0]!.problem_type).toBe('incorrect');
@@ -135,9 +136,7 @@ describeIfDb('PgFeedbackRepository', () => {
 
     it('should retrieve feedback with custom answers', async () => {
       const feedback = createTestFeedbackRecord({
-        customAnswers: [
-          { prompt: 'What happened?', answer: 'The code crashed' },
-        ],
+        customAnswers: [{ prompt: 'What happened?', answer: 'The code crashed' }],
       });
       await repo.insert(feedback);
 
@@ -182,8 +181,12 @@ describeIfDb('PgFeedbackRepository', () => {
     });
 
     it('should filter by problemType', async () => {
-      await repo.insert(createTestFeedbackRecord({ id: 'feedback_test_1', problemType: 'incorrect' }));
-      await repo.insert(createTestFeedbackRecord({ id: 'feedback_test_2', problemType: 'outdated' }));
+      await repo.insert(
+        createTestFeedbackRecord({ id: 'feedback_test_1', problemType: 'incorrect' }),
+      );
+      await repo.insert(
+        createTestFeedbackRecord({ id: 'feedback_test_2', problemType: 'outdated' }),
+      );
 
       const results = await repo.listByFilter({ problemType: ['incorrect'] });
       expect(results).toHaveLength(1);
@@ -191,21 +194,27 @@ describeIfDb('PgFeedbackRepository', () => {
     });
 
     it('should filter by entryId and entryType', async () => {
-      await repo.insert(createTestFeedbackRecord({
-        id: 'feedback_test_1',
-        entryId: 'entry_1',
-        entryType: 'trap',
-      }));
-      await repo.insert(createTestFeedbackRecord({
-        id: 'feedback_test_2',
-        entryId: 'entry_1',
-        entryType: 'skill',
-      }));
-      await repo.insert(createTestFeedbackRecord({
-        id: 'feedback_test_3',
-        entryId: 'entry_2',
-        entryType: 'trap',
-      }));
+      await repo.insert(
+        createTestFeedbackRecord({
+          id: 'feedback_test_1',
+          entryId: 'entry_1',
+          entryType: 'trap',
+        }),
+      );
+      await repo.insert(
+        createTestFeedbackRecord({
+          id: 'feedback_test_2',
+          entryId: 'entry_1',
+          entryType: 'skill',
+        }),
+      );
+      await repo.insert(
+        createTestFeedbackRecord({
+          id: 'feedback_test_3',
+          entryId: 'entry_2',
+          entryType: 'trap',
+        }),
+      );
 
       const results = await repo.listByFilter({ entryId: 'entry_1', entryType: 'trap' });
       expect(results).toHaveLength(1);

@@ -112,7 +112,14 @@ function createTestBoundary(): Boundary {
     prerequisites: [{ description: 'Node.js 18+', kind: 'environment', required: true }],
     signals: [{ pattern: 'useEffect', kind: 'keyword', description: 'React hook' }],
     exclusions: [{ description: 'Not for SSR', kind: 'platform' }],
-    evidence: [{ kind: 'documentation', identifier: 'react-docs', url: 'https://react.dev', note: 'Official docs' }],
+    evidence: [
+      {
+        kind: 'documentation',
+        identifier: 'react-docs',
+        url: 'https://react.dev',
+        note: 'Official docs',
+      },
+    ],
   };
 }
 
@@ -147,13 +154,27 @@ describeIfDb('PgKnowledgeRepository', () => {
     await testPool.query("DELETE FROM knowledge_revisions WHERE entry_id LIKE 'knowledge_test_%'");
     await testPool.query("DELETE FROM lifecycle_events WHERE entry_id LIKE 'knowledge_test_%'");
     await testPool.query("DELETE FROM knowledge_labels WHERE entry_id LIKE 'knowledge_test_%'");
-    await testPool.query("DELETE FROM knowledge_boundary_contexts WHERE entry_id LIKE 'knowledge_test_%'");
-    await testPool.query("DELETE FROM knowledge_boundary_versions WHERE entry_id LIKE 'knowledge_test_%'");
-    await testPool.query("DELETE FROM knowledge_boundary_prerequisites WHERE entry_id LIKE 'knowledge_test_%'");
-    await testPool.query("DELETE FROM knowledge_boundary_signals WHERE entry_id LIKE 'knowledge_test_%'");
-    await testPool.query("DELETE FROM knowledge_boundary_exclusions WHERE entry_id LIKE 'knowledge_test_%'");
-    await testPool.query("DELETE FROM knowledge_boundary_evidence WHERE entry_id LIKE 'knowledge_test_%'");
-    await testPool.query("DELETE FROM knowledge_maintenance_assignments WHERE entry_id LIKE 'knowledge_test_%'");
+    await testPool.query(
+      "DELETE FROM knowledge_boundary_contexts WHERE entry_id LIKE 'knowledge_test_%'",
+    );
+    await testPool.query(
+      "DELETE FROM knowledge_boundary_versions WHERE entry_id LIKE 'knowledge_test_%'",
+    );
+    await testPool.query(
+      "DELETE FROM knowledge_boundary_prerequisites WHERE entry_id LIKE 'knowledge_test_%'",
+    );
+    await testPool.query(
+      "DELETE FROM knowledge_boundary_signals WHERE entry_id LIKE 'knowledge_test_%'",
+    );
+    await testPool.query(
+      "DELETE FROM knowledge_boundary_exclusions WHERE entry_id LIKE 'knowledge_test_%'",
+    );
+    await testPool.query(
+      "DELETE FROM knowledge_boundary_evidence WHERE entry_id LIKE 'knowledge_test_%'",
+    );
+    await testPool.query(
+      "DELETE FROM knowledge_maintenance_assignments WHERE entry_id LIKE 'knowledge_test_%'",
+    );
   });
 
   describe('nextId()', () => {
@@ -461,7 +482,9 @@ describeIfDb('PgKnowledgeRepository', () => {
 
       const results = await repository.listByFilter({ labels: ['postgres', 'migration'] });
       expect(results.length).toBeGreaterThanOrEqual(1);
-      expect(results.every((e) => e.labels.includes('postgres') && e.labels.includes('migration'))).toBe(true);
+      expect(
+        results.every((e) => e.labels.includes('postgres') && e.labels.includes('migration')),
+      ).toBe(true);
     });
 
     it('should combine label filter with other filters', async () => {
@@ -485,7 +508,9 @@ describeIfDb('PgKnowledgeRepository', () => {
         lifecycleState: 'approved',
       });
       expect(results.length).toBeGreaterThanOrEqual(1);
-      expect(results.every((e) => e.labels.includes('postgres') && e.lifecycleState === 'approved')).toBe(true);
+      expect(
+        results.every((e) => e.labels.includes('postgres') && e.lifecycleState === 'approved'),
+      ).toBe(true);
     });
   });
 

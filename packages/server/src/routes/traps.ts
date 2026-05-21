@@ -55,18 +55,17 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       );
     }
 
-    const preReview = await runPreReview({
-      existingEntries: await app.skillShareer.knowledgeRepo.listByFilter({}),
-      submission: payload,
-    });
-
-    const createdAt = nowIso();
-
-    // Get knowledgeRepo for repository operations
     const knowledgeRepo = app.skillShareer.knowledgeRepo;
     if (!knowledgeRepo) {
       throw new AppError(500, 'repo_unavailable', 'Knowledge repository not available');
     }
+
+    const preReview = await runPreReview({
+      existingEntries: await knowledgeRepo.listByFilter({}),
+      submission: payload,
+    });
+
+    const createdAt = nowIso();
 
     const entryId = await knowledgeRepo.nextId();
 

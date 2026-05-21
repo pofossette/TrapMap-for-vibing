@@ -16,10 +16,12 @@ import { transitionLifecycleState } from '../lifecycle/state-machine.js';
 import { skillArtifacts } from '../persistence/schema.js';
 import type {
   AgentReviewRecord,
+  MaintenanceMetaRecord,
   SkillArtifactLifecycleEventRecord,
   SkillArtifactMetadataRecord,
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
+  SkillScriptDescriptorRecord,
   StoredScriptActivationPolicy,
 } from '../store.js';
 import type { ArtifactRepository } from './repository.js';
@@ -81,13 +83,14 @@ export class PgArtifactRepository implements ArtifactRepository {
 
       // Insert all revisions
       for (const revision of artifact.history) {
+        const revisionId = `${artifact.id}_rev${revision.revision}`;
         await client.query(
           `INSERT INTO artifact_revisions (
             id, artifact_id, revision_no, source_hash, files, submitted_at,
             submitted_by_user_id, script_descriptors, derived, created_at
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
-            `${artifact.id}_rev${revision.revision}`,
+            revisionId,
             artifact.id,
             revision.revision,
             revision.sourceHash,
@@ -99,6 +102,7 @@ export class PgArtifactRepository implements ArtifactRepository {
             revision.submittedAt,
           ],
         );
+        await upsertStructuredRevisionRows(client, artifact.id, revisionId, revision);
       }
 
       // Insert all lifecycle events
@@ -121,6 +125,17 @@ export class PgArtifactRepository implements ArtifactRepository {
           ],
         );
       }
+
+      if (artifact.boundary) {
+        await insertArtifactBoundarySubTables(client, artifact.id, artifact.boundary);
+      }
+      if (artifact.maintenanceMeta) {
+        await upsertArtifactMaintenanceAssignment(client, artifact.id, artifact.maintenanceMeta);
+      }
+      if (artifact.agentReview) {
+        await upsertArtifactAgentReview(client, artifact.id, artifact.agentReview);
+      }
+      await upsertArtifactMetadata(client, artifact.id, artifact.metadata);
 
       await client.query('COMMIT');
     } catch (e) {
@@ -152,14 +167,29 @@ export class PgArtifactRepository implements ArtifactRepository {
       'SELECT * FROM artifact_revisions WHERE artifact_id = $1 ORDER BY revision_no',
       [artifactId],
     );
+    const revisionIds = revisionsResult.rows.map((row) => row.id);
+    const structured = await loadStructuredRevisionData(this.pool, revisionIds);
 
     // Query lifecycle events
     const eventsResult = await this.pool.query<DrizzleArtifactLifecycleEventRow>(
       'SELECT * FROM artifact_lifecycle_events WHERE artifact_id = $1 ORDER BY created_at',
       [artifactId],
     );
+    const boundary = await loadArtifactBoundaryFromSubTables(this.pool, artifactId);
+    const maintenanceMeta = await loadArtifactMaintenanceMeta(this.pool, artifactId);
+    const agentReview = await loadArtifactAgentReview(this.pool, artifactId);
+    const metadata = await loadArtifactMetadata(this.pool, artifactId);
 
-    return reconstructSkillArtifactRecord(artifactRow, revisionsResult.rows, eventsResult.rows);
+    return reconstructSkillArtifactRecord(
+      artifactRow,
+      revisionsResult.rows,
+      eventsResult.rows,
+      structured,
+      boundary,
+      maintenanceMeta,
+      agentReview,
+      metadata,
+    );
   }
 
   /**
@@ -240,6 +270,7 @@ export class PgArtifactRepository implements ArtifactRepository {
       }
 
       const now = new Date().toISOString();
+      const revisionId = `${artifactId}_rev${revision.revision}`;
 
       // Insert the revision
       await client.query(
@@ -248,7 +279,7 @@ export class PgArtifactRepository implements ArtifactRepository {
           submitted_by_user_id, script_descriptors, derived, created_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
-          `${artifactId}_rev${revision.revision}`,
+          revisionId,
           artifactId,
           revision.revision,
           revision.sourceHash,
@@ -260,6 +291,7 @@ export class PgArtifactRepository implements ArtifactRepository {
           revision.submittedAt,
         ],
       );
+      await upsertStructuredRevisionRows(client, artifactId, revisionId, revision);
 
       // Update the artifact's latest revision columns
       await client.query(
@@ -308,6 +340,15 @@ export class PgArtifactRepository implements ArtifactRepository {
         'UPDATE artifact_revisions SET derived = $1 WHERE artifact_id = $2 AND revision_no = $3',
         [derived ? JSON.stringify(derived) : null, artifactId, revision],
       );
+      const revisionId = `${artifactId}_rev${revision}`;
+      const revisionRecord = await this.getById(artifactId);
+      const targetRevision = revisionRecord?.history.find((item) => item.revision === revision);
+      if (targetRevision) {
+        await replaceStructuredDerivedRows(client, artifactId, revisionId, {
+          ...targetRevision,
+          derived,
+        });
+      }
 
       // Update the artifact's updated_at
       await client.query('UPDATE skill_artifacts SET updated_at = $1 WHERE id = $2', [
@@ -358,10 +399,12 @@ export class PgArtifactRepository implements ArtifactRepository {
     lifecycleState?: LifecycleState;
     teamId?: string;
     ownerUserId?: string;
+    maintainerUserId?: string;
   }): Promise<SkillArtifactRecord[]> {
     const conditions: string[] = [];
     const params: (string | number)[] = [];
     let paramIndex = 1;
+    let joinClause = '';
 
     if (filter.lifecycleState !== undefined) {
       conditions.push(`lifecycle_state = $${paramIndex++}`);
@@ -375,11 +418,17 @@ export class PgArtifactRepository implements ArtifactRepository {
       conditions.push(`owner_user_id = $${paramIndex++}`);
       params.push(filter.ownerUserId);
     }
+    if (filter.maintainerUserId !== undefined) {
+      joinClause =
+        'LEFT JOIN skill_artifact_maintenance_assignments sama ON sama.artifact_id = skill_artifacts.id';
+      conditions.push(`sama.maintainer_user_id = $${paramIndex++}`);
+      params.push(filter.maintainerUserId);
+    }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const result = await this.pool.query<DrizzleSkillArtifactRow>(
-      `SELECT * FROM skill_artifacts ${whereClause}`,
+      `SELECT skill_artifacts.* FROM skill_artifacts ${joinClause} ${whereClause}`,
       params,
     );
 
@@ -607,6 +656,42 @@ interface DrizzleArtifactRevisionRow {
   created_at: Date;
 }
 
+interface StructuredRevisionData {
+  files: ArtifactRevisionFileRow[];
+  scriptDescriptors: ArtifactScriptDescriptorRow[];
+  derived: ArtifactDerivedRow | null;
+}
+
+interface ArtifactMaintenanceAssignmentRow {
+  artifact_id: string;
+  maintainer_user_id: string | null;
+  maintainer_handle: string | null;
+  maintainer_level: number | null;
+  review_by: Date | null;
+}
+
+interface ArtifactAgentReviewRow {
+  artifact_id: string;
+  status: 'agent-pass' | 'agent-rejected';
+  duplicate_risk: 'low' | 'medium' | 'high';
+  correctness_risk: 'low' | 'medium' | 'high';
+  completeness_risk: 'low' | 'medium' | 'high';
+  checked_at: Date;
+  notes: string[];
+}
+
+interface ArtifactMetadataRow {
+  artifact_id: string;
+  source_kind: 'skill-directory' | 'single-skill-md' | 'legacy-knowledge';
+  submission_count: number;
+  resubmission_count: number;
+  revision_count: number;
+  latest_submission_id: string | null;
+  latest_submitted_at: Date | null;
+  latest_reviewed_at: Date | null;
+  latest_decision: 'approve' | 'reject' | null;
+}
+
 /**
  * Database row shape for artifact_lifecycle_events table.
  */
@@ -687,6 +772,16 @@ function rowToArtifactRevision(row: DrizzleArtifactRevisionRow): SkillArtifactRe
   };
 }
 
+function buildDerivedFromStructured(
+  data: StructuredRevisionData,
+  fallback: ArtifactDerivedRow | null,
+): ArtifactDerivedRow | null {
+  if (data.derived !== null) {
+    return data.derived;
+  }
+  return fallback;
+}
+
 /**
  * Map a Drizzle lifecycle event row to SkillArtifactLifecycleEventRecord.
  */
@@ -712,11 +807,34 @@ function reconstructSkillArtifactRecord(
   artifactRow: DrizzleSkillArtifactRow,
   revisionRows: DrizzleArtifactRevisionRow[],
   eventRows: DrizzleArtifactLifecycleEventRow[],
+  structuredRows: Map<string, StructuredRevisionData>,
+  boundary: Boundary | null,
+  maintenanceMeta: MaintenanceMetaRecord | null,
+  agentReview: AgentReviewRecord | null,
+  metadata: SkillArtifactMetadataRecord | null,
 ): SkillArtifactRecord {
   const artifact = rowToSkillArtifact(artifactRow);
+  artifact.metadata = metadata ?? artifact.metadata;
+  artifact.boundary = boundary ?? artifact.boundary;
+  artifact.maintenanceMeta = maintenanceMeta ?? artifact.maintenanceMeta;
+  artifact.agentReview = agentReview ?? artifact.agentReview;
 
   // Populate revisions
-  const revisions = revisionRows.map(rowToArtifactRevision);
+  const revisions = revisionRows.map((row) => {
+    const structured = structuredRows.get(row.id);
+    if (!structured) {
+      return rowToArtifactRevision(row);
+    }
+    return {
+      revision: row.revision_no,
+      sourceHash: row.source_hash,
+      files: structured.files,
+      submittedAt: row.submitted_at.toISOString(),
+      submittedByUserId: row.submitted_by_user_id,
+      scriptDescriptors: structured.scriptDescriptors,
+      derived: buildDerivedFromStructured(structured, row.derived),
+    };
+  });
   artifact.history = revisions;
   if (revisions.length > 0) {
     artifact.latestRevision = revisions[revisions.length - 1]!;
@@ -726,4 +844,623 @@ function reconstructSkillArtifactRecord(
   artifact.lifecycleHistory = eventRows.map(rowToArtifactLifecycleEvent);
 
   return artifact;
+}
+
+async function upsertStructuredRevisionRows(
+  client: Pick<Pool, 'query'>,
+  artifactId: string,
+  revisionId: string,
+  revision: SkillArtifactRevisionRecord,
+): Promise<void> {
+  await client.query('DELETE FROM skill_artifact_files WHERE artifact_revision_id = $1', [
+    revisionId,
+  ]);
+  for (const file of revision.files) {
+    await client.query(
+      `INSERT INTO skill_artifact_files (
+        artifact_revision_id, artifact_id, revision_no, path, kind, sha256, size_bytes, media_type,
+        source_group, include_in_derivation, activation_only
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      [
+        revisionId,
+        artifactId,
+        revision.revision,
+        file.path,
+        file.kind,
+        file.sha256,
+        file.sizeBytes,
+        file.mediaType,
+        file.source,
+        file.includeInDerivation ? 1 : 0,
+        file.activationOnly ? 1 : 0,
+      ],
+    );
+  }
+
+  await client.query(
+    'DELETE FROM skill_artifact_script_descriptors WHERE artifact_revision_id = $1',
+    [revisionId],
+  );
+  for (const descriptor of revision.scriptDescriptors) {
+    await client.query(
+      `INSERT INTO skill_artifact_script_descriptors (
+        artifact_revision_id, artifact_id, revision_no, path, sha256, capability, args_schema_summary,
+        side_effect_summary, default_policy
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        revisionId,
+        artifactId,
+        revision.revision,
+        descriptor.path,
+        descriptor.sha256,
+        descriptor.capability,
+        descriptor.argsSchemaSummary,
+        descriptor.sideEffectSummary,
+        descriptor.defaultPolicy,
+      ],
+    );
+  }
+
+  await replaceStructuredDerivedRows(client, artifactId, revisionId, revision);
+}
+
+async function replaceStructuredDerivedRows(
+  client: Pick<Pool, 'query'>,
+  artifactId: string,
+  revisionId: string,
+  revision: SkillArtifactRevisionRecord,
+): Promise<void> {
+  await client.query('DELETE FROM skill_artifact_profiles WHERE artifact_revision_id = $1', [
+    revisionId,
+  ]);
+  await client.query('DELETE FROM skill_artifact_capsules WHERE artifact_revision_id = $1', [
+    revisionId,
+  ]);
+  await client.query(
+    'DELETE FROM skill_artifact_manifest_references WHERE artifact_revision_id = $1',
+    [revisionId],
+  );
+  await client.query('DELETE FROM skill_artifact_manifest_assets WHERE artifact_revision_id = $1', [
+    revisionId,
+  ]);
+  await client.query(
+    'DELETE FROM skill_artifact_manifest_scripts WHERE artifact_revision_id = $1',
+    [revisionId],
+  );
+  await client.query(
+    'DELETE FROM skill_artifact_client_manifests WHERE artifact_revision_id = $1',
+    [revisionId],
+  );
+
+  if (!revision.derived) {
+    return;
+  }
+
+  if (revision.derived.profile) {
+    await client.query(
+      `INSERT INTO skill_artifact_profiles (
+        artifact_revision_id, artifact_id, revision_no, source_hash, title, summary, keywords, reference_paths, content_hash
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        revisionId,
+        artifactId,
+        revision.revision,
+        revision.derived.profile.sourceHash,
+        revision.derived.profile.title,
+        revision.derived.profile.summary,
+        JSON.stringify(revision.derived.profile.keywords),
+        JSON.stringify(revision.derived.profile.referencePaths),
+        revision.derived.profile.contentHash,
+      ],
+    );
+  }
+
+  for (const capsule of revision.derived.capsules) {
+    await client.query(
+      `INSERT INTO skill_artifact_capsules (
+        capsule_id, artifact_revision_id, artifact_id, revision_no, source_hash, source_paths, content, situation,
+        problem, goal, error_text, contextual_prefix, labels, scope, required_level
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+      [
+        capsule.capsuleId,
+        revisionId,
+        artifactId,
+        revision.revision,
+        revision.derived.sourceHash,
+        JSON.stringify(capsule.sourcePaths),
+        capsule.content,
+        capsule.situation,
+        capsule.problem,
+        capsule.goal,
+        capsule.errorText,
+        capsule.contextualPrefix ?? null,
+        JSON.stringify(capsule.labels),
+        capsule.scope,
+        capsule.requiredLevel,
+      ],
+    );
+  }
+
+  if (revision.derived.clientManifest) {
+    await client.query(
+      `INSERT INTO skill_artifact_client_manifests (
+        artifact_revision_id, artifact_id, revision_no, source_hash
+      ) VALUES ($1,$2,$3,$4)`,
+      [revisionId, artifactId, revision.revision, revision.derived.clientManifest.sourceHash],
+    );
+
+    for (const item of revision.derived.clientManifest.references) {
+      await client.query(
+        `INSERT INTO skill_artifact_manifest_references (
+          artifact_revision_id, path, sha256, size_bytes, media_type
+        ) VALUES ($1,$2,$3,$4,$5)`,
+        [revisionId, item.path, item.sha256, item.sizeBytes, item.mediaType],
+      );
+    }
+    for (const item of revision.derived.clientManifest.assets) {
+      await client.query(
+        `INSERT INTO skill_artifact_manifest_assets (
+          artifact_revision_id, path, sha256, size_bytes, media_type
+        ) VALUES ($1,$2,$3,$4,$5)`,
+        [revisionId, item.path, item.sha256, item.sizeBytes, item.mediaType],
+      );
+    }
+    for (const item of revision.derived.clientManifest.scripts) {
+      await client.query(
+        `INSERT INTO skill_artifact_manifest_scripts (
+          artifact_revision_id, path, sha256, capability, args_schema_summary, side_effect_summary, default_policy
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [
+          revisionId,
+          item.path,
+          item.sha256,
+          item.capability,
+          item.argsSchemaSummary,
+          item.sideEffectSummary,
+          item.defaultPolicy,
+        ],
+      );
+    }
+  }
+}
+
+async function loadStructuredRevisionData(
+  pool: Pool,
+  revisionIds: string[],
+): Promise<Map<string, StructuredRevisionData>> {
+  const result = new Map<string, StructuredRevisionData>();
+  if (revisionIds.length === 0) {
+    return result;
+  }
+
+  const [
+    filesRows,
+    descriptorRows,
+    profileRows,
+    capsuleRows,
+    manifestRows,
+    manifestRefRows,
+    manifestAssetRows,
+    manifestScriptRows,
+  ] = await Promise.all([
+    pool.query(
+      'SELECT * FROM skill_artifact_files WHERE artifact_revision_id = ANY($1::text[]) ORDER BY id',
+      [revisionIds],
+    ),
+    pool.query(
+      'SELECT * FROM skill_artifact_script_descriptors WHERE artifact_revision_id = ANY($1::text[]) ORDER BY id',
+      [revisionIds],
+    ),
+    pool.query(
+      'SELECT * FROM skill_artifact_profiles WHERE artifact_revision_id = ANY($1::text[])',
+      [revisionIds],
+    ),
+    pool.query(
+      'SELECT * FROM skill_artifact_capsules WHERE artifact_revision_id = ANY($1::text[]) ORDER BY capsule_id',
+      [revisionIds],
+    ),
+    pool.query(
+      'SELECT * FROM skill_artifact_client_manifests WHERE artifact_revision_id = ANY($1::text[])',
+      [revisionIds],
+    ),
+    pool.query(
+      'SELECT * FROM skill_artifact_manifest_references WHERE artifact_revision_id = ANY($1::text[]) ORDER BY id',
+      [revisionIds],
+    ),
+    pool.query(
+      'SELECT * FROM skill_artifact_manifest_assets WHERE artifact_revision_id = ANY($1::text[]) ORDER BY id',
+      [revisionIds],
+    ),
+    pool.query(
+      'SELECT * FROM skill_artifact_manifest_scripts WHERE artifact_revision_id = ANY($1::text[]) ORDER BY id',
+      [revisionIds],
+    ),
+  ]);
+
+  for (const revisionId of revisionIds) {
+    const files = filesRows.rows
+      .filter((row: any) => row.artifact_revision_id === revisionId)
+      .map((row: any) => ({
+        path: row.path,
+        kind: row.kind,
+        sha256: row.sha256,
+        sizeBytes: row.size_bytes,
+        mediaType: row.media_type,
+        source: row.source_group,
+        includeInDerivation: row.include_in_derivation === 1,
+        activationOnly: row.activation_only === 1,
+      }));
+
+    const scriptDescriptors = descriptorRows.rows
+      .filter((row: any) => row.artifact_revision_id === revisionId)
+      .map(
+        (row: any): SkillScriptDescriptorRecord => ({
+          path: row.path,
+          sha256: row.sha256,
+          capability: row.capability,
+          argsSchemaSummary: row.args_schema_summary,
+          sideEffectSummary: row.side_effect_summary,
+          defaultPolicy: row.default_policy,
+        }),
+      );
+
+    const profileRow = profileRows.rows.find(
+      (row: any) => row.artifact_revision_id === revisionId,
+    ) as any;
+    const capsuleList = capsuleRows.rows
+      .filter((row: any) => row.artifact_revision_id === revisionId)
+      .map((row: any) => ({
+        capsuleId: row.capsule_id,
+        artifactId: row.artifact_id,
+        revision: row.revision_no,
+        sourcePaths: row.source_paths,
+        content: row.content,
+        situation: row.situation,
+        problem: row.problem,
+        goal: row.goal,
+        errorText: row.error_text,
+        contextualPrefix: row.contextual_prefix ?? undefined,
+        labels: row.labels,
+        scope: row.scope,
+        requiredLevel: row.required_level,
+      }));
+
+    const manifestRow = manifestRows.rows.find(
+      (row: any) => row.artifact_revision_id === revisionId,
+    ) as any;
+    const manifest = manifestRow
+      ? {
+          artifactId: manifestRow.artifact_id,
+          revision: manifestRow.revision_no,
+          references: manifestRefRows.rows
+            .filter((row: any) => row.artifact_revision_id === revisionId)
+            .map((row: any) => ({
+              path: row.path,
+              sha256: row.sha256,
+              sizeBytes: row.size_bytes,
+              mediaType: row.media_type,
+            })),
+          assets: manifestAssetRows.rows
+            .filter((row: any) => row.artifact_revision_id === revisionId)
+            .map((row: any) => ({
+              path: row.path,
+              sha256: row.sha256,
+              sizeBytes: row.size_bytes,
+              mediaType: row.media_type,
+            })),
+          scripts: manifestScriptRows.rows
+            .filter((row: any) => row.artifact_revision_id === revisionId)
+            .map((row: any) => ({
+              path: row.path,
+              sha256: row.sha256,
+              capability: row.capability,
+              argsSchemaSummary: row.args_schema_summary,
+              sideEffectSummary: row.side_effect_summary,
+              defaultPolicy: row.default_policy,
+            })),
+          sourceHash: manifestRow.source_hash,
+        }
+      : null;
+
+    const derived =
+      profileRow || capsuleList.length > 0 || manifest
+        ? {
+            profile: profileRow
+              ? {
+                  artifactId: profileRow.artifact_id,
+                  revision: profileRow.revision_no,
+                  sourceHash: profileRow.source_hash,
+                  title: profileRow.title,
+                  summary: profileRow.summary,
+                  keywords: profileRow.keywords,
+                  referencePaths: profileRow.reference_paths,
+                  contentHash: profileRow.content_hash,
+                }
+              : null,
+            capsules: capsuleList,
+            clientManifest: manifest,
+            sourceHash:
+              profileRow?.source_hash ?? manifest?.sourceHash ?? capsuleList[0]?.artifactId ?? '',
+            derivedAt: new Date().toISOString(),
+          }
+        : null;
+
+    result.set(revisionId, { files, scriptDescriptors, derived });
+  }
+
+  return result;
+}
+
+async function insertArtifactBoundarySubTables(
+  client: Pick<Pool, 'query'>,
+  artifactId: string,
+  boundary: Boundary,
+): Promise<void> {
+  for (const context of boundary.context) {
+    await client.query(
+      'INSERT INTO skill_artifact_boundary_contexts (artifact_id, context_value) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [artifactId, context],
+    );
+  }
+  for (const version of boundary.versions) {
+    await client.query(
+      'INSERT INTO skill_artifact_boundary_versions (artifact_id, package_name, range_value, note) VALUES ($1, $2, $3, $4)',
+      [artifactId, version.package, version.range, version.note ?? null],
+    );
+  }
+  for (const prerequisite of boundary.prerequisites) {
+    await client.query(
+      'INSERT INTO skill_artifact_boundary_prerequisites (artifact_id, description, kind, required) VALUES ($1, $2, $3, $4)',
+      [
+        artifactId,
+        prerequisite.description,
+        prerequisite.kind ?? null,
+        prerequisite.required ? 1 : 0,
+      ],
+    );
+  }
+  for (const signal of boundary.signals) {
+    await client.query(
+      'INSERT INTO skill_artifact_boundary_signals (artifact_id, pattern, kind, description) VALUES ($1, $2, $3, $4)',
+      [artifactId, signal.pattern, signal.kind, signal.description ?? null],
+    );
+  }
+  for (const exclusion of boundary.exclusions) {
+    await client.query(
+      'INSERT INTO skill_artifact_boundary_exclusions (artifact_id, description, kind) VALUES ($1, $2, $3)',
+      [artifactId, exclusion.description, exclusion.kind ?? null],
+    );
+  }
+  for (const evidence of boundary.evidence) {
+    await client.query(
+      'INSERT INTO skill_artifact_boundary_evidence (artifact_id, kind, identifier, url, note) VALUES ($1, $2, $3, $4, $5)',
+      [artifactId, evidence.kind, evidence.identifier, evidence.url ?? null, evidence.note ?? null],
+    );
+  }
+}
+
+async function upsertArtifactMaintenanceAssignment(
+  client: Pick<Pool, 'query'>,
+  artifactId: string,
+  maintenanceMeta: MaintenanceMetaRecord,
+): Promise<void> {
+  await client.query(
+    `INSERT INTO skill_artifact_maintenance_assignments (
+      artifact_id, maintainer_user_id, maintainer_handle, maintainer_level, review_by, updated_at
+    ) VALUES ($1, $2, $3, $4, $5, NOW())
+    ON CONFLICT (artifact_id) DO UPDATE SET
+      maintainer_user_id = EXCLUDED.maintainer_user_id,
+      maintainer_handle = EXCLUDED.maintainer_handle,
+      maintainer_level = EXCLUDED.maintainer_level,
+      review_by = EXCLUDED.review_by,
+      updated_at = NOW()`,
+    [
+      artifactId,
+      maintenanceMeta.maintainerUserId,
+      maintenanceMeta.maintainerHandle,
+      maintenanceMeta.maintainerLevel,
+      maintenanceMeta.reviewBy,
+    ],
+  );
+}
+
+async function upsertArtifactAgentReview(
+  client: Pick<Pool, 'query'>,
+  artifactId: string,
+  agentReview: AgentReviewRecord,
+): Promise<void> {
+  await client.query(
+    `INSERT INTO skill_artifact_agent_reviews (
+      artifact_id, status, duplicate_risk, correctness_risk, completeness_risk, checked_at, notes, updated_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+    ON CONFLICT (artifact_id) DO UPDATE SET
+      status = EXCLUDED.status,
+      duplicate_risk = EXCLUDED.duplicate_risk,
+      correctness_risk = EXCLUDED.correctness_risk,
+      completeness_risk = EXCLUDED.completeness_risk,
+      checked_at = EXCLUDED.checked_at,
+      notes = EXCLUDED.notes,
+      updated_at = NOW()`,
+    [
+      artifactId,
+      agentReview.status,
+      agentReview.duplicateRisk,
+      agentReview.correctnessRisk,
+      agentReview.completenessRisk,
+      agentReview.checkedAt,
+      JSON.stringify(agentReview.notes),
+    ],
+  );
+}
+
+async function upsertArtifactMetadata(
+  client: Pick<Pool, 'query'>,
+  artifactId: string,
+  metadata: SkillArtifactMetadataRecord,
+): Promise<void> {
+  await client.query(
+    `INSERT INTO skill_artifact_metadata (
+      artifact_id, source_kind, submission_count, resubmission_count, revision_count,
+      latest_submission_id, latest_submitted_at, latest_reviewed_at, latest_decision, updated_at
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())
+    ON CONFLICT (artifact_id) DO UPDATE SET
+      source_kind = EXCLUDED.source_kind,
+      submission_count = EXCLUDED.submission_count,
+      resubmission_count = EXCLUDED.resubmission_count,
+      revision_count = EXCLUDED.revision_count,
+      latest_submission_id = EXCLUDED.latest_submission_id,
+      latest_submitted_at = EXCLUDED.latest_submitted_at,
+      latest_reviewed_at = EXCLUDED.latest_reviewed_at,
+      latest_decision = EXCLUDED.latest_decision,
+      updated_at = NOW()`,
+    [
+      artifactId,
+      metadata.sourceKind,
+      metadata.submissionCount,
+      metadata.resubmissionCount,
+      metadata.revisionCount,
+      metadata.latestSubmissionId,
+      metadata.latestSubmittedAt,
+      metadata.latestReviewedAt,
+      metadata.latestDecision,
+    ],
+  );
+}
+
+async function loadArtifactBoundaryFromSubTables(
+  pool: Pool,
+  artifactId: string,
+): Promise<Boundary | null> {
+  const [contexts, versions, prerequisites, signals, exclusions, evidence] = await Promise.all([
+    pool.query<{ context_value: string }>(
+      'SELECT context_value FROM skill_artifact_boundary_contexts WHERE artifact_id = $1 ORDER BY context_value',
+      [artifactId],
+    ),
+    pool.query<{ package_name: string; range_value: string; note: string | null }>(
+      'SELECT package_name, range_value, note FROM skill_artifact_boundary_versions WHERE artifact_id = $1 ORDER BY id',
+      [artifactId],
+    ),
+    pool.query<{ description: string; kind: string | null; required: number }>(
+      'SELECT description, kind, required FROM skill_artifact_boundary_prerequisites WHERE artifact_id = $1 ORDER BY id',
+      [artifactId],
+    ),
+    pool.query<{ pattern: string; kind: string; description: string | null }>(
+      'SELECT pattern, kind, description FROM skill_artifact_boundary_signals WHERE artifact_id = $1 ORDER BY id',
+      [artifactId],
+    ),
+    pool.query<{ description: string; kind: string | null }>(
+      'SELECT description, kind FROM skill_artifact_boundary_exclusions WHERE artifact_id = $1 ORDER BY id',
+      [artifactId],
+    ),
+    pool.query<{ kind: string; identifier: string; url: string | null; note: string | null }>(
+      'SELECT kind, identifier, url, note FROM skill_artifact_boundary_evidence WHERE artifact_id = $1 ORDER BY id',
+      [artifactId],
+    ),
+  ]);
+
+  if (
+    contexts.rows.length === 0 &&
+    versions.rows.length === 0 &&
+    prerequisites.rows.length === 0 &&
+    signals.rows.length === 0 &&
+    exclusions.rows.length === 0 &&
+    evidence.rows.length === 0
+  ) {
+    return null;
+  }
+
+  return {
+    context: contexts.rows.map((row) => row.context_value),
+    versions: versions.rows.map((row) => ({
+      package: row.package_name,
+      range: row.range_value,
+      note: row.note ?? undefined,
+    })),
+    prerequisites: prerequisites.rows.map((row) => ({
+      description: row.description,
+      kind: (row.kind ?? undefined) as any,
+      required: row.required === 1,
+    })),
+    signals: signals.rows.map((row) => ({
+      pattern: row.pattern,
+      kind: row.kind as any,
+      description: row.description ?? undefined,
+    })),
+    exclusions: exclusions.rows.map((row) => ({
+      description: row.description,
+      kind: (row.kind ?? undefined) as any,
+    })),
+    evidence: evidence.rows.map((row) => ({
+      kind: row.kind as any,
+      identifier: row.identifier,
+      url: row.url ?? undefined,
+      note: row.note ?? undefined,
+    })),
+  };
+}
+
+async function loadArtifactMaintenanceMeta(
+  pool: Pool,
+  artifactId: string,
+): Promise<MaintenanceMetaRecord | null> {
+  const result = await pool.query<ArtifactMaintenanceAssignmentRow>(
+    'SELECT * FROM skill_artifact_maintenance_assignments WHERE artifact_id = $1',
+    [artifactId],
+  );
+  if (result.rows.length === 0) {
+    return null;
+  }
+  const row = result.rows[0]!;
+  return {
+    maintainerUserId: row.maintainer_user_id,
+    maintainerHandle: row.maintainer_handle,
+    maintainerLevel: row.maintainer_level,
+    reviewBy: row.review_by ? row.review_by.toISOString() : null,
+  };
+}
+
+async function loadArtifactAgentReview(
+  pool: Pool,
+  artifactId: string,
+): Promise<AgentReviewRecord | null> {
+  const result = await pool.query<ArtifactAgentReviewRow>(
+    'SELECT * FROM skill_artifact_agent_reviews WHERE artifact_id = $1',
+    [artifactId],
+  );
+  if (result.rows.length === 0) {
+    return null;
+  }
+  const row = result.rows[0]!;
+  return {
+    status: row.status,
+    duplicateRisk: row.duplicate_risk,
+    correctnessRisk: row.correctness_risk,
+    completenessRisk: row.completeness_risk,
+    checkedAt: row.checked_at.toISOString(),
+    notes: row.notes,
+  };
+}
+
+async function loadArtifactMetadata(
+  pool: Pool,
+  artifactId: string,
+): Promise<SkillArtifactMetadataRecord | null> {
+  const result = await pool.query<ArtifactMetadataRow>(
+    'SELECT * FROM skill_artifact_metadata WHERE artifact_id = $1',
+    [artifactId],
+  );
+  if (result.rows.length === 0) {
+    return null;
+  }
+  const row = result.rows[0]!;
+  return {
+    sourceKind: row.source_kind,
+    submissionCount: row.submission_count,
+    resubmissionCount: row.resubmission_count,
+    revisionCount: row.revision_count,
+    latestSubmissionId: row.latest_submission_id,
+    latestSubmittedAt: row.latest_submitted_at ? row.latest_submitted_at.toISOString() : null,
+    latestReviewedAt: row.latest_reviewed_at ? row.latest_reviewed_at.toISOString() : null,
+    latestDecision: row.latest_decision,
+  };
 }

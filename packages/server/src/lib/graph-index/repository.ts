@@ -234,7 +234,14 @@ export class PgGraphIndexRepository implements GraphIndexRepository {
     scope: string;
     requiredLevel: number;
     nodes: Array<{ id: string; kind: string; label: string; evidence: string }>;
-    edges: Array<{ id: string; sourceNodeId: string; targetNodeId: string; relationType: string; strength: string; evidence: string }>;
+    edges: Array<{
+      id: string;
+      sourceNodeId: string;
+      targetNodeId: string;
+      relationType: string;
+      strength: string;
+      evidence: string;
+    }>;
     evidence: string;
     createdAt: Date;
     updatedAt: Date;

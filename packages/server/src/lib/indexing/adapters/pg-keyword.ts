@@ -73,9 +73,13 @@ export function createPgKeywordAdapter(config: PgKeywordAdapterConfig): IndexAda
 
         // Build keyword state from normalized document
         const tokens = document.tokens;
-        const fieldTokensShortcut = tokens.filter((t) => document.shortcut.toLowerCase().includes(t));
+        const fieldTokensShortcut = tokens.filter((t) =>
+          document.shortcut.toLowerCase().includes(t),
+        );
         const fieldTokensDetail = tokens.filter((t) => document.detail.toLowerCase().includes(t));
-        const fieldTokensLabels = tokens.filter((t) => document.labels.some((l) => l.toLowerCase().includes(t)));
+        const fieldTokensLabels = tokens.filter((t) =>
+          document.labels.some((l) => l.toLowerCase().includes(t)),
+        );
 
         // Build primary key
         const id = `entry_${document.entryId}_rev${document.revision}`;
@@ -115,7 +119,14 @@ export function createPgKeywordAdapter(config: PgKeywordAdapterConfig): IndexAda
           success: true,
           error: null,
           performedWork: true,
-          payload: { tokens, fieldTokens: { shortcut: fieldTokensShortcut, detail: fieldTokensDetail, labels: fieldTokensLabels } },
+          payload: {
+            tokens,
+            fieldTokens: {
+              shortcut: fieldTokensShortcut,
+              detail: fieldTokensDetail,
+              labels: fieldTokensLabels,
+            },
+          },
         };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);

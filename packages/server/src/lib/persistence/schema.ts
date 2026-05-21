@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   check,
   index,
@@ -11,7 +12,6 @@ import {
   uniqueIndex,
   vector,
 } from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
 
 import type {
   AnalysisSnapshot,
@@ -19,6 +19,7 @@ import type {
   CandidatePayload,
   DuplicateCase,
   LifecycleState,
+  Scope,
 } from '@trapmap/contracts';
 import type { StoreData } from '../store.js';
 
@@ -197,21 +198,31 @@ export const graphIndexDocuments = pgTable(
     /** Required security level */
     requiredLevel: integer('required_level').notNull().default(0),
     /** Graph nodes (JSONB array of typed node records) */
-    nodes: jsonb('nodes').notNull().$type<Array<{
-      id: string;
-      kind: string;
-      label: string;
-      evidence: string;
-    }>>().default([]),
+    nodes: jsonb('nodes')
+      .notNull()
+      .$type<
+        Array<{
+          id: string;
+          kind: string;
+          label: string;
+          evidence: string;
+        }>
+      >()
+      .default([]),
     /** Graph edges (JSONB array of typed edge records) */
-    edges: jsonb('edges').notNull().$type<Array<{
-      id: string;
-      sourceNodeId: string;
-      targetNodeId: string;
-      relationType: string;
-      strength: string;
-      evidence: string;
-    }>>().default([]),
+    edges: jsonb('edges')
+      .notNull()
+      .$type<
+        Array<{
+          id: string;
+          sourceNodeId: string;
+          targetNodeId: string;
+          relationType: string;
+          strength: string;
+          evidence: string;
+        }>
+      >()
+      .default([]),
     /** Human-readable evidence description */
     evidence: text('evidence').notNull().default(''),
     /** Record creation timestamp */
@@ -221,16 +232,14 @@ export const graphIndexDocuments = pgTable(
   },
   (table) => [
     index('idx_graph_index_documents_source').on(table.sourceType, table.sourceId),
-    uniqueIndex('idx_graph_index_documents_source_revision_no').on(table.sourceType, table.sourceId, table.revisionNo),
+    uniqueIndex('idx_graph_index_documents_source_revision_no').on(
+      table.sourceType,
+      table.sourceId,
+      table.revisionNo,
+    ),
     index('idx_graph_index_documents_team').on(table.teamId),
-    check(
-      'ck_graph_index_documents_source_type',
-      sql`${table.sourceType} IN ('trap', 'skill')`,
-    ),
-    check(
-      'ck_graph_index_documents_scope',
-      sql`${table.scope} IN ('global', 'project')`,
-    ),
+    check('ck_graph_index_documents_source_type', sql`${table.sourceType} IN ('trap', 'skill')`),
+    check('ck_graph_index_documents_scope', sql`${table.scope} IN ('global', 'project')`),
   ],
 );
 
@@ -288,10 +297,7 @@ export const candidates = pgTable(
     index('idx_candidates_status').on(table.status),
     index('idx_candidates_team').on(table.teamId),
     index('idx_candidates_source_type').on(table.sourceType),
-    check(
-      'ck_candidates_source_type',
-      sql`${table.sourceType} IN ('trap', 'skill')`,
-    ),
+    check('ck_candidates_source_type', sql`${table.sourceType} IN ('trap', 'skill')`),
     check(
       'ck_candidates_status',
       sql`${table.status} IN ('received', 'queued', 'analyzing', 'duplicate_detected', 'ready_for_review', 'resolved', 'error')`,
@@ -323,9 +329,7 @@ export const candidateAnalyses = pgTable(
     /** Record creation timestamp */
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index('idx_candidate_analyses_fingerprint').on(table.fingerprint),
-  ],
+  (table) => [index('idx_candidate_analyses_fingerprint').on(table.fingerprint)],
 );
 
 /**
@@ -513,10 +517,7 @@ export const entityLineage = pgTable(
       'ck_entity_lineage_source_type',
       sql`${table.sourceType} IN ('candidate', 'trap', 'skill')`,
     ),
-    check(
-      'ck_entity_lineage_target_type',
-      sql`${table.targetType} IN ('trap', 'skill')`,
-    ),
+    check('ck_entity_lineage_target_type', sql`${table.targetType} IN ('trap', 'skill')`),
   ],
 );
 
@@ -587,10 +588,7 @@ export const knowledgeEntries = pgTable(
     index('idx_knowledge_entries_team').on(table.teamId),
     index('idx_knowledge_entries_scope_level').on(table.scope, table.requiredLevel),
     index('idx_knowledge_entries_owner').on(table.ownerUserId),
-    check(
-      'ck_knowledge_entries_scope',
-      sql`${table.scope} IN ('global', 'project')`,
-    ),
+    check('ck_knowledge_entries_scope', sql`${table.scope} IN ('global', 'project')`),
     check(
       'ck_knowledge_entries_lifecycle_state',
       sql`${table.lifecycleState} IN ('draft', 'submitted', 'agent-pass', 'agent-rejected', 'approved', 'rejected', 'deactivated')`,
@@ -735,7 +733,10 @@ export const knowledgeBoundaryContexts = pgTable(
   },
   (table) => [
     index('idx_knowledge_boundary_contexts_entry').on(table.entryId),
-    uniqueIndex('idx_knowledge_boundary_contexts_entry_value').on(table.entryId, table.contextValue),
+    uniqueIndex('idx_knowledge_boundary_contexts_entry_value').on(
+      table.entryId,
+      table.contextValue,
+    ),
   ],
 );
 
@@ -756,9 +757,7 @@ export const knowledgeBoundaryVersions = pgTable(
     note: text('note'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index('idx_knowledge_boundary_versions_entry').on(table.entryId),
-  ],
+  (table) => [index('idx_knowledge_boundary_versions_entry').on(table.entryId)],
 );
 
 /**
@@ -778,9 +777,7 @@ export const knowledgeBoundaryPrerequisites = pgTable(
     required: integer('required').notNull().default(1),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index('idx_knowledge_boundary_prerequisites_entry').on(table.entryId),
-  ],
+  (table) => [index('idx_knowledge_boundary_prerequisites_entry').on(table.entryId)],
 );
 
 /**
@@ -800,9 +797,7 @@ export const knowledgeBoundarySignals = pgTable(
     description: text('description'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index('idx_knowledge_boundary_signals_entry').on(table.entryId),
-  ],
+  (table) => [index('idx_knowledge_boundary_signals_entry').on(table.entryId)],
 );
 
 /**
@@ -820,9 +815,7 @@ export const knowledgeBoundaryExclusions = pgTable(
     kind: text('kind'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index('idx_knowledge_boundary_exclusions_entry').on(table.entryId),
-  ],
+  (table) => [index('idx_knowledge_boundary_exclusions_entry').on(table.entryId)],
 );
 
 /**
@@ -844,9 +837,7 @@ export const knowledgeBoundaryEvidence = pgTable(
     note: text('note'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index('idx_knowledge_boundary_evidence_entry').on(table.entryId),
-  ],
+  (table) => [index('idx_knowledge_boundary_evidence_entry').on(table.entryId)],
 );
 
 /**
@@ -1050,7 +1041,346 @@ export const artifactRevisions = pgTable(
   },
   (table) => [
     index('idx_artifact_revisions_artifact').on(table.artifactId),
-    uniqueIndex('idx_artifact_revisions_artifact_revision_no').on(table.artifactId, table.revisionNo),
+    uniqueIndex('idx_artifact_revisions_artifact_revision_no').on(
+      table.artifactId,
+      table.revisionNo,
+    ),
+  ],
+);
+
+export const skillArtifactFiles = pgTable(
+  'skill_artifact_files',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    artifactRevisionId: text('artifact_revision_id').notNull(),
+    artifactId: text('artifact_id').notNull(),
+    revisionNo: integer('revision_no').notNull(),
+    path: text('path').notNull(),
+    kind: text('kind').notNull().$type<'skill-markdown' | 'reference' | 'asset' | 'script'>(),
+    sha256: text('sha256').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    mediaType: text('media_type').notNull(),
+    sourceGroup: text('source_group')
+      .notNull()
+      .$type<'references/' | 'assets/' | 'scripts/' | 'SKILL.md'>(),
+    includeInDerivation: integer('include_in_derivation').notNull().default(1),
+    activationOnly: integer('activation_only').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_skill_artifact_files_artifact_revision').on(table.artifactRevisionId),
+    index('idx_skill_artifact_files_artifact').on(table.artifactId, table.revisionNo),
+    uniqueIndex('idx_skill_artifact_files_revision_path').on(table.artifactRevisionId, table.path),
+    check(
+      'ck_skill_artifact_files_kind',
+      sql`${table.kind} IN ('skill-markdown', 'reference', 'asset', 'script')`,
+    ),
+  ],
+);
+
+export const skillArtifactScriptDescriptors = pgTable(
+  'skill_artifact_script_descriptors',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    artifactRevisionId: text('artifact_revision_id').notNull(),
+    artifactId: text('artifact_id').notNull(),
+    revisionNo: integer('revision_no').notNull(),
+    path: text('path').notNull(),
+    sha256: text('sha256').notNull(),
+    capability: text('capability').notNull(),
+    argsSchemaSummary: text('args_schema_summary').notNull(),
+    sideEffectSummary: text('side_effect_summary').notNull(),
+    defaultPolicy: text('default_policy').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_skill_artifact_script_descriptors_revision').on(table.artifactRevisionId),
+    index('idx_skill_artifact_script_descriptors_artifact').on(table.artifactId, table.revisionNo),
+    uniqueIndex('idx_skill_artifact_script_descriptors_revision_path').on(
+      table.artifactRevisionId,
+      table.path,
+    ),
+  ],
+);
+
+export const skillArtifactProfiles = pgTable(
+  'skill_artifact_profiles',
+  {
+    artifactRevisionId: text('artifact_revision_id').primaryKey(),
+    artifactId: text('artifact_id').notNull(),
+    revisionNo: integer('revision_no').notNull(),
+    sourceHash: text('source_hash').notNull(),
+    title: text('title').notNull(),
+    summary: text('summary').notNull(),
+    keywords: jsonb('keywords').notNull().$type<string[]>().default([]),
+    referencePaths: jsonb('reference_paths').notNull().$type<string[]>().default([]),
+    contentHash: text('content_hash').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('idx_skill_artifact_profiles_artifact').on(table.artifactId, table.revisionNo)],
+);
+
+export const skillArtifactCapsules = pgTable(
+  'skill_artifact_capsules',
+  {
+    capsuleId: text('capsule_id').primaryKey(),
+    artifactRevisionId: text('artifact_revision_id').notNull(),
+    artifactId: text('artifact_id').notNull(),
+    revisionNo: integer('revision_no').notNull(),
+    sourceHash: text('source_hash').notNull(),
+    sourcePaths: jsonb('source_paths').notNull().$type<string[]>().default([]),
+    content: text('content').notNull(),
+    situation: text('situation').notNull(),
+    problem: text('problem').notNull(),
+    goal: text('goal').notNull(),
+    errorText: text('error_text'),
+    contextualPrefix: text('contextual_prefix'),
+    labels: jsonb('labels').notNull().$type<string[]>().default([]),
+    scope: text('scope').notNull().$type<Scope>(),
+    requiredLevel: integer('required_level').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_skill_artifact_capsules_revision').on(table.artifactRevisionId),
+    index('idx_skill_artifact_capsules_artifact').on(table.artifactId, table.revisionNo),
+    check('ck_skill_artifact_capsules_scope', sql`${table.scope} IN ('global', 'project')`),
+  ],
+);
+
+export const skillArtifactClientManifests = pgTable(
+  'skill_artifact_client_manifests',
+  {
+    artifactRevisionId: text('artifact_revision_id').primaryKey(),
+    artifactId: text('artifact_id').notNull(),
+    revisionNo: integer('revision_no').notNull(),
+    sourceHash: text('source_hash').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_skill_artifact_client_manifests_artifact').on(table.artifactId, table.revisionNo),
+  ],
+);
+
+export const skillArtifactManifestReferences = pgTable(
+  'skill_artifact_manifest_references',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    artifactRevisionId: text('artifact_revision_id').notNull(),
+    path: text('path').notNull(),
+    sha256: text('sha256').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    mediaType: text('media_type').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_skill_artifact_manifest_references_revision').on(table.artifactRevisionId),
+    uniqueIndex('idx_skill_artifact_manifest_references_revision_path').on(
+      table.artifactRevisionId,
+      table.path,
+    ),
+  ],
+);
+
+export const skillArtifactManifestAssets = pgTable(
+  'skill_artifact_manifest_assets',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    artifactRevisionId: text('artifact_revision_id').notNull(),
+    path: text('path').notNull(),
+    sha256: text('sha256').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    mediaType: text('media_type').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_skill_artifact_manifest_assets_revision').on(table.artifactRevisionId),
+    uniqueIndex('idx_skill_artifact_manifest_assets_revision_path').on(
+      table.artifactRevisionId,
+      table.path,
+    ),
+  ],
+);
+
+export const skillArtifactManifestScripts = pgTable(
+  'skill_artifact_manifest_scripts',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    artifactRevisionId: text('artifact_revision_id').notNull(),
+    path: text('path').notNull(),
+    sha256: text('sha256').notNull(),
+    capability: text('capability').notNull(),
+    argsSchemaSummary: text('args_schema_summary').notNull(),
+    sideEffectSummary: text('side_effect_summary').notNull(),
+    defaultPolicy: text('default_policy').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_skill_artifact_manifest_scripts_revision').on(table.artifactRevisionId),
+    uniqueIndex('idx_skill_artifact_manifest_scripts_revision_path').on(
+      table.artifactRevisionId,
+      table.path,
+    ),
+  ],
+);
+
+export const skillArtifactBoundaryContexts = pgTable(
+  'skill_artifact_boundary_contexts',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    artifactId: text('artifact_id').notNull(),
+    contextValue: text('context_value').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_skill_artifact_boundary_contexts_artifact').on(table.artifactId),
+    uniqueIndex('idx_skill_artifact_boundary_contexts_artifact_value').on(
+      table.artifactId,
+      table.contextValue,
+    ),
+  ],
+);
+
+export const skillArtifactBoundaryVersions = pgTable(
+  'skill_artifact_boundary_versions',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    artifactId: text('artifact_id').notNull(),
+    packageName: text('package_name').notNull(),
+    rangeValue: text('range_value').notNull(),
+    note: text('note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('idx_skill_artifact_boundary_versions_artifact').on(table.artifactId)],
+);
+
+export const skillArtifactBoundaryPrerequisites = pgTable(
+  'skill_artifact_boundary_prerequisites',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    artifactId: text('artifact_id').notNull(),
+    description: text('description').notNull(),
+    kind: text('kind'),
+    required: integer('required').notNull().default(1),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('idx_skill_artifact_boundary_prerequisites_artifact').on(table.artifactId)],
+);
+
+export const skillArtifactBoundarySignals = pgTable(
+  'skill_artifact_boundary_signals',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    artifactId: text('artifact_id').notNull(),
+    pattern: text('pattern').notNull(),
+    kind: text('kind').notNull().default('keyword'),
+    description: text('description'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('idx_skill_artifact_boundary_signals_artifact').on(table.artifactId)],
+);
+
+export const skillArtifactBoundaryExclusions = pgTable(
+  'skill_artifact_boundary_exclusions',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    artifactId: text('artifact_id').notNull(),
+    description: text('description').notNull(),
+    kind: text('kind'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('idx_skill_artifact_boundary_exclusions_artifact').on(table.artifactId)],
+);
+
+export const skillArtifactBoundaryEvidence = pgTable(
+  'skill_artifact_boundary_evidence',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    artifactId: text('artifact_id').notNull(),
+    kind: text('kind').notNull(),
+    identifier: text('identifier').notNull(),
+    url: text('url'),
+    note: text('note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('idx_skill_artifact_boundary_evidence_artifact').on(table.artifactId)],
+);
+
+export const skillArtifactMaintenanceAssignments = pgTable(
+  'skill_artifact_maintenance_assignments',
+  {
+    artifactId: text('artifact_id').primaryKey(),
+    maintainerUserId: text('maintainer_user_id'),
+    maintainerHandle: text('maintainer_handle'),
+    maintainerLevel: integer('maintainer_level'),
+    reviewBy: timestamp('review_by', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_skill_artifact_maintenance_assignments_maintainer').on(table.maintainerUserId),
+    index('idx_skill_artifact_maintenance_assignments_review_by').on(table.reviewBy),
+  ],
+);
+
+export const skillArtifactAgentReviews = pgTable(
+  'skill_artifact_agent_reviews',
+  {
+    artifactId: text('artifact_id').primaryKey(),
+    status: text('status').notNull(),
+    duplicateRisk: text('duplicate_risk').notNull(),
+    correctnessRisk: text('correctness_risk').notNull(),
+    completenessRisk: text('completeness_risk').notNull(),
+    checkedAt: timestamp('checked_at', { withTimezone: true }).notNull(),
+    notes: jsonb('notes').notNull().$type<string[]>().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_skill_artifact_agent_reviews_status').on(table.status),
+    check(
+      'ck_skill_artifact_agent_reviews_status',
+      sql`${table.status} IN ('agent-pass', 'agent-rejected')`,
+    ),
+    check(
+      'ck_skill_artifact_agent_reviews_duplicate_risk',
+      sql`${table.duplicateRisk} IN ('low', 'medium', 'high')`,
+    ),
+    check(
+      'ck_skill_artifact_agent_reviews_correctness_risk',
+      sql`${table.correctnessRisk} IN ('low', 'medium', 'high')`,
+    ),
+    check(
+      'ck_skill_artifact_agent_reviews_completeness_risk',
+      sql`${table.completenessRisk} IN ('low', 'medium', 'high')`,
+    ),
+  ],
+);
+
+export const skillArtifactMetadataTable = pgTable(
+  'skill_artifact_metadata',
+  {
+    artifactId: text('artifact_id').primaryKey(),
+    sourceKind: text('source_kind').notNull(),
+    submissionCount: integer('submission_count').notNull().default(0),
+    resubmissionCount: integer('resubmission_count').notNull().default(0),
+    revisionCount: integer('revision_count').notNull().default(0),
+    latestSubmissionId: text('latest_submission_id'),
+    latestSubmittedAt: timestamp('latest_submitted_at', { withTimezone: true }),
+    latestReviewedAt: timestamp('latest_reviewed_at', { withTimezone: true }),
+    latestDecision: text('latest_decision'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_skill_artifact_metadata_source_kind').on(table.sourceKind),
+    check(
+      'ck_skill_artifact_metadata_source_kind',
+      sql`${table.sourceKind} IN ('skill-directory', 'single-skill-md', 'legacy-knowledge')`,
+    ),
+    check(
+      'ck_skill_artifact_metadata_latest_decision',
+      sql`${table.latestDecision} IS NULL OR ${table.latestDecision} IN ('approve', 'reject')`,
+    ),
   ],
 );
 
@@ -1210,10 +1540,7 @@ export const feedbackRecords = pgTable(
     index('idx_feedback_records_status').on(table.status),
     index('idx_feedback_records_problem_type').on(table.problemType),
     index('idx_feedback_records_submitted_by').on(table.submittedByUserId),
-    check(
-      'ck_feedback_records_entry_type',
-      sql`${table.entryType} IN ('trap', 'skill')`,
-    ),
+    check('ck_feedback_records_entry_type', sql`${table.entryType} IN ('trap', 'skill')`),
     check(
       'ck_feedback_records_problem_type',
       sql`${table.problemType} IN ('incorrect', 'outdated', 'context-mismatch', 'incomplete', 'other')`,
@@ -1243,9 +1570,7 @@ export const feedbackCustomAnswers = pgTable(
     /** Record creation timestamp */
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index('idx_feedback_custom_answers_feedback').on(table.feedbackId),
-  ],
+  (table) => [index('idx_feedback_custom_answers_feedback').on(table.feedbackId)],
 );
 
 // =============================================================================
@@ -1280,7 +1605,12 @@ export const usageEventsDailyRollup = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex('idx_usage_rollup_day_team_entry').on(table.day, table.teamId, table.entryType, table.entryId),
+    uniqueIndex('idx_usage_rollup_day_team_entry').on(
+      table.day,
+      table.teamId,
+      table.entryType,
+      table.entryId,
+    ),
     index('idx_usage_rollup_entry_type_day').on(table.entryType, table.day),
     index('idx_usage_rollup_entry_id_day').on(table.entryId, table.day),
   ],

@@ -17,11 +17,11 @@ export const realSkillDedupFixtures: DedupFixture[] = [
     id: 'real-exact-brand-guidelines',
     candidate: {
       title: 'Brand Guidelines',
-      body: 'Applies Anthropic\'s official brand colors and typography to any sort of artifact. Main colors include Anthropic Orange (#D97706) and Claude Cream (#FAF5EE). Typography uses specific font pairings for headings and body text. Covers branding, corporate identity, visual identity, post-processing, styling, brand colors, typography, visual formatting.',
+      body: "Applies Anthropic's official brand colors and typography to any sort of artifact. Main colors include Anthropic Orange (#D97706) and Claude Cream (#FAF5EE). Typography uses specific font pairings for headings and body text. Covers branding, corporate identity, visual identity, post-processing, styling, brand colors, typography, visual formatting.",
     },
     existing: {
       title: 'Brand Guidelines',
-      body: 'Applies Anthropic\'s official brand colors and typography to any sort of artifact. Main colors include Anthropic Orange (#D97706) and Claude Cream (#FAF5EE). Typography uses specific font pairings for headings and body text. Covers branding, corporate identity, visual identity, post-processing, styling, brand colors, typography, visual formatting.',
+      body: "Applies Anthropic's official brand colors and typography to any sort of artifact. Main colors include Anthropic Orange (#D97706) and Claude Cream (#FAF5EE). Typography uses specific font pairings for headings and body text. Covers branding, corporate identity, visual identity, post-processing, styling, brand colors, typography, visual formatting.",
     },
     expectedOverlapType: 'exact',
   },

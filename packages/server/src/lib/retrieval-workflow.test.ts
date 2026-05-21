@@ -375,7 +375,7 @@ describe('End-to-end retrieval workflow', () => {
       });
 
       expect(searchResponse.statusCode).toBe(200);
-      const searchData = searchResponse.json();
+      const _searchData = searchResponse.json();
 
       // Round 2: search indexes may reflect JSONB state (not yet synchronized with repo).
       // The resubmitted entry should appear in search results.

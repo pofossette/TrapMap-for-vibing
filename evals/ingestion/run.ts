@@ -19,7 +19,12 @@ import { parseArgs } from 'node:util';
 
 import type { ArtifactBundle } from '@trapmap/contracts';
 
-import { bundleToPayloads, buildDerivationContext, loadDownloadedBundles, makeDeterministicId } from './adapter.js';
+import {
+  buildDerivationContext,
+  bundleToPayloads,
+  loadDownloadedBundles,
+  makeDeterministicId,
+} from './adapter.js';
 import { runAssertions } from './assertions.js';
 import type { DerivedOutput } from './assertions.js';
 import { derivationFixtures, getSmokeFixtures } from './fixtures/index.js';
@@ -92,7 +97,7 @@ async function main(): Promise<void> {
     const payloads = bundleToPayloads(bundle, artifactId);
     const context = buildDerivationContext(bundle, artifactId);
 
-    const output: DerivedOutput = await deriveFromPayloads(payloads, context) as DerivedOutput;
+    const output: DerivedOutput = (await deriveFromPayloads(payloads, context)) as DerivedOutput;
     const result = runAssertions(id, bundle, output);
 
     results.push(result);
@@ -100,7 +105,9 @@ async function main(): Promise<void> {
 
     if (options.verbose) {
       const status = result.passed ? 'PASS' : 'FAIL';
-      console.log(`  [${status}] ${result.fixtureId}: ${output.capsules.length} capsule(s), summary=${(output.profile?.summary?.length ?? 0)} chars`);
+      console.log(
+        `  [${status}] ${result.fixtureId}: ${output.capsules.length} capsule(s), summary=${output.profile?.summary?.length ?? 0} chars`,
+      );
     }
   }
 

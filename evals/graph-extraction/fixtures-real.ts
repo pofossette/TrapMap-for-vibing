@@ -30,7 +30,12 @@ export const realSkillGraphFixtures: GraphExtractionFixture[] = [
     ],
     expectedEdges: [
       { source: 'react', target: 'frontend-design', type: 'co-occurs-with', strength: 'hard' },
-      { source: 'use-css-variables', target: 'frontend-design', type: 'mitigates', strength: 'soft' },
+      {
+        source: 'use-css-variables',
+        target: 'frontend-design',
+        type: 'mitigates',
+        strength: 'soft',
+      },
       { source: 'use-motion-library', target: 'react', type: 'co-occurs-with', strength: 'soft' },
     ],
   },
@@ -69,10 +74,25 @@ export const realSkillGraphFixtures: GraphExtractionFixture[] = [
       { kind: 'tool', label: 'cdn' },
     ],
     expectedEdges: [
-      { source: 'layered-isolation', target: 'jumping-to-conclusions', type: 'mitigates', strength: 'hard' },
-      { source: 'runtime-instrumentation', target: 'econnreset', type: 'mitigates', strength: 'soft' },
+      {
+        source: 'layered-isolation',
+        target: 'jumping-to-conclusions',
+        type: 'mitigates',
+        strength: 'hard',
+      },
+      {
+        source: 'runtime-instrumentation',
+        target: 'econnreset',
+        type: 'mitigates',
+        strength: 'soft',
+      },
       { source: 'cdn', target: 'fails-after-n-seconds', type: 'co-occurs-with', strength: 'soft' },
-      { source: 'econnreset', target: 'jumping-to-conclusions', type: 'risk-blocks', strength: 'soft' },
+      {
+        source: 'econnreset',
+        target: 'jumping-to-conclusions',
+        type: 'risk-blocks',
+        strength: 'soft',
+      },
     ],
   },
 
@@ -92,7 +112,12 @@ export const realSkillGraphFixtures: GraphExtractionFixture[] = [
     expectedEdges: [
       { source: 'python', target: 'openpyxl', type: 'requires', strength: 'hard' },
       { source: 'openpyxl', target: 'excel', type: 'co-occurs-with', strength: 'hard' },
-      { source: 'use-zipfile-xml-parsing', target: 'openpyxl', type: 'mitigates', strength: 'hard' },
+      {
+        source: 'use-zipfile-xml-parsing',
+        target: 'openpyxl',
+        type: 'mitigates',
+        strength: 'hard',
+      },
       { source: 'macos', target: 'excel', type: 'co-occurs-with', strength: 'soft' },
       { source: 'python-3.8', target: 'python', type: 'requires', strength: 'hard' },
     ],
@@ -113,9 +138,19 @@ export const realSkillGraphFixtures: GraphExtractionFixture[] = [
     ],
     expectedEdges: [
       { source: 'anthropic-sdk', target: 'claude-api', type: 'requires', strength: 'hard' },
-      { source: 'scan-for-provider-markers', target: 'claude-api', type: 'order', strength: 'hard' },
+      {
+        source: 'scan-for-provider-markers',
+        target: 'claude-api',
+        type: 'order',
+        strength: 'hard',
+      },
       { source: 'use-prompt-caching', target: 'claude-api', type: 'mitigates', strength: 'soft' },
-      { source: 'handle-rate-limits', target: 'rate-limit-errors', type: 'mitigates', strength: 'hard' },
+      {
+        source: 'handle-rate-limits',
+        target: 'rate-limit-errors',
+        type: 'mitigates',
+        strength: 'hard',
+      },
       { source: 'rate-limit-errors', target: 'claude-api', type: 'risk-blocks', strength: 'soft' },
     ],
   },

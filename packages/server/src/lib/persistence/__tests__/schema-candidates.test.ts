@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  candidates,
   candidateAnalyses,
   candidateDuplicateCases,
   candidateDuplicateMatches,
   candidateManualResults,
   candidateResolutionOutcomes,
+  candidates,
   entityLineage,
 } from '../schema.js';
 

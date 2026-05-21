@@ -24,11 +24,11 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
 import {
-  candidates,
   candidateAnalyses,
   candidateDuplicateCases,
   candidateDuplicateMatches,
   candidateManualResults,
+  candidates,
 } from '../persistence/schema.js';
 import type { CandidateRepository } from './repository.js';
 import { createManualResultRecord } from './repository.js';
@@ -283,10 +283,9 @@ export class PgCandidateRepository implements CandidateRepository {
       );
 
       // Delete existing matches and re-insert
-      await client.query(
-        'DELETE FROM candidate_duplicate_matches WHERE duplicate_case_id = $1',
-        [duplicateCase.id],
-      );
+      await client.query('DELETE FROM candidate_duplicate_matches WHERE duplicate_case_id = $1', [
+        duplicateCase.id,
+      ]);
 
       for (const match of duplicateCase.matches) {
         await client.query(
@@ -478,10 +477,9 @@ export class PgCandidateRepository implements CandidateRepository {
     // Delete and re-insert matches
     const client = await this.pool.connect();
     try {
-      await client.query(
-        'DELETE FROM candidate_duplicate_matches WHERE duplicate_case_id = $1',
-        [duplicateCase.id],
-      );
+      await client.query('DELETE FROM candidate_duplicate_matches WHERE duplicate_case_id = $1', [
+        duplicateCase.id,
+      ]);
       for (const match of duplicateCase.matches) {
         await client.query(
           `INSERT INTO candidate_duplicate_matches (duplicate_case_id, entity_type, entity_id, entity_title, similarity_score, match_type, shared_keywords, shared_tokens, text_overlap_percent)
@@ -536,9 +534,7 @@ export class PgCandidateRepository implements CandidateRepository {
       });
   }
 
-  private async readAnalysisFromSubTable(
-    candidateId: string,
-  ): Promise<AnalysisSnapshot | null> {
+  private async readAnalysisFromSubTable(candidateId: string): Promise<AnalysisSnapshot | null> {
     const result = await this.db
       .select()
       .from(candidateAnalyses)
@@ -555,9 +551,7 @@ export class PgCandidateRepository implements CandidateRepository {
     };
   }
 
-  private async readDuplicateCaseFromSubTables(
-    candidateId: string,
-  ): Promise<DuplicateCase | null> {
+  private async readDuplicateCaseFromSubTables(candidateId: string): Promise<DuplicateCase | null> {
     const caseResult = await this.db
       .select()
       .from(candidateDuplicateCases)

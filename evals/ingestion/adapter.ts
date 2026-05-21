@@ -79,8 +79,7 @@ export function loadDownloadedBundles(): ArtifactBundle[] {
     return parsed.bundles;
   } catch (_err) {
     throw new Error(
-      `Cannot load downloaded skills from ${bundlePath}.\n` +
-        'Run `pnpm download:skills` first, or use --dry-run to use bundled fixtures.',
+      `Cannot load downloaded skills from ${bundlePath}.\nRun \`pnpm download:skills\` first, or use --dry-run to use bundled fixtures.`,
     );
   }
 }
