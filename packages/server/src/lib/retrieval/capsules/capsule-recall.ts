@@ -157,7 +157,10 @@ function computeTextSimilarity(query: string, target: string): number {
  * @param capsule - Capsule to score
  * @returns Situation match score [0, 1]
  */
-function computeSituationScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleRecord): number {
+export function computeSituationScore(
+  intent: ParsedIntent,
+  capsule: DerivedSkillCapsuleRecord,
+): number {
   if (!intent.situation) {
     return 0;
   }
@@ -171,7 +174,10 @@ function computeSituationScore(intent: ParsedIntent, capsule: DerivedSkillCapsul
  * @param capsule - Capsule to score
  * @returns Problem match score [0, 1]
  */
-function computeProblemScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleRecord): number {
+export function computeProblemScore(
+  intent: ParsedIntent,
+  capsule: DerivedSkillCapsuleRecord,
+): number {
   const problemText = intent.problem ?? '';
   const errorText = intent.errorText ?? '';
   const queryText = `${problemText} ${errorText}`.trim();
@@ -191,7 +197,7 @@ function computeProblemScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleR
  * @param capsule - Capsule to score
  * @returns Goal match score [0, 1]
  */
-function computeGoalScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleRecord): number {
+export function computeGoalScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleRecord): number {
   if (!intent.goal) {
     return 0;
   }
@@ -205,7 +211,7 @@ function computeGoalScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleReco
  * @param capsule - Capsule to score
  * @returns Error match score [0, 1] or null if no error in intent
  */
-function computeErrorScore(
+export function computeErrorScore(
   intent: ParsedIntent,
   capsule: DerivedSkillCapsuleRecord,
 ): number | null {
@@ -228,7 +234,10 @@ function computeErrorScore(
  * @param capsule - Capsule to score
  * @returns Boost factor [1.0, 1.5]
  */
-function computeStackPathBoost(intent: ParsedIntent, capsule: DerivedSkillCapsuleRecord): number {
+export function computeStackPathBoost(
+  intent: ParsedIntent,
+  capsule: DerivedSkillCapsuleRecord,
+): number {
   if (intent.stackPathHints.length === 0) {
     return 1.0;
   }
@@ -254,7 +263,10 @@ function computeStackPathBoost(intent: ParsedIntent, capsule: DerivedSkillCapsul
  * @param capsule - Capsule to score
  * @returns Keyword overlap score [0, 1]
  */
-function computeKeywordScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleRecord): number {
+export function computeKeywordScore(
+  intent: ParsedIntent,
+  capsule: DerivedSkillCapsuleRecord,
+): number {
   // Combine capsule text for matching
   const capsuleText = `${capsule.content} ${capsule.labels.join(' ')}`.toLowerCase();
 
@@ -284,7 +296,7 @@ function computeKeywordScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleR
  * @param capsule - Capsule to score
  * @returns Context match score [0, 1]
  */
-function computeContextMatchScore(
+export function computeContextMatchScore(
   intent: ParsedIntent,
   capsule: DerivedSkillCapsuleRecord,
 ): number {

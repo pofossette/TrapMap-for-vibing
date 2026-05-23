@@ -205,16 +205,39 @@ Phase 0-2 为 v2 多路召回管线补充了以下目标用例切片，用于验
 | semantic-dominant | `v2-semantic-debug-core` | 口语化查询 vs 专业术语（observability -> "figure out why broken"） |
 | mixed-channel | `v2-mixed-channel-core` | 关键字+语义双通道命中/去重（TypeScript CI build） |
 
-**Smoke 层** (Phase 2 新增):
+**Smoke 层** (Phase 2-3 新增):
 
 | 切片 | 用例 ID | 说明 |
 |------|---------|------|
 | keyword-dominant | `v2-keyword-dominant-smoke` | 精确错误文本召回（ModuleNotFoundError） |
 | keyword-dominant | `v2-keyword-regex-smoke` | 技术术语召回（regex pattern parsing） |
+| semantic-dominant | `v2-semantic-dominant-smoke` | 口语化改写查询 vs 技术术语（"types going wrong" → type checking） |
+| semantic-dominant | `v2-semantic-paraphrase-smoke` | 语义改写查询 vs 服务编排术语 |
 
 这些用例使用独立的 scenario fixture（`core-keyword-dominant`、`core-semantic-paraphrase`、`core-mixed-channel`、`smoke-keyword-dominant`），不依赖生产数据。
 
 **Phase 2 状态**: heuristic + keyword 双通道已激活。keyword 通道提供独立词法召回，字段权重: labels(3.0) > problem(2.5) > goal(2.0) > situation/contextualPrefix(1.5) > content(1.0)。
+
+**Phase 3 状态**: heuristic + keyword + semantic 三通道已激活。semantic 通道通过 embedding 余弦相似度提供语义补召回，解决同义不同词问题。smoke 层新增 2 个 semantic-dominant 用例（paraphrase/rewording）。
+
+**Phase 4 状态**: merge/rerank 两阶段正式落地。Coordinator 改为"channel recall → merge → rerank"三阶段管线：
+1. 各通道独立召回 → `CapsuleRecallCandidate[][]`
+2. Merge 层按 capsuleId RRF 去重融合 → `MergedCapsuleCandidate[]`
+3. Rerank 层复用 v2 intent-aware 特征精排 → `CapsuleCandidate[]`
+
+Trace 新增字段：`channelsPlanned`、`channelsUsed`、`mergeStats`（totalChannelCandidates / preMergeCount / postMergeCount）。Reason 格式升级为 "Matched via <channels>; ..." 以区分通道来源。
+
+**测试覆盖**:
+- 新增 `scoring/merge.test.ts` (9 tests): RRF 去重、preRerankScore 计算、空/单/多通道、自定义 k 值
+- 新增 `scoring/rerank.test.ts` (8 tests): CapsuleCandidate 形状、maxResults、排序、多通道 reason、缺失 capsule 数据
+- 新增 `scoring/reasons.test.ts` (9 tests): 通道名包含、特征百分比、阈值过滤、boost 显示、fallback
+- 原有 retrieval 测试 (120 tests) 全通过，无回归
+
+**Phase 4 merge/rerank 专项检查建议**:
+- mixed-channel: 验证同一 capsule 被多通道命中时 RRF 合理融合
+- top1 stability: baseline Hit@1 不因 merge/rerank 引入漂移（已确认：core v2 Hit@1=0.83 与 Phase 0 baseline 一致）
+- regression safety: 当前 v2 baseline 核心 case 无退化
+- channel trace: smoke/core 执行后确认 channelsPlanned/channelsUsed 正确记录
 
 ### 添加摘要用例
 

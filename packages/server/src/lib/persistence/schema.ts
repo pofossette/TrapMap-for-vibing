@@ -1188,6 +1188,44 @@ export const skillArtifactCapsuleKeywords = pgTable(
   ],
 );
 
+/**
+ * Capsule embedding vectors for PostgreSQL semantic search.
+ * Derived index table — stores pre-computed embedding vectors for fast cosine similarity search.
+ * Uses pgvector HNSW index for O(log n) approximate nearest neighbor search.
+ *
+ * Embedding text built from: labels → situation → problem → goal → contextualPrefix → content
+ * Governance columns (teamId, scope, requiredLevel) mirror capsules for WHERE filtering.
+ *
+ * The HNSW vector index is not defined here as Drizzle ORM doesn't natively support
+ * custom index types. The index is created programmatically via
+ * ensureCapsuleVectorIndex() in the PG capsule vector repository.
+ */
+export const skillArtifactCapsuleEmbeddings = pgTable(
+  'skill_artifact_capsule_embeddings',
+  {
+    capsuleId: text('capsule_id').primaryKey(),
+    artifactId: text('artifact_id').notNull(),
+    revisionNo: integer('revision_no').notNull(),
+    teamId: text('team_id'),
+    scope: text('scope').notNull().$type<Scope>(),
+    requiredLevel: integer('required_level').notNull(),
+    status: text('status').notNull().default('synced'),
+    embedding: vector('embedding', { dimensions: 384 }).notNull(),
+    contentHash: text('content_hash').notNull(),
+    lastError: text('last_error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_capsule_embeddings_artifact_revision').on(table.artifactId, table.revisionNo),
+    index('idx_capsule_embeddings_status').on(table.status),
+    check(
+      'ck_skill_artifact_capsule_embeddings_scope',
+      sql`${table.scope} IN ('global', 'project')`,
+    ),
+  ],
+);
+
 export const skillArtifactClientManifests = pgTable(
   'skill_artifact_client_manifests',
   {

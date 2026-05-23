@@ -259,7 +259,7 @@ POST /v3/retrieval/search
 
 ```mermaid
 flowchart TB
-    subgraph 胶囊检索["v2 胶囊检索流程 (Phase 1 多路召回架构)"]
+    subgraph 胶囊检索["v2 胶囊检索流程 (Phase 3 多路召回架构)"]
         A["查询输入"]
         
         subgraph 解析["解析与治理"]
@@ -270,7 +270,8 @@ flowchart TB
         subgraph 召回["CapsuleRecallCoordinator"]
             C1["通道注册表<br/>(CapsuleChannelRegistry)"]
             C2["heuristic 通道<br/>(capsuleHeuristicChannel)"]
-            C3["rankCapsules()<br/>治理过滤 + 多维评分"]
+            C3["keyword 通道<br/>(capsuleKeywordChannel)"]
+            C4["semantic 通道<br/>(capsuleSemanticChannel)"]
         end
 
         subgraph 评分["多维评分 (CAPS-04-CTX)"]
@@ -285,7 +286,7 @@ flowchart TB
             F["capsules + profileHints<br/>+ activationHints<br/>+ optional summary"]
         end
 
-        A --> B1 --> B2 --> C1 --> C2 --> C3 --> D --> E --> F
+        A --> B1 --> B2 --> C1 --> C2 & C3 & C4 --> D --> E --> F
     end
 ```
 
@@ -312,20 +313,26 @@ v2 检索评分支持 Anthropic Contextual Retrieval 策略。派生阶段生成
 - `packages/server/src/lib/retrieval/capsules/capsule-recall.ts` — `computeContextMatchScore()` 函数
 - `packages/server/src/lib/artifacts/contextual-enrichment.ts` — 派生阶段的上下文生成
 
-### v2 多路召回架构 (Phase 2)
+### v2 多路召回架构 (Phase 4)
 
-v2 检索管线已重构为可扩展的多路召回架构。当前处于 Phase 2（keyword 通道落地），heuristic + keyword 双通道并行。
+v2 检索管线已重构为可扩展的多路召回架构。当前处于 Phase 4（merge/rerank 正式落地），heuristic + keyword + semantic 三通道并行，通过 RRF 融合和独立重排层产生最终排序。
 
 #### 架构分层
 
 ```text
 searchKnowledgeV2() (orchestrator.ts)
   └─> CapsuleRecallCoordinator
-        └─> CapsuleChannelRegistry
-              ├─> capsule-heuristic  ← 主引擎通道 (intent-aware 精排)
-              ├─> capsule-keyword    ← ✅ Phase 2 已落地
-              ├─> capsule-semantic    ← Phase 3 计划
-              └─> capsule-graph       ← Phase 5 计划
+        ├─> CapsuleChannelRegistry (channel recall)
+        │     ├─> capsule-heuristic  ← 保底通道 (intent-aware 精排特征)
+        │     ├─> capsule-keyword    ← ✅ Phase 2 已落地
+        │     ├─> capsule-semantic   ← ✅ Phase 3 已落地
+        │     └─> capsule-graph      ← Phase 5 计划
+        ├─> Capsule Merge Layer      ← ✅ Phase 4 新落地
+        │     ├─> merge.ts: RRF 去重融合 (dedupe by capsuleId)
+        │     └─> preRerankScore = Σ 1/(k + rank_i)
+        └─> Capsule Rerank Layer     ← ✅ Phase 4 新落地
+              ├─> rerank.ts: 独立重排 (复用 v2 intent-aware 特征)
+              └─> reasons.ts: 多通道 explainable reason 生成
 ```
 
 #### 组件职责
@@ -337,7 +344,11 @@ searchKnowledgeV2() (orchestrator.ts)
 | `CapsuleChannelRegistry` | `packages/server/src/lib/retrieval/capsules/capsule-channel-registry.ts` | 通道注册表：register / get / all / unregister |
 | `capsuleHeuristicChannel` | `packages/server/src/lib/retrieval/capsules/channels/heuristic.ts` | heuristic 通道：包装 rankCapsules()，提供 CapsuleRecallCandidate[] |
 | `capsuleKeywordChannel` | `packages/server/src/lib/retrieval/capsules/channels/keyword.ts` | keyword 通道：独立词法召回，字段加权评分，内存/PG 双路径 |
+| `capsuleSemanticChannel` | `packages/server/src/lib/retrieval/capsules/channels/semantic.ts` | semantic 通道：embedding 语义召回，余弦相似度评分，内存/PG 双路径 |
 | `rankCapsules()` | `packages/server/src/lib/retrieval/capsules/capsule-recall.ts` | 核心评分引擎：治理过滤 + situation/problem/goal/keyword/context 多维加权评分 |
+| `mergeCapsuleCandidates()` | `packages/server/src/lib/retrieval/capsules/scoring/merge.ts` | RRF 融合层：按 capsuleId 去重、保留 per-channel scores、计算 preRerankScore |
+| `rerankMergedCapsules()` | `packages/server/src/lib/retrieval/capsules/scoring/rerank.ts` | 重排层：复用 v2 intent-aware 特征、计算 finalScore、生成多通道 reason |
+| `buildMultiChannelReason()` | `packages/server/src/lib/retrieval/capsules/scoring/reasons.ts` | 多通道 explainable reason：包含通道来源 + 意图匹配百分比 + boost 信息 |
 
 #### 类型定义
 
@@ -348,13 +359,59 @@ searchKnowledgeV2() (orchestrator.ts)
 | `MergedCapsuleCandidate` | 多通道融合候选：`{ capsuleId, artifactId, revision, channels, channelScores, preRerankScore, finalScore, reason }` |
 | `CapsuleRecallChannel` | 通道接口：`{ name, recall(artifacts, intent, filters, maxResults) }` |
 
-#### Phase 2 行为保证
+#### Phase 4 行为保证
 
 - `/v2/retrieval/search` 请求/响应契约不变
 - 治理过滤流程不变（team、requiredLevel、lifecycleState）
-- heuristic 通道仍为精排主引擎，keyword 通道进入 merge 层提供补充候选
-- 默认启用 `capsule-heuristic` + `capsule-keyword` 双通道
+- 三通道并行召回 → merge 层 RRF 去重融合 → rerank 层 intent-aware 精排
+- 默认启用 `capsule-heuristic` + `capsule-keyword` + `capsule-semantic` 三通道
 - CapsuleRecallCoordinator.execute() 返回 `capsuleCandidates: CapsuleCandidate[]` 供后续组装层复用
+- 语义/关键词通道失败时返回空数组，不阻断检索
+- 通道 observable：`channelsPlanned` / `channelsUsed` / `mergeStats` 通过 trace 记录
+
+#### Merge 与 Rerank 两阶段结构 (Phase 4)
+
+```text
+┌─────────────────────────────────────────────────────┐
+│ 阶段 1: Merge (Capsule Merge Layer)                  │
+│  - 输入: CapsuleRecallCandidate[][] (各通道结果)     │
+│  - 按 capsuleId 去重                                 │
+│  - 保留 per-channel scores (channelScores)           │
+│  - RRF 计算 preRerankScore                          │
+│    RRF = Σ 1 / (k + rank_i)  (k=60)                │
+│  - 输出: MergedCapsuleCandidate[] (含 channel 溯源)  │
+└─────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────┐
+│ 阶段 2: Rerank (Capsule Rerank Layer)                │
+│  - 输入: MergedCapsuleCandidate[] + artifacts        │
+│  - 查 capsule 数据，复用 v2 intent-aware 特征        │
+│  - 特征: problem × 0.30 + situation × 0.21           │
+│          + goal × 0.17 + keyword × 0.17              │
+│          + context × 0.15                            │
+│  - finalScore = base × stackPathBoost                │
+│  - 生成多通道 explainable reason:                    │
+│    "Matched via heuristic + keyword;                   │
+│     problem match (82%), context match (58%),         │
+│     stack/path boost"                                 │
+│  - 排序并限制 maxResults                             │
+│  - 输出: CapsuleCandidate[]                          │
+└─────────────────────────────────────────────────────┘
+```
+
+**Reason 生成格式** (Phase 4):
+
+Reason 字符串格式从 "Matched: ..." 升级为 "Matched via <channels>; ..."：
+
+```
+Matched via heuristic + keyword + semantic; problem match (84%), context match (61%), stack/path boost
+```
+
+- 开头标识贡献通道列表（heuristic/keyword/semantic/graph）
+- 中间列出命中的意图特征及其匹配百分比（仅 score > 0.3 的特征）
+- 末尾标注 stack/path boost（仅 boost > 1.1 时可见）
+- 无匹配特征时 fallback 到 "Capsule from <sourcePath>"
 
 #### capsule-keyword 通道详情
 
@@ -377,14 +434,36 @@ searchKnowledgeV2() (orchestrator.ts)
 
 **通道输出**: `CapsuleRecallCandidate[]` 含 `matchedTokens`（命中 token 列表）和 `score`（归一化 [0,1]）
 
+#### capsule-semantic 通道详情 (Phase 3)
+
+**embedding 文本构建** (字段拼接顺序):
+
+```
+labels → situation → problem → goal → contextualPrefix → content
+```
+
+- `content` 截断至 500 字符，避免长正文稀释 embedding
+- 使用 `generateEmbedding()` 生成 384 维向量
+- 使用 `cosineSimilarity()` 计算查询与胶囊的余弦相似度
+
+**召回面**: `labels`, `situation`, `problem`, `goal`, `contextualPrefix`, `content` (截断)
+
+**双路径支持**:
+- 内存路径：调用 `capsuleSemanticRecall()` 基于 `generateEmbedding()` + `cosineSimilarity()` 逐胶囊计算
+- PG 路径：`createPgCapsuleVectorRecall()` 查询 `skill_artifact_capsule_embeddings` 表（HNSW 索引 `vector_cosine_ops`）
+
+**通道输出**: `CapsuleRecallCandidate[]` 含 `score`（余弦相似度，归一化 [0,1]）
+
+**错误降级**: embedding 生成失败时返回空数组，不阻断检索主流程
+
 #### 后续阶段预览
 
 | Phase | 任务 | 新增内容 | 状态 |
 |-------|------|----------|------|
 | Phase 1 | 架构解耦 | `CapsuleRecallCoordinator`, `CapsuleChannelRegistry`, `capsule-heuristic` | ✅ 完成 |
 | Phase 2 | keyword 通道落地 | `capsule-keyword` 通道、字段权重、内存/PG 双路径 | ✅ 完成 |
-| Phase 3 | semantic 通道落地 | `capsule-semantic` 通道、embedding 文本构建、向量索引 | 待实施 |
-| Phase 4 | merge / rerank 落地 | RRF 融合、独立重排层、channelsPlanned/Used trace | 待实施 |
+| Phase 3 | semantic 通道落地 | `capsule-semantic` 通道、embedding 文本构建、向量索引 | ✅ 完成 |
+| Phase 4 | merge / rerank 落地 | RRF 融合、独立重排层、channelsPlanned/Used trace、多通道 reason | ✅ 完成 |
 | Phase 5 | graph 通道接入 | `capsule-graph` 通道、artifact-to-capsule 映射 | 待实施 |
 
 ---

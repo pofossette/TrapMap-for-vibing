@@ -275,6 +275,80 @@ export const v2KeywordRegexSmoke = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 
 // =============================================================================
+// Phase 3: Semantic-Dominant Smoke Cases
+// =============================================================================
+
+/**
+ * Case: Semantic-dominant retrieval - paraphrase query vs technical capsule.
+ * Query uses informal "types going wrong" language; capsule uses "type checking" terminology.
+ */
+export const v2SemanticDominantSmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-semantic-dominant-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'my code has a lot of types going wrong and I cannot run it',
+    maxResults: 10,
+  },
+  scenarioId: 'smoke-semantic-dominant',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_smoke_semantic_typescript'],
+      idealOrder: ['capsule_smoke_semantic_typescript'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [
+        'artifact_smoke_semantic_typescript',
+        'artifact_smoke_semantic_python',
+      ],
+      expectedCapsuleCount: 2,
+    },
+  },
+  tags: ['semantic-dominant', 'v2', 'smoke', 'capsule', 'paraphrase', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+/**
+ * Case: Semantic-dominant retrieval - technical paraphrase.
+ * Query uses "running services together" instead of "container orchestration".
+ */
+export const v2SemanticParaphraseSmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-semantic-paraphrase-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'how to make services run together without problems',
+    maxResults: 10,
+  },
+  scenarioId: 'smoke-semantic-dominant',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_smoke_semantic_python'],
+      idealOrder: ['capsule_smoke_semantic_python'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [
+        'artifact_smoke_semantic_typescript',
+        'artifact_smoke_semantic_python',
+      ],
+      expectedCapsuleCount: 2,
+    },
+  },
+  tags: ['semantic-dominant', 'v2', 'smoke', 'capsule', 'paraphrase', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
 // Aggregated v2 Smoke Cases Export
 // =============================================================================
 
@@ -289,4 +363,6 @@ export const v2RetrievalSmokeCases: RetrievalEvalCase[] = [
   v2IncludeSummarySmoke,
   v2KeywordDominantSmoke,
   v2KeywordRegexSmoke,
+  v2SemanticDominantSmoke,
+  v2SemanticParaphraseSmoke,
 ];

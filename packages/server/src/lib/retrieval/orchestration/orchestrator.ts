@@ -373,14 +373,17 @@ export async function searchKnowledgeV2(
 
     const artifacts = data.skillArtifacts ?? [];
 
-    // Phase 2: Create coordinator with heuristic + keyword channels.
-    // Keyword channel provides independent lexical recall; heuristic channel
-    // preserves backward-compatible intent-aware scoring as primary engine.
+    // Phase 3: Create coordinator with heuristic + keyword + semantic channels.
+    // Semantic channel provides embedding-based recall for paraphrase/rewording gaps;
+    // heuristic channel preserves backward-compatible intent-aware scoring as primary
+    // engine; keyword channel provides independent lexical recall.
     const channelRegistry = new CapsuleChannelRegistry();
     const { capsuleHeuristicChannel } = await import('../capsules/channels/heuristic.js');
     const { capsuleKeywordChannel } = await import('../capsules/channels/keyword.js');
+    const { capsuleSemanticChannel } = await import('../capsules/channels/semantic.js');
     channelRegistry.register(capsuleHeuristicChannel);
     channelRegistry.register(capsuleKeywordChannel);
+    channelRegistry.register(capsuleSemanticChannel);
     const coordinator = new CapsuleRecallCoordinator(channelRegistry);
 
     const recallResult = await timedStep(
@@ -401,8 +404,8 @@ export async function searchKnowledgeV2(
 
     const rankedCandidates = recallResult.capsuleCandidates;
 
-    routingDecision.channelsUsed =
-      rankedCandidates.length > 0 ? ['capsule-heuristic', 'capsule-keyword'] : [];
+    routingDecision.channelsPlanned = recallResult.channelsPlanned;
+    routingDecision.channelsUsed = recallResult.channelsUsed;
 
     if (rankedCandidates.length === 0) {
       void logRagRetrieval(services.config.ragLog, {
@@ -471,6 +474,7 @@ export async function searchKnowledgeV2(
         includeSummary: parsed.includeSummary ?? false,
         includeRefinement: false,
         routingTrace: toRoutingTrace(routingDecision),
+        mergeStats: recallResult.mergeStats,
       },
     });
 

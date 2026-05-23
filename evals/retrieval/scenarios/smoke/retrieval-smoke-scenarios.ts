@@ -299,6 +299,77 @@ export const smokeKeywordDominantScenario = retrievalEvalScenarioSchema.parse({
   },
 }) as RetrievalEvalScenario;
 
+// =============================================================================
+// Phase 3 Smoke Scenario: Semantic-Dominant
+// =============================================================================
+
+/**
+ * Scenario: Capsules with technical terminology that requires semantic recall
+ * when queries use informal or paraphrased language.
+ * TypeScript capsule uses "type checking errors" — query uses "types going wrong".
+ * Python capsule uses "inter-service communication" — query uses "services running together".
+ */
+export const smokeSemanticDominantScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'smoke-semantic-dominant',
+  description:
+    'Capsules with technical terminology for semantic-only recall via paraphrased/informal queries.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_smoke',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [],
+    skillArtifacts: [
+      {
+        id: 'artifact_smoke_semantic_typescript',
+        teamId: 'team_smoke',
+        scope: 'project',
+        labels: ['typescript', 'types', 'errors'],
+        title: 'TypeScript Error Skills',
+        slug: 'typescript-errors',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_smoke_semantic_typescript',
+            content: 'Resolve TypeScript type checking errors by configuring tsconfig properly',
+            situation: 'Working on a TypeScript codebase',
+            problem: 'TypeScript type checking errors prevent compilation and running code',
+            goal: 'Fix all type errors so the project compiles and runs successfully',
+            labels: ['typescript', 'types', 'compilation'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_smoke_semantic_python',
+        teamId: 'team_smoke',
+        scope: 'project',
+        labels: ['python', 'services', 'orchestration'],
+        title: 'Python Service Orchestration',
+        slug: 'python-service-orchestration',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_smoke_semantic_python',
+            content: 'Orchestrate multiple Python microservices using docker compose',
+            situation: 'Running several Python services that need to communicate',
+            problem: 'Inter-service communication failures and port conflicts',
+            goal: 'Coordinate services to run together reliably without conflicts',
+            labels: ['python', 'orchestration', 'docker'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
 export const smokeGraphPlanSelectedScenario = retrievalEvalScenarioSchema.parse({
   scenarioId: 'smoke-graph-plan-selected',
   description:
@@ -548,6 +619,7 @@ export const smokeScenariosMap: Record<string, RetrievalEvalScenario> = {
   'smoke-empty-result': smokeEmptyResultScenario,
   'smoke-forbidden': smokeForbiddenScenario,
   'smoke-keyword-dominant': smokeKeywordDominantScenario,
+  'smoke-semantic-dominant': smokeSemanticDominantScenario,
   'smoke-graph-plan-selected': smokeGraphPlanSelectedScenario,
   'smoke-graph-plan-fallback-v2': smokeGraphPlanFallbackV2Scenario,
   'smoke-graph-plan-fallback-v1': smokeGraphPlanFallbackV1Scenario,
