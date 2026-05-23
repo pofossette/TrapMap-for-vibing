@@ -23,6 +23,7 @@ export {
 } from './capsule-recall.js';
 export { capsuleHeuristicChannel } from './channels/heuristic.js';
 export { capsuleKeywordChannel, capsuleKeywordRecall } from './channels/keyword.js';
+export { createCapsuleGraphChannel } from './channels/graph.js';
 export {
   buildCapsuleEmbeddingText,
   capsuleSemanticChannel,

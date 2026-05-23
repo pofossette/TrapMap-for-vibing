@@ -373,10 +373,12 @@ export async function searchKnowledgeV2(
 
     const artifacts = data.skillArtifacts ?? [];
 
-    // Phase 3: Create coordinator with heuristic + keyword + semantic channels.
-    // Semantic channel provides embedding-based recall for paraphrase/rewording gaps;
-    // heuristic channel preserves backward-compatible intent-aware scoring as primary
-    // engine; keyword channel provides independent lexical recall.
+    // Phase 5: Create coordinator with heuristic + keyword + semantic + graph channels.
+    // Graph channel augments recall via skill artifact graph expansion (one-hop entity
+    // traversal) but does not dominate final ranking. Semantic channel provides
+    // embedding-based recall for paraphrase/rewording gaps; heuristic channel preserves
+    // backward-compatible intent-aware scoring; keyword channel provides independent
+    // lexical recall.
     const channelRegistry = new CapsuleChannelRegistry();
     const { capsuleHeuristicChannel } = await import('../capsules/channels/heuristic.js');
     const { capsuleKeywordChannel } = await import('../capsules/channels/keyword.js');
@@ -384,6 +386,14 @@ export async function searchKnowledgeV2(
     channelRegistry.register(capsuleHeuristicChannel);
     channelRegistry.register(capsuleKeywordChannel);
     channelRegistry.register(capsuleSemanticChannel);
+    // Graph channel uses a factory function because it requires GraphIndexRepository.
+    // Register after keyword/semantic so it supplements recall without dominating.
+    try {
+      const { createCapsuleGraphChannel } = await import('../capsules/channels/graph.js');
+      channelRegistry.register(createCapsuleGraphChannel(services.repos.graphIndex));
+    } catch {
+      // Graph channel registration failure should not block retrieval.
+    }
     const coordinator = new CapsuleRecallCoordinator(channelRegistry);
 
     const recallResult = await timedStep(

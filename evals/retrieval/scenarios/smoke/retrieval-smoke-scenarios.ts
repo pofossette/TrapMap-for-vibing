@@ -608,6 +608,131 @@ export const smokeGraphPlanFallbackV1Scenario = retrievalEvalScenarioSchema.pars
 }) as RetrievalEvalScenario;
 
 // =============================================================================
+// Phase 5 Smoke Scenario: Graph-Assisted v2
+// =============================================================================
+
+/**
+ * Scenario: Skill artifact capsules with graph index documents for test tool co-occurrence.
+ * One skill uses vitest (direct hit), another uses jest (graph-expanded via vitest co-occurrence).
+ * Query for "vitest" should retrieve both capsules via graph expansion.
+ */
+export const smokeGraphAssistedV2Scenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'smoke-graph-assisted-v2',
+  description:
+    'Skill artifacts with graph documents showing co-occurs-with relationship between vitest and jest tools.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_smoke',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [],
+    skillArtifacts: [
+      {
+        id: 'artifact_smoke_graph_assisted_a',
+        teamId: 'team_smoke',
+        scope: 'project',
+        labels: ['vitest', 'testing'],
+        title: 'Vitest Testing Skills',
+        slug: 'vitest-testing-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_smoke_graph_assisted_vitest',
+            content: 'Configure vitest for component testing with proper coverage',
+            situation: 'Setting up testing in a Vite project',
+            problem: 'vitest configuration errors prevent tests from running',
+            goal: 'Correctly configure vitest for reliable test execution',
+            labels: ['vitest', 'testing', 'coverage'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_smoke_graph_assisted_b',
+        teamId: 'team_smoke',
+        scope: 'project',
+        labels: ['jest', 'testing'],
+        title: 'Jest Testing Skills',
+        slug: 'jest-testing-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_smoke_graph_assisted_jest',
+            content: 'Use jest for unit testing with snapshot coverage',
+            situation: 'Writing unit tests for a React application',
+            problem: 'jest snapshot tests are flaky and need stabilization',
+            goal: 'Create reliable jest snapshots for component testing',
+            labels: ['jest', 'snapshot', 'react'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+    graphIndexDocuments: [
+      {
+        id: 'graphdoc_skill_artifact_smoke_graph_assisted_a_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_smoke_graph_assisted_a',
+        revision: 1,
+        contentHash: 'smoke-graph-assisted-v2-skill-a',
+        teamId: 'team_smoke',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_smoke_graph_assisted_a',
+            kind: 'skill',
+            label: 'vitest',
+            evidence: 'vitest testing skill',
+          },
+        ],
+        edges: [
+          {
+            id: 'skill:artifact_smoke_graph_assisted_a->skill:artifact_smoke_graph_assisted_b:co-occurs-with',
+            sourceNodeId: 'skill:artifact_smoke_graph_assisted_a',
+            targetNodeId: 'skill:artifact_smoke_graph_assisted_b',
+            relationType: 'co-occurs-with',
+            strength: 'soft',
+            evidence: 'vitest and jest both used for testing',
+          },
+        ],
+        evidence: 'derived from smoke graph-assisted v2 skill A',
+        createdAt: '2026-05-23T00:00:00.000Z',
+        updatedAt: '2026-05-23T00:00:00.000Z',
+      },
+      {
+        id: 'graphdoc_skill_artifact_smoke_graph_assisted_b_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_smoke_graph_assisted_b',
+        revision: 1,
+        contentHash: 'smoke-graph-assisted-v2-skill-b',
+        teamId: 'team_smoke',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_smoke_graph_assisted_b',
+            kind: 'skill',
+            label: 'jest',
+            evidence: 'jest testing skill',
+          },
+        ],
+        edges: [],
+        evidence: 'derived from smoke graph-assisted v2 skill B',
+        createdAt: '2026-05-23T00:00:00.000Z',
+        updatedAt: '2026-05-23T00:00:00.000Z',
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
+// =============================================================================
 // Aggregated Smoke Scenarios Export
 // =============================================================================
 
@@ -623,6 +748,7 @@ export const smokeScenariosMap: Record<string, RetrievalEvalScenario> = {
   'smoke-graph-plan-selected': smokeGraphPlanSelectedScenario,
   'smoke-graph-plan-fallback-v2': smokeGraphPlanFallbackV2Scenario,
   'smoke-graph-plan-fallback-v1': smokeGraphPlanFallbackV1Scenario,
+  'smoke-graph-assisted-v2': smokeGraphAssistedV2Scenario,
 };
 
 /**

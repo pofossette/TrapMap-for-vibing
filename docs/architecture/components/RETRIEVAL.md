@@ -326,7 +326,7 @@ searchKnowledgeV2() (orchestrator.ts)
         │     ├─> capsule-heuristic  ← 保底通道 (intent-aware 精排特征)
         │     ├─> capsule-keyword    ← ✅ Phase 2 已落地
         │     ├─> capsule-semantic   ← ✅ Phase 3 已落地
-        │     └─> capsule-graph      ← Phase 5 计划
+        │     └─> capsule-graph      ← ✅ Phase 5 已落地
         ├─> Capsule Merge Layer      ← ✅ Phase 4 新落地
         │     ├─> merge.ts: RRF 去重融合 (dedupe by capsuleId)
         │     └─> preRerankScore = Σ 1/(k + rank_i)
@@ -345,6 +345,7 @@ searchKnowledgeV2() (orchestrator.ts)
 | `capsuleHeuristicChannel` | `packages/server/src/lib/retrieval/capsules/channels/heuristic.ts` | heuristic 通道：包装 rankCapsules()，提供 CapsuleRecallCandidate[] |
 | `capsuleKeywordChannel` | `packages/server/src/lib/retrieval/capsules/channels/keyword.ts` | keyword 通道：独立词法召回，字段加权评分，内存/PG 双路径 |
 | `capsuleSemanticChannel` | `packages/server/src/lib/retrieval/capsules/channels/semantic.ts` | semantic 通道：embedding 语义召回，余弦相似度评分，内存/PG 双路径 |
+| `capsuleGraphChannel` | `packages/server/src/lib/retrieval/capsules/channels/graph.ts` | graph 通道：skill graph 结构化扩召回，one-hop 实体展开，artifact-to-capsule 映射 |
 | `rankCapsules()` | `packages/server/src/lib/retrieval/capsules/capsule-recall.ts` | 核心评分引擎：治理过滤 + situation/problem/goal/keyword/context 多维加权评分 |
 | `mergeCapsuleCandidates()` | `packages/server/src/lib/retrieval/capsules/scoring/merge.ts` | RRF 融合层：按 capsuleId 去重、保留 per-channel scores、计算 preRerankScore |
 | `rerankMergedCapsules()` | `packages/server/src/lib/retrieval/capsules/scoring/rerank.ts` | 重排层：复用 v2 intent-aware 特征、计算 finalScore、生成多通道 reason |
@@ -456,6 +457,37 @@ labels → situation → problem → goal → contextualPrefix → content
 
 **错误降级**: embedding 生成失败时返回空数组，不阻断检索主流程
 
+#### capsule-graph 通道详情 (Phase 5)
+
+`capsule-graph` 通道利用 skill artifact graph 文档做结构化扩召回，通过 one-hop 实体展开发现与查询相关的补充 capsule 候选。
+
+**graph recall 策略**:
+```text
+graph recall artifact IDs -> map to artifact capsules -> rerank within artifact
+```
+在 v2 管线中，graph 结果进入 merge 层与其他通道平等竞争，rerank 层决定最终排序。graph 不作为唯一排序器。
+
+**entity 提取与图匹配**:
+- 从 query seed 中提取工具关键词实体（复用 graph-extract.ts 的遗留实体提取逻辑）
+- 按 `sourceType: 'skill'` 过滤 graph 文档，构建图运行时快照
+- 通过 `expandSourcesOneHop()` 做 bounded expansion 获取候选 artifact ID
+
+**artifact-to-capsule 映射**:
+- 图展开得到 artifact ID → 与治理过滤后的 artifacts 交集
+- 交集中的 artifact 所含 capsules 作为 graph 通道回结果
+- graph 通道不引入未经治理的 capsules
+
+**channel 输出**:
+- 返回 `CapsuleRecallCandidate[]`，channel 标记为 `capsule-graph`
+- 包含 `graphEvidence` 字段（query entity 列表，最多 5 个）用于审计追踪
+- 评分基于 entity 关系强度：base 0.85 + relationStrength 加成（上限 1.0）
+
+**位置**: 注册为最后一个通道（在 heuristic/keyword/semantic 之后），作为补召回
+
+**通道注册**: 使用工厂函数模式 `createCapsuleGraphChannel(graphIndexRepo)`，注入 `GraphIndexRepository`
+
+**错误降级**: graph repo 不可用或 graph channel 注册失败时，不阻断检索主流程
+
 #### 后续阶段预览
 
 | Phase | 任务 | 新增内容 | 状态 |
@@ -464,7 +496,7 @@ labels → situation → problem → goal → contextualPrefix → content
 | Phase 2 | keyword 通道落地 | `capsule-keyword` 通道、字段权重、内存/PG 双路径 | ✅ 完成 |
 | Phase 3 | semantic 通道落地 | `capsule-semantic` 通道、embedding 文本构建、向量索引 | ✅ 完成 |
 | Phase 4 | merge / rerank 落地 | RRF 融合、独立重排层、channelsPlanned/Used trace、多通道 reason | ✅ 完成 |
-| Phase 5 | graph 通道接入 | `capsule-graph` 通道、artifact-to-capsule 映射 | 待实施 |
+| Phase 5 | graph 通道接入 | `capsule-graph` 通道、artifact-to-capsule 映射 | ✅ 完成 |
 
 ---
 

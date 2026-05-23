@@ -239,6 +239,29 @@ Trace 新增字段：`channelsPlanned`、`channelsUsed`、`mergeStats`（totalCh
 - regression safety: 当前 v2 baseline 核心 case 无退化
 - channel trace: smoke/core 执行后确认 channelsPlanned/channelsUsed 正确记录
 
+**Phase 5 状态**: `capsule-graph` 通道已接入。graph 通道通过 skill graph 做结构化扩召回，采用 `artifact-level graph hit → capsule 映射` 策略。使用工厂函数 `createCapsuleGraphChannel(graphIndexRepo)` 实现，注册于 heuristic/keyword/semantic 之后作为补召回通道。
+
+Graph 通道工作机制：
+1. 从 query 提取工具关键词实体（复用 graph-extract.ts）
+2. 按 `sourceType: 'skill'` 过滤 graph 文档，构建图运行时快照
+3. 通过 `expandSourcesOneHop()` 做实体匹配 + 邻居展开，获取候选 artifact ID
+4. artifact ID → governed capsule 映射（仅返回治理交集内的 capsules）
+5. `graphEvidence` 字段承载 query entity 列表用于审计追踪
+
+**测试覆盖**:
+- 新增 `capsule-graph-channel.test.ts` (19 tests): CapsuleRecallChannel 接口实现、graph 实体匹配、graph expansion、artifact-capsule 映射、governance 过滤、trap 文档过滤、空结果/边界/排序/形状验证
+- 新增 evals:
+  - Smoke: `v2-graph-assisted-co-occurs-smoke` (co-occurs 图边命中), `v2-graph-assisted-governance-smoke` (governance 安全)
+  - Core: `v2-graph-assisted-co-occurs-core` (docker→kubernetes 扩展), `v2-graph-assisted-reverse-core` (kubernetes→docker 反向扩展)
+
+**Phase 5 graph 通道专项检查建议**:
+- graph-only recall: 验证图通道可独立召回 artifact 并映射到 capsule
+- artifact-to-capsule mapping: 确认 artifact hit 后 capsule 召回准确，不遗漏
+- non-dominance: 图结果进入 merge 层平等竞争，不独占最终排序
+- governance safety: 图通道返回结果与治理 artifacts 取交集，不引入泄漏
+- trap doc filtering: 仅使用 `sourceType: 'skill'` 的 graph 文档，trap 文档不参与 capsule 召回
+- channel trace: 确认 `channelsPlanned` / `channelsUsed` 中 `capsule-graph` 通道正确记录
+
 ### 添加摘要用例
 
 1. 在 `evals/summary/datasets/` 中定义：

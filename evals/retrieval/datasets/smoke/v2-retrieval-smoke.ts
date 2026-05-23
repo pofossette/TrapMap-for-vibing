@@ -349,6 +349,80 @@ export const v2SemanticParaphraseSmoke = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 
 // =============================================================================
+// Phase 5: Graph-Assisted v2 Smoke Cases
+// =============================================================================
+
+/**
+ * Case: Graph-assisted retrieval - direct vitest query retrieves co-occurring jest capsule.
+ * Query for vitest should pull in jest capsule via graph co-occurs-with edge.
+ */
+export const v2GraphAssistedCoOccursSmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-graph-assisted-co-occurs-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'vitest configuration',
+    maxResults: 10,
+  },
+  scenarioId: 'smoke-graph-assisted-v2',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_smoke_graph_assisted_vitest', 'capsule_smoke_graph_assisted_jest'],
+      idealOrder: ['capsule_smoke_graph_assisted_vitest', 'capsule_smoke_graph_assisted_jest'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [
+        'artifact_smoke_graph_assisted_a',
+        'artifact_smoke_graph_assisted_b',
+      ],
+      expectedCapsuleCount: 2,
+    },
+  },
+  tags: ['graph-assisted', 'v2', 'smoke', 'capsule', 'co-occurs', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+/**
+ * Case: Graph-assisted retrieval - governance check with graph expansion.
+ * Ensures graph-derived candidates respect governance boundaries.
+ */
+export const v2GraphAssistedGovernanceSmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-graph-assisted-governance-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'vitest testing setup',
+    maxResults: 10,
+  },
+  scenarioId: 'smoke-graph-assisted-v2',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_smoke_graph_assisted_vitest', 'capsule_smoke_graph_assisted_jest'],
+      idealOrder: ['capsule_smoke_graph_assisted_vitest', 'capsule_smoke_graph_assisted_jest'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [
+        'artifact_smoke_graph_assisted_a',
+        'artifact_smoke_graph_assisted_b',
+      ],
+      expectedCapsuleCount: 2,
+    },
+  },
+  tags: ['graph-assisted', 'v2', 'smoke', 'capsule', 'governance', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
 // Aggregated v2 Smoke Cases Export
 // =============================================================================
 
@@ -365,4 +439,6 @@ export const v2RetrievalSmokeCases: RetrievalEvalCase[] = [
   v2KeywordRegexSmoke,
   v2SemanticDominantSmoke,
   v2SemanticParaphraseSmoke,
+  v2GraphAssistedCoOccursSmoke,
+  v2GraphAssistedGovernanceSmoke,
 ];

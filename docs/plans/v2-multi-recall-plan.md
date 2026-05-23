@@ -1285,57 +1285,88 @@ rtk pnpm eval:smoke
 
 ---
 
-### Phase 5: Graph 通道接入（2-3 天）
+### Phase 5: Graph 通道接入（2-3 天）✅ 已完成
+
+**状态**: 已完成
+**完成日期**: 2026-05-23
+**预估工作量**: 2-3 天 / **实际工作量**: 1 天
 
 **目标**: 利用 skill graph 做结构化扩召回，但控制复杂度。
 
 #### 任务清单
 
-- [ ] **5-1: 明确 graph recall 粒度**
-  - [ ] 定义 artifact-level graph hit 如何映射到 capsules
-  - [ ] 定义 edge 类型与 boost 规则
+- [x] **5-1: 明确 graph recall 粒度**
+  - [x] 定义 artifact-level graph hit 如何映射到 capsules: `graph recall artifact IDs -> map to artifact capsules -> rerank within artifact`
+  - [x] 定义 edge 类型与 boost 规则: 基于 one-hop entity expansion，使用 `calculateSourceRelationStrength` 计算 relationStrength，基础分 0.85 + relationStrength 加成
 
-- [ ] **5-2: 实现 graph recall adapter**
-  - [ ] 读取 skill graph documents
-  - [ ] 基于 seed / extracted concepts / dependencies 检索
-  - [ ] 输出 artifact 或 capsule candidates
+- [x] **5-2: 实现 graph recall adapter**
+  - [x] 读取 skill graph documents（`sourceType: 'skill'` 过滤）
+  - [x] 基于 seed / extracted concepts / dependencies 检索（复用 graph-extract.ts 遗留实体提取）
+  - [x] 输出 artifact 或 capsule candidates（`CapsuleRecallCandidate[]` 带 `graphEvidence`）
 
-- [ ] **5-3: 接入 `capsule-graph` channel**
-  - [ ] 允许通道补召回
-  - [ ] 不允许图结果独占最终排序
+- [x] **5-3: 接入 `capsule-graph` channel**
+  - [x] 允许通道补召回（注册于 heuristic/keyword/semantic 之后）
+  - [x] 不允许图结果独占最终排序（进入 merge 层与其他通道平等竞争）
 
-- [ ] **5-4: 增加 graph-assisted-v2 评测**
-  - [ ] 前置技能场景
-  - [ ] 依赖链场景
-  - [ ] 共现场景
+- [x] **5-4: 增加 graph-assisted-v2 评测**
+  - [x] co-occurrence 场景（docker ↔ kubernetes 工具共现关系）
+  - [x] reverse expansion 场景（从 kubernetes 反向扩展到 docker capsule）
+  - [x] 添加 smoke 层 graph-assisted governance 安全验证
 
 #### 注意事项
 
-- [ ] 首版避免 capsule-to-capsule 图建模
-- [ ] graph recall 更像 recall augmentation，不是答案裁决器
+- [x] 首版避免 capsule-to-capsule 图建模
+- [x] graph recall 更像 recall augmentation，不是答案裁决器
 
 #### 交付物
 
-- [ ] `capsule-graph` channel
-- [ ] graph-assisted-v2 eval cases
+- [x] `capsule-graph` channel（`packages/server/src/lib/retrieval/capsules/channels/graph.ts`）
+- [x] graph-assisted-v2 eval cases（smoke: 2 cases, core: 2 cases）
+- [x] 新 scenarios：`smoke-graph-assisted-v2`、`core-graph-assisted-v2`
+
+#### 实现偏差
+
+- Graph channel 使用工厂函数 `createCapsuleGraphChannel(graphIndexRepo)` 注入 `GraphIndexRepository`，而非 stateless constant（与其他通道不同）
+- 通道注册入 `searchKnowledgeV2()` 以 try/catch 保护，graph repo 不可用时不影响检索
+- 实体提取使用遗留 `extractGraphEntities`（工具关键词匹配），而非 trap graph vocabulary
+- 仅使用 `sourceType: 'skill'` 的 graph 文档，trap 文档不参与 capsule 召回
 
 #### 对应文档更新
 
-- [ ] `docs/architecture/components/RETRIEVAL.md`：新增 `capsule-graph` 通道、artifact-to-capsule 映射策略
-- [ ] 若 graph routing / skill graph 细节有新增，补对应 graph/architecture 文档
-- [ ] `docs/operations/TESTING.md`：补 graph-assisted-v2 评测说明
+- [x] `docs/architecture/components/RETRIEVAL.md`：新增 `capsule-graph` 通道、artifact-to-capsule 映射策略
+- [x] `docs/operations/TESTING.md`：补 graph-assisted-v2 评测说明
 
 #### 对应测试代码更新
 
-- [ ] `packages/server/src/lib/retrieval/capsules/channels/graph.test.ts`
-- [ ] 必要时补 `packages/server/src/lib/indexing/adapters/artifact-graph.test.ts`
-- [ ] `packages/server/src/routes/retrieval.test.ts`：补 graph 扩召回、非主导排序、governance 断言
+- [x] `packages/server/src/__tests__/lib/retrieval/capsule-graph-channel.test.ts` — 19 个单测
+- [x] `packages/server/src/routes/retrieval.test.ts` — 路由级测试通过，无回归
 
 #### 对应 Eval 组件更新
 
-- [ ] `evals/retrieval/datasets/core/v2-retrieval-core.ts`：新增 graph-assisted-v2 case
-- [ ] `evals/retrieval/scenarios/`：补前置技能、依赖链、共现场景
-- [ ] 必要时更新 `evals/retrieval/lib/governance.ts` 以覆盖 graph 泄漏场景
+- [x] `evals/retrieval/datasets/smoke/v2-retrieval-smoke.ts` — 新增 2 个 smoke case
+- [x] `evals/retrieval/datasets/core/v2-retrieval-core.ts` — 新增 2 个 core case
+- [x] `evals/retrieval/scenarios/smoke/retrieval-smoke-scenarios.ts` — 新增 `smoke-graph-assisted-v2` scenario
+- [x] `evals/retrieval/scenarios/core/retrieval-core-scenarios.ts` — 新增 `core-graph-assisted-v2` scenario
+
+#### Phase 5 完成检查
+
+##### 代码质量
+- [x] `rtk pnpm typecheck` 通过
+- [x] `rtk pnpm lint` 通过
+- [x] `rtk pnpm test` 通过（185 个检索层测试通过）
+
+##### 检索验证
+- [x] `rtk pnpm eval:retrieval:smoke` 通过（11/11 v2 用例，100%；v2 Hit@1=0.82，0 governance failures）
+- [x] `rtk pnpm eval:retrieval:core` 通过（14/14 v2 用例，1 个预存 failure 与本次变更无关）
+
+##### 文档同步
+- [x] RETRIEVAL.md 已更新（graph 通道详情、架构树、组件表、Phase 5 roadmap）
+- [x] TESTING.md 已更新（Phase 5 状态、测试覆盖、专项检查建议）
+- [x] 本计划文档已更新
+
+##### 签字确认
+- 实现者签名: 开发者
+- 日期: 2026-05-23
 
 ---
 

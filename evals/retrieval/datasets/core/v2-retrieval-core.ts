@@ -485,6 +485,80 @@ export const v2MixedChannelCore = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 
 // =============================================================================
+// Phase 5: Graph-Assisted v2 Core Cases
+// =============================================================================
+
+/**
+ * Case: Graph-assisted retrieval - docker query expands to kubernetes capsule.
+ * Tests co-occurs-with edge expansion in the v2 graph channel.
+ */
+export const v2GraphAssistedCoOccursCore = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-graph-assisted-co-occurs-core',
+  tier: 'core',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'docker container deployment',
+    maxResults: 10,
+  },
+  scenarioId: 'core-graph-assisted-v2',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_core_graph_assisted_docker', 'capsule_core_graph_assisted_k8s'],
+      idealOrder: ['capsule_core_graph_assisted_docker', 'capsule_core_graph_assisted_k8s'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [
+        'artifact_core_graph_assisted_docker',
+        'artifact_core_graph_assisted_k8s',
+      ],
+      expectedCapsuleCount: 2,
+    },
+  },
+  tags: ['graph-assisted', 'v2', 'core', 'capsule', 'co-occurs', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+/**
+ * Case: Graph-assisted retrieval - kubernetes query finds docker via reverse graph expansion.
+ * Tests that the graph channel can use entity matching in either direction.
+ */
+export const v2GraphAssistedReverseCore = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-graph-assisted-reverse-core',
+  tier: 'core',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'kubernetes orchestration',
+    maxResults: 10,
+  },
+  scenarioId: 'core-graph-assisted-v2',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_core_graph_assisted_k8s', 'capsule_core_graph_assisted_docker'],
+      idealOrder: ['capsule_core_graph_assisted_k8s', 'capsule_core_graph_assisted_docker'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [
+        'artifact_core_graph_assisted_docker',
+        'artifact_core_graph_assisted_k8s',
+      ],
+      expectedCapsuleCount: 2,
+    },
+  },
+  tags: ['graph-assisted', 'v2', 'core', 'capsule', 'co-occurs', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
 // Aggregated v2 Core Cases Export
 // =============================================================================
 
@@ -504,4 +578,6 @@ export const v2RetrievalCoreCases: RetrievalEvalCase[] = [
   v2SemanticParaphraseCore,
   v2SemanticDebugCore,
   v2MixedChannelCore,
+  v2GraphAssistedCoOccursCore,
+  v2GraphAssistedReverseCore,
 ];

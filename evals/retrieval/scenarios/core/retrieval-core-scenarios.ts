@@ -2002,6 +2002,132 @@ export const coreMixedChannelScenario = retrievalEvalScenarioSchema.parse({
 }) as RetrievalEvalScenario;
 
 // =============================================================================
+// Phase 5 Core Scenario: Graph-Assisted v2
+// =============================================================================
+
+/**
+ * Scenario: Tool co-occurrence graph relationships for v2 graph-assisted recall.
+ * Artifact A's skill references docker, artifact B's skill references kubernetes.
+ * Graph documents show co-occurs-with edge between the docker and kubernetes tools.
+ * Query for "docker" should expand via graph to also find the kubernetes capsule.
+ */
+export const coreGraphAssistedV2Scenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'core-graph-assisted-v2',
+  description:
+    'Skill artifacts with graph documents showing co-occurs-with relationship between docker and kubernetes tools.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_core_graph',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [],
+    skillArtifacts: [
+      {
+        id: 'artifact_core_graph_assisted_docker',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['docker', 'container', 'deployment'],
+        title: 'Docker Container Skills',
+        slug: 'docker-container-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_graph_assisted_docker',
+            content: 'Build efficient Docker images with multi-stage builds',
+            situation: 'Creating container images for deployment',
+            problem: 'Docker images are too large and slow to build',
+            goal: 'Optimize Docker build with multi-stage patterns',
+            labels: ['docker', 'container', 'optimization'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_core_graph_assisted_k8s',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        labels: ['kubernetes', 'orchestration', 'deployment'],
+        title: 'Kubernetes Skills',
+        slug: 'kubernetes-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_graph_assisted_k8s',
+            content: 'Deploy Docker containers to Kubernetes with proper manifests',
+            situation: 'Running containers in production',
+            problem: 'Need to orchestrate container deployment at scale',
+            goal: 'Set up Kubernetes deployment for Docker containers',
+            labels: ['kubernetes', 'k8s', 'deployment'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+    graphIndexDocuments: [
+      {
+        id: 'graphdoc_skill_core_graph_assisted_docker_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_core_graph_assisted_docker',
+        revision: 1,
+        contentHash: 'core-graph-assisted-v2-docker',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_core_graph_assisted_docker',
+            kind: 'skill',
+            label: 'docker',
+            evidence: 'docker container skill',
+          },
+        ],
+        edges: [
+          {
+            id: 'skill:docker->skill:k8s:co-occurs-with',
+            sourceNodeId: 'skill:artifact_core_graph_assisted_docker',
+            targetNodeId: 'skill:artifact_core_graph_assisted_k8s',
+            relationType: 'co-occurs-with',
+            strength: 'soft',
+            evidence: 'docker and kubernetes often used together',
+          },
+        ],
+        evidence: 'derived from core graph-assisted v2 docker skill',
+        createdAt: '2026-05-23T00:00:00.000Z',
+        updatedAt: '2026-05-23T00:00:00.000Z',
+      },
+      {
+        id: 'graphdoc_skill_core_graph_assisted_k8s_r1',
+        sourceType: 'skill',
+        sourceId: 'artifact_core_graph_assisted_k8s',
+        revision: 1,
+        contentHash: 'core-graph-assisted-v2-k8s',
+        teamId: 'team_core_graph',
+        scope: 'project',
+        requiredLevel: 3,
+        nodes: [
+          {
+            id: 'skill:artifact_core_graph_assisted_k8s',
+            kind: 'skill',
+            label: 'kubernetes',
+            evidence: 'kubernetes orchestration skill',
+          },
+        ],
+        edges: [],
+        evidence: 'derived from core graph-assisted v2 k8s skill',
+        createdAt: '2026-05-23T00:00:00.000Z',
+        updatedAt: '2026-05-23T00:00:00.000Z',
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
+// =============================================================================
 // Aggregated Core Scenarios Export
 // =============================================================================
 
@@ -2024,6 +2150,7 @@ export const coreScenariosMap: Record<string, RetrievalEvalScenario> = {
   'core-keyword-dominant': coreKeywordDominantScenario,
   'core-semantic-paraphrase': coreSemanticParaphraseScenario,
   'core-mixed-channel': coreMixedChannelScenario,
+  'core-graph-assisted-v2': coreGraphAssistedV2Scenario,
 };
 
 /**
