@@ -20,9 +20,9 @@ import {
   statsUsageResponseSchema,
 } from '@trapmap/contracts';
 
-import { AppError } from '../../lib/errors.js';
-import { requirePermission } from '../../lib/rbac.js';
-import { resolveAuthContext } from '../../lib/session.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
 export const statsRoutes: FastifyPluginAsync = async (app) => {
   /**

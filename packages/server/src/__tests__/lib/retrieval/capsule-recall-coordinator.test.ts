@@ -1,8 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
 import {
   CapsuleChannelRegistry,
   CapsuleRecallCoordinator,
-} from '../../../lib/retrieval/capsules/index.js';
+} from '@trapmap/server/lib/retrieval/capsules/index.js';
 import type {
   ArtifactGovernanceFilters,
   CapsuleRecallCandidate,
@@ -10,8 +9,9 @@ import type {
   CapsuleRecallChannelName,
   MergedCapsuleCandidate,
   ParsedIntent,
-} from '../../../lib/retrieval/types.js';
-import type { SkillArtifactRecord } from '../../../lib/store.js';
+} from '@trapmap/server/lib/retrieval/types.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createMockArtifact, createMockCapsule } from './test-helpers.js';
 
 describe('CapsuleRecallCoordinator', () => {

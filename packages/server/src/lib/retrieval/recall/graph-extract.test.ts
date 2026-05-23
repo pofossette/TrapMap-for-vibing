@@ -10,8 +10,8 @@
  * TDD Phase: RED - These tests fail before the implementation exists.
  */
 
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { NormalizedIndexDocument } from '../../indexing/types.js';
 import { extractGraphEntities } from './graph-extract.js';
 
 describe('extractGraphEntities', () => {

@@ -1,4 +1,4 @@
-import type { CandidateRepository } from '../repository.js';
+import type { CandidateRepository } from '@trapmap/server/lib/candidates/repository.js';
 
 import { describe, expect, it, vi } from 'vitest';
 

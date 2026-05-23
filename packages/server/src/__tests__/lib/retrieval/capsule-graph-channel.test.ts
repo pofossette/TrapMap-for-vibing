@@ -1,15 +1,18 @@
-import { describe, expect, it } from 'vitest';
-import type { GraphIndexRepository } from '../../../lib/graph-index/index.js';
-import type { GraphIndexDocumentRecord } from '../../../lib/indexing/graph-lite/documents.js';
+import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/index.js';
+import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import {
   buildGraphRuntimeSnapshot,
   expandSourcesOneHop,
-} from '../../../lib/indexing/graph-lite/graphology.js';
-import type { NormalizedIndexDocument } from '../../../lib/indexing/types.js';
-import { createCapsuleGraphChannel } from '../../../lib/retrieval/capsules/index.js';
-import { extractGraphEntities } from '../../../lib/retrieval/recall/graph-extract.js';
-import type { ArtifactGovernanceFilters, ParsedIntent } from '../../../lib/retrieval/types.js';
-import type { SkillArtifactRecord } from '../../../lib/store.js';
+} from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
+import { createCapsuleGraphChannel } from '@trapmap/server/lib/retrieval/capsules/index.js';
+import { extractGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
+import type {
+  ArtifactGovernanceFilters,
+  ParsedIntent,
+} from '@trapmap/server/lib/retrieval/types.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { describe, expect, it } from 'vitest';
 import { createMockArtifact, createMockCapsule } from './test-helpers.js';
 
 function makeIntent(seed: string): ParsedIntent {

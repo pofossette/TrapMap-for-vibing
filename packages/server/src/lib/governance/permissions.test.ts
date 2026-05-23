@@ -10,9 +10,9 @@
  */
 
 import type { Permission } from '@trapmap/contracts';
+import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
 import { describe, expect, it } from 'vitest';
-import type { ResolvedAuthContext } from '../context.js';
-import { AppError } from '../errors.js';
 import {
   extractGovernanceContext,
   hasPermission,

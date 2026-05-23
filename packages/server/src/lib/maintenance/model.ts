@@ -10,7 +10,7 @@ import { maintenanceMetaSchema } from '@trapmap/contracts';
 
 import type { ActorRef } from '@trapmap/contracts';
 
-import type { MaintenanceMetaRecord } from '../store.js';
+import type { MaintenanceMetaRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Validate maintenance metadata using zod schema.

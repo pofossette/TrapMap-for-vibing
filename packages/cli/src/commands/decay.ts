@@ -2,9 +2,9 @@ import type { BatchOperationResponse, DecayEntryListResponse } from '@trapmap/co
 import { batchOperationResponseSchema, decayEntryListResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
-import { loadCliState } from '../lib/config.js';
-import { apiRequest, requireSessionToken } from '../lib/http.js';
-import { printCommandResult } from '../lib/output.js';
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
+import { printCommandResult } from '@trapmap/cli/lib/output.js';
 
 export interface DecayCommandOptions {
   allowManage: boolean;

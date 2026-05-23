@@ -2,8 +2,8 @@ import type { SkillLookupResponse } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as http from '../lib/http.js';
-import * as outputProfile from '../lib/output-profile.js';
+import * as http from '@trapmap/cli/lib/http.js';
+import * as outputProfile from '@trapmap/cli/lib/output-profile.js';
 import { registerSkillCommands } from './skill.js';
 
 vi.mock('../lib/http.js', () => ({
@@ -160,7 +160,7 @@ describe('CLI skill commands', () => {
     };
 
     it('renders codex tool-specific skill lookup output when configured', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
         serverUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',
@@ -207,7 +207,7 @@ describe('CLI skill commands', () => {
     });
 
     it('falls back to legacy skill formatter when tool-specific renderer fails', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
         serverUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',
@@ -259,7 +259,7 @@ describe('CLI skill commands', () => {
 
   describe('profile-aware admin commands', () => {
     it('renders codex command-result JSON for skill edit when output profile is configured', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
         serverUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',
@@ -352,7 +352,7 @@ describe('CLI skill commands', () => {
     });
 
     it('renders opencode command-result Markdown for skill history when output profile is configured', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
         serverUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',

@@ -1,8 +1,8 @@
 import type { CandidateSubmission } from '@trapmap/contracts';
+import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
+import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
+import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import type { Pool } from 'pg';
-import type { TaskHandler } from '../queue/task-queue.js';
-import { createTaskQueue } from '../queue/task-queue.js';
-import type { SkillShareerStore, StoreData } from '../store.js';
 import { detectDuplicates } from './detector.js';
 import { computeCandidateFingerprint } from './fingerprint.js';
 import { createPgDuplicateDetector } from './pg-detector.js';

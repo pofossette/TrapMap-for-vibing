@@ -13,7 +13,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ChatProvider } from '../ai/types.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { judgeConflictWithLLM, parseConflictJudgmentResponse } from './llm-conflict.js';
 
 // ---------------------------------------------------------------------------

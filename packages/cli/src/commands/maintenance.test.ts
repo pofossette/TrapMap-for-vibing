@@ -14,10 +14,10 @@ vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(),
 }));
 
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest } from '@trapmap/cli/lib/http.js';
 // Import after mocking
 import { Command } from 'commander';
-import { loadCliState } from '../lib/config.js';
-import { apiRequest } from '../lib/http.js';
 import { registerMaintenanceCommands } from './maintenance.js';
 
 const mockedApiRequest = vi.mocked(apiRequest);
@@ -182,7 +182,7 @@ describe('CLI maintenance commands', () => {
     it('should require session token', async () => {
       await program.parseAsync(['node', 'test', 'maintenance-list']);
 
-      const { requireSessionToken } = await import('../lib/http.js');
+      const { requireSessionToken } = await import('@trapmap/cli/lib/http.js');
       expect(requireSessionToken).toHaveBeenCalledWith(mockState);
     });
   });
@@ -371,7 +371,7 @@ describe('CLI maintenance commands', () => {
     };
 
     it('renders codex command-result JSON for maintenance-list', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
 
       mockedApiRequest.mockResolvedValue({
@@ -393,7 +393,7 @@ describe('CLI maintenance commands', () => {
     });
 
     it('renders codex command-result JSON for maintenance-assign', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
 
       mockedApiRequest.mockResolvedValue({ data: mockBatchResponse, sessionToken: null });
@@ -420,7 +420,7 @@ describe('CLI maintenance commands', () => {
     });
 
     it('renders codex command-result JSON for maintenance-verify', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
 
       const verifyBatchResponse: MaintenanceBatchOperationResponse = {

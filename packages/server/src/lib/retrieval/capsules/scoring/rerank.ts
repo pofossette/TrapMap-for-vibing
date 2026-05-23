@@ -1,10 +1,3 @@
-import type { DerivedSkillCapsuleRecord, SkillArtifactRecord } from '../../../store.js';
-import type {
-  ArtifactGovernanceFilters,
-  CapsuleCandidate,
-  MergedCapsuleCandidate,
-  ParsedIntent,
-} from '../../types.js';
 import {
   computeContextMatchScore,
   computeErrorScore,
@@ -14,7 +7,14 @@ import {
   computeSituationScore,
   computeStackPathBoost,
   extractGovernedCapsules,
-} from '../capsule-recall.js';
+} from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
+import type {
+  ArtifactGovernanceFilters,
+  CapsuleCandidate,
+  MergedCapsuleCandidate,
+  ParsedIntent,
+} from '@trapmap/server/lib/retrieval/types.js';
+import type { DerivedSkillCapsuleRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import { buildMultiChannelReason } from './reasons.js';
 
 export interface CapsuleDataLookup {

@@ -1,13 +1,16 @@
-import { describe, expect, it } from 'vitest';
-import { rerankMergedCapsules } from '../../../../lib/retrieval/capsules/scoring/rerank.js';
+import {
+  createMockArtifact,
+  createMockCapsule,
+} from '@trapmap/server/__tests__/lib/retrieval/test-helpers.js';
+import { rerankMergedCapsules } from '@trapmap/server/lib/retrieval/capsules/scoring/rerank.js';
 import type {
   ArtifactGovernanceFilters,
   CapsuleRecallChannelName,
   MergedCapsuleCandidate,
   ParsedIntent,
-} from '../../../../lib/retrieval/types.js';
-import type { SkillArtifactRecord } from '../../../../lib/store.js';
-import { createMockArtifact, createMockCapsule } from '../test-helpers.js';
+} from '@trapmap/server/lib/retrieval/types.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { describe, expect, it } from 'vitest';
 
 function makeFilters(
   overrides: Partial<ArtifactGovernanceFilters> = {},

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MergedCandidate } from '../types.js';
+import type { MergedCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import { buildCitation } from './citations.js';
 
 // Helper to create a minimal KnowledgeRecord for tests

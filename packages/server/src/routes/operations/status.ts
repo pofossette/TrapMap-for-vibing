@@ -4,9 +4,9 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { requirePermission } from '../../lib/rbac.js';
-import { resolveAuthContext } from '../../lib/session.js';
-import { nowIso } from '../../lib/store.js';
+import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 export const statusRoutes: FastifyPluginAsync = async (app) => {
   // Compatibility status route (Phase 16-01: COMP-03)

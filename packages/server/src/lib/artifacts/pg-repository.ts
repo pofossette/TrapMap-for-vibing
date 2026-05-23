@@ -12,8 +12,8 @@ import type { Boundary, DecayMeta, EvidenceMeta, LifecycleState, Scope } from '@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { transitionLifecycleState } from '../lifecycle/state-machine.js';
-import { skillArtifacts } from '../persistence/schema.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
+import { skillArtifacts } from '@trapmap/server/lib/persistence/schema.js';
 import type {
   AgentReviewRecord,
   MaintenanceMetaRecord,
@@ -23,7 +23,7 @@ import type {
   SkillArtifactRevisionRecord,
   SkillScriptDescriptorRecord,
   StoredScriptActivationPolicy,
-} from '../store.js';
+} from '@trapmap/server/lib/store.js';
 import type { ArtifactRepository } from './repository.js';
 
 /**

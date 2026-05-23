@@ -16,11 +16,14 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { extractTrapGraphEntities } from '../../retrieval/recall/graph-extract.js';
-import { JsonStore, type SkillShareerStore, nowIso } from '../../store.js';
-import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
-import { getGraphIndexDocuments, removeGraphIndexDocumentsForSource } from '../graph-lite/store.js';
-import type { NormalizedIndexDocument } from '../types.js';
+import { assertNoHardDependencyCycles } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import {
+  getGraphIndexDocuments,
+  removeGraphIndexDocumentsForSource,
+} from '@trapmap/server/lib/indexing/graph-lite/store.js';
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
+import { extractTrapGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
+import { JsonStore, type SkillShareerStore, nowIso } from '@trapmap/server/lib/store.js';
 import { buildTrapGraphDocument } from './graph-builders.js';
 
 // Import the adapter we're testing

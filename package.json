@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "build": "tsc -b",
-    "ci": "pnpm typecheck && pnpm check && pnpm test && pnpm test:coverage",
+    "ci": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-ci.ts",
     "dev:cli": "pnpm --filter @trapmap/cli dev",
     "dev:server": "pnpm --filter @trapmap/server dev",
     "format": "biome format --write .",
@@ -47,6 +47,9 @@
     "test:import-export": "pnpm exec tsx scripts/test-skill-import-export.ts",
     "bench:store": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/bench-store.ts",
     "rag:analyze": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/rag-analyze.ts",
+    "check:imports": "node scripts/check-relative-imports.mjs --only-cross-dir",
+    "codemod:relative": "FIX_IMPORTS_HEAP_MB=4096 bash scripts/codemod-batch.sh",
+    "codemod:relative:dry": "bash scripts/codemod-batch.sh --dry",
     "deploy": "bash scripts/deploy.sh",
     "deploy:quick": "bash scripts/deploy-quick.sh"
   },
@@ -54,7 +57,9 @@
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^3.2.4",
+    "jscodeshift": "^17.3.0",
     "knip": "^6.4.1",
+    "tslib": "^2.8.1",
     "tsx": "^4.20.3",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"

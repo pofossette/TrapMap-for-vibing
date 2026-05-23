@@ -1,10 +1,10 @@
 import { feedbackResponseSchema, feedbackSubmissionSchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { AppError } from '../lib/errors.js';
-import { resolveAuthContext } from '../lib/session.js';
-import { nowIso } from '../lib/store.js';
-import { logUserOperation } from '../lib/user-ops-log.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 /**
  * Threshold configuration for automatic transition triggers.

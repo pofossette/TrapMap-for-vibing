@@ -10,8 +10,8 @@
  */
 
 import type { LifecycleState } from '@trapmap/contracts';
-import type { ChatProvider } from '../ai/types.js';
-import type { SkillShareerStore, StoreData } from '../store.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import { removeGraphIndexDocumentsForSource } from './graph-lite/store.js';
 import { syncKnowledgeIndex } from './pipeline.js';
 import type { AdapterRegistry } from './registry.js';

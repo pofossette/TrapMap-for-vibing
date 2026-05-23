@@ -7,14 +7,14 @@
 
 import type { DecayState } from '@trapmap/contracts';
 
-import { AppError } from '../errors.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
 import type {
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
   SkillShareerStore,
   StoreData,
-} from '../store.js';
-import { nowIso } from '../store.js';
+} from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 /**
  * Input for the supersedeEntry mutation.

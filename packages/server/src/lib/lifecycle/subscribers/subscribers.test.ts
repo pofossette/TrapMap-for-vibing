@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AdapterRegistry } from '../../indexing/registry.js';
-import type { DomainEvent } from '../types.js';
+import { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
+import type { DomainEvent } from '@trapmap/server/lib/lifecycle/types.js';
 import { createAuditSubscriber } from './audit.js';
 import { createConflictSubscriber } from './conflict.js';
 import { createIndexingSubscriber } from './indexing.js';
@@ -14,8 +14,8 @@ vi.mock('../../conflict/detect.js', () => ({
   detectConflicts: vi.fn().mockResolvedValue([]),
 }));
 
-import { detectConflicts } from '../../conflict/detect.js';
-import { runKnowledgeIndexEvent } from '../../indexing/events.js';
+import { detectConflicts } from '@trapmap/server/lib/conflict/detect.js';
+import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
 
 beforeEach(() => {
   vi.clearAllMocks();

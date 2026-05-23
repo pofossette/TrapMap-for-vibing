@@ -10,6 +10,13 @@ import { JsonStore, nowIso } from './store.js';
 function createPostgresStore(): PostgresStore {
   const db = newDb();
   db.registerExtension('vector', () => {});
+  db.public.none(
+    `CREATE TABLE store_snapshot (
+      key TEXT PRIMARY KEY,
+      data JSONB,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    )`,
+  );
   const { Pool } = db.adapters.createPg();
   return new PostgresStore(new Pool() as unknown as Pool);
 }

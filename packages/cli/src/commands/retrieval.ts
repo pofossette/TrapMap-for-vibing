@@ -2,10 +2,10 @@ import type { ConflictHint, RetrievalResponse, RetrievalV2Response } from '@trap
 import { retrievalResponseSchema, retrievalV2ResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
-import { loadCliState } from '../lib/config.js';
-import { apiRequest, requireSessionToken } from '../lib/http.js';
-import { collectValues, resolveTextInput } from '../lib/input.js';
-import { printAdaptiveResult } from '../lib/output.js';
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
+import { collectValues, resolveTextInput } from '@trapmap/cli/lib/input.js';
+import { printAdaptiveResult } from '@trapmap/cli/lib/output.js';
 
 interface RetrievalCommandOptions {
   allowSearch: boolean;

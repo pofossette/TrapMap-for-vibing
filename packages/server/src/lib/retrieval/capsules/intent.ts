@@ -7,7 +7,11 @@
  * Any future model assistance should stay optional behind the same ParsedIntent interface.
  */
 
-import type { NormalizedToken, ParsedIntent, StackPathHint } from '../types.js';
+import type {
+  NormalizedToken,
+  ParsedIntent,
+  StackPathHint,
+} from '@trapmap/server/lib/retrieval/types.js';
 
 /**
  * Technology stacks recognized for hint extraction.

@@ -8,9 +8,12 @@
  * All functions are pure (no side effects, no I/O).
  */
 
-import { normalizeContextLabel, normalizePackageName } from '../../indexing/boundary-normalize.js';
-import type { GraphIndexDocumentRecord } from '../../indexing/graph-lite/documents.js';
-import type { KnowledgeRecord } from '../../store.js';
+import {
+  normalizeContextLabel,
+  normalizePackageName,
+} from '@trapmap/server/lib/indexing/boundary-normalize.js';
+import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Constraint for back-reference queries.

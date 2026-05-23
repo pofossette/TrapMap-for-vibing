@@ -10,7 +10,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import type { KnowledgeRecord } from '../../store.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import {
   buildEmbeddingText,
   computeScore,
@@ -27,7 +27,7 @@ vi.mock('../../embeddings.js', () => ({
   hashEmbeddingText: vi.fn().mockReturnValue('mock-hash-123'),
 }));
 
-import { generateEmbedding, hashEmbeddingText } from '../../embeddings.js';
+import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
 
 /**
  * Helper to create a minimal KnowledgeRecord for testing.

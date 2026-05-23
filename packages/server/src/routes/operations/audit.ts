@@ -1,9 +1,9 @@
 import { auditListResponseSchema, auditQuerySchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { toAuditEvent } from '../../lib/audit.js';
-import { requirePermission } from '../../lib/rbac.js';
-import { resolveAuthContext } from '../../lib/session.js';
+import { toAuditEvent } from '@trapmap/server/lib/audit.js';
+import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
 export const auditRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/operations/audit', async (request) => {

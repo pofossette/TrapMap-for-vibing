@@ -17,8 +17,8 @@ import type { Pool } from 'pg';
 import {
   skillArtifactCapsuleEmbeddings,
   skillArtifactCapsuleKeywords,
-} from '../../../persistence/schema.js';
-import type { SkillArtifactRecord } from '../../../store.js';
+} from '@trapmap/server/lib/persistence/schema.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import type { SyncResult } from './index-sync.js';
 import { createCapsuleIndexSync } from './index-sync.js';
 

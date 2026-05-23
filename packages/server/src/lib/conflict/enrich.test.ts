@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ConflictRelation } from '@trapmap/contracts';
-import type { KnowledgeRecord, StoreData } from '../store.js';
+import type { KnowledgeRecord, StoreData } from '@trapmap/server/lib/store.js';
 import {
   buildConflictLookup,
   conflictToHint,
@@ -211,6 +211,7 @@ describe('conflict enrichment', () => {
         scope: 'global',
         requiredLevel,
         ownerUserId: 'user-1',
+
         latestRevision: {
           revision: 1,
           submittedAt: '2026-05-02T10:00:00Z',
@@ -220,7 +221,9 @@ describe('conflict enrichment', () => {
           labels: [],
           reviewNotes: [],
         },
+
         history: [],
+
         metadata: {
           scopeLabel: 'global-constraint',
           submissionCount: 1,
@@ -231,6 +234,7 @@ describe('conflict enrichment', () => {
           latestReviewedAt: null,
           latestDecision: null,
         },
+
         latestSubmissionId: null,
         submissionHistory: [],
         agentReview: null,
@@ -344,6 +348,7 @@ describe('conflict enrichment', () => {
         scope: 'global',
         requiredLevel: 0,
         ownerUserId: 'user-1',
+
         latestRevision: {
           revision: 1,
           submittedAt: '2026-05-02T10:00:00Z',
@@ -353,7 +358,9 @@ describe('conflict enrichment', () => {
           labels: [],
           reviewNotes: [],
         },
+
         history: [],
+
         metadata: {
           scopeLabel: 'global-constraint',
           submissionCount: 1,
@@ -364,6 +371,7 @@ describe('conflict enrichment', () => {
           latestReviewedAt: null,
           latestDecision: null,
         },
+
         latestSubmissionId: null,
         submissionHistory: [],
         agentReview: null,

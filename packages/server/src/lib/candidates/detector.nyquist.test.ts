@@ -11,9 +11,9 @@
  * - similarityScore has 3-decimal precision
  */
 
+import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { describe, expect, it } from 'vitest';
-import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
-import { nowIso } from '../store.js';
 import { detectDuplicates, getDetectionVersion } from './detector.js';
 import { tokenize } from './fingerprint.js';
 import type { DuplicateDetectionInput } from './types.js';

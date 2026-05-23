@@ -17,23 +17,21 @@ import {
   retrievalV2QuerySchema,
 } from '@trapmap/contracts';
 
-import { enrichMatchesWithConflicts } from '../../conflict/enrich.js';
-import type { ResolvedAuthContext, SkillShareerServices } from '../../context.js';
-import { generateEmbedding, hashEmbeddingText } from '../../embeddings.js';
-import { AppError } from '../../errors.js';
-import { PostgresStore } from '../../persistence/postgres-store.js';
-import type { PipelineStep, RagLogEntry } from '../../rag-log.js';
-import { generateQueryId, logRagRetrieval } from '../../rag-log.js';
-import type { KnowledgeRecord } from '../../store.js';
-import { nowIso } from '../../store.js';
+import { enrichMatchesWithConflicts } from '@trapmap/server/lib/conflict/enrich.js';
+import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
+import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import type { PipelineStep, RagLogEntry } from '@trapmap/server/lib/rag-log.js';
+import { generateQueryId, logRagRetrieval } from '@trapmap/server/lib/rag-log.js';
 import {
   CapsuleChannelRegistry,
   CapsuleRecallCoordinator,
   buildProfileShortlist,
   getCapsuleRecords,
-} from '../capsules/index.js';
-import { parseSeedIntent } from '../capsules/intent.js';
-import { buildEmbeddingText } from '../recall/semantic.js';
+} from '@trapmap/server/lib/retrieval/capsules/index.js';
+import { parseSeedIntent } from '@trapmap/server/lib/retrieval/capsules/intent.js';
+import { buildEmbeddingText } from '@trapmap/server/lib/retrieval/recall/semantic.js';
 import {
   assembleResponseBuckets,
   buildAllActivationHints,
@@ -43,11 +41,17 @@ import {
   buildProfileHint,
   buildRetrievalResponse,
   buildV2RetrievalResponse,
-} from '../response/assembly.js';
-import { buildCitations } from '../response/citations.js';
-import { generateRefinement } from '../response/refinement.js';
-import { buildCapsuleCitations, buildCapsuleSummary, buildSummary } from '../response/summary.js';
-import type { ScoredEntry } from '../types.js';
+} from '@trapmap/server/lib/retrieval/response/assembly.js';
+import { buildCitations } from '@trapmap/server/lib/retrieval/response/citations.js';
+import { generateRefinement } from '@trapmap/server/lib/retrieval/response/refinement.js';
+import {
+  buildCapsuleCitations,
+  buildCapsuleSummary,
+  buildSummary,
+} from '@trapmap/server/lib/retrieval/response/summary.js';
+import type { ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { dispatchByMode, inferChannelsFromMerged } from './recall-coordinator.js';
 import { selectRetrievalStrategy, selectRetrievalStrategyV2, toRoutingTrace } from './routing.js';
@@ -386,9 +390,15 @@ export async function searchKnowledgeV2(
     const pgPool = services.store instanceof PostgresStore ? services.store.getPool() : null;
 
     const channelRegistry = new CapsuleChannelRegistry();
-    const { capsuleHeuristicChannel } = await import('../capsules/channels/heuristic.js');
-    const { createCapsuleKeywordChannel } = await import('../capsules/channels/keyword.js');
-    const { createCapsuleSemanticChannel } = await import('../capsules/channels/semantic.js');
+    const { capsuleHeuristicChannel } = await import(
+      '@trapmap/server/lib/retrieval/capsules/channels/heuristic.js'
+    );
+    const { createCapsuleKeywordChannel } = await import(
+      '@trapmap/server/lib/retrieval/capsules/channels/keyword.js'
+    );
+    const { createCapsuleSemanticChannel } = await import(
+      '@trapmap/server/lib/retrieval/capsules/channels/semantic.js'
+    );
     channelRegistry.register(capsuleHeuristicChannel);
     channelRegistry.register(
       createCapsuleKeywordChannel(
@@ -413,7 +423,9 @@ export async function searchKnowledgeV2(
     // Graph channel uses a factory function because it requires GraphIndexRepository.
     // Register after keyword/semantic so it supplements recall without dominating.
     try {
-      const { createCapsuleGraphChannel } = await import('../capsules/channels/graph.js');
+      const { createCapsuleGraphChannel } = await import(
+        '@trapmap/server/lib/retrieval/capsules/channels/graph.js'
+      );
       channelRegistry.register(createCapsuleGraphChannel(services.repos.graphIndex));
     } catch {
       // Graph channel registration failure should not block retrieval.

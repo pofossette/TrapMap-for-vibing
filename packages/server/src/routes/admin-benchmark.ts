@@ -8,9 +8,12 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 
-import { AppError } from '../lib/errors.js';
-import { BENCHMARK_SCENARIOS, runRetrievalBenchmark } from '../lib/retrieval/benchmark.js';
-import { resolveAuthContext } from '../lib/session.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import {
+  BENCHMARK_SCENARIOS,
+  runRetrievalBenchmark,
+} from '@trapmap/server/lib/retrieval/benchmark.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
 const benchmarkRequestSchema = z.object({
   query: z.string().min(1).max(512),

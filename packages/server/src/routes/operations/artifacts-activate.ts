@@ -7,15 +7,19 @@ import {
 import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { toSkillArtifact } from '../../lib/artifacts/model.js';
-import { createAuditEvent } from '../../lib/audit.js';
-import { AppError } from '../../lib/errors.js';
-import { artifactGraphIndexAdapter } from '../../lib/indexing/adapters/artifact-graph.js';
-import { runSkillIndexEvent } from '../../lib/indexing/skill-events.js';
-import { transitionLifecycleState } from '../../lib/lifecycle/state-machine.js';
-import { requireHigherLevel, requirePermission, requireTeamAccess } from '../../lib/rbac.js';
-import { resolveAuthContext } from '../../lib/session.js';
-import { nowIso } from '../../lib/store.js';
+import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
+import { createAuditEvent } from '@trapmap/server/lib/audit.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { artifactGraphIndexAdapter } from '@trapmap/server/lib/indexing/adapters/artifact-graph.js';
+import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
+import {
+  requireHigherLevel,
+  requirePermission,
+  requireTeamAccess,
+} from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 export const artifactsActivateRoutes: FastifyPluginAsync = async (app) => {
   // Selective activation route (Phase 15-03: ACTV-01, T-15-07)

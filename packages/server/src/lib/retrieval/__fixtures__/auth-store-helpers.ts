@@ -9,14 +9,14 @@ import type { FastifyInstance } from 'fastify';
 
 import type { Permission, RoleTemplate } from '@trapmap/contracts';
 
-import { buildServer } from '../../../app.js';
-import type { SkillShareerStore, StoreData } from '../../../lib/store.js';
-import { hashSecret, nowIso } from '../../../lib/store.js';
+import { buildServer } from '@trapmap/server/app.js';
 import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-} from '../../indexing/graph-lite/documents.js';
+} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 
 // ---------------------------------------------------------------------------
 // Seed helpers

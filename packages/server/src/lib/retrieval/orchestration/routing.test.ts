@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { ResolvedAuthContext } from '../../context.js';
-import type { KnowledgeRecord } from '../../store.js';
-import { nowIso } from '../../store.js';
+import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { filterEligibleEntries } from './filters.js';
 import { selectRetrievalStrategy, selectRetrievalStrategyV2, toRoutingTrace } from './routing.js';
 

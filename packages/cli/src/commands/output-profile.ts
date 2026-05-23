@@ -8,7 +8,7 @@ import {
   getDefaultOutputProfile,
   loadCliState,
   updateCliState,
-} from '../lib/config.js';
+} from '@trapmap/cli/lib/config.js';
 
 export function registerOutputProfileCommands(program: Command): void {
   const output = program

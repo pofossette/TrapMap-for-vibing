@@ -1,6 +1,6 @@
-import { detectConflicts } from '../../conflict/detect.js';
-import type { SkillShareerStore } from '../../store.js';
-import type { DomainEventHandler } from '../types.js';
+import { detectConflicts } from '@trapmap/server/lib/conflict/detect.js';
+import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 /**
  * Create an event subscriber that runs conflict detection after approval.

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { LlmGraphExtraction } from '@trapmap/contracts';
 
-import type { ChatProvider } from '../../ai/types.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 
 // Mock the prompt builders to avoid template file dependency
 vi.mock('../../ai/prompts.js', () => ({

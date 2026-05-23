@@ -4,8 +4,8 @@ import type {
   DuplicateCase,
   ManualResultSubmission,
 } from '@trapmap/contracts';
-import type { SkillShareerStore, StoreData } from '../store.js';
-import { nowIso } from '../store.js';
+import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 /**
  * Manual result record stored on candidate.

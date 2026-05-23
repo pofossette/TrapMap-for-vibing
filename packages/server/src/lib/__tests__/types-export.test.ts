@@ -31,7 +31,7 @@ import type {
   TeamRecord,
   // Store record types
   UserRecord,
-} from '../types.js';
+} from '@trapmap/server/lib/types.js';
 
 // Import state machine functions
 import {
@@ -40,30 +40,33 @@ import {
   isTerminalDecayState,
   isTerminalState,
   isValidTransition,
-} from '../types.js';
+} from '@trapmap/server/lib/types.js';
 
 // Import utility functions
-import { createOpaqueToken, createSlug, hashSecret, nowIso } from '../types.js';
+import { createOpaqueToken, createSlug, hashSecret, nowIso } from '@trapmap/server/lib/types.js';
 
 // Import JsonStore class
-import { JsonStore } from '../types.js';
+import { JsonStore } from '@trapmap/server/lib/types.js';
 
 // Import sub-module types
-import type { ChatProvider, EmbeddingsProvider } from '../types.js';
+import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/types.js';
 
-import type { GovernanceContext, GovernedEntity } from '../types.js';
+import type { GovernanceContext, GovernedEntity } from '@trapmap/server/lib/types.js';
 
 import type {
   AdapterSyncState,
   KnowledgeIndexStateRecord,
   NormalizedIndexDocument,
-} from '../types.js';
+} from '@trapmap/server/lib/types.js';
 
-import type { MergedCandidate, RecallCandidate } from '../types.js';
+import type { MergedCandidate, RecallCandidate } from '@trapmap/server/lib/types.js';
 
-import type { CandidateFingerprintInput, DuplicateDetectionInput } from '../types.js';
+import type {
+  CandidateFingerprintInput,
+  DuplicateDetectionInput,
+} from '@trapmap/server/lib/types.js';
 
-import type { ResolvedAuthContext } from '../types.js';
+import type { ResolvedAuthContext } from '@trapmap/server/lib/types.js';
 
 describe('Type Export Verification', () => {
   it('verifies record types are importable', () => {

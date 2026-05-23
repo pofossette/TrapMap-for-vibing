@@ -21,7 +21,7 @@ import type {
   LifecycleState,
   Scope,
 } from '@trapmap/contracts';
-import type { StoreData } from '../store.js';
+import type { StoreData } from '@trapmap/server/lib/store.js';
 
 /**
  * Single-row table that persists the full StoreData aggregate as JSONB.

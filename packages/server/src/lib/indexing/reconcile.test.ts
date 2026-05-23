@@ -15,8 +15,8 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { SkillShareerStore, StoreData } from '../store.js';
-import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
+import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import { JsonStore as JsonStoreClass, nowIso } from '@trapmap/server/lib/store.js';
 import type { GraphIndexDocumentRecord } from './graph-lite/documents.js';
 import { PROMPT_VERSION } from './graph-lite/llm-cache.js';
 import { getGraphIndexDocuments } from './graph-lite/store.js';

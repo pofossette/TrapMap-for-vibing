@@ -40,13 +40,13 @@ import {
   retrievalResponseSchema,
   retrievalV2ResponseSchema,
 } from '@trapmap/contracts';
-import { getDefaultActivationPolicy } from '../../activation-policy.js';
+import { getDefaultActivationPolicy } from '@trapmap/server/lib/activation-policy.js';
+import type { CapsuleCandidate, ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
 import type {
   ClientManifestRecord,
   DerivedSkillCapsuleRecord,
   SkillArtifactRecord,
-} from '../../store.js';
-import type { CapsuleCandidate, ScoredEntry } from '../types.js';
+} from '@trapmap/server/lib/store.js';
 
 // Type inference from schema - use the return type of parse()
 type RetrievalMatch = ReturnType<typeof retrievalMatchSchema.parse>;

@@ -12,7 +12,7 @@
 import { createRequire } from 'node:module';
 import type { Pool } from 'pg';
 
-import type { EntityLineageRecord, SkillShareerStore } from '../store.js';
+import type { EntityLineageRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 /**
  * Repository interface for entity lineage CRUD operations.

@@ -1,7 +1,7 @@
 import type { Pool } from 'pg';
 
-import type { SkillShareerStore, StoreData } from '../store.js';
-import { createEmptyStoreData } from '../store.js';
+import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import { createEmptyStoreData } from '@trapmap/server/lib/store.js';
 
 /**
  * PostgreSQL-backed compatibility store.

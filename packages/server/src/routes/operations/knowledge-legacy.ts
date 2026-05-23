@@ -7,14 +7,18 @@ import {
 import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { createAuditEvent } from '../../lib/audit.js';
-import { AppError } from '../../lib/errors.js';
-import { toKnowledgeEntry, toKnowledgeListItem } from '../../lib/knowledge.js';
-import { transitionLifecycleState } from '../../lib/lifecycle/state-machine.js';
-import { findTransitionEvent } from '../../lib/lifecycle/transitions.js';
-import { requireHigherLevel, requirePermission, requireTeamAccess } from '../../lib/rbac.js';
-import { resolveAuthContext } from '../../lib/session.js';
-import { nowIso } from '../../lib/store.js';
+import { createAuditEvent } from '@trapmap/server/lib/audit.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { toKnowledgeEntry, toKnowledgeListItem } from '@trapmap/server/lib/knowledge.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
+import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
+import {
+  requireHigherLevel,
+  requirePermission,
+  requireTeamAccess,
+} from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/operations/knowledge', async (request) => {

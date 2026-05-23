@@ -20,7 +20,7 @@ import type {
   SkillShareerStore,
   StoreData,
   StoredScriptActivationPolicy,
-} from '../store.js';
+} from '@trapmap/server/lib/store.js';
 import { appendSkillArtifactRevision } from './model.js';
 import type { ArtifactRepository } from './repository.js';
 

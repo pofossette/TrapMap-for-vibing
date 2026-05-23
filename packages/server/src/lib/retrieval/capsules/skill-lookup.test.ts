@@ -5,9 +5,9 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { ResolvedAuthContext } from '../../context.js';
-import type { SkillArtifactRecord } from '../../store.js';
-import { nowIso } from '../../store.js';
+import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { searchSkillsByContent } from './skill-lookup.js';
 
 // Test fixtures

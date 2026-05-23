@@ -1,8 +1,8 @@
 import type { LifecycleState } from '@trapmap/contracts';
-import { runKnowledgeIndexEvent } from '../../indexing/events.js';
-import type { AdapterRegistry } from '../../indexing/registry.js';
-import type { SkillShareerStore } from '../../store.js';
-import type { DomainEventHandler } from '../types.js';
+import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
+import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
+import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 /**
  * Create an event subscriber that syncs knowledge indexes on lifecycle transitions.

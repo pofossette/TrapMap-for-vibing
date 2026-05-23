@@ -12,11 +12,11 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { buildServer } from '@trapmap/server/app.js';
+import type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
-import { buildServer } from '../app.js';
-import type { KnowledgeRepository } from '../lib/knowledge/index.js';
-import type { SkillShareerStore } from '../lib/store.js';
-import { hashSecret, nowIso } from '../lib/store.js';
 
 describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
   let app: FastifyInstance;

@@ -4,7 +4,7 @@
  */
 
 // Decay state machine: computeDecayState, isTerminalDecayState, requiresAttention, validateDecayConfig, DecayableEntry, DEFAULT_DECAY_CONFIG
-export * from '../decay/state-machine.js';
+export * from '@trapmap/server/lib/decay/state-machine.js';
 
 // Lifecycle state machine: isValidTransition, getValidTransitions, isTerminalState, transitionLifecycleState
-export * from '../lifecycle/state-machine.js';
+export * from '@trapmap/server/lib/lifecycle/state-machine.js';

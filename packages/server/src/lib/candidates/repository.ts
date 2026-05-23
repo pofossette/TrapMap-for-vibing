@@ -8,8 +8,8 @@ import type {
 } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
-import type { DuplicateRepository } from '../duplicates/index.js';
-import type { SkillShareerStore } from '../store.js';
+import type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import type { ManualResultRecord } from './store.js';
 import {
   attachAnalysisSnapshot,
@@ -156,7 +156,9 @@ export class InMemoryCandidateRepository implements CandidateRepository {
 
   async attachDuplicateCase(candidateId: string, duplicateCase: DuplicateCase): Promise<void> {
     if (this.duplicateRepo) {
-      await this.duplicateRepo.insert(duplicateCase as import('../store.js').DuplicateCaseRecord);
+      await this.duplicateRepo.insert(
+        duplicateCase as import('@trapmap/server/lib/store.js').DuplicateCaseRecord,
+      );
     }
     await this.store.transact((data) => {
       attachDuplicateCaseToStore({ data, candidateId, duplicateCase });

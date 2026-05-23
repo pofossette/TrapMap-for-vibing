@@ -1,4 +1,4 @@
-import type { KnowledgeRecord } from '../store.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Benchmark result for a retrieval pipeline execution.

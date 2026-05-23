@@ -7,9 +7,9 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { PostgresStore } from '../persistence/postgres-store.js';
-import type { StoreData } from '../store.js';
-import { createEmptyStoreData } from '../store.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import type { StoreData } from '@trapmap/server/lib/store.js';
+import { createEmptyStoreData } from '@trapmap/server/lib/store.js';
 
 function makeMockPool(initialData?: StoreData) {
   const storeSnapshot = new Map<string, StoreData>();

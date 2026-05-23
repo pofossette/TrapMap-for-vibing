@@ -11,9 +11,9 @@
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createKnowledgeEntryRecord } from '../knowledge.js';
-import { runPreReview } from '../pre-review.js';
-import { JsonStore, type SkillShareerStore, nowIso } from '../store.js';
+import { createKnowledgeEntryRecord } from '@trapmap/server/lib/knowledge.js';
+import { runPreReview } from '@trapmap/server/lib/pre-review.js';
+import { JsonStore, type SkillShareerStore, nowIso } from '@trapmap/server/lib/store.js';
 
 // Import the functions we're testing
 import { reconcileKnowledgeIndexes, syncKnowledgeIndex } from './pipeline.js';

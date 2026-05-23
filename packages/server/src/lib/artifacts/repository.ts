@@ -14,13 +14,13 @@ import { createRequire } from 'node:module';
 import type { LifecycleState } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
-import { transitionLifecycleState } from '../lifecycle/state-machine.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import type {
   SkillArtifactLifecycleEventRecord,
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
   SkillShareerStore,
-} from '../store.js';
+} from '@trapmap/server/lib/store.js';
 
 /**
  * Repository interface for skill artifact CRUD operations.

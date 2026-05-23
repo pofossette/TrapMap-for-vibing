@@ -7,8 +7,8 @@ import type { LoginResponse, Team, TeamListResponse } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as config from '../lib/config.js';
-import * as http from '../lib/http.js';
+import * as config from '@trapmap/cli/lib/config.js';
+import * as http from '@trapmap/cli/lib/http.js';
 
 // Mock the dependencies
 vi.mock('../lib/http.js', () => ({

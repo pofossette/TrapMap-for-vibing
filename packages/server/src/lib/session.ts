@@ -9,7 +9,7 @@ import type {
 import { accessKeySchema, activeSessionSchema, memberSchema, teamSchema } from '@trapmap/contracts';
 import type { FastifyRequest } from 'fastify';
 
-import type { ServerConfig } from '../config.js';
+import type { ServerConfig } from '@trapmap/server/config.js';
 import type { AccessKeyRepository, SessionRepository } from './auth/index.js';
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { getSessionToken } from './context.js';

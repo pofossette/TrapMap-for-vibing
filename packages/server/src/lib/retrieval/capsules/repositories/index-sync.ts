@@ -18,14 +18,17 @@ import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { generateEmbedding } from '../../../embeddings.js';
+import { generateEmbedding } from '@trapmap/server/lib/embeddings.js';
 import {
   skillArtifactCapsuleEmbeddings,
   skillArtifactCapsuleKeywords,
-} from '../../../persistence/schema.js';
-import type { DerivedSkillCapsuleRecord, SkillArtifactRecord } from '../../../store.js';
-import { normalizeQuery, tokenize } from '../../recall/keyword.js';
-import { buildCapsuleEmbeddingText, hashCapsuleEmbeddingText } from '../channels/semantic.js';
+} from '@trapmap/server/lib/persistence/schema.js';
+import {
+  buildCapsuleEmbeddingText,
+  hashCapsuleEmbeddingText,
+} from '@trapmap/server/lib/retrieval/capsules/channels/semantic.js';
+import { normalizeQuery, tokenize } from '@trapmap/server/lib/retrieval/recall/keyword.js';
+import type { DerivedSkillCapsuleRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
 // ---------------------------------------------------------------------------
 // Types

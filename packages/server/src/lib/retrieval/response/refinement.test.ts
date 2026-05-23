@@ -9,9 +9,9 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import type { PromptBlock } from '../../ai/cache/api-integration.js';
-import { buildKnowledgeRefinementSystemPrompt } from '../../ai/prompts.js';
-import type { SkillShareerServices } from '../../context.js';
+import type { PromptBlock } from '@trapmap/server/lib/ai/cache/api-integration.js';
+import { buildKnowledgeRefinementSystemPrompt } from '@trapmap/server/lib/ai/prompts.js';
+import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
 
 import { buildRefinementPrompt, generateRefinement, isRefinementAvailable } from './refinement.js';
 

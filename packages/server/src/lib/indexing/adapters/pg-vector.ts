@@ -14,9 +14,13 @@ import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { generateEmbedding } from '../../embeddings.js';
-import { knowledgeEmbeddings } from '../../persistence/schema.js';
-import type { IndexAdapter, IndexSyncResult, NormalizedIndexDocument } from '../types.js';
+import { generateEmbedding } from '@trapmap/server/lib/embeddings.js';
+import type {
+  IndexAdapter,
+  IndexSyncResult,
+  NormalizedIndexDocument,
+} from '@trapmap/server/lib/indexing/types.js';
+import { knowledgeEmbeddings } from '@trapmap/server/lib/persistence/schema.js';
 
 export interface PgVectorAdapterConfig {
   /** PostgreSQL connection pool */

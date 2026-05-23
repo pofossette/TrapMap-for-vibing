@@ -13,8 +13,8 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { feedbackCustomAnswers, feedbackRecords } from '../persistence/schema.js';
-import type { FeedbackQueueRecord } from '../store.js';
+import { feedbackCustomAnswers, feedbackRecords } from '@trapmap/server/lib/persistence/schema.js';
+import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
 import type { FeedbackRepository } from './repository.js';
 
 /**

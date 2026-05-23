@@ -1,12 +1,12 @@
-import type { SkillArtifactRecord } from '../../../store.js';
+import { rankCapsules } from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
 import type {
   ArtifactGovernanceFilters,
   CapsuleRecallCandidate,
   CapsuleRecallChannel,
   CapsuleRecallChannelName,
   ParsedIntent,
-} from '../../types.js';
-import { rankCapsules } from '../capsule-recall.js';
+} from '@trapmap/server/lib/retrieval/types.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Capsule heuristic recall channel.

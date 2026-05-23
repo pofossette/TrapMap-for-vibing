@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildServer } from '../app.js';
+import { buildServer } from '@trapmap/server/app.js';
 
 describe('operations routes', () => {
   it('registers all operation sub-routes', async () => {

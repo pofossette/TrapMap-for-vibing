@@ -14,8 +14,12 @@ import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { knowledgeKeywords } from '../../persistence/schema.js';
-import type { IndexAdapter, IndexSyncResult, NormalizedIndexDocument } from '../types.js';
+import type {
+  IndexAdapter,
+  IndexSyncResult,
+  NormalizedIndexDocument,
+} from '@trapmap/server/lib/indexing/types.js';
+import { knowledgeKeywords } from '@trapmap/server/lib/persistence/schema.js';
 
 export interface PgKeywordAdapterConfig {
   /** PostgreSQL connection pool */

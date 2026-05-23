@@ -17,8 +17,8 @@
 
 import type { Pool } from 'pg';
 
-import { PgCandidateRepository } from '../candidates/pg-repository.js';
-import type { SkillShareerStore } from '../store.js';
+import { PgCandidateRepository } from '@trapmap/server/lib/candidates/pg-repository.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 export interface MigrationConfig {
   /** PostgreSQL connection pool */

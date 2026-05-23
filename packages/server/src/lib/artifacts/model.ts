@@ -13,7 +13,7 @@
 import type { AgentReviewResult } from '@trapmap/contracts';
 import { skillArtifactSchema } from '@trapmap/contracts';
 
-import { transitionLifecycleState } from '../lifecycle/state-machine.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import type {
   AgentReviewRecord,
   SkillArtifactRecord as ServerSkillArtifactRecord,
@@ -26,7 +26,7 @@ import type {
   SkillShareerStore,
   StoreData,
   StoredScriptActivationPolicy,
-} from '../store.js';
+} from '@trapmap/server/lib/store.js';
 import type { ArtifactRepository } from './repository.js';
 
 /**

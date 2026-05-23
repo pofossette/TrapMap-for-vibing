@@ -11,7 +11,7 @@
  * rather than writing directly to graph-lite/store.
  */
 
-import type { SkillArtifactRecord, StoreData } from '../store.js';
+import type { SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 
 // ---------------------------------------------------------------------------

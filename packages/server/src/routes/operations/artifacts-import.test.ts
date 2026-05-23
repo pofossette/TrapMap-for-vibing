@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { KnowledgeSubmission } from '@trapmap/contracts';
+import { buildServer } from '@trapmap/server/app.js';
+import { detectDuplicates, parseClaudeSkill } from '@trapmap/server/lib/import-export.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
-import { buildServer } from '../../app.js';
-import { detectDuplicates, parseClaudeSkill } from '../../lib/import-export.js';
-import type { KnowledgeRecord } from '../../lib/store.js';
 
 describe('operations routes', () => {
   let app: FastifyInstance;

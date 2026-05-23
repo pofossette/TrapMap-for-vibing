@@ -11,10 +11,10 @@ import {
   buildGraphExtractionPlannerSlots_default,
   buildGraphExtractionSlots_default,
   buildPrompt,
-} from '../../ai/prompts.js';
-import type { ChatProvider } from '../../ai/types.js';
-import { extractTrapGraphEntities } from '../../retrieval/recall/graph-extract.js';
-import type { NormalizedIndexDocument } from '../types.js';
+} from '@trapmap/server/lib/ai/prompts.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
+import { extractTrapGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
 import type {
   GraphEdgeRecord,
   GraphNodeKind,

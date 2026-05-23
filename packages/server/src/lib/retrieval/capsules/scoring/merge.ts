@@ -2,7 +2,7 @@ import type {
   CapsuleRecallCandidate,
   CapsuleRecallChannelName,
   MergedCapsuleCandidate,
-} from '../../types.js';
+} from '@trapmap/server/lib/retrieval/types.js';
 
 const DEFAULT_RRF_K = 60;
 

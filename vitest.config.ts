@@ -51,6 +51,10 @@ export default defineConfig({
               find: '@trapmap/contracts',
               replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
             },
+            {
+              find: /^@trapmap\/server\/(.+)$/,
+              replacement: resolve(__dirname, './packages/server/src/$1'),
+            },
           ],
         },
       },
@@ -81,6 +85,10 @@ export default defineConfig({
             {
               find: '@trapmap/contracts',
               replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+            {
+              find: /^@trapmap\/cli\/(.+)$/,
+              replacement: resolve(__dirname, './packages/cli/src/$1'),
             },
           ],
         },
@@ -113,23 +121,14 @@ export default defineConfig({
               find: '@trapmap/contracts',
               replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
             },
+            {
+              find: /^@trapmap\/server\/(.+)$/,
+              replacement: resolve(__dirname, './packages/server/src/$1'),
+            },
           ],
         },
       },
     ],
-    // 使用 forks 池而非 threads 池，更稳定且内存使用更可控
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        // 限制只有一个 worker，防止多进程爆炸
-        singleFork: true,
-      },
-    },
-    // 全局并发限制：一次只运行一个测试文件
-    maxConcurrency: 1,
-    // 禁用并行测试
-    sequence: {
-      concurrent: false,
-    },
   },
 });

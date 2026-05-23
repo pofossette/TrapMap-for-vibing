@@ -8,7 +8,7 @@
 import type { DecayState, LifecycleTriggerRule } from '@trapmap/contracts';
 import { DEFAULT_LIFECYCLE_TRIGGER_RULES } from '@trapmap/contracts';
 
-import type { FeedbackQueueRecord } from '../store.js';
+import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Result of checking lifecycle triggers for an entry.

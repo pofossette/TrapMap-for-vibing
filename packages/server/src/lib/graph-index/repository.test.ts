@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { GraphIndexDocumentRecord } from '../indexing/graph-lite/documents.js';
-import { JsonStore, createEmptyStoreData } from '../store.js';
+import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import { JsonStore, createEmptyStoreData } from '@trapmap/server/lib/store.js';
 import { InMemoryGraphIndexRepository, createGraphIndexRepository } from './repository.js';
 
 // Create a unique temp directory for each test run

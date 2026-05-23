@@ -17,16 +17,16 @@
  * entries can never appear in results.
  */
 
-import type { GraphIndexRepository } from '../../graph-index/repository.js';
+import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
 import {
   buildGraphRuntimeSnapshot,
   calculateSourceRelationStrength,
   expandSourcesOneHop,
-} from '../../indexing/graph-lite/graphology.js';
-import type { NormalizedIndexDocument } from '../../indexing/types.js';
-import type { KnowledgeRecord } from '../../store.js';
-import type { RecallChannel } from '../orchestration/channel-registry.js';
-import type { RecallCandidate } from '../types.js';
+} from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
+import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/channel-registry.js';
+import type { RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { extractGraphEntities } from './graph-extract.js';
 
 /**

@@ -11,9 +11,9 @@ import type {
 import { Command } from 'commander';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as config from '../lib/config.js';
-import * as http from '../lib/http.js';
-import * as input from '../lib/input.js';
+import * as config from '@trapmap/cli/lib/config.js';
+import * as http from '@trapmap/cli/lib/http.js';
+import * as input from '@trapmap/cli/lib/input.js';
 
 // Mock the dependencies
 vi.mock('../lib/http.js', () => ({

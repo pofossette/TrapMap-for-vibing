@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { EntityLineageRecord } from '../store.js';
-import { JsonStore, createEmptyStoreData } from '../store.js';
+import type { EntityLineageRecord } from '@trapmap/server/lib/store.js';
+import { JsonStore, createEmptyStoreData } from '@trapmap/server/lib/store.js';
 import { InMemoryLineageRepository, createLineageRepository } from './repository.js';
 
 // Create a unique temp directory for each test run
@@ -41,11 +41,11 @@ describe('InMemoryLineageRepository', () => {
   let repo: InMemoryLineageRepository;
   let storePath: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     storePath = getUniqueStorePath('lineage');
     store = new JsonStore(storePath);
     // Initialize empty store
-    store.transact((d) => {
+    await store.transact((d) => {
       Object.assign(d, createEmptyStoreData());
     });
     repo = new InMemoryLineageRepository(store);

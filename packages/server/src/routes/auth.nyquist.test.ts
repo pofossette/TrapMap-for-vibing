@@ -11,11 +11,11 @@
  * - POST /v1/teams/select updates activeTeamId
  */
 
+import { buildServer } from '@trapmap/server/app.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildServer } from '../app.js';
-import type { SkillShareerStore } from '../lib/store.js';
-import { hashSecret, nowIso } from '../lib/store.js';
 
 describe('Nyquist: POST /v1/auth/login', () => {
   it('returns 200 with session and x-session-token for valid systemAdminKey', async () => {

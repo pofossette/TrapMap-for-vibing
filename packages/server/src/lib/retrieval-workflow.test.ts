@@ -1,6 +1,6 @@
+import { buildServer } from '@trapmap/server/app.js';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { buildServer } from '../app.js';
 import { createKnowledgeEntryRecord } from './knowledge.js';
 import { runPreReview } from './pre-review.js';
 import {
@@ -379,6 +379,10 @@ describe('End-to-end retrieval workflow', () => {
 
       // Round 2: search indexes may reflect JSONB state (not yet synchronized with repo).
       // The resubmitted entry should appear in search results.
+      const approvedMatch = [
+        ...(_searchData?.globalConstraints ?? []),
+        ...(_searchData?.projectKnowledge ?? []),
+      ].find((m: any) => m.entryId === entryId);
       expect(approvedMatch).toBeDefined();
       expect(approvedMatch.labels).toBeDefined();
     });

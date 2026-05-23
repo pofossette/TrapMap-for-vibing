@@ -4,10 +4,10 @@
  * Phase: 89 (Usage Analytics & Statistics)
  */
 
+import { buildServer } from '@trapmap/server/app.js';
+import type { UsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildServer } from '../../app.js';
-import type { UsageAnalyticsRepository } from '../../lib/analytics/index.js';
 
 // Mock repository
 const _mockRepo: UsageAnalyticsRepository = {

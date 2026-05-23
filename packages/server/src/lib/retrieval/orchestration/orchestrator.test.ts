@@ -12,8 +12,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ResolvedAuthContext, SkillShareerServices } from '../../context.js';
-import type { KnowledgeRecord } from '../../store.js';
+import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 // ── Mocks for recall modules ──────────────────────────────────────────────
 
@@ -207,11 +207,14 @@ vi.mock('../response/refinement.js', () => ({
 
 // ── Imports after mocks ───────────────────────────────────────────────────
 
-import { generateEmbedding, hashEmbeddingText } from '../../embeddings.js';
-import { AppError } from '../../errors.js';
-import { logRagRetrieval } from '../../rag-log.js';
-import { buildEmptyResponse, buildRetrievalResponse } from '../response/assembly.js';
-import { mergeCandidates } from '../scoring/merge.js';
+import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { logRagRetrieval } from '@trapmap/server/lib/rag-log.js';
+import {
+  buildEmptyResponse,
+  buildRetrievalResponse,
+} from '@trapmap/server/lib/retrieval/response/assembly.js';
+import { mergeCandidates } from '@trapmap/server/lib/retrieval/scoring/merge.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { searchKnowledge, updateEntryEmbeddingCache } from './orchestrator.js';
 import { dispatchByMode } from './recall-coordinator.js';

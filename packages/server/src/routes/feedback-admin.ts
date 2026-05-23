@@ -19,16 +19,16 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { AppError } from '../lib/errors.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   checkLifecycleTriggers,
   getLifecycleTriggerRules,
-} from '../lib/feedback/lifecycle-triggers.js';
-import { requirePermission } from '../lib/rbac.js';
-import { resolveAuthContext } from '../lib/session.js';
-import type { FeedbackQueueRecord } from '../lib/store.js';
-import { nowIso } from '../lib/store.js';
-import { loadUserOpsLogConfig, logUserOperation } from '../lib/user-ops-log.js';
+} from '@trapmap/server/lib/feedback/lifecycle-triggers.js';
+import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import { loadUserOpsLogConfig, logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 /**
  * Compute age in days from a timestamp to now.

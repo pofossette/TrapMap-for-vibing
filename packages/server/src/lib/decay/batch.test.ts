@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { DecayConfig, KnowledgeRecord } from '@trapmap/contracts';
 
-import { createEmptyStoreData, nowIso } from '../store.js';
+import { createEmptyStoreData, nowIso } from '@trapmap/server/lib/store.js';
 import { executeBatchOperation, planBatchOperation } from './batch.js';
 import type { BatchOperationInput } from './batch.js';
 

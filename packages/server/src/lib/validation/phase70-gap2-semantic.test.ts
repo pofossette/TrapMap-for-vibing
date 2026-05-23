@@ -13,15 +13,15 @@ import {
   cosineSimilarity,
   getBatchEmbeddings,
   optimizedSemanticRecall,
-} from '../retrieval/recall/semantic.js';
-import type { KnowledgeRecord } from '../store.js';
+} from '@trapmap/server/lib/retrieval/recall/semantic.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 vi.mock('../embeddings.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]),
   hashEmbeddingText: vi.fn().mockReturnValue('mock-hash-123'),
 }));
 
-import { generateEmbedding } from '../embeddings.js';
+import { generateEmbedding } from '@trapmap/server/lib/embeddings.js';
 
 function makeEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord {
   return {

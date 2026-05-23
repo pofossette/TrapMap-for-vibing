@@ -11,7 +11,7 @@
 
 import type { Pool } from 'pg';
 
-import type { AuditEventRecord, SkillShareerStore } from '../store.js';
+import type { AuditEventRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 /**
  * Repository interface for audit event CRUD operations.

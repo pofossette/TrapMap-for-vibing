@@ -10,7 +10,7 @@
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import type { FeedbackQueueRecord } from '../store.js';
+import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
 import { PgFeedbackRepository } from './pg-repository.js';
 
 const DATABASE_URL = process.env.TRAPMAP_DATABASE_URL || process.env.DATABASE_URL;

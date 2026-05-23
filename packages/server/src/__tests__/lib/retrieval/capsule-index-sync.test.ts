@@ -5,9 +5,9 @@
  * synchronization to derived PG index tables.
  */
 
+import { createCapsuleIndexSync } from '@trapmap/server/lib/retrieval/capsules/repositories/index-sync.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createCapsuleIndexSync } from '../../../lib/retrieval/capsules/repositories/index-sync.js';
-import type { SkillArtifactRecord } from '../../../lib/store.js';
 import { createMockArtifact, createMockCapsule } from './test-helpers.js';
 
 // Mock the drizzle module to return a controllable mock db

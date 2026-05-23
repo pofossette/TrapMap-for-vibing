@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { KnowledgeRecord, SkillShareerStore, StoreData } from '../store.js';
+import type { KnowledgeRecord, SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import {
   classifyConflict,
   detectConflicts,
@@ -154,6 +154,7 @@ describe('conflict detection', () => {
         scope: 'global',
         requiredLevel: 0,
         ownerUserId: 'user-1',
+
         latestRevision: {
           revision: 1,
           submittedAt: '2026-05-02T10:00:00Z',
@@ -163,7 +164,9 @@ describe('conflict detection', () => {
           labels: [],
           reviewNotes: [],
         },
+
         history: [],
+
         metadata: {
           scopeLabel: 'global-constraint',
           submissionCount: 1,
@@ -174,6 +177,7 @@ describe('conflict detection', () => {
           latestReviewedAt: null,
           latestDecision: null,
         },
+
         latestSubmissionId: null,
         submissionHistory: [],
         agentReview: null,

@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { KnowledgeRecord } from '../store.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Helper to create a minimal KnowledgeRecord for testing.

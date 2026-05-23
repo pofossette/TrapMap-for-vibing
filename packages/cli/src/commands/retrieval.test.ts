@@ -3,7 +3,7 @@ import { retrievalResponseSchema, retrievalV2ResponseSchema } from '@trapmap/con
 import { Command } from 'commander';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as http from '../lib/http.js';
+import * as http from '@trapmap/cli/lib/http.js';
 import { registerRetrievalCommands } from './retrieval.js';
 
 // Mock the dependencies
@@ -34,7 +34,7 @@ vi.mock('../lib/input.js', () => ({
 
 describe('CLI retrieval commands', () => {
   beforeEach(async () => {
-    const { loadCliState } = await import('../lib/config.js');
+    const { loadCliState } = await import('@trapmap/cli/lib/config.js');
     vi.mocked(loadCliState).mockResolvedValue({
       serverUrl: 'http://localhost:3000',
       sessionToken: 'mock-token',
@@ -203,7 +203,7 @@ describe('CLI retrieval commands', () => {
 
   describe('adaptive output profile rendering', () => {
     it('renders claude-code text for v2 retrieval when output profile is configured', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
         serverUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',
@@ -283,7 +283,7 @@ describe('CLI retrieval commands', () => {
     });
 
     it('falls back to legacy formatter when codex retrieval-v2 renderer fails', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
         serverUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',

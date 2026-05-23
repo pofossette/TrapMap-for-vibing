@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { nowIso } from '../../store.js';
-import { normalizeKnowledgeIndexDocument } from '../normalize.js';
-import type { NormalizedIndexDocument } from '../types.js';
+import { normalizeKnowledgeIndexDocument } from '@trapmap/server/lib/indexing/normalize.js';
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { vectorIndexAdapter } from './vector.js';
 
 describe('vector index adapter', () => {

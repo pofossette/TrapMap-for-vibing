@@ -7,14 +7,14 @@
 
 import type { Scope } from '@trapmap/contracts';
 
-import type { ResolvedAuthContext, SkillShareerServices } from '../../context.js';
+import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-} from '../../indexing/graph-lite/documents.js';
-import { AdapterRegistry } from '../../indexing/registry.js';
-import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '../../store.js';
+} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
+import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
 
 // ---------------------------------------------------------------------------
 // Node builders
@@ -452,7 +452,7 @@ export function makeMockServices(storeData: Partial<StoreData> = {}): SkillShare
       emit: () => false,
       onDomainEvent: () => ({}),
       emitDomainEvent: () => {},
-    } as unknown as import('../../lifecycle/event-bus.js').LifecycleEventBus,
+    } as unknown as import('@trapmap/server/lib/lifecycle/event-bus.js').LifecycleEventBus,
   };
 }
 

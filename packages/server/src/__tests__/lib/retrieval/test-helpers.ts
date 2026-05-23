@@ -2,8 +2,8 @@ import type {
   DerivedSkillCapsuleRecord,
   DerivedSkillProfileRecord,
   SkillArtifactRecord,
-} from '../../../lib/store.js';
-import { nowIso } from '../../../lib/store.js';
+} from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 const userId = 'user_1';
 const createdAt = nowIso();

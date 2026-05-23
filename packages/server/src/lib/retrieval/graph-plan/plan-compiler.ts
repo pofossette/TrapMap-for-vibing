@@ -21,15 +21,18 @@ import type {
   TrapFirstPlan,
 } from '@trapmap/contracts';
 
-import type { ResolvedAuthContext, SkillShareerServices } from '../../context.js';
-import type { GraphIndexDocumentRecord } from '../../indexing/graph-lite/documents.js';
-import type { Graph } from '../../indexing/graph-lite/graphology.js';
-import { buildLocalExpansionView } from '../../indexing/graph-lite/graphology.js';
-import type { KnowledgeRecord, SkillArtifactRecord } from '../../store.js';
-import { isArtifactGovernanceEligible, rankCapsules } from '../capsules/capsule-recall.js';
-import { parseSeedIntent } from '../capsules/intent.js';
-import { filterEligibleEntries } from '../orchestration/filters.js';
-import type { CapsuleCandidate } from '../types.js';
+import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
+import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import type { Graph } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import { buildLocalExpansionView } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import {
+  isArtifactGovernanceEligible,
+  rankCapsules,
+} from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
+import { parseSeedIntent } from '@trapmap/server/lib/retrieval/capsules/intent.js';
+import { filterEligibleEntries } from '@trapmap/server/lib/retrieval/orchestration/filters.js';
+import type { CapsuleCandidate } from '@trapmap/server/lib/retrieval/types.js';
+import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
 // Constants
 const DEFAULT_SKILL_BUDGET = 3;

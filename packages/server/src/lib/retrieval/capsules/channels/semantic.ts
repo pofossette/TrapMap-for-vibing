@@ -14,22 +14,22 @@
  */
 
 import { createHash } from 'node:crypto';
-import type { Pool } from 'pg';
-import { generateEmbedding } from '../../../embeddings.js';
-import type { SkillArtifactRecord } from '../../../store.js';
-import { cosineSimilarity } from '../../recall/semantic.js';
+import { generateEmbedding } from '@trapmap/server/lib/embeddings.js';
+import { extractGovernedCapsules } from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
+import {
+  type PgCapsuleVectorFilters,
+  createPgCapsuleVectorRecall,
+} from '@trapmap/server/lib/retrieval/capsules/repositories/pg-capsule-vector.js';
+import { cosineSimilarity } from '@trapmap/server/lib/retrieval/recall/semantic.js';
 import type {
   ArtifactGovernanceFilters,
   CapsuleRecallCandidate,
   CapsuleRecallChannel,
   CapsuleRecallChannelName,
   ParsedIntent,
-} from '../../types.js';
-import { extractGovernedCapsules } from '../capsule-recall.js';
-import {
-  type PgCapsuleVectorFilters,
-  createPgCapsuleVectorRecall,
-} from '../repositories/pg-capsule-vector.js';
+} from '@trapmap/server/lib/retrieval/types.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import type { Pool } from 'pg';
 
 const MAX_CONTENT_CHARS = 500;
 

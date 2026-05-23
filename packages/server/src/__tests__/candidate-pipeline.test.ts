@@ -13,9 +13,9 @@ import type { FastifyInstance } from 'fastify';
 import {
   buildTestServer,
   seedApprovedKnowledgeEntry,
-} from '../lib/retrieval/__fixtures__/auth-store-helpers.js';
-import type { SkillShareerStore } from '../lib/store.js';
-import { nowIso } from '../lib/store.js';
+} from '@trapmap/server/lib/retrieval/__fixtures__/auth-store-helpers.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -11,15 +11,15 @@
 
 import type { BatchAction, DecayConfig, DecayState } from '@trapmap/contracts';
 
-import { AppError } from '../errors.js';
-import { transitionLifecycleState } from '../lifecycle/state-machine.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import type {
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
   SkillShareerStore,
   StoreData,
-} from '../store.js';
-import { nowIso } from '../store.js';
+} from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { computeDecayState } from './state-machine.js';
 import { supersedeEntry } from './supersede.js';
 

@@ -1,10 +1,14 @@
 import { issueAccessKeyRequestSchema, issueAccessKeyResponseSchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { AppError } from '../lib/errors.js';
-import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
-import { issueAccessKeyPayload, resolveAuthContext } from '../lib/session.js';
-import { createOpaqueToken, hashSecret, nowIso } from '../lib/store.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import {
+  requireHigherLevel,
+  requirePermission,
+  requireTeamAccess,
+} from '@trapmap/server/lib/rbac.js';
+import { issueAccessKeyPayload, resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { createOpaqueToken, hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 
 export const accessKeyRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/access-keys', async (request) => {

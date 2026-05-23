@@ -16,7 +16,7 @@
  */
 
 import { retrievalCitationSchema } from '@trapmap/contracts';
-import type { MergedCandidate } from '../types.js';
+import type { MergedCandidate } from '@trapmap/server/lib/retrieval/types.js';
 
 /**
  * Maximum length for citation snippet.

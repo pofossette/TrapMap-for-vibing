@@ -6,13 +6,13 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { createAuditEvent } from '../../lib/audit.js';
-import { AppError } from '../../lib/errors.js';
-import { toKnowledgeEntry } from '../../lib/knowledge.js';
-import { requirePermission, requireTeamAccess } from '../../lib/rbac.js';
-import { resolveAuthContext } from '../../lib/session.js';
-import { nowIso } from '../../lib/store.js';
-import { logUserOperation } from '../../lib/user-ops-log.js';
+import { createAuditEvent } from '@trapmap/server/lib/audit.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
+import { requirePermission, requireTeamAccess } from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 export const artifactsExportRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/operations/export', async (request) => {

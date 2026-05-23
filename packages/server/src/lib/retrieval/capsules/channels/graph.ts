@@ -16,23 +16,23 @@
  * governed artifacts. The channel cannot introduce unauthorized capsules.
  */
 
-import type { GraphIndexRepository } from '../../../graph-index/repository.js';
+import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
 import {
   buildGraphRuntimeSnapshot,
   calculateSourceRelationStrength,
   expandSourcesOneHop,
-} from '../../../indexing/graph-lite/graphology.js';
-import type { NormalizedIndexDocument } from '../../../indexing/types.js';
-import type { SkillArtifactRecord } from '../../../store.js';
-import { extractGraphEntities } from '../../recall/graph-extract.js';
+} from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
+import { extractGovernedCapsules } from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
+import { extractGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
 import type {
   ArtifactGovernanceFilters,
   CapsuleRecallCandidate,
   CapsuleRecallChannel,
   CapsuleRecallChannelName,
   ParsedIntent,
-} from '../../types.js';
-import { extractGovernedCapsules } from '../capsule-recall.js';
+} from '@trapmap/server/lib/retrieval/types.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Build a normalized document from query text for entity extraction.

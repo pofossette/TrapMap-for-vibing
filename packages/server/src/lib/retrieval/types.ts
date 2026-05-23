@@ -11,8 +11,8 @@ import type {
   RouteFamily,
   RoutingReason,
 } from '@trapmap/contracts';
-import type { ResolvedAuthContext } from '../context.js';
-import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
+import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
+import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Governance filters for artifact eligibility.

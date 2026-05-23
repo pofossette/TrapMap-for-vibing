@@ -2,9 +2,9 @@ import type { KnowledgeEntryResponse } from '@trapmap/contracts';
 import { knowledgeEntryResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
-import { loadCliState } from '../../lib/config.js';
-import { apiRequest, requireSessionToken } from '../../lib/http.js';
-import { printResult } from '../../lib/output.js';
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
+import { printResult } from '@trapmap/cli/lib/output.js';
 import type { OperationsCommandOptions } from './types.js';
 
 export function registerEditCommand(program: Command, options: OperationsCommandOptions): void {

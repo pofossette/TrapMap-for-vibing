@@ -16,8 +16,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { CapsuleMatch, ProfileHint, RetrievalSummary } from '@trapmap/contracts';
 import { capsuleMatchSchema, profileHintSchema } from '@trapmap/contracts';
-import type { ClientManifestRecord, SkillArtifactRecord } from '../../store.js';
-import type { CapsuleCandidate, ScoredEntry } from '../types.js';
+import type { CapsuleCandidate, ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
+import type { ClientManifestRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import {
   buildActivationHints,
   buildAllActivationHints,

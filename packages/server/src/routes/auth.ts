@@ -7,9 +7,9 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { getSessionToken } from '../lib/context.js';
-import { AppError } from '../lib/errors.js';
-import { requirePermission } from '../lib/rbac.js';
+import { getSessionToken } from '@trapmap/server/lib/context.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import {
   createSession,
   deleteSession,
@@ -19,9 +19,9 @@ import {
   getSessionStatus,
   requireSystemAdminKey,
   resolveAuthContext,
-} from '../lib/session.js';
-import type { SessionRecord } from '../lib/store.js';
-import { hashSecret, nowIso } from '../lib/store.js';
+} from '@trapmap/server/lib/session.js';
+import type { SessionRecord } from '@trapmap/server/lib/store.js';
+import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/auth/login', async (request, reply) => {

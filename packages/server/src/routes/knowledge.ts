@@ -8,20 +8,24 @@ import {
 import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { supersedeEntry } from '../lib/decay/supersede.js';
-import { AppError } from '../lib/errors.js';
+import { supersedeEntry } from '@trapmap/server/lib/decay/supersede.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   createKnowledgeEntryRecord,
   createKnowledgeRevision,
   toKnowledgeEntry,
-} from '../lib/knowledge.js';
-import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
-import { runPreReview } from '../lib/pre-review.js';
-import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
-import { resolveAuthContext } from '../lib/session.js';
-import type { KnowledgeRecord } from '../lib/store.js';
-import { nowIso } from '../lib/store.js';
-import { logUserOperation } from '../lib/user-ops-log.js';
+} from '@trapmap/server/lib/knowledge.js';
+import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
+import { runPreReview } from '@trapmap/server/lib/pre-review.js';
+import {
+  requireHigherLevel,
+  requirePermission,
+  requireTeamAccess,
+} from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 function requireRealUser(userId: string | undefined): string {
   if (!userId) {
@@ -321,6 +325,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       detail: newDetail,
       requiredLevel: newRequiredLevel,
       latestRevision: revision,
+      history: [...existingEntry.history, revision],
       updatedAt: submittedAt,
     };
 

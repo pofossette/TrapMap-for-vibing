@@ -1,6 +1,6 @@
+import type { RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { describe, expect, it, vi } from 'vitest';
-import type { KnowledgeRecord } from '../../store.js';
-import type { RecallCandidate } from '../types.js';
 import { ChannelRegistry, type RecallChannel } from './channel-registry.js';
 
 function makeMockChannel(name: string): RecallChannel {

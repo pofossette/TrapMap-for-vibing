@@ -6,9 +6,9 @@ import type {
 import { Command } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { loadCliState } from '../lib/config.js';
-import * as http from '../lib/http.js';
-import * as prompts from '../lib/prompts.js';
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import * as http from '@trapmap/cli/lib/http.js';
+import * as prompts from '@trapmap/cli/lib/prompts.js';
 import { registerFeedbackAdminCommands } from './feedback-admin.js';
 import { registerFeedbackCommands } from './feedback.js';
 
@@ -385,7 +385,7 @@ describe('CLI feedback command', () => {
     };
 
     it('renders codex command-result JSON for feedback submit', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
 
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -749,7 +749,7 @@ describe('CLI feedback admin commands', () => {
     };
 
     it('renders codex command-result JSON for feedback-list', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
 
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -774,7 +774,7 @@ describe('CLI feedback admin commands', () => {
     });
 
     it('renders codex command-result JSON for feedback-batch', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
 
       vi.mocked(http.apiRequest).mockResolvedValue({

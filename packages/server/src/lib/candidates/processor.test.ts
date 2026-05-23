@@ -1,6 +1,6 @@
 import type { CandidateSubmission } from '@trapmap/contracts';
+import type { StoreData } from '@trapmap/server/lib/store.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StoreData } from '../store.js';
 import type { CandidateProcessorServices } from './processor.js';
 import type { CandidateRepository } from './repository.js';
 

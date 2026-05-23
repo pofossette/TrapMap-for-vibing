@@ -1,11 +1,15 @@
 import { evidenceMetaSchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { createAuditEvent } from '../lib/audit.js';
-import { AppError } from '../lib/errors.js';
-import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
-import { resolveAuthContext } from '../lib/session.js';
-import { nowIso } from '../lib/store.js';
+import { createAuditEvent } from '@trapmap/server/lib/audit.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import {
+  requireHigherLevel,
+  requirePermission,
+  requireTeamAccess,
+} from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 /**
  * Evidence metadata routes for updating provenance on knowledge entries.

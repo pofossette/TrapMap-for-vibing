@@ -1,5 +1,4 @@
-import type { PipelineStep } from '../../rag-log.js';
-import type { SkillArtifactRecord } from '../../store.js';
+import type { PipelineStep } from '@trapmap/server/lib/rag-log.js';
 import type {
   ArtifactGovernanceFilters,
   CapsuleCandidate,
@@ -7,7 +6,8 @@ import type {
   CapsuleRecallChannelName,
   MergedCapsuleCandidate,
   ParsedIntent,
-} from '../types.js';
+} from '@trapmap/server/lib/retrieval/types.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import type { CapsuleChannelRegistry } from './capsule-channel-registry.js';
 import { mergeCapsuleCandidates } from './scoring/merge.js';
 import { rerankMergedCapsules } from './scoring/rerank.js';

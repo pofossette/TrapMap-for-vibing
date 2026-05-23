@@ -12,7 +12,7 @@ import {
   explainEffectivePolicy,
   getPolicyDescription,
   resolveScriptEffectivePolicy,
-} from '../lib/activation-policy.js';
+} from '@trapmap/cli/lib/activation-policy.js';
 
 interface PolicyCommandOptions {
   allowSearch: boolean;

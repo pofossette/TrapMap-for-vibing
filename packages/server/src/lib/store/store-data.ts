@@ -1,5 +1,5 @@
 import type { ConflictRelation } from '@trapmap/contracts';
-import type { GraphIndexDocumentRecord } from '../indexing/graph-lite/documents.js';
+import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import type {
   AccessKeyRecord,
   ArtifactFilePayloadRecord,

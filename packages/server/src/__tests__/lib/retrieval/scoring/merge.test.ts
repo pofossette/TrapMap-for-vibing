@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { mergeCapsuleCandidates } from '../../../../lib/retrieval/capsules/scoring/merge.js';
+import { mergeCapsuleCandidates } from '@trapmap/server/lib/retrieval/capsules/scoring/merge.js';
 import type {
   CapsuleRecallCandidate,
   CapsuleRecallChannelName,
-} from '../../../../lib/retrieval/types.js';
+} from '@trapmap/server/lib/retrieval/types.js';
+import { describe, expect, it } from 'vitest';
 
 function makeCandidate(
   overrides: Partial<CapsuleRecallCandidate> & {

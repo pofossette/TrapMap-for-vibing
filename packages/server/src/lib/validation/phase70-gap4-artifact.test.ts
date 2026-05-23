@@ -7,15 +7,15 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { ArtifactGraphAdapter } from '../indexing/adapters/artifact-graph.js';
+import type { ArtifactGraphAdapter } from '@trapmap/server/lib/indexing/adapters/artifact-graph.js';
 import {
   getArtifactAdapters,
   registerArtifactAdapters,
   runArtifactAdapterFanOut,
   runArtifactAdapterRemoval,
-} from '../indexing/artifact-pipeline.js';
-import type { SkillArtifactRecord, StoreData } from '../store.js';
-import { createEmptyStoreData, nowIso } from '../store.js';
+} from '@trapmap/server/lib/indexing/artifact-pipeline.js';
+import type { SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
+import { createEmptyStoreData, nowIso } from '@trapmap/server/lib/store.js';
 
 function makeMockAdapter(overrides: Partial<ArtifactGraphAdapter> = {}): ArtifactGraphAdapter {
   return {

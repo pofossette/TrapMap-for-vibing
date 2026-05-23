@@ -13,7 +13,7 @@
 import type { CandidateSubmission } from '@trapmap/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { SkillShareerStore, StoreData } from '../store.js';
+import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import { migrateCandidates } from './migrate-candidates.js';
 
 // Helper to create a test candidate
@@ -53,7 +53,7 @@ vi.mock('../candidates/pg-repository.js', () => ({
   })),
 }));
 
-import { PgCandidateRepository } from '../candidates/pg-repository.js';
+import { PgCandidateRepository } from '@trapmap/server/lib/candidates/pg-repository.js';
 
 describe('migrateCandidates', () => {
   let mockPool: { query: ReturnType<typeof vi.fn> };

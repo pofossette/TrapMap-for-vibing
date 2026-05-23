@@ -15,17 +15,17 @@
  * T-36-10: Governance metadata inherited from artifact root
  */
 
-import type { ChatProvider } from '../../ai/types.js';
-import type { SkillArtifactRecord, StoreData } from '../../store.js';
-import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import { assertNoHardDependencyCycles } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
 // Uses sync store helpers because the adapter runs inside store.transact() callbacks.
 // PgGraphIndexRepository is available (Round 7) for async paths.
 import {
   getGraphIndexDocuments,
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
-} from '../graph-lite/store.js';
-import { buildSkillGraphDocument } from '../skill-events.js';
+} from '@trapmap/server/lib/indexing/graph-lite/store.js';
+import { buildSkillGraphDocument } from '@trapmap/server/lib/indexing/skill-events.js';
+import type { SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
 
 // ---------------------------------------------------------------------------
 // Adapter input type

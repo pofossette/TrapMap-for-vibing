@@ -12,9 +12,12 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { skillArtifactCapsuleKeywords } from '../../../persistence/schema.js';
-import { normalizeQuery } from '../../recall/keyword.js';
-import type { CapsuleRecallCandidate, CapsuleRecallChannelName } from '../../types.js';
+import { skillArtifactCapsuleKeywords } from '@trapmap/server/lib/persistence/schema.js';
+import { normalizeQuery } from '@trapmap/server/lib/retrieval/recall/keyword.js';
+import type {
+  CapsuleRecallCandidate,
+  CapsuleRecallChannelName,
+} from '@trapmap/server/lib/retrieval/types.js';
 
 export interface PgCapsuleKeywordConfig {
   pool: Pool;

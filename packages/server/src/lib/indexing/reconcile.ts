@@ -15,13 +15,13 @@
  * Phase 4: Full rebuild on prompt version change with interrupt recovery
  */
 
-import { extractTrapGraphEntities } from '../retrieval/recall/graph-extract.js';
+import { extractTrapGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
 import type {
   KnowledgeRecord,
   SkillArtifactRecord,
   SkillShareerStore,
   StoreData,
-} from '../store.js';
+} from '@trapmap/server/lib/store.js';
 import { buildTrapGraphDocument } from './adapters/graph-builders.js';
 import type { GraphIndexDocumentRecord } from './graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from './graph-lite/graphology.js';

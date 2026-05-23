@@ -13,7 +13,7 @@
 
 import { z } from 'zod';
 
-import type { ChatProvider } from '../ai/types.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 
 // ---------------------------------------------------------------------------
 // Types

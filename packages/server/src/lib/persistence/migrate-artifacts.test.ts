@@ -14,8 +14,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SkillArtifactRecord, StoreData } from '../store.js';
-import { nowIso } from '../store.js';
+import type { SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import {
   type MigrationConfig,
   type MigrationResult,

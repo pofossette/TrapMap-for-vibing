@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
 import {
   buildCycleDataset,
   buildDeployClusterDataset,
   buildDisconnectedDataset,
-} from '../../retrieval/__fixtures__/graph-fixtures.js';
+} from '@trapmap/server/lib/retrieval/__fixtures__/graph-fixtures.js';
+import { describe, expect, it } from 'vitest';
 import type { GraphEdgeRecord, GraphIndexDocumentRecord, GraphNodeRecord } from './documents.js';
 import {
   assertNoHardDependencyCycles,

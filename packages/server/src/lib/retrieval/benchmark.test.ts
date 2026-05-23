@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { KnowledgeRecord } from '../store.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import type { RetrievalBenchmarkResult } from './benchmark.js';
 import {
   BENCHMARK_SCENARIOS,

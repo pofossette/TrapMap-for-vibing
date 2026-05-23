@@ -18,18 +18,18 @@ import type {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { createAuditEvent } from '../lib/audit.js';
+import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import {
   type CandidateProcessorServices,
   scheduleCandidateProcessing,
-} from '../lib/candidates/processor.js';
-import { applyManualResultResolution } from '../lib/candidates/reconcile.js';
-import { AppError } from '../lib/errors.js';
-import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
-import { requirePermission } from '../lib/rbac.js';
-import { resolveAuthContext } from '../lib/session.js';
-import { nowIso } from '../lib/store.js';
-import { logUserOperation } from '../lib/user-ops-log.js';
+} from '@trapmap/server/lib/candidates/processor.js';
+import { applyManualResultResolution } from '@trapmap/server/lib/candidates/reconcile.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
+import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 function requireRealUser(userId: string | undefined): string {
   if (!userId) {

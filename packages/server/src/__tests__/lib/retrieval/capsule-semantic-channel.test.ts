@@ -1,12 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
 import {
   buildCapsuleEmbeddingText,
   capsuleSemanticChannel,
   capsuleSemanticRecall,
   hashCapsuleEmbeddingText,
-} from '../../../lib/retrieval/capsules/index.js';
-import type { ArtifactGovernanceFilters, ParsedIntent } from '../../../lib/retrieval/types.js';
-import type { SkillArtifactRecord } from '../../../lib/store.js';
+} from '@trapmap/server/lib/retrieval/capsules/index.js';
+import type {
+  ArtifactGovernanceFilters,
+  ParsedIntent,
+} from '@trapmap/server/lib/retrieval/types.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { describe, expect, it, vi } from 'vitest';
 import { createMockArtifact, createMockCapsule } from './test-helpers.js';
 
 vi.mock('../../../lib/embeddings.js', () => {

@@ -3,15 +3,15 @@ import type { Command } from 'commander';
 import type { FeedbackProblemType, FeedbackResponse } from '@trapmap/contracts';
 import { feedbackResponseSchema } from '@trapmap/contracts';
 
-import { loadCliState } from '../lib/config.js';
-import { apiRequest, requireSessionToken } from '../lib/http.js';
-import { printCommandResult } from '../lib/output.js';
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
+import { printCommandResult } from '@trapmap/cli/lib/output.js';
 import {
   isInteractiveEnvironment,
   promptConfirm,
   promptInput,
   promptSelect,
-} from '../lib/prompts.js';
+} from '@trapmap/cli/lib/prompts.js';
 
 interface FeedbackCommandOptions {
   allowSubmit: boolean;

@@ -19,20 +19,23 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { loadDecayConfig } from '../lib/decay/config.js';
-import { computeDecayState } from '../lib/decay/state-machine.js';
-import { AppError } from '../lib/errors.js';
-import { reconcileKnowledgeIndexes } from '../lib/indexing/pipeline.js';
-import { executeMaintenanceOperation, planMaintenanceOperation } from '../lib/maintenance/batch.js';
+import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
+import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { reconcileKnowledgeIndexes } from '@trapmap/server/lib/indexing/pipeline.js';
+import {
+  executeMaintenanceOperation,
+  planMaintenanceOperation,
+} from '@trapmap/server/lib/maintenance/batch.js';
 import {
   isReviewOverdue,
   isStaleVerification,
   toActorRefFromRecord,
-} from '../lib/maintenance/model.js';
-import { requirePermission } from '../lib/rbac.js';
-import { resolveAuthContext } from '../lib/session.js';
-import { nowIso } from '../lib/store.js';
-import { loadUserOpsLogConfig, logUserOperation } from '../lib/user-ops-log.js';
+} from '@trapmap/server/lib/maintenance/model.js';
+import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import { loadUserOpsLogConfig, logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 /**
  * Compute age in days from lastVerifiedAt to now.

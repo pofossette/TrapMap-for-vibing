@@ -13,7 +13,7 @@
 import { createRequire } from 'node:module';
 import type { Pool } from 'pg';
 
-import type { FeedbackQueueRecord, SkillShareerStore } from '../store.js';
+import type { FeedbackQueueRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 /**
  * Repository interface for feedback queue CRUD operations.

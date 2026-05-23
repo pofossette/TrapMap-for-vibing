@@ -16,12 +16,16 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
 import type { DuplicateCase, DuplicateMatch } from '@trapmap/contracts';
-import type { ChatProvider } from '../ai/types.js';
-import { generateEmbedding } from '../embeddings.js';
-import { createDuplicateCaseId } from '../ids.js';
-import { knowledgeEmbeddings, knowledgeEntries, knowledgeKeywords } from '../persistence/schema.js';
-import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
-import { nowIso } from '../store.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import { generateEmbedding } from '@trapmap/server/lib/embeddings.js';
+import { createDuplicateCaseId } from '@trapmap/server/lib/ids.js';
+import {
+  knowledgeEmbeddings,
+  knowledgeEntries,
+  knowledgeKeywords,
+} from '@trapmap/server/lib/persistence/schema.js';
+import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { judgeDuplicateWithLLM } from './llm-dedup.js';
 
 // Thresholds (match detector.ts for compatibility)

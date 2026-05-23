@@ -2,14 +2,18 @@ import { reviewDecisionRequestSchema, reviewQueueResponseSchema } from '@trapmap
 import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { createAuditEvent } from '../lib/audit.js';
-import { AppError } from '../lib/errors.js';
-import { applyReviewDecision, toKnowledgeEntry } from '../lib/knowledge.js';
-import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
-import { requireHigherLevel, requirePermission, requireTeamAccess } from '../lib/rbac.js';
-import { resolveAuthContext } from '../lib/session.js';
-import { nowIso } from '../lib/store.js';
-import { logUserOperation } from '../lib/user-ops-log.js';
+import { createAuditEvent } from '@trapmap/server/lib/audit.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { applyReviewDecision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
+import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
+import {
+  requireHigherLevel,
+  requirePermission,
+  requireTeamAccess,
+} from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 export const reviewRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/knowledge/review-queue', async (request) => {

@@ -22,8 +22,8 @@ import { Pool } from 'pg';
 import {
   backfillKnowledgeIndexes,
   cleanupStaleIndexes,
-} from '../src/lib/persistence/backfill-indexes.js';
-import { PostgresStore } from '../src/lib/persistence/postgres-store.js';
+} from '@trapmap/server/lib/persistence/backfill-indexes';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store';
 
 async function main(): Promise<void> {
   const databaseUrl = process.env.TRAPMAP_DATABASE_URL;

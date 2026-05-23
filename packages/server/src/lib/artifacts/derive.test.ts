@@ -21,8 +21,8 @@ import type {
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
   SkillShareerStore,
-} from '../store.js';
-import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
+} from '@trapmap/server/lib/store.js';
+import { JsonStore as JsonStoreClass, nowIso } from '@trapmap/server/lib/store.js';
 import { deriveFromPayloads, deriveSkillArtifactOutputs } from './derive.js';
 import { applyDerivedArtifactOutputs } from './model.js';
 

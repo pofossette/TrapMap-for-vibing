@@ -1,4 +1,7 @@
-import type { CapsuleRecallChannel, CapsuleRecallChannelName } from '../types.js';
+import type {
+  CapsuleRecallChannel,
+  CapsuleRecallChannelName,
+} from '@trapmap/server/lib/retrieval/types.js';
 import { capsuleHeuristicChannel } from './channels/heuristic.js';
 
 /**

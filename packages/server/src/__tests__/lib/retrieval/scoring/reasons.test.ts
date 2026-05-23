@@ -1,7 +1,10 @@
+import { buildMultiChannelReason } from '@trapmap/server/lib/retrieval/capsules/scoring/reasons.js';
+import type {
+  CapsuleRecallChannelName,
+  ParsedIntent,
+} from '@trapmap/server/lib/retrieval/types.js';
+import type { DerivedSkillCapsuleRecord } from '@trapmap/server/lib/store.js';
 import { describe, expect, it } from 'vitest';
-import { buildMultiChannelReason } from '../../../../lib/retrieval/capsules/scoring/reasons.js';
-import type { CapsuleRecallChannelName, ParsedIntent } from '../../../../lib/retrieval/types.js';
-import type { DerivedSkillCapsuleRecord } from '../../../../lib/store.js';
 
 function makeIntent(overrides: Partial<ParsedIntent> = {}): ParsedIntent {
   return {

@@ -10,8 +10,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { SkillShareerStore } from '../store.js';
-import { JsonStore, nowIso } from '../store.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { JsonStore, nowIso } from '@trapmap/server/lib/store.js';
 
 import { reconcileKnowledgeIndexes } from './pipeline.js';
 import { AdapterRegistry } from './registry.js';

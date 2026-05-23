@@ -5,15 +5,15 @@
  */
 
 import type { PlanQuery, TrapFirstPlan } from '@trapmap/contracts';
-import { describe, expect, it } from 'vitest';
-import type { ResolvedAuthContext, SkillShareerServices } from '../../context.js';
+import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-} from '../../indexing/graph-lite/documents.js';
-import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '../../store.js';
-import { buildDeployClusterDataset } from '../__fixtures__/graph-fixtures.js';
+} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import { buildDeployClusterDataset } from '@trapmap/server/lib/retrieval/__fixtures__/graph-fixtures.js';
+import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
+import { describe, expect, it } from 'vitest';
 import { compileTrapFirstPlan } from './plan-compiler.js';
 
 // ---------------------------------------------------------------------------

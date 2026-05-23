@@ -3,16 +3,16 @@ import type {
   ManualResultSubmission,
   ResolutionOutcome,
 } from '@trapmap/contracts';
-import type { ResolvedAuthContext } from '../context.js';
-import type { LineageRepository } from '../lineage/index.js';
+import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
+import type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
 import type {
   EntityLineageRecord,
   KnowledgeRecord,
   SkillArtifactRecord,
   SkillShareerStore,
   StoreData,
-} from '../store.js';
-import { nowIso } from '../store.js';
+} from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { getCandidateById, markCandidateResolved } from './store.js';
 
 /**

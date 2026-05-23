@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { FastifyInstance } from 'fastify';
-import { buildServer } from '../../app.js';
+import { buildServer } from '@trapmap/server/app.js';
 import {
   buildTestServer,
   seedApprovedSkillArtifact,
-} from '../../lib/retrieval/__fixtures__/auth-store-helpers.js';
-import type { SkillShareerStore } from '../../lib/store.js';
-import { hashSecret, nowIso } from '../../lib/store.js';
+} from '@trapmap/server/lib/retrieval/__fixtures__/auth-store-helpers.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
+import type { FastifyInstance } from 'fastify';
 
 describe('operations routes', () => {
   let app: FastifyInstance;

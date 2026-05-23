@@ -12,8 +12,8 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { knowledgeKeywords } from '../../persistence/schema.js';
-import type { TokenMatchDetail } from '../types.js';
+import { knowledgeKeywords } from '@trapmap/server/lib/persistence/schema.js';
+import type { TokenMatchDetail } from '@trapmap/server/lib/retrieval/types.js';
 import { normalizeQuery } from './keyword.js';
 
 interface PgKeywordRecallConfig {

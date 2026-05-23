@@ -10,10 +10,10 @@ vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(),
 }));
 
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest } from '@trapmap/cli/lib/http.js';
 // Import after mocking
 import { Command } from 'commander';
-import { loadCliState } from '../lib/config.js';
-import { apiRequest } from '../lib/http.js';
 import { registerEvidenceCommands } from './evidence.js';
 
 const mockedApiRequest = vi.mocked(apiRequest);
@@ -152,7 +152,7 @@ describe('CLI evidence commands', () => {
     it('should require session token', async () => {
       await program.parseAsync(['node', 'test', 'admin:evidence']);
 
-      const { requireSessionToken } = await import('../lib/http.js');
+      const { requireSessionToken } = await import('@trapmap/cli/lib/http.js');
       expect(requireSessionToken).toHaveBeenCalledWith(mockState);
     });
   });
@@ -250,7 +250,7 @@ describe('CLI evidence commands', () => {
       mockedApiRequest.mockResolvedValue({ data: {}, sessionToken: null });
       await program.parseAsync(['node', 'test', 'evidence:update', 'k_1', '--level', 'documented']);
 
-      const { requireSessionToken } = await import('../lib/http.js');
+      const { requireSessionToken } = await import('@trapmap/cli/lib/http.js');
       expect(requireSessionToken).toHaveBeenCalledWith(mockState);
     });
   });
@@ -291,7 +291,7 @@ describe('CLI evidence commands', () => {
     };
 
     it('renders codex command-result JSON for admin:evidence', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
 
       mockedApiRequest.mockResolvedValue({
@@ -313,7 +313,7 @@ describe('CLI evidence commands', () => {
     });
 
     it('renders codex command-result JSON for evidence:update', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
 
       mockedApiRequest.mockResolvedValue({ data: {}, sessionToken: null });

@@ -18,9 +18,9 @@
  * entries, falling back to query-time tokenization for legacy entries.
  */
 
-import type { KnowledgeRecord } from '../../store.js';
-import type { RecallChannel } from '../orchestration/channel-registry.js';
-import type { RecallCandidate, TokenMatchDetail } from '../types.js';
+import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/channel-registry.js';
+import type { RecallCandidate, TokenMatchDetail } from '@trapmap/server/lib/retrieval/types.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Tokenize text into lowercase alphanumeric tokens.

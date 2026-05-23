@@ -16,8 +16,8 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { SkillShareerStore } from '../store.js';
-import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { JsonStore as JsonStoreClass, nowIso } from '@trapmap/server/lib/store.js';
 import {
   appendSkillArtifactRevision,
   createSkillArtifactRecord,

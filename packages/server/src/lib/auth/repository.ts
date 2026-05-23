@@ -12,7 +12,11 @@
 
 import type { Pool } from 'pg';
 
-import type { AccessKeyRecord, SessionRecord, SkillShareerStore } from '../store.js';
+import type {
+  AccessKeyRecord,
+  SessionRecord,
+  SkillShareerStore,
+} from '@trapmap/server/lib/store.js';
 
 /**
  * Repository interface for session CRUD operations.

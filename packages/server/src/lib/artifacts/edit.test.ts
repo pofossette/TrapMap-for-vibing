@@ -2,8 +2,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { AgentReviewResult } from '@trapmap/contracts';
 
-import type { SkillArtifactRecord, SkillShareerStore, StoreData } from '../store.js';
-import { nowIso } from '../store.js';
+import type {
+  SkillArtifactRecord,
+  SkillShareerStore,
+  StoreData,
+} from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import {
   type SkillEditPayload,
   type SkillRevisionSummary,

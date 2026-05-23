@@ -1,7 +1,7 @@
 import type { RetrievalQuery } from '@trapmap/contracts';
+import type { MergedCandidate, ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { describe, expect, it, vi } from 'vitest';
-import type { KnowledgeRecord } from '../../store.js';
-import type { MergedCandidate, ScoredEntry } from '../types.js';
 import type { ChannelRegistry } from './channel-registry.js';
 import { type RetrievalStrategy, StrategyRegistry } from './strategy-registry.js';
 

@@ -13,8 +13,8 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { SkillArtifactRecord, StoreData } from '../store.js';
-import { createEmptyStoreData, nowIso } from '../store.js';
+import type { SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
+import { createEmptyStoreData, nowIso } from '@trapmap/server/lib/store.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 import {
   getArtifactAdapters,

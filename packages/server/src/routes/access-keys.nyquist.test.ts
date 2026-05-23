@@ -9,11 +9,11 @@
  * - POST /v1/access-keys creates key with notes
  */
 
+import { buildServer } from '@trapmap/server/app.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildServer } from '../app.js';
-import type { SkillShareerStore } from '../lib/store.js';
-import { hashSecret, nowIso } from '../lib/store.js';
 
 describe('Nyquist: POST /v1/access-keys', () => {
   let app: FastifyInstance;

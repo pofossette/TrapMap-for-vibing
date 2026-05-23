@@ -29,7 +29,7 @@ import {
   candidateDuplicateMatches,
   candidateManualResults,
   candidates,
-} from '../persistence/schema.js';
+} from '@trapmap/server/lib/persistence/schema.js';
 import type { CandidateRepository } from './repository.js';
 import { createManualResultRecord } from './repository.js';
 

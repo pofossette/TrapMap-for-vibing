@@ -21,10 +21,10 @@ vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(),
 }));
 
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest } from '@trapmap/cli/lib/http.js';
 // Import after mocking
 import { Command } from 'commander';
-import { loadCliState } from '../lib/config.js';
-import { apiRequest } from '../lib/http.js';
 import { registerReviewCommands } from './review.js';
 
 // Mock the named import - get a reference to the mock function
@@ -445,7 +445,7 @@ describe('CLI review commands with evidence flags (Phase 58-06)', () => {
     };
 
     it('renders codex command-result JSON for review:approve', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
 
       const mockResponse = createMockResponse(null);
@@ -472,7 +472,7 @@ describe('CLI review commands with evidence flags (Phase 58-06)', () => {
     });
 
     it('renders codex command-result JSON for review:reject', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
 
       const mockResponse = createMockResponse(null);
@@ -499,7 +499,7 @@ describe('CLI review commands with evidence flags (Phase 58-06)', () => {
     });
 
     it('renders codex command-result JSON for review:queue', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
 
       const mockEntry = createMockResponse(null).data.entry;

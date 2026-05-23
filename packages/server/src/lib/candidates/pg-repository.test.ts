@@ -16,7 +16,7 @@ import type {
 } from '@trapmap/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CandidateRepository } from '../repository.js';
+import type { CandidateRepository } from '@trapmap/server/lib/repository.js';
 
 // Helper to create a test candidate
 function createTestCandidate(overrides: Partial<CandidateSubmission> = {}): CandidateSubmission {

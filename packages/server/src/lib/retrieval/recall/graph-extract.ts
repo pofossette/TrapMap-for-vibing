@@ -19,8 +19,8 @@ import type {
   GraphNodeKind,
   GraphRelationStrength,
   GraphRelationType,
-} from '../../indexing/graph-lite/documents.js';
-import type { NormalizedIndexDocument } from '../../indexing/types.js';
+} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 
 // Types are imported for internal use; consumers should import from documents.js directly
 

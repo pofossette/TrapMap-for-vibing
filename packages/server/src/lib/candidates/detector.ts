@@ -10,10 +10,10 @@
  */
 
 import type { DuplicateCase, DuplicateMatch } from '@trapmap/contracts';
-import type { ChatProvider } from '../ai/types.js';
-import { createDuplicateCaseId } from '../ids.js';
-import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
-import { nowIso } from '../store.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import { createDuplicateCaseId } from '@trapmap/server/lib/ids.js';
+import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { tokenize } from './fingerprint.js';
 import { judgeDuplicateWithLLM } from './llm-dedup.js';
 import type { DuplicateDetectionInput, DuplicateDetectionResult } from './types.js';

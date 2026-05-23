@@ -5,20 +5,27 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { deriveFromPayloads, deriveSkillArtifactOutputs } from '../../lib/artifacts/derive.js';
-import { createSkillArtifactRecord } from '../../lib/artifacts/model.js';
-import { applyDerivedArtifactOutputs } from '../../lib/artifacts/model.js';
-import { createAuditEvent } from '../../lib/audit.js';
-import { AppError } from '../../lib/errors.js';
+import {
+  deriveFromPayloads,
+  deriveSkillArtifactOutputs,
+} from '@trapmap/server/lib/artifacts/derive.js';
+import { createSkillArtifactRecord } from '@trapmap/server/lib/artifacts/model.js';
+import { applyDerivedArtifactOutputs } from '@trapmap/server/lib/artifacts/model.js';
+import { createAuditEvent } from '@trapmap/server/lib/audit.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   migrateLegacyEntryToArtifactBundle,
   normalizeArtifactBundle,
   validateLegacyEntryMigration,
-} from '../../lib/import-export.js';
-import { runPreReview } from '../../lib/pre-review.js';
-import { requireHigherLevel, requirePermission, requireTeamAccess } from '../../lib/rbac.js';
-import { resolveAuthContext } from '../../lib/session.js';
-import { nowIso } from '../../lib/store.js';
+} from '@trapmap/server/lib/import-export.js';
+import { runPreReview } from '@trapmap/server/lib/pre-review.js';
+import {
+  requireHigherLevel,
+  requirePermission,
+  requireTeamAccess,
+} from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 export const migrateRoutes: FastifyPluginAsync = async (app) => {
   // Legacy migration route (Phase 16-01: ARTF-04, COMP-02, T-16-01, T-16-02)

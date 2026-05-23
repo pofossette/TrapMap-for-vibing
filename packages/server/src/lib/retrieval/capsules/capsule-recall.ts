@@ -9,13 +9,17 @@
  * T-14-06: Rank only distilled profile/capsule text, not raw payloads
  */
 
-import { isGovernanceEligible } from '../../governance/index.js';
+import { isGovernanceEligible } from '@trapmap/server/lib/governance/index.js';
+import type {
+  ArtifactGovernanceFilters,
+  CapsuleCandidate,
+  ParsedIntent,
+} from '@trapmap/server/lib/retrieval/types.js';
 import type {
   DerivedSkillCapsuleRecord,
   DerivedSkillProfileRecord,
   SkillArtifactRecord,
-} from '../../store.js';
-import type { ArtifactGovernanceFilters, CapsuleCandidate, ParsedIntent } from '../types.js';
+} from '@trapmap/server/lib/store.js';
 
 /**
  * Check if an artifact passes governance filters.

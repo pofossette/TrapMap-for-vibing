@@ -6,7 +6,7 @@
  * the previous document for that source, keeping only the latest revision.
  */
 
-import type { StoreData } from '../../store.js';
+import type { StoreData } from '@trapmap/server/lib/store.js';
 import type { GraphIndexDocumentRecord } from './documents.js';
 
 type GraphDocumentStore = Pick<StoreData, 'graphIndexDocuments'>;

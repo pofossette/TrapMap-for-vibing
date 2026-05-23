@@ -15,15 +15,15 @@ import {
   trapFirstPlanSchema,
 } from '@trapmap/contracts';
 
-import type { UsageEventInput } from '../lib/analytics/index.js';
-import { requirePermission } from '../lib/rbac.js';
-import { searchKnowledge, searchKnowledgeV2 } from '../lib/retrieval.js';
-import { searchSkillsByContent } from '../lib/retrieval/capsules/skill-lookup.js';
-import { searchKnowledgeGraphPlan } from '../lib/retrieval/graph-plan/graph-plan-search.js';
-import { compileTrapFirstPlan } from '../lib/retrieval/graph-plan/plan-compiler.js';
-import { resolveAuthContext } from '../lib/session.js';
-import { nowIso } from '../lib/store.js';
-import { logUserOperation } from '../lib/user-ops-log.js';
+import type { UsageEventInput } from '@trapmap/server/lib/analytics/index.js';
+import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { searchKnowledge, searchKnowledgeV2 } from '@trapmap/server/lib/retrieval.js';
+import { searchSkillsByContent } from '@trapmap/server/lib/retrieval/capsules/skill-lookup.js';
+import { searchKnowledgeGraphPlan } from '@trapmap/server/lib/retrieval/graph-plan/graph-plan-search.js';
+import { compileTrapFirstPlan } from '@trapmap/server/lib/retrieval/graph-plan/plan-compiler.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 /**
  * Build usage events from v1 retrieval result.

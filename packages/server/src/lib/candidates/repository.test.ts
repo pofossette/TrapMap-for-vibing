@@ -2,9 +2,9 @@ import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { CandidateSubmission } from '@trapmap/contracts';
+import type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
+import { JsonStore, createEmptyStoreData } from '@trapmap/server/lib/store.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { DuplicateRepository } from '../duplicates/index.js';
-import { JsonStore, createEmptyStoreData } from '../store.js';
 import {
   type CandidateRepository,
   InMemoryCandidateRepository,

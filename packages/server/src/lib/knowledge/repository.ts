@@ -17,14 +17,18 @@ import { createRequire } from 'node:module';
 import type { LifecycleState } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
-import { createKnowledgeEntryRecord, toKnowledgeEntry, toKnowledgeListItem } from '../knowledge.js';
-import { transitionLifecycleState } from '../lifecycle/state-machine.js';
+import {
+  createKnowledgeEntryRecord,
+  toKnowledgeEntry,
+  toKnowledgeListItem,
+} from '@trapmap/server/lib/knowledge.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import type {
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
   KnowledgeRevisionRecord,
   SkillShareerStore,
-} from '../store.js';
+} from '@trapmap/server/lib/store.js';
 
 /**
  * Repository interface for knowledge entry CRUD operations.

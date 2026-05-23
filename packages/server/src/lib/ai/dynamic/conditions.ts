@@ -5,7 +5,7 @@
  * the content of matching rules into the prompt.
  */
 
-import type { AiPromptTaskType } from '../providers/types.js';
+import type { AiPromptTaskType } from '@trapmap/server/lib/ai/providers/types.js';
 
 // ---------------------------------------------------------------------------
 // Types

@@ -20,7 +20,9 @@
     "paths": {
       "@trapmap/contracts": ["./packages/contracts/src/index.ts"],
       "@trapmap/contracts/evals": ["./packages/contracts/src/domain/evals/index.ts"],
-      "@trapmap/contracts/*": ["./packages/contracts/src/*"]
+      "@trapmap/contracts/*": ["./packages/contracts/src/*"],
+      "@trapmap/server/*": ["./packages/server/src/*"],
+      "@trapmap/cli/*": ["./packages/cli/src/*"]
     }
   }
 }

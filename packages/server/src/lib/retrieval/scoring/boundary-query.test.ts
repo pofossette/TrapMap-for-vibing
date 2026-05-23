@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { GraphIndexDocumentRecord } from '../../indexing/graph-lite/documents.js';
+import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import { findEntriesByBoundaryConstraint, findEntriesByGraphNode } from './boundary-query.js';
 
 // ---------------------------------------------------------------------------

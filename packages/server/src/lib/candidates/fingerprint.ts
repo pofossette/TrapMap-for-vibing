@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto';
 
 import type { AnalysisSnapshot } from '@trapmap/contracts';
 
-import { nowIso } from '../store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import type { CandidateFingerprintInput } from './types.js';
 
 /**

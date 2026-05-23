@@ -11,13 +11,13 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { ParsedIntent } from '@trapmap/server/lib/retrieval/types.js';
 import type {
   DerivedSkillCapsuleRecord,
   DerivedSkillProfileRecord,
   SkillArtifactRecord,
-} from '../../store.js';
-import { nowIso } from '../../store.js';
-import type { ParsedIntent } from '../types.js';
+} from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import {
   buildProfileShortlist,
   extractGovernedCapsules,

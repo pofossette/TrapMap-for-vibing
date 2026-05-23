@@ -11,7 +11,7 @@
 
 import type { Pool } from 'pg';
 
-import type { SkillShareerStore, UserRecord } from '../store.js';
+import type { SkillShareerStore, UserRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Repository interface for user CRUD operations.

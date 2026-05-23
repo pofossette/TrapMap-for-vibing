@@ -6,10 +6,10 @@ import type {
 import { knowledgeEntryResponseSchema, knowledgeHistoryResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
-import { loadCliState } from '../lib/config.js';
-import { apiRequest, requireSessionToken } from '../lib/http.js';
-import { collectValues, resolveTextInput } from '../lib/input.js';
-import { printCommandResult } from '../lib/output.js';
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
+import { collectValues, resolveTextInput } from '@trapmap/cli/lib/input.js';
+import { printCommandResult } from '@trapmap/cli/lib/output.js';
 
 interface TrapCommandOptions {
   allowInspect: boolean;

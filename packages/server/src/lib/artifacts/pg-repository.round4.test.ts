@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Boundary } from '@trapmap/contracts';
-import type { SkillArtifactRecord } from '../store.js';
-import { nowIso } from '../store.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { PgArtifactRepository } from './pg-repository.js';
 
 function createBoundary(): Boundary {

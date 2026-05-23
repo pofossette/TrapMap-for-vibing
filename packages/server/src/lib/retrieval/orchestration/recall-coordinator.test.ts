@@ -11,9 +11,9 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ResolvedAuthContext, SkillShareerServices } from '../../context.js';
-import type { KnowledgeRecord } from '../../store.js';
-import type { MergedCandidate } from '../types.js';
+import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
+import type { MergedCandidate } from '@trapmap/server/lib/retrieval/types.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import type { RecallChannel } from './channel-registry.js';
 import { ChannelRegistry } from './channel-registry.js';
 import type { RetrievalStrategy } from './strategy-registry.js';
@@ -71,12 +71,21 @@ vi.mock('../../decay/freshness.js', () => ({
 
 // ── Imports after mocks ───────────────────────────────────────────────────
 
-import { AppError } from '../../errors.js';
-import { graphAssistedRecall as graphRecall } from '../recall/graph-assisted.js';
-import { keywordRecall } from '../recall/keyword.js';
-import { getQueryEmbedding, optimizedSemanticRecall } from '../recall/semantic.js';
-import { createSemanticCandidate, mergeCandidates } from '../scoring/merge.js';
-import { rerankCandidates, toScoredEntriesFromReranked } from '../scoring/rerank.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { graphAssistedRecall as graphRecall } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
+import { keywordRecall } from '@trapmap/server/lib/retrieval/recall/keyword.js';
+import {
+  getQueryEmbedding,
+  optimizedSemanticRecall,
+} from '@trapmap/server/lib/retrieval/recall/semantic.js';
+import {
+  createSemanticCandidate,
+  mergeCandidates,
+} from '@trapmap/server/lib/retrieval/scoring/merge.js';
+import {
+  rerankCandidates,
+  toScoredEntriesFromReranked,
+} from '@trapmap/server/lib/retrieval/scoring/rerank.js';
 import {
   GRAPH_SCORE_BOOST_FACTOR,
   computeSemanticCandidates,

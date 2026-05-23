@@ -8,7 +8,7 @@ import {
   candidateResolutionOutcomes,
   candidates,
   entityLineage,
-} from '../schema.js';
+} from '@trapmap/server/lib/persistence/schema.js';
 
 describe('candidates table schema', () => {
   it('exports a candidates pgTable with all required columns', () => {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { DecayMeta, KnowledgeRecord } from '@trapmap/contracts';
-import { DEFAULT_FRESHNESS_CONFIG } from '../../decay/freshness.js';
-import type { MergedCandidate } from '../types.js';
+import { DEFAULT_FRESHNESS_CONFIG } from '@trapmap/server/lib/decay/freshness.js';
+import type { MergedCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import {
   DEFAULT_BOTH_CHANNEL_BOOST,
   DEFAULT_STALE_DECAY_PENALTY,

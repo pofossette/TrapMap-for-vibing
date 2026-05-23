@@ -10,11 +10,11 @@
  */
 
 import type { CandidateSubmission, ManualResultSubmission } from '@trapmap/contracts';
+import type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
+import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
+import { JsonStore, type SkillShareerStore, nowIso } from '@trapmap/server/lib/store.js';
+import type { EntityLineageRecord } from '@trapmap/server/lib/store.js';
 import { describe, expect, it } from 'vitest';
-import type { LineageRepository } from '../lineage/index.js';
-import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '../store.js';
-import { JsonStore, type SkillShareerStore, nowIso } from '../store.js';
-import type { EntityLineageRecord } from '../store.js';
 import {
   REVALIDATION_ERRORS,
   getLineageByCandidate,

@@ -20,7 +20,7 @@ import * as path from 'node:path';
 import type { FastifyPluginAsync } from 'fastify';
 import { describe, expect, it } from 'vitest';
 
-import { buildServer } from '../../app.js';
+import { buildServer } from '@trapmap/server/app.js';
 
 // Import all route modules via barrel export
 import {
@@ -36,7 +36,7 @@ import {
 } from './index.js';
 
 // Import thin router
-import { operationsRoutes } from '../operations.js';
+import { operationsRoutes } from '@trapmap/server/routes/operations.js';
 
 /**
  * Helper to verify a route exists by making a minimal request.

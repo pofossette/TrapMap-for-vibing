@@ -11,7 +11,7 @@
  */
 
 import type { LifecycleState } from '@trapmap/contracts';
-import { nowIso } from '../store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import type { LifecycleEventBus } from './event-bus.js';
 import { findTransitionEvent } from './transitions.js';
 import type { DomainEvent, TransitionContext } from './types.js';

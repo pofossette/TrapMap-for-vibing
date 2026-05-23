@@ -1,5 +1,8 @@
-import type { DerivedSkillCapsuleRecord } from '../../../store.js';
-import type { CapsuleRecallChannelName, ParsedIntent } from '../../types.js';
+import type {
+  CapsuleRecallChannelName,
+  ParsedIntent,
+} from '@trapmap/server/lib/retrieval/types.js';
+import type { DerivedSkillCapsuleRecord } from '@trapmap/server/lib/store.js';
 
 const CHANNEL_LABELS: Record<CapsuleRecallChannelName, string> = {
   'capsule-heuristic': 'heuristic',

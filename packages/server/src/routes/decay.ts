@@ -19,14 +19,14 @@ import {
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 
-import { executeBatchOperation, planBatchOperation } from '../lib/decay/batch.js';
-import { loadDecayConfig } from '../lib/decay/config.js';
-import { computeDecayState } from '../lib/decay/state-machine.js';
-import { findTransitionEvent } from '../lib/lifecycle/transitions.js';
-import { requirePermission } from '../lib/rbac.js';
-import { resolveAuthContext } from '../lib/session.js';
-import { nowIso } from '../lib/store.js';
-import { loadUserOpsLogConfig, logUserOperation } from '../lib/user-ops-log.js';
+import { executeBatchOperation, planBatchOperation } from '@trapmap/server/lib/decay/batch.js';
+import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
+import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
+import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
+import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import { loadUserOpsLogConfig, logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 /**
  * Compute age in days from lastVerifiedAt to now.

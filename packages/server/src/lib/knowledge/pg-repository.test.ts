@@ -11,16 +11,16 @@
  */
 
 import type { Boundary } from '@trapmap/contracts';
-import type { Pool } from 'pg';
-import { Pool as PgPool } from 'pg';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type {
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
   KnowledgeRevisionRecord,
   MaintenanceMetaRecord,
-} from '../store.js';
-import { nowIso } from '../store.js';
+} from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import type { Pool } from 'pg';
+import { Pool as PgPool } from 'pg';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { PgKnowledgeRepository } from './pg-repository.js';
 
 // Skip tests if no DATABASE_URL

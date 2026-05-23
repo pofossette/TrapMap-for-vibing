@@ -7,8 +7,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
-import type { KnowledgeRecord } from '../store.js';
+import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 vi.mock('../retrieval/recall/semantic.js', () => ({
   getQueryEmbedding: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]),
@@ -140,23 +140,23 @@ vi.mock('../persistence/postgres-store.js', () => ({
   PostgresStore: class MockPostgresStore {},
 }));
 
-import { logRagRetrieval } from '../rag-log.js';
+import { logRagRetrieval } from '@trapmap/server/lib/rag-log.js';
 import {
   filterByBoundaryContext,
   filterEligibleEntries,
-} from '../retrieval/orchestration/filters.js';
-import { searchKnowledge } from '../retrieval/orchestration/orchestrator.js';
+} from '@trapmap/server/lib/retrieval/orchestration/filters.js';
+import { searchKnowledge } from '@trapmap/server/lib/retrieval/orchestration/orchestrator.js';
 import {
   selectRetrievalStrategy,
   selectRetrievalStrategyV2,
-} from '../retrieval/orchestration/routing.js';
-import { graphAssistedRecall } from '../retrieval/recall/graph-assisted.js';
-import { keywordRecall } from '../retrieval/recall/keyword.js';
-import { getQueryEmbedding } from '../retrieval/recall/semantic.js';
-import { buildEmptyResponse } from '../retrieval/response/assembly.js';
+} from '@trapmap/server/lib/retrieval/orchestration/routing.js';
+import { graphAssistedRecall } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
+import { keywordRecall } from '@trapmap/server/lib/retrieval/recall/keyword.js';
+import { getQueryEmbedding } from '@trapmap/server/lib/retrieval/recall/semantic.js';
+import { buildEmptyResponse } from '@trapmap/server/lib/retrieval/response/assembly.js';
 
-import { ChannelRegistry } from '../retrieval/orchestration/channel-registry.js';
-import { StrategyRegistry } from '../retrieval/orchestration/strategy-registry.js';
+import { ChannelRegistry } from '@trapmap/server/lib/retrieval/orchestration/channel-registry.js';
+import { StrategyRegistry } from '@trapmap/server/lib/retrieval/orchestration/strategy-registry.js';
 
 function makeAuth(overrides: Partial<ResolvedAuthContext> = {}): ResolvedAuthContext {
   return {
@@ -263,7 +263,7 @@ function makeServices(overrides: Partial<SkillShareerServices> = {}): SkillShare
         version: 'semantic',
         async execute(query, _channels, eligibleEntries, services, auth) {
           const { semanticRecall } = await import(
-            '../retrieval/orchestration/recall-coordinator.js'
+            '@trapmap/server/lib/retrieval/orchestration/recall-coordinator.js'
           );
           return semanticRecall(query.seed, eligibleEntries, query, services, auth);
         },
@@ -271,7 +271,9 @@ function makeServices(overrides: Partial<SkillShareerServices> = {}): SkillShare
       sr.register({
         version: 'hybrid',
         async execute(query, _channels, eligibleEntries, services, auth) {
-          const { hybridRecall } = await import('../retrieval/orchestration/recall-coordinator.js');
+          const { hybridRecall } = await import(
+            '@trapmap/server/lib/retrieval/orchestration/recall-coordinator.js'
+          );
           return hybridRecall(query.seed, eligibleEntries, query, services, auth);
         },
       });
@@ -279,7 +281,7 @@ function makeServices(overrides: Partial<SkillShareerServices> = {}): SkillShare
         version: 'graph-assisted',
         async execute(query, _channels, eligibleEntries) {
           const { graphAssistedRecall } = await import(
-            '../retrieval/orchestration/recall-coordinator.js'
+            '@trapmap/server/lib/retrieval/orchestration/recall-coordinator.js'
           );
           return graphAssistedRecall(query.seed, eligibleEntries, query);
         },

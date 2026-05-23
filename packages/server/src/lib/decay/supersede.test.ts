@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { KnowledgeRecord } from '../store.js';
-import { createEmptyStoreData, nowIso } from '../store.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import { createEmptyStoreData, nowIso } from '@trapmap/server/lib/store.js';
 import { supersedeEntry } from './supersede.js';
 
 /**

@@ -7,8 +7,8 @@
 import {
   buildKnowledgeRefinementSystemPrompt,
   buildKnowledgeRefinementSystemPromptBlocks,
-} from '../../ai/prompts.js';
-import type { SkillShareerServices } from '../../context.js';
+} from '@trapmap/server/lib/ai/prompts.js';
+import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
 
 /**
  * Check if a refinement provider is configured.

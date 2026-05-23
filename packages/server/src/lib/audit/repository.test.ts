@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { JsonStore, createEmptyStoreData } from '@trapmap/server/lib/store.js';
+import type { AuditEventRecord } from '@trapmap/server/lib/store.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { JsonStore, createEmptyStoreData } from '../store.js';
-import type { AuditEventRecord } from '../store.js';
 import {
   type AuditRepository,
   InMemoryAuditRepository,

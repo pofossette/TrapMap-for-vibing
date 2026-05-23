@@ -1,5 +1,5 @@
 import type { Boundary, DecayMeta, EvidenceMeta, LifecycleState, Scope } from '@trapmap/contracts';
-import type { KnowledgeIndexStateRecord } from '../../indexing/types.js';
+import type { KnowledgeIndexStateRecord } from '@trapmap/server/lib/indexing/types.js';
 
 export interface KnowledgeRevisionRecord {
   revision: number;

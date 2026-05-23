@@ -10,9 +10,13 @@ import {
   graphPlanSearchResponseSchema,
 } from '@trapmap/contracts';
 
-import type { ResolvedAuthContext, SkillShareerServices } from '../../context.js';
-import { type PipelineStep, generateQueryId, logRagRetrieval } from '../../rag-log.js';
-import { searchKnowledge, searchKnowledgeV2 } from '../../retrieval.js';
+import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
+import {
+  type PipelineStep,
+  generateQueryId,
+  logRagRetrieval,
+} from '@trapmap/server/lib/rag-log.js';
+import { searchKnowledge, searchKnowledgeV2 } from '@trapmap/server/lib/retrieval.js';
 import { compileTrapFirstPlan } from './plan-compiler.js';
 
 const HIGH_CONFIDENCE_THRESHOLD = 0.65;

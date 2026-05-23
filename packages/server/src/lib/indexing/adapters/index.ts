@@ -12,9 +12,9 @@
  * lifecycle transitions (approval, update, deactivation).
  */
 
+import { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
+import type { IndexAdapter } from '@trapmap/server/lib/indexing/types.js';
 import type { Pool } from 'pg';
-import { AdapterRegistry } from '../registry.js';
-import type { IndexAdapter } from '../types.js';
 import { graphIndexAdapter } from './graph.js';
 import { keywordIndexAdapter } from './keyword.js';
 import { createPgKeywordAdapter } from './pg-keyword.js';

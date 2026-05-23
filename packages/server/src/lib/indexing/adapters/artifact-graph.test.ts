@@ -16,10 +16,13 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { SkillArtifactRecord } from '../../store.js';
-import { nowIso } from '../../store.js';
-import type { GraphIndexDocumentRecord } from '../graph-lite/documents.js';
-import { getGraphIndexDocuments, removeGraphIndexDocumentsForSource } from '../graph-lite/store.js';
+import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import {
+  getGraphIndexDocuments,
+  removeGraphIndexDocumentsForSource,
+} from '@trapmap/server/lib/indexing/graph-lite/store.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 // Import the adapter and builders we're testing
 import { type ArtifactGraphAdapterInput, artifactGraphIndexAdapter } from './artifact-graph.js';

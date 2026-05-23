@@ -1,20 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { FastifyInstance } from 'fastify';
-import { buildServer } from '../app.js';
+import { buildServer } from '@trapmap/server/app.js';
 import {
   buildTestServer,
   seedApprovedKnowledgeEntry,
   seedApprovedSkillArtifact,
   seedGraphDocument,
-} from '../lib/retrieval/__fixtures__/auth-store-helpers.js';
+} from '@trapmap/server/lib/retrieval/__fixtures__/auth-store-helpers.js';
 import {
   buildDeployClusterDataset,
   makeMitigatesEdge,
   makeSkillNode,
   makeTrapNode,
-} from '../lib/retrieval/__fixtures__/graph-fixtures.js';
-import type { SkillShareerStore } from '../lib/store.js';
+} from '@trapmap/server/lib/retrieval/__fixtures__/graph-fixtures.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type { FastifyInstance } from 'fastify';
 
 describe('retrieval route', () => {
   let app: FastifyInstance;
@@ -654,8 +654,8 @@ describe('retrieval route', () => {
     const otherTeamId = 'team_other_retrieval';
 
     beforeEach(async () => {
-      const { nowIso, hashSecret } = await import('../lib/store.js');
-      const { buildServer } = await import('../app.js');
+      const { nowIso, hashSecret } = await import('@trapmap/server/lib/store.js');
+      const { buildServer } = await import('@trapmap/server/app.js');
 
       const testDataFile = `/tmp/trapmap-test-${Date.now()}-${Math.random()}.json`;
 
@@ -735,7 +735,7 @@ describe('retrieval route', () => {
 
     it('retrieval filters out entries from other teams', async () => {
       // Add an entry from another team
-      const { nowIso } = await import('../lib/store.js');
+      const { nowIso } = await import('@trapmap/server/lib/store.js');
       await testStore.transact(async (data) => {
         data.knowledgeEntries.push({
           id: 'knowledge_other_team',
@@ -806,7 +806,7 @@ describe('retrieval route', () => {
     });
 
     it('retrieval filters out entries exceeding user security level', async () => {
-      const { nowIso } = await import('../lib/store.js');
+      const { nowIso } = await import('@trapmap/server/lib/store.js');
       // Add entry with high security level
       await testStore.transact(async (data) => {
         data.knowledgeEntries.push({
@@ -878,7 +878,7 @@ describe('retrieval route', () => {
     });
 
     it('retrieval filters out non-approved entries', async () => {
-      const { nowIso } = await import('../lib/store.js');
+      const { nowIso } = await import('@trapmap/server/lib/store.js');
       // Add pending entry
       await testStore.transact(async (data) => {
         data.knowledgeEntries.push({
@@ -1208,8 +1208,8 @@ describe('retrieval route', () => {
     const teamId = 'team_boundary_e2e';
 
     beforeEach(async () => {
-      const { nowIso, hashSecret } = await import('../lib/store.js');
-      const { buildServer } = await import('../app.js');
+      const { nowIso, hashSecret } = await import('@trapmap/server/lib/store.js');
+      const { buildServer } = await import('@trapmap/server/app.js');
 
       const testDataFile = `/tmp/trapmap-test-boundary-${Date.now()}-${Math.random()}.json`;
 
@@ -1305,7 +1305,7 @@ describe('retrieval route', () => {
     });
 
     it('includes boundaryExplanation in response when boundaryContext provided', async () => {
-      const { nowIso } = await import('../lib/store.js');
+      const { nowIso } = await import('@trapmap/server/lib/store.js');
 
       // Seed an entry with boundary
       await testStore.transact(async (data) => {
@@ -1403,7 +1403,7 @@ describe('retrieval route', () => {
     });
 
     it('excludes entry with unsatisfied version constraint', async () => {
-      const { nowIso } = await import('../lib/store.js');
+      const { nowIso } = await import('@trapmap/server/lib/store.js');
 
       // Seed an entry with React 18+ version constraint
       await testStore.transact(async (data) => {
@@ -1490,7 +1490,7 @@ describe('retrieval route', () => {
     });
 
     it('penalizes entry with matching exclusion', async () => {
-      const { nowIso } = await import('../lib/store.js');
+      const { nowIso } = await import('@trapmap/server/lib/store.js');
 
       // Seed an entry with Windows exclusion
       await testStore.transact(async (data) => {
@@ -1582,7 +1582,7 @@ describe('retrieval route', () => {
     });
 
     it('boosts entry with matching context', async () => {
-      const { nowIso } = await import('../lib/store.js');
+      const { nowIso } = await import('@trapmap/server/lib/store.js');
 
       // Seed an entry with frontend context
       await testStore.transact(async (data) => {

@@ -17,7 +17,7 @@
 import { createHash } from 'node:crypto';
 import { parseSkillMarkdown } from '@trapmap/contracts';
 
-import type { ChatProvider } from '../ai/types.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type {
   ArtifactFilePayloadRecord,
   ClientManifestAssetRecord,
@@ -30,8 +30,8 @@ import type {
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
   SkillScriptDescriptorRecord,
-} from '../store.js';
-import { nowIso } from '../store.js';
+} from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { type ContextualEnrichmentCache, enrichCapsules } from './contextual-enrichment.js';
 
 /**

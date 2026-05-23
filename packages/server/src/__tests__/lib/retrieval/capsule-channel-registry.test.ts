@@ -1,12 +1,12 @@
-import { beforeEach, describe, expect, it } from 'vitest';
 import {
   CapsuleChannelRegistry,
   capsuleHeuristicChannel,
-} from '../../../lib/retrieval/capsules/index.js';
+} from '@trapmap/server/lib/retrieval/capsules/index.js';
 import type {
   CapsuleRecallChannel,
   CapsuleRecallChannelName,
-} from '../../../lib/retrieval/types.js';
+} from '@trapmap/server/lib/retrieval/types.js';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('CapsuleChannelRegistry', () => {
   let registry: CapsuleChannelRegistry;

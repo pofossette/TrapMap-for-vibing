@@ -5,14 +5,14 @@
  * derived index tables.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cleanupOrphanCapsuleIndexes,
   rebuildAllCapsuleIndexes,
   rebuildCapsuleIndexForArtifact,
   verifyCapsuleIndexHealth,
-} from '../../../lib/retrieval/capsules/repositories/index-rebuild.js';
-import type { SkillArtifactRecord } from '../../../lib/store.js';
+} from '@trapmap/server/lib/retrieval/capsules/repositories/index-rebuild.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMockArtifact, createMockCapsule } from './test-helpers.js';
 
 // Mock the drizzle module to return a controllable mock db

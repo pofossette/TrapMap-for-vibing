@@ -17,8 +17,8 @@
 
 import type { Pool } from 'pg';
 
-import { PgArtifactRepository } from '../artifacts/pg-repository.js';
-import type { SkillArtifactRecord, SkillShareerStore } from '../store.js';
+import { PgArtifactRepository } from '@trapmap/server/lib/artifacts/pg-repository.js';
+import type { SkillArtifactRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 export interface MigrationConfig {
   /** PostgreSQL connection pool */

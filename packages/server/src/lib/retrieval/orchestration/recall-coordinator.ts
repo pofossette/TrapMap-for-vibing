@@ -6,22 +6,38 @@
  */
 
 import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
+import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
+import { DEFAULT_FRESHNESS_CONFIG } from '@trapmap/server/lib/decay/freshness.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { vectorSimilaritySearch } from '@trapmap/server/lib/retrieval/recall/db-search.js';
+import { graphAssistedRecall as graphRecall } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
+import { keywordRecall, normalizeQuery } from '@trapmap/server/lib/retrieval/recall/keyword.js';
+import { createPgKeywordRecall } from '@trapmap/server/lib/retrieval/recall/pg-keyword.js';
+import {
+  getQueryEmbedding,
+  optimizedSemanticRecall,
+} from '@trapmap/server/lib/retrieval/recall/semantic.js';
+import {
+  buildBoundaryExplanation,
+  computeBoundaryScoreDelta,
+} from '@trapmap/server/lib/retrieval/scoring/boundary-match.js';
+import {
+  createSemanticCandidate,
+  mergeCandidates,
+} from '@trapmap/server/lib/retrieval/scoring/merge.js';
+import {
+  rerankCandidates,
+  toScoredEntriesFromReranked,
+} from '@trapmap/server/lib/retrieval/scoring/rerank.js';
+import type {
+  MergedCandidate,
+  RoutingChannel,
+  ScoredEntry,
+} from '@trapmap/server/lib/retrieval/types.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import type { Pool } from 'pg';
-import type { ResolvedAuthContext, SkillShareerServices } from '../../context.js';
-import { DEFAULT_FRESHNESS_CONFIG } from '../../decay/freshness.js';
-import { AppError } from '../../errors.js';
-import type { GraphIndexRepository } from '../../graph-index/repository.js';
-import { PostgresStore } from '../../persistence/postgres-store.js';
-import type { KnowledgeRecord } from '../../store.js';
-import { vectorSimilaritySearch } from '../recall/db-search.js';
-import { graphAssistedRecall as graphRecall } from '../recall/graph-assisted.js';
-import { keywordRecall, normalizeQuery } from '../recall/keyword.js';
-import { createPgKeywordRecall } from '../recall/pg-keyword.js';
-import { getQueryEmbedding, optimizedSemanticRecall } from '../recall/semantic.js';
-import { buildBoundaryExplanation, computeBoundaryScoreDelta } from '../scoring/boundary-match.js';
-import { createSemanticCandidate, mergeCandidates } from '../scoring/merge.js';
-import { rerankCandidates, toScoredEntriesFromReranked } from '../scoring/rerank.js';
-import type { MergedCandidate, RoutingChannel, ScoredEntry } from '../types.js';
 import type { ChannelRegistry } from './channel-registry.js';
 import type { StrategyRegistry } from './strategy-registry.js';
 

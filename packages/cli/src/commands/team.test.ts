@@ -2,8 +2,8 @@ import type { LoginResponse, Team, TeamListResponse } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { loadCliState } from '../lib/config.js';
-import * as http from '../lib/http.js';
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import * as http from '@trapmap/cli/lib/http.js';
 
 // Mock the dependencies
 vi.mock('../lib/http.js', () => ({
@@ -238,7 +238,7 @@ describe('team commands', () => {
 
       await program.parseAsync(['team', 'select', 'team-2'], { from: 'user' });
 
-      const { updateCliState } = await import('../lib/config.js');
+      const { updateCliState } = await import('@trapmap/cli/lib/config.js');
       expect(updateCliState).toHaveBeenCalled();
 
       consoleLogSpy.mockRestore();

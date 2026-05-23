@@ -6,7 +6,7 @@
  * (e.g. Anthropic's prompt caching with cache_control ephemeral blocks).
  */
 
-import type { CacheSection } from '../providers/types.js';
+import type { CacheSection } from '@trapmap/server/lib/ai/providers/types.js';
 import { splitPromptByBoundary } from './boundary-marker.js';
 
 // ---------------------------------------------------------------------------

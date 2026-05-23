@@ -8,17 +8,20 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { deriveFromPayloads, deriveSkillArtifactOutputs } from '../../lib/artifacts/derive.js';
-import { createSkillArtifactRecord } from '../../lib/artifacts/model.js';
-import { applyDerivedArtifactOutputs } from '../../lib/artifacts/model.js';
-import { createAuditEvent } from '../../lib/audit.js';
-import { AppError } from '../../lib/errors.js';
-import { createImportedEntry, normalizeArtifactBundle } from '../../lib/import-export.js';
-import { runPreReview } from '../../lib/pre-review.js';
-import { requirePermission } from '../../lib/rbac.js';
-import { resolveAuthContext } from '../../lib/session.js';
-import { nowIso } from '../../lib/store.js';
-import { logUserOperation } from '../../lib/user-ops-log.js';
+import {
+  deriveFromPayloads,
+  deriveSkillArtifactOutputs,
+} from '@trapmap/server/lib/artifacts/derive.js';
+import { createSkillArtifactRecord } from '@trapmap/server/lib/artifacts/model.js';
+import { applyDerivedArtifactOutputs } from '@trapmap/server/lib/artifacts/model.js';
+import { createAuditEvent } from '@trapmap/server/lib/audit.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { createImportedEntry, normalizeArtifactBundle } from '@trapmap/server/lib/import-export.js';
+import { runPreReview } from '@trapmap/server/lib/pre-review.js';
+import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 export const artifactsImportRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/operations/import', async (request) => {

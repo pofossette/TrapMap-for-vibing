@@ -12,19 +12,19 @@
  * Graph payloads remain server-internal and are not exposed through contracts.
  */
 
-import type { ChatProvider } from '../../ai/types.js';
-import type { SkillShareerStore } from '../../store.js';
-import { nowIso } from '../../store.js';
-import { extractBoundaryGraphEntities } from '../boundary-extract.js';
-import type { GraphIndexDocumentRecord } from '../graph-lite/documents.js';
-import { assertNoHardDependencyCycles } from '../graph-lite/graphology.js';
-import { extractGraphEntitiesWithLLM } from '../graph-lite/llm-extract.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import { extractBoundaryGraphEntities } from '@trapmap/server/lib/indexing/boundary-extract.js';
+import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import { assertNoHardDependencyCycles } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import { extractGraphEntitiesWithLLM } from '@trapmap/server/lib/indexing/graph-lite/llm-extract.js';
 import {
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
-} from '../graph-lite/store.js';
-import type { NormalizedIndexDocument } from '../types.js';
-import type { IndexAdapter, IndexSyncResult } from '../types.js';
+} from '@trapmap/server/lib/indexing/graph-lite/store.js';
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
+import type { IndexAdapter, IndexSyncResult } from '@trapmap/server/lib/indexing/types.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { buildTrapGraphDocument } from './graph-builders.js';
 
 // ---------------------------------------------------------------------------

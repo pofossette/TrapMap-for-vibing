@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ResolvedAuthContext, SkillShareerServices } from '../../context.js';
-import { searchKnowledge, searchKnowledgeV2 } from '../../retrieval.js';
-import { nowIso } from '../../store.js';
+import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
+import { searchKnowledge, searchKnowledgeV2 } from '@trapmap/server/lib/retrieval.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { assessGraphPlanReadiness, searchKnowledgeGraphPlan } from './graph-plan-search.js';
 import { compileTrapFirstPlan } from './plan-compiler.js';
 

@@ -4,7 +4,11 @@
  */
 
 import type { AnalysisSnapshot, DuplicateCase } from '@trapmap/contracts';
-import type { DerivedSkillProfileRecord, KnowledgeRecord, SkillArtifactRecord } from '../store.js';
+import type {
+  DerivedSkillProfileRecord,
+  KnowledgeRecord,
+  SkillArtifactRecord,
+} from '@trapmap/server/lib/store.js';
 
 /**
  * Input shape for computing candidate fingerprints.

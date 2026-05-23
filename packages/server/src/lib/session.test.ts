@@ -7,8 +7,8 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { buildServer } from '@trapmap/server/app.js';
 import type { FastifyInstance } from 'fastify';
-import { buildServer } from '../app.js';
 import { InMemoryAccessKeyRepository, InMemorySessionRepository } from './auth/index.js';
 import type { SkillShareerServices } from './context.js';
 import {

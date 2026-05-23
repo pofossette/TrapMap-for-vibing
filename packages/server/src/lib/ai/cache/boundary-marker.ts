@@ -6,7 +6,7 @@
  * __CACHE_BOUNDARY__ sentinel in the rendered content.
  */
 
-import type { CacheSection } from '../providers/types.js';
+import type { CacheSection } from '@trapmap/server/lib/ai/providers/types.js';
 
 // ---------------------------------------------------------------------------
 // Constants

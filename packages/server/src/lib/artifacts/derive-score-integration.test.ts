@@ -11,15 +11,15 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { deriveFromPayloads } from '../artifacts/derive.js';
-import { rankCapsules } from '../retrieval/capsules/capsule-recall.js';
-import type { ParsedIntent } from '../retrieval/types.js';
-import type { ArtifactFilePayloadRecord } from '../store.js';
-import { nowIso } from '../store.js';
+import { deriveFromPayloads } from '@trapmap/server/lib/artifacts/derive.js';
+import { rankCapsules } from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
+import type { ParsedIntent } from '@trapmap/server/lib/retrieval/types.js';
+import type { ArtifactFilePayloadRecord } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import type {
   DerivedSkillCapsuleRecord,
   SkillArtifactRecord,
-} from '../store/types/artifact-records.js';
+} from '@trapmap/server/lib/store/types/artifact-records.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

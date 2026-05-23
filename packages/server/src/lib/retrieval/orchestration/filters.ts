@@ -16,16 +16,16 @@
  */
 
 import type { BoundaryContext, RetrievalQuery } from '@trapmap/contracts';
-import type { ResolvedAuthContext } from '../../context.js';
-import { loadDecayConfig } from '../../decay/config.js';
-import { computeDecayState } from '../../decay/state-machine.js';
+import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
+import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
+import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
 import {
   extractGovernanceContext,
   isGovernanceEligible,
   matchesGovernanceFilters,
-} from '../../governance/index.js';
-import type { KnowledgeRecord } from '../../store.js';
-import { filterByBoundary } from '../scoring/boundary-match.js';
+} from '@trapmap/server/lib/governance/index.js';
+import { filterByBoundary } from '@trapmap/server/lib/retrieval/scoring/boundary-match.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Adapt a KnowledgeRecord to the GovernedEntity interface.

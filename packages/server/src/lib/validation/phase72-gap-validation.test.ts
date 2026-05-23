@@ -23,8 +23,8 @@ import {
   formatBenchmarkReport,
   measurePipelineStep,
   runRetrievalBenchmark,
-} from '../retrieval/benchmark.js';
-import type { KnowledgeRecord } from '../store.js';
+} from '@trapmap/server/lib/retrieval/benchmark.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 // Gap 2: Batch embeddings - mock embeddings module at top level
 vi.mock('../embeddings.js', () => ({
@@ -32,26 +32,26 @@ vi.mock('../embeddings.js', () => ({
   hashEmbeddingText: vi.fn().mockReturnValue('mock-hash-123'),
 }));
 
-import { generateEmbedding, hashEmbeddingText } from '../embeddings.js';
+import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
 import {
   cosineSimilarity,
   getBatchEmbeddings,
   optimizedSemanticRecall,
-} from '../retrieval/recall/semantic.js';
+} from '@trapmap/server/lib/retrieval/recall/semantic.js';
 
 // Gap 3: Reranking early termination
-import { rerankCandidates } from '../retrieval/scoring/rerank.js';
-import type { MergedCandidate } from '../retrieval/types.js';
+import { rerankCandidates } from '@trapmap/server/lib/retrieval/scoring/rerank.js';
+import type { MergedCandidate } from '@trapmap/server/lib/retrieval/types.js';
 
 // Gap 4: DB-level search
 import {
   ensureVectorIndex,
   hasVectorIndex,
   vectorSimilaritySearch,
-} from '../retrieval/recall/db-search.js';
+} from '@trapmap/server/lib/retrieval/recall/db-search.js';
 
 // Gap 6: Schema GIN index
-import { knowledgeKeywords } from '../persistence/schema.js';
+import { knowledgeKeywords } from '@trapmap/server/lib/persistence/schema.js';
 
 // =============================================================================
 // Helpers

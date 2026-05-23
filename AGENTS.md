@@ -34,7 +34,7 @@ pnpm dev:server
 pnpm dev:cli
 pnpm test
 pnpm typecheck
-pnpm lint
+pnpm check
 pnpm eval:smoke
 ```
 

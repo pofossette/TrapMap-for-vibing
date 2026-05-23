@@ -13,32 +13,38 @@
 
 import type { Pool } from 'pg';
 
-import type { UsageAnalyticsRepository } from '../analytics/index.js';
-import type { ArtifactRepository } from '../artifacts/index.js';
-import type { AuditRepository } from '../audit/index.js';
-import type { AccessKeyRepository, SessionRepository } from '../auth/index.js';
-import type { CandidateRepository } from '../candidates/index.js';
-import type { DuplicateRepository } from '../duplicates/index.js';
-import type { FeedbackRepository } from '../feedback/index.js';
-import type { GraphIndexRepository } from '../graph-index/index.js';
-import type { KnowledgeRepository } from '../knowledge/index.js';
-import type { LineageRepository } from '../lineage/index.js';
-import type { SkillShareerStore } from '../store.js';
-import type { MembershipRepository, TeamRepository } from '../teams/index.js';
-import type { UserRepository } from '../users/index.js';
+import type { UsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
+import type { ArtifactRepository } from '@trapmap/server/lib/artifacts/index.js';
+import type { AuditRepository } from '@trapmap/server/lib/audit/index.js';
+import type { AccessKeyRepository, SessionRepository } from '@trapmap/server/lib/auth/index.js';
+import type { CandidateRepository } from '@trapmap/server/lib/candidates/index.js';
+import type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
+import type { FeedbackRepository } from '@trapmap/server/lib/feedback/index.js';
+import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/index.js';
+import type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
+import type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type { MembershipRepository, TeamRepository } from '@trapmap/server/lib/teams/index.js';
+import type { UserRepository } from '@trapmap/server/lib/users/index.js';
 
-import { createUsageAnalyticsRepository } from '../analytics/index.js';
-import { createArtifactRepository } from '../artifacts/index.js';
-import { createAuditRepository } from '../audit/index.js';
-import { createAccessKeyRepository, createSessionRepository } from '../auth/index.js';
-import { createCandidateRepository } from '../candidates/index.js';
-import { createDuplicateRepository } from '../duplicates/index.js';
-import { createFeedbackRepository } from '../feedback/index.js';
-import { createGraphIndexRepository } from '../graph-index/index.js';
-import { createKnowledgeRepository } from '../knowledge/index.js';
-import { createLineageRepository } from '../lineage/index.js';
-import { createMembershipRepository, createTeamRepository } from '../teams/index.js';
-import { createUserRepository } from '../users/index.js';
+import { createUsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
+import { createArtifactRepository } from '@trapmap/server/lib/artifacts/index.js';
+import { createAuditRepository } from '@trapmap/server/lib/audit/index.js';
+import {
+  createAccessKeyRepository,
+  createSessionRepository,
+} from '@trapmap/server/lib/auth/index.js';
+import { createCandidateRepository } from '@trapmap/server/lib/candidates/index.js';
+import { createDuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
+import { createFeedbackRepository } from '@trapmap/server/lib/feedback/index.js';
+import { createGraphIndexRepository } from '@trapmap/server/lib/graph-index/index.js';
+import { createKnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
+import { createLineageRepository } from '@trapmap/server/lib/lineage/index.js';
+import {
+  createMembershipRepository,
+  createTeamRepository,
+} from '@trapmap/server/lib/teams/index.js';
+import { createUserRepository } from '@trapmap/server/lib/users/index.js';
 
 /**
  * Unified repository object containing all domain repositories.

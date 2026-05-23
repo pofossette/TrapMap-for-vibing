@@ -12,8 +12,8 @@
 
 import { createHash } from 'node:crypto';
 
-import { tokenize } from '../retrieval/recall/keyword.js';
-import type { KnowledgeRecord } from '../store.js';
+import { tokenize } from '@trapmap/server/lib/retrieval/recall/keyword.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import type { NormalizedIndexDocument } from './types.js';
 
 /**

@@ -12,7 +12,7 @@
 import { createRequire } from 'node:module';
 import type { Pool } from 'pg';
 
-import type { DuplicateCaseRecord, SkillShareerStore } from '../store.js';
+import type { DuplicateCaseRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 /**
  * Repository interface for duplicate case CRUD operations.

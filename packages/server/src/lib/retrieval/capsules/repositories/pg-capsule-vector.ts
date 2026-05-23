@@ -12,8 +12,11 @@ import { and, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { skillArtifactCapsuleEmbeddings } from '../../../persistence/schema.js';
-import type { CapsuleRecallCandidate, CapsuleRecallChannelName } from '../../types.js';
+import { skillArtifactCapsuleEmbeddings } from '@trapmap/server/lib/persistence/schema.js';
+import type {
+  CapsuleRecallCandidate,
+  CapsuleRecallChannelName,
+} from '@trapmap/server/lib/retrieval/types.js';
 
 export interface PgCapsuleVectorConfig {
   pool: Pool;

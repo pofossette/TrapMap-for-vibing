@@ -13,11 +13,11 @@
  * The pipeline is responsible for gating on lifecycleState before calling sync.
  */
 
-import { generateEmbedding } from '../../embeddings.js';
-import type { KnowledgeRecord } from '../../store.js';
-import { nowIso } from '../../store.js';
-import type { NormalizedIndexDocument } from '../types.js';
-import type { IndexAdapter, IndexSyncResult } from '../types.js';
+import { generateEmbedding } from '@trapmap/server/lib/embeddings.js';
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
+import type { IndexAdapter, IndexSyncResult } from '@trapmap/server/lib/indexing/types.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 type EntryRef = { entryId: string; revision: number };
 

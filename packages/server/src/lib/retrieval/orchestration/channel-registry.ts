@@ -7,8 +7,8 @@
  * Implementations must output scores normalized to [0, 1].
  */
 
-import type { KnowledgeRecord } from '../../store.js';
-import type { RecallCandidate } from '../types.js';
+import type { RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Pluggable recall channel interface.

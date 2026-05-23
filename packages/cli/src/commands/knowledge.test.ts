@@ -6,9 +6,9 @@ import type {
 import { Command } from 'commander';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as config from '../lib/config.js';
-import * as http from '../lib/http.js';
-import * as input from '../lib/input.js';
+import * as config from '@trapmap/cli/lib/config.js';
+import * as http from '@trapmap/cli/lib/http.js';
+import * as input from '@trapmap/cli/lib/input.js';
 
 // Mock the dependencies
 vi.mock('../lib/http.js', () => ({
@@ -908,7 +908,7 @@ describe('knowledge commands', () => {
 
   describe('profile-aware output', () => {
     it('renders codex command-result JSON for submit when output profile is configured', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
         serverUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',
@@ -953,7 +953,7 @@ describe('knowledge commands', () => {
     });
 
     it('renders codex command-result JSON for review-status when output profile is configured', async () => {
-      const { loadCliState } = await import('../lib/config.js');
+      const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
         serverUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',

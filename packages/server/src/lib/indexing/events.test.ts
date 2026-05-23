@@ -10,9 +10,9 @@
  */
 
 import type { LifecycleState } from '@trapmap/contracts';
+import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import { JsonStore as JsonStoreClass, nowIso } from '@trapmap/server/lib/store.js';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { SkillShareerStore, StoreData } from '../store.js';
-import { JsonStore as JsonStoreClass, nowIso } from '../store.js';
 import { determineKnowledgeIndexAction, runKnowledgeIndexEvent } from './events.js';
 import { AdapterRegistry } from './registry.js';
 import type { IndexAdapter, NormalizedIndexDocument } from './types.js';

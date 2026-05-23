@@ -2,9 +2,9 @@ import type { KnowledgeDeactivateResponse } from '@trapmap/contracts';
 import { knowledgeDeactivateResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
-import { loadCliState } from '../../lib/config.js';
-import { apiRequest, requireSessionToken } from '../../lib/http.js';
-import { printResult } from '../../lib/output.js';
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
+import { printResult } from '@trapmap/cli/lib/output.js';
 import type { OperationsCommandOptions } from './types.js';
 
 export function registerDeactivateCommand(

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { CacheSection } from '../providers/types.js';
+import type { CacheSection } from '@trapmap/server/lib/ai/providers/types.js';
 import {
   CACHE_BOUNDARY_MARKER,
   buildCacheControlForSection,

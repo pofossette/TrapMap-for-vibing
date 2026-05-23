@@ -14,11 +14,11 @@
  *   pnpm backfill-indexes
  */
 
+import { buildHybridAdapterRegistry } from '@trapmap/server/lib/indexing/adapters/index.js';
+import { normalizeKnowledgeIndexDocument } from '@trapmap/server/lib/indexing/normalize.js';
+import type { IndexSyncResult } from '@trapmap/server/lib/indexing/types.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import type { Pool } from 'pg';
-import { buildHybridAdapterRegistry } from '../indexing/adapters/index.js';
-import { normalizeKnowledgeIndexDocument } from '../indexing/normalize.js';
-import type { IndexSyncResult } from '../indexing/types.js';
-import type { SkillShareerStore } from '../store.js';
 
 export interface BackfillConfig {
   /** PostgreSQL connection pool */

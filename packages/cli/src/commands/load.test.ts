@@ -3,8 +3,8 @@ import { graphPlanSearchResponseSchema } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { describe, expect, it, vi } from 'vitest';
 
-import * as http from '../lib/http.js';
-import * as outputProfile from '../lib/output-profile.js';
+import * as http from '@trapmap/cli/lib/http.js';
+import * as outputProfile from '@trapmap/cli/lib/output-profile.js';
 import { registerLoadCommand } from './load.js';
 
 // Mock the dependencies
@@ -198,7 +198,7 @@ describe('CLI load command', () => {
   });
 
   it('should render codex profile output when configured', async () => {
-    const { loadCliState } = await import('../lib/config.js');
+    const { loadCliState } = await import('@trapmap/cli/lib/config.js');
     vi.mocked(loadCliState).mockResolvedValue({
       serverUrl: 'http://localhost:3000',
       sessionToken: 'mock-token',
@@ -235,7 +235,7 @@ describe('CLI load command', () => {
   });
 
   it('should render opencode markdown fallback sections when configured', async () => {
-    const { loadCliState } = await import('../lib/config.js');
+    const { loadCliState } = await import('@trapmap/cli/lib/config.js');
     vi.mocked(loadCliState).mockResolvedValue({
       serverUrl: 'http://localhost:3000',
       sessionToken: 'mock-token',
@@ -330,7 +330,7 @@ describe('CLI load command', () => {
   });
 
   it('should fall back to legacy graph formatter when tool-specific renderer fails', async () => {
-    const { loadCliState } = await import('../lib/config.js');
+    const { loadCliState } = await import('@trapmap/cli/lib/config.js');
     vi.mocked(loadCliState).mockResolvedValue({
       serverUrl: 'http://localhost:3000',
       sessionToken: 'mock-token',

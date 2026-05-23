@@ -10,9 +10,9 @@
  * Non-approved and deactivated entries have their index state removed.
  */
 
-import type { ChatProvider } from '../ai/types.js';
-import type { SkillShareerStore, StoreData } from '../store.js';
-import { nowIso } from '../store.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { graphIndexAdapter } from './adapters/graph.js';
 import { normalizeKnowledgeIndexDocument } from './normalize.js';
 import type { AdapterRegistry } from './registry.js';

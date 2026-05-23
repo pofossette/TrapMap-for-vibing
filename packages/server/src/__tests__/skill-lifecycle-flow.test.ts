@@ -11,12 +11,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { LifecycleState } from '@trapmap/contracts';
-import type { FastifyInstance } from 'fastify';
 import {
   buildTestServer,
   seedApprovedSkillArtifact,
-} from '../lib/retrieval/__fixtures__/auth-store-helpers.js';
-import { nowIso } from '../lib/store.js';
+} from '@trapmap/server/lib/retrieval/__fixtures__/auth-store-helpers.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import type { FastifyInstance } from 'fastify';
 
 // ---------------------------------------------------------------------------
 // Helper to seed artifact in specific lifecycle state

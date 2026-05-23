@@ -8,7 +8,7 @@
 
 import { execSync } from 'node:child_process';
 
-import type { AiPromptTaskType } from '../providers/types.js';
+import type { AiPromptTaskType } from '@trapmap/server/lib/ai/providers/types.js';
 import type { DynamicInjection } from './injections.js';
 
 // ---------------------------------------------------------------------------

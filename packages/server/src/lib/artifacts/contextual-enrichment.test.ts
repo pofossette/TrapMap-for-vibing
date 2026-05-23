@@ -1,6 +1,6 @@
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { DerivedSkillCapsuleRecord } from '@trapmap/server/lib/store/types/artifact-records.js';
 import { describe, expect, it } from 'vitest';
-import type { ChatProvider } from '../ai/types.js';
-import type { DerivedSkillCapsuleRecord } from '../store/types/artifact-records.js';
 import {
   ContextualEnrichmentCache,
   buildBaseContentForCache,

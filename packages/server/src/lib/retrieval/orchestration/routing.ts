@@ -6,7 +6,7 @@
  */
 
 import type { RetrievalStrategy, RoutingReason } from '@trapmap/contracts';
-import type { RoutingChannel } from '../types.js';
+import type { RoutingChannel } from '@trapmap/server/lib/retrieval/types.js';
 
 /** Contracts-layer channel union for type-safe boundary crossing */
 type ContractsChannel = 'semantic' | 'keyword' | 'graph' | 'capsule' | 'profile' | 'plan';

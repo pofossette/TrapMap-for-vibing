@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { NormalizedIndexDocument } from '../types.js';
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 
 // ---------------------------------------------------------------------------
 // Mutable mock state — tests set these before each test

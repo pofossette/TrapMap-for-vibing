@@ -13,7 +13,7 @@ import type { Boundary, LifecycleState } from '@trapmap/contracts';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { transitionLifecycleState } from '../lifecycle/state-machine.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import {
   knowledgeBoundaryContexts,
   knowledgeBoundaryEvidence,
@@ -26,13 +26,13 @@ import {
   knowledgeMaintenanceAssignments,
   knowledgeRevisions,
   lifecycleEvents,
-} from '../persistence/schema.js';
+} from '@trapmap/server/lib/persistence/schema.js';
 import type {
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
   KnowledgeRevisionRecord,
   MaintenanceMetaRecord,
-} from '../store.js';
+} from '@trapmap/server/lib/store.js';
 import type { KnowledgeRepository } from './repository.js';
 
 /**

@@ -21,8 +21,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { StoreData } from '../store.js';
-import { createEmptyStoreData } from '../store.js';
+import type { StoreData } from '@trapmap/server/lib/store.js';
+import { createEmptyStoreData } from '@trapmap/server/lib/store.js';
 import { PostgresStore } from './postgres-store.js';
 
 // ---------------------------------------------------------------------------

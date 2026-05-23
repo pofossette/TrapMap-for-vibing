@@ -11,8 +11,8 @@ import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { entityLineage } from '../persistence/schema.js';
-import type { EntityLineageRecord } from '../store.js';
+import { entityLineage } from '@trapmap/server/lib/persistence/schema.js';
+import type { EntityLineageRecord } from '@trapmap/server/lib/store.js';
 import type { LineageRepository } from './repository.js';
 
 /**

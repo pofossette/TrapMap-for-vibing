@@ -13,9 +13,9 @@ import {
   createSemanticCandidate,
   hasBothChannels,
   mergeCandidates,
-} from '../retrieval/scoring/merge.js';
-import type { RecallCandidate, TokenMatchDetail } from '../retrieval/types.js';
-import type { KnowledgeRecord } from '../store.js';
+} from '@trapmap/server/lib/retrieval/scoring/merge.js';
+import type { RecallCandidate, TokenMatchDetail } from '@trapmap/server/lib/retrieval/types.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 function makeEntry(id: string): KnowledgeRecord {
   return {

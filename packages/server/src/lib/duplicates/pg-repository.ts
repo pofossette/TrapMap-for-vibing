@@ -11,8 +11,11 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { candidateDuplicateCases, candidateDuplicateMatches } from '../persistence/schema.js';
-import type { DuplicateCaseRecord } from '../store.js';
+import {
+  candidateDuplicateCases,
+  candidateDuplicateMatches,
+} from '@trapmap/server/lib/persistence/schema.js';
+import type { DuplicateCaseRecord } from '@trapmap/server/lib/store.js';
 import type { DuplicateRepository } from './repository.js';
 
 /**

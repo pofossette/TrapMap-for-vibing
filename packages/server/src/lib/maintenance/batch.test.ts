@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { KnowledgeRecord } from '@trapmap/contracts';
 
-import { createEmptyStoreData, nowIso } from '../store.js';
-import type { SkillShareerStore } from '../store.js';
+import { createEmptyStoreData, nowIso } from '@trapmap/server/lib/store.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { executeMaintenanceOperation, planMaintenanceOperation } from './batch.js';
 import type { MaintenanceOperationInput } from './batch.js';
 

@@ -12,7 +12,7 @@
 
 import type { ConflictHint, ConflictRelation } from '@trapmap/contracts';
 
-import type { KnowledgeRecord, StoreData } from '../store.js';
+import type { KnowledgeRecord, StoreData } from '@trapmap/server/lib/store.js';
 
 /**
  * Build a Map from entryId to its conflicts.

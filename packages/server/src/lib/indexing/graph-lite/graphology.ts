@@ -11,7 +11,7 @@ import { hasCycle } from 'graphology-dag';
 import { subgraph } from 'graphology-operators';
 import { singleSourceLength } from 'graphology-shortest-path';
 
-import { buildContextNodeId } from '../boundary-normalize.js';
+import { buildContextNodeId } from '@trapmap/server/lib/indexing/boundary-normalize.js';
 import type { GraphEdgeRecord, GraphIndexDocumentRecord } from './documents.js';
 
 type GraphNodeAttributes = {

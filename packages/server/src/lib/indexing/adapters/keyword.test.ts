@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { nowIso } from '../../store.js';
-import { normalizeKnowledgeIndexDocument } from '../normalize.js';
-import type { NormalizedIndexDocument } from '../types.js';
+import { normalizeKnowledgeIndexDocument } from '@trapmap/server/lib/indexing/normalize.js';
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { keywordIndexAdapter } from './keyword.js';
 
 describe('keyword index adapter', () => {

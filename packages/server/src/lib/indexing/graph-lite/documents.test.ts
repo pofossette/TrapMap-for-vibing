@@ -1,5 +1,5 @@
+import type { StoreData } from '@trapmap/server/lib/indexing/store.js';
 import { describe, expect, it } from 'vitest';
-import type { StoreData } from '../store.js';
 import {
   type GraphEdgeRecord,
   type GraphIndexDocumentRecord,

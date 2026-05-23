@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import type { GraphIndexRepository } from '../../graph-index/repository.js';
+import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
 import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-} from '../../indexing/graph-lite/documents.js';
-import type { KnowledgeRecord } from '../../store.js';
+} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { graphAssistedRecall } from './graph-assisted.js';
 
 function createMockGraphIndexRepo(docs: GraphIndexDocumentRecord[] = []): GraphIndexRepository {

@@ -1,10 +1,10 @@
 import { createTeamRequestSchema, teamListResponseSchema, teamSchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { AppError } from '../lib/errors.js';
-import { requirePermission } from '../lib/rbac.js';
-import { resolveAuthContext } from '../lib/session.js';
-import { createSlug, nowIso } from '../lib/store.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+import { createSlug, nowIso } from '@trapmap/server/lib/store.js';
 
 export const teamRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/teams', async (request) => {

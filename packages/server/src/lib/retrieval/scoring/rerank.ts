@@ -21,8 +21,8 @@
  */
 
 import type { BoundaryContext, FreshnessDecayConfig } from '@trapmap/contracts';
-import { computeFreshnessMultiplier } from '../../decay/freshness.js';
-import type { MergedCandidate, ScoredEntry } from '../types.js';
+import { computeFreshnessMultiplier } from '@trapmap/server/lib/decay/freshness.js';
+import type { MergedCandidate, ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
 import { buildBoundaryExplanation, computeBoundaryScoreDelta } from './boundary-match.js';
 
 /**

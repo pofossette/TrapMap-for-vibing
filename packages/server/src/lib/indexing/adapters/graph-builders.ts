@@ -6,13 +6,13 @@
  * candidate additions before any write.
  */
 
-import { buildTrapGraphDocument as buildDocument } from '../graph-lite/documents.js';
+import { buildTrapGraphDocument as buildDocument } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-} from '../graph-lite/documents.js';
-import type { NormalizedIndexDocument } from '../types.js';
+} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 
 /**
  * Input for building a trap graph document from a normalized document and extraction results.

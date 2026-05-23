@@ -23,10 +23,10 @@ vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(),
 }));
 
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest } from '@trapmap/cli/lib/http.js';
 // Import after mocking
 import { Command } from 'commander';
-import { loadCliState } from '../lib/config.js';
-import { apiRequest } from '../lib/http.js';
 import { registerOperationsCommands } from './operations.js';
 
 // Mock the named import - get a reference to the mock function

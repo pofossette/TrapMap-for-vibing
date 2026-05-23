@@ -12,9 +12,9 @@ import type { MaintenanceAction } from '@trapmap/contracts';
 
 import type { ActorRef } from '@trapmap/contracts';
 
-import { AppError } from '../errors.js';
-import type { KnowledgeRecord, SkillShareerStore, StoreData } from '../store.js';
-import { nowIso } from '../store.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import type { KnowledgeRecord, SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { computeDefaultReviewBy, toActorRefFromRecord } from './model.js';
 
 /**

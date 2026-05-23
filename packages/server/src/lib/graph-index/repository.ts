@@ -18,9 +18,9 @@ import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-} from '../indexing/graph-lite/documents.js';
-import { graphIndexDocuments } from '../persistence/schema.js';
-import type { SkillShareerStore } from '../store.js';
+} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import { graphIndexDocuments } from '@trapmap/server/lib/persistence/schema.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 /**
  * Repository interface for graph index document CRUD operations.

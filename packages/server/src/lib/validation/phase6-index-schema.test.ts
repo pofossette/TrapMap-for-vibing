@@ -6,11 +6,11 @@
  * tracking fields needed for index sync and reconciliation.
  */
 
-import { describe, expect, it } from 'vitest';
 import {
   skillArtifactCapsuleEmbeddings,
   skillArtifactCapsuleKeywords,
-} from '../persistence/schema.js';
+} from '@trapmap/server/lib/persistence/schema.js';
+import { describe, expect, it } from 'vitest';
 
 describe('Phase 6: Capsule index schema validation', () => {
   describe('skill_artifact_capsule_keywords', () => {

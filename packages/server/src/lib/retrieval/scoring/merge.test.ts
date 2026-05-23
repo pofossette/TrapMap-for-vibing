@@ -12,8 +12,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { KnowledgeRecord } from '../../store.js';
-import type { MergedCandidate, RecallCandidate, TokenMatchDetail } from '../types.js';
+import type {
+  MergedCandidate,
+  RecallCandidate,
+  TokenMatchDetail,
+} from '@trapmap/server/lib/retrieval/types.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import {
   DEFAULT_KEYWORD_WEIGHT,
   DEFAULT_SEMANTIC_WEIGHT,
