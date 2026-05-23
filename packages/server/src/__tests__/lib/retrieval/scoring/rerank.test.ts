@@ -1,12 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { rerankMergedCapsules } from '../../../../lib/retrieval/capsules/scoring/rerank.js';
 import type {
+  ArtifactGovernanceFilters,
   CapsuleRecallChannelName,
   MergedCapsuleCandidate,
   ParsedIntent,
 } from '../../../../lib/retrieval/types.js';
 import type { SkillArtifactRecord } from '../../../../lib/store.js';
 import { createMockArtifact, createMockCapsule } from '../test-helpers.js';
+
+function makeFilters(
+  overrides: Partial<ArtifactGovernanceFilters> = {},
+): ArtifactGovernanceFilters {
+  return {
+    teamId: null,
+    securityLevel: 0,
+    isSystemAdmin: true,
+    ...overrides,
+  };
+}
 
 function makeMerged(
   overrides: Partial<MergedCapsuleCandidate> & { capsuleId: string; artifactId: string },
@@ -107,7 +119,7 @@ describe('rerankMergedCapsules', () => {
       }),
     ];
 
-    const result = rerankMergedCapsules(merged, artifacts, makeIntent(), 10);
+    const result = rerankMergedCapsules(merged, artifacts, makeIntent(), 10, makeFilters());
 
     expect(result).toBeInstanceOf(Array);
 
@@ -157,7 +169,7 @@ describe('rerankMergedCapsules', () => {
       makeMerged({ capsuleId: 'c3', artifactId: 'a3' }),
     ];
 
-    const result = rerankMergedCapsules(merged, allArtifacts, makeIntent(), 1);
+    const result = rerankMergedCapsules(merged, allArtifacts, makeIntent(), 1, makeFilters());
 
     expect(result.length).toBeLessThanOrEqual(1);
   });
@@ -168,7 +180,7 @@ describe('rerankMergedCapsules', () => {
       makeMerged({ capsuleId: 'c2', artifactId: 'a2' }),
     ];
 
-    const result = rerankMergedCapsules(merged, artifacts, makeIntent(), 10);
+    const result = rerankMergedCapsules(merged, artifacts, makeIntent(), 10, makeFilters());
 
     if (result.length >= 2) {
       expect(result[0].finalScore).toBeGreaterThanOrEqual(result[1].finalScore);
@@ -181,7 +193,7 @@ describe('rerankMergedCapsules', () => {
       makeMerged({ capsuleId: 'c2', artifactId: 'a2' }),
     ];
 
-    const result = rerankMergedCapsules(merged, artifacts, makeIntent(), 10);
+    const result = rerankMergedCapsules(merged, artifacts, makeIntent(), 10, makeFilters());
 
     if (result.length >= 2) {
       // c1 (docker node) should rank higher than c2 (typescript)
@@ -199,7 +211,7 @@ describe('rerankMergedCapsules', () => {
       }),
     ];
 
-    const result = rerankMergedCapsules(merged, artifacts, makeIntent(), 10);
+    const result = rerankMergedCapsules(merged, artifacts, makeIntent(), 10, makeFilters());
 
     expect(result.length).toBeGreaterThan(0);
     expect(result[0].reason).toContain('Matched via');
@@ -217,7 +229,7 @@ describe('rerankMergedCapsules', () => {
       makeMerged({ capsuleId: 'c1', artifactId: 'a1' }),
     ];
 
-    const result = rerankMergedCapsules(merged, artifacts, makeIntent(), 10);
+    const result = rerankMergedCapsules(merged, artifacts, makeIntent(), 10, makeFilters());
 
     // Only c1 should be returned since 'nonexistent' has no capsule data
     expect(result.length).toBe(1);
@@ -225,7 +237,7 @@ describe('rerankMergedCapsules', () => {
   });
 
   it('should handle empty merged array', () => {
-    const result = rerankMergedCapsules([], artifacts, makeIntent(), 10);
+    const result = rerankMergedCapsules([], artifacts, makeIntent(), 10, makeFilters());
 
     expect(result).toEqual([]);
   });
@@ -233,7 +245,7 @@ describe('rerankMergedCapsules', () => {
   it('should handle empty artifacts array', () => {
     const merged: MergedCapsuleCandidate[] = [makeMerged({ capsuleId: 'c1', artifactId: 'a1' })];
 
-    const result = rerankMergedCapsules(merged, [], makeIntent(), 10);
+    const result = rerankMergedCapsules(merged, [], makeIntent(), 10, makeFilters());
 
     expect(result).toEqual([]);
   });

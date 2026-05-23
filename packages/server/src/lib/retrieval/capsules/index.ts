@@ -22,14 +22,21 @@ export {
   computeStackPathBoost,
 } from './capsule-recall.js';
 export { capsuleHeuristicChannel } from './channels/heuristic.js';
-export { capsuleKeywordChannel, capsuleKeywordRecall } from './channels/keyword.js';
+export {
+  createCapsuleKeywordChannel,
+  capsuleKeywordChannel,
+  capsuleKeywordRecall,
+} from './channels/keyword.js';
+export type { CapsuleKeywordChannelOptions } from './channels/keyword.js';
 export { createCapsuleGraphChannel } from './channels/graph.js';
 export {
   buildCapsuleEmbeddingText,
   capsuleSemanticChannel,
   capsuleSemanticRecall,
+  createCapsuleSemanticChannel,
   hashCapsuleEmbeddingText,
 } from './channels/semantic.js';
+export type { CapsuleSemanticChannelOptions } from './channels/semantic.js';
 export { extractStackPathHints, normalizeToken, parseSeedIntent } from './intent.js';
 export { searchSkillsByContent } from './skill-lookup.js';
 export { mergeCapsuleCandidates } from './scoring/merge.js';

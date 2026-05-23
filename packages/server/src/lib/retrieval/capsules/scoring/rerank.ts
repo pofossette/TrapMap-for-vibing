@@ -1,5 +1,10 @@
 import type { DerivedSkillCapsuleRecord, SkillArtifactRecord } from '../../../store.js';
-import type { CapsuleCandidate, MergedCapsuleCandidate, ParsedIntent } from '../../types.js';
+import type {
+  ArtifactGovernanceFilters,
+  CapsuleCandidate,
+  MergedCapsuleCandidate,
+  ParsedIntent,
+} from '../../types.js';
 import {
   computeContextMatchScore,
   computeErrorScore,
@@ -33,13 +38,10 @@ export function rerankMergedCapsules(
   artifacts: SkillArtifactRecord[],
   intent: ParsedIntent,
   maxResults: number,
+  filters: ArtifactGovernanceFilters,
 ): CapsuleCandidate[] {
   const governedIds = new Set(
-    extractGovernedCapsules(artifacts, {
-      teamId: null,
-      securityLevel: 0,
-      isSystemAdmin: true,
-    }).map((g) => g.capsule.capsuleId),
+    extractGovernedCapsules(artifacts, filters).map((g) => g.capsule.capsuleId),
   );
 
   const capsuleDataMap = buildCapsuleDataMap(artifacts);

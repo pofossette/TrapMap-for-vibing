@@ -6,8 +6,13 @@
  *
  * Field weights (from v2 multi-recall plan):
  *   labels 3.0 | problem 2.5 | goal 2.0 | situation 1.5 | contextualPrefix 1.5 | content 1.0
+ *
+ * Supports dual-path recall:
+ *   - PG path: uses skill_artifact_capsule_keywords index table (when pool + feature flag)
+ *   - Memory path: in-memory tokenization and field-weighted scoring (always available)
  */
 
+import type { Pool } from 'pg';
 import type { SkillArtifactRecord } from '../../../store.js';
 import { normalizeQuery, tokenize } from '../../recall/keyword.js';
 import type {
@@ -18,6 +23,10 @@ import type {
   ParsedIntent,
 } from '../../types.js';
 import { extractGovernedCapsules } from '../capsule-recall.js';
+import {
+  type PgCapsuleKeywordFilters,
+  createPgCapsuleKeywordRecall,
+} from '../repositories/pg-capsule-keyword.js';
 
 const FIELD_WEIGHTS: Record<string, number> = {
   labels: 3.0,
@@ -133,21 +142,56 @@ export async function capsuleKeywordRecall(
   return candidates.slice(0, maxResults);
 }
 
-/**
- * Capsule keyword recall channel.
- *
- * Independent lexical recall channel that returns topN capsule candidates.
- * Results enter the merge layer and do not directly control final assembly.
- */
-export const capsuleKeywordChannel: CapsuleRecallChannel = {
-  name: 'capsule-keyword' as CapsuleRecallChannelName,
+function governanceToPgKeywordFilters(filters: ArtifactGovernanceFilters): PgCapsuleKeywordFilters {
+  return {
+    teamId: filters.teamId,
+    securityLevel: filters.securityLevel,
+    isSystemAdmin: filters.isSystemAdmin,
+    scopes: [],
+  };
+}
 
-  async recall(
-    artifacts: SkillArtifactRecord[],
-    intent: ParsedIntent,
-    filters: ArtifactGovernanceFilters,
-    maxResults: number,
-  ): Promise<CapsuleRecallCandidate[]> {
-    return capsuleKeywordRecall(artifacts, intent, filters, maxResults);
-  },
-};
+export interface CapsuleKeywordChannelOptions {
+  pgPool?: Pool;
+  pgFeatureFlag?: () => boolean;
+}
+
+/**
+ * Create a capsule keyword recall channel.
+ *
+ * When pgPool is provided and pgFeatureFlag returns true (or is absent),
+ * uses PostgreSQL lexical search via skill_artifact_capsule_keywords index.
+ * Falls back to in-memory tokenization when PG is unavailable
+ * or returns no results.
+ */
+export function createCapsuleKeywordChannel(
+  options?: CapsuleKeywordChannelOptions,
+): CapsuleRecallChannel {
+  const pgRecall = options?.pgPool
+    ? createPgCapsuleKeywordRecall({
+        pool: options.pgPool,
+        featureFlag: options.pgFeatureFlag,
+      })
+    : null;
+
+  return {
+    name: 'capsule-keyword' as CapsuleRecallChannelName,
+
+    async recall(
+      artifacts: SkillArtifactRecord[],
+      intent: ParsedIntent,
+      filters: ArtifactGovernanceFilters,
+      maxResults: number,
+    ): Promise<CapsuleRecallCandidate[]> {
+      if (pgRecall) {
+        const pgFilters = governanceToPgKeywordFilters(filters);
+        const pgResults = await pgRecall(intent.seed, pgFilters, maxResults);
+        if (pgResults.length > 0) return pgResults;
+      }
+      return capsuleKeywordRecall(artifacts, intent, filters, maxResults);
+    },
+  };
+}
+
+/** @deprecated Use createCapsuleKeywordChannel() instead. */
+export const capsuleKeywordChannel: CapsuleRecallChannel = createCapsuleKeywordChannel();

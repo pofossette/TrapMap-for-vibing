@@ -21,6 +21,7 @@ import { enrichMatchesWithConflicts } from '../../conflict/enrich.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '../../context.js';
 import { generateEmbedding, hashEmbeddingText } from '../../embeddings.js';
 import { AppError } from '../../errors.js';
+import { PostgresStore } from '../../persistence/postgres-store.js';
 import type { PipelineStep } from '../../rag-log.js';
 import { generateQueryId, logRagRetrieval } from '../../rag-log.js';
 import type { KnowledgeRecord } from '../../store.js';
@@ -379,13 +380,37 @@ export async function searchKnowledgeV2(
     // embedding-based recall for paraphrase/rewording gaps; heuristic channel preserves
     // backward-compatible intent-aware scoring; keyword channel provides independent
     // lexical recall.
+    //
+    // Keyword and semantic channels support dual-path recall:
+    //   - PG path (when RETRIEVAL_CAPSULE_PG_* env var is 'true' and pool is available)
+    //   - Memory path (always available as fallback)
+    const pgPool = services.store instanceof PostgresStore ? services.store.getPool() : null;
+
     const channelRegistry = new CapsuleChannelRegistry();
     const { capsuleHeuristicChannel } = await import('../capsules/channels/heuristic.js');
-    const { capsuleKeywordChannel } = await import('../capsules/channels/keyword.js');
-    const { capsuleSemanticChannel } = await import('../capsules/channels/semantic.js');
+    const { createCapsuleKeywordChannel } = await import('../capsules/channels/keyword.js');
+    const { createCapsuleSemanticChannel } = await import('../capsules/channels/semantic.js');
     channelRegistry.register(capsuleHeuristicChannel);
-    channelRegistry.register(capsuleKeywordChannel);
-    channelRegistry.register(capsuleSemanticChannel);
+    channelRegistry.register(
+      createCapsuleKeywordChannel(
+        pgPool
+          ? {
+              pgPool,
+              pgFeatureFlag: () => process.env.RETRIEVAL_CAPSULE_PG_KEYWORD === 'true',
+            }
+          : undefined,
+      ),
+    );
+    channelRegistry.register(
+      createCapsuleSemanticChannel(
+        pgPool
+          ? {
+              pgPool,
+              pgFeatureFlag: () => process.env.RETRIEVAL_CAPSULE_PG_SEMANTIC === 'true',
+            }
+          : undefined,
+      ),
+    );
     // Graph channel uses a factory function because it requires GraphIndexRepository.
     // Register after keyword/semantic so it supplements recall without dominating.
     try {

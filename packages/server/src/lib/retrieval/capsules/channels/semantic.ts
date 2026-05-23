@@ -7,9 +7,14 @@
  * Embedding text builder (from v2 multi-recall plan):
  *   labels → situation → problem → goal → contextualPrefix → content
  * Content is truncated to 500 chars to avoid embedding dilution.
+ *
+ * Supports dual-path recall:
+ *   - PG path: uses pgvector similarity search on skill_artifact_capsule_embeddings
+ *   - Memory path: in-memory embedding generation and cosine similarity (always available)
  */
 
 import { createHash } from 'node:crypto';
+import type { Pool } from 'pg';
 import { generateEmbedding } from '../../../embeddings.js';
 import type { SkillArtifactRecord } from '../../../store.js';
 import { cosineSimilarity } from '../../recall/semantic.js';
@@ -21,6 +26,10 @@ import type {
   ParsedIntent,
 } from '../../types.js';
 import { extractGovernedCapsules } from '../capsule-recall.js';
+import {
+  type PgCapsuleVectorFilters,
+  createPgCapsuleVectorRecall,
+} from '../repositories/pg-capsule-vector.js';
 
 const MAX_CONTENT_CHARS = 500;
 
@@ -127,22 +136,64 @@ export async function capsuleSemanticRecall(
   return candidates.slice(0, maxResults);
 }
 
-/**
- * Capsule semantic recall channel.
- *
- * Independent semantic recall channel that returns topN capsule candidates.
- * Results enter the merge layer and do not directly control final assembly.
- * Falls back gracefully: returns empty array on embedding failure.
- */
-export const capsuleSemanticChannel: CapsuleRecallChannel = {
-  name: 'capsule-semantic' as CapsuleRecallChannelName,
+function governanceToPgVectorFilters(filters: ArtifactGovernanceFilters): PgCapsuleVectorFilters {
+  return {
+    teamId: filters.teamId,
+    securityLevel: filters.securityLevel,
+    isSystemAdmin: filters.isSystemAdmin,
+    scopes: [],
+  };
+}
 
-  async recall(
-    artifacts: SkillArtifactRecord[],
-    intent: ParsedIntent,
-    filters: ArtifactGovernanceFilters,
-    maxResults: number,
-  ): Promise<CapsuleRecallCandidate[]> {
-    return capsuleSemanticRecall(artifacts, intent, filters, maxResults);
-  },
-};
+export interface CapsuleSemanticChannelOptions {
+  pgPool?: Pool;
+  pgFeatureFlag?: () => boolean;
+}
+
+/**
+ * Create a capsule semantic recall channel.
+ *
+ * When pgPool is provided and pgFeatureFlag returns true (or is absent),
+ * uses PostgreSQL pgvector similarity search on skill_artifact_capsule_embeddings.
+ * Falls back to in-memory embedding generation and cosine similarity
+ * when PG is unavailable or returns no results.
+ */
+export function createCapsuleSemanticChannel(
+  options?: CapsuleSemanticChannelOptions,
+): CapsuleRecallChannel {
+  const pgRecall = options?.pgPool
+    ? createPgCapsuleVectorRecall({
+        pool: options.pgPool,
+        featureFlag: options.pgFeatureFlag,
+      })
+    : null;
+
+  return {
+    name: 'capsule-semantic' as CapsuleRecallChannelName,
+
+    async recall(
+      artifacts: SkillArtifactRecord[],
+      intent: ParsedIntent,
+      filters: ArtifactGovernanceFilters,
+      maxResults: number,
+    ): Promise<CapsuleRecallCandidate[]> {
+      if (pgRecall) {
+        const queryText = intent.seed || intent.normalized;
+        if (queryText && queryText.trim().length > 0) {
+          try {
+            const queryVector = await generateEmbedding(queryText);
+            const pgFilters = governanceToPgVectorFilters(filters);
+            const pgResults = await pgRecall(queryVector, pgFilters, maxResults);
+            if (pgResults.length > 0) return pgResults;
+          } catch {
+            // PG path failed, fall through to memory
+          }
+        }
+      }
+      return capsuleSemanticRecall(artifacts, intent, filters, maxResults);
+    },
+  };
+}
+
+/** @deprecated Use createCapsuleSemanticChannel() instead. */
+export const capsuleSemanticChannel: CapsuleRecallChannel = createCapsuleSemanticChannel();

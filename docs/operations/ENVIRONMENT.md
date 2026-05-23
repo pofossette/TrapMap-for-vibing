@@ -18,9 +18,9 @@
 
 > 设置 `TRAPMAP_DATABASE_URL` 后，服务器启动时会自动通过 Drizzle migration runner 运行数据库迁移（位于 `packages/server/drizzle/`）。迁移包含所有核心表、索引和 pgvector 扩展的创建。
 
-### PG Recall 配置 (Phase 6)
+### PG Recall 配置 (Phase 6，多路召回已全线落地)
 
-多路召回管线的 keyword 和 semantic 通道支持 PostgreSQL 索引增强。以下环境变量控制 PG recall 行为：
+多路召回管线（heuristic + keyword + semantic + graph 四通道）已是 v2 检索的默认唯一路径，无需额外开关启用。以下环境变量控制 keyword 和 semantic 通道的 PostgreSQL 索引增强：
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|

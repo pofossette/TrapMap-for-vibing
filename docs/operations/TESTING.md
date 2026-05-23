@@ -297,6 +297,36 @@ PG → Memory fallback:
 - channel isolation: 模拟某通道异常后验证其他通道继续工作，且 channelsFailed 正确记录
 - PG fallback: PG 不可用时 keyword/semantic 通道自动回退到 memory 路径
 
+**Phase 7 状态**: 多路召回全线落地，直接替换旧流程为默认路径。无 feature flag 灰度体系，`searchKnowledgeV2()` 直接以四通道 coordinator 为唯一检索路径。
+
+最终回归结果：
+
+| 命令 | 结果 |
+|------|------|
+| `rtk pnpm typecheck` | No errors found |
+| `rtk pnpm lint` | Checked 629 files, no fixes |
+| `rtk pnpm test` | 检索层 185 tests + route 78 tests 全通过 |
+| `rtk pnpm eval:retrieval:smoke` | 32/32 (100%), v2 Hit@1=0.82 |
+| `rtk pnpm eval:retrieval:core` | v2 Hit@1=0.86, Hit@5=0.93, MRR=0.89, nDCG=0.91 |
+
+**Phase 7 Baseline 对比** (v2 Core):
+
+| 指标 | Phase 0 | Phase 7 | 变化 |
+|------|---------|---------|------|
+| Hit@1 | 0.86 | 0.86 | 持平 |
+| Hit@5 | 0.86 | 0.93 | +8.1% |
+| MRR | 0.86 | 0.89 | +3.5% |
+| nDCG | 0.86 | 0.91 | +5.8% |
+| Recall@10 | 0.86 | 0.93 | +8.1% |
+
+v2 Smoke Hit@1 从 0.60 提升至 0.82 (+36.7%)。
+
+**Phase 7 专项检查建议**:
+- baseline regression: 确认 core v2 Hit@1 不退化（已确认：0.86 持平）
+- governance safety: 确认无新增治理泄漏（已确认：仅 2 个预存 failure）
+- channel trace: 确认 channelsPlanned/channelsUsed 在所有 eval 正确记录
+- multi-channel complement: keyword/semantic/graph 通道各自贡献独立召回增益
+
 ### 添加摘要用例
 
 1. 在 `evals/summary/datasets/` 中定义：

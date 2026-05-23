@@ -1,8 +1,5 @@
-import type {
-  CapsuleRecallCandidate,
-  CapsuleRecallChannel,
-  CapsuleRecallChannelName,
-} from '../types.js';
+import type { CapsuleRecallChannel, CapsuleRecallChannelName } from '../types.js';
+import { capsuleHeuristicChannel } from './channels/heuristic.js';
 
 /**
  * Registry for capsule recall channels.
@@ -55,5 +52,6 @@ export class CapsuleChannelRegistry {
  */
 export function createDefaultCapsuleChannelRegistry(): CapsuleChannelRegistry {
   const registry = new CapsuleChannelRegistry();
+  registry.register(capsuleHeuristicChannel);
   return registry;
 }

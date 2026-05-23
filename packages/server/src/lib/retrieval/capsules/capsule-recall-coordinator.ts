@@ -86,6 +86,7 @@ export class CapsuleRecallCoordinator {
       input.artifacts,
       input.intent,
       input.maxResults,
+      input.governanceFilters,
     );
 
     const capsuleScoreMap = new Map(capsuleCandidates.map((c) => [c.capsuleId, c]));

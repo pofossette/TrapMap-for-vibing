@@ -259,7 +259,7 @@ POST /v3/retrieval/search
 
 ```mermaid
 flowchart TB
-    subgraph 胶囊检索["v2 胶囊检索流程 (Phase 3 多路召回架构)"]
+    subgraph 胶囊检索["v2 胶囊检索流程 (多路召回架构，全阶段已完成)"]
         A["查询输入"]
         
         subgraph 解析["解析与治理"]
@@ -267,15 +267,17 @@ flowchart TB
             B2["快照与治理过滤<br/>(isArtifactGovernanceEligible)"]
         end
 
-        subgraph 召回["CapsuleRecallCoordinator"]
-            C1["通道注册表<br/>(CapsuleChannelRegistry)"]
-            C2["heuristic 通道<br/>(capsuleHeuristicChannel)"]
-            C3["keyword 通道<br/>(capsuleKeywordChannel)"]
-            C4["semantic 通道<br/>(capsuleSemanticChannel)"]
+        subgraph 多通道召回["多通道召回 (CapsuleRecallCoordinator)"]
+            C0["通道注册表<br/>(CapsuleChannelRegistry)"]
+            C1["heuristic 通道<br/>(capsuleHeuristicChannel)"]
+            C2["keyword 通道<br/>(capsuleKeywordChannel)"]
+            C3["semantic 通道<br/>(capsuleSemanticChannel)"]
+            C4["graph 通道<br/>(capsuleGraphChannel)"]
         end
 
-        subgraph 评分["多维评分 (CAPS-04-CTX)"]
-            D["- problem × 0.30<br/>- situation × 0.21<br/>- goal × 0.17<br/>- keyword × 0.17<br/>- contextualPrefix × 0.15"]
+        subgraph 融合["Merge & Rerank"]
+            D1["RRF 融合<br/>(mergeCapsuleCandidates)"]
+            D2["精排<br/>(rerankMergedCapsules)"]
         end
 
         subgraph 组装["响应组装"]
@@ -286,7 +288,7 @@ flowchart TB
             F["capsules + profileHints<br/>+ activationHints<br/>+ optional summary"]
         end
 
-        A --> B1 --> B2 --> C1 --> C2 & C3 & C4 --> D --> E --> F
+        A --> B1 --> B2 --> C0 --> C1 & C2 & C3 & C4 --> D1 --> D2 --> E --> F
     end
 ```
 
@@ -315,7 +317,7 @@ v2 检索评分支持 Anthropic Contextual Retrieval 策略。派生阶段生成
 
 ### v2 多路召回架构 (Phase 4)
 
-v2 检索管线已重构为可扩展的多路召回架构。当前处于 Phase 4（merge/rerank 正式落地），heuristic + keyword + semantic 三通道并行，通过 RRF 融合和独立重排层产生最终排序。
+v2 检索管线已重构为可扩展的多路召回架构。全部阶段已完成（Phase 1-7），heuristic + keyword + semantic + graph 四通道并行召回，通过 RRF 融合和独立重排层产生最终排序。这是 v2 检索的唯一路径，无旧版回退代码。
 
 #### 架构分层
 
@@ -501,7 +503,7 @@ graph recall artifact IDs -> map to artifact capsules -> rerank within artifact
 | Phase 4 | merge / rerank 落地 | RRF 融合、独立重排层、channelsPlanned/Used trace、多通道 reason | ✅ 完成 |
 | Phase 5 | graph 通道接入 | `capsule-graph` 通道、artifact-to-capsule 映射 | ✅ 完成 |
 | Phase 6 | 索引同步与运维 | index-sync、rebuild、health check、fallback 策略 | ✅ 完成 |
-| Phase 7 | 灰度发布与回归收口 | feature flag、灰度顺序、最终回归 | 🔜 待实施 |
+| Phase 7 | 回归收口与基线对比 | 最终回归验证、baseline 对比、文档收口 | ✅ 完成 |
 
 #### 索引同步与运维 (Phase 6)
 

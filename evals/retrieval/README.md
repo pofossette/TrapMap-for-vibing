@@ -142,6 +142,48 @@ expected: {
 - CI 接线 → Phase 28
 - 摘要/法官评测 → Phase 27
 
+## v2 多路召回基准 (Phase 7)
+
+多路召回管线（heuristic + keyword + semantic + graph 四通道）已全线落地为 v2 检索唯一路径。
+
+### 当前基准指标
+
+**Smoke 层** (11 个 v2 用例):
+
+| 指标 | 值 |
+|------|-----|
+| Hit@1 | 0.82 |
+| Hit@5 | 0.82 |
+| Hit@10 | 0.82 |
+| MRR | 0.82 |
+| nDCG | 0.82 |
+| Recall@10 | 0.82 |
+| Governance | 0 failures |
+
+**Core 层** (14 个 v2 用例):
+
+| 指标 | 值 |
+|------|-----|
+| Hit@1 | 0.86 |
+| Hit@5 | 0.93 |
+| Hit@10 | 0.93 |
+| MRR | 0.89 |
+| nDCG | 0.91 |
+| Recall@10 | 0.93 |
+| Governance | 1 (pre-existing) |
+
+### 基准运行命令
+
+```bash
+# 写入新基线
+pnpm eval:retrieval:smoke -- --baseline ./reports/baseline-v2-smoke.json --write-baseline
+pnpm eval:retrieval:core -- --baseline ./reports/baseline-v2-core.json --write-baseline
+
+# 与基线比较
+pnpm eval:retrieval:smoke -- --baseline ./reports/baseline-v2-smoke.json
+pnpm eval:retrieval:core -- --baseline ./reports/baseline-v2-core.json
+```
+
 ## 指标（Phase 26）
 
 运行器为每个用例和切片计算以下排序指标：
