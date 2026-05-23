@@ -373,12 +373,14 @@ export async function searchKnowledgeV2(
 
     const artifacts = data.skillArtifacts ?? [];
 
-    // Phase 1: Create coordinator with heuristic channel for multi-recall seam.
-    // In Phase 1, only the heuristic channel is active, preserving exact
-    // backward-compatible behavior. Future phases will add more channels.
+    // Phase 2: Create coordinator with heuristic + keyword channels.
+    // Keyword channel provides independent lexical recall; heuristic channel
+    // preserves backward-compatible intent-aware scoring as primary engine.
     const channelRegistry = new CapsuleChannelRegistry();
     const { capsuleHeuristicChannel } = await import('../capsules/channels/heuristic.js');
+    const { capsuleKeywordChannel } = await import('../capsules/channels/keyword.js');
     channelRegistry.register(capsuleHeuristicChannel);
+    channelRegistry.register(capsuleKeywordChannel);
     const coordinator = new CapsuleRecallCoordinator(channelRegistry);
 
     const recallResult = await timedStep(
@@ -399,7 +401,8 @@ export async function searchKnowledgeV2(
 
     const rankedCandidates = recallResult.capsuleCandidates;
 
-    routingDecision.channelsUsed = rankedCandidates.length > 0 ? ['capsule-heuristic'] : [];
+    routingDecision.channelsUsed =
+      rankedCandidates.length > 0 ? ['capsule-heuristic', 'capsule-keyword'] : [];
 
     if (rankedCandidates.length === 0) {
       void logRagRetrieval(services.config.ragLog, {

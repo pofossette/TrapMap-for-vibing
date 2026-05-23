@@ -259,26 +259,33 @@ POST /v3/retrieval/search
 
 ```mermaid
 flowchart TB
-    subgraph 胶囊检索["胶囊原生检索流程"]
+    subgraph 胶囊检索["v2 胶囊检索流程 (Phase 1 多路召回架构)"]
         A["查询输入"]
-
-        subgraph 资格过滤["资格过滤"]
-            B["- capsule.governanceInherited = true\n- 用户等级 >= artifact.requiredLevel\n- （工件可访问时胶囊可用）"]
+        
+        subgraph 解析["解析与治理"]
+            B1["解析种子意图<br/>(parseSeedIntent)"]
+            B2["快照与治理过滤<br/>(isArtifactGovernanceEligible)"]
         end
 
-        subgraph 语义搜索["语义搜索"]
-            C["- 搜索胶囊内容（非条目内容）\n- 使用胶囊专用索引"]
+        subgraph 召回["CapsuleRecallCoordinator"]
+            C1["通道注册表<br/>(CapsuleChannelRegistry)"]
+            C2["heuristic 通道<br/>(capsuleHeuristicChannel)"]
+            C3["rankCapsules()<br/>治理过滤 + 多维评分"]
         end
 
         subgraph 评分["多维评分 (CAPS-04-CTX)"]
-            D["- problem × 0.30\n- situation × 0.21\n- goal × 0.17\n- keyword × 0.17\n- contextualPrefix × 0.15"]
+            D["- problem × 0.30<br/>- situation × 0.21<br/>- goal × 0.17<br/>- keyword × 0.17<br/>- contextualPrefix × 0.15"]
         end
 
-        subgraph 胶囊组装["胶囊组装"]
-            E["- 附加父工件元数据\n- 包含 activationHint\n- 计算治理继承确认"]
+        subgraph 组装["响应组装"]
+            E["- getCapsuleRecords()<br/>- buildCapsuleMatch()<br/>- buildProfileHint()<br/>- buildAllActivationHints()"]
         end
 
-        A --> 资格过滤 --> 语义搜索 --> 评分 --> 胶囊组装
+        subgraph 响应["响应"]
+            F["capsules + profileHints<br/>+ activationHints<br/>+ optional summary"]
+        end
+
+        A --> B1 --> B2 --> C1 --> C2 --> C3 --> D --> E --> F
     end
 ```
 
@@ -304,6 +311,81 @@ v2 检索评分支持 Anthropic Contextual Retrieval 策略。派生阶段生成
 **相关代码：**
 - `packages/server/src/lib/retrieval/capsules/capsule-recall.ts` — `computeContextMatchScore()` 函数
 - `packages/server/src/lib/artifacts/contextual-enrichment.ts` — 派生阶段的上下文生成
+
+### v2 多路召回架构 (Phase 2)
+
+v2 检索管线已重构为可扩展的多路召回架构。当前处于 Phase 2（keyword 通道落地），heuristic + keyword 双通道并行。
+
+#### 架构分层
+
+```text
+searchKnowledgeV2() (orchestrator.ts)
+  └─> CapsuleRecallCoordinator
+        └─> CapsuleChannelRegistry
+              ├─> capsule-heuristic  ← 主引擎通道 (intent-aware 精排)
+              ├─> capsule-keyword    ← ✅ Phase 2 已落地
+              ├─> capsule-semantic    ← Phase 3 计划
+              └─> capsule-graph       ← Phase 5 计划
+```
+
+#### 组件职责
+
+| 组件 | 文件 | 职责 |
+|------|------|------|
+| `searchKnowledgeV2()` | `packages/server/src/lib/retrieval/orchestration/orchestrator.ts` | v2 主编排器：解析 → 治理 → 协调器调用 → 响应组装 |
+| `CapsuleRecallCoordinator` | `packages/server/src/lib/retrieval/capsules/capsule-recall-coordinator.ts` | 多通道召回调度：调用注册的通道、合并结果、产生 MergedCapsuleCandidate |
+| `CapsuleChannelRegistry` | `packages/server/src/lib/retrieval/capsules/capsule-channel-registry.ts` | 通道注册表：register / get / all / unregister |
+| `capsuleHeuristicChannel` | `packages/server/src/lib/retrieval/capsules/channels/heuristic.ts` | heuristic 通道：包装 rankCapsules()，提供 CapsuleRecallCandidate[] |
+| `capsuleKeywordChannel` | `packages/server/src/lib/retrieval/capsules/channels/keyword.ts` | keyword 通道：独立词法召回，字段加权评分，内存/PG 双路径 |
+| `rankCapsules()` | `packages/server/src/lib/retrieval/capsules/capsule-recall.ts` | 核心评分引擎：治理过滤 + situation/problem/goal/keyword/context 多维加权评分 |
+
+#### 类型定义
+
+| 类型 | 描述 |
+|------|------|
+| `CapsuleRecallChannelName` | 通道标识符联合类型：`capsule-heuristic \| capsule-keyword \| capsule-semantic \| capsule-graph` |
+| `CapsuleRecallCandidate` | 单通道召回候选：`{ capsuleId, artifactId, revision, channel, score, matchedTokens?, graphEvidence? }` |
+| `MergedCapsuleCandidate` | 多通道融合候选：`{ capsuleId, artifactId, revision, channels, channelScores, preRerankScore, finalScore, reason }` |
+| `CapsuleRecallChannel` | 通道接口：`{ name, recall(artifacts, intent, filters, maxResults) }` |
+
+#### Phase 2 行为保证
+
+- `/v2/retrieval/search` 请求/响应契约不变
+- 治理过滤流程不变（team、requiredLevel、lifecycleState）
+- heuristic 通道仍为精排主引擎，keyword 通道进入 merge 层提供补充候选
+- 默认启用 `capsule-heuristic` + `capsule-keyword` 双通道
+- CapsuleRecallCoordinator.execute() 返回 `capsuleCandidates: CapsuleCandidate[]` 供后续组装层复用
+
+#### capsule-keyword 通道详情
+
+**字段权重** (tokenize/normalizeQuery 复用 v1 逻辑)：
+
+| 字段 | 权重 | 说明 |
+|------|------|------|
+| `labels` | 3.0 | 强语义标签命中 |
+| `problem` | 2.5 | 问题文本是最强 capsule intent 信号之一 |
+| `goal` | 2.0 | 目标导向检索的重要补充 |
+| `situation` | 1.5 | 场景词对上下文区分有价值 |
+| `contextualPrefix` | 1.5 | 提升上下文词召回 |
+| `content` | 1.0 | 长正文兜底字段 |
+
+**召回面**: `content`, `situation`, `problem`, `goal`, `labels`, `contextualPrefix`
+
+**双路径支持**:
+- 内存路径：调用 `capsuleKeywordRecall()` 基于 tokenize/normalizeQuery 做字段加权词法匹配
+- PG 路径：`createPgCapsuleKeywordRecall()` 查询 `skill_artifact_capsule_keywords` 表（GIN 索引 text[] overlap）
+
+**通道输出**: `CapsuleRecallCandidate[]` 含 `matchedTokens`（命中 token 列表）和 `score`（归一化 [0,1]）
+
+#### 后续阶段预览
+
+| Phase | 任务 | 新增内容 | 状态 |
+|-------|------|----------|------|
+| Phase 1 | 架构解耦 | `CapsuleRecallCoordinator`, `CapsuleChannelRegistry`, `capsule-heuristic` | ✅ 完成 |
+| Phase 2 | keyword 通道落地 | `capsule-keyword` 通道、字段权重、内存/PG 双路径 | ✅ 完成 |
+| Phase 3 | semantic 通道落地 | `capsule-semantic` 通道、embedding 文本构建、向量索引 | 待实施 |
+| Phase 4 | merge / rerank 落地 | RRF 融合、独立重排层、channelsPlanned/Used trace | 待实施 |
+| Phase 5 | graph 通道接入 | `capsule-graph` 通道、artifact-to-capsule 映射 | 待实施 |
 
 ---
 

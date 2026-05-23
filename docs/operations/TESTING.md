@@ -191,9 +191,11 @@ export const cases = [...existingCases, myCase];
 
 3. 如需 Fixture 数据，在 `evals/retrieval/scenarios/` 中创建场景 JSON。
 
-### 多路召回测试覆盖（v2 Multi-Recall Phase 0+）
+### 多路召回测试覆盖（v2 Multi-Recall Phase 2）
 
-Phase 0 为 v2 多路召回管线补充了以下目标用例切片，用于验证后续 keyword/semantic/graph/heuristic 通道的召回收益：
+Phase 0-2 为 v2 多路召回管线补充了以下目标用例切片，用于验证 keyword/semantic/graph/heuristic 通道的召回收益：
+
+**Core 层**:
 
 | 切片 | 用例 ID | 说明 |
 |------|---------|------|
@@ -203,7 +205,16 @@ Phase 0 为 v2 多路召回管线补充了以下目标用例切片，用于验�
 | semantic-dominant | `v2-semantic-debug-core` | 口语化查询 vs 专业术语（observability -> "figure out why broken"） |
 | mixed-channel | `v2-mixed-channel-core` | 关键字+语义双通道命中/去重（TypeScript CI build） |
 
-这些用例使用独立的 scenario fixture（`core-keyword-dominant`、`core-semantic-paraphrase`、`core-mixed-channel`），不依赖生产数据。当前 v2 为 heuristic-only 模式，后续 Phase 1-5 将逐步接入各通道并验证指标提升。
+**Smoke 层** (Phase 2 新增):
+
+| 切片 | 用例 ID | 说明 |
+|------|---------|------|
+| keyword-dominant | `v2-keyword-dominant-smoke` | 精确错误文本召回（ModuleNotFoundError） |
+| keyword-dominant | `v2-keyword-regex-smoke` | 技术术语召回（regex pattern parsing） |
+
+这些用例使用独立的 scenario fixture（`core-keyword-dominant`、`core-semantic-paraphrase`、`core-mixed-channel`、`smoke-keyword-dominant`），不依赖生产数据。
+
+**Phase 2 状态**: heuristic + keyword 双通道已激活。keyword 通道提供独立词法召回，字段权重: labels(3.0) > problem(2.5) > goal(2.0) > situation/contextualPrefix(1.5) > content(1.0)。
 
 ### 添加摘要用例
 

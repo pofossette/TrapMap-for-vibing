@@ -15,5 +15,6 @@ export {
   rankCapsules,
 } from './capsule-recall.js';
 export { capsuleHeuristicChannel } from './channels/heuristic.js';
+export { capsuleKeywordChannel, capsuleKeywordRecall } from './channels/keyword.js';
 export { extractStackPathHints, normalizeToken, parseSeedIntent } from './intent.js';
 export { searchSkillsByContent } from './skill-lookup.js';

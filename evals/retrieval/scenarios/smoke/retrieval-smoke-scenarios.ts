@@ -230,6 +230,75 @@ export const smokeForbiddenScenario = retrievalEvalScenarioSchema.parse({
   },
 }) as RetrievalEvalScenario;
 
+// =============================================================================
+// Smoke Scenario: Keyword-Dominant (Phase 2 multi-recall)
+// =============================================================================
+
+/**
+ * Scenario: Keyword-dominant retrieval with error text and specific technical labels.
+ * Capsules contain distinct error messages and tech labels for exact keyword recall.
+ */
+export const smokeKeywordDominantScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'smoke-keyword-dominant',
+  description:
+    'Capsules with specific error text, file paths, and technical labels for keyword-only recall.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_smoke',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [],
+    skillArtifacts: [
+      {
+        id: 'artifact_smoke_keyword_python',
+        teamId: 'team_smoke',
+        scope: 'project',
+        labels: ['python', 'import', 'error'],
+        title: 'Python Import Error Skills',
+        slug: 'python-import-error',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_smoke_keyword_import',
+            content: 'Fix Python module import errors',
+            situation: 'Running Python scripts',
+            problem: 'ModuleNotFoundError: No module named requests',
+            goal: 'Install missing Python packages',
+            labels: ['python', 'import', 'pip'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_smoke_keyword_regex',
+        teamId: 'team_smoke',
+        scope: 'project',
+        labels: ['regex', 'pattern', 'parsing'],
+        title: 'Regex Parsing Skills',
+        slug: 'regex-parsing',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_smoke_keyword_regex',
+            content: 'Use regex for text pattern matching',
+            situation: 'Parsing log files',
+            problem: 'Need to extract timestamps with regex pattern',
+            goal: 'Write regex to parse log timestamps',
+            labels: ['regex', 'parsing', 'logs'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
 export const smokeGraphPlanSelectedScenario = retrievalEvalScenarioSchema.parse({
   scenarioId: 'smoke-graph-plan-selected',
   description:
@@ -478,6 +547,7 @@ export const smokeScenariosMap: Record<string, RetrievalEvalScenario> = {
   'smoke-positive-visible': smokePositiveVisibleScenario,
   'smoke-empty-result': smokeEmptyResultScenario,
   'smoke-forbidden': smokeForbiddenScenario,
+  'smoke-keyword-dominant': smokeKeywordDominantScenario,
   'smoke-graph-plan-selected': smokeGraphPlanSelectedScenario,
   'smoke-graph-plan-fallback-v2': smokeGraphPlanFallbackV2Scenario,
   'smoke-graph-plan-fallback-v1': smokeGraphPlanFallbackV1Scenario,

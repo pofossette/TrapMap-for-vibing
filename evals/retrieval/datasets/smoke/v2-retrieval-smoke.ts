@@ -201,6 +201,80 @@ export const v2IncludeSummarySmoke = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 
 // =============================================================================
+// Phase 2: Keyword-Dominant Smoke Cases
+// =============================================================================
+
+/**
+ * Case: Keyword-dominant retrieval - exact error message matching.
+ * Tests keyword channel with specific Python error text.
+ */
+export const v2KeywordDominantSmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-keyword-dominant-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'ModuleNotFoundError No module named requests',
+    maxResults: 10,
+  },
+  scenarioId: 'smoke-keyword-dominant',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_smoke_keyword_import'],
+      idealOrder: ['capsule_smoke_keyword_import'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [
+        'artifact_smoke_keyword_python',
+        'artifact_smoke_keyword_regex',
+      ],
+      expectedCapsuleCount: 2,
+    },
+  },
+  tags: ['keyword-dominant', 'v2', 'smoke', 'capsule', 'error-debugging', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+/**
+ * Case: Keyword-dominant retrieval - specific technical term matching.
+ * Tests keyword channel with regex-specific terminology.
+ */
+export const v2KeywordRegexSmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-keyword-regex-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'regex pattern for parsing timestamps from logs',
+    maxResults: 10,
+  },
+  scenarioId: 'smoke-keyword-dominant',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_smoke_keyword_regex'],
+      idealOrder: ['capsule_smoke_keyword_regex'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [
+        'artifact_smoke_keyword_python',
+        'artifact_smoke_keyword_regex',
+      ],
+      expectedCapsuleCount: 2,
+    },
+  },
+  tags: ['keyword-dominant', 'v2', 'smoke', 'capsule', 'general', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
 // Aggregated v2 Smoke Cases Export
 // =============================================================================
 
@@ -213,4 +287,6 @@ export const v2RetrievalSmokeCases: RetrievalEvalCase[] = [
   v2CapsuleForbiddenSmoke,
   v2CapsuleRankedSmoke,
   v2IncludeSummarySmoke,
+  v2KeywordDominantSmoke,
+  v2KeywordRegexSmoke,
 ];

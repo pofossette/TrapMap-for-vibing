@@ -1147,6 +1147,47 @@ export const skillArtifactCapsules = pgTable(
   ],
 );
 
+/**
+ * Capsule keyword tokens for PostgreSQL lexical search.
+ * Derived index table — stores tokenized capsule field content for fast keyword recall.
+ * Uses GIN-indexed text[] arrays with && (overlap) operator for efficient matching.
+ *
+ * Fields tokenized: content, situation, problem, goal, labels, contextualPrefix
+ * Governance columns (teamId, scope, requiredLevel) mirror capsules for WHERE filtering.
+ */
+export const skillArtifactCapsuleKeywords = pgTable(
+  'skill_artifact_capsule_keywords',
+  {
+    capsuleId: text('capsule_id').primaryKey(),
+    artifactId: text('artifact_id').notNull(),
+    revisionNo: integer('revision_no').notNull(),
+    teamId: text('team_id'),
+    scope: text('scope').notNull().$type<Scope>(),
+    requiredLevel: integer('required_level').notNull(),
+    status: text('status').notNull().default('synced'),
+    tokens: text('tokens').array().notNull().default([]),
+    fieldTokensContent: text('field_tokens_content').array().notNull().default([]),
+    fieldTokensSituation: text('field_tokens_situation').array().notNull().default([]),
+    fieldTokensProblem: text('field_tokens_problem').array().notNull().default([]),
+    fieldTokensGoal: text('field_tokens_goal').array().notNull().default([]),
+    fieldTokensLabels: text('field_tokens_labels').array().notNull().default([]),
+    fieldTokensContextualPrefix: text('field_tokens_contextual_prefix')
+      .array()
+      .notNull()
+      .default([]),
+    contentHash: text('content_hash').notNull(),
+    lastError: text('last_error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_capsule_keywords_artifact_revision').on(table.artifactId, table.revisionNo),
+    index('idx_capsule_keywords_tokens_gin').using('gin', table.tokens),
+    index('idx_capsule_keywords_status').on(table.status),
+    check('ck_skill_artifact_capsule_keywords_scope', sql`${table.scope} IN ('global', 'project')`),
+  ],
+);
+
 export const skillArtifactClientManifests = pgTable(
   'skill_artifact_client_manifests',
   {
