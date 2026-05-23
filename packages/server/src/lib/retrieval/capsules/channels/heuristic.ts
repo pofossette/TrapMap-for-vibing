@@ -1,0 +1,37 @@
+import type { SkillArtifactRecord } from '../../../store.js';
+import type {
+  ArtifactGovernanceFilters,
+  CapsuleRecallCandidate,
+  CapsuleRecallChannel,
+  CapsuleRecallChannelName,
+  ParsedIntent,
+} from '../../types.js';
+import { rankCapsules } from '../capsule-recall.js';
+
+/**
+ * Capsule heuristic recall channel.
+ *
+ * Wraps the existing rankCapsules() scoring pipeline as a recall channel.
+ * In Phase 1, this is the only channel and provides backward-compatible behavior.
+ * In future phases, this channel will serve as fallback and feature extractor.
+ */
+export const capsuleHeuristicChannel: CapsuleRecallChannel = {
+  name: 'capsule-heuristic' as CapsuleRecallChannelName,
+
+  async recall(
+    artifacts: SkillArtifactRecord[],
+    intent: ParsedIntent,
+    filters: ArtifactGovernanceFilters,
+    maxResults: number,
+  ): Promise<CapsuleRecallCandidate[]> {
+    const ranked = rankCapsules(artifacts, intent, filters, maxResults * 2);
+
+    return ranked.map((candidate) => ({
+      capsuleId: candidate.capsuleId,
+      artifactId: candidate.artifactId,
+      revision: candidate.revision,
+      channel: 'capsule-heuristic' as CapsuleRecallChannelName,
+      score: candidate.finalScore,
+    }));
+  },
+};

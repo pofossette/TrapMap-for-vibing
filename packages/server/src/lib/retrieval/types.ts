@@ -12,7 +12,19 @@ import type {
   RoutingReason,
 } from '@trapmap/contracts';
 import type { ResolvedAuthContext } from '../context.js';
-import type { KnowledgeRecord } from '../store.js';
+import type { KnowledgeRecord, SkillArtifactRecord } from '../store.js';
+
+/**
+ * Governance filters for artifact eligibility.
+ */
+export interface ArtifactGovernanceFilters {
+  /** Team ID filter */
+  teamId: string | null;
+  /** Security level filter */
+  securityLevel: number;
+  /** Is system admin */
+  isSystemAdmin: boolean;
+}
 
 /**
  * Internal pipeline context passed through retrieval stages.
@@ -226,6 +238,86 @@ export interface CapsuleCandidate {
  * to cover v1, v2, and GraphRAG-lite wrapper retrieval paths.
  */
 export type RoutingChannel = string;
+
+// =============================================================================
+// Phase 1 v2 Multi-Recall: Capsule recall channel types
+// Internal types for multi-channel capsule retrieval architecture.
+// =============================================================================
+
+/**
+ * Capsule recall channel identifiers.
+ * Each channel provides a distinct recall strategy for capsule retrieval.
+ */
+export type CapsuleRecallChannelName =
+  | 'capsule-semantic'
+  | 'capsule-keyword'
+  | 'capsule-graph'
+  | 'capsule-heuristic';
+
+/**
+ * Candidate produced by a single capsule recall channel.
+ * Carries evidence from one channel for later merge and rerank.
+ */
+export interface CapsuleRecallCandidate {
+  /** Capsule identifier */
+  capsuleId: string;
+  /** Parent artifact identifier */
+  artifactId: string;
+  /** Revision number */
+  revision: number;
+  /** The recall channel that produced this candidate */
+  channel: CapsuleRecallChannelName;
+  /** Normalized score for this channel, in [0, 1] */
+  score: number;
+  /** Token match details (keyword channel only) */
+  matchedTokens?: string[];
+  /** Graph evidence (graph channel only) */
+  graphEvidence?: string[];
+}
+
+/**
+ * Merged candidate combining evidence from multiple capsule recall channels.
+ * Produced by the merge stage and consumed by rerank.
+ */
+export interface MergedCapsuleCandidate {
+  /** Capsule identifier */
+  capsuleId: string;
+  /** Parent artifact identifier */
+  artifactId: string;
+  /** Revision number */
+  revision: number;
+  /** Which channels contributed to this candidate */
+  channels: CapsuleRecallChannelName[];
+  /** Per-channel scores for audit trail */
+  channelScores: Partial<Record<CapsuleRecallChannelName, number>>;
+  /** Combined score after merge (pre-rerank) */
+  preRerankScore: number;
+  /** Final score after reranking */
+  finalScore: number;
+  /** Human-readable reason for the match */
+  reason: string;
+}
+
+/**
+ * Capsule recall channel interface.
+ * Each channel implements a single recall strategy for capsule retrieval.
+ */
+export interface CapsuleRecallChannel {
+  readonly name: CapsuleRecallChannelName;
+  /**
+   * Execute recall and return capsule candidates.
+   * @param artifacts - Governed skill artifact records
+   * @param intent - Parsed intent from seed
+   * @param filters - Governance filters
+   * @param maxResults - Maximum candidates to return
+   */
+  recall(
+    artifacts: SkillArtifactRecord[],
+    intent: ParsedIntent,
+    filters: ArtifactGovernanceFilters,
+    maxResults: number,
+  ): Promise<CapsuleRecallCandidate[]>;
+}
 
 /**
  * Routing decision produced by the shared router.

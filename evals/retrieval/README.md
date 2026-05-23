@@ -77,6 +77,15 @@ pnpm eval:retrieval --tier smoke --endpoint /v2/retrieval/search
 | `v2-capsule-ranked-core` | `/v2/retrieval/search` | 胶囊排序 |
 | `v2-profile-hints-core` | `/v2/retrieval/search` | 配置文件提示验证 |
 | `v2-governance-core` | `/v2/retrieval/search` | 禁止泄漏 |
+| `v2-scope-distribution-core` | `/v2/retrieval/search` | Scope 分布验证 |
+| `v2-multi-capsule-core` | `/v2/retrieval/search` | 多胶囊排序 |
+| `v2-label-filter-core` | `/v2/retrieval/search` | 标签过滤 |
+| `v2-empty-with-summary-core` | `/v2/retrieval/search` | 空结果含摘要 |
+| `v2-keyword-dominant-core` | `/v2/retrieval/search` | 关键字召回（锁定文件） |
+| `v2-keyword-error-text-core` | `/v2/retrieval/search` | 关键字召回（错误文本） |
+| `v2-semantic-paraphrase-core` | `/v2/retrieval/search` | 语义改写召回（编排） |
+| `v2-semantic-debug-core` | `/v2/retrieval/search` | 语义改写召回（调试） |
+| `v2-mixed-channel-core` | `/v2/retrieval/search` | 多通道命中/去重 |
 | `v3-graph-plan-selected-core` | `/v3/retrieval/search` | 多技能选中计划 |
 | `v3-graph-plan-governance-core` | `/v3/retrieval/search` | 治理敏感图规划 |
 

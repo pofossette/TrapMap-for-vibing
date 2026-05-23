@@ -26,10 +26,12 @@ import { generateQueryId, logRagRetrieval } from '../../rag-log.js';
 import type { KnowledgeRecord } from '../../store.js';
 import { nowIso } from '../../store.js';
 import {
+  CapsuleChannelRegistry,
+  CapsuleRecallCoordinator,
   buildProfileShortlist,
   getCapsuleRecords,
   rankCapsules,
-} from '../capsules/capsule-recall.js';
+} from '../capsules/index.js';
 import { parseSeedIntent } from '../capsules/intent.js';
 import { buildEmbeddingText } from '../recall/semantic.js';
 import {
@@ -371,14 +373,33 @@ export async function searchKnowledgeV2(
 
     const artifacts = data.skillArtifacts ?? [];
 
-    const rankedCandidates = await timedStep(
+    // Phase 1: Create coordinator with heuristic channel for multi-recall seam.
+    // In Phase 1, only the heuristic channel is active, preserving exact
+    // backward-compatible behavior. Future phases will add more channels.
+    const channelRegistry = new CapsuleChannelRegistry();
+    const { capsuleHeuristicChannel } = await import('../capsules/channels/heuristic.js');
+    channelRegistry.register(capsuleHeuristicChannel);
+    const coordinator = new CapsuleRecallCoordinator(channelRegistry);
+
+    const recallResult = await timedStep(
       'recall',
-      () => Promise.resolve(rankCapsules(artifacts, intent, governanceFilters, parsed.maxResults)),
+      () =>
+        coordinator.execute({
+          artifacts,
+          intent,
+          governanceFilters,
+          maxResults: parsed.maxResults,
+        }),
       steps,
-      { inputSize: artifacts.length, outputSize: (r) => (r as unknown[]).length },
+      {
+        inputSize: artifacts.length,
+        outputSize: (r) => (r as { capsuleCandidates: unknown[] }).capsuleCandidates.length,
+      },
     );
 
-    routingDecision.channelsUsed = rankedCandidates.length > 0 ? ['capsule'] : [];
+    const rankedCandidates = recallResult.capsuleCandidates;
+
+    routingDecision.channelsUsed = rankedCandidates.length > 0 ? ['capsule-heuristic'] : [];
 
     if (rankedCandidates.length === 0) {
       void logRagRetrieval(services.config.ragLog, {

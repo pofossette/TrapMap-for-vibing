@@ -15,19 +15,7 @@ import type {
   DerivedSkillProfileRecord,
   SkillArtifactRecord,
 } from '../../store.js';
-import type { CapsuleCandidate, ParsedIntent } from '../types.js';
-
-/**
- * Governance filters for artifact eligibility.
- */
-export interface ArtifactGovernanceFilters {
-  /** Team ID filter */
-  teamId: string | null;
-  /** Security level filter */
-  securityLevel: number;
-  /** Is system admin */
-  isSystemAdmin: boolean;
-}
+import type { ArtifactGovernanceFilters, CapsuleCandidate, ParsedIntent } from '../types.js';
 
 /**
  * Check if an artifact passes governance filters.

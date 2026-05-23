@@ -305,6 +305,186 @@ export const v2EmptyWithSummaryCore = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 
 // =============================================================================
+// Phase 0-3: Multi-Recall v2 Core Cases
+// =============================================================================
+
+/**
+ * Case: Keyword-dominant retrieval - error text and exact label matching.
+ * Tests keyword recall with specific error messages and technical labels.
+ */
+export const v2KeywordDominantCore = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-keyword-dominant-core',
+  tier: 'core',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'pnpm workspace lockfile mismatch frozen-lockfile pnpm-lock.yaml',
+    maxResults: 10,
+  },
+  scenarioId: 'core-keyword-dominant',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_core_keyword_pnpm_lockfile', 'capsule_core_keyword_pnpm_workspace'],
+      idealOrder: ['capsule_core_keyword_pnpm_lockfile', 'capsule_core_keyword_pnpm_workspace'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: ['artifact_core_keyword_nginx', 'artifact_core_keyword_pnpm'],
+      expectedCapsuleCount: 3,
+    },
+  },
+  tags: ['keyword-dominant', 'v2', 'core', 'capsule', 'error-debugging', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+/**
+ * Case: Keyword-dominant retrieval - exact error message matching.
+ * Tests keyword recall with specific file path and error text.
+ */
+export const v2KeywordErrorTextCore = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-keyword-error-text-core',
+  tier: 'core',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'ENOENT no such file or directory /etc/nginx/nginx.conf',
+    maxResults: 10,
+  },
+  scenarioId: 'core-keyword-dominant',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_core_keyword_nginx_conf'],
+      idealOrder: ['capsule_core_keyword_nginx_conf'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: ['artifact_core_keyword_nginx', 'artifact_core_keyword_pnpm'],
+      expectedCapsuleCount: 3,
+    },
+  },
+  tags: ['keyword-dominant', 'v2', 'core', 'capsule', 'error-debugging', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+/**
+ * Case: Semantic-paraphrase retrieval - different words, same concept.
+ * Tests that semantic recall can find capsules despite lexical differences.
+ */
+export const v2SemanticParaphraseCore = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-semantic-paraphrase-core',
+  tier: 'core',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'running multiple services together in a coordinated way automatically',
+    maxResults: 10,
+  },
+  scenarioId: 'core-semantic-paraphrase',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_core_semantic_orchestration', 'capsule_core_semantic_cicd'],
+      idealOrder: ['capsule_core_semantic_orchestration', 'capsule_core_semantic_cicd'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [
+        'artifact_core_semantic_orchestration',
+        'artifact_core_semantic_observability',
+        'artifact_core_semantic_cicd',
+      ],
+      expectedCapsuleCount: 3,
+    },
+  },
+  tags: ['semantic-dominant', 'v2', 'core', 'capsule', 'general', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+/**
+ * Case: Semantic-paraphrase retrieval - plain English for technical concept.
+ * Tests semantic recall for observability concept with non-technical query.
+ */
+export const v2SemanticDebugCore = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-semantic-debug-core',
+  tier: 'core',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'how to figure out why my services are broken in production',
+    maxResults: 10,
+  },
+  scenarioId: 'core-semantic-paraphrase',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_core_semantic_observability'],
+      idealOrder: ['capsule_core_semantic_observability'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [
+        'artifact_core_semantic_orchestration',
+        'artifact_core_semantic_observability',
+        'artifact_core_semantic_cicd',
+      ],
+      expectedCapsuleCount: 3,
+    },
+  },
+  tags: ['semantic-dominant', 'v2', 'core', 'capsule', 'error-debugging', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+/**
+ * Case: Mixed-channel retrieval - keyword + semantic reach same capsule.
+ * Tests merge/dedup when both keyword (exact terms) and semantic (concept) match.
+ */
+export const v2MixedChannelCore = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-mixed-channel-core',
+  tier: 'core',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'TypeScript build errors in CI pipeline during compilation',
+    maxResults: 10,
+  },
+  scenarioId: 'core-mixed-channel',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: [
+        'capsule_core_mixed_ts_build',
+        'capsule_core_mixed_ci_pipeline',
+        'capsule_core_mixed_ts_config',
+      ],
+      idealOrder: [
+        'capsule_core_mixed_ts_build',
+        'capsule_core_mixed_ci_pipeline',
+        'capsule_core_mixed_ts_config',
+      ],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: ['artifact_core_mixed_typescript', 'artifact_core_mixed_ci'],
+      expectedCapsuleCount: 3,
+    },
+  },
+  tags: ['mixed-channel', 'v2', 'core', 'capsule', 'error-debugging', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
 // Aggregated v2 Core Cases Export
 // =============================================================================
 
@@ -319,4 +499,9 @@ export const v2RetrievalCoreCases: RetrievalEvalCase[] = [
   v2MultiCapsuleCore,
   v2LabelFilterCore,
   v2EmptyWithSummaryCore,
+  v2KeywordDominantCore,
+  v2KeywordErrorTextCore,
+  v2SemanticParaphraseCore,
+  v2SemanticDebugCore,
+  v2MixedChannelCore,
 ];

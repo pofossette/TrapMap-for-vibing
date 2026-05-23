@@ -1735,6 +1735,273 @@ export const coreGraphPlanRequiresScenario = retrievalEvalScenarioSchema.parse({
 }) as RetrievalEvalScenario;
 
 // =============================================================================
+// Phase 0-3: Multi-Recall Scenarios
+// =============================================================================
+
+/**
+ * Scenario: Keyword-dominant retrieval for v2 multi-recall testing.
+ * Capsules contain specific error text, labels, and paths for exact keyword matching.
+ * Semantic similarity should be lower for some capsules due to different wording.
+ */
+export const coreKeywordDominantScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'core-keyword-dominant',
+  description:
+    'Capsules with specific error text, labels, and file paths for exact keyword recall testing. Some capsules use very specific technical terms that keyword recall should catch.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_core',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [
+      {
+        id: 'knowledge_core_keyword_nginx',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['nginx', 'configuration', 'error'],
+        shortcut: 'Nginx Configuration Error',
+        detail:
+          'Error: ENOENT: no such file or directory, open /etc/nginx/nginx.conf. Check nginx configuration file location.',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+      },
+    ],
+    skillArtifacts: [
+      {
+        id: 'artifact_core_keyword_nginx',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['nginx', 'config', 'error'],
+        title: 'Nginx Error Resolution Skills',
+        slug: 'nginx-error-resolution',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_keyword_nginx_conf',
+            content: 'Fix nginx configuration file location',
+            situation: 'Nginx fails to start',
+            problem: 'nginx.conf file not found at /etc/nginx/nginx.conf',
+            goal: 'Create and configure nginx.conf correctly',
+            labels: ['nginx', 'config', 'fix'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_core_keyword_pnpm',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['pnpm', 'lockfile', 'ci'],
+        title: 'Pnpm Lockfile Skills',
+        slug: 'pnpm-lockfile-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_keyword_pnpm_lockfile',
+            content: 'Resolve pnpm lockfile mismatch errors',
+            situation: 'CI pipeline failing',
+            problem: 'pnpm-lock.yaml is out of sync with package.json',
+            goal: 'Regenerate lockfile with frozen-lockfile flag',
+            labels: ['pnpm', 'lockfile', 'ci-fix'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+          {
+            capsuleId: 'capsule_core_keyword_pnpm_workspace',
+            content: 'Manage pnpm workspace packages',
+            situation: 'Setting up monorepo',
+            problem: 'Workspace packages have version mismatches',
+            goal: 'Use pnpm workspace protocol',
+            labels: ['pnpm', 'workspace', 'monorepo'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
+/**
+ * Scenario: Semantic-paraphrase retrieval for v2 multi-recall testing.
+ * Capsules use technical jargon; queries use plain English paraphrases.
+ * Lexically different but semantically similar; tests semantic recall complement.
+ */
+export const coreSemanticParaphraseScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'core-semantic-paraphrase',
+  description:
+    'Capsules with technical jargon vs queries with plain English paraphrases. Tests semantic recall ability when lexical terms differ.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_core',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [],
+    skillArtifacts: [
+      {
+        id: 'artifact_core_semantic_orchestration',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['deployment', 'containers', 'orchestration'],
+        title: 'Container Orchestration Skills',
+        slug: 'container-orchestration-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_semantic_orchestration',
+            content: 'Orchestrate multi-service deployments with Kubernetes',
+            situation: 'Managing distributed microservices',
+            problem: 'Manual deployment coordination is fragile',
+            goal: 'Automate service orchestration',
+            labels: ['kubernetes', 'orchestration'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_core_semantic_observability',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['monitoring', 'logging', 'observability'],
+        title: 'Observability Skills',
+        slug: 'observability-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_semantic_observability',
+            content: 'Implement distributed tracing and structured logging',
+            situation: 'Cannot debug production issues',
+            problem: 'No visibility into service interactions',
+            goal: 'Debug production with tracing',
+            labels: ['tracing', 'logging', 'debugging'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_core_semantic_cicd',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['cicd', 'automation', 'testing'],
+        title: 'CI/CD Automation Skills',
+        slug: 'cicd-automation-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_semantic_cicd',
+            content: 'Build automated deployment pipelines',
+            situation: 'Slow manual deployments',
+            problem: 'Releases take too long',
+            goal: 'Automate build and deploy process',
+            labels: ['cicd', 'automation'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
+/**
+ * Scenario: Mixed-channel retrieval for v2 multi-recall testing.
+ * Rich capsules that could be found by multiple channels (keyword, semantic, heuristic).
+ * Some have exact term matches, some have semantic similarity, some have both.
+ */
+export const coreMixedChannelScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'core-mixed-channel',
+  description:
+    'Rich capsules that could be found by multiple recall channels. Tests merge/dedup behavior when same capsule is recalled from different channels.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_core',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [
+      {
+        id: 'knowledge_core_mixed_build_error',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['typescript', 'build', 'error'],
+        shortcut: 'TypeScript Build Error Fix',
+        detail: 'Fix TypeScript build errors: Module not found, type mismatch, strict null checks.',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+      },
+    ],
+    skillArtifacts: [
+      {
+        id: 'artifact_core_mixed_typescript',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['typescript', 'build', 'errors'],
+        title: 'TypeScript Error Skills',
+        slug: 'typescript-error-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_mixed_ts_build',
+            content: 'Fix TypeScript compilation errors in CI build',
+            situation: 'Build pipeline failing',
+            problem: 'TypeScript strict mode errors block deployment',
+            goal: 'Resolve TS errors and pass build',
+            labels: ['typescript', 'build', 'ci'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+          {
+            capsuleId: 'capsule_core_mixed_ts_config',
+            content: 'Configure tsconfig for optimal strict checking',
+            situation: 'Setting up TypeScript project',
+            problem: 'Need proper type checking configuration',
+            goal: 'Enable strict mode incrementally',
+            labels: ['typescript', 'config'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_core_mixed_ci',
+        teamId: 'team_core',
+        scope: 'project',
+        labels: ['ci', 'github-actions', 'build'],
+        title: 'CI Pipeline Skills',
+        slug: 'ci-pipeline-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_core_mixed_ci_pipeline',
+            content: 'Set up GitHub Actions CI for TypeScript projects',
+            situation: 'Starting new project',
+            problem: 'No automated build and test pipeline',
+            goal: 'Automate CI with type checking and tests',
+            labels: ['ci', 'github-actions', 'typescript'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
+// =============================================================================
 // Aggregated Core Scenarios Export
 // =============================================================================
 
@@ -1754,6 +2021,9 @@ export const coreScenariosMap: Record<string, RetrievalEvalScenario> = {
   'core-graph-plan-multi-trap': coreGraphPlanMultiTrapScenario,
   'core-graph-plan-co-occurs': coreGraphPlanCoOccursScenario,
   'core-graph-plan-requires': coreGraphPlanRequiresScenario,
+  'core-keyword-dominant': coreKeywordDominantScenario,
+  'core-semantic-paraphrase': coreSemanticParaphraseScenario,
+  'core-mixed-channel': coreMixedChannelScenario,
 };
 
 /**

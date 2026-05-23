@@ -191,6 +191,20 @@ export const cases = [...existingCases, myCase];
 
 3. 如需 Fixture 数据，在 `evals/retrieval/scenarios/` 中创建场景 JSON。
 
+### 多路召回测试覆盖（v2 Multi-Recall Phase 0+）
+
+Phase 0 为 v2 多路召回管线补充了以下目标用例切片，用于验证后续 keyword/semantic/graph/heuristic 通道的召回收益：
+
+| 切片 | 用例 ID | 说明 |
+|------|---------|------|
+| keyword-dominant | `v2-keyword-dominant-core` | 精确标签/术语命中（pnpm lockfile） |
+| keyword-dominant | `v2-keyword-error-text-core` | 错误文本/文件路径召回（ENOENT nginx.conf） |
+| semantic-dominant | `v2-semantic-paraphrase-core` | 同义改写查询 vs 技术术语（orchestration -> "running services together"） |
+| semantic-dominant | `v2-semantic-debug-core` | 口语化查询 vs 专业术语（observability -> "figure out why broken"） |
+| mixed-channel | `v2-mixed-channel-core` | 关键字+语义双通道命中/去重（TypeScript CI build） |
+
+这些用例使用独立的 scenario fixture（`core-keyword-dominant`、`core-semantic-paraphrase`、`core-mixed-channel`），不依赖生产数据。当前 v2 为 heuristic-only 模式，后续 Phase 1-5 将逐步接入各通道并验证指标提升。
+
 ### 添加摘要用例
 
 1. 在 `evals/summary/datasets/` 中定义：
