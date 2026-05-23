@@ -6,6 +6,7 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "build": "tsc -b",
+    "ci": "pnpm typecheck && pnpm check && pnpm test && pnpm test:coverage",
     "dev:cli": "pnpm --filter @trapmap/cli dev",
     "dev:server": "pnpm --filter @trapmap/server dev",
     "format": "biome format --write .",

@@ -164,8 +164,8 @@ export function createCapsuleSemanticChannel(
   const pgRecall = options?.pgPool
     ? createPgCapsuleVectorRecall({
         pool: options.pgPool,
-        featureFlag: options.pgFeatureFlag,
-      })
+        featureFlag: options.pgFeatureFlag ?? undefined,
+      } as Parameters<typeof createPgCapsuleVectorRecall>[0])
     : null;
 
   return {

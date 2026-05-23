@@ -170,8 +170,8 @@ export function createCapsuleKeywordChannel(
   const pgRecall = options?.pgPool
     ? createPgCapsuleKeywordRecall({
         pool: options.pgPool,
-        featureFlag: options.pgFeatureFlag,
-      })
+        featureFlag: options.pgFeatureFlag ?? undefined,
+      } as Parameters<typeof createPgCapsuleKeywordRecall>[0])
     : null;
 
   return {

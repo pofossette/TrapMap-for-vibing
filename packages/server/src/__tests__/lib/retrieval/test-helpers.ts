@@ -98,7 +98,9 @@ export function createMockCapsule(overrides: {
     problem: overrides.problem,
     goal: overrides.goal,
     errorText: null,
-    contextualPrefix: overrides.contextualPrefix,
+    ...(overrides.contextualPrefix !== undefined
+      ? { contextualPrefix: overrides.contextualPrefix }
+      : {}),
     labels: overrides.labels,
     scope: overrides.scope,
     requiredLevel: overrides.requiredLevel,

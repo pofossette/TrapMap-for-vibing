@@ -1,5 +1,5 @@
-import type { PipelineStep } from '../../../rag-log.js';
-import type { SkillArtifactRecord } from '../../../store.js';
+import type { PipelineStep } from '../../rag-log.js';
+import type { SkillArtifactRecord } from '../../store.js';
 import type {
   ArtifactGovernanceFilters,
   CapsuleCandidate,
@@ -69,6 +69,7 @@ export class CapsuleRecallCoordinator {
     const registeredChannels = this.registry.all();
     for (let i = 0; i < registeredChannels.length; i++) {
       const channel = registeredChannels[i];
+      if (!channel) continue;
       const results = allChannelResults[i];
       if (results && results.length > 0) {
         channelsUsed.push(channel.name);

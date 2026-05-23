@@ -70,7 +70,9 @@ export function createPgCapsuleKeywordRecall(config: PgCapsuleKeywordConfig) {
     conditions.push(sql`${skillArtifactCapsuleKeywords.requiredLevel} <= ${filters.securityLevel}`);
 
     if (filters.scopes.length > 0) {
-      conditions.push(inArray(skillArtifactCapsuleKeywords.scope, filters.scopes));
+      conditions.push(
+        inArray(skillArtifactCapsuleKeywords.scope, filters.scopes as ('global' | 'project')[]),
+      );
     }
 
     const tokenArray = queryTokens.map((t) => `'${t}'`).join(',');
@@ -127,14 +129,17 @@ export function createPgCapsuleKeywordRecall(config: PgCapsuleKeywordConfig) {
       const maxPossible = queryTokens.length * MAX_WEIGHT_SUM;
       const score = maxPossible > 0 ? Math.min(1, totalWeightedScore / maxPossible) : 0;
 
-      return {
+      const result: CapsuleRecallCandidate = {
         capsuleId: r.capsuleId,
         artifactId: r.artifactId,
         revision: r.revisionNo,
         channel: 'capsule-keyword' as CapsuleRecallChannelName,
         score,
-        matchedTokens: matchedTokens.length > 0 ? matchedTokens : undefined,
       };
+      if (matchedTokens.length > 0) {
+        result.matchedTokens = matchedTokens;
+      }
+      return result;
     });
 
     return candidates

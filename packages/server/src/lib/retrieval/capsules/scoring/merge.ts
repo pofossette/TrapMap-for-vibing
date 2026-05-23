@@ -59,10 +59,13 @@ export function mergeCapsuleCandidates(
       rrfScore += 1 / (k + rank);
     }
 
+    const first = candidates[0];
+    if (!first) continue;
+
     merged.push({
       capsuleId,
-      artifactId: candidates[0].artifactId,
-      revision: candidates[0].revision,
+      artifactId: first.artifactId,
+      revision: first.revision,
       channels,
       channelScores,
       preRerankScore: rrfScore,

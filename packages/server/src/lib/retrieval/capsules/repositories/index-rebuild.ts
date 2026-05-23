@@ -10,7 +10,7 @@
  * and not part of the hot retrieval path.
  */
 
-import { inArray, sql } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 

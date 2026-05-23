@@ -14,7 +14,6 @@
  *   - Batch rebuild (see index-rebuild.ts)
  */
 
-import { createHash } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
@@ -340,8 +339,8 @@ export function createCapsuleIndexSync(config: CapsuleIndexSyncConfig) {
     return {
       keywordStatus: kwRow ? (kwRow.status as SyncStatus) : 'missing',
       embeddingStatus: embRow ? (embRow.status as SyncStatus) : 'missing',
-      keywordError: kwRow?.lastError,
-      embeddingError: embRow?.lastError,
+      keywordError: kwRow?.lastError ?? null,
+      embeddingError: embRow?.lastError ?? null,
     };
   }
 

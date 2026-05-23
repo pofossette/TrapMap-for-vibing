@@ -22,7 +22,7 @@ import type { ResolvedAuthContext, SkillShareerServices } from '../../context.js
 import { generateEmbedding, hashEmbeddingText } from '../../embeddings.js';
 import { AppError } from '../../errors.js';
 import { PostgresStore } from '../../persistence/postgres-store.js';
-import type { PipelineStep } from '../../rag-log.js';
+import type { PipelineStep, RagLogEntry } from '../../rag-log.js';
 import { generateQueryId, logRagRetrieval } from '../../rag-log.js';
 import type { KnowledgeRecord } from '../../store.js';
 import { nowIso } from '../../store.js';
@@ -31,7 +31,6 @@ import {
   CapsuleRecallCoordinator,
   buildProfileShortlist,
   getCapsuleRecords,
-  rankCapsules,
 } from '../capsules/index.js';
 import { parseSeedIntent } from '../capsules/intent.js';
 import { buildEmbeddingText } from '../recall/semantic.js';
@@ -512,7 +511,7 @@ export async function searchKnowledgeV2(
         mergeStats: recallResult.mergeStats,
         channelsFailed: recallResult.channelsFailed,
       },
-    });
+    } as RagLogEntry);
 
     return result;
   } catch (error) {
