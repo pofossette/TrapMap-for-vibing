@@ -1370,59 +1370,86 @@ rtk pnpm eval:smoke
 
 ---
 
-### Phase 6: 索引同步与运维补齐（1-2 天）
+### Phase 6: 索引同步与运维补齐（1-2 天）✅ 已完成
+
+**状态**: 已完成
+**完成日期**: 2026-05-23
+**预估工作量**: 1-2 天 / **实际工作量**: 1 天
 
 **目标**: 让多路召回不仅能工作，而且可持续维护。
 
 #### 任务清单
 
-- [ ] **6-1: 梳理索引同步触发点**
-  - [ ] artifact publish
-  - [ ] artifact approve/review state change
-  - [ ] derive outputs 更新
+- [x] **6-1: 梳理索引同步触发点**
+  - [x] artifact publish
+  - [x] artifact approve/review state change
+  - [x] derive outputs 更新
 
-- [ ] **6-2: 完善同步状态与失败跟踪**
-  - [ ] status
-  - [ ] lastError
-  - [ ] contentHash
-  - [ ] revisionNo
+- [x] **6-2: 完善同步状态与失败跟踪**
+  - [x] status ('synced'/'failed')
+  - [x] lastError
+  - [x] contentHash (SHA-256 幂等 key)
+  - [x] revisionNo
 
-- [ ] **6-3: 补运维与修复路径**
-  - [ ] 批量重建命令或脚本
-  - [ ] 局部重试
-  - [ ] 数据对账说明
+- [x] **6-3: 补运维与修复路径**
+  - [x] 批量重建命令或脚本 (`rebuildAllCapsuleIndexes()`)
+  - [x] 局部重试 (`rebuildCapsuleIndexForArtifact()`)
+  - [x] 数据对账说明 (`verifyCapsuleIndexHealth()`, `cleanupOrphanCapsuleIndexes()`)
 
-- [ ] **6-4: 明确 fallback 策略**
-  - [ ] PG recall 不可用时如何退到 memory
-  - [ ] 单通道失败时如何保证 v2 仍可用
+- [x] **6-4: 明确 fallback 策略**
+  - [x] PG recall 不可用时如何退到 memory (keyword/semantic 通道自动 fallback)
+  - [x] 单通道失败时如何保证 v2 仍可用 (`CapsuleRecallCoordinator` try/catch per channel)
 
 #### 注意事项
 
-- [ ] 运维缺口不补齐，多路召回上线后会逐渐漂移
-- [ ] 需要把“重建索引的代价和入口”写进文档
+- [x] 运维缺口不补齐，多路召回上线后会逐渐漂移 — 已补齐
+- [x] 需要把"重建索引的代价和入口"写进文档 — 已写入 RETRIEVAL.md
 
 #### 交付物
 
-- [ ] 索引同步设计落地
-- [ ] 运维文档与重建说明
+- [x] `packages/server/src/lib/retrieval/capsules/repositories/index-sync.ts` — 索引同步服务
+- [x] `packages/server/src/lib/retrieval/capsules/repositories/index-rebuild.ts` — 运维工具
+- [x] 通道故障隔离（coordinator try/catch）
+- [x] 索引同步设计落地
+- [x] 运维文档与重建说明
 
 #### 对应文档更新
 
-- [ ] Schema 文档：记录新增索引表、字段和唯一键
-- [ ] `docs/operations/ENVIRONMENT.md`：记录索引同步或 PG recall 相关配置
-- [ ] `docs/operations/TESTING.md`：补 PG 集成测试 / 索引重建验证说明
-- [ ] `docs/architecture/components/RETRIEVAL.md`：补索引同步触发点与 fallback 行为
+- [x] Schema 文档：记录新增索引表、字段和唯一键 (已存在于 schema.ts 注释)
+- [x] `docs/operations/ENVIRONMENT.md`：记录索引同步或 PG recall 相关配置
+- [x] `docs/operations/TESTING.md`：补 PG 集成测试 / 索引重建验证说明
+- [x] `docs/architecture/components/RETRIEVAL.md`：补索引同步触发点与 fallback 行为
 
 #### 对应测试代码更新
 
-- [ ] `packages/server/src/lib/validation/*`：补表结构和列存在性测试
-- [ ] 索引同步相关单测 / 集成测试
-- [ ] 若有重建命令或脚本，补对应测试或 dry-run 验证
+- [x] `packages/server/src/lib/validation/*`：补表结构和列存在性测试 (phase6-index-schema.test.ts, 18 tests)
+- [x] 索引同步相关单测 / 集成测试 (capsule-index-sync.test.ts: 8 tests, capsule-index-rebuild.test.ts: 11 tests)
+- [x] 若有重建命令或脚本，补对应测试或 dry-run 验证 (rebuild/verify/cleanup 单测覆盖)
 
 #### 对应 Eval 组件更新
 
-- [ ] 评测主逻辑通常无需变更，但需确认 PG 路径下 eval 结果可复现
-- [ ] 如有必要，记录在 `evals/retrieval/README.md` 中的 PG 执行说明
+- [x] 评测主逻辑通常无需变更，但需确认 PG 路径下 eval 结果可复现
+- [x] 如有必要，记录在 `evals/retrieval/README.md` 中的 PG 执行说明
+
+#### Phase 6 完成检查
+
+##### 代码质量
+- [x] `rtk pnpm typecheck` 通过
+- [x] `rtk pnpm lint` 通过
+- [x] `rtk pnpm test` 通过（新增 37 个 tests）
+
+##### 检索验证
+- [x] `rtk pnpm eval:retrieval:smoke` 行为不变
+
+##### 文档同步
+- [x] RETRIEVAL.md 已更新
+- [x] ENVIRONMENT.md 已更新
+- [x] TESTING.md 已更新
+- [x] 本计划文档已更新
+
+##### 签字确认
+- 实现者签名: 开发者
+- 日期: 2026-05-23
 
 ---
 

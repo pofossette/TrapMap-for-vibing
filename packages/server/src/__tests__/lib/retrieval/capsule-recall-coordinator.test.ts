@@ -297,4 +297,103 @@ describe('CapsuleRecallCoordinator', () => {
       expect(c.channelScores).toBeDefined();
     }
   });
+
+  it('should isolate channel failures and record them', async () => {
+    const failingChannel: CapsuleRecallChannel = {
+      name: 'capsule-keyword' as CapsuleRecallChannelName,
+      async recall() {
+        throw new Error('PG connection refused');
+      },
+    };
+    const workingChannel: CapsuleRecallChannel = {
+      name: 'capsule-heuristic' as CapsuleRecallChannelName,
+      async recall() {
+        return [
+          {
+            capsuleId: 'capsule_1',
+            artifactId: 'artifact_1',
+            revision: 1,
+            channel: 'capsule-heuristic' as CapsuleRecallChannelName,
+            score: 0.5,
+          },
+        ];
+      },
+    };
+
+    registry.register(workingChannel);
+    registry.register(failingChannel);
+
+    const result = await coordinator.execute({
+      artifacts,
+      intent,
+      governanceFilters,
+      maxResults: 10,
+    });
+
+    expect(result.channelsPlanned).toContain('capsule-keyword');
+    expect(result.channelsFailed).toContain('capsule-keyword');
+    expect(result.capsuleCandidates.length).toBeGreaterThanOrEqual(0);
+    expect(result.mergeStats).toBeDefined();
+  });
+
+  it('should return empty array for channel that throws', async () => {
+    const failingChannel: CapsuleRecallChannel = {
+      name: 'capsule-semantic' as CapsuleRecallChannelName,
+      async recall() {
+        throw new Error('Embedding service timeout');
+      },
+    };
+
+    registry.register(failingChannel);
+
+    const result = await coordinator.execute({
+      artifacts,
+      intent,
+      governanceFilters,
+      maxResults: 10,
+    });
+
+    expect(result.channelsPlanned).toContain('capsule-semantic');
+    expect(result.channelsFailed).toContain('capsule-semantic');
+    expect(result.channelErrors['capsule-semantic']).toBeDefined();
+    // Execution should still complete despite channel failure
+    expect(result.mergeStats).toBeDefined();
+  });
+
+  it('should not lose results from working channels when others fail', async () => {
+    const failingChannel: CapsuleRecallChannel = {
+      name: 'capsule-keyword' as CapsuleRecallChannelName,
+      async recall() {
+        throw new Error('Boom');
+      },
+    };
+    const heuristicChannel: CapsuleRecallChannel = {
+      name: 'capsule-heuristic' as CapsuleRecallChannelName,
+      async recall() {
+        return [
+          {
+            capsuleId: 'capsule_1',
+            artifactId: 'artifact_1',
+            revision: 1,
+            channel: 'capsule-heuristic' as CapsuleRecallChannelName,
+            score: 0.7,
+          },
+        ];
+      },
+    };
+
+    registry.register(heuristicChannel);
+    registry.register(failingChannel);
+
+    const result = await coordinator.execute({
+      artifacts,
+      intent,
+      governanceFilters,
+      maxResults: 10,
+    });
+
+    expect(result.channelsFailed).toContain('capsule-keyword');
+    expect(result.channelsUsed).toContain('capsule-heuristic');
+    expect(result.mergeStats.totalChannelCandidates).toBeGreaterThanOrEqual(1);
+  });
 });

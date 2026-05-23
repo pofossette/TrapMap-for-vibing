@@ -350,6 +350,9 @@ searchKnowledgeV2() (orchestrator.ts)
 | `mergeCapsuleCandidates()` | `packages/server/src/lib/retrieval/capsules/scoring/merge.ts` | RRF 融合层：按 capsuleId 去重、保留 per-channel scores、计算 preRerankScore |
 | `rerankMergedCapsules()` | `packages/server/src/lib/retrieval/capsules/scoring/rerank.ts` | 重排层：复用 v2 intent-aware 特征、计算 finalScore、生成多通道 reason |
 | `buildMultiChannelReason()` | `packages/server/src/lib/retrieval/capsules/scoring/reasons.ts` | 多通道 explainable reason：包含通道来源 + 意图匹配百分比 + boost 信息 |
+| `createCapsuleIndexSync()` | `packages/server/src/lib/retrieval/capsules/repositories/index-sync.ts` | 索引同步服务：capsule → keyword tokens + embedding vectors，幂等 upsert (capsuleId + contentHash) |
+| `rebuildAllCapsuleIndexes()` | `packages/server/src/lib/retrieval/capsules/repositories/index-rebuild.ts` | 批量重建：清空索引表 → 遍历所有 artifact → 重新同步 |
+| `verifyCapsuleIndexHealth()` | `packages/server/src/lib/retrieval/capsules/repositories/index-rebuild.ts` | 健康对账：对比 source capsules 与 index 行，检测缺失/失败/孤立 |
 
 #### 类型定义
 
@@ -497,6 +500,67 @@ graph recall artifact IDs -> map to artifact capsules -> rerank within artifact
 | Phase 3 | semantic 通道落地 | `capsule-semantic` 通道、embedding 文本构建、向量索引 | ✅ 完成 |
 | Phase 4 | merge / rerank 落地 | RRF 融合、独立重排层、channelsPlanned/Used trace、多通道 reason | ✅ 完成 |
 | Phase 5 | graph 通道接入 | `capsule-graph` 通道、artifact-to-capsule 映射 | ✅ 完成 |
+| Phase 6 | 索引同步与运维 | index-sync、rebuild、health check、fallback 策略 | ✅ 完成 |
+| Phase 7 | 灰度发布与回归收口 | feature flag、灰度顺序、最终回归 | 🔜 待实施 |
+
+#### 索引同步与运维 (Phase 6)
+
+Phase 6 补齐了多路召回管线的可持续运维能力：索引同步、重建、健康检查和通道故障隔离。
+
+##### 索引同步触发点
+
+派生索引表 (`skill_artifact_capsule_keywords` / `skill_artifact_capsule_embeddings`) 作为派生数据，在以下事件触发同步：
+
+| 触发事件 | 同步操作 | 实现位置 |
+|----------|----------|----------|
+| Artifact publish / approve | `syncArtifactCapsules()` → keyword + embedding upsert | `repositories/index-sync.ts` |
+| Artifact revision submission | 同上 | 同上 |
+| Derive outputs 更新 | 同上 | 同上 |
+| Batch 重建 | `rebuildAllCapsuleIndexes()` | `repositories/index-rebuild.ts` |
+| 定点修复 | `rebuildCapsuleIndexForArtifact()` | 同上 |
+| 健康对账 | `verifyCapsuleIndexHealth()` | 同上 |
+| 孤立清理 | `cleanupOrphanCapsuleIndexes()` | 同上 |
+
+##### 同步状态跟踪
+
+每条索引行通过以下字段支持幂等同步和失败跟踪：
+
+| 字段 | 说明 |
+|------|------|
+| `capsuleId` | PK，与 source capsule 一一对应 |
+| `revisionNo` | 用于检测版本变更 |
+| `contentHash` | SHA-256，用于检测内容变更（幂等 key） |
+| `status` | `'synced'` 或 `'failed'` |
+| `lastError` | 失败时的错误信息 |
+
+使用 `INSERT ... ON CONFLICT (capsule_id) DO UPDATE` 实现幂等 upsert。
+
+##### PG → Memory Fallback 策略
+
+- **capsule-keyword 通道**: PG 不可用时自动回退到内存版本 `capsuleKeywordRecall()`
+- **capsule-semantic 通道**: PG 不可用时自动回退到内存版本 `capsuleSemanticRecall()`
+- **通道级故障隔离**: `CapsuleRecallCoordinator.execute()` 对每个通道单独 try/catch，单通道失败不阻断检索主流程
+- **失败可观测**: `CapsuleRecallResult` 包含 `channelsFailed` 和 `channelErrors` 字段，已记录到 RAG log metadata
+
+##### 数据重建入口
+
+```bash
+# 完整重建（清空索引表 → 遍历所有 artifact → 重新生成 keyword tokens + embedding vectors）
+# 调用: rebuildAllCapsuleIndexes({ pool, artifacts, onProgress? })
+
+# 单 artifact 重建
+# 调用: rebuildCapsuleIndexForArtifact({ pool, artifacts }, artifactId)
+
+# 健康对账（只读，不修改数据）
+# 调用: verifyCapsuleIndexHealth({ pool, artifacts })
+# 返回: { missingKeywords, missingEmbeddings, failedKeywords, failedEmbeddings, orphanKeywords, orphanEmbeddings }
+
+# 孤立清理
+# 调用: cleanupOrphanCapsuleIndexes({ pool, artifacts })
+```
+
+**注意**: 索引数据是派生数据，source of truth 始终是 `artifact.latestRevision.derived.capsules`。索引重建不会丢失数据，只需重新执行同步逻辑即可。
+
 
 ---
 

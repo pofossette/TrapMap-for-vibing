@@ -262,6 +262,41 @@ Graph 通道工作机制：
 - trap doc filtering: 仅使用 `sourceType: 'skill'` 的 graph 文档，trap 文档不参与 capsule 召回
 - channel trace: 确认 `channelsPlanned` / `channelsUsed` 中 `capsule-graph` 通道正确记录
 
+**Phase 6 状态**: 索引同步与运维补齐已完成。
+
+索引同步能力：
+- `createCapsuleIndexSync()`: capsule → keyword tokens + embedding vectors 同步，幂等 upsert（capsuleId + contentHash + revisionNo）
+- `syncArtifactCapsules()`: 按 artifact 同步所有 capsules 到两张索引表
+- `removeCapsuleIndex()` / `getSyncStatus()`: 索引条目清理和状态查询
+
+重建与运维工具：
+- `rebuildAllCapsuleIndexes()`: 批量重建（清空 + 遍历所有 artifact + 重新同步），支持 onProgress 回调
+- `rebuildCapsuleIndexForArtifact()`: 按 artifact ID 定点重建
+- `verifyCapsuleIndexHealth()`: 健康对账（只读，返回 missing/failed/orphan 统计）
+- `cleanupOrphanCapsuleIndexes()`: 孤立索引行清理
+
+通道故障隔离：
+- `CapsuleRecallCoordinator.execute()`: 每个通道单独 try/catch，单通道失败记录到 `channelsFailed` / `channelErrors`，不阻断检索
+- 失败信息通过 RAG log metadata 追踪
+
+PG → Memory fallback:
+- keyword 通道: `capsuleKeywordRecall()` (memory) 始终作为 fallback
+- semantic 通道: `capsuleSemanticRecall()` (memory) 始终作为 fallback
+- PG recall 函数通过 `featureFlag` 控制，禁用时自动走 memory
+
+**测试覆盖**:
+- 新增 `capsule-index-sync.test.ts` (8 tests): 同步成功/空 capsules/多 capsules/feature flag/错误处理/删除/状态查询
+- 新增 `capsule-index-rebuild.test.ts` (11 tests): 重建/空 artifacts/progress/定点重建/不存在 ID/健康对账/缺失检测/孤立检测/失败检测/清理
+- 新增 `phase6-index-schema.test.ts` (18 tests): keyword 表列存在性(12 columns)、embedding 表列存在性(10 columns)、跨表一致性验证
+- Coordinator 新增 3 个 tests: 通道故障隔离/失败记录/工作通道结果保留
+
+**Phase 6 专项检查建议**:
+- PG sync: 设置 featureFlag 后验证 capsules 正确写入 keyword 和 embedding 索引表
+- idempotency: 同一 capsule 重复 sync 不产生重复行（ON CONFLICT DO UPDATE）
+- health reconcile: 运行 `verifyCapsuleIndexHealth()` 后确认 source 与 index 一致
+- channel isolation: 模拟某通道异常后验证其他通道继续工作，且 channelsFailed 正确记录
+- PG fallback: PG 不可用时 keyword/semantic 通道自动回退到 memory 路径
+
 ### 添加摘要用例
 
 1. 在 `evals/summary/datasets/` 中定义：

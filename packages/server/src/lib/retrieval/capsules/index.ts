@@ -35,3 +35,17 @@ export { searchSkillsByContent } from './skill-lookup.js';
 export { mergeCapsuleCandidates } from './scoring/merge.js';
 export { rerankMergedCapsules } from './scoring/rerank.js';
 export { buildMultiChannelReason } from './scoring/reasons.js';
+export { createCapsuleIndexSync } from './repositories/index-sync.js';
+export type { CapsuleIndexSyncConfig, SyncRecord, SyncResult } from './repositories/index-sync.js';
+export {
+  cleanupOrphanCapsuleIndexes,
+  rebuildAllCapsuleIndexes,
+  rebuildCapsuleIndexForArtifact,
+  verifyCapsuleIndexHealth,
+} from './repositories/index-rebuild.js';
+export type {
+  HealthCheckConfig,
+  HealthReport,
+  RebuildConfig,
+  RebuildStats,
+} from './repositories/index-rebuild.js';

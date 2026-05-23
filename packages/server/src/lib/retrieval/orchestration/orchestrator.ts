@@ -485,6 +485,7 @@ export async function searchKnowledgeV2(
         includeRefinement: false,
         routingTrace: toRoutingTrace(routingDecision),
         mergeStats: recallResult.mergeStats,
+        channelsFailed: recallResult.channelsFailed,
       },
     });
 

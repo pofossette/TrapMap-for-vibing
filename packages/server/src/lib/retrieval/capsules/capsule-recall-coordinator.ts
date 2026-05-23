@@ -24,6 +24,8 @@ export interface CapsuleRecallResult {
   mergedCandidates: MergedCapsuleCandidate[];
   channelsPlanned: CapsuleRecallChannelName[];
   channelsUsed: CapsuleRecallChannelName[];
+  channelsFailed: CapsuleRecallChannelName[];
+  channelErrors: Partial<Record<CapsuleRecallChannelName, string>>;
   mergeStats: {
     totalChannelCandidates: number;
     preMergeCount: number;
@@ -36,17 +38,26 @@ export class CapsuleRecallCoordinator {
 
   async execute(input: CapsuleRecallInput, _steps?: PipelineStep[]): Promise<CapsuleRecallResult> {
     const channelsPlanned: CapsuleRecallChannelName[] = this.registry.all().map((ch) => ch.name);
+    const channelsFailed: CapsuleRecallChannelName[] = [];
+    const channelErrors: Partial<Record<CapsuleRecallChannelName, string>> = {};
 
     const allChannelResults: CapsuleRecallCandidate[][] = [];
 
     for (const channel of this.registry.all()) {
-      const candidates = await channel.recall(
-        input.artifacts,
-        input.intent,
-        input.governanceFilters,
-        input.maxResults * 3,
-      );
-      allChannelResults.push(candidates);
+      try {
+        const candidates = await channel.recall(
+          input.artifacts,
+          input.intent,
+          input.governanceFilters,
+          input.maxResults * 3,
+        );
+        allChannelResults.push(candidates);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        channelsFailed.push(channel.name);
+        (channelErrors as Record<string, string>)[channel.name] = message;
+        allChannelResults.push([]);
+      }
     }
 
     const totalChannelCandidates = allChannelResults.reduce(
@@ -55,11 +66,11 @@ export class CapsuleRecallCoordinator {
     );
 
     const channelsUsed: CapsuleRecallChannelName[] = [];
-    for (const channel of this.registry.all()) {
-      const channelResult = allChannelResults.find(
-        (cr) => cr.length > 0 && cr[0].channel === channel.name,
-      );
-      if (channelResult && channelResult.length > 0) {
+    const registeredChannels = this.registry.all();
+    for (let i = 0; i < registeredChannels.length; i++) {
+      const channel = registeredChannels[i];
+      const results = allChannelResults[i];
+      if (results && results.length > 0) {
         channelsUsed.push(channel.name);
       }
     }
@@ -93,6 +104,8 @@ export class CapsuleRecallCoordinator {
       mergedCandidates,
       channelsPlanned,
       channelsUsed,
+      channelsFailed,
+      channelErrors,
       mergeStats: {
         totalChannelCandidates,
         preMergeCount,

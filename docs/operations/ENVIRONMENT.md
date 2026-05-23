@@ -18,6 +18,20 @@
 
 > 设置 `TRAPMAP_DATABASE_URL` 后，服务器启动时会自动通过 Drizzle migration runner 运行数据库迁移（位于 `packages/server/drizzle/`）。迁移包含所有核心表、索引和 pgvector 扩展的创建。
 
+### PG Recall 配置 (Phase 6)
+
+多路召回管线的 keyword 和 semantic 通道支持 PostgreSQL 索引增强。以下环境变量控制 PG recall 行为：
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `RETRIEVAL_CAPSULE_PG_KEYWORD` | 启用 capsule keyword PG recall（通过 `skill_artifact_capsule_keywords` 表 GIN 索引） | `false` |
+| `RETRIEVAL_CAPSULE_PG_SEMANTIC` | 启用 capsule semantic PG recall（通过 `skill_artifact_capsule_embeddings` 表 HNSW 索引） | `false` |
+| `RETRIEVAL_CAPSULE_PG_INDEX_SYNC` | 启用 capsule 索引同步写入（artifact lifecycle 触发时写 keyword 和 embedding 索引表） | `false` |
+
+**Fallback 行为**: PG recall 不可用时，keyword 和 semantic 通道自动回退到内存版本。单通道失败（包括 PG 连接错误）不会阻断 `/v2/retrieval/search` 主流程。
+
+**索引重建**: 当启用 PG 后，需运行索引重建将现有 artifact capsules 同步到 PG。调用 `rebuildAllCapsuleIndexes()` 或编写 CLI 脚本触发。
+
 ## 服务器配置
 
 | 变量 | 说明 | 默认值 |
