@@ -249,246 +249,73 @@ async function restore(): Promise<void> {
 
 ### Drizzle Schema
 
+> **完整 schema 定义**: `packages/server/src/lib/persistence/schema.ts` (1618 行, 48 张表)
+> **快速参考**: `docs/reference/DATABASE_SCHEMA.md`
+
+Schema 按业务域组织为四大模块：
+
+| 域 | 根表 | 子表数量 | 说明 |
+|----|------|----------|------|
+| 知识 | `knowledge_entries` | 15 | 含修订、生命周期、边界、维护、嵌入、关键词、搜索文档 |
+| 技能工件 | `skill_artifacts` | 17 | 含修订、文件、脚本、配置、胶囊、清单、边界、维护、审核 |
+| 候选人 | `candidates` | 6 | 含分析、去重、人工审核、解析结果、溯源 |
+| 反馈分析 | `feedback_records` | 4 | 含自定义问答、使用事件、日聚合 |
+
+另有 `store_snapshot` (JSONB 兼容层) 和 `task_queue` (后台任务队列)。
+
+示例（知识条目主表）：
+
 ```typescript
-// schema.ts
-import { pgTable, uuid, text, timestamp, integer, jsonb, boolean } from 'drizzle-orm/pg-core';
+// schema.ts (节选，完整定义见源码)
+export const knowledgeEntries = pgTable(
+  'knowledge_entries',
+  {
+    id: text('id').primaryKey(),
+    teamId: text('team_id'),           // null = 全局条目
+    scope: text('scope').notNull(),    // 'global' | 'project'
+    labels: jsonb('labels').notNull().default([]),
+    shortcut: text('shortcut').notNull(),
+    detail: text('detail').notNull(),
+    requiredLevel: integer('required_level').notNull().default(0),
+    lifecycleState: text('lifecycle_state').notNull(),
+    ownerUserId: text('owner_user_id').notNull(),
+    boundary: jsonb('boundary').$type<Boundary>(),
+    maintenanceMeta: jsonb('maintenance_meta'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_knowledge_entries_lifecycle_state').on(table.lifecycleState),
+    index('idx_knowledge_entries_team').on(table.teamId),
+    index('idx_knowledge_entries_scope_level').on(table.scope, table.requiredLevel),
+    index('idx_knowledge_entries_owner').on(table.ownerUserId),
+  ],
+);
+```
 
-export const knowledgeEntries = pgTable('knowledge_entries', {
-  id: uuid('id').primaryKey(),
-  title: text('title').notNull(),
-  content: text('content').notNull(),
-  format: text('format').notNull(),
-  requiredLevel: integer('required_level').notNull().default(0),
-  lifecycleState: text('lifecycle_state').notNull(),
-  
-  createdAt: timestamp('created_at').notNull(),
-  updatedAt: timestamp('updated_at').notNull(),
-  createdBy: jsonb('created_by').notNull(),
-  submittedBy: jsonb('submitted_by'),
-  approvedBy: jsonb('approved_by'),
-  teamId: uuid('team_id'),
-  
-  capsuleIds: jsonb('capsule_ids').default([]),
-  trapIds: jsonb('trap_ids').default([]),
-  
-  reviewHistory: jsonb('review_history').default([]),
-  agentReviewResult: jsonb('agent_review_result'),
-  
-  version: integer('version').notNull().default(1)
-});
+特殊索引类型（由应用层创建，非 Drizzle 原生支持）：
 
-export const teams = pgTable('teams', {
-  id: uuid('id').primaryKey(),
-  name: text('name').notNull(),
-  description: text('description'),
-  createdAt: timestamp('created_at').notNull(),
-  createdBy: jsonb('created_by').notNull()
-});
+```sql
+-- HNSW 向量索引 (启动时由 ensureVectorIndex() 创建)
+CREATE INDEX knowledge_embeddings_vector_idx
+ON knowledge_embeddings USING hnsw (vector vector_cosine_ops)
+WITH (m = 16, ef_construction = 64);
 
-export const members = pgTable('members', {
-  id: uuid('id').primaryKey(),
-  username: text('username').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
-  roleName: text('role_name').notNull(),
-  level: integer('level').notNull().default(0),
-  teamId: uuid('team_id').references(() => teams.id),
-  createdAt: timestamp('created_at').notNull()
-});
-
-export const sessions = pgTable('sessions', {
-  id: uuid('id').primaryKey(),
-  userId: uuid('user_id').notNull().references(() => members.id),
-  createdAt: timestamp('created_at').notNull(),
-  expiresAt: timestamp('expires_at').notNull()
-});
-
-export const accessKeys = pgTable('access_keys', {
-  id: uuid('id').primaryKey(),
-  name: text('name').notNull(),
-  keyHash: text('key_hash').notNull().unique(),
-  createdBy: jsonb('created_by').notNull(),
-  createdAt: timestamp('created_at').notNull(),
-  expiresAt: timestamp('expires_at'),
-  lastUsedAt: timestamp('last_used_at'),
-  permissions: jsonb('permissions').default([]),
-  level: integer('level').notNull()
-});
-
-export const auditLog = pgTable('audit_log', {
-  id: uuid('id').primaryKey(),
-  timestamp: timestamp('timestamp').notNull().defaultNow(),
-  eventType: text('event_type').notNull(),
-  actorId: uuid('actor_id'),
-  resourceType: text('resource_type'),
-  resourceId: uuid('resource_id'),
-  metadata: jsonb('metadata'),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent')
-});
-
-export const indexState = pgTable('knowledge_index_state', {
-  entryId: uuid('entry_id').primaryKey().references(() => knowledgeEntries.id),
-  adapters: jsonb('adapters').notNull(),
-  lastReconciledAt: timestamp('last_reconciled_at')
-});
-
-// Knowledge vectors for semantic search
-export const knowledgeVectors = pgTable('knowledge_vectors', {
-  entryId: uuid('entry_id').primaryKey().references(() => knowledgeEntries.id),
-  embeddingVector: vector('embedding_vector', { dimensions: 1536 }).notNull(),
-  version: integer('version').notNull().default(1),
-  createdAt: timestamp('created_at').notNull(),
-  updatedAt: timestamp('updated_at').notNull()
-});
-
-// Knowledge keyword index
-export const keywordIndex = pgTable('keyword_index', {
-  entryId: uuid('entry_id').notNull().references(() => knowledgeEntries.id),
-  term: text('term').notNull(),
-  termFrequency: integer('term_frequency').notNull(),
-  idf: text('idf').notNull(),
-  bm25Score: text('bm25_score').notNull(),
-  PRIMARY KEY (entryId, term)
-});
-
-// Graph nodes and edges
-export const graphNodes = pgTable('graph_nodes', {
-  entryId: uuid('entry_id').primaryKey().references(() => knowledgeEntries.id),
-  nodeType: text('node_type').notNull(),
-  label: text('label').notNull(),
-  metadata: jsonb('metadata')
-});
-
-export const graphEdges = pgTable('graph_edges', {
-  sourceId: uuid('source_id').notNull().references(() => knowledgeEntries.id),
-  targetId: uuid('target_id').notNull().references(() => knowledgeEntries.id),
-  edgeType: text('edge_type').notNull(),
-  metadata: jsonb('metadata'),
-  PRIMARY KEY (sourceId, targetId, edgeType)
-});
+-- GIN 全文搜索索引 (migration 0005 创建)
+CREATE INDEX idx_knowledge_search_documents_gin
+ON knowledge_search_documents USING gin (document);
 ```
 
 ### 实现细节
 
-```typescript
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
+> **完整实现**: `packages/server/src/lib/persistence/postgres-store.ts`
 
-export class PostgresStore implements Store {
-  private pool: Pool;
-  private db: ReturnType<typeof drizzle>;
-  
-  constructor(databaseUrl: string) {
-    this.pool = new Pool({ connectionString: databaseUrl });
-    this.db = drizzle(this.pool);
-  }
-  
-  async transact<T>(fn: (tx: Transaction) => Promise<T>): Promise<T> {
-    return this.db.transaction(async (tx) => {
-      const wrappedTx = this.wrapTransaction(tx);
-      return fn(wrappedTx);
-    });
-  }
-  
-  async createKnowledgeEntry(entry: KnowledgeEntry): Promise<void> {
-    await this.db.insert(knowledgeEntries).values({
-      id: entry.id,
-      title: entry.title,
-      content: entry.content,
-      format: entry.format,
-      requiredLevel: entry.requiredLevel,
-      lifecycleState: entry.lifecycleState,
-      createdAt: new Date(entry.createdAt),
-      updatedAt: new Date(entry.updatedAt),
-      createdBy: entry.createdBy,
-      version: 1
-    });
-  }
-  
-  async getKnowledgeEntry(id: EntityId): Promise<KnowledgeEntry | null> {
-    const result = await this.db.select()
-      .from(knowledgeEntries)
-      .where(eq(knowledgeEntries.id, id))
-      .limit(1);
-    
-    if (result.length === 0) return null;
-    
-    return this.mapToEntry(result[0]);
-  }
-  
-  async updateKnowledgeEntry(
-    id: EntityId,
-    updates: Partial<KnowledgeEntry>,
-    options?: { expectedVersion?: number }
-  ): Promise<void> {
-    const updateData: Partial<typeof knowledgeEntries.$inferInsert> = {
-      ...updates,
-      updatedAt: new Date()
-    };
-    
-    if (options?.expectedVersion !== undefined) {
-      // Optimistic locking
-      const result = await this.db.update(knowledgeEntries)
-        .set(updateData)
-        .where(
-          and(
-            eq(knowledgeEntries.id, id),
-            eq(knowledgeEntries.version, options.expectedVersion)
-          )
-        );
-      
-      if (result.rowCount === 0) {
-        throw new OptimisticLockError(id);
-      }
-    } else {
-      await this.db.update(knowledgeEntries)
-        .set(updateData)
-        .where(eq(knowledgeEntries.id, id));
-    }
-  }
-  
-  async listKnowledgeEntries(query: ListQuery): Promise<KnowledgeEntry[]> {
-    let q = this.db.select().from(knowledgeEntries);
-    
-    if (query.filter) {
-      if (query.filter.lifecycleState) {
-        q = q.where(eq(knowledgeEntries.lifecycleState, query.filter.lifecycleState));
-      }
-      if (query.filter.teamId) {
-        q = q.where(eq(knowledgeEntries.teamId, query.filter.teamId));
-      }
-    }
-    
-    if (query.limit) {
-      q = q.limit(query.limit);
-    }
-    
-    const results = await q;
-    return results.map(r => this.mapToEntry(r));
-  }
-  
-  // Vector similarity search
-  async similaritySearch(
-    embedding: number[],
-    limit: number
-  ): Promise<Array<{ entryId: EntityId; score: number }>> {
-    const results = await this.db.execute(
-      sql`
-        SELECT entry_id, 
-               1 - (embedding_vector <=> ${embedding}) as similarity
-        FROM knowledge_vectors
-        ORDER BY embedding_vector <=> ${embedding}
-        LIMIT ${limit}
-      `
-    );
-    
-    return results.rows.map(row => ({
-      entryId: row.entry_id,
-      score: parseFloat(row.similarity)
-    }));
-  }
-}
-```
+PostgresStore 通过 Drizzle ORM 操作 PostgreSQL，主要特点：
+
+- **事务支持**: 使用 `db.transaction()` 实现原生 ACID 事务
+- **批量操作**: 子表写入使用 `db.insert().values([...])` 批量插入
+- **JSONB 兼容层**: `store_snapshot` 表存储完整 StoreData，支持渐进式迁移
+- **向量搜索**: 通过 raw SQL 调用 pgvector 的余弦距离操作符 `<=>`
 
 ---
 
@@ -583,20 +410,34 @@ const pool = new Pool({
 
 ### 索引策略
 
+> **完整索引列表**: 参见 `docs/reference/DATABASE_SCHEMA.md`
+
+主要索引类型：
+
 ```sql
--- Frequently queried columns
-CREATE INDEX idx_entries_state ON knowledge_entries(lifecycle_state);
-CREATE INDEX idx_entries_team ON knowledge_entries(team_id);
-CREATE INDEX idx_entries_level ON knowledge_entries(required_level);
-CREATE INDEX idx_entries_created ON knowledge_entries(created_at DESC);
+-- B-tree 索引 (状态/团队/级别过滤)
+CREATE INDEX idx_knowledge_entries_lifecycle_state ON knowledge_entries(lifecycle_state);
+CREATE INDEX idx_knowledge_entries_team ON knowledge_entries(team_id);
+CREATE INDEX idx_knowledge_entries_scope_level ON knowledge_entries(scope, required_level);
+CREATE INDEX idx_skill_artifacts_lifecycle_state ON skill_artifacts(lifecycle_state);
+CREATE INDEX idx_candidates_status ON candidates(status);
 
--- Session lookups
-CREATE INDEX idx_sessions_user ON sessions(user_id);
-CREATE INDEX idx_sessions_expires ON sessions(expires_at);
+-- 唯一索引 (业务约束)
+CREATE UNIQUE INDEX idx_knowledge_revisions_entry_revision_no
+  ON knowledge_revisions(entry_id, revision_no);
+CREATE UNIQUE INDEX idx_skill_artifacts_scope_team_slug
+  ON skill_artifacts(COALESCE(team_id, '__global__'), scope, slug);
 
--- Audit log queries
-CREATE INDEX idx_audit_timestamp ON audit_log(timestamp DESC);
-CREATE INDEX idx_audit_actor ON audit_log(actor_id);
+-- HNSW 向量索引 (启动时由应用层创建)
+CREATE INDEX knowledge_embeddings_vector_idx
+  ON knowledge_embeddings USING hnsw (vector vector_cosine_ops)
+  WITH (m = 16, ef_construction = 64);
+
+-- GIN 索引 (数组重叠 / 全文搜索)
+CREATE INDEX idx_knowledge_keywords_tokens_gin
+  ON knowledge_keywords USING gin (tokens);
+CREATE INDEX idx_knowledge_search_documents_gin
+  ON knowledge_search_documents USING gin (document);
 ```
 
 ---
