@@ -14,6 +14,7 @@ import {
   makeTrapNode,
 } from '@trapmap/server/lib/retrieval/__fixtures__/graph-fixtures.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
 
 describe('retrieval route', () => {
@@ -2193,3 +2194,309 @@ describe('retrieval route', () => {
     });
   });
 });
+
+// =============================================================================
+// Phase 2: Route/service main link integration tests (retrieval/recall visibility)
+// =============================================================================
+
+describe('retrieval visibility main link tests (Phase 2)', () => {
+  describe('approved artifact retrieval via v1', () => {
+    it('retrieves approved knowledge entry via v1 semantic search', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedKnowledgeEntry(data, auth.userId, {
+            id: 'knowledge-retrieval-test',
+            shortcut: 'Docker Deployment Best Practices',
+            detail: 'Always use multi-stage builds and pin image versions in Docker',
+            labels: ['docker', 'deployment'],
+          });
+        },
+        {
+          permissions: ['knowledge:search'],
+          roleTemplate: 'user',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          seed: 'docker deployment',
+          mode: 'hybrid',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      const allResults = [...json.globalConstraints, ...json.projectKnowledge];
+      const found = allResults.find(
+        (r: any) => r.shortcut === 'Docker Deployment Best Practices',
+      );
+      expect(found).toBeDefined();
+
+      await app.close();
+    });
+
+    it('does NOT retrieve non-approved knowledge entry', async () => {
+      const { app, authToken, store } = await buildTestServer();
+      let draftEntryId: string;
+
+      await store.transact((data) => {
+        draftEntryId = `knowledge_draft_${Date.now()}`;
+        data.knowledgeEntries.push({
+          id: draftEntryId,
+          teamId: null,
+          scope: 'global',
+          labels: ['test'],
+          shortcut: 'Draft Entry Should Not Appear',
+          detail: 'This entry is in draft state and should not be retrieved',
+          requiredLevel: 0,
+          lifecycleState: 'draft',
+          ownerUserId: 'test_user',
+          latestRevision: {
+            revision: 1,
+            submittedAt: nowIso(),
+            submittedByUserId: 'test_user',
+            shortcut: 'Draft Entry Should Not Appear',
+            detail: 'This entry is in draft state and should not be retrieved',
+            labels: ['test'],
+            reviewNotes: [],
+          },
+          history: [],
+          metadata: {
+            scopeLabel: 'global-constraint',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: null,
+            latestSubmittedAt: null,
+            latestReviewedAt: null,
+            latestDecision: null,
+          },
+          latestSubmissionId: null,
+          submissionHistory: [],
+          agentReview: null,
+          reviewHistory: [],
+          reviewNotes: [],
+          lifecycleHistory: [],
+          embeddingCache: null,
+          indexState: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          seed: 'Draft Entry Should Not Appear',
+          mode: 'hybrid',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      const allResults = [...json.globalConstraints, ...json.projectKnowledge];
+      const found = allResults.find(
+        (r: any) => r.shortcut === 'Draft Entry Should Not Appear',
+      );
+      expect(found).toBeUndefined();
+
+      await app.close();
+    });
+  });
+
+  describe('approved artifact retrieval via skill lookup', () => {
+    it('finds approved skill artifact via search-by-content', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'skill-retrieval-test',
+            title: 'Docker Multi-Stage Builds',
+            labels: ['docker', 'build'],
+          });
+        },
+        {
+          permissions: ['knowledge:search'],
+          roleTemplate: 'user',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/skills/search-by-content',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: { text: 'Docker Multi-Stage Builds' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      expect(json.matches).toBeDefined();
+      const found = json.matches.find(
+        (m: any) => m.artifactId === 'skill-retrieval-test',
+      );
+      expect(found).toBeDefined();
+
+      await app.close();
+    });
+
+    it('does NOT return non-approved skill in search-by-content', async () => {
+      const { app, authToken, store } = await buildTestServer();
+
+      await store.transact((data) => {
+        if (!data.skillArtifacts) data.skillArtifacts = [];
+        data.skillArtifacts.push({
+          id: 'skill-draft-test',
+          teamId: null,
+          scope: 'global',
+          labels: ['draft'],
+          title: 'Draft Skill Should Not Appear',
+          slug: 'draft-skill-should-not-appear',
+          requiredLevel: 0,
+          lifecycleState: 'draft',
+          ownerUserId: 'some_user',
+          latestRevision: {
+            revision: 1,
+            sourceHash: 'a'.repeat(64),
+            files: [{
+              path: 'SKILL.md',
+              kind: 'skill-markdown',
+              sha256: 'a'.repeat(64),
+              sizeBytes: 100,
+              mediaType: 'text/markdown',
+              source: 'SKILL.md',
+              includeInDerivation: true,
+              activationOnly: false,
+            }],
+            submittedAt: nowIso(),
+            submittedByUserId: 'some_user',
+            scriptDescriptors: [],
+            derived: null,
+          },
+          history: [{
+            revision: 1,
+            sourceHash: 'a'.repeat(64),
+            files: [{
+              path: 'SKILL.md',
+              kind: 'skill-markdown',
+              sha256: 'a'.repeat(64),
+              sizeBytes: 100,
+              mediaType: 'text/markdown',
+              source: 'SKILL.md',
+              includeInDerivation: true,
+              activationOnly: false,
+            }],
+            submittedAt: nowIso(),
+            submittedByUserId: 'some_user',
+            scriptDescriptors: [],
+            derived: null,
+          }],
+          metadata: {
+            sourceKind: 'skill-directory',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: null,
+            latestSubmittedAt: null,
+            latestReviewedAt: null,
+            latestDecision: null,
+          },
+          agentReview: null,
+          reviewHistory: [],
+          reviewNotes: [],
+          lifecycleHistory: [],
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/skills/search-by-content',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: { text: 'Draft Skill Should Not Appear' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      const found = json.matches.find(
+        (m: any) => m.artifactId === 'skill-draft-test',
+      );
+      expect(found).toBeUndefined();
+
+      await app.close();
+    });
+  });
+
+  describe('capsule recall visibility', () => {
+    it('finds approved skill capsules via skill lookup', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'skill-capsule-test',
+            title: 'React Performance Optimization',
+            labels: ['react', 'performance'],
+          });
+        },
+        {
+          permissions: ['knowledge:search'],
+          roleTemplate: 'user',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/skills/search-by-content',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: { text: 'react performance' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      expect(json.matches).toBeDefined();
+      expect(json.matches.length).toBeGreaterThanOrEqual(1);
+      const found = json.matches.find(
+        (m: any) => m.artifactId === 'skill-capsule-test',
+      );
+      expect(found).toBeDefined();
+
+      await app.close();
+    });
+  });
+
+  describe('graph-assisted retrieval visibility', () => {
+    it('includes approved skill artifacts in graph-assisted search results', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'skill-graph-test',
+            title: 'Webpack Bundle Optimization',
+            labels: ['webpack', 'build'],
+          });
+        },
+        {
+          permissions: ['knowledge:search'],
+          roleTemplate: 'user',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          seed: 'webpack bundle optimization',
+          mode: 'graph-assisted',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      await app.close();
+    });
+  });
+});
+

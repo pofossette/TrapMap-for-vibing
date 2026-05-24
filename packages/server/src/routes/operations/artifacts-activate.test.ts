@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { buildServer } from '@trapmap/server/app.js';
+import {
+  buildTestServer,
+  seedApprovedSkillArtifact,
+  seedFilePayload,
+} from '@trapmap/server/lib/retrieval/__fixtures__/auth-store-helpers.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
@@ -43,7 +48,6 @@ describe('operations routes', () => {
         },
       });
 
-      // Should require auth, not fail on schema
       expect(response.statusCode).toBe(401);
     });
 
@@ -58,7 +62,6 @@ describe('operations routes', () => {
         },
       });
 
-      // Should require auth, not fail on schema
       expect(response.statusCode).toBe(401);
     });
 
@@ -72,7 +75,6 @@ describe('operations routes', () => {
         },
       });
 
-      // Should fail validation (too many paths)
       expect(response.statusCode).toBeGreaterThanOrEqual(400);
     });
   });
@@ -335,6 +337,304 @@ describe('operations routes', () => {
       if (reviewResponse.statusCode === 200) {
         expect(docsAfterReapprove.length).toBeGreaterThanOrEqual(1);
       }
+    });
+  });
+});
+
+// =============================================================================
+// Phase 2: Route/service main link integration tests (artifact activation)
+// =============================================================================
+
+const ACTIVATE_FAKE_HASH = 'a'.repeat(64);
+
+describe('artifact activation main link tests (Phase 2)', () => {
+  describe('selective file activation', () => {
+    it('returns 404 for non-existent artifact', async () => {
+      const { app, authToken } = await buildTestServer();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/activate',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: { artifactId: 'nonexistent', selectedPaths: ['SKILL.md'] },
+      });
+
+      expect(response.statusCode).toBe(404);
+      await app.close();
+    });
+
+    it('activates SKILL.md and returns its content', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact-activate-skill',
+            title: 'Activate SKILL.md Test',
+            files: [
+              { path: 'SKILL.md', content: '# Activation Test\n\nSkill body here', kind: 'skill-markdown' },
+            ],
+          });
+
+          seedFilePayload(data, 'artifact-activate-skill', 1, 'SKILL.md', '# Activation Test\n\nSkill body here');
+        },
+        {
+          permissions: ['knowledge:export'],
+          roleTemplate: 'admin',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/activate',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: { artifactId: 'artifact-activate-skill', selectedPaths: ['SKILL.md'] },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      expect(json.artifactId).toBe('artifact-activate-skill');
+      expect(json.files).toHaveLength(1);
+      expect(json.files[0].path).toBe('SKILL.md');
+      expect(json.files[0].kind).toBe('skill-markdown');
+      expect(json.files[0].content).toContain('Activation Test');
+
+      await app.close();
+    });
+
+    it('activates references/ files and returns their content', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact-activate-refs',
+            title: 'Activate References Test',
+            files: [
+              { path: 'SKILL.md', content: '# Skill', kind: 'skill-markdown' },
+              { path: 'references/docker.md', content: '# Docker\n\nDocker best practices', kind: 'reference' },
+              { path: 'references/ci.md', content: '# CI\n\nCI pipeline guide', kind: 'reference' },
+            ],
+          });
+
+          seedFilePayload(data, 'artifact-activate-refs', 1, 'SKILL.md', '# Skill');
+          seedFilePayload(data, 'artifact-activate-refs', 1, 'references/docker.md', '# Docker\n\nDocker best practices');
+          seedFilePayload(data, 'artifact-activate-refs', 1, 'references/ci.md', '# CI\n\nCI pipeline guide');
+        },
+        {
+          permissions: ['knowledge:export'],
+          roleTemplate: 'admin',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/activate',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          artifactId: 'artifact-activate-refs',
+          selectedPaths: ['references/docker.md', 'references/ci.md'],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      expect(json.files).toHaveLength(2);
+
+      const dockerRef = json.files.find((f: any) => f.path === 'references/docker.md');
+      expect(dockerRef).toBeDefined();
+      expect(dockerRef.kind).toBe('reference');
+      expect(dockerRef.content).toContain('Docker best practices');
+
+      const ciRef = json.files.find((f: any) => f.path === 'references/ci.md');
+      expect(ciRef).toBeDefined();
+      expect(ciRef.content).toContain('CI pipeline guide');
+
+      await app.close();
+    });
+
+    it('activates assets/ files and returns their content', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact-activate-assets',
+            title: 'Activate Assets Test',
+            files: [
+              { path: 'SKILL.md', content: '# Skill', kind: 'skill-markdown' },
+              { path: 'assets/docker-compose.yml', content: 'version: "3"\nservices:\n  app: {}', kind: 'asset' },
+            ],
+          });
+
+          seedFilePayload(data, 'artifact-activate-assets', 1, 'SKILL.md', '# Skill');
+          seedFilePayload(data, 'artifact-activate-assets', 1, 'assets/docker-compose.yml', 'version: "3"\nservices:\n  app: {}');
+        },
+        {
+          permissions: ['knowledge:export'],
+          roleTemplate: 'admin',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/activate',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          artifactId: 'artifact-activate-assets',
+          selectedPaths: ['assets/docker-compose.yml'],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      expect(json.files).toHaveLength(1);
+      expect(json.files[0].path).toBe('assets/docker-compose.yml');
+      expect(json.files[0].kind).toBe('asset');
+      expect(json.files[0].content).toContain('version:');
+
+      await app.close();
+    });
+
+    it('activates scripts/ files and returns descriptors', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact-activate-scripts',
+            title: 'Activate Scripts Test',
+            files: [
+              { path: 'SKILL.md', content: '# Skill', kind: 'skill-markdown' },
+              { path: 'scripts/bootstrap.sh', content: '#!/bin/bash\necho bootstrap', kind: 'script' },
+              { path: 'scripts/deploy.sh', content: '#!/bin/bash\necho deploy', kind: 'script' },
+            ],
+          });
+
+          seedFilePayload(data, 'artifact-activate-scripts', 1, 'SKILL.md', '# Skill');
+          seedFilePayload(data, 'artifact-activate-scripts', 1, 'scripts/bootstrap.sh', '#!/bin/bash\necho bootstrap');
+          seedFilePayload(data, 'artifact-activate-scripts', 1, 'scripts/deploy.sh', '#!/bin/bash\necho deploy');
+
+          // Add script descriptors to the artifact (both latestRevision and history)
+          const artifact = data.skillArtifacts.find((a: any) => a.id === 'artifact-activate-scripts');
+          if (artifact) {
+            const descriptors = [
+              {
+                path: 'scripts/bootstrap.sh',
+                sha256: ACTIVATE_FAKE_HASH,
+                sizeBytes: 26,
+                mediaType: 'text/x-shellscript',
+                capability: 'System bootstrap',
+                argsSchemaSummary: '',
+                sideEffectSummary: 'Installs dependencies',
+                defaultPolicy: 'needs-approval',
+              },
+              {
+                path: 'scripts/deploy.sh',
+                sha256: ACTIVATE_FAKE_HASH,
+                sizeBytes: 23,
+                mediaType: 'text/x-shellscript',
+                capability: 'Deploy to production',
+                argsSchemaSummary: '--env=production',
+                sideEffectSummary: 'Updates production servers',
+                defaultPolicy: 'manual',
+              },
+            ];
+            artifact.latestRevision.scriptDescriptors = descriptors;
+            if (artifact.history.length > 0) {
+              artifact.history[0].scriptDescriptors = descriptors;
+            }
+          }
+        },
+        {
+          permissions: ['knowledge:export'],
+          roleTemplate: 'admin',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/activate',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          artifactId: 'artifact-activate-scripts',
+          selectedPaths: ['scripts/bootstrap.sh', 'scripts/deploy.sh'],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      expect(json.files).toHaveLength(2);
+
+      // Script files should be activated
+      const bootstrapFile = json.files.find((f: any) => f.path === 'scripts/bootstrap.sh');
+      expect(bootstrapFile).toBeDefined();
+      expect(bootstrapFile.content).toContain('bootstrap');
+
+      // Script descriptors should be included for activated script paths
+      expect(json.scriptDescriptors).toBeDefined();
+      expect(json.scriptDescriptors.length).toBe(2);
+
+      const bootstrapDesc = json.scriptDescriptors.find((d: any) => d.path === 'scripts/bootstrap.sh');
+      expect(bootstrapDesc).toBeDefined();
+      expect(bootstrapDesc.capability).toBe('System bootstrap');
+      expect(bootstrapDesc.defaultPolicy).toBe('needs-approval');
+
+      const deployDesc = json.scriptDescriptors.find((d: any) => d.path === 'scripts/deploy.sh');
+      expect(deployDesc).toBeDefined();
+      expect(deployDesc.capability).toBe('Deploy to production');
+
+      await app.close();
+    });
+
+    it('rejects activation with paths not in artifact', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact-activate-invalid',
+            title: 'Invalid Path Test',
+          });
+        },
+        {
+          permissions: ['knowledge:export'],
+          roleTemplate: 'admin',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/activate',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          artifactId: 'artifact-activate-invalid',
+          selectedPaths: ['nonexistent/file.md'],
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      await app.close();
+    });
+
+    it('blocks activation for artifact above user security level', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact-activate-high',
+            title: 'High Level Activate',
+            requiredLevel: 10,
+          });
+        },
+        {
+          permissions: ['knowledge:export'],
+          roleTemplate: 'user',
+          securityLevel: 5,
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/activate',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          artifactId: 'artifact-activate-high',
+          selectedPaths: ['SKILL.md'],
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+      await app.close();
     });
   });
 });

@@ -1,19 +1,82 @@
-# TrapMap Round 4 后续增强计划
+# TrapMap Round 4+ 后续增强实施计划
 
-本文档用于承接 Round 4 完成后的两项后续工作：
+本文档用于承接 Skill Artifact Round 4 结构化落地后的下一阶段工作。目标不是重新设计数据模型，而是在当前代码和数据库基线上，把“一致性约束”和“端到端验证”补到可以持续交付的程度。
+
+当前计划聚焦两个主题：
 
 1. cross-table 一致性约束增强
-2. 端到端集成测试补齐
+2. 端到端集成测试与 demo 验收补齐
 
-边界说明：
-- 不考虑历史数据库升级路径。
-- 不考虑部署、上线、灰度、回滚方案。
-- 默认场景是“可以从 0 新建数据库”的小型项目或 demo 环境。
-- 现有结构化真表已经是事实源，`skill_artifacts` 与 `artifact_revisions` 上的 JSONB 字段仅作为兼容缓存保留。
+本文档面向实际实现与跟踪，因此补充了：
 
-## 当前基线
+- 任务背景与目标
+- 明确边界和非目标
+- 可勾选的进度复选框
+- 与当前代码路径对应的实施落点
+- 示例代码/伪代码
+- 各阶段完成验收标准
 
-Skill Artifact 域已经完成以下结构化真表落地：
+---
+
+## 1. 背景
+
+Round 4 已经把 Skill Artifact 域的关键结构化事实源落到 PostgreSQL 真表，当前项目不是“有没有表”的问题，而是“表之间是否足够一致”和“现有主链路是否被真实验证”。
+
+从当前仓库状态看，以下前提已经成立：
+
+- `packages/server/drizzle/0007_round4_artifact_structural.sql` 已创建 Skill Artifact 的结构化子表。
+- `packages/server/src/lib/artifacts/pg-repository.ts` 已负责结构化真表写入与优先读取。
+- 已存在 `packages/server/src/lib/artifacts/pg-repository.round4.test.ts`，说明 Round 4 已有一定 repository 级测试基础。
+- 已存在激活、导出、导入、审核相关测试文件：
+  - `packages/server/src/routes/operations/artifacts-import.test.ts`
+  - `packages/server/src/routes/operations/artifacts-export.test.ts`
+  - `packages/server/src/routes/operations/artifacts-activate.test.ts`
+  - `packages/server/src/routes/operations/skill-review.test.ts`
+
+这意味着本计划应建立在“增量增强”之上，而不是把文档写成一个脱离代码现状的理想方案。
+
+---
+
+## 2. 目标
+
+本计划的最终目标有四个：
+
+1. 明确并固化 Skill Artifact 跨表一致性规则，减少结构化真表之间相互矛盾的状态。
+2. 让错误尽可能在数据库层或 repository 层被拒绝，而不是在检索、导出、激活时才暴露。
+3. 用真实 PostgreSQL 和真实 route/service 链路验证结构化事实源不会导致行为回退。
+4. 为 demo 交付提供一套可重复执行、可记录结果的最小验收路径。
+
+---
+
+## 3. 边界
+
+### 3.1 本计划包含的范围
+
+- Skill Artifact Round 4 后续约束增强
+- `PgArtifactRepository` 的真实 PG round-trip 验证
+- skill import/review/history/export/activate/retrieval 主链路验证
+- demo 场景下从 0 初始化数据库的最小验收闭环
+
+### 3.2 本计划不包含的范围
+
+- 历史数据库平滑升级方案
+- 生产环境灰度、回滚、双写、数据修复工具
+- 大规模并发写入与性能压测
+- 全仓所有旧测试红项清零
+- graphify 权限或图谱产品能力本身的修复
+- 把 JSONB 兼容缓存彻底删除
+
+### 3.3 关键约束假设
+
+- 默认场景是可以从 0 新建数据库的小型项目、demo 环境或开发环境。
+- 当前结构化子表是事实源，`skill_artifacts` 与 `artifact_revisions` 上的 JSONB 字段继续保留为兼容缓存。
+- 文档讨论的是“如何增强当前实现”，不是要求一次性完成长期演进设计。
+
+---
+
+## 4. 当前基线
+
+### 4.1 已结构化落地的真表
 
 - `skill_artifact_metadata`
 - `skill_artifact_files`
@@ -33,156 +96,528 @@ Skill Artifact 域已经完成以下结构化真表落地：
 - `skill_artifact_maintenance_assignments`
 - `skill_artifact_agent_reviews`
 
-`PgArtifactRepository` 已接入上述真表的写入与优先读取。当前剩余问题不在“有没有结构化表”，而在“数据库层约束是否足够强”和“端到端读写链路是否被完整验证”。
+### 4.2 已有实现落点
 
-## 一、Cross-Table 一致性约束
+- migration：`packages/server/drizzle/0007_round4_artifact_structural.sql`
+- schema：`packages/server/src/lib/persistence/schema.ts`
+- repository：`packages/server/src/lib/artifacts/pg-repository.ts`
+- repository 现有测试：`packages/server/src/lib/artifacts/pg-repository.round4.test.ts`
+- route 现有测试：
+  - `packages/server/src/routes/operations/artifacts-import.test.ts`
+  - `packages/server/src/routes/operations/artifacts-export.test.ts`
+  - `packages/server/src/routes/operations/artifacts-activate.test.ts`
+  - `packages/server/src/routes/operations/skill-review.test.ts`
 
-目标：
-- 降低“结构化表存在，但跨表字段值互相打架”的风险。
-- 让错误尽可能在数据库层或 repository 层被拒绝，而不是在下游检索、导出、激活时才暴露。
+### 4.3 当前主要缺口
 
-### 1. revision 级派生产物一致性
+- 跨表一致性规则仍有一部分只体现在约定中，没有完全体现在数据库约束或 repository 校验中。
+- repository 级测试已有基础，但还需要更系统的 round-trip 与负例覆盖。
+- route/service 级测试存在分散文件，但还缺完整“导入 -> 审核 -> 检索/召回 -> 导出 -> 激活”的主链路验收视角。
+- demo 级验收需要一个最小 fixture 和明确的完成记录模板。
 
-要做的内容：
-- [ ] 为 `skill_artifact_profiles`、`skill_artifact_capsules`、`skill_artifact_client_manifests` 建立更强的一致性校验，确保：
-  - `artifact_id` 与所属 `artifact_revision_id` 对应的 `artifact_revisions.artifact_id` 一致
-  - `revision_no` 与所属 `artifact_revision_id` 对应的 `artifact_revisions.revision_no` 一致
-  - `source_hash` 与所属 revision 的 `source_hash` 在允许范围内保持一致
-- [ ] 为 `skill_artifact_manifest_references/assets/scripts` 增补约束，保证它们不能脱离对应 `skill_artifact_client_manifests` 单独存在。
-- [ ] 明确 `capsule_id` 的稳定性规则：
-  - 是否允许同一 artifact 不同 revision 复用同一 `capsule_id`
-  - 若不允许，补唯一性约束与测试
-  - 若允许，明确“跨 revision 复用”的含义与读取优先级
+---
 
-建议方案：
-- 优先选择 repository 侧断言 + 数据库约束的组合方式。
-- 对小 demo，避免引入过重的触发器系统；优先考虑：
-  - 复合唯一键
-  - 复合外键
-  - 插入前 repository 校验
-  - 必要时少量 trigger 做最终兜底
+## 5. 总体实施策略
 
-完成标准：
-- 任意 profile/capsule/manifest 如果声称属于某个 revision，但字段与 `artifact_revisions` 不一致，应在写入时失败。
+建议按“先验证主链路，再增强硬约束”的顺序推进：
 
-### 2. artifact 根级治理字段一致性
+1. 补齐 repository round-trip 与负例测试。
+2. 补齐 route/service 主链路测试。
+3. 再为 cross-table 一致性补数据库约束与 repository 校验。
+4. 最后构建 demo 验收脚本和验收记录。
 
-要做的内容：
-- [ ] 保证 `skill_artifact_metadata.artifact_id`、`skill_artifact_maintenance_assignments.artifact_id`、`skill_artifact_agent_reviews.artifact_id` 与 `skill_artifacts.id` 强绑定。
-- [ ] 检查 `skill_artifact_metadata.revision_count` 与 `artifact_revisions` 实际数量的关系，明确规则：
-  - 是否要求严格相等
-  - 若只是缓存值，repository 更新时如何保证同步
-- [ ] 明确 `latestSubmissionId`、`latestSubmittedAt`、`latestReviewedAt`、`latestDecision` 是否完全来自 artifact 根元数据缓存，还是需要进一步拆为独立历史表。
-- [ ] 明确 `boundary`、`maintenance_meta`、`agent_review` 的 JSONB 缓存列和结构化子表之间的优先级规则，并写入注释/文档。
+这样做的原因：
 
-完成标准：
-- repository 对 artifact 根级治理数据的读取顺序、覆盖顺序、缓存回写顺序必须固定且可解释。
+- 当前 demo 风险优先来自“功能链路断了”，而不是极端数据异常。
+- 先把测试闭环补起来，后续增强约束时可以更快发现回归。
+- 约束策略一旦写错，最容易影响导入、编辑、激活等主流程，因此先有测试保护更稳妥。
 
-### 3. 约束落地方式
+---
 
-要做的内容：
-- [ ] 梳理哪些一致性适合数据库层硬约束，哪些适合 repository 层校验。
-- [ ] 新增一个专门的 Round 4+ 约束迁移，避免把增强约束继续塞进 `0007_round4_artifact_structural.sql`。
-- [ ] 为每一类约束补“允许失败”的负例测试，而不是只测 happy path。
+## 6. 阶段拆分与进度跟踪
+
+> 说明：复选框用于实现过程中的即时跟踪。建议在实际推进时随 PR 或提交同步更新。
+
+### 阶段 0：规则澄清与现状对齐 ✅
+
+目标：把"现在到底以什么为准"写清楚，避免后续测试和约束互相打架。
+
+- [x] 确认 `skill_artifact_*` 结构化子表中哪些字段是事实源，哪些只是缓存投影。
+- [x] 确认 `artifact_revisions.files`、`script_descriptors`、`derived` 在读取链路中的优先级仅为兼容缓存。
+- [x] 确认 `metadata`、`boundary`、`maintenanceMeta`、`agentReview` 的读取优先级与回写顺序。
+- [x] 确认 route/service 当前主链路依赖的是结构化真表、JSONB 缓存，还是二者混合。
+- [x] 在本计划中明确每一类字段的事实源规则，避免后续测试基于错误假设编写。
+
+建议检查路径（已全部审查完毕）：
+
+- [x] `packages/server/src/lib/artifacts/pg-repository.ts`
+- [x] `packages/server/src/lib/artifacts/repository.ts`
+- [x] `packages/server/src/lib/import-export.ts`
+- [x] `packages/server/src/routes/operations/artifacts-import.ts`
+- [x] `packages/server/src/routes/operations/artifacts-export.ts`
+- [x] `packages/server/src/routes/operations/artifacts-activate.ts`
+
+阶段完成验收标准：
+
+- [x] 文档中已清楚写明 Skill Artifact 根级字段、revision 级字段、派生字段的事实源与缓存关系。
+- [x] 团队成员据此可以判断某个字段应在数据库层、repository 层还是 route 层进行校验。
+
+文档更新要求：
+
+- [x] 更新 `plan.md` 当前阶段复选框与规则描述，确保事实源/缓存源定义不再歧义。
+- [x] 如字段优先级说明发生变化，同步更新 `docs/reference/DATABASE_SCHEMA.md` 中对应表与字段语义。
+- [x] 如包职责或调用路径认知发生变化，同步更新 `docs/PACKAGES.md` 中 Artifact repository / route 的说明。
+- [x] 如需要补充代码阅读入口或排查路径，同步更新 `docs/guides/CODE_GUIDE.md` 的相关阅读路径。
+
+---
+
+#### 阶段 0 结论：结构化事实源 vs JSONB 缓存规则
+
+以下结论基于对 `pg-repository.ts`、`schema.ts`、`import-export.ts`、`model.ts` 及各 route 文件的完整审查。
+
+##### 0.1 总体架构：双表示模式
+
+当前 Skill Artifact 域采用 **"结构化真表（事实源）+ JSONB 兼容缓存"** 双表示：
+
+- **结构化真表**（17 张表）：`skill_artifact_*` 子表，通过 `0007_round4_artifact_structural.sql` 创建
+- **JSONB 缓存**：`skill_artifacts` 表上的 `metadata`、`agent_review`、`maintenance_meta`、`boundary` 列，以及 `artifact_revisions` 表上的 `files`、`script_descriptors`、`derived` 列
+
+##### 0.2 写入顺序（pg-repository.ts:53-147 `insert()`）
+
+在 `PgArtifactRepository.insert()` 事务中，写入顺序为：
+
+```
+1. INSERT INTO skill_artifacts       (写入 JSONB 缓存: metadata, agent_review, maintenance_meta, boundary)
+2. INSERT INTO artifact_revisions    (写入 JSONB 缓存: files, script_descriptors, derived)
+3. upsertStructuredRevisionRows()    (写入结构化真表: skill_artifact_files, skill_artifact_script_descriptors,
+                                      skill_artifact_profiles, skill_artifact_capsules,
+                                      skill_artifact_client_manifests, skill_artifact_manifest_*)
+4. insertArtifactBoundarySubTables() (写入结构化真表: skill_artifact_boundary_*)
+5. upsertArtifactMaintenanceAssignment() (写入结构化真表: skill_artifact_maintenance_assignments)
+6. upsertArtifactAgentReview()       (写入结构化真表: skill_artifact_agent_reviews)
+7. upsertArtifactMetadata()          (写入结构化真表: skill_artifact_metadata)
+```
+
+**写入原则**：JSONB 缓存先写入，结构化真表后写入（覆盖）。每次写入同时维护两套表示。
+
+##### 0.3 读取优先级（pg-repository.ts:806-847 `reconstructSkillArtifactRecord()`）
+
+| 字段 | 事实源（结构化真表） | 兼容缓存（JSONB） | 读取优先级 |
+|------|---------------------|-------------------|-----------|
+| `metadata` | `skill_artifact_metadata` | `skill_artifacts.metadata` (JSONB) | **结构化 > JSONB** (`metadata ?? artifact.metadata`) |
+| `boundary` | `skill_artifact_boundary_*` (6 张子表) | `skill_artifacts.boundary` (JSONB) | **结构化 > JSONB** (`boundary ?? artifact.boundary`) |
+| `maintenanceMeta` | `skill_artifact_maintenance_assignments` | `skill_artifacts.maintenance_meta` (JSONB) | **结构化 > JSONB** (`maintenanceMeta ?? artifact.maintenanceMeta`) |
+| `agentReview` | `skill_artifact_agent_reviews` | `skill_artifacts.agent_review` (JSONB) | **结构化 > JSONB** (`agentReview ?? artifact.agentReview`) |
+| `files`（revision） | `skill_artifact_files` | `artifact_revisions.files` (JSONB) | **结构化 > JSONB**（有 structured 时直接用） |
+| `scriptDescriptors`（revision） | `skill_artifact_script_descriptors` | `artifact_revisions.script_descriptors` (JSONB) | **结构化 > JSONB**（有 structured 时直接用） |
+| `derived`（revision） | `skill_artifact_profiles` + `skill_artifact_capsules` + `skill_artifact_client_manifests` + `skill_artifact_manifest_*` | `artifact_revisions.derived` (JSONB) | **结构化 > JSONB**（`buildDerivedFromStructured()`） |
+
+##### 0.4 字段级事实源分类
+
+**A. Artifact 根级字段**（存储在 `skill_artifacts` 表，无对应结构化子表）：
+
+| 字段 | 位置 | 分类 | 说明 |
+|------|------|------|------|
+| `id`, `teamId`, `scope`, `labels`, `title`, `slug`, `requiredLevel`, `lifecycleState`, `ownerUserId`, `createdAt`, `updatedAt` | `skill_artifacts` 列 | **事实源** | 无结构化子表覆盖，JSONB 列即为唯一事实源 |
+
+**B. Artifact 根级治理字段**（有对应结构化子表）：
+
+| 字段 | 结构化事实源 | JSONB 缓存列 | 写入口 | 读入口 |
+|------|-------------|-------------|--------|--------|
+| `metadata` | `skill_artifact_metadata` | `skill_artifacts.metadata` | `upsertArtifactMetadata()` | `loadArtifactMetadata()` -> `??` fallback |
+| `agentReview` | `skill_artifact_agent_reviews` | `skill_artifacts.agent_review` | `upsertArtifactAgentReview()` | `loadArtifactAgentReview()` -> `??` fallback |
+| `maintenanceMeta` | `skill_artifact_maintenance_assignments` | `skill_artifacts.maintenance_meta` | `upsertArtifactMaintenanceAssignment()` | `loadArtifactMaintenanceMeta()` -> `??` fallback |
+| `boundary` | `skill_artifact_boundary_*` (6 表) | `skill_artifacts.boundary` | `insertArtifactBoundarySubTables()` | `loadArtifactBoundaryFromSubTables()` -> `??` fallback |
+
+**C. Revision 级字段**（`SkillArtifactRevisionRecord` 各字段）：
+
+| 字段 | 结构化事实源 | JSONB 缓存列 | 分类 |
+|------|-------------|-------------|------|
+| `revision`, `sourceHash`, `submittedAt`, `submittedByUserId` | 无独立子表 | `artifact_revisions` 列 | **事实源**（直接列值，非 JSONB 容器） |
+| `files` | `skill_artifact_files` | `artifact_revisions.files` (JSONB) | **结构化 > JSONB** |
+| `scriptDescriptors` | `skill_artifact_script_descriptors` | `artifact_revisions.script_descriptors` (JSONB) | **结构化 > JSONB** |
+| `derived` | `skill_artifact_profiles` + `skill_artifact_capsules` + `skill_artifact_client_manifests` + `skill_artifact_manifest_*` | `artifact_revisions.derived` (JSONB) | **结构化 > JSONB** |
+
+**D. `skill_artifact_metadata` 子字段语义**：
+
+| 子字段 | 分类 | 说明 |
+|--------|------|------|
+| `sourceKind` | **事实字段** | 不可变，创建时确定 |
+| `submissionCount` | **事实字段** | 每次提交 +1 |
+| `resubmissionCount` | **事实字段** | 每次重新提交 +1 |
+| `revisionCount` | **缓存汇总字段** | ⚠️ 当前仅在 `model.ts:appendSkillArtifactRevision()` 中更新（`history.length + 1`），`PgArtifactRepository.appendRevision()` **不会更新此字段**。理论上应等于 `artifact_revisions` 实际行数。 |
+| `latestSubmissionId` | **事实字段** | 最新提交 ID |
+| `latestSubmittedAt` | **事实字段** | 最新提交时间 |
+| `latestReviewedAt` | **事实字段** | 最新审核时间 |
+| `latestDecision` | **缓存汇总字段** | 最近一次审核决策的缓存投影 |
+
+##### 0.5 route/service 主链路依赖分析
+
+| 链路环节 | 数据来源 | 依赖性质 |
+|---------|---------|---------|
+| **Import** (`artifacts-import.ts:137`) | `createSkillArtifactRecord()` -> `artifactRepo.insert()` | 结构化真表写入（`PgArtifactRepository`） + JSONB 缓存（`store.transact` 用于 `artifactFilePayloads`） |
+| **Export** (`artifacts-export.ts:91`) | `artifactRepo.getById()` + `store.snapshot()` | 结构化真表读取（核心字段通过 `reconstructSkillArtifactRecord`） + JSONB 兼容层（`artifactFilePayloads` 取文件内容） |
+| **Activate** (`artifacts-activate.ts:26`) | `artifactRepo.getById()` + `store.snapshot()` | 结构化真表读取 + JSONB 兼容层（`artifactFilePayloads` 取文件内容） |
+| **Derivation** (`model.ts:510 applyDerivedArtifactOutputs()`) | `artifactRepo.updateRevisionDerived()` | 结构化真表写入（`replaceStructuredDerivedRows()`） + JSONB 缓存同步 |
+
+**结论**：主链路**核心数据结构依赖结构化真表**（读取时结构化优先），`store.snapshot()` 仅在以下两个兼容场景使用：
+1. 读取 `artifactFilePayloads`（文件内容载体，尚未迁移到结构化表）
+2. 用户 handle 解析（`toSkillArtifact()` 需要 `StoreData.users`）
+
+##### 0.6 风险与决策点（从第 8 节迁移，此处为阶段 0 结论）
+
+- [x] **`capsule_id` 是否允许跨 revision 复用**：当前实现中 `capsule_id` 是 `skill_artifact_capsules` 的主键（`capsule_id text PRIMARY KEY`），`replaceStructuredDerivedRows()` 在每次更新 derived 时先 `DELETE` 再 `INSERT`。**结论：不允许复用**，每次更新 derived 会清除旧 capsule 并重建。若未来需要保留历史，需改为 `(capsule_id, artifact_revision_id)` 复合主键。
+- [x] **`revision_count` 是严格事实字段还是缓存字段**：**缓存字段**。仅在 `model.ts` 路径下更新，`PgArtifactRepository.appendRevision()` 不会同步维护。阶段 3 应改为从 `artifact_revisions` 实时计数或加触发器。
+- [x] **`latestDecision/latestReviewedAt` 是否仅表示最近一次审核汇总**：**缓存汇总字段**，非独立历史事实。独立审核历史在 `artifact_lifecycle_events` 中。
+- [x] **`source_hash` 一致性的允许范围**：`sourceHash` 由 `computeSourceHash()` 从 derivation-eligible 文件（`SKILL.md` + `references/`）的 SHA-256 串联计算，排除 `assets/` 和 `scripts/`。当前在 `PgArtifactRepository` 中写入时使用 revision 提供的 `sourceHash` 值，不做二次校验。
+- [x] **JSONB 缓存与结构化真表冲突时，是否始终以结构化真表为准**：**是**。`reconstructSkillArtifactRecord()` 和 `buildDerivedFromStructured()` 中结构化真表始终优先。但注意：若结构化子表为空（如旧数据尚未迁移），会 fallback 到 JSONB 缓存。
+
+---
+
+### 阶段 1：repository 级 round-trip 集成测试补齐 ✅
+
+目标：先证明 `PgArtifactRepository` 在真实 PostgreSQL 上能稳定读写 Round 4 结构化字段。
+
+#### 1.1 测试覆盖范围
+
+- [x] 为 `insert -> getById` 增加真实 PG round-trip 覆盖。
+- [x] 为 `appendRevision -> getById` 增加真实 PG round-trip 覆盖。
+- [x] 为 `updateRevisionDerived -> getById` 增加真实 PG round-trip 覆盖。
+- [x] 为 `listByFilter({ maintainerUserId })` 增加真实 PG round-trip 覆盖。
+- [x] 为“结构化优先读取而非 JSONB 缓存优先读取”增加断言。
+
+#### 1.2 结构化字段覆盖
+
+- [x] `metadata`
+- [x] `boundary`
+- [x] `maintenanceMeta`
+- [x] `agentReview`
+- [x] `files`
+- [x] `scriptDescriptors`
+- [x] `derived.profile`
+- [x] `derived.capsules`
+- [x] `derived.clientManifest`
+
+#### 1.3 负例覆盖
+
+- [ ] 写入与 revision 不一致的派生数据时失败。（延后至阶段 3 — 当前 repository/DB 层无此校验）
+- [ ] 写入孤儿 manifest item 时失败。（延后至阶段 3 — 当前无外键约束）
+- [x] 非法 `agentReview.status` 时失败。
+- [x] 非法 `duplicateRisk/correctnessRisk/completenessRisk` 时失败。
+
+落点：
+
+- 新增文件：`packages/server/src/lib/artifacts/pg-repository.round4.roundtrip.test.ts`（23 个测试用例）
+- 原 mock 测试保持不变：`packages/server/src/lib/artifacts/pg-repository.round4.test.ts`
+
+示例测试骨架：
+
+```ts
+it('persists structured manifest rows and reads them back as the revision fact source', async () => {
+  const repo = createPgArtifactRepository(db);
+  await repo.insert(buildArtifactFixture());
+
+  await repo.updateRevisionDerived({
+    artifactId: 'artifact_1',
+    artifactRevisionId: 'artifact_1_rev_1',
+    derived: {
+      profile: { name: 'Skill A', summary: 'demo' },
+      capsules: [{ capsuleId: 'capsule_1', artifactId: 'artifact_1', revisionNo: 1, text: '...' }],
+      clientManifest: {
+        references: [{ path: 'references/setup.md', purpose: 'setup' }],
+        assets: [{ path: 'assets/logo.png', kind: 'image' }],
+        scripts: [{ path: 'scripts/bootstrap.sh', capability: 'filesystem.write' }],
+      },
+    },
+  });
+
+  const artifact = await repo.getById('artifact_1');
+  expect(artifact?.revisions[0]?.derived?.clientManifest?.references).toHaveLength(1);
+  expect(artifact?.revisions[0]?.derived?.clientManifest?.scripts?.[0]?.path).toBe('scripts/bootstrap.sh');
+});
+```
+
+阶段完成验收标准：
+
+- 真实 PostgreSQL 下，Round 4 结构化字段可 round-trip。
+- 至少一组负例测试证明 repository/DB 会拒绝明显不一致的数据。
+- 测试命名能清楚表达“这是结构化事实源行为测试”，不是单纯 mock 行为测试。
+
+文档更新要求：
+
+- [x] 在 `plan.md` 中勾选已完成的 round-trip 与负例覆盖项，并注明新增了 `pg-repository.round4.roundtrip.test.ts`。
+- [x] 如新增或拆分测试文件，同步更新 `docs/guides/CODE_GUIDE.md` 中与 Artifact repository 测试相关的入口说明。（无需更新 — 该文件未单独列出测试文件路径）
+- [x] 如测试命令或推荐验证顺序有变化，同步更新 `docs/operations/TESTING.md` 中对应的最小验证建议。（测试命令不变，通过 `pnpm test` 从根目录运行即可）
+- [x] 如结构化事实源读取规则因测试而被澄清，同步把结论补回 `docs/PACKAGES.md` 或 `docs/reference/DATABASE_SCHEMA.md`。（规则未变化，测试确认了现有行为）
+
+---
+
+### 阶段 2：route / service 主链路测试补齐 ✅
+
+目标：验证结构化事实源不会破坏业务行为，而不是只验证 repository 内部细节。
+
+#### 2.1 主链路覆盖
+
+- [x] 导入 artifact 后，`history` 能返回正确修订记录。（历史端点测试在 `skill-edit.test.ts` 已覆盖，`skill-review.test.ts` 新增 pipeline 测试验证历史可见性）
+- [x] 审核通过后，skill review 状态与 artifact 生命周期保持一致。（`skill-review.test.ts` 新增 approve/reject 测试、review history 弹出测试）
+- [x] 导出接口能拿到完整结构化内容。（`artifacts-export.test.ts` 新增 bundle-json/distilled-json/skill-dir 导出测试，包含 files、script descriptors）
+- [x] 激活接口能按路径物化 `SKILL.md`、`references/`、`assets/`、`scripts/`。（`artifacts-activate.test.ts` 新增四种文件类型选择性激活测试）
+- [x] 至少一条检索或召回链路能消费 approved artifact 的结构化事实源。（`retrieval.test.ts` 新增 v1 检索、skill-lookup、graph-assisted 检索可见性测试）
+
+#### 2.2 推荐补测场景
+
+- [x] `import -> review approve -> export`（通过 seed 模拟 import，由 review + export 组成 pipeline 测试）
+- [x] `import -> review approve -> activate`（通过 seed 模拟 import，由 review + activate 组成 pipeline 测试）
+- [x] `import -> review approve -> retrieval visible`（`retrieval.test.ts` 新增 approved artifact 检索可见性测试）
+- [x] `import -> review approve -> capsule recall visible`（`retrieval.test.ts` 新增 skill-lookup 召回测试）
+- [x] `import(with boundary + maintenance + agentReview) -> get/history/export`（`artifacts-export.test.ts` 新增 boundary/maintenanceMeta/agentReview 导出 + 历史端点测试）
+
+实际落点：
+
+- `packages/server/src/routes/operations/skill-review.test.ts`：16 个测试（新增 review approve/reject、review queue、boundary/maintenanceMeta 保留、pipeline review->export、pipeline review->activate）
+- `packages/server/src/routes/operations/artifacts-export.test.ts`：15 个测试（新增 bundle-json 导出含 files/scripts、distilled-json 导出含 profile/capsules、governance 阻断、boundary/maintenance/agentReview 种子导出 + 历史可见性）
+- `packages/server/src/routes/operations/artifacts-activate.test.ts`：16 个测试（新增 SKILL.md/references/assets/scripts 选择性激活、无效路径拒绝、安全等级阻断）
+- `packages/server/src/routes/retrieval.test.ts`：84 个测试（新增 approved entry 检索、draft 不可见、skill-lookup 召回、graph-assisted 可见性）
+
+额外修复：
+
+- **`artifacts-activate.ts:58`**：修复 `artifact.latestRevision` 类型 bug — `latestRevision` 是完整 revision 对象而非数字，需访问 `.revision` 属性。
+- **`auth-store-helpers.ts:210`**：修复 `source` 字段 — `seedApprovedSkillArtifact` 中自定义文件的 `source` 设为目录枚举值而非完整文件路径。
+
+阶段完成验收标准：
+
+- [x] 至少有一条“审核通过 -> 导出 -> 激活”真实主链路测试通过。（`skill-review.test.ts` 中完整 pipeline 测试）
+- [x] 至少有一条“审核通过 -> 检索可见/召回可见”测试通过。（`retrieval.test.ts` 中 v1/skill-lookup/graph-assisted 检索可见性测试）
+- [x] 路由测试能证明结构化字段被实际消费，而不是仅依赖旧缓存字段凑巧通过。（导出 bundle-json 测试验证 files、source、scriptDescriptors 等结构化字段被完整序列化）
+
+文档更新要求：
+
+- [x] 在 `plan.md` 中勾选已完成的 route / service 主链路用例。
+- [x] 如导入、审核、导出、激活接口行为或约束有澄清，同步更新 `docs/reference/api-surface.md`。（无需更新 — 接口行为未变化，仅修复了 activate 路线的 `latestRevision` 类型 bug）
+- [x] 如 CLI 或服务使用方式需要补充示例，同步更新 `README.md` 或 `docs/README.md` 中的入口说明。（无需更新 — 本次改动仅涉及测试和 bug 修复）
+- [x] 如检索可见性、审核后索引同步或激活策略有新约束，同步更新相应 architecture / operations 文档。（无需更新 — 无新约束引入）
+
+---
+
+### 阶段 3：cross-table 一致性约束增强
+
+目标：把最容易形成脏数据的跨表关系尽量前移到数据库层和 repository 层拦截。
+
+#### 3.1 revision 级派生产物一致性
+
+- [ ] 为 `skill_artifact_profiles` 增强与所属 revision 的一致性校验。
+- [ ] 为 `skill_artifact_capsules` 增强与所属 revision 的一致性校验。
+- [ ] 为 `skill_artifact_client_manifests` 增强与所属 revision 的一致性校验。
+- [ ] 明确 `artifact_id`、`revision_no`、`source_hash` 与 `artifact_revisions` 的一致性规则。
+- [ ] 明确 `capsule_id` 在同一 artifact 跨 revision 是否允许复用。
+- [ ] 若不允许复用，则补唯一性约束与负例测试。
+- [ ] 若允许复用，则补读取优先级说明与测试。
+
+#### 3.2 manifest 子项一致性
+
+- [ ] `skill_artifact_manifest_references` 必须依附于对应 `skill_artifact_client_manifests`。
+- [ ] `skill_artifact_manifest_assets` 必须依附于对应 `skill_artifact_client_manifests`。
+- [ ] `skill_artifact_manifest_scripts` 必须依附于对应 `skill_artifact_client_manifests`。
+- [ ] 验证不存在“manifest 主记录删除了，子项仍残留”的情况。
+
+#### 3.3 artifact 根级治理字段一致性
+
+- [ ] 保证 `skill_artifact_metadata.artifact_id` 与 `skill_artifacts.id` 强绑定。
+- [ ] 保证 `skill_artifact_maintenance_assignments.artifact_id` 与 `skill_artifacts.id` 强绑定。
+- [ ] 保证 `skill_artifact_agent_reviews.artifact_id` 与 `skill_artifacts.id` 强绑定。
+- [ ] 明确 `skill_artifact_metadata.revision_count` 与 `artifact_revisions` 实际数量的关系。
+- [ ] 明确 `latestSubmissionId`、`latestSubmittedAt`、`latestReviewedAt`、`latestDecision` 的语义是“缓存汇总字段”还是“主事实字段”。
+
+#### 3.4 落地分层
+
+- [ ] 梳理哪些规则适合数据库硬约束。
+- [ ] 梳理哪些规则适合 repository 事务内校验。
+- [ ] 新增单独的 Round 4+ 约束迁移，不继续塞进 `0007_round4_artifact_structural.sql`。
+- [ ] 每一类约束都至少补一个负例测试。
 
 建议分层：
-- 数据库层：
+
+- 数据库层适合承接：
   - 孤儿行禁止
   - 引用对象不存在禁止
   - 枚举值/范围非法禁止
-- repository 层：
+  - 明确的一对一/一对多附属关系
+
+- repository 层适合承接：
   - `artifact_id` / `revision_no` / `source_hash` 三元一致性
-  - metadata 汇总字段与 revision 计数同步
+  - `revision_count` 等缓存汇总字段同步
+  - 需要读取主表再做语义判断的规则
 
-## 二、端到端集成测试
+示例 repository 校验伪代码：
 
-目标：
-- 验证 Skill Artifact 从写入到读取、审核、检索、导出、激活的链路在结构化真表模式下仍然正确。
-- 不只验证“写了某张表”，而是验证“功能行为没有回退”。
+```ts
+function assertDerivedRevisionConsistency(
+  revision: ArtifactRevisionRow,
+  profile?: DerivedProfileInput,
+  capsules?: DerivedCapsuleInput[],
+  manifest?: DerivedClientManifestInput,
+): void {
+  for (const capsule of capsules ?? []) {
+    if (capsule.artifactId !== revision.artifactId) {
+      throw new Error('capsule.artifactId does not match artifact_revisions.artifact_id');
+    }
+    if (capsule.revisionNo !== revision.revisionNo) {
+      throw new Error('capsule.revisionNo does not match artifact_revisions.revision_no');
+    }
+  }
 
-### 1. repository 集成测试
+  if (manifest?.sourceHash && manifest.sourceHash !== revision.sourceHash) {
+    throw new Error('manifest.sourceHash does not match artifact_revisions.source_hash');
+  }
+}
+```
 
-要做的内容：
-- [ ] 新增面向真实 PostgreSQL 的 `PgArtifactRepository` 集成测试文件，对以下链路做 round-trip：
-  - insert -> getById
-  - appendRevision -> getById
-  - updateRevisionDerived -> getById
-  - listByFilter(maintainerUserId) -> 返回正确工件
-- [ ] 对以下结构化字段补 round-trip：
-  - metadata
-  - boundary
-  - maintenanceMeta
-  - agentReview
-  - files
-  - scriptDescriptors
-  - derived.profile
-  - derived.capsules
-  - derived.clientManifest
-- [ ] 增加负例：
-  - 写入不一致 revision 数据
-  - 缺失依赖 manifest 的子项
-  - 非法 review risk/status
+阶段完成验收标准：
 
-### 2. route / service 级端到端测试
+- 文档中列出的关键 cross-table 规则已经明确归属到数据库层或 repository 层。
+- 至少一组 revision 级不一致数据在写入时会失败。
+- 至少一组 artifact 根级治理字段不一致数据在写入或更新时会失败。
+- 新迁移文件与 schema 定义、repository 行为、测试断言保持一致。
 
-要做的内容：
-- [ ] 导入一个 artifact 后，验证：
-  - `GET history`
-  - `POST review`
-  - `POST edit`
-  - `POST export`
-  - `POST activate`
-  都仍能得到正确结果
-- [ ] 补一条“审核通过 -> 检索可见 -> activation hint 可见”的完整链路测试。
-- [ ] 补一条“有 boundary / maintenance / agent review 的 artifact 被读取与导出”的完整链路测试。
-- [ ] 验证 graph-plan fallback、capsule recall、skill lookup 仍能消费当前结构化事实源，不因缓存存在而行为漂移。
+文档更新要求：
 
-### 3. demo 验收测试
+- [ ] 在 `plan.md` 中勾选已落地的 cross-table 规则，并标明落在数据库层还是 repository 层。
+- [ ] 如新增迁移或约束定义，同步更新 `docs/reference/DATABASE_SCHEMA.md` 的表关系、约束和字段说明。
+- [ ] 如 `schema.ts` 中新增了命名约束、唯一键、外键或 check 规则，同步把约束命名和意图写入数据库文档。
+- [ ] 如读取优先级、缓存回写顺序或 `capsule_id` 规则被定稿，同步更新 `docs/PACKAGES.md` 和必要的 architecture/reference 文档。
 
-要做的内容：
-- [ ] 构造一个最小 skill fixture：
-  - 一个 `SKILL.md`
-  - 一个 `references/` 文件
-  - 一个 `assets/` 文件
-  - 一个 `scripts/` 文件
-  - 一组 boundary / maintenance / agent review / metadata
-- [ ] 从 0 初始化数据库后，跑一条 demo 验收脚本，覆盖：
+---
+
+### 阶段 4：demo 验收场景
+
+目标：提供一个最小、可重复执行的交付闭环，证明该能力对外可演示、对内可回归。
+
+#### 4.1 最小 fixture
+
+- [ ] 一个 `SKILL.md`
+- [ ] 一个 `references/` 文件
+- [ ] 一个 `assets/` 文件
+- [ ] 一个 `scripts/` 文件
+- [ ] 一组 `boundary`
+- [ ] 一组 `maintenanceMeta`
+- [ ] 一组 `agentReview`
+- [ ] 一组 `metadata`
+
+建议可复用现有思路来源：
+
+- `evals/ingestion/fixtures/minimal-skill/`
+- 现有 artifact import/export/activate 测试 fixture
+
+#### 4.2 验收流程
+
+- [ ] 从 0 初始化数据库。
+- [ ] 导入最小 skill artifact。
+- [ ] 审核 approve。
+- [ ] 查询 artifact get/history。
+- [ ] 执行 retrieval 或 capsule recall 验证可见性。
+- [ ] 执行 export。
+- [ ] 执行 activate。
+- [ ] 生成简短验收记录。
+
+示例验收步骤：
+
+```bash
+rtk pnpm test -- --run packages/server/src/lib/artifacts/pg-repository.round4.test.ts
+rtk pnpm test -- --run packages/server/src/routes/operations/artifacts-import.test.ts
+rtk pnpm test -- --run packages/server/src/routes/operations/skill-review.test.ts
+rtk pnpm test -- --run packages/server/src/routes/operations/artifacts-export.test.ts
+rtk pnpm test -- --run packages/server/src/routes/operations/artifacts-activate.test.ts
+rtk pnpm eval:smoke
+```
+
+示例验收记录模板：
+
+```md
+# Round 4+ Demo 验收记录
+
+- 日期：YYYY-MM-DD
+- 数据库：从 0 初始化
+- Fixture：minimal skill bundle v1
+- 已验证链路：
   - import
   - review approve
-  - artifact get/history
-  - retrieval / capsule recall
+  - history
+  - retrieval visibility
   - export
   - activate
-- [ ] 输出一份简短验收记录，说明 demo 级交付时依赖哪些能力、哪些能力已被验证。
+- 结果：pass / fail
+- 遗留问题：
+  - ...
+```
 
-## 三、优先级建议
+阶段完成验收标准：
 
-如果只做小 demo 交付，建议顺序如下：
+- 有一套最小 fixture 能稳定复用。
+- 有一条从 0 初始化数据库开始的 demo 验收路径可执行。
+- 验收结果能用一页以内记录清楚“哪些能力已验证，哪些未验证”。
 
-1. repository 级 round-trip 集成测试
-2. route 级审核/导出/激活链路测试
-3. revision 派生产物 cross-table 一致性校验
-4. metadata 汇总字段一致性校验
-5. demo 验收脚本
+文档更新要求：
 
-理由：
-- demo 风险主要来自“功能链路断了”，不是来自极端并发或历史升级。
-- 所以先补集成测试，再补更硬的一致性约束，收益更高。
+- [ ] 在 `plan.md` 中勾选 demo 验收项，并记录采用的 fixture 位置与验证范围。
+- [ ] 将 demo 验收步骤同步到 `docs/operations/TESTING.md` 或单独的验收说明文档，确保其他人可复现。
+- [ ] 如最小 fixture 被长期保留，同步在 `evals/` 或对应测试目录附近补一段 README/说明，解释用途和覆盖范围。
+- [ ] 产出并链接一份简短验收记录，说明已验证能力、未验证能力和遗留风险。
 
-## 四、完成标准
+---
 
-- [ ] Skill Artifact 的 cross-table 一致性规则已文档化。
+## 7. 推荐实施顺序
+
+如果只做小 demo 交付，建议按以下顺序推进：
+
+1. [x] 阶段 1：repository round-trip 集成测试
+2. [ ] 阶段 2：route / service 主链路测试
+3. [ ] 阶段 3：revision 派生产物 cross-table 一致性校验
+4. [ ] 阶段 3：artifact 根级 metadata / maintenance / review 一致性校验
+5. [ ] 阶段 4：demo 验收脚本与验收记录
+
+原因：
+
+- 先验证，再加硬约束，回归风险更可控。
+- 对当前项目最有价值的交付是“主链路可证明”，其次才是更严的约束完备性。
+
+---
+
+## 8. 风险与决策点
+
+以下问题需要在实现前或实现中尽快定稿，否则测试和约束会反复调整：
+
+- [ ] `capsule_id` 是否允许跨 revision 复用。
+- [ ] `revision_count` 是严格事实字段还是缓存字段。
+- [ ] `latestDecision/latestReviewedAt` 是否仅表示最近一次审核汇总，而非独立历史事实。
+- [ ] `source_hash` 一致性的允许范围是什么。
+- [ ] JSONB 缓存与结构化真表冲突时，是否始终以结构化真表为准。
+
+建议原则：
+
+- 如果一个规则会影响写入合法性，应尽量写成数据库约束或 repository 显式断言。
+- 如果一个规则只是影响读取优先级，应先文档化，再补行为测试。
+
+---
+
+## 9. 最终完成定义
+
+当以下条件同时满足时，可认为本计划完成：
+
+- [ ] Skill Artifact 的 cross-table 一致性规则已文档化，并能映射到具体实现层。
 - [ ] 至少一部分关键一致性规则已落实到数据库层或 repository 层。
 - [ ] `PgArtifactRepository` 的真实 PG round-trip 集成测试已覆盖结构化字段。
-- [ ] 导入/审核/检索/导出/激活至少有一条端到端主链路测试通过。
+- [ ] 至少一条“导入 -> 审核 -> 检索/召回 -> 导出 -> 激活”主链路测试通过。
 - [ ] demo 环境可从 0 新建数据库，并跑通最小 Skill 验收场景。
+- [ ] 有一份简短验收记录可说明已验证能力与剩余风险。
 
-## 五、非目标
+---
 
-以下内容不属于本计划：
+## 10. 非目标重申
 
-- 历史数据库平滑升级
-- 生产环境部署与回滚
-- 大规模并发压测
-- graphify 权限问题修复
-- 全仓所有旧测试红项清零
+以下内容即使相关，也不应在本计划中扩张范围：
+
+- 历史数据库升级兼容方案
+- 生产环境部署与回滚方案
+- 高并发或压测专项
+- 全量遗留测试修复
+- 图谱系统本身的产品化增强

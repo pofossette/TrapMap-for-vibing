@@ -40,30 +40,35 @@
 | `knowledge_keywords` | 关键词索引 (GIN) | `id` (text) |
 | `knowledge_search_documents` | 全文搜索 (tsvector) | `(entry_id, revision_no)` |
 
-### 技能工件域 (17 表)
+### 技能工件域 (17 表 + 3 索引表)
 
-| 表名 | 用途 | 主键 |
-|------|------|------|
-| `skill_artifacts` | 技能工件主表 | `id` (text) |
-| `artifact_revisions` | 工件修订历史 | `id` (text) |
-| `artifact_lifecycle_events` | 工件状态变更审计 | `id` (text) |
-| `skill_artifact_files` | 文件记录 | `id` (identity) |
-| `skill_artifact_script_descriptors` | 脚本描述符 | `id` (identity) |
-| `skill_artifact_profiles` | 派生配置 (1:1) | `artifact_revision_id` (text) |
-| `skill_artifact_capsules` | 派生胶囊 | `capsule_id` (text) |
-| `skill_artifact_client_manifests` | 客户端清单 (1:1) | `artifact_revision_id` (text) |
-| `skill_artifact_manifest_references` | 清单-引用文件 | `id` (identity) |
-| `skill_artifact_manifest_assets` | 清单-资源文件 | `id` (identity) |
-| `skill_artifact_manifest_scripts` | 清单-脚本 | `id` (identity) |
-| `skill_artifact_boundary_contexts` | 情境上下文 | `id` (identity) |
-| `skill_artifact_boundary_versions` | 版本范围 | `id` (identity) |
-| `skill_artifact_boundary_prerequisites` | 前置条件 | `id` (identity) |
-| `skill_artifact_boundary_signals` | 相关性信号 | `id` (identity) |
-| `skill_artifact_boundary_exclusions` | 排除条件 | `id` (identity) |
-| `skill_artifact_boundary_evidence` | 外部证据 | `id` (identity) |
-| `skill_artifact_maintenance_assignments` | 维护指派 (1:1) | `artifact_id` (text) |
-| `skill_artifact_agent_reviews` | Agent 审核结果 (1:1) | `artifact_id` (text) |
-| `skill_artifact_metadata` | 工件元数据 (1:1) | `artifact_id` (text) |
+> **Round 4 事实源规则**：结构化子表为事实源，`skill_artifacts` 和 `artifact_revisions` 上的对应 JSONB 列为兼容缓存。
+> 读取时结构化优先，写入时两套表示同步维护。详见 [`plan.md`](../../plan.md) 阶段 0。
+
+| 表名 | 用途 | 角色 | 主键 |
+|------|------|------|------|
+| `skill_artifacts` | 技能工件主表 | **JSONB 缓存 + 根级事实源** | `id` (text) |
+| `artifact_revisions` | 工件修订历史 | **JSONB 缓存 + 修订级事实源** | `id` (text) |
+| `artifact_lifecycle_events` | 工件状态变更审计 | **事实源** | `id` (text) |
+| `skill_artifact_files` | 文件记录 | **结构化事实源** (覆盖 `artifact_revisions.files` JSONB) | `id` (identity) |
+| `skill_artifact_script_descriptors` | 脚本描述符 | **结构化事实源** (覆盖 `artifact_revisions.script_descriptors` JSONB) | `id` (identity) |
+| `skill_artifact_profiles` | 派生配置 (1:1) | **结构化事实源** (覆盖 `artifact_revisions.derived.profile` JSONB) | `artifact_revision_id` (text) |
+| `skill_artifact_capsules` | 派生胶囊 | **结构化事实源** (覆盖 `artifact_revisions.derived.capsules` JSONB) | `capsule_id` (text) |
+| `skill_artifact_client_manifests` | 客户端清单 (1:1) | **结构化事实源** (覆盖 `artifact_revisions.derived.clientManifest` JSONB) | `artifact_revision_id` (text) |
+| `skill_artifact_manifest_references` | 清单-引用文件 | **结构化事实源** (覆盖 `derived.clientManifest.references` JSONB) | `id` (identity) |
+| `skill_artifact_manifest_assets` | 清单-资源文件 | **结构化事实源** (覆盖 `derived.clientManifest.assets` JSONB) | `id` (identity) |
+| `skill_artifact_manifest_scripts` | 清单-脚本 | **结构化事实源** (覆盖 `derived.clientManifest.scripts` JSONB) | `id` (identity) |
+| `skill_artifact_boundary_contexts` | 情境上下文 | **结构化事实源** (覆盖 `skill_artifacts.boundary` JSONB) | `id` (identity) |
+| `skill_artifact_boundary_versions` | 版本范围 | **结构化事实源** (覆盖 `skill_artifacts.boundary` JSONB) | `id` (identity) |
+| `skill_artifact_boundary_prerequisites` | 前置条件 | **结构化事实源** (覆盖 `skill_artifacts.boundary` JSONB) | `id` (identity) |
+| `skill_artifact_boundary_signals` | 相关性信号 | **结构化事实源** (覆盖 `skill_artifacts.boundary` JSONB) | `id` (identity) |
+| `skill_artifact_boundary_exclusions` | 排除条件 | **结构化事实源** (覆盖 `skill_artifacts.boundary` JSONB) | `id` (identity) |
+| `skill_artifact_boundary_evidence` | 外部证据 | **结构化事实源** (覆盖 `skill_artifacts.boundary` JSONB) | `id` (identity) |
+| `skill_artifact_maintenance_assignments` | 维护指派 (1:1) | **结构化事实源** (覆盖 `skill_artifacts.maintenance_meta` JSONB) | `artifact_id` (text) |
+| `skill_artifact_agent_reviews` | Agent 审核结果 (1:1) | **结构化事实源** (覆盖 `skill_artifacts.agent_review` JSONB) | `artifact_id` (text) |
+| `skill_artifact_metadata` | 工件元数据 (1:1) | **结构化事实源** (覆盖 `skill_artifacts.metadata` JSONB)。⚠️ `revision_count` 为缓存汇总字段，`latestDecision`/`latestReviewedAt` 为缓存投影 | `artifact_id` (text) |
+| `skill_artifact_capsule_keywords` | 胶囊关键词索引 | **派生索引表** (非事实源) | `capsule_id` (text) |
+| `skill_artifact_capsule_embeddings` | 胶囊向量嵌入 | **派生索引表** (非事实源) | `capsule_id` (text) |
 
 ### 候选人域 (6 表)
 

@@ -56,6 +56,19 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 >
 > **Round 4 更新**：Skill Artifact 域已补入结构化子表，当前采用“结构化事实源 + JSONB 兼容缓存”双表示。`artifact_revisions.files`、`script_descriptors`、`derived` 不再被视为唯一事实源；对应真表为 `skill_artifact_files`、`skill_artifact_script_descriptors`、`skill_artifact_profiles`、`skill_artifact_capsules`、`skill_artifact_client_manifests` 与 `skill_artifact_manifest_*`。`PgArtifactRepository` 负责同步维护两套表示，并优先从结构化子表读取。
 
+**写入顺序**：JSONB 缓存先写入 → 结构化子表后覆盖写入。**读取优先级**：结构化子表优先，空时 fallback 到 JSONB 缓存（`reconstructSkillArtifactRecord()` 中 `??` 模式）。
+
+**Artifact 仓库代码阅读入口**：
+- 接口定义：`packages/server/src/lib/artifacts/repository.ts:32-103`（`ArtifactRepository` 接口）
+- PG 实现：`packages/server/src/lib/artifacts/pg-repository.ts:33-513`（`PgArtifactRepository` 类）
+- 结构化读取：`pg-repository.ts:1027-1192`（`loadStructuredRevisionData()`）
+- 结构化写入：`pg-repository.ts:849-1025`（`upsertStructuredRevisionRows()` + `replaceStructuredDerivedRows()`）
+- 重建逻辑：`pg-repository.ts:806-847`（`reconstructSkillArtifactRecord()`）
+- Schema 定义：`packages/server/src/lib/persistence/schema.ts:880-1503`（所有 `skill_artifact_*` 表）
+- 迁移文件：`packages/server/drizzle/0007_round4_artifact_structural.sql`
+- Artifact 路由：`packages/server/src/routes/operations/artifacts-import.ts`、`artifacts-export.ts`、`artifacts-activate.ts`
+- 完整事实源/缓存规则：`plan.md` 阶段 0 结论
+
 ### 持久化层
 
 | 仓库 | 文件 | 存储后端 |

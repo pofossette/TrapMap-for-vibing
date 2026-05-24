@@ -119,6 +119,19 @@ lib/persistence/
 
 `SkillShareerStore` 是遗留存储接口，用于尚未迁移到 PostgreSQL 结构化表的域（用户、团队、成员、会话、访问密钥、审计）。核心业务域（知识、工件、候选、反馈、统计、检索索引）已直接通过各自的 `Pg*Repository` 访问 PostgreSQL。`createSkillShareerStore()` 根据 `TRAPMAP_DATABASE_URL` 选择 PostgreSQL，否则使用 JSON 文件存储。
 
+**Artifact Repository 阅读路径**（如需理解结构化事实源 vs JSONB 缓存规则）：
+
+- 接口定义：`lib/artifacts/repository.ts` → `ArtifactRepository` 接口（CRUD 抽象）
+- PG 实现：`lib/artifacts/pg-repository.ts` → `PgArtifactRepository` 类
+  - 插入与结构化写入：`insert()` (L53-147)、`appendRevision()` (L257-312)
+  - 结构化读取：`loadStructuredRevisionData()` (L1027-1192)
+  - 记录重建：`reconstructSkillArtifactRecord()` (L806-847) — **事实源优先级的关键代码**
+  - 派生更新：`updateRevisionDerived()` (L317-366)
+- Schema 定义：`lib/persistence/schema.ts:880-1503` — 所有 `skill_artifact_*` 表定义
+- 迁移文件：`drizzle/0007_round4_artifact_structural.sql` — 结构化子表 DDL
+- 模型层：`lib/artifacts/model.ts` — `createSkillArtifactRecord()`、`applyDerivedArtifactOutputs()`
+- 事实源/缓存规则详细文档：`plan.md` 阶段 0 结论
+
 #### 检索管道 — `lib/retrieval/`
 
 检索系统是 TrapMap 的核心差异化能力：

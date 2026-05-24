@@ -55,7 +55,7 @@ export const artifactsActivateRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Resolve target revision
-    const targetRevision = revision ?? artifact.latestRevision;
+    const targetRevision = revision ?? artifact.latestRevision.revision;
     const revisionRecord = artifact.history.find((r) => r.revision === targetRevision);
     if (!revisionRecord) {
       throw new AppError(404, 'revision_not_found', `Revision ${targetRevision} not found`);

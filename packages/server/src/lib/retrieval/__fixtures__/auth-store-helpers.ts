@@ -207,7 +207,13 @@ export function seedApprovedSkillArtifact(
           sha256: FAKE_HASH,
           sizeBytes: f.content.length,
           mediaType: 'text/markdown',
-          source: f.path,
+          source: f.path.startsWith('references/')
+            ? 'references/'
+            : f.path.startsWith('assets/')
+              ? 'assets/'
+              : f.path.startsWith('scripts/')
+                ? 'scripts/'
+                : 'SKILL.md',
           includeInDerivation: f.kind === 'skill-markdown',
           activationOnly: f.kind !== 'skill-markdown',
         }))
