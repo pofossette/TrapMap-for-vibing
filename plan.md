@@ -161,7 +161,7 @@ export async function parseSeedIntentWithLLM(
 
 ### 本阶段提交
 
-- [x] 提交信息建议：`docs: add llm intent parsing execution plan`
+- [ ] 提交信息建议：`docs: add llm intent parsing execution plan`
 
 ### Phase 0 边界确认结果（2026-05-24）
 
@@ -312,11 +312,11 @@ rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent.test.ts
 
 ### Phase 1 完成验收
 
-- [ ] `ParsedIntent` 扩展字段已落地
-- [ ] `IntentCacheStore` / `InMemoryIntentCache` 已创建
-- [ ] 所有 `ParsedIntent` fixture 已同步
-- [ ] 最小验证通过
-- [ ] `graphify update .` 已执行
+- [x] `ParsedIntent` 扩展字段已落地
+- [x] `IntentCacheStore` / `InMemoryIntentCache` 已创建
+- [x] 所有 `ParsedIntent` fixture 已同步
+- [x] 最小验证通过
+- [x] `graphify update .` 已执行
 
 ### 本阶段提交
 
@@ -560,14 +560,14 @@ rtk pnpm typecheck
 
 ### Phase 2 完成验收
 
-- [ ] `parseSeedIntentWithLLM()` 已实现
-- [ ] fallback / retry / cache 已实现
-- [ ] parser 与 cache 单测通过
-- [ ] `graphify update .` 已执行
+- [x] `parseSeedIntentWithLLM()` 已实现
+- [x] fallback / retry / cache 已实现
+- [x] parser 与 cache 单测通过
+- [x] `graphify update .` 已执行
 
 ### 本阶段提交
 
-- [ ] 提交信息建议：`feat(retrieval): add llm-backed intent parser with fallback`
+- [x] 提交信息建议：`feat(retrieval): add llm-backed intent parser with fallback`
 
 ---
 
@@ -692,14 +692,14 @@ rtk pnpm typecheck
 
 ### Phase 3 完成验收
 
-- [ ] v2 orchestrator 已接 LLM parser
-- [ ] semantic channel 已优先使用 `semanticQuery`
-- [ ] 相关测试通过
-- [ ] `graphify update .` 已执行
+- [x] v2 orchestrator 已接 LLM parser
+- [x] semantic channel 已优先使用 `semanticQuery`
+- [x] 相关测试通过
+- [x] `graphify update .` 已执行
 
 ### 本阶段提交
 
-- [ ] 提交信息建议：`feat(retrieval): wire llm intent parsing into v2 search`
+- [x] 提交信息建议：`feat(retrieval): wire llm intent parsing into v2 search`
 
 ---
 
@@ -804,14 +804,14 @@ rtk pnpm typecheck
 
 ### Phase 4 完成验收
 
-- [ ] skill lookup 已接 LLM parser
-- [ ] plan compiler 已接 LLM parser
-- [ ] governance / graph-plan 行为回归测试通过
-- [ ] `graphify update .` 已执行
+- [x] skill lookup 已接 LLM parser
+- [x] plan compiler 已接 LLM parser
+- [x] governance / graph-plan 行为回归测试通过
+- [x] `graphify update .` 已执行
 
 ### 本阶段提交
 
-- [ ] 提交信息建议：`feat(retrieval): share llm intent parsing across lookup and graph plan`
+- [x] 提交信息建议：`feat(retrieval): share llm intent parsing across lookup and graph plan`
 
 ---
 
@@ -951,15 +951,15 @@ rtk pnpm eval:retrieval:smoke
 
 ### Phase 5 完成验收
 
-- [ ] trace metadata 已包含 `parseMethod` / `intentCategory`
-- [ ] eval normalize/report 已兼容
-- [ ] route 与 eval 测试通过
-- [ ] smoke eval 已运行
-- [ ] `graphify update .` 已执行
+- [x] trace metadata 已包含 `parseMethod` / `intentCategory`
+- [x] eval normalize/report 已兼容
+- [x] route 与 eval 测试通过
+- [x] smoke eval 已运行
+- [x] `graphify update .` 已执行
 
 ### 本阶段提交
 
-- [ ] 提交信息建议：`feat(retrieval): add llm intent trace and eval compatibility`
+- [x] 提交信息建议：`feat(retrieval): add llm intent trace and eval compatibility`
 
 ---
 
@@ -1090,15 +1090,15 @@ rtk pnpm eval:retrieval:core
 
 ### Phase 6 完成验收
 
-- [ ] 架构文档已更新
-- [ ] 术语与测试文档已更新
-- [ ] 设计偏差已回写或确认无偏差
-- [ ] 最终验证通过
-- [ ] `graphify update .` 已执行
+- [x] 架构文档已更新
+- [x] 术语与测试文档已更新
+- [x] 设计偏差已回写或确认无偏差
+- [x] 最终验证通过
+- [x] `graphify update .` 已执行
 
 ### 本阶段提交
 
-- [ ] 提交信息建议：`docs(retrieval): finalize llm intent parsing rollout notes`
+- [x] 提交信息建议：`docs(retrieval): finalize llm intent parsing rollout notes`
 
 ---
 
