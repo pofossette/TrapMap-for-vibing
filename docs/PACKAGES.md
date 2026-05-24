@@ -67,7 +67,7 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 - Schema 定义：`packages/server/src/lib/persistence/schema.ts:880-1503`（所有 `skill_artifact_*` 表）
 - 迁移文件：`packages/server/drizzle/0007_round4_artifact_structural.sql`
 - Artifact 路由：`packages/server/src/routes/operations/artifacts-import.ts`、`artifacts-export.ts`、`artifacts-activate.ts`
-- 完整事实源/缓存规则：`plan.md` 阶段 0 结论
+- 完整事实源/缓存规则：`docs/plans/round4-cross-table-consistency-plan.md` 阶段 0 结论
 
 ### 持久化层
 

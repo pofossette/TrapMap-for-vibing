@@ -43,7 +43,7 @@
 ### 技能工件域 (17 表 + 3 索引表)
 
 > **Round 4 事实源规则**：结构化子表为事实源，`skill_artifacts` 和 `artifact_revisions` 上的对应 JSONB 列为兼容缓存。
-> 读取时结构化优先，写入时两套表示同步维护。详见 [`plan.md`](../../plan.md) 阶段 0。
+> 读取时结构化优先，写入时两套表示同步维护。详见 [`round4-cross-table-consistency-plan.md`](../plans/round4-cross-table-consistency-plan.md) 阶段 0。
 
 | 表名 | 用途 | 角色 | 主键 |
 |------|------|------|------|

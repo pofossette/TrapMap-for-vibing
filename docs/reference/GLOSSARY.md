@@ -563,7 +563,8 @@ Skill 工件的磁盘存储结构：
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `plan.md:1` | 计划文档 | 明确 PostgreSQL 收敛目标、禁止长期双真相 |
+| `docs/plans/round4-cross-table-consistency-plan.md` | 实施计划 | 明确 PostgreSQL 收敛目标、禁止长期双真相 |
+| `docs/archived/archived-plans/plan-2026-05-21-round4-complete.md` | 归档计划 | Round 0-4 结构化落地方案 |
 | `docs/reference/DATA_MODEL.md:1` | 参考文档 | 说明各领域当前主事实源与过渡边界 |
 | `packages/server/src/lib/knowledge/repository.ts` | Impl | Knowledge 已在 Round 2 切换到 PG-only 主写 |
 | `packages/server/src/lib/artifacts/repository.ts` | Impl | Artifact 已移除 DualWrite，PG 为唯一主写 |
@@ -575,7 +576,7 @@ Skill 工件的磁盘存储结构：
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `plan.md:570-582` | 计划文档 | Round 2 要求移除双写兼容层 |
+| `docs/plans/round4-cross-table-consistency-plan.md` | 实施计划 | Round 4+ 跨表一致性增强与端到端测试补齐 |
 | `docs/reference/DATA_MODEL.md:422-428` | 参考文档 | 记录哪些 DualWrite 仓库已删除 |
 | `docs/architecture/ARCHITECTURE.md` | 架构文档 | 描述当前 PG-only 与遗留 `store_snapshot` 的职责边界 |
 
@@ -585,7 +586,7 @@ Round 0 冻结后的数据库演进约定：先定目标模型和命名规范，
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `plan.md:535-568` | 计划文档 | Round 0 与 Round 1 的完成标志和操作边界 |
+| `docs/plans/round4-cross-table-consistency-plan.md` | 实施计划 | Round 4+ 后续增强的总体实施策略与阶段划分 |
 | `packages/server/src/lib/persistence/migration-runner.ts` | Impl | 应用启动时统一执行 Drizzle migration |
 | `packages/server/drizzle/` | Migration 目录 | DDL、索引、快照和迁移顺序的唯一入口 |
 

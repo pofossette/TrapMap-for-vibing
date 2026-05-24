@@ -232,7 +232,7 @@ describe('skill review main link tests (Phase 2)', () => {
     });
 
     it('approves an agent-pass artifact and updates lifecycle state to approved', async () => {
-      const { app, authToken, userId } = await buildTestServer(
+      const { app, authToken } = await buildTestServer(
         (data, auth) => {
           seedArtifactInAgentPass(data, auth.userId, {
             id: 'artifact-review-approve',
@@ -302,7 +302,7 @@ describe('skill review main link tests (Phase 2)', () => {
     });
 
     it('populates review history and lifecycle events after review', async () => {
-      const { app, authToken, userId } = await buildTestServer(
+      const { app, authToken } = await buildTestServer(
         (data, auth) => {
           seedArtifactInAgentPass(data, auth.userId, {
             id: 'artifact-review-history',

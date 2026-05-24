@@ -130,7 +130,7 @@ lib/persistence/
 - Schema 定义：`lib/persistence/schema.ts:880-1503` — 所有 `skill_artifact_*` 表定义
 - 迁移文件：`drizzle/0007_round4_artifact_structural.sql` — 结构化子表 DDL
 - 模型层：`lib/artifacts/model.ts` — `createSkillArtifactRecord()`、`applyDerivedArtifactOutputs()`
-- 事实源/缓存规则详细文档：`plan.md` 阶段 0 结论
+- 事实源/缓存规则详细文档：`docs/plans/round4-cross-table-consistency-plan.md` 阶段 0 结论
 
 #### 检索管道 — `lib/retrieval/`
 
