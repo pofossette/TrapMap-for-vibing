@@ -1,0 +1,16 @@
+{
+  "apiBaseUrl": "https://api.example.com",
+  "timeout": 30,
+  "retryConfig": {
+    "maxRetries": 3,
+    "backoffMs": 1000,
+    "retryableStatuses": [429, 502, 503]
+  },
+  "validators": {
+    "statusCode": true,
+    "responseSchema": true,
+    "responseHeaders": false,
+    "latency": true
+  },
+  "reportFormats": ["json", "junit"]
+}

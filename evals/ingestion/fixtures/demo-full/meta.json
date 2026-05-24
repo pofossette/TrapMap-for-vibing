@@ -1,0 +1,18 @@
+{
+  "scope": "project",
+  "labels": ["api", "rest", "testing", "validation"],
+  "title": "REST API Validation Pipeline",
+  "slug": "rest-api-validation-pipeline",
+  "requiredLevel": 3,
+  "sourceKind": "skill-directory",
+  "scriptDescriptors": [
+    {
+      "path": "scripts/validate.sh",
+      "sha256": "placeholder",
+      "capability": "Validate REST API endpoints via curl + jq",
+      "argsSchemaSummary": "--endpoint <url> --method <GET|POST>",
+      "sideEffectSummary": "Sends HTTP requests to target API; writes validation report to stdout",
+      "defaultPolicy": "needs-approval"
+    }
+  ]
+}

@@ -370,11 +370,21 @@ describe('artifact activation main link tests (Phase 2)', () => {
             id: 'artifact-activate-skill',
             title: 'Activate SKILL.md Test',
             files: [
-              { path: 'SKILL.md', content: '# Activation Test\n\nSkill body here', kind: 'skill-markdown' },
+              {
+                path: 'SKILL.md',
+                content: '# Activation Test\n\nSkill body here',
+                kind: 'skill-markdown',
+              },
             ],
           });
 
-          seedFilePayload(data, 'artifact-activate-skill', 1, 'SKILL.md', '# Activation Test\n\nSkill body here');
+          seedFilePayload(
+            data,
+            'artifact-activate-skill',
+            1,
+            'SKILL.md',
+            '# Activation Test\n\nSkill body here',
+          );
         },
         {
           permissions: ['knowledge:export'],
@@ -408,14 +418,30 @@ describe('artifact activation main link tests (Phase 2)', () => {
             title: 'Activate References Test',
             files: [
               { path: 'SKILL.md', content: '# Skill', kind: 'skill-markdown' },
-              { path: 'references/docker.md', content: '# Docker\n\nDocker best practices', kind: 'reference' },
+              {
+                path: 'references/docker.md',
+                content: '# Docker\n\nDocker best practices',
+                kind: 'reference',
+              },
               { path: 'references/ci.md', content: '# CI\n\nCI pipeline guide', kind: 'reference' },
             ],
           });
 
           seedFilePayload(data, 'artifact-activate-refs', 1, 'SKILL.md', '# Skill');
-          seedFilePayload(data, 'artifact-activate-refs', 1, 'references/docker.md', '# Docker\n\nDocker best practices');
-          seedFilePayload(data, 'artifact-activate-refs', 1, 'references/ci.md', '# CI\n\nCI pipeline guide');
+          seedFilePayload(
+            data,
+            'artifact-activate-refs',
+            1,
+            'references/docker.md',
+            '# Docker\n\nDocker best practices',
+          );
+          seedFilePayload(
+            data,
+            'artifact-activate-refs',
+            1,
+            'references/ci.md',
+            '# CI\n\nCI pipeline guide',
+          );
         },
         {
           permissions: ['knowledge:export'],
@@ -457,12 +483,22 @@ describe('artifact activation main link tests (Phase 2)', () => {
             title: 'Activate Assets Test',
             files: [
               { path: 'SKILL.md', content: '# Skill', kind: 'skill-markdown' },
-              { path: 'assets/docker-compose.yml', content: 'version: "3"\nservices:\n  app: {}', kind: 'asset' },
+              {
+                path: 'assets/docker-compose.yml',
+                content: 'version: "3"\nservices:\n  app: {}',
+                kind: 'asset',
+              },
             ],
           });
 
           seedFilePayload(data, 'artifact-activate-assets', 1, 'SKILL.md', '# Skill');
-          seedFilePayload(data, 'artifact-activate-assets', 1, 'assets/docker-compose.yml', 'version: "3"\nservices:\n  app: {}');
+          seedFilePayload(
+            data,
+            'artifact-activate-assets',
+            1,
+            'assets/docker-compose.yml',
+            'version: "3"\nservices:\n  app: {}',
+          );
         },
         {
           permissions: ['knowledge:export'],
@@ -498,17 +534,35 @@ describe('artifact activation main link tests (Phase 2)', () => {
             title: 'Activate Scripts Test',
             files: [
               { path: 'SKILL.md', content: '# Skill', kind: 'skill-markdown' },
-              { path: 'scripts/bootstrap.sh', content: '#!/bin/bash\necho bootstrap', kind: 'script' },
+              {
+                path: 'scripts/bootstrap.sh',
+                content: '#!/bin/bash\necho bootstrap',
+                kind: 'script',
+              },
               { path: 'scripts/deploy.sh', content: '#!/bin/bash\necho deploy', kind: 'script' },
             ],
           });
 
           seedFilePayload(data, 'artifact-activate-scripts', 1, 'SKILL.md', '# Skill');
-          seedFilePayload(data, 'artifact-activate-scripts', 1, 'scripts/bootstrap.sh', '#!/bin/bash\necho bootstrap');
-          seedFilePayload(data, 'artifact-activate-scripts', 1, 'scripts/deploy.sh', '#!/bin/bash\necho deploy');
+          seedFilePayload(
+            data,
+            'artifact-activate-scripts',
+            1,
+            'scripts/bootstrap.sh',
+            '#!/bin/bash\necho bootstrap',
+          );
+          seedFilePayload(
+            data,
+            'artifact-activate-scripts',
+            1,
+            'scripts/deploy.sh',
+            '#!/bin/bash\necho deploy',
+          );
 
           // Add script descriptors to the artifact (both latestRevision and history)
-          const artifact = data.skillArtifacts.find((a: any) => a.id === 'artifact-activate-scripts');
+          const artifact = data.skillArtifacts.find(
+            (a: any) => a.id === 'artifact-activate-scripts',
+          );
           if (artifact) {
             const descriptors = [
               {
@@ -567,7 +621,9 @@ describe('artifact activation main link tests (Phase 2)', () => {
       expect(json.scriptDescriptors).toBeDefined();
       expect(json.scriptDescriptors.length).toBe(2);
 
-      const bootstrapDesc = json.scriptDescriptors.find((d: any) => d.path === 'scripts/bootstrap.sh');
+      const bootstrapDesc = json.scriptDescriptors.find(
+        (d: any) => d.path === 'scripts/bootstrap.sh',
+      );
       expect(bootstrapDesc).toBeDefined();
       expect(bootstrapDesc.capability).toBe('System bootstrap');
       expect(bootstrapDesc.defaultPolicy).toBe('needs-approval');

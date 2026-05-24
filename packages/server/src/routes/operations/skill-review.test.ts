@@ -340,8 +340,7 @@ describe('skill review main link tests (Phase 2)', () => {
       // Verify lifecycle history in response
       expect(json.artifact.lifecycleHistory).toBeDefined();
       expect(json.artifact.lifecycleHistory.length).toBeGreaterThanOrEqual(1);
-      const lastEvent =
-        json.artifact.lifecycleHistory[json.artifact.lifecycleHistory.length - 1];
+      const lastEvent = json.artifact.lifecycleHistory[json.artifact.lifecycleHistory.length - 1];
       expect(lastEvent.type).toBe('reviewer-approved');
       await app.close();
     });
@@ -407,9 +406,7 @@ describe('skill review main link tests (Phase 2)', () => {
       expect(response.statusCode).toBe(200);
       const json = response.json();
       expect(json.items).toBeDefined();
-      const queueItem = json.items.find(
-        (i: any) => i.artifact?.id === 'artifact-in-queue',
-      );
+      const queueItem = json.items.find((i: any) => i.artifact?.id === 'artifact-in-queue');
       expect(queueItem).toBeDefined();
       expect(queueItem.artifact.lifecycleState).toBe('agent-pass');
       await app.close();
@@ -435,7 +432,14 @@ describe('skill review main link tests (Phase 2)', () => {
               prerequisites: [{ description: 'Node.js 20+', kind: 'environment', required: true }],
               signals: [{ pattern: 'useEffect', kind: 'keyword', description: 'React hook' }],
               exclusions: [{ description: 'Not for SSR', kind: 'platform' }],
-              evidence: [{ kind: 'documentation', identifier: 'react-docs', url: 'https://react.dev', note: 'Official docs' }],
+              evidence: [
+                {
+                  kind: 'documentation',
+                  identifier: 'react-docs',
+                  url: 'https://react.dev',
+                  note: 'Official docs',
+                },
+              ],
             };
           }
         },
@@ -485,9 +489,7 @@ describe('skill review main link tests (Phase 2)', () => {
             id: 'artifact-maint-review',
             title: 'Maintenance Review Test',
           });
-          const artifact = data.skillArtifacts.find(
-            (a: any) => a.id === 'artifact-maint-review',
-          );
+          const artifact = data.skillArtifacts.find((a: any) => a.id === 'artifact-maint-review');
           if (artifact) {
             artifact.maintenanceMeta = {
               assignees: [{ userId: auth.userId, role: 'owner' }],
@@ -541,8 +543,16 @@ describe('skill review main link tests (Phase 2)', () => {
             id: 'artifact-pipeline-test',
             title: 'Pipeline Test',
             files: [
-              { path: 'SKILL.md', content: '# Pipeline\n\nPipeline body content', kind: 'skill-markdown' },
-              { path: 'references/setup.md', content: '# Setup Guide\n\nSetup body', kind: 'reference' },
+              {
+                path: 'SKILL.md',
+                content: '# Pipeline\n\nPipeline body content',
+                kind: 'skill-markdown',
+              },
+              {
+                path: 'references/setup.md',
+                content: '# Setup Guide\n\nSetup body',
+                kind: 'reference',
+              },
               { path: 'assets/config.yml', content: 'version: 1', kind: 'asset' },
             ],
           });
@@ -581,7 +591,12 @@ describe('skill review main link tests (Phase 2)', () => {
           });
         },
         {
-          permissions: ['knowledge:review', 'knowledge:export', 'knowledge:submit', 'knowledge:search'],
+          permissions: [
+            'knowledge:review',
+            'knowledge:export',
+            'knowledge:submit',
+            'knowledge:search',
+          ],
           roleTemplate: 'admin',
           securityLevel: 10,
         },
@@ -642,13 +657,19 @@ describe('skill review main link tests (Phase 2)', () => {
             title: 'Pipeline Activate Test',
             files: [
               { path: 'SKILL.md', content: '# Pipeline Skill', kind: 'skill-markdown' },
-              { path: 'references/guide.md', content: '# Guide\n\nGuide content', kind: 'reference' },
+              {
+                path: 'references/guide.md',
+                content: '# Guide\n\nGuide content',
+                kind: 'reference',
+              },
               { path: 'scripts/run.sh', content: '#!/bin/bash\nrun', kind: 'script' },
             ],
           });
 
           // Update files for activation
-          const artifact = data.skillArtifacts.find((a: any) => a.id === 'artifact-pipeline-activate');
+          const artifact = data.skillArtifacts.find(
+            (a: any) => a.id === 'artifact-pipeline-activate',
+          );
           if (artifact) {
             artifact.latestRevision.scriptDescriptors = [
               {
@@ -698,7 +719,12 @@ describe('skill review main link tests (Phase 2)', () => {
           });
         },
         {
-          permissions: ['knowledge:review', 'knowledge:export', 'knowledge:submit', 'knowledge:search'],
+          permissions: [
+            'knowledge:review',
+            'knowledge:export',
+            'knowledge:submit',
+            'knowledge:search',
+          ],
           roleTemplate: 'admin',
           securityLevel: 10,
         },

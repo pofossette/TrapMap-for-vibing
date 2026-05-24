@@ -126,7 +126,8 @@ function createFullArtifactFixture(artifactId: string): SkillArtifactRecord {
           artifactId,
           revision: 1,
           sourcePaths: ['SKILL.md'],
-          content: 'When encountering a test failure, run the setup script to bootstrap the environment.',
+          content:
+            'When encountering a test failure, run the setup script to bootstrap the environment.',
           situation: 'testing',
           problem: 'test failures due to missing environment configuration',
           goal: 'resolve test failures by ensuring proper environment setup',
@@ -250,7 +251,9 @@ describeIfDb('PgArtifactRepository Round 4 real PG round-trip', () => {
       'skill_artifact_files',
     ];
     for (const table of revisionTables) {
-      await testPool.query(`DELETE FROM ${table} WHERE artifact_revision_id LIKE 'artifact_round4_test_%'`);
+      await testPool.query(
+        `DELETE FROM ${table} WHERE artifact_revision_id LIKE 'artifact_round4_test_%'`,
+      );
     }
     // Tables keyed by artifact_id (artifact-scoped sub-tables)
     const artifactTables = [
@@ -580,7 +583,12 @@ describeIfDb('PgArtifactRepository Round 4 real PG round-trip', () => {
           artifactId: 'artifact_round4_test_updder',
           revision: 1,
           references: [
-            { path: 'references/appendix.md', sha256: 'sha256-ref', sizeBytes: 50, mediaType: 'text/markdown' },
+            {
+              path: 'references/appendix.md',
+              sha256: 'sha256-ref',
+              sizeBytes: 50,
+              mediaType: 'text/markdown',
+            },
           ],
           assets: [],
           scripts: [],
@@ -648,16 +656,16 @@ describeIfDb('PgArtifactRepository Round 4 real PG round-trip', () => {
       expect(initial!.metadata.sourceKind).toBe('skill-directory');
 
       // Corrupt the JSONB cache with different values
-      await testPool.query(
-        `UPDATE skill_artifacts SET metadata = $1 WHERE id = $2`,
-        [JSON.stringify({
+      await testPool.query('UPDATE skill_artifacts SET metadata = $1 WHERE id = $2', [
+        JSON.stringify({
           ...fixture.metadata,
           revisionCount: 999,
           sourceKind: 'legacy-knowledge',
           submissionCount: 42,
           latestDecision: 'reject',
-        }), 'artifact_round4_test_prec1'],
-      );
+        }),
+        'artifact_round4_test_prec1',
+      ]);
 
       // Read back - structured values should take precedence
       const artifact = await repo.getById('artifact_round4_test_prec1');
@@ -673,17 +681,17 @@ describeIfDb('PgArtifactRepository Round 4 real PG round-trip', () => {
       await repo.insert(fixture);
 
       // Corrupt the JSONB agent_review column
-      await testPool.query(
-        `UPDATE skill_artifacts SET agent_review = $1 WHERE id = $2`,
-        [JSON.stringify({
+      await testPool.query('UPDATE skill_artifacts SET agent_review = $1 WHERE id = $2', [
+        JSON.stringify({
           status: 'agent-rejected',
           duplicateRisk: 'high',
           correctnessRisk: 'high',
           completenessRisk: 'high',
           checkedAt: '2000-01-01T00:00:00.000Z',
           notes: ['corrupted'],
-        }), 'artifact_round4_test_prec2'],
-      );
+        }),
+        'artifact_round4_test_prec2',
+      ]);
 
       const artifact = await repo.getById('artifact_round4_test_prec2');
 
@@ -698,17 +706,17 @@ describeIfDb('PgArtifactRepository Round 4 real PG round-trip', () => {
       await repo.insert(fixture);
 
       // Corrupt the JSONB boundary column
-      await testPool.query(
-        `UPDATE skill_artifacts SET boundary = $1 WHERE id = $2`,
-        [JSON.stringify({
+      await testPool.query('UPDATE skill_artifacts SET boundary = $1 WHERE id = $2', [
+        JSON.stringify({
           context: ['corrupted-only'],
           versions: [],
           prerequisites: [],
           signals: [],
           exclusions: [],
           evidence: [],
-        }), 'artifact_round4_test_prec3'],
-      );
+        }),
+        'artifact_round4_test_prec3',
+      ]);
 
       const artifact = await repo.getById('artifact_round4_test_prec3');
 
@@ -723,15 +731,15 @@ describeIfDb('PgArtifactRepository Round 4 real PG round-trip', () => {
       await repo.insert(fixture);
 
       // Corrupt the JSONB maintenance_meta column
-      await testPool.query(
-        `UPDATE skill_artifacts SET maintenance_meta = $1 WHERE id = $2`,
-        [JSON.stringify({
+      await testPool.query('UPDATE skill_artifacts SET maintenance_meta = $1 WHERE id = $2', [
+        JSON.stringify({
           maintainerUserId: 'wrong_user',
           maintainerHandle: 'intruder',
           maintainerLevel: 99,
           reviewBy: '2000-01-01T00:00:00.000Z',
-        }), 'artifact_round4_test_prec4'],
-      );
+        }),
+        'artifact_round4_test_prec4',
+      ]);
 
       const artifact = await repo.getById('artifact_round4_test_prec4');
 
@@ -746,8 +754,23 @@ describeIfDb('PgArtifactRepository Round 4 real PG round-trip', () => {
 
       // Corrupt the JSONB files column on the revision
       await testPool.query(
-        `UPDATE artifact_revisions SET files = $1 WHERE artifact_id = $2 AND revision_no = $3`,
-        [JSON.stringify([{ path: 'HACKED.md', kind: 'skill-markdown', sha256: 'bad', sizeBytes: 1, mediaType: 'text/plain', source: 'SKILL.md', includeInDerivation: false, activationOnly: false }]), 'artifact_round4_test_prec5', 1],
+        'UPDATE artifact_revisions SET files = $1 WHERE artifact_id = $2 AND revision_no = $3',
+        [
+          JSON.stringify([
+            {
+              path: 'HACKED.md',
+              kind: 'skill-markdown',
+              sha256: 'bad',
+              sizeBytes: 1,
+              mediaType: 'text/plain',
+              source: 'SKILL.md',
+              includeInDerivation: false,
+              activationOnly: false,
+            },
+          ]),
+          'artifact_round4_test_prec5',
+          1,
+        ],
       );
 
       const artifact = await repo.getById('artifact_round4_test_prec5');
@@ -765,23 +788,27 @@ describeIfDb('PgArtifactRepository Round 4 real PG round-trip', () => {
 
       // Corrupt the JSONB derived column
       await testPool.query(
-        `UPDATE artifact_revisions SET derived = $1 WHERE artifact_id = $2 AND revision_no = $3`,
-        [JSON.stringify({
-          profile: {
-            artifactId: 'artifact_round4_test_prec6',
-            revision: 1,
+        'UPDATE artifact_revisions SET derived = $1 WHERE artifact_id = $2 AND revision_no = $3',
+        [
+          JSON.stringify({
+            profile: {
+              artifactId: 'artifact_round4_test_prec6',
+              revision: 1,
+              sourceHash: 'bad-hash',
+              title: 'CORRUPTED TITLE',
+              summary: 'bad',
+              keywords: ['bad'],
+              referencePaths: [],
+              contentHash: 'bad',
+            },
+            capsules: [],
+            clientManifest: null,
             sourceHash: 'bad-hash',
-            title: 'CORRUPTED TITLE',
-            summary: 'bad',
-            keywords: ['bad'],
-            referencePaths: [],
-            contentHash: 'bad',
-          },
-          capsules: [],
-          clientManifest: null,
-          sourceHash: 'bad-hash',
-          derivedAt: '2000-01-01T00:00:00.000Z',
-        }), 'artifact_round4_test_prec6', 1],
+            derivedAt: '2000-01-01T00:00:00.000Z',
+          }),
+          'artifact_round4_test_prec6',
+          1,
+        ],
       );
 
       const artifact = await repo.getById('artifact_round4_test_prec6');

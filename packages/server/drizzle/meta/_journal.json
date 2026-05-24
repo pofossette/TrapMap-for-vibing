@@ -43,6 +43,27 @@
       "when": 1779315000000,
       "tag": "0005_round7_retrieval_index_structural",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779320000000,
+      "tag": "0006_round8_naming_constraints",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779325000000,
+      "tag": "0007_round4_artifact_structural",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779330000000,
+      "tag": "0008_round9_cross_table_consistency",
+      "breakpoints": true
     }
   ]
 }

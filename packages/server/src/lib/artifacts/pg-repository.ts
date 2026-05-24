@@ -136,6 +136,7 @@ export class PgArtifactRepository implements ArtifactRepository {
         await upsertArtifactAgentReview(client, artifact.id, artifact.agentReview);
       }
       await upsertArtifactMetadata(client, artifact.id, artifact.metadata);
+      await syncRevisionCount(client, artifact.id);
 
       await client.query('COMMIT');
     } catch (e) {
@@ -301,6 +302,8 @@ export class PgArtifactRepository implements ArtifactRepository {
         // Note: title stays the same, labels could be updated via revision
         [rows[0]!.title, JSON.stringify(revision.files[0]?.path ?? []), now, artifactId],
       );
+
+      await syncRevisionCount(client, artifactId);
 
       await client.query('COMMIT');
     } catch (e) {
@@ -904,12 +907,74 @@ async function upsertStructuredRevisionRows(
   await replaceStructuredDerivedRows(client, artifactId, revisionId, revision);
 }
 
+function assertDerivedConsistency(artifactId: string, revision: SkillArtifactRevisionRecord): void {
+  const revNo = revision.revision;
+  const derived = revision.derived;
+  if (!derived) return;
+
+  if (derived.profile) {
+    if (derived.profile.artifactId !== artifactId) {
+      throw new Error(
+        `derived.profile.artifactId "${derived.profile.artifactId}" does not match artifact "${artifactId}"`,
+      );
+    }
+    if (derived.profile.revision !== revNo) {
+      throw new Error(
+        `derived.profile.revision ${derived.profile.revision} does not match revision ${revNo}`,
+      );
+    }
+  }
+
+  for (const capsule of derived.capsules) {
+    if (capsule.artifactId !== artifactId) {
+      throw new Error(
+        `capsule.artifactId "${capsule.artifactId}" does not match artifact "${artifactId}"`,
+      );
+    }
+    if (capsule.revision !== revNo) {
+      throw new Error(`capsule.revision ${capsule.revision} does not match revision ${revNo}`);
+    }
+  }
+
+  if (derived.clientManifest) {
+    if (derived.clientManifest.artifactId !== artifactId) {
+      throw new Error(
+        `clientManifest.artifactId "${derived.clientManifest.artifactId}" does not match artifact "${artifactId}"`,
+      );
+    }
+    if (derived.clientManifest.revision !== revNo) {
+      throw new Error(
+        `clientManifest.revision ${derived.clientManifest.revision} does not match revision ${revNo}`,
+      );
+    }
+  }
+}
+
+async function syncRevisionCount(client: Pick<Pool, 'query'>, artifactId: string): Promise<void> {
+  const { rows } = await client.query<{ count: string }>(
+    'SELECT COUNT(*)::text AS count FROM artifact_revisions WHERE artifact_id = $1',
+    [artifactId],
+  );
+  if (rows.length === 0) return;
+  const actualCount = Number(rows[0]!.count);
+  await client.query(
+    `INSERT INTO skill_artifact_metadata (
+      artifact_id, source_kind, submission_count, resubmission_count, revision_count,
+      latest_submission_id, latest_submitted_at, latest_reviewed_at, latest_decision, updated_at
+    ) VALUES ($1, 'skill-directory', 1, 0, $2, NULL, NULL, NULL, NULL, NOW())
+    ON CONFLICT (artifact_id) DO UPDATE SET revision_count = $2, updated_at = NOW()`,
+    [artifactId, actualCount],
+  );
+}
+
 async function replaceStructuredDerivedRows(
   client: Pick<Pool, 'query'>,
   artifactId: string,
   revisionId: string,
   revision: SkillArtifactRevisionRecord,
 ): Promise<void> {
+  assertDerivedConsistency(artifactId, revision);
+
   await client.query('DELETE FROM skill_artifact_profiles WHERE artifact_revision_id = $1', [
     revisionId,
   ]);

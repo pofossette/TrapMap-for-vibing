@@ -2230,9 +2230,7 @@ describe('retrieval visibility main link tests (Phase 2)', () => {
       expect(response.statusCode).toBe(200);
       const json = response.json();
       const allResults = [...json.globalConstraints, ...json.projectKnowledge];
-      const found = allResults.find(
-        (r: any) => r.shortcut === 'Docker Deployment Best Practices',
-      );
+      const found = allResults.find((r: any) => r.shortcut === 'Docker Deployment Best Practices');
       expect(found).toBeDefined();
 
       await app.close();
@@ -2300,9 +2298,7 @@ describe('retrieval visibility main link tests (Phase 2)', () => {
       expect(response.statusCode).toBe(200);
       const json = response.json();
       const allResults = [...json.globalConstraints, ...json.projectKnowledge];
-      const found = allResults.find(
-        (r: any) => r.shortcut === 'Draft Entry Should Not Appear',
-      );
+      const found = allResults.find((r: any) => r.shortcut === 'Draft Entry Should Not Appear');
       expect(found).toBeUndefined();
 
       await app.close();
@@ -2335,9 +2331,7 @@ describe('retrieval visibility main link tests (Phase 2)', () => {
       expect(response.statusCode).toBe(200);
       const json = response.json();
       expect(json.matches).toBeDefined();
-      const found = json.matches.find(
-        (m: any) => m.artifactId === 'skill-retrieval-test',
-      );
+      const found = json.matches.find((m: any) => m.artifactId === 'skill-retrieval-test');
       expect(found).toBeDefined();
 
       await app.close();
@@ -2361,39 +2355,45 @@ describe('retrieval visibility main link tests (Phase 2)', () => {
           latestRevision: {
             revision: 1,
             sourceHash: 'a'.repeat(64),
-            files: [{
-              path: 'SKILL.md',
-              kind: 'skill-markdown',
-              sha256: 'a'.repeat(64),
-              sizeBytes: 100,
-              mediaType: 'text/markdown',
-              source: 'SKILL.md',
-              includeInDerivation: true,
-              activationOnly: false,
-            }],
+            files: [
+              {
+                path: 'SKILL.md',
+                kind: 'skill-markdown',
+                sha256: 'a'.repeat(64),
+                sizeBytes: 100,
+                mediaType: 'text/markdown',
+                source: 'SKILL.md',
+                includeInDerivation: true,
+                activationOnly: false,
+              },
+            ],
             submittedAt: nowIso(),
             submittedByUserId: 'some_user',
             scriptDescriptors: [],
             derived: null,
           },
-          history: [{
-            revision: 1,
-            sourceHash: 'a'.repeat(64),
-            files: [{
-              path: 'SKILL.md',
-              kind: 'skill-markdown',
-              sha256: 'a'.repeat(64),
-              sizeBytes: 100,
-              mediaType: 'text/markdown',
-              source: 'SKILL.md',
-              includeInDerivation: true,
-              activationOnly: false,
-            }],
-            submittedAt: nowIso(),
-            submittedByUserId: 'some_user',
-            scriptDescriptors: [],
-            derived: null,
-          }],
+          history: [
+            {
+              revision: 1,
+              sourceHash: 'a'.repeat(64),
+              files: [
+                {
+                  path: 'SKILL.md',
+                  kind: 'skill-markdown',
+                  sha256: 'a'.repeat(64),
+                  sizeBytes: 100,
+                  mediaType: 'text/markdown',
+                  source: 'SKILL.md',
+                  includeInDerivation: true,
+                  activationOnly: false,
+                },
+              ],
+              submittedAt: nowIso(),
+              submittedByUserId: 'some_user',
+              scriptDescriptors: [],
+              derived: null,
+            },
+          ],
           metadata: {
             sourceKind: 'skill-directory',
             submissionCount: 1,
@@ -2422,9 +2422,7 @@ describe('retrieval visibility main link tests (Phase 2)', () => {
 
       expect(response.statusCode).toBe(200);
       const json = response.json();
-      const found = json.matches.find(
-        (m: any) => m.artifactId === 'skill-draft-test',
-      );
+      const found = json.matches.find((m: any) => m.artifactId === 'skill-draft-test');
       expect(found).toBeUndefined();
 
       await app.close();
@@ -2458,9 +2456,7 @@ describe('retrieval visibility main link tests (Phase 2)', () => {
       const json = response.json();
       expect(json.matches).toBeDefined();
       expect(json.matches.length).toBeGreaterThanOrEqual(1);
-      const found = json.matches.find(
-        (m: any) => m.artifactId === 'skill-capsule-test',
-      );
+      const found = json.matches.find((m: any) => m.artifactId === 'skill-capsule-test');
       expect(found).toBeDefined();
 
       await app.close();
@@ -2499,4 +2495,3 @@ describe('retrieval visibility main link tests (Phase 2)', () => {
     });
   });
 });
-

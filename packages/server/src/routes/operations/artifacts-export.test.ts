@@ -183,72 +183,77 @@ function seedApprovedArtifactWithFiles(
           },
         ];
 
-  const derived = overrides.withDerived !== false ? {
-    profile: {
-      artifactId: id,
-      revision: 1,
-      sourceHash: FAKE_HASH,
-      title,
-      summary: `Summary for ${title}`,
-      keywords: labels,
-      referencePaths: files
-        .filter((f: any) => f.kind === 'reference')
-        .map((f: any) => f.path),
-      contentHash: FAKE_HASH,
-    },
-    capsules: [
-      {
-        capsuleId: `capsule_${id}`,
-        artifactId: id,
-        revision: 1,
-        sourcePaths: ['SKILL.md'],
-        content: `Content for ${title}`,
-        situation: `When working with ${title}`,
-        problem: `Problem with ${title}`,
-        goal: `Goal for ${title}`,
-        errorText: null,
-        labels,
-        scope,
-        requiredLevel: 0,
-      },
-    ],
-    clientManifest: overrides.withClientManifest
+  const derived =
+    overrides.withDerived !== false
       ? {
-          artifactId: id,
-          revision: 1,
-          references: files
-            .filter((f: any) => f.kind === 'reference')
-            .map((f: any) => ({
-              path: f.path,
-              sha256: FAKE_HASH,
-              sizeBytes: f.sizeBytes,
-              mediaType: 'text/markdown',
-            })),
-          assets: files
-            .filter((f: any) => f.kind === 'asset')
-            .map((f: any) => ({
-              path: f.path,
-              sha256: FAKE_HASH,
-              sizeBytes: f.sizeBytes,
-              mediaType: f.path.endsWith('.yml') ? 'application/x-yaml' : 'application/octet-stream',
-            })),
-          scripts: files
-            .filter((f: any) => f.kind === 'script')
-            .map((f: any) => ({
-              path: f.path,
-              sha256: FAKE_HASH,
-              sizeBytes: f.sizeBytes,
-              mediaType: 'text/x-shellscript',
-              capability: `Script: ${f.path}`,
-              argsSchemaSummary: '',
-              sideEffectSummary: '',
-              defaultPolicy: 'manual',
-            })),
+          profile: {
+            artifactId: id,
+            revision: 1,
+            sourceHash: FAKE_HASH,
+            title,
+            summary: `Summary for ${title}`,
+            keywords: labels,
+            referencePaths: files
+              .filter((f: any) => f.kind === 'reference')
+              .map((f: any) => f.path),
+            contentHash: FAKE_HASH,
+          },
+          capsules: [
+            {
+              capsuleId: `capsule_${id}`,
+              artifactId: id,
+              revision: 1,
+              sourcePaths: ['SKILL.md'],
+              content: `Content for ${title}`,
+              situation: `When working with ${title}`,
+              problem: `Problem with ${title}`,
+              goal: `Goal for ${title}`,
+              errorText: null,
+              labels,
+              scope,
+              requiredLevel: 0,
+            },
+          ],
+          clientManifest: overrides.withClientManifest
+            ? {
+                artifactId: id,
+                revision: 1,
+                references: files
+                  .filter((f: any) => f.kind === 'reference')
+                  .map((f: any) => ({
+                    path: f.path,
+                    sha256: FAKE_HASH,
+                    sizeBytes: f.sizeBytes,
+                    mediaType: 'text/markdown',
+                  })),
+                assets: files
+                  .filter((f: any) => f.kind === 'asset')
+                  .map((f: any) => ({
+                    path: f.path,
+                    sha256: FAKE_HASH,
+                    sizeBytes: f.sizeBytes,
+                    mediaType: f.path.endsWith('.yml')
+                      ? 'application/x-yaml'
+                      : 'application/octet-stream',
+                  })),
+                scripts: files
+                  .filter((f: any) => f.kind === 'script')
+                  .map((f: any) => ({
+                    path: f.path,
+                    sha256: FAKE_HASH,
+                    sizeBytes: f.sizeBytes,
+                    mediaType: 'text/x-shellscript',
+                    capability: `Script: ${f.path}`,
+                    argsSchemaSummary: '',
+                    sideEffectSummary: '',
+                    defaultPolicy: 'manual',
+                  })),
+              }
+            : null,
+          sourceHash: FAKE_HASH,
+          derivedAt: nowIso(),
         }
-      : null,
-    sourceHash: FAKE_HASH,
-    derivedAt: nowIso(),
-  } : null;
+      : null;
 
   const revision = {
     revision: 1,
@@ -314,15 +319,35 @@ describe('artifact export main link tests (Phase 2)', () => {
             id: 'artifact-export-bundle',
             title: 'Bundle Export Test',
             files: [
-              { path: 'SKILL.md', content: '# Skill Title\n\nSkill body content', kind: 'skill-markdown' },
-              { path: 'references/setup.md', content: '# Setup\n\nSetup instructions', kind: 'reference' },
+              {
+                path: 'SKILL.md',
+                content: '# Skill Title\n\nSkill body content',
+                kind: 'skill-markdown',
+              },
+              {
+                path: 'references/setup.md',
+                content: '# Setup\n\nSetup instructions',
+                kind: 'reference',
+              },
               { path: 'assets/logo.png', content: 'fake-png-content', kind: 'asset' },
             ],
             withClientManifest: true,
           });
 
-          seedFilePayload(data, 'artifact-export-bundle', 1, 'SKILL.md', '# Skill Title\n\nSkill body content');
-          seedFilePayload(data, 'artifact-export-bundle', 1, 'references/setup.md', '# Setup\n\nSetup instructions');
+          seedFilePayload(
+            data,
+            'artifact-export-bundle',
+            1,
+            'SKILL.md',
+            '# Skill Title\n\nSkill body content',
+          );
+          seedFilePayload(
+            data,
+            'artifact-export-bundle',
+            1,
+            'references/setup.md',
+            '# Setup\n\nSetup instructions',
+          );
           seedFilePayload(data, 'artifact-export-bundle', 1, 'assets/logo.png', 'fake-png-content');
         },
         {
@@ -371,7 +396,13 @@ describe('artifact export main link tests (Phase 2)', () => {
           });
 
           seedFilePayload(data, 'artifact-export-scripts', 1, 'SKILL.md', '# Script Skill');
-          seedFilePayload(data, 'artifact-export-scripts', 1, 'scripts/deploy.sh', '#!/bin/bash\necho deploy');
+          seedFilePayload(
+            data,
+            'artifact-export-scripts',
+            1,
+            'scripts/deploy.sh',
+            '#!/bin/bash\necho deploy',
+          );
 
           // Add script descriptor to the artifact
           const artifact = data.skillArtifacts.find((a: any) => a.id === 'artifact-export-scripts');
@@ -424,13 +455,23 @@ describe('artifact export main link tests (Phase 2)', () => {
             labels: ['distilled', 'test'],
             files: [
               { path: 'SKILL.md', content: '# Distilled Skill', kind: 'skill-markdown' },
-              { path: 'references/guide.md', content: '# Guide\n\nReference content', kind: 'reference' },
+              {
+                path: 'references/guide.md',
+                content: '# Guide\n\nReference content',
+                kind: 'reference',
+              },
             ],
             withClientManifest: true,
           });
 
           seedFilePayload(data, 'artifact-export-distilled', 1, 'SKILL.md', '# Distilled Skill');
-          seedFilePayload(data, 'artifact-export-distilled', 1, 'references/guide.md', '# Guide\n\nReference content');
+          seedFilePayload(
+            data,
+            'artifact-export-distilled',
+            1,
+            'references/guide.md',
+            '# Guide\n\nReference content',
+          );
         },
         {
           permissions: ['knowledge:export'],
@@ -495,12 +536,7 @@ describe('artifact export main link tests (Phase 2)', () => {
   });
 
   describe('export with boundary, maintenanceMeta, and agentReview', () => {
-    function seedArtifactWithGovernance(
-      data: any,
-      userId: string,
-      id: string,
-      title: string,
-    ) {
+    function seedArtifactWithGovernance(data: any, userId: string, id: string, title: string) {
       seedApprovedArtifactWithFiles(data, userId, {
         id,
         title,
@@ -521,7 +557,14 @@ describe('artifact export main link tests (Phase 2)', () => {
           prerequisites: [{ description: 'PostgreSQL 15+', kind: 'service', required: true }],
           signals: [{ pattern: 'connection pool', kind: 'keyword', description: 'DB pool config' }],
           exclusions: [{ description: 'Not applicable for serverless', kind: 'platform' }],
-          evidence: [{ kind: 'documentation', identifier: 'node-docs', url: 'https://nodejs.org', note: 'Official docs' }],
+          evidence: [
+            {
+              kind: 'documentation',
+              identifier: 'node-docs',
+              url: 'https://nodejs.org',
+              note: 'Official docs',
+            },
+          ],
         };
 
         artifact.maintenanceMeta = {
@@ -545,7 +588,12 @@ describe('artifact export main link tests (Phase 2)', () => {
     it('exports artifact with boundary metadata preserved', async () => {
       const { app, authToken } = await buildTestServer(
         (data, auth) => {
-          seedArtifactWithGovernance(data, auth.userId, 'artifact-boundary-export', 'Boundary Export');
+          seedArtifactWithGovernance(
+            data,
+            auth.userId,
+            'artifact-boundary-export',
+            'Boundary Export',
+          );
         },
         {
           permissions: ['knowledge:export'],

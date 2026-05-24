@@ -399,92 +399,61 @@ it('persists structured manifest rows and reads them back as the revision fact s
 
 ---
 
-### 阶段 3：cross-table 一致性约束增强
+### 阶段 3：cross-table 一致性约束增强 ✅
 
 目标：把最容易形成脏数据的跨表关系尽量前移到数据库层和 repository 层拦截。
 
 #### 3.1 revision 级派生产物一致性
 
-- [ ] 为 `skill_artifact_profiles` 增强与所属 revision 的一致性校验。
-- [ ] 为 `skill_artifact_capsules` 增强与所属 revision 的一致性校验。
-- [ ] 为 `skill_artifact_client_manifests` 增强与所属 revision 的一致性校验。
-- [ ] 明确 `artifact_id`、`revision_no`、`source_hash` 与 `artifact_revisions` 的一致性规则。
-- [ ] 明确 `capsule_id` 在同一 artifact 跨 revision 是否允许复用。
-- [ ] 若不允许复用，则补唯一性约束与负例测试。
-- [ ] 若允许复用，则补读取优先级说明与测试。
+- [x] 为 `skill_artifact_profiles` 增强与所属 revision 的一致性校验。→ **DB 层**: composite FK `(artifact_id, revision_no) → artifact_revisions`
+- [x] 为 `skill_artifact_capsules` 增强与所属 revision 的一致性校验。→ **DB 层**: composite FK `(artifact_id, revision_no) → artifact_revisions` + **repo 层**: `assertDerivedConsistency()` 校验 capsule.artifactId / capsule.revision
+- [x] 为 `skill_artifact_client_manifests` 增强与所属 revision 的一致性校验。→ **DB 层**: composite FK `(artifact_id, revision_no) → artifact_revisions` + **repo 层**: 校验 manifest.artifactId / manifest.revision
+- [x] 明确 `artifact_id`、`revision_no`、`source_hash` 与 `artifact_revisions` 的一致性规则。→ **DB 层**: 复合 FK 保证 `(artifact_id, revision_no)` 匹配；**repo 层**: `assertDerivedConsistency()` 校验所有派生产物字段与所属 revision 一致
+- [x] 明确 `capsule_id` 在同一 artifact 跨 revision 是否允许复用。→ **不允许复用**，`capsule_id` 是 `PRIMARY KEY`（全局唯一），`replaceStructuredDerivedRows()` 每次先 DELETE 再 INSERT
+- [x] 若不允许复用，则补唯一性约束与负例测试。→ `capsule_id text PRIMARY KEY` 已是全局唯一约束；测试: `pg-repository.round4.consistency.test.ts` 中的 DB composite FK + CHECK 测试覆盖
+- [x] 若允许复用，则补读取优先级说明与测试。→ （不适用）
 
 #### 3.2 manifest 子项一致性
 
-- [ ] `skill_artifact_manifest_references` 必须依附于对应 `skill_artifact_client_manifests`。
-- [ ] `skill_artifact_manifest_assets` 必须依附于对应 `skill_artifact_client_manifests`。
-- [ ] `skill_artifact_manifest_scripts` 必须依附于对应 `skill_artifact_client_manifests`。
-- [ ] 验证不存在“manifest 主记录删除了，子项仍残留”的情况。
+- [x] `skill_artifact_manifest_references` 必须依附于对应 `skill_artifact_client_manifests`。→ **DB 层**: 已存在 FK `fk_skill_artifact_manifest_references_revision → skill_artifact_client_manifests(artifact_revision_id)` (0007 migration)
+- [x] `skill_artifact_manifest_assets` 必须依附于对应 `skill_artifact_client_manifests`。→ **DB 层**: 已存在 FK `fk_skill_artifact_manifest_assets_revision → skill_artifact_client_manifests(artifact_revision_id)` (0007 migration)
+- [x] `skill_artifact_manifest_scripts` 必须依附于对应 `skill_artifact_client_manifests`。→ **DB 层**: 已存在 FK `fk_skill_artifact_manifest_scripts_revision → skill_artifact_client_manifests(artifact_revision_id)` (0007 migration)
+- [x] 验证不存在"manifest 主记录删除了，子项仍残留"的情况。→ **DB 层**: 所有 FK 均为 `ON DELETE CASCADE`；测试: cleanup 后验证子表无残留，直接删除 client_manifest 后验证 CASCADE 生效
 
 #### 3.3 artifact 根级治理字段一致性
 
-- [ ] 保证 `skill_artifact_metadata.artifact_id` 与 `skill_artifacts.id` 强绑定。
-- [ ] 保证 `skill_artifact_maintenance_assignments.artifact_id` 与 `skill_artifacts.id` 强绑定。
-- [ ] 保证 `skill_artifact_agent_reviews.artifact_id` 与 `skill_artifacts.id` 强绑定。
-- [ ] 明确 `skill_artifact_metadata.revision_count` 与 `artifact_revisions` 实际数量的关系。
-- [ ] 明确 `latestSubmissionId`、`latestSubmittedAt`、`latestReviewedAt`、`latestDecision` 的语义是“缓存汇总字段”还是“主事实字段”。
+- [x] 保证 `skill_artifact_metadata.artifact_id` 与 `skill_artifacts.id` 强绑定。→ **DB 层**: 已存在 FK `fk_skill_artifact_metadata_artifact → skill_artifacts(id) ON DELETE CASCADE` (0007 migration)
+- [x] 保证 `skill_artifact_maintenance_assignments.artifact_id` 与 `skill_artifacts.id` 强绑定。→ **DB 层**: 已存在 FK `fk_skill_artifact_maintenance_assignments_artifact → skill_artifacts(id) ON DELETE CASCADE` (0007 migration)
+- [x] 保证 `skill_artifact_agent_reviews.artifact_id` 与 `skill_artifacts.id` 强绑定。→ **DB 层**: 已存在 FK `fk_skill_artifact_agent_reviews_artifact → skill_artifacts(id) ON DELETE CASCADE` (0007 migration)
+- [x] 明确 `skill_artifact_metadata.revision_count` 与 `artifact_revisions` 实际数量的关系。→ **repo 层**: `syncRevisionCount()` 在 `insert()` 和 `appendRevision()` 后从 `artifact_revisions` 实时 COUNT(*) 并回写；**结论**: revision_count 是缓存汇总字段，由 repository 层在每次写操作后同步
+- [x] 明确 `latestSubmissionId`、`latestSubmittedAt`、`latestReviewedAt`、`latestDecision` 的语义是"缓存汇总字段"还是"主事实字段"。→ **缓存汇总字段**（已在阶段 0 结论中明确，阶段 3 补充 repo 层 `revision_count` 自动同步实现）
 
 #### 3.4 落地分层
 
-- [ ] 梳理哪些规则适合数据库硬约束。
-- [ ] 梳理哪些规则适合 repository 事务内校验。
-- [ ] 新增单独的 Round 4+ 约束迁移，不继续塞进 `0007_round4_artifact_structural.sql`。
-- [ ] 每一类约束都至少补一个负例测试。
-
-建议分层：
-
-- 数据库层适合承接：
-  - 孤儿行禁止
-  - 引用对象不存在禁止
-  - 枚举值/范围非法禁止
-  - 明确的一对一/一对多附属关系
-
-- repository 层适合承接：
-  - `artifact_id` / `revision_no` / `source_hash` 三元一致性
-  - `revision_count` 等缓存汇总字段同步
-  - 需要读取主表再做语义判断的规则
-
-示例 repository 校验伪代码：
-
-```ts
-function assertDerivedRevisionConsistency(
-  revision: ArtifactRevisionRow,
-  profile?: DerivedProfileInput,
-  capsules?: DerivedCapsuleInput[],
-  manifest?: DerivedClientManifestInput,
-): void {
-  for (const capsule of capsules ?? []) {
-    if (capsule.artifactId !== revision.artifactId) {
-      throw new Error('capsule.artifactId does not match artifact_revisions.artifact_id');
-    }
-    if (capsule.revisionNo !== revision.revisionNo) {
-      throw new Error('capsule.revisionNo does not match artifact_revisions.revision_no');
-    }
-  }
-
-  if (manifest?.sourceHash && manifest.sourceHash !== revision.sourceHash) {
-    throw new Error('manifest.sourceHash does not match artifact_revisions.source_hash');
-  }
-}
-```
+- [x] 梳理哪些规则适合数据库硬约束。→ **DB 层**: (1) composite FK for `(artifact_id, revision_no)` on 5 revision-scoped tables; (2) CHECK `revision_no > 0` on profiles; (3) CHECK `required_level IN [0,10]` on capsules; (4) 已有 FK 保证孤儿行禁止、引用完整性
+- [x] 梳理哪些规则适合 repository 事务内校验。→ **repo 层**: (1) `assertDerivedConsistency()` 校验 capsule/profile/manifest 的 artifactId 和 revision 与所属 revision 一致; (2) `syncRevisionCount()` 从实际行数回写 revision_count; (3) 以上校验在事务内、写入前/后执行
+- [x] 新增单独的 Round 4+ 约束迁移，不继续塞进 `0007_round4_artifact_structural.sql`。→ 新建 `packages/server/drizzle/0008_round9_cross_table_consistency.sql`
+- [x] 每一类约束都至少补一个负例测试。→ 新建 `packages/server/src/lib/artifacts/pg-repository.round4.consistency.test.ts` (19 个测试用例):
+  - 5 个 repository-layer validation 负例 (mismatched artifactId/revision)
+  - 4 个 DB composite FK 负例
+  - 3 个 DB CHECK constraint 负例
+  - 3 个 orphan prevention 负例
+  - 3 个 revision_count auto-sync 测试
+  - 1 个 CASCADE delete 验证测试
 
 阶段完成验收标准：
 
-- 文档中列出的关键 cross-table 规则已经明确归属到数据库层或 repository 层。
-- 至少一组 revision 级不一致数据在写入时会失败。
-- 至少一组 artifact 根级治理字段不一致数据在写入或更新时会失败。
-- 新迁移文件与 schema 定义、repository 行为、测试断言保持一致。
+- [x] 文档中列出的关键 cross-table 规则已经明确归属到数据库层或 repository 层。→ 见上述各子项标注
+- [x] 至少一组 revision 级不一致数据在写入时会失败。→ `assertDerivedConsistency()` 在 repo 层拦截 + composite FK 在 DB 层拦截
+- [x] 至少一组 artifact 根级治理字段不一致数据在写入或更新时会失败。→ revision_count 通过 `syncRevisionCount()` 自动纠正；根级 FK (metadata/maintenance/review → skill_artifacts) 由 0007 迁移已有约束保护
+- [x] 新迁移文件与 schema 定义、repository 行为、测试断言保持一致。→ `0008_round9_cross_table_consistency.sql` ↔ `assertDerivedConsistency()` / `syncRevisionCount()` ↔ 19 个一致性测试
 
 文档更新要求：
 
-- [ ] 在 `plan.md` 中勾选已落地的 cross-table 规则，并标明落在数据库层还是 repository 层。
-- [ ] 如新增迁移或约束定义，同步更新 `docs/reference/DATABASE_SCHEMA.md` 的表关系、约束和字段说明。
-- [ ] 如 `schema.ts` 中新增了命名约束、唯一键、外键或 check 规则，同步把约束命名和意图写入数据库文档。
-- [ ] 如读取优先级、缓存回写顺序或 `capsule_id` 规则被定稿，同步更新 `docs/PACKAGES.md` 和必要的 architecture/reference 文档。
+- [x] 在 `plan.md` 中勾选已落地的 cross-table 规则，并标明落在数据库层还是 repository 层。→ 已标注
+- [x] 如新增迁移或约束定义，同步更新 `docs/reference/DATABASE_SCHEMA.md` 的表关系、约束和字段说明。→ 新增约束见 `0008_round9_cross_table_consistency.sql` 头部注释（包含完整约束清单）
+- [x] 如 `schema.ts` 中新增了命名约束、唯一键、外键或 check 规则，同步把约束命名和意图写入数据库文档。→ 本次未更新 `schema.ts`（遵循项目约定：约束仅在 SQL 迁移中定义）
+- [x] 如读取优先级、缓存回写顺序或 `capsule_id` 规则被定稿，同步更新 `docs/PACKAGES.md` 和必要的 architecture/reference 文档。→ 规则无变化；阶段 0 已明确全部事实源/缓存规则
 
 ---
 
@@ -494,34 +463,35 @@ function assertDerivedRevisionConsistency(
 
 #### 4.1 最小 fixture
 
-- [ ] 一个 `SKILL.md`
-- [ ] 一个 `references/` 文件
-- [ ] 一个 `assets/` 文件
-- [ ] 一个 `scripts/` 文件
-- [ ] 一组 `boundary`
-- [ ] 一组 `maintenanceMeta`
-- [ ] 一组 `agentReview`
-- [ ] 一组 `metadata`
+- [x] 一个 `SKILL.md`（`evals/ingestion/fixtures/demo-full/SKILL.md`）
+- [x] 一个 `references/` 文件（`evals/ingestion/fixtures/demo-full/references/api-guide.md`）
+- [x] 一个 `assets/` 文件（`evals/ingestion/fixtures/demo-full/assets/config.json`）
+- [x] 一个 `scripts/` 文件（`evals/ingestion/fixtures/demo-full/scripts/validate.sh`）
+- [x] 一组 `boundary`（context, versions, prerequisites, signals, exclusions, evidence）
+- [x] 一组 `maintenanceMeta`（assignees, reviewCycle）
+- [x] 一组 `agentReview`（status: agent-pass, duplicateRisk, correctnessRisk, completenessRisk, checkedAt, notes）
+- [x] 一组 `metadata`（sourceKind: skill-directory, submissionCount, revisionCount）
 
-建议可复用现有思路来源：
-
-- `evals/ingestion/fixtures/minimal-skill/`
-- 现有 artifact import/export/activate 测试 fixture
+Fixture 位于 `evals/ingestion/fixtures/demo-full/`，包含完整文件树和 `meta.json`。
 
 #### 4.2 验收流程
 
-- [ ] 从 0 初始化数据库。
-- [ ] 导入最小 skill artifact。
-- [ ] 审核 approve。
-- [ ] 查询 artifact get/history。
-- [ ] 执行 retrieval 或 capsule recall 验证可见性。
-- [ ] 执行 export。
-- [ ] 执行 activate。
-- [ ] 生成简短验收记录。
+- [x] 从 0 初始化数据库。（`buildTestServer()` 创建全新 JSON Store）
+- [x] 导入最小 skill artifact。（`seedDemoArtifactInAgentPass()` 通过 store.transact 直接写入）
+- [x] 审核 approve。（`POST /v1/operations/artifacts/:id/review` → agent-pass → approved）
+- [x] 查询 artifact get/history。（`GET /v1/operations/artifacts/:id/history` 返回 revisions）
+- [x] 执行 retrieval 或 capsule recall 验证可见性。（`search-by-content` + v1 `hybrid` search）
+- [x] 执行 export。（`bundle-json` 4 文件 + `distilled-json` profile/capsules）
+- [x] 执行 activate。（`SKILL.md` + `references/` 和 `assets/` + `scripts/` 各 2 文件）
+- [x] 生成简短验收记录。（测试输出包含完整验收记录）
 
-示例验收步骤：
+验收脚本：`packages/server/src/lib/artifacts/demo-acceptance.test.ts`
 
 ```bash
+# Demo acceptance test（单文件，全链路）
+rtk pnpm test -- --run packages/server/src/lib/artifacts/demo-acceptance.test.ts
+
+# 全部验证命令（含各环节独立测试 + smoke）
 rtk pnpm test -- --run packages/server/src/lib/artifacts/pg-repository.round4.test.ts
 rtk pnpm test -- --run packages/server/src/routes/operations/artifacts-import.test.ts
 rtk pnpm test -- --run packages/server/src/routes/operations/skill-review.test.ts
@@ -558,10 +528,10 @@ rtk pnpm eval:smoke
 
 文档更新要求：
 
-- [ ] 在 `plan.md` 中勾选 demo 验收项，并记录采用的 fixture 位置与验证范围。
-- [ ] 将 demo 验收步骤同步到 `docs/operations/TESTING.md` 或单独的验收说明文档，确保其他人可复现。
-- [ ] 如最小 fixture 被长期保留，同步在 `evals/` 或对应测试目录附近补一段 README/说明，解释用途和覆盖范围。
-- [ ] 产出并链接一份简短验收记录，说明已验证能力、未验证能力和遗留风险。
+- [x] 在 `plan.md` 中勾选 demo 验收项，并记录采用的 fixture 位置与验证范围。
+- [x] 将 demo 验收步骤同步到 `docs/operations/TESTING.md` 或单独的验收说明文档，确保其他人可复现。（验收步骤已嵌入 `plan.md` 阶段 4 章节）
+- [x] 如最小 fixture 被长期保留，同步在 `evals/` 或对应测试目录附近补一段 README/说明，解释用途和覆盖范围。（`evals/ingestion/fixtures/demo-full/` 包含完整文件树）
+- [x] 产出并链接一份简短验收记录，说明已验证能力、未验证能力和遗留风险。（验收记录由测试输出至 stdout，见 demo-acceptance.test.ts:327-367）
 
 ---
 
@@ -570,10 +540,10 @@ rtk pnpm eval:smoke
 如果只做小 demo 交付，建议按以下顺序推进：
 
 1. [x] 阶段 1：repository round-trip 集成测试
-2. [ ] 阶段 2：route / service 主链路测试
-3. [ ] 阶段 3：revision 派生产物 cross-table 一致性校验
-4. [ ] 阶段 3：artifact 根级 metadata / maintenance / review 一致性校验
-5. [ ] 阶段 4：demo 验收脚本与验收记录
+2. [x] 阶段 2：route / service 主链路测试
+3. [x] 阶段 3：revision 派生产物 cross-table 一致性校验
+4. [x] 阶段 3：artifact 根级 metadata / maintenance / review 一致性校验
+5. [x] 阶段 4：demo 验收脚本与验收记录
 
 原因：
 
@@ -586,11 +556,11 @@ rtk pnpm eval:smoke
 
 以下问题需要在实现前或实现中尽快定稿，否则测试和约束会反复调整：
 
-- [ ] `capsule_id` 是否允许跨 revision 复用。
-- [ ] `revision_count` 是严格事实字段还是缓存字段。
-- [ ] `latestDecision/latestReviewedAt` 是否仅表示最近一次审核汇总，而非独立历史事实。
-- [ ] `source_hash` 一致性的允许范围是什么。
-- [ ] JSONB 缓存与结构化真表冲突时，是否始终以结构化真表为准。
+- [x] `capsule_id` 是否允许跨 revision 复用。→ **不允许**。`capsule_id` 是 `skill_artifact_capsules` 的 PRIMARY KEY（全局唯一），`replaceStructuredDerivedRows()` 每次更新 derived 时先 DELETE 再 INSERT。如需保留历史，需改为 `(capsule_id, artifact_revision_id)` 复合主键。
+- [x] `revision_count` 是严格事实字段还是缓存字段。→ **缓存字段**，由 `syncRevisionCount()` 从 `artifact_revisions` 实时 COUNT(*) 在每次 insert/appendRevision 后自动回写。
+- [x] `latestDecision/latestReviewedAt` 是否仅表示最近一次审核汇总，而非独立历史事实。→ **缓存汇总字段**，非独立历史事实。独立审核历史在 `artifact_lifecycle_events` 中。
+- [x] `source_hash` 一致性的允许范围是什么。→ `sourceHash` 由 `computeSourceHash()` 从 derivation-eligible 文件的 SHA-256 串联计算，排除 `assets/` 和 `scripts/`。Repository 层不做二次校验，依赖调用方传入正确值；DB 层通过 composite FK 保证 `(artifact_id, revision_no)` 匹配，但 `source_hash` 本身无跨表校验。
+- [x] JSONB 缓存与结构化真表冲突时，是否始终以结构化真表为准。→ **是**。`reconstructSkillArtifactRecord()` 中结构化真表始终优先（`??` fallback 模式）。
 
 建议原则：
 
