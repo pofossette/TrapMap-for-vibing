@@ -12,6 +12,7 @@ import {
   buildGraphExtractionSlots_default,
   buildPrompt,
 } from '@trapmap/server/lib/ai/prompts.js';
+import { stripCodeFences } from '@trapmap/server/lib/ai/parse.js';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import { extractTrapGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
@@ -88,14 +89,6 @@ export function buildEdgeId(
 // ---------------------------------------------------------------------------
 // JSON parsing helpers
 // ---------------------------------------------------------------------------
-
-/** Strip markdown code fences from LLM response. */
-function stripCodeFences(raw: string): string {
-  return raw
-    .trim()
-    .replace(/^```(?:json)?\n?/, '')
-    .replace(/\n?```$/, '');
-}
 
 /** Parse LLM JSON response and validate with Zod. Returns null on failure. */
 function parseLlmExtraction(raw: string): LlmGraphExtraction | null {

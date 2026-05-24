@@ -13,6 +13,7 @@
 
 import { z } from 'zod';
 
+import { stripCodeFences } from '@trapmap/server/lib/ai/parse.js';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 
 // ---------------------------------------------------------------------------
@@ -92,16 +93,6 @@ Are these duplicates? Classify the overlap type and provide your judgment as JSO
 // ---------------------------------------------------------------------------
 // Response parsing
 // ---------------------------------------------------------------------------
-
-/**
- * Strip markdown code fences from LLM response text.
- */
-function stripCodeFences(raw: string): string {
-  return raw
-    .trim()
-    .replace(/^```(?:json)?\n?/, '')
-    .replace(/\n?```$/, '');
-}
 
 /**
  * Parse and validate an LLM response into a LlmDuplicateJudgment.

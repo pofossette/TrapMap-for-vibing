@@ -6,6 +6,7 @@ import {
   buildBoundaryExtractionSystemPrompt,
   buildBoundaryExtractionSystemPromptBlocks,
 } from './ai/prompts.js';
+import { stripCodeFences } from './ai/parse.js';
 import type { ChatProvider } from './ai/types.js';
 
 /**
@@ -131,16 +132,6 @@ export const boundaryWithQualityLlmSchema = z.object({
   correctness: correctnessAssessmentSchema,
   completeness: completenessAssessmentSchema,
 });
-
-/**
- * Strip markdown code fences from LLM response.
- */
-function stripCodeFences(raw: string): string {
-  return raw
-    .trim()
-    .replace(/^```(?:json)?\n?/, '')
-    .replace(/\n?```$/, '');
-}
 
 /**
  * Build system prompt for combined boundary extraction + quality assessment.
