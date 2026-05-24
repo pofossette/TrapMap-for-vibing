@@ -526,13 +526,11 @@ describe('capsuleSemanticRecall', () => {
       parseMethod: 'llm',
     };
 
-    const spy = vi.spyOn(await import('../../../lib/embeddings.js'), 'generateEmbedding');
+    const spy = vi.spyOn(await import('@trapmap/server/lib/embeddings.js'), 'generateEmbedding');
 
     await capsuleSemanticRecall(artifacts, intent, governanceFilters, 10);
 
-    expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining('kubernetes pod crashloopbackoff'),
-    );
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('kubernetes pod crashloopbackoff'));
 
     spy.mockRestore();
   });
@@ -566,7 +564,7 @@ describe('capsuleSemanticRecall', () => {
       parseMethod: 'regex',
     };
 
-    const spy = vi.spyOn(await import('../../../lib/embeddings.js'), 'generateEmbedding');
+    const spy = vi.spyOn(await import('@trapmap/server/lib/embeddings.js'), 'generateEmbedding');
 
     await capsuleSemanticRecall(artifacts, intent, governanceFilters, 10);
 

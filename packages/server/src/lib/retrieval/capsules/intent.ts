@@ -7,17 +7,15 @@
  * Any future model assistance should stay optional behind the same ParsedIntent interface.
  */
 
-import { z } from 'zod';
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { stripCodeFences } from '@trapmap/server/lib/ai/parse.js';
-import type {
-  IntentCacheStore,
-} from '@trapmap/server/lib/retrieval/capsules/intent-cache.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { IntentCacheStore } from '@trapmap/server/lib/retrieval/capsules/intent-cache.js';
 import type {
   NormalizedToken,
   ParsedIntent,
   StackPathHint,
 } from '@trapmap/server/lib/retrieval/types.js';
+import { z } from 'zod';
 
 /**
  * Technology stacks recognized for hint extraction.

@@ -260,16 +260,14 @@ describe('parseSeedIntentWithLLM', () => {
   it('handles fenced JSON response', async () => {
     const chat = createMockChat({
       invoke: vi.fn().mockResolvedValue(
-        '```json\n' +
-          JSON.stringify({
-            situation: null,
-            problem: 'something broke',
-            goal: 'fix it',
-            errorText: null,
-            category: 'debugging',
-            semanticQuery: 'debugging troubleshooting',
-          }) +
-          '\n```',
+        `\`\`\`json\n${JSON.stringify({
+          situation: null,
+          problem: 'something broke',
+          goal: 'fix it',
+          errorText: null,
+          category: 'debugging',
+          semanticQuery: 'debugging troubleshooting',
+        })}\n\`\`\``,
       ),
     });
 

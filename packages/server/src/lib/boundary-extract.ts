@@ -2,11 +2,11 @@ import type { Boundary } from '@trapmap/contracts';
 import { boundarySchema } from '@trapmap/contracts';
 import { z } from 'zod';
 
+import { stripCodeFences } from './ai/parse.js';
 import {
   buildBoundaryExtractionSystemPrompt,
   buildBoundaryExtractionSystemPromptBlocks,
 } from './ai/prompts.js';
-import { stripCodeFences } from './ai/parse.js';
 import type { ChatProvider } from './ai/types.js';
 
 /**

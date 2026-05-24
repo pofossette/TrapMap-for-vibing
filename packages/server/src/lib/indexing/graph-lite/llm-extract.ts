@@ -7,12 +7,12 @@ import type {
 } from '@trapmap/contracts';
 import { extractionPlanSchema, llmGraphExtractionSchema } from '@trapmap/contracts';
 
+import { stripCodeFences } from '@trapmap/server/lib/ai/parse.js';
 import {
   buildGraphExtractionPlannerSlots_default,
   buildGraphExtractionSlots_default,
   buildPrompt,
 } from '@trapmap/server/lib/ai/prompts.js';
-import { stripCodeFences } from '@trapmap/server/lib/ai/parse.js';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import { extractTrapGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';

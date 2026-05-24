@@ -474,8 +474,6 @@ export async function searchKnowledgeV2(
           includeSummary: parsed.includeSummary ?? false,
           includeRefinement: false,
           routingTrace: toRoutingTrace(routingDecision),
-          parseMethod: intent.parseMethod,
-          intentCategory: intent.category,
         },
       });
       return buildEmptyV2Response();
