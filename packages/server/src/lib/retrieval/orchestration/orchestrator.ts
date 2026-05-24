@@ -30,7 +30,10 @@ import {
   buildProfileShortlist,
   getCapsuleRecords,
 } from '@trapmap/server/lib/retrieval/capsules/index.js';
-import { parseSeedIntent } from '@trapmap/server/lib/retrieval/capsules/intent.js';
+import {
+  InMemoryIntentCache,
+  parseSeedIntentWithLLM,
+} from '@trapmap/server/lib/retrieval/capsules/index.js';
 import { buildEmbeddingText } from '@trapmap/server/lib/retrieval/recall/semantic.js';
 import {
   assembleResponseBuckets,
@@ -55,6 +58,8 @@ import { nowIso } from '@trapmap/server/lib/store.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { dispatchByMode, inferChannelsFromMerged } from './recall-coordinator.js';
 import { selectRetrievalStrategy, selectRetrievalStrategyV2, toRoutingTrace } from './routing.js';
+
+const intentCache = new InMemoryIntentCache();
 
 /**
  * Options for timedStep to record input/output sizes.
@@ -354,7 +359,7 @@ export async function searchKnowledgeV2(
 
     const intent = await timedStep(
       'intent',
-      () => Promise.resolve(parseSeedIntent(parsed.seed)),
+      () => parseSeedIntentWithLLM(parsed.seed, services.ai.chat, { cache: intentCache }),
       steps,
     );
 
@@ -469,6 +474,8 @@ export async function searchKnowledgeV2(
           includeSummary: parsed.includeSummary ?? false,
           includeRefinement: false,
           routingTrace: toRoutingTrace(routingDecision),
+          parseMethod: intent.parseMethod,
+          intentCategory: intent.category,
         },
       });
       return buildEmptyV2Response();
@@ -522,6 +529,8 @@ export async function searchKnowledgeV2(
         routingTrace: toRoutingTrace(routingDecision),
         mergeStats: recallResult.mergeStats,
         channelsFailed: recallResult.channelsFailed,
+        parseMethod: intent.parseMethod,
+        intentCategory: intent.category,
       },
     } as RagLogEntry);
 

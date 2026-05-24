@@ -29,7 +29,8 @@ import {
   isArtifactGovernanceEligible,
   rankCapsules,
 } from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
-import { parseSeedIntent } from '@trapmap/server/lib/retrieval/capsules/intent.js';
+import { InMemoryIntentCache } from '@trapmap/server/lib/retrieval/capsules/intent-cache.js';
+import { parseSeedIntentWithLLM } from '@trapmap/server/lib/retrieval/capsules/intent.js';
 import { filterEligibleEntries } from '@trapmap/server/lib/retrieval/orchestration/filters.js';
 import type { CapsuleCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
@@ -37,6 +38,8 @@ import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/s
 // Constants
 const DEFAULT_SKILL_BUDGET = 3;
 const DEFAULT_MAX_DEPTH = 2;
+
+const planCompilerIntentCache = new InMemoryIntentCache();
 
 // ---------------------------------------------------------------------------
 // Main compiler function
@@ -62,7 +65,9 @@ export async function compileTrapFirstPlan(
   query: PlanQuery,
 ): Promise<TrapFirstPlan> {
   // 1. Parse seed intent
-  const intent = parseSeedIntent(query.seed);
+  const intent = await parseSeedIntentWithLLM(query.seed, services.ai.chat, {
+    cache: planCompilerIntentCache,
+  });
 
   // 2. Load store snapshot
   const data = await services.store.snapshot();

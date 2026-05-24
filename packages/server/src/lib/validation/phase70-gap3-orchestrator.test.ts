@@ -125,6 +125,9 @@ vi.mock('../retrieval/capsules/intent.js', () => ({
     errorText: null,
     tokens: [],
     stackPathHints: [],
+    category: null,
+    semanticQuery: null,
+    parseMethod: 'regex',
   }),
 }));
 

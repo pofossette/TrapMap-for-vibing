@@ -20,7 +20,10 @@ import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/
 import type { CapsuleCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import { isArtifactGovernanceEligible, rankCapsules } from './capsule-recall.js';
-import { parseSeedIntent } from './intent.js';
+import { InMemoryIntentCache } from './intent-cache.js';
+import { parseSeedIntentWithLLM } from './intent.js';
+
+const skillLookupIntentCache = new InMemoryIntentCache();
 
 /**
  * Deduplicate ranked capsule candidates by artifactId.
@@ -106,7 +109,9 @@ export async function searchSkillsByContent(
   const parsed = skillLookupQuerySchema.parse(query);
 
   // Parse seed text into intent signals (RETR-02 pattern)
-  const intent = parseSeedIntent(parsed.text);
+  const intent = await parseSeedIntentWithLLM(parsed.text, services.ai.chat, {
+    cache: skillLookupIntentCache,
+  });
 
   // Get current data snapshot
   const data = await services.store.snapshot();

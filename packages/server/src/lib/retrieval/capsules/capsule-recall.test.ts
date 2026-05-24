@@ -382,6 +382,9 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
           { hint: 'docker', kind: 'stack', confidence: 0.9 },
           { hint: 'node', kind: 'stack', confidence: 0.9 },
         ],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
       };
 
       const filters = {
@@ -421,6 +424,9 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
           { token: 'container', original: 'container', isTechnical: true },
         ],
         stackPathHints: [{ hint: 'node', kind: 'stack', confidence: 0.9 }],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
       };
 
       const filters = {
@@ -448,6 +454,9 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         errorText: null,
         tokens: [],
         stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
       };
 
       const filters = {
@@ -475,6 +484,9 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         errorText: null,
         tokens: [],
         stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
       };
 
       const filters = {
@@ -587,6 +599,9 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
           { token: 'container', original: 'container', isTechnical: true },
         ],
         stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
       };
       const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
 
@@ -612,6 +627,9 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
           { token: 'container', original: 'container', isTechnical: true },
         ],
         stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
       };
       const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
 
@@ -647,6 +665,9 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
           { token: 'deployment', original: 'deployment', isTechnical: false },
         ],
         stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
       };
       const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
 
@@ -668,6 +689,9 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         errorText: null,
         tokens: [],
         stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
       };
       const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
 
@@ -699,6 +723,9 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
           { token: 'environments', original: 'environments', isTechnical: false },
         ],
         stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
       };
       const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
 
@@ -761,6 +788,9 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
           { token: 'oauth2', original: 'oauth2', isTechnical: true },
         ],
         stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
       };
       const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
 

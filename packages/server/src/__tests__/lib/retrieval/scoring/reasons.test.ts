@@ -16,6 +16,9 @@ function makeIntent(overrides: Partial<ParsedIntent> = {}): ParsedIntent {
     errorText: null,
     tokens: [],
     stackPathHints: [],
+    category: null,
+    semanticQuery: null,
+    parseMethod: 'regex',
     ...overrides,
   };
 }

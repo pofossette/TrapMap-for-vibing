@@ -264,3 +264,16 @@ const queryText = input.intent.semanticQuery || input.intent.seed || input.inten
 | `packages/server/src/lib/retrieval/capsules/channels/semantic.ts` | Prefer `semanticQuery` over `seed` |
 | `packages/server/src/lib/retrieval/capsules/intent.test.ts` | New/updated tests for LLM parsing |
 | `packages/server/src/lib/retrieval/capsules/intent-cache.test.ts` | New tests for cache |
+
+## Implementation Notes (2026-05-24)
+
+Implementation completed per design spec with the following alignments:
+
+- `parseSeedIntentWithLLM()` reuses `services.ai.chat` directly from existing `SkillShareerServices` in all three integration points (orchestrator, skill-lookup, plan-compiler) — no additional parameter injection needed
+- Response parsing reuses `stripCodeFences()` from `packages/server/src/lib/ai/parse.ts` — same pattern as `llm-dedup.ts` and `boundary-extract.ts`
+- `INTENT_CATEGORY_VALUES` constant array is used for both Zod schema and TypeScript union type to avoid duplication
+- Retry backoff follows the established pattern from `llm-dedup.ts`: `100 * 2^(attempt * 2)` giving 100ms / 400ms for attempt 1/2
+- Each integration point (orchestrator, skill-lookup, plan-compiler) uses its own module-level `InMemoryIntentCache` instance for process-local cache isolation
+- `parseMethod` / `intentCategory` written to RAG log metadata only, not to HTTP response body — keeps external API contracts unchanged
+- `semanticQuery` is used by `capsule-semantic` channel in both memory and PG paths with consistent fallback to `seed`
+- No scoring or routing changes were introduced; `category` is passthrough for observability only

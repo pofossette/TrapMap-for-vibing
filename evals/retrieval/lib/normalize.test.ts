@@ -896,5 +896,51 @@ describe('normalize', () => {
 
       expect(result.graphPlanStructure).toBeUndefined();
     });
+
+    it('preserves parseMethod and intentCategory from routingTrace when present', () => {
+      const response: GraphPlanSearchResponse = {
+        routingTrace: {
+          selectedMode: 'mix',
+          routeFamily: 'graph-plan',
+          routingReason: 'graph-plan-selected',
+          fallbackApplied: false,
+          fallbackTarget: null,
+          confidenceScore: 0.8,
+          confidenceBucket: 'medium',
+          channelsUsed: ['plan'],
+        } as any,
+        plan: null as any,
+        fallback: null as any,
+      };
+      (response.routingTrace as any).parseMethod = 'llm';
+      (response.routingTrace as any).intentCategory = 'deployment';
+
+      const result = normalizeV3Response(response);
+
+      expect(result.routingTrace?.parseMethod).toBe('llm');
+      expect(result.routingTrace?.intentCategory).toBe('deployment');
+    });
+
+    it('handles missing parseMethod and intentCategory gracefully', () => {
+      const response: GraphPlanSearchResponse = {
+        routingTrace: {
+          selectedMode: 'mix',
+          routeFamily: 'graph-plan',
+          routingReason: 'graph-plan-selected',
+          fallbackApplied: false,
+          fallbackTarget: null,
+          confidenceScore: 0.8,
+          confidenceBucket: 'medium',
+          channelsUsed: ['plan'],
+        } as any,
+        plan: null as any,
+        fallback: null as any,
+      };
+
+      const result = normalizeV3Response(response);
+
+      expect(result.routingTrace?.parseMethod).toBeUndefined();
+      expect(result.routingTrace?.intentCategory).toBeUndefined();
+    });
   });
 });

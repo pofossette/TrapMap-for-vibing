@@ -141,7 +141,31 @@ vi.mock('../capsules/intent.js', () => ({
     errorText: null,
     tokens: [],
     stackPathHints: [],
+    category: null,
+    semanticQuery: null,
+    parseMethod: 'regex',
   }),
+  parseSeedIntentWithLLM: vi.fn().mockResolvedValue({
+    seed: 'test query',
+    normalized: 'test query',
+    situation: null,
+    problem: null,
+    goal: null,
+    errorText: null,
+    tokens: [],
+    stackPathHints: [],
+    category: null,
+    semanticQuery: null,
+    parseMethod: 'regex',
+  }),
+}));
+
+vi.mock('../capsules/intent-cache.js', () => ({
+  InMemoryIntentCache: vi.fn().mockImplementation(() => ({
+    get: vi.fn().mockReturnValue(null),
+    set: vi.fn(),
+    clear: vi.fn(),
+  })),
 }));
 
 vi.mock('../recall/db-search.js', () => ({

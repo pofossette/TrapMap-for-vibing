@@ -378,6 +378,12 @@ export const mySummaryCase = summaryEvalCaseSchema.parse({
 # 运行所有单元测试
 pnpm test
 
+# 意图解析器测试（正则 + LLM）
+pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent.test.ts
+
+# 意图缓存测试
+pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent-cache.test.ts
+
 # 运行特定文件
 pnpm vitest run evals/retrieval/runner.test.ts
 ```

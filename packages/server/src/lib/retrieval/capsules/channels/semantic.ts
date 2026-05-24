@@ -97,7 +97,7 @@ export async function capsuleSemanticRecall(
 
   if (governed.length === 0) return [];
 
-  const queryText = intent.seed || intent.normalized;
+  const queryText = intent.semanticQuery || intent.seed || intent.normalized;
   if (!queryText || queryText.trim().length === 0) return [];
 
   let queryVector: number[];
@@ -178,7 +178,7 @@ export function createCapsuleSemanticChannel(
       maxResults: number,
     ): Promise<CapsuleRecallCandidate[]> {
       if (pgRecall) {
-        const queryText = intent.seed || intent.normalized;
+        const queryText = intent.semanticQuery || intent.seed || intent.normalized;
         if (queryText && queryText.trim().length > 0) {
           try {
             const queryVector = await generateEmbedding(queryText);

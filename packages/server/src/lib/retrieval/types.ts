@@ -174,6 +174,22 @@ export interface StackPathHint {
 }
 
 /**
+ * Intent category for classification of query intent.
+ * Used for observability and future strategy routing.
+ * Not part of the client contract.
+ */
+export type IntentCategory =
+  | 'debugging'
+  | 'configuration'
+  | 'deployment'
+  | 'performance'
+  | 'integration'
+  | 'security'
+  | 'data'
+  | 'testing'
+  | 'general';
+
+/**
  * Parsed intent from a natural-language seed (RETR-02).
  * Server-internal decomposition of seed into structured fields for capsule ranking.
  * NOT part of the client contract - derived internally per RETR-02.
@@ -195,6 +211,12 @@ export interface ParsedIntent {
   tokens: NormalizedToken[];
   /** Stack and path hints for ranking boosts */
   stackPathHints: StackPathHint[];
+  /** Intent category classification (LLM-only, null for regex) */
+  category: IntentCategory | null;
+  /** LLM-optimized semantic search query (LLM-only, null for regex) */
+  semanticQuery: string | null;
+  /** Which parser produced this result */
+  parseMethod: 'regex' | 'llm';
 }
 
 /**

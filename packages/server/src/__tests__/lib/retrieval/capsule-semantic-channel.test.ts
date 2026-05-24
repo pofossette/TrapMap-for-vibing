@@ -84,6 +84,9 @@ function makeIntent(seed: string): ParsedIntent {
       .filter((t) => t.length > 2)
       .map((token) => ({ token, original: token, isTechnical: false })),
     stackPathHints: [],
+    category: null,
+    semanticQuery: null,
+    parseMethod: 'regex',
   };
 }
 
@@ -321,6 +324,9 @@ describe('capsuleSemanticRecall', () => {
       errorText: null,
       tokens: [],
       stackPathHints: [],
+      category: null,
+      semanticQuery: null,
+      parseMethod: 'regex',
     };
 
     const result = await capsuleSemanticRecall(artifacts, intent, governanceFilters, 10);
@@ -489,5 +495,83 @@ describe('capsuleSemanticRecall', () => {
         expect(result[i - 1]!.score).toBeGreaterThanOrEqual(result[i]!.score);
       }
     }
+  });
+
+  it('should use semanticQuery when available for embedding text', async () => {
+    const capsules = [
+      createMockCapsule({
+        capsuleId: 'caps_sq',
+        artifactId: 'artifact_sq',
+        situation: 'deploying',
+        problem: 'something broke',
+        goal: 'fix deployment',
+        labels: ['deployment'],
+        scope: 'global',
+        requiredLevel: 0,
+      }),
+    ];
+
+    const artifacts = makeArtifacts(capsules);
+    const intent: ParsedIntent = {
+      seed: 'something broke in deployment',
+      normalized: 'something broke in deployment',
+      situation: null,
+      problem: null,
+      goal: null,
+      errorText: null,
+      tokens: [],
+      stackPathHints: [],
+      category: null,
+      semanticQuery: 'kubernetes pod crashloopbackoff debugging',
+      parseMethod: 'llm',
+    };
+
+    const spy = vi.spyOn(await import('../../../lib/embeddings.js'), 'generateEmbedding');
+
+    await capsuleSemanticRecall(artifacts, intent, governanceFilters, 10);
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('kubernetes pod crashloopbackoff'),
+    );
+
+    spy.mockRestore();
+  });
+
+  it('should fall back to seed when semanticQuery is null', async () => {
+    const capsules = [
+      createMockCapsule({
+        capsuleId: 'caps_fb',
+        artifactId: 'artifact_fb',
+        situation: 'deploying',
+        problem: 'container fail',
+        goal: 'fix container',
+        labels: ['container'],
+        scope: 'global',
+        requiredLevel: 0,
+      }),
+    ];
+
+    const artifacts = makeArtifacts(capsules);
+    const intent: ParsedIntent = {
+      seed: 'container fails to deploy',
+      normalized: 'container fails to deploy',
+      situation: null,
+      problem: null,
+      goal: null,
+      errorText: null,
+      tokens: [],
+      stackPathHints: [],
+      category: null,
+      semanticQuery: null,
+      parseMethod: 'regex',
+    };
+
+    const spy = vi.spyOn(await import('../../../lib/embeddings.js'), 'generateEmbedding');
+
+    await capsuleSemanticRecall(artifacts, intent, governanceFilters, 10);
+
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('container'));
+
+    spy.mockRestore();
   });
 });

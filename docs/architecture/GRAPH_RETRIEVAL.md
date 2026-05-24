@@ -181,7 +181,9 @@
 ```
 查询文本
   |
-  +-- parseSeedIntent() --> 提取 situation / problem / goal / tokens / stack hints
+  +-- parseSeedIntentWithLLM() --> 提取 situation / problem / goal / tokens / stack hints
+  |                                (+ LLM 扩展: category / semanticQuery / parseMethod)
+  |                                (失败时自动降级到 regex baseline)
   |
   +-- compileTrapFirstPlan():
   |   +-- 过滤治理合规的 trap 候选

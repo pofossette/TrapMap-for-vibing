@@ -24,6 +24,9 @@ function makeIntent(seed: string): ParsedIntent {
       .filter((t) => t.length > 2)
       .map((token) => ({ token, original: token, isTechnical: false })),
     stackPathHints: [],
+    category: null,
+    semanticQuery: null,
+    parseMethod: 'regex',
   };
 }
 
@@ -175,6 +178,9 @@ describe('capsuleKeywordRecall', () => {
       errorText: null,
       tokens: [],
       stackPathHints: [],
+      category: null,
+      semanticQuery: null,
+      parseMethod: 'regex',
     };
 
     const result = await capsuleKeywordRecall(artifacts, intent, governanceFilters, 10);

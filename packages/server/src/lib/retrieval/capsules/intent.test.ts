@@ -1,6 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { extractStackPathHints, normalizeToken, parseSeedIntent } from './intent.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+
+import {
+  extractStackPathHints,
+  normalizeToken,
+  parseSeedIntent,
+  parseSeedIntentWithLLM,
+} from './intent.js';
 
 describe('parseSeedIntent', () => {
   describe('basic parsing', () => {
@@ -213,5 +220,156 @@ describe('extractStackPathHints', () => {
 
     expect(stackHints.length).toBeGreaterThan(0);
     expect(pathHints.length).toBeGreaterThan(0);
+  });
+});
+
+describe('parseSeedIntentWithLLM', () => {
+  function createMockChat(overrides: Partial<ChatProvider> = {}): ChatProvider {
+    return {
+      provider: 'mock',
+      isConfigured: true,
+      invoke: vi.fn().mockResolvedValue(
+        JSON.stringify({
+          situation: 'deploying to k8s',
+          problem: 'fastify app crashes with connection refused',
+          goal: 'fix connection issues',
+          errorText: 'ECONNREFUSED',
+          category: 'deployment',
+          semanticQuery: 'fastify ECONNREFUSED kubernetes deployment networking',
+        }),
+      ),
+      ...overrides,
+    };
+  }
+
+  it('returns llm-parsed intent with category and semanticQuery on success', async () => {
+    const chat = createMockChat();
+
+    const result = await parseSeedIntentWithLLM('fastify ECONNREFUSED', chat);
+
+    expect(result.parseMethod).toBe('llm');
+    expect(result.category).toBe('deployment');
+    expect(result.semanticQuery).toBe('fastify ECONNREFUSED kubernetes deployment networking');
+    expect(result.situation).toBe('deploying to k8s');
+    expect(result.problem).toBe('fastify app crashes with connection refused');
+    expect(result.errorText).toBe('ECONNREFUSED');
+    expect(result.tokens.length).toBeGreaterThan(0);
+    expect(result.stackPathHints).toBeDefined();
+  });
+
+  it('handles fenced JSON response', async () => {
+    const chat = createMockChat({
+      invoke: vi.fn().mockResolvedValue(
+        '```json\n' +
+          JSON.stringify({
+            situation: null,
+            problem: 'something broke',
+            goal: 'fix it',
+            errorText: null,
+            category: 'debugging',
+            semanticQuery: 'debugging troubleshooting',
+          }) +
+          '\n```',
+      ),
+    });
+
+    const result = await parseSeedIntentWithLLM('something broke', chat);
+
+    expect(result.parseMethod).toBe('llm');
+    expect(result.category).toBe('debugging');
+    expect(result.problem).toBe('something broke');
+  });
+
+  it('falls back to regex when chat is not configured', async () => {
+    const chat: ChatProvider = {
+      provider: 'mock',
+      isConfigured: false,
+      invoke: vi.fn(),
+    };
+
+    const result = await parseSeedIntentWithLLM('docker deploy fails', chat);
+
+    expect(result.parseMethod).toBe('regex');
+    expect(result.category).toBeNull();
+    expect(result.semanticQuery).toBeNull();
+    expect(chat.invoke).not.toHaveBeenCalled();
+  });
+
+  it('retries on parse failure then falls back to regex', async () => {
+    const chat = createMockChat({
+      invoke: vi
+        .fn()
+        .mockResolvedValueOnce('invalid json response')
+        .mockResolvedValueOnce('still not json')
+        .mockResolvedValueOnce('nope'),
+    });
+
+    const result = await parseSeedIntentWithLLM('test seed', chat);
+
+    expect(result.parseMethod).toBe('regex');
+    expect(chat.invoke).toHaveBeenCalledTimes(3);
+  });
+
+  it('retries on invoke exception then falls back to regex', async () => {
+    const chat: ChatProvider = {
+      provider: 'mock',
+      isConfigured: true,
+      invoke: vi
+        .fn()
+        .mockRejectedValueOnce(new Error('LLM unavailable'))
+        .mockRejectedValueOnce(new Error('LLM unavailable'))
+        .mockRejectedValueOnce(new Error('LLM unavailable')),
+    };
+
+    const result = await parseSeedIntentWithLLM('test seed', chat);
+
+    expect(result.parseMethod).toBe('regex');
+    expect(chat.invoke).toHaveBeenCalledTimes(3);
+  });
+
+  it('falls back to regex on invalid category in response', async () => {
+    const chat = createMockChat({
+      invoke: vi.fn().mockResolvedValue(
+        JSON.stringify({
+          situation: null,
+          problem: null,
+          goal: null,
+          errorText: null,
+          category: 'invalid_category',
+          semanticQuery: null,
+        }),
+      ),
+    });
+
+    const result = await parseSeedIntentWithLLM('test seed', chat);
+
+    expect(result.parseMethod).toBe('regex');
+    expect(result.category).toBeNull();
+  });
+
+  it('preserves deterministic tokens and stackPathHints in LLM results', async () => {
+    const chat = createMockChat();
+
+    const result = await parseSeedIntentWithLLM('fastify ECONNREFUSED kubernetes', chat);
+
+    expect(result.parseMethod).toBe('llm');
+    expect(result.tokens.length).toBeGreaterThan(0);
+    const fastifyToken = result.tokens.find((t) => t.token === 'fastify');
+    expect(fastifyToken).toBeDefined();
+    expect(result.stackPathHints).toBeDefined();
+  });
+
+  it('returns cached result on cache hit', async () => {
+    const chat = createMockChat();
+    const cache = new (await import('./intent-cache.js')).InMemoryIntentCache();
+
+    const first = await parseSeedIntentWithLLM('docker deploy', chat, { cache });
+    expect(first.parseMethod).toBe('llm');
+    expect(chat.invoke).toHaveBeenCalledTimes(1);
+
+    const second = await parseSeedIntentWithLLM('docker deploy', chat, { cache });
+    expect(second.parseMethod).toBe('llm');
+    expect(second.category).toBe(first.category);
+    expect(chat.invoke).toHaveBeenCalledTimes(1);
   });
 });

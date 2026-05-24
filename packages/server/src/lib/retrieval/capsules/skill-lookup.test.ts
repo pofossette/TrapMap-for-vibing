@@ -105,7 +105,19 @@ describe('skill-lookup helper', () => {
     mockServices = {
       store: mockStore,
       config: {},
-    };
+      ai: {
+        embeddings: {
+          provider: 'fallback',
+          isConfigured: false,
+          embed: async () => new Array(384).fill(0),
+        },
+        chat: {
+          provider: 'fallback',
+          isConfigured: false,
+          invoke: async () => '',
+        },
+      },
+    } as any;
   });
 
   describe('governance filtering', () => {

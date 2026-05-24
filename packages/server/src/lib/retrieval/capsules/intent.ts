@@ -7,6 +7,12 @@
  * Any future model assistance should stay optional behind the same ParsedIntent interface.
  */
 
+import { z } from 'zod';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import { stripCodeFences } from '@trapmap/server/lib/ai/parse.js';
+import type {
+  IntentCacheStore,
+} from '@trapmap/server/lib/retrieval/capsules/intent-cache.js';
 import type {
   NormalizedToken,
   ParsedIntent,
@@ -296,6 +302,9 @@ export function parseSeedIntent(seed: string): ParsedIntent {
       errorText: null,
       tokens: [],
       stackPathHints: [],
+      category: null,
+      semanticQuery: null,
+      parseMethod: 'regex',
     };
   }
 
@@ -324,5 +333,114 @@ export function parseSeedIntent(seed: string): ParsedIntent {
     errorText,
     tokens,
     stackPathHints,
+    category: null,
+    semanticQuery: null,
+    parseMethod: 'regex',
   };
+}
+
+export const INTENT_CATEGORY_VALUES = [
+  'debugging',
+  'configuration',
+  'deployment',
+  'performance',
+  'integration',
+  'security',
+  'data',
+  'testing',
+  'general',
+] as const;
+
+const intentExtractionSchema = z.object({
+  situation: z.string().nullable(),
+  problem: z.string().nullable(),
+  goal: z.string().nullable(),
+  errorText: z.string().nullable(),
+  category: z.enum(INTENT_CATEGORY_VALUES).nullable(),
+  semanticQuery: z.string().max(200).nullable(),
+});
+
+function buildIntentExtractionSystemPrompt(): string {
+  return `You are a query intent parser for an engineering knowledge base.
+Analyze the user's search seed and extract structured intent.
+
+Rules:
+- Respond with ONLY valid JSON, no markdown fences, no explanation
+- Extract: situation (context/when), problem (what's wrong),
+  goal (what they want), errorText (error message if any)
+- Extract: category — one of: debugging|configuration|deployment|
+  performance|integration|security|data|testing|general
+- Extract: semanticQuery — search-optimized reformulation using
+  professional/technical terminology (max 200 chars)
+- If a field cannot be determined, use null`;
+}
+
+function parseIntentExtractionResponse(raw: string): z.infer<typeof intentExtractionSchema> | null {
+  try {
+    const cleaned = stripCodeFences(raw);
+    const parsed = JSON.parse(cleaned);
+    const result = intentExtractionSchema.safeParse(parsed);
+    return result.success ? result.data : null;
+  } catch {
+    return null;
+  }
+}
+
+async function invokeIntentExtraction(
+  chat: ChatProvider,
+  seed: string,
+): Promise<z.infer<typeof intentExtractionSchema> | null> {
+  const maxRetries = 2;
+  const systemPrompt = buildIntentExtractionSystemPrompt();
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const raw = await chat.invoke(systemPrompt, seed);
+      const parsed = parseIntentExtractionResponse(raw);
+      if (parsed) return parsed;
+    } catch {
+      // transient failure, will retry
+    }
+
+    if (attempt < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, 100 * 2 ** (attempt * 2)));
+    }
+  }
+
+  return null;
+}
+
+export async function parseSeedIntentWithLLM(
+  seed: string,
+  chat: ChatProvider,
+  options?: { cache?: IntentCacheStore },
+): Promise<ParsedIntent> {
+  const normalizedSeed = seed.toLowerCase().trim();
+  const cached = options?.cache?.get(normalizedSeed);
+  if (cached) return cached;
+
+  if (!chat.isConfigured) {
+    return parseSeedIntent(seed);
+  }
+
+  const fallback = parseSeedIntent(seed);
+  const extraction = await invokeIntentExtraction(chat, seed);
+  if (!extraction) return fallback;
+
+  const result: ParsedIntent = {
+    seed,
+    normalized: normalizedSeed,
+    situation: extraction.situation,
+    problem: extraction.problem,
+    goal: extraction.goal,
+    errorText: extraction.errorText,
+    tokens: seed.split(/\s+/).filter(Boolean).map(normalizeToken),
+    stackPathHints: extractStackPathHints(normalizedSeed),
+    category: extraction.category,
+    semanticQuery: extraction.semanticQuery,
+    parseMethod: 'llm',
+  };
+
+  options?.cache?.set(normalizedSeed, result);
+  return result;
 }

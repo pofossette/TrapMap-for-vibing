@@ -211,6 +211,9 @@ describe('derive → score integration (Phase D)', () => {
         { token: 'mismatch', original: 'mismatch', isTechnical: false },
       ],
       stackPathHints: [],
+      category: null,
+      semanticQuery: null,
+      parseMethod: 'regex',
     };
 
     const filters = { teamId: null, securityLevel: 5, isSystemAdmin: false };
@@ -267,6 +270,9 @@ describe('derive → score integration (Phase D)', () => {
       errorText: null,
       tokens: [{ token: 'docker', original: 'docker', isTechnical: true }],
       stackPathHints: [],
+      category: null,
+      semanticQuery: null,
+      parseMethod: 'regex',
     };
     const filters = { teamId: null, securityLevel: 5, isSystemAdmin: false };
 
@@ -304,6 +310,9 @@ describe('derive → score integration (Phase D)', () => {
         { token: 'node', original: 'node', isTechnical: true },
       ],
       stackPathHints: [{ hint: 'docker', kind: 'stack', confidence: 0.9 }],
+      category: null,
+      semanticQuery: null,
+      parseMethod: 'regex',
     };
     const filters = { teamId: null, securityLevel: 5, isSystemAdmin: false };
 

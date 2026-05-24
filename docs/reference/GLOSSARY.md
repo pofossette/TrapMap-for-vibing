@@ -121,7 +121,34 @@
 | `packages/contracts/src/domain/retrieval.ts:106-137` | Zod schema (`capsuleMatchSchema`) | v2 检索响应中的 Capsule 匹配结果，扩展 score 和 reason 字段 |
 | `packages/contracts/src/domain/retrieval.ts:268-277` | Zod schema (`capsuleActivationHintsSchema`) | 每个 Capsule 的激活提示：readNext, assets, scripts |
 | `packages/server/src/lib/retrieval/capsules/capsule-recall.ts` | Impl | Capsule 召回：`buildCapsuleMatch()`, `rankCapsules()`, `getCapsuleRecords()` |
-| `packages/server/src/lib/retrieval/capsules/intent.ts` | Impl | `parseSeedIntent()` — 将查询解析为 situation/problem/goal/errorText |
+| `packages/server/src/lib/retrieval/capsules/intent.ts` | Impl | `parseSeedIntent()` + `parseSeedIntentWithLLM()` — 将查询解析为 situation/problem/goal/errorText，LLM 路径额外产出 category/semanticQuery/parseMethod |
+| `packages/server/src/lib/retrieval/capsules/intent-cache.ts` | Impl | `InMemoryIntentCache` — LLM 意图解析结果的过程内缓存（TTL 30 分钟，容量上限 200） |
+
+### IntentCategory（意图分类）
+
+从自然语言查询中提取的语义分类标签，用于可观测性和未来的策略路由。当前阶段不参与评分。
+
+| 值 | 含义 |
+|----|------|
+| `debugging` | 调试类查询 |
+| `configuration` | 配置类查询 |
+| `deployment` | 部署类查询 |
+| `performance` | 性能类查询 |
+| `integration` | 集成类查询 |
+| `security` | 安全类查询 |
+| `data` | 数据类查询 |
+| `testing` | 测试类查询 |
+| `general` | 通用/无法分类 |
+
+### semanticQuery（语义优化查询）
+
+由 LLM 生成的、使用专业/技术术语优化的语义搜索查询文本（最长 200 字符），用于 embedding 召回通道以改善"用户语言"到"文档术语"的桥接。
+
+### parseMethod（解析方式标记）
+
+标记意图解析结果的产生方式：
+- `regex` — 纯正则确定性解析（存量 baseline，无需外部依赖）
+- `llm` — LLM 辅助解析（新增字段 category/semanticQuery）
 
 ### Profile（技能画像）
 

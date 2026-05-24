@@ -263,7 +263,7 @@ flowchart TB
         A["查询输入"]
         
         subgraph 解析["解析与治理"]
-            B1["解析种子意图<br/>(parseSeedIntent)"]
+            B1["解析种子意图<br/>(parseSeedIntentWithLLM)"]
             B2["快照与治理过滤<br/>(isArtifactGovernanceEligible)"]
         end
 
@@ -291,6 +291,25 @@ flowchart TB
         A --> B1 --> B2 --> C0 --> C1 & C2 & C3 & C4 --> D1 --> D2 --> E --> F
     end
 ```
+
+### LLM Intent Parsing
+
+v2 和 v3 检索管线现已集成 LLM 驱动的意图解析。原纯正则解析器 `parseSeedIntent()` 保留为确定性 baseline，新增异步包装器 `parseSeedIntentWithLLM()` 作为主入口：
+
+- **确定性 baseline**: `parseSeedIntent()` — 纯同步正则解析，零外部依赖
+- **LLM 包装器**: `parseSeedIntentWithLLM(seed, chat, options?)` — 缓存查找 → LLM 提取 → Schema 校验 → 确定性补充（tokens + stackPathHints）→ 正则降级
+- **降级策略**: 任何 LLM 失败（未配置、调用异常、JSON 解析失败、Schema 校验失败）均自动降级到正则 baseline
+- **重试**: 最多 3 次尝试（含指数退避 100ms/400ms），覆盖 invoke 异常和 parse 失败
+- **缓存**: 进程内 `InMemoryIntentCache`（TTL 30 分钟，容量上限 200），仅缓存 LLM 结果
+- **新增字段**: `category`（意图分类）、`semanticQuery`（语义优化查询）、`parseMethod`（`'regex'` | `'llm'` 可观测标记）— 均为 server 内部字段，不暴露到外部 API 契约
+- **semanticQuery 使用**: `capsule-semantic` 召回通道优先使用 `intent.semanticQuery`，缺失时回退到 `seed` / `normalized`
+
+**集成点**:
+| 位置 | 用法 |
+|------|------|
+| `orchestrator.ts` (v2) | `searchKnowledgeV2()` → `parseSeedIntentWithLLM()` |
+| `skill-lookup.ts` | `searchSkillsByContent()` → `parseSeedIntentWithLLM()` |
+| `plan-compiler.ts` | `compileTrapFirstPlan()` → `parseSeedIntentWithLLM()` |
 
 ### Context-Aware Capsule Scoring (CAPS-04-CTX)
 

@@ -37,7 +37,14 @@ export {
   hashCapsuleEmbeddingText,
 } from './channels/semantic.js';
 export type { CapsuleSemanticChannelOptions } from './channels/semantic.js';
-export { extractStackPathHints, normalizeToken, parseSeedIntent } from './intent.js';
+export {
+  extractStackPathHints,
+  normalizeToken,
+  parseSeedIntent,
+  parseSeedIntentWithLLM,
+} from './intent.js';
+export { InMemoryIntentCache } from './intent-cache.js';
+export type { IntentCacheStore } from './intent-cache.js';
 export { searchSkillsByContent } from './skill-lookup.js';
 export { mergeCapsuleCandidates } from './scoring/merge.js';
 export { rerankMergedCapsules } from './scoring/rerank.js';

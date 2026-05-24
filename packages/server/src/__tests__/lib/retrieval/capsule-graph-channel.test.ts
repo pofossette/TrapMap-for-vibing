@@ -29,6 +29,9 @@ function makeIntent(seed: string): ParsedIntent {
       .filter((t) => t.length > 2)
       .map((token) => ({ token, original: token, isTechnical: false })),
     stackPathHints: [],
+    category: null,
+    semanticQuery: null,
+    parseMethod: 'regex',
   };
 }
 
@@ -422,6 +425,9 @@ describe('capsuleGraphChannel', () => {
       errorText: null,
       tokens: [],
       stackPathHints: [],
+      category: null,
+      semanticQuery: null,
+      parseMethod: 'regex',
     };
 
     const graphDocs = [makeGraphDoc('artifact_any', ['docker'])];

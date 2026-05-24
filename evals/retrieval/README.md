@@ -267,6 +267,24 @@ pnpm eval:retrieval --tier smoke --baseline ./reports/baseline.json
 
 **排序回归与基线比较** - 当提供基线时，排序漂移会被报告，但不会导致退出码 1，除非伴随治理泄漏或空结果不匹配。
 
+## semanticQuery 效果对比
+
+LLM 意图解析扩展了 `semanticQuery` 字段，用于优化语义召回通道的查询文本。评测对比方法：
+
+```bash
+# 运行 smoke 获取 baseline（regex 解析，semanticQuery 为 null）
+pnpm eval:retrieval:smoke
+
+# 若需对比 LLM 解析效果，在服务配置中启用 AI chat 后再次运行
+# 检查 RAG log metadata 中的 parseMethod 字段确认解析方式
+pnpm eval:retrieval:core
+```
+
+效果对比维度：
+- 比较 Hit@K / MRR / nDCG 在 semanticQuery 为空（regex 基线）与启用后（LLM）的变化
+- 通过 RAG log metadata 中的 `parseMethod` 和 `intentCategory` 字段识别解析方式
+- `parseMethod: 'llm'` 表示 LLM 解析生效，`'regex'` 表示降级到正则 baseline
+
 ## 底层索引结构（Round 7）
 
 检索端点依赖以下 PostgreSQL 派生索引表，均通过迁移脚本 `0005_round7_retrieval_index_structural.sql` 管理：

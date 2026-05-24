@@ -163,6 +163,8 @@ export function normalizeV3Response(response: GraphPlanSearchResponse): Normaliz
         routingReason: routingTrace.routingReason,
         fallbackApplied: routingTrace.fallbackApplied,
         channelsUsed: routingTrace.channelsUsed,
+        parseMethod: (routingTrace as any).parseMethod,
+        intentCategory: (routingTrace as any).intentCategory,
       },
       graphPlanStructure,
     };
@@ -179,6 +181,8 @@ export function normalizeV3Response(response: GraphPlanSearchResponse): Normaliz
         routingReason: routingTrace.routingReason,
         fallbackApplied: routingTrace.fallbackApplied,
         channelsUsed: routingTrace.channelsUsed,
+        parseMethod: (routingTrace as any).parseMethod,
+        intentCategory: (routingTrace as any).intentCategory,
       },
     };
   }
@@ -194,6 +198,8 @@ export function normalizeV3Response(response: GraphPlanSearchResponse): Normaliz
         routingReason: routingTrace.routingReason,
         fallbackApplied: routingTrace.fallbackApplied,
         channelsUsed: routingTrace.channelsUsed,
+        parseMethod: (routingTrace as any).parseMethod,
+        intentCategory: (routingTrace as any).intentCategory,
       },
     };
   }
@@ -211,6 +217,8 @@ export function normalizeV3Response(response: GraphPlanSearchResponse): Normaliz
       routingReason: routingTrace.routingReason,
       fallbackApplied: routingTrace.fallbackApplied,
       channelsUsed: routingTrace.channelsUsed,
+      parseMethod: (routingTrace as any).parseMethod,
+      intentCategory: (routingTrace as any).intentCategory,
     },
   };
 }

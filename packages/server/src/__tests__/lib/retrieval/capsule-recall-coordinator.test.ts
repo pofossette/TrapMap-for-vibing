@@ -65,6 +65,9 @@ describe('CapsuleRecallCoordinator', () => {
         { hint: 'docker', kind: 'stack', confidence: 0.9 },
         { hint: 'node', kind: 'stack', confidence: 0.9 },
       ],
+      category: null,
+      semanticQuery: null,
+      parseMethod: 'regex',
     };
 
     governanceFilters = {
