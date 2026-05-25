@@ -576,4 +576,125 @@ describe('graph-plan-search', () => {
       expect(result.routingTrace.fallbackApplied).toBe(true);
     });
   });
+
+  describe('executionPlan end-to-end', () => {
+    it('returns executionPlan in graph-plan response', async () => {
+      mockedCompileTrapFirstPlan.mockResolvedValue({
+        blockingTraps: [
+          {
+            nodeId: 'trap_1',
+            sourceId: 'entry_1',
+            label: 'Trap',
+            severity: 'hard',
+            scope: 'project',
+            requiredLevel: 3,
+            evidence: 'Trap evidence',
+            score: 1,
+          },
+        ],
+        recommendedSkills: [
+          {
+            nodeId: 'skill_1',
+            artifactId: 'artifact_1',
+            capsuleId: 'capsule_1',
+            label: 'Skill',
+            situation: 'When deploying',
+            problem: 'Deployment drift',
+            goal: 'Stabilize rollout',
+            scope: 'project',
+            requiredLevel: 3,
+            score: 0.9,
+            activationRefs: {
+              references: [],
+              assets: [],
+              scripts: [],
+            },
+          },
+        ],
+        edges: [
+          {
+            id: 'edge_1',
+            sourceNodeId: 'skill_1',
+            targetNodeId: 'trap_1',
+            type: 'mitigates',
+            strength: 'hard',
+          },
+        ],
+        citations: [],
+        executionPlan: [
+          {
+            rank: 0,
+            nodeId: 'skill_1',
+            label: 'Skill',
+            kind: 'skill' as const,
+            blockedBy: [],
+          },
+          {
+            rank: 1,
+            nodeId: 'trap_1',
+            label: 'Trap',
+            kind: 'trap-mitigation' as const,
+            blockedBy: ['skill_1'],
+          },
+        ],
+        graph: {
+          ...makeEmptyGraph(),
+          nodes: [
+            {
+              kind: 'trap',
+              nodeId: 'trap_1',
+              sourceId: 'entry_1',
+              label: 'Trap',
+              severity: 'hard',
+              scope: 'project',
+              requiredLevel: 3,
+              evidence: 'Trap evidence',
+              score: 1,
+            },
+            {
+              kind: 'skill',
+              nodeId: 'skill_1',
+              artifactId: 'artifact_1',
+              capsuleId: 'capsule_1',
+              label: 'Skill',
+              situation: 'When deploying',
+              problem: 'Deployment drift',
+              goal: 'Stabilize rollout',
+              scope: 'project',
+              requiredLevel: 3,
+              score: 0.9,
+              activationRefs: {
+                references: [],
+                assets: [],
+                scripts: [],
+              },
+            },
+          ],
+          focus: {
+            blockingTrapNodeIds: ['trap_1'],
+            recommendedSkillNodeIds: ['skill_1'],
+          },
+        },
+      });
+
+      const result = await searchKnowledgeGraphPlan(makeServices(), makeAuth(), {
+        seed: 'deploy containers safely',
+        skillBudget: 3,
+        maxDepth: 2,
+        fallbackMode: 'auto',
+      });
+
+      expect(result.plan).not.toBeNull();
+      if (result.plan) {
+        expect(result.plan.executionPlan).toBeDefined();
+        expect(Array.isArray(result.plan.executionPlan)).toBe(true);
+        expect(result.plan.executionPlan.length).toBeGreaterThan(0);
+        expect(result.plan.executionPlan[0]).toHaveProperty('rank');
+        expect(result.plan.executionPlan[0]).toHaveProperty('nodeId');
+        expect(result.plan.executionPlan[0]).toHaveProperty('label');
+        expect(result.plan.executionPlan[0]).toHaveProperty('kind');
+        expect(result.plan.executionPlan[0]).toHaveProperty('blockedBy');
+      }
+    });
+  });
 });

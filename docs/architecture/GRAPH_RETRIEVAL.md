@@ -199,8 +199,14 @@
   |       +-- blockingTraps[]     (按 severity hard 优先)
   |       +-- recommendedSkills[] (含 activation refs)
   |       +-- edges[]             (计划内节点间的边)
-  |       +-- citations[]         (降级候选作为支撑证据)
-  |       +-- graph: GraphPlan    (统一图视图 + focus 元数据)
+   |       +-- citations[]         (降级候选作为支撑证据)
+   |       +-- executionPlan[]   (拓扑排序后的执行序列)
+   |           +-- rank: 拓扑层级 (0=无前置，同层可并行)
+   |           +-- nodeId: 关联的 trap 或 skill 节点 ID
+   |           +-- label: 人类可读标签
+   |           +-- kind: 'trap-mitigation' | 'skill'
+   |           +-- blockedBy: 前置节点 ID 列表
+   |       +-- graph: GraphPlan    (统一图视图 + focus 元数据)
   |
   +-- assessGraphPlanReadiness() --> 置信度评分 (0-1)
   |   +-- skill count > 0:  +0.4
@@ -295,6 +301,7 @@ edges:
 4. **置信度感知回退** -- v3 图计划评分不足时自动降级到 v2/v1
 5. **有界 BFS 扩展** -- `maxDepth=2` 限制子图大小，避免爆炸式扩展
 6. **三通道融合** -- graph 作为 semantic + keyword 之外的补充通道，0.2 权重因子
+7. **拓扑排序执行计划** -- `executionPlan` 字段基于 `mitigates`/`requires`/`order` 边进行 Kahn 拓扑排序，客户端无需自行计算执行顺序。边方向约定为 "source 先于 target"：`mitigates`(skill→trap) 表示 skill 应在 trap 之前执行，`requires`(A→B) 表示 A 应在 B 之前执行，`order`(A→B) 表示 A 应在 B 之前执行。环路节点追加到末尾。
 
 ---
 
@@ -344,7 +351,7 @@ edges:
 
 | 文件 | 职责 |
 |------|------|
-| `packages/server/src/lib/retrieval/plan-compiler.ts` | Trap-First Plan 编译器 (BFS 局部展开 + skill 预算) |
+| `packages/server/src/lib/retrieval/plan-compiler.ts` | Trap-First Plan 编译器 (BFS 局部展开 + skill 预算 + 拓扑执行计划) |
 | `packages/server/src/lib/retrieval/graph-plan-search.ts` | v3 图计划搜索入口 + 置信度评估 + 降级逻辑 |
 | `packages/server/src/lib/retrieval/graph-plan-search.ts` | v3 图计划搜索入口 + 置信度评估 + 降级逻辑 |
 

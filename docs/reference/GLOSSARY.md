@@ -205,6 +205,23 @@ Skill 工件的客户端激活元数据，包含 references、assets、scripts �
 |------|------|------|
 | `packages/contracts/src/domain/evals/report.ts` | TS 字段 | 评估报告中聚合计算 |
 
+### executionPlan（执行计划）
+
+拓扑排序后的执行序列，包含 rank、nodeId、label、kind、blockedBy 等依赖信息，基于 `mitigates`/`requires`/`order` 边进行 Kahn 拓扑排序生成，客户端无需自行计算执行顺序。
+
+| 位置 | 形式 | 说明 |
+|------|------|------|
+| `packages/contracts/src/domain/plans.ts:246` | Zod field (`trapFirstPlanSchema.executionPlan`) | `z.array(executionStepSchema).default([])` |
+
+### ExecutionStep（执行步骤）
+
+执行计划中的单个步骤，关联一个 trap 或 skill 节点。包含 `rank`（拓扑层级）、`nodeId`（节点 ID）、`label`（人类可读标签）、`kind`（`'trap-mitigation'` 或 `'skill'`）、`blockedBy`（前置节点 ID 列表）。
+
+| 位置 | 形式 | 说明 |
+|------|------|------|
+| `packages/contracts/src/domain/plans.ts:141` | Zod schema (`executionStepSchema`) | 步骤定义：rank, nodeId, label, kind, blockedBy |
+| `packages/contracts/src/domain/plans.ts:154` | TS 类型 (`ExecutionStep`) | 推断类型 |
+
 ---
 
 ## 生命周期
