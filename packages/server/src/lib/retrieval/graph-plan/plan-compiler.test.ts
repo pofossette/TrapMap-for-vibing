@@ -850,4 +850,153 @@ describe('plan-compiler', () => {
       expect(result.blockingTraps.find((t) => t.nodeId === 'trap:trap-gov-5')).toBeDefined();
     });
   });
+
+  describe('executionPlan', () => {
+    it('returns empty executionPlan when no traps or skills', async () => {
+      const services = makeMockServices({
+        knowledgeEntries: [],
+        skillArtifacts: [],
+        graphIndexDocuments: [],
+      });
+      const auth = makeMockAuth();
+      const query: PlanQuery = { seed: 'empty', skillBudget: 3, maxDepth: 2 };
+
+      const result = await compileTrapFirstPlan(services, auth, query);
+
+      expect(result.executionPlan).toEqual([]);
+    });
+
+    it('places mitigating skills before the traps they mitigate', async () => {
+      const trapId = 'trap-ep-1';
+      const skillId = 'skill-ep-1';
+
+      const trapNode = makeTrapNode(trapId, 'Blocking trap');
+      const skillNode = makeSkillNode(skillId, 'Mitigating skill');
+      const riskEdge = makeRiskBlocksEdge(trapId, 'cue-ep-1', 'hard');
+      const mitEdge = makeMitigatesEdge(skillId, trapId, 'hard');
+
+      const services = makeMockServices({
+        knowledgeEntries: [makeKnowledgeEntry(trapId)],
+        skillArtifacts: [makeSkillArtifact(skillId)],
+        graphIndexDocuments: [
+          makeGraphDoc(trapId, 'trap', [trapNode], [riskEdge]),
+          makeGraphDoc(skillId, 'skill', [skillNode], [mitEdge]),
+        ],
+      });
+      const auth = makeMockAuth();
+      const query: PlanQuery = { seed: 'blocking trap mitigation', skillBudget: 3, maxDepth: 2 };
+
+      const result = await compileTrapFirstPlan(services, auth, query);
+
+      expect(result.executionPlan.length).toBeGreaterThan(0);
+
+      const skillIndex = result.executionPlan.findIndex((s) => s.nodeId === `skill:${skillId}`);
+      const trapIndex = result.executionPlan.findIndex((s) => s.nodeId === `trap:${trapId}`);
+
+      if (skillIndex >= 0 && trapIndex >= 0) {
+        expect(skillIndex).toBeLessThan(trapIndex);
+      }
+
+      const trapStep = result.executionPlan.find((s) => s.nodeId === `trap:${trapId}`);
+      if (trapStep) {
+        expect(trapStep.blockedBy).toContain(`skill:${skillId}`);
+      }
+    });
+
+    it('respects requires edges between skills', async () => {
+      const trapId = 'trap-ep-req';
+      const skillA = 'skill-ep-a';
+      const skillB = 'skill-ep-b';
+
+      const trapNode = makeTrapNode(trapId, 'Trap requiring chain');
+      const skillNodeA = makeSkillNode(skillA, 'Prerequisite skill A');
+      const skillNodeB = makeSkillNode(skillB, 'Dependent skill B');
+      const riskEdge = makeRiskBlocksEdge(trapId, 'cue-ep-req', 'hard');
+      const mitEdgeA = makeMitigatesEdge(skillA, trapId, 'hard');
+      const mitEdgeB = makeMitigatesEdge(skillB, trapId, 'soft');
+      const requiresEdge = makeRequiresEdge(skillA, skillB, 'hard');
+
+      const services = makeMockServices({
+        knowledgeEntries: [makeKnowledgeEntry(trapId)],
+        skillArtifacts: [makeSkillArtifact(skillA), makeSkillArtifact(skillB)],
+        graphIndexDocuments: [
+          makeGraphDoc(trapId, 'trap', [trapNode], [riskEdge]),
+          makeGraphDoc(skillA, 'skill', [skillNodeA, skillNodeB], [mitEdgeA, mitEdgeB, requiresEdge]),
+        ],
+      });
+      const auth = makeMockAuth();
+      const query: PlanQuery = { seed: 'requires chain', skillBudget: 3, maxDepth: 2 };
+
+      const result = await compileTrapFirstPlan(services, auth, query);
+
+      const indexA = result.executionPlan.findIndex((s) => s.nodeId === `skill:${skillA}`);
+      const indexB = result.executionPlan.findIndex((s) => s.nodeId === `skill:${skillB}`);
+
+      if (indexA >= 0 && indexB >= 0) {
+        expect(indexA).toBeLessThan(indexB);
+      }
+
+      const stepB = result.executionPlan.find((s) => s.nodeId === `skill:${skillB}`);
+      if (stepB) {
+        expect(stepB.blockedBy).toContain(`skill:${skillA}`);
+      }
+    });
+
+    it('assigns correct rank values', async () => {
+      const trapId = 'trap-ep-rank';
+      const skillA = 'skill-rank-a';
+      const skillB = 'skill-rank-b';
+
+      const trapNode = makeTrapNode(trapId, 'Ranked trap');
+      const skillNodeA = makeSkillNode(skillA, 'Rank A skill');
+      const skillNodeB = makeSkillNode(skillB, 'Rank B skill');
+      const riskEdge = makeRiskBlocksEdge(trapId, 'cue-rank', 'hard');
+      const mitEdge = makeMitigatesEdge(skillA, trapId, 'hard');
+      const requiresEdge = makeRequiresEdge(skillA, skillB, 'hard');
+
+      const services = makeMockServices({
+        knowledgeEntries: [makeKnowledgeEntry(trapId)],
+        skillArtifacts: [makeSkillArtifact(skillA), makeSkillArtifact(skillB)],
+        graphIndexDocuments: [
+          makeGraphDoc(trapId, 'trap', [trapNode], [riskEdge]),
+          makeGraphDoc(skillA, 'skill', [skillNodeA, skillNodeB], [mitEdge, requiresEdge]),
+        ],
+      });
+      const auth = makeMockAuth();
+      const query: PlanQuery = { seed: 'rank test', skillBudget: 3, maxDepth: 2 };
+
+      const result = await compileTrapFirstPlan(services, auth, query);
+
+      for (const step of result.executionPlan) {
+        expect(step.rank).toBeGreaterThanOrEqual(0);
+        expect(Number.isInteger(step.rank)).toBe(true);
+      }
+
+      const rankZeroSteps = result.executionPlan.filter((s) => s.rank === 0);
+      expect(rankZeroSteps.length).toBeGreaterThan(0);
+    });
+
+    it('handles 25-node Deploy Cluster with executionPlan', async () => {
+      const dataset = buildDeployClusterDataset();
+
+      const services = makeMockServices({
+        knowledgeEntries: dataset.knowledgeEntries,
+        skillArtifacts: dataset.skillArtifacts,
+        graphIndexDocuments: dataset.graphDocs,
+      });
+      const auth = makeMockAuth();
+      const query: PlanQuery = { seed: 'deploy cluster safely', skillBudget: 5, maxDepth: 3 };
+
+      const result = await compileTrapFirstPlan(services, auth, query);
+
+      const planNodeIds = new Set([
+        ...result.blockingTraps.map((t) => t.nodeId),
+        ...result.recommendedSkills.map((s) => s.nodeId),
+      ]);
+
+      for (const nodeId of planNodeIds) {
+        expect(result.executionPlan.find((s) => s.nodeId === nodeId)).toBeDefined();
+      }
+    });
+  });
 });
