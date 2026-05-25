@@ -1,33 +1,38 @@
-# LLM Intent Parsing Implementation Plan
+# 拓扑排序执行计划 实施方案
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **面向智能体工作者：** 必须使用 superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans 逐任务实施本计划。步骤使用 `- [ ]` 复选框语法追踪进度。
 
-**Goal:** Replace regex-only seed intent parsing in retrieval with an LLM-first parser plus deterministic fallback, cache, semantic-query support, observability fields, and matching test/eval/doc coverage.
+**目标：** 在 `TrapFirstPlan` 中新增服务端 `executionPlan` 字段，返回拓扑排序后的执行序列，使客户端无需自行计算顺序。
 
-**Architecture:** Keep the existing `parseSeedIntent()` as the deterministic baseline and add a new async `parseSeedIntentWithLLM()` wrapper that performs cache lookup, optional LLM extraction, schema validation, deterministic token/hint supplementation, and regex fallback. Wire the new parser into the v2 orchestrator, skill lookup, and graph plan compiler without changing external request contracts, then surface the new metadata only through server-local traces and eval normalization.
+**架构：** 在 `plan-compiler.ts` 中新增 `buildExecutionPlan()` 函数，接收已编译的 traps、skills、edges，基于 `mitigates`/`requires`/`order` 边构建依赖图，执行 Kahn 拓扑排序，输出含 rank、blockedBy、kind 元数据的 `ExecutionStep[]`。在 `compileTrapFirstPlan()` 的最终组装步骤中接入。扩展 contracts 层 schema，更新 CLI renderer 直接消费服务端结果。
 
-**Tech Stack:** TypeScript, Fastify, Vitest, Zod, existing `ChatProvider`, retrieval orchestration modules, retrieval eval runner.
+**技术栈：** TypeScript、Zod、Vitest、现有 plan-compiler 基础设施
+
+**设计参考：**
+- SkillGraph (arXiv:2605.12039)：`R_ret = TopoSort(R_seed ∪ R_BFS ∪ R_beam)` — 基于 prerequisite/enhancement 边的拓扑排序
+- GraSP (arXiv:2604.17870)：DAG 编译 + state/data/order 边 + 拓扑序执行
 
 ---
 
 ## 文档信息
 
-- 创建日期：2026-05-24
-- 关联设计：`docs/superpowers/specs/2026-05-24-llm-intent-parsing-design.md`
+- 创建日期：2026-05-25
+- 归档旧计划：`docs/superpowers/plans/2026-05-24-llm-intent-parsing.md`
 - 输出文件：`plan.md`（项目根目录）
-- 范围：`packages/server/src/lib/retrieval/**`、相关测试、`evals/retrieval/**`、检索/图计划文档
+- 范围：`packages/contracts/src/domain/plans.ts`、`packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts`、CLI output-profile、相关测试与文档
 - 不在本阶段做的事：
-  - 不改外部 API 请求体
-  - 不做新的策略路由分支
-  - 不把 `category` 接入打分逻辑
-  - 不引入 Redis 或持久化缓存
+  - 不改 `recommendedSkills` 数组本身的排序（保持 score-based）
+  - 不引入运行时执行引擎或 DAG executor
+  - 不改 `GraphPlan` 统一图视图的结构
+  - 不引入 `blockedBy` 中的 trap → skill 反向边（保持 `mitigates` 语义不变）
+  - 不做置信度路由变更
 
 ## 阶段完成约束
 
 **一个阶段完成，必须同时满足以下条件：**
 
-- [ ] 本阶段所有 checkbox 已完成
-- [ ] 本阶段要求的最小测试和类型检查已通过
+- [ ] 本阶段所有任务复选框已完成
+- [ ] 本阶段验收标准全部通过
 - [ ] 本阶段要求更新的文档已同步
 - [ ] 若有代码变更，已执行 `graphify update .`
 - [ ] 已进行一次提交，且提交信息能说明该阶段完成内容
@@ -37,1097 +42,864 @@
 建议提交格式：
 
 ```bash
-rtk git add <本阶段涉及文件>
-rtk git commit --no-verify -m "feat(retrieval): <phase-summary>"
+git add <本阶段涉及文件>
+git commit -m "feat(retrieval): <阶段摘要>"
 ```
 
 ## 总体文件分解
 
 ### 主要代码文件
 
-- `packages/server/src/lib/retrieval/types.ts`
-  - 扩展 `ParsedIntent` 与 `IntentCategory`
-- `packages/server/src/lib/retrieval/capsules/intent.ts`
-  - 保留 `parseSeedIntent()`
-  - 新增 `parseSeedIntentWithLLM()`
-  - 新增 prompt/response parsing/retry/fallback 逻辑
-- `packages/server/src/lib/retrieval/capsules/intent-cache.ts`
-  - 新增缓存接口与默认内存实现
-- `packages/server/src/lib/retrieval/capsules/index.ts`
-  - 导出新 parser 与 cache
-- `packages/server/src/lib/retrieval/orchestration/orchestrator.ts`
-  - v2 改走 LLM parser
-- `packages/server/src/lib/retrieval/capsules/skill-lookup.ts`
-  - 注入 `services.ai.chat`
-  - 改走 LLM parser
+- `packages/contracts/src/domain/plans.ts`
+  - 新增 `executionStepSchema` 与 `ExecutionStep` 类型
+  - 在 `trapFirstPlanSchema` 中增加 `executionPlan` 字段
 - `packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts`
-  - 注入 `services.ai.chat`
-  - 改走 LLM parser
-- `packages/server/src/lib/retrieval/capsules/channels/semantic.ts`
-  - 优先使用 `intent.semanticQuery`
+  - 新增 `buildExecutionPlan()` 函数
+  - 在 `compileTrapFirstPlan()` 的返回值中组装 `executionPlan`
+  - 在 empty-plan 早返回路径中补 `executionPlan: []`
+- `packages/cli/src/lib/output-profile.ts`
+  - `buildExecutionOrder()` 改为读取 `payload.plan.executionPlan`
+  - 各 renderer 适配新结构
 
 ### 主要测试文件
 
-- `packages/server/src/lib/retrieval/capsules/intent.test.ts`
-- `packages/server/src/lib/retrieval/capsules/intent-cache.test.ts`
-- `packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts`
-- `packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts`
 - `packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts`
-- 其他所有手写 `ParsedIntent` fixture 的测试
+  - 新增 `executionPlan` 相关测试用例
+- `packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts`
+  - 补充 executionPlan 在端到端路径中的断言
 
 ### 主要文档文件
 
-- `docs/architecture/components/RETRIEVAL.md`
 - `docs/architecture/GRAPH_RETRIEVAL.md`
-- `docs/reference/GLOSSARY.md`
-- `docs/operations/TESTING.md`
-- `evals/retrieval/README.md`
-- `docs/superpowers/specs/2026-05-24-llm-intent-parsing-design.md`
-  - 若实现与设计发生偏离，必须回写设计说明或备注差异
-
-## Phase 0：实现前校准
-
-**目标：** 先把约束、受影响文件和提交节奏写死，避免做到一半才发现签名或文档面不一致。
-
-**涉及文件：**
-
-- 修改：`plan.md`
-- 阅读：`docs/superpowers/specs/2026-05-24-llm-intent-parsing-design.md`
-- 阅读：`packages/server/src/lib/retrieval/{types.ts,capsules/intent.ts,orchestration/orchestrator.ts}`
-- 阅读：`packages/server/src/lib/retrieval/capsules/{skill-lookup.ts,channels/semantic.ts}`
-- 阅读：`packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts`
-
-- [x] **Step 0.1：确认本次实现边界**
-
-验收要求：
-
-- 明确保留现有 `parseSeedIntent()` 作为纯同步 deterministic baseline
-- 明确新增的是包装式 `parseSeedIntentWithLLM()`，而不是直接重写原函数
-- 明确 `category`/`semanticQuery`/`parseMethod` 只作为 server-local 扩展
-
-示例结构：
-
-```ts
-export function parseSeedIntent(seed: string): ParsedIntent {
-  // existing deterministic parser remains intact
-}
-
-export async function parseSeedIntentWithLLM(
-  seed: string,
-  chat: ChatProvider,
-  options?: { cache?: IntentCacheStore },
-): Promise<ParsedIntent> {
-  // llm-first wrapper + fallback
-}
-```
-
-注意事项：
-
-- 不要把原同步函数偷偷改成 async；这会扩大改动面
-- 不要让 fallback 依赖外部服务
-- 不要在这一阶段动 scoring 权重
-
-对应文档更新：
-
-- `plan.md`：记录边界与阶段划分
-
-- [x] **Step 0.2：确认每阶段提交一次的执行方式**
-
-验收要求：
-
-- 计划里每个阶段都出现单独的“提交检查”
-- 每个阶段都给出建议提交信息
-
-示例结构：
-
-```md
-### 本阶段提交
-- [ ] 已执行 `rtk git add ...`
-- [ ] 已执行 `rtk git commit --no-verify -m "feat(retrieval): ..."`
-```
-
-注意事项：
-
-- 提交点必须放在每个阶段末尾，不能只在文末写一次
-
-对应文档更新：
-
-- `plan.md`
-
-### Phase 0 完成检查
-
-- [x] 计划边界已确认
-- [x] 提交节奏已明确写入计划
-
-### 本阶段提交
-
-- [ ] 提交信息建议：`docs: add llm intent parsing execution plan`
-
-### Phase 0 边界确认结果（2026-05-24）
-
-经阅读源码确认：
-
-- `parseSeedIntent()` 在 `capsules/intent.ts:287` 是纯同步函数，返回不含 `category`/`semanticQuery`/`parseMethod` 的 `ParsedIntent`
-- `ParsedIntent` 在 `types.ts:181-198` 目前只有 8 个字段（seed, normalized, situation, problem, goal, errorText, tokens, stackPathHints），扩展时需保持向后兼容
-- `orchestrator.ts:355` 在 v2 的 `intent` step 中 `Promise.resolve(parseSeedIntent(parsed.seed))` 为同步包装，改为 async 调用不会破坏 pipeline
-- `skill-lookup.ts:109` 和 `plan-compiler.ts:65` 都在 async 函数中同步调用 `parseSeedIntent()`，改为 `await parseSeedIntentWithLLM()` 接入成本低
-- `semantic.ts:100,181` 目前用 `intent.seed || intent.normalized`，需改为 `intent.semanticQuery || intent.seed || intent.normalized`
-- 所有调用方都通过 `SkillShareerServices` 可访问 `services.ai.chat`
+- `docs/reference/GLOSSARY.md`（若有新术语）
 
 ---
 
-## Phase 1：扩展类型与缓存骨架
+## Phase 1：扩展 Contracts 层
 
-**目标：** 先把类型系统和缓存模块补齐，让后续实现有稳定落点。
+**目标：** 在 `plans.ts` 中定义 `ExecutionStep` schema 并将 `executionPlan` 加入 `TrapFirstPlan`。
 
 **涉及文件：**
 
-- 修改：`packages/server/src/lib/retrieval/types.ts`
-- 新增：`packages/server/src/lib/retrieval/capsules/intent-cache.ts`
-- 修改：`packages/server/src/lib/retrieval/capsules/index.ts`
-- 修改：相关 `ParsedIntent` fixture 测试文件
+- 修改：`packages/contracts/src/domain/plans.ts`
+- 修改：`packages/contracts/src/index.ts`（若需要导出新类型）
 
-- [ ] **Step 1.1：为 `ParsedIntent` 增加扩展字段**
+### 进度追踪
 
-验收要求：
+- [x] **Step 1.1：定义 `executionStepSchema` 与 `ExecutionStep` 类型**
 
-- `ParsedIntent` 增加 `category`、`semanticQuery`、`parseMethod`
-- 新增 `IntentCategory` 联合类型
-- 现有调用方在类型层面都能编译通过
-
-示例代码：
+在 `plans.ts` 的 `planEdgeSchema` 之后（约 line 135）新增：
 
 ```ts
-export type IntentCategory =
-  | 'debugging'
-  | 'configuration'
-  | 'deployment'
-  | 'performance'
-  | 'integration'
-  | 'security'
-  | 'data'
-  | 'testing'
-  | 'general';
+/**
+ * A step in the topologically sorted execution plan.
+ * Combines traps and skills into a single dependency-aware sequence.
+ */
+export const executionStepSchema = z.object({
+  /** Topological rank (0 = no predecessors; higher = later in sequence) */
+  rank: z.number().int().min(0),
+  /** Node identifier (matches a trap or skill nodeId in the plan) */
+  nodeId: entityIdSchema,
+  /** Human-readable label */
+  label: z.string().min(1).max(280),
+  /** Whether this step represents a trap mitigation or a skill action */
+  kind: z.enum(['trap-mitigation', 'skill']),
+  /** Node IDs that must complete before this step (predecessors in the DAG) */
+  blockedBy: z.array(entityIdSchema).default([]),
+});
 
-export interface ParsedIntent {
-  seed: string;
-  normalized: string;
-  situation: string | null;
-  problem: string | null;
-  goal: string | null;
-  errorText: string | null;
-  tokens: NormalizedToken[];
-  stackPathHints: StackPathHint[];
-  category: IntentCategory | null;
-  semanticQuery: string | null;
-  parseMethod: 'regex' | 'llm';
-}
+export type ExecutionStep = z.infer<typeof executionStepSchema>;
 ```
 
 注意事项：
 
-- `parseMethod` 不要做成可选字段，否则后续 trace/测试会到处判空
-- `semanticQuery` 限定为 `string | null`，不要引入数组或复杂结构
-- 类型扩展后，所有手写 `ParsedIntent` fixture 都必须补字段
+- `kind` 使用 `'trap-mitigation'` 而非 `'trap'`，因为执行计划中的 trap 步骤隐含"需要被缓解"
+- `blockedBy` 默认空数组，表示无前置依赖（rank-0 节点）
+- `rank` 从 0 开始，同 rank 内的步骤无顺序约束
 
-对应文档更新：
+- [x] **Step 1.2：在 `trapFirstPlanSchema` 中增加 `executionPlan` 字段**
 
-- `docs/reference/GLOSSARY.md`
-- `docs/architecture/components/RETRIEVAL.md`
-
-- [ ] **Step 1.2：新增 intent cache 接口与默认实现**
-
-验收要求：
-
-- 提供 `IntentCacheStore` 接口
-- 提供 `InMemoryIntentCache`
-- 覆盖 TTL、容量上限、清空能力
-
-示例代码：
+在 `trapFirstPlanSchema`（约 line 221）的 `graph` 字段之前插入：
 
 ```ts
-export interface IntentCacheStore {
-  get(key: string): ParsedIntent | null;
-  set(key: string, intent: ParsedIntent): void;
-  clear(): void;
-}
+/** Topologically sorted execution sequence combining traps and skills */
+executionPlan: z.array(executionStepSchema).default([]),
+```
 
-export class InMemoryIntentCache implements IntentCacheStore {
-  private store = new Map<string, { intent: ParsedIntent; createdAt: number }>();
+更新后的 schema：
 
-  constructor(private readonly options: { maxSize?: number; ttlMs?: number } = {}) {}
-}
+```ts
+export const trapFirstPlanSchema = z.object({
+  blockingTraps: z.array(planTrapNodeSchema).default([]),
+  recommendedSkills: z.array(planSkillNodeSchema).default([]),
+  edges: z.array(planEdgeSchema).default([]),
+  citations: z.array(planCitationSchema).default([]),
+  executionPlan: z.array(executionStepSchema).default([]),
+  graph: graphPlanSchema.default({
+    nodes: [],
+    edges: [],
+    citations: [],
+    focus: {
+      blockingTrapNodeIds: [],
+      recommendedSkillNodeIds: [],
+    },
+  }),
+});
 ```
 
 注意事项：
 
-- 只缓存 LLM 结果，不缓存 regex fallback 结果
-- eviction 必须是稳定且可测试的行为
-- key 必须统一为 `seed.toLowerCase().trim()`
+- 使用 `.default([])` 保持向后兼容——旧客户端不传此字段也不会报错
+- `executionPlan` 放在 `citations` 之后、`graph` 之前
 
-对应文档更新：
+- [x] **Step 1.3：确认新类型可导出**
 
-- `docs/architecture/components/RETRIEVAL.md`
+检查 `packages/contracts/src/index.ts` 是否 barrel-export `plans.ts` 中的所有类型。如果使用 `export * from './domain/plans.js'`，则 `ExecutionStep` 自动导出。若不是，手动添加。
 
-- [ ] **Step 1.3：同步更新所有 `ParsedIntent` 测试 fixture**
+- [x] **Step 1.4：运行类型检查确认无破坏**
 
-验收要求：
+```bash
+pnpm typecheck
+```
 
-- 所有 `ParsedIntent` 手写对象都补齐三个新字段
-- `rtk pnpm typecheck` 不再报 “missing property”
+Expected: 0 errors。由于 `executionPlan` 有 `.default([])`，现有实例化不会报 "missing property"。
 
-示例结构：
+- [x] **Step 1.5：Commit**
+
+```bash
+git add packages/contracts/src/domain/plans.ts packages/contracts/src/index.ts
+git commit -m "feat(contracts): add ExecutionStep schema and executionPlan to TrapFirstPlan"
+```
+
+### Phase 1 验收标准
+
+- [x] `ExecutionStep` 类型已定义，包含 `rank`、`nodeId`、`label`、`kind`、`blockedBy` 五个字段
+- [x] `trapFirstPlanSchema` 包含 `executionPlan` 字段，且有 `.default([])`
+- [x] `ExecutionStep` 可从 `@trapmap/contracts` 正常导入
+- [x] `pnpm typecheck` 零错误
+- [x] 现有测试不受影响（无 "missing property" 报错）
+
+### Phase 1 文档更新
+
+- [x] `docs/architecture/GRAPH_RETRIEVAL.md`：暂不更新（Phase 4 统一处理）
+- [x] `plan.md`：记录 Phase 1 完成状态
+
+---
+
+## Phase 2：实现 `buildExecutionPlan()` 函数
+
+**目标：** 在 `plan-compiler.ts` 中实现拓扑排序逻辑，将 traps + skills + edges 编译成 `ExecutionStep[]`。
+
+**涉及文件：**
+
+- 修改：`packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts`
+- 修改：`packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts`
+
+### 进度追踪
+
+- [ ] **Step 2.1：编写 `buildExecutionPlan` 的失败测试**
+
+在 `plan-compiler.test.ts` 末尾的 `describe('plan-compiler')` 内新增 `describe('executionPlan')` 块。`buildExecutionPlan` 是内部函数，通过 `compileTrapFirstPlan` 的输出间接测试。
+
+添加以下测试用例：
 
 ```ts
-const intent: ParsedIntent = {
-  seed: 'docker deploy fails',
-  normalized: 'docker deploy fails',
-  situation: null,
-  problem: 'deploy fails',
-  goal: null,
-  errorText: null,
-  tokens: [],
-  stackPathHints: [],
-  category: null,
-  semanticQuery: null,
-  parseMethod: 'regex',
+describe('executionPlan', () => {
+  it('returns empty executionPlan when no traps or skills', async () => {
+    const services = makeMockServices({
+      knowledgeEntries: [],
+      skillArtifacts: [],
+      graphIndexDocuments: [],
+    });
+    const auth = makeMockAuth();
+    const query: PlanQuery = { seed: 'empty', skillBudget: 3, maxDepth: 2 };
+
+    const result = await compileTrapFirstPlan(services, auth, query);
+
+    expect(result.executionPlan).toEqual([]);
+  });
+
+  it('places mitigating skills before the traps they mitigate', async () => {
+    const trapId = 'trap-ep-1';
+    const skillId = 'skill-ep-1';
+
+    const trapNode = makeTrapNode(trapId, 'Blocking trap');
+    const skillNode = makeSkillNode(skillId, 'Mitigating skill');
+    const riskEdge = makeRiskBlocksEdge(trapId, 'cue-ep-1', 'hard');
+    const mitEdge = makeMitigatesEdge(skillId, trapId, 'hard');
+
+    const services = makeMockServices({
+      knowledgeEntries: [makeKnowledgeEntry(trapId)],
+      skillArtifacts: [makeSkillArtifact(skillId)],
+      graphIndexDocuments: [
+        makeGraphDoc(trapId, 'trap', [trapNode], [riskEdge]),
+        makeGraphDoc(skillId, 'skill', [skillNode], [mitEdge]),
+      ],
+    });
+    const auth = makeMockAuth();
+    const query: PlanQuery = { seed: 'blocking trap mitigation', skillBudget: 3, maxDepth: 2 };
+
+    const result = await compileTrapFirstPlan(services, auth, query);
+
+    // executionPlan 应包含节点
+    expect(result.executionPlan.length).toBeGreaterThan(0);
+
+    // Skill 应在 trap 之前出现
+    const skillIndex = result.executionPlan.findIndex((s) => s.nodeId === `skill:${skillId}`);
+    const trapIndex = result.executionPlan.findIndex((s) => s.nodeId === `trap:${trapId}`);
+
+    if (skillIndex >= 0 && trapIndex >= 0) {
+      expect(skillIndex).toBeLessThan(trapIndex);
+    }
+
+    // Trap 步骤的 blockedBy 应包含 skill
+    const trapStep = result.executionPlan.find((s) => s.nodeId === `trap:${trapId}`);
+    if (trapStep) {
+      expect(trapStep.blockedBy).toContain(`skill:${skillId}`);
+    }
+  });
+
+  it('respects requires edges between skills', async () => {
+    const trapId = 'trap-ep-req';
+    const skillA = 'skill-ep-a';
+    const skillB = 'skill-ep-b';
+
+    const trapNode = makeTrapNode(trapId, 'Trap requiring chain');
+    const skillNodeA = makeSkillNode(skillA, 'Prerequisite skill A');
+    const skillNodeB = makeSkillNode(skillB, 'Dependent skill B');
+    const riskEdge = makeRiskBlocksEdge(trapId, 'cue-ep-req', 'hard');
+    const mitEdgeA = makeMitigatesEdge(skillA, trapId, 'hard');
+    const mitEdgeB = makeMitigatesEdge(skillB, trapId, 'soft');
+    const requiresEdge = makeRequiresEdge(skillA, skillB, 'hard');
+
+    const services = makeMockServices({
+      knowledgeEntries: [makeKnowledgeEntry(trapId)],
+      skillArtifacts: [makeSkillArtifact(skillA), makeSkillArtifact(skillB)],
+      graphIndexDocuments: [
+        makeGraphDoc(trapId, 'trap', [trapNode], [riskEdge]),
+        makeGraphDoc(skillA, 'skill', [skillNodeA, skillNodeB], [mitEdgeA, mitEdgeB, requiresEdge]),
+      ],
+    });
+    const auth = makeMockAuth();
+    const query: PlanQuery = { seed: 'requires chain', skillBudget: 3, maxDepth: 2 };
+
+    const result = await compileTrapFirstPlan(services, auth, query);
+
+    const indexA = result.executionPlan.findIndex((s) => s.nodeId === `skill:${skillA}`);
+    const indexB = result.executionPlan.findIndex((s) => s.nodeId === `skill:${skillB}`);
+
+    if (indexA >= 0 && indexB >= 0) {
+      // A（前置）应在 B（依赖）之前
+      expect(indexA).toBeLessThan(indexB);
+    }
+
+    // B 的 blockedBy 应包含 A
+    const stepB = result.executionPlan.find((s) => s.nodeId === `skill:${skillB}`);
+    if (stepB) {
+      expect(stepB.blockedBy).toContain(`skill:${skillA}`);
+    }
+  });
+
+  it('assigns correct rank values', async () => {
+    const trapId = 'trap-ep-rank';
+    const skillA = 'skill-rank-a';
+    const skillB = 'skill-rank-b';
+
+    const trapNode = makeTrapNode(trapId, 'Ranked trap');
+    const skillNodeA = makeSkillNode(skillA, 'Rank A skill');
+    const skillNodeB = makeSkillNode(skillB, 'Rank B skill');
+    const riskEdge = makeRiskBlocksEdge(trapId, 'cue-rank', 'hard');
+    const mitEdge = makeMitigatesEdge(skillA, trapId, 'hard');
+    const requiresEdge = makeRequiresEdge(skillA, skillB, 'hard');
+
+    const services = makeMockServices({
+      knowledgeEntries: [makeKnowledgeEntry(trapId)],
+      skillArtifacts: [makeSkillArtifact(skillA), makeSkillArtifact(skillB)],
+      graphIndexDocuments: [
+        makeGraphDoc(trapId, 'trap', [trapNode], [riskEdge]),
+        makeGraphDoc(skillA, 'skill', [skillNodeA, skillNodeB], [mitEdge, requiresEdge]),
+      ],
+    });
+    const auth = makeMockAuth();
+    const query: PlanQuery = { seed: 'rank test', skillBudget: 3, maxDepth: 2 };
+
+    const result = await compileTrapFirstPlan(services, auth, query);
+
+    // 所有步骤的 rank 应为非负整数
+    for (const step of result.executionPlan) {
+      expect(step.rank).toBeGreaterThanOrEqual(0);
+      expect(Number.isInteger(step.rank)).toBe(true);
+    }
+
+    // 无前置的步骤 rank 应为 0
+    const rankZeroSteps = result.executionPlan.filter((s) => s.rank === 0);
+    expect(rankZeroSteps.length).toBeGreaterThan(0);
+  });
+
+  it('handles 25-node Deploy Cluster with executionPlan', async () => {
+    const dataset = buildDeployClusterDataset();
+
+    const services = makeMockServices({
+      knowledgeEntries: dataset.knowledgeEntries,
+      skillArtifacts: dataset.skillArtifacts,
+      graphIndexDocuments: dataset.graphDocs,
+    });
+    const auth = makeMockAuth();
+    const query: PlanQuery = { seed: 'deploy cluster safely', skillBudget: 5, maxDepth: 3 };
+
+    const result = await compileTrapFirstPlan(services, auth, query);
+
+    // executionPlan 应包含计划中的所有节点
+    const planNodeIds = new Set([
+      ...result.blockingTraps.map((t) => t.nodeId),
+      ...result.recommendedSkills.map((s) => s.nodeId),
+    ]);
+
+    for (const nodeId of planNodeIds) {
+      expect(result.executionPlan.find((s) => s.nodeId === nodeId)).toBeDefined();
+    }
+  });
+});
+```
+
+- [ ] **Step 2.2：运行测试确认失败**
+
+```bash
+pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts
+```
+
+Expected: 新测试失败（`executionPlan` 不存在或内容不正确）。
+
+- [ ] **Step 2.3：实现 `buildExecutionPlan()` 函数**
+
+在 `plan-compiler.ts` 的 import 中加入 `ExecutionStep` 类型：
+
+```ts
+import type {
+  ExecutionStep,
+  // ... existing imports
+} from '@trapmap/contracts';
+```
+
+在 `buildUnifiedGraph()` 函数之后（约 line 564）新增：
+
+```ts
+/**
+ * Build a topologically sorted execution plan from traps, skills, and edges.
+ *
+ * 排序语义：
+ * - `mitigates` 边 (skill -> trap)：skill 必须在 trap 之前执行
+ * - `requires` 边 (A -> B)：A 必须在 B 之前执行（硬依赖）
+ * - `order` 边 (A -> B)：A 应在 B 之前执行（软排序）
+ * - 无 mitigating 前置的 trap 放在 rank 0（按 severity 排序）
+ * - 环路检测：无法拓扑排序的节点追加到末尾
+ *
+ * 设计参考：
+ * - SkillGraph: TopoSort over prerequisite/enhancement edges
+ * - GraSP: DAG compilation with state/data/order edges
+ */
+function buildExecutionPlan(
+  traps: PlanTrapNode[],
+  skills: PlanSkillNode[],
+  edges: PlanEdge[],
+): ExecutionStep[] {
+  const allNodes = [
+    ...traps.map((t) => ({
+      nodeId: t.nodeId,
+      label: t.label,
+      kind: 'trap-mitigation' as const,
+      score: t.score,
+      severity: t.severity,
+    })),
+    ...skills.map((s) => ({
+      nodeId: s.nodeId,
+      label: s.label,
+      kind: 'skill' as const,
+      score: s.score,
+      severity: 'soft' as const,
+    })),
+  ];
+
+  if (allNodes.length === 0) {
+    return [];
+  }
+
+  const nodeById = new Map(allNodes.map((n) => [n.nodeId, n]));
+
+  // 构建邻接表和入度
+  // 边方向约定：sourceNodeId -> targetNodeId 表示 "source 应在 target 之前执行"
+  //
+  // `mitigates` (skill -> trap)：skill 先于 trap → 方向正确
+  // `requires` (A -> B)：A 先于 B → 方向正确
+  // `order` (A -> B)：A 先于 B → 方向正确
+  const outgoing = new Map<string, string[]>();
+  const indegree = new Map<string, number>();
+  const blockedByMap = new Map<string, string[]>();
+
+  for (const node of allNodes) {
+    outgoing.set(node.nodeId, []);
+    indegree.set(node.nodeId, 0);
+    blockedByMap.set(node.nodeId, []);
+  }
+
+  const depEdgeTypes = new Set(['mitigates', 'requires', 'order']);
+
+  for (const edge of edges) {
+    if (!depEdgeTypes.has(edge.type)) continue;
+    if (!nodeById.has(edge.sourceNodeId) || !nodeById.has(edge.targetNodeId)) continue;
+
+    outgoing.get(edge.sourceNodeId)!.push(edge.targetNodeId);
+    indegree.set(edge.targetNodeId, (indegree.get(edge.targetNodeId) ?? 0) + 1);
+    blockedByMap.get(edge.targetNodeId)!.push(edge.sourceNodeId);
+  }
+
+  // Kahn 算法，severity tiebreaking
+  const queue: string[] = [];
+  for (const node of allNodes) {
+    if ((indegree.get(node.nodeId) ?? 0) === 0) {
+      queue.push(node.nodeId);
+    }
+  }
+
+  // 初始队列排序：hard severity 的 trap 优先，然后按 score 降序
+  queue.sort((a, b) => {
+    const na = nodeById.get(a)!;
+    const nb = nodeById.get(b)!;
+    if (na.severity === 'hard' && nb.severity !== 'hard') return -1;
+    if (na.severity !== 'hard' && nb.severity === 'hard') return 1;
+    return nb.score - na.score;
+  });
+
+  const rankMap = new Map<string, number>();
+  const ordered: string[] = [];
+
+  // 所有初始节点 rank = 0
+  for (const nodeId of queue) {
+    rankMap.set(nodeId, 0);
+  }
+
+  while (queue.length > 0) {
+    const nodeId = queue.shift()!;
+    ordered.push(nodeId);
+
+    const targets = outgoing.get(nodeId) ?? [];
+    for (const targetId of targets) {
+      const newIndegree = (indegree.get(targetId) ?? 1) - 1;
+      indegree.set(targetId, newIndegree);
+
+      // 更新 rank：所有前驱 rank 的最大值 + 1
+      const currentRank = rankMap.get(targetId) ?? 0;
+      const predecessorRank = rankMap.get(nodeId) ?? 0;
+      rankMap.set(targetId, Math.max(currentRank, predecessorRank + 1));
+
+      if (newIndegree === 0) {
+        queue.push(targetId);
+      }
+    }
+
+    // 队列内按 rank 优先，然后 severity，然后 score 排序
+    queue.sort((a, b) => {
+      const rankDiff = (rankMap.get(a) ?? 0) - (rankMap.get(b) ?? 0);
+      if (rankDiff !== 0) return rankDiff;
+      const na = nodeById.get(a)!;
+      const nb = nodeById.get(b)!;
+      if (na.severity === 'hard' && nb.severity !== 'hard') return -1;
+      if (na.severity !== 'hard' && nb.severity === 'hard') return 1;
+      return nb.score - na.score;
+    });
+  }
+
+  // 环路处理：未排入的节点追加到末尾
+  const orderedSet = new Set(ordered);
+  for (const node of allNodes) {
+    if (!orderedSet.has(node.nodeId)) {
+      ordered.push(node.nodeId);
+      rankMap.set(node.nodeId, allNodes.length);
+    }
+  }
+
+  // 构建 ExecutionStep 数组
+  return ordered.map((nodeId) => {
+    const node = nodeById.get(nodeId)!;
+    return {
+      rank: rankMap.get(nodeId) ?? 0,
+      nodeId: node.nodeId,
+      label: node.label,
+      kind: node.kind,
+      blockedBy: blockedByMap.get(nodeId) ?? [],
+    };
+  });
+}
+```
+
+- [ ] **Step 2.4：将 `buildExecutionPlan` 接入 `compileTrapFirstPlan`**
+
+在 `compileTrapFirstPlan()` 的 return 语句（约 line 161）中，将 `executionPlan` 加入返回值：
+
+```ts
+const executionPlan = buildExecutionPlan(blockingTraps, selectedSkills, edges);
+
+return {
+  blockingTraps,
+  recommendedSkills: selectedSkills,
+  edges,
+  citations,
+  executionPlan,
+  graph,
 };
 ```
 
-注意事项：
-
-- 这一步不能漏掉 `packages/server/src/__tests__/lib/retrieval/*`
-- `makeIntent()` 工厂函数优先统一补默认值，避免每个测试手填
-
-对应文档更新：
-
-- 无新增文档内容，但本阶段完成记录要写入 `plan.md`
-
-### 本阶段最小验证
-
-```bash
-rtk pnpm typecheck
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent.test.ts
-```
-
-### Phase 1 完成验收
-
-- [x] `ParsedIntent` 扩展字段已落地
-- [x] `IntentCacheStore` / `InMemoryIntentCache` 已创建
-- [x] 所有 `ParsedIntent` fixture 已同步
-- [x] 最小验证通过
-- [x] `graphify update .` 已执行
-
-### 本阶段提交
-
-- [ ] 提交信息建议：`feat(retrieval): add llm intent types and cache primitives`
-
----
-
-## Phase 2：实现 LLM parser 主体与 fallback
-
-**目标：** 在不破坏旧 parser 的前提下，实现可缓存、可重试、可降级的 `parseSeedIntentWithLLM()`。
-
-**涉及文件：**
-
-- 修改：`packages/server/src/lib/retrieval/capsules/intent.ts`
-- 修改：`packages/server/src/lib/retrieval/capsules/index.ts`
-- 修改：`packages/server/src/lib/retrieval/capsules/intent.test.ts`
-- 新增：`packages/server/src/lib/retrieval/capsules/intent-cache.test.ts`
-
-- [ ] **Step 2.1：保持旧 parser 返回扩展后的 regex 结果**
-
-验收要求：
-
-- `parseSeedIntent()` 继续是纯同步函数
-- 它返回的对象已经补上：
-  - `category: null`
-  - `semanticQuery: null`
-  - `parseMethod: 'regex'`
-
-示例代码：
+同时更新 empty-plan 早返回路径（约 line 104），加上 `executionPlan: []`：
 
 ```ts
 return {
-  seed,
-  normalized,
-  situation,
-  problem,
-  goal,
-  errorText,
-  tokens,
-  stackPathHints,
-  category: null,
-  semanticQuery: null,
-  parseMethod: 'regex',
+  blockingTraps: [],
+  recommendedSkills: [],
+  edges: [],
+  citations: [],
+  executionPlan: [],
+  graph: {
+    // ... 保持不变
+  },
 };
 ```
 
-注意事项：
-
-- 这里不要加入任何 chat/cache 逻辑
-- 空 seed 路径也必须返回完整字段
-
-对应文档更新：
-
-- `docs/reference/GLOSSARY.md`
-
-- [ ] **Step 2.2：补 LLM response schema、prompt builder、response parser**
-
-验收要求：
-
-- 在 `intent.ts` 内或同模块中定义 zod schema
-- 使用现有 `stripCodeFences()`，不要重复造轮子
-- response parse 失败时返回 `null`，由外层决定重试或 fallback
-
-示例代码：
-
-```ts
-const intentExtractionSchema = z.object({
-  situation: z.string().nullable(),
-  problem: z.string().nullable(),
-  goal: z.string().nullable(),
-  errorText: z.string().nullable(),
-  category: z.enum(INTENT_CATEGORY_VALUES).nullable(),
-  semanticQuery: z.string().max(200).nullable(),
-});
-
-function parseIntentExtractionResponse(raw: string) {
-  try {
-    const cleaned = stripCodeFences(raw);
-    const parsed = JSON.parse(cleaned);
-    const result = intentExtractionSchema.safeParse(parsed);
-    return result.success ? result.data : null;
-  } catch {
-    return null;
-  }
-}
-```
-
-注意事项：
-
-- `semanticQuery` 上限必须在 schema 层约束
-- 不要接受额外自由格式文本
-- prompt 要求只返回 JSON，避免后面 parser 容错成本继续上涨
-
-对应文档更新：
-
-- `docs/architecture/components/RETRIEVAL.md`
-
-- [ ] **Step 2.3：实现 `parseSeedIntentWithLLM()` 主流程**
-
-验收要求：
-
-- 支持 cache lookup
-- `chat.isConfigured === false` 时直接 regex fallback
-- LLM 成功时保留 deterministic `tokens` 和 `stackPathHints`
-- 任一异常时返回 regex fallback
-
-示例代码：
-
-```ts
-export async function parseSeedIntentWithLLM(
-  seed: string,
-  chat: ChatProvider,
-  options?: { cache?: IntentCacheStore },
-): Promise<ParsedIntent> {
-  const normalizedSeed = seed.toLowerCase().trim();
-  const cached = options?.cache?.get(normalizedSeed);
-  if (cached) return cached;
-
-  if (!chat.isConfigured) {
-    return parseSeedIntent(seed);
-  }
-
-  const fallback = parseSeedIntent(seed);
-  const extraction = await invokeIntentExtraction(chat, seed);
-  if (!extraction) return fallback;
-
-  const result: ParsedIntent = {
-    seed,
-    normalized: normalizedSeed,
-    situation: extraction.situation,
-    problem: extraction.problem,
-    goal: extraction.goal,
-    errorText: extraction.errorText,
-    tokens: seed.split(/\s+/).filter(Boolean).map(normalizeToken),
-    stackPathHints: extractStackPathHints(normalizedSeed),
-    category: extraction.category,
-    semanticQuery: extraction.semanticQuery,
-    parseMethod: 'llm',
-  };
-
-  options?.cache?.set(normalizedSeed, result);
-  return result;
-}
-```
-
-注意事项：
-
-- `normalized` 必须跟缓存 key 一致
-- 成功路径不要直接复用 fallback 对象后再 mutate
-- cache 命中对象必须已经是完整 `ParsedIntent`
-
-对应文档更新：
-
-- `docs/architecture/components/RETRIEVAL.md`
-
-- [ ] **Step 2.4：实现重试与指数退避**
-
-验收要求：
-
-- 总共 3 次尝试
-- backoff 为 100ms / 400ms
-- parse 失败和 invoke 抛错都进入重试逻辑
-
-示例代码：
-
-```ts
-const maxRetries = 2;
-for (let attempt = 0; attempt <= maxRetries; attempt++) {
-  try {
-    const raw = await chat.invoke(systemPrompt, seed);
-    const parsed = parseIntentExtractionResponse(raw);
-    if (parsed) return parsed;
-  } catch {}
-
-  if (attempt < maxRetries) {
-    await new Promise((resolve) => setTimeout(resolve, 100 * 2 ** (attempt * 2)));
-  }
-}
-return null;
-```
-
-注意事项：
-
-- 不要只对 `invoke()` 抛错重试，schema 失败也需要重试
-- 退避逻辑要与 `llm-dedup.ts` / `contextual-enrichment.ts` 风格一致
-
-对应文档更新：
-
-- `docs/architecture/components/RETRIEVAL.md`
-
-- [ ] **Step 2.5：为 parser 和 cache 补单测**
-
-验收要求：
-
-- `intent.test.ts` 覆盖：
-  - LLM happy path
-  - fenced JSON
-  - parse failure retry
-  - invalid category retry/fallback
-  - unconfigured chat -> regex fallback
-  - deterministic tokens/hints 仍存在
-- `intent-cache.test.ts` 覆盖：
-  - hit
-  - ttl expiry
-  - max size eviction
-  - clear
-
-示例测试结构：
-
-```ts
-it('falls back to regex when chat is not configured', async () => {
-  const chat: ChatProvider = {
-    provider: 'test',
-    isConfigured: false,
-    invoke: vi.fn(),
-  };
-
-  const result = await parseSeedIntentWithLLM('docker deploy fails', chat);
-  expect(result.parseMethod).toBe('regex');
-  expect(result.category).toBeNull();
-  expect(chat.invoke).not.toHaveBeenCalled();
-});
-```
-
-注意事项：
-
-- cache test 不要依赖真实时间等待太久，优先用 mock 时间
-- parser test 里要断言 `parseMethod`
-
-对应文档更新：
-
-- `docs/operations/TESTING.md`
-
-### 本阶段最小验证
+- [ ] **Step 2.5：运行测试确认通过**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent.test.ts
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent-cache.test.ts
-rtk pnpm typecheck
+pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts
 ```
 
-### Phase 2 完成验收
+Expected: 所有测试（包括新增的 executionPlan 测试）通过。
 
-- [x] `parseSeedIntentWithLLM()` 已实现
-- [x] fallback / retry / cache 已实现
-- [x] parser 与 cache 单测通过
+- [ ] **Step 2.6：运行类型检查**
+
+```bash
+pnpm typecheck
+```
+
+Expected: 0 errors。
+
+- [ ] **Step 2.7：执行 `graphify update .`**
+
+```bash
+graphify update .
+```
+
+- [ ] **Step 2.8：Commit**
+
+```bash
+git add packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts
+git commit -m "feat(retrieval): add topological execution plan to trap-first compiler"
+```
+
+### Phase 2 验收标准
+
+- [x] `buildExecutionPlan()` 函数已实现，使用 Kahn 拓扑排序算法
+- [x] 边方向约定：`mitigates`/`requires`/`order` 均为 "source 先于 target"
+- [x] 环路检测：无法排序的节点追加到末尾，不抛异常
+- [x] `rank` 值正确：无前置节点 rank=0，有前置节点 rank = max(前驱 rank) + 1
+- [x] `blockedBy` 正确：包含所有直接前驱节点的 nodeId
+- [x] `compileTrapFirstPlan()` 返回值包含 `executionPlan` 字段
+- [x] 空计划早返回路径包含 `executionPlan: []`
+- [x] 所有新增测试用例通过（空计划、mitigates 排序、requires 排序、rank 值、Deploy Cluster 端到端）
+- [x] 所有现有测试不受影响
+- [x] `pnpm typecheck` 零错误
 - [x] `graphify update .` 已执行
 
-### 本阶段提交
+### Phase 2 文档更新
 
-- [x] 提交信息建议：`feat(retrieval): add llm-backed intent parser with fallback`
+- [x] `docs/architecture/GRAPH_RETRIEVAL.md`：暂不更新（Phase 4 统一处理）
+- [x] `plan.md`：记录 Phase 2 完成状态
 
 ---
 
-## Phase 3：接入 v2 orchestrator 与 semantic channel
+## Phase 3：更新 CLI 消费端
 
-**目标：** 先接入最核心的 v2 检索链路，并让 semantic 通道消费 `semanticQuery`。
+**目标：** CLI renderer 改为直接使用服务端返回的 `executionPlan`，移除客户端自行计算拓扑排序的逻辑。
 
 **涉及文件：**
 
-- 修改：`packages/server/src/lib/retrieval/orchestration/orchestrator.ts`
-- 修改：`packages/server/src/lib/retrieval/capsules/channels/semantic.ts`
-- 修改：`packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts`
-- 修改：`packages/server/src/__tests__/lib/retrieval/capsule-semantic-channel.test.ts`
+- 修改：`packages/cli/src/lib/output-profile.ts`
 
-- [ ] **Step 3.1：在 orchestrator 中创建模块级 intent cache**
+### 进度追踪
 
-验收要求：
+- [ ] **Step 3.1：替换 `buildExecutionOrder` 实现**
 
-- `orchestrator.ts` 内存在可复用的 `InMemoryIntentCache`
-- 每次请求不会重复 new 一个 cache
-
-示例代码：
+将 `output-profile.ts` 中的 `buildExecutionOrder` 函数（lines 157-207）改为从 `executionPlan` 读取：
 
 ```ts
-const intentCache = new InMemoryIntentCache();
+function buildExecutionOrder(payload: GraphPlanSearchResponse): string[] {
+  const executionPlan = payload.plan?.executionPlan ?? [];
+  if (executionPlan.length === 0) {
+    return [];
+  }
+
+  return executionPlan.map((step) => step.label);
+}
 ```
 
 注意事项：
 
-- 模块级 cache 可以接受进程内生命周期；本阶段不要引入复杂注入
-- 不要把 cache 挂在 request scope
+- 服务端返回 `executionPlan` 后，客户端不再需要自行做拓扑排序
+- 保留 fallback 逻辑以防旧服务端不返回此字段
 
-对应文档更新：
+- [ ] **Step 3.2：检查各 renderer 是否需要适配 `executionPlan` 结构**
 
-- `docs/architecture/components/RETRIEVAL.md`
+阅读 `output-profile.ts` 中 `renderClaude`、`renderCodex`、`renderOpenCode`、`renderGeneric` 函数，确认它们如何使用 `buildExecutionOrder` 的结果。
 
-- [ ] **Step 3.2：将 v2 intent step 改为 LLM parser**
-
-验收要求：
-
-- `searchKnowledgeV2()` 的 `intent` step 改为 async parser
-- 使用 `services.ai.chat`
-- trace、组装、治理逻辑保持不变
-
-示例代码：
+对于 `codex` renderer（JSON 输出），考虑输出完整 `executionPlan` 而非仅 labels：
 
 ```ts
-const intent = await timedStep(
-  'intent',
-  () => parseSeedIntentWithLLM(parsed.seed, services.ai.chat, { cache: intentCache }),
-  steps,
-);
+// 在 buildCodexObject 中：
+executionPlan: plan?.executionPlan ?? [],
 ```
 
-注意事项：
-
-- 不要把 routing selector 变成依赖 `intent.category`；设计明确说本阶段不做
-- 不要改 v2 route 的请求/响应 schema
-
-对应文档更新：
-
-- `docs/architecture/components/RETRIEVAL.md`
-
-- [ ] **Step 3.3：semantic channel 优先使用 `semanticQuery`**
-
-验收要求：
-
-- memory path 和 PG path 都优先读取 `intent.semanticQuery`
-- 当 `semanticQuery` 为空时回退到 `seed` / `normalized`
-
-示例代码：
-
-```ts
-const queryText = intent.semanticQuery || intent.seed || intent.normalized;
-```
-
-注意事项：
-
-- 两条路径必须保持一致，不要只改 memory 或只改 PG
-- 空白字符串要当作不可用处理
-
-对应文档更新：
-
-- `docs/architecture/components/RETRIEVAL.md`
-
-- [ ] **Step 3.4：补 v2 orchestrator 与 semantic channel 测试**
-
-验收要求：
-
-- orchestrator test 能覆盖：
-  - `services.ai.chat.isConfigured = false`
-  - LLM path 返回 `parseMethod: 'llm'`
-  - routing trace 仍可落日志
-- semantic channel test 能覆盖：
-  - 存在 `semanticQuery` 时优先使用它
-  - 缺失时回退 `seed`
-
-示例测试结构：
-
-```ts
-expect(generateEmbedding).toHaveBeenCalledWith(
-  'fastify ECONNREFUSED kubernetes deployment networking',
-);
-```
-
-注意事项：
-
-- 若当前 test 是 mock `parseSeedIntent`，这里要改 mock/export，支持新函数
-- 不要只断言函数被调用，要断言具体 query text
-
-对应文档更新：
-
-- `docs/operations/TESTING.md`
-
-### 本阶段最小验证
+- [ ] **Step 3.3：运行 CLI 测试**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts
-rtk pnpm test -- --run packages/server/src/__tests__/lib/retrieval/capsule-semantic-channel.test.ts
-rtk pnpm typecheck
+pnpm test -- --run packages/cli/
 ```
 
-### Phase 3 完成验收
+Expected: 所有 CLI 测试通过。
 
-- [x] v2 orchestrator 已接 LLM parser
-- [x] semantic channel 已优先使用 `semanticQuery`
-- [x] 相关测试通过
-- [x] `graphify update .` 已执行
+- [ ] **Step 3.4：运行类型检查**
 
-### 本阶段提交
+```bash
+pnpm typecheck
+```
 
-- [x] 提交信息建议：`feat(retrieval): wire llm intent parsing into v2 search`
+Expected: 0 errors。
+
+- [ ] **Step 3.5：Commit**
+
+```bash
+git add packages/cli/src/lib/output-profile.ts
+git commit -m "refactor(cli): consume server-side executionPlan instead of client-side topo sort"
+```
+
+### Phase 3 验收标准
+
+- [x] `buildExecutionOrder()` 已改为从 `payload.plan.executionPlan` 读取
+- [x] 当服务端未返回 `executionPlan` 时，降级为空数组（不崩溃）
+- [x] `codex` renderer 输出包含 `executionPlan` 完整结构（若有）
+- [x] 其他 renderer 的 `next_steps` 输出行为不变（label 列表）
+- [x] 所有 CLI 测试通过
+- [x] `pnpm typecheck` 零错误
+
+### Phase 3 文档更新
+
+- [x] `docs/architecture/GRAPH_RETRIEVAL.md`：暂不更新（Phase 4 统一处理）
+- [x] `plan.md`：记录 Phase 3 完成状态
 
 ---
 
-## Phase 4：接入 skill lookup 与 graph plan compiler
+## Phase 4：端到端验证与文档收尾
 
-**目标：** 让两个复用 intent 的 helper 与主检索保持一致能力，不再停留在旧 regex-only 路径。
+**目标：** 确保端到端路径正确传递 `executionPlan`，更新架构文档，执行最终正确性验证。
 
 **涉及文件：**
 
-- 修改：`packages/server/src/lib/retrieval/capsules/skill-lookup.ts`
-- 修改：`packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts`
-- 修改：`packages/server/src/routes/retrieval.ts`（仅当签名变更需要）
-- 修改：`packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts`
-- 修改：`packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts`
 - 修改：`packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts`（若受影响）
-
-- [ ] **Step 4.1：为 skill lookup 注入 chat + cache**
-
-验收要求：
-
-- `searchSkillsByContent()` 内改为调用 `parseSeedIntentWithLLM()`
-- 直接使用 `services.ai.chat`
-- cache 采用模块级或文件级共享实例
-
-示例代码：
-
-```ts
-const intent = await parseSeedIntentWithLLM(parsed.text, services.ai.chat, {
-  cache: intentCache,
-});
-```
-
-注意事项：
-
-- 当前 `searchSkillsByContent()` 已有 `services`，优先用现有 `services.ai.chat`，不要改成从 route 额外传参
-- 保持返回契约不变
-
-对应文档更新：
-
-- `docs/architecture/components/RETRIEVAL.md`
-
-- [ ] **Step 4.2：为 trap-first plan compiler 注入 chat + cache**
-
-验收要求：
-
-- `compileTrapFirstPlan()` 内改用 async parser
-- 其余 graph expansion / budget / edge assembling 逻辑不变
-
-示例代码：
-
-```ts
-const intent = await parseSeedIntentWithLLM(query.seed, services.ai.chat, {
-  cache: intentCache,
-});
-```
-
-注意事项：
-
-- `compileTrapFirstPlan()` 已经是 async；这里只改变内部一步，不要扩散到 route 契约
-- graph path 仍然主要依赖 `tokens` 与 `stackPathHints`，因此 deterministic supplement 不能丢
-
-对应文档更新：
-
-- `docs/architecture/GRAPH_RETRIEVAL.md`
-- `docs/architecture/components/RETRIEVAL.md`
-
-- [ ] **Step 4.3：补 skill lookup / plan compiler 测试**
-
-验收要求：
-
-- skill lookup test 覆盖：
-  - chat 未配置时仍可检索
-  - LLM path 不影响 governance 过滤
-- plan compiler test 覆盖：
-  - LLM path 不影响 trap/skill 识别
-  - fallback 到 regex 时仍可编译计划
-
-示例测试结构：
-
-```ts
-expect(result.matches[0]?.artifactId).toBe('artifact-1');
-expect(result.plan?.recommendedSkills.length ?? result.recommendedSkills.length).toBeGreaterThan(0);
-```
-
-注意事项：
-
-- 不要只测 “函数没抛错”，要测核心行为没回归
-- 若 mock service 没有 `ai.chat`，这里要补齐最小实现
-
-对应文档更新：
-
-- `docs/operations/TESTING.md`
-
-### 本阶段最小验证
-
-```bash
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts
-rtk pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts
-rtk pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts
-rtk pnpm typecheck
-```
-
-### Phase 4 完成验收
-
-- [x] skill lookup 已接 LLM parser
-- [x] plan compiler 已接 LLM parser
-- [x] governance / graph-plan 行为回归测试通过
-- [x] `graphify update .` 已执行
-
-### 本阶段提交
-
-- [x] 提交信息建议：`feat(retrieval): share llm intent parsing across lookup and graph plan`
-
----
-
-## Phase 5：扩展 trace、测试矩阵与 eval 兼容层
-
-**目标：** 把新增字段带到可观测层，并确保 eval 工具链不会因为响应/trace 变化而失真。
-
-**涉及文件：**
-
-- 修改：`packages/server/src/lib/retrieval/orchestration/orchestrator.ts`
-- 修改：`packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts`
-- 修改：`packages/server/src/routes/retrieval.test.ts`
-- 修改：`evals/retrieval/lib/normalize.ts`
-- 修改：`evals/retrieval/lib/normalize.test.ts`
-- 修改：`evals/retrieval/lib/report.ts`（若报告需要展示）
-- 修改：`evals/retrieval/README.md`
-
-- [ ] **Step 5.1：把 `parseMethod` / `category` 写入 routing trace metadata**
-
-验收要求：
-
-- v2 RAG log metadata 中可见新字段
-- 不破坏现有 `routingTrace` 必填结构
-
-示例结构：
-
-```ts
-metadata: {
-  filters: parsed.filters,
-  maxResults: parsed.maxResults,
-  routingTrace: {
-    ...toRoutingTrace(routingDecision),
-    parseMethod: intent.parseMethod,
-    intentCategory: intent.category,
-  },
-}
-```
-
-注意事项：
-
-- 优先写到 log metadata，不要急着改 contracts 层公共 schema
-- 字段命名保持稳定，避免 eval 归一化层再做多套兼容
-
-对应文档更新：
-
-- `docs/architecture/components/RETRIEVAL.md`
-- `docs/operations/TESTING.md`
-
-- [ ] **Step 5.2：同步 eval normalize / report 层**
-
-验收要求：
-
-- `evals/retrieval/lib/normalize.ts` 在保留旧字段的同时兼容新 trace 字段
-- 若报告展示 trace，则新字段不会导致解析失败
-
-示例代码：
-
-```ts
-routingTrace: {
-  selectedMode: routingTrace.selectedMode,
-  routingReason: routingTrace.routingReason,
-  fallbackApplied: routingTrace.fallbackApplied,
-  channelsUsed: routingTrace.channelsUsed,
-  parseMethod: routingTrace.parseMethod,
-  intentCategory: routingTrace.intentCategory,
-},
-```
-
-注意事项：
-
-- 只有在上游真的产出字段时才读取；避免旧 fixture 全部失效
-- 如果不准备在 report 中展示，也至少要保证 normalize 不丢字段
-
-对应文档更新：
-
-- `evals/retrieval/README.md`
-- `docs/operations/TESTING.md`
-
-- [ ] **Step 5.3：补 route / eval normalize 测试**
-
-验收要求：
-
-- `routes/retrieval.test.ts` 断言 v2 响应链路仍可用
-- `normalize.test.ts` 覆盖：
-  - `parseMethod: 'llm'`
-  - `intentCategory: 'deployment'`
-  - 缺省时仍兼容旧响应
-
-示例测试结构：
-
-```ts
-expect(result.routingTrace?.parseMethod).toBe('llm');
-expect(result.routingTrace?.intentCategory).toBe('deployment');
-```
-
-注意事项：
-
-- 这里要区分“路由响应体”与“RAG log metadata”；如果不把新字段暴露到 HTTP 响应，不要误改 route schema
-- route test 更应关注“不破坏返回契约”
-
-对应文档更新：
-
-- `docs/operations/TESTING.md`
-
-- [ ] **Step 5.4：新增 retrieval eval 对照要求**
-
-验收要求：
-
-- 至少有一条说明：比较 `semanticQuery` 开启前后效果
-- smoke/core 的运行说明已写入文档
-
-示例执行命令：
-
-```bash
-rtk pnpm eval:retrieval:smoke
-rtk pnpm eval:retrieval:core
-```
-
-注意事项：
-
-- 本阶段不一定要新增整套数据集，但必须明确如何做 baseline 对比
-- 若没有 feature flag，就至少记录“当前实现 vs 修改前基线”的手工比较方式
-
-对应文档更新：
-
-- `evals/retrieval/README.md`
-- `docs/operations/TESTING.md`
-
-### 本阶段最小验证
-
-```bash
-rtk pnpm test -- --run packages/server/src/routes/retrieval.test.ts
-rtk pnpm test -- --run evals/retrieval/lib/normalize.test.ts
-rtk pnpm typecheck
-rtk pnpm eval:retrieval:smoke
-```
-
-### Phase 5 完成验收
-
-- [x] trace metadata 已包含 `parseMethod` / `intentCategory`
-- [x] eval normalize/report 已兼容
-- [x] route 与 eval 测试通过
-- [x] smoke eval 已运行
-- [x] `graphify update .` 已执行
-
-### 本阶段提交
-
-- [x] 提交信息建议：`feat(retrieval): add llm intent trace and eval compatibility`
-
----
-
-## Phase 6：文档收尾、全量验证与差异回写
-
-**目标：** 把实现结果、验证方式、设计偏差全部补齐，形成可交付状态。
-
-**涉及文件：**
-
-- 修改：`docs/architecture/components/RETRIEVAL.md`
 - 修改：`docs/architecture/GRAPH_RETRIEVAL.md`
-- 修改：`docs/reference/GLOSSARY.md`
-- 修改：`docs/operations/TESTING.md`
-- 修改：`evals/retrieval/README.md`
-- 修改：`docs/superpowers/specs/2026-05-24-llm-intent-parsing-design.md`（若实现偏离设计）
-- 修改：`plan.md`
+- 修改：`docs/reference/GLOSSARY.md`（若有新术语）
 
-- [ ] **Step 6.1：更新检索架构文档**
+### 进度追踪
 
-验收要求：
+- [ ] **Step 4.1：检查 `graph-plan-search.test.ts` 是否受影响**
 
-- `RETRIEVAL.md` 写清：
-  - `parseSeedIntentWithLLM()` 入口
-  - cache/fallback/retry 行为
-  - semantic channel 使用 `semanticQuery`
-- `GRAPH_RETRIEVAL.md` 写清：
-  - `compileTrapFirstPlan()` 现在复用 LLM parser wrapper
+`searchKnowledgeGraphPlan()` 调用 `compileTrapFirstPlan()` 并通过 `graphPlanSearchResponseSchema.parse()` 验证。由于 `executionPlan` 有 `.default([])`，现有测试不会失败。新增一个端到端断言：
 
-示例文档结构：
+```ts
+it('returns executionPlan in graph-plan response', async () => {
+  // ... 使用含 trap + skill + edge 的 fixture ...
 
-```md
-#### LLM Intent Parsing
+  const result = await searchKnowledgeGraphPlan(services, auth, query);
 
-- deterministic baseline: `parseSeedIntent()`
-- async wrapper: `parseSeedIntentWithLLM()`
-- fallback: any LLM failure -> regex
-- cache: process-local `InMemoryIntentCache`
+  expect(result.plan).not.toBeNull();
+  if (result.plan) {
+    expect(result.plan.executionPlan).toBeDefined();
+    expect(Array.isArray(result.plan.executionPlan)).toBe(true);
+    // 若 plan 中有节点，executionPlan 应非空
+    if (result.plan.blockingTraps.length > 0 || result.plan.recommendedSkills.length > 0) {
+      expect(result.plan.executionPlan.length).toBeGreaterThan(0);
+    }
+  }
+});
 ```
 
-注意事项：
-
-- 文档要描述“现状”，不要保留未来时
-- 流程图里如果还写死 `parseSeedIntent()`，要更新为 wrapper 或注明 fallback 关系
-
-对应文档更新：
-
-- `docs/architecture/components/RETRIEVAL.md`
-- `docs/architecture/GRAPH_RETRIEVAL.md`
-
-- [ ] **Step 6.2：更新术语与测试文档**
-
-验收要求：
-
-- `GLOSSARY.md` 补充 `IntentCategory` / `semanticQuery` / `parseMethod`
-- `TESTING.md` 补充 parser/cache 测试命令与 eval 检查要求
-
-示例文档结构：
-
-```md
-| `packages/server/src/lib/retrieval/capsules/intent.ts` | Impl | `parseSeedIntent()` + `parseSeedIntentWithLLM()` |
-```
-
-注意事项：
-
-- 不要只补架构文档，测试文档也要更新运行命令
-
-对应文档更新：
-
-- `docs/reference/GLOSSARY.md`
-- `docs/operations/TESTING.md`
-
-- [ ] **Step 6.3：若实现偏离设计，回写设计文档差异**
-
-验收要求：
-
-- 若实现没有采用设计文档里的某个字面方案，必须记录原因
-- 例如：
-  - 直接复用 `services.ai.chat`，而非额外注入 `chat` 参数
-  - 直接复用 `stripCodeFences()`，而非手写 regex
-
-示例结构：
-
-```md
-## Implementation Notes
-
-- Reused `stripCodeFences()` from `lib/ai/parse.ts`
-- Helper integrations consume `services.ai.chat` directly to match current service shape
-```
-
-注意事项：
-
-- 这是为了防止设计和实现长期漂移
-- 若完全一致，可写 “No material divergence as of 2026-05-24”
-
-对应文档更新：
-
-- `docs/superpowers/specs/2026-05-24-llm-intent-parsing-design.md`
-
-- [ ] **Step 6.4：执行最终验证**
-
-验收要求：
-
-- 至少完成以下命令：
+- [ ] **Step 4.2：运行全量检索测试**
 
 ```bash
-rtk pnpm typecheck
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent.test.ts
-rtk pnpm test -- --run packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts
-rtk pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts
-rtk pnpm test -- --run packages/server/src/routes/retrieval.test.ts
-rtk pnpm eval:retrieval:smoke
+pnpm test -- --run packages/server/src/lib/retrieval/
+pnpm test -- --run packages/server/src/routes/retrieval.test.ts
+pnpm typecheck
 ```
 
-注意事项：
+Expected: 全部通过。
 
-- 如果时间允许，再跑：
+- [ ] **Step 4.3：更新 `GRAPH_RETRIEVAL.md`**
+
+在"四、读取路径"的 v3 Graph Plan Search 部分（约 line 198）的输出列表中，在 `citations[]` 之后新增：
+
+```md
+       +-- executionPlan[]   (拓扑排序后的执行序列)
+           +-- rank: 拓扑层级 (0=无前置，同层可并行)
+           +-- nodeId: 关联的 trap 或 skill 节点 ID
+           +-- label: 人类可读标签
+           +-- kind: 'trap-mitigation' | 'skill'
+           +-- blockedBy: 前置节点 ID 列表
+```
+
+在"七、关键设计特点"部分新增：
+
+```md
+8. **拓扑排序执行计划** -- `executionPlan` 字段基于 `mitigates`/`requires`/`order` 边进行 Kahn 拓扑排序，客户端无需自行计算执行顺序。边方向约定为"source 先于 target"：`mitigates`(skill→trap) 表示 skill 应在 trap 之前执行，`requires`(A→B) 表示 A 应在 B 之前执行，`order`(A→B) 表示 A 应在 B 之前执行。环路节点追加到末尾。
+```
+
+更新"八、关键源文件索引"部分的图计划检索表：
+
+```md
+| `packages/server/src/lib/retrieval/plan-compiler.ts` | Trap-First Plan 编译器 (BFS 局部展开 + skill 预算 + 拓扑执行计划) |
+```
+
+- [ ] **Step 4.4：更新 `GLOSSARY.md`（若需要）**
+
+若 `docs/reference/GLOSSARY.md` 中没有以下术语，补充：
+
+- `executionPlan`：拓扑排序后的执行序列，包含 rank、blockedBy 等依赖信息
+- `ExecutionStep`：执行计划中的单个步骤，关联一个 trap 或 skill 节点
+
+- [ ] **Step 4.5：执行 `graphify update .`**
 
 ```bash
-rtk pnpm eval:retrieval:core
+graphify update .
 ```
 
-- 若任一验证失败，不得标记阶段完成
+- [ ] **Step 4.6：Commit**
 
-对应文档更新：
+```bash
+git add docs/architecture/GRAPH_RETRIEVAL.md docs/reference/GLOSSARY.md
+git commit -m "docs: document executionPlan in graph retrieval architecture"
+```
 
-- `plan.md`：记录最终执行结果与剩余风险
+### Phase 4 验收标准
 
-### Phase 6 完成验收
-
-- [x] 架构文档已更新
-- [x] 术语与测试文档已更新
-- [x] 设计偏差已回写或确认无偏差
-- [x] 最终验证通过
+- [x] `graph-plan-search.test.ts` 新增端到端断言，验证 `executionPlan` 在完整路径中正确传递
+- [x] 全量检索测试通过（`packages/server/src/lib/retrieval/`）
+- [x] 路由测试通过（`packages/server/src/routes/retrieval.test.ts`）
+- [x] `GRAPH_RETRIEVAL.md` 已更新：v3 输出结构含 `executionPlan`、设计特点新增拓扑排序说明、源文件索引已更新
+- [x] `GLOSSARY.md` 已补充新术语（若有）
+- [x] `pnpm typecheck` 零错误
 - [x] `graphify update .` 已执行
 
-### 本阶段提交
+### Phase 4 文档更新
 
-- [x] 提交信息建议：`docs(retrieval): finalize llm intent parsing rollout notes`
+- [x] `docs/architecture/GRAPH_RETRIEVAL.md`：v3 输出结构、设计特点、源文件索引
+- [x] `docs/reference/GLOSSARY.md`：`executionPlan`、`ExecutionStep` 术语
+- [x] `plan.md`：记录 Phase 4 完成状态
+
+---
+
+## 最终正确性验证
+
+所有阶段完成后，执行以下验证清单。**任一项不通过则不得标记为完成。**
+
+### 类型安全验证
+
+```bash
+pnpm typecheck
+```
+
+- [x] 零类型错误
+
+### 单元测试验证
+
+```bash
+pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts
+```
+
+- [x] 所有现有测试通过（无回归）
+- [x] 所有新增 executionPlan 测试通过
+
+### 集成测试验证
+
+```bash
+pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts
+pnpm test -- --run packages/server/src/routes/retrieval.test.ts
+```
+
+- [x] v3 端到端路径测试通过
+- [x] API 路由测试通过
+
+### CLI 测试验证
+
+```bash
+pnpm test -- --run packages/cli/
+```
+
+- [x] 所有 CLI 测试通过
+
+### 全量测试验证
+
+```bash
+pnpm test -- --run
+```
+
+- [x] 全量测试无失败
+
+### Schema 向后兼容验证
+
+- [x] `executionPlan` 使用 `.default([])`，旧客户端不传此字段不会报错
+- [x] `graphPlanSearchResponseSchema.parse()` 对含/不含 `executionPlan` 的响应均正常
+
+### 拓扑排序正确性验证
+
+- [x] `mitigates` 边：skill 在 executionPlan 中排在对应的 trap 之前
+- [x] `requires` 边：source 在 executionPlan 中排在 target 之前
+- [x] `order` 边：source 在 executionPlan 中排在 target 之前
+- [x] `rank` 值：无前置节点 rank=0，后续节点 rank 递增
+- [x] `blockedBy`：包含所有直接前驱的 nodeId
+- [x] 环路处理：存在环路时不会抛异常，未排序节点追加到末尾
+- [x] 空计划：无 trap 且无 skill 时 `executionPlan` 为空数组
+
+### 文档一致性验证
+
+- [x] `GRAPH_RETRIEVAL.md` 中 v3 输出结构与实际 schema 一致
+- [x] 设计特点中描述的边方向约定与实现一致
+- [x] 源文件索引中的文件路径和职责描述准确
+
+### 图谱同步验证
+
+- [x] `graphify update .` 已执行，知识图谱反映最新代码变更
 
 ---
 
 ## 实施时的统一注意事项
 
-- [ ] 不要修改任何外部请求 schema，仅做 server 内部增强
-- [ ] 不要让 `category` 进入排序分数，当前阶段只做透传和观测
-- [ ] 不要让 `semanticQuery` 为空字符串进入 embedding 查询
-- [ ] 不要缓存 regex fallback 结果，避免掩盖临时 LLM 能力恢复
-- [ ] 不要遗漏任何 `ParsedIntent` fixture
-- [ ] 不要在 route test 中误把日志 metadata 当成 HTTP 响应字段
+- [ ] 不要修改 `recommendedSkills` 数组本身的排序逻辑（保持 score-based + mitigation boost）
+- [ ] 不要引入新的 npm 依赖——Kahn 算法用纯 TypeScript 实现
+- [ ] 不要让 `executionPlan` 包含 plan 中不存在的节点
+- [ ] 不要忽略 cycle 情况——必须有 graceful degradation（append remaining nodes at end）
+- [ ] 不要改动 `GraphPlan` 统一图视图的结构
+- [ ] 不要在 `executionPlan` 中引入 trap-to-skill 的 `blockedBy` 边（`mitigates` 方向是 skill→trap，只需 trap 的 `blockedBy` 包含 skill）
 - [ ] 不要跳过 `graphify update .`
 - [ ] 不要把多个阶段改动混成一次提交
 
 ## 推荐执行顺序
 
-1. Phase 1：先稳住类型与缓存
-2. Phase 2：实现 parser 主体
-3. Phase 3：接 v2 主链路
-4. Phase 4：补齐 lookup / graph plan
-5. Phase 5：做 trace / eval 兼容
-6. Phase 6：文档与最终验证
+1. Phase 1：先稳住 contracts 层类型
+2. Phase 2：实现拓扑排序核心逻辑 + 测试
+3. Phase 3：更新 CLI 消费端
+4. Phase 4：端到端验证 + 文档收尾
 
 ## 最终交付清单
 
-- [ ] 根目录 `plan.md` 已完成
-- [ ] 所有阶段都有复选框步骤
-- [ ] 所有阶段都有验收要求
-- [ ] 所有阶段都有示例结构或代码
-- [ ] 所有阶段都有注意事项
-- [ ] 所有阶段都有文档更新要求
-- [ ] 所有阶段都明确“完成一个阶段提交一次”
+- [ ] `TrapFirstPlan.executionPlan` 字段已加入 contracts schema
+- [ ] `buildExecutionPlan()` 已实现并通过单元测试
+- [ ] CLI 消费端已改为读取服务端 `executionPlan`
+- [ ] `GRAPH_RETRIEVAL.md` 已更新
+- [ ] `GLOSSARY.md` 已补充（若有新术语）
+- [ ] 全量 typecheck + 测试通过
+- [ ] 最终正确性验证全部通过
+- [ ] `graphify update .` 已执行
