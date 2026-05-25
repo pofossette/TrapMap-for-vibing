@@ -4,6 +4,7 @@ import {
   actorRefSchema,
   auditMetadataSchema,
   entityIdSchema,
+  isoTimestampSchema,
   permissionSchema,
   roleTemplateSchema,
   securityLevelSchema,
@@ -40,7 +41,7 @@ export const accessKeySchema = z
     teamId: entityIdSchema,
     level: securityLevelSchema,
     notes: z.string().max(500).nullable().default(null),
-    revokedAt: z.string().nullable().default(null),
+    revokedAt: isoTimestampSchema.nullable().default(null),
   })
   .merge(auditMetadataSchema);
 

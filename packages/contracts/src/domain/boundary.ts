@@ -65,8 +65,8 @@ export const boundaryConditionSchema = z.object({
   description: z.string().min(1).max(280),
   /** Optional structured type hint for categorization */
   kind: conditionKindSchema.optional(),
-  /** Whether this condition is required (default) or optional */
-  required: z.boolean().default(true),
+  /** Whether this condition is required or optional */
+  required: z.boolean(),
 });
 
 /**

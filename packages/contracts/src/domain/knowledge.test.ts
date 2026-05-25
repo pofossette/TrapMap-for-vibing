@@ -4,6 +4,7 @@ import {
   agentReviewStatusSchema,
   knowledgeEntrySchema,
   knowledgeListItemSchema,
+  knowledgeResubmissionSchema,
   knowledgeRevisionSchema,
   knowledgeSubmissionSchema,
   reviewDecisionSchema,
@@ -475,6 +476,99 @@ describe('knowledge schema contracts', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       });
       expect(item.labels).toEqual([]);
+    });
+
+    it('rejects non-ISO timestamp for updatedAt', () => {
+      expect(() =>
+        knowledgeListItemSchema.parse({
+          id: 'entry-1',
+          scope: 'global',
+          labels: ['test'],
+          shortcut: 'Fix login',
+          lifecycleState: 'approved',
+          requiredLevel: 5,
+          updatedAt: 'not-a-timestamp',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects plain date string for updatedAt', () => {
+      expect(() =>
+        knowledgeListItemSchema.parse({
+          id: 'entry-1',
+          scope: 'global',
+          labels: ['test'],
+          shortcut: 'Fix login',
+          lifecycleState: 'approved',
+          requiredLevel: 5,
+          updatedAt: '2024-01-01',
+        }),
+      ).toThrow();
+    });
+  });
+
+  describe('reviewDecisionSchema timestamp validation', () => {
+    it('rejects non-ISO timestamp for decidedAt', () => {
+      expect(() =>
+        reviewDecisionSchema.parse({
+          decidedAt: 'not-a-timestamp',
+          decidedBy: validActorRef,
+          decision: 'approve',
+          notes: 'Looks good',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects plain date string for decidedAt', () => {
+      expect(() =>
+        reviewDecisionSchema.parse({
+          decidedAt: '2024-01-01',
+          decidedBy: validActorRef,
+          decision: 'approve',
+          notes: 'Looks good',
+        }),
+      ).toThrow();
+    });
+
+    it('accepts valid ISO timestamp for decidedAt', () => {
+      const decision = reviewDecisionSchema.parse({
+        decidedAt: '2024-01-01T00:00:00Z',
+        decidedBy: validActorRef,
+        decision: 'approve',
+        notes: 'Looks good',
+      });
+      expect(decision.decidedAt).toBe('2024-01-01T00:00:00Z');
+    });
+  });
+
+  describe('knowledgeResubmissionSchema boundary validation', () => {
+    const baseResubmission = {
+      entryId: 'entry-1',
+      labels: ['auth'],
+      shortcut: 'Fix login',
+      detail: 'Updated fix',
+    };
+
+    it('accepts valid boundary object', () => {
+      const resub = knowledgeResubmissionSchema.parse({
+        ...baseResubmission,
+        boundary: { context: ['frontend'] },
+      });
+      expect(resub.boundary).toBeDefined();
+    });
+
+    it('accepts omitted boundary (optional)', () => {
+      const resub = knowledgeResubmissionSchema.parse(baseResubmission);
+      expect(resub.boundary).toBeUndefined();
+    });
+
+    it('rejects null boundary (must be non-null per spec)', () => {
+      expect(() =>
+        knowledgeResubmissionSchema.parse({
+          ...baseResubmission,
+          boundary: null,
+        }),
+      ).toThrow();
     });
   });
 });

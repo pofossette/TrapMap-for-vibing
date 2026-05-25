@@ -119,22 +119,26 @@ export const maintenanceBatchOperationRequestSchema = z.object({
  * Each entry in the batch gets an item describing the planned or applied change,
  * eligibility status, and reason if ineligible.
  */
-export const maintenanceBatchOperationItemSchema = z.object({
-  /** Entry ID */
-  entryId: entityIdSchema,
-  /** Entry shortcut for display */
-  shortcut: z.string(),
-  /** Current maintainer (null if unassigned) */
-  currentMaintainer: actorRefSchema.nullable(),
-  /** Current review-by date (null if not scheduled) */
-  currentReviewBy: isoTimestampSchema.nullable(),
-  /** Description of the proposed change */
-  proposedChange: z.string(),
-  /** Whether this entry is eligible for the requested action */
-  eligible: z.boolean(),
-  /** Reason for ineligibility (null if eligible) */
-  ineligibilityReason: z.string().nullable(),
-});
+export const maintenanceBatchOperationItemSchema = z
+  .object({
+    /** Entry ID */
+    entryId: entityIdSchema,
+    /** Entry shortcut for display */
+    shortcut: z.string(),
+    /** Current maintainer (null if unassigned) */
+    currentMaintainer: actorRefSchema.nullable(),
+    /** Current review-by date (null if not scheduled) */
+    currentReviewBy: isoTimestampSchema.nullable(),
+    /** Description of the proposed change */
+    proposedChange: z.string(),
+    /** Whether this entry is eligible for the requested action */
+    eligible: z.boolean(),
+    /** Reason for ineligibility (null if eligible) */
+    ineligibilityReason: z.string().nullable(),
+  })
+  .refine((d) => !d.eligible || d.ineligibilityReason === null, {
+    message: 'ineligibilityReason must be null when eligible is true',
+  });
 
 /**
  * Response schema for maintenance batch operations.
@@ -142,20 +146,27 @@ export const maintenanceBatchOperationItemSchema = z.object({
  * Returns the action taken, dry-run flag, per-entry items with eligibility,
  * counts, and the applied timestamp (null for dry-run).
  */
-export const maintenanceBatchOperationResponseSchema = z.object({
-  /** Action that was performed */
-  action: maintenanceActionSchema,
-  /** Whether this was a dry run */
-  dryRun: z.boolean(),
-  /** Per-entry results */
-  items: z.array(maintenanceBatchOperationItemSchema),
-  /** Count of eligible entries */
-  totalEligible: z.number().int().min(0),
-  /** Count of ineligible entries */
-  totalIneligible: z.number().int().min(0),
-  /** When the batch was applied (null for dry-run) */
-  appliedAt: isoTimestampSchema.nullable(),
-});
+export const maintenanceBatchOperationResponseSchema = z
+  .object({
+    /** Action that was performed */
+    action: maintenanceActionSchema,
+    /** Whether this was a dry run */
+    dryRun: z.boolean(),
+    /** Per-entry results */
+    items: z.array(maintenanceBatchOperationItemSchema),
+    /** Count of eligible entries */
+    totalEligible: z.number().int().min(0),
+    /** Count of ineligible entries */
+    totalIneligible: z.number().int().min(0),
+    /** When the batch was applied (null for dry-run) */
+    appliedAt: isoTimestampSchema.nullable(),
+  })
+  .refine((d) => !d.dryRun || d.appliedAt === null, {
+    message: 'appliedAt must be null when dryRun is true',
+  })
+  .refine((d) => d.totalEligible + d.totalIneligible === d.items.length, {
+    message: 'totalEligible + totalIneligible must equal items.length',
+  });
 
 export type MaintenanceMeta = z.infer<typeof maintenanceMetaSchema>;
 export type MaintenanceAction = z.infer<typeof maintenanceActionSchema>;

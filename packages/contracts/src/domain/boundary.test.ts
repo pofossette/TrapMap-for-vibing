@@ -134,6 +134,7 @@ describe('boundary schema contracts', () => {
     it('accepts required condition', () => {
       const condition = boundaryConditionSchema.parse({
         description: 'Admin access required',
+        required: true,
       });
       expect(condition.description).toBe('Admin access required');
       expect(condition.required).toBe(true);
@@ -147,16 +148,18 @@ describe('boundary schema contracts', () => {
       expect(condition.required).toBe(false);
     });
 
-    it('defaults required to true', () => {
-      const condition = boundaryConditionSchema.parse({
-        description: 'Test',
-      });
-      expect(condition.required).toBe(true);
+    it('rejects omitted required field', () => {
+      expect(() =>
+        boundaryConditionSchema.parse({
+          description: 'Test',
+        }),
+      ).toThrow();
     });
 
     it('accepts with kind', () => {
       const condition = boundaryConditionSchema.parse({
         description: 'Test',
+        required: true,
         kind: 'permission',
       });
       expect(condition.kind).toBe('permission');
@@ -346,7 +349,7 @@ describe('boundary schema contracts', () => {
       const boundary = boundarySchema.parse({
         context: ['frontend', 'production'],
         versions: [{ package: 'react', range: '>=16.8.0' }],
-        prerequisites: [{ description: 'Admin access required' }],
+        prerequisites: [{ description: 'Admin access required', required: true }],
         signals: [{ pattern: 'ECONNREFUSED', kind: 'error-code' }],
         exclusions: [{ description: 'Not for SSR' }],
         evidence: [{ kind: 'issue', identifier: '123' }],

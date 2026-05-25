@@ -17,16 +17,18 @@ import {
   reviewNoteSchema,
 } from './knowledge.js';
 
-export const reviewQueueQuerySchema = paginatedQuerySchema.extend({
-  status: lifecycleStateSchema.optional(),
-  teamId: entityIdSchema.optional(),
-});
+export const reviewQueueQuerySchema = paginatedQuerySchema
+  .extend({
+    status: lifecycleStateSchema.optional(),
+    teamId: entityIdSchema.optional(),
+  })
+  .strict();
 
 export const reviewDecisionRequestSchema = z.object({
   entryId: entityIdSchema,
   decision: z.enum(['approve', 'reject']),
   notes: z.string().min(1).max(2000),
-  boundary: boundarySchema.nullable().optional(),
+  boundary: boundarySchema.nullable(),
   /** Optional evidence metadata for provenance tracking */
   evidence: evidenceMetaSchema.optional(),
 });

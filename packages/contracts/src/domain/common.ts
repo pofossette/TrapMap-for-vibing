@@ -51,10 +51,12 @@ export const actorRefSchema = z.object({
   securityLevel: securityLevelSchema,
 });
 
-export const auditMetadataSchema = z.object({
-  createdAt: isoTimestampSchema,
-  updatedAt: isoTimestampSchema,
-});
+export const auditMetadataSchema = z
+  .object({
+    createdAt: isoTimestampSchema,
+    updatedAt: isoTimestampSchema,
+  })
+  .strict();
 
 export const paginatedQuerySchema = z.object({
   cursor: z.string().min(1).max(128).optional(),

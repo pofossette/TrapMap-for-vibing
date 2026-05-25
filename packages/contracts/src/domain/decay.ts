@@ -61,20 +61,9 @@ export const volatileDecayConfigSchema = z.object({
  * Complete freshness decay configuration for all content types.
  */
 export const freshnessDecayConfigSchema = z.object({
-  evergreen: evergreenDecayConfigSchema.default({ enabled: false }),
-  versioned: versionedDecayConfigSchema.default({
-    enabled: true,
-    mode: 'step',
-    matchMultiplier: 1.0,
-    mismatchMultiplier: 0.5,
-  }),
-  volatile: volatileDecayConfigSchema.default({
-    enabled: true,
-    mode: 'exponential',
-    halfLifeDays: 30,
-    zeroDays: 90,
-    floor: 0.3,
-  }),
+  evergreen: evergreenDecayConfigSchema,
+  versioned: versionedDecayConfigSchema,
+  volatile: volatileDecayConfigSchema,
 });
 
 export type FreshnessDecayMode = z.infer<typeof freshnessDecayModeSchema>;
@@ -232,15 +221,19 @@ export const batchOperationRequestSchema = z.object({
  * Each entry in the batch gets an item describing the planned or applied change,
  * eligibility status, and reason if ineligible.
  */
-export const batchOperationItemSchema = z.object({
-  entryId: entityIdSchema,
-  shortcut: z.string(),
-  currentDecayState: decayStateSchema.nullable(),
-  proposedDecayState: decayStateSchema.nullable(),
-  changeDescription: z.string(),
-  eligible: z.boolean(),
-  ineligibilityReason: z.string().nullable(),
-});
+export const batchOperationItemSchema = z
+  .object({
+    entryId: entityIdSchema,
+    shortcut: z.string(),
+    currentDecayState: decayStateSchema.nullable(),
+    proposedDecayState: decayStateSchema.nullable(),
+    changeDescription: z.string(),
+    eligible: z.boolean(),
+    ineligibilityReason: z.string().nullable(),
+  })
+  .refine((d) => !d.eligible || d.ineligibilityReason === null, {
+    message: 'ineligibilityReason must be null when eligible is true',
+  });
 
 /**
  * Response schema for batch operations.
@@ -248,14 +241,18 @@ export const batchOperationItemSchema = z.object({
  * Returns the action taken, dry-run flag, per-entry items with eligibility,
  * counts, and the applied timestamp (null for dry-run).
  */
-export const batchOperationResponseSchema = z.object({
-  action: batchActionSchema,
-  dryRun: z.boolean(),
-  items: z.array(batchOperationItemSchema),
-  totalEligible: z.number().int().min(0),
-  totalIneligible: z.number().int().min(0),
-  appliedAt: isoTimestampSchema.nullable(),
-});
+export const batchOperationResponseSchema = z
+  .object({
+    action: batchActionSchema,
+    dryRun: z.boolean(),
+    items: z.array(batchOperationItemSchema),
+    totalEligible: z.number().int().min(0),
+    totalIneligible: z.number().int().min(0),
+    appliedAt: isoTimestampSchema.nullable(),
+  })
+  .refine((d) => !d.dryRun || d.appliedAt === null, {
+    message: 'appliedAt must be null when dryRun is true',
+  });
 
 export type BatchAction = z.infer<typeof batchActionSchema>;
 export type DecayAwareListItem = z.infer<typeof decayAwareListItemSchema>;

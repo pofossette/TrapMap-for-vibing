@@ -29,7 +29,7 @@ export const agentReviewResultSchema = z.object({
 });
 
 export const reviewDecisionSchema = z.object({
-  decidedAt: z.string(),
+  decidedAt: isoTimestampSchema,
   decidedBy: actorRefSchema,
   decision: z.enum(['approve', 'reject']),
   notes: z.string().min(1).max(2000),
@@ -138,7 +138,7 @@ export const knowledgeResubmissionSchema = z.object({
   labels: z.array(labelSchema).min(1),
   shortcut: z.string().min(1).max(280),
   detail: z.string().min(1).max(10000),
-  boundary: boundarySchema.nullable().optional(),
+  boundary: boundarySchema.optional(),
 });
 
 export const knowledgeUpdateSchema = z.object({
@@ -156,7 +156,7 @@ export const knowledgeListItemSchema = z.object({
   shortcut: z.string(),
   lifecycleState: lifecycleStateSchema,
   requiredLevel: securityLevelSchema,
-  updatedAt: z.string(),
+  updatedAt: isoTimestampSchema,
   /** Evidence metadata for provenance tracking (null if no evidence recorded) */
   evidenceMeta: evidenceMetaSchema.nullable().default(null),
 });

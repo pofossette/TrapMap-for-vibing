@@ -36,8 +36,8 @@ export const adminBoundarySearchQuerySchema = z.object({
 export const adminBoundarySearchMatchSchema = z.object({
   entryId: entityIdSchema,
   scope: scopeSchema,
-  shortcut: z.string(),
-  detail: z.string(),
+  shortcut: z.string().min(1),
+  detail: z.string().min(1),
   labels: z.array(labelSchema),
   /** The entry's boundary (if any) */
   boundary: boundarySchema.nullable(),
