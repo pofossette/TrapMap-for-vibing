@@ -47,7 +47,7 @@ flowchart TB
     end
     
     subgraph 提交后索引["提交后索引"]
-        VectorEmb["向量 embedding\n（agent-pass 或 approved 时）"]
+        VectorEmb["向量 embedding\n（仅 approved 时触发）"]
         KeywordExtract["关键词提取"]
         GraphRelation["图关系"]
         UpdateIndex["更新 KnowledgeIndexStateRecord"]
@@ -92,9 +92,10 @@ sequenceDiagram
     智能体->>智能体: 重复检测
     智能体->>存储: 更新状态（agent-pass/rejected）
 
-    Note over 智能体,存储: 如果 agent-pass
+    Note over 智能体,存储: 如果 agent-pass，等待人工审批
 
-    智能体->>索引: 触发索引
+    路由->>存储: 人工审核通过 → 更新状态（approved）
+    存储->>索引: 触发索引（仅 approved 状态）
     索引->>索引: 生成嵌入向量
     索引->>索引: 提取关键词
     索引->>存储: 更新索引状态
@@ -367,10 +368,10 @@ flowchart TB
     end
     
     subgraph 计划组装["计划组装"]
-        PlanNodes["PlanTrapNode[]"]
-        SkillNodes["PlanSkillNode[]"]
-        PlanEdges["PlanEdge[]"]
-        Citations["Citation[]"]
+        PlanNodes["PlanTrapNode[]（计划陷阱节点列表）"]
+        SkillNodes["PlanSkillNode[]（计划技能节点列表）"]
+        PlanEdges["PlanEdge[]（计划边列表）"]
+        Citations["Citation[]（引用列表）"]
     end
     
     subgraph 响应["响应"]
@@ -459,8 +460,8 @@ flowchart TB
     end
     
     subgraph 更新索引状态["更新索引状态记录"]
-        AdapterSync["adapter: 'vector'/'keyword'/'graph'"]
-        StatusSync["status: synced"]
+        AdapterSync["adapter 类型: 'vector'（向量）/'keyword'（关键词）/'graph'（图）"]
+        StatusSync["status: synced（已同步）"]
         IndexedAt["indexedAt: ts"]
     end
     
