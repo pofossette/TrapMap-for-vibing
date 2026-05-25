@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
+import { describe, expect, it } from 'vitest';
 import { buildTrapGraphDocument } from './graph-builders.js';
 import type { TrapGraphDocumentBuilderInput } from './graph-builders.js';
 
@@ -38,9 +38,7 @@ describe('buildTrapGraphDocument', () => {
   describe('severity pre-computation', () => {
     it('sets severity=hard for trap node with hard risk-blocks edge', () => {
       const input = makeInput({
-        nodes: [
-          { id: 'trap:block-hard', kind: 'trap', label: 'Hard trap', evidence: 'ev' },
-        ],
+        nodes: [{ id: 'trap:block-hard', kind: 'trap', label: 'Hard trap', evidence: 'ev' }],
         edges: [
           {
             relationType: 'risk-blocks',
@@ -85,9 +83,7 @@ describe('buildTrapGraphDocument', () => {
 
     it('sets severity=soft for trap node with no risk-blocks edge', () => {
       const input = makeInput({
-        nodes: [
-          { id: 'trap:no-risk', kind: 'trap', label: 'No-risk trap', evidence: 'ev' },
-        ],
+        nodes: [{ id: 'trap:no-risk', kind: 'trap', label: 'No-risk trap', evidence: 'ev' }],
         edges: [],
       });
 
@@ -157,9 +153,27 @@ describe('buildTrapGraphDocument', () => {
           { id: trap3, kind: 'trap', label: 'Trap 3', evidence: 'ev' },
         ],
         edges: [
-          { relationType: 'mitigates', sourceNodeId: skillId, targetNodeId: trap1, strength: 'hard', evidence: 'ev' },
-          { relationType: 'mitigates', sourceNodeId: skillId, targetNodeId: trap2, strength: 'hard', evidence: 'ev' },
-          { relationType: 'mitigates', sourceNodeId: skillId, targetNodeId: trap3, strength: 'soft', evidence: 'ev' },
+          {
+            relationType: 'mitigates',
+            sourceNodeId: skillId,
+            targetNodeId: trap1,
+            strength: 'hard',
+            evidence: 'ev',
+          },
+          {
+            relationType: 'mitigates',
+            sourceNodeId: skillId,
+            targetNodeId: trap2,
+            strength: 'hard',
+            evidence: 'ev',
+          },
+          {
+            relationType: 'mitigates',
+            sourceNodeId: skillId,
+            targetNodeId: trap3,
+            strength: 'soft',
+            evidence: 'ev',
+          },
         ],
       });
 
@@ -173,9 +187,7 @@ describe('buildTrapGraphDocument', () => {
     it('leaves mitigates undefined when skill node has no mitigates edges', () => {
       const skillId = 'skill:no-mit';
       const input = makeInput({
-        nodes: [
-          { id: skillId, kind: 'skill', label: 'Non-mitigating skill', evidence: 'ev' },
-        ],
+        nodes: [{ id: skillId, kind: 'skill', label: 'Non-mitigating skill', evidence: 'ev' }],
         edges: [],
       });
 

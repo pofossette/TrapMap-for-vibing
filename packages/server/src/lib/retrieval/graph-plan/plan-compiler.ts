@@ -24,8 +24,14 @@ import type {
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
-import type { Graph, GraphRuntimeSnapshot } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
-import { buildGraphRuntimeSnapshot, buildLocalExpansionView } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import type {
+  Graph,
+  GraphRuntimeSnapshot,
+} from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import {
+  buildGraphRuntimeSnapshot,
+  buildLocalExpansionView,
+} from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
 import {
   isArtifactGovernanceEligible,
   rankCapsules,
@@ -291,10 +297,7 @@ function findBlockingTraps(
  * Find skill node IDs that mitigate identified trap nodes.
  * Looks for mitigates edges pointing to trap node IDs.
  */
-function findMitigatingSkills(
-  runtime: GraphRuntimeSnapshot,
-  trapNodeIds: string[],
-): string[] {
+function findMitigatingSkills(runtime: GraphRuntimeSnapshot, trapNodeIds: string[]): string[] {
   const mitigatingSkillIds = new Set<string>();
 
   for (const trapNodeId of trapNodeIds) {
@@ -378,8 +381,9 @@ function applySkillBudget(
       const precomputedMitigates = nodeId ? nodeIdToMitigates.get(nodeId) : undefined;
       const scopedMitigates =
         precomputedMitigates?.some((trapId) => blockingSet.has(trapId)) ?? false;
-      const isMitigating =
-        nodeId ? scopedMitigates || mitigatingSkillNodeIds.includes(nodeId) : false;
+      const isMitigating = nodeId
+        ? scopedMitigates || mitigatingSkillNodeIds.includes(nodeId)
+        : false;
       const mitigationBoost = isMitigating ? 0.5 : 0;
       const prioritizedScore = candidate.finalScore + mitigationBoost;
 

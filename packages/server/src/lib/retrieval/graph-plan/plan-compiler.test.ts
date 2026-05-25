@@ -865,10 +865,7 @@ describe('plan-compiler', () => {
 
         const services = makeMockServices({
           knowledgeEntries: [makeKnowledgeEntry(trapId)],
-          skillArtifacts: [
-            makeSkillArtifact(mitigatingSkillId),
-            makeSkillArtifact(otherSkillId),
-          ],
+          skillArtifacts: [makeSkillArtifact(mitigatingSkillId), makeSkillArtifact(otherSkillId)],
           graphIndexDocuments: [
             makeGraphDoc(trapId, 'trap', [trapNode], []),
             makeGraphDoc(mitigatingSkillId, 'skill', [mitigatingSkillNode], []),
@@ -899,18 +896,10 @@ describe('plan-compiler', () => {
 
         const services = makeMockServices({
           knowledgeEntries: [makeKnowledgeEntry(trapId)],
-          skillArtifacts: [
-            makeSkillArtifact(mitigatingSkillId),
-            makeSkillArtifact(otherSkillId),
-          ],
+          skillArtifacts: [makeSkillArtifact(mitigatingSkillId), makeSkillArtifact(otherSkillId)],
           graphIndexDocuments: [
             makeGraphDoc(trapId, 'trap', [trapNode], []),
-            makeGraphDoc(
-              mitigatingSkillId,
-              'skill',
-              [mitigatingSkillNode],
-              [mitigatesEdge],
-            ),
+            makeGraphDoc(mitigatingSkillId, 'skill', [mitigatingSkillNode], [mitigatesEdge]),
             makeGraphDoc(otherSkillId, 'skill', [otherSkillNode], []),
           ],
         });
