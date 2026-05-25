@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  feedbackBatchItemSchema,
+  feedbackBatchResponseSchema,
+  feedbackCustomAnswerSchema,
+  feedbackListItemSchema,
   feedbackProblemTypeSchema,
   feedbackRecordSchema,
   feedbackSubmissionSchema,
+  qualityScoreSchema,
 } from './feedback.js';
 
 describe('feedback schema', () => {
@@ -125,6 +130,150 @@ describe('feedback schema', () => {
     it('default status is NOT automatically set (status is required)', () => {
       const { status, ...missingStatus } = validRecord;
       expect(() => feedbackRecordSchema.parse(missingStatus)).toThrow();
+    });
+  });
+
+  describe('feedbackCustomAnswerSchema (strict)', () => {
+    it('accepts valid custom answer', () => {
+      const result = feedbackCustomAnswerSchema.parse({ prompt: 'What version?', answer: 'v2' });
+      expect(result.prompt).toBe('What version?');
+    });
+
+    it('rejects objects with extra properties', () => {
+      expect(() =>
+        feedbackCustomAnswerSchema.parse({ prompt: 'What version?', answer: 'v2', extra: 'nope' }),
+      ).toThrow();
+    });
+  });
+
+  describe('feedbackListItemSchema (description .min(1))', () => {
+    const validItem = {
+      id: 'fb-1',
+      entryId: 'entry-1',
+      entryType: 'trap' as const,
+      entryShortcut: 'trap-1',
+      problemType: 'incorrect' as const,
+      description: 'A real description',
+      context: null,
+      submittedAt: '2026-05-02T10:00:00Z',
+      submittedBy: { id: 'user-1', handle: 'u', securityLevel: 5 },
+      status: 'new' as const,
+      ageDays: 3,
+      adminNotes: null,
+    };
+
+    it('accepts non-empty description', () => {
+      expect(feedbackListItemSchema.parse(validItem).description).toBe('A real description');
+    });
+
+    it('rejects empty string description', () => {
+      expect(() =>
+        feedbackListItemSchema.parse({ ...validItem, description: '' }),
+      ).toThrow();
+    });
+  });
+
+  describe('feedbackBatchItemSchema (conditional reason constraint)', () => {
+    it('accepts eligible=true with reason=null', () => {
+      const result = feedbackBatchItemSchema.parse({
+        feedbackId: 'fb-1',
+        eligible: true,
+        reason: null,
+        transitionApplied: false,
+      });
+      expect(result.eligible).toBe(true);
+      expect(result.reason).toBeNull();
+    });
+
+    it('rejects eligible=true with non-null reason', () => {
+      expect(() =>
+        feedbackBatchItemSchema.parse({
+          feedbackId: 'fb-1',
+          eligible: true,
+          reason: 'some reason',
+          transitionApplied: false,
+        }),
+      ).toThrow(/reason must be null when eligible is true/);
+    });
+
+    it('accepts eligible=false with non-null reason', () => {
+      const result = feedbackBatchItemSchema.parse({
+        feedbackId: 'fb-1',
+        eligible: false,
+        reason: 'not applicable',
+        transitionApplied: false,
+      });
+      expect(result.eligible).toBe(false);
+      expect(result.reason).toBe('not applicable');
+    });
+
+    it('rejects eligible=false with reason=null', () => {
+      expect(() =>
+        feedbackBatchItemSchema.parse({
+          feedbackId: 'fb-1',
+          eligible: false,
+          reason: null,
+          transitionApplied: false,
+        }),
+      ).toThrow(/reason must be non-null when eligible is false/);
+    });
+  });
+
+  describe('feedbackBatchResponseSchema (strict)', () => {
+    const validResponse = {
+      action: 'resolve' as const,
+      dryRun: false,
+      items: [],
+      totalEligible: 0,
+      totalIneligible: 0,
+      appliedAt: '2026-05-02T10:00:00Z',
+    };
+
+    it('accepts valid response', () => {
+      expect(feedbackBatchResponseSchema.parse(validResponse).action).toBe('resolve');
+    });
+
+    it('rejects objects with extra properties', () => {
+      expect(() =>
+        feedbackBatchResponseSchema.parse({ ...validResponse, extra: 'nope' }),
+      ).toThrow();
+    });
+  });
+
+  describe('qualityScoreSchema (relationship constraints)', () => {
+    const validScore = {
+      totalFeedback: 10,
+      unresolvedFeedback: 3,
+      outdatedReports: 2,
+      incorrectReports: 1,
+      qualityScore: 0.7,
+      lastFeedbackAt: '2026-05-02T10:00:00Z',
+    };
+
+    it('accepts valid quality score', () => {
+      expect(qualityScoreSchema.parse(validScore).qualityScore).toBe(0.7);
+    });
+
+    it('rejects unresolvedFeedback > totalFeedback', () => {
+      expect(() =>
+        qualityScoreSchema.parse({ ...validScore, unresolvedFeedback: 15 }),
+      ).toThrow(/unresolvedFeedback must not exceed totalFeedback/);
+    });
+
+    it('rejects outdatedReports + incorrectReports > totalFeedback', () => {
+      expect(() =>
+        qualityScoreSchema.parse({ ...validScore, outdatedReports: 6, incorrectReports: 6 }),
+      ).toThrow(/outdatedReports \+ incorrectReports must not exceed totalFeedback/);
+    });
+
+    it('accepts when unresolvedFeedback equals totalFeedback', () => {
+      const result = qualityScoreSchema.parse({ ...validScore, unresolvedFeedback: 10 });
+      expect(result.unresolvedFeedback).toBe(10);
+    });
+
+    it('accepts when outdated + incorrect equals totalFeedback', () => {
+      const result = qualityScoreSchema.parse({ ...validScore, outdatedReports: 6, incorrectReports: 4 });
+      expect(result.outdatedReports + result.incorrectReports).toBe(10);
     });
   });
 });

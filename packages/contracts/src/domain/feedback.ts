@@ -22,7 +22,7 @@ export const feedbackProblemTypeSchema = z.enum([
 export const feedbackCustomAnswerSchema = z.object({
   prompt: z.string().min(1).max(500),
   answer: z.string().min(1).max(2000),
-});
+}).strict();
 
 /**
  * Request payload for feedback submission.
@@ -139,7 +139,7 @@ export const feedbackListItemSchema = z.object({
   /** Problem classification */
   problemType: feedbackProblemTypeSchema,
   /** User-provided description */
-  description: z.string(),
+  description: z.string().min(1),
   /** Optional context */
   context: z.string().nullable(),
   /** When the feedback was submitted */
@@ -196,7 +196,9 @@ export const feedbackBatchItemSchema = z.object({
   reason: z.string().nullable(),
   /** Whether a transition was applied (for transition action) */
   transitionApplied: z.boolean(),
-});
+})
+  .refine(d => !d.eligible || d.reason === null, { message: 'reason must be null when eligible is true' })
+  .refine(d => d.eligible || d.reason !== null, { message: 'reason must be non-null when eligible is false' });
 
 /**
  * Response schema for batch operations on feedback.
@@ -214,7 +216,7 @@ export const feedbackBatchResponseSchema = z.object({
   totalIneligible: z.number().int().min(0),
   /** When the action was applied (null for dry-run) */
   appliedAt: isoTimestampSchema.nullable(),
-});
+}).strict();
 
 /**
  * Quality score schema for entry feedback statistics.
@@ -233,7 +235,9 @@ export const qualityScoreSchema = z.object({
   qualityScore: z.number().min(0).max(1),
   /** Timestamp of most recent feedback */
   lastFeedbackAt: isoTimestampSchema.nullable(),
-});
+})
+  .refine(d => d.unresolvedFeedback <= d.totalFeedback, { message: 'unresolvedFeedback must not exceed totalFeedback' })
+  .refine(d => d.outdatedReports + d.incorrectReports <= d.totalFeedback, { message: 'outdatedReports + incorrectReports must not exceed totalFeedback' });
 
 /**
  * Response schema for feedback stats endpoint.
