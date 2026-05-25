@@ -63,6 +63,8 @@ export interface GraphNodeRecord {
   label: string;
   /** Evidence text justifying this node */
   evidence: string;
+  /** Pre-computed severity for trap nodes. Derived from risk-blocks edge strength. */
+  severity?: 'hard' | 'soft';
 }
 
 /**

@@ -849,6 +849,54 @@ describe('plan-compiler', () => {
       expect(result.blockingTraps.find((t) => t.nodeId === 'trap:trap-gov-3')).toBeDefined();
       expect(result.blockingTraps.find((t) => t.nodeId === 'trap:trap-gov-5')).toBeDefined();
     });
+
+    describe('severity pre-computation', () => {
+      it('uses pre-computed severity from GraphNodeRecord', async () => {
+        const trapId = 'trap-sev-pre';
+        const trapNode: GraphNodeRecord = {
+          ...makeTrapNode(trapId, 'Pre-computed severity trap'),
+          severity: 'hard',
+        };
+        const riskEdge = makeRiskBlocksEdge(trapId, 'cue-sev', 'soft');
+
+        const doc = makeGraphDoc(trapId, 'trap', [trapNode], [riskEdge]);
+
+        const services = makeMockServices({
+          knowledgeEntries: [makeKnowledgeEntry(trapId)],
+          skillArtifacts: [],
+          graphIndexDocuments: [doc],
+        });
+        const auth = makeMockAuth();
+        const query: PlanQuery = { seed: 'severity test', skillBudget: 0, maxDepth: 2 };
+
+        const result = await compileTrapFirstPlan(services, auth, query);
+
+        expect(result.blockingTraps.length).toBeGreaterThan(0);
+        expect(result.blockingTraps[0].severity).toBe('hard');
+      });
+
+      it('falls back to edge scanning when severity field is absent', async () => {
+        const trapId = 'trap-sev-fallback';
+        const trapNode = makeTrapNode(trapId, 'Fallback severity trap');
+        // No severity field set (simulates old document)
+        const riskEdge = makeRiskBlocksEdge(trapId, 'cue-fallback', 'hard');
+
+        const doc = makeGraphDoc(trapId, 'trap', [trapNode], [riskEdge]);
+
+        const services = makeMockServices({
+          knowledgeEntries: [makeKnowledgeEntry(trapId)],
+          skillArtifacts: [],
+          graphIndexDocuments: [doc],
+        });
+        const auth = makeMockAuth();
+        const query: PlanQuery = { seed: 'fallback test', skillBudget: 0, maxDepth: 2 };
+
+        const result = await compileTrapFirstPlan(services, auth, query);
+
+        expect(result.blockingTraps.length).toBeGreaterThan(0);
+        expect(result.blockingTraps[0].severity).toBe('hard');
+      });
+    });
   });
 
   describe('executionPlan', () => {

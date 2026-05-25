@@ -262,15 +262,17 @@ function findBlockingTraps(
     if (candidate.requiredLevel > auth.securityLevel) continue;
     if (doc.requiredLevel > auth.securityLevel) continue;
 
-    // Determine severity from risk-blocks edges
-    let severity: 'hard' | 'soft' = 'soft';
-    graph.forEachEdge(nodeId, (_edgeKey, attributes) => {
-      if (attributes.relationType === 'risk-blocks' && attributes.strength === 'hard') {
-        severity = 'hard';
-      }
-    });
-
+    // Determine severity: prefer pre-computed, fallback to edge scanning
     const nodeRecord = doc.nodes.find((n) => n.id === nodeId);
+    let severity: 'hard' | 'soft' = nodeRecord?.severity ?? 'soft';
+    if (!nodeRecord?.severity) {
+      // Fallback for old graph documents without pre-computed severity
+      graph.forEachEdge(nodeId, (_edgeKey, attributes) => {
+        if (attributes.relationType === 'risk-blocks' && attributes.strength === 'hard') {
+          severity = 'hard';
+        }
+      });
+    }
 
     traps.push({
       nodeId,

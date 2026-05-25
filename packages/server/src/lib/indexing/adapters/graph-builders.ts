@@ -43,13 +43,6 @@ export function buildTrapGraphDocument(
 ): GraphIndexDocumentRecord {
   const { normalizedDocument: doc, nodes, edges } = input;
 
-  const nodeRecords: GraphNodeRecord[] = nodes.map((n) => ({
-    id: n.id,
-    kind: n.kind as GraphNodeRecord['kind'],
-    label: n.label,
-    evidence: n.evidence,
-  }));
-
   const edgeRecords: GraphEdgeRecord[] = edges.map((e) => ({
     id: `${e.sourceNodeId}->${e.targetNodeId}:${e.relationType}`,
     sourceNodeId: e.sourceNodeId,
@@ -58,6 +51,26 @@ export function buildTrapGraphDocument(
     strength: e.strength as GraphEdgeRecord['strength'],
     evidence: e.evidence,
   }));
+
+  const hardRiskBlockTrapIds = new Set<string>();
+  for (const edge of edgeRecords) {
+    if (edge.relationType === 'risk-blocks' && edge.strength === 'hard') {
+      hardRiskBlockTrapIds.add(edge.sourceNodeId);
+    }
+  }
+
+  const nodeRecords: GraphNodeRecord[] = nodes.map((n) => {
+    const record: GraphNodeRecord = {
+      id: n.id,
+      kind: n.kind as GraphNodeRecord['kind'],
+      label: n.label,
+      evidence: n.evidence,
+    };
+    if (n.kind === 'trap') {
+      record.severity = hardRiskBlockTrapIds.has(n.id) ? 'hard' : 'soft';
+    }
+    return record;
+  });
 
   return buildDocument({
     sourceId: doc.entryId,
