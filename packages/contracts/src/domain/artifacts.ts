@@ -56,9 +56,9 @@ export const compatibleScriptActivationPolicySchema = z.union([
  */
 export const scriptWithPolicyMetadataSchema = z.object({
   /** Path to the script file */
-  path: z.string().min(1).max(512),
+  path: z.string().min(1).max(512).refine(s => !s.startsWith('/') && !s.match(/^[A-Za-z]:\\/), { message: "must be a relative path" }),
   /** SHA-256 hash of the script content */
-  sha256: z.string().length(64),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
   /** Human-readable capability description */
   capability: z.string().min(1).max(280),
   /** Default activation policy */
@@ -86,7 +86,7 @@ export const skillArtifactFileSchema = z.object({
   /** File kind controlling derivation and activation behavior */
   kind: skillArtifactFileKindSchema,
   /** SHA-256 hash of file content for integrity and derivation caching */
-  sha256: z.string().length(64),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
   /** File size in bytes for storage quota and transfer validation */
   sizeBytes: z.number().int().min(0),
   /** IANA media type (e.g., 'text/markdown', 'application/json') */
@@ -187,10 +187,10 @@ export const skillCapsuleSchema = z.object({
  */
 export const clientManifestReferenceSchema = z.object({
   path: z.string().min(1).max(512),
-  sha256: z.string().length(64),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
   sizeBytes: z.number().int().min(0),
   mediaType: z.string().min(1).max(160),
-});
+}).strict();
 
 /**
  * Client manifest asset entry.
@@ -209,8 +209,8 @@ export const clientManifestAssetSchema = z.object({
  * Excludes script body text (T-12-02 mitigation).
  */
 export const clientManifestScriptSchema = z.object({
-  path: z.string().min(1).max(512),
-  sha256: z.string().length(64),
+  path: z.string().min(1).max(512).refine(s => !s.startsWith('/') && !s.match(/^[A-Za-z]:\\/), { message: "must be a relative path" }),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
   capability: z.string().min(1).max(280),
   argsSchemaSummary: z.string().max(280).default(''),
   sideEffectSummary: z.string().max(280).default(''),
@@ -249,7 +249,7 @@ export const skillArtifactDerivedSchema = z.object({
   /** Client activation manifest for references, assets, and scripts */
   clientManifest: clientManifestSchema.nullable(),
   /** Hash of all source files used for derivation (SKILL.md + references/) */
-  sourceHash: z.string().length(64),
+  sourceHash: z.string().regex(/^[0-9a-f]{64}$/),
   /** ISO timestamp when derivation was computed */
   derivedAt: isoTimestampSchema,
 });
@@ -281,6 +281,8 @@ export const skillArtifactRevisionSchema = z.object({
       derivedAt: isoTimestampSchema,
     })
     .nullable(),
+}).refine(d => d.derived === null || d.sourceHash === d.derived.sourceHash, {
+  message: "derived.sourceHash must match sourceHash",
 });
 
 /**
@@ -327,6 +329,8 @@ export const skillArtifactMetadataSchema = z.object({
   latestReviewedAt: isoTimestampSchema.nullable().default(null),
   /** Most recent review decision (approve/reject) */
   latestDecision: z.enum(['approve', 'reject']).nullable().default(null),
+}).refine(d => d.submissionCount >= d.resubmissionCount, {
+  message: "submissionCount must be >= resubmissionCount",
 });
 
 /**
