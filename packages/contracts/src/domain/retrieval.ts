@@ -39,6 +39,8 @@ export const retrievalCitationSchema = z.object({
     graph: z.number().min(0).max(1).nullable(),
     preRerank: z.number().min(0).max(1),
     final: z.number().min(0).max(1),
+  }).refine(d => d.semantic !== null || d.keyword !== null || d.graph !== null, {
+    message: 'at least one score (semantic, keyword, graph) must be non-null',
   }),
 });
 
@@ -80,7 +82,7 @@ export const retrievalMatchSchema = z.object({
   conflicts: z.array(conflictHintSchema).optional(),
   /** Boundary explanation for why this entry is applicable (Phase 66) */
   boundaryExplanation: boundaryExplanationSchema.optional(),
-});
+}).strict();
 
 export const retrievalResponseSchema = z.object({
   globalConstraints: z.array(retrievalMatchSchema),
@@ -182,7 +184,7 @@ export const retrievalV2ResponseSchema = z.object({
   /** Lightweight artifact metadata for activation hints */
   profileHints: z.array(profileHintSchema).default([]),
   /** Optional refinement summary over filtered capsules */
-  refinementSummary: z.string().nullable(),
+  refinementSummary: z.string().optional(),
   /** Optional summary over filtered distilled capsule hits */
   summary: retrievalSummarySchema.nullable().default(null),
 });
@@ -281,6 +283,11 @@ export const capsuleActivationHintsSchema = z.object({
  * Extends the base v2 response with optional activation metadata.
  * Stays distilled-first and metadata-only (T-15-01, T-15-02).
  */
+/** Heuristic: detect strings that look like raw source code */
+const looksLikeRawCode = (s: string): boolean =>
+  /^#!\//.test(s) ||
+  /\b(import\s+.*from\s|require\s*\(|export\s+(default\s+)?(function|class|const|let|var)|function\s+\w+\s*\(|const\s+\w+\s*=\s*(\(|async\s))/m.test(s);
+
 export const retrievalV2ResponseWithHintsSchema = z.object({
   /** Ranked capsule matches with governance inheritance */
   capsules: z.array(capsuleMatchSchema).default([]),
@@ -292,7 +299,15 @@ export const retrievalV2ResponseWithHintsSchema = z.object({
   refinementSummary: z.string().nullable().default(null),
   /** Optional summary over filtered distilled capsule hits */
   summary: retrievalSummarySchema.nullable().default(null),
-});
+}).refine(
+  d => d.capsules.every(c => !looksLikeRawCode(c.content)),
+  { message: 'distilled-first: capsule content must not be raw source code' },
+).refine(
+  d => d.activationHints.every(h =>
+    h.scripts.every(s => !looksLikeRawCode(s.capability) && !looksLikeRawCode(s.sideEffectSummary)),
+  ),
+  { message: 'metadata-only: activation hints must not contain executable content' },
+);
 
 export type ReadNextReferenceHint = z.infer<typeof readNextReferenceHintSchema>;
 export type AssetAvailabilityHint = z.infer<typeof assetAvailabilityHintSchema>;
@@ -541,6 +556,6 @@ export const graphPlanSearchResponseSchema = z.object({
   plan: trapFirstPlanSchema.nullable().default(null),
   /** Governed fallback payload when the plan is not selected */
   fallback: graphPlanFallbackSchema.nullable().default(null),
-});
+}).strict();
 
 export type GraphPlanSearchResponse = z.infer<typeof graphPlanSearchResponseSchema>;

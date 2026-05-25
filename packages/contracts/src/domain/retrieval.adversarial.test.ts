@@ -238,13 +238,9 @@ describe('retrieval schema adversarial tests', () => {
   });
 
   describe('retrievalV2ResponseSchema edge cases', () => {
-    it('requires refinementSummary (not optional)', () => {
-      expect(() => retrievalV2ResponseSchema.parse({})).toThrow();
-    });
-
-    it('accepts refinementSummary as null', () => {
-      const response = retrievalV2ResponseSchema.parse({ refinementSummary: null });
-      expect(response.refinementSummary).toBeNull();
+    it('refinementSummary is optional (absent when not provided)', () => {
+      const response = retrievalV2ResponseSchema.parse({});
+      expect(response.refinementSummary).toBeUndefined();
     });
 
     it('accepts refinementSummary as string', () => {
@@ -255,17 +251,17 @@ describe('retrieval schema adversarial tests', () => {
     });
 
     it('defaults capsules to empty array', () => {
-      const response = retrievalV2ResponseSchema.parse({ refinementSummary: null });
+      const response = retrievalV2ResponseSchema.parse({});
       expect(response.capsules).toEqual([]);
     });
 
     it('defaults profileHints to empty array', () => {
-      const response = retrievalV2ResponseSchema.parse({ refinementSummary: null });
+      const response = retrievalV2ResponseSchema.parse({});
       expect(response.profileHints).toEqual([]);
     });
 
     it('defaults summary to null', () => {
-      const response = retrievalV2ResponseSchema.parse({ refinementSummary: null });
+      const response = retrievalV2ResponseSchema.parse({});
       expect(response.summary).toBeNull();
     });
   });

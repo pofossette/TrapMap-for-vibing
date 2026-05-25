@@ -1571,7 +1571,6 @@ describe('contracts package', () => {
               labels: ['docker'],
             },
           ],
-          refinementSummary: null,
         };
 
         const parsed = retrievalV2ResponseSchema.parse(response);
@@ -1598,7 +1597,6 @@ describe('contracts package', () => {
         const v2Response = {
           capsules: [],
           profileHints: [],
-          refinementSummary: null,
         };
 
         const v2Parsed = retrievalV2ResponseSchema.parse(v2Response);
@@ -1626,7 +1624,6 @@ describe('contracts package', () => {
             },
           ],
           profileHints: [],
-          refinementSummary: null,
         };
 
         const parsed = retrievalV2ResponseSchema.parse(response);
@@ -1701,7 +1698,6 @@ describe('contracts package', () => {
               labels: ['docker'],
             },
           ],
-          refinementSummary: null,
           summary: {
             text: 'Container startup issues often relate to permission problems',
             citations: [
@@ -1757,7 +1753,6 @@ describe('contracts package', () => {
             },
           ],
           profileHints: [],
-          refinementSummary: null,
           // summary is optional and defaults to null
         };
 
@@ -1799,7 +1794,6 @@ describe('contracts package', () => {
         const v2Response = {
           capsules: [],
           profileHints: [],
-          refinementSummary: null,
         };
 
         const v2Parsed = retrievalV2ResponseSchema.parse(v2Response);

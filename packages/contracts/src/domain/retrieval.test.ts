@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   capsuleMatchSchema,
+  graphPlanSearchResponseSchema,
   retrievalCitationSchema,
   retrievalFiltersSchema,
   retrievalMatchSchema,
@@ -9,6 +10,7 @@ import {
   retrievalStrategySchema,
   retrievalV2QuerySchema,
   retrievalV2ResponseSchema,
+  retrievalV2ResponseWithHintsSchema,
   routingTraceSchema,
 } from './retrieval.js';
 
@@ -99,20 +101,33 @@ describe('retrieval schema contracts', () => {
       ).toThrow();
     });
 
-    it('accepts null semantic/keyword/graph scores', () => {
+    it('rejects all-null semantic/keyword/graph scores (at least one must be non-null)', () => {
+      expect(() =>
+        retrievalCitationSchema.parse({
+          ...validCitation,
+          scores: {
+            semantic: null,
+            keyword: null,
+            graph: null,
+            preRerank: 0.5,
+            final: 0.6,
+          },
+        }),
+      ).toThrow();
+    });
+
+    it('accepts when exactly one of semantic/keyword/graph is non-null', () => {
       const citation = retrievalCitationSchema.parse({
         ...validCitation,
         scores: {
           semantic: null,
-          keyword: null,
+          keyword: 0.7,
           graph: null,
           preRerank: 0.5,
           final: 0.6,
         },
       });
-      expect(citation.scores.semantic).toBeNull();
-      expect(citation.scores.keyword).toBeNull();
-      expect(citation.scores.graph).toBeNull();
+      expect(citation.scores.keyword).toBe(0.7);
     });
 
     it('rejects scores outside 0-1 range', () => {
@@ -319,23 +334,17 @@ describe('retrieval schema contracts', () => {
 
   describe('retrievalV2ResponseSchema', () => {
     it('defaults capsules to empty array', () => {
-      const response = retrievalV2ResponseSchema.parse({
-        refinementSummary: null,
-      });
+      const response = retrievalV2ResponseSchema.parse({});
       expect(response.capsules).toEqual([]);
     });
 
     it('defaults profileHints to empty array', () => {
-      const response = retrievalV2ResponseSchema.parse({
-        refinementSummary: null,
-      });
+      const response = retrievalV2ResponseSchema.parse({});
       expect(response.profileHints).toEqual([]);
     });
 
     it('defaults summary to null', () => {
-      const response = retrievalV2ResponseSchema.parse({
-        refinementSummary: null,
-      });
+      const response = retrievalV2ResponseSchema.parse({});
       expect(response.summary).toBeNull();
     });
 
@@ -424,6 +433,171 @@ describe('retrieval schema contracts', () => {
         routingTraceSchema.parse({
           ...validTrace,
           routingReason: 'invalid',
+        }),
+      ).toThrow();
+    });
+  });
+
+  describe('retrievalMatchSchema strict mode', () => {
+    const validMatch = {
+      entryId: 'entry-1',
+      scope: 'global',
+      requiredLevel: 5,
+      shortcut: 'Fix login',
+      detail: 'Authentication fix details',
+      labels: ['auth'],
+      score: 0.85,
+      reason: 'High semantic similarity',
+    };
+
+    it('rejects unknown properties', () => {
+      expect(() =>
+        retrievalMatchSchema.parse({
+          ...validMatch,
+          extraField: 'should fail',
+        }),
+      ).toThrow();
+    });
+  });
+
+  describe('retrievalV2ResponseSchema refinementSummary optional', () => {
+    it('accepts response without refinementSummary (undefined)', () => {
+      const response = retrievalV2ResponseSchema.parse({});
+      expect(response.refinementSummary).toBeUndefined();
+    });
+
+    it('accepts response with refinementSummary string', () => {
+      const response = retrievalV2ResponseSchema.parse({
+        refinementSummary: 'some summary',
+      });
+      expect(response.refinementSummary).toBe('some summary');
+    });
+  });
+
+  describe('retrievalV2ResponseWithHintsSchema refinements', () => {
+    it('rejects capsule content that looks like raw source code (import)', () => {
+      expect(() =>
+        retrievalV2ResponseWithHintsSchema.parse({
+          capsules: [{
+            capsuleId: 'c1',
+            artifactId: 'a1',
+            revision: 1,
+            sourcePaths: ['/src/foo.ts'],
+            content: 'import { foo } from "bar";',
+            situation: 'test',
+            problem: 'test',
+            goal: 'test',
+            labels: ['test'],
+            scope: 'global',
+            requiredLevel: 5,
+            score: 0.9,
+            reason: 'match',
+          }],
+        }),
+      ).toThrow();
+    });
+
+    it('rejects capsule content that looks like raw source code (function)', () => {
+      expect(() =>
+        retrievalV2ResponseWithHintsSchema.parse({
+          capsules: [{
+            capsuleId: 'c1',
+            artifactId: 'a1',
+            revision: 1,
+            sourcePaths: ['/src/foo.ts'],
+            content: 'function handleAuth(req, res) { return res.ok(); }',
+            situation: 'test',
+            problem: 'test',
+            goal: 'test',
+            labels: ['test'],
+            scope: 'global',
+            requiredLevel: 5,
+            score: 0.9,
+            reason: 'match',
+          }],
+        }),
+      ).toThrow();
+    });
+
+    it('accepts distilled capsule content (not raw code)', () => {
+      const result = retrievalV2ResponseWithHintsSchema.parse({
+        capsules: [{
+          capsuleId: 'c1',
+          artifactId: 'a1',
+          revision: 1,
+          sourcePaths: ['/src/foo.ts'],
+          content: 'Use async/await for authentication callbacks to avoid race conditions',
+          situation: 'User login fails intermittently',
+          problem: 'Race condition in auth flow',
+          goal: 'Implement proper async handling',
+          labels: ['auth'],
+          scope: 'global',
+          requiredLevel: 5,
+          score: 0.9,
+          reason: 'match',
+        }],
+      });
+      expect(result.capsules).toHaveLength(1);
+    });
+
+    it('rejects script hints with executable content (shebang)', () => {
+      expect(() =>
+        retrievalV2ResponseWithHintsSchema.parse({
+          activationHints: [{
+            capsuleId: 'c1',
+            readNext: [],
+            assets: [],
+            scripts: [{
+              artifactId: 'a1',
+              revision: 1,
+              path: '/scripts/build.sh',
+              sha256: 'a'.repeat(64),
+              capability: '#!/bin/bash\nrm -rf /',
+              argsSchemaSummary: '',
+              sideEffectSummary: '',
+              defaultPolicy: 'auto',
+            }],
+          }],
+        }),
+      ).toThrow();
+    });
+
+    it('accepts metadata-only script hints', () => {
+      const result = retrievalV2ResponseWithHintsSchema.parse({
+        activationHints: [{
+          capsuleId: 'c1',
+          readNext: [],
+          assets: [],
+          scripts: [{
+            artifactId: 'a1',
+            revision: 1,
+            path: '/scripts/build.sh',
+            sha256: 'a'.repeat(64),
+            capability: 'Runs the build pipeline',
+            argsSchemaSummary: 'No arguments',
+            sideEffectSummary: 'Creates dist/ directory',
+            defaultPolicy: 'auto',
+          }],
+        }],
+      });
+      expect(result.activationHints).toHaveLength(1);
+    });
+  });
+
+  describe('graphPlanSearchResponseSchema strict mode', () => {
+    it('rejects unknown properties', () => {
+      expect(() =>
+        graphPlanSearchResponseSchema.parse({
+          routingTrace: {
+            selectedMode: 'local',
+            routeFamily: 'capsule',
+            routingReason: 'v2-default-capsule',
+            confidenceScore: 0.8,
+            confidenceBucket: 'high',
+          },
+          plan: null,
+          fallback: null,
+          extraField: 'should fail',
         }),
       ).toThrow();
     });
