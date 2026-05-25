@@ -52,12 +52,19 @@ export const TrapCandidatePayloadSchema = z.object({
 export const SkillBundleFileMetadataSchema = z.object({
   /** Canonical path within the skill directory */
   path: z.string().min(1).max(512),
-  /** SHA-256 hash of file content */
-  sha256: z.string().length(64),
+  /** SHA-256 hash of file content (lowercase hex) */
+  sha256: z
+    .string()
+    .length(64)
+    .regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
   /** File size in bytes */
   sizeBytes: z.number().int().min(0),
-  /** IANA media type */
-  mediaType: z.string().min(1).max(160),
+  /** IANA media type (e.g. application/json, text/plain) */
+  mediaType: z
+    .string()
+    .min(1)
+    .max(160)
+    .regex(/^[a-z]+\/[a-z0-9.+-]+$/i, 'mediaType must be a valid IANA media type'),
 });
 
 /**
@@ -141,75 +148,113 @@ export const DuplicateMatchSchema = z.object({
  * Duplicate case record for manual review.
  * Created when duplicate detection finds potential matches.
  */
-export const DuplicateCaseSchema = z.object({
-  /** Unique case identifier */
-  id: entityIdSchema,
-  /** ID of the candidate submission this case belongs to */
-  candidateId: entityIdSchema,
-  /** When duplicates were detected */
-  detectedAt: isoTimestampSchema,
-  /** Algorithm version used for detection (e.g., "1.0.0") */
-  detectionVersion: z.string().min(1),
-  /** All matches found, sorted by similarity descending */
-  matches: z.array(DuplicateMatchSchema).min(1),
-  /** Highest similarity score across all matches */
-  highestSimilarity: z.number().min(0).max(1),
-  /** True if any match is an exact duplicate */
-  hasExactDuplicate: z.boolean(),
-  /** Classification of duplicate severity */
-  duplicateType: z.enum(['exact', 'semantic', 'none']),
-});
+export const DuplicateCaseSchema = z
+  .object({
+    /** Unique case identifier */
+    id: entityIdSchema,
+    /** ID of the candidate submission this case belongs to */
+    candidateId: entityIdSchema,
+    /** When duplicates were detected */
+    detectedAt: isoTimestampSchema,
+    /** Algorithm version used for detection (e.g., "1.0.0") */
+    detectionVersion: z.string().min(1),
+    /** All matches found, sorted by similarity descending */
+    matches: z.array(DuplicateMatchSchema).min(1),
+    /** Highest similarity score across all matches */
+    highestSimilarity: z.number().min(0).max(1),
+    /** True if any match is an exact duplicate */
+    hasExactDuplicate: z.boolean(),
+    /** Classification of duplicate severity */
+    duplicateType: z.enum(['exact', 'semantic', 'none']),
+  })
+  .refine(
+    d =>
+      d.matches.every(
+        (m, i) =>
+          i === 0 ||
+          (d.matches[i - 1]?.similarityScore ?? 0) >= m.similarityScore,
+      ),
+    { message: 'matches must be sorted by similarity descending' },
+  )
+  .refine(
+    d => d.highestSimilarity === Math.max(...d.matches.map(m => m.similarityScore)),
+    { message: 'highestSimilarity must equal the max similarity across matches' },
+  )
+  .refine(
+    d =>
+      d.hasExactDuplicate === d.matches.some(m => m.matchType === 'exact'),
+    {
+      message:
+        'hasExactDuplicate must be true iff at least one match has matchType "exact"',
+    },
+  )
+  .refine(
+    d => {
+      if (d.duplicateType === 'exact') return d.hasExactDuplicate === true;
+      if (d.duplicateType === 'none') return d.hasExactDuplicate === false;
+      return true;
+    },
+    { message: 'duplicateType must be consistent with hasExactDuplicate' },
+  );
 
 /**
  * Candidate submission record for async ingestion.
  * Preserves original payload and tracks processing status.
  */
-export const CandidateSubmissionSchema = z.object({
-  /** Unique submission identifier */
-  id: entityIdSchema,
-  /** Source type (trap or skill) */
-  sourceType: CandidateSourceSchema,
-  /** User who submitted this candidate */
-  submittedBy: entityIdSchema,
-  /** Team ID if team-scoped */
-  teamId: entityIdSchema.nullable(),
-  /** Current processing status */
-  status: CandidateStatusSchema,
-  /** Original payload before any transformation */
-  originalPayload: CandidatePayloadSchema,
-  /** Analysis snapshot (null until analysis completes) */
-  analysisSnapshot: AnalysisSnapshotSchema.nullable(),
-  /** Duplicate case (null if no duplicates detected) */
-  duplicateCase: DuplicateCaseSchema.nullable(),
-  /** When the candidate was received */
-  receivedAt: isoTimestampSchema,
-  /** When the candidate was queued for processing (null if not yet queued) */
-  queuedAt: isoTimestampSchema.nullable(),
-  /** When analysis started (null if not yet analyzing) */
-  analyzingAt: isoTimestampSchema.nullable(),
-  /** When processing completed (null if not complete) */
-  completedAt: isoTimestampSchema.nullable(),
-  /** Last error message (null if no error) */
-  lastError: z.string().max(2000).nullable(),
-  /** Number of retry attempts */
-  retryCount: z.number().int().min(0),
-  /** Manual result from reviewer (null if no manual review yet) */
-  manualResult: z
-    .object({
-      decision: z.enum(['independent', 'merged']),
-      notes: z.string().min(1).max(1000),
-      mergedWith: z
-        .object({
-          entityType: z.enum(['trap', 'skill']),
-          entityId: entityIdSchema,
-          entityTitle: z.string().min(1).max(280).optional(),
-        })
-        .optional(),
-      submittedAt: isoTimestampSchema,
-      submittedBy: entityIdSchema,
-    })
-    .nullable(),
-});
+export const CandidateSubmissionSchema = z
+  .object({
+    /** Unique submission identifier */
+    id: entityIdSchema,
+    /** Source type (trap or skill) */
+    sourceType: CandidateSourceSchema,
+    /** User who submitted this candidate */
+    submittedBy: entityIdSchema,
+    /** Team ID if team-scoped */
+    teamId: entityIdSchema.nullable(),
+    /** Current processing status */
+    status: CandidateStatusSchema,
+    /** Original payload before any transformation */
+    originalPayload: CandidatePayloadSchema,
+    /** Analysis snapshot (null until analysis completes) */
+    analysisSnapshot: AnalysisSnapshotSchema.nullable(),
+    /** Duplicate case (null if no duplicates detected) */
+    duplicateCase: DuplicateCaseSchema.nullable(),
+    /** When the candidate was received */
+    receivedAt: isoTimestampSchema,
+    /** When the candidate was queued for processing (null if not yet queued) */
+    queuedAt: isoTimestampSchema.nullable(),
+    /** When analysis started (null if not yet analyzing) */
+    analyzingAt: isoTimestampSchema.nullable(),
+    /** When processing completed (null if not complete) */
+    completedAt: isoTimestampSchema.nullable(),
+    /** Last error message (null if no error) */
+    lastError: z.string().max(2000).nullable(),
+    /** Number of retry attempts */
+    retryCount: z.number().int().min(0),
+    /** Manual result from reviewer (null if no manual review yet) */
+    manualResult: z
+      .object({
+        decision: z.enum(['independent', 'merged']),
+        notes: z.string().min(1).max(1000),
+        mergedWith: z
+          .object({
+            entityType: z.enum(['trap', 'skill']),
+            entityId: entityIdSchema,
+            entityTitle: z.string().min(1).max(280).optional(),
+          })
+          .optional(),
+        submittedAt: isoTimestampSchema,
+        submittedBy: entityIdSchema,
+      })
+      .nullable(),
+  })
+  .refine(
+    d =>
+      d.manualResult === null ||
+      d.manualResult.decision !== 'merged' ||
+      d.manualResult.mergedWith != null,
+    { message: 'mergedWith is required when decision is "merged"' },
+  );
 
 // Type exports
 // Request schemas
@@ -224,13 +269,15 @@ export const candidateTrapSubmissionSchema = z.object({
 
 export const candidateSkillSubmissionSchema = z.object({
   // Matches artifact import bundle structure
-  files: z.array(
-    z.object({
-      path: z.string(),
-      content: z.string(), // base64 or text
-      mediaType: z.string(),
-    }),
-  ),
+  files: z
+    .array(
+      z.object({
+        path: z.string(),
+        content: z.string(), // base64 or text
+        mediaType: z.string(),
+      }),
+    )
+    .min(1),
   scope: scopeSchema,
   labels: z.array(labelSchema).min(1),
   requiredLevel: securityLevelSchema.optional(),
@@ -257,12 +304,12 @@ export const candidateSubmissionResponseSchema = z.object({
 
 export const candidateStatusResponseSchema = z.object({
   candidate: CandidateSubmissionSchema,
-});
+}).strict();
 
 export const candidateListResponseSchema = z.object({
   items: z.array(CandidateSubmissionSchema),
   total: z.number().int().min(0),
-});
+}).strict();
 
 export const duplicateCaseListResponseSchema = z.object({
   items: z.array(DuplicateCaseSchema),
@@ -303,24 +350,26 @@ export const ManualResultSubmissionSchema = z.object({
  * Outcome of applying a manual resolution.
  * Captures what action was taken and what entities were affected.
  */
-export const ResolutionOutcomeSchema = z.object({
-  /** The candidate that was resolved */
-  candidateId: entityIdSchema,
-  /** The decision that was applied */
-  decision: ManualResultDecisionSchema,
-  /** For 'independent': ID of the newly created entity */
-  publishedEntityId: entityIdSchema.nullable(),
-  /** For 'merged': ID of the existing entity that absorbed the candidate */
-  mergedIntoEntityId: entityIdSchema.nullable(),
-  /** Type of the affected entity ('trap' or 'skill') */
-  entityType: z.enum(['trap', 'skill']).nullable(),
-  /** When the resolution was applied */
-  resolvedAt: isoTimestampSchema,
-  /** User who applied the resolution */
-  resolvedBy: entityIdSchema,
-  /** Notes from the manual result */
-  notes: z.string(),
-});
+export const ResolutionOutcomeSchema = z
+  .object({
+    /** The candidate that was resolved */
+    candidateId: entityIdSchema,
+    /** The decision that was applied */
+    decision: ManualResultDecisionSchema,
+    /** For 'independent': ID of the newly created entity */
+    publishedEntityId: entityIdSchema.nullable(),
+    /** For 'merged': ID of the existing entity that absorbed the candidate */
+    mergedIntoEntityId: entityIdSchema.nullable(),
+    /** Type of the affected entity ('trap' or 'skill') */
+    entityType: z.enum(['trap', 'skill']).nullable(),
+    /** When the resolution was applied */
+    resolvedAt: isoTimestampSchema,
+    /** User who applied the resolution */
+    resolvedBy: entityIdSchema,
+    /** Notes from the manual result */
+    notes: z.string(),
+  })
+  .strict();
 
 /**
  * Lineage relationship record for tracking entity provenance.
@@ -350,12 +399,23 @@ export const EntityLineageSchema = z.object({
 /**
  * Response after applying a manual resolution.
  */
-export const applyResolutionResponseSchema = z.object({
-  candidateId: entityIdSchema,
-  status: CandidateStatusSchema,
-  outcome: ResolutionOutcomeSchema,
-  lineage: EntityLineageSchema.nullable(),
-});
+export const applyResolutionResponseSchema = z
+  .object({
+    candidateId: entityIdSchema,
+    status: CandidateStatusSchema,
+    outcome: ResolutionOutcomeSchema,
+    lineage: EntityLineageSchema.nullable(),
+  })
+  .refine(
+    d =>
+      d.outcome.decision !== 'independent' ||
+      d.lineage === null ||
+      d.lineage.relationshipType !== 'merged_into',
+    {
+      message:
+        'relationshipType must not be "merged_into" when decision is "independent"',
+    },
+  );
 
 /**
  * Response after submitting manual result.
