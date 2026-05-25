@@ -135,6 +135,25 @@ export const planEdgeSchema = z.object({
 export type PlanEdge = z.infer<typeof planEdgeSchema>;
 
 /**
+ * A step in the topologically sorted execution plan.
+ * Combines traps and skills into a single dependency-aware sequence.
+ */
+export const executionStepSchema = z.object({
+  /** Topological rank (0 = no predecessors; higher = later in sequence) */
+  rank: z.number().int().min(0),
+  /** Node identifier (matches a trap or skill nodeId in the plan) */
+  nodeId: entityIdSchema,
+  /** Human-readable label */
+  label: z.string().min(1).max(280),
+  /** Whether this step represents a trap mitigation or a skill action */
+  kind: z.enum(['trap-mitigation', 'skill']),
+  /** Node IDs that must complete before this step (predecessors in the DAG) */
+  blockedBy: z.array(entityIdSchema).default([]),
+});
+
+export type ExecutionStep = z.infer<typeof executionStepSchema>;
+
+/**
  * Citation for supporting evidence not promoted to plan nodes.
  */
 export const planCitationSchema = z.object({
@@ -227,6 +246,8 @@ export const trapFirstPlanSchema = z.object({
   edges: z.array(planEdgeSchema).default([]),
   /** Supporting evidence not promoted to nodes */
   citations: z.array(planCitationSchema).default([]),
+  /** Topologically sorted execution sequence combining traps and skills */
+  executionPlan: z.array(executionStepSchema).default([]),
   /** Additive unified graph view spanning both trap and skill outputs */
   graph: graphPlanSchema.default({
     nodes: [],
