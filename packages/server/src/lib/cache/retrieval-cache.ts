@@ -6,8 +6,6 @@
  * TTL is checked lazily on get(); no background timers.
  */
 
-import { randomUUID } from 'node:crypto';
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -45,20 +43,29 @@ const DEFAULT_MAX_SIZE = 200;
 const DEFAULT_TTL_MS = 30 * 60_000; // 30 minutes
 
 // ---------------------------------------------------------------------------
-// Module-level registry
+// Module-level registry (WeakRef-based to allow GC of unreachable caches)
 // ---------------------------------------------------------------------------
 
-const registry = new Map<string, RetrievalCache<unknown>>();
+type CacheStatsProvider = { ns: string; stats: CacheStats };
+
+const liveCaches = new Set<WeakRef<CacheStatsProvider>>();
+const finalizationRegistry = new FinalizationRegistry((ref: WeakRef<CacheStatsProvider>) => {
+  liveCaches.delete(ref);
+});
 
 function register<V>(cache: RetrievalCache<V>): void {
-  registry.set(randomUUID(), cache as RetrievalCache<unknown>);
+  const ref = new WeakRef(cache as unknown as CacheStatsProvider);
+  liveCaches.add(ref);
+  finalizationRegistry.register(cache, ref);
 }
 
-/** Aggregate stats from all RetrievalCache instances by namespace */
+/** Aggregate stats from all live RetrievalCache instances by namespace */
 export function getRetrievalCacheStats(): Record<string, CacheStats> {
   const result: Record<string, CacheStats> = {};
 
-  for (const cache of registry.values()) {
+  for (const ref of liveCaches) {
+    const cache = ref.deref();
+    if (!cache) continue;
     const ns = cache.ns;
     const existing = result[ns];
     const s = cache.stats;
@@ -85,7 +92,7 @@ export function getRetrievalCacheStats(): Record<string, CacheStats> {
  * Not part of the public contract; exposed only for test isolation.
  */
 export function clearRetrievalCacheRegistry(): void {
-  registry.clear();
+  liveCaches.clear();
 }
 
 // ---------------------------------------------------------------------------
@@ -110,39 +117,43 @@ export class RetrievalCache<V> {
   }
 
   /**
-   * Retrieve a cached value.
-   *
-   * Returns `null` when the key is missing or the entry has expired.
-   * On hit the entry is promoted to most-recently-used.
+   * Internal lookup — TTL check + LRU promotion WITHOUT bumping metrics.
    */
-  get(key: string): V | null {
+  private lookup(key: string): V | null {
     const entry = this.store.get(key);
-
-    if (entry === undefined) {
-      this.misses++;
-      return null;
-    }
-
-    // Lazy TTL check
+    if (entry === undefined) return null;
     if (Date.now() - entry.createdAt > this.ttlMs) {
       this.store.delete(key);
-      this.misses++;
       return null;
     }
-
     // LRU promotion: move to end
     this.store.delete(key);
     this.store.set(key, entry);
-
-    this.hits++;
     return entry.value;
+  }
+
+  /**
+   * Retrieve a cached value.
+   *
+   * Returns `null` when the key is missing or the entry has expired.
+   * On hit the entry is promoted to most-recently-used and `hits` is incremented.
+   */
+  get(key: string): V | null {
+    const value = this.lookup(key);
+    if (value === null) {
+      this.misses++;
+    } else {
+      this.hits++;
+    }
+    return value;
   }
 
   /**
    * Insert or update a cache entry.
    *
    * When the cache is at capacity the least-recently-used entry is evicted.
-   * When updating an existing key the entry is moved to the end (most recent).
+   * When updating an existing key the entry is moved to the end (most recent)
+   * and its TTL is reset to the current time.
    */
   set(key: string, value: V): void {
     if (this.store.has(key)) {
@@ -163,10 +174,11 @@ export class RetrievalCache<V> {
   /**
    * Check whether a key exists and is not expired.
    *
-   * Delegates to `get()` so that TTL enforcement and LRU promotion both apply.
+   * Uses `lookup()` internally so that TTL enforcement and LRU promotion
+   * apply WITHOUT inflating hit/miss metrics.
    */
   has(key: string): boolean {
-    return this.get(key) !== null;
+    return this.lookup(key) !== null;
   }
 
   /** Remove a specific key. Returns `true` if the key existed. */

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   RetrievalCache,
@@ -12,6 +12,10 @@ import {
 
 beforeEach(() => {
   clearRetrievalCacheRegistry();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 // ---------------------------------------------------------------------------
@@ -38,11 +42,12 @@ describe('RetrievalCache.get', () => {
   // 3. get returns null for expired entry (TTL)
   // -------------------------------------------------------------------------
 
-  it('returns null for expired entry', async () => {
+  it('returns null for expired entry', () => {
+    vi.useFakeTimers();
     const cache = new RetrievalCache<string>({ ttlMs: 10 });
     cache.set('k', 'v');
-    // wait > TTL
-    await new Promise((r) => setTimeout(r, 20));
+    // advance past TTL
+    vi.advanceTimersByTime(20);
     expect(cache.get('k')).toBeNull();
   });
 
@@ -85,11 +90,12 @@ describe('RetrievalCache.get', () => {
   // 6. has returns false for expired entry
   // -------------------------------------------------------------------------
 
-  it('has returns false for expired entry', async () => {
+  it('has returns false for expired entry', () => {
+    vi.useFakeTimers();
     const cache = new RetrievalCache<string>({ ttlMs: 10 });
     cache.set('k', 'v');
     expect(cache.has('k')).toBe(true);
-    await new Promise((r) => setTimeout(r, 20));
+    vi.advanceTimersByTime(20);
     expect(cache.has('k')).toBe(false);
   });
 });
@@ -193,5 +199,62 @@ describe('getRetrievalCacheStats', () => {
     expect(agg['beta']!.hits).toBe(0);
     expect(agg['beta']!.misses).toBe(0);
     expect(agg['beta']!.size).toBe(1);
+  });
+
+  it('uses default namespace when none specified', () => {
+    const cache = new RetrievalCache<string>();
+    cache.set('k', 'v');
+    cache.get('k');
+
+    const agg = getRetrievalCacheStats();
+    expect(agg['default']).toBeDefined();
+    expect(agg['default']!.hits).toBe(1);
+    expect(agg['default']!.size).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 11. has() does not inflate hit/miss metrics
+// ---------------------------------------------------------------------------
+
+describe('RetrievalCache.has side-effect isolation', () => {
+  it('does not increment hits or misses', () => {
+    const cache = new RetrievalCache<string>();
+    cache.set('k', 'v');
+
+    cache.has('k');   // should not count as a hit
+    cache.has('k');   // should not count as a hit
+    cache.has('zzz'); // should not count as a miss
+
+    const s = cache.stats;
+    expect(s.hits).toBe(0);
+    expect(s.misses).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 12. set() resets TTL on existing key
+// ---------------------------------------------------------------------------
+
+describe('RetrievalCache.set TTL reset', () => {
+  it('resets TTL when updating an existing key', () => {
+    vi.useFakeTimers();
+    const cache = new RetrievalCache<string>({ ttlMs: 100 });
+    cache.set('k', 'v1');
+
+    // advance 80ms — entry is still alive
+    vi.advanceTimersByTime(80);
+    expect(cache.get('k')).toBe('v1');
+
+    // update the key — TTL should reset
+    cache.set('k', 'v2');
+
+    // advance another 80ms (total 160ms from original set, but only 80ms from update)
+    vi.advanceTimersByTime(80);
+    expect(cache.get('k')).toBe('v2');
+
+    // advance past the new TTL
+    vi.advanceTimersByTime(30);
+    expect(cache.get('k')).toBeNull();
   });
 });
