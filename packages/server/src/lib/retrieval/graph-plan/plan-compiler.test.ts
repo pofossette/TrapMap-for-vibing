@@ -921,7 +921,12 @@ describe('plan-compiler', () => {
         skillArtifacts: [makeSkillArtifact(skillA), makeSkillArtifact(skillB)],
         graphIndexDocuments: [
           makeGraphDoc(trapId, 'trap', [trapNode], [riskEdge]),
-          makeGraphDoc(skillA, 'skill', [skillNodeA, skillNodeB], [mitEdgeA, mitEdgeB, requiresEdge]),
+          makeGraphDoc(
+            skillA,
+            'skill',
+            [skillNodeA, skillNodeB],
+            [mitEdgeA, mitEdgeB, requiresEdge],
+          ),
         ],
       });
       const auth = makeMockAuth();
