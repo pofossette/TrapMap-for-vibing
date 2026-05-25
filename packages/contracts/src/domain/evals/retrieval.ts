@@ -164,6 +164,8 @@ export const retrievalEvalGovernanceExpectationsSchema = z.object({
   forbiddenIds: z.array(entityIdSchema).default([]),
   /** Reasons why items are forbidden (for precise failure categorization) */
   forbiddenReasons: z.array(z.enum(['cross-team', 'security-level', 'lifecycle'])).default([]),
+}).refine(d => d.forbiddenIds.length === d.forbiddenReasons.length, {
+  message: 'forbiddenIds and forbiddenReasons must have equal length',
 });
 
 export type RetrievalEvalGovernanceExpectations = z.infer<

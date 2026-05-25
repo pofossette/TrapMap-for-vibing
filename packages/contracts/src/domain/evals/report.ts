@@ -18,7 +18,7 @@ import { summaryEvalEndpointSchema, summaryEvalTierSchema } from './summary.js';
 
 export const summaryEvalReportMetaSchema = z.object({
   schemaVersion: z.literal(1),
-  timestamp: z.string().datetime(),
+  timestamp: z.string().datetime({ offset: true }),
   durationMs: z.number().int().min(0),
   llmProvider: z.enum(['openai', 'fallback']),
   options: z.object({
@@ -33,7 +33,7 @@ export const summaryEvalReportMetaSchema = z.object({
 export type SummaryEvalReportMeta = z.infer<typeof summaryEvalReportMetaSchema>;
 
 export const summaryEvalClaimResultSchema = z.object({
-  text: z.string(),
+  text: z.string().min(1),
   supported: z.boolean(),
   evidence: z.string().optional(),
 });
@@ -53,7 +53,7 @@ export const summaryEvalCaseResultSchema = z.object({
   requiredFactsMissing: z.array(z.string()),
   forbiddenClaimsFound: z.array(z.string()),
   durationMs: z.number().int().min(0),
-});
+}).strict();
 
 export type SummaryEvalCaseResult = z.infer<typeof summaryEvalCaseResultSchema>;
 
@@ -89,7 +89,10 @@ export const summaryEvalReportSchema = z.object({
   }),
   cases: z.array(summaryEvalCaseResultSchema),
   failures: z.array(summaryEvalFailureRecordSchema),
-});
+}).refine(d => {
+  if (d.summary.totalCases === 0) return d.summary.passRate === 0;
+  return d.summary.passRate === d.summary.passedCases / d.summary.totalCases;
+}, { message: 'passRate must equal passedCases / totalCases' });
 
 export type SummaryEvalReport = z.infer<typeof summaryEvalReportSchema>;
 
@@ -291,7 +294,10 @@ export const baselineReportSchema = z.object({
   passRate: z.number().min(0).max(1),
   /** Duration of baseline run in ms */
   durationMs: z.number().int().min(0),
-});
+}).refine(d => {
+  if (d.totalCases === 0) return d.passRate === 0;
+  return d.passRate === d.passedCases / d.totalCases;
+}, { message: 'passRate must equal passedCases / totalCases' });
 
 export type BaselineReport = z.infer<typeof baselineReportSchema>;
 
@@ -384,7 +390,7 @@ export type RegressionResult = z.infer<typeof regressionResultSchema>;
 
 export const retrievalEvalReportMetaSchema = z.object({
   schemaVersion: z.literal(1),
-  timestamp: z.string().datetime(),
+  timestamp: z.string().datetime({ offset: true }),
   durationMs: z.number().int().min(0),
   options: z.object({
     tier: retrievalEvalTierSchema,
@@ -420,6 +426,8 @@ export const retrievalEvalSliceSummarySchema = z.object({
   regressionStatus: z
     .enum(['regressed', 'stable', 'improved', 'no-baseline'])
     .default('no-baseline'),
+}).refine(d => d.passedCount <= d.caseCount, {
+  message: 'passedCount must be <= caseCount',
 });
 
 export type RetrievalEvalSliceSummary = z.infer<typeof retrievalEvalSliceSummarySchema>;
@@ -461,7 +469,7 @@ export const retrievalEvalWarningRecordSchema = z.object({
   code: z.string().min(1),
   message: z.string().min(1),
   degraded: z.boolean(),
-});
+}).strict();
 
 export type RetrievalEvalWarningRecord = z.infer<typeof retrievalEvalWarningRecordSchema>;
 
@@ -493,6 +501,10 @@ export const retrievalEvalReportSchema = z.object({
   cases: z.array(retrievalEvalCaseSummarySchema),
   failures: z.array(retrievalEvalFailureRecordSchema),
   warnings: z.array(retrievalEvalWarningRecordSchema),
+}).refine(d => d.cases.length === d.summary.totalCases, {
+  message: 'cases.length must equal totalCases',
+}).refine(d => d.failures.length === d.summary.failedCases, {
+  message: 'failures.length must equal failedCases',
 });
 
 export type RetrievalEvalReport = z.infer<typeof retrievalEvalReportSchema>;
