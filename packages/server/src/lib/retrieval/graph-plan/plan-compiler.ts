@@ -147,6 +147,7 @@ export async function compileTrapFirstPlan(
     query.skillBudget ?? DEFAULT_SKILL_BUDGET,
     expansionGraph,
     graphDocs,
+    blockingTraps.map((t) => t.nodeId),
   );
 
   // 11. Build edges
@@ -319,6 +320,7 @@ function applySkillBudget(
   budget: number,
   _graph: Graph,
   graphDocs: GraphIndexDocumentRecord[],
+  blockingTrapNodeIds: string[],
 ): PlanSkillNode[] {
   if (skillCandidates.length === 0) {
     return [];
@@ -344,6 +346,20 @@ function applySkillBudget(
     }
   }
 
+  // Build nodeId → mitigates mapping for direct mitigation check
+  const nodeIdToMitigates = new Map<string, string[]>();
+  for (const doc of graphDocs) {
+    if (doc.sourceType === 'skill') {
+      for (const node of doc.nodes) {
+        if (node.kind === 'skill' && node.mitigates && node.mitigates.length > 0) {
+          nodeIdToMitigates.set(node.id, node.mitigates);
+        }
+      }
+    }
+  }
+
+  const blockingSet = new Set(blockingTrapNodeIds);
+
   // Score candidates with mitigation boost
   const scoredCandidates = skillCandidates
     .map((candidate) => {
@@ -359,8 +375,12 @@ function applySkillBudget(
         }
       }
 
-      // Boost score if mitigating a trap
-      const mitigationBoost = nodeId && mitigatingSkillNodeIds.includes(nodeId) ? 0.5 : 0;
+      const precomputedMitigates = nodeId ? nodeIdToMitigates.get(nodeId) : undefined;
+      const scopedMitigates =
+        precomputedMitigates?.some((trapId) => blockingSet.has(trapId)) ?? false;
+      const isMitigating =
+        nodeId ? scopedMitigates || mitigatingSkillNodeIds.includes(nodeId) : false;
+      const mitigationBoost = isMitigating ? 0.5 : 0;
       const prioritizedScore = candidate.finalScore + mitigationBoost;
 
       return {
@@ -368,7 +388,7 @@ function applySkillBudget(
         artifact,
         nodeId,
         prioritizedScore,
-        isMitigating: nodeId ? mitigatingSkillNodeIds.includes(nodeId) : false,
+        isMitigating,
       };
     })
     .filter((c): c is NonNullable<typeof c> => c !== null);

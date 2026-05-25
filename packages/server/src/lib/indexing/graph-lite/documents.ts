@@ -65,6 +65,8 @@ export interface GraphNodeRecord {
   evidence: string;
   /** Pre-computed severity for trap nodes. Derived from risk-blocks edge strength. */
   severity?: 'hard' | 'soft';
+  /** Pre-computed list of trap nodeIds this skill/mitigation node mitigates. Only for kind=skill or kind=mitigation. */
+  mitigates?: string[];
 }
 
 /**

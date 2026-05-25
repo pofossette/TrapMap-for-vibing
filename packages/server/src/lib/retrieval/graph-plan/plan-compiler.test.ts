@@ -850,6 +850,82 @@ describe('plan-compiler', () => {
       expect(result.blockingTraps.find((t) => t.nodeId === 'trap:trap-gov-5')).toBeDefined();
     });
 
+    describe('skill mitigation pre-computation', () => {
+      it('boosts skill with pre-computed mitigates in recommendedSkills', async () => {
+        const trapId = 'trap-precomp';
+        const mitigatingSkillId = 'skill-precomp';
+        const otherSkillId = 'skill-other-precomp';
+
+        const trapNode = makeTrapNode(trapId, 'Precomputed trap');
+        const mitigatingSkillNode: GraphNodeRecord = {
+          ...makeSkillNode(mitigatingSkillId, 'Precomputed mitigating skill'),
+          mitigates: [`trap:${trapId}`],
+        };
+        const otherSkillNode = makeSkillNode(otherSkillId, 'Other skill');
+
+        const services = makeMockServices({
+          knowledgeEntries: [makeKnowledgeEntry(trapId)],
+          skillArtifacts: [
+            makeSkillArtifact(mitigatingSkillId),
+            makeSkillArtifact(otherSkillId),
+          ],
+          graphIndexDocuments: [
+            makeGraphDoc(trapId, 'trap', [trapNode], []),
+            makeGraphDoc(mitigatingSkillId, 'skill', [mitigatingSkillNode], []),
+            makeGraphDoc(otherSkillId, 'skill', [otherSkillNode], []),
+          ],
+        });
+        const auth = makeMockAuth();
+        const query: PlanQuery = { seed: 'precomputed mitigation', skillBudget: 1, maxDepth: 2 };
+
+        const result = await compileTrapFirstPlan(services, auth, query);
+
+        // With budget=1, the mitigating skill should be selected due to mitigation boost
+        expect(
+          result.recommendedSkills.find((s) => s.artifactId === mitigatingSkillId),
+        ).toBeDefined();
+      });
+
+      it('falls back to snapshot index when mitigates field is absent', async () => {
+        const trapId = 'trap-fallback-precomp';
+        const mitigatingSkillId = 'skill-fallback-precomp';
+        const otherSkillId = 'skill-other-fallback-precomp';
+
+        const trapNode = makeTrapNode(trapId, 'Fallback trap');
+        // No mitigates field - simulates old document format
+        const mitigatingSkillNode = makeSkillNode(mitigatingSkillId, 'Fallback mitigating skill');
+        const otherSkillNode = makeSkillNode(otherSkillId, 'Other fallback skill');
+        const mitigatesEdge = makeMitigatesEdge(mitigatingSkillId, trapId, 'hard');
+
+        const services = makeMockServices({
+          knowledgeEntries: [makeKnowledgeEntry(trapId)],
+          skillArtifacts: [
+            makeSkillArtifact(mitigatingSkillId),
+            makeSkillArtifact(otherSkillId),
+          ],
+          graphIndexDocuments: [
+            makeGraphDoc(trapId, 'trap', [trapNode], []),
+            makeGraphDoc(
+              mitigatingSkillId,
+              'skill',
+              [mitigatingSkillNode],
+              [mitigatesEdge],
+            ),
+            makeGraphDoc(otherSkillId, 'skill', [otherSkillNode], []),
+          ],
+        });
+        const auth = makeMockAuth();
+        const query: PlanQuery = { seed: 'fallback mitigation', skillBudget: 1, maxDepth: 2 };
+
+        const result = await compileTrapFirstPlan(services, auth, query);
+
+        // The old-format skill should still be recognized as mitigating via snapshot index
+        expect(
+          result.recommendedSkills.find((s) => s.artifactId === mitigatingSkillId),
+        ).toBeDefined();
+      });
+    });
+
     describe('severity pre-computation', () => {
       it('uses pre-computed severity from GraphNodeRecord', async () => {
         const trapId = 'trap-sev-pre';

@@ -116,4 +116,74 @@ describe('buildTrapGraphDocument', () => {
       }
     });
   });
+
+  describe('mitigates pre-computation', () => {
+    it('sets mitigates with the target trap ID when skill node has a single mitigates edge', () => {
+      const trapId = 'trap:target-1';
+      const skillId = 'skill:s1';
+      const input = makeInput({
+        nodes: [
+          { id: skillId, kind: 'skill', label: 'Mitigating skill', evidence: 'ev' },
+          { id: trapId, kind: 'trap', label: 'Target trap', evidence: 'ev' },
+        ],
+        edges: [
+          {
+            relationType: 'mitigates',
+            sourceNodeId: skillId,
+            targetNodeId: trapId,
+            strength: 'hard',
+            evidence: 'ev',
+          },
+        ],
+      });
+
+      const result = buildTrapGraphDocument(input);
+
+      const skillNode = result.nodes.find((n) => n.id === skillId);
+      expect(skillNode).toBeDefined();
+      expect(skillNode!.mitigates).toEqual([trapId]);
+    });
+
+    it('sets mitigates with all trap IDs when skill node has multiple mitigates edges', () => {
+      const trap1 = 'trap:target-1';
+      const trap2 = 'trap:target-2';
+      const trap3 = 'trap:target-3';
+      const skillId = 'skill:multi';
+      const input = makeInput({
+        nodes: [
+          { id: skillId, kind: 'skill', label: 'Multi-mitigates skill', evidence: 'ev' },
+          { id: trap1, kind: 'trap', label: 'Trap 1', evidence: 'ev' },
+          { id: trap2, kind: 'trap', label: 'Trap 2', evidence: 'ev' },
+          { id: trap3, kind: 'trap', label: 'Trap 3', evidence: 'ev' },
+        ],
+        edges: [
+          { relationType: 'mitigates', sourceNodeId: skillId, targetNodeId: trap1, strength: 'hard', evidence: 'ev' },
+          { relationType: 'mitigates', sourceNodeId: skillId, targetNodeId: trap2, strength: 'hard', evidence: 'ev' },
+          { relationType: 'mitigates', sourceNodeId: skillId, targetNodeId: trap3, strength: 'soft', evidence: 'ev' },
+        ],
+      });
+
+      const result = buildTrapGraphDocument(input);
+
+      const skillNode = result.nodes.find((n) => n.id === skillId);
+      expect(skillNode).toBeDefined();
+      expect(skillNode!.mitigates).toEqual([trap1, trap2, trap3]);
+    });
+
+    it('leaves mitigates undefined when skill node has no mitigates edges', () => {
+      const skillId = 'skill:no-mit';
+      const input = makeInput({
+        nodes: [
+          { id: skillId, kind: 'skill', label: 'Non-mitigating skill', evidence: 'ev' },
+        ],
+        edges: [],
+      });
+
+      const result = buildTrapGraphDocument(input);
+
+      const skillNode = result.nodes.find((n) => n.id === skillId);
+      expect(skillNode).toBeDefined();
+      expect(skillNode!.mitigates).toBeUndefined();
+    });
+  });
 });

@@ -32,7 +32,7 @@
 | `boundary-version` | `boundary-version:{pkg}@{v}` | 版本约束 |
 | `boundary-platform` | `boundary-platform:{name}` | 平台标识 |
 
-每个节点包含：`id`, `kind`, `label` (人类可读), `evidence` (审计线索)。Trap 节点额外包含预计算字段 `severity`（`'hard'` | `'soft'`），由入库时的 `risk-blocks` 边强度决定。
+每个节点包含：`id`, `kind`, `label` (人类可读), `evidence` (审计线索)。Trap 节点额外包含预计算字段 `severity`（`'hard'` | `'soft'`），由入库时的 `risk-blocks` 边强度决定。Skill/Mitigation 节点额外包含预计算字段 `mitigates`（`string[]`），列出其缓解的所有 trap nodeId。
 
 ### 2.2 边类型 (GraphRelationType)
 
@@ -142,6 +142,7 @@
            +-- extractBoundaryGraphEntities()
            +-- buildTrapGraphDocument()
            |      (预计算 trap severity: hard risk-blocks 边 -> 'hard', 否则 -> 'soft')
+           |      (预计算 skill mitigation 关联: mitigates 边 -> mitigates[] 字段)
            +-- assertNoHardDependencyCycles()  <- graphology-dag 环路检测
            +-- upsertGraphIndexDocument()      <- 持久化到 StoreData
 ```

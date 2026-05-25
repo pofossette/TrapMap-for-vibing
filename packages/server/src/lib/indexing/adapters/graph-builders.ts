@@ -59,6 +59,18 @@ export function buildTrapGraphDocument(
     }
   }
 
+  const skillMitigatesMap = new Map<string, string[]>();
+  for (const edge of edgeRecords) {
+    if (edge.relationType === 'mitigates') {
+      const existing = skillMitigatesMap.get(edge.sourceNodeId);
+      if (existing) {
+        existing.push(edge.targetNodeId);
+      } else {
+        skillMitigatesMap.set(edge.sourceNodeId, [edge.targetNodeId]);
+      }
+    }
+  }
+
   const nodeRecords: GraphNodeRecord[] = nodes.map((n) => {
     const record: GraphNodeRecord = {
       id: n.id,
@@ -68,6 +80,12 @@ export function buildTrapGraphDocument(
     };
     if (n.kind === 'trap') {
       record.severity = hardRiskBlockTrapIds.has(n.id) ? 'hard' : 'soft';
+    }
+    if (n.kind === 'skill' || n.kind === 'mitigation') {
+      const mitigates = skillMitigatesMap.get(n.id);
+      if (mitigates) {
+        record.mitigates = mitigates;
+      }
     }
     return record;
   });
