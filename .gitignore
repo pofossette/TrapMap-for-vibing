@@ -36,6 +36,7 @@ reports/*.json
 .gemini/
 .kilo/
 .opencode/
+.golutra/
 
 # Testing
 coverage/
