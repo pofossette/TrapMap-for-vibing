@@ -34,6 +34,7 @@ export class OpenAICompatibleEmbeddings implements EmbeddingsProvider {
       this.impl = new OpenAIEmbeddings({
         modelName: this.embConfig.embeddingModel,
         apiKey: this.embConfig.apiKey,
+        timeout: 30_000,
         configuration: {
           baseURL: this.embConfig.baseUrl,
         },
@@ -183,6 +184,7 @@ export class OpenAICompatibleChat implements ChatProvider {
       this.impl = new ChatOpenAI({
         modelName: this.chatConfig.chatModel,
         apiKey: this.chatConfig.apiKey,
+        timeout: 30_000,
         configuration: {
           baseURL: this.chatConfig.baseUrl,
         },

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { AiProviderConfig } from './provider-config.js';
 import {
@@ -9,6 +9,18 @@ import {
   OpenAICompatibleEmbeddings,
   createAiProviders,
 } from './providers.js';
+
+vi.mock('@langchain/openai', () => {
+  return {
+    OpenAIEmbeddings: vi.fn().mockImplementation(() => ({
+      embedQuery: vi.fn().mockRejectedValue(new Error('Invalid or inaccessible API endpoint')),
+      embedDocuments: vi.fn().mockRejectedValue(new Error('Invalid credentials')),
+    })),
+    ChatOpenAI: vi.fn().mockImplementation(() => ({
+      invoke: vi.fn().mockRejectedValue(new Error('Invalid or inaccessible API endpoint')),
+    })),
+  };
+});
 
 const openaiConfig: AiProviderConfig = {
   provider: 'openai',
