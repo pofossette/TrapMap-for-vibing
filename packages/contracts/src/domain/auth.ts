@@ -7,10 +7,13 @@ export const loginRequestSchema = z
   .object({
     accessKey: z.string().min(16).max(256),
   })
+  .strict()
   .or(
-    z.object({
-      systemAdminKey: z.string().min(16).max(256),
-    }),
+    z
+      .object({
+        systemAdminKey: z.string().min(16).max(256),
+      })
+      .strict(),
   );
 
 export const activeSessionSchema = z.object({
@@ -26,14 +29,18 @@ export const loginResponseSchema = z.object({
   session: activeSessionSchema,
 });
 
-export const sessionStatusResponseSchema = z.object({
-  authenticated: z.boolean(),
-  session: activeSessionSchema.nullable(),
-});
+export const sessionStatusResponseSchema = z
+  .object({
+    authenticated: z.boolean(),
+    session: activeSessionSchema.nullable(),
+  })
+  .refine(d => !d.authenticated || d.session !== null, {
+    message: 'session must be non-null when authenticated is true',
+  });
 
 export const logoutResponseSchema = z.object({
   ok: z.boolean(),
-});
+}).strict();
 
 export const authContextSchema = z.object({
   actor: actorRefSchema,
