@@ -1,3 +1,5 @@
+import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
+
 import type { ParsedIntent } from '@trapmap/server/lib/retrieval/types.js';
 
 export interface IntentCacheStore {
@@ -7,36 +9,25 @@ export interface IntentCacheStore {
 }
 
 export class InMemoryIntentCache implements IntentCacheStore {
-  private store = new Map<string, { intent: ParsedIntent; createdAt: number }>();
-  private readonly maxSize: number;
-  private readonly ttlMs: number;
+  private cache: RetrievalCache<ParsedIntent>;
 
   constructor(options?: { maxSize?: number; ttlMs?: number }) {
-    this.maxSize = options?.maxSize ?? 200;
-    this.ttlMs = options?.ttlMs ?? 30 * 60_000;
+    this.cache = new RetrievalCache<ParsedIntent>({
+      maxSize: options?.maxSize ?? 200,
+      ttlMs: options?.ttlMs ?? 30 * 60_000,
+      namespace: 'intent',
+    });
   }
 
   get(key: string): ParsedIntent | null {
-    const entry = this.store.get(key);
-    if (!entry) return null;
-    if (Date.now() - entry.createdAt > this.ttlMs) {
-      this.store.delete(key);
-      return null;
-    }
-    return entry.intent;
+    return this.cache.get(key);
   }
 
   set(key: string, intent: ParsedIntent): void {
-    if (this.store.size >= this.maxSize) {
-      const oldest = this.store.keys().next().value;
-      if (oldest !== undefined) {
-        this.store.delete(oldest);
-      }
-    }
-    this.store.set(key, { intent, createdAt: Date.now() });
+    this.cache.set(key, intent);
   }
 
   clear(): void {
-    this.store.clear();
+    this.cache.clear();
   }
 }
