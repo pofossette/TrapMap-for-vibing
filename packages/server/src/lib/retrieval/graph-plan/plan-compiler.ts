@@ -24,8 +24,8 @@ import type {
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
-import type { Graph } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
-import { buildLocalExpansionView } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import type { Graph, GraphRuntimeSnapshot } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import { buildGraphRuntimeSnapshot, buildLocalExpansionView } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
 import {
   isArtifactGovernanceEligible,
   rankCapsules,
@@ -98,8 +98,10 @@ export async function compileTrapFirstPlan(
   // 5. Load graph documents
   const graphDocs = await services.repos.graphIndex.listAll();
 
+  const runtime = buildGraphRuntimeSnapshot(graphDocs);
+
   // 6. Build seed node IDs from candidates
-  const seedNodeIds = extractSeedNodeIds(trapCandidates, skillCandidates, graphDocs);
+  const seedNodeIds = extractSeedNodeIds(trapCandidates, skillCandidates, runtime);
 
   // Early return if no seeds
   if (seedNodeIds.length === 0) {
@@ -133,7 +135,7 @@ export async function compileTrapFirstPlan(
 
   // 9. Find mitigating skills
   const mitigatingSkillNodeIds = findMitigatingSkills(
-    expansionGraph,
+    runtime,
     blockingTraps.map((t) => t.nodeId),
   );
 
@@ -176,37 +178,27 @@ export async function compileTrapFirstPlan(
 // ---------------------------------------------------------------------------
 
 /**
- * Extract seed node IDs from trap and skill candidates.
- * Maps candidate IDs to graph node IDs using document records.
+ * Extract seed node IDs from trap and skill candidates using snapshot index.
+ * Maps candidate IDs to graph node IDs via runtime.nodeIdsBySourceId.
  */
 function extractSeedNodeIds(
   trapCandidates: KnowledgeRecord[],
   skillCandidates: CapsuleCandidate[],
-  graphDocs: GraphIndexDocumentRecord[],
+  runtime: GraphRuntimeSnapshot,
 ): string[] {
   const nodeIds = new Set<string>();
 
-  // Map trap IDs to graph node IDs
   const trapIds = new Set(trapCandidates.map((t) => t.id));
-  for (const doc of graphDocs) {
-    if (doc.sourceType === 'trap' && trapIds.has(doc.sourceId)) {
-      for (const node of doc.nodes) {
-        if (node.kind === 'trap') {
-          nodeIds.add(node.id);
-        }
-      }
+  for (const trapId of trapIds) {
+    for (const nodeId of runtime.nodeIdsBySourceId.get(trapId) ?? []) {
+      nodeIds.add(nodeId);
     }
   }
 
-  // Map skill IDs to graph node IDs
   const skillIds = new Set(skillCandidates.map((s) => s.artifactId));
-  for (const doc of graphDocs) {
-    if (doc.sourceType === 'skill' && skillIds.has(doc.sourceId)) {
-      for (const node of doc.nodes) {
-        if (node.kind === 'skill') {
-          nodeIds.add(node.id);
-        }
-      }
+  for (const skillId of skillIds) {
+    for (const nodeId of runtime.nodeIdsBySourceId.get(skillId) ?? []) {
+      nodeIds.add(nodeId);
     }
   }
 
@@ -298,18 +290,19 @@ function findBlockingTraps(
  * Find skill node IDs that mitigate identified trap nodes.
  * Looks for mitigates edges pointing to trap node IDs.
  */
-function findMitigatingSkills(graph: Graph, trapNodeIds: string[]): string[] {
+function findMitigatingSkills(
+  runtime: GraphRuntimeSnapshot,
+  trapNodeIds: string[],
+): string[] {
   const mitigatingSkillIds = new Set<string>();
 
   for (const trapNodeId of trapNodeIds) {
-    graph.forEachEdge((_edgeKey, attributes, sourceNodeId, targetNodeId) => {
-      if (attributes.relationType === 'mitigates' && targetNodeId === trapNodeId) {
-        const sourceAttrs = graph.getNodeAttributes(sourceNodeId);
-        if (sourceAttrs.kind === 'skill') {
-          mitigatingSkillIds.add(sourceNodeId);
-        }
+    const skillNodeIds = runtime.mitigatingSkillNodeIdsByTrapNodeId.get(trapNodeId);
+    if (skillNodeIds) {
+      for (const skillNodeId of skillNodeIds) {
+        mitigatingSkillIds.add(skillNodeId);
       }
-    });
+    }
   }
 
   return Array.from(mitigatingSkillIds);

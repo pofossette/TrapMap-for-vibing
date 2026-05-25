@@ -83,7 +83,8 @@
   nodeIdsByNormalizedLabel: Map,        // label -> node IDs
   sourceIdsByNormalizedLabel: Map,      // label -> source IDs
   sourceIdsByNodeId: Map,               // nodeId -> source IDs
-  nodeIdsBySourceId: Map                // sourceId -> node IDs
+  nodeIdsBySourceId: Map,               // sourceId -> node IDs
+  mitigatingSkillNodeIdsByTrapNodeId: Map  // trapNodeId -> Set<skillNodeId>（mitigates 反向索引）
 }
 ```
 
@@ -189,11 +190,12 @@
   +-- compileTrapFirstPlan():
   |   +-- 过滤治理合规的 trap 候选
   |   +-- rankCapsules() 排序 skill 候选 (<= 3x budget)
-  |   +-- 映射候选 ID -> 图节点 ID
+  |   +-- buildGraphRuntimeSnapshot() 构建全局运行时快照 + 反向索引
+  |   +-- 映射候选 ID -> 图节点 ID（snapshot 索引 O(1) 查找）
   |   +-- buildLocalExpansionView(seedNodeIds, maxDepth=2)
   |   |   +-- BFS 有界子图提取 (graphology-shortest-path)
-  |   +-- 查找 blocking traps (含 risk-blocks 边的节点)
-  |   +-- 查找 mitigating skills (含 mitigates->blocking traps 的 skill)
+  |   +-- 查找 blocking traps (含 risk-blocks 边的节点，优先读取 node.severity)
+  |   +-- 查找 mitigating skills (snapshot 反向索引 O(1) 查找，替代全图遍历)
   |   +-- skill 预算分配 (mitigating skill 优先 +0.5 boost, 默认预算=3)
   |   +-- 收集 plan edges (risk-blocks / mitigates / requires / order)
   |   +-- 输出 TrapFirstPlan

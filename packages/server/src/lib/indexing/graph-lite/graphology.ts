@@ -109,6 +109,8 @@ export interface GraphRuntimeSnapshot {
   sourceIdsByNormalizedLabel: Map<string, Set<string>>;
   sourceIdsByNodeId: Map<string, Set<string>>;
   nodeIdsBySourceId: Map<string, Set<string>>;
+  /** Reverse mitigation index: trapNodeId -> Set<skillNodeId> */
+  mitigatingSkillNodeIdsByTrapNodeId: Map<string, Set<string>>;
 }
 
 export function buildGraphRuntimeSnapshot(
@@ -150,6 +152,19 @@ export function buildGraphRuntimeSnapshot(
     }
   }
 
+  // Build mitigation reverse index
+  const mitigatingSkillNodeIdsByTrapNodeId = new Map<string, Set<string>>();
+  for (const doc of documents) {
+    for (const edge of doc.edges) {
+      if (edge.relationType === 'mitigates') {
+        if (!mitigatingSkillNodeIdsByTrapNodeId.has(edge.targetNodeId)) {
+          mitigatingSkillNodeIdsByTrapNodeId.set(edge.targetNodeId, new Set());
+        }
+        mitigatingSkillNodeIdsByTrapNodeId.get(edge.targetNodeId)!.add(edge.sourceNodeId);
+      }
+    }
+  }
+
   return {
     graph,
     documentsBySourceId,
@@ -157,6 +172,7 @@ export function buildGraphRuntimeSnapshot(
     sourceIdsByNormalizedLabel,
     sourceIdsByNodeId,
     nodeIdsBySourceId,
+    mitigatingSkillNodeIdsByTrapNodeId,
   };
 }
 

@@ -312,6 +312,57 @@ describe('graph-lite/graphology', () => {
     });
   });
 
+  describe('mitigatingSkillNodeIdsByTrapNodeId', () => {
+    it('builds cross-document mitigation index mapping trap nodes to skill nodes', () => {
+      const trapDoc = makeDoc(
+        'doc-trap',
+        'trap',
+        'trap-1',
+        1,
+        [{ id: 'trap:trap-1', kind: 'trap', label: 'Corruption Trap', evidence: 'test' }],
+        [],
+      );
+      const skillDoc = makeDoc(
+        'doc-skill',
+        'skill',
+        'skill-1',
+        1,
+        [{ id: 'skill:skill-1', kind: 'skill', label: 'Cleanup Skill', evidence: 'test' }],
+        [
+          {
+            id: 'skill:skill-1->trap:trap-1:mitigates',
+            sourceNodeId: 'skill:skill-1',
+            targetNodeId: 'trap:trap-1',
+            relationType: 'mitigates',
+            strength: 'hard',
+            evidence: 'test',
+          },
+        ],
+      );
+
+      const runtime = buildGraphRuntimeSnapshot([trapDoc, skillDoc]);
+
+      const mitigatingSkills = runtime.mitigatingSkillNodeIdsByTrapNodeId.get('trap:trap-1');
+      expect(mitigatingSkills).toBeDefined();
+      expect(mitigatingSkills).toEqual(new Set(['skill:skill-1']));
+    });
+
+    it('returns undefined for isolated trap with no mitigating skills', () => {
+      const trapDoc = makeDoc(
+        'doc-lonely',
+        'trap',
+        'trap-lonely',
+        1,
+        [{ id: 'trap:trap-lonely', kind: 'trap', label: 'Lonely Trap', evidence: 'test' }],
+        [],
+      );
+
+      const runtime = buildGraphRuntimeSnapshot([trapDoc]);
+
+      expect(runtime.mitigatingSkillNodeIdsByTrapNodeId.get('trap:trap-lonely')).toBeUndefined();
+    });
+  });
+
   describe('expandSourcesOneHop', () => {
     it('returns direct and one-hop related sources from graphology neighbors', () => {
       const doc1 = makeDoc(
