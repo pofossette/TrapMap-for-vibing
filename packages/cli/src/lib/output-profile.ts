@@ -155,55 +155,12 @@ function summarizeGraphPlan(payload: GraphPlanSearchResponse): string {
 }
 
 function buildExecutionOrder(payload: GraphPlanSearchResponse): string[] {
-  const skills = payload.plan?.recommendedSkills ?? [];
-  if (skills.length === 0) {
+  const executionPlan = payload.plan?.executionPlan ?? [];
+  if (executionPlan.length === 0) {
     return [];
   }
 
-  const skillByNodeId = new Map(skills.map((skill) => [skill.nodeId, skill]));
-  const outgoing = new Map<string, string[]>();
-  const indegree = new Map<string, number>();
-
-  for (const skill of skills) {
-    outgoing.set(skill.nodeId, []);
-    indegree.set(skill.nodeId, 0);
-  }
-
-  for (const edge of payload.plan?.edges ?? []) {
-    if (edge.type !== 'order' && edge.type !== 'requires') {
-      continue;
-    }
-    if (!skillByNodeId.has(edge.sourceNodeId) || !skillByNodeId.has(edge.targetNodeId)) {
-      continue;
-    }
-    outgoing.get(edge.sourceNodeId)?.push(edge.targetNodeId);
-    indegree.set(edge.targetNodeId, (indegree.get(edge.targetNodeId) ?? 0) + 1);
-  }
-
-  const queue = skills
-    .filter((skill) => (indegree.get(skill.nodeId) ?? 0) === 0)
-    .map((skill) => skill.nodeId);
-  const ordered: string[] = [];
-
-  while (queue.length > 0) {
-    const nodeId = queue.shift() as string;
-    ordered.push(nodeId);
-    for (const targetNodeId of outgoing.get(nodeId) ?? []) {
-      const nextDegree = (indegree.get(targetNodeId) ?? 0) - 1;
-      indegree.set(targetNodeId, nextDegree);
-      if (nextDegree === 0) {
-        queue.push(targetNodeId);
-      }
-    }
-  }
-
-  if (ordered.length !== skills.length) {
-    return skills.map((skill) => skill.label);
-  }
-
-  return ordered
-    .map((nodeId) => skillByNodeId.get(nodeId)?.label)
-    .filter((value): value is string => Boolean(value));
+  return executionPlan.map((step) => step.label);
 }
 
 function buildGraphPlanSummaryView(
@@ -417,6 +374,7 @@ function buildCodexObject(envelope: RenderEnvelope<RenderPayload>): Record<strin
     }
     case 'graph-plan': {
       const view = buildGraphPlanSummaryView(envelope as RenderEnvelope<GraphPlanSearchResponse>);
+      const graphPlanPayload = envelope.payload as GraphPlanSearchResponse;
       if (envelope.context.graphPlanMode === 'skill-list') {
         return {
           type: envelope.kind,
@@ -439,6 +397,7 @@ function buildCodexObject(envelope: RenderEnvelope<RenderPayload>): Record<strin
         traps: view.blockingTraps,
         activation_hints: view.activationHints,
         next_steps: view.executionOrder,
+        executionPlan: graphPlanPayload.plan?.executionPlan ?? [],
         confidence: view.confidence,
         ...(view.fallbackNotice ? { fallback_notice: view.fallbackNotice } : {}),
         ...(view.planEdges.length > 0 ? { plan_edges: view.planEdges } : {}),

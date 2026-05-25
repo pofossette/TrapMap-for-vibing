@@ -234,7 +234,23 @@ describe('output profile helpers', () => {
             strength: 'hard',
           },
         ],
-        citations: [],
+        citation: [],
+        executionPlan: [
+          {
+            rank: 0,
+            nodeId: 'skill-1',
+            label: 'Prepare migration rollout',
+            kind: 'skill',
+            blockedBy: [],
+          },
+          {
+            rank: 1,
+            nodeId: 'skill-2',
+            label: 'Run throttled backfill',
+            kind: 'skill',
+            blockedBy: ['skill-1'],
+          },
+        ],
         graph: {
           nodes: [],
           edges: [],
