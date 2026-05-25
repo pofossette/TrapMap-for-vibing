@@ -25,10 +25,12 @@ import {
   reviewDecisionSchema,
 } from './knowledge.js';
 
-export const knowledgeDeactivateRequestSchema = z.object({
-  entryId: entityIdSchema,
-  reason: z.string().min(1).max(500),
-});
+export const knowledgeDeactivateRequestSchema = z
+  .object({
+    entryId: entityIdSchema,
+    reason: z.string().min(1).max(500),
+  })
+  .strict();
 
 export const knowledgeListRequestSchema = z.object({
   scope: scopeSchema.optional(),
@@ -49,11 +51,15 @@ export const knowledgeListRequestSchema = z.object({
   cursor: z.string().min(1).max(128).optional(),
 });
 
-export const knowledgeListResponseSchema = z.object({
-  items: z.array(knowledgeListItemSchema),
-  nextCursor: z.string().min(1).max(128).nullable(),
-  total: z.number().int().min(0),
-});
+export const knowledgeListResponseSchema = z
+  .object({
+    items: z.array(knowledgeListItemSchema),
+    nextCursor: z.string().min(1).max(128).nullable(),
+    total: z.number().int().min(0),
+  })
+  .refine((d) => d.total === d.items.length, {
+    message: 'total must match items.length',
+  });
 
 export const knowledgeDeactivateResponseSchema = z.object({
   entry: knowledgeEntrySchema,
@@ -79,18 +85,29 @@ export const importRequestSchema = z.object({
   entries: z.array(importEntrySchema).min(1),
 });
 
-export const importResultItemSchema = z.object({
-  success: z.boolean(),
-  entry: knowledgeEntrySchema.nullable(),
-  error: z.string().nullable(),
-  source: z.enum(['json', 'claude-skill']),
-});
+export const importResultItemSchema = z
+  .object({
+    success: z.boolean(),
+    entry: knowledgeEntrySchema.nullable(),
+    error: z.string().nullable(),
+    source: z.enum(['json', 'claude-skill']),
+  })
+  .refine((d) => !d.success || d.entry !== null, {
+    message: 'entry must be non-null when success is true',
+  });
 
-export const importResponseSchema = z.object({
-  results: z.array(importResultItemSchema),
-  importedCount: z.number().int().min(0),
-  failedCount: z.number().int().min(0),
-});
+export const importResponseSchema = z
+  .object({
+    results: z.array(importResultItemSchema),
+    importedCount: z.number().int().min(0),
+    failedCount: z.number().int().min(0),
+  })
+  .refine((d) => d.importedCount === d.results.filter((r) => r.success).length, {
+    message: 'importedCount must match the number of successful results',
+  })
+  .refine((d) => d.failedCount === d.results.filter((r) => !r.success).length, {
+    message: 'failedCount must match the number of failed results',
+  });
 
 export const claudeSkillMetadataSchema = z.object({
   name: z.string().min(1),
@@ -114,11 +131,11 @@ export const bundleFilePayloadSchema = z.object({
   /** File kind for role classification */
   kind: z.enum(['skill-markdown', 'reference', 'asset', 'script']),
   /** SHA-256 hash of file content for integrity */
-  sha256: z.string().length(64),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
   /** File size in bytes */
   sizeBytes: z.number().int().min(0),
   /** IANA media type */
-  mediaType: z.string().min(1).max(160),
+  mediaType: z.string().min(1).max(160).regex(/^[a-z]+\/[a-z0-9.+-]+$/i),
   /** Source directory within the skill artifact */
   source: z.enum(['references/', 'assets/', 'scripts/', 'SKILL.md']),
   /** If true, file may be used for capsule/profile derivation */
@@ -137,7 +154,7 @@ export const bundleScriptDescriptorSchema = z.object({
   /** Path to the script file */
   path: z.string().min(1).max(512),
   /** SHA-256 hash of the script content */
-  sha256: z.string().length(64),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
   /** Human-readable capability description */
   capability: z.string().min(1).max(280),
   /** Brief summary of argument schema */
@@ -306,7 +323,7 @@ export const distilledArtifactSchema = z.object({
   /** Human-readable title */
   title: z.string().min(1).max(280),
   /** URL-safe slug */
-  slug: z.string().min(1).max(160),
+  slug: z.string().min(1).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   /** Security level */
   requiredLevel: securityLevelSchema,
   /** Source kind */
@@ -325,18 +342,22 @@ export const distilledArtifactSchema = z.object({
  * Artifact-native export response.
  * Returns either canonical bundle or distilled projection.
  */
-export const artifactExportResponseSchema = z.object({
-  /** Export format used */
-  format: artifactExportFormatSchema,
-  /** Export timestamp */
-  exportedAt: isoTimestampSchema,
-  /** Exporting actor */
-  exportedBy: actorRefSchema,
-  /** Canonical bundle (when format is bundle-json or skill-dir) */
-  bundle: artifactBundleSchema.nullable(),
-  /** Distilled projection (when format is distilled-json) */
-  distilled: distilledArtifactSchema.nullable(),
-});
+export const artifactExportResponseSchema = z
+  .object({
+    /** Export format used */
+    format: artifactExportFormatSchema,
+    /** Export timestamp */
+    exportedAt: isoTimestampSchema,
+    /** Exporting actor */
+    exportedBy: actorRefSchema,
+    /** Canonical bundle (when format is bundle-json or skill-dir) */
+    bundle: artifactBundleSchema.nullable(),
+    /** Distilled projection (when format is distilled-json) */
+    distilled: distilledArtifactSchema.nullable(),
+  })
+  .refine((d) => d.format !== 'bundle-json' || d.bundle !== null, {
+    message: 'bundle must be non-null when format is bundle-json',
+  });
 
 export type ExportBundle = z.infer<typeof exportBundleSchema>;
 export type ImportEntry = z.infer<typeof importEntrySchema>;
@@ -367,22 +388,24 @@ export type ArtifactExportResponse = z.infer<typeof artifactExportResponseSchema
  * Activation/download file payload.
  * Selected file with inline content for activation-time delivery.
  */
-export const activationFilePayloadSchema = z.object({
-  /** Canonical path within the skill directory */
-  path: z.string().min(1).max(512),
-  /** File kind */
-  kind: skillArtifactFileKindSchema,
-  /** SHA-256 hash of file content */
-  sha256: z.string().length(64),
-  /** File size in bytes */
-  sizeBytes: z.number().int().min(0),
-  /** IANA media type */
-  mediaType: z.string().min(1).max(160),
-  /** Source directory */
-  source: skillArtifactFileSourceSchema,
-  /** Inline file content: base64-encoded bytes or UTF-8 text */
-  content: z.union([z.string().base64(), z.string()]),
-});
+export const activationFilePayloadSchema = z
+  .object({
+    /** Canonical path within the skill directory */
+    path: z.string().min(1).max(512),
+    /** File kind */
+    kind: skillArtifactFileKindSchema,
+    /** SHA-256 hash of file content */
+    sha256: z.string().length(64),
+    /** File size in bytes */
+    sizeBytes: z.number().int().min(0),
+    /** IANA media type */
+    mediaType: z.string().min(1).max(160),
+    /** Source directory */
+    source: skillArtifactFileSourceSchema,
+    /** Inline file content: base64-encoded bytes or UTF-8 text */
+    content: z.union([z.string().base64(), z.string()]),
+  })
+  .strict();
 
 /**
  * Selective activation request targeting one artifact revision.
@@ -436,32 +459,36 @@ export const legacyMigrationModeSchema = z.enum(['explicit', 'all-approved', 'al
  * Legacy entry migration request.
  * Requests conversion of legacy knowledge entries into minimal skill artifacts.
  */
-export const legacyMigrationRequestSchema = z.object({
-  /** Migration mode controlling which entries to migrate */
-  mode: legacyMigrationModeSchema,
-  /** Explicit entry IDs to migrate (required for 'explicit' mode) */
-  entryIds: z.array(entityIdSchema).max(100).optional(),
-  /** Team ID for 'all-team' mode */
-  teamId: entityIdSchema.optional(),
-  /** Maximum entries to migrate in bounded modes (default 50, max 200) */
-  limit: z.number().int().min(1).max(200).default(50),
-});
+export const legacyMigrationRequestSchema = z
+  .object({
+    /** Migration mode controlling which entries to migrate */
+    mode: legacyMigrationModeSchema,
+    /** Explicit entry IDs to migrate (required for 'explicit' mode) */
+    entryIds: z.array(entityIdSchema).max(100).optional(),
+    /** Team ID for 'all-team' mode */
+    teamId: entityIdSchema.optional(),
+    /** Maximum entries to migrate in bounded modes (default 50, max 200) */
+    limit: z.number().int().min(1).max(200).default(50),
+  })
+  .strict();
 
 /**
  * Result item for a single legacy entry migration attempt.
  */
-export const legacyMigrationResultItemSchema = z.object({
-  /** Source legacy entry ID */
-  entryId: entityIdSchema,
-  /** Created artifact ID (null on failure) */
-  artifactId: entityIdSchema.nullable(),
-  /** Migration outcome */
-  success: z.boolean(),
-  /** Skip reason (e.g., 'already-migrated', 'invalid-state') */
-  skipReason: z.string().max(280).nullable(),
-  /** Error message on failure */
-  error: z.string().max(500).nullable(),
-});
+export const legacyMigrationResultItemSchema = z
+  .object({
+    /** Source legacy entry ID */
+    entryId: entityIdSchema,
+    /** Created artifact ID (null on failure) */
+    artifactId: entityIdSchema.nullable(),
+    /** Migration outcome */
+    success: z.boolean(),
+    /** Skip reason (e.g., 'already-migrated', 'invalid-state') */
+    skipReason: z.string().max(280).nullable(),
+    /** Error message on failure */
+    error: z.string().max(500).nullable(),
+  })
+  .strict();
 
 /**
  * Legacy entry migration response.
@@ -652,14 +679,18 @@ export const skillReviewQueueItemSchema = z.object({
  * Skill review queue response schema.
  * Lists artifacts pending review.
  */
-export const skillReviewQueueResponseSchema = z.object({
-  /** Queue items */
-  items: z.array(skillReviewQueueItemSchema),
-  /** Pagination cursor */
-  nextCursor: z.string().nullable(),
-  /** Total count */
-  total: z.number().int().min(0),
-});
+export const skillReviewQueueResponseSchema = z
+  .object({
+    /** Queue items */
+    items: z.array(skillReviewQueueItemSchema),
+    /** Pagination cursor */
+    nextCursor: z.string().nullable(),
+    /** Total count */
+    total: z.number().int().min(0),
+  })
+  .refine((d) => d.items.length <= d.total, {
+    message: 'items.length must be <= total',
+  });
 
 /**
  * Skill review decision request schema.
@@ -671,7 +702,10 @@ export const skillReviewDecisionRequestSchema = z.object({
   /** The review decision */
   decision: z.enum(['approve', 'reject']),
   /** Reviewer notes (required, 1-2000 characters) */
-  notes: z.string().min(1).max(2000),
+  notes: z
+    .string()
+    .min(1)
+    .refine((s) => [...s].length <= 2000, { message: 'notes must be at most 2000 Unicode characters' }),
 });
 
 /**
@@ -752,16 +786,18 @@ export const statsUsageQuerySchema = z.object({
  * Single time bucket with event count.
  */
 export const statsUsageItemSchema = z.object({
-  period: z.string(),
+  period: z.string().min(1),
   count: z.number().int().min(0),
 });
 
 /**
  * Usage time-series response schema.
  */
-export const statsUsageResponseSchema = z.object({
-  items: z.array(statsUsageItemSchema),
-});
+export const statsUsageResponseSchema = z
+  .object({
+    items: z.array(statsUsageItemSchema),
+  })
+  .strict();
 
 /**
  * Hit ranking query schema.

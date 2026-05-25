@@ -578,7 +578,7 @@ describe('contracts package', () => {
                 {
                   path: 'SKILL.md',
                   kind: 'skill-markdown',
-                  sha256: 'g'.repeat(64),
+                  sha256: '0a'.repeat(32),
                   sizeBytes: 512,
                   mediaType: 'text/markdown',
                   source: 'SKILL.md',
@@ -697,12 +697,12 @@ describe('contracts package', () => {
           history: [
             {
               revision: 1,
-              sourceHash: 'h'.repeat(64),
+              sourceHash: '0b'.repeat(32),
               files: [
                 {
                   path: 'SKILL.md',
                   kind: 'skill-markdown',
-                  sha256: 'i'.repeat(64),
+                  sha256: '0c'.repeat(32),
                   sizeBytes: 100,
                   mediaType: 'text/markdown',
                   source: 'SKILL.md',
@@ -750,12 +750,12 @@ describe('contracts package', () => {
           const profile = skillProfileSchema.parse({
             artifactId: 'artifact_1',
             revision: 1,
-            sourceHash: 'j'.repeat(64),
+            sourceHash: '0d'.repeat(32),
             title: 'Docker Deployment Skills',
             summary: 'Best practices for deploying containers',
             keywords: ['docker', 'deployment', 'containers'],
             referencePaths: ['references/docker-compose.md', 'references/networking.md'],
-            contentHash: 'k'.repeat(64),
+            contentHash: '0e'.repeat(32),
           });
 
           expect(profile.artifactId).toBe('artifact_1');
@@ -768,12 +768,12 @@ describe('contracts package', () => {
           const minimalProfile = skillProfileSchema.parse({
             artifactId: 'artifact_1',
             revision: 1,
-            sourceHash: 'l'.repeat(64),
+            sourceHash: '0f'.repeat(32),
             title: 'Test',
             summary: 'Test summary',
             keywords: [],
             referencePaths: [],
-            contentHash: 'm'.repeat(64),
+            contentHash: '1a'.repeat(32),
           });
 
           expect(minimalProfile.keywords).toEqual([]);
@@ -853,7 +853,7 @@ describe('contracts package', () => {
             references: [
               {
                 path: 'references/docker.md',
-                sha256: 'n'.repeat(64),
+                sha256: '1b'.repeat(32),
                 sizeBytes: 2048,
                 mediaType: 'text/markdown',
               },
@@ -861,7 +861,7 @@ describe('contracts package', () => {
             assets: [
               {
                 path: 'assets/docker-compose.yml',
-                sha256: 'o'.repeat(64),
+                sha256: '1c'.repeat(32),
                 sizeBytes: 512,
                 mediaType: 'text/x-yaml',
               },
@@ -869,7 +869,7 @@ describe('contracts package', () => {
             scripts: [
               {
                 path: 'scripts/setup.sh',
-                sha256: 'p'.repeat(64),
+                sha256: '1d'.repeat(32),
                 capability: 'Initialize Docker environment',
                 argsSchemaSummary: '--env, --force',
                 sideEffectSummary: 'Creates Docker network and volumes',
@@ -895,7 +895,7 @@ describe('contracts package', () => {
             scripts: [
               {
                 path: 'scripts/deploy.sh',
-                sha256: 'r'.repeat(64),
+                sha256: '1e'.repeat(32),
                 capability: 'Deploy application containers',
                 argsSchemaSummary: '--env, --tag',
                 sideEffectSummary: 'Deploys containers to production',
@@ -1118,7 +1118,7 @@ describe('contracts package', () => {
             {
               path: 'SKILL.md',
               kind: 'skill-markdown' as const,
-              sha256: 'g'.repeat(64),
+              sha256: '0a'.repeat(32),
               sizeBytes: 1024,
               mediaType: 'text/markdown',
               source: 'SKILL.md' as const,
@@ -1129,7 +1129,7 @@ describe('contracts package', () => {
             {
               path: 'references/docker-compose.md',
               kind: 'reference' as const,
-              sha256: 'h'.repeat(64),
+              sha256: '0b'.repeat(32),
               sizeBytes: 2048,
               mediaType: 'text/markdown',
               source: 'references/' as const,
@@ -1140,7 +1140,7 @@ describe('contracts package', () => {
             {
               path: 'assets/docker-compose.yml',
               kind: 'asset' as const,
-              sha256: 'i'.repeat(64),
+              sha256: '0c'.repeat(32),
               sizeBytes: 512,
               mediaType: 'text/x-yaml',
               source: 'assets/' as const,
@@ -1152,7 +1152,7 @@ describe('contracts package', () => {
           scriptDescriptors: [
             {
               path: 'scripts/setup.sh',
-              sha256: 'j'.repeat(64),
+              sha256: '0d'.repeat(32),
               capability: 'Initialize Docker environment',
               argsSchemaSummary: '--env, --force',
               sideEffectSummary: 'Creates Docker network and volumes',
@@ -1194,7 +1194,7 @@ describe('contracts package', () => {
             {
               path: 'SKILL.md',
               kind: 'skill-markdown' as const,
-              sha256: 'k'.repeat(64),
+              sha256: '0e'.repeat(32),
               sizeBytes: 100,
               mediaType: 'text/markdown',
               source: 'SKILL.md' as const,
@@ -1227,7 +1227,7 @@ describe('contracts package', () => {
                 {
                   path: 'SKILL.md',
                   kind: 'skill-markdown' as const,
-                  sha256: 'l'.repeat(64),
+                  sha256: '0f'.repeat(32),
                   sizeBytes: 500,
                   mediaType: 'text/markdown',
                   source: 'SKILL.md' as const,
@@ -1355,7 +1355,7 @@ describe('contracts package', () => {
           artifactId: 'artifact_1',
           revision: 1,
           path: 'references/docker.md',
-          sha256: 'm'.repeat(64),
+          sha256: '1a'.repeat(32),
           sizeBytes: 1024,
           mediaType: 'text/markdown',
           content: 'SGVsbG8=', // base64
@@ -1373,7 +1373,7 @@ describe('contracts package', () => {
           artifactId: 'artifact_1',
           revision: 1,
           path: 'SKILL.md',
-          sha256: 'n'.repeat(64),
+          sha256: '1b'.repeat(32),
           sizeBytes: 100,
           mediaType: 'text/markdown',
           content: 'test',
@@ -2074,7 +2074,7 @@ describe('Phase 15: Activation hints', () => {
         artifactId: 'artifact_1',
         revision: 1,
         path: 'scripts/setup.sh',
-        sha256: 'g'.repeat(64),
+        sha256: '0a'.repeat(32),
         capability: 'Setup environment',
         argsSchemaSummary: '',
         sideEffectSummary: 'Creates config files',
@@ -2095,7 +2095,7 @@ describe('Phase 15: Activation hints', () => {
           artifactId: 'artifact_1',
           revision: 1,
           path: 'scripts/test.sh',
-          sha256: 'h'.repeat(64),
+          sha256: '0b'.repeat(32),
           capability: 'Test script',
           defaultPolicy: policy,
         };
@@ -2115,7 +2115,7 @@ describe('Phase 15: Activation hints', () => {
             artifactId: 'artifact_1',
             revision: 1,
             path: 'references/guide.md',
-            sha256: 'i'.repeat(64),
+            sha256: '0c'.repeat(32),
           },
         ],
         assets: [
@@ -2123,7 +2123,7 @@ describe('Phase 15: Activation hints', () => {
             artifactId: 'artifact_1',
             revision: 1,
             path: 'assets/template.yaml',
-            sha256: 'j'.repeat(64),
+            sha256: '0d'.repeat(32),
             sizeBytes: 1024,
             mediaType: 'application/yaml',
           },
@@ -2133,7 +2133,7 @@ describe('Phase 15: Activation hints', () => {
             artifactId: 'artifact_1',
             revision: 1,
             path: 'scripts/run.sh',
-            sha256: 'k'.repeat(64),
+            sha256: '0e'.repeat(32),
             capability: 'Run deployment',
             defaultPolicy: 'manual',
           },
@@ -2195,7 +2195,7 @@ describe('Phase 15: Activation hints', () => {
                 artifactId: 'artifact_1',
                 revision: 1,
                 path: 'references/docker-advanced.md',
-                sha256: 'l'.repeat(64),
+                sha256: '0f'.repeat(32),
               },
             ],
             assets: [],
@@ -2224,7 +2224,7 @@ describe('Phase 15: Activation hints', () => {
                 artifactId: 'artifact_1',
                 revision: 1,
                 path: 'references/file.md',
-                sha256: 'm'.repeat(64),
+                sha256: '1a'.repeat(32),
               },
             ],
             assets: [
@@ -2232,7 +2232,7 @@ describe('Phase 15: Activation hints', () => {
                 artifactId: 'artifact_1',
                 revision: 1,
                 path: 'assets/data.yaml',
-                sha256: 'n'.repeat(64),
+                sha256: '1b'.repeat(32),
                 sizeBytes: 2048,
                 mediaType: 'application/yaml',
               },
@@ -2242,7 +2242,7 @@ describe('Phase 15: Activation hints', () => {
                 artifactId: 'artifact_1',
                 revision: 1,
                 path: 'scripts/run.sh',
-                sha256: 'o'.repeat(64),
+                sha256: '1c'.repeat(32),
                 capability: 'Run task',
                 defaultPolicy: 'manual',
               },
