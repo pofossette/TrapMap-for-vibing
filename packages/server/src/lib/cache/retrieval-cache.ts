@@ -76,9 +76,7 @@ export function getRetrievalCacheStats(): Record<string, CacheStats> {
       existing.evictions += s.evictions;
       existing.size += s.size;
       existing.hitRate =
-        existing.hits + existing.misses > 0
-          ? existing.hits / (existing.hits + existing.misses)
-          : 0;
+        existing.hits + existing.misses > 0 ? existing.hits / (existing.hits + existing.misses) : 0;
     } else {
       result[ns] = { ...s };
     }

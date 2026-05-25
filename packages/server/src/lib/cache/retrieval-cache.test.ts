@@ -187,18 +187,18 @@ describe('getRetrievalCacheStats', () => {
 
     const agg = getRetrievalCacheStats();
 
-    expect(agg['alpha']).toBeDefined();
-    expect(agg['beta']).toBeDefined();
+    expect(agg.alpha).toBeDefined();
+    expect(agg.beta).toBeDefined();
 
     // alpha: cacheA1 has 1 hit + 1 miss, cacheA2 has 1 hit
-    expect(agg['alpha']!.hits).toBe(2);
-    expect(agg['alpha']!.misses).toBe(1);
-    expect(agg['alpha']!.size).toBe(2); // 1 entry each
+    expect(agg.alpha!.hits).toBe(2);
+    expect(agg.alpha!.misses).toBe(1);
+    expect(agg.alpha!.size).toBe(2); // 1 entry each
 
     // beta: no hits or misses
-    expect(agg['beta']!.hits).toBe(0);
-    expect(agg['beta']!.misses).toBe(0);
-    expect(agg['beta']!.size).toBe(1);
+    expect(agg.beta!.hits).toBe(0);
+    expect(agg.beta!.misses).toBe(0);
+    expect(agg.beta!.size).toBe(1);
   });
 
   it('uses default namespace when none specified', () => {
@@ -207,9 +207,9 @@ describe('getRetrievalCacheStats', () => {
     cache.get('k');
 
     const agg = getRetrievalCacheStats();
-    expect(agg['default']).toBeDefined();
-    expect(agg['default']!.hits).toBe(1);
-    expect(agg['default']!.size).toBe(1);
+    expect(agg.default).toBeDefined();
+    expect(agg.default!.hits).toBe(1);
+    expect(agg.default!.size).toBe(1);
   });
 });
 
@@ -222,8 +222,8 @@ describe('RetrievalCache.has side-effect isolation', () => {
     const cache = new RetrievalCache<string>();
     cache.set('k', 'v');
 
-    cache.has('k');   // should not count as a hit
-    cache.has('k');   // should not count as a hit
+    cache.has('k'); // should not count as a hit
+    cache.has('k'); // should not count as a hit
     cache.has('zzz'); // should not count as a miss
 
     const s = cache.stats;

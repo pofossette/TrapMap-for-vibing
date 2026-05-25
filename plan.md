@@ -282,7 +282,7 @@ export class InMemoryIntentCache implements IntentCacheStore {
 
 ### 进度追踪
 
-- [ ] **Step 2.1：运行现有 IntentCache 测试记录基线**
+- [x] **Step 2.1：运行现有 IntentCache 测试记录基线**
 
 ```bash
 rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/
@@ -290,11 +290,11 @@ rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/
 
 Expected: 全部通过。记录当前测试数量。
 
-- [ ] **Step 2.2：替换 `InMemoryIntentCache` 实现**
+- [x] **Step 2.2：替换 `InMemoryIntentCache` 实现**
 
 将 `intent-cache.ts` 中的自实现 FIFO+TTL 逻辑替换为委托给 `RetrievalCache<ParsedIntent>`。保留 `IntentCacheStore` 接口和 `InMemoryIntentCache` 类名。
 
-- [ ] **Step 2.3：运行测试确认通过**
+- [x] **Step 2.3：运行测试确认通过**
 
 ```bash
 rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/
@@ -302,7 +302,7 @@ rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/
 
 Expected: 所有测试通过（行为等价，策略从 FIFO→LRU 不影响测试结果）。
 
-- [ ] **Step 2.4：Commit**
+- [x] **Step 2.4：Commit**
 
 ```bash
 git add packages/server/src/lib/retrieval/capsules/intent-cache.ts
@@ -311,15 +311,15 @@ git commit -m "refactor(cache): delegate InMemoryIntentCache to RetrievalCache"
 
 ### Phase 2 验收标准
 
-- [ ] `IntentCacheStore` 接口不变
-- [ ] `InMemoryIntentCache` 内部委托给 `RetrievalCache<ParsedIntent>`
-- [ ] `orchestrator.ts` 和 `intent.ts` 零修改
-- [ ] 所有现有测试通过（无回归）
-- [ ] `pnpm typecheck` 零错误
+- [x] `IntentCacheStore` 接口不变
+- [x] `InMemoryIntentCache` 内部委托给 `RetrievalCache<ParsedIntent>`
+- [x] `orchestrator.ts` 和 `intent.ts` 零修改
+- [x] 所有现有测试通过（无回归）
+- [x] `pnpm typecheck` 零错误
 
 ### Phase 2 文档更新
 
-- [ ] `plan.md`：记录 Phase 2 完成状态
+- [x] `plan.md`：记录 Phase 2 完成状态
 
 ---
 
