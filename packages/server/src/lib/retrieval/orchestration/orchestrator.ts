@@ -380,6 +380,8 @@ export async function searchKnowledgeV2(
       teamId: auth.activeTeamId,
       securityLevel: auth.securityLevel,
       isSystemAdmin: auth.subjectType === 'system-admin',
+      scopes: (parsed.filters?.scopes ?? []) as Array<'global' | 'project'>,
+      labels: parsed.filters?.labels ?? [],
     };
 
     const artifacts = readModel.skillArtifacts;

@@ -10,9 +10,14 @@
 
 import { and, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
+import { eq } from 'drizzle-orm';
 import type { Pool } from 'pg';
 
-import { skillArtifactCapsuleEmbeddings } from '@trapmap/server/lib/persistence/schema.js';
+import {
+  skillArtifactCapsuleEmbeddings,
+  skillArtifactCapsuleKeywords,
+} from '@trapmap/server/lib/persistence/schema.js';
+import { normalizeQuery } from '@trapmap/server/lib/retrieval/recall/keyword.js';
 import type {
   CapsuleRecallCandidate,
   CapsuleRecallChannelName,
@@ -28,6 +33,7 @@ export interface PgCapsuleVectorFilters {
   securityLevel: number;
   isSystemAdmin: boolean;
   scopes: string[];
+  labels: string[];
 }
 
 /**
@@ -71,21 +77,56 @@ export function createPgCapsuleVectorRecall(config: PgCapsuleVectorConfig) {
       conditions.push(sql`${skillArtifactCapsuleEmbeddings.scope} IN (${sql.raw(scopeList)})`);
     }
 
+    // When labels are requested, join with keywords table to filter by tokenized labels.
+    // This ensures the vector recall path applies the same label constraints as keyword recall.
+    const labelTokens = filters.labels.length > 0
+      ? filters.labels.flatMap((label) => normalizeQuery(label))
+      : [];
+    const needsLabelJoin = labelTokens.length > 0;
+    if (needsLabelJoin) {
+      const labelArray = labelTokens.map((t) => `'${t}'`).join(',');
+      conditions.push(
+        sql`${skillArtifactCapsuleKeywords.fieldTokensLabels} @> ${sql.raw(`ARRAY[${labelArray}]::text[]`)}`,
+      );
+    }
+
     const vectorLiteral = formatVectorLiteral(queryVector);
 
-    const rows = await db
-      .select({
-        capsuleId: skillArtifactCapsuleEmbeddings.capsuleId,
-        artifactId: skillArtifactCapsuleEmbeddings.artifactId,
-        revisionNo: skillArtifactCapsuleEmbeddings.revisionNo,
-        similarity: sql<number>`1 - (${skillArtifactCapsuleEmbeddings.embedding} <=> ${sql.raw(`'${vectorLiteral}'::vector`)})`,
-      })
-      .from(skillArtifactCapsuleEmbeddings)
-      .where(and(...conditions))
-      .orderBy(
-        sql`${skillArtifactCapsuleEmbeddings.embedding} <=> ${sql.raw(`'${vectorLiteral}'::vector`)}`,
-      )
-      .limit(maxResults * 2);
+    const selectColumns = {
+      capsuleId: skillArtifactCapsuleEmbeddings.capsuleId,
+      artifactId: skillArtifactCapsuleEmbeddings.artifactId,
+      revisionNo: skillArtifactCapsuleEmbeddings.revisionNo,
+      similarity: sql<number>`1 - (${skillArtifactCapsuleEmbeddings.embedding} <=> ${sql.raw(`'${vectorLiteral}'::vector`)})`,
+    };
+
+    const orderByClause = sql`${skillArtifactCapsuleEmbeddings.embedding} <=> ${sql.raw(`'${vectorLiteral}'::vector`)}`;
+
+    let rows: Array<{
+      capsuleId: string;
+      artifactId: string;
+      revisionNo: number;
+      similarity: number;
+    }>;
+
+    if (needsLabelJoin) {
+      rows = await db
+        .select(selectColumns)
+        .from(skillArtifactCapsuleEmbeddings)
+        .innerJoin(
+          skillArtifactCapsuleKeywords,
+          eq(skillArtifactCapsuleEmbeddings.capsuleId, skillArtifactCapsuleKeywords.capsuleId),
+        )
+        .where(and(...conditions))
+        .orderBy(orderByClause)
+        .limit(maxResults * 2);
+    } else {
+      rows = await db
+        .select(selectColumns)
+        .from(skillArtifactCapsuleEmbeddings)
+        .where(and(...conditions))
+        .orderBy(orderByClause)
+        .limit(maxResults * 2);
+    }
 
     const candidates: CapsuleRecallCandidate[] = rows
       .filter((r) => (r.similarity ?? 0) > 0)

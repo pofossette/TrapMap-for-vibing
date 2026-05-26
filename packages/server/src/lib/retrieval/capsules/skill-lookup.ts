@@ -122,6 +122,8 @@ export async function searchSkillsByContent(
     teamId: auth.activeTeamId,
     securityLevel: auth.securityLevel,
     isSystemAdmin: auth.subjectType === 'system-admin',
+    scopes: [] as Array<'global' | 'project'>,
+    labels: [] as string[],
   };
 
   // Get governed artifacts

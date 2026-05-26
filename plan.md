@@ -627,7 +627,7 @@ Expected: only intended plan-following changes remain
 
 ## Phase Tracker
 
-- [ ] Phase 6: Propagate query filters through the v2 capsule retrieval path
+- [x] Phase 6: Propagate query filters through the v2 capsule retrieval path
 - [ ] Phase 7: Lock the v2 filter fix into route, orchestrator, and smoke/core eval coverage
 - [ ] Phase 8: Stabilize v1 low-`maxResults` semantic ranking for the Docker core fixture
 - [ ] Phase 9: Align eval baseline paths and advanced-runner documentation with actual CI behavior

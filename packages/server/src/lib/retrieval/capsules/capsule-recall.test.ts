@@ -23,6 +23,7 @@ import {
   extractGovernedCapsules,
   getCapsuleRecords,
   isArtifactGovernanceEligible,
+  matchesArtifactMetadata,
   rankCapsules,
 } from './capsule-recall.js';
 
@@ -31,6 +32,22 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
   const teamId = 'team_1';
   const otherTeamId = 'team_2';
   const createdAt = nowIso();
+
+  function makeFilters(overrides: {
+    teamId?: string | null;
+    securityLevel?: number;
+    isSystemAdmin?: boolean;
+    scopes?: Array<'global' | 'project'>;
+    labels?: string[];
+  } = {}) {
+    return {
+      teamId: overrides.teamId ?? teamId,
+      securityLevel: overrides.securityLevel ?? 5,
+      isSystemAdmin: overrides.isSystemAdmin ?? false,
+      scopes: overrides.scopes ?? [],
+      labels: overrides.labels ?? [],
+    };
+  }
 
   // Helper to create a mock artifact with derived outputs
   function createMockArtifact(overrides: {
@@ -251,61 +268,37 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
 
   describe('isArtifactGovernanceEligible', () => {
     it('should return true for approved global artifact with low required level', () => {
-      const filters = {
-        teamId: teamId,
-        securityLevel: 5,
-        isSystemAdmin: false,
-      };
+      const filters = makeFilters();
 
       expect(isArtifactGovernanceEligible(approvedGlobalArtifact, filters)).toBe(true);
     });
 
     it('should return true for approved team artifact matching team and level', () => {
-      const filters = {
-        teamId: teamId,
-        securityLevel: 5,
-        isSystemAdmin: false,
-      };
+      const filters = makeFilters();
 
       expect(isArtifactGovernanceEligible(approvedTeamArtifact, filters)).toBe(true);
     });
 
     it('should return false for unapproved artifacts', () => {
-      const filters = {
-        teamId: teamId,
-        securityLevel: 5,
-        isSystemAdmin: false,
-      };
+      const filters = makeFilters();
 
       expect(isArtifactGovernanceEligible(unapprovedArtifact, filters)).toBe(false);
     });
 
     it('should return false for artifacts above user security level', () => {
-      const filters = {
-        teamId: teamId,
-        securityLevel: 5,
-        isSystemAdmin: false,
-      };
+      const filters = makeFilters();
 
       expect(isArtifactGovernanceEligible(highLevelArtifact, filters)).toBe(false);
     });
 
     it('should return false for project artifacts from other teams for non-admin', () => {
-      const filters = {
-        teamId: teamId,
-        securityLevel: 5,
-        isSystemAdmin: false,
-      };
+      const filters = makeFilters();
 
       expect(isArtifactGovernanceEligible(otherTeamArtifact, filters)).toBe(false);
     });
 
     it('should return true for any artifact when user is system admin', () => {
-      const filters = {
-        teamId: teamId,
-        securityLevel: 5,
-        isSystemAdmin: true,
-      };
+      const filters = makeFilters({ isSystemAdmin: true });
 
       expect(isArtifactGovernanceEligible(otherTeamArtifact, filters)).toBe(true);
       expect(isArtifactGovernanceEligible(highLevelArtifact, filters)).toBe(true);
@@ -322,11 +315,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         otherTeamArtifact,
       ];
 
-      const filters = {
-        teamId: teamId,
-        securityLevel: 5,
-        isSystemAdmin: false,
-      };
+      const filters = makeFilters();
 
       const shortlist = buildProfileShortlist(artifacts, filters);
 
@@ -346,11 +335,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
     it('should only extract capsules from governed artifacts', () => {
       const artifacts = [approvedGlobalArtifact, approvedTeamArtifact, unapprovedArtifact];
 
-      const filters = {
-        teamId: teamId,
-        securityLevel: 5,
-        isSystemAdmin: false,
-      };
+      const filters = makeFilters();
 
       const capsules = extractGovernedCapsules(artifacts, filters);
 
@@ -387,11 +372,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         parseMethod: 'regex',
       };
 
-      const filters = {
-        teamId: teamId,
-        securityLevel: 5,
-        isSystemAdmin: false,
-      };
+      const filters = makeFilters();
 
       const ranked = rankCapsules(artifacts, intent, filters, 10);
 
@@ -429,11 +410,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         parseMethod: 'regex',
       };
 
-      const filters = {
-        teamId: teamId,
-        securityLevel: 5,
-        isSystemAdmin: false,
-      };
+      const filters = makeFilters();
 
       const ranked = rankCapsules(artifacts, intent, filters, 10);
 
@@ -459,11 +436,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         parseMethod: 'regex',
       };
 
-      const filters = {
-        teamId: teamId,
-        securityLevel: 5,
-        isSystemAdmin: false,
-      };
+      const filters = makeFilters();
 
       const ranked = rankCapsules(artifacts, intent, filters, 1);
 
@@ -489,11 +462,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         parseMethod: 'regex',
       };
 
-      const filters = {
-        teamId: teamId,
-        securityLevel: 5,
-        isSystemAdmin: false,
-      };
+      const filters = makeFilters();
 
       const ranked = rankCapsules(artifacts, intent, filters, 10);
       const records = getCapsuleRecords(artifacts, ranked);
@@ -516,11 +485,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
 
       const artifacts = [approvedGlobalArtifact];
 
-      const filters = {
-        teamId: teamId,
-        securityLevel: 5,
-        isSystemAdmin: false,
-      };
+      const filters = makeFilters();
 
       // V2 capsule recall should work independently
       const capsules = extractGovernedCapsules(artifacts, filters);
@@ -603,7 +568,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         semanticQuery: null,
         parseMethod: 'regex',
       };
-      const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
+      const filters = makeFilters();
 
       const ranked = rankCapsules(artifacts, intent, filters, 10);
 
@@ -631,7 +596,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         semanticQuery: null,
         parseMethod: 'regex',
       };
-      const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
+      const filters = makeFilters();
 
       const ranked = rankCapsules(artifacts, intent, filters, 10);
 
@@ -669,7 +634,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         semanticQuery: null,
         parseMethod: 'regex',
       };
-      const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
+      const filters = makeFilters();
 
       const ranked = rankCapsules(artifacts, intent, filters, 10);
 
@@ -693,7 +658,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         semanticQuery: null,
         parseMethod: 'regex',
       };
-      const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
+      const filters = makeFilters();
 
       const ranked = rankCapsules(artifacts, intent, filters, 10);
 
@@ -727,7 +692,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         semanticQuery: null,
         parseMethod: 'regex',
       };
-      const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
+      const filters = makeFilters();
 
       const ranked = rankCapsules(artifacts, intent, filters, 10);
 
@@ -792,7 +757,7 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         semanticQuery: null,
         parseMethod: 'regex',
       };
-      const filters = { teamId, securityLevel: 5, isSystemAdmin: false };
+      const filters = makeFilters();
 
       const ranked = rankCapsules(artifacts, intent, filters, 10);
 
@@ -809,6 +774,152 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
       expect(withCtx!.contextScore).toBeGreaterThanOrEqual(0);
       // Capsule without contextualPrefix should have 0 context score
       expect(withoutCtx!.contextScore).toBe(0);
+    });
+  });
+
+  describe('matchesArtifactMetadata', () => {
+    it('should return true when no scope or label filters are specified', () => {
+      expect(
+        matchesArtifactMetadata(approvedGlobalArtifact, { scopes: [], labels: [] }),
+      ).toBe(true);
+    });
+
+    it('should return true when artifact scope is in requested scopes', () => {
+      expect(
+        matchesArtifactMetadata(approvedGlobalArtifact, { scopes: ['global'], labels: [] }),
+      ).toBe(true);
+    });
+
+    it('should return false when artifact scope is not in requested scopes', () => {
+      expect(
+        matchesArtifactMetadata(approvedGlobalArtifact, { scopes: ['project'], labels: [] }),
+      ).toBe(false);
+    });
+
+    it('should return true when artifact has all requested labels', () => {
+      expect(
+        matchesArtifactMetadata(approvedGlobalArtifact, { scopes: [], labels: ['docker'] }),
+      ).toBe(true);
+      expect(
+        matchesArtifactMetadata(approvedGlobalArtifact, { scopes: [], labels: ['docker', 'node'] }),
+      ).toBe(true);
+    });
+
+    it('should return false when artifact is missing a requested label', () => {
+      expect(
+        matchesArtifactMetadata(approvedGlobalArtifact, { scopes: [], labels: ['nonexistent'] }),
+      ).toBe(false);
+      expect(
+        matchesArtifactMetadata(approvedGlobalArtifact, { scopes: [], labels: ['docker', 'nonexistent'] }),
+      ).toBe(false);
+    });
+
+    it('should enforce AND semantics for labels', () => {
+      // approvedTeamArtifact has labels ['typescript', 'null', 'strict']
+      expect(
+        matchesArtifactMetadata(approvedTeamArtifact, { scopes: [], labels: ['typescript', 'null'] }),
+      ).toBe(true);
+      expect(
+        matchesArtifactMetadata(approvedTeamArtifact, { scopes: [], labels: ['typescript', 'docker'] }),
+      ).toBe(false);
+    });
+  });
+
+  describe('label and scope filtering in extractGovernedCapsules', () => {
+    it('should filter capsules by requested labels', () => {
+      const artifacts = [approvedGlobalArtifact, approvedTeamArtifact];
+
+      // Only docker label
+      const filters = makeFilters({ labels: ['docker'] });
+      const capsules = extractGovernedCapsules(artifacts, filters);
+
+      expect(capsules.length).toBe(1);
+      expect(capsules[0].capsule.capsuleId).toBe('capsule_1');
+    });
+
+    it('should filter capsules by requested scope', () => {
+      const artifacts = [approvedGlobalArtifact, approvedTeamArtifact];
+
+      // Only global scope
+      const filters = makeFilters({ scopes: ['global'] });
+      const capsules = extractGovernedCapsules(artifacts, filters);
+
+      expect(capsules.length).toBe(1);
+      expect(capsules[0].capsule.capsuleId).toBe('capsule_1');
+    });
+
+    it('should combine scope and label filters', () => {
+      const artifacts = [approvedGlobalArtifact, approvedTeamArtifact];
+
+      // Global scope + docker label
+      const filters = makeFilters({ scopes: ['global'], labels: ['docker'] });
+      const capsules = extractGovernedCapsules(artifacts, filters);
+
+      expect(capsules.length).toBe(1);
+      expect(capsules[0].artifact.id).toBe('artifact_1');
+    });
+
+    it('should return empty when no artifacts match combined filters', () => {
+      const artifacts = [approvedGlobalArtifact, approvedTeamArtifact];
+
+      // Global scope + typescript label (global artifact has docker labels, not typescript)
+      const filters = makeFilters({ scopes: ['global'], labels: ['typescript'] });
+      const capsules = extractGovernedCapsules(artifacts, filters);
+
+      expect(capsules.length).toBe(0);
+    });
+  });
+
+  describe('label and scope filtering in buildProfileShortlist', () => {
+    it('should filter profiles by requested labels', () => {
+      const artifacts = [approvedGlobalArtifact, approvedTeamArtifact];
+
+      const filters = makeFilters({ labels: ['typescript'] });
+      const shortlist = buildProfileShortlist(artifacts, filters);
+
+      expect(shortlist.length).toBe(1);
+      expect(shortlist[0].artifact.id).toBe('artifact_2');
+    });
+
+    it('should filter profiles by requested scope', () => {
+      const artifacts = [approvedGlobalArtifact, approvedTeamArtifact];
+
+      const filters = makeFilters({ scopes: ['project'] });
+      const shortlist = buildProfileShortlist(artifacts, filters);
+
+      expect(shortlist.length).toBe(1);
+      expect(shortlist[0].artifact.id).toBe('artifact_2');
+    });
+  });
+
+  describe('label filtering in rankCapsules', () => {
+    it('should only rank capsules matching requested labels', () => {
+      const artifacts = [approvedGlobalArtifact, approvedTeamArtifact];
+
+      const intent: ParsedIntent = {
+        seed: 'version mismatch issue',
+        normalized: 'version mismatch issue',
+        situation: null,
+        problem: 'version mismatch issue',
+        goal: null,
+        errorText: null,
+        tokens: [
+          { token: 'version', original: 'version', isTechnical: false },
+          { token: 'mismatch', original: 'mismatch', isTechnical: false },
+        ],
+        stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
+      };
+
+      // Filter to only typescript-labeled artifacts
+      const filters = makeFilters({ labels: ['typescript'] });
+      const ranked = rankCapsules(artifacts, intent, filters, 10);
+
+      // Only the typescript artifact should be ranked
+      expect(ranked.length).toBe(1);
+      expect(ranked[0].artifactId).toBe('artifact_2');
     });
   });
 });

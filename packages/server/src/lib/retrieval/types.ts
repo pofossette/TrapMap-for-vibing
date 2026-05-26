@@ -15,7 +15,11 @@ import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
 /**
- * Governance filters for artifact eligibility.
+ * Governance and query metadata filters for artifact eligibility.
+ *
+ * Governance fields (teamId, securityLevel, isSystemAdmin) control access.
+ * Query metadata fields (scopes, labels) constrain retrieval to matching
+ * artifacts so that v2 capsule output respects the caller's requested filters.
  */
 export interface ArtifactGovernanceFilters {
   /** Team ID filter */
@@ -24,6 +28,10 @@ export interface ArtifactGovernanceFilters {
   securityLevel: number;
   /** Is system admin */
   isSystemAdmin: boolean;
+  /** Scope filter: restrict to global, project, or both */
+  scopes: Array<'global' | 'project'>;
+  /** Label filter: artifact must carry all requested labels (AND semantics) */
+  labels: string[];
 }
 
 /**

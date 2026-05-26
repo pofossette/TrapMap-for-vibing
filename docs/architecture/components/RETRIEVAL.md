@@ -394,6 +394,23 @@ searchKnowledgeV2() (orchestrator.ts)
 - 语义/关键词通道失败时返回空数组，不阻断检索
 - 通道 observable：`channelsPlanned` / `channelsUsed` / `mergeStats` 通过 trace 记录
 
+#### v2 查询过滤器传播
+
+v2 查询中的 `filters.labels` 和 `filters.scopes` 在以下位置生效：
+
+1. **治理过滤器构建** (`orchestrator.ts`): 将查询元数据注入 `ArtifactGovernanceFilters`
+2. **胶囊提取** (`capsule-recall.ts`): `extractGovernedCapsules()` 在治理过滤后追加 `matchesArtifactMetadata()` 检查
+3. **Profile 短名单** (`capsule-recall.ts`): `buildProfileShortlist()` 同样应用 `matchesArtifactMetadata()`
+4. **PG 关键词召回** (`pg-capsule-keyword.ts`): 使用 `fieldTokensLabels @> <labels>` 过滤
+5. **PG 向量召回** (`pg-capsule-vector.ts`): 通过 JOIN 关键词表应用相同的标签过滤
+6. **内存通道** (`keyword.ts`, `semantic.ts`): 通过 `extractGovernedCapsules()` 继承过滤
+
+过滤语义：
+- `scopes`: 非空时，工件 scope 必须在请求集合中
+- `labels`: 非空时，工件必须携带所有请求标签（AND 语义）
+
+这意味着 `capsules`、`profileHints` 和 `summary.citations` 都会在组装前被过滤。
+
 #### Merge 与 Rerank 两阶段结构 (Phase 4)
 
 ```text

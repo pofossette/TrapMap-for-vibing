@@ -51,6 +51,28 @@ export function isArtifactGovernanceEligible(
 }
 
 /**
+ * Check if an artifact matches query metadata filters (scope and labels).
+ * Scopes: if non-empty, artifact scope must be in the requested set.
+ * Labels: if non-empty, artifact must carry all requested labels (AND semantics).
+ *
+ * @param artifact - Skill artifact record
+ * @param filters - Artifact governance filters with query metadata
+ * @returns True if artifact matches requested scopes and labels
+ */
+export function matchesArtifactMetadata(
+  artifact: Pick<SkillArtifactRecord, 'scope' | 'labels'>,
+  filters: Pick<ArtifactGovernanceFilters, 'scopes' | 'labels'>,
+): boolean {
+  if (filters.scopes.length > 0 && !filters.scopes.includes(artifact.scope)) {
+    return false;
+  }
+  if (filters.labels.length > 0) {
+    return filters.labels.every((label) => artifact.labels.includes(label));
+  }
+  return true;
+}
+
+/**
  * Build profile shortlist from governed artifacts.
  * Returns profiles from approved, in-scope, within-level artifacts.
  *
@@ -68,6 +90,11 @@ export function buildProfileShortlist(
   for (const artifact of artifacts) {
     // Apply governance filters
     if (!isArtifactGovernanceEligible(artifact, filters)) {
+      continue;
+    }
+
+    // Apply query metadata filters (scope, labels)
+    if (!matchesArtifactMetadata(artifact, filters)) {
       continue;
     }
 
@@ -100,6 +127,11 @@ export function extractGovernedCapsules(
   for (const artifact of artifacts) {
     // Apply governance filters
     if (!isArtifactGovernanceEligible(artifact, filters)) {
+      continue;
+    }
+
+    // Apply query metadata filters (scope, labels)
+    if (!matchesArtifactMetadata(artifact, filters)) {
       continue;
     }
 

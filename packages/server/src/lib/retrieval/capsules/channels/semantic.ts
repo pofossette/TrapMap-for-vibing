@@ -141,7 +141,8 @@ function governanceToPgVectorFilters(filters: ArtifactGovernanceFilters): PgCaps
     teamId: filters.teamId,
     securityLevel: filters.securityLevel,
     isSystemAdmin: filters.isSystemAdmin,
-    scopes: [],
+    scopes: filters.scopes,
+    labels: filters.labels,
   };
 }
 

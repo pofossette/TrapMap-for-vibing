@@ -79,7 +79,7 @@ pnpm eval:retrieval --tier smoke --endpoint /v2/retrieval/search
 | `v2-governance-core` | `/v2/retrieval/search` | 禁止泄漏 |
 | `v2-scope-distribution-core` | `/v2/retrieval/search` | Scope 分布验证 |
 | `v2-multi-capsule-core` | `/v2/retrieval/search` | 多胶囊排序 |
-| `v2-label-filter-core` | `/v2/retrieval/search` | 标签过滤 |
+| `v2-label-filter-core` | `/v2/retrieval/search` | 标签过滤（验证完整胶囊载荷，不仅 top-1 相关性） |
 | `v2-empty-with-summary-core` | `/v2/retrieval/search` | 空结果含摘要 |
 | `v2-keyword-dominant-core` | `/v2/retrieval/search` | 关键字召回（锁定文件） |
 | `v2-keyword-error-text-core` | `/v2/retrieval/search` | 关键字召回（错误文本） |

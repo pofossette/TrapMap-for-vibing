@@ -147,7 +147,8 @@ function governanceToPgKeywordFilters(filters: ArtifactGovernanceFilters): PgCap
     teamId: filters.teamId,
     securityLevel: filters.securityLevel,
     isSystemAdmin: filters.isSystemAdmin,
-    scopes: [],
+    scopes: filters.scopes,
+    labels: filters.labels,
   };
 }
 

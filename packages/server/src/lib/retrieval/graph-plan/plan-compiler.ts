@@ -24,6 +24,7 @@ import type {
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import type { ArtifactGovernanceFilters } from '@trapmap/server/lib/retrieval/types.js';
 import type {
   Graph,
   GraphRuntimeSnapshot,
@@ -91,6 +92,8 @@ export async function compileTrapFirstPlan(
     teamId: auth.activeTeamId,
     securityLevel: auth.securityLevel,
     isSystemAdmin: auth.subjectType === 'system-admin',
+    scopes: [] as Array<'global' | 'project'>,
+    labels: [] as string[],
   };
   const governedArtifacts = readModel.skillArtifacts.filter((a) =>
     isArtifactGovernanceEligible(a, governanceFilters),
@@ -481,7 +484,7 @@ function buildCitations(
   allCandidates: CapsuleCandidate[],
   selectedSkills: PlanSkillNode[],
   artifacts: SkillArtifactRecord[],
-  governanceFilters: { teamId: string | null; securityLevel: number; isSystemAdmin: boolean },
+  governanceFilters: ArtifactGovernanceFilters,
 ): PlanCitation[] {
   // Build set of selected artifact IDs
   const selectedArtifactIds = new Set(selectedSkills.map((s) => s.artifactId));

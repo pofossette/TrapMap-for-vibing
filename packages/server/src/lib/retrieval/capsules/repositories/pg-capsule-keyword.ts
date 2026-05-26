@@ -29,6 +29,7 @@ export interface PgCapsuleKeywordFilters {
   securityLevel: number;
   isSystemAdmin: boolean;
   scopes: string[];
+  labels: string[];
 }
 
 const FIELD_WEIGHTS: Record<string, number> = {
@@ -76,6 +77,16 @@ export function createPgCapsuleKeywordRecall(config: PgCapsuleKeywordConfig) {
       conditions.push(
         inArray(skillArtifactCapsuleKeywords.scope, filters.scopes as ('global' | 'project')[]),
       );
+    }
+
+    if (filters.labels.length > 0) {
+      const labelTokens = filters.labels.flatMap((label) => normalizeQuery(label));
+      if (labelTokens.length > 0) {
+        const labelArray = labelTokens.map((t) => `'${t}'`).join(',');
+        conditions.push(
+          sql`${skillArtifactCapsuleKeywords.fieldTokensLabels} @> ${sql.raw(`ARRAY[${labelArray}]::text[]`)}`,
+        );
+      }
     }
 
     const tokenArray = queryTokens.map((t) => `'${t}'`).join(',');
