@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { retrievalEvalGovernanceExpectationsSchema } from './retrieval.js';
 import {
   baselineReportSchema,
   retrievalEvalReportMetaSchema,
@@ -13,6 +12,7 @@ import {
   summaryEvalReportMetaSchema,
   summaryEvalReportSchema,
 } from './report.js';
+import { retrievalEvalGovernanceExpectationsSchema } from './retrieval.js';
 
 // Helper for a valid timestamp with offset
 const ts = '2026-05-26T12:00:00+00:00';
@@ -281,7 +281,7 @@ describe('evals schema fixes', () => {
       tier: 'smoke' as const,
     };
 
-    const validWarning = {
+    const _validWarning = {
       caseId: 'w1',
       code: 'W001',
       message: 'minor warning',
@@ -325,7 +325,7 @@ describe('evals schema fixes', () => {
       ).toThrow();
     });
 
-    it('rejects when failures.length !== failedCases', () => {
+    it('allows failures.length >= failedCases (one case may produce multiple failures)', () => {
       expect(() =>
         retrievalEvalReportSchema.parse({
           meta: validMeta,
@@ -339,6 +339,29 @@ describe('evals schema fixes', () => {
           slices: [],
           cases: [validCaseSummary, { ...validCaseSummary, caseId: 'c2' }],
           failures: [validFailure, { ...validFailure, caseId: 'f2' }],
+          warnings: [],
+        }),
+      ).not.toThrow();
+    });
+
+    it('rejects when failures.length < failedCases', () => {
+      expect(() =>
+        retrievalEvalReportSchema.parse({
+          meta: validMeta,
+          summary: {
+            totalCases: 3,
+            passedCases: 1,
+            failedCases: 2,
+            passRate: 1 / 3,
+            passed: false,
+          },
+          slices: [],
+          cases: [
+            validCaseSummary,
+            { ...validCaseSummary, caseId: 'c2' },
+            { ...validCaseSummary, caseId: 'c3' },
+          ],
+          failures: [validFailure],
           warnings: [],
         }),
       ).toThrow();

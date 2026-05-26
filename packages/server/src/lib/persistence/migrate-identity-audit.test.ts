@@ -152,7 +152,7 @@ function createMockPool() {
     }),
     connect: vi.fn(() => {
       nextIdSeq++;
-      const id = nextIdSeq;
+      const _id = nextIdSeq;
       return {
         query: vi.fn(async (sql: string, params?: unknown[]): Promise<FakeQueryResult> => {
           if (typeof sql === 'string' && sql.toLowerCase().includes('count(*)')) {
@@ -184,7 +184,7 @@ function createMockPool() {
 
 describe('migrateIdentityAudit', () => {
   it('dry-run does not insert data but reports counts', async () => {
-    const { storeData, snapshot } = createMockSnapshot();
+    const { snapshot } = createMockSnapshot();
     const mockPool = createMockPool();
     const mockStore = { snapshot, transact: vi.fn(), nextId: vi.fn() };
 
@@ -205,7 +205,7 @@ describe('migrateIdentityAudit', () => {
   });
 
   it('idempotent migration — second run skips all', async () => {
-    const { storeData, snapshot } = createMockSnapshot();
+    const { snapshot } = createMockSnapshot();
     const mockPool = createMockPool();
     const mockStore = { snapshot, transact: vi.fn(), nextId: vi.fn() };
 
@@ -260,7 +260,7 @@ describe('migrateIdentityAudit', () => {
   });
 
   it('calls onProgress callback', async () => {
-    const { storeData, snapshot } = createMockSnapshot();
+    const { snapshot } = createMockSnapshot();
     const mockPool = createMockPool();
     const mockStore = { snapshot, transact: vi.fn(), nextId: vi.fn() };
     const progressCalls: Array<{ domain: string; processed: number; total: number }> = [];
@@ -278,7 +278,7 @@ describe('migrateIdentityAudit', () => {
 
 describe('verify', () => {
   it('verifies counts from snapshot match table counts', async () => {
-    const { storeData, snapshot } = createMockSnapshot();
+    const { snapshot } = createMockSnapshot();
     const mockPool = createMockPool();
 
     // The mock pool starts empty, so all table counts will be 0
@@ -302,7 +302,7 @@ describe('verify', () => {
   });
 
   it('dry-run mode sets tableCount to -1', async () => {
-    const { storeData, snapshot } = createMockSnapshot();
+    const { snapshot } = createMockSnapshot();
     const mockPool = createMockPool();
 
     const mockStore = { snapshot, transact: vi.fn(), nextId: vi.fn() };

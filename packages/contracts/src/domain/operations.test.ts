@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { maintenanceEntryListRequestSchema } from './maintenance.js';
 import {
   activationFilePayloadSchema,
   artifactExportResponseSchema,
@@ -17,7 +18,6 @@ import {
   statsUsageItemSchema,
   statsUsageResponseSchema,
 } from './operations.js';
-import { maintenanceEntryListRequestSchema } from './maintenance.js';
 
 // Valid actor reference matching actorRefSchema
 const validActorRef = {

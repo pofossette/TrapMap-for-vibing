@@ -187,7 +187,7 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
     const services: CandidateProcessorServices = {
       store,
       getSnapshot: () => store.snapshot(),
-      pool,
+      ...(pool ? { pool } : {}),
       candidateRepo,
     };
     scheduleCandidateProcessing(candidate.id, services);

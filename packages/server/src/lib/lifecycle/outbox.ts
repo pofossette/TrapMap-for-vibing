@@ -11,11 +11,11 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { domainEventOutbox } from '../persistence/schema.js';
+import { domainEventOutbox } from '@trapmap/server/lib/persistence/schema.js';
 import type { DomainEvent } from './types.js';
 
 export interface OutboxEvent {
@@ -86,16 +86,14 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
     delayMs?: number;
   }): Promise<OutboxEvent> {
     const id = `evt_${Date.now()}_${randomUUID().slice(0, 8)}`;
-    const availableAt = params.delayMs
-      ? new Date(Date.now() + params.delayMs)
-      : new Date();
+    const availableAt = params.delayMs ? new Date(Date.now() + params.delayMs) : new Date();
 
     await db.insert(domainEventOutbox).values({
       id,
       aggregateType: params.aggregateType,
       aggregateId: params.aggregateId,
       eventName: params.eventName,
-      payload: params.payload as Record<string, unknown>,
+      payload: params.payload as unknown as Record<string, unknown>,
       status: 'pending',
       availableAt,
     });

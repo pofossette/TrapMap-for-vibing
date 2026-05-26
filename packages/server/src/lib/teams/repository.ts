@@ -13,7 +13,7 @@
 import type { Pool } from 'pg';
 
 import type { MembershipRecord, SkillShareerStore, TeamRecord } from '@trapmap/server/lib/store.js';
-import { PgTeamRepository, PgMembershipRepository } from './pg-repository.js';
+import { PgMembershipRepository, PgTeamRepository } from './pg-repository.js';
 
 /**
  * Repository interface for team CRUD operations.

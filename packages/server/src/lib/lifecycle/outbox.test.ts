@@ -91,7 +91,11 @@ describeIfDb('DomainEventOutbox', () => {
       aggregateType: 'knowledge',
       aggregateId: 'entry-b',
       eventName: 'knowledge.deactivated',
-      payload: makeEvent({ name: 'knowledge.deactivated', entryId: 'entry-b', nextState: 'deactivated' }),
+      payload: makeEvent({
+        name: 'knowledge.deactivated',
+        entryId: 'entry-b',
+        nextState: 'deactivated',
+      }),
     });
 
     // Claim batch
@@ -199,7 +203,11 @@ describeIfDb('DomainEventOutbox', () => {
       aggregateType: 'knowledge',
       aggregateId: 'entry-f',
       eventName: 'knowledge.deactivated',
-      payload: makeEvent({ name: 'knowledge.deactivated', entryId: 'entry-f', nextState: 'deactivated' }),
+      payload: makeEvent({
+        name: 'knowledge.deactivated',
+        entryId: 'entry-f',
+        nextState: 'deactivated',
+      }),
     });
 
     const pending = await outbox.getPendingCount();

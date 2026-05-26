@@ -29,7 +29,7 @@ export const reviewDecisionRequestSchema = z
     entryId: entityIdSchema,
     decision: z.enum(['approve', 'reject']),
     notes: z.string().min(1).max(2000),
-    boundary: boundarySchema.nullable(),
+    boundary: boundarySchema.nullable().optional(),
     /** Optional evidence metadata for provenance tracking */
     evidence: evidenceMetaSchema.optional(),
   })

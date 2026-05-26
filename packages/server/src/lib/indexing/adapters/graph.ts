@@ -17,8 +17,8 @@ import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
 import { extractBoundaryGraphEntities } from '@trapmap/server/lib/indexing/boundary-extract.js';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
-import { extractGraphEntitiesWithLLM } from '@trapmap/server/lib/indexing/graph-lite/llm-extract.js';
 import { LlmExtractionCache } from '@trapmap/server/lib/indexing/graph-lite/llm-cache.js';
+import { extractGraphEntitiesWithLLM } from '@trapmap/server/lib/indexing/graph-lite/llm-extract.js';
 import {
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,

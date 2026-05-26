@@ -11,11 +11,8 @@ import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
+import { membershipsTable, teamsTable } from '@trapmap/server/lib/persistence/schema.js';
 import type { MembershipRecord, TeamRecord } from '@trapmap/server/lib/store.js';
-import {
-  membershipsTable,
-  teamsTable,
-} from '@trapmap/server/lib/persistence/schema.js';
 import type { MembershipRepository, TeamRepository } from './repository.js';
 
 interface TeamsRow {
@@ -65,22 +62,14 @@ export class PgTeamRepository implements TeamRepository {
   }
 
   async getById(teamId: string): Promise<TeamRecord | null> {
-    const rows = await this.db
-      .select()
-      .from(teamsTable)
-      .where(eq(teamsTable.id, teamId))
-      .limit(1);
+    const rows = await this.db.select().from(teamsTable).where(eq(teamsTable.id, teamId)).limit(1);
 
     if (rows.length === 0) return null;
     return rowToTeamRecord(rows[0]!);
   }
 
   async getBySlug(slug: string): Promise<TeamRecord | null> {
-    const rows = await this.db
-      .select()
-      .from(teamsTable)
-      .where(eq(teamsTable.slug, slug))
-      .limit(1);
+    const rows = await this.db.select().from(teamsTable).where(eq(teamsTable.slug, slug)).limit(1);
 
     if (rows.length === 0) return null;
     return rowToTeamRecord(rows[0]!);
@@ -165,12 +154,7 @@ export class PgMembershipRepository implements MembershipRepository {
     const rows = await this.db
       .select()
       .from(membershipsTable)
-      .where(
-        and(
-          eq(membershipsTable.userId, userId),
-          eq(membershipsTable.teamId, teamId),
-        ),
-      )
+      .where(and(eq(membershipsTable.userId, userId), eq(membershipsTable.teamId, teamId)))
       .limit(1);
 
     if (rows.length === 0) return null;
@@ -248,7 +232,7 @@ function rowToMembershipRecord(row: MembershipsRow): MembershipRecord {
     teamId: row.teamId,
     roleTemplate: row.roleTemplate as MembershipRecord['roleTemplate'],
     securityLevel: row.securityLevel,
-    permissions: row.permissions ?? [],
+    permissions: (row.permissions ?? []) as MembershipRecord['permissions'],
     notes: row.notes ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

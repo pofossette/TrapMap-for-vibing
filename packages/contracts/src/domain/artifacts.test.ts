@@ -37,7 +37,7 @@ describe('artifacts schema fixes', () => {
 
     it('rejects non-hex characters in sha256', () => {
       expect(() =>
-        skillArtifactFileSchema.parse({ ...base, sha256: 'g' + 'a'.repeat(63) }),
+        skillArtifactFileSchema.parse({ ...base, sha256: `g${'a'.repeat(63)}` }),
       ).toThrow();
     });
 

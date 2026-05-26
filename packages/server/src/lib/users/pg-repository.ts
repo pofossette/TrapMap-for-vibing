@@ -11,8 +11,8 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import type { UserRecord } from '@trapmap/server/lib/store.js';
 import { usersTable } from '@trapmap/server/lib/persistence/schema.js';
+import type { UserRecord } from '@trapmap/server/lib/store.js';
 import type { UserRepository } from './repository.js';
 
 /**
@@ -62,11 +62,7 @@ export class PgUserRepository implements UserRepository {
   }
 
   async getById(userId: string): Promise<UserRecord | null> {
-    const rows = await this.db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, userId))
-      .limit(1);
+    const rows = await this.db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
 
     if (rows.length === 0) return null;
     return rowToUserRecord(rows[0]!);
@@ -108,14 +104,4 @@ export class PgUserRepository implements UserRepository {
       params,
     );
   }
-}
-
-function rowToUserRecord(row: UsersRow): UserRecord {
-  return {
-    id: row.id,
-    handle: row.handle,
-    notes: row.notes ?? null,
-    createdAt: row.created_at.toISOString(),
-    updatedAt: row.updated_at.toISOString(),
-  };
 }

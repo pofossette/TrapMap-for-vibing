@@ -108,9 +108,7 @@ function buildMockPool(initialRows: MockTaskRow[] = []) {
       const candidates = rows
         .filter(
           (r) =>
-            r.type === type &&
-            r.status === 'pending' &&
-            r.process_after.getTime() <= now.getTime(),
+            r.type === type && r.status === 'pending' && r.process_after.getTime() <= now.getTime(),
         )
         .sort((a, b) => {
           if (b.priority !== a.priority) return b.priority - a.priority;
@@ -134,9 +132,8 @@ function buildMockPool(initialRows: MockTaskRow[] = []) {
       const setDead = setStatus === 'dead' && !setComplete;
       const setPending = setStatus === 'pending' && !setComplete;
       // Extract task id — it's a string starting with 'task_' among the params
-      const taskId = (
-        params?.find((p) => typeof p === 'string' && p.startsWith('task_')) ?? ''
-      ) as string;
+      const taskId = (params?.find((p) => typeof p === 'string' && p.startsWith('task_')) ??
+        '') as string;
 
       const row = rows.find((r) => r.id === taskId);
       if (row) {
@@ -145,11 +142,13 @@ function buildMockPool(initialRows: MockTaskRow[] = []) {
           row.completed_at = new Date();
         } else if (setDead) {
           row.status = 'dead';
-          row.attempts = Number(params?.find((p, i) => i === 1)) ?? row.attempts;
-          row.last_error = params?.find((p) => typeof p === 'string' && !p.startsWith('task_')) as string ?? row.last_error;
+          row.attempts = Number(params?.find((_p, i) => i === 1)) ?? row.attempts;
+          row.last_error =
+            (params?.find((p) => typeof p === 'string' && !p.startsWith('task_')) as string) ??
+            row.last_error;
         } else if (setPending) {
           row.status = 'pending';
-          row.attempts = Number(params?.find((p, i) => i === 1)) ?? 0;
+          row.attempts = Number(params?.find((_p, i) => i === 1)) ?? 0;
           row.last_error = null;
           // process_after is at index 3 after status($0), attempts($1), last_error($2)
           const paVal = params?.[3];
@@ -161,7 +160,11 @@ function buildMockPool(initialRows: MockTaskRow[] = []) {
     }
 
     // fail() reads attempts before update — handle unquoted column names
-    if (sqlL.includes('select') && (sqlL.includes('attempts') || sqlL.includes('"attempts"')) && sqlL.includes('max_attempts')) {
+    if (
+      sqlL.includes('select') &&
+      (sqlL.includes('attempts') || sqlL.includes('"attempts"')) &&
+      sqlL.includes('max_attempts')
+    ) {
       const taskId = params?.[0] as string;
       const row = rows.find((r) => r.id === taskId);
       if (row) {
@@ -234,10 +237,14 @@ describe('createTaskQueue', () => {
       const mock = buildMockPool();
       const queue = createTaskQueue({ pool: mock as any });
 
-      const task = await queue.enqueue('candidate_processing', { candidateId: 'abc' }, {
-        priority: 5,
-        maxAttempts: 2,
-      });
+      const task = await queue.enqueue(
+        'candidate_processing',
+        { candidateId: 'abc' },
+        {
+          priority: 5,
+          maxAttempts: 2,
+        },
+      );
 
       expect(task.type).toBe('candidate_processing');
       expect(task.payload).toEqual({ candidateId: 'abc' });
@@ -259,9 +266,13 @@ describe('createTaskQueue', () => {
       const mock = buildMockPool();
       const queue = createTaskQueue({ pool: mock as any });
 
-      const task = await queue.enqueue('candidate_processing', { candidateId: 'abc' }, {
-        dedupeKey: 'candidate_abc',
-      });
+      const task = await queue.enqueue(
+        'candidate_processing',
+        { candidateId: 'abc' },
+        {
+          dedupeKey: 'candidate_abc',
+        },
+      );
 
       expect(task.dedupeKey).toBe('candidate_abc');
       expect(mock.getRows()[0]!.dedupe_key).toBe('candidate_abc');
@@ -272,9 +283,13 @@ describe('createTaskQueue', () => {
       const queue = createTaskQueue({ pool: mock as any });
       const before = Date.now();
 
-      const task = await queue.enqueue('candidate_processing', { candidateId: 'abc' }, {
-        delayMs: 5000,
-      });
+      const task = await queue.enqueue(
+        'candidate_processing',
+        { candidateId: 'abc' },
+        {
+          delayMs: 5000,
+        },
+      );
 
       expect(task.processAfter.getTime()).toBeGreaterThanOrEqual(before + 5000);
     });

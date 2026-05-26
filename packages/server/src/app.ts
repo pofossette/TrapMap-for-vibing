@@ -27,7 +27,7 @@ import { createDomainEventOutbox } from './lib/lifecycle/outbox.js';
 import { createAuditSubscriber } from './lib/lifecycle/subscribers/audit.js';
 import { createConflictSubscriber } from './lib/lifecycle/subscribers/conflict.js';
 import { createIndexingSubscriber } from './lib/lifecycle/subscribers/indexing.js';
-import type { DomainEvent, DomainEventHandler } from './lib/lifecycle/types.js';
+import type { DomainEventHandler } from './lib/lifecycle/types.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import { runMigrations } from './lib/persistence/migration-runner.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';

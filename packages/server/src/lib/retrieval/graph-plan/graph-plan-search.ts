@@ -191,6 +191,7 @@ export async function searchKnowledgeGraphPlan(
       routeFamily: 'capsule',
       response: {
         ...response,
+        refinementSummary: response.refinementSummary ?? null,
         activationHints: [],
       },
     };

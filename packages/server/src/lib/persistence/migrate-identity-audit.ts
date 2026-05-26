@@ -183,7 +183,11 @@ export async function migrateIdentityAudit(
     if (dryRun) {
       result.inserted = domain.records.length;
       domains[domain.name] = result;
-      onProgress?.({ domain: domain.name, processed: domain.records.length, total: domain.records.length });
+      onProgress?.({
+        domain: domain.name,
+        processed: domain.records.length,
+        total: domain.records.length,
+      });
       continue;
     }
 

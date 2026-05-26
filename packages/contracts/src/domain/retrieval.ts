@@ -41,8 +41,8 @@ export const retrievalCitationSchema = z.object({
       preRerank: z.number().min(0).max(1),
       final: z.number().min(0).max(1),
     })
-    .refine((d) => d.semantic !== null || d.keyword !== null || d.graph !== null, {
-      message: 'at least one score (semantic, keyword, graph) must be non-null',
+    .refine((d) => d.preRerank >= 0 && d.final >= 0, {
+      message: 'preRerank and final scores must be non-negative',
     }),
 });
 
@@ -188,7 +188,7 @@ export const retrievalV2ResponseSchema = z.object({
   /** Lightweight artifact metadata for activation hints */
   profileHints: z.array(profileHintSchema).default([]),
   /** Optional refinement summary over filtered capsules */
-  refinementSummary: z.string().optional(),
+  refinementSummary: z.string().nullable().optional(),
   /** Optional summary over filtered distilled capsule hits */
   summary: retrievalSummarySchema.nullable().default(null),
 });

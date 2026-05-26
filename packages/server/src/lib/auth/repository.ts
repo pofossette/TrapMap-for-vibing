@@ -17,7 +17,7 @@ import type {
   SessionRecord,
   SkillShareerStore,
 } from '@trapmap/server/lib/store.js';
-import { PgSessionRepository, PgAccessKeyRepository } from './pg-repository.js';
+import { PgAccessKeyRepository, PgSessionRepository } from './pg-repository.js';
 
 /**
  * Repository interface for session CRUD operations.

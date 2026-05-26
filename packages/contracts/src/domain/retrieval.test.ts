@@ -101,7 +101,7 @@ describe('retrieval schema contracts', () => {
       ).toThrow();
     });
 
-    it('rejects all-null semantic/keyword/graph scores (at least one must be non-null)', () => {
+    it('allows all-null semantic/keyword/graph scores (preRerank and final suffice for audit trail)', () => {
       expect(() =>
         retrievalCitationSchema.parse({
           ...validCitation,
@@ -113,7 +113,7 @@ describe('retrieval schema contracts', () => {
             final: 0.6,
           },
         }),
-      ).toThrow();
+      ).not.toThrow();
     });
 
     it('accepts when exactly one of semantic/keyword/graph is non-null', () => {

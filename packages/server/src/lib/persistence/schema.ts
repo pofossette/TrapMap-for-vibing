@@ -278,16 +278,13 @@ export const auditEventIdSeq = pgSequence('audit_event_id_seq', {
   increment: 1,
 });
 
-export const usersTable = pgTable(
-  'users',
-  {
-    id: text('id').primaryKey(),
-    handle: text('handle').notNull().unique(),
-    notes: text('notes'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-);
+export const usersTable = pgTable('users', {
+  id: text('id').primaryKey(),
+  handle: text('handle').notNull().unique(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const teamsTable = pgTable(
   'teams',
@@ -299,17 +296,19 @@ export const teamsTable = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    uniqueIndex('teams_slug_uidx').on(table.slug),
-  ],
+  (table) => [uniqueIndex('teams_slug_uidx').on(table.slug)],
 );
 
 export const membershipsTable = pgTable(
   'memberships',
   {
     id: text('id').primaryKey(),
-    userId: text('user_id').notNull().references(() => usersTable.id, { onDelete: 'cascade' }),
-    teamId: text('team_id').notNull().references(() => teamsTable.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => usersTable.id, { onDelete: 'cascade' }),
+    teamId: text('team_id')
+      .notNull()
+      .references(() => teamsTable.id, { onDelete: 'cascade' }),
     roleTemplate: text('role_template').notNull(),
     securityLevel: integer('security_level').notNull(),
     permissions: jsonb('permissions').notNull().$type<string[]>().default([]),
@@ -346,11 +345,17 @@ export const accessKeysTable = pgTable(
   'access_keys',
   {
     id: text('id').primaryKey(),
-    memberId: text('member_id').notNull().references(() => membershipsTable.id),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => membershipsTable.id),
     tokenHash: text('token_hash').notNull().unique(),
     tokenPreview: text('token_preview').notNull(),
-    issuedByUserId: text('issued_by_user_id').notNull().references(() => usersTable.id),
-    teamId: text('team_id').notNull().references(() => teamsTable.id),
+    issuedByUserId: text('issued_by_user_id')
+      .notNull()
+      .references(() => usersTable.id),
+    teamId: text('team_id')
+      .notNull()
+      .references(() => teamsTable.id),
     level: integer('level').notNull(),
     notes: text('notes'),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
@@ -1723,9 +1728,7 @@ export const taskQueue = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
-  (table) => [
-    index('task_queue_type_dedupe_idx').on(table.type, table.dedupeKey),
-  ],
+  (table) => [index('task_queue_type_dedupe_idx').on(table.type, table.dedupeKey)],
 );
 
 // =============================================================================

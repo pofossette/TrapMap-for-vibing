@@ -7,12 +7,12 @@
  * Phase: 3 (Round 10)
  */
 
-import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import type { AuditEventRecord } from '@trapmap/server/lib/store.js';
 import { auditEventsTable } from '@trapmap/server/lib/persistence/schema.js';
+import type { AuditEventRecord } from '@trapmap/server/lib/store.js';
 import type { AuditRepository } from './repository.js';
 
 interface AuditEventsRow {
@@ -104,10 +104,7 @@ export class PgAuditRepository implements AuditRepository {
         .where(where)
         .orderBy(desc(auditEventsTable.createdAt))
         .limit(limit),
-      this.db
-        .select({ count: this.db.fn.count() })
-        .from(auditEventsTable)
-        .where(where),
+      this.db.select({ count: count() }).from(auditEventsTable).where(where),
     ]);
 
     const total = Number(countResult[0]?.count ?? 0);

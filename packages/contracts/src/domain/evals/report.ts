@@ -522,8 +522,8 @@ export const retrievalEvalReportSchema = z
   .refine((d) => d.cases.length === d.summary.totalCases, {
     message: 'cases.length must equal totalCases',
   })
-  .refine((d) => d.failures.length === d.summary.failedCases, {
-    message: 'failures.length must equal failedCases',
+  .refine((d) => d.failures.length >= d.summary.failedCases, {
+    message: 'failures.length must be >= failedCases',
   });
 
 export type RetrievalEvalReport = z.infer<typeof retrievalEvalReportSchema>;

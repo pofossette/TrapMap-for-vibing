@@ -7,15 +7,12 @@
  * Phase: 3 (Round 10)
  */
 
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
+import { accessKeysTable, sessionsTable } from '@trapmap/server/lib/persistence/schema.js';
 import type { AccessKeyRecord, SessionRecord } from '@trapmap/server/lib/store.js';
-import {
-  accessKeysTable,
-  sessionsTable,
-} from '@trapmap/server/lib/persistence/schema.js';
 import type { AccessKeyRepository, SessionRepository } from './repository.js';
 
 interface SessionsRow {
@@ -121,15 +118,8 @@ export class PgSessionRepository implements SessionRepository {
 export class PgAccessKeyRepository implements AccessKeyRepository {
   private db: ReturnType<typeof drizzle>;
 
-  constructor(private readonly pool: Pool) {
+  constructor(pool: Pool) {
     this.db = drizzle(pool);
-  }
-
-  private async nextId(): Promise<string> {
-    const { rows } = await this.pool.query<{ nextval: string }>(
-      "SELECT nextval('access_key_id_seq') AS nextval",
-    );
-    return `access_${rows[0]?.nextval ?? '1'}`;
   }
 
   async insert(key: AccessKeyRecord): Promise<void> {
