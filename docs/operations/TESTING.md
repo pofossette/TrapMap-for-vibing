@@ -151,6 +151,14 @@ CI 配置位于 `.github/workflows/eval.yml`。
 | `unexpected-non-empty` | 应为空但有结果 | 可能过滤不足 |
 | `shape-mismatch` | 响应结构不符合契约 | 检查端点版本 |
 
+### 标签过滤回归要求
+
+任何检索过滤 bugfix 都必须在 smoke 层添加标签过滤回归用例，确保问题可在 `eval:smoke` 中被捕获，而不仅在 `eval:core` 中：
+
+- **检索层**: 在 `evals/retrieval/datasets/smoke/` 中添加带 `filters.labels` 的 v2 用例
+- **摘要层**: 在 `evals/summary/datasets/smoke/` 中添加带 `filters.labels` 和 `forbiddenClaims` 的摘要用例
+- **场景层**: 在对应的 scenarios 文件中添加包含多标签 artifact 的 fixture
+
 ---
 
 ## 摘要评估指标

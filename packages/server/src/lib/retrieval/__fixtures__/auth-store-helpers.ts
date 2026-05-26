@@ -274,7 +274,6 @@ export function seedApprovedSkillArtifact(
             situation: `Situation for ${title}`,
             problem: `Problem for ${title}`,
             goal: `Goal for ${title}`,
-            errorText: null,
             labels,
             scope,
             requiredLevel,

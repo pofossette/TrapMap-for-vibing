@@ -628,7 +628,7 @@ Expected: only intended plan-following changes remain
 ## Phase Tracker
 
 - [x] Phase 6: Propagate query filters through the v2 capsule retrieval path
-- [ ] Phase 7: Lock the v2 filter fix into route, orchestrator, and smoke/core eval coverage
+- [x] Phase 7: Lock the v2 filter fix into route, orchestrator, and smoke/core eval coverage
 - [ ] Phase 8: Stabilize v1 low-`maxResults` semantic ranking for the Docker core fixture
 - [ ] Phase 9: Align eval baseline paths and advanced-runner documentation with actual CI behavior
 
@@ -852,7 +852,7 @@ expect(json.summary?.citations.map((citation) => citation.source.entryId)).toEqu
 ]);
 ```
 
-- [ ] **Step 7.1: Add route-level assertions for filtered v2 payloads**
+- [x] **Step 7.1: Add route-level assertions for filtered v2 payloads**
 
 ```ts
 const response = await testApp.inject({
@@ -870,7 +870,7 @@ expect(response.statusCode).toBe(200);
 expect(response.json().capsules).toHaveLength(1);
 ```
 
-- [ ] **Step 7.2: Add orchestrator and summary-builder regression tests for the mixed Node/Flask case**
+- [x] **Step 7.2: Add orchestrator and summary-builder regression tests for the mixed Node/Flask case**
 
 ```ts
 expect(result.summary?.text).toContain('Express.js middleware');
@@ -880,7 +880,7 @@ expect(result.profileHints).toEqual([
 ]);
 ```
 
-- [ ] **Step 7.3: Promote label-filter regressions into smoke eval datasets**
+- [x] **Step 7.3: Promote label-filter regressions into smoke eval datasets**
 
 ```ts
 export const v2LabelFilterSmoke = retrievalEvalCaseSchema.parse({
@@ -909,7 +909,7 @@ export const v2LabelFilterSmoke = retrievalEvalCaseSchema.parse({
 });
 ```
 
-- [ ] **Step 7.4: Run the route/orchestrator suite and smoke evals**
+- [x] **Step 7.4: Run the route/orchestrator suite and smoke evals**
 
 Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/response/summary.test.ts packages/server/src/routes/retrieval.test.ts`  
 Expected: PASS
