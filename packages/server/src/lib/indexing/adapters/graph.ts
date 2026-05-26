@@ -18,6 +18,7 @@ import { extractBoundaryGraphEntities } from '@trapmap/server/lib/indexing/bound
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
 import { extractGraphEntitiesWithLLM } from '@trapmap/server/lib/indexing/graph-lite/llm-extract.js';
+import { LlmExtractionCache } from '@trapmap/server/lib/indexing/graph-lite/llm-cache.js';
 import {
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
@@ -53,6 +54,8 @@ const cachedGraphDocuments = new RetrievalCache<GraphIndexDocumentRecord>({
   ttlMs: 60 * 60_000,  // 1h
   namespace: 'graph-docs',
 });
+
+const llmCache = new LlmExtractionCache();
 
 function cacheDocument(document: GraphIndexDocumentRecord): void {
   cachedGraphDocuments.set(`${document.sourceType}:${document.sourceId}`, document);
@@ -112,7 +115,7 @@ export const graphIndexAdapter: IndexAdapter & {
       const llmResult = await extractGraphEntitiesWithLLM(
         chat ?? { provider: 'none', isConfigured: false, invoke: async () => '' },
         document.canonicalText,
-        { llmEnabled: !!chat?.isConfigured },
+        { llmEnabled: !!chat?.isConfigured, cache: llmCache },
         document,
       );
       const extractionResult = { nodes: llmResult.nodes, edges: llmResult.edges };

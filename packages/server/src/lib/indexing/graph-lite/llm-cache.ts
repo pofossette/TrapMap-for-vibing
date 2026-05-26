@@ -1,19 +1,23 @@
 /**
  * LLM extraction cache with SHA-256 keyed lookup.
  *
- * Two cache layers:
- * - phase1Cache: text -> ExtractionPlan (Phase 1 planning results)
- * - phase2Cache: text -> LlmExtractionResult (Phase 2 extraction results)
+ * Two cache layers backed by RetrievalCache (LRU+TTL):
+ * - phase1: text -> ExtractionPlan (Phase 1 planning results)
+ * - phase2: text -> LlmExtractionResult (Phase 2 extraction results)
  *
  * Cache keys are SHA-256(text + PROMPT_VERSION) to ensure prompt changes
  * automatically invalidate stale entries.
  *
  * Phase 4-1: LLM extraction caching
+ * Phase 4-2: Migrate to RetrievalCache
  */
 
 import { createHash } from 'node:crypto';
 
 import type { ExtractionPlan } from '@trapmap/contracts';
+
+import type { CacheStats } from '@trapmap/server/lib/cache/index.js';
+import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
 
 import type { LlmExtractionResult } from './llm-extract.js';
 
@@ -36,10 +40,21 @@ export const PROMPT_VERSION = 1;
  *
  * Stores Phase 1 (planning) and Phase 2 (extraction) results keyed by
  * SHA-256(text + promptVersion). Supports targeted invalidation by text.
+ *
+ * Internally backed by two RetrievalCache instances for LRU eviction and TTL.
  */
 export class LlmExtractionCache {
-  private readonly phase1Cache = new Map<string, ExtractionPlan>();
-  private readonly phase2Cache = new Map<string, LlmExtractionResult>();
+  private readonly phase1Cache = new RetrievalCache<ExtractionPlan>({
+    maxSize: 300,
+    ttlMs: 60 * 60_000, // 1 hour
+    namespace: 'llm-phase1',
+  });
+
+  private readonly phase2Cache = new RetrievalCache<LlmExtractionResult>({
+    maxSize: 300,
+    ttlMs: 60 * 60_000, // 1 hour
+    namespace: 'llm-phase2',
+  });
 
   /**
    * Build a deterministic cache key from text content and prompt version.
@@ -58,7 +73,7 @@ export class LlmExtractionCache {
    * @returns The cached plan, or undefined if not found.
    */
   getPhase1(text: string): ExtractionPlan | undefined {
-    return this.phase1Cache.get(this.buildKey(text));
+    return this.phase1Cache.get(this.buildKey(text)) ?? undefined;
   }
 
   /**
@@ -82,7 +97,7 @@ export class LlmExtractionCache {
    * @returns The cached result, or undefined if not found.
    */
   getPhase2(text: string): LlmExtractionResult | undefined {
-    return this.phase2Cache.get(this.buildKey(text));
+    return this.phase2Cache.get(this.buildKey(text)) ?? undefined;
   }
 
   /**
@@ -141,5 +156,15 @@ export class LlmExtractionCache {
    */
   get phase2Size(): number {
     return this.phase2Cache.size;
+  }
+
+  /**
+   * Combined stats for both cache layers.
+   */
+  get stats(): { phase1: CacheStats; phase2: CacheStats } {
+    return {
+      phase1: this.phase1Cache.stats,
+      phase2: this.phase2Cache.stats,
+    };
   }
 }

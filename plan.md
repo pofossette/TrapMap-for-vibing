@@ -452,27 +452,27 @@ const extraction = await extractGraphEntitiesWithLLM(text, chatProvider, {
 
 ### 进度追踪
 
-- [ ] **Step 4.1：运行现有 LLM cache 测试记录基线**
+- [x] **Step 4.1：运行现有 LLM cache 测试记录基线**
 
 ```bash
 rtk pnpm test -- --run packages/server/src/lib/indexing/graph-lite/llm-cache.test.ts
 ```
 
-- [ ] **Step 4.2：替换 `LlmExtractionCache` 内部实现**
+- [x] **Step 4.2：替换 `LlmExtractionCache` 内部实现**
 
 将两个裸 `Map` 替换为 `RetrievalCache` 实例。保留所有公共方法签名和 `buildKey` 逻辑。
 
-- [ ] **Step 4.3：适配测试**
+- [x] **Step 4.3：适配测试**
 
 更新 `llm-cache.test.ts` 以适配新内部实现（如果行为等价则测试应直接通过）。
 
-- [ ] **Step 4.4：在 graph.ts 中接入 LlmExtractionCache**
+- [x] **Step 4.4：在 graph.ts 中接入 LlmExtractionCache**
 
 在 `graph.ts` 模块作用域创建 `llmCache` 实例。修改 `GraphIndexAdapter.sync()` 方法中的 `extractGraphEntitiesWithLLM` 调用，传入 `{ cache: llmCache }`。
 
 检查 `extractGraphEntitiesWithLLM` 的 `options.cache` 参数类型是否匹配，必要时添加类型适配。
 
-- [ ] **Step 4.5：运行所有相关测试**
+- [x] **Step 4.5：运行所有相关测试**
 
 ```bash
 rtk pnpm test -- --run packages/server/src/lib/indexing/
@@ -480,7 +480,7 @@ rtk pnpm test -- --run packages/server/src/lib/indexing/
 
 Expected: 所有 indexing 测试通过。
 
-- [ ] **Step 4.6：Commit**
+- [x] **Step 4.6：Commit**
 
 ```bash
 git add packages/server/src/lib/indexing/graph-lite/llm-cache.ts packages/server/src/lib/indexing/graph-lite/llm-cache.test.ts packages/server/src/lib/indexing/adapters/graph.ts
@@ -489,17 +489,17 @@ git commit -m "feat(cache): migrate LLM extraction cache to RetrievalCache and w
 
 ### Phase 4 验收标准
 
-- [ ] `LlmExtractionCache` 内部使用两个 `RetrievalCache` 实例
-- [ ] `buildKey` 逻辑不变（SHA-256 + PROMPT_VERSION）
-- [ ] `LlmExtractionCache` 在 `graph.ts` 模块作用域被实例化
-- [ ] `extractGraphEntitiesWithLLM` 调用时传入 cache 实例
-- [ ] 所有 LLM cache 测试通过
-- [ ] 所有 graph adapter 测试通过
-- [ ] `pnpm typecheck` 零错误
+- [x] `LlmExtractionCache` 内部使用两个 `RetrievalCache` 实例
+- [x] `buildKey` 逻辑不变（SHA-256 + PROMPT_VERSION）
+- [x] `LlmExtractionCache` 在 `graph.ts` 模块作用域被实例化
+- [x] `extractGraphEntitiesWithLLM` 调用时传入 cache 实例
+- [x] 所有 LLM cache 测试通过
+- [x] 所有 graph adapter 测试通过
+- [x] `pnpm typecheck` 零错误
 
 ### Phase 4 文档更新
 
-- [ ] `plan.md`：记录 Phase 4 完成状态
+- [x] `plan.md`：记录 Phase 4 完成状态
 
 ---
 
