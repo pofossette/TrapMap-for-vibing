@@ -179,6 +179,8 @@ export function seedApprovedSkillArtifact(
     scope?: 'global' | 'project';
     withClientManifest?: boolean;
     files?: { path: string; content: string; kind: string }[];
+    capsuleId?: string;
+    capsuleContent?: string;
   } = {},
 ) {
   const id = overrides.id ?? `artifact_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -264,11 +266,11 @@ export function seedApprovedSkillArtifact(
         },
         capsules: [
           {
-            capsuleId: `capsule_${id}`,
+            capsuleId: overrides.capsuleId ?? `capsule_${id}`,
             artifactId: id,
             revision: 1,
             sourcePaths: files.length > 0 ? [files[0]!.path] : ['SKILL.md'],
-            content: `Content for ${title}`,
+            content: overrides.capsuleContent ?? `Content for ${title}`,
             situation: `Situation for ${title}`,
             problem: `Problem for ${title}`,
             goal: `Goal for ${title}`,

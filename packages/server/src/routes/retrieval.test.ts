@@ -2143,6 +2143,65 @@ describe('retrieval route', () => {
       });
     });
 
+    describe('v2 label filter assertions (Step 7.1)', () => {
+      it('returns only the requested label in capsules, profileHints, and summary.citations', async () => {
+        const { app, authToken } = await buildTestServer((data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact_core_label_filter_node',
+            title: 'Node.js Express Middleware',
+            labels: ['nodejs'],
+            capsuleId: 'capsule_core_label_filter_node',
+            capsuleContent:
+              'Node.js Express backend middleware for REST API request validation and error handling',
+          });
+
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact_core_label_filter_python',
+            title: 'Python Flask Middleware',
+            labels: ['python'],
+            capsuleId: 'capsule_core_label_filter_python',
+            capsuleContent:
+              'Python Flask web framework middleware for REST API request handling and Flask error responses',
+          });
+        });
+
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v2/retrieval/search',
+          payload: {
+            seed: 'backend REST API middleware',
+            includeSummary: true,
+            filters: { labels: ['nodejs'], scopes: [] },
+          },
+          headers: { authorization: `Bearer ${authToken}` },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const json = response.json();
+
+        // Only the nodejs capsule should appear
+        expect(json.capsules).toHaveLength(1);
+        expect(json.capsules[0].artifactId).toBe('artifact_core_label_filter_node');
+
+        // profileHints should only reference the nodejs artifact
+        expect(json.profileHints.map((hint: { artifactId: string }) => hint.artifactId)).toEqual([
+          'artifact_core_label_filter_node',
+        ]);
+
+        // summary.text must not contain Flask (which belongs to the python artifact)
+        expect(json.summary?.text).not.toContain('Flask');
+
+        // summary.citations should only reference the nodejs capsule
+        expect(
+          json.summary?.citations.map(
+            (citation: { source: { entryId: string } }) => citation.source.entryId,
+          ),
+        ).toEqual(['capsule_core_label_filter_node']);
+
+        await app.close();
+      });
+    });
+
     describe('permission enforcement', () => {
       it('requires authentication for retrieval endpoints', async () => {
         const { app } = await buildTestServer((data, auth) => {
