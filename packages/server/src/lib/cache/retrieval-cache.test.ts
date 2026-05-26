@@ -258,3 +258,67 @@ describe('RetrievalCache.set TTL reset', () => {
     expect(cache.get('k')).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// 13. values() generator
+// ---------------------------------------------------------------------------
+
+describe('RetrievalCache.values', () => {
+  it('iterates all non-expired values on a populated cache', () => {
+    const cache = new RetrievalCache<number>();
+    cache.set('a', 1);
+    cache.set('b', 2);
+    cache.set('c', 3);
+
+    const result = Array.from(cache.values());
+    expect(result).toEqual([1, 2, 3]);
+  });
+
+  it('returns nothing on an empty cache', () => {
+    const cache = new RetrievalCache<string>();
+
+    const result = Array.from(cache.values());
+    expect(result).toEqual([]);
+  });
+
+  it('deletes expired entries during iteration', () => {
+    vi.useFakeTimers();
+    const cache = new RetrievalCache<string>({ ttlMs: 50 });
+    cache.set('k1', 'v1');
+    cache.set('k2', 'v2');
+
+    expect(cache.size).toBe(2);
+
+    // advance past TTL so both entries expire
+    vi.advanceTimersByTime(60);
+
+    const result = Array.from(cache.values());
+    expect(result).toEqual([]);
+    // expired entries should have been cleaned up
+    expect(cache.size).toBe(0);
+  });
+
+  it('yields only alive values and removes expired keys in a mixed cache', () => {
+    vi.useFakeTimers();
+    const cache = new RetrievalCache<string>({ ttlMs: 100 });
+    cache.set('early', 'expires-soon');
+    cache.set('late', 'survives');
+
+    // advance 50ms — 'early' was set at t=0, still alive
+    vi.advanceTimersByTime(50);
+    // 'late' was set at t=0, update it now to reset its TTL
+    cache.set('late', 'survives');
+
+    // advance another 60ms — total 110ms from start
+    // 'early' (set at t=0) is now expired (110 > 100)
+    // 'late' (reset at t=50) is still alive (60 < 100)
+    vi.advanceTimersByTime(60);
+
+    expect(cache.size).toBe(2); // both still in store (lazy eviction)
+
+    const result = Array.from(cache.values());
+    expect(result).toEqual(['survives']);
+    // expired 'early' key should have been removed
+    expect(cache.size).toBe(1);
+  });
+});
