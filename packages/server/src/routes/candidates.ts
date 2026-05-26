@@ -304,14 +304,15 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
 
     const candidateId = (request.params as { candidateId: string }).candidateId;
 
-    const { candidate: candidateRepo } = app.skillShareer.repos;
+    const { candidate: candidateRepo, duplicate: duplicateRepo } = app.skillShareer.repos;
     const candidate = await candidateRepo.getById(candidateId);
 
     if (!candidate) {
       throw new AppError(404, 'candidate_not_found', 'Candidate not found');
     }
 
-    const duplicateCase = candidate.duplicateCase;
+    const cases = await duplicateRepo.listByCandidate(candidateId);
+    const duplicateCase = cases[0] ?? null;
     if (!duplicateCase) {
       throw new AppError(404, 'duplicate_case_not_found', 'No duplicate case for this candidate');
     }

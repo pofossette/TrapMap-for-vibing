@@ -431,6 +431,12 @@ type DeduplicationAuditEvent =
   | { type: 'duplicate.resolved-merged'; actorId: EntityId; candidateId: EntityId };
 ```
 
+## 相似度精度
+
+相似度分数存储为 PostgreSQL `real` 类型（直接存储 0.0-1.0 浮点数），保留三位小数精度。之前使用 `integer` 类型存储百分位整数值（如 0.725 存储为 73），在高阈值区间（0.90-0.99）存在精度损失。迁移 0012 已将 `candidate_duplicate_cases.highest_similarity` 和 `candidate_duplicate_matches.similarity_score` 从 `integer` 改为 `real`。
+
+结构化表 (`candidate_duplicate_cases`, `candidate_duplicate_matches`) 是重复检测的真相来源。候选记录上的 JSONB `duplicate_case` 列为兼容缓存，不保证完整性。
+
 ## 参考文档
 
 - [异步摄取管道](INGESTION.md)

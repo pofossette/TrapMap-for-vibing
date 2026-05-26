@@ -264,6 +264,8 @@ Schema 按业务域组织为四大模块：
 
 另有 `store_snapshot` (JSONB 兼容层，仅保留未迁移辅助域) 和 `task_queue` (后台任务队列)。身份域和审计域在 PG 模式下不再通过 `store_snapshot` 读取。
 
+候选读取路径（Phase 4）默认从结构化表读取重复检测数据。候选记录上的 JSONB 列（`duplicate_case`、`analysis_snapshot`、`manual_result`）仅作为兼容缓存，不再作为读取路径的真相来源。
+
 示例（知识条目主表）：
 
 ```typescript
