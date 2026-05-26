@@ -120,3 +120,22 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/trapmap
           NODE_ENV: test
+
+  architecture-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10.33.0
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm check:docs-drift
+
+      - run: pnpm check:complexity

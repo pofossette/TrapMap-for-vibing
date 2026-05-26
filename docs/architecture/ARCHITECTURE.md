@@ -1,5 +1,7 @@
 # TrapMap 架构
 
+> 权威的事实来源和防漂移守卫规则见 [SYSTEM_TRUTH_SOURCES.md](../reference/SYSTEM_TRUTH_SOURCES.md)。
+
 ## 系统架构
 
 ## 持久化演进边界

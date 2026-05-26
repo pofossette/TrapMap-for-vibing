@@ -1,0 +1,19 @@
+{
+  "docRules": [
+    {
+      "file": "docs/guides/CODE_GUIDE.md",
+      "mustContain": ["buildServer()"],
+      "mustNotContain": ["createApp()"]
+    },
+    {
+      "file": "docs/architecture/ARCHITECTURE.md",
+      "mustContain": ["SYSTEM_TRUTH_SOURCES.md"]
+    }
+  ],
+  "lineBudgets": [
+    { "file": "packages/server/src/app.ts", "maxLines": 350 },
+    { "file": "packages/server/src/routes/candidates.ts", "maxLines": 150 },
+    { "file": "packages/server/src/lib/persistence/schema.ts", "maxLines": 200 },
+    { "file": "packages/server/src/lib/artifacts/pg-repository.ts", "maxLines": 250 }
+  ]
+}
