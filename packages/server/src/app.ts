@@ -11,9 +11,9 @@ import { createUsageAnalyticsRepository } from './lib/analytics/index.js';
 import { createArtifactRepository } from './lib/artifacts/index.js';
 import { createAccessKeyRepository, createSessionRepository } from './lib/auth/index.js';
 import {
+  CANDIDATE_PROCESSING_TASK_TYPE,
   createCandidateProcessingHandler,
   findInterruptedCandidates,
-  processPendingCandidates,
   resetInterruptedCandidates,
 } from './lib/candidates/index.js';
 import type { SkillShareerServices } from './lib/context.js';
@@ -29,7 +29,7 @@ import { createIndexingSubscriber } from './lib/lifecycle/subscribers/indexing.j
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import { runMigrations } from './lib/persistence/migration-runner.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';
-import { type TaskHandler, createTaskWorker } from './lib/queue/task-queue.js';
+import { type TaskHandler, createTaskQueue, createTaskWorker } from './lib/queue/task-queue.js';
 import { createAllRepos } from './lib/repos/index.js';
 import { ChannelRegistry } from './lib/retrieval/orchestration/channel-registry.js';
 import {
@@ -259,7 +259,8 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.register(adminBenchmarkRoutes);
   app.register(adminBoundarySearchRoutes);
 
-  // Recovery: Reprocess interrupted candidates on startup
+  // Recovery: Re-enqueue interrupted candidates on startup
+  // Only the task worker should execute real analysis
   app.addHook('onReady', async () => {
     try {
       const data = await app.skillShareer.store.snapshot();
@@ -280,11 +281,10 @@ export function buildServer(options: BuildServerOptions = {}) {
       if (allInterrupted.length > 0) {
         app.log.info(
           { count: allInterrupted.length },
-          'Found interrupted candidates, scheduling recovery',
+          'Found interrupted candidates, re-enqueueing for worker processing',
         );
 
-        // Reset them to 'received' status
-        // JSONB-based candidates via store.transact
+        // Reset JSONB-based candidates to 'received' and enqueue via store.transact
         if (interrupted.length > 0) {
           await app.skillShareer.store.transact((txData) => {
             resetInterruptedCandidates({
@@ -293,7 +293,8 @@ export function buildServer(options: BuildServerOptions = {}) {
             });
           });
         }
-        // PG-based candidates via repository
+
+        // Reset PG-based candidates via repository
         for (const pgCandidate of interruptedPg) {
           await candidateRepo.updateStatus(
             pgCandidate.id,
@@ -302,17 +303,26 @@ export function buildServer(options: BuildServerOptions = {}) {
           );
         }
 
-        // Fire-and-forget processing
-        void processPendingCandidates({
-          store: app.skillShareer.store,
-          getSnapshot: () => app.skillShareer.store.snapshot(),
-        })
-          .then(({ processed, errors }) => {
-            app.log.info({ processed, errors }, 'Candidate recovery complete');
-          })
-          .catch((error) => {
-            app.log.error({ error }, 'Candidate recovery failed');
-          });
+        // Re-enqueue all interrupted candidates to the task queue
+        // The worker will pick them up — no direct processPendingCandidates call
+        const store = app.skillShareer.store;
+        const isPostgres = store instanceof PostgresStore;
+        for (const candidate of allInterrupted) {
+          if (isPostgres) {
+            const pool = (store as PostgresStore).getPool();
+            const queue = createTaskQueue({ pool });
+            await queue
+              .enqueue(
+                CANDIDATE_PROCESSING_TASK_TYPE,
+                { candidateId: candidate.id, retryCount: 0 },
+                { dedupeKey: candidate.id, maxAttempts: 3 },
+              )
+              .catch((error) => {
+                app.log.error({ error, candidateId: candidate.id }, 'Failed to re-enqueue interrupted candidate');
+              });
+          }
+        }
+        app.log.info({ count: allInterrupted.length }, 'Interrupted candidates re-enqueued');
       }
     } catch (error) {
       app.log.error({ error }, 'Failed to check for interrupted candidates');

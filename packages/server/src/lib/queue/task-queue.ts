@@ -9,7 +9,7 @@
 
 import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import type { Pool } from 'pg';
 
 // =============================================================================
@@ -37,6 +37,8 @@ export const taskQueue = pgTable(
     maxAttempts: integer('max_attempts').notNull().default(3),
     /** Last error message */
     lastError: text('last_error'),
+    /** Opaque key for idempotent enqueue — prevents duplicate (type, key) pairs */
+    dedupeKey: text('dedupe_key'),
     /** When to process next (for delayed retry) */
     processAfter: timestamp('process_after', { withTimezone: true }).notNull().defaultNow(),
     /** When task was created */
@@ -47,7 +49,7 @@ export const taskQueue = pgTable(
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (table) => [
-    uniqueIndex('task_queue_type_status_priority_idx').on(table.type, table.status, table.priority),
+    index('task_queue_type_dedupe_idx').on(table.type, table.dedupeKey),
   ],
 );
 
@@ -66,6 +68,7 @@ export interface Task<T = unknown> {
   attempts: number;
   maxAttempts: number;
   lastError: string | null;
+  dedupeKey: string | null;
   processAfter: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -89,6 +92,8 @@ export interface EnqueueOptions {
   maxAttempts?: number;
   /** Delay before processing (ms) */
   delayMs?: number;
+  /** Opaque deduplication key — prevents duplicate (type, key) pairs */
+  dedupeKey?: string;
 }
 
 export interface TaskHandler<T = unknown> {
@@ -157,6 +162,7 @@ export function createTaskQueue(config: TaskQueueConfig) {
       priority: options.priority ?? 0,
       attempts: 0,
       maxAttempts: options.maxAttempts ?? defaultMaxAttempts,
+      dedupeKey: options.dedupeKey ?? null,
       processAfter,
     });
 
@@ -169,6 +175,7 @@ export function createTaskQueue(config: TaskQueueConfig) {
       attempts: 0,
       maxAttempts: options.maxAttempts ?? defaultMaxAttempts,
       lastError: null,
+      dedupeKey: options.dedupeKey ?? null,
       processAfter,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -426,6 +433,7 @@ interface TaskRow {
   attempts: number;
   max_attempts: number;
   last_error: string | null;
+  dedupe_key: string | null;
   process_after: Date;
   created_at: Date;
   updated_at: Date;
@@ -442,6 +450,7 @@ function rowToTask<T>(row: TaskRow): Task<T> {
     attempts: row.attempts,
     maxAttempts: row.max_attempts,
     lastError: row.last_error,
+    dedupeKey: row.dedupe_key,
     processAfter: row.process_after,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

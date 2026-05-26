@@ -1,7 +1,8 @@
 /**
- * Tests for apply-resolution endpoint.
+ * Tests for candidates routes.
  *
  * This module covers:
+ * - POST /v1/candidates: submit and queue (no inline processing)
  * - Resolution returns 404 for non-existent candidate
  * - Resolution returns 400 for invalid status
  * - Resolution returns 400 for missing manual result
@@ -19,6 +20,155 @@ import { buildServer } from '@trapmap/server/app.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
+
+describe('POST /v1/candidates submission', () => {
+  let app: FastifyInstance;
+  let store: SkillShareerStore;
+  let sessionId: string;
+  const userId = 'user_1';
+  const teamId = 'team_1';
+
+  beforeEach(async () => {
+    const testDataFile = `/tmp/trapmap-test-${Date.now()}-${Math.random()}.json`;
+
+    app = buildServer({ config: { dataFile: testDataFile } });
+    await app.ready();
+    store = app.skillShareer.store;
+
+    // Setup: Create a user, team, membership, and session
+    await store.transact(async (data) => {
+      if (!data.counters) data.counters = {};
+      data.counters.user = 1;
+
+      data.users.push({
+        id: userId,
+        handle: 'submitter',
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+
+      data.teams.push({
+        id: teamId,
+        name: 'Test Team',
+        slug: 'test-team',
+        description: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+
+      data.memberships.push({
+        id: 'membership_1',
+        userId,
+        teamId,
+        roleTemplate: 'admin',
+        securityLevel: 10,
+        permissions: ['knowledge:submit', 'knowledge:review'],
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+
+      const sessionToken = `session_token_${Date.now()}`;
+      data.sessions.push({
+        id: `session_${Date.now()}`,
+        userId,
+        tokenHash: hashSecret(sessionToken),
+        activeTeamId: teamId,
+        subjectType: 'user',
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      });
+
+      sessionId = sessionToken;
+    });
+  });
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  it('should return 200 with queued status and candidateId', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/candidates',
+      headers: {
+        authorization: `Bearer ${sessionId}`,
+      },
+      payload: {
+        sourceType: 'trap',
+        payload: {
+          scope: 'global',
+          labels: ['test'],
+          shortcut: 'Test Trap',
+          detail: 'Test detail',
+        },
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.candidateId).toBeDefined();
+    expect(body.status).toBe('queued');
+    expect(body.receivedAt).toBeDefined();
+  });
+
+  it('should return immediately without waiting for analysis', async () => {
+    const start = Date.now();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/candidates',
+      headers: {
+        authorization: `Bearer ${sessionId}`,
+      },
+      payload: {
+        sourceType: 'trap',
+        payload: {
+          scope: 'global',
+          labels: ['test'],
+          shortcut: 'Fast Trap',
+          detail: 'Fast test detail that should return immediately',
+        },
+      },
+    });
+
+    const elapsed = Date.now() - start;
+
+    expect(response.statusCode).toBe(200);
+    // Response must be fast — no duplicate detection or analysis in request path
+    expect(elapsed).toBeLessThan(1000);
+  });
+
+  it('should persist candidate in store with queued status', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/candidates',
+      headers: {
+        authorization: `Bearer ${sessionId}`,
+      },
+      payload: {
+        sourceType: 'trap',
+        payload: {
+          scope: 'global',
+          labels: ['test'],
+          shortcut: 'Persisted Trap',
+          detail: 'Test detail for persistence',
+        },
+      },
+    });
+
+    const body = response.json();
+    const snapshot = await store.snapshot();
+    const candidate = snapshot.candidateSubmissions.find((c: any) => c.id === body.candidateId);
+    expect(candidate).toBeDefined();
+    expect(candidate!.status).toBe('queued');
+    expect(candidate!.sourceType).toBe('trap');
+  });
+});
 
 describe('apply-resolution endpoint', () => {
   let app: FastifyInstance;

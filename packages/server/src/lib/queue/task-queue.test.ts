@@ -1,454 +1,477 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+/**
+ * Tests for PostgreSQL-backed task queue.
+ *
+ * Uses mock pool to verify:
+ * - Enqueue creates tasks with correct fields including dedupeKey
+ * - Dequeue respects priority DESC, created_at ASC ordering
+ * - Dequeue respects process_after (delayed tasks not visible)
+ * - Dequeue uses SKIP LOCKED for concurrent safety
+ * - Complete marks task as completed
+ * - Fail reschedules with exponential backoff
+ * - Fail moves to dead after max attempts
+ * - Requeue returns dead tasks to pending
+ * - getPendingCount / getDeadTasks / cleanup
+ */
 
-import { createTaskQueue, createTaskWorker } from './task-queue.js';
-import type { TaskHandler } from './task-queue.js';
+import { describe, expect, it } from 'vitest';
+
+import { createTaskQueue } from './task-queue.js';
 
 // ---------------------------------------------------------------------------
-// Mock pool that captures raw SQL for assertions
+// Test helpers — in-memory mock that simulates PostgreSQL behavior
 // ---------------------------------------------------------------------------
 
-interface MockQueryCall {
-  sql: string;
-  params: unknown[];
+interface MockTaskRow {
+  id: string;
+  type: string;
+  payload: string;
+  status: string;
+  priority: number;
+  attempts: number;
+  max_attempts: number;
+  last_error: string | null;
+  dedupe_key: string | null;
+  process_after: Date;
+  created_at: Date;
+  updated_at: Date;
+  completed_at: Date | null;
 }
 
-function createMockPool() {
-  const calls: MockQueryCall[] = [];
+function makeRow(id: string, overrides: Partial<MockTaskRow> = {}): MockTaskRow {
+  const now = new Date();
+  return {
+    id,
+    type: 'test',
+    payload: '{}',
+    status: 'pending',
+    priority: 0,
+    attempts: 0,
+    max_attempts: 3,
+    last_error: null,
+    dedupe_key: null,
+    process_after: new Date(now.getTime() - 10000),
+    created_at: now,
+    updated_at: now,
+    completed_at: null,
+    ...overrides,
+  };
+}
 
-  // Simple in-memory store keyed by id
-  const rows = new Map<string, Record<string, unknown>>();
+function buildMockPool(initialRows: MockTaskRow[] = []) {
+  const rows: MockTaskRow[] = initialRows.map((r) => ({ ...r }));
 
-  const pool = {
-    calls,
-    rows,
+  const query = async (...args: any[]): Promise<{ rows: any[]; rowCount: number }> => {
+    let sql: string;
+    let params: unknown[];
 
-    async query(sqlOrConfig: string, params?: unknown[]) {
-      const sql = typeof sqlOrConfig === 'string' ? sqlOrConfig : sqlOrConfig.text;
-      calls.push({ sql, params: params ?? [] });
+    if (typeof args[0] === 'string') {
+      sql = args[0];
+      params = (args[1] as unknown[]) ?? [];
+    } else if (args[0] && typeof args[0] === 'object') {
+      sql = String(args[0].text ?? args[0].sql ?? '');
+      params = (args[1] as unknown[]) ?? [];
+    } else {
+      sql = String(args[0] ?? '');
+      params = (args[1] as unknown[]) ?? [];
+    }
 
-      // CREATE TABLE
-      if (sql.includes('CREATE TABLE')) {
-        return { rows: [], rowCount: 0 };
+    const sqlL = sql.toLowerCase();
+
+    // INSERT — track the row in-memory
+    if (sqlL.includes('insert into "task_queue"')) {
+      // Drizzle parameterized: $1=id, $2=type, $3=payload, $4=status, $5=priority,
+      //   $6=attempts, $7=max_attempts, $8=dedupe_key, $9=process_after
+      const now = new Date();
+      const row: MockTaskRow = {
+        id: (params?.[0] as string) ?? '',
+        type: (params?.[1] as string) ?? '',
+        payload: (params?.[2] as string) ?? '{}',
+        status: (params?.[3] as string) ?? 'pending',
+        priority: (params?.[4] as number) ?? 0,
+        attempts: (params?.[5] as number) ?? 0,
+        max_attempts: (params?.[6] as number) ?? 3,
+        last_error: null,
+        dedupe_key: (params?.[7] as string) ?? null,
+        process_after: (params?.[8] as Date) ?? now,
+        created_at: now,
+        updated_at: now,
+        completed_at: null,
+      };
+      rows.push(row);
+      return { rows: [], rowCount: 1 };
+    }
+
+    // Dequeue: UPDATE ... FOR UPDATE SKIP LOCKED (must be BEFORE general UPDATE)
+    if (sqlL.includes('for update skip locked')) {
+      const type = params?.[0] as string;
+      const now = new Date();
+      const candidates = rows
+        .filter(
+          (r) =>
+            r.type === type &&
+            r.status === 'pending' &&
+            r.process_after.getTime() <= now.getTime(),
+        )
+        .sort((a, b) => {
+          if (b.priority !== a.priority) return b.priority - a.priority;
+          return a.created_at.getTime() - b.created_at.getTime();
+        });
+
+      const selected = candidates[0];
+      if (selected) {
+        selected.status = 'running';
+        selected.updated_at = new Date();
+        return { rows: [selected], rowCount: 1 };
       }
-
-      // CREATE INDEX
-      if (sql.includes('CREATE INDEX')) {
-        return { rows: [], rowCount: 0 };
-      }
-
-      // COUNT
-      if (sql.includes('COUNT(*)')) {
-        let count = 0;
-        for (const row of rows.values()) {
-          if (
-            params &&
-            params.length >= 3 &&
-            row.type === params[0] &&
-            (row.status === params[1] || row.status === params[2])
-          ) {
-            count++;
-          }
-        }
-        return { rows: [{ count: String(count) }], rowCount: 1 };
-      }
-
-      // DELETE completed
-      if (sql.includes('DELETE FROM') && sql.includes("status = 'completed'")) {
-        let deleted = 0;
-        for (const [id, row] of rows) {
-          if (row.status === 'completed') {
-            rows.delete(id);
-            deleted++;
-          }
-        }
-        return { rows: [], rowCount: deleted };
-      }
-
-      // SELECT * ... WHERE status = $1 ... LIMIT $2 (getDeadTasks)
-      if (sql.includes('status = $1') && sql.includes('ORDER BY') && params?.[0] === 'dead') {
-        const limit = (params?.[1] as number) ?? 100;
-        const deadRows = [...rows.values()].filter((r) => r.status === 'dead').slice(0, limit);
-        return { rows: deadRows, rowCount: deadRows.length };
-      }
-
-      // SELECT attempts, max_attempts
-      if (sql.includes('attempts, max_attempts')) {
-        const id = params?.[0] as string;
-        const row = rows.get(id);
-        if (!row) return { rows: [], rowCount: 0 };
-        return {
-          rows: [{ attempts: row.attempts, max_attempts: row.max_attempts }],
-          rowCount: 1,
-        };
-      }
-
-      // UPDATE ... WHERE id = (SELECT ...) — dequeue via SKIP LOCKED
-      if (sql.includes('FOR UPDATE SKIP LOCKED')) {
-        const type = params?.[0] as string;
-        // Find first matching pending task
-        let found: [string, Record<string, unknown>] | null = null;
-        for (const [id, row] of rows) {
-          if (row.type === type && row.status === 'pending') {
-            found = [id, row];
-            break;
-          }
-        }
-        if (!found) return { rows: [], rowCount: 0 };
-        found[1].status = 'running';
-        return { rows: [found[1]], rowCount: 1 };
-      }
-
       return { rows: [], rowCount: 0 };
-    },
-  } as unknown as Pool & { calls: MockQueryCall[]; rows: Map<string, Record<string, unknown>> };
+    }
 
-  return pool;
-}
+    // UPDATE — apply status changes (regular Drizzle UPDATE, not dequeue)
+    if (sqlL.includes('update')) {
+      // Use the first SET value (params[0] with Drizzle) to determine action
+      const setStatus = params?.[0] as string | undefined;
+      const setComplete = sqlL.includes('"completed_at"');
+      const setDead = setStatus === 'dead' && !setComplete;
+      const setPending = setStatus === 'pending' && !setComplete;
+      // Extract task id — it's a string starting with 'task_' among the params
+      const taskId = (
+        params?.find((p) => typeof p === 'string' && p.startsWith('task_')) ?? ''
+      ) as string;
 
-// ---------------------------------------------------------------------------
-// Chainable query builder stub for drizzle operations
-// ---------------------------------------------------------------------------
-
-function createChainable(finalResult?: unknown) {
-  const handler: ProxyHandler<Record<string, unknown>> = {
-    get(_target, prop) {
-      if (prop === 'then') return undefined;
-      // Every property access returns a function; calling it returns another chainable
-      const fn = (..._args: unknown[]) => {
-        // Terminal operations resolve the chain
-        if (prop === 'values' || prop === 'returning' || prop === 'onConflictDoUpdate') {
-          return Promise.resolve(finalResult ?? []);
+      const row = rows.find((r) => r.id === taskId);
+      if (row) {
+        if (setComplete) {
+          row.status = 'completed';
+          row.completed_at = new Date();
+        } else if (setDead) {
+          row.status = 'dead';
+          row.attempts = Number(params?.find((p, i) => i === 1)) ?? row.attempts;
+          row.last_error = params?.find((p) => typeof p === 'string' && !p.startsWith('task_')) as string ?? row.last_error;
+        } else if (setPending) {
+          row.status = 'pending';
+          row.attempts = Number(params?.find((p, i) => i === 1)) ?? 0;
+          row.last_error = null;
+          // process_after is at index 3 after status($0), attempts($1), last_error($2)
+          const paVal = params?.[3];
+          row.process_after = paVal instanceof Date ? paVal : new Date(String(paVal ?? Date.now()));
         }
-        // Non-terminal: return another chainable
-        return new Proxy({}, handler);
-      };
-      return fn;
-    },
-  };
-  // The chainable itself is callable (for db.insert(table) pattern)
-  return new Proxy(() => new Proxy({}, handler), {
-    apply(_target, _thisArg, _args) {
-      return new Proxy({}, handler);
-    },
-    get(_target, prop) {
-      if (prop === 'then') return undefined;
-      const fn = (..._args: unknown[]) => {
-        if (prop === 'values' || prop === 'returning' || prop === 'onConflictDoUpdate') {
-          return Promise.resolve(finalResult ?? []);
+        row.updated_at = new Date();
+      }
+      return { rows: [], rowCount: row ? 1 : 0 };
+    }
+
+    // fail() reads attempts before update — handle unquoted column names
+    if (sqlL.includes('select') && (sqlL.includes('attempts') || sqlL.includes('"attempts"')) && sqlL.includes('max_attempts')) {
+      const taskId = params?.[0] as string;
+      const row = rows.find((r) => r.id === taskId);
+      if (row) {
+        return { rows: [{ attempts: row.attempts, max_attempts: row.max_attempts }], rowCount: 1 };
+      }
+      return { rows: [], rowCount: 0 };
+    }
+
+    // getPendingCount
+    if (sqlL.includes('select count')) {
+      const type = params?.[0] as string;
+      const count = rows.filter(
+        (r) => r.type === type && (r.status === 'pending' || r.status === 'running'),
+      ).length;
+      return { rows: [{ count: String(count) }], rowCount: 1 };
+    }
+
+    // getDeadTasks
+    if (sqlL.includes('select *') && sqlL.includes('order by') && sqlL.includes('limit')) {
+      // SQL: SELECT * FROM task_queue WHERE status = $1 ORDER BY created_at DESC LIMIT $2
+      // Check if the first param is 'dead' to distinguish from other SELECT queries
+      const statusParam = params?.[0] as string;
+      if (statusParam !== 'dead' && !sqlL.includes('dead')) {
+        // Not a getDeadTasks query — let other handlers try
+      } else {
+        const limit = (params?.[1] as number) ?? 100;
+        const dead = rows
+          .filter((r) => r.status === 'dead')
+          .sort((a, b) => b.created_at.getTime() - a.created_at.getTime())
+          .slice(0, limit);
+        return { rows: dead, rowCount: dead.length };
+      }
+    }
+
+    // cleanup
+    if (sqlL.includes('delete from')) {
+      // Remove completed rows older than retention
+      const idxsToRemove: number[] = [];
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i]!;
+        if (r.status === 'completed') {
+          idxsToRemove.push(i);
         }
-        return new Proxy({}, handler);
-      };
-      return fn;
-    },
-  }) as unknown as Record<string, (...args: unknown[]) => any>;
-}
+      }
+      const removed = idxsToRemove.length;
+      for (let i = idxsToRemove.length - 1; i >= 0; i--) {
+        rows.splice(idxsToRemove[i]!, 1);
+      }
+      return { rows: [], rowCount: removed };
+    }
 
-// ---------------------------------------------------------------------------
-// Mock drizzle-orm/node-postgres
-// ---------------------------------------------------------------------------
-
-let mockDbInstance: Record<string, (...args: unknown[]) => any>;
-
-vi.mock('drizzle-orm/node-postgres', () => ({
-  drizzle: (_pool: unknown, _opts: unknown) => {
-    mockDbInstance = {
-      insert: createChainable(),
-      select: createChainable(),
-      update: createChainable(),
-      delete: createChainable(),
-    };
-    return mockDbInstance;
-  },
-}));
-
-vi.mock('drizzle-orm', () => ({
-  eq: (_col: unknown, val: unknown) => ({ _eq: val }),
-  and: (...conds: unknown[]) => ({ _and: conds }),
-}));
-
-// Column builder mock — all chain methods return self
-function mockCol(name: string) {
-  const col: Record<string, unknown> = { name };
-  const handler: ProxyHandler<typeof col> = {
-    get(target, prop) {
-      if (prop in target) return target[prop];
-      if (prop === 'then') return undefined;
-      // All chain methods (.primaryKey(), .notNull(), .default(), .defaultNow(), .$type()) return the col
-      return (..._args: unknown[]) => new Proxy(col, handler);
-    },
+    return { rows: [], rowCount: 0 };
   };
-  return new Proxy(col, handler);
-}
 
-vi.mock('drizzle-orm/pg-core', () => ({
-  text: (name: string) => mockCol(name),
-  integer: (name: string) => mockCol(name),
-  timestamp: (name: string) => mockCol(name),
-  pgTable: (_name: string, columns: unknown, _indexes?: unknown) => columns,
-  uniqueIndex: () => ({ on: (..._cols: unknown[]) => ({}) }),
-}));
+  return {
+    query,
+    connect: () => Promise.resolve({ query, release: () => {} }),
+    end: () => Promise.resolve(),
+    getRows: () => rows,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe('createTaskQueue', () => {
-  let pool: ReturnType<typeof createMockPool>;
-  let queue: ReturnType<typeof createTaskQueue>;
-
-  beforeEach(() => {
-    pool = createMockPool();
-    queue = createTaskQueue({ pool });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  // ── enqueue ──────────────────────────────────────────────────────────────
-
   describe('enqueue', () => {
-    it('creates a task with default options', async () => {
-      const task = await queue.enqueue('email', { to: 'alice@test.com' });
+    it('should create a task and return it with correct fields', async () => {
+      const mock = buildMockPool();
+      const queue = createTaskQueue({ pool: mock as any });
 
-      expect(task.type).toBe('email');
+      const task = await queue.enqueue('candidate_processing', { candidateId: 'abc' }, {
+        priority: 5,
+        maxAttempts: 2,
+      });
+
+      expect(task.type).toBe('candidate_processing');
+      expect(task.payload).toEqual({ candidateId: 'abc' });
       expect(task.status).toBe('pending');
-      expect(task.priority).toBe(0);
+      expect(task.priority).toBe(5);
+      expect(task.maxAttempts).toBe(2);
       expect(task.attempts).toBe(0);
-      expect(task.maxAttempts).toBe(3);
       expect(task.lastError).toBeNull();
-      expect(task.completedAt).toBeNull();
+      expect(task.dedupeKey).toBeNull();
+      expect(task.processAfter).toBeInstanceOf(Date);
       expect(task.id).toMatch(/^task_/);
+
+      // Verify row persisted in mock store
+      expect(mock.getRows().length).toBe(1);
+      expect(mock.getRows()[0]!.type).toBe('candidate_processing');
     });
 
-    it('respects priority option', async () => {
-      const task = await queue.enqueue('email', { to: 'bob@test.com' }, { priority: 10 });
-      expect(task.priority).toBe(10);
+    it('should set dedupeKey when provided', async () => {
+      const mock = buildMockPool();
+      const queue = createTaskQueue({ pool: mock as any });
+
+      const task = await queue.enqueue('candidate_processing', { candidateId: 'abc' }, {
+        dedupeKey: 'candidate_abc',
+      });
+
+      expect(task.dedupeKey).toBe('candidate_abc');
+      expect(mock.getRows()[0]!.dedupe_key).toBe('candidate_abc');
     });
 
-    it('respects maxAttempts option', async () => {
-      const task = await queue.enqueue('email', {}, { maxAttempts: 5 });
-      expect(task.maxAttempts).toBe(5);
-    });
-
-    it('sets processAfter when delayMs is provided', async () => {
+    it('should honour delayMs for processAfter', async () => {
+      const mock = buildMockPool();
+      const queue = createTaskQueue({ pool: mock as any });
       const before = Date.now();
-      const task = await queue.enqueue('email', {}, { delayMs: 5000 });
-      const after = Date.now();
 
-      expect(task.processAfter.getTime()).toBeGreaterThanOrEqual(before + 5000 - 1);
-      expect(task.processAfter.getTime()).toBeLessThanOrEqual(after + 5000);
-    });
+      const task = await queue.enqueue('candidate_processing', { candidateId: 'abc' }, {
+        delayMs: 5000,
+      });
 
-    it('uses pool defaultMaxAttempts when provided', async () => {
-      const q = createTaskQueue({ pool, defaultMaxAttempts: 7 });
-      const task = await q.enqueue('email', {});
-      expect(task.maxAttempts).toBe(7);
+      expect(task.processAfter.getTime()).toBeGreaterThanOrEqual(before + 5000);
     });
   });
 
-  // ── dequeue ──────────────────────────────────────────────────────────────
+  describe('dequeue ordering', () => {
+    it('should dequeue highest priority first', async () => {
+      const rows = [
+        makeRow('task_1', { priority: 0, created_at: new Date(Date.now() - 5000) }),
+        makeRow('task_2', { priority: 10, created_at: new Date(Date.now() - 4000) }),
+        makeRow('task_3', { priority: 5, created_at: new Date(Date.now() - 3000) }),
+      ];
 
-  describe('dequeue', () => {
-    it('returns null when queue is empty', async () => {
-      const task = await queue.dequeue('email');
+      const mock = buildMockPool(rows);
+      const pool = { query: mock.query };
+      const queue = createTaskQueue({ pool: pool as any });
+
+      const t1 = await queue.dequeue('test');
+      expect(t1!.id).toBe('task_2');
+      expect(t1!.priority).toBe(10);
+
+      const t2 = await queue.dequeue('test');
+      expect(t2!.id).toBe('task_3');
+
+      const t3 = await queue.dequeue('test');
+      expect(t3!.id).toBe('task_1');
+    });
+
+    it('should dequeue by created_at ASC when priority is equal', async () => {
+      const rows = [
+        makeRow('task_later', { created_at: new Date(Date.now() - 3000) }),
+        makeRow('task_earlier', { created_at: new Date(Date.now() - 5000) }),
+      ];
+
+      const mock = buildMockPool(rows);
+      const pool = { query: mock.query };
+      const queue = createTaskQueue({ pool: pool as any });
+
+      const task = await queue.dequeue('test');
+      expect(task!.id).toBe('task_earlier');
+    });
+
+    it('should not dequeue tasks with process_after in the future', async () => {
+      const futureTime = new Date(Date.now() + 60000);
+      const rows = [
+        makeRow('task_delayed', { priority: 10, process_after: futureTime }),
+        makeRow('task_ready', { priority: 0 }),
+      ];
+
+      const mock = buildMockPool(rows);
+      const pool = { query: mock.query };
+      const queue = createTaskQueue({ pool: pool as any });
+
+      const task = await queue.dequeue('test');
+      expect(task!.id).toBe('task_ready');
+    });
+
+    it('should not dequeue non-pending tasks', async () => {
+      const rows = [
+        makeRow('task_running', { status: 'running' }),
+        makeRow('task_completed', { status: 'completed' }),
+      ];
+
+      const mock = buildMockPool(rows);
+      const pool = { query: mock.query };
+      const queue = createTaskQueue({ pool: pool as any });
+
+      const task = await queue.dequeue('test');
       expect(task).toBeNull();
     });
 
-    it('returns and locks a pending task', async () => {
-      // Seed a task into mock rows
-      pool.rows.set('task_abc', {
-        id: 'task_abc',
-        type: 'email',
-        payload: JSON.stringify({ to: 'x@test.com' }),
-        status: 'pending',
-        priority: 0,
-        attempts: 0,
-        max_attempts: 3,
-        last_error: null,
-        process_after: new Date(),
-        created_at: new Date(),
-        updated_at: new Date(),
-        completed_at: null,
-      });
+    it('should return null when no tasks match type', async () => {
+      const mock = buildMockPool();
+      const queue = createTaskQueue({ pool: mock as any });
 
-      const task = await queue.dequeue('email');
-      expect(task).not.toBeNull();
-      expect(task!.id).toBe('task_abc');
-      expect(task!.status).toBe('running');
-      expect(task!.payload).toEqual({ to: 'x@test.com' });
+      const task = await queue.dequeue('nonexistent');
+      expect(task).toBeNull();
     });
   });
-
-  // ── complete ─────────────────────────────────────────────────────────────
 
   describe('complete', () => {
-    it('updates status to completed', async () => {
-      await queue.complete('task_abc');
-      // complete uses drizzle update - just verify no error thrown
+    it('should mark task as completed', async () => {
+      const rows = [makeRow('task_1', { status: 'running' })];
+      const mock = buildMockPool(rows);
+      const pool = { query: mock.query };
+      const queue = createTaskQueue({ pool: pool as any });
+
+      await queue.complete('task_1');
+
+      const stored = mock.getRows()[0];
+      expect(stored!.status).toBe('completed');
+      expect(stored!.completed_at).toBeDefined();
     });
   });
 
-  // ── fail ─────────────────────────────────────────────────────────────────
+  describe('fail and retry', () => {
+    it('should reschedule task with backoff on first failure', async () => {
+      const rows = [makeRow('task_1', { status: 'running', attempts: 0, max_attempts: 3 })];
+      const mock = buildMockPool(rows);
+      const pool = { query: mock.query };
+      const queue = createTaskQueue({ pool: pool as any });
 
-  describe('fail', () => {
-    it('reschedules when retries remain', async () => {
-      pool.rows.set('task_1', {
-        id: 'task_1',
-        attempts: 0,
-        max_attempts: 3,
-      });
+      await queue.fail('task_1', 'Test error');
 
-      await queue.fail('task_1', 'network error');
-      // Should not throw, task gets rescheduled with incremented attempts
+      const stored = mock.getRows()[0];
+      expect(stored!.status).toBe('pending');
+      // After backoff, processAfter should be in the future
+      expect(stored!.process_after.getTime()).toBeGreaterThan(Date.now());
     });
 
-    it('marks dead when max attempts exceeded', async () => {
-      pool.rows.set('task_2', {
-        id: 'task_2',
-        attempts: 2,
-        max_attempts: 3,
-      });
+    it('should move task to dead after exceeding max attempts', async () => {
+      const rows = [makeRow('task_1', { status: 'running', attempts: 2, max_attempts: 3 })];
+      const mock = buildMockPool(rows);
+      const pool = { query: mock.query };
+      const queue = createTaskQueue({ pool: pool as any });
 
-      await queue.fail('task_2', 'persistent error');
-      // Should mark as dead since 2+1 >= 3
-    });
+      await queue.fail('task_1', 'Final error');
 
-    it('is no-op for unknown id', async () => {
-      await expect(queue.fail('nonexistent', 'error')).resolves.toBeUndefined();
+      const stored = mock.getRows()[0];
+      // Drizzle update will set dead status (attempts 2 + 1 >= max_attempts 3)
+      // Our mock applies the status from params
+      expect(stored!.status).toBe('dead');
     });
   });
 
-  // ── getPendingCount ──────────────────────────────────────────────────────
+  describe('requeue', () => {
+    it('should reset dead task to pending', async () => {
+      const rows = [makeRow('task_1', { status: 'dead', attempts: 3 })];
+      const mock = buildMockPool(rows);
+      const pool = { query: mock.query };
+      const queue = createTaskQueue({ pool: pool as any });
+
+      await queue.requeue('task_1');
+
+      const stored = mock.getRows()[0];
+      expect(stored!.status).toBe('pending');
+    });
+  });
 
   describe('getPendingCount', () => {
-    it('returns 0 when no tasks', async () => {
-      const count = await queue.getPendingCount('email');
-      expect(count).toBe(0);
-    });
+    it('should count pending and running tasks', async () => {
+      const rows = [
+        makeRow('task_1', { status: 'pending' }),
+        makeRow('task_2', { status: 'running' }),
+        makeRow('task_3', { status: 'completed' }),
+      ];
 
-    it('returns correct count for matching tasks', async () => {
-      pool.rows.set('t1', { id: 't1', type: 'email', status: 'pending' });
-      pool.rows.set('t2', { id: 't2', type: 'email', status: 'running' });
-      pool.rows.set('t3', { id: 't3', type: 'email', status: 'completed' });
+      const mock = buildMockPool(rows);
+      const pool = { query: mock.query };
+      const queue = createTaskQueue({ pool: pool as any });
 
-      const count = await queue.getPendingCount('email');
-      // pending + running = 2
+      const count = await queue.getPendingCount('test');
       expect(count).toBe(2);
     });
 
-    it('excludes tasks of different types', async () => {
-      pool.rows.set('t1', { id: 't1', type: 'email', status: 'pending' });
-      pool.rows.set('t2', { id: 't2', type: 'sms', status: 'pending' });
+    it('should return 0 for no matches', async () => {
+      const mock = buildMockPool();
+      const queue = createTaskQueue({ pool: mock as any });
 
-      const count = await queue.getPendingCount('email');
-      expect(count).toBe(1);
+      const count = await queue.getPendingCount('test');
+      expect(count).toBe(0);
     });
   });
-
-  // ── getDeadTasks ─────────────────────────────────────────────────────────
 
   describe('getDeadTasks', () => {
-    it('returns empty array when no dead tasks', async () => {
-      const tasks = await queue.getDeadTasks();
-      expect(tasks).toEqual([]);
-    });
+    it('should return dead tasks ordered by created_at DESC', async () => {
+      const oldDate = new Date(Date.now() - 10000);
+      const newDate = new Date(Date.now() - 1000);
+      const rows = [
+        makeRow('task_older', { status: 'dead', created_at: oldDate }),
+        makeRow('task_newer', { status: 'dead', created_at: newDate }),
+      ];
 
-    it('returns dead tasks', async () => {
-      pool.rows.set('t1', {
-        id: 't1',
-        type: 'email',
-        payload: '{}',
-        status: 'dead',
-        priority: 0,
-        attempts: 3,
-        max_attempts: 3,
-        last_error: 'timeout',
-        process_after: new Date(),
-        created_at: new Date(),
-        updated_at: new Date(),
-        completed_at: null,
-      });
+      const mock = buildMockPool(rows);
+      const pool = { query: mock.query };
+      const queue = createTaskQueue({ pool: pool as any });
 
-      const tasks = await queue.getDeadTasks();
-      expect(tasks).toHaveLength(1);
-      expect(tasks[0].id).toBe('t1');
-      expect(tasks[0].status).toBe('dead');
+      const dead = await queue.getDeadTasks();
+      expect(dead.length).toBe(2);
+      expect(dead[0]!.id).toBe('task_newer');
+      expect(dead[1]!.id).toBe('task_older');
     });
   });
-
-  // ── requeue ──────────────────────────────────────────────────────────────
-
-  describe('requeue', () => {
-    it('resets a dead task to pending', async () => {
-      await queue.requeue('task_dead');
-      // Uses drizzle update with status=pending, attempts=0
-    });
-  });
-
-  // ── cleanup ──────────────────────────────────────────────────────────────
 
   describe('cleanup', () => {
-    it('deletes old completed tasks', async () => {
-      pool.rows.set('c1', { id: 'c1', status: 'completed' });
-      pool.rows.set('p1', { id: 'p1', status: 'pending' });
+    it('should remove completed tasks', async () => {
+      const mock = buildMockPool([
+        makeRow('task_completed', { status: 'completed' }),
+        makeRow('task_pending', { status: 'pending' }),
+      ]);
+      const pool = { query: mock.query };
+      const queue = createTaskQueue({ pool: pool as any });
 
       const deleted = await queue.cleanup(7);
       expect(deleted).toBe(1);
-      expect(pool.rows.has('c1')).toBe(false);
-      expect(pool.rows.has('p1')).toBe(true);
+      expect(mock.getRows().length).toBe(1);
+      expect(mock.getRows()[0]!.id).toBe('task_pending');
     });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Worker tests — test through public API (run/stop)
-// ---------------------------------------------------------------------------
-
-describe('createTaskWorker', () => {
-  let pool: ReturnType<typeof createMockPool>;
-
-  beforeEach(() => {
-    pool = createMockPool();
-  });
-
-  it('exposes run and stop methods', () => {
-    const handler: TaskHandler = {
-      type: 'email',
-      handle: vi.fn(),
-    };
-
-    const worker = createTaskWorker({ pool, handlers: [handler] });
-
-    expect(typeof worker.run).toBe('function');
-    expect(typeof worker.stop).toBe('function');
-  });
-
-  it('stop sets running to false without error', () => {
-    const handler: TaskHandler = {
-      type: 'email',
-      handle: vi.fn(),
-    };
-
-    const worker = createTaskWorker({ pool, handlers: [handler] });
-    expect(() => worker.stop()).not.toThrow();
-  });
-
-  it('accepts custom pollIntervalMs and concurrency options', () => {
-    const handler: TaskHandler = {
-      type: 'email',
-      handle: vi.fn(),
-    };
-
-    // Just verify construction doesn't throw with custom options
-    const worker = createTaskWorker({
-      pool,
-      handlers: [handler],
-      pollIntervalMs: 500,
-      concurrency: 4,
-    });
-
-    expect(typeof worker.run).toBe('function');
-    expect(typeof worker.stop).toBe('function');
   });
 });

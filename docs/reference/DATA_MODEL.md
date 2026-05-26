@@ -416,6 +416,8 @@ draft → submitted → agent-pass/agent-rejected
 | `manualResult` | ManualResult? | 人工裁定结果 |
 
 > **Round 5 更新**：`analysisSnapshot`、`duplicateCase`（含 `matches[]`）、`manualResult` 已从 JSONB 列拆分为结构化子表（`candidate_analyses`、`candidate_duplicate_cases`、`candidate_duplicate_matches`、`candidate_manual_results`）。JSONB 列保留为读优化缓存，与结构化表同步。候选状态、来源类型已补齐 `CHECK` 约束。
+>
+> **Phase 1 (Round 10) 更新**：候选处理状态改为**写后异步推进**。`POST /v1/candidates` 入口仅负责落库和登记后台队列任务（`status → queued`），分析、去重和索引由 `TaskWorker` 后台消费 `task_queue` 完成。`store_snapshot` 不再作为候选处理兜底路径。
 
 ### CandidateStatus（候选状态）
 

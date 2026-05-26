@@ -26,6 +26,7 @@ import {
 import { applyManualResultResolution } from '@trapmap/server/lib/candidates/reconcile.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -177,11 +178,17 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
 
     await candidateRepo.insert(candidate);
 
-    // Fire-and-forget async processing
+    // Immediately update status to 'queued' — analysis runs via worker later
+    await candidateRepo.updateStatus(candidate.id, 'queued');
+
+    // Enqueue candidate processing via PG queue (or fire-and-forget if no pool)
+    const store = app.skillShareer.store;
+    const pool = store instanceof PostgresStore ? store.getPool() : undefined;
     const services: CandidateProcessorServices = {
-      store: app.skillShareer.store,
-      getSnapshot: () => app.skillShareer.store.snapshot(),
-      candidateRepo, // Round 2: candidate processing via PG repo
+      store,
+      getSnapshot: () => store.snapshot(),
+      pool,
+      candidateRepo,
     };
     scheduleCandidateProcessing(candidate.id, services);
 
@@ -198,7 +205,7 @@ export const candidateRoutes: FastifyPluginAsync = async (app) => {
 
     return candidateSubmissionResponseSchema.parse({
       candidateId: candidate.id,
-      status: candidate.status,
+      status: 'queued',
       receivedAt: candidate.receivedAt,
     });
   });

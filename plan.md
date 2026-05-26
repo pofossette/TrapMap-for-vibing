@@ -1,700 +1,746 @@
-# 统一检索缓存 实施计划
+# 写时重读时轻后端收敛 实施计划
 
-> **面向智能体工作者：** 必须使用 superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans 逐任务实施本计划。步骤使用 `- [ ]` 复选框追踪进度。
+> **面向智能体工作者：** 必须使用 superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans 逐阶段实施本计划。步骤使用 `- [ ]` 复选框追踪进度。
 
-**目标：** 统一三条检索管线（V1/V2/V3）的内存缓存为泛型 `RetrievalCache<V>` 类（LRU+TTL），同时将已定义未接入的 LLM Extraction Cache 接入索引管线。
+**Goal:** 将 TrapMap 收敛为“入库承担计算和外部 API 延迟，出库只读结构化事实和派生投影”的后端架构。
 
-**架构：** 在 `lib/cache/retrieval-cache.ts` 中新建泛型 `RetrievalCache<V>` 类，内置 LRU 淘汰、TTL 惰性过期、统一 metrics 采集。IntentCache 委托给它；Graph Index Cache 的两个裸 Map 替换为它；LLM Extraction Cache 内部改用它并通过 GraphIndexAdapter 接入生产。
+**Architecture:** 保持 PostgreSQL 作为唯一持久化与异步基础设施。写路径在同一事务内完成主事实写入与任务/事件登记，后台 worker 异步完成候选分析、重复检测、索引、冲突检测和投影构建；读接口只命中结构化主表、历史表和派生表，不再等待同步副作用，也不再把 `store_snapshot` 当成跨域事实源。
 
-**设计参考：** `docs/superpowers/specs/2026-05-25-unified-retrieval-cache-design.md`
-
-**技术栈：** TypeScript、Vitest、现有 cache 基础设施
+**Tech Stack:** TypeScript、Fastify、PostgreSQL 16、pgvector、Drizzle ORM、Vitest、GitHub Actions
 
 ---
 
 ## 文档信息
 
-- 创建日期：2026-05-25
-- 归档旧计划：`docs/superpowers/plans/2026-05-25-topological-execution-plan.md`
+- 创建日期：2026-05-26
+- 归档旧计划：`docs/archived/archived-plans/plan-2026-05-25-unified-retrieval-cache.md`
 - 输出文件：`plan.md`（项目根目录）
-- 范围：`packages/server/src/lib/cache/`、`packages/server/src/lib/retrieval/capsules/intent-cache.ts`、`packages/server/src/lib/indexing/adapters/graph.ts`、`packages/server/src/lib/indexing/graph-lite/llm-cache.ts`
-- 不在本阶段做的事：
-  - 不改 SectionLRUCache（AI prompt 基础设施，生命周期不同）
-  - 不改 Entry Embedding Cache（持久化字段，非内存缓存）
-  - 不改 EmbeddingsAdapter 单例（连接复用，非数据缓存）
-  - 不引入 Redis 或外部后端（未来从 RetrievalCache 提取 CacheBackend 接口即可）
-  - 不改任何消费方的公共 API 签名
+- 设计约束：不引入 Redis、Kafka、读写分离、分区表或额外 worker 基础设施；优先复用现有 PG 队列、现有仓储接口和现有测试框架
+- 目标范围：`packages/server/src/`、`packages/server/drizzle/`、`.github/workflows/`、`docs/`
+
+## 执行前提
+
+- 每个阶段结束都要求 `git add -A` 并提交全部工作区改动，因此执行时必须使用独立分支或独立 worktree，避免混入无关改动。
+- 只要本阶段改动了代码文件，就在验收前运行 `rtk graphify update .`。
+- 涉及索引、检索、治理、副作用异步化的阶段，除单元测试外至少运行一次 `rtk pnpm eval:smoke`。
+
+## 设计原则
+
+- 写路径只做三件事：鉴权/校验、事务写事实、登记后台任务。
+- 后台路径负责所有高延迟工作：LLM、embedding、去重、索引、冲突检测、聚合。
+- 读路径默认只查结构化表和派生投影表，不再临时拼装大对象或等待副作用完成。
+- `JSONB` 仅允许保留为兼容缓存、外部原始响应快照或低频扩展元数据。
+- 所有迁移都必须支持幂等回填、影子核对和回滚说明。
 
 ## 阶段完成约束
 
 **一个阶段完成，必须同时满足以下条件：**
 
-- [ ] 本阶段所有任务复选框已完成
+- [ ] 本阶段所有进度复选框已完成
 - [ ] 本阶段验收标准全部通过
-- [ ] 本阶段要求更新的文档已同步
-- [ ] 若有代码变更，已执行 `graphify update .`
-- [ ] 已进行一次提交，且提交信息能说明该阶段完成内容
+- [ ] 本阶段要求更新的文档已同步完成
+- [ ] 本阶段要求新增或修改的测试代码已提交
+- [ ] 本阶段代码改动后已执行 `rtk graphify update .`
+- [ ] 本阶段验证命令已执行并记录结果
+- [ ] 已使用 `git add -A` 提交全部工作区改动
 
-**提交节奏要求：每完成一个阶段，提交一次。不要把多个阶段攒到最后一起提交。**
-
-建议提交格式：
+建议提交命令：
 
 ```bash
-git add <本阶段涉及文件>
-git commit -m "feat(cache): <阶段摘要>"
+git status --short
+git add -A
+git commit -m "feat(server): <phase summary>"
 ```
 
 ## 总体文件分解
 
 ### 主要代码文件
 
-- `packages/server/src/lib/cache/retrieval-cache.ts`（新增）
-  - `RetrievalCache<V>` 泛型类：LRU+TTL+metrics
-- `packages/server/src/lib/cache/metrics.ts`（修改）
-  - 新增 `getRetrievalCacheStats()` 聚合函数
-- `packages/server/src/lib/cache/index.ts`（修改）
-  - re-export retrieval-cache
-- `packages/server/src/lib/retrieval/capsules/intent-cache.ts`（修改）
-  - `InMemoryIntentCache` 实现委托给 `RetrievalCache<ParsedIntent>`
-- `packages/server/src/lib/indexing/adapters/graph.ts`（修改）
-  - 裸 Map → `RetrievalCache` 实例，移除 `@deprecated`
-- `packages/server/src/lib/indexing/graph-lite/llm-cache.ts`（修改）
-  - 裸 Map → `RetrievalCache` 实例
-- `packages/server/src/lib/indexing/adapters/graph.ts`（修改）
-  - `GraphIndexAdapter.sync()` 中创建 `LlmExtractionCache` 实例并传入 `extractGraphEntitiesWithLLM`
+- `packages/server/src/routes/candidates.ts`
+  - 候选提交写路径；应只负责落库并登记后台任务
+- `packages/server/src/lib/candidates/processor.ts`
+  - 候选后台处理入口；应只由 worker 驱动
+- `packages/server/src/lib/queue/task-queue.ts`
+  - PG durable queue；补齐索引、幂等键和消费约束
+- `packages/server/src/lib/lifecycle/`
+  - 生命周期副作用异步化、outbox/投影任务编排
+- `packages/server/src/lib/auth/`、`users/`、`teams/`、`audit/`
+  - 将剩余身份和审计域从 `store_snapshot` 迁移到结构化表
+- `packages/server/src/lib/persistence/schema.ts`
+  - Drizzle 真相定义；必须与 migration 和文档一致
+- `packages/server/src/app.ts`
+  - worker 启停、恢复逻辑、health/readiness、优雅停机
+- `packages/server/src/config.ts`
+  - 运行时配置与文档对齐
+
+### 主要数据库迁移
+
+- `packages/server/drizzle/0009_round10_task_queue_write_path.sql`
+- `packages/server/drizzle/0010_round10_lifecycle_outbox.sql`
+- `packages/server/drizzle/0011_round10_identity_audit_structural.sql`
+- `packages/server/drizzle/0012_round10_read_model_cleanup.sql`
+- `packages/server/drizzle/0013_round10_runtime_observability.sql`
 
 ### 主要测试文件
 
-- `packages/server/src/lib/cache/retrieval-cache.test.ts`（新增）
-- `packages/server/src/lib/retrieval/capsules/intent-cache.test.ts`（修改，验证行为不变）
-- `packages/server/src/lib/indexing/graph-lite/llm-cache.test.ts`（修改，适配新实现）
+- `packages/server/src/lib/queue/task-queue.test.ts`
+- `packages/server/src/routes/candidates.test.ts`
+- `packages/server/src/__tests__/candidate-pipeline.test.ts`
+- `packages/server/src/routes/review.test.ts`
+- `packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts`
+- `packages/server/src/lib/auth/repository.test.ts`
+- `packages/server/src/routes/auth.test.ts`
+- `packages/server/src/routes/operations/audit.test.ts`
+- `packages/server/src/lib/candidates/pg-repository.test.ts`
+- `packages/server/src/lib/persistence/__tests__/schema-candidates.test.ts`
+- `packages/server/src/config.test.ts`（新增）
 
 ### 主要文档文件
 
-- `docs/architecture/GRAPH_RETRIEVAL.md`（新增缓存策略章节）
-- `docs/architecture/CACHING.md`（新增，统一缓存架构文档）
-- `docs/reference/GLOSSARY.md`（若有新术语）
+- `docs/architecture/components/ASYNC_INFRASTRUCTURE.md`
+- `docs/architecture/components/KNOWLEDGE_LIFECYCLE.md`
+- `docs/architecture/components/INDEXING.md`
+- `docs/architecture/components/DEDUPLICATION.md`
+- `docs/architecture/components/AUTH.md`
+- `docs/architecture/components/PERSISTENCE.md`
+- `docs/reference/DATA_MODEL.md`
+- `docs/reference/DATABASE_SCHEMA.md`
+- `docs/operations/ENVIRONMENT.md`
+- `docs/operations/SECURITY.md`
+- `docs/operations/TESTING.md`
+- `docs/operations/CI_CD.md`
 
 ---
 
-## Phase 1：实现 `RetrievalCache<V>` 泛型类
+## Phase 1：让候选写路径真正接管 PG durable queue
 
-**目标：** 在 `lib/cache/` 下新建泛型 LRU+TTL 缓存类，含内置 metrics。
+**目标：** 候选提交、重试恢复和 worker 消费全部统一到 PostgreSQL 队列，HTTP 提交接口只负责写入事实并快速返回。
 
 **涉及文件：**
 
-- 新增：`packages/server/src/lib/cache/retrieval-cache.ts`
-- 新增：`packages/server/src/lib/cache/retrieval-cache.test.ts`
-- 修改：`packages/server/src/lib/cache/index.ts`
+- 新增：`packages/server/drizzle/0009_round10_task_queue_write_path.sql`
+- 修改：`packages/server/src/lib/persistence/schema.ts`
+- 修改：`packages/server/src/routes/candidates.ts`
+- 修改：`packages/server/src/lib/candidates/processor.ts`
+- 修改：`packages/server/src/lib/queue/task-queue.ts`
+- 修改：`packages/server/src/app.ts`
+- 测试：`packages/server/src/lib/queue/task-queue.test.ts`
+- 测试：`packages/server/src/routes/candidates.test.ts`
+- 测试：`packages/server/src/__tests__/candidate-pipeline.test.ts`
+- 文档：`docs/architecture/components/ASYNC_INFRASTRUCTURE.md`
+- 文档：`docs/reference/DATABASE_SCHEMA.md`
+- 文档：`docs/reference/DATA_MODEL.md`
 
-### 实例结构
+### 示例结构或代码
+
+```sql
+-- 贴合 dequeue 查询模式的部分索引
+CREATE INDEX task_queue_pending_dequeue_idx
+ON task_queue (type, process_after, priority DESC, created_at ASC)
+WHERE status = 'pending';
+
+-- 可选：避免同一实体的相同任务被重复排队
+ALTER TABLE task_queue ADD COLUMN dedupe_key text;
+CREATE UNIQUE INDEX task_queue_dedupe_pending_idx
+ON task_queue (type, dedupe_key)
+WHERE status IN ('pending', 'running');
+```
 
 ```typescript
-// retrieval-cache.ts
+const store = app.skillShareer.store;
+const pool = store instanceof PostgresStore ? store.getPool() : undefined;
 
-/** 缓存实例配置 */
-export interface RetrievalCacheOptions {
-  /** 最大条目数，默认 200 */
-  maxSize?: number;
-  /** TTL 毫秒，默认 30 * 60_000 (30min) */
-  ttlMs?: number;
-  /** 命名空间，用于 metrics 聚合区分不同缓存 */
-  namespace?: string;
-}
+const services: CandidateProcessorServices = {
+  store,
+  getSnapshot: () => store.snapshot(),
+  pool,
+  candidateRepo,
+};
 
-/** 缓存统计快照 */
-export interface CacheStats {
-  hits: number;
-  misses: number;
-  evictions: number;
-  size: number;
-  hitRate: number;
-}
+await candidateRepo.updateStatus(candidate.id, 'queued');
+scheduleCandidateProcessing(candidate.id, services);
 
-/** 内部条目 */
-interface CacheEntry<V> {
-  value: V;
-  createdAt: number;
-}
-
-/**
- * 泛型 LRU+TTL 内存缓存。
- *
- * - LRU 淘汰：Map 保持插入顺序，get() 时 delete+re-insert 提升到末尾
- * - TTL 惰性过期：get() 时检查过期，无后台定时器
- * - 统一 metrics：每实例跟踪 hit/miss/eviction，按 namespace 聚合
- */
-export class RetrievalCache<V> {
-  private readonly store = new Map<string, CacheEntry<V>>();
-  private readonly maxSize: number;
-  private readonly ttlMs: number;
-  private readonly namespace: string;
-
-  // metrics
-  private hits = 0;
-  private misses = 0;
-  private evictions = 0;
-
-  constructor(options?: RetrievalCacheOptions) { ... }
-
-  get(key: string): V | null { ... }       // TTL 检查 + LRU 提升 + metrics
-  set(key: string, value: V): void { ... }  // 容量满时淘汰最久未用 + metrics
-  has(key: string): boolean { ... }
-  delete(key: string): boolean { ... }
-  clear(): void { ... }
-  get size(): number { ... }
-  get stats(): CacheStats { ... }
-
-  /** 获取 namespace（供外部 metrics 聚合使用） */
-  get ns(): string { ... }
-}
-
-// ---- 模块级 namespace 注册（供 metrics 聚合） ----
-
-const registry = new Map<string, RetrievalCache<unknown>>();
-
-function register<V>(cache: RetrievalCache<V>): void { ... }
-
-/** 按 namespace 聚合所有 RetrievalCache 实例的 stats */
-export function getRetrievalCacheStats(): Record<string, CacheStats> { ... }
+return {
+  candidateId: candidate.id,
+  status: 'queued',
+  receivedAt: candidate.receivedAt,
+};
 ```
 
 ### 进度追踪
 
-- [ ] **Step 1.1：编写 `RetrievalCache` 的测试**
-
-在 `packages/server/src/lib/cache/retrieval-cache.test.ts` 中编写以下用例：
-
-- `get` 返回 null 对于不存在的 key
-- `set` 后 `get` 能取到值
-- `get` 返回 null 对于已过期条目（TTL）
-- LRU 淘汰：写满 maxSize 后，最久未访问的条目被淘汰
-- LRU 提升：访问一个旧条目后，它不会被淘汰
-- `has` 对过期条目返回 false
-- `delete` 移除指定 key
-- `clear` 清空所有条目
-- `stats` 正确计数 hits/misses/evictions
-- `getRetrievalCacheStats` 按 namespace 聚合多个实例
-
-- [ ] **Step 1.2：运行测试确认失败**
-
-```bash
-rtk pnpm test -- --run packages/server/src/lib/cache/retrieval-cache.test.ts
-```
-
-Expected: 测试失败（模块不存在）。
-
-- [ ] **Step 1.3：实现 `RetrievalCache<V>` 类**
-
-实现上述实例结构中的所有方法。核心逻辑：
-
-- `get()`: 查找 → TTL 检查 → LRU 提升（delete+re-insert）→ metrics
-- `set()`: 已存在则 delete 再 insert；容量满则 evict oldest → metrics
-- `has()`: 委托 `get()`，返回 `!== null`
-- 构造函数中调用 `register(this)` 注入 registry
-
-- [ ] **Step 1.4：更新 `cache/index.ts` 导出**
-
-```typescript
-export { RetrievalCache, getRetrievalCacheStats } from './retrieval-cache.js';
-export type { RetrievalCacheOptions, CacheStats } from './retrieval-cache.js';
-```
-
-- [ ] **Step 1.5：运行测试确认通过**
+- [ ] **Step 1.1：补齐队列表 migration 和 Drizzle schema**
+  - 增加 `task_queue_pending_dequeue_idx`
+  - 如采用幂等键，增加 `dedupe_key`
+  - 在 `schema.ts` 中同步索引与字段定义
+- [ ] **Step 1.2：改造候选提交路由**
+  - 在 `packages/server/src/routes/candidates.ts` 中为 `CandidateProcessorServices` 传入 `pool`
+  - 提交成功后立即把状态更新到 `queued`，不再依赖进程内 fire-and-forget
+- [ ] **Step 1.3：改造恢复逻辑**
+  - 将 `packages/server/src/app.ts` 中的中断恢复逻辑改为“重新入队”而不是直接 `processPendingCandidates()`
+  - 只允许 worker 执行真实分析
+- [ ] **Step 1.4：补齐队列行为测试**
+  - 覆盖 `process_after`、`priority DESC`、`created_at ASC` 的消费顺序
+  - 覆盖重复入队保护和失败重试
+- [ ] **Step 1.5：补齐候选写路径测试**
+  - `routes/candidates.test.ts` 验证 POST 仅负责落库和排队
+  - `candidate-pipeline.test.ts` 验证 worker 可以从队列消费到 `ready_for_review` 或 `duplicate_detected`
+- [ ] **Step 1.6：更新文档**
+  - 明确“候选处理是写后异步任务，不是请求内同步处理”
+  - 更新数据库结构文档中的 `task_queue` 索引与字段
+- [ ] **Step 1.7：执行验证命令**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/cache/retrieval-cache.test.ts
-```
-
-- [ ] **Step 1.6：运行类型检查**
-
-```bash
+rtk pnpm test -- --run packages/server/src/lib/queue/task-queue.test.ts packages/server/src/routes/candidates.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts
 rtk pnpm typecheck
+rtk pnpm eval:smoke
 ```
 
-Expected: 0 errors。
-
-- [ ] **Step 1.7：Commit**
+- [ ] **Step 1.8：更新图谱并提交全部工作区改动**
 
 ```bash
-git add packages/server/src/lib/cache/retrieval-cache.ts packages/server/src/lib/cache/retrieval-cache.test.ts packages/server/src/lib/cache/index.ts
-git commit -m "feat(cache): add RetrievalCache<V> generic LRU+TTL cache with unified metrics"
+rtk graphify update .
+git status --short
+git add -A
+git commit -m "feat(server): route candidate ingestion through durable pg queue"
 ```
 
 ### Phase 1 验收标准
 
-- [ ] `RetrievalCache<V>` 类已实现，支持 LRU 淘汰、TTL 惰性过期、maxSize 容量限制
-- [ ] `get/set/has/delete/clear/size/stats` 公共 API 全部可用
-- [ ] `namespace` 标识正确传播到 `getRetrievalCacheStats()` 聚合
-- [ ] 所有 10 个测试用例通过
-- [ ] `pnpm typecheck` 零错误
-- [ ] 现有 `section-cache.test.ts` 和 `metrics.test.ts` 不受影响
+- [ ] PostgreSQL 模式下，候选提交不再走进程内 `processCandidateWithRetry` 兜底分支
+- [ ] 候选提交接口在排队后即可返回，不等待分析、去重或索引
+- [ ] 中断恢复逻辑只会重新入队，不会在 `onReady` 中直接跑重处理
+- [ ] `task_queue` 的索引与真实 dequeue 谓词一致
+- [ ] 相关测试、类型检查和 smoke eval 全部通过
 
-### Phase 1 文档更新
+### Phase 1 文档更新要求
 
-- [ ] `plan.md`：记录 Phase 1 完成状态
+- [ ] `docs/architecture/components/ASYNC_INFRASTRUCTURE.md` 说明队列已成为候选处理唯一后台主路径
+- [ ] `docs/reference/DATABASE_SCHEMA.md` 更新 `task_queue` 字段、索引和幂等说明
+- [ ] `docs/reference/DATA_MODEL.md` 把 Candidate 的处理状态描述改为“写后异步推进”
+
+### Phase 1 测试代码要求
+
+- [ ] `task-queue.test.ts` 覆盖顺序消费、延迟消费、重试和死信
+- [ ] `candidates.test.ts` 覆盖 POST 只排队不计算
+- [ ] `candidate-pipeline.test.ts` 覆盖服务重启后的恢复路径
 
 ---
 
-## Phase 2：迁移 IntentCache
+## Phase 2：把生命周期副作用改成异步投影
 
-**目标：** `InMemoryIntentCache` 实现委托给 `RetrievalCache<ParsedIntent>`，对外接口不变。
+**目标：** 审核、批准、重提交流程只提交事实和事件登记；索引、冲突检测等重副作用通过 outbox/投影任务异步处理。
 
 **涉及文件：**
 
-- 修改：`packages/server/src/lib/retrieval/capsules/intent-cache.ts`
-- 修改：`packages/server/src/lib/retrieval/capsules/intent-cache.test.ts`（若有）
+- 新增：`packages/server/drizzle/0010_round10_lifecycle_outbox.sql`
+- 新增：`packages/server/src/lib/lifecycle/outbox.ts`
+- 新增：`packages/server/src/lib/lifecycle/outbox.test.ts`
+- 修改：`packages/server/src/lib/persistence/schema.ts`
+- 修改：`packages/server/src/routes/review.ts`
+- 修改：`packages/server/src/lib/lifecycle/event-bus.ts`
+- 修改：`packages/server/src/lib/lifecycle/subscribers/indexing.ts`
+- 修改：`packages/server/src/lib/lifecycle/subscribers/conflict.ts`
+- 修改：`packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts`
+- 修改：`packages/server/src/app.ts`
+- 文档：`docs/architecture/components/KNOWLEDGE_LIFECYCLE.md`
+- 文档：`docs/architecture/components/INDEXING.md`
+- 文档：`docs/architecture/components/ASYNC_INFRASTRUCTURE.md`
+- 文档：`docs/architecture/components/REVIEW.md`
 
-### 实例结构（迁移后）
+### 示例结构或代码
 
-```typescript
-// intent-cache.ts — 保留接口，替换实现
-import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
+```sql
+CREATE TABLE domain_event_outbox (
+  id text PRIMARY KEY,
+  aggregate_type text NOT NULL,
+  aggregate_id text NOT NULL,
+  event_name text NOT NULL,
+  payload jsonb NOT NULL,
+  status text NOT NULL DEFAULT 'pending',
+  available_at timestamptz NOT NULL DEFAULT now(),
+  attempts integer NOT NULL DEFAULT 0,
+  last_error text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  published_at timestamptz
+);
 
-export interface IntentCacheStore {
-  get(key: string): ParsedIntent | null;   // 不变
-  set(key: string, intent: ParsedIntent): void;  // 不变
-  clear(): void;  // 不变
-}
-
-export class InMemoryIntentCache implements IntentCacheStore {
-  private cache = new RetrievalCache<ParsedIntent>({
-    maxSize: 200,
-    ttlMs: 30 * 60_000,
-    namespace: 'intent',
-  });
-
-  get(key: string): ParsedIntent | null {
-    return this.cache.get(key);
-  }
-
-  set(key: string, intent: ParsedIntent): void {
-    this.cache.set(key, intent);
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-}
+CREATE INDEX domain_event_outbox_pending_idx
+ON domain_event_outbox (event_name, available_at, created_at)
+WHERE status = 'pending';
 ```
 
-**变化：** 策略从 FIFO 变为 LRU（热查询留存更久）。`orchestrator.ts`（line 62）和 `intent.ts`（lines 417-442）零修改。
+```typescript
+await knowledgeRepo.applyReviewDecision(input);
+
+await outbox.enqueue({
+  aggregateType: 'knowledge',
+  aggregateId: entryId,
+  eventName,
+  payload: {
+    entryId,
+    previousState,
+    nextState,
+    actorId: auth.actorId,
+    reason: `reviewer-${payload.decision}`,
+    timestamp: nowIso(),
+  },
+});
+
+return { entry: reviewedEntry };
+```
 
 ### 进度追踪
 
-- [x] **Step 2.1：运行现有 IntentCache 测试记录基线**
+- [ ] **Step 2.1：新增 outbox 表和访问层**
+  - 创建 `domain_event_outbox`
+  - 在 `packages/server/src/lib/lifecycle/outbox.ts` 中实现 `enqueue`、`claimBatch`、`complete`、`fail`
+- [ ] **Step 2.2：改造 review 写路径**
+  - `packages/server/src/routes/review.ts` 中不再 `await emitDomainEventAsync(...)`
+  - 改为在事务提交后登记 outbox 事件
+- [ ] **Step 2.3：改造 subscriber 执行模型**
+  - PG 模式下由 worker 读取 outbox 并调用 indexing/conflict subscriber
+  - JSON 模式下可继续保留原地 `eventBus` 逻辑，避免破坏轻量本地运行
+- [ ] **Step 2.4：补齐幂等和重试**
+  - `indexing` 和 `conflict` handler 必须支持重复执行
+  - worker 失败要回写 `attempts` 和 `last_error`
+- [ ] **Step 2.5：补齐测试**
+  - `review.test.ts` 验证审核接口不再等待副作用
+  - `outbox.test.ts` 验证事件 claim/complete/fail
+  - `subscribers-integration.test.ts` 验证投影任务最终一致性
+- [ ] **Step 2.6：更新文档**
+  - 把生命周期状态变更后的索引/冲突处理改写为“异步投影”
+- [ ] **Step 2.7：执行验证命令**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/
+rtk pnpm test -- --run packages/server/src/routes/review.test.ts packages/server/src/lib/lifecycle/outbox.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts packages/server/src/lib/indexing/events.test.ts
+rtk pnpm typecheck
+rtk pnpm eval:smoke
 ```
 
-Expected: 全部通过。记录当前测试数量。
-
-- [x] **Step 2.2：替换 `InMemoryIntentCache` 实现**
-
-将 `intent-cache.ts` 中的自实现 FIFO+TTL 逻辑替换为委托给 `RetrievalCache<ParsedIntent>`。保留 `IntentCacheStore` 接口和 `InMemoryIntentCache` 类名。
-
-- [x] **Step 2.3：运行测试确认通过**
+- [ ] **Step 2.8：更新图谱并提交全部工作区改动**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/
-```
-
-Expected: 所有测试通过（行为等价，策略从 FIFO→LRU 不影响测试结果）。
-
-- [x] **Step 2.4：Commit**
-
-```bash
-git add packages/server/src/lib/retrieval/capsules/intent-cache.ts
-git commit -m "refactor(cache): delegate InMemoryIntentCache to RetrievalCache"
+rtk graphify update .
+git status --short
+git add -A
+git commit -m "feat(server): move lifecycle side effects to outbox-driven projections"
 ```
 
 ### Phase 2 验收标准
 
-- [x] `IntentCacheStore` 接口不变
-- [x] `InMemoryIntentCache` 内部委托给 `RetrievalCache<ParsedIntent>`
-- [x] `orchestrator.ts` 和 `intent.ts` 零修改
-- [x] 所有现有测试通过（无回归）
-- [x] `pnpm typecheck` 零错误
+- [ ] 审核接口只提交状态变更和 outbox 事件，不再等待索引或冲突检测
+- [ ] 索引和冲突检测可以由后台任务独立重试
+- [ ] PG 模式下重副作用统一走 outbox/worker
+- [ ] JSON 模式下本地开发流程仍可工作
+- [ ] 相关测试、类型检查和 smoke eval 全部通过
 
-### Phase 2 文档更新
+### Phase 2 文档更新要求
 
-- [x] `plan.md`：记录 Phase 2 完成状态
+- [ ] `docs/architecture/components/KNOWLEDGE_LIFECYCLE.md` 补充状态流转后的异步投影阶段
+- [ ] `docs/architecture/components/INDEXING.md` 明确索引刷新来自后台投影任务
+- [ ] `docs/architecture/components/ASYNC_INFRASTRUCTURE.md` 补充 outbox 角色
+- [ ] `docs/architecture/components/REVIEW.md` 改写审核接口时序图
+
+### Phase 2 测试代码要求
+
+- [ ] 新增 `outbox.test.ts`
+- [ ] `review.test.ts` 覆盖“请求返回先于索引完成”
+- [ ] `subscribers-integration.test.ts` 覆盖失败重试和幂等重复消费
 
 ---
 
-## Phase 3：迁移 Graph Index Cache
+## Phase 3：迁出剩余身份域和审计域，停止把 `store_snapshot` 当主事实源
 
-**目标：** `graph.ts` 中的两个裸 Map 替换为 `RetrievalCache` 实例，移除 `@deprecated` 标记。
+**目标：** Team、User、Membership、Session、AccessKey、Audit 全部落到结构化表；PG 模式下这些域不再通过 `store.snapshot()` 读取。
 
 **涉及文件：**
 
-- 修改：`packages/server/src/lib/indexing/adapters/graph.ts`
+- 新增：`packages/server/drizzle/0011_round10_identity_audit_structural.sql`
+- 新增：`packages/server/src/lib/auth/pg-repository.ts`
+- 新增：`packages/server/src/lib/users/pg-repository.ts`
+- 新增：`packages/server/src/lib/teams/pg-repository.ts`
+- 新增：`packages/server/src/lib/audit/pg-repository.ts`
+- 新增：`packages/server/src/lib/persistence/migrate-identity-audit.ts`
+- 新增：`packages/server/src/lib/persistence/migrate-identity-audit.test.ts`
+- 修改：`packages/server/src/lib/auth/repository.ts`
+- 修改：`packages/server/src/lib/users/repository.ts`
+- 修改：`packages/server/src/lib/teams/repository.ts`
+- 修改：`packages/server/src/lib/audit/repository.ts`
+- 修改：`packages/server/src/routes/auth.ts`
+- 修改：`packages/server/src/lib/context.ts`
+- 修改：`packages/server/src/lib/repos/index.ts`
+- 文档：`docs/reference/DATA_MODEL.md`
+- 文档：`docs/reference/DATABASE_SCHEMA.md`
+- 文档：`docs/architecture/components/AUTH.md`
+- 文档：`docs/architecture/components/PERSISTENCE.md`
+- 文档：`docs/operations/SECURITY.md`
 
-### 实例结构（迁移后）
+### 示例结构或代码
 
-```typescript
-// graph.ts — 替换两个裸 Map
-import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
+```sql
+CREATE TABLE users (
+  id text PRIMARY KEY,
+  handle text NOT NULL UNIQUE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 
-/** @deprecated 已移除 — 现在使用 RetrievalCache */
-const graphStateCache = new RetrievalCache<LegacyGraphSyncState>({
-  maxSize: 500,
-  ttlMs: 60 * 60_000,  // 1h
-  namespace: 'graph-state',
-});
+CREATE TABLE teams (
+  id text PRIMARY KEY,
+  slug text NOT NULL,
+  name text NOT NULL,
+  description text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 
-const cachedGraphDocuments = new RetrievalCache<GraphIndexDocumentRecord>({
-  maxSize: 500,
-  ttlMs: 60 * 60_000,  // 1h
-  namespace: 'graph-docs',
-});
+CREATE UNIQUE INDEX teams_scope_slug_uidx
+ON teams (slug);
+
+CREATE TABLE memberships (
+  id text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  team_id text NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  role_template text NOT NULL,
+  security_level integer NOT NULL,
+  permissions jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, team_id)
+);
+
+CREATE TABLE sessions (
+  id text PRIMARY KEY,
+  token_hash text NOT NULL UNIQUE,
+  user_id text REFERENCES users(id),
+  active_team_id text REFERENCES teams(id),
+  subject_type text NOT NULL,
+  expires_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 ```
 
-**内部函数适配：**
-
-- `cacheDocument(doc)`: `cachedGraphDocuments.set(key, doc)`
-- `getCachedGraphIndexDocuments()`: 遍历 `cachedGraphDocuments` 获取所有值
-- `clearGraphCache()`: 两个实例都 `.clear()`
-- `setCachedGraphIndexDocuments(docs)`: clear + 逐个 set
-- graphStateCache 的 get/set 保持相同 key 模式
+```typescript
+export function createUserRepository(config: { pool?: Pool; store: SkillShareerStore }): UserRepository {
+  if (config.pool) return new PgUserRepository(config.pool);
+  return new InMemoryUserRepository(config.store);
+}
+```
 
 ### 进度追踪
 
-- [x] **Step 3.1：运行现有 graph adapter 测试记录基线**
+- [ ] **Step 3.1：新增身份域和审计域结构化表**
+  - `users`
+  - `teams`
+  - `memberships`
+  - `sessions`
+  - `access_keys`
+  - `audit_events`
+- [ ] **Step 3.2：实现 PG 仓储并切换 factory**
+  - `createSessionRepository`
+  - `createAccessKeyRepository`
+  - `createUserRepository`
+  - `createTeamRepository`
+  - `createMembershipRepository`
+  - `createAuditRepository`
+- [ ] **Step 3.3：改造认证和团队选择读路径**
+  - `packages/server/src/routes/auth.ts` 不再通过 `store.snapshot()` 解析 membership 和 session
+  - `packages/server/src/lib/context.ts` 的 auth resolution 优先走 PG 仓储
+- [ ] **Step 3.4：提供 backfill 与核对脚本**
+  - 从 `store_snapshot` 抽取 identity/audit 数据到结构化表
+  - 支持幂等重复执行
+- [ ] **Step 3.5：补齐测试**
+  - 仓储测试验证 PG 实现与 in-memory 行为一致
+  - 路由测试验证 login/session/logout/select-team 走结构化仓储
+  - audit 路由测试验证过滤、排序和 limit 行为保持一致
+- [ ] **Step 3.6：更新文档**
+  - 数据模型、数据库结构、认证和持久化组件文档同步改写
+- [ ] **Step 3.7：执行验证命令**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/indexing/adapters/
+rtk pnpm test -- --run packages/server/src/lib/auth/repository.test.ts packages/server/src/lib/persistence/migrate-identity-audit.test.ts packages/server/src/routes/auth.test.ts packages/server/src/routes/operations/audit.test.ts packages/server/src/lib/repos/index.test.ts
+rtk pnpm typecheck
 ```
 
-- [x] **Step 3.2：替换两个裸 Map 为 RetrievalCache 实例**
-
-修改 `graph.ts` 顶部的两个 `const ... = new Map<...>()` 声明。适配所有使用这两个 Map 的内部函数（`cacheDocument`、`getCachedGraphIndexDocuments`、`clearGraphCache`、`setCachedGraphIndexDocuments`）。
-
-移除 `LegacyGraphSyncState` 接口上的 `@deprecated` 标记。
-
-- [x] **Step 3.3：运行测试确认通过**
+- [ ] **Step 3.8：更新图谱并提交全部工作区改动**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/indexing/adapters/
-```
-
-- [x] **Step 3.4：Commit**
-
-```bash
-git add packages/server/src/lib/indexing/adapters/graph.ts
-git commit -m "refactor(cache): replace graph index bare Maps with RetrievalCache"
+rtk graphify update .
+git status --short
+git add -A
+git commit -m "feat(server): migrate identity and audit domains off store_snapshot"
 ```
 
 ### Phase 3 验收标准
 
-- [x] `graphStateCache` 和 `cachedGraphDocuments` 均为 `RetrievalCache` 实例
-- [x] `@deprecated` 标记已移除
-- [x] TTL 设置为 1h，maxSize 为 500
-- [x] 所有 graph adapter 测试通过
-- [x] `pnpm typecheck` 零错误
+- [ ] PG 模式下，身份和审计域仓储不再退回 `store.snapshot()` 作为主路径
+- [ ] 登录、登出、会话状态、团队切换、访问密钥解析都能在结构化表上完成
+- [ ] 审计查询从结构化表读取并保持现有过滤行为
+- [ ] backfill 支持幂等执行并能通过核对测试
+- [ ] `DATA_MODEL` 中 Team/User/Member/Session/AccessKey/Audit 不再标记为快照主事实源
 
-### Phase 3 文档更新
+### Phase 3 文档更新要求
 
-- [x] `plan.md`：记录 Phase 3 完成状态
+- [ ] `docs/reference/DATA_MODEL.md` 更新事实源边界
+- [ ] `docs/reference/DATABASE_SCHEMA.md` 增加身份和审计表
+- [ ] `docs/architecture/components/AUTH.md` 改写认证数据流
+- [ ] `docs/architecture/components/PERSISTENCE.md` 删除“未来再迁移”的表述
+- [ ] `docs/operations/SECURITY.md` 同步会话、访问密钥和持久化方式
+
+### Phase 3 测试代码要求
+
+- [ ] `auth/repository.test.ts` 增加 PG 实现覆盖
+- [ ] `migrate-identity-audit.test.ts` 覆盖回填幂等和核对
+- [ ] `auth.test.ts` 覆盖 login/logout/session/select-team 的结构化仓储路径
+- [ ] `operations/audit.test.ts` 覆盖过滤、排序、分页限制
 
 ---
 
-## Phase 4：迁移并接入 LLM Extraction Cache
+## Phase 4：清理读模型双表示，修正数据库精度和索引漂移
 
-**目标：** `LlmExtractionCache` 内部改用 `RetrievalCache`，并通过 `GraphIndexAdapter` 接入索引管线生产。
+**目标：** 让出库路径真正只依赖结构化表和派生表；清理候选域 JSONB 双表示，修正重复相似度精度和 schema/migration drift。
 
 **涉及文件：**
 
-- 修改：`packages/server/src/lib/indexing/graph-lite/llm-cache.ts`
-- 修改：`packages/server/src/lib/indexing/graph-lite/llm-cache.test.ts`
-- 修改：`packages/server/src/lib/indexing/adapters/graph.ts`（接入 LlmExtractionCache）
+- 新增：`packages/server/drizzle/0012_round10_read_model_cleanup.sql`
+- 修改：`packages/server/src/lib/persistence/schema.ts`
+- 修改：`packages/server/src/lib/candidates/pg-repository.ts`
+- 修改：`packages/server/src/routes/candidates.ts`
+- 修改：`packages/server/src/lib/persistence/__tests__/schema-candidates.test.ts`
+- 修改：`packages/server/src/lib/candidates/pg-repository.test.ts`
+- 修改：`packages/server/src/routes/candidates.test.ts`
+- 文档：`docs/reference/DATA_MODEL.md`
+- 文档：`docs/reference/DATABASE_SCHEMA.md`
+- 文档：`docs/architecture/components/DEDUPLICATION.md`
+- 文档：`docs/architecture/components/PERSISTENCE.md`
 
-### 实例结构（迁移后）
+### 示例结构或代码
 
-```typescript
-// llm-cache.ts — 内部替换
-import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
+```sql
+ALTER TABLE candidate_duplicate_cases
+  ALTER COLUMN highest_similarity TYPE numeric(5,3)
+  USING highest_similarity / 100.0;
 
-export class LlmExtractionCache {
-  private readonly phase1 = new RetrievalCache<ExtractionPlan>({
-    maxSize: 300,
-    ttlMs: 60 * 60_000,
-    namespace: 'llm-phase1',
-  });
+ALTER TABLE candidate_duplicate_matches
+  ALTER COLUMN similarity_score TYPE numeric(5,3)
+  USING similarity_score / 100.0;
 
-  private readonly phase2 = new RetrievalCache<LlmExtractionResult>({
-    maxSize: 300,
-    ttlMs: 60 * 60_000,
-    namespace: 'llm-phase2',
-  });
-
-  // buildKey 保留（SHA-256(text + PROMPT_VERSION)）
-  // getPhase1/2, setPhase1/2, hasPhase1/2 委托给对应 RetrievalCache
-  // invalidate(text) → 两个实例都 delete(key)
-  // clear() → 两个实例都 clear()
-  // size → phase1.size + phase2.size
-  // 新增: get stats() → { phase1: phase1.stats, phase2: phase2.stats }
-}
+CREATE UNIQUE INDEX IF NOT EXISTS skill_artifacts_scope_slug_uidx
+ON skill_artifacts (COALESCE(team_id, '__global__'), scope, slug);
 ```
 
-**接入 graph.ts：**
-
 ```typescript
-// graph.ts — 在模块作用域创建 cache 实例
-const llmCache = new LlmExtractionCache();
-
-// 在 GraphIndexAdapter.sync() 中传入:
-const extraction = await extractGraphEntitiesWithLLM(text, chatProvider, {
-  cache: llmCache,
-});
+return {
+  id: caseRow.id,
+  candidateId: caseRow.candidateId,
+  highestSimilarity: Number(caseRow.highestSimilarity),
+  matches: matchRows.map((m) => ({
+    entityType: m.entityType as 'trap' | 'skill',
+    entityId: m.entityId,
+    similarityScore: Number(m.similarityScore),
+    matchType: m.matchType as 'exact' | 'high-overlap' | 'semantic-similar',
+  })),
+};
 ```
 
 ### 进度追踪
 
-- [x] **Step 4.1：运行现有 LLM cache 测试记录基线**
+- [ ] **Step 4.1：修复候选去重相似度精度**
+  - 将 `highest_similarity` 和 `similarity_score` 从百分位整数语义改成三位小数
+  - 更新序列化/反序列化代码，避免 `*100` / `/100` 精度损失
+- [ ] **Step 4.2：让重复和人工处理读路径只依赖结构化表**
+  - `GET /v1/duplicates/:candidateId`
+  - `GET /v1/duplicates/:candidateId/bundle`
+  - `GET /v1/candidates/:candidateId`
+  - 保证在 `candidates.duplicate_case`、`analysis_snapshot`、`manual_result` 缓存为空时依然返回正确结果
+- [ ] **Step 4.3：处理 schema / migration / docs 漂移**
+  - 对齐 `skill_artifacts` 相关唯一索引
+  - 对齐 `schema.ts`、SQL migration 和 `DATABASE_SCHEMA.md`
+- [ ] **Step 4.4：补齐测试**
+  - 构造“结构化表有数据但 JSONB 缓存为空”的场景
+  - 验证 API 仍正常工作
+- [ ] **Step 4.5：更新文档**
+  - 明确哪些 JSONB 仍保留为兼容缓存
+  - 明确重复检测分数精度和结构化事实源
+- [ ] **Step 4.6：执行验证命令**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/indexing/graph-lite/llm-cache.test.ts
+rtk pnpm test -- --run packages/server/src/lib/candidates/pg-repository.test.ts packages/server/src/lib/persistence/__tests__/schema-candidates.test.ts packages/server/src/routes/candidates.test.ts
+rtk pnpm typecheck
+rtk pnpm eval:smoke
 ```
 
-- [x] **Step 4.2：替换 `LlmExtractionCache` 内部实现**
-
-将两个裸 `Map` 替换为 `RetrievalCache` 实例。保留所有公共方法签名和 `buildKey` 逻辑。
-
-- [x] **Step 4.3：适配测试**
-
-更新 `llm-cache.test.ts` 以适配新内部实现（如果行为等价则测试应直接通过）。
-
-- [x] **Step 4.4：在 graph.ts 中接入 LlmExtractionCache**
-
-在 `graph.ts` 模块作用域创建 `llmCache` 实例。修改 `GraphIndexAdapter.sync()` 方法中的 `extractGraphEntitiesWithLLM` 调用，传入 `{ cache: llmCache }`。
-
-检查 `extractGraphEntitiesWithLLM` 的 `options.cache` 参数类型是否匹配，必要时添加类型适配。
-
-- [x] **Step 4.5：运行所有相关测试**
+- [ ] **Step 4.7：更新图谱并提交全部工作区改动**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/indexing/
-```
-
-Expected: 所有 indexing 测试通过。
-
-- [x] **Step 4.6：Commit**
-
-```bash
-git add packages/server/src/lib/indexing/graph-lite/llm-cache.ts packages/server/src/lib/indexing/graph-lite/llm-cache.test.ts packages/server/src/lib/indexing/adapters/graph.ts
-git commit -m "feat(cache): migrate LLM extraction cache to RetrievalCache and wire into indexing pipeline"
+rtk graphify update .
+git status --short
+git add -A
+git commit -m "refactor(server): read candidates and duplicates from structured projections"
 ```
 
 ### Phase 4 验收标准
 
-- [x] `LlmExtractionCache` 内部使用两个 `RetrievalCache` 实例
-- [x] `buildKey` 逻辑不变（SHA-256 + PROMPT_VERSION）
-- [x] `LlmExtractionCache` 在 `graph.ts` 模块作用域被实例化
-- [x] `extractGraphEntitiesWithLLM` 调用时传入 cache 实例
-- [x] 所有 LLM cache 测试通过
-- [x] 所有 graph adapter 测试通过
-- [x] `pnpm typecheck` 零错误
+- [ ] 重复相似度在持久化后仍保留三位小数精度
+- [ ] 候选和重复相关读接口在 JSONB 缓存为空时仍能正常返回
+- [ ] `schema.ts`、migration 和文档中的索引/字段定义一致
+- [ ] JSONB 列只保留为兼容缓存或过渡字段，不再是读路径真相来源
+- [ ] 相关测试、类型检查和 smoke eval 全部通过
 
-### Phase 4 文档更新
+### Phase 4 文档更新要求
 
-- [x] `plan.md`：记录 Phase 4 完成状态
+- [ ] `docs/reference/DATA_MODEL.md` 标注 Candidate 读路径已结构化优先
+- [ ] `docs/reference/DATABASE_SCHEMA.md` 更新重复检测字段类型和索引
+- [ ] `docs/architecture/components/DEDUPLICATION.md` 更新相似度存储和读取流程
+- [ ] `docs/architecture/components/PERSISTENCE.md` 明确兼容缓存退场策略
+
+### Phase 4 测试代码要求
+
+- [ ] `pg-repository.test.ts` 覆盖精度 round-trip
+- [ ] `schema-candidates.test.ts` 覆盖字段类型和索引对齐
+- [ ] `candidates.test.ts` 覆盖 JSONB 缓存为空但结构化表完整的读取路径
 
 ---
 
-## Phase 5：Metrics 统一与文档收尾
+## Phase 5：补齐运行时配置、可观测性、优雅停机和 CI 基线
 
-**目标：** 扩展 metrics 模块以聚合检索缓存指标，更新架构文档，执行最终验证。
+**目标：** 把运行时配置、文档、安全说明和 CI 真实校验统一起来，避免“代码与文档不一致”的持续漂移。
 
 **涉及文件：**
 
-- 修改：`packages/server/src/lib/cache/metrics.ts`
-- 修改：`docs/architecture/GRAPH_RETRIEVAL.md`
-- 新增：`docs/architecture/CACHING.md`
-- 修改：`docs/reference/GLOSSARY.md`（若有新术语）
+- 新增：`packages/server/src/config.test.ts`
+- 修改：`packages/server/src/config.ts`
+- 修改：`packages/server/src/app.ts`
+- 修改：`.github/workflows/ci.yml`
+- 文档：`docs/operations/ENVIRONMENT.md`
+- 文档：`docs/operations/SECURITY.md`
+- 文档：`docs/operations/TESTING.md`
+- 文档：`docs/operations/CI_CD.md`
+- 文档：`docs/architecture/components/ASYNC_INFRASTRUCTURE.md`
+
+### 示例结构或代码
+
+```typescript
+export const ServerConfigSchema = z.object({
+  dataFile: z.string().min(1),
+  databaseUrl: z.string().url().nullable(),
+  host: HostSchema,
+  port: PortSchema,
+  systemAdminKey: z.string().nullable(),
+  corsAllowedOrigins: z.array(z.string()).default(['*']),
+  rateLimitMaxPerMinute: z.number().int().min(0).default(0),
+  sessionTransport: z.enum(['bearer-header', 'cookie']).default('bearer-header'),
+  userOpsLog: UserOpsLogSchema,
+  ragLog: RagLogSchema,
+  ai: ...
+});
+```
+
+```typescript
+app.get('/ready', async () => ({
+  ok: true,
+  queueWorkerRunning: app.taskWorker?.isRunning() ?? false,
+  database: app.skillShareer.store instanceof PostgresStore ? 'postgres' : 'json-store',
+}));
+
+app.addHook('onClose', async () => {
+  await app.taskWorker?.stop();
+});
+```
+
+```yaml
+postgres-integration:
+  runs-on: ubuntu-latest
+  services:
+    postgres:
+      image: pgvector/pgvector:pg16
+      env:
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: trapmap
+      ports:
+        - 5432:5432
+```
 
 ### 进度追踪
 
-- [x] **Step 5.1：扩展 `cache/metrics.ts`**
-
-新增 `getRetrievalCacheStats()` 函数，从 retrieval-cache 模块的 registry 中读取所有实例的 stats 并按 namespace 聚合：
-
-```typescript
-import { getRetrievalCacheStats as getRetrievalStats } from './retrieval-cache.js';
-
-/**
- * 获取所有 RetrievalCache 实例的统计快照，按 namespace 聚合。
- */
-export function getRetrievalCacheStats(): Record<string, import('./retrieval-cache.js').CacheStats> {
-  return getRetrievalStats();
-}
-```
-
-或者如果 retrieval-cache.ts 已导出此函数，则在 metrics.ts 中 re-export 即可。
-
-- [x] **Step 5.2：运行全量测试**
+- [ ] **Step 5.1：统一运行时配置与文档**
+  - `config.ts` 新增或删除文档中已提到但代码未支持的变量
+  - 明确当前真实会话传输方式是 `Bearer`/`x-session-token` 还是 cookie
+- [ ] **Step 5.2：补 readiness 和优雅停机**
+  - `/health` 继续保留
+  - 增加 `/ready` 或扩展现有 health 结构
+  - 在 `onClose` 中停止 task worker，释放资源
+- [ ] **Step 5.3：补真实 PG/pgvector CI 校验**
+  - 为 server 增加带 PostgreSQL 服务的测试 job
+  - 至少运行候选队列、生命周期投影、结构化仓储相关测试
+- [ ] **Step 5.4：补配置测试**
+  - 覆盖环境变量解析、默认值和非法值 fail-fast
+- [ ] **Step 5.5：更新文档**
+  - `ENVIRONMENT.md`、`SECURITY.md`、`TESTING.md`、`CI_CD.md`
+  - 说明哪些命令在本地和 CI 中必须跑 PG 服务
+- [ ] **Step 5.6：执行验证命令**
 
 ```bash
-rtk pnpm test -- --run
+rtk pnpm test -- --run packages/server/src/config.test.ts packages/server/src/routes/auth.test.ts packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts
 rtk pnpm typecheck
+rtk pnpm check
+rtk pnpm eval:smoke
 ```
 
-Expected: 全部通过。
-
-- [x] **Step 5.3：更新 `GRAPH_RETRIEVAL.md`**
-
-在检索架构文档中新增缓存策略章节，说明：
-
-- IntentCache: namespace `intent`，LRU+TTL，30min TTL，200 条上限
-- Graph State Cache: namespace `graph-state`，LRU+TTL，1h TTL，500 条上限
-- Graph Docs Cache: namespace `graph-docs`，LRU+TTL，1h TTL，500 条上限
-- LLM Phase1/2 Cache: namespace `llm-phase1`/`llm-phase2`，LRU+TTL，1h TTL，300 条上限
-
-- [x] **Step 5.4：新建 `docs/architecture/CACHING.md`**
-
-统一缓存架构文档，包含：
-
-- `RetrievalCache<V>` 设计原理（LRU+TTL+metrics）
-- 各缓存实例的 namespace、maxSize、ttlMs 配置一览表
-- metrics 使用方式（`getRetrievalCacheStats()`）
-- Redis 扩展路径说明（从 RetrievalCache 提取 CacheBackend 接口）
-
-- [x] **Step 5.5：更新 `GLOSSARY.md`（若需要）**
-
-补充术语：
-
-- `RetrievalCache`：泛型 LRU+TTL 内存缓存类
-- `namespace`：缓存实例标识，用于 metrics 聚合
-
-- [x] **Step 5.6：执行 `graphify update .`** (skipped — graphify not installed)
+- [ ] **Step 5.7：更新图谱并提交全部工作区改动**
 
 ```bash
-graphify update .
-```
-
-- [x] **Step 5.7：Commit**
-
-```bash
-git add packages/server/src/lib/cache/metrics.ts docs/architecture/GRAPH_RETRIEVAL.md docs/architecture/CACHING.md docs/reference/GLOSSARY.md
-git commit -m "docs: add unified caching architecture documentation and metrics integration"
+rtk graphify update .
+git status --short
+git add -A
+git commit -m "chore(server): align runtime config docs and pg-backed ci coverage"
 ```
 
 ### Phase 5 验收标准
 
-- [x] `getRetrievalCacheStats()` 可用，返回按 namespace 聚合的 stats
-- [x] 全量测试通过（`pnpm test -- --run`）
-- [x] `GRAPH_RETRIEVAL.md` 含缓存策略章节
-- [x] `CACHING.md` 已创建，覆盖设计原理、配置一览、metrics 使用、扩展路径
-- [x] `GLOSSARY.md` 已补充（若有新术语）
-- [x] `pnpm typecheck` 零错误
-- [x] `graphify update .` 已执行 (skipped — graphify not installed)
+- [ ] 运行时配置和 `ENVIRONMENT.md`、`SECURITY.md` 描述一致
+- [ ] 服务关闭时 worker 可以优雅停止，不遗留活跃任务
+- [ ] CI 至少有一条真实 PostgreSQL/pgvector 校验链路
+- [ ] 新增配置测试覆盖默认值、非法值和认证传输方式
+- [ ] 相关测试、类型检查、check 和 smoke eval 全部通过
 
-### Phase 5 文档更新
+### Phase 5 文档更新要求
 
-- [x] `docs/architecture/GRAPH_RETRIEVAL.md`：新增缓存策略章节
-- [x] `docs/architecture/CACHING.md`：统一缓存架构文档
-- [x] `docs/reference/GLOSSARY.md`：RetrievalCache、namespace 术语
-- [x] `plan.md`：记录 Phase 5 完成状态
+- [ ] `docs/operations/ENVIRONMENT.md` 只保留真实受支持的配置项
+- [ ] `docs/operations/SECURITY.md` 准确描述会话和访问密钥机制
+- [ ] `docs/operations/TESTING.md` 增加 PG 集成测试要求
+- [ ] `docs/operations/CI_CD.md` 增加 PG/pgvector job 说明
+- [ ] `docs/architecture/components/ASYNC_INFRASTRUCTURE.md` 补充 worker 生命周期与 readiness
 
----
+### Phase 5 测试代码要求
 
-## 最终正确性验证
-
-所有阶段完成后，执行以下验证清单。**任一项不通过则不得标记为完成。**
-
-### 类型安全验证
-
-```bash
-rtk pnpm typecheck
-```
-
-- [x] 零类型错误（cache 相关模块零错误；pre-existing error in graph-plan-search.ts:192 与 cache 无关）
-
-### 单元测试验证
-
-```bash
-rtk pnpm test -- --run packages/server/src/lib/cache/
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/
-rtk pnpm test -- --run packages/server/src/lib/indexing/graph-lite/llm-cache.test.ts
-```
-
-- [x] retrieval-cache 测试全部通过（18/18）
-- [x] IntentCache 测试全部通过（无回归，31/31）
-- [x] LLM extraction cache 测试全部通过（13/13）
-
-### 集成测试验证
-
-```bash
-rtk pnpm test -- --run packages/server/src/lib/indexing/adapters/
-rtk pnpm test -- --run packages/server/src/lib/retrieval/
-```
-
-- [x] Graph adapter 测试全部通过（15+15+7+7+7+9 = 60/60）
-- [x] 全量检索测试通过（cache 相关模块无失败）
-
-### 全量测试验证
-
-```bash
-rtk pnpm test -- --run
-```
-
-- [x] 全量测试无失败（cache 相关模块全部通过；pre-existing failures in CLI/evals/workflow 与 cache 无关）
-
-### 缓存行为验证
-
-- [x] LRU 淘汰：写满 maxSize 后最久未访问条目被淘汰（retrieval-cache.test.ts 覆盖）
-- [x] TTL 过期：超过 ttlMs 后 get() 返回 null（retrieval-cache.test.ts 覆盖）
-- [x] Metrics 计数：hits/misses/evictions 正确递增（retrieval-cache.test.ts 覆盖）
-- [x] Namespace 聚合：`getRetrievalCacheStats()` 按 namespace 返回各实例 stats（retrieval-cache.test.ts 覆盖）
-- [x] IntentCache 对外接口不变（IntentCacheStore 接口未修改）
-- [x] Graph Cache 外部函数签名不变（getCachedGraphIndexDocuments 等未修改）
-- [x] LLM Extraction Cache 已接入 graph adapter 的 extractGraphEntitiesWithLLM（graph.ts 中 llmCache 实例化并传入）
-
-### 消费方零修改验证
-
-- [x] `orchestrator.ts` 未修改
-- [x] `intent.ts` 未修改
-- [x] `routes/retrieval.ts` 未修改
-
-### 文档一致性验证
-
-- [x] `CACHING.md` 中的配置表与代码中的实例化参数一致
-- [x] `GRAPH_RETRIEVAL.md` 中缓存策略描述与实现一致
-
-### 图谱同步验证
-
-- [x] `graphify update .` 已执行（skipped — graphify not installed）
+- [ ] 新增 `packages/server/src/config.test.ts`
+- [ ] `auth.test.ts` 覆盖实际 token 传输方式
+- [ ] CI job 至少跑队列、投影和结构化仓储路径测试
 
 ---
 
-## 实施时的统一注意事项
+## 实施顺序建议
 
-- [x] 不要修改 SectionLRUCache、Entry Embedding Cache 或 EmbeddingsAdapter
-- [x] 不要引入新的 npm 依赖——纯 TypeScript 实现
-- [x] 不要修改任何消费方的公共 API 签名（IntentCacheStore、getCachedGraphIndexDocuments 等）
-- [x] 不要引入 Redis 或外部后端——保持内存缓存
-- [x] 不要跳过 `graphify update .`（skipped — graphify not installed）
-- [x] 不要把多个阶段改动混成一次提交
-- [x] 不要修改 `ai/cache/section-cache.ts` 或 `ai/cache/metrics.ts` 中的现有函数
+1. 先做 Phase 1 和 Phase 2，把“请求内同步重处理”彻底切掉。
+2. 再做 Phase 3，缩小 `store_snapshot` 的跨域事实面。
+3. 接着做 Phase 4，把读路径真正固定到结构化表和派生表。
+4. 最后做 Phase 5，收口配置、观测和 CI，防止后续再次漂移。
 
-## 推荐执行顺序
+## 自检清单
 
-1. Phase 1：核心 RetrievalCache 类 + 测试
-2. Phase 2：IntentCache 迁移（最小改动，验证模式可行）
-3. Phase 3：Graph Index Cache 迁移
-4. Phase 4：LLM Extraction Cache 迁移 + 接入生产
-5. Phase 5：Metrics 统一 + 文档收尾
+- [ ] 每个阶段都能回答“这一步如何减少请求内计算或出库压力？”
+- [ ] 每个新表或新索引都在 `schema.ts`、migration 和文档中三方对齐
+- [ ] 每次迁移都提供幂等 backfill 或数据核对策略
+- [ ] 每个阶段都有独立测试命令、独立文档更新和独立提交
+- [ ] 没有任何阶段要求引入新的外部基础设施
 
-## 最终交付清单
+## 完成后的目标状态
 
-- [x] `RetrievalCache<V>` 泛型类已实现并通过测试
-- [x] IntentCache 已委托给 RetrievalCache（接口不变）
-- [x] Graph Index Cache 已替换为 RetrievalCache（@deprecated 移除）
-- [x] LLM Extraction Cache 已接入索引管线生产
-- [x] `getRetrievalCacheStats()` metrics 聚合可用
-- [x] `CACHING.md` 已创建
-- [x] `GRAPH_RETRIEVAL.md` 已更新缓存策略章节
-- [x] 全量 typecheck + 测试通过（cache 模块全部通过）
-- [x] 最终正确性验证全部通过
-- [ ] `graphify update .` 已执行
+- 候选提交、审核和批准接口只负责写事实和登记后台任务
+- 候选分析、去重、索引、冲突检测和投影统一由 PG 后台任务推进
+- Team/User/Membership/Session/AccessKey/Audit 脱离 `store_snapshot`
+- 读接口默认只查结构化表和派生表
+- 运行时配置、文档、测试和 CI 对同一套真实行为达成一致

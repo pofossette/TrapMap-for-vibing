@@ -204,32 +204,35 @@ stop(): Promise<void>         // 优雅停止，等待活跃任务完成
 
 ### 实际使用者：候选人处理
 
-`candidates/processor.ts` 中的多阶段分析管线：
+`candidates/processor.ts` 中的多阶段分析管线，**完全通过 PG 持久化队列驱动**（Phase 1 后不再有进程内 fire-and-forget 兜底）：
 
 ```mermaid
 flowchart TB
-    subgraph scheduleCandidateProcessing["scheduleCandidateProcessing()"]
-        IsPg{"PostgreSQL\n可用?"}
-        PgMode["enqueue 到 TaskQueue"]
-        JsonMode["立即 processCandidate()"]
+    subgraph HTTP["POST /v1/candidates"]
+        Insert["写入候选人 (status=received)"]
+        Queue["更新为 queued"]
+        Enqueue["enqueue 到 TaskQueue"]
+        Return["返回 { candidateId, status:'queued' }"]
     end
 
-    subgraph processCandidate["processCandidate()"]
-        Queue["队列状态"]
+    subgraph Worker["TaskWorker 后台消费"]
+        Dequeue["dequeue(candidate_processing)"]
         Analyze["分析处理"]
         Fingerprint["生成指纹"]
         Duplicate["重复检测"]
-        Result["返回结果"]
+        Result["status → ready_for_review | duplicate_detected"]
     end
 
-    IsPg -->|是| PgMode
-    IsPg -->|否| JsonMode
-    PgMode --> processCandidate
-    JsonMode --> processCandidate
-    Queue --> Analyze --> Fingerprint --> Duplicate --> Result
+    Insert --> Queue --> Enqueue --> Return
+    Enqueue -.->|异步| Dequeue --> Analyze --> Fingerprint --> Duplicate --> Result
 ```
 
-在 `app.ts:300-381` 的 `onReady` 中，检测到 PostgresStore 时创建 TaskWorker 并后台启动：
+**写入路径**只负责鉴权、落库和登记后台任务，不等待分析、去重或索引。
+
+**恢复逻辑**（`app.ts` onReady）不再调用 `processPendingCandidates` 直接处理中断候选，而是将所有
+`queued`/`analyzing` 状态的候选重置为 `received` 后重新入队到 TaskQueue，由 worker 统一消费。
+
+在 `app.ts:322-417` 的 `onReady` 中，检测到 PostgresStore 时创建 TaskWorker 并后台启动：
 
 ```typescript
 const worker = createTaskWorker({

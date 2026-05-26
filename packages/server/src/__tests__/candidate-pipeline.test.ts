@@ -86,7 +86,7 @@ describe('candidate pipeline: submission to approval', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json() as any;
     expect(body.candidateId).toBeDefined();
-    expect(body.status).toBe('received');
+    expect(body.status).toBe('queued');
     expect(body.receivedAt).toBeDefined();
   });
 

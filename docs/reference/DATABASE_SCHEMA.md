@@ -2,7 +2,7 @@
 
 > **源码真实来源**: `packages/server/src/lib/persistence/schema.ts`
 > **数据模型详情**: `docs/reference/DATA_MODEL.md`
-> **迁移历史**: `packages/server/drizzle/` (8 个迁移文件)
+> **迁移历史**: `packages/server/drizzle/` (9 个迁移文件)
 
 ## 技术栈
 
@@ -95,7 +95,14 @@
 
 | 表名 | 用途 | 主键 |
 |------|------|------|
-| `task_queue` | 后台任务队列 | `id` (text) |
+| `task_queue` | 后台任务队列（写路径主入口） | `id` (text) |
+
+### task_queue 关键索引
+
+| 索引名 | 类型 | 列 | 条件 | 用途 |
+|--------|------|-----|------|------|
+| `task_queue_pending_dequeue_idx` | 部分索引 | `(type, process_after, priority DESC, created_at ASC)` | `WHERE status = 'pending'` | 匹配 SKIP LOCKED 出队谓词 |
+| `task_queue_dedupe_pending_idx` | 唯一部分索引 | `(type, dedupe_key)` | `WHERE status IN ('pending', 'running')` | 防止同一实体重复排队 |
 
 ## 核心表字段速查
 
@@ -263,6 +270,8 @@ feedback_records (1) ──→ (N) feedback_custom_answers       [CASCADE]
 | 5 | `0005_round7_retrieval_index_structural.sql` | 检索索引结构化 |
 | 6 | `0006_round8_naming_constraints.sql` | 命名规范化 + FK 约束 |
 | 7 | `0007_round4_artifact_structural.sql` | 工件子表 (最大迁移) |
+| 8 | `0008_round9_cross_table_consistency.sql` | 跨表一致性约束（复合FK + CHECK） |
+| 9 | `0009_round10_task_queue_write_path.sql` | 任务队列写路径：dedupe_key + 出队优化索引 |
 
 ## 相关文档
 
