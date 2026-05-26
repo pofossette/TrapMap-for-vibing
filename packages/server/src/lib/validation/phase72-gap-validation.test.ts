@@ -526,7 +526,7 @@ describe('Gap 6: GIN index definition exists in schema for knowledge_keywords.to
     const fs = await import('node:fs');
     const path = await import('node:path');
 
-    const schemaPath = path.resolve(__dirname, '../persistence/schema.ts');
+    const schemaPath = path.resolve(__dirname, '../persistence/schema/knowledge.ts');
 
     const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
 

@@ -458,7 +458,8 @@ RBAC 和资格检查。
 存储实现。
 
 **文件**：
-- `schema.ts` - Drizzle PostgreSQL schema
+- `schema.ts` - Drizzle PostgreSQL schema barrel（重导出 `schema/` 子模块）
+- `schema/` - 按领域拆分的 schema 定义（auth, knowledge, artifacts, candidates, retrieval, queue）
 - `postgres-store.ts` - PostgreSQL 存储
 - `create-store.ts` - 存储工厂
 - 文件级 JSON 存储实现位于 `lib/store.ts`

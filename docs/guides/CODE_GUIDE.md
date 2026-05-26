@@ -122,7 +122,14 @@ lib/store.ts
 lib/persistence/
 ├── create-store.ts   # 根据配置选择存储实现
 ├── postgres-store.ts # PostgreSQL + Drizzle ORM（生产用）
-└── schema.ts         # Drizzle schema
+├── schema.ts         # Drizzle schema barrel（重导出 ./schema/ 子模块）
+└── schema/           # 按领域拆分的 schema 定义
+    ├── auth.ts       # 用户、团队、成员、会话、访问密钥、审计
+    ├── knowledge.ts  # 知识条目、修订、生命周期、边界、反馈、分析
+    ├── artifacts.ts  # 工件、修订、派生、生命周期事件
+    ├── candidates.ts # 候选管线、判重、手动结果、血缘
+    ├── retrieval.ts  # 图索引文档
+    └── queue.ts      # 任务队列
 ```
 
 `SkillShareerStore` 是遗留存储接口，用于尚未迁移到 PostgreSQL 结构化表的域（用户、团队、成员、会话、访问密钥、审计）。核心业务域（知识、工件、候选、反馈、统计、检索索引）已直接通过各自的 `Pg*Repository` 访问 PostgreSQL。`createSkillShareerStore()` 根据 `TRAPMAP_DATABASE_URL` 选择 PostgreSQL，否则使用 JSON 文件存储。
@@ -130,12 +137,13 @@ lib/persistence/
 **Artifact Repository 阅读路径**（如需理解结构化事实源 vs JSONB 缓存规则）：
 
 - 接口定义：`lib/artifacts/repository.ts` → `ArtifactRepository` 接口（CRUD 抽象）
-- PG 实现：`lib/artifacts/pg-repository.ts` → `PgArtifactRepository` 类
-  - 插入与结构化写入：`insert()` (L53-147)、`appendRevision()` (L257-312)
-  - 结构化读取：`loadStructuredRevisionData()` (L1027-1192)
-  - 记录重建：`reconstructSkillArtifactRecord()` (L806-847) — **事实源优先级的关键代码**
-  - 派生更新：`updateRevisionDerived()` (L317-366)
-- Schema 定义：`lib/persistence/schema.ts:880-1503` — 所有 `skill_artifact_*` 表定义
+- PG 实现：`lib/artifacts/pg-repository/` → `PgArtifactRepository` 类及辅助模块
+  - 类定义：`pg-repository/index.ts` — 委托给辅助模块
+  - 结构化写入：`pg-repository/revision-writer.ts` — `upsertStructuredRevisionRows()` + `replaceStructuredDerivedRows()`
+  - 结构化读取：`pg-repository/revision-reader.ts` — `loadStructuredRevisionData()`
+  - 记录重建：`pg-repository/record-reconstruction.ts` — `reconstructSkillArtifactRecord()` — **事实源优先级的关键代码**
+  - 子表 CRUD：`pg-repository/derived-store.ts` — boundary / maintenance / agent-review / metadata
+- Schema 定义：`lib/persistence/schema/artifacts.ts` — 所有 `skill_artifact_*` 表定义
 - 迁移文件：`drizzle/0007_round4_artifact_structural.sql` — 结构化子表 DDL
 - 模型层：`lib/artifacts/model.ts` — `createSkillArtifactRecord()`、`applyDerivedArtifactOutputs()`
 - 事实源/缓存规则详细文档：`docs/plans/round4-cross-table-consistency-plan.md` 阶段 0 结论

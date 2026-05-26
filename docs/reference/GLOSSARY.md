@@ -38,12 +38,12 @@
 | `packages/contracts/src/domain/artifacts.ts:395` | TS 类型 (`SkillArtifact`) | 推断类型，server 和 CLI 全局使用 |
 | `packages/contracts/src/domain/candidates.ts:29` | Zod enum (`z.literal('skill')`) | `CandidateSourceSchema` 中的判别值 |
 | `packages/contracts/src/domain/candidates.ts:79-82` | Zod schema (`SkillCandidatePayloadSchema`) | Skill 候选提交载荷：files, metadata |
-| `packages/server/src/lib/persistence/schema.ts:898-951` | DB 表 (`skill_artifacts`) | Skill 工件的行级持久化主表，保留 JSONB 缓存列 |
-| `packages/server/src/lib/persistence/schema.ts:954-1048` | DB 表 (`artifact_revisions`) | Skill 修订历史，保留 revision 级派生产物缓存 |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`skill_artifact_metadata`) | Skill 元数据结构化真表（source kind / submission counters / latest decision） |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`skill_artifact_files`, `skill_artifact_script_descriptors`) | 文件事实与脚本语义真表 |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`skill_artifact_profiles`, `skill_artifact_capsules`, `skill_artifact_client_manifests`, `skill_artifact_manifest_*`) | 派生产物结构化真表 |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`skill_artifact_boundary_*`, `skill_artifact_maintenance_assignments`, `skill_artifact_agent_reviews`) | 工件治理结构化真表 |
+| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifacts`) | Skill 工件的行级持久化主表，保留 JSONB 缓存列 |
+| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`artifact_revisions`) | Skill 修订历史，保留 revision 级派生产物缓存 |
+| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifact_metadata`) | Skill 元数据结构化真表（source kind / submission counters / latest decision） |
+| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifact_files`, `skill_artifact_script_descriptors`) | 文件事实与脚本语义真表 |
+| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifact_profiles`, `skill_artifact_capsules`, `skill_artifact_client_manifests`, `skill_artifact_manifest_*`) | 派生产物结构化真表 |
+| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifact_boundary_*`, `skill_artifact_maintenance_assignments`, `skill_artifact_agent_reviews`) | 工件治理结构化真表 |
 | `packages/server/src/routes/operations/artifacts-import.ts:136` | Route | `POST /v1/operations/artifacts/import` — 导入 Skill 工件 |
 | `packages/server/src/routes/operations/artifacts-export.ts:91` | Route | `POST /v1/operations/artifacts/export` — 导出 Skill 工件 |
 | `packages/server/src/routes/operations/artifacts-activate.ts:22` | Route | `POST /v1/operations/artifacts/activate` — 激活（下载）工件文件 |

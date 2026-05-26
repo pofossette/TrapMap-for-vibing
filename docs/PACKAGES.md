@@ -59,12 +59,14 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 **写入顺序**：JSONB 缓存先写入 → 结构化子表后覆盖写入。**读取优先级**：结构化子表优先，空时 fallback 到 JSONB 缓存（`reconstructSkillArtifactRecord()` 中 `??` 模式）。
 
 **Artifact 仓库代码阅读入口**：
-- 接口定义：`packages/server/src/lib/artifacts/repository.ts:32-103`（`ArtifactRepository` 接口）
-- PG 实现：`packages/server/src/lib/artifacts/pg-repository.ts:33-513`（`PgArtifactRepository` 类）
-- 结构化读取：`pg-repository.ts:1027-1192`（`loadStructuredRevisionData()`）
-- 结构化写入：`pg-repository.ts:849-1025`（`upsertStructuredRevisionRows()` + `replaceStructuredDerivedRows()`）
-- 重建逻辑：`pg-repository.ts:806-847`（`reconstructSkillArtifactRecord()`）
-- Schema 定义：`packages/server/src/lib/persistence/schema.ts:880-1503`（所有 `skill_artifact_*` 表）
+- 接口定义：`packages/server/src/lib/artifacts/repository.ts`（`ArtifactRepository` 接口）
+- PG 实现：`packages/server/src/lib/artifacts/pg-repository/`（`PgArtifactRepository` 类及辅助模块）
+  - `index.ts` — `PgArtifactRepository` 类（委托给辅助模块）
+  - `revision-reader.ts` — `loadStructuredRevisionData()`（结构化读取）
+  - `revision-writer.ts` — `upsertStructuredRevisionRows()` + `replaceStructuredDerivedRows()`（结构化写入）
+  - `record-reconstruction.ts` — `reconstructSkillArtifactRecord()`（重建逻辑）
+  - `derived-store.ts` — boundary / maintenance / agent-review / metadata CRUD
+- Schema 定义：`packages/server/src/lib/persistence/schema/artifacts.ts`（所有 `skill_artifact_*` 表）
 - 迁移文件：`packages/server/drizzle/0007_round4_artifact_structural.sql`
 - Artifact 路由：`packages/server/src/routes/operations/artifacts-import.ts`、`artifacts-export.ts`、`artifacts-activate.ts`
 - 完整事实源/缓存规则：`docs/plans/round4-cross-table-consistency-plan.md` 阶段 0 结论
