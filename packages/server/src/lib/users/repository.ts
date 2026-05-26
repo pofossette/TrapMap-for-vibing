@@ -12,6 +12,7 @@
 import type { Pool } from 'pg';
 
 import type { SkillShareerStore, UserRecord } from '@trapmap/server/lib/store.js';
+import { PgUserRepository } from './pg-repository.js';
 
 /**
  * Repository interface for user CRUD operations.
@@ -87,12 +88,12 @@ export class InMemoryUserRepository implements UserRepository {
 
 /**
  * Factory function to create the appropriate UserRepository.
- * Returns InMemoryUserRepository (Pg implementation to be added in future phase).
+ * Uses PgUserRepository when pool is available, falls back to InMemoryUserRepository.
  */
 export function createUserRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): UserRepository {
-  // TODO[post-Round-8]: Add PgUserRepository when users domain migrates to structured tables.
+  if (config.pool) return new PgUserRepository(config.pool);
   return new InMemoryUserRepository(config.store);
 }

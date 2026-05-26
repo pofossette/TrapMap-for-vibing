@@ -13,7 +13,7 @@
 | 向量搜索 | pgvector (384 维 HNSW 索引) |
 | 全文搜索 | tsvector + GIN 索引 |
 
-## 表总览 (48 张表)
+## 表总览 (54 张表)
 
 ### 兼容层 (1 表)
 
@@ -81,6 +81,35 @@
 | `candidate_manual_results` | 人工审核结果 (1:1) | `candidate_id` (text) |
 | `candidate_resolution_outcomes` | 解析结果 (1:1) | `candidate_id` (text) |
 | `entity_lineage` | 实体溯源 | `id` (text) |
+
+### 身份与审计域 (6 表) — Round 10 Phase 3
+
+> **事实源规则**：结构化表为事实源，PG 模式下不再通过 `store_snapshot` JSONB 读取。`repos.team/user/membership/session/accessKey/audit` 统一入口。
+
+| 表名 | 用途 | 主键 |
+|------|------|------|
+| `users` | 用户 | `id` (text) |
+| `teams` | 团队 | `id` (text) |
+| `memberships` | 团队成员关系 | `id` (text) |
+| `sessions` | 会话 | `id` (text) |
+| `access_keys` | 访问密钥 | `id` (text) |
+| `audit_events` | 审计事件 | `id` (text) |
+
+### 身份与审计域索引
+- `users`: `handle` UNIQUE
+- `teams`: `slug` UNIQUE
+- `memberships`: (`user_id`, `team_id`) UNIQUE; `user_id`, `team_id` 单独索引
+- `sessions`: `token_hash` UNIQUE; `token_hash`, `user_id` 索引
+- `access_keys`: `token_hash` UNIQUE; `token_hash`, `member_id`, `team_id` 索引
+- `audit_events`: `team_id`, `actor_id`, `action`, `entity_id`, `created_at` 索引
+
+### 身份域外键关系
+```
+users (1) ──────→ (N) memberships                   [CASCADE]
+                → (N) sessions                       [SET NULL]
+teams (1) ──────→ (N) memberships                   [CASCADE]
+                → (N) sessions.active_team_id        [SET NULL]
+```
 
 ### 反馈与分析域 (4 表)
 
@@ -271,7 +300,8 @@ feedback_records (1) ──→ (N) feedback_custom_answers       [CASCADE]
 | 6 | `0006_round8_naming_constraints.sql` | 命名规范化 + FK 约束 |
 | 7 | `0007_round4_artifact_structural.sql` | 工件子表 (最大迁移) |
 | 8 | `0008_round9_cross_table_consistency.sql` | 跨表一致性约束（复合FK + CHECK） |
-| 9 | `0009_round10_task_queue_write_path.sql` | 任务队列写路径：dedupe_key + 出队优化索引 |
+| 10 | `0010_round10_lifecycle_outbox.sql` | 生命周期 outbox 事件表 |
+| 11 | `0011_round10_identity_audit_structural.sql` | 身份域和审计域结构化表（Phase 3） |
 
 ## 相关文档
 

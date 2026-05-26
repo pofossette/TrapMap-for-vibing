@@ -1,5 +1,7 @@
 # 会话与认证 (Session & Authentication)
 
+> **Round 10 Phase 3 更新**：身份域和审计域已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表（`users`、`teams`、`memberships`、`sessions`、`access_keys`、`audit_events`）。认证路由已统一通过 `repos.session`、`repos.accessKey`、`repos.membership` 访问，不再回退到 `store.snapshot()`。数据模型详见 [DATA_MODEL.md](../../reference/DATA_MODEL.md)。
+
 ## 概述
 
 TrapMap 使用基于会话的身份验证系统，支持用户名/密码登录和访问密钥认证。会话通过安全的 HTTP-only Cookie 管理，访问密钥用于 CLI 和自动化脚本。

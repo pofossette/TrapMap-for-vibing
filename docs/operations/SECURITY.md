@@ -265,6 +265,8 @@ draft → submitted → agent-pass → approved → (可被检索)
 
 ## 审计日志
 
+> **Round 10 Phase 3 更新**：审计事件已从 `store_snapshot` JSONB 迁移为 `audit_events` 结构化表。PG 模式下通过 `repos.audit.listByFilter()` 查询，支持 action/actorId/entityId/teamId/时间范围过滤和分页。
+
 ### 启用审计
 
 ```bash

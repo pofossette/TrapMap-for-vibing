@@ -20,8 +20,6 @@ import {
   requireSystemAdminKey,
   resolveAuthContext,
 } from '@trapmap/server/lib/session.js';
-import type { SessionRecord } from '@trapmap/server/lib/store.js';
-import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/auth/login', async (request, reply) => {
@@ -30,9 +28,8 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     if ('systemAdminKey' in payload) {
       requireSystemAdminKey(app.skillShareer.config, payload.systemAdminKey);
 
-      // Use sessionRepo if available, fallback to store
       const { record, token } = await createSession(
-        app.skillShareer.sessionRepo ?? app.skillShareer.store,
+        app.skillShareer.repos.session,
         'system-admin',
         null,
         null,
@@ -42,23 +39,20 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       return reply.header('x-session-token', token).send(loginResponseSchema.parse({ session }));
     }
 
-    // Use accessKeyRepo if available, fallback to store snapshot
-    const accessKey = app.skillShareer.accessKeyRepo
-      ? await findAccessKeyByToken(app.skillShareer.accessKeyRepo, payload.accessKey)
-      : await findAccessKeyByToken(await app.skillShareer.store.snapshot(), payload.accessKey);
+    const accessKey = await findAccessKeyByToken(
+      app.skillShareer.repos.accessKey,
+      payload.accessKey,
+    );
 
     if (!accessKey) {
       throw new AppError(401, 'invalid_access_key', 'Access key is invalid or revoked');
     }
 
-    // Get user ID from membership
-    const data = await app.skillShareer.store.snapshot();
-    const userId =
-      data.memberships.find((membership) => membership.id === accessKey.memberId)?.userId ?? null;
+    const membership = await app.skillShareer.repos.membership.getById(accessKey.memberId);
+    const userId = membership?.userId ?? null;
 
-    // Use sessionRepo if available, fallback to store
     const { record, token } = await createSession(
-      app.skillShareer.sessionRepo ?? app.skillShareer.store,
+      app.skillShareer.repos.session,
       'user',
       userId,
       accessKey.teamId,
@@ -86,8 +80,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const token = getSessionToken(request);
 
     if (token) {
-      // Use sessionRepo if available, fallback to store
-      await deleteSession(app.skillShareer.sessionRepo ?? app.skillShareer.store, token);
+      await deleteSession(app.skillShareer.repos.session, token);
     }
 
     return logoutResponseSchema.parse({ ok: true });
@@ -98,15 +91,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'team:select');
 
     const payload = selectTeamRequestSchema.parse(request.body);
-    const data = await app.skillShareer.store.snapshot();
 
-    if (
-      auth.subjectType !== 'system-admin' &&
-      !data.memberships.some(
-        (membership) => membership.userId === auth.user?.id && membership.teamId === payload.teamId,
-      )
-    ) {
-      throw new AppError(403, 'team_mismatch', 'Selected team is not available to this session');
+    if (auth.subjectType !== 'system-admin') {
+      const memberships = await app.skillShareer.repos.membership.listByUser(auth.actorId);
+      if (!memberships.some((m) => m.teamId === payload.teamId)) {
+        throw new AppError(403, 'team_mismatch', 'Selected team is not available to this session');
+      }
     }
 
     const token = getSessionToken(request);
@@ -115,34 +105,16 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(401, 'unauthorized', 'A valid session token is required');
     }
 
-    // Use sessionRepo if available, fallback to store.transact
-    let updatedSession: SessionRecord | undefined;
-    if (app.skillShareer.sessionRepo) {
-      const session = await findSessionByToken(app.skillShareer.sessionRepo, token);
-      if (!session) {
-        throw new AppError(401, 'unauthorized', 'Session not found or expired');
-      }
-      updatedSession = await app.skillShareer.sessionRepo.updateActiveTeam(
-        session.id,
-        payload.teamId,
-      );
-    } else {
-      updatedSession = await app.skillShareer.store.transact((storeData) => {
-        const sessionRecord = storeData.sessions.find(
-          (candidate) => candidate.tokenHash === hashSecret(token),
-        );
-
-        if (!sessionRecord) {
-          throw new AppError(401, 'unauthorized', 'Session not found or expired');
-        }
-
-        sessionRecord.activeTeamId = payload.teamId;
-        sessionRecord.updatedAt = nowIso();
-        return sessionRecord;
-      });
+    const session = await findSessionByToken(app.skillShareer.repos.session, token);
+    if (!session) {
+      throw new AppError(401, 'unauthorized', 'Session not found or expired');
     }
+    const updatedSession = await app.skillShareer.repos.session.updateActiveTeam(
+      session.id,
+      payload.teamId,
+    );
 
-    const session = await getSessionResponse(app.skillShareer, updatedSession);
-    return loginResponseSchema.parse({ session });
+    const result = await getSessionResponse(app.skillShareer, updatedSession);
+    return loginResponseSchema.parse({ session: result });
   });
 };

@@ -12,6 +12,7 @@
 import type { Pool } from 'pg';
 
 import type { AuditEventRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { PgAuditRepository } from './pg-repository.js';
 
 /**
  * Repository interface for audit event CRUD operations.
@@ -115,12 +116,12 @@ export class InMemoryAuditRepository implements AuditRepository {
 
 /**
  * Factory function to create the appropriate AuditRepository.
- * Returns InMemoryAuditRepository (Pg implementation to be added in future phase).
+ * Uses PgAuditRepository when pool is available, falls back to InMemoryAuditRepository.
  */
 export function createAuditRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): AuditRepository {
-  // TODO[post-Round-8]: Add PgAuditRepository when audit domain migrates to structured tables.
+  if (config.pool) return new PgAuditRepository(config.pool);
   return new InMemoryAuditRepository(config.store);
 }

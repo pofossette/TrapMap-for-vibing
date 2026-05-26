@@ -244,6 +244,147 @@ export const graphIndexDocuments = pgTable(
 );
 
 // =============================================================================
+// Identity & Audit Domain Tables (Round 10 Phase 3)
+// =============================================================================
+
+export const userIdSeq = pgSequence('user_id_seq', {
+  startWith: 1,
+  increment: 1,
+});
+
+export const teamIdSeq = pgSequence('team_id_seq', {
+  startWith: 1,
+  increment: 1,
+});
+
+export const membershipIdSeq = pgSequence('membership_id_seq', {
+  startWith: 1,
+  increment: 1,
+});
+
+export const sessionIdSeq = pgSequence('session_id_seq', {
+  startWith: 1,
+  increment: 1,
+});
+
+export const accessKeyIdSeq = pgSequence('access_key_id_seq', {
+  startWith: 1,
+  increment: 1,
+});
+
+export const auditEventIdSeq = pgSequence('audit_event_id_seq', {
+  startWith: 1,
+  increment: 1,
+});
+
+export const usersTable = pgTable(
+  'users',
+  {
+    id: text('id').primaryKey(),
+    handle: text('handle').notNull().unique(),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+);
+
+export const teamsTable = pgTable(
+  'teams',
+  {
+    id: text('id').primaryKey(),
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('teams_slug_uidx').on(table.slug),
+  ],
+);
+
+export const membershipsTable = pgTable(
+  'memberships',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => usersTable.id, { onDelete: 'cascade' }),
+    teamId: text('team_id').notNull().references(() => teamsTable.id, { onDelete: 'cascade' }),
+    roleTemplate: text('role_template').notNull(),
+    securityLevel: integer('security_level').notNull(),
+    permissions: jsonb('permissions').notNull().$type<string[]>().default([]),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('memberships_user_team_uidx').on(table.userId, table.teamId),
+    index('memberships_user_id_idx').on(table.userId),
+    index('memberships_team_id_idx').on(table.teamId),
+  ],
+);
+
+export const sessionsTable = pgTable(
+  'sessions',
+  {
+    id: text('id').primaryKey(),
+    tokenHash: text('token_hash').notNull().unique(),
+    userId: text('user_id').references(() => usersTable.id),
+    activeTeamId: text('active_team_id').references(() => teamsTable.id),
+    subjectType: text('subject_type').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('sessions_token_hash_idx').on(table.tokenHash),
+    index('sessions_user_id_idx').on(table.userId),
+  ],
+);
+
+export const accessKeysTable = pgTable(
+  'access_keys',
+  {
+    id: text('id').primaryKey(),
+    memberId: text('member_id').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    tokenPreview: text('token_preview').notNull(),
+    issuedByUserId: text('issued_by_user_id').notNull(),
+    teamId: text('team_id').notNull(),
+    level: integer('level').notNull(),
+    notes: text('notes'),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('access_keys_token_hash_idx').on(table.tokenHash),
+    index('access_keys_member_id_idx').on(table.memberId),
+    index('access_keys_team_id_idx').on(table.teamId),
+  ],
+);
+
+export const auditEventsTable = pgTable(
+  'audit_events',
+  {
+    id: text('id').primaryKey(),
+    teamId: text('team_id'),
+    actorId: text('actor_id').notNull(),
+    action: text('action').notNull(),
+    entityId: text('entity_id').notNull(),
+    payload: jsonb('payload').notNull().$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('audit_events_team_id_idx').on(table.teamId),
+    index('audit_events_actor_id_idx').on(table.actorId),
+    index('audit_events_action_idx').on(table.action),
+    index('audit_events_entity_id_idx').on(table.entityId),
+    index('audit_events_created_at_idx').on(table.createdAt),
+  ],
+);
+
+// =============================================================================
 // Candidate Pipeline Tables (Phase 61: WRITE-01)
 // =============================================================================
 

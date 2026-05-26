@@ -17,6 +17,7 @@ import type {
   SessionRecord,
   SkillShareerStore,
 } from '@trapmap/server/lib/store.js';
+import { PgSessionRepository, PgAccessKeyRepository } from './pg-repository.js';
 
 /**
  * Repository interface for session CRUD operations.
@@ -180,24 +181,24 @@ export class InMemoryAccessKeyRepository implements AccessKeyRepository {
 
 /**
  * Factory function to create the appropriate SessionRepository.
- * Returns InMemorySessionRepository (Pg implementation to be added in future phase).
+ * Uses PgSessionRepository when pool is available, falls back to InMemorySessionRepository.
  */
 export function createSessionRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): SessionRepository {
-  // TODO[post-Round-8]: Add PgSessionRepository when sessions domain migrates to structured tables.
+  if (config.pool) return new PgSessionRepository(config.pool);
   return new InMemorySessionRepository(config.store);
 }
 
 /**
  * Factory function to create the appropriate AccessKeyRepository.
- * Returns InMemoryAccessKeyRepository (Pg implementation to be added in future phase).
+ * Uses PgAccessKeyRepository when pool is available, falls back to InMemoryAccessKeyRepository.
  */
 export function createAccessKeyRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): AccessKeyRepository {
-  // TODO[post-Round-8]: Add PgAccessKeyRepository when access keys domain migrates to structured tables.
+  if (config.pool) return new PgAccessKeyRepository(config.pool);
   return new InMemoryAccessKeyRepository(config.store);
 }

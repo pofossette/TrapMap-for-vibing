@@ -13,6 +13,7 @@
 import type { Pool } from 'pg';
 
 import type { MembershipRecord, SkillShareerStore, TeamRecord } from '@trapmap/server/lib/store.js';
+import { PgTeamRepository, PgMembershipRepository } from './pg-repository.js';
 
 /**
  * Repository interface for team CRUD operations.
@@ -98,15 +99,13 @@ export class InMemoryTeamRepository implements TeamRepository {
 
 /**
  * Factory function to create the appropriate TeamRepository.
- * Returns InMemoryTeamRepository (Pg implementation to be added in future phase).
+ * Uses PgTeamRepository when pool is available, falls back to InMemoryTeamRepository.
  */
 export function createTeamRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): TeamRepository {
-  // TODO[post-Round-8]: Add PgTeamRepository when teams domain migrates to structured tables.
-  // Per plan.md Round 2, DualWrite is no longer the migration strategy — use PG-only with
-  // one-time data backfill from store_snapshot instead.
+  if (config.pool) return new PgTeamRepository(config.pool);
   return new InMemoryTeamRepository(config.store);
 }
 
@@ -204,12 +203,12 @@ export class InMemoryMembershipRepository implements MembershipRepository {
 
 /**
  * Factory function to create the appropriate MembershipRepository.
- * Returns InMemoryMembershipRepository (Pg implementation to be added in future phase).
+ * Uses PgMembershipRepository when pool is available, falls back to InMemoryMembershipRepository.
  */
 export function createMembershipRepository(config: {
   pool?: Pool;
   store: SkillShareerStore;
 }): MembershipRepository {
-  // TODO[post-Round-8]: Add PgMembershipRepository when memberships domain migrates to structured tables.
+  if (config.pool) return new PgMembershipRepository(config.pool);
   return new InMemoryMembershipRepository(config.store);
 }
