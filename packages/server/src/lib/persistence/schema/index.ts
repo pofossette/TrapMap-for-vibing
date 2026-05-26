@@ -7,9 +7,9 @@
  * @module persistence/schema
  */
 
+import type { StoreData } from '@trapmap/server/lib/store.js';
 // Compatibility: store snapshot table (singleton JSONB aggregate)
 import { jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
-import type { StoreData } from '@trapmap/server/lib/store.js';
 
 /**
  * Single-row table that persists the full StoreData aggregate as JSONB.

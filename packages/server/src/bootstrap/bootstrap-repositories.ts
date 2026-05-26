@@ -7,17 +7,23 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { createUsageAnalyticsRepository } from '../lib/analytics/index.js';
-import { createArtifactRepository } from '../lib/artifacts/index.js';
-import { createAccessKeyRepository, createSessionRepository } from '../lib/auth/index.js';
-import { createKnowledgeRepository } from '../lib/knowledge/index.js';
-import { runMigrations } from '../lib/persistence/migration-runner.js';
-import { PostgresStore } from '../lib/persistence/postgres-store.js';
-import { createAllRepos } from '../lib/repos/index.js';
-import { ensureVectorIndex } from '../lib/retrieval/recall/db-search.js';
-import { createGraphChannel } from '../lib/retrieval/recall/graph-assisted.js';
-import { createMembershipRepository, createTeamRepository } from '../lib/teams/index.js';
-import { createUserRepository } from '../lib/users/index.js';
+import { createUsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
+import { createArtifactRepository } from '@trapmap/server/lib/artifacts/index.js';
+import {
+  createAccessKeyRepository,
+  createSessionRepository,
+} from '@trapmap/server/lib/auth/index.js';
+import { createKnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
+import { runMigrations } from '@trapmap/server/lib/persistence/migration-runner.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { createAllRepos } from '@trapmap/server/lib/repos/index.js';
+import { ensureVectorIndex } from '@trapmap/server/lib/retrieval/recall/db-search.js';
+import { createGraphChannel } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
+import {
+  createMembershipRepository,
+  createTeamRepository,
+} from '@trapmap/server/lib/teams/index.js';
+import { createUserRepository } from '@trapmap/server/lib/users/index.js';
 
 export async function bootstrapRepositories(app: FastifyInstance): Promise<void> {
   const store = app.skillShareer.store;
@@ -62,7 +68,5 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
   }
 
   // Register graph channel now that repos are available
-  app.skillShareer.channelRegistry.register(
-    createGraphChannel(app.skillShareer.repos.graphIndex),
-  );
+  app.skillShareer.channelRegistry.register(createGraphChannel(app.skillShareer.repos.graphIndex));
 }

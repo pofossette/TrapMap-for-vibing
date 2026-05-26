@@ -14,8 +14,8 @@ import {
   type CandidateProcessorServices,
   scheduleCandidateProcessing,
 } from '@trapmap/server/lib/candidates/processor.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
@@ -45,7 +45,10 @@ export async function createAndEnqueueCandidate(
     securityLevel: number;
     originalPayload: CandidateSubmission['originalPayload'];
   },
-): Promise<{ candidate: CandidateSubmission; response: { candidateId: string; status: string; receivedAt: string } }> {
+): Promise<{
+  candidate: CandidateSubmission;
+  response: { candidateId: string; status: string; receivedAt: string };
+}> {
   const { store, repos, config } = deps;
   const { candidate: candidateRepo } = repos;
 

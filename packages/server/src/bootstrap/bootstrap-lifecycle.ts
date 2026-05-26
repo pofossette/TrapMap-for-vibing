@@ -7,31 +7,25 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { createDomainEventOutbox } from '../lib/lifecycle/outbox.js';
-import { createAuditSubscriber } from '../lib/lifecycle/subscribers/audit.js';
-import { createConflictSubscriber } from '../lib/lifecycle/subscribers/conflict.js';
-import { createIndexingSubscriber } from '../lib/lifecycle/subscribers/indexing.js';
-import type { DomainEventHandler } from '../lib/lifecycle/types.js';
-import { PostgresStore } from '../lib/persistence/postgres-store.js';
+import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
+import { createAuditSubscriber } from '@trapmap/server/lib/lifecycle/subscribers/audit.js';
+import { createConflictSubscriber } from '@trapmap/server/lib/lifecycle/subscribers/conflict.js';
+import { createIndexingSubscriber } from '@trapmap/server/lib/lifecycle/subscribers/indexing.js';
+import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 
 export async function bootstrapLifecycle(app: FastifyInstance): Promise<void> {
   const { eventBus, store, adapterRegistry } = app.skillShareer;
 
   // Indexing subscriber: syncs knowledge indexes on state transitions
   eventBus.onDomainEvent('knowledge.approved', createIndexingSubscriber(store, adapterRegistry));
-  eventBus.onDomainEvent(
-    'knowledge.deactivated',
-    createIndexingSubscriber(store, adapterRegistry),
-  );
+  eventBus.onDomainEvent('knowledge.deactivated', createIndexingSubscriber(store, adapterRegistry));
   eventBus.onDomainEvent(
     'knowledge.agent-reviewed',
     createIndexingSubscriber(store, adapterRegistry),
   );
   eventBus.onDomainEvent('knowledge.rejected', createIndexingSubscriber(store, adapterRegistry));
-  eventBus.onDomainEvent(
-    'knowledge.resubmitted',
-    createIndexingSubscriber(store, adapterRegistry),
-  );
+  eventBus.onDomainEvent('knowledge.resubmitted', createIndexingSubscriber(store, adapterRegistry));
   eventBus.onDomainEvent('knowledge.re-review', createIndexingSubscriber(store, adapterRegistry));
 
   // Audit subscriber: logs lifecycle transitions

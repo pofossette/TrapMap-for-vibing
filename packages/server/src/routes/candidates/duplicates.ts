@@ -14,13 +14,13 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { requirePermission } from '@trapmap/server/lib/rbac.js';
-import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import {
   buildDuplicateBundle,
   getDuplicateCase,
   listDuplicateCases,
 } from '@trapmap/server/lib/candidates/services/query-service.js';
+import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
 export const candidateDuplicateRoutes: FastifyPluginAsync = async (app) => {
   // GET /v1/duplicates - List all duplicate cases
@@ -38,10 +38,7 @@ export const candidateDuplicateRoutes: FastifyPluginAsync = async (app) => {
     await resolveAuthContext(app.skillShareer, request);
     const candidateId = (request.params as { candidateId: string }).candidateId;
 
-    const duplicateCase = await getDuplicateCase(
-      { repos: app.skillShareer.repos },
-      candidateId,
-    );
+    const duplicateCase = await getDuplicateCase({ repos: app.skillShareer.repos }, candidateId);
 
     return duplicateCaseResponseSchema.parse({ duplicateCase });
   });
@@ -53,10 +50,7 @@ export const candidateDuplicateRoutes: FastifyPluginAsync = async (app) => {
 
     const candidateId = (request.params as { candidateId: string }).candidateId;
 
-    const bundle = await buildDuplicateBundle(
-      { repos: app.skillShareer.repos },
-      candidateId,
-    );
+    const bundle = await buildDuplicateBundle({ repos: app.skillShareer.repos }, candidateId);
 
     return DuplicateJobBundleResponseSchema.parse(bundle);
   });

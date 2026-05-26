@@ -1,8 +1,8 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
-const ROOT = resolve(import.meta.dirname, "..");
-const CONFIG_PATH = resolve(ROOT, "scripts/complexity-budgets.json");
+const ROOT = resolve(import.meta.dirname, '..');
+const CONFIG_PATH = resolve(ROOT, 'scripts/complexity-budgets.json');
 
 interface LineBudget {
   file: string;
@@ -14,7 +14,7 @@ interface Config {
 }
 
 function main(): void {
-  const raw = readFileSync(CONFIG_PATH, "utf-8");
+  const raw = readFileSync(CONFIG_PATH, 'utf-8');
   const config: Config = JSON.parse(raw);
 
   let failures = 0;
@@ -23,22 +23,20 @@ function main(): void {
     const filePath = resolve(ROOT, budget.file);
     let content: string;
     try {
-      content = readFileSync(filePath, "utf-8");
+      content = readFileSync(filePath, 'utf-8');
     } catch {
       console.error(`[complexity] WARN: cannot read ${budget.file}, skipping`);
       continue;
     }
 
-    const lineCount = content.split("\n").length;
+    const lineCount = content.split('\n').length;
     if (lineCount > budget.maxLines) {
       console.error(
         `[complexity] FAIL: ${budget.file} has ${lineCount} lines (budget: ${budget.maxLines})`,
       );
       failures++;
     } else {
-      console.log(
-        `[complexity] OK: ${budget.file} has ${lineCount}/${budget.maxLines} lines`,
-      );
+      console.log(`[complexity] OK: ${budget.file} has ${lineCount}/${budget.maxLines} lines`);
     }
   }
 

@@ -11,13 +11,13 @@
 import type { ManualResultSubmission } from '@trapmap/contracts';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { applyManualResultResolution } from '@trapmap/server/lib/candidates/reconcile.js';
-import { AppError } from '@trapmap/server/lib/errors.js';
-import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import type { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
+import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
-import type { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
 
 /** Dependencies required by the resolution service. */
 export interface ResolutionDeps {
@@ -50,11 +50,7 @@ export async function attachManualResult(
 }> {
   // Validate mergedWith is present for merged decision
   if (body.decision === 'merged' && !body.mergedWith) {
-    throw new AppError(
-      400,
-      'validation_error',
-      'mergedWith is required when decision is "merged"',
-    );
+    throw new AppError(400, 'validation_error', 'mergedWith is required when decision is "merged"');
   }
 
   const nextState = body.decision === 'independent' ? 'ready_for_review' : 'rejected';

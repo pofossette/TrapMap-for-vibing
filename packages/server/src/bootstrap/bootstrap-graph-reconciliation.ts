@@ -7,7 +7,7 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { reconcileGraphIndexes } from '../lib/indexing/reconcile.js';
+import { reconcileGraphIndexes } from '@trapmap/server/lib/indexing/reconcile.js';
 
 export async function bootstrapGraphReconciliation(app: FastifyInstance): Promise<void> {
   try {

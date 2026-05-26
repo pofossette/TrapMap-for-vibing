@@ -25,21 +25,8 @@ import type {
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
 } from '@trapmap/server/lib/store.js';
-import type { ArtifactRepository } from '../repository.js';
+import type { ArtifactRepository } from '@trapmap/server/lib/artifacts/repository.js';
 
-import {
-  type DrizzleArtifactLifecycleEventRow,
-  type DrizzleArtifactRevisionRow,
-  type DrizzleSkillArtifactRow,
-  reconstructSkillArtifactRecord,
-  rowToSkillArtifact,
-} from './record-reconstruction.js';
-import { loadStructuredRevisionData } from './revision-reader.js';
-import {
-  syncRevisionCount,
-  upsertStructuredRevisionRows,
-  replaceStructuredDerivedRows,
-} from './revision-writer.js';
 import {
   insertArtifactBoundarySubTables,
   loadArtifactAgentReview,
@@ -50,6 +37,19 @@ import {
   upsertArtifactMaintenanceAssignment,
   upsertArtifactMetadata,
 } from './derived-store.js';
+import {
+  type DrizzleArtifactLifecycleEventRow,
+  type DrizzleArtifactRevisionRow,
+  type DrizzleSkillArtifactRow,
+  reconstructSkillArtifactRecord,
+  rowToSkillArtifact,
+} from './record-reconstruction.js';
+import { loadStructuredRevisionData } from './revision-reader.js';
+import {
+  replaceStructuredDerivedRows,
+  syncRevisionCount,
+  upsertStructuredRevisionRows,
+} from './revision-writer.js';
 
 /**
  * PostgreSQL-backed repository for skill artifact CRUD operations.

@@ -7,9 +7,9 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { createCandidateProcessingHandler } from '../lib/candidates/index.js';
-import { PostgresStore } from '../lib/persistence/postgres-store.js';
-import { type TaskHandler, createTaskWorker } from '../lib/queue/task-queue.js';
+import { createCandidateProcessingHandler } from '@trapmap/server/lib/candidates/index.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { type TaskHandler, createTaskWorker } from '@trapmap/server/lib/queue/task-queue.js';
 
 export async function bootstrapWorkers(app: FastifyInstance): Promise<void> {
   const store = app.skillShareer.store;

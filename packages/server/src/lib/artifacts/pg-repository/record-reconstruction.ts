@@ -265,7 +265,9 @@ export function rowToSkillArtifact(row: DrizzleSkillArtifactRow): SkillArtifactR
 /**
  * Map a Drizzle revision row to SkillArtifactRevisionRecord.
  */
-export function rowToArtifactRevision(row: DrizzleArtifactRevisionRow): SkillArtifactRevisionRecord {
+export function rowToArtifactRevision(
+  row: DrizzleArtifactRevisionRow,
+): SkillArtifactRevisionRecord {
   return {
     revision: row.revision_no,
     sourceHash: row.source_hash,

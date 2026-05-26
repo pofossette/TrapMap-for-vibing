@@ -1,8 +1,8 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
-const ROOT = resolve(import.meta.dirname, "..");
-const CONFIG_PATH = resolve(ROOT, "scripts/complexity-budgets.json");
+const ROOT = resolve(import.meta.dirname, '..');
+const CONFIG_PATH = resolve(ROOT, 'scripts/complexity-budgets.json');
 
 interface DocRule {
   file: string;
@@ -15,7 +15,7 @@ interface Config {
 }
 
 function main(): void {
-  const raw = readFileSync(CONFIG_PATH, "utf-8");
+  const raw = readFileSync(CONFIG_PATH, 'utf-8');
   const config: Config = JSON.parse(raw);
 
   let failures = 0;
@@ -24,7 +24,7 @@ function main(): void {
     const filePath = resolve(ROOT, rule.file);
     let content: string;
     try {
-      content = readFileSync(filePath, "utf-8");
+      content = readFileSync(filePath, 'utf-8');
     } catch {
       console.error(`[doc-drift] FAIL: cannot read ${rule.file}`);
       failures++;
@@ -34,9 +34,7 @@ function main(): void {
     if (rule.mustContain) {
       for (const phrase of rule.mustContain) {
         if (!content.includes(phrase)) {
-          console.error(
-            `[doc-drift] FAIL: ${rule.file} must contain "${phrase}" but does not`,
-          );
+          console.error(`[doc-drift] FAIL: ${rule.file} must contain "${phrase}" but does not`);
           failures++;
         }
       }
@@ -45,9 +43,7 @@ function main(): void {
     if (rule.mustNotContain) {
       for (const phrase of rule.mustNotContain) {
         if (content.includes(phrase)) {
-          console.error(
-            `[doc-drift] FAIL: ${rule.file} must NOT contain "${phrase}" but does`,
-          );
+          console.error(`[doc-drift] FAIL: ${rule.file} must NOT contain "${phrase}" but does`);
           failures++;
         }
       }

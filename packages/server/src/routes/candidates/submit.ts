@@ -6,13 +6,16 @@
  */
 
 import { createHash } from 'node:crypto';
-import { candidateSubmissionRequestSchema, candidateSubmissionResponseSchema } from '@trapmap/contracts';
+import {
+  candidateSubmissionRequestSchema,
+  candidateSubmissionResponseSchema,
+} from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
+import { createAndEnqueueCandidate } from '@trapmap/server/lib/candidates/services/submission-service.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
-import { createAndEnqueueCandidate } from '@trapmap/server/lib/candidates/services/submission-service.js';
 
 function requireRealUser(userId: string | undefined): string {
   if (!userId) {

@@ -7,12 +7,9 @@
  * @module candidates/services/query
  */
 
-import type {
-  DuplicateJobBundleResponse,
-  DuplicateJobMatchEntity,
-} from '@trapmap/contracts';
-import { AppError } from '@trapmap/server/lib/errors.js';
+import type { DuplicateJobBundleResponse, DuplicateJobMatchEntity } from '@trapmap/contracts';
 import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
 
 /** Dependencies required by the query service. */
 export interface QueryDeps {
@@ -53,10 +50,7 @@ export async function getCandidate(
  * List candidates, optionally filtered by status.
  * When no status is provided, aggregates across all known statuses.
  */
-export async function listCandidates(
-  deps: QueryDeps,
-  statusFilter?: string,
-) {
+export async function listCandidates(deps: QueryDeps, statusFilter?: string) {
   const { candidate: candidateRepo } = deps.repos;
 
   let items: Awaited<ReturnType<typeof candidateRepo.listByStatus>>;
@@ -72,9 +66,7 @@ export async function listCandidates(
       'error',
       'resolved',
     ] as const;
-    const results = await Promise.all(
-      allStatuses.map((s) => candidateRepo.listByStatus(s as any)),
-    );
+    const results = await Promise.all(allStatuses.map((s) => candidateRepo.listByStatus(s as any)));
     items = results.flat();
   }
 

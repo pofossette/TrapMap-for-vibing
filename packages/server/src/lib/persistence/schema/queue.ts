@@ -3,13 +3,7 @@
  *
  * Covers: durable task queue backed by PostgreSQL SKIP LOCKED.
  */
-import {
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-} from 'drizzle-orm/pg-core';
+import { index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 // =============================================================================
 // Task Queue Table

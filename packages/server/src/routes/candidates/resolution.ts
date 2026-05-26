@@ -13,13 +13,13 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
+import {
+  applyResolution,
+  attachManualResult,
+} from '@trapmap/server/lib/candidates/services/resolution-service.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
-import {
-  attachManualResult,
-  applyResolution,
-} from '@trapmap/server/lib/candidates/services/resolution-service.js';
 
 export const candidateResolutionRoutes: FastifyPluginAsync = async (app) => {
   // POST /v1/candidates/:candidateId/manual-result - Submit manual resolution

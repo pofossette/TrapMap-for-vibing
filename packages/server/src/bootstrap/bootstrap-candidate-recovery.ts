@@ -11,9 +11,9 @@ import {
   CANDIDATE_PROCESSING_TASK_TYPE,
   findInterruptedCandidates,
   resetInterruptedCandidates,
-} from '../lib/candidates/index.js';
-import { PostgresStore } from '../lib/persistence/postgres-store.js';
-import { createTaskQueue } from '../lib/queue/task-queue.js';
+} from '@trapmap/server/lib/candidates/index.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 
 export async function bootstrapCandidateRecovery(app: FastifyInstance): Promise<void> {
   try {

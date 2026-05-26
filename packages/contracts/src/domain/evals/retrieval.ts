@@ -12,7 +12,12 @@
 
 import { z } from 'zod';
 
-import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema } from '../common.js';
+import {
+  entityIdSchema,
+  labelSchema,
+  scopeSchema,
+  securityLevelSchema,
+} from '@trapmap/contracts/domain/common.js';
 
 // =============================================================================
 // Evaluation Tier Enum

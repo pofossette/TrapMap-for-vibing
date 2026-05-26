@@ -6,18 +6,15 @@
  * - GET /v1/candidates/:candidateId - Get candidate status
  */
 
-import {
-  candidateListResponseSchema,
-  candidateStatusResponseSchema,
-} from '@trapmap/contracts';
+import { candidateListResponseSchema, candidateStatusResponseSchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { requirePermission } from '@trapmap/server/lib/rbac.js';
-import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import {
   getCandidate,
   listCandidates,
 } from '@trapmap/server/lib/candidates/services/query-service.js';
+import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
 export const candidateQueryRoutes: FastifyPluginAsync = async (app) => {
   // GET /v1/candidates - List candidates with optional status filter
@@ -26,10 +23,7 @@ export const candidateQueryRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:review');
 
     const query = request.query as { status?: string };
-    const result = await listCandidates(
-      { repos: app.skillShareer.repos },
-      query.status,
-    );
+    const result = await listCandidates({ repos: app.skillShareer.repos }, query.status);
 
     return candidateListResponseSchema.parse(result);
   });

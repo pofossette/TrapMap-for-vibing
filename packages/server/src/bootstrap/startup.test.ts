@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildServer } from '../app.js';
+import { buildServer } from '@trapmap/server/app.js';
 
 describe('startup sequence', () => {
   it('initializes repos before candidate recovery', async () => {
