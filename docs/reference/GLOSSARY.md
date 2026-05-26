@@ -104,10 +104,10 @@
 | `packages/server/src/routes/retrieval.ts:71` | Route | `POST /v1/retrieval/search` — v1 检索（接受 `mode` 参数） |
 | `packages/server/src/routes/retrieval.ts` | Route | `POST /v2/retrieval/search` — v2 检索（Capsule + Profile） |
 | `packages/server/src/routes/retrieval.ts` | Route | `POST /v3/retrieval/search` — v3 检索（graphPlan + Fallback） |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`knowledge_embeddings`) | 语义检索的向量索引（pgvector HNSW），labels 为 text[] |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`knowledge_keywords`) | 关键词检索的词元索引（text[] GIN），tokens 和 field_tokens_* 均为 text[] |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`knowledge_search_documents`) | 全文检索索引（tsvector GIN），Round 7 新增 |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`graph_index_documents`) | GraphRAG-lite 图索引持久化，Round 7 新增，替代 store_snapshot 内存存储 |
+| `packages/server/src/lib/persistence/schema/retrieval.ts` | DB 表 (`knowledge_embeddings`) | 语义检索的向量索引（pgvector HNSW），labels 为 text[] |
+| `packages/server/src/lib/persistence/schema/retrieval.ts` | DB 表 (`knowledge_keywords`) | 关键词检索的词元索引（text[] GIN），tokens 和 field_tokens_* 均为 text[] |
+| `packages/server/src/lib/persistence/schema/retrieval.ts` | DB 表 (`knowledge_search_documents`) | 全文检索索引（tsvector GIN），Round 7 新增 |
+| `packages/server/src/lib/persistence/schema/retrieval.ts` | DB 表 (`graph_index_documents`) | GraphRAG-lite 图索引持久化，Round 7 新增，替代 store_snapshot 内存存储 |
 
 ### Capsule（技能胶囊）
 
@@ -269,8 +269,8 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/server/src/lib/lifecycle/state-machine.ts:81` | Impl 函数 (`transitionLifecycleState`) | 纯校验 + 变更 |
 | `packages/server/src/lib/lifecycle/state-machine.ts:109` | Impl 函数 (`executeTransition`) | 编排器：校验 → 变更 → 发布领域事件 |
 | `packages/server/src/lib/lifecycle/transitions.ts:18-44` | TS 常量 (`TRANSITIONS`) | `TransitionDefinition[]` — 完整 (from, to) → event 映射表 |
-| `packages/server/src/lib/persistence/schema.ts:654-693` | DB 表 (`lifecycle_events`) | KnowledgeEntry 生命周期事件，`type` 字段受 `CHECK` 约束（Round 3） |
-| `packages/server/src/lib/persistence/schema.ts:1062-1093` | DB 表 (`artifact_lifecycle_events`) | SkillArtifact 生命周期事件 |
+| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`lifecycle_events`) | KnowledgeEntry 生命周期事件，`type` 字段受 `CHECK` 约束（Round 3） |
+| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`artifact_lifecycle_events`) | SkillArtifact 生命周期事件 |
 
 ### Agent Review（AI 预审）
 
@@ -310,10 +310,10 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/candidates.ts:15-23` | Zod enum (`CandidateStatusSchema`) | 管道状态：`['received', 'queued', 'analyzing', 'duplicate_detected', 'ready_for_review', 'resolved', 'error']` |
 | `packages/contracts/src/domain/candidates.ts:167-212` | Zod schema (`CandidateSubmissionSchema`) | 完整记录：id, sourceType, submittedBy, status, originalPayload, analysisSnapshot, duplicateCase, manualResult, timestamps |
 | `packages/contracts/src/domain/candidates.ts:445` | TS 类型 (`CandidateSubmission`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`candidates`) | 行级持久化主表 |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`candidate_analyses`) | 结构化分析结果子表（Round 5） |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`candidate_manual_results`) | 结构化人工审核结果子表（Round 5） |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`candidate_resolution_outcomes`) | 解决结果子表（Round 5） |
+| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidates`) | 行级持久化主表 |
+| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_analyses`) | 结构化分析结果子表（Round 5） |
+| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_manual_results`) | 结构化人工审核结果子表（Round 5） |
+| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_resolution_outcomes`) | 解决结果子表（Round 5） |
 | `packages/server/src/lib/candidates/processor.ts` | Impl | `scheduleCandidateProcessing()`, `processCandidate()`, `processPendingCandidates()` |
 | `packages/server/src/routes/candidates.ts:104` | Route | `POST /v1/candidates` — 提交新候选 |
 | `packages/server/src/routes/candidates.ts:188` | Route | `GET /v1/candidates/:candidateId` — 查询状态 |
@@ -329,8 +329,8 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/candidates.ts:125-138` | Zod schema (`DuplicateMatchSchema`) | 单条匹配：entityType, entityId, entityTitle, similarityScore, matchType, overlapDetails |
 | `packages/contracts/src/domain/candidates.ts:144-161` | Zod schema (`DuplicateCaseSchema`) | 完整案例：id, candidateId, detectedAt, detectionVersion, matches[], highestSimilarity, hasExactDuplicate, duplicateType |
 | `packages/contracts/src/domain/candidates.ts:444` | TS 类型 (`DuplicateCase`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`candidate_duplicate_cases`) | 判重主记录结构化表（Round 5） |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`candidate_duplicate_matches`) | 匹配详情行结构化表（Round 5） |
+| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_duplicate_cases`) | 判重主记录结构化表（Round 5） |
+| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_duplicate_matches`) | 匹配详情行结构化表（Round 5） |
 | `packages/server/src/lib/candidates/pg-detector.ts` | Impl | `createPgDuplicateDetector()` — PostgreSQL 去重检测 |
 | `packages/server/src/lib/duplicates/pg-repository.ts` | Impl | `PgDuplicateRepository` — PG 判重案例 CRUD（Round 5） |
 | `packages/server/src/routes/candidates.ts:245` | Route | `GET /v1/duplicates` — 列表 |
@@ -398,7 +398,7 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/maintenance.ts:22-27` | Zod schema (`maintenanceMetaSchema`) | 字段：maintainer (ActorRef, nullable), reviewBy (ISO timestamp, nullable) |
 | `packages/contracts/src/domain/maintenance.ts:36` | Zod enum (`maintenanceActionSchema`) | 批量操作：`['assign-owner', 'extend-review', 'mark-verified']` |
 | `packages/contracts/src/domain/maintenance.ts:156` | TS 类型 (`MaintenanceMeta`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema.ts:856-878` | DB 表 (`knowledge_maintenance_assignments`) | 维护分配结构化表（Round 3），`entry_id` 为主键 |
+| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_maintenance_assignments`) | 维护分配结构化表（Round 3），`entry_id` 为主键 |
 | `packages/server/src/routes/maintenance.ts:84` | Route | `GET /v1/operations/maintenance/entries` — 按维护过滤列出 |
 | `packages/server/src/routes/maintenance.ts:225` | Route | `POST /v1/operations/maintenance/batch` — 批量维护操作 |
 
@@ -426,7 +426,7 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/boundary.ts:152` | TS 类型 (`Boundary`) | 推断类型 |
 | `packages/contracts/src/domain/boundary.ts:167-171` | Zod schema (`boundaryContextSchema`) | 运行时查询上下文：contexts[], platform, versions[] |
 | `packages/contracts/src/domain/boundary.ts:182-188` | Zod schema (`boundaryExplanationSchema`) | 检索解释：checked, requiredSatisfied, warnings[], boosts[] |
-| `packages/server/src/lib/persistence/schema.ts:724-850` | DB 表 (`knowledge_boundary_contexts/versions/prerequisites/signals/exclusions/evidence`) | 边界六子表（Round 3） |
+| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_boundary_contexts/versions/prerequisites/signals/exclusions/evidence`) | 边界六子表（Round 3） |
 | `packages/server/src/lib/boundary-extract.ts` | Impl | `extractCandidateBoundaries()` — 基于 LLM 的边界提取 |
 | `packages/server/src/routes/admin-boundary-search.ts:27` | Route | `POST /admin/boundary-search` — 管理员边界搜索 |
 
@@ -563,7 +563,7 @@ Role-Based Access Control。TrapMap 使用角色模板（user/admin/system-admin
 |------|------|------|
 | `packages/contracts/src/domain/common.ts:13-18` | Zod schema (`labelSchema`) | `z.string().trim().min(1).max(48).regex(/^[a-z0-9:_/-]+$/i)` |
 | `packages/contracts/src/domain/common.ts:79` | TS 类型 (`Label`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema.ts:704-718` | DB 表 (`knowledge_labels`) | 标签结构化子表（Round 3） |
+| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_labels`) | 标签结构化子表（Round 3） |
 
 ---
 
@@ -615,7 +615,7 @@ Skill 工件的磁盘存储结构：
 | 位置 | 形式 | 说明 |
 |------|------|------|
 | `packages/server/src/lib/persistence/postgres-store.ts:19` | TS 类 (`PostgresStore`) | 实现 `SkillShareerStore`，JSONB + 行级锁 |
-| `packages/server/src/lib/persistence/schema.ts:27-34` | DB 表 (`store_snapshot`) | 单行 JSONB 持久化：key='main', data=StoreData, updatedAt |
+| `packages/server/src/lib/persistence/schema/index.ts` | DB 表 (`store_snapshot`) | 单行 JSONB 持久化：key='main', data=StoreData, updatedAt |
 
 > **Round 8 备注**：核心业务域（知识、工件、候选、反馈、统计、检索索引）已通过各自的 `Pg*Repository` 直接访问 PostgreSQL 结构化表。`PostgresStore` 仅用于尚未迁移的域（用户、团队、成员、会话、访问密钥、审计）。
 
@@ -675,7 +675,7 @@ Round 0 冻结后的数据库演进约定：先定目标模型和命名规范，
 |------|------|------|
 | `packages/contracts/src/domain/candidates.ts:329-348` | Zod schema (`EntityLineageSchema`) | 记录：id, candidateId, relationshipType (`published_as`/`merged_into`), sourceType, sourceId, targetType, targetId, createdAt, notes |
 | `packages/contracts/src/domain/candidates.ts:358` | TS 类型 (`EntityLineage`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema.ts` | DB 表 (`entity_lineage`) | PostgreSQL 结构化表（Round 5），支持按候选、来源、目标三维度查询 |
+| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`entity_lineage`) | PostgreSQL 结构化表（Round 5），支持按候选、来源、目标三维度查询 |
 | `packages/server/src/lib/lineage/pg-repository.ts` | Impl | `PgLineageRepository` — PG 血缘 CRUD（Round 5） |
 | `packages/server/src/lib/lineage/index.ts` | Impl | `createLineageRepository()`, `LineageRepository` 接口 |
 

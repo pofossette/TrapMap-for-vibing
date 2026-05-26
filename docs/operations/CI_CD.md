@@ -13,7 +13,7 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 
 ## CI 流水线（ci.yml）
 
-四个并行 job，无依赖关系：
+六个并行 job，无依赖关系：
 
 | Job | 命令 | 说明 |
 |-----|------|------|
@@ -22,8 +22,11 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 | `test` | `pnpm test` | 全量单元测试 |
 | `coverage` | `pnpm test:coverage` | 测试覆盖率（产物上传 7 天） |
 | `postgres-integration` | PG 集成测试 | 真实 PostgreSQL/pgvector 校验（任务队列、outbox subscriber） |
+| `architecture-guardrails` | `pnpm check:docs-drift` + `pnpm check:complexity` | 文档漂移检查与复杂度预算守卫 |
 
 `postgres-integration` job 使用 `pgvector/pgvector:pg16` 作为 service container，运行需要真实数据库的集成测试。确保异步基础设施（TaskQueue、OutboxWorker、Lifecycle subscribers）在 PostgreSQL 环境下正确工作。
+
+`architecture-guardrails` job 运行文档漂移守卫（`pnpm check:docs-drift`）和复杂度预算守卫（`pnpm check:complexity`），确保关键文档不含过时内容且热点文件未超出行数预算。详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`。
 
 所有 job 使用 Node.js 20 + pnpm 10.33.0。
 

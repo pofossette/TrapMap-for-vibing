@@ -40,7 +40,7 @@ describe('docs truth smoke', () => {
     for (const line of lines) {
       if (/planned|Task \d/i.test(line)) continue;
       // Extract paths from this non-planned line
-      const linePathPattern = /`([a-z0-9_/.-]+\.[a-z]+)`/gi;
+      const linePathPattern = /`([a-z0-9_.-]+\/[a-z0-9_/.-]+\.[a-z]+)`/gi;
       const lineMatches = line.matchAll(linePathPattern);
       for (const pathMatch of lineMatches) {
         const relPath = pathMatch[1];

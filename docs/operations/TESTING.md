@@ -105,6 +105,20 @@ TIER=core pnpm eval:ci
 cat reports/eval-report.json
 ```
 
+### 文档漂移与复杂度守卫
+
+每次结构重构后应运行以下守卫，确保文档与代码一致且热点文件未超出行数预算：
+
+```bash
+# 检查关键文档是否包含/排除预期短语（规则见 scripts/complexity-budgets.json docRules）
+pnpm check:docs-drift
+
+# 检查热点文件是否在行数预算内（规则见 scripts/complexity-budgets.json lineBudgets）
+pnpm check:complexity
+```
+
+CI 中由 `architecture-guardrails` job 自动执行。本地开发时可在改动热点文件或架构文档后手动运行。
+
 ### CI 自动触发
 
 | 触发条件 | 层级 | 说明 |

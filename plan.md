@@ -1,6 +1,6 @@
 # 服务端复杂度与文档漂移收敛实施计划
 
-> **面向智能体工作者：** 使用 `superpowers:subagent-driven-development`（推荐）或 `superpowers:executing-plans` 逐任务实施本计划。所有步骤使用复选框 `- [ ]` 跟踪进度。
+> **面向智能体工作者：** 使用 `superpowers:subagent-driven-development`（推荐）或 `superpowers:executing-plans` 逐任务实施本计划。所有步骤使用复选框 `- [x]` 跟踪进度。
 
 **目标：** 降低 TrapMap 服务端的结构复杂度，拆分超大热点文件，并建立带测试约束的文档真相源机制，防止架构文档继续偏离代码现实。
 
@@ -35,23 +35,23 @@
 
 ## 阶段追踪
 
-- [ ] 任务 1：建立文档真相源并清理已知漂移
-- [ ] 任务 2：拆分启动与 bootstrap 逻辑并修正初始化顺序
-- [ ] 任务 3：通过路由/服务分层降低 candidate 路由复杂度
-- [ ] 任务 4：拆分持久化 schema 与 Artifact PG 仓储热点
-- [ ] 任务 5：把文档漂移与复杂度预算接入 CI 守卫
+- [x] 任务 1：建立文档真相源并清理已知漂移
+- [x] 任务 2：拆分启动与 bootstrap 逻辑并修正初始化顺序
+- [x] 任务 3：通过路由/服务分层降低 candidate 路由复杂度
+- [x] 任务 4：拆分持久化 schema 与 Artifact PG 仓储热点
+- [x] 任务 5：把文档漂移与复杂度预算接入 CI 守卫
 
 ## 通用完成定义
 
 **任一阶段完成时，必须同时满足以下条件：**
 
-- [ ] 本阶段所有复选框均已完成
-- [ ] 本阶段完成标准已经满足
-- [ ] 本阶段要求的文档已在同一个变更中同步更新
-- [ ] 本阶段要求的测试已在同一个变更中新增或更新
-- [ ] 本阶段要求的 eval 验证已经执行
-- [ ] 如果改动了代码文件，已经执行 `rtk graphify update .`
-- [ ] 已在独立分支或独立 worktree 中提交本阶段工作
+- [x] 本阶段所有复选框均已完成
+- [x] 本阶段完成标准已经满足
+- [x] 本阶段要求的文档已在同一个变更中同步更新
+- [x] 本阶段要求的测试已在同一个变更中新增或更新
+- [x] 本阶段要求的 eval 验证已经执行
+- [x] 如果改动了代码文件，已经执行 `rtk graphify update .`
+- [x] 已在独立分支或独立 worktree 中提交本阶段工作
 
 建议的阶段收尾命令：
 
@@ -166,7 +166,7 @@ describe('docs truth smoke', () => {
 });
 ```
 
-- [ ] **步骤 1.1：先写失败中的文档 smoke 测试**
+- [x] **步骤 1.1：先写失败中的文档 smoke 测试**
 
 ```ts
 import { readFileSync } from 'node:fs';
@@ -189,7 +189,7 @@ describe('docs truth smoke', () => {
 运行：`rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`  
 预期：FAIL，因为 `docs/guides/CODE_GUIDE.md` 仍然提到 `createApp()`
 
-- [ ] **步骤 1.2：创建权威真相源文档**
+- [x] **步骤 1.2：创建权威真相源文档**
 
 ```md
 # System Truth Sources
@@ -202,7 +202,7 @@ describe('docs truth smoke', () => {
 | DB schema | `packages/server/src/lib/persistence/schema/index.ts` | `docs/reference/DATABASE_SCHEMA.md` |
 ```
 
-- [ ] **步骤 1.3：重写过时的启动与持久化描述**
+- [x] **步骤 1.3：重写过时的启动与持久化描述**
 
 ```md
 ### 2.1 应用启动 — `src/app.ts`
@@ -219,13 +219,13 @@ describe('docs truth smoke', () => {
 - 身份域和审计域当前的 PG 主路径以 `docs/reference/DATA_MODEL.md` 为准
 ```
 
-- [ ] **步骤 1.4：在根 README 和文档索引里链接真相源文档**
+- [x] **步骤 1.4：在根 README 和文档索引里链接真相源文档**
 
 ```md
 - [系统真相源](docs/reference/SYSTEM_TRUTH_SOURCES.md) — 架构事实、入口文件与文档引用规则
 ```
 
-- [ ] **步骤 1.5：重新运行 smoke 测试和静态检查**
+- [x] **步骤 1.5：重新运行 smoke 测试和静态检查**
 
 运行：`rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`  
 预期：PASS
@@ -233,7 +233,7 @@ describe('docs truth smoke', () => {
 运行：`rtk pnpm check`  
 预期：PASS
 
-- [ ] **步骤 1.6：运行更大范围验证并提交**
+- [x] **步骤 1.6：运行更大范围验证并提交**
 
 运行：`rtk pnpm typecheck`  
 预期：PASS
@@ -303,7 +303,7 @@ export async function runStartupSequence(app: FastifyInstance): Promise<void> {
 }
 ```
 
-- [ ] **步骤 2.1：先写失败中的启动顺序测试**
+- [x] **步骤 2.1：先写失败中的启动顺序测试**
 
 ```ts
 import { describe, expect, it, vi } from 'vitest';
@@ -327,7 +327,7 @@ describe('startup sequence', () => {
 运行：`rtk pnpm test -- --run packages/server/src/bootstrap/startup.test.ts`  
 预期：FAIL，因为当前 `app.ts` 里 recovery 与 `repos` 装配顺序不稳定
 
-- [ ] **步骤 2.2：把仓储初始化抽成独立模块**
+- [x] **步骤 2.2：把仓储初始化抽成独立模块**
 
 ```ts
 export async function bootstrapRepositories(app: FastifyInstance): Promise<void> {
@@ -342,7 +342,7 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
 }
 ```
 
-- [ ] **步骤 2.3：把 candidate recovery 与 runtime worker 抽成有序模块**
+- [x] **步骤 2.3：把 candidate recovery 与 runtime worker 抽成有序模块**
 
 ```ts
 export async function bootstrapCandidateRecovery(app: FastifyInstance): Promise<void> {
@@ -368,7 +368,7 @@ export async function bootstrapWorkers(app: FastifyInstance): Promise<void> {
 }
 ```
 
-- [ ] **步骤 2.4：用一个 startup sequence hook 替换分散的 `onReady` 块**
+- [x] **步骤 2.4：用一个 startup sequence hook 替换分散的 `onReady` 块**
 
 ```ts
 app.addHook('onReady', async () => {
@@ -376,7 +376,7 @@ app.addHook('onReady', async () => {
 });
 ```
 
-- [ ] **步骤 2.5：更新启动相关文档**
+- [x] **步骤 2.5：更新启动相关文档**
 
 ```md
 启动顺序以 `packages/server/src/bootstrap/run-startup-sequence.ts` 为准：
@@ -387,7 +387,7 @@ app.addHook('onReady', async () => {
 5. lifecycle / outbox subscribers
 ```
 
-- [ ] **步骤 2.6：运行验证**
+- [x] **步骤 2.6：运行验证**
 
 运行：`rtk pnpm test -- --run packages/server/src/bootstrap/startup.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts packages/server/src/lib/queue/task-queue.test.ts`  
 预期：PASS
@@ -395,7 +395,7 @@ app.addHook('onReady', async () => {
 运行：`rtk pnpm eval:smoke`  
 预期：PASS，且不再出现重复的 `Failed to check for interrupted candidates` 启动日志
 
-- [ ] **步骤 2.7：更新图谱并提交**
+- [x] **步骤 2.7：更新图谱并提交**
 
 运行：`rtk graphify update .`  
 预期：图谱更新成功
@@ -470,7 +470,7 @@ export async function submitCandidate(
 }
 ```
 
-- [ ] **步骤 3.1：先用契约测试冻结当前路由行为**
+- [x] **步骤 3.1：先用契约测试冻结当前路由行为**
 
 ```ts
 it('POST /v1/candidates 在重构后仍返回 queued 状态', async () => {
@@ -488,7 +488,7 @@ it('POST /v1/candidates 在重构后仍返回 queued 状态', async () => {
 运行：`rtk pnpm test -- --run packages/server/src/routes/candidates.test.ts`  
 预期：在重构前先 PASS
 
-- [ ] **步骤 3.2：为 submission、query、resolution 建立 service 边界**
+- [x] **步骤 3.2：为 submission、query、resolution 建立 service 边界**
 
 ```ts
 export interface CandidateSubmissionServices {
@@ -498,14 +498,14 @@ export interface CandidateSubmissionServices {
 }
 ```
 
-- [ ] **步骤 3.3：把大路由文件拆成聚焦模块**
+- [x] **步骤 3.3：把大路由文件拆成聚焦模块**
 
 ```ts
 // packages/server/src/routes/candidates.ts
 export { candidateRoutes } from './candidates/index.js';
 ```
 
-- [ ] **步骤 3.4：把 duplicate 和 manual-resolution 逻辑移到 service 调用后面**
+- [x] **步骤 3.4：把 duplicate 和 manual-resolution 逻辑移到 service 调用后面**
 
 ```ts
 const result = await resolveCandidate(
@@ -514,7 +514,7 @@ const result = await resolveCandidate(
 );
 ```
 
-- [ ] **步骤 3.5：更新路由与模块文档**
+- [x] **步骤 3.5：更新路由与模块文档**
 
 ```md
 `packages/server/src/routes/candidates/submit.ts`
@@ -524,7 +524,7 @@ const result = await resolveCandidate(
 - 负责 candidate 记录创建和入队语义
 ```
 
-- [ ] **步骤 3.6：运行验证**
+- [x] **步骤 3.6：运行验证**
 
 运行：`rtk pnpm test -- --run packages/server/src/routes/candidates.test.ts packages/server/src/routes/review.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts`  
 预期：PASS
@@ -532,7 +532,7 @@ const result = await resolveCandidate(
 运行：`rtk pnpm eval:smoke`  
 预期：PASS
 
-- [ ] **步骤 3.7：更新图谱并提交**
+- [x] **步骤 3.7：更新图谱并提交**
 
 运行：`rtk graphify update .`  
 预期：图谱更新成功
@@ -623,7 +623,7 @@ export async function loadStructuredRevisionData(
 }
 ```
 
-- [ ] **步骤 4.1：先用测试冻结当前模块契约**
+- [x] **步骤 4.1：先用测试冻结当前模块契约**
 
 ```ts
 import * as schema from './persistence/schema.js';
@@ -638,7 +638,7 @@ it('保持 schema 与 artifact repository 的公开导出稳定', () => {
 运行：`rtk pnpm test -- --run packages/server/src/lib/artifacts/pg-repository.round4.roundtrip.test.ts packages/server/src/lib/artifacts/pg-repository.round4.consistency.test.ts`  
 预期：在拆分前先 PASS
 
-- [ ] **步骤 4.2：按领域拆分 Drizzle schema**
+- [x] **步骤 4.2：按领域拆分 Drizzle schema**
 
 ```ts
 // auth.ts
@@ -648,7 +648,7 @@ export const users = pgTable('users', {
 });
 ```
 
-- [ ] **步骤 4.3：按职责拆分 Artifact PG 仓储**
+- [x] **步骤 4.3：按职责拆分 Artifact PG 仓储**
 
 ```ts
 // record-reconstruction.ts
@@ -663,14 +663,14 @@ export function reconstructSkillArtifactRecord(
 }
 ```
 
-- [ ] **步骤 4.4：保留旧顶层文件作为兼容 barrel**
+- [x] **步骤 4.4：保留旧顶层文件作为兼容 barrel**
 
 ```ts
 // packages/server/src/lib/artifacts/pg-repository.ts
 export * from './pg-repository/index.js';
 ```
 
-- [ ] **步骤 4.5：把文档从“行号入口”改成“模块路径入口”**
+- [x] **步骤 4.5：把文档从“行号入口”改成“模块路径入口”**
 
 ```md
 阅读入口：
@@ -679,7 +679,7 @@ export * from './pg-repository/index.js';
 - `packages/server/src/lib/artifacts/pg-repository/record-reconstruction.ts`
 ```
 
-- [ ] **步骤 4.6：运行验证**
+- [x] **步骤 4.6：运行验证**
 
 运行：`rtk pnpm test -- --run packages/server/src/lib/artifacts/pg-repository.round4.roundtrip.test.ts packages/server/src/lib/artifacts/pg-repository.round4.consistency.test.ts packages/server/src/lib/knowledge/pg-repository.test.ts`  
 预期：PASS
@@ -687,7 +687,7 @@ export * from './pg-repository/index.js';
 运行：`rtk pnpm eval:smoke`  
 预期：PASS
 
-- [ ] **步骤 4.7：更新图谱并提交**
+- [x] **步骤 4.7：更新图谱并提交**
 
 运行：`rtk graphify update .`  
 预期：图谱更新成功
@@ -765,14 +765,14 @@ for (const rule of config.docRules) {
 }
 ```
 
-- [ ] **步骤 5.1：新增文档漂移检查脚本**
+- [x] **步骤 5.1：新增文档漂移检查脚本**
 
 ```ts
 console.log('Checking documentation drift rules...');
 // 读取 JSON 配置，校验 mustContain 与 mustNotContain 规则
 ```
 
-- [ ] **步骤 5.2：新增文件体量 / 复杂度预算检查脚本**
+- [x] **步骤 5.2：新增文件体量 / 复杂度预算检查脚本**
 
 ```ts
 import { readFileSync } from 'node:fs';
@@ -782,7 +782,7 @@ function countLines(file: string): number {
 }
 ```
 
-- [ ] **步骤 5.3：把两个检查暴露为根脚本**
+- [x] **步骤 5.3：把两个检查暴露为根脚本**
 
 ```json
 {
@@ -793,7 +793,7 @@ function countLines(file: string): number {
 }
 ```
 
-- [ ] **步骤 5.4：把检查接入 CI**
+- [x] **步骤 5.4：把检查接入 CI**
 
 ```yaml
   architecture-guardrails:
@@ -811,7 +811,7 @@ function countLines(file: string): number {
       - run: pnpm check:complexity
 ```
 
-- [ ] **步骤 5.5：记录新的守卫规则**
+- [x] **步骤 5.5：记录新的守卫规则**
 
 ```md
 本仓库要求在结构重构时同步更新：
@@ -820,7 +820,7 @@ function countLines(file: string): number {
 - `pnpm check:complexity`
 ```
 
-- [ ] **步骤 5.6：运行验证**
+- [x] **步骤 5.6：运行验证**
 
 运行：`rtk pnpm check:docs-drift`  
 预期：PASS
@@ -831,13 +831,32 @@ function countLines(file: string): number {
 运行：`rtk pnpm eval:smoke`  
 预期：PASS
 
-- [ ] **步骤 5.7：如有代码改动则更新图谱并提交**
+- [x] **步骤 5.7：如有代码改动则更新图谱并提交**
 
 运行：`rtk graphify update .`  
 预期：若本阶段改了代码，图谱更新成功
 
 运行：`git add -A && git commit -m "chore(ci): add doc drift and complexity guardrails"`  
 预期：成功生成提交
+
+---
+
+## 任务完成后审计修复
+
+所有阶段完成后，通过 `plan.md` 审计发现以下残留漂移并已修复：
+
+| 问题 | 涉及文件 | 修复内容 |
+|------|----------|----------|
+| `SYSTEM_TRUTH_SOURCES.md` 仍将 schema 拆分标记为 "planned, Task 4" | `docs/reference/SYSTEM_TRUTH_SOURCES.md` | 更新为拆分后的 barrel 结构 |
+| `GLOSSARY.md` 8 处引用旧 `schema.ts` 行号 | `docs/reference/GLOSSARY.md` | 改为指向拆分后的 `schema/knowledge.ts`、`schema/artifacts.ts`、`schema/candidates.ts`、`schema/retrieval.ts`、`schema/index.ts` |
+| `CI_CD.md` 未列出 `architecture-guardrails` job | `docs/operations/CI_CD.md` | 补充该 job 说明 |
+| `TESTING.md` 未说明 `pnpm check:docs-drift` 和 `pnpm check:complexity` | `docs/operations/TESTING.md` | 补充本地守卫工作流 |
+| `docs-truth-smoke.test.ts` 正则会误匹配短模块名（如 `auth.ts`） | `packages/server/src/__tests__/docs-truth-smoke.test.ts` | 正则要求路径含 `/`，避免误匹配裸文件名 |
+
+验证结果：
+- `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` — PASS（4/4）
+- `rtk node scripts/check-doc-drift.ts` — PASS
+- `rtk node scripts/check-complexity-budgets.ts` — PASS（4/4 within budget）
 
 ---
 

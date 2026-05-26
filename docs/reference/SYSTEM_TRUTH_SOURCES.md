@@ -7,7 +7,7 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
 | Server entry point | `packages/server/src/app.ts` (`buildServer()`) | `docs/guides/CODE_GUIDE.md`, `docs/architecture/ARCHITECTURE.md` |
 | Startup sequence | `packages/server/src/bootstrap/run-startup-sequence.ts` | `docs/architecture/ARCHITECTURE.md`, `docs/guides/CODE_GUIDE.md` |
 | Persistence migration state | `docs/reference/DATA_MODEL.md` | `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md` |
-| DB schema | `packages/server/src/lib/persistence/schema.ts` (当前) → `packages/server/src/lib/persistence/schema/index.ts` (planned, Task 4) | `docs/reference/DATABASE_SCHEMA.md` |
+| DB schema | `packages/server/src/lib/persistence/schema/index.ts` (barrel, re-exports all domain table modules) | `docs/reference/DATABASE_SCHEMA.md` |
 
 ## Rules
 
