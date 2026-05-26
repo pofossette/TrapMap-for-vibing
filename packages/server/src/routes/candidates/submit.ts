@@ -47,7 +47,7 @@ export const candidateSubmissionRoutes: FastifyPluginAsync = async (app) => {
     requireRealUser(auth.user?.id);
 
     // Validate team context for project scope
-    const scope = body.sourceType === 'trap' ? body.payload.scope : body.payload.scope;
+    const scope = body.payload.scope;
     if (scope === 'project' && !auth.activeTeamId) {
       throw new AppError(
         400,
