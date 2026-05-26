@@ -13,6 +13,7 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
 import { extractBoundaryGraphEntities } from '@trapmap/server/lib/indexing/boundary-extract.js';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
@@ -33,7 +34,7 @@ import { buildTrapGraphDocument } from './graph-builders.js';
 // orchestrator passes a data snapshot to graphAssistedRecall.
 // ---------------------------------------------------------------------------
 
-/** @deprecated Use store-backed getGraphIndexDocuments instead */
+/** Backward-compatible in-memory graph sync state */
 interface LegacyGraphSyncState {
   entryId: string;
   revision: number;
@@ -41,9 +42,17 @@ interface LegacyGraphSyncState {
   syncedAt: string;
 }
 
-const graphStateCache = new Map<string, LegacyGraphSyncState>();
+const graphStateCache = new RetrievalCache<LegacyGraphSyncState>({
+  maxSize: 500,
+  ttlMs: 60 * 60_000,  // 1h
+  namespace: 'graph-state',
+});
 
-const cachedGraphDocuments = new Map<string, GraphIndexDocumentRecord>();
+const cachedGraphDocuments = new RetrievalCache<GraphIndexDocumentRecord>({
+  maxSize: 500,
+  ttlMs: 60 * 60_000,  // 1h
+  namespace: 'graph-docs',
+});
 
 function cacheDocument(document: GraphIndexDocumentRecord): void {
   cachedGraphDocuments.set(`${document.sourceType}:${document.sourceId}`, document);

@@ -206,6 +206,24 @@ export class RetrievalCache<V> {
     };
   }
 
+  /**
+   * Iterate over all non-expired values.
+   *
+   * Expired entries encountered during iteration are removed from the store.
+   * Does NOT bump hit/miss metrics — this is a structural iteration, not a
+   * retrieval.
+   */
+  *values(): IterableIterator<V> {
+    const now = Date.now();
+    for (const [key, entry] of this.store) {
+      if (now - entry.createdAt > this.ttlMs) {
+        this.store.delete(key);
+        continue;
+      }
+      yield entry.value;
+    }
+  }
+
   /** The namespace this cache instance is registered under. */
   get ns(): string {
     return this.namespace;
