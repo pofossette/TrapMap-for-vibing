@@ -131,6 +131,62 @@ vi.mock('../capsules/capsule-recall.js', () => ({
   rankCapsules: vi.fn().mockReturnValue([]),
 }));
 
+vi.mock('../capsules/capsule-recall-coordinator.js', () => ({
+  CapsuleRecallCoordinator: vi.fn().mockImplementation(() => ({
+    execute: vi.fn().mockResolvedValue({
+      capsuleCandidates: [],
+      mergedCandidates: [],
+      channelsPlanned: [],
+      channelsUsed: [],
+      channelsFailed: [],
+      channelErrors: {},
+      mergeStats: { totalChannelCandidates: 0, preMergeCount: 0, postMergeCount: 0 },
+    }),
+  })),
+  createDefaultCapsuleRecallCoordinator: vi.fn(),
+}));
+
+vi.mock('../capsules/capsule-channel-registry.js', () => ({
+  CapsuleChannelRegistry: vi.fn().mockImplementation(() => ({
+    register: vi.fn(),
+    all: vi.fn().mockReturnValue([]),
+    get: vi.fn(),
+    unregister: vi.fn(),
+  })),
+  createDefaultCapsuleChannelRegistry: vi.fn(),
+}));
+
+vi.mock('../capsules/channels/heuristic.js', () => ({
+  capsuleHeuristicChannel: { name: 'capsule-heuristic', recall: vi.fn().mockResolvedValue([]) },
+}));
+
+vi.mock('../capsules/channels/keyword.js', () => ({
+  createCapsuleKeywordChannel: vi.fn().mockReturnValue({
+    name: 'capsule-keyword',
+    recall: vi.fn().mockResolvedValue([]),
+  }),
+  capsuleKeywordChannel: { name: 'capsule-keyword', recall: vi.fn().mockResolvedValue([]) },
+  capsuleKeywordRecall: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('../capsules/channels/semantic.js', () => ({
+  createCapsuleSemanticChannel: vi.fn().mockReturnValue({
+    name: 'capsule-semantic',
+    recall: vi.fn().mockResolvedValue([]),
+  }),
+  capsuleSemanticChannel: { name: 'capsule-semantic', recall: vi.fn().mockResolvedValue([]) },
+  capsuleSemanticRecall: vi.fn().mockResolvedValue([]),
+  buildCapsuleEmbeddingText: vi.fn(),
+  hashCapsuleEmbeddingText: vi.fn(),
+}));
+
+vi.mock('../capsules/channels/graph.js', () => ({
+  createCapsuleGraphChannel: vi.fn().mockReturnValue({
+    name: 'capsule-graph',
+    recall: vi.fn().mockResolvedValue([]),
+  }),
+}));
+
 vi.mock('../capsules/intent.js', () => ({
   parseSeedIntent: vi.fn().mockReturnValue({
     seed: 'test query',
@@ -234,13 +290,25 @@ vi.mock('../response/refinement.js', () => ({
 import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { logRagRetrieval } from '@trapmap/server/lib/rag-log.js';
+import { CapsuleRecallCoordinator } from '@trapmap/server/lib/retrieval/capsules/capsule-recall-coordinator.js';
 import {
+  buildProfileShortlist,
+  getCapsuleRecords,
+} from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
+import {
+  buildCapsuleMatch,
   buildEmptyResponse,
+  buildProfileHint,
   buildRetrievalResponse,
+  buildV2RetrievalResponse,
 } from '@trapmap/server/lib/retrieval/response/assembly.js';
+import {
+  buildCapsuleCitations,
+  buildCapsuleSummary,
+} from '@trapmap/server/lib/retrieval/response/summary.js';
 import { mergeCandidates } from '@trapmap/server/lib/retrieval/scoring/merge.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
-import { searchKnowledge, updateEntryEmbeddingCache } from './orchestrator.js';
+import { searchKnowledge, searchKnowledgeV2, updateEntryEmbeddingCache } from './orchestrator.js';
 import { dispatchByMode } from './recall-coordinator.js';
 
 // ── Test helpers ──────────────────────────────────────────────────────────
@@ -713,5 +781,281 @@ describe('searchKnowledge with real store data', () => {
     // Only entryLow should be returned
     const allResults = [...result.globalConstraints, ...result.projectKnowledge];
     expect(allResults.find((r) => r.entryId === 'entry_high')).toBeUndefined();
+  });
+});
+
+// =============================================================================
+// searchKnowledgeV2 - label filtering regression (Phase 7.2)
+// =============================================================================
+
+describe('searchKnowledgeV2 - label filtering regression', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('passes governanceFilters.labels to coordinator and produces label-filtered summary', async () => {
+    // Arrange: mock coordinator execute to capture governance filters
+    const mockExecute = vi.fn().mockResolvedValue({
+      capsuleCandidates: [
+        {
+          capsuleId: 'cap_node_1',
+          artifactId: 'artifact_core_label_filter_node',
+          revision: 1,
+          situationScore: 0.5,
+          problemScore: 0.8,
+          goalScore: 0.6,
+          errorScore: null,
+          contextScore: 0,
+          stackPathBoost: 1.0,
+          finalScore: 0.85,
+          reason: 'problem match (80%)',
+        },
+      ],
+      mergedCandidates: [],
+      channelsPlanned: ['capsule-heuristic'],
+      channelsUsed: ['capsule-heuristic'],
+      channelsFailed: [],
+      channelErrors: {},
+      mergeStats: { totalChannelCandidates: 1, preMergeCount: 1, postMergeCount: 1 },
+    });
+
+    vi.mocked(CapsuleRecallCoordinator).mockImplementation(
+      () => ({ execute: mockExecute }) as any,
+    );
+
+    // Configure getCapsuleRecords to return only the node capsule
+    const nodeArtifact = {
+      id: 'artifact_core_label_filter_node',
+      teamId: 'team_test',
+      scope: 'global',
+      labels: ['nodejs'],
+      title: 'Node.js Skill',
+      slug: 'nodejs-skill',
+      requiredLevel: 0,
+      lifecycleState: 'approved',
+    };
+
+    vi.mocked(getCapsuleRecords).mockReturnValue([
+      {
+        artifact: nodeArtifact as any,
+        capsule: {
+          capsuleId: 'cap_node_1',
+          artifactId: 'artifact_core_label_filter_node',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Express.js middleware for request handling',
+          situation: 'Building REST APIs',
+          problem: 'Need request validation',
+          goal: 'Validate requests with Express.js middleware',
+          errorText: null,
+          labels: ['nodejs'],
+          scope: 'global',
+          requiredLevel: 0,
+          contextualPrefix: null,
+        } as any,
+        candidate: {
+          capsuleId: 'cap_node_1',
+          artifactId: 'artifact_core_label_filter_node',
+          revision: 1,
+          finalScore: 0.85,
+          reason: 'problem match (80%)',
+        } as any,
+      },
+    ]);
+
+    // Configure buildCapsuleMatch to return node capsule match
+    vi.mocked(buildCapsuleMatch).mockReturnValue({
+      capsuleId: 'cap_node_1',
+      artifactId: 'artifact_core_label_filter_node',
+      revision: 1,
+      sourcePaths: ['SKILL.md'],
+      content: 'Express.js middleware for request handling',
+      situation: 'Building REST APIs',
+      problem: 'Need request validation',
+      goal: 'Validate requests with Express.js middleware',
+      labels: ['nodejs'],
+      scope: 'global',
+      requiredLevel: 0,
+      score: 0.85,
+      reason: 'problem match (80%)',
+    } as any);
+
+    // Configure buildProfileShortlist to return only the node artifact
+    vi.mocked(buildProfileShortlist).mockReturnValue([
+      { artifact: nodeArtifact as any, profile: {} as any },
+    ]);
+
+    // Configure buildProfileHint
+    vi.mocked(buildProfileHint).mockReturnValue({
+      artifactId: 'artifact_core_label_filter_node',
+      title: 'Node.js Skill',
+      slug: 'nodejs-skill',
+      labels: ['nodejs'],
+    } as any);
+
+    // Configure buildCapsuleCitations
+    vi.mocked(buildCapsuleCitations).mockReturnValue([
+      {
+        source: { entryId: 'cap_node_1', scope: 'global', shortcut: 'Express.js middleware' },
+        snippet: 'Express.js middleware for request handling',
+        tags: ['nodejs'],
+        recallChannels: ['semantic'],
+        scores: { semantic: 0.85, keyword: null, graph: null, preRerank: 0.85, final: 0.85 },
+      },
+    ]);
+
+    // Configure buildCapsuleSummary to return a summary referencing Express.js
+    vi.mocked(buildCapsuleSummary).mockReturnValue({
+      text: 'Express.js middleware for request handling',
+      citations: [
+        {
+          source: { entryId: 'cap_node_1', scope: 'global', shortcut: 'Express.js middleware' },
+          snippet: 'Express.js middleware for request handling',
+          tags: ['nodejs'],
+          recallChannels: ['semantic'],
+          scores: { semantic: 0.85, keyword: null, graph: null, preRerank: 0.85, final: 0.85 },
+        },
+      ],
+    });
+
+    // Configure buildV2RetrievalResponse to pass through its arguments
+    vi.mocked(buildV2RetrievalResponse).mockImplementation(
+      (capsules, profileHints, summary, activationHints) => ({
+        capsules,
+        profileHints,
+        refinementSummary: null,
+        summary: summary ?? null,
+        ...(activationHints ? { activationHints } : {}),
+      }),
+    );
+
+    const services = createMockServices();
+    const auth = createMockAuth();
+
+    // Act: call searchKnowledgeV2 with label filter
+    const result = await searchKnowledgeV2(services, auth, {
+      seed: 'Express.js middleware',
+      filters: { labels: ['nodejs'] },
+      includeSummary: true,
+    });
+
+    // Assert: coordinator received governanceFilters with labels
+    expect(mockExecute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        governanceFilters: expect.objectContaining({ labels: ['nodejs'] }),
+      }),
+    );
+
+    // Assert: summary contains Express.js but NOT Flask
+    expect(result.summary?.text).toContain('Express.js middleware');
+    expect(result.summary?.text).not.toContain('Flask');
+
+    // Assert: profileHints only reference the node artifact
+    expect(result.profileHints).toEqual([
+      expect.objectContaining({ artifactId: 'artifact_core_label_filter_node' }),
+    ]);
+  });
+
+  it('does not pass Flask capsules to buildCapsuleSummary when labels filter to nodejs', async () => {
+    // Arrange: coordinator returns only nodejs candidate (simulating label filtering in recall)
+    const mockExecute = vi.fn().mockResolvedValue({
+      capsuleCandidates: [
+        {
+          capsuleId: 'cap_node_1',
+          artifactId: 'artifact_core_label_filter_node',
+          revision: 1,
+          finalScore: 0.85,
+          reason: 'match',
+          situationScore: 0,
+          problemScore: 0.8,
+          goalScore: 0,
+          errorScore: null,
+          contextScore: 0,
+          stackPathBoost: 1.0,
+        },
+      ],
+      mergedCandidates: [],
+      channelsPlanned: ['capsule-heuristic'],
+      channelsUsed: ['capsule-heuristic'],
+      channelsFailed: [],
+      channelErrors: {},
+      mergeStats: { totalChannelCandidates: 1, preMergeCount: 1, postMergeCount: 1 },
+    });
+
+    vi.mocked(CapsuleRecallCoordinator).mockImplementation(
+      () => ({ execute: mockExecute }) as any,
+    );
+
+    // getCapsuleRecords returns only node capsule (Flask was filtered by governance)
+    vi.mocked(getCapsuleRecords).mockReturnValue([
+      {
+        artifact: {
+          id: 'artifact_core_label_filter_node',
+          teamId: 'team_test',
+          scope: 'global',
+          labels: ['nodejs'],
+        } as any,
+        capsule: {
+          capsuleId: 'cap_node_1',
+          artifactId: 'artifact_core_label_filter_node',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Express.js middleware',
+          situation: 'Building REST APIs',
+          problem: 'Need validation',
+          goal: 'Validate with Express.js',
+          errorText: null,
+          labels: ['nodejs'],
+          scope: 'global',
+          requiredLevel: 0,
+          contextualPrefix: null,
+        } as any,
+        candidate: {
+          capsuleId: 'cap_node_1',
+          artifactId: 'artifact_core_label_filter_node',
+          revision: 1,
+          finalScore: 0.85,
+          reason: 'match',
+        } as any,
+      },
+    ]);
+
+    vi.mocked(buildCapsuleMatch).mockReturnValue({
+      capsuleId: 'cap_node_1',
+      artifactId: 'artifact_core_label_filter_node',
+      content: 'Express.js middleware',
+      labels: ['nodejs'],
+      score: 0.85,
+    } as any);
+
+    vi.mocked(buildProfileShortlist).mockReturnValue([]);
+    vi.mocked(buildCapsuleCitations).mockReturnValue([]);
+    vi.mocked(buildCapsuleSummary).mockReturnValue(null);
+    vi.mocked(buildV2RetrievalResponse).mockImplementation(
+      (capsules, profileHints, summary) => ({
+        capsules,
+        profileHints,
+        refinementSummary: null,
+        summary: summary ?? null,
+      }),
+    );
+
+    const services = createMockServices();
+    const auth = createMockAuth();
+
+    // Act
+    await searchKnowledgeV2(services, auth, {
+      seed: 'middleware',
+      filters: { labels: ['nodejs'] },
+      includeSummary: true,
+    });
+
+    // Assert: buildCapsuleSummary was called - verify capsules arg has NO Flask content
+    expect(buildCapsuleSummary).toHaveBeenCalled();
+    const summaryCall = vi.mocked(buildCapsuleSummary).mock.calls[0]![0];
+    expect(summaryCall.capsules).toHaveLength(1);
+    expect(summaryCall.capsules[0]!.content).toContain('Express.js');
+    expect(summaryCall.capsules.some((c: any) => c.content?.includes('Flask'))).toBe(false);
+    expect(summaryCall.capsules.some((c: any) => c.labels?.includes('python'))).toBe(false);
   });
 });

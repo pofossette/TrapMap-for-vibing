@@ -517,6 +517,103 @@ describe('summary', () => {
       expect(result1?.text).toBe(result2?.text);
     });
 
+    it('summary reflects only filtered capsules - mixed Node/Flask regression', () => {
+      const nodeCapsule: CapsuleMatch = {
+        capsuleId: 'capsule_node_1',
+        artifactId: 'artifact_core_label_filter_node',
+        revision: 1,
+        sourcePaths: ['SKILL.md'],
+        content: 'Express.js middleware for request validation',
+        situation: 'Building REST APIs',
+        problem: 'Need input validation middleware',
+        goal: 'Validate requests with Express.js middleware',
+        labels: ['nodejs'],
+        scope: 'global',
+        requiredLevel: 0,
+        score: 0.92,
+        reason: 'High match on problem',
+      };
+
+      const flaskCapsule: CapsuleMatch = {
+        capsuleId: 'capsule_flask_1',
+        artifactId: 'artifact_core_label_filter_flask',
+        revision: 1,
+        sourcePaths: ['SKILL.md'],
+        content: 'Flask route decorators for API endpoints',
+        situation: 'Building REST APIs with Python',
+        problem: 'Need Python web framework',
+        goal: 'Build APIs with Flask',
+        labels: ['python'],
+        scope: 'global',
+        requiredLevel: 0,
+        score: 0.88,
+        reason: 'Moderate match on situation',
+      };
+
+      const nodeCitations: RetrievalCitation[] = [
+        {
+          source: {
+            entryId: 'capsule_node_1',
+            scope: 'global',
+            shortcut: 'Building REST APIs',
+          },
+          snippet: 'Express.js middleware for request validation',
+          tags: ['nodejs'],
+          recallChannels: ['semantic'],
+          scores: {
+            semantic: 0.92,
+            keyword: null,
+            graph: null,
+            preRerank: 0.92,
+            final: 0.92,
+          },
+        },
+      ];
+
+      // Scenario A: both capsules present (unfiltered) - summary mentions both
+      const unfilteredResult = buildCapsuleSummary({
+        query: 'middleware for REST APIs',
+        includeSummary: true,
+        capsules: [nodeCapsule, flaskCapsule],
+        citations: [
+          ...nodeCitations,
+          {
+            source: {
+              entryId: 'capsule_flask_1',
+              scope: 'global',
+              shortcut: 'Building REST APIs with Python',
+            },
+            snippet: 'Flask route decorators for API endpoints',
+            tags: ['python'],
+            recallChannels: ['semantic'],
+            scores: {
+              semantic: 0.88,
+              keyword: null,
+              graph: null,
+              preRerank: 0.88,
+              final: 0.88,
+            },
+          },
+        ],
+      });
+
+      expect(unfilteredResult).not.toBeNull();
+      expect(unfilteredResult?.text).toContain('Express.js');
+      expect(unfilteredResult?.text).toContain('Flask');
+
+      // Scenario B: only nodejs capsule passed (simulating label filtering)
+      const filteredResult = buildCapsuleSummary({
+        query: 'middleware for REST APIs',
+        includeSummary: true,
+        capsules: [nodeCapsule], // Flask capsule filtered out by label filter
+        citations: nodeCitations,
+      });
+
+      expect(filteredResult).not.toBeNull();
+      expect(filteredResult?.text).toContain('Express.js middleware');
+      expect(filteredResult?.text).not.toContain('Flask');
+    });
+
     it('only consumes already-filtered distilled hits (T-14-08 mitigation)', () => {
       // This test verifies that buildCapsuleSummary is a pure function
       // that only uses its inputs, never bypassing governance filters
