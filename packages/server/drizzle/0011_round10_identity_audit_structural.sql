@@ -80,11 +80,11 @@ CREATE INDEX IF NOT EXISTS "sessions_user_id_idx" ON "sessions" ("user_id");
 -- Access keys table
 CREATE TABLE IF NOT EXISTS "access_keys" (
   "id" TEXT PRIMARY KEY,
-  "member_id" TEXT NOT NULL,
+  "member_id" TEXT NOT NULL REFERENCES "memberships"("id"),
   "token_hash" TEXT NOT NULL UNIQUE,
   "token_preview" TEXT NOT NULL,
-  "issued_by_user_id" TEXT NOT NULL,
-  "team_id" TEXT NOT NULL,
+  "issued_by_user_id" TEXT NOT NULL REFERENCES "users"("id"),
+  "team_id" TEXT NOT NULL REFERENCES "teams"("id"),
   "level" INTEGER NOT NULL,
   "notes" TEXT,
   "revoked_at" TIMESTAMPTZ,
@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS "access_keys" (
 CREATE INDEX IF NOT EXISTS "access_keys_token_hash_idx" ON "access_keys" ("token_hash");
 CREATE INDEX IF NOT EXISTS "access_keys_member_id_idx" ON "access_keys" ("member_id");
 CREATE INDEX IF NOT EXISTS "access_keys_team_id_idx" ON "access_keys" ("team_id");
+CREATE INDEX IF NOT EXISTS "access_keys_issued_by_user_id_idx" ON "access_keys" ("issued_by_user_id");
 
 -- Audit events table
 CREATE TABLE IF NOT EXISTS "audit_events" (

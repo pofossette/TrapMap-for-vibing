@@ -15,6 +15,17 @@ import type { AuditEventRecord } from '@trapmap/server/lib/store.js';
 import { auditEventsTable } from '@trapmap/server/lib/persistence/schema.js';
 import type { AuditRepository } from './repository.js';
 
+interface AuditEventsRow {
+  id: string;
+  teamId: string | null;
+  actorId: string;
+  action: string;
+  entityId: string;
+  payload: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export class PgAuditRepository implements AuditRepository {
   private db: ReturnType<typeof drizzle>;
 
@@ -108,15 +119,15 @@ export class PgAuditRepository implements AuditRepository {
   }
 }
 
-function rowToAuditEventRecord(row: Record<string, unknown>): AuditEventRecord {
+function rowToAuditEventRecord(row: AuditEventsRow): AuditEventRecord {
   return {
-    id: row.id as string,
-    teamId: (row.teamId as string) ?? null,
-    actorId: row.actorId as string,
-    action: row.action as string,
-    entityId: row.entityId as string,
-    payload: (row.payload as Record<string, unknown>) ?? {},
-    createdAt: (row.createdAt as Date).toISOString(),
-    updatedAt: (row.updatedAt as Date).toISOString(),
+    id: row.id,
+    teamId: row.teamId ?? null,
+    actorId: row.actorId,
+    action: row.action,
+    entityId: row.entityId,
+    payload: row.payload ?? {},
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }

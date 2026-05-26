@@ -345,11 +345,11 @@ export const accessKeysTable = pgTable(
   'access_keys',
   {
     id: text('id').primaryKey(),
-    memberId: text('member_id').notNull(),
+    memberId: text('member_id').notNull().references(() => membershipsTable.id),
     tokenHash: text('token_hash').notNull().unique(),
     tokenPreview: text('token_preview').notNull(),
-    issuedByUserId: text('issued_by_user_id').notNull(),
-    teamId: text('team_id').notNull(),
+    issuedByUserId: text('issued_by_user_id').notNull().references(() => usersTable.id),
+    teamId: text('team_id').notNull().references(() => teamsTable.id),
     level: integer('level').notNull(),
     notes: text('notes'),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
@@ -360,6 +360,7 @@ export const accessKeysTable = pgTable(
     index('access_keys_token_hash_idx').on(table.tokenHash),
     index('access_keys_member_id_idx').on(table.memberId),
     index('access_keys_team_id_idx').on(table.teamId),
+    index('access_keys_issued_by_user_id_idx').on(table.issuedByUserId),
   ],
 );
 

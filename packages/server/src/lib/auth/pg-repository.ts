@@ -18,6 +18,31 @@ import {
 } from '@trapmap/server/lib/persistence/schema.js';
 import type { AccessKeyRepository, SessionRepository } from './repository.js';
 
+interface SessionsRow {
+  id: string;
+  tokenHash: string;
+  userId: string | null;
+  activeTeamId: string | null;
+  subjectType: string;
+  expiresAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface AccessKeysRow {
+  id: string;
+  memberId: string;
+  tokenHash: string;
+  tokenPreview: string;
+  issuedByUserId: string;
+  teamId: string;
+  level: number;
+  notes: string | null;
+  revokedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export class PgSessionRepository implements SessionRepository {
   private db: ReturnType<typeof drizzle>;
 
@@ -164,31 +189,31 @@ export class PgAccessKeyRepository implements AccessKeyRepository {
   }
 }
 
-function rowToSessionRecord(row: Record<string, unknown>): SessionRecord {
+function rowToSessionRecord(row: SessionsRow): SessionRecord {
   return {
-    id: row.id as string,
+    id: row.id,
     subjectType: row.subjectType as SessionRecord['subjectType'],
-    userId: row.userId as string | null,
-    activeTeamId: row.activeTeamId as string | null,
-    tokenHash: row.tokenHash as string,
-    expiresAt: row.expiresAt ? (row.expiresAt as Date).toISOString() : null,
-    createdAt: (row.createdAt as Date).toISOString(),
-    updatedAt: (row.updatedAt as Date).toISOString(),
+    userId: row.userId,
+    activeTeamId: row.activeTeamId,
+    tokenHash: row.tokenHash,
+    expiresAt: row.expiresAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-function rowToAccessKeyRecord(row: Record<string, unknown>): AccessKeyRecord {
+function rowToAccessKeyRecord(row: AccessKeysRow): AccessKeyRecord {
   return {
-    id: row.id as string,
-    memberId: row.memberId as string,
-    tokenHash: row.tokenHash as string,
-    tokenPreview: row.tokenPreview as string,
-    issuedByUserId: row.issuedByUserId as string,
-    teamId: row.teamId as string,
-    level: row.level as number,
-    notes: (row.notes as string) ?? null,
-    revokedAt: row.revokedAt ? (row.revokedAt as Date).toISOString() : null,
-    createdAt: (row.createdAt as Date).toISOString(),
-    updatedAt: (row.updatedAt as Date).toISOString(),
+    id: row.id,
+    memberId: row.memberId,
+    tokenHash: row.tokenHash,
+    tokenPreview: row.tokenPreview,
+    issuedByUserId: row.issuedByUserId,
+    teamId: row.teamId,
+    level: row.level,
+    notes: row.notes ?? null,
+    revokedAt: row.revokedAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }

@@ -18,6 +18,27 @@ import {
 } from '@trapmap/server/lib/persistence/schema.js';
 import type { MembershipRepository, TeamRepository } from './repository.js';
 
+interface TeamsRow {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface MembershipsRow {
+  id: string;
+  userId: string;
+  teamId: string;
+  roleTemplate: string;
+  securityLevel: number;
+  permissions: string[];
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export class PgTeamRepository implements TeamRepository {
   private db: ReturnType<typeof drizzle>;
 
@@ -71,23 +92,33 @@ export class PgTeamRepository implements TeamRepository {
   }
 
   async update(teamId: string, updates: Partial<TeamRecord>): Promise<void> {
-    const now = new Date();
-    const setValues: Record<string, unknown> = { updatedAt: now };
+    const setClauses: string[] = [];
+    const params: unknown[] = [];
+    let paramIdx = 1;
 
     if (updates.name !== undefined) {
-      setValues.name = updates.name;
+      setClauses.push(`"name" = $${paramIdx++}`);
+      params.push(updates.name);
     }
     if (updates.slug !== undefined) {
-      setValues.slug = updates.slug;
+      setClauses.push(`"slug" = $${paramIdx++}`);
+      params.push(updates.slug);
     }
     if (updates.description !== undefined) {
-      setValues.description = updates.description;
+      setClauses.push(`"description" = $${paramIdx++}`);
+      params.push(updates.description);
     }
 
-    await this.db
-      .update(teamsTable)
-      .set(setValues as any)
-      .where(eq(teamsTable.id, teamId));
+    if (setClauses.length === 0) return;
+
+    setClauses.push(`"updated_at" = $${paramIdx++}`);
+    params.push(new Date());
+    params.push(teamId);
+
+    await this.pool.query(
+      `UPDATE "teams" SET ${setClauses.join(', ')} WHERE "id" = $${paramIdx}`,
+      params,
+    );
   }
 }
 
@@ -165,50 +196,61 @@ export class PgMembershipRepository implements MembershipRepository {
   }
 
   async update(membershipId: string, updates: Partial<MembershipRecord>): Promise<void> {
-    const now = new Date();
-    const setValues: Record<string, unknown> = { updatedAt: now };
+    const setClauses: string[] = [];
+    const params: unknown[] = [];
+    let paramIdx = 1;
 
     if (updates.roleTemplate !== undefined) {
-      setValues.roleTemplate = updates.roleTemplate;
+      setClauses.push(`"role_template" = $${paramIdx++}`);
+      params.push(updates.roleTemplate);
     }
     if (updates.securityLevel !== undefined) {
-      setValues.securityLevel = updates.securityLevel;
+      setClauses.push(`"security_level" = $${paramIdx++}`);
+      params.push(updates.securityLevel);
     }
     if (updates.permissions !== undefined) {
-      setValues.permissions = updates.permissions as string[];
+      setClauses.push(`"permissions" = $${paramIdx++}::jsonb`);
+      params.push(JSON.stringify(updates.permissions));
     }
     if (updates.notes !== undefined) {
-      setValues.notes = updates.notes;
+      setClauses.push(`"notes" = $${paramIdx++}`);
+      params.push(updates.notes);
     }
 
-    await this.db
-      .update(membershipsTable)
-      .set(setValues as any)
-      .where(eq(membershipsTable.id, membershipId));
+    if (setClauses.length === 0) return;
+
+    setClauses.push(`"updated_at" = $${paramIdx++}`);
+    params.push(new Date());
+    params.push(membershipId);
+
+    await this.pool.query(
+      `UPDATE "memberships" SET ${setClauses.join(', ')} WHERE "id" = $${paramIdx}`,
+      params,
+    );
   }
 }
 
-function rowToTeamRecord(row: Record<string, unknown>): TeamRecord {
+function rowToTeamRecord(row: TeamsRow): TeamRecord {
   return {
-    id: row.id as string,
-    slug: row.slug as string,
-    name: row.name as string,
-    description: (row.description as string) ?? null,
-    createdAt: (row.createdAt as Date).toISOString(),
-    updatedAt: (row.updatedAt as Date).toISOString(),
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    description: row.description ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-function rowToMembershipRecord(row: Record<string, unknown>): MembershipRecord {
+function rowToMembershipRecord(row: MembershipsRow): MembershipRecord {
   return {
-    id: row.id as string,
-    userId: row.userId as string,
-    teamId: row.teamId as string,
+    id: row.id,
+    userId: row.userId,
+    teamId: row.teamId,
     roleTemplate: row.roleTemplate as MembershipRecord['roleTemplate'],
-    securityLevel: row.securityLevel as number,
-    permissions: (row.permissions as MembershipRecord['permissions']) ?? [],
-    notes: (row.notes as string) ?? null,
-    createdAt: (row.createdAt as Date).toISOString(),
-    updatedAt: (row.updatedAt as Date).toISOString(),
+    securityLevel: row.securityLevel,
+    permissions: row.permissions ?? [],
+    notes: row.notes ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }

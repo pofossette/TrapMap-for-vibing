@@ -15,6 +15,28 @@ import type { UserRecord } from '@trapmap/server/lib/store.js';
 import { usersTable } from '@trapmap/server/lib/persistence/schema.js';
 import type { UserRepository } from './repository.js';
 
+/**
+ * Row shape as returned by Drizzle SELECT from users table.
+ * Matches the Drizzle schema column names (camelCase).
+ */
+interface UsersRow {
+  id: string;
+  handle: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+function rowToUserRecord(row: UsersRow): UserRecord {
+  return {
+    id: row.id,
+    handle: row.handle,
+    notes: row.notes ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
 export class PgUserRepository implements UserRepository {
   private db: ReturnType<typeof drizzle>;
 
@@ -62,29 +84,38 @@ export class PgUserRepository implements UserRepository {
   }
 
   async update(userId: string, updates: Partial<UserRecord>): Promise<void> {
-    const now = new Date();
-    const setValues: Record<string, unknown> = { updatedAt: now };
+    const setClauses: string[] = [];
+    const params: unknown[] = [];
+    let paramIdx = 1;
 
     if (updates.handle !== undefined) {
-      setValues.handle = updates.handle;
+      setClauses.push(`"handle" = $${paramIdx++}`);
+      params.push(updates.handle);
     }
     if (updates.notes !== undefined) {
-      setValues.notes = updates.notes;
+      setClauses.push(`"notes" = $${paramIdx++}`);
+      params.push(updates.notes);
     }
 
-    await this.db
-      .update(usersTable)
-      .set(setValues as any)
-      .where(eq(usersTable.id, userId));
+    if (setClauses.length === 0) return;
+
+    setClauses.push(`"updated_at" = $${paramIdx++}`);
+    params.push(new Date());
+    params.push(userId);
+
+    await this.pool.query(
+      `UPDATE "users" SET ${setClauses.join(', ')} WHERE "id" = $${paramIdx}`,
+      params,
+    );
   }
 }
 
-function rowToUserRecord(row: Record<string, unknown>): UserRecord {
+function rowToUserRecord(row: UsersRow): UserRecord {
   return {
-    id: row.id as string,
-    handle: row.handle as string,
-    notes: (row.notes as string) ?? null,
-    createdAt: (row.createdAt as Date).toISOString(),
-    updatedAt: (row.updatedAt as Date).toISOString(),
+    id: row.id,
+    handle: row.handle,
+    notes: row.notes ?? null,
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
   };
 }
