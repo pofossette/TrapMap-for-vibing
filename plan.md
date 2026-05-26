@@ -39,7 +39,7 @@
 - [ ] Phase 2: Fix auth, member, and access-key correctness across storage modes
 - [ ] Phase 3: Unify knowledge and trap workflows behind shared services
 - [ ] Phase 4: Move retrieval and planning flows off `store_snapshot`
-- [ ] Phase 5: Shrink the compatibility surface and add structural guardrails
+- [x] Phase 5: Shrink the compatibility surface and add structural guardrails
 
 ## File Structure
 
@@ -91,8 +91,8 @@
 - [ ] Every touched workflow has the same observable behavior in JSON mode and PG mode
 - [ ] New writes performed through routes used by production paths are readable by the next request without relying on `store_snapshot`
 - [ ] No route in the core path mixes `repos.*` writes with `store.snapshot()` reads of the same aggregate for correctness
-- [ ] Phase-specific documentation is updated in the same change as the code
-- [ ] Phase-specific tests and required eval commands are updated and run
+- [x] Phase-specific documentation is updated in the same change as the code
+- [x] Phase-specific tests and required eval commands are updated and run
 
 ---
 
@@ -521,7 +521,7 @@ const SNAPSHOT_ALLOWLIST = [
 expect(disallowedSnapshotUsages).toEqual([]);
 ```
 
-- [ ] **Step 5.1: Remove or mark legacy flat repo properties as compatibility-only**
+- [x] **Step 5.1: Remove or mark legacy flat repo properties as compatibility-only**
 
 ```ts
 export interface SkillShareerServices {
@@ -533,7 +533,7 @@ export interface SkillShareerServices {
 }
 ```
 
-- [ ] **Step 5.2: Add a guard test for non-allowlisted snapshot usage**
+- [x] **Step 5.2: Add a guard test for non-allowlisted snapshot usage**
 
 ```ts
 const snapshotMatches = await findSnapshotUsage();
@@ -544,14 +544,14 @@ const disallowedSnapshotUsages = snapshotMatches.filter(
 expect(disallowedSnapshotUsages).toEqual([]);
 ```
 
-- [ ] **Step 5.3: Update top-level docs and testing instructions**
+- [x] **Step 5.3: Update top-level docs and testing instructions**
 
 ```md
 - Core request handling reads and writes through `packages/server/src/lib/repos/`
 - `store_snapshot` remains a compatibility surface only for migration and diagnostics
 ```
 
-- [ ] **Step 5.4: Run full verification and close the plan**
+- [x] **Step 5.4: Run full verification and close the plan**
 
 Run: `rtk pnpm typecheck`  
 Expected: PASS

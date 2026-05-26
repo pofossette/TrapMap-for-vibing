@@ -453,6 +453,47 @@ pnpm test -- --run packages/server/src/routes/access-keys.test.ts packages/serve
 
 ---
 
+## 结构回归守卫：`store.snapshot()` / `store.transact()` 用法限制
+
+PG-first 收敛完成后，核心业务路由必须通过 `repos.*` 读写数据。`store.snapshot()` / `store.transact()` 仅允许在以下模块中使用：
+
+| 类别 | 文件模式 | 说明 |
+|------|----------|------|
+| 仓库实现 | `lib/*/repository.ts` | 内部包装 store 作为兼容层 |
+| 迁移/回填脚本 | `lib/persistence/migrate-*.ts`、`backfill-*.ts` | 一次性数据迁移 |
+| 启动引导 | `bootstrap/*.ts` | 启动接线和恢复 |
+| 生命周期订阅者 | `lib/lifecycle/subscribers/*.ts` | 事件驱动副作用 |
+| 候选处理管线 | `lib/candidates/processor.ts`、`lib/candidates/services/*.ts` | 管线变更 |
+| 运维/管理路由 | `routes/operations/*.ts`、`routes/admin-*.ts` 等 | 诊断和迁移 HTTP 工具 |
+
+守卫测试位于 `packages/server/src/__tests__/snapshot-usage-guard.test.ts`，扫描所有非测试 `.ts` 文件。新增不允许列表中的 `store.snapshot()` / `store.transact()` 调用会导致测试失败。
+
+运行守卫测试：
+
+```bash
+pnpm test -- --run packages/server/src/__tests__/snapshot-usage-guard.test.ts
+```
+
+### 跨模式一致性验证
+
+以下命令组合验证 JSON 和 PG 两种存储模式下的行为一致性：
+
+```bash
+# 类型检查
+pnpm typecheck
+
+# 全量测试
+pnpm test
+
+# Smoke 评估
+pnpm eval:smoke
+
+# 结构守卫
+pnpm test -- --run packages/server/src/__tests__/snapshot-usage-guard.test.ts
+```
+
+---
+
 ## 相关文档
 
 - [模块详解](../architecture/MODULES.md) — 系统模块架构和设计

@@ -27,23 +27,39 @@ export interface SkillShareerServices {
   /** Strategy registry for retrieval strategy dispatch */
   strategyRegistry: StrategyRegistry;
   ai: AiProviders;
-  /** Knowledge repository for row-level PostgreSQL operations (undefined when using JsonStore) */
+  /**
+   * @deprecated Use `repos.knowledge` instead. Retained for backward compatibility only.
+   */
   knowledgeRepo: KnowledgeRepository | undefined;
-  /** Artifact repository for row-level PostgreSQL operations (undefined when using JsonStore) */
+  /**
+   * @deprecated Use `repos.artifact` instead. Retained for backward compatibility only.
+   */
   artifactRepo: ArtifactRepository | undefined;
-  /** Session repository for auth operations (undefined when using JsonStore) */
+  /**
+   * @deprecated Use `repos.session` instead. Retained for backward compatibility only.
+   */
   sessionRepo: SessionRepository | undefined;
-  /** Access key repository for auth operations (undefined when using JsonStore) */
+  /**
+   * @deprecated Use `repos.accessKey` instead. Retained for backward compatibility only.
+   */
   accessKeyRepo: AccessKeyRepository | undefined;
-  /** User repository for user operations (undefined when using JsonStore) */
+  /**
+   * @deprecated Use `repos.user` instead. Retained for backward compatibility only.
+   */
   userRepo: UserRepository | undefined;
-  /** Team repository for team operations (undefined when using JsonStore) */
+  /**
+   * @deprecated Use `repos.team` instead. Retained for backward compatibility only.
+   */
   teamRepo: TeamRepository | undefined;
-  /** Membership repository for membership operations (undefined when using JsonStore) */
+  /**
+   * @deprecated Use `repos.membership` instead. Retained for backward compatibility only.
+   */
   membershipRepo: MembershipRepository | undefined;
-  /** Usage analytics repository for statistics (undefined when using JsonStore) */
+  /**
+   * @deprecated Use `repos.usageAnalytics` instead. Retained for backward compatibility only.
+   */
   usageAnalyticsRepo: UsageAnalyticsRepository | undefined;
-  /** Unified repository object — always populated in both JSON and PG modes */
+  /** Unified repository object — always populated in both JSON and PG modes. Prefer this over legacy flat repo properties. */
   repos: SkillShareerRepos;
   /** Lifecycle event bus for domain event emission and subscription */
   eventBus: LifecycleEventBus;

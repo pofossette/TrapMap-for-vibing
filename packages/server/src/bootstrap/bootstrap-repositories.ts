@@ -40,7 +40,7 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
       throw error;
     }
 
-    // Create individual repos for flat props (backward compatibility)
+    // Legacy flat repo properties — compatibility-only, prefer `repos.*` for new code
     app.skillShareer.knowledgeRepo = createKnowledgeRepository({ pool, store });
     app.skillShareer.artifactRepo = createArtifactRepository({ pool, store });
     app.skillShareer.sessionRepo = createSessionRepository({ pool, store });

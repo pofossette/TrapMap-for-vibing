@@ -14,8 +14,16 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
 
 1. **Authoritative source wins.** When secondary docs conflict with the authoritative source, update the secondary doc.
 2. **`store_snapshot` is a compatibility layer.** It is no longer the PG primary read path for identity/audit domains (Round 10 Phase 3 completed migration), but it is still used as a compatibility layer for unmigrated domains and on certain startup paths (e.g. candidate recovery). See `docs/reference/DATA_MODEL.md`.
-3. **Route/business logic reads current aggregate state from `repos`, not from snapshot compatibility data.** The canonical data-access boundary for server business logic is `app.skillShareer.repos`. Actor lookup (user handles, membership levels) uses `packages/server/src/lib/actors/lookup.ts` backed by `repos.user` and `repos.membership`. The only remaining `store.snapshot()` / `store.transact()` usage in core routes is for the supersede workflow, which will be migrated in Phase 3.
-4. All pull requests that touch architecture or persistence docs must verify consistency against this table.
+3. **Route/business logic reads current aggregate state from `repos`, not from snapshot compatibility data.** The canonical data-access boundary for server business logic is `app.skillShareer.repos`. Actor lookup (user handles, membership levels) uses `packages/server/src/lib/actors/lookup.ts` backed by `repos.user` and `repos.membership`. Core business routes (auth, knowledge, traps, retrieval) must use `repos.*` for reads and writes.
+4. **`store.snapshot()` / `store.transact()` usage is restricted to an explicit allowlist.** The guard test at `packages/server/src/__tests__/snapshot-usage-guard.test.ts` enforces this. Allowed categories:
+   - **Repository implementations** (`lib/*/repository.ts`): wrap store as compatibility layer by design
+   - **Migration/backfill scripts** (`lib/persistence/migrate-*.ts`, `backfill-*.ts`): one-off data migration
+   - **Bootstrap files** (`bootstrap/*.ts`): startup wiring and recovery
+   - **Lifecycle subscribers** (`lib/lifecycle/subscribers/*.ts`): event-driven side effects
+   - **Candidate processing** (`lib/candidates/processor.ts`, `lib/candidates/services/*.ts`): pipeline mutations
+   - **Operations/admin routes** (`routes/operations/*.ts`, `routes/admin-*.ts`, `routes/decay.ts`, `routes/maintenance.ts`, etc.): diagnostic and migration HTTP tools
+   - **Remaining migration targets** (`lib/knowledge/application-service.ts`, `lib/retrieval/read-model.ts`): tracked for future migration
+5. All pull requests that touch architecture or persistence docs must verify consistency against this table.
 
 ## CI Guards
 

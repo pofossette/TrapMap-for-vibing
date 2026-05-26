@@ -10,6 +10,7 @@ TrapMap 有两类典型使用方式：
 当前数据库状态：
 - Knowledge 域已经完成结构化拆表。
 - Skill Artifact 域已进入 Round 4：主路径在 PostgreSQL，`files`、`script_descriptors`、`profile/capsules/clientManifest` 已补入结构化子表；原 `artifact_revisions` JSONB 列继续保留为兼容缓存，不再是唯一事实源。
+- **PG-first 收敛已完成**：核心请求处理通过 `repos` 读写（`packages/server/src/lib/repos/`）；`store_snapshot` 仅作为兼容层保留，用于迁移和诊断场景。详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`。
 
 ## 📖 文档
 
