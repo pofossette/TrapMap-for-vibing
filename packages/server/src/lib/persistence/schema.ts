@@ -1709,3 +1709,29 @@ export const usageEventsDailyRollup = pgTable(
     index('idx_usage_rollup_entry_id_day').on(table.entryId, table.day),
   ],
 );
+
+// =============================================================================
+// Domain Event Outbox (Round 10 Phase 2)
+// =============================================================================
+
+export const domainEventOutbox = pgTable(
+  'domain_event_outbox',
+  {
+    id: text('id').primaryKey(),
+    aggregateType: text('aggregate_type').notNull(),
+    aggregateId: text('aggregate_id').notNull(),
+    eventName: text('event_name').notNull(),
+    payload: jsonb('payload').notNull(),
+    status: text('status').notNull().default('pending'),
+    availableAt: timestamp('available_at', { withTimezone: true }).notNull().defaultNow(),
+    attempts: integer('attempts').notNull().default(0),
+    lastError: text('last_error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('domain_event_outbox_pending_idx')
+      .on(table.eventName, table.availableAt, table.createdAt)
+      .where(sql`${table.status} = 'pending'`),
+  ],
+);

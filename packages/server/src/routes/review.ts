@@ -5,7 +5,9 @@ import type { FastifyPluginAsync } from 'fastify';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { applyReviewDecision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
+import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
 import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import {
   requireHigherLevel,
   requirePermission,
@@ -178,10 +180,9 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
 
     // Post-commit: emit domain event (lifecycle already updated in store transact above)
     if (entryId && previousState && nextState && previousState !== nextState) {
-      // Emit domain event — subscribers handle indexing, conflict detection, audit
       const eventName = findTransitionEvent(previousState, nextState);
       if (eventName) {
-        await app.skillShareer.eventBus.emitDomainEventAsync({
+        const eventPayload = {
           name: eventName,
           entryId,
           previousState,
@@ -189,7 +190,21 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
           actorId: auth.actorId,
           reason: `reviewer-${payload.decision}`,
           timestamp: nowIso(),
-        });
+        };
+
+        if (app.skillShareer.store instanceof PostgresStore) {
+          // PG mode: enqueue to outbox for async processing by worker
+          const outbox = createDomainEventOutbox({ pool: app.skillShareer.store.getPool() });
+          await outbox.enqueue({
+            aggregateType: 'knowledge',
+            aggregateId: entryId,
+            eventName,
+            payload: eventPayload,
+          });
+        } else {
+          // JSON mode: keep synchronous eventBus for lightweight local runs
+          await app.skillShareer.eventBus.emitDomainEventAsync(eventPayload);
+        }
       }
     }
 

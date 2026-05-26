@@ -23,9 +23,11 @@ import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
 import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
 import { createKnowledgeRepository } from './lib/knowledge/index.js';
 import { LifecycleEventBus } from './lib/lifecycle/event-bus.js';
+import { createDomainEventOutbox } from './lib/lifecycle/outbox.js';
 import { createAuditSubscriber } from './lib/lifecycle/subscribers/audit.js';
 import { createConflictSubscriber } from './lib/lifecycle/subscribers/conflict.js';
 import { createIndexingSubscriber } from './lib/lifecycle/subscribers/indexing.js';
+import type { DomainEvent, DomainEventHandler } from './lib/lifecycle/types.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import { runMigrations } from './lib/persistence/migration-runner.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';
@@ -494,6 +496,96 @@ export function buildServer(options: BuildServerOptions = {}) {
         'Event subscriber error',
       );
     });
+  });
+
+  // Register outbox event worker for PG mode (Phase 2)
+  // Processes domain events asynchronously — indexing, conflict detection, audit
+  app.addHook('onReady', async () => {
+    const store = app.skillShareer.store;
+    if (!(store instanceof PostgresStore)) return;
+
+    const pool = store.getPool();
+    const outbox = createDomainEventOutbox({ pool });
+    const { adapterRegistry } = app.skillShareer;
+
+    const handlerMap = new Map<string, DomainEventHandler>([
+      ['knowledge.approved', createIndexingSubscriber(store, adapterRegistry)],
+      ['knowledge.deactivated', createIndexingSubscriber(store, adapterRegistry)],
+      ['knowledge.agent-reviewed', createIndexingSubscriber(store, adapterRegistry)],
+      ['knowledge.rejected', createIndexingSubscriber(store, adapterRegistry)],
+      ['knowledge.resubmitted', createIndexingSubscriber(store, adapterRegistry)],
+      ['knowledge.re-review', createIndexingSubscriber(store, adapterRegistry)],
+      ['knowledge.approved+audit', createAuditSubscriber(store, app.log)],
+      ['knowledge.deactivated+audit', createAuditSubscriber(store, app.log)],
+      ['knowledge.rejected+audit', createAuditSubscriber(store, app.log)],
+      ['knowledge.agent-reviewed+audit', createAuditSubscriber(store, app.log)],
+      ['knowledge.approved+conflict', createConflictSubscriber(store)],
+    ]);
+
+    // Build composite handler map: each event name can have multiple handlers
+    const compositeHandlers = new Map<string, DomainEventHandler[]>();
+    for (const [key, handler] of handlerMap) {
+      const eventName = key.includes('+') ? key.split('+')[0]! : key;
+      const list = compositeHandlers.get(eventName) ?? [];
+      list.push(handler);
+      compositeHandlers.set(eventName, list);
+    }
+
+    const pollIntervalMs = 2000;
+    let running = false;
+
+    async function run(): Promise<void> {
+      running = true;
+      while (running) {
+        try {
+          const events = await outbox.claimBatch(10);
+          for (const event of events) {
+            const handlers = compositeHandlers.get(event.eventName);
+            if (handlers && handlers.length > 0) {
+              try {
+                await Promise.all(handlers.map((h) => h(event.payload)));
+                await outbox.complete(event.id);
+              } catch (error) {
+                const msg = error instanceof Error ? error.message : String(error);
+                await outbox.fail(event.id, msg);
+                app.log.error(
+                  { error: msg, eventName: event.eventName, aggregateId: event.aggregateId },
+                  'Outbox event handler failed',
+                );
+              }
+            } else {
+              await outbox.complete(event.id);
+            }
+          }
+          if (events.length === 0) {
+            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+          }
+        } catch (error) {
+          app.log.error({ error }, 'Outbox worker poll error');
+          await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        }
+      }
+    }
+
+    void run();
+    app.log.info('Outbox event worker started');
+
+    app.decorate('outboxWorker', { stop: () => { running = false; } });
+  });
+
+  // Graceful shutdown: stop background workers
+  app.addHook('onClose', async () => {
+    const taskWorker = (app as any).taskWorker;
+    const outboxWorker = (app as any).outboxWorker;
+
+    if (taskWorker?.stop) {
+      taskWorker.stop();
+      app.log.info('Task worker stopped');
+    }
+    if (outboxWorker?.stop) {
+      outboxWorker.stop();
+      app.log.info('Outbox worker stopped');
+    }
   });
 
   app.setErrorHandler((error, _request, reply) => {

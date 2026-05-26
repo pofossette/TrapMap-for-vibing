@@ -56,12 +56,12 @@ stateDiagram-v2
 
     note right of APPROVED
         唯一可检索状态
-        触发索引更新
+        触发索引更新（异步投影）
     end note
 
     note right of DEACTIVATED
         终态
-        从索引移除
+        从索引移除（异步投影）
     end note
 ```
 
@@ -398,7 +398,8 @@ await store.transact(async (tx) => {
 5. Bob (审核者) 调用 POST /v1/knowledge/review
    { entryId: "entry-1", decision: "approved" }
    → 状态: AGENT-PASS → APPROVED
-   → 触发 Post-Commit Indexing
+   → 登记 outbox 事件（异步投影）
+   → 后台 worker 消费事件触发索引/冲突检测
    → 发送事件: knowledge.approved
 
 6. Carol 现在可以检索到该条目

@@ -10,6 +10,8 @@ TrapMap 的异步基础设施**不依赖外部中间件**（无 Redis、Bull、W
 flowchart TB
     subgraph 事件层["事件层"]
         EventBus["LifecycleEventBus\n(node:events)"]
+        Outbox["DomainEventOutbox\n(PostgreSQL)"]
+        OutboxWorker["OutboxWorker\n(poll-based)"]
         IndexSub["IndexingSubscriber"]
         AuditSub["AuditSubscriber"]
         ConflictSub["ConflictSubscriber"]
@@ -42,6 +44,10 @@ flowchart TB
     EventBus --> IndexSub
     EventBus --> AuditSub
     EventBus --> ConflictSub
+    OutboxWorker --> Outbox
+    OutboxWorker --> IndexSub
+    OutboxWorker --> ConflictSub
+    OutboxWorker --> AuditSub
 
     TaskQueue --> TaskWorker
     TaskWorker --> CandidateProc
@@ -110,7 +116,66 @@ app.skillShareer.eventBus = eventBus;
 
 ---
 
-## 2. PostgreSQL 持久化任务队列
+## 2. 领域事件 Outbox
+
+### 概述
+
+`DomainEventOutbox` 是 PostgreSQL 持久化的事件出箱表，用于解耦写路径和重副作用。审核/批准等写操作只负责提交事实并登记 outbox 事件，索引、冲突检测等重副作用由后台 worker 异步消费。
+
+### 表结构
+
+```sql
+CREATE TABLE domain_event_outbox (
+  id          TEXT PRIMARY KEY,
+  aggregate_type TEXT NOT NULL,    -- 'knowledge'
+  aggregate_id   TEXT NOT NULL,    -- entry ID
+  event_name     TEXT NOT NULL,    -- 'knowledge.approved' etc.
+  payload        JSONB NOT NULL,   -- DomainEvent
+  status         TEXT NOT NULL DEFAULT 'pending',  -- pending|processing|completed|failed
+  available_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  attempts       INTEGER NOT NULL DEFAULT 0,
+  last_error     TEXT,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  published_at   TIMESTAMPTZ
+);
+
+CREATE INDEX domain_event_outbox_pending_idx
+ON domain_event_outbox (event_name, available_at, created_at)
+WHERE status = 'pending';
+```
+
+### 操作
+
+| 方法 | 说明 |
+|------|------|
+| `enqueue(params)` | 登记事件，status=pending |
+| `claimBatch(limit)` | 用 SKIP LOCKED 领取待处理事件，status→processing |
+| `complete(eventId)` | 标记完成，status→completed |
+| `fail(eventId, error)` | 失败重试：attempts++，指数退避后重置为 pending；达到 maxAttempts 后标记为 failed |
+
+### 执行模式
+
+| 模式 | 路径 | 说明 |
+|------|------|------|
+| **PostgreSQL** | 写路由 → outbox.enqueue() → OutboxWorker 后台消费 → subscriber | 请求不等待索引/冲突检测完成 |
+| **JSON (本地)** | 写路由 → eventBus.emitDomainEventAsync() | 本地轻量运行，保留同步语义 |
+
+### OutboxWorker
+
+PG 模式下启动一个后台 worker，轮询 outbox 表领取 pending 事件，按 eventName 分发到对应的 subscriber（indexing/conflict/audit），失败自动重试并记录错误。
+
+```typescript
+// app.ts: 在 PG 模式下启动 outbox worker
+const handlerMap = new Map<string, DomainEventHandler>([
+  ['knowledge.approved', createIndexingSubscriber(store, adapterRegistry)],
+  ['knowledge.deactivated', createIndexingSubscriber(store, adapterRegistry)],
+  // ...
+]);
+```
+
+---
+
+## 3. PostgreSQL 持久化任务队列
 
 ### 概述
 
@@ -246,7 +311,7 @@ app.decorate('taskWorker', worker);  // 挂载到 Fastify 实例供优雅关闭
 
 ---
 
-## 3. 数据库异步模式
+## 4. 数据库异步模式
 
 ### PostgreSQL 连接池
 
@@ -289,7 +354,7 @@ flowchart TB
 
 ---
 
-## 4. Promise 并行扇出
+## 5. Promise 并行扇出
 
 项目使用原生 `Promise.all` 实现并行 fan-out，未引入 p-limit / p-queue 等外部库。
 
@@ -321,7 +386,7 @@ while (this.active.size < this.concurrency) {
 
 ---
 
-## 5. 异步管线与钩子
+## 6. 异步管线与钩子
 
 ### Fastify `onReady` 启动钩子
 
@@ -378,7 +443,7 @@ flowchart LR
 
 ---
 
-## 6. 缓存层
+## 7. 缓存层
 
 ### LRU Prompt Section Cache
 

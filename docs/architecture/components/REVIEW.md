@@ -6,6 +6,13 @@ TrapMap 的文档审批流程采用两阶段审核机制：先由智能体进行
 
 ## 审批流程概览
 
+审核接口（`POST /v1/knowledge/review`）只负责：
+1. 鉴权和校验
+2. 事务写状态变更
+3. 登记 outbox 事件
+
+索引刷新、冲突检测等重副作用由后台 outbox worker 异步消费事件完成，审核接口不等待这些副作用。
+
 ```mermaid
 flowchart TB
     A[用户提交文档] --> B[智能体审核 Agent Review]
@@ -23,10 +30,12 @@ flowchart TB
     H -->|批准| I[APPROVED]
     H -->|拒绝| J[REJECTED]
     
-    I --> K[触发提交后索引 Post-Commit Indexing]
+    I --> K[登记 outbox 事件]
     J --> F
     
-    K --> L[文档可被检索]
+    K --> L[OutboxWorker 消费]
+    L --> M[索引/冲突检测/审计]
+    M --> N[文档可被检索]
 ```
 
 ## 智能体审核 (Agent Review)
