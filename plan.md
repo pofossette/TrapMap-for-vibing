@@ -361,25 +361,25 @@ const cachedGraphDocuments = new RetrievalCache<GraphIndexDocumentRecord>({
 
 ### 进度追踪
 
-- [ ] **Step 3.1：运行现有 graph adapter 测试记录基线**
+- [x] **Step 3.1：运行现有 graph adapter 测试记录基线**
 
 ```bash
 rtk pnpm test -- --run packages/server/src/lib/indexing/adapters/
 ```
 
-- [ ] **Step 3.2：替换两个裸 Map 为 RetrievalCache 实例**
+- [x] **Step 3.2：替换两个裸 Map 为 RetrievalCache 实例**
 
 修改 `graph.ts` 顶部的两个 `const ... = new Map<...>()` 声明。适配所有使用这两个 Map 的内部函数（`cacheDocument`、`getCachedGraphIndexDocuments`、`clearGraphCache`、`setCachedGraphIndexDocuments`）。
 
 移除 `LegacyGraphSyncState` 接口上的 `@deprecated` 标记。
 
-- [ ] **Step 3.3：运行测试确认通过**
+- [x] **Step 3.3：运行测试确认通过**
 
 ```bash
 rtk pnpm test -- --run packages/server/src/lib/indexing/adapters/
 ```
 
-- [ ] **Step 3.4：Commit**
+- [x] **Step 3.4：Commit**
 
 ```bash
 git add packages/server/src/lib/indexing/adapters/graph.ts
@@ -388,15 +388,15 @@ git commit -m "refactor(cache): replace graph index bare Maps with RetrievalCach
 
 ### Phase 3 验收标准
 
-- [ ] `graphStateCache` 和 `cachedGraphDocuments` 均为 `RetrievalCache` 实例
-- [ ] `@deprecated` 标记已移除
-- [ ] TTL 设置为 1h，maxSize 为 500
-- [ ] 所有 graph adapter 测试通过
-- [ ] `pnpm typecheck` 零错误
+- [x] `graphStateCache` 和 `cachedGraphDocuments` 均为 `RetrievalCache` 实例
+- [x] `@deprecated` 标记已移除
+- [x] TTL 设置为 1h，maxSize 为 500
+- [x] 所有 graph adapter 测试通过
+- [x] `pnpm typecheck` 零错误
 
 ### Phase 3 文档更新
 
-- [ ] `plan.md`：记录 Phase 3 完成状态
+- [x] `plan.md`：记录 Phase 3 完成状态
 
 ---
 
