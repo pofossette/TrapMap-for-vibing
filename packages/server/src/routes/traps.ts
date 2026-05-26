@@ -6,6 +6,7 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
+import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
 import { supersedeEntry } from '@trapmap/server/lib/decay/supersede.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import {
@@ -81,9 +82,8 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
 
     await knowledgeRepo.insert(record);
 
-    // Serialize using store data for user handle resolution
-    const data = await app.skillShareer.store.snapshot();
-    const entry = toKnowledgeEntry(data, record);
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [record]);
+    const entry = toKnowledgeEntry(lookup, record);
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
@@ -108,8 +108,8 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(500, 'repo_unavailable', 'Knowledge repository not available');
     }
     const entries = await knowledgeRepo.listByFilter({ ownerUserId });
-    const data = await app.skillShareer.store.snapshot();
-    const items = entries.map((entry) => toKnowledgeEntry(data, entry));
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, entries);
+    const items = entries.map((entry) => toKnowledgeEntry(lookup, entry));
 
     return knowledgeHistoryResponseSchema.parse({ items });
   });
@@ -136,9 +136,9 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(403, 'forbidden', 'You do not have access to this trap entry');
     }
 
-    const data = await app.skillShareer.store.snapshot();
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entry]);
     return knowledgeEntryResponseSchema.parse({
-      entry: toKnowledgeEntry(data, entry),
+      entry: toKnowledgeEntry(lookup, entry),
     });
   });
 
@@ -199,8 +199,8 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       await knowledgeRepo.appendRevision(trapId, existingEntry.latestRevision);
     }
 
-    const data = await app.skillShareer.store.snapshot();
-    const updatedEntry = toKnowledgeEntry(data, existingEntry);
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [existingEntry]);
+    const updatedEntry = toKnowledgeEntry(lookup, existingEntry);
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),

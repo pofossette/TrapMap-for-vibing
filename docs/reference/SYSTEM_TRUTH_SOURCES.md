@@ -8,12 +8,14 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
 | Startup sequence | `packages/server/src/bootstrap/run-startup-sequence.ts` | `docs/architecture/ARCHITECTURE.md`, `docs/guides/CODE_GUIDE.md` |
 | Persistence migration state | `docs/reference/DATA_MODEL.md` | `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md` |
 | DB schema | `packages/server/src/lib/persistence/schema/index.ts` (barrel, re-exports all domain table modules) | `docs/reference/DATABASE_SCHEMA.md` |
+| Server data-access boundary | `packages/server/src/lib/actors/lookup.ts` (actor lookup), `packages/server/src/lib/repos/index.ts` (`SkillShareerRepos`) | `docs/PACKAGES.md`, `docs/reference/DATA_MODEL.md` |
 
 ## Rules
 
 1. **Authoritative source wins.** When secondary docs conflict with the authoritative source, update the secondary doc.
 2. **`store_snapshot` is a compatibility layer.** It is no longer the PG primary read path for identity/audit domains (Round 10 Phase 3 completed migration), but it is still used as a compatibility layer for unmigrated domains and on certain startup paths (e.g. candidate recovery). See `docs/reference/DATA_MODEL.md`.
-3. All pull requests that touch architecture or persistence docs must verify consistency against this table.
+3. **Route/business logic reads current aggregate state from `repos`, not from snapshot compatibility data.** The canonical data-access boundary for server business logic is `app.skillShareer.repos`. Actor lookup (user handles, membership levels) uses `packages/server/src/lib/actors/lookup.ts` backed by `repos.user` and `repos.membership`. The only remaining `store.snapshot()` / `store.transact()` usage in core routes is for the supersede workflow, which will be migrated in Phase 3.
+4. All pull requests that touch architecture or persistence docs must verify consistency against this table.
 
 ## CI Guards
 

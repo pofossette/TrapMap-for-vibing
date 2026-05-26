@@ -73,6 +73,8 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 
 ### 持久化层
 
+**规范服务边界**：路由和业务逻辑通过 `app.skillShareer.repos`（`SkillShareerRepos`）访问所有领域仓库。Actor 查找（用户 handle、成员安全等级）通过 `lib/actors/lookup.ts` 使用 `repos.user` 和 `repos.membership`，不再依赖 `store.snapshot()`。`store_snapshot` 仅作为未迁移辅助域和 supersede 工作流的兼容层。
+
 | 仓库 | 文件 | 存储后端 |
 |------|------|----------|
 | `KnowledgeRepository` | `lib/knowledge/repository.ts` | PG (`PgKnowledgeRepository`) 或 JSON (`InMemoryKnowledgeRepository`) |
