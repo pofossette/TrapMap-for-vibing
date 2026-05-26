@@ -76,8 +76,18 @@ contracts → server (app → routes → lib) → cli → evals
 | `retrieval.ts` | `/v1/retrieval` | 多版本检索入口 |
 | `candidates.ts` | `/v1/candidates` | 异步摄取（提交/查询/解决/重复），分模块见 `routes/candidates/` |
 | `operations.ts` | `/v1/operations` | 批量导入/导出 |
-| `traps.ts` | `/v1/traps` | Trap 级别操作 |
+| `traps.ts` | `/v1/traps` | Trap 管理（共享应用服务） |
 | `retrieval.ts` | `/v1/retrieval/skills/search-by-content` | Skill 内容检索 |
+
+#### 知识/Trap 共享应用服务
+
+`knowledge.ts` 和 `traps.ts` 的提交、重提、取代工作流委托给 `lib/knowledge/application-service.ts` 中的 `KnowledgeApplicationService`。该服务封装了：
+
+- **submit**: 运行预审 → 创建条目记录 → 插入仓库
+- **resubmit**: 验证所有权和状态 → 运行预审 → 持久化治理/修订/生命周期变更
+- **supersede**: 通过 `store.transact()` 委托给 `supersedeEntry()`（Phase 4 将迁移）
+
+路由仅负责 HTTP 关注点（认证、权限、请求解析、日志），所有持久化逻辑通过 `repos.knowledge` 统一访问。
 
 ### 2.3 业务逻辑 — `src/lib/`
 

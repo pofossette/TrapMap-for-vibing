@@ -7,14 +7,9 @@ import {
 import type { FastifyPluginAsync } from 'fastify';
 
 import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
-import { supersedeEntry } from '@trapmap/server/lib/decay/supersede.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import {
-  createKnowledgeEntryRecord,
-  resubmitKnowledgeEntry,
-  toKnowledgeEntry,
-} from '@trapmap/server/lib/knowledge.js';
-import { runPreReview } from '@trapmap/server/lib/pre-review.js';
+import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
+import { toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -32,6 +27,14 @@ function requireRealUser(userId: string | undefined): string {
 }
 
 export const trapRoutes: FastifyPluginAsync = async (app) => {
+  function getKnowledgeService() {
+    return createKnowledgeApplicationService({
+      knowledgeRepo: app.skillShareer.repos.knowledge,
+      chatProvider: app.skillShareer.ai.chat,
+      store: app.skillShareer.store,
+    });
+  }
+
   // POST /v1/traps - Submit new trap
   app.post('/v1/traps', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
@@ -56,34 +59,16 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       );
     }
 
-    const knowledgeRepo = app.skillShareer.knowledgeRepo;
-    if (!knowledgeRepo) {
-      throw new AppError(500, 'repo_unavailable', 'Knowledge repository not available');
-    }
-
-    const preReview = await runPreReview({
-      existingEntries: await knowledgeRepo.listByFilter({}),
-      submission: payload,
-    });
-
-    const createdAt = nowIso();
-
-    const entryId = await knowledgeRepo.nextId();
-
-    const record = createKnowledgeEntryRecord({
+    const { entry } = await getKnowledgeService().submit({
+      kind: 'trap',
       ownerUserId,
       teamId: payload.scope === 'project' ? auth.activeTeamId : null,
       payload,
       requiredLevel: payload.requiredLevel ?? auth.securityLevel,
-      createdAt,
-      preReview,
-      entryId,
+      boundary: payload.boundary,
     });
 
-    await knowledgeRepo.insert(record);
-
-    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [record]);
-    const entry = toKnowledgeEntry(lookup, record);
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entry]);
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
@@ -95,7 +80,9 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       metadata: { scope: payload.scope, labels: payload.labels },
     });
 
-    return knowledgeEntryResponseSchema.parse({ entry });
+    return knowledgeEntryResponseSchema.parse({
+      entry: toKnowledgeEntry(lookup, entry),
+    });
   });
 
   // GET /v1/traps - List own traps
@@ -103,10 +90,7 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     const ownerUserId = requireRealUser(auth.user?.id);
 
-    const knowledgeRepo = app.skillShareer.knowledgeRepo;
-    if (!knowledgeRepo) {
-      throw new AppError(500, 'repo_unavailable', 'Knowledge repository not available');
-    }
+    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
     const entries = await knowledgeRepo.listByFilter({ ownerUserId });
     const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, entries);
     const items = entries.map((entry) => toKnowledgeEntry(lookup, entry));
@@ -118,10 +102,7 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/traps/:trapId', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     const trapId = (request.params as { trapId: string }).trapId;
-    const knowledgeRepo = app.skillShareer.knowledgeRepo;
-    if (!knowledgeRepo) {
-      throw new AppError(500, 'repo_unavailable', 'Knowledge repository not available');
-    }
+    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
     const entry = await knowledgeRepo.getById(trapId);
 
     if (!entry) {
@@ -152,55 +133,14 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       entryId: trapId,
     });
 
-    // Get knowledgeRepo
-    const knowledgeRepo = app.skillShareer.knowledgeRepo;
-    if (!knowledgeRepo) {
-      throw new AppError(500, 'repo_unavailable', 'Knowledge repository not available');
-    }
-
-    const existingEntries = (await knowledgeRepo.listByFilter({})).filter(
-      (entry) => entry.id !== trapId,
-    );
-    const preReview = await runPreReview({
-      existingEntries,
-      submission: {
-        scope: 'project',
-        labels: payload.labels,
-        shortcut: payload.shortcut,
-        detail: payload.detail,
-      },
-    });
-
-    const existingEntry = await knowledgeRepo.getById(trapId);
-
-    if (!existingEntry) {
-      throw new AppError(404, 'trap_not_found', 'Trap entry not found');
-    }
-
-    if (existingEntry.ownerUserId !== ownerUserId) {
-      throw new AppError(403, 'forbidden', 'Only the original submitter may resubmit this trap');
-    }
-
-    if (!['rejected', 'agent-rejected'].includes(existingEntry.lifecycleState)) {
-      throw new AppError(400, 'invalid_state', 'Only rejected traps may be resubmitted');
-    }
-
-    const submittedAt = nowIso();
-    resubmitKnowledgeEntry({
-      entry: existingEntry,
+    const { entry } = await getKnowledgeService().resubmit({
+      kind: 'trap',
+      entryId: trapId,
       ownerUserId,
       payload,
-      submittedAt,
-      preReview,
     });
 
-    // Persist revision via PG repository
-    if (existingEntry.latestRevision) {
-      await knowledgeRepo.appendRevision(trapId, existingEntry.latestRevision);
-    }
-
-    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [existingEntry]);
-    const updatedEntry = toKnowledgeEntry(lookup, existingEntry);
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entry]);
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
@@ -212,7 +152,9 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       metadata: { labels: payload.labels },
     });
 
-    return knowledgeEntryResponseSchema.parse({ entry: updatedEntry });
+    return knowledgeEntryResponseSchema.parse({
+      entry: toKnowledgeEntry(lookup, entry),
+    });
   });
 
   // POST /v1/traps/:trapId/supersede - Supersede a trap with a replacement
@@ -226,14 +168,11 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(400, 'replacement_required', 'replacementId is required');
     }
 
-    const supersededEntry = await app.skillShareer.store.transact((data) => {
-      return supersedeEntry({
-        store: app.skillShareer.store,
-        data,
-        entryId: trapId,
-        replacementId: body.replacementId!,
-        actorId: auth.actorId,
-      });
+    const { entry } = await getKnowledgeService().supersede({
+      kind: 'trap',
+      entryId: trapId,
+      replacementId: body.replacementId,
+      actorId: auth.actorId,
     });
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
@@ -246,8 +185,9 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       metadata: { replacementId: body.replacementId },
     });
 
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entry]);
     return knowledgeEntryResponseSchema.parse({
-      entry: toKnowledgeEntry(await app.skillShareer.store.snapshot(), supersededEntry),
+      entry: toKnowledgeEntry(lookup, entry),
     });
   });
 };

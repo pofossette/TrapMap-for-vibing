@@ -96,12 +96,12 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 | `routes/auth.ts` | `/v1/auth` | 认证 |
 | `routes/teams.ts` | `/v1/teams` | 团队管理 |
 | `routes/members.ts` | `/v1/members` | 成员管理 |
-| `routes/knowledge.ts` | `/v1/knowledge` | 知识条目 CRUD |
+| `routes/knowledge.ts` | `/v1/knowledge` | 知识条目 CRUD，通过 `KnowledgeApplicationService` 执行提交/重提/取代 |
 | `routes/review.ts` | `/v1/knowledge/review` | 审核工作流 |
 | `routes/retrieval.ts` | `/v1/retrieval` | 检索（v1/v2/v3） |
 | `routes/operations.ts` | `/v1/operations` | 导入/导出 |
 | `routes/candidates.ts` | `/v1/candidates` | 异步摄取 |
-| `routes/traps.ts` | `/v1/traps` | Trap 管理 |
+| `routes/traps.ts` | `/v1/traps` | Trap 管理（与 knowledge 共享同一 `KnowledgeApplicationService` 工作流） |
 | `routes/retrieval.ts` | `/v1/retrieval/skills/search-by-content` | Skill 内容检索 |
 
 ### 配置

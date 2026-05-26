@@ -133,12 +133,14 @@ audit/         审计日志查看
 | `teams.ts` | 团队 CRUD 和选择 |
 | `members.ts` | 成员管理 |
 | `access-keys.ts` | 访问密钥发放 |
-| `traps.ts` | Trap 特定操作 |
-| `knowledge.ts` | 知识 CRUD 和提交 |
+| `traps.ts` | Trap 特定操作（通过共享应用服务） |
+| `knowledge.ts` | 知识 CRUD 和提交（通过共享应用服务） |
 | `review.ts` | 审核队列表和决策 |
 | `retrieval.ts` | 搜索端点（v1, v2, v3） |
 | `operations.ts` | 导入/导出，工件编辑 |
 | `candidates.ts` | 异步摄取管道 |
+
+**知识/Trap 应用服务**：`knowledge.ts` 和 `traps.ts` 的提交/重提/取代工作流委托给 `lib/knowledge/application-service.ts`。路由 → 应用服务 → 仓库 的分层确保 knowledge 和 trap 路由共享相同的持久化语义，消除了此前 trap 路由缺失治理/生命周期持久化的正确性问题。
 
 **业务逻辑库**：
 | 目录 | 用途 |
@@ -148,6 +150,7 @@ audit/         审计日志查看
 | `lib/candidates/` | 异步摄取管道 |
 | `lib/governance/` | RBAC 和资格 |
 | `lib/indexing/` | 多适配器索引 |
+| `lib/knowledge/` | 知识应用服务（submit/resubmit/supersede）、仓库接口和 PG 实现 |
 | `lib/retrieval/` | 检索管道 |
 | `lib/persistence/` | 存储实现 |
 

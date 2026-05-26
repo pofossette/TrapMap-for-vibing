@@ -9,15 +9,13 @@ import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
-import { supersedeEntry } from '@trapmap/server/lib/decay/supersede.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
+import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
 import {
-  createKnowledgeEntryRecord,
   createKnowledgeRevision,
   toKnowledgeEntry,
 } from '@trapmap/server/lib/knowledge.js';
 import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
-import { runPreReview } from '@trapmap/server/lib/pre-review.js';
 import {
   requireHigherLevel,
   requirePermission,
@@ -41,6 +39,14 @@ function requireRealUser(userId: string | undefined): string {
 }
 
 export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
+  function getKnowledgeService() {
+    return createKnowledgeApplicationService({
+      knowledgeRepo: app.skillShareer.repos.knowledge,
+      chatProvider: app.skillShareer.ai.chat,
+      store: app.skillShareer.store,
+    });
+  }
+
   app.post('/v1/knowledge', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:submit');
@@ -64,39 +70,17 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       );
     }
 
-    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
-
-    const preReview = await runPreReview({
-      existingEntries: await knowledgeRepo.listByFilter({}),
-      submission: payload,
-      chatProvider: app.skillShareer.ai.chat,
-      authorBoundary: payload.boundary ?? null,
-    });
-
-    const createdAt = nowIso();
-
-    // Use author boundary if provided, otherwise use extracted boundary from pre-review
-    const boundary = payload.boundary ?? preReview.boundary ?? null;
-
-    const entryId = await knowledgeRepo.nextId();
-
-    const record = createKnowledgeEntryRecord({
+    const { entry } = await getKnowledgeService().submit({
+      kind: 'knowledge',
       ownerUserId,
       teamId: payload.scope === 'project' ? auth.activeTeamId : null,
       payload,
       requiredLevel: payload.requiredLevel ?? auth.securityLevel,
-      createdAt,
-      preReview,
-      boundary,
-      entryId,
+      boundary: payload.boundary,
     });
 
-    await knowledgeRepo.insert(record);
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entry]);
 
-    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [record]);
-    const entry = toKnowledgeEntry(lookup, record);
-
-    // Log user operation (fire-and-forget)
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
       actorId: auth.actorId,
@@ -107,7 +91,9 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       metadata: { scope: payload.scope, labels: payload.labels },
     });
 
-    return knowledgeEntryResponseSchema.parse({ entry });
+    return knowledgeEntryResponseSchema.parse({
+      entry: toKnowledgeEntry(lookup, entry),
+    });
   });
 
   app.get('/v1/knowledge/mine', async (request) => {
@@ -156,84 +142,15 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       entryId,
     });
 
-    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
-    const existingEntries = (await knowledgeRepo.listByFilter({})).filter(
-      (entry) => entry.id !== entryId,
-    );
-    const preReview = await runPreReview({
-      existingEntries,
-      submission: {
-        scope: 'project',
-        labels: payload.labels,
-        shortcut: payload.shortcut,
-        detail: payload.detail,
-      },
-      chatProvider: app.skillShareer.ai.chat,
-      authorBoundary: payload.boundary ?? null,
-    });
-
-    // Fetch entry directly from repo, not store snapshot
-    const existingEntry = await knowledgeRepo.getById(entryId);
-    if (!existingEntry) {
-      throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
-    }
-
-    if (existingEntry.ownerUserId !== ownerUserId) {
-      throw new AppError(403, 'forbidden', 'Only the original submitter may resubmit this entry');
-    }
-
-    if (!['rejected', 'agent-rejected'].includes(existingEntry.lifecycleState)) {
-      throw new AppError(400, 'invalid_state', 'Only rejected entries may be resubmitted');
-    }
-
-    const submittedAt = nowIso();
-    // Use payload boundary if provided, otherwise use extracted boundary from pre-review
-    const boundary = payload.boundary ?? preReview.boundary ?? null;
-
-    // Build revision and compute state changes (avoid in-place mutation)
-    const previousSubmissionId = existingEntry.latestSubmissionId;
-    const revisionNumber = existingEntry.history.length + 1;
-    const revision = createKnowledgeRevision(
+    const { entry } = await getKnowledgeService().resubmit({
+      kind: 'knowledge',
+      entryId,
       ownerUserId,
-      {
-        detail: payload.detail,
-        labels: payload.labels,
-        shortcut: payload.shortcut,
-      },
-      revisionNumber,
-      submittedAt,
-    );
-
-    const newLifecycleState = preReview.status;
-
-    // Persist all changes via repository (Round 2: each method handles its own persistence)
-    await knowledgeRepo.updateGovernance(entryId, {
-      labels: revision.labels,
-      requiredLevel: existingEntry.requiredLevel,
-    });
-    await knowledgeRepo.appendRevision(entryId, revision);
-    await knowledgeRepo.updateLifecycle(entryId, newLifecycleState, {
-      actorId: ownerUserId,
-      note: previousSubmissionId ? `Resubmission of ${previousSubmissionId}` : 'resubmit',
+      payload,
     });
 
-    // Build response entry (snapshot of changes)
-    const entryForResponse: KnowledgeRecord = {
-      ...existingEntry,
-      labels: revision.labels,
-      shortcut: revision.shortcut,
-      detail: revision.detail,
-      lifecycleState: newLifecycleState,
-      latestRevision: revision,
-      history: [...existingEntry.history, revision],
-      boundary: boundary ?? existingEntry.boundary,
-      updatedAt: submittedAt,
-    };
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entry]);
 
-    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entryForResponse]);
-    const updatedEntry = toKnowledgeEntry(lookup, entryForResponse);
-
-    // Log user operation (fire-and-forget)
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
       actorId: auth.actorId,
@@ -244,7 +161,9 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       metadata: { endpoint: 'resubmit', labels: payload.labels },
     });
 
-    return knowledgeEntryResponseSchema.parse({ entry: updatedEntry });
+    return knowledgeEntryResponseSchema.parse({
+      entry: toKnowledgeEntry(lookup, entry),
+    });
   });
 
   app.patch('/v1/knowledge/:entryId', async (request) => {
@@ -366,21 +285,12 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(400, 'replacement_required', 'replacementId is required');
     }
 
-    // supersedeEntry still requires store.transact() because it uses
-    // store.nextId() for sub-record IDs and mutates StoreData directly.
-    // Round 3 (knowledge domain restructure) will address this.
-    const { entry: supersededEntry, data: txData } = await app.skillShareer.store.transact(
-      (data) => {
-        const result = supersedeEntry({
-          store: app.skillShareer.store,
-          data,
-          entryId,
-          replacementId: body.replacementId!,
-          actorId: auth.actorId,
-        });
-        return { entry: result, data };
-      },
-    );
+    const { entry } = await getKnowledgeService().supersede({
+      kind: 'knowledge',
+      entryId,
+      replacementId: body.replacementId,
+      actorId: auth.actorId,
+    });
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
@@ -392,8 +302,9 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       metadata: { replacementId: body.replacementId },
     });
 
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entry]);
     return knowledgeEntryResponseSchema.parse({
-      entry: toKnowledgeEntry(txData, supersededEntry),
+      entry: toKnowledgeEntry(lookup, entry),
     });
   });
 };
