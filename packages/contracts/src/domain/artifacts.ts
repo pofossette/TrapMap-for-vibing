@@ -56,7 +56,13 @@ export const compatibleScriptActivationPolicySchema = z.union([
  */
 export const scriptWithPolicyMetadataSchema = z.object({
   /** Path to the script file */
-  path: z.string().min(1).max(512).refine(s => !s.startsWith('/') && !s.match(/^[A-Za-z]:\\/), { message: "must be a relative path" }),
+  path: z
+    .string()
+    .min(1)
+    .max(512)
+    .refine((s) => !s.startsWith('/') && !s.match(/^[A-Za-z]:\\/), {
+      message: 'must be a relative path',
+    }),
   /** SHA-256 hash of the script content */
   sha256: z.string().regex(/^[0-9a-f]{64}$/),
   /** Human-readable capability description */
@@ -80,24 +86,26 @@ export const skillArtifactFileSourceSchema = z.enum([
  * Individual file metadata within a skill artifact revision.
  * Carries path, hash, and inclusion flags without storing content bodies.
  */
-export const skillArtifactFileSchema = z.object({
-  /** Canonical path within the skill directory (e.g., 'references/docker.md') */
-  path: z.string().min(1).max(512),
-  /** File kind controlling derivation and activation behavior */
-  kind: skillArtifactFileKindSchema,
-  /** SHA-256 hash of file content for integrity and derivation caching */
-  sha256: z.string().regex(/^[0-9a-f]{64}$/),
-  /** File size in bytes for storage quota and transfer validation */
-  sizeBytes: z.number().int().min(0),
-  /** IANA media type (e.g., 'text/markdown', 'application/json') */
-  mediaType: z.string().min(1).max(160),
-  /** Source directory within the skill artifact */
-  source: skillArtifactFileSourceSchema,
-  /** If true, file content may be used for capsule/profile derivation */
-  includeInDerivation: z.boolean(),
-  /** If true, file is activation-only and should not be indexed for retrieval */
-  activationOnly: z.boolean(),
-});
+export const skillArtifactFileSchema = z
+  .object({
+    /** Canonical path within the skill directory (e.g., 'references/docker.md') */
+    path: z.string().min(1).max(512),
+    /** File kind controlling derivation and activation behavior */
+    kind: skillArtifactFileKindSchema,
+    /** SHA-256 hash of file content for integrity and derivation caching */
+    sha256: z.string().regex(/^[0-9a-f]{64}$/),
+    /** File size in bytes for storage quota and transfer validation */
+    sizeBytes: z.number().int().min(0),
+    /** IANA media type (e.g., 'text/markdown', 'application/json') */
+    mediaType: z.string().min(1).max(160),
+    /** Source directory within the skill artifact */
+    source: skillArtifactFileSourceSchema,
+    /** If true, file content may be used for capsule/profile derivation */
+    includeInDerivation: z.boolean(),
+    /** If true, file is activation-only and should not be indexed for retrieval */
+    activationOnly: z.boolean(),
+  })
+  .strict();
 
 /**
  * Script capability descriptor for executable scripts in skill artifacts.
@@ -107,7 +115,7 @@ export const skillScriptDescriptorSchema = z.object({
   /** Path to the script file within the skill directory */
   path: z.string().min(1).max(512),
   /** SHA-256 hash of the script content */
-  sha256: z.string().length(64),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
   /** Human-readable capability description (e.g., 'Docker container cleanup') */
   capability: z.string().min(1).max(280),
   /** Brief summary of expected argument schema */
@@ -128,7 +136,7 @@ export const skillProfileSchema = z.object({
   /** Revision number this profile was derived from */
   revision: z.number().int().min(1),
   /** Hash of all source files used for derivation */
-  sourceHash: z.string().length(64),
+  sourceHash: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
   /** Human-readable title from skill metadata */
   title: z.string().min(1).max(280),
   /** Optional description derived from SKILL.md frontmatter */
@@ -144,7 +152,7 @@ export const skillProfileSchema = z.object({
   /** Paths to reference files included in derivation */
   referencePaths: z.array(z.string().max(512)).default([]),
   /** Hash of the derived profile content for caching */
-  contentHash: z.string().length(64),
+  contentHash: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
 });
 
 /**
@@ -152,56 +160,62 @@ export const skillProfileSchema = z.object({
  * Carries deterministic capsule id, source paths, and governance inheritance.
  * Does NOT embed asset or script bodies (T-12-02 mitigation).
  */
-export const skillCapsuleSchema = z.object({
-  /** Unique capsule identifier */
-  capsuleId: entityIdSchema,
-  /** Artifact identifier */
-  artifactId: entityIdSchema,
-  /** Revision number this capsule was derived from */
-  revision: z.number().int().min(1),
-  /** Source file paths that contributed to this capsule */
-  sourcePaths: z.array(z.string().max(512)).min(1),
-  /** Distilled capsule content (text only, no asset/script bodies) */
-  content: z.string().min(1).max(5000),
-  /** Situation context */
-  situation: z.string().min(1).max(1000),
-  /** Problem statement */
-  problem: z.string().min(1).max(1000),
-  /** Goal or solution */
-  goal: z.string().min(1).max(1000),
-  /** Optional error text for error-specific capsules */
-  errorText: z.string().max(500).optional(),
-  /** LLM-generated contextual prefix for improved retrieval (Anthropic Contextual Retrieval) */
-  contextualPrefix: z.string().max(300).optional(),
-  /** Searchable labels */
-  labels: z.array(labelSchema).min(1),
-  /** Governance scope (inherited from artifact) */
-  scope: scopeSchema,
-  /** Required security level (inherited from artifact) */
-  requiredLevel: securityLevelSchema,
-});
+export const skillCapsuleSchema = z
+  .object({
+    /** Unique capsule identifier */
+    capsuleId: entityIdSchema,
+    /** Artifact identifier */
+    artifactId: entityIdSchema,
+    /** Revision number this capsule was derived from */
+    revision: z.number().int().min(1),
+    /** Source file paths that contributed to this capsule */
+    sourcePaths: z.array(z.string().max(512)).min(1),
+    /** Distilled capsule content (text only, no asset/script bodies) */
+    content: z.string().min(1).max(5000),
+    /** Situation context */
+    situation: z.string().min(1).max(1000),
+    /** Problem statement */
+    problem: z.string().min(1).max(1000),
+    /** Goal or solution */
+    goal: z.string().min(1).max(1000),
+    /** Optional error text for error-specific capsules */
+    errorText: z.string().max(500).optional(),
+    /** LLM-generated contextual prefix for improved retrieval (Anthropic Contextual Retrieval) */
+    contextualPrefix: z.string().max(300).optional(),
+    /** Searchable labels */
+    labels: z.array(labelSchema).min(1),
+    /** Governance scope (inherited from artifact) */
+    scope: scopeSchema,
+    /** Required security level (inherited from artifact) */
+    requiredLevel: securityLevelSchema,
+  })
+  .strict();
 
 /**
  * Client manifest reference entry.
  * Metadata-only reference for activation-time delivery.
  */
-export const clientManifestReferenceSchema = z.object({
-  path: z.string().min(1).max(512),
-  sha256: z.string().regex(/^[0-9a-f]{64}$/),
-  sizeBytes: z.number().int().min(0),
-  mediaType: z.string().min(1).max(160),
-}).strict();
+export const clientManifestReferenceSchema = z
+  .object({
+    path: z.string().min(1).max(512),
+    sha256: z.string().regex(/^[0-9a-f]{64}$/),
+    sizeBytes: z.number().int().min(0),
+    mediaType: z.string().min(1).max(160),
+  })
+  .strict();
 
 /**
  * Client manifest asset entry.
  * Metadata-only asset for activation-time delivery.
  */
-export const clientManifestAssetSchema = z.object({
-  path: z.string().min(1).max(512),
-  sha256: z.string().length(64),
-  sizeBytes: z.number().int().min(0),
-  mediaType: z.string().min(1).max(160),
-});
+export const clientManifestAssetSchema = z
+  .object({
+    path: z.string().min(1).max(512),
+    sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+    sizeBytes: z.number().int().min(0),
+    mediaType: z.string().min(1).max(160),
+  })
+  .strict();
 
 /**
  * Client manifest script entry.
@@ -209,7 +223,13 @@ export const clientManifestAssetSchema = z.object({
  * Excludes script body text (T-12-02 mitigation).
  */
 export const clientManifestScriptSchema = z.object({
-  path: z.string().min(1).max(512).refine(s => !s.startsWith('/') && !s.match(/^[A-Za-z]:\\/), { message: "must be a relative path" }),
+  path: z
+    .string()
+    .min(1)
+    .max(512)
+    .refine((s) => !s.startsWith('/') && !s.match(/^[A-Za-z]:\\/), {
+      message: 'must be a relative path',
+    }),
   sha256: z.string().regex(/^[0-9a-f]{64}$/),
   capability: z.string().min(1).max(280),
   argsSchemaSummary: z.string().max(280).default(''),
@@ -234,7 +254,7 @@ export const clientManifestSchema = z.object({
   /** Script metadata (capability only, no bodies) */
   scripts: z.array(clientManifestScriptSchema).default([]),
   /** Hash of all source files for this manifest */
-  sourceHash: z.string().length(64),
+  sourceHash: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
 });
 
 /**
@@ -258,32 +278,36 @@ export const skillArtifactDerivedSchema = z.object({
  * Immutable revision within a skill artifact.
  * Captures source file manifest and derived outputs at a point in time.
  */
-export const skillArtifactRevisionSchema = z.object({
-  /** Monotonically increasing revision number */
-  revision: z.number().int().min(1),
-  /** SHA-256 hash of all source files for this revision */
-  sourceHash: z.string().length(64),
-  /** All files in the skill directory at this revision */
-  files: z.array(skillArtifactFileSchema).min(1),
-  /** When this revision was submitted */
-  submittedAt: isoTimestampSchema,
-  /** Who submitted this revision */
-  submittedBy: actorRefSchema,
-  /** Script descriptors for executable scripts in this revision */
-  scriptDescriptors: z.array(skillScriptDescriptorSchema).default([]),
-  /** Cached derived outputs keyed by source hash */
-  derived: z
-    .object({
-      profile: skillArtifactDerivedSchema.shape.profile.nullable(),
-      capsules: skillArtifactDerivedSchema.shape.capsules,
-      clientManifest: skillArtifactDerivedSchema.shape.clientManifest.nullable(),
-      sourceHash: z.string().length(64),
-      derivedAt: isoTimestampSchema,
-    })
-    .nullable(),
-}).refine(d => d.derived === null || d.sourceHash === d.derived.sourceHash, {
-  message: "derived.sourceHash must match sourceHash",
-});
+export const skillArtifactRevisionSchema = z
+  .object({
+    /** Monotonically increasing revision number */
+    revision: z.number().int().min(1),
+    /** SHA-256 hash of all source files for this revision */
+    sourceHash: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+    /** All files in the skill directory at this revision */
+    files: z.array(skillArtifactFileSchema).min(1),
+    /** When this revision was submitted */
+    submittedAt: isoTimestampSchema,
+    /** Who submitted this revision */
+    submittedBy: actorRefSchema,
+    /** Script descriptors for executable scripts in this revision */
+    scriptDescriptors: z.array(skillScriptDescriptorSchema).default([]),
+    /** Cached derived outputs keyed by source hash */
+    derived: z
+      .object({
+        profile: skillArtifactDerivedSchema.shape.profile.nullable(),
+        capsules: skillArtifactDerivedSchema.shape.capsules,
+        clientManifest: skillArtifactDerivedSchema.shape.clientManifest.nullable(),
+        sourceHash: z
+          .string()
+          .regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+        derivedAt: isoTimestampSchema,
+      })
+      .nullable(),
+  })
+  .refine((d) => d.derived === null || d.sourceHash === d.derived.sourceHash, {
+    message: 'derived.sourceHash must match sourceHash',
+  });
 
 /**
  * Lifecycle event specific to skill artifacts.
@@ -312,26 +336,28 @@ export const skillArtifactLifecycleEventSchema = z.object({
  * Metadata specific to skill artifacts.
  * Tracks submission counts, revision history, and latest state.
  */
-export const skillArtifactMetadataSchema = z.object({
-  /** How this artifact was originally created */
-  sourceKind: z.enum(['skill-directory', 'single-skill-md', 'legacy-knowledge']),
-  /** Total number of submissions across all revisions */
-  submissionCount: z.number().int().min(0),
-  /** Number of times this artifact was resubmitted after rejection */
-  resubmissionCount: z.number().int().min(0),
-  /** Total number of revisions */
-  revisionCount: z.number().int().min(1),
-  /** ID of the most recent submission */
-  latestSubmissionId: entityIdSchema.nullable().default(null),
-  /** When the most recent submission was created */
-  latestSubmittedAt: isoTimestampSchema.nullable().default(null),
-  /** When the most recent review was completed */
-  latestReviewedAt: isoTimestampSchema.nullable().default(null),
-  /** Most recent review decision (approve/reject) */
-  latestDecision: z.enum(['approve', 'reject']).nullable().default(null),
-}).refine(d => d.submissionCount >= d.resubmissionCount, {
-  message: "submissionCount must be >= resubmissionCount",
-});
+export const skillArtifactMetadataSchema = z
+  .object({
+    /** How this artifact was originally created */
+    sourceKind: z.enum(['skill-directory', 'single-skill-md', 'legacy-knowledge']),
+    /** Total number of submissions across all revisions */
+    submissionCount: z.number().int().min(0),
+    /** Number of times this artifact was resubmitted after rejection */
+    resubmissionCount: z.number().int().min(0),
+    /** Total number of revisions */
+    revisionCount: z.number().int().min(1),
+    /** ID of the most recent submission */
+    latestSubmissionId: entityIdSchema.nullable().default(null),
+    /** When the most recent submission was created */
+    latestSubmittedAt: isoTimestampSchema.nullable().default(null),
+    /** When the most recent review was completed */
+    latestReviewedAt: isoTimestampSchema.nullable().default(null),
+    /** Most recent review decision (approve/reject) */
+    latestDecision: z.enum(['approve', 'reject']).nullable().default(null),
+  })
+  .refine((d) => d.submissionCount >= d.resubmissionCount, {
+    message: 'submissionCount must be >= resubmissionCount',
+  });
 
 /**
  * Canonical skill artifact aggregate root.

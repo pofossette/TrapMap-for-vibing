@@ -137,10 +137,7 @@ describe('DuplicateCaseSchema', () => {
     expect(() =>
       DuplicateCaseSchema.parse({
         ...baseCase,
-        matches: [
-          makeMatch({ similarityScore: 0.5 }),
-          makeMatch({ similarityScore: 0.9 }),
-        ],
+        matches: [makeMatch({ similarityScore: 0.5 }), makeMatch({ similarityScore: 0.9 })],
         highestSimilarity: 0.9,
         hasExactDuplicate: false,
         duplicateType: 'semantic',
@@ -152,10 +149,7 @@ describe('DuplicateCaseSchema', () => {
     expect(() =>
       DuplicateCaseSchema.parse({
         ...baseCase,
-        matches: [
-          makeMatch({ similarityScore: 0.9 }),
-          makeMatch({ similarityScore: 0.7 }),
-        ],
+        matches: [makeMatch({ similarityScore: 0.9 }), makeMatch({ similarityScore: 0.7 })],
         highestSimilarity: 0.8,
         hasExactDuplicate: false,
         duplicateType: 'semantic',

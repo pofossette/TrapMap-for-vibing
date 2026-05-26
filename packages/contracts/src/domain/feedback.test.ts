@@ -167,9 +167,7 @@ describe('feedback schema', () => {
     });
 
     it('rejects empty string description', () => {
-      expect(() =>
-        feedbackListItemSchema.parse({ ...validItem, description: '' }),
-      ).toThrow();
+      expect(() => feedbackListItemSchema.parse({ ...validItem, description: '' })).toThrow();
     });
   });
 
@@ -255,9 +253,9 @@ describe('feedback schema', () => {
     });
 
     it('rejects unresolvedFeedback > totalFeedback', () => {
-      expect(() =>
-        qualityScoreSchema.parse({ ...validScore, unresolvedFeedback: 15 }),
-      ).toThrow(/unresolvedFeedback must not exceed totalFeedback/);
+      expect(() => qualityScoreSchema.parse({ ...validScore, unresolvedFeedback: 15 })).toThrow(
+        /unresolvedFeedback must not exceed totalFeedback/,
+      );
     });
 
     it('rejects outdatedReports + incorrectReports > totalFeedback', () => {
@@ -272,7 +270,11 @@ describe('feedback schema', () => {
     });
 
     it('accepts when outdated + incorrect equals totalFeedback', () => {
-      const result = qualityScoreSchema.parse({ ...validScore, outdatedReports: 6, incorrectReports: 4 });
+      const result = qualityScoreSchema.parse({
+        ...validScore,
+        outdatedReports: 6,
+        incorrectReports: 4,
+      });
       expect(result.outdatedReports + result.incorrectReports).toBe(10);
     });
   });

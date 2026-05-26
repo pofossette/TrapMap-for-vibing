@@ -159,14 +159,16 @@ export type RetrievalEvalRelevanceExpectations = z.infer<
  * These assertions measure permission and policy correctness separately from relevance.
  * A high relevance score cannot hide a governance leak.
  */
-export const retrievalEvalGovernanceExpectationsSchema = z.object({
-  /** IDs of entries/capsules that must NOT appear in results */
-  forbiddenIds: z.array(entityIdSchema).default([]),
-  /** Reasons why items are forbidden (for precise failure categorization) */
-  forbiddenReasons: z.array(z.enum(['cross-team', 'security-level', 'lifecycle'])).default([]),
-}).refine(d => d.forbiddenIds.length === d.forbiddenReasons.length, {
-  message: 'forbiddenIds and forbiddenReasons must have equal length',
-});
+export const retrievalEvalGovernanceExpectationsSchema = z
+  .object({
+    /** IDs of entries/capsules that must NOT appear in results */
+    forbiddenIds: z.array(entityIdSchema).default([]),
+    /** Reasons why items are forbidden (for precise failure categorization) */
+    forbiddenReasons: z.array(z.enum(['cross-team', 'security-level', 'lifecycle'])).default([]),
+  })
+  .refine((d) => d.forbiddenIds.length === d.forbiddenReasons.length, {
+    message: 'forbiddenIds and forbiddenReasons must have equal length',
+  });
 
 export type RetrievalEvalGovernanceExpectations = z.infer<
   typeof retrievalEvalGovernanceExpectationsSchema

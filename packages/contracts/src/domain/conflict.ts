@@ -41,16 +41,18 @@ export const conflictRelationSchema = z.object({
  * Compact form excludes scores, includes only display-relevant fields.
  * Used to show users conflicting entries without verbose metadata.
  */
-export const conflictHintSchema = z.object({
-  /** ID of the conflicting entry */
-  entryId: entityIdSchema,
-  /** Shortcut/title of the conflicting entry for display */
-  shortcut: z.string(),
-  /** Classification of the conflict relationship */
-  conflictType: conflictTypeSchema,
-  /** Human-readable context explaining the conflict */
-  context: z.string(),
-});
+export const conflictHintSchema = z
+  .object({
+    /** ID of the conflicting entry */
+    entryId: entityIdSchema,
+    /** Shortcut/title of the conflicting entry for display */
+    shortcut: z.string(),
+    /** Classification of the conflict relationship */
+    conflictType: conflictTypeSchema,
+    /** Human-readable context explaining the conflict */
+    context: z.string(),
+  })
+  .strict();
 
 // Type exports
 export type ConflictType = z.infer<typeof conflictTypeSchema>;

@@ -45,13 +45,13 @@ interface LegacyGraphSyncState {
 
 const graphStateCache = new RetrievalCache<LegacyGraphSyncState>({
   maxSize: 500,
-  ttlMs: 60 * 60_000,  // 1h
+  ttlMs: 60 * 60_000, // 1h
   namespace: 'graph-state',
 });
 
 const cachedGraphDocuments = new RetrievalCache<GraphIndexDocumentRecord>({
   maxSize: 500,
-  ttlMs: 60 * 60_000,  // 1h
+  ttlMs: 60 * 60_000, // 1h
   namespace: 'graph-docs',
 });
 

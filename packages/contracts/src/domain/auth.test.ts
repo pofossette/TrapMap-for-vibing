@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  loginRequestSchema,
-  logoutResponseSchema,
-  sessionStatusResponseSchema,
-} from './auth.js';
+import { loginRequestSchema, logoutResponseSchema, sessionStatusResponseSchema } from './auth.js';
 
 describe('auth schemas', () => {
   describe('loginRequestSchema', () => {
@@ -15,9 +11,9 @@ describe('auth schemas', () => {
     });
 
     it('accepts valid systemAdminKey request', () => {
-      expect(
-        loginRequestSchema.parse({ systemAdminKey: 'b'.repeat(20) }),
-      ).toEqual({ systemAdminKey: 'b'.repeat(20) });
+      expect(loginRequestSchema.parse({ systemAdminKey: 'b'.repeat(20) })).toEqual({
+        systemAdminKey: 'b'.repeat(20),
+      });
     });
 
     it('rejects extra fields on accessKey branch', () => {
@@ -45,9 +41,7 @@ describe('auth schemas', () => {
     });
 
     it('rejects extra fields', () => {
-      expect(() =>
-        logoutResponseSchema.parse({ ok: true, extra: 'field' }),
-      ).toThrow();
+      expect(() => logoutResponseSchema.parse({ ok: true, extra: 'field' })).toThrow();
     });
   });
 

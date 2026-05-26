@@ -196,10 +196,12 @@ export const decayEntryListRequestSchema = z.object({
 /**
  * Response schema for decay-aware entry listing.
  */
-export const decayEntryListResponseSchema = z.object({
-  items: z.array(decayAwareListItemSchema),
-  total: z.number().int().min(0),
-});
+export const decayEntryListResponseSchema = z
+  .object({
+    items: z.array(decayAwareListItemSchema),
+    total: z.number().int().min(0),
+  })
+  .strict();
 
 /**
  * Request schema for batch operations on entries.
@@ -233,6 +235,9 @@ export const batchOperationItemSchema = z
   })
   .refine((d) => !d.eligible || d.ineligibilityReason === null, {
     message: 'ineligibilityReason must be null when eligible is true',
+  })
+  .refine((d) => d.eligible || d.ineligibilityReason !== null, {
+    message: 'ineligibilityReason must be non-null when eligible is false',
   });
 
 /**
@@ -250,6 +255,7 @@ export const batchOperationResponseSchema = z
     totalIneligible: z.number().int().min(0),
     appliedAt: isoTimestampSchema.nullable(),
   })
+  .strict()
   .refine((d) => !d.dryRun || d.appliedAt === null, {
     message: 'appliedAt must be null when dryRun is true',
   });

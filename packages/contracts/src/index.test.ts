@@ -876,7 +876,7 @@ describe('contracts package', () => {
                 defaultPolicy: 'manual',
               },
             ],
-            sourceHash: 'q'.repeat(64),
+            sourceHash: 'ab'.repeat(32),
           });
 
           expect(manifest.references).toHaveLength(1);
@@ -902,7 +902,7 @@ describe('contracts package', () => {
                 defaultPolicy: 'auto',
               },
             ],
-            sourceHash: 's'.repeat(64),
+            sourceHash: 'cd'.repeat(32),
           });
 
           const scriptEntry = manifest.scripts[0];
@@ -919,12 +919,12 @@ describe('contracts package', () => {
           const profile = skillProfileSchema.parse({
             artifactId: 'artifact_1',
             revision: 1,
-            sourceHash: 't'.repeat(64),
+            sourceHash: 'ef'.repeat(32),
             title: 'Test',
             summary: 'Test summary',
             keywords: [],
             referencePaths: [],
-            contentHash: 'u'.repeat(64),
+            contentHash: '12'.repeat(32),
           });
 
           // Capsule is valid
@@ -949,7 +949,7 @@ describe('contracts package', () => {
             references: [],
             assets: [],
             scripts: [],
-            sourceHash: 'v'.repeat(64),
+            sourceHash: '34'.repeat(32),
           });
 
           expect(profile.artifactId).toBe('artifact_1');

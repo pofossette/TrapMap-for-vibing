@@ -16,38 +16,47 @@ export const loginRequestSchema = z
       .strict(),
   );
 
-export const activeSessionSchema = z.object({
-  sessionId: entityIdSchema,
-  member: memberSchema,
-  activeTeam: teamSchema.nullable(),
-  effectivePermissions: z.array(permissionSchema),
-  expiresAt: z.string().nullable(),
-  issuedAt: z.string(),
-});
+export const activeSessionSchema = z
+  .object({
+    sessionId: entityIdSchema,
+    member: memberSchema,
+    activeTeam: teamSchema.nullable(),
+    effectivePermissions: z.array(permissionSchema),
+    expiresAt: z.string().nullable(),
+    issuedAt: z.string(),
+  })
+  .strict();
 
-export const loginResponseSchema = z.object({
-  session: activeSessionSchema,
-});
+export const loginResponseSchema = z
+  .object({
+    session: activeSessionSchema,
+  })
+  .strict();
 
 export const sessionStatusResponseSchema = z
   .object({
     authenticated: z.boolean(),
     session: activeSessionSchema.nullable(),
   })
-  .refine(d => !d.authenticated || d.session !== null, {
+  .strict()
+  .refine((d) => !d.authenticated || d.session !== null, {
     message: 'session must be non-null when authenticated is true',
   });
 
-export const logoutResponseSchema = z.object({
-  ok: z.boolean(),
-}).strict();
+export const logoutResponseSchema = z
+  .object({
+    ok: z.boolean(),
+  })
+  .strict();
 
-export const authContextSchema = z.object({
-  actor: actorRefSchema,
-  teamId: entityIdSchema.nullable(),
-  effectivePermissions: z.array(permissionSchema),
-  securityLevel: securityLevelSchema,
-});
+export const authContextSchema = z
+  .object({
+    actor: actorRefSchema,
+    teamId: entityIdSchema.nullable(),
+    effectivePermissions: z.array(permissionSchema),
+    securityLevel: securityLevelSchema,
+  })
+  .strict();
 
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 export type ActiveSession = z.infer<typeof activeSessionSchema>;

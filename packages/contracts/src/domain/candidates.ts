@@ -105,7 +105,7 @@ export const AnalysisSnapshotSchema = z.object({
   /** When normalization was performed */
   normalizedAt: isoTimestampSchema,
   /** SHA-256 hash of normalized content */
-  fingerprint: z.string().length(64),
+  fingerprint: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
   /** Keywords extracted from content */
   keywords: z.array(z.string().min(1).max(48)),
   /** Tokens extracted from content for similarity matching */
@@ -168,28 +168,20 @@ export const DuplicateCaseSchema = z
     duplicateType: z.enum(['exact', 'semantic', 'none']),
   })
   .refine(
-    d =>
+    (d) =>
       d.matches.every(
-        (m, i) =>
-          i === 0 ||
-          (d.matches[i - 1]?.similarityScore ?? 0) >= m.similarityScore,
+        (m, i) => i === 0 || (d.matches[i - 1]?.similarityScore ?? 0) >= m.similarityScore,
       ),
     { message: 'matches must be sorted by similarity descending' },
   )
+  .refine((d) => d.highestSimilarity === Math.max(...d.matches.map((m) => m.similarityScore)), {
+    message: 'highestSimilarity must equal the max similarity across matches',
+  })
+  .refine((d) => d.hasExactDuplicate === d.matches.some((m) => m.matchType === 'exact'), {
+    message: 'hasExactDuplicate must be true iff at least one match has matchType "exact"',
+  })
   .refine(
-    d => d.highestSimilarity === Math.max(...d.matches.map(m => m.similarityScore)),
-    { message: 'highestSimilarity must equal the max similarity across matches' },
-  )
-  .refine(
-    d =>
-      d.hasExactDuplicate === d.matches.some(m => m.matchType === 'exact'),
-    {
-      message:
-        'hasExactDuplicate must be true iff at least one match has matchType "exact"',
-    },
-  )
-  .refine(
-    d => {
+    (d) => {
       if (d.duplicateType === 'exact') return d.hasExactDuplicate === true;
       if (d.duplicateType === 'none') return d.hasExactDuplicate === false;
       return true;
@@ -249,7 +241,7 @@ export const CandidateSubmissionSchema = z
       .nullable(),
   })
   .refine(
-    d =>
+    (d) =>
       d.manualResult === null ||
       d.manualResult.decision !== 'merged' ||
       d.manualResult.mergedWith != null,
@@ -296,29 +288,39 @@ export const candidateSubmissionRequestSchema = z.discriminatedUnion('sourceType
 
 // Response schemas
 
-export const candidateSubmissionResponseSchema = z.object({
-  candidateId: entityIdSchema,
-  status: CandidateStatusSchema,
-  receivedAt: isoTimestampSchema,
-});
+export const candidateSubmissionResponseSchema = z
+  .object({
+    candidateId: entityIdSchema,
+    status: CandidateStatusSchema,
+    receivedAt: isoTimestampSchema,
+  })
+  .strict();
 
-export const candidateStatusResponseSchema = z.object({
-  candidate: CandidateSubmissionSchema,
-}).strict();
+export const candidateStatusResponseSchema = z
+  .object({
+    candidate: CandidateSubmissionSchema,
+  })
+  .strict();
 
-export const candidateListResponseSchema = z.object({
-  items: z.array(CandidateSubmissionSchema),
-  total: z.number().int().min(0),
-}).strict();
+export const candidateListResponseSchema = z
+  .object({
+    items: z.array(CandidateSubmissionSchema),
+    total: z.number().int().min(0),
+  })
+  .strict();
 
-export const duplicateCaseListResponseSchema = z.object({
-  items: z.array(DuplicateCaseSchema),
-  total: z.number().int().min(0),
-});
+export const duplicateCaseListResponseSchema = z
+  .object({
+    items: z.array(DuplicateCaseSchema),
+    total: z.number().int().min(0),
+  })
+  .strict();
 
-export const duplicateCaseResponseSchema = z.object({
-  duplicateCase: DuplicateCaseSchema,
-});
+export const duplicateCaseResponseSchema = z
+  .object({
+    duplicateCase: DuplicateCaseSchema,
+  })
+  .strict();
 
 /**
  * Manual resolution decision for a duplicate case.
@@ -407,26 +409,27 @@ export const applyResolutionResponseSchema = z
     lineage: EntityLineageSchema.nullable(),
   })
   .refine(
-    d =>
+    (d) =>
       d.outcome.decision !== 'independent' ||
       d.lineage === null ||
       d.lineage.relationshipType !== 'merged_into',
     {
-      message:
-        'relationshipType must not be "merged_into" when decision is "independent"',
+      message: 'relationshipType must not be "merged_into" when decision is "independent"',
     },
   );
 
 /**
  * Response after submitting manual result.
  */
-export const manualResultResponseSchema = z.object({
-  candidateId: entityIdSchema,
-  decision: ManualResultDecisionSchema,
-  reviewedAt: isoTimestampSchema,
-  reviewedBy: entityIdSchema,
-  nextState: z.enum(['duplicate_detected', 'ready_for_review', 'rejected', 'resolved']),
-});
+export const manualResultResponseSchema = z
+  .object({
+    candidateId: entityIdSchema,
+    decision: ManualResultDecisionSchema,
+    reviewedAt: isoTimestampSchema,
+    reviewedBy: entityIdSchema,
+    nextState: z.enum(['duplicate_detected', 'ready_for_review', 'rejected', 'resolved']),
+  })
+  .strict();
 
 /**
  * Matched entity data included in bundle for offline review.
@@ -474,19 +477,21 @@ export const expectedManualResultDef = z.object({
  * Full duplicate job bundle for offline review.
  * Contains all data needed to make and submit a manual decision.
  */
-export const DuplicateJobBundleResponseSchema = z.object({
-  candidate: z.object({
-    id: entityIdSchema,
-    sourceType: CandidateSourceSchema,
-    status: CandidateStatusSchema,
-    receivedAt: isoTimestampSchema,
-    submittedBy: entityIdSchema,
-  }),
-  originalPayload: CandidatePayloadSchema,
-  analysisSnapshot: AnalysisSnapshotSchema.nullable(),
-  matches: z.array(DuplicateJobMatchEntrySchema),
-  expectedResultSchema: expectedManualResultDef,
-});
+export const DuplicateJobBundleResponseSchema = z
+  .object({
+    candidate: z.object({
+      id: entityIdSchema,
+      sourceType: CandidateSourceSchema,
+      status: CandidateStatusSchema,
+      receivedAt: isoTimestampSchema,
+      submittedBy: entityIdSchema,
+    }),
+    originalPayload: CandidatePayloadSchema,
+    analysisSnapshot: AnalysisSnapshotSchema.nullable(),
+    matches: z.array(DuplicateJobMatchEntrySchema),
+    expectedResultSchema: expectedManualResultDef,
+  })
+  .strict();
 
 // Type exports
 

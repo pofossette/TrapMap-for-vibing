@@ -57,24 +57,29 @@ export const knowledgeListResponseSchema = z
     nextCursor: z.string().min(1).max(128).nullable(),
     total: z.number().int().min(0),
   })
+  .strict()
   .refine((d) => d.total === d.items.length, {
     message: 'total must match items.length',
   });
 
-export const knowledgeDeactivateResponseSchema = z.object({
-  entry: knowledgeEntrySchema,
-});
+export const knowledgeDeactivateResponseSchema = z
+  .object({
+    entry: knowledgeEntrySchema,
+  })
+  .strict();
 
 export const exportRequestSchema = z.object({
   teamId: entityIdSchema.nullable().optional(),
   includeHistory: z.boolean().default(true),
 });
 
-export const exportBundleSchema = z.object({
-  exportedAt: z.string(),
-  exportedBy: actorRefSchema,
-  items: z.array(knowledgeEntrySchema),
-});
+export const exportBundleSchema = z
+  .object({
+    exportedAt: z.string(),
+    exportedBy: actorRefSchema,
+    items: z.array(knowledgeEntrySchema),
+  })
+  .strict();
 
 export const importEntrySchema = knowledgeSubmissionSchema.extend({
   source: z.enum(['json', 'claude-skill']),
@@ -92,6 +97,7 @@ export const importResultItemSchema = z
     error: z.string().nullable(),
     source: z.enum(['json', 'claude-skill']),
   })
+  .strict()
   .refine((d) => !d.success || d.entry !== null, {
     message: 'entry must be non-null when success is true',
   });
@@ -102,6 +108,7 @@ export const importResponseSchema = z
     importedCount: z.number().int().min(0),
     failedCount: z.number().int().min(0),
   })
+  .strict()
   .refine((d) => d.importedCount === d.results.filter((r) => r.success).length, {
     message: 'importedCount must match the number of successful results',
   })
@@ -135,7 +142,11 @@ export const bundleFilePayloadSchema = z.object({
   /** File size in bytes */
   sizeBytes: z.number().int().min(0),
   /** IANA media type */
-  mediaType: z.string().min(1).max(160).regex(/^[a-z]+\/[a-z0-9.+-]+$/i),
+  mediaType: z
+    .string()
+    .min(1)
+    .max(160)
+    .regex(/^[a-z]+\/[a-z0-9.+-]+$/i),
   /** Source directory within the skill artifact */
   source: z.enum(['references/', 'assets/', 'scripts/', 'SKILL.md']),
   /** If true, file may be used for capsule/profile derivation */
@@ -197,47 +208,53 @@ export const artifactImportRequestSchema = z.object({
  * Artifact import result item.
  * Returns created artifact or error details per bundle.
  */
-export const artifactImportResultItemSchema = z.object({
-  success: z.boolean(),
-  artifactId: z.string().nullable(),
-  title: z.string().nullable(),
-  error: z.string().nullable(),
-  sourceKind: z.enum(['skill-directory', 'single-skill-md', 'legacy-knowledge']).nullable(),
-});
+export const artifactImportResultItemSchema = z
+  .object({
+    success: z.boolean(),
+    artifactId: z.string().nullable(),
+    title: z.string().nullable(),
+    error: z.string().nullable(),
+    sourceKind: z.enum(['skill-directory', 'single-skill-md', 'legacy-knowledge']).nullable(),
+  })
+  .strict();
 
 /**
  * Artifact-native import response.
  * Returns per-bundle results and counts.
  */
-export const artifactImportResponseSchema = z.object({
-  results: z.array(artifactImportResultItemSchema),
-  importedCount: z.number().int().min(0),
-  failedCount: z.number().int().min(0),
-});
+export const artifactImportResponseSchema = z
+  .object({
+    results: z.array(artifactImportResultItemSchema),
+    importedCount: z.number().int().min(0),
+    failedCount: z.number().int().min(0),
+  })
+  .strict();
 
 /**
  * Additive file payload storage record.
  * Internal server-side structure for imported file payloads.
  * Keyed by artifact id + revision + path for round-trip export.
  */
-export const artifactFilePayloadRecordSchema = z.object({
-  /** Artifact identifier */
-  artifactId: entityIdSchema,
-  /** Revision number */
-  revision: z.number().int().min(1),
-  /** Canonical path within the skill directory */
-  path: z.string().min(1).max(512),
-  /** SHA-256 hash of file content */
-  sha256: z.string().length(64),
-  /** File size in bytes */
-  sizeBytes: z.number().int().min(0),
-  /** IANA media type */
-  mediaType: z.string().min(1).max(160),
-  /** Inline file content: base64-encoded bytes or UTF-8 text */
-  content: z.union([z.string().base64(), z.string()]),
-  /** When this payload was stored */
-  storedAt: isoTimestampSchema,
-});
+export const artifactFilePayloadRecordSchema = z
+  .object({
+    /** Artifact identifier */
+    artifactId: entityIdSchema,
+    /** Revision number */
+    revision: z.number().int().min(1),
+    /** Canonical path within the skill directory */
+    path: z.string().min(1).max(512),
+    /** SHA-256 hash of file content */
+    sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+    /** File size in bytes */
+    sizeBytes: z.number().int().min(0),
+    /** IANA media type */
+    mediaType: z.string().min(1).max(160),
+    /** Inline file content: base64-encoded bytes or UTF-8 text */
+    content: z.union([z.string().base64(), z.string()]),
+    /** When this payload was stored */
+    storedAt: isoTimestampSchema,
+  })
+  .strict();
 
 export const auditEventSchema = z
   .object({
@@ -284,11 +301,13 @@ export const auditQuerySchema = z.object({
   cursor: z.string().min(1).max(128).optional(),
 });
 
-export const auditListResponseSchema = z.object({
-  items: z.array(auditEventSchema),
-  nextCursor: z.string().min(1).max(128).nullable(),
-  total: z.number().int().min(0),
-});
+export const auditListResponseSchema = z
+  .object({
+    items: z.array(auditEventSchema),
+    nextCursor: z.string().min(1).max(128).nullable(),
+    total: z.number().int().min(0),
+  })
+  .strict();
 
 /**
  * Export format selection for artifact-native exports.
@@ -323,7 +342,11 @@ export const distilledArtifactSchema = z.object({
   /** Human-readable title */
   title: z.string().min(1).max(280),
   /** URL-safe slug */
-  slug: z.string().min(1).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  slug: z
+    .string()
+    .min(1)
+    .max(160)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   /** Security level */
   requiredLevel: securityLevelSchema,
   /** Source kind */
@@ -395,7 +418,7 @@ export const activationFilePayloadSchema = z
     /** File kind */
     kind: skillArtifactFileKindSchema,
     /** SHA-256 hash of file content */
-    sha256: z.string().length(64),
+    sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
     /** File size in bytes */
     sizeBytes: z.number().int().min(0),
     /** IANA media type */
@@ -424,24 +447,26 @@ export const activationRequestSchema = z.object({
  * Selective activation response.
  * Returns only requested files with metadata for policy-aware materialization.
  */
-export const activationResponseSchema = z.object({
-  /** Artifact identifier */
-  artifactId: entityIdSchema,
-  /** Artifact title */
-  title: z.string().min(1).max(280),
-  /** Revision number */
-  revision: z.number().int().min(1),
-  /** Security level */
-  requiredLevel: securityLevelSchema,
-  /** Selected file payloads with inline content */
-  files: z.array(activationFilePayloadSchema),
-  /** Script descriptors for any scripts in selected paths */
-  scriptDescriptors: z.array(bundleScriptDescriptorSchema).default([]),
-  /** Activation timestamp */
-  activatedAt: isoTimestampSchema,
-  /** Activating actor */
-  activatedBy: actorRefSchema,
-});
+export const activationResponseSchema = z
+  .object({
+    /** Artifact identifier */
+    artifactId: entityIdSchema,
+    /** Artifact title */
+    title: z.string().min(1).max(280),
+    /** Revision number */
+    revision: z.number().int().min(1),
+    /** Security level */
+    requiredLevel: securityLevelSchema,
+    /** Selected file payloads with inline content */
+    files: z.array(activationFilePayloadSchema),
+    /** Script descriptors for any scripts in selected paths */
+    scriptDescriptors: z.array(bundleScriptDescriptorSchema).default([]),
+    /** Activation timestamp */
+    activatedAt: isoTimestampSchema,
+    /** Activating actor */
+    activatedBy: actorRefSchema,
+  })
+  .strict();
 
 export type ActivationFilePayload = z.infer<typeof activationFilePayloadSchema>;
 export type ActivationRequest = z.infer<typeof activationRequestSchema>;
@@ -494,20 +519,22 @@ export const legacyMigrationResultItemSchema = z
  * Legacy entry migration response.
  * Returns migration results and counts.
  */
-export const legacyMigrationResponseSchema = z.object({
-  /** Per-entry migration results */
-  results: z.array(legacyMigrationResultItemSchema),
-  /** Count of successfully migrated entries */
-  migratedCount: z.number().int().min(0),
-  /** Count of skipped entries */
-  skippedCount: z.number().int().min(0),
-  /** Count of failed migrations */
-  failedCount: z.number().int().min(0),
-  /** Count of remaining unmigrated legacy entries */
-  remainingLegacyCount: z.number().int().min(0),
-  /** Migration timestamp */
-  migratedAt: isoTimestampSchema,
-});
+export const legacyMigrationResponseSchema = z
+  .object({
+    /** Per-entry migration results */
+    results: z.array(legacyMigrationResultItemSchema),
+    /** Count of successfully migrated entries */
+    migratedCount: z.number().int().min(0),
+    /** Count of skipped entries */
+    skippedCount: z.number().int().min(0),
+    /** Count of failed migrations */
+    failedCount: z.number().int().min(0),
+    /** Count of remaining unmigrated legacy entries */
+    remainingLegacyCount: z.number().int().min(0),
+    /** Migration timestamp */
+    migratedAt: isoTimestampSchema,
+  })
+  .strict();
 
 /**
  * Compatibility status request.
@@ -522,32 +549,34 @@ export const compatibilityStatusRequestSchema = z.object({
  * Compatibility status response.
  * Provides migration progress and sunset readiness information.
  */
-export const compatibilityStatusResponseSchema = z.object({
-  /** Total legacy knowledge entries */
-  totalLegacyEntries: z.number().int().min(0),
-  /** Count of migrated entries (now artifacts) */
-  migratedEntriesCount: z.number().int().min(0),
-  /** Count of unmigrated entries */
-  unmigratedEntriesCount: z.number().int().min(0),
-  /** Count of total skill artifacts */
-  totalArtifacts: z.number().int().min(0),
-  /** Artifact count by source kind */
-  artifactsBySourceKind: z.object({
-    'skill-directory': z.number().int().min(0),
-    'single-skill-md': z.number().int().min(0),
-    'legacy-knowledge': z.number().int().min(0),
-  }),
-  /** IDs of unmigrated entries (bounded sample) */
-  unmigratedEntryIds: z.array(entityIdSchema).max(50),
-  /** Whether v1/v2 coexistence is active */
-  coexistenceActive: z.boolean(),
-  /** Ready to sunset v1 (no blockers remaining) */
-  sunsetReady: z.boolean(),
-  /** List of sunset blockers (if any) */
-  sunsetBlockers: z.array(z.string().max(500)),
-  /** Status timestamp */
-  reportedAt: isoTimestampSchema,
-});
+export const compatibilityStatusResponseSchema = z
+  .object({
+    /** Total legacy knowledge entries */
+    totalLegacyEntries: z.number().int().min(0),
+    /** Count of migrated entries (now artifacts) */
+    migratedEntriesCount: z.number().int().min(0),
+    /** Count of unmigrated entries */
+    unmigratedEntriesCount: z.number().int().min(0),
+    /** Count of total skill artifacts */
+    totalArtifacts: z.number().int().min(0),
+    /** Artifact count by source kind */
+    artifactsBySourceKind: z.object({
+      'skill-directory': z.number().int().min(0),
+      'single-skill-md': z.number().int().min(0),
+      'legacy-knowledge': z.number().int().min(0),
+    }),
+    /** IDs of unmigrated entries (bounded sample) */
+    unmigratedEntryIds: z.array(entityIdSchema).max(50),
+    /** Whether v1/v2 coexistence is active */
+    coexistenceActive: z.boolean(),
+    /** Ready to sunset v1 (no blockers remaining) */
+    sunsetReady: z.boolean(),
+    /** List of sunset blockers (if any) */
+    sunsetBlockers: z.array(z.string().max(500)),
+    /** Status timestamp */
+    reportedAt: isoTimestampSchema,
+  })
+  .strict();
 
 export type LegacyMigrationMode = z.infer<typeof legacyMigrationModeSchema>;
 export type LegacyMigrationRequest = z.infer<typeof legacyMigrationRequestSchema>;
@@ -589,19 +618,21 @@ export const skillEditRequestSchema = z
  * Skill edit response schema.
  * Returns updated artifact with revision tracking.
  */
-export const skillEditResponseSchema = z.object({
-  /** Updated artifact with new revision */
-  artifact: skillArtifactSchema,
-  /** Revision number before this edit */
-  previousRevision: z.number().int().min(1),
-  /** Lifecycle state transition if applicable */
-  lifecycleTransition: z
-    .object({
-      from: lifecycleStateSchema,
-      to: lifecycleStateSchema,
-    })
-    .optional(),
-});
+export const skillEditResponseSchema = z
+  .object({
+    /** Updated artifact with new revision */
+    artifact: skillArtifactSchema,
+    /** Revision number before this edit */
+    previousRevision: z.number().int().min(1),
+    /** Lifecycle state transition if applicable */
+    lifecycleTransition: z
+      .object({
+        from: lifecycleStateSchema,
+        to: lifecycleStateSchema,
+      })
+      .optional(),
+  })
+  .strict();
 
 /**
  * Skill revision summary schema.
@@ -635,18 +666,20 @@ export const skillHistoryRequestSchema = z.object({
  * Returns revision summaries without full file manifests.
  * Distinct from artifact export - metadata-only for history viewing.
  */
-export const skillHistoryResponseSchema = z.object({
-  /** Artifact identifier */
-  artifactId: entityIdSchema,
-  /** Artifact title */
-  title: z.string().min(1).max(280),
-  /** Current (latest) revision number */
-  currentRevision: z.number().int().min(1),
-  /** Current lifecycle state */
-  lifecycleState: lifecycleStateSchema,
-  /** Revision history summaries */
-  revisions: z.array(skillRevisionSummarySchema),
-});
+export const skillHistoryResponseSchema = z
+  .object({
+    /** Artifact identifier */
+    artifactId: entityIdSchema,
+    /** Artifact title */
+    title: z.string().min(1).max(280),
+    /** Current (latest) revision number */
+    currentRevision: z.number().int().min(1),
+    /** Current lifecycle state */
+    lifecycleState: lifecycleStateSchema,
+    /** Revision history summaries */
+    revisions: z.array(skillRevisionSummarySchema),
+  })
+  .strict();
 
 export type SkillEditRequest = z.infer<typeof skillEditRequestSchema>;
 export type SkillEditResponse = z.infer<typeof skillEditResponseSchema>;
@@ -705,21 +738,25 @@ export const skillReviewDecisionRequestSchema = z.object({
   notes: z
     .string()
     .min(1)
-    .refine((s) => [...s].length <= 2000, { message: 'notes must be at most 2000 Unicode characters' }),
+    .refine((s) => [...s].length <= 2000, {
+      message: 'notes must be at most 2000 Unicode characters',
+    }),
 });
 
 /**
  * Skill review decision response schema.
  * Returns the updated artifact and state transition.
  */
-export const skillReviewDecisionResponseSchema = z.object({
-  /** The updated artifact */
-  artifact: skillArtifactSchema,
-  /** Lifecycle state before review */
-  previousState: lifecycleStateSchema,
-  /** Lifecycle state after review */
-  newState: lifecycleStateSchema,
-});
+export const skillReviewDecisionResponseSchema = z
+  .object({
+    /** The updated artifact */
+    artifact: skillArtifactSchema,
+    /** Lifecycle state before review */
+    previousState: lifecycleStateSchema,
+    /** Lifecycle state after review */
+    newState: lifecycleStateSchema,
+  })
+  .strict();
 
 export type SkillReviewQueueItem = z.infer<typeof skillReviewQueueItemSchema>;
 export type SkillReviewQueueResponse = z.infer<typeof skillReviewQueueResponseSchema>;
@@ -743,14 +780,16 @@ export const artifactDeactivateRequestSchema = z.object({
  * Artifact deactivation response schema.
  * Returns the updated artifact with deactivated lifecycle state.
  */
-export const artifactDeactivateResponseSchema = z.object({
-  /** The updated artifact */
-  artifact: skillArtifactSchema,
-  /** Lifecycle state before deactivation */
-  previousState: lifecycleStateSchema,
-  /** Lifecycle state after deactivation (always 'deactivated') */
-  newState: lifecycleStateSchema,
-});
+export const artifactDeactivateResponseSchema = z
+  .object({
+    /** The updated artifact */
+    artifact: skillArtifactSchema,
+    /** Lifecycle state before deactivation */
+    previousState: lifecycleStateSchema,
+    /** Lifecycle state after deactivation (always 'deactivated') */
+    newState: lifecycleStateSchema,
+  })
+  .strict();
 
 export type ArtifactDeactivateRequest = z.infer<typeof artifactDeactivateRequestSchema>;
 export type ArtifactDeactivateResponse = z.infer<typeof artifactDeactivateResponseSchema>;
@@ -824,9 +863,11 @@ export const statsHitRankingItemSchema = z.object({
 /**
  * Hit ranking response schema.
  */
-export const statsHitRankingResponseSchema = z.object({
-  items: z.array(statsHitRankingItemSchema),
-});
+export const statsHitRankingResponseSchema = z
+  .object({
+    items: z.array(statsHitRankingItemSchema),
+  })
+  .strict();
 
 /**
  * System summary query schema.
@@ -841,12 +882,14 @@ export const statsSummaryQuerySchema = z.object({
  * System summary response schema.
  * Aggregate statistics across the system.
  */
-export const statsSummaryResponseSchema = z.object({
-  totalEvents: z.number().int().min(0),
-  uniqueQueries: z.number().int().min(0),
-  uniqueTeams: z.number().int().min(0),
-  uniqueAccounts: z.number().int().min(0),
-});
+export const statsSummaryResponseSchema = z
+  .object({
+    totalEvents: z.number().int().min(0),
+    uniqueQueries: z.number().int().min(0),
+    uniqueTeams: z.number().int().min(0),
+    uniqueAccounts: z.number().int().min(0),
+  })
+  .strict();
 
 export type StatsEntryType = z.infer<typeof statsEntryTypeSchema>;
 export type StatsGranularity = z.infer<typeof statsGranularitySchema>;

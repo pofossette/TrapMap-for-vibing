@@ -41,11 +41,13 @@ export const llmRelationStrengthSchema = z.enum(['hard', 'soft']);
  *
  * @example { kind: 'tool', label: 'docker', description: 'Container runtime used for deployment' }
  */
-export const llmGraphNodeSchema = z.object({
-  kind: llmNodeKindSchema,
-  label: z.string().min(1).max(128),
-  description: z.string().max(512).optional(),
-});
+export const llmGraphNodeSchema = z
+  .object({
+    kind: llmNodeKindSchema,
+    label: z.string().min(1).max(128),
+    description: z.string().max(512).optional(),
+  })
+  .strict();
 
 /**
  * A single graph edge extracted by the LLM.
@@ -55,13 +57,15 @@ export const llmGraphNodeSchema = z.object({
  *
  * @example { sourceLabel: 'docker', targetLabel: 'container-timeout', relationType: 'co-occurs-with', strength: 'soft' }
  */
-export const llmGraphEdgeSchema = z.object({
-  sourceLabel: z.string().min(1).max(128),
-  targetLabel: z.string().min(1).max(128),
-  relationType: llmRelationTypeSchema,
-  strength: llmRelationStrengthSchema,
-  description: z.string().max(512).optional(),
-});
+export const llmGraphEdgeSchema = z
+  .object({
+    sourceLabel: z.string().min(1).max(128),
+    targetLabel: z.string().min(1).max(128),
+    relationType: llmRelationTypeSchema,
+    strength: llmRelationStrengthSchema,
+    description: z.string().max(512).optional(),
+  })
+  .strict();
 
 /**
  * Full extraction result from a single LLM call.
@@ -69,10 +73,12 @@ export const llmGraphEdgeSchema = z.object({
  * Constrained to prevent hallucination bloat:
  * - max 15 nodes, max 20 edges
  */
-export const llmGraphExtractionSchema = z.object({
-  nodes: z.array(llmGraphNodeSchema).max(15),
-  edges: z.array(llmGraphEdgeSchema).max(20),
-});
+export const llmGraphExtractionSchema = z
+  .object({
+    nodes: z.array(llmGraphNodeSchema).max(15),
+    edges: z.array(llmGraphEdgeSchema).max(20),
+  })
+  .strict();
 
 /**
  * Phase 1: Segment plan produced by the planning LLM call.
@@ -94,14 +100,16 @@ export const extractionPlanSchema = z.object({
 /**
  * Metrics collected during LLM extraction for observability.
  */
-export const extractionMetricsSchema = z.object({
-  llmSuccessCount: z.number().int().min(0).default(0),
-  cacheHitCount: z.number().int().min(0).default(0),
-  fallbackCount: z.number().int().min(0).default(0),
-  phase1Ms: z.number().min(0).default(0),
-  phase2Ms: z.number().min(0).default(0),
-  gleaningCount: z.number().int().min(0).default(0),
-});
+export const extractionMetricsSchema = z
+  .object({
+    llmSuccessCount: z.number().int().min(0).default(0),
+    cacheHitCount: z.number().int().min(0).default(0),
+    fallbackCount: z.number().int().min(0).default(0),
+    phase1Ms: z.number().min(0).default(0),
+    phase2Ms: z.number().min(0).default(0),
+    gleaningCount: z.number().int().min(0).default(0),
+  })
+  .strict();
 
 // --- Exported Types ---
 

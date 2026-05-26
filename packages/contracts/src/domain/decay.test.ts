@@ -124,7 +124,13 @@ describe('decay schema contracts', () => {
       expect(() =>
         freshnessDecayConfigSchema.parse({
           versioned: { enabled: true, mode: 'step', matchMultiplier: 1.0, mismatchMultiplier: 0.5 },
-          volatile: { enabled: true, mode: 'exponential', halfLifeDays: 30, zeroDays: 90, floor: 0.3 },
+          volatile: {
+            enabled: true,
+            mode: 'exponential',
+            halfLifeDays: 30,
+            zeroDays: 90,
+            floor: 0.3,
+          },
         }),
       ).toThrow();
     });
@@ -133,7 +139,13 @@ describe('decay schema contracts', () => {
       expect(() =>
         freshnessDecayConfigSchema.parse({
           evergreen: { enabled: false },
-          volatile: { enabled: true, mode: 'exponential', halfLifeDays: 30, zeroDays: 90, floor: 0.3 },
+          volatile: {
+            enabled: true,
+            mode: 'exponential',
+            halfLifeDays: 30,
+            zeroDays: 90,
+            floor: 0.3,
+          },
         }),
       ).toThrow();
     });

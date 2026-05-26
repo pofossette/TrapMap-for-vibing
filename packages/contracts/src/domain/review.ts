@@ -24,14 +24,16 @@ export const reviewQueueQuerySchema = paginatedQuerySchema
   })
   .strict();
 
-export const reviewDecisionRequestSchema = z.object({
-  entryId: entityIdSchema,
-  decision: z.enum(['approve', 'reject']),
-  notes: z.string().min(1).max(2000),
-  boundary: boundarySchema.nullable(),
-  /** Optional evidence metadata for provenance tracking */
-  evidence: evidenceMetaSchema.optional(),
-});
+export const reviewDecisionRequestSchema = z
+  .object({
+    entryId: entityIdSchema,
+    decision: z.enum(['approve', 'reject']),
+    notes: z.string().min(1).max(2000),
+    boundary: boundarySchema.nullable(),
+    /** Optional evidence metadata for provenance tracking */
+    evidence: evidenceMetaSchema.optional(),
+  })
+  .strict();
 
 export const reviewQueueItemSchema = z.object({
   entry: knowledgeEntrySchema,
@@ -42,11 +44,13 @@ export const reviewQueueItemSchema = z.object({
   reviewNotes: z.array(reviewNoteSchema).default([]),
 });
 
-export const reviewQueueResponseSchema = z.object({
-  items: z.array(reviewQueueItemSchema),
-  nextCursor: z.string().nullable(),
-  total: z.number().int().min(0),
-});
+export const reviewQueueResponseSchema = z
+  .object({
+    items: z.array(reviewQueueItemSchema),
+    nextCursor: z.string().nullable(),
+    total: z.number().int().min(0),
+  })
+  .strict();
 
 export const reviewerDecisionOutputSchema = z.object({
   entry: knowledgeEntrySchema,

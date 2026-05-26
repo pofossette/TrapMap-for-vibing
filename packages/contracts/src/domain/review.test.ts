@@ -27,9 +27,7 @@ describe('review schema contracts', () => {
     });
 
     it('rejects omitted boundary (must be T|null, not T|undefined)', () => {
-      expect(() =>
-        reviewDecisionRequestSchema.parse(baseRequest),
-      ).toThrow();
+      expect(() => reviewDecisionRequestSchema.parse(baseRequest)).toThrow();
     });
   });
 

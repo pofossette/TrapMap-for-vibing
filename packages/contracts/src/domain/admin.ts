@@ -16,16 +16,18 @@ import { entityIdSchema, labelSchema, scopeSchema } from './common.js';
  * - platform: Platform constraint (e.g., 'linux', 'windows')
  * - package: Package name constraint (e.g., 'react', 'typescript')
  */
-export const adminBoundarySearchQuerySchema = z.object({
-  /** Context label to match (e.g., 'production', 'frontend') */
-  context: z.string().min(1).max(64).optional(),
-  /** Platform to match (e.g., 'linux', 'windows') */
-  platform: z.string().min(1).max(64).optional(),
-  /** Package name to match (e.g., 'react', 'typescript') */
-  package: z.string().min(1).max(128).optional(),
-  /** Maximum results to return */
-  maxResults: z.number().int().min(1).max(100).default(50),
-});
+export const adminBoundarySearchQuerySchema = z
+  .object({
+    /** Context label to match (e.g., 'production', 'frontend') */
+    context: z.string().min(1).max(64).optional(),
+    /** Platform to match (e.g., 'linux', 'windows') */
+    platform: z.string().min(1).max(64).optional(),
+    /** Package name to match (e.g., 'react', 'typescript') */
+    package: z.string().min(1).max(128).optional(),
+    /** Maximum results to return */
+    maxResults: z.number().int().min(1).max(100).default(50),
+  })
+  .strict();
 
 /**
  * Match result for admin boundary search.
@@ -46,10 +48,12 @@ export const adminBoundarySearchMatchSchema = z.object({
 /**
  * Response schema for admin boundary search.
  */
-export const adminBoundarySearchResponseSchema = z.object({
-  matches: z.array(adminBoundarySearchMatchSchema),
-  query: adminBoundarySearchQuerySchema,
-});
+export const adminBoundarySearchResponseSchema = z
+  .object({
+    matches: z.array(adminBoundarySearchMatchSchema),
+    query: adminBoundarySearchQuerySchema,
+  })
+  .strict();
 
 export type AdminBoundarySearchQuery = z.infer<typeof adminBoundarySearchQuerySchema>;
 export type AdminBoundarySearchMatch = z.infer<typeof adminBoundarySearchMatchSchema>;

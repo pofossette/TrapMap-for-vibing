@@ -151,19 +151,23 @@ function readString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+const LABEL_MAX_LENGTH = 48;
+
 function readLabels(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value
       .filter((entry): entry is string => typeof entry === 'string')
       .map((entry) => entry.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((entry) => (entry.length > LABEL_MAX_LENGTH ? entry.slice(0, LABEL_MAX_LENGTH) : entry));
   }
 
   if (typeof value === 'string') {
     return value
       .split(',')
       .map((entry) => entry.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((entry) => (entry.length > LABEL_MAX_LENGTH ? entry.slice(0, LABEL_MAX_LENGTH) : entry));
   }
 
   return [];

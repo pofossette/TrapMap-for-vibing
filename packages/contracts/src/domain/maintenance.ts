@@ -48,7 +48,10 @@ export const maintenanceEntryListRequestSchema = z
     /** Filter to entries past their review-by date */
     reviewOverdue: z.preprocess((val) => val === 'true' || val === true, z.boolean().optional()),
     /** Filter to entries with stale verification (lastVerifiedAt older than staleDays) */
-    staleVerification: z.preprocess((val) => val === 'true' || val === true, z.boolean().optional()),
+    staleVerification: z.preprocess(
+      (val) => val === 'true' || val === true,
+      z.boolean().optional(),
+    ),
     /** Number of days since last verification to consider stale (requires staleVerification) */
     staleDays: z.coerce.number().int().min(1).max(3650).optional(),
     /** Filter by scope */
@@ -87,10 +90,12 @@ export const maintenanceAwareListItemSchema = decayAwareListItemSchema.extend({
 /**
  * Response schema for maintenance-aware entry listing.
  */
-export const maintenanceEntryListResponseSchema = z.object({
-  items: z.array(maintenanceAwareListItemSchema),
-  total: z.number().int().min(0),
-});
+export const maintenanceEntryListResponseSchema = z
+  .object({
+    items: z.array(maintenanceAwareListItemSchema),
+    total: z.number().int().min(0),
+  })
+  .strict();
 
 /**
  * Request schema for maintenance batch operations.
@@ -138,6 +143,9 @@ export const maintenanceBatchOperationItemSchema = z
   })
   .refine((d) => !d.eligible || d.ineligibilityReason === null, {
     message: 'ineligibilityReason must be null when eligible is true',
+  })
+  .refine((d) => d.eligible || d.ineligibilityReason !== null, {
+    message: 'ineligibilityReason must be non-null when eligible is false',
   });
 
 /**
@@ -161,6 +169,7 @@ export const maintenanceBatchOperationResponseSchema = z
     /** When the batch was applied (null for dry-run) */
     appliedAt: isoTimestampSchema.nullable(),
   })
+  .strict()
   .refine((d) => !d.dryRun || d.appliedAt === null, {
     message: 'appliedAt must be null when dryRun is true',
   })

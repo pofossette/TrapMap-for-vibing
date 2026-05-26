@@ -23,7 +23,7 @@ export const agentReviewResultSchema = z.object({
   duplicateRisk: reviewRiskSchema,
   correctnessRisk: reviewRiskSchema,
   completenessRisk: reviewRiskSchema,
-  checkedAt: z.string(),
+  checkedAt: z.string().datetime({ offset: true }),
   notes: z.array(z.string()).default([]),
   boundary: boundarySchema.nullable().optional(),
 });
@@ -123,22 +123,24 @@ export const knowledgeEntrySchema = z
   })
   .merge(auditMetadataSchema);
 
-export const knowledgeSubmissionSchema = z.object({
-  teamId: entityIdSchema.nullable().optional(),
-  scope: scopeSchema,
-  labels: z.array(labelSchema).min(1),
-  shortcut: z.string().min(1).max(280),
-  detail: z.string().min(1).max(10000),
-  requiredLevel: securityLevelSchema.optional(),
-  boundary: boundarySchema.nullable().optional(),
-});
+export const knowledgeSubmissionSchema = z
+  .object({
+    teamId: entityIdSchema.nullable().optional(),
+    scope: scopeSchema,
+    labels: z.array(labelSchema).min(1),
+    shortcut: z.string().min(1).max(280),
+    detail: z.string().min(1).max(10000),
+    requiredLevel: securityLevelSchema.optional(),
+    boundary: boundarySchema.nullable().optional(),
+  })
+  .strict();
 
 export const knowledgeResubmissionSchema = z.object({
   entryId: entityIdSchema,
   labels: z.array(labelSchema).min(1),
   shortcut: z.string().min(1).max(280),
   detail: z.string().min(1).max(10000),
-  boundary: boundarySchema.optional(),
+  boundary: boundarySchema.nullable().optional(),
 });
 
 export const knowledgeUpdateSchema = z.object({
@@ -161,13 +163,17 @@ export const knowledgeListItemSchema = z.object({
   evidenceMeta: evidenceMetaSchema.nullable().default(null),
 });
 
-export const knowledgeEntryResponseSchema = z.object({
-  entry: knowledgeEntrySchema,
-});
+export const knowledgeEntryResponseSchema = z
+  .object({
+    entry: knowledgeEntrySchema,
+  })
+  .strict();
 
-export const knowledgeHistoryResponseSchema = z.object({
-  items: z.array(knowledgeEntrySchema),
-});
+export const knowledgeHistoryResponseSchema = z
+  .object({
+    items: z.array(knowledgeEntrySchema),
+  })
+  .strict();
 
 export const knowledgeSubmissionHistoryItemSchema = z.object({
   entryId: entityIdSchema,
@@ -177,9 +183,11 @@ export const knowledgeSubmissionHistoryItemSchema = z.object({
   requiredLevel: securityLevelSchema,
 });
 
-export const knowledgeSubmissionHistoryResponseSchema = z.object({
-  items: z.array(knowledgeSubmissionHistoryItemSchema),
-});
+export const knowledgeSubmissionHistoryResponseSchema = z
+  .object({
+    items: z.array(knowledgeSubmissionHistoryItemSchema),
+  })
+  .strict();
 
 export type ReviewRisk = z.infer<typeof reviewRiskSchema>;
 export type AgentReviewResult = z.infer<typeof agentReviewResultSchema>;

@@ -562,13 +562,12 @@ describe('knowledge schema contracts', () => {
       expect(resub.boundary).toBeUndefined();
     });
 
-    it('rejects null boundary (must be non-null per spec)', () => {
-      expect(() =>
-        knowledgeResubmissionSchema.parse({
-          ...baseResubmission,
-          boundary: null,
-        }),
-      ).toThrow();
+    it('accepts null boundary (nullable, consistent with submission schema)', () => {
+      const resub = knowledgeResubmissionSchema.parse({
+        ...baseResubmission,
+        boundary: null,
+      });
+      expect(resub.boundary).toBeNull();
     });
   });
 });

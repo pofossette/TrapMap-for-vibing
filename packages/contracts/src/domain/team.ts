@@ -45,46 +45,60 @@ export const accessKeySchema = z
   })
   .merge(auditMetadataSchema);
 
-export const createTeamRequestSchema = z.object({
-  name: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
-});
+export const createTeamRequestSchema = z
+  .object({
+    name: z.string().min(1).max(100),
+    description: z.string().max(500).optional(),
+  })
+  .strict();
 
-export const teamListResponseSchema = z.object({
-  teams: z.array(teamSchema),
-  activeTeamId: entityIdSchema.nullable(),
-});
+export const teamListResponseSchema = z
+  .object({
+    teams: z.array(teamSchema),
+    activeTeamId: entityIdSchema.nullable(),
+  })
+  .strict();
 
-export const selectTeamRequestSchema = z.object({
-  teamId: entityIdSchema,
-});
+export const selectTeamRequestSchema = z
+  .object({
+    teamId: entityIdSchema,
+  })
+  .strict();
 
-export const createMemberRequestSchema = z.object({
-  teamId: entityIdSchema,
-  handle: z.string().min(1).max(64),
-  roleTemplate: roleTemplateSchema.default('user'),
-  securityLevel: securityLevelSchema.default(0),
-  permissions: z.array(permissionSchema).default([]),
-  notes: z.string().max(500).optional(),
-});
+export const createMemberRequestSchema = z
+  .object({
+    teamId: entityIdSchema,
+    handle: z.string().min(1).max(64),
+    roleTemplate: roleTemplateSchema.default('user'),
+    securityLevel: securityLevelSchema.default(0),
+    permissions: z.array(permissionSchema).default([]),
+    notes: z.string().max(500).optional(),
+  })
+  .strict();
 
-export const updateMemberRequestSchema = z.object({
-  memberId: entityIdSchema,
-  securityLevel: securityLevelSchema.optional(),
-  permissions: z.array(permissionSchema).optional(),
-  notes: z.string().max(500).nullable().optional(),
-});
+export const updateMemberRequestSchema = z
+  .object({
+    memberId: entityIdSchema,
+    securityLevel: securityLevelSchema.optional(),
+    permissions: z.array(permissionSchema).optional(),
+    notes: z.string().max(500).nullable().optional(),
+  })
+  .strict();
 
-export const issueAccessKeyRequestSchema = z.object({
-  teamId: entityIdSchema,
-  memberId: entityIdSchema,
-  notes: z.string().max(500).optional(),
-});
+export const issueAccessKeyRequestSchema = z
+  .object({
+    teamId: entityIdSchema,
+    memberId: entityIdSchema,
+    notes: z.string().max(500).optional(),
+  })
+  .strict();
 
-export const issueAccessKeyResponseSchema = z.object({
-  accessKey: z.string().min(16),
-  record: accessKeySchema,
-});
+export const issueAccessKeyResponseSchema = z
+  .object({
+    accessKey: z.string().min(16),
+    record: accessKeySchema,
+  })
+  .strict();
 
 export type Member = z.infer<typeof memberSchema>;
 export type Team = z.infer<typeof teamSchema>;

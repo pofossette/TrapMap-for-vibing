@@ -159,16 +159,20 @@ export type Boundary = z.infer<typeof boundarySchema>;
  *
  * Note: versions use {package, version} (specific query version), NOT {package, range} (constraint).
  */
-export const boundaryVersionQuerySchema = z.object({
-  package: z.string().min(1).max(128),
-  version: z.string().min(1).max(64),
-});
+export const boundaryVersionQuerySchema = z
+  .object({
+    package: z.string().min(1).max(128),
+    version: z.string().min(1).max(64),
+  })
+  .strict();
 
-export const boundaryContextSchema = z.object({
-  contexts: z.array(z.string().min(1).max(64)).optional(),
-  platform: z.string().min(1).max(64).optional(),
-  versions: z.array(boundaryVersionQuerySchema).optional(),
-});
+export const boundaryContextSchema = z
+  .object({
+    contexts: z.array(z.string().min(1).max(64)).optional(),
+    platform: z.string().min(1).max(64).optional(),
+    versions: z.array(boundaryVersionQuerySchema).optional(),
+  })
+  .strict();
 
 export type BoundaryVersionQuery = z.infer<typeof boundaryVersionQuerySchema>;
 export type BoundaryContext = z.infer<typeof boundaryContextSchema>;
@@ -179,12 +183,14 @@ export type BoundaryContext = z.infer<typeof boundaryContextSchema>;
  * Describes why a knowledge entry is applicable or potentially inapplicable
  * given the boundary context of the query.
  */
-export const boundaryExplanationSchema = z.object({
-  checked: z.boolean(),
-  requiredSatisfied: z.boolean(),
-  warnings: z.array(z.string()),
-  boosts: z.array(z.string()),
-});
+export const boundaryExplanationSchema = z
+  .object({
+    checked: z.boolean(),
+    requiredSatisfied: z.boolean(),
+    warnings: z.array(z.string()),
+    boosts: z.array(z.string()),
+  })
+  .strict();
 
 export type BoundaryExplanation = z.infer<typeof boundaryExplanationSchema>;
 

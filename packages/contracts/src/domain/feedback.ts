@@ -19,31 +19,35 @@ export const feedbackProblemTypeSchema = z.enum([
  * Schema for custom feedback prompt answer.
  * Used when skill artifacts define custom feedback prompts.
  */
-export const feedbackCustomAnswerSchema = z.object({
-  prompt: z.string().min(1).max(500),
-  answer: z.string().min(1).max(2000),
-}).strict();
+export const feedbackCustomAnswerSchema = z
+  .object({
+    prompt: z.string().min(1).max(500),
+    answer: z.string().min(1).max(2000),
+  })
+  .strict();
 
 /**
  * Request payload for feedback submission.
  * Validated on server before persisting to feedback queue.
  */
-export const feedbackSubmissionSchema = z.object({
-  /** ID of the entry being reported (trap or skill artifact) */
-  entryId: entityIdSchema,
-  /** Type of the entry being reported */
-  entryType: z.enum(['trap', 'skill']),
-  /** Problem classification from controlled vocabulary */
-  problemType: feedbackProblemTypeSchema,
-  /** User-provided description of the problem (required, min 10 chars) */
-  description: z.string().min(10, 'Description must be at least 10 characters').max(2000),
-  /** Optional context: what the user was trying to do */
-  context: z.string().max(1000).optional(),
-  /** Optional: which retrieval query led to this entry */
-  querySeed: z.string().max(500).optional(),
-  /** Optional: custom prompt answers if skill defined feedbackPrompts */
-  customAnswers: z.array(feedbackCustomAnswerSchema).optional(),
-});
+export const feedbackSubmissionSchema = z
+  .object({
+    /** ID of the entry being reported (trap or skill artifact) */
+    entryId: entityIdSchema,
+    /** Type of the entry being reported */
+    entryType: z.enum(['trap', 'skill']),
+    /** Problem classification from controlled vocabulary */
+    problemType: feedbackProblemTypeSchema,
+    /** User-provided description of the problem (required, min 10 chars) */
+    description: z.string().min(10, 'Description must be at least 10 characters').max(2000),
+    /** Optional context: what the user was trying to do */
+    context: z.string().max(1000).optional(),
+    /** Optional: which retrieval query led to this entry */
+    querySeed: z.string().max(500).optional(),
+    /** Optional: custom prompt answers if skill defined feedbackPrompts */
+    customAnswers: z.array(feedbackCustomAnswerSchema).optional(),
+  })
+  .strict();
 
 /**
  * Status enum for feedback queue items.
@@ -76,9 +80,11 @@ export const feedbackRecordSchema = feedbackSubmissionSchema.extend({
 /**
  * Response schema for feedback submission endpoint.
  */
-export const feedbackResponseSchema = z.object({
-  feedback: feedbackRecordSchema,
-});
+export const feedbackResponseSchema = z
+  .object({
+    feedback: feedbackRecordSchema,
+  })
+  .strict();
 
 // =============================================================================
 // Phase 57: Admin Feedback Management Schemas (FEEDBACK-02)
@@ -157,10 +163,12 @@ export const feedbackListItemSchema = z.object({
 /**
  * Response schema for feedback list endpoint.
  */
-export const feedbackListResponseSchema = z.object({
-  items: z.array(feedbackListItemSchema),
-  total: z.number().int().min(0),
-});
+export const feedbackListResponseSchema = z
+  .object({
+    items: z.array(feedbackListItemSchema),
+    total: z.number().int().min(0),
+  })
+  .strict();
 
 /**
  * Batch action types for feedback processing.
@@ -187,72 +195,89 @@ export const feedbackBatchRequestSchema = z.object({
 /**
  * Individual item result in a batch operation response.
  */
-export const feedbackBatchItemSchema = z.object({
-  /** Feedback record ID */
-  feedbackId: entityIdSchema,
-  /** Whether this feedback is eligible for the action */
-  eligible: z.boolean(),
-  /** Reason if ineligible */
-  reason: z.string().nullable(),
-  /** Whether a transition was applied (for transition action) */
-  transitionApplied: z.boolean(),
-})
-  .refine(d => !d.eligible || d.reason === null, { message: 'reason must be null when eligible is true' })
-  .refine(d => d.eligible || d.reason !== null, { message: 'reason must be non-null when eligible is false' });
+export const feedbackBatchItemSchema = z
+  .object({
+    /** Feedback record ID */
+    feedbackId: entityIdSchema,
+    /** Whether this feedback is eligible for the action */
+    eligible: z.boolean(),
+    /** Reason if ineligible */
+    reason: z.string().nullable(),
+    /** Whether a transition was applied (for transition action) */
+    transitionApplied: z.boolean(),
+  })
+  .refine((d) => !d.eligible || d.reason === null, {
+    message: 'reason must be null when eligible is true',
+  })
+  .refine((d) => d.eligible || d.reason !== null, {
+    message: 'reason must be non-null when eligible is false',
+  });
 
 /**
  * Response schema for batch operations on feedback.
  */
-export const feedbackBatchResponseSchema = z.object({
-  /** Action performed */
-  action: feedbackBatchActionSchema,
-  /** Whether this was a dry-run */
-  dryRun: z.boolean(),
-  /** Per-feedback results */
-  items: z.array(feedbackBatchItemSchema),
-  /** Count of eligible feedbacks */
-  totalEligible: z.number().int().min(0),
-  /** Count of ineligible feedbacks */
-  totalIneligible: z.number().int().min(0),
-  /** When the action was applied (null for dry-run) */
-  appliedAt: isoTimestampSchema.nullable(),
-}).strict();
+export const feedbackBatchResponseSchema = z
+  .object({
+    /** Action performed */
+    action: feedbackBatchActionSchema,
+    /** Whether this was a dry-run */
+    dryRun: z.boolean(),
+    /** Per-feedback results */
+    items: z.array(feedbackBatchItemSchema),
+    /** Count of eligible feedbacks */
+    totalEligible: z.number().int().min(0),
+    /** Count of ineligible feedbacks */
+    totalIneligible: z.number().int().min(0),
+    /** When the action was applied (null for dry-run) */
+    appliedAt: isoTimestampSchema.nullable(),
+  })
+  .strict()
+  .refine((d) => !d.dryRun || d.appliedAt === null, {
+    message: 'appliedAt must be null when dryRun is true',
+  });
 
 /**
  * Quality score schema for entry feedback statistics.
  * Provides metrics for evaluating entry quality based on feedback.
  */
-export const qualityScoreSchema = z.object({
-  /** Total feedback count for the entry */
-  totalFeedback: z.number().int().min(0),
-  /** Count of unresolved feedback (new or triaged) */
-  unresolvedFeedback: z.number().int().min(0),
-  /** Count of outdated reports */
-  outdatedReports: z.number().int().min(0),
-  /** Count of incorrect reports */
-  incorrectReports: z.number().int().min(0),
-  /** Computed quality score (0 to 1, higher is better) */
-  qualityScore: z.number().min(0).max(1),
-  /** Timestamp of most recent feedback */
-  lastFeedbackAt: isoTimestampSchema.nullable(),
-})
-  .refine(d => d.unresolvedFeedback <= d.totalFeedback, { message: 'unresolvedFeedback must not exceed totalFeedback' })
-  .refine(d => d.outdatedReports + d.incorrectReports <= d.totalFeedback, { message: 'outdatedReports + incorrectReports must not exceed totalFeedback' });
+export const qualityScoreSchema = z
+  .object({
+    /** Total feedback count for the entry */
+    totalFeedback: z.number().int().min(0),
+    /** Count of unresolved feedback (new or triaged) */
+    unresolvedFeedback: z.number().int().min(0),
+    /** Count of outdated reports */
+    outdatedReports: z.number().int().min(0),
+    /** Count of incorrect reports */
+    incorrectReports: z.number().int().min(0),
+    /** Computed quality score (0 to 1, higher is better) */
+    qualityScore: z.number().min(0).max(1),
+    /** Timestamp of most recent feedback */
+    lastFeedbackAt: isoTimestampSchema.nullable(),
+  })
+  .refine((d) => d.unresolvedFeedback <= d.totalFeedback, {
+    message: 'unresolvedFeedback must not exceed totalFeedback',
+  })
+  .refine((d) => d.outdatedReports + d.incorrectReports <= d.totalFeedback, {
+    message: 'outdatedReports + incorrectReports must not exceed totalFeedback',
+  });
 
 /**
  * Response schema for feedback stats endpoint.
  * Returns quality score and recent feedback for an entry.
  */
-export const feedbackStatsResponseSchema = z.object({
-  /** Entry ID */
-  entryId: entityIdSchema,
-  /** Entry type (trap or skill) */
-  entryType: z.enum(['trap', 'skill']),
-  /** Quality score metrics */
-  quality: qualityScoreSchema,
-  /** Recent feedback items (up to 10) */
-  recentFeedback: z.array(feedbackListItemSchema).max(10),
-});
+export const feedbackStatsResponseSchema = z
+  .object({
+    /** Entry ID */
+    entryId: entityIdSchema,
+    /** Entry type (trap or skill) */
+    entryType: z.enum(['trap', 'skill']),
+    /** Quality score metrics */
+    quality: qualityScoreSchema,
+    /** Recent feedback items (up to 10) */
+    recentFeedback: z.array(feedbackListItemSchema).max(10),
+  })
+  .strict();
 
 // =============================================================================
 // Phase 65: Lifecycle Trigger Rules (FEEDBACK-03)

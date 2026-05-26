@@ -32,9 +32,7 @@ describe('artifacts schema fixes', () => {
     });
 
     it('rejects uppercase hex sha256', () => {
-      expect(() =>
-        skillArtifactFileSchema.parse({ ...base, sha256: 'A'.repeat(64) }),
-      ).toThrow();
+      expect(() => skillArtifactFileSchema.parse({ ...base, sha256: 'A'.repeat(64) })).toThrow();
     });
 
     it('rejects non-hex characters in sha256', () => {
@@ -44,15 +42,11 @@ describe('artifacts schema fixes', () => {
     });
 
     it('rejects sha256 that is too short', () => {
-      expect(() =>
-        skillArtifactFileSchema.parse({ ...base, sha256: 'a'.repeat(63) }),
-      ).toThrow();
+      expect(() => skillArtifactFileSchema.parse({ ...base, sha256: 'a'.repeat(63) })).toThrow();
     });
 
     it('rejects sha256 that is too long', () => {
-      expect(() =>
-        skillArtifactFileSchema.parse({ ...base, sha256: 'a'.repeat(65) }),
-      ).toThrow();
+      expect(() => skillArtifactFileSchema.parse({ ...base, sha256: 'a'.repeat(65) })).toThrow();
     });
   });
 
@@ -122,15 +116,11 @@ describe('artifacts schema fixes', () => {
     });
 
     it('rejects uppercase hex sha256', () => {
-      expect(() =>
-        clientManifestScriptSchema.parse({ ...base, sha256: 'A'.repeat(64) }),
-      ).toThrow();
+      expect(() => clientManifestScriptSchema.parse({ ...base, sha256: 'A'.repeat(64) })).toThrow();
     });
 
     it('rejects non-hex sha256', () => {
-      expect(() =>
-        clientManifestScriptSchema.parse({ ...base, sha256: 'z'.repeat(64) }),
-      ).toThrow();
+      expect(() => clientManifestScriptSchema.parse({ ...base, sha256: 'z'.repeat(64) })).toThrow();
     });
   });
 

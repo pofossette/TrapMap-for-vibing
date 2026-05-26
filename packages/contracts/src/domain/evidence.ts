@@ -48,14 +48,16 @@ export const evidenceMetaSchema = z.object({
  * Excludes verbose fields (sourceRef, verifiedBy) for compact payload.
  */
 /** @internal Not directly imported by server or CLI. */
-export const evidenceHintSchema = z.object({
-  /** Strength of evidence */
-  evidenceLevel: evidenceLevelSchema,
-  /** When last verified */
-  verifiedAt: isoTimestampSchema,
-  /** Type of source */
-  sourceType: evidenceSourceTypeSchema,
-});
+export const evidenceHintSchema = z
+  .object({
+    /** Strength of evidence */
+    evidenceLevel: evidenceLevelSchema,
+    /** When last verified */
+    verifiedAt: isoTimestampSchema,
+    /** Type of source */
+    sourceType: evidenceSourceTypeSchema,
+  })
+  .strict();
 
 export type EvidenceSourceType = z.infer<typeof evidenceSourceTypeSchema>;
 export type EvidenceLevel = z.infer<typeof evidenceLevelSchema>;

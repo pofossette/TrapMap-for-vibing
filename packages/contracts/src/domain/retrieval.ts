@@ -33,15 +33,17 @@ export const retrievalCitationSchema = z.object({
   snippet: z.string().min(1),
   tags: z.array(labelSchema),
   recallChannels: z.array(z.enum(['semantic', 'keyword', 'graph'])).min(1),
-  scores: z.object({
-    semantic: z.number().min(0).max(1).nullable(),
-    keyword: z.number().min(0).max(1).nullable(),
-    graph: z.number().min(0).max(1).nullable(),
-    preRerank: z.number().min(0).max(1),
-    final: z.number().min(0).max(1),
-  }).refine(d => d.semantic !== null || d.keyword !== null || d.graph !== null, {
-    message: 'at least one score (semantic, keyword, graph) must be non-null',
-  }),
+  scores: z
+    .object({
+      semantic: z.number().min(0).max(1).nullable(),
+      keyword: z.number().min(0).max(1).nullable(),
+      graph: z.number().min(0).max(1).nullable(),
+      preRerank: z.number().min(0).max(1),
+      final: z.number().min(0).max(1),
+    })
+    .refine((d) => d.semantic !== null || d.keyword !== null || d.graph !== null, {
+      message: 'at least one score (semantic, keyword, graph) must be non-null',
+    }),
 });
 
 export type RetrievalCitation = z.infer<typeof retrievalCitationSchema>;
@@ -68,21 +70,23 @@ export const retrievalQuerySchema = z.object({
   boundaryContext: boundaryContextSchema.optional(),
 });
 
-export const retrievalMatchSchema = z.object({
-  entryId: entityIdSchema,
-  scope: scopeSchema,
-  requiredLevel: securityLevelSchema,
-  shortcut: z.string(),
-  detail: z.string(),
-  labels: z.array(labelSchema),
-  score: z.number().min(0).max(1),
-  reason: z.string().min(1),
-  citation: retrievalCitationSchema.optional(),
-  /** Conflict hints showing related entries with different solutions */
-  conflicts: z.array(conflictHintSchema).optional(),
-  /** Boundary explanation for why this entry is applicable (Phase 66) */
-  boundaryExplanation: boundaryExplanationSchema.optional(),
-}).strict();
+export const retrievalMatchSchema = z
+  .object({
+    entryId: entityIdSchema,
+    scope: scopeSchema,
+    requiredLevel: securityLevelSchema,
+    shortcut: z.string(),
+    detail: z.string(),
+    labels: z.array(labelSchema),
+    score: z.number().min(0).max(1),
+    reason: z.string().min(1),
+    citation: retrievalCitationSchema.optional(),
+    /** Conflict hints showing related entries with different solutions */
+    conflicts: z.array(conflictHintSchema).optional(),
+    /** Boundary explanation for why this entry is applicable (Phase 66) */
+    boundaryExplanation: boundaryExplanationSchema.optional(),
+  })
+  .strict();
 
 export const retrievalResponseSchema = z.object({
   globalConstraints: z.array(retrievalMatchSchema),
@@ -213,7 +217,7 @@ export const readNextReferenceHintSchema = z.object({
   /** Path to the reference file within the skill directory */
   path: z.string().min(1).max(512),
   /** SHA-256 hash for integrity verification */
-  sha256: z.string().length(64),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
   /** Human-readable description of what this reference provides */
   description: z.string().max(280).optional(),
 });
@@ -231,7 +235,7 @@ export const assetAvailabilityHintSchema = z.object({
   /** Path to the asset file within the skill directory */
   path: z.string().min(1).max(512),
   /** SHA-256 hash for integrity verification */
-  sha256: z.string().length(64),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
   /** File size in bytes for transfer planning */
   sizeBytes: z.number().int().min(0),
   /** IANA media type for content handling */
@@ -251,7 +255,7 @@ export const scriptProfileHintSchema = z.object({
   /** Path to the script file within the skill directory */
   path: z.string().min(1).max(512),
   /** SHA-256 hash for integrity verification */
-  sha256: z.string().length(64),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
   /** Human-readable capability description */
   capability: z.string().min(1).max(280),
   /** Brief summary of expected argument schema */
@@ -286,28 +290,35 @@ export const capsuleActivationHintsSchema = z.object({
 /** Heuristic: detect strings that look like raw source code */
 const looksLikeRawCode = (s: string): boolean =>
   /^#!\//.test(s) ||
-  /\b(import\s+.*from\s|require\s*\(|export\s+(default\s+)?(function|class|const|let|var)|function\s+\w+\s*\(|const\s+\w+\s*=\s*(\(|async\s))/m.test(s);
+  /\b(import\s+.*from\s|require\s*\(|export\s+(default\s+)?(function|class|const|let|var)|function\s+\w+\s*\(|const\s+\w+\s*=\s*(\(|async\s))/m.test(
+    s,
+  );
 
-export const retrievalV2ResponseWithHintsSchema = z.object({
-  /** Ranked capsule matches with governance inheritance */
-  capsules: z.array(capsuleMatchSchema).default([]),
-  /** Lightweight artifact metadata for activation hints */
-  profileHints: z.array(profileHintSchema).default([]),
-  /** Activation hints per capsule (metadata-only) */
-  activationHints: z.array(capsuleActivationHintsSchema).default([]),
-  /** Optional refinement summary over filtered capsules */
-  refinementSummary: z.string().nullable().default(null),
-  /** Optional summary over filtered distilled capsule hits */
-  summary: retrievalSummarySchema.nullable().default(null),
-}).refine(
-  d => d.capsules.every(c => !looksLikeRawCode(c.content)),
-  { message: 'distilled-first: capsule content must not be raw source code' },
-).refine(
-  d => d.activationHints.every(h =>
-    h.scripts.every(s => !looksLikeRawCode(s.capability) && !looksLikeRawCode(s.sideEffectSummary)),
-  ),
-  { message: 'metadata-only: activation hints must not contain executable content' },
-);
+export const retrievalV2ResponseWithHintsSchema = z
+  .object({
+    /** Ranked capsule matches with governance inheritance */
+    capsules: z.array(capsuleMatchSchema).default([]),
+    /** Lightweight artifact metadata for activation hints */
+    profileHints: z.array(profileHintSchema).default([]),
+    /** Activation hints per capsule (metadata-only) */
+    activationHints: z.array(capsuleActivationHintsSchema).default([]),
+    /** Optional refinement summary over filtered capsules */
+    refinementSummary: z.string().nullable().default(null),
+    /** Optional summary over filtered distilled capsule hits */
+    summary: retrievalSummarySchema.nullable().default(null),
+  })
+  .refine((d) => d.capsules.every((c) => !looksLikeRawCode(c.content)), {
+    message: 'distilled-first: capsule content must not be raw source code',
+  })
+  .refine(
+    (d) =>
+      d.activationHints.every((h) =>
+        h.scripts.every(
+          (s) => !looksLikeRawCode(s.capability) && !looksLikeRawCode(s.sideEffectSummary),
+        ),
+      ),
+    { message: 'metadata-only: activation hints must not contain executable content' },
+  );
 
 export type ReadNextReferenceHint = z.infer<typeof readNextReferenceHintSchema>;
 export type AssetAvailabilityHint = z.infer<typeof assetAvailabilityHintSchema>;
@@ -549,13 +560,15 @@ export type GraphPlanFallback = z.infer<typeof graphPlanFallbackSchema>;
  * Wrapper response for additive GraphRAG-lite retrieval.
  * Returns either a selected trap-first plan or a governed legacy fallback payload.
  */
-export const graphPlanSearchResponseSchema = z.object({
-  /** Canonical routing and confidence metadata for the request */
-  routingTrace: graphPlanRoutingTraceSchema,
-  /** Selected plan when confidence is high enough */
-  plan: trapFirstPlanSchema.nullable().default(null),
-  /** Governed fallback payload when the plan is not selected */
-  fallback: graphPlanFallbackSchema.nullable().default(null),
-}).strict();
+export const graphPlanSearchResponseSchema = z
+  .object({
+    /** Canonical routing and confidence metadata for the request */
+    routingTrace: graphPlanRoutingTraceSchema,
+    /** Selected plan when confidence is high enough */
+    plan: trapFirstPlanSchema.nullable().default(null),
+    /** Governed fallback payload when the plan is not selected */
+    fallback: graphPlanFallbackSchema.nullable().default(null),
+  })
+  .strict();
 
 export type GraphPlanSearchResponse = z.infer<typeof graphPlanSearchResponseSchema>;

@@ -478,21 +478,23 @@ describe('retrieval schema contracts', () => {
     it('rejects capsule content that looks like raw source code (import)', () => {
       expect(() =>
         retrievalV2ResponseWithHintsSchema.parse({
-          capsules: [{
-            capsuleId: 'c1',
-            artifactId: 'a1',
-            revision: 1,
-            sourcePaths: ['/src/foo.ts'],
-            content: 'import { foo } from "bar";',
-            situation: 'test',
-            problem: 'test',
-            goal: 'test',
-            labels: ['test'],
-            scope: 'global',
-            requiredLevel: 5,
-            score: 0.9,
-            reason: 'match',
-          }],
+          capsules: [
+            {
+              capsuleId: 'c1',
+              artifactId: 'a1',
+              revision: 1,
+              sourcePaths: ['/src/foo.ts'],
+              content: 'import { foo } from "bar";',
+              situation: 'test',
+              problem: 'test',
+              goal: 'test',
+              labels: ['test'],
+              scope: 'global',
+              requiredLevel: 5,
+              score: 0.9,
+              reason: 'match',
+            },
+          ],
         }),
       ).toThrow();
     });
@@ -500,42 +502,46 @@ describe('retrieval schema contracts', () => {
     it('rejects capsule content that looks like raw source code (function)', () => {
       expect(() =>
         retrievalV2ResponseWithHintsSchema.parse({
-          capsules: [{
-            capsuleId: 'c1',
-            artifactId: 'a1',
-            revision: 1,
-            sourcePaths: ['/src/foo.ts'],
-            content: 'function handleAuth(req, res) { return res.ok(); }',
-            situation: 'test',
-            problem: 'test',
-            goal: 'test',
-            labels: ['test'],
-            scope: 'global',
-            requiredLevel: 5,
-            score: 0.9,
-            reason: 'match',
-          }],
+          capsules: [
+            {
+              capsuleId: 'c1',
+              artifactId: 'a1',
+              revision: 1,
+              sourcePaths: ['/src/foo.ts'],
+              content: 'function handleAuth(req, res) { return res.ok(); }',
+              situation: 'test',
+              problem: 'test',
+              goal: 'test',
+              labels: ['test'],
+              scope: 'global',
+              requiredLevel: 5,
+              score: 0.9,
+              reason: 'match',
+            },
+          ],
         }),
       ).toThrow();
     });
 
     it('accepts distilled capsule content (not raw code)', () => {
       const result = retrievalV2ResponseWithHintsSchema.parse({
-        capsules: [{
-          capsuleId: 'c1',
-          artifactId: 'a1',
-          revision: 1,
-          sourcePaths: ['/src/foo.ts'],
-          content: 'Use async/await for authentication callbacks to avoid race conditions',
-          situation: 'User login fails intermittently',
-          problem: 'Race condition in auth flow',
-          goal: 'Implement proper async handling',
-          labels: ['auth'],
-          scope: 'global',
-          requiredLevel: 5,
-          score: 0.9,
-          reason: 'match',
-        }],
+        capsules: [
+          {
+            capsuleId: 'c1',
+            artifactId: 'a1',
+            revision: 1,
+            sourcePaths: ['/src/foo.ts'],
+            content: 'Use async/await for authentication callbacks to avoid race conditions',
+            situation: 'User login fails intermittently',
+            problem: 'Race condition in auth flow',
+            goal: 'Implement proper async handling',
+            labels: ['auth'],
+            scope: 'global',
+            requiredLevel: 5,
+            score: 0.9,
+            reason: 'match',
+          },
+        ],
       });
       expect(result.capsules).toHaveLength(1);
     });
@@ -543,42 +549,50 @@ describe('retrieval schema contracts', () => {
     it('rejects script hints with executable content (shebang)', () => {
       expect(() =>
         retrievalV2ResponseWithHintsSchema.parse({
-          activationHints: [{
-            capsuleId: 'c1',
-            readNext: [],
-            assets: [],
-            scripts: [{
-              artifactId: 'a1',
-              revision: 1,
-              path: '/scripts/build.sh',
-              sha256: 'a'.repeat(64),
-              capability: '#!/bin/bash\nrm -rf /',
-              argsSchemaSummary: '',
-              sideEffectSummary: '',
-              defaultPolicy: 'auto',
-            }],
-          }],
+          activationHints: [
+            {
+              capsuleId: 'c1',
+              readNext: [],
+              assets: [],
+              scripts: [
+                {
+                  artifactId: 'a1',
+                  revision: 1,
+                  path: '/scripts/build.sh',
+                  sha256: 'a'.repeat(64),
+                  capability: '#!/bin/bash\nrm -rf /',
+                  argsSchemaSummary: '',
+                  sideEffectSummary: '',
+                  defaultPolicy: 'auto',
+                },
+              ],
+            },
+          ],
         }),
       ).toThrow();
     });
 
     it('accepts metadata-only script hints', () => {
       const result = retrievalV2ResponseWithHintsSchema.parse({
-        activationHints: [{
-          capsuleId: 'c1',
-          readNext: [],
-          assets: [],
-          scripts: [{
-            artifactId: 'a1',
-            revision: 1,
-            path: '/scripts/build.sh',
-            sha256: 'a'.repeat(64),
-            capability: 'Runs the build pipeline',
-            argsSchemaSummary: 'No arguments',
-            sideEffectSummary: 'Creates dist/ directory',
-            defaultPolicy: 'auto',
-          }],
-        }],
+        activationHints: [
+          {
+            capsuleId: 'c1',
+            readNext: [],
+            assets: [],
+            scripts: [
+              {
+                artifactId: 'a1',
+                revision: 1,
+                path: '/scripts/build.sh',
+                sha256: 'a'.repeat(64),
+                capability: 'Runs the build pipeline',
+                argsSchemaSummary: 'No arguments',
+                sideEffectSummary: 'Creates dist/ directory',
+                defaultPolicy: 'auto',
+              },
+            ],
+          },
+        ],
       });
       expect(result.activationHints).toHaveLength(1);
     });
