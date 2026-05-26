@@ -7,6 +7,7 @@ import {
   pgSequence,
   pgTable,
   primaryKey,
+  real,
   text,
   timestamp,
   uniqueIndex,
@@ -491,7 +492,7 @@ export const candidateDuplicateCases = pgTable(
     /** Algorithm version used for detection */
     detectionVersion: text('detection_version').notNull(),
     /** Highest similarity score across all matches */
-    highestSimilarity: integer('highest_similarity').notNull(),
+    highestSimilarity: real('highest_similarity').notNull(),
     /** True if any match is an exact duplicate */
     hasExactDuplicate: integer('has_exact_duplicate').notNull().default(0),
     /** Classification of duplicate severity */
@@ -527,8 +528,8 @@ export const candidateDuplicateMatches = pgTable(
     entityId: text('entity_id').notNull(),
     /** Title of the matched entity for display */
     entityTitle: text('entity_title').notNull(),
-    /** Similarity score (0-100 as integer percentage) */
-    similarityScore: integer('similarity_score').notNull(),
+    /** Similarity score (0.0-1.0 as real) */
+    similarityScore: real('similarity_score').notNull(),
     /** Classification of match confidence */
     matchType: text('match_type').notNull(),
     /** Keywords shared between candidate and match */
@@ -1078,6 +1079,11 @@ export const skillArtifacts = pgTable(
     index('idx_skill_artifacts_lifecycle_state').on(table.lifecycleState),
     index('idx_skill_artifacts_team').on(table.teamId),
     index('idx_skill_artifacts_slug').on(table.slug),
+    uniqueIndex('idx_skill_artifacts_scope_team_slug').on(
+      sql`COALESCE(${table.teamId}, '__global__')`,
+      table.scope,
+      table.slug,
+    ),
   ],
 );
 

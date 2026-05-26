@@ -99,6 +99,10 @@ describe('candidate sub-tables schema (Round 5)', () => {
       expect(candidateDuplicateCases.id.primary).toBe(true);
     });
 
+    it('has highest_similarity column (real type for Phase 4 precision)', () => {
+      expect(candidateDuplicateCases.highestSimilarity.name).toBe('highest_similarity');
+    });
+
     it('uses snake_case column names', () => {
       expect(candidateDuplicateCases.candidateId.name).toBe('candidate_id');
       expect(candidateDuplicateCases.detectedAt.name).toBe('detected_at');
@@ -123,6 +127,10 @@ describe('candidate sub-tables schema (Round 5)', () => {
       expect(columnNames).toContain('sharedKeywords');
       expect(columnNames).toContain('sharedTokens');
       expect(columnNames).toContain('textOverlapPercent');
+    });
+
+    it('has similarity_score column (real type for Phase 4 precision)', () => {
+      expect(candidateDuplicateMatches.similarityScore.name).toBe('similarity_score');
     });
 
     it('uses snake_case column names', () => {

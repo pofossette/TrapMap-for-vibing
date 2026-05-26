@@ -440,7 +440,7 @@ received → queued → analyzing → duplicate_detected / ready_for_review → 
 | `hasExactDuplicate` | boolean | 是否有完全重复 |
 | `duplicateType` | `'exact' \| 'semantic' \| 'none'` | 重复类型 |
 
-> **Round 5 结构化子表**：`candidate_duplicate_cases` 存储判重主记录，`candidate_duplicate_matches` 存储匹配详情行。`highestSimilarity` 和 `similarityScore` 在数据库中以整数百分比（0-100）存储。
+> **Round 5 结构化子表**：`candidate_duplicate_cases` 存储判重主记录，`candidate_duplicate_matches` 存储匹配详情行。`highestSimilarity` 和 `similarityScore` 在数据库中以 `real` 类型存储原始浮点值（0.0-1.0），精度保留三位小数。
 
 ### EntityLineage（实体血缘）
 

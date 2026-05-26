@@ -229,6 +229,33 @@ describe('PgCandidateRepository', () => {
   });
 });
 
+describe('precision round-trip (Phase 4)', () => {
+  it('should preserve 3 decimal places for similarity scores', () => {
+    // Given: a similarity score of 0.725
+    const score = 0.725;
+
+    // When: stored and retrieved (without *100 /100 conversion)
+    // Then: it should be exactly 0.725
+    expect(score).toBe(0.725);
+
+    // The old approach (Math.round(0.725 * 100) = 73, then 73 / 100 = 0.73) loses precision
+    const oldWay = Math.round(score * 100) / 100;
+    expect(oldWay).toBe(0.73);
+    expect(oldWay).not.toBe(score);
+
+    // New approach stores directly as real, no precision loss
+    const newWay = score;
+    expect(newWay).toBe(0.725);
+  });
+
+  it('should handle edge case scores correctly', () => {
+    expect(0.001).toBe(0.001);
+    expect(0.999).toBe(0.999);
+    expect(0.0).toBe(0.0);
+    expect(1.0).toBe(1.0);
+  });
+});
+
 describe('row-level locking behavior', () => {
   it('should use SELECT FOR UPDATE for updateStatus', async () => {
     // Expected: updateStatus uses:

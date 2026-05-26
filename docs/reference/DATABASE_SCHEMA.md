@@ -302,6 +302,7 @@ feedback_records (1) ──→ (N) feedback_custom_answers       [CASCADE]
 | 8 | `0008_round9_cross_table_consistency.sql` | 跨表一致性约束（复合FK + CHECK） |
 | 10 | `0010_round10_lifecycle_outbox.sql` | 生命周期 outbox 事件表 |
 | 11 | `0011_round10_identity_audit_structural.sql` | 身份域和审计域结构化表（Phase 3） |
+| 12 | `0012_round10_read_model_cleanup.sql` | 相似度精度修复（integer→real）+ skill_artifacts 唯一索引对齐（Phase 4） |
 
 ## 相关文档
 

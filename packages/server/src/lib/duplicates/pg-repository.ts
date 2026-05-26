@@ -44,7 +44,7 @@ export class PgDuplicateRepository implements DuplicateRepository {
           duplicateCase.candidateId,
           duplicateCase.detectedAt,
           duplicateCase.detectionVersion,
-          Math.round(duplicateCase.highestSimilarity * 100),
+          duplicateCase.highestSimilarity,
           duplicateCase.hasExactDuplicate ? 1 : 0,
           duplicateCase.duplicateType,
         ],
@@ -59,7 +59,7 @@ export class PgDuplicateRepository implements DuplicateRepository {
             match.entityType,
             match.entityId,
             match.entityTitle,
-            Math.round(match.similarityScore * 100),
+            match.similarityScore,
             match.matchType,
             JSON.stringify(match.overlapDetails.sharedKeywords),
             JSON.stringify(match.overlapDetails.sharedTokens),
@@ -148,7 +148,7 @@ export class PgDuplicateRepository implements DuplicateRepository {
       }
       if (updates.highestSimilarity !== undefined) {
         setClauses.push(`highest_similarity = $${paramIdx++}`);
-        params.push(Math.round(updates.highestSimilarity * 100));
+        params.push(updates.highestSimilarity);
       }
       if (updates.hasExactDuplicate !== undefined) {
         setClauses.push(`has_exact_duplicate = $${paramIdx++}`);
@@ -180,7 +180,7 @@ export class PgDuplicateRepository implements DuplicateRepository {
               match.entityType,
               match.entityId,
               match.entityTitle,
-              Math.round(match.similarityScore * 100),
+              match.similarityScore,
               match.matchType,
               JSON.stringify(match.overlapDetails.sharedKeywords),
               JSON.stringify(match.overlapDetails.sharedTokens),
@@ -235,14 +235,14 @@ function rowToDuplicateCase(
     candidateId: caseRow.candidateId,
     detectedAt: caseRow.detectedAt.toISOString(),
     detectionVersion: caseRow.detectionVersion,
-    highestSimilarity: caseRow.highestSimilarity / 100,
+    highestSimilarity: caseRow.highestSimilarity,
     hasExactDuplicate: caseRow.hasExactDuplicate === 1,
     duplicateType: caseRow.duplicateType as 'exact' | 'semantic' | 'none',
     matches: matchRows.map((m) => ({
       entityType: m.entityType as 'trap' | 'skill',
       entityId: m.entityId,
       entityTitle: m.entityTitle,
-      similarityScore: m.similarityScore / 100,
+      similarityScore: m.similarityScore,
       matchType: m.matchType as 'exact' | 'high-overlap' | 'semantic-similar',
       overlapDetails: {
         sharedKeywords: m.sharedKeywords,
