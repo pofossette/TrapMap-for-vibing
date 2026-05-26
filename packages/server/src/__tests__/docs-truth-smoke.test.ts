@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -30,5 +30,23 @@ describe('docs truth smoke', () => {
   it('SYSTEM_TRUTH_SOURCES.md exists', () => {
     const content = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
     expect(content.length).toBeGreaterThan(0);
+  });
+
+  it('non-planned truth source paths exist on disk', () => {
+    const content = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
+
+    // Skip paths on rows annotated with "planned" or "Task"
+    const lines = content.split('\n');
+    for (const line of lines) {
+      if (/planned|Task \d/i.test(line)) continue;
+      // Extract paths from this non-planned line
+      const linePathPattern = /`([a-z0-9_/.-]+\.[a-z]+)`/gi;
+      const lineMatches = line.matchAll(linePathPattern);
+      for (const pathMatch of lineMatches) {
+        const relPath = pathMatch[1];
+        const absPath = resolve(ROOT, relPath);
+        expect(existsSync(absPath), `truth source path should exist: ${relPath}`).toBe(true);
+      }
+    }
   });
 });
