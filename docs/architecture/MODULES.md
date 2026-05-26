@@ -355,13 +355,19 @@ interface EntityLineage {
 | GET | `/v1/operations/artifacts/review-queue` | 获取工件审核队列 |
 | POST | `/v1/operations/artifacts/:artifactId/review` | 审核工件 |
 
-#### `routes/candidates.ts`
-异步摄取端点。
+#### `routes/candidates.ts` + `routes/candidates/`
+异步摄取端点。`candidates.ts` 是兼容性 barrel，实际路由按职责分模块：
 
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/v1/duplicates/:candidateId/bundle` | 获取重复包 |
-| POST | `/v1/candidates/:candidateId/manual-result` | 人工重复解决 |
+| 模块 | 方法 | 路径 | 描述 |
+|------|------|------|------|
+| `submit.ts` | POST | `/v1/candidates` | 提交新候选 |
+| `query.ts` | GET | `/v1/candidates` | 列出候选 |
+| `query.ts` | GET | `/v1/candidates/:candidateId` | 获取候选状态 |
+| `duplicates.ts` | GET | `/v1/duplicates` | 列出重复案例 |
+| `duplicates.ts` | GET | `/v1/duplicates/:candidateId` | 获取候选重复案例 |
+| `duplicates.ts` | GET | `/v1/duplicates/:candidateId/bundle` | 获取重复包 |
+| `resolution.ts` | POST | `/v1/candidates/:candidateId/manual-result` | 人工重复解决 |
+| `resolution.ts` | POST | `/v1/candidates/:candidateId/apply-resolution` | 应用解决结果 |
 
 #### `routes/traps.ts`
 Trap 特定端点。
@@ -409,6 +415,9 @@ interface AIProvider {
 - `detector.ts` - 重复检测（指纹 + 语义）
 - `processor.ts` - 后台处理逻辑
 - `reconciler.ts` - 启动时协调
+- `services/submission-service.ts` - 候选创建与入队
+- `services/query-service.ts` - 候选与重复查询聚合
+- `services/resolution-service.ts` - 人工结果附加与解决编排
 
 #### `lib/governance/`
 RBAC 和资格检查。

@@ -74,7 +74,7 @@ contracts → server (app → routes → lib) → cli → evals
 | `knowledge.ts` | `/v1/knowledge` | 条目提交、查询、更新 |
 | `review.ts` | `/v1/knowledge/review` | 审核队列、approve/reject |
 | `retrieval.ts` | `/v1/retrieval` | 多版本检索入口 |
-| `candidates.ts` | `/v1/candidates` | 异步摄取状态 |
+| `candidates.ts` | `/v1/candidates` | 异步摄取（提交/查询/解决/重复），分模块见 `routes/candidates/` |
 | `operations.ts` | `/v1/operations` | 批量导入/导出 |
 | `traps.ts` | `/v1/traps` | Trap 级别操作 |
 | `retrieval.ts` | `/v1/retrieval/skills/search-by-content` | Skill 内容检索 |
