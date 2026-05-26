@@ -1,746 +1,865 @@
-# 写时重读时轻后端收敛 实施计划
+# 服务端复杂度与文档漂移收敛实施计划
 
-> **面向智能体工作者：** 必须使用 superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans 逐阶段实施本计划。步骤使用 `- [ ]` 复选框追踪进度。
+> **面向智能体工作者：** 使用 `superpowers:subagent-driven-development`（推荐）或 `superpowers:executing-plans` 逐任务实施本计划。所有步骤使用复选框 `- [ ]` 跟踪进度。
 
-**Goal:** 将 TrapMap 收敛为“入库承担计算和外部 API 延迟，出库只读结构化事实和派生投影”的后端架构。
+**目标：** 降低 TrapMap 服务端的结构复杂度，拆分超大热点文件，并建立带测试约束的文档真相源机制，防止架构文档继续偏离代码现实。
 
-**Architecture:** 保持 PostgreSQL 作为唯一持久化与异步基础设施。写路径在同一事务内完成主事实写入与任务/事件登记，后台 worker 异步完成候选分析、重复检测、索引、冲突检测和投影构建；读接口只命中结构化主表、历史表和派生表，不再等待同步副作用，也不再把 `store_snapshot` 当成跨域事实源。
+**架构：** 保持现有公开 API 契约稳定，把 `packages/server/src/app.ts` 收敛为薄组合根，将启动与运行时职责抽到显式 bootstrap 模块，并把超大的路由/仓储文件拆成按责任划分的小模块。同时引入真相源文档、文档 smoke 测试和 CI 守卫，让未来的结构变更必须同步更新文档与复杂度预算。
 
-**Tech Stack:** TypeScript、Fastify、PostgreSQL 16、pgvector、Drizzle ORM、Vitest、GitHub Actions
-
----
-
-## 文档信息
-
-- 创建日期：2026-05-26
-- 归档旧计划：`docs/archived/archived-plans/plan-2026-05-25-unified-retrieval-cache.md`
-- 输出文件：`plan.md`（项目根目录）
-- 设计约束：不引入 Redis、Kafka、读写分离、分区表或额外 worker 基础设施；优先复用现有 PG 队列、现有仓储接口和现有测试框架
-- 目标范围：`packages/server/src/`、`packages/server/drizzle/`、`.github/workflows/`、`docs/`
-
-## 执行前提
-
-- 每个阶段结束都要求 `git add -A` 并提交全部工作区改动，因此执行时必须使用独立分支或独立 worktree，避免混入无关改动。
-- 只要本阶段改动了代码文件，就在验收前运行 `rtk graphify update .`。
-- 涉及索引、检索、治理、副作用异步化的阶段，除单元测试外至少运行一次 `rtk pnpm eval:smoke`。
-
-## 设计原则
-
-- 写路径只做三件事：鉴权/校验、事务写事实、登记后台任务。
-- 后台路径负责所有高延迟工作：LLM、embedding、去重、索引、冲突检测、聚合。
-- 读路径默认只查结构化表和派生投影表，不再临时拼装大对象或等待副作用完成。
-- `JSONB` 仅允许保留为兼容缓存、外部原始响应快照或低频扩展元数据。
-- 所有迁移都必须支持幂等回填、影子核对和回滚说明。
-
-## 阶段完成约束
-
-**一个阶段完成，必须同时满足以下条件：**
-
-- [ ] 本阶段所有进度复选框已完成
-- [ ] 本阶段验收标准全部通过
-- [ ] 本阶段要求更新的文档已同步完成
-- [ ] 本阶段要求新增或修改的测试代码已提交
-- [ ] 本阶段代码改动后已执行 `rtk graphify update .`
-- [ ] 本阶段验证命令已执行并记录结果
-- [ ] 已使用 `git add -A` 提交全部工作区改动
-
-建议提交命令：
-
-```bash
-git status --short
-git add -A
-git commit -m "feat(server): <phase summary>"
-```
-
-## 总体文件分解
-
-### 主要代码文件
-
-- `packages/server/src/routes/candidates.ts`
-  - 候选提交写路径；应只负责落库并登记后台任务
-- `packages/server/src/lib/candidates/processor.ts`
-  - 候选后台处理入口；应只由 worker 驱动
-- `packages/server/src/lib/queue/task-queue.ts`
-  - PG durable queue；补齐索引、幂等键和消费约束
-- `packages/server/src/lib/lifecycle/`
-  - 生命周期副作用异步化、outbox/投影任务编排
-- `packages/server/src/lib/auth/`、`users/`、`teams/`、`audit/`
-  - 将剩余身份和审计域从 `store_snapshot` 迁移到结构化表
-- `packages/server/src/lib/persistence/schema.ts`
-  - Drizzle 真相定义；必须与 migration 和文档一致
-- `packages/server/src/app.ts`
-  - worker 启停、恢复逻辑、health/readiness、优雅停机
-- `packages/server/src/config.ts`
-  - 运行时配置与文档对齐
-
-### 主要数据库迁移
-
-- `packages/server/drizzle/0009_round10_task_queue_write_path.sql`
-- `packages/server/drizzle/0010_round10_lifecycle_outbox.sql`
-- `packages/server/drizzle/0011_round10_identity_audit_structural.sql`
-- `packages/server/drizzle/0012_round10_read_model_cleanup.sql`
-- `packages/server/drizzle/0013_round10_runtime_observability.sql`
-
-### 主要测试文件
-
-- `packages/server/src/lib/queue/task-queue.test.ts`
-- `packages/server/src/routes/candidates.test.ts`
-- `packages/server/src/__tests__/candidate-pipeline.test.ts`
-- `packages/server/src/routes/review.test.ts`
-- `packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts`
-- `packages/server/src/lib/auth/repository.test.ts`
-- `packages/server/src/routes/auth.test.ts`
-- `packages/server/src/routes/operations/audit.test.ts`
-- `packages/server/src/lib/candidates/pg-repository.test.ts`
-- `packages/server/src/lib/persistence/__tests__/schema-candidates.test.ts`
-- `packages/server/src/config.test.ts`（新增）
-
-### 主要文档文件
-
-- `docs/architecture/components/ASYNC_INFRASTRUCTURE.md`
-- `docs/architecture/components/KNOWLEDGE_LIFECYCLE.md`
-- `docs/architecture/components/INDEXING.md`
-- `docs/architecture/components/DEDUPLICATION.md`
-- `docs/architecture/components/AUTH.md`
-- `docs/architecture/components/PERSISTENCE.md`
-- `docs/reference/DATA_MODEL.md`
-- `docs/reference/DATABASE_SCHEMA.md`
-- `docs/operations/ENVIRONMENT.md`
-- `docs/operations/SECURITY.md`
-- `docs/operations/TESTING.md`
-- `docs/operations/CI_CD.md`
+**技术栈：** TypeScript、Fastify、Drizzle ORM、Vitest、pnpm、Biome、GitHub Actions、graphify
 
 ---
 
-## Phase 1：让候选写路径真正接管 PG durable queue
+## 计划元信息
 
-**目标：** 候选提交、重试恢复和 worker 消费全部统一到 PostgreSQL 队列，HTTP 提交接口只负责写入事实并快速返回。
+- 已归档旧的根计划到 `docs/archived/archived-plans/plan-2026-05-26-write-heavy-read-light-backend-convergence.md`
+- 本次输出文件：`plan.md`（按用户要求保留在仓库根目录）
+- 主要关注点：
+  - 服务端复杂度收敛
+  - 文档漂移治理
+- 非目标：
+  - 不修改检索排序或相关性策略
+  - 不在本轮中全仓重命名遗留的 `SkillShareer*` 标识符
+  - 除非重构需要内部适配，否则不修改公开 API 形状
 
-**涉及文件：**
+## 当前热点
 
-- 新增：`packages/server/drizzle/0009_round10_task_queue_write_path.sql`
-- 修改：`packages/server/src/lib/persistence/schema.ts`
-- 修改：`packages/server/src/routes/candidates.ts`
-- 修改：`packages/server/src/lib/candidates/processor.ts`
-- 修改：`packages/server/src/lib/queue/task-queue.ts`
-- 修改：`packages/server/src/app.ts`
-- 测试：`packages/server/src/lib/queue/task-queue.test.ts`
-- 测试：`packages/server/src/routes/candidates.test.ts`
-- 测试：`packages/server/src/__tests__/candidate-pipeline.test.ts`
-- 文档：`docs/architecture/components/ASYNC_INFRASTRUCTURE.md`
-- 文档：`docs/reference/DATABASE_SCHEMA.md`
-- 文档：`docs/reference/DATA_MODEL.md`
+- `packages/server/src/app.ts`：641 行
+- `packages/server/src/routes/candidates.ts`：527 行
+- `packages/server/src/lib/persistence/schema.ts`：1888 行
+- `packages/server/src/lib/artifacts/pg-repository.ts`：1531 行
+- 已确认的文档漂移：
+  - `docs/guides/CODE_GUIDE.md` 仍然写的是 `createApp()`
+  - `docs/architecture/ARCHITECTURE.md` 与 `docs/PACKAGES.md` 仍把身份域/审计域描述成 `store_snapshot` 主路径
+  - `docs/reference/DATA_MODEL.md` 描述的是更新后的 PG-first 现实
 
-### 示例结构或代码
+## 阶段追踪
 
-```sql
--- 贴合 dequeue 查询模式的部分索引
-CREATE INDEX task_queue_pending_dequeue_idx
-ON task_queue (type, process_after, priority DESC, created_at ASC)
-WHERE status = 'pending';
+- [ ] 任务 1：建立文档真相源并清理已知漂移
+- [ ] 任务 2：拆分启动与 bootstrap 逻辑并修正初始化顺序
+- [ ] 任务 3：通过路由/服务分层降低 candidate 路由复杂度
+- [ ] 任务 4：拆分持久化 schema 与 Artifact PG 仓储热点
+- [ ] 任务 5：把文档漂移与复杂度预算接入 CI 守卫
 
--- 可选：避免同一实体的相同任务被重复排队
-ALTER TABLE task_queue ADD COLUMN dedupe_key text;
-CREATE UNIQUE INDEX task_queue_dedupe_pending_idx
-ON task_queue (type, dedupe_key)
-WHERE status IN ('pending', 'running');
-```
+## 通用完成定义
 
-```typescript
-const store = app.skillShareer.store;
-const pool = store instanceof PostgresStore ? store.getPool() : undefined;
+**任一阶段完成时，必须同时满足以下条件：**
 
-const services: CandidateProcessorServices = {
-  store,
-  getSnapshot: () => store.snapshot(),
-  pool,
-  candidateRepo,
-};
+- [ ] 本阶段所有复选框均已完成
+- [ ] 本阶段完成标准已经满足
+- [ ] 本阶段要求的文档已在同一个变更中同步更新
+- [ ] 本阶段要求的测试已在同一个变更中新增或更新
+- [ ] 本阶段要求的 eval 验证已经执行
+- [ ] 如果改动了代码文件，已经执行 `rtk graphify update .`
+- [ ] 已在独立分支或独立 worktree 中提交本阶段工作
 
-await candidateRepo.updateStatus(candidate.id, 'queued');
-scheduleCandidateProcessing(candidate.id, services);
-
-return {
-  candidateId: candidate.id,
-  status: 'queued',
-  receivedAt: candidate.receivedAt,
-};
-```
-
-### 进度追踪
-
-- [ ] **Step 1.1：补齐队列表 migration 和 Drizzle schema**
-  - 增加 `task_queue_pending_dequeue_idx`
-  - 如采用幂等键，增加 `dedupe_key`
-  - 在 `schema.ts` 中同步索引与字段定义
-- [ ] **Step 1.2：改造候选提交路由**
-  - 在 `packages/server/src/routes/candidates.ts` 中为 `CandidateProcessorServices` 传入 `pool`
-  - 提交成功后立即把状态更新到 `queued`，不再依赖进程内 fire-and-forget
-- [ ] **Step 1.3：改造恢复逻辑**
-  - 将 `packages/server/src/app.ts` 中的中断恢复逻辑改为“重新入队”而不是直接 `processPendingCandidates()`
-  - 只允许 worker 执行真实分析
-- [ ] **Step 1.4：补齐队列行为测试**
-  - 覆盖 `process_after`、`priority DESC`、`created_at ASC` 的消费顺序
-  - 覆盖重复入队保护和失败重试
-- [ ] **Step 1.5：补齐候选写路径测试**
-  - `routes/candidates.test.ts` 验证 POST 仅负责落库和排队
-  - `candidate-pipeline.test.ts` 验证 worker 可以从队列消费到 `ready_for_review` 或 `duplicate_detected`
-- [ ] **Step 1.6：更新文档**
-  - 明确“候选处理是写后异步任务，不是请求内同步处理”
-  - 更新数据库结构文档中的 `task_queue` 索引与字段
-- [ ] **Step 1.7：执行验证命令**
+建议的阶段收尾命令：
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/queue/task-queue.test.ts packages/server/src/routes/candidates.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts
 rtk pnpm typecheck
-rtk pnpm eval:smoke
-```
-
-- [ ] **Step 1.8：更新图谱并提交全部工作区改动**
-
-```bash
+rtk pnpm check
 rtk graphify update .
 git status --short
 git add -A
-git commit -m "feat(server): route candidate ingestion through durable pg queue"
+git commit -m "refactor(server): <阶段摘要>"
 ```
 
-### Phase 1 验收标准
+## 目标文件结构
 
-- [ ] PostgreSQL 模式下，候选提交不再走进程内 `processCandidateWithRetry` 兜底分支
-- [ ] 候选提交接口在排队后即可返回，不等待分析、去重或索引
-- [ ] 中断恢复逻辑只会重新入队，不会在 `onReady` 中直接跑重处理
-- [ ] `task_queue` 的索引与真实 dequeue 谓词一致
-- [ ] 相关测试、类型检查和 smoke eval 全部通过
+**预计新增的文件与目录**
 
-### Phase 1 文档更新要求
-
-- [ ] `docs/architecture/components/ASYNC_INFRASTRUCTURE.md` 说明队列已成为候选处理唯一后台主路径
-- [ ] `docs/reference/DATABASE_SCHEMA.md` 更新 `task_queue` 字段、索引和幂等说明
-- [ ] `docs/reference/DATA_MODEL.md` 把 Candidate 的处理状态描述改为“写后异步推进”
-
-### Phase 1 测试代码要求
-
-- [ ] `task-queue.test.ts` 覆盖顺序消费、延迟消费、重试和死信
-- [ ] `candidates.test.ts` 覆盖 POST 只排队不计算
-- [ ] `candidate-pipeline.test.ts` 覆盖服务重启后的恢复路径
+- `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+- `packages/server/src/__tests__/docs-truth-smoke.test.ts`
+- `packages/server/src/bootstrap/run-startup-sequence.ts`
+- `packages/server/src/bootstrap/bootstrap-repositories.ts`
+- `packages/server/src/bootstrap/bootstrap-candidate-recovery.ts`
+- `packages/server/src/bootstrap/bootstrap-workers.ts`
+- `packages/server/src/bootstrap/bootstrap-lifecycle.ts`
+- `packages/server/src/bootstrap/bootstrap-graph-reconciliation.ts`
+- `packages/server/src/routes/candidates/index.ts`
+- `packages/server/src/routes/candidates/submit.ts`
+- `packages/server/src/routes/candidates/query.ts`
+- `packages/server/src/routes/candidates/resolution.ts`
+- `packages/server/src/routes/candidates/duplicates.ts`
+- `packages/server/src/lib/candidates/services/submission-service.ts`
+- `packages/server/src/lib/candidates/services/query-service.ts`
+- `packages/server/src/lib/candidates/services/resolution-service.ts`
+- `packages/server/src/lib/persistence/schema/index.ts`
+- `packages/server/src/lib/persistence/schema/auth.ts`
+- `packages/server/src/lib/persistence/schema/knowledge.ts`
+- `packages/server/src/lib/persistence/schema/artifacts.ts`
+- `packages/server/src/lib/persistence/schema/retrieval.ts`
+- `packages/server/src/lib/persistence/schema/queue.ts`
+- `packages/server/src/lib/artifacts/pg-repository/index.ts`
+- `packages/server/src/lib/artifacts/pg-repository/revision-reader.ts`
+- `packages/server/src/lib/artifacts/pg-repository/revision-writer.ts`
+- `packages/server/src/lib/artifacts/pg-repository/derived-store.ts`
+- `packages/server/src/lib/artifacts/pg-repository/record-reconstruction.ts`
+- `scripts/check-doc-drift.ts`
+- `scripts/check-complexity-budgets.ts`
+- `scripts/complexity-budgets.json`
 
 ---
 
-## Phase 2：把生命周期副作用改成异步投影
+### 任务 1：建立文档真相源并清理已知漂移
 
-**目标：** 审核、批准、重提交流程只提交事实和事件登记；索引、冲突检测等重副作用通过 outbox/投影任务异步处理。
+**文件：**
+- 新建：`docs/reference/SYSTEM_TRUTH_SOURCES.md`
+- 新建：`packages/server/src/__tests__/docs-truth-smoke.test.ts`
+- 修改：`README.md`
+- 修改：`architecture.md`
+- 修改：`docs/README.md`
+- 修改：`docs/guides/CODE_GUIDE.md`
+- 修改：`docs/architecture/ARCHITECTURE.md`
+- 修改：`docs/PACKAGES.md`
+- 修改：`docs/reference/DATA_MODEL.md`
 
-**涉及文件：**
+**阶段完成标准：**
+- `docs/guides/CODE_GUIDE.md` 不再出现 `createApp()`
+- 面向架构的关键文档统一指向一个真相源文档
+- `ARCHITECTURE.md`、`PACKAGES.md`、`DATA_MODEL.md` 对 `store_snapshot` 的现状描述一致
+- 一旦旧入口名或缺失真相源链接再次出现，文档 smoke 测试会失败
 
-- 新增：`packages/server/drizzle/0010_round10_lifecycle_outbox.sql`
-- 新增：`packages/server/src/lib/lifecycle/outbox.ts`
-- 新增：`packages/server/src/lib/lifecycle/outbox.test.ts`
-- 修改：`packages/server/src/lib/persistence/schema.ts`
-- 修改：`packages/server/src/routes/review.ts`
-- 修改：`packages/server/src/lib/lifecycle/event-bus.ts`
-- 修改：`packages/server/src/lib/lifecycle/subscribers/indexing.ts`
-- 修改：`packages/server/src/lib/lifecycle/subscribers/conflict.ts`
-- 修改：`packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts`
-- 修改：`packages/server/src/app.ts`
-- 文档：`docs/architecture/components/KNOWLEDGE_LIFECYCLE.md`
-- 文档：`docs/architecture/components/INDEXING.md`
-- 文档：`docs/architecture/components/ASYNC_INFRASTRUCTURE.md`
-- 文档：`docs/architecture/components/REVIEW.md`
+**阶段文档更新要求：**
+- 引入 `docs/reference/SYSTEM_TRUTH_SOURCES.md`，明确每个主题对应的权威来源
+- 在 `README.md` 与 `docs/README.md` 中链接新的真相源文档
+- 将 `docs/guides/CODE_GUIDE.md` 的启动部分改写为围绕 `buildServer()`
+- 对齐 `docs/architecture/ARCHITECTURE.md`、`docs/PACKAGES.md` 与 `docs/reference/DATA_MODEL.md` 中的持久化现状叙述
 
-### 示例结构或代码
+**阶段测试 / Eval 更新要求：**
+- 新增文档 smoke 测试，至少断言：
+  - `CODE_GUIDE.md` 包含 `buildServer()`
+  - `CODE_GUIDE.md` 不包含 `createApp()`
+  - 关键文档引用了 `SYSTEM_TRUTH_SOURCES.md`
+- 本阶段不修改 eval 数据集
+- 运行一次 `rtk pnpm eval:smoke`，确保文档修订没有掩盖已有服务端启动回归
 
-```sql
-CREATE TABLE domain_event_outbox (
-  id text PRIMARY KEY,
-  aggregate_type text NOT NULL,
-  aggregate_id text NOT NULL,
-  event_name text NOT NULL,
-  payload jsonb NOT NULL,
-  status text NOT NULL DEFAULT 'pending',
-  available_at timestamptz NOT NULL DEFAULT now(),
-  attempts integer NOT NULL DEFAULT 0,
-  last_error text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  published_at timestamptz
-);
+**必要的结构或代码示例：**
 
-CREATE INDEX domain_event_outbox_pending_idx
-ON domain_event_outbox (event_name, available_at, created_at)
-WHERE status = 'pending';
+```md
+# System Truth Sources
+
+| 主题 | 权威来源 | 备注 |
+| --- | --- | --- |
+| 服务端入口 | `packages/server/src/app.ts` | 导出 `buildServer()` |
+| 服务启动顺序 | `packages/server/src/bootstrap/run-startup-sequence.ts` | 在任务 2 创建 |
+| 持久化现状 | `docs/reference/DATA_MODEL.md` | 面向人的当前迁移状态说明 |
+| 数据表定义 | `packages/server/src/lib/persistence/schema/index.ts` | 在任务 4 建立 re-export barrel |
+| API 表面 | `docs/reference/api-surface.md` | 面向使用者的契约视图 |
 ```
 
-```typescript
-await knowledgeRepo.applyReviewDecision(input);
+```ts
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
 
-await outbox.enqueue({
-  aggregateType: 'knowledge',
-  aggregateId: entryId,
-  eventName,
-  payload: {
-    entryId,
-    previousState,
-    nextState,
-    actorId: auth.actorId,
-    reason: `reviewer-${payload.decision}`,
-    timestamp: nowIso(),
-  },
+describe('docs truth smoke', () => {
+  it('CODE_GUIDE 使用当前的服务端入口名', () => {
+    const guide = readFileSync(
+      resolve(process.cwd(), 'docs/guides/CODE_GUIDE.md'),
+      'utf8',
+    );
+
+    expect(guide).toContain('buildServer()');
+    expect(guide).not.toContain('createApp()');
+  });
 });
-
-return { entry: reviewedEntry };
 ```
 
-### 进度追踪
+- [ ] **步骤 1.1：先写失败中的文档 smoke 测试**
 
-- [ ] **Step 2.1：新增 outbox 表和访问层**
-  - 创建 `domain_event_outbox`
-  - 在 `packages/server/src/lib/lifecycle/outbox.ts` 中实现 `enqueue`、`claimBatch`、`complete`、`fail`
-- [ ] **Step 2.2：改造 review 写路径**
-  - `packages/server/src/routes/review.ts` 中不再 `await emitDomainEventAsync(...)`
-  - 改为在事务提交后登记 outbox 事件
-- [ ] **Step 2.3：改造 subscriber 执行模型**
-  - PG 模式下由 worker 读取 outbox 并调用 indexing/conflict subscriber
-  - JSON 模式下可继续保留原地 `eventBus` 逻辑，避免破坏轻量本地运行
-- [ ] **Step 2.4：补齐幂等和重试**
-  - `indexing` 和 `conflict` handler 必须支持重复执行
-  - worker 失败要回写 `attempts` 和 `last_error`
-- [ ] **Step 2.5：补齐测试**
-  - `review.test.ts` 验证审核接口不再等待副作用
-  - `outbox.test.ts` 验证事件 claim/complete/fail
-  - `subscribers-integration.test.ts` 验证投影任务最终一致性
-- [ ] **Step 2.6：更新文档**
-  - 把生命周期状态变更后的索引/冲突处理改写为“异步投影”
-- [ ] **Step 2.7：执行验证命令**
+```ts
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
 
-```bash
-rtk pnpm test -- --run packages/server/src/routes/review.test.ts packages/server/src/lib/lifecycle/outbox.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts packages/server/src/lib/indexing/events.test.ts
-rtk pnpm typecheck
-rtk pnpm eval:smoke
+describe('docs truth smoke', () => {
+  it('CODE_GUIDE 使用当前的服务端入口名', () => {
+    const guide = readFileSync(
+      resolve(process.cwd(), 'docs/guides/CODE_GUIDE.md'),
+      'utf8',
+    );
+
+    expect(guide).toContain('buildServer()');
+    expect(guide).not.toContain('createApp()');
+  });
+});
 ```
 
-- [ ] **Step 2.8：更新图谱并提交全部工作区改动**
+运行：`rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`  
+预期：FAIL，因为 `docs/guides/CODE_GUIDE.md` 仍然提到 `createApp()`
 
-```bash
-rtk graphify update .
-git status --short
-git add -A
-git commit -m "feat(server): move lifecycle side effects to outbox-driven projections"
+- [ ] **步骤 1.2：创建权威真相源文档**
+
+```md
+# System Truth Sources
+
+| 主题 | 权威来源 | 次级文档 |
+| --- | --- | --- |
+| 服务端入口 | `packages/server/src/app.ts` | `docs/guides/CODE_GUIDE.md`、`architecture.md` |
+| 启动顺序 | `packages/server/src/bootstrap/run-startup-sequence.ts` | `docs/architecture/ARCHITECTURE.md` |
+| 持久化迁移状态 | `docs/reference/DATA_MODEL.md` | `docs/PACKAGES.md`、`docs/architecture/ARCHITECTURE.md` |
+| DB schema | `packages/server/src/lib/persistence/schema/index.ts` | `docs/reference/DATABASE_SCHEMA.md` |
 ```
 
-### Phase 2 验收标准
+- [ ] **步骤 1.3：重写过时的启动与持久化描述**
 
-- [ ] 审核接口只提交状态变更和 outbox 事件，不再等待索引或冲突检测
-- [ ] 索引和冲突检测可以由后台任务独立重试
-- [ ] PG 模式下重副作用统一走 outbox/worker
-- [ ] JSON 模式下本地开发流程仍可工作
-- [ ] 相关测试、类型检查和 smoke eval 全部通过
+```md
+### 2.1 应用启动 — `src/app.ts`
 
-### Phase 2 文档更新要求
+从 `buildServer()` 开始读。它负责创建 Fastify 实例、装配共享服务，并调用显式的 startup sequence。
 
-- [ ] `docs/architecture/components/KNOWLEDGE_LIFECYCLE.md` 补充状态流转后的异步投影阶段
-- [ ] `docs/architecture/components/INDEXING.md` 明确索引刷新来自后台投影任务
-- [ ] `docs/architecture/components/ASYNC_INFRASTRUCTURE.md` 补充 outbox 角色
-- [ ] `docs/architecture/components/REVIEW.md` 改写审核接口时序图
+- `packages/server/src/bootstrap/run-startup-sequence.ts` 负责 onReady 初始化顺序
+- `packages/server/src/bootstrap/bootstrap-repositories.ts` 负责仓储装配
+- `packages/server/src/bootstrap/bootstrap-workers.ts` 负责后台 worker 生命周期
+```
 
-### Phase 2 测试代码要求
+```md
+- `store_snapshot` 是兼容层，不再描述为身份域/审计域的 PG 主读取路径
+- 身份域和审计域当前的 PG 主路径以 `docs/reference/DATA_MODEL.md` 为准
+```
 
-- [ ] 新增 `outbox.test.ts`
-- [ ] `review.test.ts` 覆盖“请求返回先于索引完成”
-- [ ] `subscribers-integration.test.ts` 覆盖失败重试和幂等重复消费
+- [ ] **步骤 1.4：在根 README 和文档索引里链接真相源文档**
+
+```md
+- [系统真相源](docs/reference/SYSTEM_TRUTH_SOURCES.md) — 架构事实、入口文件与文档引用规则
+```
+
+- [ ] **步骤 1.5：重新运行 smoke 测试和静态检查**
+
+运行：`rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`  
+预期：PASS
+
+运行：`rtk pnpm check`  
+预期：PASS
+
+- [ ] **步骤 1.6：运行更大范围验证并提交**
+
+运行：`rtk pnpm typecheck`  
+预期：PASS
+
+运行：`rtk pnpm eval:smoke`  
+预期：PASS
+
+运行：`git add -A && git commit -m "docs: establish server truth sources"`  
+预期：成功生成包含文档和 smoke 测试的提交
 
 ---
 
-## Phase 3：迁出剩余身份域和审计域，停止把 `store_snapshot` 当主事实源
+### 任务 2：拆分启动与 bootstrap 逻辑并修正初始化顺序
 
-**目标：** Team、User、Membership、Session、AccessKey、Audit 全部落到结构化表；PG 模式下这些域不再通过 `store.snapshot()` 读取。
-
-**涉及文件：**
-
-- 新增：`packages/server/drizzle/0011_round10_identity_audit_structural.sql`
-- 新增：`packages/server/src/lib/auth/pg-repository.ts`
-- 新增：`packages/server/src/lib/users/pg-repository.ts`
-- 新增：`packages/server/src/lib/teams/pg-repository.ts`
-- 新增：`packages/server/src/lib/audit/pg-repository.ts`
-- 新增：`packages/server/src/lib/persistence/migrate-identity-audit.ts`
-- 新增：`packages/server/src/lib/persistence/migrate-identity-audit.test.ts`
-- 修改：`packages/server/src/lib/auth/repository.ts`
-- 修改：`packages/server/src/lib/users/repository.ts`
-- 修改：`packages/server/src/lib/teams/repository.ts`
-- 修改：`packages/server/src/lib/audit/repository.ts`
-- 修改：`packages/server/src/routes/auth.ts`
+**文件：**
+- 新建：`packages/server/src/bootstrap/run-startup-sequence.ts`
+- 新建：`packages/server/src/bootstrap/bootstrap-repositories.ts`
+- 新建：`packages/server/src/bootstrap/bootstrap-candidate-recovery.ts`
+- 新建：`packages/server/src/bootstrap/bootstrap-workers.ts`
+- 新建：`packages/server/src/bootstrap/bootstrap-lifecycle.ts`
+- 新建：`packages/server/src/bootstrap/bootstrap-graph-reconciliation.ts`
+- 新建：`packages/server/src/bootstrap/startup.test.ts`
+- 修改：`packages/server/src/app.ts`
 - 修改：`packages/server/src/lib/context.ts`
-- 修改：`packages/server/src/lib/repos/index.ts`
-- 文档：`docs/reference/DATA_MODEL.md`
-- 文档：`docs/reference/DATABASE_SCHEMA.md`
-- 文档：`docs/architecture/components/AUTH.md`
-- 文档：`docs/architecture/components/PERSISTENCE.md`
-- 文档：`docs/operations/SECURITY.md`
+- 修改：`packages/server/src/index.ts`
+- 修改：`docs/guides/CODE_GUIDE.md`
+- 修改：`docs/architecture/ARCHITECTURE.md`
+- 修改：`docs/reference/SYSTEM_TRUTH_SOURCES.md`
 
-### 示例结构或代码
+**阶段完成标准：**
+- `packages/server/src/app.ts` 从 641 行收敛到不超过 350 行，并回到薄组合根角色
+- 仓储初始化发生在 candidate 恢复和任何依赖 repos 的 worker 之前
+- `rtk pnpm eval:smoke` 不再反复打印 `Failed to check for interrupted candidates` 启动噪声
+- 启动顺序可以从一个 orchestrator 模块中直接读懂，而不是分散在多个 `onReady` 钩子里
 
-```sql
-CREATE TABLE users (
-  id text PRIMARY KEY,
-  handle text NOT NULL UNIQUE,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
+**阶段文档更新要求：**
+- 在 `CODE_GUIDE.md` 中把启动阅读入口改为 `bootstrap/run-startup-sequence.ts`
+- 在 `ARCHITECTURE.md` 中明确写出启动顺序
+- 在 `SYSTEM_TRUTH_SOURCES.md` 中把启动 orchestrator 标为该主题的权威来源
 
-CREATE TABLE teams (
-  id text PRIMARY KEY,
-  slug text NOT NULL,
-  name text NOT NULL,
-  description text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
+**阶段测试 / Eval 更新要求：**
+- 新增启动顺序测试，若 candidate recovery 在 repo 创建前运行则失败
+- 扩展现有启动路径测试，验证 worker 启停仍然正常
+- 因为启动顺序直接影响运行时行为，本阶段必须重新跑 `eval:smoke`
 
-CREATE UNIQUE INDEX teams_scope_slug_uidx
-ON teams (slug);
+**必要的结构或代码示例：**
 
-CREATE TABLE memberships (
-  id text PRIMARY KEY,
-  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  team_id text NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-  role_template text NOT NULL,
-  security_level integer NOT NULL,
-  permissions jsonb NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id, team_id)
-);
-
-CREATE TABLE sessions (
-  id text PRIMARY KEY,
-  token_hash text NOT NULL UNIQUE,
-  user_id text REFERENCES users(id),
-  active_team_id text REFERENCES teams(id),
-  subject_type text NOT NULL,
-  expires_at timestamptz NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
+```text
+packages/server/src/bootstrap/
+├── run-startup-sequence.ts
+├── bootstrap-repositories.ts
+├── bootstrap-candidate-recovery.ts
+├── bootstrap-workers.ts
+├── bootstrap-lifecycle.ts
+└── bootstrap-graph-reconciliation.ts
 ```
 
-```typescript
-export function createUserRepository(config: { pool?: Pool; store: SkillShareerStore }): UserRepository {
-  if (config.pool) return new PgUserRepository(config.pool);
-  return new InMemoryUserRepository(config.store);
+```ts
+import type { FastifyInstance } from 'fastify';
+
+export async function runStartupSequence(app: FastifyInstance): Promise<void> {
+  await bootstrapRepositories(app);
+  await bootstrapCandidateRecovery(app);
+  await bootstrapWorkers(app);
+  await bootstrapGraphReconciliation(app);
+  await bootstrapLifecycle(app);
 }
 ```
 
-### 进度追踪
+- [ ] **步骤 2.1：先写失败中的启动顺序测试**
 
-- [ ] **Step 3.1：新增身份域和审计域结构化表**
-  - `users`
-  - `teams`
-  - `memberships`
-  - `sessions`
-  - `access_keys`
-  - `audit_events`
-- [ ] **Step 3.2：实现 PG 仓储并切换 factory**
-  - `createSessionRepository`
-  - `createAccessKeyRepository`
-  - `createUserRepository`
-  - `createTeamRepository`
-  - `createMembershipRepository`
-  - `createAuditRepository`
-- [ ] **Step 3.3：改造认证和团队选择读路径**
-  - `packages/server/src/routes/auth.ts` 不再通过 `store.snapshot()` 解析 membership 和 session
-  - `packages/server/src/lib/context.ts` 的 auth resolution 优先走 PG 仓储
-- [ ] **Step 3.4：提供 backfill 与核对脚本**
-  - 从 `store_snapshot` 抽取 identity/audit 数据到结构化表
-  - 支持幂等重复执行
-- [ ] **Step 3.5：补齐测试**
-  - 仓储测试验证 PG 实现与 in-memory 行为一致
-  - 路由测试验证 login/session/logout/select-team 走结构化仓储
-  - audit 路由测试验证过滤、排序和 limit 行为保持一致
-- [ ] **Step 3.6：更新文档**
-  - 数据模型、数据库结构、认证和持久化组件文档同步改写
-- [ ] **Step 3.7：执行验证命令**
+```ts
+import { describe, expect, it, vi } from 'vitest';
+import { buildServer } from './app.js';
 
-```bash
-rtk pnpm test -- --run packages/server/src/lib/auth/repository.test.ts packages/server/src/lib/persistence/migrate-identity-audit.test.ts packages/server/src/routes/auth.test.ts packages/server/src/routes/operations/audit.test.ts packages/server/src/lib/repos/index.test.ts
-rtk pnpm typecheck
+describe('startup sequence', () => {
+  it('在 candidate recovery 前初始化 repos', async () => {
+    const server = buildServer();
+    const logSpy = vi.spyOn(server.log, 'error');
+
+    await server.ready();
+
+    expect(logSpy).not.toHaveBeenCalledWith(
+      expect.anything(),
+      'Failed to check for interrupted candidates',
+    );
+  });
+});
 ```
 
-- [ ] **Step 3.8：更新图谱并提交全部工作区改动**
+运行：`rtk pnpm test -- --run packages/server/src/bootstrap/startup.test.ts`  
+预期：FAIL，因为当前 `app.ts` 里 recovery 与 `repos` 装配顺序不稳定
 
-```bash
-rtk graphify update .
-git status --short
-git add -A
-git commit -m "feat(server): migrate identity and audit domains off store_snapshot"
+- [ ] **步骤 2.2：把仓储初始化抽成独立模块**
+
+```ts
+export async function bootstrapRepositories(app: FastifyInstance): Promise<void> {
+  const store = app.skillShareer.store;
+  if (store instanceof PostgresStore) {
+    const pool = store.getPool();
+    app.skillShareer.repos = await createAllRepos({ store, pool });
+    return;
+  }
+
+  app.skillShareer.repos = await createAllRepos({ store });
+}
 ```
 
-### Phase 3 验收标准
+- [ ] **步骤 2.3：把 candidate recovery 与 runtime worker 抽成有序模块**
 
-- [ ] PG 模式下，身份和审计域仓储不再退回 `store.snapshot()` 作为主路径
-- [ ] 登录、登出、会话状态、团队切换、访问密钥解析都能在结构化表上完成
-- [ ] 审计查询从结构化表读取并保持现有过滤行为
-- [ ] backfill 支持幂等执行并能通过核对测试
-- [ ] `DATA_MODEL` 中 Team/User/Member/Session/AccessKey/Audit 不再标记为快照主事实源
+```ts
+export async function bootstrapCandidateRecovery(app: FastifyInstance): Promise<void> {
+  const { candidate: candidateRepo } = app.skillShareer.repos;
+  await recoverInterruptedCandidates(app, candidateRepo);
+}
+```
 
-### Phase 3 文档更新要求
+```ts
+export async function bootstrapWorkers(app: FastifyInstance): Promise<void> {
+  const store = app.skillShareer.store;
+  if (!(store instanceof PostgresStore)) return;
 
-- [ ] `docs/reference/DATA_MODEL.md` 更新事实源边界
-- [ ] `docs/reference/DATABASE_SCHEMA.md` 增加身份和审计表
-- [ ] `docs/architecture/components/AUTH.md` 改写认证数据流
-- [ ] `docs/architecture/components/PERSISTENCE.md` 删除“未来再迁移”的表述
-- [ ] `docs/operations/SECURITY.md` 同步会话、访问密钥和持久化方式
+  const worker = createTaskWorker({
+    pool: store.getPool(),
+    handlers: [createCandidateTaskHandler(app)],
+    pollIntervalMs: 1000,
+    concurrency: 1,
+  });
 
-### Phase 3 测试代码要求
+  void worker.run();
+  app.decorate('taskWorker', worker);
+}
+```
 
-- [ ] `auth/repository.test.ts` 增加 PG 实现覆盖
-- [ ] `migrate-identity-audit.test.ts` 覆盖回填幂等和核对
-- [ ] `auth.test.ts` 覆盖 login/logout/session/select-team 的结构化仓储路径
-- [ ] `operations/audit.test.ts` 覆盖过滤、排序、分页限制
+- [ ] **步骤 2.4：用一个 startup sequence hook 替换分散的 `onReady` 块**
+
+```ts
+app.addHook('onReady', async () => {
+  await runStartupSequence(app);
+});
+```
+
+- [ ] **步骤 2.5：更新启动相关文档**
+
+```md
+启动顺序以 `packages/server/src/bootstrap/run-startup-sequence.ts` 为准：
+1. repositories
+2. candidate recovery
+3. background workers
+4. graph reconciliation
+5. lifecycle / outbox subscribers
+```
+
+- [ ] **步骤 2.6：运行验证**
+
+运行：`rtk pnpm test -- --run packages/server/src/bootstrap/startup.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts packages/server/src/lib/queue/task-queue.test.ts`  
+预期：PASS
+
+运行：`rtk pnpm eval:smoke`  
+预期：PASS，且不再出现重复的 `Failed to check for interrupted candidates` 启动日志
+
+- [ ] **步骤 2.7：更新图谱并提交**
+
+运行：`rtk graphify update .`  
+预期：图谱更新成功
+
+运行：`git add -A && git commit -m "refactor(server): extract startup sequence"`  
+预期：成功生成提交
 
 ---
 
-## Phase 4：清理读模型双表示，修正数据库精度和索引漂移
+### 任务 3：通过路由/服务分层降低 candidate 路由复杂度
 
-**目标：** 让出库路径真正只依赖结构化表和派生表；清理候选域 JSONB 双表示，修正重复相似度精度和 schema/migration drift。
-
-**涉及文件：**
-
-- 新增：`packages/server/drizzle/0012_round10_read_model_cleanup.sql`
-- 修改：`packages/server/src/lib/persistence/schema.ts`
-- 修改：`packages/server/src/lib/candidates/pg-repository.ts`
+**文件：**
+- 新建：`packages/server/src/routes/candidates/index.ts`
+- 新建：`packages/server/src/routes/candidates/submit.ts`
+- 新建：`packages/server/src/routes/candidates/query.ts`
+- 新建：`packages/server/src/routes/candidates/resolution.ts`
+- 新建：`packages/server/src/routes/candidates/duplicates.ts`
+- 新建：`packages/server/src/lib/candidates/services/submission-service.ts`
+- 新建：`packages/server/src/lib/candidates/services/query-service.ts`
+- 新建：`packages/server/src/lib/candidates/services/resolution-service.ts`
 - 修改：`packages/server/src/routes/candidates.ts`
-- 修改：`packages/server/src/lib/persistence/__tests__/schema-candidates.test.ts`
-- 修改：`packages/server/src/lib/candidates/pg-repository.test.ts`
 - 修改：`packages/server/src/routes/candidates.test.ts`
-- 文档：`docs/reference/DATA_MODEL.md`
-- 文档：`docs/reference/DATABASE_SCHEMA.md`
-- 文档：`docs/architecture/components/DEDUPLICATION.md`
-- 文档：`docs/architecture/components/PERSISTENCE.md`
+- 修改：`packages/server/src/routes/review.test.ts`
+- 修改：`docs/guides/CODE_GUIDE.md`
+- 修改：`docs/architecture/API.md`
+- 修改：`docs/architecture/MODULES.md`
 
-### 示例结构或代码
+**阶段完成标准：**
+- `packages/server/src/routes/candidates.ts` 收敛为不超过 150 行的兼容 barrel
+- candidate 提交、查询、重复项处理、人工 resolution 等逻辑按责任拆开
+- 路由测试在不改变外部端点形状的前提下保持通过
+- 路由文件不再同时混合请求解析、业务编排和记录变更
 
-```sql
-ALTER TABLE candidate_duplicate_cases
-  ALTER COLUMN highest_similarity TYPE numeric(5,3)
-  USING highest_similarity / 100.0;
+**阶段文档更新要求：**
+- 在 `CODE_GUIDE.md` 中加入新的 candidate 路由目录导航
+- 在 `API.md` 与 `MODULES.md` 中更新拆分后的入口
+- 明确哪个 service 文件负责 submission，哪个负责 resolution
 
-ALTER TABLE candidate_duplicate_matches
-  ALTER COLUMN similarity_score TYPE numeric(5,3)
-  USING similarity_score / 100.0;
+**阶段测试 / Eval 更新要求：**
+- 保留 `routes/candidates.test.ts` 作为 API 契约覆盖
+- 如果业务逻辑从路由层下沉，补充更聚焦的 service 测试
+- 为了覆盖摄取和检索链路，本阶段必须重跑 `eval:smoke`
 
-CREATE UNIQUE INDEX IF NOT EXISTS skill_artifacts_scope_slug_uidx
-ON skill_artifacts (COALESCE(team_id, '__global__'), scope, slug);
+**必要的结构或代码示例：**
+
+```text
+packages/server/src/routes/candidates/
+├── index.ts
+├── submit.ts
+├── query.ts
+├── resolution.ts
+└── duplicates.ts
 ```
 
-```typescript
-return {
-  id: caseRow.id,
-  candidateId: caseRow.candidateId,
-  highestSimilarity: Number(caseRow.highestSimilarity),
-  matches: matchRows.map((m) => ({
-    entityType: m.entityType as 'trap' | 'skill',
-    entityId: m.entityId,
-    similarityScore: Number(m.similarityScore),
-    matchType: m.matchType as 'exact' | 'high-overlap' | 'semantic-similar',
-  })),
-};
+```ts
+export function candidateRoutes(app: FastifyInstance) {
+  app.register(candidateSubmissionRoutes);
+  app.register(candidateQueryRoutes);
+  app.register(candidateResolutionRoutes);
+  app.register(candidateDuplicateRoutes);
+}
 ```
 
-### 进度追踪
-
-- [ ] **Step 4.1：修复候选去重相似度精度**
-  - 将 `highest_similarity` 和 `similarity_score` 从百分位整数语义改成三位小数
-  - 更新序列化/反序列化代码，避免 `*100` / `/100` 精度损失
-- [ ] **Step 4.2：让重复和人工处理读路径只依赖结构化表**
-  - `GET /v1/duplicates/:candidateId`
-  - `GET /v1/duplicates/:candidateId/bundle`
-  - `GET /v1/candidates/:candidateId`
-  - 保证在 `candidates.duplicate_case`、`analysis_snapshot`、`manual_result` 缓存为空时依然返回正确结果
-- [ ] **Step 4.3：处理 schema / migration / docs 漂移**
-  - 对齐 `skill_artifacts` 相关唯一索引
-  - 对齐 `schema.ts`、SQL migration 和 `DATABASE_SCHEMA.md`
-- [ ] **Step 4.4：补齐测试**
-  - 构造“结构化表有数据但 JSONB 缓存为空”的场景
-  - 验证 API 仍正常工作
-- [ ] **Step 4.5：更新文档**
-  - 明确哪些 JSONB 仍保留为兼容缓存
-  - 明确重复检测分数精度和结构化事实源
-- [ ] **Step 4.6：执行验证命令**
-
-```bash
-rtk pnpm test -- --run packages/server/src/lib/candidates/pg-repository.test.ts packages/server/src/lib/persistence/__tests__/schema-candidates.test.ts packages/server/src/routes/candidates.test.ts
-rtk pnpm typecheck
-rtk pnpm eval:smoke
+```ts
+export async function submitCandidate(
+  input: SubmitCandidateInput,
+  services: CandidateSubmissionServices,
+): Promise<SubmitCandidateResult> {
+  const candidate = await services.repo.insert(input);
+  await services.queue.enqueue(candidate.id);
+  return { candidateId: candidate.id, status: 'queued' };
+}
 ```
 
-- [ ] **Step 4.7：更新图谱并提交全部工作区改动**
+- [ ] **步骤 3.1：先用契约测试冻结当前路由行为**
 
-```bash
-rtk graphify update .
-git status --short
-git add -A
-git commit -m "refactor(server): read candidates and duplicates from structured projections"
+```ts
+it('POST /v1/candidates 在重构后仍返回 queued 状态', async () => {
+  const response = await app.inject({
+    method: 'POST',
+    url: '/v1/candidates',
+    payload: validCandidatePayload,
+  });
+
+  expect(response.statusCode).toBe(202);
+  expect(response.json()).toMatchObject({ status: 'queued' });
+});
 ```
 
-### Phase 4 验收标准
+运行：`rtk pnpm test -- --run packages/server/src/routes/candidates.test.ts`  
+预期：在重构前先 PASS
 
-- [ ] 重复相似度在持久化后仍保留三位小数精度
-- [ ] 候选和重复相关读接口在 JSONB 缓存为空时仍能正常返回
-- [ ] `schema.ts`、migration 和文档中的索引/字段定义一致
-- [ ] JSONB 列只保留为兼容缓存或过渡字段，不再是读路径真相来源
-- [ ] 相关测试、类型检查和 smoke eval 全部通过
+- [ ] **步骤 3.2：为 submission、query、resolution 建立 service 边界**
 
-### Phase 4 文档更新要求
+```ts
+export interface CandidateSubmissionServices {
+  repo: CandidateRepository;
+  queue: { enqueue(candidateId: string): Promise<void> };
+  audit: { record(event: string, entityId: string): Promise<void> };
+}
+```
 
-- [ ] `docs/reference/DATA_MODEL.md` 标注 Candidate 读路径已结构化优先
-- [ ] `docs/reference/DATABASE_SCHEMA.md` 更新重复检测字段类型和索引
-- [ ] `docs/architecture/components/DEDUPLICATION.md` 更新相似度存储和读取流程
-- [ ] `docs/architecture/components/PERSISTENCE.md` 明确兼容缓存退场策略
+- [ ] **步骤 3.3：把大路由文件拆成聚焦模块**
 
-### Phase 4 测试代码要求
+```ts
+// packages/server/src/routes/candidates.ts
+export { candidateRoutes } from './candidates/index.js';
+```
 
-- [ ] `pg-repository.test.ts` 覆盖精度 round-trip
-- [ ] `schema-candidates.test.ts` 覆盖字段类型和索引对齐
-- [ ] `candidates.test.ts` 覆盖 JSONB 缓存为空但结构化表完整的读取路径
+- [ ] **步骤 3.4：把 duplicate 和 manual-resolution 逻辑移到 service 调用后面**
+
+```ts
+const result = await resolveCandidate(
+  { candidateId, resolution },
+  { repo: services.repos.candidate, lineage: services.repos.lineage },
+);
+```
+
+- [ ] **步骤 3.5：更新路由与模块文档**
+
+```md
+`packages/server/src/routes/candidates/submit.ts`
+- 负责 POST 提交处理器
+
+`packages/server/src/lib/candidates/services/submission-service.ts`
+- 负责 candidate 记录创建和入队语义
+```
+
+- [ ] **步骤 3.6：运行验证**
+
+运行：`rtk pnpm test -- --run packages/server/src/routes/candidates.test.ts packages/server/src/routes/review.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts`  
+预期：PASS
+
+运行：`rtk pnpm eval:smoke`  
+预期：PASS
+
+- [ ] **步骤 3.7：更新图谱并提交**
+
+运行：`rtk graphify update .`  
+预期：图谱更新成功
+
+运行：`git add -A && git commit -m "refactor(server): split candidate routes and services"`  
+预期：成功生成提交
 
 ---
 
-## Phase 5：补齐运行时配置、可观测性、优雅停机和 CI 基线
+### 任务 4：拆分持久化 schema 与 Artifact PG 仓储热点
 
-**目标：** 把运行时配置、文档、安全说明和 CI 真实校验统一起来，避免“代码与文档不一致”的持续漂移。
+**文件：**
+- 新建：`packages/server/src/lib/persistence/schema/index.ts`
+- 新建：`packages/server/src/lib/persistence/schema/auth.ts`
+- 新建：`packages/server/src/lib/persistence/schema/knowledge.ts`
+- 新建：`packages/server/src/lib/persistence/schema/artifacts.ts`
+- 新建：`packages/server/src/lib/persistence/schema/retrieval.ts`
+- 新建：`packages/server/src/lib/persistence/schema/queue.ts`
+- 新建：`packages/server/src/lib/artifacts/pg-repository/index.ts`
+- 新建：`packages/server/src/lib/artifacts/pg-repository/revision-reader.ts`
+- 新建：`packages/server/src/lib/artifacts/pg-repository/revision-writer.ts`
+- 新建：`packages/server/src/lib/artifacts/pg-repository/derived-store.ts`
+- 新建：`packages/server/src/lib/artifacts/pg-repository/record-reconstruction.ts`
+- 修改：`packages/server/src/lib/persistence/schema.ts`
+- 修改：`packages/server/src/lib/artifacts/pg-repository.ts`
+- 修改：`packages/server/src/lib/artifacts/pg-repository.round4.roundtrip.test.ts`
+- 修改：`packages/server/src/lib/artifacts/pg-repository.round4.consistency.test.ts`
+- 修改：`packages/server/src/lib/knowledge/pg-repository.test.ts`
+- 修改：`docs/PACKAGES.md`
+- 修改：`docs/guides/CODE_GUIDE.md`
+- 修改：`docs/reference/DATABASE_SCHEMA.md`
+- 修改：`docs/reference/GLOSSARY.md`
 
-**涉及文件：**
+**阶段完成标准：**
+- `packages/server/src/lib/persistence/schema.ts` 收敛为不超过 200 行的 barrel 或兼容包装
+- `packages/server/src/lib/artifacts/pg-repository.ts` 收敛为不超过 250 行的 barrel 或兼容包装
+- 对外导入路径保持可兼容，外部调用方无需同步重写
+- 文档不再引用这些超大文件中的脆弱行号，而改为按模块路径与职责说明
 
-- 新增：`packages/server/src/config.test.ts`
-- 修改：`packages/server/src/config.ts`
-- 修改：`packages/server/src/app.ts`
+**阶段文档更新要求：**
+- 更新所有仍然通过行号引用 `pg-repository.ts` 的文档
+- 按新的分域 schema 文件重写 schema 导航说明
+- 在代码导读中加入新的 persistence 与 artifact 模块导航
+
+**阶段测试 / Eval 更新要求：**
+- 保留现有 Artifact PG roundtrip 与 consistency 覆盖
+- 如果公开模块边界有变化，补一个 import 兼容性测试
+- 本阶段不修改 eval 数据集
+- 因为 artifact export/activate 与 retrieval 会被间接影响，本阶段必须重跑 `eval:smoke`
+
+**必要的结构或代码示例：**
+
+```text
+packages/server/src/lib/persistence/schema/
+├── index.ts
+├── auth.ts
+├── knowledge.ts
+├── artifacts.ts
+├── retrieval.ts
+└── queue.ts
+```
+
+```ts
+// packages/server/src/lib/persistence/schema/index.ts
+export * from './auth.js';
+export * from './knowledge.js';
+export * from './artifacts.js';
+export * from './retrieval.js';
+export * from './queue.js';
+```
+
+```text
+packages/server/src/lib/artifacts/pg-repository/
+├── index.ts
+├── revision-reader.ts
+├── revision-writer.ts
+├── derived-store.ts
+└── record-reconstruction.ts
+```
+
+```ts
+export async function loadStructuredRevisionData(
+  pool: Pool,
+  artifactId: string,
+  revisionNo: number,
+): Promise<StructuredRevisionData> {
+  // 从原先的单体仓储文件中迁出
+}
+```
+
+- [ ] **步骤 4.1：先用测试冻结当前模块契约**
+
+```ts
+import * as schema from './persistence/schema.js';
+import * as artifacts from './artifacts/pg-repository.js';
+
+it('保持 schema 与 artifact repository 的公开导出稳定', () => {
+  expect(schema).toHaveProperty('knowledgeEntries');
+  expect(artifacts).toHaveProperty('PgArtifactRepository');
+});
+```
+
+运行：`rtk pnpm test -- --run packages/server/src/lib/artifacts/pg-repository.round4.roundtrip.test.ts packages/server/src/lib/artifacts/pg-repository.round4.consistency.test.ts`  
+预期：在拆分前先 PASS
+
+- [ ] **步骤 4.2：按领域拆分 Drizzle schema**
+
+```ts
+// auth.ts
+export const users = pgTable('users', {
+  id: text('id').primaryKey(),
+  handle: text('handle').notNull(),
+});
+```
+
+- [ ] **步骤 4.3：按职责拆分 Artifact PG 仓储**
+
+```ts
+// record-reconstruction.ts
+export function reconstructSkillArtifactRecord(
+  base: ArtifactBaseRow,
+  structured: StructuredRevisionData,
+): SkillArtifactRecord {
+  return {
+    ...base,
+    revisions: mergeStructuredRevisions(base.revisions, structured),
+  };
+}
+```
+
+- [ ] **步骤 4.4：保留旧顶层文件作为兼容 barrel**
+
+```ts
+// packages/server/src/lib/artifacts/pg-repository.ts
+export * from './pg-repository/index.js';
+```
+
+- [ ] **步骤 4.5：把文档从“行号入口”改成“模块路径入口”**
+
+```md
+阅读入口：
+- `packages/server/src/lib/artifacts/pg-repository/revision-reader.ts`
+- `packages/server/src/lib/artifacts/pg-repository/revision-writer.ts`
+- `packages/server/src/lib/artifacts/pg-repository/record-reconstruction.ts`
+```
+
+- [ ] **步骤 4.6：运行验证**
+
+运行：`rtk pnpm test -- --run packages/server/src/lib/artifacts/pg-repository.round4.roundtrip.test.ts packages/server/src/lib/artifacts/pg-repository.round4.consistency.test.ts packages/server/src/lib/knowledge/pg-repository.test.ts`  
+预期：PASS
+
+运行：`rtk pnpm eval:smoke`  
+预期：PASS
+
+- [ ] **步骤 4.7：更新图谱并提交**
+
+运行：`rtk graphify update .`  
+预期：图谱更新成功
+
+运行：`git add -A && git commit -m "refactor(server): split schema and artifact pg repository hotspots"`  
+预期：成功生成提交
+
+---
+
+### 任务 5：把文档漂移与复杂度预算接入 CI 守卫
+
+**文件：**
+- 新建：`scripts/check-doc-drift.ts`
+- 新建：`scripts/check-complexity-budgets.ts`
+- 新建：`scripts/complexity-budgets.json`
+- 修改：`package.json`
 - 修改：`.github/workflows/ci.yml`
-- 文档：`docs/operations/ENVIRONMENT.md`
-- 文档：`docs/operations/SECURITY.md`
-- 文档：`docs/operations/TESTING.md`
-- 文档：`docs/operations/CI_CD.md`
-- 文档：`docs/architecture/components/ASYNC_INFRASTRUCTURE.md`
+- 修改：`docs/operations/CI_CD.md`
+- 修改：`docs/operations/TESTING.md`
+- 修改：`docs/reference/SYSTEM_TRUTH_SOURCES.md`
 
-### 示例结构或代码
+**阶段完成标准：**
+- 一旦文档重新出现禁用的过时说法，CI 会失败
+- 一旦被跟踪的热点文件重新超过约定行数预算，CI 会失败
+- 开发者可以在本地用根脚本执行同样的检查
+- 守卫规则本身有清晰文档，且易于维护
 
-```typescript
-export const ServerConfigSchema = z.object({
-  dataFile: z.string().min(1),
-  databaseUrl: z.string().url().nullable(),
-  host: HostSchema,
-  port: PortSchema,
-  systemAdminKey: z.string().nullable(),
-  corsAllowedOrigins: z.array(z.string()).default(['*']),
-  rateLimitMaxPerMinute: z.number().int().min(0).default(0),
-  sessionTransport: z.enum(['bearer-header', 'cookie']).default('bearer-header'),
-  userOpsLog: UserOpsLogSchema,
-  ragLog: RagLogSchema,
-  ai: ...
-});
+**阶段文档更新要求：**
+- 在 `CI_CD.md` 中补充新检查的本地和 CI 用法
+- 在 `TESTING.md` 中加入开发者工作流说明
+- 在 `SYSTEM_TRUTH_SOURCES.md` 中说明如何更新真相源断言
+
+**阶段测试 / Eval 更新要求：**
+- 如果守卫脚本用了非平凡共享逻辑，为其增加轻量测试
+- 在接入 CI 后再跑一次 `eval:smoke`，确保前面阶段的结构改动仍然闭环
+- 本阶段不修改 eval 数据集
+
+**必要的结构或代码示例：**
+
+```json
+{
+  "docRules": [
+    {
+      "file": "docs/guides/CODE_GUIDE.md",
+      "mustContain": ["buildServer()"],
+      "mustNotContain": ["createApp()"]
+    },
+    {
+      "file": "docs/architecture/ARCHITECTURE.md",
+      "mustContain": ["SYSTEM_TRUTH_SOURCES.md"]
+    }
+  ],
+  "lineBudgets": [
+    { "file": "packages/server/src/app.ts", "maxLines": 350 },
+    { "file": "packages/server/src/routes/candidates.ts", "maxLines": 150 },
+    { "file": "packages/server/src/lib/persistence/schema.ts", "maxLines": 200 },
+    { "file": "packages/server/src/lib/artifacts/pg-repository.ts", "maxLines": 250 }
+  ]
+}
 ```
 
-```typescript
-app.get('/ready', async () => ({
-  ok: true,
-  queueWorkerRunning: app.taskWorker?.isRunning() ?? false,
-  database: app.skillShareer.store instanceof PostgresStore ? 'postgres' : 'json-store',
-}));
+```ts
+import { readFileSync } from 'node:fs';
 
-app.addHook('onClose', async () => {
-  await app.taskWorker?.stop();
-});
+const config = JSON.parse(readFileSync('scripts/complexity-budgets.json', 'utf8'));
+
+for (const rule of config.docRules) {
+  const content = readFileSync(rule.file, 'utf8');
+  for (const value of rule.mustContain ?? []) {
+    if (!content.includes(value)) throw new Error(`${rule.file} 缺少 ${value}`);
+  }
+  for (const value of rule.mustNotContain ?? []) {
+    if (content.includes(value)) throw new Error(`${rule.file} 仍然包含 ${value}`);
+  }
+}
 ```
+
+- [ ] **步骤 5.1：新增文档漂移检查脚本**
+
+```ts
+console.log('Checking documentation drift rules...');
+// 读取 JSON 配置，校验 mustContain 与 mustNotContain 规则
+```
+
+- [ ] **步骤 5.2：新增文件体量 / 复杂度预算检查脚本**
+
+```ts
+import { readFileSync } from 'node:fs';
+
+function countLines(file: string): number {
+  return readFileSync(file, 'utf8').split('\n').length;
+}
+```
+
+- [ ] **步骤 5.3：把两个检查暴露为根脚本**
+
+```json
+{
+  "scripts": {
+    "check:docs-drift": "pnpm exec tsx scripts/check-doc-drift.ts",
+    "check:complexity": "pnpm exec tsx scripts/check-complexity-budgets.ts"
+  }
+}
+```
+
+- [ ] **步骤 5.4：把检查接入 CI**
 
 ```yaml
-postgres-integration:
-  runs-on: ubuntu-latest
-  services:
-    postgres:
-      image: pgvector/pgvector:pg16
-      env:
-        POSTGRES_PASSWORD: postgres
-        POSTGRES_DB: trapmap
-      ports:
-        - 5432:5432
+  architecture-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10.33.0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:docs-drift
+      - run: pnpm check:complexity
 ```
 
-### 进度追踪
+- [ ] **步骤 5.5：记录新的守卫规则**
 
-- [ ] **Step 5.1：统一运行时配置与文档**
-  - `config.ts` 新增或删除文档中已提到但代码未支持的变量
-  - 明确当前真实会话传输方式是 `Bearer`/`x-session-token` 还是 cookie
-- [ ] **Step 5.2：补 readiness 和优雅停机**
-  - `/health` 继续保留
-  - 增加 `/ready` 或扩展现有 health 结构
-  - 在 `onClose` 中停止 task worker，释放资源
-- [ ] **Step 5.3：补真实 PG/pgvector CI 校验**
-  - 为 server 增加带 PostgreSQL 服务的测试 job
-  - 至少运行候选队列、生命周期投影、结构化仓储相关测试
-- [ ] **Step 5.4：补配置测试**
-  - 覆盖环境变量解析、默认值和非法值 fail-fast
-- [ ] **Step 5.5：更新文档**
-  - `ENVIRONMENT.md`、`SECURITY.md`、`TESTING.md`、`CI_CD.md`
-  - 说明哪些命令在本地和 CI 中必须跑 PG 服务
-- [ ] **Step 5.6：执行验证命令**
-
-```bash
-rtk pnpm test -- --run packages/server/src/config.test.ts packages/server/src/routes/auth.test.ts packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts
-rtk pnpm typecheck
-rtk pnpm check
-rtk pnpm eval:smoke
+```md
+本仓库要求在结构重构时同步更新：
+- `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+- `pnpm check:docs-drift`
+- `pnpm check:complexity`
 ```
 
-- [ ] **Step 5.7：更新图谱并提交全部工作区改动**
+- [ ] **步骤 5.6：运行验证**
 
-```bash
-rtk graphify update .
-git status --short
-git add -A
-git commit -m "chore(server): align runtime config docs and pg-backed ci coverage"
-```
+运行：`rtk pnpm check:docs-drift`  
+预期：PASS
 
-### Phase 5 验收标准
+运行：`rtk pnpm check:complexity`  
+预期：PASS
 
-- [ ] 运行时配置和 `ENVIRONMENT.md`、`SECURITY.md` 描述一致
-- [ ] 服务关闭时 worker 可以优雅停止，不遗留活跃任务
-- [ ] CI 至少有一条真实 PostgreSQL/pgvector 校验链路
-- [ ] 新增配置测试覆盖默认值、非法值和认证传输方式
-- [ ] 相关测试、类型检查、check 和 smoke eval 全部通过
+运行：`rtk pnpm eval:smoke`  
+预期：PASS
 
-### Phase 5 文档更新要求
+- [ ] **步骤 5.7：如有代码改动则更新图谱并提交**
 
-- [ ] `docs/operations/ENVIRONMENT.md` 只保留真实受支持的配置项
-- [ ] `docs/operations/SECURITY.md` 准确描述会话和访问密钥机制
-- [ ] `docs/operations/TESTING.md` 增加 PG 集成测试要求
-- [ ] `docs/operations/CI_CD.md` 增加 PG/pgvector job 说明
-- [ ] `docs/architecture/components/ASYNC_INFRASTRUCTURE.md` 补充 worker 生命周期与 readiness
+运行：`rtk graphify update .`  
+预期：若本阶段改了代码，图谱更新成功
 
-### Phase 5 测试代码要求
-
-- [ ] 新增 `packages/server/src/config.test.ts`
-- [ ] `auth.test.ts` 覆盖实际 token 传输方式
-- [ ] CI job 至少跑队列、投影和结构化仓储路径测试
+运行：`git add -A && git commit -m "chore(ci): add doc drift and complexity guardrails"`  
+预期：成功生成提交
 
 ---
 
-## 实施顺序建议
+## 自检
 
-1. 先做 Phase 1 和 Phase 2，把“请求内同步重处理”彻底切掉。
-2. 再做 Phase 3，缩小 `store_snapshot` 的跨域事实面。
-3. 接着做 Phase 4，把读路径真正固定到结构化表和派生表。
-4. 最后做 Phase 5，收口配置、观测和 CI，防止后续再次漂移。
+**需求覆盖检查**
 
-## 自检清单
+- [x] 使用了复选框追踪进度
+- [x] 为每个阶段定义了完成标准
+- [x] 为每个阶段定义了文档更新要求
+- [x] 为每个阶段定义了测试 / eval 更新要求
+- [x] 提供了必要的结构或代码示例
+- [x] 明确聚焦服务端复杂度与文档漂移
 
-- [ ] 每个阶段都能回答“这一步如何减少请求内计算或出库压力？”
-- [ ] 每个新表或新索引都在 `schema.ts`、migration 和文档中三方对齐
-- [ ] 每次迁移都提供幂等 backfill 或数据核对策略
-- [ ] 每个阶段都有独立测试命令、独立文档更新和独立提交
-- [ ] 没有任何阶段要求引入新的外部基础设施
+**占位符检查**
 
-## 完成后的目标状态
+- [x] 没有 `TBD` / `TODO`
+- [x] 没有“适当处理”“后续补充”这类空泛占位
+- [x] 每个阶段都包含具体文件、命令与预期结果
 
-- 候选提交、审核和批准接口只负责写事实和登记后台任务
-- 候选分析、去重、索引、冲突检测和投影统一由 PG 后台任务推进
-- Team/User/Membership/Session/AccessKey/Audit 脱离 `store_snapshot`
-- 读接口默认只查结构化表和派生表
-- 运行时配置、文档、测试和 CI 对同一套真实行为达成一致
+**一致性检查**
+
+- [x] 全文统一以 `buildServer()` 作为服务端入口
+- [x] 先建立真相源文档，再在后续阶段自动化守卫
+- [x] 热点预算与当前实际测得的文件体量一致
