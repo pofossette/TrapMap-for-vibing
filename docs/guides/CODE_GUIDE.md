@@ -44,15 +44,15 @@ contracts → server (app → routes → lib) → cli → evals
 
 ### 2.1 应用启动 — `src/app.ts`
 
-从 `createApp()` 开始读。它按顺序完成：
+从 `buildServer()` 开始读。它创建 Fastify 实例，组装共享服务，并按顺序完成：
 
 1. 加载配置（端口、AI provider、存储后端）
 2. 初始化 store（`JsonStore` 或 `PostgresStore`）
 3. 注册 AI provider 和 embeddings
 4. 注册所有路由
-5. 配置启动钩子（候选恢复、图索引对账）
+5. 执行显式启动序列（候选恢复、图索引对账等）
 
-`src/index.ts` 只是调用 `createApp()` 并启动 Fastify 监听，可以快速扫过。
+`src/index.ts` 只是调用 `buildServer()` 并启动 Fastify 监听，可以快速扫过。
 
 ### 2.2 路由层 — `src/routes/`
 

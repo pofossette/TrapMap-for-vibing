@@ -26,6 +26,7 @@ TrapMap 有两类典型使用方式：
 | [CHANGELOG.md](CHANGELOG.md) | 版本更新日志 |
 | [docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md) | 投稿指南 |
 | [docs/reference/GLOSSARY.md](docs/reference/GLOSSARY.md) | 项目术语表 |
+| [docs/reference/SYSTEM_TRUTH_SOURCES.md](docs/reference/SYSTEM_TRUTH_SOURCES.md) | 架构事实、入口文件与文档参考规则 |
 
 ## 🚀 快速开始
 

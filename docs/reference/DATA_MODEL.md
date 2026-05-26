@@ -2,6 +2,8 @@
 
 本文档描述 TrapMap 系统的核心数据实体及其关系。所有 Schema 定义位于 `packages/contracts/src/domain/`。
 
+> **权威迁移状态**：本文档是 `store_snapshot` 持久化迁移状态的权威记录。`store_snapshot` 仅作为尚未迁移辅助域的兼容层，不再是 PG 主读路径用于身份/审计域。参见 [System Truth Sources](SYSTEM_TRUTH_SOURCES.md)。
+
 > **Round 10 Phase 3 更新**：身份域（Team/User/Member/Session/AccessKey）和审计域（Audit）已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表。这些域在 PG 模式下不再通过 `store.snapshot()` 读取，`store_snapshot` 仅保留为未迁移辅助域的兼容层。
 >
 > **Round 6 更新**：反馈（feedback）已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表（`feedback_records` + `feedback_custom_answers`）。`PgFeedbackRepository` 替代 `InMemoryFeedbackRepository` 成为主路径。用法统计新增 `usage_events_daily_rollup` 预聚合表。

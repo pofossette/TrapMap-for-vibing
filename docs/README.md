@@ -131,6 +131,7 @@ pnpm eval:ci
 ### 架构与 API
 - [架构概览](../architecture.md) — 四层架构概览
 - [架构详解](architecture/ARCHITECTURE.md) — 系统设计、流程图、模块划分
+- [System Truth Sources](reference/SYSTEM_TRUTH_SOURCES.md) — 架构事实、入口文件与文档参考规则
 - [模块详解](architecture/MODULES.md) — 详细模块分解
 - [API 参考](architecture/API.md) — 完整 API 列表
 - [API 契约表面](reference/api-surface.md) — 端点 Schema 概览
