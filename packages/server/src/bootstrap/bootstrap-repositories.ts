@@ -1,0 +1,68 @@
+/**
+ * Bootstrap repositories — run migrations, create all repos, ensure vector index.
+ *
+ * This must run BEFORE any other startup step that depends on repositories
+ * (candidate recovery, task workers, lifecycle subscribers).
+ */
+
+import type { FastifyInstance } from 'fastify';
+
+import { createUsageAnalyticsRepository } from '../lib/analytics/index.js';
+import { createArtifactRepository } from '../lib/artifacts/index.js';
+import { createAccessKeyRepository, createSessionRepository } from '../lib/auth/index.js';
+import { createKnowledgeRepository } from '../lib/knowledge/index.js';
+import { runMigrations } from '../lib/persistence/migration-runner.js';
+import { PostgresStore } from '../lib/persistence/postgres-store.js';
+import { createAllRepos } from '../lib/repos/index.js';
+import { ensureVectorIndex } from '../lib/retrieval/recall/db-search.js';
+import { createGraphChannel } from '../lib/retrieval/recall/graph-assisted.js';
+import { createMembershipRepository, createTeamRepository } from '../lib/teams/index.js';
+import { createUserRepository } from '../lib/users/index.js';
+
+export async function bootstrapRepositories(app: FastifyInstance): Promise<void> {
+  const store = app.skillShareer.store;
+
+  if (store instanceof PostgresStore) {
+    const pool = store.getPool();
+
+    // Run Drizzle migrations before any repository access
+    try {
+      await runMigrations(pool);
+      app.log.info('Database migrations applied');
+    } catch (error) {
+      app.log.error({ error }, 'Failed to apply database migrations');
+      throw error;
+    }
+
+    // Create individual repos for flat props (backward compatibility)
+    app.skillShareer.knowledgeRepo = createKnowledgeRepository({ pool, store });
+    app.skillShareer.artifactRepo = createArtifactRepository({ pool, store });
+    app.skillShareer.sessionRepo = createSessionRepository({ pool, store });
+    app.skillShareer.accessKeyRepo = createAccessKeyRepository({ pool, store });
+    app.skillShareer.userRepo = createUserRepository({ pool, store });
+    app.skillShareer.teamRepo = createTeamRepository({ pool, store });
+    app.skillShareer.membershipRepo = createMembershipRepository({ pool, store });
+    app.skillShareer.usageAnalyticsRepo = await createUsageAnalyticsRepository({ pool });
+
+    // Ensure HNSW vector index exists for O(log n) similarity search
+    try {
+      await ensureVectorIndex(pool);
+      app.log.info('Vector HNSW index ensured');
+    } catch (error) {
+      app.log.error({ error }, 'Failed to ensure vector index');
+    }
+  }
+
+  // Create unified repos object (both JSON and PG modes)
+  if (store instanceof PostgresStore) {
+    const pool = store.getPool();
+    app.skillShareer.repos = await createAllRepos({ store, pool });
+  } else {
+    app.skillShareer.repos = await createAllRepos({ store });
+  }
+
+  // Register graph channel now that repos are available
+  app.skillShareer.channelRegistry.register(
+    createGraphChannel(app.skillShareer.repos.graphIndex),
+  );
+}

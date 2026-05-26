@@ -42,7 +42,7 @@ contracts → server (app → routes → lib) → cli → evals
 
 ## 2. 服务端 — `packages/server`
 
-### 2.1 应用启动 — `src/app.ts`
+### 2.1 应用启动 — `src/app.ts` + `src/bootstrap/`
 
 从 `buildServer()` 开始读。它创建 Fastify 实例，组装共享服务，并按顺序完成：
 
@@ -50,7 +50,15 @@ contracts → server (app → routes → lib) → cli → evals
 2. 初始化 store（`JsonStore` 或 `PostgresStore`）
 3. 注册 AI provider 和 embeddings
 4. 注册所有路由
-5. 执行显式启动序列（候选恢复、图索引对账等）
+5. 执行启动序列（`bootstrap/run-startup-sequence.ts`）
+
+启动序列的详细步骤见 `src/bootstrap/run-startup-sequence.ts`，按严格顺序执行：
+
+1. `bootstrapRepositories` — 运行迁移、创建所有 repo、确保向量索引
+2. `bootstrapCandidateRecovery` — 查找并重新排队中断的候选
+3. `bootstrapWorkers` — 创建并启动任务 worker
+4. `bootstrapGraphReconciliation` — 对账图索引
+5. `bootstrapLifecycle` — 注册事件订阅者 + 启动 outbox worker
 
 `src/index.ts` 只是调用 `buildServer()` 并启动 Fastify 监听，可以快速扫过。
 

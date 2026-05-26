@@ -19,6 +19,18 @@ Round 0 已对数据库现代化方案完成基线冻结，后续架构演进遵
 - Team / User / Member / Session / AccessKey 及部分辅助域已通过 PostgreSQL 结构化表承载主读写路径。
 - 应用启动负责执行 migration，不负责为核心领域动态建表。
 
+### 启动序列
+
+应用启动由 `packages/server/src/bootstrap/run-startup-sequence.ts` 统一编排，严格按以下顺序执行：
+
+1. **Repositories** (`bootstrap-repositories.ts`) — 运行 Drizzle 迁移、创建所有 flat props repo 和统一 `repos` 对象、确保 HNSW 向量索引、注册 graph channel
+2. **Candidate Recovery** (`bootstrap-candidate-recovery.ts`) — 查找并重新排队中断的候选（JSON + PG 双路径）
+3. **Workers** (`bootstrap-workers.ts`) — 创建并启动 PostgreSQL task worker（仅 PG 模式）
+4. **Graph Reconciliation** (`bootstrap-graph-reconciliation.ts`) — 对账图索引
+5. **Lifecycle** (`bootstrap-lifecycle.ts`) — 注册 domain event 订阅者、启动 outbox worker（仅 PG 模式）
+
+关键约束：Repos 必须先于 Candidate Recovery 和 Workers 初始化，因为两者依赖 `repos.candidate`。
+
 ### 系统分层架构图
 
 ```mermaid

@@ -7,32 +7,13 @@ import { ZodError } from 'zod';
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
 import { createAiProviders } from './lib/ai/index.js';
-import { createUsageAnalyticsRepository } from './lib/analytics/index.js';
-import { createArtifactRepository } from './lib/artifacts/index.js';
-import { createAccessKeyRepository, createSessionRepository } from './lib/auth/index.js';
-import {
-  CANDIDATE_PROCESSING_TASK_TYPE,
-  createCandidateProcessingHandler,
-  findInterruptedCandidates,
-  resetInterruptedCandidates,
-} from './lib/candidates/index.js';
 import type { SkillShareerServices } from './lib/context.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
 import { AppError, isAppError } from './lib/errors.js';
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
-import { reconcileGraphIndexes } from './lib/indexing/reconcile.js';
-import { createKnowledgeRepository } from './lib/knowledge/index.js';
 import { LifecycleEventBus } from './lib/lifecycle/event-bus.js';
-import { createDomainEventOutbox } from './lib/lifecycle/outbox.js';
-import { createAuditSubscriber } from './lib/lifecycle/subscribers/audit.js';
-import { createConflictSubscriber } from './lib/lifecycle/subscribers/conflict.js';
-import { createIndexingSubscriber } from './lib/lifecycle/subscribers/indexing.js';
-import type { DomainEventHandler } from './lib/lifecycle/types.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
-import { runMigrations } from './lib/persistence/migration-runner.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';
-import { type TaskHandler, createTaskQueue, createTaskWorker } from './lib/queue/task-queue.js';
-import { createAllRepos } from './lib/repos/index.js';
 import { ChannelRegistry } from './lib/retrieval/orchestration/channel-registry.js';
 import {
   graphAssistedRecall,
@@ -41,12 +22,10 @@ import {
 } from './lib/retrieval/orchestration/recall-coordinator.js';
 import type { RetrievalStrategy } from './lib/retrieval/orchestration/strategy-registry.js';
 import { StrategyRegistry } from './lib/retrieval/orchestration/strategy-registry.js';
-import { ensureVectorIndex } from './lib/retrieval/recall/db-search.js';
-import { createGraphChannel } from './lib/retrieval/recall/graph-assisted.js';
 import { keywordChannel } from './lib/retrieval/recall/keyword.js';
 import { semanticChannel } from './lib/retrieval/recall/semantic.js';
-import { createMembershipRepository, createTeamRepository } from './lib/teams/index.js';
-import { createUserRepository } from './lib/users/index.js';
+
+import { runStartupSequence } from './bootstrap/run-startup-sequence.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
 import { adminBenchmarkRoutes } from './routes/admin-benchmark.js';
 import { adminBoundarySearchRoutes } from './routes/admin-boundary-search.js';
@@ -197,7 +176,7 @@ export function buildServer(options: BuildServerOptions = {}) {
       const cr = new ChannelRegistry();
       cr.register(semanticChannel);
       cr.register(keywordChannel);
-      // graph channel registered in onReady hook (needs repos)
+      // graph channel registered in bootstrapRepositories (needs repos)
       return cr;
     })(),
     strategyRegistry: (() => {
@@ -231,21 +210,21 @@ export function buildServer(options: BuildServerOptions = {}) {
       return sr;
     })(),
     ai: createAiProviders(config.ai),
-    // knowledgeRepo is set when PostgreSQL pool is available (in onReady hook)
+    // knowledgeRepo is set in bootstrapRepositories when PostgreSQL pool is available
     knowledgeRepo: undefined,
-    // artifactRepo is set when PostgreSQL pool is available (in onReady hook)
+    // artifactRepo is set in bootstrapRepositories when PostgreSQL pool is available
     artifactRepo: undefined,
-    // sessionRepo is set when PostgreSQL pool is available (in onReady hook)
+    // sessionRepo is set in bootstrapRepositories when PostgreSQL pool is available
     sessionRepo: undefined,
-    // accessKeyRepo is set when PostgreSQL pool is available (in onReady hook)
+    // accessKeyRepo is set in bootstrapRepositories when PostgreSQL pool is available
     accessKeyRepo: undefined,
-    // userRepo is set when PostgreSQL pool is available (in onReady hook)
+    // userRepo is set in bootstrapRepositories when PostgreSQL pool is available
     userRepo: undefined,
-    // teamRepo is set when PostgreSQL pool is available (in onReady hook)
+    // teamRepo is set in bootstrapRepositories when PostgreSQL pool is available
     teamRepo: undefined,
-    // membershipRepo is set when PostgreSQL pool is available (in onReady hook)
+    // membershipRepo is set in bootstrapRepositories when PostgreSQL pool is available
     membershipRepo: undefined,
-    // usageAnalyticsRepo is set when PostgreSQL pool is available (in onReady hook)
+    // usageAnalyticsRepo is set in bootstrapRepositories when PostgreSQL pool is available
     usageAnalyticsRepo: undefined,
     repos: {} as SkillShareerServices['repos'],
     eventBus: new LifecycleEventBus(),
@@ -273,323 +252,10 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.register(adminBenchmarkRoutes);
   app.register(adminBoundarySearchRoutes);
 
-  // Recovery: Re-enqueue interrupted candidates on startup
-  // Only the task worker should execute real analysis
+  // Single startup sequence orchestrator — replaces 6 scattered onReady hooks.
+  // See bootstrap/run-startup-sequence.ts for the full sequence and rationale.
   app.addHook('onReady', async () => {
-    try {
-      const data = await app.skillShareer.store.snapshot();
-      const interrupted = findInterruptedCandidates(data);
-
-      // Round 2: Also check PG candidates for interrupted state
-      const { candidate: candidateRepo } = app.skillShareer.repos;
-      const interruptedPg = await Promise.all([
-        candidateRepo.listByStatus('queued' as any),
-        candidateRepo.listByStatus('analyzing' as any),
-      ]).then(([queued, analyzing]) => [...queued, ...analyzing]);
-
-      const allInterrupted = [
-        ...interrupted,
-        ...interruptedPg.filter((pg) => !interrupted.some((im) => im.id === pg.id)),
-      ];
-
-      if (allInterrupted.length > 0) {
-        app.log.info(
-          { count: allInterrupted.length },
-          'Found interrupted candidates, re-enqueueing for worker processing',
-        );
-
-        // Reset JSONB-based candidates to 'received' and enqueue via store.transact
-        if (interrupted.length > 0) {
-          await app.skillShareer.store.transact((txData) => {
-            resetInterruptedCandidates({
-              data: txData,
-              reason: 'Server restart recovery',
-            });
-          });
-        }
-
-        // Reset PG-based candidates via repository
-        for (const pgCandidate of interruptedPg) {
-          await candidateRepo.updateStatus(
-            pgCandidate.id,
-            'received' as any,
-            'Server restart recovery',
-          );
-        }
-
-        // Re-enqueue all interrupted candidates to the task queue
-        // The worker will pick them up — no direct processPendingCandidates call
-        const store = app.skillShareer.store;
-        const isPostgres = store instanceof PostgresStore;
-        for (const candidate of allInterrupted) {
-          if (isPostgres) {
-            const pool = (store as PostgresStore).getPool();
-            const queue = createTaskQueue({ pool });
-            await queue
-              .enqueue(
-                CANDIDATE_PROCESSING_TASK_TYPE,
-                { candidateId: candidate.id, retryCount: 0 },
-                { dedupeKey: candidate.id, maxAttempts: 3 },
-              )
-              .catch((error) => {
-                app.log.error(
-                  { error, candidateId: candidate.id },
-                  'Failed to re-enqueue interrupted candidate',
-                );
-              });
-          }
-        }
-        app.log.info({ count: allInterrupted.length }, 'Interrupted candidates re-enqueued');
-      }
-    } catch (error) {
-      app.log.error({ error }, 'Failed to check for interrupted candidates');
-    }
-  });
-
-  // Start task worker for PostgreSQL-backed async processing
-  // Only runs when using PostgresStore (databaseUrl configured)
-  app.addHook('onReady', async () => {
-    // Check if store is PostgreSQL-backed
-    const store = app.skillShareer.store;
-    if (store instanceof PostgresStore) {
-      const pool = store.getPool();
-
-      // Run Drizzle migrations before any repository access
-      try {
-        await runMigrations(pool);
-        app.log.info('Database migrations applied');
-      } catch (error) {
-        app.log.error({ error }, 'Failed to apply database migrations');
-        throw error;
-      }
-
-      // Create knowledge repository for row-level operations
-      app.skillShareer.knowledgeRepo = createKnowledgeRepository({
-        pool,
-        store,
-      });
-
-      // Create artifact repository for row-level operations
-      app.skillShareer.artifactRepo = createArtifactRepository({
-        pool,
-        store,
-      });
-
-      // Create session repository for auth operations
-      app.skillShareer.sessionRepo = createSessionRepository({
-        pool,
-        store,
-      });
-
-      // Create access key repository for auth operations
-      app.skillShareer.accessKeyRepo = createAccessKeyRepository({
-        pool,
-        store,
-      });
-
-      // Create user repository for user operations
-      app.skillShareer.userRepo = createUserRepository({
-        pool,
-        store,
-      });
-
-      // Create team repository for team operations
-      app.skillShareer.teamRepo = createTeamRepository({
-        pool,
-        store,
-      });
-
-      // Create membership repository for membership operations
-      app.skillShareer.membershipRepo = createMembershipRepository({
-        pool,
-        store,
-      });
-
-      // Create usage analytics repository for statistics
-      app.skillShareer.usageAnalyticsRepo = await createUsageAnalyticsRepository({ pool });
-
-      // Ensure HNSW vector index exists for O(log n) similarity search (Phase 77)
-      try {
-        await ensureVectorIndex(pool);
-        app.log.info('Vector HNSW index ensured');
-      } catch (error) {
-        app.log.error({ error }, 'Failed to ensure vector index');
-      }
-
-      const handler = createCandidateProcessingHandler({
-        store,
-        getSnapshot: () => store.snapshot(),
-        pool,
-        // Use PG-based duplicate detection if embeddings are configured
-        usePgDuplicateDetection: () => app.skillShareer.ai.embeddings.isConfigured,
-        // Round 2: candidate processing via PG repository
-        candidateRepo: app.skillShareer.repos.candidate,
-      });
-
-      const worker = createTaskWorker({
-        pool,
-        handlers: [handler as TaskHandler<unknown>],
-        pollIntervalMs: 1000,
-        concurrency: 1,
-      });
-
-      // Start worker in background
-      void worker.run();
-
-      app.log.info('Task worker started for candidate processing');
-
-      // Store worker reference for graceful shutdown
-      app.decorate('taskWorker', worker);
-    }
-  });
-
-  // Wire unified repos object (async — createUsageAnalyticsRepository uses dynamic import)
-  // In PG mode, recreates repos with pool after individual flat props are set above.
-  // In JSON mode, creates repos with store only (InMemory implementations).
-  app.addHook('onReady', async () => {
-    const store = app.skillShareer.store;
-    if (store instanceof PostgresStore) {
-      const pool = store.getPool();
-      app.skillShareer.repos = await createAllRepos({ store, pool });
-    } else {
-      app.skillShareer.repos = await createAllRepos({ store });
-    }
-
-    // Register graph channel now that repos are available
-    app.skillShareer.channelRegistry.register(
-      createGraphChannel(app.skillShareer.repos.graphIndex),
-    );
-  });
-
-  // Graph index reconciliation on startup (T-36-16)
-  app.addHook('onReady', async () => {
-    try {
-      const result = await reconcileGraphIndexes({ store: app.skillShareer.store });
-      app.log.info(
-        { removed: result.documentsRemoved, rebuilt: result.documentsRebuilt },
-        'Graph index reconciliation complete',
-      );
-    } catch (error) {
-      app.log.error({ error }, 'Graph index reconciliation failed');
-    }
-  });
-
-  // Register lifecycle event subscribers
-  app.addHook('onReady', async () => {
-    const { eventBus, store, adapterRegistry } = app.skillShareer;
-
-    // Indexing subscriber: syncs knowledge indexes on state transitions
-    eventBus.onDomainEvent('knowledge.approved', createIndexingSubscriber(store, adapterRegistry));
-    eventBus.onDomainEvent(
-      'knowledge.deactivated',
-      createIndexingSubscriber(store, adapterRegistry),
-    );
-    eventBus.onDomainEvent(
-      'knowledge.agent-reviewed',
-      createIndexingSubscriber(store, adapterRegistry),
-    );
-    eventBus.onDomainEvent('knowledge.rejected', createIndexingSubscriber(store, adapterRegistry));
-    eventBus.onDomainEvent(
-      'knowledge.resubmitted',
-      createIndexingSubscriber(store, adapterRegistry),
-    );
-    eventBus.onDomainEvent('knowledge.re-review', createIndexingSubscriber(store, adapterRegistry));
-
-    // Audit subscriber: logs lifecycle transitions
-    eventBus.onDomainEvent('knowledge.approved', createAuditSubscriber(store, app.log));
-    eventBus.onDomainEvent('knowledge.deactivated', createAuditSubscriber(store, app.log));
-    eventBus.onDomainEvent('knowledge.rejected', createAuditSubscriber(store, app.log));
-    eventBus.onDomainEvent('knowledge.agent-reviewed', createAuditSubscriber(store, app.log));
-
-    // Conflict subscriber: detects conflicts on approval
-    eventBus.onDomainEvent('knowledge.approved', createConflictSubscriber(store));
-
-    // Error handler: log subscriber failures without crashing
-    eventBus.on('error', ({ event, error, handler }) => {
-      app.log.error(
-        { error, eventName: event.name, entryId: event.entryId, handler },
-        'Event subscriber error',
-      );
-    });
-  });
-
-  // Register outbox event worker for PG mode (Phase 2)
-  // Processes domain events asynchronously — indexing, conflict detection, audit
-  app.addHook('onReady', async () => {
-    const store = app.skillShareer.store;
-    if (!(store instanceof PostgresStore)) return;
-
-    const pool = store.getPool();
-    const outbox = createDomainEventOutbox({ pool });
-    const { adapterRegistry } = app.skillShareer;
-
-    const handlerMap = new Map<string, DomainEventHandler>([
-      ['knowledge.approved', createIndexingSubscriber(store, adapterRegistry)],
-      ['knowledge.deactivated', createIndexingSubscriber(store, adapterRegistry)],
-      ['knowledge.agent-reviewed', createIndexingSubscriber(store, adapterRegistry)],
-      ['knowledge.rejected', createIndexingSubscriber(store, adapterRegistry)],
-      ['knowledge.resubmitted', createIndexingSubscriber(store, adapterRegistry)],
-      ['knowledge.re-review', createIndexingSubscriber(store, adapterRegistry)],
-      ['knowledge.approved+audit', createAuditSubscriber(store, app.log)],
-      ['knowledge.deactivated+audit', createAuditSubscriber(store, app.log)],
-      ['knowledge.rejected+audit', createAuditSubscriber(store, app.log)],
-      ['knowledge.agent-reviewed+audit', createAuditSubscriber(store, app.log)],
-      ['knowledge.approved+conflict', createConflictSubscriber(store)],
-    ]);
-
-    // Build composite handler map: each event name can have multiple handlers
-    const compositeHandlers = new Map<string, DomainEventHandler[]>();
-    for (const [key, handler] of handlerMap) {
-      const eventName = key.includes('+') ? key.split('+')[0]! : key;
-      const list = compositeHandlers.get(eventName) ?? [];
-      list.push(handler);
-      compositeHandlers.set(eventName, list);
-    }
-
-    const pollIntervalMs = 2000;
-    let running = false;
-
-    async function run(): Promise<void> {
-      running = true;
-      while (running) {
-        try {
-          const events = await outbox.claimBatch(10);
-          for (const event of events) {
-            const handlers = compositeHandlers.get(event.eventName);
-            if (handlers && handlers.length > 0) {
-              try {
-                await Promise.all(handlers.map((h) => h(event.payload)));
-                await outbox.complete(event.id);
-              } catch (error) {
-                const msg = error instanceof Error ? error.message : String(error);
-                await outbox.fail(event.id, msg);
-                app.log.error(
-                  { error: msg, eventName: event.eventName, aggregateId: event.aggregateId },
-                  'Outbox event handler failed',
-                );
-              }
-            } else {
-              await outbox.complete(event.id);
-            }
-          }
-          if (events.length === 0) {
-            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-          }
-        } catch (error) {
-          app.log.error({ error }, 'Outbox worker poll error');
-          await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-        }
-      }
-    }
-
-    void run();
-    app.log.info('Outbox event worker started');
-
-    app.decorate('outboxWorker', {
-      stop: () => {
-        running = false;
-      },
-    });
+    await runStartupSequence(app);
   });
 
   // Graceful shutdown: stop background workers
