@@ -88,6 +88,8 @@ flowchart TB
 | Token 格式 | JWT（HS256） |
 | 密码存储 | bcrypt，12 轮盐值 |
 
+会话传输方式通过 `SESSION_TRANSPORT` 环境变量控制，可选 `bearer-header`（默认）或 `cookie`。
+
 ### 访问密钥认证（CLI / 自动化）
 
 | 属性 | 值 |
@@ -197,16 +199,17 @@ HOST=127.0.0.1                        # 绑定本地地址
 PORT=4000
 LOG_USER_OPS_ENABLED=true             # 记录用户操作
 LOG_RAG_ENABLED=true                  # 记录检索请求
+SESSION_TRANSPORT=bearer-header       # 会话传输方式
 ```
 
 ### 可选安全加固
 
 ```bash
 # 限制 CORS 来源
-CORS_ALLOWED_ORIGINS=https://your-domain.com
+CORS_ORIGINS=https://your-domain.com
 
 # 速率限制（每分钟最大请求数，0 = 无限制）
-RATE_LIMIT_MAX=100
+RATE_LIMIT_MAX_PER_MINUTE=100
 
 # 日志轮转
 LOG_MAX_FILE_SIZE_MB=10

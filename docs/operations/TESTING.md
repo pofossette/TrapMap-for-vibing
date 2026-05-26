@@ -399,6 +399,12 @@ pnpm vitest run evals/retrieval/runner.test.ts
 TRAPMAP_DATABASE_URL=postgresql://user:pass@localhost:5432/trapmap pnpm --filter @trapmap/server test
 ```
 
+CI 中通过 `postgres-integration` job 运行真实 PostgreSQL/pgvector 校验链路，包括任务队列、outbox worker 和 lifecycle subscriber 的集成测试。本地开发也可以使用 Docker 快速启动 pgvector：
+
+```bash
+docker run -d --name trapmap-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=trapmap -p 5432:5432 pgvector/pgvector:pg16
+```
+
 包含 PG 集成测试的模块：
 
 | 模块 | 测试文件 | 说明 |
@@ -409,6 +415,8 @@ TRAPMAP_DATABASE_URL=postgresql://user:pass@localhost:5432/trapmap pnpm --filter
 | Duplicates | `src/lib/duplicates/pg-repository.test.ts` | 重复检测 |
 | Keyword Recall | `src/lib/retrieval/recall/pg-keyword.test.ts` | 关键词检索：text[] 重叠匹配、字段权重评分、GIN 索引验证 |
 | Knowledge PG | `src/lib/knowledge/pg-repository.test.ts` | 知识条目 CRUD、标签过滤、约束验证 |
+| Task Queue | `src/lib/queue/task-queue.test.ts` | 持久化任务队列：入队、出队、重试、死信队列 |
+| Subscribers | `src/lib/lifecycle/subscribers/subscribers-integration.test.ts` | Outbox 事件驱动：索引同步、审计日志、冲突检测 |
 
 ---
 

@@ -173,6 +173,18 @@ export function buildServer(options: BuildServerOptions = {}) {
     };
   });
 
+  app.get('/ready', async () => {
+    const taskWorker = (app as any).taskWorker;
+    const store = app.skillShareer.store;
+    const database =
+      store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
+    return {
+      ok: true,
+      queueWorkerRunning: taskWorker?.isRunning?.() ?? false,
+      database,
+    };
+  });
+
   app.get('/meta/routes', async () => ({
     documentedRoutes,
   }));
@@ -320,7 +332,10 @@ export function buildServer(options: BuildServerOptions = {}) {
                 { dedupeKey: candidate.id, maxAttempts: 3 },
               )
               .catch((error) => {
-                app.log.error({ error, candidateId: candidate.id }, 'Failed to re-enqueue interrupted candidate');
+                app.log.error(
+                  { error, candidateId: candidate.id },
+                  'Failed to re-enqueue interrupted candidate',
+                );
               });
           }
         }
@@ -570,7 +585,11 @@ export function buildServer(options: BuildServerOptions = {}) {
     void run();
     app.log.info('Outbox event worker started');
 
-    app.decorate('outboxWorker', { stop: () => { running = false; } });
+    app.decorate('outboxWorker', {
+      stop: () => {
+        running = false;
+      },
+    });
   });
 
   // Graceful shutdown: stop background workers

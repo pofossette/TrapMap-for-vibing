@@ -85,8 +85,9 @@ TrapMap 的服务端 AI 提示词支持“插槽式”覆盖。你可以提供�
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `CORS_ALLOWED_ORIGINS` | 允许的 CORS 来源（逗号分隔，`*` 表示全部） | `*` |
-| `RATE_LIMIT_MAX` | 每分钟最大请求数（0 = 无限制） | `0` |
+| `CORS_ORIGINS` | 允许的 CORS 来源（逗号分隔，`*` 表示全部） | `*` |
+| `RATE_LIMIT_MAX_PER_MINUTE` | 每分钟最大请求数（0 = 无限制） | `0` |
+| `SESSION_TRANSPORT` | 会话传输方式：`bearer-header` 或 `cookie` | `bearer-header` |
 
 ## 日志配置
 

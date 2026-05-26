@@ -48,9 +48,7 @@ export const taskQueue = pgTable(
     /** When task was completed */
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
-  (table) => [
-    index('task_queue_type_dedupe_idx').on(table.type, table.dedupeKey),
-  ],
+  (table) => [index('task_queue_type_dedupe_idx').on(table.type, table.dedupeKey)],
 );
 
 // =============================================================================
@@ -417,7 +415,11 @@ export function createTaskWorker(config: TaskWorkerConfig) {
     running = false;
   }
 
-  return { run, stop };
+  function isRunning(): boolean {
+    return running;
+  }
+
+  return { run, stop, isRunning };
 }
 
 // =============================================================================

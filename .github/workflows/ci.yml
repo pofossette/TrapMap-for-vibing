@@ -84,3 +84,39 @@ jobs:
         with:
           name: coverage-report
           path: coverage/
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: trapmap
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10.33.0
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - name: Run PG integration tests
+        run: pnpm test -- --run packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/trapmap
+          NODE_ENV: test

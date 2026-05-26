@@ -309,6 +309,25 @@ void worker.run();  // fire-and-forget 启动
 app.decorate('taskWorker', worker);  // 挂载到 Fastify 实例供优雅关闭
 ```
 
+### Worker 生命周期与 graceful shutdown
+
+TaskWorker 和 OutboxWorker 的生命周期由 `app.ts` 管理：
+
+- **启动**: `onReady` 钩子中，`PostgresStore` 模式下后台启动 TaskWorker 和 OutboxWorker
+- **停止**: `onClose` 钩子中，依次调用 `taskWorker.stop()` 和 `outboxWorker.stop()`，停止后等待活跃任务排空
+- **状态检查**: `/ready` 端点返回 `queueWorkerRunning` 字段，可被 Kubernetes liveness/readiness probe 使用
+- **isRunning**: TaskWorker 暴露 `isRunning()` 方法用于运行时状态查询
+
+```typescript
+// app.ts: onClose 钩子
+app.addHook('onClose', async () => {
+  const taskWorker = (app as any).taskWorker;
+  const outboxWorker = (app as any).outboxWorker;
+  if (taskWorker?.stop) { taskWorker.stop(); }
+  if (outboxWorker?.stop) { outboxWorker.stop(); }
+});
+```
+
 ---
 
 ## 4. 数据库异步模式

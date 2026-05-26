@@ -47,6 +47,12 @@ const RagLogSchema = z.object({
   maxBackupFiles: z.number().int().min(0).max(100).default(5),
 });
 
+const CorsOriginsSchema = z.array(z.string()).default(['*']);
+
+const RateLimitMaxSchema = z.coerce.number().int().min(0).default(0);
+
+const SessionTransportSchema = z.enum(['bearer-header', 'cookie']).default('bearer-header');
+
 /**
  * Full server configuration schema.
  */
@@ -56,6 +62,9 @@ export const ServerConfigSchema = z.object({
   host: HostSchema,
   port: PortSchema,
   systemAdminKey: z.string().nullable(),
+  corsAllowedOrigins: CorsOriginsSchema,
+  rateLimitMaxPerMinute: RateLimitMaxSchema,
+  sessionTransport: SessionTransportSchema,
   userOpsLog: UserOpsLogSchema,
   ragLog: RagLogSchema,
   ai: z.object({
@@ -89,6 +98,13 @@ export function loadConfig(): ServerConfig {
   const ragLog = loadRagLogConfig();
   const ai = loadAiProviderConfig();
 
+  // Parse CORS origins from comma-separated env var
+  const corsOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+    : undefined;
+
   // Build the full config object
   const rawConfig = {
     dataFile: path.resolve(
@@ -99,6 +115,9 @@ export function loadConfig(): ServerConfig {
     host: process.env.HOST ?? '127.0.0.1',
     port: process.env.PORT ?? 4000,
     systemAdminKey: process.env.TRAPMAP_SYSTEM_ADMIN_KEY ?? null,
+    corsAllowedOrigins: corsOrigins,
+    rateLimitMaxPerMinute: process.env.RATE_LIMIT_MAX_PER_MINUTE,
+    sessionTransport: process.env.SESSION_TRANSPORT,
     userOpsLog,
     ragLog,
     ai,

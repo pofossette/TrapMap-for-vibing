@@ -21,6 +21,9 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 | `check` | `pnpm check` | Biome 代码检查（lint + format） |
 | `test` | `pnpm test` | 全量单元测试 |
 | `coverage` | `pnpm test:coverage` | 测试覆盖率（产物上传 7 天） |
+| `postgres-integration` | PG 集成测试 | 真实 PostgreSQL/pgvector 校验（任务队列、outbox subscriber） |
+
+`postgres-integration` job 使用 `pgvector/pgvector:pg16` 作为 service container，运行需要真实数据库的集成测试。确保异步基础设施（TaskQueue、OutboxWorker、Lifecycle subscribers）在 PostgreSQL 环境下正确工作。
 
 所有 job 使用 Node.js 20 + pnpm 10.33.0。
 
