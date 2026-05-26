@@ -162,6 +162,37 @@ export const summaryStrictGroundedSmokeCase = summaryEvalCaseSchema.parse({
   tags: ['grounded', 'smoke', 'v2', 'strict'],
 }) as SummaryEvalCase;
 
+// =============================================================================
+// Phase 7: Label Filter Summary Smoke Case
+// =============================================================================
+
+/**
+ * Case: Search with label filter and summary enabled.
+ * Filtering by `labels: ['nodejs']` must exclude Flask (python) content from summary.
+ * Regression guard for v2 label filtering in summary path.
+ */
+export const summaryLabelFilterSmokeCase = summaryEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'summary-label-filter-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'backend REST API middleware',
+    maxResults: 10,
+    includeSummary: true,
+    filters: { labels: ['nodejs'], scopes: [] },
+  },
+  scenarioId: 'summary-smoke-label-filter',
+  expected: {
+    requiredFacts: ['Express'],
+    forbiddenClaims: ['Flask', 'blueprint'],
+    minGroundedness: 0.7,
+    minCoverage: 0.5,
+    expectSummary: true,
+  },
+  tags: ['label-filter', 'smoke', 'v2', 'regression'],
+}) as SummaryEvalCase;
+
 /**
  * All smoke-tier summary evaluation cases.
  */
@@ -171,4 +202,5 @@ export const summarySmokeCases: SummaryEvalCase[] = [
   summaryForbiddenClaimsSmokeCase,
   summaryMultiFactSmokeCase,
   summaryStrictGroundedSmokeCase,
+  summaryLabelFilterSmokeCase,
 ];

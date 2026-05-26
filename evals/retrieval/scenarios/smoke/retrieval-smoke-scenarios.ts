@@ -733,6 +733,78 @@ export const smokeGraphAssistedV2Scenario = retrievalEvalScenarioSchema.parse({
 }) as RetrievalEvalScenario;
 
 // =============================================================================
+// Phase 7 Smoke Scenario: Label Filter
+// =============================================================================
+
+/**
+ * Scenario: Two artifacts with distinct labels (nodejs, python) for label-filter regression.
+ * Nodejs artifact has an Express.js middleware capsule; python artifact has a Flask capsule.
+ * Filtering by `labels: ['nodejs']` must return only the nodejs capsule.
+ */
+export const smokeLabelFilterScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'smoke-label-filter',
+  description:
+    'Two artifacts with distinct labels (nodejs vs python). Label filter must exclude the unlabelled artifact.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_smoke',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [],
+    skillArtifacts: [
+      {
+        id: 'artifact_smoke_label_filter_node',
+        teamId: 'team_smoke',
+        scope: 'project',
+        labels: ['nodejs', 'backend', 'api'],
+        title: 'Node.js Backend Skills',
+        slug: 'nodejs-backend-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_smoke_label_filter_node',
+            content:
+              'Use Express.js middleware for request validation, logging, and error handling in REST APIs.',
+            situation: 'Building a REST API with Node.js',
+            problem: 'Cross-cutting concerns like auth and logging are scattered across route handlers',
+            goal: 'Centralize request processing with Express.js middleware chains',
+            labels: ['nodejs', 'express', 'middleware'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_smoke_label_filter_python',
+        teamId: 'team_smoke',
+        scope: 'project',
+        labels: ['python', 'backend', 'api'],
+        title: 'Python Backend Skills',
+        slug: 'python-backend-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_smoke_label_filter_python',
+            content:
+              'Use Flask blueprints and decorators for REST API route organization and middleware patterns.',
+            situation: 'Building a REST API with Python',
+            problem: 'Flask route organization becomes unwieldy in larger applications',
+            goal: 'Structure Flask apps with blueprints for maintainable REST APIs',
+            labels: ['python', 'flask', 'rest'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+  },
+}) as RetrievalEvalScenario;
+
+// =============================================================================
 // Aggregated Smoke Scenarios Export
 // =============================================================================
 
@@ -749,6 +821,7 @@ export const smokeScenariosMap: Record<string, RetrievalEvalScenario> = {
   'smoke-graph-plan-fallback-v2': smokeGraphPlanFallbackV2Scenario,
   'smoke-graph-plan-fallback-v1': smokeGraphPlanFallbackV1Scenario,
   'smoke-graph-assisted-v2': smokeGraphAssistedV2Scenario,
+  'smoke-label-filter': smokeLabelFilterScenario,
 };
 
 /**

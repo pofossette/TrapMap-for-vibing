@@ -423,6 +423,44 @@ export const v2GraphAssistedGovernanceSmoke = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 
 // =============================================================================
+// Phase 7: Label Filter Smoke Cases
+// =============================================================================
+
+/**
+ * Case: Search with label filter to verify only matching capsules are returned.
+ * Query matches both nodejs and python capsules by content, but label filter
+ * restricts to nodejs only. Regression guard for v2 label filtering.
+ */
+export const v2LabelFilterSmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-label-filter-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'backend REST API middleware',
+    maxResults: 10,
+    filters: { labels: ['nodejs'], scopes: [] },
+  },
+  scenarioId: 'smoke-label-filter',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_smoke_label_filter_node'],
+      idealOrder: ['capsule_smoke_label_filter_node'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: ['artifact_smoke_label_filter_node'],
+      expectedCapsuleCount: 1,
+    },
+  },
+  tags: ['label-filter', 'v2', 'smoke', 'capsule', 'regression'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
 // Aggregated v2 Smoke Cases Export
 // =============================================================================
 
@@ -441,4 +479,5 @@ export const v2RetrievalSmokeCases: RetrievalEvalCase[] = [
   v2SemanticParaphraseSmoke,
   v2GraphAssistedCoOccursSmoke,
   v2GraphAssistedGovernanceSmoke,
+  v2LabelFilterSmoke,
 ];
