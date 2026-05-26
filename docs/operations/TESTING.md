@@ -434,6 +434,25 @@ docker run -d --name trapmap-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=tra
 
 ---
 
+## Phase 2 跨模式认证/成员回归测试清单
+
+以下测试用例必须在 JSON 和 PG 两种存储模式下均通过：
+
+| 测试文件 | 覆盖场景 |
+|----------|----------|
+| `routes/access-keys.test.ts` | 创建访问密钥、issue → login 往返、权限校验 |
+| `routes/auth.test.ts` | 系统管理员登录、访问密钥登录、会话状态、登出 |
+| `routes/members.test.ts` | 创建成员（含 caller-provided `securityLevel`）、更新成员、handle 唯一性 |
+| `__tests__/pg-first-compat.test.ts` | 端到端：issue key → login → session 验证、`securityLevel` 持久化 |
+
+运行命令：
+
+```bash
+pnpm test -- --run packages/server/src/routes/access-keys.test.ts packages/server/src/routes/auth.test.ts packages/server/src/routes/members.test.ts packages/server/src/__tests__/pg-first-compat.test.ts
+```
+
+---
+
 ## 相关文档
 
 - [模块详解](../architecture/MODULES.md) — 系统模块架构和设计

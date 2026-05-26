@@ -57,7 +57,7 @@ export const memberRoutes: FastifyPluginAsync = async (app) => {
         userId: user.id,
         teamId: payload.teamId,
         roleTemplate: payload.roleTemplate,
-        securityLevel: 0,
+        securityLevel: payload.securityLevel,
         permissions: payload.permissions,
         notes: payload.notes ?? null,
         createdAt,
@@ -65,8 +65,9 @@ export const memberRoutes: FastifyPluginAsync = async (app) => {
       };
       await membershipRepo.insert(membership);
 
+      const { userId: _uid, ...membershipFields } = membership;
       return memberSchema.parse({
-        ...membership,
+        ...membershipFields,
         handle: user.handle,
         isSystem: false,
       });
@@ -97,7 +98,7 @@ export const memberRoutes: FastifyPluginAsync = async (app) => {
         userId: user.id,
         teamId: payload.teamId,
         roleTemplate: payload.roleTemplate,
-        securityLevel: 0,
+        securityLevel: payload.securityLevel,
         permissions: payload.permissions,
         notes: payload.notes ?? null,
         createdAt,
@@ -106,8 +107,9 @@ export const memberRoutes: FastifyPluginAsync = async (app) => {
 
       data.memberships.push(membership);
 
+      const { userId: _uid, ...membershipFields } = membership;
       return {
-        ...membership,
+        ...membershipFields,
         handle: user.handle,
         isSystem: false,
       };
@@ -169,8 +171,9 @@ export const memberRoutes: FastifyPluginAsync = async (app) => {
         throw new AppError(404, 'member_not_found', 'Member not found after update');
       }
 
+      const { userId: _uid2, ...updatedFields } = updatedMembership;
       return memberSchema.parse({
-        ...updatedMembership,
+        ...updatedFields,
         handle: user.handle,
         isSystem: false,
       });
@@ -202,8 +205,9 @@ export const memberRoutes: FastifyPluginAsync = async (app) => {
         throw new AppError(404, 'user_not_found', 'Linked user not found');
       }
 
+      const { userId: _uid, ...membershipFields } = membership;
       return {
-        ...membership,
+        ...membershipFields,
         handle: user.handle,
         isSystem: false,
       };

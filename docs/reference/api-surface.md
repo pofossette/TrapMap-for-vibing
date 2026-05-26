@@ -27,9 +27,9 @@
 | `GET` | `/v1/teams` | 无 | `teamListResponseSchema` | 列出可用团队和当前活动团队 |
 | `POST` | `/v1/teams` | `createTeamRequestSchema` | `teamSchema` | 创建新团队 |
 | `POST` | `/v1/teams/select` | `selectTeamRequestSchema` | `activeSessionSchema` | 设置当前会话的活动团队 |
-| `POST` | `/v1/members` | `createMemberRequestSchema` | `memberSchema` | 注册新团队成员 |
+| `POST` | `/v1/members` | `createMemberRequestSchema` | `memberSchema` | 注册新团队成员（`securityLevel` 来自请求，默认 0） |
 | `PATCH` | `/v1/members/:memberId` | `updateMemberRequestSchema` | `memberSchema` | 更新等级、权限或备注 |
-| `POST` | `/v1/access-keys` | `issueAccessKeyRequestSchema` | `issueAccessKeyResponseSchema` | 为其他成员生成永久访问密钥 |
+| `POST` | `/v1/access-keys` | `issueAccessKeyRequestSchema` | `issueAccessKeyResponseSchema` | 为其他成员生成永久访问密钥（通过 `repos.accessKey` 持久化） |
 
 > 源码：`packages/server/src/routes/teams.ts`、`packages/server/src/routes/members.ts`、`packages/server/src/routes/access-keys.ts`
 

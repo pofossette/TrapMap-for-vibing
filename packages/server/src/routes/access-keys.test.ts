@@ -285,5 +285,29 @@ describe('access-keys routes', () => {
       expect(response.statusCode).toBe(200);
       expect(response.json().record.notes).toBe('Test key for CI');
     });
+
+    it('issue -> login roundtrip: created key can be used to log in', async () => {
+      // Issue an access key
+      const issueResponse = await app.inject({
+        method: 'POST',
+        url: '/v1/access-keys',
+        headers: { authorization: `Bearer ${sessionToken}` },
+        payload: { memberId: 'membership_1', teamId },
+      });
+
+      expect(issueResponse.statusCode).toBe(200);
+      const plainKey = issueResponse.json().accessKey;
+
+      // Use the key to log in
+      const loginResponse = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/login',
+        payload: { accessKey: plainKey },
+      });
+
+      expect(loginResponse.statusCode).toBe(200);
+      expect(loginResponse.json().session).toBeDefined();
+      expect(loginResponse.headers['x-session-token']).toBeDefined();
+    });
   });
 });

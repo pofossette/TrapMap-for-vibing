@@ -59,6 +59,11 @@ export interface SessionRepository {
  */
 export interface AccessKeyRepository {
   /**
+   * Generate a new unique access key ID.
+   */
+  nextId(): Promise<string>;
+
+  /**
    * Insert a new access key.
    */
   insert(key: AccessKeyRecord): Promise<void>;
@@ -146,6 +151,11 @@ export class InMemorySessionRepository implements SessionRepository {
  */
 export class InMemoryAccessKeyRepository implements AccessKeyRepository {
   constructor(private readonly store: SkillShareerStore) {}
+
+  async nextId(): Promise<string> {
+    const data = await this.store.snapshot();
+    return this.store.nextId(data, 'access_key');
+  }
 
   async insert(key: AccessKeyRecord): Promise<void> {
     await this.store.transact((data) => {

@@ -118,8 +118,15 @@ export class PgSessionRepository implements SessionRepository {
 export class PgAccessKeyRepository implements AccessKeyRepository {
   private db: ReturnType<typeof drizzle>;
 
-  constructor(pool: Pool) {
+  constructor(private readonly pool: Pool) {
     this.db = drizzle(pool);
+  }
+
+  async nextId(): Promise<string> {
+    const { rows } = await this.pool.query<{ nextval: string }>(
+      "SELECT nextval('access_key_id_seq') AS nextval",
+    );
+    return `access_key_${rows[0]?.nextval ?? '1'}`;
   }
 
   async insert(key: AccessKeyRecord): Promise<void> {
