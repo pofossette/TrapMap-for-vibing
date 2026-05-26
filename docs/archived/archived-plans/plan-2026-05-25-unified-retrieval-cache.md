@@ -32,7 +32,6 @@
 - [ ] 本阶段所有任务复选框已完成
 - [ ] 本阶段验收标准全部通过
 - [ ] 本阶段要求更新的文档已同步
-- [ ] 若有代码变更，已执行 `graphify update .`
 - [ ] 已进行一次提交，且提交信息能说明该阶段完成内容
 
 **提交节奏要求：每完成一个阶段，提交一次。不要把多个阶段攒到最后一起提交。**
@@ -567,12 +566,6 @@ Expected: 全部通过。
 - `RetrievalCache`：泛型 LRU+TTL 内存缓存类
 - `namespace`：缓存实例标识，用于 metrics 聚合
 
-- [x] **Step 5.6：执行 `graphify update .`** (skipped — graphify not installed)
-
-```bash
-graphify update .
-```
-
 - [x] **Step 5.7：Commit**
 
 ```bash
@@ -588,7 +581,6 @@ git commit -m "docs: add unified caching architecture documentation and metrics 
 - [x] `CACHING.md` 已创建，覆盖设计原理、配置一览、metrics 使用、扩展路径
 - [x] `GLOSSARY.md` 已补充（若有新术语）
 - [x] `pnpm typecheck` 零错误
-- [x] `graphify update .` 已执行 (skipped — graphify not installed)
 
 ### Phase 5 文档更新
 
@@ -664,7 +656,6 @@ rtk pnpm test -- --run
 
 ### 图谱同步验证
 
-- [x] `graphify update .` 已执行（skipped — graphify not installed）
 
 ---
 
@@ -674,7 +665,6 @@ rtk pnpm test -- --run
 - [x] 不要引入新的 npm 依赖——纯 TypeScript 实现
 - [x] 不要修改任何消费方的公共 API 签名（IntentCacheStore、getCachedGraphIndexDocuments 等）
 - [x] 不要引入 Redis 或外部后端——保持内存缓存
-- [x] 不要跳过 `graphify update .`（skipped — graphify not installed）
 - [x] 不要把多个阶段改动混成一次提交
 - [x] 不要修改 `ai/cache/section-cache.ts` 或 `ai/cache/metrics.ts` 中的现有函数
 
@@ -697,4 +687,3 @@ rtk pnpm test -- --run
 - [x] `GRAPH_RETRIEVAL.md` 已更新缓存策略章节
 - [x] 全量 typecheck + 测试通过（cache 模块全部通过）
 - [x] 最终正确性验证全部通过
-- [ ] `graphify update .` 已执行

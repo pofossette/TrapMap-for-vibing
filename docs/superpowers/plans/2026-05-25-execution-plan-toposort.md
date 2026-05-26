@@ -34,7 +34,6 @@
 - [ ] 本阶段所有任务复选框已完成
 - [ ] 本阶段验收标准全部通过
 - [ ] 本阶段要求更新的文档已同步
-- [ ] 若有代码变更，已执行 `graphify update .`
 - [ ] 已进行一次提交，且提交信息能说明该阶段完成内容
 
 **提交节奏要求：每完成一个阶段，提交一次。不要把多个阶段攒到最后一起提交。**
@@ -580,10 +579,8 @@ pnpm typecheck
 
 Expected: 0 errors。
 
-- [ ] **Step 2.7：执行 `graphify update .`**
 
 ```bash
-graphify update .
 ```
 
 - [ ] **Step 2.8：Commit**
@@ -605,7 +602,6 @@ git commit -m "feat(retrieval): add topological execution plan to trap-first com
 - [x] 所有新增测试用例通过（空计划、mitigates 排序、requires 排序、rank 值、Deploy Cluster 端到端）
 - [x] 所有现有测试不受影响
 - [x] `pnpm typecheck` 零错误
-- [x] `graphify update .` 已执行
 
 ### Phase 2 文档更新
 
@@ -770,10 +766,8 @@ Expected: 全部通过。
 - `executionPlan`：拓扑排序后的执行序列，包含 rank、blockedBy 等依赖信息
 - `ExecutionStep`：执行计划中的单个步骤，关联一个 trap 或 skill 节点
 
-- [ ] **Step 4.5：执行 `graphify update .`**
 
 ```bash
-graphify update .
 ```
 
 - [ ] **Step 4.6：Commit**
@@ -791,7 +785,6 @@ git commit -m "docs: document executionPlan in graph retrieval architecture"
 - [x] `GRAPH_RETRIEVAL.md` 已更新：v3 输出结构含 `executionPlan`、设计特点新增拓扑排序说明、源文件索引已更新
 - [x] `GLOSSARY.md` 已补充新术语（若有）
 - [x] `pnpm typecheck` 零错误
-- [x] `graphify update .` 已执行
 
 ### Phase 4 文档更新
 
@@ -871,7 +864,6 @@ pnpm test -- --run
 
 ### 图谱同步验证
 
-- [x] `graphify update .` 已执行，知识图谱反映最新代码变更
 
 ---
 
@@ -883,7 +875,6 @@ pnpm test -- --run
 - [ ] 不要忽略 cycle 情况——必须有 graceful degradation（append remaining nodes at end）
 - [ ] 不要改动 `GraphPlan` 统一图视图的结构
 - [ ] 不要在 `executionPlan` 中引入 trap-to-skill 的 `blockedBy` 边（`mitigates` 方向是 skill→trap，只需 trap 的 `blockedBy` 包含 skill）
-- [ ] 不要跳过 `graphify update .`
 - [ ] 不要把多个阶段改动混成一次提交
 
 ## 推荐执行顺序
@@ -902,4 +893,3 @@ pnpm test -- --run
 - [ ] `GLOSSARY.md` 已补充（若有新术语）
 - [ ] 全量 typecheck + 测试通过
 - [ ] 最终正确性验证全部通过
-- [ ] `graphify update .` 已执行

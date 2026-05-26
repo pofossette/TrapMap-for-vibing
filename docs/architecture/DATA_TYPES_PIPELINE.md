@@ -247,8 +247,6 @@ flowchart TB
 
 本节详细说明 TrapMap 内部 GraphRAG-lite 图的构建方式、节点/边类型、数据插入更新流程，以及 v1 和 v3 检索管道如何使用图结构。
 
-> 注意：本文档中的"图"均指 **TrapMap 内部域图**（存储于 `StoreData.graphIndexDocuments[]`），而非 `graphify-out/` 中的代码知识图。
-
 ### A.1 图数据结构
 
 #### 节点类型（GraphNodeKind）

@@ -33,10 +33,14 @@ reports/*.json
 !.claude/skills/trapmap-knowledge-workflow/**
 .codex/
 .codex
+.cursor/
 .gemini/
 .kilo/
 .opencode/
 .golutra/
+.codegraph/
+.mcp.json
+opencode.jsonc
 
 # Testing
 coverage/

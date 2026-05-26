@@ -29,7 +29,6 @@
 - [ ] 本阶段所有 checkbox 已完成
 - [ ] 本阶段要求的最小测试和类型检查已通过
 - [ ] 本阶段要求更新的文档已同步
-- [ ] 若有代码变更，已执行 `graphify update .`
 - [ ] 已进行一次提交，且提交信息能说明该阶段完成内容
 
 **提交节奏要求：每完成一个阶段，提交一次。不要把多个阶段攒到最后一起提交。**
@@ -316,7 +315,6 @@ rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent.test.ts
 - [x] `IntentCacheStore` / `InMemoryIntentCache` 已创建
 - [x] 所有 `ParsedIntent` fixture 已同步
 - [x] 最小验证通过
-- [x] `graphify update .` 已执行
 
 ### 本阶段提交
 
@@ -563,7 +561,6 @@ rtk pnpm typecheck
 - [x] `parseSeedIntentWithLLM()` 已实现
 - [x] fallback / retry / cache 已实现
 - [x] parser 与 cache 单测通过
-- [x] `graphify update .` 已执行
 
 ### 本阶段提交
 
@@ -695,7 +692,6 @@ rtk pnpm typecheck
 - [x] v2 orchestrator 已接 LLM parser
 - [x] semantic channel 已优先使用 `semanticQuery`
 - [x] 相关测试通过
-- [x] `graphify update .` 已执行
 
 ### 本阶段提交
 
@@ -807,7 +803,6 @@ rtk pnpm typecheck
 - [x] skill lookup 已接 LLM parser
 - [x] plan compiler 已接 LLM parser
 - [x] governance / graph-plan 行为回归测试通过
-- [x] `graphify update .` 已执行
 
 ### 本阶段提交
 
@@ -955,7 +950,6 @@ rtk pnpm eval:retrieval:smoke
 - [x] eval normalize/report 已兼容
 - [x] route 与 eval 测试通过
 - [x] smoke eval 已运行
-- [x] `graphify update .` 已执行
 
 ### 本阶段提交
 
@@ -1094,7 +1088,6 @@ rtk pnpm eval:retrieval:core
 - [x] 术语与测试文档已更新
 - [x] 设计偏差已回写或确认无偏差
 - [x] 最终验证通过
-- [x] `graphify update .` 已执行
 
 ### 本阶段提交
 
@@ -1110,7 +1103,6 @@ rtk pnpm eval:retrieval:core
 - [ ] 不要缓存 regex fallback 结果，避免掩盖临时 LLM 能力恢复
 - [ ] 不要遗漏任何 `ParsedIntent` fixture
 - [ ] 不要在 route test 中误把日志 metadata 当成 HTTP 响应字段
-- [ ] 不要跳过 `graphify update .`
 - [ ] 不要把多个阶段改动混成一次提交
 
 ## 推荐执行顺序

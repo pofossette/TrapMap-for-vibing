@@ -6,7 +6,7 @@
 
 **架构：** 保持现有公开 API 契约稳定，把 `packages/server/src/app.ts` 收敛为薄组合根，将启动与运行时职责抽到显式 bootstrap 模块，并把超大的路由/仓储文件拆成按责任划分的小模块。同时引入真相源文档、文档 smoke 测试和 CI 守卫，让未来的结构变更必须同步更新文档与复杂度预算。
 
-**技术栈：** TypeScript、Fastify、Drizzle ORM、Vitest、pnpm、Biome、GitHub Actions、graphify
+**技术栈：** TypeScript、Fastify、Drizzle ORM、Vitest、pnpm、Biome、GitHub Actions
 
 ---
 
@@ -50,7 +50,6 @@
 - [x] 本阶段要求的文档已在同一个变更中同步更新
 - [x] 本阶段要求的测试已在同一个变更中新增或更新
 - [x] 本阶段要求的 eval 验证已经执行
-- [x] 如果改动了代码文件，已经执行 `rtk graphify update .`
 - [x] 已在独立分支或独立 worktree 中提交本阶段工作
 
 建议的阶段收尾命令：
@@ -58,7 +57,6 @@
 ```bash
 rtk pnpm typecheck
 rtk pnpm check
-rtk graphify update .
 git status --short
 git add -A
 git commit -m "refactor(server): <阶段摘要>"
@@ -395,12 +393,9 @@ app.addHook('onReady', async () => {
 运行：`rtk pnpm eval:smoke`  
 预期：PASS，且不再出现重复的 `Failed to check for interrupted candidates` 启动日志
 
-- [x] **步骤 2.7：更新图谱并提交**
+- [x] **步骤 2.7：提交**
 
-运行：`rtk graphify update .`  
-预期：图谱更新成功
-
-运行：`git add -A && git commit -m "refactor(server): extract startup sequence"`  
+运行：`git add -A && git commit -m "refactor(server): extract startup sequence"`
 预期：成功生成提交
 
 ---
@@ -532,12 +527,9 @@ const result = await resolveCandidate(
 运行：`rtk pnpm eval:smoke`  
 预期：PASS
 
-- [x] **步骤 3.7：更新图谱并提交**
+- [x] **步骤 3.7：提交**
 
-运行：`rtk graphify update .`  
-预期：图谱更新成功
-
-运行：`git add -A && git commit -m "refactor(server): split candidate routes and services"`  
+运行：`git add -A && git commit -m "refactor(server): split candidate routes and services"`
 预期：成功生成提交
 
 ---
@@ -687,12 +679,9 @@ export * from './pg-repository/index.js';
 运行：`rtk pnpm eval:smoke`  
 预期：PASS
 
-- [x] **步骤 4.7：更新图谱并提交**
+- [x] **步骤 4.7：提交**
 
-运行：`rtk graphify update .`  
-预期：图谱更新成功
-
-运行：`git add -A && git commit -m "refactor(server): split schema and artifact pg repository hotspots"`  
+运行：`git add -A && git commit -m "refactor(server): split schema and artifact pg repository hotspots"`
 预期：成功生成提交
 
 ---
@@ -831,12 +820,9 @@ function countLines(file: string): number {
 运行：`rtk pnpm eval:smoke`  
 预期：PASS
 
-- [x] **步骤 5.7：如有代码改动则更新图谱并提交**
+- [x] **步骤 5.7：提交**
 
-运行：`rtk graphify update .`  
-预期：若本阶段改了代码，图谱更新成功
-
-运行：`git add -A && git commit -m "chore(ci): add doc drift and complexity guardrails"`  
+运行：`git add -A && git commit -m "chore(ci): add doc drift and complexity guardrails"`
 预期：成功生成提交
 
 ---

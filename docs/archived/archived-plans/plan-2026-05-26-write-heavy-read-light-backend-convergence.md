@@ -21,7 +21,6 @@
 ## 执行前提
 
 - 每个阶段结束都要求 `git add -A` 并提交全部工作区改动，因此执行时必须使用独立分支或独立 worktree，避免混入无关改动。
-- 只要本阶段改动了代码文件，就在验收前运行 `rtk graphify update .`。
 - 涉及索引、检索、治理、副作用异步化的阶段，除单元测试外至少运行一次 `rtk pnpm eval:smoke`。
 
 ## 设计原则
@@ -40,7 +39,6 @@
 - [ ] 本阶段验收标准全部通过
 - [ ] 本阶段要求更新的文档已同步完成
 - [ ] 本阶段要求新增或修改的测试代码已提交
-- [ ] 本阶段代码改动后已执行 `rtk graphify update .`
 - [ ] 本阶段验证命令已执行并记录结果
 - [ ] 已使用 `git add -A` 提交全部工作区改动
 
@@ -199,7 +197,6 @@ rtk pnpm eval:smoke
 - [ ] **Step 1.8：更新图谱并提交全部工作区改动**
 
 ```bash
-rtk graphify update .
 git status --short
 git add -A
 git commit -m "feat(server): route candidate ingestion through durable pg queue"
@@ -321,7 +318,6 @@ rtk pnpm eval:smoke
 - [ ] **Step 2.8：更新图谱并提交全部工作区改动**
 
 ```bash
-rtk graphify update .
 git status --short
 git add -A
 git commit -m "feat(server): move lifecycle side effects to outbox-driven projections"
@@ -467,7 +463,6 @@ rtk pnpm typecheck
 - [ ] **Step 3.8：更新图谱并提交全部工作区改动**
 
 ```bash
-rtk graphify update .
 git status --short
 git add -A
 git commit -m "feat(server): migrate identity and audit domains off store_snapshot"
@@ -575,7 +570,6 @@ rtk pnpm eval:smoke
 - [ ] **Step 4.7：更新图谱并提交全部工作区改动**
 
 ```bash
-rtk graphify update .
 git status --short
 git add -A
 git commit -m "refactor(server): read candidates and duplicates from structured projections"
@@ -692,7 +686,6 @@ rtk pnpm eval:smoke
 - [ ] **Step 5.7：更新图谱并提交全部工作区改动**
 
 ```bash
-rtk graphify update .
 git status --short
 git add -A
 git commit -m "chore(server): align runtime config docs and pg-backed ci coverage"

@@ -39,7 +39,6 @@
       ".data",
       ".agent",
       ".claude",
-      "graphify-out",
       ".codex",
       ".gemini",
       ".kilo",

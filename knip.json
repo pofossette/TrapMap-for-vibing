@@ -15,7 +15,6 @@
     ".claude/**",
     "coverage/**",
     "reports/**",
-    "graphify-out/**",
     "**/*.test.ts",
     "**/*.spec.ts"
   ],
