@@ -1,5 +1,7 @@
 # TrapMap Round 4+ 后续增强实施计划
 
+> **注意（2026-05-26）**：本文档中引用的 `pg-repository.ts` 已拆分为多个模块（`pg-repository/index.ts`、`pg-repository/record-reconstruction.ts`、`pg-repository/revision-reader.ts`、`pg-repository/revision-writer.ts`、`pg-repository/derived-store.ts`）。行号仅供参考，实际代码请以拆分后的模块路径为准。
+
 > **状态：已完成并归档** | 完成日期：2026-05-24
 > 
 > 所有 4 个阶段均已实施完毕，最终完成定义全部满足。详见第 9 节。

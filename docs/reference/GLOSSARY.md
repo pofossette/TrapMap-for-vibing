@@ -62,11 +62,11 @@
 |------|------|------|
 | `packages/contracts/src/domain/knowledge.ts:98-124` | Zod schema (`knowledgeEntrySchema`) | 聚合根定义：id, teamId, scope, labels, shortcut, detail, requiredLevel, lifecycleState, owner, latestRevision, history, metadata, agentReview, boundary, evidenceMeta, maintenanceMeta |
 | `packages/contracts/src/domain/knowledge.ts:191` | TS 类型 (`KnowledgeEntry`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema.ts:551-603` | DB 表 (`knowledge_entries`) | 行级持久化主表，含 `CHECK` 约束和组合索引 |
-| `packages/server/src/lib/persistence/schema.ts:704-718` | DB 表 (`knowledge_labels`) | 标签结构化子表，`unique(entry_id, label)` |
-| `packages/server/src/lib/persistence/schema.ts:724-878` | DB 表 (`knowledge_boundary_*` ×6, `knowledge_maintenance_assignments`) | 边界六子表 + 维护分配表（Round 3） |
-| `packages/server/src/lib/persistence/schema.ts:610-648` | DB 表 (`knowledge_revisions`) | 版本历史，`unique(entry_id, revision_no)` |
-| `packages/server/src/lib/persistence/schema.ts:654-693` | DB 表 (`lifecycle_events`) | 生命周期事件，`type` 受 `CHECK` 约束 |
+| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_entries`) | 行级持久化主表，含 `CHECK` 约束和组合索引 |
+| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_labels`) | 标签结构化子表，`unique(entry_id, label)` |
+| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_boundary_*` x6, `knowledge_maintenance_assignments`) | 边界六子表 + 维护分配表（Round 3） |
+| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_revisions`) | 版本历史，`unique(entry_id, revision_no)` |
+| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`lifecycle_events`) | 生命周期事件，`type` 受 `CHECK` 约束 |
 | `packages/server/src/lib/store/types/knowledge-records.ts` | TS 接口 | JSON Store 的内存记录形态 |
 | `packages/server/src/routes/knowledge.ts:39` | Route | `POST /v1/knowledge` — 提交新条目 |
 | `packages/server/src/routes/knowledge.ts:115` | Route | `GET /v1/knowledge/mine` — 列出当前用户条目 |
