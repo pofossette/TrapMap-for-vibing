@@ -516,7 +516,7 @@ git commit -m "feat(cache): migrate LLM extraction cache to RetrievalCache and w
 
 ### 进度追踪
 
-- [ ] **Step 5.1：扩展 `cache/metrics.ts`**
+- [x] **Step 5.1：扩展 `cache/metrics.ts`**
 
 新增 `getRetrievalCacheStats()` 函数，从 retrieval-cache 模块的 registry 中读取所有实例的 stats 并按 namespace 聚合：
 
@@ -533,7 +533,7 @@ export function getRetrievalCacheStats(): Record<string, import('./retrieval-cac
 
 或者如果 retrieval-cache.ts 已导出此函数，则在 metrics.ts 中 re-export 即可。
 
-- [ ] **Step 5.2：运行全量测试**
+- [x] **Step 5.2：运行全量测试**
 
 ```bash
 rtk pnpm test -- --run
@@ -542,7 +542,7 @@ rtk pnpm typecheck
 
 Expected: 全部通过。
 
-- [ ] **Step 5.3：更新 `GRAPH_RETRIEVAL.md`**
+- [x] **Step 5.3：更新 `GRAPH_RETRIEVAL.md`**
 
 在检索架构文档中新增缓存策略章节，说明：
 
@@ -551,7 +551,7 @@ Expected: 全部通过。
 - Graph Docs Cache: namespace `graph-docs`，LRU+TTL，1h TTL，500 条上限
 - LLM Phase1/2 Cache: namespace `llm-phase1`/`llm-phase2`，LRU+TTL，1h TTL，300 条上限
 
-- [ ] **Step 5.4：新建 `docs/architecture/CACHING.md`**
+- [x] **Step 5.4：新建 `docs/architecture/CACHING.md`**
 
 统一缓存架构文档，包含：
 
@@ -560,20 +560,20 @@ Expected: 全部通过。
 - metrics 使用方式（`getRetrievalCacheStats()`）
 - Redis 扩展路径说明（从 RetrievalCache 提取 CacheBackend 接口）
 
-- [ ] **Step 5.5：更新 `GLOSSARY.md`（若需要）**
+- [x] **Step 5.5：更新 `GLOSSARY.md`（若需要）**
 
 补充术语：
 
 - `RetrievalCache`：泛型 LRU+TTL 内存缓存类
 - `namespace`：缓存实例标识，用于 metrics 聚合
 
-- [ ] **Step 5.6：执行 `graphify update .`**
+- [x] **Step 5.6：执行 `graphify update .`** (skipped — graphify not installed)
 
 ```bash
 graphify update .
 ```
 
-- [ ] **Step 5.7：Commit**
+- [x] **Step 5.7：Commit**
 
 ```bash
 git add packages/server/src/lib/cache/metrics.ts docs/architecture/GRAPH_RETRIEVAL.md docs/architecture/CACHING.md docs/reference/GLOSSARY.md
@@ -582,20 +582,20 @@ git commit -m "docs: add unified caching architecture documentation and metrics 
 
 ### Phase 5 验收标准
 
-- [ ] `getRetrievalCacheStats()` 可用，返回按 namespace 聚合的 stats
-- [ ] 全量测试通过（`pnpm test -- --run`）
-- [ ] `GRAPH_RETRIEVAL.md` 含缓存策略章节
-- [ ] `CACHING.md` 已创建，覆盖设计原理、配置一览、metrics 使用、扩展路径
-- [ ] `GLOSSARY.md` 已补充（若有新术语）
-- [ ] `pnpm typecheck` 零错误
-- [ ] `graphify update .` 已执行
+- [x] `getRetrievalCacheStats()` 可用，返回按 namespace 聚合的 stats
+- [x] 全量测试通过（`pnpm test -- --run`）
+- [x] `GRAPH_RETRIEVAL.md` 含缓存策略章节
+- [x] `CACHING.md` 已创建，覆盖设计原理、配置一览、metrics 使用、扩展路径
+- [x] `GLOSSARY.md` 已补充（若有新术语）
+- [x] `pnpm typecheck` 零错误
+- [x] `graphify update .` 已执行 (skipped — graphify not installed)
 
 ### Phase 5 文档更新
 
-- [ ] `docs/architecture/GRAPH_RETRIEVAL.md`：新增缓存策略章节
-- [ ] `docs/architecture/CACHING.md`：统一缓存架构文档
-- [ ] `docs/reference/GLOSSARY.md`：RetrievalCache、namespace 术语
-- [ ] `plan.md`：记录 Phase 5 完成状态
+- [x] `docs/architecture/GRAPH_RETRIEVAL.md`：新增缓存策略章节
+- [x] `docs/architecture/CACHING.md`：统一缓存架构文档
+- [x] `docs/reference/GLOSSARY.md`：RetrievalCache、namespace 术语
+- [x] `plan.md`：记录 Phase 5 完成状态
 
 ---
 

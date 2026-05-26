@@ -180,6 +180,24 @@ Skill 工件的客户端激活元数据，包含 references、assets、scripts �
 | `packages/server/src/lib/retrieval/scoring/rerank.ts` | Impl | 重排序逻辑实现 |
 | `packages/contracts/src/domain/retrieval.ts:37` | TS 字段 (`scores.preRerank`) | `retrievalCitationSchema.scores` 中记录重排前分数 |
 
+### RetrievalCache
+
+泛型 LRU+TTL 内存缓存类，提供惰性过期、内置 metrics 和全局 namespace 聚合。是图检索系统各类热数据（意图解析、图状态、图文档、LLM 提取结果）的统一缓存基础设施。
+
+| 位置 | 形式 | 说明 |
+|------|------|------|
+| `packages/server/src/lib/cache/retrieval-cache.ts:100` | TS 类 (`RetrievalCache<V>`) | 核心实现：get, set, has, delete, clear, size, stats, values, ns |
+| `packages/server/src/lib/cache/retrieval-cache.ts:63` | TS 函数 (`getRetrievalCacheStats`) | 按 namespace 聚合所有存活实例的 metrics |
+
+### namespace（缓存命名空间）
+
+缓存实例标识，用于 metrics 聚合时区分不同缓存。同一 namespace 下的多个实例会被合并统计。当前 namespace 值：`intent`、`graph-state`、`graph-docs`、`llm-phase1`、`llm-phase2`。
+
+| 位置 | 形式 | 说明 |
+|------|------|------|
+| `packages/server/src/lib/cache/retrieval-cache.ts:21` | TS 字段 (`RetrievalCacheOptions.namespace`) | 构造时指定，默认 `'default'` |
+| `packages/server/src/lib/cache/retrieval-cache.ts:63` | TS 函数 (`getRetrievalCacheStats`) | 返回 `Record<string, CacheStats>`，key 为 namespace |
+
 ### Hit@K
 
 检索评估指标，考察前 K 个结果中是否包含相关结果。

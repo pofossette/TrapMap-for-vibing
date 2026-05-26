@@ -309,7 +309,41 @@ edges:
 
 ---
 
-## 八、关键源文件索引
+## 八、缓存策略
+
+系统使用统一的 `RetrievalCache<V>` 泛型类（LRU + TTL 内存缓存）管理各类热数据，通过 namespace 隔离不同缓存实例并聚合 metrics。
+
+### 8.1 缓存实例一览
+
+| 缓存名称 | namespace | maxSize | TTL | 用途 |
+|----------|-----------|---------|-----|------|
+| IntentCache | `intent` | 200 | 30 min | LLM 意图解析结果（ParsedIntent） |
+| Graph State Cache | `graph-state` | 500 | 1 h | 图索引适配器的同步状态（LegacyGraphSyncState） |
+| Graph Docs Cache | `graph-docs` | 500 | 1 h | 图文档记录（GraphIndexDocumentRecord） |
+| LLM Phase1 Cache | `llm-phase1` | 300 | 1 h | LLM 两阶段提取的 Phase 1 计划（ExtractionPlan） |
+| LLM Phase2 Cache | `llm-phase2` | 300 | 1 h | LLM 两阶段提取的 Phase 2 结果（LlmExtractionResult） |
+
+### 8.2 缓存行为
+
+- **LRU 淘汰**：基于 `Map` 插入序，get 时 delete+re-insert 提升到最近使用位置；满容量时淘汰最旧条目。
+- **惰性 TTL**：get() 时检查 `Date.now() - createdAt > ttlMs`，过期条目惰性删除，无后台定时器。
+- **Metrics 聚合**：所有实例通过 `WeakRef` 注册到模块级 `liveCaches` 集合，调用 `getRetrievalCacheStats()` 按 namespace 汇总 hits/misses/evictions/size/hitRate。
+
+### 8.3 关键源文件
+
+| 文件 | 职责 |
+|------|------|
+| `packages/server/src/lib/cache/retrieval-cache.ts` | `RetrievalCache<V>` 核心实现 + `getRetrievalCacheStats()` |
+| `packages/server/src/lib/cache/metrics.ts` | metrics 入口（re-export） |
+| `packages/server/src/lib/retrieval/capsules/intent-cache.ts` | IntentCache (`intent` namespace) |
+| `packages/server/src/lib/indexing/adapters/graph.ts` | Graph State / Docs Cache (`graph-state`, `graph-docs`) |
+| `packages/server/src/lib/indexing/graph-lite/llm-cache.ts` | LLM Extraction Cache (`llm-phase1`, `llm-phase2`) |
+
+> **详细设计**见 [`CACHING.md`](CACHING.md)。
+
+---
+
+## 九、关键源文件索引
 
 ### 图结构与存储
 
