@@ -350,6 +350,14 @@ function createMockServices(overrides: Partial<SkillShareerServices> = {}): Skil
         ),
       nextId: vi.fn(),
     } as unknown as SkillShareerServices['store'],
+    repos: {
+      knowledge: {
+        listByFilter: vi.fn().mockResolvedValue([]),
+      },
+      artifact: {
+        listByFilter: vi.fn().mockResolvedValue([]),
+      },
+    } as any,
     adapterRegistry: {} as any,
     channelRegistry: {} as any,
     strategyRegistry: {} as any,
@@ -577,89 +585,35 @@ describe('updateEntryEmbeddingCache', () => {
 
   it('updates entry embeddingCache on success', async () => {
     const entry = createMockEntry('entry_1');
-    let updatedEntry: KnowledgeRecord | undefined;
-
-    const store = {
-      transact: vi
-        .fn()
-        .mockImplementation(async (mutator: (data: Record<string, unknown>) => Promise<void>) => {
-          const data = {
-            knowledgeEntries: [entry],
-            counters: {},
-          };
-          await mutator(data);
-          updatedEntry = data.knowledgeEntries[0];
-          return data;
-        }),
-      snapshot: vi.fn(),
-      nextId: vi.fn(),
-    };
+    const updateEmbeddingCache = vi.fn().mockResolvedValue(undefined);
 
     const services = createMockServices({
-      store: store as unknown as SkillShareerServices['store'],
+      repos: {
+        knowledge: {
+          getById: vi.fn().mockResolvedValue(entry),
+          updateEmbeddingCache,
+        },
+      } as any,
     });
 
     await updateEntryEmbeddingCache(services, 'entry_1');
 
-    expect(updatedEntry).toBeDefined();
-    expect(updatedEntry!.embeddingCache).not.toBeNull();
-    expect(updatedEntry!.embeddingCache!.textHash).toBe('mock-hash-abc');
-    expect(updatedEntry!.embeddingCache!.vector).toEqual([0.1, 0.2, 0.3]);
-    expect(updatedEntry!.embeddingCache!.createdAt).toBeTruthy();
-    expect(updatedEntry!.embeddingCache!.revision).toBe(1);
-  });
-
-  it('sets updatedAt when updating cache', async () => {
-    const entry = createMockEntry('entry_1');
-    const originalUpdatedAt = entry.updatedAt;
-    let updatedEntry: KnowledgeRecord | undefined;
-
-    const store = {
-      transact: vi
-        .fn()
-        .mockImplementation(async (mutator: (data: Record<string, unknown>) => Promise<void>) => {
-          const data = {
-            knowledgeEntries: [entry],
-            counters: {},
-          };
-          await mutator(data);
-          updatedEntry = data.knowledgeEntries[0];
-          return data;
-        }),
-      snapshot: vi.fn(),
-      nextId: vi.fn(),
-    };
-
-    const services = createMockServices({
-      store: store as unknown as SkillShareerServices['store'],
+    expect(updateEmbeddingCache).toHaveBeenCalledWith('entry_1', {
+      textHash: 'mock-hash-abc',
+      vector: [0.1, 0.2, 0.3],
+      createdAt: expect.any(String),
+      revision: 1,
     });
-
-    // Small delay to ensure different timestamp
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    await updateEntryEmbeddingCache(services, 'entry_1');
-
-    expect(updatedEntry).toBeDefined();
-    expect(updatedEntry!.updatedAt).not.toBe(originalUpdatedAt);
   });
 
   it('throws AppError 404 for non-existent entry', async () => {
-    const store = {
-      transact: vi
-        .fn()
-        .mockImplementation(async (mutator: (data: Record<string, unknown>) => Promise<void>) => {
-          const data = {
-            knowledgeEntries: [],
-            counters: {},
-          };
-          await mutator(data);
-          return data;
-        }),
-      snapshot: vi.fn(),
-      nextId: vi.fn(),
-    };
-
     const services = createMockServices({
-      store: store as unknown as SkillShareerServices['store'],
+      repos: {
+        knowledge: {
+          getById: vi.fn().mockResolvedValue(null),
+          updateEmbeddingCache: vi.fn(),
+        },
+      } as any,
     });
 
     await expect(updateEntryEmbeddingCache(services, 'nonexistent')).rejects.toThrow(AppError);
@@ -676,29 +630,36 @@ describe('updateEntryEmbeddingCache', () => {
   it('calls generateEmbedding with built text', async () => {
     const entry = createMockEntry('entry_1');
 
-    const store = {
-      transact: vi
-        .fn()
-        .mockImplementation(async (mutator: (data: Record<string, unknown>) => Promise<void>) => {
-          const data = {
-            knowledgeEntries: [entry],
-            counters: {},
-          };
-          await mutator(data);
-          return data;
-        }),
-      snapshot: vi.fn(),
-      nextId: vi.fn(),
-    };
-
     const services = createMockServices({
-      store: store as unknown as SkillShareerServices['store'],
+      repos: {
+        knowledge: {
+          getById: vi.fn().mockResolvedValue(entry),
+          updateEmbeddingCache: vi.fn().mockResolvedValue(undefined),
+        },
+      } as any,
     });
 
     await updateEntryEmbeddingCache(services, 'entry_1');
 
     expect(generateEmbedding).toHaveBeenCalledWith('shortcut detail labels');
     expect(hashEmbeddingText).toHaveBeenCalledWith('shortcut detail labels');
+  });
+
+  it('does not call store.transact', async () => {
+    const entry = createMockEntry('entry_1');
+
+    const services = createMockServices({
+      repos: {
+        knowledge: {
+          getById: vi.fn().mockResolvedValue(entry),
+          updateEmbeddingCache: vi.fn().mockResolvedValue(undefined),
+        },
+      } as any,
+    });
+
+    await updateEntryEmbeddingCache(services, 'entry_1');
+
+    expect(services.store.transact).not.toHaveBeenCalled();
   });
 });
 
@@ -729,11 +690,19 @@ describe('searchKnowledge with real store data', () => {
         snapshot: vi.fn().mockResolvedValue({
           knowledgeEntries: [entryLow, entryHigh],
           skillArtifacts: [],
-          counters: {},
+          conflicts: [],
         }),
         transact: vi.fn(),
         nextId: vi.fn(),
       } as unknown as SkillShareerServices['store'],
+      repos: {
+        knowledge: {
+          listByFilter: vi.fn().mockResolvedValue([entryLow, entryHigh]),
+        },
+        artifact: {
+          listByFilter: vi.fn().mockResolvedValue([]),
+        },
+      } as any,
     });
 
     const auth = createMockAuth({ securityLevel: 5 });

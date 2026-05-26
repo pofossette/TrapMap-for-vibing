@@ -297,6 +297,14 @@ function makeServices(overrides: Partial<SkillShareerServices> = {}): SkillShare
     },
     knowledgeRepo: undefined,
     artifactRepo: undefined,
+    repos: {
+      knowledge: {
+        listByFilter: vi.fn().mockResolvedValue([]),
+      },
+      artifact: {
+        listByFilter: vi.fn().mockResolvedValue([]),
+      },
+    } as any,
     ...overrides,
   } as SkillShareerServices;
 }
@@ -328,6 +336,10 @@ describe('Gap 3: Retrieval orchestrator combines multiple recall paths correctly
         transact: vi.fn(),
         nextId: vi.fn(),
       } as unknown as SkillShareerServices['store'],
+      repos: {
+        knowledge: { listByFilter: vi.fn().mockResolvedValue([entry]) },
+        artifact: { listByFilter: vi.fn().mockResolvedValue([]) },
+      } as any,
     });
 
     const auth = makeAuth();
@@ -355,6 +367,10 @@ describe('Gap 3: Retrieval orchestrator combines multiple recall paths correctly
         transact: vi.fn(),
         nextId: vi.fn(),
       } as unknown as SkillShareerServices['store'],
+      repos: {
+        knowledge: { listByFilter: vi.fn().mockResolvedValue([]) },
+        artifact: { listByFilter: vi.fn().mockResolvedValue([]) },
+      } as any,
     });
 
     const auth = makeAuth();
@@ -388,6 +404,10 @@ describe('Gap 3: Retrieval orchestrator combines multiple recall paths correctly
         transact: vi.fn(),
         nextId: vi.fn(),
       } as unknown as SkillShareerServices['store'],
+      repos: {
+        knowledge: { listByFilter: vi.fn().mockResolvedValue([entry]) },
+        artifact: { listByFilter: vi.fn().mockResolvedValue([]) },
+      } as any,
     });
 
     const auth = makeAuth();
@@ -409,6 +429,10 @@ describe('Gap 3: Retrieval orchestrator combines multiple recall paths correctly
         transact: vi.fn(),
         nextId: vi.fn(),
       } as unknown as SkillShareerServices['store'],
+      repos: {
+        knowledge: { listByFilter: vi.fn().mockResolvedValue([]) },
+        artifact: { listByFilter: vi.fn().mockResolvedValue([]) },
+      } as any,
     });
 
     const auth = makeAuth();

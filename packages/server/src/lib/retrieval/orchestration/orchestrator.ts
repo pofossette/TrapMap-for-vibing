@@ -52,8 +52,9 @@ import {
   buildCapsuleSummary,
   buildSummary,
 } from '@trapmap/server/lib/retrieval/response/summary.js';
+import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 import type { ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
-import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import type { KnowledgeRecord, StoreData } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { dispatchByMode, inferChannelsFromMerged } from './recall-coordinator.js';
@@ -120,17 +121,17 @@ export async function searchKnowledge(
       steps,
     );
 
-    const data = await timedStep('snapshot', () => services.store.snapshot(), steps, {
+    const readModel = await timedStep('snapshot', () => buildRetrievalReadModel(services.repos, services.store), steps, {
       outputSize: (d) =>
-        (d as Awaited<ReturnType<typeof services.store.snapshot>>).knowledgeEntries.length,
+        (d as Awaited<ReturnType<typeof buildRetrievalReadModel>>).knowledgeEntries.length,
     });
 
     const eligibleEntries = await timedStep(
       'eligibility',
-      () => Promise.resolve(filterEligibleEntries(data.knowledgeEntries, auth, parsed.filters)),
+      () => Promise.resolve(filterEligibleEntries(readModel.knowledgeEntries, auth, parsed.filters)),
       steps,
       {
-        inputSize: data.knowledgeEntries.length,
+        inputSize: readModel.knowledgeEntries.length,
         outputSize: (r) => (r as KnowledgeRecord[]).length,
       },
     );
@@ -197,9 +198,13 @@ export async function searchKnowledge(
       ? new Map(buildCitations(mergedCandidates).map((c) => [c.source.entryId, c]))
       : undefined;
 
+    const conflictData = {
+      conflicts: readModel.conflicts,
+      knowledgeEntries: readModel.knowledgeEntries,
+    } as StoreData;
     const conflictHints = enrichMatchesWithConflicts(
       scoredEntries.map((e) => ({ entryId: e.entry.id })),
-      data,
+      conflictData,
       { teamId: auth.activeTeamId, requiredLevel: auth.securityLevel },
     );
 
@@ -309,23 +314,20 @@ export async function updateEntryEmbeddingCache(
   services: SkillShareerServices,
   entryId: string,
 ): Promise<void> {
-  await services.store.transact(async (data) => {
-    const entry = data.knowledgeEntries.find((e) => e.id === entryId);
-    if (!entry) {
-      throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
-    }
+  const entry = await services.repos.knowledge.getById(entryId);
+  if (!entry) {
+    throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
+  }
 
-    const text = buildEmbeddingText(entry);
-    const textHash = hashEmbeddingText(text);
-    const vector = await generateEmbedding(text);
+  const text = buildEmbeddingText(entry);
+  const textHash = hashEmbeddingText(text);
+  const vector = await generateEmbedding(text);
 
-    entry.embeddingCache = {
-      textHash,
-      vector,
-      createdAt: nowIso(),
-      revision: entry.history.length,
-    };
-    entry.updatedAt = nowIso();
+  await services.repos.knowledge.updateEmbeddingCache(entryId, {
+    textHash,
+    vector,
+    createdAt: nowIso(),
+    revision: entry.history.length,
   });
 }
 
@@ -369,9 +371,9 @@ export async function searchKnowledgeV2(
       steps,
     );
 
-    const data = await timedStep('snapshot', () => services.store.snapshot(), steps, {
+    const readModel = await timedStep('snapshot', () => buildRetrievalReadModel(services.repos, services.store), steps, {
       outputSize: (d) =>
-        (d as Awaited<ReturnType<typeof services.store.snapshot>>).skillArtifacts?.length ?? 0,
+        (d as Awaited<ReturnType<typeof buildRetrievalReadModel>>).skillArtifacts.length ?? 0,
     });
 
     const governanceFilters = {
@@ -380,7 +382,7 @@ export async function searchKnowledgeV2(
       isSystemAdmin: auth.subjectType === 'system-admin',
     };
 
-    const artifacts = data.skillArtifacts ?? [];
+    const artifacts = readModel.skillArtifacts;
 
     // Phase 5: Create coordinator with heuristic + keyword + semantic + graph channels.
     // Graph channel augments recall via skill artifact graph expansion (one-hop entity

@@ -174,6 +174,8 @@ flowchart TB
     Assembly --> Project
 ```
 
+> **Phase 2 更新**：检索管线从 `buildRetrievalReadModel()`（由 `repos.knowledge` 和 `repos.artifact` 支撑）读取知识条目和技能工件，不再依赖已弃用的 `store.snapshot()` 兼容数据。冲突关系暂时仍从 store snapshot 读取，待引入专用 ConflictRepository 后迁移。
+
 ### 检索查询流程（Mermaid）
 
 ```mermaid

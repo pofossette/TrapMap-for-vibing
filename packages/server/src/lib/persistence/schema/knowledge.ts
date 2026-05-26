@@ -210,6 +210,13 @@ export const knowledgeEntries = pgTable(
       maintainerLevel: number | null;
       reviewBy: string | null;
     } | null>(),
+    /** Cached embedding vector and metadata for semantic search */
+    embeddingCache: jsonb('embedding_cache').$type<{
+      textHash: string;
+      vector: number[];
+      createdAt: string;
+      revision: number;
+    } | null>(),
     /** Record creation timestamp */
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     /** Record update timestamp */

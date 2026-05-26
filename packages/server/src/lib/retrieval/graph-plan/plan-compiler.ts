@@ -39,6 +39,7 @@ import {
 import { InMemoryIntentCache } from '@trapmap/server/lib/retrieval/capsules/intent-cache.js';
 import { parseSeedIntentWithLLM } from '@trapmap/server/lib/retrieval/capsules/intent.js';
 import { filterEligibleEntries } from '@trapmap/server/lib/retrieval/orchestration/filters.js';
+import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 import type { CapsuleCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
@@ -77,10 +78,10 @@ export async function compileTrapFirstPlan(
   });
 
   // 2. Load store snapshot
-  const data = await services.store.snapshot();
+  const readModel = await buildRetrievalReadModel(services.repos, services.store);
 
   // 3. Get governed trap candidates (from knowledgeEntries)
-  const trapCandidates = filterEligibleEntries(data.knowledgeEntries ?? [], auth, {
+  const trapCandidates = filterEligibleEntries(readModel.knowledgeEntries, auth, {
     labels: [],
     scopes: [],
   });
@@ -91,7 +92,7 @@ export async function compileTrapFirstPlan(
     securityLevel: auth.securityLevel,
     isSystemAdmin: auth.subjectType === 'system-admin',
   };
-  const governedArtifacts = (data.skillArtifacts ?? []).filter((a) =>
+  const governedArtifacts = readModel.skillArtifacts.filter((a) =>
     isArtifactGovernanceEligible(a, governanceFilters),
   );
   const skillCandidates = rankCapsules(

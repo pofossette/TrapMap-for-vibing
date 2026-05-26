@@ -17,6 +17,7 @@ import type {
 import { skillLookupQuerySchema } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
+import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 import type { CapsuleCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import { isArtifactGovernanceEligible, rankCapsules } from './capsule-recall.js';
@@ -114,7 +115,7 @@ export async function searchSkillsByContent(
   });
 
   // Get current data snapshot
-  const data = await services.store.snapshot();
+  const readModel = await buildRetrievalReadModel(services.repos, services.store);
 
   // Build governance filters from auth context (T-14-04 pattern)
   const governanceFilters = {
@@ -124,7 +125,7 @@ export async function searchSkillsByContent(
   };
 
   // Get governed artifacts
-  const artifacts = data.skillArtifacts ?? [];
+  const artifacts = readModel.skillArtifacts;
 
   // Pre-filter artifacts by governance before capsule ranking
   const governedArtifacts = artifacts.filter((artifact) =>

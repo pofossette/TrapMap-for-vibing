@@ -84,6 +84,34 @@ describe('retrieval', () => {
           invoke: async () => '',
         },
       },
+      repos: {
+        knowledge: {
+          listByFilter: async () => {
+            const snapshot = await mockStore.snapshot();
+            return snapshot.knowledgeEntries;
+          },
+          getById: async (entryId: string) => {
+            const snapshot = await mockStore.snapshot();
+            return snapshot.knowledgeEntries.find((e) => e.id === entryId) ?? null;
+          },
+          updateEmbeddingCache: async (entryId: string, cache: { textHash: string; vector: number[]; createdAt: string; revision: number }) => {
+            await mockStore.transact((data) => {
+              const entry = data.knowledgeEntries.find((e) => e.id === entryId);
+              if (!entry) {
+                throw new Error(`Knowledge entry ${entryId} not found`);
+              }
+              entry.embeddingCache = cache;
+              entry.updatedAt = new Date().toISOString();
+            });
+          },
+        },
+        artifact: {
+          listByFilter: async () => {
+            const snapshot = await mockStore.snapshot();
+            return snapshot.skillArtifacts;
+          },
+        },
+      } as any,
     };
 
     teamId = 'team_1';

@@ -105,6 +105,14 @@ describe('skill-lookup helper', () => {
     mockServices = {
       store: mockStore,
       config: {},
+      repos: {
+        knowledge: {
+          listByFilter: async () => [],
+        },
+        artifact: {
+          listByFilter: async () => [],
+        },
+      },
       ai: {
         embeddings: {
           provider: 'fallback',
@@ -186,6 +194,7 @@ describe('skill-lookup helper', () => {
       ];
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
+      mockServices.repos = { knowledge: { listByFilter: async () => [] }, artifact: { listByFilter: async () => artifacts } } as any;
 
       const result = await searchSkillsByContent(mockServices as any, authContext, {
         text: 'container startup',
@@ -262,6 +271,7 @@ describe('skill-lookup helper', () => {
       ];
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
+      mockServices.repos = { knowledge: { listByFilter: async () => [] }, artifact: { listByFilter: async () => artifacts } } as any;
 
       const result = await searchSkillsByContent(mockServices as any, authContext, {
         text: 'knowledge tips',
@@ -345,6 +355,7 @@ describe('skill-lookup helper', () => {
       ];
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
+      mockServices.repos = { knowledge: { listByFilter: async () => [] }, artifact: { listByFilter: async () => artifacts } } as any;
 
       const result = await searchSkillsByContent(mockServices as any, adminAuth, {
         text: 'admin content',
@@ -420,6 +431,7 @@ describe('skill-lookup helper', () => {
       ];
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
+      mockServices.repos = { knowledge: { listByFilter: async () => [] }, artifact: { listByFilter: async () => artifacts } } as any;
 
       const result = await searchSkillsByContent(mockServices as any, authContext, {
         text: 'content',
@@ -492,6 +504,7 @@ describe('skill-lookup helper', () => {
       ];
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
+      mockServices.repos = { knowledge: { listByFilter: async () => [] }, artifact: { listByFilter: async () => artifacts } } as any;
 
       const result = await searchSkillsByContent(mockServices as any, authContext, {
         text: 'docker container',
@@ -549,6 +562,7 @@ describe('skill-lookup helper', () => {
       ];
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
+      mockServices.repos = { knowledge: { listByFilter: async () => [] }, artifact: { listByFilter: async () => artifacts } } as any;
 
       const result = await searchSkillsByContent(mockServices as any, authContext, {
         text: 'docker container startup',
@@ -600,6 +614,7 @@ describe('skill-lookup helper', () => {
       ];
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
+      mockServices.repos = { knowledge: { listByFilter: async () => [] }, artifact: { listByFilter: async () => artifacts } } as any;
 
       const result = await searchSkillsByContent(mockServices as any, authContext, {
         text: 'metadata test',
@@ -663,6 +678,7 @@ describe('skill-lookup helper', () => {
       }
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
+      mockServices.repos = { knowledge: { listByFilter: async () => [] }, artifact: { listByFilter: async () => artifacts } } as any;
 
       const result = await searchSkillsByContent(mockServices as any, authContext, {
         text: 'limit test',
@@ -674,6 +690,7 @@ describe('skill-lookup helper', () => {
 
     it('returns empty array when no artifacts match', async () => {
       mockStore.snapshot = async () => ({ skillArtifacts: [] });
+      mockServices.repos = { knowledge: { listByFilter: async () => [] }, artifact: { listByFilter: async () => [] } } as any;
 
       const result = await searchSkillsByContent(mockServices as any, authContext, {
         text: 'nonexistent content',
@@ -718,6 +735,7 @@ describe('skill-lookup helper', () => {
       ];
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
+      mockServices.repos = { knowledge: { listByFilter: async () => [] }, artifact: { listByFilter: async () => artifacts } } as any;
 
       const result = await searchSkillsByContent(mockServices as any, authContext, {
         text: 'other team content',
@@ -747,6 +765,7 @@ describe('skill-lookup helper', () => {
       ];
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
+      mockServices.repos = { knowledge: { listByFilter: async () => [] }, artifact: { listByFilter: async () => artifacts } } as any;
 
       const result = await searchSkillsByContent(mockServices as any, authContext, {
         text: 'legacy content',
@@ -775,6 +794,7 @@ describe('skill-lookup helper', () => {
       ];
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
+      mockServices.repos = { knowledge: { listByFilter: async () => [] }, artifact: { listByFilter: async () => artifacts } } as any;
 
       const result = await searchSkillsByContent(mockServices as any, authContext, {
         text: 'directory content',
@@ -794,6 +814,7 @@ describe('skill-lookup helper', () => {
       ];
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
+      mockServices.repos = { knowledge: { listByFilter: async () => [] }, artifact: { listByFilter: async () => artifacts } } as any;
 
       const result = await searchSkillsByContent(mockServices as any, authContext, {
         text: 'single content',

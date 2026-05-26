@@ -28,6 +28,7 @@ import {
   lifecycleEvents,
 } from '@trapmap/server/lib/persistence/schema.js';
 import type {
+  EmbeddingCacheRecord,
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
   KnowledgeRevisionRecord,
@@ -509,6 +510,41 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
       client.release();
     }
   }
+
+  /**
+   * Update the embedding cache for a knowledge entry with row-level locking.
+   * Persists the pre-computed embedding vector as JSONB in the embedding_cache column.
+   */
+  async updateEmbeddingCache(entryId: string, cache: EmbeddingCacheRecord): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Lock the row for update
+      const { rows } = await client.query<DrizzleKnowledgeEntryRow>(
+        'SELECT * FROM knowledge_entries WHERE id = $1 FOR UPDATE',
+        [entryId],
+      );
+
+      if (rows.length === 0) {
+        throw new Error(`Knowledge entry ${entryId} not found`);
+      }
+
+      const now = new Date().toISOString();
+
+      await client.query(
+        'UPDATE knowledge_entries SET embedding_cache = $1, updated_at = $2 WHERE id = $3',
+        [JSON.stringify(cache), now, entryId],
+      );
+
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
 }
 
 // =============================================================================
@@ -531,6 +567,7 @@ interface DrizzleKnowledgeEntryRow {
   owner_user_id: string;
   boundary: Boundary | null;
   maintenance_meta: MaintenanceMetaRecord | null;
+  embedding_cache: EmbeddingCacheRecord | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -643,7 +680,7 @@ function rowToKnowledgeEntry(row: DrizzleKnowledgeEntryRow): KnowledgeRecord {
     reviewHistory: [],
     reviewNotes: [],
     lifecycleHistory: [],
-    embeddingCache: null,
+    embeddingCache: row.embedding_cache ?? null,
     indexState: null,
   };
 }

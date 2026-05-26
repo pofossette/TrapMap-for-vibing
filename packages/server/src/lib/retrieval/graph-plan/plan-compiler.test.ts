@@ -337,6 +337,12 @@ function makeMockServices(storeData: Partial<StoreData> = {}): SkillShareerServi
           return data.graphIndexDocuments ?? [];
         },
       },
+      knowledge: {
+        listByFilter: async () => data.knowledgeEntries ?? [],
+      },
+      artifact: {
+        listByFilter: async () => data.skillArtifacts ?? [],
+      },
     } as any,
   };
 }

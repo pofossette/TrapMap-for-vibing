@@ -24,6 +24,7 @@ import {
 } from '@trapmap/server/lib/knowledge.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import type {
+  EmbeddingCacheRecord,
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
   KnowledgeRevisionRecord,
@@ -99,6 +100,16 @@ export interface KnowledgeRepository {
   updateGovernance(
     entryId: string,
     governance: { labels?: string[]; requiredLevel?: number },
+  ): Promise<void>;
+
+  /**
+   * Update the embedding cache for a knowledge entry.
+   * Persists the pre-computed embedding vector and associated metadata.
+   * Uses SELECT FOR UPDATE for row-level locking.
+   */
+  updateEmbeddingCache(
+    entryId: string,
+    cache: EmbeddingCacheRecord,
   ): Promise<void>;
 }
 
@@ -209,6 +220,17 @@ export class InMemoryKnowledgeRepository implements KnowledgeRepository {
       if (governance.requiredLevel !== undefined) {
         entry.requiredLevel = governance.requiredLevel;
       }
+      entry.updatedAt = new Date().toISOString();
+    });
+  }
+
+  async updateEmbeddingCache(entryId: string, cache: EmbeddingCacheRecord): Promise<void> {
+    await this.store.transact((data) => {
+      const entry = data.knowledgeEntries.find((e) => e.id === entryId);
+      if (!entry) {
+        throw new Error(`Knowledge entry ${entryId} not found`);
+      }
+      entry.embeddingCache = cache;
       entry.updatedAt = new Date().toISOString();
     });
   }
