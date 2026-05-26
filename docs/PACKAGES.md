@@ -1,6 +1,6 @@
 # TrapMap 包结构
 
-本文档说明 TrapMap 各包的职责、接口和关键类型。
+本文档说明 TrapMap 各包的职责、接口和关键类型。若你关心的是“为什么选这套技术栈”，请配合阅读 [PACKAGE_STACK_RATIONALE.md](PACKAGE_STACK_RATIONALE.md)。
 
 ## 包概览
 

@@ -20,6 +20,7 @@ TrapMap 有两类典型使用方式：
 | [docs/guides/GETTING_STARTED.md](docs/guides/GETTING_STARTED.md) | 本地开发环境搭建 |
 | [docs/guides/CODE_GUIDE.md](docs/guides/CODE_GUIDE.md) | 源码导读 |
 | [docs/PACKAGES.md](docs/PACKAGES.md) | 各包职责 |
+| [docs/PACKAGE_STACK_RATIONALE.md](docs/PACKAGE_STACK_RATIONALE.md) | 各包及主要子包的技术选型原因 |
 | [docs/reference/DATA_MODEL.md](docs/reference/DATA_MODEL.md) | 数据模型详解 |
 | [docs/architecture/](docs/architecture/) | 完整架构文档（API、CLI、部署、流程图等） |
 | [docs/reference/api-surface.md](docs/reference/api-surface.md) | v1 API 契约表面 |

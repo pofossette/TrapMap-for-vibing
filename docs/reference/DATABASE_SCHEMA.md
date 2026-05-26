@@ -133,6 +133,64 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 | `task_queue_pending_dequeue_idx` | 部分索引 | `(type, process_after, priority DESC, created_at ASC)` | `WHERE status = 'pending'` | 匹配 SKIP LOCKED 出队谓词 |
 | `task_queue_dedupe_pending_idx` | 唯一部分索引 | `(type, dedupe_key)` | `WHERE status IN ('pending', 'running')` | 防止同一实体重复排队 |
 
+## 核心表关系图
+
+> 为保持可读性，下图只展开主干外键关系与高价值结构化子表。`*_boundary_*`、`*_manifest_*`、`feedback_*`、`usage_*`、`task_queue`、`graph_index_documents` 等重复模式、派生表或非主干队列表未全部展开。
+
+```mermaid
+erDiagram
+    knowledge_entries ||--o{ knowledge_revisions : has
+    knowledge_entries ||--o{ lifecycle_events : records
+    knowledge_entries ||--o{ knowledge_labels : tags
+    knowledge_entries ||--o{ knowledge_boundary_contexts : scopes
+    knowledge_entries ||--o{ knowledge_boundary_versions : constrains
+    knowledge_entries ||--o{ knowledge_boundary_prerequisites : requires
+    knowledge_entries ||--o{ knowledge_boundary_signals : signals
+    knowledge_entries ||--o{ knowledge_boundary_exclusions : excludes
+    knowledge_entries ||--o{ knowledge_boundary_evidence : cites
+    knowledge_entries ||--o| knowledge_maintenance_assignments : assigns
+    knowledge_entries ||--o{ knowledge_embeddings : indexes
+    knowledge_entries ||--o{ knowledge_keywords : tokenizes
+    knowledge_entries ||--o{ knowledge_search_documents : searches
+
+    skill_artifacts ||--o{ artifact_revisions : has
+    skill_artifacts ||--o{ artifact_lifecycle_events : records
+    skill_artifacts ||--o| skill_artifact_metadata : describes
+    skill_artifacts ||--o| skill_artifact_agent_reviews : reviews
+    skill_artifacts ||--o| skill_artifact_maintenance_assignments : assigns
+    skill_artifacts ||--o{ skill_artifact_boundary_contexts : scopes
+    skill_artifacts ||--o{ skill_artifact_boundary_versions : constrains
+    skill_artifacts ||--o{ skill_artifact_boundary_prerequisites : requires
+    skill_artifacts ||--o{ skill_artifact_boundary_signals : signals
+    skill_artifacts ||--o{ skill_artifact_boundary_exclusions : excludes
+    skill_artifacts ||--o{ skill_artifact_boundary_evidence : cites
+    artifact_revisions ||--o{ skill_artifact_files : contains
+    artifact_revisions ||--o{ skill_artifact_script_descriptors : scripts
+    artifact_revisions ||--o| skill_artifact_profiles : derives
+    artifact_revisions ||--o{ skill_artifact_capsules : derives
+    artifact_revisions ||--o| skill_artifact_client_manifests : packages
+    skill_artifact_client_manifests ||--o{ skill_artifact_manifest_references : references
+    skill_artifact_client_manifests ||--o{ skill_artifact_manifest_assets : assets
+    skill_artifact_client_manifests ||--o{ skill_artifact_manifest_scripts : scripts
+    skill_artifact_capsules ||--o| skill_artifact_capsule_keywords : indexes
+    skill_artifact_capsules ||--o| skill_artifact_capsule_embeddings : embeds
+
+    candidates ||--o| candidate_analyses : analyzes
+    candidates ||--o{ candidate_duplicate_cases : flags
+    candidate_duplicate_cases ||--o{ candidate_duplicate_matches : matches
+    candidates ||--o| candidate_manual_results : reviews
+    candidates ||--o| candidate_resolution_outcomes : resolves
+    candidates ||--o{ entity_lineage : traces
+
+    users ||--o{ memberships : joins
+    teams ||--o{ memberships : contains
+    users ||--o{ sessions : opens
+    teams ||--o{ sessions : activates
+    memberships ||--o{ access_keys : grants
+    users ||--o{ access_keys : issues
+    teams ||--o{ access_keys : scopes
+```
+
 ## 核心表字段速查
 
 ### knowledge_entries
