@@ -629,7 +629,7 @@ Expected: only intended plan-following changes remain
 
 - [x] Phase 6: Propagate query filters through the v2 capsule retrieval path
 - [x] Phase 7: Lock the v2 filter fix into route, orchestrator, and smoke/core eval coverage
-- [ ] Phase 8: Stabilize v1 low-`maxResults` semantic ranking for the Docker core fixture
+- [x] Phase 8: Stabilize v1 low-`maxResults` semantic ranking for the Docker core fixture
 - [ ] Phase 9: Align eval baseline paths and advanced-runner documentation with actual CI behavior
 
 ## File Structure
@@ -967,17 +967,17 @@ const lexicalBoost = computeLexicalIntentBoost(seed, entry);
 const finalScore = Math.min(1, Math.max(0, score + lexicalBoost + boundaryDelta));
 ```
 
-- [ ] **Step 8.1: Add a small deterministic lexical-intent boost on top of semantic similarity**
+- [x] **Step 8.1: Add a small deterministic lexical-intent boost on top of semantic similarity**
 
 ```ts
 const lexicalBoost = computeLexicalIntentBoost(seed, entry);
 const finalScore = Math.min(1, Math.max(0, score + lexicalBoost + boundaryDelta));
 ```
 
-Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/semantic.test.ts`  
+Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/semantic.test.ts`
 Expected: FAIL until the new ranking expectation is encoded.
 
-- [ ] **Step 8.2: Add a regression test for the Docker top-1 ordering**
+- [x] **Step 8.2: Add a regression test for the Docker top-1 ordering**
 
 ```ts
 expect(scoredEntries.map((entry) => entry.entry.id)).toEqual([
@@ -987,7 +987,7 @@ expect(scoredEntries.map((entry) => entry.entry.id)).toEqual([
 ]);
 ```
 
-- [ ] **Step 8.3: Keep the eval case strict and document why it exists**
+- [x] **Step 8.3: Keep the eval case strict and document why it exists**
 
 ```ts
 expected: {
@@ -1005,12 +1005,12 @@ expected: {
 }
 ```
 
-- [ ] **Step 8.4: Run targeted tests and core retrieval eval**
+- [x] **Step 8.4: Run targeted tests and core retrieval eval**
 
-Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/semantic.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`  
+Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/semantic.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
 Expected: PASS
 
-Run: `rtk pnpm eval:retrieval:core`  
+Run: `rtk pnpm eval:retrieval:core`
 Expected: PASS with `v1-low-maxresults-core` green.
 
 ---
