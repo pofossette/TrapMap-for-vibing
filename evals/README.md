@@ -18,6 +18,12 @@ pnpm eval:all:json
 
 # 空跑验证，不执行
 pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
+
+# 带 JSON 输出到文件
+pnpm exec tsx evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json
+
+# CI 模式（通过 eval-ci 脚本，自动比较基线）
+rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
 ```
 
 为特定类型运行评测：

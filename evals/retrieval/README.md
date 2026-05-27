@@ -175,14 +175,19 @@ expected: {
 
 ### 基准运行命令
 
-```bash
-# 写入新基线
-pnpm eval:retrieval:smoke -- --baseline ./reports/baseline-v2-smoke.json --write-baseline
-pnpm eval:retrieval:core -- --baseline ./reports/baseline-v2-core.json --write-baseline
+CI 和本地统一使用 `reports/baselines/` 目录存储基线文件：
 
-# 与基线比较
-pnpm eval:retrieval:smoke -- --baseline ./reports/baseline-v2-smoke.json
-pnpm eval:retrieval:core -- --baseline ./reports/baseline-v2-core.json
+```bash
+# 写入新基线（通过 eval-ci）
+rtk env WRITE_BASELINE=true TIER=smoke pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+rtk env WRITE_BASELINE=true TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+
+# 与基线比较（通过 eval-ci）
+rtk env TIER=smoke pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+
+# 直接运行检索评测并写入基线（不经过 CI 运行器）
+pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --json --json-path ./reports/eval-report.json
 ```
 
 ## 指标（Phase 26）

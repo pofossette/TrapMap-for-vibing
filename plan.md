@@ -630,7 +630,7 @@ Expected: only intended plan-following changes remain
 - [x] Phase 6: Propagate query filters through the v2 capsule retrieval path
 - [x] Phase 7: Lock the v2 filter fix into route, orchestrator, and smoke/core eval coverage
 - [x] Phase 8: Stabilize v1 low-`maxResults` semantic ranking for the Docker core fixture
-- [ ] Phase 9: Align eval baseline paths and advanced-runner documentation with actual CI behavior
+- [x] Phase 9: Align eval baseline paths and advanced-runner documentation with actual CI behavior
 
 ## File Structure
 
@@ -1058,7 +1058,7 @@ rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier
 rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
 ```
 
-- [ ] **Step 9.1: Decide on one baseline location and make docs/tests point to it**
+- [x] **Step 9.1: Decide on one baseline location and make docs/tests point to it**
 
 ```md
 # 写入新基线
@@ -1068,14 +1068,14 @@ rtk env WRITE_BASELINE=true TIER=core pnpm exec tsx --tsconfig tsconfig.base.jso
 rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
 ```
 
-- [ ] **Step 9.2: Replace broken “script plus extra args” examples with direct runner invocations**
+- [x] **Step 9.2: Replace broken “script plus extra args” examples with direct runner invocations**
 
 ```md
 rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
 rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json
 ```
 
-- [ ] **Step 9.3: Add a note explaining pass/fail vs ranking metrics**
+- [x] **Step 9.3: Add a note explaining pass/fail vs ranking metrics**
 
 ```md
 - Retrieval case `passed` means outcome/governance assertions held.
@@ -1083,7 +1083,7 @@ rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier
 - Use baseline comparison or explicit metric review before treating a green smoke run as ranking-safe.
 ```
 
-- [ ] **Step 9.4: Run eval-ci verification and close the remediation plan**
+- [x] **Step 9.4: Run eval-ci verification and close the remediation plan**
 
 Run: `rtk pnpm test -- --run evals/scripts/__tests__/eval-ci.test.ts`  
 Expected: PASS
