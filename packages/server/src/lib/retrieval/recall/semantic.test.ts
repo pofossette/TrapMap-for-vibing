@@ -13,6 +13,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import {
   buildEmbeddingText,
+  computeLexicalIntentBoost,
   computeScore,
   cosineSimilarity,
   getBatchEmbeddings,
@@ -566,6 +567,63 @@ describe('semantic recall', () => {
 
       expect(scoredEntries).toEqual([]);
       expect(cacheStats.totalEntries).toBe(0);
+    });
+  });
+
+  describe('computeLexicalIntentBoost', () => {
+    it('returns 0 for empty query', () => {
+      const entry = createTestEntry({ shortcut: 'test', detail: 'test', labels: [] });
+      expect(computeLexicalIntentBoost('', entry)).toBe(0);
+    });
+
+    it('returns 0 when no tokens overlap', () => {
+      const entry = createTestEntry({
+        shortcut: 'Docker Networking Guide',
+        detail: 'Advanced networking concepts',
+        labels: ['networking'],
+      });
+      expect(computeLexicalIntentBoost('react hooks state', entry)).toBe(0);
+    });
+
+    it('returns positive boost for matching tokens', () => {
+      const entry = createTestEntry({
+        shortcut: 'Docker Compose Multi-Container',
+        detail: 'Deploy multiple containers with docker-compose. Use docker-compose.yml for orchestration.',
+        labels: ['docker', 'deployment', 'compose'],
+      });
+      const boost = computeLexicalIntentBoost('docker deployment orchestration', entry);
+      expect(boost).toBeGreaterThan(0);
+      expect(boost).toBeLessThanOrEqual(0.15);
+    });
+
+    it('caps boost at 0.15', () => {
+      const entry = createTestEntry({
+        shortcut: 'docker deployment orchestration compose containers',
+        detail: 'docker deployment orchestration compose containers',
+        labels: ['docker', 'deployment', 'orchestration', 'compose'],
+      });
+      const boost = computeLexicalIntentBoost('docker deployment orchestration', entry);
+      expect(boost).toBe(0.15);
+    });
+
+    it('gives higher boost to primary docker entry than networking entry', () => {
+      const primary = createTestEntry({
+        id: 'knowledge_core_docker_primary',
+        shortcut: 'Docker Compose Multi-Container',
+        detail: 'Deploy multiple containers with docker-compose. Use docker-compose.yml for orchestration. Configure networking and volumes.',
+        labels: ['docker', 'deployment', 'compose'],
+      });
+      const networking = createTestEntry({
+        id: 'knowledge_core_docker_networking',
+        shortcut: 'Docker Networking Guide',
+        detail: 'Advanced Docker networking concepts. Bridge, overlay, and host networks. Service discovery patterns.',
+        labels: ['docker', 'networking', 'advanced'],
+      });
+
+      const primaryBoost = computeLexicalIntentBoost('docker deployment orchestration', primary);
+      const networkingBoost = computeLexicalIntentBoost('docker deployment orchestration', networking);
+
+      expect(primaryBoost).toBeGreaterThan(networkingBoost);
     });
   });
 });

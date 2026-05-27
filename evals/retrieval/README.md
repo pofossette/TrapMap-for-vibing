@@ -74,6 +74,7 @@ pnpm eval:retrieval --tier smoke --endpoint /v2/retrieval/search
 | `v1-hybrid-ranked-core` | `/v1/retrieval/search` | 混合模式 |
 | `v1-graph-assisted-ranked-core` | `/v1/retrieval/search` | 图辅助模式 |
 | `v1-bucket-shape-core` | `/v1/retrieval/search` | 桶分割验证 |
+| `v1-low-maxresults-core` | `/v1/retrieval/search` | 低 maxResults 排名守卫（top-1 排序稳定性） |
 | `v2-capsule-ranked-core` | `/v2/retrieval/search` | 胶囊排序 |
 | `v2-profile-hints-core` | `/v2/retrieval/search` | 配置文件提示验证 |
 | `v2-governance-core` | `/v2/retrieval/search` | 禁止泄漏 |

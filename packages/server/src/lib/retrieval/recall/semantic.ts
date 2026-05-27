@@ -14,6 +14,7 @@
 import type { RetrievalQuery } from '@trapmap/contracts';
 import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
 import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/channel-registry.js';
+import { normalizeQuery } from '@trapmap/server/lib/retrieval/recall/keyword.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 /**
@@ -23,6 +24,28 @@ import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 export function buildEmbeddingText(entry: KnowledgeRecord): string {
   const labelsText = entry.labels.join(' ');
   return `${entry.shortcut}\n${entry.detail}\n${labelsText}`.trim();
+}
+
+/**
+ * Compute a small deterministic lexical-intent boost on top of semantic similarity.
+ * Rewards entries whose text tokens overlap with the query tokens.
+ *
+ * This helps stabilize top-1 ranking for low-maxResults cases where semantic
+ * similarity alone produces near-ties (e.g., the Docker core fixture).
+ *
+ * @returns Boost value in [0, 0.15], proportional to token overlap ratio.
+ */
+export function computeLexicalIntentBoost(seed: string, entry: KnowledgeRecord): number {
+  const queryTokens = normalizeQuery(seed);
+  if (queryTokens.length === 0) return 0;
+
+  const entryTokens = normalizeQuery(buildEmbeddingText(entry));
+  if (entryTokens.length === 0) return 0;
+
+  const overlapCount = queryTokens.filter((token) => entryTokens.includes(token)).length;
+  if (overlapCount === 0) return 0;
+
+  return Math.min(0.15, overlapCount / queryTokens.length / 5);
 }
 
 /**
@@ -57,12 +80,14 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 
 /**
  * Compute relevance score with metadata-aware boosts.
- * Base score is embedding similarity, boosted by exact label/scope matches.
+ * Base score is embedding similarity, boosted by exact label/scope matches
+ * and a small lexical-intent boost for token overlap.
  */
 export function computeScore(
   similarity: number,
   entry: KnowledgeRecord,
   filters: RetrievalQuery['filters'],
+  seed?: string,
 ): number {
   // Clamp similarity to [0, 1] range first
   let score = Math.max(0, Math.min(1, similarity));
@@ -77,6 +102,12 @@ export function computeScore(
   // Boost for exact scope match
   if (filters.scopes.length === 1 && filters.scopes[0] === entry.scope) {
     score = Math.min(1, score + 0.03);
+  }
+
+  // Lexical-intent boost for low-maxResults ranking stability
+  if (seed) {
+    const lexicalBoost = computeLexicalIntentBoost(seed, entry);
+    score = Math.min(1, score + lexicalBoost);
   }
 
   return score;
@@ -266,12 +297,14 @@ export async function getBatchEmbeddings(
  * @param queryVector - Pre-computed query embedding vector
  * @param entries - Eligible knowledge entries to search
  * @param filters - Query filters for score boosting
+ * @param seed - Original query text for lexical-intent boost (optional)
  * @returns Scored entries sorted by score descending, plus cache statistics
  */
 export async function optimizedSemanticRecall(
   queryVector: number[],
   entries: KnowledgeRecord[],
   filters: RetrievalQuery['filters'],
+  seed?: string,
 ): Promise<OptimizedSemanticRecallResult> {
   const { embeddings, stats } = await getBatchEmbeddings(entries);
 
@@ -285,7 +318,7 @@ export async function optimizedSemanticRecall(
     }
 
     const similarity = cosineSimilarity(queryVector, embeddingResult.vector);
-    const score = computeScore(similarity, entry, filters);
+    const score = computeScore(similarity, entry, filters, seed);
     scoredEntries.push({ entry, score });
   }
 
@@ -307,6 +340,7 @@ export const semanticChannel: RecallChannel = {
       queryVector,
       entries,
       undefined as unknown as RetrievalQuery['filters'],
+      queryText,
     );
     return scoredEntries.map(({ entry, score }) => ({
       entry,

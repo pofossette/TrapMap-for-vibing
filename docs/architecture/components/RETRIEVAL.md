@@ -798,6 +798,28 @@ function cosineSimilarity(a: number[], b: number[]): number {
 }
 ```
 
+### 词汇意图提升 (Lexical Intent Boost)
+
+v1 语义检索在语义相似度之上叠加一个小的确定性词汇意图提升。这解决了 `maxResults=1` 场景中语义相似度产生近似并列时的排名稳定性问题（例如 Docker 核心 fixture）。
+
+**算法**：
+```typescript
+function computeLexicalIntentBoost(seed: string, entry: KnowledgeRecord): number {
+  const queryTokens = normalizeQuery(seed);         // tokenize + filter len>=2
+  const entryTokens = normalizeQuery(buildEmbeddingText(entry));
+  const overlapCount = queryTokens.filter(t => entryTokens.includes(t)).length;
+  return Math.min(0.15, overlapCount / queryTokens.length / 5);
+}
+```
+
+**特性**：
+- 最大提升值 0.15，按 token 重叠比例缩放
+- 确定性：相同输入始终产生相同输出
+- 仅在查询和条目文本都有有效 token 时生效
+- 在 `computeScore()` 中，位于 label/scope boost 之后应用
+
+**典型效果**：查询 `docker deployment orchestration` 时，`knowledge_core_docker_primary`（包含 "deployment" 和 "orchestration"）获得比 `knowledge_core_docker_networking`（包含 "networking"）更高的词汇提升，确保 top-1 排名稳定。
+
 ### RRF (Reciprocal Rank Fusion)
 
 混合检索使用 RRF 融合多路检索结果：
