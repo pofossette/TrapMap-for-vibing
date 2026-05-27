@@ -10,7 +10,11 @@
 
 import type { ConflictRelation } from '@trapmap/contracts';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
-import type { KnowledgeRecord, SkillArtifactRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type {
+  KnowledgeRecord,
+  SkillArtifactRecord,
+  SkillShareerStore,
+} from '@trapmap/server/lib/store.js';
 
 /**
  * Assembled read model for retrieval flows.

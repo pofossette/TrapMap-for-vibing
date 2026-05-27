@@ -10,11 +10,8 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
+import { createKnowledgeRevision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
-import {
-  createKnowledgeRevision,
-  toKnowledgeEntry,
-} from '@trapmap/server/lib/knowledge.js';
 import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
 import {
   requireHigherLevel,
@@ -243,7 +240,9 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       updatedAt: submittedAt,
     };
 
-    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entryForResponse]);
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [
+      entryForResponse,
+    ]);
     const updatedEntry = toKnowledgeEntry(lookup, entryForResponse);
 
     // Post-commit: emit event for index refresh on approved entries

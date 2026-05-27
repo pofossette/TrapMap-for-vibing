@@ -13,9 +13,9 @@ import type { KnowledgeRecord, SkillShareerStore } from '@trapmap/server/lib/sto
 import { nowIso } from '@trapmap/server/lib/store.js';
 
 import {
-  createKnowledgeApplicationService,
   type KnowledgeApplicationService,
   type KnowledgeApplicationServiceDeps,
+  createKnowledgeApplicationService,
 } from './application-service.js';
 
 function makeEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord {
@@ -350,7 +350,7 @@ describe('KnowledgeApplicationService', () => {
       });
 
       (deps.store.transact as ReturnType<typeof vi.fn>).mockImplementation(
-        async (mutator: any) => {
+        async (_mutator: any) => {
           return supersededEntry;
         },
       );

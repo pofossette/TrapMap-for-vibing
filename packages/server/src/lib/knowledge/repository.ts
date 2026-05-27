@@ -107,10 +107,7 @@ export interface KnowledgeRepository {
    * Persists the pre-computed embedding vector and associated metadata.
    * Uses SELECT FOR UPDATE for row-level locking.
    */
-  updateEmbeddingCache(
-    entryId: string,
-    cache: EmbeddingCacheRecord,
-  ): Promise<void>;
+  updateEmbeddingCache(entryId: string, cache: EmbeddingCacheRecord): Promise<void>;
 }
 
 // Round 2: DualWriteKnowledgeRepository removed.

@@ -74,6 +74,8 @@ describe('CapsuleRecallCoordinator', () => {
       teamId: 'team_1',
       securityLevel: 5,
       isSystemAdmin: false,
+      scopes: [],
+      labels: [],
     };
   });
 

@@ -34,6 +34,7 @@ import {
   InMemoryIntentCache,
   parseSeedIntentWithLLM,
 } from '@trapmap/server/lib/retrieval/capsules/index.js';
+import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 import { buildEmbeddingText } from '@trapmap/server/lib/retrieval/recall/semantic.js';
 import {
   assembleResponseBuckets,
@@ -52,7 +53,6 @@ import {
   buildCapsuleSummary,
   buildSummary,
 } from '@trapmap/server/lib/retrieval/response/summary.js';
-import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 import type { ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord, StoreData } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -121,14 +121,20 @@ export async function searchKnowledge(
       steps,
     );
 
-    const readModel = await timedStep('snapshot', () => buildRetrievalReadModel(services.repos, services.store), steps, {
-      outputSize: (d) =>
-        (d as Awaited<ReturnType<typeof buildRetrievalReadModel>>).knowledgeEntries.length,
-    });
+    const readModel = await timedStep(
+      'snapshot',
+      () => buildRetrievalReadModel(services.repos, services.store),
+      steps,
+      {
+        outputSize: (d) =>
+          (d as Awaited<ReturnType<typeof buildRetrievalReadModel>>).knowledgeEntries.length,
+      },
+    );
 
     const eligibleEntries = await timedStep(
       'eligibility',
-      () => Promise.resolve(filterEligibleEntries(readModel.knowledgeEntries, auth, parsed.filters)),
+      () =>
+        Promise.resolve(filterEligibleEntries(readModel.knowledgeEntries, auth, parsed.filters)),
       steps,
       {
         inputSize: readModel.knowledgeEntries.length,
@@ -371,10 +377,15 @@ export async function searchKnowledgeV2(
       steps,
     );
 
-    const readModel = await timedStep('snapshot', () => buildRetrievalReadModel(services.repos, services.store), steps, {
-      outputSize: (d) =>
-        (d as Awaited<ReturnType<typeof buildRetrievalReadModel>>).skillArtifacts.length ?? 0,
-    });
+    const readModel = await timedStep(
+      'snapshot',
+      () => buildRetrievalReadModel(services.repos, services.store),
+      steps,
+      {
+        outputSize: (d) =>
+          (d as Awaited<ReturnType<typeof buildRetrievalReadModel>>).skillArtifacts.length ?? 0,
+      },
+    );
 
     const governanceFilters = {
       teamId: auth.activeTeamId,

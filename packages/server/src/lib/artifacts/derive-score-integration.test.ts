@@ -216,7 +216,13 @@ describe('derive → score integration (Phase D)', () => {
       parseMethod: 'regex',
     };
 
-    const filters = { teamId: null, securityLevel: 5, isSystemAdmin: false };
+    const filters = {
+      teamId: null,
+      securityLevel: 5,
+      isSystemAdmin: false,
+      scopes: [] as Array<'global' | 'project'>,
+      labels: [] as string[],
+    };
     const ranked = rankCapsules([enrichedArtifact, plainArtifact], intent, filters, 10);
 
     expect(ranked.length).toBe(2);
@@ -274,7 +280,13 @@ describe('derive → score integration (Phase D)', () => {
       semanticQuery: null,
       parseMethod: 'regex',
     };
-    const filters = { teamId: null, securityLevel: 5, isSystemAdmin: false };
+    const filters = {
+      teamId: null,
+      securityLevel: 5,
+      isSystemAdmin: false,
+      scopes: [] as Array<'global' | 'project'>,
+      labels: [] as string[],
+    };
 
     const ranked = rankCapsules([artifact], intent, filters, 10);
 
@@ -314,7 +326,13 @@ describe('derive → score integration (Phase D)', () => {
       semanticQuery: null,
       parseMethod: 'regex',
     };
-    const filters = { teamId: null, securityLevel: 5, isSystemAdmin: false };
+    const filters = {
+      teamId: null,
+      securityLevel: 5,
+      isSystemAdmin: false,
+      scopes: [] as Array<'global' | 'project'>,
+      labels: [] as string[],
+    };
 
     const ranked = rankCapsules([artifact], intent, filters, 10);
 

@@ -35,10 +35,10 @@
 
 ## Phase Tracker
 
-- [ ] Phase 1: Establish a canonical server data-access boundary
-- [ ] Phase 2: Fix auth, member, and access-key correctness across storage modes
-- [ ] Phase 3: Unify knowledge and trap workflows behind shared services
-- [ ] Phase 4: Move retrieval and planning flows off `store_snapshot`
+- [x] Phase 1: Establish a canonical server data-access boundary
+- [x] Phase 2: Fix auth, member, and access-key correctness across storage modes
+- [x] Phase 3: Unify knowledge and trap workflows behind shared services
+- [x] Phase 4: Move retrieval and planning flows off `store_snapshot`
 - [x] Phase 5: Shrink the compatibility surface and add structural guardrails
 
 ## File Structure
@@ -88,9 +88,9 @@
 
 ## Global Done Criteria
 
-- [ ] Every touched workflow has the same observable behavior in JSON mode and PG mode
-- [ ] New writes performed through routes used by production paths are readable by the next request without relying on `store_snapshot`
-- [ ] No route in the core path mixes `repos.*` writes with `store.snapshot()` reads of the same aggregate for correctness
+- [x] Every touched workflow has the same observable behavior in JSON mode and PG mode
+- [x] New writes performed through routes used by production paths are readable by the next request without relying on `store_snapshot`
+- [x] No route in the core path mixes `repos.*` writes with `store.snapshot()` reads of the same aggregate for correctness
 - [x] Phase-specific documentation is updated in the same change as the code
 - [x] Phase-specific tests and required eval commands are updated and run
 
@@ -147,7 +147,7 @@ export async function buildUserLookupContextForKnowledge(
 }
 ```
 
-- [ ] **Step 1.1: Add repository-friendly actor lookup primitives**
+- [x] **Step 1.1: Add repository-friendly actor lookup primitives**
 
 ```ts
 export interface UserRepository {
@@ -163,7 +163,7 @@ export interface MembershipRepository {
 Run: `rtk pnpm typecheck`  
 Expected: FAIL until implementations are added.
 
-- [ ] **Step 1.2: Implement `buildUserLookupContextForKnowledge()` and cover it with unit tests**
+- [x] **Step 1.2: Implement `buildUserLookupContextForKnowledge()` and cover it with unit tests**
 
 ```ts
 const context = await buildUserLookupContextForKnowledge(
@@ -177,7 +177,7 @@ const context = await buildUserLookupContextForKnowledge(
 expect(context.users).toEqual([{ id: 'user_1', handle: 'user-user_1' }]);
 ```
 
-- [ ] **Step 1.3: Replace route-level snapshot serialization calls in knowledge/trap reads with the new lookup path**
+- [x] **Step 1.3: Replace route-level snapshot serialization calls in knowledge/trap reads with the new lookup path**
 
 ```ts
 const lookup = await buildUserLookupContextForKnowledgeFromRepos(app.skillShareer.repos, [entry]);
@@ -186,7 +186,7 @@ return knowledgeEntryResponseSchema.parse({
 });
 ```
 
-- [ ] **Step 1.4: Update package/data-model documentation and rerun the targeted checks**
+- [x] **Step 1.4: Update package/data-model documentation and rerun the targeted checks**
 
 Run: `rtk pnpm test -- --run packages/server/src/lib/actors/lookup.test.ts packages/server/src/routes/knowledge.test.ts`  
 Expected: PASS
@@ -261,7 +261,7 @@ await repos.accessKey.insert({
 });
 ```
 
-- [ ] **Step 2.1: Add `nextId()` and any missing batch read helpers to auth/user/team repositories**
+- [x] **Step 2.1: Add `nextId()` and any missing batch read helpers to auth/user/team repositories**
 
 ```ts
 export class PgAccessKeyRepository implements AccessKeyRepository {
@@ -274,7 +274,7 @@ export class PgAccessKeyRepository implements AccessKeyRepository {
 }
 ```
 
-- [ ] **Step 2.2: Refactor `POST /v1/access-keys` to use `repos.membership` and `repos.accessKey` instead of `store.transact()`**
+- [x] **Step 2.2: Refactor `POST /v1/access-keys` to use `repos.membership` and `repos.accessKey` instead of `store.transact()`**
 
 ```ts
 const membership = await app.skillShareer.repos.membership.getById(payload.memberId);
@@ -282,7 +282,7 @@ const accessKeyId = await app.skillShareer.repos.accessKey.nextId();
 await app.skillShareer.repos.accessKey.insert(record);
 ```
 
-- [ ] **Step 2.3: Make `POST /v1/members` persist the caller-provided `securityLevel`**
+- [x] **Step 2.3: Make `POST /v1/members` persist the caller-provided `securityLevel`**
 
 ```ts
 const membership = {
@@ -298,7 +298,7 @@ const membership = {
 };
 ```
 
-- [ ] **Step 2.4: Add cross-mode route tests and run the auth/member regression suite**
+- [x] **Step 2.4: Add cross-mode route tests and run the auth/member regression suite**
 
 Run: `rtk pnpm test -- --run packages/server/src/routes/access-keys.test.ts packages/server/src/routes/auth.test.ts packages/server/src/routes/members.test.ts packages/server/src/__tests__/pg-first-compat.test.ts`  
 Expected: PASS
@@ -350,7 +350,7 @@ export interface KnowledgeApplicationService {
 export type EntryKind = 'knowledge' | 'trap';
 ```
 
-- [ ] **Step 3.1: Extract submit/resubmit/supersede workflows from routes into `application-service.ts`**
+- [x] **Step 3.1: Extract submit/resubmit/supersede workflows from routes into `application-service.ts`**
 
 ```ts
 const updated = await knowledgeApplicationService.resubmit({
@@ -361,7 +361,7 @@ const updated = await knowledgeApplicationService.resubmit({
 });
 ```
 
-- [ ] **Step 3.2: Update `knowledge.ts` and `traps.ts` to become thin HTTP layers**
+- [x] **Step 3.2: Update `knowledge.ts` and `traps.ts` to become thin HTTP layers**
 
 ```ts
 app.post('/v1/traps/:trapId/resubmit', async (request) => {
@@ -370,7 +370,7 @@ app.post('/v1/traps/:trapId/resubmit', async (request) => {
 });
 ```
 
-- [ ] **Step 3.3: Add tests that assert trap and knowledge paths persist the same aggregate fields**
+- [x] **Step 3.3: Add tests that assert trap and knowledge paths persist the same aggregate fields**
 
 ```ts
 expect(updated.lifecycleState).toBe('agent-pass');
@@ -378,7 +378,7 @@ expect(updated.latestSubmissionId).toBeDefined();
 expect(updated.history).toHaveLength(2);
 ```
 
-- [ ] **Step 3.4: Update architecture/code-guide docs and rerun the shared workflow suite**
+- [x] **Step 3.4: Update architecture/code-guide docs and rerun the shared workflow suite**
 
 Run: `rtk pnpm test -- --run packages/server/src/lib/knowledge/application-service.test.ts packages/server/src/routes/knowledge.test.ts packages/server/src/routes/traps.test.ts`  
 Expected: PASS
@@ -439,14 +439,14 @@ export async function buildRetrievalReadModel(
 }
 ```
 
-- [ ] **Step 4.1: Introduce a repository-backed retrieval read model**
+- [x] **Step 4.1: Introduce a repository-backed retrieval read model**
 
 ```ts
 const data = await buildRetrievalReadModel(services.repos);
 const eligibleEntries = filterEligibleEntries(data.knowledgeEntries, auth, parsed.filters);
 ```
 
-- [ ] **Step 4.2: Replace snapshot reads in orchestrator, skill lookup, and plan compiler**
+- [x] **Step 4.2: Replace snapshot reads in orchestrator, skill lookup, and plan compiler**
 
 ```ts
 const artifacts = data.skillArtifacts;
@@ -455,7 +455,7 @@ const governedArtifacts = artifacts.filter((artifact) =>
 );
 ```
 
-- [ ] **Step 4.3: Move embedding-cache updates behind repository-facing write methods**
+- [x] **Step 4.3: Move embedding-cache updates behind repository-facing write methods**
 
 ```ts
 await services.repos.knowledge.updateEmbeddingCache(entryId, {
@@ -466,7 +466,7 @@ await services.repos.knowledge.updateEmbeddingCache(entryId, {
 });
 ```
 
-- [ ] **Step 4.4: Run retrieval-focused tests and smoke evals**
+- [x] **Step 4.4: Run retrieval-focused tests and smoke evals**
 
 Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/read-model.test.ts packages/server/src/routes/retrieval.test.ts packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts`  
 Expected: PASS
@@ -572,14 +572,14 @@ Expected: only intended plan-following changes remain
 
 ## Self-Review Checklist
 
-- [ ] Every critical review finding maps to at least one phase in this plan
-- [ ] Each phase has:
-  - [ ] completion criteria
-  - [ ] documentation updates
-  - [ ] test / eval updates
-  - [ ] example structure or code
-- [ ] No phase depends on hand-waving about “clean up later”
-- [ ] The default implementation direction is conservative: reuse existing repositories and test patterns before adding new abstractions
+- [x] Every critical review finding maps to at least one phase in this plan
+- [x] Each phase has:
+  - [x] completion criteria
+  - [x] documentation updates
+  - [x] test / eval updates
+  - [x] example structure or code
+- [x] No phase depends on hand-waving about “clean up later”
+- [x] The default implementation direction is conservative: reuse existing repositories and test patterns before adding new abstractions
 
 ---
 
@@ -664,11 +664,11 @@ Expected: only intended plan-following changes remain
 
 ## Global Done Criteria
 
-- [ ] `filters.labels` and `filters.scopes` affect v2 capsules, `profileHints`, and summary citations/text in both memory and PG recall paths
-- [ ] `v2-label-filter-core` and `summary-core-label-filter` pass without weakening their expectations
-- [ ] `v1-low-maxresults-core` passes by improving ranking behavior, not by removing the assertion
-- [ ] smoke-tier regression coverage exists for v2 label filtering so the bug is caught before core
-- [ ] eval baseline comparison can discover the expected baseline file in CI and the docs show the same path/commands that CI uses
+- [x] `filters.labels` and `filters.scopes` affect v2 capsules, `profileHints`, and summary citations/text in both memory and PG recall paths
+- [x] `v2-label-filter-core` and `summary-core-label-filter` pass without weakening their expectations
+- [x] `v1-low-maxresults-core` passes by improving ranking behavior, not by removing the assertion
+- [x] smoke-tier regression coverage exists for v2 label filtering so the bug is caught before core
+- [x] eval baseline comparison can discover the expected baseline file in CI and the docs show the same path/commands that CI uses
 
 ---
 
@@ -730,7 +730,7 @@ function matchesArtifactMetadata(
 }
 ```
 
-- [ ] **Step 6.1: Extend the v2 filter object to carry query metadata filters**
+- [x] **Step 6.1: Extend the v2 filter object to carry query metadata filters**
 
 ```ts
 const governanceFilters = {
@@ -745,7 +745,7 @@ const governanceFilters = {
 Run: `rtk pnpm typecheck`  
 Expected: FAIL until all `ArtifactGovernanceFilters` call sites are updated.
 
-- [ ] **Step 6.2: Apply label/scope matching inside capsule extraction and profile shortlist assembly**
+- [x] **Step 6.2: Apply label/scope matching inside capsule extraction and profile shortlist assembly**
 
 ```ts
 for (const artifact of artifacts) {
@@ -757,7 +757,7 @@ for (const artifact of artifacts) {
 }
 ```
 
-- [ ] **Step 6.3: Preserve the same filter semantics in PG keyword/vector recall**
+- [x] **Step 6.3: Preserve the same filter semantics in PG keyword/vector recall**
 
 ```ts
 export interface PgCapsuleKeywordFilters {
@@ -791,7 +791,7 @@ const rows = await db
   );
 ```
 
-- [ ] **Step 6.4: Verify that mixed-label capsules no longer survive coordinator output**
+- [x] **Step 6.4: Verify that mixed-label capsules no longer survive coordinator output**
 
 Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`  
 Expected: PASS with filtered capsule sets only.
@@ -1098,8 +1098,8 @@ Expected: only intended remediation-plan and code/doc/test changes remain.
 
 ## Self-Review Checklist
 
-- [ ] The v2 label-filter root cause is addressed in both memory and PG recall paths
-- [ ] The summary regression is treated as a downstream symptom of unfiltered capsule output, not as an isolated judge issue
-- [ ] The v1 low-`maxResults` fix improves ranking deterministically instead of weakening the eval case
-- [ ] Smoke-tier coverage is added for every failure that previously required core-tier discovery
-- [ ] Baseline path and runner invocation examples are consistent across code and docs
+- [x] The v2 label-filter root cause is addressed in both memory and PG recall paths
+- [x] The summary regression is treated as a downstream symptom of unfiltered capsule output, not as an isolated judge issue
+- [x] The v1 low-`maxResults` fix improves ranking deterministically instead of weakening the eval case
+- [x] Smoke-tier coverage is added for every failure that previously required core-tier discovery
+- [x] Baseline path and runner invocation examples are consistent across code and docs

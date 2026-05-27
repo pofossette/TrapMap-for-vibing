@@ -769,7 +769,8 @@ export const smokeLabelFilterScenario = retrievalEvalScenarioSchema.parse({
             content:
               'Use Express.js middleware for request validation, logging, and error handling in REST APIs.',
             situation: 'Building a REST API with Node.js',
-            problem: 'Cross-cutting concerns like auth and logging are scattered across route handlers',
+            problem:
+              'Cross-cutting concerns like auth and logging are scattered across route handlers',
             goal: 'Centralize request processing with Express.js middleware chains',
             labels: ['nodejs', 'express', 'middleware'],
             scope: 'project',

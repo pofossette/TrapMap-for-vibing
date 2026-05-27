@@ -81,7 +81,7 @@ function stubSource(
         .map((id) => userMap.get(id))
         .filter((u): u is NonNullable<typeof u> => u !== undefined);
     },
-    async getMembershipLevels(pairs) {
+    async getMembershipLevels(_pairs) {
       return membershipMap ?? new Map();
     },
   };
@@ -319,17 +319,13 @@ describe('buildUserLookupContext', () => {
     const context = await buildUserLookupContext(source, record);
 
     expect(context.users).toEqual([{ id: 'user_1', handle: 'alice' }]);
-    expect(context.memberships).toEqual([
-      { userId: 'user_1', teamId: 'team_1', securityLevel: 7 },
-    ]);
+    expect(context.memberships).toEqual([{ userId: 'user_1', teamId: 'team_1', securityLevel: 7 }]);
   });
 
   it('returns empty memberships when teamId is null', async () => {
     const record = makeRecord({ teamId: null, ownerUserId: 'user_1' });
 
-    const source = stubSource(
-      new Map([['user_1', { id: 'user_1', handle: 'bob' }]]),
-    );
+    const source = stubSource(new Map([['user_1', { id: 'user_1', handle: 'bob' }]]));
 
     const context = await buildUserLookupContext(source, record);
 

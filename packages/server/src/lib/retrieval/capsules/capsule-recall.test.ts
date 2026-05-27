@@ -33,13 +33,15 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
   const otherTeamId = 'team_2';
   const createdAt = nowIso();
 
-  function makeFilters(overrides: {
-    teamId?: string | null;
-    securityLevel?: number;
-    isSystemAdmin?: boolean;
-    scopes?: Array<'global' | 'project'>;
-    labels?: string[];
-  } = {}) {
+  function makeFilters(
+    overrides: {
+      teamId?: string | null;
+      securityLevel?: number;
+      isSystemAdmin?: boolean;
+      scopes?: Array<'global' | 'project'>;
+      labels?: string[];
+    } = {},
+  ) {
     return {
       teamId: overrides.teamId ?? teamId,
       securityLevel: overrides.securityLevel ?? 5,
@@ -779,9 +781,9 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
 
   describe('matchesArtifactMetadata', () => {
     it('should return true when no scope or label filters are specified', () => {
-      expect(
-        matchesArtifactMetadata(approvedGlobalArtifact, { scopes: [], labels: [] }),
-      ).toBe(true);
+      expect(matchesArtifactMetadata(approvedGlobalArtifact, { scopes: [], labels: [] })).toBe(
+        true,
+      );
     });
 
     it('should return true when artifact scope is in requested scopes', () => {
@@ -810,17 +812,26 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
         matchesArtifactMetadata(approvedGlobalArtifact, { scopes: [], labels: ['nonexistent'] }),
       ).toBe(false);
       expect(
-        matchesArtifactMetadata(approvedGlobalArtifact, { scopes: [], labels: ['docker', 'nonexistent'] }),
+        matchesArtifactMetadata(approvedGlobalArtifact, {
+          scopes: [],
+          labels: ['docker', 'nonexistent'],
+        }),
       ).toBe(false);
     });
 
     it('should enforce AND semantics for labels', () => {
       // approvedTeamArtifact has labels ['typescript', 'null', 'strict']
       expect(
-        matchesArtifactMetadata(approvedTeamArtifact, { scopes: [], labels: ['typescript', 'null'] }),
+        matchesArtifactMetadata(approvedTeamArtifact, {
+          scopes: [],
+          labels: ['typescript', 'null'],
+        }),
       ).toBe(true);
       expect(
-        matchesArtifactMetadata(approvedTeamArtifact, { scopes: [], labels: ['typescript', 'docker'] }),
+        matchesArtifactMetadata(approvedTeamArtifact, {
+          scopes: [],
+          labels: ['typescript', 'docker'],
+        }),
       ).toBe(false);
     });
   });

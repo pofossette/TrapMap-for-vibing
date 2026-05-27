@@ -8,11 +8,7 @@
 
 import { z } from 'zod';
 
-import {
-  retrievalStrategySchema,
-  routeFamilySchema,
-  routingReasonSchema,
-} from '@trapmap/contracts/domain/retrieval.js';
+import { retrievalStrategySchema, routeFamilySchema, routingReasonSchema } from '../retrieval.js';
 import { retrievalEvalEndpointSchema, retrievalEvalTierSchema } from './retrieval.js';
 import { summaryEvalEndpointSchema, summaryEvalTierSchema } from './summary.js';
 

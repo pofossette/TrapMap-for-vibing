@@ -328,7 +328,12 @@ export async function computeSemanticCandidates(
   filters: RetrievalQuery['filters'],
 ): Promise<ReturnType<typeof createSemanticCandidate>[]> {
   const queryVector = await getQueryEmbedding(seed);
-  const { scoredEntries } = await optimizedSemanticRecall(queryVector, eligibleEntries, filters, seed);
+  const { scoredEntries } = await optimizedSemanticRecall(
+    queryVector,
+    eligibleEntries,
+    filters,
+    seed,
+  );
   const candidates = scoredEntries.map(({ entry, score }) => createSemanticCandidate(entry, score));
   candidates.sort((a, b) => b.score - a.score);
   return candidates;

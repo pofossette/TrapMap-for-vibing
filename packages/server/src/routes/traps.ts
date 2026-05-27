@@ -8,8 +8,8 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
 import { toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
+import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';

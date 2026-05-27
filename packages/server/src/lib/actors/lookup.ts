@@ -167,9 +167,7 @@ export function createActorLookupSource(repos: {
 }): ActorLookupSource {
   return {
     async getUsersByIds(userIds) {
-      const users = await Promise.all(
-        userIds.map((id) => repos.user.getById(id)),
-      );
+      const users = await Promise.all(userIds.map((id) => repos.user.getById(id)));
       return users
         .filter((u): u is NonNullable<typeof u> => u !== null)
         .map((u) => ({ id: u.id, handle: u.handle }));

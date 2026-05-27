@@ -588,7 +588,8 @@ describe('semantic recall', () => {
     it('returns positive boost for matching tokens', () => {
       const entry = createTestEntry({
         shortcut: 'Docker Compose Multi-Container',
-        detail: 'Deploy multiple containers with docker-compose. Use docker-compose.yml for orchestration.',
+        detail:
+          'Deploy multiple containers with docker-compose. Use docker-compose.yml for orchestration.',
         labels: ['docker', 'deployment', 'compose'],
       });
       const boost = computeLexicalIntentBoost('docker deployment orchestration', entry);
@@ -610,18 +611,23 @@ describe('semantic recall', () => {
       const primary = createTestEntry({
         id: 'knowledge_core_docker_primary',
         shortcut: 'Docker Compose Multi-Container',
-        detail: 'Deploy multiple containers with docker-compose. Use docker-compose.yml for orchestration. Configure networking and volumes.',
+        detail:
+          'Deploy multiple containers with docker-compose. Use docker-compose.yml for orchestration. Configure networking and volumes.',
         labels: ['docker', 'deployment', 'compose'],
       });
       const networking = createTestEntry({
         id: 'knowledge_core_docker_networking',
         shortcut: 'Docker Networking Guide',
-        detail: 'Advanced Docker networking concepts. Bridge, overlay, and host networks. Service discovery patterns.',
+        detail:
+          'Advanced Docker networking concepts. Bridge, overlay, and host networks. Service discovery patterns.',
         labels: ['docker', 'networking', 'advanced'],
       });
 
       const primaryBoost = computeLexicalIntentBoost('docker deployment orchestration', primary);
-      const networkingBoost = computeLexicalIntentBoost('docker deployment orchestration', networking);
+      const networkingBoost = computeLexicalIntentBoost(
+        'docker deployment orchestration',
+        networking,
+      );
 
       expect(primaryBoost).toBeGreaterThan(networkingBoost);
     });

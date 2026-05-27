@@ -45,7 +45,11 @@ describe('docs truth smoke', () => {
       for (const pathMatch of lineMatches) {
         const relPath = pathMatch[1];
         const absPath = resolve(ROOT, relPath);
-        expect(existsSync(absPath), `truth source path should exist: ${relPath}`).toBe(true);
+        const serverRelativePath = resolve(ROOT, 'packages/server/src', relPath);
+        expect(
+          existsSync(absPath) || existsSync(serverRelativePath),
+          `truth source path should exist: ${relPath}`,
+        ).toBe(true);
       }
     }
   });

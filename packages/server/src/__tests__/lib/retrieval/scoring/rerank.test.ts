@@ -19,6 +19,8 @@ function makeFilters(
     teamId: null,
     securityLevel: 0,
     isSystemAdmin: true,
+    scopes: [],
+    labels: [],
     ...overrides,
   };
 }

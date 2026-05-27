@@ -9,8 +9,8 @@
  */
 
 import { and, sql } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
 import {
@@ -79,9 +79,8 @@ export function createPgCapsuleVectorRecall(config: PgCapsuleVectorConfig) {
 
     // When labels are requested, join with keywords table to filter by tokenized labels.
     // This ensures the vector recall path applies the same label constraints as keyword recall.
-    const labelTokens = filters.labels.length > 0
-      ? filters.labels.flatMap((label) => normalizeQuery(label))
-      : [];
+    const labelTokens =
+      filters.labels.length > 0 ? filters.labels.flatMap((label) => normalizeQuery(label)) : [];
     const needsLabelJoin = labelTokens.length > 0;
     if (needsLabelJoin) {
       const labelArray = labelTokens.map((t) => `'${t}'`).join(',');

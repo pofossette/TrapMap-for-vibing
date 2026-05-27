@@ -819,9 +819,7 @@ describe('searchKnowledgeV2 - label filtering regression', () => {
       mergeStats: { totalChannelCandidates: 1, preMergeCount: 1, postMergeCount: 1 },
     });
 
-    vi.mocked(CapsuleRecallCoordinator).mockImplementation(
-      () => ({ execute: mockExecute }) as any,
-    );
+    vi.mocked(CapsuleRecallCoordinator).mockImplementation(() => ({ execute: mockExecute }) as any);
 
     // Configure getCapsuleRecords to return only the node capsule
     const nodeArtifact = {
@@ -982,9 +980,7 @@ describe('searchKnowledgeV2 - label filtering regression', () => {
       mergeStats: { totalChannelCandidates: 1, preMergeCount: 1, postMergeCount: 1 },
     });
 
-    vi.mocked(CapsuleRecallCoordinator).mockImplementation(
-      () => ({ execute: mockExecute }) as any,
-    );
+    vi.mocked(CapsuleRecallCoordinator).mockImplementation(() => ({ execute: mockExecute }) as any);
 
     // getCapsuleRecords returns only node capsule (Flask was filtered by governance)
     vi.mocked(getCapsuleRecords).mockReturnValue([
@@ -1031,14 +1027,12 @@ describe('searchKnowledgeV2 - label filtering regression', () => {
     vi.mocked(buildProfileShortlist).mockReturnValue([]);
     vi.mocked(buildCapsuleCitations).mockReturnValue([]);
     vi.mocked(buildCapsuleSummary).mockReturnValue(null);
-    vi.mocked(buildV2RetrievalResponse).mockImplementation(
-      (capsules, profileHints, summary) => ({
-        capsules,
-        profileHints,
-        refinementSummary: null,
-        summary: summary ?? null,
-      }),
-    );
+    vi.mocked(buildV2RetrievalResponse).mockImplementation((capsules, profileHints, summary) => ({
+      capsules,
+      profileHints,
+      refinementSummary: null,
+      summary: summary ?? null,
+    }));
 
     const services = createMockServices();
     const auth = createMockAuth();

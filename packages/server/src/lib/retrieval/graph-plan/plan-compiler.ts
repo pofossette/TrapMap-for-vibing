@@ -24,7 +24,6 @@ import type {
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
-import type { ArtifactGovernanceFilters } from '@trapmap/server/lib/retrieval/types.js';
 import type {
   Graph,
   GraphRuntimeSnapshot,
@@ -41,6 +40,7 @@ import { InMemoryIntentCache } from '@trapmap/server/lib/retrieval/capsules/inte
 import { parseSeedIntentWithLLM } from '@trapmap/server/lib/retrieval/capsules/intent.js';
 import { filterEligibleEntries } from '@trapmap/server/lib/retrieval/orchestration/filters.js';
 import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
+import type { ArtifactGovernanceFilters } from '@trapmap/server/lib/retrieval/types.js';
 import type { CapsuleCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 

@@ -15,17 +15,17 @@ import type {
   KnowledgeSubmission,
 } from '@trapmap/contracts';
 
-import type { ChatProvider } from '../ai/types.js';
-import { supersedeEntry } from '../decay/supersede.js';
-import { AppError } from '../errors.js';
-import type { KnowledgeRepository } from './repository.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import { supersedeEntry } from '@trapmap/server/lib/decay/supersede.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   createKnowledgeEntryRecord,
   createKnowledgeRevision,
-} from '../knowledge.js';
-import { runPreReview } from '../pre-review.js';
-import type { KnowledgeRecord, SkillShareerStore } from '../store.js';
-import { nowIso } from '../store.js';
+} from '@trapmap/server/lib/knowledge.js';
+import { runPreReview } from '@trapmap/server/lib/pre-review.js';
+import type { KnowledgeRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import type { KnowledgeRepository } from './repository.js';
 
 // ---------------------------------------------------------------------------
 // Types

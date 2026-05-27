@@ -94,7 +94,10 @@ describe('retrieval', () => {
             const snapshot = await mockStore.snapshot();
             return snapshot.knowledgeEntries.find((e) => e.id === entryId) ?? null;
           },
-          updateEmbeddingCache: async (entryId: string, cache: { textHash: string; vector: number[]; createdAt: string; revision: number }) => {
+          updateEmbeddingCache: async (
+            entryId: string,
+            cache: { textHash: string; vector: number[]; createdAt: string; revision: number },
+          ) => {
             await mockStore.transact((data) => {
               const entry = data.knowledgeEntries.find((e) => e.id === entryId);
               if (!entry) {

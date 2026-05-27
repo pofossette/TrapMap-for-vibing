@@ -312,7 +312,7 @@ describe('trap routes', () => {
 
       // Get the other user's session token
       const data = await store.snapshot();
-      const otherSession = data.sessions.find((s) => s.userId === 'user_trap_other');
+      const _otherSession = data.sessions.find((s) => s.userId === 'user_trap_other');
       // We need to use the token, not the hash. Use the original token we set.
       // Since we can't recover the token from the hash, let's create a new session directly.
 

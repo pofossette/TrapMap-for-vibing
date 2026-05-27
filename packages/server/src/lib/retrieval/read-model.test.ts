@@ -11,7 +11,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { ConflictRelation } from '@trapmap/contracts';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
-import type { KnowledgeRecord, SkillArtifactRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type {
+  KnowledgeRecord,
+  SkillArtifactRecord,
+  SkillShareerStore,
+} from '@trapmap/server/lib/store.js';
 
 import { buildRetrievalReadModel } from './read-model.js';
 
@@ -207,10 +211,7 @@ describe('buildRetrievalReadModel', () => {
   });
 
   it('returns conflicts from the store snapshot', async () => {
-    const conflicts = [
-      makeConflict('c_1', 'k_1', 'k_2'),
-      makeConflict('c_2', 'k_3', 'k_4'),
-    ];
+    const conflicts = [makeConflict('c_1', 'k_1', 'k_2'), makeConflict('c_2', 'k_3', 'k_4')];
     const repos = createMockRepos();
     const store = createMockStore(conflicts);
 
@@ -300,9 +301,7 @@ describe('buildRetrievalReadModel', () => {
 
     // All three should have been called.
     expect(callOrder).toHaveLength(3);
-    expect(callOrder).toEqual(
-      expect.arrayContaining(['knowledge', 'artifact', 'snapshot']),
-    );
+    expect(callOrder).toEqual(expect.arrayContaining(['knowledge', 'artifact', 'snapshot']));
   });
 
   it('returns empty arrays when repositories return empty results', async () => {

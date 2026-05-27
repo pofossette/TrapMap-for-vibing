@@ -18,6 +18,7 @@ import type { LifecycleState } from '@trapmap/contracts';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
+import type { ArtifactRepository } from '@trapmap/server/lib/artifacts/repository.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import { skillArtifacts } from '@trapmap/server/lib/persistence/schema.js';
 import type {
@@ -25,7 +26,6 @@ import type {
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
 } from '@trapmap/server/lib/store.js';
-import type { ArtifactRepository } from '@trapmap/server/lib/artifacts/repository.js';
 
 import {
   insertArtifactBoundarySubTables,
