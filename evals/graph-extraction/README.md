@@ -54,7 +54,11 @@ pnpm eval:graph-extraction --smoke
 
 ## Fixtures
 
-Fixtures are in `fixtures.ts` (22 entries — 17 hand-crafted + 5 real-skill derived — covering):
+Fixtures are split across two files:
+- `fixtures.ts` — 17 hand-crafted entries covering core extraction patterns
+- `fixtures-real.ts` — 19 real-skill derived entries from actual SKILL.md content
+
+Combined coverage includes:
 - Simple tool/cue/mitigation extraction
 - Complex multi-entity entries
 - Negation sentences (should NOT extract negated entities)

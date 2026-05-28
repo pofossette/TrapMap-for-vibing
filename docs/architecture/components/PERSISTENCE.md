@@ -249,7 +249,7 @@ async function restore(): Promise<void> {
 
 ### Drizzle Schema
 
-> **完整 schema 定义**: `packages/server/src/lib/persistence/schema/` (按领域拆分，共 56 张表)
+> **完整 schema 定义**: `packages/server/src/lib/persistence/schema/` (按领域拆分，共 57 张表)
 > **快速参考**: `docs/reference/DATABASE_SCHEMA.md`
 
 Schema 按业务域组织为六大模块：

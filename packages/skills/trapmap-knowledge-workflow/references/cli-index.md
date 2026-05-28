@@ -9,8 +9,8 @@
 ## 1. 会话与环境
 
 ```bash
-trapmap login <user> <password>                        # 用户名密码登录
 trapmap login --access-key <key>                       # 访问密钥登录
+trapmap login --system-admin-key <key>                 # 系统管理员密钥登录
 trapmap logout                                         # 登出
 trapmap session --json                                 # 查看当前会话（认证预检）
 trapmap about                                          # 项目信息
@@ -31,15 +31,15 @@ trapmap output profile set --tool claude-code           # 设置工具配置
 
 ```bash
 # 技能内容检索（规划前，先技能后规划）
-trapmap skill search-by-content "<seed>" --limit 5 --json
+trapmap skill search-by-content "<seed>" --max-results 5 --json
 
 # 陷阱+知识检索（实现前，先实现后检索）
-trapmap search "<seed>" --mode semantic|hybrid|graph-assisted --limit 5 --json
-trapmap search "<seed>" --v2 --limit 5 --json          # 胶囊原生检索
+trapmap search "<seed>" --mode semantic|hybrid|graph-assisted --max-results 5 --json
+trapmap search "<seed>" --v2 --max-results 5 --json          # 胶囊原生检索
 
 # v3 图检索-精简代理上下文（预格式化 Markdown）
 trapmap load "<seed>" --json
-  # 可选标志：--label <l> --skill-budget <n> --max-depth <n> --fallback --stdin
+  # 可选标志：--scope global|project --label <l> --skill-budget <n> --max-depth <n> --fallback <mode> --stdin
 ```
 
 ---
@@ -51,6 +51,7 @@ trapmap trap submit --scope global|project --label <l> --shortcut <text> [--deta
 trapmap trap resubmit <id> --label <l> --shortcut <text> [--json]
 trapmap trap list --json                               # 列出自己提交的陷阱
 trapmap trap show <id> --json                          # 查看陷阱详情
+trapmap supersede <id> --replacement <newId> --json    # 用新条目替代旧条目
 
 trapmap import --file <path> --level <n> --json        # 导入技能目录或 SKILL.md
 trapmap edit <id> --shortcut <t> --labels <l> --json   # 编辑已有条目
@@ -130,7 +131,7 @@ trapmap maintenance-verify --entries <ids> [--extend-days 90] --json
 ## 8. 技能管理
 
 ```bash
-trapmap skill search-by-content "<query>" [--limit 10] --json
+trapmap skill search-by-content "<query>" [--max-results 10] --json
 trapmap skill edit <artifactId> [--title <t>] [--labels <l>] [--file <p>] --json
 trapmap skill history <artifactId> --json              # 版本历史
 ```
@@ -142,9 +143,8 @@ trapmap skill history <artifactId> --json              # 版本历史
 ## 9. 运维与管理
 
 ```bash
-trapmap list [--scope global|project] [--state <s>] [--max-level <n>] --json
-trapmap knowledge inspect <id> --json                  # 查看条目详情
-trapmap knowledge list [--state <s>] [--mine] --json   # 列出知识条目
+trapmap list [--scope global|project] [--state <s>] [--max-level <n>] [--owner <uid>] --json
+trapmap review-status [<id>] --json                    # 查看条目详情或提交历史
 trapmap status [--team <id>] --json                    # 迁移兼容性状态
 trapmap migrate --all-approved [--limit 50] --json     # 遗留知识迁移
 trapmap audit [--limit <n>] [--json]                   # 审计日志
@@ -153,7 +153,8 @@ trapmap evidence:update <id> --level anecdotal|reproduced|documented|verified-in
   --type internal-experience|incident|doc|code|external-reference [--ref <r>] --json
 trapmap admin:evidence [--level <l>|--missing] --json   # 按 evidence 状态列出
 
-trapmap access-key create --name <n> [--expires <d>] --json  # 创建访问密钥
+trapmap access-key:create <memberId> --team <teamId> [--note <t>] --json  # 创建访问密钥
 trapmap team create|list|select                          # 团队管理
 trapmap member create|update                             # 成员管理
+trapmap policy resolve --default-policy <p> [--override-policy <p>] --json  # 策略解析
 ```

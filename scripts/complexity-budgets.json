@@ -31,8 +31,8 @@
     },
     {
       "file": "docs/reference/DATABASE_SCHEMA.md",
-      "mustContain": ["56 张表"],
-      "mustNotContain": ["48 张表", "54 张表"]
+      "mustContain": ["57 张表"],
+      "mustNotContain": ["48 张表", "54 张表", "56 张表"]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
@@ -41,8 +41,8 @@
     },
     {
       "file": "docs/architecture/components/PERSISTENCE.md",
-      "mustContain": ["56 张表", ".data/skill-shareer.json"],
-      "mustNotContain": ["48 张表"]
+      "mustContain": ["57 张表", ".data/skill-shareer.json"],
+      "mustNotContain": ["48 张表", "56 张表"]
     },
     {
       "file": "docs/guides/CONTRIBUTING.md",
@@ -84,6 +84,15 @@
       "file": "docs/architecture/components/EVALUATION.md",
       "mustContain": ["datasets/", "scenarios/"],
       "mustNotContain": ["cases/"]
+    },
+    {
+      "file": "docs/architecture/components/ASYNC_INFRASTRUCTURE.md",
+      "mustNotContain": ["DualWriteKnowledgeRepository", "DualWriteArtifactRepository"]
+    },
+    {
+      "file": "docs/architecture/components/ARTIFACTS.md",
+      "mustContain": ["agent-pass", "SkillArtifactRecord"],
+      "mustNotContain": ["interface SkillArtifact {"]
     }
   ],
   "lineBudgets": [

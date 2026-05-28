@@ -38,116 +38,132 @@ flowchart TB
 
 ### SkillArtifact (技能工件)
 
-技能的 immutable 版本，包含源文件：
+技能的不可变修订版本聚合，包含源文件元数据和派生产物。使用修订历史（`history`）管理版本，而非单一 `version` 字段：
 
 ```typescript
-interface SkillArtifact {
-  id: EntityId;
-  name: string;
-  version: string;  // Semantic version
-  sourceFiles: SourceFile[];
-  
-  // Derived outputs (populated after derivation)
-  profile?: SkillProfile;
-  capsules?: SkillCapsule[];
-  clientManifest?: ClientManifest;
-  
-  // Governance
-  scope: 'global' | 'project' | 'team';
-  requiredLevel: SecurityLevel;
-  
-  // Metadata
+// 实际定义见 store/types 中的 SkillArtifactRecord
+interface SkillArtifactRecord {
+  id: string;
+  teamId: string | null;
+  scope: 'global' | 'project';
+  labels: string[];
+  title: string;
+  slug: string;
+  requiredLevel: number;
+  lifecycleState: LifecycleState;  // 复用知识条目的生命周期状态枚举
+  ownerUserId: string;
+  latestRevision: SkillArtifactRevisionRecord;
+  history: SkillArtifactRevisionRecord[];  // 所有修订版本
+  metadata: SkillArtifactMetadataRecord;
+  agentReview: AgentReviewRecord;
+  reviewHistory: SkillArtifactReviewDecisionRecord[];
+  reviewNotes: SkillArtifactReviewNoteRecord[];
+  lifecycleHistory: SkillArtifactLifecycleEventRecord[];
+  decayMeta: unknown | null;
+  evidenceMeta: unknown | null;
+  maintenanceMeta: unknown | null;
+  boundary: unknown | null;
   createdAt: string;
-  createdBy: ActorRef;
-  lineage: ArtifactLineage;
-  
-  // Status
-  status: 'draft' | 'derived' | 'published' | 'deprecated';
+  updatedAt: string;
 }
 
-interface SourceFile {
-  path: string;
-  content: string;
-  language?: string;
-  size: number;
-}
-
-interface ArtifactLineage {
-  parentId?: EntityId;      // Parent artifact (if version update)
-  rootId: EntityId;          // Root artifact
-  versionCount: number;      // Total versions
+// 修订版本记录（包含派生产物）
+interface SkillArtifactRevisionRecord {
+  revision: number;
+  sourceHash: string;
+  files: Array<{
+    path: string;
+    kind: 'skill-markdown' | 'reference' | 'asset' | 'script';
+    sha256: string;
+    sizeBytes: number;
+    mediaType: string;
+    source: string;
+    includeInDerivation: boolean;
+    activationOnly: boolean;
+  }>;
+  submittedAt: string;
+  submittedByUserId: string;
+  scriptDescriptors: ScriptDescriptor[];
+  derived: {
+    profile: DerivedProfile | null;
+    capsules: DerivedCapsule[];
+    clientManifest: DerivedClientManifest | null;
+    sourceHash: string;
+    derivedAt: string;
+  } | null;
 }
 ```
 
 ### SkillProfile (配置文件)
 
-工件的压缩文本表示，用于快速摘要：
+工件的压缩文本表示，用于快速摘要。派生时存储在修订版本的 `derived.profile` 字段中：
 
 ```typescript
-interface SkillProfile {
-  id: EntityId;
-  artifactId: EntityId;
-  distilledText: string;  // AI-generated summary
+// 实际类型见 store 中的 DerivedSkillProfileRecord
+interface DerivedSkillProfileRecord {
+  artifactId: string;
+  revision: number;
+  sourceHash: string;
+  title: string;
+  summary: string;
   keywords: string[];
-  extractedAt: string;
+  referencePaths: string[];
+  contentHash: string;
 }
 ```
 
 ### SkillCapsule (技能胶囊)
 
-可操作的知识单元：
+可操作的知识单元。派生时存储在修订版本的 `derived.capsules` 数组中：
 
 ```typescript
-interface SkillCapsule {
-  id: EntityId;
-  artifactId: EntityId;
-  name: string;
-  content: string;  // Distilled, actionable content
-
-  // Contextual prefix for retrieval (Contextual Enrichment)
-  contextualPrefix?: string;  // LLM-generated, max 300 chars
-
-  // Activation hint (Phase 15)
-  activationHint?: string;
-  
-  // Governance
-  governanceInherited: boolean;
-  
-  // Indexing
-  indexedAt?: string;
-  embeddingVector?: number[];
+// 实际类型见 store 中的 DerivedSkillCapsuleRecord
+interface DerivedSkillCapsuleRecord {
+  capsuleId: string;
+  artifactId: string;
+  revision: number;
+  sourcePaths: string[];
+  content: string;           // 精炼的可操作内容
+  situation: string;         // 场景描述
+  problem: string;           // 问题描述
+  goal: string;              // 目标描述
+  errorText: string | null;  // 错误文本
+  labels: string[];
+  scope: 'global' | 'project';
+  requiredLevel: number;
 }
 ```
 
 ### ClientManifest (客户端清单)
 
-供客户端使用的元数据：
+供客户端使用的激活元数据。派生时存储在修订版本的 `derived.clientManifest` 字段中：
 
 ```typescript
-interface ClientManifest {
-  id: EntityId;
-  artifactId: EntityId;
-  metadata: {
-    name: string;
-    version: string;
-    description: string;
-    capabilities: string[];
-    requirements: string[];
-    inputs: ParameterDefinition[];
-    outputs: ParameterDefinition[];
-  };
-  compatibility?: {
-    minTrapMapVersion?: string;
-    requiredScopes?: string[];
-  };
-}
-
-interface ParameterDefinition {
-  name: string;
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
-  description: string;
-  required: boolean;
-  default?: unknown;
+// 实际类型见 store 中的 ClientManifestRecord
+interface ClientManifestRecord {
+  artifactId: string;
+  revision: number;
+  references: Array<{
+    path: string;
+    sha256: string;
+    sizeBytes: number;
+    mediaType: string;
+  }>;
+  assets: Array<{
+    path: string;
+    sha256: string;
+    sizeBytes: number;
+    mediaType: string;
+  }>;
+  scripts: Array<{
+    path: string;
+    sha256: string;
+    capability: string;
+    argsSchemaSummary: string;
+    sideEffectSummary: string;
+    defaultPolicy: StoredScriptActivationPolicy;
+  }>;
+  sourceHash: string;
 }
 ```
 
@@ -161,17 +177,17 @@ interface ParameterDefinition {
 flowchart TB
     subgraph 创建工件["创建工件"]
         A1["POST /v1/operations/artifacts"]
-        A2["1. 用户上传源文件\n2. 系统创建草稿工件\n3. 用户可预览和编辑\n4. 用户触发派生"]
-    end
-
-    subgraph 派生输出["派生输出"]
-        B1["POST /v1/operations/artifacts/:id/derive"]
-        B2["1. 生成 SkillProfile（摘要）\n2. 提取 SkillCapsules（分块）\n3. 生成 ClientManifest（元数据）\n4. 索引胶囊（向量与关键词）\n5. 更新工件状态 → 'derived'"]
+        A2["1. 用户上传源文件\n2. Agent 预审（agent-pass/agent-rejected）\n3. 进入人工审核队列"]
     end
 
     subgraph 审核发布["审核与发布"]
         C1["POST /v1/operations/artifacts/:id/review"]
-        C2["1. 审核者检查配置文件与胶囊\n2. 批准或请求修改\n3. 批准后：状态 → 'published'\n4. 工件变为可搜索"]
+        C2["1. 审核者检查工件\n2. 批准或拒绝\n3. 批准后：状态 → 'approved'"]
+    end
+
+    subgraph 派生输出["派生输出"]
+        B1["POST /v1/operations/artifacts/:id/derive"]
+        B2["1. 生成 SkillProfile（摘要）\n2. 提取 SkillCapsules（分块）\n3. 生成 ClientManifest（元数据）\n4. 索引胶囊（向量与关键词）"]
     end
 
     subgraph 计划使用["在 TrapFirstPlan 中使用"]
@@ -192,32 +208,29 @@ flowchart TB
 ```mermaid
 flowchart TB
     A[创建工件] --> B[上传源文件]
-    B --> C[状态: draft]
-    C --> D[触发派生]
-    D --> E[状态: deriving]
+    B --> C[Agent 预审]
+    C --> D{预审结果}
+    D -->|agent-pass| E[状态: agent-pass]
+    D -->|agent-rejected| F[状态: agent-rejected]
     
-    E --> F[生成 SkillProfile]
-    E --> G[提取 SkillCapsules]
-    E --> H[生成 ClientManifest]
+    E --> G[人工审核队列]
+    G --> H{审核决策}
     
-    F --> I[派生完成]
-    G --> I
-    H --> I
+    H -->|approved| I[状态: approved]
+    H -->|rejected| J[状态: rejected]
     
-    I --> J[状态: derived]
-    J --> K[提交审核]
-    K --> L{审核决策}
+    I --> K[触发派生]
+    K --> L[生成 Profile + Capsules + ClientManifest]
+    L --> M[索引胶囊]
     
-    L -->|批准| M[状态: published]
-    L -->|拒绝| N[状态: draft]
+    M --> N[版本更新]
+    N --> O[appendSkillArtifactRevision]
+    O --> C
     
-    M --> O[可被检索]
-    O --> P[版本更新]
-    P --> Q[创建新工件]
-    Q --> R[设置 parentId]
-    R --> B
+    J --> P[修改后重新提交]
+    P --> C
     
-    N --> B
+    F --> P
 ```
 
 #### 创建工件流程
@@ -233,13 +246,13 @@ flowchart TB
     F --> G[验证源文件]
     G --> H{源文件有效}
     H -->|否| I[400 错误请求]
-    H -->|是| J[创建工件]
+    H -->|是| J[createSkillArtifactRecord]
     
-    J --> K[生成 EntityId]
-    K --> L[设置状态: draft]
-    L --> M[记录创建者和时间]
-    M --> N[初始化 lineage]
-    N --> O[返回工件 ID]
+    J --> K[生成 Artifact ID]
+    K --> L[Agent 预审]
+    L --> M[设置 lifecycleState]
+    M --> N[记录创建者和时间]
+    N --> O[返回工件]
 ```
 
 #### 派生过程
@@ -252,28 +265,23 @@ flowchart TB
     D -->|不存在| E[404 未找到]
     D -->|存在| F{检查状态}
     
-    F -->|非 draft| G[400 状态错误]
-    F -->|draft| H[开始派生]
+    F -->|非 approved| G[400 状态错误]
+    F -->|approved| H[开始派生]
     
-    H --> I[更新状态: deriving]
-    I --> J[生成 SkillProfile]
-    I --> K[提取 SkillCapsules]
-    I --> L[生成 ClientManifest]
+    H --> I[生成 SkillProfile]
+    H --> J[提取 SkillCapsules]
+    H --> K[生成 ClientManifest]
     
-    J --> M[AI 摘要生成]
-    K --> N[AI 胶囊提取]
-    L --> O[AI 元数据分析]
+    I --> L[AI 摘要生成]
+    J --> M[AI 胶囊提取]
+    K --> N[AI 元数据分析]
     
-    M --> P[保存 Profile]
-    N --> Q[保存 Capsules]
-    O --> R[保存 Manifest]
+    L --> O[applyDerivedArtifactOutputs]
+    M --> O
+    N --> O
     
-    P --> S[索引 Capsules]
-    Q --> S
-    R --> S
-    
-    S --> T[更新状态: derived]
-    T --> U[返回派生结果]
+    O --> P[索引 Capsules]
+    P --> Q[返回派生结果]
 ```
 
 #### 审核和发布流程
@@ -289,12 +297,12 @@ flowchart TB
     F -->|不存在| G[404 未找到]
     F -->|存在| H{检查状态}
     
-    H -->|非 derived| I[400 状态错误]
-    H -->|derived| J[应用审核决策]
+    H -->|非 agent-pass| I[400 状态错误]
+    H -->|agent-pass| J[应用审核决策]
     
     J --> K{决策类型}
-    K -->|approve| L[状态: published]
-    K -->|reject| M[状态: draft]
+    K -->|approve| L[状态: approved]
+    K -->|reject| M[状态: rejected]
     
     L --> N[记录审核历史]
     M --> N
@@ -308,20 +316,18 @@ flowchart TB
 ```mermaid
 flowchart TB
     A[版本更新请求] --> B[查找当前工件]
-    B --> C[创建新工件]
-    C --> D[设置 parentId]
-    D --> E[复制 lineage.rootId]
-    E --> F[递增 versionCount]
-    F --> G[上传新源文件]
-    G --> H[触发派生]
-    H --> I[审核新工件]
-    I --> J{审核通过}
+    B --> C[appendSkillArtifactRevision]
+    C --> D[Agent 预审新修订]
+    D --> E{预审结果}
+    E -->|agent-pass| F[人工审核]
+    E -->|agent-rejected| G[修改后重新提交]
+    F --> H{审核通过}
     
-    J -->|是| K[状态: published]
-    J -->|否| L[状态: draft]
+    H -->|approved| I[状态: approved]
+    H -->|rejected| J[状态: rejected]
     
-    K --> M[弃用旧工件]
-    M --> N[状态: deprecated]
+    I --> K[触发派生]
+    K --> L[索引新胶囊]
 ```
 
 ---
@@ -330,11 +336,14 @@ flowchart TB
 
 | 端点 | 方法 | 描述 | 权限 |
 |------|------|------|------|
-| `/v1/operations/artifacts` | POST | 创建工件 | knowledge:submit |
-| `/v1/operations/artifacts/:id` | GET | 获取工件详情 | knowledge:search |
-| `/v1/operations/artifacts/:id/derive` | POST | 触发派生 | knowledge:submit |
-| `/v1/operations/artifacts/:id/review` | POST | 审核工件 | knowledge:review |
-| `/v1/operations/artifacts/:id/history` | GET | 获取工件历史 | knowledge:search |
+| `/v1/operations/artifacts/review-queue` | GET | 查看审核队列 | knowledge:review |
+| `/v1/operations/artifacts/:artifactId/review` | POST | 审核工件 | knowledge:review |
+| `/v1/operations/artifacts/:artifactId/edit` | POST | 编辑工件 | knowledge:submit |
+| `/v1/operations/artifacts/:artifactId/history` | GET | 获取工件历史 | knowledge:search |
+| `/v1/operations/artifacts/activate` | POST | 激活工件 | knowledge:export |
+| `/v1/operations/artifacts/:artifactId/deactivate` | POST | 停用工件 | knowledge:update |
+| `/v1/operations/artifacts/export` | POST | 导出工件 | knowledge:export |
+| `/v1/operations/artifacts/import` | POST | 导入工件 | knowledge:import |
 | `/v1/retrieval/skills/search-by-content` | POST | 搜索胶囊 | knowledge:search |
 
 ---
@@ -359,10 +368,12 @@ type ArtifactAuditEvent =
 ### 配置文件派生
 
 ```typescript
-async function deriveProfile(
-  artifact: SkillArtifact,
-  ai: AIProvider
-): Promise<SkillProfile> {
+// artifacts/derive.ts — buildSkillProfile()
+// 实际函数名为 buildSkillProfile，此处为概念性伪代码
+async function buildSkillProfile(
+  artifact: SkillArtifactRecord,
+  revision: SkillArtifactRevisionRecord
+): Promise<DerivedSkillProfileRecord> {
   // Combine all source files
   const combinedContent = artifact.sourceFiles
     .map(f => `// ${f.path}\n${f.content}`)
@@ -402,11 +413,12 @@ async function deriveProfile(
 ### 胶囊提取
 
 ```typescript
-async function extractCapsules(
-  artifact: SkillArtifact,
-  ai: AIProvider,
-  options: { maxCapsules?: number; chunkSize?: number } = {}
-): Promise<SkillCapsule[]> {
+// artifacts/derive.ts — buildSkillCapsules()
+// 实际函数名为 buildSkillCapsules，此处为概念性伪代码
+async function buildSkillCapsules(
+  artifact: SkillArtifactRecord,
+  revision: SkillArtifactRevisionRecord
+): Promise<DerivedSkillCapsuleRecord[]> {
   const capsules: SkillCapsule[] = [];
   
   for (const sourceFile of artifact.sourceFiles) {
@@ -490,10 +502,12 @@ function splitIntoChunks(content: string, maxSize: number): Array<{ content: str
 ### 清单生成
 
 ```typescript
-async function generateManifest(
-  artifact: SkillArtifact,
-  ai: AIProvider
-): Promise<ClientManifest> {
+// artifacts/derive.ts — buildClientManifest()
+// 实际函数名为 buildClientManifest，此处为概念性伪代码
+async function buildClientManifest(
+  artifact: SkillArtifactRecord,
+  revision: SkillArtifactRevisionRecord
+): Promise<ClientManifestRecord> {
   const sourceContent = artifact.sourceFiles
     .map(f => f.content)
     .join('\n');
@@ -602,68 +616,28 @@ interface EnrichmentMetrics {
 派生产物自动继承治理属性：
 
 ```typescript
-interface GovernanceInheritance {
-  scope: artifact.scope;
-  requiredLevel: artifact.requiredLevel;
-}
-
-function inheritGovernance(
-  artifact: SkillArtifact
-): GovernanceInheritance {
-  return {
-    scope: artifact.scope,
-    requiredLevel: artifact.requiredLevel
-  };
-}
-
-// Applied during extraction
-const capsule: SkillCapsule = {
+// 治理继承在 deriveSkillArtifactOutputs() 中实现
+// 每个派生 Capsule 继承 artifact 的 scope 和 requiredLevel
+const capsule: DerivedSkillCapsuleRecord = {
   // ...
-  governanceInherited: true,
-  // Actual governance comes from parent artifact
-  // No separate requiredLevel - derived from artifact
+  scope: artifact.scope,
+  requiredLevel: artifact.requiredLevel,
 };
 ```
 
 ---
 
-## API 端点
+## API 端点详情
 
-### 创建工件
+### 编辑工件
 
 ```bash
-POST /v1/operations/artifacts
-Content-Type: multipart/form-data
-
-# Or JSON:
-{
-  "name": "OAuth2 Implementation",
-  "version": "1.0.0",
-  "sourceFiles": [
-    { "path": "src/auth.ts", "content": "..." }
-  ],
-  "scope": "global",
-  "requiredLevel": 2
-}
+POST /v1/operations/artifacts/:artifactId/edit
 ```
 
-### 派生
+### 获取历史
 
 ```bash
-POST /v1/operations/artifacts/:artifactId/derive
-{
-  "outputs": ["profile", "capsules", "manifest"],
-  "options": {
-    "maxCapsules": 10,
-    "chunkSize": 2000
-  }
-}
-```
-
-### 获取详情
-
-```bash
-GET /v1/operations/artifacts/:artifactId
 GET /v1/operations/artifacts/:artifactId/history
 ```
 
@@ -720,53 +694,31 @@ interface CapsuleRetrievalResponse {
 
 ## 存储
 
-### PostgreSQL Schema
+### PostgreSQL 表
+
+工件通过 `PgArtifactRepository`（`artifacts/pg-repository/index.ts`）持久化到 PostgreSQL，使用原始 SQL 查询（非 Drizzle ORM）。主要表：
+
+| 表名 | 用途 |
+|------|------|
+| `skill_artifacts` | 工件主表（id, team_id, scope, labels, title, slug, required_level, lifecycle_state, owner_user_id, latest_revision, metadata, agent_review, review_history, review_notes, lifecycle_history, decay_meta, evidence_meta, maintenance_meta, boundary, created_at, updated_at） |
+| `skill_artifact_revisions` | 修订版本表（revision, source_hash, files, submitted_at, submitted_by_user_id, script_descriptors, derived） |
+| `skill_artifact_maintenance_assignments` | 维护分配表 |
+
+### 仓库接口
 
 ```typescript
-// Artifacts table
-export const artifacts = pgTable('skill_artifacts', {
-  id: uuid('id').primaryKey(),
-  name: text('name').notNull(),
-  version: text('version').notNull(),
-  sourceFiles: jsonb('source_files').notNull(),
-  
-  // Derived outputs
-  profileId: uuid('profile_id').references(() => profiles.id),
-  capsules: jsonb('capsules').default([]),
-  manifestId: uuid('manifest_id').references(() => manifests.id),
-  
-  // Governance
-  scope: text('scope').notNull(),
-  requiredLevel: integer('required_level').notNull(),
-  
-  // Metadata
-  createdAt: timestamp('created_at').notNull(),
-  createdBy: jsonb('created_by').notNull(),
-  lineage: jsonb('lineage').notNull(),
-  
-  // Status
-  status: text('status').notNull().default('draft')
-});
-
-export const profiles = pgTable('skill_profiles', {
-  id: uuid('id').primaryKey(),
-  artifactId: uuid('artifact_id').references(() => artifacts.id),
-  distilledText: text('distilled_text').notNull(),
-  keywords: text('keywords').array().notNull(),
-  extractedAt: timestamp('extracted_at').notNull()
-});
-
-export const capsuleVectors = pgTable('capsule_vectors', {
-  capsuleId: uuid('capsule_id').primaryKey(),
-  artifactId: uuid('artifact_id').references(() => artifacts.id),
-  embeddingVector: vector('embedding_vector', { dimensions: 1536 }).notNull(),
-  indexedAt: timestamp('indexed_at').notNull()
-});
-
-export const manifests = pgTable('client_manifests', {
-  id: uuid('id').primaryKey(),
-  artifactId: uuid('artifact_id').references(() => artifacts.id),
-  metadata: jsonb('metadata').notNull(),
-  compatibility: jsonb('compatibility')
-});
+// artifacts/repository.ts
+interface ArtifactRepository {
+  nextId(): Promise<string>;
+  insert(artifact: SkillArtifactRecord): Promise<void>;
+  getById(artifactId: string): Promise<SkillArtifactRecord | null>;
+  updateLifecycle(artifactId: string, newState: LifecycleState, context): Promise<void>;
+  appendRevision(artifactId: string, revision: SkillArtifactRevisionRecord): Promise<void>;
+  updateRevisionDerived(artifactId: string, revision: number, derived): Promise<void>;
+  appendLifecycleEvent(artifactId: string, event): Promise<void>;
+  listByFilter(filter): Promise<SkillArtifactRecord[]>;
+  updateGovernance(artifactId: string, governance): Promise<void>;
+}
 ```
+
+工厂函数 `createArtifactRepository()` 按是否有 PG pool 选择 `PgArtifactRepository` 或 `InMemoryArtifactRepository`。

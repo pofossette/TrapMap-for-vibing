@@ -81,49 +81,56 @@ trapmap login --server https://new-server.example.com --access-key <key>
 
 ### 用户模型
 
+身份域拆分为三个结构化表（`users`、`memberships`、`access_keys`），不再使用单一 `Member` 聚合：
+
 ```typescript
-interface Member {
-  id: EntityId;
-  username: string;
-  passwordHash: string;   // 存储于服务端，CLI 不使用密码登录
-  roleName: string;
-  level: SecurityLevel;   // 0-10
-  teamId?: EntityId;
+// store/types/system-records.ts
+interface UserRecord {
+  id: string;
+  handle: string;           // 用户标识（非 username）
+  notes: string | null;
   createdAt: string;
+  updatedAt: string;
+}
+
+interface MembershipRecord {
+  id: string;
+  userId: string;
+  teamId: string;
+  roleTemplate: RoleTemplate;   // 来自 @trapmap/contracts
+  securityLevel: number;        // 0-10
+  permissions: Permission[];    // 来自 @trapmap/contracts
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 
-> `passwordHash` 字段存在于数据库模型中，但 **CLI 不提供密码登录路径**。该字段保留供未来可能的 Web UI 使用。
+> 用户本身不持有密码哈希或角色名。角色和权限按团队成员关系（`MembershipRecord`）独立管理，同一用户在不同团队可拥有不同角色和安全等级。
 
-### 角色权限映射
+### 角色与权限
 
-```typescript
-const ROLES = {
-  viewer:       { permissions: ['knowledge:search', 'team:list'], level: 0 },
-  contributor:  { permissions: ['knowledge:submit', 'knowledge:search', 'team:list'], level: 1 },
-  reviewer:     { permissions: ['knowledge:submit', 'knowledge:search', 'knowledge:review', 'team:list', 'team:select'], level: 5 },
-  admin:        { permissions: '*', level: 10 },
-};
-```
+角色通过 `RoleTemplate`（来自 `@trapmap/contracts`）定义，按成员关系分配。权限检查基于 `ResolvedAuthContext.effectivePermissions` 数组，而非全局角色常量。详见 [治理模型](GOVERNANCE.md)。
 
 ---
 
 ## 会话模型
 
 ```typescript
-interface Session {
-  id: EntityId;           // UUID v4
-  userId: EntityId;
-  createdAt: string;      // ISO 8601
-  expiresAt: string;      // ISO 8601
-  lastActivityAt: string;
-  accessKeyId?: EntityId; // 关联的访问密钥
+// store/types/system-records.ts
+interface SessionRecord {
+  id: string;
+  subjectType: 'user' | 'system-admin';  // 区分用户会话和管理员会话
+  userId: string | null;                   // system-admin 会话为 null
+  activeTeamId: string | null;             // 当前活跃团队
+  tokenHash: string;                       // SHA-256 哈希后的令牌
+  expiresAt: string | null;                // null = 不过期
+  createdAt: string;
+  updatedAt: string;
 }
-
-const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;  // 7 days
 ```
 
-会话由服务端在密钥登录成功后创建，`sessionToken` 返回给 CLI 存储于 `~/.trapmap/cli.json`。
+会话由服务端在密钥登录成功后创建，`sessionToken` 返回给 CLI 存储于 `~/.trapmap/cli.json`。CLI 通过 `POST /v1/teams/select` 切换活跃团队。
 
 ---
 
@@ -132,23 +139,27 @@ const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;  // 7 days
 ### 密钥模型
 
 ```typescript
-interface AccessKey {
-  id: EntityId;
-  name: string;
-  keyHash: string;          // SHA-256 哈希，不明文存储
-  createdBy: { actorId: EntityId; actorName: string };
+// store/types/system-records.ts
+interface AccessKeyRecord {
+  id: string;
+  memberId: string;          // 关联的成员 ID
+  tokenHash: string;         // SHA-256 哈希，不明文存储
+  tokenPreview: string;      // 令牌前缀（用于展示）
+  issuedByUserId: string;    // 签发者用户 ID
+  teamId: string;            // 所属团队
+  level: number;             // 安全等级
+  notes: string | null;
+  revokedAt: string | null;  // null = 未吊销
   createdAt: string;
-  expiresAt: string | null; // null = 永不过期
-  permissions: Permission[];
-  level: number;
+  updatedAt: string;
 }
 ```
 
 ### 密钥创建
 
 ```bash
-# 管理员为用户创建密钥
-pnpm --filter @trapmap/cli dev -- member key:create <username> --name "CI Pipeline" --days 90
+# 管理员为成员创建密钥
+trapmap member key:create --help
 ```
 
 密钥明文仅显示一次，需立即保存。

@@ -85,50 +85,23 @@ type Permission =
 
 ### 角色定义
 
-```typescript
-interface Role {
-  name: string;
-  permissions: Permission[];
-  level: SecurityLevel;  // 角色对应的安全等级
-}
+角色通过 `RoleTemplate`（来自 `@trapmap/contracts`）定义，按成员关系（`MembershipRecord`）分配。同一用户在不同团队可拥有不同角色和安全等级。
 
-// 预定义角色
-const ROLES: Record<string, Role> = {
-  viewer: {
-    name: 'viewer',
-    permissions: ['knowledge:search', 'team:list'],
-    level: 0
-  },
-  
-  contributor: {
-    name: 'contributor',
-    permissions: ['knowledge:submit', 'knowledge:search', 'team:list'],
-    level: 1
-  },
-  
-  reviewer: {
-    name: 'reviewer',
-    permissions: [
-      'knowledge:submit', 'knowledge:search', 'knowledge:review',
-      'team:list', 'team:select'
-    ],
-    level: 5
-  },
-  
-  admin: {
-    name: 'admin',
-    permissions: [
-      'knowledge:submit', 'knowledge:search', 'knowledge:review',
-      'knowledge:update', 'knowledge:import', 'knowledge:export',
-      'audit:read',
-      'team:create', 'team:list', 'team:select',
-      'member:create', 'member:update', 'member:key:create',
-      'artifacts:read', 'artifacts:write', 'artifacts:review', 'artifacts:derive'
-    ],
-    level: 10
-  }
-};
+```typescript
+// @trapmap/contracts 中定义的 RoleTemplate 类型
+type RoleTemplate = string;  // 如 'viewer', 'contributor', 'reviewer', 'admin'
+
+// 每个 MembershipRecord 携带独立的 permissions 和 securityLevel
+interface MembershipRecord {
+  userId: string;
+  teamId: string;
+  roleTemplate: RoleTemplate;
+  securityLevel: number;  // 0-10
+  permissions: Permission[];
+}
 ```
+
+权限检查基于 `ResolvedAuthContext.effectivePermissions` 数组，而非全局角色常量映射。
 
 ### 权限检查流程
 
@@ -179,43 +152,45 @@ Operations 命令组使用独立标志：`allowList`、`allowActivate`、`allowS
 
 ### 实现
 
+权限检查通过 `governance/permissions.ts` 中的辅助函数实现，基于 `ResolvedAuthContext`：
+
 ```typescript
-interface PermissionCheck {
-  userId: EntityId;
-  permission: Permission;
-  resourceId?: EntityId;
-  resourceLevel?: SecurityLevel;
+// governance/permissions.ts
+function hasPermission(auth: ResolvedAuthContext, permission: Permission): boolean {
+  return auth.effectivePermissions.includes(permission);
 }
 
-async function checkPermission(check: PermissionCheck): Promise<boolean> {
-  const { userId, permission, resourceId, resourceLevel } = check;
-  
-  // 1. Load user
-  const user = await store.getUser(userId);
-  if (!user) return false;
-  
-  // 2. Get user's role
-  const role = ROLES[user.roleName];
-  if (!role) return false;
-  
-  // 3. Check permission
-  if (!role.permissions.includes(permission)) {
-    return false;
+function requirePermission(auth: ResolvedAuthContext, permission: Permission): void {
+  if (!hasPermission(auth, permission)) {
+    throw new AppError(403, 'forbidden', `Missing required permission: ${permission}`);
   }
-  
-  // 4. Check security level (if resource has level)
-  if (resourceLevel !== undefined) {
-    if (role.level < resourceLevel) {
-      return false;
-    }
+}
+
+function requireTeamAccess(auth: ResolvedAuthContext, teamId: string): void {
+  if (auth.subjectType === 'system-admin') return;
+  if (auth.activeTeamId !== teamId) {
+    throw new AppError(403, 'team_mismatch', 'Active session is not scoped to the requested team');
   }
-  
-  // 5. For team-scoped operations, check team membership
-  if (check.teamId) {
-    const isMember = await store.isTeamMember(check.teamId, userId);
-    if (!isMember) return false;
-  }
-  
+}
+
+function extractGovernanceContext(auth: ResolvedAuthContext): GovernanceContext {
+  return {
+    teamId: auth.activeTeamId,
+    securityLevel: auth.securityLevel,
+    isSystemAdmin: auth.subjectType === 'system-admin',
+  };
+}
+```
+
+检索时使用 `governance/eligibility.ts` 中的统一资格检查：
+
+```typescript
+// governance/eligibility.ts
+function isGovernanceEligible(entity: GovernedEntity, context: GovernanceContext): boolean {
+  if (entity.lifecycleState !== 'approved') return false;
+  if (context.isSystemAdmin) return true;
+  if (context.securityLevel < entity.requiredLevel) return false;
+  if (entity.teamId !== null && entity.teamId !== context.teamId) return false;
   return true;
 }
 ```
@@ -306,23 +281,20 @@ type AuditEvent =
 
 ### 审计日志表
 
-```sql
-CREATE TABLE audit_log (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
-  event_type TEXT NOT NULL,
-  actor_id UUID,
-  resource_type TEXT,
-  resource_id UUID,
-  metadata JSONB,
-  ip_address INET,
-  user_agent TEXT
-);
+审计事件存储在 `audit_events` 结构化表中（Round 10 Phase 3 迁移）：
 
-CREATE INDEX idx_audit_timestamp ON audit_log(timestamp DESC);
-CREATE INDEX idx_audit_actor ON audit_log(actor_id);
-CREATE INDEX idx_audit_resource ON audit_log(resource_type, resource_id);
-CREATE INDEX idx_audit_type ON audit_log(event_type);
+```typescript
+// store/types/system-records.ts
+interface AuditEventRecord {
+  id: string;
+  teamId: string | null;
+  actorId: string;
+  action: string;          // 如 'auth.login', 'knowledge.approved'
+  entityId: string;
+  payload: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
 ```
 
 ### 审计检查
@@ -354,16 +326,19 @@ async function audit(
 ### 密钥属性
 
 ```typescript
-interface AccessKey {
-  id: EntityId;
-  name: string;
-  keyHash: string;  // SHA-256 hash of actual key
-  createdBy: ActorRef;
+// store/types/system-records.ts
+interface AccessKeyRecord {
+  id: string;
+  memberId: string;          // 关联的成员 ID
+  tokenHash: string;         // SHA-256 哈希
+  tokenPreview: string;      // 令牌前缀
+  issuedByUserId: string;    // 签发者
+  teamId: string;            // 所属团队
+  level: number;             // 安全等级
+  notes: string | null;
+  revokedAt: string | null;  // null = 未吊销
   createdAt: string;
-  expiresAt?: string;
-  lastUsedAt?: string;
-  permissions: Permission[];
-  level: SecurityLevel;
+  updatedAt: string;
 }
 ```
 
@@ -372,8 +347,8 @@ interface AccessKey {
 ```mermaid
 flowchart TB
     subgraph 创建密钥["创建访问密钥"]
-        A1["POST /v1/access-keys { name, permissions, expiresIn }"]
-        A2["1. 生成随机密钥（32 字节，base64url）\n2. 使用 SHA-256 哈希密钥\n3. 存储哈希 + 元数据（不存储实际密钥！）\n4. 仅向用户返回密钥一次（仅显示一次）"]
+        A1["POST /v1/access-keys { memberId, teamId, notes? }"]
+        A2["1. 生成随机密钥（base64url）\n2. 使用 SHA-256 哈希密钥\n3. 存储哈希 + 元数据（不存储实际密钥！）\n4. 仅向用户返回密钥一次（仅显示一次）"]
     end
 
     subgraph 使用密钥["使用访问密钥"]
@@ -382,8 +357,8 @@ flowchart TB
     end
 
     subgraph 吊销密钥["吊销访问密钥"]
-        C1["DELETE /v1/access-keys/:keyId"]
-        C2["1. 删除密钥记录\n2. 记录吊销事件"]
+        C1["AccessKeyRepository.revoke(keyId)"]
+        C2["1. 设置 revokedAt 时间戳\n2. 记录吊销事件"]
     end
 
     创建密钥 --> 使用密钥 --> 吊销密钥
@@ -391,63 +366,38 @@ flowchart TB
 
 ### 实现
 
-```typescript
-async function createAccessKey(
-  userId: EntityId,
-  name: string,
-  permissions: Permission[],
-  expiresInDays?: number
-): Promise<{ key: string; id: EntityId }> {
-  // Generate random key
-  const key = generateSecureKey(32);  // 32 bytes, base64url encoded
-  
-  // Hash for storage
-  const keyHash = crypto.createHash('sha256').update(key).digest('hex');
-  
-  // Calculate expiration
-  const expiresAt = expiresInDays
-    ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString()
-    : undefined;
-  
-  // Get user's level
-  const user = await store.getUser(userId);
-  
-  // Create access key record
-  const accessKey = await store.createAccessKey({
-    id: generateEntityId(),
-    name,
-    keyHash,
-    createdBy: { actorId: userId, actorName: user.username },
-    createdAt: new Date().toISOString(),
-    expiresAt,
-    permissions,
-    level: user.level
-  });
-  
-  // Return key ONCE (it's not stored!)
-  return { key, id: accessKey.id };
-}
+密钥创建通过 `POST /v1/access-keys` 路由处理（`routes/access-keys.ts`），使用 `AccessKeyRepository` 持久化：
 
-async function validateAccessKey(key: string): Promise<User | null> {
-  const keyHash = crypto.createHash('sha256').update(key).digest('hex');
-  
-  const accessKey = await store.getAccessKeyByHash(keyHash);
-  if (!accessKey) return null;
-  
-  // Check expiration
-  if (accessKey.expiresAt && new Date(accessKey.expiresAt) < new Date()) {
-    return null;
-  }
-  
-  // Update last used
-  await store.updateAccessKey(accessKey.id, {
-    lastUsedAt: new Date().toISOString()
-  });
-  
-  // Load user
-  return store.getUser(accessKey.createdBy.actorId);
+```typescript
+// routes/access-keys.ts（简化）
+async function issueAccessKey(auth, payload) {
+  requirePermission(auth, 'member:key:create');
+  requireTeamAccess(auth, payload.teamId);
+
+  const membership = await membershipRepo.getById(payload.memberId);
+  requireHigherLevel(auth, membership.securityLevel);
+
+  const accessKey = createOpaqueToken('ssr_key');
+  const record = {
+    id: await accessKeyRepo.nextId(),
+    memberId: membership.id,
+    tokenHash: hashSecret(accessKey),
+    tokenPreview: accessKey.slice(-8),
+    issuedByUserId: auth.user.id,
+    teamId: payload.teamId,
+    level: membership.securityLevel,
+    notes: payload.notes ?? null,
+    revokedAt: null,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  };
+
+  await accessKeyRepo.insert(record);
+  return { accessKey, record };  // 明文密钥仅返回一次
 }
 ```
+
+密钥验证通过 `findAccessKeyByToken()` 在登录流程中完成（`lib/session.ts`），比较哈希后查找记录。
 
 ---
 

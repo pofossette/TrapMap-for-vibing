@@ -3,7 +3,7 @@
 > **源码真实来源**: `packages/server/src/lib/persistence/schema.ts`
 > **表定义目录**: `packages/server/src/lib/persistence/schema/`
 > **数据模型详情**: `docs/reference/DATA_MODEL.md`
-> **迁移历史**: `packages/server/drizzle/` (9 个迁移文件)
+> **迁移历史**: `packages/server/drizzle/` (13 个迁移文件)
 
 ## 技术栈
 
@@ -14,7 +14,7 @@
 | 向量搜索 | pgvector (384 维 HNSW 索引) |
 | 全文搜索 | tsvector + GIN 索引 |
 
-## 表总览 (56 张表)
+## 表总览 (57 张表)
 
 ### 兼容层 (1 表)
 
@@ -22,7 +22,7 @@
 |------|------|------|
 | `store_snapshot` | JSONB 兼容层，存储完整 StoreData 聚合 | `key` (text, 固定值 `'main'`) |
 
-### 知识域 (15 表)
+### 知识域 (14 表)
 
 | 表名 | 用途 | 主键 |
 |------|------|------|
@@ -41,7 +41,7 @@
 | `knowledge_keywords` | 关键词索引 (GIN) | `id` (text) |
 | `knowledge_search_documents` | 全文搜索 (tsvector) | `(entry_id, revision_no)` |
 
-### 技能工件域 (17 表 + 3 索引表)
+### 技能工件域 (20 表 + 2 索引表)
 
 > **Round 4 事实源规则**：结构化子表为事实源，`skill_artifacts` 和 `artifact_revisions` 上的对应 JSONB 列为兼容缓存。
 > 读取时结构化优先，写入时两套表示同步维护。详见 [`round4-cross-table-consistency-plan.md`](../plans/round4-cross-table-consistency-plan.md) 阶段 0。
@@ -71,7 +71,7 @@
 | `skill_artifact_capsule_keywords` | 胶囊关键词索引 | **派生索引表** (非事实源) | `capsule_id` (text) |
 | `skill_artifact_capsule_embeddings` | 胶囊向量嵌入 | **派生索引表** (非事实源) | `capsule_id` (text) |
 
-### 候选人域 (6 表)
+### 候选人域 (7 表)
 
 | 表名 | 用途 | 主键 |
 |------|------|------|
@@ -121,11 +121,13 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 | `usage_events` | 使用事件 | `id` (text) |
 | `usage_events_daily_rollup` | 日聚合分析 | `id` (identity) |
 
-### 跨域 (1 表)
+### 跨域 (3 表)
 
 | 表名 | 用途 | 主键 |
 |------|------|------|
 | `task_queue` | 后台任务队列（写路径主入口） | `id` (text) |
+| `domain_event_outbox` | 领域事件 outbox（生命周期事件发布） | `id` (text) |
+| `graph_index_documents` | GraphRAG-lite 图索引文档 | `id` (text) |
 
 ### task_queue 关键索引
 
@@ -359,6 +361,7 @@ feedback_records (1) ──→ (N) feedback_custom_answers       [CASCADE]
 | 6 | `0006_round8_naming_constraints.sql` | 命名规范化 + FK 约束 |
 | 7 | `0007_round4_artifact_structural.sql` | 工件子表 (最大迁移) |
 | 8 | `0008_round9_cross_table_consistency.sql` | 跨表一致性约束（复合FK + CHECK） |
+| 9 | `0009_round10_task_queue_write_path.sql` | 任务队列表（写路径主入口） |
 | 10 | `0010_round10_lifecycle_outbox.sql` | 生命周期 outbox 事件表 |
 | 11 | `0011_round10_identity_audit_structural.sql` | 身份域和审计域结构化表（Phase 3） |
 | 12 | `0012_round10_read_model_cleanup.sql` | 相似度精度修复（integer→real）+ skill_artifacts 唯一索引对齐（Phase 4） |

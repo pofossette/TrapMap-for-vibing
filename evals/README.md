@@ -48,7 +48,10 @@ evals/
 ├── README.md                    # 本文件
 ├── scripts/
 │   ├── eval-all.ts              # 两种评测类型的统一运行器
-│   └── eval-ci.ts               # CI 模式运行器（带基线对比）
+│   ├── eval-ci.ts               # CI 模式运行器（带基线对比）
+│   └── annotate-skills.ts       # 技能标注脚本
+├── fixtures/
+│   └── traps/                   # Trap 固定数据集（JSON + SKILL.md 格式）
 ├── retrieval/
 │   ├── README.md                # 检索评测约定和端点详情
 │   ├── run.ts                   # 检索运行器入口
@@ -71,10 +74,15 @@ evals/
 │   ├── fixtures.ts              # 标注 ground truth fixtures
 │   ├── fixtures-real.ts         # 真实场景 fixtures
 │   ├── dedup-eval.ts            # 去重评测
-│   └── conflict-eval.ts         # 冲突评测
+│   ├── dedup-fixtures-real.ts   # 去重真实场景 fixtures
+│   ├── conflict-eval.ts         # 冲突评测
+│   └── conflict-fixtures-real.ts # 冲突真实场景 fixtures
 └── ingestion/
-    ├── README.md                # 摄取评测文档
-    └── run.ts                   # 摄取运行器入口
+    ├── run.ts                   # 摄取运行器入口
+    ├── adapter.ts               # 摄取适配器
+    ├── assertions.ts            # 摄取断言
+    ├── metrics.ts               # 摄取指标
+    └── fixtures/                # 摄取用例固定数据
 ```
 
 ## Phase 状态

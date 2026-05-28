@@ -216,6 +216,10 @@ pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --json --json-path ./report
 | `lib/metrics.ts` | 排序指标计算器 |
 | `lib/governance.ts` | 治理断言层 |
 | `lib/load.ts` | 用例加载和验证 |
+| `lib/assertions.ts` | 断言辅助函数 |
+| `lib/format.ts` | 输出格式化 |
+| `lib/report.ts` | 报告生成 |
+| `lib/runner-api.ts` | 运行器 API 接口 |
 
 ## 运行器选项
 

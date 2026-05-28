@@ -26,7 +26,7 @@ flowchart TB
     subgraph 数据库层["数据库异步模式"]
         PgPool["pg.Pool\n(连接池)"]
         Transact["PostgresStore.transact()\n(行级锁事务)"]
-        DualWrite["DualWriteRepository\n(PG 主写 + JSONB 影子写)"]
+        PgRepo["PgRepository\n(PG 唯一写入目标)"]
     end
 
     subgraph 并发与缓存["并发与缓存"]
@@ -53,7 +53,7 @@ flowchart TB
     TaskWorker --> CandidateProc
 
     PgPool --> Transact
-    Transact --> DualWrite
+    Transact --> PgRepo
 
     FastifyHooks --> TaskWorker
     FastifyHooks --> EventBus
@@ -96,7 +96,7 @@ type DomainEventHandler = (event: DomainEvent) => void | Promise<void>;
 
 ### 内置订阅者
 
-在 `app.ts` 的 `onReady` 钩子中注册（line 416-452）：
+在 `bootstrap/bootstrap-lifecycle.ts` 的启动序列中注册：
 
 | 订阅者 | 监听事件 | 职责 |
 |--------|----------|------|
@@ -109,7 +109,7 @@ type DomainEventHandler = (event: DomainEvent) => void | Promise<void>;
 ### 实例化
 
 ```typescript
-// app.ts line 236
+// app.ts (Fastify 实例化阶段)
 const eventBus = new LifecycleEventBus();
 app.skillShareer.eventBus = eventBus;
 ```
@@ -190,7 +190,7 @@ flowchart LR
     end
 
     subgraph PostgreSQL["PostgreSQL"]
-        TasksTable["tasks 表\n(类型、优先级、状态、重试计数)"]
+        TasksTable["task_queue 表\n(类型、优先级、状态、重试计数)"]
         SkipLocked["SELECT ... FOR UPDATE\nSKIP LOCKED"]
     end
 
@@ -226,15 +226,16 @@ flowchart LR
 // queue/task-queue.ts
 interface TaskQueueConfig {
   pool: pg.Pool;
-  tableName?: string;         // default: 'tasks'
-  baseRetryDelayMs?: number;  // default: 5000
-  maxRetryDelayMs?: number;   // default: 300000
+  defaultMaxAttempts?: number;  // default: 3
+  baseRetryDelayMs?: number;    // default: 5000
+  maxRetryDelayMs?: number;     // default: 300000
 }
 
 interface EnqueueOptions {
-  priority?: number;          // default: 0, 越小越优先
+  priority?: number;          // default: 0, 越大越优先（ORDER BY priority DESC）
   maxAttempts?: number;       // default: 3
   delayMs?: number;           // 延迟处理
+  dedupeKey?: string;         // 幂等键，防止重复入队
 }
 
 // 核心方法
@@ -250,7 +251,7 @@ cleanup(retentionDays): Promise<number>              // 清理旧任务
 
 ```typescript
 interface TaskWorkerConfig {
-  queue: TaskQueue;
+  pool: pg.Pool;               // 直接接收 pool，内部创建 TaskQueue
   handlers: TaskHandler[];
   pollIntervalMs?: number;    // default: 1000
   concurrency?: number;       // default: 1
@@ -259,12 +260,13 @@ interface TaskWorkerConfig {
 interface TaskHandler<T = unknown> {
   type: string;
   handle: (task: Task<T>, signal: AbortSignal) => Promise<void>;
-  onDead?: (task: Task<T>) => Promise<void>;
+  onDead?: (task: Task<T>) => Promise<void> | void;
 }
 
 // 生命周期
 run(): Promise<void>          // 启动轮询循环
-stop(): Promise<void>         // 优雅停止，等待活跃任务完成
+stop(): void                  // 停止轮询（不等待活跃任务）
+isRunning(): boolean          // 查询运行状态
 ```
 
 ### 实际使用者：候选人处理
@@ -297,11 +299,11 @@ flowchart TB
 **恢复逻辑**（`app.ts` onReady）不再调用 `processPendingCandidates` 直接处理中断候选，而是将所有
 `queued`/`analyzing` 状态的候选重置为 `received` 后重新入队到 TaskQueue，由 worker 统一消费。
 
-在 `app.ts:322-417` 的 `onReady` 中，检测到 PostgresStore 时创建 TaskWorker 并后台启动：
+启动逻辑已迁移到 `bootstrap/run-startup-sequence.ts`（单一 `onReady` 钩子调用 `runStartupSequence(app)`）。检测到 PostgresStore 时，`bootstrap/bootstrap-workers.ts` 创建 TaskWorker 并后台启动：
 
 ```typescript
 const worker = createTaskWorker({
-  queue: taskQueue,
+  pool,
   handlers: [createCandidateProcessingHandler(services)],
   concurrency: 1
 });
@@ -361,15 +363,9 @@ flowchart TB
     H --> G
 ```
 
-### Dual-Write 仓库模式
+### 仓库模式
 
-三组仓库同时写入 PostgreSQL（主）和 JSONB 快照（影子），保证数据兼容性：
-
-| 仓库 | 文件 |
-|------|------|
-| `DualWriteKnowledgeRepository` | `knowledge/repository.ts` |
-| `DualWriteArtifactRepository` | `artifacts/repository.ts` |
-| `DualWriteCandidateRepository` | `candidates/repository.ts` |
+各域仓库（knowledge、artifact、candidate）使用 PostgreSQL 作为唯一写入目标。JSONB 快照不再作为影子写入目标（Round 2 已移除 DualWrite 模式）。每个域提供 `InMemory*Repository`（测试用）和 `Pg*Repository`（生产用），通过工厂函数按是否有 PG pool 选择。
 
 ---
 
@@ -409,15 +405,15 @@ while (this.active.size < this.concurrency) {
 
 ### Fastify `onReady` 启动钩子
 
-服务器启动时通过 `app.addHook('onReady', ...)` 按序执行 5 个异步初始化阶段：
+服务器启动时通过 `app.addHook('onReady', ...)` 调用 `runStartupSequence(app)`，按序执行以下阶段（详见 `bootstrap/run-startup-sequence.ts`）：
 
-| 阶段 | 行号 | 职责 |
+| 阶段 | 模块 | 职责 |
 |------|------|------|
-| 1. 恢复 | 262 | 查找并重处理中断的候选人任务 |
-| 2. 初始化 | 300 | 启动 TaskWorker + 创建所有 Repository（仅 PostgreSQL 模式） |
-| 3. 组装 | 387 | 构建统一 repos 对象（含动态 import 的 UsageAnalytics） |
-| 4. 协调 | 403 | 图索引一致性修复 |
-| 5. 订阅 | 416 | 注册生命周期事件订阅者 |
+| 1. 恢复 | `bootstrap-candidate-recovery.ts` | 查找并重处理中断的候选人任务 |
+| 2. 初始化 | `bootstrap-repositories.ts` | 创建所有 Repository（仅 PostgreSQL 模式） |
+| 3. Worker | `bootstrap-workers.ts` | 启动 TaskWorker + OutboxWorker |
+| 4. 协调 | `bootstrap-graph-reconciliation.ts` | 图索引一致性修复 |
+| 5. 订阅 | `bootstrap-lifecycle.ts` | 注册生命周期事件订阅者 |
 
 ### 索引适配器管线
 

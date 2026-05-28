@@ -95,7 +95,7 @@ describe('docs truth smoke', () => {
 
   it('DATABASE_SCHEMA.md contains correct table count', () => {
     const content = readDoc('docs/reference/DATABASE_SCHEMA.md');
-    expect(content).toContain('56');
+    expect(content).toContain('57');
   });
 
   it('DOCS_TRUTH_MATRIX.md covers expanded drift categories', () => {
@@ -151,8 +151,9 @@ describe('docs truth smoke', () => {
 
   it('PERSISTENCE.md reports correct schema count', () => {
     const content = readDoc('docs/architecture/components/PERSISTENCE.md');
-    expect(content).toContain('56 张表');
+    expect(content).toContain('57 张表');
     expect(content).not.toContain('48 张表');
+    expect(content).not.toContain('56 张表');
   });
 
   it('ENVIRONMENT.md does not describe JSON storage as dev default', () => {
@@ -218,5 +219,18 @@ describe('docs truth smoke', () => {
     const content = readDoc('docs/architecture/components/AI_PROVIDER.md');
     expect(content).toContain('llama3');
     expect(content).not.toContain('llama2');
+  });
+
+  it('ASYNC_INFRASTRUCTURE.md does not reference removed DualWrite repos', () => {
+    const content = readDoc('docs/architecture/components/ASYNC_INFRASTRUCTURE.md');
+    expect(content).not.toContain('DualWriteKnowledgeRepository');
+    expect(content).not.toContain('DualWriteArtifactRepository');
+  });
+
+  it('ARTIFACTS.md uses current lifecycle states and record types', () => {
+    const content = readDoc('docs/architecture/components/ARTIFACTS.md');
+    expect(content).toContain('agent-pass');
+    expect(content).toContain('SkillArtifactRecord');
+    expect(content).not.toContain('interface SkillArtifact {');
   });
 });

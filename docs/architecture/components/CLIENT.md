@@ -9,11 +9,11 @@ TrapMap 的客户端（CLI）基于 Commander.js 构建，提供终端用户与 
 ```mermaid
 flowchart TB
     subgraph 命令层["Command Layer"]
-        A["auth | knowledge | retrieval | review | team | skill\ndecay | maintenance | operations | feedback | audit"]
+        A["auth | knowledge | retrieval | review | team | skill | trap\ndecay | maintenance | operations | feedback | audit\nevidence | output-profile | load | policy | member"]
     end
 
     subgraph 库层["Library Layer"]
-        B["config.ts | http.ts | input.ts | output.ts"]
+        B["config.ts | http.ts | input.ts | output.ts\nmarkdown-formatter.ts | output-profile.ts\nprompts.ts | sanitize.ts | skill-artifact-export.ts\nactivation-policy.ts | artifact-bundle.ts"]
     end
 
     subgraph 状态管理["State Management"]
@@ -184,9 +184,10 @@ class ApiError extends Error {
 
 | 命令 | 描述 | 权限要求 |
 |------|------|---------|
-| `review:queue` | 查看待审核队列 | knowledge:review |
-| `review:approve` | 批准条目 | knowledge:review |
-| `review:reject` | 拒绝条目 | knowledge:review |
+| `review queue` | 查看待审核队列 | knowledge:review |
+| `review approve` | 批准条目 | knowledge:review |
+| `review reject` | 拒绝条目 | knowledge:review |
+| `evidence` | 查看/管理审核证据 | knowledge:review |
 
 ### 团队管理命令
 
@@ -205,6 +206,12 @@ class ApiError extends Error {
 | `deactivate` | 停用知识条目 | knowledge:update |
 | `export` | 导出知识条目 | knowledge:export |
 | `import` | 导入知识条目 | knowledge:import |
+| `load` | 加载条目详情 | knowledge:search |
+| `decay` | 管理淘汰状态 | knowledge:update |
+| `maintenance` | 管理维护分配 | knowledge:update |
+| `policy` | 查看策略信息 | knowledge:search |
+| `output-profile` | 管理输出配置 | 已登录 |
+| `trap submit/resubmit/list/show` | 陷阱专属命令 | knowledge:submit/inspect |
 
 ## 输入处理
 

@@ -30,6 +30,18 @@
 | candidates | `domain/candidates.ts` | 异步摄取候选 Schema |
 | artifacts | `domain/artifacts.ts` | Skill 工件 Schema |
 | evals | `domain/evals/` | 评估相关 Schema |
+| feedback | `domain/feedback.ts` | 用户反馈 Schema |
+| decay | `domain/decay.ts` | Decay 管理 Schema |
+| maintenance | `domain/maintenance.ts` | 维护管理 Schema |
+| evidence | `domain/evidence.ts` | Evidence 元数据 Schema |
+| admin | `domain/admin.ts` | 管理员操作 Schema |
+| boundary | `domain/boundary.ts` | 边界约束 Schema |
+| common | `domain/common.ts` | 共享通用类型 |
+| conflict | `domain/conflict.ts` | 冲突检测 Schema |
+| graph-extraction | `domain/graph-extraction.ts` | 图提取 Schema |
+| plans | `domain/plans.ts` | 执行计划 Schema |
+| parsing | `domain/parsing.ts` | 解析规则（frontmatter 等） |
+| path-validation | `domain/path-validation.ts` | 路径安全验证 |
 
 ### 关键类型
 
@@ -96,13 +108,20 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 | `routes/auth.ts` | `/v1/auth` | 认证 |
 | `routes/teams.ts` | `/v1/teams` | 团队管理 |
 | `routes/members.ts` | `/v1/members` | 成员管理 |
+| `routes/access-keys.ts` | `/v1/access-keys` | 访问密钥签发 |
 | `routes/knowledge.ts` | `/v1/knowledge` | 知识条目 CRUD，通过 `KnowledgeApplicationService` 执行提交/重提/取代 |
 | `routes/review.ts` | `/v1/knowledge/review` | 审核工作流 |
-| `routes/retrieval.ts` | `/v1/retrieval` | 检索（v1/v2/v3），通过 `buildRetrievalReadModel()` 从仓库读取数据 |
-| `routes/operations.ts` | `/v1/operations` | 导入/导出 |
-| `routes/candidates.ts` | `/v1/candidates` | 异步摄取 |
+| `routes/evidence.ts` | `/v1/knowledge/:id/evidence` | 知识条目 evidence 元数据更新 |
+| `routes/retrieval.ts` | `/v1/retrieval`、`/v2/retrieval`、`/v3/retrieval` | 检索（v1/v2/v3），通过 `buildRetrievalReadModel()` 从仓库读取数据 |
+| `routes/operations.ts` | `/v1/operations` | 导入/导出（注册子路由：audit、knowledge-legacy、artifacts-export/import/activate、migrate、status、skill-edit、skill-review、stats） |
+| `routes/candidates.ts` | `/v1/candidates`、`/v1/duplicates` | 异步摄取与重复检测 |
 | `routes/traps.ts` | `/v1/traps` | Trap 管理（与 knowledge 共享同一 `KnowledgeApplicationService` 工作流） |
-| `routes/retrieval.ts` | `/v1/retrieval/skills/search-by-content` | Skill 内容检索 |
+| `routes/feedback.ts` | `/v1/feedback` | 用户反馈提交 |
+| `routes/feedback-admin.ts` | `/v1/operations/feedback` | 反馈管理（列表、批量处理、统计） |
+| `routes/decay.ts` | `/v1/operations/decay` | Decay 管理 |
+| `routes/maintenance.ts` | `/v1/operations/maintenance` | 维护管理 |
+| `routes/admin-boundary-search.ts` | `/admin/boundary-search` | 管理员边界搜索 |
+| `routes/admin-benchmark.ts` | `/admin/benchmark` | 管理员基准测试 |
 
 ### 配置
 
@@ -133,6 +152,12 @@ const config = loadConfig();
 | `audit` | `commands/audit.ts` | 审计日志 |
 | `trap` | `commands/trap.ts` | Trap 管理 |
 | `skill` | `commands/skill.ts` | Skill 管理 |
+| `feedback` | `commands/feedback.ts` | 反馈提交 |
+| `feedback-admin` | `commands/feedback-admin.ts` | 反馈管理（管理员） |
+| `decay` | `commands/decay.ts` | Decay 管理 |
+| `maintenance` | `commands/maintenance.ts` | 维护管理 |
+| `evidence` | `commands/evidence.ts` | Evidence 元数据更新 |
+| `load` | `commands/load.ts` | 数据加载 |
 
 ### Operations 权限模型
 

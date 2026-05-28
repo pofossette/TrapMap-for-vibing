@@ -124,13 +124,13 @@ interface NormalizedIndexDocument {
 
 ```typescript
 interface IndexAdapter {
-  kind: 'vector' | 'keyword' | 'graph';
+  kind: string;              // 如 'vector', 'keyword', 'graph'（允许扩展）
   sync(document: NormalizedIndexDocument): Promise<IndexSyncResult>;
   remove(ref: { entryId: string; revision: number }): Promise<void>;
 }
 
 interface IndexSyncResult {
-  adapterKind: 'vector' | 'keyword' | 'graph';
+  adapterKind: string;       // 与 IndexAdapter.kind 对应
   success: boolean;
   error: string | null;
   performedWork: boolean;    // false = 因幂等性跳过
@@ -439,9 +439,14 @@ Skill 工件走独立的图入索引管道，与知识条目共用 `StoreData.gr
 interface KnowledgeIndexStateRecord {
   contentHash: string;         // 规范化内容的 SHA-256
   normalizedAt: string;        // 规范化时间戳
-  vector: AdapterSyncState;    // 向量适配器同步状态
-  keyword: AdapterSyncState;   // 关键词适配器同步状态
-  graph: AdapterSyncState;     // 图适配器同步状态
+  adapters: Record<string, AdapterSyncState>;  // 按 adapter.kind 索引
+  // 以下字段已废弃，保留用于向后兼容：
+  /** @deprecated Use adapters['vector'] */
+  vector?: AdapterSyncState;
+  /** @deprecated Use adapters['keyword'] */
+  keyword?: AdapterSyncState;
+  /** @deprecated Use adapters['graph'] */
+  graph?: AdapterSyncState;
 }
 
 interface AdapterSyncState {

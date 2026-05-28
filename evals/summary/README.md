@@ -152,7 +152,10 @@ pnpm eval:summary --provider openai
 
 | 用例 ID | 端点 | 重点 |
 |---------|------|------|
-| （根据需要添加 core 用例） | `/v1/retrieval/search`、`/v2/retrieval/search` | 各种场景 |
+| `summary-core-mixed-grounded` | `/v2/retrieval/search` | 混合 groundedness 验证 |
+| `summary-core-multi-fact-coverage` | `/v2/retrieval/search` | 多事实覆盖率 |
+| `summary-core-governance-boundary` | `/v2/retrieval/search` | 治理边界执行 |
+| `summary-core-empty-result` | `/v2/retrieval/search` | 空结果处理 |
 
 ## 添加用例
 
