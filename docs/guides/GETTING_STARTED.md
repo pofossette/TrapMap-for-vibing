@@ -96,7 +96,7 @@ pnpm dev:server
 pnpm dev:cli
 ```
 
-服务器启动后运行在 `http://localhost:4000`。
+服务器启动后运行在 `http://127.0.0.1:4000`。
 
 ### 方式二：Docker Compose
 
@@ -116,7 +116,7 @@ docker compose down
 ### 健康检查
 
 ```bash
-curl http://localhost:4000/health
+curl http://127.0.0.1:4000/health
 ```
 
 预期响应：

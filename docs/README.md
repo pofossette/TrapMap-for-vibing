@@ -97,7 +97,7 @@ cp .env.production.example .env
 docker compose up -d
 
 # 健康检查
-curl http://localhost:4000/health
+curl http://127.0.0.1:4000/health
 ```
 
 ### 评估
