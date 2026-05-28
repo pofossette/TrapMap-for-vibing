@@ -1,470 +1,984 @@
-# TrapMap 文档漂移总审计与对齐执行计划
+# TrapMap 目录结构治理 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 基于当前代码真相源完成一次仓库级文档逆向审计，修复已确认的文档漂移，识别需要“补实现或删承诺”的功能性漂移，并补齐防二次漂移的测试与守卫。
+**Goal:** 将 TrapMap 仓库目录收敛为“根目录只放稳定入口、`packages/` 只放产品包、`docs/` 只放可导航文档、`evals/` 只放评测资产、归档只走一个入口”的结构，并补上自动守卫防止目录再次漂移。
 
-**Architecture:** 以 `package.json`、`packages/server/package.json`、`packages/server/src/config.ts`、`packages/server/src/lib/ai/**`、`.github/workflows/*.yml`、`docker-compose.yml`、`packages/server/src/app.ts` 与 `packages/server/src/lib/persistence/schema/**` 作为唯一事实源。执行顺序采用“先归档旧计划，再冻结真相矩阵，再修高信号文档，再修深层架构文档，最后补 guard/tests/evals”的五阶段推进。
+**Architecture:** 当前 `packages/cli`、`packages/server`、`packages/contracts`、`packages/skills` 的 monorepo 边界总体合理，不做大搬迁。治理重点放在根目录历史文档外溢、`docs/archive` 与 `docs/archived` 双归档入口、计划文档分散、Server `lib` 规模增长后的导航与边界守卫。执行顺序采用“冻结结构规则 -> 清理根目录 -> 合并归档/计划入口 -> 补包内导航 -> 补 eval 文档 -> 自动化守卫 -> 最终验证”的七阶段推进。
 
-**Tech Stack:** Markdown, TypeScript, pnpm, Vitest, Fastify, Drizzle, PostgreSQL, GitHub Actions
-
----
-
-## 0. 审计边界与归档
-
-- [x] 旧根计划已归档到 `docs/archive/old_plan_back.md`
-- [x] 新执行计划写回 `plan.md`
-- [x] 本轮校对范围仅覆盖”当前活跃文档”
-- [x] 显式排除 `docs/archived/**`、`docs/superpowers/plans/**`、`docs/superpowers/specs/**`、历史报告型文档，除非其内容仍被活跃文档引用
-
-## 1. 漂移审计结论
-
-### 1.1 已确认的描述性漂移
-
-- [x] `docs/guides/GETTING_STARTED.md` 与代码不一致：将 `AI_PROVIDER` 写成默认 `openai`，但运行时实际为”显式配置优先，其次 `OPENAI_API_KEY` / `GEMINI_API_KEY` 自动识别，否则 `fallback`”
-- [x] `docs/operations/ENVIRONMENT.md` 需要按 `packages/server/src/config.ts` 与 `packages/server/src/lib/ai/provider-config.ts` 重写默认值、Provider 自动解析、Embedding override 与 `AI_PROMPT_TEMPLATE_FILE` 语义
-- [x] `docs/architecture/ARCHITECTURE.md` 仍把 AI provider 叙述成”默认 openai”，与当前 provider auto-detect/fallback 逻辑不一致
-- [x] `docs/architecture/DEPLOYMENT.md` 包含与现状不一致的部署示例、变量说明与运行姿态，需要以 `docker-compose.yml` / `packages/server/Dockerfile` / root scripts 重写
-- [x] `docs/README.md` 仍有旧 CLI 启动方式（`pnpm --filter @trapmap/cli dev -- --help`），应统一到根脚本入口 `pnpm dev:cli`
-- [x] `docs/architecture/components/PERSISTENCE.md` 仍以旧 `Store/JsonStore/PostgresStore` 抽象大段描述当前实现，且对 JSON fallback 的篇幅与定位失衡
-- [x] `docs/architecture/components/EVALUATION.md` 仍按旧的 `evals/**/cases/*.yaml` 结构描述评测，而仓库当前以 `run.ts`、`smoke.ts`、`core.ts`、`scenarios/**`、TS dataset 为主
-- [x] `docs/operations/TESTING.md`、`docs/operations/CI_CD.md`、`docs/reference/DOCS_TRUTH_MATRIX.md`、`docs/reference/SYSTEM_TRUTH_SOURCES.md` 需要继续扩展到”深层组件文档”和”承诺型运维能力”的漂移守护
-
-### 1.2 待定的功能性漂移
-
-- [x] `docs/operations/ENVIRONMENT.md` / `docs/architecture/components/RETRIEVAL.md` 把 `rebuildAllCapsuleIndexes()` 描述成可操作能力，但当前仅有库函数与测试，没有稳定的 CLI / root script / 运维入口；需决定”补命令”还是”删承诺”
-- [x] `docs/architecture/DEPLOYMENT.md` 提供 Kubernetes / Helm 部署章节，但仓库未见 Helm chart 或 k8s manifests；需决定”补交付物”还是”降级为未来规划/删除”
-- [x] `docs/architecture/DEPLOYMENT.md` 的 `DEBUG` 等变量未见运行时消费；需决定”补实现”还是”从文档删除”
-
-### 1.3 并行执行工作流
-
-- [ ] 并行 Lane A: 根入口与开发者高频文档
-  - `README.md`
-  - `docs/README.md`
-  - `docs/guides/GETTING_STARTED.md`
-  - `docs/guides/CONTRIBUTING.md`
-  - `docs/operations/TESTING.md`
-  - `docs/operations/ENVIRONMENT.md`
-- [ ] 并行 Lane B: 架构与部署文档
-  - `architecture.md`
-  - `docs/architecture/ARCHITECTURE.md`
-  - `docs/architecture/DEPLOYMENT.md`
-  - `docs/architecture/API.md`
-  - `docs/architecture/CLI.md`
-  - `docs/architecture/components/PERSISTENCE.md`
-  - `docs/architecture/components/EVALUATION.md`
-- [ ] 并行 Lane C: 真相矩阵、评测说明与防漂移守卫
-  - `docs/reference/DOCS_TRUTH_MATRIX.md`
-  - `docs/reference/SYSTEM_TRUTH_SOURCES.md`
-  - `docs/reference/DATABASE_SCHEMA.md`
-  - `evals/README.md`
-  - `evals/retrieval/README.md`
-  - `evals/summary/README.md`
-  - `evals/graph-extraction/README.md`
-  - `scripts/complexity-budgets.json`
-  - `scripts/check-doc-drift.ts`
-  - `scripts/__tests__/check-doc-drift.test.ts`
-  - `packages/server/src/__tests__/docs-truth-smoke.test.ts`
-- [ ] 每个 Lane 完成后必须回到主线程做一次 truth-source 交叉复核，再合并进入下一阶段
+**Tech Stack:** Markdown, pnpm workspace, TypeScript, Vitest, GitHub Actions, `scripts/complexity-budgets.json`, `scripts/check-doc-drift.ts`
 
 ---
 
-## 2. 待校对全量文档清单
+## 0. 当前结构判断
 
-### 2.1 P0: 根入口与高频使用文档
+### 0.1 结论
 
-- [ ] `README.md` -> 优先级：高
-- [ ] `architecture.md` -> 优先级：高
-- [ ] `docs/README.md` -> 优先级：高
-- [ ] `docs/guides/GETTING_STARTED.md` -> 优先级：高
-- [ ] `docs/guides/CONTRIBUTING.md` -> 优先级：高
-- [ ] `docs/guides/CODE_GUIDE.md` -> 优先级：高
-- [ ] `docs/guides/CLIENT_INTEGRATION.md` -> 优先级：中
-- [ ] `docs/operations/ENVIRONMENT.md` -> 优先级：高
-- [ ] `docs/operations/TESTING.md` -> 优先级：高
-- [ ] `docs/operations/CI_CD.md` -> 优先级：高
-- [ ] `docs/operations/SECURITY.md` -> 优先级：中
-- [ ] `docs/operations/PROMPT_PROVIDERS.md` -> 优先级：中
-- [ ] `docs/operations/PROMPT_CACHING.md` -> 优先级：中
+当前项目目录结构 **主体合理，但治理层不够收敛**。
 
-### 2.2 P1: 架构与组件文档
+- 合理部分：`packages/` 按 CLI / Server / Contracts / Skills 切包，`evals/` 独立于产品包，`docs/` 已按 guides / operations / architecture / reference 分层，测试大量与实现同目录，适合 TypeScript monorepo。
+- 需要调整部分：根目录有历史计划和临时材料，归档目录存在 `docs/archive` 与 `docs/archived` 两套入口，计划文件散落在 `plan.md`、`docs/plans`、`docs/superpowers/plans`、`docs/archived/archived-plans`，Server `lib` 已有 360 个 tracked TS 文件但缺少包内导航和结构守卫。
 
-- [ ] `docs/architecture/ARCHITECTURE.md` -> 优先级：高
-- [ ] `docs/architecture/DEPLOYMENT.md` -> 优先级：高
-- [ ] `docs/architecture/API.md` -> 优先级：高
-- [ ] `docs/architecture/CLI.md` -> 优先级：高
-- [ ] `docs/architecture/FLOW.md` -> 优先级：中
-- [ ] `docs/architecture/MODULES.md` -> 优先级：中
-- [ ] `docs/architecture/CACHING.md` -> 优先级：中
-- [ ] `docs/architecture/GRAPH_RETRIEVAL.md` -> 优先级：中
-- [ ] `docs/architecture/TROUBLESHOOTING.md` -> 优先级：中
-- [ ] `docs/architecture/components/README.md` -> 优先级：中
-- [ ] `docs/architecture/components/PERSISTENCE.md` -> 优先级：高
-- [ ] `docs/architecture/components/EVALUATION.md` -> 优先级：高
-- [ ] `docs/architecture/components/RETRIEVAL.md` -> 优先级：高
-- [ ] `docs/architecture/components/AI_PROVIDER.md` -> 优先级：高
-- [ ] `docs/architecture/components/AUTH.md` -> 优先级：中
-- [ ] `docs/architecture/components/ASYNC_INFRASTRUCTURE.md` -> 优先级：中
-- [ ] `docs/architecture/components/CLIENT.md` -> 优先级：中
-- [ ] `docs/architecture/components/GOVERNANCE.md` -> 优先级：中
-- [ ] `docs/architecture/components/INDEXING.md` -> 优先级：中
-- [ ] `docs/architecture/components/ARTIFACTS.md` -> 优先级：中
-- [ ] `docs/architecture/components/DEPENDENCY_ANALYSIS.md` -> 优先级：低
-- [ ] `docs/architecture/components/INGESTION.md` -> 优先级：低
-- [ ] `docs/architecture/components/REVIEW.md` -> 优先级：低
-- [ ] `docs/architecture/components/UPDATE.md` -> 优先级：低
-- [ ] `docs/architecture/components/DECAY.md` -> 优先级：低
-- [ ] `docs/architecture/components/DELETION.md` -> 优先级：低
-- [ ] `docs/architecture/components/FEEDBACK.md` -> 优先级：低
-- [ ] `docs/architecture/components/KNOWLEDGE_LIFECYCLE.md` -> 优先级：低
+### 0.2 本轮已完成的计划归档
 
-### 2.3 P2: 参考文档、评测说明与 Skill 文档
+- [x] 旧根计划 `plan.md` 已归档到 `docs/archived/archived-plans/plan-2026-05-28-doc-drift-audit-and-alignment-active-root.md`
+- [x] 新目录结构治理计划写入根 `plan.md`
 
-- [ ] `docs/PACKAGES.md` -> 优先级：中
-- [ ] `docs/PACKAGE_STACK_RATIONALE.md` -> 优先级：中
-- [ ] `docs/reference/SYSTEM_TRUTH_SOURCES.md` -> 优先级：高
-- [ ] `docs/reference/DOCS_TRUTH_MATRIX.md` -> 优先级：高
-- [ ] `docs/reference/DATA_MODEL.md` -> 优先级：中
-- [ ] `docs/reference/DATABASE_SCHEMA.md` -> 优先级：高
-- [ ] `docs/reference/api-surface.md` -> 优先级：高
-- [ ] `docs/reference/GLOSSARY.md` -> 优先级：低
-- [ ] `docs/reference/PERFORMANCE.md` -> 优先级：低
-- [ ] `docs/reference/xml-system-prompt-methodology.md` -> 优先级：低
-- [ ] `evals/README.md` -> 优先级：中
-- [ ] `evals/retrieval/README.md` -> 优先级：中
-- [ ] `evals/summary/README.md` -> 优先级：中
-- [ ] `evals/graph-extraction/README.md` -> 优先级：中
-- [ ] `packages/skills/trapmap-knowledge-workflow/SKILL.md` -> 优先级：中
-- [ ] `packages/skills/trapmap-knowledge-workflow/references/cli-index.md` -> 优先级：中
-- [ ] `packages/skills/trapmap-knowledge-workflow/references/registration.md` -> 优先级：中
-- [ ] `packages/skills/trapmap-knowledge-workflow/references/retrieval.md` -> 优先级：中
-- [ ] `packages/skills/trapmap-knowledge-workflow/references/review.md` -> 优先级：中
-- [ ] `packages/skills/trapmap-knowledge-workflow/references/artifacts.md` -> 优先级：中
-- [ ] `packages/skills/trapmap-knowledge-workflow/references/feedback.md` -> 优先级：低
-- [ ] `packages/skills/trapmap-knowledge-workflow/references/maintenance.md` -> 优先级：低
-- [ ] `packages/skills/trapmap-knowledge-workflow/references/accumulation.md` -> 优先级：低
+### 0.3 盘点数据
 
----
+| 项 | 当前值 | 判断 |
+|---|---:|---|
+| tracked 文件总数 | 867 | 中等规模 monorepo，目录规范需要自动守卫 |
+| tracked Markdown | 117 | 文档资产多，必须有唯一索引和归档规则 |
+| `packages/` tracked 文件 | 616 | 产品代码集中度合理 |
+| `evals/` tracked 文件 | 126 | 评测独立合理 |
+| `docs/` tracked Markdown | 82 | 分层合理，但 archive/plans 分叉 |
+| 根目录 tracked Markdown | 9 | 偏多，应收敛到稳定入口 allowlist |
+| `packages/server/src/lib/**/*.ts` | 360 | 可接受，但需要包内 README 和复杂度预算 |
+| `packages/server/src/lib/retrieval/**/*.ts` | 78 | 最大域，应优先补结构说明和边界规则 |
 
-## 阶段一：冻结真相源与漂移分类
+### 0.4 目标根目录 allowlist
 
-### 1. 任务清单
-
-- [ ] 逆向核对 `package.json`、`packages/server/package.json`、`packages/server/src/config.ts`
-- [ ] 逆向核对 `packages/server/src/lib/ai/provider-config.ts`、`packages/server/src/lib/ai/prompts.ts`
-- [ ] 逆向核对 `.github/workflows/ci.yml`、`.github/workflows/eval.yml`
-- [ ] 逆向核对 `docker-compose.yml`、`packages/server/Dockerfile`
-- [ ] 逆向核对 `packages/server/src/app.ts` 中 `/health`、`/ready`、`/meta/routes`
-- [ ] 更新 `docs/reference/DOCS_TRUTH_MATRIX.md`
-- [ ] 更新 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
-- [ ] 建立“描述性漂移 / 功能性漂移 / 删除承诺”三分类表
-
-### 2. 阶段完成标准 (DoD)
-
-- [ ] 每一类高风险事实都能定位到唯一真相源文件
-- [ ] `DOCS_TRUTH_MATRIX.md` 覆盖命令、环境变量、provider、部署、评测、深层组件文档、运维入口
-- [ ] 所有后续阶段的文档修改都能引用本阶段冻结的真相矩阵
-
-### 3. 每个阶段要做的文档更新
-
-- [ ] 重写 `docs/reference/DOCS_TRUTH_MATRIX.md` 中下列 topic 行
-  - Root workspace commands
-  - Server-only DB commands
-  - Runtime env defaults
-  - AI provider/model defaults
-  - Deployment defaults
-  - Health/readiness endpoints
-  - Eval workflow
-  - Deep architecture component docs
-  - Operator-only internal APIs
-- [ ] 修正 `docs/reference/SYSTEM_TRUTH_SOURCES.md`，删除重复描述，保留单一权威映射
-
-### 4. 每个阶段要做的测试/Eval更新
-
-- [ ] 扩展 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，断言 truth matrix 覆盖新增 topic
-- [ ] 运行 `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-
-### 5. 必要的示例结构或代码
-
-```markdown
-| Topic | Authoritative Source | Secondary Docs | Drift Type |
-|---|---|---|---|
-| Runtime env defaults | `packages/server/src/config.ts` | `docs/operations/ENVIRONMENT.md`, `docs/architecture/ARCHITECTURE.md` | descriptive |
-| AI provider/model defaults | `packages/server/src/lib/ai/provider-config.ts` | `docs/operations/ENVIRONMENT.md`, `docs/architecture/DEPLOYMENT.md`, `docs/architecture/components/AI_PROVIDER.md` | descriptive |
-| Capsule index rebuild operator surface | `packages/server/src/lib/retrieval/capsules/repositories/index-rebuild.ts` + exposed scripts | `docs/operations/ENVIRONMENT.md`, `docs/architecture/components/RETRIEVAL.md` | functional-or-delete |
-```
-
----
-
-## 阶段二：修复根入口、开发上手与运维高频文档
-
-### 1. 任务清单
-
-- [ ] `README.md`：统一启动命令、默认地址、配置入口、truth-source 引导
-- [ ] `docs/README.md`：统一 CLI/Server 启动方式、评测入口、PG-first 姿态
-- [ ] `docs/guides/GETTING_STARTED.md`：修正 AI provider 默认叙述、保留 package-scoped DB 命令
-- [ ] `docs/guides/CONTRIBUTING.md`：补“修改 truth source 后必须同步哪些文档/守卫”
-- [ ] `docs/operations/ENVIRONMENT.md`：按运行时真实默认值重写
-- [ ] `docs/operations/TESTING.md`：按真实 eval 入口、真实 CI 触发条件、真实 smoke/core 结构重写
-- [ ] `docs/operations/CI_CD.md`：同步 CI job、guardrails、eval 触发器与 baseline 逻辑
-
-### 2. 阶段完成标准 (DoD)
-
-- [ ] 新同事只看 `README.md` + `GETTING_STARTED.md` + `ENVIRONMENT.md` 即不会执行不存在的命令
-- [ ] 所有高频文档对 `HOST`、`PORT`、`TRAPMAP_DATABASE_URL`、`TRAPMAP_DATA_FILE`、`AI_PROVIDER`、`AI_PROMPT_TEMPLATE_FILE` 的描述与代码一致
-- [ ] 所有高频文档明确区分“推荐主路径”和“兼容回退路径”
-
-### 3. 每个阶段要做的文档更新
-
-- [ ] 修改 `README.md`
-- [ ] 修改 `docs/README.md`
-- [ ] 修改 `docs/guides/GETTING_STARTED.md`
-- [ ] 修改 `docs/guides/CONTRIBUTING.md`
-- [ ] 修改 `docs/operations/ENVIRONMENT.md`
-- [ ] 修改 `docs/operations/TESTING.md`
-- [ ] 修改 `docs/operations/CI_CD.md`
-
-### 4. 每个阶段要做的测试/Eval更新
-
-- [ ] 为 `README.md` / `docs/README.md` / `GETTING_STARTED.md` 增加 docRules，约束 `pnpm dev:cli`、`127.0.0.1`、`.data/skill-shareer.json`
-- [ ] 为 `ENVIRONMENT.md` 增加 docRules，约束 auto-detect/fallback/provider 列表
-- [ ] 为 `TESTING.md` / `CI_CD.md` 增加 docRules，约束 `pnpm eval:ci`、`pnpm eval:ci:core`、guardrail 命令
-- [ ] 更新 `packages/server/src/__tests__/docs-truth-smoke.test.ts`
-- [ ] 运行
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-  - `rtk pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts`
-
-### 5. 必要的示例结构或代码
-
-```markdown
-## AI Provider 配置（运行时真实语义）
-
-| 变量 | 说明 | 默认行为 |
-|---|---|---|
-| `AI_PROVIDER` | `openai` \| `openai-compatible` \| `ollama` \| `google-genai` | 显式值优先；未设置时按 `OPENAI_API_KEY` / `GEMINI_API_KEY` 自动解析；都不存在时为 `fallback` |
-| `AI_CHAT_MODEL` | chat 模型 | provider 默认值；`openai` 为 `gpt-4o-mini` |
-| `AI_PROMPT_TEMPLATE_FILE` | 本地模板覆盖文件 | 默认未设置；不自动加载任意文件 |
-```
-
-```bash
-pnpm dev:server
-pnpm dev:cli
-pnpm --filter @trapmap/server db:migrate
-pnpm eval:ci
-pnpm eval:ci:core
-```
-
----
-
-## 阶段三：修复架构、部署与深层组件文档
-
-### 1. 任务清单
-
-- [ ] `architecture.md`：保证高层架构摘要不落后于 PG-first / repos-first 现状
-- [ ] `docs/architecture/ARCHITECTURE.md`：修正 provider 默认语义、eval 结构、启动序列、路由与存储边界
-- [ ] `docs/architecture/DEPLOYMENT.md`：按 `docker-compose.yml`、`packages/server/Dockerfile`、真实 env 变量与 healthcheck 重写
-- [ ] `docs/architecture/API.md`：核对与 `/meta/routes`、实际 routes 注册表的一致性
-- [ ] `docs/architecture/CLI.md`：核对与 `packages/cli/src/index.ts`、`packages/cli/src/commands/**` 的一致性
-- [ ] `docs/architecture/components/PERSISTENCE.md`：弱化过时的 store 接口说明，改为 repos/store 兼容边界、schema 目录、JSON fallback 定位
-- [ ] `docs/architecture/components/EVALUATION.md`：改成当前 TS-based eval 架构
-- [ ] `docs/architecture/components/RETRIEVAL.md` 与 `AI_PROVIDER.md`：核对 operator surface 与 provider 真实能力
-- [ ] 复查 `docs/architecture/components/AUTH.md`、`ASYNC_INFRASTRUCTURE.md`、`CLIENT.md` 中的地址、端点、运行时默认值
-
-### 2. 阶段完成标准 (DoD)
-
-- [ ] 任一架构文档都不再把 JSON store 叙述成默认主路径
-- [ ] 部署文档中的变量、端口、healthcheck、provider 示例与真实 compose / Dockerfile 一致
-- [ ] 组件文档中凡是面向操作者的命令或入口，必须要么能在仓库中执行，要么显式标注“内部 API / 未暴露”
-- [ ] API / CLI 文档抽样对照真实路由和命令树后无明显断裂
-
-### 3. 每个阶段要做的文档更新
-
-- [ ] 修改 `architecture.md`
-- [ ] 修改 `docs/architecture/ARCHITECTURE.md`
-- [ ] 修改 `docs/architecture/DEPLOYMENT.md`
-- [ ] 修改 `docs/architecture/API.md`
-- [ ] 修改 `docs/architecture/CLI.md`
-- [ ] 修改 `docs/architecture/components/PERSISTENCE.md`
-- [ ] 修改 `docs/architecture/components/EVALUATION.md`
-- [ ] 修改 `docs/architecture/components/RETRIEVAL.md`
-- [ ] 修改 `docs/architecture/components/AI_PROVIDER.md`
-- [ ] 按抽样结果修正 `docs/architecture/components/AUTH.md`、`ASYNC_INFRASTRUCTURE.md`、`CLIENT.md`
-
-### 4. 每个阶段要做的测试/Eval更新
-
-- [ ] 新增 docRules 覆盖 `DEPLOYMENT.md`、`PERSISTENCE.md`、`EVALUATION.md`、`AI_PROVIDER.md`
-- [ ] 为 `API.md` / `CLI.md` 设计最小 smoke 断言
-  - API: 必含当前高频端点，如 `/health`、`/ready`、`/v1/retrieval/skills/search-by-content`
-  - CLI: 必含当前根入口与默认 server URL 说明
-- [ ] 如选择“补实现”而非“删承诺”，同步新增相应测试
-  - capsule index rebuild 命令 smoke test
-  - k8s/Helm 交付物存在性 test 或 manifest lint
-- [ ] 运行
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-
-### 5. 必要的示例结构或代码
-
-```markdown
-## Docker Compose 默认部署
-
-1. `docker-compose.yml` 默认走 PostgreSQL。
-2. `server` 暴露 `4000:4000`，容器内 `HOST=0.0.0.0`。
-3. 健康检查命中 `http://127.0.0.1:4000/health`。
-4. JSON 文件模式仅作为兼容回退，必须单独标注，不得与默认路径混写。
-```
-
-```json
-{
-  "path": "/ready",
-  "method": "GET",
-  "expectedShape": {
-    "ok": true,
-    "queueWorkerRunning": "boolean",
-    "database": "postgres | json-store"
-  }
-}
-```
-
----
-
-## 阶段四：修复参考文档、评测说明与 Skill 工作流文档
-
-### 1. 任务清单
-
-- [ ] `docs/PACKAGES.md`：复查包职责与 repo 边界是否仍准确
-- [ ] `docs/PACKAGE_STACK_RATIONALE.md`：删除与实现脱节的技术选型表述
-- [ ] `docs/reference/DATABASE_SCHEMA.md`：与 `packages/server/src/lib/persistence/schema/**` 同步
-- [ ] `docs/reference/api-surface.md`：与当前 contracts/routes 校对
-- [ ] `evals/README.md`、`evals/retrieval/README.md`、`evals/summary/README.md`、`evals/graph-extraction/README.md`：同步真实 runner、tier、dataset/scenario 结构
-- [ ] `packages/skills/trapmap-knowledge-workflow/SKILL.md` 及 `references/**`：核对是否引用了旧命令、旧目录或旧治理流程
-
-### 2. 阶段完成标准 (DoD)
-
-- [ ] 参考文档不再复述已被 truth docs 管控的旧事实
-- [ ] Eval README 与实际脚本入口、fixture 目录、baseline 行为一致
-- [ ] Skill workflow 文档里的命令、路径、角色边界与当前 monorepo 结构一致
-
-### 3. 每个阶段要做的文档更新
-
-- [ ] 修改 `docs/PACKAGES.md`
-- [ ] 修改 `docs/PACKAGE_STACK_RATIONALE.md`
-- [ ] 修改 `docs/reference/DATABASE_SCHEMA.md`
-- [ ] 修改 `docs/reference/api-surface.md`
-- [ ] 修改 `evals/README.md`
-- [ ] 修改 `evals/retrieval/README.md`
-- [ ] 修改 `evals/summary/README.md`
-- [ ] 修改 `evals/graph-extraction/README.md`
-- [ ] 修改 `packages/skills/trapmap-knowledge-workflow/SKILL.md`
-- [ ] 修改 `packages/skills/trapmap-knowledge-workflow/references/*.md`
-
-### 4. 每个阶段要做的测试/Eval更新
-
-- [ ] 若 `DATABASE_SCHEMA.md` 改动，更新相关 docRules / smoke test
-- [ ] 为 eval README 增加 docRules，约束 `run.ts`、`smoke.ts`、`core.ts`、`eval:ci`
-- [ ] 若 Skill workflow 文档修改了命令表面，补 CLI smoke 或脚本断言
-- [ ] 运行
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-
-### 5. 必要的示例结构或代码
-
-````markdown
-## Retrieval Eval 目录真相
+根目录保留这些 Markdown：
 
 ```text
-evals/retrieval/
-├── run.ts
-├── smoke.ts
-├── core.ts
-├── lib/
-└── scenarios/
+AGENTS.md
+CLAUDE.md
+CHANGELOG.md
+README.md
+architecture.md
+plan.md
 ```
 
-> 若文档提到 `cases/*.yaml`，应视为过时描述，必须改写。
-````
+根目录移走这些 Markdown：
+
+```text
+RETRIEVAL_V2_V3_IMPLEMENTATION_PLAN.md -> docs/archived/archived-plans/retrieval-v2-v3-implementation-plan.md
+SEA_REFERENCE_INFRA_REVIEW.md -> docs/archived/reports/sea-reference-infra-review.md
+temp.md -> docs/archived/temp-2026-05-28.md
+```
+
+目标文档结构：
+
+```text
+docs/
+├── README.md
+├── guides/
+├── operations/
+├── architecture/
+│   └── components/
+├── reference/
+├── plans/
+│   └── README.md
+├── archived/
+│   ├── README.md
+│   ├── archived-plans/
+│   └── reports/
+└── superpowers/
+    ├── plans/
+    └── specs/
+```
 
 ---
 
-## 阶段五：处理功能性漂移并补防二次漂移守卫
+## Phase 1: 冻结目录规则与迁移清单
 
-### 1. 任务清单
+**Files:**
+- Modify: `plan.md`
+- Create: `docs/reference/REPO_STRUCTURE.md`
+- Modify: `docs/README.md`
+- Modify: `docs/reference/DOCS_TRUTH_MATRIX.md`
+- Modify: `docs/reference/SYSTEM_TRUTH_SOURCES.md`
 
-- [ ] 对每个“待定功能性漂移”做决策：`implement` / `delete-doc-claim`
-- [ ] 若保留 capsule index rebuild 运维承诺：
-  - [ ] 暴露稳定命令入口（CLI、root script 或 server operations route）
-  - [ ] 文档改为引用该稳定入口
-- [ ] 若保留 Kubernetes / Helm 部署承诺：
-  - [ ] 新增最小可用 chart/manifests
-  - [ ] 文档改为引用仓库内真实路径
-- [ ] 若不保留上述承诺：
-  - [ ] 从文档中删除或改成“未来计划 / 内部能力”
-- [ ] 扩展 `scripts/complexity-budgets.json`
-- [ ] 扩展 `packages/server/src/__tests__/docs-truth-smoke.test.ts`
-- [ ] 必要时扩展 `scripts/check-doc-drift.ts` 的规则能力
+- [ ] **Step 1: 写入仓库结构真相源文档**
 
-### 2. 阶段完成标准 (DoD)
+Create `docs/reference/REPO_STRUCTURE.md` with this structure:
 
-- [ ] 所有面向使用者或运维者的能力声明都能在仓库中找到执行入口、脚本、路由或交付物
-- [ ] 无法兑现的承诺已从活跃文档中删除
-- [ ] 新增守卫足以覆盖本次发现的高频漂移类别
+```markdown
+# Repository Structure
 
-### 3. 每个阶段要做的文档更新
+This document is the authoritative source for TrapMap repository layout.
 
-- [ ] 修改所有引用 capsule index rebuild 的文档
-- [ ] 修改所有引用 Kubernetes / Helm 的文档
-- [ ] 修改所有声明 `DEBUG` 或其他未消费变量的文档
-- [ ] 在 `docs/guides/CONTRIBUTING.md` 增加“新增文档承诺时必须同时补 guard/test”的约束
+## Root
 
-### 4. 每个阶段要做的测试/Eval更新
+The root directory is for stable entry points and workspace configuration.
 
-- [ ] 为每个被保留的运维入口补 smoke test
-- [ ] 为每个被删除的承诺补 `mustNotContain` 规则
-- [ ] 运行
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts`
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-  - `rtk pnpm eval:smoke`
+Allowed root Markdown files:
 
-### 5. 必要的示例结构或代码
+- `AGENTS.md`
+- `CLAUDE.md`
+- `CHANGELOG.md`
+- `README.md`
+- `architecture.md`
+- `plan.md`
+
+Historical plans, temporary notes, audits, and reports must live under `docs/archived/`.
+
+## Product Packages
+
+- `packages/cli/`: Commander CLI and CLI tests.
+- `packages/server/`: Fastify API, persistence, retrieval, indexing, governance, and server tests.
+- `packages/contracts/`: shared Zod schemas and TypeScript types.
+- `packages/skills/`: project-level Skill artifacts.
+
+## Documentation
+
+- `docs/guides/`: onboarding and contributor workflows.
+- `docs/operations/`: runtime, CI, security, testing, deployment-adjacent operations.
+- `docs/architecture/`: architecture overview and component docs.
+- `docs/reference/`: truth sources, schemas, glossary, API surface, and repository structure.
+- `docs/plans/`: active long-horizon design plans that are still referenced by current docs.
+- `docs/archived/`: obsolete plans, historical reports, and retired decisions.
+- `docs/superpowers/`: plans and specs generated by Superpowers workflows.
+
+## Evaluations
+
+- `evals/retrieval/`: retrieval datasets, scenarios, runner, metrics, and reports.
+- `evals/summary/`: summary datasets, scenarios, judge logic, runner, and reports.
+- `evals/graph-extraction/`: graph extraction, conflict, and dedup evals.
+- `evals/ingestion/`: Skill ingestion fixtures and runner.
+- `evals/fixtures/`: shared trap fixtures.
+
+## Generated Or Local-Only Directories
+
+These directories are local artifacts and must not become tracked content:
+
+- `.data/`
+- `.tmp/`
+- `coverage/`
+- `logs/`
+- `node_modules/`
+- `packages/*/dist/`
+- `packages/*/node_modules/`
+```
+
+- [ ] **Step 2: 将结构文档加入文档索引**
+
+Update `docs/README.md` under the reference section:
+
+```markdown
+- [仓库目录结构](reference/REPO_STRUCTURE.md) — 根目录、packages、docs、evals、归档目录的权威布局规则
+```
+
+- [ ] **Step 3: 将目录结构纳入 truth matrix**
+
+Add these rows to `docs/reference/DOCS_TRUTH_MATRIX.md`:
+
+```markdown
+| Repository root Markdown allowlist | `docs/reference/REPO_STRUCTURE.md` | `README.md`, root `plan.md`, `docs/README.md` | structural |
+| Archive directory policy | `docs/reference/REPO_STRUCTURE.md` + `docs/archived/README.md` | `docs/archive/**`, `docs/archived/**`, `docs/plans/**` | structural |
+| Eval directory layout | `docs/reference/REPO_STRUCTURE.md` + `evals/README.md` | `docs/operations/TESTING.md`, `docs/architecture/components/EVALUATION.md` | structural |
+```
+
+- [ ] **Step 4: 将结构文档加入 system truth source**
+
+Add one row to `docs/reference/SYSTEM_TRUTH_SOURCES.md`:
+
+```markdown
+| Repository layout | `docs/reference/REPO_STRUCTURE.md` | `README.md`, `docs/README.md`, `docs/guides/CODE_GUIDE.md` |
+```
+
+- [ ] **Step 5: 运行文档守卫**
+
+Run:
+
+```bash
+rtk pnpm check:docs-drift
+rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
+```
+
+Expected: both commands pass.
+
+### Phase 1 完成标准
+
+- [ ] `docs/reference/REPO_STRUCTURE.md` 存在并描述 root / packages / docs / evals / archive / generated dirs
+- [ ] `docs/README.md` 能导航到结构文档
+- [ ] `DOCS_TRUTH_MATRIX.md` 有 structural 类型行
+- [ ] `SYSTEM_TRUTH_SOURCES.md` 指向 `REPO_STRUCTURE.md`
+- [ ] 文档漂移守卫和 docs truth smoke 通过
+
+### Phase 1 文档更新
+
+- [ ] `docs/reference/REPO_STRUCTURE.md`
+- [ ] `docs/README.md`
+- [ ] `docs/reference/DOCS_TRUTH_MATRIX.md`
+- [ ] `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+
+### Phase 1 测试/Eval 更新
+
+- [ ] 暂不修改 eval datasets
+- [ ] 扩展 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，断言 `REPO_STRUCTURE.md` 被索引
+- [ ] 扩展 `scripts/complexity-budgets.json` docRules，断言 `docs/README.md` 包含 `reference/REPO_STRUCTURE.md`
+
+---
+
+## Phase 2: 收敛根目录 Markdown
+
+**Files:**
+- Move: `RETRIEVAL_V2_V3_IMPLEMENTATION_PLAN.md`
+- Move: `SEA_REFERENCE_INFRA_REVIEW.md`
+- Move: `temp.md`
+- Modify: `README.md`
+- Modify: `docs/README.md`
+- Modify: `docs/archived/README.md`
+- Modify: `docs/reference/REPO_STRUCTURE.md`
+
+- [ ] **Step 1: 创建归档报告目录**
+
+Run:
+
+```bash
+rtk mkdir -p docs/archived/reports
+```
+
+Expected: `docs/archived/reports/` exists.
+
+- [ ] **Step 2: 移走根目录历史文档**
+
+Run:
+
+```bash
+rtk git mv RETRIEVAL_V2_V3_IMPLEMENTATION_PLAN.md docs/archived/archived-plans/retrieval-v2-v3-implementation-plan.md
+rtk git mv SEA_REFERENCE_INFRA_REVIEW.md docs/archived/reports/sea-reference-infra-review.md
+rtk git mv temp.md docs/archived/temp-2026-05-28.md
+```
+
+Expected: root Markdown is reduced to the allowlist in Phase 0.4.
+
+- [ ] **Step 3: 更新归档索引**
+
+Add these rows to `docs/archived/README.md`:
+
+```markdown
+| `archived-plans/retrieval-v2-v3-implementation-plan.md` | 2026-05-28 | 历史检索实现计划，根目录只保留当前 `plan.md` |
+| `reports/sea-reference-infra-review.md` | 2026-05-28 | 历史基础设施审计报告，归档到 reports |
+| `temp-2026-05-28.md` | 2026-05-28 | 临时工作笔记，根目录不保留临时材料 |
+```
+
+- [ ] **Step 4: 更新根 README 的文档说明**
+
+Ensure `README.md` links to `docs/reference/REPO_STRUCTURE.md`:
+
+```markdown
+| [docs/reference/REPO_STRUCTURE.md](docs/reference/REPO_STRUCTURE.md) | 仓库目录结构、归档位置和生成目录规则 |
+```
+
+- [ ] **Step 5: 运行根目录 allowlist 检查**
+
+Before the automated script exists, run:
+
+```bash
+rtk proxy git ls-files '*.md' | grep -v '/' 
+```
+
+Expected output:
+
+```text
+AGENTS.md
+CHANGELOG.md
+CLAUDE.md
+README.md
+architecture.md
+plan.md
+```
+
+### Phase 2 完成标准
+
+- [ ] 根目录没有 `temp.md`
+- [ ] 根目录没有历史 implementation plan 或 audit report
+- [ ] `docs/archived/README.md` 能解释每个被移动根文档的归档原因
+- [ ] `README.md` 和 `docs/README.md` 都能指向目录结构规则
+
+### Phase 2 文档更新
+
+- [ ] `README.md`
+- [ ] `docs/README.md`
+- [ ] `docs/archived/README.md`
+- [ ] `docs/reference/REPO_STRUCTURE.md`
+
+### Phase 2 测试/Eval 更新
+
+- [ ] 扩展 `scripts/complexity-budgets.json` docRules，禁止 `README.md` 再链接根目录历史计划
+- [ ] 运行 `rtk pnpm check:docs-drift`
+- [ ] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
+
+---
+
+## Phase 3: 合并归档入口与计划入口
+
+**Files:**
+- Move: `docs/archive/doc-drift-audit-report-2026-05-28.md`
+- Move: `docs/archive/doc-drift-audit-report-2026-05-28-cont.md`
+- Move: `docs/archive/old_plan_back.md`
+- Modify: `docs/archived/README.md`
+- Create: `docs/plans/README.md`
+- Modify: `docs/reference/REPO_STRUCTURE.md`
+
+- [ ] **Step 1: 将 `docs/archive` 内容迁移到 `docs/archived`**
+
+Run:
+
+```bash
+rtk git mv docs/archive/doc-drift-audit-report-2026-05-28.md docs/archived/reports/doc-drift-audit-report-2026-05-28.md
+rtk git mv docs/archive/doc-drift-audit-report-2026-05-28-cont.md docs/archived/reports/doc-drift-audit-report-2026-05-28-cont.md
+rtk git mv docs/archive/old_plan_back.md docs/archived/archived-plans/old-plan-back-2026-05-28.md
+```
+
+Expected: `docs/archive/` becomes empty and can be removed.
+
+- [ ] **Step 2: 删除空的旧归档目录**
+
+Run:
+
+```bash
+rtk rmdir docs/archive
+```
+
+Expected: only `docs/archived/` remains as archive root.
+
+- [ ] **Step 3: 写入 `docs/plans/README.md`**
+
+Create:
+
+```markdown
+# Active Plans
+
+This directory contains active or still-referenced long-horizon design plans.
+
+Rules:
+
+1. Root `plan.md` is the current execution tracker.
+2. `docs/plans/` is for design plans that current docs still cite as context.
+3. Obsolete execution plans must move to `docs/archived/archived-plans/`.
+4. Obsolete reports must move to `docs/archived/reports/`.
+
+Current files:
+
+| File | Status | Why it remains here |
+|---|---|---|
+| `capsule-contextual-enrichment-plan.md` | active-reference | Retrieval/capsule design context |
+| `round4-cross-table-consistency-plan.md` | active-reference | Artifact structured facts source cited by package docs |
+| `v2-multi-recall-plan.md` | active-reference | Retrieval design context |
+```
+
+- [ ] **Step 4: 更新 `docs/archived/README.md`**
+
+Add:
+
+```markdown
+| `reports/doc-drift-audit-report-2026-05-28.md` | 2026-05-28 | 文档漂移审计报告，已从旧 `docs/archive/` 合并 |
+| `reports/doc-drift-audit-report-2026-05-28-cont.md` | 2026-05-28 | 文档漂移补充报告，已从旧 `docs/archive/` 合并 |
+| `archived-plans/old-plan-back-2026-05-28.md` | 2026-05-28 | 历史根计划备份，已合并到标准 archived-plans |
+```
+
+- [ ] **Step 5: 更新结构规则**
+
+Add this rule to `docs/reference/REPO_STRUCTURE.md`:
+
+```markdown
+## Archive Policy
+
+`docs/archived/` is the only archive root. Do not create `docs/archive/`.
+
+- Obsolete implementation plans: `docs/archived/archived-plans/`
+- Historical audits and reports: `docs/archived/reports/`
+- Retired standalone docs: `docs/archived/`
+```
+
+### Phase 3 完成标准
+
+- [ ] `docs/archive/` 不存在
+- [ ] `docs/archived/` 是唯一归档入口
+- [ ] `docs/plans/README.md` 明确 `plan.md`、`docs/plans`、`docs/superpowers/plans`、`docs/archived/archived-plans` 的区别
+- [ ] 所有被移动文档都能从 `docs/archived/README.md` 找到
+
+### Phase 3 文档更新
+
+- [ ] `docs/archived/README.md`
+- [ ] `docs/plans/README.md`
+- [ ] `docs/reference/REPO_STRUCTURE.md`
+- [ ] `docs/README.md`
+
+### Phase 3 测试/Eval 更新
+
+- [ ] 新增结构守卫前，手动运行 `rtk proxy git ls-files 'docs/archive/**'`
+- [ ] Expected: no output
+- [ ] 运行 `rtk pnpm check:docs-drift`
+- [ ] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
+
+---
+
+## Phase 4: 补齐包内导航与 Server 边界说明
+
+**Files:**
+- Create: `packages/server/src/lib/README.md`
+- Create: `packages/server/src/routes/README.md`
+- Modify: `docs/guides/CODE_GUIDE.md`
+- Modify: `docs/PACKAGES.md`
+- Modify: `scripts/complexity-budgets.json`
+- Modify: `packages/server/src/__tests__/docs-truth-smoke.test.ts`
+
+- [ ] **Step 1: 写入 Server lib 导航**
+
+Create `packages/server/src/lib/README.md`:
+
+```markdown
+# Server Library Layout
+
+`packages/server/src/lib/` is organized by domain and shared infrastructure.
+
+## Domain Modules
+
+| Directory | Responsibility |
+|---|---|
+| `knowledge/` | Knowledge application service and repositories |
+| `artifacts/` | Skill artifact model, repository, reconstruction, and derived data |
+| `candidates/` | Candidate submission, duplicate detection, resolution, and processing |
+| `retrieval/` | v1/v2/v3 retrieval orchestration, recall, scoring, capsules, graph plans, and response assembly |
+| `indexing/` | Index event pipeline, adapters, graph-lite, vector, keyword, and normalization |
+| `governance/` | Permission and eligibility checks |
+| `auth/`, `users/`, `teams/` | Identity, sessions, teams, and membership repositories |
+| `feedback/`, `decay/`, `maintenance/` | Lifecycle-adjacent operator domains |
+
+## Shared Infrastructure
+
+| Directory | Responsibility |
+|---|---|
+| `persistence/` | Store creation, migrations, Drizzle schema, and PostgreSQL store |
+| `repos/` | Aggregate repository boundary exposed on `app.skillShareer.repos` |
+| `queue/` | Task queue primitives |
+| `lifecycle/` | Event bus, lifecycle state machine, and subscribers |
+| `ai/` | Provider configuration, prompts, dynamic context, and cache |
+| `store/` and `store.ts` | JSON compatibility store and store record types |
+
+## Test Placement Rule
+
+New unit tests should be colocated with the module under test as `*.test.ts`.
+Cross-domain smoke and migration guard tests may stay in `packages/server/src/__tests__/`.
+```
+
+- [ ] **Step 2: 写入 routes 导航**
+
+Create `packages/server/src/routes/README.md`:
+
+```markdown
+# Server Route Layout
+
+Routes are thin Fastify modules. They parse requests, check auth/permissions, and delegate to `lib/`.
+
+## Directory Rule
+
+- Single-file routes stay as `routes/<domain>.ts`.
+- A route group with multiple sub-operations becomes `routes/<domain>/`.
+- Route tests are colocated with the route file unless the test is a cross-route smoke test.
+
+## Current Route Groups
+
+| Path | Responsibility |
+|---|---|
+| `routes/candidates/` | Candidate submit, query, duplicate lookup, and resolution |
+| `routes/operations/` | Operator/admin operations such as status, migrate, audit, artifact import/export/activate |
+| `routes/*.ts` | Flat route modules for domains that do not need sub-operation files |
+```
+
+- [ ] **Step 3: 更新代码导读**
+
+In `docs/guides/CODE_GUIDE.md`, add:
+
+```markdown
+For package-local navigation, read:
+
+- `packages/server/src/lib/README.md`
+- `packages/server/src/routes/README.md`
+```
+
+- [ ] **Step 4: 更新包结构说明**
+
+In `docs/PACKAGES.md`, add the same two package-local README links under `packages/server`.
+
+- [ ] **Step 5: 将导航文件纳入 docs truth smoke**
+
+Add this test to `packages/server/src/__tests__/docs-truth-smoke.test.ts`:
+
+```typescript
+it('server package has local structure guides', () => {
+  expect(existsSync(resolve(ROOT, 'packages/server/src/lib/README.md'))).toBe(true);
+  expect(existsSync(resolve(ROOT, 'packages/server/src/routes/README.md'))).toBe(true);
+
+  const codeGuide = readDoc('docs/guides/CODE_GUIDE.md');
+  expect(codeGuide).toContain('packages/server/src/lib/README.md');
+  expect(codeGuide).toContain('packages/server/src/routes/README.md');
+});
+```
+
+- [ ] **Step 6: 加入目录级复杂度预算**
+
+Extend `scripts/complexity-budgets.json` later only if the checker supports directory budgets. For this phase, add docRules:
 
 ```json
 {
-  "file": "docs/architecture/DEPLOYMENT.md",
-  "mustNotContain": [
-    "DEBUG=false",
-    "Helm Chart 值文件"
+  "file": "docs/guides/CODE_GUIDE.md",
+  "mustContain": [
+    "packages/server/src/lib/README.md",
+    "packages/server/src/routes/README.md"
   ]
 }
 ```
 
-```bash
-# 若决定保留该能力，至少需要一个稳定入口，示例：
-pnpm ops:rebuild-capsule-indexes
-```
+### Phase 4 完成标准
+
+- [ ] 新贡献者能从 `CODE_GUIDE.md` 进入包内 README
+- [ ] Server `lib` 的主要领域目录有职责说明
+- [ ] route 单文件/目录拆分规则明确
+- [ ] 新测试明确禁止包内导航文档缺失
+
+### Phase 4 文档更新
+
+- [ ] `packages/server/src/lib/README.md`
+- [ ] `packages/server/src/routes/README.md`
+- [ ] `docs/guides/CODE_GUIDE.md`
+- [ ] `docs/PACKAGES.md`
+
+### Phase 4 测试/Eval 更新
+
+- [ ] 更新 `packages/server/src/__tests__/docs-truth-smoke.test.ts`
+- [ ] 更新 `scripts/complexity-budgets.json` docRules
+- [ ] 运行 `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+- [ ] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
 
 ---
 
-## 3. 全局完成标准
+## Phase 5: 补齐 eval 目录说明与评测入口一致性
 
-- [x] 所有 P0/P1 文档完成逆向核对
-- [x] 所有高风险描述性漂移被修正
-- [x] 所有功能性漂移都被决策为”补实现”或”删承诺”
-- [x] `DOCS_TRUTH_MATRIX.md` 和 `SYSTEM_TRUTH_SOURCES.md` 成为后续文档维护入口
-- [x] `scripts/complexity-budgets.json` 与 `docs-truth-smoke.test.ts` 对本轮漂移类别形成防线
-- [x] 至少完成一次 `rtk pnpm check:docs-drift` + `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` + `rtk pnpm eval:smoke`
+**Files:**
+- Modify: `evals/README.md`
+- Modify: `evals/retrieval/README.md`
+- Modify: `evals/summary/README.md`
+- Modify: `evals/graph-extraction/README.md`
+- Create: `evals/ingestion/README.md`
+- Modify: `docs/operations/TESTING.md`
+- Modify: `docs/architecture/components/EVALUATION.md`
+- Modify: `scripts/complexity-budgets.json`
 
-## 4. Sub-agent 执行建议
+- [ ] **Step 1: 将 evals 顶层 README 改成结构入口**
 
-- [ ] 推荐先并行拉起 3 个 sub-agent
-  - Lane A 负责高频文档修正
-  - Lane B 负责架构/部署/组件文档修正
-  - Lane C 负责 truth docs、guardrails、tests/evals
-- [ ] 每个 sub-agent 只拥有不重叠的写入范围，避免互相覆盖
-- [ ] 主线程只负责
-  - 统一漂移分类标准
-  - 审核功能性漂移决策
-  - 合并 truth matrix 与测试策略
-- [ ] 阶段二、三可并行
-- [ ] 阶段五必须串行收口，因为它决定“实现还是删承诺”
+Ensure `evals/README.md` contains:
+
+```markdown
+## Directory Layout
+
+| Directory | Contents | Entry Command |
+|---|---|---|
+| `retrieval/` | Retrieval datasets, scenarios, metrics, and runner | `pnpm eval:retrieval:smoke` |
+| `summary/` | Summary datasets, scenarios, assertions, judge, and runner | `pnpm eval:summary:smoke` |
+| `graph-extraction/` | Graph extraction, dedup, and conflict evaluation | `pnpm eval:graph-extraction:smoke` |
+| `ingestion/` | Skill ingestion fixtures, assertions, adapter, and runner | `pnpm eval:ingestion:smoke` |
+| `fixtures/` | Shared trap fixtures | Imported by eval suites |
+| `scripts/` | Cross-eval CI and aggregate runners | `pnpm eval:ci` |
+```
+
+- [ ] **Step 2: 创建 ingestion README**
+
+Create `evals/ingestion/README.md`:
+
+````markdown
+# Ingestion Evaluation
+
+Skill ingestion evals verify that TrapMap can import representative Skill directories with frontmatter, references, assets, and scripts.
+
+## Layout
+
+- `run.ts`: CLI runner.
+- `adapter.ts`: ingestion adapter used by the runner.
+- `assertions.ts`: pass/fail assertions.
+- `metrics.ts`: score aggregation.
+- `fixtures/`: representative Skill fixture directories.
+
+## Commands
+
+```bash
+pnpm eval:ingestion:smoke
+pnpm eval:ingestion:dry-run
+```
+````
+
+- [ ] **Step 3: 更新 TESTING 和 EVALUATION 文档**
+
+Ensure both docs mention all eval families:
+
+```markdown
+- Retrieval: `pnpm eval:retrieval:smoke`
+- Summary: `pnpm eval:summary:smoke`
+- Graph extraction: `pnpm eval:graph-extraction:smoke`
+- Ingestion: `pnpm eval:ingestion:smoke`
+- Aggregate smoke gate: `pnpm eval:smoke`
+- CI gate: `pnpm eval:ci`
+```
+
+- [ ] **Step 4: 更新 doc drift rules**
+
+Add rules to `scripts/complexity-budgets.json`:
+
+```json
+{
+  "file": "evals/README.md",
+  "mustContain": [
+    "retrieval/",
+    "summary/",
+    "graph-extraction/",
+    "ingestion/",
+    "pnpm eval:ci"
+  ]
+}
+```
+
+- [ ] **Step 5: 运行 eval dry-runs**
+
+Run:
+
+```bash
+rtk pnpm eval:retrieval:dry-run
+rtk pnpm eval:summary:dry-run
+rtk pnpm eval:graph-extraction:dry-run
+rtk pnpm eval:ingestion:dry-run
+```
+
+Expected: commands complete without changing reports.
+
+### Phase 5 完成标准
+
+- [ ] `evals/README.md` 能解释所有 eval 子目录
+- [ ] `evals/ingestion/README.md` 存在
+- [ ] `docs/operations/TESTING.md` 与 `docs/architecture/components/EVALUATION.md` 的 eval 命令一致
+- [ ] 所有 eval dry-run 命令通过
+
+### Phase 5 文档更新
+
+- [ ] `evals/README.md`
+- [ ] `evals/retrieval/README.md`
+- [ ] `evals/summary/README.md`
+- [ ] `evals/graph-extraction/README.md`
+- [ ] `evals/ingestion/README.md`
+- [ ] `docs/operations/TESTING.md`
+- [ ] `docs/architecture/components/EVALUATION.md`
+
+### Phase 5 测试/Eval 更新
+
+- [ ] 更新 `scripts/complexity-budgets.json` docRules
+- [ ] 运行四个 `eval:*:dry-run`
+- [ ] 若 dry-run 发现文档命令与 package scripts 不一致，先修文档，不改 runner 行为
+
+---
+
+## Phase 6: 新增目录结构自动守卫
+
+**Files:**
+- Create: `scripts/check-repo-structure.ts`
+- Create: `scripts/__tests__/check-repo-structure.test.ts`
+- Modify: `package.json`
+- Modify: `.github/workflows/ci.yml`
+- Modify: `docs/reference/REPO_STRUCTURE.md`
+- Modify: `docs/operations/TESTING.md`
+- Modify: `docs/operations/CI_CD.md`
+
+- [ ] **Step 1: 新增结构守卫脚本**
+
+Create `scripts/check-repo-structure.ts`:
+
+```typescript
+import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+export interface StructureCheckResult {
+  failures: string[];
+}
+
+const allowedRootMarkdown = new Set([
+  'AGENTS.md',
+  'CLAUDE.md',
+  'CHANGELOG.md',
+  'README.md',
+  'architecture.md',
+  'plan.md',
+]);
+
+const forbiddenTrackedPrefixes = [
+  'docs/archive/',
+  '.data/',
+  '.tmp/',
+  'coverage/',
+  'logs/',
+  'node_modules/',
+  'packages/cli/node_modules/',
+  'packages/server/node_modules/',
+  'packages/contracts/node_modules/',
+  'packages/server/dist/',
+  'packages/contracts/dist/',
+];
+
+function listTrackedFiles(root: string): string[] {
+  const output = execFileSync('git', ['ls-files'], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  return output.split('\n').filter(Boolean);
+}
+
+export function checkRepoStructure(root = process.cwd()): StructureCheckResult {
+  const trackedFiles = listTrackedFiles(root);
+  const failures: string[] = [];
+
+  for (const file of trackedFiles) {
+    if (file.endsWith('.md') && !file.includes('/') && !allowedRootMarkdown.has(file)) {
+      failures.push(`Root Markdown is not allowed: ${file}`);
+    }
+
+    for (const prefix of forbiddenTrackedPrefixes) {
+      if (file.startsWith(prefix)) {
+        failures.push(`Tracked file uses forbidden generated/archive prefix: ${file}`);
+      }
+    }
+  }
+
+  const requiredPaths = [
+    'docs/reference/REPO_STRUCTURE.md',
+    'docs/archived/README.md',
+    'docs/archived/archived-plans',
+    'docs/archived/reports',
+    'docs/plans/README.md',
+    'packages/server/src/lib/README.md',
+    'packages/server/src/routes/README.md',
+    'evals/ingestion/README.md',
+  ];
+
+  for (const relPath of requiredPaths) {
+    if (!existsSync(resolve(root, relPath))) {
+      failures.push(`Required structure path is missing: ${relPath}`);
+    }
+  }
+
+  return { failures };
+}
+
+function main(): void {
+  const result = checkRepoStructure();
+
+  for (const failure of result.failures) {
+    console.error(`[repo-structure] FAIL: ${failure}`);
+  }
+
+  if (result.failures.length > 0) {
+    console.error(`\n[repo-structure] ${result.failures.length} violation(s) found.`);
+    process.exit(1);
+  }
+
+  console.log('[repo-structure] Repository structure checks passed.');
+}
+
+const isDirectRun = !process.env.VITEST && process.argv[1]?.includes('check-repo-structure');
+if (isDirectRun) {
+  main();
+}
+```
+
+- [ ] **Step 2: 新增结构守卫单测**
+
+Create `scripts/__tests__/check-repo-structure.test.ts`:
+
+```typescript
+import { describe, expect, it, vi } from 'vitest';
+import { checkRepoStructure } from '../check-repo-structure';
+
+vi.mock('node:child_process', () => ({
+  execFileSync: vi.fn(() =>
+    [
+      'README.md',
+      'plan.md',
+      'temp.md',
+      'docs/archive/old.md',
+      'packages/server/src/lib/retrieval/index.ts',
+    ].join('\n'),
+  ),
+}));
+
+vi.mock('node:fs', () => ({
+  existsSync: vi.fn(() => true),
+}));
+
+describe('checkRepoStructure', () => {
+  it('rejects root markdown outside the allowlist and old docs/archive paths', () => {
+    const result = checkRepoStructure('/repo');
+
+    expect(result.failures).toContain('Root Markdown is not allowed: temp.md');
+    expect(result.failures).toContain(
+      'Tracked file uses forbidden generated/archive prefix: docs/archive/old.md',
+    );
+  });
+});
+```
+
+- [ ] **Step 3: 增加 package script**
+
+Modify `package.json`:
+
+```json
+"check:structure": "pnpm exec tsx scripts/check-repo-structure.ts"
+```
+
+- [ ] **Step 4: 加入 CI guardrails**
+
+Modify `.github/workflows/ci.yml` in `architecture-guardrails`:
+
+```yaml
+      - run: pnpm check:structure
+```
+
+- [ ] **Step 5: 更新测试文档**
+
+Add to `docs/operations/TESTING.md`:
+
+````markdown
+### Repository structure guard
+
+```bash
+pnpm check:structure
+```
+
+This guard enforces the root Markdown allowlist, the single archive root, and required package-local structure guides.
+````
+
+Add to `docs/operations/CI_CD.md`:
+
+```markdown
+The `architecture-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:complexity`, and `pnpm check:structure`.
+```
+
+- [ ] **Step 6: 运行完整守卫**
+
+Run:
+
+```bash
+rtk pnpm test -- --run scripts/__tests__/check-repo-structure.test.ts
+rtk pnpm check:structure
+rtk pnpm check:docs-drift
+rtk pnpm check:complexity
+```
+
+Expected: all commands pass.
+
+### Phase 6 完成标准
+
+- [ ] `pnpm check:structure` 存在
+- [ ] CI `architecture-guardrails` 执行结构守卫
+- [ ] 结构守卫能阻止新的根目录临时 Markdown、旧 `docs/archive/`、tracked generated dirs
+- [ ] 文档说明开发者何时运行结构守卫
+
+### Phase 6 文档更新
+
+- [ ] `docs/reference/REPO_STRUCTURE.md`
+- [ ] `docs/operations/TESTING.md`
+- [ ] `docs/operations/CI_CD.md`
+
+### Phase 6 测试/Eval 更新
+
+- [ ] 新增 `scripts/__tests__/check-repo-structure.test.ts`
+- [ ] 运行 `rtk pnpm test -- --run scripts/__tests__/check-repo-structure.test.ts`
+- [ ] 不修改 eval 数据集；运行 `rtk pnpm eval:smoke` 作为最终回归门
+
+---
+
+## Phase 7: 最终验证与交付
+
+**Files:**
+- Modify: `plan.md`
+- Modify: `docs/reference/REPO_STRUCTURE.md`
+- Modify: `docs/README.md`
+
+- [ ] **Step 1: 确认根目录 Markdown allowlist**
+
+Run:
+
+```bash
+rtk proxy git ls-files '*.md' | grep -v '/'
+```
+
+Expected:
+
+```text
+AGENTS.md
+CHANGELOG.md
+CLAUDE.md
+README.md
+architecture.md
+plan.md
+```
+
+- [ ] **Step 2: 确认旧归档入口不存在**
+
+Run:
+
+```bash
+rtk proxy git ls-files 'docs/archive/**'
+```
+
+Expected: no output.
+
+- [ ] **Step 3: 确认结构守卫覆盖当前规则**
+
+Run:
+
+```bash
+rtk pnpm check:structure
+rtk pnpm check:docs-drift
+rtk pnpm check:complexity
+rtk pnpm typecheck
+rtk pnpm test
+rtk pnpm eval:smoke
+```
+
+Expected: all commands pass.
+
+- [ ] **Step 4: 更新本计划进度**
+
+Mark completed phases in `plan.md` using checkbox syntax.
+
+### Phase 7 完成标准
+
+- [ ] 根目录只剩 allowlist Markdown
+- [ ] `docs/archived/` 是唯一归档入口
+- [ ] `docs/plans/README.md` 解释 active plans 规则
+- [ ] `packages/server/src/lib/README.md` 和 `packages/server/src/routes/README.md` 存在
+- [ ] eval 文档覆盖 retrieval / summary / graph-extraction / ingestion
+- [ ] `check:structure`、`check:docs-drift`、`check:complexity`、`typecheck`、`test`、`eval:smoke` 全部通过
+
+### Phase 7 文档更新
+
+- [ ] `plan.md`
+- [ ] `docs/reference/REPO_STRUCTURE.md`
+- [ ] `docs/README.md`
+
+### Phase 7 测试/Eval 更新
+
+- [ ] 运行全量 `rtk pnpm test`
+- [ ] 运行最终 `rtk pnpm eval:smoke`
+- [ ] 如 `eval:smoke` 生成 reports，只提交应纳入版本控制的 `.gitkeep` 或手写文档，不提交生成 JSON
+
+---
+
+## 建议提交切分
+
+- [ ] Commit 1: `docs: add repository structure truth source`
+- [ ] Commit 2: `docs: archive root historical documents`
+- [ ] Commit 3: `docs: consolidate archive and plan directories`
+- [ ] Commit 4: `docs: add server package structure guides`
+- [ ] Commit 5: `docs: align evaluation directory docs`
+- [ ] Commit 6: `chore: add repository structure guard`
+
+## 风险控制
+
+- [ ] 不移动 `packages/*` 源码目录，避免 import churn
+- [ ] 不重命名 eval dataset 文件，避免基线和报告路径漂移
+- [ ] 不删除历史文档，只归档并更新索引
+- [ ] 每次文档移动后使用 `rg` 或 `git grep` 修正旧链接
+- [ ] 所有新增守卫先以当前目标结构为准，不引入尚未完成的规则
