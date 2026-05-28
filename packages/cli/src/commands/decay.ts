@@ -19,7 +19,7 @@ function formatDecayList(data: DecayEntryListResponse): string {
   }
 
   const lines: string[] = [];
-  lines.push(`Found ${data.total} entries\n`);
+  lines.push(`Found ${data.total} entries`);
 
   for (const item of data.items) {
     const state = item.decayState === null ? 'unknown' : (item.decayState ?? '');

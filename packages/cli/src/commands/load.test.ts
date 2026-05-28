@@ -229,8 +229,8 @@ describe('CLI load command', () => {
     await program.parseAsync(['load', 'test seed'], { from: 'user' });
 
     const output = String(consoleLogSpy.mock.calls[0]?.[0]);
-    expect(output).toContain('"type": "graph-plan"');
-    expect(output).toContain('"selected_path": "entry-fallback"');
+    expect(output).toContain('"type":"graph-plan"');
+    expect(output).toContain('"selected_path":"entry-fallback"');
     consoleLogSpy.mockRestore();
   });
 

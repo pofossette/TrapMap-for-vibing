@@ -13,6 +13,7 @@ import {
   promptInput,
   promptSelect,
 } from '@trapmap/cli/lib/prompts.js';
+import { stripAnsi } from '@trapmap/cli/lib/sanitize.js';
 
 interface FeedbackCommandOptions {
   allowSubmit: boolean;
@@ -51,10 +52,10 @@ const PROBLEM_TYPE_CHOICES = [
 
 function formatFeedbackResult(response: FeedbackResponse): string {
   const lines = [
-    `Feedback submitted: ${response.feedback.id}`,
-    `Entry: ${response.feedback.entryId} (${response.feedback.entryType})`,
-    `Problem: ${response.feedback.problemType}`,
-    `Status: ${response.feedback.status}`,
+    `Feedback submitted: ${stripAnsi(response.feedback.id)}`,
+    `Entry: ${stripAnsi(response.feedback.entryId)} (${stripAnsi(response.feedback.entryType)})`,
+    `Problem: ${stripAnsi(response.feedback.problemType)}`,
+    `Status: ${stripAnsi(response.feedback.status)}`,
   ];
   return lines.join('\n');
 }
@@ -70,12 +71,17 @@ export function registerFeedbackCommands(program: Command, options: FeedbackComm
     .option('--type <type>', 'Problem type (skip interactive prompt)')
     .option('--description <text>', 'Problem description (skip interactive prompt)')
     .option('--context <text>', 'Optional context (skip interactive prompt)')
-    .option('--entry-type <type>', 'Entry type: trap or skill (default: trap)', (val: string) => {
-      if (!['trap', 'skill'].includes(val)) {
-        throw new InvalidArgumentError('Must be "trap" or "skill"');
-      }
-      return val;
-    }, 'trap')
+    .option(
+      '--entry-type <type>',
+      'Entry type: trap or skill (default: trap)',
+      (val: string) => {
+        if (!['trap', 'skill'].includes(val)) {
+          throw new InvalidArgumentError('Must be "trap" or "skill"');
+        }
+        return val;
+      },
+      'trap',
+    )
     .option('--query-seed <text>', 'Retrieval query that led to this entry')
     .option('--json', 'Output JSON')
     .action(

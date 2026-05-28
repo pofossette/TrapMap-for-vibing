@@ -117,7 +117,9 @@ function summarizeRetrievalV1(payload: RetrievalResponse): string {
   const firstValid =
     payload.globalConstraints.find((c) => c != null) ??
     payload.projectKnowledge.find((c) => c != null);
-  return firstValid ? `${firstValid.shortcut} (${firstValid.score.toFixed(2)})` : 'No results found';
+  return firstValid
+    ? `${firstValid.shortcut} (${firstValid.score.toFixed(2)})`
+    : 'No results found';
 }
 
 function summarizeRetrievalV2(payload: RetrievalV2Response): string {
@@ -187,20 +189,26 @@ function buildGraphPlanSummaryView(
       : 'entry-fallback';
 
   const blockingTraps =
-    plan?.blockingTraps.filter((t) => t != null).slice(0, trapLimit).map((trap) => ({
-      label: trap.label,
-      severity: trap.severity,
-      sourceId: trap.sourceId,
-      ...(detailed || context.graphPlanMode === 'full' ? { evidence: trap.evidence } : {}),
-    })) ?? [];
+    plan?.blockingTraps
+      .filter((t) => t != null)
+      .slice(0, trapLimit)
+      .map((trap) => ({
+        label: trap.label,
+        severity: trap.severity,
+        sourceId: trap.sourceId,
+        ...(detailed || context.graphPlanMode === 'full' ? { evidence: trap.evidence } : {}),
+      })) ?? [];
 
   const recommendedSkills =
-    plan?.recommendedSkills.filter((s) => s != null).slice(0, skillLimit).map((skill) => ({
-      artifactId: skill.artifactId,
-      label: skill.label,
-      score: skill.score,
-      ...(detailed ? { situation: skill.situation, goal: skill.goal } : {}),
-    })) ??
+    plan?.recommendedSkills
+      .filter((s) => s != null)
+      .slice(0, skillLimit)
+      .map((skill) => ({
+        artifactId: skill.artifactId,
+        label: skill.label,
+        score: skill.score,
+        ...(detailed ? { situation: skill.situation, goal: skill.goal } : {}),
+      })) ??
     (payload.fallback?.routeFamily === 'capsule'
       ? payload.fallback.response.capsules.slice(0, skillLimit).map((capsule) => ({
           artifactId: capsule.artifactId,
@@ -211,12 +219,15 @@ function buildGraphPlanSummaryView(
       : []);
 
   const activationHints =
-    plan?.recommendedSkills.filter((s) => s != null).slice(0, skillLimit).map((skill) => ({
-      artifactId: skill.artifactId,
-      references: skill.activationRefs.references.slice(0, referenceLimit).map((ref) => ref.path),
-      assets: skill.activationRefs.assets.slice(0, assetLimit).map((asset) => asset.path),
-      scripts: skill.activationRefs.scripts.slice(0, 1).map((script) => script.path),
-    })) ?? [];
+    plan?.recommendedSkills
+      .filter((s) => s != null)
+      .slice(0, skillLimit)
+      .map((skill) => ({
+        artifactId: skill.artifactId,
+        references: skill.activationRefs.references.slice(0, referenceLimit).map((ref) => ref.path),
+        assets: skill.activationRefs.assets.slice(0, assetLimit).map((asset) => asset.path),
+        scripts: skill.activationRefs.scripts.slice(0, 1).map((script) => script.path),
+      })) ?? [];
 
   return {
     summary: summarizeGraphPlan(payload),
@@ -255,20 +266,24 @@ function buildRetrievalV1View(payload: RetrievalResponse): RetrievalV1View {
   return {
     type: 'retrieval-v1',
     querySummary: summarizeRetrievalV1(payload),
-    constraints: payload.globalConstraints.filter((match) => match != null).map((match) => ({
-      entryId: match.entryId,
-      shortcut: match.shortcut,
-      score: match.score,
-      reason: match.reason,
-      labels: match.labels,
-    })),
-    projectKnowledge: payload.projectKnowledge.filter((match) => match != null).map((match) => ({
-      entryId: match.entryId,
-      shortcut: match.shortcut,
-      score: match.score,
-      reason: match.reason,
-      labels: match.labels,
-    })),
+    constraints: payload.globalConstraints
+      .filter((match) => match != null)
+      .map((match) => ({
+        entryId: match.entryId,
+        shortcut: match.shortcut,
+        score: match.score,
+        reason: match.reason,
+        labels: match.labels,
+      })),
+    projectKnowledge: payload.projectKnowledge
+      .filter((match) => match != null)
+      .map((match) => ({
+        entryId: match.entryId,
+        shortcut: match.shortcut,
+        score: match.score,
+        reason: match.reason,
+        labels: match.labels,
+      })),
     nextSteps:
       payload.globalConstraints.length + payload.projectKnowledge.length > 0
         ? ['Read the highest-scoring entries first.']
@@ -584,7 +599,7 @@ function renderClaude(envelope: RenderEnvelope<RenderPayload>): string {
 }
 
 function renderCodex(envelope: RenderEnvelope<RenderPayload>): string {
-  return JSON.stringify(buildCodexObject(envelope), null, 2);
+  return JSON.stringify(buildCodexObject(envelope));
 }
 
 function renderOpenCode(envelope: RenderEnvelope<RenderPayload>): string {
@@ -878,7 +893,5 @@ export function createRenderEnvelope<T>(
 
 export function resolveRenderer(profile: OutputProfile, kind: RenderKind): Renderer {
   const toolRegistry = registry[profile.tool] ?? registry.generic;
-  return (toolRegistry[kind] ??
-    registry.generic[kind] ??
-    registry.generic.generic) as Renderer;
+  return (toolRegistry[kind] ?? registry.generic[kind] ?? registry.generic.generic) as Renderer;
 }

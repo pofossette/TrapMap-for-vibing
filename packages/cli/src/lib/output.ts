@@ -13,7 +13,7 @@ export interface JsonFlag {
 
 export function printResult<T>(value: T, options: JsonFlag, formatter: (input: T) => string): void {
   if (options.json) {
-    console.log(JSON.stringify(value, null, 2));
+    console.log(JSON.stringify(value));
     return;
   }
 

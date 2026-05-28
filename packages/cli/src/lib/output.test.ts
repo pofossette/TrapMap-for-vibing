@@ -10,7 +10,7 @@ describe('output helpers', () => {
 
     printResult({ ok: true }, { json: true }, () => 'legacy');
 
-    expect(consoleLogSpy).toHaveBeenCalledWith('{\n  "ok": true\n}');
+    expect(consoleLogSpy).toHaveBeenCalledWith('{"ok":true}');
     consoleLogSpy.mockRestore();
   });
 

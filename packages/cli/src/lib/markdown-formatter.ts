@@ -51,7 +51,7 @@ function formatTrapNode(trap: PlanTrapNode, maxLen: number): string {
   const severityLabel = trap.severity === 'hard' ? '[HARD]' : '[SOFT]';
   const evidence = truncateText(escapeMarkdown(trap.evidence), maxLen);
   const lines = [
-    `**${severityLabel} ${escapeMarkdown(trap.label)}** (scope: ${trap.scope}, score: ${trap.score.toFixed(2)})`,
+    `**${severityLabel} ${escapeMarkdown(trap.label)}**`,
     `> ${evidence}`,
     `- Source: \`${trap.sourceId}\``,
   ];
@@ -97,9 +97,7 @@ function formatSkillNode(skill: PlanSkillNode, maxLen: number): string {
  */
 function formatRoutingTrace(trace: GraphPlanRoutingTrace): string {
   const channels =
-    trace.channelsUsed && trace.channelsUsed.length > 0
-      ? trace.channelsUsed.join(', ')
-      : 'unknown';
+    trace.channelsUsed && trace.channelsUsed.length > 0 ? trace.channelsUsed.join(', ') : 'unknown';
   const lines = [
     `- Mode: ${trace.selectedMode}`,
     `- Confidence: ${trace.confidenceScore.toFixed(2)} (${trace.confidenceBucket})`,

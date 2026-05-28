@@ -1,1105 +1,1104 @@
-# PG-First Convergence Implementation Plan
+# CLI Bug Fix Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Eliminate the mixed `store_snapshot` / repository architecture in core server flows, so PG mode and JSON mode behave consistently and the repo structure stops producing mode-specific bugs.
+**Goal:** Fix 54 confirmed bugs in `packages/cli` identified by the FM-Agent scan, covering 1 critical security vulnerability, 10 high-severity crash/auth/permission defects, 28 medium-severity logic/formatting/injection issues, and 15 low-severity defects.
 
-**Architecture:** Keep the public HTTP contract stable while converging internal reads and writes onto `app.skillShareer.repos`. Restrict `SkillShareerStore` to explicit compatibility and migration paths, extract shared knowledge/trap workflows into application services, and add tests that exercise the same workflow in both JSON and PG-backed execution paths.
+**Architecture:** All fixes are confined to `packages/cli/src/`. No server or contracts changes are required. Fixes are grouped into 4 phases by severity: security+crash → permission+validation → logic errors → formatting+injection+low. Each phase produces a green `pnpm test`, `pnpm typecheck`, and `pnpm check` before proceeding.
 
-**Tech Stack:** TypeScript, Fastify, Drizzle ORM, PostgreSQL, Vitest, pnpm, tsx
+**Tech Stack:** TypeScript, Commander, Vitest, Node.js built-in modules, pnpm
 
 ---
 
 ## Plan Metadata
 
-- Archived previous root plan to `docs/archived/archived-plans/plan-2026-05-27-server-complexity-doc-drift-convergence.md`
-- This file remains the active working plan at `plan.md`
-- Primary problem statements from the repository review:
-  - PG repositories and `store_snapshot` are treated as parallel fact sources
-  - `access-key -> login` is inconsistent in PG mode
-  - `traps.ts` and `knowledge.ts` have diverged behavior
-  - retrieval, skill lookup, and graph-plan compilation still read from snapshot compatibility data
-  - service wiring exposes too many overlapping access paths (`store`, legacy flat repos, unified `repos`)
+- Archived previous root plan to `docs/archived/archived-plans/plan-2026-05-28-pg-first-convergence-and-retrieval-eval.md`
+- This file is the active working plan at `plan.md`
+- Bug source: FM-Agent scan of `packages/cli` — 163 functions extracted, 83 reported, 54 confirmed
+- Severity breakdown: 1 Critical, 10 High, 28 Medium, 15 Low
 
 ## Scope
 
 - In scope:
-  - server-side structural convergence
-  - route/service deduplication
-  - PG-first read/write consistency
-  - documentation, test, and eval updates required to lock the new structure in place
+  - All 54 confirmed bugs in `packages/cli/src/`
+  - Unit test additions/updates for each fix
+  - CLI-specific documentation updates (command surface, permission model)
 - Out of scope:
-  - ranking logic redesign
-  - API contract redesign
-  - broad renaming of `SkillShareer*` identifiers unless needed for touched files
+  - Server-side fixes
+  - Contracts schema changes
+  - Ranking/retrieval logic redesign
+  - New CLI features
 
 ## Phase Tracker
 
-- [x] Phase 1: Establish a canonical server data-access boundary
-- [x] Phase 2: Fix auth, member, and access-key correctness across storage modes
-- [x] Phase 3: Unify knowledge and trap workflows behind shared services
-- [x] Phase 4: Move retrieval and planning flows off `store_snapshot`
-- [x] Phase 5: Shrink the compatibility surface and add structural guardrails
+- [ ] Phase 1: Security + crash fixes (Critical/High — 6 bugs)
+- [ ] Phase 2: Permission + validation correctness (High/Medium — 8 bugs)
+- [ ] Phase 3: Logic error remediation (Medium — 18 bugs)
+- [ ] Phase 4: Formatting, input injection, and low-severity cleanup (Medium/Low — 22 bugs)
 
 ## File Structure
+
+**Modify**
+
+- `packages/cli/src/lib/skill-artifact-export.ts` — path traversal fix, bundle path segment check, base64 decode
+- `packages/cli/src/lib/output-profile.ts` — resolveRenderer crash, summarizeRetrievalV1 null, summarizeGraphPlan, buildCodexObject, buildCommandResultView, registerOutputProfileCommands spread
+- `packages/cli/src/lib/prompts.ts` — isInteractiveEnvironment crash, promptSelect falsy check
+- `packages/cli/src/lib/config.ts` — getConfigPath crash, loadCliState falsy check
+- `packages/cli/src/lib/http.ts` — requireSessionToken type check
+- `packages/cli/src/lib/markdown-formatter.ts` — truncateText edge case, formatRoutingTrace empty, formatTrapNode spec, push_1 numbering
+- `packages/cli/src/lib/input.ts` — resolveTextInput stdin detection
+- `packages/cli/src/lib/output.ts` — printResult JSON format
+- `packages/cli/src/lib/artifact-bundle.ts` — scanSkillDirectory case sensitivity, buildSingleSkillMdBundle scope default, readFileContent encoding
+- `packages/cli/src/index.ts` — operations permission flags, review/team permission cleanup
+- `packages/cli/src/commands/skill.ts` — allowReview guard, formatSkillMatch injection, formatManualResultResponse injection, formatApplyResolutionResponse order, formatSkillHistoryResponse spacing, formatDuplicateJobBundle falsy
+- `packages/cli/src/commands/feedback.ts` — entry-type validation, formatFeedbackResult ANSI injection
+- `packages/cli/src/commands/operations/types.ts` — new permission fields
+- `packages/cli/src/commands/operations/list.ts` — permission guard
+- `packages/cli/src/commands/operations/activate.ts` — permission guard
+- `packages/cli/src/commands/operations/status.ts` — permission guard
+- `packages/cli/src/commands/operations/migrate.ts` — permission guard
+- `packages/cli/src/commands/operations/deactivate.ts` — reason length validation
+- `packages/cli/src/commands/operations/edit.ts` — integer validation
+- `packages/cli/src/commands/feedback-admin.ts` — formatFeedbackList double newline, formatBatchResult falsy
+- `packages/cli/src/commands/maintenance.ts` — formatMaintenanceList double newline, formatMaintenanceBatch falsy
+- `packages/cli/src/commands/decay.ts` — formatBatchResult falsy, formatDecayList nullish
 
 **Create**
 
-- `packages/server/src/lib/actors/lookup.ts`
-- `packages/server/src/lib/actors/lookup.test.ts`
-- `packages/server/src/lib/knowledge/application-service.ts`
-- `packages/server/src/lib/knowledge/application-service.test.ts`
-- `packages/server/src/lib/retrieval/read-model.ts`
-- `packages/server/src/lib/retrieval/read-model.test.ts`
-- `packages/server/src/routes/members.test.ts`
-- `packages/server/src/routes/traps.test.ts`
-- `packages/server/src/__tests__/pg-first-compat.test.ts`
-- `packages/server/src/__tests__/snapshot-usage-guard.test.ts`
-
-**Modify**
-
-- `packages/server/src/app.ts`
-- `packages/server/src/lib/context.ts`
-- `packages/server/src/lib/knowledge.ts`
-- `packages/server/src/lib/auth/repository.ts`
-- `packages/server/src/lib/auth/pg-repository.ts`
-- `packages/server/src/lib/users/repository.ts`
-- `packages/server/src/lib/users/pg-repository.ts`
-- `packages/server/src/lib/teams/repository.ts`
-- `packages/server/src/lib/teams/pg-repository.ts`
-- `packages/server/src/lib/artifacts/repository.ts`
-- `packages/server/src/routes/access-keys.ts`
-- `packages/server/src/routes/auth.ts`
-- `packages/server/src/routes/members.ts`
-- `packages/server/src/routes/knowledge.ts`
-- `packages/server/src/routes/traps.ts`
-- `packages/server/src/lib/retrieval/orchestration/orchestrator.ts`
-- `packages/server/src/lib/retrieval/capsules/skill-lookup.ts`
-- `packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts`
-- `packages/server/src/routes/retrieval.ts`
-- `docs/PACKAGES.md`
-- `docs/guides/CODE_GUIDE.md`
-- `docs/architecture/ARCHITECTURE.md`
-- `docs/architecture/FLOW.md`
-- `docs/reference/DATA_MODEL.md`
-- `docs/reference/SYSTEM_TRUTH_SOURCES.md`
-- `docs/reference/api-surface.md`
-- `docs/operations/TESTING.md`
+- `packages/cli/src/lib/sanitize.ts` — shared input sanitization utility
 
 ## Global Done Criteria
 
-- [x] Every touched workflow has the same observable behavior in JSON mode and PG mode
-- [x] New writes performed through routes used by production paths are readable by the next request without relying on `store_snapshot`
-- [x] No route in the core path mixes `repos.*` writes with `store.snapshot()` reads of the same aggregate for correctness
-- [x] Phase-specific documentation is updated in the same change as the code
-- [x] Phase-specific tests and required eval commands are updated and run
+- [ ] All 54 confirmed bugs have corresponding test cases that fail before the fix and pass after
+- [ ] `rtk pnpm typecheck` passes
+- [ ] `rtk pnpm check` passes
+- [ ] `rtk pnpm test` passes (full suite, no regressions)
+- [ ] `rtk pnpm eval:smoke` passes
+- [ ] No new ESLint violations introduced
 
 ---
 
-### Phase 1: Establish a canonical server data-access boundary
+### Phase 1: Security + Crash Fixes (Critical/High — 6 bugs)
 
 **Files:**
 
-- Create: `packages/server/src/lib/actors/lookup.ts`
-- Test: `packages/server/src/lib/actors/lookup.test.ts`
-- Modify: `packages/server/src/lib/context.ts`
-- Modify: `packages/server/src/lib/knowledge.ts`
-- Modify: `packages/server/src/routes/knowledge.ts`
-- Modify: `packages/server/src/routes/traps.ts`
-- Modify: `docs/PACKAGES.md`
-- Modify: `docs/reference/DATA_MODEL.md`
+- Modify: `packages/cli/src/lib/skill-artifact-export.ts:26-42`
+- Modify: `packages/cli/src/lib/output-profile.ts:874-878`
+- Modify: `packages/cli/src/lib/output-profile.ts:110-118`
+- Modify: `packages/cli/src/lib/prompts.ts:60-62`
+- Modify: `packages/cli/src/lib/config.ts:44-46`
+- Modify: `packages/cli/src/lib/http.ts:65-71`
+- Test: `packages/cli/src/lib/skill-artifact-export.test.ts` (extend)
+- Test: `packages/cli/src/lib/output-profile.test.ts` (extend)
+- Test: `packages/cli/src/lib/config.test.ts` (extend)
+- Test: `packages/cli/src/lib/http.test.ts` (extend)
 
 **Phase completion criteria:**
 
-- `toKnowledgeEntry()` and related serializers can be fed from repository-backed actor lookup data instead of `store.snapshot()`
-- touched routes stop using `store.snapshot()` only to resolve user handles or membership levels
-- the codebase has one documented rule: route/business logic reads current aggregate state from `repos`, not from snapshot compatibility data
+- `validateOutputPath('/etc/passwd', '/home/user')` throws an error instead of returning `/etc/passwd`
+- `resolveRenderer` with an unknown `profile.tool` value falls back to the generic renderer instead of throwing `TypeError`
+- `summarizeRetrievalV1` with `[null, validEntry]` in `globalConstraints` returns the valid entry's summary instead of crashing
+- `isInteractiveEnvironment()` returns `false` when `process.stdin` is `undefined` instead of throwing `TypeError`
+- `getConfigPath()` returns a `tmpdir()`-based path when `os.homedir()` throws instead of propagating the exception
+- `requireSessionToken` rejects non-string `sessionToken` values (numbers, booleans) with the authentication error
 
 **Documentation updates required:**
 
-- `docs/PACKAGES.md`: document `repos` as the canonical service boundary for server business logic
-- `docs/reference/DATA_MODEL.md`: state explicitly which domains are still allowed to use compatibility snapshot data
-- `docs/reference/SYSTEM_TRUTH_SOURCES.md`: add a row for “server data-access boundary”
+- `docs/operations/SECURITY.md`: document the path traversal fix and the `validateOutputPath` boundary check
+- `docs/PACKAGES.md`: note that CLI config falls back to `tmpdir()` in containerized environments
 
 **Test / eval updates required:**
 
-- add unit tests for actor lookup assembly in `packages/server/src/lib/actors/lookup.test.ts`
-- update `packages/server/src/routes/knowledge.test.ts` so route serialization works without pre-populating snapshot user arrays
-- run `rtk pnpm test -- --run packages/server/src/lib/actors/lookup.test.ts packages/server/src/routes/knowledge.test.ts`
-- run `rtk pnpm typecheck`
-- run `rtk pnpm eval:smoke`
+- Add `validateOutputPath` test: absolute path input must throw
+- Add `resolveRenderer` test: unknown tool must return generic renderer
+- Add `summarizeRetrievalV1` test: null first element must scan for valid entries
+- Add `isInteractiveEnvironment` test: mock `process.stdin = undefined` must return `false`
+- Add `getConfigPath` test: mock `os.homedir` throwing must return tmpdir path
+- Add `requireSessionToken` test: numeric token must throw
+- Run: `rtk pnpm test -- --run packages/cli/src/lib/skill-artifact-export.test.ts packages/cli/src/lib/output-profile.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/lib/http.test.ts`
+- Run: `rtk pnpm typecheck`
 
 **Necessary example structure or code:**
 
-```ts
-export interface ActorLookupSource {
-  getUsersByIds(userIds: string[]): Promise<Array<{ id: string; handle: string }>>;
-  getMembershipLevels(
-    pairs: Array<{ userId: string; teamId: string }>,
-  ): Promise<Map<string, number>>;
-}
+```typescript
+// validateOutputPath — packages/cli/src/lib/skill-artifact-export.ts
+import { sep } from 'node:path';
 
-export async function buildUserLookupContextForKnowledge(
-  source: ActorLookupSource,
-  entries: KnowledgeRecord[],
-): Promise<UserLookupContext> {
-  // Collect actor ids from owner, revisions, review history, and lifecycle events.
-}
-```
-
-- [x] **Step 1.1: Add repository-friendly actor lookup primitives**
-
-```ts
-export interface UserRepository {
-  getById(userId: string): Promise<UserRecord | null>;
-  listByIds(userIds: string[]): Promise<UserRecord[]>;
-}
-
-export interface MembershipRepository {
-  listByUserIds(userIds: string[]): Promise<MembershipRecord[]>;
+export function validateOutputPath(outputPath: string, intendedDir: string): string {
+  if (outputPath.includes('\0')) {
+    throw new Error('Path contains null bytes');
+  }
+  const normalized = normalize(outputPath);
+  if (normalized.includes('..')) {
+    throw new Error(`Path contains directory traversal: ${outputPath}`);
+  }
+  const resolved = resolve(intendedDir, normalized);
+  const resolvedBase = resolve(intendedDir) + sep;
+  if (resolved !== resolve(intendedDir) && !resolved.startsWith(resolvedBase)) {
+    throw new Error(`Path escapes intended directory: ${outputPath}`);
+  }
+  return resolved;
 }
 ```
 
-Run: `rtk pnpm typecheck`  
-Expected: FAIL until implementations are added.
-
-- [x] **Step 1.2: Implement `buildUserLookupContextForKnowledge()` and cover it with unit tests**
-
-```ts
-const context = await buildUserLookupContextForKnowledge(
-  {
-    getUsersByIds: async (ids) => ids.map((id) => ({ id, handle: `user-${id}` })),
-    getMembershipLevels: async () => new Map([['user_1:team_1', 5]]),
-  },
-  [entry],
-);
-
-expect(context.users).toEqual([{ id: 'user_1', handle: 'user-user_1' }]);
-```
-
-- [x] **Step 1.3: Replace route-level snapshot serialization calls in knowledge/trap reads with the new lookup path**
-
-```ts
-const lookup = await buildUserLookupContextForKnowledgeFromRepos(app.skillShareer.repos, [entry]);
-return knowledgeEntryResponseSchema.parse({
-  entry: toKnowledgeEntry(lookup, entry),
-});
-```
-
-- [x] **Step 1.4: Update package/data-model documentation and rerun the targeted checks**
-
-Run: `rtk pnpm test -- --run packages/server/src/lib/actors/lookup.test.ts packages/server/src/routes/knowledge.test.ts`  
-Expected: PASS
-
-Run: `rtk pnpm eval:smoke`  
-Expected: PASS
-
----
-
-### Phase 2: Fix auth, member, and access-key correctness across storage modes
-
-**Files:**
-
-- Modify: `packages/server/src/lib/auth/repository.ts`
-- Modify: `packages/server/src/lib/auth/pg-repository.ts`
-- Modify: `packages/server/src/lib/users/repository.ts`
-- Modify: `packages/server/src/lib/users/pg-repository.ts`
-- Modify: `packages/server/src/lib/teams/repository.ts`
-- Modify: `packages/server/src/lib/teams/pg-repository.ts`
-- Modify: `packages/server/src/routes/access-keys.ts`
-- Modify: `packages/server/src/routes/auth.ts`
-- Modify: `packages/server/src/routes/members.ts`
-- Test: `packages/server/src/routes/access-keys.test.ts`
-- Test: `packages/server/src/routes/auth.test.ts`
-- Create/Test: `packages/server/src/routes/members.test.ts`
-- Create/Test: `packages/server/src/__tests__/pg-first-compat.test.ts`
-- Modify: `docs/reference/api-surface.md`
-- Modify: `docs/operations/TESTING.md`
-
-**Phase completion criteria:**
-
-- issuing an access key and then logging in with that key passes in PG mode and JSON mode
-- `createMemberRequestSchema.securityLevel` is honored by both storage implementations
-- access-key creation no longer writes directly to `store.transact()` in the production path
-
-**Documentation updates required:**
-
-- `docs/reference/api-surface.md`: clarify that `POST /v1/members` persists the requested `securityLevel`
-- `docs/operations/TESTING.md`: add a required cross-mode auth regression test checklist
-- `docs/PACKAGES.md`: note that auth routes use repository-only persistence in PG mode
-
-**Test / eval updates required:**
-
-- extend `access-keys.test.ts` with `issue -> login` assertions
-- add `members.test.ts` covering create/update flows and `securityLevel`
-- add `pg-first-compat.test.ts` for route-level JSON vs PG parity on auth/member flows
-- run `rtk pnpm test -- --run packages/server/src/routes/access-keys.test.ts packages/server/src/routes/auth.test.ts packages/server/src/routes/members.test.ts packages/server/src/__tests__/pg-first-compat.test.ts`
-- run `rtk pnpm eval:smoke`
-
-**Necessary example structure or code:**
-
-```ts
-export interface AccessKeyRepository {
-  nextId(): Promise<string>;
-  insert(key: AccessKeyRecord): Promise<void>;
-  getByTokenHash(tokenHash: string): Promise<AccessKeyRecord | null>;
+```typescript
+// resolveRenderer — packages/cli/src/lib/output-profile.ts
+export function resolveRenderer(profile: OutputProfile, kind: RenderKind): Renderer {
+  const toolRegistry = registry[profile.tool] ?? registry.generic;
+  return (toolRegistry[kind] ?? registry.generic[kind] ?? registry.generic.generic) as Renderer;
 }
-
-const keyId = await repos.accessKey.nextId();
-await repos.accessKey.insert({
-  id: keyId,
-  memberId,
-  tokenHash: hashSecret(accessKey),
-  tokenPreview: accessKey.slice(-8),
-  issuedByUserId: issuer.id,
-  teamId,
-  level: membership.securityLevel,
-  notes,
-  revokedAt: null,
-  createdAt,
-  updatedAt: createdAt,
-});
 ```
 
-- [x] **Step 2.1: Add `nextId()` and any missing batch read helpers to auth/user/team repositories**
+```typescript
+// summarizeRetrievalV1 — packages/cli/src/lib/output-profile.ts
+function summarizeRetrievalV1(payload: RetrievalResponse): string {
+  if (payload.summary?.text) {
+    return payload.summary.text;
+  }
+  if (payload.refinementSummary) {
+    return payload.refinementSummary;
+  }
+  const firstValid =
+    payload.globalConstraints.find((c) => c != null) ??
+    payload.projectKnowledge.find((c) => c != null);
+  return firstValid ? `${firstValid.shortcut} (${firstValid.score.toFixed(2)})` : 'No results found';
+}
+```
 
-```ts
-export class PgAccessKeyRepository implements AccessKeyRepository {
-  async nextId(): Promise<string> {
-    const { rows } = await this.pool.query<{ nextval: string }>(
-      "SELECT nextval('access_key_id_seq') AS nextval",
+```typescript
+// isInteractiveEnvironment — packages/cli/src/lib/prompts.ts
+export function isInteractiveEnvironment(): boolean {
+  return (
+    typeof process.stdin !== 'undefined' &&
+    process.stdin.isTTY === true &&
+    typeof process.stdout !== 'undefined' &&
+    process.stdout.isTTY === true
+  );
+}
+```
+
+```typescript
+// getConfigPath — packages/cli/src/lib/config.ts
+import { tmpdir } from 'node:os';
+
+function getConfigPath(): string {
+  let base: string;
+  try {
+    base = os.homedir();
+  } catch {
+    base = tmpdir();
+  }
+  return path.join(base, '.trapmap', 'cli.json');
+}
+```
+
+```typescript
+// requireSessionToken — packages/cli/src/lib/http.ts
+export function requireSessionToken(state: CliState): string {
+  if (typeof state.sessionToken !== 'string' || state.sessionToken.length === 0) {
+    throw new Error('Not authenticated. Run `skill-shareer login` first.');
+  }
+  return state.sessionToken;
+}
+```
+
+- [ ] **Step 1.1: Write failing tests for all 6 security/crash bugs**
+
+Add tests to the existing test files:
+
+```typescript
+// In skill-artifact-export.test.ts
+describe('validateOutputPath', () => {
+  it('rejects absolute paths that escape intended directory', () => {
+    expect(() => validateOutputPath('/etc/passwd', '/home/user/projects')).toThrow(
+      'Path escapes intended directory',
     );
-    return `access_key_${rows[0]?.nextval ?? '1'}`;
-  }
-}
-```
+  });
+  it('allows valid relative paths within intended directory', () => {
+    const result = validateOutputPath('output/file.txt', '/home/user/projects');
+    expect(result).toBe('/home/user/projects/output/file.txt');
+  });
+});
 
-- [x] **Step 2.2: Refactor `POST /v1/access-keys` to use `repos.membership` and `repos.accessKey` instead of `store.transact()`**
+// In output-profile.test.ts
+describe('resolveRenderer', () => {
+  it('falls back to generic renderer for unknown tool', () => {
+    const profile = { ...getDefaultOutputProfile(), tool: 'unknown-tool' as any };
+    const renderer = resolveRenderer(profile, 'generic');
+    expect(renderer).toBeDefined();
+    expect(renderer.id).toContain('generic');
+  });
+});
 
-```ts
-const membership = await app.skillShareer.repos.membership.getById(payload.memberId);
-const accessKeyId = await app.skillShareer.repos.accessKey.nextId();
-await app.skillShareer.repos.accessKey.insert(record);
-```
+describe('summarizeRetrievalV1', () => {
+  it('skips null elements in globalConstraints', () => {
+    const payload = {
+      globalConstraints: [null, { shortcut: 'test', score: 0.8 }],
+      projectKnowledge: [],
+    } as any;
+    const result = summarizeRetrievalV1(payload);
+    expect(result).toContain('test');
+  });
+});
 
-- [x] **Step 2.3: Make `POST /v1/members` persist the caller-provided `securityLevel`**
+// In config.test.ts
+describe('getConfigPath', () => {
+  it('falls back to tmpdir when homedir throws', () => {
+    vi.spyOn(os, 'homedir').mockImplementation(() => { throw new Error('no home'); });
+    const result = getConfigPath();
+    expect(result).toContain(tmpdir());
+  });
+});
 
-```ts
-const membership = {
-  id: membershipId,
-  userId: user.id,
-  teamId: payload.teamId,
-  roleTemplate: payload.roleTemplate,
-  securityLevel: payload.securityLevel,
-  permissions: payload.permissions,
-  notes: payload.notes ?? null,
-  createdAt,
-  updatedAt: createdAt,
-};
-```
-
-- [x] **Step 2.4: Add cross-mode route tests and run the auth/member regression suite**
-
-Run: `rtk pnpm test -- --run packages/server/src/routes/access-keys.test.ts packages/server/src/routes/auth.test.ts packages/server/src/routes/members.test.ts packages/server/src/__tests__/pg-first-compat.test.ts`  
-Expected: PASS
-
----
-
-### Phase 3: Unify knowledge and trap workflows behind shared services
-
-**Files:**
-
-- Create: `packages/server/src/lib/knowledge/application-service.ts`
-- Test: `packages/server/src/lib/knowledge/application-service.test.ts`
-- Modify: `packages/server/src/routes/knowledge.ts`
-- Modify: `packages/server/src/routes/traps.ts`
-- Test: `packages/server/src/routes/knowledge.test.ts`
-- Create/Test: `packages/server/src/routes/traps.test.ts`
-- Modify: `docs/guides/CODE_GUIDE.md`
-- Modify: `docs/architecture/ARCHITECTURE.md`
-
-**Phase completion criteria:**
-
-- trap submit/resubmit/supersede and knowledge submit/resubmit/supersede share one persistence workflow
-- `traps.ts` no longer depends on optional legacy flat repos such as `app.skillShareer.knowledgeRepo`
-- trap resubmission persists revision, governance, lifecycle, and response serialization consistently
-
-**Documentation updates required:**
-
-- `docs/guides/CODE_GUIDE.md`: describe shared knowledge/trap application services instead of route-local workflows
-- `docs/architecture/ARCHITECTURE.md`: document the route -> application service -> repository flow
-- `docs/PACKAGES.md`: note that `/v1/traps` is a specialized presentation layer over the same aggregate workflow
-
-**Test / eval updates required:**
-
-- add `application-service.test.ts` for submit/resubmit/supersede semantics
-- add `traps.test.ts` covering PG-mode trap resubmission and lifecycle persistence
-- update `knowledge.test.ts` to assert shared service behavior instead of route-local mutation details
-- run `rtk pnpm test -- --run packages/server/src/lib/knowledge/application-service.test.ts packages/server/src/routes/knowledge.test.ts packages/server/src/routes/traps.test.ts`
-- run `rtk pnpm eval:smoke`
-
-**Necessary example structure or code:**
-
-```ts
-export interface KnowledgeApplicationService {
-  submit(input: SubmitKnowledgeInput): Promise<KnowledgeRecord>;
-  resubmit(input: ResubmitKnowledgeInput): Promise<KnowledgeRecord>;
-  supersede(input: SupersedeKnowledgeInput): Promise<KnowledgeRecord>;
-}
-
-export type EntryKind = 'knowledge' | 'trap';
-```
-
-- [x] **Step 3.1: Extract submit/resubmit/supersede workflows from routes into `application-service.ts`**
-
-```ts
-const updated = await knowledgeApplicationService.resubmit({
-  kind: 'trap',
-  entryId: trapId,
-  actor: auth,
-  payload,
+// In http.test.ts
+describe('requireSessionToken', () => {
+  it('rejects numeric sessionToken', () => {
+    expect(() => requireSessionToken({ sessionToken: 123 } as any)).toThrow('Not authenticated');
+  });
+  it('rejects empty string sessionToken', () => {
+    expect(() => requireSessionToken({ sessionToken: '' } as any)).toThrow('Not authenticated');
+  });
 });
 ```
 
-- [x] **Step 3.2: Update `knowledge.ts` and `traps.ts` to become thin HTTP layers**
+Run: `rtk pnpm test -- --run packages/cli/src/lib/skill-artifact-export.test.ts packages/cli/src/lib/output-profile.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/lib/http.test.ts`
+Expected: FAIL — tests assert behavior that doesn't exist yet.
 
-```ts
-app.post('/v1/traps/:trapId/resubmit', async (request) => {
-  const updated = await knowledgeApplicationService.resubmit({ kind: 'trap', ...input });
-  return knowledgeEntryResponseSchema.parse({ entry: toKnowledgeEntry(lookup, updated) });
-});
-```
+- [ ] **Step 1.2: Implement the 6 fixes**
 
-- [x] **Step 3.3: Add tests that assert trap and knowledge paths persist the same aggregate fields**
+Apply the code changes shown in the "Necessary example structure or code" section above.
 
-```ts
-expect(updated.lifecycleState).toBe('agent-pass');
-expect(updated.latestSubmissionId).toBeDefined();
-expect(updated.history).toHaveLength(2);
-```
+- [ ] **Step 1.3: Run tests and verify all pass**
 
-- [x] **Step 3.4: Update architecture/code-guide docs and rerun the shared workflow suite**
-
-Run: `rtk pnpm test -- --run packages/server/src/lib/knowledge/application-service.test.ts packages/server/src/routes/knowledge.test.ts packages/server/src/routes/traps.test.ts`  
+Run: `rtk pnpm test -- --run packages/cli/src/lib/skill-artifact-export.test.ts packages/cli/src/lib/output-profile.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/lib/http.test.ts`
 Expected: PASS
 
----
-
-### Phase 4: Move retrieval and planning flows off `store_snapshot`
-
-**Files:**
-
-- Create: `packages/server/src/lib/retrieval/read-model.ts`
-- Test: `packages/server/src/lib/retrieval/read-model.test.ts`
-- Modify: `packages/server/src/lib/artifacts/repository.ts`
-- Modify: `packages/server/src/lib/retrieval/orchestration/orchestrator.ts`
-- Modify: `packages/server/src/lib/retrieval/capsules/skill-lookup.ts`
-- Modify: `packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts`
-- Modify: `packages/server/src/routes/retrieval.ts`
-- Modify: `packages/server/src/routes/retrieval.test.ts`
-- Modify: `docs/architecture/FLOW.md`
-- Modify: `docs/reference/DATA_MODEL.md`
-
-**Phase completion criteria:**
-
-- v1 retrieval, v2 retrieval, skill lookup, and graph-plan compilation read knowledge/artifact state from repositories, not from snapshot compatibility rows
-- a repo-only insert in PG mode is visible to the next retrieval request without manual snapshot sync
-- embedding cache update no longer mutates `data.knowledgeEntries` through `store.transact()` in the PG path
-
-**Documentation updates required:**
-
-- `docs/architecture/FLOW.md`: show retrieval read-model construction from repositories
-- `docs/reference/DATA_MODEL.md`: state that retrieval consumes repository truth plus derived graph index tables
-- `docs/PACKAGES.md`: update retrieval module description to remove snapshot wording
-
-**Test / eval updates required:**
-
-- add `read-model.test.ts` for repository-backed read-model assembly
-- update `routes/retrieval.test.ts` to cover PG-mode visibility after repo inserts
-- update `orchestrator.test.ts` and `plan-compiler.test.ts` to use repository-backed fixtures
-- run `rtk pnpm test -- --run packages/server/src/lib/retrieval/read-model.test.ts packages/server/src/routes/retrieval.test.ts packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts`
-- run `rtk pnpm eval:retrieval:smoke`
-- run `rtk pnpm eval:smoke`
-
-**Necessary example structure or code:**
-
-```ts
-export async function buildRetrievalReadModel(
-  repos: SkillShareerRepos,
-): Promise<{
-  knowledgeEntries: KnowledgeRecord[];
-  skillArtifacts: SkillArtifactRecord[];
-}> {
-  const [knowledgeEntries, skillArtifacts] = await Promise.all([
-    repos.knowledge.listByFilter({}),
-    repos.artifact.listByFilter({}),
-  ]);
-
-  return { knowledgeEntries, skillArtifacts };
-}
-```
-
-- [x] **Step 4.1: Introduce a repository-backed retrieval read model**
-
-```ts
-const data = await buildRetrievalReadModel(services.repos);
-const eligibleEntries = filterEligibleEntries(data.knowledgeEntries, auth, parsed.filters);
-```
-
-- [x] **Step 4.2: Replace snapshot reads in orchestrator, skill lookup, and plan compiler**
-
-```ts
-const artifacts = data.skillArtifacts;
-const governedArtifacts = artifacts.filter((artifact) =>
-  isArtifactGovernanceEligible(artifact, governanceFilters),
-);
-```
-
-- [x] **Step 4.3: Move embedding-cache updates behind repository-facing write methods**
-
-```ts
-await services.repos.knowledge.updateEmbeddingCache(entryId, {
-  textHash,
-  vector,
-  createdAt: nowIso(),
-  revision,
-});
-```
-
-- [x] **Step 4.4: Run retrieval-focused tests and smoke evals**
-
-Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/read-model.test.ts packages/server/src/routes/retrieval.test.ts packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts`  
+Run: `rtk pnpm typecheck`
 Expected: PASS
 
-Run: `rtk pnpm eval:retrieval:smoke`  
-Expected: PASS
-
----
-
-### Phase 5: Shrink the compatibility surface and add structural guardrails
-
-**Files:**
-
-- Modify: `packages/server/src/app.ts`
-- Modify: `packages/server/src/lib/context.ts`
-- Create/Test: `packages/server/src/__tests__/snapshot-usage-guard.test.ts`
-- Modify: `docs/reference/SYSTEM_TRUTH_SOURCES.md`
-- Modify: `docs/operations/TESTING.md`
-- Modify: `README.md`
-
-**Phase completion criteria:**
-
-- core route/service code uses `repos` as the default access path
-- any remaining `store.snapshot()` or `store.transact()` usage is limited to an explicit allowlist of compatibility, migration, or diagnostic modules
-- the server wiring no longer encourages new call sites to choose between legacy flat repos, unified repos, and raw store access
-
-**Documentation updates required:**
-
-- `docs/reference/SYSTEM_TRUTH_SOURCES.md`: define the allowlist for compatibility-only snapshot usage
-- `docs/operations/TESTING.md`: add a structural regression checklist for snapshot usage and cross-mode parity
-- `README.md`: note the PG-first convergence status and where compatibility boundaries still remain
-
-**Test / eval updates required:**
-
-- add `snapshot-usage-guard.test.ts` that scans server source and fails on non-allowlisted snapshot usage
-- rerun the full focused verification set:
-  - `rtk pnpm typecheck`
-  - `rtk pnpm check`
-  - `rtk pnpm test`
-  - `rtk pnpm eval:smoke`
-- if retrieval behavior changed materially, also run `rtk pnpm eval:core`
-
-**Necessary example structure or code:**
-
-```ts
-const SNAPSHOT_ALLOWLIST = [
-  'packages/server/src/lib/persistence/postgres-store.ts',
-  'packages/server/src/lib/persistence/migrate-knowledge.ts',
-  'packages/server/src/routes/operations/status.ts',
-];
-
-expect(disallowedSnapshotUsages).toEqual([]);
-```
-
-- [x] **Step 5.1: Remove or mark legacy flat repo properties as compatibility-only**
-
-```ts
-export interface SkillShareerServices {
-  config: ServerConfig;
-  store: SkillShareerStore;
-  repos: SkillShareerRepos;
-  ai: AiProviders;
-  eventBus: LifecycleEventBus;
-}
-```
-
-- [x] **Step 5.2: Add a guard test for non-allowlisted snapshot usage**
-
-```ts
-const snapshotMatches = await findSnapshotUsage();
-const disallowedSnapshotUsages = snapshotMatches.filter(
-  (match) => !SNAPSHOT_ALLOWLIST.includes(match.file),
-);
-
-expect(disallowedSnapshotUsages).toEqual([]);
-```
-
-- [x] **Step 5.3: Update top-level docs and testing instructions**
-
-```md
-- Core request handling reads and writes through `packages/server/src/lib/repos/`
-- `store_snapshot` remains a compatibility surface only for migration and diagnostics
-```
-
-- [x] **Step 5.4: Run full verification and close the plan**
-
-Run: `rtk pnpm typecheck`  
-Expected: PASS
-
-Run: `rtk pnpm check`  
-Expected: PASS
-
-Run: `rtk pnpm test`  
-Expected: PASS
-
-Run: `rtk pnpm eval:smoke`  
-Expected: PASS
-
-Run: `rtk git status --short`  
-Expected: only intended plan-following changes remain
-
----
-
-## Self-Review Checklist
-
-- [x] Every critical review finding maps to at least one phase in this plan
-- [x] Each phase has:
-  - [x] completion criteria
-  - [x] documentation updates
-  - [x] test / eval updates
-  - [x] example structure or code
-- [x] No phase depends on hand-waving about “clean up later”
-- [x] The default implementation direction is conservative: reuse existing repositories and test patterns before adding new abstractions
-
----
-
-# Retrieval Eval Remediation Plan
-
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
-**Goal:** Fix the current retrieval/summary eval failures so v2 label filters constrain all capsule outputs, v1 low-`maxResults` ranking is stable for the core fixture, and CI baseline comparison/docs match the actual eval workflow.
-
-**Architecture:** Keep the public retrieval contracts unchanged while tightening the internal filter and ranking paths. Push query metadata filters all the way through capsule recall, profile hint assembly, and summary generation; add deterministic ranking support for the failing v1 semantic case; then align eval documentation and baseline wiring with the code that CI actually runs.
-
-**Tech Stack:** TypeScript, Fastify, Vitest, pnpm, tsx, Drizzle ORM, PostgreSQL
-
----
-
-## Plan Metadata
-
-- Triggering failures observed on 2026-05-27:
-  - `v2-label-filter-core`: expected 1 filtered capsule but returned 2
-  - `summary-core-label-filter`: summary leaked `Flask` because unfiltered Python capsule remained in v2 output
-  - `v1-low-maxresults-core`: `maxResults=1` returned `knowledge_core_docker_networking` instead of `knowledge_core_docker_primary`
-  - `eval:ci` always reported `No baseline available` because code and docs use different baseline paths
-- Reports captured during analysis:
-  - `reports/codex-eval-smoke.json`
-  - `reports/codex-eval-core.json`
-  - `reports/eval-report.json`
-- Root-cause summary:
-  - v2 capsule retrieval only carries governance filters, not query `labels/scopes`
-  - PG capsule recall paths support scope filtering but not label filtering
-  - v1 semantic top-1 ordering is too dependent on embedding similarity for the Docker fixture
-  - eval documentation points to `reports/baseline-v2-*.json` while CI reads `reports/baselines/baseline-*.json`
-
-## Scope
-
-- In scope:
-  - v2 capsule filter propagation for memory and PG recall paths
-  - v2 profile hint and summary filtering correctness
-  - v1 semantic ranking fix for the failing low-`maxResults` case
-  - smoke/core regression coverage for these failure modes
-  - eval baseline/doc workflow alignment
-- Out of scope:
-  - broad retrieval ranking redesign
-  - LLM judge provider changes
-  - graph extraction, dedup, or conflict metric redesign
-
-## Phase Tracker
-
-- [x] Phase 6: Propagate query filters through the v2 capsule retrieval path
-- [x] Phase 7: Lock the v2 filter fix into route, orchestrator, and smoke/core eval coverage
-- [x] Phase 8: Stabilize v1 low-`maxResults` semantic ranking for the Docker core fixture
-- [x] Phase 9: Align eval baseline paths and advanced-runner documentation with actual CI behavior
-
-## File Structure
-
-**Modify**
-
-- `packages/server/src/lib/retrieval/types.ts`
-- `packages/server/src/lib/retrieval/orchestration/orchestrator.ts`
-- `packages/server/src/lib/retrieval/capsules/capsule-recall.ts`
-- `packages/server/src/lib/retrieval/capsules/channels/keyword.ts`
-- `packages/server/src/lib/retrieval/capsules/channels/semantic.ts`
-- `packages/server/src/lib/retrieval/capsules/repositories/pg-capsule-keyword.ts`
-- `packages/server/src/lib/retrieval/capsules/repositories/pg-capsule-vector.ts`
-- `packages/server/src/lib/retrieval/recall/semantic.ts`
-- `packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts`
-- `packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts`
-- `packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
-- `packages/server/src/lib/retrieval/recall/semantic.test.ts`
-- `packages/server/src/lib/retrieval/response/summary.test.ts`
-- `packages/server/src/routes/retrieval.test.ts`
-- `evals/retrieval/datasets/smoke/v2-retrieval-smoke.ts`
-- `evals/retrieval/datasets/core/v1-retrieval-core.ts`
-- `evals/retrieval/scenarios/smoke/retrieval-smoke-scenarios.ts`
-- `evals/summary/datasets/smoke/summary-smoke.ts`
-- `evals/summary/scenarios/smoke/summary-smoke-scenarios.ts`
-- `evals/retrieval/README.md`
-- `evals/summary/README.md`
-- `evals/README.md`
-- `evals/scripts/eval-ci.ts`
-- `docs/operations/TESTING.md`
-- `docs/architecture/components/RETRIEVAL.md`
-
-## Global Done Criteria
-
-- [x] `filters.labels` and `filters.scopes` affect v2 capsules, `profileHints`, and summary citations/text in both memory and PG recall paths
-- [x] `v2-label-filter-core` and `summary-core-label-filter` pass without weakening their expectations
-- [x] `v1-low-maxresults-core` passes by improving ranking behavior, not by removing the assertion
-- [x] smoke-tier regression coverage exists for v2 label filtering so the bug is caught before core
-- [x] eval baseline comparison can discover the expected baseline file in CI and the docs show the same path/commands that CI uses
-
----
-
-### Phase 6: Propagate query filters through the v2 capsule retrieval path
-
-**Files:**
-
-- Modify: `packages/server/src/lib/retrieval/types.ts`
-- Modify: `packages/server/src/lib/retrieval/orchestration/orchestrator.ts`
-- Modify: `packages/server/src/lib/retrieval/capsules/capsule-recall.ts`
-- Modify: `packages/server/src/lib/retrieval/capsules/channels/keyword.ts`
-- Modify: `packages/server/src/lib/retrieval/capsules/channels/semantic.ts`
-- Modify: `packages/server/src/lib/retrieval/capsules/repositories/pg-capsule-keyword.ts`
-- Modify: `packages/server/src/lib/retrieval/capsules/repositories/pg-capsule-vector.ts`
-- Test: `packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts`
-- Test: `packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
-
-**Phase completion criteria:**
-
-- `ArtifactGovernanceFilters` carries query `labels` and `scopes` in addition to governance fields
-- in-memory capsule selection excludes artifacts/capsules that do not satisfy requested labels/scopes
-- PG keyword recall filters by exact requested labels as well as scopes
-- PG vector recall applies the same label constraints as the keyword path, without returning cross-label capsules
-
-**Documentation updates required:**
-
-- `docs/architecture/components/RETRIEVAL.md`: state that v2 query filters are applied before profile hints and summaries are assembled
-- `evals/retrieval/README.md`: note that v2 label-filter cases assert the full capsule payload, not just top-1 relevance
-
-**Test / eval updates required:**
-
-- extend `capsule-recall.test.ts` with artifact/capsule label-filter coverage
-- extend `recall-coordinator.test.ts` with a mixed-label multi-channel recall case
-- run `rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
-- run `rtk pnpm typecheck`
-
-**Necessary example structure or code:**
-
-```ts
-export interface ArtifactGovernanceFilters {
-  teamId: string | null;
-  securityLevel: number;
-  isSystemAdmin: boolean;
-  scopes: Array<'global' | 'project'>;
-  labels: string[];
-}
-
-function matchesArtifactMetadata(
-  artifact: Pick<SkillArtifactRecord, 'scope' | 'labels'>,
-  filters: ArtifactGovernanceFilters,
-): boolean {
-  if (filters.scopes.length > 0 && !filters.scopes.includes(artifact.scope)) {
-    return false;
-  }
-  if (filters.labels.length > 0) {
-    return filters.labels.every((label) => artifact.labels.includes(label));
-  }
-  return true;
-}
-```
-
-- [x] **Step 6.1: Extend the v2 filter object to carry query metadata filters**
-
-```ts
-const governanceFilters = {
-  teamId: auth.activeTeamId,
-  securityLevel: auth.securityLevel,
-  isSystemAdmin: auth.subjectType === 'system-admin',
-  scopes: parsed.filters.scopes,
-  labels: parsed.filters.labels,
-};
-```
-
-Run: `rtk pnpm typecheck`  
-Expected: FAIL until all `ArtifactGovernanceFilters` call sites are updated.
-
-- [x] **Step 6.2: Apply label/scope matching inside capsule extraction and profile shortlist assembly**
-
-```ts
-for (const artifact of artifacts) {
-  if (!isArtifactGovernanceEligible(artifact, filters)) continue;
-  if (!matchesArtifactMetadata(artifact, filters)) continue;
-
-  const profile = artifact.latestRevision.derived?.profile;
-  if (profile) shortlist.push({ artifact, profile });
-}
-```
-
-- [x] **Step 6.3: Preserve the same filter semantics in PG keyword/vector recall**
-
-```ts
-export interface PgCapsuleKeywordFilters {
-  teamId: string | null;
-  securityLevel: number;
-  isSystemAdmin: boolean;
-  scopes: string[];
-  labels: string[];
-}
-
-if (filters.labels.length > 0) {
-  const labelArray = filters.labels.map((label) => `'${label}'`).join(',');
-  conditions.push(
-    sql`${skillArtifactCapsuleKeywords.fieldTokensLabels} @> ${sql.raw(`ARRAY[${labelArray}]::text[]`)}`,
-  );
-}
-```
-
-```ts
-const rows = await db
-  .select({
-    capsuleId: skillArtifactCapsuleEmbeddings.capsuleId,
-    artifactId: skillArtifactCapsuleEmbeddings.artifactId,
-    revisionNo: skillArtifactCapsuleEmbeddings.revisionNo,
-    similarity: sql<number>`1 - (${skillArtifactCapsuleEmbeddings.embedding} <=> ${sql.raw(`'${vectorLiteral}'::vector`)})`,
-  })
-  .from(skillArtifactCapsuleEmbeddings)
-  .innerJoin(
-    skillArtifactCapsuleKeywords,
-    eq(skillArtifactCapsuleEmbeddings.capsuleId, skillArtifactCapsuleKeywords.capsuleId),
-  );
-```
-
-- [x] **Step 6.4: Verify that mixed-label capsules no longer survive coordinator output**
-
-Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`  
-Expected: PASS with filtered capsule sets only.
-
-Run: `rtk pnpm typecheck`  
-Expected: PASS
-
----
-
-### Phase 7: Lock the v2 filter fix into route, orchestrator, and smoke/core eval coverage
-
-**Files:**
-
-- Modify: `packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts`
-- Modify: `packages/server/src/lib/retrieval/response/summary.test.ts`
-- Modify: `packages/server/src/routes/retrieval.test.ts`
-- Modify: `evals/retrieval/datasets/smoke/v2-retrieval-smoke.ts`
-- Modify: `evals/retrieval/scenarios/smoke/retrieval-smoke-scenarios.ts`
-- Modify: `evals/summary/datasets/smoke/summary-smoke.ts`
-- Modify: `evals/summary/scenarios/smoke/summary-smoke-scenarios.ts`
-- Modify: `evals/summary/README.md`
-- Modify: `docs/operations/TESTING.md`
-
-**Phase completion criteria:**
-
-- route-level v2 tests assert that `capsules`, `profileHints`, and `summary.citations` are all label-filtered
-- orchestrator tests cover the exact mixed Node/Flask summary regression
-- smoke retrieval and smoke summary include at least one label-filter regression case each
-- the bug can be caught by `eval:smoke`, not only by `eval:core`
-
-**Documentation updates required:**
-
-- `evals/summary/README.md`: add a note that summary evals depend on already-filtered retrieval context
-- `docs/operations/TESTING.md`: require a smoke-tier label-filter regression case for any retrieval filter bugfix
-
-**Test / eval updates required:**
-
-- extend `routes/retrieval.test.ts` with a v2 route test that seeds `nodejs` and `python` artifacts and expects only the requested label
-- extend `orchestrator.test.ts` with a summary-filter assertion that `Flask` never appears when `labels: ['nodejs']`
-- add smoke retrieval/summary eval fixtures for label filtering
-- run `rtk pnpm test -- --run packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/response/summary.test.ts packages/server/src/routes/retrieval.test.ts`
-- run `rtk pnpm eval:retrieval:smoke`
-- run `rtk pnpm eval:summary:smoke`
-- run `rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier smoke --json --json-path ./reports/codex-eval-smoke.json`
-
-**Necessary example structure or code:**
-
-```ts
-expect(json.capsules.map((capsule) => capsule.artifactId)).toEqual([
-  'artifact_core_label_filter_node',
-]);
-expect(json.profileHints.map((hint) => hint.artifactId)).toEqual([
-  'artifact_core_label_filter_node',
-]);
-expect(json.summary?.text).not.toContain('Flask');
-expect(json.summary?.citations.map((citation) => citation.source.entryId)).toEqual([
-  'capsule_core_label_filter_node',
-]);
-```
-
-- [x] **Step 7.1: Add route-level assertions for filtered v2 payloads**
-
-```ts
-const response = await testApp.inject({
-  method: 'POST',
-  url: '/v2/retrieval/search',
-  payload: {
-    seed: 'backend REST API middleware',
-    includeSummary: true,
-    filters: { labels: ['nodejs'], scopes: [] },
-  },
-  headers: { authorization: `Bearer ${sessionId}` },
-});
-
-expect(response.statusCode).toBe(200);
-expect(response.json().capsules).toHaveLength(1);
-```
-
-- [x] **Step 7.2: Add orchestrator and summary-builder regression tests for the mixed Node/Flask case**
-
-```ts
-expect(result.summary?.text).toContain('Express.js middleware');
-expect(result.summary?.text).not.toContain('Flask');
-expect(result.profileHints).toEqual([
-  expect.objectContaining({ artifactId: 'artifact_core_label_filter_node' }),
-]);
-```
-
-- [x] **Step 7.3: Promote label-filter regressions into smoke eval datasets**
-
-```ts
-export const v2LabelFilterSmoke = retrievalEvalCaseSchema.parse({
-  schemaVersion: 1,
-  caseId: 'v2-label-filter-smoke',
-  tier: 'smoke',
-  endpoint: '/v2/retrieval/search',
-  request: {
-    seed: 'backend REST API middleware',
-    maxResults: 10,
-    filters: { labels: ['nodejs'], scopes: [] },
-  },
-  scenarioId: 'smoke-label-filter',
-  expected: {
-    outcome: 'non-empty',
-    relevance: {
-      relevantIds: ['capsule_smoke_label_filter_node'],
-      idealOrder: ['capsule_smoke_label_filter_node'],
-    },
-    governance: { forbiddenIds: [], forbiddenReasons: [] },
-    shape: {
-      expectedProfileHintArtifactIds: ['artifact_smoke_label_filter_node'],
-      expectedCapsuleCount: 1,
-    },
-  },
-});
-```
-
-- [x] **Step 7.4: Run the route/orchestrator suite and smoke evals**
-
-Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/response/summary.test.ts packages/server/src/routes/retrieval.test.ts`  
-Expected: PASS
-
-Run: `rtk pnpm eval:retrieval:smoke`  
-Expected: PASS with the new label-filter smoke case included.
-
-Run: `rtk pnpm eval:summary:smoke`  
-Expected: PASS with no forbidden claims.
-
----
-
-### Phase 8: Stabilize v1 low-`maxResults` semantic ranking for the Docker core fixture
-
-**Files:**
-
-- Modify: `packages/server/src/lib/retrieval/recall/semantic.ts`
-- Modify: `packages/server/src/lib/retrieval/recall/semantic.test.ts`
-- Modify: `packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
-- Modify: `evals/retrieval/datasets/core/v1-retrieval-core.ts`
-- Modify: `evals/retrieval/README.md`
-- Modify: `docs/architecture/components/RETRIEVAL.md`
-
-**Phase completion criteria:**
-
-- the query `docker deployment orchestration` ranks `knowledge_core_docker_primary` above `knowledge_core_docker_networking`
-- `v1-low-maxresults-core` passes with `maxResults=1`
-- the semantic ranking adjustment is deterministic and unit-tested
-- the eval dataset remains strict; no weakening from `projectKnowledge` top-1 to “any Docker result”
-
-**Documentation updates required:**
-
-- `docs/architecture/components/RETRIEVAL.md`: describe the lexical prior applied on top of semantic similarity for low-result v1 retrieval
-- `evals/retrieval/README.md`: call out the `low-maxresults` case as a top-1 ranking guard, not just a shape contract
-
-**Test / eval updates required:**
-
-- add a semantic recall unit test that reproduces the Docker ranking order
-- add a coordinator-level test covering `maxResults=1` for the fixture shape
-- run `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/semantic.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
-- run `rtk pnpm eval:retrieval:core`
-- run `rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier core --json --json-path ./reports/codex-eval-core.json`
-
-**Necessary example structure or code:**
-
-```ts
-function computeLexicalIntentBoost(seed: string, entry: KnowledgeRecord): number {
-  const queryTokens = normalizeQuery(seed);
-  const entryTokens = normalizeQuery(buildEmbeddingText(entry));
-  const overlapCount = queryTokens.filter((token) => entryTokens.includes(token)).length;
-  return overlapCount === 0 ? 0 : Math.min(0.15, overlapCount / queryTokens.length / 5);
-}
-
-const lexicalBoost = computeLexicalIntentBoost(seed, entry);
-const finalScore = Math.min(1, Math.max(0, score + lexicalBoost + boundaryDelta));
-```
-
-- [x] **Step 8.1: Add a small deterministic lexical-intent boost on top of semantic similarity**
-
-```ts
-const lexicalBoost = computeLexicalIntentBoost(seed, entry);
-const finalScore = Math.min(1, Math.max(0, score + lexicalBoost + boundaryDelta));
-```
-
-Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/semantic.test.ts`
-Expected: FAIL until the new ranking expectation is encoded.
-
-- [x] **Step 8.2: Add a regression test for the Docker top-1 ordering**
-
-```ts
-expect(scoredEntries.map((entry) => entry.entry.id)).toEqual([
-  'knowledge_core_docker_primary',
-  'knowledge_core_docker_networking',
-  'knowledge_core_docker_secondary',
-]);
-```
-
-- [x] **Step 8.3: Keep the eval case strict and document why it exists**
-
-```ts
-expected: {
-  outcome: 'non-empty',
-  relevance: {
-    relevantIds: ['knowledge_core_docker_primary'],
-    idealOrder: ['knowledge_core_docker_primary'],
-  },
-  shape: {
-    bucketExpectations: {
-      projectKnowledge: ['knowledge_core_docker_primary'],
-      globalConstraints: [],
-    },
-  },
-}
-```
-
-- [x] **Step 8.4: Run targeted tests and core retrieval eval**
-
-Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/semantic.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
-Expected: PASS
-
-Run: `rtk pnpm eval:retrieval:core`
-Expected: PASS with `v1-low-maxresults-core` green.
-
----
-
-### Phase 9: Align eval baseline paths and advanced-runner documentation with actual CI behavior
-
-**Files:**
-
-- Modify: `evals/scripts/eval-ci.ts`
-- Modify: `evals/README.md`
-- Modify: `evals/retrieval/README.md`
-- Modify: `docs/operations/TESTING.md`
-
-**Phase completion criteria:**
-
-- baseline file paths used in docs and code match exactly
-- the documented “advanced flag” commands use the direct `eval-all.ts` / runner entrypoints that actually accept extra flags
-- `eval:ci` can find a populated baseline in the documented location
-- the troubleshooting note explains why smoke/core pass-rate and ranking metrics are different signals
-
-**Documentation updates required:**
-
-- `evals/README.md`: show direct `rtk pnpm exec tsx ... eval-all.ts` examples for `--json`, `--dry-run`, and custom flags
-- `evals/retrieval/README.md`: replace `./reports/baseline-v2-*.json` examples with the CI path or document a migration step explicitly
-- `docs/operations/TESTING.md`: explain that retrieval case pass/fail is governance/outcome based while ranking metrics still require review or baseline comparison
-
-**Test / eval updates required:**
-
-- add or update an `eval-ci` unit test if needed so baseline lookup uses the documented path
-- run `rtk pnpm test -- --run evals/scripts/__tests__/eval-ci.test.ts`
-- run `rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts`
-
-**Necessary example structure or code:**
-
-```ts
-const BASELINES_DIR = 'reports/baselines';
-
-function getBaselinePath(tier: 'smoke' | 'core'): string {
-  return resolve(process.cwd(), BASELINES_DIR, `baseline-${tier}.json`);
-}
-```
+- [ ] **Step 1.4: Update security and package docs, commit**
 
 ```bash
-rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json
-rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+rtk git add packages/cli/src/lib/ docs/operations/SECURITY.md docs/PACKAGES.md
+rtk git commit -m "fix(cli): patch path traversal, crash, and auth bugs (Phase 1)"
 ```
 
-- [x] **Step 9.1: Decide on one baseline location and make docs/tests point to it**
+---
 
-```md
-# 写入新基线
-rtk env WRITE_BASELINE=true TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+### Phase 2: Permission + Validation Correctness (High/Medium — 8 bugs)
 
-# 比较现有基线
-rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+**Files:**
+
+- Modify: `packages/cli/src/commands/skill.ts:226-230`
+- Modify: `packages/cli/src/commands/operations/types.ts:1-9`
+- Modify: `packages/cli/src/commands/operations/list.ts:11-12`
+- Modify: `packages/cli/src/commands/operations/activate.ts:13-14`
+- Modify: `packages/cli/src/commands/operations/status.ts:10-11`
+- Modify: `packages/cli/src/commands/operations/migrate.ts:10-11`
+- Modify: `packages/cli/src/commands/operations/deactivate.ts:20-22`
+- Modify: `packages/cli/src/commands/operations/edit.ts:49-51`
+- Modify: `packages/cli/src/commands/feedback.ts:72-73`
+- Modify: `packages/cli/src/index.ts:152-157`
+- Test: `packages/cli/src/commands/skill.test.ts` (extend)
+- Test: `packages/cli/src/commands/operations.test.ts` (extend)
+- Test: `packages/cli/src/commands/feedback.test.ts` (extend)
+
+**Phase completion criteria:**
+
+- `registerSkillCommands` registers review subcommands when only `allowReview=true`
+- `list`, `activate`, `status` commands use their own permission flags (or are unconditionally registered per spec)
+- `migrate` command uses its own permission flag (or is unconditionally registered per spec)
+- `--entry-type` on feedback command rejects values other than `"trap"` and `"skill"`
+- `--reason` on deactivate command rejects strings outside 1-500 character range
+- `--required-level` on edit command rejects non-integer values
+- `OperationsCommandOptions` type reflects the corrected permission model
+
+**Documentation updates required:**
+
+- `docs/PACKAGES.md`: document the corrected operations permission model
+- `docs/architecture/components/GOVERNANCE.md`: update CLI permission flag mapping table
+
+**Test / eval updates required:**
+
+- Add test: `registerSkillCommands` with `{ allowReview: true }` registers review subcommands
+- Add test: operations commands register with correct permission flags
+- Add test: feedback `--entry-type foo` throws `InvalidArgumentError`
+- Add test: deactivate `--reason` with 0 or 501 characters throws
+- Add test: edit `--required-level 2.5` is rejected or floored to integer
+- Run: `rtk pnpm test -- --run packages/cli/src/commands/skill.test.ts packages/cli/src/commands/operations.test.ts packages/cli/src/commands/feedback.test.ts`
+- Run: `rtk pnpm typecheck`
+
+**Necessary example structure or code:**
+
+```typescript
+// OperationsCommandOptions — packages/cli/src/commands/operations/types.ts
+export interface OperationsCommandOptions {
+  allowExport: boolean;
+  allowEdit: boolean;
+  allowDeactivate: boolean;
+  allowImport: boolean;
+  allowList: boolean;
+  allowActivate: boolean;
+  allowStatus: boolean;
+  allowMigrate: boolean;
+}
 ```
 
-- [x] **Step 9.2: Replace broken “script plus extra args” examples with direct runner invocations**
-
-```md
-rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
-rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json
+```typescript
+// registerSkillCommands guard — packages/cli/src/commands/skill.ts
+export function registerSkillCommands(program: Command, options: SkillCommandOptions): void {
+  if (!options.allowSearch && !options.allowSubmit && !options.allowExport && !options.allowReview) {
+    return;
+  }
+  // ...
+}
 ```
 
-- [x] **Step 9.3: Add a note explaining pass/fail vs ranking metrics**
-
-```md
-- Retrieval case `passed` means outcome/governance assertions held.
-- `Hit@1`, `MRR`, and `nDCG` may still regress while the case remains green.
-- Use baseline comparison or explicit metric review before treating a green smoke run as ranking-safe.
+```typescript
+// list.ts guard
+export function registerListCommand(program: Command, options: OperationsCommandOptions): void {
+  if (!options.allowList) return;
+  // ...
+}
 ```
 
-- [x] **Step 9.4: Run eval-ci verification and close the remediation plan**
+```typescript
+// activate.ts guard
+export function registerActivateCommand(program: Command, options: OperationsCommandOptions): void {
+  if (!options.allowActivate) return;
+  // ...
+}
+```
 
-Run: `rtk pnpm test -- --run evals/scripts/__tests__/eval-ci.test.ts`  
+```typescript
+// status.ts guard
+export function registerStatusCommand(program: Command, options: OperationsCommandOptions): void {
+  if (!options.allowStatus) return;
+  // ...
+}
+```
+
+```typescript
+// migrate.ts guard
+export function registerMigrateCommand(program: Command, options: OperationsCommandOptions): void {
+  if (!options.allowMigrate) return;
+  // ...
+}
+```
+
+```typescript
+// index.ts — updated wiring
+registerOperationsCommands(program, {
+  allowExport: visibility.allowKnowledgeExport,
+  allowEdit: visibility.allowKnowledgeUpdate,
+  allowDeactivate: visibility.allowKnowledgeDeactivate,
+  allowImport: visibility.allowKnowledgeImport,
+  allowList: visibility.allowKnowledgeExport,
+  allowActivate: visibility.allowKnowledgeExport,
+  allowStatus: visibility.allowKnowledgeExport,
+  allowMigrate: visibility.allowKnowledgeImport,
+});
+```
+
+```typescript
+// feedback.ts — entry-type validation
+import { InvalidArgumentError } from 'commander';
+
+program
+  .command('feedback <entryId>')
+  // ...
+  .option('--entry-type <type>', 'Entry type: trap or skill', (val) => {
+    if (!['trap', 'skill'].includes(val)) {
+      throw new InvalidArgumentError('Must be "trap" or "skill"');
+    }
+    return val;
+  }, 'trap')
+```
+
+```typescript
+// deactivate.ts — reason length validation
+.requiredOption('--reason <text>', 'Reason for deactivation (1-500 characters)', (val) => {
+  if (val.length < 1 || val.length > 500) {
+    throw new InvalidArgumentError('Reason must be between 1 and 500 characters');
+  }
+  return val;
+})
+```
+
+```typescript
+// edit.ts — integer validation
+if (flags.requiredLevel !== undefined) {
+  const level = Number(flags.requiredLevel);
+  if (!Number.isInteger(level) || level < 0) {
+    throw new Error('--required-level must be a non-negative integer');
+  }
+  body.requiredLevel = level;
+}
+```
+
+- [ ] **Step 2.1: Write failing tests for permission and validation bugs**
+
+```typescript
+// In skill.test.ts
+describe('registerSkillCommands', () => {
+  it('registers review subcommands when only allowReview is true', () => {
+    const program = new Command();
+    registerSkillCommands(program, {
+      allowSearch: false,
+      allowSubmit: false,
+      allowExport: false,
+      allowReview: true,
+    });
+    const skillCmd = program.commands.find((c) => c.name() === 'skill');
+    expect(skillCmd).toBeDefined();
+    const reviewQueue = skillCmd?.commands.find((c) => c.name() === 'review:queue');
+    expect(reviewQueue).toBeDefined();
+  });
+});
+
+// In feedback.test.ts
+describe('feedback --entry-type', () => {
+  it('rejects invalid entry type', async () => {
+    // Attempt to parse with invalid entry-type
+    await expect(
+      program.parseAsync(['node', 'test', 'feedback', 'entry_1', '--entry-type', 'invalid', '--type', 'incorrect', '--description', 'test description here']),
+    ).rejects.toThrow();
+  });
+});
+
+// In operations.test.ts
+describe('deactivate --reason', () => {
+  it('rejects empty reason', async () => {
+    await expect(
+      program.parseAsync(['node', 'test', 'deactivate', 'entry_1', '--reason', '']),
+    ).rejects.toThrow();
+  });
+  it('rejects reason over 500 characters', async () => {
+    await expect(
+      program.parseAsync(['node', 'test', 'deactivate', 'entry_1', '--reason', 'x'.repeat(501)]),
+    ).rejects.toThrow();
+  });
+});
+```
+
+Run: `rtk pnpm test -- --run packages/cli/src/commands/skill.test.ts packages/cli/src/commands/operations.test.ts packages/cli/src/commands/feedback.test.ts`
+Expected: FAIL
+
+- [ ] **Step 2.2: Implement permission and validation fixes**
+
+Apply all code changes shown in the "Necessary example structure or code" section above. Update `OperationsCommandOptions` type, all 4 operation sub-command guards, the `registerSkillCommands` guard, feedback entry-type validation, deactivate reason validation, and edit integer validation.
+
+- [ ] **Step 2.3: Run tests and verify all pass**
+
+Run: `rtk pnpm test -- --run packages/cli/src/commands/skill.test.ts packages/cli/src/commands/operations.test.ts packages/cli/src/commands/feedback.test.ts`
 Expected: PASS
 
-Run: `rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts`  
-Expected: baseline is discovered when present, and no path mismatch remains.
+Run: `rtk pnpm typecheck`
+Expected: PASS
 
-Run: `rtk git status --short`  
-Expected: only intended remediation-plan and code/doc/test changes remain.
+- [ ] **Step 2.4: Update governance docs, commit**
+
+```bash
+rtk git add packages/cli/src/commands/ packages/cli/src/index.ts docs/PACKAGES.md docs/architecture/components/GOVERNANCE.md
+rtk git commit -m "fix(cli): correct permission flags and input validation (Phase 2)"
+```
+
+---
+
+### Phase 3: Logic Error Remediation (Medium — 18 bugs)
+
+**Files:**
+
+- Modify: `packages/cli/src/lib/config.ts:80-95` — `loadCliState` falsy check
+- Modify: `packages/cli/src/lib/prompts.ts:16-25` — `promptSelect` falsy check
+- Modify: `packages/cli/src/lib/markdown-formatter.ts:41-44` — `truncateText` edge case
+- Modify: `packages/cli/src/lib/markdown-formatter.ts:97-107` — `formatRoutingTrace` empty array
+- Modify: `packages/cli/src/lib/markdown-formatter.ts:160-190` — `formatLoadContext` plan check
+- Modify: `packages/cli/src/lib/input.ts:22-56` — `resolveTextInput` stdin detection
+- Modify: `packages/cli/src/lib/skill-artifact-export.ts:48-65` — `validateBundleFilePath` segment check
+- Modify: `packages/cli/src/lib/skill-artifact-export.ts:71-86` — `decodeFileContent` base64 padding
+- Modify: `packages/cli/src/lib/artifact-bundle.ts:113-167` — `scanSkillDirectory` case sensitivity
+- Modify: `packages/cli/src/lib/artifact-bundle.ts:31-77` — `buildSingleSkillMdBundle` scope default
+- Modify: `packages/cli/src/lib/output-profile.ts` — `summarizeGraphPlan`, `buildCodexObject`, `buildCommandResultView`
+- Modify: `packages/cli/src/commands/feedback-admin.ts:38-56` — `formatBatchResult` falsy check
+- Modify: `packages/cli/src/commands/maintenance.ts:42-59` — `formatMaintenanceBatch` falsy check
+- Modify: `packages/cli/src/commands/decay.ts:37-54` — `formatBatchResult` falsy check
+- Modify: `packages/cli/src/commands/decay.ts:16-32` — `formatDecayList` nullish semantics
+- Modify: `packages/cli/src/commands/skill.ts:120-180` — `formatDuplicateJobBundle` falsy check
+- Test: `packages/cli/src/lib/markdown-formatter.test.ts` (extend)
+- Test: `packages/cli/src/lib/artifact-bundle.test.ts` (extend)
+- Test: `packages/cli/src/lib/config.test.ts` (extend)
+- Test: `packages/cli/src/commands/decay.test.ts` (extend)
+- Test: `packages/cli/src/commands/maintenance.test.ts` (extend)
+- Test: `packages/cli/src/commands/feedback-admin.test.ts` (create)
+
+**Phase completion criteria:**
+
+- All 6 falsy-vs-existence check bugs use `!= null` (or `!== undefined && !== null`) instead of truthy checks
+- `truncateText('hello', 2)` returns a string of length ≤ 2
+- `formatRoutingTrace` with empty `channelsUsed` array outputs `"unknown"` instead of `"- Channels: "`
+- `formatLoadContext` with empty `plan` array does not display fallback text
+- `validateBundleFilePath('file..txt')` succeeds (only rejects `..` as a path segment)
+- `decodeFileContent` accepts base64 without padding
+- `scanSkillDirectory` matches `SKILL.md` case-insensitively
+- `buildSingleSkillMdBundle` defaults scope to `'global'`
+- `resolveTextInput` uses `hasStdinContent()` for stdin detection instead of `!isTTY` alone
+- `formatDecayList` outputs `'unknown'` only for `null` values, not `undefined`
+
+**Documentation updates required:**
+
+- `docs/guides/CODE_GUIDE.md`: document the falsy-vs-existence check convention for CLI formatters
+- `docs/operations/TESTING.md`: add a required edge-case checklist for path validation and text truncation
+
+**Test / eval updates required:**
+
+- Add test: `loadCliState` with `outputProfile: ''` preserves the empty-string value
+- Add test: `promptSelect` with `description: ''` includes the description key
+- Add test: `truncateText('hello', 2)` returns string of length ≤ 2
+- Add test: `truncateText('hello', 1)` returns string of length ≤ 1
+- Add test: `formatRoutingTrace` with `channelsUsed: []` outputs `"unknown"`
+- Add test: `validateBundleFilePath('file..txt')` does not throw
+- Add test: `validateBundleFilePath('foo/../bar')` throws
+- Add test: `decodeFileContent('SGVsbG8')` (no padding) decodes correctly
+- Add test: `scanSkillDirectory` finds `skill.md` (lowercase)
+- Add test: `buildSingleSkillMdBundle` produces `scope: 'global'`
+- Add test: `formatDecayList` with `decayState: null` outputs `'unknown'`, with `undefined` outputs empty
+- Run: `rtk pnpm test -- --run packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/lib/artifact-bundle.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/commands/decay.test.ts packages/cli/src/commands/maintenance.test.ts`
+- Run: `rtk pnpm typecheck`
+
+**Necessary example structure or code:**
+
+```typescript
+// truncateText fix — packages/cli/src/lib/markdown-formatter.ts
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  if (maxLength <= 3) return text.slice(0, maxLength);
+  return `${text.slice(0, maxLength - 3)}...`;
+}
+```
+
+```typescript
+// formatRoutingTrace fix — packages/cli/src/lib/markdown-formatter.ts
+function formatRoutingTrace(trace: GraphPlanRoutingTrace): string {
+  const channels =
+    trace.channelsUsed && trace.channelsUsed.length > 0
+      ? trace.channelsUsed.join(', ')
+      : 'unknown';
+  const lines = [
+    `- Mode: ${trace.selectedMode}`,
+    `- Confidence: ${trace.confidenceScore.toFixed(2)} (${trace.confidenceBucket})`,
+    `- Channels: ${channels}`,
+  ];
+  if (trace.fallbackTarget) {
+    lines.push(`- Fallback: ${trace.fallbackTarget}`);
+  }
+  return lines.join('\n');
+}
+```
+
+```typescript
+// validateBundleFilePath fix — packages/cli/src/lib/skill-artifact-export.ts
+import { sep } from 'node:path';
+
+export function validateBundleFilePath(relPath: string): string {
+  if (relPath.includes('\0')) {
+    throw new Error(`File path contains null bytes: ${relPath}`);
+  }
+  const segments = normalize(relPath).split(sep);
+  if (segments.includes('..')) {
+    throw new Error(`File path contains directory traversal: ${relPath}`);
+  }
+  if (relPath.startsWith('/') || /^[A-Za-z]:/.test(relPath)) {
+    throw new Error(`File path is absolute: ${relPath}`);
+  }
+  return normalize(relPath);
+}
+```
+
+```typescript
+// decodeFileContent fix — packages/cli/src/lib/skill-artifact-export.ts
+export function decodeFileContent(content: string): Buffer {
+  const isBase64 = /^[A-Za-z0-9+/]*={0,2}$/.test(content);
+  if (isBase64 && content.length > 0) {
+    try {
+      return Buffer.from(content, 'base64');
+    } catch {
+      // Fall through to treat as UTF-8 text
+    }
+  }
+  return Buffer.from(content, 'utf8');
+}
+```
+
+```typescript
+// scanSkillDirectory fix — packages/cli/src/lib/artifact-bundle.ts (line 136)
+if (entry.isFile()) {
+  if (relPath.toLowerCase() === 'skill.md') {
+    // Will be handled separately
+  } else if (relPath.startsWith('references/')) {
+    // ...
+  }
+}
+// ...
+// line 161: also use case-insensitive check
+const skillMdCandidates = ['SKILL.md', 'skill.md', 'Skill.md'];
+let skillMdPath: string | null = null;
+for (const candidate of skillMdCandidates) {
+  try {
+    const p = join(rootPath, candidate);
+    await readFile(p);
+    skillMdPath = p;
+    break;
+  } catch {
+    // try next
+  }
+}
+return { skillMd: skillMdPath, references, assets, scripts };
+```
+
+```typescript
+// buildSingleSkillMdBundle fix — packages/cli/src/lib/artifact-bundle.ts
+return {
+  scope: 'global',
+  // ...
+};
+```
+
+```typescript
+// Generic falsy→existence fix pattern (applied to 6 locations)
+// Before: if (x) { ... }
+// After:  if (x != null) { ... }
+
+// loadCliState — config.ts line 90
+...(outputProfile != null ? { outputProfile } : {}),
+
+// formatBatchResult (feedback-admin.ts) line 43
+if (data.appliedAt != null) { lines.push(`Applied at: ${data.appliedAt}`); }
+
+// formatMaintenanceBatch (maintenance.ts) line 47
+if (data.appliedAt != null) { lines.push(`Applied at: ${data.appliedAt}`); }
+
+// formatBatchResult (decay.ts) line 42
+if (data.appliedAt != null) { lines.push(`Applied at: ${data.appliedAt}`); }
+
+// formatDuplicateJobBundle (skill.ts) — detail check
+if (e.detail != null) { lines.push(`  Detail: ${e.detail.slice(0, 150)}...`); }
+
+// promptSelect (prompts.ts) line 22
+...(c.description != null ? { description: c.description } : {}),
+```
+
+```typescript
+// formatDecayList fix — packages/cli/src/commands/decay.ts
+const state = item.decayState === null ? 'unknown' : (item.decayState ?? '');
+```
+
+```typescript
+// resolveTextInput fix — packages/cli/src/lib/input.ts
+if (options.stdin || hasStdinContent()) {
+  const stdinText = await readFromStdin();
+  if (!stdinText) {
+    throw new Error(`No ${fieldName} content received on stdin.`);
+  }
+  return stdinText;
+}
+```
+
+- [ ] **Step 3.1: Write failing tests for all 18 logic bugs**
+
+Add tests to the existing test files as specified in "Test / eval updates required" above. Each test should assert the correct behavior that the current code fails to provide.
+
+Run: `rtk pnpm test -- --run packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/lib/artifact-bundle.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/commands/decay.test.ts packages/cli/src/commands/maintenance.test.ts`
+Expected: FAIL — at least the new tests should fail.
+
+- [ ] **Step 3.2: Implement the 18 logic fixes**
+
+Apply all code changes shown in the "Necessary example structure or code" section above.
+
+- [ ] **Step 3.3: Run tests and verify all pass**
+
+Run: `rtk pnpm test -- --run packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/lib/artifact-bundle.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/commands/decay.test.ts packages/cli/src/commands/maintenance.test.ts`
+Expected: PASS
+
+Run: `rtk pnpm typecheck`
+Expected: PASS
+
+- [ ] **Step 3.4: Update code guide and testing docs, commit**
+
+```bash
+rtk git add packages/cli/src/ docs/guides/CODE_GUIDE.md docs/operations/TESTING.md
+rtk git commit -m "fix(cli): correct logic errors in formatters, path validation, and falsy checks (Phase 3)"
+```
+
+---
+
+### Phase 4: Formatting, Input Injection, and Low-Severity Cleanup (Medium/Low — 22 bugs)
+
+**Files:**
+
+- Create: `packages/cli/src/lib/sanitize.ts`
+- Modify: `packages/cli/src/lib/output.ts:14-21` — `printResult` JSON format
+- Modify: `packages/cli/src/lib/markdown-formatter.ts:49-58` — `formatTrapNode` spec compliance
+- Modify: `packages/cli/src/lib/markdown-formatter.ts` — `push_1` numbering
+- Modify: `packages/cli/src/lib/output-profile.ts` — `renderCodex` token efficiency, `buildCommandResultView` transition, `registerOutputProfileCommands` spread
+- Modify: `packages/cli/src/lib/artifact-bundle.ts:173-185` — `readFileContent` encoding consistency
+- Modify: `packages/cli/src/lib/skill-artifact-export.ts:134-136` — `formatExportJson` Infinity/NaN
+- Modify: `packages/cli/src/commands/skill.ts:39-62` — `formatSkillMatch` newline injection
+- Modify: `packages/cli/src/commands/skill.ts:185-196` — `formatManualResultResponse` newline injection
+- Modify: `packages/cli/src/commands/skill.ts:201-224` — `formatApplyResolutionResponse` line order
+- Modify: `packages/cli/src/commands/skill.ts:99-115` — `formatSkillHistoryResponse` spacing
+- Modify: `packages/cli/src/commands/feedback.ts:51-59` — `formatFeedbackResult` ANSI stripping
+- Modify: `packages/cli/src/commands/feedback-admin.ts:16-33` — `formatFeedbackList` double newline
+- Modify: `packages/cli/src/commands/maintenance.ts:22-37` — `formatMaintenanceList` double newline
+- Test: `packages/cli/src/lib/sanitize.test.ts` (create)
+- Test: `packages/cli/src/lib/output.test.ts` (extend)
+- Test: `packages/cli/src/lib/markdown-formatter.test.ts` (extend)
+- Test: `packages/cli/src/commands/skill.test.ts` (extend)
+- Test: `packages/cli/src/commands/feedback.test.ts` (extend)
+
+**Phase completion criteria:**
+
+- `formatFeedbackList` and `formatMaintenanceList` produce no double blank lines between header and items
+- `printResult` with `--json` outputs compact JSON (no indentation)
+- `formatTrapNode` outputs only severity + label per spec
+- `formatApplyResolutionResponse` first line is the candidate ID
+- `formatSkillHistoryResponse` revision entries have no leading double-space
+- `formatSkillMatch` strips newlines from title to prevent line-count injection
+- `formatManualResultResponse` strips newlines from candidateId
+- `formatFeedbackResult` strips ANSI escape codes from all fields
+- `formatExportJson` handles `Infinity` and `NaN` by converting to `0` or string representation
+- `sanitize.ts` provides reusable `stripNewlines()` and `stripAnsi()` functions
+
+**Documentation updates required:**
+
+- `docs/guides/CODE_GUIDE.md`: document the `sanitize.ts` utility and when to use it
+- `docs/operations/TESTING.md`: add input sanitization checklist for CLI formatter tests
+
+**Test / eval updates required:**
+
+- Add test: `stripNewlines('hello\nworld')` returns `'hello world'`
+- Add test: `stripAnsi('\x1b[31mred\x1b[0m')` returns `'red'`
+- Add test: `formatFeedbackList` output has no double blank lines
+- Add test: `formatMaintenanceList` output has no double blank lines
+- Add test: `printResult` with `json: true` outputs compact JSON
+- Add test: `formatSkillMatch` with title containing `\n` produces single-line title
+- Add test: `formatFeedbackResult` with ANSI codes in input strips them
+- Add test: `formatExportJson` with `Infinity` value does not produce `null`
+- Run: `rtk pnpm test -- --run packages/cli/src/lib/sanitize.test.ts packages/cli/src/lib/output.test.ts packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/commands/skill.test.ts packages/cli/src/commands/feedback.test.ts`
+- Run: `rtk pnpm typecheck`
+- Run: `rtk pnpm eval:smoke`
+
+**Necessary example structure or code:**
+
+```typescript
+// packages/cli/src/lib/sanitize.ts (NEW FILE)
+export function stripNewlines(text: string): string {
+  return text.replace(/[\r\n]+/g, ' ');
+}
+
+export function stripAnsi(text: string): string {
+  return text.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+export function sanitizeForDisplay(text: string): string {
+  return stripAnsi(stripNewlines(text));
+}
+```
+
+```typescript
+// formatFeedbackList fix — packages/cli/src/commands/feedback-admin.ts
+function formatFeedbackList(data: FeedbackListResponse): string {
+  if (data.items.length === 0) {
+    return 'No feedback found';
+  }
+  const lines: string[] = [];
+  lines.push(`Found ${data.total} feedback items`);
+  for (const item of data.items) {
+    const age = `${Math.round(item.ageDays)}d`;
+    const status = item.status;
+    lines.push(
+      `${item.id}  [${status}]  ${age}  ${item.entryShortcut.slice(0, 40)}  ${item.problemType}`,
+    );
+  }
+  return lines.join('\n');
+}
+```
+
+```typescript
+// formatMaintenanceList fix — packages/cli/src/commands/maintenance.ts
+function formatMaintenanceList(data: MaintenanceEntryListResponse): string {
+  if (data.items.length === 0) {
+    return 'No entries found';
+  }
+  const lines: string[] = [];
+  lines.push(`Found ${data.total} entries`);
+  for (const item of data.items) {
+    const maintainer = item.maintainer?.handle ?? 'unassigned';
+    const reviewBy = item.reviewBy ?? 'none';
+    lines.push(`${item.id}  [${maintainer}]  [${reviewBy}]  ${item.shortcut.slice(0, 50)}`);
+  }
+  return lines.join('\n');
+}
+```
+
+```typescript
+// printResult fix — packages/cli/src/lib/output.ts
+export function printResult<T>(value: T, options: JsonFlag, formatter: (input: T) => string): void {
+  if (options.json) {
+    console.log(JSON.stringify(value));
+    return;
+  }
+  console.log(formatter(value));
+}
+```
+
+```typescript
+// formatTrapNode fix — packages/cli/src/lib/markdown-formatter.ts
+function formatTrapNode(trap: PlanTrapNode, maxLen: number): string {
+  const severityLabel = trap.severity === 'hard' ? '[HARD]' : '[SOFT]';
+  const evidence = truncateText(escapeMarkdown(trap.evidence), maxLen);
+  const lines = [
+    `**${severityLabel} ${escapeMarkdown(trap.label)}**`,
+    `> ${evidence}`,
+    `- Source: \`${trap.sourceId}\``,
+  ];
+  return lines.join('\n');
+}
+```
+
+```typescript
+// formatSkillMatch fix — packages/cli/src/commands/skill.ts
+import { stripNewlines } from '@trapmap/cli/lib/sanitize.js';
+
+function formatSkillMatch(match: { /* ... */ }): string {
+  const lines = [
+    `${match.artifactId}`,
+    `Title: ${stripNewlines(match.title)}`,
+    `Slug: ${match.slug}`,
+    `Labels: ${match.labels.join(', ')}`,
+    `Scope: ${match.scope} (level ${match.requiredLevel})`,
+    `Source: ${match.sourceKind}`,
+    `Score: ${match.score.toFixed(2)}`,
+    `Reason: ${stripNewlines(match.reason)}`,
+  ];
+  return lines.join('\n');
+}
+```
+
+```typescript
+// formatManualResultResponse fix — packages/cli/src/commands/skill.ts
+function formatManualResultResponse(response: ManualResultResponse): string {
+  const lines = [
+    `Candidate ID: ${stripNewlines(response.candidateId)}`,
+    `Decision: ${response.decision}`,
+    `Reviewed At: ${response.reviewedAt}`,
+    `Next State: ${response.nextState}`,
+    '',
+    'To fetch this job again:',
+    `  trapmap skill duplicate-job fetch ${stripNewlines(response.candidateId)}`,
+  ];
+  return lines.join('\n');
+}
+```
+
+```typescript
+// formatFeedbackResult fix — packages/cli/src/commands/feedback.ts
+import { stripAnsi } from '@trapmap/cli/lib/sanitize.js';
+
+function formatFeedbackResult(response: FeedbackResponse): string {
+  const lines = [
+    `Feedback submitted: ${stripAnsi(response.feedback.id)}`,
+    `Entry: ${stripAnsi(response.feedback.entryId)} (${stripAnsi(response.feedback.entryType)})`,
+    `Problem: ${stripAnsi(response.feedback.problemType)}`,
+    `Status: ${stripAnsi(response.feedback.status)}`,
+  ];
+  return lines.join('\n');
+}
+```
+
+```typescript
+// formatApplyResolutionResponse fix — packages/cli/src/commands/skill.ts
+function formatApplyResolutionResponse(response: ApplyResolutionResponse): string {
+  const lines = [
+    `Candidate: ${response.candidateId}`,
+    `✅ Resolution applied successfully`,
+    `Status: ${response.status}`,
+    `Decision: ${response.outcome.decision}`,
+  ];
+  // ...
+}
+```
+
+```typescript
+// formatSkillHistoryResponse fix — packages/cli/src/commands/skill.ts
+const revisions = response.revisions.map((r) => {
+  const submitter = r.submittedBy.handle ?? r.submittedBy.id;
+  return `${r.revision}. ${r.submittedAt} by ${submitter} [${r.lifecycleState}]${r.summary ? ` - ${r.summary}` : ''}`;
+});
+```
+
+```typescript
+// formatExportJson fix — packages/cli/src/lib/skill-artifact-export.ts
+export function formatExportJson(response: ArtifactExportResponse): string {
+  return JSON.stringify(response, (_key, value) => {
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      return Number.isNaN(value) ? 'NaN' : (value > 0 ? 'Infinity' : '-Infinity');
+    }
+    return value;
+  }, 2);
+}
+```
+
+- [ ] **Step 4.1: Create `sanitize.ts` and its tests**
+
+```typescript
+// packages/cli/src/lib/sanitize.test.ts
+import { describe, expect, it } from 'vitest';
+import { stripAnsi, stripNewlines, sanitizeForDisplay } from './sanitize.js';
+
+describe('stripNewlines', () => {
+  it('replaces newlines with spaces', () => {
+    expect(stripNewlines('hello\nworld')).toBe('hello world');
+    expect(stripNewlines('a\r\nb')).toBe('a b');
+  });
+  it('handles multiple consecutive newlines', () => {
+    expect(stripNewlines('a\n\n\nb')).toBe('a b');
+  });
+});
+
+describe('stripAnsi', () => {
+  it('removes ANSI escape codes', () => {
+    expect(stripAnsi('\x1b[31mred\x1b[0m')).toBe('red');
+  });
+  it('handles strings without ANSI codes', () => {
+    expect(stripAnsi('plain text')).toBe('plain text');
+  });
+});
+
+describe('sanitizeForDisplay', () => {
+  it('strips both newlines and ANSI', () => {
+    expect(sanitizeForDisplay('\x1b[31mhello\nworld\x1b[0m')).toBe('hello world');
+  });
+});
+```
+
+Run: `rtk pnpm test -- --run packages/cli/src/lib/sanitize.test.ts`
+Expected: PASS (new file, no dependencies to break)
+
+- [ ] **Step 4.2: Write failing tests for formatting and injection bugs**
+
+Add tests to existing test files as specified in "Test / eval updates required" above.
+
+Run: `rtk pnpm test -- --run packages/cli/src/lib/output.test.ts packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/commands/skill.test.ts packages/cli/src/commands/feedback.test.ts`
+Expected: FAIL — new tests assert corrected behavior.
+
+- [ ] **Step 4.3: Implement all formatting and injection fixes**
+
+Apply all code changes shown in the "Necessary example structure or code" section above.
+
+- [ ] **Step 4.4: Fix remaining low-severity items**
+
+Apply fixes for:
+- `renderCodex` — optimize JSON key order for token efficiency
+- `buildCommandResultView` — coerce `transition` to boolean with `Boolean()`
+- `registerOutputProfileCommands` — filter spread to known properties only
+- `readFileContent` — align encoding behavior with description (text → UTF-8 string, binary → base64)
+
+- [ ] **Step 4.5: Run full test suite and eval, commit**
+
+Run: `rtk pnpm test`
+Expected: PASS
+
+Run: `rtk pnpm typecheck`
+Expected: PASS
+
+Run: `rtk pnpm check`
+Expected: PASS
+
+Run: `rtk pnpm eval:smoke`
+Expected: PASS
+
+```bash
+rtk git add packages/cli/src/ docs/guides/CODE_GUIDE.md docs/operations/TESTING.md
+rtk git commit -m "fix(cli): correct formatting, add input sanitization, fix low-severity bugs (Phase 4)"
+```
 
 ---
 
 ## Self-Review Checklist
 
-- [x] The v2 label-filter root cause is addressed in both memory and PG recall paths
-- [x] The summary regression is treated as a downstream symptom of unfiltered capsule output, not as an isolated judge issue
-- [x] The v1 low-`maxResults` fix improves ranking deterministically instead of weakening the eval case
-- [x] Smoke-tier coverage is added for every failure that previously required core-tier discovery
-- [x] Baseline path and runner invocation examples are consistent across code and docs
+- [ ] Every confirmed bug from the scan report maps to at least one step in this plan
+- [ ] Each phase has:
+  - [ ] completion criteria
+  - [ ] documentation updates
+  - [ ] test / eval updates
+  - [ ] example structure or code
+- [ ] No phase depends on hand-waving about "clean up later"
+- [ ] The default implementation direction is conservative: fix bugs with minimal changes, reuse existing patterns
+- [ ] Shared utilities (`sanitize.ts`) are created before they are consumed
+- [ ] Permission model changes are consistent across `types.ts`, individual command files, and `index.ts` wiring
+
+---
+
+## Bug-to-Phase Mapping
+
+| # | Bug | Phase | Step |
+|---|-----|-------|------|
+| 1 | `validateOutputPath` absolute path traversal | 1 | 1.2 |
+| 2 | `requireSessionToken` non-string token | 1 | 1.2 |
+| 3 | `resolveRenderer` TypeError on unknown tool | 1 | 1.2 |
+| 4 | `summarizeRetrievalV1` null array element crash | 1 | 1.2 |
+| 5 | `isInteractiveEnvironment` no stdin crash | 1 | 1.2 |
+| 6 | `getConfigPath` no homedir crash | 1 | 1.2 |
+| 7 | `registerSkillCommands` missing allowReview | 2 | 2.2 |
+| 8 | `registerOperationsCommands` wrong permission flags | 2 | 2.2 |
+| 9 | `registerFeedbackCommands` entry-type unvalidated | 2 | 2.2 |
+| 10 | `registerDeactivateCommand` reason length | 2 | 2.2 |
+| 11 | `registerEditCommand` float for integer | 2 | 2.2 |
+| 12 | `registerReviewCommands` permission cleanup | 2 | 2.2 |
+| 13 | `registerTeamCommands` permission cleanup | 2 | 2.2 |
+| 14 | `loadCliState` falsy check | 3 | 3.2 |
+| 15 | `formatBatchResult` (feedback-admin) falsy | 3 | 3.2 |
+| 16 | `formatMaintenanceBatch` falsy | 3 | 3.2 |
+| 17 | `formatBatchResult` (decay) falsy | 3 | 3.2 |
+| 18 | `formatDuplicateJobBundle` falsy | 3 | 3.2 |
+| 19 | `promptSelect` falsy | 3 | 3.2 |
+| 20 | `formatRoutingTrace` empty array | 3 | 3.2 |
+| 21 | `formatLoadContext` plan check | 3 | 3.2 |
+| 22 | `summarizeGraphPlan` first element check | 3 | 3.2 |
+| 23 | `buildCodexObject` failRender coercion | 3 | 3.2 |
+| 24 | `scanSkillDirectory` case sensitivity | 3 | 3.2 |
+| 25 | `buildSingleSkillMdBundle` scope default | 3 | 3.2 |
+| 26 | `validateBundleFilePath` segment check | 3 | 3.2 |
+| 27 | `decodeFileContent` base64 padding | 3 | 3.2 |
+| 28 | `truncateText` maxLength < 3 | 3 | 3.2 |
+| 29 | `resolveTextInput` stdin detection | 3 | 3.2 |
+| 30 | `formatDecayList` nullish semantics | 3 | 3.2 |
+| 31 | `formatFeedbackList` double newline | 4 | 4.3 |
+| 32 | `formatMaintenanceList` double newline | 4 | 4.3 |
+| 33 | `printResult` JSON format | 4 | 4.3 |
+| 34 | `formatTrapNode` spec compliance | 4 | 4.3 |
+| 35 | `formatApplyResolutionResponse` line order | 4 | 4.3 |
+| 36 | `formatSkillHistoryResponse` spacing | 4 | 4.3 |
+| 37 | `push_1` numbering | 4 | 4.3 |
+| 38 | `formatSkillMatch` newline injection | 4 | 4.3 |
+| 39 | `formatManualResultResponse` newline injection | 4 | 4.3 |
+| 40 | `formatFeedbackResult` ANSI stripping | 4 | 4.3 |
+| 41 | `registerReviewCommands` permission flag | 4 | 4.3 |
+| 42 | `registerTeamCommands` permission flag | 4 | 4.3 |
+| 43 | `renderCodex` token efficiency | 4 | 4.4 |
+| 44 | `buildCommandResultView` transition | 4 | 4.4 |
+| 45 | `registerOutputProfileCommands` spread | 4 | 4.4 |
+| 46 | `readFileContent` encoding | 4 | 4.4 |
+| 47 | `formatExportJson` Infinity/NaN | 4 | 4.3 |
+
+## Repeated Pattern Summary
+
+| Pattern | Count | Fix Strategy |
+|---------|-------|-------------|
+| Falsy check (`if(x)`) → existence (`if(x!=null)`) | 8 | Global search + replace per location |
+| Double newline (`header\n` + `join('\n')`) | 2 | Remove trailing `\n` from header push |
+| Missing input sanitization (newline/ANSI) | 3 | Shared `sanitize.ts` utility |
+| Permission flag miswiring | 6 | New `OperationsCommandOptions` fields + `index.ts` wiring |
+| Array null element unhandled | 2 | `.find(x => x != null)` pattern |
+| Path validation incomplete | 3 | `resolve` + `startsWith` + segment split |

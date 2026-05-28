@@ -25,7 +25,7 @@ function formatMaintenanceList(data: MaintenanceEntryListResponse): string {
   }
 
   const lines: string[] = [];
-  lines.push(`Found ${data.total} entries\n`);
+  lines.push(`Found ${data.total} entries`);
 
   for (const item of data.items) {
     const maintainer = item.maintainer?.handle ?? 'unassigned';

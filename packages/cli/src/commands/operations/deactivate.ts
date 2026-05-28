@@ -18,12 +18,16 @@ export function registerDeactivateCommand(
     .command('deactivate')
     .description('Deactivate a knowledge entry')
     .argument('<entryId>', 'Knowledge entry identifier')
-    .requiredOption('--reason <text>', 'Reason for deactivation (1-500 characters)', (val: string) => {
-      if (val.length < 1 || val.length > 500) {
-        throw new InvalidArgumentError('Reason must be between 1 and 500 characters');
-      }
-      return val;
-    })
+    .requiredOption(
+      '--reason <text>',
+      'Reason for deactivation (1-500 characters)',
+      (val: string) => {
+        if (val.length < 1 || val.length > 500) {
+          throw new InvalidArgumentError('Reason must be between 1 and 500 characters');
+        }
+        return val;
+      },
+    )
     .option('--json', 'Output JSON')
     .action(async (entryId: string, flags: { json?: boolean; reason: string }) => {
       const state = await loadCliState();

@@ -221,6 +221,7 @@ export function register(app: Command) {
 | `http.ts` | HTTP 客户端：自动注入认证头、处理错误 |
 | `input.ts` | 用户输入：交互式提示、选择器 |
 | `output.ts` | 输出格式化：表格渲染、JSON 模式、ANSI 颜色 |
+| `sanitize.ts` | 输入清理工具：`stripNewlines`、`stripAnsi`、`sanitizeForDisplay`，用于防止格式化注入 |
 
 CLI 是 Server 的薄包装——核心逻辑全在 Server 端。读 CLI 代码主要关注**用户交互流程**和**API 调用模式**。
 

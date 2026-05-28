@@ -19,7 +19,7 @@ function formatFeedbackList(data: FeedbackListResponse): string {
   }
 
   const lines: string[] = [];
-  lines.push(`Found ${data.total} feedback items\n`);
+  lines.push(`Found ${data.total} feedback items`);
 
   for (const item of data.items) {
     const age = `${Math.round(item.ageDays)}d`;

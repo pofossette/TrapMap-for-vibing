@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { decodeFileContent, validateBundleFilePath, validateOutputPath } from './skill-artifact-export.js';
+import {
+  decodeFileContent,
+  validateBundleFilePath,
+  validateOutputPath,
+} from './skill-artifact-export.js';
 
 describe('validateOutputPath', () => {
   it('rejects absolute paths that escape intended directory', () => {

@@ -58,7 +58,11 @@ export function validateBundleFilePath(relPath: string): string {
 
   const normalized = normalize(relPath);
   const segments = normalized.split(sep);
-  if (segments.includes('..') || relPath.split('/').includes('..') || relPath.split('\\').includes('..')) {
+  if (
+    segments.includes('..') ||
+    relPath.split('/').includes('..') ||
+    relPath.split('\\').includes('..')
+  ) {
     throw new Error(`File path contains directory traversal: ${relPath}`);
   }
 
@@ -138,7 +142,16 @@ export async function materializeSkillDirectory(args: {
  * Formats an artifact export response for JSON output.
  */
 export function formatExportJson(response: ArtifactExportResponse): string {
-  return JSON.stringify(response, null, 2);
+  return JSON.stringify(
+    response,
+    (_key, value) => {
+      if (typeof value === 'number' && !Number.isFinite(value)) {
+        return Number.isNaN(value) ? 'NaN' : value > 0 ? 'Infinity' : '-Infinity';
+      }
+      return value;
+    },
+    2,
+  );
 }
 
 /**

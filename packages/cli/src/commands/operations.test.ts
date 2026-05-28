@@ -1163,7 +1163,6 @@ describe('Phase 85: Barrel export completeness', () => {
 });
 
 describe('Phase 2: Input validation', () => {
-  let program: Command;
   const validationMockState = {
     serverUrl: 'http://localhost:3000',
     sessionToken: 'test-token',
@@ -1171,7 +1170,6 @@ describe('Phase 2: Input validation', () => {
   };
 
   beforeEach(() => {
-    program = new Command();
     mockedApiRequest.mockReset();
     mockedLoadCliState.mockReset();
     mockedLoadCliState.mockResolvedValue(validationMockState);

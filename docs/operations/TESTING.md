@@ -525,6 +525,18 @@ pnpm test -- --run packages/server/src/__tests__/snapshot-usage-guard.test.ts
 
 ---
 
+## 输入清理检查清单
+
+编写或修改 CLI 格式化输出时，确认用户可控字段已经过清理：
+
+- [ ] **换行注入**：用户提供的 `title`、`reason`、`candidateId` 等字段在拼接多行输出时使用 `stripNewlines()` 清理
+- [ ] **ANSI 注入**：从服务端返回的字段在直接输出到终端前使用 `stripAnsi()` 清理
+- [ ] **组合清理**：需要同时去除换行和 ANSI 码时使用 `sanitizeForDisplay()`
+- [ ] **JSON 输出**：`JSON.stringify` 使用紧凑格式（无缩进）以减少 token 消耗
+- [ ] **非有限数**：`JSON.stringify` 序列化包含 `Infinity`/`NaN` 的对象时使用 replacer 函数
+
+---
+
 ## 相关文档
 
 - [模块详解](../architecture/MODULES.md) — 系统模块架构和设计

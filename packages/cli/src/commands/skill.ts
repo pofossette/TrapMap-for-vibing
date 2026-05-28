@@ -24,6 +24,7 @@ import type { Command } from 'commander';
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printAdaptiveResult, printCommandResult } from '@trapmap/cli/lib/output.js';
+import { stripNewlines } from '@trapmap/cli/lib/sanitize.js';
 
 interface SkillCommandOptions {
   allowSearch: boolean;
@@ -49,13 +50,13 @@ function formatSkillMatch(match: {
 }): string {
   const lines = [
     `${match.artifactId}`,
-    `Title: ${match.title}`,
+    `Title: ${stripNewlines(match.title)}`,
     `Slug: ${match.slug}`,
     `Labels: ${match.labels.join(', ')}`,
     `Scope: ${match.scope} (level ${match.requiredLevel})`,
     `Source: ${match.sourceKind}`,
     `Score: ${match.score.toFixed(2)}`,
-    `Reason: ${match.reason}`,
+    `Reason: ${stripNewlines(match.reason)}`,
   ];
 
   return lines.join('\n');
@@ -108,7 +109,7 @@ function formatSkillHistoryResponse(response: SkillHistoryResponse): string {
 
   const revisions = response.revisions.map((r) => {
     const submitter = r.submittedBy.handle ?? r.submittedBy.id;
-    return `  ${r.revision}. ${r.submittedAt} by ${submitter} [${r.lifecycleState}]${r.summary ? ` - ${r.summary}` : ''}`;
+    return `${r.revision}. ${r.submittedAt} by ${submitter} [${r.lifecycleState}]${r.summary ? ` - ${r.summary}` : ''}`;
   });
 
   return [...header, ...revisions].join('\n');
@@ -184,13 +185,13 @@ function formatDuplicateJobBundle(response: DuplicateJobBundleResponse): string 
  */
 function formatManualResultResponse(response: ManualResultResponse): string {
   const lines = [
-    `Candidate ID: ${response.candidateId}`,
+    `Candidate ID: ${stripNewlines(response.candidateId)}`,
     `Decision: ${response.decision}`,
     `Reviewed At: ${response.reviewedAt}`,
     `Next State: ${response.nextState}`,
     '',
     'To fetch this job again:',
-    `  trapmap skill duplicate-job fetch ${response.candidateId}`,
+    `  trapmap skill duplicate-job fetch ${stripNewlines(response.candidateId)}`,
   ];
   return lines.join('\n');
 }
@@ -200,24 +201,24 @@ function formatManualResultResponse(response: ManualResultResponse): string {
  */
 function formatApplyResolutionResponse(response: ApplyResolutionResponse): string {
   const lines = [
+    `Candidate: ${response.candidateId}`,
     '✅ Resolution applied successfully',
-    `   Candidate: ${response.candidateId}`,
-    `   Status: ${response.status}`,
-    `   Decision: ${response.outcome.decision}`,
+    `Status: ${response.status}`,
+    `Decision: ${response.outcome.decision}`,
   ];
 
   if (response.outcome.decision === 'independent') {
     lines.push(
-      `   Published as: ${response.outcome.entityType} (${response.outcome.publishedEntityId})`,
+      `Published as: ${response.outcome.entityType} (${response.outcome.publishedEntityId})`,
     );
   } else {
     lines.push(
-      `   Merged into: ${response.outcome.entityType} (${response.outcome.mergedIntoEntityId})`,
+      `Merged into: ${response.outcome.entityType} (${response.outcome.mergedIntoEntityId})`,
     );
   }
 
   if (response.lineage) {
-    lines.push(`   Lineage ID: ${response.lineage.id}`);
+    lines.push(`Lineage ID: ${response.lineage.id}`);
   }
 
   return lines.join('\n');
@@ -225,7 +226,12 @@ function formatApplyResolutionResponse(response: ApplyResolutionResponse): strin
 
 export function registerSkillCommands(program: Command, options: SkillCommandOptions): void {
   // Always register the skill command if any subcommand is allowed
-  if (!options.allowSearch && !options.allowSubmit && !options.allowExport && !options.allowReview) {
+  if (
+    !options.allowSearch &&
+    !options.allowSubmit &&
+    !options.allowExport &&
+    !options.allowReview
+  ) {
     return;
   }
 

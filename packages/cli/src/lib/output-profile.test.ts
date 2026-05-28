@@ -333,10 +333,7 @@ describe('output profile helpers', () => {
       fallback: null,
     };
 
-    const renderer = resolveRenderer(
-      { ...getDefaultOutputProfile(), tool: 'codex' },
-      'graph-plan',
-    );
+    const renderer = resolveRenderer({ ...getDefaultOutputProfile(), tool: 'codex' }, 'graph-plan');
     const rendered = renderer.render(
       createRenderEnvelope('graph-plan', payload, getDefaultOutputProfile()),
     );
