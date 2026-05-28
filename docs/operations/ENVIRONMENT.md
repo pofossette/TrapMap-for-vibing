@@ -30,7 +30,7 @@
 
 **Fallback 行为**: PG recall 不可用时，keyword 和 semantic 通道自动回退到内存版本。单通道失败（包括 PG 连接错误）不会阻断 `/v2/retrieval/search` 主流程。
 
-**索引重建**: 当启用 PG 后，需运行索引重建将现有 artifact capsules 同步到 PG。调用 `rebuildAllCapsuleIndexes()` 或编写 CLI 脚本触发。
+**索引重建**: 当启用 PG 后，需运行索引重建将现有 artifact capsules 同步到 PG。内部库函数 `rebuildAllCapsuleIndexes()`（位于 `packages/server/src/lib/retrieval/capsules/repositories/index-rebuild.ts`）提供批量重建能力，但当前未暴露为稳定 CLI 命令或运维入口。如需触发重建，可通过编程方式调用该函数。
 
 ## 服务器配置
 

@@ -67,11 +67,11 @@ pnpm --filter @trapmap/server db:generate
 
 ### AI 提供商配置（可选）
 
-默认使用 OpenAI。如需使用其他提供商：
+AI 提供商支持自动解析。设置 `OPENAI_API_KEY` 后自动使用 OpenAI；也可通过 `AI_PROVIDER` 显式指定。如需使用其他提供商：
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `AI_PROVIDER` | 提供商类型：`openai`、`openai-compatible`、`ollama`、`google-genai`（未配置时自动回退到 `fallback`，使用确定性哈希向量） | `openai` |
+| `AI_PROVIDER` | 提供商类型：`openai`、`openai-compatible`、`ollama`、`google-genai` | 自动解析：显式值优先；`OPENAI_API_KEY` → `openai`；`GEMINI_API_KEY` → `google-genai`；否则 `fallback` |
 | `AI_BASE_URL` | 兼容接口的 Base URL | `https://api.openai.com/v1` |
 | `AI_API_KEY` | 兼容接口的 API 密钥 | `OPENAI_API_KEY` |
 | `AI_CHAT_MODEL` | 聊天模型名称 | `gpt-4o-mini` |
@@ -125,7 +125,9 @@ curl http://127.0.0.1:4000/health
 {
   "status": "ok",
   "product": "trapmap",
-  "packages": ["cli", "server", "contracts"]
+  "packages": ["cli", "server", "contracts"],
+  "memory": { "rssMb": 128, "heapUsedMb": 64, "heapTotalMb": 96 },
+  "uptimeSeconds": 42
 }
 ```
 

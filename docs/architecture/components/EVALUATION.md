@@ -47,12 +47,13 @@ flowchart TB
 #### 测试用例结构
 
 ```typescript
-interface RetrievalTestCase {
+// evals/retrieval/datasets/smoke/v1-retrieval-smoke.ts
+export interface RetrievalTestCase {
   id: string;
   description: string;
   query: string;
   tier: 'smoke' | 'core';
-  
+
   // Expected results
   expected: {
     minResults: number;           // Minimum results to return
@@ -60,7 +61,7 @@ interface RetrievalTestCase {
     relevanceThreshold: number;   // Min relevance score (0-1)
     expectedCategories?: string[]; // Entry categories that should appear
   };
-  
+
   // Filter constraints
   filter?: {
     mode?: 'semantic' | 'hybrid' | 'graph-assisted';
@@ -83,7 +84,7 @@ interface RetrievalTestCase {
 ```mermaid
 flowchart TB
     subgraph 加载测试用例["加载测试用例"]
-        A["evals/retrieval/cases/\n├── smoke/\n│   ├── query-config-auth.yaml\n│   └── query-oauth-setup.yaml\n└── core/\n    ├── query-security-levels.yaml\n    └── ..."]
+        A["evals/retrieval/datasets/\n├── smoke/\n│   ├── v1-retrieval-smoke.ts\n│   ├── v2-retrieval-smoke.ts\n│   └── v3-graph-plan-smoke.ts\n└── core/\n    ├── v1-retrieval-core.ts\n    └── ..."]
     end
 
     subgraph 执行检索查询["执行检索查询"]
@@ -104,22 +105,23 @@ flowchart TB
 
 #### 测试用例示例
 
-```yaml
-# evals/retrieval/cases/smoke/query-config-auth.yaml
-id: retrieval-smoke-auth-config
-description: Query about authentication configuration
-query: "how to configure authentication for a new service"
-tier: smoke
-
-expected:
-  minResults: 3
-  governanceEnforced: true
-  relevanceThreshold: 0.6
-
-filter:
-  mode: semantic
-  level:
-    max: 5
+```typescript
+// evals/retrieval/datasets/smoke/v1-retrieval-smoke.ts
+{
+  id: 'retrieval-smoke-auth-config',
+  description: 'Query about authentication configuration',
+  query: 'how to configure authentication for a new service',
+  tier: 'smoke',
+  expected: {
+    minResults: 3,
+    governanceEnforced: true,
+    relevanceThreshold: 0.6,
+  },
+  filter: {
+    mode: 'semantic',
+    level: { max: 5 },
+  },
+}
 ```
 
 ---
@@ -370,60 +372,61 @@ class RetrievalEvaluator {
 name: Evaluation
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+    paths:
+      - 'packages/contracts/src/domain/evals/**'
+      - 'evals/**'
+      - 'packages/server/src/**'
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: 'Evaluation tier to run'
+        required: false
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - core
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly on Monday at 6 AM UTC
 
 jobs:
-  eval:
+  eval-smoke:
     runs-on: ubuntu-latest
-    
     steps:
       - uses: actions/checkout@v4
-      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.33.0
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        
-      - name: Setup environment
-        run: |
-          cp .env.example .env
-          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
-          
-      - name: Start server
-        run: pnpm dev:server &
-        shell: background
-        
-      - name: Wait for server
-        run: |
-          for i in {1..30}; do
-            curl -s http://localhost:4000/health && break
-            sleep 2
-          done
-          
       - name: Run smoke evaluation
-        run: pnpm eval:retrieval --tier smoke
-        continue-on-error: true
-        
-      - name: Run core evaluation
-        run: pnpm eval:retrieval --tier core
-        continue-on-error: true
-        
-      - name: Run summary evaluation
-        run: pnpm eval:summary
-        continue-on-error: true
-        
-      - name: Upload results
-        uses: actions/upload-artifact@v4
+        run: pnpm eval:ci
+        env:
+          NODE_ENV: test
+      - name: Upload eval report
         if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: eval-results
-          path: .eval-results/
+          name: eval-report
+          path: reports/
+
+  eval-core-scheduled:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.tier == 'core')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run core evaluation
+        run: pnpm eval:ci:core
+        env:
+          NODE_ENV: test
+          WRITE_BASELINE: 'true'
 ```
 
 ### 运行命令
@@ -449,53 +452,39 @@ pnpm eval:ci:core
 
 ### 检索测试用例
 
-```yaml
-# evals/retrieval/cases/core/query-security-oauth.yaml
-id: retrieval-core-oauth-security
-description: Security concerns with OAuth2 implementation
-query: "what security concerns should I address for OAuth2"
-tier: core
-
-expected:
-  minResults: 5
-  governanceEnforced: true
-  relevanceThreshold: 0.7
-  expectedCategories:
-    - security
-    - authentication
-
-filter:
-  mode: hybrid
-  level:
-    max: 3
+```typescript
+// evals/retrieval/datasets/core/v1-retrieval-core.ts
+{
+  id: 'retrieval-core-oauth-security',
+  description: 'Security concerns with OAuth2 implementation',
+  query: 'what security concerns should I address for OAuth2',
+  tier: 'core',
+  expected: {
+    minResults: 5,
+    governanceEnforced: true,
+    relevanceThreshold: 0.7,
+    expectedCategories: ['security', 'authentication'],
+  },
+  filter: {
+    mode: 'hybrid',
+    level: { max: 3 },
+  },
+}
 ```
 
 ### 摘要测试用例
 
-```yaml
-# evals/summary/cases/core/summary-jwt-validation.yaml
-id: summary-core-jwt-validation
-description: Summary of JWT validation best practices
-sourceContent: |
-  JWT tokens should be validated on every request...
-  1. Verify signature using public key
-  2. Check expiration
-  3. Validate issuer and audience
-  4. Reject tokens with alg: none
-
-summary: |
-  JWT validation requires checking signature, expiration,
-  issuer/audience, and rejecting 'none' algorithm.
-
-requiredFacts:
-  - signature verification
-  - expiration check
-  - issuer validation
-  - reject none algorithm
-
-forbiddenClaims:
-  - "JWT tokens are not secure"
-  - "you can skip validation for testing"
+```typescript
+// evals/summary/datasets/core/summary-jwt-validation.ts
+{
+  id: 'summary-core-jwt-validation',
+  description: 'Summary of JWT validation best practices',
+  sourceContent: 'JWT tokens should be validated on every request...',
+  summary: 'JWT validation requires checking signature, expiration, ...',
+  requiredFacts: ['signature verification', 'expiration check', 'issuer validation'],
+  forbiddenClaims: ['JWT tokens are not secure', 'you can skip validation for testing'],
+  tier: 'core',
+}
 ```
 
 ---
@@ -547,69 +536,20 @@ forbiddenClaims:
 
 ### 创建检索测试
 
-1. 在 `evals/retrieval/cases/<tier>/` 创建 YAML 文件
-2. 定义 query、expected、filter
-3. 运行 `pnpm eval:retrieval --tier <tier>` 验证
+1. 在 `evals/retrieval/datasets/<tier>/` 创建 TS 文件
+2. 导出 `RetrievalTestCase[]`，定义 query、expected、filter
+3. 在对应的 `smoke.ts` 或 `core.ts` 中 re-export
+4. 运行 `pnpm eval:retrieval:<tier>` 验证
 
 ### 创建摘要测试
 
-1. 在 `evals/summary/cases/<tier>/` 创建 YAML 文件
+1. 在 `evals/summary/datasets/<tier>/` 创建 TS 文件
 2. 提供 sourceContent、summary、requiredFacts、forbiddenClaims
-3. 运行 `pnpm eval:summary --tier <tier>` 验证
+3. 运行 `pnpm eval:summary:<tier>` 验证
 
 ---
 
 ## 流程图
-
-### 检索评估流程
-
-```mermaid
-flowchart TB
-    A[加载测试用例] --> B[执行检索查询]
-    B --> C[计算指标]
-    C --> D[检查治理合规]
-    D --> E[生成报告]
-    
-    A --> A1[evals/retrieval/cases/]
-    A1 --> A2[smoke/]
-    A1 --> A3[core/]
-    
-    B --> B1[POST /v1/retrieval/search]
-    B1 --> B2[{ query, mode, filter }]
-    
-    C --> C1[计算相关性分数]
-    C1 --> C2[Hit@K, MRR, nDCG]
-    
-    D --> D1[检查安全等级]
-    D --> D2[检查团队作用域]
-    
-    E --> E1[{ hitRate, mrr, ndcg, passed, failed }]
-```
-
-### 摘要评估流程
-
-```mermaid
-flowchart TB
-    A[加载测试用例] --> B[Groundedness 检查]
-    B --> C[Coverage 检查]
-    C --> D[Hallucination 检查]
-    D --> E[生成报告]
-    
-    B --> B1[从摘要提取事实]
-    B1 --> B2[检查事实是否在源内容中]
-    B2 --> B3[计算 groundedness 分数]
-    
-    C --> C1[从源内容提取关键点]
-    C1 --> C2[检查关键点是否在摘要中]
-    C2 --> C3[计算 coverage 分数]
-    
-    D --> D1[检查摘要中的禁止声明]
-    D1 --> D2[验证无源外声明]
-    
-    E --> E1[{ groundedness, coverage, hallucination, passed }]
-```
-
-## 测试层级
 
 ### 烟雾测试 (Smoke Tests)
 
@@ -631,60 +571,7 @@ flowchart TB
 
 ## CI 集成
 
-### GitHub Actions 工作流
-
-```yaml
-# .github/workflows/eval.yml
-name: Evaluation
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  schedule:
-    - cron: '0 0 * * *'  # Daily
-
-jobs:
-  eval:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          
-      - name: Install dependencies
-        run: pnpm install
-        
-      - name: Build
-        run: pnpm build
-        
-      - name: Start server
-        run: pnpm dev:server &
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/trapmap_test
-          
-      - name: Wait for server
-        run: |
-          for i in {1..30}; do
-            if curl -s http://localhost:4000/health > /dev/null; then
-              echo "Server is ready"
-              break
-            fi
-            sleep 1
-          done
-          
-      - name: Run smoke tests
-        run: pnpm eval:smoke
-        
-      - name: Run core tests
-        run: pnpm eval:core
-        if: github.event_name == 'schedule'
-```
+> 完整工作流定义见 `.github/workflows/eval.yml`。PR 触发 smoke 评测，schedule/workflow_dispatch 触发 core 评测。
 
 ## 运行评估
 
@@ -711,24 +598,34 @@ pnpm eval:summary:core
 ```
 evals/
 ├── retrieval/
-│   ├── cases/
+│   ├── datasets/
 │   │   ├── smoke/
-│   │   │   ├── query-config-auth.yaml
-│   │   │   └── query-oauth-setup.yaml
+│   │   │   ├── v1-retrieval-smoke.ts
+│   │   │   ├── v2-retrieval-smoke.ts
+│   │   │   └── v3-graph-plan-smoke.ts
 │   │   └── core/
-│   │       ├── query-security-levels.yaml
-│   │       └── ...
-│   └── README.md
+│   ├── scenarios/
+│   │   ├── smoke/
+│   │   └── core/
+│   ├── lib/
+│   ├── run.ts
+│   ├── smoke.ts
+│   └── core.ts
 ├── summary/
-│   ├── cases/
+│   ├── datasets/
 │   │   ├── smoke/
 │   │   └── core/
-│   └── README.md
-└── governance/
-    ├── cases/
-    │   ├── smoke/
-    │   └── core/
-    └── README.md
+│   ├── scenarios/
+│   ├── lib/
+│   ├── run.ts
+│   ├── smoke.ts
+│   └── core.ts
+├── graph-extraction/
+├── ingestion/
+├── fixtures/
+└── scripts/
+    ├── eval-all.ts
+    └── eval-ci.ts
 ```
 
 ## 审计事件

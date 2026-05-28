@@ -22,8 +22,11 @@ pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
 # 带 JSON 输出到文件
 pnpm exec tsx evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json
 
-# CI 模式（通过 eval-ci 脚本，自动比较基线）
-rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+# CI 模式（带基线对比）
+pnpm eval:ci
+
+# CI core 模式
+pnpm eval:ci:core
 ```
 
 为特定类型运行评测：
@@ -44,21 +47,34 @@ pnpm eval:summary:core
 evals/
 ├── README.md                    # 本文件
 ├── scripts/
-│   └── eval-all.ts              # 两种评测类型的统一运行器
+│   ├── eval-all.ts              # 两种评测类型的统一运行器
+│   └── eval-ci.ts               # CI 模式运行器（带基线对比）
 ├── retrieval/
 │   ├── README.md                # 检索评测约定和端点详情
 │   ├── run.ts                   # 检索运行器入口
 │   ├── smoke.ts                 # Smoke 层级数据集导出
 │   ├── core.ts                  # Core 层级数据集导出
 │   ├── datasets/                # 检索用例定义
+│   ├── scenarios/               # Fixture 状态定义
 │   └── lib/                     # 运行器基础设施
-└── summary/
-    ├── README.md                # 摘要评测文档
-    ├── run.ts                   # 摘要运行器入口
-    ├── smoke.ts                 # Smoke 层级数据集导出
-    ├── core.ts                  # Core 层级数据集导出
-    ├── datasets/                # 摘要用例定义
-    └── lib/                     # 法官和评分基础设施
+├── summary/
+│   ├── README.md                # 摘要评测文档
+│   ├── run.ts                   # 摘要运行器入口
+│   ├── smoke.ts                 # Smoke 层级数据集导出
+│   ├── core.ts                  # Core 层级数据集导出
+│   ├── datasets/                # 摘要用例定义
+│   ├── scenarios/               # Fixture 状态定义
+│   └── lib/                     # 评判器和评分基础设施
+├── graph-extraction/
+│   ├── README.md                # 图提取评测文档
+│   ├── run.ts                   # 图提取运行器入口
+│   ├── fixtures.ts              # 标注 ground truth fixtures
+│   ├── fixtures-real.ts         # 真实场景 fixtures
+│   ├── dedup-eval.ts            # 去重评测
+│   └── conflict-eval.ts         # 冲突评测
+└── ingestion/
+    ├── README.md                # 摄取评测文档
+    └── run.ts                   # 摄取运行器入口
 ```
 
 ## Phase 状态

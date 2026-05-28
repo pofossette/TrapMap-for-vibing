@@ -106,6 +106,11 @@ describe('docs truth smoke', () => {
     expect(matrix).toContain('AI provider/model defaults');
     expect(matrix).toContain('Eval workflow');
     expect(matrix).toContain('Deep architecture persistence docs');
+    expect(matrix).toContain('Deployment defaults');
+    expect(matrix).toContain('Health/readiness endpoints');
+    expect(matrix).toContain('Deep architecture component docs');
+    expect(matrix).toContain('Operator-only internal APIs');
+    expect(matrix).toContain('Drift Type');
   });
 
   it('SYSTEM_TRUTH_SOURCES.md covers expanded drift categories', () => {
@@ -116,6 +121,10 @@ describe('docs truth smoke', () => {
     expect(sources).toContain('AI provider/model defaults');
     expect(sources).toContain('Eval workflow');
     expect(sources).toContain('Deep architecture persistence docs');
+    expect(sources).toContain('Deployment defaults');
+    expect(sources).toContain('Health/readiness endpoints');
+    expect(sources).toContain('Deep architecture component docs');
+    expect(sources).toContain('Operator-only internal APIs');
   });
 
   it('docs/README.md does not contain stale schema counts', () => {
@@ -189,5 +198,25 @@ describe('docs truth smoke', () => {
     expect(content).toContain('pnpm eval:smoke');
     expect(content).toContain('pnpm eval:core');
     expect(content).not.toContain('pnpm eval:governance');
+  });
+
+  it('ARCHITECTURE.md Docker Compose uses pgvector image and wget healthcheck', () => {
+    const content = readDoc('docs/architecture/ARCHITECTURE.md');
+    expect(content).toContain('pgvector/pgvector:pg16');
+    expect(content).toContain('wget');
+    expect(content).not.toContain('image: postgres:16');
+  });
+
+  it('EVALUATION.md uses TS datasets, not YAML cases', () => {
+    const content = readDoc('docs/architecture/components/EVALUATION.md');
+    expect(content).toContain('datasets/');
+    expect(content).toContain('scenarios/');
+    expect(content).not.toContain('cases/');
+  });
+
+  it('AI_PROVIDER.md uses correct Ollama default model', () => {
+    const content = readDoc('docs/architecture/components/AI_PROVIDER.md');
+    expect(content).toContain('llama3');
+    expect(content).not.toContain('llama2');
   });
 });

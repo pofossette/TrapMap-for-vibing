@@ -85,7 +85,7 @@ cp .env.example .env
 pnpm dev:server
 
 # 另一个终端运行 CLI
-pnpm --filter @trapmap/cli dev -- --help
+pnpm dev:cli
 ```
 
 ### Docker 部署

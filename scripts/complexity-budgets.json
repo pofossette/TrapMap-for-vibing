@@ -21,8 +21,8 @@
     },
     {
       "file": "docs/architecture/DEPLOYMENT.md",
-      "mustContain": ["TRAPMAP_DATABASE_URL", "gpt-4o-mini", ".data/skill-shareer.json"],
-      "mustNotContain": ["使用 JSON 文件存储"],
+      "mustContain": ["TRAPMAP_DATABASE_URL", "gpt-4o-mini", ".data/skill-shareer.json", "仓库当前未包含 Helm chart"],
+      "mustNotContain": ["使用 JSON 文件存储", "DEBUG=false", "SESSION_SECRET"],
       "mustNotContainRegex": ["gpt-4o(?!-)"],
       "mustContainCount": {
         "pattern": "PostgreSQL",
@@ -64,6 +64,26 @@
       "file": "docs/architecture/components/EVALUATION.md",
       "mustContain": ["pnpm eval:smoke", "pnpm eval:core"],
       "mustNotContain": ["pnpm eval:governance"]
+    },
+    {
+      "file": "docs/operations/ENVIRONMENT.md",
+      "mustContain": ["fallback", "OPENAI_API_KEY", "GEMINI_API_KEY", "未暴露为稳定 CLI 命令"],
+      "mustNotContain": ["默认 openai"]
+    },
+    {
+      "file": "docs/architecture/components/AI_PROVIDER.md",
+      "mustContain": ["fallback", "google-genai", "gpt-4o-mini", "llama3"],
+      "mustNotContain": ["默认 openai", "llama2"]
+    },
+    {
+      "file": "docs/architecture/ARCHITECTURE.md",
+      "mustContain": ["pgvector/pgvector:pg16", "wget"],
+      "mustNotContain": ["image: postgres:16", "curl.*-f.*health"]
+    },
+    {
+      "file": "docs/architecture/components/EVALUATION.md",
+      "mustContain": ["datasets/", "scenarios/"],
+      "mustNotContain": ["cases/"]
     }
   ],
   "lineBudgets": [

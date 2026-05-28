@@ -13,7 +13,7 @@ flowchart TB
     end
 
     subgraph 存储实现["存储实现"]
-        subgraph Json存储["JsonStore（开发环境）"]
+        subgraph Json存储["JsonStore（兼容回退）"]
             B1["- 基于文件\n- 原子写入\n- JSON 文件"]
         end
 

@@ -2,15 +2,17 @@
 
 ## 概述
 
-AI 提供商抽象层为 TrapMap 提供统一的 AI 接口，支持多种 AI 提供商（OpenAI、OpenAI 兼容接口、Ollama）。这使得系统可以在不改变业务逻辑的情况下切换 AI 提供商。
+AI 提供商抽象层为 TrapMap 提供统一的 AI 接口，支持多种 AI 提供商（OpenAI、OpenAI 兼容接口、Ollama、Google GenAI）。这使得系统可以在不改变业务逻辑的情况下切换 AI 提供商。当无 API key 时自动降级到 `fallback` 模式（确定性哈希向量）。
 
 ## 支持的提供商
 
-| 提供商 | 类型 | 模型 | 适用场景 |
-|--------|------|------|----------|
-| OpenAI | API | GPT-4o, GPT-4-turbo, GPT-3.5-turbo | 生产环境 |
-| OpenAI-Compatible | API | 任何 OpenAI-compatible API | 自托管模型 |
-| Ollama | 本地 | Llama2, Mistral, etc. | 本地开发/隐私 |
+| 提供商 | 类型 | 默认 Chat 模型 | 默认 Embedding 模型 | 适用场景 |
+|--------|------|----------------|---------------------|----------|
+| OpenAI | API | gpt-4o-mini | text-embedding-3-small | 生产环境 |
+| OpenAI-Compatible | API | (必须指定) | (必须指定) | 自托管模型 |
+| Ollama | 本地 | llama3 | nomic-embed-text | 本地开发/隐私 |
+| Google GenAI | API | gemini-2.0-flash | text-embedding-004 | Google AI Studio |
+| Fallback | 内置 | (无) | 确定性哈希向量 | 无 API key 时的降级模式 |
 
 ## 架构
 
@@ -111,7 +113,7 @@ interface EmbeddingResponse {
 
 ```typescript
 interface AIProviderConfig {
-  provider: 'openai' | 'openai-compatible' | 'ollama';
+  provider: 'openai' | 'openai-compatible' | 'ollama' | 'google-genai' | 'fallback';
   
   // API Configuration
   apiKey?: string;
@@ -151,10 +153,10 @@ export class OpenAIProvider implements AIProvider {
       maxRetries: config.maxRetries
     });
     
-    this.chatModel = config.chatModel || 'gpt-4o';
+    this.chatModel = config.chatModel || 'gpt-4o-mini';
     this.embeddingModel = config.embeddingModel || 'text-embedding-3-small';
   }
-  
+
   async chat(
     messages: ChatMessage[],
     options: ChatOptions = {}
@@ -235,7 +237,7 @@ export class OpenAIProvider implements AIProvider {
 # .env
 AI_PROVIDER=openai
 OPENAI_API_KEY=sk-proj-...
-AI_CHAT_MODEL=gpt-4o
+AI_CHAT_MODEL=gpt-4o-mini
 AI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
@@ -260,9 +262,9 @@ export class OpenAICompatibleProvider implements AIProvider {
     }
     
     this.baseUrl = config.baseUrl;
-    this.chatModel = config.chatModel || 'gpt-4o';
+    this.chatModel = config.chatModel || 'gpt-4o-mini';
     this.embeddingModel = config.embeddingModel || 'text-embedding-3-small';
-    
+
     this.client = new OpenAI({
       apiKey: config.apiKey || 'dummy',
       baseURL: config.baseUrl,
@@ -313,10 +315,10 @@ export class OllamaProvider implements AIProvider {
   
   constructor(config: AIProviderConfig) {
     this.baseUrl = config.baseUrl || 'http://localhost:11434';
-    this.chatModel = config.chatModel || 'llama2';
+    this.chatModel = config.chatModel || 'llama3';
     this.embeddingModel = config.embeddingModel || 'nomic-embed-text';
   }
-  
+
   async chat(
     messages: ChatMessage[],
     options: ChatOptions = {}
@@ -451,7 +453,7 @@ export class OllamaProvider implements AIProvider {
 # .env
 AI_PROVIDER=ollama
 AI_BASE_URL=http://localhost:11434
-AI_CHAT_MODEL=llama2
+AI_CHAT_MODEL=llama3
 AI_EMBEDDING_MODEL=nomic-embed-text
 ```
 
@@ -459,7 +461,7 @@ AI_EMBEDDING_MODEL=nomic-embed-text
 
 ```bash
 # 安装模型
-ollama pull llama2
+ollama pull llama3
 ollama pull mistral
 ollama pull nomic-embed-text
 
@@ -477,30 +479,54 @@ import { OpenAICompatibleProvider } from './openai-compatible';
 import { OllamaProvider } from './ollama';
 import type { AIProvider, AIProviderConfig } from './types';
 
+/**
+ * 解析提供商类型（与 provider-config.ts resolveProviderType() 对齐）：
+ * 1. AI_PROVIDER 显式设置 → 使用该值
+ * 2. OPENAI_API_KEY 存在 → openai
+ * 3. GEMINI_API_KEY 存在 → google-genai
+ * 4. 否则 → fallback（确定性哈希向量，无需 API key）
+ */
 export function createAIProvider(config?: AIProviderConfig): AIProvider {
   const effectiveConfig = config || {
-    provider: process.env.AI_PROVIDER as AIProviderConfig['provider'] || 'openai',
-    apiKey: process.env.OPENAI_API_KEY || process.env.AI_API_KEY,
+    provider: resolveProviderType(),
+    apiKey: process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '',
     baseUrl: process.env.AI_BASE_URL,
     chatModel: process.env.AI_CHAT_MODEL,
     embeddingModel: process.env.AI_EMBEDDING_MODEL,
     timeout: 60000,
     maxRetries: 3
   };
-  
+
   switch (effectiveConfig.provider) {
     case 'openai':
       return new OpenAIProvider(effectiveConfig);
-    
+
     case 'openai-compatible':
       return new OpenAICompatibleProvider(effectiveConfig);
-    
+
     case 'ollama':
       return new OllamaProvider(effectiveConfig);
-    
+
+    case 'google-genai':
+      return new GoogleGenAIProvider(effectiveConfig);
+
+    case 'fallback':
+      return new FallbackProvider();
+
     default:
       throw new Error(`Unknown AI provider: ${effectiveConfig.provider}`);
   }
+}
+
+function resolveProviderType(): AIProviderConfig['provider'] {
+  const explicit = process.env.AI_PROVIDER;
+  if (explicit === 'openai' || explicit === 'openai-compatible' ||
+      explicit === 'ollama' || explicit === 'google-genai') {
+    return explicit;
+  }
+  if (process.env.OPENAI_API_KEY?.length) return 'openai';
+  if (process.env.GEMINI_API_KEY?.length) return 'google-genai';
+  return 'fallback';
 }
 ```
 
@@ -547,7 +573,7 @@ import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 
 // Create LangChain instances from our provider
 const chatModel = new ChatOpenAI({
-  modelName: 'gpt-4o',
+  modelName: 'gpt-4o-mini',
   temperature: 0.7,
   callbacks: []
 });

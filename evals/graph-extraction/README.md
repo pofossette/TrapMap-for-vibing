@@ -54,7 +54,7 @@ pnpm eval:graph-extraction --smoke
 
 ## Fixtures
 
-Fixtures are in `fixtures.ts` (17 entries covering):
+Fixtures are in `fixtures.ts` (22 entries — 17 hand-crafted + 5 real-skill derived — covering):
 - Simple tool/cue/mitigation extraction
 - Complex multi-entity entries
 - Negation sentences (should NOT extract negated entities)
@@ -64,6 +64,22 @@ Fixtures are in `fixtures.ts` (17 entries covering):
 - Co-occurrence (hard vs soft strength)
 - Environment-specific traps
 - Multiple mitigations for same problem
+
+## Dedup & Conflict Evaluation
+
+Two additional eval scripts test deduplication and conflict detection:
+
+```bash
+# Dedup eval
+pnpm eval:dedup
+pnpm eval:dedup:dry-run
+
+# Conflict eval
+pnpm eval:conflict
+pnpm eval:conflict:dry-run
+```
+
+Fixtures for these evals are in `dedup-fixtures-real.ts` and `conflict-fixtures-real.ts`.
 
 ## Adding new fixtures
 

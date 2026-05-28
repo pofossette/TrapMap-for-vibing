@@ -180,12 +180,20 @@ domain/
 ```
 evals/
 ├── retrieval/      # 检索评估
-│   ├── cases/     # 测试用例（smoke + core 层）
-│   ├── runner.ts   # 评估运行器
-│   └── README.md  # 评估标准
-└── summary/       # 摘要评估
-    ├── cases/     # 带 required/forbidden 的测试用例
-    └── runner.ts  # 基于评判的运行器
+│   ├── run.ts      # 运行器入口
+│   ├── smoke.ts    # smoke 层数据集导出
+│   ├── core.ts     # core 层数据集导出
+│   ├── datasets/   # 测试用例定义
+│   ├── scenarios/  # Fixture 状态定义
+│   └── lib/        # 运行器基础设施
+├── summary/        # 摘要评估
+│   ├── run.ts      # 运行器入口
+│   ├── smoke.ts / core.ts
+│   ├── datasets/
+│   ├── scenarios/
+│   └── lib/        # 评判器和评分基础设施
+├── graph-extraction/  # 图提取评估
+└── scripts/        # 统一运行器（eval-all.ts, eval-ci.ts）
 ```
 
 ## 技术细节
@@ -196,7 +204,7 @@ evals/
 // 支持的提供商
 type AIProvider = 'openai' | 'openai-compatible' | 'ollama' | 'google-genai' | 'fallback'
 
-// 提供商配置通过环境变量（默认 openai，也可设为 ollama / google-genai 等）
+// 提供商配置通过环境变量（自动解析：AI_PROVIDER 显式值优先，其次 OPENAI_API_KEY → openai、GEMINI_API_KEY → google-genai，否则 fallback）
 AI_PROVIDER=openai
 AI_BASE_URL=https://api.openai.com/v1  // 兼容提供商使用
 AI_API_KEY=sk-...
@@ -395,18 +403,9 @@ interface Store {
 }
 ```
 
-### JsonStore（开发）
+核心业务路由（auth、knowledge、traps、retrieval 等）通过 `app.skillShareer.repos` 读写数据。`store_snapshot` / `JsonStore` 仅作为兼容回退层保留。详见 [SYSTEM_TRUTH_SOURCES.md](../reference/SYSTEM_TRUTH_SOURCES.md) 和 [PERSISTENCE.md](components/PERSISTENCE.md)。
 
-```mermaid
-flowchart TB
-    subgraph Json存储特性["JsonStore 特性"]
-        A1["原子写入<br/>写入临时文件，然后重命名"]
-        A2["并发访问的文件锁定"]
-        A3["启动时自动备份"]
-    end
-```
-
-### PostgresStore（生产）
+### PostgresStore（推荐主路径）
 
 ```mermaid
 flowchart TB
@@ -417,6 +416,8 @@ flowchart TB
         B4["常用查询的索引"]
     end
 ```
+
+> **JSON 回退**：未设置 `TRAPMAP_DATABASE_URL` 时自动回退到 JsonStore（原子写入、文件锁定），仅用于兼容，不推荐生产使用。
 
 ## 环境配置
 
@@ -447,39 +448,81 @@ flowchart TB
 
 ```yaml
 services:
-  app:
-    build: .
+  server:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+    container_name: trapmap-server
     ports:
       - "4000:4000"
+    volumes:
+      - ./.data:/app/.data
+      - ./logs:/app/logs
     environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=4000
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY}
-      - TRAPMAP_DATABASE_URL=postgresql://...
+      - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
+      - AI_PROVIDER=${AI_PROVIDER:-}
+      - TRAPMAP_DATABASE_URL=postgres://trapmap:trapmap@postgres:5432/trapmap
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4000/health"]
       interval: 30s
       timeout: 10s
+      start_period: 5s
+      retries: 3
+    restart: unless-stopped
 
   postgres:
-    image: postgres:16
+    image: pgvector/pgvector:pg16
+    container_name: trapmap-postgres
     environment:
       POSTGRES_DB: trapmap
       POSTGRES_USER: trapmap
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trapmap}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trapmap -d trapmap"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
 ```
+
+> 完整 compose 文件见仓库根目录 `docker-compose.yml`。
 
 ## 健康检查
 
 ```bash
-curl http://localhost:4000/health
+curl http://127.0.0.1:4000/health
 # 响应：
 {
   "status": "ok",
   "product": "trapmap",
-  "packages": ["cli", "server", "contracts"]
+  "packages": ["cli", "server", "contracts"],
+  "memory": { "rssMb": 128, "heapUsedMb": 64, "heapTotalMb": 96 },
+  "uptimeSeconds": 42
 }
 ```
+
+### 就绪检查
+
+```bash
+curl http://127.0.0.1:4000/ready
+# 响应：
+{
+  "ok": true,
+  "queueWorkerRunning": true,
+  "database": "postgres"
+}
+```
+
+> `database` 字段值为 `postgres` 或 `json-store`，取决于实际存储后端。

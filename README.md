@@ -272,7 +272,13 @@ curl http://localhost:4000/health
 
 预期响应：
 ```json
-{"status":"ok","timestamp":"..."}
+{
+  "status": "ok",
+  "product": "trapmap",
+  "packages": ["cli", "server", "contracts"],
+  "memory": { "rssMb": 128, "heapUsedMb": 64, "heapTotalMb": 96 },
+  "uptimeSeconds": 42
+}
 ```
 
 ---

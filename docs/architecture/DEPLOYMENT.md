@@ -51,7 +51,7 @@ pnpm dev:cli -- --help
 OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxx
 
 # 服务器配置
-HOST=0.0.0.0
+HOST=127.0.0.1
 PORT=4000
 
 # PostgreSQL（默认存储后端）
@@ -63,7 +63,6 @@ AI_CHAT_MODEL=gpt-4o-mini
 AI_EMBEDDING_MODEL=text-embedding-3-small
 
 # 可选
-DEBUG=false
 LOG_LEVEL=info
 ```
 
@@ -90,7 +89,7 @@ docker compose up -d
 docker compose logs -f
 
 # 4. 健康检查
-curl http://localhost:4000/health
+curl http://127.0.0.1:4000/health
 ```
 
 ### .env.production 模板
@@ -130,14 +129,26 @@ services:
     ports:
       - "4000:4000"
     volumes:
+      - ./.data:/app/.data
       - ./logs:/app/logs
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
       - PORT=4000
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - TRAPMAP_DATABASE_URL=postgresql://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
       - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
+      # AI Provider
+      - AI_PROVIDER=${AI_PROVIDER:-}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+      # Embedding Provider
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+      # Database (set to use PostgreSQL; omit for JSON file storage)
+      - TRAPMAP_DATABASE_URL=postgres://trapmap:trapmap@postgres:5432/trapmap
       # Logging Configuration
       - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
       - LOG_USER_OPS_DIR=${LOG_USER_OPS_DIR:-/app/logs/user-ops}
@@ -149,7 +160,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4000/health"]
       interval: 30s
       timeout: 10s
       start_period: 5s
@@ -158,6 +169,9 @@ services:
 
   postgres:
     image: pgvector/pgvector:pg16
+    container_name: trapmap-postgres
+    ports:
+      - "5434:5432"
     environment:
       POSTGRES_DB: trapmap
       POSTGRES_USER: trapmap
@@ -230,7 +244,7 @@ RUN pnpm install --frozen-lockfile
 # Stage 2: Build
 FROM deps AS build
 WORKDIR /app
-RUN pnpm build
+RUN pnpm exec tsc -b packages/contracts/tsconfig.json packages/server/tsconfig.json
 
 # Stage 3: Production
 FROM node:22-alpine AS production
@@ -257,7 +271,7 @@ ENV PORT=4000
 EXPOSE 4000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:4000/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:4000/health || exit 1
 
 CMD ["node", "dist/index.js"]
 ```
@@ -267,6 +281,8 @@ CMD ["node", "dist/index.js"]
 ---
 
 ## Kubernetes 部署
+
+> **注意**：以下 Kubernetes/Helm 部署方案为参考架构。仓库当前未包含 Helm chart 或 k8s manifests，此章节描述的是目标部署拓扑，而非现成可用的交付物。
 
 ### 前置条件
 
@@ -356,9 +372,6 @@ helm install trapmap ./helm/trapmap \
 # 生成安全密钥
 openssl rand -hex 32
 
-# 会话密钥（至少 32 字符）
-SESSION_SECRET=your-session-secret-min-32-chars
-
 # 系统管理员密钥
 TRAPMAP_SYSTEM_ADMIN_KEY=generate-secure-random-string
 ```
@@ -404,13 +417,14 @@ find ${BACKUP_DIR} -name "trapmap_backup_*.sql.gz" -mtime +30 -delete
 
 ### 监控
 
+> **注意**：以下为运维建议，TrapMap 当前未内置 `/metrics` 端点或 `LOG_FORMAT` 变量。
+
 ```bash
-# Prometheus 指标端点
-curl http://localhost:4000/metrics
+# 健康检查（内置端点）
+curl http://127.0.0.1:4000/health
 
 # 日志聚合 (ELK/Loki)
-# 应用日志格式应为 JSON
-LOG_FORMAT=json
+# 应用日志输出到 ./logs 目录，可通过 LOG_RAG_ENABLED / LOG_USER_OPS_ENABLED 控制
 ```
 
 ---
@@ -430,17 +444,17 @@ docker compose down
 docker compose up -d
 
 # 4. 运行迁移（如有）
-docker compose exec server pnpm migrate
+docker compose exec server pnpm --filter @trapmap/server db:migrate
 ```
 
 ### 数据库迁移
 
 ```bash
-# 使用 Drizzle
-pnpm drizzle-kit migrate
+# 使用 Drizzle（通过 server 包脚本）
+pnpm --filter @trapmap/server db:migrate
 
-# 或推送 schema（开发）
-pnpm drizzle-kit push
+# 生成新迁移
+pnpm --filter @trapmap/server db:generate
 ```
 
 ---
@@ -462,14 +476,10 @@ kubectl logs -f statefulset/postgres
 
 ```bash
 # API 健康
-curl http://localhost:4000/health
+curl http://127.0.0.1:4000/health
 
-# 数据库连接（ESM 项目，使用 --input-type=module）
-docker compose exec server node --input-type=module -e "
-  import { createStore } from './dist/persistence/create-store.js';
-  const store = await createStore({ type: 'postgres', databaseUrl: process.env.TRAPMAP_DATABASE_URL });
-  console.log('OK');
-"
+# 数据库连接
+docker compose exec postgres pg_isready -U trapmap -d trapmap
 ```
 
 ### 常见问题
