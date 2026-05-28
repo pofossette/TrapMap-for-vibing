@@ -53,3 +53,11 @@ These directories are local artifacts and must not become tracked content:
 - `node_modules/`
 - `packages/*/dist/`
 - `packages/*/node_modules/`
+
+## Archive Policy
+
+`docs/archived/` is the only archive root. Do not create `docs/archive/`.
+
+- Obsolete implementation plans: `docs/archived/archived-plans/`
+- Historical audits and reports: `docs/archived/reports/`
+- Retired standalone docs: `docs/archived/`
