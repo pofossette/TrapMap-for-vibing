@@ -1,0 +1,898 @@
+{
+  "schemaVersion": 1,
+  "timestamp": "2026-05-26T23:33:05.646Z",
+  "durationMs": 1470,
+  "tier": "smoke",
+  "retrieval": {
+    "passed": true,
+    "report": {
+      "meta": {
+        "schemaVersion": 1,
+        "timestamp": "2026-05-26T23:33:05.515Z",
+        "durationMs": 569,
+        "options": {
+          "tier": "smoke",
+          "dryRun": false,
+          "allowEmpty": false,
+          "verbose": 0
+        },
+        "isBaselineWrite": false
+      },
+      "summary": {
+        "totalCases": 22,
+        "passedCases": 22,
+        "failedCases": 0,
+        "passRate": 1,
+        "passed": true
+      },
+      "slices": [
+        {
+          "slice": {
+            "tier": "smoke",
+            "endpoint": "/v1/retrieval/search",
+            "mode": "graph-assisted"
+          },
+          "routeFamily": "entry",
+          "caseCount": 1,
+          "passedCount": 1,
+          "failedCount": 0,
+          "passRate": 1,
+          "avgHitAt1": 1,
+          "avgHitAt5": 1,
+          "avgHitAt10": 1,
+          "avgMrr": 1,
+          "avgNdcg": 1,
+          "avgRecallAt10": 1,
+          "governanceFailureCount": 0,
+          "outcomeMismatchCount": 0,
+          "executionIssueCount": 0,
+          "fallbackApplied": false,
+          "regressionStatus": "no-baseline"
+        },
+        {
+          "slice": {
+            "tier": "smoke",
+            "endpoint": "/v1/retrieval/search",
+            "mode": "hybrid"
+          },
+          "routeFamily": "entry",
+          "caseCount": 1,
+          "passedCount": 1,
+          "failedCount": 0,
+          "passRate": 1,
+          "avgHitAt1": 1,
+          "avgHitAt5": 1,
+          "avgHitAt10": 1,
+          "avgMrr": 1,
+          "avgNdcg": 1,
+          "avgRecallAt10": 1,
+          "governanceFailureCount": 0,
+          "outcomeMismatchCount": 0,
+          "executionIssueCount": 0,
+          "fallbackApplied": false,
+          "regressionStatus": "no-baseline"
+        },
+        {
+          "slice": {
+            "tier": "smoke",
+            "endpoint": "/v1/retrieval/search",
+            "mode": "semantic"
+          },
+          "routeFamily": "entry",
+          "caseCount": 3,
+          "passedCount": 3,
+          "failedCount": 0,
+          "passRate": 1,
+          "avgHitAt1": 0.3333333333333333,
+          "avgHitAt5": 0.3333333333333333,
+          "avgHitAt10": 0.3333333333333333,
+          "avgMrr": 0.3333333333333333,
+          "avgNdcg": 0.3333333333333333,
+          "avgRecallAt10": 0.3333333333333333,
+          "governanceFailureCount": 0,
+          "outcomeMismatchCount": 0,
+          "executionIssueCount": 0,
+          "fallbackApplied": false,
+          "regressionStatus": "no-baseline"
+        },
+        {
+          "slice": {
+            "tier": "smoke",
+            "endpoint": "/v2/retrieval/search"
+          },
+          "routeFamily": "capsule",
+          "caseCount": 12,
+          "passedCount": 12,
+          "failedCount": 0,
+          "passRate": 1,
+          "avgHitAt1": 0.8333333333333334,
+          "avgHitAt5": 0.8333333333333334,
+          "avgHitAt10": 0.8333333333333334,
+          "avgMrr": 0.8333333333333334,
+          "avgNdcg": 0.8333333333333334,
+          "avgRecallAt10": 0.8333333333333334,
+          "governanceFailureCount": 0,
+          "outcomeMismatchCount": 0,
+          "executionIssueCount": 0,
+          "fallbackApplied": false,
+          "regressionStatus": "no-baseline"
+        },
+        {
+          "slice": {
+            "tier": "smoke",
+            "endpoint": "/v3/retrieval/search"
+          },
+          "routeFamily": "graph-plan",
+          "caseCount": 5,
+          "passedCount": 5,
+          "failedCount": 0,
+          "passRate": 1,
+          "avgHitAt1": 1,
+          "avgHitAt5": 1,
+          "avgHitAt10": 1,
+          "avgMrr": 1,
+          "avgNdcg": 1,
+          "avgRecallAt10": 1,
+          "governanceFailureCount": 0,
+          "outcomeMismatchCount": 0,
+          "executionIssueCount": 0,
+          "selectedMode": "mix",
+          "fallbackApplied": true,
+          "regressionStatus": "no-baseline"
+        }
+      ],
+      "cohorts": [
+        {
+          "cohort": {
+            "queryType": "error-debugging",
+            "routeFamily": "capsule"
+          },
+          "caseCount": 1,
+          "passedCount": 1,
+          "failedCount": 0,
+          "passRate": 1,
+          "avgHitAt1": 1,
+          "avgMrr": 1,
+          "governanceFailureCount": 0,
+          "regressionStatus": "no-baseline"
+        },
+        {
+          "cohort": {
+            "queryType": "general",
+            "routeFamily": "capsule"
+          },
+          "caseCount": 9,
+          "passedCount": 9,
+          "failedCount": 0,
+          "passRate": 1,
+          "avgHitAt1": 0.8888888888888888,
+          "avgMrr": 0.8888888888888888,
+          "governanceFailureCount": 0,
+          "regressionStatus": "no-baseline"
+        },
+        {
+          "cohort": {
+            "queryType": "general",
+            "routeFamily": "entry"
+          },
+          "caseCount": 4,
+          "passedCount": 4,
+          "failedCount": 0,
+          "passRate": 1,
+          "avgHitAt1": 0.75,
+          "avgMrr": 0.75,
+          "governanceFailureCount": 0,
+          "regressionStatus": "no-baseline"
+        },
+        {
+          "cohort": {
+            "queryType": "general",
+            "routeFamily": "graph-plan"
+          },
+          "caseCount": 5,
+          "passedCount": 5,
+          "failedCount": 0,
+          "passRate": 1,
+          "avgHitAt1": 1,
+          "avgMrr": 1,
+          "governanceFailureCount": 0,
+          "regressionStatus": "no-baseline"
+        },
+        {
+          "cohort": {
+            "queryType": "governance-sensitive",
+            "routeFamily": "capsule"
+          },
+          "caseCount": 1,
+          "passedCount": 1,
+          "failedCount": 0,
+          "passRate": 1,
+          "avgHitAt1": 0,
+          "avgMrr": 0,
+          "governanceFailureCount": 0,
+          "regressionStatus": "no-baseline"
+        },
+        {
+          "cohort": {
+            "queryType": "governance-sensitive",
+            "routeFamily": "entry"
+          },
+          "caseCount": 1,
+          "passedCount": 1,
+          "failedCount": 0,
+          "passRate": 1,
+          "avgHitAt1": 0,
+          "avgMrr": 0,
+          "governanceFailureCount": 0,
+          "regressionStatus": "no-baseline"
+        },
+        {
+          "cohort": {
+            "queryType": "how-to",
+            "routeFamily": "capsule"
+          },
+          "caseCount": 1,
+          "passedCount": 1,
+          "failedCount": 0,
+          "passRate": 1,
+          "avgHitAt1": 1,
+          "avgMrr": 1,
+          "governanceFailureCount": 0,
+          "regressionStatus": "no-baseline"
+        }
+      ],
+      "modeComparisons": [
+        {
+          "fallbackApplied": false,
+          "caseCount": 12,
+          "avgHitAt1": 0.8333333333333334,
+          "avgMrr": 0.8333333333333334
+        },
+        {
+          "clientMode": "semantic",
+          "fallbackApplied": false,
+          "caseCount": 3,
+          "avgHitAt1": 0.3333333333333333,
+          "avgMrr": 0.3333333333333333
+        },
+        {
+          "selectedMode": "mix",
+          "routingReason": "graph-plan-selected",
+          "fallbackApplied": false,
+          "caseCount": 3,
+          "avgHitAt1": 1,
+          "avgMrr": 1
+        },
+        {
+          "clientMode": "hybrid",
+          "fallbackApplied": false,
+          "caseCount": 1,
+          "avgHitAt1": 1,
+          "avgMrr": 1
+        },
+        {
+          "clientMode": "graph-assisted",
+          "fallbackApplied": false,
+          "caseCount": 1,
+          "avgHitAt1": 1,
+          "avgMrr": 1
+        },
+        {
+          "selectedMode": "mix",
+          "routingReason": "graph-plan-insufficient-trap-evidence",
+          "fallbackApplied": true,
+          "caseCount": 1,
+          "avgHitAt1": 1,
+          "avgMrr": 1
+        },
+        {
+          "selectedMode": "mix",
+          "routingReason": "graph-plan-insufficient-skill-evidence",
+          "fallbackApplied": true,
+          "caseCount": 1,
+          "avgHitAt1": 1,
+          "avgMrr": 1
+        }
+      ],
+      "routingDistribution": [
+        {
+          "reason": "graph-plan-selected",
+          "count": 3,
+          "percentage": 13.636363636363635
+        },
+        {
+          "reason": "graph-plan-insufficient-trap-evidence",
+          "count": 1,
+          "percentage": 4.545454545454546
+        },
+        {
+          "reason": "graph-plan-insufficient-skill-evidence",
+          "count": 1,
+          "percentage": 4.545454545454546
+        }
+      ],
+      "cases": [
+        {
+          "caseId": "v1-graph-assisted-positive-smoke",
+          "endpoint": "/v1/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 4,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v1-hybrid-positive-smoke",
+          "endpoint": "/v1/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 3,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v1-semantic-empty-smoke",
+          "endpoint": "/v1/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 2,
+          "hitAt1": 0,
+          "hitAt5": 0,
+          "hitAt10": 0,
+          "mrr": 0,
+          "ndcg": 0,
+          "recallAt10": 0,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v1-semantic-forbidden-smoke",
+          "endpoint": "/v1/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 2,
+          "hitAt1": 0,
+          "hitAt5": 0,
+          "hitAt10": 0,
+          "mrr": 0,
+          "ndcg": 0,
+          "recallAt10": 0,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v1-semantic-positive-smoke",
+          "endpoint": "/v1/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 16,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-capsule-empty-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 3,
+          "hitAt1": 0,
+          "hitAt5": 0,
+          "hitAt10": 0,
+          "mrr": 0,
+          "ndcg": 0,
+          "recallAt10": 0,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-capsule-forbidden-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 3,
+          "hitAt1": 0,
+          "hitAt5": 0,
+          "hitAt10": 0,
+          "mrr": 0,
+          "ndcg": 0,
+          "recallAt10": 0,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-capsule-positive-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 8,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-capsule-ranked-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 4,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-graph-assisted-co-occurs-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 4,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-graph-assisted-governance-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 5,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-include-summary-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 5,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-keyword-dominant-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 4,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-keyword-regex-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 4,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-label-filter-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 4,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-semantic-dominant-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 4,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-semantic-paraphrase-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 4,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v3-graph-plan-fallback-v1-smoke",
+          "endpoint": "/v3/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 5,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "selectedMode": "mix",
+          "routingReason": "graph-plan-insufficient-skill-evidence",
+          "fallbackApplied": true
+        },
+        {
+          "caseId": "v3-graph-plan-fallback-v2-smoke",
+          "endpoint": "/v3/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 5,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "selectedMode": "mix",
+          "routingReason": "graph-plan-insufficient-trap-evidence",
+          "fallbackApplied": true
+        },
+        {
+          "caseId": "v3-graph-plan-maxdepth-smoke",
+          "endpoint": "/v3/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 3,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "selectedMode": "mix",
+          "routingReason": "graph-plan-selected",
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v3-graph-plan-selected-smoke",
+          "endpoint": "/v3/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 7,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "selectedMode": "mix",
+          "routingReason": "graph-plan-selected",
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v3-graph-plan-skill-budget-smoke",
+          "endpoint": "/v3/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 3,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "selectedMode": "mix",
+          "routingReason": "graph-plan-selected",
+          "fallbackApplied": false
+        }
+      ],
+      "failures": [],
+      "warnings": []
+    },
+    "durationMs": 1347,
+    "summary": {
+      "totalCases": 22,
+      "passedCases": 22,
+      "failedCases": 0,
+      "passRate": 1,
+      "slices": [
+        {
+          "tier": "smoke",
+          "endpoint": "/v1/retrieval/search",
+          "mode": "semantic",
+          "caseCount": 3,
+          "avgHitAt1": 0.3333333333333333,
+          "avgMrr": 0.3333333333333333,
+          "avgNdcg": 0.3333333333333333,
+          "passRate": 1
+        },
+        {
+          "tier": "smoke",
+          "endpoint": "/v1/retrieval/search",
+          "mode": "hybrid",
+          "caseCount": 1,
+          "avgHitAt1": 1,
+          "avgMrr": 1,
+          "avgNdcg": 1,
+          "passRate": 1
+        },
+        {
+          "tier": "smoke",
+          "endpoint": "/v1/retrieval/search",
+          "mode": "graph-assisted",
+          "caseCount": 1,
+          "avgHitAt1": 1,
+          "avgMrr": 1,
+          "avgNdcg": 1,
+          "passRate": 1
+        },
+        {
+          "tier": "smoke",
+          "endpoint": "/v2/retrieval/search",
+          "caseCount": 12,
+          "avgHitAt1": 0.8333333333333334,
+          "avgMrr": 0.8333333333333334,
+          "avgNdcg": 0.8333333333333334,
+          "passRate": 1
+        },
+        {
+          "tier": "smoke",
+          "endpoint": "/v3/retrieval/search",
+          "caseCount": 5,
+          "avgHitAt1": 1,
+          "avgMrr": 1,
+          "avgNdcg": 1,
+          "passRate": 1
+        }
+      ]
+    }
+  },
+  "summary": {
+    "passed": true,
+    "report": {
+      "meta": {
+        "schemaVersion": 1,
+        "timestamp": "2026-05-26T23:33:05.632Z",
+        "durationMs": 96,
+        "llmProvider": "fallback",
+        "options": {
+          "tier": "smoke",
+          "dryRun": false,
+          "allowEmpty": false,
+          "verbose": 0
+        }
+      },
+      "summary": {
+        "totalCases": 6,
+        "passedCases": 6,
+        "failedCases": 0,
+        "passRate": 1,
+        "passed": true,
+        "avgGroundedness": 1,
+        "avgCoverage": 1,
+        "forbiddenClaimHits": 0
+      },
+      "cases": [
+        {
+          "caseId": "summary-forbidden-claims-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "groundednessScore": 1,
+          "coverageScore": 1,
+          "claimsTotal": 2,
+          "claimsSupported": 2,
+          "requiredFactsCovered": [
+            "rate limiting"
+          ],
+          "requiredFactsMissing": [],
+          "forbiddenClaimsFound": [],
+          "durationMs": 15
+        },
+        {
+          "caseId": "summary-grounded-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "groundednessScore": 1,
+          "coverageScore": 1,
+          "claimsTotal": 2,
+          "claimsSupported": 2,
+          "requiredFactsCovered": [
+            "docker-compose",
+            "multi-container"
+          ],
+          "requiredFactsMissing": [],
+          "forbiddenClaimsFound": [],
+          "durationMs": 17
+        },
+        {
+          "caseId": "summary-hallucination-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "groundednessScore": 1,
+          "coverageScore": 1,
+          "claimsTotal": 1,
+          "claimsSupported": 1,
+          "requiredFactsCovered": [],
+          "requiredFactsMissing": [],
+          "forbiddenClaimsFound": [],
+          "durationMs": 16
+        },
+        {
+          "caseId": "summary-label-filter-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "groundednessScore": 1,
+          "coverageScore": 1,
+          "claimsTotal": 2,
+          "claimsSupported": 2,
+          "requiredFactsCovered": [
+            "Express"
+          ],
+          "requiredFactsMissing": [],
+          "forbiddenClaimsFound": [],
+          "durationMs": 14
+        },
+        {
+          "caseId": "summary-smoke-multi-fact",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "groundednessScore": 1,
+          "coverageScore": 1,
+          "claimsTotal": 4,
+          "claimsSupported": 4,
+          "requiredFactsCovered": [
+            "useState",
+            "useEffect"
+          ],
+          "requiredFactsMissing": [],
+          "forbiddenClaimsFound": [],
+          "durationMs": 15
+        },
+        {
+          "caseId": "summary-strict-grounded-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "groundednessScore": 1,
+          "coverageScore": 1,
+          "claimsTotal": 2,
+          "claimsSupported": 2,
+          "requiredFactsCovered": [
+            "docker-compose",
+            "multi-container"
+          ],
+          "requiredFactsMissing": [],
+          "forbiddenClaimsFound": [],
+          "durationMs": 19
+        }
+      ],
+      "failures": []
+    },
+    "durationMs": 110,
+    "summary": {
+      "totalCases": 6,
+      "passedCases": 6,
+      "failedCases": 0,
+      "passRate": 1,
+      "avgGroundedness": 1,
+      "avgCoverage": 1,
+      "forbiddenClaimHits": 0
+    }
+  },
+  "graphExtraction": {
+    "passed": true,
+    "totalFixtures": 5,
+    "avgNodeF1": 0.38095238095238093,
+    "avgEdgeF1": 0,
+    "avgStrengthAccuracy": 0,
+    "durationMs": 3
+  },
+  "ingestion": {
+    "passed": true,
+    "totalBundles": 1,
+    "passedBundles": 1,
+    "failedBundles": 0,
+    "passRate": 1,
+    "durationMs": 9
+  },
+  "overall": {
+    "passed": true,
+    "totalCases": 34,
+    "passedCases": 34,
+    "failedCases": 0
+  }
+}

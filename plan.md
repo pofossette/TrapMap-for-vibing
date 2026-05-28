@@ -1,6 +1,6 @@
 # TrapMap 目录结构治理 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 将 TrapMap 仓库目录收敛为“根目录只放稳定入口、`packages/` 只放产品包、`docs/` 只放可导航文档、`evals/` 只放评测资产、归档只走一个入口”的结构，并补上自动守卫防止目录再次漂移。
 
@@ -90,7 +90,7 @@ docs/
 - Modify: `docs/reference/DOCS_TRUTH_MATRIX.md`
 - Modify: `docs/reference/SYSTEM_TRUTH_SOURCES.md`
 
-- [ ] **Step 1: 写入仓库结构真相源文档**
+- [x] **Step 1: 写入仓库结构真相源文档**
 
 Create `docs/reference/REPO_STRUCTURE.md` with this structure:
 
@@ -152,7 +152,7 @@ These directories are local artifacts and must not become tracked content:
 - `packages/*/node_modules/`
 ```
 
-- [ ] **Step 2: 将结构文档加入文档索引**
+- [x] **Step 2: 将结构文档加入文档索引**
 
 Update `docs/README.md` under the reference section:
 
@@ -160,7 +160,7 @@ Update `docs/README.md` under the reference section:
 - [仓库目录结构](reference/REPO_STRUCTURE.md) — 根目录、packages、docs、evals、归档目录的权威布局规则
 ```
 
-- [ ] **Step 3: 将目录结构纳入 truth matrix**
+- [x] **Step 3: 将目录结构纳入 truth matrix**
 
 Add these rows to `docs/reference/DOCS_TRUTH_MATRIX.md`:
 
@@ -170,7 +170,7 @@ Add these rows to `docs/reference/DOCS_TRUTH_MATRIX.md`:
 | Eval directory layout | `docs/reference/REPO_STRUCTURE.md` + `evals/README.md` | `docs/operations/TESTING.md`, `docs/architecture/components/EVALUATION.md` | structural |
 ```
 
-- [ ] **Step 4: 将结构文档加入 system truth source**
+- [x] **Step 4: 将结构文档加入 system truth source**
 
 Add one row to `docs/reference/SYSTEM_TRUTH_SOURCES.md`:
 
@@ -178,7 +178,7 @@ Add one row to `docs/reference/SYSTEM_TRUTH_SOURCES.md`:
 | Repository layout | `docs/reference/REPO_STRUCTURE.md` | `README.md`, `docs/README.md`, `docs/guides/CODE_GUIDE.md` |
 ```
 
-- [ ] **Step 5: 运行文档守卫**
+- [x] **Step 5: 运行文档守卫**
 
 Run:
 
@@ -191,24 +191,24 @@ Expected: both commands pass.
 
 ### Phase 1 完成标准
 
-- [ ] `docs/reference/REPO_STRUCTURE.md` 存在并描述 root / packages / docs / evals / archive / generated dirs
-- [ ] `docs/README.md` 能导航到结构文档
-- [ ] `DOCS_TRUTH_MATRIX.md` 有 structural 类型行
-- [ ] `SYSTEM_TRUTH_SOURCES.md` 指向 `REPO_STRUCTURE.md`
-- [ ] 文档漂移守卫和 docs truth smoke 通过
+- [x] `docs/reference/REPO_STRUCTURE.md` 存在并描述 root / packages / docs / evals / archive / generated dirs
+- [x] `docs/README.md` 能导航到结构文档
+- [x] `DOCS_TRUTH_MATRIX.md` 有 structural 类型行
+- [x] `SYSTEM_TRUTH_SOURCES.md` 指向 `REPO_STRUCTURE.md`
+- [x] 文档漂移守卫和 docs truth smoke 通过
 
 ### Phase 1 文档更新
 
-- [ ] `docs/reference/REPO_STRUCTURE.md`
-- [ ] `docs/README.md`
-- [ ] `docs/reference/DOCS_TRUTH_MATRIX.md`
-- [ ] `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+- [x] `docs/reference/REPO_STRUCTURE.md`
+- [x] `docs/README.md`
+- [x] `docs/reference/DOCS_TRUTH_MATRIX.md`
+- [x] `docs/reference/SYSTEM_TRUTH_SOURCES.md`
 
 ### Phase 1 测试/Eval 更新
 
-- [ ] 暂不修改 eval datasets
-- [ ] 扩展 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，断言 `REPO_STRUCTURE.md` 被索引
-- [ ] 扩展 `scripts/complexity-budgets.json` docRules，断言 `docs/README.md` 包含 `reference/REPO_STRUCTURE.md`
+- [x] 暂不修改 eval datasets
+- [x] 扩展 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，断言 `REPO_STRUCTURE.md` 被索引
+- [x] 扩展 `scripts/complexity-budgets.json` docRules，断言 `docs/README.md` 包含 `reference/REPO_STRUCTURE.md`
 
 ---
 
@@ -223,7 +223,7 @@ Expected: both commands pass.
 - Modify: `docs/archived/README.md`
 - Modify: `docs/reference/REPO_STRUCTURE.md`
 
-- [ ] **Step 1: 创建归档报告目录**
+- [x] **Step 1: 创建归档报告目录**
 
 Run:
 
@@ -233,7 +233,7 @@ rtk mkdir -p docs/archived/reports
 
 Expected: `docs/archived/reports/` exists.
 
-- [ ] **Step 2: 移走根目录历史文档**
+- [x] **Step 2: 移走根目录历史文档**
 
 Run:
 
@@ -245,7 +245,7 @@ rtk git mv temp.md docs/archived/temp-2026-05-28.md
 
 Expected: root Markdown is reduced to the allowlist in Phase 0.4.
 
-- [ ] **Step 3: 更新归档索引**
+- [x] **Step 3: 更新归档索引**
 
 Add these rows to `docs/archived/README.md`:
 
@@ -255,7 +255,7 @@ Add these rows to `docs/archived/README.md`:
 | `temp-2026-05-28.md` | 2026-05-28 | 临时工作笔记，根目录不保留临时材料 |
 ```
 
-- [ ] **Step 4: 更新根 README 的文档说明**
+- [x] **Step 4: 更新根 README 的文档说明**
 
 Ensure `README.md` links to `docs/reference/REPO_STRUCTURE.md`:
 
@@ -263,7 +263,7 @@ Ensure `README.md` links to `docs/reference/REPO_STRUCTURE.md`:
 | [docs/reference/REPO_STRUCTURE.md](docs/reference/REPO_STRUCTURE.md) | 仓库目录结构、归档位置和生成目录规则 |
 ```
 
-- [ ] **Step 5: 运行根目录 allowlist 检查**
+- [x] **Step 5: 运行根目录 allowlist 检查**
 
 Before the automated script exists, run:
 
@@ -284,23 +284,23 @@ plan.md
 
 ### Phase 2 完成标准
 
-- [ ] 根目录没有 `temp.md`
-- [ ] 根目录没有历史 implementation plan 或 audit report
-- [ ] `docs/archived/README.md` 能解释每个被移动根文档的归档原因
-- [ ] `README.md` 和 `docs/README.md` 都能指向目录结构规则
+- [x] 根目录没有 `temp.md`
+- [x] 根目录没有历史 implementation plan 或 audit report
+- [x] `docs/archived/README.md` 能解释每个被移动根文档的归档原因
+- [x] `README.md` 和 `docs/README.md` 都能指向目录结构规则
 
 ### Phase 2 文档更新
 
-- [ ] `README.md`
-- [ ] `docs/README.md`
-- [ ] `docs/archived/README.md`
-- [ ] `docs/reference/REPO_STRUCTURE.md`
+- [x] `README.md`
+- [x] `docs/README.md`
+- [x] `docs/archived/README.md`
+- [x] `docs/reference/REPO_STRUCTURE.md`
 
 ### Phase 2 测试/Eval 更新
 
-- [ ] 扩展 `scripts/complexity-budgets.json` docRules，禁止 `README.md` 再链接根目录历史计划
-- [ ] 运行 `rtk pnpm check:docs-drift`
-- [ ] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
+- [x] 扩展 `scripts/complexity-budgets.json` docRules，禁止 `README.md` 再链接根目录历史计划
+- [x] 运行 `rtk pnpm check:docs-drift`
+- [x] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
 
 ---
 
@@ -314,7 +314,7 @@ plan.md
 - Create: `docs/plans/README.md`
 - Modify: `docs/reference/REPO_STRUCTURE.md`
 
-- [ ] **Step 1: 将 `docs/archive` 内容迁移到 `docs/archived`**
+- [x] **Step 1: 将 `docs/archive` 内容迁移到 `docs/archived`**
 
 Run:
 
@@ -326,7 +326,7 @@ rtk git mv docs/archive/old_plan_back.md docs/archived/archived-plans/old-plan-b
 
 Expected: `docs/archive/` becomes empty and can be removed.
 
-- [ ] **Step 2: 删除空的旧归档目录**
+- [x] **Step 2: 删除空的旧归档目录**
 
 Run:
 
@@ -336,7 +336,7 @@ rtk rmdir docs/archive
 
 Expected: only `docs/archived/` remains as archive root.
 
-- [ ] **Step 3: 写入 `docs/plans/README.md`**
+- [x] **Step 3: 写入 `docs/plans/README.md`**
 
 Create:
 
@@ -361,7 +361,7 @@ Current files:
 | `v2-multi-recall-plan.md` | active-reference | Retrieval design context |
 ```
 
-- [ ] **Step 4: 更新 `docs/archived/README.md`**
+- [x] **Step 4: 更新 `docs/archived/README.md`**
 
 Add:
 
@@ -371,7 +371,7 @@ Add:
 | `archived-plans/old-plan-back-2026-05-28.md` | 2026-05-28 | 历史根计划备份，已合并到标准 archived-plans |
 ```
 
-- [ ] **Step 5: 更新结构规则**
+- [x] **Step 5: 更新结构规则**
 
 Add this rule to `docs/reference/REPO_STRUCTURE.md`:
 
@@ -387,24 +387,24 @@ Add this rule to `docs/reference/REPO_STRUCTURE.md`:
 
 ### Phase 3 完成标准
 
-- [ ] `docs/archive/` 不存在
-- [ ] `docs/archived/` 是唯一归档入口
-- [ ] `docs/plans/README.md` 明确 `plan.md`、`docs/plans`、`docs/superpowers/plans`、`docs/archived/archived-plans` 的区别
-- [ ] 所有被移动文档都能从 `docs/archived/README.md` 找到
+- [x] `docs/archive/` 不存在
+- [x] `docs/archived/` 是唯一归档入口
+- [x] `docs/plans/README.md` 明确 `plan.md`、`docs/plans`、`docs/superpowers/plans`、`docs/archived/archived-plans` 的区别
+- [x] 所有被移动文档都能从 `docs/archived/README.md` 找到
 
 ### Phase 3 文档更新
 
-- [ ] `docs/archived/README.md`
-- [ ] `docs/plans/README.md`
-- [ ] `docs/reference/REPO_STRUCTURE.md`
-- [ ] `docs/README.md`
+- [x] `docs/archived/README.md`
+- [x] `docs/plans/README.md`
+- [x] `docs/reference/REPO_STRUCTURE.md`
+- [x] `docs/README.md`
 
 ### Phase 3 测试/Eval 更新
 
-- [ ] 新增结构守卫前，手动运行 `rtk proxy git ls-files 'docs/archive/**'`
-- [ ] Expected: no output
-- [ ] 运行 `rtk pnpm check:docs-drift`
-- [ ] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
+- [x] 新增结构守卫前，手动运行 `rtk proxy git ls-files 'docs/archive/**'`
+- [x] Expected: no output
+- [x] 运行 `rtk pnpm check:docs-drift`
+- [x] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
 
 ---
 
@@ -418,7 +418,7 @@ Add this rule to `docs/reference/REPO_STRUCTURE.md`:
 - Modify: `scripts/complexity-budgets.json`
 - Modify: `packages/server/src/__tests__/docs-truth-smoke.test.ts`
 
-- [ ] **Step 1: 写入 Server lib 导航**
+- [x] **Step 1: 写入 Server lib 导航**
 
 Create `packages/server/src/lib/README.md`:
 
@@ -457,7 +457,7 @@ New unit tests should be colocated with the module under test as `*.test.ts`.
 Cross-domain smoke and migration guard tests may stay in `packages/server/src/__tests__/`.
 ```
 
-- [ ] **Step 2: 写入 routes 导航**
+- [x] **Step 2: 写入 routes 导航**
 
 Create `packages/server/src/routes/README.md`:
 
@@ -481,7 +481,7 @@ Routes are thin Fastify modules. They parse requests, check auth/permissions, an
 | `routes/*.ts` | Flat route modules for domains that do not need sub-operation files |
 ```
 
-- [ ] **Step 3: 更新代码导读**
+- [x] **Step 3: 更新代码导读**
 
 In `docs/guides/CODE_GUIDE.md`, add:
 
@@ -492,11 +492,11 @@ For package-local navigation, read:
 - `packages/server/src/routes/README.md`
 ```
 
-- [ ] **Step 4: 更新包结构说明**
+- [x] **Step 4: 更新包结构说明**
 
 In `docs/PACKAGES.md`, add the same two package-local README links under `packages/server`.
 
-- [ ] **Step 5: 将导航文件纳入 docs truth smoke**
+- [x] **Step 5: 将导航文件纳入 docs truth smoke**
 
 Add this test to `packages/server/src/__tests__/docs-truth-smoke.test.ts`:
 
@@ -511,7 +511,7 @@ it('server package has local structure guides', () => {
 });
 ```
 
-- [ ] **Step 6: 加入目录级复杂度预算**
+- [x] **Step 6: 加入目录级复杂度预算**
 
 Extend `scripts/complexity-budgets.json` later only if the checker supports directory budgets. For this phase, add docRules:
 
@@ -527,24 +527,24 @@ Extend `scripts/complexity-budgets.json` later only if the checker supports dire
 
 ### Phase 4 完成标准
 
-- [ ] 新贡献者能从 `CODE_GUIDE.md` 进入包内 README
-- [ ] Server `lib` 的主要领域目录有职责说明
-- [ ] route 单文件/目录拆分规则明确
-- [ ] 新测试明确禁止包内导航文档缺失
+- [x] 新贡献者能从 `CODE_GUIDE.md` 进入包内 README
+- [x] Server `lib` 的主要领域目录有职责说明
+- [x] route 单文件/目录拆分规则明确
+- [x] 新测试明确禁止包内导航文档缺失
 
 ### Phase 4 文档更新
 
-- [ ] `packages/server/src/lib/README.md`
-- [ ] `packages/server/src/routes/README.md`
-- [ ] `docs/guides/CODE_GUIDE.md`
-- [ ] `docs/PACKAGES.md`
+- [x] `packages/server/src/lib/README.md`
+- [x] `packages/server/src/routes/README.md`
+- [x] `docs/guides/CODE_GUIDE.md`
+- [x] `docs/PACKAGES.md`
 
 ### Phase 4 测试/Eval 更新
 
-- [ ] 更新 `packages/server/src/__tests__/docs-truth-smoke.test.ts`
-- [ ] 更新 `scripts/complexity-budgets.json` docRules
-- [ ] 运行 `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-- [ ] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
+- [x] 更新 `packages/server/src/__tests__/docs-truth-smoke.test.ts`
+- [x] 更新 `scripts/complexity-budgets.json` docRules
+- [x] 运行 `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+- [x] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
 
 ---
 
@@ -560,7 +560,7 @@ Extend `scripts/complexity-budgets.json` later only if the checker supports dire
 - Modify: `docs/architecture/components/EVALUATION.md`
 - Modify: `scripts/complexity-budgets.json`
 
-- [ ] **Step 1: 将 evals 顶层 README 改成结构入口**
+- [x] **Step 1: 将 evals 顶层 README 改成结构入口**
 
 Ensure `evals/README.md` contains:
 
@@ -577,7 +577,7 @@ Ensure `evals/README.md` contains:
 | `scripts/` | Cross-eval CI and aggregate runners | `pnpm eval:ci` |
 ```
 
-- [ ] **Step 2: 创建 ingestion README**
+- [x] **Step 2: 创建 ingestion README**
 
 Create `evals/ingestion/README.md`:
 
@@ -602,7 +602,7 @@ pnpm eval:ingestion:dry-run
 ```
 ````
 
-- [ ] **Step 3: 更新 TESTING 和 EVALUATION 文档**
+- [x] **Step 3: 更新 TESTING 和 EVALUATION 文档**
 
 Ensure both docs mention all eval families:
 
@@ -615,7 +615,7 @@ Ensure both docs mention all eval families:
 - CI gate: `pnpm eval:ci`
 ```
 
-- [ ] **Step 4: 更新 doc drift rules**
+- [x] **Step 4: 更新 doc drift rules**
 
 Add rules to `scripts/complexity-budgets.json`:
 
@@ -632,7 +632,7 @@ Add rules to `scripts/complexity-budgets.json`:
 }
 ```
 
-- [ ] **Step 5: 运行 eval dry-runs**
+- [x] **Step 5: 运行 eval dry-runs**
 
 Run:
 
@@ -647,26 +647,26 @@ Expected: commands complete without changing reports.
 
 ### Phase 5 完成标准
 
-- [ ] `evals/README.md` 能解释所有 eval 子目录
-- [ ] `evals/ingestion/README.md` 存在
-- [ ] `docs/operations/TESTING.md` 与 `docs/architecture/components/EVALUATION.md` 的 eval 命令一致
-- [ ] 所有 eval dry-run 命令通过
+- [x] `evals/README.md` 能解释所有 eval 子目录
+- [x] `evals/ingestion/README.md` 存在
+- [x] `docs/operations/TESTING.md` 与 `docs/architecture/components/EVALUATION.md` 的 eval 命令一致
+- [x] 所有 eval dry-run 命令通过
 
 ### Phase 5 文档更新
 
-- [ ] `evals/README.md`
-- [ ] `evals/retrieval/README.md`
-- [ ] `evals/summary/README.md`
-- [ ] `evals/graph-extraction/README.md`
-- [ ] `evals/ingestion/README.md`
-- [ ] `docs/operations/TESTING.md`
-- [ ] `docs/architecture/components/EVALUATION.md`
+- [x] `evals/README.md`
+- [x] `evals/retrieval/README.md`
+- [x] `evals/summary/README.md`
+- [x] `evals/graph-extraction/README.md`
+- [x] `evals/ingestion/README.md`
+- [x] `docs/operations/TESTING.md`
+- [x] `docs/architecture/components/EVALUATION.md`
 
 ### Phase 5 测试/Eval 更新
 
-- [ ] 更新 `scripts/complexity-budgets.json` docRules
-- [ ] 运行四个 `eval:*:dry-run`
-- [ ] 若 dry-run 发现文档命令与 package scripts 不一致，先修文档，不改 runner 行为
+- [x] 更新 `scripts/complexity-budgets.json` docRules
+- [x] 运行四个 `eval:*:dry-run`
+- [x] 若 dry-run 发现文档命令与 package scripts 不一致，先修文档，不改 runner 行为
 
 ---
 
@@ -681,7 +681,7 @@ Expected: commands complete without changing reports.
 - Modify: `docs/operations/TESTING.md`
 - Modify: `docs/operations/CI_CD.md`
 
-- [ ] **Step 1: 新增结构守卫脚本**
+- [x] **Step 1: 新增结构守卫脚本**
 
 Create `scripts/check-repo-structure.ts`:
 
@@ -782,7 +782,7 @@ if (isDirectRun) {
 }
 ```
 
-- [ ] **Step 2: 新增结构守卫单测**
+- [x] **Step 2: 新增结构守卫单测**
 
 Create `scripts/__tests__/check-repo-structure.test.ts`:
 
@@ -818,7 +818,7 @@ describe('checkRepoStructure', () => {
 });
 ```
 
-- [ ] **Step 3: 增加 package script**
+- [x] **Step 3: 增加 package script**
 
 Modify `package.json`:
 
@@ -826,7 +826,7 @@ Modify `package.json`:
 "check:structure": "pnpm exec tsx scripts/check-repo-structure.ts"
 ```
 
-- [ ] **Step 4: 加入 CI guardrails**
+- [x] **Step 4: 加入 CI guardrails**
 
 Modify `.github/workflows/ci.yml` in `architecture-guardrails`:
 
@@ -834,7 +834,7 @@ Modify `.github/workflows/ci.yml` in `architecture-guardrails`:
       - run: pnpm check:structure
 ```
 
-- [ ] **Step 5: 更新测试文档**
+- [x] **Step 5: 更新测试文档**
 
 Add to `docs/operations/TESTING.md`:
 
@@ -854,7 +854,7 @@ Add to `docs/operations/CI_CD.md`:
 The `architecture-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:complexity`, and `pnpm check:structure`.
 ```
 
-- [ ] **Step 6: 运行完整守卫**
+- [x] **Step 6: 运行完整守卫**
 
 Run:
 
@@ -869,22 +869,22 @@ Expected: all commands pass.
 
 ### Phase 6 完成标准
 
-- [ ] `pnpm check:structure` 存在
-- [ ] CI `architecture-guardrails` 执行结构守卫
-- [ ] 结构守卫能阻止新的根目录临时 Markdown、旧 `docs/archive/`、tracked generated dirs
-- [ ] 文档说明开发者何时运行结构守卫
+- [x] `pnpm check:structure` 存在
+- [x] CI `architecture-guardrails` 执行结构守卫
+- [x] 结构守卫能阻止新的根目录临时 Markdown、旧 `docs/archive/`、tracked generated dirs
+- [x] 文档说明开发者何时运行结构守卫
 
 ### Phase 6 文档更新
 
-- [ ] `docs/reference/REPO_STRUCTURE.md`
-- [ ] `docs/operations/TESTING.md`
-- [ ] `docs/operations/CI_CD.md`
+- [x] `docs/reference/REPO_STRUCTURE.md`
+- [x] `docs/operations/TESTING.md`
+- [x] `docs/operations/CI_CD.md`
 
 ### Phase 6 测试/Eval 更新
 
-- [ ] 新增 `scripts/__tests__/check-repo-structure.test.ts`
-- [ ] 运行 `rtk pnpm test -- --run scripts/__tests__/check-repo-structure.test.ts`
-- [ ] 不修改 eval 数据集；运行 `rtk pnpm eval:smoke` 作为最终回归门
+- [x] 新增 `scripts/__tests__/check-repo-structure.test.ts`
+- [x] 运行 `rtk pnpm test -- --run scripts/__tests__/check-repo-structure.test.ts`
+- [x] 不修改 eval 数据集；运行 `rtk pnpm eval:smoke` 作为最终回归门
 
 ---
 
@@ -895,7 +895,7 @@ Expected: all commands pass.
 - Modify: `docs/reference/REPO_STRUCTURE.md`
 - Modify: `docs/README.md`
 
-- [ ] **Step 1: 确认根目录 Markdown allowlist**
+- [x] **Step 1: 确认根目录 Markdown allowlist**
 
 Run:
 
@@ -914,7 +914,7 @@ architecture.md
 plan.md
 ```
 
-- [ ] **Step 2: 确认旧归档入口不存在**
+- [x] **Step 2: 确认旧归档入口不存在**
 
 Run:
 
@@ -924,7 +924,7 @@ rtk proxy git ls-files 'docs/archive/**'
 
 Expected: no output.
 
-- [ ] **Step 3: 确认结构守卫覆盖当前规则**
+- [x] **Step 3: 确认结构守卫覆盖当前规则**
 
 Run:
 
@@ -939,46 +939,46 @@ rtk pnpm eval:smoke
 
 Expected: all commands pass.
 
-- [ ] **Step 4: 更新本计划进度**
+- [x] **Step 4: 更新本计划进度**
 
 Mark completed phases in `plan.md` using checkbox syntax.
 
 ### Phase 7 完成标准
 
-- [ ] 根目录只剩 allowlist Markdown
-- [ ] `docs/archived/` 是唯一归档入口
-- [ ] `docs/plans/README.md` 解释 active plans 规则
-- [ ] `packages/server/src/lib/README.md` 和 `packages/server/src/routes/README.md` 存在
-- [ ] eval 文档覆盖 retrieval / summary / graph-extraction / ingestion
-- [ ] `check:structure`、`check:docs-drift`、`check:complexity`、`typecheck`、`test`、`eval:smoke` 全部通过
+- [x] 根目录只剩 allowlist Markdown
+- [x] `docs/archived/` 是唯一归档入口
+- [x] `docs/plans/README.md` 解释 active plans 规则
+- [x] `packages/server/src/lib/README.md` 和 `packages/server/src/routes/README.md` 存在
+- [x] eval 文档覆盖 retrieval / summary / graph-extraction / ingestion
+- [x] `check:structure`、`check:docs-drift`、`check:complexity`、`typecheck`、`test`、`eval:smoke` 全部通过
 
 ### Phase 7 文档更新
 
-- [ ] `plan.md`
-- [ ] `docs/reference/REPO_STRUCTURE.md`
-- [ ] `docs/README.md`
+- [x] `plan.md`
+- [x] `docs/reference/REPO_STRUCTURE.md`
+- [x] `docs/README.md`
 
 ### Phase 7 测试/Eval 更新
 
-- [ ] 运行全量 `rtk pnpm test`
-- [ ] 运行最终 `rtk pnpm eval:smoke`
-- [ ] 如 `eval:smoke` 生成 reports，只提交应纳入版本控制的 `.gitkeep` 或手写文档，不提交生成 JSON
+- [x] 运行全量 `rtk pnpm test`
+- [x] 运行最终 `rtk pnpm eval:smoke`
+- [x] 如 `eval:smoke` 生成 reports，只提交应纳入版本控制的 `.gitkeep` 或手写文档，不提交生成 JSON
 
 ---
 
 ## 建议提交切分
 
-- [ ] Commit 1: `docs: add repository structure truth source`
-- [ ] Commit 2: `docs: archive root historical documents`
-- [ ] Commit 3: `docs: consolidate archive and plan directories`
-- [ ] Commit 4: `docs: add server package structure guides`
-- [ ] Commit 5: `docs: align evaluation directory docs`
-- [ ] Commit 6: `chore: add repository structure guard`
+- [x] Commit 1: `docs: add repository structure truth source`
+- [x] Commit 2: `docs: archive root historical documents`
+- [x] Commit 3: `docs: consolidate archive and plan directories`
+- [x] Commit 4: `docs: add server package structure guides`
+- [x] Commit 5: `docs: align evaluation directory docs`
+- [x] Commit 6: `chore: add repository structure guard`
 
 ## 风险控制
 
-- [ ] 不移动 `packages/*` 源码目录，避免 import churn
-- [ ] 不重命名 eval dataset 文件，避免基线和报告路径漂移
-- [ ] 不删除历史文档，只归档并更新索引
-- [ ] 每次文档移动后使用 `rg` 或 `git grep` 修正旧链接
-- [ ] 所有新增守卫先以当前目标结构为准，不引入尚未完成的规则
+- [x] 不移动 `packages/*` 源码目录，避免 import churn
+- [x] 不重命名 eval dataset 文件，避免基线和报告路径漂移
+- [x] 不删除历史文档，只归档并更新索引
+- [x] 每次文档移动后使用 `rg` 或 `git grep` 修正旧链接
+- [x] 所有新增守卫先以当前目标结构为准，不引入尚未完成的规则

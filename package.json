@@ -16,6 +16,7 @@
     "knip:fix": "knip --fix",
     "check": "biome check .",
     "check:docs-drift": "pnpm exec tsx scripts/check-doc-drift.ts",
+    "check:structure": "node scripts/check-structure.mjs",
     "check:complexity": "pnpm exec tsx scripts/check-complexity-budgets.ts",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
