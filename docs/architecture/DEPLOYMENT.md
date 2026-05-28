@@ -8,7 +8,7 @@
 
 | 环境 | 存储 | 适用场景 |
 |------|------|----------|
-| 开发 | JSON 文件 | 本地开发、快速测试 |
+| 开发 | PostgreSQL | 本地开发、快速测试 |
 | Staging | PostgreSQL | 预发布验证 |
 | 生产 | PostgreSQL + Docker | 正式运营 |
 
@@ -36,7 +36,7 @@ pnpm install
 cp .env.example .env
 # 编辑 .env，填入 OPENAI_API_KEY
 
-# 4. 启动服务器（使用 JSON 文件存储）
+# 4. 启动服务器
 pnpm dev:server
 
 # 5. 另一个终端运行 CLI
@@ -54,8 +54,8 @@ OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxx
 HOST=0.0.0.0
 PORT=4000
 
-# JSON 文件存储（开发用）
-TRAPMAP_DATA_FILE=.data/skill-shareer.json
+# PostgreSQL（默认存储后端）
+TRAPMAP_DATABASE_URL=postgresql://localhost:5432/trapmap
 
 # AI 提供商配置（可选）
 AI_PROVIDER=openai                    # openai, openai-compatible, ollama
@@ -118,7 +118,7 @@ LOG_LEVEL=info
 
 ### docker-compose.yml
 
-实际 compose 文件位于项目根目录，当前使用 JSON 文件存储（开发/单机部署）：
+实际 compose 文件位于项目根目录，使用 PostgreSQL 作为默认存储后端（带 pgvector 扩展）：
 
 ```yaml
 services:
@@ -130,14 +130,13 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - ./.data:/app/.data
       - ./logs:/app/logs
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
       - PORT=4000
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - TRAPMAP_DATA_FILE=/app/.data/trapmap.json
+      - TRAPMAP_DATABASE_URL=postgresql://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
       - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
       # Logging Configuration
       - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
@@ -146,6 +145,9 @@ services:
       - LOG_RAG_DIR=${LOG_RAG_DIR:-/app/logs/rag}
       - LOG_MAX_FILE_SIZE_MB=${LOG_MAX_FILE_SIZE_MB:-10}
       - LOG_MAX_BACKUP_FILES=${LOG_MAX_BACKUP_FILES:-5}
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
       interval: 30s
@@ -153,33 +155,9 @@ services:
       start_period: 5s
       retries: 3
     restart: unless-stopped
-```
-
-> 源码：`docker-compose.yml`
-
-### 生产环境启用 PostgreSQL
-
-当前 compose 文件默认使用 JSON 文件存储。如需在生产中启用 PostgreSQL，需要：
-
-1. 添加 `postgres` 服务定义
-2. 设置 `TRAPMAP_DATABASE_URL` 环境变量
-3. 添加 `depends_on` 依赖
-
-示例扩展：
-
-```yaml
-services:
-  server:
-    # ... 以上配置 ...
-    environment:
-      # 替换 TRAPMAP_DATA_FILE 为数据库连接
-      - TRAPMAP_DATABASE_URL=postgresql://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: trapmap
       POSTGRES_USER: trapmap
@@ -196,6 +174,33 @@ services:
 volumes:
   postgres_data:
 ```
+
+> 源码：`docker-compose.yml`
+
+### JSON 文件存储（兼容回退）
+
+以上 compose 文件默认使用 PostgreSQL。如需回退到 JSON 文件存储（仅用于向后兼容），需要：
+
+1. 移除 `postgres` 服务定义和 `depends_on` 依赖
+2. 将 `TRAPMAP_DATABASE_URL` 替换为 `TRAPMAP_DATA_FILE`
+3. 添加 `.data` volume
+
+示例回退配置：
+
+```yaml
+services:
+  server:
+    # ... 以上配置 ...
+    environment:
+      # 移除 TRAPMAP_DATABASE_URL，改用 JSON 文件存储
+      - TRAPMAP_DATA_FILE=/app/.data/trapmap.json
+    volumes:
+      - ./.data:/app/.data
+      - ./logs:/app/logs
+    # 移除 depends_on postgres
+```
+
+> **注意**：JSON 文件存储仅作为兼容回退，不推荐用于生产环境。
 
 ### Dockerfile
 

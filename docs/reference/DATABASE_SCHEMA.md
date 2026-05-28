@@ -1,6 +1,7 @@
 # 数据库表结构快速参考
 
 > **源码真实来源**: `packages/server/src/lib/persistence/schema.ts`
+> **表定义目录**: `packages/server/src/lib/persistence/schema/`
 > **数据模型详情**: `docs/reference/DATA_MODEL.md`
 > **迁移历史**: `packages/server/drizzle/` (9 个迁移文件)
 
@@ -13,7 +14,7 @@
 | 向量搜索 | pgvector (384 维 HNSW 索引) |
 | 全文搜索 | tsvector + GIN 索引 |
 
-## 表总览 (54 张表)
+## 表总览 (56 张表)
 
 ### 兼容层 (1 表)
 

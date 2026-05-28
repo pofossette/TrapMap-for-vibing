@@ -8,6 +8,29 @@
     {
       "file": "docs/architecture/ARCHITECTURE.md",
       "mustContain": ["SYSTEM_TRUTH_SOURCES.md"]
+    },
+    {
+      "file": "docs/README.md",
+      "mustNotContain": ["使用 JSON 文件存储", "48 张表", "54 张表"]
+    },
+    {
+      "file": "docs/guides/GETTING_STARTED.md",
+      "mustContain": ["PostgreSQL 设置（默认）"],
+      "mustNotContain": ["PostgreSQL 模式（可选）"]
+    },
+    {
+      "file": "docs/architecture/DEPLOYMENT.md",
+      "mustContain": ["TRAPMAP_DATABASE_URL"],
+      "mustNotContain": ["使用 JSON 文件存储"],
+      "mustContainCount": {
+        "pattern": "PostgreSQL",
+        "minOccurrences": 3
+      }
+    },
+    {
+      "file": "docs/reference/DATABASE_SCHEMA.md",
+      "mustContain": ["56 张表"],
+      "mustNotContain": ["48 张表", "54 张表"]
     }
   ],
   "lineBudgets": [

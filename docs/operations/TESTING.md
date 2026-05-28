@@ -119,6 +119,16 @@ pnpm check:complexity
 
 CI 中由 `architecture-guardrails` job 自动执行。本地开发时可在改动热点文件或架构文档后手动运行。
 
+### 按变更类型的验证矩阵
+
+| 变更类型 | 必须运行的验证 |
+|----------|--------------|
+| 文档修改 | `pnpm check:docs-drift` + `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` |
+| Schema 变更 | `pnpm test` + `pnpm check:docs-drift` + 更新 `DATABASE_SCHEMA.md` 表计数 |
+| CI 配置变更 | `pnpm check:docs-drift` + 更新 `CI_CD.md` |
+| 架构变更 | `pnpm check:docs-drift` + `pnpm check:complexity` + `pnpm eval:smoke` |
+| 脚本/守卫变更 | `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` + `pnpm check:docs-drift` |
+
 ### CI 自动触发
 
 | 触发条件 | 层级 | 说明 |

@@ -6,6 +6,13 @@ export default defineConfig({
     projects: [
       {
         test: {
+          name: 'scripts',
+          root: './scripts',
+          include: ['__tests__/**/*.test.ts'],
+        },
+      },
+      {
+        test: {
           name: 'contracts',
           root: './packages/contracts',
           include: ['src/**/*.test.ts'],

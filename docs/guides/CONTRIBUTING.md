@@ -167,6 +167,31 @@ PR 修改以下路径时，`eval.yml` 的 smoke tier 会自动触发：
 - 文档位于 `docs/` 目录
 - 保持文档语言一致性（简体中文）
 
+## 文档影响检查清单
+
+如果你的变更涉及以下任何一项，你**必须**检查并更新相关文档：
+
+- [ ] **持久化架构**：检查 `docs/reference/DOCS_TRUTH_MATRIX.md` 中的持久化相关行
+- [ ] **启动流程或命令**：更新 `docs/README.md` 和 `docs/guides/GETTING_STARTED.md` 中的命令示例
+- [ ] **CI/CD 流水线**：更新 `docs/operations/CI_CD.md` 和 `docs/operations/TESTING.md`
+- [ ] **数据库 Schema**：更新 `docs/reference/DATABASE_SCHEMA.md` 中的表计数
+- [ ] **部署配置**：更新 `docs/architecture/DEPLOYMENT.md`
+
+### 验证命令
+
+```bash
+# 检查文档漂移守卫
+pnpm check:docs-drift
+
+# 检查复杂度预算
+pnpm check:complexity
+
+# 运行文档真理性测试
+pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
+```
+
+详见 [`docs/reference/DOCS_TRUTH_MATRIX.md`](../reference/DOCS_TRUTH_MATRIX.md) 和 [`docs/reference/SYSTEM_TRUTH_SOURCES.md`](../reference/SYSTEM_TRUTH_SOURCES.md)。
+
 ## 相关链接
 
 - [项目文档索引](../../README.md#-文档)

@@ -1,1104 +1,308 @@
-# CLI Bug Fix Plan
+# Documentation Drift Convergence Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fix 54 confirmed bugs in `packages/cli` identified by the FM-Agent scan, covering 1 critical security vulnerability, 10 high-severity crash/auth/permission defects, 28 medium-severity logic/formatting/injection issues, and 15 low-severity defects.
+**Goal:** Bring the repository's operator-facing documentation, onboarding guides, deployment guidance, and doc-drift guardrails back into alignment with the current codebase and CI reality.
 
-**Architecture:** All fixes are confined to `packages/cli/src/`. No server or contracts changes are required. Fixes are grouped into 4 phases by severity: security+crash → permission+validation → logic errors → formatting+injection+low. Each phase produces a green `pnpm test`, `pnpm typecheck`, and `pnpm check` before proceeding.
+**Architecture:** Treat `package.json`, workspace package manifests, `.github/workflows/ci.yml`, `docs/reference/SYSTEM_TRUTH_SOURCES.md`, and the current persistence schema as the primary truth set. Converge human docs in phases, then expand automated drift checks so the same classes of drift are blocked on future changes.
 
-**Tech Stack:** TypeScript, Commander, Vitest, Node.js built-in modules, pnpm
+**Tech Stack:** Markdown, TypeScript, pnpm, tsx, Vitest, GitHub Actions
 
 ---
 
 ## Plan Metadata
 
-- Archived previous root plan to `docs/archived/archived-plans/plan-2026-05-28-pg-first-convergence-and-retrieval-eval.md`
+- Archived previous root plan to `docs/archived/archived-plans/plan-2026-05-28-cli-bug-fix.md`
 - This file is the active working plan at `plan.md`
-- Bug source: FM-Agent scan of `packages/cli` — 163 functions extracted, 83 reported, 54 confirmed
-- Severity breakdown: 1 Critical, 10 High, 28 Medium, 15 Low
+- Analysis date: `2026-05-28`
+- Current guard status: `rtk pnpm check:docs-drift` passes, but only validates 2 string rules
+
+## Observed Drift Snapshot
+
+- `docs/README.md` still presents JSON file storage as the main local runtime shape and describes the server startup path as "使用 JSON 文件存储", which conflicts with the repo-wide PG-first convergence messaging in `README.md` and `docs/reference/SYSTEM_TRUTH_SOURCES.md`.
+- `docs/guides/GETTING_STARTED.md` still frames PostgreSQL as optional and JSON storage as the development default, which no longer matches the current architectural positioning.
+- `docs/architecture/DEPLOYMENT.md` still documents a JSON-backed default `docker-compose` path and old `TRAPMAP_DATA_FILE` examples instead of the current PostgreSQL-first deployment posture.
+- `docs/reference/DATABASE_SCHEMA.md` and `docs/README.md` advertise "48 张表", while the current schema modules declare 56 `pgTable(...)` definitions across domain files.
+- `scripts/check-doc-drift.ts` plus `scripts/complexity-budgets.json` only guard 2 documentation rules, so README, docs index, getting started, deployment, CI, eval, schema-count, and command-surface drift can regress without detection.
 
 ## Scope
 
 - In scope:
-  - All 54 confirmed bugs in `packages/cli/src/`
-  - Unit test additions/updates for each fix
-  - CLI-specific documentation updates (command surface, permission model)
+  - Root and docs-level product descriptions
+  - Onboarding and deployment guides
+  - CI/testing/eval documentation that should mirror actual scripts and workflows
+  - Schema-count and persistence-mode references
+  - Automated doc drift checks and their regression tests
 - Out of scope:
-  - Server-side fixes
-  - Contracts schema changes
-  - Ranking/retrieval logic redesign
-  - New CLI features
+  - Runtime feature changes unrelated to documentation truth
+  - Broad architecture redesign
+  - New eval frameworks not required to validate documentation consistency
 
 ## Phase Tracker
 
-- [ ] Phase 1: Security + crash fixes (Critical/High — 6 bugs)
-- [ ] Phase 2: Permission + validation correctness (High/Medium — 8 bugs)
-- [ ] Phase 3: Logic error remediation (Medium — 18 bugs)
-- [ ] Phase 4: Formatting, input injection, and low-severity cleanup (Medium/Low — 22 bugs)
+- [x] Phase 1: Build a documentation truth inventory and drift matrix
+- [x] Phase 2: Converge human-facing docs to current code and runtime reality
+- [x] Phase 3: Expand automated doc-drift guardrails and tests
+- [x] Phase 4: Validate end-to-end and institutionalize the maintenance workflow
 
 ## File Structure
 
 **Modify**
 
-- `packages/cli/src/lib/skill-artifact-export.ts` — path traversal fix, bundle path segment check, base64 decode
-- `packages/cli/src/lib/output-profile.ts` — resolveRenderer crash, summarizeRetrievalV1 null, summarizeGraphPlan, buildCodexObject, buildCommandResultView, registerOutputProfileCommands spread
-- `packages/cli/src/lib/prompts.ts` — isInteractiveEnvironment crash, promptSelect falsy check
-- `packages/cli/src/lib/config.ts` — getConfigPath crash, loadCliState falsy check
-- `packages/cli/src/lib/http.ts` — requireSessionToken type check
-- `packages/cli/src/lib/markdown-formatter.ts` — truncateText edge case, formatRoutingTrace empty, formatTrapNode spec, push_1 numbering
-- `packages/cli/src/lib/input.ts` — resolveTextInput stdin detection
-- `packages/cli/src/lib/output.ts` — printResult JSON format
-- `packages/cli/src/lib/artifact-bundle.ts` — scanSkillDirectory case sensitivity, buildSingleSkillMdBundle scope default, readFileContent encoding
-- `packages/cli/src/index.ts` — operations permission flags, review/team permission cleanup
-- `packages/cli/src/commands/skill.ts` — allowReview guard, formatSkillMatch injection, formatManualResultResponse injection, formatApplyResolutionResponse order, formatSkillHistoryResponse spacing, formatDuplicateJobBundle falsy
-- `packages/cli/src/commands/feedback.ts` — entry-type validation, formatFeedbackResult ANSI injection
-- `packages/cli/src/commands/operations/types.ts` — new permission fields
-- `packages/cli/src/commands/operations/list.ts` — permission guard
-- `packages/cli/src/commands/operations/activate.ts` — permission guard
-- `packages/cli/src/commands/operations/status.ts` — permission guard
-- `packages/cli/src/commands/operations/migrate.ts` — permission guard
-- `packages/cli/src/commands/operations/deactivate.ts` — reason length validation
-- `packages/cli/src/commands/operations/edit.ts` — integer validation
-- `packages/cli/src/commands/feedback-admin.ts` — formatFeedbackList double newline, formatBatchResult falsy
-- `packages/cli/src/commands/maintenance.ts` — formatMaintenanceList double newline, formatMaintenanceBatch falsy
-- `packages/cli/src/commands/decay.ts` — formatBatchResult falsy, formatDecayList nullish
+- `README.md` - keep root narrative, command surface, and persistence wording aligned with the authoritative sources
+- `docs/README.md` - fix docs index positioning, storage/runtime claims, schema count, and command examples
+- `docs/guides/GETTING_STARTED.md` - update onboarding flow, environment guidance, validation commands, and storage posture
+- `docs/architecture/DEPLOYMENT.md` - update deployment defaults, compose examples, and env guidance to match the current deployment path
+- `docs/operations/CI_CD.md` - reconcile CI job descriptions and guardrail expectations with `.github/workflows/ci.yml`
+- `docs/operations/TESTING.md` - tighten local verification guidance around `check:docs-drift`, `check:complexity`, and required eval coverage for doc-affecting changes
+- `docs/reference/DATABASE_SCHEMA.md` - update table-count claims and any stale schema summaries
+- `docs/reference/SYSTEM_TRUTH_SOURCES.md` - extend the authoritative-source table to include docs index, deployment, CI, and schema-count ownership
+- `scripts/check-doc-drift.ts` - evolve from simple contains/forbid checks into richer assertions or structured checks
+- `scripts/complexity-budgets.json` - add more doc rules and any structured config needed by the drift checker
+- `packages/server/src/__tests__/docs-truth-smoke.test.ts` - add regression tests covering truth-source/document consistency
 
 **Create**
 
-- `packages/cli/src/lib/sanitize.ts` — shared input sanitization utility
+- `docs/reference/DOCS_TRUTH_MATRIX.md` - explicit mapping from doc topic to authoritative source and secondary docs
+- `scripts/__tests__/check-doc-drift.test.ts` or equivalent Vitest coverage for the drift checker if not already present
 
 ## Global Done Criteria
 
-- [ ] All 54 confirmed bugs have corresponding test cases that fail before the fix and pass after
-- [ ] `rtk pnpm typecheck` passes
-- [ ] `rtk pnpm check` passes
-- [ ] `rtk pnpm test` passes (full suite, no regressions)
-- [ ] `rtk pnpm eval:smoke` passes
-- [ ] No new ESLint violations introduced
+- [x] All observed drift items above are either fixed or explicitly reclassified as intentional with updated truth-source docs
+- [x] `README.md`, `docs/README.md`, `GETTING_STARTED.md`, `DEPLOYMENT.md`, `CI_CD.md`, `TESTING.md`, and `DATABASE_SCHEMA.md` agree on persistence posture, key commands, and CI/eval expectations
+- [x] Schema-count references match the current `pgTable(...)` reality
+- [x] `rtk pnpm check:docs-drift` fails on the previously undetected drift classes and passes after the documentation updates
+- [x] `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` passes
+- [x] `rtk pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` passes if the checker test file is introduced
+- [x] `rtk pnpm check:complexity` passes
+- [x] `rtk pnpm eval:smoke` passes after the documentation/guardrail changes
 
 ---
 
-### Phase 1: Security + Crash Fixes (Critical/High — 6 bugs)
+### Phase 1: Build Truth Inventory And Drift Matrix
 
 **Files:**
 
-- Modify: `packages/cli/src/lib/skill-artifact-export.ts:26-42`
-- Modify: `packages/cli/src/lib/output-profile.ts:874-878`
-- Modify: `packages/cli/src/lib/output-profile.ts:110-118`
-- Modify: `packages/cli/src/lib/prompts.ts:60-62`
-- Modify: `packages/cli/src/lib/config.ts:44-46`
-- Modify: `packages/cli/src/lib/http.ts:65-71`
-- Test: `packages/cli/src/lib/skill-artifact-export.test.ts` (extend)
-- Test: `packages/cli/src/lib/output-profile.test.ts` (extend)
-- Test: `packages/cli/src/lib/config.test.ts` (extend)
-- Test: `packages/cli/src/lib/http.test.ts` (extend)
+- Modify: `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+- Create: `docs/reference/DOCS_TRUTH_MATRIX.md`
+- Inspect and cite: `package.json`, `packages/server/package.json`, `packages/cli/package.json`, `.github/workflows/ci.yml`, `packages/server/src/lib/persistence/schema/*.ts`
 
 **Phase completion criteria:**
 
-- `validateOutputPath('/etc/passwd', '/home/user')` throws an error instead of returning `/etc/passwd`
-- `resolveRenderer` with an unknown `profile.tool` value falls back to the generic renderer instead of throwing `TypeError`
-- `summarizeRetrievalV1` with `[null, validEntry]` in `globalConstraints` returns the valid entry's summary instead of crashing
-- `isInteractiveEnvironment()` returns `false` when `process.stdin` is `undefined` instead of throwing `TypeError`
-- `getConfigPath()` returns a `tmpdir()`-based path when `os.homedir()` throws instead of propagating the exception
-- `requireSessionToken` rejects non-string `sessionToken` values (numbers, booleans) with the authentication error
+- Every high-risk documentation area has one named authoritative source
+- The current drift list is converted into a concrete matrix of "claim -> truth source -> affected docs"
+- Schema-count ownership is documented instead of left as an informal fact
 
 **Documentation updates required:**
 
-- `docs/operations/SECURITY.md`: document the path traversal fix and the `validateOutputPath` boundary check
-- `docs/PACKAGES.md`: note that CLI config falls back to `tmpdir()` in containerized environments
+- Add a `DOCS_TRUTH_MATRIX.md` table for persistence mode, startup commands, CI jobs, eval entrypoints, deployment defaults, and schema counts
+- Extend `SYSTEM_TRUTH_SOURCES.md` so future changes know where to update secondary docs
 
 **Test / eval updates required:**
 
-- Add `validateOutputPath` test: absolute path input must throw
-- Add `resolveRenderer` test: unknown tool must return generic renderer
-- Add `summarizeRetrievalV1` test: null first element must scan for valid entries
-- Add `isInteractiveEnvironment` test: mock `process.stdin = undefined` must return `false`
-- Add `getConfigPath` test: mock `os.homedir` throwing must return tmpdir path
-- Add `requireSessionToken` test: numeric token must throw
-- Run: `rtk pnpm test -- --run packages/cli/src/lib/skill-artifact-export.test.ts packages/cli/src/lib/output-profile.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/lib/http.test.ts`
-- Run: `rtk pnpm typecheck`
+- Add or extend `docs-truth-smoke` assertions so they verify at least:
+  - server entrypoint references remain `buildServer()`
+  - guardrail docs mention `pnpm check:docs-drift` and `pnpm check:complexity`
+  - schema-count source points to the persistence schema modules instead of hard-coded prose
+- Run: `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
 
 **Necessary example structure or code:**
 
-```typescript
-// validateOutputPath — packages/cli/src/lib/skill-artifact-export.ts
-import { sep } from 'node:path';
-
-export function validateOutputPath(outputPath: string, intendedDir: string): string {
-  if (outputPath.includes('\0')) {
-    throw new Error('Path contains null bytes');
-  }
-  const normalized = normalize(outputPath);
-  if (normalized.includes('..')) {
-    throw new Error(`Path contains directory traversal: ${outputPath}`);
-  }
-  const resolved = resolve(intendedDir, normalized);
-  const resolvedBase = resolve(intendedDir) + sep;
-  if (resolved !== resolve(intendedDir) && !resolved.startsWith(resolvedBase)) {
-    throw new Error(`Path escapes intended directory: ${outputPath}`);
-  }
-  return resolved;
-}
+```markdown
+| Topic | Authoritative Source | Secondary Docs |
+|---|---|---|
+| Persistence posture | `README.md` + `docs/reference/SYSTEM_TRUTH_SOURCES.md` + `packages/server/src/lib/persistence/schema/*.ts` | `docs/README.md`, `docs/guides/GETTING_STARTED.md`, `docs/architecture/DEPLOYMENT.md` |
+| CI jobs | `.github/workflows/ci.yml` | `docs/operations/CI_CD.md`, `docs/operations/TESTING.md` |
+| Schema count | `packages/server/src/lib/persistence/schema/*.ts` | `docs/reference/DATABASE_SCHEMA.md`, `docs/README.md` |
 ```
 
-```typescript
-// resolveRenderer — packages/cli/src/lib/output-profile.ts
-export function resolveRenderer(profile: OutputProfile, kind: RenderKind): Renderer {
-  const toolRegistry = registry[profile.tool] ?? registry.generic;
-  return (toolRegistry[kind] ?? registry.generic[kind] ?? registry.generic.generic) as Renderer;
-}
-```
-
-```typescript
-// summarizeRetrievalV1 — packages/cli/src/lib/output-profile.ts
-function summarizeRetrievalV1(payload: RetrievalResponse): string {
-  if (payload.summary?.text) {
-    return payload.summary.text;
-  }
-  if (payload.refinementSummary) {
-    return payload.refinementSummary;
-  }
-  const firstValid =
-    payload.globalConstraints.find((c) => c != null) ??
-    payload.projectKnowledge.find((c) => c != null);
-  return firstValid ? `${firstValid.shortcut} (${firstValid.score.toFixed(2)})` : 'No results found';
-}
-```
-
-```typescript
-// isInteractiveEnvironment — packages/cli/src/lib/prompts.ts
-export function isInteractiveEnvironment(): boolean {
-  return (
-    typeof process.stdin !== 'undefined' &&
-    process.stdin.isTTY === true &&
-    typeof process.stdout !== 'undefined' &&
-    process.stdout.isTTY === true
-  );
-}
-```
-
-```typescript
-// getConfigPath — packages/cli/src/lib/config.ts
-import { tmpdir } from 'node:os';
-
-function getConfigPath(): string {
-  let base: string;
-  try {
-    base = os.homedir();
-  } catch {
-    base = tmpdir();
-  }
-  return path.join(base, '.trapmap', 'cli.json');
-}
-```
-
-```typescript
-// requireSessionToken — packages/cli/src/lib/http.ts
-export function requireSessionToken(state: CliState): string {
-  if (typeof state.sessionToken !== 'string' || state.sessionToken.length === 0) {
-    throw new Error('Not authenticated. Run `skill-shareer login` first.');
-  }
-  return state.sessionToken;
-}
-```
-
-- [ ] **Step 1.1: Write failing tests for all 6 security/crash bugs**
-
-Add tests to the existing test files:
-
-```typescript
-// In skill-artifact-export.test.ts
-describe('validateOutputPath', () => {
-  it('rejects absolute paths that escape intended directory', () => {
-    expect(() => validateOutputPath('/etc/passwd', '/home/user/projects')).toThrow(
-      'Path escapes intended directory',
-    );
-  });
-  it('allows valid relative paths within intended directory', () => {
-    const result = validateOutputPath('output/file.txt', '/home/user/projects');
-    expect(result).toBe('/home/user/projects/output/file.txt');
-  });
-});
-
-// In output-profile.test.ts
-describe('resolveRenderer', () => {
-  it('falls back to generic renderer for unknown tool', () => {
-    const profile = { ...getDefaultOutputProfile(), tool: 'unknown-tool' as any };
-    const renderer = resolveRenderer(profile, 'generic');
-    expect(renderer).toBeDefined();
-    expect(renderer.id).toContain('generic');
-  });
-});
-
-describe('summarizeRetrievalV1', () => {
-  it('skips null elements in globalConstraints', () => {
-    const payload = {
-      globalConstraints: [null, { shortcut: 'test', score: 0.8 }],
-      projectKnowledge: [],
-    } as any;
-    const result = summarizeRetrievalV1(payload);
-    expect(result).toContain('test');
-  });
-});
-
-// In config.test.ts
-describe('getConfigPath', () => {
-  it('falls back to tmpdir when homedir throws', () => {
-    vi.spyOn(os, 'homedir').mockImplementation(() => { throw new Error('no home'); });
-    const result = getConfigPath();
-    expect(result).toContain(tmpdir());
-  });
-});
-
-// In http.test.ts
-describe('requireSessionToken', () => {
-  it('rejects numeric sessionToken', () => {
-    expect(() => requireSessionToken({ sessionToken: 123 } as any)).toThrow('Not authenticated');
-  });
-  it('rejects empty string sessionToken', () => {
-    expect(() => requireSessionToken({ sessionToken: '' } as any)).toThrow('Not authenticated');
-  });
-});
-```
-
-Run: `rtk pnpm test -- --run packages/cli/src/lib/skill-artifact-export.test.ts packages/cli/src/lib/output-profile.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/lib/http.test.ts`
-Expected: FAIL — tests assert behavior that doesn't exist yet.
-
-- [ ] **Step 1.2: Implement the 6 fixes**
-
-Apply the code changes shown in the "Necessary example structure or code" section above.
-
-- [ ] **Step 1.3: Run tests and verify all pass**
-
-Run: `rtk pnpm test -- --run packages/cli/src/lib/skill-artifact-export.test.ts packages/cli/src/lib/output-profile.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/lib/http.test.ts`
-Expected: PASS
-
-Run: `rtk pnpm typecheck`
-Expected: PASS
-
-- [ ] **Step 1.4: Update security and package docs, commit**
-
-```bash
-rtk git add packages/cli/src/lib/ docs/operations/SECURITY.md docs/PACKAGES.md
-rtk git commit -m "fix(cli): patch path traversal, crash, and auth bugs (Phase 1)"
-```
+- [x] Inventory authoritative sources and record them in `DOCS_TRUTH_MATRIX.md`
+- [x] Update `SYSTEM_TRUTH_SOURCES.md` to reference the new matrix and broaden ownership rules
+- [x] Add a failing docs-truth smoke test for any new truth-source guarantees introduced here
+- [x] Run the targeted smoke test and mark the matrix stable
 
 ---
 
-### Phase 2: Permission + Validation Correctness (High/Medium — 8 bugs)
+### Phase 2: Converge Human-Facing Docs
 
 **Files:**
 
-- Modify: `packages/cli/src/commands/skill.ts:226-230`
-- Modify: `packages/cli/src/commands/operations/types.ts:1-9`
-- Modify: `packages/cli/src/commands/operations/list.ts:11-12`
-- Modify: `packages/cli/src/commands/operations/activate.ts:13-14`
-- Modify: `packages/cli/src/commands/operations/status.ts:10-11`
-- Modify: `packages/cli/src/commands/operations/migrate.ts:10-11`
-- Modify: `packages/cli/src/commands/operations/deactivate.ts:20-22`
-- Modify: `packages/cli/src/commands/operations/edit.ts:49-51`
-- Modify: `packages/cli/src/commands/feedback.ts:72-73`
-- Modify: `packages/cli/src/index.ts:152-157`
-- Test: `packages/cli/src/commands/skill.test.ts` (extend)
-- Test: `packages/cli/src/commands/operations.test.ts` (extend)
-- Test: `packages/cli/src/commands/feedback.test.ts` (extend)
+- Modify: `README.md`
+- Modify: `docs/README.md`
+- Modify: `docs/guides/GETTING_STARTED.md`
+- Modify: `docs/architecture/DEPLOYMENT.md`
+- Modify: `docs/operations/CI_CD.md`
+- Modify: `docs/operations/TESTING.md`
+- Modify: `docs/reference/DATABASE_SCHEMA.md`
 
 **Phase completion criteria:**
 
-- `registerSkillCommands` registers review subcommands when only `allowReview=true`
-- `list`, `activate`, `status` commands use their own permission flags (or are unconditionally registered per spec)
-- `migrate` command uses its own permission flag (or is unconditionally registered per spec)
-- `--entry-type` on feedback command rejects values other than `"trap"` and `"skill"`
-- `--reason` on deactivate command rejects strings outside 1-500 character range
-- `--required-level` on edit command rejects non-integer values
-- `OperationsCommandOptions` type reflects the corrected permission model
+- No major entry doc still describes JSON file storage as the default operating model unless clearly labeled as compatibility/development fallback
+- CI docs describe the actual jobs present in `.github/workflows/ci.yml`
+- Table-count claims are numerically correct
+- Startup, test, and eval commands shown to users exist in `package.json`
 
 **Documentation updates required:**
 
-- `docs/PACKAGES.md`: document the corrected operations permission model
-- `docs/architecture/components/GOVERNANCE.md`: update CLI permission flag mapping table
+- `README.md`: keep the top-level product description and command examples consistent with the current monorepo scripts and PG-first messaging
+- `docs/README.md`: remove stale JSON-default language, fix schema count, and align the docs catalog with active architecture docs
+- `docs/guides/GETTING_STARTED.md`: change persistence wording from "PG optional, JSON default" to "PG-first with compatibility fallback only where still documented"
+- `docs/architecture/DEPLOYMENT.md`: replace JSON-first compose examples with PostgreSQL-first deployment guidance and clearly scope any fallback examples
+- `docs/operations/CI_CD.md`: ensure listed jobs and responsibilities exactly match `typecheck`, `check`, `test`, `coverage`, `postgres-integration`, and `architecture-guardrails`
+- `docs/operations/TESTING.md`: document when `check:docs-drift`, `check:complexity`, and `eval:smoke` are mandatory after docs/architecture changes
+- `docs/reference/DATABASE_SCHEMA.md`: update all hard-coded table counts and references to current schema modules
 
 **Test / eval updates required:**
 
-- Add test: `registerSkillCommands` with `{ allowReview: true }` registers review subcommands
-- Add test: operations commands register with correct permission flags
-- Add test: feedback `--entry-type foo` throws `InvalidArgumentError`
-- Add test: deactivate `--reason` with 0 or 501 characters throws
-- Add test: edit `--required-level 2.5` is rejected or floored to integer
-- Run: `rtk pnpm test -- --run packages/cli/src/commands/skill.test.ts packages/cli/src/commands/operations.test.ts packages/cli/src/commands/feedback.test.ts`
-- Run: `rtk pnpm typecheck`
-
-**Necessary example structure or code:**
-
-```typescript
-// OperationsCommandOptions — packages/cli/src/commands/operations/types.ts
-export interface OperationsCommandOptions {
-  allowExport: boolean;
-  allowEdit: boolean;
-  allowDeactivate: boolean;
-  allowImport: boolean;
-  allowList: boolean;
-  allowActivate: boolean;
-  allowStatus: boolean;
-  allowMigrate: boolean;
-}
-```
-
-```typescript
-// registerSkillCommands guard — packages/cli/src/commands/skill.ts
-export function registerSkillCommands(program: Command, options: SkillCommandOptions): void {
-  if (!options.allowSearch && !options.allowSubmit && !options.allowExport && !options.allowReview) {
-    return;
-  }
-  // ...
-}
-```
-
-```typescript
-// list.ts guard
-export function registerListCommand(program: Command, options: OperationsCommandOptions): void {
-  if (!options.allowList) return;
-  // ...
-}
-```
-
-```typescript
-// activate.ts guard
-export function registerActivateCommand(program: Command, options: OperationsCommandOptions): void {
-  if (!options.allowActivate) return;
-  // ...
-}
-```
-
-```typescript
-// status.ts guard
-export function registerStatusCommand(program: Command, options: OperationsCommandOptions): void {
-  if (!options.allowStatus) return;
-  // ...
-}
-```
-
-```typescript
-// migrate.ts guard
-export function registerMigrateCommand(program: Command, options: OperationsCommandOptions): void {
-  if (!options.allowMigrate) return;
-  // ...
-}
-```
-
-```typescript
-// index.ts — updated wiring
-registerOperationsCommands(program, {
-  allowExport: visibility.allowKnowledgeExport,
-  allowEdit: visibility.allowKnowledgeUpdate,
-  allowDeactivate: visibility.allowKnowledgeDeactivate,
-  allowImport: visibility.allowKnowledgeImport,
-  allowList: visibility.allowKnowledgeExport,
-  allowActivate: visibility.allowKnowledgeExport,
-  allowStatus: visibility.allowKnowledgeExport,
-  allowMigrate: visibility.allowKnowledgeImport,
-});
-```
-
-```typescript
-// feedback.ts — entry-type validation
-import { InvalidArgumentError } from 'commander';
-
-program
-  .command('feedback <entryId>')
-  // ...
-  .option('--entry-type <type>', 'Entry type: trap or skill', (val) => {
-    if (!['trap', 'skill'].includes(val)) {
-      throw new InvalidArgumentError('Must be "trap" or "skill"');
-    }
-    return val;
-  }, 'trap')
-```
-
-```typescript
-// deactivate.ts — reason length validation
-.requiredOption('--reason <text>', 'Reason for deactivation (1-500 characters)', (val) => {
-  if (val.length < 1 || val.length > 500) {
-    throw new InvalidArgumentError('Reason must be between 1 and 500 characters');
-  }
-  return val;
-})
-```
-
-```typescript
-// edit.ts — integer validation
-if (flags.requiredLevel !== undefined) {
-  const level = Number(flags.requiredLevel);
-  if (!Number.isInteger(level) || level < 0) {
-    throw new Error('--required-level must be a non-negative integer');
-  }
-  body.requiredLevel = level;
-}
-```
-
-- [ ] **Step 2.1: Write failing tests for permission and validation bugs**
-
-```typescript
-// In skill.test.ts
-describe('registerSkillCommands', () => {
-  it('registers review subcommands when only allowReview is true', () => {
-    const program = new Command();
-    registerSkillCommands(program, {
-      allowSearch: false,
-      allowSubmit: false,
-      allowExport: false,
-      allowReview: true,
-    });
-    const skillCmd = program.commands.find((c) => c.name() === 'skill');
-    expect(skillCmd).toBeDefined();
-    const reviewQueue = skillCmd?.commands.find((c) => c.name() === 'review:queue');
-    expect(reviewQueue).toBeDefined();
-  });
-});
-
-// In feedback.test.ts
-describe('feedback --entry-type', () => {
-  it('rejects invalid entry type', async () => {
-    // Attempt to parse with invalid entry-type
-    await expect(
-      program.parseAsync(['node', 'test', 'feedback', 'entry_1', '--entry-type', 'invalid', '--type', 'incorrect', '--description', 'test description here']),
-    ).rejects.toThrow();
-  });
-});
-
-// In operations.test.ts
-describe('deactivate --reason', () => {
-  it('rejects empty reason', async () => {
-    await expect(
-      program.parseAsync(['node', 'test', 'deactivate', 'entry_1', '--reason', '']),
-    ).rejects.toThrow();
-  });
-  it('rejects reason over 500 characters', async () => {
-    await expect(
-      program.parseAsync(['node', 'test', 'deactivate', 'entry_1', '--reason', 'x'.repeat(501)]),
-    ).rejects.toThrow();
-  });
-});
-```
-
-Run: `rtk pnpm test -- --run packages/cli/src/commands/skill.test.ts packages/cli/src/commands/operations.test.ts packages/cli/src/commands/feedback.test.ts`
-Expected: FAIL
-
-- [ ] **Step 2.2: Implement permission and validation fixes**
-
-Apply all code changes shown in the "Necessary example structure or code" section above. Update `OperationsCommandOptions` type, all 4 operation sub-command guards, the `registerSkillCommands` guard, feedback entry-type validation, deactivate reason validation, and edit integer validation.
-
-- [ ] **Step 2.3: Run tests and verify all pass**
-
-Run: `rtk pnpm test -- --run packages/cli/src/commands/skill.test.ts packages/cli/src/commands/operations.test.ts packages/cli/src/commands/feedback.test.ts`
-Expected: PASS
-
-Run: `rtk pnpm typecheck`
-Expected: PASS
-
-- [ ] **Step 2.4: Update governance docs, commit**
-
-```bash
-rtk git add packages/cli/src/commands/ packages/cli/src/index.ts docs/PACKAGES.md docs/architecture/components/GOVERNANCE.md
-rtk git commit -m "fix(cli): correct permission flags and input validation (Phase 2)"
-```
-
----
-
-### Phase 3: Logic Error Remediation (Medium — 18 bugs)
-
-**Files:**
-
-- Modify: `packages/cli/src/lib/config.ts:80-95` — `loadCliState` falsy check
-- Modify: `packages/cli/src/lib/prompts.ts:16-25` — `promptSelect` falsy check
-- Modify: `packages/cli/src/lib/markdown-formatter.ts:41-44` — `truncateText` edge case
-- Modify: `packages/cli/src/lib/markdown-formatter.ts:97-107` — `formatRoutingTrace` empty array
-- Modify: `packages/cli/src/lib/markdown-formatter.ts:160-190` — `formatLoadContext` plan check
-- Modify: `packages/cli/src/lib/input.ts:22-56` — `resolveTextInput` stdin detection
-- Modify: `packages/cli/src/lib/skill-artifact-export.ts:48-65` — `validateBundleFilePath` segment check
-- Modify: `packages/cli/src/lib/skill-artifact-export.ts:71-86` — `decodeFileContent` base64 padding
-- Modify: `packages/cli/src/lib/artifact-bundle.ts:113-167` — `scanSkillDirectory` case sensitivity
-- Modify: `packages/cli/src/lib/artifact-bundle.ts:31-77` — `buildSingleSkillMdBundle` scope default
-- Modify: `packages/cli/src/lib/output-profile.ts` — `summarizeGraphPlan`, `buildCodexObject`, `buildCommandResultView`
-- Modify: `packages/cli/src/commands/feedback-admin.ts:38-56` — `formatBatchResult` falsy check
-- Modify: `packages/cli/src/commands/maintenance.ts:42-59` — `formatMaintenanceBatch` falsy check
-- Modify: `packages/cli/src/commands/decay.ts:37-54` — `formatBatchResult` falsy check
-- Modify: `packages/cli/src/commands/decay.ts:16-32` — `formatDecayList` nullish semantics
-- Modify: `packages/cli/src/commands/skill.ts:120-180` — `formatDuplicateJobBundle` falsy check
-- Test: `packages/cli/src/lib/markdown-formatter.test.ts` (extend)
-- Test: `packages/cli/src/lib/artifact-bundle.test.ts` (extend)
-- Test: `packages/cli/src/lib/config.test.ts` (extend)
-- Test: `packages/cli/src/commands/decay.test.ts` (extend)
-- Test: `packages/cli/src/commands/maintenance.test.ts` (extend)
-- Test: `packages/cli/src/commands/feedback-admin.test.ts` (create)
-
-**Phase completion criteria:**
-
-- All 6 falsy-vs-existence check bugs use `!= null` (or `!== undefined && !== null`) instead of truthy checks
-- `truncateText('hello', 2)` returns a string of length ≤ 2
-- `formatRoutingTrace` with empty `channelsUsed` array outputs `"unknown"` instead of `"- Channels: "`
-- `formatLoadContext` with empty `plan` array does not display fallback text
-- `validateBundleFilePath('file..txt')` succeeds (only rejects `..` as a path segment)
-- `decodeFileContent` accepts base64 without padding
-- `scanSkillDirectory` matches `SKILL.md` case-insensitively
-- `buildSingleSkillMdBundle` defaults scope to `'global'`
-- `resolveTextInput` uses `hasStdinContent()` for stdin detection instead of `!isTTY` alone
-- `formatDecayList` outputs `'unknown'` only for `null` values, not `undefined`
-
-**Documentation updates required:**
-
-- `docs/guides/CODE_GUIDE.md`: document the falsy-vs-existence check convention for CLI formatters
-- `docs/operations/TESTING.md`: add a required edge-case checklist for path validation and text truncation
-
-**Test / eval updates required:**
-
-- Add test: `loadCliState` with `outputProfile: ''` preserves the empty-string value
-- Add test: `promptSelect` with `description: ''` includes the description key
-- Add test: `truncateText('hello', 2)` returns string of length ≤ 2
-- Add test: `truncateText('hello', 1)` returns string of length ≤ 1
-- Add test: `formatRoutingTrace` with `channelsUsed: []` outputs `"unknown"`
-- Add test: `validateBundleFilePath('file..txt')` does not throw
-- Add test: `validateBundleFilePath('foo/../bar')` throws
-- Add test: `decodeFileContent('SGVsbG8')` (no padding) decodes correctly
-- Add test: `scanSkillDirectory` finds `skill.md` (lowercase)
-- Add test: `buildSingleSkillMdBundle` produces `scope: 'global'`
-- Add test: `formatDecayList` with `decayState: null` outputs `'unknown'`, with `undefined` outputs empty
-- Run: `rtk pnpm test -- --run packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/lib/artifact-bundle.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/commands/decay.test.ts packages/cli/src/commands/maintenance.test.ts`
-- Run: `rtk pnpm typecheck`
-
-**Necessary example structure or code:**
-
-```typescript
-// truncateText fix — packages/cli/src/lib/markdown-formatter.ts
-export function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  if (maxLength <= 3) return text.slice(0, maxLength);
-  return `${text.slice(0, maxLength - 3)}...`;
-}
-```
-
-```typescript
-// formatRoutingTrace fix — packages/cli/src/lib/markdown-formatter.ts
-function formatRoutingTrace(trace: GraphPlanRoutingTrace): string {
-  const channels =
-    trace.channelsUsed && trace.channelsUsed.length > 0
-      ? trace.channelsUsed.join(', ')
-      : 'unknown';
-  const lines = [
-    `- Mode: ${trace.selectedMode}`,
-    `- Confidence: ${trace.confidenceScore.toFixed(2)} (${trace.confidenceBucket})`,
-    `- Channels: ${channels}`,
-  ];
-  if (trace.fallbackTarget) {
-    lines.push(`- Fallback: ${trace.fallbackTarget}`);
-  }
-  return lines.join('\n');
-}
-```
-
-```typescript
-// validateBundleFilePath fix — packages/cli/src/lib/skill-artifact-export.ts
-import { sep } from 'node:path';
-
-export function validateBundleFilePath(relPath: string): string {
-  if (relPath.includes('\0')) {
-    throw new Error(`File path contains null bytes: ${relPath}`);
-  }
-  const segments = normalize(relPath).split(sep);
-  if (segments.includes('..')) {
-    throw new Error(`File path contains directory traversal: ${relPath}`);
-  }
-  if (relPath.startsWith('/') || /^[A-Za-z]:/.test(relPath)) {
-    throw new Error(`File path is absolute: ${relPath}`);
-  }
-  return normalize(relPath);
-}
-```
-
-```typescript
-// decodeFileContent fix — packages/cli/src/lib/skill-artifact-export.ts
-export function decodeFileContent(content: string): Buffer {
-  const isBase64 = /^[A-Za-z0-9+/]*={0,2}$/.test(content);
-  if (isBase64 && content.length > 0) {
-    try {
-      return Buffer.from(content, 'base64');
-    } catch {
-      // Fall through to treat as UTF-8 text
-    }
-  }
-  return Buffer.from(content, 'utf8');
-}
-```
-
-```typescript
-// scanSkillDirectory fix — packages/cli/src/lib/artifact-bundle.ts (line 136)
-if (entry.isFile()) {
-  if (relPath.toLowerCase() === 'skill.md') {
-    // Will be handled separately
-  } else if (relPath.startsWith('references/')) {
-    // ...
-  }
-}
-// ...
-// line 161: also use case-insensitive check
-const skillMdCandidates = ['SKILL.md', 'skill.md', 'Skill.md'];
-let skillMdPath: string | null = null;
-for (const candidate of skillMdCandidates) {
-  try {
-    const p = join(rootPath, candidate);
-    await readFile(p);
-    skillMdPath = p;
-    break;
-  } catch {
-    // try next
-  }
-}
-return { skillMd: skillMdPath, references, assets, scripts };
-```
-
-```typescript
-// buildSingleSkillMdBundle fix — packages/cli/src/lib/artifact-bundle.ts
-return {
-  scope: 'global',
-  // ...
-};
-```
-
-```typescript
-// Generic falsy→existence fix pattern (applied to 6 locations)
-// Before: if (x) { ... }
-// After:  if (x != null) { ... }
-
-// loadCliState — config.ts line 90
-...(outputProfile != null ? { outputProfile } : {}),
-
-// formatBatchResult (feedback-admin.ts) line 43
-if (data.appliedAt != null) { lines.push(`Applied at: ${data.appliedAt}`); }
-
-// formatMaintenanceBatch (maintenance.ts) line 47
-if (data.appliedAt != null) { lines.push(`Applied at: ${data.appliedAt}`); }
-
-// formatBatchResult (decay.ts) line 42
-if (data.appliedAt != null) { lines.push(`Applied at: ${data.appliedAt}`); }
-
-// formatDuplicateJobBundle (skill.ts) — detail check
-if (e.detail != null) { lines.push(`  Detail: ${e.detail.slice(0, 150)}...`); }
-
-// promptSelect (prompts.ts) line 22
-...(c.description != null ? { description: c.description } : {}),
-```
-
-```typescript
-// formatDecayList fix — packages/cli/src/commands/decay.ts
-const state = item.decayState === null ? 'unknown' : (item.decayState ?? '');
-```
-
-```typescript
-// resolveTextInput fix — packages/cli/src/lib/input.ts
-if (options.stdin || hasStdinContent()) {
-  const stdinText = await readFromStdin();
-  if (!stdinText) {
-    throw new Error(`No ${fieldName} content received on stdin.`);
-  }
-  return stdinText;
-}
-```
-
-- [ ] **Step 3.1: Write failing tests for all 18 logic bugs**
-
-Add tests to the existing test files as specified in "Test / eval updates required" above. Each test should assert the correct behavior that the current code fails to provide.
-
-Run: `rtk pnpm test -- --run packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/lib/artifact-bundle.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/commands/decay.test.ts packages/cli/src/commands/maintenance.test.ts`
-Expected: FAIL — at least the new tests should fail.
-
-- [ ] **Step 3.2: Implement the 18 logic fixes**
-
-Apply all code changes shown in the "Necessary example structure or code" section above.
-
-- [ ] **Step 3.3: Run tests and verify all pass**
-
-Run: `rtk pnpm test -- --run packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/lib/artifact-bundle.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/commands/decay.test.ts packages/cli/src/commands/maintenance.test.ts`
-Expected: PASS
-
-Run: `rtk pnpm typecheck`
-Expected: PASS
-
-- [ ] **Step 3.4: Update code guide and testing docs, commit**
-
-```bash
-rtk git add packages/cli/src/ docs/guides/CODE_GUIDE.md docs/operations/TESTING.md
-rtk git commit -m "fix(cli): correct logic errors in formatters, path validation, and falsy checks (Phase 3)"
-```
-
----
-
-### Phase 4: Formatting, Input Injection, and Low-Severity Cleanup (Medium/Low — 22 bugs)
-
-**Files:**
-
-- Create: `packages/cli/src/lib/sanitize.ts`
-- Modify: `packages/cli/src/lib/output.ts:14-21` — `printResult` JSON format
-- Modify: `packages/cli/src/lib/markdown-formatter.ts:49-58` — `formatTrapNode` spec compliance
-- Modify: `packages/cli/src/lib/markdown-formatter.ts` — `push_1` numbering
-- Modify: `packages/cli/src/lib/output-profile.ts` — `renderCodex` token efficiency, `buildCommandResultView` transition, `registerOutputProfileCommands` spread
-- Modify: `packages/cli/src/lib/artifact-bundle.ts:173-185` — `readFileContent` encoding consistency
-- Modify: `packages/cli/src/lib/skill-artifact-export.ts:134-136` — `formatExportJson` Infinity/NaN
-- Modify: `packages/cli/src/commands/skill.ts:39-62` — `formatSkillMatch` newline injection
-- Modify: `packages/cli/src/commands/skill.ts:185-196` — `formatManualResultResponse` newline injection
-- Modify: `packages/cli/src/commands/skill.ts:201-224` — `formatApplyResolutionResponse` line order
-- Modify: `packages/cli/src/commands/skill.ts:99-115` — `formatSkillHistoryResponse` spacing
-- Modify: `packages/cli/src/commands/feedback.ts:51-59` — `formatFeedbackResult` ANSI stripping
-- Modify: `packages/cli/src/commands/feedback-admin.ts:16-33` — `formatFeedbackList` double newline
-- Modify: `packages/cli/src/commands/maintenance.ts:22-37` — `formatMaintenanceList` double newline
-- Test: `packages/cli/src/lib/sanitize.test.ts` (create)
-- Test: `packages/cli/src/lib/output.test.ts` (extend)
-- Test: `packages/cli/src/lib/markdown-formatter.test.ts` (extend)
-- Test: `packages/cli/src/commands/skill.test.ts` (extend)
-- Test: `packages/cli/src/commands/feedback.test.ts` (extend)
-
-**Phase completion criteria:**
-
-- `formatFeedbackList` and `formatMaintenanceList` produce no double blank lines between header and items
-- `printResult` with `--json` outputs compact JSON (no indentation)
-- `formatTrapNode` outputs only severity + label per spec
-- `formatApplyResolutionResponse` first line is the candidate ID
-- `formatSkillHistoryResponse` revision entries have no leading double-space
-- `formatSkillMatch` strips newlines from title to prevent line-count injection
-- `formatManualResultResponse` strips newlines from candidateId
-- `formatFeedbackResult` strips ANSI escape codes from all fields
-- `formatExportJson` handles `Infinity` and `NaN` by converting to `0` or string representation
-- `sanitize.ts` provides reusable `stripNewlines()` and `stripAnsi()` functions
-
-**Documentation updates required:**
-
-- `docs/guides/CODE_GUIDE.md`: document the `sanitize.ts` utility and when to use it
-- `docs/operations/TESTING.md`: add input sanitization checklist for CLI formatter tests
-
-**Test / eval updates required:**
-
-- Add test: `stripNewlines('hello\nworld')` returns `'hello world'`
-- Add test: `stripAnsi('\x1b[31mred\x1b[0m')` returns `'red'`
-- Add test: `formatFeedbackList` output has no double blank lines
-- Add test: `formatMaintenanceList` output has no double blank lines
-- Add test: `printResult` with `json: true` outputs compact JSON
-- Add test: `formatSkillMatch` with title containing `\n` produces single-line title
-- Add test: `formatFeedbackResult` with ANSI codes in input strips them
-- Add test: `formatExportJson` with `Infinity` value does not produce `null`
-- Run: `rtk pnpm test -- --run packages/cli/src/lib/sanitize.test.ts packages/cli/src/lib/output.test.ts packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/commands/skill.test.ts packages/cli/src/commands/feedback.test.ts`
-- Run: `rtk pnpm typecheck`
+- Extend `docs-truth-smoke` with assertions for:
+  - `docs/README.md` no longer advertising JSON as the primary runtime model
+  - `CI_CD.md` mentioning the actual guardrail and postgres jobs
+  - `DATABASE_SCHEMA.md` matching the current table count source
+- Run: `rtk pnpm check:docs-drift`
+- Run: `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
 - Run: `rtk pnpm eval:smoke`
 
 **Necessary example structure or code:**
 
-```typescript
-// packages/cli/src/lib/sanitize.ts (NEW FILE)
-export function stripNewlines(text: string): string {
-  return text.replace(/[\r\n]+/g, ' ');
-}
+```markdown
+## Persistence mode
 
-export function stripAnsi(text: string): string {
-  return text.replace(/\x1b\[[0-9;]*m/g, '');
-}
-
-export function sanitizeForDisplay(text: string): string {
-  return stripAnsi(stripNewlines(text));
-}
+TrapMap is operated in a PostgreSQL-first mode. JSON/file-backed storage remains a compatibility or local fallback path only where explicitly called out.
 ```
 
-```typescript
-// formatFeedbackList fix — packages/cli/src/commands/feedback-admin.ts
-function formatFeedbackList(data: FeedbackListResponse): string {
-  if (data.items.length === 0) {
-    return 'No feedback found';
-  }
-  const lines: string[] = [];
-  lines.push(`Found ${data.total} feedback items`);
-  for (const item of data.items) {
-    const age = `${Math.round(item.ageDays)}d`;
-    const status = item.status;
-    lines.push(
-      `${item.id}  [${status}]  ${age}  ${item.entryShortcut.slice(0, 40)}  ${item.problemType}`,
-    );
-  }
-  return lines.join('\n');
-}
+```markdown
+| Job | Command | Purpose |
+|---|---|---|
+| `architecture-guardrails` | `pnpm check:docs-drift` + `pnpm check:complexity` | Prevent documentation truth drift and file growth regressions |
+| `postgres-integration` | targeted `pnpm test -- --run ...` | Validate PG-backed integration paths |
 ```
 
-```typescript
-// formatMaintenanceList fix — packages/cli/src/commands/maintenance.ts
-function formatMaintenanceList(data: MaintenanceEntryListResponse): string {
-  if (data.items.length === 0) {
-    return 'No entries found';
-  }
-  const lines: string[] = [];
-  lines.push(`Found ${data.total} entries`);
-  for (const item of data.items) {
-    const maintainer = item.maintainer?.handle ?? 'unassigned';
-    const reviewBy = item.reviewBy ?? 'none';
-    lines.push(`${item.id}  [${maintainer}]  [${reviewBy}]  ${item.shortcut.slice(0, 50)}`);
-  }
-  return lines.join('\n');
-}
-```
+- [x] Rewrite top-level docs to match the truth matrix
+- [x] Update schema-count references using the actual current count
+- [x] Reconcile CI/testing prose with the current workflow file and package scripts
+- [x] Run targeted docs smoke coverage and `eval:smoke`
 
-```typescript
-// printResult fix — packages/cli/src/lib/output.ts
-export function printResult<T>(value: T, options: JsonFlag, formatter: (input: T) => string): void {
-  if (options.json) {
-    console.log(JSON.stringify(value));
-    return;
-  }
-  console.log(formatter(value));
-}
-```
+---
 
-```typescript
-// formatTrapNode fix — packages/cli/src/lib/markdown-formatter.ts
-function formatTrapNode(trap: PlanTrapNode, maxLen: number): string {
-  const severityLabel = trap.severity === 'hard' ? '[HARD]' : '[SOFT]';
-  const evidence = truncateText(escapeMarkdown(trap.evidence), maxLen);
-  const lines = [
-    `**${severityLabel} ${escapeMarkdown(trap.label)}**`,
-    `> ${evidence}`,
-    `- Source: \`${trap.sourceId}\``,
-  ];
-  return lines.join('\n');
-}
-```
+### Phase 3: Expand Automated Doc-Drift Guardrails
 
-```typescript
-// formatSkillMatch fix — packages/cli/src/commands/skill.ts
-import { stripNewlines } from '@trapmap/cli/lib/sanitize.js';
+**Files:**
 
-function formatSkillMatch(match: { /* ... */ }): string {
-  const lines = [
-    `${match.artifactId}`,
-    `Title: ${stripNewlines(match.title)}`,
-    `Slug: ${match.slug}`,
-    `Labels: ${match.labels.join(', ')}`,
-    `Scope: ${match.scope} (level ${match.requiredLevel})`,
-    `Source: ${match.sourceKind}`,
-    `Score: ${match.score.toFixed(2)}`,
-    `Reason: ${stripNewlines(match.reason)}`,
-  ];
-  return lines.join('\n');
-}
-```
+- Modify: `scripts/check-doc-drift.ts`
+- Modify: `scripts/complexity-budgets.json`
+- Create: `scripts/__tests__/check-doc-drift.test.ts`
+- Modify: `packages/server/src/__tests__/docs-truth-smoke.test.ts`
 
-```typescript
-// formatManualResultResponse fix — packages/cli/src/commands/skill.ts
-function formatManualResultResponse(response: ManualResultResponse): string {
-  const lines = [
-    `Candidate ID: ${stripNewlines(response.candidateId)}`,
-    `Decision: ${response.decision}`,
-    `Reviewed At: ${response.reviewedAt}`,
-    `Next State: ${response.nextState}`,
-    '',
-    'To fetch this job again:',
-    `  trapmap skill duplicate-job fetch ${stripNewlines(response.candidateId)}`,
-  ];
-  return lines.join('\n');
-}
-```
+**Phase completion criteria:**
 
-```typescript
-// formatFeedbackResult fix — packages/cli/src/commands/feedback.ts
-import { stripAnsi } from '@trapmap/cli/lib/sanitize.js';
+- A stale docs edit in any of the currently observed drift classes causes `check:docs-drift` or docs-truth smoke tests to fail
+- The checker config is expressive enough to guard count-based or source-based assertions, not just simple substring checks
+- The checker itself has direct test coverage
 
-function formatFeedbackResult(response: FeedbackResponse): string {
-  const lines = [
-    `Feedback submitted: ${stripAnsi(response.feedback.id)}`,
-    `Entry: ${stripAnsi(response.feedback.entryId)} (${stripAnsi(response.feedback.entryType)})`,
-    `Problem: ${stripAnsi(response.feedback.problemType)}`,
-    `Status: ${stripAnsi(response.feedback.status)}`,
-  ];
-  return lines.join('\n');
-}
-```
+**Documentation updates required:**
 
-```typescript
-// formatApplyResolutionResponse fix — packages/cli/src/commands/skill.ts
-function formatApplyResolutionResponse(response: ApplyResolutionResponse): string {
-  const lines = [
-    `Candidate: ${response.candidateId}`,
-    `✅ Resolution applied successfully`,
-    `Status: ${response.status}`,
-    `Decision: ${response.outcome.decision}`,
-  ];
-  // ...
-}
-```
+- `docs/operations/TESTING.md`: document how to add a new doc rule and when to add one
+- `docs/operations/CI_CD.md`: mention that `architecture-guardrails` now covers docs index, deployment, schema-count, and CI drift classes
 
-```typescript
-// formatSkillHistoryResponse fix — packages/cli/src/commands/skill.ts
-const revisions = response.revisions.map((r) => {
-  const submitter = r.submittedBy.handle ?? r.submittedBy.id;
-  return `${r.revision}. ${r.submittedAt} by ${submitter} [${r.lifecycleState}]${r.summary ? ` - ${r.summary}` : ''}`;
-});
-```
+**Test / eval updates required:**
 
-```typescript
-// formatExportJson fix — packages/cli/src/lib/skill-artifact-export.ts
-export function formatExportJson(response: ArtifactExportResponse): string {
-  return JSON.stringify(response, (_key, value) => {
-    if (typeof value === 'number' && !Number.isFinite(value)) {
-      return Number.isNaN(value) ? 'NaN' : (value > 0 ? 'Infinity' : '-Infinity');
+- Add unit tests for the drift checker:
+  - missing required phrase
+  - forbidden phrase present
+  - numeric/count mismatch
+  - referenced workflow job missing from docs
+- Add docs smoke assertions for the most important truth-source edges
+- Run: `rtk pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts packages/server/src/__tests__/docs-truth-smoke.test.ts`
+- Run: `rtk pnpm check:docs-drift`
+- Run: `rtk pnpm check:complexity`
+
+**Necessary example structure or code:**
+
+```json
+{
+  "docRules": [
+    {
+      "file": "docs/README.md",
+      "mustContain": ["PostgreSQL-first"],
+      "mustNotContain": ["使用 JSON 文件存储"]
+    },
+    {
+      "file": "docs/operations/CI_CD.md",
+      "mustContainAllFromFile": ".github/workflows/ci.yml#jobs"
     }
-    return value;
-  }, 2);
+  ]
 }
 ```
 
-- [ ] **Step 4.1: Create `sanitize.ts` and its tests**
-
 ```typescript
-// packages/cli/src/lib/sanitize.test.ts
-import { describe, expect, it } from 'vitest';
-import { stripAnsi, stripNewlines, sanitizeForDisplay } from './sanitize.js';
-
-describe('stripNewlines', () => {
-  it('replaces newlines with spaces', () => {
-    expect(stripNewlines('hello\nworld')).toBe('hello world');
-    expect(stripNewlines('a\r\nb')).toBe('a b');
-  });
-  it('handles multiple consecutive newlines', () => {
-    expect(stripNewlines('a\n\n\nb')).toBe('a b');
-  });
-});
-
-describe('stripAnsi', () => {
-  it('removes ANSI escape codes', () => {
-    expect(stripAnsi('\x1b[31mred\x1b[0m')).toBe('red');
-  });
-  it('handles strings without ANSI codes', () => {
-    expect(stripAnsi('plain text')).toBe('plain text');
-  });
-});
-
-describe('sanitizeForDisplay', () => {
-  it('strips both newlines and ANSI', () => {
-    expect(sanitizeForDisplay('\x1b[31mhello\nworld\x1b[0m')).toBe('hello world');
-  });
-});
+interface CountRule {
+  file: string;
+  label: string;
+  expectedCountFromGlob: string;
+  pattern: string;
+}
 ```
 
-Run: `rtk pnpm test -- --run packages/cli/src/lib/sanitize.test.ts`
-Expected: PASS (new file, no dependencies to break)
-
-- [ ] **Step 4.2: Write failing tests for formatting and injection bugs**
-
-Add tests to existing test files as specified in "Test / eval updates required" above.
-
-Run: `rtk pnpm test -- --run packages/cli/src/lib/output.test.ts packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/commands/skill.test.ts packages/cli/src/commands/feedback.test.ts`
-Expected: FAIL — new tests assert corrected behavior.
-
-- [ ] **Step 4.3: Implement all formatting and injection fixes**
-
-Apply all code changes shown in the "Necessary example structure or code" section above.
-
-- [ ] **Step 4.4: Fix remaining low-severity items**
-
-Apply fixes for:
-- `renderCodex` — optimize JSON key order for token efficiency
-- `buildCommandResultView` — coerce `transition` to boolean with `Boolean()`
-- `registerOutputProfileCommands` — filter spread to known properties only
-- `readFileContent` — align encoding behavior with description (text → UTF-8 string, binary → base64)
-
-- [ ] **Step 4.5: Run full test suite and eval, commit**
-
-Run: `rtk pnpm test`
-Expected: PASS
-
-Run: `rtk pnpm typecheck`
-Expected: PASS
-
-Run: `rtk pnpm check`
-Expected: PASS
-
-Run: `rtk pnpm eval:smoke`
-Expected: PASS
-
-```bash
-rtk git add packages/cli/src/ docs/guides/CODE_GUIDE.md docs/operations/TESTING.md
-rtk git commit -m "fix(cli): correct formatting, add input sanitization, fix low-severity bugs (Phase 4)"
-```
+- [x] Extend the checker config format to represent richer doc assertions
+- [x] Add checker unit tests before broadening the rule set
+- [x] Add rules for docs index, getting started, deployment, CI, and schema-count drift
+- [x] Re-run the full doc guardrail path until it fails for seeded stale edits and passes for the corrected docs
 
 ---
 
-## Self-Review Checklist
+### Phase 4: Validate And Institutionalize
 
-- [ ] Every confirmed bug from the scan report maps to at least one step in this plan
-- [ ] Each phase has:
-  - [ ] completion criteria
-  - [ ] documentation updates
-  - [ ] test / eval updates
-  - [ ] example structure or code
-- [ ] No phase depends on hand-waving about "clean up later"
-- [ ] The default implementation direction is conservative: fix bugs with minimal changes, reuse existing patterns
-- [ ] Shared utilities (`sanitize.ts`) are created before they are consumed
-- [ ] Permission model changes are consistent across `types.ts`, individual command files, and `index.ts` wiring
+**Files:**
 
----
+- Modify: `plan.md`
+- Modify: `docs/operations/TESTING.md`
+- Modify: `docs/guides/CONTRIBUTING.md`
+- Modify: `docs/reference/SYSTEM_TRUTH_SOURCES.md`
 
-## Bug-to-Phase Mapping
+**Phase completion criteria:**
 
-| # | Bug | Phase | Step |
-|---|-----|-------|------|
-| 1 | `validateOutputPath` absolute path traversal | 1 | 1.2 |
-| 2 | `requireSessionToken` non-string token | 1 | 1.2 |
-| 3 | `resolveRenderer` TypeError on unknown tool | 1 | 1.2 |
-| 4 | `summarizeRetrievalV1` null array element crash | 1 | 1.2 |
-| 5 | `isInteractiveEnvironment` no stdin crash | 1 | 1.2 |
-| 6 | `getConfigPath` no homedir crash | 1 | 1.2 |
-| 7 | `registerSkillCommands` missing allowReview | 2 | 2.2 |
-| 8 | `registerOperationsCommands` wrong permission flags | 2 | 2.2 |
-| 9 | `registerFeedbackCommands` entry-type unvalidated | 2 | 2.2 |
-| 10 | `registerDeactivateCommand` reason length | 2 | 2.2 |
-| 11 | `registerEditCommand` float for integer | 2 | 2.2 |
-| 12 | `registerReviewCommands` permission cleanup | 2 | 2.2 |
-| 13 | `registerTeamCommands` permission cleanup | 2 | 2.2 |
-| 14 | `loadCliState` falsy check | 3 | 3.2 |
-| 15 | `formatBatchResult` (feedback-admin) falsy | 3 | 3.2 |
-| 16 | `formatMaintenanceBatch` falsy | 3 | 3.2 |
-| 17 | `formatBatchResult` (decay) falsy | 3 | 3.2 |
-| 18 | `formatDuplicateJobBundle` falsy | 3 | 3.2 |
-| 19 | `promptSelect` falsy | 3 | 3.2 |
-| 20 | `formatRoutingTrace` empty array | 3 | 3.2 |
-| 21 | `formatLoadContext` plan check | 3 | 3.2 |
-| 22 | `summarizeGraphPlan` first element check | 3 | 3.2 |
-| 23 | `buildCodexObject` failRender coercion | 3 | 3.2 |
-| 24 | `scanSkillDirectory` case sensitivity | 3 | 3.2 |
-| 25 | `buildSingleSkillMdBundle` scope default | 3 | 3.2 |
-| 26 | `validateBundleFilePath` segment check | 3 | 3.2 |
-| 27 | `decodeFileContent` base64 padding | 3 | 3.2 |
-| 28 | `truncateText` maxLength < 3 | 3 | 3.2 |
-| 29 | `resolveTextInput` stdin detection | 3 | 3.2 |
-| 30 | `formatDecayList` nullish semantics | 3 | 3.2 |
-| 31 | `formatFeedbackList` double newline | 4 | 4.3 |
-| 32 | `formatMaintenanceList` double newline | 4 | 4.3 |
-| 33 | `printResult` JSON format | 4 | 4.3 |
-| 34 | `formatTrapNode` spec compliance | 4 | 4.3 |
-| 35 | `formatApplyResolutionResponse` line order | 4 | 4.3 |
-| 36 | `formatSkillHistoryResponse` spacing | 4 | 4.3 |
-| 37 | `push_1` numbering | 4 | 4.3 |
-| 38 | `formatSkillMatch` newline injection | 4 | 4.3 |
-| 39 | `formatManualResultResponse` newline injection | 4 | 4.3 |
-| 40 | `formatFeedbackResult` ANSI stripping | 4 | 4.3 |
-| 41 | `registerReviewCommands` permission flag | 4 | 4.3 |
-| 42 | `registerTeamCommands` permission flag | 4 | 4.3 |
-| 43 | `renderCodex` token efficiency | 4 | 4.4 |
-| 44 | `buildCommandResultView` transition | 4 | 4.4 |
-| 45 | `registerOutputProfileCommands` spread | 4 | 4.4 |
-| 46 | `readFileContent` encoding | 4 | 4.4 |
-| 47 | `formatExportJson` Infinity/NaN | 4 | 4.3 |
+- The active plan checkboxes reflect completed work
+- Contribution guidance explains when doc updates are mandatory and which verification commands to run
+- Future plan authors have an explicit place to record documentation impact alongside code/test/eval impact
 
-## Repeated Pattern Summary
+**Documentation updates required:**
 
-| Pattern | Count | Fix Strategy |
-|---------|-------|-------------|
-| Falsy check (`if(x)`) → existence (`if(x!=null)`) | 8 | Global search + replace per location |
-| Double newline (`header\n` + `join('\n')`) | 2 | Remove trailing `\n` from header push |
-| Missing input sanitization (newline/ANSI) | 3 | Shared `sanitize.ts` utility |
-| Permission flag miswiring | 6 | New `OperationsCommandOptions` fields + `index.ts` wiring |
-| Array null element unhandled | 2 | `.find(x => x != null)` pattern |
-| Path validation incomplete | 3 | `resolve` + `startsWith` + segment split |
+- `docs/guides/CONTRIBUTING.md`: add a doc-drift checklist for architecture, persistence, CI, and eval touching changes
+- `docs/operations/TESTING.md`: publish a minimal verification matrix by change type
+- `SYSTEM_TRUTH_SOURCES.md`: mention the maintenance procedure for updating truth docs and guardrails together
+
+**Test / eval updates required:**
+
+- Final verification run:
+  - `rtk pnpm check:docs-drift`
+  - `rtk pnpm check:complexity`
+  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts scripts/__tests__/check-doc-drift.test.ts`
+  - `rtk pnpm eval:smoke`
+
+**Necessary example structure or code:**
+
+```markdown
+## Documentation impact checklist
+
+- [ ] I checked whether this change alters persistence posture, startup flow, CI, evals, or schema shape
+- [ ] I updated secondary docs listed in `docs/reference/DOCS_TRUTH_MATRIX.md`
+- [ ] I added or updated a doc-drift rule if this drift class could recur
+```
+
+- [x] Update contributor guidance with a documentation-impact checklist
+- [x] Execute the final verification matrix
+- [x] Mark completed phase checkboxes in `plan.md`
+- [x] Archive any superseded intermediate notes into the docs archive if they were created during execution
+
+## Risks And Decisions To Lock Early
+
+- Schema-count drift will recur if docs keep hard-coding table numbers without a single authoritative source or automated count check.
+- Deployment drift will recur unless JSON fallback examples are explicitly labeled as compatibility-only and separated from the default path.
+- Guardrails should stay narrow enough to be maintainable, but they are currently too narrow to be useful for the repo's real drift surface.
+
+## Suggested Execution Order
+
+1. Finish Phase 1 before touching broad docs so the truth mapping is explicit.
+2. Execute Phase 2 doc edits in one reviewable batch grouped by topic, not by file count.
+3. Only after the prose is correct, expand Phase 3 guardrails to encode the newly clarified truth.
+4. Use Phase 4 to make the maintenance workflow self-reinforcing.

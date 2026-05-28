@@ -64,7 +64,7 @@ flowchart TB
 | 图 | graphology + graphology-dag |
 | 向量搜索 | OpenAI embeddings |
 | 数据库 | PostgreSQL + Drizzle ORM |
-| JSON 存储 | 文件级（原子写入） |
+| JSON 存储（兼容回退） | 文件级（原子写入） |
 | 测试 | Vitest |
 | 包管理 | pnpm 10.x |
 | 代码质量 | Biome |
@@ -81,7 +81,7 @@ pnpm install
 cp .env.example .env
 # 编辑 .env，填入 OPENAI_API_KEY 和 TRAPMAP_SYSTEM_ADMIN_KEY
 
-# 启动服务器（使用 JSON 文件存储）
+# 启动服务器
 pnpm dev:server
 
 # 另一个终端运行 CLI
@@ -120,7 +120,7 @@ pnpm eval:ci
 - [快速上手](guides/GETTING_STARTED.md) — 本地开发环境搭建
 - [客户端集成](guides/CLIENT_INTEGRATION.md) — Skill 工件结构、检索→激活流程、各客户端落地方式
 - [数据模型](reference/DATA_MODEL.md) — 核心数据实体及关系
-- [数据库表结构速查](reference/DATABASE_SCHEMA.md) — 48 张表快速参考、枚举值、外键关系
+- [数据库表结构速查](reference/DATABASE_SCHEMA.md) — 56 张表快速参考、枚举值、外键关系
 - [术语表](reference/GLOSSARY.md) — 项目专用术语解释
 - [投稿指南](guides/CONTRIBUTING.md) — 代码规范和 PR 流程
 
@@ -140,7 +140,7 @@ pnpm eval:ci
 - [数据流](architecture/FLOW.md) — 详细数据流图
 - [数据类型串联图](architecture/DATA_TYPES_PIPELINE.md) — 核心数据类型流转路径与 GraphRAG-lite 图构建详解
 - [LLM 图提取改造计划](architecture/HYBRID_GRAPH_EXTRACTION.md) — 用 LLM 替代规则引擎的图构建 + 入库智能增强（进行中）
-- [数据库表结构速查](reference/DATABASE_SCHEMA.md) — PostgreSQL 48 张表完整参考
+- [数据库表结构速查](reference/DATABASE_SCHEMA.md) — PostgreSQL 56 张表完整参考
 
 ### 部署与运维
 - [部署指南](architecture/DEPLOYMENT.md) — Docker 部署详细步骤

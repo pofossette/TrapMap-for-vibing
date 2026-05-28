@@ -9,6 +9,15 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
 | Persistence migration state | `docs/reference/DATA_MODEL.md` | `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md` |
 | DB schema | `packages/server/src/lib/persistence/schema/index.ts` (barrel, re-exports all domain table modules) | `docs/reference/DATABASE_SCHEMA.md` |
 | Server data-access boundary | `packages/server/src/lib/actors/lookup.ts` (actor lookup), `packages/server/src/lib/repos/index.ts` (`SkillShareerRepos`) | `docs/PACKAGES.md`, `docs/reference/DATA_MODEL.md` |
+| Persistence posture | `README.md` + `packages/server/src/lib/persistence/schema/*.ts` | `docs/README.md`, `docs/guides/GETTING_STARTED.md`, `docs/architecture/DEPLOYMENT.md` |
+| CI jobs | `.github/workflows/ci.yml` | `docs/operations/CI_CD.md`, `docs/operations/TESTING.md` |
+| Schema count | `packages/server/src/lib/persistence/schema/*.ts` (artifacts.ts, knowledge.ts, candidates.ts, auth.ts, retrieval.ts, queue.ts, index.ts) | `docs/reference/DATABASE_SCHEMA.md`, `docs/README.md` |
+| Guardrail commands | `scripts/complexity-budgets.json` + `.github/workflows/ci.yml` | `docs/reference/SYSTEM_TRUTH_SOURCES.md`, `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` |
+| Startup commands | `package.json` scripts section | `docs/README.md`, `docs/guides/GETTING_STARTED.md` |
+| Eval entrypoints | `package.json` scripts section | `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` |
+| Deployment defaults | `docker-compose.yml` + `.github/workflows/ci.yml` | `docs/architecture/DEPLOYMENT.md`, `docs/README.md` |
+
+> For the full cross-cutting documentation truth matrix (covering CI, deployment, testing, guardrails, and schema ownership), see [`DOCS_TRUTH_MATRIX.md`](DOCS_TRUTH_MATRIX.md).
 
 ## Rules
 
@@ -27,7 +36,7 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
 
 ## CI Guards
 
-Two automated guards enforce these rules on every PR. They run as the `architecture-guardrails` job in CI and can be run locally.
+Two automated guards enforce these rules on every PR. They run as the `architecture-guardrails` job in CI and can be run locally. For the full cross-cutting documentation truth matrix, see [`DOCS_TRUTH_MATRIX.md`](DOCS_TRUTH_MATRIX.md).
 
 ### Doc Drift Guard
 
@@ -62,3 +71,12 @@ Current budgets:
 **To adjust a budget:** edit `scripts/complexity-budgets.json` and update the `maxLines` value for the relevant file. Budgets should be set at a level that triggers a warning before a file becomes unmanageable, not at the current size.
 
 **To add a new tracked file:** add an entry to `lineBudgets` with `file` and `maxLines`.
+
+## Maintenance
+
+When updating truth docs and guardrails together:
+
+1. Update the authoritative source first
+2. Update secondary docs listed in [`DOCS_TRUTH_MATRIX.md`](DOCS_TRUTH_MATRIX.md)
+3. Add or update a doc-drift rule in `scripts/complexity-budgets.json` if the drift class could recur
+4. Run `pnpm check:docs-drift` and `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
