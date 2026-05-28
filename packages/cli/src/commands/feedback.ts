@@ -1,3 +1,4 @@
+import { InvalidArgumentError } from 'commander';
 import type { Command } from 'commander';
 
 import type { FeedbackProblemType, FeedbackResponse } from '@trapmap/contracts';
@@ -69,7 +70,12 @@ export function registerFeedbackCommands(program: Command, options: FeedbackComm
     .option('--type <type>', 'Problem type (skip interactive prompt)')
     .option('--description <text>', 'Problem description (skip interactive prompt)')
     .option('--context <text>', 'Optional context (skip interactive prompt)')
-    .option('--entry-type <type>', 'Entry type: trap or skill (default: trap)')
+    .option('--entry-type <type>', 'Entry type: trap or skill (default: trap)', (val: string) => {
+      if (!['trap', 'skill'].includes(val)) {
+        throw new InvalidArgumentError('Must be "trap" or "skill"');
+      }
+      return val;
+    }, 'trap')
     .option('--query-seed <text>', 'Retrieval query that led to this entry')
     .option('--json', 'Output JSON')
     .action(

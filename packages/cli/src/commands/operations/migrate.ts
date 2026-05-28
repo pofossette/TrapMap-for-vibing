@@ -8,7 +8,7 @@ import { printResult } from '@trapmap/cli/lib/output.js';
 import type { OperationsCommandOptions } from './types.js';
 
 export function registerMigrateCommand(program: Command, options: OperationsCommandOptions): void {
-  if (!options.allowImport) return;
+  if (!options.allowMigrate) return;
 
   // Migration command (Phase 16-01: ARTF-04, COMP-03)
   program

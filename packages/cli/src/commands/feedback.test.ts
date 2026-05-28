@@ -124,6 +124,31 @@ describe('CLI feedback command', () => {
       consoleErrorSpy.mockRestore();
     });
 
+    it('rejects invalid entry type', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackCommands(program, { allowSubmit: true });
+
+      await expect(
+        program.parseAsync(
+          [
+            'feedback',
+            'entry_1',
+            '--entry-type',
+            'invalid',
+            '--type',
+            'incorrect',
+            '--description',
+            'test description here',
+          ],
+          { from: 'user' },
+        ),
+      ).rejects.toThrow();
+
+      consoleErrorSpy.mockRestore();
+    });
+
     it('requires description in non-interactive mode', async () => {
       vi.mocked(prompts.isInteractiveEnvironment).mockReturnValue(false);
 

@@ -154,6 +154,10 @@ registerOperationsCommands(program, {
   allowEdit: visibility.allowKnowledgeUpdate,
   allowDeactivate: visibility.allowKnowledgeDeactivate,
   allowImport: visibility.allowKnowledgeImport,
+  allowList: visibility.allowKnowledgeExport,
+  allowActivate: visibility.allowKnowledgeExport,
+  allowStatus: visibility.allowKnowledgeExport,
+  allowMigrate: visibility.allowKnowledgeImport,
 });
 registerDecayCommands(program, { allowManage: visibility.allowKnowledgeUpdate });
 registerMaintenanceCommands(program, { allowManage: visibility.allowKnowledgeUpdate });

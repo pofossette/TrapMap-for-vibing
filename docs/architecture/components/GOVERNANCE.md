@@ -161,6 +161,22 @@ flowchart TB
     请求 --> 会话验证 --> 角色等级检查 --> 权限检查 --> 条目等级检查 --> 结果
 ```
 
+### CLI 权限标志映射
+
+CLI 入口 (`packages/cli/src/index.ts`) 将 RBAC 权限和安全等级组合为 `visibility` 对象，再映射到各命令组的细粒度标志：
+
+| CLI 权限标志 | 来源 | 控制命令 |
+|-------------|------|----------|
+| `allowKnowledgeSubmit` | `knowledge:submit` | `submit`, `resubmit`, `trap submit`, `skill edit` |
+| `allowKnowledgeSearch` | `knowledge:search` | `search`, `load`, `feedback`, `skill search-by-content` |
+| `allowKnowledgeReview` | `securityLevel >= 1` + `knowledge:review` | `review:queue/approve/reject`, `skill review:*`, `skill duplicate-job *` |
+| `allowKnowledgeExport` | `knowledge:export` | `list`, `export`, `activate`, `status`, `skill history` |
+| `allowKnowledgeImport` | `securityLevel >= 1` + `knowledge:import` | `import`, `migrate` |
+| `allowKnowledgeUpdate` | `securityLevel >= 1` + `knowledge:update` | `edit`, `deactivate` |
+| `allowAuditRead` | `audit:read` | `audit` |
+
+Operations 命令组使用独立标志：`allowList`、`allowActivate`、`allowStatus`（均映射自 `allowKnowledgeExport`），`allowMigrate`（映射自 `allowKnowledgeImport`）。
+
 ### 实现
 
 ```typescript

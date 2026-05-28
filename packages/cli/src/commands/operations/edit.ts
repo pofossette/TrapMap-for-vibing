@@ -48,7 +48,11 @@ export function registerEditCommand(program: Command, options: OperationsCommand
         }
 
         if (flags.requiredLevel !== undefined) {
-          body.requiredLevel = Number(flags.requiredLevel);
+          const level = Number(flags.requiredLevel);
+          if (!Number.isInteger(level) || level < 0) {
+            throw new Error('--required-level must be a non-negative integer');
+          }
+          body.requiredLevel = level;
         }
 
         const response = await apiRequest<KnowledgeEntryResponse>(cliState, {

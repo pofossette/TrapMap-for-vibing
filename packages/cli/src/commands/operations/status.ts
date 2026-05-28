@@ -8,7 +8,7 @@ import { printResult } from '@trapmap/cli/lib/output.js';
 import type { OperationsCommandOptions } from './types.js';
 
 export function registerStatusCommand(program: Command, options: OperationsCommandOptions): void {
-  if (!options.allowExport) return;
+  if (!options.allowStatus) return;
 
   // Compatibility status command (Phase 16-01: COMP-03)
   program

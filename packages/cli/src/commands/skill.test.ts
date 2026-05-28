@@ -59,6 +59,20 @@ describe('CLI skill commands', () => {
       expect(skillCommand).toBeUndefined();
     });
 
+    it('registers review subcommands when only allowReview is true', () => {
+      registerSkillCommands(program, {
+        allowSearch: false,
+        allowSubmit: false,
+        allowExport: false,
+        allowReview: true,
+      });
+
+      const skillCmd = program.commands.find((c) => c.name() === 'skill');
+      expect(skillCmd).toBeDefined();
+      const reviewQueue = skillCmd?.commands.find((c) => c.name() === 'review:queue');
+      expect(reviewQueue).toBeDefined();
+    });
+
     it('registers search-by-content subcommand under skill', () => {
       registerSkillCommands(program, {
         allowSearch: true,

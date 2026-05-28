@@ -93,6 +93,10 @@ describe('CLI operations commands (Phase 13)', () => {
       allowExport: true,
       allowEdit: false,
       allowDeactivate: false,
+      allowList: true,
+      allowActivate: true,
+      allowStatus: true,
+      allowMigrate: true,
     });
   });
 
@@ -368,6 +372,10 @@ describe('CLI operations commands (Phase 13)', () => {
         allowExport: true,
         allowEdit: false,
         allowDeactivate: false,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
       });
     });
 
@@ -679,6 +687,10 @@ describe('CLI operations commands (Phase 13)', () => {
         allowExport: true,
         allowEdit: false,
         allowDeactivate: false,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
       });
     });
 
@@ -871,49 +883,71 @@ describe('Phase 85: Permission guards', () => {
   });
 
   describe('allowExport=false should hide export-dependent commands', () => {
-    it('should not register list command when allowExport=false', () => {
-      registerOperationsCommands(program, {
-        allowImport: true,
-        allowExport: false,
-        allowEdit: true,
-        allowDeactivate: true,
-      });
-
-      const commands = program.commands.map((c) => c.name());
-      expect(commands).not.toContain('list');
-    });
-
     it('should not register export command when allowExport=false', () => {
       registerOperationsCommands(program, {
         allowImport: true,
         allowExport: false,
         allowEdit: true,
         allowDeactivate: true,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
       });
 
       const commands = program.commands.map((c) => c.name());
       expect(commands).not.toContain('export');
       expect(commands).not.toContain('artifact-export');
     });
+  });
 
-    it('should not register activate command when allowExport=false', () => {
+  describe('allowList=false should hide list command', () => {
+    it('should not register list command when allowList=false', () => {
       registerOperationsCommands(program, {
         allowImport: true,
-        allowExport: false,
+        allowExport: true,
         allowEdit: true,
         allowDeactivate: true,
+        allowList: false,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).not.toContain('list');
+    });
+  });
+
+  describe('allowActivate=false should hide activate command', () => {
+    it('should not register activate command when allowActivate=false', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: true,
+        allowEdit: true,
+        allowDeactivate: true,
+        allowList: true,
+        allowActivate: false,
+        allowStatus: true,
+        allowMigrate: true,
       });
 
       const commands = program.commands.map((c) => c.name());
       expect(commands).not.toContain('activate');
     });
+  });
 
-    it('should not register status command when allowExport=false', () => {
+  describe('allowStatus=false should hide status command', () => {
+    it('should not register status command when allowStatus=false', () => {
       registerOperationsCommands(program, {
         allowImport: true,
-        allowExport: false,
+        allowExport: true,
         allowEdit: true,
         allowDeactivate: true,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: false,
+        allowMigrate: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -928,6 +962,10 @@ describe('Phase 85: Permission guards', () => {
         allowExport: true,
         allowEdit: false,
         allowDeactivate: true,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -940,6 +978,10 @@ describe('Phase 85: Permission guards', () => {
         allowExport: true,
         allowEdit: true,
         allowDeactivate: true,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -954,6 +996,10 @@ describe('Phase 85: Permission guards', () => {
         allowExport: true,
         allowEdit: true,
         allowDeactivate: false,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -966,6 +1012,10 @@ describe('Phase 85: Permission guards', () => {
         allowExport: true,
         allowEdit: true,
         allowDeactivate: true,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -973,29 +1023,21 @@ describe('Phase 85: Permission guards', () => {
     });
   });
 
-  describe('allowImport=false should hide import-dependent commands', () => {
+  describe('allowImport=false should hide import command', () => {
     it('should not register import command when allowImport=false', () => {
       registerOperationsCommands(program, {
         allowImport: false,
         allowExport: true,
         allowEdit: true,
         allowDeactivate: true,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
       });
 
       const commands = program.commands.map((c) => c.name());
       expect(commands).not.toContain('import');
-    });
-
-    it('should not register migrate command when allowImport=false', () => {
-      registerOperationsCommands(program, {
-        allowImport: false,
-        allowExport: true,
-        allowEdit: true,
-        allowDeactivate: true,
-      });
-
-      const commands = program.commands.map((c) => c.name());
-      expect(commands).not.toContain('migrate');
     });
 
     it('should register import command when allowImport=true', () => {
@@ -1004,18 +1046,44 @@ describe('Phase 85: Permission guards', () => {
         allowExport: true,
         allowEdit: true,
         allowDeactivate: true,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
       });
 
       const commands = program.commands.map((c) => c.name());
       expect(commands).toContain('import');
     });
+  });
 
-    it('should register migrate command when allowImport=true', () => {
+  describe('allowMigrate=false should hide migrate command', () => {
+    it('should not register migrate command when allowMigrate=false', () => {
       registerOperationsCommands(program, {
         allowImport: true,
         allowExport: true,
         allowEdit: true,
         allowDeactivate: true,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: false,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).not.toContain('migrate');
+    });
+
+    it('should register migrate command when allowMigrate=true', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: true,
+        allowEdit: true,
+        allowDeactivate: true,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -1030,10 +1098,13 @@ describe('Phase 85: Permission guards', () => {
         allowExport: true,
         allowEdit: true,
         allowDeactivate: true,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
       });
 
       const commands = program.commands.map((c) => c.name()).sort();
-      // 9 commands: list, edit, deactivate, export, artifact-export, import, activate, migrate, status
       expect(commands).toEqual(
         [
           'activate',
@@ -1057,6 +1128,10 @@ describe('Phase 85: Permission guards', () => {
         allowExport: false,
         allowEdit: false,
         allowDeactivate: false,
+        allowList: false,
+        allowActivate: false,
+        allowStatus: false,
+        allowMigrate: false,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -1084,6 +1159,182 @@ describe('Phase 85: Barrel export completeness', () => {
     // TypeScript type re-export is compile-time only
     // We verify the module loads without error
     expect(barrel).toBeDefined();
+  });
+});
+
+describe('Phase 2: Input validation', () => {
+  let program: Command;
+  const validationMockState = {
+    serverUrl: 'http://localhost:3000',
+    sessionToken: 'test-token',
+    session: null,
+  };
+
+  beforeEach(() => {
+    program = new Command();
+    mockedApiRequest.mockReset();
+    mockedLoadCliState.mockReset();
+    mockedLoadCliState.mockResolvedValue(validationMockState);
+  });
+
+  describe('deactivate --reason validation', () => {
+    it('rejects reason over 500 characters', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const p = new Command();
+      registerOperationsCommands(p, {
+        allowImport: false,
+        allowExport: false,
+        allowEdit: false,
+        allowDeactivate: true,
+        allowList: false,
+        allowActivate: false,
+        allowStatus: false,
+        allowMigrate: false,
+      });
+
+      await expect(
+        p.parseAsync(['node', 'test', 'deactivate', 'entry_1', '--reason', 'x'.repeat(501)]),
+      ).rejects.toThrow();
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('accepts reason within 500 characters', async () => {
+      const p = new Command();
+      registerOperationsCommands(p, {
+        allowImport: false,
+        allowExport: false,
+        allowEdit: false,
+        allowDeactivate: true,
+        allowList: false,
+        allowActivate: false,
+        allowStatus: false,
+        allowMigrate: false,
+      });
+
+      const deactivateCmd = p.commands.find((c) => c.name() === 'deactivate');
+      expect(deactivateCmd).toBeDefined();
+      const reasonOption = deactivateCmd?.options.find((o) => o.long === '--reason');
+      expect(reasonOption).toBeDefined();
+      expect(reasonOption?.argParser).toBeDefined();
+      expect(() => reasonOption?.argParser?.('Valid reason', '')).not.toThrow();
+    });
+  });
+
+  describe('edit --required-level validation', () => {
+    it('rejects float values for required-level', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const p = new Command();
+      registerOperationsCommands(p, {
+        allowImport: false,
+        allowExport: false,
+        allowEdit: true,
+        allowDeactivate: false,
+        allowList: false,
+        allowActivate: false,
+        allowStatus: false,
+        allowMigrate: false,
+      });
+
+      await expect(
+        p.parseAsync(['node', 'test', 'edit', 'entry_1', '--required-level', '3.5']),
+      ).rejects.toThrow();
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('rejects negative values for required-level', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const p = new Command();
+      registerOperationsCommands(p, {
+        allowImport: false,
+        allowExport: false,
+        allowEdit: true,
+        allowDeactivate: false,
+        allowList: false,
+        allowActivate: false,
+        allowStatus: false,
+        allowMigrate: false,
+      });
+
+      await expect(
+        p.parseAsync(['node', 'test', 'edit', 'entry_1', '--required-level', '-1']),
+      ).rejects.toThrow();
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('accepts valid non-negative integer for required-level', async () => {
+      mockedApiRequest.mockResolvedValue({
+        data: {
+          entry: {
+            id: 'entry_1',
+            teamId: 'team_1',
+            scope: 'global',
+            labels: ['test'],
+            shortcut: 'test shortcut',
+            detail: 'test detail text',
+            requiredLevel: 5,
+            owner: { id: 'user_1', handle: 'test', securityLevel: 0 },
+            latestRevision: {
+              revision: 1,
+              submittedAt: '2026-01-01T00:00:00Z',
+              submittedBy: { id: 'user_1', handle: 'test', securityLevel: 0 },
+              shortcut: 'test shortcut',
+              detail: 'test detail text',
+              labels: ['test'],
+            },
+            history: [
+              {
+                revision: 1,
+                submittedAt: '2026-01-01T00:00:00Z',
+                submittedBy: { id: 'user_1', handle: 'test', securityLevel: 0 },
+                shortcut: 'test shortcut',
+                detail: 'test detail text',
+                labels: ['test'],
+                lifecycleState: 'approved',
+              },
+            ],
+            metadata: {
+              sourceKind: 'legacy-knowledge',
+              submissionCount: 1,
+              resubmissionCount: 0,
+              revisionCount: 1,
+              scopeLabel: 'global-constraint',
+            },
+            agentReview: null,
+            lifecycleState: 'approved',
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
+          },
+        },
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const p = new Command();
+      registerOperationsCommands(p, {
+        allowImport: false,
+        allowExport: false,
+        allowEdit: true,
+        allowDeactivate: false,
+        allowList: false,
+        allowActivate: false,
+        allowStatus: false,
+        allowMigrate: false,
+      });
+
+      await p.parseAsync(['node', 'test', 'edit', 'entry_1', '--required-level', '5']);
+      expect(mockedApiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          body: expect.objectContaining({
+            requiredLevel: 5,
+          }),
+        }),
+      );
+      consoleSpy.mockRestore();
+    });
   });
 });
 

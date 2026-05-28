@@ -11,7 +11,7 @@ import {
 import type { OperationsCommandOptions } from './types.js';
 
 export function registerActivateCommand(program: Command, options: OperationsCommandOptions): void {
-  if (!options.allowExport) return;
+  if (!options.allowActivate) return;
 
   // Activation command (Phase 15-03: ACTV-01, T-15-08, T-15-09)
   program

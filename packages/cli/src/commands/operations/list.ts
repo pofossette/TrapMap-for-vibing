@@ -9,7 +9,7 @@ import { printResult } from '@trapmap/cli/lib/output.js';
 import type { OperationsCommandOptions } from './types.js';
 
 export function registerListCommand(program: Command, options: OperationsCommandOptions): void {
-  if (!options.allowExport) return;
+  if (!options.allowList) return;
 
   program
     .command('list')

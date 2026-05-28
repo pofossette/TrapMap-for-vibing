@@ -6,4 +6,8 @@ export interface OperationsCommandOptions {
   allowEdit: boolean;
   allowDeactivate: boolean;
   allowImport: boolean;
+  allowList: boolean;
+  allowActivate: boolean;
+  allowStatus: boolean;
+  allowMigrate: boolean;
 }

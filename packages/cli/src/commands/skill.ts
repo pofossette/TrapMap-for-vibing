@@ -225,7 +225,7 @@ function formatApplyResolutionResponse(response: ApplyResolutionResponse): strin
 
 export function registerSkillCommands(program: Command, options: SkillCommandOptions): void {
   // Always register the skill command if any subcommand is allowed
-  if (!options.allowSearch && !options.allowSubmit && !options.allowExport) {
+  if (!options.allowSearch && !options.allowSubmit && !options.allowExport && !options.allowReview) {
     return;
   }
 

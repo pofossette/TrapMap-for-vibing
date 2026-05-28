@@ -129,10 +129,25 @@ const config = loadConfig();
 | `knowledge` | `commands/knowledge.ts` | 知识提交/查询 |
 | `review` | `commands/review.ts` | 审核操作 |
 | `retrieval` | `commands/retrieval.ts` | 检索命令 |
-| `operations` | `commands/operations.ts` | 导入/导出 |
+| `operations` | `commands/operations.ts` | 导入/导出/列表/激活/状态/迁移/编辑/停用 |
 | `audit` | `commands/audit.ts` | 审计日志 |
 | `trap` | `commands/trap.ts` | Trap 管理 |
 | `skill` | `commands/skill.ts` | Skill 管理 |
+
+### Operations 权限模型
+
+Operations 命令组使用细粒度权限标志，每个子命令独立控制：
+
+| 权限标志 | 控制命令 | 映射自 `visibility` |
+|----------|----------|---------------------|
+| `allowList` | `list` | `allowKnowledgeExport` |
+| `allowEdit` | `edit` | `allowKnowledgeUpdate` |
+| `allowDeactivate` | `deactivate` | `allowKnowledgeDeactivate` |
+| `allowExport` | `export`, `artifact-export` | `allowKnowledgeExport` |
+| `allowImport` | `import` | `allowKnowledgeImport` |
+| `allowActivate` | `activate` | `allowKnowledgeExport` |
+| `allowMigrate` | `migrate` | `allowKnowledgeImport` |
+| `allowStatus` | `status` | `allowKnowledgeExport` |
 
 ### 输出模式
 
