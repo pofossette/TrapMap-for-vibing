@@ -22,6 +22,8 @@ flowchart TB
 |------|------|--------|
 | 检索评估 (Retrieval) | 验证召回结果的相关性和治理正确性 | `evals/retrieval/run.ts` |
 | 摘要评估 (Summary) | 验证 AI 生成摘要的忠实度和覆盖率 | `evals/summary/run.ts` |
+| 图提取评估 (Graph Extraction) | 验证图提取、去重和冲突评测 | `evals/graph-extraction/run.ts` |
+| 摄取评估 (Ingestion) | 验证 Skill 目录摄取的正确性 | `evals/ingestion/run.ts` |
 | 治理评估 (Governance) | 验证 RBAC 和安全等级过滤 | 内嵌于检索评估 |
 
 ### 目录结构
@@ -36,12 +38,23 @@ evals/
 │   ├── datasets/            # 测试用例定义
 │   ├── scenarios/           # Fixture 状态定义
 │   └── lib/                 # 运行器基础设施
-└── summary/
-    ├── run.ts               # 摘要运行器入口
-    ├── smoke.ts / core.ts   # 分层数据集导出
-    ├── datasets/            # 测试用例定义
-    ├── scenarios/           # Fixture 状态定义
-    └── lib/                 # 评判器和评分基础设施
+├── summary/
+│   ├── run.ts               # 摘要运行器入口
+│   ├── smoke.ts / core.ts   # 分层数据集导出
+│   ├── datasets/            # 测试用例定义
+│   ├── scenarios/           # Fixture 状态定义
+│   └── lib/                 # 评判器和评分基础设施
+├── graph-extraction/
+│   ├── run.ts               # 图提取运行器入口
+│   ├── fixtures.ts          # 标注 ground truth fixtures
+│   ├── dedup-eval.ts        # 去重评测
+│   └── conflict-eval.ts     # 冲突评测
+└── ingestion/
+    ├── run.ts               # 摄取运行器入口
+    ├── adapter.ts           # 摄取适配器
+    ├── assertions.ts        # 摄取断言
+    ├── metrics.ts           # 摄取指标
+    └── fixtures/            # 摄取用例固定数据
 ```
 
 ---
@@ -84,6 +97,12 @@ pnpm eval:retrieval:core
 # 仅摘要评估
 pnpm eval:summary:smoke
 pnpm eval:summary:core
+
+# 仅图提取评估
+pnpm eval:graph-extraction:smoke
+
+# 仅摄取评估
+pnpm eval:ingestion:smoke
 
 # 详细输出（逐用例结果）
 pnpm eval:smoke -- --verbose

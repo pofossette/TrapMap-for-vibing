@@ -441,6 +441,8 @@ pnpm eval:core
 # Run specific evaluation
 pnpm eval:retrieval:smoke
 pnpm eval:summary:smoke
+pnpm eval:graph-extraction:smoke
+pnpm eval:ingestion:smoke
 
 # Run with report
 pnpm eval:ci:core
@@ -589,6 +591,11 @@ pnpm eval:retrieval:smoke
 pnpm eval:retrieval:core
 pnpm eval:summary:smoke
 pnpm eval:summary:core
+pnpm eval:graph-extraction:smoke
+pnpm eval:ingestion:smoke
+
+# CI 网关
+pnpm eval:ci
 ```
 
 ## 测试用例管理

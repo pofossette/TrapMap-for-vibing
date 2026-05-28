@@ -85,6 +85,17 @@ evals/
     └── fixtures/                # 摄取用例固定数据
 ```
 
+## Directory Layout
+
+| Directory | Contents | Entry Command |
+|---|---|---|
+| `retrieval/` | Retrieval datasets, scenarios, metrics, and runner | `pnpm eval:retrieval:smoke` |
+| `summary/` | Summary datasets, scenarios, assertions, judge, and runner | `pnpm eval:summary:smoke` |
+| `graph-extraction/` | Graph extraction, dedup, and conflict evaluation | `pnpm eval:graph-extraction:smoke` |
+| `ingestion/` | Skill ingestion fixtures, assertions, adapter, and runner | `pnpm eval:ingestion:smoke` |
+| `fixtures/` | Shared trap fixtures | Imported by eval suites |
+| `scripts/` | Cross-eval CI and aggregate runners | `pnpm eval:ci` |
+
 ## Phase 状态
 
 | Phase | 范围 | 状态 |

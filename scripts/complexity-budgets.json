@@ -104,6 +104,16 @@
       "file": "docs/architecture/components/ARTIFACTS.md",
       "mustContain": ["agent-pass", "SkillArtifactRecord"],
       "mustNotContain": ["interface SkillArtifact {"]
+    },
+    {
+      "file": "evals/README.md",
+      "mustContain": [
+        "retrieval/",
+        "summary/",
+        "graph-extraction/",
+        "ingestion/",
+        "pnpm eval:ci"
+      ]
     }
   ],
   "lineBudgets": [
