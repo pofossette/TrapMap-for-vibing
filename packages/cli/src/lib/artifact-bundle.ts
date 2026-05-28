@@ -53,7 +53,7 @@ export async function buildSingleSkillMdBundle(args: {
     .slice(0, 80);
 
   return {
-    scope: 'project',
+    scope: 'global',
     labels,
     title,
     slug,
@@ -133,7 +133,7 @@ export async function scanSkillDirectory(
 
         if (entry.isFile()) {
           // Classify file by directory
-          if (relPath === 'SKILL.md') {
+          if (relPath.toLowerCase() === 'skill.md') {
             // Will be handled separately
           } else if (relPath.startsWith('references/')) {
             references.push(relPath);
@@ -156,14 +156,19 @@ export async function scanSkillDirectory(
 
   await scanDir(rootPath);
 
-  // Check for SKILL.md at root
-  try {
-    const skillMdPath = join(rootPath, 'SKILL.md');
-    await readFile(skillMdPath);
-    return { skillMd: skillMdPath, references, assets, scripts };
-  } catch {
-    return { skillMd: null, references, assets, scripts };
+  const skillMdCandidates = ['SKILL.md', 'skill.md', 'Skill.md'];
+  let skillMdPath: string | null = null;
+  for (const candidate of skillMdCandidates) {
+    try {
+      const p = join(rootPath, candidate);
+      await readFile(p);
+      skillMdPath = p;
+      break;
+    } catch {
+      // try next
+    }
   }
+  return { skillMd: skillMdPath, references, assets, scripts };
 }
 
 /**

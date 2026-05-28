@@ -294,6 +294,57 @@ describe('output profile helpers', () => {
     expect(parsed.fallback_notice).toBeUndefined();
   });
 
+  it('detects plan with non-null later elements even if first element is falsy', () => {
+    const payload: GraphPlanSearchResponse = {
+      routingTrace: {
+        selectedMode: 'mix',
+        routeFamily: 'graph-plan',
+        routingReason: 'graph-plan-selected',
+        channelsUsed: ['semantic'],
+        fallbackTarget: null,
+        confidenceScore: 0.9,
+        confidenceBucket: 'high',
+      },
+      plan: {
+        blockingTraps: [],
+        recommendedSkills: [
+          null as unknown as import('@trapmap/contracts').PlanSkillNode,
+          {
+            nodeId: 'skill-2',
+            artifactId: 'artifact-2',
+            label: 'Valid skill',
+            situation: 'test',
+            problem: 'test',
+            goal: 'test',
+            scope: 'project',
+            requiredLevel: 1,
+            score: 0.8,
+            activationRefs: { references: [], assets: [], scripts: [] },
+          },
+        ],
+        edges: [],
+        citations: [],
+        graph: {
+          nodes: [],
+          edges: [],
+          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
+        },
+      },
+      fallback: null,
+    };
+
+    const renderer = resolveRenderer(
+      { ...getDefaultOutputProfile(), tool: 'codex' },
+      'graph-plan',
+    );
+    const rendered = renderer.render(
+      createRenderEnvelope('graph-plan', payload, getDefaultOutputProfile()),
+    );
+    const parsed = JSON.parse(rendered);
+    expect(parsed.summary).toContain('recommended skill');
+    expect(parsed.selected_path).toBe('graph-plan');
+  });
+
   it('renders fallback-aware graph-plan summary for opencode', () => {
     const payload: GraphPlanSearchResponse = {
       routingTrace: {

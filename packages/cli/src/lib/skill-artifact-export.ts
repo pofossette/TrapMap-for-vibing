@@ -56,8 +56,9 @@ export function validateBundleFilePath(relPath: string): string {
     throw new Error(`File path contains null bytes: ${relPath}`);
   }
 
-  // Reject directory traversal
-  if (relPath.includes('..')) {
+  const normalized = normalize(relPath);
+  const segments = normalized.split(sep);
+  if (segments.includes('..') || relPath.split('/').includes('..') || relPath.split('\\').includes('..')) {
     throw new Error(`File path contains directory traversal: ${relPath}`);
   }
 
@@ -76,7 +77,7 @@ export function validateBundleFilePath(relPath: string): string {
 export function decodeFileContent(content: string): Buffer {
   // Try to detect if content is base64-encoded
   // Base64 content should only contain valid base64 characters
-  const isBase64 = /^[A-Za-z0-9+/]*={0,2}$/.test(content) && content.length % 4 === 0;
+  const isBase64 = /^[A-Za-z0-9+/]*={0,2}$/.test(content);
 
   if (isBase64 && content.length > 0) {
     try {

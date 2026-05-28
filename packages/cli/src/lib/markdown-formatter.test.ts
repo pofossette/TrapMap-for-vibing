@@ -31,6 +31,18 @@ describe('truncateText', () => {
     expect(result.length).toBe(50);
     expect(result.endsWith('...')).toBe(true);
   });
+
+  it('truncateText with maxLength 2 returns string of length <= 2', () => {
+    expect(truncateText('hello', 2).length).toBeLessThanOrEqual(2);
+  });
+
+  it('truncateText with maxLength 1 returns string of length <= 1', () => {
+    expect(truncateText('hello', 1).length).toBeLessThanOrEqual(1);
+  });
+
+  it('truncateText with maxLength 3 returns string of length <= 3', () => {
+    expect(truncateText('hello', 3).length).toBeLessThanOrEqual(3);
+  });
 });
 
 describe('formatLoadContext', () => {
@@ -180,6 +192,19 @@ describe('formatLoadContext', () => {
     expect(result).toContain('Mode: graph-assisted');
     expect(result).toContain('Confidence: 0.85 (high)');
     expect(result).toContain('Channels: semantic, keyword');
+  });
+
+  it('shows "unknown" for channels when channelsUsed is empty array', () => {
+    const response: GraphPlanSearchResponse = {
+      routingTrace: {
+        ...mockTrace,
+        channelsUsed: [],
+      },
+      plan: null,
+      fallback: null,
+    };
+    const result = formatLoadContext(response);
+    expect(result).toContain('Channels: unknown');
   });
 
   it('respects maxTraps option', () => {

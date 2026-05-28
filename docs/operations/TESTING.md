@@ -511,6 +511,20 @@ pnpm test -- --run packages/server/src/__tests__/snapshot-usage-guard.test.ts
 
 ---
 
+## 边界条件检查清单
+
+编写或修改格式化、路径验证和 falsy 检查相关代码时，确认以下边界条件：
+
+- [ ] **Falsy 值保留**：`''`、`0`、`false` 不应被条件检查误删，使用 `!= null` 替代 truthy 检查
+- [ ] **空数组 join**：`[].join(', ')` 返回 `''` 而非 `null`，需要显式检查 `length > 0`
+- [ ] **路径遍历**：`file..txt` 中的 `..` 不是路径段，不应被拒绝；按 `sep` 分割后检查段
+- [ ] **Base64 无填充**：合法 base64 可以没有 `=` 填充，不要强制 `length % 4 === 0`
+- [ ] **截断边界**：`maxLength <= 3` 时 `slice(0, maxLength - 3)` 产生负数索引
+- [ ] **大小写敏感**：文件系统可能使用 `skill.md`、`SKILL.md`、`Skill.md` 等变体
+- [ ] **null vs undefined 语义**：`null` 表示"已知为空"，`undefined` 表示"未设置"，格式化时应区分
+
+---
+
 ## 相关文档
 
 - [模块详解](../architecture/MODULES.md) — 系统模块架构和设计

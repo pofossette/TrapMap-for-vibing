@@ -22,7 +22,7 @@ function formatDecayList(data: DecayEntryListResponse): string {
   lines.push(`Found ${data.total} entries\n`);
 
   for (const item of data.items) {
-    const state = item.decayState ?? 'unknown';
+    const state = item.decayState === null ? 'unknown' : (item.decayState ?? '');
     const age = item.ageDays !== null ? `${Math.round(item.ageDays)}d` : 'n/a';
     const labels = item.labels.length > 0 ? ` [${item.labels.join(', ')}]` : '';
     lines.push(`${item.id}  [${state}]  ${age}  ${item.shortcut.slice(0, 50)}${labels}`);
@@ -39,7 +39,7 @@ function formatBatchResult(data: BatchOperationResponse): string {
   const mode = data.dryRun ? 'DRY RUN - ' : '';
   lines.push(`${mode}Action: ${data.action}`);
   lines.push(`Eligible: ${data.totalEligible}, Ineligible: ${data.totalIneligible}`);
-  if (data.appliedAt) {
+  if (data.appliedAt != null) {
     lines.push(`Applied at: ${data.appliedAt}`);
   }
   lines.push('');

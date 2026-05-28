@@ -19,7 +19,7 @@ export async function promptSelect<T>(message: string, choices: PromptChoice<T>[
     choices: choices.map((c) => ({
       value: c.value,
       name: c.name,
-      ...(c.description ? { description: c.description } : {}),
+      ...(c.description != null ? { description: c.description } : {}),
     })),
   });
 }

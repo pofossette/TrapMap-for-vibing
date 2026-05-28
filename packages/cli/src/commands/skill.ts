@@ -159,7 +159,7 @@ function formatDuplicateJobBundle(response: DuplicateJobBundleResponse): string 
       `  Similarity: ${(m.similarityScore * 100).toFixed(1)}%`,
       `  Match Type: ${m.matchType}`,
     );
-    if (e.entityType === 'trap' && e.detail) {
+    if (e.entityType === 'trap' && e.detail != null) {
       lines.push(`  Detail: ${e.detail.slice(0, 150)}${e.detail.length > 150 ? '...' : ''}`);
     }
   }

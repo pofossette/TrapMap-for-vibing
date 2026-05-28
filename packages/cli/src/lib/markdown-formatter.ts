@@ -40,6 +40,7 @@ export function escapeMarkdown(text: string): string {
  */
 export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
+  if (maxLength <= 3) return text.slice(0, maxLength);
   return `${text.slice(0, maxLength - 3)}...`;
 }
 
@@ -95,10 +96,14 @@ function formatSkillNode(skill: PlanSkillNode, maxLen: number): string {
  * Format routing trace as markdown section.
  */
 function formatRoutingTrace(trace: GraphPlanRoutingTrace): string {
+  const channels =
+    trace.channelsUsed && trace.channelsUsed.length > 0
+      ? trace.channelsUsed.join(', ')
+      : 'unknown';
   const lines = [
     `- Mode: ${trace.selectedMode}`,
     `- Confidence: ${trace.confidenceScore.toFixed(2)} (${trace.confidenceBucket})`,
-    `- Channels: ${trace.channelsUsed?.join(', ') ?? 'unknown'}`,
+    `- Channels: ${channels}`,
   ];
   if (trace.fallbackTarget) {
     lines.push(`- Fallback: ${trace.fallbackTarget}`);

@@ -137,7 +137,10 @@ function summarizeSkillLookup(payload: SkillLookupResponse): string {
 }
 
 function summarizeGraphPlan(payload: GraphPlanSearchResponse): string {
-  if (payload.plan?.recommendedSkills[0] || payload.plan?.blockingTraps[0]) {
+  if (
+    payload.plan?.recommendedSkills.some((s) => s != null) ||
+    payload.plan?.blockingTraps.some((t) => t != null)
+  ) {
     return `${payload.plan?.recommendedSkills.length ?? 0} recommended skill(s), ${payload.plan?.blockingTraps.length ?? 0} blocking trap(s) in graph-plan summary`;
   }
   if (payload.fallback?.routeFamily === 'capsule') {
@@ -184,7 +187,7 @@ function buildGraphPlanSummaryView(
       : 'entry-fallback';
 
   const blockingTraps =
-    plan?.blockingTraps.slice(0, trapLimit).map((trap) => ({
+    plan?.blockingTraps.filter((t) => t != null).slice(0, trapLimit).map((trap) => ({
       label: trap.label,
       severity: trap.severity,
       sourceId: trap.sourceId,
@@ -192,7 +195,7 @@ function buildGraphPlanSummaryView(
     })) ?? [];
 
   const recommendedSkills =
-    plan?.recommendedSkills.slice(0, skillLimit).map((skill) => ({
+    plan?.recommendedSkills.filter((s) => s != null).slice(0, skillLimit).map((skill) => ({
       artifactId: skill.artifactId,
       label: skill.label,
       score: skill.score,
@@ -208,7 +211,7 @@ function buildGraphPlanSummaryView(
       : []);
 
   const activationHints =
-    plan?.recommendedSkills.slice(0, skillLimit).map((skill) => ({
+    plan?.recommendedSkills.filter((s) => s != null).slice(0, skillLimit).map((skill) => ({
       artifactId: skill.artifactId,
       references: skill.activationRefs.references.slice(0, referenceLimit).map((ref) => ref.path),
       assets: skill.activationRefs.assets.slice(0, assetLimit).map((asset) => asset.path),

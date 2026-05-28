@@ -168,6 +168,18 @@ describe('artifact-bundle utilities', () => {
       expect(result.scripts).toEqual(['scripts/setup.sh']);
     });
 
+    it('should find skill.md (lowercase)', async () => {
+      await writeFile(join(testDir, 'skill.md'), '# Test Skill');
+      const result = await scanSkillDirectory(testDir);
+      expect(result.skillMd).toBe(join(testDir, 'skill.md'));
+    });
+
+    it('should find Skill.md (mixed case)', async () => {
+      await writeFile(join(testDir, 'Skill.md'), '# Test Skill');
+      const result = await scanSkillDirectory(testDir);
+      expect(result.skillMd).toBe(join(testDir, 'Skill.md'));
+    });
+
     it('should skip hidden files and node_modules', async () => {
       await writeFile(join(testDir, 'SKILL.md'), '# Test');
       await writeFile(join(testDir, '.env'), 'SECRET=123');
@@ -221,6 +233,18 @@ describe('artifact-bundle utilities', () => {
       expect(bundle.files[0]?.includeInDerivation).toBe(true);
       expect(bundle.files[0]?.activationOnly).toBe(false);
       expect(bundle.scriptDescriptors).toHaveLength(0);
+    });
+
+    it('should produce scope: global', async () => {
+      const skillPath = join(testDir, 'SKILL.md');
+      await writeFile(skillPath, '---\nname: Test Skill\n---\n\nBody');
+
+      const bundle = await buildSingleSkillMdBundle({
+        filePath: skillPath,
+        requestedLevel: 1,
+      });
+
+      expect(bundle.scope).toBe('global');
     });
 
     it('should use defaults when no frontmatter metadata', async () => {

@@ -47,6 +47,16 @@ describe('cli config', () => {
     }
   });
 
+  it('preserves empty-string outputProfile value', async () => {
+    const fs = await import('node:fs/promises');
+    vi.mocked(fs.readFile).mockResolvedValue(
+      JSON.stringify({ outputProfile: '' }) as never,
+    );
+    const { loadCliState } = await import('./config.js');
+    const state = await loadCliState();
+    expect(state.outputProfile).toBe('');
+  });
+
   it('omits outputProfile when config file does not define it', async () => {
     const fs = await import('node:fs/promises');
     vi.mocked(fs.readFile).mockResolvedValue(

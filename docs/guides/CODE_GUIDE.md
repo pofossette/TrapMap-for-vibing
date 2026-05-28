@@ -320,7 +320,22 @@ CLI retrieval search "如何处理 N+1"
 
 ---
 
-## 8. 调试技巧
+## 8. 编码约定：Falsy 与存在性检查
+
+在条件展开和可选字段渲染中，**不要使用 truthy 检查来判断值是否存在**。Truthy 检查会错误地丢弃 `''`、`0`、`false` 等合法 falsy 值。
+
+| 场景 | 错误写法 | 正确写法 |
+|------|----------|----------|
+| 条件展开 | `...(value ? { value } : {})` | `...(value != null ? { value } : {})` |
+| 条件渲染 | `if (data.field)` | `if (data.field != null)` |
+| 数组元素检查 | `arr[0]` | `arr.some(x => x != null)` |
+| 空数组 join | `arr?.join(', ') ?? 'fallback'` | 先检查 `arr.length > 0` |
+
+`!= null` 同时检查 `null` 和 `undefined`，但保留 `''`、`0`、`false` 等合法值。
+
+---
+
+## 9. 调试技巧
 
 1. **JSON Store 调试**：开发模式下数据存储在 JSON 文件中，可以直接查看文件内容
 2. **RAG 日志**：检索管道日志记录完整的召回-排序-输出过程，用于调试检索质量

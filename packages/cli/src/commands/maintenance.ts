@@ -44,7 +44,7 @@ function formatMaintenanceBatch(data: MaintenanceBatchOperationResponse): string
   const mode = data.dryRun ? 'DRY RUN - ' : '';
   lines.push(`${mode}Action: ${data.action}`);
   lines.push(`Eligible: ${data.totalEligible}, Ineligible: ${data.totalIneligible}`);
-  if (data.appliedAt) {
+  if (data.appliedAt != null) {
     lines.push(`Applied at: ${data.appliedAt}`);
   }
   lines.push('');

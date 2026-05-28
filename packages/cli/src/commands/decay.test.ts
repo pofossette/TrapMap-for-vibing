@@ -249,6 +249,40 @@ describe('CLI decay commands (Phase 50)', () => {
       consoleSpy.mockRestore();
     });
 
+    it('should show "unknown" for null decayState', async () => {
+      mockedApiRequest.mockResolvedValueOnce({
+        data: {
+          items: [
+            {
+              id: 'k_null',
+              scope: 'global',
+              labels: [],
+              shortcut: 'Null state entry',
+              lifecycleState: 'approved',
+              requiredLevel: 1,
+              updatedAt: '2026-01-01T00:00:00Z',
+              decayState: null,
+              freshnessType: 'evergreen',
+              ageDays: 10,
+              lastVerifiedAt: null,
+              supersededById: null,
+            },
+          ],
+          total: 1,
+        },
+        sessionToken: null,
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      await program.parseAsync(['node', 'test', 'decay-stale']);
+
+      const calls = consoleSpy.mock.calls;
+      const output = calls[0]?.[0] as string;
+      expect(output).toContain('[unknown]');
+
+      consoleSpy.mockRestore();
+    });
+
     it('should require session token', async () => {
       await program.parseAsync(['node', 'test', 'decay-stale']);
 

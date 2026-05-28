@@ -93,7 +93,7 @@ export async function loadCliState(): Promise<CliState> {
     return {
       ...getDefaultState(),
       ...parsed,
-      ...(outputProfile ? { outputProfile } : {}),
+      ...(outputProfile != null ? { outputProfile } : {}),
     };
   } catch {
     return getDefaultState();
