@@ -32,6 +32,9 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 - **环境默认值漂移**：`ARCHITECTURE.md` 中的 `HOST`（`127.0.0.1`）和 `AI_CHAT_MODEL`（`gpt-4o-mini`）默认值
 - **深层架构参考漂移**：`PERSISTENCE.md` 表计数（56 张表）、`ENVIRONMENT.md` 数据文件路径
 - **PostgreSQL-first 姿态漂移**：禁止过时的 JSON 存储描述和旧表计数
+- **评测命令表面漂移**：`EVALUATION.md` 和 `TESTING.md` 中的 eval 入口命令（`pnpm eval:smoke`、`pnpm eval:ci:core`）
+- **贡献指南命令漂移**：`CONTRIBUTING.md` 中的 DB 迁移命令格式（必须使用 `pnpm --filter @trapmap/server`）
+- **部署默认值漂移**：`DEPLOYMENT.md` 中的 chat model（`gpt-4o-mini`）和 JSON 回退路径（`.data/skill-shareer.json`）
 
 详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`。
 

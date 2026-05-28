@@ -99,7 +99,7 @@ pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
 pnpm eval:ci
 
 # 模拟 CI core
-TIER=core pnpm eval:ci
+pnpm eval:ci:core
 
 # 查看 JSON 报告
 cat reports/eval-report.json
@@ -131,6 +131,19 @@ CI 中由 `architecture-guardrails` job 自动执行。本地开发时可在改�
 | CI 配置变更 | `pnpm check:docs-drift` + 更新 `CI_CD.md` |
 | 架构变更 | `pnpm check:docs-drift` + `pnpm check:complexity` + `pnpm eval:smoke` |
 | 脚本/守卫变更 | `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` + `pnpm check:docs-drift` |
+| 评测命令变更 | `pnpm check:docs-drift` + smoke 测试（验证 EVALUATION.md / TESTING.md 中的 eval 命令正确） |
+| 贡献指南变更 | `pnpm check:docs-drift` + smoke 测试（验证 CONTRIBUTING.md 中的 DB 命令格式） |
+
+### 文档维护工作流
+
+当修改某个权威源（truth source）时：
+
+1. 更新权威源文件本身
+2. 查阅 [`DOCS_TRUTH_MATRIX.md`](../reference/DOCS_TRUTH_MATRIX.md) 找到所有二级文档
+3. 更新所有二级文档
+4. 运行 `pnpm check:docs-drift` 确认无漂移
+5. 运行 `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` 确认真理性断言通过
+6. 如添加了新的漂移类别，在 `scripts/complexity-budgets.json` 中添加对应的 `docRules`
 
 ### CI 自动触发
 

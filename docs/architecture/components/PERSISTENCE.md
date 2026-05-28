@@ -2,7 +2,7 @@
 
 ## 概述
 
-持久化存储层为 TrapMap 提供数据持久化能力，支持两种存储实现：JsonStore（文件级，适合开发）和 PostgresStore（PostgreSQL，适合生产）。
+持久化存储层为 TrapMap 提供数据持久化能力。PostgreSQL 是主要的推荐存储后端；JsonStore 作为向后兼容的回退方案保留。
 
 ## 架构
 
@@ -105,7 +105,7 @@ interface Transaction {
 
 ---
 
-## JsonStore (开发存储)
+## JsonStore (兼容回退存储)
 
 ### 特点
 
@@ -354,13 +354,13 @@ export function createSkillShareerStore(config: StoreConfig): SkillShareerStore 
 
 ```bash
 # Generate migration
-pnpm drizzle-kit generate
+pnpm --filter @trapmap/server db:generate
 
 # Apply migration
-pnpm drizzle-kit migrate
+pnpm --filter @trapmap/server db:migrate
 
 # Push schema (development only)
-pnpm drizzle-kit push
+pnpm --filter @trapmap/server db:push
 ```
 
 ### 数据迁移

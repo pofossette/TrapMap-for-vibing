@@ -97,10 +97,10 @@ cases because the graph index wasn't populated.
 
 ```bash
 # 生成迁移（修改 packages/server/src/lib/persistence/schema.ts 后）
-pnpm run db:generate
+pnpm --filter @trapmap/server db:generate
 
 # 手动运行迁移
-pnpm run db:migrate
+pnpm --filter @trapmap/server db:migrate
 ```
 
 - 迁移文件位于 `packages/server/drizzle/`

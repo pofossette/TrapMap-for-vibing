@@ -40,8 +40,8 @@ cp .env.example .env
 pnpm dev:server
 
 # 5. 另一个终端运行 CLI
-pnpm --filter @trapmap/cli dev -- login <username> <password>
-pnpm --filter @trapmap/cli dev -- --help
+pnpm dev:cli -- login <username> <password>
+pnpm dev:cli -- --help
 ```
 
 ### 环境变量 (.env)
@@ -58,8 +58,8 @@ PORT=4000
 TRAPMAP_DATABASE_URL=postgresql://localhost:5432/trapmap
 
 # AI 提供商配置（可选）
-AI_PROVIDER=openai                    # openai, openai-compatible, ollama
-AI_CHAT_MODEL=gpt-4o
+AI_PROVIDER=openai                    # openai, openai-compatible, ollama, google-genai
+AI_CHAT_MODEL=gpt-4o-mini
 AI_EMBEDDING_MODEL=text-embedding-3-small
 
 # 可选
@@ -109,7 +109,7 @@ PORT=4000
 
 # AI 配置
 AI_PROVIDER=openai
-AI_CHAT_MODEL=gpt-4o
+AI_CHAT_MODEL=gpt-4o-mini
 AI_EMBEDDING_MODEL=text-embedding-3-small
 
 # 日志
@@ -193,7 +193,7 @@ services:
     # ... 以上配置 ...
     environment:
       # 移除 TRAPMAP_DATABASE_URL，改用 JSON 文件存储
-      - TRAPMAP_DATA_FILE=/app/.data/trapmap.json
+      - TRAPMAP_DATA_FILE=/app/.data/skill-shareer.json
     volumes:
       - ./.data:/app/.data
       - ./logs:/app/logs
@@ -291,7 +291,7 @@ env:
   OPENAI_API_KEY: your-api-key
   TRAPMAP_DATABASE_URL: postgresql://user:pass@postgres:5432/trapmap
   AI_PROVIDER: openai
-  AI_CHAT_MODEL: gpt-4o
+  AI_CHAT_MODEL: gpt-4o-mini
   AI_EMBEDDING_MODEL: text-embedding-3-small
 
 service:

@@ -430,17 +430,17 @@ jobs:
 
 ```bash
 # Run all smoke tests (fast)
-pnpm eval:ci --tier smoke
+pnpm eval:smoke
 
 # Run all core tests (comprehensive)
-pnpm eval:ci --tier core
+pnpm eval:core
 
 # Run specific evaluation
-pnpm eval:retrieval
-pnpm eval:summary
+pnpm eval:retrieval:smoke
+pnpm eval:summary:smoke
 
 # Run with report
-pnpm eval:ci --report
+pnpm eval:ci:core
 ```
 
 ---
@@ -698,9 +698,10 @@ pnpm eval:smoke
 pnpm eval:core
 
 # 运行特定评估类型
-pnpm eval:retrieval
-pnpm eval:summary
-pnpm eval:governance
+pnpm eval:retrieval:smoke
+pnpm eval:retrieval:core
+pnpm eval:summary:smoke
+pnpm eval:summary:core
 ```
 
 ## 测试用例管理

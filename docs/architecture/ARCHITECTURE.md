@@ -435,7 +435,7 @@ flowchart TB
 | `TRAPMAP_DATA_FILE` | `.data/skill-shareer.json` | JSON 存储路径 |
 | `HOST` | `127.0.0.1` | 服务器绑定主机 |
 | `PORT` | `4000` | 服务器端口 |
-| `AI_PROVIDER` | `openai` | AI 提供商类型 |
+| `AI_PROVIDER` | 自动解析：`openai` / `google-genai` / `fallback` | AI 提供商类型 |
 | `AI_BASE_URL` | (无) | 兼容提供商的 Base URL |
 | `AI_API_KEY` | (无) | 兼容提供商的 API 密钥 |
 | `AI_CHAT_MODEL` | `gpt-4o-mini` | 聊天模型名称 |

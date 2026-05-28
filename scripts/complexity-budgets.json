@@ -21,8 +21,9 @@
     },
     {
       "file": "docs/architecture/DEPLOYMENT.md",
-      "mustContain": ["TRAPMAP_DATABASE_URL"],
+      "mustContain": ["TRAPMAP_DATABASE_URL", "gpt-4o-mini", ".data/skill-shareer.json"],
       "mustNotContain": ["使用 JSON 文件存储"],
+      "mustNotContainRegex": ["gpt-4o(?!-)"],
       "mustContainCount": {
         "pattern": "PostgreSQL",
         "minOccurrences": 3
@@ -40,8 +41,29 @@
     },
     {
       "file": "docs/architecture/components/PERSISTENCE.md",
-      "mustContain": ["56 张表"],
+      "mustContain": ["56 张表", ".data/skill-shareer.json"],
       "mustNotContain": ["48 张表"]
+    },
+    {
+      "file": "docs/guides/CONTRIBUTING.md",
+      "mustContain": [
+        "pnpm --filter @trapmap/server db:generate",
+        "pnpm --filter @trapmap/server db:migrate"
+      ],
+      "mustNotContain": [
+        "pnpm run db:generate",
+        "pnpm run db:migrate"
+      ]
+    },
+    {
+      "file": "docs/operations/TESTING.md",
+      "mustContain": ["pnpm eval:ci:core"],
+      "mustNotContain": ["TIER=core pnpm eval:ci"]
+    },
+    {
+      "file": "docs/architecture/components/EVALUATION.md",
+      "mustContain": ["pnpm eval:smoke", "pnpm eval:core"],
+      "mustNotContain": ["pnpm eval:governance"]
     }
   ],
   "lineBudgets": [

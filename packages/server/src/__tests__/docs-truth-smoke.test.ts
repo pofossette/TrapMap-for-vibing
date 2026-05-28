@@ -151,4 +151,43 @@ describe('docs truth smoke', () => {
     expect(content).toContain('.data/skill-shareer.json');
     expect(content).not.toContain('.data/trapmap.json');
   });
+
+  it('CONTRIBUTING.md uses package-scoped DB commands', () => {
+    const content = readDoc('docs/guides/CONTRIBUTING.md');
+    expect(content).toContain('pnpm --filter @trapmap/server db:generate');
+    expect(content).toContain('pnpm --filter @trapmap/server db:migrate');
+    expect(content).not.toContain('pnpm run db:generate');
+    expect(content).not.toContain('pnpm run db:migrate');
+  });
+
+  it('TESTING.md uses current eval entrypoints', () => {
+    const content = readDoc('docs/operations/TESTING.md');
+    expect(content).toContain('pnpm eval:ci:core');
+    expect(content).not.toContain('TIER=core pnpm eval:ci');
+  });
+
+  it('ENVIRONMENT.md describes provider auto-detection', () => {
+    const content = readDoc('docs/operations/ENVIRONMENT.md');
+    expect(content).toMatch(/OPENAI_API_KEY.*GEMINI_API_KEY.*fallback/s);
+  });
+
+  it('DEPLOYMENT.md uses correct chat model default', () => {
+    const content = readDoc('docs/architecture/DEPLOYMENT.md');
+    expect(content).toContain('gpt-4o-mini');
+    expect(content).toContain('.data/skill-shareer.json');
+  });
+
+  it('PERSISTENCE.md uses PG-first framing', () => {
+    const content = readDoc('docs/architecture/components/PERSISTENCE.md');
+    expect(content).toContain('.data/skill-shareer.json');
+    // Verify it describes PostgreSQL as primary
+    expect(content).toMatch(/主要|primary|推荐/);
+  });
+
+  it('EVALUATION.md uses current eval commands', () => {
+    const content = readDoc('docs/architecture/components/EVALUATION.md');
+    expect(content).toContain('pnpm eval:smoke');
+    expect(content).toContain('pnpm eval:core');
+    expect(content).not.toContain('pnpm eval:governance');
+  });
 });

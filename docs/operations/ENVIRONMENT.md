@@ -44,12 +44,12 @@
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `AI_PROVIDER` | 提供商类型：`openai`、`openai-compatible`、`ollama`、`google-genai`（未配置时自动回退到 `fallback`，使用确定性哈希向量） | `openai` |
+| `AI_PROVIDER` | 提供商类型：`openai`、`openai-compatible`、`ollama`、`google-genai`。自动解析：显式值优先，其次 `OPENAI_API_KEY` → `openai`、`GEMINI_API_KEY` → `google-genai`，否则 `fallback`（使用确定性哈希向量） | 自动解析（见说明） |
 | `AI_BASE_URL` | 兼容接口的 Base URL | `https://api.openai.com/v1` |
 | `AI_API_KEY` | API 密钥 | `OPENAI_API_KEY` |
 | `AI_CHAT_MODEL` | 聊天模型名称 | `gpt-4o-mini` |
 | `AI_EMBEDDING_MODEL` | Embedding 模型名称 | `text-embedding-3-small` |
-| `AI_PROMPT_TEMPLATE_FILE` | 可选的本地 JSON 槽位模板覆盖文件路径 | `docs/reference/system-prompt-slots.default.json` |
+| `AI_PROMPT_TEMPLATE_FILE` | 可选的本地 JSON 槽位模板覆盖文件路径 | 未设置（不应用模板文件覆盖） |
 | `AI_PROMPT_PROVIDER` | Prompt provider 选择：`anthropic`、`openai`、`deepseek`、`kimi`、`gemini`、`default` | 自动从模型 ID 推断 |
 
 ### 独立 Embedding Provider
