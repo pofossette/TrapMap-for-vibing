@@ -8,6 +8,10 @@
 |------|----------|----------|
 | `retrieval-structure-adjustment.md` | 2026-05-06 | v1.x 早期检索架构调整决策背景，已整合入主架构文档 `docs/architecture/RETRIEVAL.md` |
 | `archived-plans/plan.md` | 2026-05-06 | 短期库化改造计划，已过时 |
+| `archived-plans/plan-2026-05-28-doc-drift-audit-and-alignment-active-root.md` | 2026-05-28 | 旧根 `plan.md`，已由目录结构治理计划替代 |
+| `archived-plans/retrieval-v2-v3-implementation-plan.md` | 2026-05-28 | 历史检索实现计划，根目录只保留当前 `plan.md` |
+| `reports/sea-reference-infra-review.md` | 2026-05-28 | 历史基础设施审计报告，归档到 reports |
+| `temp-2026-05-28.md` | 2026-05-28 | 临时工作笔记，根目录不保留临时材料 |
 
 ## 归档原则
 
