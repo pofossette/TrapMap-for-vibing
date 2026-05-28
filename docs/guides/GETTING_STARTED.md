@@ -44,7 +44,7 @@ cp .env.example .env
 | `TRAPMAP_SYSTEM_ADMIN_KEY` | 管理员密钥（必填） | `openssl rand -hex 32` 生成 |
 | `OPENAI_API_KEY` | OpenAI API 密钥（用于 AI 能力） | `sk-...` |
 | `TRAPMAP_DATABASE_URL` | PostgreSQL 连接字符串（默认存储后端） | `postgresql://localhost:5432/trapmap` |
-| `TRAPMAP_DATA_FILE` | JSON 存储路径（兼容回退，可选） | `.data/trapmap.json` |
+| `TRAPMAP_DATA_FILE` | JSON 存储路径（兼容回退，可选） | `.data/skill-shareer.json` |
 
 ### PostgreSQL 设置（默认）
 
@@ -55,10 +55,10 @@ cp .env.example .env
 createdb trapmap
 
 # 手动运行迁移（可选，服务器启动时自动执行）
-pnpm run db:migrate
+pnpm --filter @trapmap/server db:migrate
 
 # 生成新迁移（修改 schema 后）
-pnpm run db:generate
+pnpm --filter @trapmap/server db:generate
 ```
 
 ### JSON 文件存储（兼容回退）
@@ -71,7 +71,7 @@ pnpm run db:generate
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `AI_PROVIDER` | 提供商类型：`openai`、`openai-compatible`、`ollama` | `openai` |
+| `AI_PROVIDER` | 提供商类型：`openai`、`openai-compatible`、`ollama`、`google-genai`（未配置时自动回退到 `fallback`，使用确定性哈希向量） | `openai` |
 | `AI_BASE_URL` | 兼容接口的 Base URL | `https://api.openai.com/v1` |
 | `AI_API_KEY` | 兼容接口的 API 密钥 | `OPENAI_API_KEY` |
 | `AI_CHAT_MODEL` | 聊天模型名称 | `gpt-4o-mini` |

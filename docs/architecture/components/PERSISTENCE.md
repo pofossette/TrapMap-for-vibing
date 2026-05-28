@@ -249,18 +249,19 @@ async function restore(): Promise<void> {
 
 ### Drizzle Schema
 
-> **完整 schema 定义**: `packages/server/src/lib/persistence/schema/` (按领域拆分，共 48 张表)
+> **完整 schema 定义**: `packages/server/src/lib/persistence/schema/` (按领域拆分，共 56 张表)
 > **快速参考**: `docs/reference/DATABASE_SCHEMA.md`
 
-Schema 按业务域组织为四大模块：
+Schema 按业务域组织为六大模块：
 
 | 域 | 根表 | 子表数量 | 说明 |
 |----|------|----------|------|
-| 知识 | `knowledge_entries` | 15 | 含修订、生命周期、边界、维护、嵌入、关键词、搜索文档 |
-| 技能工件 | `skill_artifacts` | 17 | 含修订、文件、脚本、配置、胶囊、清单、边界、维护、审核 |
-| 候选人 | `candidates` | 6 | 含分析、去重、人工审核、解析结果、溯源 |
+| 知识 | `knowledge_entries` | 14 | 含修订、生命周期、边界、维护、嵌入、关键词、搜索文档、反馈、使用事件 |
+| 技能工件 | `skill_artifacts` | 22 | 含修订、文件、脚本、配置、胶囊、清单、边界、维护、审核、元数据、索引表 |
+| 候选人 | `candidates` | 7 | 含分析、去重、人工审核、解析结果、溯源 |
 | 身份与审计 | `users` / `teams` | 6 | Phase 3：含 users、teams、memberships、sessions、access_keys、audit_events |
 | 反馈分析 | `feedback_records` | 4 | 含自定义问答、使用事件、日聚合 |
+| 跨域 | `store_snapshot` / `task_queue` | 3 | 含 JSONB 兼容层、图索引文档、后台任务队列 |
 
 另有 `store_snapshot` (JSONB 兼容层，仅保留未迁移辅助域) 和 `task_queue` (后台任务队列)。身份域和审计域在 PG 模式下不再通过 `store_snapshot` 读取。
 

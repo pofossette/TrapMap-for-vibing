@@ -47,7 +47,7 @@ flowchart TB
     end
 
     subgraph 业务逻辑层["业务逻辑层 (Business Logic)"]
-        AI["AI 提供商抽象<br/>(OpenAI/Ollama/Compatible)"]
+        AI["AI 提供商抽象<br/>(OpenAI/Ollama/Compatible/Google GenAI)"]
         Gov["治理<br/>(RBAC + 资格)"]
         Ret["检索管道<br/>(v1/v2/v3 模式)"]
         Idx["索引管道<br/>(向量/关键词/图)"]
@@ -194,13 +194,13 @@ evals/
 
 ```typescript
 // 支持的提供商
-type AIProvider = 'openai' | 'openai-compatible' | 'ollama'
+type AIProvider = 'openai' | 'openai-compatible' | 'ollama' | 'google-genai' | 'fallback'
 
-// 提供商配置通过环境变量
+// 提供商配置通过环境变量（默认 openai，也可设为 ollama / google-genai 等）
 AI_PROVIDER=openai
 AI_BASE_URL=https://api.openai.com/v1  // 兼容提供商使用
 AI_API_KEY=sk-...
-AI_CHAT_MODEL=gpt-4o
+AI_CHAT_MODEL=gpt-4o-mini
 AI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
@@ -433,12 +433,12 @@ flowchart TB
 |------|--------|------|
 | `TRAPMAP_DATABASE_URL` | (无) | PostgreSQL 连接字符串 |
 | `TRAPMAP_DATA_FILE` | `.data/skill-shareer.json` | JSON 存储路径 |
-| `HOST` | `0.0.0.0` | 服务器绑定主机 |
+| `HOST` | `127.0.0.1` | 服务器绑定主机 |
 | `PORT` | `4000` | 服务器端口 |
 | `AI_PROVIDER` | `openai` | AI 提供商类型 |
 | `AI_BASE_URL` | (无) | 兼容提供商的 Base URL |
 | `AI_API_KEY` | (无) | 兼容提供商的 API 密钥 |
-| `AI_CHAT_MODEL` | `gpt-4o` | 聊天模型名称 |
+| `AI_CHAT_MODEL` | `gpt-4o-mini` | 聊天模型名称 |
 | `AI_EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding 模型名称 |
 
 ## 部署

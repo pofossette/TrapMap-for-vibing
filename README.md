@@ -239,7 +239,7 @@ docker compose down
 | 变量 | 说明 | 默认值 |
 |----------|-------------|---------|
 | `NODE_ENV` | 运行环境 | `production` |
-| `HOST` | 绑定地址 | `0.0.0.0` |
+| `HOST` | 绑定地址 | `127.0.0.1` |
 | `PORT` | 服务器端口 | `4000` |
 
 更完整的环境变量说明见 [docs/operations/ENVIRONMENT.md](docs/operations/ENVIRONMENT.md)。

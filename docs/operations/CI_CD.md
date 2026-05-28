@@ -26,7 +26,14 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 
 `postgres-integration` job 使用 `pgvector/pgvector:pg16` 作为 service container，运行需要真实数据库的集成测试。确保异步基础设施（TaskQueue、OutboxWorker、Lifecycle subscribers）在 PostgreSQL 环境下正确工作。
 
-`architecture-guardrails` job 运行文档漂移守卫（`pnpm check:docs-drift`）和复杂度预算守卫（`pnpm check:complexity`），确保关键文档不含过时内容且热点文件未超出行数预算。详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`。
+`architecture-guardrails` job 运行文档漂移守卫（`pnpm check:docs-drift`）和复杂度预算守卫（`pnpm check:complexity`），确保关键文档不含过时内容且热点文件未超出行数预算。漂移规则覆盖以下类别：
+
+- **命令范围漂移**：包级 DB 命令（`pnpm --filter @trapmap/server db:migrate`）和 JSON 回退路径（`.data/skill-shareer.json`）
+- **环境默认值漂移**：`ARCHITECTURE.md` 中的 `HOST`（`127.0.0.1`）和 `AI_CHAT_MODEL`（`gpt-4o-mini`）默认值
+- **深层架构参考漂移**：`PERSISTENCE.md` 表计数（56 张表）、`ENVIRONMENT.md` 数据文件路径
+- **PostgreSQL-first 姿态漂移**：禁止过时的 JSON 存储描述和旧表计数
+
+详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`。
 
 所有 job 使用 Node.js 20 + pnpm 10.33.0。
 

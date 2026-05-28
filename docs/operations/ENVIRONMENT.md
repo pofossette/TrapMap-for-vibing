@@ -14,7 +14,7 @@
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `TRAPMAP_DATABASE_URL` | PostgreSQL 连接字符串（设置后启用 PostgresStore） | 空（使用 JsonStore） |
-| `TRAPMAP_DATA_FILE` | JSON 文件存储路径（开发默认） | `.data/trapmap.json` |
+| `TRAPMAP_DATA_FILE` | JSON 文件存储路径（兼容回退，可选） | `.data/skill-shareer.json` |
 
 > 设置 `TRAPMAP_DATABASE_URL` 后，服务器启动时会自动通过 Drizzle migration runner 运行数据库迁移（位于 `packages/server/drizzle/`）。迁移包含所有核心表、索引和 pgvector 扩展的创建。
 
@@ -44,7 +44,7 @@
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `AI_PROVIDER` | 提供商类型：`openai`、`openai-compatible`、`ollama` | `openai` |
+| `AI_PROVIDER` | 提供商类型：`openai`、`openai-compatible`、`ollama`、`google-genai`（未配置时自动回退到 `fallback`，使用确定性哈希向量） | `openai` |
 | `AI_BASE_URL` | 兼容接口的 Base URL | `https://api.openai.com/v1` |
 | `AI_API_KEY` | API 密钥 | `OPENAI_API_KEY` |
 | `AI_CHAT_MODEL` | 聊天模型名称 | `gpt-4o-mini` |

@@ -7,7 +7,8 @@
     },
     {
       "file": "docs/architecture/ARCHITECTURE.md",
-      "mustContain": ["SYSTEM_TRUTH_SOURCES.md"]
+      "mustContain": ["SYSTEM_TRUTH_SOURCES.md", "127.0.0.1", "gpt-4o-mini"],
+      "mustNotContain": ["| `HOST` | `0.0.0.0` |", "| `AI_CHAT_MODEL` | `gpt-4o` |"]
     },
     {
       "file": "docs/README.md",
@@ -15,8 +16,8 @@
     },
     {
       "file": "docs/guides/GETTING_STARTED.md",
-      "mustContain": ["PostgreSQL 设置（默认）"],
-      "mustNotContain": ["PostgreSQL 模式（可选）"]
+      "mustContain": ["PostgreSQL 设置（默认）", ".data/skill-shareer.json", "pnpm --filter @trapmap/server db:migrate"],
+      "mustNotContain": ["PostgreSQL 模式（可选）", ".data/trapmap.json", "pnpm run db:migrate", "pnpm run db:generate"]
     },
     {
       "file": "docs/architecture/DEPLOYMENT.md",
@@ -31,6 +32,16 @@
       "file": "docs/reference/DATABASE_SCHEMA.md",
       "mustContain": ["56 张表"],
       "mustNotContain": ["48 张表", "54 张表"]
+    },
+    {
+      "file": "docs/operations/ENVIRONMENT.md",
+      "mustContain": [".data/skill-shareer.json"],
+      "mustNotContain": [".data/trapmap.json"]
+    },
+    {
+      "file": "docs/architecture/components/PERSISTENCE.md",
+      "mustContain": ["56 张表"],
+      "mustNotContain": ["48 张表"]
     }
   ],
   "lineBudgets": [

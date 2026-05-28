@@ -124,6 +124,9 @@ CI 中由 `architecture-guardrails` job 自动执行。本地开发时可在改�
 | 变更类型 | 必须运行的验证 |
 |----------|--------------|
 | 文档修改 | `pnpm check:docs-drift` + `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` |
+| 命令范围变更 | `pnpm check:docs-drift` + smoke 测试（验证包级 DB 命令和 JSON 回退路径） |
+| 环境默认值变更 | `pnpm check:docs-drift` + smoke 测试（验证 ENVIRONMENT.md 中的默认值正确） |
+| 深层架构文档变更 | `pnpm check:docs-drift` + smoke 测试（验证 ARCHITECTURE.md / PERSISTENCE.md 中的运行时默认值和表计数） |
 | Schema 变更 | `pnpm test` + `pnpm check:docs-drift` + 更新 `DATABASE_SCHEMA.md` 表计数 |
 | CI 配置变更 | `pnpm check:docs-drift` + 更新 `CI_CD.md` |
 | 架构变更 | `pnpm check:docs-drift` + `pnpm check:complexity` + `pnpm eval:smoke` |
