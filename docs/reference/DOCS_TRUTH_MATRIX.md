@@ -27,6 +27,9 @@ This matrix complements `SYSTEM_TRUTH_SOURCES.md`, which focuses on runtime arch
 | Health/readiness endpoints | `packages/server/src/app.ts` (`/health`, `/ready`, `/meta/routes`) | `docs/architecture/DEPLOYMENT.md`, `docs/guides/GETTING_STARTED.md` | descriptive |
 | Deep architecture component docs | `packages/server/src/lib/persistence/schema/*.ts` + component source | `docs/architecture/components/*.md` | descriptive |
 | Operator-only internal APIs | `packages/server/src/lib/retrieval/capsules/repositories/index-rebuild.ts` | `docs/operations/ENVIRONMENT.md`, `docs/architecture/components/RETRIEVAL.md` | resolved-internal |
+| Repository root Markdown allowlist | `docs/reference/REPO_STRUCTURE.md` | `README.md`, root `plan.md`, `docs/README.md` | structural |
+| Archive directory policy | `docs/reference/REPO_STRUCTURE.md` + `docs/archived/README.md` | `docs/archive/**`, `docs/archived/**`, `docs/plans/**` | structural |
+| Eval directory layout | `docs/reference/REPO_STRUCTURE.md` + `evals/README.md` | `docs/operations/TESTING.md`, `docs/architecture/components/EVALUATION.md` | structural |
 
 ## Rules
 

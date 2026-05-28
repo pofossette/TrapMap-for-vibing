@@ -25,6 +25,7 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
 | Health/readiness endpoints | `packages/server/src/app.ts` (`/health`, `/ready`, `/meta/routes`) | `docs/architecture/DEPLOYMENT.md`, `docs/guides/GETTING_STARTED.md` |
 | Deep architecture component docs | `packages/server/src/lib/persistence/schema/*.ts` + component source | `docs/architecture/components/*.md` |
 | Operator-only internal APIs | `packages/server/src/lib/retrieval/capsules/repositories/index-rebuild.ts` | `docs/operations/ENVIRONMENT.md`, `docs/architecture/components/RETRIEVAL.md` |
+| Repository layout | `docs/reference/REPO_STRUCTURE.md` | `README.md`, `docs/README.md`, `docs/guides/CODE_GUIDE.md` |
 
 > For the full cross-cutting documentation truth matrix (covering CI, deployment, testing, guardrails, and schema ownership), see [`DOCS_TRUTH_MATRIX.md`](DOCS_TRUTH_MATRIX.md).
 
