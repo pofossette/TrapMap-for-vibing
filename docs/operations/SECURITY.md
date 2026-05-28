@@ -9,10 +9,10 @@ TrapMap 的安全模型基于三层防护：
 ```mermaid
 flowchart TB
     subgraph 安全层级["安全层级"]
-        Auth["认证层<br/>会话 Cookie + 访问密钥"]
+        Auth["认证层<br/>CLI + 访问密钥"]
         Authz["授权层<br/>RBAC 权限 + 安全等级过滤"]
         Governance["治理层<br/>知识生命周期 + 审计日志"]
-        
+
         Auth --> Authz
         Authz --> Governance
     end
@@ -23,28 +23,24 @@ flowchart TB
 ```mermaid
 sequenceDiagram
     participant User as 用户
-    participant CLI as CLI/Browser
+    participant CLI as CLI
     participant Auth as Auth Service
     participant Store as Store
 
-    alt 会话认证
-        User->>CLI: 输入用户名密码
-        CLI->>Auth: POST /v1/auth/login
-        Auth->>Store: 查找用户
-        Store-->>Auth: 用户记录
-        Auth->>Auth: bcrypt 验证密码
-        Auth->>Store: 创建 Session
-        Store-->>Auth: Session ID
-        Auth-->>CLI: Set-Cookie: session=xxx
-        CLI-->>User: 登录成功
-    else 访问密钥认证
-        User->>CLI: 使用 API Key
-        CLI->>Auth: Authorization: Bearer ak_xxx
-        Auth->>Store: 验证密钥哈希
+    alt 访问密钥认证
+        User->>CLI: trapmap login --access-key <key>
+        CLI->>Auth: POST /v1/auth/login { accessKey }
+        Auth->>Store: SHA-256 哈希查找密钥
         Store-->>Auth: 密钥信息
-        Auth->>Auth: 检查过期时间
-        Auth->>Auth: 加载权限
-        Auth-->>CLI: 认证成功
+        Auth->>Auth: 检查过期时间 + 加载权限
+        Auth-->>CLI: sessionToken
+        CLI-->>User: 登录成功
+    else 系统管理员密钥
+        User->>CLI: trapmap login --system-admin-key <key>
+        CLI->>Auth: POST /v1/auth/login { systemAdminKey }
+        Auth->>Auth: 验证管理员密钥
+        Auth-->>CLI: sessionToken
+        CLI-->>User: 登录成功
     end
 ```
 
@@ -78,19 +74,9 @@ flowchart TB
 
 ## 认证机制
 
-### 会话认证（Web UI）
+> TrapMap **仅支持 CLI + 访问密钥认证**，不提供用户名/密码登录或浏览器会话。
 
-| 属性 | 值 |
-|------|-----|
-| Cookie 名称 | `session` |
-| Cookie 属性 | `httpOnly`, `secure`（生产）, `sameSite=strict` |
-| 会话有效期 | 7 天 |
-| Token 格式 | JWT（HS256） |
-| 密码存储 | bcrypt，12 轮盐值 |
-
-会话传输方式通过 `SESSION_TRANSPORT` 环境变量控制，可选 `bearer-header`（默认）或 `cookie`。
-
-### 访问密钥认证（CLI / 自动化）
+### 访问密钥认证（CLI）
 
 | 属性 | 值 |
 |------|-----|
@@ -98,12 +84,23 @@ flowchart TB
 | 存储方式 | SHA-256 哈希后存储 |
 | 有效期 | 可配置（创建时设定） |
 | 显示时机 | 创建时仅显示一次明文 |
+| 密钥类型 | `--access-key`（成员密钥）/ `--system-admin-key`（管理员引导密钥）|
+
+### CLI 服务器地址配置
+
+CLI **同时只连接一个服务器**，`serverUrl` 为单值（非数组）。配置优先级（高→低）：
+
+1. **`trapmap login --server <url>`** — 登录时指定，写入 `~/.trapmap/cli.json` 后持久生效
+2. **`~/.trapmap/cli.json`** 中的 `serverUrl` 字段 — 首次登录后自动保存
+3. **`TRAPMAP_SERVER_URL` 环境变量** — 未登录时的默认值
+4. **硬编码默认值** `http://127.0.0.1:4000`
+
+切换服务器只需重新 `trapmap login --server <新地址> --access-key <key>`。
 
 ### 登出行为
 
-- 删除服务端会话记录
-- 清除客户端 Cookie
-- 记录审计事件 `auth.logout`
+- 调用服务端 `POST /v1/auth/logout`
+- 清除本地 `~/.trapmap/cli.json` 中的 `sessionToken` 和 `session`
 
 ---
 
@@ -194,12 +191,11 @@ SESSION_SECRET=$(openssl rand -hex 32)
 ### 生产环境配置
 
 ```bash
-NODE_ENV=production                    # 启用 secure cookies
+NODE_ENV=production                    # 启用生产模式
 HOST=127.0.0.1                        # 绑定本地地址
 PORT=4000
 LOG_USER_OPS_ENABLED=true             # 记录用户操作
 LOG_RAG_ENABLED=true                  # 记录检索请求
-SESSION_TRANSPORT=bearer-header       # 会话传输方式
 ```
 
 ### 可选安全加固
