@@ -342,3 +342,10 @@ CLI retrieval search "如何处理 N+1"
 2. **RAG 日志**：检索管道日志记录完整的召回-排序-输出过程，用于调试检索质量
 3. **用户操作日志**：JSON Lines 格式，记录所有 API 调用，带轮转策略
 4. **审计日志**：通过 `audit:read` 权限查看完整操作历史
+
+---
+
+For package-local navigation, read:
+
+- `packages/server/src/lib/README.md`
+- `packages/server/src/routes/README.md`

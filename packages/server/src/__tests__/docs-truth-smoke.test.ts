@@ -234,4 +234,13 @@ describe('docs truth smoke', () => {
     expect(content).toContain('SkillArtifactRecord');
     expect(content).not.toContain('interface SkillArtifact {');
   });
+
+  it('server package has local structure guides', () => {
+    expect(existsSync(resolve(ROOT, 'packages/server/src/lib/README.md'))).toBe(true);
+    expect(existsSync(resolve(ROOT, 'packages/server/src/routes/README.md'))).toBe(true);
+
+    const codeGuide = readDoc('docs/guides/CODE_GUIDE.md');
+    expect(codeGuide).toContain('packages/server/src/lib/README.md');
+    expect(codeGuide).toContain('packages/server/src/routes/README.md');
+  });
 });

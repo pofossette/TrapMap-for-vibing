@@ -132,6 +132,11 @@ import { loadConfig } from './config.js';
 const config = loadConfig();
 ```
 
+For package-local navigation, read:
+
+- `packages/server/src/lib/README.md`
+- `packages/server/src/routes/README.md`
+
 ---
 
 ## packages/cli
