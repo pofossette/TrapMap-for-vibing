@@ -1217,6 +1217,43 @@ describe('output profile helpers', () => {
     expect(compactParsed.activation_hints[0].assets).toHaveLength(1);
   });
 
+  describe('resolveRenderer', () => {
+    it('falls back to generic renderer for unknown tool', () => {
+      const profile = { ...getDefaultOutputProfile(), tool: 'unknown-tool' as any };
+      const renderer = resolveRenderer(profile, 'generic');
+      expect(renderer).toBeDefined();
+      expect(renderer.id).toContain('generic');
+    });
+  });
+
+  describe('summarizeRetrievalV1 via renderer', () => {
+    it('skips null elements in globalConstraints', () => {
+      const payload = {
+        globalConstraints: [
+          null,
+          {
+            entryId: 'e1',
+            scope: 'global',
+            requiredLevel: 0,
+            shortcut: 'test',
+            detail: 'd',
+            labels: [],
+            score: 0.8,
+            reason: 'r',
+          },
+        ],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      } as any;
+      const profile = { ...getDefaultOutputProfile(), tool: 'generic' };
+      const renderer = resolveRenderer(profile, 'retrieval-v1');
+      const envelope = createRenderEnvelope('retrieval-v1', payload, profile);
+      const result = renderer.render(envelope);
+      expect(result).toContain('test');
+    });
+  });
+
   it('renders generic command-result as plain text', () => {
     const payload = {
       action: 'duplicate-job-resolve',

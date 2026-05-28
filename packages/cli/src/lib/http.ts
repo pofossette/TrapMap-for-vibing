@@ -63,7 +63,7 @@ export async function apiRequest<T>(
 }
 
 export function requireSessionToken(state: CliState): string {
-  if (!state.sessionToken) {
+  if (typeof state.sessionToken !== 'string' || state.sessionToken.length === 0) {
     throw new Error('Not authenticated. Run `skill-shareer login` first.');
   }
 

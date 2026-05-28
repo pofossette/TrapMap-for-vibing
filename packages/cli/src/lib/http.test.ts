@@ -380,6 +380,14 @@ describe('requireSessionToken', () => {
     expect(() => requireSessionToken(state)).toThrow();
   });
 
+  it('rejects numeric sessionToken', () => {
+    expect(() => requireSessionToken({ sessionToken: 123 } as any)).toThrow('Not authenticated');
+  });
+
+  it('rejects empty string sessionToken', () => {
+    expect(() => requireSessionToken({ sessionToken: '' } as any)).toThrow('Not authenticated');
+  });
+
   it('should have error message mentioning login command', () => {
     const state: CliState = {
       serverUrl: 'http://localhost:4000',

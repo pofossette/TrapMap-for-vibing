@@ -32,6 +32,21 @@ describe('cli config', () => {
     });
   });
 
+  it('falls back to tmpdir when homedir throws', async () => {
+    const osModule = await import('node:os');
+    const originalHomedir = osModule.default.homedir;
+    osModule.default.homedir = (() => {
+      throw new Error('no home');
+    }) as typeof osModule.default.homedir;
+    try {
+      const { loadCliState } = await import('./config.js');
+      const result = await loadCliState();
+      expect(result.serverUrl).toBeDefined();
+    } finally {
+      osModule.default.homedir = originalHomedir;
+    }
+  });
+
   it('omits outputProfile when config file does not define it', async () => {
     const fs = await import('node:fs/promises');
     vi.mocked(fs.readFile).mockResolvedValue(

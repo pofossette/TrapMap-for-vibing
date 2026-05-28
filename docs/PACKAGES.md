@@ -154,6 +154,8 @@ const cliState = await loadCliState();
 const session = cliState.session;
 ```
 
+配置文件路径默认使用 `os.homedir()`。在无 HOME 环境的容器化部署中，`getConfigPath` 会自动回退到 `os.tmpdir()`。
+
 ---
 
 ## packages/skills

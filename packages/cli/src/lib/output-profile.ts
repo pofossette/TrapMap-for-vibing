@@ -114,8 +114,10 @@ function summarizeRetrievalV1(payload: RetrievalResponse): string {
   if (payload.refinementSummary) {
     return payload.refinementSummary;
   }
-  const first = payload.globalConstraints[0] ?? payload.projectKnowledge[0];
-  return first ? `${first.shortcut} (${first.score.toFixed(2)})` : 'No results found';
+  const firstValid =
+    payload.globalConstraints.find((c) => c != null) ??
+    payload.projectKnowledge.find((c) => c != null);
+  return firstValid ? `${firstValid.shortcut} (${firstValid.score.toFixed(2)})` : 'No results found';
 }
 
 function summarizeRetrievalV2(payload: RetrievalV2Response): string {
@@ -250,14 +252,14 @@ function buildRetrievalV1View(payload: RetrievalResponse): RetrievalV1View {
   return {
     type: 'retrieval-v1',
     querySummary: summarizeRetrievalV1(payload),
-    constraints: payload.globalConstraints.map((match) => ({
+    constraints: payload.globalConstraints.filter((match) => match != null).map((match) => ({
       entryId: match.entryId,
       shortcut: match.shortcut,
       score: match.score,
       reason: match.reason,
       labels: match.labels,
     })),
-    projectKnowledge: payload.projectKnowledge.map((match) => ({
+    projectKnowledge: payload.projectKnowledge.filter((match) => match != null).map((match) => ({
       entryId: match.entryId,
       shortcut: match.shortcut,
       score: match.score,
@@ -872,7 +874,8 @@ export function createRenderEnvelope<T>(
 }
 
 export function resolveRenderer(profile: OutputProfile, kind: RenderKind): Renderer {
-  return (registry[profile.tool][kind] ??
+  const toolRegistry = registry[profile.tool] ?? registry.generic;
+  return (toolRegistry[kind] ??
     registry.generic[kind] ??
     registry.generic.generic) as Renderer;
 }

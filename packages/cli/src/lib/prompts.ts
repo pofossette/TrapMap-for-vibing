@@ -58,5 +58,10 @@ export async function promptConfirm(message: string, defaultValue = false): Prom
  * Returns false in CI or non-TTY environments.
  */
 export function isInteractiveEnvironment(): boolean {
-  return process.stdin.isTTY === true && process.stdout.isTTY === true;
+  return (
+    typeof process.stdin !== 'undefined' &&
+    process.stdin.isTTY === true &&
+    typeof process.stdout !== 'undefined' &&
+    process.stdout.isTTY === true
+  );
 }

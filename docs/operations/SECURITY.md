@@ -314,3 +314,9 @@ pnpm --filter @trapmap/cli dev -- audit list --limit 50
 - [API 参考 — 认证端点](../architecture/API.md#认证端点) — 认证 API 详情
 - [环境变量参考](ENVIRONMENT.md) — 完整环境变量列表
 - [部署指南](../architecture/DEPLOYMENT.md) — 生产环境部署步骤
+
+---
+
+## CLI 路径安全
+
+`validateOutputPath`（`packages/cli/src/lib/skill-artifact-export.ts`）在解析输出路径后执行边界检查：解析结果必须等于 `resolve(intendedDir)` 或以 `resolve(intendedDir) + sep` 为前缀。此检查防止绝对路径（如 `/etc/passwd`）绕过目录遍历防护逃逸出预期目录。`requireSessionToken` 同时验证 token 类型为 `string` 且非空，防止非字符串值绕过认证。

@@ -10,7 +10,7 @@
  */
 
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join, normalize, resolve } from 'node:path';
+import { dirname, join, normalize, resolve, sep } from 'node:path';
 
 import type { ArtifactBundle, ArtifactExportResponse } from '@trapmap/contracts';
 
@@ -38,7 +38,12 @@ export function validateOutputPath(outputPath: string, intendedDir: string): str
   }
 
   // Resolve the output path against the intended directory
-  return resolve(intendedDir, normalized);
+  const resolved = resolve(intendedDir, normalized);
+  const resolvedBase = resolve(intendedDir) + sep;
+  if (resolved !== resolve(intendedDir) && !resolved.startsWith(resolvedBase)) {
+    throw new Error(`Path escapes intended directory: ${outputPath}`);
+  }
+  return resolved;
 }
 
 /**
