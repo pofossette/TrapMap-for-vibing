@@ -99,14 +99,17 @@ interface SkillArtifactRevisionRecord {
 工件的压缩文本表示，用于快速摘要。派生时存储在修订版本的 `derived.profile` 字段中：
 
 ```typescript
-// 实际类型见 store 中的 DerivedSkillProfileRecord
+// 实际类型见 store/types/artifact-records.ts
 interface DerivedSkillProfileRecord {
   artifactId: string;
   revision: number;
   sourceHash: string;
   title: string;
+  description?: string;
   summary: string;
   keywords: string[];
+  labels?: string[];
+  prerequisites?: string[];
   referencePaths: string[];
   contentHash: string;
 }
@@ -117,7 +120,7 @@ interface DerivedSkillProfileRecord {
 可操作的知识单元。派生时存储在修订版本的 `derived.capsules` 数组中：
 
 ```typescript
-// 实际类型见 store 中的 DerivedSkillCapsuleRecord
+// 实际类型见 store/types/artifact-records.ts
 interface DerivedSkillCapsuleRecord {
   capsuleId: string;
   artifactId: string;
@@ -128,6 +131,7 @@ interface DerivedSkillCapsuleRecord {
   problem: string;           // 问题描述
   goal: string;              // 目标描述
   errorText: string | null;  // 错误文本
+  contextualPrefix?: string; // 上下文丰富前缀（Phase B）
   labels: string[];
   scope: 'global' | 'project';
   requiredLevel: number;
@@ -139,31 +143,37 @@ interface DerivedSkillCapsuleRecord {
 供客户端使用的激活元数据。派生时存储在修订版本的 `derived.clientManifest` 字段中：
 
 ```typescript
-// 实际类型见 store 中的 ClientManifestRecord
+// 实际类型见 store/types/artifact-records.ts
 interface ClientManifestRecord {
   artifactId: string;
   revision: number;
-  references: Array<{
-    path: string;
-    sha256: string;
-    sizeBytes: number;
-    mediaType: string;
-  }>;
-  assets: Array<{
-    path: string;
-    sha256: string;
-    sizeBytes: number;
-    mediaType: string;
-  }>;
-  scripts: Array<{
-    path: string;
-    sha256: string;
-    capability: string;
-    argsSchemaSummary: string;
-    sideEffectSummary: string;
-    defaultPolicy: StoredScriptActivationPolicy;
-  }>;
+  references: ClientManifestReferenceRecord[];
+  assets: ClientManifestAssetRecord[];
+  scripts: ClientManifestScriptRecord[];
   sourceHash: string;
+}
+
+interface ClientManifestReferenceRecord {
+  path: string;
+  sha256: string;
+  sizeBytes: number;
+  mediaType: string;
+}
+
+interface ClientManifestAssetRecord {
+  path: string;
+  sha256: string;
+  sizeBytes: number;
+  mediaType: string;
+}
+
+interface ClientManifestScriptRecord {
+  path: string;
+  sha256: string;
+  capability: string;
+  argsSchemaSummary: string;
+  sideEffectSummary: string;
+  defaultPolicy: StoredScriptActivationPolicy;
 }
 ```
 
@@ -365,197 +375,90 @@ type ArtifactAuditEvent =
 
 ## 派生过程 (Derivation)
 
+### 派生函数
+
+派生逻辑在 `artifacts/derive.ts` 中实现，提供两种入口：
+
+1. **`deriveSkillArtifactOutputs()`**：从修订版本记录派生（纯确定性，无 AI 调用）
+2. **`deriveFromPayloads()`**：从实际文件内容派生（Phase 14，支持可选 AI 上下文丰富）
+
+```typescript
+// artifacts/derive.ts
+function deriveSkillArtifactOutputs(
+  artifact: SkillArtifactRecord,
+  revision: SkillArtifactRevisionRecord,
+): DerivedArtifactOutputs {
+  // 1. 从 derivation-eligible 文件（SKILL.md + references/）计算 sourceHash
+  // 2. buildSkillProfile() — 从标签和文件元数据构建摘要
+  // 3. buildSkillCapsules() — 生成知识胶囊（继承治理属性）
+  // 4. buildClientManifest() — 组装 references/assets/scripts 元数据
+  return { profile, capsules, clientManifest, sourceHash, derivedAt };
+}
+```
+
 ### 配置文件派生
 
 ```typescript
-// artifacts/derive.ts — buildSkillProfile()
-// 实际函数名为 buildSkillProfile，此处为概念性伪代码
-async function buildSkillProfile(
+// artifacts/derive.ts — buildSkillProfile()（内部函数）
+function buildSkillProfile(
   artifact: SkillArtifactRecord,
-  revision: SkillArtifactRevisionRecord
-): Promise<DerivedSkillProfileRecord> {
-  // Combine all source files
-  const combinedContent = artifact.sourceFiles
-    .map(f => `// ${f.path}\n${f.content}`)
-    .join('\n\n');
-  
-  // Generate summary using AI
-  const response = await ai.chat([
-    {
-      role: 'system',
-      content: `You are a skilled technical writer. Summarize the following code/skill 
-      into a concise profile (2-3 paragraphs). Include:
-      1. What it does
-      2. Key capabilities
-      3. Usage patterns
-      
-      Also extract 5-10 keywords that describe this skill.`
-    },
-    {
-      role: 'user',
-      content: combinedContent
-    }
-  ]);
-  
-  // Parse response to extract summary and keywords
-  const { summary, keywords } = parseProfileResponse(response.content);
-  
-  return {
-    id: generateEntityId(),
-    artifactId: artifact.id,
-    distilledText: summary,
-    keywords,
-    extractedAt: new Date().toISOString()
-  };
+  revision: SkillArtifactRevisionRecord,
+  sourceHash: string,
+): DerivedSkillProfileRecord | null {
+  // 仅处理 SKILL.md + references/ 文件（T-12-09, T-12-10）
+  // 从 artifact.labels 提取关键词
+  // 从文件路径提取 referencePaths
+  // 使用文件 sha256 的组合哈希作为 contentHash
+  return { artifactId, revision, sourceHash, title, summary, keywords, labels, prerequisites, referencePaths, contentHash };
 }
 ```
 
 ### 胶囊提取
 
 ```typescript
-// artifacts/derive.ts — buildSkillCapsules()
-// 实际函数名为 buildSkillCapsules，此处为概念性伪代码
-async function buildSkillCapsules(
+// artifacts/derive.ts — buildSkillCapsules()（内部函数）
+function buildSkillCapsules(
   artifact: SkillArtifactRecord,
-  revision: SkillArtifactRevisionRecord
-): Promise<DerivedSkillCapsuleRecord[]> {
-  const capsules: SkillCapsule[] = [];
-  
-  for (const sourceFile of artifact.sourceFiles) {
-    // Split into logical chunks
-    const chunks = splitIntoChunks(sourceFile.content, options.chunkSize || 2000);
-    
-    for (const chunk of chunks) {
-      // Generate capsule content
-      const response = await ai.chat([
-        {
-          role: 'system',
-          content: `You are a technical documentation expert. Transform the following 
-          code snippet into an actionable knowledge capsule.
-          
-          The capsule should:
-          1. Have a clear, descriptive name
-          2. Contain distilled, actionable content
-          3. Include an activation hint (when to use this)
-          
-          Format as JSON: { "name": "...", "content": "...", "activationHint": "..." }`
-        },
-        {
-          role: 'user',
-          content: chunk.content
-        }
-      ]);
-      
-      const capsuleData = JSON.parse(response.content);
-      
-      capsules.push({
-        id: generateEntityId(),
-        artifactId: artifact.id,
-        name: capsuleData.name,
-        content: capsuleData.content,
-        activationHint: capsuleData.activationHint,
-        governanceInherited: true  // Inherits from artifact
-      });
-      
-      // Respect max capsules limit
-      if (options.maxCapsules && capsules.length >= options.maxCapsules) {
-        return capsules;
-      }
-    }
-  }
-  
-  return capsules;
-}
-
-function splitIntoChunks(content: string, maxSize: number): Array<{ content: string; metadata: object }> {
-  const chunks: Array<{ content: string; metadata: object }> = [];
-  
-  // Simple split by lines (could be smarter based on language)
-  const lines = content.split('\n');
-  let currentChunk: string[] = [];
-  let currentSize = 0;
-  
-  for (const line of lines) {
-    if (currentSize + line.length > maxSize && currentChunk.length > 0) {
-      chunks.push({
-        content: currentChunk.join('\n'),
-        metadata: { startLine: chunks.length * maxSize }
-      });
-      currentChunk = [];
-      currentSize = 0;
-    }
-    currentChunk.push(line);
-    currentSize += line.length;
-  }
-  
-  if (currentChunk.length > 0) {
-    chunks.push({
-      content: currentChunk.join('\n'),
-      metadata: { startLine: chunks.length * maxSize }
-    });
-  }
-  
-  return chunks;
+  revision: SkillArtifactRevisionRecord,
+  sourceHash: string,
+): DerivedSkillCapsuleRecord[] {
+  // 仅处理 SKILL.md + references/ 文件（T-12-09, T-12-10）
+  // 胶囊继承 artifact 的 scope 和 requiredLevel（T-12-11）
+  // 使用确定性 capsuleId（基于 artifactId:revision:sourceHash:index）
+  return [{ capsuleId, artifactId, revision, sourcePaths, content, situation, problem, goal, errorText, labels, scope, requiredLevel }];
 }
 ```
 
 ### 清单生成
 
 ```typescript
-// artifacts/derive.ts — buildClientManifest()
-// 实际函数名为 buildClientManifest，此处为概念性伪代码
-async function buildClientManifest(
+// artifacts/derive.ts — buildClientManifest()（内部函数）
+function buildClientManifest(
   artifact: SkillArtifactRecord,
-  revision: SkillArtifactRevisionRecord
-): Promise<ClientManifestRecord> {
-  const sourceContent = artifact.sourceFiles
-    .map(f => f.content)
-    .join('\n');
-  
-  const response = await ai.chat([
-    {
-      role: 'system',
-      content: `Analyze the following code and generate a client manifest JSON.
-      
-      Extract:
-      1. name, version, description
-      2. capabilities (what it can do)
-      3. requirements (what it needs)
-      4. inputs (parameters)
-      5. outputs (return values)
-      
-      Format as JSON matching this schema:
-      {
-        "name": string,
-        "version": string,
-        "description": string,
-        "capabilities": string[],
-        "requirements": string[],
-        "inputs": [{ name, type, description, required, default }],
-        "outputs": [{ name, type, description }]
-      }`
-    },
-    {
-      role: 'user',
-      content: sourceContent
-    }
-  ]);
-  
-  const manifestData = JSON.parse(response.content);
-  
-  return {
-    id: generateEntityId(),
-    artifactId: artifact.id,
-    metadata: {
-      name: manifestData.name || artifact.name,
-      version: manifestData.version || artifact.version,
-      description: manifestData.description,
-      capabilities: manifestData.capabilities || [],
-      requirements: manifestData.requirements || [],
-      inputs: manifestData.inputs || [],
-      outputs: manifestData.outputs || []
-    }
-  };
+  revision: SkillArtifactRevisionRecord,
+  sourceHash: string,
+): ClientManifestRecord | null {
+  // 从 references/, assets/, scripts/ 文件构建元数据
+  // scripts 使用 revision.scriptDescriptors（T-12-10: 仅元数据，无内容）
+  return { artifactId, revision, references, assets, scripts, sourceHash };
+}
+```
+
+### 检索级派生（Phase 14）
+
+`deriveFromPayloads()` 从实际文件内容派生，支持可选的 AI 上下文丰富：
+
+```typescript
+// artifacts/derive.ts
+async function deriveFromPayloads(
+  payloads: ArtifactFilePayloadRecord[],
+  context: PayloadDerivationContext,  // 包含可选 chat?: ChatProvider
+): Promise<DerivedArtifactOutputs> {
+  // 1. 解析 SKILL.md frontmatter（标题、标签）
+  // 2. 提取 Situation/Problem/Goal 章节
+  // 3. 构建摘要和关键词
+  // 4. 可选：调用 enrichCapsules() 生成 contextualPrefix
+  return { profile, capsules, clientManifest, sourceHash, derivedAt };
 }
 ```
 

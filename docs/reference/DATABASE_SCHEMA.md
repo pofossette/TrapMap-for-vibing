@@ -41,7 +41,7 @@
 | `knowledge_keywords` | 关键词索引 (GIN) | `id` (text) |
 | `knowledge_search_documents` | 全文搜索 (tsvector) | `(entry_id, revision_no)` |
 
-### 技能工件域 (20 表 + 2 索引表)
+### 技能工件域 (22 表，含 2 张派生索引表)
 
 > **Round 4 事实源规则**：结构化子表为事实源，`skill_artifacts` 和 `artifact_revisions` 上的对应 JSONB 列为兼容缓存。
 > 读取时结构化优先，写入时两套表示同步维护。详见 [`round4-cross-table-consistency-plan.md`](../plans/round4-cross-table-consistency-plan.md) 阶段 0。

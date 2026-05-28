@@ -1,20 +1,20 @@
-# 文档删除流程 (Deletion Flow)
+# 文档停用流程 (Deletion / Deactivation Flow)
 
 ## 概述
 
-TrapMap 中的文档删除操作受到严格的生命周期状态和权限控制。删除行为根据条目当前状态采取不同策略，并确保审计追踪和索引一致性。
+TrapMap 中的文档停用操作受到严格的生命周期状态和权限控制。当前版本不提供 DELETE 端点；条目通过衰减批量操作（`POST /v1/operations/decay/batch`，action=`deactivate`）停用。
 
-## 删除策略按生命周期状态
+## 停用策略按生命周期状态
 
-| 生命周期状态 | 删除策略 | 说明 |
+| 生命周期状态 | 停用策略 | 说明 |
 |-------------|---------|------|
-| DRAFT | 允许硬删除 | 草稿状态可完全删除，无副作用 |
-| SUBMITTED | 不允许删除 | 审核中条目需等待审核结果 |
-| AGENT-PASS | 不允许删除 | 需通过审核流程拒绝 |
-| AGENT-REJECTED | 允许删除 | 被智能体拒绝的条目可删除 |
-| APPROVED | 不允许直接删除 | 需先停用（deactivate）再处理 |
-| REJECTED | 允许删除 | 被人工拒绝的条目可删除 |
-| DEACTIVATED | 允许硬删除 | 已停用条目可完全删除 |
+| DRAFT | 不适用 | 草稿状态无停用操作 |
+| SUBMITTED | 不允许停用 | 审核中条目需等待审核结果 |
+| AGENT-PASS | 允许停用 | 通过 `deactivate` 操作停用 |
+| AGENT-REJECTED | 允许停用 | 通过 `deactivate` 操作停用 |
+| APPROVED | 允许停用 | 通过 `deactivate` 操作停用 |
+| REJECTED | 允许停用 | 通过 `deactivate` 操作停用 |
+| DEACTIVATED | 已停用 | 终态，无需操作 |
 
 ## 权限要求
 
@@ -35,36 +35,25 @@ if (entry.teamId) {
 }
 ```
 
-## 删除流程图
+## 停用流程图
+
+当前版本不提供 DELETE 端点。条目停用通过衰减批量操作完成：
 
 ```mermaid
 flowchart TB
-    A[DELETE /v1/knowledge/:entryId] --> B{验证会话}
+    A[POST /v1/operations/decay/batch] --> B{验证会话}
     B -->|失败| C[401 未授权]
     B -->|成功| D{检查 knowledge:update 权限}
     D -->|无权限| E[403 禁止访问]
-    D -->|有权限| F[查找条目]
-    F -->|不存在| G[404 未找到]
-    F -->|存在| H{检查生命周期状态}
-    
-    H -->|DRAFT| I[允许删除]
-    H -->|SUBMITTED| J[拒绝 - 审核中]
-    H -->|APPROVED| K[拒绝 - 需先停用]
-    H -->|DEACTIVATED| I
-    H -->|REJECTED| I
-    H -->|AGENT-REJECTED| I
-    
-    I --> L{检查团队访问}
-    L -->|失败| E
-    L -->|成功| M[执行删除]
-    
-    M --> N[从存储中移除条目]
-    N --> O[移除所有索引]
-    O --> P[记录审计事件]
-    P --> Q[返回 200 OK]
-    
-    J --> R[400 错误请求]
-    K --> R
+    D -->|有权限| F[解析请求体]
+    F --> G{操作类型}
+    G -->|deactivate| H[检查条目资格]
+    H -->|非 approved| I[标记为不合格]
+    H -->|approved| J[执行停用]
+    J --> K[设置 lifecycleState = deactivated]
+    K --> L[创建生命周期事件]
+    L --> M[触发索引移除]
+    M --> N[返回执行结果]
 ```
 
 ## 删除流程详解
@@ -92,51 +81,40 @@ function canDeleteEntry(entry: KnowledgeRecord): boolean {
 }
 ```
 
-### 3. 删除执行阶段
+### 3. 停用执行阶段
 
-删除操作包含以下步骤：
+停用操作包含以下步骤：
 
-1. **存储层删除**：从 knowledgeEntries 数组/表中移除记录
+1. **状态变更**：设置 `lifecycleState = 'deactivated'`
 2. **索引清理**：
    - Vector Index: 移除 embedding 向量
    - Keyword Index: 移除 BM25 关键词
    - Graph Index: 移除图节点和边
-3. **关联数据清理**：
-   - 删除审核历史记录
-   - 删除生命周期事件记录
-   - 删除候选提交记录（如果有）
+3. **生命周期事件记录**：
+   - 创建 `deactivated` 类型的生命周期事件
 
 ### 4. 审计事件记录
 
 ```typescript
 // 审计事件类型
-type DeletionAuditEvent = {
-  type: 'knowledge.deleted';
+type DeactivationAuditEvent = {
+  type: 'knowledge.deactivated';
   actorId: EntityId;
   entryId: EntityId;
   previousState: LifecycleState;
-  deletedAt: string;
+  deactivatedAt: string;
   reason?: string;
 };
 
 // 审计日志记录
 await audit({
-  type: 'knowledge.deleted',
+  type: 'knowledge.deactivated',
   actorId: auth.actorId,
   entryId: entry.id,
   previousState: entry.lifecycleState,
-  deletedAt: nowIso(),
+  deactivatedAt: nowIso(),
 }, request);
 ```
-
-## 软删除 vs 硬删除
-
-### 硬删除（当前实现）
-
-- **定义**：从存储中完全移除条目记录
-- **适用场景**：DRAFT、REJECTED、AGENT-REJECTED 状态
-- **优点**：节省存储空间，数据完全清除
-- **缺点**：无法恢复，审计信息丢失
 
 ### 软删除（建议实现）
 
@@ -222,10 +200,11 @@ interface BatchDeleteResponse {
 
 ## 相关 API 端点
 
+当前版本不提供 DELETE 端点。条目停用通过衰减批量操作完成：
+
 | 端点 | 方法 | 描述 | 权限 |
 |------|------|------|------|
-| `/v1/knowledge/:entryId` | DELETE | 删除单个条目 | knowledge:update |
-| `/v1/operations/knowledge/batch` | POST | 批量操作（含删除） | knowledge:update |
+| `/v1/operations/decay/batch` | POST | 批量衰减操作（含 deactivate） | knowledge:update |
 
 ## 注意事项
 

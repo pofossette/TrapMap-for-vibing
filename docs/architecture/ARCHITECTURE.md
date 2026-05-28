@@ -465,7 +465,22 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
       - AI_PROVIDER=${AI_PROVIDER:-}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+      # Embedding Provider
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
       - TRAPMAP_DATABASE_URL=postgres://trapmap:trapmap@postgres:5432/trapmap
+      # Logging Configuration
+      - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
+      - LOG_USER_OPS_DIR=${LOG_USER_OPS_DIR:-/app/logs/user-ops}
+      - LOG_RAG_ENABLED=${LOG_RAG_ENABLED:-false}
+      - LOG_RAG_DIR=${LOG_RAG_DIR:-/app/logs/rag}
+      - LOG_MAX_FILE_SIZE_MB=${LOG_MAX_FILE_SIZE_MB:-10}
+      - LOG_MAX_BACKUP_FILES=${LOG_MAX_BACKUP_FILES:-5}
     depends_on:
       postgres:
         condition: service_healthy
@@ -480,6 +495,8 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     container_name: trapmap-postgres
+    ports:
+      - "5434:5432"
     environment:
       POSTGRES_DB: trapmap
       POSTGRES_USER: trapmap

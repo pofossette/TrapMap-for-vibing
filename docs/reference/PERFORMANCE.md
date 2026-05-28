@@ -42,15 +42,20 @@ Embedding API 调用是主要延迟来源。系统支持批量处理以减少请
 
 ### Embedding 模型选择
 
+当前 schema 使用 384 维向量（兼容 fallback provider）。通过 `AI_EMBEDDING_MODEL` 环境变量配置具体模型。
+
 | 模型 | 维度 | 速度 | 质量 |
 |------|------|------|------|
 | `text-embedding-3-small` | 1536 | 快 | 好 |
 | `text-embedding-3-large` | 3072 | 中 | 更好 |
+| fallback（确定性哈希） | 384 | 极快 | 基线 |
+
+> **注意**：切换到非 384 维模型时，需重建 `knowledge_embeddings` 和 `skill_artifact_capsule_embeddings` 表的向量索引。
 
 通过环境变量配置：
 
 ```bash
-AI_EMBEDDING_MODEL=text-embedding-3-small   # 默认，推荐
+AI_EMBEDDING_MODEL=text-embedding-3-small   # 推荐（需配 AI_API_KEY）
 AI_EMBEDDING_MODEL=text-embedding-3-large   # 更高质量，更高延迟
 ```
 
@@ -116,6 +121,8 @@ AI_BASE_URL=http://localhost:11434/v1    # Ollama 示例
 AI_CHAT_MODEL=llama3
 AI_EMBEDDING_MODEL=nomic-embed-text
 ```
+
+有效 `AI_PROVIDER` 值：`openai`、`openai-compatible`、`ollama`、`google-genai`、`fallback`（默认，确定性哈希嵌入 + 空操作聊天）。
 
 本地部署 AI 模型可消除网络延迟和 API 限流。
 

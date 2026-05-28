@@ -54,33 +54,34 @@ canAccessLevel(user.level, entry.requiredLevel); // true, 7 >= 5
 ### 权限定义
 
 ```typescript
+// @trapmap/contracts/src/domain/common.ts
 type Permission =
+  // 会话
+  | 'session:read'         // 读取会话
+
   // 知识操作
-  | 'knowledge:submit'      // 提交新知识
-  | 'knowledge:search'      // 搜索和检索
-  | 'knowledge:review'      // 审核（批准/拒绝）
-  | 'knowledge:update'      // 更新现有条目
-  | 'knowledge:import'      // 批量导入
-  | 'knowledge:export'      // 批量导出
-  
+  | 'knowledge:submit'     // 提交新知识
+  | 'knowledge:search'     // 搜索和检索
+  | 'knowledge:review'     // 审核（批准/拒绝）
+  | 'knowledge:update'     // 更新现有条目
+  | 'knowledge:import'     // 批量导入
+  | 'knowledge:export'     // 批量导出
+
   // 审计
   | 'audit:read'           // 查看审计日志
-  
+
+  // 统计
+  | 'stats:read'           // 读取统计信息
+
   // 团队管理
   | 'team:create'          // 创建团队
   | 'team:list'            // 列出团队
   | 'team:select'          // 切换活动团队
-  
+
   // 成员管理
   | 'member:create'        // 添加成员
   | 'member:update'        // 修改成员
   | 'member:key:create'    // 生成访问密钥
-  
-  // 工件操作
-  | 'artifacts:read'       // 读取工件
-  | 'artifacts:write'      // 写入工件
-  | 'artifacts:review'     // 审核工件
-  | 'artifacts:derive'     // 派生工件
 ```
 
 ### 角色定义
@@ -88,8 +89,8 @@ type Permission =
 角色通过 `RoleTemplate`（来自 `@trapmap/contracts`）定义，按成员关系（`MembershipRecord`）分配。同一用户在不同团队可拥有不同角色和安全等级。
 
 ```typescript
-// @trapmap/contracts 中定义的 RoleTemplate 类型
-type RoleTemplate = string;  // 如 'viewer', 'contributor', 'reviewer', 'admin'
+// @trapmap/contracts/src/domain/common.ts
+type RoleTemplate = 'user' | 'admin' | 'system-admin';
 
 // 每个 MembershipRecord 携带独立的 permissions 和 securityLevel
 interface MembershipRecord {
@@ -186,10 +187,25 @@ function extractGovernanceContext(auth: ResolvedAuthContext): GovernanceContext 
 
 ```typescript
 // governance/eligibility.ts
-function isGovernanceEligible(entity: GovernedEntity, context: GovernanceContext): boolean {
+function isGovernanceEligible(
+  entity: GovernedEntity,
+  context: GovernanceContext,
+  options?: EligibilityOptions,
+): boolean {
+  // Must be approved
   if (entity.lifecycleState !== 'approved') return false;
+  // System admin can access everything (before decay check)
   if (context.isSystemAdmin) return true;
+  // Hard decay: exclude expired and superseded from default retrieval
+  const excludeDecayed = options?.excludeDecayed !== false;
+  if (excludeDecayed && entity.decayState !== undefined) {
+    if (entity.decayState === 'expired' || entity.decayState === 'superseded') {
+      return false;
+    }
+  }
+  // Security level check: caller must have >= required level
   if (context.securityLevel < entity.requiredLevel) return false;
+  // Team access check: global entities accessible to all, project entities require matching teamId
   if (entity.teamId !== null && entity.teamId !== context.teamId) return false;
   return true;
 }

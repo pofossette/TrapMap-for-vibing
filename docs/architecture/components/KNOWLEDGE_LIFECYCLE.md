@@ -76,7 +76,6 @@ stateDiagram-v2
 
 **允许动作**:
 - `PATCH /v1/knowledge/:entryId` - 更新内容
-- `DELETE /v1/knowledge/:entryId` - 删除草稿
 
 **出口转换**:
 - `submit()` → SUBMITTED

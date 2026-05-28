@@ -496,9 +496,7 @@ v1 检索（基于条目）。
 
 ---
 
-### POST /v3/retrieval/search (v2 Capsule Retrieval)
-
-> **注意**：此端点路径为 `/v3/`，但实际提供 v2 胶囊检索功能。v3 陷阱优先计划功能请使用 `/v3/retrieval/plan`。
+### POST /v2/retrieval/search
 
 v2 胶囊检索。
 
@@ -532,6 +530,21 @@ v2 胶囊检索。
   }
 }
 ```
+
+---
+
+### POST /v3/retrieval/search
+
+v3 GraphRAG-lite 检索（置信度感知）。高置信度时返回 TrapFirstPlan，否则降级到 v1/v2 检索。
+
+**请求**:
+```json
+{
+  "rawPlanQuery": "how to add OAuth2 authentication to a new service"
+}
+```
+
+**响应** (200): 返回 `GraphPlanSearchResponse`，包含 `plan`（TrapFirstPlan）或 `fallback`（v1/v2 响应）。
 
 ---
 

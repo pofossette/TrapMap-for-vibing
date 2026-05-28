@@ -65,15 +65,16 @@ describe('docs truth smoke', () => {
   });
 
   it('guardrail docs mention pnpm check:docs-drift and pnpm check:complexity', () => {
-    const guardrailDocs = [
-      'docs/operations/TESTING.md',
-      'docs/operations/CI_CD.md',
-    ];
+    const guardrailDocs = ['docs/operations/TESTING.md', 'docs/operations/CI_CD.md'];
 
     for (const doc of guardrailDocs) {
       const content = readDoc(doc);
-      expect(content, `${doc} should mention pnpm check:docs-drift`).toContain('pnpm check:docs-drift');
-      expect(content, `${doc} should mention pnpm check:complexity`).toContain('pnpm check:complexity');
+      expect(content, `${doc} should mention pnpm check:docs-drift`).toContain(
+        'pnpm check:docs-drift',
+      );
+      expect(content, `${doc} should mention pnpm check:complexity`).toContain(
+        'pnpm check:complexity',
+      );
     }
   });
 

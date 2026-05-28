@@ -183,9 +183,6 @@ TRAPMAP_SYSTEM_ADMIN_KEY=$(openssl rand -hex 32)
 
 # AI 提供商密钥
 OPENAI_API_KEY=sk-...
-
-# Session 密钥（生产环境必须设置，至少 32 字符）
-SESSION_SECRET=$(openssl rand -hex 32)
 ```
 
 ### 生产环境配置

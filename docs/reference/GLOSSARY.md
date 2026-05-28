@@ -34,7 +34,7 @@
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `packages/contracts/src/domain/artifacts.ts:335-376` | Zod schema (`skillArtifactSchema`) | 聚合根定义：id, teamId, scope, labels, title, slug, requiredLevel, lifecycleState, owner, latestRevision, history, metadata, agentReview, boundaryMeta, evidenceMeta, maintenanceMeta |
+| `packages/contracts/src/domain/artifacts.ts:367` | Zod schema (`skillArtifactSchema`) | 聚合根定义：id, teamId, scope, labels, title, slug, requiredLevel, lifecycleState, owner, latestRevision, history, metadata, agentReview, boundaryMeta, evidenceMeta, maintenanceMeta |
 | `packages/contracts/src/domain/artifacts.ts:395` | TS 类型 (`SkillArtifact`) | 推断类型，server 和 CLI 全局使用 |
 | `packages/contracts/src/domain/candidates.ts:29` | Zod enum (`z.literal('skill')`) | `CandidateSourceSchema` 中的判别值 |
 | `packages/contracts/src/domain/candidates.ts:79-82` | Zod schema (`SkillCandidatePayloadSchema`) | Skill 候选提交载荷：files, metadata |
@@ -120,7 +120,8 @@
 | `packages/contracts/src/domain/artifacts.ts:155-180` | Zod schema (`skillCapsuleSchema`) | 规范定义：capsuleId, artifactId, revision, sourcePaths, content, situation, problem, goal, errorText, labels, scope, requiredLevel |
 | `packages/contracts/src/domain/retrieval.ts:106-137` | Zod schema (`capsuleMatchSchema`) | v2 检索响应中的 Capsule 匹配结果，扩展 score 和 reason 字段 |
 | `packages/contracts/src/domain/retrieval.ts:268-277` | Zod schema (`capsuleActivationHintsSchema`) | 每个 Capsule 的激活提示：readNext, assets, scripts |
-| `packages/server/src/lib/retrieval/capsules/capsule-recall.ts` | Impl | Capsule 召回：`buildCapsuleMatch()`, `rankCapsules()`, `getCapsuleRecords()` |
+| `packages/server/src/lib/retrieval/capsules/capsule-recall.ts` | Impl | Capsule 召回：`rankCapsules()`, `getCapsuleRecords()`, `computeContextMatchScore()` |
+| `packages/server/src/lib/retrieval/response/assembly.ts` | Impl | `buildCapsuleMatch()` — 将 capsule 候选装配为检索响应匹配结果 |
 | `packages/server/src/lib/retrieval/capsules/intent.ts` | Impl | `parseSeedIntent()` + `parseSeedIntentWithLLM()` — 将查询解析为 situation/problem/goal/errorText，LLM 路径额外产出 category/semanticQuery/parseMethod |
 | `packages/server/src/lib/retrieval/capsules/intent-cache.ts` | Impl | `InMemoryIntentCache` — LLM 意图解析结果的过程内缓存（TTL 30 分钟，容量上限 200） |
 

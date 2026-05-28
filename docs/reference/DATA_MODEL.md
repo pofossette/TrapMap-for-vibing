@@ -27,7 +27,7 @@ Round 0 的目标不是立即改完所有表，而是冻结后续数据库现代
 | Candidate | PostgreSQL 结构化表 | 候选、重复检测、处理状态与队列已切到 PG 主路径 |
 | Task Queue | PostgreSQL 结构化表 | 队列表和相关索引由 Drizzle migration 管理 |
 | Team / User / Member / Session / AccessKey / Audit | PostgreSQL 结构化表 | 主读写路径已切换为 PG repo，通过 `repos.team/user/membership/session/accessKey/audit` 访问 |
-| Duplicates / Lineage / Graph Index 等辅助域 | 混合状态，以 JSONB 为主 | 后续轮次再逐步拆分，当前不再新增新的快照依赖面 |
+| Duplicates / Lineage / Graph Index 等辅助域 | PostgreSQL 结构化表 | `candidate_duplicate_cases` / `candidate_duplicate_matches` / `entity_lineage`（Round 5）、`graph_index_documents`（Round 7）均已迁移为 PG 结构化表 |
 | Feedback | PostgreSQL 结构化表 | `feedback_records` + `feedback_custom_answers`，Round 6 迁移 |
 | Usage Analytics | PostgreSQL 结构化表 | `usage_events` + `usage_events_daily_rollup`，Rollup 为派生表 |
 | Server 路由 actor 查找 | 仓库-backed（`lib/actors/lookup.ts`） | 用户 handle 和成员安全等级通过 `repos.user` / `repos.membership` 解析；检索数据通过 `buildRetrievalReadModel()` 从 `repos.knowledge` / `repos.artifact` 组装，冲突关系暂从 `store.snapshot()` 获取 |

@@ -141,7 +141,7 @@ trapmap session
 # 如果未登录会显示
 
 # 2. 检查服务器日志
-docker compose logs app | grep "auth"
+docker compose logs server | grep "auth"
 
 # 3. 验证密码哈希
 # 服务器使用 bcrypt，确认为 bcrypt 格式
@@ -437,10 +437,10 @@ docker compose exec server node --input-type=module -e "
 
 ```bash
 # 1. 查看服务器日志
-docker compose logs app --tail=100
+docker compose logs server --tail=100
 
 # 2. 检查错误堆栈
-docker compose logs app | grep -A 5 "Error:"
+docker compose logs server | grep -A 5 "Error:"
 
 # 3. 检查数据库状态
 docker compose exec postgres psql -U trapmap -d trapmap -c "SELECT pg_stat_activity;"
@@ -521,7 +521,7 @@ docker compose logs
 docker compose ps -a
 
 # 3. 进入容器调试
-docker compose run --rm app sh
+docker compose run --rm server sh
 ```
 
 #### 常见原因
@@ -601,7 +601,7 @@ docker compose exec server node -e "
 # 增加内存限制
 # docker-compose.yml
 services:
-  app:
+  server:
     mem_limit: 2g
     mem_reservation: 512m
 
@@ -649,7 +649,7 @@ EOF
 
 ```bash
 # 临时启用
-docker compose run -e LOG_LEVEL=debug app
+docker compose run -e LOG_LEVEL=debug server
 
 # 永久启用
 # .env

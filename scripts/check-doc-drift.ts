@@ -50,9 +50,7 @@ export function checkRule(rule: DocRule, content: string): string[] {
   if (rule.mustContain) {
     for (const phrase of rule.mustContain) {
       if (!content.includes(phrase)) {
-        msgs.push(
-          `[doc-drift] FAIL: ${rule.file} must contain "${phrase}" but does not`,
-        );
+        msgs.push(`[doc-drift] FAIL: ${rule.file} must contain "${phrase}" but does not`);
       }
     }
   }
@@ -61,9 +59,7 @@ export function checkRule(rule: DocRule, content: string): string[] {
   if (rule.mustNotContain) {
     for (const phrase of rule.mustNotContain) {
       if (content.includes(phrase)) {
-        msgs.push(
-          `[doc-drift] FAIL: ${rule.file} must NOT contain "${phrase}" but does`,
-        );
+        msgs.push(`[doc-drift] FAIL: ${rule.file} must NOT contain "${phrase}" but does`);
       }
     }
   }
@@ -187,9 +183,7 @@ function main(): void {
 
   const raw = readFileSync(CONFIG_PATH, 'utf-8');
   const config: Config = JSON.parse(raw);
-  console.log(
-    `[doc-drift] All ${config.docRules.length} doc rule(s) passed.`,
-  );
+  console.log(`[doc-drift] All ${config.docRules.length} doc rule(s) passed.`);
 }
 
 // Only run when executed directly, not when imported (e.g. by tests).

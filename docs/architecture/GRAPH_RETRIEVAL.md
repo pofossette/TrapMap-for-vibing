@@ -390,7 +390,6 @@ edges:
 |------|------|
 | `packages/server/src/lib/retrieval/plan-compiler.ts` | Trap-First Plan 编译器 (BFS 局部展开 + skill 预算 + 拓扑执行计划) |
 | `packages/server/src/lib/retrieval/graph-plan-search.ts` | v3 图计划搜索入口 + 置信度评估 + 降级逻辑 |
-| `packages/server/src/lib/retrieval/graph-plan-search.ts` | v3 图计划搜索入口 + 置信度评估 + 降级逻辑 |
 
 ### 管线集成
 

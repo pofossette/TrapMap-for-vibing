@@ -504,17 +504,15 @@ trapmap knowledge list [--state <state>] [--limit <limit>]
 
 #### `trap/`
 ```bash
-trapmap trap create --name <name> --description <description>
+trapmap trap submit --scope <scope> --label <label> --shortcut <text> [--detail <text>]
 trapmap trap list
-trapmap trap get <trapId>
+trapmap trap show <entryId>
 trapmap trap resubmit <trapId> --content <content>
 ```
 
 #### `retrieval/`
 ```bash
-trapmap search <query> [--mode semantic|hybrid|graph-assisted] [--limit <limit>]
-trapmap search:v2 <query> [--limit <limit>]  # 胶囊搜索
-trapmap search:plan <query>                   # 陷阱优先计划
+trapmap search <query> [--mode semantic|hybrid|graph-assisted] [--limit <limit>] [--v2]
 ```
 
 #### `review/`

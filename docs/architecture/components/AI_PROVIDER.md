@@ -4,6 +4,8 @@
 
 AI 提供商抽象层为 TrapMap 提供统一的 AI 接口，支持多种 AI 提供商（OpenAI、OpenAI 兼容接口、Ollama、Google GenAI）。这使得系统可以在不改变业务逻辑的情况下切换 AI 提供商。当无 API key 时自动降级到 `fallback` 模式（确定性哈希向量）。
 
+所有提供商实现均基于 `@langchain/openai` 的 `ChatOpenAI` 和 `OpenAIEmbeddings`，通过动态懒加载（`await import()`）避免非 fallback 模式下的包加载开销。详见 [依赖分析](DEPENDENCY_ANALYSIS.md)。
+
 ## 支持的提供商
 
 | 提供商 | 类型 | 默认 Chat 模型 | 默认 Embedding 模型 | 适用场景 |
@@ -18,31 +20,29 @@ AI 提供商抽象层为 TrapMap 提供统一的 AI 接口，支持多种 AI 提
 
 ```mermaid
 flowchart TB
-    subgraph 导出模块["AI 模块导出"]
-        A["export { createAIProvider, type AIProvider }"]
+    subgraph 导出模块["AI 模块导出 (ai/index.ts)"]
+        A["export { createAiProviders, type AiProviders }\nexport type { ChatProvider, EmbeddingsProvider }"]
     end
 
     subgraph 工厂函数["工厂函数"]
-        B["createAIProvider(config: AIProviderConfig)\n- 读取 AI_PROVIDER 环境变量\n- 实例化适当的提供商\n- 返回类型化的 AIProvider 实例"]
+        B["createAiProviders(config: AiProviderConfig)\n- 返回 AiProviders { chat, embeddings }\n- 支持独立 embedding provider"]
     end
 
     subgraph 提供商实现["提供商实现"]
-        subgraph OpenAI提供商["OpenAI 提供商"]
-            C1["chat()\nembed()\nchatStream()"]
+        subgraph Chat提供商["Chat 提供商"]
+            C1["OpenAICompatibleChat\ninvoke() / invokeWithBlocks()"]
+            C2["FallbackChat\ninvoke() → throws"]
         end
 
-        subgraph 兼容提供商["OpenAI 兼容提供商"]
-            C2["chat()\nembed()\nchatStream()"]
-        end
-
-        subgraph Ollama提供商["Ollama 提供商"]
-            C3["chat()\nembed()\nchatStream()"]
+        subgraph Embeddings提供商["Embeddings 提供商"]
+            E1["OpenAICompatibleEmbeddings\nembed()"]
+            E2["GoogleGenAIEmbeddings\nembed()"]
+            E3["FallbackEmbeddings\nembed() — 确定性哈希向量"]
         end
     end
 
-    导出模块 --> 工厂函数 --> OpenAI提供商
-    工厂函数 --> 兼容提供商
-    工厂函数 --> Ollama提供商
+    导出模块 --> 工厂函数 --> Chat提供商
+    工厂函数 --> Embeddings提供商
 ```
 
 ## 接口定义
@@ -50,82 +50,47 @@ flowchart TB
 ### 核心接口
 
 ```typescript
-interface AIProvider {
-  // Chat completions
-  chat(
-    messages: ChatMessage[],
-    options?: ChatOptions
-  ): Promise<ChatResponse>;
-  
-  // Streaming chat completions
-  chatStream(
-    messages: ChatMessage[],
-    options?: ChatOptions
-  ): AsyncIterable<StreamingChunk>;
-  
-  // Embeddings generation
-  embed(texts: string[]): Promise<EmbeddingResponse>;
-  
-  // Provider name for logging/debugging
-  readonly providerName: string;
-  
-  // Check if provider is healthy
-  healthCheck(): Promise<boolean>;
+// ai/types.ts
+interface EmbeddingsProvider {
+  readonly provider: string;
+  readonly isConfigured: boolean;
+  embed(text: string): Promise<number[]>;
 }
 
-interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-  name?: string;
+interface ChatProvider {
+  readonly provider: string;
+  readonly isConfigured: boolean;
+  invoke(systemPrompt: string, userMessage: string): Promise<string>;
+  invokeWithBlocks?(blocks: PromptBlock[], userMessage: string): Promise<string>;
 }
 
-interface ChatOptions {
-  model?: string;
-  temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  stop?: string[];
-  functions?: FunctionDefinition[];
-}
-
-interface ChatResponse {
-  content: string;
-  model: string;
-  usage: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
-  finishReason: 'stop' | 'length' | 'function_call' | 'content_filter';
-}
-
-interface EmbeddingResponse {
-  embeddings: number[][];
-  model: string;
-  usage: {
-    promptTokens: number;
-    totalTokens: number;
-  };
+interface AiProviders {
+  embeddings: EmbeddingsProvider;
+  chat: ChatProvider;
 }
 ```
 
 ### 配置接口
 
 ```typescript
-interface AIProviderConfig {
-  provider: 'openai' | 'openai-compatible' | 'ollama' | 'google-genai' | 'fallback';
-  
-  // API Configuration
-  apiKey?: string;
-  baseUrl?: string;
-  
-  // Model Configuration
-  chatModel?: string;
-  embeddingModel?: string;
-  
-  // Optional Configuration
-  timeout?: number;
-  maxRetries?: number;
+// ai/provider-config.ts
+interface AiProviderConfig {
+  readonly provider: AiProviderType;  // 'openai' | 'openai-compatible' | 'ollama' | 'google-genai' | 'fallback'
+  readonly baseUrl: string;
+  readonly apiKey: string;
+  readonly chatModel: string;
+  readonly embeddingModel: string;
+  readonly isConfigured: boolean;
+  /** Path to a JSON prompt template override file */
+  readonly promptTemplateFile: string | null;
+  /** Embedding provider config if different from primary */
+  readonly embeddingProvider?: {
+    readonly provider: AiProviderType;
+    readonly baseUrl: string;
+    readonly apiKey: string;
+    readonly model: string;
+    readonly isConfigured: boolean;
+  };
 }
 ```
 
@@ -135,98 +100,74 @@ interface AIProviderConfig {
 
 ### 实现
 
+OpenAI 和 OpenAI 兼容提供商共享同一套实现类，通过 `baseUrl` 区分：
+
 ```typescript
-import OpenAI from 'openai';
-import type { AIProvider, ChatMessage, ChatOptions } from './types';
+// ai/providers.ts
+export class OpenAICompatibleChat implements ChatProvider {
+  readonly provider: string;
+  readonly isConfigured: boolean;
+  private impl: import('@langchain/openai').ChatOpenAI | null = null;
+  private readonly chatConfig: AiProviderConfig;
 
-export class OpenAIProvider implements AIProvider {
-  readonly providerName = 'openai';
-  
-  private client: OpenAI;
-  private chatModel: string;
-  private embeddingModel: string;
-  
-  constructor(config: AIProviderConfig) {
-    this.client = new OpenAI({
-      apiKey: config.apiKey,
-      timeout: config.timeout,
-      maxRetries: config.maxRetries
-    });
-    
-    this.chatModel = config.chatModel || 'gpt-4o-mini';
-    this.embeddingModel = config.embeddingModel || 'text-embedding-3-small';
+  constructor(config: AiProviderConfig) {
+    this.provider = config.provider;
+    this.isConfigured = config.isConfigured;
+    this.chatConfig = config;
   }
 
-  async chat(
-    messages: ChatMessage[],
-    options: ChatOptions = {}
-  ): Promise<ChatResponse> {
-    const response = await this.client.chat.completions.create({
-      model: options.model || this.chatModel,
-      messages: messages as OpenAI.Chat.ChatCompletionMessageParam[],
-      temperature: options.temperature ?? 0.7,
-      max_tokens: options.maxTokens,
-      top_p: options.topP,
-      stop: options.stop,
-      functions: options.functions as OpenAI.Chat.ChatCompletionFunctions[] | undefined
-    });
-    
-    const choice = response.choices[0];
-    return {
-      content: choice.message.content || '',
-      model: response.model,
-      usage: {
-        promptTokens: response.usage?.prompt_tokens || 0,
-        completionTokens: response.usage?.completion_tokens || 0,
-        totalTokens: response.usage?.total_tokens || 0
-      },
-      finishReason: choice.finish_reason as ChatResponse['finishReason']
-    };
-  }
-  
-  async *chatStream(
-    messages: ChatMessage[],
-    options: ChatOptions = {}
-  ): AsyncIterable<StreamingChunk> {
-    const stream = await this.client.chat.completions.create({
-      model: options.model || this.chatModel,
-      messages: messages as OpenAI.Chat.ChatCompletionMessageParam[],
-      temperature: options.temperature ?? 0.7,
-      max_tokens: options.maxTokens,
-      stream: true
-    });
-    
-    for await (const chunk of stream) {
-      yield {
-        content: chunk.choices[0]?.delta?.content || '',
-        done: chunk.choices[0]?.finish_reason !== undefined
-      };
+  private async ensureImpl(): Promise<import('@langchain/openai').ChatOpenAI> {
+    if (!this.impl) {
+      const { ChatOpenAI } = await import('@langchain/openai');
+      this.impl = new ChatOpenAI({
+        modelName: this.chatConfig.chatModel,
+        apiKey: this.chatConfig.apiKey,
+        timeout: 30_000,
+        configuration: { baseURL: this.chatConfig.baseUrl },
+      });
     }
+    return this.impl;
   }
-  
-  async embed(texts: string[]): Promise<EmbeddingResponse> {
-    const response = await this.client.embeddings.create({
-      model: this.embeddingModel,
-      input: texts
-    });
-    
-    return {
-      embeddings: response.data.map(d => d.embedding),
-      model: response.model,
-      usage: {
-        promptTokens: response.usage?.prompt_tokens || 0,
-        totalTokens: response.usage?.total_tokens || 0
-      }
-    };
+
+  async invoke(systemPrompt: string, userMessage: string): Promise<string> {
+    const impl = await this.ensureImpl();
+    const { HumanMessage, SystemMessage } = await import('@langchain/core/messages');
+    const result = await impl.invoke([
+      new SystemMessage(systemPrompt),
+      new HumanMessage(userMessage),
+    ]);
+    return typeof result.content === 'string' ? result.content : String(result.content);
   }
-  
-  async healthCheck(): Promise<boolean> {
-    try {
-      await this.client.models.list();
-      return true;
-    } catch {
-      return false;
+}
+
+export class OpenAICompatibleEmbeddings implements EmbeddingsProvider {
+  readonly provider: string;
+  readonly isConfigured: boolean;
+  private impl: import('@langchain/openai').OpenAIEmbeddings | null = null;
+  private readonly embConfig: AiProviderConfig;
+
+  constructor(config: AiProviderConfig) {
+    this.provider = config.provider;
+    this.isConfigured = config.isConfigured;
+    this.embConfig = config;
+  }
+
+  private async ensureImpl(): Promise<import('@langchain/openai').OpenAIEmbeddings> {
+    if (!this.impl) {
+      const { OpenAIEmbeddings } = await import('@langchain/openai');
+      this.impl = new OpenAIEmbeddings({
+        modelName: this.embConfig.embeddingModel,
+        apiKey: this.embConfig.apiKey,
+        timeout: 30_000,
+        configuration: { baseURL: this.embConfig.baseUrl },
+      });
     }
+    return this.impl;
+  }
+
+  async embed(text: string): Promise<number[]> {
+    const impl = await this.ensureImpl();
+    return impl.embedQuery(text);
   }
 }
 ```
@@ -245,37 +186,7 @@ AI_EMBEDDING_MODEL=text-embedding-3-small
 
 ## OpenAI 兼容提供商
 
-### 实现
-
-```typescript
-export class OpenAICompatibleProvider implements AIProvider {
-  readonly providerName = 'openai-compatible';
-  
-  private client: OpenAI;
-  private baseUrl: string;
-  private chatModel: string;
-  private embeddingModel: string;
-  
-  constructor(config: AIProviderConfig) {
-    if (!config.baseUrl) {
-      throw new Error('baseUrl required for openai-compatible provider');
-    }
-    
-    this.baseUrl = config.baseUrl;
-    this.chatModel = config.chatModel || 'gpt-4o-mini';
-    this.embeddingModel = config.embeddingModel || 'text-embedding-3-small';
-
-    this.client = new OpenAI({
-      apiKey: config.apiKey || 'dummy',
-      baseURL: config.baseUrl,
-      timeout: config.timeout
-    });
-  }
-  
-  // Similar implementation to OpenAIProvider
-  // but uses custom baseUrl
-}
-```
+OpenAI 兼容提供商与 OpenAI 提供商共享 `OpenAICompatibleChat` 和 `OpenAICompatibleEmbeddings` 类（见上文）。区别在于 `config.baseUrl` 指向自定义端点。
 
 ### 配置
 
@@ -301,158 +212,14 @@ AI_EMBEDDING_MODEL=custom-embedding-model
 
 ## Ollama 提供商
 
-### 实现
-
-```typescript
-import type { AIProvider, ChatMessage, ChatOptions } from './types';
-
-export class OllamaProvider implements AIProvider {
-  readonly providerName = 'ollama';
-  
-  private baseUrl: string;
-  private chatModel: string;
-  private embeddingModel: string;
-  
-  constructor(config: AIProviderConfig) {
-    this.baseUrl = config.baseUrl || 'http://localhost:11434';
-    this.chatModel = config.chatModel || 'llama3';
-    this.embeddingModel = config.embeddingModel || 'nomic-embed-text';
-  }
-
-  async chat(
-    messages: ChatMessage[],
-    options: ChatOptions = {}
-  ): Promise<ChatResponse> {
-    const response = await fetch(`${this.baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: options.model || this.chatModel,
-        messages: messages.map(m => ({
-          role: m.role,
-          content: m.content
-        })),
-        stream: false,
-        options: {
-          temperature: options.temperature ?? 0.7,
-          num_predict: options.maxTokens
-        }
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    return {
-      content: data.message.content,
-      model: data.model,
-      usage: {
-        promptTokens: data.prompt_eval_count || 0,
-        completionTokens: data.eval_count || 0,
-        totalTokens: (data.prompt_eval_count || 0) + (data.eval_count || 0)
-      },
-      finishReason: 'stop'
-    };
-  }
-  
-  async *chatStream(
-    messages: ChatMessage[],
-    options: ChatOptions = {}
-  ): AsyncIterable<StreamingChunk> {
-    const response = await fetch(`${this.baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: options.model || this.chatModel,
-        messages: messages.map(m => ({
-          role: m.role,
-          content: m.content
-        })),
-        stream: true
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.statusText}`);
-    }
-    
-    const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
-    
-    if (!reader) throw new Error('No response body');
-    
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n').filter(Boolean);
-      
-      for (const line of lines) {
-        try {
-          const data = JSON.parse(line);
-          yield {
-            content: data.message?.content || '',
-            done: data.done
-          };
-        } catch {
-          // Skip invalid JSON lines
-        }
-      }
-    }
-  }
-  
-  async embed(texts: string[]): Promise<EmbeddingResponse> {
-    const embeddings: number[][] = [];
-    
-    for (const text of texts) {
-      const response = await fetch(`${this.baseUrl}/api/embeddings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: this.embeddingModel,
-          prompt: text
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Ollama embeddings error: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      embeddings.push(data.embedding);
-    }
-    
-    return {
-      embeddings,
-      model: this.embeddingModel,
-      usage: {
-        promptTokens: 0,
-        totalTokens: 0
-      }
-    };
-  }
-  
-  async healthCheck(): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.baseUrl}/api/tags`);
-      return response.ok;
-    } catch {
-      return false;
-    }
-  }
-}
-```
+Ollama 的 `/v1/*` 端点与 OpenAI 兼容，因此复用 `OpenAICompatibleChat` 和 `OpenAICompatibleEmbeddings`，无需独立实现。
 
 ### 配置
 
 ```bash
 # .env
 AI_PROVIDER=ollama
-AI_BASE_URL=http://localhost:11434
+AI_BASE_URL=http://localhost:11434/v1
 AI_CHAT_MODEL=llama3
 AI_EMBEDDING_MODEL=nomic-embed-text
 ```
@@ -474,60 +241,64 @@ ollama list
 ## 工厂函数
 
 ```typescript
-import { OpenAIProvider } from './openai';
-import { OpenAICompatibleProvider } from './openai-compatible';
-import { OllamaProvider } from './ollama';
-import type { AIProvider, AIProviderConfig } from './types';
+// ai/providers.ts
+import type { AiProviders, ChatProvider, EmbeddingsProvider } from './types.js';
 
 /**
- * 解析提供商类型（与 provider-config.ts resolveProviderType() 对齐）：
- * 1. AI_PROVIDER 显式设置 → 使用该值
- * 2. OPENAI_API_KEY 存在 → openai
- * 3. GEMINI_API_KEY 存在 → google-genai
- * 4. 否则 → fallback（确定性哈希向量，无需 API key）
+ * Create AI providers from configuration.
+ * Returns live providers when configured, otherwise deterministic fallbacks.
+ *
+ * Supports separate embedding provider via config.embeddingProvider.
+ * This allows using Ollama for embeddings while using another provider for chat.
  */
-export function createAIProvider(config?: AIProviderConfig): AIProvider {
-  const effectiveConfig = config || {
-    provider: resolveProviderType(),
-    apiKey: process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '',
-    baseUrl: process.env.AI_BASE_URL,
-    chatModel: process.env.AI_CHAT_MODEL,
-    embeddingModel: process.env.AI_EMBEDDING_MODEL,
-    timeout: 60000,
-    maxRetries: 3
+export function createAiProviders(config: AiProviderConfig): AiProviders {
+  if (config.provider === 'fallback') {
+    return {
+      embeddings: new FallbackEmbeddings(),
+      chat: new FallbackChat(),
+    };
+  }
+
+  // Create embeddings provider based on provider type
+  const createEmbeddingsProvider = (cfg: AiProviderConfig): EmbeddingsProvider => {
+    if (cfg.provider === 'google-genai') {
+      return new GoogleGenAIEmbeddings(cfg);
+    }
+    return new OpenAICompatibleEmbeddings(cfg);
   };
 
-  switch (effectiveConfig.provider) {
-    case 'openai':
-      return new OpenAIProvider(effectiveConfig);
-
-    case 'openai-compatible':
-      return new OpenAICompatibleProvider(effectiveConfig);
-
-    case 'ollama':
-      return new OllamaProvider(effectiveConfig);
-
-    case 'google-genai':
-      return new GoogleGenAIProvider(effectiveConfig);
-
-    case 'fallback':
-      return new FallbackProvider();
-
-    default:
-      throw new Error(`Unknown AI provider: ${effectiveConfig.provider}`);
+  // Use separate embedding provider if configured
+  if (config.embeddingProvider?.isConfigured) {
+    const embConfig: AiProviderConfig = {
+      provider: config.embeddingProvider.provider,
+      baseUrl: config.embeddingProvider.baseUrl,
+      apiKey: config.embeddingProvider.apiKey,
+      chatModel: '',
+      embeddingModel: config.embeddingProvider.model,
+      isConfigured: true,
+      promptTemplateFile: null,
+    };
+    return {
+      embeddings: createEmbeddingsProvider(embConfig),
+      chat: new OpenAICompatibleChat(config),
+    };
   }
-}
 
-function resolveProviderType(): AIProviderConfig['provider'] {
-  const explicit = process.env.AI_PROVIDER;
-  if (explicit === 'openai' || explicit === 'openai-compatible' ||
-      explicit === 'ollama' || explicit === 'google-genai') {
-    return explicit;
-  }
-  if (process.env.OPENAI_API_KEY?.length) return 'openai';
-  if (process.env.GEMINI_API_KEY?.length) return 'google-genai';
-  return 'fallback';
+  return {
+    embeddings: createEmbeddingsProvider(config),
+    chat: new OpenAICompatibleChat(config),
+  };
 }
+```
+
+### 提供商检测逻辑
+
+```typescript
+// ai/provider-config.ts — resolveProviderType()
+// 1. AI_PROVIDER 显式设置 → 使用该值
+// 2. OPENAI_API_KEY 存在 → openai（向后兼容）
+// 3. GEMINI_API_KEY 存在 → google-genai
+// 4. 否则 → fallback（确定性哈希向量，无需 API key）
 ```
 
 ---
@@ -537,120 +308,45 @@ function resolveProviderType(): AIProviderConfig['provider'] {
 ### 在服务中使用
 
 ```typescript
-import { createAIProvider } from './index';
+import { createAiProviders, loadAiProviderConfig } from './ai/index.js';
 
-const ai = createAIProvider();
+const config = loadAiProviderConfig();
+const { chat, embeddings } = createAiProviders(config);
 
 // Chat
-const chatResponse = await ai.chat([
-  { role: 'system', content: 'You are a helpful assistant.' },
-  { role: 'user', content: 'Explain GraphRAG in simple terms.' }
-]);
-
-console.log(chatResponse.content);
+const response = await chat.invoke(
+  'You are a helpful assistant.',
+  'Explain GraphRAG in simple terms.'
+);
+console.log(response);
 
 // Embeddings
-const embedResponse = await ai.embed([
-  'How to implement OAuth2 authentication',
-  'JWT token validation best practices'
-]);
-
-console.log(`Generated ${embedResponse.embeddings.length} embeddings`);
-
-// Streaming
-for await (const chunk of ai.chatStream([
-  { role: 'user', content: 'Write a Python script to validate JWT tokens' }
-])) {
-  process.stdout.write(chunk.content);
-}
+const vector = await embeddings.embed('How to implement OAuth2 authentication');
+console.log(`Generated ${vector.length}-dimensional embedding`);
 ```
 
-### 在 LangChain 中使用
+### 独立 Embedding Provider
 
-```typescript
-import { ChatOpenAI } from 'langchain/openai';
-import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
-
-// Create LangChain instances from our provider
-const chatModel = new ChatOpenAI({
-  modelName: 'gpt-4o-mini',
-  temperature: 0.7,
-  callbacks: []
-});
-
-const embeddings = new OpenAIEmbeddings({
-  modelName: 'text-embedding-3-small'
-});
+```bash
+# 使用 Ollama 做 embeddings，OpenAI 做 chat
+AI_PROVIDER=openai
+OPENAI_API_KEY=sk-proj-...
+EMBEDDING_PROVIDER=ollama
+EMBEDDING_BASE_URL=http://localhost:11434/v1
+EMBEDDING_MODEL=nomic-embed-text
 ```
 
 ---
 
 ## 错误处理
 
-### 重试机制
+### Fallback 行为
 
-```typescript
-async function withRetry<T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 3
-): Promise<T> {
-  let lastError: Error;
-  
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error as Error;
-      
-      // Don't retry on certain errors
-      if (error instanceof RateLimitError ||
-          error instanceof AuthenticationError) {
-        throw error;
-      }
-      
-      // Exponential backoff
-      if (attempt < maxRetries - 1) {
-        await sleep(Math.pow(2, attempt) * 1000);
-      }
-    }
-  }
-  
-  throw lastError;
-}
-```
+当无 API key 时，工厂函数返回：
 
-### 错误类型
+- `FallbackEmbeddings`：确定性哈希向量（384 维），用于本地/CI 环境
+- `FallbackChat`：调用时抛出 `Error('No AI chat provider configured')`
 
-```typescript
-class AIProviderError extends Error {
-  constructor(
-    message: string,
-    public provider: string,
-    public statusCode?: number
-  ) {
-    super(message);
-    this.name = 'AIProviderError';
-  }
-}
+### LangChain 内置重试
 
-class RateLimitError extends AIProviderError {
-  constructor(provider: string, public retryAfterMs?: number) {
-    super('Rate limit exceeded', provider, 429);
-    this.name = 'RateLimitError';
-  }
-}
-
-class AuthenticationError extends AIProviderError {
-  constructor(provider: string) {
-    super('Authentication failed', provider, 401);
-    this.name = 'AuthenticationError';
-  }
-}
-
-class ModelNotFoundError extends AIProviderError {
-  constructor(provider: string, public model: string) {
-    super(`Model not found: ${model}`, provider, 404);
-    this.name = 'ModelNotFoundError';
-  }
-}
-```
+`ChatOpenAI` 和 `OpenAIEmbeddings` 实例化时未显式配置 `maxRetries`，依赖 LangChain 默认重试策略。超时设置为 30 秒。

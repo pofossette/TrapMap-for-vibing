@@ -16,12 +16,26 @@
     },
     {
       "file": "docs/guides/GETTING_STARTED.md",
-      "mustContain": ["PostgreSQL 设置（默认）", ".data/skill-shareer.json", "pnpm --filter @trapmap/server db:migrate"],
-      "mustNotContain": ["PostgreSQL 模式（可选）", ".data/trapmap.json", "pnpm run db:migrate", "pnpm run db:generate"]
+      "mustContain": [
+        "PostgreSQL 设置（默认）",
+        ".data/skill-shareer.json",
+        "pnpm --filter @trapmap/server db:migrate"
+      ],
+      "mustNotContain": [
+        "PostgreSQL 模式（可选）",
+        ".data/trapmap.json",
+        "pnpm run db:migrate",
+        "pnpm run db:generate"
+      ]
     },
     {
       "file": "docs/architecture/DEPLOYMENT.md",
-      "mustContain": ["TRAPMAP_DATABASE_URL", "gpt-4o-mini", ".data/skill-shareer.json", "仓库当前未包含 Helm chart"],
+      "mustContain": [
+        "TRAPMAP_DATABASE_URL",
+        "gpt-4o-mini",
+        ".data/skill-shareer.json",
+        "仓库当前未包含 Helm chart"
+      ],
       "mustNotContain": ["使用 JSON 文件存储", "DEBUG=false", "SESSION_SECRET"],
       "mustNotContainRegex": ["gpt-4o(?!-)"],
       "mustContainCount": {
@@ -50,10 +64,7 @@
         "pnpm --filter @trapmap/server db:generate",
         "pnpm --filter @trapmap/server db:migrate"
       ],
-      "mustNotContain": [
-        "pnpm run db:generate",
-        "pnpm run db:migrate"
-      ]
+      "mustNotContain": ["pnpm run db:generate", "pnpm run db:migrate"]
     },
     {
       "file": "docs/operations/TESTING.md",

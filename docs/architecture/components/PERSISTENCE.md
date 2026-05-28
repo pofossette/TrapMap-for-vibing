@@ -32,74 +32,66 @@ flowchart TB
 
 ### 核心接口
 
+实际的 `SkillShareerStore` 接口非常简洁，提供快照和事务两种访问模式：
+
 ```typescript
-interface Store {
-  // Transaction support
-  transact<T>(fn: (tx: Transaction) => Promise<T>): Promise<T>;
-  
-  // Knowledge Entries
-  createKnowledgeEntry(entry: KnowledgeEntry): Promise<void>;
-  getKnowledgeEntry(id: EntityId): Promise<KnowledgeEntry | null>;
-  updateKnowledgeEntry(
-    id: EntityId, 
-    updates: Partial<KnowledgeEntry>,
-    options?: { expectedVersion?: number }
-  ): Promise<void>;
-  deleteKnowledgeEntry(id: EntityId): Promise<void>;
-  listKnowledgeEntries(query: ListQuery): Promise<KnowledgeEntry[]>;
-  
-  // Teams
-  createTeam(team: Team): Promise<void>;
-  getTeam(id: EntityId): Promise<Team | null>;
-  updateTeam(id: EntityId, updates: Partial<Team>): Promise<void>;
-  deleteTeam(id: EntityId): Promise<void>;
-  listTeams(): Promise<Team[]>;
-  
-  // Members
-  createMember(member: Member): Promise<void>;
-  getMember(id: EntityId): Promise<Member | null>;
-  updateMember(id: EntityId, updates: Partial<Member>): Promise<void>;
-  deleteMember(id: EntityId): Promise<void>;
-  listMembers(query: ListQuery): Promise<Member[]>;
-  
-  // Sessions
-  createSession(session: Session): Promise<void>;
-  getSession(id: EntityId): Promise<Session | null>;
-  deleteSession(id: EntityId): Promise<void>;
-  listSessionsByUser(userId: EntityId): Promise<Session[]>;
-  
-  // Access Keys
-  createAccessKey(key: AccessKey): Promise<void>;
-  getAccessKeyByHash(hash: string): Promise<AccessKey | null>;
-  deleteAccessKey(id: EntityId): Promise<void>;
-  
-  // Audit Log
-  createAuditLog(log: AuditLog): Promise<void>;
-  listAuditLogs(query: AuditLogQuery): Promise<AuditLog[]>;
-  
-  // Index State
-  getIndexState(entryId: EntityId): Promise<KnowledgeIndexStateRecord | null>;
-  updateIndexState(entryId: EntityId, state: Partial<AdapterIndexState>): Promise<void>;
-  
-  // Candidates
-  createCandidate(candidate: CandidateSubmission): Promise<void>;
-  getCandidate(id: EntityId): Promise<CandidateSubmission | null>;
-  updateCandidate(id: EntityId, updates: Partial<CandidateSubmission>): Promise<void>;
-  listCandidates(query: ListQuery): Promise<CandidateSubmission[]>;
+// store/store-interface.ts
+interface SkillShareerStore {
+  /** 获取当前数据快照（只读） */
+  snapshot(): Promise<StoreData>;
+  /** 在事务中修改数据（原子性） */
+  transact<T>(mutator: (data: StoreData) => Promise<T> | T): Promise<T>;
+  /** 生成唯一 ID */
+  nextId(data: StoreData, prefix: string): string;
 }
 ```
 
-### Transaction 接口
+### StoreData 结构
 
 ```typescript
-interface Transaction {
-  // Within a transaction, methods return data directly without tx wrapper
-  getKnowledgeEntry(id: EntityId): Promise<KnowledgeEntry | null>;
-  updateKnowledgeEntry(id: EntityId, updates: Partial<KnowledgeEntry>): Promise<void>;
-  // ... other methods that need transactional semantics
-  
-  commit(): Promise<void>;
-  rollback(): Promise<void>;
+// store/store-data.ts
+interface StoreData {
+  counters: Record<string, number>;
+  users: UserRecord[];
+  teams: TeamRecord[];
+  memberships: MembershipRecord[];
+  accessKeys: AccessKeyRecord[];
+  sessions: SessionRecord[];
+  knowledgeEntries: KnowledgeRecord[];        // @deprecated: 使用 KnowledgeRepository
+  auditEvents: AuditEventRecord[];
+  skillArtifacts: SkillArtifactRecord[];      // @deprecated: 使用 ArtifactRepository
+  artifactFilePayloads: ArtifactFilePayloadRecord[];
+  candidateSubmissions: CandidateSubmissionRecord[];  // @deprecated: 使用 CandidateRepository
+  duplicateCases: DuplicateCaseRecord[];      // @deprecated: 使用 DuplicateRepository
+  entityLineage: EntityLineageRecord[];
+  graphIndexDocuments: GraphIndexDocumentRecord[];
+  conflicts: ConflictRelation[];
+  feedbackQueue: FeedbackQueueRecord[];
+  promptVersion: number | null;
+  rebuildState: { targetVersion: number; completedSourceKeys: string[] } | null;
+}
+```
+
+### Repository 模式
+
+各域通过 Repository 接口抽象 CRUD 操作，支持 PostgreSQL 和内存两种实现：
+
+| 域 | Repository 接口 | PG 实现 | 内存实现 |
+|----|----------------|---------|---------|
+| 知识 | `KnowledgeRepository` | `PgKnowledgeRepository` | `InMemoryKnowledgeRepository` |
+| 工件 | `ArtifactRepository` | `PgArtifactRepository` | `InMemoryArtifactRepository` |
+| 候选 | `CandidateRepository` | `PgCandidateRepository` | `InMemoryCandidateRepository` |
+| 会话 | `SessionRepository` | `PgSessionRepository` | `InMemorySessionRepository` |
+| 访问密钥 | `AccessKeyRepository` | `PgAccessKeyRepository` | `InMemoryAccessKeyRepository` |
+| 反馈 | `FeedbackRepository` | `PgFeedbackRepository` | `InMemoryFeedbackRepository` |
+
+工厂函数按是否有 PG pool 选择实现：
+
+```typescript
+// 例如 auth/repository.ts
+function createSessionRepository(config: { pool?: Pool; store: SkillShareerStore }): SessionRepository {
+  if (config.pool) return new PgSessionRepository(config.pool);
+  return new InMemorySessionRepository(config.store);
 }
 ```
 
