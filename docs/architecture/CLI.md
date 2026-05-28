@@ -140,20 +140,26 @@ trapmap output profile set --tool opencode --model claude
 
 ### `trapmap login`
 
-用户名密码登录。
+使用 Access Key 或 System Admin Key 登录。
 
 ```bash
-trapmap login <username> <password>
+trapmap login --access-key <key>
+```
+
+或使用管理员密钥：
+
+```bash
+trapmap login --system-admin-key <key>
 ```
 
 **示例**:
 ```bash
-trapmap login alice@example.com mypassword
+trapmap login --access-key ak_xxxxxxxxxxxxxxxxxxxx
 ```
 
 **输出**:
 ```
-✓ Logged in as alice@example.com
+✓ Logged in as alice
   Role: contributor | Level: 1
 ```
 
@@ -1599,7 +1605,7 @@ cat entries.txt | while read id; do trapmap knowledge inspect $id; done
 
 ### 配置
 
-CLI 配置存储在 `~/.trapmap/config.json`:
+CLI 配置存储在 `~/.trapmap/cli.json`:
 
 ```json
 {

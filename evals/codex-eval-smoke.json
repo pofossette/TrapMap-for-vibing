@@ -771,9 +771,7 @@
           "coverageScore": 1,
           "claimsTotal": 2,
           "claimsSupported": 2,
-          "requiredFactsCovered": [
-            "rate limiting"
-          ],
+          "requiredFactsCovered": ["rate limiting"],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
           "durationMs": 15
@@ -787,10 +785,7 @@
           "coverageScore": 1,
           "claimsTotal": 2,
           "claimsSupported": 2,
-          "requiredFactsCovered": [
-            "docker-compose",
-            "multi-container"
-          ],
+          "requiredFactsCovered": ["docker-compose", "multi-container"],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
           "durationMs": 17
@@ -818,9 +813,7 @@
           "coverageScore": 1,
           "claimsTotal": 2,
           "claimsSupported": 2,
-          "requiredFactsCovered": [
-            "Express"
-          ],
+          "requiredFactsCovered": ["Express"],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
           "durationMs": 14
@@ -834,10 +827,7 @@
           "coverageScore": 1,
           "claimsTotal": 4,
           "claimsSupported": 4,
-          "requiredFactsCovered": [
-            "useState",
-            "useEffect"
-          ],
+          "requiredFactsCovered": ["useState", "useEffect"],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
           "durationMs": 15
@@ -851,10 +841,7 @@
           "coverageScore": 1,
           "claimsTotal": 2,
           "claimsSupported": 2,
-          "requiredFactsCovered": [
-            "docker-compose",
-            "multi-container"
-          ],
+          "requiredFactsCovered": ["docker-compose", "multi-container"],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
           "durationMs": 19

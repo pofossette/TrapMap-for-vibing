@@ -35,9 +35,7 @@ function fail(msg) {
 
 // Check 1: Root markdown allowlist
 function checkRootMarkdown() {
-  const files = readdirSync(ROOT).filter(
-    (f) => f.endsWith('.md') && !f.startsWith('.')
-  );
+  const files = readdirSync(ROOT).filter((f) => f.endsWith('.md') && !f.startsWith('.'));
   for (const f of files) {
     if (!ROOT_MD_ALLOWLIST.includes(f)) {
       fail(`Unexpected root markdown file: ${f}`);

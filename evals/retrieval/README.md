@@ -42,7 +42,7 @@ pnpm eval:retrieval --tier smoke --endpoint /v2/retrieval/search
 
 `/v1/retrieval/search` 端点存在已知的路由路径敏感性。当前集成测试显示，在认证路由执行下，治理场景可能返回 500 错误。这是 Phase 26 执行的规划考虑因素：
 
-- 根据 `docs/api-surface.md`，v1 端点仍然是活跃契约
+- 根据 `docs/reference/api-surface.md`，v1 端点仍然是活跃契约
 - 如果路由不稳定性持续存在，Phase 26 可能需要内部适配器
 - 数据集作者应以 v1 用例为目标进行覆盖，但运行器应优雅处理执行失败
 

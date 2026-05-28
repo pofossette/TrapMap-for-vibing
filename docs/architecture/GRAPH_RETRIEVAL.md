@@ -359,7 +359,7 @@ edges:
 |------|------|
 | `packages/server/src/lib/indexing/graph-lite/llm-extract.ts` | **LLM 两阶段实体提取** (planExtraction + extractSegmentEntities + gleaning) |
 | `packages/server/src/lib/indexing/graph-lite/llm-cache.ts` | **LLM 提取缓存** (contentHash + promptVersion) |
-| `packages/server/src/lib/retrieval/graph-extract.ts` | Trap 侧规则抽取 (LLM fallback 时使用) |
+| `packages/server/src/lib/retrieval/recall/graph-extract.ts` | Trap 侧规则抽取 (LLM fallback 时使用) |
 | `packages/server/src/lib/indexing/boundary-extract.ts` | Boundary 侧抽取 (context, version, platform) |
 | `packages/server/src/lib/indexing/boundary-normalize.ts` | Boundary 节点 ID 构建与值标准化 |
 | `packages/contracts/src/domain/graph-extraction.ts` | LLM 提取 Zod schema (节点/边/计划/指标) |
@@ -380,25 +380,25 @@ edges:
 | 文件 | 职责 |
 |------|------|
 | `packages/server/src/lib/retrieval/recall/graph-assisted.ts` | v1 图辅助召回通道 (单跳扩展 + 计分) |
-| `packages/server/src/lib/retrieval/recall-coordinator.ts` | 召回调度 + graph 三通道合并 |
-| `packages/server/src/lib/retrieval/channel-registry.ts` | 可插拔召回通道注册 |
-| `packages/server/src/lib/retrieval/strategy-registry.ts` | 可插拔检索策略注册 |
+| `packages/server/src/lib/retrieval/orchestration/recall-coordinator.ts` | 召回调度 + graph 三通道合并 |
+| `packages/server/src/lib/retrieval/orchestration/channel-registry.ts` | 可插拔召回通道注册 |
+| `packages/server/src/lib/retrieval/orchestration/strategy-registry.ts` | 可插拔检索策略注册 |
 
 ### 图计划检索 (v3)
 
 | 文件 | 职责 |
 |------|------|
-| `packages/server/src/lib/retrieval/plan-compiler.ts` | Trap-First Plan 编译器 (BFS 局部展开 + skill 预算 + 拓扑执行计划) |
-| `packages/server/src/lib/retrieval/graph-plan-search.ts` | v3 图计划搜索入口 + 置信度评估 + 降级逻辑 |
+| `packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts` | Trap-First Plan 编译器 (BFS 局部展开 + skill 预算 + 拓扑执行计划) |
+| `packages/server/src/lib/retrieval/graph-plan/graph-plan-search.ts` | v3 图计划搜索入口 + 置信度评估 + 降级逻辑 |
 
 ### 管线集成
 
 | 文件 | 职责 |
 |------|------|
-| `packages/server/src/lib/retrieval/orchestrator.ts` | 检索编排器 (v1/v2/v3 入口) |
-| `packages/server/src/lib/retrieval/merge.ts` | 多通道候选合并 (加权平均) |
-| `packages/server/src/lib/retrieval/rerank.ts` | 启发式重排序 (衰减、边界、跨通道 boost) |
-| `packages/server/src/lib/retrieval/citations.ts` | 结构化引用构建 |
+| `packages/server/src/lib/retrieval/orchestration/orchestrator.ts` | 检索编排器 (v1/v2/v3 入口) |
+| `packages/server/src/lib/retrieval/capsules/scoring/merge.ts` | 多通道候选合并 (加权平均) |
+| `packages/server/src/lib/retrieval/capsules/scoring/rerank.ts` | 启发式重排序 (衰减、边界、跨通道 boost) |
+| `packages/server/src/lib/retrieval/response/citations.ts` | 结构化引用构建 |
 
 ### 契约层
 
@@ -414,10 +414,10 @@ edges:
 | 文件 | 职责 |
 |------|------|
 | `packages/server/src/lib/retrieval/__fixtures__/graph-fixtures.ts` | 测试 fixture (Deploy Cluster 数据集, 环路检测数据集) |
-| `packages/server/src/lib/retrieval/graph-extract.test.ts` | 实体抽取测试 |
-| `packages/server/src/lib/retrieval/graph-plan-search.test.ts` | v3 图计划搜索测试 |
+| `packages/server/src/lib/retrieval/recall/graph-extract.test.ts` | 实体抽取测试 |
+| `packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts` | v3 图计划搜索测试 |
 | `packages/server/src/lib/retrieval/recall/graph-assisted.test.ts` | v1 图召回测试 |
-| `packages/server/src/lib/retrieval/plan-compiler.test.ts` | Plan 编译器测试 |
+| `packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts` | Plan 编译器测试 |
 | `packages/server/src/lib/indexing/graph-lite/graphology.test.ts` | 图组装与遍历测试 |
 | `packages/server/src/lib/indexing/adapters/graph.test.ts` | Trap 图适配器测试 |
 | `packages/server/src/lib/indexing/adapters/artifact-graph.test.ts` | Skill 图适配器测试 |

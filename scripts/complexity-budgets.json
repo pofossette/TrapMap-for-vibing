@@ -2,7 +2,11 @@
   "docRules": [
     {
       "file": "docs/guides/CODE_GUIDE.md",
-      "mustContain": ["buildServer()", "packages/server/src/lib/README.md", "packages/server/src/routes/README.md"],
+      "mustContain": [
+        "buildServer()",
+        "packages/server/src/lib/README.md",
+        "packages/server/src/routes/README.md"
+      ],
       "mustNotContain": ["createApp()"]
     },
     {
@@ -107,13 +111,7 @@
     },
     {
       "file": "evals/README.md",
-      "mustContain": [
-        "retrieval/",
-        "summary/",
-        "graph-extraction/",
-        "ingestion/",
-        "pnpm eval:ci"
-      ]
+      "mustContain": ["retrieval/", "summary/", "graph-extraction/", "ingestion/", "pnpm eval:ci"]
     }
   ],
   "lineBudgets": [

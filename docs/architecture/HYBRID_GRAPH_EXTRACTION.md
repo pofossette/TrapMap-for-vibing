@@ -119,7 +119,7 @@
 | `server/src/lib/candidates/llm-dedup.ts` | `docs/architecture/components/INGESTION.md` |
 | `server/src/lib/conflict/llm-conflict.ts` | `docs/architecture/components/INGESTION.md` |
 | `server/src/lib/pre-review.ts` | `docs/architecture/components/INGESTION.md` |
-| `server/src/lib/ai/prompts.ts` | `docs/reference/ENVIRONMENT.md`（如有新环境变量） |
+| `server/src/lib/ai/prompts.ts` | `docs/operations/ENVIRONMENT.md`（如有新环境变量） |
 | 测试文件 | `docs/operations/TESTING.md` |
 
 **每个阶段的文档检查项:**

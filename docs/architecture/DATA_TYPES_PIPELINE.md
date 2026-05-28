@@ -98,7 +98,7 @@ flowchart TB
 
     subgraph V3["v3 GraphRAG-lite 计划检索"]
         D1["GraphPlanSearchQuery<br/>rawPlanQuery"]
-        D2["POST /v1/retrieval/graph-plan<br/>searchKnowledgeGraphPlan()<br/>compileTrapFirstPlan()"]
+        D2["POST /v3/retrieval/plan<br/>searchKnowledgeGraphPlan()<br/>compileTrapFirstPlan()"]
         D3["TrapFirstPlan<br/>trapNodes[], edges[]<br/>blockerEvidence[]"]
         D4["RoutingTrace<br/>selectedMode, routeFamily<br/>routingReason, confidenceScore"]
         

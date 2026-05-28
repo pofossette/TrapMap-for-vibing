@@ -18,13 +18,20 @@ TrapMap 提供基于 Fastify 的 RESTful API，所有端点遵循 `/v1/` 或 `/v
 
 ### POST /v1/auth/login
 
-用户名密码登录。
+Access Key 或 System Admin Key 登录。
 
 **请求**:
 ```json
 {
-  "username": "alice@example.com",
-  "password": "securepassword"
+  "accessKey": "ak_xxxxxxxxxxxxxxxxxxxx"
+}
+```
+
+或使用管理员密钥：
+
+```json
+{
+  "systemAdminKey": "admin-xxxxxxxxxxxxxxxxxxxx"
 }
 ```
 
@@ -33,7 +40,7 @@ TrapMap 提供基于 Fastify 的 RESTful API，所有端点遵循 `/v1/` 或 `/v
 {
   "user": {
     "id": "uuid-xxx",
-    "username": "alice@example.com",
+    "handle": "alice",
     "role": "contributor",
     "level": 1,
     "activeTeam": null
@@ -1050,7 +1057,7 @@ v3 陷阱优先计划生成。
 
 **查询参数**:
 - `limit`: 数量限制 (默认 50)
-- `decayStates`: 按 decay 状态过滤 (`fresh`, `stale`, `review-due`, `deprecated`)
+- `decayStates`: 按 decay 状态过滤 (`active`, `review-due`, `stale`, `expired`, `superseded`)
 - `ageMinDays`: 最小年龄天数
 - `ageMaxDays`: 最大年龄天数
 - `labels`: 按标签过滤

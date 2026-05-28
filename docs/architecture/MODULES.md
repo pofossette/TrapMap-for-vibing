@@ -337,7 +337,7 @@ interface EntityLineage {
 | 方法 | 路径 | 描述 |
 |------|------|------|
 | POST | `/v1/retrieval/search` | v1 语义搜索 |
-| POST | `/v3/retrieval/search` | v2 胶囊搜索 |
+| POST | `/v3/retrieval/search` | v3 GraphRAG 搜索 |
 | POST | `/v3/retrieval/plan` | v3 陷阱优先计划 |
 | POST | `/v1/retrieval/skills/search-by-content` | 按内容搜索技能 |
 
@@ -387,9 +387,8 @@ AI 提供商抽象层。
 **文件**：
 - `index.ts` - 主导出，工厂函数
 - `types.ts` - 提供商类型和接口
-- `openai.ts` - OpenAI 提供商实现
-- `openai-compatible.ts` - OpenAI 兼容提供商
-- `ollama.ts` - Ollama 提供商实现
+- `providers.ts` - 统一提供商实现（OpenAI 兼容 Chat + Embeddings）
+- `providers/` - 提供商子模块（defaults、json-renderer、xml-renderer）
 
 **接口**：
 ```typescript
@@ -404,9 +403,10 @@ interface AIProvider {
 工件派生逻辑。
 
 **文件**：
-- `capsule.ts` - 从源文件提取胶囊
-- `profile.ts` - 从源创建精炼配置文件
-- `manifest.ts` - 生成客户端清单
+- `derive.ts` - 派生逻辑（buildSkillCapsules、buildSkillProfile、buildClientManifest）
+- `model.ts` - 工件数据模型
+- `edit.ts` - 工件编辑逻辑
+- `pg-repository.ts` - PostgreSQL 持久化
 
 #### `lib/candidates/`
 异步摄取管道。
@@ -423,7 +423,6 @@ interface AIProvider {
 RBAC 和资格检查。
 
 **文件**：
-- `rbac.ts` - 权限检查
 - `eligibility.ts` - 基于角色/等级的是否可执行判断
 - `permissions.ts` - 权限定义
 
@@ -431,17 +430,19 @@ RBAC 和资格检查。
 多适配器索引。
 
 **文件**：
-- `index.ts` - 主索引编排器
-- `state.ts` - 索引状态跟踪
+- `pipeline.ts` - 主索引编排器
+- `registry.ts` - 索引注册
 - `adapters/` - 各适配器实现
   - `vector.ts` - 向量/embedding 索引
   - `keyword.ts` - 关键词/BM25 索引
   - `graph.ts` - 使用 graphology 的图索引
+  - `artifact-graph.ts` - Skill 图索引适配器
 
 **文件**：
 - `graph-lite/` - GraphRAG-lite 包装器
-  - `index.ts` - 图构建和查询
-  - `graph.ts` - DAG 操作
+  - `graphology.ts` - 图组装与遍历
+  - `llm-extract.ts` - LLM 实体提取
+  - `llm-cache.ts` - LLM 提取缓存
 
 #### `lib/retrieval/`
 检索管道编排器。
@@ -451,8 +452,13 @@ RBAC 和资格检查。
   - `semantic.ts` - 语义 Recall
   - `keyword.ts` - 关键词 Recall
   - `graph-assisted.ts` - 图辅助 Recall
-- `plan-compiler.ts` - 陷阱优先计划编译
-- `graph-plan-search.ts` - GraphRAG-lite 包装器
+- `graph-plan/` - 图计划检索
+  - `plan-compiler.ts` - 陷阱优先计划编译
+  - `graph-plan-search.ts` - v3 图计划搜索入口
+- `orchestration/` - 检索编排
+  - `orchestrator.ts` - 检索编排器 (v1/v2/v3 入口)
+  - `channel-registry.ts` - 可插拔召回通道注册
+  - `strategy-registry.ts` - 可插拔检索策略注册
 
 #### `lib/persistence/`
 存储实现。

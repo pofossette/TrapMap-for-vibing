@@ -173,7 +173,7 @@ ls logs/rag/
 
 ## 相关文档
 
-- [环境变量参考](ENVIRONMENT.md) — 完整配置项
-- [部署指南](architecture/DEPLOYMENT.md) — Docker 部署和反向代理配置
-- [故障排查](architecture/TROUBLESHOOTING.md) — 常见问题解决方案
+- [环境变量参考](../operations/ENVIRONMENT.md) — 完整配置项
+- [部署指南](../architecture/DEPLOYMENT.md) — Docker 部署和反向代理配置
+- [故障排查](../architecture/TROUBLESHOOTING.md) — 常见问题解决方案
 - [API 参考 — 检索端点](../architecture/API.md#检索端点) — 检索算法细节
