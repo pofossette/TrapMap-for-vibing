@@ -1,945 +1,121 @@
-# TrapMap 目录结构治理 Implementation Plan
+# FM Agent 扫描报告修复计划索引
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
+> **For agentic workers:** 根计划只负责编排。实施时必须使用 `superpowers:subagent-driven-development`，按子计划逐包推进；任何代码任务都必须在同一子任务内同步落地文档和测试，禁止只改实现不补证据。
 
-**Goal:** 将 TrapMap 仓库目录收敛为“根目录只放稳定入口、`packages/` 只放产品包、`docs/` 只放可导航文档、`evals/` 只放评测资产、归档只走一个入口”的结构，并补上自动守卫防止目录再次漂移。
+**Goal:** 将 `/home/wunai/Downloads/fm-agent-raw-reports/{contracts,cli,server}` 收敛为基于当前 HEAD 的 live backlog，并用最大并行化的 subagent 编排完成 contracts、cli、server 三包的修复闭环。
 
-**Architecture:** 当前 `packages/cli`、`packages/server`、`packages/contracts`、`packages/skills` 的 monorepo 边界总体合理，不做大搬迁。治理重点放在根目录历史文档外溢、`docs/archive` 与 `docs/archived` 双归档入口、计划文档分散、Server `lib` 规模增长后的导航与边界守卫。执行顺序采用“冻结结构规则 -> 清理根目录 -> 合并归档/计划入口 -> 补包内导航 -> 补 eval 文档 -> 自动化守卫 -> 最终验证”的七阶段推进。
+**Architecture:** 根计划负责依赖顺序、并行波次、跨包验收和回归命令；包级子计划负责 raw report 复核、阶段实现、文档同步和测试代码落地。优先并行做三包的 `Phase 0/1` 复核，再在不共享文件的前提下并发推进 contracts、cli、server 各自 lane，最后统一做仓库级 smoke 和文档收尾。
 
-**Tech Stack:** Markdown, pnpm workspace, TypeScript, Vitest, GitHub Actions, `scripts/complexity-budgets.json`, `scripts/check-doc-drift.ts`
-
----
-
-## 0. 当前结构判断
-
-### 0.1 结论
-
-当前项目目录结构 **主体合理，但治理层不够收敛**。
-
-- 合理部分：`packages/` 按 CLI / Server / Contracts / Skills 切包，`evals/` 独立于产品包，`docs/` 已按 guides / operations / architecture / reference 分层，测试大量与实现同目录，适合 TypeScript monorepo。
-- 需要调整部分：根目录有历史计划和临时材料，归档目录存在 `docs/archive` 与 `docs/archived` 两套入口，计划文件散落在 `plan.md`、`docs/plans`、`docs/superpowers/plans`、`docs/archived/archived-plans`，Server `lib` 已有 360 个 tracked TS 文件但缺少包内导航和结构守卫。
-
-### 0.2 本轮已完成的计划归档
-
-- [x] 旧根计划 `plan.md` 已归档到 `docs/archived/archived-plans/plan-2026-05-28-doc-drift-audit-and-alignment-active-root.md`
-- [x] 新目录结构治理计划写入根 `plan.md`
-
-### 0.3 盘点数据
-
-| 项 | 当前值 | 判断 |
-|---|---:|---|
-| tracked 文件总数 | 867 | 中等规模 monorepo，目录规范需要自动守卫 |
-| tracked Markdown | 117 | 文档资产多，必须有唯一索引和归档规则 |
-| `packages/` tracked 文件 | 616 | 产品代码集中度合理 |
-| `evals/` tracked 文件 | 126 | 评测独立合理 |
-| `docs/` tracked Markdown | 82 | 分层合理，但 archive/plans 分叉 |
-| 根目录 tracked Markdown | 9 | 偏多，应收敛到稳定入口 allowlist |
-| `packages/server/src/lib/**/*.ts` | 360 | 可接受，但需要包内 README 和复杂度预算 |
-| `packages/server/src/lib/retrieval/**/*.ts` | 78 | 最大域，应优先补结构说明和边界规则 |
-
-### 0.4 目标根目录 allowlist
-
-根目录保留这些 Markdown：
-
-```text
-AGENTS.md
-CLAUDE.md
-CHANGELOG.md
-README.md
-architecture.md
-plan.md
-```
-
-根目录移走这些 Markdown：
-
-```text
-RETRIEVAL_V2_V3_IMPLEMENTATION_PLAN.md -> docs/archived/archived-plans/retrieval-v2-v3-implementation-plan.md
-SEA_REFERENCE_INFRA_REVIEW.md -> docs/archived/reports/sea-reference-infra-review.md
-temp.md -> docs/archived/temp-2026-05-28.md
-```
-
-目标文档结构：
-
-```text
-docs/
-├── README.md
-├── guides/
-├── operations/
-├── architecture/
-│   └── components/
-├── reference/
-├── plans/
-│   └── README.md
-├── archived/
-│   ├── README.md
-│   ├── archived-plans/
-│   └── reports/
-└── superpowers/
-    ├── plans/
-    └── specs/
-```
+**Tech Stack:** TypeScript, pnpm monorepo, Vitest, Fastify, Commander, Zod, Drizzle ORM
 
 ---
 
-## Phase 1: 冻结目录规则与迁移清单
+本索引对应 `/home/wunai/Downloads/fm-agent-raw-reports` 中 `cli`、`contracts`、`server` 三个包的原始扫描结果。执行时必须同时查看 raw report、当前代码、项目文档，不能只按计划摘要机械改动。
 
-**Files:**
-- Modify: `plan.md`
-- Create: `docs/reference/REPO_STRUCTURE.md`
-- Modify: `docs/README.md`
-- Modify: `docs/reference/DOCS_TRUTH_MATRIX.md`
-- Modify: `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+**当前根计划状态：**
+- [x] 旧根计划已归档到 [`docs/archived/archived-plans/plan-2026-05-29-directory-structure-governance.md`](docs/archived/archived-plans/plan-2026-05-29-directory-structure-governance.md)
+- [x] 根目录仅保留本索引版 `plan.md`
+- [x] 根计划已补充 subagent 编排、总验收、文档/测试联动矩阵
+- [x] 子计划已按包补充 lane 拆分、包级最终验收、文档与测试交付清单
 
-- [x] **Step 1: 写入仓库结构真相源文档**
+## 计划入口
 
-Create `docs/reference/REPO_STRUCTURE.md` with this structure:
+- Contracts 修复计划：[`temp/fm-agent-scan-plans/contracts-fix-plan.md`](temp/fm-agent-scan-plans/contracts-fix-plan.md)
+- CLI 修复计划：[`temp/fm-agent-scan-plans/cli-fix-plan.md`](temp/fm-agent-scan-plans/cli-fix-plan.md)
+- Server 修复计划：[`temp/fm-agent-scan-plans/server-fix-plan.md`](temp/fm-agent-scan-plans/server-fix-plan.md)
 
-```markdown
-# Repository Structure
+> 注意：`temp/fm-agent-scan-plans/` 当前命中 `.gitignore` 的 `temp/` 规则。若这些子计划需要进入版本控制，后续应迁移到 `docs/plans/` 或在提交时显式处理。
 
-This document is the authoritative source for TrapMap repository layout.
+## Subagent-Driven Develop 强制要求
 
-## Root
+- [ ] `1 个 subagent = 1 个明确 lane 或 1 个 phase 交付`，禁止一个子任务同时横跨多个包。
+- [ ] 每个子任务开始前必须先读对应 `summary.json`、至少一个 `detail_md`、当前源码、当前测试、至少一个 truth doc。
+- [ ] 每个子任务都要先更新本包 `source-pack` 或 `live-gap-matrix`，再动实现；不能跳过 triage 直接改代码。
+- [ ] 每个 live finding 在交付时必须同时具备 `raw_id`、`detail_md`、`current_source`、`truth_doc`、`test_file` 五类证据。
+- [ ] 每个被判定为 `fixed` / `stale` 的 finding 必须留下当前 HEAD 证据，避免后续 subagent 重复修复。
+- [ ] 同一个子任务必须一起提交实现、相关文档、相关测试代码；如果文档或测试没有同步完成，该子任务不算完成。
+- [ ] 子任务完成时必须回报：修改文件、执行命令、失败测试如何变绿、仍未解决风险、是否需要下一个 lane 接力。
+- [ ] 只有主控 agent 可以调整根计划顺序、改写矩阵状态定义或处理跨包冲突；普通 subagent 不得擅自重排总体顺序。
 
-The root directory is for stable entry points and workspace configuration.
+## 跨包执行总规则
 
-Allowed root Markdown files:
+- [ ] 每个包先做 `Phase 0/1`，先建立 `raw report -> current source -> truth doc -> test` 对照表，再开始写代码。
+- [ ] 每个具体修复都要引用 `/home/wunai/Downloads/fm-agent-raw-reports/<pkg>/summary.json` 中对应的 `id` 和 `detail_file`。
+- [ ] 每个具体修复都要同时绑定至少一个项目文档入口，例如 `docs/PACKAGES.md`、包 README、架构文档或 `docs/operations/TESTING.md`。
+- [ ] 如果 raw finding 已经被当前 HEAD 吸收，必须在 matrix 里标记 `fixed` 或 `stale`，并给出当前代码或测试证据，不能重复修。
+- [ ] 只允许在“同一文件没有被其他 lane 占用”的前提下并行；若两个 lane 要改同一文件，优先串行而不是制造冲突。
+- [ ] 每完成一个包，立即运行该包计划里的 targeted tests；全部包完成后统一跑仓库级 smoke。
 
-- `AGENTS.md`
-- `CLAUDE.md`
-- `CHANGELOG.md`
-- `README.md`
-- `architecture.md`
-- `plan.md`
+## 最大并行化执行顺序
 
-Historical plans, temporary notes, audits, and reports must live under `docs/archived/`.
+### Wave 0：三包并行做 triage 和失败测试冻结
 
-## Product Packages
+- [ ] `contracts` subagent：执行 `contracts-fix-plan.md` 的 `Phase 0/1`
+- [ ] `cli` subagent：执行 `cli-fix-plan.md` 的 `Phase 0/1`
+- [ ] `server` subagent：执行 `server-fix-plan.md` 的 `Phase 0/1`
+- [ ] Gate `G0`：三个 `*-live-gap-matrix.md` 都已落地，且 live / fixed / stale 定义一致
 
-- `packages/cli/`: Commander CLI and CLI tests.
-- `packages/server/`: Fastify API, persistence, retrieval, indexing, governance, and server tests.
-- `packages/contracts/`: shared Zod schemas and TypeScript types.
-- `packages/skills/`: project-level Skill artifacts.
+### Wave 1：局部实现层并行
 
-## Documentation
+- [ ] `contracts` lane A：`Phase 2`，统一 shared path/hash/media-type helper
+- [ ] `cli` lane A：`Phase 2`，修 formatter / renderer / human-readable output
+- [ ] `server` lane A：`Phase 2`，修 app/bootstrap/lifecycle/config
+- [ ] `server` lane B：`Phase 3` 的只读准备和失败测试编写可提前开始；若要改 `config.ts` 或与 lane A 重叠文件，则等待 lane A 合并
+- [ ] Gate `G1`：contracts helper 变更已合并，CLI / Server 若消费相关 contracts 类型，先重新跑本包 targeted tests 再继续
 
-- `docs/guides/`: onboarding and contributor workflows.
-- `docs/operations/`: runtime, CI, security, testing, deployment-adjacent operations.
-- `docs/architecture/`: architecture overview and component docs.
-- `docs/reference/`: truth sources, schemas, glossary, API surface, and repository structure.
-- `docs/plans/`: active long-horizon design plans that are still referenced by current docs.
-- `docs/archived/`: obsolete plans, historical reports, and retired decisions.
-- `docs/superpowers/`: plans and specs generated by Superpowers workflows.
+### Wave 2：行为契约层并行
 
-## Evaluations
+- [ ] `contracts` lane B：`Phase 3`，补 cross-field semantic invariants
+- [ ] `cli` lane B：`Phase 3`，修 command registration / validation / permission contract
+- [ ] `server` lane B：`Phase 3`，修 AI provider / prompt / dynamic context
+- [ ] Gate `G2`：contracts Phase 3 完成后，CLI / Server 重新确认是否存在下游 schema fixture 漂移
 
-- `evals/retrieval/`: retrieval datasets, scenarios, runner, metrics, and reports.
-- `evals/summary/`: summary datasets, scenarios, judge logic, runner, and reports.
-- `evals/graph-extraction/`: graph extraction, conflict, and dedup evals.
-- `evals/ingestion/`: Skill ingestion fixtures and runner.
-- `evals/fixtures/`: shared trap fixtures.
+### Wave 3：下游收敛层并行
 
-## Generated Or Local-Only Directories
+- [ ] `contracts` lane C：`Phase 4`，收敛 retrieval / artifact / eval contract 与 fixture
+- [ ] `cli` lane C：`Phase 4`，修本地状态、output profile、JSON output、export helper
+- [ ] `server` lane C：只读准备 `Phase 4` 的 retrieval / indexing / graph-lite 热点；若依赖 contracts Phase 4 的路径或 schema 结论，则等待 contracts lane C 合并后再改代码
+- [ ] Gate `G3`：contracts Phase 4 合并且 `rtk pnpm eval:smoke` 通过后，server 可进入深层 retrieval/indexing 修复
 
-These directories are local artifacts and must not become tracked content:
+### Wave 4：Server 深层修复
 
-- `.data/`
-- `.tmp/`
-- `coverage/`
-- `logs/`
-- `node_modules/`
-- `packages/*/dist/`
-- `packages/*/node_modules/`
-```
+- [ ] `server` lane C：`Phase 4`，修 retrieval / recall / indexing / graph-lite
+- [ ] `server` lane D：`Phase 5` 的 source-pack、测试草稿、文档入口核对可先做；若与 lane C 触达同一 persistence / route 文件，则等 lane C 合并
+- [ ] Gate `G4`：server retrieval/indexing 回归集通过，且相关 docs 已同步
 
-- [x] **Step 2: 将结构文档加入文档索引**
+### Wave 5：Server 持久化与路由收尾
 
-Update `docs/README.md` under the reference section:
+- [ ] `server` lane D：`Phase 5`，修 artifacts / candidates / persistence / routes
+- [ ] 主控 agent：并行审查三个包的文档与测试清单是否闭合
+- [ ] Gate `G5`：所有包级最终验收都已满足
 
-```markdown
-- [仓库目录结构](reference/REPO_STRUCTURE.md) — 根目录、packages、docs、evals、归档目录的权威布局规则
-```
+### Wave 6：仓库级验证与收口
 
-- [x] **Step 3: 将目录结构纳入 truth matrix**
+- [ ] 运行每个包自己的 package tests / typecheck
+- [ ] 运行 `rtk pnpm eval:smoke`
+- [ ] 若 server 改动涉及 ingestion / artifact lifecycle，再运行 `rtk pnpm eval:ingestion:smoke`
+- [ ] 回写 `plan.md` 与各子计划的完成状态、残留风险、跳过项
 
-Add these rows to `docs/reference/DOCS_TRUTH_MATRIX.md`:
+## 包级文档与测试联动矩阵
 
-```markdown
-| Repository root Markdown allowlist | `docs/reference/REPO_STRUCTURE.md` | `README.md`, root `plan.md`, `docs/README.md` | structural |
-| Archive directory policy | `docs/reference/REPO_STRUCTURE.md` + `docs/archived/README.md` | `docs/archive/**`, `docs/archived/**`, `docs/plans/**` | structural |
-| Eval directory layout | `docs/reference/REPO_STRUCTURE.md` + `evals/README.md` | `docs/operations/TESTING.md`, `docs/architecture/components/EVALUATION.md` | structural |
-```
+| 包 | 必须同步更新的文档 | 必须同步更新的测试代码 | 包级必跑命令 |
+|---|---|---|---|
+| `contracts` | `packages/contracts/README.md`、`docs/PACKAGES.md`、`docs/operations/TESTING.md`、必要时 `docs/reference/api-surface.md` | `packages/contracts/src/domain/artifacts.test.ts`、`candidates.test.ts`、`operations.test.ts`、`retrieval.test.ts`、`retrieval.adversarial.test.ts`、`evals/evals.test.ts` | `rtk pnpm --filter @trapmap/contracts test`、`rtk pnpm --filter @trapmap/contracts typecheck`、`rtk pnpm eval:smoke` |
+| `cli` | `packages/cli/README.md`、`docs/architecture/CLI.md`、`docs/operations/TESTING.md` | `packages/cli/src/commands/*.test.ts`、`packages/cli/src/lib/{config,markdown-formatter,output,output-profile,skill-artifact-export,prompts}.test.ts` | `rtk pnpm --filter @trapmap/cli test`、`rtk pnpm --filter @trapmap/cli typecheck`、`rtk pnpm eval:smoke` |
+| `server` | `packages/server/README.md`、`packages/server/src/lib/README.md`、`docs/architecture/API.md`、`docs/architecture/components/{AI_PROVIDER,RETRIEVAL,INDEXING,ARTIFACTS,PERSISTENCE,KNOWLEDGE_LIFECYCLE,ASYNC_INFRASTRUCTURE}.md`、必要时 `docs/reference/api-surface.md`、`docs/operations/TESTING.md` | `packages/server/src/app.test.ts`、`bootstrap/startup.test.ts`、`lib/ai/**/*.test.ts`、`lib/retrieval/**/*.test.ts`、`lib/indexing/**/*.test.ts`、`lib/artifacts/**/*.test.ts`、`lib/candidates/**/*.test.ts`、`routes/**/*.test.ts` | `rtk pnpm test -- --run <phase-targeted-files>`、`rtk pnpm eval:smoke`、必要时 `rtk pnpm eval:ingestion:smoke` |
 
-- [x] **Step 4: 将结构文档加入 system truth source**
+## 根验收标准
 
-Add one row to `docs/reference/SYSTEM_TRUTH_SOURCES.md`:
-
-```markdown
-| Repository layout | `docs/reference/REPO_STRUCTURE.md` | `README.md`, `docs/README.md`, `docs/guides/CODE_GUIDE.md` |
-```
-
-- [x] **Step 5: 运行文档守卫**
-
-Run:
-
-```bash
-rtk pnpm check:docs-drift
-rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
-```
-
-Expected: both commands pass.
-
-### Phase 1 完成标准
-
-- [x] `docs/reference/REPO_STRUCTURE.md` 存在并描述 root / packages / docs / evals / archive / generated dirs
-- [x] `docs/README.md` 能导航到结构文档
-- [x] `DOCS_TRUTH_MATRIX.md` 有 structural 类型行
-- [x] `SYSTEM_TRUTH_SOURCES.md` 指向 `REPO_STRUCTURE.md`
-- [x] 文档漂移守卫和 docs truth smoke 通过
-
-### Phase 1 文档更新
-
-- [x] `docs/reference/REPO_STRUCTURE.md`
-- [x] `docs/README.md`
-- [x] `docs/reference/DOCS_TRUTH_MATRIX.md`
-- [x] `docs/reference/SYSTEM_TRUTH_SOURCES.md`
-
-### Phase 1 测试/Eval 更新
-
-- [x] 暂不修改 eval datasets
-- [x] 扩展 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，断言 `REPO_STRUCTURE.md` 被索引
-- [x] 扩展 `scripts/complexity-budgets.json` docRules，断言 `docs/README.md` 包含 `reference/REPO_STRUCTURE.md`
-
----
-
-## Phase 2: 收敛根目录 Markdown
-
-**Files:**
-- Move: `RETRIEVAL_V2_V3_IMPLEMENTATION_PLAN.md`
-- Move: `SEA_REFERENCE_INFRA_REVIEW.md`
-- Move: `temp.md`
-- Modify: `README.md`
-- Modify: `docs/README.md`
-- Modify: `docs/archived/README.md`
-- Modify: `docs/reference/REPO_STRUCTURE.md`
-
-- [x] **Step 1: 创建归档报告目录**
-
-Run:
-
-```bash
-rtk mkdir -p docs/archived/reports
-```
-
-Expected: `docs/archived/reports/` exists.
-
-- [x] **Step 2: 移走根目录历史文档**
-
-Run:
-
-```bash
-rtk git mv RETRIEVAL_V2_V3_IMPLEMENTATION_PLAN.md docs/archived/archived-plans/retrieval-v2-v3-implementation-plan.md
-rtk git mv SEA_REFERENCE_INFRA_REVIEW.md docs/archived/reports/sea-reference-infra-review.md
-rtk git mv temp.md docs/archived/temp-2026-05-28.md
-```
-
-Expected: root Markdown is reduced to the allowlist in Phase 0.4.
-
-- [x] **Step 3: 更新归档索引**
-
-Add these rows to `docs/archived/README.md`:
-
-```markdown
-| `archived-plans/retrieval-v2-v3-implementation-plan.md` | 2026-05-28 | 历史检索实现计划，根目录只保留当前 `plan.md` |
-| `reports/sea-reference-infra-review.md` | 2026-05-28 | 历史基础设施审计报告，归档到 reports |
-| `temp-2026-05-28.md` | 2026-05-28 | 临时工作笔记，根目录不保留临时材料 |
-```
-
-- [x] **Step 4: 更新根 README 的文档说明**
-
-Ensure `README.md` links to `docs/reference/REPO_STRUCTURE.md`:
-
-```markdown
-| [docs/reference/REPO_STRUCTURE.md](docs/reference/REPO_STRUCTURE.md) | 仓库目录结构、归档位置和生成目录规则 |
-```
-
-- [x] **Step 5: 运行根目录 allowlist 检查**
-
-Before the automated script exists, run:
-
-```bash
-rtk proxy git ls-files '*.md' | grep -v '/' 
-```
-
-Expected output:
-
-```text
-AGENTS.md
-CHANGELOG.md
-CLAUDE.md
-README.md
-architecture.md
-plan.md
-```
-
-### Phase 2 完成标准
-
-- [x] 根目录没有 `temp.md`
-- [x] 根目录没有历史 implementation plan 或 audit report
-- [x] `docs/archived/README.md` 能解释每个被移动根文档的归档原因
-- [x] `README.md` 和 `docs/README.md` 都能指向目录结构规则
-
-### Phase 2 文档更新
-
-- [x] `README.md`
-- [x] `docs/README.md`
-- [x] `docs/archived/README.md`
-- [x] `docs/reference/REPO_STRUCTURE.md`
-
-### Phase 2 测试/Eval 更新
-
-- [x] 扩展 `scripts/complexity-budgets.json` docRules，禁止 `README.md` 再链接根目录历史计划
-- [x] 运行 `rtk pnpm check:docs-drift`
-- [x] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
-
----
-
-## Phase 3: 合并归档入口与计划入口
-
-**Files:**
-- Move: `docs/archive/doc-drift-audit-report-2026-05-28.md`
-- Move: `docs/archive/doc-drift-audit-report-2026-05-28-cont.md`
-- Move: `docs/archive/old_plan_back.md`
-- Modify: `docs/archived/README.md`
-- Create: `docs/plans/README.md`
-- Modify: `docs/reference/REPO_STRUCTURE.md`
-
-- [x] **Step 1: 将 `docs/archive` 内容迁移到 `docs/archived`**
-
-Run:
-
-```bash
-rtk git mv docs/archive/doc-drift-audit-report-2026-05-28.md docs/archived/reports/doc-drift-audit-report-2026-05-28.md
-rtk git mv docs/archive/doc-drift-audit-report-2026-05-28-cont.md docs/archived/reports/doc-drift-audit-report-2026-05-28-cont.md
-rtk git mv docs/archive/old_plan_back.md docs/archived/archived-plans/old-plan-back-2026-05-28.md
-```
-
-Expected: `docs/archive/` becomes empty and can be removed.
-
-- [x] **Step 2: 删除空的旧归档目录**
-
-Run:
-
-```bash
-rtk rmdir docs/archive
-```
-
-Expected: only `docs/archived/` remains as archive root.
-
-- [x] **Step 3: 写入 `docs/plans/README.md`**
-
-Create:
-
-```markdown
-# Active Plans
-
-This directory contains active or still-referenced long-horizon design plans.
-
-Rules:
-
-1. Root `plan.md` is the current execution tracker.
-2. `docs/plans/` is for design plans that current docs still cite as context.
-3. Obsolete execution plans must move to `docs/archived/archived-plans/`.
-4. Obsolete reports must move to `docs/archived/reports/`.
-
-Current files:
-
-| File | Status | Why it remains here |
-|---|---|---|
-| `capsule-contextual-enrichment-plan.md` | active-reference | Retrieval/capsule design context |
-| `round4-cross-table-consistency-plan.md` | active-reference | Artifact structured facts source cited by package docs |
-| `v2-multi-recall-plan.md` | active-reference | Retrieval design context |
-```
-
-- [x] **Step 4: 更新 `docs/archived/README.md`**
-
-Add:
-
-```markdown
-| `reports/doc-drift-audit-report-2026-05-28.md` | 2026-05-28 | 文档漂移审计报告，已从旧 `docs/archive/` 合并 |
-| `reports/doc-drift-audit-report-2026-05-28-cont.md` | 2026-05-28 | 文档漂移补充报告，已从旧 `docs/archive/` 合并 |
-| `archived-plans/old-plan-back-2026-05-28.md` | 2026-05-28 | 历史根计划备份，已合并到标准 archived-plans |
-```
-
-- [x] **Step 5: 更新结构规则**
-
-Add this rule to `docs/reference/REPO_STRUCTURE.md`:
-
-```markdown
-## Archive Policy
-
-`docs/archived/` is the only archive root. Do not create `docs/archive/`.
-
-- Obsolete implementation plans: `docs/archived/archived-plans/`
-- Historical audits and reports: `docs/archived/reports/`
-- Retired standalone docs: `docs/archived/`
-```
-
-### Phase 3 完成标准
-
-- [x] `docs/archive/` 不存在
-- [x] `docs/archived/` 是唯一归档入口
-- [x] `docs/plans/README.md` 明确 `plan.md`、`docs/plans`、`docs/superpowers/plans`、`docs/archived/archived-plans` 的区别
-- [x] 所有被移动文档都能从 `docs/archived/README.md` 找到
-
-### Phase 3 文档更新
-
-- [x] `docs/archived/README.md`
-- [x] `docs/plans/README.md`
-- [x] `docs/reference/REPO_STRUCTURE.md`
-- [x] `docs/README.md`
-
-### Phase 3 测试/Eval 更新
-
-- [x] 新增结构守卫前，手动运行 `rtk proxy git ls-files 'docs/archive/**'`
-- [x] Expected: no output
-- [x] 运行 `rtk pnpm check:docs-drift`
-- [x] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
-
----
-
-## Phase 4: 补齐包内导航与 Server 边界说明
-
-**Files:**
-- Create: `packages/server/src/lib/README.md`
-- Create: `packages/server/src/routes/README.md`
-- Modify: `docs/guides/CODE_GUIDE.md`
-- Modify: `docs/PACKAGES.md`
-- Modify: `scripts/complexity-budgets.json`
-- Modify: `packages/server/src/__tests__/docs-truth-smoke.test.ts`
-
-- [x] **Step 1: 写入 Server lib 导航**
-
-Create `packages/server/src/lib/README.md`:
-
-```markdown
-# Server Library Layout
-
-`packages/server/src/lib/` is organized by domain and shared infrastructure.
-
-## Domain Modules
-
-| Directory | Responsibility |
-|---|---|
-| `knowledge/` | Knowledge application service and repositories |
-| `artifacts/` | Skill artifact model, repository, reconstruction, and derived data |
-| `candidates/` | Candidate submission, duplicate detection, resolution, and processing |
-| `retrieval/` | v1/v2/v3 retrieval orchestration, recall, scoring, capsules, graph plans, and response assembly |
-| `indexing/` | Index event pipeline, adapters, graph-lite, vector, keyword, and normalization |
-| `governance/` | Permission and eligibility checks |
-| `auth/`, `users/`, `teams/` | Identity, sessions, teams, and membership repositories |
-| `feedback/`, `decay/`, `maintenance/` | Lifecycle-adjacent operator domains |
-
-## Shared Infrastructure
-
-| Directory | Responsibility |
-|---|---|
-| `persistence/` | Store creation, migrations, Drizzle schema, and PostgreSQL store |
-| `repos/` | Aggregate repository boundary exposed on `app.skillShareer.repos` |
-| `queue/` | Task queue primitives |
-| `lifecycle/` | Event bus, lifecycle state machine, and subscribers |
-| `ai/` | Provider configuration, prompts, dynamic context, and cache |
-| `store/` and `store.ts` | JSON compatibility store and store record types |
-
-## Test Placement Rule
-
-New unit tests should be colocated with the module under test as `*.test.ts`.
-Cross-domain smoke and migration guard tests may stay in `packages/server/src/__tests__/`.
-```
-
-- [x] **Step 2: 写入 routes 导航**
-
-Create `packages/server/src/routes/README.md`:
-
-```markdown
-# Server Route Layout
-
-Routes are thin Fastify modules. They parse requests, check auth/permissions, and delegate to `lib/`.
-
-## Directory Rule
-
-- Single-file routes stay as `routes/<domain>.ts`.
-- A route group with multiple sub-operations becomes `routes/<domain>/`.
-- Route tests are colocated with the route file unless the test is a cross-route smoke test.
-
-## Current Route Groups
-
-| Path | Responsibility |
-|---|---|
-| `routes/candidates/` | Candidate submit, query, duplicate lookup, and resolution |
-| `routes/operations/` | Operator/admin operations such as status, migrate, audit, artifact import/export/activate |
-| `routes/*.ts` | Flat route modules for domains that do not need sub-operation files |
-```
-
-- [x] **Step 3: 更新代码导读**
-
-In `docs/guides/CODE_GUIDE.md`, add:
-
-```markdown
-For package-local navigation, read:
-
-- `packages/server/src/lib/README.md`
-- `packages/server/src/routes/README.md`
-```
-
-- [x] **Step 4: 更新包结构说明**
-
-In `docs/PACKAGES.md`, add the same two package-local README links under `packages/server`.
-
-- [x] **Step 5: 将导航文件纳入 docs truth smoke**
-
-Add this test to `packages/server/src/__tests__/docs-truth-smoke.test.ts`:
-
-```typescript
-it('server package has local structure guides', () => {
-  expect(existsSync(resolve(ROOT, 'packages/server/src/lib/README.md'))).toBe(true);
-  expect(existsSync(resolve(ROOT, 'packages/server/src/routes/README.md'))).toBe(true);
-
-  const codeGuide = readDoc('docs/guides/CODE_GUIDE.md');
-  expect(codeGuide).toContain('packages/server/src/lib/README.md');
-  expect(codeGuide).toContain('packages/server/src/routes/README.md');
-});
-```
-
-- [x] **Step 6: 加入目录级复杂度预算**
-
-Extend `scripts/complexity-budgets.json` later only if the checker supports directory budgets. For this phase, add docRules:
-
-```json
-{
-  "file": "docs/guides/CODE_GUIDE.md",
-  "mustContain": [
-    "packages/server/src/lib/README.md",
-    "packages/server/src/routes/README.md"
-  ]
-}
-```
-
-### Phase 4 完成标准
-
-- [x] 新贡献者能从 `CODE_GUIDE.md` 进入包内 README
-- [x] Server `lib` 的主要领域目录有职责说明
-- [x] route 单文件/目录拆分规则明确
-- [x] 新测试明确禁止包内导航文档缺失
-
-### Phase 4 文档更新
-
-- [x] `packages/server/src/lib/README.md`
-- [x] `packages/server/src/routes/README.md`
-- [x] `docs/guides/CODE_GUIDE.md`
-- [x] `docs/PACKAGES.md`
-
-### Phase 4 测试/Eval 更新
-
-- [x] 更新 `packages/server/src/__tests__/docs-truth-smoke.test.ts`
-- [x] 更新 `scripts/complexity-budgets.json` docRules
-- [x] 运行 `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-- [x] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
-
----
-
-## Phase 5: 补齐 eval 目录说明与评测入口一致性
-
-**Files:**
-- Modify: `evals/README.md`
-- Modify: `evals/retrieval/README.md`
-- Modify: `evals/summary/README.md`
-- Modify: `evals/graph-extraction/README.md`
-- Create: `evals/ingestion/README.md`
-- Modify: `docs/operations/TESTING.md`
-- Modify: `docs/architecture/components/EVALUATION.md`
-- Modify: `scripts/complexity-budgets.json`
-
-- [x] **Step 1: 将 evals 顶层 README 改成结构入口**
-
-Ensure `evals/README.md` contains:
-
-```markdown
-## Directory Layout
-
-| Directory | Contents | Entry Command |
-|---|---|---|
-| `retrieval/` | Retrieval datasets, scenarios, metrics, and runner | `pnpm eval:retrieval:smoke` |
-| `summary/` | Summary datasets, scenarios, assertions, judge, and runner | `pnpm eval:summary:smoke` |
-| `graph-extraction/` | Graph extraction, dedup, and conflict evaluation | `pnpm eval:graph-extraction:smoke` |
-| `ingestion/` | Skill ingestion fixtures, assertions, adapter, and runner | `pnpm eval:ingestion:smoke` |
-| `fixtures/` | Shared trap fixtures | Imported by eval suites |
-| `scripts/` | Cross-eval CI and aggregate runners | `pnpm eval:ci` |
-```
-
-- [x] **Step 2: 创建 ingestion README**
-
-Create `evals/ingestion/README.md`:
-
-````markdown
-# Ingestion Evaluation
-
-Skill ingestion evals verify that TrapMap can import representative Skill directories with frontmatter, references, assets, and scripts.
-
-## Layout
-
-- `run.ts`: CLI runner.
-- `adapter.ts`: ingestion adapter used by the runner.
-- `assertions.ts`: pass/fail assertions.
-- `metrics.ts`: score aggregation.
-- `fixtures/`: representative Skill fixture directories.
-
-## Commands
-
-```bash
-pnpm eval:ingestion:smoke
-pnpm eval:ingestion:dry-run
-```
-````
-
-- [x] **Step 3: 更新 TESTING 和 EVALUATION 文档**
-
-Ensure both docs mention all eval families:
-
-```markdown
-- Retrieval: `pnpm eval:retrieval:smoke`
-- Summary: `pnpm eval:summary:smoke`
-- Graph extraction: `pnpm eval:graph-extraction:smoke`
-- Ingestion: `pnpm eval:ingestion:smoke`
-- Aggregate smoke gate: `pnpm eval:smoke`
-- CI gate: `pnpm eval:ci`
-```
-
-- [x] **Step 4: 更新 doc drift rules**
-
-Add rules to `scripts/complexity-budgets.json`:
-
-```json
-{
-  "file": "evals/README.md",
-  "mustContain": [
-    "retrieval/",
-    "summary/",
-    "graph-extraction/",
-    "ingestion/",
-    "pnpm eval:ci"
-  ]
-}
-```
-
-- [x] **Step 5: 运行 eval dry-runs**
-
-Run:
-
-```bash
-rtk pnpm eval:retrieval:dry-run
-rtk pnpm eval:summary:dry-run
-rtk pnpm eval:graph-extraction:dry-run
-rtk pnpm eval:ingestion:dry-run
-```
-
-Expected: commands complete without changing reports.
-
-### Phase 5 完成标准
-
-- [x] `evals/README.md` 能解释所有 eval 子目录
-- [x] `evals/ingestion/README.md` 存在
-- [x] `docs/operations/TESTING.md` 与 `docs/architecture/components/EVALUATION.md` 的 eval 命令一致
-- [x] 所有 eval dry-run 命令通过
-
-### Phase 5 文档更新
-
-- [x] `evals/README.md`
-- [x] `evals/retrieval/README.md`
-- [x] `evals/summary/README.md`
-- [x] `evals/graph-extraction/README.md`
-- [x] `evals/ingestion/README.md`
-- [x] `docs/operations/TESTING.md`
-- [x] `docs/architecture/components/EVALUATION.md`
-
-### Phase 5 测试/Eval 更新
-
-- [x] 更新 `scripts/complexity-budgets.json` docRules
-- [x] 运行四个 `eval:*:dry-run`
-- [x] 若 dry-run 发现文档命令与 package scripts 不一致，先修文档，不改 runner 行为
-
----
-
-## Phase 6: 新增目录结构自动守卫
-
-**Files:**
-- Create: `scripts/check-structure.mjs`
-- Note: no separate test file was created; structure checks are verified via `pnpm check:structure` and the docs-truth-smoke tests
-- Modify: `package.json`
-- Modify: `.github/workflows/ci.yml`
-- Modify: `docs/reference/REPO_STRUCTURE.md`
-- Modify: `docs/operations/TESTING.md`
-- Modify: `docs/operations/CI_CD.md`
-
-- [x] **Step 1: 新增结构守卫脚本**
-
-Create `scripts/check-structure.mjs`:
-
-```javascript
-import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
-
-export interface StructureCheckResult {
-  failures: string[];
-}
-
-const allowedRootMarkdown = new Set([
-  'AGENTS.md',
-  'CLAUDE.md',
-  'CHANGELOG.md',
-  'README.md',
-  'architecture.md',
-  'plan.md',
-]);
-
-const forbiddenTrackedPrefixes = [
-  'docs/archive/',
-  '.data/',
-  '.tmp/',
-  'coverage/',
-  'logs/',
-  'node_modules/',
-  'packages/cli/node_modules/',
-  'packages/server/node_modules/',
-  'packages/contracts/node_modules/',
-  'packages/server/dist/',
-  'packages/contracts/dist/',
-];
-
-function listTrackedFiles(root: string): string[] {
-  const output = execFileSync('git', ['ls-files'], {
-    cwd: root,
-    encoding: 'utf8',
-  });
-  return output.split('\n').filter(Boolean);
-}
-
-export function checkRepoStructure(root = process.cwd()): StructureCheckResult {
-  const trackedFiles = listTrackedFiles(root);
-  const failures: string[] = [];
-
-  for (const file of trackedFiles) {
-    if (file.endsWith('.md') && !file.includes('/') && !allowedRootMarkdown.has(file)) {
-      failures.push(`Root Markdown is not allowed: ${file}`);
-    }
-
-    for (const prefix of forbiddenTrackedPrefixes) {
-      if (file.startsWith(prefix)) {
-        failures.push(`Tracked file uses forbidden generated/archive prefix: ${file}`);
-      }
-    }
-  }
-
-  const requiredPaths = [
-    'docs/reference/REPO_STRUCTURE.md',
-    'docs/archived/README.md',
-    'docs/archived/archived-plans',
-    'docs/archived/reports',
-    'docs/plans/README.md',
-    'packages/server/src/lib/README.md',
-    'packages/server/src/routes/README.md',
-    'evals/ingestion/README.md',
-  ];
-
-  for (const relPath of requiredPaths) {
-    if (!existsSync(resolve(root, relPath))) {
-      failures.push(`Required structure path is missing: ${relPath}`);
-    }
-  }
-
-  return { failures };
-}
-
-function main(): void {
-  const result = checkRepoStructure();
-
-  for (const failure of result.failures) {
-    console.error(`[repo-structure] FAIL: ${failure}`);
-  }
-
-  if (result.failures.length > 0) {
-    console.error(`\n[repo-structure] ${result.failures.length} violation(s) found.`);
-    process.exit(1);
-  }
-
-  console.log('[repo-structure] Repository structure checks passed.');
-}
-
-const isDirectRun = !process.env.VITEST && process.argv[1]?.includes('check-structure');
-if (isDirectRun) {
-  main();
-}
-```
-
-- [x] **Step 2: 增加 package script**
-
-Modify `package.json`:
-
-```json
-"check:structure": "node scripts/check-structure.mjs"
-```
-
-- [x] **Step 3: 加入 CI guardrails**
-
-Modify `.github/workflows/ci.yml` in `architecture-guardrails`:
-
-```yaml
-      - run: pnpm check:structure
-```
-
-- [x] **Step 4: 更新测试文档**
-
-Add to `docs/operations/TESTING.md`:
-
-````markdown
-### Repository structure guard
-
-```bash
-pnpm check:structure
-```
-
-This guard enforces the root Markdown allowlist, the single archive root, and required package-local structure guides.
-````
-
-Add to `docs/operations/CI_CD.md`:
-
-```markdown
-The `architecture-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:complexity`, and `pnpm check:structure`.
-```
-
-- [x] **Step 5: 运行完整守卫**
-
-Run:
-
-```bash
-rtk pnpm check:structure
-rtk pnpm check:docs-drift
-rtk pnpm check:complexity
-```
-
-Expected: all commands pass.
-
-### Phase 6 完成标准
-
-- [x] `pnpm check:structure` 存在
-- [x] CI `architecture-guardrails` 执行结构守卫
-- [x] 结构守卫能阻止新的根目录临时 Markdown、旧 `docs/archive/`、tracked generated dirs
-- [x] 文档说明开发者何时运行结构守卫
-
-### Phase 6 文档更新
-
-- [x] `docs/reference/REPO_STRUCTURE.md`
-- [x] `docs/operations/TESTING.md`
-- [x] `docs/operations/CI_CD.md`
-
-### Phase 6 测试/Eval 更新
-
-- [x] 不修改 eval 数据集；运行 `rtk pnpm eval:smoke` 作为最终回归门
-
----
-
-## Phase 7: 最终验证与交付
-
-**Files:**
-- Modify: `plan.md`
-- Modify: `docs/reference/REPO_STRUCTURE.md`
-- Modify: `docs/README.md`
-
-- [x] **Step 1: 确认根目录 Markdown allowlist**
-
-Run:
-
-```bash
-rtk proxy git ls-files '*.md' | grep -v '/'
-```
-
-Expected:
-
-```text
-AGENTS.md
-CHANGELOG.md
-CLAUDE.md
-README.md
-architecture.md
-plan.md
-```
-
-- [x] **Step 2: 确认旧归档入口不存在**
-
-Run:
-
-```bash
-rtk proxy git ls-files 'docs/archive/**'
-```
-
-Expected: no output.
-
-- [x] **Step 3: 确认结构守卫覆盖当前规则**
-
-Run:
-
-```bash
-rtk pnpm check:structure
-rtk pnpm check:docs-drift
-rtk pnpm check:complexity
-rtk pnpm typecheck
-rtk pnpm test
-rtk pnpm eval:smoke
-```
-
-Expected: all commands pass.
-
-- [x] **Step 4: 更新本计划进度**
-
-Mark completed phases in `plan.md` using checkbox syntax.
-
-### Phase 7 完成标准
-
-- [x] 根目录只剩 allowlist Markdown
-- [x] `docs/archived/` 是唯一归档入口
-- [x] `docs/plans/README.md` 解释 active plans 规则
-- [x] `packages/server/src/lib/README.md` 和 `packages/server/src/routes/README.md` 存在
-- [x] eval 文档覆盖 retrieval / summary / graph-extraction / ingestion
-- [x] `check:structure`、`check:docs-drift`、`check:complexity`、`typecheck`、`test`、`eval:smoke` 全部通过
-
-### Phase 7 文档更新
-
-- [x] `plan.md`
-- [x] `docs/reference/REPO_STRUCTURE.md`
-- [x] `docs/README.md`
-
-### Phase 7 测试/Eval 更新
-
-- [x] 运行全量 `rtk pnpm test`
-- [x] 运行最终 `rtk pnpm eval:smoke`
-- [x] 如 `eval:smoke` 生成 reports，只提交应纳入版本控制的 `.gitkeep` 或手写文档，不提交生成 JSON
-
----
-
-## 建议提交切分
-
-- [x] Commit 1: `docs: add repository structure truth source`
-- [x] Commit 2: `docs: archive root historical documents`
-- [x] Commit 3: `docs: consolidate archive and plan directories`
-- [x] Commit 4: `docs: add server package structure guides`
-- [x] Commit 5: `docs: align evaluation directory docs`
-- [x] Commit 6: `chore: add repository structure guard`
-
-## 风险控制
-
-- [x] 不移动 `packages/*` 源码目录，避免 import churn
-- [x] 不重命名 eval dataset 文件，避免基线和报告路径漂移
-- [x] 不删除历史文档，只归档并更新索引
-- [x] 每次文档移动后使用 `rg` 或 `git grep` 修正旧链接
-- [x] 所有新增守卫先以当前目标结构为准，不引入尚未完成的规则
+- [ ] 三个包都已完成各自子计划中的 phase-level acceptance criteria
+- [ ] 三个 `*-live-gap-matrix.md` 都能解释 raw finding 的 `live` / `fixed` / `stale` 结论
+- [ ] 每个已实施修复都同时包含实现、文档和测试代码，不存在“代码已改但文档或测试未落地”的悬空项
+- [ ] `contracts`、`cli`、`server` 各自的包级测试和 typecheck 已按子计划完成
+- [ ] 仓库级 `rtk pnpm eval:smoke` 通过
+- [ ] 若 server 触达 ingestion / artifact lifecycle，则 `rtk pnpm eval:ingestion:smoke` 通过
+- [ ] 根计划和三个子计划都已回写实际完成顺序、被跳过项与残留风险
+
+## 进一步拆分子文档的规则
+
+- [ ] 若某个包的 lane 需要继续拆成更细子文档，文件应放在 `temp/fm-agent-scan-plans/` 下，并以 `<pkg>-<lane>-plan.md` 命名。
+- [ ] 新子文档只能细化单一包的单一 lane，不得复制根计划的跨包顺序。
+- [ ] 新子文档必须继承本根计划的 subagent 规则、文档联动规则和验收要求。

@@ -1354,3 +1354,71 @@ describe('Phase 85: Thin router delegation', () => {
     expect(typeof operations.registerOperationsCommands).toBe('function');
   });
 });
+
+describe('fm-agent freeze: live gaps', () => {
+  it('deactivate: validates reason length between 1 and 500 characters', async () => {
+    const p = new Command();
+    mockedLoadCliState.mockResolvedValue({
+      serverUrl: 'http://localhost:3000',
+      sessionToken: 'test-token',
+      session: null,
+    });
+    mockedApiRequest.mockResolvedValue({
+      data: {
+        entry: { id: 'entry_1', lifecycleState: 'deactivated' },
+      },
+      sessionToken: 'test-token',
+    });
+
+    registerOperationsCommands(p, {
+      allowImport: false,
+      allowExport: false,
+      allowEdit: false,
+      allowDeactivate: true,
+      allowList: false,
+      allowActivate: false,
+      allowStatus: false,
+      allowMigrate: false,
+    });
+
+    // Reason too long (>500 chars) should be rejected before API call
+    const longReason = 'x'.repeat(501);
+    await expect(
+      p.parseAsync(['node', 'test', 'deactivate', 'entry_1', '--reason', longReason]),
+    ).rejects.toThrow(/between 1 and 500/);
+
+    // Empty reason should be rejected
+    await expect(
+      p.parseAsync(['node', 'test', 'deactivate', 'entry_1', '--reason', '']),
+    ).rejects.toThrow(/between 1 and 500/);
+
+    // Valid reason should proceed
+    await p.parseAsync(['node', 'test', 'deactivate', 'entry_1', '--reason', 'valid reason']);
+    expect(mockedApiRequest).toHaveBeenCalled();
+  });
+
+  it('edit: validates requiredLevel is a non-negative integer', async () => {
+    const p = new Command();
+    mockedLoadCliState.mockResolvedValue({
+      serverUrl: 'http://localhost:3000',
+      sessionToken: 'test-token',
+      session: null,
+    });
+
+    registerOperationsCommands(p, {
+      allowImport: false,
+      allowExport: false,
+      allowEdit: true,
+      allowDeactivate: false,
+      allowList: false,
+      allowActivate: false,
+      allowStatus: false,
+      allowMigrate: false,
+    });
+
+    // Non-integer requiredLevel should be rejected
+    await expect(
+      p.parseAsync(['node', 'test', 'edit', 'entry_1', '--required-level', '3.5']),
+    ).rejects.toThrow(/integer/);
+  });
+});

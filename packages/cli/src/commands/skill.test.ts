@@ -424,4 +424,46 @@ describe('CLI skill commands', () => {
       consoleLogSpy.mockRestore();
     });
   });
+
+  describe('fm-agent freeze: live gaps', () => {
+    it('formatSkillHistoryResponse: renders revision entries without leading spaces', async () => {
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: {
+          artifactId: 'artifact.db',
+          title: 'Database Skill',
+          currentRevision: 2,
+          lifecycleState: 'approved',
+          revisions: [
+            {
+              revision: 1,
+              submittedAt: '2026-05-01T10:00:00Z',
+              submittedBy: { id: 'user-1', handle: 'testuser', securityLevel: 0 },
+              summary: 'Initial',
+              lifecycleState: 'active',
+            },
+          ],
+        },
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      registerSkillCommands(program, {
+        allowSearch: false,
+        allowSubmit: false,
+        allowExport: true,
+        allowReview: false,
+      });
+
+      await program.parseAsync(['skill', 'history', 'artifact.db'], {
+        from: 'user',
+      });
+
+      const output = String(consoleLogSpy.mock.calls[0]?.[0]);
+      expect(output).toContain('1. 2026-05-01T10:00:00Z by testuser [active] - Initial');
+      expect(output).not.toMatch(/^\s+\d\./m);
+
+      consoleLogSpy.mockRestore();
+    });
+  });
 });

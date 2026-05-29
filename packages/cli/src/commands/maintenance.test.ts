@@ -355,6 +355,44 @@ describe('CLI maintenance commands', () => {
     });
   });
 
+  describe('fm-agent freeze: live gaps', () => {
+    it('formatMaintenanceBatch: renders explicit empty ineligibilityReason instead of dropping it', async () => {
+      const batchResponseWithEmptyReason: MaintenanceBatchOperationResponse = {
+        action: 'assign-owner',
+        dryRun: false,
+        items: [
+          {
+            entryId: 'k_1',
+            shortcut: 'Test entry',
+            currentMaintainer: null as any,
+            currentReviewBy: '2026-06-01T00:00:00Z',
+            eligible: false,
+            proposedChange: 'Assign owner to user_2',
+            ineligibilityReason: '',
+          },
+        ],
+        totalEligible: 0,
+        totalIneligible: 1,
+        appliedAt: '2026-05-03T12:00:00Z',
+      };
+
+      mockedApiRequest.mockResolvedValue({ data: batchResponseWithEmptyReason, sessionToken: null });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await program.parseAsync([
+        'node', 'test', 'maintenance-assign',
+        '--entries', 'k_1',
+        '--owner', 'user_2',
+      ]);
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      expect(output).toContain('\u2717 k_1: Assign owner to user_2 ()');
+
+      consoleSpy.mockRestore();
+    });
+  });
+
   describe('profile-aware output', () => {
     const codexProfileState = {
       serverUrl: 'http://localhost:3000',

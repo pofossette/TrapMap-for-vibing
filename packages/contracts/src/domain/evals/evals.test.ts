@@ -12,7 +12,7 @@ import {
   summaryEvalReportMetaSchema,
   summaryEvalReportSchema,
 } from './report.js';
-import { retrievalEvalGovernanceExpectationsSchema } from './retrieval.js';
+import { retrievalEvalGovernanceExpectationsSchema, retrievalEvalRelevanceExpectationsSchema } from './retrieval.js';
 
 // Helper for a valid timestamp with offset
 const ts = '2026-05-26T12:00:00+00:00';
@@ -509,6 +509,17 @@ describe('evals schema fixes', () => {
           caseId: '',
           kind: 'groundedness-below-threshold',
           description: 'low groundedness',
+        }),
+      ).toThrow();
+    });
+  });
+
+  describe('retrievalEvalRelevanceExpectationsSchema idealOrder subset', () => {
+    it('rejects idealOrder entries not in relevantIds', () => {
+      expect(() =>
+        retrievalEvalRelevanceExpectationsSchema.parse({
+          relevantIds: ['id-1'],
+          idealOrder: ['id-1', 'id-404'],
         }),
       ).toThrow();
     });

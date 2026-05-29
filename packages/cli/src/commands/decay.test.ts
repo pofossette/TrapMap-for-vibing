@@ -723,6 +723,84 @@ describe('CLI decay commands (Phase 50)', () => {
     });
   });
 
+  describe('fm-agent freeze: live gaps', () => {
+    it('formatBatchResult: renders explicit empty ineligibilityReason instead of dropping it', async () => {
+      mockedApiRequest.mockResolvedValue({
+        data: {
+          action: 'extend',
+          dryRun: false,
+          items: [
+            {
+              entryId: 'entry-1',
+              shortcut: 'test',
+              currentDecayState: 'stale',
+              proposedDecayState: 'active',
+              changeDescription: 'extend by 30 days',
+              eligible: false,
+              ineligibilityReason: '',
+            },
+          ],
+          totalEligible: 0,
+          totalIneligible: 1,
+          appliedAt: '2026-05-02T10:00:00Z',
+        },
+        sessionToken: null,
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await program.parseAsync([
+        'node', 'test', 'decay-batch',
+        '--action', 'extend',
+        '--entries', 'entry-1',
+      ]);
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      expect(output).toContain('\u2717 entry-1: extend by 30 days ()');
+
+      consoleSpy.mockRestore();
+    });
+
+    it('formatDecayList: renders undefined decayState as "undefined" instead of empty', async () => {
+      mockedApiRequest.mockResolvedValueOnce({
+        data: {
+          items: [
+            {
+              id: 'k_undef',
+              scope: 'global',
+              labels: [],
+              shortcut: 'Entry with undefined decay state',
+              lifecycleState: 'approved',
+              requiredLevel: 1,
+              updatedAt: '2026-01-01T00:00:00Z',
+              decayState: undefined,
+              freshnessType: 'evergreen',
+              ageDays: 10,
+              lastVerifiedAt: null,
+              supersededById: null,
+            },
+          ],
+          total: 1,
+        },
+        sessionToken: null,
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      // Re-register commands to get fresh program state
+      program = new Command();
+      registerDecayCommands(program, { allowManage: true });
+
+      await program.parseAsync(['node', 'test', 'decay-stale']);
+
+      const output = String(consoleSpy.mock.calls[0]?.[0]);
+      expect(output).toContain('[undefined]');
+      expect(output).not.toContain('[]');
+
+      consoleSpy.mockRestore();
+    });
+  });
+
   describe('profile-aware output', () => {
     const codexProfileState = {
       serverUrl: 'http://localhost:3000',

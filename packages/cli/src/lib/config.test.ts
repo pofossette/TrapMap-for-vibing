@@ -52,7 +52,11 @@ describe('cli config', () => {
     vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ outputProfile: '' }) as never);
     const { loadCliState } = await import('./config.js');
     const state = await loadCliState();
-    expect(state.outputProfile).toBe('');
+    // BUG(fm-agent): empty-string outputProfile should be normalized to undefined per CliState interface
+    // Currently the conditional spread `...(outputProfile != null ? { outputProfile } : {})` does not
+    // override the empty string from `...parsed`, leaving an invalid non-OutputProfile value.
+    // FIXME: change to `toBeUndefined()` once loadCliState normalizes falsy outputProfile values.
+    expect(state.outputProfile).toBeUndefined();
   });
 
   it('omits outputProfile when config file does not define it', async () => {
@@ -68,5 +72,25 @@ describe('cli config', () => {
 
     expect(state.serverUrl).toBe('http://localhost:9999');
     expect('outputProfile' in state).toBe(false);
+  });
+
+  it('normalizeOutputProfile: filters unknown extra properties like colorScheme', async () => {
+    const fs = await import('node:fs/promises');
+    vi.mocked(fs.readFile).mockResolvedValue(
+      JSON.stringify({
+        serverUrl: 'http://localhost:9999',
+        outputProfile: {
+          tool: 'codex',
+          colorScheme: 'dark',
+        },
+      }) as never,
+    );
+
+    const { loadCliState } = await import('./config.js');
+    const state = await loadCliState();
+    const validKeys = ['tool', 'modelHint', 'renderMode', 'graphPlanMode', 'verbosity', 'includeRawHints'];
+    const actualKeys = Object.keys(state.outputProfile!);
+    const extraKeys = actualKeys.filter((k) => !validKeys.includes(k));
+    expect(extraKeys).toEqual([]);
   });
 });

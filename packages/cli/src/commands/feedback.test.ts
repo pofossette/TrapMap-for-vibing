@@ -758,6 +758,45 @@ describe('CLI feedback admin commands', () => {
     });
   });
 
+  describe('fm-agent freeze: live gaps', () => {
+    it('formatBatchResult: renders explicit empty reason instead of dropping it', async () => {
+      const responseWithEmptyReason: FeedbackBatchResponse = {
+        action: 'resolve',
+        dryRun: false,
+        items: [
+          {
+            feedbackId: 'feedback_1',
+            eligible: true,
+            reason: '',
+            transitionApplied: false,
+          },
+        ],
+        totalEligible: 1,
+        totalIneligible: 0,
+        appliedAt: '2026-05-03T12:00:00Z',
+      };
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: responseWithEmptyReason,
+        sessionToken: 'mock-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerFeedbackAdminCommands(program, { allowManage: true });
+
+      await program.parseAsync(
+        ['feedback-batch', '--action', 'resolve', '--ids', 'feedback_1'],
+        { from: 'user' },
+      );
+
+      const output = String(consoleLogSpy.mock.calls[0]?.[0]);
+      expect(output).toContain('\u2713 feedback_1 ()');
+
+      consoleLogSpy.mockRestore();
+    });
+  });
+
   describe('profile-aware output', () => {
     const codexProfileState = {
       serverUrl: 'http://localhost:3000',

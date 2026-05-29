@@ -4,6 +4,7 @@ import {
   agentReviewStatusSchema,
   knowledgeEntrySchema,
   knowledgeListItemSchema,
+  knowledgeMetadataSchema,
   knowledgeResubmissionSchema,
   knowledgeRevisionSchema,
   knowledgeSubmissionSchema,
@@ -568,6 +569,29 @@ describe('knowledge schema contracts', () => {
         boundary: null,
       });
       expect(resub.boundary).toBeNull();
+    });
+  });
+
+  describe('knowledgeMetadataSchema invariants', () => {
+    const makeMetadata = () => ({
+      scopeLabel: 'project-knowledge' as const,
+      submissionCount: 5,
+      resubmissionCount: 3,
+      revisionCount: 1,
+      latestSubmissionId: 'sub-1',
+      latestSubmittedAt: '2024-01-15T10:30:00.000Z',
+      latestReviewedAt: '2024-01-15T10:30:00.000Z'.toString(),
+      latestDecision: 'approve' as const,
+    });
+
+    it('rejects submissionCount < resubmissionCount', () => {
+      expect(() =>
+        knowledgeMetadataSchema.parse({
+          ...makeMetadata(),
+          submissionCount: 1,
+          resubmissionCount: 5,
+        }),
+      ).toThrow();
     });
   });
 });

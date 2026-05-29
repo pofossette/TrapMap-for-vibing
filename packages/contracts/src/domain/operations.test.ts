@@ -15,6 +15,7 @@ import {
   legacyMigrationResultItemSchema,
   skillReviewDecisionRequestSchema,
   skillReviewQueueResponseSchema,
+  statsSummaryQuerySchema,
   statsUsageItemSchema,
   statsUsageResponseSchema,
 } from './operations.js';

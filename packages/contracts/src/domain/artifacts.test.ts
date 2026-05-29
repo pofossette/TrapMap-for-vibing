@@ -8,6 +8,7 @@ import {
   skillArtifactFileSchema,
   skillArtifactMetadataSchema,
   skillArtifactRevisionSchema,
+  skillCapsuleSchema,
 } from './artifacts.js';
 
 const validHex64 = 'a'.repeat(64);
@@ -277,6 +278,85 @@ describe('artifacts schema fixes', () => {
       expect(() =>
         scriptWithPolicyMetadataSchema.parse({ ...base, sha256: 'z'.repeat(64) }),
       ).toThrow();
+    });
+  });
+
+  describe('skillCapsuleSchema sourcePaths validation', () => {
+    const makeCapsule = () => ({
+      capsuleId: 'capsule-1',
+      artifactId: 'artifact-1',
+      revision: 1,
+      sourcePaths: ['references/doc.md'],
+      content: 'Distilled content',
+      situation: 'Testing',
+      problem: 'Schema too permissive',
+      goal: 'Verify validation',
+      labels: ['test:label'],
+      scope: 'project' as const,
+      requiredLevel: 1,
+    });
+
+    it('rejects absolute sourcePaths in skillCapsuleSchema', () => {
+      expect(() =>
+        skillCapsuleSchema.parse({
+          ...makeCapsule(),
+          sourcePaths: ['/absolute/path/file.ts'],
+        }),
+      ).toThrow();
+    });
+
+    it('rejects parent traversal sourcePaths', () => {
+      expect(() =>
+        skillCapsuleSchema.parse({
+          ...makeCapsule(),
+          sourcePaths: ['../../etc/passwd'],
+        }),
+      ).toThrow();
+    });
+
+    it('rejects Windows absolute sourcePaths', () => {
+      expect(() =>
+        skillCapsuleSchema.parse({
+          ...makeCapsule(),
+          sourcePaths: ['C:\\Windows\\System32\\cmd.exe'],
+        }),
+      ).toThrow();
+    });
+  });
+
+  describe('skillArtifactRevisionSchema derived.sourceHash === sourceHash', () => {
+    const baseRevision = {
+      revision: 1,
+      sourceHash: 'a'.repeat(64),
+      files: [
+        {
+          path: 'references/doc.md',
+          kind: 'reference' as const,
+          sha256: 'a'.repeat(64),
+          sizeBytes: 100,
+          mediaType: 'text/markdown',
+          source: 'references/' as const,
+          includeInDerivation: true,
+          activationOnly: false,
+        },
+      ],
+      submittedAt: '2024-01-15T10:30:00.000Z',
+      submittedBy: { id: 'user-1', handle: 'testuser', securityLevel: 5 },
+      scriptDescriptors: [],
+    };
+
+    it('rejects derived.sourceHash differing from top-level sourceHash', () => {
+      const withMismatch = {
+        ...baseRevision,
+        derived: {
+          profile: null,
+          capsules: [],
+          clientManifest: null,
+          sourceHash: 'b'.repeat(64),
+          derivedAt: '2024-01-15T10:30:00.000Z',
+        },
+      };
+      expect(() => skillArtifactRevisionSchema.parse(withMismatch)).toThrow();
     });
   });
 });

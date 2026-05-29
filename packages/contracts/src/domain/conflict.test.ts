@@ -144,4 +144,37 @@ describe('conflict schema', () => {
       expect(() => conflictHintSchema.parse(missingContext)).toThrow();
     });
   });
+
+  describe('conflictRelationSchema entryId ordering', () => {
+    const makeRelation = () => ({
+      id: 'conflict-123',
+      entryIdA: 'entry-b',
+      entryIdB: 'entry-c',
+      conflictType: 'alternative' as const,
+      context: 'Different approaches',
+      problemOverlapScore: 0.5,
+      solutionDiffScore: 0.5,
+      detectedAt: '2026-05-02T10:00:00Z',
+    });
+
+    it('rejects entryIdA === entryIdB', () => {
+      expect(() =>
+        conflictRelationSchema.parse({
+          ...makeRelation(),
+          entryIdA: 'entry-1',
+          entryIdB: 'entry-1',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects entryIdA > entryIdB (not canonically ordered)', () => {
+      expect(() =>
+        conflictRelationSchema.parse({
+          ...makeRelation(),
+          entryIdA: 'zzz-entry',
+          entryIdB: 'aaa-entry',
+        }),
+      ).toThrow();
+    });
+  });
 });
