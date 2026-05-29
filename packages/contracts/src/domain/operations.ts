@@ -872,10 +872,14 @@ export const statsHitRankingResponseSchema = z
  * System summary query schema.
  * Request system-wide statistics.
  */
-export const statsSummaryQuerySchema = z.object({
-  from: isoTimestampSchema.optional(),
-  to: isoTimestampSchema.optional(),
-});
+export const statsSummaryQuerySchema = z
+  .object({
+    from: isoTimestampSchema.optional(),
+    to: isoTimestampSchema.optional(),
+  })
+  .refine((d) => d.from == null || d.to == null || d.from <= d.to, {
+    message: 'from must be on or before to',
+  });
 
 /**
  * System summary response schema.

@@ -743,4 +743,53 @@ describe('operations schema fixes', () => {
       });
     });
   });
+
+  describe('statsSummaryQuerySchema', () => {
+    it('accepts empty object', () => {
+      const result = statsSummaryQuerySchema.parse({});
+      expect(result.from).toBeUndefined();
+      expect(result.to).toBeUndefined();
+    });
+
+    it('accepts from before to', () => {
+      const result = statsSummaryQuerySchema.parse({
+        from: '2024-01-01T00:00:00.000Z',
+        to: '2024-12-31T23:59:59.000Z',
+      });
+      expect(result.from).toBe('2024-01-01T00:00:00.000Z');
+    });
+
+    it('accepts from equal to to', () => {
+      const result = statsSummaryQuerySchema.parse({
+        from: '2024-01-01T00:00:00.000Z',
+        to: '2024-01-01T00:00:00.000Z',
+      });
+      expect(result.from).toBe(result.to);
+    });
+
+    it('rejects from after to', () => {
+      expect(() =>
+        statsSummaryQuerySchema.parse({
+          from: '2024-12-31T23:59:59.000Z',
+          to: '2024-01-01T00:00:00.000Z',
+        }),
+      ).toThrow();
+    });
+
+    it('accepts from only', () => {
+      const result = statsSummaryQuerySchema.parse({
+        from: '2024-01-01T00:00:00.000Z',
+      });
+      expect(result.from).toBe('2024-01-01T00:00:00.000Z');
+      expect(result.to).toBeUndefined();
+    });
+
+    it('accepts to only', () => {
+      const result = statsSummaryQuerySchema.parse({
+        to: '2024-12-31T23:59:59.000Z',
+      });
+      expect(result.to).toBe('2024-12-31T23:59:59.000Z');
+      expect(result.from).toBeUndefined();
+    });
+  });
 });

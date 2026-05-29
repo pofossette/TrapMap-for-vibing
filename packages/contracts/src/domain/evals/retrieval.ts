@@ -139,12 +139,16 @@ export type RetrievalEvalRequest = z.infer<typeof retrievalEvalRequestSchema>;
  * Relevance expectations for retrieval eval cases.
  * These assertions measure ranking quality, not governance correctness.
  */
-export const retrievalEvalRelevanceExpectationsSchema = z.object({
-  /** IDs of entries/capsules that should appear in results */
-  relevantIds: z.array(entityIdSchema).default([]),
-  /** Ideal ranking order (for Hit@K, MRR, nDCG calculation in Phase 26) */
-  idealOrder: z.array(entityIdSchema).default([]),
-});
+export const retrievalEvalRelevanceExpectationsSchema = z
+  .object({
+    /** IDs of entries/capsules that should appear in results */
+    relevantIds: z.array(entityIdSchema).default([]),
+    /** Ideal ranking order (for Hit@K, MRR, nDCG calculation in Phase 26) */
+    idealOrder: z.array(entityIdSchema).default([]),
+  })
+  .refine((d) => d.idealOrder.every((id) => new Set(d.relevantIds).has(id)), {
+    message: 'idealOrder entries must all be in relevantIds',
+  });
 
 export type RetrievalEvalRelevanceExpectations = z.infer<
   typeof retrievalEvalRelevanceExpectationsSchema

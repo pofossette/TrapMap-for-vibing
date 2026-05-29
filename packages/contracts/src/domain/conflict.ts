@@ -17,24 +17,31 @@ export const conflictTypeSchema = z.enum([
  * Conflict record schema for storage.
  * Persists detected conflicts between knowledge entries for retrieval enrichment.
  */
-export const conflictRelationSchema = z.object({
-  /** Unique conflict relation identifier */
-  id: entityIdSchema,
-  /** First entry ID in the conflict (lower ID for canonical ordering) */
-  entryIdA: entityIdSchema,
-  /** Second entry ID in the conflict (higher ID for canonical ordering) */
-  entryIdB: entityIdSchema,
-  /** Classification of the conflict relationship */
-  conflictType: conflictTypeSchema,
-  /** Human-readable context explaining the conflict */
-  context: z.string().min(1).max(500),
-  /** Token overlap score for problem/solution comparison (0-1) */
-  problemOverlapScore: z.number().min(0).max(1),
-  /** Token difference score for solution divergence (0-1) */
-  solutionDiffScore: z.number().min(0).max(1),
-  /** When this conflict was detected */
-  detectedAt: isoTimestampSchema,
-});
+export const conflictRelationSchema = z
+  .object({
+    /** Unique conflict relation identifier */
+    id: entityIdSchema,
+    /** First entry ID in the conflict (lower ID for canonical ordering) */
+    entryIdA: entityIdSchema,
+    /** Second entry ID in the conflict (higher ID for canonical ordering) */
+    entryIdB: entityIdSchema,
+    /** Classification of the conflict relationship */
+    conflictType: conflictTypeSchema,
+    /** Human-readable context explaining the conflict */
+    context: z.string().min(1).max(500),
+    /** Token overlap score for problem/solution comparison (0-1) */
+    problemOverlapScore: z.number().min(0).max(1),
+    /** Token difference score for solution divergence (0-1) */
+    solutionDiffScore: z.number().min(0).max(1),
+    /** When this conflict was detected */
+    detectedAt: isoTimestampSchema,
+  })
+  .refine((d) => d.entryIdA !== d.entryIdB, {
+    message: 'entryIdA and entryIdB must be different',
+  })
+  .refine((d) => d.entryIdA < d.entryIdB, {
+    message: 'entryIdA must be lexicographically less than entryIdB for canonical ordering',
+  });
 
 /**
  * Conflict hint schema for retrieval responses.

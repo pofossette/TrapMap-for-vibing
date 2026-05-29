@@ -84,16 +84,20 @@ export const knowledgeLifecycleEventSchema = z.object({
   note: z.string().min(1).max(2000).nullable().default(null),
 });
 
-export const knowledgeMetadataSchema = z.object({
-  scopeLabel: z.enum(['global-constraint', 'project-knowledge']),
-  submissionCount: z.number().int().min(0),
-  resubmissionCount: z.number().int().min(0),
-  revisionCount: z.number().int().min(1),
-  latestSubmissionId: entityIdSchema.nullable().default(null),
-  latestSubmittedAt: isoTimestampSchema.nullable().default(null),
-  latestReviewedAt: isoTimestampSchema.nullable().default(null),
-  latestDecision: z.enum(['approve', 'reject']).nullable().default(null),
-});
+export const knowledgeMetadataSchema = z
+  .object({
+    scopeLabel: z.enum(['global-constraint', 'project-knowledge']),
+    submissionCount: z.number().int().min(0),
+    resubmissionCount: z.number().int().min(0),
+    revisionCount: z.number().int().min(1),
+    latestSubmissionId: entityIdSchema.nullable().default(null),
+    latestSubmittedAt: isoTimestampSchema.nullable().default(null),
+    latestReviewedAt: isoTimestampSchema.nullable().default(null),
+    latestDecision: z.enum(['approve', 'reject']).nullable().default(null),
+  })
+  .refine((d) => d.submissionCount >= d.resubmissionCount, {
+    message: 'submissionCount must be >= resubmissionCount',
+  });
 
 export const knowledgeEntrySchema = z
   .object({
