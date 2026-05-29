@@ -43,6 +43,32 @@ The following `.refine()` / `.superRefine()` constraints enforce relationships b
 | `evals/report.ts` schemas | `evals/report.ts` | `passRate === passedCases / totalCases` |
 | `retrievalEvalGovernanceExpectationsSchema` | `evals/retrieval.ts` | `forbiddenIds.length === forbiddenReasons.length` |
 
+## Contract Conventions
+
+### Retrieval Contracts
+- Source paths (`sourcePaths`, `path`) use `canonicalPathSchema` — relative-only, no absolute paths, no parent traversal
+- Capsule-first responses (`retrievalV2ResponseWithHintsSchema`) are distilled content only, no raw source code
+- Activation hints are metadata-only — no file bodies or script content (T-15-01)
+- All hashes use `sha256HexSchema` (64 lowercase hex chars)
+
+### Artifact Contracts
+- `skillArtifactRevisionSchema`: `derived.sourceHash` must match top-level `sourceHash` when derived is present
+- `skillArtifactMetadataSchema`: `submissionCount >= resubmissionCount`
+- File paths within artifacts use `canonicalPathSchema` for consistent relative-path security
+
+### Eval Contracts
+- `retrievalEvalGovernanceExpectationsSchema`: `forbiddenIds.length === forbiddenReasons.length`
+- `retrievalEvalRelevanceExpectationsSchema`: `idealOrder` entries must be subset of `relevantIds`
+- Report schemas: `passRate === passedCases / totalCases` when `totalCases > 0`
+- All timestamps use `z.string().datetime({ offset: true })`
+
+### Running Validation
+```bash
+rtk pnpm --filter @trapmap/contracts test -- --run   # unit tests
+rtk pnpm --filter @trapmap/contracts typecheck         # type check
+rtk pnpm eval:smoke                                    # runtime integration
+```
+
 ## 内部导航
 
 - Schema 入口：[`src/domain/`](src/domain/)
