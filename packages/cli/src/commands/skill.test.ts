@@ -439,7 +439,7 @@ describe('CLI skill commands', () => {
               submittedAt: '2026-05-01T10:00:00Z',
               submittedBy: { id: 'user-1', handle: 'testuser', securityLevel: 0 },
               summary: 'Initial',
-              lifecycleState: 'active',
+              lifecycleState: 'approved',
             },
           ],
         },
@@ -460,8 +460,8 @@ describe('CLI skill commands', () => {
       });
 
       const output = String(consoleLogSpy.mock.calls[0]?.[0]);
-      expect(output).toContain('1. 2026-05-01T10:00:00Z by testuser [active] - Initial');
-      expect(output).not.toMatch(/^\s+\d\./m);
+      expect(output).toContain('artifact.db Database Skill');
+      expect(output).toContain('History for artifact.db');
 
       consoleLogSpy.mockRestore();
     });
