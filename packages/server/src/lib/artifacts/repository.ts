@@ -51,13 +51,14 @@ export interface ArtifactRepository {
    * Update lifecycle state with row-level locking.
    * Uses SELECT FOR UPDATE for row-level locking.
    * Validates transition using state machine.
+   * Returns the updated artifact record with appended lifecycle history.
    * Throws error if artifact not found or invalid transition.
    */
   updateLifecycle(
     artifactId: string,
     newState: LifecycleState,
     context: { actorId: string; note?: string },
-  ): Promise<void>;
+  ): Promise<SkillArtifactRecord>;
 
   /**
    * Append a new revision with row-level locking.
@@ -136,7 +137,8 @@ export class InMemoryArtifactRepository implements ArtifactRepository {
     artifactId: string,
     newState: LifecycleState,
     context: { actorId: string; note?: string },
-  ): Promise<void> {
+  ): Promise<SkillArtifactRecord> {
+    let updated: SkillArtifactRecord;
     await this.store.transact((data) => {
       const artifact = data.skillArtifacts?.find((a) => a.id === artifactId);
       if (!artifact) {
@@ -144,7 +146,21 @@ export class InMemoryArtifactRepository implements ArtifactRepository {
       }
       transitionLifecycleState(artifact, newState, context.note ?? 'update');
       artifact.updatedAt = new Date().toISOString();
+      const now = artifact.updatedAt;
+      const event: SkillArtifactLifecycleEventRecord = {
+        id: this.store.nextId(data, 'artifact_event'),
+        type: 'updated',
+        createdAt: now,
+        actorUserId: context.actorId,
+        submissionId: null,
+        revision: null,
+        state: newState,
+        note: context.note ?? null,
+      };
+      artifact.lifecycleHistory.push(event);
+      updated = artifact;
     });
+    return updated!;
   }
 
   async appendRevision(artifactId: string, revision: SkillArtifactRevisionRecord): Promise<void> {
