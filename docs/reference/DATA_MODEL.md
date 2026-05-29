@@ -124,6 +124,7 @@ draft → submitted → agent-pass/agent-rejected
 | 'knowledge:submit' | 'knowledge:search' | 'knowledge:review'
 | 'knowledge:update' | 'knowledge:export' | 'knowledge:import'
 | 'audit:read'
+| 'stats:read'
 ```
 
 ---
@@ -597,7 +598,7 @@ active → review-due → stale → expired
 | Retrieval: Keyword | `createPgKeywordRecall()` (PG) | `PgKeywordAdapter` | `knowledge_keywords` (text[] GIN) |
 | Retrieval: Full-text | — | — | `knowledge_search_documents` (tsvector GIN) |
 | Retrieval: Graph | `GraphIndexRepository` (PG) | `PgGraphIndexRepository` | `graph_index_documents` (JSONB nodes/edges) |
-| User / Team / Session / AccessKey / Audit 等 | InMemory repo → `store_snapshot` JSONB | PG repo → 结构化表（users, teams, memberships, sessions, access_keys, audit_events） | PG 模式走结构化表；JSON 模式走 InMemory |
+| User / Team / Session / AccessKey / Audit 等 | PG repo → 结构化表（users, teams, memberships, sessions, access_keys, audit_events） | PG repo → 结构化表 | PG 模式通过 `repos.*` 直接读写结构化表；JSON 模式走 InMemory；`store_snapshot` 仅作为未迁移辅助域兼容层 |
 
 ### 已删除的兼容层
 

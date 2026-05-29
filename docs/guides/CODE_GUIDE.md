@@ -73,11 +73,10 @@ contracts → server (app → routes → lib) → cli → evals
 | `members.ts` | `/v1/members` | 成员管理、角色分配 |
 | `knowledge.ts` | `/v1/knowledge` | 条目提交、查询、更新 |
 | `review.ts` | `/v1/knowledge/review` | 审核队列、approve/reject |
-| `retrieval.ts` | `/v1/retrieval` | 多版本检索入口 |
+| `retrieval.ts` | `/v1/retrieval` | 多版本检索入口（含子路由 `/v1/retrieval/skills/search-by-content`） |
 | `candidates.ts` | `/v1/candidates` | 异步摄取（提交/查询/解决/重复），分模块见 `routes/candidates/` |
 | `operations.ts` | `/v1/operations` | 批量导入/导出 |
 | `traps.ts` | `/v1/traps` | Trap 管理（共享应用服务） |
-| `retrieval.ts` | `/v1/retrieval/skills/search-by-content` | Skill 内容检索 |
 
 #### 知识/Trap 共享应用服务
 
@@ -99,17 +98,16 @@ contracts → server (app → routes → lib) → cli → evals
 lib/ai/
 ├── index.ts              # AI 初始化入口
 ├── provider-config.ts    # Provider 配置（模型名、端点、embedding 独立配置）
-├── providers.ts          # 多 provider 支持 + fallback 链
-├── providers/            # 各 provider 实现
-│   ├── openai.ts
-│   ├── ollama.ts
-│   └── google-genai.ts
+├── providers.ts          # 多 provider 实现（多 provider + fallback 链）
+├── providers/            # Prompt provider 系统（XML/JSON 渲染、模板、配置）
 ├── prompts.ts            # Prompt 模板管理（XML 格式）
 ├── providers.test.ts     # Provider 测试
-├── cache/                # Prompt 缓存系统
-│   └── prompt-cache.ts   # 缓存 TTL、命中率追踪
+├── cache/                # 缓存系统
+│   └── section-cache.ts  # Section 缓存 TTL、命中率追踪
 └── dynamic/              # 动态 prompt 注入
-    └── slot-injector.ts  # 基于上下文的 slot 替换
+    ├── conditions.ts     # 条件逻辑
+    ├── context-resolver.ts # 上下文解析器
+    └── injections.ts     # 注入逻辑
 ```
 
 支持 OpenAI、OpenAI 兼容端点（如 vLLM）、Ollama 和 Google GenAI。核心概念是 **fallback 链**：主 provider 失败时自动切换到备用 provider。
@@ -239,7 +237,8 @@ evals/
 │   ├── datasets/           # 黄金数据集和场景 fixture
 │   └── lib/                # 评估指标库
 ├── summary/                # 摘要质量评估
-│   └── judge/              # LLM-as-Judge 评判系统
+│   └── lib/
+│       └── judge.ts        # LLM-as-Judge 评判系统
 ├── fixtures/               # 测试陷阱数据
 ├── scripts/
 │   └── eval-ci.ts          # CI 评估运行器

@@ -189,6 +189,6 @@ trapmap member key:create --help
 
 ## 相关文档
 
-- [安全指南](../operations/SECURITY.md) — 安全等级、RBAC 和配置清单
+- [安全指南](../../operations/SECURITY.md) — 安全等级、RBAC 和配置清单
 - [API 参考 — 认证端点](../architecture/API.md#认证端点) — 认证 API 详情
-- [环境变量参考](../../reference/ENVIRONMENT.md) — 完整环境变量列表
+- [环境变量参考](../../operations/ENVIRONMENT.md) — 完整环境变量列表

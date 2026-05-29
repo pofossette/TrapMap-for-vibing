@@ -143,23 +143,22 @@ trapmap session
 # 2. 检查服务器日志
 docker compose logs server | grep "auth"
 
-# 3. 验证密码哈希
-# 服务器使用 bcrypt，确认为 bcrypt 格式
+# 3. 验证密钥是否有效
+# 服务器使用 SHA-256 哈希查找访问密钥
 ```
 
 #### 解决方案
 
 ```bash
-# 重置密码（通过数据库）
-docker compose exec postgres psql -U trapmap -d trapmap
-UPDATE members SET password_hash = '$2b$12$...' WHERE username = 'user@example.com';
+# 创建新的访问密钥
+trapmap access-key create --name "Recovery Key" --days 30
 
-# 或创建新用户
-docker compose exec server node --input-type=module -e "
-  import { hashPassword } from './dist/lib/auth.js';
-  console.log(await hashPassword('newpassword'));
-"
-# 然后更新数据库
+# 或通过数据库检查密钥状态
+docker compose exec postgres psql -U trapmap -d trapmap \
+  -c "SELECT id, name, expires_at, revoked FROM access_keys;"
+
+# 如果密钥已过期或被撤销，创建新密钥
+# 如果使用 --system-admin-key，确认环境变量 TRAPMAP_SYSTEM_ADMIN_KEY 正确
 ```
 
 ---
@@ -190,7 +189,7 @@ docker compose exec server date
 ```bash
 # 重新登录
 trapmap logout
-trapmap login <username> <password>
+trapmap login --access-key <key>
 
 # 延长会话 TTL（修改环境变量）
 SESSION_TTL_MS=604800000  # 7 days (default)

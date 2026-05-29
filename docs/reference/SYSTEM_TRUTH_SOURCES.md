@@ -15,7 +15,7 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
 | Guardrail commands | `scripts/complexity-budgets.json` + `.github/workflows/ci.yml` | `docs/reference/SYSTEM_TRUTH_SOURCES.md`, `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` |
 | Startup commands | `package.json` scripts section | `docs/README.md`, `docs/guides/GETTING_STARTED.md` |
 | Eval entrypoints | `package.json` scripts section | `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` |
-| Deployment defaults | `docker-compose.yml` + `.github/workflows/ci.yml` | `docs/architecture/DEPLOYMENT.md`, `docs/README.md` |
+| Deployment defaults | `docker-compose.yml` + `packages/server/Dockerfile` | `docs/architecture/DEPLOYMENT.md`, `docs/README.md` |
 | Root workspace commands | `package.json` (scripts section) | `README.md`, `docs/README.md`, `docs/operations/TESTING.md` |
 | Server-only DB commands | `packages/server/package.json` (db:generate, db:migrate, db:push) | `docs/guides/GETTING_STARTED.md`, `docs/architecture/DEPLOYMENT.md` |
 | Runtime env defaults | `packages/server/src/config.ts` | `docs/operations/ENVIRONMENT.md`, `docs/architecture/ARCHITECTURE.md`, `docs/guides/GETTING_STARTED.md` |

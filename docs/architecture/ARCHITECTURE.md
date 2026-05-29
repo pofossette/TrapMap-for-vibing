@@ -329,7 +329,7 @@ flowchart TB
             待审核["状态：待审核"]
         end
         
-        审核员操作["审核员操作\nPOST /candidates/:id/manual-result\n{ resolution: merge|discard|keep_both }"]
+        审核员操作["审核员操作\nPOST /v1/candidates/:candidateId/manual-result\n{ resolution: merge|discard|keep_both }"]
         解决方案["解决方案已应用\n（发布/合并）"]
     end
 
@@ -350,8 +350,8 @@ flowchart TB
 flowchart TB
     subgraph 登录流程["登录流程"]
         登录请求["登录请求"]
-        登录接口["POST /v1/auth/login\n{ username, password }"]
-        验证凭据["验证凭据"]
+        登录接口["POST /v1/auth/login\n{ accessKey }"]
+        验证凭据["SHA-256 哈希查找密钥"]
         创建会话["创建会话"]
         设置Cookie["设置 Cookie\n并返回会话"]
     end

@@ -291,7 +291,7 @@ interface EntityLineage {
 
 | 方法 | 路径 | 描述 |
 |------|------|------|
-| POST | `/v1/auth/login` | 用户名/密码登录 |
+| POST | `/v1/auth/login` | 访问密钥登录 |
 | GET | `/v1/auth/session` | 获取当前会话 |
 | POST | `/v1/auth/logout` | 登出并使会话失效 |
 
@@ -482,7 +482,7 @@ RBAC 和资格检查。
 
 #### `auth/`
 ```bash
-trapmap login <username> <password>
+trapmap login --access-key <key>
 trapmap logout
 trapmap session
 ```
@@ -496,7 +496,7 @@ trapmap team select <teamId>
 
 #### `member/`
 ```bash
-trapmap member create --username <username> --password <password> [--role <role>]
+trapmap member create <handle> --team <teamId> [--role <role>] [--note <text>]
 trapmap member update <memberId> [--role <role>] [--level <level>]
 ```
 

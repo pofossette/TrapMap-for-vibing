@@ -296,7 +296,7 @@ Trap-Map/
 ├── evals/             # 检索和摘要评估系统
 ├── docs/              # 项目文档
 │   └── architecture/  # 详细架构文档
-├── scripts/           # 部署脚本
+├── scripts/           # Automation and deploy scripts
 ├── docker-compose.yml
 └── README.md
 ```

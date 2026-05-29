@@ -513,8 +513,8 @@ function printError(error: Error): void {
 
 ## 相关源码
 
-- [packages/cli/src/index.ts](../../packages/cli/src/index.ts)
-- [packages/cli/src/lib/config.ts](../../packages/cli/src/lib/config.ts)
-- [packages/cli/src/lib/http.ts](../../packages/cli/src/lib/http.ts)
-- [packages/cli/src/lib/output.ts](../../packages/cli/src/lib/output.ts)
-- [packages/cli/src/commands/](../../packages/cli/src/commands/)
+- [packages/cli/src/index.ts](../../../packages/cli/src/index.ts)
+- [packages/cli/src/lib/config.ts](../../../packages/cli/src/lib/config.ts)
+- [packages/cli/src/lib/http.ts](../../../packages/cli/src/lib/http.ts)
+- [packages/cli/src/lib/output.ts](../../../packages/cli/src/lib/output.ts)
+- [packages/cli/src/commands/](../../../packages/cli/src/commands/)

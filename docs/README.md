@@ -197,7 +197,12 @@ Trap-Map/
 │   └── skills/       # 项目级 Skill 工作流
 ├── evals/            # 评估数据集和运行器
 │   ├── retrieval/   # 检索测试用例
-│   └── summary/     # 摘要评判检查
+│   ├── summary/     # 摘要评判检查
+│   ├── graph-extraction/ # 图提取评测
+│   ├── ingestion/   # 摄取评测
+│   ├── fixtures/    # 测试数据
+│   ├── baselines/   # 基线报告
+│   └── scripts/     # 评测脚本
 ├── scripts/          # 部署脚本
 ├── docs/            # 文档
 │   └── architecture/

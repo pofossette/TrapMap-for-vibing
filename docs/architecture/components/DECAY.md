@@ -424,8 +424,8 @@ function supersedeEntry(args: {
 
 ## 相关源码
 
-- [packages/server/src/routes/decay.ts](../../packages/server/src/routes/decay.ts)
-- [packages/server/src/routes/maintenance.ts](../../packages/server/src/routes/maintenance.ts)
-- [packages/server/src/lib/decay/state-machine.ts](../../packages/server/src/lib/decay/state-machine.ts)
-- [packages/server/src/lib/decay/batch.ts](../../packages/server/src/lib/decay/batch.ts)
-- [packages/server/src/lib/decay/supersede.ts](../../packages/server/src/lib/decay/supersede.ts)
+- [packages/server/src/routes/decay.ts](../../../packages/server/src/routes/decay.ts)
+- [packages/server/src/routes/maintenance.ts](../../../packages/server/src/routes/maintenance.ts)
+- [packages/server/src/lib/decay/state-machine.ts](../../../packages/server/src/lib/decay/state-machine.ts)
+- [packages/server/src/lib/decay/batch.ts](../../../packages/server/src/lib/decay/batch.ts)
+- [packages/server/src/lib/decay/supersede.ts](../../../packages/server/src/lib/decay/supersede.ts)

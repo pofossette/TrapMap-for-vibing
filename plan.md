@@ -673,8 +673,8 @@ Expected: commands complete without changing reports.
 ## Phase 6: 新增目录结构自动守卫
 
 **Files:**
-- Create: `scripts/check-repo-structure.ts`
-- Create: `scripts/__tests__/check-repo-structure.test.ts`
+- Create: `scripts/check-structure.mjs`
+- Note: no separate test file was created; structure checks are verified via `pnpm check:structure` and the docs-truth-smoke tests
 - Modify: `package.json`
 - Modify: `.github/workflows/ci.yml`
 - Modify: `docs/reference/REPO_STRUCTURE.md`
@@ -683,9 +683,9 @@ Expected: commands complete without changing reports.
 
 - [x] **Step 1: 新增结构守卫脚本**
 
-Create `scripts/check-repo-structure.ts`:
+Create `scripts/check-structure.mjs`:
 
-```typescript
+```javascript
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -776,57 +776,21 @@ function main(): void {
   console.log('[repo-structure] Repository structure checks passed.');
 }
 
-const isDirectRun = !process.env.VITEST && process.argv[1]?.includes('check-repo-structure');
+const isDirectRun = !process.env.VITEST && process.argv[1]?.includes('check-structure');
 if (isDirectRun) {
   main();
 }
 ```
 
-- [x] **Step 2: 新增结构守卫单测**
-
-Create `scripts/__tests__/check-repo-structure.test.ts`:
-
-```typescript
-import { describe, expect, it, vi } from 'vitest';
-import { checkRepoStructure } from '../check-repo-structure';
-
-vi.mock('node:child_process', () => ({
-  execFileSync: vi.fn(() =>
-    [
-      'README.md',
-      'plan.md',
-      'temp.md',
-      'docs/archive/old.md',
-      'packages/server/src/lib/retrieval/index.ts',
-    ].join('\n'),
-  ),
-}));
-
-vi.mock('node:fs', () => ({
-  existsSync: vi.fn(() => true),
-}));
-
-describe('checkRepoStructure', () => {
-  it('rejects root markdown outside the allowlist and old docs/archive paths', () => {
-    const result = checkRepoStructure('/repo');
-
-    expect(result.failures).toContain('Root Markdown is not allowed: temp.md');
-    expect(result.failures).toContain(
-      'Tracked file uses forbidden generated/archive prefix: docs/archive/old.md',
-    );
-  });
-});
-```
-
-- [x] **Step 3: 增加 package script**
+- [x] **Step 2: 增加 package script**
 
 Modify `package.json`:
 
 ```json
-"check:structure": "pnpm exec tsx scripts/check-repo-structure.ts"
+"check:structure": "node scripts/check-structure.mjs"
 ```
 
-- [x] **Step 4: 加入 CI guardrails**
+- [x] **Step 3: 加入 CI guardrails**
 
 Modify `.github/workflows/ci.yml` in `architecture-guardrails`:
 
@@ -834,7 +798,7 @@ Modify `.github/workflows/ci.yml` in `architecture-guardrails`:
       - run: pnpm check:structure
 ```
 
-- [x] **Step 5: 更新测试文档**
+- [x] **Step 4: 更新测试文档**
 
 Add to `docs/operations/TESTING.md`:
 
@@ -854,12 +818,11 @@ Add to `docs/operations/CI_CD.md`:
 The `architecture-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:complexity`, and `pnpm check:structure`.
 ```
 
-- [x] **Step 6: 运行完整守卫**
+- [x] **Step 5: 运行完整守卫**
 
 Run:
 
 ```bash
-rtk pnpm test -- --run scripts/__tests__/check-repo-structure.test.ts
 rtk pnpm check:structure
 rtk pnpm check:docs-drift
 rtk pnpm check:complexity
@@ -882,8 +845,6 @@ Expected: all commands pass.
 
 ### Phase 6 测试/Eval 更新
 
-- [x] 新增 `scripts/__tests__/check-repo-structure.test.ts`
-- [x] 运行 `rtk pnpm test -- --run scripts/__tests__/check-repo-structure.test.ts`
 - [x] 不修改 eval 数据集；运行 `rtk pnpm eval:smoke` 作为最终回归门
 
 ---

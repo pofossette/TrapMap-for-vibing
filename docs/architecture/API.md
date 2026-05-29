@@ -1,6 +1,6 @@
 # TrapMap API 参考
 
-> **文档关系说明**：本文档是 TrapMap API 的完整详细参考。若需快速概览所有端点及其请求/响应契约，请参阅 [`../api-surface.md`](../api-surface.md)。
+> **文档关系说明**：本文档是 TrapMap API 的完整详细参考。若需快速概览所有端点及其请求/响应契约，请参阅 [`../reference/api-surface.md`](../reference/api-surface.md)。
 
 ## 概述
 

@@ -40,7 +40,7 @@ cp .env.example .env
 pnpm dev:server
 
 # 5. 另一个终端运行 CLI
-pnpm dev:cli -- login <username> <password>
+pnpm dev:cli -- login --access-key <key>
 pnpm dev:cli -- --help
 ```
 

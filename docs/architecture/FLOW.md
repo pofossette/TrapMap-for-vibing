@@ -402,22 +402,23 @@ flowchart TB
 ```mermaid
 flowchart TB
     subgraph 登录请求["登录请求"]
-        PostLogin["POST /v1/auth/login\n{ username, password }"]
+        PostLogin["POST /v1/auth/login\n{ accessKey }"]
     end
-    
+
     subgraph 凭证验证["凭证验证"]
-        FindUser["按用户名查找用户"]
-        VerifyPassword["验证密码（bcrypt）"]
+        HashKey["SHA-256 哈希密钥"]
+        LookupKey["按哈希值查找 access_keys 表"]
+        CheckExpiry["检查过期时间"]
         LoadPermissions["加载用户实体及权限和等级"]
     end
-    
+
     subgraph 验证结果["验证结果"]
-        InvalidCreds["无效凭证"]
-        ValidCreds["有效凭证"]
+        InvalidCreds["无效或过期密钥"]
+        ValidCreds["有效密钥"]
     end
-    
+
     subgraph 会话创建["会话创建"]
-        GenerateSessionId["生成会话 ID"]
+        GenerateSessionId["生成会话 ID（UUID v4）"]
         StoreSessionData["存储会话数据\n(userId, teamId,\npermissions, level)"]
         SetExpiry["设置过期时间"]
     end

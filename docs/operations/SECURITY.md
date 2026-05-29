@@ -279,8 +279,6 @@ LOG_USER_OPS_DIR=logs/user-ops
 | `auth.failed` | 登录失败 |
 | `auth.access_key_created` | 创建访问密钥 |
 | `auth.access_key_used` | 使用密钥认证 |
-| `auth.password_reset_requested` | 请求密码重置 |
-| `auth.password_reset_completed` | 完成密码重置 |
 | `knowledge-reviewed` | 审核知识条目（含 evidence 更新） |
 | `knowledge-deactivated` | 停用知识条目 |
 | `knowledge-exported` / `knowledge-imported` | 导出/导入知识 |

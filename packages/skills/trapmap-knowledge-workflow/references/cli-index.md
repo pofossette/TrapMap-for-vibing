@@ -1,7 +1,7 @@
 # TrapMap CLI 命令索引
 
 > 紧凑索引，按代理工作流阶段组织。每行给出命令签名和最常用标志。
-> 需要完整文档时参见 [`docs/architecture/CLI.md`](../../../docs/architecture/CLI.md)。
+> 需要完整文档时参见 [`docs/architecture/CLI.md`](../../../../docs/architecture/CLI.md)。
 > 标志不确定时运行 `trapmap <command> --help` 获取权威帮助。
 
 ---
