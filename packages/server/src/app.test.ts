@@ -22,17 +22,18 @@ describe('app.ts live gaps — fm-agent raw report', () => {
 
     await app.close();
 
-    // FIXME: this will fail until onClose awaits async stop()
     expect(events).toContain('task-stopped');
     expect(events).toContain('outbox-stopped');
   });
 
-  it('fm-agent: app.skillShareer is frozen to prevent mutation', () => {
+  it('fm-agent: app.skillShareer is frozen to prevent mutation', async () => {
     const app = buildServer();
+    await app.ready();
 
     const frozen = Object.isFrozen(app.skillShareer);
 
-    // FIXME: this will fail until app.skillShareer is frozen
     expect(frozen).toBe(true);
+
+    await app.close();
   });
 });

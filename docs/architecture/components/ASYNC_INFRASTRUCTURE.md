@@ -316,19 +316,32 @@ app.decorate('taskWorker', worker);  // 挂载到 Fastify 实例供优雅关闭
 TaskWorker 和 OutboxWorker 的生命周期由 `app.ts` 管理：
 
 - **启动**: `onReady` 钩子中，`PostgresStore` 模式下后台启动 TaskWorker 和 OutboxWorker
-- **停止**: `onClose` 钩子中，依次调用 `taskWorker.stop()` 和 `outboxWorker.stop()`，停止后等待活跃任务排空
+- **停止**: `onClose` 钩子中，依次 `await taskWorker.stop()` 和 `await outboxWorker.stop()`，确保异步清理完成后再解析钩子
 - **状态检查**: `/ready` 端点返回 `queueWorkerRunning` 字段，可被 Kubernetes liveness/readiness probe 使用
 - **isRunning**: TaskWorker 暴露 `isRunning()` 方法用于运行时状态查询
+
+关闭钩子中 **必须 await** 异步 stop()，否则 worker 可能在钩子返回后继续运行，导致未定义行为。
 
 ```typescript
 // app.ts: onClose 钩子
 app.addHook('onClose', async () => {
   const taskWorker = (app as any).taskWorker;
   const outboxWorker = (app as any).outboxWorker;
-  if (taskWorker?.stop) { taskWorker.stop(); }
-  if (outboxWorker?.stop) { outboxWorker.stop(); }
+  if (taskWorker?.stop) { await taskWorker.stop(); }
+  if (outboxWorker?.stop) { await outboxWorker.stop(); }
 });
 ```
+
+### 候选恢复边界
+
+`bootstrap-candidate-recovery.ts` 在启动时处理中断的候选：
+
+| 存储类型 | 恢复行为 |
+|----------|----------|
+| **PostgreSQL** | 重置 status → `received`，通过 TaskQueue 重新入队 |
+| **JSON (本地)** | 重置 status → `received`，**不**入队（无任务队列基础设施）。记录 warning 日志。 |
+
+JSON 存储模式用于开发/测试，不提供后台 worker 处理。非 PG 恢复是显式的设计边界，不会静默丢弃候选。
 
 ---
 

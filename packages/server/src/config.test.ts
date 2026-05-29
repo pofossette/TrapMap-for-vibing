@@ -239,6 +239,13 @@ describe('loadConfig', () => {
     });
   });
 
+  it("parses CORS_ORIGINS=\"\" (empty string) as []", () => {
+    withEnv({ CORS_ORIGINS: '' }, () => {
+      const config = loadConfig();
+      expect(config.corsAllowedOrigins).toEqual([]);
+    });
+  });
+
   it('parses RATE_LIMIT_MAX_PER_MINUTE', () => {
     withEnv({ RATE_LIMIT_MAX_PER_MINUTE: '60' }, () => {
       const config = loadConfig();
@@ -272,6 +279,13 @@ describe('loadConfig', () => {
     withEnv({ HOST: '0.0.0.0' }, () => {
       const config = loadConfig();
       expect(config.host).toBe('0.0.0.0');
+    });
+  });
+
+  it('defaults HOST to 127.0.0.1 when empty string', () => {
+    withEnv({ HOST: '' }, () => {
+      const config = loadConfig();
+      expect(config.host).toBe('127.0.0.1');
     });
   });
 

@@ -264,11 +264,11 @@ export function buildServer(options: BuildServerOptions = {}) {
     const outboxWorker = (app as any).outboxWorker;
 
     if (taskWorker?.stop) {
-      taskWorker.stop();
+      await taskWorker.stop();
       app.log.info('Task worker stopped');
     }
     if (outboxWorker?.stop) {
-      outboxWorker.stop();
+      await outboxWorker.stop();
       app.log.info('Outbox worker stopped');
     }
   });

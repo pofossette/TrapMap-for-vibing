@@ -26,4 +26,5 @@ export async function runStartupSequence(app: FastifyInstance): Promise<void> {
   await bootstrapWorkers(app);
   await bootstrapGraphReconciliation(app);
   await bootstrapLifecycle(app);
+  Object.freeze(app.skillShareer);
 }

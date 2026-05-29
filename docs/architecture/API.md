@@ -14,6 +14,73 @@ TrapMap 提供基于 Fastify 的 RESTful API，所有端点遵循 `/v1/` 或 `/v
 | Content-Type | `application/json` |
 | 认证 | Cookie (session) 或 Access Key |
 
+## 健康检查端点
+
+### GET /health
+
+服务器健康状态。
+
+**响应** (200):
+```json
+{
+  "status": "ok",
+  "product": "trapmap",
+  "packages": ["cli", "server", "contracts"],
+  "memory": {
+    "rssMb": 128,
+    "heapUsedMb": 64,
+    "heapTotalMb": 128
+  },
+  "uptimeSeconds": 3600
+}
+```
+
+---
+
+### GET /ready
+
+就绪检查。报告后台 worker 运行状态和数据库后端。
+
+**响应** (200):
+```json
+{
+  "ok": true,
+  "queueWorkerRunning": false,
+  "database": "json-store"
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `ok` | 服务就绪 |
+| `queueWorkerRunning` | TaskWorker 是否正在运行 (PG 模式) |
+| `database` | `"postgres"` 或 `"json-store"` |
+
+---
+
+### GET /meta/routes
+
+返回所有已文档化的路由列表。
+
+**响应** (200):
+```json
+{
+  "documentedRoutes": ["POST /v1/auth/login", ...]
+}
+```
+
+---
+
+## 优雅关闭行为
+
+服务关闭时（`onClose` 钩子）按顺序：
+1. `await taskWorker.stop()` — 停止候选处理 worker，等待活跃任务排空
+2. `await outboxWorker.stop()` — 停止出箱事件 worker，停止轮询
+
+关闭期间不接受新请求。关闭后 `app.skillShareer` 被冻结，防止运行时状态变更。
+
+---
+
 ## 认证端点
 
 ### POST /v1/auth/login

@@ -7,6 +7,20 @@ Fastify API 服务，承载检索、索引、治理、认证、候选处理等�
 - `src/index.ts` — 启动入口
 - `src/app.ts` — Fastify 应用组装
 
+## 阅读顺序
+
+### app.ts 核心路径
+1. `src/app.ts` — Fastify 实例化、decorate、路由注册、onReady/onClose 钩子、错误处理
+2. `src/config.ts` — 环境变量加载、Zod 校验、CORS/HOST/port 解析
+
+### 启动序列 (bootstrap)
+3. `src/bootstrap/run-startup-sequence.ts` — 启动序列编排器（5 阶段）
+4. `src/bootstrap/bootstrap-repositories.ts` — 数据库迁移、仓库创建、向量索引
+5. `src/bootstrap/bootstrap-candidate-recovery.ts` — 中断候选恢复与重入队
+6. `src/bootstrap/bootstrap-workers.ts` — TaskWorker 启动（PG 模式）
+7. `src/bootstrap/bootstrap-graph-reconciliation.ts` — 图索引一致性修复
+8. `src/bootstrap/bootstrap-lifecycle.ts` — 事件订阅者注册、OutboxWorker 启动
+
 ## 目录结构
 
 - `src/bootstrap/` — 启动序列、候选恢复、图协调、生命周期、仓库初始化、Worker

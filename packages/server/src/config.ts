@@ -99,8 +99,9 @@ export function loadConfig(): ServerConfig {
   const ai = loadAiProviderConfig();
 
   // Parse CORS origins from comma-separated env var
-  const corsOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',')
+  const corsOriginRaw = process.env.CORS_ORIGINS?.trim();
+  const corsOrigins = corsOriginRaw !== undefined
+    ? corsOriginRaw.split(',')
         .map((s) => s.trim())
         .filter((s) => s.length > 0)
     : undefined;
@@ -112,7 +113,7 @@ export function loadConfig(): ServerConfig {
       process.env.TRAPMAP_DATA_FILE ?? '.data/skill-shareer.json',
     ),
     databaseUrl: process.env.TRAPMAP_DATABASE_URL ?? null,
-    host: process.env.HOST ?? '127.0.0.1',
+    host: (process.env.HOST?.trim() || undefined) ?? '127.0.0.1',
     port: process.env.PORT ?? 4000,
     systemAdminKey: process.env.TRAPMAP_SYSTEM_ADMIN_KEY ?? null,
     corsAllowedOrigins: corsOrigins,

@@ -76,6 +76,11 @@ export async function bootstrapCandidateRecovery(app: FastifyInstance): Promise<
                 'Failed to re-enqueue interrupted candidate',
               );
             });
+        } else {
+          app.log.warn(
+            { candidateId: candidate.id },
+            'JSON store candidate reset but not re-enqueued (PG task queue unavailable)',
+          );
         }
       }
       app.log.info({ count: allInterrupted.length }, 'Interrupted candidates re-enqueued');

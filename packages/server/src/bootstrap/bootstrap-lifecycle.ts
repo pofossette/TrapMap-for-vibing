@@ -33,6 +33,8 @@ export async function bootstrapLifecycle(app: FastifyInstance): Promise<void> {
   eventBus.onDomainEvent('knowledge.deactivated', createAuditSubscriber(store, app.log));
   eventBus.onDomainEvent('knowledge.rejected', createAuditSubscriber(store, app.log));
   eventBus.onDomainEvent('knowledge.agent-reviewed', createAuditSubscriber(store, app.log));
+  eventBus.onDomainEvent('knowledge.resubmitted', createAuditSubscriber(store, app.log));
+  eventBus.onDomainEvent('knowledge.re-review', createAuditSubscriber(store, app.log));
 
   // Conflict subscriber: detects conflicts on approval
   eventBus.onDomainEvent('knowledge.approved', createConflictSubscriber(store));
@@ -62,6 +64,8 @@ export async function bootstrapLifecycle(app: FastifyInstance): Promise<void> {
       ['knowledge.deactivated+audit', createAuditSubscriber(store, app.log)],
       ['knowledge.rejected+audit', createAuditSubscriber(store, app.log)],
       ['knowledge.agent-reviewed+audit', createAuditSubscriber(store, app.log)],
+      ['knowledge.resubmitted+audit', createAuditSubscriber(store, app.log)],
+      ['knowledge.re-review+audit', createAuditSubscriber(store, app.log)],
       ['knowledge.approved+conflict', createConflictSubscriber(store)],
     ]);
 
