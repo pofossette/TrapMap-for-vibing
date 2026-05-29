@@ -2,7 +2,13 @@ import { z } from 'zod';
 import { compatibleScriptActivationPolicySchema } from './artifacts.js';
 
 import { boundaryContextSchema, boundaryExplanationSchema } from './boundary.js';
-import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema, sha256HexSchema } from './common.js';
+import {
+  entityIdSchema,
+  labelSchema,
+  scopeSchema,
+  securityLevelSchema,
+  sha256HexSchema,
+} from './common.js';
 import { canonicalPathSchema } from './path-validation.js';
 import { conflictHintSchema } from './conflict.js';
 import { planQuerySchema, trapFirstPlanSchema } from './plans.js';

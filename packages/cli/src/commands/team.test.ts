@@ -631,6 +631,8 @@ describe('team command registration gating', () => {
     // This test documents current behavior (Commander rejects duplicate name).
     const program = new Command();
     registerTeamCommands(program, { allowCreate: true });
-    expect(() => registerTeamCommands(program, { allowCreate: true })).toThrow(/already have command/);
+    expect(() => registerTeamCommands(program, { allowCreate: true })).toThrow(
+      /already have command/,
+    );
   });
 });

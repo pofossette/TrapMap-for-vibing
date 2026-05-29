@@ -353,7 +353,9 @@ function buildCommandResultView(payload: Record<string, unknown>): CommandResult
     summary,
     artifacts,
     ...(payload.previousState != null ? { previousState: String(payload.previousState) } : {}),
-    ...(transition != null && typeof transition.from === 'string' && typeof transition.to === 'string'
+    ...(transition != null &&
+    typeof transition.from === 'string' &&
+    typeof transition.to === 'string'
       ? { transition }
       : {}),
     nextSteps,

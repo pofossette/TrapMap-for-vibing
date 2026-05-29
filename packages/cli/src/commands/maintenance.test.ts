@@ -376,14 +376,21 @@ describe('CLI maintenance commands', () => {
         appliedAt: '2026-05-03T12:00:00Z',
       };
 
-      mockedApiRequest.mockResolvedValue({ data: batchResponseWithEmptyReason, sessionToken: null });
+      mockedApiRequest.mockResolvedValue({
+        data: batchResponseWithEmptyReason,
+        sessionToken: null,
+      });
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       await program.parseAsync([
-        'node', 'test', 'maintenance-assign',
-        '--entries', 'k_1',
-        '--owner', 'user_2',
+        'node',
+        'test',
+        'maintenance-assign',
+        '--entries',
+        'k_1',
+        '--owner',
+        'user_2',
       ]);
 
       const output = String(consoleSpy.mock.calls[0]?.[0]);

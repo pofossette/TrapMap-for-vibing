@@ -86,7 +86,8 @@ function getMcpServerStatus(): string {
     {
       id: 'mcp-status',
       status: 'unavailable',
-      message: 'MCP server integration pending — will be wired to the MCP server manager when available.',
+      message:
+        'MCP server integration pending — will be wired to the MCP server manager when available.',
     },
   ]);
 }

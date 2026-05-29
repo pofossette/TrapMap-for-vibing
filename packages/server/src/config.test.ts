@@ -239,7 +239,7 @@ describe('loadConfig', () => {
     });
   });
 
-  it("parses CORS_ORIGINS=\"\" (empty string) as []", () => {
+  it('parses CORS_ORIGINS="" (empty string) as []', () => {
     withEnv({ CORS_ORIGINS: '' }, () => {
       const config = loadConfig();
       expect(config.corsAllowedOrigins).toEqual([]);

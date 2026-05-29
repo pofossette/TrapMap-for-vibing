@@ -15,7 +15,7 @@ Allowed root Markdown files:
 - `architecture.md`
 - `plan.md`
 
-Historical plans, temporary notes, audits, and reports must live under `docs/archived/`.
+Historical plans, temporary notes, audits, and human-authored reports must live under `docs/archived/`.
 
 ## Product Packages
 
@@ -51,13 +51,16 @@ These directories are local artifacts and must not become tracked content:
 - `coverage/`
 - `logs/`
 - `node_modules/`
+- `reports/`
 - `packages/*/dist/`
 - `packages/*/node_modules/`
 
 ## Archive Policy
 
-`docs/archived/` is the only archive root. Do not create `docs/archive/`.
+`docs/archived/` is the only archive root for human-authored historical material. Do not create `docs/archive/`.
 
 - Obsolete implementation plans: `docs/archived/archived-plans/`
 - Historical audits and reports: `docs/archived/reports/`
 - Retired standalone docs: `docs/archived/`
+
+The root `reports/` directory is reserved for generated evaluation JSON and similar local outputs. Do not put narrative docs or archived Markdown reports there.

@@ -786,10 +786,9 @@ describe('CLI feedback admin commands', () => {
       const program = new Command();
       registerFeedbackAdminCommands(program, { allowManage: true });
 
-      await program.parseAsync(
-        ['feedback-batch', '--action', 'resolve', '--ids', 'feedback_1'],
-        { from: 'user' },
-      );
+      await program.parseAsync(['feedback-batch', '--action', 'resolve', '--ids', 'feedback_1'], {
+        from: 'user',
+      });
 
       const output = String(consoleLogSpy.mock.calls[0]?.[0]);
       expect(output).toContain('\u2717 feedback_1 ()');

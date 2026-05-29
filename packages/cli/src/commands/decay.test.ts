@@ -750,9 +750,13 @@ describe('CLI decay commands (Phase 50)', () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       await program.parseAsync([
-        'node', 'test', 'decay-batch',
-        '--action', 'extend',
-        '--entries', 'entry-1',
+        'node',
+        'test',
+        'decay-batch',
+        '--action',
+        'extend',
+        '--entries',
+        'entry-1',
       ]);
 
       const output = String(consoleSpy.mock.calls[0]?.[0]);

@@ -24,7 +24,7 @@ const DOCS_SUBDIR_WHITELIST = [
   'archived',
 ];
 
-const DISALLOWED_ROOT_DIRS = ['archived', 'reports'];
+const DISALLOWED_ROOT_DIRS = ['archived'];
 
 let failures = 0;
 

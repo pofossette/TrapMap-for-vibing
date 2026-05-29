@@ -21,55 +21,57 @@ describe('startup sequence', () => {
 
   it('fm-agent: bootstrapCandidateRecovery handles non-PostgresStore without PG task queue', async () => {
     const mockStore = {
-      snapshot: async () => ({
-        candidateSubmissions: [
-          {
-            id: 'candidate_json_1',
-            sourceType: 'trap',
-            submittedBy: 'user_1',
-            teamId: null,
-            status: 'queued',
-            originalPayload: {
+      snapshot: async () =>
+        ({
+          candidateSubmissions: [
+            {
+              id: 'candidate_json_1',
               sourceType: 'trap',
-              payload: { scope: 'global', labels: ['test'], shortcut: 'Test', detail: 'Test' },
+              submittedBy: 'user_1',
+              teamId: null,
+              status: 'queued',
+              originalPayload: {
+                sourceType: 'trap',
+                payload: { scope: 'global', labels: ['test'], shortcut: 'Test', detail: 'Test' },
+              },
+              analysisSnapshot: null,
+              duplicateCase: null,
+              receivedAt: new Date().toISOString(),
+              queuedAt: new Date().toISOString(),
+              analyzingAt: null,
+              completedAt: null,
+              lastError: null,
+              retryCount: 0,
+              manualResult: null,
             },
-            analysisSnapshot: null,
-            duplicateCase: null,
-            receivedAt: new Date().toISOString(),
-            queuedAt: new Date().toISOString(),
-            analyzingAt: null,
-            completedAt: null,
-            lastError: null,
-            retryCount: 0,
-            manualResult: null,
-          },
-        ],
-        /* eslint-disable @typescript-eslint/no-explicit-any */
-      } as any),
-      transact: async <T>(mutator: (data: any) => Promise<T> | T): Promise<T> => mutator({
-        candidateSubmissions: [
-          {
-            id: 'candidate_json_1',
-            sourceType: 'trap',
-            submittedBy: 'user_1',
-            teamId: null,
-            status: 'queued',
-            originalPayload: {
+          ],
+          /* eslint-disable @typescript-eslint/no-explicit-any */
+        }) as any,
+      transact: async <T>(mutator: (data: any) => Promise<T> | T): Promise<T> =>
+        mutator({
+          candidateSubmissions: [
+            {
+              id: 'candidate_json_1',
               sourceType: 'trap',
-              payload: { scope: 'global', labels: ['test'], shortcut: 'Test', detail: 'Test' },
+              submittedBy: 'user_1',
+              teamId: null,
+              status: 'queued',
+              originalPayload: {
+                sourceType: 'trap',
+                payload: { scope: 'global', labels: ['test'], shortcut: 'Test', detail: 'Test' },
+              },
+              analysisSnapshot: null,
+              duplicateCase: null,
+              receivedAt: new Date().toISOString(),
+              queuedAt: new Date().toISOString(),
+              analyzingAt: null,
+              completedAt: null,
+              lastError: null,
+              retryCount: 0,
+              manualResult: null,
             },
-            analysisSnapshot: null,
-            duplicateCase: null,
-            receivedAt: new Date().toISOString(),
-            queuedAt: new Date().toISOString(),
-            analyzingAt: null,
-            completedAt: null,
-            lastError: null,
-            retryCount: 0,
-            manualResult: null,
-          },
-        ],
-      } as any),
+          ],
+        } as any),
     };
     /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -86,7 +88,9 @@ describe('startup sequence', () => {
       },
       log: {
         info: () => {},
-        warn: (msg: string) => { warnLogs.push(msg); },
+        warn: (msg: string) => {
+          warnLogs.push(msg);
+        },
         error: () => {},
       },
     } as any;

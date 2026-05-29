@@ -280,15 +280,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
       await client.query(
         `INSERT INTO lifecycle_events (id, entry_id, type, created_at, actor_user_id, state, note)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [
-          eventId,
-          entryId,
-          'updated',
-          now,
-          context.actorId,
-          newState,
-          context.note ?? null,
-        ],
+        [eventId, entryId, 'updated', now, context.actorId, newState, context.note ?? null],
       );
 
       await client.query('COMMIT');

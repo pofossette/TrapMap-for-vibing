@@ -246,7 +246,9 @@ describe('docs truth smoke', () => {
 
   it('server raw report revalidation — live gap tests exist', () => {
     expect(existsSync(resolve(ROOT, 'packages/server/src/app.test.ts'))).toBe(true);
-    expect(existsSync(resolve(ROOT, 'docs/plans/fm-agent-scan/server-live-gap-matrix.md'))).toBe(true);
+    expect(existsSync(resolve(ROOT, 'docs/plans/fm-agent-scan/server-live-gap-matrix.md'))).toBe(
+      true,
+    );
   });
 
   it('server raw report revalidation — source pack exists', () => {

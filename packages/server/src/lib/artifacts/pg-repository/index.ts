@@ -259,15 +259,7 @@ export class PgArtifactRepository implements ArtifactRepository {
       await client.query(
         `INSERT INTO artifact_lifecycle_events (id, artifact_id, type, created_at, actor_user_id, state, note)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [
-          eventId,
-          artifactId,
-          'updated',
-          now,
-          context.actorId,
-          newState,
-          context.note ?? null,
-        ],
+        [eventId, artifactId, 'updated', now, context.actorId, newState, context.note ?? null],
       );
 
       await client.query('COMMIT');

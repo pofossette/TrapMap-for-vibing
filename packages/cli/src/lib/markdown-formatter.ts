@@ -150,7 +150,9 @@ function formatCapsuleFallback(
   });
 
   if (fallback.response.capsules.length > maxCapsules) {
-    lines.push(`_...and ${Math.max(0, fallback.response.capsules.length - maxCapsules)} more capsules_`);
+    lines.push(
+      `_...and ${Math.max(0, fallback.response.capsules.length - maxCapsules)} more capsules_`,
+    );
   }
 
   return lines.join('\n\n');
@@ -176,7 +178,9 @@ export function formatLoadContext(
       traps.map((t, i) => `${i + 1}. ${formatTrapNode(t, opts.maxContentLength)}`).join('\n\n'),
     );
     if (response.plan.blockingTraps.length > opts.maxTraps) {
-      sections.push(`_...and ${Math.max(0, response.plan.blockingTraps.length - opts.maxTraps)} more traps_`);
+      sections.push(
+        `_...and ${Math.max(0, response.plan.blockingTraps.length - opts.maxTraps)} more traps_`,
+      );
     }
   }
 

@@ -209,7 +209,8 @@ describe('splitPromptByBoundary', () => {
 
 describe('insertBoundaryMarker', () => {
   it('inserts boundary marker after the last static section closing tag', () => {
-    const content = '<role>test</role>\n<core_principles>principles</core_principles>\n<task>task</task>';
+    const content =
+      '<role>test</role>\n<core_principles>principles</core_principles>\n<task>task</task>';
     const result = insertBoundaryMarker(content, ['role', 'core_principles']);
     expect(result).toContain(CACHE_BOUNDARY_MARKER);
     expect(result).toBe(

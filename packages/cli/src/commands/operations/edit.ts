@@ -18,17 +18,13 @@ export function registerEditCommand(program: Command, options: OperationsCommand
     .option('--shortcut <text>', 'Updated pitfall shortcut')
     .option('--detail <text>', 'Updated detailed explanation')
     .option('--labels <labels>', 'Updated labels (comma-separated)')
-    .option(
-      '--required-level <n>',
-      'Updated required security level',
-      (value: string) => {
-        const parsed = Number.parseInt(value, 10);
-        if (!Number.isInteger(parsed) || String(parsed) !== value.trim()) {
-          throw new InvalidArgumentError('required level must be a non-negative integer');
-        }
-        return parsed;
-      },
-    )
+    .option('--required-level <n>', 'Updated required security level', (value: string) => {
+      const parsed = Number.parseInt(value, 10);
+      if (!Number.isInteger(parsed) || String(parsed) !== value.trim()) {
+        throw new InvalidArgumentError('required level must be a non-negative integer');
+      }
+      return parsed;
+    })
     .option('--json', 'Output JSON')
     .action(
       async (

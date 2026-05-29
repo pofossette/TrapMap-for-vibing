@@ -22,7 +22,12 @@ export function formatDecayList(data: DecayEntryListResponse): string {
   lines.push(`Found ${data.total} entries`);
 
   for (const item of data.items) {
-    const state = item.decayState === null ? 'unknown' : (item.decayState === undefined ? 'undefined' : item.decayState);
+    const state =
+      item.decayState === null
+        ? 'unknown'
+        : item.decayState === undefined
+          ? 'undefined'
+          : item.decayState;
     const age = item.ageDays !== null ? `${Math.round(item.ageDays)}d` : 'n/a';
     const labels = item.labels.length > 0 ? ` [${item.labels.join(', ')}]` : '';
     lines.push(`${item.id}  [${state}]  ${age}  ${item.shortcut.slice(0, 50)}${labels}`);

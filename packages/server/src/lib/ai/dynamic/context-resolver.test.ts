@@ -55,7 +55,12 @@ describe('getDynamicInjections', () => {
   });
 
   it('excludes MCP_SERVERS injection for non-knowledge-refinement tasks', () => {
-    const taskTypes: ('boundary-extraction' | 'claim-verification' | 'graph-extraction' | 'graph-extraction-planner')[] = [
+    const taskTypes: (
+      | 'boundary-extraction'
+      | 'claim-verification'
+      | 'graph-extraction'
+      | 'graph-extraction-planner'
+    )[] = [
       'boundary-extraction',
       'claim-verification',
       'graph-extraction',

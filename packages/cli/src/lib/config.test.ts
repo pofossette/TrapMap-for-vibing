@@ -88,7 +88,14 @@ describe('cli config', () => {
 
     const { loadCliState } = await import('./config.js');
     const state = await loadCliState();
-    const validKeys = ['tool', 'modelHint', 'renderMode', 'graphPlanMode', 'verbosity', 'includeRawHints'];
+    const validKeys = [
+      'tool',
+      'modelHint',
+      'renderMode',
+      'graphPlanMode',
+      'verbosity',
+      'includeRawHints',
+    ];
     const actualKeys = Object.keys(state.outputProfile!);
     const extraKeys = actualKeys.filter((k) => !validKeys.includes(k));
     expect(extraKeys).toEqual([]);

@@ -38,7 +38,9 @@ export async function promptInput(
   return input({
     message,
     ...(options?.validate ? { validate: options.validate } : {}),
-    ...(options?.default !== undefined && options.default !== '' ? { default: options.default } : {}),
+    ...(options?.default !== undefined && options.default !== ''
+      ? { default: options.default }
+      : {}),
   });
 }
 

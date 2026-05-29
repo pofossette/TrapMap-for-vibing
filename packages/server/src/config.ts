@@ -100,11 +100,13 @@ export function loadConfig(): ServerConfig {
 
   // Parse CORS origins from comma-separated env var
   const corsOriginRaw = process.env.CORS_ORIGINS?.trim();
-  const corsOrigins = corsOriginRaw !== undefined
-    ? corsOriginRaw.split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
-    : undefined;
+  const corsOrigins =
+    corsOriginRaw !== undefined
+      ? corsOriginRaw
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
+      : undefined;
 
   // Build the full config object
   const rawConfig = {
