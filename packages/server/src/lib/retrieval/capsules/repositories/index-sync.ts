@@ -283,6 +283,10 @@ export function createCapsuleIndexSync(config: CapsuleIndexSyncConfig) {
     }
 
     const capsules = artifact.latestRevision.derived?.capsules ?? [];
+    if (capsules.length === 0) {
+      return { keyword: [], embedding: [] };
+    }
+
     const keywordResults: SyncRecord[] = [];
     const embeddingResults: SyncRecord[] = [];
 

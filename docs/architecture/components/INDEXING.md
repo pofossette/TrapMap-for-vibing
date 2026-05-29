@@ -427,6 +427,26 @@ Skill 工件走独立的图入索引管道，与知识条目共用 `StoreData.gr
 
 `runArtifactAdapterFanOut()` 遍历注册的 `ArtifactGraphAdapter[]`，每个适配器的 `sync()` 和 `remove()` 独立执行。
 
+### 派生数据源约束
+
+Graph-lite 索引只使用 distilled（已蒸馏）的派生数据源，不读取原始资产或脚本体：
+
+| 源字段 | 用途 | 可用 |
+|--------|------|------|
+| `derived.profile.summary` | Graph 节点提取（环境、前置条件） | ✅ |
+| `derived.profile.keywords` | Tool 节点生成 | ✅ |
+| `derived.capsules[].situation` | Cue 节点、前置条件检测 | ✅ |
+| `derived.capsules[].problem` | Cue 节点、风险阻塞检测 | ✅ |
+| `derived.capsules[].goal` | Mitigation 节点 | ✅ |
+| `derived.capsules[].content` | Mitigation 节点、硬语言检测 | ✅ |
+| `derived.capsules[].labels` | Tool 节点 | ✅ |
+| `clientManifest.assets[]` | — | ❌ 禁止 |
+| `clientManifest.scripts[]` | — | ❌ 禁止 |
+
+**安全约束**: `buildSkillGraphDocument()` 在 `skill-events.ts` 中仅访问 `derived.profile` 和 `derived.capsules`。如果 `derived` 为 null/undefined，函数返回 null 并跳过索引。Graph 文档构建器 (`documents.ts`) 是纯数据构造函数，不接受 artifact 引用，确保无法绕过约束读取原始体。
+
+**Capsule 派生索引约束**: Capsule 索引同步 (`index-sync.ts`) 仅从 `artifact.latestRevision.derived.capsules[]` 读取源数据，使用 `capsule.content`、`capsule.situation`、`capsule.problem`、`capsule.goal`、`capsule.labels`、`capsule.contextualPrefix` 构建 keyword tokens 和 embedding vectors，不读取客户端 manifest 体。
+
 ---
 
 ## 8. 索引状态跟踪

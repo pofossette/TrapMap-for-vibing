@@ -205,6 +205,50 @@ describe('Capsule Index Sync', () => {
     });
   });
 
+  describe('idempotency', () => {
+    it('should produce identical results on repeated sync of same artifact', async () => {
+      const artifact = makeTestArtifact();
+
+      const result1 = await sync.syncArtifactCapsules(artifact);
+      const result2 = await sync.syncArtifactCapsules(artifact);
+
+      expect(result1.keyword).toHaveLength(result2.keyword.length);
+      expect(result1.embedding).toHaveLength(result2.embedding.length);
+      expect(result1.keyword[0]!.status).toBe(result2.keyword[0]!.status);
+      expect(result1.embedding[0]!.status).toBe(result2.embedding[0]!.status);
+    });
+
+    it('should not mutate input artifact during sync', async () => {
+      const artifact = makeTestArtifact();
+      const originalJson = JSON.stringify(artifact);
+
+      await sync.syncArtifactCapsules(artifact);
+
+      expect(JSON.stringify(artifact)).toBe(originalJson);
+    });
+
+    it('should produce stable empty result for artifacts with no capsules across repeated calls', async () => {
+      const artifact = createMockArtifact({
+        id: 'artifact_empty',
+        teamId: null,
+        scope: 'global',
+        lifecycleState: 'approved',
+        requiredLevel: 0,
+        title: 'Empty Artifact',
+        labels: [],
+        capsules: [],
+      });
+
+      const result1 = await sync.syncArtifactCapsules(artifact);
+      const result2 = await sync.syncArtifactCapsules(artifact);
+
+      expect(result1.keyword).toHaveLength(0);
+      expect(result1.embedding).toHaveLength(0);
+      expect(result2.keyword).toHaveLength(0);
+      expect(result2.embedding).toHaveLength(0);
+    });
+  });
+
   describe('removeCapsuleIndex', () => {
     it('should call delete for both keyword and embedding tables', async () => {
       const deleteFn = vi.fn(() => ({

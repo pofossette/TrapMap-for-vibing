@@ -599,6 +599,15 @@ Phase 6 补齐了多路召回管线的可持续运维能力：索引同步、重
 
 **注意**: 索引数据是派生数据，source of truth 始终是 `artifact.latestRevision.derived.capsules`。索引重建不会丢失数据，只需重新执行同步逻辑即可。
 
+##### Capsule-First Recall 约束与 Fallback
+
+- **空胶囊处理**: `syncArtifactCapsules()` 在 `derived.capsules` 为空数组或 undefined 时返回 `{ keyword: [], embedding: [] }` 稳定空结果，不抛异常。
+- **派生数据降级**: 当 artifact 缺少 `derived.profile` 或 `derived.capsules` 时，该 artifact 被排除在胶囊召回之外（`extractGovernedCapsules()` 跳过无派生数据的条目），召回通道使用已有索引数据继续工作。
+- **PG 通道 fallback**: `capsule-keyword` 和 `capsule-semantic` 通道在 PG 不可用时自动降级到内存版本 (`capsuleKeywordRecall()` / `capsuleSemanticRecall()`)，`CapsuleRecallCoordinator` 对每个通道单独 try/catch，单通道失败不阻断检索。
+- **索引同步幂等**: `INSERT ... ON CONFLICT (capsule_id) DO UPDATE` 基于 `capsuleId + revisionNo + contentHash` 实现幂等 upsert，重复同步相同内容为无操作。
+- **Feature Flag 控制**: 同步和重建操作均支持 `featureFlag` 配置，flag 返回 false 时静默跳过写入。
+- **健康对账与清理**: `verifyCapsuleIndexHealth()` 只读对账，`cleanupOrphanCapsuleIndexes()` 清理孤儿行。源 capsule 数为 0 时清理函数清空全部索引表。
+
 
 ---
 
