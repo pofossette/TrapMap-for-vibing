@@ -37,22 +37,22 @@ Fastify API 服务，承载检索、索引、治理、认证、候选处理等�
 - 业务逻辑：[`src/lib/`](src/lib/)
 - 启动序列：[`src/bootstrap/`](src/bootstrap/)
 
-## Hotspot Modules and Tests
+## Former Hotspot Modules and Regression Tests
 
-fm-agent 原始报告（391 已确认发现）经过 HEAD 三重分类后，以下模块是已知活跃问题区域：
+fm-agent 原始报告（391 已确认发现）经过当前 HEAD 审计回写后，以下模块保留为回归入口或环境边界说明，不再有已复现的 current-live gap：
 
-| 模块 | 测试文件 | 活跃问题 |
+| 模块 | 测试文件 | 当前状态 |
 |---|---|---|
-| `src/app.ts` | `src/app.test.ts` | onClose 未 await worker stop, skillShareer 未冻结 |
-| `src/bootstrap/bootstrap-candidate-recovery.ts` | `src/bootstrap/startup.test.ts` | 非 PG 存储跳过入队 |
-| `src/bootstrap/bootstrap-lifecycle.ts` | `src/bootstrap/startup.test.ts` | 缺少 resubmitted/re-review 审计订阅 |
-| `src/config.ts` | `src/config.test.ts` | CORS_ORIGINS="" 返回 ["*"] |
-| `src/lib/ai/dynamic/context-resolver.ts` | `src/lib/ai/dynamic/context-resolver.test.ts` | ~~MCP 状态占位符存根~~ (Phase 3 已修复) |
-| `src/lib/ai/provider-config.ts` | `src/lib/ai/provider-config.test.ts` | ~~API 密钥优先级反转~~ (Phase 3 已修复) |
-| `src/lib/artifacts/pg-repository/index.ts` | `src/lib/artifacts/pg-repository/*.test.ts` | updateLifecycle lifecycleHistory 过时 |
-| `src/lib/lifecycle/subscribers/audit.ts` | (集成测试) | 审计字段遗漏 |
+| `src/app.ts` | `src/app.test.ts` | 已修复：`onClose` await worker stop，startup 结束后冻结 `skillShareer` |
+| `src/bootstrap/bootstrap-candidate-recovery.ts` | `src/bootstrap/startup.test.ts` | 已文档化边界：JSON store 会 reset candidate，但不会尝试使用不存在的 PG queue 重入队 |
+| `src/bootstrap/bootstrap-lifecycle.ts` | `src/bootstrap/startup.test.ts` | 已修复：`resubmitted` / `re-review` 审计订阅已注册 |
+| `src/config.ts` | `src/config.test.ts` | 已修复：`CORS_ORIGINS=\"\"` 解析为空数组 |
+| `src/lib/ai/dynamic/context-resolver.ts` | `src/lib/ai/dynamic/context-resolver.test.ts` | 已文档化边界：当前返回显式 `unavailable` MCP 状态，而不是伪装为已接通 |
+| `src/lib/ai/provider-config.ts` | `src/lib/ai/provider-config.test.ts` | 已修复：provider-specific API key 优先于通用 `AI_API_KEY` |
+| `src/lib/artifacts/pg-repository/index.ts` | `src/lib/artifacts/pg-repository/*.test.ts` | 已修复：`updateLifecycle()` 返回值会追加最新 lifecycle event |
+| `src/lib/lifecycle/subscribers/audit.ts` | `src/lib/lifecycle/subscribers/subscribers.test.ts` | 已修复：审计日志记录整个 event 对象 |
 
-> 完整分类矩阵见 `temp/fm-agent-scan-plans/server-live-gap-matrix.md`。
+> 完整回写见 `docs/plans/fm-agent-scan/server-live-gap-matrix.md`。2026-05-29 审计后，该矩阵不再记录 current-live finding。
 
 ## AI 配置参考
 

@@ -6,9 +6,9 @@
 
 | Status | Count |
 |--------|-------|
-| **live** | 8 |
-| **fixed** | 62 |
-| **stale** | 13 |
+| **live** | 0 |
+| **fixed** | 68 |
+| **stale** | 15 |
 | **Total confirmed** | 83 |
 
 ---
@@ -18,14 +18,14 @@
 | raw id | current file | status | note |
 |---|---|---|---|
 | src--domain--admin-ts--object | packages/contracts/src/domain/admin.ts | fixed | shortcut/detail already use `.min(1)` |
-| src--domain--artifacts-ts--bodies | packages/contracts/src/domain/artifacts.ts:172 | **live** | `sourcePaths: z.array(z.string().max(512)).min(1)` — no relative-path validation or `canonicalPathSchema` reuse |
+| src--domain--artifacts-ts--bodies | packages/contracts/src/domain/artifacts.ts:169-170 | fixed | `sourcePaths` now uses `z.array(canonicalPathSchema).min(1)` |
 | src--domain--artifacts-ts--descriptor | packages/contracts/src/domain/artifacts.ts:225-238 | fixed | `path` has `.refine()` for relative paths; `sha256` has `.regex()` for hex |
 | src--domain--artifacts-ts--object | packages/contracts/src/domain/artifacts.ts:57-72 | fixed | `path` has `.refine()` for relative paths; `sha256` has `.regex()` for hex |
 | src--domain--artifacts-ts--object_1 | packages/contracts/src/domain/artifacts.ts:89-108 | fixed | `sha256` has `.regex()` for hex; schema has `.strict()` |
 | src--domain--artifacts-ts--object_4 | packages/contracts/src/domain/artifacts.ts:198-205 | fixed | `sha256` has `.regex()` for hex; schema has `.strict()` |
 | src--domain--artifacts-ts--object_6 | packages/contracts/src/domain/artifacts.ts:264-275 | fixed | `sourceHash` has `.regex()` for hex |
-| src--domain--artifacts-ts--object_7 | packages/contracts/src/domain/artifacts.ts:281-300 | **live** | `skillArtifactRevisionSchema.shape.derived.sourceHash` can differ from top-level `sourceHash` — no refinement enforcing equality |
-| src--domain--artifacts-ts--object_9 | packages/contracts/src/domain/knowledge.ts:87-96 | **live** | `knowledgeMetadataSchema` allows `submissionCount < resubmissionCount` — no refinement |
+| src--domain--artifacts-ts--object_7 | packages/contracts/src/domain/artifacts.ts:281-300 | fixed | `.refine((d) => d.derived === null || d.sourceHash === d.derived.sourceHash)` enforces equality |
+| src--domain--artifacts-ts--object_9 | packages/contracts/src/domain/knowledge.ts:87-100 | fixed | `.refine((d) => d.submissionCount >= d.resubmissionCount)` added |
 | src--domain--auth-ts--object | packages/contracts/src/domain/auth.ts:6-17 | fixed | `.strict()` on both `.or()` variants |
 | src--domain--auth-ts--object_3 | packages/contracts/src/domain/auth.ts:36-44 | fixed | `.strict()` + `.refine()` for `authenticated && session !== null` |
 | src--domain--auth-ts--object_4 | packages/contracts/src/domain/auth.ts:46-50 | fixed | `.strict()` applied |
@@ -40,7 +40,7 @@
 | src--domain--candidates-ts--object_18 | packages/contracts/src/domain/candidates.ts:355-374 | fixed | `.strict()` applied |
 | src--domain--candidates-ts--object_20 | packages/contracts/src/domain/candidates.ts:404-419 | fixed | `.refine()` for `decision !== 'independent' \|\| relationshipType !== 'merged_into'` |
 | src--domain--common-ts--object_1 | packages/contracts/src/domain/common.ts | fixed | Zod v4 strips extra properties by default (not v3 pass-through); `auditMetadataSchema` used via `.merge()` |
-| src--domain--conflict-ts--object | packages/contracts/src/domain/conflict.ts:20-37 | **live** | No refinement enforcing `entryIdA !== entryIdB` or `entryIdA < entryIdB` canonical ordering |
+| src--domain--conflict-ts--object | packages/contracts/src/domain/conflict.ts:20-41 | fixed | Two `.refine()` calls now enforce distinct IDs and canonical ordering |
 | src--domain--decay-ts--object_2 | packages/contracts/src/domain/decay.ts:63-67 | stale | `freshnessDecayConfigSchema` evergreen defaults are intentional; `{}` → `{ enabled: false }` is designed for backward compat |
 | src--domain--decay-ts--object_8 | packages/contracts/src/domain/decay.ts:226-241 | fixed | `.refine()` for `!eligible \|\| ineligibilityReason === null` and reverse |
 | src--domain--decay-ts--timestamp | packages/contracts/src/domain/decay.ts:249-261 | fixed | `.strict()` + `.refine()` for `!dryRun \|\| appliedAt === null` |
@@ -54,7 +54,7 @@
 | src--domain--evals--report-ts--object_16 | packages/contracts/src/domain/evals/report.ts:420-445 | fixed | `.refine((d) => d.passedCount <= d.caseCount)` |
 | src--domain--evals--report-ts--object_19 | packages/contracts/src/domain/evals/report.ts:481-488 | fixed | `.strict()` applied |
 | src--domain--evals--report-ts--object_20 | packages/contracts/src/domain/evals/report.ts:504-527 | fixed | `.refine()` for `cases.length === totalCases` and `failures.length >= failedCases` |
-| src--domain--evals--retrieval-ts--object_3 | packages/contracts/src/domain/evals/retrieval.ts:142-147 | **live** | No refinement enforcing `idealOrder` ⊆ `relevantIds` |
+| src--domain--evals--retrieval-ts--object_3 | packages/contracts/src/domain/evals/retrieval.ts:142-147 | fixed | `.refine()` now enforces `idealOrder` entries are members of `relevantIds` |
 | src--domain--evals--retrieval-ts--object_4 | packages/contracts/src/domain/evals/retrieval.ts:162-171 | fixed | `.refine()` for `forbiddenIds.length === forbiddenReasons.length` |
 | src--domain--evals--summary-ts--explicit | packages/contracts/src/domain/evals/summary.ts:80-97 | stale | `scenarioId` referencing validation is a runtime concern, not a schema-level bug |
 | src--domain--feedback-ts--object | packages/contracts/src/domain/feedback.ts:22-27 | fixed | `.strict()` applied |
@@ -86,9 +86,9 @@
 | src--domain--operations-ts--object_43 | packages/contracts/src/domain/operations.ts:827-830 | fixed | `period: z.string().min(1)` — empty string rejected |
 | src--domain--operations-ts--object_44 | packages/contracts/src/domain/operations.ts:835-839 | fixed | `.strict()` applied |
 | src--domain--operations-ts--object_45 | packages/contracts/src/domain/operations.ts:845-851 | stale | `z.coerce.number().int()` throwing for `"10.5"` is by-design Zod behavior |
-| src--domain--operations-ts--object_48 | packages/contracts/src/domain/operations.ts:876-879 | **live** | `statsSummaryQuerySchema` accepts `from` chronologically after `to` — no ordering refinement |
-| src--domain--parsing-ts--isRecord | packages/contracts/src/domain/parsing.ts:141-143 | **live** | `isRecord()` uses `typeof value === 'object'` which returns `false` for functions; spec expects `true` |
-| src--domain--parsing-ts--parseSkillMarkdown | packages/contracts/src/domain/parsing.ts:92-107 | **live** | `readString()` returns `null` for empty strings; `explicitTitle ?? name` falls back to `name` instead of preserving empty string |
+| src--domain--operations-ts--object_48 | packages/contracts/src/domain/operations.ts:876-882 | fixed | `.refine((d) => d.from == null || d.to == null || d.from <= d.to)` added |
+| src--domain--parsing-ts--isRecord | packages/contracts/src/domain/parsing.ts:141-143 | stale | `gray-matter` frontmatter only yields plain objects here; function-as-record input is not a current caller contract |
+| src--domain--parsing-ts--parseSkillMarkdown | packages/contracts/src/domain/parsing.ts:92-100 | stale | Blank string titles are intentionally normalized to “missing” via `readString()` rather than preserved |
 | src--domain--parsing-ts--readFeedbackPrompts | packages/contracts/src/domain/parsing.ts:176-197 | fixed | `Boolean(obj.required ?? false)` — non-boolean truthy values (e.g. `1`) coerce to `true`, but this is considered acceptable behavior |
 | src--domain--parsing-ts--readLabels | packages/contracts/src/domain/parsing.ts:156-174 | fixed | Labels now sliced to `LABEL_MAX_LENGTH` (48 chars) instead of passed through unvalidated |
 | src--domain--retrieval-ts--object_1 | packages/contracts/src/domain/retrieval.ts:27-47 | fixed | `recallChannels: z.array(...).min(1)` — at least one channel required |
@@ -103,45 +103,15 @@
 
 ---
 
-## Live Gaps Detail
+## Former Live Gaps Reconciled
 
-### 1. `skillCapsuleSchema.sourcePaths` (bodies)
-- **File**: `packages/contracts/src/domain/artifacts.ts:172`
-- **Issue**: `sourcePaths: z.array(z.string().max(512)).min(1)` — accepts absolute paths, Windows paths, and parent traversal
-- **Should be**: `z.array(canonicalPathSchema).min(1)` (reuses `canonicalPathSchema` from `path-validation.ts`)
-- **Raw detail**: `src--domain--artifacts-ts--bodies.md`
+The 2026-05-29 post-audit reconciliation re-checked every row that was previously marked **live**:
 
-### 2. `skillArtifactRevisionSchema` derived.sourceHash mismatch (object_7)
-- **File**: `packages/contracts/src/domain/artifacts.ts:281-300`
-- **Issue**: `derived.sourceHash` can differ from top-level `sourceHash` — no refinement enforcing equality
-- **Raw detail**: `src--domain--artifacts-ts--object_7.md`
-
-### 3. `knowledgeMetadataSchema` submissionCount < resubmissionCount (object_9)
-- **File**: `packages/contracts/src/domain/knowledge.ts:87-96`
-- **Issue**: Allows `submissionCount: 1, resubmissionCount: 5` — no refinement
-- **Raw detail**: `src--domain--artifacts-ts--object_9.md`
-
-### 4. `conflictRelationSchema` entryId ordering (object)
-- **File**: `packages/contracts/src/domain/conflict.ts:20-37`
-- **Issue**: Accepts `entryIdA === entryIdB` and `entryIdA > entryIdB`
-- **Raw detail**: `src--domain--conflict-ts--object.md`
-
-### 5. `retrievalEvalRelevanceExpectationsSchema` idealOrder subset (object_3)
-- **File**: `packages/contracts/src/domain/evals/retrieval.ts:142-147`
-- **Issue**: `idealOrder` can contain IDs not in `relevantIds`
-- **Raw detail**: `src--domain--evals--retrieval-ts--object_3.md`
-
-### 6. `statsSummaryQuerySchema` from > to (object_48)
-- **File**: `packages/contracts/src/domain/operations.ts:876-879`
-- **Issue**: Accepts `from` chronologically after `to`
-- **Raw detail**: `src--domain--operations-ts--object_48.md`
-
-### 7. `isRecord` function handling (isRecord)
-- **File**: `packages/contracts/src/domain/parsing.ts:141-143`
-- **Issue**: Returns `false` for functions (since `typeof fn !== 'object'`); spec expects `true` for non-null non-array objects
-- **Raw detail**: `src--domain--parsing-ts--isRecord.md`
-
-### 8. `parseSkillMarkdown` empty title fallback (parseSkillMarkdown)
-- **File**: `packages/contracts/src/domain/parsing.ts:92-107`
-- **Issue**: `readString()` returns `null` for empty string; `explicitTitle ?? name` falls back to `name` instead of preserving empty string
-- **Raw detail**: `src--domain--parsing-ts--parseSkillMarkdown.md`
+- `src--domain--artifacts-ts--bodies`: fixed in `artifacts.ts` by switching `sourcePaths` to `canonicalPathSchema`
+- `src--domain--artifacts-ts--object_7`: fixed in `artifacts.ts` by enforcing `derived.sourceHash === sourceHash`
+- `src--domain--artifacts-ts--object_9`: fixed in `knowledge.ts` by enforcing `submissionCount >= resubmissionCount`
+- `src--domain--conflict-ts--object`: fixed in `conflict.ts` by enforcing distinct/canonical ID ordering
+- `src--domain--evals--retrieval-ts--object_3`: fixed in `evals/retrieval.ts` by enforcing `idealOrder ⊆ relevantIds`
+- `src--domain--operations-ts--object_48`: fixed in `operations.ts` by enforcing `from <= to`
+- `src--domain--parsing-ts--isRecord`: reclassified to stale because function-valued frontmatter records are not part of the current parser contract
+- `src--domain--parsing-ts--parseSkillMarkdown`: reclassified to stale because blank string titles are intentionally normalized to absence

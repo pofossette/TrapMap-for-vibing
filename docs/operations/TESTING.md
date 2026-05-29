@@ -584,24 +584,24 @@ pnpm test -- --run packages/server/src/__tests__/snapshot-usage-guard.test.ts
 
 ## Server Raw Report Revalidation
 
-fm-agent 针对 `packages/server` 生成了 391 个已确认的原始发现（原始快照）。当前 HEAD 已显著领先原始快照（buildServer、capsule-native 检索等均已落地）。活跃/过时分类矩阵见 `temp/fm-agent-scan-plans/server-live-gap-matrix.md`。
+fm-agent 针对 `packages/server` 生成了 391 个已确认的原始发现（原始快照）。当前 HEAD 已显著领先原始快照（buildServer、capsule-native 检索等均已落地）。2026-05-29 审计回写后，matrix 中已无 current-live finding；完整分类矩阵见 `docs/plans/fm-agent-scan/server-live-gap-matrix.md`。
 
-### 活跃问题冻结测试
+### 回归冻结测试
 
-以下测试文件激活了来自原始报告的已知活跃缺陷的失败测试。测试 **仅对活跃差距进行断言**，并带有 `fm-agent:` 前缀。实现修复（不要删除测试）后才能通过：
+以下测试文件来自原始报告 triage 阶段，现已作为 **回归冻结测试** 保留。它们带有 `fm-agent:` 前缀，用于证明此前的 live gap 已被当前 HEAD 吸收，或明确落为环境边界：
 
 | 测试文件 | 覆盖的活跃问题 |
 |---|---|
-| `packages/server/src/app.test.ts` | onClose 未 await worker stop、skillShareer 未冻结 |
-| `packages/server/src/bootstrap/startup.test.ts` | 候选人恢复入队守卫、生命周期审计订阅缺失 |
-| `packages/server/src/lib/ai/dynamic/context-resolver.test.ts` | MCP 状态占位符存根 |
-| `packages/server/src/lib/ai/provider-config.test.ts` | API 密钥优先级反转 |
+| `packages/server/src/app.test.ts` | 已修复：onClose await worker stop、startup 后冻结 `skillShareer` |
+| `packages/server/src/bootstrap/startup.test.ts` | 已修复 / 已文档化边界：生命周期审计订阅补齐；JSON store recovery 不重入 PG queue |
+| `packages/server/src/lib/ai/dynamic/context-resolver.test.ts` | 已文档化边界：MCP 状态当前显式为 `unavailable` |
+| `packages/server/src/lib/ai/provider-config.test.ts` | 已修复：provider-specific key 优先级 |
 | `packages/server/src/__tests__/docs-truth-smoke.test.ts` | 重新验证文件存在性守卫 |
 
 ### 运行激活测试
 
 ```bash
-# 仅运行活跃差距测试
+# 仅运行 fm-agent 回归冻结测试
 rtk pnpm --filter @trapmap/server test -- \
   --run packages/server/src/app.test.ts \
   packages/server/src/bootstrap/startup.test.ts \
@@ -615,7 +615,7 @@ rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
 
 ### 过时热点桶（HEAD 已解决）
 
-大量原始发现（~381/391）来自 `lib/retrieval/capsules`、`lib/persistence/schema`、`lib/retrieval/recall`、`lib/artifacts/pg-repository`、`lib/indexing/graph-lite`——这些是当时未完成的工作。HEAD 已将胶囊原生检索、PG 关键词+语义召回、graph-lite 索引、适配器注册表全部落地。源文件对照清单见 `temp/fm-agent-scan-plans/server-source-pack.md`。
+大量原始发现（~381/391）来自 `lib/retrieval/capsules`、`lib/persistence/schema`、`lib/retrieval/recall`、`lib/artifacts/pg-repository`、`lib/indexing/graph-lite`——这些是当时未完成的工作。HEAD 已将胶囊原生检索、PG 关键词+语义召回、graph-lite 索引、适配器注册表全部落地。源文件对照清单见 `docs/plans/fm-agent-scan/server-source-pack.md`。
 
 ---
 

@@ -4,6 +4,8 @@ Classifies each confirmed fm-agent finding against current HEAD source.
 
 **Generated:** 2026-05-29
 
+> Post-audit note: the raw source snapshot reports **54 confirmed raw ids**, but this matrix tracks **57 listed sub-findings** because several raw ids were split into separate presence/formatting sub-issues during triage.
+
 ## Legend
 
 | status | meaning |
@@ -14,35 +16,42 @@ Classifies each confirmed fm-agent finding against current HEAD source.
 
 ---
 
-## Live Gaps
+## Current HEAD Status
 
-These bugs are present in current HEAD and need implementation fixes (not done in this phase).
+No reproducible **current-live** CLI gaps remained after the 2026-05-29 audit reran `rtk pnpm test`, `rtk pnpm typecheck`, and `rtk pnpm eval:smoke`.
 
-| raw id | current file | line(s) | note |
-|---|---|---|---|
-| `commands--decay-ts--formatBatchResult` | packages/cli/src/commands/decay.ts | 49 | `item.ineligibilityReason ?` truthy check skips empty string; `appliedAt` already fixed with `!= null` at line 42 |
-| `commands--decay-ts--formatDecayList` | packages/cli/src/commands/decay.ts | 25 | `item.decayState === null ? 'unknown' : (item.decayState ?? '')` — when `decayState` is `undefined`, `=== null` is false, `?? ''` returns `''` instead of showing `'undefined'` |
-| `commands--feedback-admin-ts--formatBatchResult` | packages/cli/src/commands/feedback-admin.ts | 50 | `item.reason ?` truthy check skips empty string reason; `appliedAt` already fixed with `!= null` at line 43 |
-| `commands--maintenance-ts--formatMaintenanceBatch` | packages/cli/src/commands/maintenance.ts | 54 | `item.ineligibilityReason ?` truthy check skips empty string; `appliedAt` already fixed with `!= null` at line 47 |
-| `lib--config-ts--loadCliState` | packages/cli/src/lib/config.ts | 93-96 | `...(outputProfile != null ? { outputProfile } : {})` — when normalizeOutputProfile returns undefined (for falsy input like `""`), the empty string from `...parsed` persists; should explicitly set `outputProfile: undefined` |
-| `commands--output-profile-ts--registerOutputProfileCommands` | packages/cli/src/commands/output-profile.ts, packages/cli/src/lib/config.ts | config.ts 73-84 | `normalizeOutputProfile` spreads `...profile` without filtering extra keys; `colorScheme` and other unknown properties leak through |
-| `lib--markdown-formatter-ts--formatLoadContext` | packages/cli/src/lib/markdown-formatter.ts | 199-214 | Fallback section shown when plan exists with empty blockingTraps/recommendedSkills arrays; condition checks `!response.plan` OR `(plan.blockingTraps.length === 0 && plan.recommendedSkills.length === 0)` |
-| `lib--markdown-formatter-ts--formatTrapNode` | packages/cli/src/lib/markdown-formatter.ts | 54 | `**${severityLabel} ${escapeMarkdown(trap.label)}**` — only severity+label in header; report claimed scope+score was present, needs verification |
-| `lib--markdown-formatter-ts--push_1` | packages/cli/src/lib/markdown-formatter.ts | 170-196 | Numbered list items prepended to skill nodes (e.g., `1. **label**`) |
-| `lib--markdown-formatter-ts--push_2` | packages/cli/src/lib/markdown-formatter.ts | 191-195 | Non-integer count: `maxSkills - opts.maxSkills` when `opts.maxSkills` is non-integer (e.g., `3.5`) produces `1.5 more skills` |
-| `lib--output-profile-ts--buildCodexObject` | packages/cli/src/lib/output-profile.ts | 443-444 | `view.previousState ? { previous_state } : {}` — falsy values (`""`, `0`) omitted instead of using presence check |
-| `lib--output-profile-ts--buildCommandResultView` | packages/cli/src/lib/output-profile.ts | 346 | `transition ? { transition } : {}` — includes transition with any truthy value (boolean, number, partial object) without validating `{from, to}` shape |
-| `lib--output-profile-ts--renderCodex` | packages/cli/src/lib/output-profile.ts | 379-447 | Codex output uses long snake_case keys (e.g., `query_summary`, `project_knowledge`, `activation_hints`) — flagged by report as token-inefficient but may be intentional |
-| `lib--output-profile-ts--resolveRenderer` | packages/cli/src/lib/output-profile.ts | (see renderer registry) | Throws TypeError when profile.tool not in registry instead of falling back to generic renderer |
-| `lib--output-ts--printResult` | packages/cli/src/lib/output.ts | 16 | `JSON.stringify(value)` without compact format may produce multi-line output for string values containing newlines |
-| `lib--prompts-ts--isInteractiveEnvironment` | packages/cli/src/lib/prompts.ts | 60-67 | Throws TypeError when `process.stdin` is undefined instead of returning false |
-| `lib--prompts-ts--promptInput` | packages/cli/src/lib/prompts.ts | 41 | `options?.default !== undefined` allows empty string default; `@inquirer/prompts` `input()` returns empty string when user hits enter without input |
-| `lib--skill-artifact-export-ts--formatExportJson` | packages/cli/src/lib/skill-artifact-export.ts | (formatExportJson fn) | `JSON.stringify` converts `Infinity`/`NaN` to `null`; no replacer function |
-| `lib--input-ts--resolveTextInput` | packages/cli/src/lib/input.ts | 18-19 | `hasStdinContent()` uses `!process.stdin.isTTY` — doesn't detect content piped in TTY environment |
-| `lib--artifact-bundle-ts--buildSingleSkillMdBundle` | packages/cli/src/lib/artifact-bundle.ts | (buildSingleSkillMdBundle) | Returns `scope='project'` for SKILL.md without explicit scope; spec expects default `'global'` |
-| `lib--artifact-bundle-ts--scanSkillDirectory` | packages/cli/src/lib/artifact-bundle.ts | (scanSkillDirectory) | Returns absolute path for `skillMd` instead of relative path as spec requires |
-| `index-ts--registerReviewCommands` | packages/cli/src/index.ts | 80+ | Review commands registered once remain on program even if called again with `allowReview=false`; no unregister mechanism |
-| `index-ts--registerTeamCommands` | packages/cli/src/index.ts | 80+ | Similar to review: team create subcommand not removed when called with `allowCreate=false` |
+## Reclassified to Fixed During Audit
+
+| raw id | evidence |
+|---|---|
+| `commands--decay-ts--formatBatchResult` | `packages/cli/src/commands/decay.ts` now uses `item.ineligibilityReason != null`; regression in `decay.test.ts` covers explicit empty reason |
+| `commands--decay-ts--formatDecayList` | `packages/cli/src/commands/decay.ts` now renders `undefined` explicitly; regression in `decay.test.ts` covers `[undefined]` output |
+| `commands--feedback-admin-ts--formatBatchResult` | `packages/cli/src/commands/feedback-admin.ts` now uses `item.reason != null`; regression in `feedback.test.ts` covers explicit empty reason |
+| `commands--maintenance-ts--formatMaintenanceBatch` | `packages/cli/src/commands/maintenance.ts` now uses `item.ineligibilityReason != null`; regression in `maintenance.test.ts` covers explicit empty reason |
+| `lib--config-ts--loadCliState` | `packages/cli/src/lib/config.ts` now clears invalid `outputProfile` values via `configHadOutputProfile`; regression in `config.test.ts` expects `undefined` |
+| `commands--output-profile-ts--registerOutputProfileCommands` | `VALID_OUTPUT_PROFILE_KEYS` filtering in `packages/cli/src/lib/config.ts`; regression in `config.test.ts` verifies `colorScheme` is dropped |
+| `lib--output-profile-ts--buildCodexObject` | `packages/cli/src/lib/output-profile.ts` now uses `view.previousState != null` for `previous_state` |
+| `lib--output-profile-ts--buildCommandResultView` | `packages/cli/src/lib/output-profile.ts` now validates `transition.from` / `transition.to` shape before including it |
+| `lib--output-profile-ts--resolveRenderer` | `output-profile.test.ts` verifies unknown tools fall back to the generic renderer |
+| `lib--prompts-ts--isInteractiveEnvironment` | `packages/cli/src/lib/prompts.ts` now null-checks `stdin` / `stdout`; `prompts.test.ts` verifies no throw |
+| `lib--prompts-ts--promptInput` | `packages/cli/src/lib/prompts.ts` now filters empty-string defaults by requiring `options.default !== ''` |
+| `lib--skill-artifact-export-ts--formatExportJson` | `packages/cli/src/lib/skill-artifact-export.ts` now uses a replacer to preserve `Infinity` / `NaN` as strings |
+| `lib--artifact-bundle-ts--buildSingleSkillMdBundle` | `artifact-bundle.test.ts` verifies default bundle `scope` is `global` |
+
+## Reclassified to Stale / Design Boundary
+
+| raw id | reason |
+|---|---|
+| `lib--markdown-formatter-ts--formatLoadContext` | Current formatter intentionally renders fallback capsules when plan exists but both trap/skill arrays are empty; `markdown-formatter.test.ts` locks this behavior |
+| `lib--markdown-formatter-ts--formatTrapNode` | Raw claim was not reproduced; current formatter intentionally uses severity + label in the header and keeps score/scope in surrounding context instead of headline text |
+| `lib--markdown-formatter-ts--push_1` | Numbered markdown lists for recommended skills are intentional display behavior, not a regression |
+| `lib--markdown-formatter-ts--push_2` | `maxSkills` is an internal typed option expected to be an integer; the non-integer report does not reflect the supported CLI contract |
+| `lib--output-profile-ts--renderCodex` | Snake_case keys are intentional for machine-oriented Codex output and are documented in `docs/architecture/CLI.md` |
+| `lib--output-ts--printResult` | `JSON.stringify(value)` escapes embedded newlines inside strings, so output remains single-line JSON; the report premise was incorrect |
+| `lib--input-ts--resolveTextInput` | The “TTY environment with piped stdin content” scenario was not reproducible under the current CLI input contract |
+| `lib--artifact-bundle-ts--scanSkillDirectory` | `artifact-bundle.test.ts` documents and expects absolute `skillMd` paths for local filesystem operations |
+| `index-ts--registerReviewCommands` | `packages/cli/src/index.ts` bootstraps a one-shot `Command` instance; unregister semantics are not part of the runtime contract |
+| `index-ts--registerTeamCommands` | Same as review registration: one-shot CLI bootstrap, not a reusable command registry lifecycle |
 
 ---
 
@@ -102,8 +111,8 @@ Findings from extracted fragments or code that has since been restructured.
 
 | Category | Count |
 |---|---|
-| **Live** | 23 |
-| **Fixed** | 26 |
-| **Stale** | 8 |
-| **Not confirmed by probe** | 25 (excluded from above counts) |
-| **Total confirmed** | 54 |
+| **Live (current HEAD)** | 0 |
+| **Fixed (listed rows)** | 39 |
+| **Stale / design boundary (listed rows)** | 18 |
+| **Raw confirmed ids** | 54 |
+| **Listed sub-findings** | 57 |

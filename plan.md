@@ -12,6 +12,8 @@
 
 本索引对应 `/home/wunai/Downloads/fm-agent-raw-reports` 中 `cli`、`contracts`、`server` 三个包的原始扫描结果。执行时必须同时查看 raw report、当前代码、项目文档，不能只按计划摘要机械改动。
 
+> **Post-audit reconciliation (2026-05-29):** 子计划、matrix 和 source-pack 已从 `.gitignore` 覆盖的 `temp/` 迁移到 `docs/plans/fm-agent-scan/`。当前 HEAD 已重新验证 `rtk pnpm test`、`rtk pnpm typecheck`、`rtk pnpm eval:smoke` 与 `rtk pnpm eval:ingestion:smoke`，并据此回写本根计划与子计划状态。
+
 **当前根计划状态：**
 - [x] 旧根计划已归档到 [`docs/archived/archived-plans/plan-2026-05-29-directory-structure-governance.md`](docs/archived/archived-plans/plan-2026-05-29-directory-structure-governance.md)
 - [x] 根目录仅保留本索引版 `plan.md`
@@ -20,11 +22,11 @@
 
 ## 计划入口
 
-- Contracts 修复计划：[`temp/fm-agent-scan-plans/contracts-fix-plan.md`](temp/fm-agent-scan-plans/contracts-fix-plan.md)
-- CLI 修复计划：[`temp/fm-agent-scan-plans/cli-fix-plan.md`](temp/fm-agent-scan-plans/cli-fix-plan.md)
-- Server 修复计划：[`temp/fm-agent-scan-plans/server-fix-plan.md`](temp/fm-agent-scan-plans/server-fix-plan.md)
+- Contracts 修复计划：[`docs/plans/fm-agent-scan/contracts-fix-plan.md`](docs/plans/fm-agent-scan/contracts-fix-plan.md)
+- CLI 修复计划：[`docs/plans/fm-agent-scan/cli-fix-plan.md`](docs/plans/fm-agent-scan/cli-fix-plan.md)
+- Server 修复计划：[`docs/plans/fm-agent-scan/server-fix-plan.md`](docs/plans/fm-agent-scan/server-fix-plan.md)
 
-> 注意：`temp/fm-agent-scan-plans/` 当前命中 `.gitignore` 的 `temp/` 规则。若这些子计划需要进入版本控制，后续应迁移到 `docs/plans/` 或在提交时显式处理。
+> 注意：本批计划产物已迁移到可版本控制的 `docs/plans/fm-agent-scan/`，不再依赖 `temp/`。
 
 ## Subagent-Driven Develop 强制要求
 
@@ -119,36 +121,29 @@
 | 总 Waves | 6 |
 | 总 Subagent 调度 | 11 (Wave 0: 3, Wave 1: 3, Wave 2: 3, Wave 3: 2, Wave 4: 1, Wave 5: 1) |
 | 提交数 | 13 |
-| Contracts 原始 finding | 83 confirmed → 8 live → 0 remaining live |
-| CLI 原始 finding | 54 confirmed → 24 live → 0 remaining live (1 假阳性已修正) |
-| Server 原始 finding | 391 confirmed → 10 live → 0 remaining live (381 stale) |
+| Contracts 原始 finding | 83 confirmed → 审计后 0 current live（68 fixed, 15 stale） |
+| CLI 原始 finding | 54 confirmed raw ids；matrix 中列出 57 个 split sub-findings → 审计后 0 current live（39 fixed, 18 stale/design） |
+| Server 原始 finding | 391 confirmed → 审计后 0 current live（7 fixed, ~384 stale/design） |
 
 ### 验证结果
 | 测试/验证 | 结果 |
 |---|---|
-| `contracts` test | 750/750 ✅ |
-| `cli` test | 510/510 ✅ |
-| `server` test | 2513/2694 ✅ (63 pre-existing failures in docs-truth-smoke) |
-| `contracts` typecheck | No errors ✅ |
-| `cli` typecheck | No errors ✅ |
-| `server` typecheck | No errors ✅ |
+| `pnpm test` (full) | 245 files passed, 7 skipped; 4063 tests passed, 118 skipped ✅ |
 | `pnpm typecheck` (full) | No errors ✅ |
 | `eval:smoke` | 34/34 ✅ |
 | `eval:ingestion:smoke` | 5/5 ✅ |
-| `eval:retrieval:smoke` | 22/22 ✅ |
-| `eval:graph-extraction:smoke` | 5/5 ✅ |
 
 ### 残留风险
-- Server `docs-truth-smoke.test.ts` 有 63 pre-existing 失败（文档漂移检查），非本次变更引入
-- Server 部分测试依赖外部 AI/LLM 服务，在无 LLM 环境下退化到 rule engine fallback（预期行为）
-- `pnpm check` (Biome lint) 有 26 pre-existing 格式/整理错误，非本次变更引入
+- `packages/server/src/lib/ai/dynamic/context-resolver.ts` 仍返回显式 `unavailable` 的 MCP 状态占位结果；当前在 matrix 中归类为已文档化边界，而非 live regression
+- JSON store 模式下的 candidate recovery 仍不会重入队 PG task queue；当前在 matrix 中归类为环境边界，而非 live regression
+- 本次收口未重跑 `pnpm check`；若需要同步收敛格式/整理问题，应另开 lint/doc-structure 任务
 
 ### 跳过项
-- Server retrieval/indexing/index/stale 修复：live-gap-matrix 判定为 mass stale，当前 HEAD 已覆盖
-- Server 大量 persistence schema raw findings：Drizzle schema 已在 multiphase 之后更新
+- 未再逐包重复执行 package-scoped test/typecheck 命令；以更强的仓库级 `pnpm test` / `pnpm typecheck` / smoke 结果作为当前 HEAD 证据
+- 未单独重跑 `eval:retrieval:smoke` 与 `eval:graph-extraction:smoke`；本轮目标是收齐偏移计划文档与回写当前 HEAD 证据，而非重复扩展评测批次
 
 ## 进一步拆分子文档的规则
 
-- [ ] 若某个包的 lane 需要继续拆成更细子文档，文件应放在 `temp/fm-agent-scan-plans/` 下，并以 `<pkg>-<lane>-plan.md` 命名。
+- [x] 若某个包的 lane 需要继续拆成更细子文档，文件应放在 `docs/plans/fm-agent-scan/` 下，并以 `<pkg>-<lane>-plan.md` 命名。
 - [ ] 新子文档只能细化单一包的单一 lane，不得复制根计划的跨包顺序。
 - [ ] 新子文档必须继承本根计划的 subagent 规则、文档联动规则和验收要求。

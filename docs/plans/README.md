@@ -13,6 +13,7 @@ Current files:
 
 | File | Status | Why it remains here |
 |---|---|---|
+| `fm-agent-scan/` | active-reference | FM-agent raw report remediation plans, source packs, and reconciled live-gap matrices |
 | `capsule-contextual-enrichment-plan.md` | active-reference | Retrieval/capsule design context |
 | `round4-cross-table-consistency-plan.md` | active-reference | Artifact structured facts source cited by package docs |
 | `v2-multi-recall-plan.md` | active-reference | Retrieval design context |
