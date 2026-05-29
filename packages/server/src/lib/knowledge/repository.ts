@@ -61,13 +61,14 @@ export interface KnowledgeRepository {
    * Update the lifecycle state of an entry.
    * Uses SELECT FOR UPDATE for row-level locking.
    * Validates transition using state machine.
+   * Returns the updated entry record with appended lifecycle history.
    * Throws error if entry not found or invalid transition.
    */
   updateLifecycle(
     entryId: string,
     newState: LifecycleState,
     context: { actorId: string; note?: string },
-  ): Promise<void>;
+  ): Promise<KnowledgeRecord>;
 
   /**
    * Append a new revision to an entry.
@@ -143,7 +144,8 @@ export class InMemoryKnowledgeRepository implements KnowledgeRepository {
     entryId: string,
     newState: LifecycleState,
     context: { actorId: string; note?: string },
-  ): Promise<void> {
+  ): Promise<KnowledgeRecord> {
+    let updated: KnowledgeRecord;
     await this.store.transact((data) => {
       const entry = data.knowledgeEntries.find((e) => e.id === entryId);
       if (!entry) {
@@ -151,7 +153,21 @@ export class InMemoryKnowledgeRepository implements KnowledgeRepository {
       }
       transitionLifecycleState(entry, newState, context.note ?? 'update');
       entry.updatedAt = new Date().toISOString();
+      const now = entry.updatedAt;
+      const event: KnowledgeLifecycleEventRecord = {
+        id: this.store.nextId(data, 'knowledge_event'),
+        type: 'updated',
+        createdAt: now,
+        actorUserId: context.actorId,
+        submissionId: null,
+        revision: null,
+        state: newState,
+        note: context.note ?? null,
+      };
+      entry.lifecycleHistory.push(event);
+      updated = entry;
     });
+    return updated!;
   }
 
   async appendRevision(entryId: string, revision: KnowledgeRevisionRecord): Promise<void> {

@@ -88,7 +88,7 @@ function makeMockRepo(entries: KnowledgeRecord[] = []): KnowledgeRepository {
     getById: vi.fn().mockImplementation(async (id: string) => {
       return store.find((e) => e.id === id) ?? null;
     }),
-    updateLifecycle: vi.fn().mockResolvedValue(undefined),
+    updateLifecycle: vi.fn().mockResolvedValue({} as KnowledgeRecord),
     appendRevision: vi.fn().mockResolvedValue(undefined),
     appendLifecycleEvent: vi.fn().mockResolvedValue(undefined),
     listByFilter: vi.fn().mockImplementation(async () => [...store]),

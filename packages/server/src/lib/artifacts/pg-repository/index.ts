@@ -220,12 +220,13 @@ export class PgArtifactRepository implements ArtifactRepository {
 
   /**
    * Update lifecycle state with row-level locking.
+   * Returns the updated artifact record with appended lifecycle history.
    */
   async updateLifecycle(
     artifactId: string,
     newState: LifecycleState,
     context: { actorId: string; note?: string },
-  ): Promise<void> {
+  ): Promise<SkillArtifactRecord> {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -246,6 +247,7 @@ export class PgArtifactRepository implements ArtifactRepository {
       transitionLifecycleState(artifact, newState, context.note ?? 'update');
 
       const now = new Date().toISOString();
+      const eventId = `ale_${artifactId}_${Date.now()}`;
 
       // Update the artifact
       await client.query(
@@ -258,7 +260,7 @@ export class PgArtifactRepository implements ArtifactRepository {
         `INSERT INTO artifact_lifecycle_events (id, artifact_id, type, created_at, actor_user_id, state, note)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
-          `ale_${artifactId}_${Date.now()}`,
+          eventId,
           artifactId,
           'updated',
           now,
@@ -269,6 +271,25 @@ export class PgArtifactRepository implements ArtifactRepository {
       );
 
       await client.query('COMMIT');
+
+      // Build and return the updated record with the lifecycle event appended
+      const nextEvent: SkillArtifactLifecycleEventRecord = {
+        id: eventId,
+        type: 'updated',
+        createdAt: now,
+        actorUserId: context.actorId,
+        submissionId: null,
+        revision: null,
+        state: newState,
+        note: context.note ?? null,
+      };
+
+      return {
+        ...artifact,
+        lifecycleState: newState,
+        updatedAt: now,
+        lifecycleHistory: [...artifact.lifecycleHistory, nextEvent],
+      };
     } catch (e) {
       await client.query('ROLLBACK').catch(() => {});
       throw e;

@@ -12,16 +12,8 @@ export function createAuditSubscriber(
 ): DomainEventHandler {
   return (event) => {
     log.info(
-      {
-        event: event.name,
-        entryId: event.entryId,
-        previousState: event.previousState,
-        nextState: event.nextState,
-        actorId: event.actorId,
-        reason: event.reason,
-        timestamp: event.timestamp,
-      },
-      `Lifecycle transition: ${event.previousState} → ${event.nextState}`,
+      { event: { ...event } },
+      `Lifecycle audit: ${event.name} (${event.previousState} → ${event.nextState})`,
     );
   };
 }

@@ -98,15 +98,17 @@ describe('createAuditSubscriber', () => {
 
     expect(mockLog.info).toHaveBeenCalledWith(
       expect.objectContaining({
-        event: 'knowledge.approved',
-        entryId: 'entry-1',
-        previousState: 'agent-pass',
-        nextState: 'approved',
-        actorId: 'user-1',
-        reason: 'test',
-        timestamp: '2026-05-07T00:00:00.000Z',
+        event: expect.objectContaining({
+          name: 'knowledge.approved',
+          entryId: 'entry-1',
+          previousState: 'agent-pass',
+          nextState: 'approved',
+          actorId: 'user-1',
+          reason: 'test',
+          timestamp: '2026-05-07T00:00:00.000Z',
+        }),
       }),
-      expect.stringContaining('agent-pass → approved'),
+      expect.stringContaining('Lifecycle audit'),
     );
   });
 });

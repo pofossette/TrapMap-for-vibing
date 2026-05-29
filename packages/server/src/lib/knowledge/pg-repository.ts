@@ -241,12 +241,13 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
 
   /**
    * Update lifecycle state with row-level locking.
+   * Returns the updated entry record with appended lifecycle history.
    */
   async updateLifecycle(
     entryId: string,
     newState: LifecycleState,
     context: { actorId: string; note?: string },
-  ): Promise<void> {
+  ): Promise<KnowledgeRecord> {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -267,6 +268,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
       transitionLifecycleState(entry, newState, context.note ?? 'update');
 
       const now = new Date().toISOString();
+      const eventId = `le_${entryId}_${Date.now()}`;
 
       // Update the entry
       await client.query(
@@ -279,7 +281,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
         `INSERT INTO lifecycle_events (id, entry_id, type, created_at, actor_user_id, state, note)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
-          `le_${entryId}_${Date.now()}`,
+          eventId,
           entryId,
           'updated',
           now,
@@ -290,6 +292,25 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
       );
 
       await client.query('COMMIT');
+
+      // Build and return the updated record with the lifecycle event appended
+      const nextEvent: KnowledgeLifecycleEventRecord = {
+        id: eventId,
+        type: 'updated',
+        createdAt: now,
+        actorUserId: context.actorId,
+        submissionId: null,
+        revision: null,
+        state: newState,
+        note: context.note ?? null,
+      };
+
+      return {
+        ...entry,
+        lifecycleState: newState,
+        updatedAt: now,
+        lifecycleHistory: [...entry.lifecycleHistory, nextEvent],
+      };
     } catch (e) {
       await client.query('ROLLBACK').catch(() => {});
       throw e;
