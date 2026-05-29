@@ -208,14 +208,23 @@ describe('splitPromptByBoundary', () => {
 // ---------------------------------------------------------------------------
 
 describe('insertBoundaryMarker', () => {
-  it('returns content unchanged (current implementation is no-op)', () => {
-    const content = '<role>test</role><task>task</task>';
+  it('inserts boundary marker after the last static section closing tag', () => {
+    const content = '<role>test</role>\n<core_principles>principles</core_principles>\n<task>task</task>';
+    const result = insertBoundaryMarker(content, ['role', 'core_principles']);
+    expect(result).toContain(CACHE_BOUNDARY_MARKER);
+    expect(result).toBe(
+      '<role>test</role>\n<core_principles>principles</core_principles>\n__CACHE_BOUNDARY__\n\n<task>task</task>',
+    );
+  });
+
+  it('returns content unchanged when no static sections tags found in content', () => {
+    const content = '<task>task</task>';
     const result = insertBoundaryMarker(content, ['role']);
     expect(result).toBe(content);
   });
 
-  it('returns content unchanged when no static sections', () => {
-    const content = '<task>task</task>';
+  it('returns content unchanged when no static sections provided', () => {
+    const content = '<role>test</role><task>task</task>';
     const result = insertBoundaryMarker(content, []);
     expect(result).toBe(content);
   });

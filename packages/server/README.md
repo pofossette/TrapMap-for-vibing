@@ -47,9 +47,20 @@ fm-agent 原始报告（391 已确认发现）经过 HEAD 三重分类后，以�
 | `src/bootstrap/bootstrap-candidate-recovery.ts` | `src/bootstrap/startup.test.ts` | 非 PG 存储跳过入队 |
 | `src/bootstrap/bootstrap-lifecycle.ts` | `src/bootstrap/startup.test.ts` | 缺少 resubmitted/re-review 审计订阅 |
 | `src/config.ts` | `src/config.test.ts` | CORS_ORIGINS="" 返回 ["*"] |
-| `src/lib/ai/dynamic/context-resolver.ts` | `src/lib/ai/dynamic/context-resolver.test.ts` | MCP 状态占位符存根 |
-| `src/lib/ai/provider-config.ts` | `src/lib/ai/provider-config.test.ts` | API 密钥优先级反转 |
+| `src/lib/ai/dynamic/context-resolver.ts` | `src/lib/ai/dynamic/context-resolver.test.ts` | ~~MCP 状态占位符存根~~ (Phase 3 已修复) |
+| `src/lib/ai/provider-config.ts` | `src/lib/ai/provider-config.test.ts` | ~~API 密钥优先级反转~~ (Phase 3 已修复) |
 | `src/lib/artifacts/pg-repository/index.ts` | `src/lib/artifacts/pg-repository/*.test.ts` | updateLifecycle lifecycleHistory 过时 |
 | `src/lib/lifecycle/subscribers/audit.ts` | (集成测试) | 审计字段遗漏 |
 
 > 完整分类矩阵见 `temp/fm-agent-scan-plans/server-live-gap-matrix.md`。
+
+## AI 配置参考
+
+AI 提供商和提示词系统通过环境变量配置：
+
+- 提供商配置：`AI_PROVIDER`, `AI_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `AI_BASE_URL`, `AI_CHAT_MODEL`, `AI_EMBEDDING_MODEL`
+- 提示词配置：`AI_PROMPT_PROVIDER`, `AI_PROMPT_TEMPLATE_FILE`
+- 独立 Embedding 提供商：`EMBEDDING_PROVIDER`, `EMBEDDING_BASE_URL`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`
+
+**API Key 优先级**: Provider-specific keys (`OPENAI_API_KEY`, `GEMINI_API_KEY`) 优先于通用 `AI_API_KEY`。空字符串环境变量视为未设置。
+详细文档：[`docs/architecture/components/AI_PROVIDER.md`](../../docs/architecture/components/AI_PROVIDER.md) 和 [`docs/operations/PROMPT_PROVIDERS.md`](../../docs/operations/PROMPT_PROVIDERS.md)。

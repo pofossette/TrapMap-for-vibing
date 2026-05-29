@@ -52,14 +52,31 @@ export function splitPromptByBoundary(promptSections: CacheSection[]): BoundaryS
  * Inject a __CACHE_BOUNDARY__ marker into the rendered prompt string
  * at the position where static content ends and dynamic content begins.
  *
- * The marker is placed between the last static section and the first
- * dynamic section. Sections are classified by the provider's cache strategy.
+ * The marker is placed after the closing tag of the last static section
+ * in the XML-rendered content. If no static section is found in the content,
+ * the original content is returned unchanged.
  */
 export function insertBoundaryMarker(renderedContent: string, staticSections: string[]): string {
   if (staticSections.length === 0) return renderedContent;
 
-  // Compute the boundary position based on section content lengths
-  // This is a best-effort heuristic — the marker is inserted at the
-  // end of the last static section's content
-  return renderedContent;
+  // Find the position after the last static section's closing XML tag
+  let boundaryPos = -1;
+  for (const section of staticSections) {
+    const closeTag = `</${section}>`;
+    const idx = renderedContent.lastIndexOf(closeTag);
+    if (idx !== -1) {
+      const endPos = idx + closeTag.length;
+      if (endPos > boundaryPos) {
+        boundaryPos = endPos;
+      }
+    }
+  }
+
+  if (boundaryPos === -1) return renderedContent;
+
+  return (
+    renderedContent.slice(0, boundaryPos) +
+    `\n${CACHE_BOUNDARY_MARKER}\n` +
+    renderedContent.slice(boundaryPos)
+  );
 }

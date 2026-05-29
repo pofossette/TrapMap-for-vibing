@@ -321,13 +321,19 @@ export function buildPromptWithCacheControl(
   const sections = classifySlotsIntoSections(mergedSlots, staticSections, dynamicSections);
 
   // Insert boundary marker: append a marker section between static and dynamic
+  // Only insert when there are both static and dynamic sections present
   const injections = getDynamicInjections(taskType);
   const result: CacheSection[] = [];
+  let hasSeenStatic = false;
   let boundaryInserted = false;
 
   for (const section of sections) {
-    if (!boundaryInserted && section.cacheScope === null) {
-      // First dynamic section — insert boundary marker before it
+    if (section.cacheScope === 'global') {
+      hasSeenStatic = true;
+    }
+
+    if (!boundaryInserted && section.cacheScope === null && hasSeenStatic) {
+      // First dynamic section after at least one static section — insert boundary marker
       result.push({
         name: '__boundary__',
         content: CACHE_BOUNDARY_MARKER,

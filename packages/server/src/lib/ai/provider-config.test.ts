@@ -15,6 +15,7 @@ const ENV_KEYS = [
   'EMBEDDING_MODEL',
   'OPENAI_API_KEY',
   'GEMINI_API_KEY',
+  'AI_PROMPT_TEMPLATE_FILE',
 ] as const;
 
 function saveEnv(): Record<string, string | undefined> {
@@ -167,41 +168,33 @@ describe('loadAiProviderConfig', () => {
     expect(config.apiKey).toBe('sk-from-openai-var');
   });
 
-  it('AI_API_KEY takes precedence over OPENAI_API_KEY for openai provider', () => {
+  it('OPENAI_API_KEY takes precedence over AI_API_KEY for openai provider', () => {
     process.env.AI_PROVIDER = 'openai';
-    process.env.OPENAI_API_KEY = 'sk-old';
     process.env.AI_API_KEY = 'sk-new';
+    process.env.OPENAI_API_KEY = 'sk-old';
 
     const config = loadAiProviderConfig();
 
-    expect(config.apiKey).toBe('sk-new');
+    expect(config.apiKey).toBe('sk-old');
   });
 
-  it('fm-agent: OPENAI_API_KEY should take precedence over AI_API_KEY for openai (PENDING)', () => {
-    // Raw report confirms: the spec requires provider-specific env vars
-    // (OPENAI_API_KEY, GEMINI_API_KEY) to be PREFERRED over generic AI_API_KEY.
-    // Current code reads AI_API_KEY first, so it wins incorrectly.
-    // FIXME: this test expects OPENAI_API_KEY to win — will fail until fixed.
+  it('OPENAI_API_KEY takes precedence over AI_API_KEY for openai provider (fm-agent fix)', () => {
     process.env.AI_PROVIDER = 'openai';
     process.env.AI_API_KEY = 'wrong-key-from-ai-api-key';
     process.env.OPENAI_API_KEY = 'correct-key-from-openai-api-key';
 
     const config = loadAiProviderConfig();
 
-    // Spec-correct: provider-specific key should win
-    // FIXME: current code returns 'wrong-key-from-ai-api-key'
     expect(config.apiKey).toBe('correct-key-from-openai-api-key');
   });
 
-  it('fm-agent: GEMINI_API_KEY should take precedence over AI_API_KEY for google-genai (PENDING)', () => {
-    // Same pattern for google-genai — GEMINI_API_KEY should win.
+  it('GEMINI_API_KEY takes precedence over AI_API_KEY for google-genai (fm-agent fix)', () => {
     process.env.AI_PROVIDER = 'google-genai';
     process.env.AI_API_KEY = 'wrong-ai-key';
     process.env.GEMINI_API_KEY = 'correct-gemini-key';
 
     const config = loadAiProviderConfig();
 
-    // FIXME: will fail until apiKey resolution prefers provider-specific keys
     expect(config.apiKey).toBe('correct-gemini-key');
     expect(config.provider).toBe('google-genai');
   });
@@ -221,5 +214,15 @@ describe('loadAiProviderConfig', () => {
     const config = loadAiProviderConfig();
 
     expect(config.isConfigured).toBe(false);
+  });
+
+  it('empty AI_PROMPT_TEMPLATE_FILE is treated as null', () => {
+    process.env.AI_PROMPT_TEMPLATE_FILE = '';
+    process.env.AI_PROVIDER = 'openai';
+    process.env.AI_API_KEY = 'sk-test';
+
+    const config = loadAiProviderConfig();
+
+    expect(config.promptTemplateFile).toBeNull();
   });
 });

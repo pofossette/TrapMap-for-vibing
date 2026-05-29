@@ -98,13 +98,30 @@ interface PromptSlots {
 
 ### Task Types
 
-The system supports three built-in task types:
+The system supports five task types:
 
-| Task Type                | Description                                        |
-|--------------------------|----------------------------------------------------|
-| `boundary-extraction`    | Extract structured boundary constraints from text  |
-| `knowledge-refinement`   | Summarize search results into concise knowledge    |
-| `claim-verification`     | Verify claims against provided context             |
+| Task Type                  | Description                                        |
+|----------------------------|----------------------------------------------------|
+| `boundary-extraction`      | Extract structured boundary constraints from text  |
+| `knowledge-refinement`     | Summarize search results into concise knowledge    |
+| `claim-verification`       | Verify claims against provided context             |
+| `graph-extraction`         | Extract graph entities (nodes + edges) from text   |
+| `graph-extraction-planner` | Segment input text for parallel entity extraction  |
+
+### Dynamic Injections by Task Type
+
+Prompt construction injects runtime context based on task type:
+
+| Task Type                | Base Injections                               | MCP Status |
+|--------------------------|-----------------------------------------------|------------|
+| `boundary-extraction`    | WORKING_DIR, DATE, GIT_STATUS, SESSION_ID     | No         |
+| `knowledge-refinement`   | WORKING_DIR, DATE, GIT_STATUS, SESSION_ID     | **Yes**    |
+| `claim-verification`     | WORKING_DIR, DATE, GIT_STATUS, SESSION_ID     | No         |
+| `graph-extraction`       | WORKING_DIR, DATE, GIT_STATUS, SESSION_ID     | No         |
+| `graph-extraction-planner`| WORKING_DIR, DATE, GIT_STATUS, SESSION_ID     | No         |
+
+Only `knowledge-refinement` tasks receive MCP server status (`${MCP_SERVERS}`).
+The MCP status is returned as a JSON array and is pending integration with the MCP server manager.
 
 ## Template Format
 
@@ -265,3 +282,17 @@ import {
 |----------------------------|------------------------------------------------|----------------------------------|
 | `AI_PROMPT_PROVIDER`       | Force a specific provider name                 | `'default'` (auto-detect from model) |
 | `AI_PROMPT_TEMPLATE_FILE`  | Path to JSON slot override file                | `docs/reference/system-prompt-slots.default.json` |
+
+**Important:** Empty string env vars are treated as unset:
+- `AI_PROMPT_TEMPLATE_FILE=""` → falls back to default file
+- `AI_PROMPT_PROVIDER=""` → falls back to `'default'`
+
+### AI Provider API Key Precedence
+
+For the AI provider config (used by `loadAiProviderConfig()`), provider-specific keys take precedence over generic `AI_API_KEY`:
+
+1. `OPENAI_API_KEY` / `GEMINI_API_KEY` — provider-specific (highest priority)
+2. `AI_API_KEY` — generic fallback
+3. Provider defaults — built-in defaults (lowest priority)
+
+Example: If both `OPENAI_API_KEY=sk-old` and `AI_API_KEY=sk-new` are set, `sk-old` is used because provider-specific keys are preferred.

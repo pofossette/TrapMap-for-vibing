@@ -7,9 +7,16 @@ import { getDynamicInjections } from './context-resolver.js';
 // ---------------------------------------------------------------------------
 
 describe('getDynamicInjections', () => {
-  it('returns injections for any task type', () => {
+  it('returns base injections for any task type', () => {
     const injections = getDynamicInjections('boundary-extraction');
-    expect(injections.length).toBeGreaterThan(0);
+    // Base injections: WORKING_DIR, DATE, GIT_STATUS, SESSION_ID (4)
+    expect(injections.length).toBe(4);
+  });
+
+  it('knowledge-refinement includes additional MCP_SERVERS injection', () => {
+    const injections = getDynamicInjections('knowledge-refinement');
+    // Base (4) + MCP_SERVERS (1) = 5
+    expect(injections.length).toBe(5);
   });
 
   it('includes WORKING_DIR injection that resolves to cwd', () => {
@@ -35,59 +42,46 @@ describe('getDynamicInjections', () => {
     expect(typeof value).toBe('string');
   });
 
-  it('includes MCP_SERVERS injection', () => {
-    const injections = getDynamicInjections('boundary-extraction');
-    const mcp = injections.find((i) => i.placeholder === '${MCP_SERVERS}');
-    expect(mcp).toBeDefined();
-    expect(mcp!.resolver()).toBe('[]');
-  });
-
-  it('fm-agent: MCP_SERVERS returns dynamic status when servers are configured', () => {
-    // Raw report confirms: getMcpServerStatus() is a placeholder stub that
-    // always returns '[]', regardless of configuration.
-    // FIXME: will fail until the placeholder is wired to actual MCP server state.
+  it('includes MCP_SERVERS injection for knowledge-refinement tasks', () => {
     const injections = getDynamicInjections('knowledge-refinement');
     const mcp = injections.find((i) => i.placeholder === '${MCP_SERVERS}');
     expect(mcp).toBeDefined();
-
     const result = mcp!.resolver();
-    // The stub returns '[]' — but a real implementation would return
-    // dynamic status when servers are configured.
-    // This test captures the intention: the result should be parseable JSON
-    // and should NOT always be an empty array when servers exist.
     const parsed = JSON.parse(result);
     expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed.length).toBe(1);
+    expect(parsed[0].id).toBe('mcp-status');
+    expect(parsed[0].status).toBe('unavailable');
+  });
 
-    // FIXME: this will fail until getMcpServerStatus is wired to actual MCP state.
-    // When no MCP servers are configured, empty is fine.
-    // But the function should at minimum accept an input/config, not be hardcoded.
-    // This test serves as a reminder that the placeholder needs replacement.
-    //
-    // For now, we validate that the stub returns valid JSON and is an array.
-    // A true implementation would reflect configured MCP servers.
-    expect(parsed.length).toBeGreaterThanOrEqual(0);
+  it('excludes MCP_SERVERS injection for non-knowledge-refinement tasks', () => {
+    const taskTypes: ('boundary-extraction' | 'claim-verification' | 'graph-extraction' | 'graph-extraction-planner')[] = [
+      'boundary-extraction',
+      'claim-verification',
+      'graph-extraction',
+      'graph-extraction-planner',
+    ];
+    for (const tt of taskTypes) {
+      const injections = getDynamicInjections(tt);
+      const mcp = injections.find((i) => i.placeholder === '${MCP_SERVERS}');
+      expect(mcp).toBeUndefined();
+    }
+  });
 
-    // The raw report details that the function always returns '[]' for ALL task types.
-    // A real implementation should vary based on configuration, not task type.
+  it('base injections are always included regardless of task type', () => {
     const taskTypes = [
       'knowledge-refinement' as const,
       'boundary-extraction' as const,
       'claim-verification' as const,
       'graph-extraction' as const,
     ];
-    const results = taskTypes.map((tt) => {
-      const injs = getDynamicInjections(tt);
-      const m = injs.find((i) => i.placeholder === '${MCP_SERVERS}');
-      return m!.resolver();
-    });
-
-    // All results are '[]' — confirming it's a stub with no dynamic behavior.
-    // This assertion documents the current placeholder state.
-    const allEmpty = results.every((r) => r === '[]');
-    // FIXME: uncomment when implementation is real — should be false
-    // expect(allEmpty).toBe(false);
-    // For now, document: stub returns empty for all types
-    expect(allEmpty).toBe(true);
+    for (const tt of taskTypes) {
+      const injections = getDynamicInjections(tt);
+      expect(injections.find((i) => i.placeholder === '${WORKING_DIR}')).toBeDefined();
+      expect(injections.find((i) => i.placeholder === '${DATE}')).toBeDefined();
+      expect(injections.find((i) => i.placeholder === '${GIT_STATUS}')).toBeDefined();
+      expect(injections.find((i) => i.placeholder === '${SESSION_ID}')).toBeDefined();
+    }
   });
 
   it('includes SESSION_ID injection that starts with session-', () => {

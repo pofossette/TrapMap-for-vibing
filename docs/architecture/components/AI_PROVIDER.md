@@ -301,6 +301,24 @@ export function createAiProviders(config: AiProviderConfig): AiProviders {
 // 4. 否则 → fallback（确定性哈希向量，无需 API key）
 ```
 
+### API Key 优先级
+
+Provider-specific keys 优先于通用 `AI_API_KEY`：
+
+```typescript
+// 密钥解析顺序：
+// 1. Provider-specific env var (OPENAI_API_KEY / GEMINI_API_KEY)
+// 2. AI_API_KEY (通用 fallback)
+// 3. Provider 默认值
+```
+
+### 空字符串处理
+
+环境变量值为空字符串时，等同于未设置：
+- `AI_PROMPT_TEMPLATE_FILE=""` → `null`
+- `AI_BASE_URL=""` → 使用 provider 默认值
+- `AI_API_KEY=""` → 使用 provider 默认值
+
 ---
 
 ## 使用示例
@@ -335,6 +353,34 @@ EMBEDDING_PROVIDER=ollama
 EMBEDDING_BASE_URL=http://localhost:11434/v1
 EMBEDDING_MODEL=nomic-embed-text
 ```
+
+---
+
+## 动态上下文注入 (Dynamic Context Injections)
+
+提示词构建时会根据任务类型注入运行时上下文信息。
+
+### 注入类型
+
+| 注入类型 | 占位符 | 内容 |
+|----------|--------|------|
+| 工作目录 | `${WORKING_DIR}` | `process.cwd()` |
+| 日期 | `${DATE}` | ISO 日期 (YYYY-MM-DD) |
+| Git 状态 | `${GIT_STATUS}` | `git status --short` 输出 |
+| 会话 ID | `${SESSION_ID}` | 唯一会话标识 |
+
+### 任务类型差异化
+
+| 任务类型 | MCP 状态注入 |
+|----------|------------|
+| `boundary-extraction` | 不包含 |
+| `knowledge-refinement` | 包含 `${MCP_SERVERS}` |
+| `claim-verification` | 不包含 |
+| `graph-extraction` | 不包含 |
+| `graph-extraction-planner` | 不包含 |
+
+仅 `knowledge-refinement` 任务会注入 MCP 服务器状态，其他任务仅包含基础上下文。
+MCP 状态返回 JSON 数组，当前为占位实现（pending MCP server manager integration）。
 
 ---
 

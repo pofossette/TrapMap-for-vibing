@@ -68,7 +68,8 @@ const PROVIDER_DEFAULTS: Record<
 };
 
 function loadPromptTemplateFile(): string | null {
-  return process.env.AI_PROMPT_TEMPLATE_FILE ?? null;
+  const value = process.env.AI_PROMPT_TEMPLATE_FILE;
+  return typeof value === 'string' && value.trim().length > 0 ? value : null;
 }
 
 function resolveProviderType(): AiProviderType {
@@ -132,10 +133,16 @@ export function loadAiProviderConfig(): AiProviderConfig {
 
   const defaults = PROVIDER_DEFAULTS[provider];
   const baseUrl = process.env.AI_BASE_URL || defaults.baseUrl;
+  const providerSpecificKey =
+    provider === 'openai'
+      ? process.env.OPENAI_API_KEY
+      : provider === 'google-genai'
+        ? process.env.GEMINI_API_KEY
+        : undefined;
   const apiKey =
-    process.env.AI_API_KEY ||
-    (provider === 'openai' ? process.env.OPENAI_API_KEY || '' : defaults.apiKey) ||
-    (provider === 'google-genai' ? process.env.GEMINI_API_KEY || '' : defaults.apiKey);
+    (typeof providerSpecificKey === 'string' && providerSpecificKey.trim().length > 0
+      ? providerSpecificKey
+      : process.env.AI_API_KEY) || defaults.apiKey;
   const chatModel = process.env.AI_CHAT_MODEL || defaults.chatModel;
   const embeddingModel = process.env.AI_EMBEDDING_MODEL || defaults.embeddingModel;
 
