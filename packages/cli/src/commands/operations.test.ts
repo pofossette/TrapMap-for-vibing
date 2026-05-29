@@ -1358,6 +1358,9 @@ describe('Phase 85: Thin router delegation', () => {
 describe('fm-agent freeze: live gaps', () => {
   it('deactivate: validates reason length between 1 and 500 characters', async () => {
     const p = new Command();
+    p.exitOverride((err) => {
+      throw err;
+    });
     mockedLoadCliState.mockResolvedValue({
       serverUrl: 'http://localhost:3000',
       sessionToken: 'test-token',
@@ -1365,7 +1368,50 @@ describe('fm-agent freeze: live gaps', () => {
     });
     mockedApiRequest.mockResolvedValue({
       data: {
-        entry: { id: 'entry_1', lifecycleState: 'deactivated' },
+        entry: {
+          id: 'entry_1',
+          teamId: 'team_1',
+          scope: 'global',
+          labels: ['test'],
+          shortcut: 'test shortcut',
+          detail: 'test detail text',
+          requiredLevel: 3,
+          owner: { id: 'user_1', handle: 'test', securityLevel: 0 },
+          latestRevision: {
+            revision: 1,
+            submittedAt: '2026-01-01T00:00:00Z',
+            submittedBy: { id: 'user_1', handle: 'test', securityLevel: 0 },
+            shortcut: 'test shortcut',
+            detail: 'test detail text',
+            labels: ['test'],
+            reviewNotes: [],
+          },
+          history: [
+            {
+              revision: 1,
+              submittedAt: '2026-01-01T00:00:00Z',
+              submittedBy: { id: 'user_1', handle: 'test', securityLevel: 0 },
+              shortcut: 'test shortcut',
+              detail: 'test detail text',
+              labels: ['test'],
+              reviewNotes: [],
+            },
+          ],
+          metadata: {
+            scopeLabel: 'global-constraint',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: null,
+            latestSubmittedAt: null,
+            latestReviewedAt: null,
+            latestDecision: null,
+          },
+          agentReview: null,
+          lifecycleState: 'deactivated',
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-01-01T00:00:00Z',
+        },
       },
       sessionToken: 'test-token',
     });
@@ -1388,8 +1434,22 @@ describe('fm-agent freeze: live gaps', () => {
     ).rejects.toThrow(/between 1 and 500/);
 
     // Empty reason should be rejected
+    const p2 = new Command();
+    p2.exitOverride((err) => {
+      throw err;
+    });
+    registerOperationsCommands(p2, {
+      allowImport: false,
+      allowExport: false,
+      allowEdit: false,
+      allowDeactivate: true,
+      allowList: false,
+      allowActivate: false,
+      allowStatus: false,
+      allowMigrate: false,
+    });
     await expect(
-      p.parseAsync(['node', 'test', 'deactivate', 'entry_1', '--reason', '']),
+      p2.parseAsync(['node', 'test', 'deactivate', 'entry_1', '--reason', '']),
     ).rejects.toThrow(/between 1 and 500/);
 
     // Valid reason should proceed
@@ -1399,6 +1459,9 @@ describe('fm-agent freeze: live gaps', () => {
 
   it('edit: validates requiredLevel is a non-negative integer', async () => {
     const p = new Command();
+    p.exitOverride((err) => {
+      throw err;
+    });
     mockedLoadCliState.mockResolvedValue({
       serverUrl: 'http://localhost:3000',
       sessionToken: 'test-token',
@@ -1416,9 +1479,9 @@ describe('fm-agent freeze: live gaps', () => {
       allowMigrate: false,
     });
 
-    // Non-integer requiredLevel should be rejected
+    // Non-integer requiredLevel should be rejected at Commander level
     await expect(
       p.parseAsync(['node', 'test', 'edit', 'entry_1', '--required-level', '3.5']),
-    ).rejects.toThrow(/integer/);
+    ).rejects.toThrow(/required level must be a non-negative integer/);
   });
 });

@@ -532,3 +532,37 @@ describe('CLI review commands with evidence flags (Phase 58-06)', () => {
     });
   });
 });
+
+describe('review command registration gating', () => {
+  it('does not register review commands when allowReview is false', () => {
+    const program = new Command();
+    registerReviewCommands(program, { allowReview: false });
+
+    const commandNames = program.commands.map((c) => c.name());
+    expect(commandNames).not.toContain('review:queue');
+    expect(commandNames).not.toContain('review:approve');
+    expect(commandNames).not.toContain('review:reject');
+  });
+
+  it('registers review commands when allowReview is true', () => {
+    const program = new Command();
+    registerReviewCommands(program, { allowReview: true });
+
+    const commandNames = program.commands.map((c) => c.name());
+    expect(commandNames).toContain('review:queue');
+    expect(commandNames).toContain('review:approve');
+    expect(commandNames).toContain('review:reject');
+  });
+
+  it('second call with allowReview=false returns early without error', () => {
+    const program = new Command();
+    registerReviewCommands(program, { allowReview: true });
+    const commandsBefore = program.commands.map((c) => c.name());
+
+    // Second call with allowReview=false should return early, not remove commands
+    // and not throw (Commander would throw if we tried to re-register)
+    expect(() => registerReviewCommands(program, { allowReview: false })).not.toThrow();
+    const commandsAfter = program.commands.map((c) => c.name());
+    expect(commandsAfter).toEqual(commandsBefore);
+  });
+});

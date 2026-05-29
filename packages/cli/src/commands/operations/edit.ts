@@ -1,5 +1,6 @@
 import type { KnowledgeEntryResponse } from '@trapmap/contracts';
 import { knowledgeEntryResponseSchema } from '@trapmap/contracts';
+import { InvalidArgumentError } from 'commander';
 import type { Command } from 'commander';
 
 import { loadCliState } from '@trapmap/cli/lib/config.js';
@@ -17,7 +18,17 @@ export function registerEditCommand(program: Command, options: OperationsCommand
     .option('--shortcut <text>', 'Updated pitfall shortcut')
     .option('--detail <text>', 'Updated detailed explanation')
     .option('--labels <labels>', 'Updated labels (comma-separated)')
-    .option('--required-level <n>', 'Updated required security level')
+    .option(
+      '--required-level <n>',
+      'Updated required security level',
+      (value: string) => {
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isInteger(parsed) || String(parsed) !== value.trim()) {
+          throw new InvalidArgumentError('required level must be a non-negative integer');
+        }
+        return parsed;
+      },
+    )
     .option('--json', 'Output JSON')
     .action(
       async (
@@ -26,7 +37,7 @@ export function registerEditCommand(program: Command, options: OperationsCommand
           detail?: string;
           json?: boolean;
           labels?: string;
-          requiredLevel?: string;
+          requiredLevel?: number;
           shortcut?: string;
         },
       ) => {
@@ -48,11 +59,10 @@ export function registerEditCommand(program: Command, options: OperationsCommand
         }
 
         if (flags.requiredLevel !== undefined) {
-          const level = Number(flags.requiredLevel);
-          if (!Number.isInteger(level) || level < 0) {
-            throw new Error('--required-level must be a non-negative integer');
+          if (flags.requiredLevel < 0) {
+            throw new InvalidArgumentError('required level must be a non-negative integer');
           }
-          body.requiredLevel = level;
+          body.requiredLevel = flags.requiredLevel;
         }
 
         const response = await apiRequest<KnowledgeEntryResponse>(cliState, {

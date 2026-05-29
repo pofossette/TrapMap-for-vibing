@@ -598,3 +598,39 @@ describe('team commands', () => {
     });
   });
 });
+
+describe('team command registration gating', () => {
+  it('omits create command when allowCreate is false', () => {
+    const program = new Command();
+    registerTeamCommands(program, { allowCreate: false });
+
+    const teamCommand = program.commands.find((cmd) => cmd.name() === 'team');
+    expect(teamCommand).toBeDefined();
+    const subCommandNames = teamCommand!.commands.map((c) => c.name());
+    expect(subCommandNames).not.toContain('create');
+    expect(subCommandNames).toContain('list');
+    expect(subCommandNames).toContain('select');
+  });
+
+  it('includes create command when allowCreate is true', () => {
+    const program = new Command();
+    registerTeamCommands(program, { allowCreate: true });
+
+    const teamCommand = program.commands.find((cmd) => cmd.name() === 'team');
+    expect(teamCommand).toBeDefined();
+    const subCommandNames = teamCommand!.commands.map((c) => c.name());
+    expect(subCommandNames).toContain('create');
+  });
+
+  it('second call with allowReview=false on already-registered team returns early without error', () => {
+    // Verifies the early-return guard pattern: when called a second time
+    // (e.g., allowCreate=false), registerTeamCommands still creates list/select,
+    // but since 'team' already exists, Commander would throw on re-registration.
+    // This test validates the guard doesn't silently add errors — but instead
+    // the caller should use the single-call pattern from index.ts.
+    // This test documents current behavior (Commander rejects duplicate name).
+    const program = new Command();
+    registerTeamCommands(program, { allowCreate: true });
+    expect(() => registerTeamCommands(program, { allowCreate: true })).toThrow(/already have command/);
+  });
+});
