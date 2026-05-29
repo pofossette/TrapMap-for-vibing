@@ -13,8 +13,10 @@ import {
   isoTimestampSchema,
   labelSchema,
   lifecycleStateSchema,
+  mediaTypeSchema,
   scopeSchema,
   securityLevelSchema,
+  sha256HexSchema,
 } from './common.js';
 import { evidenceLevelSchema, evidenceSourceTypeSchema } from './evidence.js';
 import {
@@ -24,6 +26,7 @@ import {
   knowledgeSubmissionSchema,
   reviewDecisionSchema,
 } from './knowledge.js';
+import { canonicalPathSchema } from './path-validation.js';
 
 export const knowledgeDeactivateRequestSchema = z
   .object({
@@ -134,19 +137,15 @@ export const claudeSkillImportSchema = z.object({
  */
 export const bundleFilePayloadSchema = z.object({
   /** Canonical path within the skill directory */
-  path: z.string().min(1).max(512),
+  path: canonicalPathSchema,
   /** File kind for role classification */
   kind: z.enum(['skill-markdown', 'reference', 'asset', 'script']),
   /** SHA-256 hash of file content for integrity */
-  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  sha256: sha256HexSchema,
   /** File size in bytes */
   sizeBytes: z.number().int().min(0),
   /** IANA media type */
-  mediaType: z
-    .string()
-    .min(1)
-    .max(160)
-    .regex(/^[a-z]+\/[a-z0-9.+-]+$/i),
+  mediaType: mediaTypeSchema,
   /** Source directory within the skill artifact */
   source: z.enum(['references/', 'assets/', 'scripts/', 'SKILL.md']),
   /** If true, file may be used for capsule/profile derivation */
@@ -163,9 +162,9 @@ export const bundleFilePayloadSchema = z.object({
  */
 export const bundleScriptDescriptorSchema = z.object({
   /** Path to the script file */
-  path: z.string().min(1).max(512),
+  path: canonicalPathSchema,
   /** SHA-256 hash of the script content */
-  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  sha256: sha256HexSchema,
   /** Human-readable capability description */
   capability: z.string().min(1).max(280),
   /** Brief summary of argument schema */
@@ -242,13 +241,13 @@ export const artifactFilePayloadRecordSchema = z
     /** Revision number */
     revision: z.number().int().min(1),
     /** Canonical path within the skill directory */
-    path: z.string().min(1).max(512),
+    path: canonicalPathSchema,
     /** SHA-256 hash of file content */
-    sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+    sha256: sha256HexSchema,
     /** File size in bytes */
     sizeBytes: z.number().int().min(0),
     /** IANA media type */
-    mediaType: z.string().min(1).max(160),
+    mediaType: mediaTypeSchema,
     /** Inline file content: base64-encoded bytes or UTF-8 text */
     content: z.union([z.string().base64(), z.string()]),
     /** When this payload was stored */
@@ -414,15 +413,15 @@ export type ArtifactExportResponse = z.infer<typeof artifactExportResponseSchema
 export const activationFilePayloadSchema = z
   .object({
     /** Canonical path within the skill directory */
-    path: z.string().min(1).max(512),
+    path: canonicalPathSchema,
     /** File kind */
     kind: skillArtifactFileKindSchema,
     /** SHA-256 hash of file content */
-    sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+    sha256: sha256HexSchema,
     /** File size in bytes */
     sizeBytes: z.number().int().min(0),
     /** IANA media type */
-    mediaType: z.string().min(1).max(160),
+    mediaType: mediaTypeSchema,
     /** Source directory */
     source: skillArtifactFileSourceSchema,
     /** Inline file content: base64-encoded bytes or UTF-8 text */
@@ -440,7 +439,7 @@ export const activationRequestSchema = z.object({
   /** Optional revision number (defaults to latest) */
   revision: z.number().int().min(1).optional(),
   /** Selected paths to fetch (bounded set) */
-  selectedPaths: z.array(z.string().min(1).max(512)).min(1).max(50),
+  selectedPaths: z.array(canonicalPathSchema).min(1).max(50),
 });
 
 /**

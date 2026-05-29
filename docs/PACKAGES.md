@@ -36,12 +36,14 @@
 | evidence | `domain/evidence.ts` | Evidence 元数据 Schema |
 | admin | `domain/admin.ts` | 管理员操作 Schema |
 | boundary | `domain/boundary.ts` | 边界约束 Schema |
-| common | `domain/common.ts` | 共享通用类型 |
+| common | `domain/common.ts` | 共享通用类型、sha256/mediaType 验证辅助 |
 | conflict | `domain/conflict.ts` | 冲突检测 Schema |
 | graph-extraction | `domain/graph-extraction.ts` | 图提取 Schema |
 | plans | `domain/plans.ts` | 执行计划 Schema |
 | parsing | `domain/parsing.ts` | 解析规则（frontmatter 等） |
 | path-validation | `domain/path-validation.ts` | 路径安全验证 |
+
+> **Source of truth**: Shared validation helpers (`canonicalPathSchema`, `sha256HexSchema`, `mediaTypeSchema`) are defined in `common.ts` and `path-validation.ts` and reused across all domain files. Always import these helpers rather than duplicating validation logic.
 
 ### 关键类型
 

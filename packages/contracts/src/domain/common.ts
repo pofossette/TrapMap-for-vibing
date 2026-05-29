@@ -68,12 +68,24 @@ export const paginatedResponseSchema = z.object({
   total: z.number().int().min(0),
 });
 
+export const sha256HexSchema = z
+  .string()
+  .regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters');
+
+export const mediaTypeSchema = z
+  .string()
+  .min(1)
+  .max(160)
+  .regex(/^[a-z]+\/[a-z0-9.+-]+$/i, 'mediaType must be a valid IANA media type');
+
 export const apiErrorSchema = z.object({
   code: z.string().min(1),
   message: z.string().min(1),
   details: z.record(z.string(), z.unknown()).optional(),
 });
 
+export type Sha256Hex = z.infer<typeof sha256HexSchema>;
+export type MediaType = z.infer<typeof mediaTypeSchema>;
 export type EntityId = z.infer<typeof entityIdSchema>;
 export type SecurityLevel = z.infer<typeof securityLevelSchema>;
 export type RoleTemplate = z.infer<typeof roleTemplateSchema>;

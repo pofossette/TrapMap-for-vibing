@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { compatibleScriptActivationPolicySchema } from './artifacts.js';
 
 import { boundaryContextSchema, boundaryExplanationSchema } from './boundary.js';
-import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema } from './common.js';
+import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema, sha256HexSchema } from './common.js';
+import { canonicalPathSchema } from './path-validation.js';
 import { conflictHintSchema } from './conflict.js';
 import { planQuerySchema, trapFirstPlanSchema } from './plans.js';
 
@@ -117,7 +118,7 @@ export const capsuleMatchSchema = z.object({
   /** Revision number this capsule was derived from */
   revision: z.number().int().min(1),
   /** Source file paths that contributed to this capsule */
-  sourcePaths: z.array(z.string().max(512)).min(1),
+  sourcePaths: z.array(canonicalPathSchema).min(1),
   /** Distilled capsule content */
   content: z.string().min(1).max(5000),
   /** Situation context */
@@ -215,9 +216,9 @@ export const readNextReferenceHintSchema = z.object({
   /** Revision number for cache validation */
   revision: z.number().int().min(1),
   /** Path to the reference file within the skill directory */
-  path: z.string().min(1).max(512),
+  path: canonicalPathSchema,
   /** SHA-256 hash for integrity verification */
-  sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+  sha256: sha256HexSchema,
   /** Human-readable description of what this reference provides */
   description: z.string().max(280).optional(),
 });
@@ -233,9 +234,9 @@ export const assetAvailabilityHintSchema = z.object({
   /** Revision number for cache validation */
   revision: z.number().int().min(1),
   /** Path to the asset file within the skill directory */
-  path: z.string().min(1).max(512),
+  path: canonicalPathSchema,
   /** SHA-256 hash for integrity verification */
-  sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+  sha256: sha256HexSchema,
   /** File size in bytes for transfer planning */
   sizeBytes: z.number().int().min(0),
   /** IANA media type for content handling */
@@ -253,9 +254,9 @@ export const scriptProfileHintSchema = z.object({
   /** Revision number for cache validation */
   revision: z.number().int().min(1),
   /** Path to the script file within the skill directory */
-  path: z.string().min(1).max(512),
+  path: canonicalPathSchema,
   /** SHA-256 hash for integrity verification */
-  sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+  sha256: sha256HexSchema,
   /** Human-readable capability description */
   capability: z.string().min(1).max(280),
   /** Brief summary of expected argument schema */

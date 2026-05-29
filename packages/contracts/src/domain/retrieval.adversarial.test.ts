@@ -160,7 +160,7 @@ describe('retrieval schema adversarial tests', () => {
       capsuleId: 'capsule-1',
       artifactId: 'artifact-1',
       revision: 1,
-      sourcePaths: ['/src/auth.ts'],
+      sourcePaths: ['src/auth.ts'],
       content: 'Valid content',
       situation: 'Situation',
       problem: 'Problem',

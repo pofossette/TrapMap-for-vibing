@@ -4,9 +4,12 @@ import {
   entityIdSchema,
   isoTimestampSchema,
   labelSchema,
+  mediaTypeSchema,
   scopeSchema,
   securityLevelSchema,
+  sha256HexSchema,
 } from './common.js';
+import { canonicalPathSchema } from './path-validation.js';
 
 /**
  * Status values for candidate submissions.
@@ -51,20 +54,13 @@ export const TrapCandidatePayloadSchema = z.object({
  */
 export const SkillBundleFileMetadataSchema = z.object({
   /** Canonical path within the skill directory */
-  path: z.string().min(1).max(512),
+  path: canonicalPathSchema,
   /** SHA-256 hash of file content (lowercase hex) */
-  sha256: z
-    .string()
-    .length(64)
-    .regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+  sha256: sha256HexSchema,
   /** File size in bytes */
   sizeBytes: z.number().int().min(0),
   /** IANA media type (e.g. application/json, text/plain) */
-  mediaType: z
-    .string()
-    .min(1)
-    .max(160)
-    .regex(/^[a-z]+\/[a-z0-9.+-]+$/i, 'mediaType must be a valid IANA media type'),
+  mediaType: mediaTypeSchema,
 });
 
 /**
@@ -105,7 +101,7 @@ export const AnalysisSnapshotSchema = z.object({
   /** When normalization was performed */
   normalizedAt: isoTimestampSchema,
   /** SHA-256 hash of normalized content */
-  fingerprint: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+  fingerprint: sha256HexSchema,
   /** Keywords extracted from content */
   keywords: z.array(z.string().min(1).max(48)),
   /** Tokens extracted from content for similarity matching */

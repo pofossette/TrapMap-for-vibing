@@ -8,12 +8,15 @@ import {
   isoTimestampSchema,
   labelSchema,
   lifecycleStateSchema,
+  mediaTypeSchema,
   scopeSchema,
   securityLevelSchema,
+  sha256HexSchema,
 } from './common.js';
 import { evidenceMetaSchema } from './evidence.js';
 import { agentReviewResultSchema, reviewDecisionSchema, reviewNoteSchema } from './knowledge.js';
 import { maintenanceMetaSchema } from './maintenance.js';
+import { canonicalPathSchema } from './path-validation.js';
 
 /**
  * Canonical file kind discriminator for skill artifact files.
@@ -56,15 +59,9 @@ export const compatibleScriptActivationPolicySchema = z.union([
  */
 export const scriptWithPolicyMetadataSchema = z.object({
   /** Path to the script file */
-  path: z
-    .string()
-    .min(1)
-    .max(512)
-    .refine((s) => !s.startsWith('/') && !s.match(/^[A-Za-z]:\\/), {
-      message: 'must be a relative path',
-    }),
+  path: canonicalPathSchema,
   /** SHA-256 hash of the script content */
-  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  sha256: sha256HexSchema,
   /** Human-readable capability description */
   capability: z.string().min(1).max(280),
   /** Default activation policy */
@@ -89,15 +86,15 @@ export const skillArtifactFileSourceSchema = z.enum([
 export const skillArtifactFileSchema = z
   .object({
     /** Canonical path within the skill directory (e.g., 'references/docker.md') */
-    path: z.string().min(1).max(512),
+    path: canonicalPathSchema,
     /** File kind controlling derivation and activation behavior */
     kind: skillArtifactFileKindSchema,
     /** SHA-256 hash of file content for integrity and derivation caching */
-    sha256: z.string().regex(/^[0-9a-f]{64}$/),
+    sha256: sha256HexSchema,
     /** File size in bytes for storage quota and transfer validation */
     sizeBytes: z.number().int().min(0),
     /** IANA media type (e.g., 'text/markdown', 'application/json') */
-    mediaType: z.string().min(1).max(160),
+    mediaType: mediaTypeSchema,
     /** Source directory within the skill artifact */
     source: skillArtifactFileSourceSchema,
     /** If true, file content may be used for capsule/profile derivation */
@@ -113,9 +110,9 @@ export const skillArtifactFileSchema = z
  */
 export const skillScriptDescriptorSchema = z.object({
   /** Path to the script file within the skill directory */
-  path: z.string().min(1).max(512),
+  path: canonicalPathSchema,
   /** SHA-256 hash of the script content */
-  sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+  sha256: sha256HexSchema,
   /** Human-readable capability description (e.g., 'Docker container cleanup') */
   capability: z.string().min(1).max(280),
   /** Brief summary of expected argument schema */
@@ -136,7 +133,7 @@ export const skillProfileSchema = z.object({
   /** Revision number this profile was derived from */
   revision: z.number().int().min(1),
   /** Hash of all source files used for derivation */
-  sourceHash: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+  sourceHash: sha256HexSchema,
   /** Human-readable title from skill metadata */
   title: z.string().min(1).max(280),
   /** Optional description derived from SKILL.md frontmatter */
@@ -150,9 +147,9 @@ export const skillProfileSchema = z.object({
   /** Optional prerequisite list extracted from skill metadata */
   prerequisites: z.array(z.string().min(1).max(280)).default([]),
   /** Paths to reference files included in derivation */
-  referencePaths: z.array(z.string().max(512)).default([]),
+  referencePaths: z.array(canonicalPathSchema).default([]),
   /** Hash of the derived profile content for caching */
-  contentHash: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+  contentHash: sha256HexSchema,
 });
 
 /**
@@ -169,7 +166,7 @@ export const skillCapsuleSchema = z
     /** Revision number this capsule was derived from */
     revision: z.number().int().min(1),
     /** Source file paths that contributed to this capsule */
-    sourcePaths: z.array(z.string().max(512)).min(1),
+    sourcePaths: z.array(canonicalPathSchema).min(1),
     /** Distilled capsule content (text only, no asset/script bodies) */
     content: z.string().min(1).max(5000),
     /** Situation context */
@@ -197,10 +194,10 @@ export const skillCapsuleSchema = z
  */
 export const clientManifestReferenceSchema = z
   .object({
-    path: z.string().min(1).max(512),
-    sha256: z.string().regex(/^[0-9a-f]{64}$/),
+    path: canonicalPathSchema,
+    sha256: sha256HexSchema,
     sizeBytes: z.number().int().min(0),
-    mediaType: z.string().min(1).max(160),
+    mediaType: mediaTypeSchema,
   })
   .strict();
 
@@ -210,10 +207,10 @@ export const clientManifestReferenceSchema = z
  */
 export const clientManifestAssetSchema = z
   .object({
-    path: z.string().min(1).max(512),
-    sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+    path: canonicalPathSchema,
+    sha256: sha256HexSchema,
     sizeBytes: z.number().int().min(0),
-    mediaType: z.string().min(1).max(160),
+    mediaType: mediaTypeSchema,
   })
   .strict();
 
@@ -223,14 +220,8 @@ export const clientManifestAssetSchema = z
  * Excludes script body text (T-12-02 mitigation).
  */
 export const clientManifestScriptSchema = z.object({
-  path: z
-    .string()
-    .min(1)
-    .max(512)
-    .refine((s) => !s.startsWith('/') && !s.match(/^[A-Za-z]:\\/), {
-      message: 'must be a relative path',
-    }),
-  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  path: canonicalPathSchema,
+  sha256: sha256HexSchema,
   capability: z.string().min(1).max(280),
   argsSchemaSummary: z.string().max(280).default(''),
   sideEffectSummary: z.string().max(280).default(''),
@@ -254,7 +245,7 @@ export const clientManifestSchema = z.object({
   /** Script metadata (capability only, no bodies) */
   scripts: z.array(clientManifestScriptSchema).default([]),
   /** Hash of all source files for this manifest */
-  sourceHash: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+  sourceHash: sha256HexSchema,
 });
 
 /**
@@ -269,7 +260,7 @@ export const skillArtifactDerivedSchema = z.object({
   /** Client activation manifest for references, assets, and scripts */
   clientManifest: clientManifestSchema.nullable(),
   /** Hash of all source files used for derivation (SKILL.md + references/) */
-  sourceHash: z.string().regex(/^[0-9a-f]{64}$/),
+  sourceHash: sha256HexSchema,
   /** ISO timestamp when derivation was computed */
   derivedAt: isoTimestampSchema,
 });
@@ -283,7 +274,7 @@ export const skillArtifactRevisionSchema = z
     /** Monotonically increasing revision number */
     revision: z.number().int().min(1),
     /** SHA-256 hash of all source files for this revision */
-    sourceHash: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+    sourceHash: sha256HexSchema,
     /** All files in the skill directory at this revision */
     files: z.array(skillArtifactFileSchema).min(1),
     /** When this revision was submitted */
@@ -298,9 +289,7 @@ export const skillArtifactRevisionSchema = z
         profile: skillArtifactDerivedSchema.shape.profile.nullable(),
         capsules: skillArtifactDerivedSchema.shape.capsules,
         clientManifest: skillArtifactDerivedSchema.shape.clientManifest.nullable(),
-        sourceHash: z
-          .string()
-          .regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+        sourceHash: sha256HexSchema,
         derivedAt: isoTimestampSchema,
       })
       .nullable(),
