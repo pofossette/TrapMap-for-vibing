@@ -233,8 +233,9 @@ describe('CLI feedback command', () => {
 
       const outputCalls = consoleLogSpy.mock.calls.map((call) => call[0]);
       const output = outputCalls.join('\n');
-      expect(output).toContain('"id": "fb_test123"');
-      expect(output).toContain('"entryId": "trap_1"');
+      const parsed = JSON.parse(output);
+      expect(parsed.feedback.id).toBe('fb_test123');
+      expect(parsed.feedback.entryId).toBe('trap_1');
 
       consoleLogSpy.mockRestore();
     });

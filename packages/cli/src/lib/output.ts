@@ -13,11 +13,19 @@ export interface JsonFlag {
 
 export function printResult<T>(value: T, options: JsonFlag, formatter: (input: T) => string): void {
   if (options.json) {
-    console.log(JSON.stringify(value));
+    printJsonLine(value);
     return;
   }
 
   console.log(formatter(value));
+}
+
+/**
+ * Output a single-line JSON representation.
+ * Ensures compact format for machine-readable output.
+ */
+export function printJsonLine(value: unknown): void {
+  console.log(JSON.stringify(value));
 }
 
 /**
@@ -33,7 +41,7 @@ export function printCommandResult<T>(
   legacyFormatter: (input: T) => string,
 ): void {
   if (options.json || state.outputProfile?.renderMode === 'json') {
-    console.log(JSON.stringify(originalValue, null, 2));
+    printJsonLine(originalValue);
     return;
   }
 
@@ -63,7 +71,7 @@ export function printAdaptiveResult<T extends RenderPayload>(
   legacyFormatter: (input: T) => string,
 ): void {
   if (options.json || state.outputProfile?.renderMode === 'json') {
-    console.log(JSON.stringify(value, null, 2));
+    printJsonLine(value);
     return;
   }
 

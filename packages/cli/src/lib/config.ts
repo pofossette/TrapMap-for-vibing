@@ -70,17 +70,31 @@ export function getDefaultOutputProfile(): OutputProfile {
   };
 }
 
-function normalizeOutputProfile(
-  profile: Partial<OutputProfile> | undefined,
-): OutputProfile | undefined {
-  if (!profile) {
+const VALID_OUTPUT_PROFILE_KEYS: readonly (keyof OutputProfile)[] = [
+  'tool',
+  'modelHint',
+  'renderMode',
+  'graphPlanMode',
+  'verbosity',
+  'includeRawHints',
+] as const;
+
+function normalizeOutputProfile(profile: unknown): OutputProfile | undefined {
+  if (!profile || typeof profile !== 'object') {
     return undefined;
+  }
+
+  const filtered: Record<string, unknown> = {};
+  for (const key of VALID_OUTPUT_PROFILE_KEYS) {
+    if (key in (profile as Record<string, unknown>)) {
+      filtered[key] = (profile as Record<string, unknown>)[key];
+    }
   }
 
   return {
     ...getDefaultOutputProfile(),
-    ...profile,
-  };
+    ...filtered,
+  } as OutputProfile;
 }
 
 export async function loadCliState(): Promise<CliState> {
@@ -90,10 +104,15 @@ export async function loadCliState(): Promise<CliState> {
     const raw = await readFile(configPath, 'utf8');
     const parsed = JSON.parse(raw) as Partial<CliState>;
     const outputProfile = normalizeOutputProfile(parsed.outputProfile);
+    const configHadOutputProfile = 'outputProfile' in parsed;
     return {
       ...getDefaultState(),
       ...parsed,
-      ...(outputProfile != null ? { outputProfile } : {}),
+      ...(outputProfile != null
+        ? { outputProfile }
+        : configHadOutputProfile
+          ? { outputProfile: undefined }
+          : {}),
     };
   } catch {
     return getDefaultState();

@@ -111,6 +111,48 @@ trapmap output profile show
 
 ---
 
+### 渲染器选择机制
+
+CLI 根据 `outputProfile.tool` 自动选择渲染器：
+
+| 工具 | 渲染格式 | 典型场景 |
+|---|---|---|
+| `generic` | 纯文本 | 交互式终端 |
+| `claude-code` | XML 包裹（`<trapmap_skill_pack>`） | Claude Code 集成 |
+| `codex` | 紧凑 JSON（snake_case） | 编程消费 |
+| `opencode` | Markdown（`# Header` / `- List`） | OpenCode 集成 |
+
+**回退规则：**
+- 未知 `tool` 值 → 自动退回到 `generic` 渲染器（不抛异常）
+- 未知 `kind` 值 → 退回到通用输出模板
+- 渲染器中任何 JS 异常 → 退回到传统格式化函数输出
+
+### 机器可读输出规则
+
+**JSON 行协议：** 所有 `--json` 标志和 `renderMode: "json"` 输出都必须遵守单行 JSON 协议：
+
+1. 输出由 `JSON.stringify(value)` 生成，不使用缩进参数
+2. 每行是一个独立、完整的 JSON 对象
+3. 特殊数值 `Infinity` / `-Infinity` / `NaN` 在序列化时转换为字符串 `"Infinity"` / `"-Infinity"` / `"NaN"`
+4. 输出不包含颜色转义码或其他装饰字符
+
+此协议确保完整的逐行管道兼容性：
+
+```bash
+trapmap search "query" --json | jq '.results | length'
+```
+
+### 配置文件路径回退
+
+CLI 状态文件默认位于 `~/.trapmap/cli.json`。当 `os.homedir()` 抛出异常时（如无主目录环境），自动退回到系统临时目录 `os.tmpdir()/.trapmap/cli.json`。
+
+### 配置规范化
+
+`outputProfile` 字段在加载时自动规范化：
+- 非对象值（如空字符串 `""`、`null`、数组等）→ 规范化为 `undefined`，回退到传统格式化
+- 未知属性（如 `colorScheme`）→ 自动过滤，不会泄露到渲染管线
+- 缺失字段 → 填入 `getDefaultOutputProfile()` 值
+
 ### `trapmap output profile set`
 
 设置本地输出配置文件。

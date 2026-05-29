@@ -16,6 +16,7 @@ async function readFromStdin(): Promise<string> {
 }
 
 function hasStdinContent(): boolean {
+  if (!process.stdin) return false;
   return !process.stdin.isTTY;
 }
 

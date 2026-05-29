@@ -352,8 +352,10 @@ function buildCommandResultView(payload: Record<string, unknown>): CommandResult
     success,
     summary,
     artifacts,
-    ...(payload.previousState ? { previousState: String(payload.previousState) } : {}),
-    ...(transition ? { transition } : {}),
+    ...(payload.previousState != null ? { previousState: String(payload.previousState) } : {}),
+    ...(transition != null && typeof transition.from === 'string' && typeof transition.to === 'string'
+      ? { transition }
+      : {}),
     nextSteps,
   };
 }
@@ -440,7 +442,7 @@ function buildCodexObject(envelope: RenderEnvelope<RenderPayload>): Record<strin
         success: view.success,
         summary: view.summary,
         artifacts: view.artifacts,
-        ...(view.previousState ? { previous_state: view.previousState } : {}),
+        ...(view.previousState != null ? { previous_state: view.previousState } : {}),
         ...(view.transition ? { transition: view.transition } : {}),
         next_steps: view.nextSteps,
       };

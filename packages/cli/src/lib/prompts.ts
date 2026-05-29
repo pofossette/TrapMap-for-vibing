@@ -38,7 +38,7 @@ export async function promptInput(
   return input({
     message,
     ...(options?.validate ? { validate: options.validate } : {}),
-    ...(options?.default !== undefined ? { default: options.default } : {}),
+    ...(options?.default !== undefined && options.default !== '' ? { default: options.default } : {}),
   });
 }
 
@@ -59,9 +59,9 @@ export async function promptConfirm(message: string, defaultValue = false): Prom
  */
 export function isInteractiveEnvironment(): boolean {
   return (
-    typeof process.stdin !== 'undefined' &&
+    process.stdin != null &&
     process.stdin.isTTY === true &&
-    typeof process.stdout !== 'undefined' &&
+    process.stdout != null &&
     process.stdout.isTTY === true
   );
 }
