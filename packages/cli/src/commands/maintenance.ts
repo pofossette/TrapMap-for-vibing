@@ -51,7 +51,7 @@ function formatMaintenanceBatch(data: MaintenanceBatchOperationResponse): string
 
   for (const item of data.items) {
     const status = item.eligible ? '\u2713' : '\u2717';
-    const reason = item.ineligibilityReason ? ` (${item.ineligibilityReason})` : '';
+    const reason = item.ineligibilityReason != null ? ` (${item.ineligibilityReason})` : '';
     lines.push(`${status} ${item.entryId}: ${item.proposedChange}${reason}`);
   }
 

@@ -23,7 +23,7 @@ import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest } from '@trapmap/cli/lib/http.js';
 // Import after mocking
 import { Command } from 'commander';
-import { registerDecayCommands } from './decay.js';
+import { registerDecayCommands, formatDecayList } from './decay.js';
 
 const mockedApiRequest = vi.mocked(apiRequest);
 const mockedLoadCliState = vi.mocked(loadCliState);
@@ -762,42 +762,28 @@ describe('CLI decay commands (Phase 50)', () => {
     });
 
     it('formatDecayList: renders undefined decayState as "undefined" instead of empty', async () => {
-      mockedApiRequest.mockResolvedValueOnce({
-        data: {
-          items: [
-            {
-              id: 'k_undef',
-              scope: 'global',
-              labels: [],
-              shortcut: 'Entry with undefined decay state',
-              lifecycleState: 'approved',
-              requiredLevel: 1,
-              updatedAt: '2026-01-01T00:00:00Z',
-              decayState: undefined,
-              freshnessType: 'evergreen',
-              ageDays: 10,
-              lastVerifiedAt: null,
-              supersededById: null,
-            },
-          ],
-          total: 1,
-        },
-        sessionToken: null,
+      const result = formatDecayList({
+        items: [
+          {
+            id: 'k_undef',
+            scope: 'global',
+            labels: [],
+            shortcut: 'Entry with undefined decay state',
+            lifecycleState: 'approved',
+            requiredLevel: 1,
+            updatedAt: '2026-01-01T00:00:00Z',
+            decayState: undefined as unknown as string | null,
+            freshnessType: 'evergreen',
+            ageDays: 10,
+            lastVerifiedAt: null,
+            supersededById: null,
+          },
+        ],
+        total: 1,
       });
 
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-      // Re-register commands to get fresh program state
-      program = new Command();
-      registerDecayCommands(program, { allowManage: true });
-
-      await program.parseAsync(['node', 'test', 'decay-stale']);
-
-      const output = String(consoleSpy.mock.calls[0]?.[0]);
-      expect(output).toContain('[undefined]');
-      expect(output).not.toContain('[]');
-
-      consoleSpy.mockRestore();
+      expect(result).toContain('[undefined]');
+      expect(result).not.toContain('[]');
     });
   });
 

@@ -13,7 +13,7 @@ export interface DecayCommandOptions {
 /**
  * Formats a decay entry list response for human-readable output.
  */
-function formatDecayList(data: DecayEntryListResponse): string {
+export function formatDecayList(data: DecayEntryListResponse): string {
   if (data.items.length === 0) {
     return 'No entries found';
   }
@@ -22,7 +22,7 @@ function formatDecayList(data: DecayEntryListResponse): string {
   lines.push(`Found ${data.total} entries`);
 
   for (const item of data.items) {
-    const state = item.decayState === null ? 'unknown' : (item.decayState ?? '');
+    const state = item.decayState === null ? 'unknown' : (item.decayState === undefined ? 'undefined' : item.decayState);
     const age = item.ageDays !== null ? `${Math.round(item.ageDays)}d` : 'n/a';
     const labels = item.labels.length > 0 ? ` [${item.labels.join(', ')}]` : '';
     lines.push(`${item.id}  [${state}]  ${age}  ${item.shortcut.slice(0, 50)}${labels}`);
@@ -34,7 +34,7 @@ function formatDecayList(data: DecayEntryListResponse): string {
 /**
  * Formats a batch operation response for human-readable output.
  */
-function formatBatchResult(data: BatchOperationResponse): string {
+export function formatBatchResult(data: BatchOperationResponse): string {
   const lines: string[] = [];
   const mode = data.dryRun ? 'DRY RUN - ' : '';
   lines.push(`${mode}Action: ${data.action}`);
@@ -46,7 +46,7 @@ function formatBatchResult(data: BatchOperationResponse): string {
 
   for (const item of data.items) {
     const status = item.eligible ? '✓' : '✗';
-    const reason = item.ineligibilityReason ? ` (${item.ineligibilityReason})` : '';
+    const reason = item.ineligibilityReason != null ? ` (${item.ineligibilityReason})` : '';
     lines.push(`${status} ${item.entryId}: ${item.changeDescription}${reason}`);
   }
 

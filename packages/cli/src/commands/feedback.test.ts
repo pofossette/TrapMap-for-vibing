@@ -766,13 +766,13 @@ describe('CLI feedback admin commands', () => {
         items: [
           {
             feedbackId: 'feedback_1',
-            eligible: true,
+            eligible: false,
             reason: '',
             transitionApplied: false,
           },
         ],
-        totalEligible: 1,
-        totalIneligible: 0,
+        totalEligible: 0,
+        totalIneligible: 1,
         appliedAt: '2026-05-03T12:00:00Z',
       };
       vi.mocked(http.apiRequest).mockResolvedValue({
@@ -791,7 +791,7 @@ describe('CLI feedback admin commands', () => {
       );
 
       const output = String(consoleLogSpy.mock.calls[0]?.[0]);
-      expect(output).toContain('\u2713 feedback_1 ()');
+      expect(output).toContain('\u2717 feedback_1 ()');
 
       consoleLogSpy.mockRestore();
     });

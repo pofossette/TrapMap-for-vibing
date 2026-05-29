@@ -47,7 +47,7 @@ function formatBatchResult(data: FeedbackBatchResponse): string {
 
   for (const item of data.items) {
     const status = item.eligible ? '✓' : '✗';
-    const reason = item.reason ? ` (${item.reason})` : '';
+    const reason = item.reason != null ? ` (${item.reason})` : '';
     const transition = item.transitionApplied ? ' [transitioned]' : '';
     lines.push(`${status} ${item.feedbackId}${transition}${reason}`);
   }
