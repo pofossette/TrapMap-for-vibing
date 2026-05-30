@@ -243,38 +243,33 @@ export function buildCapsuleCitations(capsules: CapsuleMatch[]): RetrievalCitati
   }));
 }
 
-/**
- * Generate an extractive summary from capsule hits.
- *
- * This is a deterministic baseline implementation that:
- * - Extracts key information from the provided capsules
- * - Does NOT call any external services
- * - Produces consistent output for the same inputs
- *
- * @param query - The search query (for context)
- * @param capsules - The filtered distilled capsule hits
- * @returns Extractive summary text
- */
+function buildCapsuleFactLines(capsule: CapsuleMatch): string[] {
+  return [capsule.problem, capsule.goal, capsule.content]
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+}
+
+function dedupePreserveOrder(lines: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const line of lines) {
+    const key = line.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(line);
+    }
+  }
+  return result;
+}
+
 function generateCapsuleExtractiveSummary(_query: string, capsules: CapsuleMatch[]): string {
   if (capsules.length === 0) {
     return '';
   }
 
-  // For single capsule, return the content (most information-dense field)
-  if (capsules.length === 1) {
-    const capsule = capsules[0];
-    if (!capsule) return '';
-    return capsule.content || `${capsule.problem}: ${capsule.goal}`;
-  }
+  const summaryLines = dedupePreserveOrder(
+    capsules.flatMap(buildCapsuleFactLines),
+  ).slice(0, 6);
 
-  // For multiple capsules, create a concise extractive summary
-  const parts: string[] = [];
-
-  for (const capsule of capsules) {
-    // Use content for extractive summary (contains key information)
-    const text = capsule.content || `${capsule.problem}: ${capsule.goal}`;
-    parts.push(`• ${truncateText(text, 120)}`);
-  }
-
-  return `Found ${capsules.length} relevant capsules:\n${parts.join('\n')}`;
+  return summaryLines.join(' ');
 }

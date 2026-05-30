@@ -263,6 +263,19 @@ LLM 提供商：fallback
 }
 ```
 
+## 摘要生成策略
+
+默认摘要路径是**确定性事实合成**（deterministic fact synthesis），而非原始 bullet 拼接。
+
+`buildCapsuleSummary()` 的工作方式：
+
+1. **字段优先级提取**：从每个 capsule 的 `problem`、`goal`、`content` 字段按顺序提取事实行（优先使用 problem，其次 goal，最后 content）。
+2. **跨 capsule 去重**：对提取的事实行做大小写不敏感的去重，保留首次出现的顺序，避免重复 boilerplate 占用摘要预算。
+3. **预算截断**：最多保留 6 条事实行，以空格连接为流畅段落。
+4. **空结果契约**：无 capsule 时 `summary: null`，不生成空摘要。
+
+这意味着摘要中的所有文字均来自已通过治理过滤的 capsule 字段，不引入外部信息，保证 groundedness。
+
 ## 与统一运行器集成
 
 **注意**: 摘要评测依赖于已过滤的检索上下文。摘要构建器 (`buildCapsuleSummary`) 是纯函数，仅消费传入的 capsule 数据——它不做任何治理或标签过滤。如果检索路径未正确过滤 capsule，禁止声明（如 Flask）可能会泄漏到摘要中。任何检索过滤 bugfix 都应在 smoke 层添加标签过滤回归用例。

@@ -404,8 +404,9 @@ describe('summary', () => {
       expect(result).not.toBeNull();
       expect(result?.text).toBeDefined();
       expect(result?.text.length).toBeGreaterThan(0);
-      // Summary should mention the capsules found
-      expect(result?.text.toLowerCase()).toContain('capsule');
+      expect(result?.text).toContain('Container networking is complex');
+      expect(result?.text).toContain('Simplify with docker-compose');
+      expect(result?.text).toContain('Use docker-compose for container networking');
     });
 
     it('includes citations for all provided hits', () => {
@@ -612,6 +613,275 @@ describe('summary', () => {
       expect(filteredResult).not.toBeNull();
       expect(filteredResult?.text).toContain('Express.js middleware');
       expect(filteredResult?.text).not.toContain('Flask');
+    });
+
+    it('extracts facts from problem, goal, and content fields', () => {
+      const capsules: CapsuleMatch[] = [
+        {
+          capsuleId: 'capsule_1',
+          artifactId: 'artifact_1',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Use named volumes for persistent data',
+          situation: 'Deploying containers',
+          problem: 'Docker data is lost on container restart',
+          goal: 'Persist data across container lifecycles',
+          labels: ['docker'],
+          scope: 'project',
+          requiredLevel: 0,
+          score: 0.9,
+          reason: 'Match',
+        },
+      ];
+
+      const citations: RetrievalCitation[] = [
+        {
+          source: { entryId: 'capsule_1', scope: 'project', shortcut: 'Deploying containers' },
+          snippet: 'Use named volumes for persistent data',
+          tags: ['docker'],
+          recallChannels: ['semantic'],
+          scores: { semantic: 0.9, keyword: null, graph: null, preRerank: 0.9, final: 0.9 },
+        },
+      ];
+
+      const result = buildCapsuleSummary({
+        query: 'docker persistence',
+        includeSummary: true,
+        capsules,
+        citations,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result?.text).toContain('Docker data is lost on container restart');
+      expect(result?.text).toContain('Persist data across container lifecycles');
+      expect(result?.text).toContain('Use named volumes for persistent data');
+    });
+
+    it('deduplicates repeated facts across capsules', () => {
+      const capsules: CapsuleMatch[] = [
+        {
+          capsuleId: 'capsule_1',
+          artifactId: 'artifact_1',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Pin Docker image versions to avoid breaking changes',
+          situation: 'Deploying containers',
+          problem: 'Unpinned images cause unexpected breakage',
+          goal: 'Stabilize deployments with version pinning',
+          labels: ['docker'],
+          scope: 'project',
+          requiredLevel: 0,
+          score: 0.95,
+          reason: 'Match',
+        },
+        {
+          capsuleId: 'capsule_2',
+          artifactId: 'artifact_2',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Use SHA digests instead of tags for reproducibility',
+          situation: 'Deploying containers',
+          problem: 'Unpinned images cause unexpected breakage',
+          goal: 'Stabilize deployments with version pinning',
+          labels: ['docker'],
+          scope: 'project',
+          requiredLevel: 0,
+          score: 0.85,
+          reason: 'Match',
+        },
+      ];
+
+      const citations: RetrievalCitation[] = [
+        {
+          source: { entryId: 'capsule_1', scope: 'project', shortcut: 'Deploying containers' },
+          snippet: 'Pin Docker image versions',
+          tags: ['docker'],
+          recallChannels: ['semantic'],
+          scores: { semantic: 0.95, keyword: null, graph: null, preRerank: 0.95, final: 0.95 },
+        },
+        {
+          source: { entryId: 'capsule_2', scope: 'project', shortcut: 'Deploying containers' },
+          snippet: 'Use SHA digests',
+          tags: ['docker'],
+          recallChannels: ['semantic'],
+          scores: { semantic: 0.85, keyword: null, graph: null, preRerank: 0.85, final: 0.85 },
+        },
+      ];
+
+      const result = buildCapsuleSummary({
+        query: 'docker version pinning',
+        includeSummary: true,
+        capsules,
+        citations,
+      });
+
+      expect(result).not.toBeNull();
+      const text = result?.text ?? '';
+      const occurrences = text.split('Unpinned images cause unexpected breakage').length - 1;
+      expect(occurrences).toBe(1);
+      const goalOccurrences = text.split('Stabilize deployments with version pinning').length - 1;
+      expect(goalOccurrences).toBe(1);
+      expect(text).toContain('Pin Docker image versions to avoid breaking changes');
+      expect(text).toContain('Use SHA digests instead of tags for reproducibility');
+    });
+
+    it('limits summary to 6 fact lines', () => {
+      const capsules: CapsuleMatch[] = [
+        {
+          capsuleId: 'capsule_1',
+          artifactId: 'artifact_1',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Content fact one',
+          situation: 'Situation',
+          problem: 'Problem fact one',
+          goal: 'Goal fact one',
+          labels: ['test'],
+          scope: 'global',
+          requiredLevel: 0,
+          score: 0.9,
+          reason: 'Match',
+        },
+        {
+          capsuleId: 'capsule_2',
+          artifactId: 'artifact_2',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Content fact two',
+          situation: 'Situation',
+          problem: 'Problem fact two',
+          goal: 'Goal fact two',
+          labels: ['test'],
+          scope: 'global',
+          requiredLevel: 0,
+          score: 0.8,
+          reason: 'Match',
+        },
+        {
+          capsuleId: 'capsule_3',
+          artifactId: 'artifact_3',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Content fact three',
+          situation: 'Situation',
+          problem: 'Problem fact three',
+          goal: 'Goal fact three',
+          labels: ['test'],
+          scope: 'global',
+          requiredLevel: 0,
+          score: 0.7,
+          reason: 'Match',
+        },
+      ];
+
+      const citations: RetrievalCitation[] = [
+        {
+          source: { entryId: 'capsule_1', scope: 'global', shortcut: 'Situation' },
+          snippet: 'Content fact one',
+          tags: ['test'],
+          recallChannels: ['semantic'],
+          scores: { semantic: 0.9, keyword: null, graph: null, preRerank: 0.9, final: 0.9 },
+        },
+      ];
+
+      const result = buildCapsuleSummary({
+        query: 'test',
+        includeSummary: true,
+        capsules,
+        citations,
+      });
+
+      expect(result).not.toBeNull();
+      const text = result?.text ?? '';
+      expect(text).toContain('Problem fact one');
+      expect(text).toContain('Goal fact one');
+      expect(text).toContain('Content fact one');
+      expect(text).toContain('Problem fact two');
+      expect(text).toContain('Goal fact two');
+      expect(text).toContain('Content fact two');
+      expect(text).not.toContain('Problem fact three');
+    });
+
+    it('produces a flowing paragraph without bullet formatting', () => {
+      const capsules: CapsuleMatch[] = [
+        {
+          capsuleId: 'capsule_1',
+          artifactId: 'artifact_1',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Use bridge networking for container communication',
+          situation: 'Container networking',
+          problem: 'Containers cannot communicate by default',
+          goal: 'Enable inter-container communication',
+          labels: ['docker'],
+          scope: 'project',
+          requiredLevel: 0,
+          score: 0.9,
+          reason: 'Match',
+        },
+      ];
+
+      const citations: RetrievalCitation[] = [
+        {
+          source: { entryId: 'capsule_1', scope: 'project', shortcut: 'Container networking' },
+          snippet: 'Use bridge networking',
+          tags: ['docker'],
+          recallChannels: ['semantic'],
+          scores: { semantic: 0.9, keyword: null, graph: null, preRerank: 0.9, final: 0.9 },
+        },
+      ];
+
+      const result = buildCapsuleSummary({
+        query: 'docker networking',
+        includeSummary: true,
+        capsules,
+        citations,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result?.text).not.toContain('•');
+      expect(result?.text).not.toContain('Found');
+      expect(result?.text).not.toContain('\n');
+    });
+
+    it('skips empty problem, goal, and content fields', () => {
+      const capsules: CapsuleMatch[] = [
+        {
+          capsuleId: 'capsule_1',
+          artifactId: 'artifact_1',
+          revision: 1,
+          sourcePaths: ['SKILL.md'],
+          content: 'Only content available',
+          situation: 'Test',
+          problem: '',
+          goal: '  ',
+          labels: ['test'],
+          scope: 'global',
+          requiredLevel: 0,
+          score: 0.9,
+          reason: 'Match',
+        },
+      ];
+
+      const citations: RetrievalCitation[] = [
+        {
+          source: { entryId: 'capsule_1', scope: 'global', shortcut: 'Test' },
+          snippet: 'Only content available',
+          tags: ['test'],
+          recallChannels: ['semantic'],
+          scores: { semantic: 0.9, keyword: null, graph: null, preRerank: 0.9, final: 0.9 },
+        },
+      ];
+
+      const result = buildCapsuleSummary({
+        query: 'test',
+        includeSummary: true,
+        capsules,
+        citations,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result?.text).toBe('Only content available');
     });
 
     it('only consumes already-filtered distilled hits (T-14-08 mitigation)', () => {

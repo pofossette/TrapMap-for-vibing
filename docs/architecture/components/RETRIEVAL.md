@@ -553,6 +553,21 @@ graph recall artifact IDs -> map to artifact capsules -> rerank within artifact
 
 **错误降级**: graph repo 不可用或 graph channel 注册失败时，不阻断检索主流程
 
+#### Summary 字段生成（Phase 4 Eval Accuracy）
+
+v2 检索响应的 `summary` 字段由 `buildCapsuleSummary()` 生成，采用确定性事实合成策略：
+
+**字段源优先级**：`problem` → `goal` → `content`
+
+每个 capsule 按上述顺序提取非空字段作为事实行，跨 capsule 去重后取前 6 条，以空格连接为流畅段落。
+
+**空结果契约**：
+- 无 capsule → `summary: null`
+- `includeSummary: false` → `summary: null`
+- 无 citations → `summary: null`
+
+**Groundedness 保证**：摘要仅从已通过治理过滤的 capsule 字段合成，不引入外部信息或 LLM 生成内容。
+
 #### 后续阶段预览
 
 | Phase | 任务 | 新增内容 | 状态 |
