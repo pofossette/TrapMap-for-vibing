@@ -86,6 +86,7 @@ export function createMockCapsule(overrides: {
   labels: string[];
   scope: 'global' | 'project';
   requiredLevel: number;
+  content?: string;
   contextualPrefix?: string;
 }): DerivedSkillCapsuleRecord {
   return {
@@ -93,7 +94,7 @@ export function createMockCapsule(overrides: {
     artifactId: overrides.artifactId,
     revision: 1,
     sourcePaths: ['SKILL.md'],
-    content: `Content for ${overrides.problem}`,
+    content: overrides.content ?? `Content for ${overrides.problem}`,
     situation: overrides.situation,
     problem: overrides.problem,
     goal: overrides.goal,

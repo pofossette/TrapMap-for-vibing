@@ -23,7 +23,6 @@ export function buildMultiChannelReason(
     channelConsensusBoost?: number;
     semanticBoost?: number;
     graphBoost?: number;
-    preRerankScore?: number;
   },
   capsule: DerivedSkillCapsuleRecord,
   _intent: ParsedIntent,
@@ -56,7 +55,7 @@ export function buildMultiChannelReason(
     parts.push('stack/path boost');
   }
 
-  if ((featureScores.channelConsensusBoost ?? 0) > 0) {
+  if (channels.length >= 2 && (featureScores.channelConsensusBoost ?? 0) > 0) {
     parts.push(`${channels.length}-channel consensus`);
   }
 

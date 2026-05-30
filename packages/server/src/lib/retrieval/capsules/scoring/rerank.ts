@@ -95,7 +95,6 @@ export function rerankMergedCapsules(
         channelConsensusBoost,
         semanticBoost,
         graphBoost,
-        preRerankScore: mc.preRerankScore,
       },
       capsule,
       intent,
