@@ -466,6 +466,16 @@ pnpm vitest run evals/retrieval/runner.test.ts
 
 测试文件遵循 `*.test.ts` 命名约定，放置在对应模块目录下。
 
+### Live PG Eval Parity
+
+检索评测 harness 在 PG 模式下必须与 JSON 模式产生相同的 auth/graph 设置语义。Phase 0 修复了以下三个问题：
+
+- **Session subject type**：`createActorSession()` 在 PG 模式下删除旧 session 并创建新 session，确保 `subjectType` 和 `activeTeamId` 正确（不再隐式使用 system-admin）。
+- **Active team**：actor 的 `activeTeamId` 通过新 session 正确传递，governance 过滤基于实际 team membership。
+- **Graph repository visibility**：graph 文档通过 `repos.graphIndex.upsert()` 播种，确保 `repos.graphIndex.listAll()` 可见。
+
+回归测试位于 `evals/retrieval/lib/adapters.test.ts`。
+
 ### PostgreSQL 集成测试
 
 部分模块包含需要真实 PostgreSQL 连接的集成测试。这些测试通过 `TRAPMAP_DATABASE_URL` 或 `DATABASE_URL` 环境变量控制，未设置时自动跳过。

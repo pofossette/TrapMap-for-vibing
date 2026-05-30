@@ -295,6 +295,14 @@ pnpm eval:retrieval:core
 - 通过 RAG log metadata 中的 `parseMethod` 和 `intentCategory` 字段识别解析方式
 - `parseMethod: 'llm'` 表示 LLM 解析生效，`'regex'` 表示降级到正则 baseline
 
+## PG 模式 Eval Harness 语义（Phase 0）
+
+PG 模式下的评测 harness 必须与 JSON 模式产生完全相同的 auth/graph 设置语义：
+
+- **场景 actor session 必须在 fixture seeding 之后创建**：`createExecutionContext()` 先创建 system-admin session 用于 seeding，`seedScenarioFixtures()` 完成后通过 `createActorSession()` 删除旧 session 并创建新的 actor session，确保 `subjectType`、`activeTeamId` 和 membership 状态正确。
+- **Graph 文档必须通过 `repos.graphIndex.upsert()` 播种**：PG 模式下 server 从 `graph_index_documents` 表读取数据，直接写入 `store.transact()` 不会同步到 PG 表。
+- **回归测试**：`evals/retrieval/lib/adapters.test.ts` 验证 governance 敏感场景不以隐式 system-admin 身份运行，且 `repos.graphIndex.listAll()` 可见播种的 graph 文档。
+
 ## 底层索引结构（Round 7）
 
 检索端点依赖以下 PostgreSQL 派生索引表，均通过迁移脚本 `0005_round7_retrieval_index_structural.sql` 管理：
