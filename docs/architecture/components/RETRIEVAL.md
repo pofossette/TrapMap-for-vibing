@@ -394,6 +394,20 @@ searchKnowledgeV2() (orchestrator.ts)
 - 语义/关键词通道失败时返回空数组，不阻断检索
 - 通道 observable：`channelsPlanned` / `channelsUsed` / `mergeStats` 通过 trace 记录
 
+#### 精度门控与空结果行为 (Precision Gating)
+
+v2 管线在两个层面执行 `MIN_CAPSULE_SCORE` 阈值过滤，确保零信号和近零启发式匹配不会成为返回的 capsules：
+
+1. **通道层预过滤**：`capsuleHeuristicChannel.recall()` 在返回前丢弃 `finalScore < MIN_CAPSULE_SCORE` 的候选，防止低分候选进入 merge 层
+2. **rerank 层最终门控**：`rerankMergedCapsules()` 在独立重排后再次过滤，确保所有通道来源的低分候选都被丢弃
+
+**空结果契约**：当所有候选低于阈值时（即使存在治理合格的 artifacts），`searchKnowledgeV2()` 返回 `buildEmptyV2Response()`：
+- `capsules: []`
+- `summary: null`
+- `profileHints: []`
+
+**可观测性**：orchestrator 在 pipeline steps 中记录 `threshold-gate` 步骤，包含 pre-threshold（`inputSize`）和 post-threshold（`outputSize`）候选计数，用于后续阈值调优。
+
 #### v2 查询过滤器传播
 
 v2 查询中的 `filters.labels` 和 `filters.scopes` 在以下位置生效：

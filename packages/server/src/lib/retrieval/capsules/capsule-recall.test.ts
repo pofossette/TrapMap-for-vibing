@@ -19,6 +19,7 @@ import type {
 } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import {
+  MIN_CAPSULE_SCORE,
   buildProfileShortlist,
   extractGovernedCapsules,
   getCapsuleRecords,
@@ -26,6 +27,7 @@ import {
   matchesArtifactMetadata,
   rankCapsules,
 } from './capsule-recall.js';
+import { capsuleHeuristicChannel } from './channels/heuristic.js';
 
 describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
   const userId = 'user_1';
@@ -443,6 +445,86 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
       const ranked = rankCapsules(artifacts, intent, filters, 1);
 
       expect(ranked.length).toBe(1);
+    });
+
+    it('should produce low-score capsules for unrelated intent (threshold applied by channels)', () => {
+      const artifacts = [approvedGlobalArtifact];
+
+      const intent: ParsedIntent = {
+        seed: 'xyzzy totally unrelated gibberish',
+        normalized: 'xyzzy totally unrelated gibberish',
+        situation: null,
+        problem: null,
+        goal: null,
+        errorText: null,
+        tokens: [],
+        stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
+      };
+
+      const filters = makeFilters();
+
+      const ranked = rankCapsules(artifacts, intent, filters, 10);
+
+      expect(ranked.length).toBeGreaterThanOrEqual(1);
+      expect(ranked[0]!.finalScore).toBeLessThan(MIN_CAPSULE_SCORE);
+    });
+
+    it('should produce scores for weakly-related intent that remain below threshold', () => {
+      const artifacts = [approvedGlobalArtifact, approvedTeamArtifact];
+
+      const intent: ParsedIntent = {
+        seed: 'completely unrelated query with no overlap',
+        normalized: 'completely unrelated query with no overlap',
+        situation: null,
+        problem: null,
+        goal: null,
+        errorText: null,
+        tokens: [],
+        stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
+      };
+
+      const filters = makeFilters();
+
+      const ranked = rankCapsules(artifacts, intent, filters, 10);
+
+      expect(ranked.length).toBeGreaterThan(0);
+      for (const candidate of ranked) {
+        expect(candidate.finalScore).toBeLessThan(MIN_CAPSULE_SCORE);
+      }
+    });
+
+    it('should produce high-score capsules for strongly matching intent', () => {
+      const artifacts = [approvedGlobalArtifact];
+
+      const intent: ParsedIntent = {
+        seed: 'docker node version mismatch containers',
+        normalized: 'docker node version mismatch containers',
+        situation: 'When deploying containers with a Node.js application',
+        problem: 'Container Node version older than development version',
+        goal: 'Pin Node version in Dockerfile',
+        errorText: null,
+        tokens: [
+          { token: 'docker', original: 'docker', isTechnical: true },
+          { token: 'node', original: 'node', isTechnical: true },
+        ],
+        stackPathHints: [{ hint: 'docker', kind: 'stack', confidence: 0.9 }],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
+      };
+
+      const filters = makeFilters();
+
+      const ranked = rankCapsules(artifacts, intent, filters, 10);
+
+      expect(ranked.length).toBeGreaterThanOrEqual(1);
+      expect(ranked[0]!.finalScore).toBeGreaterThanOrEqual(MIN_CAPSULE_SCORE);
     });
   });
 
@@ -931,6 +1013,86 @@ describe('capsule recall (RETR-03, CAPS-04, Phase 14 Task 2)', () => {
       // Only the typescript artifact should be ranked
       expect(ranked.length).toBe(1);
       expect(ranked[0].artifactId).toBe('artifact_2');
+    });
+  });
+
+  describe('heuristic channel threshold filtering', () => {
+    it('should filter out zero-score capsules from heuristic channel output', async () => {
+      const artifacts = [approvedGlobalArtifact];
+
+      const intent: ParsedIntent = {
+        seed: 'xyzzy totally unrelated gibberish',
+        normalized: 'xyzzy totally unrelated gibberish',
+        situation: null,
+        problem: null,
+        goal: null,
+        errorText: null,
+        tokens: [],
+        stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
+      };
+
+      const filters = makeFilters();
+
+      const candidates = await capsuleHeuristicChannel.recall(artifacts, intent, filters, 10);
+
+      expect(candidates.length).toBe(0);
+    });
+
+    it('should retain capsules at or above MIN_CAPSULE_SCORE in heuristic channel', async () => {
+      const artifacts = [approvedGlobalArtifact];
+
+      const intent: ParsedIntent = {
+        seed: 'docker node version mismatch containers',
+        normalized: 'docker node version mismatch containers',
+        situation: 'When deploying containers with a Node.js application',
+        problem: 'Container Node version older than development version',
+        goal: 'Pin Node version in Dockerfile',
+        errorText: null,
+        tokens: [
+          { token: 'docker', original: 'docker', isTechnical: true },
+          { token: 'node', original: 'node', isTechnical: true },
+        ],
+        stackPathHints: [{ hint: 'docker', kind: 'stack', confidence: 0.9 }],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
+      };
+
+      const filters = makeFilters();
+
+      const candidates = await capsuleHeuristicChannel.recall(artifacts, intent, filters, 10);
+
+      expect(candidates.length).toBeGreaterThanOrEqual(1);
+      for (const candidate of candidates) {
+        expect(candidate.score).toBeGreaterThanOrEqual(MIN_CAPSULE_SCORE);
+      }
+    });
+
+    it('should return empty when all capsules score below threshold', async () => {
+      const artifacts = [approvedGlobalArtifact, approvedTeamArtifact];
+
+      const intent: ParsedIntent = {
+        seed: 'completely unrelated query with no overlap whatsoever',
+        normalized: 'completely unrelated query with no overlap whatsoever',
+        situation: null,
+        problem: null,
+        goal: null,
+        errorText: null,
+        tokens: [],
+        stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
+      };
+
+      const filters = makeFilters();
+
+      const candidates = await capsuleHeuristicChannel.recall(artifacts, intent, filters, 10);
+
+      expect(candidates.length).toBe(0);
     });
   });
 });

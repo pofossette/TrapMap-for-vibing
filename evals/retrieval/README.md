@@ -143,6 +143,16 @@ expected: {
 - CI 接线 → Phase 28
 - 摘要/法官评测 → Phase 27
 
+## v2 精度门控 (Precision Gating)
+
+v2 检索指标假设精度门控（precision gating），而非无条件启发式回退。所有通道候选在最终返回前必须通过 `MIN_CAPSULE_SCORE` 阈值过滤：
+
+- **heuristic 通道**：在通道层面预过滤，零信号候选不进入 merge 层
+- **rerank 层**：最终门控，`finalScore < MIN_CAPSULE_SCORE` 的候选被丢弃
+- **空结果行为**：当所有候选低于阈值时，返回 `capsules: []` 和 `summary: null`，即使存在治理合格的 artifacts
+
+这意味着 `v2-empty-with-summary-core` 等空结果用例期望 `0` capsules 和 `null` summary，而非低分候选的填充响应。
+
 ## v2 多路召回基准 (Phase 7)
 
 多路召回管线（heuristic + keyword + semantic + graph 四通道）已全线落地为 v2 检索唯一路径。

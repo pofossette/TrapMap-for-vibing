@@ -380,6 +380,42 @@ describe('retrieval route', () => {
       // But the permission check is still in the route handler
       expect(response.statusCode).toBe(401);
     });
+
+    it('returns empty capsules and null summary when no capsules pass threshold (v2-empty-with-summary-core)', async () => {
+      const { app: testApp, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact_unrelated',
+            title: 'Kubernetes Cluster Autoscaling',
+            labels: ['k8s', 'autoscaling'],
+            capsuleId: 'capsule_unrelated',
+            capsuleContent:
+              'Kubernetes horizontal pod autoscaler configuration for production clusters with custom metrics',
+          });
+        },
+        {
+          permissions: ['knowledge:search'],
+          roleTemplate: 'user',
+        },
+      );
+
+      const response = await testApp.inject({
+        method: 'POST',
+        url: '/v2/retrieval/search',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          seed: 'xyzzy completely unrelated gibberish query',
+          includeSummary: true,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      expect(json.capsules).toEqual([]);
+      expect(json.summary).toBeNull();
+
+      await testApp.close();
+    });
   });
 
   describe('POST /v3/retrieval/search', () => {

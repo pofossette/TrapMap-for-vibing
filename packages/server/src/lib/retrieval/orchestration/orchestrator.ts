@@ -473,6 +473,13 @@ export async function searchKnowledgeV2(
     routingDecision.channelsPlanned = recallResult.channelsPlanned;
     routingDecision.channelsUsed = recallResult.channelsUsed;
 
+    steps.push({
+      name: 'threshold-gate',
+      durationMs: 0,
+      inputSize: recallResult.mergeStats.totalChannelCandidates,
+      outputSize: rankedCandidates.length,
+    });
+
     if (rankedCandidates.length === 0) {
       void logRagRetrieval(services.config.ragLog, {
         timestamp: new Date(startMs).toISOString(),

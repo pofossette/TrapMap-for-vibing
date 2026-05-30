@@ -1,4 +1,7 @@
-import { rankCapsules } from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
+import {
+  MIN_CAPSULE_SCORE,
+  rankCapsules,
+} from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
 import type {
   ArtifactGovernanceFilters,
   CapsuleRecallCandidate,
@@ -26,12 +29,14 @@ export const capsuleHeuristicChannel: CapsuleRecallChannel = {
   ): Promise<CapsuleRecallCandidate[]> {
     const ranked = rankCapsules(artifacts, intent, filters, maxResults * 2);
 
-    return ranked.map((candidate) => ({
-      capsuleId: candidate.capsuleId,
-      artifactId: candidate.artifactId,
-      revision: candidate.revision,
-      channel: 'capsule-heuristic' as CapsuleRecallChannelName,
-      score: candidate.finalScore,
-    }));
+    return ranked
+      .filter((candidate) => candidate.finalScore >= MIN_CAPSULE_SCORE)
+      .map((candidate) => ({
+        capsuleId: candidate.capsuleId,
+        artifactId: candidate.artifactId,
+        revision: candidate.revision,
+        channel: 'capsule-heuristic' as CapsuleRecallChannelName,
+        score: candidate.finalScore,
+      }));
   },
 };

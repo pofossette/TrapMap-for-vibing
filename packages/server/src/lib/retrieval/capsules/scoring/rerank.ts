@@ -1,4 +1,5 @@
 import {
+  MIN_CAPSULE_SCORE,
   computeContextMatchScore,
   computeErrorScore,
   computeGoalScore,
@@ -103,5 +104,7 @@ export function rerankMergedCapsules(
 
   candidates.sort((a, b) => b.finalScore - a.finalScore);
 
-  return candidates.slice(0, maxResults);
+  return candidates
+    .filter((c) => c.finalScore >= MIN_CAPSULE_SCORE)
+    .slice(0, maxResults);
 }

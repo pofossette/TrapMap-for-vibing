@@ -21,6 +21,8 @@ import type {
   SkillArtifactRecord,
 } from '@trapmap/server/lib/store.js';
 
+export const MIN_CAPSULE_SCORE = 0.12;
+
 /**
  * Check if an artifact passes governance filters.
  * Delegates to shared governance module for unified eligibility logic.
@@ -466,10 +468,8 @@ export function rankCapsules(
     });
   }
 
-  // Sort by final score descending
   candidates.sort((a, b) => b.finalScore - a.finalScore);
 
-  // Return top results
   return candidates.slice(0, maxResults);
 }
 
