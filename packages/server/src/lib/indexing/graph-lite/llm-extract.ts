@@ -234,7 +234,7 @@ export function mergeExtractions(extractions: LlmGraphExtraction[]): LlmGraphExt
       }
     }
     for (const edge of extraction.edges) {
-      const key = `${normalizeValue(edge.sourceLabel)}-${edge.relationType}-${normalizeValue(edge.targetLabel)}`;
+      const key = `${normalizeValue(edge.sourceLabel)}-${edge.relationType.toLowerCase().trim()}-${normalizeValue(edge.targetLabel)}`;
       if (!edgeSet.has(key)) {
         edgeSet.set(key, edge);
       }
@@ -269,6 +269,14 @@ const LLM_TO_RELATION_TYPE: Record<string, GraphRelationType> = {
   'co-occurs-with': 'co-occurs-with',
 };
 
+const RELATION_ALIASES: Record<string, string> = {
+  mitigate: 'mitigates',
+  require: 'requires',
+  'co-occurs': 'co-occurs-with',
+  'risk-block': 'risk-blocks',
+  orders: 'order',
+};
+
 /**
  * Convert LLM extraction output to typed GraphNodeRecord[] and GraphEdgeRecord[].
  * Maps LLM labels to node IDs and validates kind/relationType values.
@@ -294,12 +302,20 @@ export function toGraphRecords(extraction: LlmGraphExtraction): {
   }
 
   const edges: GraphEdgeRecord[] = [];
+  let skippedEdgeCount = 0;
   for (const edge of extraction.edges) {
-    const relationType = LLM_TO_RELATION_TYPE[edge.relationType];
-    if (!relationType) continue;
+    const normalizedType = edge.relationType.toLowerCase().trim();
+    const relationType = LLM_TO_RELATION_TYPE[normalizedType] ?? LLM_TO_RELATION_TYPE[RELATION_ALIASES[normalizedType] ?? ''];
+    if (!relationType) {
+      skippedEdgeCount++;
+      continue;
+    }
     const sourceId = nodeIdByLabel.get(normalizeValue(edge.sourceLabel));
     const targetId = nodeIdByLabel.get(normalizeValue(edge.targetLabel));
-    if (!sourceId || !targetId) continue;
+    if (!sourceId || !targetId) {
+      skippedEdgeCount++;
+      continue;
+    }
     edges.push({
       id: buildEdgeId(sourceId, targetId, relationType),
       sourceNodeId: sourceId,
@@ -308,6 +324,10 @@ export function toGraphRecords(extraction: LlmGraphExtraction): {
       strength: edge.strength as GraphRelationStrength,
       evidence: edge.description ?? 'llm-extracted',
     });
+  }
+
+  if (skippedEdgeCount > 0) {
+    console.warn(`[toGraphRecords] skipped ${skippedEdgeCount} edge(s) (unknown relationType or missing node)`);
   }
 
   return { nodes, edges };

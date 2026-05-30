@@ -43,6 +43,27 @@ pnpm eval:graph-extraction --smoke --dry-run
 pnpm eval:graph-extraction -v
 ```
 
+## Live-vs-Fallback Reporting
+
+The runner now reports the extraction **mode** for each case and in aggregate:
+
+| Mode | Meaning |
+|------|---------|
+| live | LLM extraction succeeded |
+| fallback | Rule-engine extraction was used instead |
+
+A case is marked **degraded** when live mode was requested but the LLM was unavailable (provider not configured or extraction failed). Degraded cases are flagged with ! in the per-case table and summarized in the report footer.
+
+**Required environment for live mode:**
+- OPENAI_API_KEY (or equivalent chat provider config) must be set
+- Without it, all cases degrade to fallback mode
+
+**Interpreting results:**
+- A dry-run report shows all cases as fallback — this is expected
+- A live report with degraded cases means the chat provider was unavailable
+- Only a fully-live report (zero degraded) reflects true LLM extraction quality
+- Edge metrics are only meaningful in live mode since the rule-engine fallback produces zero edges
+
 ## Integration with eval:smoke
 
 The graph extraction eval is included in the unified `pnpm eval:smoke` runner

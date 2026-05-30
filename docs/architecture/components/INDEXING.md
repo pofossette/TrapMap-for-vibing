@@ -334,6 +334,15 @@ function assertNoHardDependencyCycles(documents) {
 
 在持久化之前，适配器将候选文档与现有文档合并，投影 hard 边后检测环。如果检测到环，抛出错误，文档不会被写入。
 
+### 图提取评估契约 (Graph Extraction Evaluation Contract)
+
+The eval runner at `evals/graph-extraction/run.ts` evaluates the LLM extraction pipeline against annotated ground truth. It reports whether each extraction used live LLM or fallback rule engine. This distinction is critical because:
+- Silent fallback to the rule engine can make infra-constrained runs appear to produce valid results when they are actually using keyword-based heuristics
+- Edge extraction metrics are only meaningful in live mode since the rule-engine fallback produces zero edges by design
+- A degraded report signals infrastructure issues, not model quality
+
+When evaluating extraction quality, always check the mode breakdown in the report header.
+
 ---
 
 ## 6. Graph 持久层 (graph-lite)

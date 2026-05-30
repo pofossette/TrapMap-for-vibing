@@ -23,6 +23,17 @@ import { getSmokeFixtures, graphExtractionFixtures } from './fixtures.js';
 import type { ExpectedEdge, ExpectedNode, GraphExtractionFixture } from './fixtures.js';
 
 // ---------------------------------------------------------------------------
+// Extraction mode tracking
+// ---------------------------------------------------------------------------
+
+export interface ExtractionRunResult {
+  extraction: LlmGraphExtraction;
+  mode: 'live' | 'fallback';
+  degraded: boolean;
+  warning: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
 
@@ -84,13 +95,16 @@ function computeMetrics(tp: number, fp: number, fn: number): ClassificationMetri
   return { tp, fp, fn, precision, recall, f1 };
 }
 
-interface CaseMetrics {
+export interface CaseMetrics {
   caseId: string;
   nodeMetrics: ClassificationMetrics;
   edgeMetrics: ClassificationMetrics;
   strengthAccuracy: number;
   totalExpectedStrengths: number;
   correctStrengths: number;
+  mode: 'live' | 'fallback';
+  degraded: boolean;
+  warning: string | null;
 }
 
 /**
@@ -152,7 +166,7 @@ function evaluateEdges(
     fp: actualMap.size - tp,
     fn: expectedMap.size - tp,
     correctStrengths,
-    totalStrengths: expected.size,
+    totalStrengths: expected.length,
   };
 }
 
@@ -164,7 +178,7 @@ function evaluateEdges(
  * Simulate rule-engine extraction from text.
  * Simple keyword-based extraction for comparison.
  */
-function simulateRuleEngineExtraction(text: string): LlmGraphExtraction {
+export function simulateRuleEngineExtraction(text: string): LlmGraphExtraction {
   const nodes: LlmGraphExtraction['nodes'] = [];
   const edges: LlmGraphExtraction['edges'] = [];
 
@@ -216,10 +230,15 @@ function simulateRuleEngineExtraction(text: string): LlmGraphExtraction {
  * Perform actual LLM extraction.
  * Falls back to mock data in dry-run mode.
  */
-async function performLLMExtraction(text: string, dryRun: boolean): Promise<LlmGraphExtraction> {
+export async function performLLMExtraction(text: string, dryRun: boolean): Promise<ExtractionRunResult> {
   if (dryRun) {
     // In dry-run mode, use a deterministic mock that returns a reasonable subset
-    return simulateRuleEngineExtraction(text);
+    return {
+      extraction: simulateRuleEngineExtraction(text),
+      mode: 'fallback',
+      degraded: false,
+      warning: null,
+    };
   }
 
   // Real LLM call
@@ -237,14 +256,29 @@ async function performLLMExtraction(text: string, dryRun: boolean): Promise<LlmG
     const { chat } = createAiProviders(config);
     if (!chat.isConfigured) {
       console.warn('WARNING: Chat provider not configured, falling back to rule engine');
-      return simulateRuleEngineExtraction(text);
+      return {
+        extraction: simulateRuleEngineExtraction(text),
+        mode: 'fallback',
+        degraded: true,
+        warning: 'chat-provider-not-configured',
+      };
     }
 
     const result = await extractSegmentEntities(chat, text);
-    return result ?? { nodes: [], edges: [] };
+    return {
+      extraction: result ?? { nodes: [], edges: [] },
+      mode: 'live',
+      degraded: false,
+      warning: null,
+    };
   } catch (error) {
     console.warn('LLM extraction failed, falling back to rule engine:', error);
-    return simulateRuleEngineExtraction(text);
+    return {
+      extraction: simulateRuleEngineExtraction(text),
+      mode: 'fallback',
+      degraded: true,
+      warning: 'llm-extraction-failed',
+    };
   }
 }
 
@@ -252,11 +286,12 @@ async function performLLMExtraction(text: string, dryRun: boolean): Promise<LlmG
 // Case evaluation
 // ---------------------------------------------------------------------------
 
-async function evaluateCase(
+export async function evaluateCase(
   fixture: GraphExtractionFixture,
   dryRun: boolean,
 ): Promise<CaseMetrics> {
-  const extraction = await performLLMExtraction(fixture.input, dryRun);
+  const runResult = await performLLMExtraction(fixture.input, dryRun);
+  const extraction = runResult.extraction;
 
   const nodeResult = evaluateNodes(fixture.expectedNodes, extraction.nodes);
   const edgeResult = evaluateEdges(fixture.expectedEdges, extraction.edges);
@@ -269,6 +304,9 @@ async function evaluateCase(
       edgeResult.totalStrengths > 0 ? edgeResult.correctStrengths / edgeResult.totalStrengths : 0,
     totalExpectedStrengths: edgeResult.totalStrengths,
     correctStrengths: edgeResult.correctStrengths,
+    mode: runResult.mode,
+    degraded: runResult.degraded,
+    warning: runResult.warning,
   };
 }
 
@@ -276,7 +314,7 @@ async function evaluateCase(
 // Aggregation
 // ---------------------------------------------------------------------------
 
-interface AggregateMetrics {
+export interface AggregateMetrics {
   avgNodePrecision: number;
   avgNodeRecall: number;
   avgNodeF1: number;
@@ -291,9 +329,12 @@ interface AggregateMetrics {
   totalEdgeTP: number;
   totalEdgeFP: number;
   totalEdgeFN: number;
+  modeBreakdown: { live: number; fallback: number };
+  degradedCount: number;
+  warnings: string[];
 }
 
-function aggregateMetrics(results: CaseMetrics[]): AggregateMetrics {
+export function aggregateMetrics(results: CaseMetrics[]): AggregateMetrics {
   if (results.length === 0) {
     return {
       avgNodePrecision: 0,
@@ -310,6 +351,9 @@ function aggregateMetrics(results: CaseMetrics[]): AggregateMetrics {
       totalEdgeTP: 0,
       totalEdgeFP: 0,
       totalEdgeFN: 0,
+      modeBreakdown: { live: 0, fallback: 0 },
+      degradedCount: 0,
+      warnings: [],
     };
   }
 
@@ -322,6 +366,10 @@ function aggregateMetrics(results: CaseMetrics[]): AggregateMetrics {
   let totalEdgeFN = 0;
   let totalCorrectStrengths = 0;
   let totalExpectedStrengths = 0;
+  let liveCount = 0;
+  let fallbackCount = 0;
+  let degradedCount = 0;
+  const uniqueWarnings = new Set<string>();
 
   for (const r of results) {
     totalNodeTP += r.nodeMetrics.tp;
@@ -332,6 +380,10 @@ function aggregateMetrics(results: CaseMetrics[]): AggregateMetrics {
     totalEdgeFN += r.edgeMetrics.fn;
     totalCorrectStrengths += r.correctStrengths;
     totalExpectedStrengths += r.totalExpectedStrengths;
+    if (r.mode === 'live') liveCount++;
+    else fallbackCount++;
+    if (r.degraded) degradedCount++;
+    if (r.warning) uniqueWarnings.add(r.warning);
   }
 
   const nodeMetrics = computeMetrics(totalNodeTP, totalNodeFP, totalNodeFN);
@@ -353,6 +405,9 @@ function aggregateMetrics(results: CaseMetrics[]): AggregateMetrics {
     totalEdgeTP,
     totalEdgeFP,
     totalEdgeFN,
+    modeBreakdown: { live: liveCount, fallback: fallbackCount },
+    degradedCount,
+    warnings: [...uniqueWarnings],
   };
 }
 
@@ -360,7 +415,7 @@ function aggregateMetrics(results: CaseMetrics[]): AggregateMetrics {
 // Report formatting
 // ---------------------------------------------------------------------------
 
-function formatReport(
+export function formatReport(
   results: CaseMetrics[],
   agg: AggregateMetrics,
   _ruleEngineResults: CaseMetrics[],
@@ -374,9 +429,27 @@ function formatReport(
   lines.push('         Graph Extraction Evaluation Report');
   lines.push('============================================================');
   lines.push('');
-  lines.push(`Mode: ${dryRun ? 'DRY-RUN (mock data)' : 'LIVE (LLM calls)'}`);
+
+  // Mode line
+  if (dryRun) {
+    lines.push('Mode: DRY-RUN (mock data)');
+  } else if (agg.modeBreakdown.live === agg.totalCases) {
+    lines.push('Mode: LIVE (LLM calls)');
+  } else {
+    lines.push('Mode: LIVE with fallback (some cases used rule engine)');
+  }
+
   lines.push(`Total fixtures: ${agg.totalCases}`);
   lines.push('');
+
+  // Mode breakdown
+  if (!dryRun) {
+    lines.push(`Mode Breakdown: Live: ${agg.modeBreakdown.live} cases, Fallback: ${agg.modeBreakdown.fallback} cases`);
+    if (agg.degradedCount > 0) {
+      lines.push(`DEGRADED: ${agg.degradedCount} case(s) fell back to rule engine`);
+    }
+    lines.push('');
+  }
 
   // Aggregate comparison table
   lines.push('=== Aggregate Metrics (Micro-Averaged) ===');
@@ -409,11 +482,12 @@ function formatReport(
   // Per-case details
   lines.push('=== Per-Case Results ===');
   lines.push('');
-  lines.push('Case ID                    | Node P/R/F1   | Edge P/R/F1   | Str Acc');
-  lines.push('---------------------------|---------------|---------------|--------');
+  lines.push('Case ID                    | Mode | Node P/R/F1   | Edge P/R/F1   | Str Acc');
+  lines.push('---------------------------|------|---------------|---------------|--------');
 
   for (const r of results) {
     const caseId = r.caseId.padEnd(25);
+    const modeIndicator = r.mode === 'live' ? (r.degraded ? ' F!' : ' L ') : (r.degraded ? ' F!' : ' F ');
     const nodePrf =
       `${r.nodeMetrics.precision.toFixed(2)}/${r.nodeMetrics.recall.toFixed(2)}/${r.nodeMetrics.f1.toFixed(2)}`.padStart(
         13,
@@ -423,20 +497,30 @@ function formatReport(
         13,
       );
     const strAcc = r.strengthAccuracy.toFixed(2).padStart(6);
-    lines.push(`${caseId} | ${nodePrf} | ${edgePrf} | ${strAcc}`);
+    lines.push(`${caseId} |${modeIndicator}| ${nodePrf} | ${edgePrf} | ${strAcc}`);
   }
 
   lines.push('');
 
   // Worst performing cases
   const worstCases = [...results].sort((a, b) => a.nodeMetrics.f1 - b.nodeMetrics.f1).slice(0, 3);
-  if (worstCases.length > 0 && worstCases[0].nodeMetrics.f1 < 1.0) {
+  const worstFirst = worstCases[0];
+  if (worstFirst && worstFirst.nodeMetrics.f1 < 1.0) {
     lines.push('=== Lowest F1 Cases ===');
     for (const r of worstCases) {
       if (r.nodeMetrics.f1 >= 1.0) break;
       lines.push(
         `  ${r.caseId}: Node F1=${r.nodeMetrics.f1.toFixed(3)}, Edge F1=${r.edgeMetrics.f1.toFixed(3)}`,
       );
+    }
+    lines.push('');
+  }
+
+  // Warnings
+  if (agg.warnings.length > 0) {
+    lines.push('=== Warnings ===');
+    for (const w of agg.warnings) {
+      lines.push(`  - ${w}`);
     }
     lines.push('');
   }
@@ -492,6 +576,9 @@ async function main(): Promise<void> {
         edgeResult.totalStrengths > 0 ? edgeResult.correctStrengths / edgeResult.totalStrengths : 0,
       totalExpectedStrengths: edgeResult.totalStrengths,
       correctStrengths: edgeResult.correctStrengths,
+      mode: 'fallback' as const,
+      degraded: false,
+      warning: null,
     });
   }
 
@@ -506,6 +593,11 @@ async function main(): Promise<void> {
 
   // In live mode, check if LLM outperforms rule engine
   if (!options.dryRun) {
+    if (agg.degradedCount > 0) {
+      console.log(
+        `WARNING: ${agg.degradedCount} case(s) degraded -- results may not reflect true LLM quality`,
+      );
+    }
     const llmBetter =
       agg.avgNodeF1 > ruleEngineAgg.avgNodeF1 || agg.avgEdgeF1 > ruleEngineAgg.avgEdgeF1;
     if (llmBetter) {

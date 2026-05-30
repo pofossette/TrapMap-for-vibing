@@ -195,6 +195,20 @@ describe('llm-extract', () => {
       const merged = mergeExtractions([ext1, ext2]);
       expect(merged.edges).toHaveLength(2);
     });
+
+    it('deduplicates edges with different relation type casing', () => {
+      const ext1: LlmGraphExtraction = {
+        nodes: [],
+        edges: [{ sourceLabel: 'a', targetLabel: 'b', relationType: 'requires', strength: 'hard' }],
+      };
+      const ext2 = {
+        nodes: [],
+        edges: [{ sourceLabel: 'a', targetLabel: 'b', relationType: 'Requires', strength: 'soft' }],
+      } as unknown as LlmGraphExtraction;
+      const merged = mergeExtractions([ext1, ext2]);
+      expect(merged.edges).toHaveLength(1);
+      expect(merged.edges[0].strength).toBe('hard');
+    });
   });
 
   describe('toGraphRecords', () => {
@@ -253,6 +267,50 @@ describe('llm-extract', () => {
       const { nodes } = toGraphRecords(extraction);
       expect(nodes[0].evidence).toBe('llm-extracted');
       expect(nodes[1].evidence).toBe('alternative package manager');
+    });
+
+    it('normalizes relation type casing before lookup', () => {
+      const extraction = {
+        nodes: [
+          { kind: 'tool', label: 'docker' },
+          { kind: 'cue', label: 'timeout' },
+        ],
+        edges: [
+          { sourceLabel: 'docker', targetLabel: 'timeout', relationType: 'Co-occurs-With', strength: 'soft' },
+        ],
+      } as unknown as LlmGraphExtraction;
+      const { edges } = toGraphRecords(extraction);
+      expect(edges).toHaveLength(1);
+      expect(edges[0].relationType).toBe('co-occurs-with');
+    });
+
+    it('resolves relation type aliases', () => {
+      const extraction = {
+        nodes: [
+          { kind: 'tool', label: 'a' },
+          { kind: 'cue', label: 'b' },
+        ],
+        edges: [
+          { sourceLabel: 'a', targetLabel: 'b', relationType: 'mitigate', strength: 'hard' },
+        ],
+      } as unknown as LlmGraphExtraction;
+      const { edges } = toGraphRecords(extraction);
+      expect(edges).toHaveLength(1);
+      expect(edges[0].relationType).toBe('mitigates');
+    });
+
+    it('still skips truly unknown relation types', () => {
+      const extraction = {
+        nodes: [
+          { kind: 'tool', label: 'a' },
+          { kind: 'cue', label: 'b' },
+        ],
+        edges: [
+          { sourceLabel: 'a', targetLabel: 'b', relationType: 'totally-unknown', strength: 'hard' },
+        ],
+      } as unknown as LlmGraphExtraction;
+      const { edges } = toGraphRecords(extraction);
+      expect(edges).toHaveLength(0);
     });
   });
 

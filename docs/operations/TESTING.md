@@ -23,6 +23,12 @@ flowchart TB
 | 检索评估 (Retrieval) | 验证召回结果的相关性和治理正确性 | `evals/retrieval/run.ts` |
 | 摘要评估 (Summary) | 验证 AI 生成摘要的忠实度和覆盖率 | `evals/summary/run.ts` |
 | 图提取评估 (Graph Extraction) | 验证图提取、去重和冲突评测 | `evals/graph-extraction/run.ts` |
+
+**Graph Extraction Eval Reporting:**
+- `pnpm eval:graph-extraction` — live mode, requires chat provider config
+- `pnpm eval:graph-extraction --dry-run` — deterministic fallback, all cases marked as fallback mode
+- If a live run reports "DEGRADED" cases, check that the chat provider environment variables are configured
+- A report with zero live cases and non-zero fallback cases should NOT be used to evaluate LLM extraction quality
 | 摄取评估 (Ingestion) | 验证 Skill 目录摄取的正确性 | `evals/ingestion/run.ts` |
 | 治理评估 (Governance) | 验证 RBAC 和安全等级过滤 | 内嵌于检索评估 |
 
