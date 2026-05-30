@@ -9,7 +9,7 @@
 import type { FastifyInstance } from 'fastify';
 
 import type { RetrievalQuery, RetrievalV2Query } from '@trapmap/contracts';
-import type { RetrievalEvalCase } from '@trapmap/contracts/evals';
+import type { RetrievalEvalCase, RetrievalEvalScenario } from '@trapmap/contracts/evals';
 import { buildServer } from '../../../packages/server/src/app.js';
 import type { GraphIndexDocumentRecord } from '../../../packages/server/src/lib/indexing/graph-lite/documents.js';
 import { createKnowledgeEntryRecord } from '../../../packages/server/src/lib/knowledge.js';
@@ -17,7 +17,6 @@ import type { SkillShareerRepos } from '../../../packages/server/src/lib/repos/i
 import { hashSecret, nowIso } from '../../../packages/server/src/lib/store.js';
 import type {
   DerivedSkillCapsuleRecord,
-  JsonStore,
   KnowledgeRecord,
   SkillArtifactRecord,
   SkillShareerStore,
@@ -59,7 +58,7 @@ export interface ExecutionContext {
   /** Fastify app instance */
   app: FastifyInstance;
   /** Store instance for fixture seeding */
-  store: JsonStore;
+  store: SkillShareerStore;
   /** Session token for authentication */
   sessionToken: string;
   /** Actor ID for the session */
@@ -248,7 +247,7 @@ export async function closeExecutionContext(ctx: ExecutionContext): Promise<void
  */
 export async function seedScenarioFixtures(
   ctx: ExecutionContext,
-  case_: RetrievalEvalCase,
+  case_: Pick<RetrievalEvalCase, 'scenarioId'>,
   explicitScenario?: RetrievalEvalScenario,
 ): Promise<void> {
   const scenario = explicitScenario ?? loadScenario(case_.scenarioId);
@@ -507,6 +506,10 @@ export async function seedScenarioFixtures(
           reviewHistory: [],
           reviewNotes: [],
           lifecycleHistory: [],
+          boundary: null,
+          decayMeta: null,
+          evidenceMeta: null,
+          maintenanceMeta: null,
           createdAt,
           updatedAt: createdAt,
         };

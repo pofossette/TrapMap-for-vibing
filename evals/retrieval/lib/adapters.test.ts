@@ -127,7 +127,7 @@ describe('adapters', () => {
 
         const mockCase = {
           scenarioId: 'test-graph-seed',
-        } as any;
+        };
 
         await seedScenarioFixtures(ctx, mockCase, scenario);
 
@@ -166,7 +166,7 @@ describe('adapters', () => {
 
         const mockCase = {
           scenarioId: 'test-actor-session',
-        } as any;
+        };
 
         await seedScenarioFixtures(ctx, mockCase, scenario);
 
