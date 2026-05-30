@@ -89,7 +89,7 @@ export async function compileTrapFirstPlan(
   });
 
   // 3a. Rank and filter traps by query relevance
-  const rankedTrapSeeds = selectQueryRelevantTraps(trapCandidates, intent, auth);
+  const rankedTrapSeeds = selectQueryRelevantTraps(trapCandidates, intent);
 
   // 4. Get governed skill candidates
   const governanceFilters = {

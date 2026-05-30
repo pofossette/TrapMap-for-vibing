@@ -1,4 +1,3 @@
-import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
 import type { ParsedIntent } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
@@ -90,7 +89,6 @@ function scoreTrapEntry(intent: ParsedIntent, entry: KnowledgeRecord): number {
 export function rankTrapCandidates(
   entries: KnowledgeRecord[],
   intent: ParsedIntent,
-  _auth: ResolvedAuthContext,
 ): RankedTrapSeed[] {
   const scored: RankedTrapSeed[] = [];
 
@@ -107,9 +105,8 @@ export function rankTrapCandidates(
 export function selectQueryRelevantTraps(
   entries: KnowledgeRecord[],
   intent: ParsedIntent,
-  auth: ResolvedAuthContext,
 ): RankedTrapSeed[] {
-  return rankTrapCandidates(entries, intent, auth)
+  return rankTrapCandidates(entries, intent)
     .filter((candidate) => candidate.score >= MIN_TRAP_SCORE)
     .slice(0, MAX_TRAP_SEEDS);
 }
