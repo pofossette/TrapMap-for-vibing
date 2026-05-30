@@ -20,6 +20,10 @@ export function buildMultiChannelReason(
     keywordScore: number;
     contextScore: number;
     stackPathBoost: number;
+    channelConsensusBoost?: number;
+    semanticBoost?: number;
+    graphBoost?: number;
+    preRerankScore?: number;
   },
   capsule: DerivedSkillCapsuleRecord,
   _intent: ParsedIntent,
@@ -50,6 +54,18 @@ export function buildMultiChannelReason(
 
   if (featureScores.stackPathBoost > 1.1) {
     parts.push('stack/path boost');
+  }
+
+  if ((featureScores.channelConsensusBoost ?? 0) > 0) {
+    parts.push(`${channels.length}-channel consensus`);
+  }
+
+  if ((featureScores.semanticBoost ?? 0) > 0.05) {
+    parts.push('semantic evidence');
+  }
+
+  if ((featureScores.graphBoost ?? 0) > 0.02) {
+    parts.push('graph evidence');
   }
 
   if (parts.length === 0) {

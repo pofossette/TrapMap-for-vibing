@@ -446,26 +446,36 @@ v2 查询中的 `filters.labels` 和 `filters.scopes` 在以下位置生效：
 │  - 特征: problem × 0.30 + situation × 0.21           │
 │          + goal × 0.17 + keyword × 0.17              │
 │          + context × 0.15                            │
-│  - finalScore = base × stackPathBoost                │
+│  - 多通道证据融合 (Phase 2 v2 blend):                │
+│    blendedScore = baseScore × 0.65                   │
+│      + preRerankScore × 0.20                         │
+│      + semanticBoost (channelScore × 0.2)            │
+│      + graphBoost (channelScore × 0.1)               │
+│      + channelConsensusBoost (min(N×0.04, 0.12))     │
+│  - finalScore = min(1, blendedScore × stackPathBoost)│
+│  - 多通道共识优先于单通道弱词法匹配                   │
 │  - 生成多通道 explainable reason:                    │
-│    "Matched via heuristic + keyword;                   │
-│     problem match (82%), context match (58%),         │
-│     stack/path boost"                                 │
+│    "Matched via heuristic + keyword + semantic;       │
+│     problem match (82%), semantic evidence,           │
+│     3-channel consensus"                              │
 │  - 排序并限制 maxResults                             │
 │  - 输出: CapsuleCandidate[]                          │
 └─────────────────────────────────────────────────────┘
 ```
 
-**Reason 生成格式** (Phase 4):
+**Reason 生成格式** (Phase 4 + Phase 2 v2 blend):
 
 Reason 字符串格式从 "Matched: ..." 升级为 "Matched via <channels>; ..."：
 
 ```
-Matched via heuristic + keyword + semantic; problem match (84%), context match (61%), stack/path boost
+Matched via heuristic + keyword + semantic; problem match (84%), context match (61%), 3-channel consensus, semantic evidence, stack/path boost
 ```
 
 - 开头标识贡献通道列表（heuristic/keyword/semantic/graph）
 - 中间列出命中的意图特征及其匹配百分比（仅 score > 0.3 的特征）
+- 多通道共识标注（`N-channel consensus`，当 channelConsensusBoost > 0 时可见）
+- 语义证据标注（`semantic evidence`，当 semanticBoost > 0.05 时可见）
+- 图证据标注（`graph evidence`，当 graphBoost > 0.02 时可见）
 - 末尾标注 stack/path boost（仅 boost > 1.1 时可见）
 - 无匹配特征时 fallback 到 "Capsule from <sourcePath>"
 

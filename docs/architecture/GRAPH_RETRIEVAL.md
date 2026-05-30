@@ -175,7 +175,49 @@
 
 **融合方式**：graph-assisted 模式下，semantic + keyword + graph 三通道并行召回，然后 `mergeCandidatesWithGraph()` 将 graph 分数以 0.2 权重因子加入合并分。
 
-### 4.2 v3 Graph Plan Search（Trap-First Plan）
+### 4.2 v2 Capsule Graph Channel（capsule-graph 通道在 v2 管线中的角色）
+
+**入口**: `POST /v2/retrieval/search` (v2 capsule-native)
+**文件**: `capsules/channels/graph.ts` + `capsules/scoring/rerank.ts`
+
+在 v2 多路召回架构中，`capsule-graph` 通道作为补充召回源参与胶囊检索：
+
+```
+查询文本
+  |
+  +-- extractQueryEntityLabels() --> 从 seed 提取工具/实体关键词
+  |
+  +-- buildGraphRuntimeSnapshot() --> 加载 skill 类型图文档
+  |
+  +-- expandSourcesOneHop(runtime, queryEntities) --> one-hop 实体展开
+  |
+  +-- artifact-to-capsule 映射 --> 展开得到的 artifact ID 与治理过滤后的 artifacts 交集
+  |
+  +-- calculateCapsuleGraphScore(relationStrength) --> base 0.85 + relationStrength 加成
+  |
+  +-- 输出 CapsuleRecallCandidate[] (channel='capsule-graph', graphEvidence=[...])
+```
+
+**graph 证据在 rerank 中的参与方式 (Phase 2 v2 blend)**：
+
+graph 通道分数通过以下路径影响最终排名：
+
+1. **preRerankScore (RRF)**: graph 通道排名贡献 RRF 分数，进入 merge 层的 `preRerankScore`
+2. **graphBoost**: rerank 层从 `mc.channelScores['capsule-graph']` 读取 graph 通道分数，乘以 0.1 权重加入 `blendedScore`
+3. **channelConsensusBoost**: graph 通道作为额外通道增加通道计数，提升 `channelConsensusBoost`（每通道 +0.04，上限 0.12）
+4. **reason 标注**: 当 `graphBoost > 0.02` 时，reason 字符串包含 `graph evidence` 标注
+
+```
+blendedScore = baseScore × 0.65
+             + preRerankScore × 0.20
+             + semanticBoost (capsule-semantic score × 0.2)
+             + graphBoost (capsule-graph score × 0.1)
+             + channelConsensusBoost (min(channels.length × 0.04, 0.12))
+```
+
+**设计约束**: graph 通道是召回补充，不是排名权威。graph 分数与其他通道平等进入 merge 层，rerank 层的 intent-aware 特征（problem/situation/goal）仍占 65% 权重。graph 通道的最大贡献为 `0.85 × 0.1 = 0.085` (graphBoost) + `0.04` (consensus) = `0.125`，不足以单独决定排名。
+
+### 4.3 v3 Graph Plan Search（Trap-First Plan）
 
 **入口**: `POST /v3/retrieval/search` 或 `POST /v3/retrieval/plan`
 **文件**: `graph-plan-search.ts` + `plan-compiler.ts`

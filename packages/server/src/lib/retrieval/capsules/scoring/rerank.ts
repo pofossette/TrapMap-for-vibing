@@ -71,7 +71,17 @@ export function rerankMergedCapsules(
       keywordScore * 0.17 +
       contextScore * 0.15;
 
-    const finalScore = Math.min(1, baseScore * stackPathBoost);
+    const channelConsensusBoost = Math.min(mc.channels.length * 0.04, 0.12);
+    const semanticBoost = (mc.channelScores['capsule-semantic'] ?? 0) * 0.2;
+    const graphBoost = (mc.channelScores['capsule-graph'] ?? 0) * 0.1;
+    const blendedScore =
+      baseScore * 0.65 +
+      mc.preRerankScore * 0.2 +
+      semanticBoost +
+      graphBoost +
+      channelConsensusBoost;
+
+    const finalScore = Math.min(1, blendedScore * stackPathBoost);
 
     const reason = buildMultiChannelReason(
       mc.channels,
@@ -82,6 +92,10 @@ export function rerankMergedCapsules(
         keywordScore,
         contextScore,
         stackPathBoost,
+        channelConsensusBoost,
+        semanticBoost,
+        graphBoost,
+        preRerankScore: mc.preRerankScore,
       },
       capsule,
       intent,
@@ -104,7 +118,5 @@ export function rerankMergedCapsules(
 
   candidates.sort((a, b) => b.finalScore - a.finalScore);
 
-  return candidates
-    .filter((c) => c.finalScore >= MIN_CAPSULE_SCORE)
-    .slice(0, maxResults);
+  return candidates.filter((c) => c.finalScore >= MIN_CAPSULE_SCORE).slice(0, maxResults);
 }
