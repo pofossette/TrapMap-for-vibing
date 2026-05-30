@@ -43,6 +43,7 @@ import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-mode
 import type { ArtifactGovernanceFilters } from '@trapmap/server/lib/retrieval/types.js';
 import type { CapsuleCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { selectQueryRelevantTraps } from './trap-ranking.js';
 
 // Constants
 const DEFAULT_SKILL_BUDGET = 3;
@@ -87,6 +88,9 @@ export async function compileTrapFirstPlan(
     scopes: [],
   });
 
+  // 3a. Rank and filter traps by query relevance
+  const rankedTrapSeeds = selectQueryRelevantTraps(trapCandidates, intent, auth);
+
   // 4. Get governed skill candidates
   const governanceFilters = {
     teamId: auth.activeTeamId,
@@ -110,8 +114,12 @@ export async function compileTrapFirstPlan(
 
   const runtime = buildGraphRuntimeSnapshot(graphDocs);
 
-  // 6. Build seed node IDs from candidates
-  const seedNodeIds = extractSeedNodeIds(trapCandidates, skillCandidates, runtime);
+  // 6. Build seed node IDs from query-relevant traps and skill candidates
+  const seedNodeIds = extractSeedNodeIds(
+    rankedTrapSeeds.map((candidate) => candidate.entry),
+    skillCandidates,
+    runtime,
+  );
 
   // Early return if no seeds
   if (seedNodeIds.length === 0) {

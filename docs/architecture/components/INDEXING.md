@@ -397,6 +397,30 @@ interface GraphRuntimeSnapshot {
 - `findEntriesByBoundaryConstraints(runtime, constraints)` — 组合约束 AND 语义
 - `buildLocalExpansionView(params)` — 从种子节点出发的有界局部扩展
 
+### Graph Docs 与 v3 Plan 编译的依赖关系
+
+**源码**：`retrieval/graph-plan/plan-compiler.ts` + `retrieval/graph-plan/trap-ranking.ts`
+
+v3 Graph Plan Search 的 `compileTrapFirstPlan()` 依赖图文档构建局部扩展视图。关键依赖链：
+
+```
+图文档存在且完整
+  → buildGraphRuntimeSnapshot() 构建 nodeIdsBySourceId 索引
+  → rankTrapCandidates() 评分 trap 候选 (查询相关性)
+  → extractSeedNodeIds() 映射查询相关 trap + skill → 图节点 ID
+  → buildLocalExpansionView() BFS 有界扩展
+  → 输出 TrapFirstPlan
+
+图文档缺失或过时
+  → nodeIdsBySourceId 无映射
+  → seedNodeIds 为空
+  → 返回空计划 (blockingTraps=[], recommendedSkills=[])
+  → assessGraphPlanReadiness() 评分为 low
+  → 触发 fallback 到 v2 capsule 或 v1 graph-assisted
+```
+
+**设计约束**：v3 计划编译器对图文档缺失具有确定性降级行为。当图文档不存在、不完整或与查询无关时，系统不会生成噪声计划，而是自动降级到 v1/v2 检索路径。这确保了即使在索引延迟或 LLM 提取失败的情况下，用户仍能获得有意义的检索结果。
+
 ---
 
 ## 7. Skill 工件索引

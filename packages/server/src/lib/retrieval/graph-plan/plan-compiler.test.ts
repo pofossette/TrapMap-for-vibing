@@ -111,16 +111,30 @@ function _makeOrderEdge(_sourceId: string, _targetId: string): GraphEdgeRecord {
 
 function makeKnowledgeEntry(
   id: string,
-  options: { requiredLevel?: number; scope?: 'global' | 'project'; teamId?: string | null } = {},
+  options: {
+    requiredLevel?: number;
+    scope?: 'global' | 'project';
+    teamId?: string | null;
+    shortcut?: string;
+    detail?: string;
+    labels?: string[];
+  } = {},
 ): KnowledgeRecord {
-  const { requiredLevel = 0, scope = 'global', teamId = null } = options;
+  const {
+    requiredLevel = 0,
+    scope = 'global',
+    teamId = null,
+    shortcut = `Shortcut for ${id}`,
+    detail = `Detail for ${id}`,
+    labels = ['test'],
+  } = options;
   return {
     id,
     teamId,
     scope,
-    labels: ['test'],
-    shortcut: `Shortcut for ${id}`,
-    detail: `Detail for ${id}`,
+    labels,
+    shortcut,
+    detail,
     requiredLevel,
     lifecycleState: 'approved',
     ownerUserId: 'user_1',
@@ -128,9 +142,9 @@ function makeKnowledgeEntry(
       revision: 1,
       submittedAt: '2026-01-01T00:00:00Z',
       submittedByUserId: 'user_1',
-      shortcut: `Shortcut for ${id}`,
-      detail: `Detail for ${id}`,
-      labels: ['test'],
+      shortcut,
+      detail,
+      labels,
       reviewNotes: [],
     },
     history: [],
@@ -394,7 +408,12 @@ describe('plan-compiler', () => {
       const riskBlocksEdge = makeRiskBlocksEdge(trapId, 'cue-1');
 
       const services = makeMockServices({
-        knowledgeEntries: [makeKnowledgeEntry(trapId)],
+        knowledgeEntries: [
+          makeKnowledgeEntry(trapId, {
+            shortcut: 'Data corruption during cleanup operations',
+            detail: 'Corruption occurs when cleanup runs concurrently',
+          }),
+        ],
         skillArtifacts: [makeSkillArtifact(skillId)],
         graphIndexDocuments: [
           makeGraphDoc(trapId, 'trap', [trapNode], [riskBlocksEdge]),
@@ -421,7 +440,12 @@ describe('plan-compiler', () => {
       const hardRiskBlocksEdge = makeRiskBlocksEdge(trapId, 'cue-1', 'hard');
 
       const services = makeMockServices({
-        knowledgeEntries: [makeKnowledgeEntry(trapId)],
+        knowledgeEntries: [
+          makeKnowledgeEntry(trapId, {
+            shortcut: 'Hard blocker prevents deployment',
+            detail: 'This trap is a hard blocker that must be resolved',
+          }),
+        ],
         skillArtifacts: [],
         graphIndexDocuments: [makeGraphDoc(trapId, 'trap', [trapNode], [hardRiskBlocksEdge])],
       });
@@ -508,8 +532,16 @@ describe('plan-compiler', () => {
 
       const services = makeMockServices({
         knowledgeEntries: [
-          makeKnowledgeEntry(trapIdHigh, { requiredLevel: 10 }),
-          makeKnowledgeEntry(trapIdLow, { requiredLevel: 0 }),
+          makeKnowledgeEntry(trapIdHigh, {
+            requiredLevel: 10,
+            shortcut: 'Security trap requires elevated access',
+            detail: 'High security trap for sensitive operations',
+          }),
+          makeKnowledgeEntry(trapIdLow, {
+            requiredLevel: 0,
+            shortcut: 'Security trap for basic operations',
+            detail: 'Low security trap accessible to all users',
+          }),
         ],
         skillArtifacts: [],
         graphIndexDocuments: [
@@ -677,7 +709,12 @@ describe('plan-compiler', () => {
       const riskEdge = makeRiskBlocksEdge(trapId, 'cue-b0');
 
       const services = makeMockServices({
-        knowledgeEntries: [makeKnowledgeEntry(trapId)],
+        knowledgeEntries: [
+          makeKnowledgeEntry(trapId, {
+            shortcut: 'Budget zero constraint trap',
+            detail: 'This trap applies when budget is zero',
+          }),
+        ],
         skillArtifacts: [],
         graphIndexDocuments: [makeGraphDoc(trapId, 'trap', [trapNode], [riskEdge])],
       });
@@ -739,7 +776,12 @@ describe('plan-compiler', () => {
       const trapNode = makeTrapNode(trapId, 'Trap without graph');
 
       const services = makeMockServices({
-        knowledgeEntries: [makeKnowledgeEntry(trapId)],
+        knowledgeEntries: [
+          makeKnowledgeEntry(trapId, {
+            shortcut: 'Trap with no graph document',
+            detail: 'This trap has no corresponding graph doc',
+          }),
+        ],
         skillArtifacts: [makeSkillArtifact(skillId)],
         graphIndexDocuments: [makeGraphDoc(trapId, 'trap', [trapNode], [])],
         // No graph doc for skillId
@@ -1121,6 +1163,185 @@ describe('plan-compiler', () => {
       for (const nodeId of planNodeIds) {
         expect(result.executionPlan.find((s) => s.nodeId === nodeId)).toBeDefined();
       }
+    });
+  });
+
+  describe('query-relevance filtering (Phase 3)', () => {
+    it('excludes traps that do not match the query', async () => {
+      const relevantTrapId = 'trap-relevant';
+      const irrelevantTrapId = 'trap-irrelevant';
+
+      const relevantTrapNode = makeTrapNode(relevantTrapId, 'Docker OOM trap');
+      const irrelevantTrapNode = makeTrapNode(irrelevantTrapId, 'Unrelated trap');
+      const riskEdge1 = makeRiskBlocksEdge(relevantTrapId, 'cue-1', 'hard');
+      const riskEdge2 = makeRiskBlocksEdge(irrelevantTrapId, 'cue-2', 'hard');
+
+      const services = makeMockServices({
+        knowledgeEntries: [
+          makeKnowledgeEntry(relevantTrapId, {
+            shortcut: 'Docker container OOM kills during deployment',
+            detail: 'Memory limit not set causes OOM in production',
+          }),
+          makeKnowledgeEntry(irrelevantTrapId, {
+            shortcut: 'Database migration timeout issue',
+            detail: 'PostgreSQL connection pool exhaustion during peak load',
+          }),
+        ],
+        skillArtifacts: [],
+        graphIndexDocuments: [
+          makeGraphDoc(relevantTrapId, 'trap', [relevantTrapNode], [riskEdge1]),
+          makeGraphDoc(irrelevantTrapId, 'trap', [irrelevantTrapNode], [riskEdge2]),
+        ],
+      });
+      const auth = makeMockAuth();
+      const query: PlanQuery = {
+        seed: 'Docker container OOM deployment memory',
+        skillBudget: 3,
+        maxDepth: 2,
+      };
+
+      const result = await compileTrapFirstPlan(services, auth, query);
+
+      expect(
+        result.blockingTraps.find((t) => t.nodeId === `trap:${relevantTrapId}`),
+      ).toBeDefined();
+      expect(
+        result.blockingTraps.find((t) => t.nodeId === `trap:${irrelevantTrapId}`),
+      ).toBeUndefined();
+    });
+
+    it('includes only query-relevant traps in multi-trap scenario', async () => {
+      const trapIds = ['trap-docker', 'trap-k8s', 'trap-auth', 'trap-cache'];
+      const trapTexts = [
+        { shortcut: 'Docker container memory leak', detail: 'Docker OOM kills process' },
+        { shortcut: 'Kubernetes pod scheduling failure', detail: 'K8s node affinity conflict' },
+        { shortcut: 'OAuth2 token expiration bug', detail: 'Authentication refresh fails silently' },
+        { shortcut: 'Redis cache invalidation race', detail: 'Cache stampede under high load' },
+      ];
+
+      const knowledgeEntries = trapIds.map((id, i) =>
+        makeKnowledgeEntry(id, trapTexts[i]),
+      );
+      const graphDocs = trapIds.map((id, i) => {
+        const node = makeTrapNode(id, `Trap ${i}`);
+        const edge = makeRiskBlocksEdge(id, `cue-${i}`, 'hard');
+        return makeGraphDoc(id, 'trap', [node], [edge]);
+      });
+
+      const services = makeMockServices({
+        knowledgeEntries,
+        skillArtifacts: [],
+        graphIndexDocuments: graphDocs,
+      });
+      const auth = makeMockAuth();
+      const query: PlanQuery = {
+        seed: 'Docker container memory OOM',
+        skillBudget: 3,
+        maxDepth: 2,
+      };
+
+      const result = await compileTrapFirstPlan(services, auth, query);
+
+      expect(
+        result.blockingTraps.find((t) => t.nodeId === 'trap:trap-docker'),
+      ).toBeDefined();
+      expect(
+        result.blockingTraps.find((t) => t.nodeId === 'trap:trap-auth'),
+      ).toBeUndefined();
+      expect(
+        result.blockingTraps.find((t) => t.nodeId === 'trap:trap-cache'),
+      ).toBeUndefined();
+    });
+
+    it('returns empty plan when no traps match the query', async () => {
+      const trapId = 'trap-unrelated';
+      const trapNode = makeTrapNode(trapId, 'Unrelated trap');
+      const riskEdge = makeRiskBlocksEdge(trapId, 'cue-1', 'hard');
+
+      const services = makeMockServices({
+        knowledgeEntries: [
+          makeKnowledgeEntry(trapId, {
+            shortcut: 'Database connection pool exhaustion',
+            detail: 'PostgreSQL max connections reached during peak',
+          }),
+        ],
+        skillArtifacts: [],
+        graphIndexDocuments: [makeGraphDoc(trapId, 'trap', [trapNode], [riskEdge])],
+      });
+      const auth = makeMockAuth();
+      const query: PlanQuery = {
+        seed: 'Kubernetes pod scheduling node affinity',
+        skillBudget: 3,
+        maxDepth: 2,
+      };
+
+      const result = await compileTrapFirstPlan(services, auth, query);
+
+      expect(result.blockingTraps).toEqual([]);
+      expect(result.recommendedSkills).toEqual([]);
+      expect(result.edges).toEqual([]);
+    });
+
+    it('limits trap seeds to top 8 by score', async () => {
+      const trapIds: string[] = [];
+      const knowledgeEntries: KnowledgeRecord[] = [];
+      const graphDocs: GraphIndexDocumentRecord[] = [];
+
+      for (let i = 0; i < 15; i++) {
+        const id = `trap-batch-${i}`;
+        trapIds.push(id);
+        knowledgeEntries.push(
+          makeKnowledgeEntry(id, {
+            shortcut: `Docker deployment issue number ${i}`,
+            detail: `Docker container problem variant ${i}`,
+          }),
+        );
+        const node = makeTrapNode(id, `Trap ${i}`);
+        const edge = makeRiskBlocksEdge(id, `cue-${i}`, 'hard');
+        graphDocs.push(makeGraphDoc(id, 'trap', [node], [edge]));
+      }
+
+      const services = makeMockServices({
+        knowledgeEntries,
+        skillArtifacts: [],
+        graphIndexDocuments: graphDocs,
+      });
+      const auth = makeMockAuth();
+      const query: PlanQuery = {
+        seed: 'Docker deployment container',
+        skillBudget: 3,
+        maxDepth: 2,
+      };
+
+      const result = await compileTrapFirstPlan(services, auth, query);
+
+      expect(result.blockingTraps.length).toBeLessThanOrEqual(8);
+    });
+
+    it('preserves deterministic fallback when graph docs are absent', async () => {
+      const services = makeMockServices({
+        knowledgeEntries: [
+          makeKnowledgeEntry('trap-no-docs', {
+            shortcut: 'Docker OOM issue',
+            detail: 'Memory leak in Docker',
+          }),
+        ],
+        skillArtifacts: [],
+        graphIndexDocuments: [],
+      });
+      const auth = makeMockAuth();
+      const query: PlanQuery = {
+        seed: 'Docker OOM memory',
+        skillBudget: 3,
+        maxDepth: 2,
+      };
+
+      const result = await compileTrapFirstPlan(services, auth, query);
+
+      expect(result.blockingTraps).toEqual([]);
+      expect(result.recommendedSkills).toEqual([]);
+      expect(result.edges).toEqual([]);
+      expect(result.graph.nodes).toEqual([]);
     });
   });
 });

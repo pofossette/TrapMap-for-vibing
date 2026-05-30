@@ -697,4 +697,190 @@ describe('graph-plan-search', () => {
       }
     });
   });
+
+  describe('query-aware readiness (Phase 3)', () => {
+    it('requires trap-skill structure for high confidence', () => {
+      const assessment = assessGraphPlanReadiness(
+        {
+          blockingTraps: [
+            {
+              nodeId: 'trap_1',
+              sourceId: 'entry_1',
+              label: 'Trap',
+              severity: 'hard',
+              scope: 'project',
+              requiredLevel: 3,
+              evidence: 'Evidence',
+              score: 1,
+            },
+          ],
+          recommendedSkills: [
+            {
+              nodeId: 'skill_1',
+              artifactId: 'artifact_1',
+              capsuleId: 'capsule_1',
+              label: 'Skill',
+              situation: 'Sit',
+              problem: 'Prob',
+              goal: 'Goal',
+              scope: 'project',
+              requiredLevel: 3,
+              score: 0.9,
+              activationRefs: { references: [], assets: [], scripts: [] },
+            },
+          ],
+          edges: [],
+          citations: [],
+          graph: {
+            nodes: [],
+            edges: [],
+            citations: [],
+            focus: { blockingTrapNodeIds: ['trap_1'], recommendedSkillNodeIds: ['skill_1'] },
+          },
+        },
+        'auto',
+      );
+
+      expect(assessment.bucket).not.toBe('high');
+      expect(assessment.fallbackTarget).not.toBeNull();
+    });
+
+    it('returns high confidence only when mitigates edge connects trap and skill', () => {
+      const assessment = assessGraphPlanReadiness(
+        {
+          blockingTraps: [
+            {
+              nodeId: 'trap_1',
+              sourceId: 'entry_1',
+              label: 'Trap',
+              severity: 'hard',
+              scope: 'project',
+              requiredLevel: 3,
+              evidence: 'Evidence',
+              score: 1,
+            },
+          ],
+          recommendedSkills: [
+            {
+              nodeId: 'skill_1',
+              artifactId: 'artifact_1',
+              capsuleId: 'capsule_1',
+              label: 'Skill',
+              situation: 'Sit',
+              problem: 'Prob',
+              goal: 'Goal',
+              scope: 'project',
+              requiredLevel: 3,
+              score: 0.9,
+              activationRefs: { references: [], assets: [], scripts: [] },
+            },
+          ],
+          edges: [
+            {
+              id: 'edge_1',
+              sourceNodeId: 'skill_1',
+              targetNodeId: 'trap_1',
+              type: 'mitigates',
+              strength: 'hard',
+            },
+          ],
+          citations: [],
+          graph: {
+            nodes: [],
+            edges: [],
+            citations: [],
+            focus: { blockingTrapNodeIds: ['trap_1'], recommendedSkillNodeIds: ['skill_1'] },
+          },
+        },
+        'auto',
+      );
+
+      expect(assessment.bucket).toBe('high');
+      expect(assessment.reason).toBe('graph-plan-selected');
+      expect(assessment.fallbackTarget).toBeNull();
+    });
+
+    it('falls back when plan has traps and skills but no connecting edges', () => {
+      const assessment = assessGraphPlanReadiness(
+        {
+          blockingTraps: [
+            {
+              nodeId: 'trap_1',
+              sourceId: 'entry_1',
+              label: 'Trap',
+              severity: 'hard',
+              scope: 'project',
+              requiredLevel: 3,
+              evidence: 'Evidence',
+              score: 1,
+            },
+          ],
+          recommendedSkills: [
+            {
+              nodeId: 'skill_1',
+              artifactId: 'artifact_1',
+              capsuleId: 'capsule_1',
+              label: 'Skill',
+              situation: 'Sit',
+              problem: 'Prob',
+              goal: 'Goal',
+              scope: 'project',
+              requiredLevel: 3,
+              score: 0.9,
+              activationRefs: { references: [], assets: [], scripts: [] },
+            },
+          ],
+          edges: [
+            {
+              id: 'edge_unrelated',
+              sourceNodeId: 'skill_1',
+              targetNodeId: 'other_node',
+              type: 'order',
+              strength: 'soft',
+            },
+          ],
+          citations: [],
+          graph: {
+            nodes: [],
+            edges: [],
+            citations: [],
+            focus: { blockingTrapNodeIds: ['trap_1'], recommendedSkillNodeIds: ['skill_1'] },
+          },
+        },
+        'auto',
+      );
+
+      expect(assessment.reason).toBe('graph-plan-low-confidence');
+      expect(assessment.fallbackTarget).toBe('v2-capsule');
+    });
+
+    it('empty graph docs produce low confidence fallback', async () => {
+      mockedCompileTrapFirstPlan.mockResolvedValue({
+        blockingTraps: [],
+        recommendedSkills: [],
+        edges: [],
+        citations: [],
+        executionPlan: [],
+        graph: makeEmptyGraph(),
+      });
+      mockedSearchKnowledge.mockResolvedValue({
+        globalConstraints: [],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      });
+
+      const result = await searchKnowledgeGraphPlan(makeServices(), makeAuth(), {
+        seed: 'empty graph test',
+        skillBudget: 3,
+        maxDepth: 2,
+        fallbackMode: 'auto',
+      });
+
+      expect(result.plan).toBeNull();
+      expect(result.fallback).not.toBeNull();
+      expect(result.routingTrace.fallbackApplied).toBe(true);
+      expect(result.routingTrace.confidenceBucket).toBe('low');
+    });
+  });
 });

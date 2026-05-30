@@ -48,19 +48,28 @@ export function assessGraphPlanReadiness(
 ): GraphPlanAssessment {
   const skillCount = plan?.recommendedSkills.length ?? 0;
   const trapCount = plan?.blockingTraps.length ?? 0;
-  const hasStructure =
+  const hasTrapSkillStructure =
     plan?.edges.some((edge) => edge.type === 'mitigates' || edge.type === 'requires') ?? false;
   const hasSupportingEvidence = (plan?.citations.length ?? 0) > 0 || skillCount > 0;
+
+  const hasTrapSkillConnection =
+    trapCount > 0 &&
+    skillCount > 0 &&
+    hasTrapSkillStructure;
 
   const score =
     (skillCount > 0 ? 0.4 : 0) +
     (trapCount > 0 ? 0.25 : 0) +
-    (hasStructure ? 0.2 : 0) +
+    (hasTrapSkillConnection ? 0.2 : 0) +
     (hasSupportingEvidence ? 0.15 : 0);
 
-  const bucket = toBucket(score);
+  let bucket = toBucket(score);
 
-  if (bucket === 'high' && skillCount > 0) {
+  if (!hasTrapSkillConnection && bucket === 'high') {
+    bucket = 'medium';
+  }
+
+  if (bucket === 'high' && skillCount > 0 && hasTrapSkillConnection) {
     return {
       score,
       bucket,

@@ -620,6 +620,18 @@ v3 GraphRAG-lite 检索（置信度感知）。高置信度时返回 TrapFirstPl
 
 **响应** (200): 返回 `GraphPlanSearchResponse`，包含 `plan`（TrapFirstPlan）或 `fallback`（v1/v2 响应）。
 
+**Plan vs Fallback 决策规则**：
+
+| 条件 | 结果 |
+|------|------|
+| 有 skill + 有 trap + 有 trap-skill 结构边 (mitigates/requires) + 分数 >= 0.65 | 返回 `plan` (TrapFirstPlan) |
+| 无 skill | 降级到 `fallback` (v1-graph-assisted) |
+| 无 trap | 降级到 `fallback` (v2-capsule) |
+| 有 skill + trap 但无结构边 | 降级到 `fallback` (v2-capsule) |
+| 图文档缺失或无查询相关 trap | 降级到 `fallback` (v1 或 v2) |
+
+**查询相关性过滤**：v3 仅将查询相关的 trap（score >= 0.18，top 8）作为种子节点参与图扩展。与查询无关的 trap 不会出现在计划中，确保计划内容精准。
+
 ---
 
 ### POST /v3/retrieval/plan

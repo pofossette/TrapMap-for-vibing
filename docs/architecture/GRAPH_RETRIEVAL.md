@@ -220,7 +220,7 @@ blendedScore = baseScore × 0.65
 ### 4.3 v3 Graph Plan Search（Trap-First Plan）
 
 **入口**: `POST /v3/retrieval/search` 或 `POST /v3/retrieval/plan`
-**文件**: `graph-plan-search.ts` + `plan-compiler.ts`
+**文件**: `graph-plan-search.ts` + `plan-compiler.ts` + `trap-ranking.ts`
 
 ```
 查询文本
@@ -231,9 +231,12 @@ blendedScore = baseScore × 0.65
   |
   +-- compileTrapFirstPlan():
   |   +-- 过滤治理合规的 trap 候选
+  |   +-- rankTrapCandidates() 对 trap 候选按查询相关性评分
+  |   |   +-- 使用 intent 特征 (problem/situation/goal/keyword/stackPath) 评分
+  |   |   +-- 过滤 score >= 0.18 且取 top 8
   |   +-- rankCapsules() 排序 skill 候选 (<= 3x budget)
   |   +-- buildGraphRuntimeSnapshot() 构建全局运行时快照 + 反向索引
-  |   +-- 映射候选 ID -> 图节点 ID（snapshot 索引 O(1) 查找）
+  |   +-- 映射查询相关 trap + skill 候选 ID -> 图节点 ID（snapshot 索引 O(1) 查找）
   |   +-- buildLocalExpansionView(seedNodeIds, maxDepth=2)
   |   |   +-- BFS 有界子图提取 (graphology-shortest-path)
   |   +-- 查找 blocking traps (含 risk-blocks 边的节点，优先读取 node.severity)
@@ -256,13 +259,29 @@ blendedScore = baseScore × 0.65
   +-- assessGraphPlanReadiness() --> 置信度评分 (0-1)
   |   +-- skill count > 0:  +0.4
   |   +-- trap count > 0:   +0.25
-  |   +-- 有结构边:          +0.2
+  |   +-- trap-skill 结构连接 (mitigates/requires): +0.2
   |   +-- 有支撑证据:        +0.15
+  |   +-- 无 trap-skill 连接时 bucket 降级为 medium
   |
   +-- 决策：
-       >= 0.65 且有 skill -> 返回 TrapFirstPlan
+       >= 0.65 且有 skill 且有 trap-skill 结构 -> 返回 TrapFirstPlan
        否则 -> fallback 到 v2 capsule 或 v1 graph-assisted
 ```
+
+#### 4.3.1 Trap Seed 排名 (Query-Aware)
+
+**文件**: `trap-ranking.ts`
+
+v3 图计划不再将所有治理合规的 trap 作为种子节点。`rankTrapCandidates()` 使用与 capsule 评分相同的特征管线对 trap 候选评分：
+
+- **problemScore (30%)**: intent.problem + intent.errorText 与 entry.shortcut + entry.detail 的文本相似度
+- **situationScore (21%)**: intent.situation 与 entry 文本的相似度
+- **goalScore (17%)**: intent.goal 与 entry 文本的相似度
+- **keywordScore (17%)**: intent.tokens 与 entry 文本的关键词重叠率
+- **normalizedScore (15%)**: intent.normalized 与 entry 文本的相似度
+- **stackPathBoost**: 匹配 stack/path hints 时最高 1.5x 加成
+
+过滤条件：`score >= 0.18` 且取 top 8。确保只有查询相关的 trap 参与图扩展，避免无关节点污染计划。
 
 ---
 
