@@ -51,7 +51,7 @@ const FALLBACK_AI_CONFIG = {
 
 function replaceStoreData(target: StoreData, source: StoreData) {
   for (const key of Object.keys(target) as Array<keyof StoreData>) {
-    delete (target as Record<string, unknown>)[key];
+    delete (target as unknown as Record<string, unknown>)[key];
   }
 
   Object.assign(target, cloneStoreData(source));
@@ -110,7 +110,7 @@ function normalizeKnowledgeEntriesForPg(data: StoreData) {
 
     return {
       ...entry,
-      lifecycleState: mapLifecycleState(entry.lifecycleState),
+      lifecycleState: mapLifecycleState(entry.lifecycleState) as typeof entry.lifecycleState,
       history,
     };
   });
@@ -146,7 +146,7 @@ function normalizeArtifactsForPg(data: StoreData) {
 
     return {
       ...artifact,
-      lifecycleState: mapLifecycleState(artifact.lifecycleState),
+      lifecycleState: mapLifecycleState(artifact.lifecycleState) as typeof artifact.lifecycleState,
       history: hasLatestRevision
         ? normalizedHistory
         : [

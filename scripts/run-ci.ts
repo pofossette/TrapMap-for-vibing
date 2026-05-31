@@ -56,16 +56,25 @@ const STEPS: StepDefinition[] = [
     args: ['run', 'check'],
   },
   {
-    name: 'test',
-    command: 'pnpm',
-    args: ['run', 'test'],
-    env: { NODE_ENV: 'test' },
-  },
-  {
     name: 'test:coverage',
     command: 'pnpm',
     args: ['run', 'test:coverage'],
     env: { NODE_ENV: 'test' },
+  },
+  {
+    name: 'check:docs-drift',
+    command: 'pnpm',
+    args: ['run', 'check:docs-drift'],
+  },
+  {
+    name: 'check:complexity',
+    command: 'pnpm',
+    args: ['run', 'check:complexity'],
+  },
+  {
+    name: 'check:structure',
+    command: 'node',
+    args: ['scripts/check-structure.mjs'],
   },
 ];
 
