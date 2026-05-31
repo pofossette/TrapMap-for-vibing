@@ -129,6 +129,11 @@ pnpm eval:ci
 - [测试指南](operations/TESTING.md) — 测试架构、运行方法和用例编写规范
 - [CI/CD 流水线](operations/CI_CD.md) — GitHub Actions 流水线、评测质量门
 
+### 待办模块
+- [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
+- [Badcase 回流待办](todos/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
+- [后端工程化优化计划](todos/backend-engineering-optimization-plan.md) — 队列、MQ、微服务化与观测演进方向
+
 ### 架构与 API
 - [架构概览](../architecture.md) — 四层架构概览
 - [架构详解](architecture/ARCHITECTURE.md) — 系统设计、流程图、模块划分

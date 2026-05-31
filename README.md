@@ -1,16 +1,102 @@
 # TrapMap
 
-基于 pnpm + TypeScript monorepo 的技能共享平台，用于团队工程知识、Trap 经验和 Skill 工件的提交、审核、索引与检索。仓库包含服务器、CLI、共享契约和评测。
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![pnpm](https://img.shields.io/badge/pnpm-workspace-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+[![Monorepo](https://img.shields.io/badge/architecture-monorepo-111827)](#trapmap)
+[![Fastify](https://img.shields.io/badge/server-Fastify-000000?logo=fastify&logoColor=white)](https://fastify.dev/)
+[![CLI + API](https://img.shields.io/badge/interface-CLI%20%2B%20API-8B5CF6)](#适合怎么用)
+[![Knowledge Base](https://img.shields.io/badge/domain-Knowledge%20Base-CA8A04)](#核心能力)
+[![Agent Tooling](https://img.shields.io/badge/ecosystem-Agent%20Tooling-DC2626)](#适合谁用)
+[![AI Coding](https://img.shields.io/badge/focus-AI%20Coding%20Workflow-0F766E)](#trapmap)
+[![Skill Governance](https://img.shields.io/badge/approach-Skill%20Governance-7C3AED)](#trapmap-想做什么)
+[![Retrieval First](https://img.shields.io/badge/strategy-Retrieval%20First-1D4ED8)](#一个最小使用流程)
+
+面向 AI 编程工作流的知识与 Skill 治理基础设施。
+
+这个仓库是一个 `pnpm` + TypeScript monorepo，包含服务端、CLI、共享契约和评测工具，用来提交、审核、索引、检索和激活团队的工程知识与 Skill 工件。
+
+## TL;DR
+
+- 问题：AI 编程工具跨会话记忆隔离，同类坑点会反复出现；Skill 过量会污染上下文；Skill 缩略信息质量不稳会直接影响命中效果
+- 方案：把知识、Trap 经验和 Skill 做成可治理、可检索、可按需激活的工件，而不是默认全部挂载
+- 目标：减少重复踩坑，提高团队经验复用效率，降低上下文负担，让 agent 更容易选中真正需要的能力
+
+## 为什么做 TrapMap
+
+这个项目最初来自三个很实际的问题：
+
+1. 使用 Claude Code、Codex 等工具开发时，跨会话记忆往往是隔离的。同一个坑点可能在不同会话里被反复踩中，团队经验也难以稳定地共享给后来的智能体或协作者。
+2. Skill 虽然能挂载能力，但 Skill 不是越多越好。过量 Skill 会消耗上下文，还会干扰 agent 的判断，最后让开发过程出现额外副作用，而不是提升效率。
+3. Skill 真正生效，依赖的是 agent 先读取一段缩略信息，再判断要不要使用它。但现实里这段缩略信息的质量并不稳定，Skill 本身也缺少治理，因此效果经常打折。这个项目想探索一种更高效、更可控的 Skill 使用方式。
+
+## TrapMap 想做什么
+
+TrapMap 的核心思路不是“把所有 Skill 都塞进上下文”，而是把知识和 Skill 变成可检索、可筛选、可按需激活的工件：
+
+- 先存储和治理知识、Trap 经验、Skill 描述与文件结构
+- 再让客户端按问题检索最相关的结果
+- 最后只激活当前任务真正需要的那一小部分内容
+
+这样做的目标是：
+
+- 减少同类错误在跨会话中重复发生
+- 让团队经验能以更稳定的方式复用
+- 降低 Skill 过载带来的上下文污染
+- 提高 agent 选中“正确 Skill”的概率，而不是盲目挂载全部能力
+
+## 适合谁用
+
+- 使用 Claude Code、Codex、OpenCode 等工具进行日常开发的个人开发者
+- 希望沉淀工程经验、减少重复踩坑的小团队
+- 想把 Skill 从“提示词堆积”升级为“可治理工件”的 AI 工程团队
+
+## 核心能力
+
+- 知识与 Trap 经验提交、审核、结构化存储
+- Skill 工件化管理，包括 `SKILL.md`、`references/`、`assets/`、`scripts/`
+- 基于问题内容的检索、摘要和激活提示
+- 只拉取当前任务真正需要的文件，避免默认全量注入上下文
+- CLI、服务端 API 与评测工具配套，方便集成和迭代
+
+## 它和常见方案有什么不同
+
+- 它不是把所有 Skill 长期挂载到会话里，而是强调检索优先、按需激活
+- 它不是单纯的提示词仓库，而是带治理、审核和结构化元数据的工件系统
+- 它不是只做向量检索，而是关心 Skill 是否值得被激活、该激活哪些部分、如何降低副作用
+
+## 一个最小使用流程
+
+1. 团队把踩坑经验、工作流或 Skill 工件提交到 TrapMap
+2. 服务端对内容做审核、结构化和索引
+3. 当 agent 遇到具体任务时，客户端先检索相关结果，而不是预加载全部 Skill
+4. 只激活当前任务需要的 `SKILL.md` 或部分 `references/`、`scripts/`
+5. 经验被复用，重复错误减少，会话上下文也更干净
+
+## 适合怎么用
 
 TrapMap 有两类典型使用方式：
 
-- 作为服务端知识库运行，提供检索、审核、导入导出和治理能力。
-- 作为 Skill 工件源，被 Claude Code 等智能体工具检索后安装到本地技能目录中使用。
+- 作为服务端知识库运行，提供检索、审核、导入导出和治理能力
+- 作为 Skill 工件源，被 Claude Code、Codex、OpenCode 等工具按需检索并安装到本地技能目录中使用
 
-当前数据库状态：
-- Knowledge 域已经完成结构化拆表。
-- Skill Artifact 域已进入 Round 4：主路径在 PostgreSQL，`files`、`script_descriptors`、`profile/capsules/clientManifest` 已补入结构化子表；原 `artifact_revisions` JSONB 列继续保留为兼容缓存，不再是唯一事实源。
-- **PG-first 收敛已完成**：核心请求处理通过 `repos` 读写（`packages/server/src/lib/repos/`）；`store_snapshot` 仅作为兼容层保留，用于迁移和诊断场景。详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`。
+当前工程状态：
+
+- Knowledge 域已经完成结构化拆表
+- Skill Artifact 域已进入 Round 4：主路径在 PostgreSQL，`files`、`script_descriptors`、`profile/capsules/clientManifest` 已补入结构化子表；原 `artifact_revisions` JSONB 列继续保留为兼容缓存，不再是唯一事实源
+- PG-first 收敛已完成：核心请求处理通过 `repos` 读写（`packages/server/src/lib/repos/`）；`store_snapshot` 仅作为兼容层保留，用于迁移和诊断场景。详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+
+## 快速理解
+
+你可以把 TrapMap 理解为一个给 AI 编程工具使用的“受治理知识层”：
+
+- 对人：它沉淀团队里真正有价值的踩坑经验和工作方法
+- 对 agent：它提供更轻量、更结构化的检索结果，而不是一股脑塞入大量 Skill
+- 对项目：它把“经验复用”从临时聊天记录，变成可维护的工程资产
+
+## 项目状态
+
+TrapMap 目前处于持续演进阶段。核心方向已经比较明确：知识治理、Skill 工件化、检索优先、按需激活；但在 Skill ranking、capsule 质量控制和更细粒度的激活策略上，项目仍在继续探索。
 
 ## 📖 文档
 
