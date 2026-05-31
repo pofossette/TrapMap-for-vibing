@@ -11,7 +11,6 @@
 | `archived-plans/plan-2026-05-28-doc-drift-audit-and-alignment-active-root.md` | 2026-05-28 | 旧根 `plan.md`，已由目录结构治理计划替代 |
 | `archived-plans/plan-2026-05-29-directory-structure-governance.md` | 2026-05-29 | 旧根目录结构治理计划，根 `plan.md` 现只保留 FM-agent 扫描修复索引 |
 | `archived-plans/retrieval-v2-v3-implementation-plan.md` | 2026-05-28 | 历史检索实现计划，根目录只保留当前 `plan.md` |
-| `reports/sea-reference-infra-review.md` | 2026-05-28 | 历史基础设施审计报告，归档到 reports |
 | `temp-2026-05-28.md` | 2026-05-28 | 临时工作笔记，根目录不保留临时材料 |
 | `reports/doc-drift-audit-report-2026-05-28.md` | 2026-05-28 | 文档漂移审计报告，已从旧 `docs/archive/` 合并 |
 | `reports/doc-drift-audit-report-2026-05-28-cont.md` | 2026-05-28 | 文档漂移补充报告，已从旧 `docs/archive/` 合并 |
