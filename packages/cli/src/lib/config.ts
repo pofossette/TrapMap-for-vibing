@@ -111,7 +111,7 @@ export async function loadCliState(): Promise<CliState> {
       ...(outputProfile != null
         ? { outputProfile }
         : configHadOutputProfile
-          ? { outputProfile: undefined }
+          ? { outputProfile: getDefaultState().outputProfile }
           : {}),
     };
   } catch {
