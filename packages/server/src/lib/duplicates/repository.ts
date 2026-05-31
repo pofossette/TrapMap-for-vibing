@@ -9,10 +9,10 @@
  * Phase: 100-01 (Store Repository Pattern)
  */
 
-import { createRequire } from 'node:module';
 import type { Pool } from 'pg';
 
 import type { DuplicateCaseRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { PgDuplicateRepository } from './pg-repository.js';
 
 /**
  * Repository interface for duplicate case CRUD operations.
@@ -94,11 +94,6 @@ export function createDuplicateRepository(config: {
   store: SkillShareerStore;
 }): DuplicateRepository {
   if (config.pool) {
-    // Dynamic import to avoid loading pg module in test environments
-    const require = createRequire(import.meta.url);
-    const { PgDuplicateRepository } = require('./pg-repository.js') as {
-      PgDuplicateRepository: new (pool: Pool) => DuplicateRepository;
-    };
     return new PgDuplicateRepository(config.pool);
   }
   return new InMemoryDuplicateRepository(config.store);

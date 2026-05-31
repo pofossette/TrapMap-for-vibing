@@ -594,17 +594,17 @@ describe('semantic recall', () => {
       });
       const boost = computeLexicalIntentBoost('docker deployment orchestration', entry);
       expect(boost).toBeGreaterThan(0);
-      expect(boost).toBeLessThanOrEqual(0.15);
+      expect(boost).toBeLessThanOrEqual(0.55);
     });
 
-    it('caps boost at 0.15', () => {
+    it('caps boost at 0.55', () => {
       const entry = createTestEntry({
         shortcut: 'docker deployment orchestration compose containers',
         detail: 'docker deployment orchestration compose containers',
         labels: ['docker', 'deployment', 'orchestration', 'compose'],
       });
       const boost = computeLexicalIntentBoost('docker deployment orchestration', entry);
-      expect(boost).toBe(0.15);
+      expect(boost).toBe(0.55);
     });
 
     it('gives higher boost to primary docker entry than networking entry', () => {

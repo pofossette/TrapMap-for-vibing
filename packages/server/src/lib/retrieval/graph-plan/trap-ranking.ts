@@ -39,18 +39,14 @@ function textSimilarity(query: string, target: string): number {
 function scoreTrapEntry(intent: ParsedIntent, entry: KnowledgeRecord): number {
   const entryText = `${entry.shortcut} ${entry.detail} ${entry.labels.join(' ')}`;
 
-  const situationScore = intent.situation
-    ? textSimilarity(intent.situation, entryText)
-    : 0;
+  const situationScore = intent.situation ? textSimilarity(intent.situation, entryText) : 0;
 
   const problemText = [intent.problem, intent.errorText].filter(Boolean).join(' ').trim();
   const problemScore = problemText
     ? textSimilarity(problemText, entryText)
     : textSimilarity(intent.normalized, entryText);
 
-  const goalScore = intent.goal
-    ? textSimilarity(intent.goal, entryText)
-    : 0;
+  const goalScore = intent.goal ? textSimilarity(intent.goal, entryText) : 0;
 
   let keywordScore = 0;
   if (intent.tokens.length > 0) {

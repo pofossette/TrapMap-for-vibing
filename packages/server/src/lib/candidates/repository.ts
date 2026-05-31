@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import type {
   AnalysisSnapshot,
   CandidateStatus,
@@ -10,6 +9,7 @@ import type { Pool } from 'pg';
 
 import type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { PgCandidateRepository } from './pg-repository.js';
 import type { ManualResultRecord } from './store.js';
 import {
   attachAnalysisSnapshot,
@@ -198,11 +198,6 @@ export function createCandidateRepository(config: {
   duplicateRepo?: DuplicateRepository;
 }): CandidateRepository {
   if (config.pool) {
-    // Dynamic import to avoid loading pg module in test environments
-    const require = createRequire(import.meta.url);
-    const { PgCandidateRepository } = require('./pg-repository.js') as {
-      PgCandidateRepository: new (pool: Pool) => CandidateRepository;
-    };
     // Round 2: PG-only, no JSONB shadow writes
     return new PgCandidateRepository(config.pool);
   }

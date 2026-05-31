@@ -59,10 +59,7 @@ export function assessGraphPlanReadiness(
     ) ?? false;
   const hasSupportingEvidence = (plan?.citations.length ?? 0) > 0 || skillCount > 0;
 
-  const hasTrapSkillConnection =
-    trapCount > 0 &&
-    skillCount > 0 &&
-    hasTrapSkillStructure;
+  const hasTrapSkillConnection = trapCount > 0 && skillCount > 0 && hasTrapSkillStructure;
 
   const score =
     (skillCount > 0 ? 0.4 : 0) +

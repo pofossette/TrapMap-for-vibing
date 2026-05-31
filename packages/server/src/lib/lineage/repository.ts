@@ -9,10 +9,10 @@
  * Phase: 100-02 (Store Repository Pattern)
  */
 
-import { createRequire } from 'node:module';
 import type { Pool } from 'pg';
 
 import type { EntityLineageRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { PgLineageRepository } from './pg-repository.js';
 
 /**
  * Repository interface for entity lineage CRUD operations.
@@ -90,11 +90,6 @@ export function createLineageRepository(config: {
   store: SkillShareerStore;
 }): LineageRepository {
   if (config.pool) {
-    // Dynamic import to avoid loading pg module in test environments
-    const require = createRequire(import.meta.url);
-    const { PgLineageRepository } = require('./pg-repository.js') as {
-      PgLineageRepository: new (pool: Pool) => LineageRepository;
-    };
     return new PgLineageRepository(config.pool);
   }
   return new InMemoryLineageRepository(config.store);

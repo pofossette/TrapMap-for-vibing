@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import type { CaseMetrics, AggregateMetrics } from './run.js';
+import type { AggregateMetrics, CaseMetrics } from './run.js';
 import {
-  performLLMExtraction,
+  aggregateMetrics,
   evaluateCase,
   formatReport,
-  aggregateMetrics,
+  performLLMExtraction,
   simulateRuleEngineExtraction,
 } from './run.js';
 
@@ -27,9 +27,7 @@ function stubCaseMetrics(
   };
 }
 
-function stubAggregateMetrics(
-  overrides: Partial<AggregateMetrics> = {},
-): AggregateMetrics {
+function stubAggregateMetrics(overrides: Partial<AggregateMetrics> = {}): AggregateMetrics {
   return {
     avgNodePrecision: 0,
     avgNodeRecall: 0,
@@ -58,10 +56,7 @@ function stubAggregateMetrics(
 
 describe('performLLMExtraction', () => {
   it('returns mode=fallback and degraded=false in dry-run mode', async () => {
-    const result = await performLLMExtraction(
-      'some text about docker and timeout',
-      true,
-    );
+    const result = await performLLMExtraction('some text about docker and timeout', true);
 
     expect(result.mode).toBe('fallback');
     expect(result.degraded).toBe(false);
@@ -200,31 +195,23 @@ describe('simulateRuleEngineExtraction', () => {
   it('extracts tool nodes from keyword matches', () => {
     const result = simulateRuleEngineExtraction('docker and postgresql are tools');
 
-    const toolLabels = result.nodes
-      .filter((n) => n.kind === 'tool')
-      .map((n) => n.label);
+    const toolLabels = result.nodes.filter((n) => n.kind === 'tool').map((n) => n.label);
 
     expect(toolLabels).toContain('docker');
     expect(toolLabels).toContain('postgresql');
   });
 
   it('extracts cue nodes from pattern matches', () => {
-    const result = simulateRuleEngineExtraction(
-      'timeout error occurred during startup',
-    );
+    const result = simulateRuleEngineExtraction('timeout error occurred during startup');
 
-    const cueLabels = result.nodes
-      .filter((n) => n.kind === 'cue')
-      .map((n) => n.label);
+    const cueLabels = result.nodes.filter((n) => n.kind === 'cue').map((n) => n.label);
 
     expect(cueLabels).toContain('timeout-issue');
     expect(cueLabels).toContain('error-issue');
   });
 
   it('returns no edges (rule engine does not extract edges)', () => {
-    const result = simulateRuleEngineExtraction(
-      'docker timeout error during postgresql startup',
-    );
+    const result = simulateRuleEngineExtraction('docker timeout error during postgresql startup');
 
     expect(result.edges).toHaveLength(0);
   });

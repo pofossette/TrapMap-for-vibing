@@ -17,6 +17,8 @@ import { createEmptyStoreData } from '@trapmap/server/lib/store.js';
  * for future relational decomposition and migration tooling.
  */
 export class PostgresStore implements SkillShareerStore {
+  private closed = false;
+
   constructor(protected readonly pool: Pool) {}
 
   /**
@@ -86,6 +88,10 @@ export class PostgresStore implements SkillShareerStore {
    * Close the underlying pool. Call during shutdown or test cleanup.
    */
   async close(): Promise<void> {
+    if (this.closed) {
+      return;
+    }
+    this.closed = true;
     await this.pool.end();
   }
 }

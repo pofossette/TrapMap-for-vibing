@@ -262,6 +262,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.addHook('onClose', async () => {
     const taskWorker = (app as any).taskWorker;
     const outboxWorker = (app as any).outboxWorker;
+    const store = app.skillShareer.store;
 
     if (taskWorker?.stop) {
       await taskWorker.stop();
@@ -270,6 +271,9 @@ export function buildServer(options: BuildServerOptions = {}) {
     if (outboxWorker?.stop) {
       await outboxWorker.stop();
       app.log.info('Outbox worker stopped');
+    }
+    if (store instanceof PostgresStore) {
+      await store.close();
     }
   });
 

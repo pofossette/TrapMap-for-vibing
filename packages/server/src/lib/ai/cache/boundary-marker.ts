@@ -74,9 +74,5 @@ export function insertBoundaryMarker(renderedContent: string, staticSections: st
 
   if (boundaryPos === -1) return renderedContent;
 
-  return (
-    renderedContent.slice(0, boundaryPos) +
-    `\n${CACHE_BOUNDARY_MARKER}\n` +
-    renderedContent.slice(boundaryPos)
-  );
+  return `${renderedContent.slice(0, boundaryPos)}\n${CACHE_BOUNDARY_MARKER}\n${renderedContent.slice(boundaryPos)}`;
 }

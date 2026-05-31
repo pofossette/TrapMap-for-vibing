@@ -210,6 +210,25 @@ describe('buildRetrievalReadModel', () => {
     expect(repos.artifact.listByFilter).toHaveBeenCalledWith({});
   });
 
+  it('prefers listForRetrieval when the artifact repository provides hydrated reads', async () => {
+    const hydratedArtifacts = [makeArtifactRecord('a_hydrated')];
+    const listForRetrieval = vi.fn().mockResolvedValue(hydratedArtifacts);
+    const listByFilter = vi.fn().mockResolvedValue([makeArtifactRecord('a_lightweight')]);
+    const repos = createMockRepos({
+      artifact: {
+        listByFilter,
+        listForRetrieval,
+      },
+    } as never);
+    const store = createMockStore();
+
+    const result = await buildRetrievalReadModel(repos, store);
+
+    expect(result.skillArtifacts).toEqual(hydratedArtifacts);
+    expect(listForRetrieval).toHaveBeenCalledWith({});
+    expect(listByFilter).not.toHaveBeenCalled();
+  });
+
   it('returns conflicts from the store snapshot', async () => {
     const conflicts = [makeConflict('c_1', 'k_1', 'k_2'), makeConflict('c_2', 'k_3', 'k_4')];
     const repos = createMockRepos();

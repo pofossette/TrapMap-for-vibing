@@ -97,7 +97,9 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
     // Record usage events (fire-and-forget)
     const { usageAnalytics } = app.skillShareer.repos;
     const queryId = randomUUID();
-    void usageAnalytics.recordEvents(buildUsageEvents(auth, result, queryId, query.seed));
+    void usageAnalytics
+      .recordEvents(buildUsageEvents(auth, result, queryId, query.seed))
+      .catch(() => {});
 
     // Validate and return response
     return retrievalResponseSchema.parse(result);
@@ -140,7 +142,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
       entryId: capsule.artifactId,
       queryText: query.seed,
     }));
-    void usageAnalytics.recordEvents(events);
+    void usageAnalytics.recordEvents(events).catch(() => {});
 
     // Validate and return v2 response with activation hints (T-15-03)
     return retrievalV2ResponseWithHintsSchema.parse(result);
@@ -205,7 +207,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
           queryText: query.seed,
         })),
       ];
-      void usageAnalytics.recordEvents(events);
+      void usageAnalytics.recordEvents(events).catch(() => {});
     }
 
     return graphPlanSearchResponseSchema.parse(result);

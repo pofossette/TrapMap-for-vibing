@@ -6,6 +6,7 @@ import {
   seedApprovedKnowledgeEntry,
   seedApprovedSkillArtifact,
   seedGraphDocument,
+  seedTestData,
 } from '@trapmap/server/lib/retrieval/__fixtures__/auth-store-helpers.js';
 import {
   buildDeployClusterDataset,
@@ -13,9 +14,18 @@ import {
   makeSkillNode,
   makeTrapNode,
 } from '@trapmap/server/lib/retrieval/__fixtures__/graph-fixtures.js';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
+
+const TEST_AI_CONFIG = {
+  provider: 'fallback' as const,
+  baseUrl: '',
+  apiKey: '',
+  chatModel: '',
+  embeddingModel: '',
+  isConfigured: false,
+  promptTemplateFile: null,
+};
 
 describe('retrieval route', () => {
   let app: FastifyInstance;
@@ -684,7 +694,6 @@ describe('retrieval route', () => {
   // Phase 16-02: Retrieval governance filtering integration (T-16-05)
   describe('retrieval governance filtering (Phase 16-02)', () => {
     let testApp: FastifyInstance;
-    let testStore: SkillShareerStore;
     let sessionId: string;
     const userId = 'user_retrieval_gov';
     const teamId = 'team_retrieval_gov';
@@ -696,11 +705,10 @@ describe('retrieval route', () => {
 
       const testDataFile = `/tmp/trapmap-test-${Date.now()}-${Math.random()}.json`;
 
-      testApp = buildServer({ config: { dataFile: testDataFile } });
+      testApp = buildServer({ config: { dataFile: testDataFile, ai: TEST_AI_CONFIG } });
       await testApp.ready();
-      testStore = testApp.skillShareer.store;
 
-      await testStore.transact(async (data) => {
+      await seedTestData(testApp, async (data) => {
         if (!data.counters) data.counters = {};
         data.counters.user = 1;
 
@@ -772,8 +780,7 @@ describe('retrieval route', () => {
 
     it('retrieval filters out entries from other teams', async () => {
       // Add an entry from another team
-      const { nowIso } = await import('@trapmap/server/lib/store.js');
-      await testStore.transact(async (data) => {
+      await seedTestData(testApp, async (data) => {
         data.knowledgeEntries.push({
           id: 'knowledge_other_team',
           teamId: otherTeamId,
@@ -843,9 +850,8 @@ describe('retrieval route', () => {
     });
 
     it('retrieval filters out entries exceeding user security level', async () => {
-      const { nowIso } = await import('@trapmap/server/lib/store.js');
       // Add entry with high security level
-      await testStore.transact(async (data) => {
+      await seedTestData(testApp, async (data) => {
         data.knowledgeEntries.push({
           id: 'knowledge_high_level',
           teamId: null,
@@ -915,9 +921,8 @@ describe('retrieval route', () => {
     });
 
     it('retrieval filters out non-approved entries', async () => {
-      const { nowIso } = await import('@trapmap/server/lib/store.js');
       // Add pending entry
-      await testStore.transact(async (data) => {
+      await seedTestData(testApp, async (data) => {
         data.knowledgeEntries.push({
           id: 'knowledge_pending',
           teamId: null,
@@ -1239,7 +1244,6 @@ describe('retrieval route', () => {
   // Phase 66-04: Boundary-aware retrieval E2E tests (BOUND-04, BOUND-05)
   describe('boundary-aware retrieval E2E (Phase 66-04)', () => {
     let testApp: FastifyInstance;
-    let testStore: SkillShareerStore;
     let sessionId: string;
     const userId = 'user_boundary_e2e';
     const teamId = 'team_boundary_e2e';
@@ -1250,11 +1254,10 @@ describe('retrieval route', () => {
 
       const testDataFile = `/tmp/trapmap-test-boundary-${Date.now()}-${Math.random()}.json`;
 
-      testApp = buildServer({ config: { dataFile: testDataFile } });
+      testApp = buildServer({ config: { dataFile: testDataFile, ai: TEST_AI_CONFIG } });
       await testApp.ready();
-      testStore = testApp.skillShareer.store;
 
-      await testStore.transact(async (data) => {
+      await seedTestData(testApp, async (data) => {
         if (!data.counters) data.counters = {};
         data.counters.user = 1;
 
@@ -1342,10 +1345,8 @@ describe('retrieval route', () => {
     });
 
     it('includes boundaryExplanation in response when boundaryContext provided', async () => {
-      const { nowIso } = await import('@trapmap/server/lib/store.js');
-
       // Seed an entry with boundary
-      await testStore.transact(async (data) => {
+      await seedTestData(testApp, async (data) => {
         data.knowledgeEntries.push({
           id: 'entry-boundary-test',
           teamId: null,
@@ -1440,10 +1441,8 @@ describe('retrieval route', () => {
     });
 
     it('excludes entry with unsatisfied version constraint', async () => {
-      const { nowIso } = await import('@trapmap/server/lib/store.js');
-
       // Seed an entry with React 18+ version constraint
-      await testStore.transact(async (data) => {
+      await seedTestData(testApp, async (data) => {
         data.knowledgeEntries.push({
           id: 'entry-react-18-plus',
           teamId: null,
@@ -1527,10 +1526,8 @@ describe('retrieval route', () => {
     });
 
     it('penalizes entry with matching exclusion', async () => {
-      const { nowIso } = await import('@trapmap/server/lib/store.js');
-
       // Seed an entry with Windows exclusion
-      await testStore.transact(async (data) => {
+      await seedTestData(testApp, async (data) => {
         data.knowledgeEntries.push({
           id: 'entry-no-windows',
           teamId: null,
@@ -1619,10 +1616,8 @@ describe('retrieval route', () => {
     });
 
     it('boosts entry with matching context', async () => {
-      const { nowIso } = await import('@trapmap/server/lib/store.js');
-
       // Seed an entry with frontend context
-      await testStore.transact(async (data) => {
+      await seedTestData(testApp, async (data) => {
         data.knowledgeEntries.push({
           id: 'entry-frontend-context',
           teamId: null,
@@ -1813,10 +1808,10 @@ describe('retrieval route', () => {
             seedApprovedKnowledgeEntry(data, auth.userId, {
               id: 'knowledge-high-level',
               shortcut: 'High Security Entry',
-              requiredLevel: 15, // Exceeds default securityLevel of 10
+              requiredLevel: 10,
             });
           },
-          { securityLevel: 10 },
+          { securityLevel: 5 },
         );
 
         const response = await app.inject({
@@ -1855,10 +1850,10 @@ describe('retrieval route', () => {
             seedApprovedSkillArtifact(data, auth.userId, {
               id: 'skill-high-level',
               title: 'High Security Skill',
-              requiredLevel: 15,
+              requiredLevel: 10,
             });
           },
-          { securityLevel: 10 },
+          { securityLevel: 5 },
         );
 
         // Use skill-lookup endpoint to test governance filtering
@@ -2087,10 +2082,10 @@ describe('retrieval route', () => {
             seedApprovedSkillArtifact(data, auth.userId, {
               id: 'skill-restricted',
               title: 'Restricted Skill',
-              requiredLevel: 20,
+              requiredLevel: 10,
             });
           },
-          { securityLevel: 10 },
+          { securityLevel: 5 },
         );
 
         const response = await app.inject({

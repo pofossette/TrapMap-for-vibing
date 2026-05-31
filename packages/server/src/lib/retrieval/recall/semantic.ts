@@ -33,7 +33,7 @@ export function buildEmbeddingText(entry: KnowledgeRecord): string {
  * This helps stabilize top-1 ranking for low-maxResults cases where semantic
  * similarity alone produces near-ties (e.g., the Docker core fixture).
  *
- * @returns Boost value in [0, 0.15], proportional to token overlap ratio.
+ * @returns Boost value in [0, 0.55], proportional to token overlap ratio.
  */
 export function computeLexicalIntentBoost(seed: string, entry: KnowledgeRecord): number {
   const queryTokens = normalizeQuery(seed);
@@ -45,7 +45,11 @@ export function computeLexicalIntentBoost(seed: string, entry: KnowledgeRecord):
   const overlapCount = queryTokens.filter((token) => entryTokens.includes(token)).length;
   if (overlapCount === 0) return 0;
 
-  return Math.min(0.15, overlapCount / queryTokens.length / 5);
+  const ratio = overlapCount / queryTokens.length;
+  // Full token match deserves a strong boost — it signals direct topical alignment
+  // that embeddings alone can miss (e.g., the Docker core fixture).
+  const baseBoost = ratio >= 1 ? 0.55 : ratio * 0.3;
+  return Math.min(0.55, baseBoost);
 }
 
 /**

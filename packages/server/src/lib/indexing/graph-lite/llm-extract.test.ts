@@ -276,7 +276,12 @@ describe('llm-extract', () => {
           { kind: 'cue', label: 'timeout' },
         ],
         edges: [
-          { sourceLabel: 'docker', targetLabel: 'timeout', relationType: 'Co-occurs-With', strength: 'soft' },
+          {
+            sourceLabel: 'docker',
+            targetLabel: 'timeout',
+            relationType: 'Co-occurs-With',
+            strength: 'soft',
+          },
         ],
       } as unknown as LlmGraphExtraction;
       const { edges } = toGraphRecords(extraction);
@@ -290,9 +295,7 @@ describe('llm-extract', () => {
           { kind: 'tool', label: 'a' },
           { kind: 'cue', label: 'b' },
         ],
-        edges: [
-          { sourceLabel: 'a', targetLabel: 'b', relationType: 'mitigate', strength: 'hard' },
-        ],
+        edges: [{ sourceLabel: 'a', targetLabel: 'b', relationType: 'mitigate', strength: 'hard' }],
       } as unknown as LlmGraphExtraction;
       const { edges } = toGraphRecords(extraction);
       expect(edges).toHaveLength(1);

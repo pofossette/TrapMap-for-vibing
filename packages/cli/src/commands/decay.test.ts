@@ -23,7 +23,7 @@ import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest } from '@trapmap/cli/lib/http.js';
 // Import after mocking
 import { Command } from 'commander';
-import { registerDecayCommands, formatDecayList } from './decay.js';
+import { formatDecayList, registerDecayCommands } from './decay.js';
 
 const mockedApiRequest = vi.mocked(apiRequest);
 const mockedLoadCliState = vi.mocked(loadCliState);

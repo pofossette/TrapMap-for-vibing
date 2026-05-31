@@ -375,7 +375,32 @@ export async function seedScenarioFixtures(
             derivedAt: createdAt,
           },
         },
-        history: [],
+        history: [
+          {
+            revision: 1,
+            sourceHash: '',
+            files: [],
+            submittedAt: createdAt,
+            submittedByUserId: ctx.actorId,
+            scriptDescriptors: [],
+            derived: {
+              profile: {
+                artifactId: artifact.id,
+                revision: 1,
+                sourceHash: '',
+                title: artifact.title,
+                summary: artifact.capsules.map((c: { content: string }) => c.content).join('. '),
+                keywords: artifact.labels,
+                referencePaths: [],
+                contentHash: '',
+              },
+              capsules,
+              clientManifest: null,
+              sourceHash: '',
+              derivedAt: createdAt,
+            },
+          },
+        ],
         metadata: {
           sourceKind: 'skill-directory',
           submissionCount: 1,
@@ -556,20 +581,22 @@ export async function createActorSession(
       }
     }
 
-    const membershipId = `membership_${ctx.actorId}_${actor.activeTeamId ?? 'global'}`;
-    const existingMembership = await repos.membership.getById(membershipId);
-    if (!existingMembership) {
-      await repos.membership.insert({
-        id: membershipId,
-        userId: ctx.actorId,
-        teamId: actor.activeTeamId,
-        roleTemplate: actor.subjectType === 'system-admin' ? 'admin' : 'user',
-        securityLevel: actor.securityLevel,
-        permissions: actor.permissions,
-        notes: null,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      });
+    if (actor.activeTeamId) {
+      const membershipId = `membership_${ctx.actorId}_${actor.activeTeamId}`;
+      const existingMembership = await repos.membership.getById(membershipId);
+      if (!existingMembership) {
+        await repos.membership.insert({
+          id: membershipId,
+          userId: ctx.actorId,
+          teamId: actor.activeTeamId,
+          roleTemplate: actor.subjectType === 'system-admin' ? 'admin' : 'user',
+          securityLevel: actor.securityLevel,
+          permissions: actor.permissions,
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+      }
     }
 
     if (ctx.sessionToken) {
@@ -601,24 +628,26 @@ export async function createActorSession(
       });
     }
 
-    await ctx.store.transact(async (data) => {
-      const membershipId = `membership_${ctx.actorId}_${actor.activeTeamId ?? 'global'}`;
-      const membershipExists = data.memberships.some((m) => m.id === membershipId);
+    if (actor.activeTeamId) {
+      await ctx.store.transact(async (data) => {
+        const membershipId = `membership_${ctx.actorId}_${actor.activeTeamId}`;
+        const membershipExists = data.memberships.some((m) => m.id === membershipId);
 
-      if (!membershipExists) {
-        data.memberships.push({
-          id: membershipId,
-          userId: ctx.actorId,
-          teamId: actor.activeTeamId,
-          roleTemplate: actor.subjectType === 'system-admin' ? 'admin' : 'user',
-          securityLevel: actor.securityLevel,
-          permissions: actor.permissions,
-          notes: null,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-      }
-    });
+        if (!membershipExists) {
+          data.memberships.push({
+            id: membershipId,
+            userId: ctx.actorId,
+            teamId: actor.activeTeamId,
+            roleTemplate: actor.subjectType === 'system-admin' ? 'admin' : 'user',
+            securityLevel: actor.securityLevel,
+            permissions: actor.permissions,
+            notes: null,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          });
+        }
+      });
+    }
 
     await ctx.store.transact(async (data) => {
       const session = data.sessions.find((s) => s.userId === ctx.actorId);

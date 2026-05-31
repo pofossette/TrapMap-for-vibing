@@ -354,6 +354,7 @@ export function createTaskWorker(config: TaskWorkerConfig) {
   const handlerMap = new Map(handlers.map((h) => [h.type, h]));
   let running = false;
   const activeTasks = new Set<Promise<void>>();
+  let runPromise: Promise<void> | null = null;
 
   async function processOneTask(): Promise<boolean> {
     for (const [type, handler] of handlerMap) {
@@ -392,27 +393,43 @@ export function createTaskWorker(config: TaskWorkerConfig) {
   }
 
   async function run(): Promise<void> {
-    running = true;
-
-    while (running) {
-      // Process tasks up to concurrency limit
-      while (activeTasks.size < concurrency) {
-        const processed = await processOneTask();
-        if (!processed) break;
-      }
-
-      // Wait for poll interval or any task to complete
-      if (activeTasks.size >= concurrency || !(await processOneTask())) {
-        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-      }
+    if (runPromise) {
+      return runPromise;
     }
 
-    // Wait for all active tasks to complete
-    await Promise.all(activeTasks);
+    runPromise = (async () => {
+      running = true;
+
+      while (running) {
+        // Process tasks up to concurrency limit
+        while (activeTasks.size < concurrency) {
+          const processed = await processOneTask();
+          if (!processed) break;
+        }
+
+        // Wait for poll interval or any task to complete
+        if (activeTasks.size >= concurrency || !(await processOneTask())) {
+          await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        }
+      }
+
+      // Wait for all active tasks to complete
+      await Promise.all(activeTasks);
+    })();
+
+    try {
+      await runPromise;
+    } finally {
+      runPromise = null;
+      running = false;
+    }
   }
 
-  function stop(): void {
+  async function stop(): Promise<void> {
     running = false;
+    if (runPromise) {
+      await runPromise;
+    }
   }
 
   function isRunning(): boolean {

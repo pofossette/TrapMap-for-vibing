@@ -13,7 +13,6 @@
  * will be addressed in later rounds.
  */
 
-import { createRequire } from 'node:module';
 import type { LifecycleState } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
@@ -30,6 +29,7 @@ import type {
   KnowledgeRevisionRecord,
   SkillShareerStore,
 } from '@trapmap/server/lib/store.js';
+import { PgKnowledgeRepository } from './pg-repository.js';
 
 /**
  * Repository interface for knowledge entry CRUD operations.
@@ -259,11 +259,6 @@ export function createKnowledgeRepository(config: {
   store: SkillShareerStore;
 }): KnowledgeRepository {
   if (config.pool) {
-    // Dynamic import to avoid loading pg module in test environments
-    const require = createRequire(import.meta.url);
-    const { PgKnowledgeRepository } = require('./pg-repository.js') as {
-      PgKnowledgeRepository: new (pool: Pool) => KnowledgeRepository;
-    };
     // Round 2: PG-only, no JSONB shadow writes
     return new PgKnowledgeRepository(config.pool);
   }

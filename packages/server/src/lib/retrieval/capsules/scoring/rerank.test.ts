@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import {
+  createMockArtifact,
+  createMockCapsule,
+} from '@trapmap/server/__tests__/lib/retrieval/test-helpers.js';
 import type {
   ArtifactGovernanceFilters,
   MergedCapsuleCandidate,
   ParsedIntent,
 } from '@trapmap/server/lib/retrieval/types.js';
-import {
-  createMockArtifact,
-  createMockCapsule,
-} from '@trapmap/server/__tests__/lib/retrieval/test-helpers.js';
 import { rerankMergedCapsules } from './rerank.js';
 
 describe('rerankMergedCapsules (Phase 2: multi-channel evidence blend)', () => {

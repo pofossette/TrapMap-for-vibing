@@ -10,7 +10,6 @@
  * Phase: 63 (WRITE-03)
  */
 
-import { createRequire } from 'node:module';
 import type { LifecycleState } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
@@ -21,6 +20,7 @@ import type {
   SkillArtifactRevisionRecord,
   SkillShareerStore,
 } from '@trapmap/server/lib/store.js';
+import { PgArtifactRepository } from './pg-repository.js';
 
 /**
  * Repository interface for skill artifact CRUD operations.
@@ -87,6 +87,18 @@ export interface ArtifactRepository {
    * Returns lightweight records without full revision history.
    */
   listByFilter(filter: {
+    lifecycleState?: LifecycleState;
+    teamId?: string;
+    ownerUserId?: string;
+    maintainerUserId?: string;
+  }): Promise<SkillArtifactRecord[]>;
+
+  /**
+   * List artifacts for retrieval with derived capsule data hydrated.
+   * Unlike listByFilter, this ensures latestRevision.derived is populated
+   * so capsule recall channels can read capsule content.
+   */
+  listForRetrieval(filter: {
     lifecycleState?: LifecycleState;
     teamId?: string;
     ownerUserId?: string;
@@ -209,6 +221,16 @@ export class InMemoryArtifactRepository implements ArtifactRepository {
     });
   }
 
+  async listForRetrieval(filter: {
+    lifecycleState?: LifecycleState;
+    teamId?: string;
+    ownerUserId?: string;
+    maintainerUserId?: string;
+  }): Promise<SkillArtifactRecord[]> {
+    // InMemory store returns full records with derived data already populated
+    return this.listByFilter(filter);
+  }
+
   async listByFilter(filter: {
     lifecycleState?: LifecycleState;
     teamId?: string;
@@ -274,11 +296,6 @@ export function createArtifactRepository(config: {
   store: SkillShareerStore;
 }): ArtifactRepository {
   if (config.pool) {
-    // Dynamic import to avoid loading pg module in test environments
-    const require = createRequire(import.meta.url);
-    const { PgArtifactRepository } = require('./pg-repository.js') as {
-      PgArtifactRepository: new (pool: Pool) => ArtifactRepository;
-    };
     // Phase 63: PostgreSQL-only, no JSONB shadow writes
     return new PgArtifactRepository(config.pool);
   }

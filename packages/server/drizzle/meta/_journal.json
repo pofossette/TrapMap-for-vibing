@@ -64,6 +64,34 @@
       "when": 1779330000000,
       "tag": "0008_round9_cross_table_consistency",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779331000000,
+      "tag": "0009_round10_task_queue_write_path",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779332000000,
+      "tag": "0010_round10_lifecycle_outbox",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779333000000,
+      "tag": "0011_round10_identity_audit_structural",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1779334000000,
+      "tag": "0012_round10_read_model_cleanup",
+      "breakpoints": true
     }
   ]
 }

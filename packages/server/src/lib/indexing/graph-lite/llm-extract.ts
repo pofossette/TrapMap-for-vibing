@@ -305,7 +305,9 @@ export function toGraphRecords(extraction: LlmGraphExtraction): {
   let skippedEdgeCount = 0;
   for (const edge of extraction.edges) {
     const normalizedType = edge.relationType.toLowerCase().trim();
-    const relationType = LLM_TO_RELATION_TYPE[normalizedType] ?? LLM_TO_RELATION_TYPE[RELATION_ALIASES[normalizedType] ?? ''];
+    const relationType =
+      LLM_TO_RELATION_TYPE[normalizedType] ??
+      LLM_TO_RELATION_TYPE[RELATION_ALIASES[normalizedType] ?? ''];
     if (!relationType) {
       skippedEdgeCount++;
       continue;
@@ -327,7 +329,9 @@ export function toGraphRecords(extraction: LlmGraphExtraction): {
   }
 
   if (skippedEdgeCount > 0) {
-    console.warn(`[toGraphRecords] skipped ${skippedEdgeCount} edge(s) (unknown relationType or missing node)`);
+    console.warn(
+      `[toGraphRecords] skipped ${skippedEdgeCount} edge(s) (unknown relationType or missing node)`,
+    );
   }
 
   return { nodes, edges };

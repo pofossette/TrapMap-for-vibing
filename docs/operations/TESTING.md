@@ -23,14 +23,15 @@ flowchart TB
 | 检索评估 (Retrieval) | 验证召回结果的相关性和治理正确性 | `evals/retrieval/run.ts` |
 | 摘要评估 (Summary) | 验证 AI 生成摘要的忠实度和覆盖率 | `evals/summary/run.ts` |
 | 图提取评估 (Graph Extraction) | 验证图提取、去重和冲突评测 | `evals/graph-extraction/run.ts` |
+| 摄取评估 (Ingestion) | 验证 Skill 目录摄取的正确性 | `evals/ingestion/run.ts` |
+| 治理评估 (Governance) | 验证 RBAC 和安全等级过滤 | 内嵌于检索评估 |
 
 **Graph Extraction Eval Reporting:**
 - `pnpm eval:graph-extraction` — live mode, requires chat provider config
 - `pnpm eval:graph-extraction --dry-run` — deterministic fallback, all cases marked as fallback mode
-- If a live run reports "DEGRADED" cases, check that the chat provider environment variables are configured
+- Treat a run as truly live only when the aggregate output shows `Mode Breakdown: Live: N cases, Fallback: 0 cases`
+- If the output contains `DEGRADED`, `WARNING: Chat provider not configured`, or any non-zero fallback count, the run is not a clean live proof
 - A report with zero live cases and non-zero fallback cases should NOT be used to evaluate LLM extraction quality
-| 摄取评估 (Ingestion) | 验证 Skill 目录摄取的正确性 | `evals/ingestion/run.ts` |
-| 治理评估 (Governance) | 验证 RBAC 和安全等级过滤 | 内嵌于检索评估 |
 
 ### 目录结构
 
@@ -129,6 +130,45 @@ pnpm eval:ci:core
 # 查看 JSON 报告
 cat reports/eval-report.json
 ```
+
+### PostgreSQL 全量评测（Docker 环境）
+
+当需要在 Docker + PostgreSQL 环境下验证检索/摘要/图提取/摄取的端到端行为时，使用以下命令集。
+需要 `.env` 中配置 `TRAPMAP_DATABASE_URL` 且 `trapmap-postgres` 容器正在运行。
+如果在 Codex 中执行，按仓库约定为这些命令加上 `rtk` 前缀。
+
+```bash
+# 确保 .env 已加载（eval runner 不自动读取 .env）
+set -a && source .env && set +a
+
+# 检索 core 评测（PG-backed，JSON 报告）
+pnpm eval:retrieval --tier core --json --json-path reports/eval/retrieval-core-postgres.json
+
+# 摘要 core 评测（fallback provider，JSON 报告）
+pnpm eval:summary --tier core --provider fallback --json --json-path reports/eval/summary-core-postgres.json
+
+# 图提取 smoke（捕获 live/fallback 文本证据）
+pnpm eval:graph-extraction --smoke | tee reports/eval/graph-extraction-smoke-live.txt
+
+# 摄取 smoke（捕获文本证据）
+pnpm eval:ingestion:smoke | tee reports/eval/ingestion-smoke-postgres.txt
+```
+
+**注意：** eval runner 通过 `loadAiProviderConfig()` 读取环境变量，不会自动加载 `.env` 文件。
+如不 source `.env`，retrieval、summary、graph extraction、ingestion 都可能读取不到 PostgreSQL 或 AI provider 配置，导致结果失真或直接回退。
+图提取日志中如果出现 `WARNING: Chat provider not configured, falling back to rule engine`，即使顶部仍显示 `Mode: live`，该次运行也只能记为 degraded fallback。
+摘要 multi-fact 用例需要真实 embedding provider（如 Google GenAI），fallback embedding 可能无法召回该用例的 capsule。
+
+### 持久化评测证据
+
+评测产出的报告文件存储在 `reports/eval/` 下：
+
+| 文件 | 内容 |
+|------|------|
+| `retrieval-core-postgres.json` | 检索 core 层全量 JSON 结果 |
+| `summary-core-postgres.json` | 摘要 core 层全量 JSON 结果 |
+| `graph-extraction-smoke-live.txt` | 图提取 smoke 文本输出；必须检查 `Mode Breakdown` 和 `DEGRADED`/fallback 提示 |
+| `ingestion-smoke-postgres.txt` | 摄取 smoke 文本输出 |
 
 ### 文档漂移与复杂度守卫
 
@@ -475,11 +515,12 @@ pnpm vitest run evals/retrieval/runner.test.ts
 
 ### Live PG Eval Parity
 
-检索评测 harness 在 PG 模式下必须与 JSON 模式产生相同的 auth/graph 设置语义。Phase 0 修复了以下三个问题：
+检索评测 harness 在 PG 模式下必须与 JSON 模式产生相同的 auth/graph 设置语义。Phase 0 修复了以下问题：
 
 - **Session subject type**：`createActorSession()` 在 PG 模式下删除旧 session 并创建新 session，确保 `subjectType` 和 `activeTeamId` 正确（不再隐式使用 system-admin）。
 - **Active team**：actor 的 `activeTeamId` 通过新 session 正确传递，governance 过滤基于实际 team membership。
 - **Graph repository visibility**：graph 文档通过 `repos.graphIndex.upsert()` 播种，确保 `repos.graphIndex.listAll()` 可见。
+- **Capsule data hydration**：PG `listByFilter()` 返回 lightweight records（`derived: null`），导致 capsule recall 通道无法读取 capsule 数据。修复：`listForRetrieval()` 方法批量加载 revision + capsule 数据，`buildRetrievalReadModel()` 使用该方法。
 
 回归测试位于 `evals/retrieval/lib/adapters.test.ts`。
 

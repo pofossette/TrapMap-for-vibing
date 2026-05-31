@@ -1,5 +1,5 @@
-import { readdirSync, existsSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { existsSync, readdirSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '..');
 

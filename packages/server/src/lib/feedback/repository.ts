@@ -10,10 +10,10 @@
  * Round 6: Added PgFeedbackRepository, replacing InMemory as default when pool available.
  */
 
-import { createRequire } from 'node:module';
 import type { Pool } from 'pg';
 
 import type { FeedbackQueueRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { PgFeedbackRepository } from './pg-repository.js';
 
 /**
  * Repository interface for feedback queue CRUD operations.
@@ -139,11 +139,6 @@ export function createFeedbackRepository(config: {
   store: SkillShareerStore;
 }): FeedbackRepository {
   if (config.pool) {
-    // Dynamic import to avoid loading pg module in test environments
-    const require = createRequire(import.meta.url);
-    const { PgFeedbackRepository } = require('./pg-repository.js') as {
-      PgFeedbackRepository: new (pool: Pool) => FeedbackRepository;
-    };
     return new PgFeedbackRepository(config.pool);
   }
   return new InMemoryFeedbackRepository(config.store);

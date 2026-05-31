@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildServer } from '../app.js';
+import { buildServer } from '@trapmap/server/app.js';
 import { bootstrapCandidateRecovery } from './bootstrap-candidate-recovery.js';
 import { bootstrapLifecycle } from './bootstrap-lifecycle.js';
 

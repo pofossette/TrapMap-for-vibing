@@ -230,7 +230,10 @@ export function simulateRuleEngineExtraction(text: string): LlmGraphExtraction {
  * Perform actual LLM extraction.
  * Falls back to mock data in dry-run mode.
  */
-export async function performLLMExtraction(text: string, dryRun: boolean): Promise<ExtractionRunResult> {
+export async function performLLMExtraction(
+  text: string,
+  dryRun: boolean,
+): Promise<ExtractionRunResult> {
   if (dryRun) {
     // In dry-run mode, use a deterministic mock that returns a reasonable subset
     return {
@@ -444,7 +447,9 @@ export function formatReport(
 
   // Mode breakdown
   if (!dryRun) {
-    lines.push(`Mode Breakdown: Live: ${agg.modeBreakdown.live} cases, Fallback: ${agg.modeBreakdown.fallback} cases`);
+    lines.push(
+      `Mode Breakdown: Live: ${agg.modeBreakdown.live} cases, Fallback: ${agg.modeBreakdown.fallback} cases`,
+    );
     if (agg.degradedCount > 0) {
       lines.push(`DEGRADED: ${agg.degradedCount} case(s) fell back to rule engine`);
     }
@@ -487,7 +492,8 @@ export function formatReport(
 
   for (const r of results) {
     const caseId = r.caseId.padEnd(25);
-    const modeIndicator = r.mode === 'live' ? (r.degraded ? ' F!' : ' L ') : (r.degraded ? ' F!' : ' F ');
+    const modeIndicator =
+      r.mode === 'live' ? (r.degraded ? ' F!' : ' L ') : r.degraded ? ' F!' : ' F ';
     const nodePrf =
       `${r.nodeMetrics.precision.toFixed(2)}/${r.nodeMetrics.recall.toFixed(2)}/${r.nodeMetrics.f1.toFixed(2)}`.padStart(
         13,

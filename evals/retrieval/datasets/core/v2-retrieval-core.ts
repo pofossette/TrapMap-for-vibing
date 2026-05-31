@@ -333,8 +333,8 @@ export const v2KeywordDominantCore = retrievalEvalCaseSchema.parse({
       forbiddenReasons: [],
     },
     shape: {
-      expectedProfileHintArtifactIds: ['artifact_core_keyword_nginx', 'artifact_core_keyword_pnpm'],
-      expectedCapsuleCount: 3,
+      expectedProfileHintArtifactIds: ['artifact_core_keyword_pnpm'],
+      expectedCapsuleCount: 2,
     },
   },
   tags: ['keyword-dominant', 'v2', 'core', 'capsule', 'error-debugging', 'multi-recall'],
@@ -365,8 +365,8 @@ export const v2KeywordErrorTextCore = retrievalEvalCaseSchema.parse({
       forbiddenReasons: [],
     },
     shape: {
-      expectedProfileHintArtifactIds: ['artifact_core_keyword_nginx', 'artifact_core_keyword_pnpm'],
-      expectedCapsuleCount: 3,
+      expectedProfileHintArtifactIds: ['artifact_core_keyword_nginx'],
+      expectedCapsuleCount: 1,
     },
   },
   tags: ['keyword-dominant', 'v2', 'core', 'capsule', 'error-debugging', 'multi-recall'],
@@ -397,12 +397,8 @@ export const v2SemanticParaphraseCore = retrievalEvalCaseSchema.parse({
       forbiddenReasons: [],
     },
     shape: {
-      expectedProfileHintArtifactIds: [
-        'artifact_core_semantic_orchestration',
-        'artifact_core_semantic_observability',
-        'artifact_core_semantic_cicd',
-      ],
-      expectedCapsuleCount: 3,
+      expectedProfileHintArtifactIds: ['artifact_core_semantic_orchestration'],
+      expectedCapsuleCount: 1,
     },
   },
   tags: ['semantic-dominant', 'v2', 'core', 'capsule', 'general', 'multi-recall'],

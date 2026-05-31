@@ -9,8 +9,8 @@ import {
   securityLevelSchema,
   sha256HexSchema,
 } from './common.js';
-import { canonicalPathSchema } from './path-validation.js';
 import { conflictHintSchema } from './conflict.js';
+import { canonicalPathSchema } from './path-validation.js';
 import { planQuerySchema, trapFirstPlanSchema } from './plans.js';
 
 /**

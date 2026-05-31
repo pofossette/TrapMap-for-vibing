@@ -16,6 +16,7 @@ import { graphAssistedRecall as graphRecall } from '@trapmap/server/lib/retrieva
 import { keywordRecall, normalizeQuery } from '@trapmap/server/lib/retrieval/recall/keyword.js';
 import { createPgKeywordRecall } from '@trapmap/server/lib/retrieval/recall/pg-keyword.js';
 import {
+  computeScore,
   getQueryEmbedding,
   optimizedSemanticRecall,
 } from '@trapmap/server/lib/retrieval/recall/semantic.js';
@@ -153,7 +154,8 @@ export async function semanticRecall(
         if (!entry) continue;
 
         const boundaryDelta = computeBoundaryScoreDelta(entry, parsed.boundaryContext);
-        const finalScore = Math.min(1, Math.max(0, result.similarity + boundaryDelta));
+        const boostedScore = computeScore(result.similarity, entry, parsed.filters, seed);
+        const finalScore = Math.min(1, Math.max(0, boostedScore + boundaryDelta));
         const boundaryExplanation = parsed.boundaryContext
           ? buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
           : undefined;

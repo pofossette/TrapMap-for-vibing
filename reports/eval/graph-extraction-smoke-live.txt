@@ -1,0 +1,52 @@
+
+> trapmap@0.1.0 eval:graph-extraction /home/wunai/Disks/Data/my-project/Trap-Map
+> pnpm exec tsx --tsconfig tsconfig.base.json evals/graph-extraction/run.ts --smoke
+
+
+=== Graph Extraction Evaluation ===
+Mode: live
+Smoke: true
+
+Running 5 fixture(s)...
+
+
+============================================================
+         Graph Extraction Evaluation Report
+============================================================
+
+Mode: LIVE (LLM calls)
+Total fixtures: 5
+
+Mode Breakdown: Live: 5 cases, Fallback: 0 cases
+
+=== Aggregate Metrics (Micro-Averaged) ===
+
+Metric              | LLM     | Rule Engine
+--------------------|---------|------------
+Node Precision      |   0.235 |   0.500
+Node Recall         |   0.250 |   0.250
+Node F1             |   0.242 |   0.333
+Edge Precision      |   0.063 |   0.000
+Edge Recall         |   0.111 |   0.000
+Edge F1             |   0.080 |   0.000
+Strength Accuracy   |   0.111 |   0.000
+
+=== Per-Case Results ===
+
+Case ID                    | Mode | Node P/R/F1   | Edge P/R/F1   | Str Acc
+---------------------------|------|---------------|---------------|--------
+simple-tool-trap          | L | 0.50/0.67/0.57 | 0.00/0.00/0.00 |   0.00
+complex-multi-entity      | L | 0.00/0.00/0.00 | 0.00/0.00/0.00 |   0.00
+negation-no-typescript    | L | 0.20/1.00/0.33 | 0.00/0.00/0.00 |   0.00
+implicit-prerequisite     | L | 0.25/0.33/0.29 | 0.33/1.00/0.50 |   1.00
+skill-with-order          | L | 0.00/0.00/0.00 | 0.00/0.00/0.00 |   0.00
+
+=== Lowest F1 Cases ===
+  complex-multi-entity: Node F1=0.000, Edge F1=0.000
+  skill-with-order: Node F1=0.000, Edge F1=0.000
+  implicit-prerequisite: Node F1=0.286, Edge F1=0.500
+
+Duration: 1396652ms
+
+LLM extraction outperforms rule engine baseline.
+Evaluation completed successfully.

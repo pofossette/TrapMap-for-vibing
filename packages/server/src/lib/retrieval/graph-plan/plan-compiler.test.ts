@@ -1202,9 +1202,7 @@ describe('plan-compiler', () => {
 
       const result = await compileTrapFirstPlan(services, auth, query);
 
-      expect(
-        result.blockingTraps.find((t) => t.nodeId === `trap:${relevantTrapId}`),
-      ).toBeDefined();
+      expect(result.blockingTraps.find((t) => t.nodeId === `trap:${relevantTrapId}`)).toBeDefined();
       expect(
         result.blockingTraps.find((t) => t.nodeId === `trap:${irrelevantTrapId}`),
       ).toBeUndefined();
@@ -1215,13 +1213,14 @@ describe('plan-compiler', () => {
       const trapTexts = [
         { shortcut: 'Docker container memory leak', detail: 'Docker OOM kills process' },
         { shortcut: 'Kubernetes pod scheduling failure', detail: 'K8s node affinity conflict' },
-        { shortcut: 'OAuth2 token expiration bug', detail: 'Authentication refresh fails silently' },
+        {
+          shortcut: 'OAuth2 token expiration bug',
+          detail: 'Authentication refresh fails silently',
+        },
         { shortcut: 'Redis cache invalidation race', detail: 'Cache stampede under high load' },
       ];
 
-      const knowledgeEntries = trapIds.map((id, i) =>
-        makeKnowledgeEntry(id, trapTexts[i]),
-      );
+      const knowledgeEntries = trapIds.map((id, i) => makeKnowledgeEntry(id, trapTexts[i]));
       const graphDocs = trapIds.map((id, i) => {
         const node = makeTrapNode(id, `Trap ${i}`);
         const edge = makeRiskBlocksEdge(id, `cue-${i}`, 'hard');
@@ -1242,15 +1241,9 @@ describe('plan-compiler', () => {
 
       const result = await compileTrapFirstPlan(services, auth, query);
 
-      expect(
-        result.blockingTraps.find((t) => t.nodeId === 'trap:trap-docker'),
-      ).toBeDefined();
-      expect(
-        result.blockingTraps.find((t) => t.nodeId === 'trap:trap-auth'),
-      ).toBeUndefined();
-      expect(
-        result.blockingTraps.find((t) => t.nodeId === 'trap:trap-cache'),
-      ).toBeUndefined();
+      expect(result.blockingTraps.find((t) => t.nodeId === 'trap:trap-docker')).toBeDefined();
+      expect(result.blockingTraps.find((t) => t.nodeId === 'trap:trap-auth')).toBeUndefined();
+      expect(result.blockingTraps.find((t) => t.nodeId === 'trap:trap-cache')).toBeUndefined();
     });
 
     it('returns empty plan when no traps match the query', async () => {

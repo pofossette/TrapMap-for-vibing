@@ -267,9 +267,7 @@ function generateCapsuleExtractiveSummary(_query: string, capsules: CapsuleMatch
     return '';
   }
 
-  const summaryLines = dedupePreserveOrder(
-    capsules.flatMap(buildCapsuleFactLines),
-  ).slice(0, 6);
+  const summaryLines = dedupePreserveOrder(capsules.flatMap(buildCapsuleFactLines)).slice(0, 6);
 
   return summaryLines.join(' ');
 }

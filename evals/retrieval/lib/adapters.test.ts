@@ -144,6 +144,64 @@ describe('adapters', () => {
       }
     });
 
+    it('persists seeded artifact capsules so retrieval can hydrate them back out', async () => {
+      const ctx = await createExecutionContext();
+
+      try {
+        const scenario: RetrievalEvalScenario = {
+          scenarioId: 'test-capsule-hydration',
+          description: 'Test seeded capsules remain available for retrieval read model',
+          actor: {
+            subjectType: 'user',
+            activeTeamId: 'team_capsule',
+            securityLevel: 5,
+            permissions: ['read:artifact'],
+          },
+          fixtures: {
+            knowledgeEntries: [],
+            skillArtifacts: [
+              {
+                id: 'artifact_capsule_hydration',
+                teamId: 'team_capsule',
+                scope: 'project',
+                labels: ['ci-cd', 'pipeline'],
+                title: 'CI/CD Capsule Hydration',
+                slug: 'cicd-capsule-hydration',
+                requiredLevel: 3,
+                lifecycleState: 'approved',
+                capsules: [
+                  {
+                    capsuleId: 'capsule_capsule_hydration',
+                    content: 'Use GitHub Actions and branch protection for CI/CD safety.',
+                    situation: 'Setting up CI/CD',
+                    problem: 'Unchecked deploys break main',
+                    goal: 'Keep protected branches green',
+                    labels: ['ci-cd', 'github-actions'],
+                    scope: 'project',
+                    requiredLevel: 3,
+                  },
+                ],
+              },
+            ],
+            graphIndexDocuments: [],
+          },
+        };
+
+        await seedScenarioFixtures(ctx, { scenarioId: scenario.scenarioId }, scenario);
+
+        const repos = ctx.app.skillShareer.repos;
+        const artifacts = await repos.artifact.listForRetrieval({ teamId: 'team_capsule' });
+
+        expect(artifacts).toHaveLength(1);
+        expect(artifacts[0]!.latestRevision.derived?.capsules).toHaveLength(1);
+        expect(artifacts[0]!.latestRevision.derived?.capsules[0]?.content).toContain(
+          'GitHub Actions',
+        );
+      } finally {
+        await closeExecutionContext(ctx);
+      }
+    });
+
     it('creates session with actor subjectType after seeding', async () => {
       const ctx = await createExecutionContext();
 

@@ -1,0 +1,144 @@
+{
+  "meta": {
+    "schemaVersion": 1,
+    "timestamp": "2026-05-30T16:34:54.692Z",
+    "durationMs": 133249,
+    "llmProvider": "fallback",
+    "options": {
+      "tier": "core",
+      "dryRun": false,
+      "allowEmpty": false,
+      "verbose": 0
+    }
+  },
+  "summary": {
+    "totalCases": 7,
+    "passedCases": 7,
+    "failedCases": 0,
+    "passRate": 1,
+    "passed": true,
+    "avgGroundedness": 1,
+    "avgCoverage": 1,
+    "forbiddenClaimHits": 0
+  },
+  "cases": [
+    {
+      "caseId": "summary-core-empty-result",
+      "endpoint": "/v2/retrieval/search",
+      "tier": "core",
+      "passed": true,
+      "groundednessScore": 1,
+      "coverageScore": 1,
+      "claimsTotal": 0,
+      "claimsSupported": 0,
+      "requiredFactsCovered": [],
+      "requiredFactsMissing": [],
+      "forbiddenClaimsFound": [],
+      "durationMs": 19592
+    },
+    {
+      "caseId": "summary-core-governance",
+      "endpoint": "/v2/retrieval/search",
+      "tier": "core",
+      "passed": true,
+      "groundednessScore": 1,
+      "coverageScore": 1,
+      "claimsTotal": 3,
+      "claimsSupported": 3,
+      "requiredFactsCovered": [
+        "JWT",
+        "httpOnly",
+        "CSRF"
+      ],
+      "requiredFactsMissing": [],
+      "forbiddenClaimsFound": [],
+      "durationMs": 20481
+    },
+    {
+      "caseId": "summary-core-label-filter",
+      "endpoint": "/v2/retrieval/search",
+      "tier": "core",
+      "passed": true,
+      "groundednessScore": 1,
+      "coverageScore": 1,
+      "claimsTotal": 6,
+      "claimsSupported": 6,
+      "requiredFactsCovered": [
+        "Express",
+        "middleware"
+      ],
+      "requiredFactsMissing": [],
+      "forbiddenClaimsFound": [],
+      "durationMs": 10039
+    },
+    {
+      "caseId": "summary-core-low-confidence",
+      "endpoint": "/v2/retrieval/search",
+      "tier": "core",
+      "passed": true,
+      "groundednessScore": 1,
+      "coverageScore": 1,
+      "claimsTotal": 3,
+      "claimsSupported": 3,
+      "requiredFactsCovered": [
+        "strict mode"
+      ],
+      "requiredFactsMissing": [],
+      "forbiddenClaimsFound": [],
+      "durationMs": 21524
+    },
+    {
+      "caseId": "summary-core-mixed-grounded",
+      "endpoint": "/v2/retrieval/search",
+      "tier": "core",
+      "passed": true,
+      "groundednessScore": 1,
+      "coverageScore": 1,
+      "claimsTotal": 3,
+      "claimsSupported": 3,
+      "requiredFactsCovered": [
+        "strict mode",
+        "noUncheckedIndexedAccess"
+      ],
+      "requiredFactsMissing": [],
+      "forbiddenClaimsFound": [],
+      "durationMs": 26162
+    },
+    {
+      "caseId": "summary-core-multi-fact",
+      "endpoint": "/v2/retrieval/search",
+      "tier": "core",
+      "passed": true,
+      "groundednessScore": 1,
+      "coverageScore": 1,
+      "claimsTotal": 4,
+      "claimsSupported": 4,
+      "requiredFactsCovered": [
+        "GitHub Actions",
+        "lint",
+        "typecheck",
+        "branch protection"
+      ],
+      "requiredFactsMissing": [],
+      "forbiddenClaimsFound": [],
+      "durationMs": 27510
+    },
+    {
+      "caseId": "summary-core-v1-grounded",
+      "endpoint": "/v1/retrieval/search",
+      "tier": "core",
+      "passed": true,
+      "groundednessScore": 1,
+      "coverageScore": 1,
+      "claimsTotal": 3,
+      "claimsSupported": 3,
+      "requiredFactsCovered": [
+        "strict mode"
+      ],
+      "requiredFactsMissing": [],
+      "forbiddenClaimsFound": [],
+      "durationMs": 6909
+    }
+  ],
+  "failures": []
+}

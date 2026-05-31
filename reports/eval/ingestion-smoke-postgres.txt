@@ -1,0 +1,47 @@
+
+> trapmap@0.1.0 eval:ingestion:smoke /home/wunai/Disks/Data/my-project/Trap-Map
+> pnpm exec tsx --tsconfig tsconfig.base.json evals/ingestion/run.ts --smoke
+
+
+=== Ingestion / Derivation Evaluation ===
+Mode: live
+Smoke: true
+
+Running 5 bundle(s)...
+
+
+============================================================
+         Ingestion / Derivation Evaluation Report
+============================================================
+
+Mode: LIVE (downloaded skills)
+Total bundles: 5
+Passed: 5
+Failed: 0
+Pass rate: 100.0%
+
+=== Aggregate Metrics ===
+
+Metric                      | Value
+----------------------------|--------
+Profile non-null rate       | 100.0%
+Summary non-empty rate      | 100.0%
+Keywords non-empty rate     | 100.0%
+Capsules non-empty rate     | 100.0%
+All capsules have content   | 100.0%
+Client manifest match rate  | 100.0%
+Avg capsules per skill      | 1.0
+Min / Max capsules          | 1 / 1
+All source hashes valid     | YES
+All timestamps valid        | YES
+
+=== Per-Bundle Results ===
+
+Bundle ID                  | Profile | Summary | Keywords | Capsules | Status
+---------------------------|---------|---------|----------|----------|-------
+algorithmic-art           |   OK    |   OK    |   OK    |   OK    |   PASS
+brand-guidelines          |   OK    |   OK    |   OK    |   OK    |   PASS
+canvas-design             |   OK    |   OK    |   OK    |   OK    |   PASS
+claude-api                |   OK    |   OK    |   OK    |   OK    |   PASS
+doc-coauthoring           |   OK    |   OK    |   OK    |   OK    |   PASS
+

@@ -495,6 +495,62 @@ export class PgArtifactRepository implements ArtifactRepository {
   }
 
   /**
+   * List artifacts for retrieval with derived capsule data hydrated.
+   * Reuses listByFilter logic then batch-loads revision + structured data
+   * so latestRevision.derived is populated for capsule recall channels.
+   */
+  async listForRetrieval(filter: {
+    lifecycleState?: LifecycleState;
+    teamId?: string;
+    ownerUserId?: string;
+    maintainerUserId?: string;
+  }): Promise<SkillArtifactRecord[]> {
+    const lightweight = await this.listByFilter(filter);
+    if (lightweight.length === 0) return [];
+
+    const ids = lightweight.map((a) => a.id);
+    const placeholders = ids.map((_, i) => `$${i + 1}`);
+
+    const revisionsResult = await this.pool.query<DrizzleArtifactRevisionRow>(
+      `SELECT * FROM artifact_revisions WHERE artifact_id IN (${placeholders.join(',')}) ORDER BY artifact_id, revision_no`,
+      ids,
+    );
+
+    const revisionsByArtifact = new Map<string, DrizzleArtifactRevisionRow[]>();
+    for (const row of revisionsResult.rows) {
+      const list = revisionsByArtifact.get(row.artifact_id) ?? [];
+      list.push(row);
+      revisionsByArtifact.set(row.artifact_id, list);
+    }
+
+    const allRevisionIds = revisionsResult.rows.map((r) => r.id);
+    const structured =
+      allRevisionIds.length > 0
+        ? await loadStructuredRevisionData(this.pool, allRevisionIds)
+        : new Map();
+
+    for (const artifact of lightweight) {
+      const revisionRows = revisionsByArtifact.get(artifact.id) ?? [];
+      if (revisionRows.length === 0) continue;
+
+      const latestRow = revisionRows[revisionRows.length - 1]!;
+      const structuredData = structured.get(latestRow.id);
+
+      artifact.latestRevision = {
+        revision: latestRow.revision_no,
+        sourceHash: latestRow.source_hash,
+        files: structuredData?.files ?? [],
+        submittedAt: latestRow.submitted_at.toISOString(),
+        submittedByUserId: latestRow.submitted_by_user_id,
+        scriptDescriptors: structuredData?.scriptDescriptors ?? [],
+        derived: structuredData?.derived ?? latestRow.derived ?? null,
+      };
+    }
+
+    return lightweight;
+  }
+
+  /**
    * Update governance fields with row-level locking.
    */
   async updateGovernance(

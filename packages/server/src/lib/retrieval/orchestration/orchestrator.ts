@@ -475,7 +475,7 @@ export async function searchKnowledgeV2(
 
     steps.push({
       name: 'threshold-gate',
-      durationMs: 0,
+      latencyMs: 0,
       inputSize: recallResult.mergeStats.totalChannelCandidates,
       outputSize: rankedCandidates.length,
     });

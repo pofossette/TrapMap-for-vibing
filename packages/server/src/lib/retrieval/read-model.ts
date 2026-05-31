@@ -42,9 +42,14 @@ export async function buildRetrievalReadModel(
   repos: SkillShareerRepos,
   store: SkillShareerStore,
 ): Promise<RetrievalReadModel> {
+  const artifactLister =
+    typeof repos.artifact.listForRetrieval === 'function'
+      ? repos.artifact.listForRetrieval.bind(repos.artifact)
+      : repos.artifact.listByFilter.bind(repos.artifact);
+
   const [knowledgeEntries, skillArtifacts, snapshot] = await Promise.all([
     repos.knowledge.listByFilter({}),
-    repos.artifact.listByFilter({}),
+    artifactLister({}),
     store.snapshot(),
   ]);
 
