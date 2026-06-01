@@ -15,7 +15,7 @@ TrapMap 采用**"入库重、出库轻"**的架构策略：将昂贵的计算（
 |---|------|-------------|:------------:|-------------|
 | A1 | Embedding 向量预生成 | `vector` adapter `sync()` 对 `canonicalText` 生成 1536 维向量 | **Embedding API × 1** | 检索直接读缓存向量，PG 路径走 HNSW 近似搜索 |
 | A2 | 关键词 Token 预分词 + field 分桶 + boundary facet 预索引 | `keyword` adapter `sync()` 构建 `PersistedKeywordState` | 无 | 检索直接读 `persistedState.fieldTokens`，无需重新分词 |
-| A3 | LLM 图实体预提取 | `graph` adapter `sync()` 调 `extractGraphEntitiesWithLLM()` 两阶段 LLM 提取 nodes/edges | **LLM API × N** | 检索走纯 Graphology BFS 遍历，召回/评分路径零 LLM 调用 |
+| A3 | LLM 图实体预提取 | `graph` adapter `sync()` 调 `extractGraphEntitiesWithLLM()` 两阶段 LLM 提取 nodes/edges | **LLM API × N** | PostgreSQL `graph_index_documents` 保留 durable truth；查询时走 `GraphQueryBackend`，disabled 用 Graphology，enabled 可投影到 Neo4j |
 | A4 | Capsule 派生预计算 | `deriveFromPayloads()` 从 SKILL.md + references/ 生成 profile/capsules/manifest | 见 A5 | v2 检索直接消费派生的 capsule 结构 |
 | A5 | Capsule contextualPrefix 预生成 | `enrichCapsules()` 两阶段 LLM 生成上下文前缀 | **LLM API × (1 + capsuleCount)** | 检索时参与 15% 权重评分，纯文本 token overlap |
 | A6 | Capsule 索引预同步 | `syncArtifactCapsules()` 预写 keyword tokens + embedding vectors 到 PG 表 | **Embedding API × capsuleCount** | v2 多路召回通道直接查预建 PG 索引 |
@@ -67,6 +67,12 @@ Gleaning: 可选二次提取
 ```
 
 提取结果 + 边界实体 → `buildTrapGraphDocument()` → `upsertGraphIndexDocument()` 持久化到 `graph_index_documents` 表。
+
+**Phase 3 更新**：
+- `graph_index_documents` 仍是唯一 durable graph truth。
+- 当 `TRAPMAP_GRAPH_DB_ENABLED=true` 且 `TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true` 时，写入路径会把同一份 `GraphIndexDocumentRecord` 额外投影到 Neo4j。
+- 查询路径统一通过 `GraphQueryBackend`：memory backend 直接从 PG truth 组装 Graphology 运行时，Neo4j backend 只承担可选的邻接查询/局部扩展，不拥有真相源。
+- `TRAPMAP_GRAPH_DB_FAIL_OPEN=true` 时，Neo4j 不可用会回退到 memory backend，不阻断检索。
 
 **检索时**：
 - v1 graph-assisted：`buildGraphRuntimeSnapshot()` 从持久化文档组装 → `expandSourcesOneHop()` BFS 遍历 → `calculateGraphScore()` 确定性公式（`recall/graph-assisted.ts`）
@@ -149,7 +155,7 @@ Phase 2: generateSingleCapsuleContent() × N → 每个 capsule 的 contextualPr
 | `knowledge_embeddings` | pgvector HNSW (`vector_cosine_ops`) | v1 语义检索向量近似搜索 |
 | `knowledge_keywords` | text[] GIN (`&&` overlap) | v1 关键词检索 |
 | `knowledge_search_documents` | tsvector GIN | 全文检索辅助 |
-| `graph_index_documents` | JSONB nodes/edges | 图检索 GraphRuntimeSnapshot 构建 |
+| `graph_index_documents` | JSONB nodes/edges | 图检索 durable truth；memory backend 直接组装 Graphology，Neo4j backend 从这里重建投影 |
 | `skill_artifact_capsule_keywords` | text[] GIN | v2 capsule-keyword 通道 |
 | `skill_artifact_capsule_embeddings` | pgvector HNSW | v2 capsule-semantic 通道 |
 

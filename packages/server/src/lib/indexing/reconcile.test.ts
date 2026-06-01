@@ -23,6 +23,7 @@ import { getGraphIndexDocuments } from './graph-lite/store.js';
 import {
   type GraphReconcileResult,
   fullRebuildGraphIndexes,
+  rebuildGraphProjectionFromTruth,
   reconcileGraphIndexes,
   reconcileGraphIndexesFromSnapshot,
 } from './reconcile.js';
@@ -930,5 +931,76 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
       expect(result.completed).toBe(true);
       expect(snapshot.promptVersion).toBe(PROMPT_VERSION);
     });
+  });
+});
+
+describe('rebuildGraphProjectionFromTruth', () => {
+  it('rehydrates projection state deterministically from graph_index_documents truth', async () => {
+    const captured: GraphIndexDocumentRecord[][] = [];
+    const graphIndexRepo = {
+      async insert() {},
+      async getById() {
+        return null;
+      },
+      async listBySource() {
+        return [];
+      },
+      async listAll() {
+        return [
+          createTestGraphDocument({
+            id: 'graphdoc_trap_1',
+            sourceType: 'trap',
+            sourceId: 'trap-1',
+          }),
+          createTestGraphDocument({
+            id: 'graphdoc_skill_1',
+            sourceType: 'skill',
+            sourceId: 'skill-1',
+          }),
+        ];
+      },
+      async upsert() {},
+      async remove() {},
+      async removeBySource() {},
+    };
+    const graphQueryBackend = {
+      kind: 'neo4j' as const,
+      isEnabled: () => true,
+      async healthcheck() {
+        return { ok: true, mode: 'enabled-primary' as const };
+      },
+      async upsertDocument() {},
+      async removeSource() {},
+      async rebuildProjection(documents: GraphIndexDocumentRecord[]) {
+        captured.push(documents);
+      },
+      async expandSourcesOneHop() {
+        return new Set<string>();
+      },
+      async calculateSourceRelationStrength() {
+        return 0;
+      },
+      async getSourceNodeIds() {
+        return new Map<string, Set<string>>();
+      },
+      async buildLocalExpansionView() {
+        throw new Error('not used');
+      },
+      async findMitigatingSkills() {
+        return [];
+      },
+    };
+
+    const projectedCount = await rebuildGraphProjectionFromTruth({
+      graphIndexRepo,
+      graphQueryBackend,
+    });
+
+    expect(projectedCount).toBe(2);
+    expect(captured).toHaveLength(1);
+    expect(captured[0]?.map((doc) => `${doc.sourceType}:${doc.sourceId}`)).toEqual([
+      'trap:trap-1',
+      'skill:skill-1',
+    ]);
   });
 });

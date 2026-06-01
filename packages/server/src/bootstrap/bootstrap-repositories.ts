@@ -13,6 +13,10 @@ import {
   createAccessKeyRepository,
   createSessionRepository,
 } from '@trapmap/server/lib/auth/index.js';
+import { createGraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/config.js';
+import { createFailOpenGraphQueryBackend } from '@trapmap/server/lib/graph-query/health.js';
+import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
+import { createNeo4jGraphQueryBackend } from '@trapmap/server/lib/graph-query/neo4j-backend.js';
 import { createKnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
 import { runMigrations } from '@trapmap/server/lib/persistence/migration-runner.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
@@ -67,6 +71,38 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
     app.skillShareer.repos = await createAllRepos({ store });
   }
 
+  const memoryBackend = createMemoryGraphQueryBackend(app.skillShareer.repos.graphIndex);
+  app.skillShareer.graphQueryBackend = memoryBackend;
+
+  if (app.skillShareer.config.graphDb.enabled) {
+    const primaryBackend = await createNeo4jGraphQueryBackend({
+      config: {
+        database: app.skillShareer.config.graphDb.database,
+        password: app.skillShareer.config.graphDb.password!,
+        uri: app.skillShareer.config.graphDb.uri!,
+        username: app.skillShareer.config.graphDb.username!,
+      },
+      graphIndexRepo: app.skillShareer.repos.graphIndex,
+    });
+    const graphBackend = createFailOpenGraphQueryBackend({
+      primary: primaryBackend,
+      fallback: memoryBackend,
+      failOpen: app.skillShareer.config.graphDb.failOpen,
+      logger: app.log,
+    });
+    const health = await graphBackend.healthcheck();
+
+    if (!health.ok && !app.skillShareer.config.graphDb.failOpen) {
+      throw new Error(health.detail ?? 'Graph query backend healthcheck failed');
+    }
+
+    app.skillShareer.graphQueryBackend = graphBackend;
+    app.skillShareer.graphQuery = createGraphQueryRuntimeState(app.skillShareer.config.graphDb, {
+      detail: health.detail,
+      fallbackActive: health.mode === 'enabled-fallback',
+    });
+  }
+
   // Register graph channel now that repos are available
-  app.skillShareer.channelRegistry.register(createGraphChannel(app.skillShareer.repos.graphIndex));
+  app.skillShareer.channelRegistry.register(createGraphChannel(app.skillShareer.graphQueryBackend));
 }

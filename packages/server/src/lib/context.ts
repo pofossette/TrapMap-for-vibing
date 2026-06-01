@@ -10,6 +10,7 @@ import type { SessionRepository } from './auth/index.js';
 import type { AdapterRegistry } from './indexing/registry.js';
 import type { KnowledgeRepository } from './knowledge/index.js';
 import type { LifecycleEventBus } from './lifecycle/event-bus.js';
+import type { GraphQueryBackend, GraphQueryRuntimeState } from './graph-query/backend.js';
 import type { SkillShareerRepos } from './repos/index.js';
 import type { ChannelRegistry } from './retrieval/orchestration/channel-registry.js';
 import type { StrategyRegistry } from './retrieval/orchestration/strategy-registry.js';
@@ -61,6 +62,10 @@ export interface SkillShareerServices {
   usageAnalyticsRepo: UsageAnalyticsRepository | undefined;
   /** Unified repository object — always populated in both JSON and PG modes. Prefer this over legacy flat repo properties. */
   repos: SkillShareerRepos;
+  /** Query-time graph backend used by retrieval hot paths. */
+  graphQueryBackend: GraphQueryBackend;
+  /** Graph query backend state. Phase 1 exposes mode/config wiring before provider selection is implemented. */
+  graphQuery: GraphQueryRuntimeState;
   /** Lifecycle event bus for domain event emission and subscription */
   eventBus: LifecycleEventBus;
 }

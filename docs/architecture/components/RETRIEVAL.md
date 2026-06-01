@@ -20,7 +20,16 @@ TrapMap 提供多版本检索能力，支持从简单的语义搜索到复杂的
 |------|------|----------|
 | `semantic` | 纯语义检索 | OpenAI embedding + 余弦相似度 |
 | `hybrid` | 语义 + 关键词混合 | embedding merge BM25 |
-| `graph-assisted` | 混合 + 图扩展 | embedding + graphology DAG |
+| `graph-assisted` | mixed recall + 本地图邻域扩展 | semantic + keyword + `GraphQueryBackend`（`memory` / `neo4j`） |
+
+### 图查询后端约束
+
+- graph DB 是可选后端，不是检索前提。
+- PostgreSQL `graph_index_documents` 仍是图索引真相源。
+- `GraphQueryBackend` 负责 query-time 图扩张；当前可切换 `memory`（`graphology`）和可选 `neo4j` backend。
+- fail-open 开启时，graph DB 不健康会回退到 `graphology`，不会把图查询变成唯一召回路径。
+- `graph-assisted` 仍然是 mixed retrieval：语义/关键词召回先建立基线，图只补充 local-neighborhood structural recall，不替代语义决策。
+- `routingTrace.graphRetrieval` 会显式记录 `mergeMode: mixed`、`graphExpansion: local-neighborhood`，以及 backend 是 `disabled` / `enabled-primary` / `enabled-fallback`。
 
 ### v1 语义检索流程（Mermaid）
 
@@ -166,35 +175,41 @@ flowchart TB
         A["POST /v1/retrieval/search\n{ query, mode: 'graph-assisted' }"]
     end
 
-    subgraph 基础检索["基础检索（混合）"]
-        B["同混合检索流程\n返回 Top-K 候选条目"]
+    subgraph 多路召回["并行召回"]
+        B1["semantic recall"]
+        B2["keyword recall"]
+        B3["GraphQueryBackend\nlocal-neighborhood expansion\nprimary: neo4j / fallback: graphology"]
     end
 
-    subgraph 图扩展["图扩展"]
-        subgraph 遍历["对每个候选条目"]
-            C1["通过 trapIds/capsuleIds 查找相关条目"]
-            C2["遍历 graphology DAG"]
-            C3["扩展 N 跳"]
-        end
-
-        subgraph 构建集合["构建扩展集合"]
-            D1["直接邻居（1 跳）"]
-            D2["传递关系（2 跳）"]
-            D3["前置条件链"]
-        end
+    subgraph Mixed Merge["显式 mixed merge"]
+        C1["semantic + keyword → hybrid baseline"]
+        C2["graph candidates 与 hybrid baseline 合并"]
+        C3["graph 仅提供结构化补召回"]
     end
 
-    subgraph 分数重加权["分数重加权"]
-        E["original_score × boost_factor\n\nboost_factor 基于：\n- 距查询的距离（越近越高）\n- 关系类型（prerequisite > provides > blocks）\n- 图中心性"]
+    subgraph 重排["重排"]
+        D["boundary + freshness rerank\n保持治理过滤后的候选集"]
     end
 
     subgraph 最终结果["最终结果"]
-        F["{ query, mode, results, trace }"]
+        E["{ query, mode, results, routingTrace.graphRetrieval }"]
     end
 
-    查询输入 --> 基础检索 --> 图扩展
-    遍历 --> 构建集合 --> 分数重加权 --> 最终结果
+    查询输入 --> B1
+    查询输入 --> B2
+    查询输入 --> B3
+    B1 --> C1
+    B2 --> C1
+    C1 --> C2
+    B3 --> C2
+    C2 --> C3 --> D --> E
 ```
+
+### Phase 4 决策
+
+- v1 `graph-assisted` 保持 local-neighborhood retrieval，不引入 graph-only search。
+- 可选 Neo4j backend 只替换 traversal efficiency；semantic / keyword 仍然决定 mixed recall 的主体。
+- plan compiler 继续只使用 seed neighborhood 的 local subgraph，不在本阶段引入 broader/global graph lookup。
 
 ---
 

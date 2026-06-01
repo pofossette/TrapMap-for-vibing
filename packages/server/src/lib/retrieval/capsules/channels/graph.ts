@@ -17,11 +17,8 @@
  */
 
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
-import {
-  buildGraphRuntimeSnapshot,
-  calculateSourceRelationStrength,
-  expandSourcesOneHop,
-} from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
+import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import { extractGovernedCapsules } from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
 import { extractGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
@@ -103,8 +100,12 @@ function calculateCapsuleGraphScore(relationStrength: number): number {
  * @returns A CapsuleRecallChannel that supplements recall via graph expansion
  */
 export function createCapsuleGraphChannel(
-  graphIndexRepo: GraphIndexRepository,
+  graphQuery: GraphQueryBackend | GraphIndexRepository,
 ): CapsuleRecallChannel {
+  const graphBackend = isGraphQueryBackend(graphQuery)
+    ? graphQuery
+    : createMemoryGraphQueryBackend(graphQuery);
+
   return {
     name: 'capsule-graph' as CapsuleRecallChannelName,
 
@@ -124,13 +125,10 @@ export function createCapsuleGraphChannel(
       const queryEntities = extractQueryEntityLabels(queryText);
       if (queryEntities.size === 0) return [];
 
-      const graphDocuments = await graphIndexRepo.listAll();
-      const skillDocuments = graphDocuments.filter((d) => d.sourceType === 'skill');
-
-      if (skillDocuments.length === 0) return [];
-
-      const graphRuntime = buildGraphRuntimeSnapshot(skillDocuments);
-      const expandedSourceIds = expandSourcesOneHop(graphRuntime, queryEntities);
+      const expandedSourceIds = await graphBackend.expandSourcesOneHop({
+        queryLabels: queryEntities,
+        eligibleSourceIds: new Set(governed.map((entry) => entry.artifact.id)),
+      });
 
       if (expandedSourceIds.size === 0) return [];
 
@@ -147,11 +145,10 @@ export function createCapsuleGraphChannel(
         const governedCapsules = capsulesByArtifactId.get(sourceId);
         if (!governedCapsules || governedCapsules.length === 0) continue;
 
-        const relationStrength = calculateSourceRelationStrength(
-          graphRuntime,
+        const relationStrength = await graphBackend.calculateSourceRelationStrength({
           sourceId,
-          queryEntities,
-        );
+          queryLabels: queryEntities,
+        });
 
         if (relationStrength <= 0) continue;
 
@@ -176,4 +173,10 @@ export function createCapsuleGraphChannel(
       return candidates.slice(0, maxResults);
     },
   };
+}
+
+function isGraphQueryBackend(
+  value: GraphQueryBackend | GraphIndexRepository,
+): value is GraphQueryBackend {
+  return 'kind' in value && typeof value.healthcheck === 'function';
 }

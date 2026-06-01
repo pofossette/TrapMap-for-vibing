@@ -10,6 +10,8 @@ import { createAiProviders } from './lib/ai/index.js';
 import type { SkillShareerServices } from './lib/context.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
 import { AppError, isAppError } from './lib/errors.js';
+import { createGraphQueryRuntimeState } from './lib/graph-query/config.js';
+import type { GraphQueryBackend } from './lib/graph-query/backend.js';
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
 import { LifecycleEventBus } from './lib/lifecycle/event-bus.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
@@ -196,12 +198,7 @@ export function buildServer(options: BuildServerOptions = {}) {
       const graphAssistedStrategy: RetrievalStrategy = {
         version: 'graph-assisted',
         async execute(query, _channels, eligibleEntries, services) {
-          return graphAssistedRecall(
-            query.seed,
-            eligibleEntries,
-            query,
-            services?.repos.graphIndex,
-          );
+          return graphAssistedRecall(query.seed, eligibleEntries, query, services);
         },
       };
       sr.register(semanticStrategy);
@@ -227,6 +224,8 @@ export function buildServer(options: BuildServerOptions = {}) {
     // usageAnalyticsRepo is set in bootstrapRepositories when PostgreSQL pool is available
     usageAnalyticsRepo: undefined,
     repos: {} as SkillShareerServices['repos'],
+    graphQueryBackend: {} as GraphQueryBackend,
+    graphQuery: createGraphQueryRuntimeState(config.graphDb),
     eventBus: new LifecycleEventBus(),
   });
 

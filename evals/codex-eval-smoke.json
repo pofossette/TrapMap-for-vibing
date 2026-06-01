@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "timestamp": "2026-05-26T23:33:05.646Z",
-  "durationMs": 1470,
+  "timestamp": "2026-06-01T16:09:58.849Z",
+  "durationMs": 1516,
   "tier": "smoke",
   "retrieval": {
-    "passed": true,
+    "passed": false,
     "report": {
       "meta": {
         "schemaVersion": 1,
-        "timestamp": "2026-05-26T23:33:05.515Z",
-        "durationMs": 569,
+        "timestamp": "2026-06-01T16:09:58.751Z",
+        "durationMs": 417,
         "options": {
           "tier": "smoke",
           "dryRun": false,
@@ -19,11 +19,11 @@
         "isBaselineWrite": false
       },
       "summary": {
-        "totalCases": 22,
-        "passedCases": 22,
-        "failedCases": 0,
-        "passRate": 1,
-        "passed": true
+        "totalCases": 25,
+        "passedCases": 23,
+        "failedCases": 2,
+        "passRate": 0.92,
+        "passed": false
       },
       "slices": [
         {
@@ -46,6 +46,7 @@
           "governanceFailureCount": 0,
           "outcomeMismatchCount": 0,
           "executionIssueCount": 0,
+          "selectedMode": "mix",
           "fallbackApplied": false,
           "regressionStatus": "no-baseline"
         },
@@ -69,6 +70,7 @@
           "governanceFailureCount": 0,
           "outcomeMismatchCount": 0,
           "executionIssueCount": 0,
+          "selectedMode": "hybrid",
           "fallbackApplied": false,
           "regressionStatus": "no-baseline"
         },
@@ -92,6 +94,7 @@
           "governanceFailureCount": 0,
           "outcomeMismatchCount": 0,
           "executionIssueCount": 0,
+          "selectedMode": "local",
           "fallbackApplied": false,
           "regressionStatus": "no-baseline"
         },
@@ -101,19 +104,20 @@
             "endpoint": "/v2/retrieval/search"
           },
           "routeFamily": "capsule",
-          "caseCount": 12,
-          "passedCount": 12,
-          "failedCount": 0,
-          "passRate": 1,
-          "avgHitAt1": 0.8333333333333334,
-          "avgHitAt5": 0.8333333333333334,
-          "avgHitAt10": 0.8333333333333334,
-          "avgMrr": 0.8333333333333334,
-          "avgNdcg": 0.8333333333333334,
-          "avgRecallAt10": 0.8333333333333334,
-          "governanceFailureCount": 0,
+          "caseCount": 15,
+          "passedCount": 13,
+          "failedCount": 2,
+          "passRate": 0.8666666666666667,
+          "avgHitAt1": 0.8666666666666667,
+          "avgHitAt5": 0.8666666666666667,
+          "avgHitAt10": 0.8666666666666667,
+          "avgMrr": 0.8666666666666667,
+          "avgNdcg": 0.8666666666666667,
+          "avgRecallAt10": 0.8666666666666667,
+          "governanceFailureCount": 2,
           "outcomeMismatchCount": 0,
           "executionIssueCount": 0,
+          "selectedMode": "local",
           "fallbackApplied": false,
           "regressionStatus": "no-baseline"
         },
@@ -148,12 +152,12 @@
             "routeFamily": "capsule"
           },
           "caseCount": 1,
-          "passedCount": 1,
-          "failedCount": 0,
-          "passRate": 1,
+          "passedCount": 0,
+          "failedCount": 1,
+          "passRate": 0,
           "avgHitAt1": 1,
           "avgMrr": 1,
-          "governanceFailureCount": 0,
+          "governanceFailureCount": 1,
           "regressionStatus": "no-baseline"
         },
         {
@@ -161,13 +165,13 @@
             "queryType": "general",
             "routeFamily": "capsule"
           },
-          "caseCount": 9,
-          "passedCount": 9,
-          "failedCount": 0,
-          "passRate": 1,
-          "avgHitAt1": 0.8888888888888888,
-          "avgMrr": 0.8888888888888888,
-          "governanceFailureCount": 0,
+          "caseCount": 12,
+          "passedCount": 11,
+          "failedCount": 1,
+          "passRate": 0.9166666666666666,
+          "avgHitAt1": 0.9166666666666666,
+          "avgMrr": 0.9166666666666666,
+          "governanceFailureCount": 1,
           "regressionStatus": "no-baseline"
         },
         {
@@ -243,13 +247,17 @@
       ],
       "modeComparisons": [
         {
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
           "fallbackApplied": false,
-          "caseCount": 12,
-          "avgHitAt1": 0.8333333333333334,
-          "avgMrr": 0.8333333333333334
+          "caseCount": 15,
+          "avgHitAt1": 0.8666666666666667,
+          "avgMrr": 0.8666666666666667
         },
         {
           "clientMode": "semantic",
+          "selectedMode": "local",
+          "routingReason": "explicit-mode",
           "fallbackApplied": false,
           "caseCount": 3,
           "avgHitAt1": 0.3333333333333333,
@@ -265,6 +273,8 @@
         },
         {
           "clientMode": "hybrid",
+          "selectedMode": "hybrid",
+          "routingReason": "explicit-mode",
           "fallbackApplied": false,
           "caseCount": 1,
           "avgHitAt1": 1,
@@ -272,6 +282,8 @@
         },
         {
           "clientMode": "graph-assisted",
+          "selectedMode": "mix",
+          "routingReason": "explicit-mode",
           "fallbackApplied": false,
           "caseCount": 1,
           "avgHitAt1": 1,
@@ -296,19 +308,29 @@
       ],
       "routingDistribution": [
         {
+          "reason": "v2-default-capsule",
+          "count": 15,
+          "percentage": 60
+        },
+        {
+          "reason": "explicit-mode",
+          "count": 5,
+          "percentage": 20
+        },
+        {
           "reason": "graph-plan-selected",
           "count": 3,
-          "percentage": 13.636363636363635
+          "percentage": 12
         },
         {
           "reason": "graph-plan-insufficient-trap-evidence",
           "count": 1,
-          "percentage": 4.545454545454546
+          "percentage": 4
         },
         {
           "reason": "graph-plan-insufficient-skill-evidence",
           "count": 1,
-          "percentage": 4.545454545454546
+          "percentage": 4
         }
       ],
       "cases": [
@@ -326,6 +348,8 @@
           "mrr": 1,
           "ndcg": 1,
           "recallAt10": 1,
+          "selectedMode": "mix",
+          "routingReason": "explicit-mode",
           "fallbackApplied": false
         },
         {
@@ -335,13 +359,15 @@
           "passed": true,
           "outcomeMatch": true,
           "governancePassed": true,
-          "durationMs": 3,
+          "durationMs": 4,
           "hitAt1": 1,
           "hitAt5": 1,
           "hitAt10": 1,
           "mrr": 1,
           "ndcg": 1,
           "recallAt10": 1,
+          "selectedMode": "hybrid",
+          "routingReason": "explicit-mode",
           "fallbackApplied": false
         },
         {
@@ -358,6 +384,8 @@
           "mrr": 0,
           "ndcg": 0,
           "recallAt10": 0,
+          "selectedMode": "local",
+          "routingReason": "explicit-mode",
           "fallbackApplied": false
         },
         {
@@ -374,6 +402,8 @@
           "mrr": 0,
           "ndcg": 0,
           "recallAt10": 0,
+          "selectedMode": "local",
+          "routingReason": "explicit-mode",
           "fallbackApplied": false
         },
         {
@@ -383,13 +413,15 @@
           "passed": true,
           "outcomeMatch": true,
           "governancePassed": true,
-          "durationMs": 16,
+          "durationMs": 14,
           "hitAt1": 1,
           "hitAt5": 1,
           "hitAt10": 1,
           "mrr": 1,
           "ndcg": 1,
           "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "explicit-mode",
           "fallbackApplied": false
         },
         {
@@ -406,6 +438,8 @@
           "mrr": 0,
           "ndcg": 0,
           "recallAt10": 0,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
           "fallbackApplied": false
         },
         {
@@ -422,6 +456,8 @@
           "mrr": 0,
           "ndcg": 0,
           "recallAt10": 0,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
           "fallbackApplied": false
         },
         {
@@ -431,13 +467,15 @@
           "passed": true,
           "outcomeMatch": true,
           "governancePassed": true,
-          "durationMs": 8,
+          "durationMs": 7,
           "hitAt1": 1,
           "hitAt5": 1,
           "hitAt10": 1,
           "mrr": 1,
           "ndcg": 1,
           "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
           "fallbackApplied": false
         },
         {
@@ -447,13 +485,15 @@
           "passed": true,
           "outcomeMatch": true,
           "governancePassed": true,
-          "durationMs": 4,
+          "durationMs": 3,
           "hitAt1": 1,
           "hitAt5": 1,
           "hitAt10": 1,
           "mrr": 1,
           "ndcg": 1,
           "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
           "fallbackApplied": false
         },
         {
@@ -463,13 +503,51 @@
           "passed": true,
           "outcomeMatch": true,
           "governancePassed": true,
-          "durationMs": 4,
+          "durationMs": 6,
           "hitAt1": 1,
           "hitAt5": 1,
           "hitAt10": 1,
           "mrr": 1,
           "ndcg": 1,
           "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-graph-assisted-disabled-backend-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 5,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-graph-assisted-fail-open-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 3,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
           "fallbackApplied": false
         },
         {
@@ -486,6 +564,26 @@
           "mrr": 1,
           "ndcg": 1,
           "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-graph-assisted-vector-only-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": true,
+          "outcomeMatch": true,
+          "governancePassed": true,
+          "durationMs": 3,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
           "fallbackApplied": false
         },
         {
@@ -495,6 +593,42 @@
           "passed": true,
           "outcomeMatch": true,
           "governancePassed": true,
+          "durationMs": 4,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-keyword-dominant-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": false,
+          "outcomeMatch": true,
+          "governancePassed": false,
+          "durationMs": 3,
+          "hitAt1": 1,
+          "hitAt5": 1,
+          "hitAt10": 1,
+          "mrr": 1,
+          "ndcg": 1,
+          "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
+          "fallbackApplied": false
+        },
+        {
+          "caseId": "v2-keyword-regex-smoke",
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke",
+          "passed": false,
+          "outcomeMatch": true,
+          "governancePassed": false,
           "durationMs": 5,
           "hitAt1": 1,
           "hitAt5": 1,
@@ -502,38 +636,8 @@
           "mrr": 1,
           "ndcg": 1,
           "recallAt10": 1,
-          "fallbackApplied": false
-        },
-        {
-          "caseId": "v2-keyword-dominant-smoke",
-          "endpoint": "/v2/retrieval/search",
-          "tier": "smoke",
-          "passed": true,
-          "outcomeMatch": true,
-          "governancePassed": true,
-          "durationMs": 4,
-          "hitAt1": 1,
-          "hitAt5": 1,
-          "hitAt10": 1,
-          "mrr": 1,
-          "ndcg": 1,
-          "recallAt10": 1,
-          "fallbackApplied": false
-        },
-        {
-          "caseId": "v2-keyword-regex-smoke",
-          "endpoint": "/v2/retrieval/search",
-          "tier": "smoke",
-          "passed": true,
-          "outcomeMatch": true,
-          "governancePassed": true,
-          "durationMs": 4,
-          "hitAt1": 1,
-          "hitAt5": 1,
-          "hitAt10": 1,
-          "mrr": 1,
-          "ndcg": 1,
-          "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
           "fallbackApplied": false
         },
         {
@@ -543,13 +647,15 @@
           "passed": true,
           "outcomeMatch": true,
           "governancePassed": true,
-          "durationMs": 4,
+          "durationMs": 3,
           "hitAt1": 1,
           "hitAt5": 1,
           "hitAt10": 1,
           "mrr": 1,
           "ndcg": 1,
           "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
           "fallbackApplied": false
         },
         {
@@ -559,13 +665,15 @@
           "passed": true,
           "outcomeMatch": true,
           "governancePassed": true,
-          "durationMs": 4,
+          "durationMs": 3,
           "hitAt1": 1,
           "hitAt5": 1,
           "hitAt10": 1,
           "mrr": 1,
           "ndcg": 1,
           "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
           "fallbackApplied": false
         },
         {
@@ -575,13 +683,15 @@
           "passed": true,
           "outcomeMatch": true,
           "governancePassed": true,
-          "durationMs": 4,
+          "durationMs": 3,
           "hitAt1": 1,
           "hitAt5": 1,
           "hitAt10": 1,
           "mrr": 1,
           "ndcg": 1,
           "recallAt10": 1,
+          "selectedMode": "local",
+          "routingReason": "v2-default-capsule",
           "fallbackApplied": false
         },
         {
@@ -591,7 +701,7 @@
           "passed": true,
           "outcomeMatch": true,
           "governancePassed": true,
-          "durationMs": 5,
+          "durationMs": 2,
           "hitAt1": 1,
           "hitAt5": 1,
           "hitAt10": 1,
@@ -609,7 +719,7 @@
           "passed": true,
           "outcomeMatch": true,
           "governancePassed": true,
-          "durationMs": 5,
+          "durationMs": 4,
           "hitAt1": 1,
           "hitAt5": 1,
           "hitAt10": 1,
@@ -645,7 +755,7 @@
           "passed": true,
           "outcomeMatch": true,
           "governancePassed": true,
-          "durationMs": 7,
+          "durationMs": 5,
           "hitAt1": 1,
           "hitAt5": 1,
           "hitAt10": 1,
@@ -663,7 +773,7 @@
           "passed": true,
           "outcomeMatch": true,
           "governancePassed": true,
-          "durationMs": 3,
+          "durationMs": 2,
           "hitAt1": 1,
           "hitAt5": 1,
           "hitAt10": 1,
@@ -675,15 +785,52 @@
           "fallbackApplied": false
         }
       ],
-      "failures": [],
+      "failures": [
+        {
+          "caseId": "v2-keyword-dominant-smoke",
+          "kind": "shape-mismatch",
+          "description": "Expected profile hint artifact IDs missing: artifact_smoke_keyword_regex",
+          "ids": [
+            "artifact_smoke_keyword_regex"
+          ],
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke"
+        },
+        {
+          "caseId": "v2-keyword-dominant-smoke",
+          "kind": "shape-mismatch",
+          "description": "Expected 2 capsules but got 1",
+          "ids": [],
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke"
+        },
+        {
+          "caseId": "v2-keyword-regex-smoke",
+          "kind": "shape-mismatch",
+          "description": "Expected profile hint artifact IDs missing: artifact_smoke_keyword_python",
+          "ids": [
+            "artifact_smoke_keyword_python"
+          ],
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke"
+        },
+        {
+          "caseId": "v2-keyword-regex-smoke",
+          "kind": "shape-mismatch",
+          "description": "Expected 2 capsules but got 1",
+          "ids": [],
+          "endpoint": "/v2/retrieval/search",
+          "tier": "smoke"
+        }
+      ],
       "warnings": []
     },
-    "durationMs": 1347,
+    "durationMs": 1425,
     "summary": {
-      "totalCases": 22,
-      "passedCases": 22,
-      "failedCases": 0,
-      "passRate": 1,
+      "totalCases": 25,
+      "passedCases": 23,
+      "failedCases": 2,
+      "passRate": 0.92,
       "slices": [
         {
           "tier": "smoke",
@@ -718,11 +865,11 @@
         {
           "tier": "smoke",
           "endpoint": "/v2/retrieval/search",
-          "caseCount": 12,
-          "avgHitAt1": 0.8333333333333334,
-          "avgMrr": 0.8333333333333334,
-          "avgNdcg": 0.8333333333333334,
-          "passRate": 1
+          "caseCount": 15,
+          "avgHitAt1": 0.8666666666666667,
+          "avgMrr": 0.8666666666666667,
+          "avgNdcg": 0.8666666666666667,
+          "passRate": 0.8666666666666667
         },
         {
           "tier": "smoke",
@@ -741,8 +888,8 @@
     "report": {
       "meta": {
         "schemaVersion": 1,
-        "timestamp": "2026-05-26T23:33:05.632Z",
-        "durationMs": 96,
+        "timestamp": "2026-06-01T16:09:58.839Z",
+        "durationMs": 71,
         "llmProvider": "fallback",
         "options": {
           "tier": "smoke",
@@ -771,10 +918,12 @@
           "coverageScore": 1,
           "claimsTotal": 2,
           "claimsSupported": 2,
-          "requiredFactsCovered": ["rate limiting"],
+          "requiredFactsCovered": [
+            "rate limiting"
+          ],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
-          "durationMs": 15
+          "durationMs": 12
         },
         {
           "caseId": "summary-grounded-smoke",
@@ -785,10 +934,13 @@
           "coverageScore": 1,
           "claimsTotal": 2,
           "claimsSupported": 2,
-          "requiredFactsCovered": ["docker-compose", "multi-container"],
+          "requiredFactsCovered": [
+            "docker-compose",
+            "multi-container"
+          ],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
-          "durationMs": 17
+          "durationMs": 11
         },
         {
           "caseId": "summary-hallucination-smoke",
@@ -802,7 +954,7 @@
           "requiredFactsCovered": [],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
-          "durationMs": 16
+          "durationMs": 10
         },
         {
           "caseId": "summary-label-filter-smoke",
@@ -811,12 +963,14 @@
           "passed": true,
           "groundednessScore": 1,
           "coverageScore": 1,
-          "claimsTotal": 2,
-          "claimsSupported": 2,
-          "requiredFactsCovered": ["Express"],
+          "claimsTotal": 3,
+          "claimsSupported": 3,
+          "requiredFactsCovered": [
+            "Express"
+          ],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
-          "durationMs": 14
+          "durationMs": 15
         },
         {
           "caseId": "summary-smoke-multi-fact",
@@ -827,10 +981,13 @@
           "coverageScore": 1,
           "claimsTotal": 4,
           "claimsSupported": 4,
-          "requiredFactsCovered": ["useState", "useEffect"],
+          "requiredFactsCovered": [
+            "useState",
+            "useEffect"
+          ],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
-          "durationMs": 15
+          "durationMs": 10
         },
         {
           "caseId": "summary-strict-grounded-smoke",
@@ -841,15 +998,18 @@
           "coverageScore": 1,
           "claimsTotal": 2,
           "claimsSupported": 2,
-          "requiredFactsCovered": ["docker-compose", "multi-container"],
+          "requiredFactsCovered": [
+            "docker-compose",
+            "multi-container"
+          ],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
-          "durationMs": 19
+          "durationMs": 11
         }
       ],
       "failures": []
     },
-    "durationMs": 110,
+    "durationMs": 81,
     "summary": {
       "totalCases": 6,
       "passedCases": 6,
@@ -866,7 +1026,7 @@
     "avgNodeF1": 0.38095238095238093,
     "avgEdgeF1": 0,
     "avgStrengthAccuracy": 0,
-    "durationMs": 3
+    "durationMs": 2
   },
   "ingestion": {
     "passed": true,
@@ -874,12 +1034,12 @@
     "passedBundles": 1,
     "failedBundles": 0,
     "passRate": 1,
-    "durationMs": 9
+    "durationMs": 7
   },
   "overall": {
-    "passed": true,
-    "totalCases": 34,
-    "passedCases": 34,
-    "failedCases": 0
+    "passed": false,
+    "totalCases": 37,
+    "passedCases": 35,
+    "failedCases": 2
   }
 }

@@ -23,15 +23,9 @@ import type {
 } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
-import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
-import type {
-  Graph,
-  GraphRuntimeSnapshot,
-} from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
-import {
-  buildGraphRuntimeSnapshot,
-  buildLocalExpansionView,
-} from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import type { GraphQueryExpansionView } from '@trapmap/server/lib/graph-query/backend.js';
+import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
+import type { Graph } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
 import {
   isArtifactGovernanceEligible,
   rankCapsules,
@@ -74,6 +68,9 @@ export async function compileTrapFirstPlan(
   auth: ResolvedAuthContext,
   query: PlanQuery,
 ): Promise<TrapFirstPlan> {
+  const graphQueryBackend =
+    services.graphQueryBackend ?? createMemoryGraphQueryBackend(services.repos.graphIndex);
+
   // 1. Parse seed intent
   const intent = await parseSeedIntentWithLLM(query.seed, services.ai.chat, {
     cache: planCompilerIntentCache,
@@ -109,16 +106,14 @@ export async function compileTrapFirstPlan(
     query.skillBudget * 3, // Request more to allow dedupe and budget selection
   );
 
-  // 5. Load graph documents
-  const graphDocs = await services.repos.graphIndex.listAll();
-
-  const runtime = buildGraphRuntimeSnapshot(graphDocs);
-
-  // 6. Build seed node IDs from query-relevant traps and skill candidates
+  // 5. Build seed node IDs from query-relevant traps and skill candidates
   const seedNodeIds = extractSeedNodeIds(
     rankedTrapSeeds.map((candidate) => candidate.entry),
     skillCandidates,
-    runtime,
+    await graphQueryBackend.getSourceNodeIds([
+      ...rankedTrapSeeds.map((candidate) => candidate.entry.id),
+      ...skillCandidates.map((candidate) => candidate.artifactId),
+    ]),
   );
 
   // Early return if no seeds
@@ -141,35 +136,36 @@ export async function compileTrapFirstPlan(
     };
   }
 
-  // 7. Build local expansion view
-  const expansionGraph = buildLocalExpansionView({
-    documents: graphDocs,
+  // 6. Build local expansion view
+  const expansionView = await graphQueryBackend.buildLocalExpansionView({
     seedNodeIds,
     maxDepth: query.maxDepth ?? DEFAULT_MAX_DEPTH,
+    auth: {
+      teamId: auth.activeTeamId,
+      securityLevel: auth.securityLevel,
+    },
   });
 
-  // 8. Identify blocking traps
-  const blockingTraps = findBlockingTraps(expansionGraph, graphDocs, trapCandidates, auth);
+  // 7. Identify blocking traps
+  const blockingTraps = findBlockingTraps(expansionView, trapCandidates, auth);
 
-  // 9. Find mitigating skills
-  const mitigatingSkillNodeIds = findMitigatingSkills(
-    runtime,
+  // 8. Find mitigating skills
+  const mitigatingSkillNodeIds = await graphQueryBackend.findMitigatingSkills(
     blockingTraps.map((t) => t.nodeId),
   );
 
-  // 10. Apply skill budget with trap-mitigation priority
+  // 9. Apply skill budget with trap-mitigation priority
   const selectedSkills = applySkillBudget(
     skillCandidates,
     governedArtifacts,
     mitigatingSkillNodeIds,
     query.skillBudget ?? DEFAULT_SKILL_BUDGET,
-    expansionGraph,
-    graphDocs,
+    expansionView,
     blockingTraps.map((t) => t.nodeId),
   );
 
-  // 11. Build edges
-  const edges = buildPlanEdges(expansionGraph, blockingTraps, selectedSkills);
+  // 10. Build edges
+  const edges = buildPlanEdges(expansionView.graph, blockingTraps, selectedSkills);
 
   // 12. Build citations for demoted skills
   const citations = buildCitations(
@@ -179,7 +175,7 @@ export async function compileTrapFirstPlan(
     governanceFilters,
   );
 
-  const graph = buildUnifiedGraph(blockingTraps, selectedSkills, expansionGraph, citations);
+  const graph = buildUnifiedGraph(blockingTraps, selectedSkills, expansionView.graph, citations);
   const executionPlan = buildExecutionPlan(blockingTraps, selectedSkills, edges);
 
   return {
@@ -203,20 +199,20 @@ export async function compileTrapFirstPlan(
 function extractSeedNodeIds(
   trapCandidates: KnowledgeRecord[],
   skillCandidates: CapsuleCandidate[],
-  runtime: GraphRuntimeSnapshot,
+  nodeIdsBySourceId: Map<string, Set<string>>,
 ): string[] {
   const nodeIds = new Set<string>();
 
   const trapIds = new Set(trapCandidates.map((t) => t.id));
   for (const trapId of trapIds) {
-    for (const nodeId of runtime.nodeIdsBySourceId.get(trapId) ?? []) {
+    for (const nodeId of nodeIdsBySourceId.get(trapId) ?? []) {
       nodeIds.add(nodeId);
     }
   }
 
   const skillIds = new Set(skillCandidates.map((s) => s.artifactId));
   for (const skillId of skillIds) {
-    for (const nodeId of runtime.nodeIdsBySourceId.get(skillId) ?? []) {
+    for (const nodeId of nodeIdsBySourceId.get(skillId) ?? []) {
       nodeIds.add(nodeId);
     }
   }
@@ -229,11 +225,11 @@ function extractSeedNodeIds(
  * Promotes to PlanTrapNode with severity from edge strength.
  */
 function findBlockingTraps(
-  graph: Graph,
-  graphDocs: GraphIndexDocumentRecord[],
+  expansionView: GraphQueryExpansionView,
   trapCandidates: KnowledgeRecord[],
   auth: ResolvedAuthContext,
 ): PlanTrapNode[] {
+  const graph = expansionView.graph;
   const traps: PlanTrapNode[] = [];
   const trapNodeIds = new Set<string>();
 
@@ -250,7 +246,7 @@ function findBlockingTraps(
     const attrs = graph.getNodeAttributes(node);
     if (attrs.kind === 'trap') {
       // Check if this trap is in our candidates
-      const doc = findDocForNode(graphDocs, node);
+      const doc = expansionView.nodeViewsById.get(node);
       if (doc && trapCandidates.some((t) => t.id === doc.sourceId)) {
         trapNodeIds.add(node);
       }
@@ -264,17 +260,17 @@ function findBlockingTraps(
     const attrs = graph.getNodeAttributes(nodeId);
     if (attrs.kind !== 'trap') continue;
 
-    const doc = findDocForNode(graphDocs, nodeId);
-    if (!doc) continue;
+    const nodeView = expansionView.nodeViewsById.get(nodeId);
+    if (!nodeView) continue;
 
     // Governance check (belt-and-suspenders)
-    const candidate = trapCandidates.find((t) => t.id === doc.sourceId);
+    const candidate = trapCandidates.find((t) => t.id === nodeView.sourceId);
     if (!candidate) continue;
     if (candidate.requiredLevel > auth.securityLevel) continue;
-    if (doc.requiredLevel > auth.securityLevel) continue;
+    if (nodeView.requiredLevel > auth.securityLevel) continue;
 
     // Determine severity: prefer pre-computed, fallback to edge scanning
-    const nodeRecord = doc.nodes.find((n) => n.id === nodeId);
+    const nodeRecord = nodeView.node;
     let severity: 'hard' | 'soft' = nodeRecord?.severity ?? 'soft';
     if (!nodeRecord?.severity) {
       // Fallback for old graph documents without pre-computed severity
@@ -287,12 +283,12 @@ function findBlockingTraps(
 
     traps.push({
       nodeId,
-      sourceId: doc.sourceId,
+      sourceId: nodeView.sourceId,
       label: attrs.label ?? nodeRecord?.label ?? 'Unknown trap',
       severity,
-      scope: doc.scope,
-      requiredLevel: doc.requiredLevel,
-      evidence: nodeRecord?.evidence ?? doc.evidence,
+      scope: nodeView.scope,
+      requiredLevel: nodeView.requiredLevel,
+      evidence: nodeRecord.evidence ?? nodeView.documentEvidence,
       score: 1.0, // Base score for being a candidate
     });
   }
@@ -306,25 +302,6 @@ function findBlockingTraps(
 }
 
 /**
- * Find skill node IDs that mitigate identified trap nodes.
- * Looks for mitigates edges pointing to trap node IDs.
- */
-function findMitigatingSkills(runtime: GraphRuntimeSnapshot, trapNodeIds: string[]): string[] {
-  const mitigatingSkillIds = new Set<string>();
-
-  for (const trapNodeId of trapNodeIds) {
-    const skillNodeIds = runtime.mitigatingSkillNodeIdsByTrapNodeId.get(trapNodeId);
-    if (skillNodeIds) {
-      for (const skillNodeId of skillNodeIds) {
-        mitigatingSkillIds.add(skillNodeId);
-      }
-    }
-  }
-
-  return Array.from(mitigatingSkillIds);
-}
-
-/**
  * Apply skill budget, prioritizing trap-mitigating skills.
  * Returns exactly `budget` PlanSkillNode objects.
  */
@@ -333,8 +310,7 @@ function applySkillBudget(
   artifacts: SkillArtifactRecord[],
   mitigatingSkillNodeIds: string[],
   budget: number,
-  _graph: Graph,
-  graphDocs: GraphIndexDocumentRecord[],
+  expansionView: GraphQueryExpansionView,
   blockingTrapNodeIds: string[],
 ): PlanSkillNode[] {
   if (skillCandidates.length === 0) {
@@ -349,27 +325,22 @@ function applySkillBudget(
 
   // Build node ID to artifact mapping
   const nodeIdToArtifactId = new Map<string, string>();
-  const nodeToDoc = new Map<string, GraphIndexDocumentRecord>();
-  for (const doc of graphDocs) {
-    if (doc.sourceType === 'skill') {
-      for (const node of doc.nodes) {
-        if (node.kind === 'skill') {
-          nodeIdToArtifactId.set(node.id, doc.sourceId);
-          nodeToDoc.set(node.id, doc);
-        }
-      }
+  for (const [nodeId, nodeView] of expansionView.nodeViewsById) {
+    if (nodeView.sourceType === 'skill' && nodeView.node.kind === 'skill') {
+      nodeIdToArtifactId.set(nodeId, nodeView.sourceId);
     }
   }
 
   // Build nodeId → mitigates mapping for direct mitigation check
   const nodeIdToMitigates = new Map<string, string[]>();
-  for (const doc of graphDocs) {
-    if (doc.sourceType === 'skill') {
-      for (const node of doc.nodes) {
-        if (node.kind === 'skill' && node.mitigates && node.mitigates.length > 0) {
-          nodeIdToMitigates.set(node.id, node.mitigates);
-        }
-      }
+  for (const [nodeId, nodeView] of expansionView.nodeViewsById) {
+    if (
+      nodeView.sourceType === 'skill' &&
+      nodeView.node.kind === 'skill' &&
+      nodeView.node.mitigates &&
+      nodeView.node.mitigates.length > 0
+    ) {
+      nodeIdToMitigates.set(nodeId, nodeView.node.mitigates);
     }
   }
 
@@ -425,8 +396,7 @@ function applySkillBudget(
     const capsule = item.artifact.latestRevision.derived?.capsules.find(
       (c) => c.capsuleId === item.candidate.capsuleId,
     );
-    const doc = item.nodeId ? nodeToDoc.get(item.nodeId) : null;
-    const nodeRecord = doc?.nodes.find((n) => n.id === item.nodeId);
+    const nodeRecord = item.nodeId ? expansionView.nodeViewsById.get(item.nodeId)?.node : undefined;
 
     return {
       nodeId: item.nodeId ?? `skill:${item.artifact.id}`,
@@ -730,23 +700,4 @@ function buildExecutionPlan(
       blockedBy: blockedByMap.get(nodeId) ?? [],
     };
   });
-}
-
-// ---------------------------------------------------------------------------
-// Helper utilities
-// ---------------------------------------------------------------------------
-
-/**
- * Find the graph document containing a given node.
- */
-function findDocForNode(
-  graphDocs: GraphIndexDocumentRecord[],
-  nodeId: string,
-): GraphIndexDocumentRecord | undefined {
-  for (const doc of graphDocs) {
-    if (doc.nodes.some((n) => n.id === nodeId)) {
-      return doc;
-    }
-  }
-  return undefined;
 }

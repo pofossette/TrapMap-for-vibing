@@ -16,6 +16,7 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import { assertNoHardDependencyCycles } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
 // Uses sync store helpers because the adapter runs inside store.transact() callbacks.
 // PgGraphIndexRepository is available (Round 7) for async paths.
@@ -41,6 +42,8 @@ export interface ArtifactGraphAdapterInput {
   artifact: SkillArtifactRecord;
   /** Optional ChatProvider for LLM-powered extraction */
   chat?: ChatProvider;
+  /** Optional query backend for PG truth + optional graph projection sync */
+  graphQueryBackend?: GraphQueryBackend;
 }
 
 /**
@@ -51,6 +54,8 @@ export interface ArtifactGraphAdapterRemoveInput {
   data: Pick<StoreData, 'graphIndexDocuments'>;
   /** The artifact ID to remove */
   artifactId: string;
+  /** Optional query backend for PG truth + optional graph projection sync */
+  graphQueryBackend?: GraphQueryBackend;
 }
 
 /**
@@ -101,7 +106,7 @@ export const artifactGraphIndexAdapter: ArtifactGraphAdapter = {
    * clientManifest.assets and clientManifest.scripts bodies.
    */
   async sync(input: ArtifactGraphAdapterInput): Promise<ArtifactGraphAdapterSyncResult> {
-    const { data, artifact, chat } = input;
+    const { data, artifact, chat, graphQueryBackend } = input;
 
     try {
       // Build the graph document from derived text only
@@ -128,6 +133,10 @@ export const artifactGraphIndexAdapter: ArtifactGraphAdapter = {
       // Persist the document
       upsertGraphIndexDocument(data, doc);
 
+      if (graphQueryBackend?.isEnabled()) {
+        await graphQueryBackend.upsertDocument(doc);
+      }
+
       return {
         success: true,
         performedWork: true,
@@ -151,7 +160,10 @@ export const artifactGraphIndexAdapter: ArtifactGraphAdapter = {
    * Removes all documents with sourceType='skill' and sourceId=artifactId.
    */
   async remove(input: ArtifactGraphAdapterRemoveInput): Promise<void> {
-    const { data, artifactId } = input;
+    const { data, artifactId, graphQueryBackend } = input;
     removeGraphIndexDocumentsForSource(data, 'skill', artifactId);
+    if (graphQueryBackend?.isEnabled()) {
+      await graphQueryBackend.removeSource('skill', artifactId);
+    }
   },
 };

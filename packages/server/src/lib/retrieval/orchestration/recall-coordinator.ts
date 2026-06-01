@@ -9,7 +9,7 @@ import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { DEFAULT_FRESHNESS_CONFIG } from '@trapmap/server/lib/decay/freshness.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
+import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/backend.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { vectorSimilaritySearch } from '@trapmap/server/lib/retrieval/recall/db-search.js';
 import { graphAssistedRecall as graphRecall } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
@@ -49,6 +49,24 @@ import type { StrategyRegistry } from './strategy-registry.js';
 export interface DbSearchConfig {
   enabled: boolean;
   pool: Pool | null;
+}
+
+export interface GraphRecallTrace {
+  mergeMode: 'mixed';
+  graphExpansion: 'local-neighborhood';
+  backendKind: GraphQueryRuntimeState['backendKind'];
+  backendMode: GraphQueryRuntimeState['mode'];
+  graphCandidateCount: number;
+}
+
+export interface RecallExecutionTrace {
+  graph?: GraphRecallTrace;
+}
+
+export interface RecallExecutionResult {
+  scoredEntries: ScoredEntry[];
+  mergedCandidates?: MergedCandidate[];
+  trace?: RecallExecutionTrace;
 }
 
 /**
@@ -100,7 +118,7 @@ export async function dispatchByMode(
   channelRegistry: ChannelRegistry,
   services?: SkillShareerServices,
   auth?: ResolvedAuthContext,
-): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates?: MergedCandidate[] }> {
+): Promise<RecallExecutionResult> {
   const strategy = strategyRegistry.get(mode);
   if (!strategy) {
     throw new AppError(
@@ -128,7 +146,7 @@ export async function semanticRecall(
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
   services?: SkillShareerServices,
   auth?: ResolvedAuthContext,
-): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates?: MergedCandidate[] }> {
+): Promise<RecallExecutionResult> {
   const dbConfig = services ? getDbSearchConfig(services) : { enabled: false, pool: null };
 
   if (dbConfig.enabled && dbConfig.pool && auth) {
@@ -225,7 +243,7 @@ export async function hybridRecall(
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
   services?: SkillShareerServices,
   auth?: ResolvedAuthContext,
-): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates: MergedCandidate[] }> {
+): Promise<RecallExecutionResult> {
   const queryTokens = normalizeQuery(seed);
   const dbConfig = services ? getDbSearchConfig(services) : { enabled: false, pool: null };
 
@@ -347,14 +365,16 @@ export async function computeSemanticCandidates(
 export const GRAPH_SCORE_BOOST_FACTOR = 0.2;
 
 /**
- * Graph-assisted recall combining hybrid baseline with graph expansion.
+ * Graph-assisted recall combines the normal hybrid baseline with graph-derived
+ * local-neighborhood candidates. Graph structure augments recall but does not
+ * replace semantic/keyword retrieval as the primary decision surface.
  */
 export async function graphAssistedRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
-  graphIndexRepo?: GraphIndexRepository,
-): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates: MergedCandidate[] }> {
+  services?: SkillShareerServices,
+): Promise<RecallExecutionResult> {
   const queryTokens = normalizeQuery(seed);
   const eligibleEntriesMap = new Map<string, KnowledgeRecord>();
   for (const entry of eligibleEntries) {
@@ -364,11 +384,29 @@ export async function graphAssistedRecall(
   const [semanticCandidates, keywordCandidates, graphCandidates] = await Promise.all([
     computeSemanticCandidates(seed, eligibleEntries, parsed.filters),
     keywordRecall(seed, eligibleEntries),
-    graphRecall(seed, eligibleEntriesMap, graphIndexRepo ? { graphIndexRepo } : undefined),
+    graphRecall(
+      seed,
+      eligibleEntriesMap,
+      services?.graphQueryBackend ? { graphQueryBackend: services.graphQueryBackend } : undefined,
+    ),
   ]);
+  const governedGraphCandidates = graphCandidates
+    .map((candidate) => {
+      const eligibleEntry = eligibleEntriesMap.get(candidate.entry.id);
+      if (!eligibleEntry) {
+        return null;
+      }
+
+      return candidate.entry === eligibleEntry ? candidate : { ...candidate, entry: eligibleEntry };
+    })
+    .filter(
+      (
+        candidate,
+      ): candidate is Awaited<ReturnType<typeof graphRecall>>[number] => candidate !== null,
+    );
 
   const hybridMerged = mergeCandidates(semanticCandidates, keywordCandidates);
-  const finalMerged = mergeCandidatesWithGraph(hybridMerged, graphCandidates);
+  const finalMerged = mergeCandidatesWithGraph(hybridMerged, governedGraphCandidates);
 
   const rerankedCandidates = rerankCandidates(finalMerged, queryTokens, {
     maxCandidates: parsed.maxResults,
@@ -378,7 +416,16 @@ export async function graphAssistedRecall(
   });
 
   const scoredEntries = toScoredEntriesFromReranked(rerankedCandidates);
-  return { scoredEntries, mergedCandidates: rerankedCandidates };
+  return {
+    scoredEntries,
+    mergedCandidates: rerankedCandidates,
+    trace: {
+      graph: createGraphRecallTrace(
+        services?.graphQueryBackend?.getRuntimeState() ?? services?.graphQuery,
+        governedGraphCandidates.length,
+      ),
+    },
+  };
 }
 
 /**
@@ -424,4 +471,17 @@ export function mergeCandidatesWithGraph(
 
   result.sort((a, b) => b.combinedScore - a.combinedScore);
   return result;
+}
+
+function createGraphRecallTrace(
+  runtimeState: GraphQueryRuntimeState | undefined,
+  graphCandidateCount: number,
+): GraphRecallTrace {
+  return {
+    mergeMode: 'mixed',
+    graphExpansion: 'local-neighborhood',
+    backendKind: runtimeState?.backendKind ?? 'memory',
+    backendMode: runtimeState?.mode ?? 'disabled',
+    graphCandidateCount,
+  };
 }

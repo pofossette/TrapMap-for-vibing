@@ -16,6 +16,8 @@
  */
 
 import { extractTrapGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
+import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import type {
   KnowledgeRecord,
   SkillArtifactRecord,
@@ -489,6 +491,9 @@ export async function fullRebuildGraphIndexes(args: {
  */
 export async function reconcileGraphIndexes(args: {
   store: SkillShareerStore;
+  graphIndexRepo?: GraphIndexRepository;
+  graphQueryBackend?: GraphQueryBackend;
+  syncProjection?: boolean;
 }): Promise<GraphReconcileResult> {
   const { store } = args;
 
@@ -528,5 +533,21 @@ export async function reconcileGraphIndexes(args: {
     }
   });
 
+  if (args.syncProjection && args.graphIndexRepo && args.graphQueryBackend) {
+    await rebuildGraphProjectionFromTruth({
+      graphIndexRepo: args.graphIndexRepo,
+      graphQueryBackend: args.graphQueryBackend,
+    });
+  }
+
   return result;
+}
+
+export async function rebuildGraphProjectionFromTruth(args: {
+  graphIndexRepo: GraphIndexRepository;
+  graphQueryBackend: GraphQueryBackend;
+}): Promise<number> {
+  const documents = await args.graphIndexRepo.listAll();
+  await args.graphQueryBackend.rebuildProjection(documents);
+  return documents.length;
 }

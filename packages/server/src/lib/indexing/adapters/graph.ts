@@ -19,6 +19,7 @@ import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/grap
 import { assertNoHardDependencyCycles } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
 import { LlmExtractionCache } from '@trapmap/server/lib/indexing/graph-lite/llm-cache.js';
 import { extractGraphEntitiesWithLLM } from '@trapmap/server/lib/indexing/graph-lite/llm-extract.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import {
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
@@ -91,6 +92,7 @@ export const graphIndexAdapter: IndexAdapter & {
     document: NormalizedIndexDocument,
     store?: SkillShareerStore,
     chat?: ChatProvider,
+    graphQueryBackend?: GraphQueryBackend,
   ): Promise<IndexSyncResult> {
     const cacheKey = `${document.entryId}:${document.revision}`;
     const existingState = graphStateCache.get(cacheKey);
@@ -165,6 +167,10 @@ export const graphIndexAdapter: IndexAdapter & {
       });
       cacheDocument(candidateDoc);
 
+      if (graphQueryBackend?.isEnabled()) {
+        await graphQueryBackend.upsertDocument(candidateDoc);
+      }
+
       return {
         adapterKind: 'graph',
         success: true,
@@ -186,6 +192,7 @@ export const graphIndexAdapter: IndexAdapter & {
   async remove(
     ref: { entryId: string; revision: number },
     store?: SkillShareerStore,
+    graphQueryBackend?: GraphQueryBackend,
   ): Promise<void> {
     // Store-backed removal
     if (store) {
@@ -203,6 +210,10 @@ export const graphIndexAdapter: IndexAdapter & {
     }
 
     cachedGraphDocuments.delete(`trap:${ref.entryId}`);
+
+    if (graphQueryBackend?.isEnabled()) {
+      await graphQueryBackend.removeSource('trap', ref.entryId);
+    }
   },
 };
 

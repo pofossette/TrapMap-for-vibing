@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ServerConfigSchema, loadConfig } from './config.js';
+import { createGraphQueryRuntimeState, loadGraphDbConfig } from './lib/graph-query/config.js';
 
 const originalEnv = { ...process.env };
 
@@ -18,6 +19,16 @@ const minimalConfig = {
   dataFile: '/tmp/data.json',
   databaseUrl: null as string | null,
   systemAdminKey: null as string | null,
+  graphDb: {
+    enabled: false,
+    provider: 'neo4j' as const,
+    uri: null as string | null,
+    username: null as string | null,
+    password: null as string | null,
+    database: 'neo4j',
+    failOpen: true,
+    syncOnWrite: true,
+  },
   ai: minimalAi,
   userOpsLog: {},
   ragLog: {},
@@ -201,6 +212,14 @@ describe('loadConfig', () => {
       'LOG_USER_OPS_DIR',
       'LOG_RAG_ENABLED',
       'LOG_RAG_DIR',
+      'TRAPMAP_GRAPH_DB_ENABLED',
+      'TRAPMAP_GRAPH_DB_PROVIDER',
+      'TRAPMAP_GRAPH_DB_URI',
+      'TRAPMAP_GRAPH_DB_USERNAME',
+      'TRAPMAP_GRAPH_DB_PASSWORD',
+      'TRAPMAP_GRAPH_DB_DATABASE',
+      'TRAPMAP_GRAPH_DB_FAIL_OPEN',
+      'TRAPMAP_GRAPH_DB_SYNC_ON_WRITE',
     ];
     for (const k of envKeys) {
       cleanEnv[k] = undefined;
@@ -215,6 +234,16 @@ describe('loadConfig', () => {
       expect(config.sessionTransport).toBe('bearer-header');
       expect(config.systemAdminKey).toBeNull();
       expect(config.databaseUrl).toBeNull();
+      expect(config.graphDb).toEqual({
+        enabled: false,
+        provider: 'neo4j',
+        uri: null,
+        username: null,
+        password: null,
+        database: 'neo4j',
+        failOpen: true,
+        syncOnWrite: true,
+      });
     });
   });
 
@@ -314,6 +343,82 @@ describe('loadConfig', () => {
     withEnv({ TRAPMAP_DATA_FILE: '/custom/path/data.json' }, () => {
       const config = loadConfig();
       expect(config.dataFile).toContain('/custom/path/data.json');
+    });
+  });
+
+  it('parses graph DB env vars', () => {
+    withEnv(
+      {
+        TRAPMAP_GRAPH_DB_ENABLED: 'true',
+        TRAPMAP_GRAPH_DB_PROVIDER: 'neo4j',
+        TRAPMAP_GRAPH_DB_URI: 'bolt://127.0.0.1:7687',
+        TRAPMAP_GRAPH_DB_USERNAME: 'neo4j',
+        TRAPMAP_GRAPH_DB_PASSWORD: 'secret',
+        TRAPMAP_GRAPH_DB_DATABASE: 'trapmap',
+        TRAPMAP_GRAPH_DB_FAIL_OPEN: 'false',
+        TRAPMAP_GRAPH_DB_SYNC_ON_WRITE: 'false',
+      },
+      () => {
+        const config = loadConfig();
+        expect(config.graphDb).toEqual({
+          enabled: true,
+          provider: 'neo4j',
+          uri: 'bolt://127.0.0.1:7687',
+          username: 'neo4j',
+          password: 'secret',
+          database: 'trapmap',
+          failOpen: false,
+          syncOnWrite: false,
+        });
+      },
+    );
+  });
+
+  it('fails fast when graph DB is enabled without required connection fields', () => {
+    withEnv({ TRAPMAP_GRAPH_DB_ENABLED: 'true' }, () => {
+      expect(() => loadGraphDbConfig()).toThrow('Graph DB configuration validation failed');
+    });
+  });
+
+  it('maps graph DB config to disabled mode by default', () => {
+    const state = createGraphQueryRuntimeState({
+      enabled: false,
+      provider: 'neo4j',
+      uri: null,
+      username: null,
+      password: null,
+      database: 'neo4j',
+      failOpen: true,
+      syncOnWrite: true,
+    });
+
+    expect(state).toEqual({
+      mode: 'disabled',
+      backendKind: 'memory',
+      failOpen: true,
+    });
+  });
+
+  it('maps graph DB config to fail-open fallback mode when requested', () => {
+    const state = createGraphQueryRuntimeState(
+      {
+        enabled: true,
+        provider: 'neo4j',
+        uri: 'bolt://127.0.0.1:7687',
+        username: 'neo4j',
+        password: 'secret',
+        database: 'neo4j',
+        failOpen: true,
+        syncOnWrite: true,
+      },
+      { fallbackActive: true, detail: 'neo4j unavailable' },
+    );
+
+    expect(state).toEqual({
+      mode: 'enabled-fallback',
+      backendKind: 'neo4j',
+      failOpen: true,
+      detail: 'neo4j unavailable',
     });
   });
 });

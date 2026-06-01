@@ -15,6 +15,21 @@ import type {
 } from '@trapmap/contracts';
 import type { BucketMap, GraphPlanStructure, NormalizedHit, NormalizedResult } from './types.js';
 
+function extractRoutingTrace(response: unknown): NormalizedResult['routingTrace'] | undefined {
+  const routingTrace = (response as { routingTrace?: NormalizedResult['routingTrace'] }).routingTrace;
+  if (!routingTrace) {
+    return undefined;
+  }
+
+  return {
+    selectedMode: routingTrace.selectedMode,
+    routingReason: routingTrace.routingReason,
+    fallbackApplied: routingTrace.fallbackApplied,
+    channelsUsed: routingTrace.channelsUsed,
+    ...(routingTrace.graphRetrieval ? { graphRetrieval: routingTrace.graphRetrieval } : {}),
+  };
+}
+
 // =============================================================================
 // V1 Response Normalization
 // =============================================================================
@@ -55,6 +70,7 @@ export function normalizeV1Response(response: RetrievalResponse): NormalizedResu
     isEmpty: hits.length === 0,
     rawResponse: response,
     endpoint: '/v1/retrieval/search',
+    routingTrace: extractRoutingTrace(response),
   };
 }
 
@@ -95,6 +111,7 @@ export function normalizeV2Response(response: RetrievalV2ResponseWithHints): Nor
     isEmpty: hits.length === 0,
     rawResponse: response,
     endpoint: '/v2/retrieval/search',
+    routingTrace: extractRoutingTrace(response),
   };
 }
 

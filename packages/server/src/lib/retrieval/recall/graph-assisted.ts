@@ -18,12 +18,9 @@
  */
 
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
-import {
-  buildGraphRuntimeSnapshot,
-  calculateSourceRelationStrength,
-  expandSourcesOneHop,
-} from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
+import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
 import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/channel-registry.js';
 import type { RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
@@ -119,6 +116,7 @@ function extractQueryEntities(queryText: string): Set<string> {
 }
 
 interface GraphAssistedRecallConfig extends GraphScoringConfig {
+  graphQueryBackend?: GraphQueryBackend;
   graphIndexRepo?: GraphIndexRepository;
 }
 
@@ -136,17 +134,19 @@ export async function graphAssistedRecall(
   }
 
   const graphConfig = config as GraphAssistedRecallConfig | undefined;
-  const graphDocuments = graphConfig?.graphIndexRepo
-    ? await graphConfig.graphIndexRepo.listAll()
-    : [];
+  const graphBackend = resolveGraphBackend(graphConfig);
 
   const queryEntities = extractQueryEntities(queryText);
   if (queryEntities.size === 0) {
     return [];
   }
 
-  const graphRuntime = buildGraphRuntimeSnapshot(graphDocuments);
-  const graphCandidateIds = expandSourcesOneHop(graphRuntime, queryEntities);
+  const graphCandidateIds = graphBackend
+    ? await graphBackend.expandSourcesOneHop({
+        queryLabels: queryEntities,
+        eligibleSourceIds: new Set(eligibleEntries.keys()),
+      })
+    : new Set<string>();
   const candidates: RecallCandidate[] = [];
 
   for (const entryId of graphCandidateIds) {
@@ -165,7 +165,12 @@ export async function graphAssistedRecall(
       }
     }
 
-    const relationStrength = calculateSourceRelationStrength(graphRuntime, entryId, queryEntities);
+    const relationStrength = graphBackend
+      ? await graphBackend.calculateSourceRelationStrength({
+          sourceId: entryId,
+          queryLabels: queryEntities,
+        })
+      : 0;
     const score = calculateGraphScore(directMatches.size, relationStrength, config);
 
     if (score > 0) {
@@ -185,12 +190,26 @@ export async function graphAssistedRecall(
 /**
  * Create a graph-assisted recall channel backed by a GraphIndexRepository.
  */
-export function createGraphChannel(graphIndexRepo: GraphIndexRepository): RecallChannel {
+function resolveGraphBackend(
+  config?: GraphAssistedRecallConfig,
+): GraphQueryBackend | undefined {
+  if (config?.graphQueryBackend) {
+    return config.graphQueryBackend;
+  }
+
+  if (config?.graphIndexRepo) {
+    return createMemoryGraphQueryBackend(config.graphIndexRepo);
+  }
+
+  return undefined;
+}
+
+export function createGraphChannel(graphQueryBackend: GraphQueryBackend): RecallChannel {
   return {
     name: 'graph',
     async recall(queryText: string, entries: KnowledgeRecord[]) {
       const entriesMap = new Map(entries.map((e) => [e.id, e]));
-      return graphAssistedRecall(queryText, entriesMap, { graphIndexRepo });
+      return graphAssistedRecall(queryText, entriesMap, { graphQueryBackend });
     },
   };
 }
