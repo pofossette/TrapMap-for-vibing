@@ -51,7 +51,7 @@ flowchart TB
     E1 --> E2[BM25 评分]
     E2 --> E3[Top-K 关键词结果]
 
-    D3 --> F[分数融合<br/>(RRF)]
+    D3 --> F["分数融合\nRRF"]
     E3 --> F
     F --> G[合并与重排]
     G --> H[组装]
@@ -995,7 +995,21 @@ async function batchEmbed(
 
 ```sql
 -- 索引配置
-CREATE INDEX ON knowledge_entries 
+CREATE INDEX ON knowledge_entries
 USING ivfflat (embedding_vector vector_cosine_ops)
 WITH (lists = 100);
 ```
+
+### 入库预计算对检索性能的支撑
+
+检索阶段的低延迟很大程度依赖入库阶段的预计算：
+
+- **Entry embedding**：入库时由 Vector adapter 预生成，写入 `embeddingCache` 和 PG `knowledge_embeddings` 表。检索时 `getEntryEmbedding()` 优先读缓存，PG 路径走 HNSW 近似搜索。
+- **Keyword tokens**：入库时由 Keyword adapter 预分词 + field 分桶，写入 `persistedState`。检索时 `tokenizeEntry()` 直接读 persistedState。
+- **Graph 文档**：入库时由 Graph adapter 调 LLM 预提取 nodes/edges，写入 `graph_index_documents`。检索时 `buildGraphRuntimeSnapshot()` 从持久化文档组装，遍历走纯代码路径。
+- **Capsule 派生结构 + contextualPrefix**：入库时由 `deriveFromPayloads()` + `enrichCapsules()` 预计算。v2 检索直接读派生的 capsule，`contextualPrefix` 参与 15% 权重评分。
+- **Capsule 索引**：入库时由 `syncArtifactCapsules()` 预写 keyword tokens + embedding vectors 到 PG 表。v2 keyword/semantic 通道直接查预建索引。
+
+检索路径的残余外部调用：每次 1 次 query embedding API；v2/v3 首次查询 1 次 intent parsing LLM（有 cache + 正则 fallback）。
+
+> 完整清单见 [入库预计算策略](../PRECOMPUTATION.md)。

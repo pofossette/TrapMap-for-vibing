@@ -178,23 +178,26 @@ pnpm eval:ingestion:smoke | tee reports/eval/ingestion-smoke-postgres.txt
 # 检查关键文档是否包含/排除预期短语（规则见 scripts/complexity-budgets.json docRules）
 pnpm check:docs-drift
 
+# 检查所有 Markdown 中的 Mermaid 图语法是否可解析
+pnpm check:mermaid
+
 # 检查热点文件是否在行数预算内（规则见 scripts/complexity-budgets.json lineBudgets）
 pnpm check:complexity
 ```
 
-CI 中由 `architecture-guardrails` job 自动执行。本地开发时可在改动热点文件或架构文档后手动运行。
+CI 中由 `architecture-guardrails` 和 `doc-rules` jobs 自动执行。本地开发时可在改动 Mermaid 图、热点文件或架构文档后手动运行。
 
 ### 按变更类型的验证矩阵
 
 | 变更类型 | 必须运行的验证 |
 |----------|--------------|
-| 文档修改 | `pnpm check:docs-drift` + `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` |
+| 文档修改 | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` |
 | 命令范围变更 | `pnpm check:docs-drift` + smoke 测试（验证包级 DB 命令和 JSON 回退路径） |
 | 环境默认值变更 | `pnpm check:docs-drift` + smoke 测试（验证 ENVIRONMENT.md 中的默认值正确） |
 | 深层架构文档变更 | `pnpm check:docs-drift` + smoke 测试（验证 ARCHITECTURE.md / PERSISTENCE.md 中的运行时默认值和表计数） |
 | Schema 变更 (retrieval/artifact/eval) | `pnpm test` + `pnpm --filter @trapmap/contracts typecheck` + `pnpm eval:smoke` + `pnpm check:docs-drift` + 更新 `DATABASE_SCHEMA.md` 表计数 |
 | CI 配置变更 | `pnpm check:docs-drift` + 更新 `CI_CD.md` |
-| 架构变更 | `pnpm check:docs-drift` + `pnpm check:complexity` + `pnpm eval:smoke` |
+| 架构变更 | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:complexity` + `pnpm eval:smoke` |
 | 脚本/守卫变更 | `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` + `pnpm check:docs-drift` |
 | 摘要生成变更 (`summary.ts`) | `rtk pnpm test -- --run packages/server/src/lib/retrieval/response/summary.test.ts evals/summary/__tests__/runner-api.test.ts` + `pnpm eval:summary:smoke` |
 | 评测命令变更 | `pnpm check:docs-drift` + smoke 测试（验证 EVALUATION.md / TESTING.md 中的 eval 命令正确） |

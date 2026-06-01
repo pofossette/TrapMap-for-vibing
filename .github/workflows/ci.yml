@@ -137,6 +137,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm check:docs-drift
+      - run: pnpm check:mermaid
 
       - run: pnpm check:complexity
 
@@ -156,5 +157,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm check:docs-drift
+      - run: pnpm check:mermaid
 
       - run: pnpm check:structure

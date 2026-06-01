@@ -403,7 +403,7 @@ trapmap login --access-key <key> --server http://example.com:4000
 
 ```mermaid
 flowchart TB
-    A[trapmap submit --scope global --label trap --shortcut "xxx" --detail "yyy"] --> B[加载 CLI 状态]
+    A["trapmap submit --scope global --label trap --shortcut xxx --detail yyy"] --> B[加载 CLI 状态]
     B --> C[检查会话令牌]
     C -->|无令牌| D[提示登录]
     C -->|有令牌| E[解析输入]
@@ -442,7 +442,7 @@ cat detail.md | trapmap submit --scope global --label trap --shortcut "xxx" --st
 
 ```mermaid
 flowchart TB
-    A[trapmap search "query"] --> B[加载 CLI 状态]
+    A["trapmap search query"] --> B[加载 CLI 状态]
     B --> C[检查会话令牌]
     C -->|无令牌| D[提示登录]
     C -->|有令牌| E[解析搜索参数]

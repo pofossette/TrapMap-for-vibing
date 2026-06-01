@@ -183,6 +183,9 @@ PR 修改以下路径时，`eval.yml` 的 smoke tier 会自动触发：
 # 检查文档漂移守卫
 pnpm check:docs-drift
 
+# 检查 Mermaid 图语法
+pnpm check:mermaid
+
 # 检查复杂度预算
 pnpm check:complexity
 

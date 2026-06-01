@@ -105,24 +105,18 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    subgraph 候选状态机["候选状态机"]
-        Received["已接收\n（初始状态）"]
-        Queued["已排队\n（在处理队列中）"]
-        Analyzing["分析中\n（正在处理）"]
-        
-        subgraph 分支结果["分支结果"]
-            DuplicateDetected["检测到重复\n需要人工解决"]
-            ReadyForReview["待审核\n唯一内容\n准备发布"]
-        end
-        
-        Resolved["已解决\n（终态）"]
-    end
+    Received["已接收\n（初始状态）"]
+    Queued["已排队\n（在处理队列中）"]
+    Analyzing["分析中\n（正在处理）"]
+    DuplicateDetected["检测到重复\n需要人工解决"]
+    ReadyForReview["待审核\n唯一内容\n准备发布"]
+    Resolved["已解决\n（终态）"]
 
-    Received -->|process()| Queued
-    Queued -->|start_processing()| Analyzing
+    Received -->|进入处理| Queued
+    Queued -->|开始处理| Analyzing
     Analyzing --> DuplicateDetected
     Analyzing --> ReadyForReview
-    DuplicateDetected -->|manual_resolution()| Resolved
+    DuplicateDetected -->|人工解决| Resolved
     ReadyForReview --> Resolved
 ```
 
@@ -674,3 +668,13 @@ v3 的 `compileTrapFirstPlan()`（`graph-plan/plan-compiler.ts:55`）流程：
 4. 按 trap-缓解优先级分配 skill budget → 输出 `TrapFirstPlan`
 
 置信度评估：high (≥0.65) / medium (≥0.4) / low (<0.4)。低置信度时回退到 v2（capsule 检索）或 v1（graph-assisted entry 检索）。
+
+---
+
+## 相关文档
+
+- [入库预计算策略](../PRECOMPUTATION.md) — 入库阶段的预计算措施如何降低检索延迟
+- [索引管道](INDEXING.md) — 三个适配器的索引同步详解
+- [检索系统](RETRIEVAL.md) — v1/v2/v3 检索路径
+- [文档入库验重](DEDUPLICATION.md) — 重复检测流程
+- [性能指南](../../reference/PERFORMANCE.md) — 检索延迟与调优建议

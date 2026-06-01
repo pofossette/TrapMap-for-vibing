@@ -581,3 +581,14 @@ function buildHybridIndexAdapters(config?: {
 ```
 
 服务启动时在 `app.ts` 中调用 `buildHybridIndexAdapters()` 注册适配器，后续生命周期事件自动触发 fan-out。
+
+---
+
+## 相关文档
+
+- [入库预计算策略](../PRECOMPUTATION.md) — 三个适配器的预计算如何降低检索延迟的总览
+- [异步摄取管道](INGESTION.md) — 候选提交到发布的完整流程
+- [检索系统](RETRIEVAL.md) — v1/v2/v3 检索路径如何使用预计算索引
+- [统一缓存架构](../CACHING.md) — RetrievalCache 泛型类与缓存实例配置
+- [LLM 图提取计划](../HYBRID_GRAPH_EXTRACTION.md) — 两阶段 LLM 提取架构
+- [性能指南](../../reference/PERFORMANCE.md) — 检索延迟特征与调优建议

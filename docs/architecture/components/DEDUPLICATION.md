@@ -105,24 +105,23 @@ function toRisk(score: number): 'low' | 'medium' | 'high' {
 
 ```mermaid
 flowchart TB
-    subgraph 候选状态["候选状态"]
-        A["RECEIVED\n初始状态"]
-        B["QUEUED\n在处理队列中"]
-        C["ANALYZING\n正在处理"]
-        D["DUPLICATE_DETECTED\n需要人工解决"]
-        E["READY_FOR_REVIEW\n唯一内容\n可发布"]
-        F["RESOLVED\n终态"]
-        G["ERROR\n可重试（retryCount < 3）"]
-    end
+    A["RECEIVED\n初始状态"]
+    B["QUEUED\n在处理队列中"]
+    C["ANALYZING\n正在处理"]
+    D["DUPLICATE_DETECTED\n需要人工解决"]
+    E["READY_FOR_REVIEW\n唯一内容\n可发布"]
+    F["RESOLVED\n终态"]
+    G["ERROR\n可重试（retryCount lt 3）"]
+    H["永久失败\n终态"]
 
-    A -->|process()| B
-    B -->|start_processing()| C
+    A -->|进入处理| B
+    B -->|开始处理| C
     C --> D
     C --> E
     C -->|"处理失败"| G
-    G -->|"指数退避重试\n5s → 10s → 20s"| B
-    G -->|"retryCount >= 3"| H["永久失败"]
-    D -->|manual_resolution()| F
+    G -->|"指数退避重试: 5s / 10s / 20s"| B
+    G -->|"retryCount ge 3"| H
+    D -->|人工解决| F
     E -->|自动| F
 ```
 

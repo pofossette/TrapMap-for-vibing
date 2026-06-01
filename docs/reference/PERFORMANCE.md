@@ -27,6 +27,23 @@
 - **图辅助模式**：仅在需要关系扩展时使用，会额外增加图遍历开销
 - 控制返回结果数量（`maxResults`），推荐 5-20 条
 
+### 为什么检索快：入库预计算策略
+
+TrapMap 采用"入库重、出库轻"架构。昂贵的计算（LLM 调用、Embedding 生成、图实体提取等）集中在入库阶段完成，检索阶段尽可能只读预计算结果：
+
+| 预计算措施 | 入库时完成 | 检索时效果 |
+|-----------|-----------|-----------|
+| Embedding 向量预生成 | Vector adapter 对 `canonicalText` 生成向量 | 检索读缓存 + PG HNSW 搜索 (~50-200ms) |
+| 关键词 Token 预分词 + field 分桶 | Keyword adapter 构建 `PersistedKeywordState` | 检索直接读 persistedState (~5-20ms) |
+| LLM 图实体预提取 | Graph adapter 两阶段 LLM 提取 nodes/edges | 检索走纯 Graphology BFS (~10-50ms)，零 LLM |
+| Capsule 派生预计算 | `deriveFromPayloads()` 生成 profile/capsules | v2 检索直接读派生结构 |
+| Capsule contextualPrefix 预生成 | LLM 生成上下文前缀 | 检索纯文本匹配，不调 LLM |
+| Capsule 索引预同步 | 预写 keyword tokens + embedding 到 PG 表 | v2 通道直接查预建索引 |
+
+检索路径的残余外部调用：每次检索需 1 次 query embedding API；v2/v3 首次查询需 1 次 intent parsing LLM（有 cache + 正则 fallback）。
+
+> 完整的预计算策略清单、入库 API 请求汇总和延迟对比见 [入库预计算策略](../architecture/PRECOMPUTATION.md)。
+
 ---
 
 ## Embedding 性能
