@@ -513,25 +513,34 @@
 ## 出库路径不受影响
 
 ```
-检索管道中不需要任何 LLM 调用:
+检索管道的召回、评分和图遍历路径不调用 LLM:
 
   v1 graph-assisted (graph-assisted.ts):
-    extractQueryEntities(query)  → 纯 label 归一化匹配（不改）
-    expandSourcesOneHop()        → graphology 遍历（不改）
-    calculateGraphScore()        → 确定性公式（不改）
+    extractQueryEntities(query)  → 纯 label 归一化匹配（规则引擎）
+    expandSourcesOneHop()        → graphology 遍历
+    calculateGraphScore()        → 确定性公式
+
+  v2 capsule graph channel (channels/graph.ts):
+    extractGraphEntities(query)  → 规则引擎（graph-extract.ts）
+    expandSourcesOneHop()        → graphology 遍历
+    calculateSourceRelationStrength() → 确定性公式
 
   v3 graph plan (plan-compiler.ts):
-    parseSeedIntent()            → 启发式关键词（不改）
-    extractSeedNodeIds()         → ID 映射（不改）
-    buildLocalExpansionView()    → BFS（不改）
-    findBlockingTraps()          → 边类型过滤（不改）
-    findMitigatingSkills()       → 边类型过滤（不改）
+    extractSeedNodeIds()         → ID 映射
+    buildLocalExpansionView()    → BFS
+    findBlockingTraps()          → 边类型过滤
+    findMitigatingSkills()       → 边类型过滤
 
   共享基础设施 (graphology.ts):
-    buildGraphRuntimeSnapshot()  → 纯代码组装（不改）
-    assertNoHardDependencyCycles() → DAG 检测（不改）
+    buildGraphRuntimeSnapshot()  → 纯代码组装
+    assertNoHardDependencyCycles() → DAG 检测
 
 入库时 LLM 的价值已沉淀到 GraphIndexDocumentRecord 中。
+
+注意：v2/v3 检索在意图解析阶段会调用 parseSeedIntentWithLLM()，
+该调用有 intent cache（TTL 30min, 200 条）且自动 fallback 到正则解析器。
+此外，v1/v2 语义通道需要 1 次 query embedding API 调用。
+详见 docs/architecture/PRECOMPUTATION.md「检索路径的残余外部 API 调用」。
 ```
 
 ## 与 LightRAG 的设计对比

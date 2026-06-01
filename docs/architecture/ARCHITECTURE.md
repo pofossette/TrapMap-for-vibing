@@ -248,6 +248,8 @@ flowchart TB
 - **Keyword**：BM25/基于分词的词法匹配
 - **Graph**：Graphology DAG 用于关系扩展
 
+> **入库预计算策略**：三个适配器在入库阶段完成所有昂贵计算（Embedding API、LLM 图实体提取、Token 分词），检索阶段直接读取预计算结果。检索路径的召回/评分/图遍历均不调用 LLM。完整的预计算措施清单见 [PRECOMPUTATION.md](PRECOMPUTATION.md)。
+
 ### 检索管道
 
 ```mermaid

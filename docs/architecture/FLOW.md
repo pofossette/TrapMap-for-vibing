@@ -106,7 +106,7 @@ sequenceDiagram
 ```mermaid
 flowchart TB
     subgraph 查询输入["查询输入"]
-        CLIQuery["CLI: trapmap search\n\"如何配置认证\"\n--mode semantic"]
+        CLIQuery["CLI: trapmap search\n如何配置认证\n--mode semantic"]
         APIQuery["API: POST /v1/retrieval/search"]
     end
     

@@ -146,6 +146,7 @@ pnpm eval:ci
 - [CLI 渲染适配层](architecture/RENDERING.md) — 多工具输出格式适配
 - [数据流](architecture/FLOW.md) — 详细数据流图
 - [数据类型串联图](architecture/DATA_TYPES_PIPELINE.md) — 核心数据类型流转路径与 GraphRAG-lite 图构建详解
+- [入库预计算策略](architecture/PRECOMPUTATION.md) — 入库阶段预计算措施总览、API 请求清单与延迟对比
 - [LLM 图提取改造计划](architecture/HYBRID_GRAPH_EXTRACTION.md) — 用 LLM 替代规则引擎的图构建 + 入库智能增强（进行中）
 - [数据库表结构速查](reference/DATABASE_SCHEMA.md) — PostgreSQL 56 张表完整参考
 

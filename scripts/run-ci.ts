@@ -67,6 +67,11 @@ const STEPS: StepDefinition[] = [
     args: ['run', 'check:docs-drift'],
   },
   {
+    name: 'check:mermaid',
+    command: 'pnpm',
+    args: ['run', 'check:mermaid'],
+  },
+  {
     name: 'check:complexity',
     command: 'pnpm',
     args: ['run', 'check:complexity'],
