@@ -102,7 +102,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
       .catch(() => {});
 
     // Validate and return response
-    return retrievalResponseSchema.parse(result);
+    return retrievalResponseSchema.passthrough().parse(result);
   });
 
   // v2 capsule-native retrieval path (RETR-01, RETR-04, COMP-03)
@@ -145,7 +145,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
     void usageAnalytics.recordEvents(events).catch(() => {});
 
     // Validate and return v2 response with activation hints (T-15-03)
-    return retrievalV2ResponseWithHintsSchema.parse(result);
+    return retrievalV2ResponseWithHintsSchema.passthrough().parse(result);
   });
 
   // Phase 38: Confidence-aware GraphRAG-lite wrapper route

@@ -458,12 +458,18 @@ describe('searchKnowledge', () => {
       const result = await searchKnowledge(services, auth, query);
 
       expect(buildEmptyResponse).toHaveBeenCalled();
-      expect(result).toEqual({
-        globalConstraints: [],
-        projectKnowledge: [],
-        refinementSummary: null,
-        summary: null,
-      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          globalConstraints: [],
+          projectKnowledge: [],
+          refinementSummary: null,
+          summary: null,
+          routingTrace: expect.objectContaining({
+            selectedMode: 'local',
+            routeFamily: 'entry',
+          }),
+        }),
+      );
     });
 
     it('logs RAG retrieval with resultCount 0 for empty results', async () => {
@@ -547,6 +553,45 @@ describe('searchKnowledge', () => {
         services.channelRegistry,
         services,
         auth,
+      );
+    });
+
+    it('returns graph retrieval trace metadata for graph-assisted mode', async () => {
+      const entry = createMockEntry('entry_1');
+      vi.mocked(filterByBoundaryContext).mockReturnValue([entry]);
+      vi.mocked(dispatchByMode).mockResolvedValue({
+        scoredEntries: [{ entry, score: 0.9 }],
+        mergedCandidates: [],
+        trace: {
+          graph: {
+            mergeMode: 'mixed',
+            graphExpansion: 'local-neighborhood',
+            backendKind: 'neo4j',
+            backendMode: 'enabled-fallback',
+            graphCandidateCount: 1,
+          },
+        },
+      });
+
+      const services = createMockServices();
+      const auth = createMockAuth();
+      const query = { seed: 'test query', mode: 'graph-assisted' as const };
+
+      const result = await searchKnowledge(services, auth, query);
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          routingTrace: expect.objectContaining({
+            selectedMode: 'mix',
+            graphRetrieval: {
+              mergeMode: 'mixed',
+              graphExpansion: 'local-neighborhood',
+              backendKind: 'neo4j',
+              backendMode: 'enabled-fallback',
+              graphCandidateCount: 1,
+            },
+          }),
+        }),
       );
     });
   });

@@ -5,7 +5,7 @@
 ## 先建立正确心智模型
 
 - `pg` 在本项目里是**底层数据库连接与事务入口**。`pg.Pool` 先建立起来，Drizzle 再按需包在上面。
-- `graphology` 在本项目里是**运行时图引擎**，不是图数据库。项目会先把图索引文档持久化为普通记录，再在查询、校验、规划时临时组装成图。
+- `graphology` 在本项目里是**运行时图引擎和 memory query backend**，不是图数据库。项目会先把图索引文档持久化为普通记录，再在查询、校验、规划时临时组装成图；这现在是 `GraphQueryBackend` 的一种实现，而不是唯一图查询路径。
 - 如果你只想最快建立直觉，先跑两个测试：
 
 ```bash
@@ -131,13 +131,15 @@ TrapMap 里有三种常见写法。
 
 先记住这一点：TrapMap 并不把 `graphology` 当图数据库使用。
 
+同时也要记住：PostgreSQL `graph_index_documents` 仍是图索引的权威真相源。可选 graph DB 只是在查询期提供另一种 `GraphQueryBackend` 实现；关闭或故障时，系统仍可回退到 `graphology`。
+
 真实的数据形态是 `GraphIndexDocumentRecord`，也就是“某个 trap / skill 对应的一份图索引文档”。主要位置：
 
 - 图文档类型：`packages/server/src/lib/indexing/graph-lite/documents.ts`
 - PG 表结构：`packages/server/src/lib/persistence/schema/retrieval.ts`
 - repository 抽象：`packages/server/src/lib/graph-index/repository.ts`
 
-`graphology` 做的是把这些文档组装成可遍历、可校验、可裁剪的运行时图。
+`graphology` 做的是把这些文档组装成可遍历、可校验、可裁剪的运行时图。在当前架构里，它同时承担默认 / fallback query backend 的职责。
 
 ### 2.2 核心运行时在 `graphology.ts`
 
@@ -213,13 +215,13 @@ TrapMap 里有三种常见写法。
 流程：
 
 1. 从 query 文本抽实体
-2. 读取全部 graph documents
-3. `buildGraphRuntimeSnapshot()`
+2. 通过 `GraphQueryBackend` 做 one-hop 扩张和关系强度计算
+3. `memory` backend 下才会读取 graph documents 并 `buildGraphRuntimeSnapshot()`
 4. `expandSourcesOneHop()`
 5. `calculateSourceRelationStrength()`
 6. 和已有 eligible entries 交集后打分
 
-也就是说，`graphology` 在这里主要负责“基于关系做候选扩张”，不是直接替代全文检索。
+也就是说，`graphology` 在这里主要负责默认 / fallback 的“基于关系做候选扩张”，不是直接替代全文检索，也不是唯一可插拔后端。
 
 #### 链路 B：trap-first 计划编译
 
@@ -233,7 +235,7 @@ TrapMap 里有三种常见写法。
 - 基于 `buildLocalExpansionView()` 做局部扩张
 - 从扩张后的图里识别 blocking trap、mitigating skill、plan edges
 
-这是 `graphology` 在项目里最“图原生”的使用点。
+这是 `GraphQueryBackend` 在项目里最“图原生”的使用点；当 backend 为 `memory` 时，底层实现仍是 `graphology`。
 
 #### 链路 C：索引写入前校验
 
@@ -354,7 +356,7 @@ pnpm test -- --run packages/server/src/lib/persistence/postgres-store.test.ts
 - hop 扩张
 - 图关系打分辅助
 
-图的持久化仍然是普通数据存储问题。
+图的持久化仍然是普通数据存储问题，权威数据仍在 PostgreSQL `graph_index_documents`；可选 graph DB 只是查询后端。
 
 ### 误区 3：图里的所有边都会参加环检测
 

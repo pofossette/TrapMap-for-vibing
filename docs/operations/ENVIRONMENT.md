@@ -18,6 +18,28 @@
 
 > 设置 `TRAPMAP_DATABASE_URL` 后，服务器启动时会自动通过 Drizzle migration runner 运行数据库迁移（位于 `packages/server/drizzle/`）。迁移包含所有核心表、索引和 pgvector 扩展的创建。
 
+### 可选 Graph DB 查询后端
+
+TrapMap 的 graph DB 是可选查询后端。PostgreSQL `graph_index_documents` 仍是图索引的权威真相源；可选 graph DB 仅用于查询期图遍历与扩张，不接管图数据所有权。
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `TRAPMAP_GRAPH_DB_ENABLED` | 启用可选 graph DB 查询后端 | `false` |
+| `TRAPMAP_GRAPH_DB_PROVIDER` | 图查询后端提供者；当前仅支持 `neo4j` | `neo4j` |
+| `TRAPMAP_GRAPH_DB_URI` | Neo4j 连接地址；仅在启用 graph DB 时必填 | 空 |
+| `TRAPMAP_GRAPH_DB_USERNAME` | Neo4j 用户名；仅在启用 graph DB 时必填 | 空 |
+| `TRAPMAP_GRAPH_DB_PASSWORD` | Neo4j 密码；仅在启用 graph DB 时必填 | 空 |
+| `TRAPMAP_GRAPH_DB_DATABASE` | Neo4j database 名称 | `neo4j` |
+| `TRAPMAP_GRAPH_DB_FAIL_OPEN` | graph DB 不可用时是否自动回退到内存 `graphology` backend | `true` |
+| `TRAPMAP_GRAPH_DB_SYNC_ON_WRITE` | 图索引写入时是否同步刷新 graph DB 投影 | `true` |
+
+行为约定：
+
+- `TRAPMAP_GRAPH_DB_ENABLED=false` 时，查询路径保持现状，使用内存 `graphology` backend。
+- `TRAPMAP_GRAPH_DB_ENABLED=true` 且后端健康时，查询路径可切到 `neo4j` backend。
+- `TRAPMAP_GRAPH_DB_ENABLED=true` 且后端异常、同时 `TRAPMAP_GRAPH_DB_FAIL_OPEN=true` 时，请求会回退到内存 `graphology` backend，而不是阻断检索。
+- `TRAPMAP_GRAPH_DB_ENABLED=true` 但缺少 `URI`、`USERNAME`、`PASSWORD` 等必需配置时，服务启动阶段会明确报错。
+
 ### PG Recall 配置 (Phase 6，多路召回已全线落地)
 
 多路召回管线（heuristic + keyword + semantic + graph 四通道）已是 v2 检索的默认唯一路径，无需额外开关启用。以下环境变量控制 keyword 和 semantic 通道的 PostgreSQL 索引增强：

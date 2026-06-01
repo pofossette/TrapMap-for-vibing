@@ -51,6 +51,7 @@ Round 0 的目标不是立即改完所有表，而是冻结后续数据库现代
 - 历史表：承载 revision、版本快照和可追溯历史。
 - 事件表：承载生命周期变更、人工审核、状态流转、发布关系。
 - 派生索引表：承载 embeddings、关键词索引、capsule、profile、manifest、usage rollup，不得成为新的业务真相来源。
+- 图查询存储的额外约束：`graph_index_documents` 是图索引的 canonical derived truth；可选的 Neo4j 仅是 query-time projection，可删除、可回填、不可单独作为事实源。
 
 ### 迁移策略约定
 
@@ -597,7 +598,9 @@ active → review-due → stale → expired
 | Retrieval: Vector | `vectorSimilaritySearch()` (PG) | `PgVectorAdapter` | `knowledge_embeddings` (pgvector HNSW) |
 | Retrieval: Keyword | `createPgKeywordRecall()` (PG) | `PgKeywordAdapter` | `knowledge_keywords` (text[] GIN) |
 | Retrieval: Full-text | — | — | `knowledge_search_documents` (tsvector GIN) |
-| Retrieval: Graph | `GraphIndexRepository` (PG) | `PgGraphIndexRepository` | `graph_index_documents` (JSONB nodes/edges) |
+| Retrieval: Graph | `GraphQueryBackend` → `GraphIndexRepository` (PG truth) / optional Neo4j projection | `PgGraphIndexRepository` + optional Neo4j projector | `graph_index_documents` (JSONB nodes/edges, canonical) + optional Neo4j query store |
+
+> **Phase 3 更新**：Neo4j 图库不是新的持久化真相层。它只接收由 `GraphIndexDocumentRecord` 映射出的 `Source` / `GraphNode` / `REL` 投影，用于 one-hop expansion、relation strength、mitigation lookup 和 bounded local expansion。禁用 Neo4j 时，系统对外行为回到 PG + Graphology 路径；需要重建时，直接从 `graph_index_documents` 全量回填即可。
 | User / Team / Session / AccessKey / Audit 等 | PG repo → 结构化表（users, teams, memberships, sessions, access_keys, audit_events） | PG repo → 结构化表 | PG 模式通过 `repos.*` 直接读写结构化表；JSON 模式走 InMemory；`store_snapshot` 仅作为未迁移辅助域兼容层 |
 
 ### 已删除的兼容层

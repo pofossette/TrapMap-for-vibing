@@ -19,6 +19,7 @@ import { createHash } from 'node:crypto';
 import type { LifecycleState } from '@trapmap/contracts';
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import type {
   SkillArtifactRecord,
   SkillShareerStore,
@@ -672,7 +673,11 @@ export function determineSkillIndexAction(
  * @param args - Event arguments
  */
 export async function runSkillIndexEvent(args: {
-  services: { store: SkillShareerStore; data: StoreData };
+  services: {
+    store: SkillShareerStore;
+    data: StoreData;
+    graphQueryBackend?: GraphQueryBackend;
+  };
   artifactId: string;
   previousState: LifecycleState;
   nextState: LifecycleState;
@@ -720,7 +725,11 @@ export async function runSkillIndexEvent(args: {
 
         // Fan out to adapters
         for (const adapter of adapters) {
-          await adapter.sync({ data: txData, artifact });
+          await adapter.sync({
+            data: txData,
+            artifact,
+            graphQueryBackend: args.services.graphQueryBackend,
+          });
         }
         break;
       }
@@ -728,7 +737,11 @@ export async function runSkillIndexEvent(args: {
       case 'remove': {
         // Remove from all adapters
         for (const adapter of adapters) {
-          await adapter.remove({ data: txData, artifactId });
+          await adapter.remove({
+            data: txData,
+            artifactId,
+            graphQueryBackend: args.services.graphQueryBackend,
+          });
         }
         break;
       }

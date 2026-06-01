@@ -610,6 +610,78 @@ describe('graphAssistedRecall', () => {
     expect(result.scoredEntries).toBeDefined();
     expect(result.mergedCandidates).toBeDefined();
   });
+
+  it('re-intersects graph candidates with eligible entries before merge', async () => {
+    const allowedEntry = createMockEntry('entry_allowed');
+    const forbiddenEntry = createMockEntry('entry_forbidden');
+    const parsed = createParsedQuery({ mode: 'graph-assisted' });
+
+    vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+    vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+      scoredEntries: [],
+      cacheStats: { totalEntries: 0, cacheHits: 0, cacheMisses: 0, hitRate: 0 },
+    });
+    vi.mocked(keywordRecall).mockResolvedValue([]);
+    vi.mocked(graphRecall).mockResolvedValue([
+      {
+        entry: allowedEntry,
+        channel: 'graph',
+        score: 0.6,
+        tokenMatches: [],
+      },
+      {
+        entry: forbiddenEntry,
+        channel: 'graph',
+        score: 0.95,
+        tokenMatches: [],
+      },
+    ]);
+    vi.mocked(mergeCandidates).mockReturnValue([]);
+    vi.mocked(rerankCandidates).mockImplementation((candidates) => candidates);
+    vi.mocked(toScoredEntriesFromReranked).mockImplementation((candidates) =>
+      candidates.map((candidate) => ({ entry: candidate.entry, score: candidate.finalScore })),
+    );
+
+    const result = await graphAssistedRecall('test query', [allowedEntry], parsed);
+
+    expect(result.mergedCandidates?.map((candidate) => candidate.entry.id)).toEqual([
+      'entry_allowed',
+    ]);
+  });
+
+  it('emits local-neighborhood graph trace including fallback backend mode', async () => {
+    const entry = createMockEntry('entry_1');
+    const parsed = createParsedQuery({ mode: 'graph-assisted' });
+    const services = createMockServices({
+      graphQuery: {
+        mode: 'enabled-fallback',
+        backendKind: 'neo4j',
+        failOpen: true,
+        detail: 'neo4j unavailable',
+      } as SkillShareerServices['graphQuery'],
+    });
+
+    vi.mocked(getQueryEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+    vi.mocked(optimizedSemanticRecall).mockResolvedValue({
+      scoredEntries: [],
+      cacheStats: { totalEntries: 0, cacheHits: 0, cacheMisses: 0, hitRate: 0 },
+    });
+    vi.mocked(keywordRecall).mockResolvedValue([]);
+    vi.mocked(graphRecall).mockResolvedValue([]);
+    vi.mocked(mergeCandidates).mockReturnValue([]);
+    vi.mocked(rerankCandidates).mockReturnValue([]);
+    vi.mocked(toScoredEntriesFromReranked).mockReturnValue([]);
+
+    const result = await graphAssistedRecall('test query', [entry], parsed, services);
+
+    expect(result.trace?.graph).toEqual({
+      mergeMode: 'mixed',
+      graphExpansion: 'local-neighborhood',
+      backendKind: 'neo4j',
+      backendMode: 'enabled-fallback',
+      graphCandidateCount: 0,
+    });
+  });
 });
 
 // =============================================================================

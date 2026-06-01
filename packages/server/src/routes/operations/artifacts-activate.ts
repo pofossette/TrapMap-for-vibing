@@ -223,6 +223,7 @@ export const artifactsActivateRoutes: FastifyPluginAsync = async (app) => {
           services: {
             store: app.skillShareer.store,
             data: await app.skillShareer.store.snapshot(),
+            graphQueryBackend: app.skillShareer.graphQueryBackend,
           },
           artifactId,
           previousState,

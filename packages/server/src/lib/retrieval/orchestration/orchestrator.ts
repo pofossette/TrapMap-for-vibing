@@ -62,6 +62,16 @@ import { selectRetrievalStrategy, selectRetrievalStrategyV2, toRoutingTrace } fr
 
 const intentCache = new InMemoryIntentCache();
 
+function buildRoutingTrace(
+  routingDecision: ReturnType<typeof selectRetrievalStrategy>,
+  recallTrace?: { graph?: unknown },
+) {
+  return {
+    ...toRoutingTrace(routingDecision),
+    ...(recallTrace?.graph ? { graphRetrieval: recallTrace.graph } : {}),
+  };
+}
+
 /**
  * Options for timedStep to record input/output sizes.
  */
@@ -151,6 +161,7 @@ export async function searchKnowledge(
 
     if (boundaryFiltered.length === 0) {
       const emptyRouting = selectRetrievalStrategy(parsed.mode, parsed.seed);
+      const routingTrace = buildRoutingTrace(emptyRouting);
       void logRagRetrieval(services.config.ragLog, {
         timestamp: new Date(startMs).toISOString(),
         queryId,
@@ -166,10 +177,13 @@ export async function searchKnowledge(
           maxResults: parsed.maxResults,
           includeSummary: parsed.includeSummary ?? false,
           includeRefinement: parsed.includeRefinement ?? false,
-          routingTrace: toRoutingTrace(emptyRouting),
+          routingTrace,
         },
       });
-      return buildEmptyResponse();
+      return {
+        ...buildEmptyResponse(),
+        routingTrace,
+      };
     }
 
     const routingDecision = await timedStep(
@@ -178,7 +192,7 @@ export async function searchKnowledge(
       steps,
     );
 
-    const { scoredEntries, mergedCandidates } = await timedStep(
+    const { scoredEntries, mergedCandidates, trace } = await timedStep(
       'recall',
       () =>
         dispatchByMode(
@@ -283,11 +297,14 @@ export async function searchKnowledge(
         maxResults: parsed.maxResults,
         includeSummary: parsed.includeSummary ?? false,
         includeRefinement: parsed.includeRefinement ?? false,
-        routingTrace: toRoutingTrace(routingDecision),
+        routingTrace: buildRoutingTrace(routingDecision, trace),
       },
     });
 
-    return result;
+    return {
+      ...result,
+      routingTrace: buildRoutingTrace(routingDecision, trace),
+    };
   } catch (error) {
     const failRouting = selectRetrievalStrategy(query.mode ?? 'semantic', query.seed ?? '');
     void logRagRetrieval(services.config.ragLog, {
@@ -305,7 +322,7 @@ export async function searchKnowledge(
         maxResults: query.maxResults ?? 10,
         includeSummary: query.includeSummary ?? false,
         includeRefinement: query.includeRefinement ?? false,
-        routingTrace: toRoutingTrace(failRouting),
+        routingTrace: buildRoutingTrace(failRouting),
       },
     });
     throw error;
@@ -446,7 +463,7 @@ export async function searchKnowledgeV2(
       const { createCapsuleGraphChannel } = await import(
         '@trapmap/server/lib/retrieval/capsules/channels/graph.js'
       );
-      channelRegistry.register(createCapsuleGraphChannel(services.repos.graphIndex));
+      channelRegistry.register(createCapsuleGraphChannel(services.graphQueryBackend));
     } catch {
       // Graph channel registration failure should not block retrieval.
     }
@@ -481,6 +498,7 @@ export async function searchKnowledgeV2(
     });
 
     if (rankedCandidates.length === 0) {
+      const routingTrace = buildRoutingTrace(routingDecision);
       void logRagRetrieval(services.config.ragLog, {
         timestamp: new Date(startMs).toISOString(),
         queryId,
@@ -495,10 +513,13 @@ export async function searchKnowledgeV2(
           maxResults: parsed.maxResults,
           includeSummary: parsed.includeSummary ?? false,
           includeRefinement: false,
-          routingTrace: toRoutingTrace(routingDecision),
+          routingTrace,
         },
       });
-      return buildEmptyV2Response();
+      return {
+        ...buildEmptyV2Response(),
+        routingTrace,
+      };
     }
 
     const capsuleRecords = await timedStep(
@@ -531,6 +552,7 @@ export async function searchKnowledgeV2(
         : null;
 
     const result = buildV2RetrievalResponse(capsules, profileHints, v2Summary, activationHints);
+    const routingTrace = buildRoutingTrace(routingDecision);
 
     void logRagRetrieval(services.config.ragLog, {
       timestamp: new Date(startMs).toISOString(),
@@ -546,7 +568,7 @@ export async function searchKnowledgeV2(
         maxResults: parsed.maxResults,
         includeSummary: parsed.includeSummary ?? false,
         includeRefinement: false,
-        routingTrace: toRoutingTrace(routingDecision),
+        routingTrace,
         mergeStats: recallResult.mergeStats,
         channelsFailed: recallResult.channelsFailed,
         parseMethod: intent.parseMethod,
@@ -554,9 +576,13 @@ export async function searchKnowledgeV2(
       },
     } as RagLogEntry);
 
-    return result;
+    return {
+      ...result,
+      routingTrace,
+    };
   } catch (error) {
     const failRouting = selectRetrievalStrategyV2(query.seed ?? '');
+    const routingTrace = buildRoutingTrace(failRouting);
     void logRagRetrieval(services.config.ragLog, {
       timestamp: new Date(startMs).toISOString(),
       queryId,
@@ -571,7 +597,7 @@ export async function searchKnowledgeV2(
         maxResults: query.maxResults ?? 10,
         includeSummary: query.includeSummary ?? false,
         includeRefinement: false,
-        routingTrace: toRoutingTrace(failRouting),
+        routingTrace,
       },
     });
     throw error;

@@ -388,6 +388,55 @@ Graph 通道工作机制：
 - trap doc filtering: 仅使用 `sourceType: 'skill'` 的 graph 文档，trap 文档不参与 capsule 召回
 - channel trace: 确认 `channelsPlanned` / `channelsUsed` 中 `capsule-graph` 通道正确记录
 
+### Phase 4 Graph DB 验证矩阵
+
+Phase 4 的重点不是让 Neo4j 改变召回哲学，而是验证同一 mixed retrieval 语义在不同 backend 模式下保持一致：
+
+- vector-only baseline: `v2-graph-assisted-vector-only-smoke`
+  - fixture: `smoke-graph-assisted-v2-no-graph`
+  - 预期: 只返回 direct vitest capsule，用于对比“没有结构化补召回”时的 baseline。
+- graph DB disabled baseline: `v2-graph-assisted-disabled-backend-smoke`
+  - 环境: 不设置 `TRAPMAP_GRAPH_DB_ENABLED`
+  - 预期: 结果与 graph hit case 一致，但 `routingTrace.graphRetrieval.backendMode` 应为 `disabled`。
+- graph-enabled local hit: `v2-graph-assisted-co-occurs-smoke`
+  - 环境: graph docs 存在；可用 backend 为 `memory` 或 healthy `neo4j`
+  - 预期: `vitest` query 通过 local-neighborhood expansion 补召回 `jest` capsule。
+- governance regression: `v2-graph-assisted-governance-smoke`
+  - 预期: mixed recall 的最终结果仍然只来自治理允许集合。
+- fail-open fallback: `v2-graph-assisted-fail-open-smoke`
+  - 环境: `TRAPMAP_GRAPH_DB_ENABLED=true` 且 Neo4j 不可达，同时 `TRAPMAP_GRAPH_DB_FAIL_OPEN=true`
+  - 预期: 结果与 local graph hit 一致，`routingTrace.graphRetrieval.backendMode` 应为 `enabled-fallback`。
+
+建议最小执行顺序：
+
+```bash
+# 1. 默认 memory / disabled baseline
+pnpm eval:smoke
+
+# 2. healthy neo4j enabled
+TRAPMAP_GRAPH_DB_ENABLED=true \
+TRAPMAP_GRAPH_DB_PROVIDER=neo4j \
+TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:7687 \
+TRAPMAP_GRAPH_DB_USERNAME=neo4j \
+TRAPMAP_GRAPH_DB_PASSWORD=neo4j \
+pnpm eval:smoke
+
+# 3. fail-open fallback
+TRAPMAP_GRAPH_DB_ENABLED=true \
+TRAPMAP_GRAPH_DB_PROVIDER=neo4j \
+TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:65535 \
+TRAPMAP_GRAPH_DB_USERNAME=neo4j \
+TRAPMAP_GRAPH_DB_PASSWORD=neo4j \
+TRAPMAP_GRAPH_DB_FAIL_OPEN=true \
+pnpm eval:smoke
+```
+
+检查点：
+
+- `v2-graph-assisted-vector-only-smoke` 与 `v2-graph-assisted-co-occurs-smoke` 的差异，证明 mixed recall 确实带来结构化补召回。
+- `v2-graph-assisted-disabled-backend-smoke` 与 `v2-graph-assisted-fail-open-smoke` 的 `routingTrace.graphRetrieval.backendMode`，证明 disabled / fallback 路径都可观测。
+- `v2-graph-assisted-governance-smoke` 持续通过，证明 mixed recall 仍先与 governance-eligible 集合求交。
+
 **Phase 6 状态**: 索引同步与运维补齐已完成。
 
 索引同步能力：

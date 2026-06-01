@@ -11,6 +11,7 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { graphIndexAdapter } from './adapters/graph.js';
@@ -123,7 +124,12 @@ function updateAdapterState(
  * @returns Entry sync result
  */
 export async function syncKnowledgeIndex(
-  services: { store: SkillShareerStore; data: StoreData; ai?: { chat: ChatProvider } },
+  services: {
+    store: SkillShareerStore;
+    data: StoreData;
+    ai?: { chat: ChatProvider };
+    graphQueryBackend?: GraphQueryBackend;
+  },
   entryId: string,
   registry: AdapterRegistry,
 ): Promise<void> {
@@ -144,10 +150,19 @@ export async function syncKnowledgeIndex(
       // Remove from all adapters
       await Promise.all(
         registry.all().map((adapter) =>
-          adapter.remove({
-            entryId: entry.id,
-            revision: entry.history?.length ?? 0, // Defensive: default to 0 if history is undefined
-          }),
+          adapter === graphIndexAdapter
+            ? graphIndexAdapter.remove(
+                {
+                  entryId: entry.id,
+                  revision: entry.history?.length ?? 0,
+                },
+                undefined,
+                services.graphQueryBackend,
+              )
+            : adapter.remove({
+                entryId: entry.id,
+                revision: entry.history?.length ?? 0, // Defensive: default to 0 if history is undefined
+              }),
         ),
       );
       entry.indexState = null;
@@ -186,7 +201,12 @@ export async function syncKnowledgeIndex(
     // Perform sync — graph adapter gets ChatProvider for LLM extraction
     const result =
       adapter === graphIndexAdapter
-        ? await graphIndexAdapter.sync(normalizedDocument, undefined, ai?.chat)
+        ? await graphIndexAdapter.sync(
+            normalizedDocument,
+            undefined,
+            ai?.chat,
+            services.graphQueryBackend,
+          )
         : await adapter.sync(normalizedDocument);
 
     // Update state — use current state or initialize if missing

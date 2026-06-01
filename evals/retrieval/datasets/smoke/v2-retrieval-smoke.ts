@@ -388,6 +388,74 @@ export const v2GraphAssistedCoOccursSmoke = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 
 /**
+ * Case: Same query as graph-assisted smoke, but against a fixture with no graph docs.
+ * Provides the vector-only / no-structural-recall baseline for Phase 4 comparisons.
+ */
+export const v2GraphAssistedVectorOnlySmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-graph-assisted-vector-only-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'vitest configuration',
+    maxResults: 10,
+  },
+  scenarioId: 'smoke-graph-assisted-v2-no-graph',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_smoke_graph_assisted_vitest'],
+      idealOrder: ['capsule_smoke_graph_assisted_vitest'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: ['artifact_smoke_graph_assisted_a'],
+      expectedCapsuleCount: 1,
+    },
+  },
+  tags: ['graph-assisted', 'v2', 'smoke', 'baseline', 'vector-only'],
+}) as RetrievalEvalCase;
+
+/**
+ * Case: Graph-assisted retrieval with graph DB disabled.
+ * Expected hits stay identical to the memory-backed local graph expansion path;
+ * the runtime distinction is verified through routingTrace metadata.
+ */
+export const v2GraphAssistedDisabledBackendSmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-graph-assisted-disabled-backend-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'vitest configuration',
+    maxResults: 10,
+  },
+  scenarioId: 'smoke-graph-assisted-v2',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_smoke_graph_assisted_vitest', 'capsule_smoke_graph_assisted_jest'],
+      idealOrder: ['capsule_smoke_graph_assisted_vitest', 'capsule_smoke_graph_assisted_jest'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [
+        'artifact_smoke_graph_assisted_a',
+        'artifact_smoke_graph_assisted_b',
+      ],
+      expectedCapsuleCount: 2,
+    },
+  },
+  tags: ['graph-assisted', 'v2', 'smoke', 'graph-db-disabled', 'trace-check'],
+}) as RetrievalEvalCase;
+
+/**
  * Case: Graph-assisted retrieval - governance check with graph expansion.
  * Ensures graph-derived candidates respect governance boundaries.
  */
@@ -420,6 +488,42 @@ export const v2GraphAssistedGovernanceSmoke = retrievalEvalCaseSchema.parse({
     },
   },
   tags: ['graph-assisted', 'v2', 'smoke', 'capsule', 'governance', 'multi-recall'],
+}) as RetrievalEvalCase;
+
+/**
+ * Case: Graph-assisted retrieval with graph DB enabled but unavailable.
+ * With fail-open enabled, retrieval should fall back to the memory backend
+ * and preserve the same governed result set.
+ */
+export const v2GraphAssistedFailOpenSmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v2-graph-assisted-fail-open-smoke',
+  tier: 'smoke',
+  endpoint: '/v2/retrieval/search',
+  request: {
+    seed: 'vitest configuration',
+    maxResults: 10,
+  },
+  scenarioId: 'smoke-graph-assisted-v2',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['capsule_smoke_graph_assisted_vitest', 'capsule_smoke_graph_assisted_jest'],
+      idealOrder: ['capsule_smoke_graph_assisted_vitest', 'capsule_smoke_graph_assisted_jest'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedProfileHintArtifactIds: [
+        'artifact_smoke_graph_assisted_a',
+        'artifact_smoke_graph_assisted_b',
+      ],
+      expectedCapsuleCount: 2,
+    },
+  },
+  tags: ['graph-assisted', 'v2', 'smoke', 'fail-open', 'fallback-memory', 'trace-check'],
 }) as RetrievalEvalCase;
 
 // =============================================================================
@@ -477,7 +581,10 @@ export const v2RetrievalSmokeCases: RetrievalEvalCase[] = [
   v2KeywordRegexSmoke,
   v2SemanticDominantSmoke,
   v2SemanticParaphraseSmoke,
+  v2GraphAssistedVectorOnlySmoke,
+  v2GraphAssistedDisabledBackendSmoke,
   v2GraphAssistedCoOccursSmoke,
   v2GraphAssistedGovernanceSmoke,
+  v2GraphAssistedFailOpenSmoke,
   v2LabelFilterSmoke,
 ];

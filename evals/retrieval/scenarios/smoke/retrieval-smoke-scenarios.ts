@@ -732,6 +732,73 @@ export const smokeGraphAssistedV2Scenario = retrievalEvalScenarioSchema.parse({
   },
 }) as RetrievalEvalScenario;
 
+/**
+ * Scenario: Same v2 capsule pair as graph-assisted smoke, but without graph documents.
+ * Serves as the vector/semantic baseline so mixed recall can be compared against
+ * the graph-linked variant without changing the artifact content.
+ */
+export const smokeGraphAssistedV2NoGraphScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'smoke-graph-assisted-v2-no-graph',
+  description:
+    'Skill artifacts identical to the graph-assisted smoke case but with no graph documents, providing a vector-only baseline.',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_smoke',
+    securityLevel: 5,
+    permissions: ['knowledge:search'],
+  },
+  fixtures: {
+    knowledgeEntries: [],
+    skillArtifacts: [
+      {
+        id: 'artifact_smoke_graph_assisted_a',
+        teamId: 'team_smoke',
+        scope: 'project',
+        labels: ['vitest', 'testing'],
+        title: 'Vitest Testing Skills',
+        slug: 'vitest-testing-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_smoke_graph_assisted_vitest',
+            content: 'Configure vitest for component testing with proper coverage',
+            situation: 'Setting up testing in a Vite project',
+            problem: 'vitest configuration errors prevent tests from running',
+            goal: 'Correctly configure vitest for reliable test execution',
+            labels: ['vitest', 'testing', 'coverage'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+      {
+        id: 'artifact_smoke_graph_assisted_b',
+        teamId: 'team_smoke',
+        scope: 'project',
+        labels: ['jest', 'testing'],
+        title: 'Jest Testing Skills',
+        slug: 'jest-testing-skills',
+        requiredLevel: 3,
+        lifecycleState: 'approved',
+        capsules: [
+          {
+            capsuleId: 'capsule_smoke_graph_assisted_jest',
+            content: 'Use jest for unit testing with snapshot coverage',
+            situation: 'Writing unit tests for a React application',
+            problem: 'jest snapshot tests are flaky and need stabilization',
+            goal: 'Create reliable jest snapshots for component testing',
+            labels: ['jest', 'snapshot', 'react'],
+            scope: 'project',
+            requiredLevel: 3,
+          },
+        ],
+      },
+    ],
+    graphIndexDocuments: [],
+  },
+}) as RetrievalEvalScenario;
+
 // =============================================================================
 // Phase 7 Smoke Scenario: Label Filter
 // =============================================================================
@@ -822,6 +889,7 @@ export const smokeScenariosMap: Record<string, RetrievalEvalScenario> = {
   'smoke-graph-plan-fallback-v2': smokeGraphPlanFallbackV2Scenario,
   'smoke-graph-plan-fallback-v1': smokeGraphPlanFallbackV1Scenario,
   'smoke-graph-assisted-v2': smokeGraphAssistedV2Scenario,
+  'smoke-graph-assisted-v2-no-graph': smokeGraphAssistedV2NoGraphScenario,
   'smoke-label-filter': smokeLabelFilterScenario,
 };
 

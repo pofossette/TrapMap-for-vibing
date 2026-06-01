@@ -2,6 +2,7 @@ import path from 'node:path';
 import { z } from 'zod';
 
 import { loadAiProviderConfig } from './lib/ai/index.js';
+import { GraphDbConfigSchema, loadGraphDbConfig } from './lib/graph-query/config.js';
 import { loadRagLogConfig } from './lib/rag-log.js';
 import { loadUserOpsLogConfig } from './lib/user-ops-log.js';
 
@@ -67,6 +68,7 @@ export const ServerConfigSchema = z.object({
   sessionTransport: SessionTransportSchema,
   userOpsLog: UserOpsLogSchema,
   ragLog: RagLogSchema,
+  graphDb: GraphDbConfigSchema,
   ai: z.object({
     provider: z.enum(['openai', 'openai-compatible', 'ollama', 'google-genai', 'fallback']),
     baseUrl: z.string(),
@@ -96,6 +98,7 @@ export function loadConfig(): ServerConfig {
   // Load sub-configurations (they have their own validation)
   const userOpsLog = loadUserOpsLogConfig();
   const ragLog = loadRagLogConfig();
+  const graphDb = loadGraphDbConfig();
   const ai = loadAiProviderConfig();
 
   // Parse CORS origins from comma-separated env var
@@ -123,6 +126,7 @@ export function loadConfig(): ServerConfig {
     sessionTransport: process.env.SESSION_TRANSPORT,
     userOpsLog,
     ragLog,
+    graphDb,
     ai,
   };
 

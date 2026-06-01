@@ -13,6 +13,7 @@ import type { RetrievalQuery } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type { MergedCandidate, ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import type { RecallExecutionResult } from './recall-coordinator.js';
 import type { ChannelRegistry } from './channel-registry.js';
 
 /**
@@ -27,7 +28,7 @@ export interface RetrievalStrategy {
     eligibleEntries: KnowledgeRecord[],
     services?: SkillShareerServices,
     auth?: ResolvedAuthContext,
-  ): Promise<{ scoredEntries: ScoredEntry[]; mergedCandidates?: MergedCandidate[] }>;
+  ): Promise<RecallExecutionResult>;
 }
 
 /**

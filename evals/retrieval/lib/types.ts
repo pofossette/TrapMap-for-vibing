@@ -130,6 +130,14 @@ export interface NormalizedResult {
     routingReason: string;
     fallbackApplied: boolean;
     channelsUsed: string[];
+    graphRetrieval?: {
+      mergeMode: 'mixed';
+      graphExpansion: 'local-neighborhood';
+      backendKind: 'memory' | 'neo4j';
+      backendMode: 'disabled' | 'enabled-primary' | 'enabled-fallback';
+      graphCandidateCount: number;
+      backendDetail?: string;
+    };
   };
   /** Graph-plan structure (v3 only, undefined for v1/v2) */
   graphPlanStructure?: GraphPlanStructure;

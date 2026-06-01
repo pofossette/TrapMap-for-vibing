@@ -11,6 +11,7 @@
 
 import type { LifecycleState } from '@trapmap/contracts';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import { removeGraphIndexDocumentsForSource } from './graph-lite/store.js';
 import { syncKnowledgeIndex } from './pipeline.js';
@@ -54,7 +55,12 @@ export function determineKnowledgeIndexAction(
  * @param args.registry - Adapter registry with all registered adapters
  */
 export async function runKnowledgeIndexEvent(args: {
-  services: { store: SkillShareerStore; data: StoreData; ai?: { chat: ChatProvider } };
+  services: {
+    store: SkillShareerStore;
+    data: StoreData;
+    ai?: { chat: ChatProvider };
+    graphQueryBackend?: GraphQueryBackend;
+  };
   entryId: string;
   previousState: LifecycleState;
   nextState: LifecycleState;
@@ -81,8 +87,12 @@ export async function runKnowledgeIndexEvent(args: {
             store: typeof store;
             data: typeof data;
             ai?: { chat: ChatProvider };
+            graphQueryBackend?: GraphQueryBackend;
           } = { store, data };
           if (args.services.ai) syncServices.ai = args.services.ai;
+          if (args.services.graphQueryBackend) {
+            syncServices.graphQueryBackend = args.services.graphQueryBackend;
+          }
           await syncKnowledgeIndex(syncServices, entryId, registry);
         }
         break;
@@ -92,10 +102,24 @@ export async function runKnowledgeIndexEvent(args: {
         if (entry.indexState) {
           await Promise.all(
             registry.all().map((adapter) =>
-              adapter.remove({
-                entryId: entry.id,
-                revision: entry.history.length,
-              }),
+              'kind' in adapter && adapter.kind === 'graph'
+                ? args.services.graphQueryBackend
+                  ? adapter.remove(
+                      {
+                        entryId: entry.id,
+                        revision: entry.history.length,
+                      },
+                      undefined,
+                      args.services.graphQueryBackend,
+                    )
+                  : adapter.remove({
+                      entryId: entry.id,
+                      revision: entry.history.length,
+                    })
+                : adapter.remove({
+                    entryId: entry.id,
+                    revision: entry.history.length,
+                  }),
             ),
           );
           entry.indexState = null;

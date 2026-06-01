@@ -18,15 +18,30 @@ export async function bootstrapLifecycle(app: FastifyInstance): Promise<void> {
   const { eventBus, store, adapterRegistry } = app.skillShareer;
 
   // Indexing subscriber: syncs knowledge indexes on state transitions
-  eventBus.onDomainEvent('knowledge.approved', createIndexingSubscriber(store, adapterRegistry));
-  eventBus.onDomainEvent('knowledge.deactivated', createIndexingSubscriber(store, adapterRegistry));
+  eventBus.onDomainEvent(
+    'knowledge.approved',
+    createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
+  );
+  eventBus.onDomainEvent(
+    'knowledge.deactivated',
+    createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
+  );
   eventBus.onDomainEvent(
     'knowledge.agent-reviewed',
-    createIndexingSubscriber(store, adapterRegistry),
+    createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
   );
-  eventBus.onDomainEvent('knowledge.rejected', createIndexingSubscriber(store, adapterRegistry));
-  eventBus.onDomainEvent('knowledge.resubmitted', createIndexingSubscriber(store, adapterRegistry));
-  eventBus.onDomainEvent('knowledge.re-review', createIndexingSubscriber(store, adapterRegistry));
+  eventBus.onDomainEvent(
+    'knowledge.rejected',
+    createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
+  );
+  eventBus.onDomainEvent(
+    'knowledge.resubmitted',
+    createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
+  );
+  eventBus.onDomainEvent(
+    'knowledge.re-review',
+    createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
+  );
 
   // Audit subscriber: logs lifecycle transitions
   eventBus.onDomainEvent('knowledge.approved', createAuditSubscriber(store, app.log));
@@ -54,12 +69,30 @@ export async function bootstrapLifecycle(app: FastifyInstance): Promise<void> {
     const outbox = createDomainEventOutbox({ pool });
 
     const handlerMap = new Map<string, DomainEventHandler>([
-      ['knowledge.approved', createIndexingSubscriber(store, adapterRegistry)],
-      ['knowledge.deactivated', createIndexingSubscriber(store, adapterRegistry)],
-      ['knowledge.agent-reviewed', createIndexingSubscriber(store, adapterRegistry)],
-      ['knowledge.rejected', createIndexingSubscriber(store, adapterRegistry)],
-      ['knowledge.resubmitted', createIndexingSubscriber(store, adapterRegistry)],
-      ['knowledge.re-review', createIndexingSubscriber(store, adapterRegistry)],
+      [
+        'knowledge.approved',
+        createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
+      ],
+      [
+        'knowledge.deactivated',
+        createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
+      ],
+      [
+        'knowledge.agent-reviewed',
+        createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
+      ],
+      [
+        'knowledge.rejected',
+        createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
+      ],
+      [
+        'knowledge.resubmitted',
+        createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
+      ],
+      [
+        'knowledge.re-review',
+        createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
+      ],
       ['knowledge.approved+audit', createAuditSubscriber(store, app.log)],
       ['knowledge.deactivated+audit', createAuditSubscriber(store, app.log)],
       ['knowledge.rejected+audit', createAuditSubscriber(store, app.log)],
