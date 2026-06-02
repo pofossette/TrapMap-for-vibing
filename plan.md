@@ -1,458 +1,416 @@
-# Optional Graph Database for TrapMap Implementation Plan
+# Duplicate Validation Layering Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Keep `graph_index_documents` as the durable truth and add an environment-variable-controlled optional graph database query backend that removes full-table graph rebuilds from hot query paths.
+**Goal:** Replace full-scan duplicate validation with a layered pipeline: exact-match fingerprinting first, indexed PostgreSQL recall second, and narrow LLM/manual review only on the final candidate set.
 
-> Historical note: the "Current-State Analysis" section below describes the pre-implementation baseline captured when this plan was written. Later phases in this same file record the implemented replacement path.
+**Architecture:** Keep `packages/server/src/lib/candidates/processor.ts` as the orchestration entry, but stop treating duplicate detection as one monolithic pass. The new path adds normalized candidate text builders, exact fingerprint lookup for traps and skills, trap+skill PostgreSQL recall, and queue-level deduplication so repeated submissions do not spawn duplicate processing work.
 
-**Architecture:** TrapMap already persists graph documents in PostgreSQL, but retrieval still calls `graphIndex.listAll()` and rebuilds a `graphology` runtime graph per query. The new design keeps PostgreSQL graph documents as the canonical derived index, adds a projection/sync layer into Neo4j, and routes query-time graph expansion through either the existing in-memory backend or the new Neo4j backend depending on env config. The query semantics should also borrow LightRAG’s split between local graph neighborhood lookup and mixed graph+vector retrieval rather than making graph traversal the only recall path.
-
-**Tech Stack:** TypeScript, Fastify, Drizzle/pg, `graphology`, optional `neo4j-driver`, Vitest, retrieval eval runners.
+**Tech Stack:** TypeScript, Fastify, Drizzle, PostgreSQL, pgvector, Vitest, eval runners under `evals/graph-extraction/`.
 
 ---
 
-## Current-State Analysis
+## Archive Note
 
-### What the code does today
+- [x] Previous root plan archived to `docs/archived/archived-plans/plan-2026-06-02-optional-graph-database-root-archived.md`
+- [x] Active tracking file remains `plan.md`
 
-- `packages/server/src/lib/graph-index/repository.ts`
-  - `PgGraphIndexRepository.listAll()` loads every row from `graph_index_documents`.
-  - `nodes` and `edges` are still JSONB arrays inside each document row.
-- `packages/server/src/lib/retrieval/recall/graph-assisted.ts`
-  - every recall request does `graphIndexRepo.listAll()`
-  - then `buildGraphRuntimeSnapshot(graphDocuments)`
-  - then `expandSourcesOneHop()` and `calculateSourceRelationStrength()`
-- `packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts`
-  - every plan compile does `services.repos.graphIndex.listAll()`
-  - then `buildGraphRuntimeSnapshot(graphDocs)`
-  - then `buildLocalExpansionView({ documents, seedNodeIds, maxDepth })`
-- `packages/server/src/lib/indexing/graph-lite/graphology.ts`
-  - `buildGraphFromDocuments()` iterates all docs, all nodes, and all edges into a fresh in-memory directed multigraph.
-  - `buildLocalExpansionView()` rebuilds the full graph again before extracting the reachable subgraph.
+## Execution Index
 
-### Why this is the bottleneck
-
-- PostgreSQL currently stores graph documents, not queryable graph adjacency.
-- Query APIs expose only `listAll()` semantics instead of neighborhood/path expansion semantics.
-- Hot-path graph queries pay three costs repeatedly:
-  - full-table read from `graph_index_documents`
-  - JSONB decode of all nodes/edges
-  - full `graphology` rebuild before a bounded traversal
-- This design is acceptable for low-volume or test fixtures, but it scales poorly as graph docs grow.
-
-### Constraints the new design must preserve
-
-- PostgreSQL `graph_index_documents` remains the source of truth and fallback path.
-- Governance filtering must stay enforced before results leave the retrieval layer.
-- Existing GraphRAG-lite document builders and cycle validation remain valid.
-- JSON/file mode and test fixtures must still work when the graph database is disabled.
-
-## Database Choice
-
-### Chosen database: Neo4j
-
-- Reason 1: the official Neo4j JavaScript driver is current and directly supports Node/TypeScript integration over Bolt.
-- Reason 2: Neo4j gives first-class graph traversal, pattern matching, and indexing through Cypher instead of forcing TrapMap to deserialize JSONB docs and rebuild adjacency in application memory.
-- Reason 3: Neo4j has an official Docker deployment path, which fits TrapMap’s existing local-dev posture.
-- Reason 4: LightRAG already exposes `Neo4JStorage` as a supported graph backend and describes `mix` mode as combining knowledge graph and vector retrieval. That matches TrapMap’s need better than a graph-only rewrite.
-
-### Why not Apache AGE first
-
-- AGE keeps everything inside PostgreSQL, which is attractive operationally, but it does not cleanly separate TrapMap’s durable graph-document storage from its query graph engine.
-- It also keeps this work coupled to PG-specific extension management instead of giving a clearly optional backend.
-- For this task, the larger win is a dedicated traversal engine behind a feature flag, not “more graph features inside the same database.”
-
-### Why not Memgraph first
-
-- Memgraph is viable, but Neo4j has a more established Node.js integration surface and a clearer reference path for graph-backed RAG patterns in the current ecosystem.
-- Choosing Neo4j also makes LightRAG-inspired operator patterns easier to compare directly.
-
-## External Reference Notes
-
-- LightRAG core documents `graph_storage` choices including `NetworkXStorage`, `Neo4JStorage`, `PGGraphStorage`, and `AGEStorage`.
-- LightRAG query modes include:
-  - `local`: context-dependent neighborhood retrieval
-  - `global`: broader graph knowledge retrieval
-  - `hybrid`: combines local and global
-  - `mix`: combines knowledge graph and vector retrieval
-- For TrapMap, the useful reference is architectural, not literal:
-  - keep graph storage pluggable
-  - keep graph retrieval modes distinct from vector/text retrieval
-  - prefer mixed retrieval over “always traverse the whole graph”
-
-## Proposed Runtime Contract
-
-### Environment variables
-
-- `TRAPMAP_GRAPH_DB_ENABLED=false`
-  - master switch; when `false`, TrapMap uses the current in-memory `graphology` path
-- `TRAPMAP_GRAPH_DB_PROVIDER=neo4j`
-  - reserved enum for future backends; only honored when enabled
-- `TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:7687`
-- `TRAPMAP_GRAPH_DB_USERNAME=neo4j`
-- `TRAPMAP_GRAPH_DB_PASSWORD=...`
-- `TRAPMAP_GRAPH_DB_DATABASE=neo4j`
-- `TRAPMAP_GRAPH_DB_FAIL_OPEN=true`
-  - when Neo4j is unavailable, log and fall back to in-memory traversal instead of failing the request
-- `TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true`
-  - controls whether graph document writes also sync the Neo4j projection immediately
-
-### Behavioral contract
-
-- disabled:
-  - query path uses existing `graphology` runtime assembly
-- enabled + healthy:
-  - query path uses Neo4j neighborhood/path queries
-- enabled + unhealthy + `FAIL_OPEN=true`:
-  - query path falls back to in-memory graphology and emits structured diagnostics
-- enabled + unhealthy + `FAIL_OPEN=false`:
-  - startup or request path fails fast, depending on component
+- [x] Phase 0: Freeze baseline and target architecture
+- [ ] Phase 1: Add exact fingerprint duplicate lane
+- [ ] Phase 2: Normalize duplicate inputs and fix skill candidate text
+- [ ] Phase 3: Extend PostgreSQL recall to cover both traps and skills
+- [ ] Phase 4: Add queue dedupe and duplicate-path observability
+- [ ] Phase 5: Align docs, tests, and eval thresholds for rollout
 
 ## File Structure
 
-### New files
+### Core implementation files
 
-- `packages/server/src/lib/graph-query/backend.ts`
-  - backend interface for query-time graph operations
-- `packages/server/src/lib/graph-query/memory-backend.ts`
-  - wraps current `graphology`-based logic behind the new interface
-- `packages/server/src/lib/graph-query/neo4j-backend.ts`
-  - Neo4j implementation for expansion, relation scoring, mitigation lookup, and subgraph fetch
-- `packages/server/src/lib/graph-query/projector.ts`
-  - converts `GraphIndexDocumentRecord` to graph-db node/relationship upserts
-- `packages/server/src/lib/graph-query/config.ts`
-  - env parsing and validation specific to graph DB
-- `packages/server/src/lib/graph-query/health.ts`
-  - healthcheck and fallback helpers
-- `packages/server/src/lib/graph-query/neo4j-backend.test.ts`
-- `packages/server/src/lib/graph-query/projector.test.ts`
+- `packages/server/src/lib/candidates/fingerprint.ts`
+  - canonical normalization, fingerprinting, and shared duplicate input builders
+- `packages/server/src/lib/candidates/types.ts`
+  - duplicate input/output contracts, including normalized candidate text and exact-match metadata
+- `packages/server/src/lib/candidates/processor.ts`
+  - candidate orchestration, queue submission, detector selection
+- `packages/server/src/lib/candidates/detector.ts`
+  - in-memory fallback detector for JSON/file mode
+- `packages/server/src/lib/candidates/pg-detector.ts`
+  - PostgreSQL detector with exact lookup + trap/skill recall + top-K narrowing
+- `packages/server/src/lib/queue/task-queue.ts`
+  - task enqueue/dequeue semantics and dedupe guard use
 
-### Modified files
+### Persistence and index files
 
-- `packages/server/src/config.ts`
-  - add env parsing for graph DB options
-- `packages/server/src/config.test.ts`
-- `packages/server/src/lib/repos/index.ts`
-  - construct graph query backend alongside existing repos
-- `packages/server/src/lib/context.ts`
-  - expose the chosen graph query backend to retrieval code
-- `packages/server/src/lib/retrieval/recall/graph-assisted.ts`
-  - replace direct `listAll()` + runtime rebuild with backend calls
-- `packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts`
-  - replace direct `listAll()` + local expansion rebuild with backend calls
-- `packages/server/src/lib/indexing/adapters/graph.ts`
-- `packages/server/src/lib/indexing/adapters/artifact-graph.ts`
-- `packages/server/src/lib/indexing/reconcile.ts`
-  - sync/remove/backfill projection in Neo4j
-- `packages/server/src/bootstrap/bootstrap-repositories.ts`
-  - wire health/logging and channel registration
-- `docs/operations/ENVIRONMENT.md`
+- `packages/server/src/lib/persistence/schema/knowledge.ts`
+  - trap-side durable exact-match fields or lookup support
+- `packages/server/src/lib/persistence/schema/artifacts.ts`
+  - skill-side profile/capsule fields already used for exact and semantic matching
+- `packages/server/drizzle/`
+  - migration(s) for exact-match lookup columns or indexes if trap-side persistence changes
+
+### Validation and truth-source files
+
+- `packages/server/src/lib/candidates/*.test.ts`
+  - unit and repository tests for duplicate pipeline behavior
+- `packages/server/src/__tests__/candidate-pipeline.test.ts`
+  - end-to-end candidate processing expectations
+- `evals/graph-extraction/dedup-eval.ts`
+  - duplicate eval runner
+- `evals/graph-extraction/dedup-fixtures-real.ts`
+  - real duplicate fixtures and thresholds
+- `docs/architecture/components/INGESTION.md`
+  - candidate ingestion and duplicate detection behavior
 - `docs/operations/TESTING.md`
-- `docs/architecture/components/RETRIEVAL.md`
-- `docs/architecture/PRECOMPUTATION.md`
-- `docs/guides/PG_AND_GRAPHOLOGY.md`
-- `docs/reference/DATA_MODEL.md`
-- `docs/reference/DATABASE_SCHEMA.md`
-  - only if we add PG metadata tables for graph sync state or checkpoints
+  - duplicate-path test and eval commands
+- `docs/README.md`
+  - active plan/doc index if duplicate strategy docs are added or promoted
 
-## Example Structure and Code
+## Example Target Shapes
 
-### Example backend interface
+### Shared normalized duplicate input
 
 ```ts
-export interface GraphQueryBackend {
-  kind: 'memory' | 'neo4j';
-  isEnabled(): boolean;
-  healthcheck(): Promise<{ ok: boolean; mode: 'primary' | 'fallback'; detail?: string }>;
-  upsertDocument(document: GraphIndexDocumentRecord): Promise<void>;
-  removeSource(sourceType: 'trap' | 'skill', sourceId: string): Promise<void>;
-  expandSourcesOneHop(params: {
-    queryLabels: Set<string>;
-    eligibleSourceIds?: Set<string>;
-  }): Promise<Set<string>>;
-  calculateSourceRelationStrength(params: {
-    sourceId: string;
-    queryLabels: Set<string>;
-  }): Promise<number>;
-  buildLocalExpansionView(params: {
-    seedNodeIds: string[];
-    maxDepth: number;
-    auth: { teamId: string | null; securityLevel: number };
-  }): Promise<GraphExpansionView>;
-  findMitigatingSkills(trapNodeIds: string[]): Promise<string[]>;
+export interface NormalizedDuplicateInput {
+  sourceType: 'trap' | 'skill';
+  fingerprint: string;
+  titleText: string;
+  bodyText: string;
+  keywordTerms: string[];
+  tokenTerms: string[];
+  exactLookupKey: string;
 }
 ```
 
-### Example config shape
+### Exact-first detector contract
 
 ```ts
-const GraphDbConfigSchema = z.object({
-  enabled: z.boolean().default(false),
-  provider: z.enum(['neo4j']).default('neo4j'),
-  uri: z.string().url().nullable(),
-  username: z.string().min(1).nullable(),
-  password: z.string().min(1).nullable(),
-  database: z.string().min(1).default('neo4j'),
-  failOpen: z.boolean().default(true),
-  syncOnWrite: z.boolean().default(true),
-});
+export interface ExactDuplicateHit {
+  entityType: 'trap' | 'skill';
+  entityId: string;
+  entityTitle: string;
+  matchType: 'exact';
+  similarityScore: 1;
+}
 ```
 
-### Example projector query
-
-```cypher
-MERGE (s:Source {sourceId: $sourceId, sourceType: $sourceType})
-SET s.scope = $scope,
-    s.teamId = $teamId,
-    s.requiredLevel = $requiredLevel,
-    s.revision = $revision,
-    s.contentHash = $contentHash
-
-WITH s
-UNWIND $nodes AS node
-MERGE (n:GraphNode {id: node.id})
-SET n.kind = node.kind,
-    n.label = node.label,
-    n.evidence = node.evidence
-MERGE (s)-[:CONTAINS]->(n)
-
-WITH s
-UNWIND $edges AS edge
-MATCH (src:GraphNode {id: edge.sourceNodeId})
-MATCH (dst:GraphNode {id: edge.targetNodeId})
-MERGE (src)-[r:REL {id: edge.id}]->(dst)
-SET r.relationType = edge.relationType,
-    r.strength = edge.strength,
-    r.evidence = edge.evidence,
-    r.sourceId = $sourceId
-```
-
-### Example LightRAG-inspired retrieval split
+### Queue enqueue contract
 
 ```ts
-const graphCandidates =
-  queryMode === 'graph-assisted'
-    ? await graphBackend.expandSourcesOneHop({ queryLabels, eligibleSourceIds })
-    : new Set<string>();
-
-const mixedCandidates = mergeGraphAndVectorCandidates({
-  graphCandidates,
-  semanticCandidates,
-  mode: 'mix',
-});
+await queue.enqueue(
+  CANDIDATE_PROCESSING_TASK_TYPE,
+  { candidateId, retryCount: 0 },
+  {
+    maxAttempts: getMaxRetries(),
+    dedupeKey: candidateId,
+  },
+);
 ```
 
-## Phase 1: Lock the Contract and Add the Feature Flag
+## Phase 0: Freeze Baseline and Target Architecture
 
-**Files:**
-- Create: `packages/server/src/lib/graph-query/backend.ts`
-- Create: `packages/server/src/lib/graph-query/config.ts`
-- Modify: `packages/server/src/config.ts`
-- Modify: `packages/server/src/config.test.ts`
-- Modify: `packages/server/src/lib/context.ts`
-
-- [x] Define the backend interface and graph DB config schema.
-- [x] Parse `TRAPMAP_GRAPH_DB_*` env vars in server config with sane defaults.
-- [x] Add bootstrap wiring so services know whether graph DB is disabled, enabled-primary, or enabled-fallback.
-- [x] Keep default behavior unchanged when env vars are absent.
+- [x] Confirm current duplicate pipeline scope and record the exact gaps this plan closes.
+- [x] Freeze the target detector shape before schema or code changes.
+- [x] Record current verification commands and baseline eval expectations in this file as the execution source of truth.
 
 **Completion standard**
 
-- [x] Starting the server with no graph DB env vars behaves exactly like today.
-- [x] Invalid graph DB env combinations fail validation clearly.
-- [x] A single runtime object describes the selected graph query mode.
+- Current behavior is explicitly documented: in-memory path full-scans approved traps and skills, PostgreSQL path narrows candidates but is trap-only and does not build skill candidate text correctly.
+- The future-state contract is stable enough that later phases do not need to rename core types or rewrite the plan.
 
-**Docs updates**
+**Document updates**
 
-- [x] `docs/operations/ENVIRONMENT.md` documents every new env var and fallback rule.
-- [x] `docs/architecture/ARCHITECTURE.md` or `docs/architecture/components/RETRIEVAL.md` explains that graph DB is optional and PG graph documents remain canonical.
+- [x] Update `plan.md` phase checkboxes and completion notes.
+- [x] If architecture wording must be promoted out of the plan, add a short target-state section to `docs/architecture/components/INGESTION.md`.
 
-**Tests / eval updates**
+**Test and eval updates**
 
-- [x] Add config tests covering disabled, enabled-valid, enabled-invalid, and fail-open combinations.
-- [x] Run `rtk pnpm test -- --run packages/server/src/config.test.ts`.
-- [x] Run `rtk pnpm typecheck`.
+- [x] Record baseline commands:
+  - `rtk pnpm test -- --run packages/server/src/lib/candidates/detector.test.ts packages/server/src/lib/candidates/pg-detector.test.ts`
+  - `rtk pnpm test -- --run packages/server/src/__tests__/candidate-pipeline.test.ts`
+  - `rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/graph-extraction/dedup-eval.ts --dry-run`
+- [x] Capture which cases currently fail or are known blind spots before code changes.
 
-## Phase 2: Wrap Existing Graphology Logic Behind a Query Backend
+**Example architecture note**
 
-**Files:**
-- Create: `packages/server/src/lib/graph-query/memory-backend.ts`
-- Modify: `packages/server/src/lib/retrieval/recall/graph-assisted.ts`
-- Modify: `packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts`
-- Modify: `packages/server/src/bootstrap/bootstrap-repositories.ts`
-- Test: `packages/server/src/lib/retrieval/recall/graph-assisted.test.ts`
-- Test: `packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts`
+```md
+Duplicate detection becomes:
+1. Normalize candidate input.
+2. Check exact fingerprint lane.
+3. Run indexed recall against traps and skills.
+4. Score/rerank top candidates.
+5. Invoke LLM only on narrowed candidates when configured.
+```
 
-- [x] Move existing `graphology` traversal behavior behind `GraphQueryBackend`.
-- [x] Make graph-assisted recall call backend methods instead of `graphIndexRepo.listAll()`.
-- [x] Make plan-compiler call backend methods instead of rebuilding the graph directly.
-- [x] Preserve existing semantics and test expectations.
+### Phase 0 Completion Notes (2026-06-02)
+
+**Confirmed current behavior (the exact gaps later phases close)**
+
+1. **Trap exact-match lane is missing.** `packages/server/src/lib/candidates/detector.ts:112` hardcodes `const isExact = false; // Traps don't have fingerprint stored yet`, so trap candidates can never short-circuit through an exact-fingerprint comparison and always go through Jaccard scoring.
+2. **Skill candidates send empty text to the PostgreSQL detector.** `packages/server/src/lib/candidates/processor.ts:117-120` builds `candidateText` only for the `trap` branch (`${shortcut}\n${detail}`) and falls back to `''` for skills, which then becomes a meaningless embedding for `pg-detector.ts`. The PG path is effectively unusable for skill candidates today.
+3. **Skill fingerprint is computed with `profile: null` at candidate time.** `packages/server/src/lib/candidates/processor.ts:283-289` passes `profile: null` into the skill fingerprint builder, so only `files[].sha256` participates — content-level skill exactness depends entirely on post-approval profile derivation.
+4. **In-memory detector is a full scan.** `packages/server/src/lib/candidates/detector.ts:194-` iterates every approved `trapEntries` and `skillArtifacts` record per candidate, with no indexed recall or top-K narrowing.
+5. **PostgreSQL detector is trap-only.** `packages/server/src/lib/candidates/pg-detector.ts:116-150` queries only `knowledgeEmbeddings` and `knowledgeKeywords` (both trap-side). There is no parallel skill recall — skill matches only happen if `fallbackData` is provided and the in-memory path runs.
+6. **Queue enqueue has no dedupe guard.** `packages/server/src/lib/candidates/processor.ts:332-340` (`scheduleCandidateProcessing`) and the retry path at lines 247-258 both call `queue.enqueue(...)` without a `dedupeKey`, so a repeated submit/schedule for the same `candidateId` can stack parallel processing work.
+
+**Frozen target detector contract**
+
+The "Example Target Shapes" section above (`NormalizedDuplicateInput`, `ExactDuplicateHit`, queue `dedupeKey: candidateId`) is the frozen contract for later phases. Field names and value types in those shapes are locked: later phases extend the implementation but must not rename `sourceType`, `fingerprint`, `titleText`, `bodyText`, `keywordTerms`, `tokenTerms`, `exactLookupKey`, or the `matchType: 'exact'` literal.
+
+**Baseline command results (recorded 2026-06-02)**
+
+Note: `packages/server/src/lib/candidates/pg-detector.test.ts` does not exist yet — Phase 1 creates it. Until then the baseline test command is:
+
+```bash
+rtk pnpm --filter @trapmap/server exec vitest run \
+  src/lib/candidates/detector.test.ts \
+  src/lib/candidates/processor.test.ts \
+  src/__tests__/candidate-pipeline.test.ts
+
+rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/graph-extraction/dedup-eval.ts --dry-run
+```
+
+Vitest results on `main` at baseline:
+
+- `src/lib/candidates/detector.test.ts` — 18 tests pass.
+- `src/lib/candidates/processor.test.ts` — 25 tests pass.
+- `src/__tests__/candidate-pipeline.test.ts` — 11 tests pass.
+
+Dedup eval dry-run on `main` (Jaccard column = in-memory detector behavior; LLM column = LLM refinement on top of Jaccard pre-filter):
+
+| Class      | Jaccard P / R / F1 | LLM P / R / F1   |
+| ---------- | ------------------ | ---------------- |
+| exact      | 1.00 / 0.43 / 0.60 | 1.00 / 0.57 / 0.73 |
+| semantic   | 0.00 / 0.00 / 0.00 | 0.40 / 0.14 / 0.21 |
+| none       | 0.39 / 1.00 / 0.56 | 0.43 / 1.00 / 0.60 |
+| Macro F1   | **0.388**          | **0.513**        |
+| Accuracy   | 0.400              | 0.500            |
+
+Known blind spots before any code change:
+
+- Jaccard never returns `semantic` (P/R/F1 all zero) — by construction, the in-memory detector only emits `exact` (skill `contentHash` hits) or `high-overlap`/`semantic-similar` based on Jaccard score, and the dedup eval's reporting bucket maps low-overlap to `none`. Anything that needs semantic recall to fire today gets `none`.
+- All four trap-side "exact under cosmetic change" cases — `exact-minor-differences`, `exact-paraphrased`, `exact-restructured`, `exact-formatting` — are misclassified by Jaccard (semantic or worse). Trap canonicalization + exact lookup (Phase 1) is expected to lift these to `exact`.
+- All six `real-semantic-*` skill near-duplicate cases — including `real-semantic-docx-vs-pdf`, `real-semantic-network-vs-cloudflare`, `real-semantic-research-vs-factcheck`, `real-semantic-financial-vs-competitors`, `real-semantic-frontend-vs-testing`, `real-semantic-doccoauthoring-vs-handoff` — miss on both Jaccard and LLM. Skill-side PG recall (Phase 3) with non-empty skill candidate text (Phase 2) is the intended fix.
+- LLM column already separates the three eval-reported "disagreements" (`semantic-npm-eresolve`, `exact-minor-differences`, `semantic-similar-scope`) where Jaccard lost the case but LLM recovered it. Phase 5 must keep LLM-vs-Jaccard parity from regressing as Phase 2 changes inputs.
+
+These four bullets are the regression watch-list for Phase 5: trap-cosmetic-exact lift, skill-near-duplicate semantic recall, no regression on the `none` cases (Jaccard already has perfect recall on `none`), and no regression on the LLM disagreement set.
+
+## Phase 1: Add Exact Fingerprint Duplicate Lane
+
+- [ ] Add trap-side exact lookup support so traps no longer rely only on overlap scoring.
+- [ ] Reuse existing skill `contentHash`/profile exact data instead of re-deriving exactness late in scoring.
+- [ ] Return an exact duplicate case immediately when the exact lane hits.
 
 **Completion standard**
 
-- [x] Retrieval tests still pass with backend kind `memory`.
-- [x] No hot-path retrieval module directly calls `graphIndexRepo.listAll()` for traversal anymore.
-- [x] Graph traversal behavior is now swappable without touching retrieval orchestration again.
+- A trap candidate that matches an approved trap by canonical fingerprint returns `duplicateType: 'exact'` without a full similarity pass.
+- A skill candidate with the same normalized content/file fingerprint returns an exact hit consistently in both in-memory and PostgreSQL modes.
+- Exact hits preserve current duplicate-case persistence shape and reviewer workflow.
 
-**Docs updates**
+**Document updates**
 
-- [x] `docs/architecture/components/RETRIEVAL.md` updates the query path diagram to reference `GraphQueryBackend`.
-- [x] `docs/guides/PG_AND_GRAPHOLOGY.md` explains that graphology is now the fallback/query-backend implementation, not the only path.
+- [ ] Update `docs/architecture/components/INGESTION.md` with an "exact match first" subsection.
+- [ ] Update `docs/reference/DATABASE_SCHEMA.md` if a new trap fingerprint column or index is added.
 
-**Tests / eval updates**
+**Test and eval updates**
 
-- [x] Update unit tests to use backend doubles instead of raw graph document arrays where appropriate.
-- [x] Run `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/graph-assisted.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts packages/server/src/__tests__/lib/retrieval/capsule-graph-channel.test.ts`.
-- [x] Run `rtk pnpm eval:retrieval:smoke`.
+- [ ] Add unit tests in `packages/server/src/lib/candidates/fingerprint.test.ts` for trap and skill canonicalization.
+- [ ] Add detector tests in `packages/server/src/lib/candidates/detector.test.ts` and `packages/server/src/lib/candidates/pg-detector.ts` covering exact-hit short-circuit behavior.
+- [ ] Add or update at least one exact duplicate fixture in `evals/graph-extraction/dedup-fixtures-real.ts`.
 
-## Phase 3: Add Neo4j Projection and Sync
+**Example structure or code**
 
-**Files:**
-- Create: `packages/server/src/lib/graph-query/neo4j-backend.ts`
-- Create: `packages/server/src/lib/graph-query/projector.ts`
-- Create: `packages/server/src/lib/graph-query/health.ts`
-- Modify: `packages/server/src/lib/indexing/adapters/graph.ts`
-- Modify: `packages/server/src/lib/indexing/adapters/artifact-graph.ts`
-- Modify: `packages/server/src/lib/indexing/reconcile.ts`
-- Modify: `packages/server/src/lib/repos/index.ts`
-- Test: `packages/server/src/lib/graph-query/projector.test.ts`
-- Test: `packages/server/src/lib/graph-query/neo4j-backend.test.ts`
+```ts
+function buildTrapExactLookupKey(payload: {
+  shortcut: string;
+  detail: string;
+  labels: string[];
+}): string {
+  return createHash('sha256')
+    .update(
+      [payload.shortcut.trim(), payload.detail.trim(), [...payload.labels].sort().join(',')].join(
+        '\n',
+      ),
+      'utf8',
+    )
+    .digest('hex');
+}
+```
 
-- [x] Add a Neo4j-backed implementation for one-hop expansion, relation-strength lookup, mitigation lookup, and bounded local subgraph fetch.
-- [x] Build a projector that maps each `GraphIndexDocumentRecord` into Neo4j source/node/relationship data.
-- [x] Sync Neo4j on upsert/remove paths when `TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true`.
-- [x] Add a reconciliation/backfill path so Neo4j can be rebuilt from PostgreSQL truth.
-- [x] Ensure `FAIL_OPEN=true` falls back cleanly to memory backend.
+## Phase 2: Normalize Duplicate Inputs and Fix Skill Candidate Text
+
+- [ ] Replace ad hoc candidate text building in `processor.ts` with one shared normalization helper.
+- [ ] Ensure skill candidates produce meaningful title/body/keywords/tokens for PostgreSQL recall and LLM review.
+- [ ] Make in-memory and PostgreSQL detectors consume the same normalized input contract.
 
 **Completion standard**
 
-- [x] Enabling Neo4j does not change source-of-truth ownership; PostgreSQL still reconstructs the projection.
-- [x] Disabling Neo4j removes all operational dependency on Neo4j.
-- [x] Reconcile/backfill can rebuild the graph projection from `graph_index_documents` deterministically.
-- [x] A temporary Neo4j outage does not leak incorrect results or bypass governance.
+- `packages/server/src/lib/candidates/processor.ts` no longer has trap-only `candidateText` logic.
+- Skill candidates send non-empty normalized text into PostgreSQL embeddings and duplicate review.
+- LLM comparison input uses real title/body pairs instead of partial keyword fallbacks where source text exists.
 
-**Docs updates**
+**Document updates**
 
-- [x] `docs/architecture/PRECOMPUTATION.md` documents PG truth -> Neo4j projection flow.
-- [x] `docs/reference/DATA_MODEL.md` documents the split between durable graph documents and optional graph query store.
-- [x] `docs/reference/DATABASE_SCHEMA.md` is updated only if this phase adds PG-side sync metadata/checkpoint tables.
+- [ ] Update `docs/architecture/components/INGESTION.md` to show how trap and skill submissions are normalized before duplicate detection.
+- [ ] If new helper contracts are broadly reused, add a short note to `docs/PACKAGES.md` under server candidate processing responsibilities.
 
-Verified on 2026-06-02: this graph DB phase did not add any PostgreSQL-side sync metadata or checkpoint tables beyond the existing `graph_index_documents` truth store, so no `DATABASE_SCHEMA.md` change was required.
+**Test and eval updates**
 
-**Tests / eval updates**
+- [ ] Add normalization tests to `packages/server/src/lib/candidates/fingerprint.test.ts`.
+- [ ] Add regression coverage in `packages/server/src/lib/candidates/processor.test.ts` for skill submissions.
+- [ ] Re-run duplicate fixtures that currently under-detect skill similarity and update expected outputs if the new normalized text changes scores.
 
-- [x] Add projector tests for trap docs, skill docs, upsert overwrite, and delete.
-- [x] Add Neo4j integration tests gated by graph DB env vars; skip when not configured.
-- [x] Extend reconcile tests to prove PG truth can rehydrate Neo4j.
-- [x] Run targeted tests for indexing and sync paths.
+**Example structure or code**
 
-**Suggested commands**
+```ts
+export function buildNormalizedDuplicateInput(candidate: CandidateSubmission): NormalizedDuplicateInput {
+  if (candidate.sourceType === 'trap' && candidate.originalPayload.trap) {
+    return {
+      sourceType: 'trap',
+      fingerprint: computeTrapFingerprint(candidate.originalPayload.trap),
+      titleText: candidate.originalPayload.trap.shortcut,
+      bodyText: candidate.originalPayload.trap.detail,
+      keywordTerms: [...candidate.originalPayload.trap.labels],
+      tokenTerms: [...tokenize(`${candidate.originalPayload.trap.shortcut}\n${candidate.originalPayload.trap.detail}`)],
+      exactLookupKey: computeTrapFingerprint(candidate.originalPayload.trap),
+    };
+  }
+
+  const skill = candidate.originalPayload.skill!;
+  return {
+    sourceType: 'skill',
+    fingerprint: computeSkillFingerprint({
+      profile: extractCandidateSkillProfile(skill),
+      files: skill.files,
+    }),
+    titleText: extractCandidateSkillProfile(skill)?.title ?? skill.files[0]?.path ?? candidate.id,
+    bodyText: extractCandidateSkillProfile(skill)?.summary ?? skill.files.map((file) => file.path).join('\n'),
+    keywordTerms: extractCandidateSkillProfile(skill)?.keywords ?? [],
+    tokenTerms: [...tokenize(extractCandidateSkillProfile(skill)?.summary ?? skill.files.map((file) => file.path).join('\n'))],
+    exactLookupKey: computeSkillFingerprint({
+      profile: extractCandidateSkillProfile(skill),
+      files: skill.files,
+    }),
+  };
+}
+```
+
+## Phase 3: Extend PostgreSQL Recall to Cover Both Traps and Skills
+
+- [ ] Keep the indexed PostgreSQL path as the primary scalable detector.
+- [ ] Add skill-side recall sources so PostgreSQL duplicate detection is no longer trap-only.
+- [ ] Narrow both channels into one scored candidate list before optional LLM refinement.
+
+**Completion standard**
+
+- PostgreSQL duplicate detection returns trap and skill candidates in one sorted result set.
+- Skill-side matches come from structured index reads, not fallback full scans.
+- LLM refinement only sees the narrowed top-K set and preserves exact hits without reclassification drift.
+
+**Document updates**
+
+- [ ] Update `docs/architecture/components/INGESTION.md` with the new recall pipeline.
+- [ ] Update `docs/operations/TESTING.md` with focused commands for trap-only, skill-only, and mixed duplicate scenarios.
+
+**Test and eval updates**
+
+- [ ] Add PG detector tests for trap-only, skill-only, and mixed candidate sets.
+- [ ] Add repository/schema tests if new SQL paths or indexes are introduced.
+- [ ] Expand `evals/graph-extraction/dedup-fixtures-real.ts` with one false-positive control and one skill-near-duplicate case.
+- [ ] Re-run `rtk pnpm eval:dedup:dry-run` and then the live dedup eval once fixtures and expectations stabilize.
+
+**Example structure or code**
+
+```ts
+const recallCandidates = [
+  ...await recallTrapDuplicates(db, normalizedInput, governanceFilter),
+  ...await recallSkillDuplicates(db, normalizedInput, governanceFilter),
+];
+
+const ranked = mergeAndRankDuplicateMatches(recallCandidates)
+  .filter((match) => match.similarityScore >= MEDIUM_OVERLAP_THRESHOLD)
+  .slice(0, maxMatches);
+```
+
+## Phase 4: Add Queue Dedupe and Duplicate-Path Observability
+
+- [ ] Use queue `dedupeKey` so a candidate cannot be enqueued multiple times while pending/running.
+- [ ] Emit enough structured metadata to explain which duplicate lane fired: exact, indexed recall, or fallback.
+- [ ] Keep retry semantics unchanged for real failures.
+
+**Completion standard**
+
+- Repeated enqueue attempts for the same candidate do not create parallel processing work.
+- Logs or persisted metadata make it possible to distinguish exact-hit cases from semantic-hit cases during review and debugging.
+- Retry-on-error still works and does not accidentally suppress legitimate reprocessing after failure or resolution.
+
+**Document updates**
+
+- [ ] Update `docs/operations/TESTING.md` with queue-dedupe verification steps.
+- [ ] If operational visibility changes materially, update `docs/operations/ENVIRONMENT.md` or the relevant operations doc for any new flags/logging notes.
+
+**Test and eval updates**
+
+- [ ] Add queue tests around `dedupeKey` use in `packages/server/src/lib/queue/task-queue.ts` coverage or adjacent tests.
+- [ ] Add integration coverage in `packages/server/src/__tests__/candidate-pipeline.test.ts` for repeated scheduling.
+- [ ] Confirm eval runners still work when duplicate-path metadata is present in stored cases.
+
+**Example structure or code**
+
+```ts
+await queue.enqueue<CandidateProcessingPayload>(
+  CANDIDATE_PROCESSING_TASK_TYPE,
+  { candidateId, retryCount: 0 },
+  {
+    maxAttempts: getMaxRetries(),
+    dedupeKey: candidateId,
+  },
+);
+```
+
+## Phase 5: Align Docs, Tests, and Eval Thresholds for Rollout
+
+- [ ] Finish the truth-source docs after behavior is stable.
+- [ ] Lock in the verification matrix for local development and CI.
+- [ ] Record follow-up risks that are deliberately deferred.
+
+**Completion standard**
+
+- Docs explain when the system does exact duplicate rejection, indexed semantic recall, and fallback/manual review.
+- The plan checklist is fully updated with actual completion state and any deferred work is explicit.
+- The final test/eval command set is short enough for routine use and strong enough to catch regressions.
+
+**Document updates**
+
+- [ ] Update `docs/architecture/components/INGESTION.md`.
+- [ ] Update `docs/operations/TESTING.md`.
+- [ ] Update `docs/README.md` if any new long-lived duplicate strategy doc is added.
+- [ ] Mark completed phases in `plan.md`.
+
+**Test and eval updates**
+
+- [ ] Run the smallest focused Vitest targets first.
+- [ ] Run the candidate pipeline integration tests.
+- [ ] Run `rtk pnpm eval:dedup:dry-run`.
+- [ ] Run the live dedup eval if the environment is configured.
+- [ ] If score distributions move, update the dedup eval acceptance notes in the plan and the relevant eval README.
+
+**Example verification block**
 
 ```bash
 rtk pnpm test -- --run \
-  packages/server/src/lib/graph-query/projector.test.ts \
-  packages/server/src/lib/graph-query/neo4j-backend.test.ts \
-  packages/server/src/lib/indexing/adapters/graph.test.ts \
-  packages/server/src/lib/indexing/adapters/artifact-graph.test.ts \
-  packages/server/src/lib/indexing/reconcile.test.ts
+  packages/server/src/lib/candidates/fingerprint.test.ts \
+  packages/server/src/lib/candidates/detector.test.ts \
+  packages/server/src/lib/candidates/pg-detector.test.ts \
+  packages/server/src/lib/candidates/processor.test.ts \
+  packages/server/src/__tests__/candidate-pipeline.test.ts
+
+rtk pnpm eval:dedup:dry-run
 ```
 
-## Phase 4: Apply LightRAG-Inspired Retrieval Semantics
+## Deferred Risks
 
-**Files:**
-- Modify: `packages/server/src/lib/retrieval/recall/graph-assisted.ts`
-- Modify: `packages/server/src/lib/retrieval/orchestration/recall-coordinator.ts`
-- Modify: `packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts`
-- Modify: `evals/retrieval/**`
-- Modify: `evals/codex-eval-smoke.json`
-
-- [x] Keep current `graph-assisted` behavior as the local-neighborhood retrieval mode.
-- [x] Add explicit mixed-retrieval semantics in orchestration, where graph candidates and semantic/vector candidates are merged deliberately.
-- [x] Avoid turning Neo4j into a replacement for semantic retrieval; it should supply structural recall, not own the whole retrieval decision.
-- [x] Evaluate whether plan compilation should use:
-  - local subgraph only for seed neighborhoods
-  - optional broader/global graph lookup for mitigation ranking
-
-Decision: keep plan compilation on local subgraph only in this phase; do not introduce broader/global graph lookup for mitigation ranking yet.
-
-**Completion standard**
-
-- [x] Graph DB improves traversal efficiency without changing retrieval philosophy into graph-only search.
-- [x] Retrieval traces can explain whether candidates came from local graph expansion, mixed recall, or fallback memory mode.
-- [x] LightRAG-inspired “mix” behavior is reflected in naming or trace metadata, not left implicit.
-
-**Docs updates**
-
-- [x] `docs/architecture/components/RETRIEVAL.md` describes local vs mixed graph retrieval.
-- [x] `docs/operations/TESTING.md` adds required verification for graph DB enabled vs disabled runs.
-
-**Tests / eval updates**
-
-- [x] Add regression tests proving mixed retrieval still intersects with governance-eligible entries only.
-- [x] Add smoke eval cases for:
-  - graph DB disabled baseline
-  - graph DB enabled local graph hit
-  - mixed recall improves over vector-only for a graph-linked query
-  - fallback-to-memory when graph DB is unavailable
-- [x] Run `rtk pnpm eval:smoke`.
-- [x] Run `rtk pnpm eval:retrieval:smoke`.
-
-Observed on 2026-06-01: `eval:smoke` and `eval:retrieval:smoke` both ran successfully through the retrieval suite, but the suite still reports 2 pre-existing keyword smoke failures (`v2-keyword-dominant-smoke`, `v2-keyword-regex-smoke`) unrelated to Phase 4 graph changes.
-
-## Phase 5: Operability, Benchmarks, and Rollout
-
-**Files:**
-- Modify: `docs/architecture/DEPLOYMENT.md`
-- Modify: `docs/reference/PERFORMANCE.md`
-- Modify: `docs/operations/TROUBLESHOOTING.md` or nearest equivalent
-- Create or modify: graph health/benchmark script if needed under `packages/server/scripts/` or `scripts/`
-
-- [x] Add healthcheck/diagnostic logging for graph backend selection and fallback.
-- [x] Add a reproducible benchmark comparing:
-  - memory backend
-  - Neo4j backend
-  - disabled vs enabled startup behavior
-- [x] Document local Docker startup for Neo4j and how to run with the env flag enabled.
-- [x] Decide rollout default:
-  - conservative: disabled by default everywhere
-  - later optional enablement in targeted environments
-
-**Completion standard**
-
-- [x] Operators can tell from logs and health output which backend is active.
-- [x] Performance docs include before/after methodology, not just anecdotal claims.
-- [x] Devs can run the feature locally from documentation without reading code.
-
-**Docs updates**
-
-- [x] `docs/architecture/DEPLOYMENT.md` adds optional Neo4j service wiring.
-- [x] `docs/reference/PERFORMANCE.md` records benchmark method and expected win area.
-- [x] `docs/operations/ENVIRONMENT.md` and troubleshooting docs cover common Neo4j failures.
-
-**Tests / eval updates**
-
-- [x] Add health/fallback tests.
-- [x] Run `rtk pnpm check:docs-drift`.
-- [x] Run `rtk pnpm check:mermaid` if diagrams change.
-- [x] Run `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`.
-
-Observed on 2026-06-02: `check:docs-drift` passed. `docs-truth-smoke.test.ts` also passed when run via Vitest. No Mermaid source changed in this closeout pass, so no separate Mermaid check was required.
-
-## Non-Goals
-
-- [x] Do not move canonical graph truth out of PostgreSQL in this project.
-- [x] Do not rewrite graph extraction, graph document shape, or governance rules in the same change.
-- [x] Do not require Neo4j for test runs or local development by default.
-
-## Final Acceptance Checklist
-
-- [x] `graph-assisted.ts` and `plan-compiler.ts` no longer depend on full-table `listAll()` for their primary enabled path.
-- [x] Neo4j can be turned on and off via environment variables only.
-- [x] Disabled mode preserves today’s behavior and tests.
-- [x] Enabled mode preserves correctness and governance while reducing query-time graph rebuild work.
-- [x] Reconcile/backfill can restore the graph DB from PostgreSQL truth.
-- [x] Retrieval evals explicitly cover graph-enabled, graph-disabled, and fallback paths.
-- [x] All touched docs match the runtime truth.
-
-Observed on 2026-06-02: `rtk pnpm eval:retrieval:smoke` was re-run during closeout and still reports the same 2 pre-existing keyword smoke failures (`v2-keyword-dominant-smoke`, `v2-keyword-regex-smoke`) already noted in Phase 4; graph-backend-specific smoke coverage remained intact.
+- [ ] Trap exact-match persistence may need a migration if existing retrieval-derived hashes cannot safely serve as the canonical duplicate fingerprint.
+- [ ] Skill duplicate quality may still need capsule-level recall if profile-only matching proves too coarse.
+- [ ] LLM refinement thresholds may need recalibration after exact and indexed recall reduce the candidate set.

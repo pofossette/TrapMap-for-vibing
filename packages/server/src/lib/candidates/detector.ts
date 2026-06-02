@@ -14,7 +14,7 @@ import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { createDuplicateCaseId } from '@trapmap/server/lib/ids.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
-import { tokenize } from './fingerprint.js';
+import { computeTrapFingerprint, tokenize } from './fingerprint.js';
 import { judgeDuplicateWithLLM } from './llm-dedup.js';
 import type { DuplicateDetectionInput, DuplicateDetectionResult } from './types.js';
 
@@ -88,17 +88,45 @@ function toMatchType(
 
 /**
  * Check trap entry for duplicates against candidate.
+ * Uses an exact-fingerprint lane first, falling back to Jaccard scoring.
  * When `minThreshold` is provided, returns matches above that lower bar
  * for LLM refinement; otherwise uses the standard threshold.
  */
 function checkTrapDuplicate(
   candidateTokens: Set<string>,
   candidateKeywords: string[],
-  _candidateFingerprint: string,
+  candidateFingerprint: string,
   entry: KnowledgeRecord,
   threshold: number,
   minThreshold?: number,
 ): DuplicateMatch | null {
+  // Exact fingerprint lane — short-circuit before computing Jaccard.
+  // Trap fingerprint is computed on the fly from the approved entry's
+  // shortcut + detail + sorted labels, matching the candidate-side
+  // canonicalization in computeTrapFingerprint.
+  const trapFingerprint = computeTrapFingerprint({
+    shortcut: entry.shortcut,
+    detail: entry.detail,
+    labels: entry.labels,
+  });
+  if (trapFingerprint === candidateFingerprint) {
+    const sharedKeywords = candidateKeywords.filter((k) =>
+      entry.labels.some((l) => l.toLowerCase() === k.toLowerCase()),
+    );
+    return {
+      entityType: 'trap',
+      entityId: entry.id,
+      entityTitle: entry.shortcut.slice(0, 280),
+      similarityScore: 1,
+      matchType: 'exact',
+      overlapDetails: {
+        sharedKeywords,
+        sharedTokens: [...candidateTokens].slice(0, 50),
+        textOverlapPercent: 100,
+      },
+    };
+  }
+
   const entryText = `${entry.shortcut}\n${entry.detail}`;
   const entryTokens = tokenize(entryText);
 
@@ -109,7 +137,7 @@ function checkTrapDuplicate(
     return null;
   }
 
-  const isExact = false; // Traps don't have fingerprint stored yet
+  const isExact = false;
   const sharedTokens = [...candidateTokens].filter((t) => entryTokens.has(t));
   const sharedKeywords = candidateKeywords.filter((k) =>
     entry.labels.some((l) => l.toLowerCase() === k.toLowerCase()),

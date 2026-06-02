@@ -151,4 +151,22 @@ export const realSkillDedupFixtures: DedupFixture[] = [
     },
     expectedOverlapType: 'none',
   },
+
+  // 11. Trap exact: same trap entry with paraphrased body wording.
+  // The trap canonical fingerprint (shortcut + detail + sorted labels) is
+  // expected to match here, exercising the Phase 1 trap exact-fingerprint
+  // lane. Jaccard scoring of the title + body text typically misses the
+  // exact classification for this kind of wording change.
+  {
+    id: 'real-trap-exact-rmrf-quill',
+    candidate: {
+      title: 'Quill editor removes formatting on paste',
+      body: 'When pasting rich text into Quill, the default clipboard matcher strips all but plain text formatting. Preserve pasted styles by registering a custom clipboard matcher that maps the incoming HTML to Quill delta operations, or sanitize the input HTML and reapply the desired formats after the paste event.',
+    },
+    existing: {
+      title: 'Quill paste strips formatting',
+      body: 'Pasting rich content into the Quill editor drops all formatting by default — Quill applies a plain-text clipboard matcher that ignores HTML structure. To keep styles on paste, register a custom clipboard matcher that converts the incoming HTML to Quill delta operations, or pre-process the pasted HTML and reapply the desired formatting after the paste.',
+    },
+    expectedOverlapType: 'exact',
+  },
 ];

@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { detectDuplicates, getDetectionVersion } from './detector.js';
-import { tokenize } from './fingerprint.js';
+import { computeTrapFingerprint, tokenize } from './fingerprint.js';
 import type { DuplicateDetectionInput } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -458,6 +458,107 @@ describe('detectDuplicates', () => {
     expect(result.duplicateCase).not.toBeNull();
     const match = result.duplicateCase!.matches[0];
     expect(match.matchType).toBe('exact');
+  });
+
+  // ---- Trap exact fingerprint lane (Phase 1) ----
+
+  it('trap exact fingerprint match produces matchType "exact"', async () => {
+    const trap = createTestTrap({
+      id: 'trap_exact',
+      shortcut: 'Trap exact fingerprint test title',
+      detail: 'Trap exact fingerprint test detail content',
+      labels: ['fingerprint'],
+      lifecycleState: 'approved',
+    });
+
+    const expectedFingerprint = computeTrapFingerprint({
+      shortcut: trap.shortcut,
+      detail: trap.detail,
+      labels: trap.labels,
+    });
+
+    const tokens = [
+      ...tokenize('Trap exact fingerprint test title\nTrap exact fingerprint test detail content'),
+    ];
+    const input = createTestInput({
+      candidateTokens: tokens,
+      candidateKeywords: ['fingerprint'],
+      candidateFingerprint: expectedFingerprint, // match the trap fingerprint
+      trapEntries: [trap],
+      threshold: 0.3,
+    });
+
+    const result = await detectDuplicates(input);
+    expect(result.duplicateCase).not.toBeNull();
+    const match = result.duplicateCase!.matches[0];
+    expect(match.entityType).toBe('trap');
+    expect(match.entityId).toBe('trap_exact');
+    expect(match.matchType).toBe('exact');
+    expect(match.similarityScore).toBe(1);
+  });
+
+  it('trap with high text overlap but different fingerprint does NOT produce matchType "exact"', async () => {
+    const trap = createTestTrap({
+      id: 'trap_overlap_no_exact',
+      shortcut: 'Trap overlap test title',
+      detail: 'Trap overlap test detail content',
+      labels: ['original-labels'],
+      lifecycleState: 'approved',
+    });
+
+    // Candidate shares near-identical text but adds an extra label,
+    // producing a different canonical fingerprint.
+    const candidateFingerprint = computeTrapFingerprint({
+      shortcut: trap.shortcut,
+      detail: trap.detail,
+      labels: ['original-labels', 'extra-label'],
+    });
+
+    const tokens = [...tokenize('Trap overlap test title\nTrap overlap test detail content')];
+    const input = createTestInput({
+      candidateTokens: tokens,
+      candidateKeywords: ['fingerprint'],
+      candidateFingerprint,
+      trapEntries: [trap],
+      threshold: 0.3,
+    });
+
+    const result = await detectDuplicates(input);
+    expect(result.duplicateCase).not.toBeNull();
+    const match = result.duplicateCase!.matches[0];
+    expect(match.matchType).not.toBe('exact');
+  });
+
+  it('trap exact match produces duplicateCase with duplicateType "exact"', async () => {
+    const trap = createTestTrap({
+      id: 'trap_dup_type',
+      shortcut: 'Trap duplicate type test title',
+      detail: 'Trap duplicate type test detail content',
+      labels: ['exact'],
+      lifecycleState: 'approved',
+    });
+
+    const expectedFingerprint = computeTrapFingerprint({
+      shortcut: trap.shortcut,
+      detail: trap.detail,
+      labels: trap.labels,
+    });
+
+    const tokens = [
+      ...tokenize('Trap duplicate type test title\nTrap duplicate type test detail content'),
+    ];
+    const input = createTestInput({
+      candidateTokens: tokens,
+      candidateKeywords: ['exact'],
+      candidateFingerprint: expectedFingerprint,
+      trapEntries: [trap],
+      threshold: 0.3,
+    });
+
+    const result = await detectDuplicates(input);
+    expect(result.duplicateCase).not.toBeNull();
+    expect(result.duplicateCase!.hasExactDuplicate).toBe(true);
+    expect(result.duplicateCase!.duplicateType).toBe('exact');
   });
 
   it('skill without profile (derived=null) returns no match for that artifact', async () => {
