@@ -1,10 +1,9 @@
-import type { CandidateSubmission } from '@trapmap/contracts';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import type { Pool } from 'pg';
 import { detectDuplicates } from './detector.js';
-import { computeCandidateFingerprint } from './fingerprint.js';
+import { buildNormalizedDuplicateInput } from './fingerprint.js';
 import { createPgDuplicateDetector } from './pg-detector.js';
 import type { CandidateRepository } from './repository.js';
 import {
@@ -98,9 +97,11 @@ export async function processCandidate(
       });
     }
 
-    // Phase 3: Compute fingerprint
-    const fingerprintInput = buildFingerprintInput(candidate);
-    const { fingerprint, keywords, tokens } = computeCandidateFingerprint(fingerprintInput);
+    // Phase 3: Build normalized duplicate input (Phase 2 — shared helper)
+    // The same `normalized` shape feeds both the in-memory and PostgreSQL
+    // detectors so trap and skill candidates get the same recall/embedding
+    // treatment (no more trap-only candidateText, no more empty skill text).
+    const normalized = buildNormalizedDuplicateInput(candidate);
 
     // Phase 4: Run duplicate detection
     const freshData = await services.getSnapshot();
@@ -113,19 +114,22 @@ export async function processCandidate(
         featureFlag: services.usePgDuplicateDetection,
       });
 
-      // Build candidate text for embedding
-      const candidateText =
-        candidate.sourceType === 'trap' && candidate.originalPayload.trap
-          ? `${candidate.originalPayload.trap.shortcut}\n${candidate.originalPayload.trap.detail}`
-          : '';
+      // Embedding input: title + body concatenation from the normalized
+      // contract. Empty for the no-files edge case so PG embedding still
+      // produces a vector (rather than crashing) but with no semantic signal.
+      const candidateText = normalized.bodyText
+        ? `${normalized.titleText}\n${normalized.bodyText}`
+        : normalized.titleText;
 
       result = await pgDetector(
         {
           candidateId,
           candidateText,
-          candidateTokens: tokens,
-          candidateKeywords: keywords,
-          candidateFingerprint: fingerprint,
+          candidateTokens: normalized.tokenTerms,
+          candidateKeywords: normalized.keywordTerms,
+          candidateFingerprint: normalized.fingerprint,
+          candidateTitle: normalized.titleText,
+          candidateBody: normalized.bodyText,
           teamId: candidate.teamId,
         },
         {
@@ -137,9 +141,11 @@ export async function processCandidate(
       // Fall back to in-memory detection
       const detectionInput: DuplicateDetectionInput = {
         candidateId,
-        candidateFingerprint: fingerprint,
-        candidateKeywords: keywords,
-        candidateTokens: tokens,
+        candidateFingerprint: normalized.fingerprint,
+        candidateKeywords: normalized.keywordTerms,
+        candidateTokens: normalized.tokenTerms,
+        candidateTitle: normalized.titleText,
+        candidateBody: normalized.bodyText,
         trapEntries: freshData.knowledgeEntries,
         skillArtifacts: freshData.skillArtifacts,
         threshold: DUPLICATE_THRESHOLD,
@@ -258,37 +264,6 @@ export async function processCandidateWithRetry(
       }
     }
   }
-}
-
-/**
- * Build fingerprint input from candidate submission.
- */
-function buildFingerprintInput(candidate: CandidateSubmission) {
-  if (candidate.sourceType === 'trap' && candidate.originalPayload.trap) {
-    const trap = candidate.originalPayload.trap;
-    return {
-      sourceType: 'trap' as const,
-      trapPayload: {
-        shortcut: trap.shortcut,
-        detail: trap.detail,
-        labels: trap.labels,
-      },
-    };
-  }
-
-  if (candidate.sourceType === 'skill' && candidate.originalPayload.skill) {
-    const skill = candidate.originalPayload.skill;
-    return {
-      sourceType: 'skill' as const,
-      skillPayload: {
-        // Profile is null for initial skill submissions - derivation happens after approval
-        profile: null,
-        files: skill.files,
-      },
-    };
-  }
-
-  throw new Error(`Cannot build fingerprint input for candidate ${candidate.id}`);
 }
 
 /**

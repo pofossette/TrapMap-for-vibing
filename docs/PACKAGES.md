@@ -94,6 +94,8 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 | `KnowledgeRepository` | `lib/knowledge/repository.ts` | PG (`PgKnowledgeRepository`) 或 JSON (`InMemoryKnowledgeRepository`) |
 | `ArtifactRepository` | `lib/artifacts/repository.ts` | PG (`PgArtifactRepository`) 或 JSON (`InMemoryArtifactRepository`) |
 | `CandidateRepository` | `lib/candidates/repository.ts` | PG (`PgCandidateRepository`) 或 JSON (`InMemoryCandidateRepository`) |
+
+> **Phase 2 更新**：`buildNormalizedDuplicateInput`（`packages/server/src/lib/candidates/fingerprint.ts`）是 trap 与 skill 候选的共享归一化入口，输出 `NormalizedDuplicateInput`（`packages/server/src/lib/candidates/types.ts`）并被 in-memory / PostgreSQL 探测器与 LLM 精排共享，确保 skill 候选也产出非空 title/body 用于 PG embedding 与 LLM 比对。
 | `UsageAnalyticsRepository` | `lib/analytics/repository.ts` | PG (`PgUsageAnalyticsRepository`) 或 InMemory (no-op) |
 | `AccessKeyRepository` | `lib/auth/repository.ts` | PG (`PgAccessKeyRepository`) 或 JSON (`InMemoryAccessKeyRepository`) |
 | `SessionRepository` | `lib/auth/repository.ts` | PG (`PgSessionRepository`) 或 JSON (`InMemorySessionRepository`) |

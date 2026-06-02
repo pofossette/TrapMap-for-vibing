@@ -67,6 +67,10 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
       candidateFingerprint: string;
       teamId: string | null;
       maxMatches?: number;
+      /** Optional normalized title (Phase 2) for LLM refinement. */
+      candidateTitle?: string;
+      /** Optional normalized body (Phase 2) for LLM refinement. */
+      candidateBody?: string;
     },
     fallbackData?: {
       trapEntries: KnowledgeRecord[];
@@ -253,8 +257,9 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
         const existingTitle = match.entityTitle;
         const existingBody = ''; // pg-detector doesn't have full body; use title-based comparison
 
-        const candidateTitle = input.candidateKeywords.slice(0, 5).join(', ');
-        const candidateBody = input.candidateTokens.slice(0, 100).join(' ');
+        const candidateTitle =
+          input.candidateTitle ?? input.candidateKeywords.slice(0, 5).join(', ');
+        const candidateBody = input.candidateBody ?? input.candidateTokens.slice(0, 100).join(' ');
 
         const judgment = await judgeDuplicateWithLLM(
           config.chat!,

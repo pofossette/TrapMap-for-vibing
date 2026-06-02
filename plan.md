@@ -19,7 +19,7 @@
 
 - [x] Phase 0: Freeze baseline and target architecture
 - [ ] Phase 1: Add exact fingerprint duplicate lane
-- [ ] Phase 2: Normalize duplicate inputs and fix skill candidate text
+- [x] Phase 2: Normalize duplicate inputs and fix skill candidate text
 - [ ] Phase 3: Extend PostgreSQL recall to cover both traps and skills
 - [ ] Phase 4: Add queue dedupe and duplicate-path observability
 - [ ] Phase 5: Align docs, tests, and eval thresholds for rollout
@@ -240,9 +240,9 @@ function buildTrapExactLookupKey(payload: {
 
 ## Phase 2: Normalize Duplicate Inputs and Fix Skill Candidate Text
 
-- [ ] Replace ad hoc candidate text building in `processor.ts` with one shared normalization helper.
-- [ ] Ensure skill candidates produce meaningful title/body/keywords/tokens for PostgreSQL recall and LLM review.
-- [ ] Make in-memory and PostgreSQL detectors consume the same normalized input contract.
+- [x] Replace ad hoc candidate text building in `processor.ts` with one shared normalization helper.
+- [x] Ensure skill candidates produce meaningful title/body/keywords/tokens for PostgreSQL recall and LLM review.
+- [x] Make in-memory and PostgreSQL detectors consume the same normalized input contract.
 
 **Completion standard**
 
@@ -295,6 +295,30 @@ export function buildNormalizedDuplicateInput(candidate: CandidateSubmission): N
   };
 }
 ```
+
+### Phase 2 Completion Notes (2026-06-02)
+
+**Implementation**
+
+- Added `NormalizedDuplicateInput` interface in `packages/server/src/lib/candidates/types.ts` (frozen field names per the plan contract).
+- Added `extractCandidateSkillProfile(skill)` and `buildNormalizedDuplicateInput(candidate)` in `packages/server/src/lib/candidates/fingerprint.ts`:
+  - Trap: `fingerprint = computeTrapFingerprint({shortcut, detail, labels})`, `titleText = shortcut`, `bodyText = detail`, `keywordTerms = labels`, `tokenTerms = tokenize(shortcut\ndetail)`, `exactLookupKey = fingerprint`.
+  - Skill: profile derived from SKILL.md `content`/`text` (first `#` heading as title, rest as summary, `extractKeywords()` for keywords) when present; otherwise title falls back to first file path / `candidate.id` and body falls back to joined file paths.
+- Refactored `packages/server/src/lib/candidates/processor.ts` to call `buildNormalizedDuplicateInput` once and feed both detectors; removed the trap-only `candidateText` ternary at the old `processor.ts:117-120`.
+- Extended `DuplicateDetectionInput` with optional `candidateTitle` / `candidateBody` (backward compatible); updated `detector.ts` and `pg-detector.ts` LLM refinement to consume the new fields when present, otherwise fall back to the previous keyword/token slicing.
+
+**Verification**
+
+- `packages/server/src/lib/candidates/`: 196 tests pass (183 prior + 13 new fingerprint / processor tests).
+- `rtk pnpm typecheck`: clean.
+- `rtk pnpm lint`: clean.
+- `rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/graph-extraction/dedup-eval.ts --dry-run`: runs; macro F1 within baseline noise (dedup-eval uses its own internal Jaccard/heuristic classifier, so changes to the detector normalization flow don't surface in dry-run metrics; the real detector inputs now carry non-empty skill text on the live path).
+- `rtk pnpm test -- --run`: 4166 tests pass; no regressions outside candidates.
+
+**Deferred (Phase 3 / Phase 5)**
+
+- Skill-side PG recall (Phase 3) — the normalized contract is the input the recall stage will consume; the helper is already wired through `processor.ts`.
+- Recalibration of LLM thresholds (Phase 5 deferred risk) — skill candidates now send real title/body to LLM refinement for the first time, so score distributions may shift slightly; Phase 5 should verify.
 
 ## Phase 3: Extend PostgreSQL Recall to Cover Both Traps and Skills
 
