@@ -12,6 +12,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "dev": "tsx watch src/index.ts",
+    "graph-db:benchmark-startup": "tsx --tsconfig ../../tsconfig.base.json scripts/benchmark-graph-backend.ts",
+    "graph-db:check": "tsx scripts/check-neo4j.ts",
     "test": "vitest --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

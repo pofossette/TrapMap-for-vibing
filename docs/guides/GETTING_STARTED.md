@@ -37,13 +37,13 @@ pnpm build
 cp .env.example .env
 ```
 
-编辑 `.env` 文件，至少配置以下变量：
+编辑 `.env` 文件。常见起步配置如下：
 
 | 变量 | 说明 | 示例 |
 |------|------|------|
-| `TRAPMAP_SYSTEM_ADMIN_KEY` | 管理员密钥（必填） | `openssl rand -hex 32` 生成 |
-| `OPENAI_API_KEY` | OpenAI API 密钥（用于 AI 能力） | `sk-...` |
-| `TRAPMAP_DATABASE_URL` | PostgreSQL 连接字符串（默认存储后端） | `postgresql://localhost:5432/trapmap` |
+| `TRAPMAP_SYSTEM_ADMIN_KEY` | 管理员密钥（可选；仅在你要创建/使用 system-admin 能力时需要） | `openssl rand -hex 32` 生成 |
+| `OPENAI_API_KEY` | OpenAI API 密钥（可选；未配置时回退到 fallback provider） | `sk-...` |
+| `TRAPMAP_DATABASE_URL` | PostgreSQL 连接字符串（推荐；默认生产路径） | `postgresql://localhost:5432/trapmap` |
 | `TRAPMAP_DATA_FILE` | JSON 存储路径（兼容回退，可选） | `.data/skill-shareer.json` |
 
 ### PostgreSQL 设置（默认）
@@ -60,6 +60,31 @@ pnpm --filter @trapmap/server db:migrate
 # 生成新迁移（修改 schema 后）
 pnpm --filter @trapmap/server db:generate
 ```
+
+### 可选：本地 Neo4j graph backend
+
+如果你只是常规开发，不需要 Neo4j。只有在验证 optional graph DB backend 时才需要额外启动：
+
+```bash
+docker run --name trapmap-neo4j \
+  -p 7474:7474 \
+  -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/neo4jpass \
+  -d neo4j:5
+
+export TRAPMAP_GRAPH_DB_ENABLED=true
+export TRAPMAP_GRAPH_DB_PROVIDER=neo4j
+export TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:7687
+export TRAPMAP_GRAPH_DB_USERNAME=neo4j
+export TRAPMAP_GRAPH_DB_PASSWORD=neo4jpass
+export TRAPMAP_GRAPH_DB_DATABASE=neo4j
+export TRAPMAP_GRAPH_DB_FAIL_OPEN=true
+export TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true
+
+pnpm --filter @trapmap/server graph-db:check
+```
+
+`TRAPMAP_GRAPH_DB_FAIL_OPEN=true` 时，即使 Neo4j 暂时不可用，服务也会回退到内存 `graphology` backend。
 
 ### JSON 文件存储（兼容回退）
 

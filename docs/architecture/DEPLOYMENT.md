@@ -20,7 +20,7 @@
 
 - Node.js 20+
 - pnpm 10+
-- OpenAI API Key
+- OpenAI API Key（可选；未配置时服务会回退到 fallback provider）
 
 ### 快速开始
 
@@ -34,7 +34,7 @@ pnpm install
 
 # 3. 配置环境
 cp .env.example .env
-# 编辑 .env，填入 OPENAI_API_KEY
+# 编辑 .env，按需填入数据库和 AI 配置
 
 # 4. 启动服务器
 pnpm dev:server
@@ -43,6 +43,35 @@ pnpm dev:server
 pnpm dev:cli -- login --access-key <key>
 pnpm dev:cli -- --help
 ```
+
+### 可选：本地 Neo4j 查询后端
+
+默认本地开发只需要 PostgreSQL。若你要验证 optional Neo4j graph backend，可额外启动一个本地容器：
+
+```bash
+docker run --name trapmap-neo4j \
+  -p 7474:7474 \
+  -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/neo4jpass \
+  -d neo4j:5
+
+export TRAPMAP_GRAPH_DB_ENABLED=true
+export TRAPMAP_GRAPH_DB_PROVIDER=neo4j
+export TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:7687
+export TRAPMAP_GRAPH_DB_USERNAME=neo4j
+export TRAPMAP_GRAPH_DB_PASSWORD=neo4jpass
+export TRAPMAP_GRAPH_DB_DATABASE=neo4j
+export TRAPMAP_GRAPH_DB_FAIL_OPEN=true
+export TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true
+
+pnpm --filter @trapmap/server graph-db:check
+pnpm dev:server
+```
+
+说明：
+
+- PostgreSQL `graph_index_documents` 仍是图索引真相源；Neo4j 只是可选 query-time backend。
+- `TRAPMAP_GRAPH_DB_FAIL_OPEN=true` 时，Neo4j 不可达不会阻断服务，而是回退到内存 `graphology` backend。
 
 ### 环境变量 (.env)
 
@@ -90,7 +119,10 @@ docker compose logs -f
 
 # 4. 健康检查
 curl http://127.0.0.1:4000/health
+curl http://127.0.0.1:4000/ready
 ```
+
+其中 `/health` 现在会返回 `graphQuery` runtime state，`/ready` 则额外包含 queue/database/graph backend 的 readiness 信息。
 
 ### .env.production 模板
 
@@ -101,6 +133,16 @@ TRAPMAP_SYSTEM_ADMIN_KEY=generate-a-secure-random-string
 
 # 数据库
 TRAPMAP_DATABASE_URL=postgresql://trapmap:password@postgres:5432/trapmap
+
+# Optional Neo4j graph backend
+# TRAPMAP_GRAPH_DB_ENABLED=true
+# TRAPMAP_GRAPH_DB_PROVIDER=neo4j
+# TRAPMAP_GRAPH_DB_URI=bolt://neo4j:7687
+# TRAPMAP_GRAPH_DB_USERNAME=neo4j
+# TRAPMAP_GRAPH_DB_PASSWORD=change-me
+# TRAPMAP_GRAPH_DB_DATABASE=neo4j
+# TRAPMAP_GRAPH_DB_FAIL_OPEN=true
+# TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true
 
 # 服务器
 HOST=0.0.0.0
@@ -190,6 +232,56 @@ volumes:
 ```
 
 > 源码：`docker-compose.yml`
+
+### 可选 Neo4j service wiring
+
+checked-in `docker-compose.yml` 没有默认绑定 Neo4j。要在部署环境中启用它，推荐额外提供一个 override 文件，而不是直接改默认 compose：
+
+```yaml
+services:
+  server:
+    environment:
+      - TRAPMAP_GRAPH_DB_ENABLED=true
+      - TRAPMAP_GRAPH_DB_PROVIDER=neo4j
+      - TRAPMAP_GRAPH_DB_URI=bolt://neo4j:7687
+      - TRAPMAP_GRAPH_DB_USERNAME=neo4j
+      - TRAPMAP_GRAPH_DB_PASSWORD=${NEO4J_PASSWORD}
+      - TRAPMAP_GRAPH_DB_DATABASE=neo4j
+      - TRAPMAP_GRAPH_DB_FAIL_OPEN=true
+      - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_started
+
+  neo4j:
+    image: neo4j:5
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
+    volumes:
+      - neo4j_data:/data
+    restart: unless-stopped
+
+volumes:
+  neo4j_data:
+```
+
+启动方式：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.neo4j.yml up -d
+pnpm --filter @trapmap/server graph-db:check
+```
+
+部署建议：
+
+- 把 Neo4j 当作可选加速层，而不是新的事实源；灾备与回填仍以 PostgreSQL `graph_index_documents` 为准。
+- 首次接入先保持 `TRAPMAP_GRAPH_DB_FAIL_OPEN=true`，验证日志与 smoke eval 后，再决定是否改为 fail-closed。
+- 运维侧可通过启动日志里的 `Graph query backend initialized`，以及 `/health` / `/ready` 返回的 `graphQuery` 字段确认当前 active backend。
 
 ### JSON 文件存储（兼容回退）
 

@@ -26,7 +26,7 @@ pnpm dev:server
 node --version  # 需要 20+
 
 # 2. 重新安装依赖
-rm -rf node_modules pnpm-lock.yaml
+rm -rf node_modules
 pnpm install
 
 # 3. 检查 TypeScript 编译
@@ -41,7 +41,6 @@ cat tsconfig.base.json | jq '.compilerOptions.module'
 
 ```bash
 # 如果是模块问题，重建
-pnpm clean
 pnpm install
 pnpm build
 ```
@@ -118,6 +117,61 @@ docker compose exec postgres psql -U trapmap -c "CREATE DATABASE trapmap;"
 # 检查 .env 配置
 cat .env | grep DATABASE
 ```
+
+---
+
+### Neo4j graph backend 启动失败
+
+#### 症状
+
+```bash
+Graph DB configuration validation failed:
+  uri: uri is required when graph DB is enabled
+
+# 或
+Connectivity check failed: Failed to connect to server
+
+# 或
+Neo.ClientError.Security.Unauthorized
+```
+
+#### 排查步骤
+
+```bash
+# 1. 确认 Neo4j 容器在运行
+docker ps | grep neo4j
+
+# 2. 检查 graph DB flags
+env | grep TRAPMAP_GRAPH_DB
+
+# 3. 用仓库内 helper 做直接连通性检查
+pnpm --filter @trapmap/server graph-db:check
+
+# 4. 查看服务当前对外暴露的 backend 状态
+curl http://127.0.0.1:4000/health
+curl http://127.0.0.1:4000/ready
+```
+
+#### 解决方案
+
+```bash
+# 本地默认配置
+export TRAPMAP_GRAPH_DB_ENABLED=true
+export TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:7687
+export TRAPMAP_GRAPH_DB_USERNAME=neo4j
+export TRAPMAP_GRAPH_DB_PASSWORD=<your-password>
+export TRAPMAP_GRAPH_DB_DATABASE=neo4j
+
+# 首次接入建议保持 fail-open
+export TRAPMAP_GRAPH_DB_FAIL_OPEN=true
+pnpm dev:server
+```
+
+补充说明：
+
+- `TRAPMAP_GRAPH_DB_ENABLED=true` 但缺少 `URI`、`USERNAME`、`PASSWORD` 时，服务会在启动阶段直接失败，这是配置错误，不会触发回退。
+- `TRAPMAP_GRAPH_DB_FAIL_OPEN=true` 时，Neo4j 不可达或查询报错，TrapMap 会退回内存 `graphology` backend；graph-assisted 检索仍能继续，但不会拿到 Neo4j traversal 加速。
+- `TRAPMAP_GRAPH_DB_FAIL_OPEN=false` 时，同样的问题会阻断启动或请求路径，只建议在稳定部署后启用。
 
 ---
 
@@ -323,6 +377,35 @@ AI_EMBEDDING_MODEL=text-embedding-3-small  # 默认已是最快
 # 检查请求批大小（减少并发）
 INDEX_BATCH_SIZE=10
 ```
+
+---
+
+### Neo4j 已启用但没有看到性能提升
+
+#### 症状
+
+- `/v1/retrieval/search` 仍然正常，但 graph-assisted 查询没有明显变快
+- 日志里间歇出现 graph backend fallback
+
+#### 排查步骤
+
+```bash
+# 1. 确认当前不是 disabled 模式
+env | grep TRAPMAP_GRAPH_DB_ENABLED
+
+# 2. 做一次直接连通性检查
+pnpm --filter @trapmap/server graph-db:check
+
+# 3. 对比三组 smoke retrieval
+pnpm eval:retrieval:smoke
+TRAPMAP_GRAPH_DB_ENABLED=true TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:7687 TRAPMAP_GRAPH_DB_USERNAME=neo4j TRAPMAP_GRAPH_DB_PASSWORD=<your-password> pnpm eval:retrieval:smoke
+TRAPMAP_GRAPH_DB_ENABLED=true TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:65535 TRAPMAP_GRAPH_DB_USERNAME=neo4j TRAPMAP_GRAPH_DB_PASSWORD=<your-password> TRAPMAP_GRAPH_DB_FAIL_OPEN=true pnpm eval:retrieval:smoke
+```
+
+#### 解释
+
+- Neo4j 的预期收益点是 graph-assisted 查询里的 one-hop expansion、relation strength、mitigation lookup 和 bounded local expansion。
+- 如果数据集很小、查询主要靠 semantic/keyword 命中，或者请求经常 fallback 到 memory backend，那么总体延迟改善会很有限。
 
 ---
 

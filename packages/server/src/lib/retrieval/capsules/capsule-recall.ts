@@ -323,6 +323,36 @@ export function computeKeywordScore(
   return matchCount / intent.tokens.length;
 }
 
+function computeArtifactKeywordScore(
+  intent: ParsedIntent,
+  artifact: SkillArtifactRecord,
+): number {
+  const profile = artifact.latestRevision.derived?.profile;
+  const artifactText = [
+    artifact.title,
+    artifact.labels.join(' '),
+    profile?.title ?? '',
+    profile?.summary ?? '',
+    profile?.keywords.join(' ') ?? '',
+  ]
+    .filter((value) => value.length > 0)
+    .join(' ')
+    .toLowerCase();
+
+  let matchCount = 0;
+  for (const token of intent.tokens) {
+    if (artifactText.includes(token.token)) {
+      matchCount++;
+    }
+  }
+
+  if (intent.tokens.length === 0) {
+    return 0;
+  }
+
+  return matchCount / intent.tokens.length;
+}
+
 /**
  * Compute contextual prefix match score from parsed intent.
  * Matches the query against the capsule's contextualPrefix (Anthropic Contextual Retrieval).
@@ -425,12 +455,15 @@ export function rankCapsules(
   // Score each capsule
   const candidates: CapsuleCandidate[] = [];
 
-  for (const { capsule } of governedCapsules) {
+  for (const { artifact, capsule } of governedCapsules) {
     const situationScore = computeSituationScore(intent, capsule);
     const problemScore = computeProblemScore(intent, capsule);
     const goalScore = computeGoalScore(intent, capsule);
     const errorScore = computeErrorScore(intent, capsule);
-    const keywordScore = computeKeywordScore(intent, capsule);
+    const keywordScore = Math.max(
+      computeKeywordScore(intent, capsule),
+      computeArtifactKeywordScore(intent, artifact),
+    );
     const contextScore = computeContextMatchScore(intent, capsule);
     const stackPathBoost = computeStackPathBoost(intent, capsule);
 

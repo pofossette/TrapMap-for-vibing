@@ -394,8 +394,8 @@ const UPSERT_NODES_QUERY = `
 
 const UPSERT_RELATIONSHIPS_QUERY = `
   UNWIND $relationships AS edge
-  MATCH (src:GraphNode {id: edge.sourceNodeId})
-  MATCH (dst:GraphNode {id: edge.targetNodeId})
+  MERGE (src:GraphNode {id: edge.sourceNodeId})
+  MERGE (dst:GraphNode {id: edge.targetNodeId})
   MERGE (src)-[rel:REL {key: edge.key}]->(dst)
   SET rel.id = edge.id,
       rel.sourceKey = edge.sourceKey,
@@ -417,6 +417,7 @@ const DELETE_SOURCE_QUERY = `
 const CLEAN_ORPHAN_NODES_QUERY = `
   MATCH (graphNode:GraphNode)
   WHERE NOT (:Source)-[:CONTAINS]->(graphNode)
+    AND NOT (graphNode)-[:REL]-()
   DETACH DELETE graphNode
 `;
 

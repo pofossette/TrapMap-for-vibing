@@ -6,15 +6,15 @@
 
 ### 三种索引的延迟特征
 
-| 索引类型 | 构建速度 | 查询延迟 | 适用场景 |
+| 索引类型 | 构建速度 | 查询延迟特征 | 适用场景 |
 |----------|----------|----------|----------|
-| 向量索引 (Embedding) | 慢（依赖 AI API） | 低（~50-200ms） | 语义相似性搜索 |
-| 关键词索引 (BM25) | 快（本地计算） | 极低（~5-20ms） | 精确关键词匹配 |
-| 图索引 (Graphology) | 中（DAG 构建） | 低（~10-50ms） | 关系扩展、陷阱优先检索 |
+| 向量索引 (Embedding) | 慢（依赖 AI API） | 常由外部 embedding 调用主导 | 语义相似性搜索 |
+| 关键词索引 (BM25) | 快（本地计算） | 通常最低 | 精确关键词匹配 |
+| 图索引 (`graphology` / optional Neo4j) | 中（图文档预计算） | 取决于 query-time traversal 成本 | 关系扩展、陷阱优先检索 |
 
 ### 检索模式对比
 
-| 模式 | 延迟 | 召回率 | 复杂度 |
+| 模式 | 延迟倾向 | 召回率 | 复杂度 |
 |------|------|--------|--------|
 | `semantic` | 最低 | 中 | 低 |
 | `hybrid` | 中 | 高 | 中 |
@@ -26,6 +26,70 @@
 - **混合模式**：平衡召回率和延迟，适用于大多数场景
 - **图辅助模式**：仅在需要关系扩展时使用，会额外增加图遍历开销
 - 控制返回结果数量（`maxResults`），推荐 5-20 条
+
+### Optional Neo4j backend: 预期收益区间
+
+Neo4j 不是通用加速开关。它只替换 graph-assisted 路径中的局部图遍历，预期收益集中在这些操作：
+
+- one-hop expansion
+- relation strength 计算
+- mitigation lookup
+- bounded local expansion view 构建
+
+更可能看到收益的场景：
+
+- `graph_index_documents` 已经较大，单次查询需要命中较多相邻节点
+- graph-assisted 查询是瓶颈，而不是 embedding API 或 keyword / semantic recall
+- Neo4j 连接稳定，没有频繁触发 `enabled-fallback`
+
+通常看不到明显收益的场景：
+
+- 小数据集、本地 smoke fixture、或 query 本身主要靠 semantic / keyword 通道解决
+- Neo4j 未启用、连通性不稳定，或 `TRAPMAP_GRAPH_DB_FAIL_OPEN=true` 下经常回退到 memory backend
+- 写路径远多于读路径，而你的热点并不在 graph traversal
+
+### 可复现实验方法
+
+建议固定同一份 PostgreSQL 数据、同一组 retrieval smoke cases，并把“启动成本”和“查询效果”分开记录：
+
+```bash
+# 0. 可选：先确认 Neo4j 连通
+pnpm --filter @trapmap/server graph-db:check
+
+# 1. startup: disabled vs enabled
+pnpm --filter @trapmap/server graph-db:benchmark-startup
+
+# 2. baseline retrieval: disabled / memory
+time pnpm eval:retrieval:smoke
+
+# 3. healthy neo4j primary
+time env \
+  TRAPMAP_GRAPH_DB_ENABLED=true \
+  TRAPMAP_GRAPH_DB_PROVIDER=neo4j \
+  TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:7687 \
+  TRAPMAP_GRAPH_DB_USERNAME=neo4j \
+  TRAPMAP_GRAPH_DB_PASSWORD=<your-password> \
+  TRAPMAP_GRAPH_DB_DATABASE=neo4j \
+  TRAPMAP_GRAPH_DB_FAIL_OPEN=true \
+  pnpm eval:retrieval:smoke
+
+# 4. forced fallback control group
+time env \
+  TRAPMAP_GRAPH_DB_ENABLED=true \
+  TRAPMAP_GRAPH_DB_PROVIDER=neo4j \
+  TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:65535 \
+  TRAPMAP_GRAPH_DB_USERNAME=neo4j \
+  TRAPMAP_GRAPH_DB_PASSWORD=<your-password> \
+  TRAPMAP_GRAPH_DB_FAIL_OPEN=true \
+  pnpm eval:retrieval:smoke
+```
+
+执行建议：
+
+- 先做 1 次预热，再对每组至少跑 3-5 次，记录 p50，而不是只看单次 wall clock。
+- `graph-db:benchmark-startup` 会输出 disabled-memory、enabled-current-env（若你已提供 Neo4j env）以及 enabled-fallback-control 的多次启动耗时。
+- 重点观察 graph-assisted smoke cases；semantic-only case 对 Neo4j 基本不敏感。
+- 若 healthy Neo4j 与 forced fallback 基本无差别，通常意味着当前数据规模还没到 traversal 成本主导，或服务实际上一直在 fallback。
 
 ### 为什么检索快：入库预计算策略
 

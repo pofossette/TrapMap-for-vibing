@@ -2,12 +2,12 @@
 
 本文档是 TrapMap 所有环境变量的完整参考。
 
-## 必需变量
+## 常用起步变量
 
 | 变量 | 说明 | 示例 |
 |------|------|------|
-| `TRAPMAP_SYSTEM_ADMIN_KEY` | 管理员密钥，用于创建系统级管理员账户 | `openssl rand -hex 32` 生成 |
-| `OPENAI_API_KEY` | OpenAI API 密钥，用于 AI 嵌入和生成能力 | `sk-...` |
+| `TRAPMAP_SYSTEM_ADMIN_KEY` | 管理员密钥；仅在需要 system-admin 能力时配置 | `openssl rand -hex 32` 生成 |
+| `OPENAI_API_KEY` | OpenAI API 密钥；未配置时 AI provider 会回退到 `fallback` | `sk-...` |
 
 ## 数据库配置
 
@@ -39,6 +39,37 @@ TrapMap 的 graph DB 是可选查询后端。PostgreSQL `graph_index_documents` 
 - `TRAPMAP_GRAPH_DB_ENABLED=true` 且后端健康时，查询路径可切到 `neo4j` backend。
 - `TRAPMAP_GRAPH_DB_ENABLED=true` 且后端异常、同时 `TRAPMAP_GRAPH_DB_FAIL_OPEN=true` 时，请求会回退到内存 `graphology` backend，而不是阻断检索。
 - `TRAPMAP_GRAPH_DB_ENABLED=true` 但缺少 `URI`、`USERNAME`、`PASSWORD` 等必需配置时，服务启动阶段会明确报错。
+
+本地最小启动示例：
+
+```bash
+# 1. 启动本地 Neo4j（与默认 docker compose 分离，按需启用）
+docker run --name trapmap-neo4j \
+  -p 7474:7474 \
+  -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/neo4jpass \
+  -d neo4j:5
+
+# 2. 启用 TrapMap graph DB flags
+export TRAPMAP_GRAPH_DB_ENABLED=true
+export TRAPMAP_GRAPH_DB_PROVIDER=neo4j
+export TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:7687
+export TRAPMAP_GRAPH_DB_USERNAME=neo4j
+export TRAPMAP_GRAPH_DB_PASSWORD=neo4jpass
+export TRAPMAP_GRAPH_DB_DATABASE=neo4j
+export TRAPMAP_GRAPH_DB_FAIL_OPEN=true
+export TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true
+
+# 3. 可选：先做连通性检查，再启动服务
+pnpm --filter @trapmap/server graph-db:check
+pnpm dev:server
+```
+
+补充说明：
+
+- checked-in `docker-compose.yml` 默认只启动 `server + postgres`；Neo4j 需要你本地额外启动或通过 compose override 自行接入。
+- 当前 rollout 默认值保持保守策略：所有环境都默认 `TRAPMAP_GRAPH_DB_ENABLED=false`，只有显式设置环境变量时才启用 Neo4j backend。
+- `TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true` 时，图索引写入会额外尝试刷新 Neo4j projection；若 Neo4j 短暂不可用且 `TRAPMAP_GRAPH_DB_FAIL_OPEN=true`，主检索路径仍会继续使用 memory fallback。
 
 ### PG Recall 配置 (Phase 6，多路召回已全线落地)
 

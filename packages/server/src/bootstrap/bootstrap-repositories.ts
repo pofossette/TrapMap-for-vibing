@@ -103,6 +103,19 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
     });
   }
 
+  app.log.info(
+    {
+      backendKind: app.skillShareer.graphQuery.backendKind,
+      failOpen: app.skillShareer.graphQuery.failOpen,
+      graphQueryMode: app.skillShareer.graphQuery.mode,
+      syncOnWrite: app.skillShareer.config.graphDb.syncOnWrite,
+      ...(app.skillShareer.graphQuery.detail
+        ? { detail: app.skillShareer.graphQuery.detail }
+        : {}),
+    },
+    'Graph query backend initialized',
+  );
+
   // Register graph channel now that repos are available
   app.skillShareer.channelRegistry.register(createGraphChannel(app.skillShareer.graphQueryBackend));
 }
