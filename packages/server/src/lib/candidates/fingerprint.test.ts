@@ -121,6 +121,34 @@ describe('computeTrapFingerprint', () => {
     expect(hash).toHaveLength(64);
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
   });
+
+  it('is stable when labels are reordered (whitespace-insensitive sort)', () => {
+    const reordered = computeTrapFingerprint({
+      ...base,
+      labels: ['  z', 'a  ', 'M', 'm'],
+    });
+    const sorted = computeTrapFingerprint({
+      ...base,
+      labels: ['  a', 'm  ', 'M', 'z'],
+    });
+    expect(reordered).toBe(sorted);
+  });
+
+  it('produces different hash for different label sets (case-sensitive)', () => {
+    const a = computeTrapFingerprint({ ...base, labels: ['perf', 'patterns'] });
+    const b = computeTrapFingerprint({ ...base, labels: ['perf', 'different'] });
+    expect(a).not.toBe(b);
+  });
+
+  it('produces identical hash for canonical inputs that share shortcut/detail/labels', () => {
+    const a = computeTrapFingerprint(base);
+    const b = computeTrapFingerprint({
+      shortcut: base.shortcut,
+      detail: base.detail,
+      labels: [...base.labels].reverse(),
+    });
+    expect(a).toBe(b);
+  });
 });
 
 // ---------------------------------------------------------------------------

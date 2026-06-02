@@ -49,16 +49,23 @@ export function extractKeywords(text: string): string[] {
 
 /**
  * Compute fingerprint for a trap submission.
- * Hashes shortcut + detail + sorted labels.
+ * Hashes shortcut + detail + sorted, trimmed labels.
+ * Whitespace is trimmed and label order is normalized so equivalent
+ * payloads produce the same fingerprint.
  */
 export function computeTrapFingerprint(payload: {
   shortcut: string;
   detail: string;
   labels: string[];
 }): string {
-  const content = [payload.shortcut, payload.detail, [...payload.labels].sort().join(',')].join(
-    '\n',
-  );
+  const content = [
+    payload.shortcut.trim(),
+    payload.detail.trim(),
+    payload.labels
+      .map((l) => l.trim())
+      .sort()
+      .join(','),
+  ].join('\n');
 
   return createHash('sha256').update(content, 'utf8').digest('hex');
 }

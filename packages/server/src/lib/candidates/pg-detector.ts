@@ -26,6 +26,7 @@ import {
 } from '@trapmap/server/lib/persistence/schema.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
+import { computeTrapFingerprint } from './fingerprint.js';
 import { judgeDuplicateWithLLM } from './llm-dedup.js';
 
 // Thresholds (match detector.ts for compatibility)
@@ -278,6 +279,74 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
       finalMatches = refinedMatches;
     } else {
       finalMatches = matches;
+    }
+
+    // Phase 1: Exact-fingerprint lane.
+    // The hybrid scoring above never produces matchType: 'exact' on its own.
+    // This lane scans `fallbackData` for trap fingerprints and skill
+    // contentHashes that equal `candidateFingerprint` and prepends them to
+    // `finalMatches` with similarityScore 1. This guarantees an exact lane
+    // hit short-circuits the duplicate case consistently with the in-memory
+    // detector, regardless of LLM refinement on the hybrid matches.
+    if (fallbackData) {
+      const seenKeys = new Set(finalMatches.map((m) => `${m.entityType}:${m.entityId}`));
+      const exactMatches: DuplicateMatch[] = [];
+
+      for (const entry of fallbackData.trapEntries) {
+        if (entry.lifecycleState !== 'approved') continue;
+        const trapFingerprint = computeTrapFingerprint({
+          shortcut: entry.shortcut,
+          detail: entry.detail,
+          labels: entry.labels,
+        });
+        if (trapFingerprint !== input.candidateFingerprint) continue;
+        const key = `trap:${entry.id}`;
+        if (seenKeys.has(key)) continue;
+        seenKeys.add(key);
+        exactMatches.push({
+          entityType: 'trap',
+          entityId: entry.id,
+          entityTitle: entry.shortcut.slice(0, 280),
+          similarityScore: 1,
+          matchType: 'exact',
+          overlapDetails: {
+            sharedKeywords: input.candidateKeywords.filter((k) =>
+              entry.labels.some((l) => l.toLowerCase() === k.toLowerCase()),
+            ),
+            sharedTokens: input.candidateTokens.slice(0, 50),
+            textOverlapPercent: 100,
+          },
+        });
+      }
+
+      for (const artifact of fallbackData.skillArtifacts) {
+        if (artifact.lifecycleState !== 'approved') continue;
+        const profile = artifact.latestRevision.derived?.profile;
+        if (!profile) continue;
+        if (profile.contentHash !== input.candidateFingerprint) continue;
+        const key = `skill:${artifact.id}`;
+        if (seenKeys.has(key)) continue;
+        seenKeys.add(key);
+        exactMatches.push({
+          entityType: 'skill',
+          entityId: artifact.id,
+          entityTitle: profile.title.slice(0, 280),
+          similarityScore: 1,
+          matchType: 'exact',
+          overlapDetails: {
+            sharedKeywords: input.candidateKeywords.filter((k) =>
+              profile.keywords.some((pk) => pk.toLowerCase() === k.toLowerCase()),
+            ),
+            sharedTokens: input.candidateTokens.slice(0, 50),
+            textOverlapPercent: 100,
+          },
+        });
+      }
+
+      if (exactMatches.length > 0) {
+        finalMatches = [...exactMatches, ...finalMatches];
+        finalMatches.sort((a, b) => b.similarityScore - a.similarityScore);
+      }
     }
 
     const topMatches = finalMatches.slice(0, maxMatches);
