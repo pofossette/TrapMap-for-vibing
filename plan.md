@@ -4,6 +4,8 @@
 
 **Goal:** Keep `graph_index_documents` as the durable truth and add an environment-variable-controlled optional graph database query backend that removes full-table graph rebuilds from hot query paths.
 
+> Historical note: the "Current-State Analysis" section below describes the pre-implementation baseline captured when this plan was written. Later phases in this same file record the implemented replacement path.
+
 **Architecture:** TrapMap already persists graph documents in PostgreSQL, but retrieval still calls `graphIndex.listAll()` and rebuilds a `graphology` runtime graph per query. The new design keeps PostgreSQL graph documents as the canonical derived index, adds a projection/sync layer into Neo4j, and routes query-time graph expansion through either the existing in-memory backend or the new Neo4j backend depending on env config. The query semantics should also borrow LightRAG’s split between local graph neighborhood lookup and mixed graph+vector retrieval rather than making graph traversal the only recall path.
 
 **Tech Stack:** TypeScript, Fastify, Drizzle/pg, `graphology`, optional `neo4j-driver`, Vitest, retrieval eval runners.
@@ -250,27 +252,27 @@ const mixedCandidates = mergeGraphAndVectorCandidates({
 - Modify: `packages/server/src/config.test.ts`
 - Modify: `packages/server/src/lib/context.ts`
 
-- [ ] Define the backend interface and graph DB config schema.
-- [ ] Parse `TRAPMAP_GRAPH_DB_*` env vars in server config with sane defaults.
-- [ ] Add bootstrap wiring so services know whether graph DB is disabled, enabled-primary, or enabled-fallback.
-- [ ] Keep default behavior unchanged when env vars are absent.
+- [x] Define the backend interface and graph DB config schema.
+- [x] Parse `TRAPMAP_GRAPH_DB_*` env vars in server config with sane defaults.
+- [x] Add bootstrap wiring so services know whether graph DB is disabled, enabled-primary, or enabled-fallback.
+- [x] Keep default behavior unchanged when env vars are absent.
 
 **Completion standard**
 
-- [ ] Starting the server with no graph DB env vars behaves exactly like today.
-- [ ] Invalid graph DB env combinations fail validation clearly.
-- [ ] A single runtime object describes the selected graph query mode.
+- [x] Starting the server with no graph DB env vars behaves exactly like today.
+- [x] Invalid graph DB env combinations fail validation clearly.
+- [x] A single runtime object describes the selected graph query mode.
 
 **Docs updates**
 
-- [ ] `docs/operations/ENVIRONMENT.md` documents every new env var and fallback rule.
-- [ ] `docs/architecture/ARCHITECTURE.md` or `docs/architecture/components/RETRIEVAL.md` explains that graph DB is optional and PG graph documents remain canonical.
+- [x] `docs/operations/ENVIRONMENT.md` documents every new env var and fallback rule.
+- [x] `docs/architecture/ARCHITECTURE.md` or `docs/architecture/components/RETRIEVAL.md` explains that graph DB is optional and PG graph documents remain canonical.
 
 **Tests / eval updates**
 
-- [ ] Add config tests covering disabled, enabled-valid, enabled-invalid, and fail-open combinations.
-- [ ] Run `rtk pnpm test -- --run packages/server/src/config.test.ts`.
-- [ ] Run `rtk pnpm typecheck`.
+- [x] Add config tests covering disabled, enabled-valid, enabled-invalid, and fail-open combinations.
+- [x] Run `rtk pnpm test -- --run packages/server/src/config.test.ts`.
+- [x] Run `rtk pnpm typecheck`.
 
 ## Phase 2: Wrap Existing Graphology Logic Behind a Query Backend
 
@@ -282,27 +284,27 @@ const mixedCandidates = mergeGraphAndVectorCandidates({
 - Test: `packages/server/src/lib/retrieval/recall/graph-assisted.test.ts`
 - Test: `packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts`
 
-- [ ] Move existing `graphology` traversal behavior behind `GraphQueryBackend`.
-- [ ] Make graph-assisted recall call backend methods instead of `graphIndexRepo.listAll()`.
-- [ ] Make plan-compiler call backend methods instead of rebuilding the graph directly.
-- [ ] Preserve existing semantics and test expectations.
+- [x] Move existing `graphology` traversal behavior behind `GraphQueryBackend`.
+- [x] Make graph-assisted recall call backend methods instead of `graphIndexRepo.listAll()`.
+- [x] Make plan-compiler call backend methods instead of rebuilding the graph directly.
+- [x] Preserve existing semantics and test expectations.
 
 **Completion standard**
 
-- [ ] Retrieval tests still pass with backend kind `memory`.
-- [ ] No hot-path retrieval module directly calls `graphIndexRepo.listAll()` for traversal anymore.
-- [ ] Graph traversal behavior is now swappable without touching retrieval orchestration again.
+- [x] Retrieval tests still pass with backend kind `memory`.
+- [x] No hot-path retrieval module directly calls `graphIndexRepo.listAll()` for traversal anymore.
+- [x] Graph traversal behavior is now swappable without touching retrieval orchestration again.
 
 **Docs updates**
 
-- [ ] `docs/architecture/components/RETRIEVAL.md` updates the query path diagram to reference `GraphQueryBackend`.
-- [ ] `docs/guides/PG_AND_GRAPHOLOGY.md` explains that graphology is now the fallback/query-backend implementation, not the only path.
+- [x] `docs/architecture/components/RETRIEVAL.md` updates the query path diagram to reference `GraphQueryBackend`.
+- [x] `docs/guides/PG_AND_GRAPHOLOGY.md` explains that graphology is now the fallback/query-backend implementation, not the only path.
 
 **Tests / eval updates**
 
-- [ ] Update unit tests to use backend doubles instead of raw graph document arrays where appropriate.
-- [ ] Run `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/graph-assisted.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts packages/server/src/__tests__/lib/retrieval/capsule-graph-channel.test.ts`.
-- [ ] Run `rtk pnpm eval:retrieval:smoke`.
+- [x] Update unit tests to use backend doubles instead of raw graph document arrays where appropriate.
+- [x] Run `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/graph-assisted.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts packages/server/src/__tests__/lib/retrieval/capsule-graph-channel.test.ts`.
+- [x] Run `rtk pnpm eval:retrieval:smoke`.
 
 ## Phase 3: Add Neo4j Projection and Sync
 
@@ -334,7 +336,9 @@ const mixedCandidates = mergeGraphAndVectorCandidates({
 
 - [x] `docs/architecture/PRECOMPUTATION.md` documents PG truth -> Neo4j projection flow.
 - [x] `docs/reference/DATA_MODEL.md` documents the split between durable graph documents and optional graph query store.
-- [ ] `docs/reference/DATABASE_SCHEMA.md` is updated only if this phase adds PG-side sync metadata/checkpoint tables.
+- [x] `docs/reference/DATABASE_SCHEMA.md` is updated only if this phase adds PG-side sync metadata/checkpoint tables.
+
+Verified on 2026-06-02: this graph DB phase did not add any PostgreSQL-side sync metadata or checkpoint tables beyond the existing `graph_index_documents` truth store, so no `DATABASE_SCHEMA.md` change was required.
 
 **Tests / eval updates**
 
@@ -404,47 +408,51 @@ Observed on 2026-06-01: `eval:smoke` and `eval:retrieval:smoke` both ran success
 - Modify: `docs/operations/TROUBLESHOOTING.md` or nearest equivalent
 - Create or modify: graph health/benchmark script if needed under `packages/server/scripts/` or `scripts/`
 
-- [ ] Add healthcheck/diagnostic logging for graph backend selection and fallback.
-- [ ] Add a reproducible benchmark comparing:
+- [x] Add healthcheck/diagnostic logging for graph backend selection and fallback.
+- [x] Add a reproducible benchmark comparing:
   - memory backend
   - Neo4j backend
   - disabled vs enabled startup behavior
-- [ ] Document local Docker startup for Neo4j and how to run with the env flag enabled.
-- [ ] Decide rollout default:
+- [x] Document local Docker startup for Neo4j and how to run with the env flag enabled.
+- [x] Decide rollout default:
   - conservative: disabled by default everywhere
   - later optional enablement in targeted environments
 
 **Completion standard**
 
-- [ ] Operators can tell from logs and health output which backend is active.
-- [ ] Performance docs include before/after methodology, not just anecdotal claims.
-- [ ] Devs can run the feature locally from documentation without reading code.
+- [x] Operators can tell from logs and health output which backend is active.
+- [x] Performance docs include before/after methodology, not just anecdotal claims.
+- [x] Devs can run the feature locally from documentation without reading code.
 
 **Docs updates**
 
-- [ ] `docs/architecture/DEPLOYMENT.md` adds optional Neo4j service wiring.
-- [ ] `docs/reference/PERFORMANCE.md` records benchmark method and expected win area.
-- [ ] `docs/operations/ENVIRONMENT.md` and troubleshooting docs cover common Neo4j failures.
+- [x] `docs/architecture/DEPLOYMENT.md` adds optional Neo4j service wiring.
+- [x] `docs/reference/PERFORMANCE.md` records benchmark method and expected win area.
+- [x] `docs/operations/ENVIRONMENT.md` and troubleshooting docs cover common Neo4j failures.
 
 **Tests / eval updates**
 
-- [ ] Add health/fallback tests.
-- [ ] Run `rtk pnpm check:docs-drift`.
-- [ ] Run `rtk pnpm check:mermaid` if diagrams change.
-- [ ] Run `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`.
+- [x] Add health/fallback tests.
+- [x] Run `rtk pnpm check:docs-drift`.
+- [x] Run `rtk pnpm check:mermaid` if diagrams change.
+- [x] Run `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`.
+
+Observed on 2026-06-02: `check:docs-drift` passed. `docs-truth-smoke.test.ts` also passed when run via Vitest. No Mermaid source changed in this closeout pass, so no separate Mermaid check was required.
 
 ## Non-Goals
 
-- [ ] Do not move canonical graph truth out of PostgreSQL in this project.
-- [ ] Do not rewrite graph extraction, graph document shape, or governance rules in the same change.
-- [ ] Do not require Neo4j for test runs or local development by default.
+- [x] Do not move canonical graph truth out of PostgreSQL in this project.
+- [x] Do not rewrite graph extraction, graph document shape, or governance rules in the same change.
+- [x] Do not require Neo4j for test runs or local development by default.
 
 ## Final Acceptance Checklist
 
-- [ ] `graph-assisted.ts` and `plan-compiler.ts` no longer depend on full-table `listAll()` for their primary enabled path.
-- [ ] Neo4j can be turned on and off via environment variables only.
-- [ ] Disabled mode preserves today’s behavior and tests.
-- [ ] Enabled mode preserves correctness and governance while reducing query-time graph rebuild work.
-- [ ] Reconcile/backfill can restore the graph DB from PostgreSQL truth.
-- [ ] Retrieval evals explicitly cover graph-enabled, graph-disabled, and fallback paths.
-- [ ] All touched docs match the runtime truth.
+- [x] `graph-assisted.ts` and `plan-compiler.ts` no longer depend on full-table `listAll()` for their primary enabled path.
+- [x] Neo4j can be turned on and off via environment variables only.
+- [x] Disabled mode preserves today’s behavior and tests.
+- [x] Enabled mode preserves correctness and governance while reducing query-time graph rebuild work.
+- [x] Reconcile/backfill can restore the graph DB from PostgreSQL truth.
+- [x] Retrieval evals explicitly cover graph-enabled, graph-disabled, and fallback paths.
+- [x] All touched docs match the runtime truth.
+
+Observed on 2026-06-02: `rtk pnpm eval:retrieval:smoke` was re-run during closeout and still reports the same 2 pre-existing keyword smoke failures (`v2-keyword-dominant-smoke`, `v2-keyword-regex-smoke`) already noted in Phase 4; graph-backend-specific smoke coverage remained intact.

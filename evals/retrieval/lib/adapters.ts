@@ -190,6 +190,17 @@ async function createSession(
  * In PostgreSQL mode, truncates all tables and closes the pool to prevent connection leaks.
  */
 export async function closeExecutionContext(ctx: ExecutionContext): Promise<void> {
+  // Eval cases run in isolated app instances, but a shared Neo4j projection can
+  // outlive each case. Clear the projection before closing so graph-backed
+  // scenarios do not leak fixture state into subsequent cases.
+  if (ctx.app.skillShareer.graphQueryBackend.isEnabled()) {
+    try {
+      await ctx.app.skillShareer.graphQueryBackend.rebuildProjection([]);
+    } catch {
+      // Ignore projection cleanup errors during teardown.
+    }
+  }
+
   const { PostgresStore } = await import(
     '../../../packages/server/src/lib/persistence/postgres-store.js'
   );
@@ -547,6 +558,11 @@ export async function seedScenarioFixtures(
       }
     });
   }
+
+  // Keep the active graph backend aligned with the scenario fixture set. In
+  // Neo4j-primary mode the PG truth source alone is insufficient, because
+  // graph queries read from the projected backend during eval execution.
+  await ctx.app.skillShareer.graphQueryBackend.rebuildProjection(fixtureGraphDocs);
 
   // Set up actor session with scenario permissions
   await createActorSession(ctx, scenario.actor);

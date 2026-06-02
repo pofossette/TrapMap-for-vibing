@@ -141,10 +141,13 @@ export function buildServer(options: BuildServerOptions = {}) {
 
   app.get('/health', async () => {
     const mem = process.memoryUsage();
+    const graphQuery =
+      app.skillShareer.graphQueryBackend?.getRuntimeState?.() ?? app.skillShareer.graphQuery;
     return {
       status: 'ok',
       product: 'trapmap',
       packages: ['cli', 'server', 'contracts'],
+      graphQuery,
       memory: {
         rssMb: Math.round(mem.rss / 1024 / 1024),
         heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024),
@@ -159,10 +162,13 @@ export function buildServer(options: BuildServerOptions = {}) {
     const store = app.skillShareer.store;
     const database =
       store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
+    const graphQuery =
+      app.skillShareer.graphQueryBackend?.getRuntimeState?.() ?? app.skillShareer.graphQuery;
     return {
       ok: true,
       queueWorkerRunning: taskWorker?.isRunning?.() ?? false,
       database,
+      graphQuery,
     };
   });
 
