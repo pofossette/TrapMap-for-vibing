@@ -98,7 +98,7 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
 
     app.skillShareer.graphQueryBackend = graphBackend;
     app.skillShareer.graphQuery = createGraphQueryRuntimeState(app.skillShareer.config.graphDb, {
-      detail: health.detail,
+      ...(health.detail !== undefined ? { detail: health.detail } : {}),
       fallbackActive: health.mode === 'enabled-fallback',
     });
   }
@@ -109,9 +109,7 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
       failOpen: app.skillShareer.graphQuery.failOpen,
       graphQueryMode: app.skillShareer.graphQuery.mode,
       syncOnWrite: app.skillShareer.config.graphDb.syncOnWrite,
-      ...(app.skillShareer.graphQuery.detail
-        ? { detail: app.skillShareer.graphQuery.detail }
-        : {}),
+      ...(app.skillShareer.graphQuery.detail ? { detail: app.skillShareer.graphQuery.detail } : {}),
     },
     'Graph query backend initialized',
   );

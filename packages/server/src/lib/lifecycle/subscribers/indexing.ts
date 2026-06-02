@@ -1,7 +1,7 @@
 import type { LifecycleState } from '@trapmap/contracts';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
 import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
@@ -25,7 +25,11 @@ export function createIndexingSubscriber(
 
     const data = await store.snapshot();
     await runKnowledgeIndexEvent({
-      services: { store, data, graphQueryBackend },
+      services: {
+        store,
+        data,
+        ...(graphQueryBackend !== undefined ? { graphQueryBackend } : {}),
+      },
       entryId: event.entryId,
       previousState,
       nextState,

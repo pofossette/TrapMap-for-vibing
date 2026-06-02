@@ -95,11 +95,119 @@ export const retrievalMatchSchema = z
   })
   .strict();
 
+// =============================================================================
+// Routing Strategy & Trace Schemas (moved before response schemas for declaration order)
+// =============================================================================
+
+/**
+ * Internal routing strategy identifiers.
+ * These represent the unified retrieval strategy layer behind both v1 and v2
+ * endpoint surfaces. Public v1 mode values (`semantic`, `hybrid`, `graph-assisted`)
+ * map into these strategies but remain the client-facing enum.
+ *
+ * Strategy semantics:
+ * - naive: deterministic single-path fallback (keyword-only / token-overlap), no embeddings
+ * - local: narrow, query-near retrieval (semantic recall / capsule ranking)
+ * - global: broader artifact/context retrieval (profile + future excerpt)
+ * - hybrid: balanced multi-channel recall without heaviest expansion
+ * - mix: full multi-channel plan including graph expansion
+ * - auto: deterministic router selects one of the above from parsed intent
+ */
+export const retrievalStrategySchema = z.enum([
+  'naive',
+  'local',
+  'global',
+  'hybrid',
+  'mix',
+  'auto',
+]);
+
+export type RetrievalStrategy = z.infer<typeof retrievalStrategySchema>;
+
+/**
+ * Route family distinguishes between legacy entry-based and capsule-native retrieval.
+ * Used in routing trace metadata and evaluation slicing.
+ */
+export const routeFamilySchema = z.enum(['entry', 'capsule', 'graph-plan']);
+
+export type RouteFamily = z.infer<typeof routeFamilySchema>;
+
+/**
+ * Canonical routing reason codes.
+ * Each routing decision emits exactly one reason explaining why the strategy was chosen.
+ * These are stable identifiers for evaluation baselines and CI regression comparison.
+ */
+export const routingReasonSchema = z.enum([
+  'explicit-mode', // Client requested a specific v1 mode
+  'auto-error-detected', // Auto mode detected error-like seed, chose naive
+  'auto-goal-query', // Auto mode detected goal-oriented query, chose local
+  'auto-broad-context', // Auto mode detected broad context need, chose global
+  'auto-multi-channel', // Auto mode chose hybrid based on query complexity
+  'fallback-default', // Fallback to default strategy when no explicit mode
+  'v2-default-capsule', // v2 endpoint default capsule strategy
+  'graph-plan-selected', // Graph-plan route returned the plan directly
+  'graph-plan-low-confidence', // Graph-plan route fell back due to low readiness score
+  'graph-plan-insufficient-trap-evidence', // Plan had weak blocker evidence
+  'graph-plan-insufficient-skill-evidence', // Plan had no actionable skills
+  'graph-plan-compilation-failed', // Plan compilation threw an error, fell back
+]);
+
+export type RoutingReason = z.infer<typeof routingReasonSchema>;
+
+/**
+ * Fallback target used by the GraphRAG-lite wrapper route.
+ * Distinguishes which legacy retrieval surface was used when the plan
+ * was not strong enough to return directly.
+ */
+export const graphPlanFallbackTargetSchema = z.enum(['v2-capsule', 'v1-graph-assisted']);
+
+export type GraphPlanFallbackTarget = z.infer<typeof graphPlanFallbackTargetSchema>;
+
+/**
+ * Deterministic confidence bucket for GraphRAG-lite routing.
+ */
+export const graphPlanConfidenceBucketSchema = z.enum(['high', 'medium', 'low']);
+
+export type GraphPlanConfidenceBucket = z.infer<typeof graphPlanConfidenceBucketSchema>;
+
+/**
+ * Routing trace metadata attached to retrieval responses (EOPS-03).
+ * Captures the routing decision provenance so evaluation and debugging
+ * can compare router behavior across runs without guessing.
+ *
+ * This trace is additive to existing response schemas and does not break
+ * backward compatibility with v1 or v2 contracts.
+ */
+export const routingTraceSchema = z.object({
+  /** The internal strategy selected by the router */
+  selectedMode: retrievalStrategySchema,
+  /** Whether this retrieval follows the entry or capsule route family */
+  routeFamily: routeFamilySchema,
+  /** Machine-readable reason code for the routing decision */
+  routingReason: routingReasonSchema,
+  /** Whether a fallback strategy was applied after initial selection failed */
+  fallbackApplied: z.boolean().default(false),
+  /** Recall channels that contributed to the final result set */
+  channelsUsed: z
+    .array(z.enum(['semantic', 'keyword', 'graph', 'capsule', 'profile', 'plan']))
+    .default([]),
+  /** Fallback destination when fallbackApplied is true */
+  fallbackTarget: graphPlanFallbackTargetSchema.nullable().default(null),
+  /** Deterministic confidence score when available */
+  confidenceScore: z.number().min(0).max(1).nullable().default(null),
+  /** Confidence bucket derived from confidenceScore when available */
+  confidenceBucket: graphPlanConfidenceBucketSchema.nullable().default(null),
+});
+
+export type RoutingTrace = z.infer<typeof routingTraceSchema>;
+
 export const retrievalResponseSchema = z.object({
   globalConstraints: z.array(retrievalMatchSchema),
   projectKnowledge: z.array(retrievalMatchSchema),
   refinementSummary: z.string().nullable(),
   summary: retrievalSummarySchema.nullable(),
+  /** Diagnostic routing trace populated by the orchestrator */
+  routingTrace: routingTraceSchema.optional(),
 });
 
 export type RetrievalQuery = z.infer<typeof retrievalQuerySchema>;
@@ -198,6 +306,8 @@ export const retrievalV2ResponseSchema = z.object({
   refinementSummary: z.string().nullable().optional(),
   /** Optional summary over filtered distilled capsule hits */
   summary: retrievalSummarySchema.nullable().default(null),
+  /** Diagnostic routing trace populated by the orchestrator */
+  routingTrace: routingTraceSchema.optional(),
 });
 
 export type CapsuleMatch = z.infer<typeof capsuleMatchSchema>;
@@ -401,114 +511,6 @@ export type SkillSourceKind = z.infer<typeof skillSourceKindSchema>;
 export type SkillLookupQuery = z.infer<typeof skillLookupQuerySchema>;
 export type SkillLookupResultItem = z.infer<typeof skillLookupResultItemSchema>;
 export type SkillLookupResponse = z.infer<typeof skillLookupResponseSchema>;
-
-// =============================================================================
-// Phase 29: Unified Retrieval Routing Contracts (EOPS-03)
-// Shared internal mode taxonomy, routing trace metadata, and backward-compatible
-// strategy identifiers that unify v1 entry retrieval and v2 capsule retrieval.
-// =============================================================================
-
-/**
- * Internal routing strategy identifiers.
- * These represent the unified retrieval strategy layer behind both v1 and v2
- * endpoint surfaces. Public v1 mode values (`semantic`, `hybrid`, `graph-assisted`)
- * map into these strategies but remain the client-facing enum.
- *
- * Strategy semantics:
- * - naive: deterministic single-path fallback (keyword-only / token-overlap), no embeddings
- * - local: narrow, query-near retrieval (semantic recall / capsule ranking)
- * - global: broader artifact/context retrieval (profile + future excerpt)
- * - hybrid: balanced multi-channel recall without heaviest expansion
- * - mix: full multi-channel plan including graph expansion
- * - auto: deterministic router selects one of the above from parsed intent
- */
-export const retrievalStrategySchema = z.enum([
-  'naive',
-  'local',
-  'global',
-  'hybrid',
-  'mix',
-  'auto',
-]);
-
-export type RetrievalStrategy = z.infer<typeof retrievalStrategySchema>;
-
-/**
- * Route family distinguishes between legacy entry-based and capsule-native retrieval.
- * Used in routing trace metadata and evaluation slicing.
- */
-export const routeFamilySchema = z.enum(['entry', 'capsule', 'graph-plan']);
-
-export type RouteFamily = z.infer<typeof routeFamilySchema>;
-
-/**
- * Canonical routing reason codes.
- * Each routing decision emits exactly one reason explaining why the strategy was chosen.
- * These are stable identifiers for evaluation baselines and CI regression comparison.
- */
-export const routingReasonSchema = z.enum([
-  'explicit-mode', // Client requested a specific v1 mode
-  'auto-error-detected', // Auto mode detected error-like seed, chose naive
-  'auto-goal-query', // Auto mode detected goal-oriented query, chose local
-  'auto-broad-context', // Auto mode detected broad context need, chose global
-  'auto-multi-channel', // Auto mode chose hybrid based on query complexity
-  'fallback-default', // Fallback to default strategy when no explicit mode
-  'v2-default-capsule', // v2 endpoint default capsule strategy
-  'graph-plan-selected', // Graph-plan route returned the plan directly
-  'graph-plan-low-confidence', // Graph-plan route fell back due to low readiness score
-  'graph-plan-insufficient-trap-evidence', // Plan had weak blocker evidence
-  'graph-plan-insufficient-skill-evidence', // Plan had no actionable skills
-  'graph-plan-compilation-failed', // Plan compilation threw an error, fell back
-]);
-
-export type RoutingReason = z.infer<typeof routingReasonSchema>;
-
-/**
- * Fallback target used by the GraphRAG-lite wrapper route.
- * Distinguishes which legacy retrieval surface was used when the plan
- * was not strong enough to return directly.
- */
-export const graphPlanFallbackTargetSchema = z.enum(['v2-capsule', 'v1-graph-assisted']);
-
-export type GraphPlanFallbackTarget = z.infer<typeof graphPlanFallbackTargetSchema>;
-
-/**
- * Deterministic confidence bucket for GraphRAG-lite routing.
- */
-export const graphPlanConfidenceBucketSchema = z.enum(['high', 'medium', 'low']);
-
-export type GraphPlanConfidenceBucket = z.infer<typeof graphPlanConfidenceBucketSchema>;
-
-/**
- * Routing trace metadata attached to retrieval responses (EOPS-03).
- * Captures the routing decision provenance so evaluation and debugging
- * can compare router behavior across runs without guessing.
- *
- * This trace is additive to existing response schemas and does not break
- * backward compatibility with v1 or v2 contracts.
- */
-export const routingTraceSchema = z.object({
-  /** The internal strategy selected by the router */
-  selectedMode: retrievalStrategySchema,
-  /** Whether this retrieval follows the entry or capsule route family */
-  routeFamily: routeFamilySchema,
-  /** Machine-readable reason code for the routing decision */
-  routingReason: routingReasonSchema,
-  /** Whether a fallback strategy was applied after initial selection failed */
-  fallbackApplied: z.boolean().default(false),
-  /** Recall channels that contributed to the final result set */
-  channelsUsed: z
-    .array(z.enum(['semantic', 'keyword', 'graph', 'capsule', 'profile', 'plan']))
-    .default([]),
-  /** Fallback destination when fallbackApplied is true */
-  fallbackTarget: graphPlanFallbackTargetSchema.nullable().default(null),
-  /** Deterministic confidence score when available */
-  confidenceScore: z.number().min(0).max(1).nullable().default(null),
-  /** Confidence bucket derived from confidenceScore when available */
-  confidenceBucket: graphPlanConfidenceBucketSchema.nullable().default(null),
-});
-
-export type RoutingTrace = z.infer<typeof routingTraceSchema>;
 
 /**
  * Query schema for the additive GraphRAG-lite wrapper route.

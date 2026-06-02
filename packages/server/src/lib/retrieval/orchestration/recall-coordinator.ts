@@ -400,9 +400,8 @@ export async function graphAssistedRecall(
       return candidate.entry === eligibleEntry ? candidate : { ...candidate, entry: eligibleEntry };
     })
     .filter(
-      (
-        candidate,
-      ): candidate is Awaited<ReturnType<typeof graphRecall>>[number] => candidate !== null,
+      (candidate): candidate is Awaited<ReturnType<typeof graphRecall>>[number] =>
+        candidate !== null,
     );
 
   const hybridMerged = mergeCandidates(semanticCandidates, keywordCandidates);

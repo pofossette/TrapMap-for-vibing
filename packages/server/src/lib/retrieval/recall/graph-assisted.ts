@@ -18,9 +18,9 @@
  */
 
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
-import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
+import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/channel-registry.js';
 import type { RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
@@ -190,9 +190,7 @@ export async function graphAssistedRecall(
 /**
  * Create a graph-assisted recall channel backed by a GraphIndexRepository.
  */
-function resolveGraphBackend(
-  config?: GraphAssistedRecallConfig,
-): GraphQueryBackend | undefined {
+function resolveGraphBackend(config?: GraphAssistedRecallConfig): GraphQueryBackend | undefined {
   if (config?.graphQueryBackend) {
     return config.graphQueryBackend;
   }

@@ -22,6 +22,7 @@ const DOCS_SUBDIR_WHITELIST = [
   'plans',
   'superpowers',
   'archived',
+  'todos',
 ];
 
 const DISALLOWED_ROOT_DIRS = ['archived'];

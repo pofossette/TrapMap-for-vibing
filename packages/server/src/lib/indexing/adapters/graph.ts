@@ -14,12 +14,12 @@
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import { extractBoundaryGraphEntities } from '@trapmap/server/lib/indexing/boundary-extract.js';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import { assertNoHardDependencyCycles } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
 import { LlmExtractionCache } from '@trapmap/server/lib/indexing/graph-lite/llm-cache.js';
 import { extractGraphEntitiesWithLLM } from '@trapmap/server/lib/indexing/graph-lite/llm-extract.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import {
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
@@ -83,8 +83,13 @@ export const graphIndexAdapter: IndexAdapter & {
     document: NormalizedIndexDocument,
     store?: SkillShareerStore,
     chat?: ChatProvider,
+    graphQueryBackend?: GraphQueryBackend,
   ): Promise<IndexSyncResult>;
-  remove(ref: { entryId: string; revision: number }, store?: SkillShareerStore): Promise<void>;
+  remove(
+    ref: { entryId: string; revision: number },
+    store?: SkillShareerStore,
+    graphQueryBackend?: GraphQueryBackend,
+  ): Promise<void>;
 } = {
   kind: 'graph',
 

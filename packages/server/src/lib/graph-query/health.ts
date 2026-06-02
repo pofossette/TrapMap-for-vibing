@@ -1,6 +1,10 @@
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 
-import type { GraphQueryBackend, GraphQueryRuntimeState } from './backend.js';
+import type {
+  GraphQueryBackend,
+  GraphQueryBackendHealth,
+  GraphQueryRuntimeState,
+} from './backend.js';
 
 interface GraphQueryLogger {
   warn?(payload: Record<string, unknown>, message: string): void;
@@ -43,7 +47,7 @@ class FailOpenGraphQueryBackend implements GraphQueryBackend {
     return this.state;
   }
 
-  async healthcheck() {
+  async healthcheck(): Promise<GraphQueryBackendHealth> {
     try {
       const primaryHealth = await this.args.primary.healthcheck();
       if (primaryHealth.ok) {
@@ -57,19 +61,20 @@ class FailOpenGraphQueryBackend implements GraphQueryBackend {
       this.setFallbackState(primaryHealth.detail);
       return {
         ok: true,
-        mode: 'enabled-fallback' as const,
-        detail: primaryHealth.detail,
+        mode: 'enabled-fallback',
+        ...(primaryHealth.detail !== undefined ? { detail: primaryHealth.detail } : {}),
       };
     } catch (error) {
       if (!this.args.failOpen) {
         this.setPrimaryState(describeError(error));
         throw error;
       }
-      this.setFallbackState(describeError(error));
+      const detail = describeError(error);
+      this.setFallbackState(detail);
       return {
         ok: true,
-        mode: 'enabled-fallback' as const,
-        detail: describeError(error),
+        mode: 'enabled-fallback',
+        detail,
       };
     }
   }

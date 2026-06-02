@@ -16,7 +16,8 @@ import type {
 import type { BucketMap, GraphPlanStructure, NormalizedHit, NormalizedResult } from './types.js';
 
 function extractRoutingTrace(response: unknown): NormalizedResult['routingTrace'] | undefined {
-  const routingTrace = (response as { routingTrace?: NormalizedResult['routingTrace'] }).routingTrace;
+  const routingTrace = (response as { routingTrace?: NormalizedResult['routingTrace'] })
+    .routingTrace;
   if (!routingTrace) {
     return undefined;
   }

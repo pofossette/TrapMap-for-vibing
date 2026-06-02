@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
 
@@ -105,7 +105,10 @@ export function listMarkdownFiles(root: string): string[] {
   return files.sort();
 }
 
-export function extractMermaidBlocks(file: string, content: string): {
+export function extractMermaidBlocks(
+  file: string,
+  content: string,
+): {
   blocks: MermaidBlock[];
   messages: string[];
 } {
@@ -142,9 +145,7 @@ export function extractMermaidBlocks(file: string, content: string): {
   }
 
   if (currentStartLine !== null) {
-    messages.push(
-      `[mermaid] FAIL: ${file}:${currentStartLine} has an unclosed mermaid code fence`,
-    );
+    messages.push(`[mermaid] FAIL: ${file}:${currentStartLine} has an unclosed mermaid code fence`);
   }
 
   return { blocks, messages };
@@ -163,7 +164,10 @@ export async function checkMermaidSource(
     } catch (error) {
       const detail =
         error instanceof Error
-          ? error.message.split('\n').map((line) => line.trim()).filter(Boolean)[0] ?? error.message
+          ? (error.message
+              .split('\n')
+              .map((line) => line.trim())
+              .filter(Boolean)[0] ?? error.message)
           : String(error);
 
       messages.push(

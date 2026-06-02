@@ -728,7 +728,9 @@ export async function runSkillIndexEvent(args: {
           await adapter.sync({
             data: txData,
             artifact,
-            graphQueryBackend: args.services.graphQueryBackend,
+            ...(args.services.graphQueryBackend !== undefined
+              ? { graphQueryBackend: args.services.graphQueryBackend }
+              : {}),
           });
         }
         break;
@@ -740,7 +742,9 @@ export async function runSkillIndexEvent(args: {
           await adapter.remove({
             data: txData,
             artifactId,
-            graphQueryBackend: args.services.graphQueryBackend,
+            ...(args.services.graphQueryBackend !== undefined
+              ? { graphQueryBackend: args.services.graphQueryBackend }
+              : {}),
           });
         }
         break;

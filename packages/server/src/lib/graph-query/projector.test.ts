@@ -3,11 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 
-import {
-  buildGraphSourceKey,
-  normalizeGraphLabel,
-  projectGraphDocument,
-} from './projector.js';
+import { buildGraphSourceKey, normalizeGraphLabel, projectGraphDocument } from './projector.js';
 
 function makeGraphDocument(
   overrides: Partial<GraphIndexDocumentRecord> = {},

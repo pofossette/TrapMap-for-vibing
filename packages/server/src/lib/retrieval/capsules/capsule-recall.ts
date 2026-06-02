@@ -323,17 +323,14 @@ export function computeKeywordScore(
   return matchCount / intent.tokens.length;
 }
 
-function computeArtifactKeywordScore(
-  intent: ParsedIntent,
-  artifact: SkillArtifactRecord,
-): number {
+function computeArtifactKeywordScore(intent: ParsedIntent, artifact: SkillArtifactRecord): number {
   const profile = artifact.latestRevision.derived?.profile;
   const artifactText = [
-    artifact.title,
-    artifact.labels.join(' '),
+    artifact.title ?? '',
+    artifact.labels?.join(' ') ?? '',
     profile?.title ?? '',
     profile?.summary ?? '',
-    profile?.keywords.join(' ') ?? '',
+    profile?.keywords?.join(' ') ?? '',
   ]
     .filter((value) => value.length > 0)
     .join(' ')

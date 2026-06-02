@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-import { performance } from 'node:perf_hooks';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
+import { performance } from 'node:perf_hooks';
 
-import { buildServer } from '../src/app.ts';
+import { buildServer } from '@trapmap/server/app.js';
 
 interface ScenarioResult {
   name: string;
@@ -20,9 +20,8 @@ type EnvOverrides = Record<string, string | undefined>;
 const DEFAULT_ITERATIONS = Number.parseInt(process.env.TRAPMAP_GRAPH_BENCH_ITERATIONS ?? '5', 10);
 
 async function main(): Promise<void> {
-  const iterations = Number.isFinite(DEFAULT_ITERATIONS) && DEFAULT_ITERATIONS > 0
-    ? DEFAULT_ITERATIONS
-    : 5;
+  const iterations =
+    Number.isFinite(DEFAULT_ITERATIONS) && DEFAULT_ITERATIONS > 0 ? DEFAULT_ITERATIONS : 5;
   const currentNeo4jReady =
     !!process.env.TRAPMAP_GRAPH_DB_URI &&
     !!process.env.TRAPMAP_GRAPH_DB_USERNAME &&

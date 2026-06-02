@@ -16,8 +16,7 @@ export async function bootstrapGraphReconciliation(app: FastifyInstance): Promis
       graphIndexRepo: app.skillShareer.repos.graphIndex,
       graphQueryBackend: app.skillShareer.graphQueryBackend,
       syncProjection:
-        app.skillShareer.config.graphDb.enabled &&
-        app.skillShareer.config.graphDb.syncOnWrite,
+        app.skillShareer.config.graphDb.enabled && app.skillShareer.config.graphDb.syncOnWrite,
     });
     app.log.info(
       { removed: result.documentsRemoved, rebuilt: result.documentsRebuilt },
