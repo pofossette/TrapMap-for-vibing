@@ -322,6 +322,25 @@ async function findDuplicates(
 - **不变量**：两端只要命中 exact lane，`DuplicateCase.duplicateType === 'exact'` 与 `hasExactDuplicate === true` 同时成立；后续 review workflow 与持久化 shape 不变（沿用现有 `DuplicateCase` 字段）。
 - **索引局限**：Phase 1 的 PG 端只复用 `fallbackData` 做 exact 比对，未引入新列 / 索引。`skillArtifactProfiles.contentHash` 已有，但 trap 端尚无 stored fingerprint column —— 因此 exact lane 目前对 hybrid 召回结果不产生 SQL。
 
+### Shared normalized candidate input (Phase 2)
+
+> Phase 2 把 trap 与 skill 候选在同一处归一化为 `NormalizedDuplicateInput`（`packages/server/src/lib/candidates/types.ts`），由 in-memory 与 PostgreSQL 探测器共享，避免之前 trap-only `candidateText` 与空 skill 文本的偏差。
+
+`buildNormalizedDuplicateInput(candidate)`（`packages/server/src/lib/candidates/fingerprint.ts`）作为唯一入口产出：
+
+- `sourceType` — `'trap' | 'skill'`
+- `fingerprint` — 唯一哈希；trap 走 `computeTrapFingerprint({shortcut, detail, labels})`，skill 走 `computeSkillFingerprint({profile, files})`（profile 由 SKILL.md content 解析得到，files 始终用 `path` + `sha256`）
+- `titleText` — trap: `shortcut`；skill: SKILL.md 首个 `#` 标题（content 存在时），否则首个文件路径，再否则 `candidate.id`
+- `bodyText` — trap: `detail`；skill: SKILL.md 去除首行标题后的余下内容（content 存在时），否则所有文件路径 `\n` 拼接
+- `keywordTerms` — trap: `labels`；skill: 从 SKILL.md 提取的 keywords（content 存在时），否则 `[]`
+- `tokenTerms` — 对 `titleText` + `bodyText` 调用 `tokenize()` 的结果
+- `exactLookupKey` — 与 `fingerprint` 同值（Phase 1 exact lane 复用此 key）
+
+调用方（`packages/server/src/lib/candidates/processor.ts`）把同一 `normalized` 对象传给两个探测器：
+
+- In-memory 路径：把 `normalized.{fingerprint, keywordTerms, tokenTerms, titleText, bodyText}` 装入 `DuplicateDetectionInput`，LLM 精排直接消费 `candidateTitle` / `candidateBody` 而不是 `candidateKeywords.slice(0, 5)` / `candidateTokens.slice(0, 100)` 拼凑的 fallback。
+- PG 路径：把 `normalized.titleText` + `normalized.bodyText` 拼接为 `candidateText` 喂给 `generateEmbedding()`，并把 `candidateTitle` / `candidateBody` 透传给 PG 探测器的 LLM 精排，确保 PG 端的 skill 候选不再回退到空 embedding / 空 LLM 文本。
+
 ### 目标分层架构 (Target Layered Architecture) — Future phases
 
 > 当前实现仍以全表扫描的 Jaccard 检测为主，但目标架构按以下五层执行，后续阶段（见根目录 `plan.md`）逐步落地。后续编辑本节时，请保持下表与 `plan.md` 中"Example Target Shapes"以及"Phase 0 Completion Notes"中冻结的字段名一致。Phase 1 已落地的内容见上文 "Exact match first (Phase 1)" 子节。

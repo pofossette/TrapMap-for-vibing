@@ -1,10 +1,13 @@
+import type { CandidateSubmission } from '@trapmap/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildNormalizedDuplicateInput,
   computeCandidateFingerprint,
   computeSkillFingerprint,
   computeTrapFingerprint,
   createAnalysisSnapshot,
+  extractCandidateSkillProfile,
   extractKeywords,
   tokenize,
 } from './fingerprint.js';
@@ -315,5 +318,274 @@ describe('createAnalysisSnapshot', () => {
     const snapshot = createAnalysisSnapshot('abc', [], []);
     const parsed = new Date(snapshot.normalizedAt);
     expect(parsed.toISOString()).toBe(snapshot.normalizedAt);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// extractCandidateSkillProfile (Phase 2)
+// ---------------------------------------------------------------------------
+describe('extractCandidateSkillProfile', () => {
+  function makeSkillFile(overrides: Record<string, unknown> = {}) {
+    return {
+      path: 'index.ts',
+      sha256: 'a'.repeat(64),
+      sizeBytes: 100,
+      mediaType: 'text/typescript',
+      ...overrides,
+    };
+  }
+
+  it('returns null for a skill submission with no files', () => {
+    const skill = { files: [] };
+    expect(extractCandidateSkillProfile(skill)).toBeNull();
+  });
+
+  it('returns null when SKILL.md is not present and no content is available', () => {
+    const skill = {
+      files: [makeSkillFile({ path: 'index.ts' }), makeSkillFile({ path: 'utils.ts' })],
+    };
+    expect(extractCandidateSkillProfile(skill)).toBeNull();
+  });
+
+  it('returns null when SKILL.md is present but no content/text field is available', () => {
+    const skill = {
+      files: [makeSkillFile({ path: 'SKILL.md' })],
+    };
+    expect(extractCandidateSkillProfile(skill)).toBeNull();
+  });
+
+  it('parses SKILL.md first heading as title and remaining body as summary when content is present', () => {
+    const skill = {
+      files: [
+        makeSkillFile({
+          path: 'SKILL.md',
+          content: '# Deploy to Kubernetes\n\nUse kubectl apply to deploy the manifests.',
+        }),
+      ],
+    };
+    const profile = extractCandidateSkillProfile(skill);
+    expect(profile).not.toBeNull();
+    expect(profile!.title).toBe('Deploy to Kubernetes');
+    expect(profile!.summary).toContain('kubectl apply');
+    expect(Array.isArray(profile!.keywords)).toBe(true);
+  });
+
+  it('uses text field as a fallback for SKILL.md content', () => {
+    const skill = {
+      files: [
+        makeSkillFile({
+          path: 'SKILL.md',
+          text: '# Document Parser\n\nParse PDF documents to extract text.',
+        }),
+      ],
+    };
+    const profile = extractCandidateSkillProfile(skill);
+    expect(profile).not.toBeNull();
+    expect(profile!.title).toBe('Document Parser');
+    expect(profile!.summary).toContain('Parse PDF');
+  });
+
+  it('falls back to first non-empty line for title when no markdown heading exists', () => {
+    const skill = {
+      files: [
+        makeSkillFile({
+          path: 'SKILL.md',
+          content: 'Plain title line\nBody content here.',
+        }),
+      ],
+    };
+    const profile = extractCandidateSkillProfile(skill);
+    expect(profile).not.toBeNull();
+    expect(profile!.title).toBe('Plain title line');
+    expect(profile!.summary).toContain('Body content here');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildNormalizedDuplicateInput (Phase 2)
+// ---------------------------------------------------------------------------
+describe('buildNormalizedDuplicateInput', () => {
+  function makeTrapCandidate(overrides: Partial<CandidateSubmission> = {}): CandidateSubmission {
+    return {
+      id: 'cand_trap_1',
+      sourceType: 'trap',
+      submittedBy: 'user_1',
+      teamId: null,
+      status: 'received',
+      originalPayload: {
+        trap: {
+          scope: 'project',
+          labels: ['perf', 'patterns'],
+          shortcut: 'Avoid nested loops',
+          detail: 'Use map or forEach instead of nested for loops',
+        },
+      },
+      analysisSnapshot: null,
+      duplicateCase: null,
+      receivedAt: '2024-01-01T00:00:00.000Z',
+      queuedAt: null,
+      analyzingAt: null,
+      completedAt: null,
+      lastError: null,
+      retryCount: 0,
+      manualResult: null,
+      ...overrides,
+    };
+  }
+
+  function makeSkillCandidate(overrides: Partial<CandidateSubmission> = {}): CandidateSubmission {
+    return {
+      id: 'cand_skill_1',
+      sourceType: 'skill',
+      submittedBy: 'user_1',
+      teamId: null,
+      status: 'received',
+      originalPayload: {
+        skill: {
+          files: [
+            {
+              path: 'index.ts',
+              sha256: 'b'.repeat(64),
+              sizeBytes: 100,
+              mediaType: 'text/typescript',
+            },
+          ],
+          metadata: {
+            title: 'My Skill',
+            slug: 'my-skill',
+            labels: ['tool'],
+          },
+        },
+      },
+      analysisSnapshot: null,
+      duplicateCase: null,
+      receivedAt: '2024-01-01T00:00:00.000Z',
+      queuedAt: null,
+      analyzingAt: null,
+      completedAt: null,
+      lastError: null,
+      retryCount: 0,
+      manualResult: null,
+      ...overrides,
+    };
+  }
+
+  it('produces the expected NormalizedDuplicateInput shape for a trap candidate', () => {
+    const candidate = makeTrapCandidate();
+    const normalized = buildNormalizedDuplicateInput(candidate);
+
+    expect(normalized.sourceType).toBe('trap');
+    expect(normalized.fingerprint).toMatch(/^[0-9a-f]{64}$/);
+    expect(normalized.titleText).toBe('Avoid nested loops');
+    expect(normalized.bodyText).toBe('Use map or forEach instead of nested for loops');
+    expect(normalized.keywordTerms).toEqual(expect.arrayContaining(['perf', 'patterns']));
+    expect(normalized.tokenTerms.length).toBeGreaterThan(0);
+    expect(normalized.tokenTerms).toContain('avoid');
+    expect(normalized.exactLookupKey).toBe(normalized.fingerprint);
+  });
+
+  it('for a trap candidate exactLookupKey matches computeTrapFingerprint of the trap payload', () => {
+    const candidate = makeTrapCandidate();
+    const normalized = buildNormalizedDuplicateInput(candidate);
+    const expected = computeTrapFingerprint(candidate.originalPayload.trap!);
+    expect(normalized.exactLookupKey).toBe(expected);
+    expect(normalized.fingerprint).toBe(expected);
+  });
+
+  it('for a skill candidate with a SKILL.md file produces non-empty titleText and bodyText from markdown', () => {
+    const candidate = makeSkillCandidate({
+      originalPayload: {
+        skill: {
+          files: [
+            {
+              path: 'SKILL.md',
+              sha256: 'c'.repeat(64),
+              sizeBytes: 256,
+              mediaType: 'text/markdown',
+              content: '# Skill Title Heading\n\nThis is the body of the skill document.',
+            },
+            {
+              path: 'scripts/run.sh',
+              sha256: 'd'.repeat(64),
+              sizeBytes: 64,
+              mediaType: 'text/x-shellscript',
+            },
+          ],
+          metadata: {
+            title: 'My Skill',
+            slug: 'my-skill',
+            labels: ['tool'],
+          },
+        },
+      },
+    });
+    const normalized = buildNormalizedDuplicateInput(candidate);
+
+    expect(normalized.sourceType).toBe('skill');
+    expect(normalized.titleText).toBe('Skill Title Heading');
+    expect(normalized.bodyText).toContain('body of the skill document');
+    expect(normalized.tokenTerms.length).toBeGreaterThan(0);
+    expect(normalized.fingerprint).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('for a skill candidate WITHOUT a SKILL.md file falls back to file paths', () => {
+    const candidate = makeSkillCandidate({
+      originalPayload: {
+        skill: {
+          files: [
+            {
+              path: 'src/index.ts',
+              sha256: 'e'.repeat(64),
+              sizeBytes: 200,
+              mediaType: 'text/typescript',
+            },
+            {
+              path: 'src/utils.ts',
+              sha256: 'f'.repeat(64),
+              sizeBytes: 150,
+              mediaType: 'text/typescript',
+            },
+          ],
+          metadata: {
+            title: 'My Skill',
+            slug: 'my-skill',
+            labels: ['tool'],
+          },
+        },
+      },
+    });
+    const normalized = buildNormalizedDuplicateInput(candidate);
+
+    expect(normalized.sourceType).toBe('skill');
+    expect(normalized.titleText).toBe('src/index.ts');
+    expect(normalized.bodyText).toBe('src/index.ts\nsrc/utils.ts');
+    expect(normalized.bodyText.length).toBeGreaterThan(0);
+    expect(normalized.tokenTerms.length).toBeGreaterThan(0);
+  });
+
+  it('for a skill candidate exactLookupKey equals the fingerprint', () => {
+    const candidate = makeSkillCandidate();
+    const normalized = buildNormalizedDuplicateInput(candidate);
+    expect(normalized.exactLookupKey).toBe(normalized.fingerprint);
+  });
+
+  it('for a skill candidate with no files falls back to candidate id and empty tokenTerms', () => {
+    const candidate = makeSkillCandidate({
+      originalPayload: {
+        skill: {
+          files: [],
+          metadata: {
+            title: 'Empty Skill',
+            slug: 'empty-skill',
+            labels: ['tool'],
+          },
+        },
+      },
+    });
+    const normalized = buildNormalizedDuplicateInput(candidate);
+    expect(normalized.sourceType).toBe('skill');
+    expect(normalized.titleText).toBe('cand_skill_1');
+    expect(normalized.bodyText).toBe('');
+    expect(normalized.tokenTerms).toEqual([]);
   });
 });

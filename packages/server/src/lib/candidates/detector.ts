@@ -298,8 +298,8 @@ export async function detectDuplicates(
         existingBody = profile.summary;
       }
 
-      const candidateTitle = input.candidateKeywords.slice(0, 5).join(', ');
-      const candidateBody = [...candidateTokens].slice(0, 100).join(' ');
+      const candidateTitle = input.candidateTitle ?? input.candidateKeywords.slice(0, 5).join(', ');
+      const candidateBody = input.candidateBody ?? [...candidateTokens].slice(0, 100).join(' ');
 
       const judgment = await judgeDuplicateWithLLM(
         chat!,

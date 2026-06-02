@@ -30,6 +30,12 @@ export interface CandidateFingerprintInput {
 /**
  * Input for duplicate detection operation.
  * Contains candidate data and existing corpus for comparison.
+ *
+ * `candidateTitle` and `candidateBody` (Phase 2) carry the normalized
+ * title/body text from the candidate submission so the LLM refinement
+ * stage can use real text pairs instead of partial keyword fallbacks.
+ * They are optional for backward compatibility with existing test
+ * fixtures that pre-date the Phase 2 normalization helper.
  */
 export interface DuplicateDetectionInput {
   candidateId: string;
@@ -39,6 +45,10 @@ export interface DuplicateDetectionInput {
   trapEntries: KnowledgeRecord[];
   skillArtifacts: SkillArtifactRecord[];
   threshold: number;
+  /** Optional normalized title text (Phase 2). */
+  candidateTitle?: string;
+  /** Optional normalized body text (Phase 2). */
+  candidateBody?: string;
 }
 
 /**
@@ -48,4 +58,23 @@ export interface DuplicateDetectionInput {
 export interface DuplicateDetectionResult {
   duplicateCase: DuplicateCase | null;
   analysisSnapshot: AnalysisSnapshot;
+}
+
+/**
+ * Shared normalized duplicate input (Phase 2).
+ *
+ * Produced by `buildNormalizedDuplicateInput` and consumed by both the
+ * in-memory and PostgreSQL duplicate detectors so that trap and skill
+ * candidates flow through the same recall/embedding/keyword channels.
+ *
+ * Field names are frozen by the plan; do not rename.
+ */
+export interface NormalizedDuplicateInput {
+  sourceType: 'trap' | 'skill';
+  fingerprint: string;
+  titleText: string;
+  bodyText: string;
+  keywordTerms: string[];
+  tokenTerms: string[];
+  exactLookupKey: string;
 }

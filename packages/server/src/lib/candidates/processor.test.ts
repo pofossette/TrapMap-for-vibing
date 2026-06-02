@@ -10,7 +10,7 @@ vi.mock('./detector.js', () => ({
 }));
 
 vi.mock('./fingerprint.js', () => ({
-  computeCandidateFingerprint: vi.fn(),
+  buildNormalizedDuplicateInput: vi.fn(),
 }));
 
 vi.mock('./pg-detector.js', () => ({
@@ -18,7 +18,7 @@ vi.mock('./pg-detector.js', () => ({
 }));
 
 import { detectDuplicates } from './detector.js';
-import { computeCandidateFingerprint } from './fingerprint.js';
+import { buildNormalizedDuplicateInput } from './fingerprint.js';
 import { createPgDuplicateDetector } from './pg-detector.js';
 import {
   CANDIDATE_PROCESSING_TASK_TYPE,
@@ -152,14 +152,36 @@ function makeMockServices(
 // ---------------------------------------------------------------------------
 // processCandidate
 // ---------------------------------------------------------------------------
+function makeNormalizedInput(overrides: Record<string, unknown> = {}) {
+  return {
+    sourceType: 'trap' as const,
+    fingerprint: 'abc123',
+    titleText: 'Avoid nested loops',
+    bodyText: 'Use map or forEach instead of nested for loops',
+    keywordTerms: ['test'],
+    tokenTerms: ['test'],
+    exactLookupKey: 'abc123',
+    ...overrides,
+  };
+}
+
+function makeSkillNormalizedInput(overrides: Record<string, unknown> = {}) {
+  return {
+    sourceType: 'skill' as const,
+    fingerprint: 'skill-fp-abc',
+    titleText: 'My Skill Title',
+    bodyText: 'My skill body content for embedding',
+    keywordTerms: ['tool'],
+    tokenTerms: ['skill', 'title', 'body', 'content', 'embedding'],
+    exactLookupKey: 'skill-fp-abc',
+    ...overrides,
+  };
+}
+
 describe('processCandidate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(computeCandidateFingerprint).mockReturnValue({
-      fingerprint: 'abc123',
-      keywords: ['test'],
-      tokens: ['test'],
-    });
+    vi.mocked(buildNormalizedDuplicateInput).mockReturnValue(makeNormalizedInput());
     vi.mocked(detectDuplicates).mockResolvedValue({
       duplicateCase: null,
       analysisSnapshot: {
@@ -242,46 +264,97 @@ describe('processCandidate', () => {
     expect(services.statusHistory).toContain('error');
   });
 
-  it('builds fingerprint input for trap sourceType', async () => {
+  it('calls buildNormalizedDuplicateInput with the candidate', async () => {
     const candidate = makeCandidate();
     const services = makeMockServices(candidate);
 
     await processCandidate('cand_1', services);
 
-    expect(computeCandidateFingerprint).toHaveBeenCalledWith({
-      sourceType: 'trap',
-      trapPayload: {
-        shortcut: 'Avoid nested loops',
-        detail: 'Use map or forEach instead of nested for loops',
-        labels: ['testing'],
-      },
-    });
+    expect(buildNormalizedDuplicateInput).toHaveBeenCalledWith(candidate);
   });
 
-  it('builds fingerprint input for skill sourceType', async () => {
+  it('calls buildNormalizedDuplicateInput for skill sourceType', async () => {
     const candidate = makeSkillCandidate();
     const services = makeMockServices(candidate);
 
-    await processCandidate('cand_skill_1', services);
-
-    expect(computeCandidateFingerprint).toHaveBeenCalledWith({
-      sourceType: 'skill',
-      skillPayload: {
-        profile: null,
-        files: candidate.originalPayload.skill!.files,
+    vi.mocked(buildNormalizedDuplicateInput).mockReturnValue(makeSkillNormalizedInput());
+    vi.mocked(detectDuplicates).mockResolvedValue({
+      duplicateCase: null,
+      analysisSnapshot: {
+        fingerprint: 'skill-fp-abc',
+        keywords: ['tool'],
+        tokens: ['skill', 'title'],
+        normalizedAt: '2024-01-01T00:00:00.000Z',
       },
     });
+
+    await processCandidate('cand_skill_1', services);
+
+    expect(buildNormalizedDuplicateInput).toHaveBeenCalledWith(candidate);
   });
 
-  it('throws for candidate with mismatched sourceType payload', async () => {
-    const candidate = makeCandidate({
-      sourceType: 'skill',
-      originalPayload: { trap: undefined, skill: undefined },
-    });
+  it('passes normalized title/body to the in-memory detector so LLM refinement uses real text', async () => {
+    const candidate = makeSkillCandidate();
     const services = makeMockServices(candidate);
 
-    await expect(processCandidate('cand_1', services)).rejects.toThrow(
-      /Cannot build fingerprint input/,
+    vi.mocked(buildNormalizedDuplicateInput).mockReturnValue(makeSkillNormalizedInput());
+    vi.mocked(detectDuplicates).mockResolvedValue({
+      duplicateCase: null,
+      analysisSnapshot: {
+        fingerprint: 'skill-fp-abc',
+        keywords: ['tool'],
+        tokens: ['skill'],
+        normalizedAt: '2024-01-01T00:00:00.000Z',
+      },
+    });
+
+    await processCandidate('cand_skill_1', services);
+
+    expect(detectDuplicates).toHaveBeenCalledWith(
+      expect.objectContaining({
+        candidateId: 'cand_skill_1',
+        candidateFingerprint: 'skill-fp-abc',
+        candidateTitle: 'My Skill Title',
+        candidateBody: 'My skill body content for embedding',
+        candidateKeywords: ['tool'],
+        candidateTokens: ['skill', 'title', 'body', 'content', 'embedding'],
+      }),
+    );
+  });
+
+  it('passes normalized title/body to the pg-detector as well', async () => {
+    const candidate = makeSkillCandidate();
+    const mockPool = {} as any;
+    const services = makeMockServices(candidate, {
+      pool: mockPool,
+      usePgDuplicateDetection: () => true,
+    });
+
+    const mockPgDetector = vi.fn().mockResolvedValue({
+      duplicateCase: null,
+      analysisSnapshot: {
+        fingerprint: 'skill-fp-abc',
+        keywords: ['tool'],
+        tokens: ['skill'],
+        normalizedAt: '2024-01-01T00:00:00.000Z',
+      },
+    });
+    vi.mocked(createPgDuplicateDetector).mockReturnValue(mockPgDetector);
+    vi.mocked(buildNormalizedDuplicateInput).mockReturnValue(makeSkillNormalizedInput());
+
+    await processCandidate('cand_skill_1', services);
+
+    expect(mockPgDetector).toHaveBeenCalledWith(
+      expect.objectContaining({
+        candidateId: 'cand_skill_1',
+        candidateFingerprint: 'skill-fp-abc',
+        candidateText: 'My Skill Title\nMy skill body content for embedding',
+        candidateTitle: 'My Skill Title',
+        candidateBody: 'My skill body content for embedding',
+        candidateKeywords: ['tool'],
+        candidateTokens: ['skill', 'title', 'body', 'content', 'embedding'],
+      }),
+      expect.any(Object),
     );
   });
 
@@ -349,11 +422,7 @@ describe('processCandidate', () => {
 describe('processCandidateWithRetry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(computeCandidateFingerprint).mockReturnValue({
-      fingerprint: 'abc123',
-      keywords: ['test'],
-      tokens: ['test'],
-    });
+    vi.mocked(buildNormalizedDuplicateInput).mockReturnValue(makeNormalizedInput());
     vi.mocked(detectDuplicates).mockResolvedValue({
       duplicateCase: null,
       analysisSnapshot: {
@@ -409,11 +478,7 @@ describe('processCandidateWithRetry', () => {
 describe('processPendingCandidates', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(computeCandidateFingerprint).mockReturnValue({
-      fingerprint: 'abc123',
-      keywords: ['test'],
-      tokens: ['test'],
-    });
+    vi.mocked(buildNormalizedDuplicateInput).mockReturnValue(makeNormalizedInput());
     vi.mocked(detectDuplicates).mockResolvedValue({
       duplicateCase: null,
       analysisSnapshot: {
@@ -557,11 +622,7 @@ describe('scheduleCandidateProcessing', () => {
 describe('createCandidateProcessingHandler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(computeCandidateFingerprint).mockReturnValue({
-      fingerprint: 'abc123',
-      keywords: ['test'],
-      tokens: ['test'],
-    });
+    vi.mocked(buildNormalizedDuplicateInput).mockReturnValue(makeNormalizedInput());
     vi.mocked(detectDuplicates).mockResolvedValue({
       duplicateCase: null,
       analysisSnapshot: {
