@@ -447,6 +447,33 @@ export function makeMockServices(storeData: Partial<StoreData> = {}): SkillShare
         },
       },
     } as SkillShareerServices['repos'],
+    graphQueryBackend: {
+      kind: 'memory',
+      isEnabled: () => false,
+      getRuntimeState: () => ({
+        mode: 'disabled',
+        backendKind: 'memory',
+        failOpen: false,
+      }),
+      healthcheck: async () => ({ ok: true, mode: 'disabled' as const }),
+      upsertDocument: async () => {},
+      removeSource: async () => {},
+      rebuildProjection: async () => {},
+      expandSourcesOneHop: async () => new Set<string>(),
+      calculateSourceRelationStrength: async () => 0,
+      getSourceNodeIds: async () => new Map<string, Set<string>>(),
+      buildLocalExpansionView: async () => ({
+        graph: {} as any,
+        nodeViewsById: new Map(),
+        nodeIdsBySourceId: new Map(),
+      }),
+      findMitigatingSkills: async () => [],
+    } as SkillShareerServices['graphQueryBackend'],
+    graphQuery: {
+      mode: 'disabled',
+      backendKind: 'memory',
+      failOpen: false,
+    },
     eventBus: {
       on: () => ({}),
       emit: () => false,

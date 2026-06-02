@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  InMemoryGraphIndexRepository,
   type GraphIndexRepository,
+  InMemoryGraphIndexRepository,
 } from '@trapmap/server/lib/graph-index/repository.js';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import { JsonStore, nowIso } from '@trapmap/server/lib/store.js';

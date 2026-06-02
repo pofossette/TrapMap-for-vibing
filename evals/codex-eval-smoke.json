@@ -790,9 +790,7 @@
           "caseId": "v2-keyword-dominant-smoke",
           "kind": "shape-mismatch",
           "description": "Expected profile hint artifact IDs missing: artifact_smoke_keyword_regex",
-          "ids": [
-            "artifact_smoke_keyword_regex"
-          ],
+          "ids": ["artifact_smoke_keyword_regex"],
           "endpoint": "/v2/retrieval/search",
           "tier": "smoke"
         },
@@ -808,9 +806,7 @@
           "caseId": "v2-keyword-regex-smoke",
           "kind": "shape-mismatch",
           "description": "Expected profile hint artifact IDs missing: artifact_smoke_keyword_python",
-          "ids": [
-            "artifact_smoke_keyword_python"
-          ],
+          "ids": ["artifact_smoke_keyword_python"],
           "endpoint": "/v2/retrieval/search",
           "tier": "smoke"
         },
@@ -918,9 +914,7 @@
           "coverageScore": 1,
           "claimsTotal": 2,
           "claimsSupported": 2,
-          "requiredFactsCovered": [
-            "rate limiting"
-          ],
+          "requiredFactsCovered": ["rate limiting"],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
           "durationMs": 12
@@ -934,10 +928,7 @@
           "coverageScore": 1,
           "claimsTotal": 2,
           "claimsSupported": 2,
-          "requiredFactsCovered": [
-            "docker-compose",
-            "multi-container"
-          ],
+          "requiredFactsCovered": ["docker-compose", "multi-container"],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
           "durationMs": 11
@@ -965,9 +956,7 @@
           "coverageScore": 1,
           "claimsTotal": 3,
           "claimsSupported": 3,
-          "requiredFactsCovered": [
-            "Express"
-          ],
+          "requiredFactsCovered": ["Express"],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
           "durationMs": 15
@@ -981,10 +970,7 @@
           "coverageScore": 1,
           "claimsTotal": 4,
           "claimsSupported": 4,
-          "requiredFactsCovered": [
-            "useState",
-            "useEffect"
-          ],
+          "requiredFactsCovered": ["useState", "useEffect"],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
           "durationMs": 10
@@ -998,10 +984,7 @@
           "coverageScore": 1,
           "claimsTotal": 2,
           "claimsSupported": 2,
-          "requiredFactsCovered": [
-            "docker-compose",
-            "multi-container"
-          ],
+          "requiredFactsCovered": ["docker-compose", "multi-container"],
           "requiredFactsMissing": [],
           "forbiddenClaimsFound": [],
           "durationMs": 11

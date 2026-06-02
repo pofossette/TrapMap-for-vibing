@@ -15,9 +15,9 @@
  * Phase 4: Full rebuild on prompt version change with interrupt recovery
  */
 
-import { extractTrapGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
+import { extractTrapGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
 import type {
   KnowledgeRecord,
   SkillArtifactRecord,

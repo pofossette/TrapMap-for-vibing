@@ -4,8 +4,8 @@ import type {
   GraphNodeRecord,
 } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import {
-  buildLocalExpansionView as buildGraphologyLocalExpansionView,
   type Graph,
+  buildLocalExpansionView as buildGraphologyLocalExpansionView,
 } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
 
 import type {
@@ -14,10 +14,7 @@ import type {
   GraphQueryNodeView,
   GraphQueryRuntimeState,
 } from './backend.js';
-import {
-  buildGraphSourceKey,
-  projectGraphDocument,
-} from './projector.js';
+import { buildGraphSourceKey, projectGraphDocument } from './projector.js';
 
 interface Neo4jRecordLike {
   get(key: string): unknown;
@@ -225,10 +222,9 @@ export async function createNeo4jGraphQueryBackend(args: {
 async function createNeo4jQueryClient(
   config: Neo4jGraphQueryBackendConfig,
 ): Promise<Neo4jQueryClient> {
-  const loadModule = new Function(
-    'moduleName',
-    'return import(moduleName);',
-  ) as (moduleName: string) => Promise<{
+  const loadModule = new Function('moduleName', 'return import(moduleName);') as (
+    moduleName: string,
+  ) => Promise<{
     auth: { basic(username: string, password: string): unknown };
     driver(
       uri: string,
@@ -246,10 +242,7 @@ async function createNeo4jQueryClient(
     };
   }>;
   const neo4j = await loadModule('neo4j-driver');
-  const driver = neo4j.driver(
-    config.uri,
-    neo4j.auth.basic(config.username, config.password),
-  );
+  const driver = neo4j.driver(config.uri, neo4j.auth.basic(config.username, config.password));
 
   return {
     close: async () => driver.close(),

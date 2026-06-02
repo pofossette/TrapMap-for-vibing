@@ -13,6 +13,7 @@ import type { LifecycleState } from '@trapmap/contracts';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import { graphIndexAdapter } from './adapters/graph.js';
 import { removeGraphIndexDocumentsForSource } from './graph-lite/store.js';
 import { syncKnowledgeIndex } from './pipeline.js';
 import type { AdapterRegistry } from './registry.js';
@@ -102,20 +103,15 @@ export async function runKnowledgeIndexEvent(args: {
         if (entry.indexState) {
           await Promise.all(
             registry.all().map((adapter) =>
-              'kind' in adapter && adapter.kind === 'graph'
-                ? args.services.graphQueryBackend
-                  ? adapter.remove(
-                      {
-                        entryId: entry.id,
-                        revision: entry.history.length,
-                      },
-                      undefined,
-                      args.services.graphQueryBackend,
-                    )
-                  : adapter.remove({
+              adapter === graphIndexAdapter
+                ? graphIndexAdapter.remove(
+                    {
                       entryId: entry.id,
                       revision: entry.history.length,
-                    })
+                    },
+                    undefined,
+                    args.services.graphQueryBackend,
+                  )
                 : adapter.remove({
                     entryId: entry.id,
                     revision: entry.history.length,

@@ -26,8 +26,7 @@ function createBackend(
     removeSource: overrides.removeSource ?? (async () => {}),
     rebuildProjection: overrides.rebuildProjection ?? (async () => {}),
     expandSourcesOneHop: overrides.expandSourcesOneHop ?? (async () => new Set<string>()),
-    calculateSourceRelationStrength:
-      overrides.calculateSourceRelationStrength ?? (async () => 0),
+    calculateSourceRelationStrength: overrides.calculateSourceRelationStrength ?? (async () => 0),
     getSourceNodeIds: overrides.getSourceNodeIds ?? (async () => new Map<string, Set<string>>()),
     buildLocalExpansionView:
       overrides.buildLocalExpansionView ??

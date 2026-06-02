@@ -126,10 +126,7 @@ export class MemoryGraphQueryBackend implements GraphQueryBackend {
         const existingNodeView = nodeViewsById.get(node.id);
         const ownedByDocument = isCanonicalOwner(document, node);
 
-        if (
-          ownedByDocument ||
-          (existingNodeView === undefined && !ownedByDocument)
-        ) {
+        if (ownedByDocument || (existingNodeView === undefined && !ownedByDocument)) {
           nodeViewsById.set(node.id, nextNodeView);
         }
 

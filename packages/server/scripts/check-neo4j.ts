@@ -2,7 +2,7 @@
 
 import neo4j from 'neo4j-driver';
 
-import { loadGraphDbConfig } from '../src/lib/graph-query/config.ts';
+import { loadGraphDbConfig } from '@trapmap/server/lib/graph-query/config.js';
 
 function maskSecret(value: string): string {
   if (value.length <= 4) {
@@ -34,10 +34,7 @@ async function main(): Promise<void> {
   console.log('');
   console.log('Checking Neo4j connectivity...');
 
-  const driver = neo4j.driver(
-    config.uri!,
-    neo4j.auth.basic(config.username!, config.password!),
-  );
+  const driver = neo4j.driver(config.uri!, neo4j.auth.basic(config.username!, config.password!));
 
   try {
     await driver.verifyConnectivity();
@@ -55,7 +52,9 @@ async function main(): Promise<void> {
     const detail = error instanceof Error ? error.message : String(error);
     console.error(`Connectivity check failed: ${detail}`);
     if (config.failOpen) {
-      console.error('Current config keeps fail-open enabled, so TrapMap would fall back to memory.');
+      console.error(
+        'Current config keeps fail-open enabled, so TrapMap would fall back to memory.',
+      );
     } else {
       console.error('Current config disables fail-open, so TrapMap startup would fail.');
     }
