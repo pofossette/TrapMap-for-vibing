@@ -105,7 +105,7 @@ function toMatchType(
 function checkTrapDuplicate(
   candidateTokens: Set<string>,
   candidateKeywords: string[],
-  candidateFingerprint: string,
+  candidateExactLookupKey: string,
   entry: KnowledgeRecord,
   threshold: number,
   minThreshold?: number,
@@ -119,7 +119,7 @@ function checkTrapDuplicate(
     detail: entry.detail,
     labels: entry.labels,
   });
-  if (trapFingerprint === candidateFingerprint) {
+  if (trapFingerprint === candidateExactLookupKey) {
     const sharedKeywords = candidateKeywords.filter((k) =>
       entry.labels.some((l) => l.toLowerCase() === k.toLowerCase()),
     );
@@ -176,7 +176,7 @@ function checkTrapDuplicate(
 function checkSkillDuplicate(
   candidateTokens: Set<string>,
   candidateKeywords: string[],
-  candidateFingerprint: string,
+  candidateExactLookupKey: string,
   artifact: SkillArtifactRecord,
   threshold: number,
   minThreshold?: number,
@@ -184,6 +184,30 @@ function checkSkillDuplicate(
   const profile = artifact.latestRevision.derived?.profile;
   if (!profile) {
     return null;
+  }
+
+  const isExact =
+    profile.contentHash === candidateExactLookupKey || profile.sourceHash === candidateExactLookupKey;
+  if (isExact) {
+    const artifactText = `${profile.title}\n${profile.summary}`;
+    const artifactTokens = tokenize(artifactText);
+    const sharedTokens = [...candidateTokens].filter((t) => artifactTokens.has(t));
+    const sharedKeywords = candidateKeywords.filter((k) =>
+      profile.keywords.some((pk) => pk.toLowerCase() === k.toLowerCase()),
+    );
+
+    return {
+      entityType: 'skill',
+      entityId: artifact.id,
+      entityTitle: profile.title.slice(0, 280),
+      similarityScore: 1,
+      matchType: 'exact',
+      overlapDetails: {
+        sharedKeywords,
+        sharedTokens: sharedTokens.slice(0, 50),
+        textOverlapPercent: 100,
+      },
+    };
   }
 
   const artifactText = `${profile.title}\n${profile.summary}`;
@@ -195,9 +219,6 @@ function checkSkillDuplicate(
   if (similarity < effectiveThreshold) {
     return null;
   }
-
-  // Check for exact fingerprint match
-  const isExact = profile.contentHash === candidateFingerprint;
 
   const sharedTokens = [...candidateTokens].filter((t) => artifactTokens.has(t));
   const sharedKeywords = candidateKeywords.filter((k) =>
@@ -234,6 +255,7 @@ export async function detectDuplicates(
   chat?: ChatProvider,
 ): Promise<DuplicateDetectionResult> {
   const candidateTokens = new Set(input.candidateTokens);
+  const candidateExactLookupKey = input.candidateExactLookupKey ?? input.candidateFingerprint;
   const useLLM = chat?.isConfigured ?? false;
   const preFilterThreshold = useLLM ? LLM_PREFILTER_THRESHOLD : input.threshold;
 
@@ -247,7 +269,7 @@ export async function detectDuplicates(
     const match = checkTrapDuplicate(
       candidateTokens,
       input.candidateKeywords,
-      input.candidateFingerprint,
+      candidateExactLookupKey,
       entry,
       input.threshold,
       preFilterThreshold,
@@ -265,7 +287,7 @@ export async function detectDuplicates(
     const match = checkSkillDuplicate(
       candidateTokens,
       input.candidateKeywords,
-      input.candidateFingerprint,
+      candidateExactLookupKey,
       artifact,
       input.threshold,
       preFilterThreshold,
@@ -282,7 +304,8 @@ export async function detectDuplicates(
 
   if (useLLM && allMatches.length > 0) {
     // Take top-K for LLM refinement
-    const topK = allMatches.slice(0, LLM_TOP_K);
+    const exactMatches = allMatches.filter((match) => match.matchType === 'exact');
+    const topK = allMatches.filter((match) => match.matchType !== 'exact').slice(0, LLM_TOP_K);
     const refinedMatches: DuplicateMatch[] = [];
 
     for (const match of topK) {
@@ -333,7 +356,7 @@ export async function detectDuplicates(
       // If LLM says not a duplicate or low confidence, exclude the match
     }
 
-    matches = refinedMatches;
+    matches = [...exactMatches, ...refinedMatches];
   } else {
     // Pure Jaccard fallback — use original threshold
     matches = allMatches.filter((m) => m.similarityScore >= input.threshold);

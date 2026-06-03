@@ -176,6 +176,14 @@ export interface CandidateSkillPayloadShape {
   files: CandidateSkillFileEntry[];
 }
 
+function isDerivationEligibleSkillFile(file: CandidateSkillFileEntry): boolean {
+  return file.path === 'SKILL.md' || file.path.startsWith('references/');
+}
+
+function sortSkillFilesByPath(files: CandidateSkillFileEntry[]): CandidateSkillFileEntry[] {
+  return [...files].sort((a, b) => a.path.localeCompare(b.path));
+}
+
 /**
  * Lightweight profile derived from a skill candidate submission.
  * Returned by `extractCandidateSkillProfile` when a SKILL.md is present
@@ -187,6 +195,39 @@ export interface CandidateSkillProfile {
   title: string;
   summary: string;
   keywords: string[];
+}
+
+/**
+ * Compute the exact-match lookup key for a skill candidate.
+ *
+ * The approved artifact side stores two exact-match-friendly hashes:
+ * - `profile.contentHash` when the derivation text is available
+ * - `profile.sourceHash` when only derivation-eligible file hashes are known
+ *
+ * Candidate submissions usually retain file hashes but not full file bodies,
+ * so we align the exact lane to whichever signal is available at submission
+ * time. When all derivation-eligible file contents are present we reproduce
+ * the retrieval-grade `contentHash`; otherwise we fall back to the stored
+ * `sourceHash` semantics derived from eligible file SHA-256 values.
+ */
+export function computeSkillExactLookupKey(skill: CandidateSkillPayloadShape): string {
+  const eligibleFiles = sortSkillFilesByPath(skill.files.filter(isDerivationEligibleSkillFile));
+
+  if (eligibleFiles.length === 0) {
+    const fallbackHashes = skill.files
+      .map((file) => file.sha256 ?? '')
+      .sort()
+      .join('\n\n');
+    return createHash('sha256').update(fallbackHashes, 'utf8').digest('hex');
+  }
+
+  const eligibleContents = eligibleFiles.map((file) => file.content ?? file.text);
+  if (eligibleContents.every((content): content is string => typeof content === 'string')) {
+    return createHash('sha256').update(eligibleContents.join('\n\n'), 'utf8').digest('hex');
+  }
+
+  const eligibleHashes = eligibleFiles.map((file) => file.sha256 ?? '').join('\n\n');
+  return createHash('sha256').update(eligibleHashes, 'utf8').digest('hex');
 }
 
 /**
@@ -271,7 +312,7 @@ export function extractCandidateSkillProfile(
  * - titleText: derived profile title, else first file path, else candidate id
  * - bodyText: derived profile summary, else joined file paths
  * - keywordTerms: derived profile keywords when available, else empty
- * - tokenTerms: tokens of the bodyText
+ * - tokenTerms: tokens of the titleText + bodyText
  */
 export function buildNormalizedDuplicateInput(
   candidate: CandidateSubmission,
@@ -309,7 +350,8 @@ export function buildNormalizedDuplicateInput(
   const titleText = profile?.title ?? skill.files[0]?.path ?? candidate.id;
   const bodyText = profile?.summary ?? skill.files.map((file) => file.path).join('\n');
   const keywordTerms = profile?.keywords ?? [];
-  const tokenTerms = [...tokenize(bodyText)];
+  const tokenTerms = [...tokenize(`${titleText}\n${bodyText}`)];
+  const exactLookupKey = computeSkillExactLookupKey(skill);
 
   return {
     sourceType: 'skill',
@@ -318,6 +360,6 @@ export function buildNormalizedDuplicateInput(
     bodyText,
     keywordTerms,
     tokenTerms,
-    exactLookupKey: fingerprint,
+    exactLookupKey,
   };
 }

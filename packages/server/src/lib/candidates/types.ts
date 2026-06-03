@@ -40,6 +40,8 @@ export interface CandidateFingerprintInput {
 export interface DuplicateDetectionInput {
   candidateId: string;
   candidateFingerprint: string;
+  /** Exact-match lookup key (Phase 1). */
+  candidateExactLookupKey?: string;
   candidateKeywords: string[];
   candidateTokens: string[];
   trapEntries: KnowledgeRecord[];

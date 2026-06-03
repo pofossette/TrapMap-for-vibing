@@ -128,6 +128,7 @@ export async function processCandidate(
           candidateTokens: normalized.tokenTerms,
           candidateKeywords: normalized.keywordTerms,
           candidateFingerprint: normalized.fingerprint,
+          candidateExactLookupKey: normalized.exactLookupKey,
           candidateTitle: normalized.titleText,
           candidateBody: normalized.bodyText,
           teamId: candidate.teamId,
@@ -142,6 +143,7 @@ export async function processCandidate(
       const detectionInput: DuplicateDetectionInput = {
         candidateId,
         candidateFingerprint: normalized.fingerprint,
+        candidateExactLookupKey: normalized.exactLookupKey,
         candidateKeywords: normalized.keywordTerms,
         candidateTokens: normalized.tokenTerms,
         candidateTitle: normalized.titleText,

@@ -450,6 +450,7 @@ describe('detectDuplicates', () => {
       candidateTokens: tokens,
       candidateKeywords: ['fingerprint'],
       candidateFingerprint: contentHash, // match the contentHash
+      candidateExactLookupKey: contentHash,
       skillArtifacts: [skill],
       threshold: 0.3,
     });
@@ -458,6 +459,54 @@ describe('detectDuplicates', () => {
     expect(result.duplicateCase).not.toBeNull();
     const match = result.duplicateCase!.matches[0];
     expect(match.matchType).toBe('exact');
+  });
+
+  it('skill exact lookup key bypasses the similarity threshold', async () => {
+    const sourceHash = 's'.repeat(64);
+    const skill = createTestSkill({
+      id: 'skill_exact_source_hash',
+      lifecycleState: 'approved',
+      latestRevision: {
+        revision: 1,
+        sourceHash: 'hash',
+        files: [],
+        submittedAt: nowIso(),
+        submittedByUserId: 'user_1',
+        scriptDescriptors: [],
+        derived: {
+          profile: {
+            artifactId: 'skill_exact_source_hash',
+            revision: 1,
+            sourceHash,
+            title: 'Production Runbook',
+            summary: 'Rotate database credentials during incident response.',
+            keywords: ['runbook'],
+            referencePaths: [],
+            contentHash: 'c'.repeat(64),
+          },
+          capsules: [],
+          clientManifest: null,
+          sourceHash,
+          derivedAt: nowIso(),
+        },
+      },
+    });
+
+    const input = createTestInput({
+      candidateTokens: ['totally', 'different', 'words'],
+      candidateKeywords: ['unrelated'],
+      candidateFingerprint: 'f'.repeat(64),
+      candidateExactLookupKey: sourceHash,
+      skillArtifacts: [skill],
+      threshold: 0.95,
+    });
+
+    const result = await detectDuplicates(input);
+    expect(result.duplicateCase).not.toBeNull();
+    expect(result.duplicateCase!.matches[0]?.entityId).toBe('skill_exact_source_hash');
+    expect(result.duplicateCase!.matches[0]?.matchType).toBe('exact');
+    expect(result.duplicateCase!.matches[0]?.similarityScore).toBe(1);
+    expect(result.duplicateCase!.duplicateType).toBe('exact');
   });
 
   // ---- Trap exact fingerprint lane (Phase 1) ----
@@ -484,6 +533,7 @@ describe('detectDuplicates', () => {
       candidateTokens: tokens,
       candidateKeywords: ['fingerprint'],
       candidateFingerprint: expectedFingerprint, // match the trap fingerprint
+      candidateExactLookupKey: expectedFingerprint,
       trapEntries: [trap],
       threshold: 0.3,
     });
@@ -747,6 +797,7 @@ describe('detectDuplicates', () => {
       candidateTokens: tokens,
       candidateKeywords: ['test'],
       candidateFingerprint: contentHash,
+      candidateExactLookupKey: contentHash,
       skillArtifacts: [skill],
       threshold: 0.3,
     });
@@ -827,6 +878,7 @@ describe('detectDuplicates', () => {
     const result = await detectDuplicates(
       createTestInput({
         candidateFingerprint: contentHash,
+        candidateExactLookupKey: contentHash,
         candidateKeywords: ['trace'],
         candidateTokens: ['exact', 'trace', 'skill', 'summary'],
         skillArtifacts: [skillArtifact],

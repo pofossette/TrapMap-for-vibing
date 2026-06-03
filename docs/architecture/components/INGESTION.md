@@ -313,14 +313,15 @@ async function findDuplicates(
 
 > Phase 1 在两个探测器上同时落地了 **exact-fingerprint lane**：命中即返回 `matchType: 'exact'` 且 `similarityScore: 1`，跳过 Jaccard / pgvector 召回与 LLM 精排开销，保证相同内容在不同探测器之间行为一致。
 
-- **Trap 侧**：`computeTrapFingerprint({shortcut, detail, labels})` 对 `shortcut` / `detail` 做 trim，对 `labels` 做 trim + sort + `,` 拼接，最后以 SHA-256 产出 `candidateFingerprint`。候选生成时同样调用同一函数（`packages/server/src/lib/candidates/fingerprint.ts`），保证规范化口径一致。
-  - In-memory 探测器（`packages/server/src/lib/candidates/detector.ts` 的 `checkTrapDuplicate`）在 Jaccard 评分前先比对 `computeTrapFingerprint(entry)` 与 `candidateFingerprint`，命中则直接返回 `matchType: 'exact'`。
-  - PG 探测器（`packages/server/src/lib/candidates/pg-detector.ts` 的 `detectDuplicatesPg`）在 hybrid 召回与可选 LLM 精排之后，扫描 `fallbackData.trapEntries`，对每个 `lifecycleState === 'approved'` 的 entry 重新计算 trap fingerprint 并比对；命中以 `similarityScore: 1` 前置到 `finalMatches`，并参与后续 `hasExactDuplicate` / `duplicateType` 推导。
-- **Skill 侧**：候选 `candidateFingerprint` 与 `SkillArtifactRecord.latestRevision.derived.profile.contentHash` 做精确比对。
-  - In-memory 探测器（`checkSkillDuplicate`）走同样的内容指纹比对，命中即返回 `matchType: 'exact'`。
-  - PG 探测器（`detectDuplicatesPg`）在 hybrid 召回 + LLM 精排之后扫描 `fallbackData.skillArtifacts`，对每个 `lifecycleState === 'approved'` 且 `derived.profile.contentHash === candidateFingerprint` 的 artifact 产出 exact match。
+- **Trap 侧**：`computeTrapFingerprint({shortcut, detail, labels})` 对 `shortcut` / `detail` 做 trim，对 `labels` 做 trim + sort + `,` 拼接，最后以 SHA-256 产出 trap exact key。候选生成时同样调用同一函数（`packages/server/src/lib/candidates/fingerprint.ts`），保证规范化口径一致。
+  - In-memory 探测器（`packages/server/src/lib/candidates/detector.ts` 的 `checkTrapDuplicate`）在 Jaccard 评分前先比对 `computeTrapFingerprint(entry)` 与 `candidateExactLookupKey`，命中则直接返回 `matchType: 'exact'`。
+  - PG 探测器（`packages/server/src/lib/candidates/pg-detector.ts` 的 `detectDuplicatesPg`）先扫描 `fallbackData.trapEntries`，对每个 `lifecycleState === 'approved'` 的 entry 重新计算 trap fingerprint 并比对；一旦命中，直接 early-return exact duplicate case，不再继续 embedding / recall / LLM。
+- **Skill 侧**：候选 exact key 与已批准工件的 `derived.profile.contentHash` / `derived.profile.sourceHash` 对齐，而不是复用用于语义召回的 candidate fingerprint。
+  - 候选在 `buildNormalizedDuplicateInput()` 中生成两个 key：`fingerprint` 继续服务于分析快照与语义检索，`exactLookupKey` 则优先复现 derivation text 的 `contentHash`；如果提交时没有正文，只保留 derivation-eligible 文件（`SKILL.md` + `references/`）的 `sha256`，则退化为与已批准 profile `sourceHash` 对齐。
+  - In-memory 探测器（`checkSkillDuplicate`）先用 `candidateExactLookupKey` 对比 `profile.contentHash` / `profile.sourceHash`，命中即返回 `matchType: 'exact'`，不会先被相似度阈值过滤。
+  - PG 探测器（`detectDuplicatesPg`）同样先跑 skill exact lane：先看 `fallbackData.skillArtifacts`，再查询 `skill_artifact_profiles.content_hash OR source_hash`；一旦命中，直接 early-return exact duplicate case，不再继续 hybrid recall。
 - **不变量**：两端只要命中 exact lane，`DuplicateCase.duplicateType === 'exact'` 与 `hasExactDuplicate === true` 同时成立；后续 review workflow 与持久化 shape 不变（沿用现有 `DuplicateCase` 字段）。
-- **索引局限**：Phase 1 的 PG 端只复用 `fallbackData` 做 exact 比对，未引入新列 / 索引。`skillArtifactProfiles.contentHash` 已有，但 trap 端尚无 stored fingerprint column —— 因此 exact lane 目前对 hybrid 召回结果不产生 SQL。
+- **索引局限**：Trap 端仍未引入持久化 fingerprint column / exact index，PG exact lane 只能通过 `fallbackData` 对 trap 逐条重算；skill 端已复用 `skill_artifact_profiles.content_hash` 与 `source_hash` 做 SQL exact lookup。
 
 ### Shared normalized candidate input (Phase 2)
 
@@ -334,7 +335,7 @@ async function findDuplicates(
 - `bodyText` — trap: `detail`；skill: SKILL.md 去除首行标题后的余下内容（content 存在时），否则所有文件路径 `\n` 拼接
 - `keywordTerms` — trap: `labels`；skill: 从 SKILL.md 提取的 keywords（content 存在时），否则 `[]`
 - `tokenTerms` — 对 `titleText` + `bodyText` 调用 `tokenize()` 的结果
-- `exactLookupKey` — 与 `fingerprint` 同值（Phase 1 exact lane 复用此 key）
+- `exactLookupKey` — trap 与 `fingerprint` 同值；skill 单独走 `computeSkillExactLookupKey()`，优先对齐 derivation text 的 `contentHash`，否则退化为 derivation-eligible 文件哈希形成的 `sourceHash`
 
 调用方（`packages/server/src/lib/candidates/processor.ts`）把同一 `normalized` 对象传给两个探测器：
 
@@ -346,7 +347,7 @@ async function findDuplicates(
 > 当前实现已经进入分层重复检测路径：候选先规范化，再经过 exact lane、PostgreSQL trap+skill 混合召回、统一排序，以及可选的 top-K LLM 精排。后续阶段（见根目录 `plan.md`）仍会继续补齐 trap 指纹持久化、队列去重和 rollout 校准，但本节描述的六层管线已经是当前的实现方向而非纯 future-state 占位。后续编辑本节时，请保持下表与 `plan.md` 中"Example Target Shapes"以及完成备注中冻结的字段名一致。
 
 1. **Normalize candidate input** — 由共享 helper（`packages/server/src/lib/candidates/fingerprint.ts` 中的规范化器）将 trap 与 skill 候选都转成 `NormalizedDuplicateInput`：`sourceType`、`fingerprint`、`titleText`、`bodyText`、`keywordTerms`、`tokenTerms`、`exactLookupKey`。
-2. **Exact fingerprint lane** — 命中即返回 `matchType: 'exact'`，跳过全表扫描。trap 通过新增的 exact 查找列/索引匹配，skill 复用 `derived.profile.contentHash` 等已有字段。（Phase 1 已部分落地：in-memory 与 PG 探测器都跑 exact lane，但 trap 端仍依赖 on-the-fly 重新计算指纹，未持久化。）
+2. **Exact fingerprint lane** — 命中即返回 `matchType: 'exact'`，跳过 Jaccard / pgvector / LLM。trap 仍依赖 on-the-fly 重新计算指纹；skill 复用 `derived.profile.contentHash` / `sourceHash` 这些已有字段。
 3. **Indexed PostgreSQL recall** — `packages/server/src/lib/candidates/pg-detector.ts` 在 PostgreSQL 中并行执行四条召回通道：trap embeddings、trap keywords、skill capsule/profile embeddings、skill capsule/profile keywords。
 4. **Merge + preserve exact hits** — SQL 召回结果先归一化为统一候选 shape，再与 exact-fingerprint lane 命中合并；exact 命中始终保留并前置，不会被后续 top-K 截断覆盖。
 5. **Score + rerank top-K** — trap + skill 的混合候选列表按统一相似度分数排序、去重、截断到 top-K，再交给可选的 LLM 精排。
