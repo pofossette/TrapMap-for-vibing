@@ -22,7 +22,8 @@ export type AiPromptTaskType =
   | 'knowledge-refinement'
   | 'claim-verification'
   | 'graph-extraction'
-  | 'graph-extraction-planner';
+  | 'graph-extraction-planner'
+  | 'label-alignment';
 
 // ---------------------------------------------------------------------------
 // Prompt slots

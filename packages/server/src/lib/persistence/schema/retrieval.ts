@@ -48,6 +48,9 @@ export const graphIndexDocuments = pgTable(
           kind: string;
           label: string;
           evidence: string;
+          rawLabel?: string;
+          canonicalLabelId?: string;
+          alignmentDecision?: string;
         }>
       >()
       .default([]),

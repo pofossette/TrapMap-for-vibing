@@ -203,9 +203,10 @@ export async function syncKnowledgeIndex(
       adapter === graphIndexAdapter
         ? await graphIndexAdapter.sync(
             normalizedDocument,
-            undefined,
+            services.store,
             ai?.chat,
             services.graphQueryBackend,
+            data,
           )
         : await adapter.sync(normalizedDocument);
 

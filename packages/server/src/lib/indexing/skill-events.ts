@@ -20,6 +20,8 @@ import type { LifecycleState } from '@trapmap/contracts';
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
+import { createLabelRepository } from '@trapmap/server/lib/labels/repository.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type {
   SkillArtifactRecord,
   SkillShareerStore,
@@ -538,6 +540,7 @@ export function extractSkillGraphPrimitives(args: {
 export async function buildSkillGraphDocument(
   artifact: SkillArtifactRecord,
   chat?: ChatProvider,
+  store?: SkillShareerStore,
 ): Promise<GraphIndexDocumentRecord | null> {
   const derived = artifact.latestRevision.derived;
 
@@ -577,7 +580,17 @@ export async function buildSkillGraphDocument(
 
   if (chat?.isConfigured) {
     // LLM extraction with rule engine fallback
-    const llmResult = await extractGraphEntitiesWithLLM(chat, canonicalText, { llmEnabled: true });
+    const llmResult = await extractGraphEntitiesWithLLM(chat, canonicalText, {
+      llmEnabled: true,
+      alignmentService:
+        store instanceof PostgresStore
+          ? {
+              chat,
+              repository: createLabelRepository({ pool: store.getPool() }),
+              sourceContext: 'skill-extraction',
+            }
+          : null,
+    });
     nodes = llmResult.nodes;
     edges = llmResult.edges;
   } else {
@@ -681,6 +694,7 @@ export async function runSkillIndexEvent(args: {
   services: {
     store: SkillShareerStore;
     data: StoreData;
+    ai?: { chat: ChatProvider };
     graphQueryBackend?: GraphQueryBackend;
   };
   artifactId: string;
@@ -706,7 +720,7 @@ export async function runSkillIndexEvent(args: {
     switch (action) {
       case 'upsert': {
         // Build the graph document
-        const doc = await buildSkillGraphDocument(artifact);
+        const doc = await buildSkillGraphDocument(artifact, services.ai?.chat, store);
         if (!doc) {
           // No derived content, skip indexing
           return;
@@ -733,6 +747,7 @@ export async function runSkillIndexEvent(args: {
           data: txData,
           artifact,
           store,
+          ...(services.ai ? { chat: services.ai.chat } : {}),
           adapters,
           ...(args.services.graphQueryBackend !== undefined
             ? { graphQueryBackend: args.services.graphQueryBackend }

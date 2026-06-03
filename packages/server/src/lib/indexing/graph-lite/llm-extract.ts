@@ -61,6 +61,12 @@ export interface ExtractGraphOptions {
   promptVersion?: string;
   /** Optional cache for Phase 1 (planning) and Phase 2 (extraction) results. */
   cache?: LlmExtractionCache;
+  /** Optional alignment service for canonical label resolution. */
+  alignmentService?: {
+    chat: ChatProvider | null;
+    repository: unknown | null;
+    sourceContext?: string;
+  } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -337,6 +343,40 @@ export function toGraphRecords(extraction: LlmGraphExtraction): {
   return { nodes, edges };
 }
 
+function dedupeGraphRecords(records: {
+  nodes: GraphNodeRecord[];
+  edges: GraphEdgeRecord[];
+}): { nodes: GraphNodeRecord[]; edges: GraphEdgeRecord[] } {
+  const nodeMap = new Map<string, GraphNodeRecord>();
+  for (const node of records.nodes) {
+    const existing = nodeMap.get(node.id);
+    if (
+      !existing ||
+      node.evidence.length > existing.evidence.length ||
+      (!!node.canonicalLabelId && !existing.canonicalLabelId)
+    ) {
+      nodeMap.set(node.id, node);
+    }
+  }
+
+  const validNodeIds = new Set(nodeMap.keys());
+  const edgeMap = new Map<string, GraphEdgeRecord>();
+  for (const edge of records.edges) {
+    if (!validNodeIds.has(edge.sourceNodeId) || !validNodeIds.has(edge.targetNodeId)) {
+      continue;
+    }
+    const id = buildEdgeId(edge.sourceNodeId, edge.targetNodeId, edge.relationType);
+    if (!edgeMap.has(id)) {
+      edgeMap.set(id, { ...edge, id });
+    }
+  }
+
+  return {
+    nodes: [...nodeMap.values()],
+    edges: [...edgeMap.values()],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Gleaning prompt (secondary extraction)
 // ---------------------------------------------------------------------------
@@ -510,7 +550,33 @@ export async function extractGraphEntitiesWithLLM(
     }
 
     // Convert to typed records
-    const { nodes, edges } = toGraphRecords(merged);
+    let { nodes, edges } = toGraphRecords(merged);
+
+    // Phase 3: Optional canonical label alignment
+    const alignmentService = options?.alignmentService;
+    if (alignmentService && alignmentService.chat && alignmentService.repository) {
+      try {
+        const { alignGraphNodes, rewriteEdgeIds } = await import(
+          '@trapmap/server/lib/labels/graph-align.js'
+        );
+        const alignmentResult = await alignGraphNodes(merged.nodes, {
+          chat: alignmentService.chat,
+          repository: alignmentService.repository as import('@trapmap/server/lib/labels/repository.js').LabelRepository,
+          sourceContext: alignmentService.sourceContext ?? 'extraction',
+        });
+
+        if (alignmentResult.nodeIdMapping.size > 0) {
+          // Rewrite node IDs and edge endpoints
+          nodes = alignmentResult.nodes;
+          edges = rewriteEdgeIds(edges, alignmentResult.nodeIdMapping);
+        } else {
+          // Still apply alignment metadata even if no ID changes
+          nodes = alignmentResult.nodes;
+        }
+      } catch {
+        // Alignment failure is non-fatal — keep raw nodes
+      }
+    }
 
     // If LLM produced no usable nodes, fall back to rule engine
     if (nodes.length === 0 && fallbackDocument) {
@@ -524,13 +590,13 @@ export async function extractGraphEntitiesWithLLM(
       cache.setPhase2(text, { nodes, edges, metrics });
     }
 
-    return { nodes, edges, metrics };
+    return { ...dedupeGraphRecords({ nodes, edges }), metrics };
   } catch {
     // Total failure — fall back to rule engine
     if (fallbackDocument) {
       const { nodes, edges } = ruleEngineFallback(fallbackDocument);
       metrics.fallbackCount = 1;
-      return { nodes, edges, metrics };
+      return { ...dedupeGraphRecords({ nodes, edges }), metrics };
     }
     return { nodes: [], edges: [], metrics };
   }

@@ -560,6 +560,71 @@ active → review-due → stale → expired
 
 ---
 
+## CanonicalLabel（规范标签目录）
+
+> **Canonical Label Catalog 更新**：新增标签合并真实来源，用于图提取和检索阶段的语义合并。已有的 `knowledge_labels` 和 artifact `labels` JSONB 列保持不变。
+
+### canonical_labels（规范标签表）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | string (PK) | 标签唯一标识（如 `lbl_timeout_issue`） |
+| `kind` | string | 标签类型（cue/tool/environment/prerequisite/mitigation） |
+| `canonical_name` | string | 规范名称（如 `timeout-issue`） |
+| `normalized_name` | string | 规范名称的标准化形式（小写、连字符） |
+| `definition` | string? | 可选定义或描述 |
+| `status` | string | 生命周期状态：active / merged / disabled |
+| `merged_into_label_id` | string? | 合并目标标签 ID（可逆合并） |
+| `created_at` | timestamp | 创建时间 |
+| `updated_at` | timestamp | 更新时间 |
+
+唯一索引：`(normalized_name, kind)`
+
+### label_aliases（标签别名表）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `alias` | string | 原始观测别名（如 `pod-timeout`） |
+| `normalized_alias` | string (UNIQUE) | 标准化别名 |
+| `canonical_label_id` | string (FK) | 引用 canonical_labels.id |
+| `source` | string | 来源：manual / llm / backfill |
+| `confidence` | number (0.0-1.0) | 别名映射置信度 |
+| `created_at` | timestamp | 创建时间 |
+
+### canonical_label_embeddings（标签嵌入表）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `canonical_label_id` | string (PK, FK) | 引用 canonical_labels.id（一对一） |
+| `vector` | vector(384) | pgvector 嵌入向量 |
+| `content_hash` | string | 生成嵌入的文本 SHA-256 |
+| `created_at` | timestamp | 创建时间 |
+| `updated_at` | timestamp | 更新时间 |
+
+### label_alignment_events（标签对齐事件表）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | string (PK) | 事件唯一标识 |
+| `raw_label` | string | 待对齐的原始标签 |
+| `raw_evidence` | string | 原始证据文本 |
+| `decision` | string | 对齐决策：existing / new / unsure |
+| `canonical_label_id` | string? | 规范标签 ID（existing 决策） |
+| `canonical_name` | string? | 规范名称（new 决策） |
+| `confidence` | number | LLM 置信度 |
+| `reasoning` | string | LLM 推理说明 |
+| `candidate_snapshot` | jsonb | 呈现给 LLM 的候选表快照 |
+| `source_context` | string | 触发来源：extraction / backfill / repair / manual |
+| `created_at` | timestamp | 创建时间 |
+
+### 与已有标签的关系
+
+- `knowledge_labels` 表和 `skill_artifacts.labels` JSONB 列保持不变，作为源面向元数据。
+- `canonical_labels` 是合并后的真实来源，图节点通过 `canonicalLabelId` 引用。
+- 原始标签保留为 `rawLabel` 字段存储在图节点和对齐事件中。
+
+---
+
 ## Schema 文件索引
 
 | 文件 | 主要类型 |
@@ -599,8 +664,11 @@ active → review-due → stale → expired
 | Retrieval: Keyword | `createPgKeywordRecall()` (PG) | `PgKeywordAdapter` | `knowledge_keywords` (text[] GIN) |
 | Retrieval: Full-text | — | — | `knowledge_search_documents` (tsvector GIN) |
 | Retrieval: Graph | `GraphQueryBackend` → `GraphIndexRepository` (PG truth) / optional Neo4j projection | `PgGraphIndexRepository` + optional Neo4j projector | `graph_index_documents` (JSONB nodes/edges, canonical) + optional Neo4j query store |
+| Canonical Labels | `LabelRepository` (PG) | `PgLabelRepository` | `canonical_labels` / `label_aliases` / `canonical_label_embeddings` / `label_alignment_events` |
 
 > **Phase 3 更新**：Neo4j 图库不是新的持久化真相层。它只接收由 `GraphIndexDocumentRecord` 映射出的 `Source` / `GraphNode` / `REL` 投影，用于 one-hop expansion、relation strength、mitigation lookup 和 bounded local expansion。禁用 Neo4j 时，系统对外行为回到 PG + Graphology 路径；需要重建时，直接从 `graph_index_documents` 全量回填即可。
+
+> **Canonical Label Catalog 更新**：新增 `canonical_labels` 表作为标签合并的真实来源。`canonical_labels` 存储规范化的标签身份，`label_aliases` 存储原始观测别名，`canonical_label_embeddings` 存储 384 维 pgvector 向量用于语义召回，`label_alignment_events` 记录所有对齐决策（包括 `unsure` 审计事件）。已有的 `knowledge_labels` 和 artifact `labels` JSONB 列保持不变，不做删除。
 | User / Team / Session / AccessKey / Audit 等 | PG repo → 结构化表（users, teams, memberships, sessions, access_keys, audit_events） | PG repo → 结构化表 | PG 模式通过 `repos.*` 直接读写结构化表；JSON 模式走 InMemory；`store_snapshot` 仅作为未迁移辅助域兼容层 |
 
 ### 已删除的兼容层

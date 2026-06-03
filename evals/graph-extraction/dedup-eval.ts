@@ -339,6 +339,32 @@ export const dedupFixtures: DedupFixture[] = [
     },
     expectedOverlapType: 'semantic',
   },
+  // 21. Canonical label equivalent: timeout-issue vs pod-timeout
+  {
+    id: 'canonical-timeout-issue-vs-pod-timeout',
+    candidate: {
+      title: 'pod-timeout',
+      body: 'Kubernetes pod restarts after startup timeout. The readiness probe fails because the application takes too long to start.',
+    },
+    existing: {
+      title: 'timeout-issue',
+      body: 'Startup or health-check timeout that aborts workload readiness. The container receives SIGTERM before the application is ready.',
+    },
+    expectedOverlapType: 'semantic',
+  },
+  // 22. Canonical label equivalent: container-timeout vs crashloopbackoff
+  {
+    id: 'canonical-container-timeout-vs-crashloopbackoff',
+    candidate: {
+      title: 'container-timeout',
+      body: 'Container fails to start within the configured timeout period, resulting in repeated restarts.',
+    },
+    existing: {
+      title: 'crashloopbackoff',
+      body: 'Pod enters CrashLoopBackOff state because the container keeps crashing on startup.',
+    },
+    expectedOverlapType: 'semantic',
+  },
 ];
 
 // ---------------------------------------------------------------------------

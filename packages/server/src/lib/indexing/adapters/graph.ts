@@ -24,9 +24,11 @@ import {
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
 } from '@trapmap/server/lib/indexing/graph-lite/store.js';
+import { createLabelRepository } from '@trapmap/server/lib/labels/repository.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { IndexAdapter, IndexSyncResult } from '@trapmap/server/lib/indexing/types.js';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { buildTrapGraphDocument } from './graph-builders.js';
 
@@ -84,6 +86,7 @@ export const graphIndexAdapter: IndexAdapter & {
     store?: SkillShareerStore,
     chat?: ChatProvider,
     graphQueryBackend?: GraphQueryBackend,
+    storeData?: Pick<StoreData, 'graphIndexDocuments'>,
   ): Promise<IndexSyncResult>;
   remove(
     ref: { entryId: string; revision: number },
@@ -98,6 +101,7 @@ export const graphIndexAdapter: IndexAdapter & {
     store?: SkillShareerStore,
     chat?: ChatProvider,
     graphQueryBackend?: GraphQueryBackend,
+    storeData?: Pick<StoreData, 'graphIndexDocuments'>,
   ): Promise<IndexSyncResult> {
     const cacheKey = `${document.entryId}:${document.revision}`;
     const existingState = graphStateCache.get(cacheKey);
@@ -122,7 +126,18 @@ export const graphIndexAdapter: IndexAdapter & {
       const llmResult = await extractGraphEntitiesWithLLM(
         chat ?? { provider: 'none', isConfigured: false, invoke: async () => '' },
         document.canonicalText,
-        { llmEnabled: !!chat?.isConfigured, cache: llmCache },
+        {
+          llmEnabled: !!chat?.isConfigured,
+          cache: llmCache,
+          alignmentService:
+            chat?.isConfigured && store instanceof PostgresStore
+              ? {
+                  chat,
+                  repository: createLabelRepository({ pool: store.getPool() }),
+                  sourceContext: 'trap-extraction',
+                }
+              : null,
+        },
         document,
       );
       const extractionResult = { nodes: llmResult.nodes, edges: llmResult.edges };
@@ -143,7 +158,19 @@ export const graphIndexAdapter: IndexAdapter & {
       });
 
       // Store-backed persistence path
-      if (store) {
+      if (storeData) {
+        const existingDocs = storeData.graphIndexDocuments.filter(
+          (d) =>
+            !(
+              d.sourceType === 'trap' &&
+              d.sourceId === document.entryId &&
+              d.revision === document.revision
+            ),
+        );
+        existingDocs.push(candidateDoc);
+        assertNoHardDependencyCycles(existingDocs);
+        upsertGraphIndexDocument(storeData, candidateDoc);
+      } else if (store) {
         await store.transact((data) => {
           // Validate hard-edge cycle: load existing docs excluding current source/revision,
           // append the candidate, and check for cycles

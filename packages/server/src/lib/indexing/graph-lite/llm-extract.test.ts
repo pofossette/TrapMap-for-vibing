@@ -3,11 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import type { LlmGraphExtraction } from '@trapmap/contracts';
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
 
 // Mock the prompt builders to avoid template file dependency
 vi.mock('../../ai/prompts.js', () => ({
   buildGraphExtractionPlannerSlots_default: () => ({}),
   buildGraphExtractionSlots_default: () => ({}),
+  buildLabelAlignmentSlots_default: () => ({}),
   buildPrompt: vi.fn(() => 'mock system prompt'),
 }));
 
@@ -48,6 +50,54 @@ function unconfiguredChat(): ChatProvider {
       throw new Error('not configured');
     }),
   };
+}
+
+function mockLabelRepository(): LabelRepository {
+  return {
+    findCanonicalById: vi.fn().mockResolvedValue(null),
+    findCanonicalByAlias: vi.fn().mockImplementation(async (alias: string) => {
+      if (alias === 'pod-timeout' || alias === 'timeout-issue') {
+        return {
+          id: 'lbl_timeout',
+          kind: 'cue',
+          canonicalName: 'timeout-issue',
+          normalizedName: 'timeout-issue',
+          definition: null,
+          status: 'active',
+          mergedIntoLabelId: null,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        };
+      }
+      return null;
+    }),
+    upsertCanonicalLabel: vi.fn().mockResolvedValue(null),
+    upsertAlias: vi.fn().mockResolvedValue(undefined),
+    searchCandidates: vi.fn().mockResolvedValue([
+      {
+        label: {
+          id: 'lbl_timeout',
+          kind: 'cue',
+          canonicalName: 'timeout-issue',
+          normalizedName: 'timeout-issue',
+          definition: null,
+          status: 'active',
+          mergedIntoLabelId: null,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+        aliases: ['pod-timeout'],
+        recallReason: 'normalized-name',
+      },
+    ]),
+    searchCandidatesByEmbedding: vi.fn().mockResolvedValue([]),
+    upsertEmbedding: vi.fn().mockResolvedValue(undefined),
+    recordAlignmentEvent: vi.fn().mockResolvedValue(undefined),
+    mergeCanonicalLabels: vi.fn().mockResolvedValue(undefined),
+    listActive: vi.fn().mockResolvedValue([]),
+    listAliases: vi.fn().mockResolvedValue([{ alias: 'pod-timeout' }]),
+    listAlignmentEvents: vi.fn().mockResolvedValue([]),
+  } as unknown as LabelRepository;
 }
 
 const SAMPLE_EXTRACTION_JSON = JSON.stringify({
@@ -477,6 +527,45 @@ describe('llm-extract', () => {
       };
       const result = await extractGraphEntitiesWithLLM(chat, 'short text', {}, mockDocument);
       expect(result.metrics.fallbackCount).toBe(1);
+    });
+
+    it('deduplicates aligned nodes that resolve to the same canonical label', async () => {
+      const alignedExtraction = JSON.stringify({
+        nodes: [
+          { kind: 'cue', label: 'pod-timeout', description: 'pod startup timeout' },
+          { kind: 'cue', label: 'timeout-issue', description: 'startup timeout' },
+        ],
+        edges: [],
+      });
+      const chat = mockChat([
+        alignedExtraction,
+        JSON.stringify({ nodes: [], edges: [] }),
+        JSON.stringify({
+          decision: 'existing',
+          canonicalLabelId: 'lbl_timeout',
+          confidence: 0.95,
+          reasoning: 'pod-timeout matches timeout-issue',
+        }),
+        JSON.stringify({
+          decision: 'existing',
+          canonicalLabelId: 'lbl_timeout',
+          confidence: 0.99,
+          reasoning: 'timeout-issue already canonical',
+        }),
+      ]);
+
+      const result = await extractGraphEntitiesWithLLM(chat, 'timeout text', {
+        llmEnabled: true,
+        alignmentService: {
+          chat,
+          repository: mockLabelRepository(),
+          sourceContext: 'test',
+        },
+      });
+
+      expect(result.nodes).toHaveLength(1);
+      expect(result.nodes[0]?.id).toBe('cue:lbl_timeout');
+      expect(result.nodes[0]?.canonicalLabelId).toBe('lbl_timeout');
     });
   });
 

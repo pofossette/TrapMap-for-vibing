@@ -384,12 +384,63 @@ const handCraftedFixtures: GraphExtractionFixture[] = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Canonical label alignment fixtures
+// ---------------------------------------------------------------------------
+
 /**
- * All graph extraction fixtures: hand-crafted + real-skill derived.
+ * Fixtures for testing canonical label alignment.
+ * These fixtures test that semantically equivalent labels resolve to one canonical label.
+ */
+export const canonicalLabelFixtures: GraphExtractionFixture[] = [
+  {
+    id: 'canonical-cue-timeout-issue-vs-pod-timeout',
+    input:
+      'Kubernetes pods fail readiness because the pod startup timeout is too short. ' +
+      'The container receives SIGTERM after the readiness probe exceeds the timeout threshold.',
+    expectedNodes: [
+      { kind: 'cue', label: 'pod-timeout' },
+      { kind: 'tool', label: 'kubernetes' },
+    ],
+    expectedEdges: [
+      { source: 'kubernetes', target: 'pod-timeout', type: 'co-occurs-with', strength: 'soft' },
+    ],
+  },
+  {
+    id: 'canonical-multilingual-alias',
+    input:
+      'The deployment fails with "CrashLoopBackOff" status. ' +
+      'Pod restarts occur repeatedly because the application crashes on startup.',
+    expectedNodes: [
+      { kind: 'cue', label: 'crashloopbackoff' },
+      { kind: 'trap', label: 'startup-crash' },
+    ],
+    expectedEdges: [
+      { source: 'crashloopbackoff', target: 'startup-crash', type: 'co-occurs-with', strength: 'soft' },
+    ],
+  },
+  {
+    id: 'canonical-near-miss-false-positive',
+    input:
+      'Memory leak in the connection pool causes gradual OOM. ' +
+      'The issue is unrelated to CPU throttling or disk I/O bottlenecks.',
+    expectedNodes: [
+      { kind: 'trap', label: 'memory-leak' },
+      { kind: 'cue', label: 'oom' },
+    ],
+    expectedEdges: [
+      { source: 'oom', target: 'memory-leak', type: 'co-occurs-with', strength: 'soft' },
+    ],
+  },
+];
+
+/**
+ * All graph extraction fixtures: hand-crafted + real-skill + canonical-label.
  */
 export const graphExtractionFixtures: GraphExtractionFixture[] = [
   ...handCraftedFixtures,
   ...realSkillGraphFixtures,
+  ...canonicalLabelFixtures,
 ];
 
 /**

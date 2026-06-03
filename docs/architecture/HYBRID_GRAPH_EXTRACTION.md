@@ -568,6 +568,40 @@
 | 不确定性 | contentHash 缓存保证一致性 |
 | Prompt 升级 | promptVersion 递增 → 全量 cache miss + 后台重建 |
 
+## 两步提取模式：原始提取 + 规范对齐
+
+图提取现在分为两个显式阶段：
+
+### 阶段 1：原始提取（现有）
+
+`extractGraphEntitiesWithLLM()` 执行原始图提取：文本分段 → LLM 实体提取 → 合并 → 转换为 GraphNodeRecord/GraphEdgeRecord。
+
+### 阶段 2：规范标签对齐（新增）
+
+在原始提取完成后、节点 ID 生成之前，插入标签对齐阶段：
+
+```
+原始提取结果 (raw nodes/edges)
+  → 候选召回 (candidate-recall.ts)
+     - exact alias → normalized name → embedding similarity
+  → LLM 标签对齐 (llm-align.ts)
+     - prompt: label-alignment (独立任务类型，不复用 graph-extraction)
+     - 输入: rawLabel + evidence + compact candidate table (max 5)
+     - 输出: existing | new | unsure (Zod 严格验证)
+  → 规范重写
+     - existing: 重写 node ID 为 canonicalLabelId，添加别名
+     - new: 创建规范标签 + 别名，重写 node ID
+     - unsure: 记录审计事件，保持 raw label
+  → 持久化图文档
+```
+
+### 关键约束
+
+- `label-alignment` 是独立的 `AiPromptTaskType`，不复用 `graph-extraction` prompt。
+- 候选表是精选紧凑的（max 5，hard max 8），不是整个目录。
+- `unsure` 安全落地为可审计事件，不静默硬合并。
+- 当 chat 或 embeddings 不可用时，跳过规范合并，保持 raw label，不损坏图状态。
+
 ## 关键文件索引
 
 | 职责 | 文件 | 操作 |
