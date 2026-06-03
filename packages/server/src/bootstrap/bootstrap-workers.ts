@@ -27,6 +27,8 @@ export async function bootstrapWorkers(app: FastifyInstance): Promise<void> {
     usePgDuplicateDetection: () => app.skillShareer.ai.embeddings.isConfigured,
     // candidate processing via PG repository
     candidateRepo: app.skillShareer.repos.candidate,
+    // LLM-based duplicate adjudication
+    chat: app.skillShareer.ai.chat,
   });
 
   const worker = createTaskWorker({

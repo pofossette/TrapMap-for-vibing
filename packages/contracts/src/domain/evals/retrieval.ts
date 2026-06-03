@@ -5,7 +5,8 @@
  * These contracts support the repo-root `evals/` workspace and Phase 26 execution.
  *
  * Key design decisions:
- * - Endpoint specificity: `/v1/retrieval/search`, `/v2/retrieval/search`, and `/v3/retrieval/search` are distinct targets
+ * - Endpoint specificity: `/v1/retrieval/search`, `/v1/retrieval/skills/search-by-content`,
+ *   `/v2/retrieval/search`, and `/v3/retrieval/search` are distinct targets
  * - Governance vs relevance separation: every case has separate assertion groups
  * - Scenario/case split: fixture state is reusable across endpoint slices
  */
@@ -34,12 +35,14 @@ export type RetrievalEvalTier = z.infer<typeof retrievalEvalTierSchema>;
 /**
  * Explicit endpoint targeting for retrieval eval cases.
  * v1 returns bucketed results (globalConstraints, projectKnowledge).
+ * v1 skill lookup returns artifact-first matches (`matches`) sourced from the capsule pipeline.
  * v2 returns capsule-first results with profile hints.
  * v3 returns either a graph plan or a governed fallback payload with routing trace.
  * These are kept distinct to prevent endpoint adapter drift.
  */
 export const retrievalEvalEndpointSchema = z.enum([
   '/v1/retrieval/search',
+  '/v1/retrieval/skills/search-by-content',
   '/v2/retrieval/search',
   '/v3/retrieval/search',
 ]);
@@ -215,7 +218,8 @@ export type GraphPlanExpectations = z.infer<typeof graphPlanExpectationsSchema>;
 
 /**
  * Shape expectations for endpoint-specific response validation.
- * v1 cases can assert bucket splits; v2 cases can assert capsule/profile shapes.
+ * v1 search cases can assert bucket splits; v1 skill lookup cases can assert matched artifacts.
+ * v2 cases can assert capsule/profile shapes.
  * v3 cases can assert graph-plan structure (nodes, edges, focus).
  */
 export const retrievalEvalShapeExpectationsSchema = z.object({
@@ -226,6 +230,8 @@ export const retrievalEvalShapeExpectationsSchema = z.object({
   bucketExpectations: z
     .record(z.enum(['globalConstraints', 'projectKnowledge']), z.array(entityIdSchema))
     .optional(),
+  /** Expected artifact IDs for v1 skill lookup responses */
+  expectedArtifactIds: z.array(entityIdSchema).default([]),
   /** Expected profile hint artifact IDs for v2 responses */
   expectedProfileHintArtifactIds: z.array(entityIdSchema).default([]),
   /** Expected capsule count for v2 responses (optional) */
@@ -269,7 +275,7 @@ export type RetrievalEvalExpected = z.infer<typeof retrievalEvalExpectedSchema>;
  * Cases reference scenarios for fixture state and actor context.
  *
  * Design constraints enforced:
- * - Endpoint must be explicit ('/v1/retrieval/search', '/v2/retrieval/search', or '/v3/retrieval/search')
+ * - Endpoint must be explicit
  * - Relevance and governance are separate assertion groups
  * - Schema version field supports future contract evolution
  */

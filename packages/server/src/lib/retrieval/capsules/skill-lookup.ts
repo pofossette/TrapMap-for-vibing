@@ -2,10 +2,8 @@
  * Skill lookup helper for Phase 18 CLI skill search-by-content command (SKED-01).
  * Provides artifact-first search by ranking governed capsules and collapsing to unique artifacts.
  *
- * Reuses existing capsule ranking and governance patterns from Phase 14:
- * - rankCapsules: content-based ranking with intent signals
- * - isArtifactGovernanceEligible: approval/team/level filtering
- * - parseSeedIntent: seed-to-intent parsing
+ * Uses the shared CapsuleRecallCoordinator for multi-channel recall (heuristic, keyword,
+ * semantic, graph) with merge + rerank, matching the v2 retrieval pipeline.
  */
 
 import type {
@@ -17,10 +15,18 @@ import type {
 import { skillLookupQuerySchema } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 import type { CapsuleCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
-import { isArtifactGovernanceEligible, rankCapsules } from './capsule-recall.js';
+import {
+  CapsuleRecallCoordinator,
+  createDefaultCapsuleRecallCoordinator,
+} from './capsule-recall-coordinator.js';
+import {
+  createFullCapsuleChannelRegistry,
+} from './capsule-channel-registry.js';
+import { isArtifactGovernanceEligible } from './capsule-recall.js';
 import { InMemoryIntentCache } from './intent-cache.js';
 import { parseSeedIntentWithLLM } from './intent.js';
 
@@ -139,14 +145,26 @@ export async function searchSkillsByContent(
     return { matches: [] };
   }
 
-  // Rank capsules against parsed intent (CAPS-04)
-  // Request more results than needed to allow for dedupe
-  const rankedCandidates = rankCapsules(
-    governedArtifacts,
+  // Rank capsules using shared CapsuleRecallCoordinator (multi-channel recall + merge + rerank)
+  // This replaces the standalone rankCapsules() path to reuse the same indexed recall,
+  // governance, and observability as v2 capsule retrieval.
+  const pgPool = services.store instanceof PostgresStore ? services.store.getPool() : null;
+  const channelRegistry = await createFullCapsuleChannelRegistry({
+    pgPool,
+    pgKeywordFlag: () => process.env.RETRIEVAL_CAPSULE_PG_KEYWORD === 'true',
+    pgSemanticFlag: () => process.env.RETRIEVAL_CAPSULE_PG_SEMANTIC === 'true',
+    graphQueryBackend: services.graphQueryBackend,
+  });
+  const coordinator = new CapsuleRecallCoordinator(channelRegistry);
+
+  const recallResult = await coordinator.execute({
+    artifacts: governedArtifacts,
     intent,
     governanceFilters,
-    parsed.maxResults * 3,
-  );
+    maxResults: parsed.maxResults * 3,
+  });
+
+  const rankedCandidates = recallResult.capsuleCandidates;
 
   // Dedupe to unique artifacts
   const uniqueCandidates = dedupeByArtifactId(rankedCandidates);

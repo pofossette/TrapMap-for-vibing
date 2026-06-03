@@ -8,7 +8,6 @@ import type { FastifyPluginAsync } from 'fastify';
 import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { artifactGraphIndexAdapter } from '@trapmap/server/lib/indexing/adapters/artifact-graph.js';
 import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import {
@@ -228,7 +227,6 @@ export const skillReviewRoutes: FastifyPluginAsync = async (app) => {
         previousState: result.previousState,
         nextState: result.newState,
         reason: `reviewer-${body.decision}`,
-        adapters: [artifactGraphIndexAdapter],
       });
     }
 

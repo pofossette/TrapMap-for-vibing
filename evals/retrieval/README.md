@@ -25,14 +25,16 @@ pnpm eval:retrieval --tier smoke --endpoint /v2/retrieval/search
 | 端点 | 响应形状 | 说明 |
 |------|----------|------|
 | `/v1/retrieval/search` | 分桶（`globalConstraints`、`projectKnowledge`） | 旧版端点，兼容性敏感 |
+| `/v1/retrieval/skills/search-by-content` | artifact-first（`matches`） | 复用共享 capsule recall，但保持 artifact-first HTTP 契约 |
 | `/v2/retrieval/search` | 胶囊优先（`capsules`、`profileHints`） | 当前推荐端点 |
 | `/v3/retrieval/search` | 图规划包装（`plan` 或 governed `fallback`） | 附加 GraphRAG-lite 路由，含路由追踪 |
 
-### v1 vs v2 vs v3 区别
+### v1 vs skill-lookup vs v2 vs v3 区别
 
 检索接口具有实质不同的响应契约：
 
 - **v1** 返回分为 `globalConstraints` 和 `projectKnowledge` 桶的知识条目
+- **v1 skill lookup** 返回 artifact-first `matches`，每条仅保留 artifact 元数据与分数/原因
 - **v2** 返回提炼的胶囊，附带用于激活的 `profileHints`
 - **v3** 返回陷阱优先执行计划或治理回退载荷，外加路由追踪元数据
 
@@ -57,6 +59,7 @@ pnpm eval:retrieval --tier smoke --endpoint /v2/retrieval/search
 | `v1-semantic-positive-smoke` | `/v1/retrieval/search` | 正向可见命中 |
 | `v1-semantic-empty-smoke` | `/v1/retrieval/search` | 空结果 |
 | `v1-semantic-forbidden-smoke` | `/v1/retrieval/search` | 禁止结果 |
+| `v1-skill-lookup-positive-smoke` | `/v1/retrieval/skills/search-by-content` | artifact-first 正向命中 |
 | `v2-capsule-positive-smoke` | `/v2/retrieval/search` | 正向可见命中 |
 | `v2-capsule-empty-smoke` | `/v2/retrieval/search` | 空结果 |
 | `v2-capsule-forbidden-smoke` | `/v2/retrieval/search` | 禁止结果 |
@@ -75,6 +78,7 @@ pnpm eval:retrieval --tier smoke --endpoint /v2/retrieval/search
 | `v1-graph-assisted-ranked-core` | `/v1/retrieval/search` | 图辅助模式 |
 | `v1-bucket-shape-core` | `/v1/retrieval/search` | 桶分割验证 |
 | `v1-low-maxresults-core` | `/v1/retrieval/search` | 低 maxResults 排名守卫（top-1 排序稳定性） |
+| `v1-skill-lookup-governance-core` | `/v1/retrieval/skills/search-by-content` | artifact-first 治理边界 |
 | `v2-capsule-ranked-core` | `/v2/retrieval/search` | 胶囊排序 |
 | `v2-profile-hints-core` | `/v2/retrieval/search` | 配置文件提示验证 |
 | `v2-governance-core` | `/v2/retrieval/search` | 禁止泄漏 |
@@ -111,6 +115,8 @@ export const myCase = retrievalEvalCaseSchema.parse({
   },
 });
 ```
+
+`/v1/retrieval/skills/search-by-content` 仍复用统一的 `request.seed` 数据集字段；运行器会在执行时将其映射为真实路由需要的 `text` 请求体，从而保持数据集作者不必为该 endpoint 单独建一套 request schema。
 
 ## 治理断言
 

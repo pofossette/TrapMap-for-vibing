@@ -13,12 +13,14 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { JsonStore } from '@trapmap/server/lib/store.js';
 import type { SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
 import { createEmptyStoreData, nowIso } from '@trapmap/server/lib/store.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 import {
   getArtifactAdapters,
   registerArtifactAdapters,
+  resolveArtifactAdapters,
   runArtifactAdapterFanOut,
   runArtifactAdapterRemoval,
 } from './artifact-pipeline.js';
@@ -140,6 +142,16 @@ describe('artifact-pipeline', () => {
     it('defaults to empty array', () => {
       expect(getArtifactAdapters()).toEqual([]);
     });
+
+    it('resolves the shared default graph adapter when nothing is registered', () => {
+      const store = new JsonStore('/tmp/trapmap-artifact-pipeline-test.json');
+
+      const resolved = resolveArtifactAdapters(store);
+
+      expect(resolved).toHaveLength(1);
+      expect(typeof resolved[0]!.sync).toBe('function');
+      expect(typeof resolved[0]!.remove).toBe('function');
+    });
   });
 
   describe('runArtifactAdapterFanOut', () => {
@@ -201,6 +213,22 @@ describe('artifact-pipeline', () => {
       });
 
       expect(adapter.sync).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses store-resolved adapters when none are registered', async () => {
+      registerArtifactAdapters([]);
+      const store = new JsonStore('/tmp/trapmap-artifact-fanout-test.json');
+      const data = createTestData();
+      const artifact = createTestArtifact();
+
+      await runArtifactAdapterFanOut({
+        data,
+        artifact,
+        store,
+      });
+
+      expect(data.graphIndexDocuments).toHaveLength(1);
+      expect(data.graphIndexDocuments[0]?.sourceId).toBe(artifact.id);
     });
 
     it('uses adapters parameter when provided (override)', async () => {
@@ -337,6 +365,28 @@ describe('artifact-pipeline', () => {
       });
 
       expect(adapter.remove).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses store-resolved adapters for removal when none are registered', async () => {
+      registerArtifactAdapters([]);
+      const store = new JsonStore('/tmp/trapmap-artifact-removal-test.json');
+      const data = createTestData();
+      const artifact = createTestArtifact();
+
+      await runArtifactAdapterFanOut({
+        data,
+        artifact,
+        store,
+      });
+      expect(data.graphIndexDocuments).toHaveLength(1);
+
+      await runArtifactAdapterRemoval({
+        data,
+        artifactId: artifact.id,
+        store,
+      });
+
+      expect(data.graphIndexDocuments).toHaveLength(0);
     });
 
     it('uses adapters parameter when provided', async () => {

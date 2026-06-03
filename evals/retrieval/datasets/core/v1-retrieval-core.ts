@@ -315,6 +315,44 @@ export const v1LowMaxResultsCore = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 
 // =============================================================================
+// v1 Core: Skill Lookup Governance
+// =============================================================================
+
+/**
+ * Case: Search artifact content via skill lookup with mixed visibility.
+ * Only governed artifacts should appear in the artifact-first response.
+ */
+export const v1SkillLookupGovernanceCore = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v1-skill-lookup-governance-core',
+  tier: 'core',
+  endpoint: '/v1/retrieval/skills/search-by-content',
+  request: {
+    seed: 'API REST GraphQL security',
+    maxResults: 10,
+  },
+  scenarioId: 'core-mixed-visibility',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['artifact_core_api_allowed'],
+      idealOrder: ['artifact_core_api_allowed'],
+    },
+    governance: {
+      forbiddenIds: [
+        'artifact_core_api_other',
+        'artifact_core_api_secure',
+      ],
+      forbiddenReasons: ['cross-team', 'security-level'],
+    },
+    shape: {
+      expectedArtifactIds: ['artifact_core_api_allowed'],
+    },
+  },
+  tags: ['governance', 'v1', 'core', 'skill-lookup', 'capsule', 'governance-sensitive'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
 // Aggregated v1 Core Cases Export
 // =============================================================================
 
@@ -329,4 +367,5 @@ export const v1RetrievalCoreCases: RetrievalEvalCase[] = [
   v1GovernanceCore,
   v1LabelFilterCore,
   v1LowMaxResultsCore,
+  v1SkillLookupGovernanceCore,
 ];

@@ -38,6 +38,7 @@ const makeCaseResult = (overrides: Partial<CaseResult> = {}): CaseResult => ({
     returnedIds: [],
     buckets: { globalConstraints: [], projectKnowledge: [] },
     profileHintArtifactIds: [],
+    artifactIds: [],
     isEmpty: true,
     rawResponse: {},
     endpoint: '/v1/retrieval/search',
@@ -427,6 +428,37 @@ describe('routing trace fields', () => {
         percentage: 100,
       },
     ]);
+  });
+
+  it('classifies search-by-content slices and cohorts as capsule route family', () => {
+    const caseResults = [
+      makeCaseResult({
+        case: {
+          ...makeCaseResult().case,
+          caseId: 'skill-lookup-case',
+          endpoint: '/v1/retrieval/skills/search-by-content',
+          request: { seed: 'docker compose setup' },
+        },
+        result: {
+          ...makeCaseResult().result,
+          endpoint: '/v1/retrieval/skills/search-by-content',
+          returnedIds: ['artifact_1'],
+          artifactIds: ['artifact_1'],
+          isEmpty: false,
+        } as NormalizedResult,
+        execution: {
+          ...makeCaseResult().execution,
+          endpoint: '/v1/retrieval/skills/search-by-content',
+        },
+        passed: true,
+      }),
+    ];
+
+    const report = buildReport(caseResults, makeOptions(), 100);
+
+    expect(report.slices[0]?.slice.endpoint).toBe('/v1/retrieval/skills/search-by-content');
+    expect(report.slices[0]?.routeFamily).toBe('capsule');
+    expect(report.cohorts[0]?.cohort.routeFamily).toBe('capsule');
   });
 
   it('omits missing routing reasons instead of emitting invalid synthetic values', () => {

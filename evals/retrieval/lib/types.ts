@@ -97,7 +97,7 @@ export interface NormalizedHit {
 }
 
 /**
- * Normalized bucket map for v1 responses.
+ * Normalized bucket map for entry-style responses.
  * Preserves the bucket split for shape assertions.
  */
 export interface BucketMap {
@@ -118,6 +118,8 @@ export interface NormalizedResult {
   buckets: BucketMap;
   /** Profile hint artifact IDs for v2 responses (empty for v1) */
   profileHintArtifactIds: string[];
+  /** Artifact IDs returned directly by artifact-first lookup routes */
+  artifactIds?: string[];
   /** Whether the result was empty */
   isEmpty: boolean;
   /** Raw response for diagnostics (endpoint-specific) */
@@ -274,9 +276,10 @@ export function deriveQueryType(tags: string[]): QueryTypeCohort {
 
 /**
  * Derive route family from endpoint.
- * v1 uses 'entry', v2 uses 'capsule', v3 uses 'graph-plan'.
+ * v1 search uses 'entry', v1 skill lookup and v2 use 'capsule', v3 uses 'graph-plan'.
  */
 export function deriveRouteFamily(endpoint: string): 'entry' | 'capsule' | 'graph-plan' {
+  if (endpoint === '/v1/retrieval/skills/search-by-content') return 'capsule';
   if (endpoint.startsWith('/v1')) return 'entry';
   if (endpoint.startsWith('/v2')) return 'capsule';
   return 'graph-plan';

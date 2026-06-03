@@ -351,11 +351,40 @@ export function createCapsuleIndexSync(config: CapsuleIndexSyncConfig) {
     };
   }
 
+  /**
+   * Get all capsule IDs currently indexed for an artifact.
+   *
+   * Queries the keyword table (authoritative for capsule presence).
+   */
+  async function getIndexedCapsuleIds(artifactId: string): Promise<string[]> {
+    const rows = await db
+      .select({ capsuleId: schema.skillArtifactCapsuleKeywords.capsuleId })
+      .from(schema.skillArtifactCapsuleKeywords)
+      .where(sql`${schema.skillArtifactCapsuleKeywords.artifactId} = ${artifactId}`);
+    return rows.map((r) => r.capsuleId);
+  }
+
+  /**
+   * Remove all capsule index rows for an artifact.
+   *
+   * Used when an artifact leaves the approved lifecycle state.
+   */
+  async function removeCapsuleIndexesForArtifact(artifactId: string): Promise<void> {
+    await db
+      .delete(schema.skillArtifactCapsuleKeywords)
+      .where(sql`${schema.skillArtifactCapsuleKeywords.artifactId} = ${artifactId}`);
+    await db
+      .delete(schema.skillArtifactCapsuleEmbeddings)
+      .where(sql`${schema.skillArtifactCapsuleEmbeddings.artifactId} = ${artifactId}`);
+  }
+
   return {
     syncArtifactCapsules,
     syncKeywordTokens,
     syncEmbedding,
     removeCapsuleIndex,
+    removeCapsuleIndexesForArtifact,
+    getIndexedCapsuleIds,
     getSyncStatus,
   };
 }

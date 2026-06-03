@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildServer } from '@trapmap/server/app.js';
 import { bootstrapCandidateRecovery } from './bootstrap-candidate-recovery.js';
 import { bootstrapLifecycle } from './bootstrap-lifecycle.js';
+import { getArtifactAdapters } from '@trapmap/server/lib/indexing/artifact-pipeline.js';
 
 describe('startup sequence', () => {
   it('initializes repos before candidate recovery', async () => {
@@ -127,5 +128,15 @@ describe('startup sequence', () => {
 
     expect(registeredEvents).toContain('knowledge.resubmitted');
     expect(registeredEvents).toContain('knowledge.re-review');
+  });
+
+  it('registers shared artifact adapters during startup', async () => {
+    const server = buildServer();
+    await server.ready();
+
+    const adapters = getArtifactAdapters();
+    expect(adapters.length).toBeGreaterThanOrEqual(1);
+
+    await server.close();
   });
 });

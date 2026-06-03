@@ -637,21 +637,25 @@ Phase 6 补齐了多路召回管线的可持续运维能力：索引同步、重
 ##### 数据重建入口
 
 ```bash
-# 完整重建（清空索引表 → 遍历所有 artifact → 重新生成 keyword tokens + embedding vectors）
-# 调用: rebuildAllCapsuleIndexes({ pool, artifacts, onProgress? })
+# 完整重建（清空索引表 → 遍历所有 approved artifact → 重新生成 keyword tokens + embedding vectors）
+# 运维入口: POST /v1/operations/capsule-index/rebuild { "mode": "full" }
+# 底层调用: rebuildAllCapsuleIndexes({ pool, artifacts, onProgress? })
 
 # 单 artifact 重建
-# 调用: rebuildCapsuleIndexForArtifact({ pool, artifacts }, artifactId)
+# 运维入口: POST /v1/operations/capsule-index/rebuild { "mode": "artifact", "artifactId": "<artifact-id>" }
+# 底层调用: rebuildCapsuleIndexForArtifact({ pool, artifacts }, artifactId)
 
 # 健康对账（只读，不修改数据）
-# 调用: verifyCapsuleIndexHealth({ pool, artifacts })
+# 运维入口: GET /v1/operations/capsule-index/health
+# 底层调用: verifyCapsuleIndexHealth({ pool, artifacts })
 # 返回: { missingKeywords, missingEmbeddings, failedKeywords, failedEmbeddings, orphanKeywords, orphanEmbeddings }
 
 # 孤立清理
-# 调用: cleanupOrphanCapsuleIndexes({ pool, artifacts })
+# 运维入口: POST /v1/operations/capsule-index/cleanup-orphans
+# 底层调用: cleanupOrphanCapsuleIndexes({ pool, artifacts })
 ```
 
-**注意**: 索引数据是派生数据，source of truth 始终是 `artifact.latestRevision.derived.capsules`。索引重建不会丢失数据，只需重新执行同步逻辑即可。
+**注意**: 索引数据是派生数据，source of truth 始终是 `artifact.latestRevision.derived.capsules`。稳定运维路由只针对 `lifecycleState === 'approved'` 的 artifact 执行 rebuild/health/cleanup；索引重建不会丢失数据，只需重新执行同步逻辑即可。
 
 ##### Capsule-First Recall 约束与 Fallback
 

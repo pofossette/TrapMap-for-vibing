@@ -5,6 +5,7 @@ import {
   artifactsExportRoutes,
   artifactsImportRoutes,
   auditRoutes,
+  capsuleIndexRoutes,
   knowledgeLegacyRoutes,
   migrateRoutes,
   skillEditRoutes,
@@ -21,6 +22,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
   await app.register(artifactsExportRoutes);
   await app.register(artifactsImportRoutes);
   await app.register(artifactsActivateRoutes);
+  await app.register(capsuleIndexRoutes);
   await app.register(migrateRoutes);
   await app.register(statusRoutes);
   await app.register(skillEditRoutes);

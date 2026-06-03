@@ -25,6 +25,11 @@ import type {
   SkillShareerStore,
   StoreData,
 } from '@trapmap/server/lib/store.js';
+import {
+  resolveArtifactAdapters,
+  runArtifactAdapterFanOut,
+  runArtifactAdapterRemoval,
+} from './artifact-pipeline.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 import type {
   GraphEdgeRecord,
@@ -641,17 +646,17 @@ export async function buildSkillGraphDocument(
  * @returns The index action to perform: 'upsert', 'remove', or 'noop'
  */
 export function determineSkillIndexAction(
-  _previousState: LifecycleState,
+  previousState: LifecycleState,
   nextState: LifecycleState,
 ): 'upsert' | 'remove' | 'noop' {
+  // Leaving approved - always remove index (agent-pass, agent-rejected, rejected, deactivated)
+  if (previousState === 'approved' && nextState !== 'approved') {
+    return 'remove';
+  }
+
   // Transition to approved - sync index
   if (nextState === 'approved') {
     return 'upsert';
-  }
-
-  // Transition to deactivated - remove index
-  if (nextState === 'deactivated') {
-    return 'remove';
   }
 
   // All other transitions are no-ops for indexing
@@ -682,10 +687,11 @@ export async function runSkillIndexEvent(args: {
   previousState: LifecycleState;
   nextState: LifecycleState;
   reason: string;
-  adapters: ArtifactGraphAdapter[];
+  adapters?: ArtifactGraphAdapter[];
 }): Promise<void> {
-  const { services, artifactId, previousState, nextState, adapters } = args;
+  const { services, artifactId, previousState, nextState } = args;
   const { store, data: _data } = services;
+  const adapters = args.adapters ?? resolveArtifactAdapters(store);
 
   const action = determineSkillIndexAction(previousState, nextState);
 
@@ -723,30 +729,32 @@ export async function runSkillIndexEvent(args: {
           throw error;
         }
 
-        // Fan out to adapters
-        for (const adapter of adapters) {
-          await adapter.sync({
-            data: txData,
-            artifact,
-            ...(args.services.graphQueryBackend !== undefined
-              ? { graphQueryBackend: args.services.graphQueryBackend }
-              : {}),
-          });
+        const result = await runArtifactAdapterFanOut({
+          data: txData,
+          artifact,
+          store,
+          adapters,
+          ...(args.services.graphQueryBackend !== undefined
+            ? { graphQueryBackend: args.services.graphQueryBackend }
+            : {}),
+        });
+        const firstFailure = result.results.find((entry) => !entry.success);
+        if (firstFailure) {
+          throw new Error(firstFailure.error ?? `Artifact indexing failed for ${artifactId}`);
         }
         break;
       }
 
       case 'remove': {
-        // Remove from all adapters
-        for (const adapter of adapters) {
-          await adapter.remove({
-            data: txData,
-            artifactId,
-            ...(args.services.graphQueryBackend !== undefined
-              ? { graphQueryBackend: args.services.graphQueryBackend }
-              : {}),
-          });
-        }
+        await runArtifactAdapterRemoval({
+          data: txData,
+          artifactId,
+          store,
+          adapters,
+          ...(args.services.graphQueryBackend !== undefined
+            ? { graphQueryBackend: args.services.graphQueryBackend }
+            : {}),
+        });
         break;
       }
 

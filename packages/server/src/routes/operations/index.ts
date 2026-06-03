@@ -3,6 +3,7 @@ export { knowledgeLegacyRoutes } from './knowledge-legacy.js';
 export { artifactsImportRoutes } from './artifacts-import.js';
 export { artifactsExportRoutes } from './artifacts-export.js';
 export { artifactsActivateRoutes } from './artifacts-activate.js';
+export { capsuleIndexRoutes } from './capsule-index.js';
 export { migrateRoutes } from './migrate.js';
 export { statusRoutes } from './status.js';
 export { skillEditRoutes } from './skill-edit.js';

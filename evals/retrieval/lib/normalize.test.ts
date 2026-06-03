@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import type {
   GraphPlanSearchResponse,
   RetrievalResponse,
+  SkillLookupResponse,
   RetrievalV2ResponseWithHints,
 } from '@trapmap/contracts';
 import {
@@ -19,6 +20,7 @@ import {
   extractV2ProfileHintArtifactIds,
   normalizeResponse,
   normalizeV1Response,
+  normalizeV1SkillLookupResponse,
   normalizeV2Response,
   normalizeV3Response,
 } from './normalize.js';
@@ -280,6 +282,47 @@ describe('normalize', () => {
     });
   });
 
+  describe('normalizeV1SkillLookupResponse', () => {
+    it('normalizes artifact-first skill lookup responses into shared result shape', () => {
+      const response: SkillLookupResponse = {
+        matches: [
+          {
+            artifactId: 'artifact_1',
+            title: 'Docker Skills',
+            slug: 'docker-skills',
+            labels: ['docker'],
+            scope: 'project',
+            requiredLevel: 3,
+            sourceKind: 'skill-directory',
+            score: 0.91,
+            reason: 'Strong capsule recall match',
+          },
+          {
+            artifactId: 'artifact_2',
+            title: 'Compose Skills',
+            slug: 'compose-skills',
+            labels: ['compose'],
+            scope: 'global',
+            requiredLevel: 1,
+            sourceKind: 'single-skill-md',
+            score: 0.72,
+            reason: 'Secondary match',
+          },
+        ],
+      };
+
+      const result = normalizeV1SkillLookupResponse(response);
+
+      expect(result.endpoint).toBe('/v1/retrieval/skills/search-by-content');
+      expect(result.returnedIds).toEqual(['artifact_1', 'artifact_2']);
+      expect(result.artifactIds).toEqual(['artifact_1', 'artifact_2']);
+      expect(result.profileHintArtifactIds).toEqual([]);
+      expect(result.buckets.globalConstraints).toEqual([]);
+      expect(result.buckets.projectKnowledge).toEqual([]);
+      expect(result.isEmpty).toBe(false);
+    });
+  });
+
   describe('normalizeV3Response', () => {
     it('normalizes selected graph-plan response into shared result shape', () => {
       const response: GraphPlanSearchResponse = {
@@ -515,6 +558,30 @@ describe('normalize', () => {
       expect(result.endpoint).toBe('/v2/retrieval/search');
       expect(result.returnedIds).toEqual(['capsule_1']);
     });
+
+    it('dispatches to v1 skill lookup normalizer for search-by-content endpoint', () => {
+      const response: SkillLookupResponse = {
+        matches: [
+          {
+            artifactId: 'artifact_1',
+            title: 'Docker Skills',
+            slug: 'docker-skills',
+            labels: ['docker'],
+            scope: 'project',
+            requiredLevel: 3,
+            sourceKind: 'skill-directory',
+            score: 0.9,
+            reason: 'Match',
+          },
+        ],
+      };
+
+      const result = normalizeResponse(response, '/v1/retrieval/skills/search-by-content');
+
+      expect(result.endpoint).toBe('/v1/retrieval/skills/search-by-content');
+      expect(result.returnedIds).toEqual(['artifact_1']);
+      expect(result.artifactIds).toEqual(['artifact_1']);
+    });
   });
 
   describe('extractV1Ids', () => {
@@ -658,6 +725,16 @@ describe('normalize', () => {
       const result = normalizeV2Response(response);
 
       expect(result.endpoint).toBe('/v2/retrieval/search');
+    });
+
+    it('v1 skill lookup result preserves endpoint identity', () => {
+      const response: SkillLookupResponse = {
+        matches: [],
+      };
+
+      const result = normalizeV1SkillLookupResponse(response);
+
+      expect(result.endpoint).toBe('/v1/retrieval/skills/search-by-content');
     });
   });
 

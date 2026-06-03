@@ -1,7 +1,9 @@
 export {
   CapsuleChannelRegistry,
   createDefaultCapsuleChannelRegistry,
+  createFullCapsuleChannelRegistry,
 } from './capsule-channel-registry.js';
+export type { FullCapsuleChannelRegistryOptions } from './capsule-channel-registry.js';
 export {
   CapsuleRecallCoordinator,
   createDefaultCapsuleRecallCoordinator,
