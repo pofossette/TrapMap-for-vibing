@@ -79,6 +79,7 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
       candidateTokens: string[];
       candidateKeywords: string[];
       candidateFingerprint: string;
+      candidateExactLookupKey?: string;
       teamId: string | null;
       maxMatches?: number;
       /** Optional normalized title (Phase 2) for LLM refinement. */
@@ -104,6 +105,7 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
     };
   }> {
     const maxMatches = input.maxMatches ?? 10;
+    const candidateExactLookupKey = input.candidateExactLookupKey ?? input.candidateFingerprint;
 
     // Feature flag check - fall back to in-memory if disabled
     if (config.featureFlag && !config.featureFlag()) {
@@ -137,7 +139,7 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
           detail: entry.detail,
           labels: entry.labels,
         });
-        if (trapFingerprint !== input.candidateFingerprint) continue;
+        if (trapFingerprint !== candidateExactLookupKey) continue;
         const key = `trap:${entry.id}`;
         if (exactMatchKeys.has(key)) continue;
         exactMatchKeys.add(key);
@@ -162,7 +164,12 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
         if (artifact.lifecycleState !== 'approved') continue;
         const profile = artifact.latestRevision.derived?.profile;
         if (!profile) continue;
-        if (profile.contentHash !== input.candidateFingerprint) continue;
+        if (
+          profile.contentHash !== candidateExactLookupKey &&
+          profile.sourceHash !== candidateExactLookupKey
+        ) {
+          continue;
+        }
         const key = `skill:${artifact.id}`;
         if (exactMatchKeys.has(key)) continue;
         exactMatchKeys.add(key);
@@ -198,7 +205,10 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
           input.teamId !== null
             ? or(eq(skillArtifacts.teamId, input.teamId), sql`${skillArtifacts.teamId} IS NULL`)
             : sql`${skillArtifacts.teamId} IS NULL`,
-          eq(skillArtifactProfiles.contentHash, input.candidateFingerprint),
+          or(
+            eq(skillArtifactProfiles.contentHash, candidateExactLookupKey),
+            eq(skillArtifactProfiles.sourceHash, candidateExactLookupKey),
+          ),
         ),
       );
 
@@ -231,6 +241,32 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
           textOverlapPercent: 100,
         },
       });
+    }
+
+    if (exactMatches.length > 0) {
+      exactMatches.sort((a, b) => b.similarityScore - a.similarityScore);
+      return {
+        duplicateCase: {
+          id: createDuplicateCaseId(),
+          candidateId: input.candidateId,
+          detectedAt: normalizedAt,
+          detectionVersion: DETECTION_VERSION,
+          matches: exactMatches,
+          highestSimilarity: 1,
+          hasExactDuplicate: true,
+          duplicateType: 'exact',
+        },
+        analysisSnapshot: {
+          normalizedAt,
+          fingerprint: input.candidateFingerprint,
+          keywords: input.candidateKeywords,
+          tokens: input.candidateTokens,
+          duplicateTrace: {
+            detector: 'postgresql',
+            matchedLane: 'exact',
+          },
+        },
+      };
     }
 
     // Channel 1: Vector similarity search

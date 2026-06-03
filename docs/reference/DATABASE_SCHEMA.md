@@ -262,6 +262,10 @@ updated_at          timestamptz
 
 **索引**: status, team_id, source_type
 
+说明：
+- `analysis_snapshot.duplicateTrace` / `candidate_analyses.duplicate_trace` 持久化 duplicate lane 来源：`detector` 与 `matchedLane`
+- 候选 exact lane 不单独落列；trap exact 依赖运行时重算指纹，skill exact 复用已持久化的 `skill_artifact_profiles.source_hash` / `content_hash`
+
 ### knowledge_embeddings
 
 ```sql

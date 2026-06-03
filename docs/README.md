@@ -137,6 +137,7 @@ pnpm eval:ci
 ### 架构与 API
 - [架构概览](../architecture.md) — 四层架构概览
 - [架构详解](architecture/ARCHITECTURE.md) — 系统设计、流程图、模块划分
+- [摄取与重复检测分层管线](architecture/components/INGESTION.md) — candidate normalize、exact lane、PostgreSQL trap+skill recall、queue dedupe、duplicate trace
 - [System Truth Sources](reference/SYSTEM_TRUTH_SOURCES.md) — 架构事实、入口文件与文档参考规则
 - [仓库目录结构](reference/REPO_STRUCTURE.md) — 根目录、packages、docs、evals、归档目录的权威布局规则
 - [模块详解](architecture/MODULES.md) — 详细模块分解

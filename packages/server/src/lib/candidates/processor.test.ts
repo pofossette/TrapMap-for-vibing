@@ -331,6 +331,7 @@ describe('processCandidate', () => {
       expect.objectContaining({
         candidateId: 'cand_skill_1',
         candidateFingerprint: 'skill-fp-abc',
+        candidateExactLookupKey: 'skill-fp-abc',
         candidateTitle: 'My Skill Title',
         candidateBody: 'My skill body content for embedding',
         candidateKeywords: ['tool'],
@@ -365,6 +366,7 @@ describe('processCandidate', () => {
       expect.objectContaining({
         candidateId: 'cand_skill_1',
         candidateFingerprint: 'skill-fp-abc',
+        candidateExactLookupKey: 'skill-fp-abc',
         candidateText: 'My Skill Title\nMy skill body content for embedding',
         candidateTitle: 'My Skill Title',
         candidateBody: 'My skill body content for embedding',

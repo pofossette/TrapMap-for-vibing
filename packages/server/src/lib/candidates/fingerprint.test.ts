@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildNormalizedDuplicateInput,
   computeCandidateFingerprint,
+  computeSkillExactLookupKey,
   computeSkillFingerprint,
   computeTrapFingerprint,
   createAnalysisSnapshot,
@@ -212,6 +213,58 @@ describe('computeSkillFingerprint', () => {
       files: [{ path: 'index.ts', sha256: 'changed' }],
     });
     expect(a).not.toBe(b);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// computeSkillExactLookupKey
+// ---------------------------------------------------------------------------
+describe('computeSkillExactLookupKey', () => {
+  it('uses derivation-eligible file hashes in deterministic path order when content is unavailable', () => {
+    const a = computeSkillExactLookupKey({
+      files: [
+        { path: 'references/z.md', sha256: 'z'.repeat(64) },
+        { path: 'SKILL.md', sha256: 'a'.repeat(64) },
+        { path: 'assets/logo.png', sha256: 'ignored'.repeat(10) },
+      ],
+    });
+
+    const b = computeSkillExactLookupKey({
+      files: [
+        { path: 'SKILL.md', sha256: 'a'.repeat(64) },
+        { path: 'references/z.md', sha256: 'z'.repeat(64) },
+      ],
+    });
+
+    expect(a).toBe(b);
+    expect(a).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('uses derivation-eligible file content when all eligible content is available', () => {
+    const withContent = computeSkillExactLookupKey({
+      files: [
+        {
+          path: 'SKILL.md',
+          sha256: 'a'.repeat(64),
+          content: '# Deploy\n\nUse kubectl apply.',
+        },
+        {
+          path: 'references/runbook.md',
+          sha256: 'b'.repeat(64),
+          text: 'Rollback with kubectl rollout undo.',
+        },
+      ],
+    });
+
+    const byHashOnly = computeSkillExactLookupKey({
+      files: [
+        { path: 'SKILL.md', sha256: 'a'.repeat(64) },
+        { path: 'references/runbook.md', sha256: 'b'.repeat(64) },
+      ],
+    });
+
+    expect(withContent).not.toBe(byHashOnly);
+    expect(withContent).toMatch(/^[0-9a-f]{64}$/);
   });
 });
 
@@ -525,6 +578,8 @@ describe('buildNormalizedDuplicateInput', () => {
     expect(normalized.titleText).toBe('Skill Title Heading');
     expect(normalized.bodyText).toContain('body of the skill document');
     expect(normalized.tokenTerms.length).toBeGreaterThan(0);
+    expect(normalized.tokenTerms).toContain('skill');
+    expect(normalized.tokenTerms).toContain('title');
     expect(normalized.fingerprint).toMatch(/^[0-9a-f]{64}$/);
   });
 
@@ -563,10 +618,43 @@ describe('buildNormalizedDuplicateInput', () => {
     expect(normalized.tokenTerms.length).toBeGreaterThan(0);
   });
 
-  it('for a skill candidate exactLookupKey equals the fingerprint', () => {
-    const candidate = makeSkillCandidate();
+  it('for a skill candidate without derivation text exactLookupKey differs from fingerprint and follows eligible file hashes', () => {
+    const candidate = makeSkillCandidate({
+      originalPayload: {
+        skill: {
+          files: [
+            {
+              path: 'SKILL.md',
+              sha256: '1'.repeat(64),
+              sizeBytes: 200,
+              mediaType: 'text/markdown',
+            },
+            {
+              path: 'references/usage.md',
+              sha256: '2'.repeat(64),
+              sizeBytes: 150,
+              mediaType: 'text/markdown',
+            },
+            {
+              path: 'scripts/run.ts',
+              sha256: '3'.repeat(64),
+              sizeBytes: 80,
+              mediaType: 'text/typescript',
+            },
+          ],
+          metadata: {
+            title: 'My Skill',
+            slug: 'my-skill',
+            labels: ['tool'],
+          },
+        },
+      },
+    });
     const normalized = buildNormalizedDuplicateInput(candidate);
-    expect(normalized.exactLookupKey).toBe(normalized.fingerprint);
+    expect(normalized.exactLookupKey).toBe(
+      computeSkillExactLookupKey(candidate.originalPayload.skill!),
+    );
+    expect(normalized.exactLookupKey).not.toBe(normalized.fingerprint);
   });
 
   it('for a skill candidate with no files falls back to candidate id and empty tokenTerms', () => {
@@ -586,6 +674,6 @@ describe('buildNormalizedDuplicateInput', () => {
     expect(normalized.sourceType).toBe('skill');
     expect(normalized.titleText).toBe('cand_skill_1');
     expect(normalized.bodyText).toBe('');
-    expect(normalized.tokenTerms).toEqual([]);
+    expect(normalized.tokenTerms).toEqual(['cand', 'skill']);
   });
 });

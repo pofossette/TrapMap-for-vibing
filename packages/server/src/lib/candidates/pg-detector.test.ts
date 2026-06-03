@@ -334,6 +334,7 @@ describe('createPgDuplicateDetector — skill exact-contentHash lane', () => {
         candidateTokens: ['skill', 'content'],
         candidateKeywords: ['test'],
         candidateFingerprint: contentHash,
+        candidateExactLookupKey: contentHash,
         teamId: null,
       },
       {
@@ -366,6 +367,7 @@ describe('createPgDuplicateDetector — skill exact-contentHash lane', () => {
         candidateTokens: ['exact', 'skill', 'content'],
         candidateKeywords: ['test'],
         candidateFingerprint: contentHash,
+        candidateExactLookupKey: contentHash,
         teamId: null,
         maxMatches: 1,
       },
@@ -378,6 +380,77 @@ describe('createPgDuplicateDetector — skill exact-contentHash lane', () => {
     expect(result.duplicateCase).not.toBeNull();
     expect(result.duplicateCase!.matches).toHaveLength(2);
     expect(result.duplicateCase!.matches.every((match) => match.matchType === 'exact')).toBe(true);
+  });
+
+  it('short-circuits before PostgreSQL recall when an exact match is found via sourceHash', async () => {
+    const sourceHash = 'd'.repeat(64);
+    let recallQuerySeen = false;
+
+    const pool = buildMockPool((queryText) => {
+      if (
+        queryText.includes('knowledge_embeddings') ||
+        queryText.includes('knowledge_keywords') ||
+        queryText.includes('skill_artifact_capsule_embeddings') ||
+        queryText.includes('skill_artifact_capsule_keywords')
+      ) {
+        recallQuerySeen = true;
+      }
+      return { rows: [], rowCount: 0 };
+    });
+
+    const skill = createTestSkill('c'.repeat(64), {
+      id: 'skill_exact_source_hash',
+      latestRevision: {
+        revision: 1,
+        sourceHash,
+        files: [],
+        submittedAt: nowIso(),
+        submittedByUserId: 'user_1',
+        scriptDescriptors: [],
+        derived: {
+          profile: {
+            artifactId: 'skill_exact_source_hash',
+            revision: 1,
+            sourceHash,
+            title: 'Source Hash Skill',
+            summary: 'Matches by derivation-eligible file hashes.',
+            keywords: ['source-hash'],
+            referencePaths: [],
+            contentHash: 'c'.repeat(64),
+          },
+          capsules: [],
+          clientManifest: null,
+          sourceHash,
+          derivedAt: nowIso(),
+        },
+      },
+    });
+
+    const detect = createPgDuplicateDetector({ pool: pool as never });
+    const result = await detect(
+      {
+        candidateId: 'cand_source_hash_exact',
+        candidateText: 'unrelated text that should never be embedded',
+        candidateTokens: ['unrelated'],
+        candidateKeywords: ['unrelated'],
+        candidateFingerprint: 'f'.repeat(64),
+        candidateExactLookupKey: sourceHash,
+        teamId: null,
+      },
+      {
+        trapEntries: [],
+        skillArtifacts: [skill],
+      },
+    );
+
+    expect(result.duplicateCase).not.toBeNull();
+    expect(result.duplicateCase!.duplicateType).toBe('exact');
+    expect(result.duplicateCase!.matches[0]?.entityId).toBe('skill_exact_source_hash');
+    expect(recallQuerySeen).toBe(false);
+    expect(result.analysisSnapshot.duplicateTrace).toEqual({
+      detector: 'postgresql',
+      matchedLane: 'exact',
+    });
   });
 
   it('skill with overlapping summary but no contentHash match does NOT return matchType "exact"', async () => {
