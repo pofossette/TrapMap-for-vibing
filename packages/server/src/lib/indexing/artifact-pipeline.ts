@@ -12,6 +12,7 @@
  */
 
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { SkillArtifactRecord, SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import { artifactGraphIndexAdapter } from './adapters/artifact-graph.js';
 import { createCapsuleIndexAdapter } from './adapters/capsule-index.js';
@@ -106,6 +107,7 @@ export async function runArtifactAdapterFanOut(args: {
   data: StoreData;
   artifact: SkillArtifactRecord;
   store?: SkillShareerStore;
+  chat?: ChatProvider;
   graphQueryBackend?: Parameters<ArtifactGraphAdapter['sync']>[0]['graphQueryBackend'];
   adapters?: ArtifactGraphAdapter[];
 }): Promise<ArtifactAdapterFanOutResult> {
@@ -119,6 +121,7 @@ export async function runArtifactAdapterFanOut(args: {
       const result = await adapter.sync({
         data,
         artifact,
+        ...(args.chat ? { chat: args.chat } : {}),
         ...(args.graphQueryBackend !== undefined
           ? { graphQueryBackend: args.graphQueryBackend }
           : {}),

@@ -122,3 +122,39 @@ Add entries to `graphExtractionFixtures` array in `fixtures.ts`:
   ],
 }
 ```
+
+## Canonical Label Alignment Fixtures
+
+Fixtures in `canonicalLabelFixtures` (exported from `fixtures.ts`) test the canonical label alignment pipeline. These fixtures verify that:
+
+1. Semantically equivalent labels (e.g., `timeout-issue` vs `pod-timeout`) can be aligned to the same canonical label
+2. Near-miss false positives (e.g., `memory-leak` vs `cpu-throttling`) remain separate
+3. Multilingual aliases are handled correctly
+
+### Metrics
+
+Canonical alignment adds these observability metrics:
+
+| Metric | Description |
+|--------|-------------|
+| Alignment Hit Rate | Fraction of labels that resolved to an existing canonical label |
+| New Label Rate | Fraction of labels that created a new canonical label |
+| Unsure Rate | Fraction of labels that were ambiguous (audit events) |
+| LLM Success Rate | Fraction of alignment calls that succeeded (vs fallback to unsure) |
+
+### Rollout Gates
+
+Before enabling auto-merge by default:
+
+1. Run `pnpm eval:graph-extraction --smoke` and verify no regressions
+2. Run `pnpm eval:dedup:dry-run` and verify canonical fixtures pass
+3. Check `label_alignment_events` table for `unsure` rate < 20%
+4. Check `label_alignment_events` table for average `confidence` > 0.7
+
+### Degraded Mode
+
+When chat or embeddings are unavailable:
+- Alignment is skipped entirely (raw labels preserved)
+- `unsure` events are recorded with reason "Chat provider not configured"
+- Graph state is not corrupted — raw labels remain valid node IDs
+- No silent hard merges occur

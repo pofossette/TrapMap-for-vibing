@@ -133,6 +133,7 @@ export const skillEditRoutes: FastifyPluginAsync = async (app) => {
         services: {
           store: app.skillShareer.store,
           data: await app.skillShareer.store.snapshot(),
+          ai: { chat: app.skillShareer.ai.chat },
           graphQueryBackend: app.skillShareer.graphQueryBackend,
         },
         artifactId,

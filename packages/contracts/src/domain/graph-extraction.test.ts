@@ -4,6 +4,9 @@ import {
   extractionMetricsSchema,
   extractionPlanSchema,
   extractionPlanSegmentSchema,
+  labelAlignmentCandidateSchema,
+  labelAlignmentDecisionSchema,
+  labelAlignmentInputSchema,
   llmGraphEdgeSchema,
   llmGraphExtractionSchema,
   llmGraphNodeSchema,
@@ -236,6 +239,184 @@ describe('graph-extraction schema', () => {
 
     it('rejects negative counts', () => {
       expect(() => extractionMetricsSchema.parse({ llmSuccessCount: -1 })).toThrow();
+    });
+  });
+
+  describe('labelAlignmentCandidateSchema', () => {
+    it('accepts valid candidate with all fields', () => {
+      const result = labelAlignmentCandidateSchema.parse({
+        id: 'lbl_timeout_issue',
+        canonicalName: 'timeout-issue',
+        definition: 'startup or health-check timeout',
+        aliases: ['container-timeout', 'startup-timeout'],
+        recallReason: 'exact-alias',
+      });
+      expect(result.id).toBe('lbl_timeout_issue');
+      expect(result.aliases).toHaveLength(2);
+    });
+
+    it('accepts candidate with optional fields omitted', () => {
+      const result = labelAlignmentCandidateSchema.parse({
+        id: 'lbl_test',
+        canonicalName: 'test-label',
+        recallReason: 'normalized-name',
+      });
+      expect(result.definition).toBeUndefined();
+      expect(result.aliases).toEqual([]);
+    });
+
+    it('rejects invalid recallReason', () => {
+      expect(() =>
+        labelAlignmentCandidateSchema.parse({
+          id: 'lbl_test',
+          canonicalName: 'test',
+          recallReason: 'fuzzy-match',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects empty canonicalName', () => {
+      expect(() =>
+        labelAlignmentCandidateSchema.parse({
+          id: 'lbl_test',
+          canonicalName: '',
+          recallReason: 'exact-alias',
+        }),
+      ).toThrow();
+    });
+  });
+
+  describe('labelAlignmentDecisionSchema', () => {
+    it('accepts "existing" decision with canonicalLabelId', () => {
+      const result = labelAlignmentDecisionSchema.parse({
+        decision: 'existing',
+        canonicalLabelId: 'lbl_timeout_issue',
+        confidence: 0.9,
+        reasoning: 'Direct synonym match',
+      });
+      expect(result.decision).toBe('existing');
+      expect(result.canonicalLabelId).toBe('lbl_timeout_issue');
+    });
+
+    it('accepts "new" decision with canonicalName', () => {
+      const result = labelAlignmentDecisionSchema.parse({
+        decision: 'new',
+        canonicalName: 'memory-leak',
+        confidence: 0.95,
+        reasoning: 'No existing candidate',
+      });
+      expect(result.decision).toBe('new');
+    });
+
+    it('accepts "unsure" decision without IDs', () => {
+      const result = labelAlignmentDecisionSchema.parse({
+        decision: 'unsure',
+        confidence: 0.3,
+        reasoning: 'Ambiguous match',
+      });
+      expect(result.decision).toBe('unsure');
+    });
+
+    it('rejects "existing" without canonicalLabelId', () => {
+      expect(() =>
+        labelAlignmentDecisionSchema.parse({
+          decision: 'existing',
+          confidence: 0.9,
+          reasoning: 'test',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects "new" without canonicalName', () => {
+      expect(() =>
+        labelAlignmentDecisionSchema.parse({
+          decision: 'new',
+          confidence: 0.9,
+          reasoning: 'test',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects invalid decision value', () => {
+      expect(() =>
+        labelAlignmentDecisionSchema.parse({
+          decision: 'maybe',
+          confidence: 0.5,
+          reasoning: 'test',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects confidence outside 0-1 range', () => {
+      expect(() =>
+        labelAlignmentDecisionSchema.parse({
+          decision: 'unsure',
+          confidence: 1.5,
+          reasoning: 'test',
+        }),
+      ).toThrow();
+    });
+
+    it('rejects empty reasoning', () => {
+      expect(() =>
+        labelAlignmentDecisionSchema.parse({
+          decision: 'unsure',
+          confidence: 0.5,
+          reasoning: '',
+        }),
+      ).toThrow();
+    });
+  });
+
+  describe('labelAlignmentInputSchema', () => {
+    it('accepts valid input with candidates', () => {
+      const result = labelAlignmentInputSchema.parse({
+        rawLabel: 'pod-timeout',
+        rawEvidence: 'pod restarts after timeout',
+        candidates: [
+          {
+            id: 'lbl_timeout',
+            canonicalName: 'timeout-issue',
+            recallReason: 'exact-alias',
+          },
+        ],
+      });
+      expect(result.rawLabel).toBe('pod-timeout');
+      expect(result.candidates).toHaveLength(1);
+    });
+
+    it('accepts empty candidates', () => {
+      const result = labelAlignmentInputSchema.parse({
+        rawLabel: 'new-label',
+        rawEvidence: 'some evidence',
+        candidates: [],
+      });
+      expect(result.candidates).toHaveLength(0);
+    });
+
+    it('rejects more than 8 candidates', () => {
+      const candidates = Array.from({ length: 9 }, (_, i) => ({
+        id: `lbl_${i}`,
+        canonicalName: `label-${i}`,
+        recallReason: 'exact-alias' as const,
+      }));
+      expect(() =>
+        labelAlignmentInputSchema.parse({
+          rawLabel: 'test',
+          rawEvidence: 'test',
+          candidates,
+        }),
+      ).toThrow();
+    });
+
+    it('rejects empty rawLabel', () => {
+      expect(() =>
+        labelAlignmentInputSchema.parse({
+          rawLabel: '',
+          rawEvidence: 'test',
+          candidates: [],
+        }),
+      ).toThrow();
     });
   });
 });

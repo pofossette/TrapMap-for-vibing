@@ -59,7 +59,7 @@ export interface GraphNodeRecord {
   id: string;
   /** Node kind from the TrapMap vocabulary */
   kind: GraphNodeKind;
-  /** Human-readable label */
+  /** Human-readable label (canonical if aligned, raw otherwise) */
   label: string;
   /** Evidence text justifying this node */
   evidence: string;
@@ -67,6 +67,12 @@ export interface GraphNodeRecord {
   severity?: 'hard' | 'soft';
   /** Pre-computed list of trap nodeIds this skill/mitigation node mitigates. Only for kind=skill or kind=mitigation. */
   mitigates?: string[];
+  /** Original raw label before canonical alignment (undefined if no alignment occurred) */
+  rawLabel?: string;
+  /** Canonical label ID from the label catalog (undefined if no alignment occurred or unsure) */
+  canonicalLabelId?: string;
+  /** Alignment decision: 'existing' | 'new' | 'unsure' (undefined if no alignment occurred) */
+  alignmentDecision?: 'existing' | 'new' | 'unsure';
 }
 
 /**

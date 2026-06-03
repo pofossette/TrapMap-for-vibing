@@ -740,6 +740,42 @@ v3 的 `compileTrapFirstPlan()`（`graph-plan/plan-compiler.ts:55`）流程：
 
 ---
 
+## Label Alignment Lane（标签对齐通道）
+
+图提取管道在原始实体提取完成后，插入标签对齐阶段。该阶段将语义等价的原始标签合并为规范标签。
+
+### 流程
+
+```
+原始图提取（LLM）
+  → 候选召回（candidate recall）
+     1. 精确别名匹配
+     2. 标准化名称匹配
+     3. 嵌入相似度（可选）
+  → LLM 标签对齐（label-alignment prompt）
+     → 输入：rawLabel + rawEvidence + 候选表（max 5，hard max 8）
+     → 输出：existing | new | unsure
+  → 规范重写
+     → existing：关联 canonicalLabelId，添加别名
+     → new：创建规范标签 + 别名
+     → unsure：记录审计事件，不自动硬合并
+```
+
+### 源码
+
+| 模块 | 作用 |
+|------|------|
+| `lib/labels/candidate-recall.ts` | 候选召回：exact alias → normalized name → embedding |
+| `lib/labels/llm-align.ts` | LLM 调用 + Zod 严格验证 + 事件记录 |
+| `lib/labels/repository.ts` | 标签目录 CRUD |
+| `contracts/domain/graph-extraction.ts` | `LabelAlignmentCandidate`, `LabelAlignmentDecision` schema |
+
+### unsure 处理
+
+`unsure` 决策安全落地为 `label_alignment_events` 表中的审计事件，不静默硬合并。运维人员可通过查询事件表审查 `unsure` 决策并手动解决。
+
+---
+
 ## 相关文档
 
 - [入库预计算策略](../PRECOMPUTATION.md) — 入库阶段的预计算措施如何降低检索延迟

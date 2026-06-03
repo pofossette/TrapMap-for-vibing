@@ -780,6 +780,59 @@ rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
 
 ---
 
+## Label Backfill and Repair Commands
+
+### backfill:labels
+
+从历史数据（`knowledge_labels`、artifact `labels`、`graph_index_documents`）中回填规范标签目录。
+
+```bash
+# 运行回填
+pnpm backfill:labels
+
+# 预览模式（不写入数据库）
+pnpm backfill:labels -- --dry-run
+```
+
+要求：`DATABASE_URL` 环境变量已设置。
+
+### label-merge:repair
+
+标签合并后修复图文档中的节点 ID 和边端点。
+
+```bash
+# 运行修复
+pnpm label-merge:repair
+
+# 预览模式（不写入数据库）
+pnpm label-merge:repair -- --dry-run
+```
+
+要求：`DATABASE_URL` 环境变量已设置。
+
+### 标签对齐评估
+
+标签对齐的质量通过 `label_alignment_events` 表审计。运维人员可查询该表检查：
+- `decision = 'unsure'` 的事件（需要人工审查）
+- `confidence < 0.5` 的事件（低置信度决策）
+- `source_context = 'backfill'` 的事件（回填期间的决策）
+
+```sql
+-- 查看待审查的 unsure 事件
+SELECT raw_label, raw_evidence, confidence, reasoning, created_at
+FROM label_alignment_events
+WHERE decision = 'unsure'
+ORDER BY created_at DESC;
+
+-- 查看低置信度决策
+SELECT raw_label, decision, confidence, reasoning
+FROM label_alignment_events
+WHERE confidence < 0.5
+ORDER BY confidence ASC;
+```
+
+---
+
 ## 相关文档
 
 - [模块详解](../architecture/MODULES.md) — 系统模块架构和设计

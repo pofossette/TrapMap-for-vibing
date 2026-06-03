@@ -122,3 +122,63 @@ export type LlmGraphExtraction = z.infer<typeof llmGraphExtractionSchema>;
 export type ExtractionPlanSegment = z.infer<typeof extractionPlanSegmentSchema>;
 export type ExtractionPlan = z.infer<typeof extractionPlanSchema>;
 export type ExtractionMetrics = z.infer<typeof extractionMetricsSchema>;
+
+// ---------------------------------------------------------------------------
+// Label alignment schemas
+// ---------------------------------------------------------------------------
+
+/**
+ * A candidate canonical label presented to the LLM for alignment.
+ * Compact — max 8 candidates per alignment call.
+ */
+export const labelAlignmentCandidateSchema = z
+  .object({
+    id: z.string().min(1),
+    canonicalName: z.string().min(1).max(128),
+    definition: z.string().max(512).nullable().optional(),
+    aliases: z.array(z.string()).default([]),
+    recallReason: z.enum(['exact-alias', 'normalized-name', 'semantic-embedding']),
+  })
+  .strict();
+
+/**
+ * The LLM's alignment decision for a raw label.
+ * Must be one of: existing (maps to catalog), new (create new), unsure (needs review).
+ */
+export const labelAlignmentDecisionSchema = z
+  .object({
+    decision: z.enum(['existing', 'new', 'unsure']),
+    canonicalLabelId: z.string().optional(),
+    canonicalName: z.string().min(1).max(128).optional(),
+    confidence: z.number().min(0).max(1),
+    reasoning: z.string().min(1).max(512),
+  })
+  .strict()
+  .refine(
+    (data) => {
+      if (data.decision === 'existing') return !!data.canonicalLabelId;
+      if (data.decision === 'new') return !!data.canonicalName;
+      return true;
+    },
+    {
+      message:
+        'canonicalLabelId required for "existing" decision; canonicalName required for "new" decision',
+    },
+  );
+
+/**
+ * Full alignment input: raw label + evidence + candidate table.
+ */
+export const labelAlignmentInputSchema = z
+  .object({
+    rawLabel: z.string().min(1).max(128),
+    rawEvidence: z.string().max(1024),
+    candidates: z.array(labelAlignmentCandidateSchema).max(8),
+  })
+  .strict();
+
+// --- Label Alignment Exported Types ---
+
+export type LabelAlignmentCandidate = z.infer<typeof labelAlignmentCandidateSchema>;
+export type LabelAlignmentDecision = z.infer<typeof labelAlignmentDecisionSchema>;
+export type LabelAlignmentInput = z.infer<typeof labelAlignmentInputSchema>;

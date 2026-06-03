@@ -432,6 +432,51 @@ v3 Graph Plan Search 的 `compileTrapFirstPlan()` 依赖图文档构建局部扩
 
 ---
 
+## 6.1 Canonical Label Catalog（规范标签目录）
+
+**源码**：`lib/labels/`、`lib/persistence/schema/labels.ts`
+
+Canonical Label Catalog 是标签合并的真实来源，用于在图提取阶段将语义等价的原始标签（如 `timeout-issue` 和 `pod-timeout`）合并为同一规范标签。
+
+### 表结构
+
+| 表 | 作用 |
+|------|------|
+| `canonical_labels` | 规范标签身份（id, kind, canonicalName, status, mergedIntoLabelId） |
+| `label_aliases` | 原始观测别名 → 规范标签的映射 |
+| `canonical_label_embeddings` | 规范标签的 384 维 pgvector 向量 |
+| `label_alignment_events` | LLM 对齐决策的审计事件（含 unsure 事件） |
+
+### 与图提取的关系
+
+图提取管道（`graph-lite/llm-extract.ts`）在 LLM 原始提取完成后、节点 ID 生成之前，插入标签对齐阶段。具体位置：在 `mergeExtractions()` 后、`toGraphRecords()` 前，调用 `alignGraphNodes()`。
+
+```
+原始提取 → 候选召回 → LLM 标签对齐 → 规范重写 → 持久化
+```
+
+对齐通过 `ExtractGraphOptions.alignmentService` 参数注入，支持以下配置：
+- `chat: ChatProvider | null` — LLM 调用提供者（null = 跳过对齐）
+- `repository: LabelRepository | null` — 标签目录仓库（null = 跳过对齐）
+- `sourceContext: string` — 对齐事件来源标记
+
+候选召回优先级：
+1. 精确别名匹配（exact alias）
+2. 标准化名称匹配（normalized name）
+3. 嵌入相似度（embedding similarity）
+
+### 合并生命周期
+
+规范标签支持可逆合并：`status=merged` + `mergedIntoLabelId` 指向目标标签。别名自动重指向目标标签，不执行破坏性删除。
+
+### 与 knowledge_labels / artifact labels 的关系
+
+- `knowledge_labels` 表和 `skill_artifacts.labels` JSONB 列保持不变，作为源面向元数据。
+- `canonical_labels` 是合并后的真实来源，图节点通过 `canonicalLabelId` 引用。
+- 原始标签保留为 `rawLabel` 字段存储在图节点中。
+
+---
+
 ## 7. Skill 工件索引
 
 **源码**：`indexing/skill-events.ts`、`indexing/artifact-pipeline.ts`
