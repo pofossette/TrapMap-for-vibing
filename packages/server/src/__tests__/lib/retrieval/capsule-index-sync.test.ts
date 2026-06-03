@@ -266,10 +266,9 @@ describe('Capsule Index Sync', () => {
     it('should return capsule IDs for an artifact', async () => {
       mockDb.select = vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([
-            { capsuleId: 'capsule_1' },
-            { capsuleId: 'capsule_2' },
-          ]),
+          where: vi
+            .fn()
+            .mockResolvedValue([{ capsuleId: 'capsule_1' }, { capsuleId: 'capsule_2' }]),
         }),
       } as never);
 

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 
 import { repairGraphDocuments } from './merge-repair.js';
-import type { LabelRepository, CanonicalLabelRecord } from './repository.js';
+import type { CanonicalLabelRecord, LabelRepository } from './repository.js';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -52,9 +52,7 @@ function makeDoc(overrides: Partial<GraphIndexDocumentRecord> = {}): GraphIndexD
     teamId: null,
     scope: 'global',
     requiredLevel: 0,
-    nodes: [
-      { id: 'cue:pod-timeout', kind: 'cue', label: 'pod-timeout', evidence: 'test' },
-    ],
+    nodes: [{ id: 'cue:pod-timeout', kind: 'cue', label: 'pod-timeout', evidence: 'test' }],
     edges: [],
     evidence: 'test',
     createdAt: '2024-01-01T00:00:00.000Z',
@@ -150,7 +148,12 @@ describe('repairGraphDocuments', () => {
       makeDoc({
         nodes: [
           { id: 'cue:pod-timeout', kind: 'cue', label: 'pod-timeout', evidence: 'short' },
-          { id: 'cue:timeout-issue', kind: 'cue', label: 'timeout-issue', evidence: 'longer evidence' },
+          {
+            id: 'cue:timeout-issue',
+            kind: 'cue',
+            label: 'timeout-issue',
+            evidence: 'longer evidence',
+          },
         ],
       }),
     ];

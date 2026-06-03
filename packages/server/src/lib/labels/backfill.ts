@@ -75,13 +75,7 @@ export async function backfillLabels(
   rawLabelSources: RawLabelSource[],
   options: BackfillOptions,
 ): Promise<BackfillReport> {
-  const {
-    chat,
-    embeddings,
-    sourceContext = 'backfill',
-    dryRun = false,
-    autoMergeThreshold = 0.8,
-  } = options;
+  const { chat, sourceContext = 'backfill', dryRun = false, autoMergeThreshold = 0.8 } = options;
 
   const report: BackfillReport = {
     examined: 0,
@@ -126,7 +120,7 @@ export async function backfillLabels(
     }
 
     // Need to decide: align via LLM or create directly
-    if (chat && chat.isConfigured) {
+    if (chat?.isConfigured) {
       // Use LLM alignment
       const result = await alignLabel(repository, chat, entry.label, '', entry.kind, {
         sourceContext,

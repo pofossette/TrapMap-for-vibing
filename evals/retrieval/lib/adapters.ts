@@ -793,29 +793,29 @@ export async function executeThroughRoute(
     });
 
     // Return empty result on error
-      const emptyResult: NormalizedResult = {
-        hits: [],
-        returnedIds: [],
-        buckets: { globalConstraints: [], projectKnowledge: [] },
-        profileHintArtifactIds: [],
-        artifactIds: [],
-        isEmpty: true,
-        rawResponse: { error: errorMessage },
-        endpoint: case_.endpoint,
+    const emptyResult: NormalizedResult = {
+      hits: [],
+      returnedIds: [],
+      buckets: { globalConstraints: [], projectKnowledge: [] },
+      profileHintArtifactIds: [],
+      artifactIds: [],
+      isEmpty: true,
+      rawResponse: { error: errorMessage },
+      endpoint: case_.endpoint,
     };
 
     return {
       result: emptyResult,
       execution: {
         adapterType,
-          fallbackUsed,
-          fallbackReason,
-          endpoint: case_.endpoint,
-          durationMs,
-          fallbackApplied: false,
-        },
-        warnings,
-      };
+        fallbackUsed,
+        fallbackReason,
+        endpoint: case_.endpoint,
+        durationMs,
+        fallbackApplied: false,
+      },
+      warnings,
+    };
   }
 }
 

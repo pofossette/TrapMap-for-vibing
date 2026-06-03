@@ -128,7 +128,10 @@ export const skillEditRoutes: FastifyPluginAsync = async (app) => {
 
     // Trigger skill graph indexing AFTER the transaction commits (P36-02)
     // Delegate to shared seam: determineSkillIndexAction() decides upsert/remove/noop
-    if (result.lifecycleTransition && result.lifecycleTransition.from !== result.lifecycleTransition.to) {
+    if (
+      result.lifecycleTransition &&
+      result.lifecycleTransition.from !== result.lifecycleTransition.to
+    ) {
       await runSkillIndexEvent({
         services: {
           store: app.skillShareer.store,

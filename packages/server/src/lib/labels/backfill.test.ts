@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { backfillLabels } from './backfill.js';
-import type { LabelRepository, CanonicalLabelRecord } from './repository.js';
+import type { CanonicalLabelRecord, LabelRepository } from './repository.js';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -127,9 +127,11 @@ describe('backfillLabels', () => {
       normalizedName: 'timeout-issue',
     });
     const repo = makeMockRepo({
-      searchCandidates: vi.fn().mockResolvedValue([
-        { label: existingLabel, aliases: [], recallReason: 'normalized-name' as const },
-      ]),
+      searchCandidates: vi
+        .fn()
+        .mockResolvedValue([
+          { label: existingLabel, aliases: [], recallReason: 'normalized-name' as const },
+        ]),
     });
 
     const report = await backfillLabels(

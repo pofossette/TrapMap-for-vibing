@@ -20,7 +20,6 @@ import { stripCodeFences } from '@trapmap/server/lib/ai/parse.js';
 import { buildLabelAlignmentSlots_default, buildPrompt } from '@trapmap/server/lib/ai/prompts.js';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 
-import type { CandidateRecallResult } from './candidate-recall.js';
 import { recallCandidates } from './candidate-recall.js';
 import type { LabelRepository } from './repository.js';
 
@@ -244,10 +243,7 @@ function parseAlignmentDecision(raw: string): LabelAlignmentDecision | null {
  * Build the user message for the alignment prompt.
  */
 function buildAlignmentUserMessage(input: LabelAlignmentInput): string {
-  const lines: string[] = [
-    `rawLabel: ${input.rawLabel}`,
-    `rawEvidence: ${input.rawEvidence}`,
-  ];
+  const lines: string[] = [`rawLabel: ${input.rawLabel}`, `rawEvidence: ${input.rawEvidence}`];
 
   if (input.candidates.length === 0) {
     lines.push('candidates: [] (no existing candidates found)');

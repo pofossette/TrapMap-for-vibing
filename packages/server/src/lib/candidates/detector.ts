@@ -30,9 +30,7 @@ const LLM_TOP_K = 5;
 /** Minimum LLM confidence to confirm a duplicate */
 const LLM_DUPLICATE_CONFIDENCE = 0.8;
 
-function determineInMemoryMatchedLane(
-  matches: DuplicateMatch[],
-): 'exact' | 'fallback' | 'none' {
+function determineInMemoryMatchedLane(matches: DuplicateMatch[]): 'exact' | 'fallback' | 'none' {
   if (matches.some((match) => match.matchType === 'exact')) {
     return 'exact';
   }
@@ -187,7 +185,8 @@ function checkSkillDuplicate(
   }
 
   const isExact =
-    profile.contentHash === candidateExactLookupKey || profile.sourceHash === candidateExactLookupKey;
+    profile.contentHash === candidateExactLookupKey ||
+    profile.sourceHash === candidateExactLookupKey;
   if (isExact) {
     const artifactText = `${profile.title}\n${profile.summary}`;
     const artifactTokens = tokenize(artifactText);

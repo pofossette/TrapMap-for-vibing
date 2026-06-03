@@ -13,7 +13,7 @@
 import type { LabelAlignmentCandidate } from '@trapmap/contracts';
 import type { EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
 
-import type { CanonicalLabelRecord, LabelRepository } from './repository.js';
+import type { LabelRepository } from './repository.js';
 
 // ---------------------------------------------------------------------------
 // Constants

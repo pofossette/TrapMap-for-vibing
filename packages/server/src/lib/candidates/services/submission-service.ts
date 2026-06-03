@@ -10,14 +10,14 @@
 
 import { randomUUID } from 'node:crypto';
 import type { CandidateSubmission, DuplicateCase } from '@trapmap/contracts';
+import { buildNormalizedDuplicateInput } from '@trapmap/server/lib/candidates/fingerprint.js';
 import {
   type CandidateProcessorServices,
   scheduleCandidateProcessing,
 } from '@trapmap/server/lib/candidates/processor.js';
 import type { CandidateRepository } from '@trapmap/server/lib/candidates/repository.js';
-import { buildNormalizedDuplicateInput } from '@trapmap/server/lib/candidates/fingerprint.js';
-import { createDuplicateCaseId } from '@trapmap/server/lib/ids.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
+import { createDuplicateCaseId } from '@trapmap/server/lib/ids.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';

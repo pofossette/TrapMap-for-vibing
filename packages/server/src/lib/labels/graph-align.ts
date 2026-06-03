@@ -8,11 +8,11 @@
 
 import type { LlmGraphNode } from '@trapmap/contracts';
 
-import type { LabelRepository } from './repository.js';
-import { alignLabel } from './llm-align.js';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { GraphNodeRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import { normalizeValue } from '@trapmap/server/lib/indexing/graph-lite/llm-extract.js';
+import { alignLabel } from './llm-align.js';
+import type { LabelRepository } from './repository.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,8 +30,8 @@ export interface AlignmentServiceOptions {
 export interface AlignedNode extends GraphNodeRecord {
   /** Original raw label before alignment */
   rawLabel: string;
-  /** Canonical label ID (null if new or unsure) */
-  canonicalLabelId: string | null;
+  /** Canonical label ID (present only when alignment resolved to a canonical label) */
+  canonicalLabelId?: string;
   /** Alignment decision */
   alignmentDecision: 'existing' | 'new' | 'unsure';
 }
@@ -59,7 +59,7 @@ export interface AlignGraphNodesResult {
  * Returns aligned nodes and a mapping from old → new node IDs for edge rewriting.
  */
 export async function alignGraphNodes(
-  nodes: Array<{ kind: string; label: string; description?: string }>,
+  nodes: LlmGraphNode[],
   options: AlignmentServiceOptions,
 ): Promise<AlignGraphNodesResult> {
   const { chat, repository, sourceContext = 'extraction' } = options;
@@ -73,7 +73,6 @@ export async function alignGraphNodes(
         label: n.label,
         evidence: n.description ?? 'llm-extracted',
         rawLabel: n.label,
-        canonicalLabelId: null,
         alignmentDecision: 'unsure' as const,
       })),
       nodeIdMapping: new Map(),
@@ -132,7 +131,6 @@ export async function alignGraphNodes(
           label: node.label,
           evidence,
           rawLabel: node.label,
-          canonicalLabelId: null,
           alignmentDecision: 'unsure',
         });
       }
@@ -144,7 +142,6 @@ export async function alignGraphNodes(
         label: node.label,
         evidence,
         rawLabel: node.label,
-        canonicalLabelId: null,
         alignmentDecision: 'unsure',
       });
     }
@@ -173,7 +170,9 @@ export function rewriteEdgeIds<
       ...edge,
       sourceNodeId: newSource,
       targetNodeId: newTarget,
-      ...(edge.id ? { id: `${newSource}-${edge.id.split('-').slice(1, -1).join('-')}-${newTarget}` } : {}),
+      ...(edge.id
+        ? { id: `${newSource}-${edge.id.split('-').slice(1, -1).join('-')}-${newTarget}` }
+        : {}),
     };
   });
 }

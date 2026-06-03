@@ -1,10 +1,10 @@
 import type { Pool } from 'pg';
 
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import type {
   CapsuleRecallChannel,
   CapsuleRecallChannelName,
 } from '@trapmap/server/lib/retrieval/types.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import { capsuleHeuristicChannel } from './channels/heuristic.js';
 
 /**

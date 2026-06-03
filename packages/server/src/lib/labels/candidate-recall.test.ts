@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { LabelAlignmentCandidate } from '@trapmap/contracts';
 
-import { HARD_MAX_CANDIDATES, RECOMMENDED_MAX_CANDIDATES, recallCandidates } from './candidate-recall.js';
+import {
+  HARD_MAX_CANDIDATES,
+  RECOMMENDED_MAX_CANDIDATES,
+  recallCandidates,
+} from './candidate-recall.js';
 import type { CanonicalLabelRecord, LabelAliasRecord, LabelRepository } from './repository.js';
 
 // ---------------------------------------------------------------------------
@@ -73,10 +77,12 @@ describe('recallCandidates', () => {
     const label = makeLabel({ id: 'lbl_timeout', canonicalName: 'timeout-issue' });
     const repo = makeMockRepo({
       findCanonicalByAlias: vi.fn().mockResolvedValue(label),
-      listAliases: vi.fn().mockResolvedValue([
-        makeAlias({ alias: 'timeout-issue', canonicalLabelId: 'lbl_timeout' }),
-        makeAlias({ alias: 'container-timeout', canonicalLabelId: 'lbl_timeout' }),
-      ]),
+      listAliases: vi
+        .fn()
+        .mockResolvedValue([
+          makeAlias({ alias: 'timeout-issue', canonicalLabelId: 'lbl_timeout' }),
+          makeAlias({ alias: 'container-timeout', canonicalLabelId: 'lbl_timeout' }),
+        ]),
     });
 
     const result = await recallCandidates(repo, 'pod-timeout');
@@ -94,9 +100,11 @@ describe('recallCandidates', () => {
     const repo = makeMockRepo({
       findCanonicalByAlias: vi.fn().mockResolvedValue(exactLabel),
       listAliases: vi.fn().mockResolvedValue([]),
-      searchCandidates: vi.fn().mockResolvedValue([
-        { label: nameLabel, aliases: [], recallReason: 'normalized-name' as const },
-      ]),
+      searchCandidates: vi
+        .fn()
+        .mockResolvedValue([
+          { label: nameLabel, aliases: [], recallReason: 'normalized-name' as const },
+        ]),
     });
 
     const result = await recallCandidates(repo, 'timeout');
@@ -110,9 +118,11 @@ describe('recallCandidates', () => {
       makeLabel({ id: `lbl_${i}`, canonicalName: `label-${i}` }),
     );
     const repo = makeMockRepo({
-      searchCandidates: vi.fn().mockResolvedValue(
-        labels.map((l) => ({ label: l, aliases: [], recallReason: 'normalized-name' as const })),
-      ),
+      searchCandidates: vi
+        .fn()
+        .mockResolvedValue(
+          labels.map((l) => ({ label: l, aliases: [], recallReason: 'normalized-name' as const })),
+        ),
     });
 
     const result = await recallCandidates(repo, 'test');

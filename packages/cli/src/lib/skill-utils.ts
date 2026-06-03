@@ -66,7 +66,7 @@ export function formatSkillApplyResult(result: SkillApplyResult): string {
 
   if (result.duplicate) {
     return [
-      `Duplicate detected.`,
+      'Duplicate detected.',
       `Existing ID: ${result.duplicate.existingId}`,
       `Similarity: ${(result.duplicate.similarity * 100).toFixed(1)}%`,
     ].join('\n');
@@ -91,9 +91,13 @@ export function formatApplyResolutionText(response: ApplyResolutionResponse): st
   ];
 
   if (response.outcome.decision === 'independent' && response.outcome.publishedEntityId) {
-    lines.push(`Published as: ${response.outcome.entityType} (${response.outcome.publishedEntityId})`);
+    lines.push(
+      `Published as: ${response.outcome.entityType} (${response.outcome.publishedEntityId})`,
+    );
   } else if (response.outcome.decision === 'merged' && response.outcome.mergedIntoEntityId) {
-    lines.push(`Merged into: ${response.outcome.entityType} (${response.outcome.mergedIntoEntityId})`);
+    lines.push(
+      `Merged into: ${response.outcome.entityType} (${response.outcome.mergedIntoEntityId})`,
+    );
   }
 
   if (response.lineage) {

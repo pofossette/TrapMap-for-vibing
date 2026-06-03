@@ -27,12 +27,12 @@ import type {
   SkillShareerStore,
   StoreData,
 } from '@trapmap/server/lib/store.js';
+import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 import {
   resolveArtifactAdapters,
   runArtifactAdapterFanOut,
   runArtifactAdapterRemoval,
 } from './artifact-pipeline.js';
-import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,

@@ -11,12 +11,16 @@
  * rather than writing directly to graph-lite/store.
  */
 
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
-import type { SkillArtifactRecord, SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import type {
+  SkillArtifactRecord,
+  SkillShareerStore,
+  StoreData,
+} from '@trapmap/server/lib/store.js';
 import { artifactGraphIndexAdapter } from './adapters/artifact-graph.js';
-import { createCapsuleIndexAdapter } from './adapters/capsule-index.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
+import { createCapsuleIndexAdapter } from './adapters/capsule-index.js';
 
 // ---------------------------------------------------------------------------
 // Adapter registration
@@ -112,7 +116,9 @@ export async function runArtifactAdapterFanOut(args: {
   adapters?: ArtifactGraphAdapter[];
 }): Promise<ArtifactAdapterFanOutResult> {
   const { data, artifact } = args;
-  const adapters = args.adapters ?? (args.store ? resolveArtifactAdapters(args.store) : registeredArtifactAdapters);
+  const adapters =
+    args.adapters ??
+    (args.store ? resolveArtifactAdapters(args.store) : registeredArtifactAdapters);
 
   const results: ArtifactAdapterFanOutResult['results'] = [];
 
@@ -159,7 +165,9 @@ export async function runArtifactAdapterRemoval(args: {
   adapters?: ArtifactGraphAdapter[];
 }): Promise<void> {
   const { data, artifactId } = args;
-  const adapters = args.adapters ?? (args.store ? resolveArtifactAdapters(args.store) : registeredArtifactAdapters);
+  const adapters =
+    args.adapters ??
+    (args.store ? resolveArtifactAdapters(args.store) : registeredArtifactAdapters);
 
   for (const adapter of adapters) {
     await adapter.remove({

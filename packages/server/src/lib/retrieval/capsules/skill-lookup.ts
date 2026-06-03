@@ -19,13 +19,8 @@ import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js
 import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 import type { CapsuleCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
-import {
-  CapsuleRecallCoordinator,
-  createDefaultCapsuleRecallCoordinator,
-} from './capsule-recall-coordinator.js';
-import {
-  createFullCapsuleChannelRegistry,
-} from './capsule-channel-registry.js';
+import { createFullCapsuleChannelRegistry } from './capsule-channel-registry.js';
+import { CapsuleRecallCoordinator } from './capsule-recall-coordinator.js';
 import { isArtifactGovernanceEligible } from './capsule-recall.js';
 import { InMemoryIntentCache } from './intent-cache.js';
 import { parseSeedIntentWithLLM } from './intent.js';

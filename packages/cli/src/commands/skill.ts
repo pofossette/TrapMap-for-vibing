@@ -27,10 +27,7 @@ import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printAdaptiveResult, printCommandResult } from '@trapmap/cli/lib/output.js';
 import { sanitizeForDisplay, stripNewlines } from '@trapmap/cli/lib/sanitize.js';
-import {
-  formatApplyResolutionText,
-  formatCandidateTable,
-} from '@trapmap/cli/lib/skill-utils.js';
+import { formatApplyResolutionText, formatCandidateTable } from '@trapmap/cli/lib/skill-utils.js';
 
 interface SkillCommandOptions {
   allowSearch: boolean;
@@ -304,9 +301,7 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
 
         let candidates = parsed.items;
         if (fingerprint) {
-          candidates = candidates.filter(
-            (c) => c.analysisSnapshot?.fingerprint === fingerprint,
-          );
+          candidates = candidates.filter((c) => c.analysisSnapshot?.fingerprint === fingerprint);
         }
 
         const filtered = { ...parsed, items: candidates };
@@ -326,7 +321,7 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
           filtered,
           state,
           flags,
-          formatCandidateTable,
+          (value) => formatCandidateTable(value.items),
         );
       });
   }

@@ -11,8 +11,8 @@ import { describe, expect, it } from 'vitest';
 import type {
   GraphPlanSearchResponse,
   RetrievalResponse,
-  SkillLookupResponse,
   RetrievalV2ResponseWithHints,
+  SkillLookupResponse,
 } from '@trapmap/contracts';
 import {
   extractV1Ids,
