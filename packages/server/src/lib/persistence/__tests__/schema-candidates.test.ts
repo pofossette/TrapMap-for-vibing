@@ -68,6 +68,7 @@ describe('candidate sub-tables schema (Round 5)', () => {
       expect(columnNames).toContain('fingerprint');
       expect(columnNames).toContain('keywords');
       expect(columnNames).toContain('tokens');
+      expect(columnNames).toContain('duplicateTrace');
       expect(columnNames).toContain('createdAt');
     });
 
@@ -78,6 +79,7 @@ describe('candidate sub-tables schema (Round 5)', () => {
     it('uses snake_case column names', () => {
       expect(candidateAnalyses.candidateId.name).toBe('candidate_id');
       expect(candidateAnalyses.normalizedAt.name).toBe('normalized_at');
+      expect(candidateAnalyses.duplicateTrace.name).toBe('duplicate_trace');
     });
   });
 

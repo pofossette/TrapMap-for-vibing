@@ -3,7 +3,8 @@
  *
  * Covers: durable task queue backed by PostgreSQL SKIP LOCKED.
  */
-import { index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 // =============================================================================
 // Task Queue Table
@@ -40,5 +41,10 @@ export const taskQueue = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
-  (table) => [index('task_queue_type_dedupe_idx').on(table.type, table.dedupeKey)],
+  (table) => [
+    index('task_queue_type_dedupe_idx').on(table.type, table.dedupeKey),
+    uniqueIndex('task_queue_dedupe_pending_idx')
+      .on(table.type, table.dedupeKey)
+      .where(sql`${table.status} IN ('pending', 'running')`),
+  ],
 );

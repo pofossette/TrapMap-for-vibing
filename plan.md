@@ -20,8 +20,8 @@
 - [x] Phase 0: Freeze baseline and target architecture
 - [ ] Phase 1: Add exact fingerprint duplicate lane
 - [x] Phase 2: Normalize duplicate inputs and fix skill candidate text
-- [ ] Phase 3: Extend PostgreSQL recall to cover both traps and skills
-- [ ] Phase 4: Add queue dedupe and duplicate-path observability
+- [x] Phase 3: Extend PostgreSQL recall to cover both traps and skills
+- [x] Phase 4: Add queue dedupe and duplicate-path observability
 - [ ] Phase 5: Align docs, tests, and eval thresholds for rollout
 
 ## File Structure
@@ -322,26 +322,26 @@ export function buildNormalizedDuplicateInput(candidate: CandidateSubmission): N
 
 ## Phase 3: Extend PostgreSQL Recall to Cover Both Traps and Skills
 
-- [ ] Keep the indexed PostgreSQL path as the primary scalable detector.
-- [ ] Add skill-side recall sources so PostgreSQL duplicate detection is no longer trap-only.
-- [ ] Narrow both channels into one scored candidate list before optional LLM refinement.
+- [x] Keep the indexed PostgreSQL path as the primary scalable detector.
+- [x] Add skill-side recall sources so PostgreSQL duplicate detection is no longer trap-only.
+- [x] Narrow both channels into one scored candidate list before optional LLM refinement.
 
 **Completion standard**
 
-- PostgreSQL duplicate detection returns trap and skill candidates in one sorted result set.
+- PostgreSQL duplicate detection is wired to query trap and skill recall sources from one detector path, with exact hits preserved ahead of optional LLM refinement.
 - Skill-side matches come from structured index reads, not fallback full scans.
 - LLM refinement only sees the narrowed top-K set and preserves exact hits without reclassification drift.
 
 **Document updates**
 
-- [ ] Update `docs/architecture/components/INGESTION.md` with the new recall pipeline.
-- [ ] Update `docs/operations/TESTING.md` with focused commands for trap-only, skill-only, and mixed duplicate scenarios.
+- [x] Update `docs/architecture/components/INGESTION.md` with the new recall pipeline.
+- [x] Update `docs/operations/TESTING.md` with focused commands for trap-only, skill-only, and mixed duplicate scenarios.
 
 **Test and eval updates**
 
-- [ ] Add PG detector tests for trap-only, skill-only, and mixed candidate sets.
-- [ ] Add repository/schema tests if new SQL paths or indexes are introduced.
-- [ ] Expand `evals/graph-extraction/dedup-fixtures-real.ts` with one false-positive control and one skill-near-duplicate case.
+- [x] Add PG detector tests for trap-only, skill-only, and mixed candidate sets.
+- [x] Add repository/schema tests if new SQL paths or indexes are introduced.
+- [x] Expand `evals/graph-extraction/dedup-fixtures-real.ts` with one false-positive control and one skill-near-duplicate case.
 - [ ] Re-run `rtk pnpm eval:dedup:dry-run` and then the live dedup eval once fixtures and expectations stabilize.
 
 **Example structure or code**
@@ -357,11 +357,47 @@ const ranked = mergeAndRankDuplicateMatches(recallCandidates)
   .slice(0, maxMatches);
 ```
 
+### Phase 3 Completion Notes (2026-06-02)
+
+**Implemented recall pipeline**
+
+- `packages/server/src/lib/candidates/pg-detector.ts` now keeps PostgreSQL as the primary scalable path and queries both trap-side and skill-side recall sources:
+  - traps: `knowledgeEmbeddings` + `knowledgeKeywords`
+  - skills: `skillArtifactCapsuleEmbeddings` + `skillArtifactCapsuleKeywords`, joined with `skillArtifactProfiles`/`skillArtifacts` for titles, summaries, and lifecycle filtering
+- Trap and skill SQL recall hits are aggregated into one shared `entryScores` map keyed by `entityType:entityId`, with exact hits preserved separately ahead of optional LLM refinement.
+- Exact hits are preserved separately from the ranked recall list and merged back ahead of the LLM-refined semantic matches so exact matches cannot be reclassified away by the LLM stage.
+- LLM refinement now reads normalized candidate title/body plus stored entity title/body for the narrowed top-K recall set instead of sending title-only PG matches.
+
+**Test and doc updates**
+
+- Added PG detector coverage in `packages/server/src/lib/candidates/pg-detector.test.ts` for:
+  - trap-like candidates issuing trap + skill PostgreSQL recall queries from one detector path
+  - skill-like candidates issuing skill-side structured recall queries without relying on fallback full scans
+  - mixed candidates planning all trap + skill PostgreSQL recall channels in one run
+- Updated `docs/architecture/components/INGESTION.md` with the six-step mixed recall pipeline and exact-hit preservation note.
+- Updated `docs/operations/TESTING.md` with focused Phase 3 trap-only / skill-only / mixed duplicate eval commands.
+- Expanded `evals/graph-extraction/dedup-fixtures-real.ts` with:
+  - `real-semantic-handoff-vs-doccoauthoring`
+  - `real-none-postgres-tuning-vs-backup`
+
+**Verification run**
+
+- `rtk zsh -lc "pnpm --config.store-dir=/tmp/pnpm-store --filter @trapmap/server exec tsc -p tsconfig.json --noEmit"` — passes
+- `rtk ./node_modules/.bin/vitest run packages/server/src/lib/candidates/pg-detector.test.ts packages/server/src/lib/persistence/__tests__/schema-duplicate-recall.test.ts` — passes
+- `rtk zsh -lc "pnpm --config.store-dir=/tmp/pnpm-store run check:docs-drift"` — verified earlier in this turn by the docs sidecar
+- `rtk zsh -lc "pnpm --config.store-dir=/tmp/pnpm-store run check:mermaid"` — verified earlier in this turn by the docs sidecar
+- `rtk zsh -lc "pnpm --config.store-dir=/tmp/pnpm-store run eval:dedup -- --dry-run | rg 'real-trap-exact-rmrf-quill|real-semantic-handoff-vs-doccoauthoring|real-none-postgres-tuning-vs-backup'"` — verified earlier in this turn by the docs sidecar
+
+**Notes / deferred**
+
+- No repository or schema code changed in this phase, so no additional repository/schema test file was required beyond the detector-level coverage for the new SQL paths.
+- Live dedup eval remains pending for Phase 5 / environment-ready verification. This turn only re-ran the dry-run path.
+
 ## Phase 4: Add Queue Dedupe and Duplicate-Path Observability
 
-- [ ] Use queue `dedupeKey` so a candidate cannot be enqueued multiple times while pending/running.
-- [ ] Emit enough structured metadata to explain which duplicate lane fired: exact, indexed recall, or fallback.
-- [ ] Keep retry semantics unchanged for real failures.
+- [x] Use queue `dedupeKey` so a candidate cannot be enqueued multiple times while pending/running.
+- [x] Emit enough structured metadata to explain which duplicate lane fired: exact, indexed recall, or fallback.
+- [x] Keep retry semantics unchanged for real failures.
 
 **Completion standard**
 
@@ -371,14 +407,14 @@ const ranked = mergeAndRankDuplicateMatches(recallCandidates)
 
 **Document updates**
 
-- [ ] Update `docs/operations/TESTING.md` with queue-dedupe verification steps.
+- [x] Update `docs/operations/TESTING.md` with queue-dedupe verification steps.
 - [ ] If operational visibility changes materially, update `docs/operations/ENVIRONMENT.md` or the relevant operations doc for any new flags/logging notes.
 
 **Test and eval updates**
 
-- [ ] Add queue tests around `dedupeKey` use in `packages/server/src/lib/queue/task-queue.ts` coverage or adjacent tests.
-- [ ] Add integration coverage in `packages/server/src/__tests__/candidate-pipeline.test.ts` for repeated scheduling.
-- [ ] Confirm eval runners still work when duplicate-path metadata is present in stored cases.
+- [x] Add queue tests around `dedupeKey` use in `packages/server/src/lib/queue/task-queue.ts` coverage or adjacent tests.
+- [x] Add integration coverage in `packages/server/src/__tests__/candidate-pipeline.test.ts` for repeated scheduling.
+- [x] Confirm eval runners still work when duplicate-path metadata is present in stored cases.
 
 **Example structure or code**
 
@@ -392,6 +428,38 @@ await queue.enqueue<CandidateProcessingPayload>(
   },
 );
 ```
+
+### Phase 4 Completion Notes (2026-06-03)
+
+**Implemented queue dedupe**
+
+- `packages/server/src/lib/candidates/processor.ts` now passes `dedupeKey: candidateId` on both the initial `scheduleCandidateProcessing()` enqueue and the retry enqueue path inside `processCandidateWithRetry()`.
+- `packages/server/src/lib/queue/task-queue.ts` now models the active-task uniqueness contract directly in code and schema:
+  - the queue table definitions declare `task_queue_dedupe_pending_idx` as a partial unique index on `(type, dedupe_key)` for `status IN ('pending', 'running')`
+  - `enqueue()` inserts optimistically, returns the newly inserted row when it wins, returns the surviving active row on `23505`, and retries the insert once if the conflict winner disappears before the follow-up read
+- Active dedupe only applies to `pending` / `running`. Rows in `completed`, `failed`, or `dead` no longer block future scheduling for the same candidate.
+
+**Implemented duplicate-path observability**
+
+- `AnalysisSnapshot` now carries optional `duplicateTrace` metadata:
+  - `detector: 'in-memory' | 'postgresql'`
+  - `matchedLane: 'exact' | 'indexed-recall' | 'fallback' | 'none'`
+- `packages/server/src/lib/candidates/detector.ts` writes `duplicateTrace` for the in-memory detector, distinguishing exact hits from fallback Jaccard/LLM matches and non-match runs.
+- `packages/server/src/lib/candidates/pg-detector.ts` writes `duplicateTrace` for the PostgreSQL detector, preserving whether the run ended in an exact hit, indexed recall hit, or no duplicate.
+- `packages/server/src/lib/candidates/pg-repository.ts` now persists `duplicateTrace` through both `attachAnalysis()` and the structured `insert()`/`getById()` sub-table path, backed by migration `packages/server/drizzle/0013_round10_candidate_analysis_trace.sql`.
+
+**Docs and verification**
+
+- Updated `docs/architecture/components/INGESTION.md` with the Phase 4 queue-dedupe contract and persisted duplicate-trace semantics.
+- Updated `docs/operations/TESTING.md` with Phase 4 queue-dedupe / duplicate-trace verification commands.
+- Focused verification passed on 2026-06-03:
+  - `rtk pnpm exec vitest run packages/contracts/src/domain/candidates.test.ts packages/server/src/lib/candidates/detector.test.ts packages/server/src/lib/candidates/pg-detector.test.ts packages/server/src/lib/candidates/pg-repository.test.ts packages/server/src/lib/candidates/processor.test.ts packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/persistence/__tests__/schema-candidates.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts`
+  - `rtk pnpm typecheck`
+
+**Notes / deferred**
+
+- No new runtime flags were introduced in Phase 4, so `docs/operations/ENVIRONMENT.md` did not require an update.
+- Phase 5 should still rerun the dry-run and live duplicate eval matrix after the remaining rollout docs/threshold work is complete.
 
 ## Phase 5: Align Docs, Tests, and Eval Thresholds for Rollout
 

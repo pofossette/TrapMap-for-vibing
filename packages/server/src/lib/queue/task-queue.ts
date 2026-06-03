@@ -7,9 +7,9 @@
  * Phase: Replace setTimeout-based retry with persistent queue
  */
 
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import type { Pool } from 'pg';
 
 // =============================================================================
@@ -48,7 +48,12 @@ export const taskQueue = pgTable(
     /** When task was completed */
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
-  (table) => [index('task_queue_type_dedupe_idx').on(table.type, table.dedupeKey)],
+  (table) => [
+    index('task_queue_type_dedupe_idx').on(table.type, table.dedupeKey),
+    uniqueIndex('task_queue_dedupe_pending_idx')
+      .on(table.type, table.dedupeKey)
+      .where(sql`${table.status} IN ('pending', 'running')`),
+  ],
 );
 
 // =============================================================================
@@ -151,34 +156,82 @@ export function createTaskQueue(config: TaskQueueConfig) {
   ): Promise<Task<T>> {
     const id = generateTaskId();
     const processAfter = options.delayMs ? new Date(Date.now() + options.delayMs) : new Date();
+    const dedupeKey = options.dedupeKey ?? null;
 
-    await db.insert(taskQueue).values({
-      id,
-      type,
-      payload: JSON.stringify(payload),
-      status: 'pending',
-      priority: options.priority ?? 0,
-      attempts: 0,
-      maxAttempts: options.maxAttempts ?? defaultMaxAttempts,
-      dedupeKey: options.dedupeKey ?? null,
-      processAfter,
-    });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const result = await pool.query<TaskRow>(
+          `
+          INSERT INTO task_queue (
+            id, type, payload, status, priority, attempts, max_attempts, dedupe_key,
+            process_after, created_at, updated_at, completed_at, last_error
+          )
+          VALUES (
+            $1, $2, $3, 'pending', $4, 0, $5, $6, $7, NOW(), NOW(), NULL, NULL
+          )
+          RETURNING *
+          `,
+          [
+            id,
+            type,
+            JSON.stringify(payload),
+            options.priority ?? 0,
+            options.maxAttempts ?? defaultMaxAttempts,
+            dedupeKey,
+            processAfter,
+          ],
+        );
 
-    return {
-      id,
-      type,
-      payload,
-      status: 'pending',
-      priority: options.priority ?? 0,
-      attempts: 0,
-      maxAttempts: options.maxAttempts ?? defaultMaxAttempts,
-      lastError: null,
-      dedupeKey: options.dedupeKey ?? null,
-      processAfter,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      completedAt: null,
-    };
+        const row = result.rows[0];
+        if (!row) {
+          throw new Error(`Failed to insert task ${id}`);
+        }
+
+        return rowToTask<T>(row);
+      } catch (error) {
+        if (!(dedupeKey && isUniqueViolation(error))) {
+          throw error;
+        }
+
+        const existing = await findActiveTaskByDedupeKey<T>(type, dedupeKey);
+        if (existing) {
+          return existing;
+        }
+
+        // Retry once when the conflict winner disappeared between the
+        // uniqueness violation and the follow-up read.
+        if (attempt === 1) {
+          throw new Error(
+            `Task enqueue for type "${type}" with dedupeKey "${dedupeKey}" conflicted without an active task`,
+          );
+        }
+      }
+    }
+
+    throw new Error(`Failed to enqueue task ${id}`);
+  }
+
+  async function findActiveTaskByDedupeKey<T>(
+    type: string,
+    dedupeKey: string,
+  ): Promise<Task<T> | null> {
+    // Concurrent dedupe depends on the database partial unique index for
+    // (type, dedupe_key) WHERE status IN ('pending', 'running'). When that
+    // index rejects a competing insert, we read back the surviving active task.
+    const result = await pool.query<TaskRow>(
+      `
+      SELECT * FROM task_queue
+      WHERE type = $1
+        AND dedupe_key = $2
+        AND status IN ('pending', 'running')
+      ORDER BY created_at ASC
+      LIMIT 1
+      `,
+      [type, dedupeKey],
+    );
+
+    const row = result.rows[0];
+    return row ? rowToTask<T>(row) : null;
   }
 
   /**
@@ -294,6 +347,32 @@ export function createTaskQueue(config: TaskQueueConfig) {
    * Requeue a dead task for retry.
    */
   async function requeue(taskId: string): Promise<void> {
+    const taskResult = await pool.query<TaskRow>('SELECT * FROM task_queue WHERE id = $1 LIMIT 1', [
+      taskId,
+    ]);
+    const task = taskResult.rows[0];
+    if (!task || task.status !== 'dead') {
+      return;
+    }
+
+    if (task.dedupe_key) {
+      const activeSibling = await pool.query<Pick<TaskRow, 'id'>>(
+        `
+        SELECT id FROM task_queue
+        WHERE type = $1
+          AND dedupe_key = $2
+          AND status IN ('pending', 'running')
+          AND id <> $3
+        LIMIT 1
+        `,
+        [task.type, task.dedupe_key, taskId],
+      );
+
+      if (activeSibling.rows[0]) {
+        return;
+      }
+    }
+
     await db
       .update(taskQueue)
       .set({
@@ -475,4 +554,8 @@ function rowToTask<T>(row: TaskRow): Task<T> {
     updatedAt: row.updated_at,
     completedAt: row.completed_at,
   };
+}
+
+function isUniqueViolation(error: unknown): error is { code: string } {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === '23505';
 }

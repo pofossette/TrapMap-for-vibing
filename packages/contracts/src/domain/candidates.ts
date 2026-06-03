@@ -106,6 +106,13 @@ export const AnalysisSnapshotSchema = z.object({
   keywords: z.array(z.string().min(1).max(48)),
   /** Tokens extracted from content for similarity matching */
   tokens: z.array(z.string().min(1).max(64)),
+  /** Duplicate-path trace metadata for review/debugging */
+  duplicateTrace: z
+    .object({
+      detector: z.enum(['in-memory', 'postgresql']),
+      matchedLane: z.enum(['exact', 'indexed-recall', 'fallback', 'none']),
+    })
+    .optional(),
 });
 
 /**

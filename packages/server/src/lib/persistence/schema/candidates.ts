@@ -92,6 +92,8 @@ export const candidateAnalyses = pgTable(
     keywords: jsonb('keywords').notNull().$type<string[]>().default([]),
     /** Tokens extracted from content for similarity matching */
     tokens: jsonb('tokens').notNull().$type<string[]>().default([]),
+    /** Duplicate-path trace metadata for review/debugging */
+    duplicateTrace: jsonb('duplicate_trace').$type<AnalysisSnapshot['duplicateTrace'] | null>(),
     /** Record creation timestamp */
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

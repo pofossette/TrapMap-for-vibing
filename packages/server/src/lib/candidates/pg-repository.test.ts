@@ -17,6 +17,7 @@ import type {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CandidateRepository } from '@trapmap/server/lib/repository.js';
+import { PgCandidateRepository } from './pg-repository.js';
 
 // Helper to create a test candidate
 function createTestCandidate(overrides: Partial<CandidateSubmission> = {}): CandidateSubmission {
@@ -54,6 +55,10 @@ function createTestAnalysisSnapshot(): AnalysisSnapshot {
     fingerprint: 'a'.repeat(64), // SHA-256 hex string
     keywords: ['test', 'keyword'],
     tokens: ['test', 'token'],
+    duplicateTrace: {
+      detector: 'postgresql',
+      matchedLane: 'indexed-recall',
+    },
   };
 }
 
@@ -183,6 +188,44 @@ describe('PgCandidateRepository', () => {
       // Expected: attachAnalysis('candidate_1', snapshot) sets:
       // - analysisSnapshot = snapshot (as JSONB)
       // - updatedAt = now
+    });
+
+    it('writeAnalysisToSubTable persists duplicateTrace in structured rows', async () => {
+      const snapshot = createTestAnalysisSnapshot();
+      const valuesSpy = vi.fn();
+      const onConflictDoUpdateSpy = vi.fn();
+
+      const repo = {
+        db: {
+          insert: vi.fn(() => ({
+            values: valuesSpy.mockImplementation((valuesArg) => ({
+              onConflictDoUpdate: onConflictDoUpdateSpy.mockResolvedValue(valuesArg),
+            })),
+          })),
+        },
+      } as unknown as {
+        db: { insert: ReturnType<typeof vi.fn> };
+        writeAnalysisToSubTable: (candidateId: string, snapshot: AnalysisSnapshot) => Promise<void>;
+      };
+
+      await (PgCandidateRepository.prototype as any).writeAnalysisToSubTable.call(
+        repo,
+        'candidate_1',
+        snapshot,
+      );
+
+      expect(valuesSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          duplicateTrace: snapshot.duplicateTrace,
+        }),
+      );
+      expect(onConflictDoUpdateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          set: expect.objectContaining({
+            duplicateTrace: snapshot.duplicateTrace,
+          }),
+        }),
+      );
     });
   });
 

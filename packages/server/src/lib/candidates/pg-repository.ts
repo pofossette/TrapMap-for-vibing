@@ -208,19 +208,28 @@ export class PgCandidateRepository implements CandidateRepository {
 
       // Write to structured sub-table
       await client.query(
-        `INSERT INTO candidate_analyses (candidate_id, normalized_at, fingerprint, keywords, tokens)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO candidate_analyses (
+           candidate_id,
+           normalized_at,
+           fingerprint,
+           keywords,
+           tokens,
+           duplicate_trace
+         )
+         VALUES ($1, $2, $3, $4, $5, $6)
          ON CONFLICT (candidate_id) DO UPDATE SET
            normalized_at = EXCLUDED.normalized_at,
            fingerprint = EXCLUDED.fingerprint,
            keywords = EXCLUDED.keywords,
-           tokens = EXCLUDED.tokens`,
+           tokens = EXCLUDED.tokens,
+           duplicate_trace = EXCLUDED.duplicate_trace`,
         [
           candidateId,
           snapshot.normalizedAt,
           snapshot.fingerprint,
           JSON.stringify(snapshot.keywords),
           JSON.stringify(snapshot.tokens),
+          snapshot.duplicateTrace ? JSON.stringify(snapshot.duplicateTrace) : null,
         ],
       );
 
@@ -438,6 +447,7 @@ export class PgCandidateRepository implements CandidateRepository {
         fingerprint: snapshot.fingerprint,
         keywords: snapshot.keywords,
         tokens: snapshot.tokens,
+        duplicateTrace: snapshot.duplicateTrace ?? null,
       })
       .onConflictDoUpdate({
         target: candidateAnalyses.candidateId,
@@ -446,6 +456,7 @@ export class PgCandidateRepository implements CandidateRepository {
           fingerprint: snapshot.fingerprint,
           keywords: snapshot.keywords,
           tokens: snapshot.tokens,
+          duplicateTrace: snapshot.duplicateTrace ?? null,
         },
       });
   }
@@ -548,6 +559,8 @@ export class PgCandidateRepository implements CandidateRepository {
       fingerprint: row.fingerprint,
       keywords: row.keywords as string[],
       tokens: row.tokens as string[],
+      duplicateTrace:
+        (row.duplicateTrace as AnalysisSnapshot['duplicateTrace'] | null | undefined) ?? undefined,
     };
   }
 
