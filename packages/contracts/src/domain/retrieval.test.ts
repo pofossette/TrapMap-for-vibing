@@ -64,6 +64,7 @@ describe('retrieval schema contracts', () => {
         scope: 'global',
         shortcut: 'Fix login',
       },
+      sourceType: 'knowledge' as const,
       snippet: 'Use async/await for authentication',
       tags: ['auth', 'async'],
       recallChannels: ['semantic', 'keyword'],

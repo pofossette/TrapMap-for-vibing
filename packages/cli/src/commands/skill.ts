@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import type {
   ApplyResolutionResponse,
+  CandidateListResponse,
   DuplicateJobBundleResponse,
   ManualResultResponse,
   SkillEditResponse,
@@ -12,6 +13,7 @@ import type {
 import {
   DuplicateJobBundleResponseSchema,
   applyResolutionResponseSchema,
+  candidateListResponseSchema,
   manualResultResponseSchema,
   skillEditResponseSchema,
   skillHistoryResponseSchema,
@@ -24,13 +26,19 @@ import type { Command } from 'commander';
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printAdaptiveResult, printCommandResult } from '@trapmap/cli/lib/output.js';
-import { stripNewlines } from '@trapmap/cli/lib/sanitize.js';
+import { sanitizeForDisplay, stripNewlines } from '@trapmap/cli/lib/sanitize.js';
+import {
+  formatApplyResolutionText,
+  formatCandidateTable,
+} from '@trapmap/cli/lib/skill-utils.js';
 
 interface SkillCommandOptions {
   allowSearch: boolean;
   allowSubmit: boolean;
   allowExport: boolean;
   allowReview: boolean;
+  allowFind: boolean;
+  allowApply: boolean;
 }
 
 /**
@@ -230,7 +238,9 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
     !options.allowSearch &&
     !options.allowSubmit &&
     !options.allowExport &&
-    !options.allowReview
+    !options.allowReview &&
+    !options.allowFind &&
+    !options.allowApply
   ) {
     return;
   }
@@ -272,6 +282,95 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
           printAdaptiveResult('skill-lookup', parsed, state, flags, formatSkillLookupResponse);
         },
       );
+  }
+
+  // skill find [fingerprint]
+  if (options.allowFind) {
+    skill
+      .command('find')
+      .description('Find skill candidates, optionally filtering by fingerprint')
+      .argument('[fingerprint]', 'Fingerprint to filter by (optional)')
+      .option('--json', 'Output JSON')
+      .action(async (fingerprint: string | undefined, flags: { json?: boolean }) => {
+        const state = await loadCliState();
+        requireSessionToken(state);
+
+        const response = await apiRequest<CandidateListResponse>(state, {
+          method: 'GET',
+          path: '/v1/candidates',
+        });
+
+        const parsed = candidateListResponseSchema.parse(response.data);
+
+        let candidates = parsed.items;
+        if (fingerprint) {
+          candidates = candidates.filter(
+            (c) => c.analysisSnapshot?.fingerprint === fingerprint,
+          );
+        }
+
+        const filtered = { ...parsed, items: candidates };
+
+        printCommandResult(
+          {
+            action: 'skill-find',
+            success: true,
+            summary: `${candidates.length} candidate(s) found${fingerprint ? ` matching fingerprint ${fingerprint}` : ''}.`,
+            artifacts: candidates.map((c) => ({
+              id: c.id,
+              title: c.sourceType,
+              newState: c.status,
+            })),
+            nextSteps: [],
+          },
+          filtered,
+          state,
+          flags,
+          formatCandidateTable,
+        );
+      });
+  }
+
+  // skill apply <candidateId>
+  if (options.allowApply) {
+    skill
+      .command('apply')
+      .description('Apply a skill candidate to publish or merge')
+      .argument('<candidateId>', 'Candidate ID to apply')
+      .option('--json', 'Output JSON')
+      .action(async (candidateId: string, flags: { json?: boolean }) => {
+        const state = await loadCliState();
+        requireSessionToken(state);
+
+        const response = await apiRequest<ApplyResolutionResponse>(state, {
+          method: 'POST',
+          path: `/v1/candidates/${sanitizeForDisplay(candidateId)}/apply-resolution`,
+        });
+
+        const parsed = applyResolutionResponseSchema.parse(response.data);
+
+        printCommandResult(
+          {
+            action: 'skill-apply',
+            success: true,
+            summary: `Applied resolution for ${parsed.candidateId}: ${parsed.outcome.decision}.`,
+            artifacts: [
+              {
+                id: parsed.candidateId,
+                newState: parsed.status,
+                ...(parsed.outcome.decision === 'independent'
+                  ? { publishedAs: parsed.outcome.entityType }
+                  : { mergedInto: parsed.outcome.mergedIntoEntityId }),
+              },
+            ],
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          formatApplyResolutionText,
+        );
+      });
   }
 
   // Phase 19: skill edit (SKED-02)

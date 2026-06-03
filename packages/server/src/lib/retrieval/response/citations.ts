@@ -60,6 +60,7 @@ export function buildCitation(candidate: MergedCandidate) {
       scope: entry.scope,
       shortcut: entry.shortcut,
     },
+    sourceType: 'knowledge' as const,
     snippet,
     tags: entry.labels,
     recallChannels: channels,

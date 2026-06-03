@@ -253,6 +253,7 @@ describe('CLI retrieval commands', () => {
               snippet: 'Use the cache invalidation skill.',
               tags: ['cache'],
               recallChannels: ['semantic'],
+              sourceType: 'capsule',
               scores: {
                 semantic: 0.97,
                 keyword: null,
@@ -645,6 +646,7 @@ describe('CLI retrieval commands', () => {
               snippet: 'Test detail content',
               tags: ['security', 'auth'],
               recallChannels: ['semantic', 'keyword'],
+              sourceType: 'knowledge',
               scores: {
                 semantic: 0.92,
                 keyword: 0.85,
@@ -711,6 +713,7 @@ describe('CLI retrieval commands', () => {
               snippet: 'Test detail content',
               tags: ['security'],
               recallChannels: ['semantic'],
+              sourceType: 'knowledge',
               scores: {
                 semantic: 0.95,
                 keyword: null,
@@ -735,6 +738,7 @@ describe('CLI retrieval commands', () => {
               snippet: 'Test detail content',
               tags: ['security'],
               recallChannels: ['semantic'],
+              sourceType: 'knowledge',
               scores: {
                 semantic: 0.95,
                 keyword: null,
@@ -795,6 +799,7 @@ describe('CLI retrieval commands', () => {
               snippet: 'Test detail content that shows how to validate...',
               tags: ['security', 'auth'],
               recallChannels: ['semantic', 'keyword'],
+              sourceType: 'knowledge',
               scores: {
                 semantic: 0.92,
                 keyword: 0.85,
@@ -855,6 +860,7 @@ describe('CLI retrieval commands', () => {
               snippet: 'Test detail content',
               tags: ['security'],
               recallChannels: ['semantic'],
+              sourceType: 'knowledge',
               scores: {
                 semantic: 0.95,
                 keyword: null,
@@ -879,6 +885,7 @@ describe('CLI retrieval commands', () => {
               snippet: 'Test detail content',
               tags: ['security'],
               recallChannels: ['semantic'],
+              sourceType: 'knowledge',
               scores: {
                 semantic: 0.95,
                 keyword: null,
@@ -998,6 +1005,7 @@ describe('CLI retrieval commands', () => {
               snippet: 'Test detail',
               tags: ['test'],
               recallChannels: ['semantic'],
+              sourceType: 'knowledge',
               scores: {
                 semantic: 0.9,
                 keyword: null,
@@ -1328,6 +1336,7 @@ describe('CLI retrieval commands', () => {
               snippet: 'Content',
               tags: ['test'],
               recallChannels: ['semantic'],
+              sourceType: 'capsule',
               scores: {
                 semantic: 0.9,
                 keyword: null,

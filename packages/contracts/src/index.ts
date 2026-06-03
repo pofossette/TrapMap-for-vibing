@@ -18,6 +18,7 @@ export * from './domain/retrieval.js';
 export * from './domain/review.js';
 export * from './domain/admin.js';
 export * from './domain/plans.js';
+export * from './domain/skills.js';
 export * from './domain/team.js';
 
 // Re-export specific types for Phase 35 resolution workflow

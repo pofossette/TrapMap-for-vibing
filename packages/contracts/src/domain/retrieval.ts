@@ -28,6 +28,15 @@ export const retrievalFiltersSchema = z.object({
 });
 
 /**
+ * Source type for retrieval citations.
+ * Distinguishes whether a citation originated from the v1 knowledge-entry
+ * pipeline or the v2 capsule-native pipeline.
+ */
+export const citationSourceTypeSchema = z.enum(['knowledge', 'capsule']);
+
+export type CitationSourceType = z.infer<typeof citationSourceTypeSchema>;
+
+/**
  * Canonical citation schema for Phase 10.
  * Provides structured, auditable metadata for each retrieval match.
  */
@@ -37,6 +46,8 @@ export const retrievalCitationSchema = z.object({
     scope: scopeSchema,
     shortcut: z.string(),
   }),
+  /** Whether this citation came from the v1 knowledge-entry pipeline or v2 capsule pipeline */
+  sourceType: citationSourceTypeSchema,
   snippet: z.string().min(1),
   tags: z.array(labelSchema),
   recallChannels: z.array(z.enum(['semantic', 'keyword', 'graph'])).min(1),
@@ -208,10 +219,35 @@ export const retrievalResponseSchema = z.object({
   summary: retrievalSummarySchema.nullable(),
   /** Diagnostic routing trace populated by the orchestrator */
   routingTrace: routingTraceSchema.optional(),
+  /** Backend identifier that produced this response (for debugging) */
+  backend: z.string().optional(),
+  /** Wall-clock time the backend spent processing (ms, for debugging) */
+  backendMs: z.number().optional(),
 });
 
 export type RetrievalQuery = z.infer<typeof retrievalQuerySchema>;
 export type RetrievalResponse = z.infer<typeof retrievalResponseSchema>;
+
+/**
+ * Unified retrieval request schema.
+ * Canonical input shape for retrieval endpoints. Provides a single source of
+ * truth for client-supplied fields including optional backend selection and
+ * graph traversal depth hints.
+ */
+export const retrievalRequestSchema = z.object({
+  /** Natural-language search query or seed text */
+  query: z.string().min(1).max(2000),
+  /** Optional team scope to restrict retrieval results */
+  teamId: z.string().optional(),
+  /** Optional graph traversal depth (0 = no graph, 1-3 = expand) */
+  graphDepth: z.number().int().min(0).max(3).optional(),
+  /** Optional backend selector for debugging and evaluation */
+  backend: z.enum(['in-memory', 'pgvector']).optional(),
+  /** Optional capsule scope for capsule-native retrieval */
+  capsuleId: z.string().optional(),
+});
+
+export type RetrievalRequest = z.infer<typeof retrievalRequestSchema>;
 
 // =============================================================================
 // Phase 14: Seed-Only Retrieval v2 Contracts (RETR-01, RETR-02, RETR-04, COMP-01)

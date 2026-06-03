@@ -71,6 +71,7 @@ describe('retrieval schema adversarial tests', () => {
         scope: 'global',
         shortcut: 'Fix login',
       },
+      sourceType: 'knowledge' as const,
       snippet: 'Use async/await for authentication',
       tags: ['auth'],
       recallChannels: ['semantic'],

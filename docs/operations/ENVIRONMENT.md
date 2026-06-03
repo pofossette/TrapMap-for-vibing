@@ -113,6 +113,8 @@ pnpm dev:server
 | `AI_PROMPT_TEMPLATE_FILE` | 可选的本地 JSON 槽位模板覆盖文件路径 | 未设置（不应用模板文件覆盖） |
 | `AI_PROMPT_PROVIDER` | Prompt provider 选择：`anthropic`、`openai`、`deepseek`、`kimi`、`gemini`、`default` | 自动从模型 ID 推断 |
 
+> 以上 AI 高级配置项未暴露为稳定 CLI 命令，仅通过环境变量控制。
+
 ### 独立 Embedding Provider
 
 使用与 chat 不同的提供商处理 embedding：

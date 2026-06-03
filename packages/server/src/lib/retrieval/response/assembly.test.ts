@@ -337,6 +337,7 @@ describe('assembly', () => {
             snippet: 'Test content',
             tags: ['test'],
             recallChannels: ['semantic'],
+            sourceType: 'capsule',
             scores: {
               semantic: 0.8,
               keyword: null,
