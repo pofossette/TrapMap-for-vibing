@@ -11,7 +11,10 @@
  * rather than writing directly to graph-lite/store.
  */
 
-import type { SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import type { SkillArtifactRecord, SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import { artifactGraphIndexAdapter } from './adapters/artifact-graph.js';
+import { createCapsuleIndexAdapter } from './adapters/capsule-index.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 
 // ---------------------------------------------------------------------------
@@ -22,6 +25,7 @@ import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
  * Registered artifact adapters for fan-out.
  */
 let registeredArtifactAdapters: ArtifactGraphAdapter[] = [];
+const storeArtifactAdapterCache = new WeakMap<SkillShareerStore, ArtifactGraphAdapter[]>();
 
 /**
  * Register artifact adapters for the fan-out pipeline.
@@ -39,6 +43,31 @@ export function registerArtifactAdapters(adapters: ArtifactGraphAdapter[]): void
  */
 export function getArtifactAdapters(): ArtifactGraphAdapter[] {
   return registeredArtifactAdapters;
+}
+
+/**
+ * Resolve the shared artifact adapter list for a store instance.
+ *
+ * Tests and bootstrap code can still override this by registering adapters
+ * explicitly. Otherwise we lazily assemble the default lifecycle adapters.
+ */
+export function resolveArtifactAdapters(store: SkillShareerStore): ArtifactGraphAdapter[] {
+  if (registeredArtifactAdapters.length > 0) {
+    return registeredArtifactAdapters;
+  }
+
+  const cached = storeArtifactAdapterCache.get(store);
+  if (cached) {
+    return cached;
+  }
+
+  const adapters: ArtifactGraphAdapter[] = [artifactGraphIndexAdapter];
+  if (store instanceof PostgresStore) {
+    adapters.push(createCapsuleIndexAdapter({ pool: store.getPool() }));
+  }
+
+  storeArtifactAdapterCache.set(store, adapters);
+  return adapters;
 }
 
 // ---------------------------------------------------------------------------
@@ -76,16 +105,24 @@ export interface ArtifactAdapterFanOutResult {
 export async function runArtifactAdapterFanOut(args: {
   data: StoreData;
   artifact: SkillArtifactRecord;
+  store?: SkillShareerStore;
+  graphQueryBackend?: Parameters<ArtifactGraphAdapter['sync']>[0]['graphQueryBackend'];
   adapters?: ArtifactGraphAdapter[];
 }): Promise<ArtifactAdapterFanOutResult> {
   const { data, artifact } = args;
-  const adapters = args.adapters ?? registeredArtifactAdapters;
+  const adapters = args.adapters ?? (args.store ? resolveArtifactAdapters(args.store) : registeredArtifactAdapters);
 
   const results: ArtifactAdapterFanOutResult['results'] = [];
 
   for (const adapter of adapters) {
     try {
-      const result = await adapter.sync({ data, artifact });
+      const result = await adapter.sync({
+        data,
+        artifact,
+        ...(args.graphQueryBackend !== undefined
+          ? { graphQueryBackend: args.graphQueryBackend }
+          : {}),
+      });
       results.push({
         success: result.success,
         performedWork: result.performedWork,
@@ -114,12 +151,20 @@ export async function runArtifactAdapterFanOut(args: {
 export async function runArtifactAdapterRemoval(args: {
   data: StoreData;
   artifactId: string;
+  store?: SkillShareerStore;
+  graphQueryBackend?: Parameters<ArtifactGraphAdapter['remove']>[0]['graphQueryBackend'];
   adapters?: ArtifactGraphAdapter[];
 }): Promise<void> {
   const { data, artifactId } = args;
-  const adapters = args.adapters ?? registeredArtifactAdapters;
+  const adapters = args.adapters ?? (args.store ? resolveArtifactAdapters(args.store) : registeredArtifactAdapters);
 
   for (const adapter of adapters) {
-    await adapter.remove({ data, artifactId });
+    await adapter.remove({
+      data,
+      artifactId,
+      ...(args.graphQueryBackend !== undefined
+        ? { graphQueryBackend: args.graphQueryBackend }
+        : {}),
+    });
   }
 }

@@ -293,6 +293,26 @@ CI 配置位于 `.github/workflows/eval.yml`。
 - **摘要层**: 在 `evals/summary/datasets/smoke/` 中添加带 `filters.labels` 和 `forbiddenClaims` 的摘要用例
 - **场景层**: 在对应的 scenarios 文件中添加包含多标签 artifact 的 fixture
 
+### Skill Lookup 检索评测边界
+
+`/v1/retrieval/skills/search-by-content` 现在纳入 retrieval eval 合同边界，不再只依赖独立 route/helper 测试：
+
+- **Smoke**: `v1-skill-lookup-positive-smoke` 验证 artifact-first 正向命中
+- **Core**: `v1-skill-lookup-governance-core` 验证 artifact-first 返回在 mixed-visibility 场景下仍遵守治理边界
+- **断言形状**: 该端点不使用 v1 bucket 或 v2 capsule 断言，而是通过 `expected.shape.expectedArtifactIds` 断言 artifact-first 返回集合
+- **执行适配**: 评测 runner 保持统一 `request.seed` 数据集字段，执行时再映射到 live route 的 `text` 请求体
+
+最小验证命令：
+
+```bash
+rtk pnpm test -- --run \
+  evals/retrieval/lib/normalize.test.ts \
+  evals/retrieval/lib/assertions.test.ts \
+  evals/retrieval/lib/report.test.ts \
+  evals/retrieval/datasets/retrieval-datasets.test.ts \
+  evals/retrieval/runner.test.ts
+```
+
 ---
 
 ## 摘要评估指标
@@ -479,6 +499,7 @@ pnpm eval:smoke
 - `rebuildCapsuleIndexForArtifact()`: 按 artifact ID 定点重建
 - `verifyCapsuleIndexHealth()`: 健康对账（只读，返回 missing/failed/orphan 统计）
 - `cleanupOrphanCapsuleIndexes()`: 孤立索引行清理
+- 稳定内部运维路由：`POST /v1/operations/capsule-index/rebuild`、`GET /v1/operations/capsule-index/health`、`POST /v1/operations/capsule-index/cleanup-orphans`
 
 通道故障隔离：
 - `CapsuleRecallCoordinator.execute()`: 每个通道单独 try/catch，单通道失败记录到 `channelsFailed` / `channelErrors`，不阻断检索

@@ -42,9 +42,13 @@ describe('retrieval runner', () => {
     it('filters cases by endpoint', () => {
       const cases = loadCases('smoke');
       const v1Cases = filterByEndpoint(cases, '/v1/retrieval/search');
+      const skillLookupCases = filterByEndpoint(cases, '/v1/retrieval/skills/search-by-content');
       const v2Cases = filterByEndpoint(cases, '/v2/retrieval/search');
 
       expect(v1Cases.every((c) => c.endpoint === '/v1/retrieval/search')).toBe(true);
+      expect(
+        skillLookupCases.every((c) => c.endpoint === '/v1/retrieval/skills/search-by-content'),
+      ).toBe(true);
       expect(v2Cases.every((c) => c.endpoint === '/v2/retrieval/search')).toBe(true);
     });
   });
@@ -121,6 +125,24 @@ describe('retrieval runner', () => {
       expect(result.result).toBeDefined();
       expect(result.execution).toBeDefined();
       expect(result.execution.endpoint).toBe('/v2/retrieval/search');
+      expect(result.execution.adapterType).toBe('route');
+    });
+
+    it('executes v1 skill lookup endpoint and returns adapter result', async () => {
+      const cases = loadCases('smoke');
+      const skillLookupCase = cases.find(
+        (c) => c.endpoint === '/v1/retrieval/skills/search-by-content',
+      );
+
+      if (!skillLookupCase) {
+        return;
+      }
+
+      const result = await executeCase(ctx, skillLookupCase);
+
+      expect(result.result).toBeDefined();
+      expect(result.execution).toBeDefined();
+      expect(result.execution.endpoint).toBe('/v1/retrieval/skills/search-by-content');
       expect(result.execution.adapterType).toBe('route');
     });
 

@@ -220,6 +220,40 @@ export const v1GraphAssistedPositiveSmoke = retrievalEvalCaseSchema.parse({
 }) as RetrievalEvalCase;
 
 // =============================================================================
+// v1 Smoke: Skill Lookup Positive Hit
+// =============================================================================
+
+/**
+ * Case: Search for docker skill content, expect one governed artifact-first match.
+ */
+export const v1SkillLookupPositiveSmoke = retrievalEvalCaseSchema.parse({
+  schemaVersion: 1,
+  caseId: 'v1-skill-lookup-positive-smoke',
+  tier: 'smoke',
+  endpoint: '/v1/retrieval/skills/search-by-content',
+  request: {
+    seed: 'docker compose multi-container setup',
+    maxResults: 10,
+  },
+  scenarioId: 'smoke-positive-visible',
+  expected: {
+    outcome: 'non-empty',
+    relevance: {
+      relevantIds: ['artifact_smoke_approved'],
+      idealOrder: ['artifact_smoke_approved'],
+    },
+    governance: {
+      forbiddenIds: [],
+      forbiddenReasons: [],
+    },
+    shape: {
+      expectedArtifactIds: ['artifact_smoke_approved'],
+    },
+  },
+  tags: ['positive', 'v1', 'smoke', 'skill-lookup', 'capsule', 'general'],
+}) as RetrievalEvalCase;
+
+// =============================================================================
 // Aggregated v1 Smoke Cases Export
 // =============================================================================
 
@@ -232,4 +266,5 @@ export const v1RetrievalSmokeCases: RetrievalEvalCase[] = [
   v1SemanticForbiddenSmoke,
   v1HybridPositiveSmoke,
   v1GraphAssistedPositiveSmoke,
+  v1SkillLookupPositiveSmoke,
 ];

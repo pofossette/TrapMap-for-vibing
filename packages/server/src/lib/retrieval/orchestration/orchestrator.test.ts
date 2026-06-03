@@ -154,6 +154,12 @@ vi.mock('../capsules/capsule-channel-registry.js', () => ({
     unregister: vi.fn(),
   })),
   createDefaultCapsuleChannelRegistry: vi.fn(),
+  createFullCapsuleChannelRegistry: vi.fn().mockResolvedValue({
+    register: vi.fn(),
+    all: vi.fn().mockReturnValue([]),
+    get: vi.fn(),
+    unregister: vi.fn(),
+  }),
 }));
 
 vi.mock('../capsules/channels/heuristic.js', () => ({

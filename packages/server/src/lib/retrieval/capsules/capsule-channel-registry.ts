@@ -1,7 +1,10 @@
+import type { Pool } from 'pg';
+
 import type {
   CapsuleRecallChannel,
   CapsuleRecallChannelName,
 } from '@trapmap/server/lib/retrieval/types.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import { capsuleHeuristicChannel } from './channels/heuristic.js';
 
 /**
@@ -56,5 +59,69 @@ export class CapsuleChannelRegistry {
 export function createDefaultCapsuleChannelRegistry(): CapsuleChannelRegistry {
   const registry = new CapsuleChannelRegistry();
   registry.register(capsuleHeuristicChannel);
+  return registry;
+}
+
+/**
+ * Options for building a full capsule channel registry.
+ */
+export interface FullCapsuleChannelRegistryOptions {
+  /** PG pool for keyword and semantic channels (null = memory-only fallback) */
+  pgPool?: Pool | null;
+  /** PG feature flag for keyword channel */
+  pgKeywordFlag?: () => boolean;
+  /** PG feature flag for semantic channel */
+  pgSemanticFlag?: () => boolean;
+  /** Graph query backend for graph channel */
+  graphQueryBackend?: GraphQueryBackend;
+}
+
+/**
+ * Create a CapsuleChannelRegistry with all default channels:
+ * heuristic, keyword, semantic, and graph (if backend available).
+ *
+ * This is the shared factory used by both the retrieval orchestrator
+ * and the skill-lookup convergence path.
+ */
+export async function createFullCapsuleChannelRegistry(
+  options: FullCapsuleChannelRegistryOptions = {},
+): Promise<CapsuleChannelRegistry> {
+  const registry = createDefaultCapsuleChannelRegistry();
+
+  const { createCapsuleKeywordChannel } = await import('./channels/keyword.js');
+  const { createCapsuleSemanticChannel } = await import('./channels/semantic.js');
+
+  registry.register(
+    createCapsuleKeywordChannel(
+      options.pgPool
+        ? {
+            pgPool: options.pgPool,
+            pgFeatureFlag: options.pgKeywordFlag ?? (() => false),
+          }
+        : undefined,
+    ),
+  );
+
+  registry.register(
+    createCapsuleSemanticChannel(
+      options.pgPool
+        ? {
+            pgPool: options.pgPool,
+            pgFeatureFlag: options.pgSemanticFlag ?? (() => false),
+          }
+        : undefined,
+    ),
+  );
+
+  // Graph channel registration is optional and failure-tolerant
+  if (options.graphQueryBackend) {
+    try {
+      const { createCapsuleGraphChannel } = await import('./channels/graph.js');
+      registry.register(createCapsuleGraphChannel(options.graphQueryBackend));
+    } catch {
+      // Graph channel registration failure should not block retrieval
+    }
+  }
+
   return registry;
 }

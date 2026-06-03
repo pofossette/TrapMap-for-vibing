@@ -8,7 +8,7 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import type { RetrievalQuery, RetrievalV2Query } from '@trapmap/contracts';
+import type { RetrievalQuery, RetrievalV2Query, SkillLookupQuery } from '@trapmap/contracts';
 import type { RetrievalEvalCase, RetrievalEvalScenario } from '@trapmap/contracts/evals';
 import { buildServer } from '../../../packages/server/src/app.js';
 import type { GraphIndexDocumentRecord } from '../../../packages/server/src/lib/indexing/graph-lite/documents.js';
@@ -700,13 +700,23 @@ export async function executeThroughRoute(
   let fallbackReason: string | undefined;
 
   try {
+    const payload: RetrievalQuery | RetrievalV2Query | SkillLookupQuery =
+      case_.endpoint === '/v1/retrieval/skills/search-by-content'
+        ? {
+            text: case_.request.seed,
+            ...(case_.request.maxResults !== undefined
+              ? { maxResults: case_.request.maxResults }
+              : {}),
+          }
+        : case_.request;
+
     const response = await ctx.app.inject({
       method: 'POST',
       url: case_.endpoint,
       headers: {
         authorization: `Bearer ${ctx.sessionToken}`,
       },
-      payload: case_.request,
+      payload,
     });
 
     const durationMs = Date.now() - startTime;
@@ -734,6 +744,7 @@ export async function executeThroughRoute(
         returnedIds: [],
         buckets: { globalConstraints: [], projectKnowledge: [] },
         profileHintArtifactIds: [],
+        artifactIds: [],
         isEmpty: true,
         rawResponse: response.json(),
         endpoint: case_.endpoint,
@@ -747,6 +758,7 @@ export async function executeThroughRoute(
           fallbackReason,
           endpoint: case_.endpoint,
           durationMs,
+          fallbackApplied: false,
         },
         warnings,
       };
@@ -781,27 +793,29 @@ export async function executeThroughRoute(
     });
 
     // Return empty result on error
-    const emptyResult: NormalizedResult = {
-      hits: [],
-      returnedIds: [],
-      buckets: { globalConstraints: [], projectKnowledge: [] },
-      profileHintArtifactIds: [],
-      isEmpty: true,
-      rawResponse: { error: errorMessage },
-      endpoint: case_.endpoint,
+      const emptyResult: NormalizedResult = {
+        hits: [],
+        returnedIds: [],
+        buckets: { globalConstraints: [], projectKnowledge: [] },
+        profileHintArtifactIds: [],
+        artifactIds: [],
+        isEmpty: true,
+        rawResponse: { error: errorMessage },
+        endpoint: case_.endpoint,
     };
 
     return {
       result: emptyResult,
       execution: {
         adapterType,
-        fallbackUsed,
-        fallbackReason,
-        endpoint: case_.endpoint,
-        durationMs,
-      },
-      warnings,
-    };
+          fallbackUsed,
+          fallbackReason,
+          endpoint: case_.endpoint,
+          durationMs,
+          fallbackApplied: false,
+        },
+        warnings,
+      };
   }
 }
 

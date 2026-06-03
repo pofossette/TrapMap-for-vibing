@@ -10,7 +10,6 @@ import { getSkillHistory, submitSkillEdit } from '@trapmap/server/lib/artifacts/
 import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { artifactGraphIndexAdapter } from '@trapmap/server/lib/indexing/adapters/artifact-graph.js';
 import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
 import { runPreReview } from '@trapmap/server/lib/pre-review.js';
 import { requirePermission, requireTeamAccess } from '@trapmap/server/lib/rbac.js';
@@ -128,8 +127,8 @@ export const skillEditRoutes: FastifyPluginAsync = async (app) => {
     });
 
     // Trigger skill graph indexing AFTER the transaction commits (P36-02)
-    // Only refresh graph if artifact ends in approved state after edit
-    if (result.lifecycleTransition && result.artifact.lifecycleState === 'approved') {
+    // Delegate to shared seam: determineSkillIndexAction() decides upsert/remove/noop
+    if (result.lifecycleTransition && result.lifecycleTransition.from !== result.lifecycleTransition.to) {
       await runSkillIndexEvent({
         services: {
           store: app.skillShareer.store,
@@ -140,7 +139,6 @@ export const skillEditRoutes: FastifyPluginAsync = async (app) => {
         previousState: result.lifecycleTransition.from,
         nextState: result.lifecycleTransition.to,
         reason: 'updated',
-        adapters: [artifactGraphIndexAdapter],
       });
     }
 

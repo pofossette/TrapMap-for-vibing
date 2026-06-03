@@ -37,7 +37,11 @@ export interface RunRetrievalOptions {
   tier: RetrievalEvalTier;
   dryRun?: boolean;
   allowEmpty?: boolean;
-  endpoint?: '/v1/retrieval/search' | '/v2/retrieval/search';
+  endpoint?:
+    | '/v1/retrieval/search'
+    | '/v1/retrieval/skills/search-by-content'
+    | '/v2/retrieval/search'
+    | '/v3/retrieval/search';
   verbose?: number;
 }
 

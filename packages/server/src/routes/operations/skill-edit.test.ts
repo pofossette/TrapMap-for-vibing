@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
 import { buildServer } from '@trapmap/server/app.js';
 import {
@@ -231,6 +233,17 @@ describe('operations routes', () => {
 // ---------------------------------------------------------------------------
 
 describe('skill edit routes with fixtures (Phase 2B)', () => {
+  describe('route-local indexing seam regression', () => {
+    it('does not hardcode artifact adapter arrays or capsule side effects in the route', () => {
+      const source = readFileSync(path.join(__dirname, 'skill-edit.ts'), 'utf8');
+
+      expect(source).not.toContain('adapters: [artifactGraphIndexAdapter]');
+      expect(source).not.toContain('createCapsuleIndexAdapter');
+      expect(source).not.toContain('.syncArtifact(');
+      expect(source).not.toContain('.removeArtifact(');
+    });
+  });
+
   describe('edit endpoint authentication', () => {
     it('returns 401 for edit without authentication', async () => {
       const { app } = await buildTestServer((data, auth) => {

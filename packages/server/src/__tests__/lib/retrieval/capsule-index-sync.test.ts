@@ -261,4 +261,46 @@ describe('Capsule Index Sync', () => {
       expect(deleteFn).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('getIndexedCapsuleIds', () => {
+    it('should return capsule IDs for an artifact', async () => {
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([
+            { capsuleId: 'capsule_1' },
+            { capsuleId: 'capsule_2' },
+          ]),
+        }),
+      } as never);
+
+      const ids = await sync.getIndexedCapsuleIds('artifact_1');
+
+      expect(ids).toEqual(['capsule_1', 'capsule_2']);
+    });
+
+    it('should return empty array when no capsules are indexed', async () => {
+      mockDb.select = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([]),
+        }),
+      } as never);
+
+      const ids = await sync.getIndexedCapsuleIds('artifact_empty');
+
+      expect(ids).toEqual([]);
+    });
+  });
+
+  describe('removeCapsuleIndexesForArtifact', () => {
+    it('should delete all rows for an artifact from both tables', async () => {
+      const deleteFn = vi.fn(() => ({
+        where: vi.fn().mockResolvedValue(undefined),
+      }));
+      mockDb.delete = deleteFn as never;
+
+      await sync.removeCapsuleIndexesForArtifact('artifact_1');
+
+      expect(deleteFn).toHaveBeenCalledTimes(2);
+    });
+  });
 });

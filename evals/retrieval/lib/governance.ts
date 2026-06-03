@@ -112,6 +112,31 @@ function checkV1BucketShape(
 }
 
 /**
+ * Check v1 skill lookup artifact expectations.
+ */
+function checkV1SkillLookupArtifacts(
+  result: NormalizedResult,
+  expectedArtifactIds?: string[],
+): GovernanceFailure | null {
+  if (!expectedArtifactIds || expectedArtifactIds.length === 0) {
+    return null;
+  }
+
+  const actualSet = new Set(result.artifactIds);
+  const missingIds = expectedArtifactIds.filter((id) => !actualSet.has(id));
+
+  if (missingIds.length > 0) {
+    return {
+      kind: 'shape-mismatch',
+      description: `Expected artifact IDs missing from skill lookup response: ${missingIds.join(', ')}`,
+      ids: missingIds,
+    };
+  }
+
+  return null;
+}
+
+/**
  * Check v2 profile hints expectations.
  */
 function checkV2ProfileHints(
@@ -281,6 +306,14 @@ export function evaluateGovernance(
   if (case_.endpoint === '/v1/retrieval/search') {
     const bucketFailure = checkV1BucketShape(result, case_.expected.shape.bucketExpectations);
     if (bucketFailure) failures.push(bucketFailure);
+  }
+
+  if (case_.endpoint === '/v1/retrieval/skills/search-by-content') {
+    const artifactFailure = checkV1SkillLookupArtifacts(
+      result,
+      case_.expected.shape.expectedArtifactIds,
+    );
+    if (artifactFailure) failures.push(artifactFailure);
   }
 
   if (case_.endpoint === '/v2/retrieval/search') {

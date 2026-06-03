@@ -289,6 +289,33 @@ describe('shape mismatches', () => {
     expect(verdicts.passed).toBe(false);
     expect(hasGovernanceFailure(verdicts)).toBe(true);
   });
+
+  it('detects v1 skill lookup artifact mismatch', () => {
+    const testCase = makeTestCase({
+      endpoint: '/v1/retrieval/skills/search-by-content',
+      expected: {
+        outcome: 'non-empty',
+        relevance: { relevantIds: ['artifact_1'], idealOrder: ['artifact_1'] },
+        governance: { forbiddenIds: [], forbiddenReasons: [] },
+        shape: {
+          expectedArtifactIds: ['artifact_1', 'artifact_2'],
+        },
+      },
+    });
+
+    const result = makeResult({
+      endpoint: '/v1/retrieval/skills/search-by-content',
+      hits: [{ id: 'artifact_1', score: 0.9, reason: 'match', scope: 'project' }],
+      returnedIds: ['artifact_1'],
+      artifactIds: ['artifact_1'],
+      isEmpty: false,
+    });
+
+    const verdicts = evaluateVerdicts(testCase, result, []);
+
+    expect(verdicts.passed).toBe(false);
+    expect(hasGovernanceFailure(verdicts)).toBe(true);
+  });
 });
 
 // =============================================================================

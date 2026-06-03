@@ -130,6 +130,7 @@ function makeMockServices(
     pool?: any;
     usePgDuplicateDetection?: () => boolean;
     candidateRepo?: CandidateRepository;
+    chat?: any;
   } = {},
 ): CandidateProcessorServices & { statusHistory: string[] } {
   const data = makeMockStoreData([candidate]);
@@ -161,6 +162,7 @@ function makeMockServices(
     pool: opts.pool,
     usePgDuplicateDetection: opts.usePgDuplicateDetection,
     candidateRepo,
+    chat: opts.chat,
     statusHistory,
   };
 }
@@ -337,6 +339,7 @@ describe('processCandidate', () => {
         candidateKeywords: ['tool'],
         candidateTokens: ['skill', 'title', 'body', 'content', 'embedding'],
       }),
+      undefined,
     );
   });
 
@@ -428,10 +431,83 @@ describe('processCandidate', () => {
     expect(createPgDuplicateDetector).toHaveBeenCalledWith({
       pool: mockPool,
       featureFlag: expect.any(Function),
+      chat: undefined,
     });
     expect(mockPgDetector).toHaveBeenCalled();
     // In-memory detectDuplicates should NOT be called
     expect(detectDuplicates).not.toHaveBeenCalled();
+  });
+
+  it('passes chat to pg-detector when configured', async () => {
+    const candidate = makeCandidate();
+    const mockChat = { isConfigured: true, invoke: vi.fn() } as any;
+    const mockPool = {} as any;
+    const services = makeMockServices(candidate, {
+      pool: mockPool,
+      usePgDuplicateDetection: () => true,
+      chat: mockChat,
+    });
+
+    const mockPgDetector = vi.fn().mockResolvedValue({
+      duplicateCase: null,
+      analysisSnapshot: {
+        fingerprint: 'abc123',
+        keywords: ['test'],
+        tokens: ['test'],
+        normalizedAt: '2024-01-01T00:00:00.000Z',
+      },
+    });
+    vi.mocked(createPgDuplicateDetector).mockReturnValue(mockPgDetector);
+
+    await processCandidate('cand_1', services);
+
+    expect(createPgDuplicateDetector).toHaveBeenCalledWith({
+      pool: mockPool,
+      featureFlag: expect.any(Function),
+      chat: mockChat,
+    });
+  });
+
+  it('passes chat to in-memory detector when configured', async () => {
+    const candidate = makeCandidate();
+    const mockChat = { isConfigured: true, invoke: vi.fn() } as any;
+    const services = makeMockServices(candidate, { chat: mockChat });
+
+    vi.mocked(detectDuplicates).mockResolvedValue({
+      duplicateCase: null,
+      analysisSnapshot: {
+        fingerprint: 'abc123',
+        keywords: ['test'],
+        tokens: ['test'],
+        normalizedAt: '2024-01-01T00:00:00.000Z',
+      },
+    });
+
+    await processCandidate('cand_1', services);
+
+    expect(detectDuplicates).toHaveBeenCalledWith(expect.any(Object), mockChat);
+  });
+
+  it('falls back gracefully when chat is not configured', async () => {
+    const candidate = makeCandidate();
+    const services = makeMockServices(candidate, {
+      chat: { isConfigured: false, invoke: vi.fn() } as any,
+    });
+
+    vi.mocked(detectDuplicates).mockResolvedValue({
+      duplicateCase: null,
+      analysisSnapshot: {
+        fingerprint: 'abc123',
+        keywords: ['test'],
+        tokens: ['test'],
+        normalizedAt: '2024-01-01T00:00:00.000Z',
+      },
+    });
+
+    await processCandidate('cand_1', services);
+
+    // Should still complete without error
+    expect(detectDuplicates).toHaveBeenCalled();
   });
 });
 

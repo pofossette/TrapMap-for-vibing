@@ -11,6 +11,7 @@
 import type {
   GraphPlanSearchResponse,
   RetrievalResponse,
+  SkillLookupResponse,
   RetrievalV2ResponseWithHints,
 } from '@trapmap/contracts';
 import type { BucketMap, GraphPlanStructure, NormalizedHit, NormalizedResult } from './types.js';
@@ -68,10 +69,47 @@ export function normalizeV1Response(response: RetrievalResponse): NormalizedResu
     returnedIds: hits.map((h) => h.id),
     buckets,
     profileHintArtifactIds: [], // v1 has no profile hints
+    artifactIds: [],
     isEmpty: hits.length === 0,
     rawResponse: response,
     endpoint: '/v1/retrieval/search',
     routingTrace: extractRoutingTrace(response),
+  };
+}
+
+// =============================================================================
+// V1 Skill Lookup Response Normalization
+// =============================================================================
+
+/**
+ * Normalize a v1 skill lookup response.
+ * Returns artifact-first matches backed by the shared capsule recall pipeline.
+ *
+ * @param response - Raw v1 skill lookup response
+ * @returns Normalized result with artifact IDs preserved
+ */
+export function normalizeV1SkillLookupResponse(response: SkillLookupResponse): NormalizedResult {
+  const matches = response.matches ?? [];
+
+  const hits: NormalizedHit[] = matches.map((match) => ({
+    id: match.artifactId,
+    score: match.score,
+    reason: match.reason,
+    scope: match.scope,
+  }));
+
+  return {
+    hits,
+    returnedIds: hits.map((h) => h.id),
+    buckets: {
+      globalConstraints: [],
+      projectKnowledge: [],
+    },
+    profileHintArtifactIds: [],
+    artifactIds: matches.map((match) => match.artifactId),
+    isEmpty: hits.length === 0,
+    rawResponse: response,
+    endpoint: '/v1/retrieval/skills/search-by-content',
   };
 }
 
@@ -109,6 +147,7 @@ export function normalizeV2Response(response: RetrievalV2ResponseWithHints): Nor
     returnedIds: hits.map((h) => h.id),
     buckets,
     profileHintArtifactIds: profileHints.map((h) => h.artifactId),
+    artifactIds: capsules.map((c) => c.artifactId),
     isEmpty: hits.length === 0,
     rawResponse: response,
     endpoint: '/v2/retrieval/search',
@@ -173,6 +212,7 @@ export function normalizeV3Response(response: GraphPlanSearchResponse): Normaliz
         projectKnowledge: [],
       },
       profileHintArtifactIds: recommendedSkills.map((skill) => skill.artifactId),
+      artifactIds: recommendedSkills.map((skill) => skill.artifactId),
       isEmpty: hits.length === 0,
       rawResponse: response,
       endpoint: '/v3/retrieval/search',
@@ -227,6 +267,7 @@ export function normalizeV3Response(response: GraphPlanSearchResponse): Normaliz
     returnedIds: [],
     buckets: { globalConstraints: [], projectKnowledge: [] },
     profileHintArtifactIds: [],
+    artifactIds: [],
     isEmpty: true,
     rawResponse: response,
     endpoint: '/v3/retrieval/search',
@@ -255,10 +296,17 @@ export function normalizeV3Response(response: GraphPlanSearchResponse): Normaliz
  */
 export function normalizeResponse(
   response: unknown,
-  endpoint: '/v1/retrieval/search' | '/v2/retrieval/search' | '/v3/retrieval/search',
+  endpoint:
+    | '/v1/retrieval/search'
+    | '/v1/retrieval/skills/search-by-content'
+    | '/v2/retrieval/search'
+    | '/v3/retrieval/search',
 ): NormalizedResult {
   if (endpoint === '/v1/retrieval/search') {
     return normalizeV1Response(response as RetrievalResponse);
+  }
+  if (endpoint === '/v1/retrieval/skills/search-by-content') {
+    return normalizeV1SkillLookupResponse(response as SkillLookupResponse);
   }
   if (endpoint === '/v2/retrieval/search') {
     return normalizeV2Response(response as RetrievalV2ResponseWithHints);

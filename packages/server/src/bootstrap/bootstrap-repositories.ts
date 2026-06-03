@@ -15,6 +15,9 @@ import {
 } from '@trapmap/server/lib/auth/index.js';
 import { createGraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/config.js';
 import { createFailOpenGraphQueryBackend } from '@trapmap/server/lib/graph-query/health.js';
+import { artifactGraphIndexAdapter } from '@trapmap/server/lib/indexing/adapters/artifact-graph.js';
+import { createCapsuleIndexAdapter } from '@trapmap/server/lib/indexing/adapters/capsule-index.js';
+import { registerArtifactAdapters } from '@trapmap/server/lib/indexing/artifact-pipeline.js';
 import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
 import { createNeo4jGraphQueryBackend } from '@trapmap/server/lib/graph-query/neo4j-backend.js';
 import { createKnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
@@ -22,6 +25,7 @@ import { runMigrations } from '@trapmap/server/lib/persistence/migration-runner.
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { createAllRepos } from '@trapmap/server/lib/repos/index.js';
 import { ensureVectorIndex } from '@trapmap/server/lib/retrieval/recall/db-search.js';
+import { ensureCapsuleVectorIndex } from '@trapmap/server/lib/retrieval/capsules/repositories/pg-capsule-vector.js';
 import { createGraphChannel } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
 import {
   createMembershipRepository,
@@ -61,6 +65,21 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
     } catch (error) {
       app.log.error({ error }, 'Failed to ensure vector index');
     }
+
+    // Ensure capsule HNSW vector index exists for capsule semantic recall
+    try {
+      await ensureCapsuleVectorIndex(pool);
+      app.log.info('Capsule vector HNSW index ensured');
+    } catch (error) {
+      app.log.error({ error }, 'Failed to ensure capsule vector index');
+    }
+
+    registerArtifactAdapters([
+      artifactGraphIndexAdapter,
+      createCapsuleIndexAdapter({ pool }),
+    ]);
+  } else {
+    registerArtifactAdapters([artifactGraphIndexAdapter]);
   }
 
   // Create unified repos object (both JSON and PG modes)

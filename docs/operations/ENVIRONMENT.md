@@ -79,11 +79,19 @@ pnpm dev:server
 |------|------|--------|
 | `RETRIEVAL_CAPSULE_PG_KEYWORD` | 启用 capsule keyword PG recall（通过 `skill_artifact_capsule_keywords` 表 GIN 索引） | `false` |
 | `RETRIEVAL_CAPSULE_PG_SEMANTIC` | 启用 capsule semantic PG recall（通过 `skill_artifact_capsule_embeddings` 表 HNSW 索引） | `false` |
-| `RETRIEVAL_CAPSULE_PG_INDEX_SYNC` | 启用 capsule 索引同步写入（artifact lifecycle 触发时写 keyword 和 embedding 索引表） | `false` |
 
 **Fallback 行为**: PG recall 不可用时，keyword 和 semantic 通道自动回退到内存版本。单通道失败（包括 PG 连接错误）不会阻断 `/v2/retrieval/search` 主流程。
 
-**索引重建**: 当启用 PG 后，需运行索引重建将现有 artifact capsules 同步到 PG。内部库函数 `rebuildAllCapsuleIndexes()`（位于 `packages/server/src/lib/retrieval/capsules/repositories/index-rebuild.ts`）提供批量重建能力，但当前未暴露为稳定 CLI 命令或运维入口。如需触发重建，可通过编程方式调用该函数。
+**Lifecycle sync**: capsule keyword / embedding index rows are now maintained by the shared artifact lifecycle indexing seam in PostgreSQL mode. There is currently no separate environment flag to disable only the write-side capsule index sync path.
+
+**索引重建**: 当启用 PG 后，需运行 capsule index 运维入口将现有 approved artifact capsules 同步到 PG。稳定内部运维面已暴露为：
+
+- `POST /v1/operations/capsule-index/rebuild` with `{ "mode": "full" }` for full rebuild
+- `POST /v1/operations/capsule-index/rebuild` with `{ "mode": "artifact", "artifactId": "<artifact-id>" }` for artifact-scoped rebuild
+- `GET /v1/operations/capsule-index/health` for source/index reconciliation
+- `POST /v1/operations/capsule-index/cleanup-orphans` for orphan row cleanup
+
+这些端点要求 system-admin 会话，并且仅在 PostgreSQL-backed store 启用时可用。
 
 ## 服务器配置
 

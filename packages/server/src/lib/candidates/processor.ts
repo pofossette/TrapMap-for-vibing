@@ -1,3 +1,4 @@
+import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
@@ -41,6 +42,8 @@ export interface CandidateProcessorServices {
   usePgDuplicateDetection?: () => boolean;
   /** Optional repository for direct candidate DB operations (bypasses transact) */
   candidateRepo?: CandidateRepository;
+  /** Optional ChatProvider for LLM-based duplicate adjudication */
+  chat?: ChatProvider;
 }
 
 /**
@@ -112,6 +115,7 @@ export async function processCandidate(
       const pgDetector = createPgDuplicateDetector({
         pool: services.pool,
         featureFlag: services.usePgDuplicateDetection,
+        chat: services.chat,
       });
 
       // Embedding input: title + body concatenation from the normalized
@@ -152,7 +156,7 @@ export async function processCandidate(
         skillArtifacts: freshData.skillArtifacts,
         threshold: DUPLICATE_THRESHOLD,
       };
-      result = await detectDuplicates(detectionInput);
+      result = await detectDuplicates(detectionInput, services.chat);
     }
 
     // Phase 5: Store results and determine final status

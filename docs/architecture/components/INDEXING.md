@@ -440,7 +440,19 @@ Skill 工件走独立的图入索引管道，与知识条目共用 `StoreData.gr
 
 ### 触发
 
-`runSkillIndexEvent()` 与知识条目类似，生命周期映射相同：`approved→upsert`、`deactivated→remove`。
+`runSkillIndexEvent()` 使用 `determineSkillIndexAction(previousState, nextState)` 判定索引动作。触发矩阵：
+
+| 前置状态 | 目标状态 | 索引动作 |
+|----------|----------|----------|
+| `*` | `approved` | `upsert` |
+| `approved` | `agent-pass` | `remove` |
+| `approved` | `agent-rejected` | `remove` |
+| `approved` | `rejected` | `remove` |
+| `approved` | `deactivated` | `remove` |
+| `approved` | `approved` | `upsert`（刷新） |
+| 其他 | 其他 | `noop` |
+
+核心语义：**进入 `approved` → 同步索引，离开 `approved` → 移除索引，其余无操作。**
 
 ### 实体提取
 

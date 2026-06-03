@@ -7,7 +7,7 @@
  * - extractSkillGraphPrimitives detects hard/soft evidence
  * - buildSkillGraphDocument builds document with correct metadata
  * - determineSkillIndexAction maps lifecycle transitions correctly
- * - runSkillIndexEvent calls adapter fan-out instead of direct store writes
+ * - runSkillIndexEvent calls the shared artifact adapter seam
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -17,7 +17,7 @@ import {
   getGraphIndexDocuments,
   removeGraphIndexDocumentsForSource,
 } from '@trapmap/server/lib/graph-lite/store.js';
-import { nowIso } from '@trapmap/server/lib/store.js';
+import { JsonStore, createEmptyStoreData, nowIso } from '@trapmap/server/lib/store.js';
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
 import {
@@ -26,6 +26,7 @@ import {
   buildSkillGraphDocument,
   determineSkillIndexAction,
   extractSkillGraphPrimitives,
+  runSkillIndexEvent,
 } from './skill-events.js';
 
 // Helper to build a minimal test artifact
@@ -434,6 +435,21 @@ describe('skill-events', () => {
       expect(action).toBe('remove');
     });
 
+    it('returns remove when approved transitions to agent-pass', () => {
+      const action = determineSkillIndexAction('approved', 'agent-pass');
+      expect(action).toBe('remove');
+    });
+
+    it('returns remove when approved transitions to agent-rejected', () => {
+      const action = determineSkillIndexAction('approved', 'agent-rejected');
+      expect(action).toBe('remove');
+    });
+
+    it('returns remove when approved transitions to rejected', () => {
+      const action = determineSkillIndexAction('approved', 'rejected');
+      expect(action).toBe('remove');
+    });
+
     it('returns noop for submitted to agent-pass', () => {
       const action = determineSkillIndexAction('submitted', 'agent-pass');
       expect(action).toBe('noop');
@@ -447,6 +463,69 @@ describe('skill-events', () => {
     it('returns noop for rejected to rejected', () => {
       const action = determineSkillIndexAction('rejected', 'rejected');
       expect(action).toBe('noop');
+    });
+  });
+
+  describe('runSkillIndexEvent', () => {
+    it('uses the shared artifact adapter seam when no route-local adapters are passed', async () => {
+      const store = new JsonStore('/tmp/trapmap-skill-events-test.json');
+      const artifact = buildTestArtifact();
+      await store.transact((data) => {
+        data.skillArtifacts.push(artifact);
+      });
+
+      await runSkillIndexEvent({
+        services: {
+          store,
+          data: createEmptyStoreData(),
+        },
+        artifactId: artifact.id,
+        previousState: 'agent-pass',
+        nextState: 'approved',
+        reason: 'test-approve',
+      });
+
+      const snapshot = await store.snapshot();
+      const docs = snapshot.graphIndexDocuments.filter((doc) => doc.sourceId === artifact.id);
+      expect(docs).toHaveLength(1);
+    });
+
+    it('uses the shared artifact adapter seam for remove transitions', async () => {
+      const store = new JsonStore('/tmp/trapmap-skill-events-remove-test.json');
+      const artifact = buildTestArtifact();
+      await store.transact((data) => {
+        data.skillArtifacts.push(artifact);
+        data.graphIndexDocuments.push({
+          id: `graphdoc_skill_${artifact.id}_r1`,
+          sourceType: 'skill',
+          sourceId: artifact.id,
+          revision: artifact.latestRevision.revision,
+          contentHash: 'test-hash',
+          teamId: artifact.teamId,
+          scope: artifact.scope,
+          requiredLevel: artifact.requiredLevel,
+          nodes: [],
+          edges: [],
+          evidence: 'test',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+      });
+
+      await runSkillIndexEvent({
+        services: {
+          store,
+          data: createEmptyStoreData(),
+        },
+        artifactId: artifact.id,
+        previousState: 'approved',
+        nextState: 'deactivated',
+        reason: 'test-remove',
+      });
+
+      const snapshot = await store.snapshot();
+      const docs = snapshot.graphIndexDocuments.filter((doc) => doc.sourceId === artifact.id);
+      expect(docs).toHaveLength(0);
     });
   });
 });

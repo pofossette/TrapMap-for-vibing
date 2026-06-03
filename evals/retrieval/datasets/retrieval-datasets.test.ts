@@ -71,7 +71,10 @@ describe('retrieval datasets schema validation', () => {
       for (const case_ of v1RetrievalSmokeCases) {
         const parsed = retrievalEvalCaseSchema.parse(case_);
         expect(parsed.caseId).toBe(case_.caseId);
-        expect(parsed.endpoint).toBe('/v1/retrieval/search');
+        expect([
+          '/v1/retrieval/search',
+          '/v1/retrieval/skills/search-by-content',
+        ]).toContain(parsed.endpoint);
         expect(parsed.tier).toBe('smoke');
       }
     });
@@ -93,7 +96,10 @@ describe('retrieval datasets schema validation', () => {
       for (const case_ of v1RetrievalCoreCases) {
         const parsed = retrievalEvalCaseSchema.parse(case_);
         expect(parsed.caseId).toBe(case_.caseId);
-        expect(parsed.endpoint).toBe('/v1/retrieval/search');
+        expect([
+          '/v1/retrieval/search',
+          '/v1/retrieval/skills/search-by-content',
+        ]).toContain(parsed.endpoint);
         expect(parsed.tier).toBe('core');
       }
     });
@@ -123,6 +129,7 @@ describe('retrieval dataset coverage matrix', () => {
     it('both endpoints represented in smoke tier', () => {
       const endpoints = new Set(allSmokeCases.map((c) => c.endpoint));
       expect(endpoints.has('/v1/retrieval/search')).toBe(true);
+      expect(endpoints.has('/v1/retrieval/skills/search-by-content')).toBe(true);
       expect(endpoints.has('/v2/retrieval/search')).toBe(true);
     });
 
@@ -161,6 +168,7 @@ describe('retrieval dataset coverage matrix', () => {
     it('both endpoints represented in core tier', () => {
       const endpoints = new Set(allCoreCases.map((c) => c.endpoint));
       expect(endpoints.has('/v1/retrieval/search')).toBe(true);
+      expect(endpoints.has('/v1/retrieval/skills/search-by-content')).toBe(true);
       expect(endpoints.has('/v2/retrieval/search')).toBe(true);
     });
 
@@ -306,6 +314,20 @@ describe('endpoint-specific shape expectations', () => {
       );
 
       expect(capsuleCountCases.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('v1 skill lookup shape expectations', () => {
+    it('skill lookup cases can express artifact expectations', () => {
+      const skillLookupCases = [...v1RetrievalSmokeCases, ...v1RetrievalCoreCases].filter(
+        (c) => c.endpoint === '/v1/retrieval/skills/search-by-content',
+      );
+      const artifactExpectationCases = skillLookupCases.filter(
+        (c) => c.expected.shape.expectedArtifactIds.length > 0,
+      );
+
+      expect(skillLookupCases.length).toBeGreaterThan(0);
+      expect(artifactExpectationCases.length).toBeGreaterThan(0);
     });
   });
 });

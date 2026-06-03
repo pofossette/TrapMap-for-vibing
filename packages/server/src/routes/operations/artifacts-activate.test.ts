@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
 import { buildServer } from '@trapmap/server/app.js';
 import {
@@ -76,6 +78,17 @@ describe('operations routes', () => {
       });
 
       expect(response.statusCode).toBeGreaterThanOrEqual(400);
+    });
+  });
+
+  describe('route-local indexing seam regression', () => {
+    it('does not hardcode artifact adapter arrays or capsule side effects in the route', () => {
+      const source = readFileSync(path.join(__dirname, 'artifacts-activate.ts'), 'utf8');
+
+      expect(source).not.toContain('adapters: [artifactGraphIndexAdapter]');
+      expect(source).not.toContain('createCapsuleIndexAdapter');
+      expect(source).not.toContain('.syncArtifact(');
+      expect(source).not.toContain('.removeArtifact(');
     });
   });
 

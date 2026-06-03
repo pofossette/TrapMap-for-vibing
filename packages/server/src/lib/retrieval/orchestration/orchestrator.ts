@@ -25,9 +25,9 @@ import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js
 import type { PipelineStep, RagLogEntry } from '@trapmap/server/lib/rag-log.js';
 import { generateQueryId, logRagRetrieval } from '@trapmap/server/lib/rag-log.js';
 import {
-  CapsuleChannelRegistry,
   CapsuleRecallCoordinator,
   buildProfileShortlist,
+  createFullCapsuleChannelRegistry,
   getCapsuleRecords,
 } from '@trapmap/server/lib/retrieval/capsules/index.js';
 import {
@@ -415,58 +415,15 @@ export async function searchKnowledgeV2(
     const artifacts = readModel.skillArtifacts;
 
     // Phase 5: Create coordinator with heuristic + keyword + semantic + graph channels.
-    // Graph channel augments recall via skill artifact graph expansion (one-hop entity
-    // traversal) but does not dominate final ranking. Semantic channel provides
-    // embedding-based recall for paraphrase/rewording gaps; heuristic channel preserves
-    // backward-compatible intent-aware scoring; keyword channel provides independent
-    // lexical recall.
-    //
-    // Keyword and semantic channels support dual-path recall:
-    //   - PG path (when RETRIEVAL_CAPSULE_PG_* env var is 'true' and pool is available)
-    //   - Memory path (always available as fallback)
+    // Uses shared factory to register all channels with PG feature flags.
     const pgPool = services.store instanceof PostgresStore ? services.store.getPool() : null;
 
-    const channelRegistry = new CapsuleChannelRegistry();
-    const { capsuleHeuristicChannel } = await import(
-      '@trapmap/server/lib/retrieval/capsules/channels/heuristic.js'
-    );
-    const { createCapsuleKeywordChannel } = await import(
-      '@trapmap/server/lib/retrieval/capsules/channels/keyword.js'
-    );
-    const { createCapsuleSemanticChannel } = await import(
-      '@trapmap/server/lib/retrieval/capsules/channels/semantic.js'
-    );
-    channelRegistry.register(capsuleHeuristicChannel);
-    channelRegistry.register(
-      createCapsuleKeywordChannel(
-        pgPool
-          ? {
-              pgPool,
-              pgFeatureFlag: () => process.env.RETRIEVAL_CAPSULE_PG_KEYWORD === 'true',
-            }
-          : undefined,
-      ),
-    );
-    channelRegistry.register(
-      createCapsuleSemanticChannel(
-        pgPool
-          ? {
-              pgPool,
-              pgFeatureFlag: () => process.env.RETRIEVAL_CAPSULE_PG_SEMANTIC === 'true',
-            }
-          : undefined,
-      ),
-    );
-    // Graph channel uses a factory function because it requires GraphIndexRepository.
-    // Register after keyword/semantic so it supplements recall without dominating.
-    try {
-      const { createCapsuleGraphChannel } = await import(
-        '@trapmap/server/lib/retrieval/capsules/channels/graph.js'
-      );
-      channelRegistry.register(createCapsuleGraphChannel(services.graphQueryBackend));
-    } catch {
-      // Graph channel registration failure should not block retrieval.
-    }
+    const channelRegistry = await createFullCapsuleChannelRegistry({
+      pgPool,
+      pgKeywordFlag: () => process.env.RETRIEVAL_CAPSULE_PG_KEYWORD === 'true',
+      pgSemanticFlag: () => process.env.RETRIEVAL_CAPSULE_PG_SEMANTIC === 'true',
+      graphQueryBackend: services.graphQueryBackend,
+    });
     const coordinator = new CapsuleRecallCoordinator(channelRegistry);
 
     const recallResult = await timedStep(

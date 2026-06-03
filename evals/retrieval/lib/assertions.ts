@@ -160,6 +160,35 @@ function assertV1BucketShape(
 }
 
 /**
+ * Assert v1 skill lookup artifact expectations.
+ */
+function assertV1SkillLookupArtifacts(
+  result: NormalizedResult,
+  expectedArtifactIds?: string[],
+): Verdict | null {
+  if (!expectedArtifactIds || expectedArtifactIds.length === 0) {
+    return null;
+  }
+
+  const actualSet = new Set(result.artifactIds);
+  const missingIds = expectedArtifactIds.filter((id) => !actualSet.has(id));
+
+  if (missingIds.length > 0) {
+    return {
+      kind: 'shape',
+      passed: false,
+      failure: {
+        kind: 'shape-mismatch',
+        description: `Expected artifact IDs missing from skill lookup response: ${missingIds.join(', ')}`,
+        ids: missingIds,
+      },
+    };
+  }
+
+  return { kind: 'shape', passed: true };
+}
+
+/**
  * Assert v2 profile hints expectations.
  */
 function assertV2ProfileHints(
@@ -389,6 +418,14 @@ export function evaluateVerdicts(
   if (case_.endpoint === '/v1/retrieval/search') {
     const bucketVerdict = assertV1BucketShape(result, case_.expected.shape.bucketExpectations);
     if (bucketVerdict) verdicts.push(bucketVerdict);
+  }
+
+  if (case_.endpoint === '/v1/retrieval/skills/search-by-content') {
+    const artifactVerdict = assertV1SkillLookupArtifacts(
+      result,
+      case_.expected.shape.expectedArtifactIds,
+    );
+    if (artifactVerdict) verdicts.push(artifactVerdict);
   }
 
   if (case_.endpoint === '/v2/retrieval/search') {
