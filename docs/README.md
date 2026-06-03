@@ -166,6 +166,7 @@ pnpm eval:ci
 
 ### 归档文档
 - [归档文档](archived/) — 历史参考文档
+- [归档实施计划](archived/archived-plans/) — 已完成和过时的设计计划，保留作历史参考
 
 ## 安全模型
 

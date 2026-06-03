@@ -432,6 +432,24 @@ export class PgCandidateRepository implements CandidateRepository {
   }
 
   // =============================================================================
+  // Public query helpers
+  // =============================================================================
+
+  /**
+   * Find a candidate ID by exact fingerprint match using the indexed
+   * candidate_analyses table.
+   */
+  async findByFingerprint(fingerprint: string): Promise<string | null> {
+    const result = await this.db
+      .select({ candidateId: candidateAnalyses.candidateId })
+      .from(candidateAnalyses)
+      .where(eq(candidateAnalyses.fingerprint, fingerprint))
+      .limit(1);
+
+    return result[0]?.candidateId ?? null;
+  }
+
+  // =============================================================================
   // Private helpers for structured sub-table I/O
   // =============================================================================
 

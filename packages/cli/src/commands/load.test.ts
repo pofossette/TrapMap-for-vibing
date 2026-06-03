@@ -299,6 +299,7 @@ describe('CLI load command', () => {
                   snippet: 'Use staged rollout.',
                   tags: ['cache'],
                   recallChannels: ['semantic'],
+                  sourceType: 'capsule',
                   scores: {
                     semantic: 0.9,
                     keyword: null,

@@ -229,6 +229,7 @@ export function buildCapsuleCitations(capsules: CapsuleMatch[]): RetrievalCitati
       scope: capsule.scope,
       shortcut: capsule.situation, // Closest analog to shortcut for capsules
     },
+    sourceType: 'capsule' as const,
     snippet: capsule.content,
     tags: capsule.labels,
     // Use 'semantic' as safe fallback since capsule channel may not be in enum

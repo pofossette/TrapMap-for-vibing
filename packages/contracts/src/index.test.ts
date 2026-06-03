@@ -284,6 +284,7 @@ describe('contracts package', () => {
               snippet: 'JWT tokens must be validated on every request',
               tags: ['security', 'auth'],
               recallChannels: ['semantic'],
+              sourceType: 'knowledge',
               scores: {
                 semantic: 0.95,
                 keyword: null,
@@ -326,6 +327,7 @@ describe('contracts package', () => {
               snippet: 'Enable strictNullChecks in tsconfig',
               tags: ['typescript'],
               recallChannels: ['semantic', 'keyword'],
+              sourceType: 'knowledge',
               scores: {
                 semantic: 0.85,
                 keyword: 0.9,
@@ -349,6 +351,7 @@ describe('contracts package', () => {
               snippet: 'Enable strictNullChecks in tsconfig',
               tags: ['typescript'],
               recallChannels: ['semantic', 'keyword'],
+              sourceType: 'knowledge',
               scores: {
                 semantic: 0.85,
                 keyword: 0.9,
@@ -400,6 +403,7 @@ describe('contracts package', () => {
               snippet: 'Container networking basics',
               tags: ['docker'],
               recallChannels: ['semantic', 'graph'],
+              sourceType: 'knowledge',
               scores: {
                 semantic: 0.88,
                 keyword: null,
@@ -1710,6 +1714,7 @@ describe('contracts package', () => {
                 snippet: 'Container fails to start',
                 tags: ['docker'],
                 recallChannels: ['semantic'],
+                sourceType: 'capsule',
                 scores: {
                   semantic: 0.9,
                   keyword: null,

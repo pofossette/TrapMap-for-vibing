@@ -66,6 +66,7 @@ describe('summary', () => {
             scope: 'global',
             shortcut: 'Validate JWT tokens',
           },
+          sourceType: 'knowledge',
           snippet: 'JWT tokens must be validated on every request.',
           tags: ['security', 'auth'],
           recallChannels: ['semantic'],
@@ -101,6 +102,7 @@ describe('summary', () => {
             scope: 'global',
             shortcut: 'Validate JWT tokens',
           },
+          sourceType: 'knowledge',
           snippet: 'JWT tokens must be validated on every request.',
           tags: ['security', 'auth'],
           recallChannels: ['semantic'],
@@ -118,6 +120,7 @@ describe('summary', () => {
             scope: 'global',
             shortcut: 'Use HTTPS everywhere',
           },
+          sourceType: 'knowledge',
           snippet: 'Always use HTTPS to encrypt data in transit.',
           tags: ['security'],
           recallChannels: ['semantic', 'keyword'],
@@ -174,6 +177,7 @@ describe('summary', () => {
             scope: 'global',
             shortcut: 'Test shortcut',
           },
+          sourceType: 'knowledge',
           snippet: 'Test detail content',
           tags: ['test'],
           recallChannels: ['semantic'],
@@ -223,6 +227,7 @@ describe('summary', () => {
             scope: 'global',
             shortcut: 'Pure function test',
           },
+          sourceType: 'knowledge',
           snippet: 'This should only use provided data',
           tags: ['test'],
           recallChannels: ['semantic'],
@@ -264,6 +269,7 @@ describe('summary', () => {
             scope: 'global',
             shortcut: 'Single result',
           },
+          sourceType: 'knowledge',
           snippet: 'This is the only result',
           tags: ['test'],
           recallChannels: ['semantic'],
@@ -381,6 +387,7 @@ describe('summary', () => {
             scope: 'project',
             shortcut: 'Docker Skills',
           },
+          sourceType: 'capsule',
           snippet: 'Container networking is complex',
           tags: ['docker'],
           recallChannels: ['semantic'],
@@ -435,6 +442,7 @@ describe('summary', () => {
             scope: 'global',
             shortcut: 'Test Skill',
           },
+          sourceType: 'capsule',
           snippet: 'Test problem',
           tags: ['test'],
           recallChannels: ['semantic'],
@@ -487,6 +495,7 @@ describe('summary', () => {
             scope: 'global',
             shortcut: 'Test Skill',
           },
+          sourceType: 'capsule',
           snippet: 'Test problem',
           tags: ['test'],
           recallChannels: ['semantic'],
@@ -558,6 +567,7 @@ describe('summary', () => {
             scope: 'global',
             shortcut: 'Building REST APIs',
           },
+          sourceType: 'capsule',
           snippet: 'Express.js middleware for request validation',
           tags: ['nodejs'],
           recallChannels: ['semantic'],
@@ -584,6 +594,7 @@ describe('summary', () => {
               scope: 'global',
               shortcut: 'Building REST APIs with Python',
             },
+            sourceType: 'capsule',
             snippet: 'Flask route decorators for API endpoints',
             tags: ['python'],
             recallChannels: ['semantic'],
@@ -637,6 +648,7 @@ describe('summary', () => {
       const citations: RetrievalCitation[] = [
         {
           source: { entryId: 'capsule_1', scope: 'project', shortcut: 'Deploying containers' },
+          sourceType: 'capsule',
           snippet: 'Use named volumes for persistent data',
           tags: ['docker'],
           recallChannels: ['semantic'],
@@ -694,6 +706,7 @@ describe('summary', () => {
       const citations: RetrievalCitation[] = [
         {
           source: { entryId: 'capsule_1', scope: 'project', shortcut: 'Deploying containers' },
+          sourceType: 'capsule',
           snippet: 'Pin Docker image versions',
           tags: ['docker'],
           recallChannels: ['semantic'],
@@ -701,6 +714,7 @@ describe('summary', () => {
         },
         {
           source: { entryId: 'capsule_2', scope: 'project', shortcut: 'Deploying containers' },
+          sourceType: 'capsule',
           snippet: 'Use SHA digests',
           tags: ['docker'],
           recallChannels: ['semantic'],
@@ -777,6 +791,7 @@ describe('summary', () => {
       const citations: RetrievalCitation[] = [
         {
           source: { entryId: 'capsule_1', scope: 'global', shortcut: 'Situation' },
+          sourceType: 'capsule',
           snippet: 'Content fact one',
           tags: ['test'],
           recallChannels: ['semantic'],
@@ -824,6 +839,7 @@ describe('summary', () => {
       const citations: RetrievalCitation[] = [
         {
           source: { entryId: 'capsule_1', scope: 'project', shortcut: 'Container networking' },
+          sourceType: 'capsule',
           snippet: 'Use bridge networking',
           tags: ['docker'],
           recallChannels: ['semantic'],
@@ -866,6 +882,7 @@ describe('summary', () => {
       const citations: RetrievalCitation[] = [
         {
           source: { entryId: 'capsule_1', scope: 'global', shortcut: 'Test' },
+          sourceType: 'capsule',
           snippet: 'Only content available',
           tags: ['test'],
           recallChannels: ['semantic'],
@@ -912,6 +929,7 @@ describe('summary', () => {
             scope: 'project',
             shortcut: 'Test',
           },
+          sourceType: 'capsule',
           snippet: 'Pre-filtered problem',
           tags: ['test'],
           recallChannels: ['semantic'],

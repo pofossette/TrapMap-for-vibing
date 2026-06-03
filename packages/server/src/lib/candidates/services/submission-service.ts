@@ -9,11 +9,14 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { CandidateSubmission } from '@trapmap/contracts';
+import type { CandidateSubmission, DuplicateCase } from '@trapmap/contracts';
 import {
   type CandidateProcessorServices,
   scheduleCandidateProcessing,
 } from '@trapmap/server/lib/candidates/processor.js';
+import type { CandidateRepository } from '@trapmap/server/lib/candidates/repository.js';
+import { buildNormalizedDuplicateInput } from '@trapmap/server/lib/candidates/fingerprint.js';
+import { createDuplicateCaseId } from '@trapmap/server/lib/ids.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
@@ -25,6 +28,58 @@ export interface SubmissionDeps {
   store: SkillShareerStore;
   repos: SkillShareerServices['repos'];
   config: SkillShareerServices['config'];
+}
+
+/**
+ * Run fast exact-fingerprint duplicate detection at ingest time.
+ *
+ * Queries the candidate_analyses table (indexed on fingerprint) for an
+ * existing candidate with the same fingerprint. If found, creates a
+ * lightweight DuplicateCase and attaches it to the new candidate.
+ *
+ * This is intentionally fast (single indexed query) — the full
+ * Jaccard + LLM pipeline runs later via the async processor.
+ *
+ * @returns The duplicate case if a fingerprint match was found, or null.
+ */
+async function detectDuplicateOnIngest(
+  candidateRepo: CandidateRepository,
+  candidate: CandidateSubmission,
+): Promise<DuplicateCase | null> {
+  const normalized = buildNormalizedDuplicateInput(candidate);
+  const existingCandidateId = await candidateRepo.findByFingerprint(normalized.fingerprint);
+
+  if (!existingCandidateId || existingCandidateId === candidate.id) {
+    return null;
+  }
+
+  const duplicateCase: DuplicateCase = {
+    id: createDuplicateCaseId(),
+    candidateId: candidate.id,
+    detectedAt: nowIso(),
+    detectionVersion: 'ingest-fingerprint-1.0.0',
+    matches: [
+      {
+        entityType: candidate.sourceType === 'trap' ? 'trap' : 'skill',
+        entityId: existingCandidateId,
+        entityTitle: normalized.titleText.slice(0, 280),
+        similarityScore: 1,
+        matchType: 'exact' as const,
+        overlapDetails: {
+          sharedKeywords: normalized.keywordTerms.slice(0, 50),
+          sharedTokens: normalized.tokenTerms.slice(0, 50),
+          textOverlapPercent: 100,
+        },
+      },
+    ],
+    highestSimilarity: 1,
+    hasExactDuplicate: true,
+    duplicateType: 'exact' as const,
+  };
+
+  await candidateRepo.attachDuplicateCase(candidate.id, duplicateCase);
+
+  return duplicateCase;
 }
 
 /**
@@ -75,10 +130,15 @@ export async function createAndEnqueueCandidate(
 
   await candidateRepo.insert(candidate);
 
-  // Immediately update status to 'queued' -- analysis runs via worker later
-  await candidateRepo.updateStatus(candidate.id, 'queued');
+  // Fast ingest-time duplicate check (exact fingerprint match)
+  const duplicateCase = await detectDuplicateOnIngest(candidateRepo, candidate);
 
-  // Enqueue candidate processing via PG queue (or fire-and-forget if no pool)
+  // Determine initial status: duplicate_detected if fingerprint match found, else queued
+  const initialStatus = duplicateCase ? 'duplicate_detected' : 'queued';
+  await candidateRepo.updateStatus(candidate.id, initialStatus);
+
+  // Enqueue candidate for full async processing (Jaccard + LLM pipeline)
+  // unless an exact duplicate was already detected at ingest time
   const pool = store instanceof PostgresStore ? store.getPool() : undefined;
   const services: CandidateProcessorServices = {
     store,
@@ -86,7 +146,9 @@ export async function createAndEnqueueCandidate(
     ...(pool ? { pool } : {}),
     candidateRepo,
   };
-  scheduleCandidateProcessing(candidate.id, services);
+  if (!duplicateCase) {
+    scheduleCandidateProcessing(candidate.id, services);
+  }
 
   // Log user operation
   void logUserOperation(config.userOpsLog, {
@@ -100,10 +162,10 @@ export async function createAndEnqueueCandidate(
   });
 
   return {
-    candidate,
+    candidate: { ...candidate, status: initialStatus as any },
     response: {
       candidateId: candidate.id,
-      status: 'queued',
+      status: initialStatus,
       receivedAt: candidate.receivedAt,
     },
   };

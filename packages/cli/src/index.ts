@@ -55,6 +55,9 @@ const visibility = {
   allowFeedbackSubmit: hasPermission(effectivePermissions, 'knowledge:search'),
   allowFeedbackManage:
     securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
+  allowSkillFind: hasPermission(effectivePermissions, 'knowledge:review'),
+  allowSkillApply:
+    securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:review'),
 };
 
 const program = new Command();
@@ -105,6 +108,8 @@ program
             'skill review:reject',
             'skill duplicate-job fetch',
             'skill duplicate-job resolve',
+            'skill find',
+            'skill apply',
           ]
         : []),
       ...(visibility.allowKnowledgeExport ? ['list', 'export', 'skill history'] : []),
@@ -169,6 +174,8 @@ registerSkillCommands(program, {
   allowSubmit: visibility.allowKnowledgeSubmit,
   allowExport: visibility.allowKnowledgeExport,
   allowReview: visibility.allowKnowledgeReview,
+  allowFind: visibility.allowSkillFind,
+  allowApply: visibility.allowSkillApply,
 });
 registerFeedbackCommands(program, {
   allowSubmit: visibility.allowFeedbackSubmit,

@@ -79,6 +79,13 @@ export interface CandidateRepository {
    * Sets status to 'resolved' and records completion timestamp.
    */
   markResolved(candidateId: string, resolvedBy: string): Promise<void>;
+
+  /**
+   * Find a candidate ID by exact fingerprint match.
+   * Used for fast ingest-time duplicate detection.
+   * Returns the candidate ID of an existing candidate with the same fingerprint, or null.
+   */
+  findByFingerprint(fingerprint: string): Promise<string | null>;
 }
 
 /**
@@ -184,6 +191,14 @@ export class InMemoryCandidateRepository implements CandidateRepository {
     await this.store.transact((data) => {
       markCandidateResolved({ data, candidateId, resolvedBy });
     });
+  }
+
+  async findByFingerprint(fingerprint: string): Promise<string | null> {
+    const data = await this.store.snapshot();
+    const match = data.candidateSubmissions.find(
+      (c) => c.analysisSnapshot?.fingerprint === fingerprint,
+    );
+    return match?.id ?? null;
   }
 }
 

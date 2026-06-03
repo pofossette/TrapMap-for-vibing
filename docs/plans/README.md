@@ -8,8 +8,16 @@ Rules:
 2. `docs/plans/` is for design plans that current docs still cite as context.
 3. Obsolete execution plans must move to `docs/archived/archived-plans/`.
 4. Obsolete reports must move to `docs/archived/reports/`.
+5. New plans should use templates from `_templates/` for consistent structure.
 
-Current files:
+## Templates
+
+| Template | When to use |
+|----------|------------|
+| [`_templates/implementation-phase.md`](./_templates/implementation-phase.md) | Incremental feature implementation with phased delivery |
+| [`_templates/backend-stabilization.md`](./_templates/backend-stabilization.md) | Stabilizing existing backend functionality before enhancement |
+
+## Current Files
 
 | File | Status | Why it remains here |
 |---|---|---|
