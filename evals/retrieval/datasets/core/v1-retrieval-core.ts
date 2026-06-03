@@ -339,10 +339,7 @@ export const v1SkillLookupGovernanceCore = retrievalEvalCaseSchema.parse({
       idealOrder: ['artifact_core_api_allowed'],
     },
     governance: {
-      forbiddenIds: [
-        'artifact_core_api_other',
-        'artifact_core_api_secure',
-      ],
+      forbiddenIds: ['artifact_core_api_other', 'artifact_core_api_secure'],
       forbiddenReasons: ['cross-team', 'security-level'],
     },
     shape: {

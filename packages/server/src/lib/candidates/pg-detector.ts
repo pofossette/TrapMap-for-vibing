@@ -32,6 +32,7 @@ import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/s
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { computeTrapFingerprint } from './fingerprint.js';
 import { judgeDuplicateWithLLM } from './llm-dedup.js';
+import type { DuplicateDetectionResult } from './types.js';
 
 // Thresholds (match detector.ts for compatibility)
 const HIGH_OVERLAP_THRESHOLD = 0.72;
@@ -91,19 +92,7 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
       trapEntries: KnowledgeRecord[];
       skillArtifacts: SkillArtifactRecord[];
     },
-  ): Promise<{
-    duplicateCase: DuplicateCase | null;
-    analysisSnapshot: {
-      normalizedAt: string;
-      fingerprint: string;
-      keywords: string[];
-      tokens: string[];
-      duplicateTrace?: {
-        detector: 'in-memory' | 'postgresql';
-        matchedLane: 'exact' | 'indexed-recall' | 'fallback' | 'none';
-      };
-    };
-  }> {
+  ): Promise<DuplicateDetectionResult> {
     const maxMatches = input.maxMatches ?? 10;
     const candidateExactLookupKey = input.candidateExactLookupKey ?? input.candidateFingerprint;
 
@@ -221,9 +210,10 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
       if (exactEntityId.length === 0) {
         continue;
       }
-      const exactEntityTitle = String(
-        (row as { title?: string }).title ?? exactEntityId,
-      ).slice(0, 280);
+      const exactEntityTitle = String((row as { title?: string }).title ?? exactEntityId).slice(
+        0,
+        280,
+      );
       const exactSummary = String((row as { summary?: string }).summary ?? '');
       const key = `skill:${exactEntityId}`;
       if (exactMatchKeys.has(key)) continue;
@@ -345,22 +335,22 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
       candidateTokens.length === 0
         ? []
         : await db
-      .select({
-        entryId: knowledgeKeywords.entryId,
-        entryTitle: knowledgeEntries.shortcut,
-        entryBody: knowledgeEntries.detail,
-      })
-      .from(knowledgeKeywords)
-      .innerJoin(knowledgeEntries, eq(knowledgeKeywords.entryId, knowledgeEntries.id))
-      .where(
-        and(
-          eq(knowledgeKeywords.status, 'synced'),
-          eq(knowledgeEntries.lifecycleState, 'approved'),
-          trapKeywordTeamFilter,
-          sql`${knowledgeKeywords.tokens} && ${sql.raw(`ARRAY[${tokenArray}]::text[]`)}`,
-        ),
-      )
-      .limit(maxMatches * 2);
+            .select({
+              entryId: knowledgeKeywords.entryId,
+              entryTitle: knowledgeEntries.shortcut,
+              entryBody: knowledgeEntries.detail,
+            })
+            .from(knowledgeKeywords)
+            .innerJoin(knowledgeEntries, eq(knowledgeKeywords.entryId, knowledgeEntries.id))
+            .where(
+              and(
+                eq(knowledgeKeywords.status, 'synced'),
+                eq(knowledgeEntries.lifecycleState, 'approved'),
+                trapKeywordTeamFilter,
+                sql`${knowledgeKeywords.tokens} && ${sql.raw(`ARRAY[${tokenArray}]::text[]`)}`,
+              ),
+            )
+            .limit(maxMatches * 2);
 
     const skillKeywordResults =
       candidateTokens.length === 0
@@ -630,7 +620,10 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
     const nonExactTopMatches = finalMatches.filter((match) => match.matchType !== 'exact');
     const topMatches =
       exactTopMatches.length > 0
-        ? [...exactTopMatches, ...nonExactTopMatches.slice(0, Math.max(maxMatches - exactTopMatches.length, 0))]
+        ? [
+            ...exactTopMatches,
+            ...nonExactTopMatches.slice(0, Math.max(maxMatches - exactTopMatches.length, 0)),
+          ]
         : nonExactTopMatches.slice(0, maxMatches);
 
     // Build duplicate case

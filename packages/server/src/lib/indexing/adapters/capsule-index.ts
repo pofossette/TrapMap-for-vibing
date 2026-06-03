@@ -12,8 +12,8 @@
 
 import type { Pool } from 'pg';
 
-import { createCapsuleIndexSync } from '@trapmap/server/lib/retrieval/capsules/repositories/index-sync.js';
 import type { ArtifactGraphAdapter } from '@trapmap/server/lib/indexing/adapters/artifact-graph.js';
+import { createCapsuleIndexSync } from '@trapmap/server/lib/retrieval/capsules/repositories/index-sync.js';
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
 // ---------------------------------------------------------------------------
@@ -25,7 +25,10 @@ export interface CapsuleIndexAdapterConfig {
   /** Optional feature flag for gating PG writes */
   featureFlag?: () => boolean;
   /** Logger for operational messages */
-  log?: { info: (msg: string, ...args: unknown[]) => void; warn: (msg: string, ...args: unknown[]) => void };
+  log?: {
+    info: (msg: string, ...args: unknown[]) => void;
+    warn: (msg: string, ...args: unknown[]) => void;
+  };
 }
 
 export interface CapsuleSyncResult {
@@ -47,10 +50,13 @@ export function createCapsuleIndexAdapter(
   syncArtifact(artifact: SkillArtifactRecord): Promise<CapsuleSyncResult>;
   removeArtifact(artifactId: string): Promise<void>;
 } {
-  const sync = createCapsuleIndexSync({
+  const syncConfig: Parameters<typeof createCapsuleIndexSync>[0] = {
     pool: config.pool,
-    featureFlag: config.featureFlag,
-  });
+  };
+  if (config.featureFlag) {
+    syncConfig.featureFlag = config.featureFlag;
+  }
+  const sync = createCapsuleIndexSync(syncConfig);
 
   /**
    * Sync capsules for an approved artifact and clean up stale entries.
@@ -74,7 +80,8 @@ export function createCapsuleIndexAdapter(
       await sync.removeCapsuleIndex(staleId);
     }
 
-    const errors = result.keyword.filter((r) => r.status === 'failed').length +
+    const errors =
+      result.keyword.filter((r) => r.status === 'failed').length +
       result.embedding.filter((r) => r.status === 'failed').length;
 
     if (staleIds.length > 0) {

@@ -416,7 +416,12 @@ export const canonicalLabelFixtures: GraphExtractionFixture[] = [
       { kind: 'trap', label: 'startup-crash' },
     ],
     expectedEdges: [
-      { source: 'crashloopbackoff', target: 'startup-crash', type: 'co-occurs-with', strength: 'soft' },
+      {
+        source: 'crashloopbackoff',
+        target: 'startup-crash',
+        type: 'co-occurs-with',
+        strength: 'soft',
+      },
     ],
   },
   {

@@ -356,8 +356,14 @@ describe('createPgDuplicateDetector — skill exact-contentHash lane', () => {
   it('preserves all exact matches even when maxMatches is smaller', async () => {
     const contentHash = 'c'.repeat(64);
     const pool = buildMockPool();
-    const skillOne = createTestSkill(contentHash, { id: 'skill_exact_1', title: 'Exact Skill One' });
-    const skillTwo = createTestSkill(contentHash, { id: 'skill_exact_2', title: 'Exact Skill Two' });
+    const skillOne = createTestSkill(contentHash, {
+      id: 'skill_exact_1',
+      title: 'Exact Skill One',
+    });
+    const skillTwo = createTestSkill(contentHash, {
+      id: 'skill_exact_2',
+      title: 'Exact Skill Two',
+    });
 
     const detect = createPgDuplicateDetector({ pool: pool as never });
     const result = await detect(

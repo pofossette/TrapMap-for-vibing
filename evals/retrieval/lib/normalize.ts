@@ -11,8 +11,8 @@
 import type {
   GraphPlanSearchResponse,
   RetrievalResponse,
-  SkillLookupResponse,
   RetrievalV2ResponseWithHints,
+  SkillLookupResponse,
 } from '@trapmap/contracts';
 import type { BucketMap, GraphPlanStructure, NormalizedHit, NormalizedResult } from './types.js';
 

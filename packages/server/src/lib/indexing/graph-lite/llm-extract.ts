@@ -15,6 +15,7 @@ import {
 } from '@trapmap/server/lib/ai/prompts.js';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
+import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
 import { extractTrapGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
 import type {
   GraphEdgeRecord,
@@ -554,14 +555,14 @@ export async function extractGraphEntitiesWithLLM(
 
     // Phase 3: Optional canonical label alignment
     const alignmentService = options?.alignmentService;
-    if (alignmentService && alignmentService.chat && alignmentService.repository) {
+    if (alignmentService?.chat && alignmentService.repository) {
       try {
         const { alignGraphNodes, rewriteEdgeIds } = await import(
           '@trapmap/server/lib/labels/graph-align.js'
         );
-        const alignmentResult = await alignGraphNodes(merged.nodes, {
+        const alignmentResult = await alignGraphNodes(merged.nodes as LlmGraphNode[], {
           chat: alignmentService.chat,
-          repository: alignmentService.repository as import('@trapmap/server/lib/labels/repository.js').LabelRepository,
+          repository: alignmentService.repository as LabelRepository,
           sourceContext: alignmentService.sourceContext ?? 'extraction',
         });
 

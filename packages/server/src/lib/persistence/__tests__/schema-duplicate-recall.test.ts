@@ -49,9 +49,7 @@ describe('duplicate recall schema surfaces (Phase 3)', () => {
     expect(skillArtifactCapsuleKeywords.revisionNo.name).toBe('revision_no');
     expect(skillArtifactCapsuleKeywords.tokens.name).toBe('tokens');
     expect(skillArtifactCapsuleKeywords.fieldTokensContent.name).toBe('field_tokens_content');
-    expect(skillArtifactCapsuleKeywords.fieldTokensSituation.name).toBe(
-      'field_tokens_situation',
-    );
+    expect(skillArtifactCapsuleKeywords.fieldTokensSituation.name).toBe('field_tokens_situation');
     expect(skillArtifactCapsuleKeywords.fieldTokensProblem.name).toBe('field_tokens_problem');
     expect(skillArtifactCapsuleKeywords.fieldTokensGoal.name).toBe('field_tokens_goal');
     expect(skillArtifactCapsuleKeywords.fieldTokensLabels.name).toBe('field_tokens_labels');

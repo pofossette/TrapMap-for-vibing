@@ -259,6 +259,7 @@ export const retrievalEvalExpectedSchema = z.object({
   governance: retrievalEvalGovernanceExpectationsSchema,
   /** Shape assertions (endpoint-specific response structure) */
   shape: retrievalEvalShapeExpectationsSchema.default({
+    expectedArtifactIds: [],
     expectedProfileHintArtifactIds: [],
   }),
 });

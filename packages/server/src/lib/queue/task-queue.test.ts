@@ -114,11 +114,11 @@ function buildMockPool(initialRows: MockTaskRow[] = []) {
         dedupeKey === null
           ? undefined
           : rows.find(
-        (row) =>
-          row.type === type &&
-          row.dedupe_key === dedupeKey &&
-          (row.status === 'pending' || row.status === 'running'),
-      );
+              (row) =>
+                row.type === type &&
+                row.dedupe_key === dedupeKey &&
+                (row.status === 'pending' || row.status === 'running'),
+            );
 
       if (existing) {
         const error = new Error('duplicate key value violates unique constraint');
@@ -403,7 +403,6 @@ describe('createTaskQueue', () => {
 
       mock.query = vi.fn(async (...args: any[]) => {
         const sql = String(args[0] ?? '').toLowerCase();
-        const params = (args[1] as unknown[]) ?? [];
 
         if (sql.includes('insert into task_queue')) {
           attempts.push('insert');

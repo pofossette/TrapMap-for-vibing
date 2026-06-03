@@ -20,10 +20,9 @@ vi.mock('./pg-detector.js', () => ({
 }));
 
 vi.mock('@trapmap/server/lib/queue/task-queue.js', async () => {
-  const actual =
-    await vi.importActual<typeof import('@trapmap/server/lib/queue/task-queue.js')>(
-      '@trapmap/server/lib/queue/task-queue.js',
-    );
+  const actual = await vi.importActual<typeof import('@trapmap/server/lib/queue/task-queue.js')>(
+    '@trapmap/server/lib/queue/task-queue.js',
+  );
 
   return {
     ...actual,

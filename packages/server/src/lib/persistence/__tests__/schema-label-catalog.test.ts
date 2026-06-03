@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   canonicalLabelEmbeddings,
   canonicalLabels,
-  labelAlignmentEvents,
   labelAliases,
+  labelAlignmentEvents,
 } from '@trapmap/server/lib/persistence/schema.js';
 
 describe('canonical label catalog schema', () => {

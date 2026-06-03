@@ -16,8 +16,8 @@ import type { Pool } from 'pg';
 import {
   canonicalLabelEmbeddings,
   canonicalLabels,
-  labelAlignmentEvents,
   labelAliases,
+  labelAlignmentEvents,
 } from '@trapmap/server/lib/persistence/schema/labels.js';
 
 // ---------------------------------------------------------------------------
@@ -87,7 +87,11 @@ export interface LabelRepository {
   }): Promise<void>;
 
   /** Search candidate labels by normalized name prefix or exact alias. */
-  searchCandidates(normalizedQuery: string, kind?: string, limit?: number): Promise<
+  searchCandidates(
+    normalizedQuery: string,
+    kind?: string,
+    limit?: number,
+  ): Promise<
     Array<{
       label: CanonicalLabelRecord;
       aliases: string[];
@@ -108,7 +112,11 @@ export interface LabelRepository {
   >;
 
   /** Store or update a label embedding. */
-  upsertEmbedding(canonicalLabelId: string, embedding: number[], contentHash: string): Promise<void>;
+  upsertEmbedding(
+    canonicalLabelId: string,
+    embedding: number[],
+    contentHash: string,
+  ): Promise<void>;
 
   /** Record an alignment event. */
   recordAlignmentEvent(event: {
@@ -125,10 +133,7 @@ export interface LabelRepository {
   }): Promise<void>;
 
   /** Merge one canonical label into another (soft merge). */
-  mergeCanonicalLabels(
-    sourceId: string,
-    targetId: string,
-  ): Promise<void>;
+  mergeCanonicalLabels(sourceId: string, targetId: string): Promise<void>;
 
   /** List all active canonical labels. */
   listActive(kind?: string): Promise<CanonicalLabelRecord[]>;
@@ -313,14 +318,20 @@ export class PgLabelRepository implements LabelRepository {
             eq(canonicalLabels.kind, kind),
             eq(canonicalLabels.status, 'active'),
             excludeIds.length > 0
-              ? sql`${canonicalLabels.id} NOT IN (${sql.join(excludeIds.map((id) => sql`${id}`), sql`, `)})`
+              ? sql`${canonicalLabels.id} NOT IN (${sql.join(
+                  excludeIds.map((id) => sql`${id}`),
+                  sql`, `,
+                )})`
               : sql`TRUE`,
           )
         : and(
             sql`${canonicalLabels.normalizedName} LIKE ${`%${normalizedQuery}%`}`,
             eq(canonicalLabels.status, 'active'),
             excludeIds.length > 0
-              ? sql`${canonicalLabels.id} NOT IN (${sql.join(excludeIds.map((id) => sql`${id}`), sql`, `)})`
+              ? sql`${canonicalLabels.id} NOT IN (${sql.join(
+                  excludeIds.map((id) => sql`${id}`),
+                  sql`, `,
+                )})`
               : sql`TRUE`,
           );
 

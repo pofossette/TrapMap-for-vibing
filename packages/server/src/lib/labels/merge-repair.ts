@@ -9,7 +9,7 @@
 import type { GraphNodeRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 
-import type { LabelRepository, CanonicalLabelRecord } from './repository.js';
+import type { LabelRepository } from './repository.js';
 
 // ---------------------------------------------------------------------------
 // Types

@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildServer } from '@trapmap/server/app.js';
+import { getArtifactAdapters } from '@trapmap/server/lib/indexing/artifact-pipeline.js';
 import { bootstrapCandidateRecovery } from './bootstrap-candidate-recovery.js';
 import { bootstrapLifecycle } from './bootstrap-lifecycle.js';
-import { getArtifactAdapters } from '@trapmap/server/lib/indexing/artifact-pipeline.js';
 
 describe('startup sequence', () => {
   it('initializes repos before candidate recovery', async () => {

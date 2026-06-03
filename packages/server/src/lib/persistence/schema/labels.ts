@@ -12,7 +12,6 @@ import { sql } from 'drizzle-orm';
 import {
   check,
   index,
-  integer,
   jsonb,
   pgTable,
   real,
@@ -54,17 +53,11 @@ export const canonicalLabels = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex('idx_canonical_labels_normalized_kind').on(
-      table.normalizedName,
-      table.kind,
-    ),
+    uniqueIndex('idx_canonical_labels_normalized_kind').on(table.normalizedName, table.kind),
     index('idx_canonical_labels_kind').on(table.kind),
     index('idx_canonical_labels_status').on(table.status),
     index('idx_canonical_labels_merged_into').on(table.mergedIntoLabelId),
-    check(
-      'ck_canonical_labels_status',
-      sql`${table.status} IN ('active', 'merged', 'disabled')`,
-    ),
+    check('ck_canonical_labels_status', sql`${table.status} IN ('active', 'merged', 'disabled')`),
   ],
 );
 
@@ -92,10 +85,7 @@ export const labelAliases = pgTable(
   (table) => [
     uniqueIndex('idx_label_aliases_normalized').on(table.normalizedAlias),
     index('idx_label_aliases_canonical').on(table.canonicalLabelId),
-    check(
-      'ck_label_aliases_source',
-      sql`${table.source} IN ('manual', 'llm', 'backfill')`,
-    ),
+    check('ck_label_aliases_source', sql`${table.source} IN ('manual', 'llm', 'backfill')`),
     check(
       'ck_label_aliases_confidence',
       sql`${table.confidence} >= 0.0 AND ${table.confidence} <= 1.0`,
@@ -122,9 +112,7 @@ export const canonicalLabelEmbeddings = pgTable(
     /** Record update timestamp */
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index('idx_canonical_label_embeddings_hash').on(table.contentHash),
-  ],
+  (table) => [index('idx_canonical_label_embeddings_hash').on(table.contentHash)],
 );
 
 /**

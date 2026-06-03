@@ -24,10 +24,10 @@ import {
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
 } from '@trapmap/server/lib/indexing/graph-lite/store.js';
-import { createLabelRepository } from '@trapmap/server/lib/labels/repository.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { IndexAdapter, IndexSyncResult } from '@trapmap/server/lib/indexing/types.js';
+import { createLabelRepository } from '@trapmap/server/lib/labels/repository.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { buildTrapGraphDocument } from './graph-builders.js';

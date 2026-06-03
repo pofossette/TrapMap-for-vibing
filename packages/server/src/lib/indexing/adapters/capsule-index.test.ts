@@ -26,7 +26,9 @@ const mockCapsuleIndexSync = {
   }),
   removeCapsuleIndex: vi.fn().mockResolvedValue(undefined),
   removeCapsuleIndexesForArtifact: vi.fn().mockResolvedValue(undefined),
-  getIndexedCapsuleIds: vi.fn().mockImplementation(() => Promise.resolve([...mockIndexedCapsuleIds])),
+  getIndexedCapsuleIds: vi
+    .fn()
+    .mockImplementation(() => Promise.resolve([...mockIndexedCapsuleIds])),
   getSyncStatus: vi.fn(),
   syncKeywordTokens: vi.fn(),
   syncEmbedding: vi.fn(),

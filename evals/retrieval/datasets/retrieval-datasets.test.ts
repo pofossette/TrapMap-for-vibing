@@ -71,10 +71,9 @@ describe('retrieval datasets schema validation', () => {
       for (const case_ of v1RetrievalSmokeCases) {
         const parsed = retrievalEvalCaseSchema.parse(case_);
         expect(parsed.caseId).toBe(case_.caseId);
-        expect([
-          '/v1/retrieval/search',
-          '/v1/retrieval/skills/search-by-content',
-        ]).toContain(parsed.endpoint);
+        expect(['/v1/retrieval/search', '/v1/retrieval/skills/search-by-content']).toContain(
+          parsed.endpoint,
+        );
         expect(parsed.tier).toBe('smoke');
       }
     });
@@ -96,10 +95,9 @@ describe('retrieval datasets schema validation', () => {
       for (const case_ of v1RetrievalCoreCases) {
         const parsed = retrievalEvalCaseSchema.parse(case_);
         expect(parsed.caseId).toBe(case_.caseId);
-        expect([
-          '/v1/retrieval/search',
-          '/v1/retrieval/skills/search-by-content',
-        ]).toContain(parsed.endpoint);
+        expect(['/v1/retrieval/search', '/v1/retrieval/skills/search-by-content']).toContain(
+          parsed.endpoint,
+        );
         expect(parsed.tier).toBe('core');
       }
     });

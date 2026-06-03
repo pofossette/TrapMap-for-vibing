@@ -10,12 +10,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 
+import { scheduleCandidateProcessing } from '@trapmap/server/lib/candidates/processor.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import {
   buildTestServer,
   seedApprovedKnowledgeEntry,
 } from '@trapmap/server/lib/retrieval/__fixtures__/auth-store-helpers.js';
-import { scheduleCandidateProcessing } from '@trapmap/server/lib/candidates/processor.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 

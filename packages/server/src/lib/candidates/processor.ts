@@ -112,11 +112,16 @@ export async function processCandidate(
 
     // Use PostgreSQL-based detection if pool is available and flag is set
     if (services.pool && services.usePgDuplicateDetection?.()) {
-      const pgDetector = createPgDuplicateDetector({
+      const pgConfig: Parameters<typeof createPgDuplicateDetector>[0] = {
         pool: services.pool,
-        featureFlag: services.usePgDuplicateDetection,
-        chat: services.chat,
-      });
+      };
+      if (services.usePgDuplicateDetection) {
+        pgConfig.featureFlag = services.usePgDuplicateDetection;
+      }
+      if (services.chat) {
+        pgConfig.chat = services.chat;
+      }
+      const pgDetector = createPgDuplicateDetector(pgConfig);
 
       // Embedding input: title + body concatenation from the normalized
       // contract. Empty for the no-files edge case so PG embedding still

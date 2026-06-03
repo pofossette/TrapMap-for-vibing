@@ -102,16 +102,21 @@ export const capsuleIndexRoutes: FastifyPluginAsync = async (app) => {
       };
     }
 
-    const artifact = await app.skillShareer.repos.artifact.getById(body.artifactId);
+    const artifactId = body.artifactId;
+    if (!artifactId) {
+      throw new AppError(400, 'invalid_request', 'artifactId is required when mode=artifact');
+    }
+
+    const artifact = await app.skillShareer.repos.artifact.getById(artifactId);
     if (!artifact) {
-      throw new AppError(404, 'artifact_not_found', `Artifact ${body.artifactId} not found`);
+      throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
     }
 
     if (artifact.lifecycleState !== 'approved') {
       throw new AppError(
         409,
         'artifact_not_indexed',
-        `Artifact ${body.artifactId} is not approved and has no capsule PG index to rebuild`,
+        `Artifact ${artifactId} is not approved and has no capsule PG index to rebuild`,
       );
     }
 

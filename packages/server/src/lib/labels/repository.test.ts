@@ -88,7 +88,11 @@ describe('LabelRepository', () => {
         confidence: 0.85,
         reasoning: 'Semantic match with existing timeout label',
         candidateSnapshot: [
-          { id: 'lbl_timeout', canonicalName: 'timeout-issue', recallReason: 'exact-alias' as const },
+          {
+            id: 'lbl_timeout',
+            canonicalName: 'timeout-issue',
+            recallReason: 'exact-alias' as const,
+          },
         ],
         sourceContext: 'extraction',
         createdAt: '2024-01-01T00:00:00.000Z',

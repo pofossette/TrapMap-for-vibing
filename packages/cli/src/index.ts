@@ -56,8 +56,7 @@ const visibility = {
   allowFeedbackManage:
     securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:update'),
   allowSkillFind: hasPermission(effectivePermissions, 'knowledge:review'),
-  allowSkillApply:
-    securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:review'),
+  allowSkillApply: securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:review'),
 };
 
 const program = new Command();
