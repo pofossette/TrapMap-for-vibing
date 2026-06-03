@@ -33,6 +33,16 @@ flowchart TB
 - If the output contains `DEGRADED`, `WARNING: Chat provider not configured`, or any non-zero fallback count, the run is not a clean live proof
 - A report with zero live cases and non-zero fallback cases should NOT be used to evaluate LLM extraction quality
 
+**Phase 3 Duplicate Recall Focus Runs:**
+- Trap-only: run the duplicate eval and inspect the trap exact case that exercises the trap-side recall / exact-preservation lane.
+- Skill-only: run the duplicate eval and inspect the real skill semantic and false-positive control cases that exercise the skill-side embedding + keyword recall path.
+- Mixed: inspect trap + skill cases from the same report to confirm the merged PostgreSQL candidate list still preserves exact hits while keeping unrelated skill hits as `none`.
+
+**Phase 4 Queue Dedupe / Trace Checks:**
+- Queue dedupe: run the queue + processor + pipeline targets and confirm repeated scheduling keeps exactly one active `task_queue` row per `candidateId` while the task is `pending` or `running`.
+- Retry safety: confirm a candidate can be scheduled again after the prior queue row reaches `dead` / `completed` / `failed`, and that conflict recovery does not drop the enqueue during the unique-violation race window.
+- Trace persistence: inspect a processed candidate and confirm `analysisSnapshot.duplicateTrace` survives through the API / repository path with a plausible `detector` + `matchedLane` pair.
+
 ### 目录结构
 
 ```text
@@ -150,6 +160,24 @@ pnpm eval:summary --tier core --provider fallback --json --json-path reports/eva
 # 图提取 smoke（捕获 live/fallback 文本证据）
 pnpm eval:graph-extraction --smoke | tee reports/eval/graph-extraction-smoke-live.txt
 
+# Duplicate eval（Phase 3 trap+skill duplicate recall）
+pnpm eval:dedup --dry-run | rg 'real-trap-exact-rmrf-quill'
+pnpm eval:dedup --dry-run | rg 'real-semantic-handoff-vs-doccoauthoring|real-none-postgres-tuning-vs-backup'
+pnpm eval:dedup --dry-run | rg 'real-trap-exact-rmrf-quill|real-semantic-handoff-vs-doccoauthoring|real-none-postgres-tuning-vs-backup'
+
+# Queue dedupe + duplicate trace（Phase 4）
+pnpm exec vitest run \
+  packages/server/src/lib/queue/task-queue.test.ts \
+  packages/server/src/lib/candidates/processor.test.ts \
+  packages/server/src/__tests__/candidate-pipeline.test.ts
+
+pnpm exec vitest run \
+  packages/contracts/src/domain/candidates.test.ts \
+  packages/server/src/lib/candidates/detector.test.ts \
+  packages/server/src/lib/candidates/pg-detector.test.ts \
+  packages/server/src/lib/candidates/pg-repository.test.ts \
+  packages/server/src/lib/persistence/__tests__/schema-candidates.test.ts
+
 # 摄取 smoke（捕获文本证据）
 pnpm eval:ingestion:smoke | tee reports/eval/ingestion-smoke-postgres.txt
 ```
@@ -158,6 +186,8 @@ pnpm eval:ingestion:smoke | tee reports/eval/ingestion-smoke-postgres.txt
 如不 source `.env`，retrieval、summary、graph extraction、ingestion 都可能读取不到 PostgreSQL 或 AI provider 配置，导致结果失真或直接回退。
 图提取日志中如果出现 `WARNING: Chat provider not configured, falling back to rule engine`，即使顶部仍显示 `Mode: live`，该次运行也只能记为 degraded fallback。
 摘要 multi-fact 用例需要真实 embedding provider（如 Google GenAI），fallback embedding 可能无法召回该用例的 capsule。
+`eval:dedup` 当前不会按 fixture id 过滤执行，因此上面的 `rg` 命令用于从完整报告中聚焦 Phase 3 的 trap-only、skill-only 与 mixed case 行。
+Phase 4 的 queue-dedupe 验证不需要额外环境变量；只要 PostgreSQL schema 已应用到包含 `task_queue_dedupe_pending_idx` 与 `candidate_analyses.duplicate_trace` 的最新 migration 即可。
 
 ### 持久化评测证据
 

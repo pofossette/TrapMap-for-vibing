@@ -23,6 +23,24 @@ import { createPgDuplicateDetector } from './pg-detector.js';
 
 type QueryResult = { rows: unknown[]; rowCount: number };
 
+function toSnakeCase(value: string): string {
+  return value.replace(/[A-Z]/g, (char) => `_${char.toLowerCase()}`);
+}
+
+function toCamelCase(value: string): string {
+  return value.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
+}
+
+function expandRowKeys<T extends Record<string, unknown>>(row: T): Record<string, unknown> {
+  const expanded: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    expanded[key] = value;
+    expanded[toSnakeCase(key)] = value;
+    expanded[toCamelCase(key)] = value;
+  }
+  return expanded;
+}
+
 function buildMockPool(
   handler: (sql: string, params: unknown[]) => QueryResult | undefined = () => undefined,
 ) {
@@ -42,7 +60,13 @@ function buildMockPool(
       params = (args[1] as unknown[]) ?? [];
     }
 
-    return handler(sql, params) ?? { rows: [], rowCount: 0 };
+    const result = handler(sql, params) ?? { rows: [], rowCount: 0 };
+    return {
+      ...result,
+      rows: result.rows.map((row) =>
+        row && typeof row === 'object' ? expandRowKeys(row as Record<string, unknown>) : row,
+      ),
+    };
   };
 
   return {
@@ -205,6 +229,10 @@ describe('createPgDuplicateDetector — trap exact-fingerprint lane', () => {
     expect(exact!.entityType).toBe('trap');
     expect(result.duplicateCase!.hasExactDuplicate).toBe(true);
     expect(result.duplicateCase!.duplicateType).toBe('exact');
+    expect(result.analysisSnapshot.duplicateTrace).toEqual({
+      detector: 'postgresql',
+      matchedLane: 'exact',
+    });
   });
 
   it('trap with overlapping text but no fingerprint match does NOT return matchType "exact"', async () => {
@@ -263,6 +291,10 @@ describe('createPgDuplicateDetector — trap exact-fingerprint lane', () => {
     });
 
     expect(result.duplicateCase).toBeNull();
+    expect(result.analysisSnapshot.duplicateTrace).toEqual({
+      detector: 'postgresql',
+      matchedLane: 'none',
+    });
   });
 });
 
@@ -277,7 +309,22 @@ describe('createPgDuplicateDetector — skill exact-contentHash lane', () => {
       id: 'skill_exact',
     });
 
-    const pool = buildMockPool();
+    const pool = buildMockPool((queryText) => {
+      if (queryText.includes('skill_artifact_profiles') && queryText.includes('content_hash')) {
+        return {
+          rows: [
+            {
+              artifact_id: 'skill_exact',
+              title: 'Test Skill',
+              summary: 'Test summary',
+              keywords: ['test'],
+            },
+          ],
+          rowCount: 1,
+        };
+      }
+      return { rows: [], rowCount: 0 };
+    });
     const detect = createPgDuplicateDetector({ pool: pool as never });
 
     const result = await detect(
@@ -305,12 +352,45 @@ describe('createPgDuplicateDetector — skill exact-contentHash lane', () => {
     expect(result.duplicateCase!.duplicateType).toBe('exact');
   });
 
+  it('preserves all exact matches even when maxMatches is smaller', async () => {
+    const contentHash = 'c'.repeat(64);
+    const pool = buildMockPool();
+    const skillOne = createTestSkill(contentHash, { id: 'skill_exact_1', title: 'Exact Skill One' });
+    const skillTwo = createTestSkill(contentHash, { id: 'skill_exact_2', title: 'Exact Skill Two' });
+
+    const detect = createPgDuplicateDetector({ pool: pool as never });
+    const result = await detect(
+      {
+        candidateId: 'cand_exact_overflow',
+        candidateText: 'exact skill content',
+        candidateTokens: ['exact', 'skill', 'content'],
+        candidateKeywords: ['test'],
+        candidateFingerprint: contentHash,
+        teamId: null,
+        maxMatches: 1,
+      },
+      {
+        trapEntries: [],
+        skillArtifacts: [skillOne, skillTwo],
+      },
+    );
+
+    expect(result.duplicateCase).not.toBeNull();
+    expect(result.duplicateCase!.matches).toHaveLength(2);
+    expect(result.duplicateCase!.matches.every((match) => match.matchType === 'exact')).toBe(true);
+  });
+
   it('skill with overlapping summary but no contentHash match does NOT return matchType "exact"', async () => {
     const skill = createTestSkill('b'.repeat(64), {
       id: 'skill_overlap',
     });
 
-    const pool = buildMockPool();
+    const pool = buildMockPool((queryText) => {
+      if (queryText.includes('skill_artifact_profiles') && queryText.includes('content_hash')) {
+        return { rows: [], rowCount: 0 };
+      }
+      return { rows: [], rowCount: 0 };
+    });
     const detect = createPgDuplicateDetector({ pool: pool as never });
 
     const result = await detect(
@@ -332,5 +412,149 @@ describe('createPgDuplicateDetector — skill exact-contentHash lane', () => {
       (m) => m.matchType === 'exact' && m.entityId === 'skill_overlap',
     );
     expect(exact).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 3: PostgreSQL recall across traps and skills
+// ---------------------------------------------------------------------------
+
+describe('createPgDuplicateDetector — PostgreSQL hybrid recall', () => {
+  it('queries trap and skill PostgreSQL recall sources for a trap-like candidate', async () => {
+    let trapVectorCalled = false;
+    let trapKeywordCalled = false;
+    let skillVectorCalled = false;
+    let skillKeywordCalled = false;
+
+    const pool = buildMockPool((queryText) => {
+      if (queryText.includes('skill_artifact_profiles') && queryText.includes('content_hash')) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (queryText.includes('knowledge_embeddings')) {
+        trapVectorCalled = true;
+        return { rows: [], rowCount: 0 };
+      }
+      if (queryText.includes('knowledge_keywords')) {
+        trapKeywordCalled = true;
+        return { rows: [], rowCount: 0 };
+      }
+      if (queryText.includes('skill_artifact_capsule_embeddings')) {
+        skillVectorCalled = true;
+        return { rows: [], rowCount: 0 };
+      }
+      if (queryText.includes('skill_artifact_capsule_keywords')) {
+        skillKeywordCalled = true;
+        return { rows: [], rowCount: 0 };
+      }
+      return { rows: [], rowCount: 0 };
+    });
+
+    const detect = createPgDuplicateDetector({ pool: pool as never });
+    const result = await detect({
+      candidateId: 'cand_trap_pg',
+      candidateText: 'Proxy timeout after deploy\nKeepalive exhaustion on upstream',
+      candidateTokens: ['proxy', 'timeout', 'deploy', 'upstream'],
+      candidateKeywords: ['network'],
+      candidateFingerprint: 'f'.repeat(64),
+      teamId: null,
+    });
+
+    expect(result.duplicateCase).toBeNull();
+    expect(trapVectorCalled).toBe(true);
+    expect(trapKeywordCalled).toBe(true);
+    expect(skillVectorCalled).toBe(true);
+    expect(skillKeywordCalled).toBe(true);
+  });
+
+  it('queries skill-side PostgreSQL recall sources without using fallback full scans', async () => {
+    let skillVectorCalled = false;
+    let skillKeywordCalled = false;
+
+    const pool = buildMockPool((queryText) => {
+      if (queryText.includes('skill_artifact_profiles') && queryText.includes('content_hash')) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (queryText.includes('skill_artifact_capsule_embeddings')) {
+        skillVectorCalled = true;
+        return { rows: [], rowCount: 0 };
+      }
+      if (queryText.includes('skill_artifact_capsule_keywords')) {
+        skillKeywordCalled = true;
+        return { rows: [], rowCount: 0 };
+      }
+      return { rows: [], rowCount: 0 };
+    });
+
+    const detect = createPgDuplicateDetector({ pool: pool as never });
+    const result = await detect(
+      {
+        candidateId: 'cand_skill_pg',
+        candidateText: 'Cloudflare SSL redirect troubleshooting\nOrigin certificate mismatch',
+        candidateTokens: ['cloudflare', 'ssl', 'redirect', 'origin'],
+        candidateKeywords: ['cloudflare'],
+        candidateFingerprint: 'e'.repeat(64),
+        teamId: null,
+      },
+      {
+        trapEntries: [],
+        skillArtifacts: [],
+      },
+    );
+
+    expect(result.duplicateCase).toBeNull();
+    expect(skillVectorCalled).toBe(true);
+    expect(skillKeywordCalled).toBe(true);
+  });
+
+  it('plans all trap and skill PostgreSQL recall queries for mixed duplicate search', async () => {
+    let trapVectorCalled = false;
+    let trapKeywordCalled = false;
+    let skillVectorCalled = false;
+    let skillKeywordCalled = false;
+
+    const pool = buildMockPool((queryText) => {
+      if (queryText.includes('skill_artifact_profiles') && queryText.includes('content_hash')) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (queryText.includes('knowledge_embeddings')) {
+        trapVectorCalled = true;
+        return { rows: [], rowCount: 0 };
+      }
+      if (queryText.includes('knowledge_keywords')) {
+        trapKeywordCalled = true;
+        return { rows: [], rowCount: 0 };
+      }
+      if (queryText.includes('skill_artifact_capsule_embeddings')) {
+        skillVectorCalled = true;
+        return { rows: [], rowCount: 0 };
+      }
+      if (queryText.includes('skill_artifact_capsule_keywords')) {
+        skillKeywordCalled = true;
+        return { rows: [], rowCount: 0 };
+      }
+      return { rows: [], rowCount: 0 };
+    });
+
+    const detect = createPgDuplicateDetector({ pool: pool as never });
+    const result = await detect(
+      {
+        candidateId: 'cand_mixed_pg',
+        candidateText: 'Jest worker hangs in CI\nOpen handle deadlocks after tests',
+        candidateTokens: ['jest', 'worker', 'ci', 'deadlocks'],
+        candidateKeywords: ['testing'],
+        candidateFingerprint: 'd'.repeat(64),
+        teamId: null,
+      },
+      {
+        trapEntries: [],
+        skillArtifacts: [],
+      },
+    );
+
+    expect(result.duplicateCase).toBeNull();
+    expect(trapVectorCalled).toBe(true);
+    expect(trapKeywordCalled).toBe(true);
+    expect(skillVectorCalled).toBe(true);
+    expect(skillKeywordCalled).toBe(true);
   });
 });

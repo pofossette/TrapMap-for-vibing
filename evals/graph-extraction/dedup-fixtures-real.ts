@@ -124,7 +124,22 @@ export const realSkillDedupFixtures: DedupFixture[] = [
     expectedOverlapType: 'semantic',
   },
 
-  // 9. None: claude-api vs excel-automation (completely different domains)
+  // 9. Semantic: handoff-oriented skill descriptions with different packaging.
+  // Exercises the skill-side embedding + keyword recall path in Phase 3.
+  {
+    id: 'real-semantic-handoff-vs-doccoauthoring',
+    candidate: {
+      title: 'Engineering Handoff Notes',
+      body: 'Prepare structured handoff notes for the next engineer or agent. Capture current implementation state, key decisions, unresolved risks, verification status, and concrete next actions so the next contributor can resume work without rebuilding context.',
+    },
+    existing: {
+      title: 'Document Co-authoring',
+      body: 'Structured workflow for co-authoring documentation. Use when writing docs, proposals, technical specs, decision docs, or similar structured content. Helps users efficiently transfer context, refine content through iteration, and verify the doc works for readers. Includes templates and feedback loops.',
+    },
+    expectedOverlapType: 'semantic',
+  },
+
+  // 10. None: claude-api vs excel-automation (completely different domains)
   {
     id: 'real-none-api-vs-excel',
     candidate: {
@@ -138,7 +153,22 @@ export const realSkillDedupFixtures: DedupFixture[] = [
     expectedOverlapType: 'none',
   },
 
-  // 10. None: gha (GitHub Actions) vs algorithmic-art (different domains)
+  // 11. None: PostgreSQL-heavy skills that should recall but not dedupe.
+  // Serves as a false-positive control for the mixed skill recall path.
+  {
+    id: 'real-none-postgres-tuning-vs-backup',
+    candidate: {
+      title: 'PostgreSQL Query Tuning',
+      body: 'Tune slow PostgreSQL queries with EXPLAIN ANALYZE, index review, and planner inspection. Focus on latency reduction for OLTP workloads, hot query paths, and production-safe measurement.',
+    },
+    existing: {
+      title: 'PostgreSQL Backup Recovery',
+      body: 'Design PostgreSQL backup and restore workflows using WAL archiving, base backups, and recovery drills. Focus on RPO/RTO validation, restore correctness, and disaster recovery operations.',
+    },
+    expectedOverlapType: 'none',
+  },
+
+  // 12. None: gha (GitHub Actions) vs algorithmic-art (different domains)
   {
     id: 'real-none-gha-vs-art',
     candidate: {
@@ -152,7 +182,7 @@ export const realSkillDedupFixtures: DedupFixture[] = [
     expectedOverlapType: 'none',
   },
 
-  // 11. Trap exact: same trap entry with paraphrased body wording.
+  // 13. Trap exact: same trap entry with paraphrased body wording.
   // The trap canonical fingerprint (shortcut + detail + sorted labels) is
   // expected to match here, exercising the Phase 1 trap exact-fingerprint
   // lane. Jaccard scoring of the title + body text typically misses the

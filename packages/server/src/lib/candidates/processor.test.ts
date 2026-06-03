@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CandidateProcessorServices } from './processor.js';
 import type { CandidateRepository } from './repository.js';
 
+const mockQueueEnqueue = vi.fn();
+
 // Mock dependencies before importing the module under test
 vi.mock('./detector.js', () => ({
   detectDuplicates: vi.fn(),
@@ -16,6 +18,20 @@ vi.mock('./fingerprint.js', () => ({
 vi.mock('./pg-detector.js', () => ({
   createPgDuplicateDetector: vi.fn(),
 }));
+
+vi.mock('@trapmap/server/lib/queue/task-queue.js', async () => {
+  const actual =
+    await vi.importActual<typeof import('@trapmap/server/lib/queue/task-queue.js')>(
+      '@trapmap/server/lib/queue/task-queue.js',
+    );
+
+  return {
+    ...actual,
+    createTaskQueue: vi.fn(() => ({
+      enqueue: mockQueueEnqueue,
+    })),
+  };
+});
 
 import { detectDuplicates } from './detector.js';
 import { buildNormalizedDuplicateInput } from './fingerprint.js';
@@ -181,6 +197,7 @@ function makeSkillNormalizedInput(overrides: Record<string, unknown> = {}) {
 describe('processCandidate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockQueueEnqueue.mockReset().mockResolvedValue(undefined);
     vi.mocked(buildNormalizedDuplicateInput).mockReturnValue(makeNormalizedInput());
     vi.mocked(detectDuplicates).mockResolvedValue({
       duplicateCase: null,
@@ -422,6 +439,7 @@ describe('processCandidate', () => {
 describe('processCandidateWithRetry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockQueueEnqueue.mockReset().mockResolvedValue(undefined);
     vi.mocked(buildNormalizedDuplicateInput).mockReturnValue(makeNormalizedInput());
     vi.mocked(detectDuplicates).mockResolvedValue({
       duplicateCase: null,
@@ -583,6 +601,7 @@ describe('processPendingCandidates', () => {
 describe('scheduleCandidateProcessing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockQueueEnqueue.mockReset().mockResolvedValue(undefined);
   });
 
   it('fires and forgets processCandidateWithRetry when no pool', () => {
@@ -596,23 +615,44 @@ describe('scheduleCandidateProcessing', () => {
 
   it('enqueues to task queue when pool is available', async () => {
     const candidate = makeCandidate();
-    const _mockEnqueue = vi.fn().mockResolvedValue(undefined);
     const mockPool = {
       query: vi.fn(),
     } as any;
 
-    // We need to mock createTaskQueue
-    vi.doMock('./processor.js', async () => {
-      const actual = await vi.importActual<typeof import('./processor.js')>('./processor.js');
-      return actual;
-    });
-
     const services = makeMockServices(candidate, { pool: mockPool });
 
-    // This will try to create a task queue with the pool
-    // The actual behavior depends on the createTaskQueue implementation
-    // We just verify it doesn't throw
     expect(() => scheduleCandidateProcessing('cand_1', services)).not.toThrow();
+
+    expect(mockQueueEnqueue).toHaveBeenCalledWith(
+      CANDIDATE_PROCESSING_TASK_TYPE,
+      { candidateId: 'cand_1', retryCount: 0 },
+      expect.objectContaining({
+        maxAttempts: 3,
+        dedupeKey: 'cand_1',
+      }),
+    );
+  });
+
+  it('enqueues retries with candidateId as dedupeKey when pool is available', async () => {
+    const candidate = makeCandidate({ retryCount: 0 });
+    const services = makeMockServices(candidate, { pool: { query: vi.fn() } as any });
+
+    services.getSnapshot = vi
+      .fn()
+      .mockResolvedValue(makeMockStoreData([{ ...candidate, status: 'error', retryCount: 1 }]));
+    vi.mocked(detectDuplicates).mockRejectedValueOnce(new Error('Temporary failure'));
+
+    await expect(processCandidateWithRetry('cand_1', services)).resolves.toBeUndefined();
+
+    expect(mockQueueEnqueue).toHaveBeenCalledWith(
+      CANDIDATE_PROCESSING_TASK_TYPE,
+      { candidateId: 'cand_1', retryCount: 1 },
+      expect.objectContaining({
+        dedupeKey: 'cand_1',
+        delayMs: 10000,
+        maxAttempts: 2,
+      }),
+    );
   });
 });
 

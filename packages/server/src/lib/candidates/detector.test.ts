@@ -802,5 +802,40 @@ describe('detectDuplicates', () => {
     expect(result.analysisSnapshot.fingerprint).toBe('fp_snapshot_test');
     expect(result.analysisSnapshot.keywords).toEqual(['keyword1', 'keyword2']);
     expect(result.analysisSnapshot.tokens).toEqual(['token1', 'token2', 'token3']);
+    expect(result.analysisSnapshot.duplicateTrace).toEqual({
+      detector: 'in-memory',
+      matchedLane: 'none',
+    });
+  });
+
+  it('analysisSnapshot marks exact matches as coming from the exact lane', async () => {
+    const contentHash = 'trace_exact_hash';
+    const skillArtifact = createTestSkill({
+      id: 'skill_trace_exact',
+      latestRevision: {
+        derived: {
+          profile: {
+            title: 'Exact trace skill',
+            summary: 'Exact trace summary',
+            keywords: ['trace'],
+            contentHash,
+          },
+        },
+      },
+    });
+
+    const result = await detectDuplicates(
+      createTestInput({
+        candidateFingerprint: contentHash,
+        candidateKeywords: ['trace'],
+        candidateTokens: ['exact', 'trace', 'skill', 'summary'],
+        skillArtifacts: [skillArtifact],
+      }),
+    );
+
+    expect(result.analysisSnapshot.duplicateTrace).toEqual({
+      detector: 'in-memory',
+      matchedLane: 'exact',
+    });
   });
 });

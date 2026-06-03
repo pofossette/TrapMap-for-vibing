@@ -341,23 +341,41 @@ async function findDuplicates(
 - In-memory 路径：把 `normalized.{fingerprint, keywordTerms, tokenTerms, titleText, bodyText}` 装入 `DuplicateDetectionInput`，LLM 精排直接消费 `candidateTitle` / `candidateBody` 而不是 `candidateKeywords.slice(0, 5)` / `candidateTokens.slice(0, 100)` 拼凑的 fallback。
 - PG 路径：把 `normalized.titleText` + `normalized.bodyText` 拼接为 `candidateText` 喂给 `generateEmbedding()`，并把 `candidateTitle` / `candidateBody` 透传给 PG 探测器的 LLM 精排，确保 PG 端的 skill 候选不再回退到空 embedding / 空 LLM 文本。
 
-### 目标分层架构 (Target Layered Architecture) — Future phases
+### 目标分层架构 (Target Layered Architecture)
 
-> 当前实现仍以全表扫描的 Jaccard 检测为主，但目标架构按以下五层执行，后续阶段（见根目录 `plan.md`）逐步落地。后续编辑本节时，请保持下表与 `plan.md` 中"Example Target Shapes"以及"Phase 0 Completion Notes"中冻结的字段名一致。Phase 1 已落地的内容见上文 "Exact match first (Phase 1)" 子节。
+> 当前实现已经进入分层重复检测路径：候选先规范化，再经过 exact lane、PostgreSQL trap+skill 混合召回、统一排序，以及可选的 top-K LLM 精排。后续阶段（见根目录 `plan.md`）仍会继续补齐 trap 指纹持久化、队列去重和 rollout 校准，但本节描述的六层管线已经是当前的实现方向而非纯 future-state 占位。后续编辑本节时，请保持下表与 `plan.md` 中"Example Target Shapes"以及完成备注中冻结的字段名一致。
 
 1. **Normalize candidate input** — 由共享 helper（`packages/server/src/lib/candidates/fingerprint.ts` 中的规范化器）将 trap 与 skill 候选都转成 `NormalizedDuplicateInput`：`sourceType`、`fingerprint`、`titleText`、`bodyText`、`keywordTerms`、`tokenTerms`、`exactLookupKey`。
 2. **Exact fingerprint lane** — 命中即返回 `matchType: 'exact'`，跳过全表扫描。trap 通过新增的 exact 查找列/索引匹配，skill 复用 `derived.profile.contentHash` 等已有字段。（Phase 1 已部分落地：in-memory 与 PG 探测器都跑 exact lane，但 trap 端仍依赖 on-the-fly 重新计算指纹，未持久化。）
-3. **Indexed PostgreSQL recall** — `packages/server/src/lib/candidates/pg-detector.ts` 同时对 trap 侧 (`knowledgeEmbeddings` + `knowledgeKeywords`) 与 skill 侧（profile/capsule 索引）执行召回，合并后按相似度排序。
-4. **Score + rerank top-K** — 召回结果按统一阈值过滤、截断到 top-K，再交给可选的 LLM 精排。
-5. **Optional LLM refinement** — 仅对 top-K 的候选对运行 LLM 判定，不对全量做调用。
+3. **Indexed PostgreSQL recall** — `packages/server/src/lib/candidates/pg-detector.ts` 在 PostgreSQL 中并行执行四条召回通道：trap embeddings、trap keywords、skill capsule/profile embeddings、skill capsule/profile keywords。
+4. **Merge + preserve exact hits** — SQL 召回结果先归一化为统一候选 shape，再与 exact-fingerprint lane 命中合并；exact 命中始终保留并前置，不会被后续 top-K 截断覆盖。
+5. **Score + rerank top-K** — trap + skill 的混合候选列表按统一相似度分数排序、去重、截断到 top-K，再交给可选的 LLM 精排。
+6. **Optional LLM refinement** — 仅对 merged ranked list 中的 top-K 候选对运行 LLM 判定，不对全量做调用。
+
+### Queue dedupe 与 duplicate-path observability (Phase 4)
+
+> Phase 4 把“不要重复处理同一个 candidate”和“命中的 duplicate lane 要能回放解释”这两件事都固化到当前实现里。
+
+- **Queue dedupe**：`packages/server/src/lib/candidates/processor.ts` 在首次 `scheduleCandidateProcessing()` 与失败后的重试入队都传入 `dedupeKey: candidateId`。`packages/server/src/lib/queue/task-queue.ts` 依赖 `task_queue_dedupe_pending_idx` 这个 partial unique index（`WHERE status IN ('pending', 'running')`）保证同一 candidate 在 active 状态下只能保留一个任务；如果并发插入打到唯一约束，队列会回读现存 active task，并在冲突赢家已消失的 race 窗口里重试一次插入，而不是把请求直接丢掉。
+- **Retry semantics unchanged**：active dedupe 只覆盖 `pending` / `running`。任务进入 `completed`、`failed` 或 `dead` 后，不再阻止后续合法再入队，所以真实失败后的重新调度、dead-letter 后的人工恢复、以及 resolution 后的显式重跑都不会被 dedupe 永久吞掉。
+- **Persisted duplicate trace**：两个探测器都会把结构化 trace 写进 `AnalysisSnapshot.duplicateTrace`，并由 `PgCandidateRepository` 同步落到 `candidates.analysis_snapshot` 与 `candidate_analyses.duplicate_trace`：
+  - `detector: 'in-memory' | 'postgresql'`
+  - `matchedLane: 'exact' | 'indexed-recall' | 'fallback' | 'none'`
+- **Trace interpretation**：
+  - `exact`：命中了 exact-fingerprint lane
+  - `indexed-recall`：命中了 PostgreSQL trap/skill recall 产出的候选
+  - `fallback`：命中了 in-memory Jaccard/LLM fallback 路径
+  - `none`：本次分析没有形成 duplicate case，但保留了探测器来源，方便调试“为什么没命中”
 
 ### 检测策略
 
 | 策略 | 方法 | 阈值 | 用途 |
 |------|------|------|------|
 | 精确指纹 | SHA-256 哈希 | 100% 匹配 | 精确重复 |
-| 语义相似度 | 余弦相似度 | ≥ 0.95 | 近似重复 |
-| LLM 语义判定 | Jaccard 预筛 + LLM 判定 | confidence ≥ 0.8 | 同义词/语义重复（如 "deploy docker" ≈ "ship docker"） |
+| PostgreSQL trap recall | `knowledgeEmbeddings` + `knowledgeKeywords` | top-K / recall thresholds | 召回 trap duplicate 候选 |
+| PostgreSQL skill recall | skill profile/capsule embeddings + keywords | top-K / recall thresholds | 召回 skill duplicate 候选 |
+| 混合排序 | trap + skill merged ranked list | exact hits preserved | 在统一列表里比较跨来源 duplicate 候选 |
+| LLM 语义判定 | merged top-K + LLM 判定 | confidence ≥ 0.8 | 对混合候选做最终语义精排 |
 
 ### 检测流程
 
@@ -371,10 +389,13 @@ flowchart TB
             ExactMatch["精确匹配 → 立即判定为重复"]
         end
         
-        subgraph 语义相似度检查["语义相似度检查"]
-            GenEmbed["生成 embedding"]
-            Compare["与现有候选 embedding 比较"]
-            Threshold["相似度 ≥ 0.95 → 可能重复"]
+        subgraph PostgreSQL召回["PostgreSQL 混合召回"]
+            GenEmbed["生成 candidate embedding"]
+            TrapRecall["trap embeddings + keywords"]
+            SkillRecall["skill capsules/profile embeddings + keywords"]
+            MergeRank["合并为一个 ranked candidate list"]
+            PreserveExact["保留并前置 exact hits"]
+            LlmRefine["可选 LLM refinement"]
         end
         
         subgraph 合并决策["合并决策"]
@@ -386,10 +407,15 @@ flowchart TB
     NewCandidate --> SHA256
     SHA256 --> ExactMatch
     ExactMatch --> GenEmbed
-    GenEmbed --> Compare
-    Compare --> Threshold
-    Threshold --> DupFound
-    Threshold --> NoDup
+    GenEmbed --> TrapRecall
+    GenEmbed --> SkillRecall
+    TrapRecall --> MergeRank
+    SkillRecall --> MergeRank
+    ExactMatch --> PreserveExact
+    MergeRank --> PreserveExact
+    PreserveExact --> LlmRefine
+    LlmRefine --> DupFound
+    LlmRefine --> NoDup
 ```
 
 ---

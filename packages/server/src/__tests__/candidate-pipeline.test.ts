@@ -14,6 +14,8 @@ import {
   buildTestServer,
   seedApprovedKnowledgeEntry,
 } from '@trapmap/server/lib/retrieval/__fixtures__/auth-store-helpers.js';
+import { scheduleCandidateProcessing } from '@trapmap/server/lib/candidates/processor.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 
@@ -56,6 +58,52 @@ function trapPayload(overrides: Record<string, any> = {}) {
       ...overrides,
     },
   };
+}
+
+async function waitForActiveTaskCount(
+  store: PostgresStore,
+  dedupeKey: string,
+  expectedCount: number,
+  maxWait = 5000,
+) {
+  const start = Date.now();
+
+  while (Date.now() - start < maxWait) {
+    const result = await store.getPool().query<{ count: string }>(
+      `
+      SELECT COUNT(*) AS count
+      FROM task_queue
+      WHERE type = $1
+        AND dedupe_key = $2
+        AND status IN ('pending', 'running')
+      `,
+      ['candidate_processing', dedupeKey],
+    );
+
+    if (Number(result.rows[0]?.count ?? '0') === expectedCount) {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  throw new Error(
+    `Task count for dedupeKey ${dedupeKey} did not reach ${expectedCount} within ${maxWait}ms`,
+  );
+}
+
+async function getTaskCount(store: PostgresStore, dedupeKey: string): Promise<number> {
+  const result = await store.getPool().query<{ count: string }>(
+    `
+    SELECT COUNT(*) AS count
+    FROM task_queue
+    WHERE type = $1
+      AND dedupe_key = $2
+    `,
+    ['candidate_processing', dedupeKey],
+  );
+
+  return Number(result.rows[0]?.count ?? '0');
 }
 
 // ---------------------------------------------------------------------------
@@ -107,6 +155,87 @@ describe('candidate pipeline: submission to approval', () => {
     expect(candidate.status).toBe('ready_for_review');
     expect(candidate.analysisSnapshot).toBeDefined();
     expect(candidate.analysisSnapshot.fingerprint).toBeDefined();
+  });
+
+  it('dedupes repeated candidate scheduling in the postgres queue', async () => {
+    const server = await buildTestServer();
+    app = server.app;
+    authToken = server.authToken;
+    store = server.store;
+
+    if (!(store instanceof PostgresStore)) {
+      return;
+    }
+
+    await (app as any).taskWorker?.stop?.();
+
+    const submitRes = await app.inject({
+      method: 'POST',
+      url: '/v1/candidates',
+      headers: { authorization: `Bearer ${authToken}` },
+      payload: trapPayload(),
+    });
+    const { candidateId } = submitRes.json() as any;
+
+    await waitForActiveTaskCount(store, candidateId, 1);
+
+    const services = {
+      store,
+      getSnapshot: () => store.snapshot(),
+      pool: store.getPool(),
+      candidateRepo: app.skillShareer.repos.candidate,
+    };
+
+    scheduleCandidateProcessing(candidateId, services);
+    scheduleCandidateProcessing(candidateId, services);
+
+    await waitForActiveTaskCount(store, candidateId, 1);
+  });
+
+  it('allows rescheduling after a prior candidate task has dead-lettered', async () => {
+    const server = await buildTestServer();
+    app = server.app;
+    authToken = server.authToken;
+    store = server.store;
+
+    if (!(store instanceof PostgresStore)) {
+      return;
+    }
+
+    await (app as any).taskWorker?.stop?.();
+
+    const submitRes = await app.inject({
+      method: 'POST',
+      url: '/v1/candidates',
+      headers: { authorization: `Bearer ${authToken}` },
+      payload: trapPayload(),
+    });
+    const { candidateId } = submitRes.json() as any;
+
+    await waitForActiveTaskCount(store, candidateId, 1);
+
+    await store.getPool().query(
+      `
+      UPDATE task_queue
+      SET status = 'dead', updated_at = NOW()
+      WHERE type = $1
+        AND dedupe_key = $2
+        AND status IN ('pending', 'running')
+      `,
+      ['candidate_processing', candidateId],
+    );
+
+    const services = {
+      store,
+      getSnapshot: () => store.snapshot(),
+      pool: store.getPool(),
+      candidateRepo: app.skillShareer.repos.candidate,
+    };
+
+    scheduleCandidateProcessing(candidateId, services);
+
+    await waitForActiveTaskCount(store, candidateId, 1);
+    expect(await getTaskCount(store, candidateId)).toBe(2);
   });
 
   it('full pipeline: submit with duplicate → duplicate_detected → manual-result (independent) → apply-resolution → knowledge entry created', async () => {

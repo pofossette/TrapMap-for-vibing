@@ -13,7 +13,7 @@
  * - getPendingCount / getDeadTasks / cleanup
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createTaskQueue } from './task-queue.js';
 
@@ -99,6 +99,89 @@ function buildMockPool(initialRows: MockTaskRow[] = []) {
       };
       rows.push(row);
       return { rows: [], rowCount: 1 };
+    }
+
+    if (sqlL.includes('insert into task_queue')) {
+      const now = new Date();
+      const id = (params?.[0] as string) ?? '';
+      const type = (params?.[1] as string) ?? '';
+      const payload = (params?.[2] as string) ?? '{}';
+      const priority = (params?.[3] as number) ?? 0;
+      const maxAttempts = (params?.[4] as number) ?? 3;
+      const dedupeKey = (params?.[5] as string | null) ?? null;
+      const processAfter = (params?.[6] as Date) ?? now;
+      const existing =
+        dedupeKey === null
+          ? undefined
+          : rows.find(
+        (row) =>
+          row.type === type &&
+          row.dedupe_key === dedupeKey &&
+          (row.status === 'pending' || row.status === 'running'),
+      );
+
+      if (existing) {
+        const error = new Error('duplicate key value violates unique constraint');
+        (error as Error & { code: string }).code = '23505';
+        throw error;
+      }
+
+      const row: MockTaskRow = {
+        id,
+        type,
+        payload,
+        status: 'pending',
+        priority,
+        attempts: 0,
+        max_attempts: maxAttempts,
+        last_error: null,
+        dedupe_key: dedupeKey,
+        process_after: processAfter,
+        created_at: now,
+        updated_at: now,
+        completed_at: null,
+      };
+      rows.push(row);
+      return { rows: [row], rowCount: 1 };
+    }
+
+    if (
+      sqlL.includes('select * from task_queue') &&
+      sqlL.includes('dedupe_key') &&
+      sqlL.includes('status in')
+    ) {
+      const type = params?.[0] as string;
+      const dedupeKey = params?.[1] as string;
+      const existing = rows
+        .filter(
+          (row) =>
+            row.type === type &&
+            row.dedupe_key === dedupeKey &&
+            (row.status === 'pending' || row.status === 'running'),
+        )
+        .sort((a, b) => a.created_at.getTime() - b.created_at.getTime())[0];
+
+      return existing ? { rows: [existing], rowCount: 1 } : { rows: [], rowCount: 0 };
+    }
+
+    if (sqlL.includes('select * from task_queue where id =') && sqlL.includes('limit 1')) {
+      const taskId = params?.[0] as string;
+      const row = rows.find((entry) => entry.id === taskId);
+      return row ? { rows: [row], rowCount: 1 } : { rows: [], rowCount: 0 };
+    }
+
+    if (sqlL.includes('select id from task_queue') && sqlL.includes('dedupe_key')) {
+      const type = params?.[0] as string;
+      const dedupeKey = params?.[1] as string;
+      const excludedId = params?.[2] as string;
+      const row = rows.find(
+        (entry) =>
+          entry.type === type &&
+          entry.dedupe_key === dedupeKey &&
+          (entry.status === 'pending' || entry.status === 'running') &&
+          entry.id !== excludedId,
+      );
+      return row ? { rows: [{ id: row.id }], rowCount: 1 } : { rows: [], rowCount: 0 };
     }
 
     // Dequeue: UPDATE ... FOR UPDATE SKIP LOCKED (must be BEFORE general UPDATE)
@@ -293,6 +376,124 @@ describe('createTaskQueue', () => {
 
       expect(task.processAfter.getTime()).toBeGreaterThanOrEqual(before + 5000);
     });
+
+    it('should return the existing pending task when the active dedupe constraint rejects insert', async () => {
+      const mock = buildMockPool();
+      const queue = createTaskQueue({ pool: mock as any });
+
+      const first = await queue.enqueue(
+        'candidate_processing',
+        { candidateId: 'abc' },
+        { dedupeKey: 'candidate_abc' },
+      );
+      const task = await queue.enqueue(
+        'candidate_processing',
+        { candidateId: 'abc' },
+        { dedupeKey: 'candidate_abc' },
+      );
+
+      expect(task.id).toBe(first.id);
+      expect(mock.getRows()).toHaveLength(1);
+    });
+
+    it('retries the insert when the conflict winner disappears before the follow-up read', async () => {
+      const attempts: string[] = [];
+      const mock = buildMockPool();
+      const originalQuery = mock.query;
+
+      mock.query = vi.fn(async (...args: any[]) => {
+        const sql = String(args[0] ?? '').toLowerCase();
+        const params = (args[1] as unknown[]) ?? [];
+
+        if (sql.includes('insert into task_queue')) {
+          attempts.push('insert');
+          if (attempts.length === 1) {
+            const error = new Error('duplicate key value violates unique constraint');
+            (error as Error & { code: string }).code = '23505';
+            throw error;
+          }
+        }
+
+        if (sql.includes('select * from task_queue') && sql.includes('dedupe_key')) {
+          attempts.push('select');
+          return { rows: [], rowCount: 0 };
+        }
+
+        return originalQuery(...args);
+      });
+
+      const queue = createTaskQueue({ pool: mock as any });
+      const task = await queue.enqueue(
+        'candidate_processing',
+        { candidateId: 'abc' },
+        { dedupeKey: 'candidate_abc' },
+      );
+
+      expect(task.id).toMatch(/^task_/);
+      expect(attempts).toEqual(['insert', 'select', 'insert']);
+    });
+
+    it('should return the existing running task for duplicate dedupeKey', async () => {
+      const existing = makeRow('task_running', {
+        type: 'candidate_processing',
+        dedupe_key: 'candidate_abc',
+        status: 'running',
+      });
+      const mock = buildMockPool([existing]);
+      const queue = createTaskQueue({ pool: mock as any });
+
+      const task = await queue.enqueue(
+        'candidate_processing',
+        { candidateId: 'abc' },
+        { dedupeKey: 'candidate_abc' },
+      );
+
+      expect(task.id).toBe('task_running');
+      expect(mock.getRows()).toHaveLength(1);
+    });
+
+    it.each(['completed', 'failed', 'dead'] as const)(
+      'should allow a new task after a prior deduped task is %s',
+      async (status) => {
+        const prior = makeRow(`task_${status}`, {
+          type: 'candidate_processing',
+          dedupe_key: 'candidate_abc',
+          status,
+        });
+        const mock = buildMockPool([prior]);
+        const queue = createTaskQueue({ pool: mock as any });
+
+        const task = await queue.enqueue(
+          'candidate_processing',
+          { candidateId: 'abc' },
+          { dedupeKey: 'candidate_abc' },
+        );
+
+        expect(task.id).not.toBe(prior.id);
+        expect(mock.getRows()).toHaveLength(2);
+        expect(mock.getRows().filter((row) => row.status === 'pending')).toHaveLength(1);
+      },
+    );
+
+    it('should allow a new task after a prior deduped task is completed and a real retry is scheduled', async () => {
+      const completed = makeRow('task_completed', {
+        type: 'candidate_processing',
+        dedupe_key: 'candidate_abc',
+        status: 'completed',
+      });
+      const mock = buildMockPool([completed]);
+      const queue = createTaskQueue({ pool: mock as any });
+
+      const retryTask = await queue.enqueue(
+        'candidate_processing',
+        { candidateId: 'abc', retryCount: 1 },
+        { dedupeKey: 'candidate_abc', delayMs: 1000 },
+      );
+
+      expect(retryTask.id).not.toBe(completed.id);
+      expect(mock.getRows()).toHaveLength(2);
+      expect(mock.getRows()[1]!.payload).toContain('"retryCount":1');
+    });
   });
 
   describe('dequeue ordering', () => {
@@ -426,6 +627,29 @@ describe('createTaskQueue', () => {
 
       const stored = mock.getRows()[0];
       expect(stored!.status).toBe('pending');
+    });
+
+    it('does not requeue a dead task when a sibling task is already active for the same dedupeKey', async () => {
+      const rows = [
+        makeRow('task_dead', {
+          type: 'candidate_processing',
+          dedupe_key: 'candidate_abc',
+          status: 'dead',
+        }),
+        makeRow('task_active', {
+          type: 'candidate_processing',
+          dedupe_key: 'candidate_abc',
+          status: 'pending',
+        }),
+      ];
+      const mock = buildMockPool(rows);
+      const pool = { query: mock.query };
+      const queue = createTaskQueue({ pool: pool as any });
+
+      await queue.requeue('task_dead');
+
+      const stored = mock.getRows().find((row) => row.id === 'task_dead');
+      expect(stored!.status).toBe('dead');
     });
   });
 

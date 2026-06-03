@@ -30,6 +30,16 @@ const LLM_TOP_K = 5;
 /** Minimum LLM confidence to confirm a duplicate */
 const LLM_DUPLICATE_CONFIDENCE = 0.8;
 
+function determineInMemoryMatchedLane(
+  matches: DuplicateMatch[],
+): 'exact' | 'fallback' | 'none' {
+  if (matches.some((match) => match.matchType === 'exact')) {
+    return 'exact';
+  }
+
+  return matches.length > 0 ? 'fallback' : 'none';
+}
+
 /**
  * Calculate Jaccard-like overlap score between two token sets.
  * Matches pre-review.ts logic for consistency.
@@ -364,6 +374,10 @@ export async function detectDuplicates(
       fingerprint: input.candidateFingerprint,
       keywords: input.candidateKeywords,
       tokens: input.candidateTokens,
+      duplicateTrace: {
+        detector: 'in-memory',
+        matchedLane: determineInMemoryMatchedLane(matches),
+      },
     },
   };
 }

@@ -235,7 +235,7 @@ export function extractCandidateSkillProfile(
     if (line.length === 0) continue;
     const headingMatch = line.match(/^#\s+(.+)$/);
     if (headingMatch) {
-      title = headingMatch[1].trim();
+      title = headingMatch[1]?.trim() ?? '';
       bodyStartIndex = i + 1;
     } else {
       title = line;

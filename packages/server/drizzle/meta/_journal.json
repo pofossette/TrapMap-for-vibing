@@ -92,6 +92,13 @@
       "when": 1779334000000,
       "tag": "0012_round10_read_model_cleanup",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1779335000000,
+      "tag": "0013_round10_candidate_analysis_trace",
+      "breakpoints": true
     }
   ]
 }

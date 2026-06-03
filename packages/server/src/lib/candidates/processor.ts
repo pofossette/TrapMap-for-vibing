@@ -259,7 +259,7 @@ export async function processCandidateWithRetry(
         await queue.enqueue<CandidateProcessingPayload>(
           CANDIDATE_PROCESSING_TASK_TYPE,
           { candidateId, retryCount },
-          { delayMs, maxAttempts: getMaxRetries() - retryCount },
+          { delayMs, maxAttempts: getMaxRetries() - retryCount, dedupeKey: candidateId },
         );
       }
     }
@@ -308,7 +308,7 @@ export function scheduleCandidateProcessing(
       .enqueue<CandidateProcessingPayload>(
         CANDIDATE_PROCESSING_TASK_TYPE,
         { candidateId, retryCount: 0 },
-        { maxAttempts: getMaxRetries() },
+        { maxAttempts: getMaxRetries(), dedupeKey: candidateId },
       )
       .catch((error) => {
         console.error(`Failed to enqueue candidate processing for ${candidateId}:`, error);

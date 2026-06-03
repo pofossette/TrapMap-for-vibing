@@ -267,6 +267,28 @@ describe('CandidateSubmissionSchema', () => {
     ).not.toThrow();
   });
 
+  it('accepts analysisSnapshot duplicateTrace metadata', () => {
+    const parsed = CandidateSubmissionSchema.parse({
+      ...baseSubmission,
+      analysisSnapshot: {
+        normalizedAt: VALID_ISO,
+        fingerprint: 'a'.repeat(64),
+        keywords: ['test'],
+        tokens: ['token'],
+        duplicateTrace: {
+          detector: 'postgresql',
+          matchedLane: 'indexed-recall',
+        },
+      },
+      manualResult: null,
+    });
+
+    expect(parsed.analysisSnapshot?.duplicateTrace).toEqual({
+      detector: 'postgresql',
+      matchedLane: 'indexed-recall',
+    });
+  });
+
   it('rejects merged decision without mergedWith', () => {
     expect(() =>
       CandidateSubmissionSchema.parse({
