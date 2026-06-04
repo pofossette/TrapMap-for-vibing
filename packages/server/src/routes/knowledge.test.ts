@@ -10,6 +10,9 @@
  * - WRITE-02: Repository integration for knowledge mutations
  */
 
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildServer } from '@trapmap/server/app.js';
@@ -958,6 +961,159 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
 
       // Verify appendRevision was called (persist new revision)
       expect(mockRepo.appendRevision).toHaveBeenCalled();
+    });
+  });
+
+  describe('outbox vs direct sync emission convergence (Phase 4)', () => {
+    it('uses emitLifecycleTransition helper instead of direct eventBus', () => {
+      const source = readFileSync(path.join(__dirname, 'knowledge.ts'), 'utf8');
+      // knowledge.ts now delegates to emitLifecycleTransition for PG/JSON routing.
+      expect(source).toContain('emitLifecycleTransition');
+      expect(source).not.toContain('emitDomainEventAsync');
+      expect(source).not.toContain('outbox.enqueue');
+    });
+  });
+
+  describe('supersede flow', () => {
+    let sessionId: string;
+    const userId = 'user_supersede';
+    const teamId = 'team_supersede';
+    let entryId: string;
+    let replacementId: string;
+
+    beforeEach(async () => {
+      await store.transact(async (data) => {
+        if (!data.counters) data.counters = {};
+        data.counters.user = 1;
+
+        data.users.push({
+          id: userId,
+          handle: 'superseder',
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        data.teams.push({
+          id: teamId,
+          name: 'Supersede Team',
+          slug: 'supersede-team',
+          description: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        data.memberships.push({
+          id: 'membership_supersede',
+          userId,
+          teamId,
+          roleTemplate: 'admin',
+          securityLevel: 10,
+          permissions: ['knowledge:update'],
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        const sessionToken = `session_supersede_${Date.now()}`;
+        data.sessions.push({
+          id: `session_supersede_${Date.now()}`,
+          userId,
+          tokenHash: hashSecret(sessionToken),
+          activeTeamId: teamId,
+          subjectType: 'user',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        });
+        sessionId = sessionToken;
+
+        entryId = 'knowledge_supersede_source';
+        replacementId = 'knowledge_supersede_replacement';
+
+        const submittedAt = nowIso();
+        const makeEntry = (id: string, shortcut: string) => ({
+          id,
+          teamId: null,
+          scope: 'global' as const,
+          labels: ['supersede'],
+          shortcut,
+          detail: `${shortcut} detail`,
+          requiredLevel: 0,
+          lifecycleState: 'approved' as const,
+          ownerUserId: userId,
+          latestRevision: {
+            revision: 1,
+            submittedAt,
+            submittedByUserId: userId,
+            shortcut,
+            detail: `${shortcut} detail`,
+            labels: ['supersede'],
+            reviewNotes: [],
+          },
+          history: [
+            {
+              revision: 1,
+              submittedAt,
+              submittedByUserId: userId,
+              shortcut,
+              detail: `${shortcut} detail`,
+              labels: ['supersede'],
+              reviewNotes: [],
+            },
+          ],
+          metadata: {
+            scopeLabel: 'global-constraint',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: `submission_${id}`,
+            latestSubmittedAt: submittedAt,
+            latestReviewedAt: submittedAt,
+            latestDecision: 'approve' as const,
+          },
+          latestSubmissionId: `submission_${id}`,
+          submissionHistory: [],
+          agentReview: null,
+          reviewHistory: [],
+          reviewNotes: [],
+          lifecycleHistory: [],
+          embeddingCache: null,
+          indexState: null,
+          decayMeta: null,
+          createdAt: submittedAt,
+          updatedAt: submittedAt,
+        });
+
+        data.knowledgeEntries.push(
+          makeEntry(entryId, 'Superseded Entry'),
+          makeEntry(replacementId, 'Replacement Entry'),
+        );
+      });
+    });
+
+    it('transitions the superseded entry to deactivated', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/v1/knowledge/${entryId}/supersede`,
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+        payload: {
+          replacementId,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.entry.id).toBe(entryId);
+      expect(body.entry.lifecycleState).toBe('deactivated');
+
+      const snapshot = await store.snapshot();
+      const updated = snapshot.knowledgeEntries.find((entry) => entry.id === entryId);
+      expect(updated?.lifecycleState).toBe('deactivated');
+      expect(updated?.decayMeta?.supersededById).toBe(replacementId);
     });
   });
 });

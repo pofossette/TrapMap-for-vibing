@@ -97,6 +97,7 @@ describe('CLI operations commands (Phase 13)', () => {
       allowActivate: true,
       allowStatus: true,
       allowMigrate: true,
+      allowCapsuleIndex: true,
     });
   });
 
@@ -376,6 +377,7 @@ describe('CLI operations commands (Phase 13)', () => {
         allowActivate: true,
         allowStatus: true,
         allowMigrate: true,
+        allowCapsuleIndex: true,
       });
     });
 
@@ -691,6 +693,7 @@ describe('CLI operations commands (Phase 13)', () => {
         allowActivate: true,
         allowStatus: true,
         allowMigrate: true,
+        allowCapsuleIndex: true,
       });
     });
 
@@ -893,6 +896,7 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: true,
         allowStatus: true,
         allowMigrate: true,
+        allowCapsuleIndex: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -912,6 +916,7 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: true,
         allowStatus: true,
         allowMigrate: true,
+        allowCapsuleIndex: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -930,6 +935,7 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: false,
         allowStatus: true,
         allowMigrate: true,
+        allowCapsuleIndex: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -948,6 +954,7 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: true,
         allowStatus: false,
         allowMigrate: true,
+        allowCapsuleIndex: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -966,6 +973,7 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: true,
         allowStatus: true,
         allowMigrate: true,
+        allowCapsuleIndex: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -982,6 +990,7 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: true,
         allowStatus: true,
         allowMigrate: true,
+        allowCapsuleIndex: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -1000,6 +1009,7 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: true,
         allowStatus: true,
         allowMigrate: true,
+        allowCapsuleIndex: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -1016,6 +1026,7 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: true,
         allowStatus: true,
         allowMigrate: true,
+        allowCapsuleIndex: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -1034,6 +1045,7 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: true,
         allowStatus: true,
         allowMigrate: true,
+        allowCapsuleIndex: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -1050,6 +1062,7 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: true,
         allowStatus: true,
         allowMigrate: true,
+        allowCapsuleIndex: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -1068,6 +1081,7 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: true,
         allowStatus: true,
         allowMigrate: false,
+        allowCapsuleIndex: false,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -1084,6 +1098,7 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: true,
         allowStatus: true,
         allowMigrate: true,
+        allowCapsuleIndex: true,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -1091,8 +1106,8 @@ describe('Phase 85: Permission guards', () => {
     });
   });
 
-  describe('All permissions enabled should register all commands', () => {
-    it('should register all 9 command names when all permissions are true', () => {
+  describe('allowCapsuleIndex=false should hide capsule-index command', () => {
+    it('should not register capsule-index command when allowCapsuleIndex=false', () => {
       registerOperationsCommands(program, {
         allowImport: true,
         allowExport: true,
@@ -1102,6 +1117,43 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: true,
         allowStatus: true,
         allowMigrate: true,
+        allowCapsuleIndex: false,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).not.toContain('capsule-index');
+    });
+
+    it('should register capsule-index command when allowCapsuleIndex=true', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: true,
+        allowEdit: true,
+        allowDeactivate: true,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
+        allowCapsuleIndex: true,
+      });
+
+      const commands = program.commands.map((c) => c.name());
+      expect(commands).toContain('capsule-index');
+    });
+  });
+
+  describe('All permissions enabled should register all commands', () => {
+    it('should register all 10 command names when all permissions are true', () => {
+      registerOperationsCommands(program, {
+        allowImport: true,
+        allowExport: true,
+        allowEdit: true,
+        allowDeactivate: true,
+        allowList: true,
+        allowActivate: true,
+        allowStatus: true,
+        allowMigrate: true,
+        allowCapsuleIndex: true,
       });
 
       const commands = program.commands.map((c) => c.name()).sort();
@@ -1109,6 +1161,7 @@ describe('Phase 85: Permission guards', () => {
         [
           'activate',
           'artifact-export',
+          'capsule-index',
           'deactivate',
           'edit',
           'export',
@@ -1132,6 +1185,7 @@ describe('Phase 85: Permission guards', () => {
         allowActivate: false,
         allowStatus: false,
         allowMigrate: false,
+        allowCapsuleIndex: false,
       });
 
       const commands = program.commands.map((c) => c.name());
@@ -1141,7 +1195,7 @@ describe('Phase 85: Permission guards', () => {
 });
 
 describe('Phase 85: Barrel export completeness', () => {
-  it('should export all 8 register functions from operations/index.ts', async () => {
+  it('should export all 9 register functions from operations/index.ts', async () => {
     const barrel = await import('./operations/index.js');
 
     expect(typeof barrel.registerListCommand).toBe('function');
@@ -1152,6 +1206,7 @@ describe('Phase 85: Barrel export completeness', () => {
     expect(typeof barrel.registerActivateCommand).toBe('function');
     expect(typeof barrel.registerMigrateCommand).toBe('function');
     expect(typeof barrel.registerStatusCommand).toBe('function');
+    expect(typeof barrel.registerCapsuleIndexCommand).toBe('function');
   });
 
   it('should export OperationsCommandOptions type from operations/index.ts', async () => {
@@ -1188,6 +1243,7 @@ describe('Phase 2: Input validation', () => {
         allowActivate: false,
         allowStatus: false,
         allowMigrate: false,
+        allowCapsuleIndex: false,
       });
 
       await expect(
@@ -1208,6 +1264,7 @@ describe('Phase 2: Input validation', () => {
         allowActivate: false,
         allowStatus: false,
         allowMigrate: false,
+        allowCapsuleIndex: false,
       });
 
       const deactivateCmd = p.commands.find((c) => c.name() === 'deactivate');
@@ -1232,6 +1289,7 @@ describe('Phase 2: Input validation', () => {
         allowActivate: false,
         allowStatus: false,
         allowMigrate: false,
+        allowCapsuleIndex: false,
       });
 
       await expect(
@@ -1253,6 +1311,7 @@ describe('Phase 2: Input validation', () => {
         allowActivate: false,
         allowStatus: false,
         allowMigrate: false,
+        allowCapsuleIndex: false,
       });
 
       await expect(
@@ -1320,6 +1379,7 @@ describe('Phase 2: Input validation', () => {
         allowActivate: false,
         allowStatus: false,
         allowMigrate: false,
+        allowCapsuleIndex: false,
       });
 
       await p.parseAsync(['node', 'test', 'edit', 'entry_1', '--required-level', '5']);
@@ -1337,7 +1397,7 @@ describe('Phase 2: Input validation', () => {
 });
 
 describe('Phase 85: Thin router delegation', () => {
-  it('should have exactly 8 registerXxxCommand calls in operations.ts', async () => {
+  it('should have exactly 9 registerXxxCommand calls in operations.ts', async () => {
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
 
@@ -1346,7 +1406,7 @@ describe('Phase 85: Thin router delegation', () => {
 
     // Count all registerXxxCommand(program, options) calls
     const registerCalls = content.match(/register\w+Command\(program,\s*options\)/g);
-    expect(registerCalls).toHaveLength(8);
+    expect(registerCalls).toHaveLength(9);
   });
 
   it('should have registerOperationsCommands export in operations.ts', async () => {
@@ -1425,6 +1485,7 @@ describe('fm-agent freeze: live gaps', () => {
       allowActivate: false,
       allowStatus: false,
       allowMigrate: false,
+      allowCapsuleIndex: false,
     });
 
     // Reason too long (>500 chars) should be rejected before API call
@@ -1447,6 +1508,7 @@ describe('fm-agent freeze: live gaps', () => {
       allowActivate: false,
       allowStatus: false,
       allowMigrate: false,
+      allowCapsuleIndex: false,
     });
     await expect(
       p2.parseAsync(['node', 'test', 'deactivate', 'entry_1', '--reason', '']),
@@ -1477,11 +1539,393 @@ describe('fm-agent freeze: live gaps', () => {
       allowActivate: false,
       allowStatus: false,
       allowMigrate: false,
+      allowCapsuleIndex: false,
     });
 
     // Non-integer requiredLevel should be rejected at Commander level
     await expect(
       p.parseAsync(['node', 'test', 'edit', 'entry_1', '--required-level', '3.5']),
     ).rejects.toThrow(/required level must be a non-negative integer/);
+  });
+});
+
+describe('CLI capsule-index commands', () => {
+  let capsuleIndexProgram: Command;
+  const mockState = {
+    serverUrl: 'http://localhost:3000',
+    sessionToken: 'test-token',
+    session: null,
+  };
+
+  beforeEach(() => {
+    mockedApiRequest.mockReset();
+    mockedLoadCliState.mockReset();
+    mockedLoadCliState.mockResolvedValue(mockState);
+
+    capsuleIndexProgram = new Command();
+    registerOperationsCommands(capsuleIndexProgram, {
+      allowImport: false,
+      allowExport: false,
+      allowEdit: false,
+      allowDeactivate: false,
+      allowList: false,
+      allowActivate: false,
+      allowStatus: false,
+      allowMigrate: false,
+      allowCapsuleIndex: true,
+    });
+  });
+
+  describe('rebuild --mode full', () => {
+    it('should call rebuild endpoint with mode=full by default', async () => {
+      mockedApiRequest.mockResolvedValue({
+        data: {
+          mode: 'full',
+          sourceArtifactCount: 5,
+          stats: { totalArtifacts: 5, succeeded: 5, failed: 0 },
+          rebuiltAt: '2024-01-01T00:00:00Z',
+        },
+        sessionToken: 'test-token',
+      });
+
+      await capsuleIndexProgram.parseAsync(['node', 'test', 'capsule-index', 'rebuild']);
+
+      expect(mockedApiRequest).toHaveBeenCalledWith(
+        mockState,
+        expect.objectContaining({
+          method: 'POST',
+          path: '/v1/operations/capsule-index/rebuild',
+          body: { mode: 'full' },
+        }),
+      );
+    });
+
+    it('should provide human-readable output for full rebuild', async () => {
+      mockedApiRequest.mockResolvedValue({
+        data: {
+          mode: 'full',
+          sourceArtifactCount: 5,
+          stats: { totalArtifacts: 5, succeeded: 4, failed: 1 },
+          rebuiltAt: '2024-01-01T00:00:00Z',
+        },
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await capsuleIndexProgram.parseAsync(['node', 'test', 'capsule-index', 'rebuild']);
+
+      const output = consoleSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain('Rebuilt capsule index (full)');
+      expect(output).toContain('Source artifacts: 5');
+      expect(output).toContain('Succeeded: 4');
+      expect(output).toContain('Failed: 1');
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should provide JSON output when --json flag is used', async () => {
+      const mockData = {
+        mode: 'full',
+        sourceArtifactCount: 5,
+        stats: { totalArtifacts: 5, succeeded: 5, failed: 0 },
+        rebuiltAt: '2024-01-01T00:00:00Z',
+      };
+      mockedApiRequest.mockResolvedValue({
+        data: mockData,
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await capsuleIndexProgram.parseAsync(['node', 'test', 'capsule-index', 'rebuild', '--json']);
+
+      const output = consoleSpy.mock.calls[0]?.[0] as string;
+      const parsed = JSON.parse(output);
+      expect(parsed.mode).toBe('full');
+      expect(parsed.sourceArtifactCount).toBe(5);
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('rebuild --mode artifact', () => {
+    it('should call rebuild endpoint with mode=artifact and artifactId', async () => {
+      mockedApiRequest.mockResolvedValue({
+        data: {
+          mode: 'artifact',
+          artifactId: 'artifact_1',
+          result: {
+            keywordSynced: 3,
+            keywordFailed: 0,
+            embeddingSynced: 3,
+            embeddingFailed: 0,
+            capsulesSynced: 3,
+          },
+          rebuiltAt: '2024-01-01T00:00:00Z',
+        },
+        sessionToken: 'test-token',
+      });
+
+      await capsuleIndexProgram.parseAsync([
+        'node',
+        'test',
+        'capsule-index',
+        'rebuild',
+        '--mode',
+        'artifact',
+        '--artifact-id',
+        'artifact_1',
+      ]);
+
+      expect(mockedApiRequest).toHaveBeenCalledWith(
+        mockState,
+        expect.objectContaining({
+          method: 'POST',
+          path: '/v1/operations/capsule-index/rebuild',
+          body: { mode: 'artifact', artifactId: 'artifact_1' },
+        }),
+      );
+    });
+
+    it('should provide human-readable output for artifact rebuild', async () => {
+      mockedApiRequest.mockResolvedValue({
+        data: {
+          mode: 'artifact',
+          artifactId: 'artifact_1',
+          result: {
+            keywordSynced: 3,
+            keywordFailed: 0,
+            embeddingSynced: 3,
+            embeddingFailed: 0,
+            capsulesSynced: 3,
+          },
+          rebuiltAt: '2024-01-01T00:00:00Z',
+        },
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await capsuleIndexProgram.parseAsync([
+        'node',
+        'test',
+        'capsule-index',
+        'rebuild',
+        '--mode',
+        'artifact',
+        '--artifact-id',
+        'artifact_1',
+      ]);
+
+      const output = consoleSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain('artifact_1');
+      expect(output).toContain('Keyword synced: 3');
+      expect(output).toContain('Embedding synced: 3');
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should require --artifact-id when mode=artifact', async () => {
+      await expect(
+        capsuleIndexProgram.parseAsync([
+          'node',
+          'test',
+          'capsule-index',
+          'rebuild',
+          '--mode',
+          'artifact',
+        ]),
+      ).rejects.toThrow('--artifact-id is required');
+    });
+  });
+
+  describe('health', () => {
+    it('should call health endpoint', async () => {
+      mockedApiRequest.mockResolvedValue({
+        data: {
+          sourceArtifactCount: 5,
+          report: {
+            missingKeywords: [],
+            missingEmbeddings: [],
+            failedKeywords: [],
+            failedEmbeddings: [],
+            orphanKeywords: [],
+            orphanEmbeddings: [],
+          },
+          reportedAt: '2024-01-01T00:00:00Z',
+        },
+        sessionToken: 'test-token',
+      });
+
+      await capsuleIndexProgram.parseAsync(['node', 'test', 'capsule-index', 'health']);
+
+      expect(mockedApiRequest).toHaveBeenCalledWith(
+        mockState,
+        expect.objectContaining({
+          path: '/v1/operations/capsule-index/health',
+        }),
+      );
+    });
+
+    it('should show healthy status when no issues', async () => {
+      mockedApiRequest.mockResolvedValue({
+        data: {
+          sourceArtifactCount: 5,
+          report: {
+            missingKeywords: [],
+            missingEmbeddings: [],
+            failedKeywords: [],
+            failedEmbeddings: [],
+            orphanKeywords: [],
+            orphanEmbeddings: [],
+          },
+          reportedAt: '2024-01-01T00:00:00Z',
+        },
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await capsuleIndexProgram.parseAsync(['node', 'test', 'capsule-index', 'health']);
+
+      const output = consoleSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain('Status: healthy');
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should report issues when problems detected', async () => {
+      mockedApiRequest.mockResolvedValue({
+        data: {
+          sourceArtifactCount: 5,
+          report: {
+            missingKeywords: ['capsule_1'],
+            missingEmbeddings: ['capsule_2'],
+            failedKeywords: [],
+            failedEmbeddings: [],
+            orphanKeywords: ['capsule_3'],
+            orphanEmbeddings: [],
+          },
+          reportedAt: '2024-01-01T00:00:00Z',
+        },
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await capsuleIndexProgram.parseAsync(['node', 'test', 'capsule-index', 'health']);
+
+      const output = consoleSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain('Missing keywords: 1');
+      expect(output).toContain('Missing embeddings: 1');
+      expect(output).toContain('Orphan keywords: 1');
+      expect(output).toContain('Status: 3 issue(s) detected');
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should provide JSON output when --json flag is used', async () => {
+      const mockData = {
+        sourceArtifactCount: 5,
+        report: {
+          missingKeywords: [],
+          missingEmbeddings: [],
+          failedKeywords: [],
+          failedEmbeddings: [],
+          orphanKeywords: [],
+          orphanEmbeddings: [],
+        },
+        reportedAt: '2024-01-01T00:00:00Z',
+      };
+      mockedApiRequest.mockResolvedValue({
+        data: mockData,
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await capsuleIndexProgram.parseAsync(['node', 'test', 'capsule-index', 'health', '--json']);
+
+      const output = consoleSpy.mock.calls[0]?.[0] as string;
+      const parsed = JSON.parse(output);
+      expect(parsed.sourceArtifactCount).toBe(5);
+      expect(parsed.report.missingKeywords).toEqual([]);
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('cleanup-orphans', () => {
+    it('should call cleanup-orphans endpoint', async () => {
+      mockedApiRequest.mockResolvedValue({
+        data: {
+          sourceArtifactCount: 5,
+          removed: 3,
+          cleanedAt: '2024-01-01T00:00:00Z',
+        },
+        sessionToken: 'test-token',
+      });
+
+      await capsuleIndexProgram.parseAsync(['node', 'test', 'capsule-index', 'cleanup-orphans']);
+
+      expect(mockedApiRequest).toHaveBeenCalledWith(
+        mockState,
+        expect.objectContaining({
+          method: 'POST',
+          path: '/v1/operations/capsule-index/cleanup-orphans',
+        }),
+      );
+    });
+
+    it('should provide human-readable output for cleanup', async () => {
+      mockedApiRequest.mockResolvedValue({
+        data: {
+          sourceArtifactCount: 5,
+          removed: 3,
+          cleanedAt: '2024-01-01T00:00:00Z',
+        },
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await capsuleIndexProgram.parseAsync(['node', 'test', 'capsule-index', 'cleanup-orphans']);
+
+      const output = consoleSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain('Removed: 3');
+      expect(output).toContain('Source artifacts: 5');
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should provide JSON output when --json flag is used', async () => {
+      const mockData = {
+        sourceArtifactCount: 5,
+        removed: 3,
+        cleanedAt: '2024-01-01T00:00:00Z',
+      };
+      mockedApiRequest.mockResolvedValue({
+        data: mockData,
+        sessionToken: 'test-token',
+      });
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await capsuleIndexProgram.parseAsync([
+        'node',
+        'test',
+        'capsule-index',
+        'cleanup-orphans',
+        '--json',
+      ]);
+
+      const output = consoleSpy.mock.calls[0]?.[0] as string;
+      const parsed = JSON.parse(output);
+      expect(parsed.removed).toBe(3);
+      expect(parsed.sourceArtifactCount).toBe(5);
+
+      consoleSpy.mockRestore();
+    });
   });
 });

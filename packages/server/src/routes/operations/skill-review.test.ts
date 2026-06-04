@@ -93,6 +93,7 @@ function seedArtifactInAgentPass(
     labels?: string[];
     scope?: string;
     files?: { path: string; content: string; kind: string }[];
+    derived?: any;
   } = {},
 ) {
   const id = overrides.id ?? `artifact_review_${Date.now()}`;
@@ -138,7 +139,25 @@ function seedArtifactInAgentPass(
     submittedAt: nowIso(),
     submittedByUserId: userId,
     scriptDescriptors: [] as any[],
-    derived: null as any,
+    derived:
+      overrides.derived !== undefined
+        ? overrides.derived
+        : {
+            profile: {
+              artifactId: id,
+              revision: 1,
+              sourceHash: FAKE_HASH,
+              title,
+              summary: `Test summary for ${title}`,
+              keywords: labels,
+              referencePaths: [],
+              contentHash: FAKE_HASH,
+            },
+            capsules: [],
+            clientManifest: null,
+            sourceHash: FAKE_HASH,
+            derivedAt: nowIso(),
+          },
   };
 
   data.skillArtifacts.push({
@@ -423,6 +442,83 @@ describe('skill review main link tests (Phase 2)', () => {
       expect(queueItem).toBeDefined();
       expect(queueItem.artifact.lifecycleState).toBe('agent-pass');
       await app.close();
+    });
+  });
+
+  describe('review approve indexing guard (Phase 3)', () => {
+    it('approving an artifact with derived data triggers indexing without error', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedArtifactInAgentPass(data, auth.userId, {
+            id: 'artifact-approve-derived',
+            title: 'Derived Approve Test',
+          });
+        },
+        {
+          permissions: ['knowledge:review', 'knowledge:submit', 'knowledge:search'],
+          roleTemplate: 'admin',
+          securityLevel: 10,
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/artifact-approve-derived/review',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          artifactId: 'artifact-approve-derived',
+          decision: 'approve',
+          notes: 'Approved with derived data',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      expect(json.newState).toBe('approved');
+      expect(json.artifact.lifecycleState).toBe('approved');
+
+      // Verify the artifact was indexed (graph document exists)
+      const storeData = await app.skillShareer.store.snapshot();
+      const docs = storeData.graphIndexDocuments?.filter(
+        (d: any) => d.sourceId === 'artifact-approve-derived',
+      );
+      expect(docs).toBeDefined();
+      expect(docs!.length).toBeGreaterThanOrEqual(1);
+
+      await app.close();
+    });
+
+    it('approving an artifact with null derived fails during indexing', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedArtifactInAgentPass(data, auth.userId, {
+            id: 'artifact-approve-underived',
+            title: 'Underived Approve Test',
+            derived: null,
+          });
+        },
+        {
+          permissions: ['knowledge:review', 'knowledge:submit', 'knowledge:search'],
+          roleTemplate: 'admin',
+          securityLevel: 10,
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/artifact-approve-underived/review',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          artifactId: 'artifact-approve-underived',
+          decision: 'approve',
+          notes: 'Should fail on indexing',
+        },
+      });
+
+      // The transaction commits (approve succeeded) but indexing fails
+      expect(response.statusCode).toBe(500);
+      const json = response.json();
+      expect(json.message).toContain('derived outputs');
     });
   });
 

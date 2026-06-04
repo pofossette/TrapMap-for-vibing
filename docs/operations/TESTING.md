@@ -833,6 +833,60 @@ ORDER BY confidence ASC;
 
 ---
 
+## 运维验证序列 (Phase 5)
+
+Phase 5 为运维操作员暴露了 capsule-index CLI 命令，以下验证序列覆盖核心运维路径。
+
+### 前提条件
+
+- PostgreSQL 已启动且 schema 已应用
+- 至少有 1 个 approved artifact
+- CLI 已登录（`trapmap login`）
+
+### 验证步骤
+
+```bash
+# 1. 健康检查 — 确认索引状态
+trapmap operations capsule-index health
+
+# 2. 编辑后的 artifact 仍可正确派生
+#    (编辑 → approve → 验证 health 无新增 missing)
+trapmap operations edit <artifact-id> --labels "test-label"
+# approve 通过 review-queue 或 API
+trapmap operations capsule-index health
+# 预期: 无新增 missingKeywords / missingEmbeddings
+
+# 3. approved artifact 索引正确
+trapmap operations capsule-index rebuild --mode artifact --artifact-id <artifact-id>
+# 预期: keywordSynced / embeddingSynced > 0, keywordFailed / embeddingFailed = 0
+
+# 4. 全量重建
+trapmap operations capsule-index rebuild
+# 预期: succeeded = totalArtifacts, failed = 0
+
+# 5. 孤立清理
+trapmap operations capsule-index cleanup-orphans
+# 预期: removed = 0（正常状态下无孤立行）
+
+# 6. JSON 输出验证
+trapmap operations capsule-index health --json | jq .report
+trapmap operations capsule-index rebuild --json | jq .stats
+trapmap operations capsule-index cleanup-orphans --json | jq .removed
+```
+
+### 故障排查流程
+
+当 `health` 报告问题时：
+
+| 症状 | 原因 | 修复 |
+|------|------|------|
+| `missingKeywords > 0` | 索引未同步 | `rebuild --mode artifact --artifact-id <id>` |
+| `failedKeywords > 0` | 同步出错 | 查看 `lastError` 字段，修复后 `rebuild` |
+| `orphanKeywords > 0` | artifact 已删除但索引未清理 | `cleanup-orphans` |
+| 全量缺失 | 索引表为空 | `rebuild`（全量重建） |
+
+---
+
 ## 相关文档
 
 - [模块详解](../architecture/MODULES.md) — 系统模块架构和设计

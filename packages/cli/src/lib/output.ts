@@ -8,7 +8,7 @@ import {
 } from './output-profile.js';
 
 export interface JsonFlag {
-  json?: boolean;
+  json?: boolean | undefined;
 }
 
 export function printResult<T>(value: T, options: JsonFlag, formatter: (input: T) => string): void {

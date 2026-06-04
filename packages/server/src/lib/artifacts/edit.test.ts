@@ -513,6 +513,59 @@ describe('edit helper', () => {
       expect(result.lifecycleTransition?.from).toBe('approved');
       expect(result.lifecycleTransition?.to).toBe('agent-rejected');
     });
+
+    it('copies previous revision file payloads forward for metadata-only edits', async () => {
+      const artifact = createTestArtifact();
+      artifact.history = [artifact.latestRevision];
+      mockData.skillArtifacts = [artifact];
+      mockData.artifactFilePayloads = [
+        {
+          artifactId: artifact.id,
+          revision: 1,
+          path: 'SKILL.md',
+          sha256: 'skill-hash',
+          sizeBytes: 100,
+          mediaType: 'text/markdown',
+          content: '# Test Artifact\n\n## Problem\nOld body content',
+          storedAt: nowIso(),
+        },
+        {
+          artifactId: artifact.id,
+          revision: 1,
+          path: 'references/guide.md',
+          sha256: 'guide-hash',
+          sizeBytes: 200,
+          mediaType: 'text/markdown',
+          content: '# Guide\n\nReference body content',
+          storedAt: nowIso(),
+        },
+      ];
+
+      const result = await submitSkillEdit({
+        store: mockStore,
+        data: mockData,
+        artifact,
+        editorUserId: 'user_1',
+        editPayload: {
+          title: 'Updated Title',
+        },
+        submittedAt: nowIso(),
+        runPreReview: createMockPreReview(),
+      });
+
+      const revisionTwoPayloads = mockData.artifactFilePayloads.filter(
+        (payload) => payload.artifactId === artifact.id && payload.revision === 2,
+      );
+
+      expect(revisionTwoPayloads).toHaveLength(2);
+      expect(revisionTwoPayloads.map((payload) => payload.path).sort()).toEqual([
+        'SKILL.md',
+        'references/guide.md',
+      ]);
+      expect(result.artifact.latestRevision.derived?.profile?.summary).not.toBe(
+        'Skill artifact: Updated Title',
+      );
+    });
   });
 
   describe('getSkillHistory', () => {

@@ -127,6 +127,8 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 | `routes/admin-boundary-search.ts` | `/admin/boundary-search` | 管理员边界搜索 |
 | `routes/admin-benchmark.ts` | `/admin/benchmark` | 管理员基准测试 |
 
+> **Wiring debt convergence 更新**：知识生命周期的 PG 投影发布已收敛到共享 `emitLifecycleTransition()` 入口。`review.ts`、`knowledge.ts`、`decay.ts`、`operations/knowledge-legacy.ts` 在 PostgreSQL 模式下都会写入 `domain_event_outbox`，由 outbox worker 异步驱动索引与订阅者；JSON 模式保留同步 event bus 回退。
+
 ### 配置
 
 ```typescript

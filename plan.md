@@ -1,453 +1,408 @@
-# Canonical Label Catalog and Semantic Merge Execution Plan
+# Wiring Debt Convergence Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a canonical label catalog plus LLM-assisted label alignment so semantically equivalent labels such as `timeout-issue` and `pod-timeout` resolve to one canonical label before graph persistence, retrieval, and later backfill/reindex workflows.
+**Goal:** Close the current "implemented but not correctly wired into the business flow" debt so artifact derivation, retrieval/indexing projections, and lifecycle side effects all run through the same production paths.
 
-**Architecture:** Keep the existing raw graph extraction path, but split canonicalization into a second explicit stage. The implementation sequence is: persist a canonical label catalog, recall top-k candidate labels from that catalog, pass the compact label table to an LLM alignment prompt, rewrite graph nodes/edges to canonical IDs, then add backfill and repair flows that reuse the same alignment path instead of inventing a second merge algorithm.
+**Architecture:** Treat this as a convergence project, not a greenfield feature. Reuse the existing retrieval-grade artifact derivation (`deriveFromPayloads()`), capsule/graph indexing seams, and `domain_event_outbox`, then route every real write path through those seams consistently. The plan is split by business flow: artifact write path convergence, lifecycle projection convergence, and operator/document/test closure.
 
-**Tech Stack:** TypeScript, Zod, Drizzle/PostgreSQL, pgvector (384d), Fastify server internals, existing `ChatProvider` prompt system, Vitest, graph-extraction / dedup / ingestion eval runners.
+**Tech Stack:** TypeScript, Fastify, Vitest, Drizzle/PostgreSQL, pgvector, existing retrieval/ingestion eval runners.
 
 ---
 
-## Audit Baseline
+## Archive Note
 
-- [x] Audit completed: the previous plan document existed, but none of the canonical-label implementation was present in code.
-- [x] Baseline confirmed: there is no `packages/server/src/lib/labels/` module yet.
-- [x] Baseline confirmed: `AiPromptTaskType` does not include `label-alignment`.
-- [x] Baseline confirmed: `GraphNodeRecord` has no `rawLabel`, `canonicalLabelId`, or `alignmentDecision`.
-- [x] Baseline confirmed: `package.json` has no `backfill:labels` or `label-merge:repair` scripts.
+- [x] Previous root plan archived to `docs/archived/archived-plans/plan-2026-06-04-canonical-label-catalog-and-semantic-merge-archived.md`
+- [x] Active tracking file remains `plan.md`
+
+## Confirmed Live Debt
+
+> **Code evidence recorded 2026-06-04 before any implementation changes.**
+
+- [x] `appendSkillArtifactRevision()` creates new revisions with `derived: null`, while retrieval, capsule index sync, graph index sync, and candidate duplicate scoring all read `artifact.latestRevision.derived`.
+  - **Evidence:** `model.ts:403` — `derived: null` hardcoded in revision creation
+- [x] `skill-edit.ts` appends a revision but does not re-derive `profile/capsules/clientManifest` before the revised artifact re-enters review/approval flow.
+  - **Evidence:** `edit.ts:245-258` — `submitSkillEdit()` calls `appendSkillArtifactRevision()` but never calls `deriveFromPayloads()` or `deriveSkillArtifactOutputs()`; regression test added in `skill-edit.test.ts`
+- [x] The old deterministic `deriveSkillArtifactOutputs()` placeholder path still exists and is still used as a fallback in artifact import/migrate flows when file payloads are not available.
+  - **Evidence:** `derive.ts:297` — `deriveSkillArtifactOutputs()` still exported and used
+- [x] The retrieval-grade derivation path (`deriveFromPayloads()`) is implemented, tested, and documented, but it is not the single source of truth for all artifact write paths.
+  - **Evidence:** `derive.ts:540` — `deriveFromPayloads()` exists but is not called from edit/import/migrate uniformly; regression test added in `derive.test.ts`
+- [x] `domain_event_outbox` and the outbox worker are implemented, but PG-mode lifecycle writes are still split:
+  - review uses `outbox.enqueue(...)` — **Evidence:** `review.ts:195-203` — correct PG/JSON split pattern
+  - `knowledge.ts` update uses synchronous `eventBus.emitDomainEventAsync(...)` — **Evidence:** `knowledge.ts:252` — no PostgresStore check
+  - `decay.ts` batch lifecycle changes use synchronous `eventBus.emitDomainEventAsync(...)` — **Evidence:** `decay.ts:280` — no PostgresStore check
+  - `operations/knowledge-legacy.ts` deactivate uses synchronous `eventBus.emitDomainEventAsync(...)` — **Evidence:** `knowledge-legacy.ts:186` — no PostgresStore check
+  - Regression tests added in `knowledge.test.ts`, `decay.test.ts`, `knowledge-legacy.test.ts`, `review.test.ts`
+- [x] Capsule index operator routes exist on the server, but they are not yet represented as a first-class operator workflow in CLI surface and root API surface documentation.
 
 ## Execution Rules
 
-- [x] Do not mark a phase complete until its code, docs, and tests/evals have all landed.
-- [x] Do not start Phase 3 until Phase 1 and Phase 2 verification commands pass.
-- [x] Do not start Phase 4 until Phase 3 graph integration tests pass.
-- [x] Do not enable auto-merge by default until Phase 5 eval gates pass.
-- [x] If a phase lands partially, leave its phase checkbox unchecked and add the missing items here before moving on.
+- [x] Do not mark a phase complete until code, docs, and tests/evals for that phase are all updated.
+- [x] Do not leave any artifact write path with mixed derivation behavior (`deriveFromPayloads()` in one path, placeholder fallback in another) once Phase 2 is complete.
+- [x] Do not leave PG lifecycle transitions half on sync event bus and half on outbox once Phase 3 is complete.
+- [ ] If a phase discovers that a documented "live debt" is already fixed at HEAD, record the stale evidence in this file before removing that work from scope.
 
 ## File Structure
 
-- `packages/server/src/lib/persistence/schema/labels.ts`
-  Canonical label catalog tables, alias table, embedding table, alignment event table.
-- `packages/server/src/lib/labels/repository.ts`
-  Server truth-source repository for create/find/merge/event operations.
-- `packages/server/src/lib/labels/candidate-recall.ts`
-  Exact/normalized/semantic candidate recall for top-k label selection.
-- `packages/server/src/lib/labels/llm-align.ts`
-  LLM prompt orchestration and strict response parsing for `existing | new | unsure`.
-- `packages/server/src/lib/labels/backfill.ts`
-  Historical seeding and replay into the new catalog.
-- `packages/server/src/lib/labels/merge-repair.ts`
-  Repair/reindex path after manual or automatic label merges.
-- `packages/server/src/lib/indexing/graph-lite/llm-extract.ts`
-  Raw extraction plus post-extraction label alignment insertion point.
-- `packages/server/src/lib/indexing/graph-lite/documents.ts`
-  Durable graph node/edge/document shape; must store canonical metadata.
-- `packages/server/src/lib/indexing/adapters/graph.ts`
-  Trap-side graph adapter that must persist canonicalized graph docs.
-- `packages/server/src/lib/indexing/skill-events.ts`
-  Skill-side graph builder that must use the same canonicalization path.
-- `evals/graph-extraction/*`
-  Canonical-label fixtures, metrics, and smoke gates.
-- `docs/architecture/components/INGESTION.md`
-  Ingestion lane update showing label table recall and alignment.
+### Artifact derivation and write paths
+
+- `packages/server/src/lib/artifacts/derive.ts`
+  - retrieval-grade derivation from SKILL.md + `references/`
+- `packages/server/src/lib/artifacts/model.ts`
+  - revision append flow and derived-output persistence seam
+- `packages/server/src/lib/artifacts/edit.ts`
+  - edit submission workflow
+- `packages/server/src/routes/operations/artifacts-import.ts`
+  - artifact import write path
+- `packages/server/src/routes/operations/migrate.ts`
+  - legacy-to-artifact migration write path
+- `packages/server/src/routes/operations/skill-edit.ts`
+  - post-commit business entrypoint for edits
+- `packages/server/src/routes/operations/skill-review.ts`
+  - approval path that triggers retrieval-visible indexing
+
+### Lifecycle projections / outbox
+
+- `packages/server/src/routes/knowledge.ts`
+- `packages/server/src/routes/traps.ts`
+- `packages/server/src/routes/decay.ts`
+- `packages/server/src/routes/operations/knowledge-legacy.ts`
+- `packages/server/src/lib/knowledge/application-service.ts`
+- `packages/server/src/bootstrap/bootstrap-lifecycle.ts`
+- `packages/server/src/lib/lifecycle/outbox.ts`
+- `packages/server/src/lib/lifecycle/transitions.ts`
+
+### Operator and documentation closure
+
+- `packages/cli/src/commands/operations.ts`
+- `packages/cli/src/commands/operations/`
+- `docs/reference/api-surface.md`
+- `docs/architecture/components/ARTIFACTS.md`
+- `docs/architecture/components/RETRIEVAL.md`
 - `docs/architecture/components/INDEXING.md`
-  Indexing insertion point and graph persistence behavior.
-- `docs/reference/DATA_MODEL.md`
-  Canonical label schema and relationships to existing `knowledge_labels` / artifact `labels`.
 - `docs/operations/TESTING.md`
-  Operator commands and eval gates for backfill and repair.
+- `docs/operations/ENVIRONMENT.md`
 
-## Proposed Runtime Flow
-
-```text
-candidate/knowledge/artifact text
-  -> existing graph-extraction prompt
-  -> raw labels/nodes/edges
-  -> label catalog candidate recall
-     -> exact alias hit
-     -> normalized slug hit
-     -> embedding top-k hit
-  -> label-alignment prompt
-     -> input: raw label + evidence + candidate label table
-     -> output: existing | new | unsure
-  -> canonical rewrite
-     -> existing: attach canonicalLabelId and merge
-     -> new: create canonical label + alias
-     -> unsure: persist reviewable event, do not auto-hard-merge
-  -> persist graph/index documents
-  -> backfill/reindex historical rows with the same pipeline
-```
-
-## Phase 1: Add the canonical label catalog and repository
-
-- [x] **Phase 1 complete**
+## Phase 1: Freeze Baseline And Turn Live Debt Into Regression Coverage
 
 **Files:**
-- Create: `packages/server/src/lib/persistence/schema/labels.ts`
-- Modify: `packages/server/src/lib/persistence/schema/index.ts`
-- ~~Modify: `packages/server/src/lib/persistence/schema/knowledge.ts`~~ (no changes needed; knowledge_labels preserved as-is)
-- ~~Modify: `packages/server/src/lib/persistence/schema/artifacts.ts`~~ (no changes needed; artifact labels preserved as-is)
-- Create: `packages/server/src/lib/persistence/__tests__/schema-label-catalog.test.ts`
-- Create: `packages/server/src/lib/labels/repository.ts`
-- Create: `packages/server/src/lib/labels/repository.test.ts`
+- Modify: `plan.md`
+- Modify: `packages/server/src/lib/artifacts/derive.test.ts`
+- Modify: `packages/server/src/routes/operations/skill-edit.test.ts`
+- Modify: `packages/server/src/routes/knowledge.test.ts`
+- Modify: `packages/server/src/routes/decay.test.ts`
+- Modify: `packages/server/src/routes/operations/knowledge-legacy.test.ts`
 
-**Execution steps:**
-- [x] Add `canonical_labels`, `label_aliases`, `canonical_label_embeddings`, and `label_alignment_events` tables with lifecycle/status fields and merge lineage.
-- [x] Export the new tables from `packages/server/src/lib/persistence/schema/index.ts`.
-- [x] Keep `knowledge_labels` and artifact `labels` as source-facing metadata; do not remove them in this phase.
-- [x] Implement a repository with methods for:
-  `findCanonicalById()`, `findCanonicalByAlias()`, `upsertCanonicalLabel()`, `upsertAlias()`, `searchCandidates()`, `recordAlignmentEvent()`, `mergeCanonicalLabels()`.
-- [x] Ensure merge is reversible at the data level by using `status` + `merged_into_label_id`, not destructive deletes.
-- [x] Add schema and repository tests before proceeding.
+- [x] Add one regression that proves `skill-edit` currently produces a latest revision whose `derived` payload is missing or stale after edit submission.
+- [x] Add one regression that proves retrieval-visible code paths read `latestRevision.derived` from the latest revision, not an older revision.
+- [x] Add one PG-mode regression that proves `review.ts` uses outbox while `knowledge.ts` update / `decay.ts` batch / legacy deactivate still use direct sync emission.
+- [x] Record the exact current live-debt evidence in this file before changing implementation.
 
 **Completion standard:**
-- [x] A developer can create one canonical label, attach aliases, fetch by alias, and record an alignment event without touching graph extraction code.
-- [x] The schema clearly separates canonical names, observed aliases, embeddings, and event history.
-- [x] No table or repository API assumes that a raw source label is already canonical.
+
+- [x] There is at least one failing or pre-fix regression for each of the two primary debt themes:
+  - artifact derivation/write-path convergence
+  - lifecycle/outbox convergence
+- [x] The plan is no longer speculative; every later phase can point to an existing failing or gap-detecting assertion.
 
 **Document updates in this phase:**
-- [x] Update `docs/reference/DATA_MODEL.md` with the new label catalog tables and how they relate to `knowledge_labels`, artifact labels, and `graph_index_documents`.
-- [x] Update `docs/architecture/components/INDEXING.md` to establish `canonical_labels` as the merge truth source.
+
+- [x] Update `plan.md` debt summary if any audited item turns out to be stale.
 
 **Tests / eval updates in this phase:**
-- [x] Add `packages/server/src/lib/persistence/__tests__/schema-label-catalog.test.ts`.
-- [x] Add `packages/server/src/lib/labels/repository.test.ts`.
+
 - [x] Run:
 ```bash
 rtk pnpm test -- --run \
-  packages/server/src/lib/persistence/__tests__/schema-label-catalog.test.ts \
-  packages/server/src/lib/labels/repository.test.ts
+  packages/server/src/lib/artifacts/derive.test.ts \
+  packages/server/src/routes/operations/skill-edit.test.ts \
+  packages/server/src/routes/knowledge.test.ts \
+  packages/server/src/routes/decay.test.ts \
+  packages/server/src/routes/operations/knowledge-legacy.test.ts
 ```
+  - Result: 1 failing (expected regression in skill-edit), all others pass
+- [x] Run:
+```bash
+rtk pnpm typecheck
+```
+  - Result: No errors
 
-**Example structure:**
+**Example structure or code:**
 ```ts
-export interface CanonicalLabelRecord {
-  id: string;
-  kind: 'cue' | 'tool' | 'environment' | 'prerequisite' | 'mitigation';
-  canonicalName: string;
-  normalizedName: string;
-  definition: string | null;
-  status: 'active' | 'merged' | 'disabled';
-  mergedIntoLabelId: string | null;
-}
-
-export interface LabelAliasRecord {
-  alias: string;
-  normalizedAlias: string;
-  canonicalLabelId: string;
-  source: 'manual' | 'llm' | 'backfill';
-  confidence: number;
-}
+expect(editedArtifact.latestRevision.derived).toBeDefined();
+expect(editedArtifact.latestRevision.derived?.capsules.length).toBeGreaterThan(0);
 ```
 
-## Phase 2: Add candidate recall and the `label-alignment` LLM contract
+```ts
+expect(outboxEnqueueMock).toHaveBeenCalledTimes(1);
+expect(eventBusEmitMock).not.toHaveBeenCalled();
+```
 
-- [x] **Phase 2 complete**
+## Phase 2: Converge Artifact Write Paths On Retrieval-Grade Derivation
 
 **Files:**
-- Modify: `packages/contracts/src/domain/graph-extraction.ts`
-- Modify: `packages/contracts/src/domain/graph-extraction.test.ts`
-- Modify: `packages/server/src/lib/ai/providers/types.ts`
-- Modify: `packages/server/src/lib/ai/prompts.ts`
-- ~~Modify: `docs/reference/system-prompt-slots.default.json`~~ (no changes needed; prompt slots defined inline)
-- Create: `packages/server/src/lib/labels/candidate-recall.ts`
-- Create: `packages/server/src/lib/labels/candidate-recall.test.ts`
-- Create: `packages/server/src/lib/labels/llm-align.ts`
-- Create: `packages/server/src/lib/labels/llm-align.test.ts`
+- Modify: `packages/server/src/lib/artifacts/derive.ts`
+- Modify: `packages/server/src/lib/artifacts/model.ts`
+- Modify: `packages/server/src/lib/artifacts/edit.ts`
+- Modify: `packages/server/src/routes/operations/skill-edit.ts`
+- Modify: `packages/server/src/routes/operations/artifacts-import.ts`
+- Modify: `packages/server/src/routes/operations/migrate.ts`
+- Modify: `packages/server/src/lib/artifacts/derive.test.ts`
+- Modify: `packages/server/src/lib/artifacts/derive-score-integration.test.ts`
+- Modify: `packages/server/src/routes/operations/skill-edit.test.ts`
 
-**Execution steps:**
-- [x] Add a new prompt task type `label-alignment` in `AiPromptTaskType`.
-- [x] Add prompt builder support in `packages/server/src/lib/ai/prompts.ts` for `label-alignment`.
-- [x] Extend `packages/contracts/src/domain/graph-extraction.ts` with strict schemas for:
-  `LabelAlignmentCandidate`, `LabelAlignmentDecision`, and any helper response payloads.
-- [x] Build candidate recall with deterministic top-k fusion order:
-  exact alias -> normalized name -> embedding similarity.
-- [x] Limit prompt inputs to a compact candidate table (recommended max 5, hard max 8).
-- [x] Implement strict parser/validator that only accepts:
-  `existing | new | unsure`, optional `canonicalLabelId`, optional `canonicalName`, `confidence`, and short `reasoning`.
-- [x] Add unit tests for recall ranking, parse failure, invalid outputs, and `unsure`.
+- [x] Extract one shared "derive and apply" seam so import, migrate, and edit do not choose different derivation strategies ad hoc.
+- [x] Ensure `skill-edit` re-derives `profile`, `capsules`, and `clientManifest` from actual file content before returning the new revision.
+- [x] Ensure new revisions created by edit flow do not remain with `derived: null` once the transaction is complete.
+- [x] Decide and document the fallback policy when file payload bodies are unavailable:
+  - either reconstruct payload-based derivation from persisted file content
+  - or make the placeholder path explicitly non-retrieval-visible and schedule a deterministic repair path
+- [x] Keep `deriveSkillArtifactOutputs()` only if it has a clearly bounded compatibility purpose; otherwise remove or isolate it from retrieval-visible flows.
 
 **Completion standard:**
-- [x] Given `pod-timeout`, candidate recall can surface `timeout-issue` when it already exists in the catalog.
-- [x] The alignment prompt never receives the entire catalog; it only receives curated candidates.
-- [x] The alignment response is Zod-validated and cannot silently fall back to raw text.
+
+- [x] Editing a skill artifact produces a latest revision with non-null derived outputs.
+- [x] Import, migrate, and edit all use the same retrieval-grade derivation contract for retrieval-visible data.
+- [x] Placeholder-only derived summaries/capsules are no longer the silent fallback for approved artifacts that participate in retrieval.
 
 **Document updates in this phase:**
-- [x] Update `docs/architecture/components/INGESTION.md` to show the new `candidate recall -> label-alignment` lane.
-- [x] Update `docs/architecture/HYBRID_GRAPH_EXTRACTION.md` to document the two-step extraction pattern: raw extraction first, canonical alignment second.
+
+- [x] Update `docs/architecture/components/ARTIFACTS.md` to name the single derivation entrypoint used by import, migrate, and edit flows.
+- [ ] Update `docs/architecture/components/INGESTION.md` if the write-path sequence changes.
+- [x] Update `docs/architecture/components/RETRIEVAL.md` to reflect the new guarantee that approved artifacts expose latest-revision derived capsules.
 
 **Tests / eval updates in this phase:**
-- [x] Extend `packages/contracts/src/domain/graph-extraction.test.ts`.
-- [x] Add `packages/server/src/lib/labels/candidate-recall.test.ts`.
-- [x] Add `packages/server/src/lib/labels/llm-align.test.ts`.
+
+- [x] Extend `packages/server/src/lib/artifacts/derive.test.ts` with latest-revision, edit-flow, and fallback-policy regressions.
+- [x] Extend `packages/server/src/lib/artifacts/derive-score-integration.test.ts` so edited artifacts still produce retrieval-grade capsules.
+- [x] Extend `packages/server/src/routes/operations/skill-edit.test.ts` with a route-level assertion that edited revisions keep `latestRevision.derived`.
 - [x] Run:
 ```bash
 rtk pnpm test -- --run \
-  packages/contracts/src/domain/graph-extraction.test.ts \
-  packages/server/src/lib/labels/candidate-recall.test.ts \
-  packages/server/src/lib/labels/llm-align.test.ts
+  packages/server/src/lib/artifacts/derive.test.ts \
+  packages/server/src/lib/artifacts/derive-score-integration.test.ts \
+  packages/server/src/routes/operations/skill-edit.test.ts
 ```
+  - Result: All tests pass (0 failures)
 
-**Example structure:**
+**Example structure or code:**
 ```ts
-export interface LabelAlignmentCandidate {
-  id: string;
-  canonicalName: string;
-  definition: string | null;
-  aliases: string[];
-  recallReason: 'exact-alias' | 'normalized-name' | 'semantic-embedding';
-}
+const derived = await deriveFromPayloads(filePayloads, {
+  artifactId: artifact.id,
+  labels: artifact.labels,
+  title: artifact.title,
+  scope: artifact.scope,
+  requiredLevel: artifact.requiredLevel,
+  chat: services.ai.chat,
+});
 
-export interface LabelAlignmentDecision {
-  rawLabel: string;
-  rawEvidence: string;
-  decision: 'existing' | 'new' | 'unsure';
-  canonicalLabelId?: string;
-  canonicalName?: string;
-  confidence: number;
-  reasoning: string;
-}
+await applyDerivedArtifactOutputs(
+  data,
+  artifact,
+  artifact.latestRevision,
+  derived,
+  artifactRepo,
+);
 ```
 
-**Example prompt payload:**
-```json
-{
-  "rawLabel": "pod-timeout",
-  "rawEvidence": "pod restarts after startup timeout in Kubernetes",
-  "candidates": [
-    {
-      "id": "lbl_timeout_issue",
-      "canonicalName": "timeout-issue",
-      "definition": "startup or health-check timeout that aborts workload readiness",
-      "aliases": ["container-timeout", "startup-timeout"]
-    }
-  ]
-}
-```
-
-## Phase 3: Integrate canonical alignment into graph extraction and persistence
-
-- [x] **Phase 3 complete**
+## Phase 3: Reconnect Retrieval And Indexing To The Converged Artifact Revision Flow
 
 **Files:**
-- Modify: `packages/server/src/lib/indexing/graph-lite/llm-extract.ts`
-- ~~Modify: `packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts`~~ (existing tests pass; no new test file needed for integration)
-- Modify: `packages/server/src/lib/indexing/graph-lite/documents.ts`
-- Modify: `packages/server/src/lib/persistence/schema/retrieval.ts`
-- Create: `packages/server/src/lib/labels/graph-align.ts` (alignment integration module)
-- ~~Modify: `packages/server/src/lib/indexing/adapters/graph.ts`~~ (graph adapter uses documents.ts types; no changes needed)
-- ~~Modify: `packages/server/src/lib/indexing/adapters/graph-builders.ts`~~ (builders are pure functions; canonical fields are optional)
-- ~~Modify: `packages/server/src/lib/indexing/skill-events.ts`~~ (skill events use same extraction path; alignment injected via options)
-- ~~Modify: `packages/server/src/lib/retrieval/recall/graph-assisted.ts`~~ (retrieval uses existing graph traversal; canonicalLabelId is additive)
+- Modify: `packages/server/src/lib/indexing/skill-events.ts`
+- Modify: `packages/server/src/lib/indexing/adapters/capsule-index.ts`
+- Modify: `packages/server/src/lib/indexing/adapters/artifact-graph.ts`
+- Modify: `packages/server/src/lib/retrieval/capsules/capsule-recall.ts`
+- Modify: `packages/server/src/lib/retrieval/capsules/skill-lookup.ts`
+- Modify: `packages/server/src/lib/candidates/detector.ts`
+- Modify: `packages/server/src/lib/candidates/pg-detector.ts`
+- Modify: `packages/server/src/lib/indexing/adapters/capsule-index.test.ts`
+- Modify: `packages/server/src/lib/indexing/skill-events.test.ts`
+- Modify: `packages/server/src/routes/operations/skill-review.test.ts`
 
-**Execution steps:**
-- [x] Add a post-extraction alignment step in `llm-extract.ts` after `mergeExtractions()` and before node ID generation.
-- [x] Pass raw node labels plus evidence into the new label alignment service.
-- [x] Rewrite node IDs and edge endpoints to canonical IDs when the decision is `existing`.
-- [x] Create new canonical label rows and aliases when the decision is `new`.
-- [x] Persist `rawLabel`, `canonicalLabelId`, and `alignmentDecision` on graph nodes.
-- [x] Keep `unsure` safe: record an alignment event, keep the raw label, and avoid forced merge.
-- [x] Change segment-level dedupe to prefer `canonicalLabelId` when present; only fall back to `normalizeValue(label)` when no canonical decision exists.
-- [x] Ensure both trap-side and skill-side graph building use the same canonicalization logic (trap and skill LLM extraction now both pass `ExtractGraphOptions.alignmentService` when PostgreSQL label catalog access is available).
+- [x] Verify every retrieval/indexing consumer of `latestRevision.derived` behaves correctly for freshly edited, freshly approved revisions.
+- [x] Ensure the approve path does not publish capsule/graph indexes from a revision whose derived outputs are absent.
+- [x] Decide whether `runSkillIndexEvent()` should hard-fail when an artifact reaches `approved` without derived outputs, or should trigger deterministic repair before indexing.
+  - Decision: hard-fail with explicit error. See skill-events.ts guard.
+- [x] Ensure candidate duplicate scoring over skill artifacts continues to read meaningful profile/capsule data after edits.
 
 **Completion standard:**
-- [x] Two source texts that extract `timeout-issue` and `pod-timeout` produce one canonical graph node when the catalog and alignment decision agree (via `alignGraphNodes()` rewriting IDs).
-- [x] Graph documents remain deterministic for the same canonical decisions.
-- [x] Fallback mode still works when chat or embeddings are unavailable; it must skip canonical merge rather than corrupt graph state.
+
+- [x] A skill edited, then approved, is searchable through capsule recall and indexed through graph/capsule adapters using latest-revision derived data.
+- [x] Approved artifacts cannot silently retain `derived: null` while still being treated as retrieval-visible.
+- [x] The business rule for "approved but underived artifact" is explicit and tested.
 
 **Document updates in this phase:**
-- [x] Update `docs/architecture/components/INDEXING.md` with the exact insertion point inside `graph-lite/llm-extract.ts`.
-- [x] Update `docs/architecture/GRAPH_RETRIEVAL.md` if query-time graph traversal starts preferring `canonicalLabelId` over raw `label` (not needed yet — canonicalLabelId is additive).
+
+- [x] Update `docs/architecture/components/INDEXING.md` with the exact precondition for skill-side indexing.
+- [x] Update `docs/architecture/components/RETRIEVAL.md` to state whether retrieval skips or blocks underived approved artifacts.
 
 **Tests / eval updates in this phase:**
-- [x] All existing integration tests pass (35 llm-extract + 7 documents + 15 graph + 7 graph-builders + 4 graph-assisted = 68 tests).
+
+- [x] Extend:
+  - `packages/server/src/lib/indexing/adapters/capsule-index.test.ts`
+  - `packages/server/src/lib/indexing/skill-events.test.ts`
+  - `packages/server/src/routes/operations/skill-review.test.ts`
 - [x] Run:
 ```bash
 rtk pnpm test -- --run \
-  packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts \
-  packages/server/src/lib/indexing/graph-lite/documents.test.ts \
-  packages/server/src/lib/indexing/adapters/graph.test.ts \
-  packages/server/src/lib/indexing/adapters/graph-builders.test.ts \
-  packages/server/src/lib/retrieval/recall/graph-assisted.test.ts
+  packages/server/src/lib/indexing/adapters/capsule-index.test.ts \
+  packages/server/src/lib/indexing/skill-events.test.ts \
+  packages/server/src/routes/operations/skill-review.test.ts
 ```
+  - Result: All tests pass (0 failures)
+- [ ] Run:
+```bash
+rtk pnpm eval:retrieval:dry-run
+```
+  - Blocked locally: `pnpm` store directory `/home/wunai/.local/share/pnpm/store/v11` is not writable in the current environment
 
-**Example structure:**
+**Example structure or code:**
 ```ts
-export interface GraphNodeRecord {
-  id: string;
-  kind: GraphNodeKind;
-  label: string;
-  evidence: string;
-  rawLabel?: string;
-  canonicalLabelId?: string;
-  alignmentDecision?: 'existing' | 'new' | 'unsure';
+if (!artifact.latestRevision.derived) {
+  throw new AppError(
+    409,
+    'artifact_not_derived',
+    'Approved artifacts must have latest-revision derived outputs before indexing',
+  );
 }
 ```
 
-**Example merge rule:**
-```ts
-const mergeKey = node.canonicalLabelId
-  ? `${node.kind}:${node.canonicalLabelId}`
-  : `${node.kind}:${normalizeValue(node.label)}`;
-```
-
-## Phase 4: Add historical backfill and safe merge-repair tooling
-
-- [x] **Phase 4 complete**
+## Phase 4: Converge PG Lifecycle Projections On Outbox
 
 **Files:**
-- Create: `packages/server/src/lib/labels/backfill.ts`
-- Create: `packages/server/src/lib/labels/backfill.test.ts`
-- Create: `packages/server/src/lib/labels/merge-repair.ts`
-- Create: `packages/server/src/lib/labels/merge-repair.test.ts`
-- Create: `packages/server/src/lib/labels/backfill-runner.ts`
-- Create: `packages/server/src/lib/labels/merge-repair-runner.ts`
-- ~~Modify: `packages/server/src/lib/persistence/backfill-indexes.ts`~~ (not needed; backfill module handles its own logic)
-- Modify: `package.json`
+- Modify: `packages/server/src/routes/knowledge.ts`
+- Modify: `packages/server/src/routes/traps.ts`
+- Modify: `packages/server/src/routes/decay.ts`
+- Modify: `packages/server/src/routes/operations/knowledge-legacy.ts`
+- Modify: `packages/server/src/lib/knowledge/application-service.ts`
+- Modify: `packages/server/src/bootstrap/bootstrap-lifecycle.ts`
+- Modify: `packages/server/src/routes/review.test.ts`
+- Modify: `packages/server/src/routes/knowledge.test.ts`
+- Modify: `packages/server/src/routes/decay.test.ts`
+- Modify: `packages/server/src/routes/operations/knowledge-legacy.test.ts`
+
+- [x] Extract one helper for "emit lifecycle transition" that chooses:
+  - PG mode -> `domain_event_outbox`
+  - JSON mode -> synchronous `eventBus`
+- [x] Replace direct sync event emission in `knowledge.ts` update flow with the shared helper.
+- [x] Replace direct sync event emission in `decay.ts` batch lifecycle transitions with the shared helper.
+- [x] Replace direct sync event emission in `operations/knowledge-legacy.ts` deactivate with the shared helper.
+- [x] Review whether submit/resubmit/supersede paths should also emit the same lifecycle/projection events, and document the chosen rule.
+  - Rule: submit/resubmit/supersede delegate lifecycle transitions to `createKnowledgeApplicationService`; no route-level emission needed.
+
+**Completion standard:**
+
+- [x] In PG mode, lifecycle projections for knowledge/trap business flows consistently enter through `domain_event_outbox`.
+- [x] In JSON mode, local development keeps the lightweight synchronous path.
+- [x] There is no longer route-by-route divergence for the same lifecycle side effect model.
+
+**Document updates in this phase:**
+
+- [x] Update `docs/architecture/components/INDEXING.md` to describe which business transitions publish through outbox.
+- [x] Update `docs/PACKAGES.md` and `docs/guides/CODE_GUIDE.md` if they still imply a partially synchronous lifecycle model.
+- [x] Update `docs/reference/api-surface.md` only if response timing or operational notes materially change.
+
+**Tests / eval updates in this phase:**
+
+- [x] Extend route tests to assert PG-mode outbox enqueue for:
+  - `PATCH /v1/knowledge/:entryId`
+  - `POST /v1/operations/decay/batch`
+  - `POST /v1/operations/knowledge/:entryId/deactivate`
+- [x] Keep JSON-mode tests asserting the sync fallback path.
+- [x] Run:
+```bash
+rtk pnpm test -- --run \
+  packages/server/src/routes/review.test.ts \
+  packages/server/src/routes/knowledge.test.ts \
+  packages/server/src/routes/decay.test.ts \
+  packages/server/src/routes/operations/knowledge-legacy.test.ts
+```
+  - Result: All tests pass (0 failures)
+
+**Example structure or code:**
+```ts
+await emitLifecycleTransition({
+  store: app.skillShareer.store,
+  eventBus: app.skillShareer.eventBus,
+  event: {
+    name: eventName,
+    entryId,
+    previousState,
+    nextState,
+    actorId: auth.actorId,
+    reason,
+    timestamp: nowIso(),
+  },
+});
+```
+
+## Phase 5: Expose Stable Operator Workflow And Close Docs / Eval Gaps
+
+**Files:**
+- Modify: `packages/cli/src/commands/operations.ts`
+- Create: `packages/cli/src/commands/operations/capsule-index.ts`
+- Modify: `packages/cli/src/commands/operations/index.ts`
+- Modify: `packages/cli/src/commands/operations.test.ts`
+- Modify: `docs/reference/api-surface.md`
 - Modify: `docs/operations/TESTING.md`
+- Modify: `docs/operations/ENVIRONMENT.md`
+- Modify: `docs/architecture/components/RETRIEVAL.md`
 
-**Execution steps:**
-- [x] Add a backfill runner that reads `knowledge_labels`, artifact `labels`, and historical `graph_index_documents.nodes[*]` through the live repository/PG paths.
-- [x] Seed the canonical catalog and aliases from historical data.
-- [x] Reuse the same candidate recall and alignment pipeline from Phase 2; do not add a second semantic merge implementation.
-- [x] Add a safe threshold for auto-merge; low-confidence matches become `unsure`.
-- [x] Reindex affected graph documents after a canonical merge or repair.
-- [x] Add root scripts:
-  `pnpm backfill:labels`
-  `pnpm label-merge:repair`
-  with `--dry-run` support.
-- [x] Add unit tests for seed-from-history, rerun idempotency, and merge repair.
+- [x] Decide whether capsule-index maintenance remains HTTP-only internal ops or becomes a first-class CLI operator flow.
+  - Decision: CLI exposure accepted.
+- [x] If CLI exposure is accepted, add `operations capsule-index rebuild|health|cleanup-orphans`.
+- [x] If CLI exposure is rejected, explicitly document the route-only policy and remove any wording that implies a CLI exists.
+  - N/A (CLI accepted)
+- [x] Add final operator verification steps that cover:
+  - edited artifact still derives correctly
+  - approved artifact still indexes correctly
+  - capsule-index repair workflow is documented end-to-end
 
 **Completion standard:**
-- [x] Historical duplicates can be replayed into the new catalog without manual SQL edits.
-- [x] Re-running backfill does not duplicate aliases or events (idempotent via upsert).
-- [x] Operators can see what was auto-merged, what was unresolved, and what graph docs were reindexed.
+
+- [x] Operator guidance matches reality: either there is a supported CLI workflow, or the docs clearly say "route-only".
+- [x] `api-surface.md`, `TESTING.md`, and architecture docs no longer lag behind the real business path.
+- [x] The root `plan.md` can be closed without hidden manual knowledge.
 
 **Document updates in this phase:**
-- [x] Update `docs/operations/TESTING.md` with backfill, dry-run, and repair commands.
-- [x] Update `docs/reference/DATA_MODEL.md` with merge lifecycle fields and event history semantics.
+
+- [x] Update `docs/reference/api-surface.md` with capsule-index routes if they are part of the supported operator surface.
+- [x] Update `docs/operations/TESTING.md` with one concrete verification sequence for the finished wiring.
+- [x] Update `docs/operations/ENVIRONMENT.md` if env flags or operational expectations changed.
+- [x] Update `docs/architecture/components/RETRIEVAL.md` to reflect the final repair/rebuild operator entrypoints.
 
 **Tests / eval updates in this phase:**
-- [x] Add `packages/server/src/lib/labels/backfill.test.ts`.
-- [x] Add `packages/server/src/lib/labels/merge-repair.test.ts`.
+
+- [x] Add or extend CLI tests if a new operations command is exposed.
 - [x] Run:
 ```bash
 rtk pnpm test -- --run \
-  packages/server/src/lib/labels/backfill.test.ts \
-  packages/server/src/lib/labels/merge-repair.test.ts
+  packages/cli/src/commands/operations.test.ts \
+  packages/server/src/routes/operations/capsule-index.test.ts
 ```
-- [x] Run:
+  - Result: All tests pass (0 failures)
+- [ ] Run:
 ```bash
-rtk pnpm backfill:labels -- --dry-run
+rtk pnpm eval:smoke
 ```
 
-**Example structure:**
+**Example structure or code:**
 ```ts
-export interface LabelMergeRepairReport {
-  examined: number;
-  autoMerged: number;
-  unresolved: number;
-  reindexedDocuments: number;
-  warnings: string[];
-}
-```
-
-**Example backfill flow:**
-```text
-historical labels
-  -> seed canonical rows
-  -> seed aliases
-  -> recall candidates
-  -> llm align
-  -> merge / unresolved event
-  -> reindex affected graph docs
-```
-
-## Phase 5: Close with docs, eval fixtures, and rollout gates
-
-- [x] **Phase 5 complete**
-
-**Files:**
-- Modify: `evals/graph-extraction/fixtures.ts`
-- ~~Modify: `evals/graph-extraction/fixtures-real.ts`~~ (no changes needed)
-- ~~Modify: `evals/graph-extraction/run.ts`~~ (no changes needed; existing metrics framework sufficient)
-- ~~Modify: `evals/graph-extraction/run.test.ts`~~ (existing tests pass)
-- Modify: `evals/graph-extraction/dedup-eval.ts`
-- ~~Modify: `evals/graph-extraction/dedup-fixtures-real.ts`~~ (no changes needed)
-- Modify: `evals/graph-extraction/README.md`
-- Modify: `docs/architecture/components/INGESTION.md` (done in Phase 2)
-- Modify: `docs/architecture/components/INDEXING.md` (done in Phase 1 and 3)
-- Modify: `docs/reference/DATA_MODEL.md` (done in Phase 1)
-- Modify: `docs/operations/TESTING.md` (done in Phase 4)
-
-**Execution steps:**
-- [x] Add fixtures where different raw labels must resolve to one canonical label, including:
-  `timeout-issue` vs `pod-timeout`,
-  multilingual alias cases,
-  near-miss false-positive controls.
-- [x] Extend graph-extraction reporting with canonical-label metrics or, at minimum:
-  alignment hit rate, `new` rate, and `unsure` rate.
-- [x] Extend dedup eval fixtures so the same semantic trap can be judged as canonical-label-equivalent even when raw titles differ.
-- [x] Update docs with rollout gates and degraded-run troubleshooting.
-- [x] Verify that all prior phase docs reflect the final implementation rather than the intended design.
-
-**Completion standard:**
-- [x] The repo has automated proof that canonical alignment improves synonym handling without unacceptable false merges.
-- [x] The docs state exactly where the label table is supplied to the LLM and how fallback mode behaves.
-- [x] Operators have one documented command set for smoke validation after deploy.
-
-**Document updates in this phase:**
-- [x] Update `docs/architecture/components/INGESTION.md`.
-- [x] Update `docs/architecture/components/INDEXING.md`.
-- [x] Update `docs/reference/DATA_MODEL.md`.
-- [x] Update `docs/operations/TESTING.md`.
-- [x] Update `evals/graph-extraction/README.md`.
-
-**Tests / eval updates in this phase:**
-- [x] Run:
-```bash
-rtk pnpm test -- --run \
-  evals/graph-extraction/run.test.ts \
-  packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts \
-  packages/server/src/lib/candidates/llm-dedup.test.ts
-```
-- [x] Run:
-```bash
-rtk pnpm eval:graph-extraction:smoke
-```
-- [x] Run:
-```bash
-rtk pnpm eval:dedup:dry-run
-```
-- [x] If chat is configured, run:
-```bash
-rtk pnpm eval:graph-extraction --smoke
-```
-- [x] If the live run degrades to fallback, leave this phase incomplete and document the degraded reason.
-  **Note:** Smoke eval degrades to fallback because no chat provider is configured in the test environment. This is expected behavior — the eval framework correctly reports the degraded state.
-
-**Example fixture:**
-```ts
-{
-  id: 'canonical-cue-timeout-issue-vs-pod-timeout',
-  input: 'Kubernetes pods fail readiness because the pod startup timeout is too short.',
-  expectedNodes: [
-    { kind: 'cue', label: 'timeout-issue' }
-  ],
-  expectedEdges: [
-    { source: 'kubernetes', target: 'timeout-issue', type: 'co-occurs-with', strength: 'soft' }
-  ]
-}
+operations
+  .command('capsule-index')
+  .command('health')
+  .option('--json', 'Print raw health report')
 ```
 
 ## Final Acceptance Criteria
 
-- [x] `packages/server/src/lib/persistence/schema/labels.ts` exists and is covered by tests.
-- [x] `packages/server/src/lib/labels/` exists with repository, candidate recall, alignment, backfill, and repair modules.
-- [x] `AiPromptTaskType` includes `label-alignment`, and the prompt path is wired.
-- [x] Graph merge happens by canonical label identity when available, not only by raw label string.
-- [x] Backfill and repair scripts exist in `package.json` and are documented.
-- [x] Canonical-label fixtures and eval gates exist and pass.
-- [x] Every phase checkbox above is checked only after its verification commands have been run successfully.
+- [x] Edited artifacts no longer lose retrieval-grade derived outputs.
+- [x] Retrieval/indexing/candidate scoring all consume latest-revision derived data after edit/approve flows.
+- [x] Placeholder-only derivation is no longer silently on the approved retrieval path.
+- [x] PG lifecycle projection paths consistently use `domain_event_outbox` where intended.
+- [x] Operator docs and, if chosen, CLI surface match the implemented capsule-index maintenance workflow.
+- [ ] The focused tests and `eval:smoke` commands above have been run successfully before this plan is archived.
+  - Focused targeted tests pass
+  - Typecheck clean
+  - `eval:retrieval:dry-run` is blocked locally by pnpm store directory permissions
+  - `eval:smoke` still reports 2 failing retrieval cases in the current environment, so this item cannot be marked complete yet

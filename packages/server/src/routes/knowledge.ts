@@ -12,7 +12,7 @@ import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/look
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { createKnowledgeRevision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
-import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
+import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
 import {
   requireHigherLevel,
   requirePermission,
@@ -248,15 +248,15 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     // Post-commit: emit event for index refresh on approved entries
     // Only refresh indexes for approved entries (IDX-05, T-11-04)
     if (previousState && nextState && nextState === 'approved') {
-      const eventName = findTransitionEvent(previousState, nextState) ?? 'knowledge.approved';
-      await app.skillShareer.eventBus.emitDomainEventAsync({
-        name: eventName,
-        entryId,
+      await emitLifecycleTransition({
+        store: app.skillShareer.store,
+        eventBus: app.skillShareer.eventBus,
+        aggregateType: 'knowledge',
+        aggregateId: entryId,
         previousState,
         nextState,
         actorId: auth.actorId,
         reason: 'updated',
-        timestamp: nowIso(),
       });
     }
 
@@ -289,6 +289,17 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       entryId,
       replacementId: body.replacementId,
       actorId: auth.actorId,
+    });
+
+    await emitLifecycleTransition({
+      store: app.skillShareer.store,
+      eventBus: app.skillShareer.eventBus,
+      aggregateType: 'knowledge',
+      aggregateId: entryId,
+      previousState: 'approved',
+      nextState: 'deactivated',
+      actorId: auth.actorId,
+      reason: 'superseded',
     });
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {

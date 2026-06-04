@@ -162,6 +162,7 @@ registerOperationsCommands(program, {
   allowActivate: visibility.allowKnowledgeExport,
   allowStatus: visibility.allowKnowledgeExport,
   allowMigrate: visibility.allowKnowledgeImport,
+  allowCapsuleIndex: visibility.allowKnowledgeUpdate,
 });
 registerDecayCommands(program, { allowManage: visibility.allowKnowledgeUpdate });
 registerMaintenanceCommands(program, { allowManage: visibility.allowKnowledgeUpdate });

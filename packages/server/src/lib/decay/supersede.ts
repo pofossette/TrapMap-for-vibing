@@ -8,6 +8,7 @@
 import type { DecayState } from '@trapmap/contracts';
 
 import { AppError } from '@trapmap/server/lib/errors.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import type {
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
@@ -38,8 +39,9 @@ export interface SupersedeInput {
  * This function:
  * 1. Validates both entries exist and are approved
  * 2. Sets supersededById on the old entry's decayMeta
- * 3. Creates a lifecycle event with type 'deactivated'
- * 4. Updates the entry's updatedAt timestamp
+ * 3. Transitions the lifecycle state to `deactivated`
+ * 4. Creates a lifecycle event with type 'deactivated'
+ * 5. Updates the entry's updatedAt timestamp
  *
  * @throws {AppError} 400 if entryId equals replacementId (self-supersede)
  * @throws {AppError} 404 if entry not found
@@ -90,6 +92,9 @@ export function supersedeEntry({
     freshnessType: entry.decayMeta?.freshnessType ?? 'evergreen',
   };
 
+  // Superseded entries leave the retrieval-visible lifecycle path.
+  transitionLifecycleState(entry, 'deactivated', 'knowledge supersede');
+
   // Create lifecycle event
   const event: KnowledgeLifecycleEventRecord = {
     id: store.nextId(data, 'evt'),
@@ -98,7 +103,7 @@ export function supersedeEntry({
     actorUserId: actorId,
     submissionId: null,
     revision: null,
-    state: entry.lifecycleState,
+    state: 'deactivated',
     note: `Superseded by ${replacementId}`,
   };
   entry.lifecycleHistory.push(event);

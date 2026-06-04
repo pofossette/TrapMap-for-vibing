@@ -636,31 +636,39 @@ Phase 6 补齐了多路召回管线的可持续运维能力：索引同步、重
 
 ##### 数据重建入口
 
+HTTP 路由和 CLI 命令均可用：
+
 ```bash
 # 完整重建（清空索引表 → 遍历所有 approved artifact → 重新生成 keyword tokens + embedding vectors）
 # 运维入口: POST /v1/operations/capsule-index/rebuild { "mode": "full" }
+# CLI: trapmap operations capsule-index rebuild
 # 底层调用: rebuildAllCapsuleIndexes({ pool, artifacts, onProgress? })
 
 # 单 artifact 重建
 # 运维入口: POST /v1/operations/capsule-index/rebuild { "mode": "artifact", "artifactId": "<artifact-id>" }
+# CLI: trapmap operations capsule-index rebuild --mode artifact --artifact-id <artifact-id>
 # 底层调用: rebuildCapsuleIndexForArtifact({ pool, artifacts }, artifactId)
 
 # 健康对账（只读，不修改数据）
 # 运维入口: GET /v1/operations/capsule-index/health
+# CLI: trapmap operations capsule-index health
 # 底层调用: verifyCapsuleIndexHealth({ pool, artifacts })
 # 返回: { missingKeywords, missingEmbeddings, failedKeywords, failedEmbeddings, orphanKeywords, orphanEmbeddings }
 
 # 孤立清理
 # 运维入口: POST /v1/operations/capsule-index/cleanup-orphans
+# CLI: trapmap operations capsule-index cleanup-orphans
 # 底层调用: cleanupOrphanCapsuleIndexes({ pool, artifacts })
 ```
+
+所有 CLI 命令支持 `--json` 标志输出机器可读格式。完整验证序列见 [`docs/operations/TESTING.md`](../../operations/TESTING.md#运维验证序列-phase-5)。
 
 **注意**: 索引数据是派生数据，source of truth 始终是 `artifact.latestRevision.derived.capsules`。稳定运维路由只针对 `lifecycleState === 'approved'` 的 artifact 执行 rebuild/health/cleanup；索引重建不会丢失数据，只需重新执行同步逻辑即可。
 
 ##### Capsule-First Recall 约束与 Fallback
 
 - **空胶囊处理**: `syncArtifactCapsules()` 在 `derived.capsules` 为空数组或 undefined 时返回 `{ keyword: [], embedding: [] }` 稳定空结果，不抛异常。
-- **派生数据降级**: 当 artifact 缺少 `derived.profile` 或 `derived.capsules` 时，该 artifact 被排除在胶囊召回之外（`extractGovernedCapsules()` 跳过无派生数据的条目），召回通道使用已有索引数据继续工作。
+- **派生数据保证 (Phase 2 wiring debt convergence)**: `deriveAndApplyOutputs()` 现在是所有三条写路径（edit/import/migrate）的统一派生入口。Approved artifacts 始终暴露 latest-revision derived capsules — edit flow 不再产生 `derived: null`。当 artifact 仍缺少 `derived.capsules`（例如尚未 approve 的早期工件或数据迁移不完整时），`extractGovernedCapsules()` 会跳过该 artifact，召回通道使用已有索引数据继续工作。
 - **PG 通道 fallback**: `capsule-keyword` 和 `capsule-semantic` 通道在 PG 不可用时自动降级到内存版本 (`capsuleKeywordRecall()` / `capsuleSemanticRecall()`)，`CapsuleRecallCoordinator` 对每个通道单独 try/catch，单通道失败不阻断检索。
 - **索引同步幂等**: `INSERT ... ON CONFLICT (capsule_id) DO UPDATE` 基于 `capsuleId + revisionNo + contentHash` 实现幂等 upsert，重复同步相同内容为无操作。
 - **Feature Flag 控制**: 同步和重建操作均支持 `featureFlag` 配置，flag 返回 false 时静默跳过写入。

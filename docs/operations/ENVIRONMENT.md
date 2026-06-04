@@ -93,6 +93,13 @@ pnpm dev:server
 
 这些端点要求 system-admin 会话，并且仅在 PostgreSQL-backed store 启用时可用。
 
+如果你使用 CLI，也可以通过以下运维命令调用同一组端点：
+
+- `trapmap operations capsule-index rebuild`
+- `trapmap operations capsule-index rebuild --mode artifact --artifact-id <artifact-id>`
+- `trapmap operations capsule-index health`
+- `trapmap operations capsule-index cleanup-orphans`
+
 ## 服务器配置
 
 | 变量 | 说明 | 默认值 |

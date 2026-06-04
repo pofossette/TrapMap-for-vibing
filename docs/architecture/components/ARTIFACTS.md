@@ -375,12 +375,50 @@ type ArtifactAuditEvent =
 
 ## 派生过程 (Derivation)
 
-### 派生函数
+### 统一派生入口 (Phase 2 — wiring debt convergence)
 
-派生逻辑在 `artifacts/derive.ts` 中实现，提供两种入口：
+所有三条工件写路径现在统一通过 `deriveAndApplyOutputs()` 派生并持久化派生产物，不再有各自的内联 derive+apply 逻辑：
+
+| 写路径 | 调用位置 | 说明 |
+|--------|----------|------|
+| **Edit flow** | `edit.ts` — `submitSkillEdit()` | 在 `appendSkillArtifactRevision()` 之后调用，填充派生输出（修复了此前 edit flow 留下 `derived: null` 的问题） |
+| **Import flow** | `artifacts-import.ts` | 替换了原有内联 derive+apply |
+| **Migrate flow** | `migrate.ts` | 替换了原有内联 derive+apply |
+
+**Fallback 策略**（按 `filePayloads` 参数选择）：
+
+- **`filePayloads` 存在且非空**：调用 `deriveFromPayloads()`（检索级派生，内容感知，支持可选 AI 上下文丰富）
+- **`filePayloads` 缺失或为空**：回退到 `deriveSkillArtifactOutputs()`（传统元数据级派生，仅标题/标签）
+- 传统回退仅用于无文件内容的标题/标签编辑和遗留迁移场景
+
+**关键保证**：Approved artifacts 现在始终暴露 latest-revision derived outputs。Edit flow 不再产生 `derived: null`。
+
+```typescript
+// artifacts/derive.ts — 统一入口
+async function deriveAndApplyOutputs(args: {
+  artifact: SkillArtifactRecord;
+  revision: SkillArtifactRevisionRecord;
+  filePayloads?: ArtifactFilePayloadRecord[];  // 有内容时走检索级派生
+  chat?: ChatProvider;                          // 可选 AI 上下文丰富
+  artifactRepo?: ArtifactRepository;
+}): Promise<SkillArtifactRecord> {
+  // 1. 按 filePayloads 选择派生路径
+  const derived = filePayloads && filePayloads.length > 0
+    ? await deriveFromPayloads(filePayloads, { ... })
+    : deriveSkillArtifactOutputs(artifact, revision);
+
+  // 2. 修正 revision 号（deriveFromPayloads 默认写 1）
+  // 3. 对齐 sourceHash（revision.sourceHash 为真相源）
+  // 4. applyDerivedArtifactOutputsFromModel() 持久化并返回更新后的 artifact
+}
+```
+
+### 底层派生函数
+
+底层有两个派生实现，由 `deriveAndApplyOutputs()` 根据上下文选择调用：
 
 1. **`deriveSkillArtifactOutputs()`**：从修订版本记录派生（纯确定性，无 AI 调用）
-2. **`deriveFromPayloads()`**：从实际文件内容派生（Phase 14，支持可选 AI 上下文丰富）
+2. **`deriveFromPayloads()`**：从实际文件内容派生（支持可选 AI 上下文丰富）
 
 ```typescript
 // artifacts/derive.ts

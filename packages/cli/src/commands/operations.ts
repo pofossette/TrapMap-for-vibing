@@ -9,6 +9,7 @@ import type { Command } from 'commander';
 
 import {
   registerActivateCommand,
+  registerCapsuleIndexCommand,
   registerDeactivateCommand,
   registerEditCommand,
   registerExportCommand,
@@ -36,4 +37,5 @@ export function registerOperationsCommands(
   registerActivateCommand(program, options);
   registerMigrateCommand(program, options);
   registerStatusCommand(program, options);
+  registerCapsuleIndexCommand(program, options);
 }

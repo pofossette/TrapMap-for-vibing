@@ -9,6 +9,9 @@
  * - T-11-03: Rejection remains an indexing no-op
  */
 
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { buildServer } from '@trapmap/server/app.js';
@@ -860,6 +863,17 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       expect(entry).toBeDefined();
       expect(entry?.lifecycleState).toBe('rejected');
       expect(entry?.evidenceMeta).toBeNull();
+    });
+  });
+
+  describe('outbox vs direct sync emission convergence (Phase 4)', () => {
+    it('uses emitLifecycleTransition helper instead of inline PG/JSON split', () => {
+      const source = readFileSync(path.join(__dirname, 'review.ts'), 'utf8');
+      // review.ts now delegates to emitLifecycleTransition for PG/JSON routing.
+      expect(source).toContain('emitLifecycleTransition');
+      // No longer contains inline outbox or PostgresStore checks.
+      expect(source).not.toContain('outbox.enqueue');
+      expect(source).not.toContain('PostgresStore');
     });
   });
 });

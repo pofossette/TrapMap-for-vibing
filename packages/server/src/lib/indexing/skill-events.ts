@@ -19,6 +19,7 @@ import { createHash } from 'node:crypto';
 import type { LifecycleState } from '@trapmap/contracts';
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import { createLabelRepository } from '@trapmap/server/lib/labels/repository.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
@@ -719,6 +720,15 @@ export async function runSkillIndexEvent(args: {
 
     switch (action) {
       case 'upsert': {
+        // Guard: approved artifacts must have derived outputs before indexing
+        if (!artifact.latestRevision.derived) {
+          throw new AppError(
+            500,
+            'indexing_no_derived',
+            `Cannot index artifact ${artifactId}: approved artifact must have derived outputs. Run derivation before approving or re-edit the artifact.`,
+          );
+        }
+
         // Build the graph document
         const doc = await buildSkillGraphDocument(artifact, services.ai?.chat, store);
         if (!doc) {

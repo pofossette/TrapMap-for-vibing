@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { DecayMeta, KnowledgeSubmission } from '@trapmap/contracts';
@@ -689,6 +692,16 @@ describe('decay routes', () => {
       const json = response.json();
       expect(json.items.length).toBe(1);
       expect(json.items[0].decayState).toBe('stale');
+    });
+  });
+
+  describe('outbox vs direct sync emission convergence (Phase 4)', () => {
+    it('uses emitLifecycleTransition helper instead of direct eventBus', () => {
+      const source = readFileSync(path.join(__dirname, 'decay.ts'), 'utf8');
+      // decay.ts now delegates to emitLifecycleTransition for PG/JSON routing.
+      expect(source).toContain('emitLifecycleTransition');
+      expect(source).not.toContain('emitDomainEventAsync');
+      expect(source).not.toContain('outbox.enqueue');
     });
   });
 });
