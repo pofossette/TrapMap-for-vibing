@@ -15,12 +15,14 @@ import { createHash } from 'node:crypto';
 import type { AgentReviewResult, LifecycleState } from '@trapmap/contracts';
 
 import type {
+  ArtifactFilePayloadRecord,
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
   SkillShareerStore,
   StoreData,
   StoredScriptActivationPolicy,
 } from '@trapmap/server/lib/store.js';
+import { deriveAndApplyOutputs } from './derive.js';
 import { appendSkillArtifactRevision } from './model.js';
 import type { ArtifactRepository } from './repository.js';
 
@@ -37,6 +39,20 @@ function isDerivationEligible(path: string): boolean {
  */
 function computeHash(content: string): string {
   return createHash('sha256').update(content, 'utf8').digest('hex');
+}
+
+function clonePayloadsForRevision(args: {
+  artifactId: string;
+  revision: number;
+  storedAt: string;
+  payloads: ArtifactFilePayloadRecord[];
+}): ArtifactFilePayloadRecord[] {
+  return args.payloads.map((payload) => ({
+    ...payload,
+    artifactId: args.artifactId,
+    revision: args.revision,
+    storedAt: args.storedAt,
+  }));
 }
 
 /**
@@ -212,6 +228,37 @@ export async function submitSkillEdit(args: {
   // Capture previous state
   const previousRevision = artifact.latestRevision.revision;
   const previousLifecycleState = artifact.lifecycleState;
+  const nextRevision = artifact.history.length + 1;
+
+  // Capture file payloads with content for derivation before mergeEditPayload strips content
+  const filePayloadsWithContent: ArtifactFilePayloadRecord[] | undefined = editPayload.files
+    ? editPayload.files.map((f) => ({
+        artifactId: artifact.id,
+        revision: nextRevision,
+        path: f.path,
+        sha256: f.sha256,
+        sizeBytes: f.sizeBytes,
+        mediaType: f.mediaType,
+        content: f.content,
+        storedAt: submittedAt,
+      }))
+    : undefined;
+
+  // For title/labels-only edits, reuse the previous revision's stored payload bodies
+  // and copy them forward to the new revision so retrieval-grade derivation remains available.
+  const reusedFilePayloads =
+    !filePayloadsWithContent || filePayloadsWithContent.length === 0
+      ? clonePayloadsForRevision({
+          artifactId: artifact.id,
+          revision: nextRevision,
+          storedAt: submittedAt,
+          payloads:
+            data.artifactFilePayloads?.filter(
+              (payload) =>
+                payload.artifactId === artifact.id && payload.revision === previousRevision,
+            ) ?? [],
+        })
+      : [];
 
   // Merge edit payload with existing artifact
   const merged = mergeEditPayload({ artifact, editPayload });
@@ -255,6 +302,29 @@ export async function submitSkillEdit(args: {
     },
     submittedAt,
     preReview,
+  });
+
+  const revisionFilePayloads =
+    filePayloadsWithContent && filePayloadsWithContent.length > 0
+      ? filePayloadsWithContent
+      : reusedFilePayloads;
+
+  if (!data.artifactFilePayloads) {
+    data.artifactFilePayloads = [];
+  }
+  data.artifactFilePayloads = data.artifactFilePayloads.filter(
+    (payload) => !(payload.artifactId === artifact.id && payload.revision === nextRevision),
+  );
+  data.artifactFilePayloads.push(...revisionFilePayloads);
+
+  // Derive outputs for the new revision so latestRevision.derived is populated.
+  // Uses retrieval-grade derivation when file payloads with content are available,
+  // falls back to legacy derivation otherwise.
+  await deriveAndApplyOutputs({
+    artifact,
+    revision: artifact.latestRevision,
+    filePayloads: revisionFilePayloads,
+    ...(artifactRepo ? { artifactRepo } : {}),
   });
 
   // Determine lifecycle transition

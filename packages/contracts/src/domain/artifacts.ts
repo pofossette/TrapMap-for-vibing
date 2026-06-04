@@ -176,7 +176,7 @@ export const skillCapsuleSchema = z
     /** Goal or solution */
     goal: z.string().min(1).max(1000),
     /** Optional error text for error-specific capsules */
-    errorText: z.string().max(500).optional(),
+    errorText: z.string().max(500).nullable().optional(),
     /** LLM-generated contextual prefix for improved retrieval (Anthropic Contextual Retrieval) */
     contextualPrefix: z.string().max(300).optional(),
     /** Searchable labels */

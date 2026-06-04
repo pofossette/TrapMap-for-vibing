@@ -4,6 +4,20 @@
 
 TrapMap 的索引管道采用**生命周期驱动**的多适配器架构。当知识条目或 Skill 工件的生命周期状态变更时（`approved` / `deactivated`），管道自动同步三种索引：向量索引、关键词索引和图索引。索引刷新在 PG 模式下由后台出箱 worker 异步触发，不阻塞审核接口响应。
 
+Phase 4 wiring debt convergence 之后，知识侧生命周期投影统一通过一个共享入口发布：
+
+- PostgreSQL 模式：路由在提交事务后调用 `emitLifecycleTransition()`，写入 `domain_event_outbox`，由 outbox worker 异步驱动索引/审计/冲突订阅者。
+- JSON / InMemory 模式：同一入口回退到同步 `eventBus.emitDomainEventAsync()`，保持本地开发轻量路径。
+
+当前已统一到该入口的知识侧业务流包括：
+
+- `PATCH /v1/knowledge/:entryId`
+- `POST /v1/knowledge/review`
+- `POST /v1/operations/decay/batch`
+- `POST /v1/operations/knowledge/:entryId/deactivate`
+
+Skill 侧索引也新增了显式前置条件：`approved` artifact 在进入 `runSkillIndexEvent()` 前，`latestRevision.derived` 必须已存在；否则直接拒绝索引，避免把 `derived: null` 工件发布到 retrieval-visible 路径。
+
 ## 源码目录结构
 
 ```

@@ -7,3 +7,4 @@ export { registerImportCommand } from './import.js';
 export { registerActivateCommand } from './activate.js';
 export { registerMigrateCommand } from './migrate.js';
 export { registerStatusCommand } from './status.js';
+export { registerCapsuleIndexCommand } from './capsule-index.js';

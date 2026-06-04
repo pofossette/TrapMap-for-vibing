@@ -10,8 +10,8 @@ import type { FastifyPluginAsync } from 'fastify';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '@trapmap/server/lib/knowledge.js';
+import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
-import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
 import {
   requireHigherLevel,
   requirePermission,
@@ -179,20 +179,17 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
 
     // Post-commit: emit domain event
     // Note: store.transact() already updated lifecycle state; no repo.updateLifecycle() needed
-    if (previousState && nextState && previousState !== nextState) {
-      // Emit domain event — subscribers handle indexing, conflict detection, audit
-      const eventName = findTransitionEvent(previousState, nextState);
-      if (eventName) {
-        await app.skillShareer.eventBus.emitDomainEventAsync({
-          name: eventName,
-          entryId,
-          previousState,
-          nextState,
-          actorId: auth.actorId,
-          reason: 'deactivated',
-          timestamp: nowIso(),
-        });
-      }
+    if (previousState && nextState) {
+      await emitLifecycleTransition({
+        store: app.skillShareer.store,
+        eventBus: app.skillShareer.eventBus,
+        aggregateType: 'knowledge',
+        aggregateId: entryId,
+        previousState,
+        nextState,
+        actorId: auth.actorId,
+        reason: 'deactivated',
+      });
     }
 
     return knowledgeDeactivateResponseSchema.parse({ entry: updatedEntry });

@@ -490,6 +490,64 @@ describe('skill-events', () => {
       expect(docs).toHaveLength(1);
     });
 
+    it('throws when upsert action is triggered for an artifact with null derived', async () => {
+      const store = new JsonStore('/tmp/trapmap-skill-events-null-derived-test.json');
+      const now = nowIso();
+      const underivedArtifact: SkillArtifactRecord = {
+        id: 'artifact-underived',
+        teamId: null,
+        scope: 'global',
+        labels: ['test'],
+        title: 'Underived Artifact',
+        slug: 'underived-artifact',
+        requiredLevel: 0,
+        lifecycleState: 'agent-pass',
+        ownerUserId: 'user-1',
+        latestRevision: {
+          revision: 1,
+          sourceHash: 'hash-underived',
+          files: [],
+          submittedAt: now,
+          submittedByUserId: 'user-1',
+          scriptDescriptors: [],
+          derived: null,
+        },
+        history: [],
+        metadata: {
+          sourceKind: 'skill-directory',
+          submissionCount: 1,
+          resubmissionCount: 0,
+          revisionCount: 1,
+          latestSubmissionId: 'sub-1',
+          latestSubmittedAt: now,
+          latestReviewedAt: null,
+          latestDecision: null,
+        },
+        agentReview: null,
+        reviewHistory: [],
+        reviewNotes: [],
+        lifecycleHistory: [],
+        createdAt: now,
+        updatedAt: now,
+      };
+      await store.transact((data) => {
+        data.skillArtifacts.push(underivedArtifact);
+      });
+
+      await expect(
+        runSkillIndexEvent({
+          services: {
+            store,
+            data: createEmptyStoreData(),
+          },
+          artifactId: 'artifact-underived',
+          previousState: 'agent-pass',
+          nextState: 'approved',
+          reason: 'test-approve-underived',
+        }),
+      ).rejects.toThrow(/Cannot index artifact artifact-underived.*derived outputs/);
+    });
+
     it('uses the shared artifact adapter seam for remove transitions', async () => {
       const store = new JsonStore('/tmp/trapmap-skill-events-remove-test.json');
       const artifact = buildTestArtifact();

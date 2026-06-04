@@ -88,6 +88,8 @@ contracts → server (app → routes → lib) → cli → evals
 
 路由仅负责 HTTP 关注点（认证、权限、请求解析、日志），所有持久化逻辑通过 `repos.knowledge` 统一访问。
 
+知识生命周期的后置投影也已经统一：路由在事务提交后通过 `lib/lifecycle/emit-transition.ts` 发布生命周期变化。PG 模式写 `domain_event_outbox`，JSON 模式走同步 event bus。当前 `review.ts`、`knowledge.ts`、`decay.ts`、`operations/knowledge-legacy.ts` 都使用同一入口，而不是各自手写不同的投影分发逻辑。
+
 ### 2.3 业务逻辑 — `src/lib/`
 
 这是系统最复杂的部分。

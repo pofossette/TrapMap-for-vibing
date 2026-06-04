@@ -149,6 +149,18 @@
 
 > 源码：`packages/server/src/routes/operations.ts`（注册子路由）
 
+## Capsule-Index 运维
+
+| 方法 | 路由 | 请求契约 | 响应契约 | 用途 |
+|------|------|----------|----------|------|
+| `POST` | `/v1/operations/capsule-index/rebuild` | `{ mode: 'full' }` 或 `{ mode: 'artifact', artifactId }` | `{ mode, stats? / result?, rebuiltAt }` | 重建 capsule 索引（全量或按 artifact） |
+| `GET` | `/v1/operations/capsule-index/health` | 无 | `{ sourceArtifactCount, report: { missingKeywords, missingEmbeddings, failedKeywords, failedEmbeddings, orphanKeywords, orphanEmbeddings }, reportedAt }` | 健康对账（只读） |
+| `POST` | `/v1/operations/capsule-index/cleanup-orphans` | 无 | `{ sourceArtifactCount, removed, cleanedAt }` | 清理孤立索引行 |
+
+> 源码：`packages/server/src/routes/operations/capsule-index.ts`
+>
+> **CLI 暴露**: `trapmap operations capsule-index rebuild|health|cleanup-orphans`。详见 CLI 帮助。
+
 ## 使用统计
 
 | 方法 | 路由 | 请求契约 | 响应契约 | 用途 |

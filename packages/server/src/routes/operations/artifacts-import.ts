@@ -8,12 +8,8 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import {
-  deriveFromPayloads,
-  deriveSkillArtifactOutputs,
-} from '@trapmap/server/lib/artifacts/derive.js';
+import { deriveAndApplyOutputs } from '@trapmap/server/lib/artifacts/derive.js';
 import { createSkillArtifactRecord } from '@trapmap/server/lib/artifacts/model.js';
-import { applyDerivedArtifactOutputs } from '@trapmap/server/lib/artifacts/model.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { createImportedEntry, normalizeArtifactBundle } from '@trapmap/server/lib/import-export.js';
@@ -223,25 +219,13 @@ export const artifactsImportRoutes: FastifyPluginAsync = async (app) => {
           data.artifactFilePayloads.push(...normalized.filePayloads);
 
           // Derive outputs immediately after persistence (IMEX-04, COMP-02)
-          // Prefer deriveFromPayloads for retrieval-grade results; fallback to legacy
-          const derived =
-            normalized.filePayloads.length > 0
-              ? await deriveFromPayloads(normalized.filePayloads, {
-                  artifactId: artifact.id,
-                  labels: artifact.labels,
-                  title: artifact.title,
-                  scope: artifact.scope,
-                  requiredLevel: artifact.requiredLevel,
-                  chat: app.skillShareer.ai.chat,
-                })
-              : deriveSkillArtifactOutputs(artifact, artifact.latestRevision);
-          await applyDerivedArtifactOutputs(
-            data,
+          await deriveAndApplyOutputs({
             artifact,
-            artifact.latestRevision,
-            derived,
-            app.skillShareer.artifactRepo,
-          );
+            revision: artifact.latestRevision,
+            filePayloads: normalized.filePayloads,
+            chat: app.skillShareer.ai.chat,
+            artifactRepo: app.skillShareer.artifactRepo,
+          });
 
           // Record audit event (T-13-04 mitigation)
           const auditEvent = createAuditEvent({

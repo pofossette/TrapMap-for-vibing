@@ -332,6 +332,61 @@ describe('skill edit routes with fixtures (Phase 2B)', () => {
     });
   });
 
+  // ---------------------------------------------------------------------------
+  // Phase 1 regression: skill-edit missing derived outputs
+  // After submitting an edit, latestRevision.derived is always null because
+  // appendSkillArtifactRevision() sets derived: null and submitSkillEdit()
+  // never calls deriveFromPayloads()/deriveSkillArtifactOutputs().
+  // This test documents the expected (non-null) behaviour; it will FAIL
+  // against the current implementation and serve as the regression marker.
+  // ---------------------------------------------------------------------------
+  describe('Phase 1 regression — derived outputs after edit', () => {
+    it('populates latestRevision.derived after edit submission', async () => {
+      const { app, authToken } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact-derived-regression',
+            title: 'Derived Regression',
+          });
+        },
+        {
+          permissions: ['knowledge:submit'],
+          roleTemplate: 'user',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/artifact-derived-regression/edit',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          artifactId: 'artifact-derived-regression',
+          title: 'Updated Derived Title',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json() as {
+        artifact: {
+          latestRevision: number;
+          history: Array<{ revision: number; derived: unknown }>;
+        };
+      };
+
+      // The regression: derived should be populated after an edit
+      // In the contract schema, latestRevision is a number; the full revision
+      // with derived data lives in the history array.
+      const latestRev = body.artifact.history.find(
+        (r) => r.revision === body.artifact.latestRevision,
+      );
+      expect(latestRev).toBeDefined();
+      expect(latestRev!.derived).toBeDefined();
+      expect(latestRev!.derived).not.toBeNull();
+
+      await app.close();
+    });
+  });
+
   describe('history endpoint', () => {
     it('returns 401 for history without authentication', async () => {
       const { app } = await buildTestServer((data, auth) => {

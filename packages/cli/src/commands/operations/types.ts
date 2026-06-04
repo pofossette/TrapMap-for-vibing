@@ -10,4 +10,5 @@ export interface OperationsCommandOptions {
   allowActivate: boolean;
   allowStatus: boolean;
   allowMigrate: boolean;
+  allowCapsuleIndex: boolean;
 }

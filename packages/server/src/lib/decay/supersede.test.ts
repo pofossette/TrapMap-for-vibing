@@ -91,6 +91,7 @@ describe('supersedeEntry', () => {
     expect(result.decayMeta).not.toBeNull();
     expect(result.decayMeta!.supersededById).toBe('knowledge_2');
     expect(result.decayMeta!.decayState).toBe('superseded');
+    expect(result.lifecycleState).toBe('deactivated');
 
     // Verify lifecycle event was created
     expect(result.lifecycleHistory).toHaveLength(1);

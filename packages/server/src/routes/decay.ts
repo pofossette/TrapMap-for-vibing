@@ -16,13 +16,14 @@ import {
   decayEntryListRequestSchema,
   decayEntryListResponseSchema,
 } from '@trapmap/contracts';
+import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 
 import { executeBatchOperation, planBatchOperation } from '@trapmap/server/lib/decay/batch.js';
 import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
 import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
-import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
+import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -274,20 +275,16 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
     for (const record of mutatedRecords) {
       const previousState = 'approved'; // Only approved entries can be batch-mutated
       const nextState = record.lifecycleState;
-      if (previousState !== nextState) {
-        const eventName = findTransitionEvent(previousState, nextState);
-        if (eventName) {
-          await app.skillShareer.eventBus.emitDomainEventAsync({
-            name: eventName,
-            entryId: record.id,
-            previousState,
-            nextState,
-            actorId: auth.actorId,
-            reason: `batch-${body.action}`,
-            timestamp: nowIso(),
-          });
-        }
-      }
+      await emitLifecycleTransition({
+        store: app.skillShareer.store,
+        eventBus: app.skillShareer.eventBus,
+        aggregateType: 'knowledge',
+        aggregateId: record.id,
+        previousState: previousState as LifecycleState,
+        nextState,
+        actorId: auth.actorId,
+        reason: `batch-${body.action}`,
+      });
     }
 
     // Get the plan for response

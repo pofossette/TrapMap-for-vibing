@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { buildServer } from '@trapmap/server/app.js';
@@ -284,6 +287,16 @@ describe('operations routes', () => {
 
       // Embedding cache should also be cleared
       expect(entry?.embeddingCache).toBeNull();
+    });
+  });
+
+  describe('outbox vs direct sync emission convergence (Phase 4)', () => {
+    it('uses emitLifecycleTransition helper instead of direct eventBus', () => {
+      const source = readFileSync(path.join(__dirname, 'knowledge-legacy.ts'), 'utf8');
+      // knowledge-legacy.ts now delegates to emitLifecycleTransition for PG/JSON routing.
+      expect(source).toContain('emitLifecycleTransition');
+      expect(source).not.toContain('emitDomainEventAsync');
+      expect(source).not.toContain('outbox.enqueue');
     });
   });
 });

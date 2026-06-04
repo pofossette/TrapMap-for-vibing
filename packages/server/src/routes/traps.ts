@@ -10,6 +10,7 @@ import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/look
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
+import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -173,6 +174,17 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       entryId: trapId,
       replacementId: body.replacementId,
       actorId: auth.actorId,
+    });
+
+    await emitLifecycleTransition({
+      store: app.skillShareer.store,
+      eventBus: app.skillShareer.eventBus,
+      aggregateType: 'knowledge',
+      aggregateId: trapId,
+      previousState: 'approved',
+      nextState: 'deactivated',
+      actorId: auth.actorId,
+      reason: 'superseded',
     });
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {

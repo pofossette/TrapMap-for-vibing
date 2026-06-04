@@ -535,4 +535,147 @@ describe('trap routes', () => {
       expect(response.statusCode).toBe(404);
     });
   });
+
+  describe('trap supersede', () => {
+    let sessionId: string;
+    const userId = 'user_trap_supersede';
+    const teamId = 'team_trap_supersede';
+    let trapId: string;
+    let replacementId: string;
+
+    beforeEach(async () => {
+      await store.transact(async (data) => {
+        if (!data.counters) data.counters = {};
+        data.counters.user = 1;
+
+        data.users.push({
+          id: userId,
+          handle: 'trap_superseder',
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        data.teams.push({
+          id: teamId,
+          name: 'Trap Supersede Team',
+          slug: 'trap-supersede-team',
+          description: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        data.memberships.push({
+          id: 'membership_trap_supersede',
+          userId,
+          teamId,
+          roleTemplate: 'admin',
+          securityLevel: 10,
+          permissions: ['knowledge:update'],
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        const sessionToken = `session_trap_supersede_${Date.now()}`;
+        data.sessions.push({
+          id: `session_trap_supersede_${Date.now()}`,
+          userId,
+          tokenHash: hashSecret(sessionToken),
+          activeTeamId: teamId,
+          subjectType: 'user',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        });
+
+        sessionId = sessionToken;
+        trapId = 'trap_supersede_source';
+        replacementId = 'trap_supersede_replacement';
+
+        const submittedAt = nowIso();
+        const makeTrap = (id: string, shortcut: string) => ({
+          id,
+          teamId: null,
+          scope: 'global' as const,
+          labels: ['trap', 'supersede'],
+          shortcut,
+          detail: `${shortcut} detail`,
+          requiredLevel: 0,
+          lifecycleState: 'approved' as const,
+          ownerUserId: userId,
+          latestRevision: {
+            revision: 1,
+            submittedAt,
+            submittedByUserId: userId,
+            shortcut,
+            detail: `${shortcut} detail`,
+            labels: ['trap', 'supersede'],
+            reviewNotes: [],
+          },
+          history: [
+            {
+              revision: 1,
+              submittedAt,
+              submittedByUserId: userId,
+              shortcut,
+              detail: `${shortcut} detail`,
+              labels: ['trap', 'supersede'],
+              reviewNotes: [],
+            },
+          ],
+          metadata: {
+            scopeLabel: 'global-constraint',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: `submission_${id}`,
+            latestSubmittedAt: submittedAt,
+            latestReviewedAt: submittedAt,
+            latestDecision: 'approve' as const,
+          },
+          latestSubmissionId: `submission_${id}`,
+          submissionHistory: [],
+          agentReview: null,
+          reviewHistory: [],
+          reviewNotes: [],
+          lifecycleHistory: [],
+          embeddingCache: null,
+          indexState: null,
+          decayMeta: null,
+          createdAt: submittedAt,
+          updatedAt: submittedAt,
+        });
+
+        data.knowledgeEntries.push(
+          makeTrap(trapId, 'Superseded Trap'),
+          makeTrap(replacementId, 'Replacement Trap'),
+        );
+      });
+    });
+
+    it('transitions the superseded trap to deactivated', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/v1/traps/${trapId}/supersede`,
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+        payload: {
+          replacementId,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.entry.id).toBe(trapId);
+      expect(body.entry.lifecycleState).toBe('deactivated');
+
+      const snapshot = await store.snapshot();
+      const updated = snapshot.knowledgeEntries.find((entry) => entry.id === trapId);
+      expect(updated?.lifecycleState).toBe('deactivated');
+      expect(updated?.decayMeta?.supersededById).toBe(replacementId);
+    });
+  });
 });
