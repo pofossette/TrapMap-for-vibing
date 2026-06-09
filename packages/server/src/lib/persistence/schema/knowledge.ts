@@ -217,6 +217,26 @@ export const knowledgeEntries = pgTable(
       createdAt: string;
       revision: number;
     } | null>(),
+
+    // -- DiveLog columns (Round 11) -------------------------------------------
+
+    /** Stable DiveLog document identifier (e.g., divelog_abc123) */
+    diveLogId: text('dive_log_id'),
+    /** Human-readable dive site name (e.g., "Great Barrier Reef - Cod Hole") */
+    diveSite: text('dive_site'),
+    /** Slang / jargon level the raw content was authored in */
+    slangLevel: text('slang_level'),
+    /** Original raw content submitted by the user before template normalisation */
+    rawContent: text('raw_content'),
+    /** Structured DiveLog blocks produced by dive_summary normalisation */
+    parsedBlocks: jsonb('parsed_blocks').$type<Record<string, unknown>[] | null>(),
+    /** Template ID used for raw_content → detail normalisation (null if none applied) */
+    templateId: text('template_id'),
+    /** Whether this entry is pinned in the dive-log UI */
+    pinned: integer('pinned').notNull().default(0),
+    /** Whether this entry has been archived */
+    archived: integer('archived').notNull().default(0),
+
     /** Record creation timestamp */
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     /** Record update timestamp */
@@ -227,6 +247,7 @@ export const knowledgeEntries = pgTable(
     index('idx_knowledge_entries_team').on(table.teamId),
     index('idx_knowledge_entries_scope_level').on(table.scope, table.requiredLevel),
     index('idx_knowledge_entries_owner').on(table.ownerUserId),
+    index('idx_knowledge_entries_dive_log_id').on(table.diveLogId),
     check('ck_knowledge_entries_scope', sql`${table.scope} IN ('global', 'project')`),
     check(
       'ck_knowledge_entries_lifecycle_state',
