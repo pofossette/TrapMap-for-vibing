@@ -10,16 +10,29 @@
 import {
   type FeedbackBatchItem,
   type FeedbackListItem,
+  type FeedbackRemediationQueueItem,
   type QualityScore,
   feedbackBatchRequestSchema,
   feedbackBatchResponseSchema,
+  feedbackRemediationCompleteRequestSchema,
+  feedbackRemediationCompleteResponseSchema,
+  feedbackRemediationDetailResponseSchema,
+  feedbackRemediationQueueResponseSchema,
   feedbackListRequestSchema,
   feedbackListResponseSchema,
   feedbackStatsResponseSchema,
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
+import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
+import {
+  FEEDBACK_REMEDIATION_THRESHOLD,
+  computeFeedbackRemediationState,
+  getActiveEntryFeedback,
+} from '@trapmap/server/lib/feedback/remediation.js';
+import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
+import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
 import {
   checkLifecycleTriggers,
   getLifecycleTriggerRules,
@@ -75,6 +88,95 @@ function computeQualityScore(feedback: FeedbackQueueRecord[]): QualityScore {
     qualityScore: Math.round(score * 100) / 100,
     lastFeedbackAt,
   };
+}
+
+async function buildRemediationQueueItems(app: Parameters<FastifyPluginAsync>[0]) {
+  const {
+    feedback: feedbackRepo,
+    knowledge: knowledgeRepo,
+    artifact: artifactRepo,
+  } = app.skillShareer.repos;
+  const now = new Date();
+  const snapshot = await app.skillShareer.store.snapshot();
+  const allFeedback = await feedbackRepo.listByFilter({});
+  const grouped = new Map<string, FeedbackQueueRecord[]>();
+
+  for (const record of allFeedback) {
+    const existing = grouped.get(record.entryId) ?? [];
+    existing.push(record);
+    grouped.set(record.entryId, existing);
+  }
+
+  const items: FeedbackRemediationQueueItem[] = [];
+
+  for (const [entryId, entryFeedback] of grouped) {
+    const remediation = computeFeedbackRemediationState(
+      entryFeedback,
+      entryId,
+      FEEDBACK_REMEDIATION_THRESHOLD,
+    );
+    if (!remediation) continue;
+
+    const knowledgeEntry = await knowledgeRepo.getById(entryId);
+    const skillArtifact = knowledgeEntry ? null : await artifactRepo.getById(entryId);
+    if (!knowledgeEntry && !skillArtifact) continue;
+
+    const entryType = knowledgeEntry ? 'trap' : 'skill';
+    const title = knowledgeEntry?.shortcut ?? skillArtifact?.title ?? 'unknown';
+    const unresolved = getActiveEntryFeedback(entryFeedback, entryId);
+    const recentFeedback: FeedbackListItem[] = [...entryFeedback]
+      .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
+      .slice(0, 10)
+      .map((f) => ({
+        id: f.id,
+        entryId: f.entryId,
+        entryType: f.entryType,
+        entryShortcut: title,
+        problemType: f.problemType,
+        description: f.description,
+        context: f.context,
+        submittedAt: f.submittedAt,
+        submittedBy: {
+          id: f.submittedByUserId,
+          handle: f.submittedByHandle,
+          securityLevel: 0,
+        },
+        status: f.status,
+        ageDays: Math.round(computeAgeDays(f.submittedAt, now)),
+        adminNotes: f.adminNotes,
+      }));
+
+    items.push({
+      entryId,
+      entryType,
+      title,
+      remediation,
+      unresolvedFeedbackCount: unresolved.length,
+      sourceSnapshot: knowledgeEntry
+        ? {
+            trapDetail: knowledgeEntry.detail,
+          }
+        : {
+            skillRevision: skillArtifact?.latestRevision.revision ?? null,
+            skillProfileSummary: skillArtifact?.latestRevision.derived?.profile?.summary ?? null,
+            skillCapsules:
+              skillArtifact?.latestRevision.derived?.capsules.map((capsule) => ({
+                capsuleId: capsule.capsuleId,
+                problem: capsule.problem,
+                content: capsule.content,
+              })) ?? [],
+          },
+      recentFeedback,
+    });
+  }
+
+  items.sort((a, b) => {
+    const aOpened = a.remediation.openedAt ?? '';
+    const bOpened = b.remediation.openedAt ?? '';
+    return bOpened.localeCompare(aOpened);
+  });
+
+  return items;
 }
 
 export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
@@ -185,6 +287,32 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
       items: limitedItems,
       total,
     });
+  });
+
+  app.get('/v1/operations/feedback/remediation', async (request, _reply) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:update');
+
+    const items = await buildRemediationQueueItems(app);
+
+    return feedbackRemediationQueueResponseSchema.parse({
+      items,
+      total: items.length,
+    });
+  });
+
+  app.get('/v1/operations/feedback/remediation/:entryId', async (request, _reply) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:update');
+
+    const { entryId } = request.params as { entryId: string };
+    const items = await buildRemediationQueueItems(app);
+    const item = items.find((candidate) => candidate.entryId === entryId);
+    if (!item) {
+      throw new AppError(404, 'not_found', 'Remediation item not found');
+    }
+
+    return feedbackRemediationDetailResponseSchema.parse({ item });
   });
 
   /**
@@ -396,6 +524,83 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
       totalEligible,
       totalIneligible,
       appliedAt,
+    });
+  });
+
+  app.post('/v1/operations/feedback/remediation/:entryId/complete', async (request, _reply) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:update');
+
+    const { entryId } = request.params as { entryId: string };
+    const body = feedbackRemediationCompleteRequestSchema.parse(request.body);
+    const appliedAt = nowIso();
+    const { feedback: feedbackRepo } = app.skillShareer.repos;
+    const all = await feedbackRepo.listByEntry(entryId);
+    const unresolved = getActiveEntryFeedback(all, entryId);
+
+    if (unresolved.length < FEEDBACK_REMEDIATION_THRESHOLD) {
+      throw new AppError(409, 'not_escalated', 'Entry is not currently in remediation queue');
+    }
+
+    const entryType = unresolved[0]!.entryType;
+
+    if (entryType === 'trap') {
+      const entry = await app.skillShareer.repos.knowledge.getById(entryId);
+      if (!entry) {
+        throw new AppError(404, 'not_found', 'Knowledge entry not found');
+      }
+
+      await runKnowledgeIndexEvent({
+        services: {
+          store: app.skillShareer.store,
+          data: await app.skillShareer.store.snapshot(),
+          ai: { chat: app.skillShareer.ai.chat },
+          graphQueryBackend: app.skillShareer.graphQueryBackend,
+        },
+        entryId,
+        previousState: entry.lifecycleState,
+        nextState: entry.lifecycleState,
+        reason: 'updated',
+        registry: app.skillShareer.adapterRegistry,
+      });
+    } else {
+      const artifact = await app.skillShareer.repos.artifact.getById(entryId);
+      if (!artifact) {
+        throw new AppError(404, 'not_found', 'Skill artifact not found');
+      }
+
+      await runSkillIndexEvent({
+        services: {
+          store: app.skillShareer.store,
+          data: await app.skillShareer.store.snapshot(),
+          ai: { chat: app.skillShareer.ai.chat },
+          graphQueryBackend: app.skillShareer.graphQueryBackend,
+        },
+        artifactId: entryId,
+        previousState: artifact.lifecycleState,
+        nextState: artifact.lifecycleState,
+        reason: 'updated',
+      });
+    }
+
+    for (const feedback of unresolved) {
+      await feedbackRepo.update(feedback.id, {
+        status: 'resolved',
+        adminNotes: body.notes,
+        resolvedAt: appliedAt,
+        resolvedByUserId: auth.user?.id ?? null,
+        remediationStatus: 'ready-to-reindex',
+        remediationResolvedAt: appliedAt,
+        remediationResolvedByUserId: auth.user?.id ?? null,
+      });
+    }
+
+    return feedbackRemediationCompleteResponseSchema.parse({
+      entryId,
+      entryType,
+      resolvedFeedbackIds: unresolved.map((feedback) => feedback.id),
+      resolvedCount: unresolved.length,
+      resolvedAt: appliedAt,
     });
   });
 

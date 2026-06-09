@@ -495,6 +495,25 @@ new → triaged → resolved
 
 > **Round 6 更新**：反馈已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表。`feedback_records` 表包含所有反馈主字段，`feedback_custom_answers` 表存储自定义问答对。`entryType`、`problemType`、`status` 已补齐 `CHECK` 约束。索引覆盖 `entryId`、`entryType`、`status`、`problemType`、`submittedByUserId` 维度。
 
+> **2026-06-09 更新**：在原始 feedback 历史之外，系统会按 entry 聚合出 `FeedbackRemediationState`。这是读取期派生状态，不替代原始 feedback 事实。当前阈值为同一 `entryId` 上 `status in ('new','triaged')` 的未解决反馈数达到 `10`。
+
+### FeedbackRemediationState（反馈修复状态）
+
+附加在 `KnowledgeEntry` 与 `SkillArtifact` 响应上的派生治理状态。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `status` | `'none' \| 'pending-human-review' \| 'in-remediation' \| 'ready-to-reindex'` | 当前 remediation 状态 |
+| `triggeredByFeedbackCount` | number | 当前触发 suppression 的未解决反馈数 |
+| `threshold` | number | 当前阈值，现为 `10` |
+| `suppressedFromRetrieval` | boolean | 是否在检索时被硬过滤 |
+| `suppressedFromIndex` | boolean | 是否应视为索引层被抑制（当前主要作为治理语义字段） |
+| `activeFeedbackIds` | EntityId[] | 当前仍参与 remediation 的 feedback ID 列表 |
+| `openedAt` | ISO8601? | remediation 首次开启时间 |
+| `openedByUserId` | EntityId? | remediation 开启操作者 |
+| `resolvedAt` | ISO8601? | remediation 完成时间 |
+| `resolvedByUserId` | EntityId? | remediation 完成操作者 |
+
 > 源码：`packages/contracts/src/domain/feedback.ts`
 
 ---

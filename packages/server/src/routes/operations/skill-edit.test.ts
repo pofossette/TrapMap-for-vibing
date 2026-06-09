@@ -330,6 +330,66 @@ describe('skill edit routes with fixtures (Phase 2B)', () => {
       expect(response.statusCode).toBe(403);
       await app.close();
     });
+
+    it('marks escalated skill feedback as in-remediation after edit', async () => {
+      const { app, authToken, store } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'artifact-remediation-edit',
+            title: 'Artifact Remediation Edit',
+          });
+          for (let i = 1; i <= 10; i++) {
+            data.feedbackQueue.push({
+              id: `feedback_edit_${i}`,
+              entryId: 'artifact-remediation-edit',
+              entryType: 'skill',
+              problemType: 'incorrect',
+              description: `Escalated edit feedback ${i}`,
+              context: null,
+              querySeed: null,
+              customAnswers: null,
+              submittedAt: new Date(Date.now() - i * 60 * 1000).toISOString(),
+              submittedByUserId: auth.userId,
+              submittedByHandle: `fixture-${auth.userId}`,
+              status: 'new',
+              adminNotes: null,
+              resolvedAt: null,
+              resolvedByUserId: null,
+              triggeredTransition: null,
+              remediationStatus: null,
+              remediationOpenedAt: null,
+              remediationOpenedByUserId: null,
+              remediationResolvedAt: null,
+              remediationResolvedByUserId: null,
+              createdAt: nowIso(),
+              updatedAt: nowIso(),
+            });
+          }
+        },
+        {
+          permissions: ['knowledge:submit'],
+          roleTemplate: 'user',
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/artifact-remediation-edit/edit',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: { artifactId: 'artifact-remediation-edit', title: 'Updated Title' },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const snapshot = await store.snapshot();
+      const feedback = snapshot.feedbackQueue.filter(
+        (record) => record.entryId === 'artifact-remediation-edit',
+      );
+      expect(feedback).toHaveLength(10);
+      expect(feedback.every((record) => record.remediationStatus === 'in-remediation')).toBe(true);
+
+      await app.close();
+    });
   });
 
   // ---------------------------------------------------------------------------

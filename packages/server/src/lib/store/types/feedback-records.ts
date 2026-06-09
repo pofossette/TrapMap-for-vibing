@@ -17,6 +17,11 @@ export interface FeedbackQueueRecord {
   resolvedAt: string | null;
   resolvedByUserId: string | null;
   triggeredTransition: string | null;
+  remediationStatus?: 'pending-human-review' | 'in-remediation' | 'ready-to-reindex' | null;
+  remediationOpenedAt?: string | null;
+  remediationOpenedByUserId?: string | null;
+  remediationResolvedAt?: string | null;
+  remediationResolvedByUserId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

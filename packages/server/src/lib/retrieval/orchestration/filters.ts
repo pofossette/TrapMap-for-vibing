@@ -19,6 +19,7 @@ import type { BoundaryContext, RetrievalQuery } from '@trapmap/contracts';
 import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
 import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
 import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
+import { isSuppressedByFeedback } from '@trapmap/server/lib/feedback/remediation.js';
 import {
   extractGovernanceContext,
   isGovernanceEligible,
@@ -66,6 +67,10 @@ export function isEntryEligible(
   auth: ResolvedAuthContext,
   filters: RetrievalQuery['filters'],
 ): boolean {
+  if (isSuppressedByFeedback(entry)) {
+    return false;
+  }
+
   const context = extractGovernanceContext(auth);
   const entity = toGovernedEntity(entry);
   const governanceFilters = {

@@ -2393,6 +2393,65 @@ describe('retrieval visibility main link tests (Phase 2)', () => {
 
       await app.close();
     });
+
+    it('does NOT retrieve approved knowledge entry suppressed by escalated feedback', async () => {
+      const { app, authToken, store } = await buildTestServer((data, auth) => {
+        seedApprovedKnowledgeEntry(data, auth.userId, {
+          id: 'knowledge_suppressed_test',
+          shortcut: 'Suppressed Trap Entry',
+          detail: 'This approved trap should be hidden after feedback escalation',
+          labels: ['suppressed'],
+        });
+      });
+
+      await store.transact((data) => {
+        for (let i = 1; i <= 10; i++) {
+          data.feedbackQueue.push({
+            id: `feedback_trap_${i}`,
+            entryId: 'knowledge_suppressed_test',
+            entryType: 'trap',
+            problemType: 'outdated',
+            description: `Suppression feedback ${i}`,
+            context: null,
+            querySeed: null,
+            customAnswers: null,
+            submittedAt: new Date(Date.now() - i * 60 * 1000).toISOString(),
+            submittedByUserId: data.users[0]!.id,
+            submittedByHandle: data.users[0]!.handle,
+            status: 'new',
+            adminNotes: null,
+            resolvedAt: null,
+            resolvedByUserId: null,
+            triggeredTransition: null,
+            remediationStatus: null,
+            remediationOpenedAt: null,
+            remediationOpenedByUserId: null,
+            remediationResolvedAt: null,
+            remediationResolvedByUserId: null,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          });
+        }
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          seed: 'Suppressed Trap Entry',
+          mode: 'hybrid',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      const allResults = [...json.globalConstraints, ...json.projectKnowledge];
+      const found = allResults.find((r: any) => r.shortcut === 'Suppressed Trap Entry');
+      expect(found).toBeUndefined();
+
+      await app.close();
+    });
   });
 
   describe('approved artifact retrieval via skill lookup', () => {
@@ -2513,6 +2572,66 @@ describe('retrieval visibility main link tests (Phase 2)', () => {
       expect(response.statusCode).toBe(200);
       const json = response.json();
       const found = json.matches.find((m: any) => m.artifactId === 'skill-draft-test');
+      expect(found).toBeUndefined();
+
+      await app.close();
+    });
+
+    it('does NOT return skill artifact suppressed by escalated feedback in search-by-content', async () => {
+      const { app, authToken, store } = await buildTestServer(
+        (data, auth) => {
+          seedApprovedSkillArtifact(data, auth.userId, {
+            id: 'skill-suppressed-test',
+            title: 'Suppressed Skill Artifact',
+            labels: ['suppressed'],
+          });
+        },
+        {
+          permissions: ['knowledge:search'],
+          roleTemplate: 'user',
+        },
+      );
+
+      await store.transact((data) => {
+        for (let i = 1; i <= 10; i++) {
+          data.feedbackQueue.push({
+            id: `feedback_skill_${i}`,
+            entryId: 'skill-suppressed-test',
+            entryType: 'skill',
+            problemType: 'incorrect',
+            description: `Suppression feedback ${i}`,
+            context: null,
+            querySeed: null,
+            customAnswers: null,
+            submittedAt: new Date(Date.now() - i * 60 * 1000).toISOString(),
+            submittedByUserId: data.users[0]!.id,
+            submittedByHandle: data.users[0]!.handle,
+            status: 'new',
+            adminNotes: null,
+            resolvedAt: null,
+            resolvedByUserId: null,
+            triggeredTransition: null,
+            remediationStatus: null,
+            remediationOpenedAt: null,
+            remediationOpenedByUserId: null,
+            remediationResolvedAt: null,
+            remediationResolvedByUserId: null,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          });
+        }
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/skills/search-by-content',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: { text: 'Suppressed Skill Artifact' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      const found = json.matches.find((m: any) => m.artifactId === 'skill-suppressed-test');
       expect(found).toBeUndefined();
 
       await app.close();

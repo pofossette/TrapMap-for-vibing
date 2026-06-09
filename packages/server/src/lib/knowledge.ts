@@ -566,6 +566,7 @@ export function toKnowledgeEntry(data: UserLookupContext, record: KnowledgeRecor
     lifecycleHistory: toLifecycleEvent(data, record, record.requiredLevel),
     evidenceMeta: record.evidenceMeta,
     maintenanceMeta,
+    remediation: record.remediation ?? null,
     boundary: record.boundary,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,

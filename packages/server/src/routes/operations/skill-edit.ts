@@ -10,6 +10,10 @@ import { getSkillHistory, submitSkillEdit } from '@trapmap/server/lib/artifacts/
 import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
+import {
+  FEEDBACK_REMEDIATION_THRESHOLD,
+  getActiveEntryFeedback,
+} from '@trapmap/server/lib/feedback/remediation.js';
 import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
 import { runPreReview } from '@trapmap/server/lib/pre-review.js';
 import { requirePermission, requireTeamAccess } from '@trapmap/server/lib/rbac.js';
@@ -65,6 +69,7 @@ export const skillEditRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const submittedAt = nowIso();
+    const { feedback: feedbackRepo } = app.skillShareer.repos;
 
     // Submit the edit within a transaction
     const result = await app.skillShareer.store.transact(async (data) => {
@@ -125,6 +130,18 @@ export const skillEditRoutes: FastifyPluginAsync = async (app) => {
         newRevision: result.artifact.latestRevision.revision,
       },
     });
+
+    const entryFeedback = await feedbackRepo.listByEntry(artifactId);
+    const unresolved = getActiveEntryFeedback(entryFeedback, artifactId);
+    if (unresolved.length >= FEEDBACK_REMEDIATION_THRESHOLD) {
+      for (const feedback of unresolved) {
+        await feedbackRepo.update(feedback.id, {
+          remediationStatus: 'in-remediation',
+          remediationOpenedAt: feedback.remediationOpenedAt ?? submittedAt,
+          remediationOpenedByUserId: feedback.remediationOpenedByUserId ?? editorUserId,
+        });
+      }
+    }
 
     // Trigger skill graph indexing AFTER the transaction commits (P36-02)
     // Delegate to shared seam: determineSkillIndexAction() decides upsert/remove/noop

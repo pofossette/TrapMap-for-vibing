@@ -12,6 +12,7 @@ import {
   securityLevelSchema,
 } from './common.js';
 import { evidenceMetaSchema } from './evidence.js';
+import { feedbackRemediationStateSchema } from './feedback.js';
 import { maintenanceMetaSchema } from './maintenance.js';
 
 export const reviewRiskSchema = z.enum(['low', 'medium', 'high']);
@@ -124,6 +125,8 @@ export const knowledgeEntrySchema = z
     evidenceMeta: evidenceMetaSchema.nullable().default(null),
     /** Maintenance metadata for ownership and review-due tracking (MAINT-01) */
     maintenanceMeta: maintenanceMetaSchema.nullable().default(null),
+    /** Active remediation/suppression state derived from unresolved feedback */
+    remediation: feedbackRemediationStateSchema.nullable().default(null),
   })
   .merge(auditMetadataSchema);
 

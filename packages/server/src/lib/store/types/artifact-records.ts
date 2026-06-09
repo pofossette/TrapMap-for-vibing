@@ -2,6 +2,7 @@ import type {
   Boundary,
   DecayMeta,
   EvidenceMeta,
+  FeedbackRemediationState,
   LifecycleState,
   Scope,
   ScriptActivationPolicy,
@@ -175,6 +176,7 @@ export interface SkillArtifactRecord {
   decayMeta: DecayMeta | null;
   evidenceMeta: EvidenceMeta | null;
   maintenanceMeta: MaintenanceMetaRecord | null;
+  remediation?: FeedbackRemediationState | null;
   createdAt: string;
   updatedAt: string;
 }

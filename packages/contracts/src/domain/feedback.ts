@@ -78,6 +78,26 @@ export const feedbackRecordSchema = feedbackSubmissionSchema.extend({
 });
 
 /**
+ * Shared remediation state derived from unresolved feedback.
+ * This is separate from raw feedback history and can be attached to trap/skill records
+ * or emitted by admin remediation queue endpoints.
+ */
+export const feedbackRemediationStateSchema = z
+  .object({
+    status: z.enum(['none', 'pending-human-review', 'in-remediation', 'ready-to-reindex']),
+    triggeredByFeedbackCount: z.number().int().min(0),
+    threshold: z.number().int().min(1),
+    suppressedFromRetrieval: z.boolean(),
+    suppressedFromIndex: z.boolean(),
+    activeFeedbackIds: z.array(entityIdSchema),
+    openedAt: isoTimestampSchema.nullable(),
+    openedByUserId: entityIdSchema.nullable(),
+    resolvedAt: isoTimestampSchema.nullable(),
+    resolvedByUserId: entityIdSchema.nullable(),
+  })
+  .strict();
+
+/**
  * Response schema for feedback submission endpoint.
  */
 export const feedbackResponseSchema = z
@@ -279,6 +299,66 @@ export const feedbackStatsResponseSchema = z
   })
   .strict();
 
+export const feedbackRemediationSourceSnapshotSchema = z
+  .object({
+    trapDetail: z.string().nullable().optional(),
+    skillRevision: z.number().int().min(1).nullable().optional(),
+    skillProfileSummary: z.string().nullable().optional(),
+    skillCapsules: z
+      .array(
+        z
+          .object({
+            capsuleId: entityIdSchema,
+            problem: z.string().min(1),
+            content: z.string().min(1),
+          })
+          .strict(),
+      )
+      .optional(),
+  })
+  .strict();
+
+export const feedbackRemediationQueueItemSchema = z
+  .object({
+    entryId: entityIdSchema,
+    entryType: z.enum(['trap', 'skill']),
+    title: z.string().min(1),
+    remediation: feedbackRemediationStateSchema,
+    unresolvedFeedbackCount: z.number().int().min(0),
+    sourceSnapshot: feedbackRemediationSourceSnapshotSchema,
+    recentFeedback: z.array(feedbackListItemSchema),
+  })
+  .strict();
+
+export const feedbackRemediationQueueResponseSchema = z
+  .object({
+    items: z.array(feedbackRemediationQueueItemSchema),
+    total: z.number().int().min(0),
+  })
+  .strict();
+
+export const feedbackRemediationDetailResponseSchema = z
+  .object({
+    item: feedbackRemediationQueueItemSchema,
+  })
+  .strict();
+
+export const feedbackRemediationCompleteRequestSchema = z
+  .object({
+    notes: z.string().min(1).max(1000),
+  })
+  .strict();
+
+export const feedbackRemediationCompleteResponseSchema = z
+  .object({
+    entryId: entityIdSchema,
+    entryType: z.enum(['trap', 'skill']),
+    resolvedFeedbackIds: z.array(entityIdSchema),
+    resolvedCount: z.number().int().min(0),
+    resolvedAt: isoTimestampSchema,
+  })
+  .strict();
+
 // =============================================================================
 // Phase 65: Lifecycle Trigger Rules (FEEDBACK-03)
 // =============================================================================
@@ -317,6 +397,7 @@ export type FeedbackCustomAnswer = z.infer<typeof feedbackCustomAnswerSchema>;
 export type FeedbackSubmission = z.infer<typeof feedbackSubmissionSchema>;
 export type FeedbackStatus = z.infer<typeof feedbackStatusSchema>;
 export type FeedbackRecord = z.infer<typeof feedbackRecordSchema>;
+export type FeedbackRemediationState = z.infer<typeof feedbackRemediationStateSchema>;
 export type FeedbackResponse = z.infer<typeof feedbackResponseSchema>;
 export type FeedbackListRequest = z.infer<typeof feedbackListRequestSchema>;
 export type FeedbackListItem = z.infer<typeof feedbackListItemSchema>;
@@ -327,3 +408,14 @@ export type FeedbackBatchItem = z.infer<typeof feedbackBatchItemSchema>;
 export type FeedbackBatchResponse = z.infer<typeof feedbackBatchResponseSchema>;
 export type QualityScore = z.infer<typeof qualityScoreSchema>;
 export type FeedbackStatsResponse = z.infer<typeof feedbackStatsResponseSchema>;
+export type FeedbackRemediationQueueItem = z.infer<typeof feedbackRemediationQueueItemSchema>;
+export type FeedbackRemediationQueueResponse = z.infer<typeof feedbackRemediationQueueResponseSchema>;
+export type FeedbackRemediationDetailResponse = z.infer<
+  typeof feedbackRemediationDetailResponseSchema
+>;
+export type FeedbackRemediationCompleteRequest = z.infer<
+  typeof feedbackRemediationCompleteRequestSchema
+>;
+export type FeedbackRemediationCompleteResponse = z.infer<
+  typeof feedbackRemediationCompleteResponseSchema
+>;

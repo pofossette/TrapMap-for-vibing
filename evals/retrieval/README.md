@@ -142,6 +142,29 @@ expected: {
 2. 禁止的结果不能隐藏在相关性指标中
 3. 失败报告能清晰识别跨团队、安全等级或生命周期问题
 
+## Feedback Remediation 与 Eval 回流
+
+2026-06-09 起，线上 feedback 侧已经有最小 remediation 闭环：
+
+- 同一 `trap` / `skill` 的未解决 feedback 达到阈值（当前 `10`）后，会进入 remediation 队列
+- remediation 队列会暴露 trap 本体内容或 skill 派生内容快照，供人工修订
+- remediation 生效期间，该条目会在当前 retrieval 链路中被硬过滤，避免继续命中坏内容
+- `skill edit`、`trap review approve`、`skill review approve` 会推进 remediation 状态
+- remediation complete 会先复用现有索引刷新路径，再批量 resolve 当前 active feedback
+
+这还不是完整的 badcase -> eval 自动化闭环，但已经形成了明确的回流入口。推荐人工流程是：
+
+1. 先通过 `/v1/operations/feedback/remediation` 确认是 trap 还是 skill 的检索坏例
+2. 修正内容并完成 remediation
+3. 把对应 query / 失败现象 / 正确期望补成 retrieval eval case
+4. 至少运行 `pnpm eval:retrieval:smoke` 或 `pnpm eval:smoke`，确保问题转化为固定回归题
+
+当前仍未自动化的部分：
+
+- feedback 记录还没有统一保存完整命中快照
+- 还没有 badcase 自动转 `evals/retrieval` case 的脚本
+- remediation 解除仍以“索引刷新 + active feedback 清理”为主，不含额外运维审批层
+
 ## Phase 25 范围外
 
 - 指标计算器（Hit@K、MRR、nDCG）→ Phase 26 ✓ 完成

@@ -642,6 +642,73 @@ describe('skill review main link tests (Phase 2)', () => {
 
       await app.close();
     });
+
+    it('marks escalated skill feedback as ready-to-reindex after approval', async () => {
+      const { app, authToken, store } = await buildTestServer(
+        (data, auth) => {
+          seedArtifactInAgentPass(data, auth.userId, {
+            id: 'artifact-remediation-review',
+            title: 'Artifact Remediation Review',
+          });
+          for (let i = 1; i <= 10; i++) {
+            data.feedbackQueue.push({
+              id: `feedback_review_${i}`,
+              entryId: 'artifact-remediation-review',
+              entryType: 'skill',
+              problemType: 'incorrect',
+              description: `Escalated review feedback ${i}`,
+              context: null,
+              querySeed: null,
+              customAnswers: null,
+              submittedAt: new Date(Date.now() - i * 60 * 1000).toISOString(),
+              submittedByUserId: auth.userId,
+              submittedByHandle: `fixture-${auth.userId}`,
+              status: 'new',
+              adminNotes: null,
+              resolvedAt: null,
+              resolvedByUserId: null,
+              triggeredTransition: null,
+              remediationStatus: null,
+              remediationOpenedAt: null,
+              remediationOpenedByUserId: null,
+              remediationResolvedAt: null,
+              remediationResolvedByUserId: null,
+              createdAt: nowIso(),
+              updatedAt: nowIso(),
+            });
+          }
+        },
+        {
+          permissions: ['knowledge:review', 'knowledge:submit'],
+          roleTemplate: 'admin',
+          securityLevel: 10,
+        },
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/artifact-remediation-review/review',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          artifactId: 'artifact-remediation-review',
+          decision: 'approve',
+          notes: 'Approved remediated skill',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const snapshot = await store.snapshot();
+      const feedback = snapshot.feedbackQueue.filter(
+        (record) => record.entryId === 'artifact-remediation-review',
+      );
+      expect(feedback).toHaveLength(10);
+      expect(
+        feedback.every((record) => record.remediationStatus === 'ready-to-reindex'),
+      ).toBe(true);
+
+      await app.close();
+    });
   });
 
   describe('full pipeline: review approve -> export', () => {

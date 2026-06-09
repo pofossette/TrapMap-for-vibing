@@ -105,10 +105,15 @@
 |------|------|----------|----------|------|
 | `POST` | `/v1/feedback` | `feedbackSubmissionSchema` | `feedbackResponseSchema` | 提交知识条目反馈 |
 | `GET` | `/v1/operations/feedback` | `feedbackListRequestSchema` | `feedbackListResponseSchema` | 管理员获取反馈列表 |
+| `GET` | `/v1/operations/feedback/remediation` | 无 | `feedbackRemediationQueueResponseSchema` | 获取达到阈值的 remediation 工作队列 |
+| `GET` | `/v1/operations/feedback/remediation/:entryId` | 无 | `feedbackRemediationDetailResponseSchema` | 获取单个 trap/skill remediation 详情与内容快照 |
+| `POST` | `/v1/operations/feedback/remediation/:entryId/complete` | `feedbackRemediationCompleteRequestSchema` | `feedbackRemediationCompleteResponseSchema` | 完成 remediation；先复用现有 trap/skill 索引刷新路径，再批量 resolve 当前未解决 feedback |
 | `POST` | `/v1/operations/feedback/batch` | `feedbackBatchRequestSchema` | `feedbackBatchResponseSchema` | 批量处理反馈（resolve/dismiss/triage/transition） |
 | `GET` | `/v1/operations/feedback/stats/:entryId` | 无 | `feedbackStatsResponseSchema` | 获取条目的反馈统计和质量分数 |
 
 > **Round 6 更新**：反馈持久化已从 `store_snapshot` JSONB 迁移为 `feedback_records` + `feedback_custom_answers` PostgreSQL 结构化表。API 契约不变。
+
+> **2026-06-09 更新**：当同一 `trap` 或 `skill` 的未解决反馈数达到阈值（当前为 `10`）时，系统会在读取时聚合出 remediation/suppression 状态，并通过 `/v1/operations/feedback/remediation*` 暴露人工处理队列。当前 suppression 先通过检索时硬过滤生效；索引摘除/重建仍是后续增强项。
 
 > 源码：`packages/server/src/routes/feedback.ts`、`packages/server/src/routes/feedback-admin.ts`
 

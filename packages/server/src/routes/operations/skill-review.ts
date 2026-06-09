@@ -8,6 +8,10 @@ import type { FastifyPluginAsync } from 'fastify';
 import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
+import {
+  FEEDBACK_REMEDIATION_THRESHOLD,
+  getActiveEntryFeedback,
+} from '@trapmap/server/lib/feedback/remediation.js';
 import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import {
@@ -109,6 +113,7 @@ export const skillReviewRoutes: FastifyPluginAsync = async (app) => {
     );
 
     const decidedAt = nowIso();
+    const { feedback: feedbackRepo } = app.skillShareer.repos;
 
     const result = await app.skillShareer.store.transact((data) => {
       // Ensure skillArtifacts exists
@@ -229,6 +234,20 @@ export const skillReviewRoutes: FastifyPluginAsync = async (app) => {
         nextState: result.newState,
         reason: `reviewer-${body.decision}`,
       });
+    }
+
+    if (body.decision === 'approve') {
+      const entryFeedback = await feedbackRepo.listByEntry(artifactId);
+      const unresolved = getActiveEntryFeedback(entryFeedback, artifactId);
+      if (unresolved.length >= FEEDBACK_REMEDIATION_THRESHOLD) {
+        for (const feedback of unresolved) {
+          await feedbackRepo.update(feedback.id, {
+            remediationStatus: 'ready-to-reindex',
+            remediationResolvedAt: decidedAt,
+            remediationResolvedByUserId: reviewerUserId,
+          });
+        }
+      }
     }
 
     return skillReviewDecisionResponseSchema.parse({

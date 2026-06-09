@@ -9,6 +9,10 @@
  */
 
 import type { ConflictRelation } from '@trapmap/contracts';
+import {
+  attachRemediationToArtifacts,
+  attachRemediationToKnowledgeEntries,
+} from '@trapmap/server/lib/feedback/remediation.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type {
   KnowledgeRecord,
@@ -54,8 +58,11 @@ export async function buildRetrievalReadModel(
   ]);
 
   return {
-    knowledgeEntries,
-    skillArtifacts,
+    knowledgeEntries: attachRemediationToKnowledgeEntries(
+      knowledgeEntries,
+      snapshot.feedbackQueue ?? [],
+    ),
+    skillArtifacts: attachRemediationToArtifacts(skillArtifacts, snapshot.feedbackQueue ?? []),
     conflicts: snapshot.conflicts,
   };
 }

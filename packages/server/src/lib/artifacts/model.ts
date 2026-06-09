@@ -485,6 +485,20 @@ export function toSkillArtifact(data: StoreData, record: ServerSkillArtifactReco
     lifecycleHistory: record.lifecycleHistory.map((event) =>
       toLifecycleEvent(data, event, record.teamId, record.requiredLevel),
     ),
+    evidenceMeta: record.evidenceMeta,
+    maintenanceMeta: record.maintenanceMeta
+      ? {
+          maintainer: record.maintenanceMeta.maintainerUserId
+            ? {
+                id: record.maintenanceMeta.maintainerUserId,
+                handle: record.maintenanceMeta.maintainerHandle ?? '',
+                securityLevel: record.maintenanceMeta.maintainerLevel ?? record.requiredLevel,
+              }
+            : null,
+          reviewBy: record.maintenanceMeta.reviewBy,
+        }
+      : null,
+    remediation: record.remediation ?? null,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   });

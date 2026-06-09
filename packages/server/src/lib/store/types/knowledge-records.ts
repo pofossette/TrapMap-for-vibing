@@ -1,4 +1,5 @@
 import type { Boundary, DecayMeta, EvidenceMeta, LifecycleState, Scope } from '@trapmap/contracts';
+import type { FeedbackRemediationState } from '@trapmap/contracts';
 import type { KnowledgeIndexStateRecord } from '@trapmap/server/lib/indexing/types.js';
 
 export interface KnowledgeRevisionRecord {
@@ -115,6 +116,7 @@ export interface KnowledgeRecord {
   decayMeta: DecayMeta | null;
   evidenceMeta: EvidenceMeta | null;
   maintenanceMeta: MaintenanceMetaRecord | null;
+  remediation?: FeedbackRemediationState | null;
   createdAt: string;
   updatedAt: string;
 }

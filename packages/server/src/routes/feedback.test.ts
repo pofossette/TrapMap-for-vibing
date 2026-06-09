@@ -600,6 +600,110 @@ describe('feedback admin routes', () => {
     });
   });
 
+  describe('GET /v1/operations/feedback/remediation', () => {
+    it('returns escalated trap items with source snapshot after threshold is reached', async () => {
+      await store.transact((data) => {
+        for (let i = 3; i <= 10; i++) {
+          data.feedbackQueue.push({
+            id: `feedback_${i}`,
+            entryId: 'trap_1',
+            entryType: 'trap',
+            problemType: i % 2 === 0 ? 'incorrect' : 'outdated',
+            description: `Escalation feedback ${i}`,
+            context: null,
+            querySeed: null,
+            customAnswers: null,
+            submittedAt: new Date(Date.now() - i * 60 * 1000).toISOString(),
+            submittedByUserId: userId,
+            submittedByHandle: 'tester',
+            status: 'new',
+            adminNotes: null,
+            resolvedAt: null,
+            resolvedByUserId: null,
+            triggeredTransition: null,
+            remediationStatus: null,
+            remediationOpenedAt: null,
+            remediationOpenedByUserId: null,
+            remediationResolvedAt: null,
+            remediationResolvedByUserId: null,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          });
+        }
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback/remediation',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.total).toBe(1);
+      expect(body.items[0].entryId).toBe('trap_1');
+      expect(body.items[0].entryType).toBe('trap');
+      expect(body.items[0].unresolvedFeedbackCount).toBe(10);
+      expect(body.items[0].remediation.status).toBe('pending-human-review');
+      expect(body.items[0].remediation.suppressedFromRetrieval).toBe(true);
+      expect(body.items[0].sourceSnapshot.trapDetail).toBe('Test trap content');
+    });
+
+    it('completes remediation by resolving active escalated feedback for an entry', async () => {
+      await store.transact((data) => {
+        for (let i = 3; i <= 10; i++) {
+          data.feedbackQueue.push({
+            id: `feedback_${i}`,
+            entryId: 'trap_1',
+            entryType: 'trap',
+            problemType: 'incorrect',
+            description: `Escalation feedback ${i}`,
+            context: null,
+            querySeed: null,
+            customAnswers: null,
+            submittedAt: new Date(Date.now() - i * 60 * 1000).toISOString(),
+            submittedByUserId: userId,
+            submittedByHandle: 'tester',
+            status: 'new',
+            adminNotes: null,
+            resolvedAt: null,
+            resolvedByUserId: null,
+            triggeredTransition: null,
+            remediationStatus: null,
+            remediationOpenedAt: null,
+            remediationOpenedByUserId: null,
+            remediationResolvedAt: null,
+            remediationResolvedByUserId: null,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          });
+        }
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/operations/feedback/remediation/trap_1/complete',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+        payload: {
+          notes: 'Manually fixed and ready to reindex',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.entryId).toBe('trap_1');
+      expect(body.resolvedCount).toBe(10);
+
+      const data = await store.snapshot();
+      const active = data.feedbackQueue.filter(
+        (record) => record.entryId === 'trap_1' && (record.status === 'new' || record.status === 'triaged'),
+      );
+      expect(active).toHaveLength(0);
+      const resolved = data.feedbackQueue.filter((record) => record.entryId === 'trap_1');
+      expect(resolved.every((record) => record.status === 'resolved')).toBe(true);
+    });
+  });
+
   describe('POST /v1/operations/feedback/batch', () => {
     it('returns 401 for unauthenticated request', async () => {
       const response = await app.inject({

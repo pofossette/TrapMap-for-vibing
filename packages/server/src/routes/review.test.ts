@@ -294,6 +294,60 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       expect(entry?.indexState?.adapters?.vector?.status).toBe('synced');
       expect(entry?.indexState?.adapters?.keyword?.status).toBe('synced');
     });
+
+    it('marks escalated trap feedback as ready-to-reindex after approval', async () => {
+      await store.transact(async (data) => {
+        for (let i = 1; i <= 10; i++) {
+          data.feedbackQueue.push({
+            id: `feedback_review_${i}`,
+            entryId,
+            entryType: 'trap',
+            problemType: 'incorrect',
+            description: `Escalated review feedback ${i}`,
+            context: null,
+            querySeed: null,
+            customAnswers: null,
+            submittedAt: new Date(Date.now() - i * 60 * 1000).toISOString(),
+            submittedByUserId: userId,
+            submittedByHandle: 'reviewer',
+            status: 'new',
+            adminNotes: null,
+            resolvedAt: null,
+            resolvedByUserId: null,
+            triggeredTransition: null,
+            remediationStatus: null,
+            remediationOpenedAt: null,
+            remediationOpenedByUserId: null,
+            remediationResolvedAt: null,
+            remediationResolvedByUserId: null,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          });
+        }
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/knowledge/review',
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+        payload: {
+          entryId,
+          decision: 'approve',
+          notes: 'Approve remediated trap',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const data = await store.snapshot();
+      const feedback = data.feedbackQueue.filter((record) => record.entryId === entryId);
+      expect(feedback).toHaveLength(10);
+      expect(feedback.every((record) => record.remediationStatus === 'ready-to-reindex')).toBe(
+        true,
+      );
+    });
   });
 
   describe('artifact coexistence (COMP-02, T-12-05)', () => {

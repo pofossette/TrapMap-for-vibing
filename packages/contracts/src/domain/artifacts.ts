@@ -14,6 +14,7 @@ import {
   sha256HexSchema,
 } from './common.js';
 import { evidenceMetaSchema } from './evidence.js';
+import { feedbackRemediationStateSchema } from './feedback.js';
 import { agentReviewResultSchema, reviewDecisionSchema, reviewNoteSchema } from './knowledge.js';
 import { maintenanceMetaSchema } from './maintenance.js';
 import { canonicalPathSchema } from './path-validation.js';
@@ -393,6 +394,8 @@ export const skillArtifactSchema = z
     evidenceMeta: evidenceMetaSchema.nullable().default(null),
     /** Maintenance metadata for ownership and review-due tracking (MAINT-01) */
     maintenanceMeta: maintenanceMetaSchema.nullable().default(null),
+    /** Active remediation/suppression state derived from unresolved feedback */
+    remediation: feedbackRemediationStateSchema.nullable().default(null),
   })
   .merge(auditMetadataSchema);
 

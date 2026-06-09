@@ -4,6 +4,10 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
+import {
+  FEEDBACK_REMEDIATION_THRESHOLD,
+  getActiveEntryFeedback,
+} from '@trapmap/server/lib/feedback/remediation.js';
 import { applyReviewDecision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
 import {
@@ -99,6 +103,7 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:review');
 
     const payload = reviewDecisionRequestSchema.parse(request.body);
+    const appliedAt = nowIso();
 
     // Capture transition context for post-commit indexing
     let entryId: string | undefined;
@@ -124,7 +129,7 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
           throw new AppError(403, 'user_required', 'System admin cannot author review decisions');
         })();
 
-      const decidedAt = nowIso();
+      const decidedAt = appliedAt;
       previousState = entry.lifecycleState;
       applyReviewDecision(
         payload.evidence !== undefined
@@ -190,9 +195,24 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
+    if (payload.decision === 'approve') {
+      const { feedback: feedbackRepo } = app.skillShareer.repos;
+      const entryFeedback = await feedbackRepo.listByEntry(payload.entryId);
+      const unresolved = getActiveEntryFeedback(entryFeedback, payload.entryId);
+      if (unresolved.length >= FEEDBACK_REMEDIATION_THRESHOLD) {
+        for (const feedback of unresolved) {
+          await feedbackRepo.update(feedback.id, {
+            remediationStatus: 'ready-to-reindex',
+            remediationResolvedAt: appliedAt,
+            remediationResolvedByUserId: auth.user?.id ?? null,
+          });
+        }
+      }
+    }
+
     // Log user operation (fire-and-forget)
     void logUserOperation(app.skillShareer.config.userOpsLog, {
-      timestamp: nowIso(),
+      timestamp: appliedAt,
       actorId: auth.actorId,
       actorHandle: auth.handle,
       action: 'review',

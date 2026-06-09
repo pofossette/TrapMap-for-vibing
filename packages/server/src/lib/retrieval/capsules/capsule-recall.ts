@@ -10,6 +10,7 @@
  */
 
 import { isGovernanceEligible } from '@trapmap/server/lib/governance/index.js';
+import { isSuppressedByFeedback } from '@trapmap/server/lib/feedback/remediation.js';
 import type {
   ArtifactGovernanceFilters,
   CapsuleCandidate,
@@ -36,6 +37,10 @@ export function isArtifactGovernanceEligible(
   artifact: SkillArtifactRecord,
   filters: ArtifactGovernanceFilters,
 ): boolean {
+  if (isSuppressedByFeedback(artifact)) {
+    return false;
+  }
+
   const entity = {
     teamId: artifact.teamId,
     scope: artifact.scope,

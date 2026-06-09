@@ -697,6 +697,38 @@ docker run -d --name trapmap-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=tra
 
 ---
 
+## Feedback Remediation 最小验证
+
+当同一 `trap` 或 `skill` 的未解决 feedback 数达到 `10` 时，系统当前会：
+
+- 在 `/v1/operations/feedback/remediation` 中暴露该条目
+- 在检索阶段对该条目做硬过滤
+- 在 `skill edit` 后把状态推进到 `in-remediation`
+- 在 `trap review approve` / `skill review approve` 后把状态推进到 `ready-to-reindex`
+- 在 `POST /v1/operations/feedback/remediation/:entryId/complete` 后批量 resolve 当前未解决 feedback
+
+建议至少运行以下验证：
+
+```bash
+rtk pnpm test -- --run \
+  packages/server/src/routes/feedback.test.ts \
+  packages/server/src/routes/retrieval.test.ts \
+  packages/server/src/routes/review.test.ts \
+  packages/server/src/routes/operations/skill-edit.test.ts \
+  packages/server/src/routes/operations/skill-review.test.ts
+```
+
+手动检查建议：
+
+1. 提交或注入同一条目的 10 条 `new/triaged` feedback。
+2. 确认 `/v1/operations/feedback/remediation` 中出现该 trap/skill。
+3. 确认该 trap/skill 不再出现在相应 retrieval 结果中。
+4. 对 skill 执行 edit，确认 remediation 状态推进到 `in-remediation`。
+5. 对 trap 或 skill 执行 approve，确认 remediation 状态推进到 `ready-to-reindex`。
+6. 调用 remediation complete 端点，确认会先触发现有 trap/skill 索引刷新路径，再批量 resolve 当前未解决 feedback。
+
+---
+
 ## Phase 2 跨模式认证/成员回归测试清单
 
 以下测试用例必须在 JSON 和 PG 两种存储模式下均通过：

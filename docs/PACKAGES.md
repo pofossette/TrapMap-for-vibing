@@ -30,7 +30,7 @@
 | candidates | `domain/candidates.ts` | 异步摄取候选 Schema |
 | artifacts | `domain/artifacts.ts` | Skill 工件 Schema |
 | evals | `domain/evals/` | 评估相关 Schema |
-| feedback | `domain/feedback.ts` | 用户反馈 Schema |
+| feedback | `domain/feedback.ts` | 用户反馈 Schema、remediation/suppression 聚合状态与管理员队列契约 |
 | decay | `domain/decay.ts` | Decay 管理 Schema |
 | maintenance | `domain/maintenance.ts` | 维护管理 Schema |
 | evidence | `domain/evidence.ts` | Evidence 元数据 Schema |
@@ -121,7 +121,7 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 | `routes/candidates.ts` | `/v1/candidates`、`/v1/duplicates` | 异步摄取与重复检测 |
 | `routes/traps.ts` | `/v1/traps` | Trap 管理（与 knowledge 共享同一 `KnowledgeApplicationService` 工作流） |
 | `routes/feedback.ts` | `/v1/feedback` | 用户反馈提交 |
-| `routes/feedback-admin.ts` | `/v1/operations/feedback` | 反馈管理（列表、批量处理、统计） |
+| `routes/feedback-admin.ts` | `/v1/operations/feedback` | 反馈管理（列表、批量处理、统计）以及 remediation 工作队列（列表、详情、完成） |
 | `routes/decay.ts` | `/v1/operations/decay` | Decay 管理 |
 | `routes/maintenance.ts` | `/v1/operations/maintenance` | 维护管理 |
 | `routes/admin-boundary-search.ts` | `/admin/boundary-search` | 管理员边界搜索 |
