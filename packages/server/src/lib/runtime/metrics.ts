@@ -1,0 +1,96 @@
+export type RuntimeFailureKind = 'timeout' | 'retryable' | 'permanent';
+
+export interface RuntimeMetricsCounter {
+  executions: number;
+  degraded: number;
+  timeouts: number;
+  retryableFailures: number;
+  permanentFailures: number;
+  retries: number;
+}
+
+export interface RuntimeMetricsSnapshot {
+  totals: RuntimeMetricsCounter;
+  dependencies: Record<string, RuntimeMetricsCounter>;
+}
+
+function makeCounter(): RuntimeMetricsCounter {
+  return {
+    executions: 0,
+    degraded: 0,
+    timeouts: 0,
+    retryableFailures: 0,
+    permanentFailures: 0,
+    retries: 0,
+  };
+}
+
+const totals = makeCounter();
+const dependencyCounters = new Map<string, RuntimeMetricsCounter>();
+
+function getDependencyCounter(dependencyName: string): RuntimeMetricsCounter {
+  const existing = dependencyCounters.get(dependencyName);
+  if (existing) {
+    return existing;
+  }
+
+  const next = makeCounter();
+  dependencyCounters.set(dependencyName, next);
+  return next;
+}
+
+function applyFailureKind(counter: RuntimeMetricsCounter, failureKind: RuntimeFailureKind) {
+  if (failureKind === 'timeout') {
+    counter.timeouts += 1;
+    return;
+  }
+  if (failureKind === 'retryable') {
+    counter.retryableFailures += 1;
+    return;
+  }
+
+  counter.permanentFailures += 1;
+}
+
+export function recordRuntimeExecution(params: {
+  dependencyName: string;
+  degraded?: boolean;
+  failureKind?: RuntimeFailureKind;
+}) {
+  const dependency = getDependencyCounter(params.dependencyName);
+  totals.executions += 1;
+  dependency.executions += 1;
+
+  if (params.degraded) {
+    totals.degraded += 1;
+    dependency.degraded += 1;
+  }
+
+  if (params.failureKind) {
+    applyFailureKind(totals, params.failureKind);
+    applyFailureKind(dependency, params.failureKind);
+  }
+}
+
+export function recordRuntimeRetry(dependencyName: string) {
+  const dependency = getDependencyCounter(dependencyName);
+  totals.retries += 1;
+  dependency.retries += 1;
+}
+
+export function getRuntimeMetricsSnapshot(): RuntimeMetricsSnapshot {
+  const dependencies = Object.fromEntries(
+    [...dependencyCounters.entries()].map(([name, counter]) => [name, { ...counter }]),
+  );
+
+  return {
+    totals: { ...totals },
+    dependencies,
+  };
+}
+
+export function resetRuntimeMetrics() {
+  const next = makeCounter();
+  Object.assign(totals, next);
+  dependencyCounters.clear();
+}

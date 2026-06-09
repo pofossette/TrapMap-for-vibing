@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildServer } from './app.js';
 
@@ -49,6 +49,16 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       ok: true,
+      readiness: 'ready',
+      requestContext: {
+        requestIdHeader: 'x-request-id',
+        traceHeader: 'traceparent',
+      },
+      dependencies: {
+        database: 'json-store',
+        queueWorker: 'not-configured',
+        graphQuery: 'disabled',
+      },
       graphQuery: {
         mode: 'disabled',
         backendKind: 'memory',
@@ -70,11 +80,180 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       status: 'ok',
+      liveness: 'alive',
+      readiness: 'ready',
+      requestContext: {
+        requestIdHeader: 'x-request-id',
+        traceHeader: 'traceparent',
+      },
+      dependencies: {
+        database: 'json-store',
+        queueWorker: 'not-configured',
+        graphQuery: 'disabled',
+      },
       graphQuery: {
         mode: 'disabled',
         backendKind: 'memory',
       },
     });
+
+    await app.close();
+  });
+
+  it('echoes request id header and keeps upstream trace header', async () => {
+    const app = buildServer();
+    await app.ready();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: {
+        'x-request-id': 'req_phase1',
+        traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-request-id']).toBe('req_phase1');
+    expect(response.headers.traceparent).toBe(
+      '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00',
+    );
+
+    await app.close();
+  });
+
+  it('generates request id when header is absent and does not emit trace header by default', async () => {
+    const app = buildServer();
+    await app.ready();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-request-id']).toBeTruthy();
+    expect(response.headers.traceparent).toBeUndefined();
+
+    await app.close();
+  });
+
+  it('uses custom configured request and trace headers end-to-end', async () => {
+    const app = buildServer({
+      config: {
+        runtime: {
+          requestIdHeader: 'x-correlation-id',
+          traceHeaderName: 'x-trace-id',
+        },
+      },
+    });
+    await app.ready();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: {
+        'x-correlation-id': 'corr_123',
+        'x-trace-id': 'trace_456',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-correlation-id']).toBe('corr_123');
+    expect(response.headers['x-trace-id']).toBe('trace_456');
+    expect(response.json()).toMatchObject({
+      requestContext: {
+        requestIdHeader: 'x-correlation-id',
+        traceHeader: 'x-trace-id',
+      },
+    });
+
+    await app.close();
+  });
+
+  it('reports degraded readiness when graph query is in fallback mode', async () => {
+    const app = buildServer();
+    await app.ready();
+    (app.skillShareer.graphQueryBackend as { getRuntimeState: () => unknown }).getRuntimeState = () => ({
+      mode: 'enabled-fallback',
+      backendKind: 'neo4j',
+      failOpen: true,
+      detail: 'fallback active',
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/ready',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      ok: true,
+      liveness: 'alive',
+      readiness: 'degraded',
+      dependencies: {
+        graphQuery: 'fallback',
+      },
+      graphQuery: {
+        mode: 'enabled-fallback',
+        backendKind: 'neo4j',
+      },
+    });
+
+    await app.close();
+  });
+
+  it('returns 503 when readiness is not-ready', async () => {
+    const app = buildServer();
+    await app.ready();
+    (app.skillShareer.graphQueryBackend as { getRuntimeState: () => unknown }).getRuntimeState = () => ({
+      mode: 'enabled-primary',
+      backendKind: 'neo4j',
+      failOpen: false,
+      detail: 'primary backend failed',
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/ready',
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({
+      ok: false,
+      readiness: 'not-ready',
+      dependencies: {
+        graphQuery: 'failed',
+      },
+    });
+
+    await app.close();
+  });
+
+  it('logs request-context metadata on unhandled errors', async () => {
+    const app = buildServer();
+    app.get('/__phase1-error', async () => {
+      throw new Error('boom');
+    });
+    await app.ready();
+
+    const logSpy = vi.spyOn(app.log, 'error');
+    const response = await app.inject({
+      method: 'GET',
+      url: '/__phase1-error',
+      headers: {
+        'x-request-id': 'req_log_1',
+      },
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: 'req_log_1',
+        route: '/__phase1-error',
+      }),
+      'Unhandled server error',
+    );
 
     await app.close();
   });

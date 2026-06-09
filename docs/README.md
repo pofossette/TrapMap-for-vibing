@@ -1,15 +1,15 @@
 # TrapMap 文档
 
-**基于 GraphRAG-Lite 检索的企业级知识共享平台**
+**TrapMap 文档索引与导航入口**
 
-TrapMap 是一个多智能体知识共享平台，专为跨团队的安全、受治理的知识交换而设计。它实现了完整的知识生命周期：提交 → 智能体审核 → 人工审核 → 审批 → 索引 → 检索。
+TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治理基础设施。本文档负责导航到项目中的权威说明，重点覆盖治理、检索、评测与按需激活相关材料。
 
 ## 系统架构
 
 ```mermaid
 flowchart TB
     subgraph 代码仓库["TrapMap Monorepo"]
-        subgraph 核心包["核心包"]
+    subgraph 核心包["核心包"]
             CLI["CLI<br/>(Commander)"]
             Server["Server<br/>(Fastify)"]
             Contracts["Contracts<br/>(Zod)"]
@@ -28,6 +28,8 @@ flowchart TB
     核心包 --> Keyword
     核心包 --> Graph
 ```
+
+> 说明：该图只展示运行时核心包；`packages/skills/` 属于项目级 Skill 工作流与参考资料，不在该简图中展开。
 
 ## 核心功能
 
@@ -64,7 +66,7 @@ flowchart TB
 | 图 | graphology + graphology-dag |
 | 向量搜索 | OpenAI embeddings |
 | 数据库 | PostgreSQL + Drizzle ORM |
-| JSON 存储（兼容回退） | 文件级（原子写入） |
+| 兼容回退 | JSON 文件存储 + `store_snapshot` 兼容层 |
 | 测试 | Vitest |
 | 包管理 | pnpm 10.x |
 | 代码质量 | Biome |
@@ -103,6 +105,9 @@ curl http://127.0.0.1:4000/health
 ### 评估
 
 ```bash
+# 运行 smoke 层级统一评测
+pnpm eval:smoke
+
 # 运行检索评估
 pnpm eval:retrieval
 
@@ -121,7 +126,7 @@ pnpm eval:ci
 - [PostgreSQL 与 Graphology 上手](guides/PG_AND_GRAPHOLOGY.md) — 面向仓库实际代码的 `pg` / `graphology` 使用方式导读
 - [客户端集成](guides/CLIENT_INTEGRATION.md) — Skill 工件结构、检索→激活流程、各客户端落地方式
 - [数据模型](reference/DATA_MODEL.md) — 核心数据实体及关系
-- [数据库表结构速查](reference/DATABASE_SCHEMA.md) — 56 张表快速参考、枚举值、外键关系
+- [数据库表结构速查](reference/DATABASE_SCHEMA.md) — 57 张表快速参考、枚举值、外键关系
 - [术语表](reference/GLOSSARY.md) — 项目专用术语解释
 - [投稿指南](guides/CONTRIBUTING.md) — 代码规范和 PR 流程
 
@@ -135,7 +140,7 @@ pnpm eval:ci
 - [后端工程化优化计划](todos/backend-engineering-optimization-plan.md) — 队列、MQ、微服务化与观测演进方向
 
 ### 架构与 API
-- [架构概览](../architecture.md) — 四层架构概览
+- [架构概览](../architecture.md) — 根入口级架构摘要，适合先建立整体心智模型
 - [架构详解](architecture/ARCHITECTURE.md) — 系统设计、流程图、模块划分
 - [摄取与重复检测分层管线](architecture/components/INGESTION.md) — candidate normalize、exact lane、PostgreSQL trap+skill recall、queue dedupe、duplicate trace
 - [System Truth Sources](reference/SYSTEM_TRUTH_SOURCES.md) — 架构事实、入口文件与文档参考规则
@@ -149,7 +154,7 @@ pnpm eval:ci
 - [数据类型串联图](architecture/DATA_TYPES_PIPELINE.md) — 核心数据类型流转路径与 GraphRAG-lite 图构建详解
 - [入库预计算策略](architecture/PRECOMPUTATION.md) — 入库阶段预计算措施总览、API 请求清单与延迟对比
 - [LLM 图提取改造计划](architecture/HYBRID_GRAPH_EXTRACTION.md) — 用 LLM 替代规则引擎的图构建 + 入库智能增强（进行中）
-- [数据库表结构速查](reference/DATABASE_SCHEMA.md) — PostgreSQL 56 张表完整参考
+- [数据库表结构速查](reference/DATABASE_SCHEMA.md) — PostgreSQL 57 张表完整参考
 
 ### 部署与运维
 - [部署指南](architecture/DEPLOYMENT.md) — Docker 部署详细步骤
@@ -190,31 +195,24 @@ member:update      // 修改成员角色
 member:key:create  // 生成访问密钥
 ```
 
-### 生命周期状态
+### 生命周期状态（知识条目示意）
 ```
 draft → submitted → agent-pass/agent-rejected → approved/rejected → deactivated
 ```
 
-## 项目结构
+更完整的数据模型、状态枚举和路由差异请参考 [reference/DATA_MODEL.md](reference/DATA_MODEL.md) 与 [reference/api-surface.md](reference/api-surface.md)。
+
+## 文档结构
 
 ```
-Trap-Map/
-├── packages/
-│   ├── cli/          # Commander.js CLI 客户端
-│   ├── server/       # Fastify API 服务器
-│   ├── contracts/    # 共享 Zod schema
-│   └── skills/       # 项目级 Skill 工作流
-├── evals/            # 评估数据集和运行器
-│   ├── retrieval/   # 检索测试用例
-│   ├── summary/     # 摘要评判检查
-│   ├── graph-extraction/ # 图提取评测
-│   ├── ingestion/   # 摄取评测
-│   ├── fixtures/    # 测试数据
-│   ├── baselines/   # 基线报告
-│   └── scripts/     # 评测脚本
-├── scripts/          # 部署脚本
-├── docs/            # 文档
-│   └── architecture/
-├── docker-compose.yml
-└── package.json     # pnpm workspace 根目录
+docs/
+├── README.md         # 本索引
+├── guides/           # 上手、集成、贡献、代码阅读
+├── operations/       # 测试、环境、CI/CD、安全、Provider 运行约定
+├── architecture/     # 架构总览、模块、组件、API/CLI/部署说明
+├── reference/        # 真相源、Schema、术语、目录规则、API 表面
+├── plans/            # 仍被当前文档引用的长期计划
+├── todos/            # 待推进议题与提案
+├── superpowers/      # Superpowers 生成的 specs/plans
+└── archived/         # 历史归档文档
 ```

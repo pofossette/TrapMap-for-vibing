@@ -84,7 +84,7 @@ TrapMap 有两类典型使用方式：
 
 - Knowledge 域已经完成结构化拆表
 - Skill Artifact 域已进入 Round 4：主路径在 PostgreSQL，`files`、`script_descriptors`、`profile/capsules/clientManifest` 已补入结构化子表；原 `artifact_revisions` JSONB 列继续保留为兼容缓存，不再是唯一事实源
-- PG-first 收敛已完成：核心请求处理通过 `repos` 读写（`packages/server/src/lib/repos/`）；`store_snapshot` 仅作为兼容层保留，用于迁移和诊断场景。详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+- PG-first 收敛已完成：核心请求处理通过 `repos` 读写（`packages/server/src/lib/repos/`）；`store_snapshot` 作为兼容层保留，仍服务于未迁移辅助域以及部分启动恢复/运维路径。详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
 
 ## 快速理解
 
@@ -103,19 +103,19 @@ TrapMap 目前处于持续演进阶段。核心方向已经比较明确：知识
 | 文档 | 说明 |
 |------|------|
 | [docs/README.md](docs/README.md) | 文档总览 |
-| [architecture.md](architecture.md) | 系统架构概览 |
+| [architecture.md](architecture.md) | 根入口级系统架构摘要 |
 | [docs/guides/GETTING_STARTED.md](docs/guides/GETTING_STARTED.md) | 本地开发环境搭建 |
 | [docs/guides/CODE_GUIDE.md](docs/guides/CODE_GUIDE.md) | 源码导读 |
 | [docs/PACKAGES.md](docs/PACKAGES.md) | 各包职责 |
 | [docs/PACKAGE_STACK_RATIONALE.md](docs/PACKAGE_STACK_RATIONALE.md) | 各包及主要子包的技术选型原因 |
 | [docs/reference/DATA_MODEL.md](docs/reference/DATA_MODEL.md) | 数据模型详解 |
-| [docs/architecture/](docs/architecture/) | 完整架构文档（API、CLI、部署、流程图等） |
+| [docs/architecture/](docs/architecture/) | 完整架构文档（模块、组件、API、CLI、部署、流程图等） |
 | [docs/reference/api-surface.md](docs/reference/api-surface.md) | v1 API 契约表面 |
 | [CHANGELOG.md](CHANGELOG.md) | 版本更新日志 |
 | [docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md) | 投稿指南 |
 | [docs/reference/GLOSSARY.md](docs/reference/GLOSSARY.md) | 项目术语表 |
 | [docs/reference/SYSTEM_TRUTH_SOURCES.md](docs/reference/SYSTEM_TRUTH_SOURCES.md) | 架构事实、入口文件与文档参考规则 |
-| [docs/reference/REPO_STRUCTURE.md](docs/reference/REPO_STRUCTURE.md) | 仓库目录结构、归档位置和生成目录规则 |
+| [docs/reference/REPO_STRUCTURE.md](docs/reference/REPO_STRUCTURE.md) | 仓库目录结构、文档分层、归档位置和生成目录规则 |
 
 ## 🚀 快速开始
 
@@ -192,7 +192,7 @@ Skill 工件通常包含以下结构：
 如果你使用 TrapMap CLI，可直接激活选定路径：
 
 ```bash
-pnpm dev:cli -- operations activate \
+pnpm dev:cli -- activate \
   --artifact <artifact-id> \
   --paths SKILL.md,references/setup.md,scripts/bootstrap.sh \
   --output ./.tmp/skills/<skill-slug>

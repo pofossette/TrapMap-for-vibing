@@ -17,6 +17,7 @@ import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
 import { extractTrapGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
+import { executeWithResilience } from '@trapmap/server/lib/runtime/resilience.js';
 import type {
   GraphEdgeRecord,
   GraphNodeKind,
@@ -197,22 +198,23 @@ export async function extractSegmentEntities(
   if (!chat.isConfigured) return null;
 
   const systemPrompt = buildPrompt('graph-extraction', buildGraphExtractionSlots_default());
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
+  const result = await executeWithResilience({
+    policy: {
+      dependencyName: 'graph-llm-segment-extraction',
+      timeoutMs: 15_000,
+      maxAttempts: maxRetries + 1,
+      backoffMs: (attempt) => BACKOFF_BASE_MS * 2 ** (attempt * 2),
+      failureMode: 'fail-open',
+    },
+    operation: async () => {
       const response = await chat.invoke(systemPrompt, segment);
-      const extraction = parseLlmExtraction(response);
-      if (extraction) return extraction;
-      // Zod validation failed — retry (might be format issue)
-    } catch {
-      // LLM call failed — retry with backoff
-    }
-    if (attempt < maxRetries) {
-      await new Promise((r) => setTimeout(r, BACKOFF_BASE_MS * 2 ** (attempt * 2)));
-    }
-  }
+      return parseLlmExtraction(response);
+    },
+    isSuccessfulResult: (value) => value !== null,
+    fallbackValue: null,
+  });
 
-  return null;
+  return result.value ?? null;
 }
 
 // ---------------------------------------------------------------------------

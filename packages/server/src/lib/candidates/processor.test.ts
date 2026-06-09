@@ -162,6 +162,10 @@ function makeMockServices(
     usePgDuplicateDetection: opts.usePgDuplicateDetection,
     candidateRepo,
     chat: opts.chat,
+    logger: {
+      warn: vi.fn(),
+      error: vi.fn(),
+    },
     statusHistory,
   };
 }
@@ -787,6 +791,7 @@ describe('createCandidateProcessingHandler', () => {
       'error',
       expect.stringContaining('Max retries exceeded'),
     );
+    expect(services.logger?.error).toHaveBeenCalled();
   });
 
   it('onDead uses store.transact when no candidateRepo', async () => {

@@ -1,6 +1,7 @@
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
+import { executeWithResilience } from '@trapmap/server/lib/runtime/resilience.js';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import type { Pool } from 'pg';
 import { detectDuplicates } from './detector.js';
@@ -18,6 +19,7 @@ import {
 import type { DuplicateDetectionInput, DuplicateDetectionResult } from './types.js';
 
 const DUPLICATE_THRESHOLD = 0.38; // Match pre-review.ts medium threshold
+const CANDIDATE_RETRY_BASE_DELAY_MS = 5000;
 
 /** Task type for candidate processing */
 export const CANDIDATE_PROCESSING_TASK_TYPE = 'candidate_processing';
@@ -44,6 +46,11 @@ export interface CandidateProcessorServices {
   candidateRepo?: CandidateRepository;
   /** Optional ChatProvider for LLM-based duplicate adjudication */
   chat?: ChatProvider;
+  /** Optional logger for resilience events */
+  logger?: {
+    warn: (payload: unknown, message: string) => void;
+    error: (payload: unknown, message: string) => void;
+  };
 }
 
 /**
@@ -264,14 +271,32 @@ export async function processCandidateWithRetry(
       if (services.pool) {
         const queue = createTaskQueue({ pool: services.pool });
         const retryCount = updatedCandidate.retryCount;
-        // Exponential backoff: 5s, 10s, 20s
-        const delayMs = 5000 * 2 ** retryCount;
+        const retrySchedule = await executeWithResilience({
+          policy: {
+            dependencyName: 'candidate-processing-retry-schedule',
+            timeoutMs: 5_000,
+            maxAttempts: 1,
+            backoffMs: () => 0,
+            failureMode: 'fail-closed',
+          },
+          context: {
+            logger: services.logger,
+            workItemId: candidateId,
+          },
+          operation: async () => {
+            const delayMs = CANDIDATE_RETRY_BASE_DELAY_MS * 2 ** retryCount;
+            await queue.enqueue<CandidateProcessingPayload>(
+              CANDIDATE_PROCESSING_TASK_TYPE,
+              { candidateId, retryCount },
+              { delayMs, maxAttempts: getMaxRetries() - retryCount, dedupeKey: candidateId },
+            );
+            return delayMs;
+          },
+        });
 
-        await queue.enqueue<CandidateProcessingPayload>(
-          CANDIDATE_PROCESSING_TASK_TYPE,
-          { candidateId, retryCount },
-          { delayMs, maxAttempts: getMaxRetries() - retryCount, dedupeKey: candidateId },
-        );
+        if (!retrySchedule.ok) {
+          throw retrySchedule.error;
+        }
       }
     }
   }
@@ -322,12 +347,18 @@ export function scheduleCandidateProcessing(
         { maxAttempts: getMaxRetries(), dedupeKey: candidateId },
       )
       .catch((error) => {
-        console.error(`Failed to enqueue candidate processing for ${candidateId}:`, error);
+        services.logger?.error?.(
+          { candidateId, error: error instanceof Error ? error.message : String(error) },
+          'Failed to enqueue candidate processing',
+        );
       });
   } else {
     // Fall back to fire-and-forget immediate processing (for tests/JsonStore)
     void processCandidateWithRetry(candidateId, services).catch((error) => {
-      console.error(`Candidate processing failed for ${candidateId}:`, error);
+      services.logger?.error?.(
+        { candidateId, error: error instanceof Error ? error.message : String(error) },
+        'Candidate processing failed',
+      );
     });
   }
 }
@@ -347,7 +378,10 @@ export function createCandidateProcessingHandler(
     },
     onDead: async (task) => {
       const { candidateId } = task.payload;
-      console.error(`Candidate processing dead-lettered for ${candidateId}:`, task.lastError);
+      services.logger?.error?.(
+        { candidateId, lastError: task.lastError ?? null },
+        'Candidate processing dead-lettered',
+      );
       // Mark candidate as permanently failed
       if (services.candidateRepo) {
         await services.candidateRepo.updateStatus(

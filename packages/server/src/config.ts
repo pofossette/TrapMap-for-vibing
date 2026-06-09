@@ -54,6 +54,11 @@ const RateLimitMaxSchema = z.coerce.number().int().min(0).default(0);
 
 const SessionTransportSchema = z.enum(['bearer-header', 'cookie']).default('bearer-header');
 
+const RuntimeConfigSchema = z.object({
+  requestIdHeader: z.string().min(1).default('x-request-id'),
+  traceHeaderName: z.string().min(1).default('traceparent'),
+});
+
 /**
  * Full server configuration schema.
  */
@@ -66,6 +71,7 @@ export const ServerConfigSchema = z.object({
   corsAllowedOrigins: CorsOriginsSchema,
   rateLimitMaxPerMinute: RateLimitMaxSchema,
   sessionTransport: SessionTransportSchema,
+  runtime: RuntimeConfigSchema,
   userOpsLog: UserOpsLogSchema,
   ragLog: RagLogSchema,
   graphDb: GraphDbConfigSchema,
@@ -124,6 +130,14 @@ export function loadConfig(): ServerConfig {
     corsAllowedOrigins: corsOrigins,
     rateLimitMaxPerMinute: process.env.RATE_LIMIT_MAX_PER_MINUTE,
     sessionTransport: process.env.SESSION_TRANSPORT,
+    runtime: {
+      requestIdHeader:
+        (process.env.TRAPMAP_REQUEST_ID_HEADER?.trim().toLowerCase() || undefined) ??
+        'x-request-id',
+      traceHeaderName:
+        (process.env.TRAPMAP_TRACE_HEADER_NAME?.trim().toLowerCase() || undefined) ??
+        'traceparent',
+    },
     userOpsLog,
     ragLog,
     graphDb,

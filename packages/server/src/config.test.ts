@@ -19,6 +19,10 @@ const minimalConfig = {
   dataFile: '/tmp/data.json',
   databaseUrl: null as string | null,
   systemAdminKey: null as string | null,
+  runtime: {
+    requestIdHeader: 'x-request-id',
+    traceHeaderName: 'traceparent',
+  },
   graphDb: {
     enabled: false,
     provider: 'neo4j' as const,
@@ -232,6 +236,10 @@ describe('loadConfig', () => {
       expect(config.corsAllowedOrigins).toEqual(['*']);
       expect(config.rateLimitMaxPerMinute).toBe(0);
       expect(config.sessionTransport).toBe('bearer-header');
+      expect(config.runtime).toEqual({
+        requestIdHeader: 'x-request-id',
+        traceHeaderName: 'traceparent',
+      });
       expect(config.systemAdminKey).toBeNull();
       expect(config.databaseUrl).toBeNull();
       expect(config.graphDb).toEqual({
@@ -259,6 +267,22 @@ describe('loadConfig', () => {
       const config = loadConfig();
       expect(config.corsAllowedOrigins).toEqual(['https://example.com']);
     });
+  });
+
+  it('parses runtime request and trace headers from env', () => {
+    withEnv(
+      {
+        TRAPMAP_REQUEST_ID_HEADER: 'X-Correlation-ID',
+        TRAPMAP_TRACE_HEADER_NAME: 'X-Trace-Id',
+      },
+      () => {
+        const config = loadConfig();
+        expect(config.runtime).toEqual({
+          requestIdHeader: 'x-correlation-id',
+          traceHeaderName: 'x-trace-id',
+        });
+      },
+    );
   });
 
   it("parses CORS_ORIGINS=* as ['*']", () => {

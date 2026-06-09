@@ -122,7 +122,21 @@ curl http://127.0.0.1:4000/health
 curl http://127.0.0.1:4000/ready
 ```
 
-其中 `/health` 现在会返回 `graphQuery` runtime state，`/ready` 则额外包含 queue/database/graph backend 的 readiness 信息。
+其中：
+
+- `/health` 用于 liveness，返回 `status: "ok"` 以及统一 runtime snapshot：`product`、`packages`、`liveness`、`readiness`、`requestContext`、`dependencies`、`graphQuery`、`memory`、`uptimeSeconds`
+- `/ready` 用于 traffic readiness，返回 `ok` 与同一份 runtime snapshot；当 `readiness === "not-ready"` 时，HTTP 状态码为 `503`，且 `ok` 为 `false`
+- 两个端点都返回 `requestContext.requestIdHeader` 与 `requestContext.traceHeader`，用于说明实例当前使用的请求链路头约定
+- `dependencies.queueWorker` 的语义为：
+  - `running`：PostgreSQL 模式且 worker 正常运行
+  - `stopped`：PostgreSQL 模式但 worker 未运行，应视为 `not-ready`
+  - `not-configured`：JSON store 模式，无后台 worker，属于预期状态
+- `dependencies.graphQuery` 的语义为：
+  - `disabled`：未启用 graph DB
+  - `healthy`：primary backend 正常
+  - `fallback`：fail-open 已触发，实例仍可服务，但应视为 `degraded`
+  - `failed`：graph backend 失败且实例不可正常就绪
+- 当前 Phase 1 的 readiness snapshot 是“已观测运行时依赖状态”，当前明确覆盖 graph query backend 与 candidate task worker；它不是所有后台子系统的完整健康总表
 
 ### .env.production 模板
 
@@ -281,7 +295,7 @@ pnpm --filter @trapmap/server graph-db:check
 
 - 把 Neo4j 当作可选加速层，而不是新的事实源；灾备与回填仍以 PostgreSQL `graph_index_documents` 为准。
 - 首次接入先保持 `TRAPMAP_GRAPH_DB_FAIL_OPEN=true`，验证日志与 smoke eval 后，再决定是否改为 fail-closed。
-- 运维侧可通过启动日志里的 `Graph query backend initialized`，以及 `/health` / `/ready` 返回的 `graphQuery` 字段确认当前 active backend。
+- 运维侧可通过启动日志里的 `Graph query backend initialized`，以及 `/health` / `/ready` 返回的 `graphQuery` 与 `dependencies` 字段确认当前 active backend 和服务降级状态。
 
 ### JSON 文件存储（兼容回退）
 

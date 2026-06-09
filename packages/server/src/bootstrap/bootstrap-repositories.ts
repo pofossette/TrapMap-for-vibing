@@ -27,6 +27,7 @@ import { createAllRepos } from '@trapmap/server/lib/repos/index.js';
 import { ensureCapsuleVectorIndex } from '@trapmap/server/lib/retrieval/capsules/repositories/pg-capsule-vector.js';
 import { ensureVectorIndex } from '@trapmap/server/lib/retrieval/recall/db-search.js';
 import { createGraphChannel } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
+import { executeWithResilience } from '@trapmap/server/lib/runtime/resilience.js';
 import {
   createMembershipRepository,
   createTeamRepository,
@@ -35,6 +36,11 @@ import { createUserRepository } from '@trapmap/server/lib/users/index.js';
 
 export async function bootstrapRepositories(app: FastifyInstance): Promise<void> {
   const store = app.skillShareer.store;
+
+  const startupContext = {
+    logger: app.log,
+    route: 'startup:bootstrap-repositories',
+  } as const;
 
   if (store instanceof PostgresStore) {
     const pool = store.getPool();
@@ -59,19 +65,43 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
     app.skillShareer.usageAnalyticsRepo = await createUsageAnalyticsRepository({ pool });
 
     // Ensure HNSW vector index exists for O(log n) similarity search
-    try {
-      await ensureVectorIndex(pool);
+    const vectorIndexResult = await executeWithResilience({
+      policy: {
+        dependencyName: 'vector-index-bootstrap',
+        timeoutMs: 10_000,
+        maxAttempts: 1,
+        backoffMs: () => 0,
+        failureMode: 'fail-open',
+      },
+      context: startupContext,
+      operation: async () => {
+        await ensureVectorIndex(pool);
+        return 'ok';
+      },
+      fallbackValue: 'degraded',
+    });
+    if (vectorIndexResult.ok && !vectorIndexResult.degraded) {
       app.log.info('Vector HNSW index ensured');
-    } catch (error) {
-      app.log.error({ error }, 'Failed to ensure vector index');
     }
 
     // Ensure capsule HNSW vector index exists for capsule semantic recall
-    try {
-      await ensureCapsuleVectorIndex(pool);
+    const capsuleIndexResult = await executeWithResilience({
+      policy: {
+        dependencyName: 'capsule-vector-index-bootstrap',
+        timeoutMs: 10_000,
+        maxAttempts: 1,
+        backoffMs: () => 0,
+        failureMode: 'fail-open',
+      },
+      context: startupContext,
+      operation: async () => {
+        await ensureCapsuleVectorIndex(pool);
+        return 'ok';
+      },
+      fallbackValue: 'degraded',
+    });
+    if (capsuleIndexResult.ok && !capsuleIndexResult.degraded) {
       app.log.info('Capsule vector HNSW index ensured');
-    } catch (error) {
-      app.log.error({ error }, 'Failed to ensure capsule vector index');
     }
 
     registerArtifactAdapters([artifactGraphIndexAdapter, createCapsuleIndexAdapter({ pool })]);
@@ -106,9 +136,27 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
       failOpen: app.skillShareer.config.graphDb.failOpen,
       logger: app.log,
     });
-    const health = await graphBackend.healthcheck();
+    const healthResult = await executeWithResilience({
+      policy: {
+        dependencyName: 'graph-backend-healthcheck',
+        timeoutMs: 10_000,
+        maxAttempts: 1,
+        backoffMs: () => 0,
+        failureMode: app.skillShareer.config.graphDb.failOpen ? 'fail-open' : 'fail-closed',
+      },
+      context: startupContext,
+      operation: async () => graphBackend.healthcheck(),
+      isSuccessfulResult: (health) => health.ok,
+      fallbackValue: {
+        ok: false,
+        mode: 'enabled-fallback',
+        detail: 'Graph backend healthcheck degraded to fallback',
+      },
+    });
+    const health =
+      healthResult.value ?? ({ ok: false, mode: 'enabled-fallback', detail: 'Unknown healthcheck failure' } as const);
 
-    if (!health.ok && !app.skillShareer.config.graphDb.failOpen) {
+    if (!healthResult.ok && !app.skillShareer.config.graphDb.failOpen) {
       throw new Error(health.detail ?? 'Graph query backend healthcheck failed');
     }
 

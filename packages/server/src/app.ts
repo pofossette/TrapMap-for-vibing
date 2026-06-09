@@ -9,7 +9,7 @@ import { loadConfig } from './config.js';
 import { createAiProviders } from './lib/ai/index.js';
 import type { SkillShareerServices } from './lib/context.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
-import { AppError, isAppError } from './lib/errors.js';
+import { AppError, isAppError, toErrorMetadata } from './lib/errors.js';
 import type { GraphQueryBackend } from './lib/graph-query/backend.js';
 import { createGraphQueryRuntimeState } from './lib/graph-query/config.js';
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
@@ -26,6 +26,8 @@ import type { RetrievalStrategy } from './lib/retrieval/orchestration/strategy-r
 import { StrategyRegistry } from './lib/retrieval/orchestration/strategy-registry.js';
 import { keywordChannel } from './lib/retrieval/recall/keyword.js';
 import { semanticChannel } from './lib/retrieval/recall/semantic.js';
+import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
+import { buildRuntimeStatusSnapshot } from './lib/runtime/runtime-metadata.js';
 
 import { runStartupSequence } from './bootstrap/run-startup-sequence.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
@@ -136,40 +138,64 @@ export function buildServer(options: BuildServerOptions = {}) {
       : {
           level: process.env.LOG_LEVEL ?? 'info',
         },
+    requestIdHeader: config.runtime.requestIdHeader,
     ...(options.bodyLimit === undefined ? {} : { bodyLimit: options.bodyLimit }),
   });
 
+  app.addHook('onRequest', async (request, reply) => {
+    const context = getOrCreateRequestContext(request, config);
+    reply.header(config.runtime.requestIdHeader, context.requestId);
+    if (context.traceId) {
+      reply.header(config.runtime.traceHeaderName, context.traceId);
+    }
+  });
+
   app.get('/health', async () => {
-    const mem = process.memoryUsage();
     const graphQuery =
       app.skillShareer.graphQueryBackend?.getRuntimeState?.() ?? app.skillShareer.graphQuery;
+    const queueWorker = (app as any).taskWorker;
+    const store = app.skillShareer.store;
+    const database =
+      store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
+    const runtime = buildRuntimeStatusSnapshot({
+      config,
+      graphQuery,
+      database,
+      queueWorkerConfigured: store instanceof PostgresStore,
+      queueWorkerRunning: queueWorker?.isRunning?.() ?? false,
+    });
+
     return {
       status: 'ok',
-      product: 'trapmap',
-      packages: ['cli', 'server', 'contracts'],
-      graphQuery,
-      memory: {
-        rssMb: Math.round(mem.rss / 1024 / 1024),
-        heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024),
-        heapTotalMb: Math.round(mem.heapTotal / 1024 / 1024),
-      },
-      uptimeSeconds: Math.round(process.uptime()),
+      ...runtime,
     };
   });
 
-  app.get('/ready', async () => {
+  app.get('/ready', async (_request, reply) => {
     const taskWorker = (app as any).taskWorker;
     const store = app.skillShareer.store;
     const database =
       store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
     const graphQuery =
       app.skillShareer.graphQueryBackend?.getRuntimeState?.() ?? app.skillShareer.graphQuery;
-    return {
-      ok: true,
-      queueWorkerRunning: taskWorker?.isRunning?.() ?? false,
-      database,
+    const runtime = buildRuntimeStatusSnapshot({
+      config,
       graphQuery,
+      database,
+      queueWorkerConfigured: store instanceof PostgresStore,
+      queueWorkerRunning: taskWorker?.isRunning?.() ?? false,
+    });
+
+    const responseBody = {
+      ok: runtime.readiness !== 'not-ready',
+      ...runtime,
     };
+
+    if (runtime.readiness === 'not-ready') {
+      return reply.status(503).send(responseBody);
+    }
+
+    return responseBody;
   });
 
   app.get('/meta/routes', async () => ({
@@ -282,15 +308,20 @@ export function buildServer(options: BuildServerOptions = {}) {
     }
   });
 
-  app.setErrorHandler((error, _request, reply) => {
-    if (isAppError(error)) {
-      return reply.status(error.statusCode).send({
-        code: error.code,
-        message: error.message,
-      });
-    }
+  app.setErrorHandler((error, request, reply) => {
+    const requestContext = request.requestContext ?? getOrCreateRequestContext(request, config);
 
-    if (error instanceof AppError) {
+    if (isAppError(error)) {
+      app.log.warn(
+        {
+          requestId: requestContext.requestId,
+          traceId: requestContext.traceId,
+          method: requestContext.method,
+          route: requestContext.route,
+          error: toErrorMetadata(error),
+        },
+        'Handled application error',
+      );
       return reply.status(error.statusCode).send({
         code: error.code,
         message: error.message,
@@ -298,6 +329,16 @@ export function buildServer(options: BuildServerOptions = {}) {
     }
 
     if (error instanceof ZodError) {
+      app.log.warn(
+        {
+          requestId: requestContext.requestId,
+          traceId: requestContext.traceId,
+          method: requestContext.method,
+          route: requestContext.route,
+          issueCount: error.issues.length,
+        },
+        'Validation error',
+      );
       return reply.status(400).send({
         code: 'validation_error',
         message: error.issues.map((issue) => issue.message).join('; '),
@@ -305,7 +346,16 @@ export function buildServer(options: BuildServerOptions = {}) {
       });
     }
 
-    app.log.error(error);
+    app.log.error(
+      {
+        requestId: requestContext.requestId,
+        traceId: requestContext.traceId,
+        method: requestContext.method,
+        route: requestContext.route,
+        error: toErrorMetadata(error),
+      },
+      'Unhandled server error',
+    );
     return reply.status(500).send({
       code: 'internal_error',
       message: 'Unexpected server error',

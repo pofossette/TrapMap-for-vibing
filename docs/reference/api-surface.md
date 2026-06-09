@@ -10,6 +10,16 @@
 
 ---
 
+## Runtime / Health
+
+| 方法 | 路由 | 请求契约 | 响应契约 | 用途 |
+|------|------|----------|----------|------|
+| `GET` | `/health` | 无 | 非 contracts 内部 runtime JSON：`{ status, product, packages, liveness, readiness, requestContext, dependencies, graphQuery, memory, uptimeSeconds }` | Liveness 与实例运行时状态快照 |
+| `GET` | `/ready` | 无 | 非 contracts 内部 runtime JSON：`{ ok, product, packages, liveness, readiness, requestContext, dependencies, graphQuery, memory, uptimeSeconds }`；`readiness === "not-ready"` 时返回 `503` | Traffic readiness 与降级状态判断 |
+| `GET` | `/meta/routes` | 无 | `{ documentedRoutes: string[] }` | 暴露当前 server 维护的文档化路由列表 |
+
+> 源码：`packages/server/src/app.ts`
+
 ## 认证
 
 | 方法 | 路由 | 请求契约 | 响应契约 | 用途 |

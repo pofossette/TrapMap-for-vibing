@@ -33,6 +33,14 @@ Round 0 已对数据库现代化方案完成基线冻结，后续架构演进遵
 
 关键约束：Repos 必须先于 Candidate Recovery 和 Workers 初始化，因为两者依赖 `repos.candidate`。
 
+运行时状态约束：
+
+- `packages/server/src/lib/runtime/request-context.ts` 负责为每个请求建立统一 `requestId` / trace header 上下文
+- `packages/server/src/lib/runtime/runtime-metadata.ts` 负责构建 `/health` 与 `/ready` 共用的 runtime snapshot
+- JSON store 模式下 `queueWorker` 会显示为 `not-configured`，这不是异常；PostgreSQL 模式下 worker 停止才应视为 `not-ready`
+- 当 graph backend 进入 fail-open fallback 时，实例 runtime `readiness` 应为 `degraded` 而非 `not-ready`
+- 当前 Phase 1 runtime snapshot 只对已观测的运行时依赖给出判断，明确覆盖 graph query backend 与 candidate task worker；更广义的后台依赖健康会在后续 runtime foundations 阶段继续扩展
+
 ### 系统分层架构图
 
 ```mermaid
@@ -74,12 +82,14 @@ flowchart TB
 sequenceDiagram
     participant 客户端 as CLI/HTTP 客户端
     participant 路由 as 路由处理器
+    participant 请求上下文 as 请求上下文
     participant 认证 as 认证中间件
     participant 治理 as 治理层
     participant 服务 as 业务服务
     participant 存储 as 存储接口
 
     客户端->>路由: HTTP 请求
+    路由->>请求上下文: 解析/生成 requestId 与 trace header
     路由->>认证: 验证会话/密钥
     认证->>认证: 加载用户上下文
     认证->>治理: 检查权限
@@ -525,8 +535,24 @@ curl http://127.0.0.1:4000/health
 # 响应：
 {
   "status": "ok",
+  "liveness": "alive",
+  "readiness": "ready",
   "product": "trapmap",
   "packages": ["cli", "server", "contracts"],
+  "requestContext": {
+    "requestIdHeader": "x-request-id",
+    "traceHeader": "traceparent"
+  },
+  "dependencies": {
+    "database": "json-store",
+    "queueWorker": "not-configured",
+    "graphQuery": "disabled"
+  },
+  "graphQuery": {
+    "mode": "disabled",
+    "backendKind": "memory",
+    "failOpen": true
+  },
   "memory": { "rssMb": 128, "heapUsedMb": 64, "heapTotalMb": 96 },
   "uptimeSeconds": 42
 }
@@ -539,9 +565,25 @@ curl http://127.0.0.1:4000/ready
 # 响应：
 {
   "ok": true,
-  "queueWorkerRunning": true,
-  "database": "postgres"
+  "liveness": "alive",
+  "readiness": "ready",
+  "product": "trapmap",
+  "packages": ["cli", "server", "contracts"],
+  "requestContext": {
+    "requestIdHeader": "x-request-id",
+    "traceHeader": "traceparent"
+  },
+  "dependencies": {
+    "database": "postgres",
+    "queueWorker": "running",
+    "graphQuery": "healthy"
+  },
+  "graphQuery": {
+    "mode": "enabled-primary",
+    "backendKind": "neo4j",
+    "failOpen": true
+  }
 }
 ```
 
-> `database` 字段值为 `postgres` 或 `json-store`，取决于实际存储后端。
+> `dependencies.database` 字段值为 `postgres` 或 `json-store`，取决于实际存储后端。`dependencies.queueWorker` 与 `dependencies.graphQuery` 共同表达当前已观测依赖下实例是否 `ready`、`degraded` 或 `not-ready`。当 `readiness === "not-ready"` 时，`/ready` 应返回 HTTP `503`。
