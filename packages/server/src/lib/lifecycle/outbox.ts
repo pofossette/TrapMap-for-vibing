@@ -16,6 +16,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
 import { domainEventOutbox } from '@trapmap/server/lib/persistence/schema.js';
+import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/metrics.js';
 import type { DomainEvent } from './types.js';
 
 export interface OutboxEvent {
@@ -65,12 +66,21 @@ function rowToOutboxEvent(row: OutboxRow): OutboxEvent {
 export interface DomainEventOutboxConfig {
   pool: Pool;
   maxAttempts?: number;
+  baseRetryDelayMs?: number;
+  maxRetryDelayMs?: number;
 }
 
 const DEFAULT_MAX_ATTEMPTS = 3;
+const DEFAULT_BASE_RETRY_DELAY_MS = 5000;
+const DEFAULT_MAX_RETRY_DELAY_MS = 300000;
 
 export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
-  const { pool, maxAttempts = DEFAULT_MAX_ATTEMPTS } = config;
+  const {
+    pool,
+    maxAttempts = DEFAULT_MAX_ATTEMPTS,
+    baseRetryDelayMs = DEFAULT_BASE_RETRY_DELAY_MS,
+    maxRetryDelayMs = DEFAULT_MAX_RETRY_DELAY_MS,
+  } = config;
 
   const db = drizzle(pool, { schema: { domainEventOutbox } });
 
@@ -171,6 +181,10 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
     // When dead, keep status as 'failed' to stop further retries.
     // When retryable, reset to 'pending' but increment attempts.
     if (isDead) {
+      recordRuntimeExecution({
+        dependencyName: 'domain-event-outbox',
+        failureKind: 'permanent',
+      });
       await db
         .update(domainEventOutbox)
         .set({
@@ -181,7 +195,11 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
         .where(eq(domainEventOutbox.id, eventId));
     } else {
       // Back-off: available_at = now + delay based on attempts
-      const backoffMs = Math.min(5000 * 2 ** (newAttempts - 1), 300000);
+      const backoffMs = Math.min(baseRetryDelayMs * 2 ** (newAttempts - 1), maxRetryDelayMs);
+      recordRuntimeExecution({
+        dependencyName: 'domain-event-outbox',
+        failureKind: 'retryable',
+      });
       const nextAvailable = new Date(Date.now() + backoffMs);
 
       await db
@@ -226,5 +244,10 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
     fail,
     getPendingCount,
     cleanup,
+    policy: {
+      maxAttempts,
+      baseRetryDelayMs,
+      maxRetryDelayMs,
+    },
   };
 }

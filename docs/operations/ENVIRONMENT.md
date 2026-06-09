@@ -107,6 +107,24 @@ pnpm dev:server
 | `NODE_ENV` | 运行环境 | 未设置（由部署环境控制） |
 | `HOST` | 绑定地址 | `127.0.0.1` |
 | `PORT` | 服务器端口 | `4000` |
+| `TRAPMAP_REQUEST_ID_HEADER` | 运行时 request id 响应/透传头名 | `x-request-id` |
+| `TRAPMAP_TRACE_HEADER_NAME` | 运行时 trace header 名 | `traceparent` |
+
+## Runtime Resilience
+
+TrapMap 现在通过共享 runtime resilience 层统一处理部分 timeout / retry / degraded-fallback 行为。当前这层首先覆盖：
+
+- graph backend bootstrap / healthcheck
+- candidate retry scheduling
+- graph LLM segment extraction
+- outbox retry metrics
+
+当前版本这些策略主要以内置代码常量为准，尚未全部开放为稳定 env surface。运维上需要知道的点是：
+
+- `TRAPMAP_GRAPH_DB_FAIL_OPEN=true` 时，graph backend healthcheck 失败会进入 degraded fallback，而不是直接阻断启动
+- `/ready` 会把 `queueWorker`、`outboxWorker`、`graphQuery` 的当前状态汇总到 `dependencies.*`
+- `readiness === "not-ready"` 时，`GET /ready` 返回 HTTP `503`
+- runtime metrics 目前是内部/test-visible snapshot，用于统一统计 retry / timeout / degraded 次数，暂未暴露为稳定外部 metrics endpoint
 
 ## AI 提供商配置
 

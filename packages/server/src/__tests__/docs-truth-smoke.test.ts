@@ -126,6 +126,11 @@ describe('docs truth smoke', () => {
     expect(sources).toContain('Health/readiness endpoints');
     expect(sources).toContain('Deep architecture component docs');
     expect(sources).toContain('Operator-only internal APIs');
+    expect(sources).toContain('Runtime request/trace headers');
+    expect(sources).toContain('Runtime status/readiness contract');
+    expect(sources).toContain('Shared resilience policy');
+    expect(sources).toContain('Runtime metrics snapshot semantics');
+    expect(sources).toContain('Queue / outbox reliability policy');
   });
 
   it('docs/README.md does not contain stale schema counts', () => {
@@ -175,6 +180,19 @@ describe('docs truth smoke', () => {
     const content = readDoc('docs/operations/TESTING.md');
     expect(content).toContain('pnpm eval:ci:core');
     expect(content).not.toContain('TIER=core pnpm eval:ci');
+  });
+
+  it('runtime docs describe resilience and readiness verification', () => {
+    const env = readDoc('docs/operations/ENVIRONMENT.md');
+    const testing = readDoc('docs/operations/TESTING.md');
+    const ci = readDoc('docs/operations/CI_CD.md');
+
+    expect(env).toContain('TRAPMAP_REQUEST_ID_HEADER');
+    expect(env).toContain('Runtime Resilience');
+    expect(testing).toContain('Runtime Foundations Verification');
+    expect(testing).toContain('outboxWorker');
+    expect(ci).toContain('Runtime foundations');
+    expect(ci).toContain('doc-rules');
   });
 
   it('ENVIRONMENT.md describes provider auto-detection', () => {

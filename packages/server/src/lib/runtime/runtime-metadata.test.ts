@@ -29,6 +29,7 @@ describe('buildRuntimeStatusSnapshot', () => {
     expect(snapshot.dependencies).toMatchObject({
       database: 'json-store',
       queueWorker: 'not-configured',
+      outboxWorker: 'not-configured',
       graphQuery: 'disabled',
     });
   });
@@ -39,6 +40,8 @@ describe('buildRuntimeStatusSnapshot', () => {
       database: 'postgres',
       queueWorkerConfigured: true,
       queueWorkerRunning: false,
+      outboxWorkerConfigured: true,
+      outboxWorkerRunning: true,
       graphQuery: {
         mode: 'enabled-primary',
         backendKind: 'neo4j',
@@ -56,6 +59,8 @@ describe('buildRuntimeStatusSnapshot', () => {
       database: 'postgres',
       queueWorkerConfigured: true,
       queueWorkerRunning: true,
+      outboxWorkerConfigured: true,
+      outboxWorkerRunning: true,
       graphQuery: {
         mode: 'enabled-fallback',
         backendKind: 'neo4j',
@@ -75,6 +80,8 @@ describe('buildRuntimeStatusSnapshot', () => {
       database: 'postgres',
       queueWorkerConfigured: true,
       queueWorkerRunning: true,
+      outboxWorkerConfigured: true,
+      outboxWorkerRunning: true,
       graphQuery: {
         mode: 'enabled-primary',
         backendKind: 'neo4j',
@@ -84,5 +91,24 @@ describe('buildRuntimeStatusSnapshot', () => {
 
     expect(snapshot.readiness).toBe('ready');
     expect(snapshot.dependencies.graphQuery).toBe('healthy');
+  });
+
+  it('reports not-ready when configured outbox worker is stopped', () => {
+    const snapshot = buildRuntimeStatusSnapshot({
+      config: baseConfig,
+      database: 'postgres',
+      queueWorkerConfigured: true,
+      queueWorkerRunning: true,
+      outboxWorkerConfigured: true,
+      outboxWorkerRunning: false,
+      graphQuery: {
+        mode: 'enabled-primary',
+        backendKind: 'neo4j',
+        failOpen: true,
+      },
+    });
+
+    expect(snapshot.readiness).toBe('not-ready');
+    expect(snapshot.dependencies.outboxWorker).toBe('stopped');
   });
 });

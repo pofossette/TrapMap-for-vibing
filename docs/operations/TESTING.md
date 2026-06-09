@@ -217,6 +217,46 @@ pnpm check:complexity
 
 CI 中由 `architecture-guardrails` 和 `doc-rules` jobs 自动执行。本地开发时可在改动 Mermaid 图、热点文件或架构文档后手动运行。
 
+### Runtime Foundations Verification
+
+当改动 request context、health/readiness、shared resilience、queue/outbox worker 可靠性时，至少运行以下验证矩阵：
+
+```bash
+# Runtime surface
+pnpm test -- --run \
+  packages/server/src/app.test.ts \
+  packages/server/src/lib/runtime/runtime-metadata.test.ts \
+  packages/server/src/config.test.ts
+
+# Shared resilience primitives
+pnpm test -- --run \
+  packages/server/src/lib/runtime/resilience.test.ts \
+  packages/server/src/lib/runtime/metrics.test.ts \
+  packages/server/src/lib/candidates/processor.test.ts \
+  packages/server/src/bootstrap/startup.test.ts \
+  packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts
+
+# Async reliability
+pnpm test -- --run \
+  packages/server/src/lib/queue/task-queue.test.ts \
+  packages/server/src/lib/lifecycle/outbox.test.ts \
+  packages/server/src/__tests__/candidate-pipeline.test.ts \
+  packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts \
+  packages/server/src/routes/candidates.test.ts
+
+# Docs and guardrails
+pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
+pnpm check:docs-drift
+pnpm check:complexity
+```
+
+说明：
+
+- 共享 runtime metrics 当前是内部/test-visible snapshot，不要求稳定对外 endpoint 验证
+- `/ready` 在 `readiness === "not-ready"` 时应返回 HTTP `503`
+- PostgreSQL 模式下，`queueWorker` 和 `outboxWorker` 都应纳入 readiness 解释
+- 如果更改了 runtime doc contract，需要同步更新 `SYSTEM_TRUTH_SOURCES.md` 与 `docs-truth-smoke.test.ts`
+
 ### 按变更类型的验证矩阵
 
 | 变更类型 | 必须运行的验证 |

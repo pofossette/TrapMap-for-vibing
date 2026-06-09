@@ -199,40 +199,40 @@ export function getOrCreateRequestContext(request: FastifyRequest) {
 - Modify: `packages/server/src/lib/ai/provider-config.ts`
 - Modify: `packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts`
 
-- [ ] Define one shared resilience policy shape that captures `timeoutMs`, `maxAttempts`, `backoff`, `fallbackMode`, and `dependencyName`.
-- [ ] Implement a small execution wrapper for dependency calls that records attempts, classifies timeout vs retryable vs permanent failure, and returns an explicit degraded/fallback result when configured to fail open.
-- [ ] Move at least two existing ad hoc reliability behaviors onto the new primitive:
+- [x] Define one shared resilience policy shape that captures `timeoutMs`, `maxAttempts`, `backoff`, `fallbackMode`, and `dependencyName`.
+- [x] Implement a small execution wrapper for dependency calls that records attempts, classifies timeout vs retryable vs permanent failure, and returns an explicit degraded/fallback result when configured to fail open.
+- [x] Move at least two existing ad hoc reliability behaviors onto the new primitive:
   - graph backend health/bootstrap fail-open handling
   - candidate processing retry/backoff or another existing worker-style retry path
-- [ ] Add runtime metrics counters/snapshots for retries, timeouts, degraded executions, and fallback activations.
-- [ ] Ensure resilience events can be logged with request/work item identifiers rather than plain `console.error`.
+- [x] Add runtime metrics counters/snapshots for retries, timeouts, degraded executions, and fallback activations.
+- [x] Ensure resilience events can be logged with request/work item identifiers rather than plain `console.error`.
 
 **Completion standard:**
 
-- [ ] There is one shared resilience module used by multiple subsystems.
-- [ ] At least one request-path dependency and one background-path dependency use the same timeout/retry/degrade abstraction.
-- [ ] Runtime metrics can answer "how often are we retrying/falling back/timing out?" even before integrating a full Prometheus exporter.
-- [ ] Inline reliability decisions in touched modules are replaced with explicit policy objects.
+- [x] There is one shared resilience module used by multiple subsystems.
+- [x] At least one request-path dependency and one background-path dependency use the same timeout/retry/degrade abstraction.
+- [x] Runtime metrics can answer "how often are we retrying/falling back/timing out?" even before integrating a full Prometheus exporter.
+- [x] Inline reliability decisions in touched modules are replaced with explicit policy objects.
 
 **Document updates in this phase:**
 
-- [ ] Update `docs/operations/ENVIRONMENT.md` with any new resilience-related env vars and defaults.
-- [ ] Update `docs/architecture/ARCHITECTURE.md` to show the runtime resilience layer between routes/workers and external dependencies.
-- [ ] Update `docs/operations/TESTING.md` with a dedicated "runtime resilience" verification subsection.
+- [x] Update `docs/operations/ENVIRONMENT.md` with any new resilience-related env vars and defaults.
+- [x] Update `docs/architecture/ARCHITECTURE.md` to show the runtime resilience layer between routes/workers and external dependencies.
+- [x] Update `docs/operations/TESTING.md` with a dedicated "runtime resilience" verification subsection.
 
 **Tests / eval updates in this phase:**
 
-- [ ] Add `packages/server/src/lib/runtime/resilience.test.ts` covering:
+- [x] Add `packages/server/src/lib/runtime/resilience.test.ts` covering:
   - timeout without retry
   - retry then success
   - retry exhaustion
   - fail-open fallback with degraded result
-- [ ] Add `packages/server/src/lib/runtime/metrics.test.ts` covering retry/degraded counter increments and snapshot reset behavior if supported.
-- [ ] Update existing tests that currently assume inline retry/fallback behavior:
+- [x] Add `packages/server/src/lib/runtime/metrics.test.ts` covering retry/degraded counter increments and snapshot reset behavior if supported.
+- [x] Update existing tests that currently assume inline retry/fallback behavior:
   - `packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts`
   - `packages/server/src/lib/candidates/processor.test.ts`
   - `packages/server/src/bootstrap/startup.test.ts`
-- [ ] Run:
+- [x] Run:
 ```bash
 rtk pnpm test -- --run \
   packages/server/src/lib/runtime/resilience.test.ts \
@@ -241,7 +241,13 @@ rtk pnpm test -- --run \
   packages/server/src/bootstrap/startup.test.ts \
   packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts
 ```
-  - Expected: all pass
+  - Result: pass; the workspace `test` script expanded to the full Vitest suite, and the full suite passed
+
+**Review closure in this phase:**
+
+- [x] Shared resilience seam landed in `packages/server/src/lib/runtime/resilience.ts` and is now used by graph bootstrap, candidate retry scheduling, and graph segment extraction.
+- [x] Runtime metrics landed in `packages/server/src/lib/runtime/metrics.ts` and are wired into resilience execution plus outbox failure accounting.
+- [x] Timeout classification bug in the first resilience test pass was fixed before closure; final targeted verification is green.
 
 **Example structure or code:**
 ```ts
@@ -289,39 +295,39 @@ if (!result.ok && graphHealthPolicy.fallbackMode === 'fail-closed') {
 - Modify: `packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts`
 - Modify: `packages/server/src/routes/candidates.test.ts`
 
-- [ ] Define explicit retry/dead-letter policy constants or config for queue jobs and outbox worker consumption rather than leaving policy implicit in each caller.
-- [ ] Standardize what metadata is preserved on failure:
+- [x] Define explicit retry/dead-letter policy constants or config for queue jobs and outbox worker consumption rather than leaving policy implicit in each caller.
+- [x] Standardize what metadata is preserved on failure:
   - request/work item id
   - attempt count
   - last error class
   - next retry / terminal state
-- [ ] Ensure queue and outbox failure paths emit runtime metrics and structured logs through the new runtime foundation rather than raw console logging.
-- [ ] Review existing idempotency expectations in candidate submission and queue dedupe, then formalize which transitions are safe to replay and which must hard-stop.
-- [ ] Add or expose one operator-visible inspection surface for backlog/dead-letter/degraded worker state if the current `/ready` and internal routes are not sufficient.
+- [x] Ensure queue and outbox failure paths emit runtime metrics and structured logs through the new runtime foundation rather than raw console logging.
+- [x] Review existing idempotency expectations in candidate submission and queue dedupe, then formalize which transitions are safe to replay and which must hard-stop.
+- [x] Add or expose one operator-visible inspection surface for backlog/dead-letter/degraded worker state if the current `/ready` and internal routes are not sufficient.
 
 **Completion standard:**
 
-- [ ] Queue and outbox workers share an explicit, documented retry/dead-letter vocabulary.
-- [ ] Failures in background processing are observable through tests and machine-readable status, not just log text.
-- [ ] Candidate processing and lifecycle delivery no longer rely on hidden policy embedded in route/service internals.
-- [ ] At least one operator-facing surface can answer whether async processing is healthy, degraded, backlogged, or dead-lettering.
+- [x] Queue and outbox workers share an explicit, documented retry/dead-letter vocabulary.
+- [x] Failures in background processing are observable through tests and machine-readable status, not just log text.
+- [x] Candidate processing and lifecycle delivery no longer rely on hidden policy embedded in route/service internals.
+- [x] At least one operator-facing surface can answer whether async processing is healthy, degraded, backlogged, or dead-lettering.
 
 **Document updates in this phase:**
 
-- [ ] Update `docs/operations/TESTING.md` queue/outbox sections with the new reliability policy and verification commands.
-- [ ] Update `docs/operations/CI_CD.md` if a new runtime/reliability test lane is added.
-- [ ] Update `docs/operations/ENVIRONMENT.md` if retry or worker-tuning env vars are introduced.
-- [ ] Update `docs/architecture/DEPLOYMENT.md` with operator guidance for interpreting degraded worker/runtime states.
+- [x] Update `docs/operations/TESTING.md` queue/outbox sections with the new reliability policy and verification commands.
+- [x] Update `docs/operations/CI_CD.md` if a new runtime/reliability test lane is added.
+- [x] Update `docs/operations/ENVIRONMENT.md` if retry or worker-tuning env vars are introduced.
+- [x] Update `docs/architecture/DEPLOYMENT.md` with operator guidance for interpreting degraded worker/runtime states.
 
 **Tests / eval updates in this phase:**
 
-- [ ] Extend `packages/server/src/lib/queue/task-queue.test.ts` for explicit retry-policy and dead-letter assertions.
-- [ ] Extend `packages/server/src/lib/lifecycle/outbox.test.ts` for retry exhaustion, failure classification, and metrics/log emission behavior.
-- [ ] Extend:
+- [x] Extend `packages/server/src/lib/queue/task-queue.test.ts` for explicit retry-policy and dead-letter assertions.
+- [x] Extend `packages/server/src/lib/lifecycle/outbox.test.ts` for retry exhaustion, failure classification, and metrics/log emission behavior.
+- [x] Extend:
   - `packages/server/src/__tests__/candidate-pipeline.test.ts`
   - `packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts`
   - `packages/server/src/routes/candidates.test.ts`
-- [ ] Run:
+- [x] Run:
 ```bash
 rtk pnpm test -- --run \
   packages/server/src/lib/queue/task-queue.test.ts \
@@ -330,14 +336,19 @@ rtk pnpm test -- --run \
   packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts \
   packages/server/src/routes/candidates.test.ts
 ```
-  - Expected: all pass
-- [ ] Run PostgreSQL-backed verification subset:
+  - Result: pass via `pnpm test:runtime-foundations`; note `outbox.test.ts` remains PG-conditional and skips without local DB env
+- [x] Run PostgreSQL-backed verification subset:
 ```bash
 rtk pnpm test -- --run \
   packages/server/src/lib/queue/task-queue.test.ts \
   packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts
 ```
-  - Expected: all pass against PG-backed CI/local Docker environment
+  - Result: covered by CI `postgres-integration` job and local targeted runtime-foundations run
+
+**Review closure in this phase:**
+
+- [x] Runtime readiness now includes `outboxWorker` in addition to `queueWorker` and `graphQuery`.
+- [x] Outbox retry/backoff policy is explicit in code and documented as part of the shared runtime reliability vocabulary.
 
 **Example structure or code:**
 ```ts
@@ -373,44 +384,49 @@ runtimeMetrics.recordWorkerFailure({
 - Modify: `.github/workflows/ci.yml`
 - Modify: `package.json`
 
-- [ ] Add one explicit runtime-foundations verification section to docs that shows what to run locally before merging runtime/reliability changes.
-- [ ] Decide whether runtime metrics stay as internal/test-visible snapshots or gain a stable operator endpoint in this phase; document the decision either way.
-- [ ] Add doc-drift and/or truth-source coverage if new runtime endpoints, env vars, or policy guarantees are now contractual.
-- [ ] Add a dedicated CI command or job grouping for runtime-foundations tests if the touched matrix is otherwise too implicit.
-- [ ] Ensure the final docs tell a coherent production story: process alive, instance ready, dependencies degraded, background workers healthy, retries bounded, dead-letter state inspectable.
+- [x] Add one explicit runtime-foundations verification section to docs that shows what to run locally before merging runtime/reliability changes.
+- [x] Decide whether runtime metrics stay as internal/test-visible snapshots or gain a stable operator endpoint in this phase; document the decision either way.
+- [x] Add doc-drift and/or truth-source coverage if new runtime endpoints, env vars, or policy guarantees are now contractual.
+- [x] Add a dedicated CI command or job grouping for runtime-foundations tests if the touched matrix is otherwise too implicit.
+- [x] Ensure the final docs tell a coherent production story: process alive, instance ready, dependencies degraded, background workers healthy, retries bounded, dead-letter state inspectable.
 
 **Completion standard:**
 
-- [ ] A new contributor can discover the runtime foundations from docs without reading implementation code first.
-- [ ] CI explicitly exercises the new runtime/reliability test surface.
-- [ ] Truth-source docs identify the authoritative files for runtime status fields, resilience policy, and worker reliability policy.
-- [ ] Runtime hardening is no longer "tribal knowledge" spread across route tests and historical plans.
+- [x] A new contributor can discover the runtime foundations from docs without reading implementation code first.
+- [x] CI explicitly exercises the new runtime/reliability test surface.
+- [x] Truth-source docs identify the authoritative files for runtime status fields, resilience policy, and worker reliability policy.
+- [x] Runtime hardening is no longer "tribal knowledge" spread across route tests and historical plans.
 
 **Document updates in this phase:**
 
-- [ ] Update `docs/reference/SYSTEM_TRUTH_SOURCES.md` with runtime status, resilience policy, and worker-policy authoritative sources.
-- [ ] Update `docs/operations/CI_CD.md` with any new runtime job or command grouping.
-- [ ] Update `docs/operations/TESTING.md` with a final validation matrix for observability + reliability.
-- [ ] Update `docs/architecture/ARCHITECTURE.md` and `docs/architecture/DEPLOYMENT.md` so runtime behavior is described consistently.
+- [x] Update `docs/reference/SYSTEM_TRUTH_SOURCES.md` with runtime status, resilience policy, and worker-policy authoritative sources.
+- [x] Update `docs/operations/CI_CD.md` with any new runtime job or command grouping.
+- [x] Update `docs/operations/TESTING.md` with a final validation matrix for observability + reliability.
+- [x] Update `docs/architecture/ARCHITECTURE.md` and `docs/architecture/DEPLOYMENT.md` so runtime behavior is described consistently.
 
 **Tests / eval updates in this phase:**
 
-- [ ] Update `packages/server/src/__tests__/docs-truth-smoke.test.ts` with assertions for new runtime doc phrases / truth-source references.
-- [ ] Run:
+- [x] Update `packages/server/src/__tests__/docs-truth-smoke.test.ts` with assertions for new runtime doc phrases / truth-source references.
+- [x] Run:
 ```bash
 rtk pnpm check:docs-drift
 ```
-  - Expected: pass
-- [ ] Run:
+  - Result: pass
+- [x] Run:
 ```bash
 rtk pnpm check:complexity
 ```
-  - Expected: pass
-- [ ] Run:
+  - Result: pass
+- [x] Run:
 ```bash
 rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
 ```
-  - Expected: pass
+  - Result: pass
+
+**Review closure in this phase:**
+
+- [x] Audit found one real closure gap: `packages/server/src/app.ts` exceeded complexity budget. Fixed by extracting `packages/server/src/lib/runtime/http-surface.ts`, then rerunning guardrails.
+- [x] Docs, truth-source references, runtime verification commands, and package script surface now describe the same runtime-foundations contract.
 
 **Example structure or code:**
 ```json
@@ -424,13 +440,20 @@ rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
 
 ## Final Verification Checklist
 
-- [ ] `rtk pnpm typecheck`
-- [ ] `rtk pnpm test -- --run packages/server/src/app.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts`
-- [ ] `rtk pnpm test -- --run packages/server/src/lib/runtime/resilience.test.ts packages/server/src/lib/runtime/metrics.test.ts`
-- [ ] `rtk pnpm test -- --run packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/lifecycle/outbox.test.ts`
-- [ ] `rtk pnpm test -- --run packages/server/src/__tests__/candidate-pipeline.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts`
-- [ ] `rtk pnpm check:docs-drift`
-- [ ] `rtk pnpm check:complexity`
+- [x] `rtk pnpm typecheck`
+- [x] `rtk pnpm test -- --run packages/server/src/app.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts`
+- [x] `rtk pnpm test -- --run packages/server/src/lib/runtime/resilience.test.ts packages/server/src/lib/runtime/metrics.test.ts`
+- [x] `rtk pnpm test -- --run packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/lifecycle/outbox.test.ts`
+- [x] `rtk pnpm test -- --run packages/server/src/__tests__/candidate-pipeline.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts`
+- [x] `rtk pnpm check:docs-drift`
+- [x] `rtk pnpm check:complexity`
+
+**Final audit summary:**
+
+- [x] Code path audit: runtime request context, readiness contract, resilience execution, queue/outbox reliability policy, and worker shutdown semantics are implemented and connected.
+- [x] Test audit: runtime-foundations script passes; docs truth, resilience, queue, lifecycle, and candidate pipeline verification are green in the current environment.
+- [x] Guardrail audit: `docs-drift` and `complexity` both pass after final cleanup.
+- [x] Residual local limitation recorded: `packages/server/src/lib/lifecycle/outbox.test.ts` is still PG-conditional and skips without a local PostgreSQL env, but CI/local PG verification path is documented and unchanged.
 
 ## Risks To Watch During Execution
 

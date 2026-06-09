@@ -13,6 +13,7 @@ import { createConflictSubscriber } from '@trapmap/server/lib/lifecycle/subscrib
 import { createIndexingSubscriber } from '@trapmap/server/lib/lifecycle/subscribers/indexing.js';
 import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/metrics.js';
 
 export async function bootstrapLifecycle(app: FastifyInstance): Promise<void> {
   const { eventBus, store, adapterRegistry } = app.skillShareer;
@@ -128,6 +129,10 @@ export async function bootstrapLifecycle(app: FastifyInstance): Promise<void> {
               } catch (error) {
                 const msg = error instanceof Error ? error.message : String(error);
                 await outbox.fail(event.id, msg);
+                recordRuntimeExecution({
+                  dependencyName: 'outbox-worker',
+                  failureKind: 'retryable',
+                });
                 app.log.error(
                   { error: msg, eventName: event.eventName, aggregateId: event.aggregateId },
                   'Outbox event handler failed',
@@ -141,6 +146,10 @@ export async function bootstrapLifecycle(app: FastifyInstance): Promise<void> {
             await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
           }
         } catch (error) {
+          recordRuntimeExecution({
+            dependencyName: 'outbox-worker',
+            failureKind: 'retryable',
+          });
           app.log.error({ error }, 'Outbox worker poll error');
           await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
         }
@@ -151,6 +160,7 @@ export async function bootstrapLifecycle(app: FastifyInstance): Promise<void> {
     app.log.info('Outbox event worker started');
 
     app.decorate('outboxWorker', {
+      isRunning: () => running,
       stop: () => {
         running = false;
       },

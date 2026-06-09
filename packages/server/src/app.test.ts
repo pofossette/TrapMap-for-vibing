@@ -57,6 +57,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
       dependencies: {
         database: 'json-store',
         queueWorker: 'not-configured',
+        outboxWorker: 'not-configured',
         graphQuery: 'disabled',
       },
       graphQuery: {
@@ -89,6 +90,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
       dependencies: {
         database: 'json-store',
         queueWorker: 'not-configured',
+        outboxWorker: 'not-configured',
         graphQuery: 'disabled',
       },
       graphQuery: {

@@ -19,6 +19,11 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
 | Root workspace commands | `package.json` (scripts section) | `README.md`, `docs/README.md`, `docs/operations/TESTING.md` |
 | Server-only DB commands | `packages/server/package.json` (db:generate, db:migrate, db:push) | `docs/guides/GETTING_STARTED.md`, `docs/architecture/DEPLOYMENT.md` |
 | Runtime env defaults | `packages/server/src/config.ts` | `docs/operations/ENVIRONMENT.md`, `docs/architecture/ARCHITECTURE.md`, `docs/guides/GETTING_STARTED.md` |
+| Runtime request/trace headers | `packages/server/src/config.ts` + `packages/server/src/lib/runtime/request-context.ts` | `docs/operations/ENVIRONMENT.md`, `docs/architecture/DEPLOYMENT.md`, `docs/reference/api-surface.md` |
+| Runtime status/readiness contract | `packages/server/src/app.ts` + `packages/server/src/lib/runtime/runtime-metadata.ts` | `docs/architecture/DEPLOYMENT.md`, `docs/architecture/ARCHITECTURE.md`, `docs/reference/api-surface.md`, `docs/operations/TESTING.md` |
+| Shared resilience policy | `packages/server/src/lib/runtime/resilience.ts` | `docs/operations/ENVIRONMENT.md`, `docs/operations/TESTING.md`, `docs/architecture/ARCHITECTURE.md` |
+| Runtime metrics snapshot semantics | `packages/server/src/lib/runtime/metrics.ts` | `docs/operations/ENVIRONMENT.md`, `docs/operations/TESTING.md` |
+| Queue / outbox reliability policy | `packages/server/src/lib/queue/task-queue.ts` + `packages/server/src/lib/lifecycle/outbox.ts` + `packages/server/src/bootstrap/bootstrap-lifecycle.ts` | `docs/operations/TESTING.md`, `docs/operations/CI_CD.md`, `docs/architecture/DEPLOYMENT.md` |
 | AI provider/model defaults | `packages/server/src/lib/ai/provider-config.ts` | `docs/operations/ENVIRONMENT.md`, `docs/architecture/ARCHITECTURE.md`, `docs/guides/GETTING_STARTED.md` |
 | Eval workflow | `.github/workflows/eval.yml` | `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` |
 | Deep architecture persistence docs | `packages/server/src/lib/persistence/schema/*.ts` | `docs/architecture/components/PERSISTENCE.md`, `docs/reference/DATABASE_SCHEMA.md` |

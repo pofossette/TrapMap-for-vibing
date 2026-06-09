@@ -23,8 +23,17 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 | `coverage` | `pnpm test:coverage` | 测试覆盖率（产物上传 7 天） |
 | `postgres-integration` | PG 集成测试 | 真实 PostgreSQL/pgvector 校验（任务队列、outbox subscriber） |
 | `architecture-guardrails` | `pnpm check:docs-drift` + `pnpm check:complexity` | 文档漂移检查与复杂度预算守卫 |
+| `doc-rules` | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:structure` | 文档结构与仓库结构守卫 |
 
 `postgres-integration` job 使用 `pgvector/pgvector:pg16` 作为 service container，运行需要真实数据库的集成测试。确保异步基础设施（TaskQueue、OutboxWorker、Lifecycle subscribers）在 PostgreSQL 环境下正确工作。
+
+Runtime foundations 相关改动主要依赖以下 job 组合形成质量门：
+
+- `typecheck`: runtime config / shared resilience 类型面
+- `test`: request context、runtime snapshot、shared resilience 单测
+- `postgres-integration`: queue + outbox + lifecycle subscriber 真实 PG 可靠性链路
+- `architecture-guardrails`: runtime 文档契约与复杂度守卫
+- `doc-rules`: docs drift、Mermaid 和仓库结构守卫
 
 `architecture-guardrails` job 运行文档漂移守卫（`pnpm check:docs-drift`）和复杂度预算守卫（`pnpm check:complexity`），确保关键文档不含过时内容且热点文件未超出行数预算。漂移规则覆盖以下类别：
 

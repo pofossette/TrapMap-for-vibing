@@ -4,6 +4,7 @@ import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/bac
 export interface RuntimeDependencyState {
   database: 'postgres' | 'json-store';
   queueWorker: 'running' | 'stopped' | 'not-configured';
+  outboxWorker: 'running' | 'stopped' | 'not-configured';
   graphQuery: 'disabled' | 'healthy' | 'fallback' | 'failed';
 }
 
@@ -32,6 +33,8 @@ interface BuildRuntimeStatusSnapshotOptions {
   database: 'postgres' | 'json-store';
   queueWorkerRunning: boolean;
   queueWorkerConfigured: boolean;
+  outboxWorkerRunning: boolean;
+  outboxWorkerConfigured: boolean;
 }
 
 function resolveGraphDependencyState(
@@ -57,9 +60,16 @@ export function buildRuntimeStatusSnapshot(
       ? 'running'
       : 'stopped'
     : 'not-configured';
+  const outboxWorker = options.outboxWorkerConfigured
+    ? options.outboxWorkerRunning
+      ? 'running'
+      : 'stopped'
+    : 'not-configured';
 
   const readiness: RuntimeStatusSnapshot['readiness'] =
-    graphDependency === 'failed' || queueWorker === 'stopped' ? 'not-ready' : 'ready';
+    graphDependency === 'failed' || queueWorker === 'stopped' || outboxWorker === 'stopped'
+      ? 'not-ready'
+      : 'ready';
   const normalizedReadiness =
     graphDependency === 'fallback' && readiness === 'ready' ? 'degraded' : readiness;
 
@@ -75,6 +85,7 @@ export function buildRuntimeStatusSnapshot(
     dependencies: {
       database: options.database,
       queueWorker,
+      outboxWorker,
       graphQuery: graphDependency,
     },
     graphQuery: options.graphQuery,
