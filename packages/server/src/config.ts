@@ -135,8 +135,7 @@ export function loadConfig(): ServerConfig {
         (process.env.TRAPMAP_REQUEST_ID_HEADER?.trim().toLowerCase() || undefined) ??
         'x-request-id',
       traceHeaderName:
-        (process.env.TRAPMAP_TRACE_HEADER_NAME?.trim().toLowerCase() || undefined) ??
-        'traceparent',
+        (process.env.TRAPMAP_TRACE_HEADER_NAME?.trim().toLowerCase() || undefined) ?? 'traceparent',
     },
     userOpsLog,
     ragLog,

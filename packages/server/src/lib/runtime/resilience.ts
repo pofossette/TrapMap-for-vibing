@@ -1,4 +1,8 @@
-import { getRuntimeMetricsSnapshot, recordRuntimeExecution, recordRuntimeRetry } from './metrics.js';
+import {
+  getRuntimeMetricsSnapshot,
+  recordRuntimeExecution,
+  recordRuntimeRetry,
+} from './metrics.js';
 
 export type ResilienceFailureKind = 'timeout' | 'retryable' | 'permanent';
 export type ResilienceFailureMode = 'fail-closed' | 'fail-open';
@@ -104,7 +108,9 @@ export async function executeWithResilience<T>(
         };
       }
 
-      const resultError = new Error(`Operation returned unsuccessful result for ${policy.dependencyName}`);
+      const resultError = new Error(
+        `Operation returned unsuccessful result for ${policy.dependencyName}`,
+      );
       lastError = resultError;
       const retryable = attempt < policy.maxAttempts;
       recordRuntimeExecution({
@@ -179,7 +185,10 @@ export async function executeWithResilience<T>(
       route: context?.route,
       workItemId: context?.workItemId,
       failureKind,
-      error: lastError instanceof Error ? { message: lastError.message, stack: lastError.stack } : lastError,
+      error:
+        lastError instanceof Error
+          ? { message: lastError.message, stack: lastError.stack }
+          : lastError,
     },
     'Resilient operation failed',
   );

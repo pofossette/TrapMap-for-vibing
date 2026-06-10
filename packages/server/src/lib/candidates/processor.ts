@@ -280,7 +280,7 @@ export async function processCandidateWithRetry(
             failureMode: 'fail-closed',
           },
           context: {
-            logger: services.logger,
+            ...(services.logger ? { logger: services.logger } : {}),
             workItemId: candidateId,
           },
           operation: async () => {

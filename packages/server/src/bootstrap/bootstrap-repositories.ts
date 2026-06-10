@@ -154,7 +154,8 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
       },
     });
     const health =
-      healthResult.value ?? ({ ok: false, mode: 'enabled-fallback', detail: 'Unknown healthcheck failure' } as const);
+      healthResult.value ??
+      ({ ok: false, mode: 'enabled-fallback', detail: 'Unknown healthcheck failure' } as const);
 
     if (!healthResult.ok && !app.skillShareer.config.graphDb.failOpen) {
       throw new Error(health.detail ?? 'Graph query backend healthcheck failed');

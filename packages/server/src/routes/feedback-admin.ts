@@ -14,18 +14,21 @@ import {
   type QualityScore,
   feedbackBatchRequestSchema,
   feedbackBatchResponseSchema,
+  feedbackListRequestSchema,
+  feedbackListResponseSchema,
   feedbackRemediationCompleteRequestSchema,
   feedbackRemediationCompleteResponseSchema,
   feedbackRemediationDetailResponseSchema,
   feedbackRemediationQueueResponseSchema,
-  feedbackListRequestSchema,
-  feedbackListResponseSchema,
   feedbackStatsResponseSchema,
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
+import {
+  checkLifecycleTriggers,
+  getLifecycleTriggerRules,
+} from '@trapmap/server/lib/feedback/lifecycle-triggers.js';
 import {
   FEEDBACK_REMEDIATION_THRESHOLD,
   computeFeedbackRemediationState,
@@ -33,10 +36,6 @@ import {
 } from '@trapmap/server/lib/feedback/remediation.js';
 import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
 import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
-import {
-  checkLifecycleTriggers,
-  getLifecycleTriggerRules,
-} from '@trapmap/server/lib/feedback/lifecycle-triggers.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
@@ -97,7 +96,6 @@ async function buildRemediationQueueItems(app: Parameters<FastifyPluginAsync>[0]
     artifact: artifactRepo,
   } = app.skillShareer.repos;
   const now = new Date();
-  const snapshot = await app.skillShareer.store.snapshot();
   const allFeedback = await feedbackRepo.listByFilter({});
   const grouped = new Map<string, FeedbackQueueRecord[]>();
 

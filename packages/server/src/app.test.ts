@@ -176,12 +176,13 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   it('reports degraded readiness when graph query is in fallback mode', async () => {
     const app = buildServer();
     await app.ready();
-    (app.skillShareer.graphQueryBackend as { getRuntimeState: () => unknown }).getRuntimeState = () => ({
-      mode: 'enabled-fallback',
-      backendKind: 'neo4j',
-      failOpen: true,
-      detail: 'fallback active',
-    });
+    (app.skillShareer.graphQueryBackend as { getRuntimeState: () => unknown }).getRuntimeState =
+      () => ({
+        mode: 'enabled-fallback',
+        backendKind: 'neo4j',
+        failOpen: true,
+        detail: 'fallback active',
+      });
 
     const response = await app.inject({
       method: 'GET',
@@ -208,12 +209,13 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   it('returns 503 when readiness is not-ready', async () => {
     const app = buildServer();
     await app.ready();
-    (app.skillShareer.graphQueryBackend as { getRuntimeState: () => unknown }).getRuntimeState = () => ({
-      mode: 'enabled-primary',
-      backendKind: 'neo4j',
-      failOpen: false,
-      detail: 'primary backend failed',
-    });
+    (app.skillShareer.graphQueryBackend as { getRuntimeState: () => unknown }).getRuntimeState =
+      () => ({
+        mode: 'enabled-primary',
+        backendKind: 'neo4j',
+        failOpen: false,
+        detail: 'primary backend failed',
+      });
 
     const response = await app.inject({
       method: 'GET',

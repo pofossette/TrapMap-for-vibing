@@ -2,12 +2,16 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 
 import type { ServerConfig } from '@trapmap/server/config.js';
-import { AppError, isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
+import { isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { getOrCreateRequestContext } from './request-context.js';
 import { buildRuntimeStatusSnapshot } from './runtime-metadata.js';
 
-export function registerRuntimeRoutes(app: FastifyInstance, config: ServerConfig, documentedRoutes: readonly string[]) {
+export function registerRuntimeRoutes(
+  app: FastifyInstance,
+  config: ServerConfig,
+  documentedRoutes: readonly string[],
+) {
   app.get('/health', async () => {
     const graphQuery =
       app.skillShareer.graphQueryBackend?.getRuntimeState?.() ?? app.skillShareer.graphQuery;

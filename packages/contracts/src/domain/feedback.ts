@@ -409,7 +409,9 @@ export type FeedbackBatchResponse = z.infer<typeof feedbackBatchResponseSchema>;
 export type QualityScore = z.infer<typeof qualityScoreSchema>;
 export type FeedbackStatsResponse = z.infer<typeof feedbackStatsResponseSchema>;
 export type FeedbackRemediationQueueItem = z.infer<typeof feedbackRemediationQueueItemSchema>;
-export type FeedbackRemediationQueueResponse = z.infer<typeof feedbackRemediationQueueResponseSchema>;
+export type FeedbackRemediationQueueResponse = z.infer<
+  typeof feedbackRemediationQueueResponseSchema
+>;
 export type FeedbackRemediationDetailResponse = z.infer<
   typeof feedbackRemediationDetailResponseSchema
 >;

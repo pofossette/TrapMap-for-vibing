@@ -229,11 +229,8 @@ export const v2KeywordDominantSmoke = retrievalEvalCaseSchema.parse({
       forbiddenReasons: [],
     },
     shape: {
-      expectedProfileHintArtifactIds: [
-        'artifact_smoke_keyword_python',
-        'artifact_smoke_keyword_regex',
-      ],
-      expectedCapsuleCount: 2,
+      expectedProfileHintArtifactIds: ['artifact_smoke_keyword_python'],
+      expectedCapsuleCount: 1,
     },
   },
   tags: ['keyword-dominant', 'v2', 'smoke', 'capsule', 'error-debugging', 'multi-recall'],
@@ -264,11 +261,8 @@ export const v2KeywordRegexSmoke = retrievalEvalCaseSchema.parse({
       forbiddenReasons: [],
     },
     shape: {
-      expectedProfileHintArtifactIds: [
-        'artifact_smoke_keyword_python',
-        'artifact_smoke_keyword_regex',
-      ],
-      expectedCapsuleCount: 2,
+      expectedProfileHintArtifactIds: ['artifact_smoke_keyword_regex'],
+      expectedCapsuleCount: 1,
     },
   },
   tags: ['keyword-dominant', 'v2', 'smoke', 'capsule', 'general', 'multi-recall'],

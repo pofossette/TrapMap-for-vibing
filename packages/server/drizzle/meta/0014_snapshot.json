@@ -3309,10 +3309,7 @@
       "compositePrimaryKeys": {
         "knowledge_search_documents_pkey": {
           "name": "knowledge_search_documents_pkey",
-          "columns": [
-            "entry_id",
-            "revision_no"
-          ]
+          "columns": ["entry_id", "revision_no"]
         }
       },
       "uniqueConstraints": {},

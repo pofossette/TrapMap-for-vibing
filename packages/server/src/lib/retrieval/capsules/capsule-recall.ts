@@ -9,8 +9,8 @@
  * T-14-06: Rank only distilled profile/capsule text, not raw payloads
  */
 
-import { isGovernanceEligible } from '@trapmap/server/lib/governance/index.js';
 import { isSuppressedByFeedback } from '@trapmap/server/lib/feedback/remediation.js';
+import { isGovernanceEligible } from '@trapmap/server/lib/governance/index.js';
 import type {
   ArtifactGovernanceFilters,
   CapsuleCandidate,

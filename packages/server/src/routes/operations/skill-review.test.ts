@@ -703,9 +703,9 @@ describe('skill review main link tests (Phase 2)', () => {
         (record) => record.entryId === 'artifact-remediation-review',
       );
       expect(feedback).toHaveLength(10);
-      expect(
-        feedback.every((record) => record.remediationStatus === 'ready-to-reindex'),
-      ).toBe(true);
+      expect(feedback.every((record) => record.remediationStatus === 'ready-to-reindex')).toBe(
+        true,
+      );
 
       await app.close();
     });

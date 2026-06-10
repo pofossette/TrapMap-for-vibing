@@ -696,7 +696,8 @@ describe('feedback admin routes', () => {
 
       const data = await store.snapshot();
       const active = data.feedbackQueue.filter(
-        (record) => record.entryId === 'trap_1' && (record.status === 'new' || record.status === 'triaged'),
+        (record) =>
+          record.entryId === 'trap_1' && (record.status === 'new' || record.status === 'triaged'),
       );
       expect(active).toHaveLength(0);
       const resolved = data.feedbackQueue.filter((record) => record.entryId === 'trap_1');

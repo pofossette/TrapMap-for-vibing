@@ -54,6 +54,8 @@ pnpm eval:retrieval --tier smoke --endpoint /v2/retrieval/search
 
 快速反馈，最小覆盖。证明评测管道连接正确。
 
+对 smoke 层的 v2 keyword-dominant 用例有一个额外约束：它们只要求证明“关键词主导查询能命中正确 top-1 artifact/capsule”，而不要求保留多个低分候选。原因是当前 v2 精度门控会在 `MIN_CAPSULE_SCORE` 处丢弃低分 capsule；多候选形状断言应放在 core 层，而不是 smoke 层。
+
 | 用例 ID | 端点 | 场景类型 |
 |---------|------|----------|
 | `v1-semantic-positive-smoke` | `/v1/retrieval/search` | 正向可见命中 |

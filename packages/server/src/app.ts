@@ -24,8 +24,8 @@ import type { RetrievalStrategy } from './lib/retrieval/orchestration/strategy-r
 import { StrategyRegistry } from './lib/retrieval/orchestration/strategy-registry.js';
 import { keywordChannel } from './lib/retrieval/recall/keyword.js';
 import { semanticChannel } from './lib/retrieval/recall/semantic.js';
-import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
 import { handleRuntimeError, registerRuntimeRoutes } from './lib/runtime/http-surface.js';
+import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
 
 import { runStartupSequence } from './bootstrap/run-startup-sequence.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
