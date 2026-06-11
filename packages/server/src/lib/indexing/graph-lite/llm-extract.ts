@@ -13,7 +13,7 @@ import {
   buildGraphExtractionSlots_default,
   buildPrompt,
 } from '@trapmap/server/lib/ai/prompts.js';
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
 import { extractTrapGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
@@ -67,6 +67,7 @@ export interface ExtractGraphOptions {
   alignmentService?: {
     chat: ChatProvider | null;
     repository: unknown | null;
+    embeddings?: EmbeddingsProvider | null;
     sourceContext?: string;
   } | null;
 }
@@ -565,6 +566,7 @@ export async function extractGraphEntitiesWithLLM(
         const alignmentResult = await alignGraphNodes(merged.nodes as LlmGraphNode[], {
           chat: alignmentService.chat,
           repository: alignmentService.repository as LabelRepository,
+          embeddings: alignmentService.embeddings ?? null,
           sourceContext: alignmentService.sourceContext ?? 'extraction',
         });
 

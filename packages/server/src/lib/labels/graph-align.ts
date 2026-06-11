@@ -8,10 +8,11 @@
 
 import type { LlmGraphNode } from '@trapmap/contracts';
 
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
 import type { GraphNodeRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import { normalizeValue } from '@trapmap/server/lib/indexing/graph-lite/llm-extract.js';
 import { alignLabel } from './llm-align.js';
+import type { AlignLabelOptions } from './llm-align.js';
 import type { LabelRepository } from './repository.js';
 
 // ---------------------------------------------------------------------------
@@ -23,6 +24,8 @@ export interface AlignmentServiceOptions {
   chat: ChatProvider | null;
   /** Label repository (null = skip alignment) */
   repository: LabelRepository | null;
+  /** Embeddings provider for semantic candidate recall (null = skip embedding recall) */
+  embeddings: EmbeddingsProvider | null;
   /** Source context for alignment events */
   sourceContext?: string;
 }
@@ -62,7 +65,7 @@ export async function alignGraphNodes(
   nodes: LlmGraphNode[],
   options: AlignmentServiceOptions,
 ): Promise<AlignGraphNodesResult> {
-  const { chat, repository, sourceContext = 'extraction' } = options;
+  const { chat, repository, embeddings, sourceContext = 'extraction' } = options;
 
   // Skip alignment if chat or repository is not available
   if (!chat || !chat.isConfigured || !repository) {
@@ -87,9 +90,9 @@ export async function alignGraphNodes(
     const evidence = node.description ?? 'llm-extracted';
 
     try {
-      const result = await alignLabel(repository, chat, node.label, evidence, node.kind, {
-        sourceContext,
-      });
+      const alignOpts: AlignLabelOptions = { sourceContext };
+      if (embeddings) alignOpts.embeddings = embeddings;
+      const result = await alignLabel(repository, chat, node.label, evidence, node.kind, alignOpts);
 
       const decision = result.decision;
 

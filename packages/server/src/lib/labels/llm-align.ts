@@ -18,7 +18,7 @@ import { labelAlignmentDecisionSchema } from '@trapmap/contracts';
 
 import { stripCodeFences } from '@trapmap/server/lib/ai/parse.js';
 import { buildLabelAlignmentSlots_default, buildPrompt } from '@trapmap/server/lib/ai/prompts.js';
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
 
 import { recallCandidates } from './candidate-recall.js';
 import type { LabelRepository } from './repository.js';
@@ -56,6 +56,8 @@ export interface AlignLabelOptions {
   maxCandidates?: number;
   /** Minimum confidence required before auto-merging/creating (default: 0) */
   autoMergeThreshold?: number;
+  /** Embeddings provider for semantic candidate recall (Phase 3) */
+  embeddings?: EmbeddingsProvider;
   /** Custom event ID generator */
   generateEventId?: () => string;
 }
@@ -88,10 +90,11 @@ export async function alignLabel(
   const sourceContext = options?.sourceContext ?? DEFAULT_SOURCE_CONTEXT;
   const maxCandidates = options?.maxCandidates ?? 5;
   const autoMergeThreshold = options?.autoMergeThreshold ?? 0;
+  const embeddings = options?.embeddings;
   const generateEventId = options?.generateEventId ?? defaultEventId;
 
   // Step 1: Recall candidates
-  const recallResult = await recallCandidates(repository, rawLabel, kind, undefined, maxCandidates);
+  const recallResult = await recallCandidates(repository, rawLabel, kind, embeddings, maxCandidates);
 
   // Step 2: Build alignment input
   const alignmentInput: LabelAlignmentInput = {
