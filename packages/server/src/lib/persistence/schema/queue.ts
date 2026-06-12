@@ -37,12 +37,19 @@ export const taskQueue = pgTable(
     /** Opaque key for idempotent enqueue -- prevents duplicate (type, key) pairs */
     dedupeKey: text('dedupe_key'),
     processAfter: timestamp('process_after', { withTimezone: true }).notNull().defaultNow(),
+    workerId: text('worker_id'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    heartbeatAt: timestamp('heartbeat_at', { withTimezone: true }),
+    leaseUntil: timestamp('lease_until', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (table) => [
     index('task_queue_type_dedupe_idx').on(table.type, table.dedupeKey),
+    index('task_queue_running_lease_idx')
+      .on(table.type, table.leaseUntil, table.updatedAt)
+      .where(sql`${table.status} = 'running'`),
     uniqueIndex('task_queue_dedupe_pending_idx')
       .on(table.type, table.dedupeKey)
       .where(sql`${table.status} IN ('pending', 'running')`),

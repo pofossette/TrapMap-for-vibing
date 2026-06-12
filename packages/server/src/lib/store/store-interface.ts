@@ -5,3 +5,9 @@ export interface SkillShareerStore {
   transact<T>(mutator: (data: StoreData) => Promise<T> | T): Promise<T>;
   nextId(data: StoreData, prefix: string): string;
 }
+
+export interface PostgresTransactionalStore extends SkillShareerStore {
+  transactWithPgClient<T>(
+    mutator: (data: StoreData, client: import('pg').PoolClient) => Promise<T> | T,
+  ): Promise<T>;
+}

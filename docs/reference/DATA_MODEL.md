@@ -33,6 +33,17 @@ Round 0 的目标不是立即改完所有表，而是冻结后续数据库现代
 | Server 路由 actor 查找 | 仓库-backed（`lib/actors/lookup.ts`） | 用户 handle 和成员安全等级通过 `repos.user` / `repos.membership` 解析；检索数据通过 `buildRetrievalReadModel()` 从 `repos.knowledge` / `repos.artifact` 组装，冲突关系暂从 `store.snapshot()` 获取 |
 | 检索读模型 | 仓库-backed（`lib/retrieval/read-model.ts`） | 知识条目和技能工件通过 `repos.knowledge` / `repos.artifact` 读取，冲突关系暂从 `store.snapshot()` 获取 |
 
+### Phase 0 原子交付与回收语义
+
+- `candidates` 与 `task_queue`：
+  PostgreSQL 模式下，候选创建、初始状态写入以及 `candidate_processing` 任务注册必须在同一个 DB 事务中提交。系统不允许出现持久化 `queued` 候选但没有对应活动 queue row 的状态。
+- `knowledge` 生命周期变更与 `domain_event_outbox`：
+  PostgreSQL 模式下，生命周期写路径应与 outbox 注册共用同一事务 client；若无法共享事务，则该调用点仍被视为待收敛债务，而不是目标状态。
+- `task_queue` 与 `domain_event_outbox` 都携带 lease 元数据：
+  `workerId`、`startedAt`、`heartbeatAt`、`leaseUntil`。
+- worker 崩溃恢复：
+  `running` task 或 `processing` outbox event 在 `leaseUntil < now()` 后可被回收为可再次 claim 的待处理状态，无需人工 SQL 清理。
+
 ### JSONB 保留与拆分准则
 
 - 必须拆分为结构化列或子表的字段：

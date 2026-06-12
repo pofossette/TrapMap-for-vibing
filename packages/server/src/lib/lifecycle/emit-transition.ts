@@ -11,6 +11,7 @@
  */
 
 import type { LifecycleState } from '@trapmap/contracts';
+import type { PoolClient } from 'pg';
 
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
@@ -37,6 +38,7 @@ export async function emitLifecycleTransition(params: {
   nextState: LifecycleState;
   actorId: string;
   reason: string;
+  txClient?: PoolClient;
 }): Promise<void> {
   const { store, eventBus, aggregateType, aggregateId, previousState, nextState, actorId, reason } =
     params;
@@ -57,9 +59,9 @@ export async function emitLifecycleTransition(params: {
   };
 
   if (store instanceof PostgresStore) {
-    // PG mode: enqueue to outbox for async processing by worker
     const outbox = createDomainEventOutbox({ pool: store.getPool() });
-    await outbox.enqueue({
+    const enqueue = params.txClient ? outbox.enqueueTx.bind(outbox, params.txClient) : outbox.enqueue;
+    await enqueue({
       aggregateType,
       aggregateId,
       eventName,

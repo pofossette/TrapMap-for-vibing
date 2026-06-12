@@ -5,7 +5,7 @@ import type {
   DuplicateCase,
   ManualResultSubmission,
 } from '@trapmap/contracts';
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 import type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
@@ -86,6 +86,22 @@ export interface CandidateRepository {
    * Returns the candidate ID of an existing candidate with the same fingerprint, or null.
    */
   findByFingerprint(fingerprint: string): Promise<string | null>;
+}
+
+export interface TransactionalCandidateRepository extends CandidateRepository {
+  insertTx(client: PoolClient, candidate: CandidateSubmission): Promise<void>;
+  updateStatusTx(
+    client: PoolClient,
+    candidateId: string,
+    status: CandidateStatus,
+    error?: string,
+  ): Promise<void>;
+  attachDuplicateCaseTx(
+    client: PoolClient,
+    candidateId: string,
+    duplicateCase: DuplicateCase,
+  ): Promise<void>;
+  findByFingerprintTx(client: PoolClient, fingerprint: string): Promise<string | null>;
 }
 
 /**

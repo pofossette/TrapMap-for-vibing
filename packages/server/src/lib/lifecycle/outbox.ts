@@ -13,7 +13,7 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 import { domainEventOutbox } from '@trapmap/server/lib/persistence/schema.js';
 import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/metrics.js';
@@ -29,6 +29,10 @@ export interface OutboxEvent {
   availableAt: Date;
   attempts: number;
   lastError: string | null;
+  workerId: string | null;
+  startedAt: Date | null;
+  heartbeatAt: Date | null;
+  leaseUntil: Date | null;
   createdAt: Date;
   publishedAt: Date | null;
 }
@@ -43,6 +47,10 @@ interface OutboxRow {
   available_at: Date;
   attempts: number;
   last_error: string | null;
+  worker_id: string | null;
+  started_at: Date | null;
+  heartbeat_at: Date | null;
+  lease_until: Date | null;
   created_at: Date;
   published_at: Date | null;
 }
@@ -58,6 +66,10 @@ function rowToOutboxEvent(row: OutboxRow): OutboxEvent {
     availableAt: row.available_at,
     attempts: row.attempts,
     lastError: row.last_error,
+    workerId: row.worker_id,
+    startedAt: row.started_at,
+    heartbeatAt: row.heartbeat_at,
+    leaseUntil: row.lease_until,
     createdAt: row.created_at,
     publishedAt: row.published_at,
   };
@@ -68,11 +80,13 @@ export interface DomainEventOutboxConfig {
   maxAttempts?: number;
   baseRetryDelayMs?: number;
   maxRetryDelayMs?: number;
+  leaseDurationMs?: number;
 }
 
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_BASE_RETRY_DELAY_MS = 5000;
 const DEFAULT_MAX_RETRY_DELAY_MS = 300000;
+const DEFAULT_LEASE_DURATION_MS = 30_000;
 
 export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
   const {
@@ -80,6 +94,7 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
     maxAttempts = DEFAULT_MAX_ATTEMPTS,
     baseRetryDelayMs = DEFAULT_BASE_RETRY_DELAY_MS,
     maxRetryDelayMs = DEFAULT_MAX_RETRY_DELAY_MS,
+    leaseDurationMs = DEFAULT_LEASE_DURATION_MS,
   } = config;
 
   const db = drizzle(pool, { schema: { domainEventOutbox } });
@@ -88,25 +103,37 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
    * Enqueue a domain event for async processing.
    * Called from write-path routes after the transaction commits.
    */
-  async function enqueue(params: {
-    aggregateType: string;
-    aggregateId: string;
-    eventName: string;
-    payload: DomainEvent;
-    delayMs?: number;
-  }): Promise<OutboxEvent> {
+  async function enqueueViaClient(
+    client: Pick<PoolClient, 'query'>,
+    params: {
+      aggregateType: string;
+      aggregateId: string;
+      eventName: string;
+      payload: DomainEvent;
+      delayMs?: number;
+    },
+  ): Promise<OutboxEvent> {
     const id = `evt_${Date.now()}_${randomUUID().slice(0, 8)}`;
     const availableAt = params.delayMs ? new Date(Date.now() + params.delayMs) : new Date();
 
-    await db.insert(domainEventOutbox).values({
-      id,
-      aggregateType: params.aggregateType,
-      aggregateId: params.aggregateId,
-      eventName: params.eventName,
-      payload: params.payload as unknown as Record<string, unknown>,
-      status: 'pending',
-      availableAt,
-    });
+    await client.query(
+      `
+      INSERT INTO domain_event_outbox (
+        id, aggregate_type, aggregate_id, event_name, payload, status, available_at,
+        attempts, last_error, worker_id, started_at, heartbeat_at, lease_until, created_at, published_at
+      ) VALUES (
+        $1, $2, $3, $4, $5::jsonb, 'pending', $6, 0, NULL, NULL, NULL, NULL, NULL, NOW(), NULL
+      )
+      `,
+      [
+        id,
+        params.aggregateType,
+        params.aggregateId,
+        params.eventName,
+        JSON.stringify(params.payload),
+        availableAt,
+      ],
+    );
 
     return {
       id,
@@ -118,20 +145,41 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
       availableAt,
       attempts: 0,
       lastError: null,
+      workerId: null,
+      startedAt: null,
+      heartbeatAt: null,
+      leaseUntil: null,
       createdAt: new Date(),
       publishedAt: null,
     };
+  }
+
+  async function enqueue(params: {
+    aggregateType: string;
+    aggregateId: string;
+    eventName: string;
+    payload: DomainEvent;
+    delayMs?: number;
+  }): Promise<OutboxEvent> {
+    return enqueueViaClient(pool, params);
   }
 
   /**
    * Claim a batch of pending events for processing (SKIP LOCKED).
    * Returns up to `limit` events, ordered by available_at then created_at.
    */
-  async function claimBatch(limit = 10): Promise<OutboxEvent[]> {
+  async function claimBatch(limit = 10, workerId = `outbox_${process.pid}`): Promise<OutboxEvent[]> {
+    await reclaimExpiredLeases();
+
     const result = await pool.query<OutboxRow>(
       `
       UPDATE domain_event_outbox
-      SET status = 'processing', attempts = attempts + 1
+      SET status = 'processing',
+          attempts = attempts + 1,
+          worker_id = $3,
+          started_at = COALESCE(started_at, NOW()),
+          heartbeat_at = NOW(),
+          lease_until = NOW() + ($4 * INTERVAL '1 millisecond')
       WHERE id IN (
         SELECT id FROM domain_event_outbox
         WHERE status = 'pending'
@@ -143,7 +191,7 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
       )
       RETURNING *
       `,
-      [maxAttempts, limit],
+      [maxAttempts, limit, workerId, leaseDurationMs],
     );
 
     return result.rows.map(rowToOutboxEvent);
@@ -158,6 +206,10 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
       .set({
         status: 'completed',
         publishedAt: new Date(),
+        workerId: null,
+        startedAt: null,
+        heartbeatAt: null,
+        leaseUntil: null,
       })
       .where(eq(domainEventOutbox.id, eventId));
   }
@@ -191,6 +243,9 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
           status: 'failed',
           attempts: newAttempts,
           lastError: error,
+          workerId: null,
+          heartbeatAt: null,
+          leaseUntil: null,
         })
         .where(eq(domainEventOutbox.id, eventId));
     } else {
@@ -209,9 +264,44 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
           attempts: newAttempts,
           lastError: error,
           availableAt: nextAvailable,
+          workerId: null,
+          heartbeatAt: null,
+          leaseUntil: null,
         })
         .where(eq(domainEventOutbox.id, eventId));
     }
+  }
+
+  async function heartbeat(eventId: string, workerId: string): Promise<boolean> {
+    const result = await pool.query(
+      `
+      UPDATE domain_event_outbox
+      SET heartbeat_at = NOW(),
+          lease_until = NOW() + ($3 * INTERVAL '1 millisecond')
+      WHERE id = $1
+        AND worker_id = $2
+        AND status = 'processing'
+      `,
+      [eventId, workerId, leaseDurationMs],
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async function reclaimExpiredLeases(): Promise<number> {
+    const result = await pool.query(
+      `
+      UPDATE domain_event_outbox
+      SET status = 'pending',
+          worker_id = NULL,
+          heartbeat_at = NULL,
+          lease_until = NULL,
+          available_at = NOW()
+      WHERE status = 'processing'
+        AND lease_until IS NOT NULL
+        AND lease_until < NOW()
+      `,
+    );
+    return result.rowCount ?? 0;
   }
 
   /**
@@ -239,9 +329,12 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
 
   return {
     enqueue,
+    enqueueTx: enqueueViaClient,
     claimBatch,
     complete,
     fail,
+    heartbeat,
+    reclaimExpiredLeases,
     getPendingCount,
     cleanup,
     policy: {

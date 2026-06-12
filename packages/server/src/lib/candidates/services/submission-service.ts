@@ -13,11 +13,16 @@ import type { CandidateSubmission, DuplicateCase } from '@trapmap/contracts';
 import { buildNormalizedDuplicateInput } from '@trapmap/server/lib/candidates/fingerprint.js';
 import {
   type CandidateProcessorServices,
+  CANDIDATE_PROCESSING_TASK_TYPE,
   scheduleCandidateProcessing,
 } from '@trapmap/server/lib/candidates/processor.js';
-import type { CandidateRepository } from '@trapmap/server/lib/candidates/repository.js';
+import type {
+  CandidateRepository,
+  TransactionalCandidateRepository,
+} from '@trapmap/server/lib/candidates/repository.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { createDuplicateCaseId } from '@trapmap/server/lib/ids.js';
+import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -82,6 +87,43 @@ async function detectDuplicateOnIngest(
   return duplicateCase;
 }
 
+async function detectDuplicateOnIngestTx(
+  candidateRepo: TransactionalCandidateRepository,
+  client: import('pg').PoolClient,
+  candidate: CandidateSubmission,
+): Promise<DuplicateCase | null> {
+  const normalized = buildNormalizedDuplicateInput(candidate);
+  const existingCandidateId = await candidateRepo.findByFingerprintTx(client, normalized.fingerprint);
+
+  if (!existingCandidateId || existingCandidateId === candidate.id) {
+    return null;
+  }
+
+  return {
+    id: createDuplicateCaseId(),
+    candidateId: candidate.id,
+    detectedAt: nowIso(),
+    detectionVersion: 'ingest-fingerprint-1.0.0',
+    matches: [
+      {
+        entityType: candidate.sourceType === 'trap' ? 'trap' : 'skill',
+        entityId: existingCandidateId,
+        entityTitle: normalized.titleText.slice(0, 280),
+        similarityScore: 1,
+        matchType: 'exact' as const,
+        overlapDetails: {
+          sharedKeywords: normalized.keywordTerms.slice(0, 50),
+          sharedTokens: normalized.tokenTerms.slice(0, 50),
+          textOverlapPercent: 100,
+        },
+      },
+    ],
+    highestSimilarity: 1,
+    hasExactDuplicate: true,
+    duplicateType: 'exact' as const,
+  };
+}
+
 /**
  * Create a candidate record and enqueue it for async processing.
  *
@@ -128,26 +170,53 @@ export async function createAndEnqueueCandidate(
     manualResult: null,
   };
 
-  await candidateRepo.insert(candidate);
-
-  // Fast ingest-time duplicate check (exact fingerprint match)
-  const duplicateCase = await detectDuplicateOnIngest(candidateRepo, candidate);
-
-  // Determine initial status: duplicate_detected if fingerprint match found, else queued
-  const initialStatus = duplicateCase ? 'duplicate_detected' : 'queued';
-  await candidateRepo.updateStatus(candidate.id, initialStatus);
-
-  // Enqueue candidate for full async processing (Jaccard + LLM pipeline)
-  // unless an exact duplicate was already detected at ingest time
   const pool = store instanceof PostgresStore ? store.getPool() : undefined;
-  const services: CandidateProcessorServices = {
-    store,
-    getSnapshot: () => store.snapshot(),
-    ...(pool ? { pool } : {}),
-    candidateRepo,
-  };
-  if (!duplicateCase) {
-    scheduleCandidateProcessing(candidate.id, services);
+  let duplicateCase: DuplicateCase | null = null;
+  let initialStatus: 'duplicate_detected' | 'queued' = 'queued';
+
+  if (
+    store instanceof PostgresStore &&
+    'transactWithPgClient' in store &&
+    'insertTx' in candidateRepo &&
+    'updateStatusTx' in candidateRepo &&
+    'attachDuplicateCaseTx' in candidateRepo &&
+    'findByFingerprintTx' in candidateRepo
+  ) {
+    const transactionalRepo = candidateRepo as TransactionalCandidateRepository;
+    const queue = createTaskQueue({ pool: store.getPool() });
+
+    await store.transactWithPgClient(async (_data, client) => {
+      await transactionalRepo.insertTx(client, candidate);
+      duplicateCase = await detectDuplicateOnIngestTx(transactionalRepo, client, candidate);
+      initialStatus = duplicateCase ? 'duplicate_detected' : 'queued';
+      await transactionalRepo.updateStatusTx(client, candidate.id, initialStatus);
+
+      if (duplicateCase) {
+        await transactionalRepo.attachDuplicateCaseTx(client, candidate.id, duplicateCase);
+      } else {
+        await queue.enqueueTx(
+          client,
+          CANDIDATE_PROCESSING_TASK_TYPE,
+          { candidateId: candidate.id, retryCount: 0 },
+          { dedupeKey: candidate.id, maxAttempts: 3 },
+        );
+      }
+    });
+  } else {
+    await candidateRepo.insert(candidate);
+    duplicateCase = await detectDuplicateOnIngest(candidateRepo, candidate);
+    initialStatus = duplicateCase ? 'duplicate_detected' : 'queued';
+    await candidateRepo.updateStatus(candidate.id, initialStatus);
+
+    const services: CandidateProcessorServices = {
+      store,
+      getSnapshot: () => store.snapshot(),
+      ...(pool ? { pool } : {}),
+      candidateRepo,
+    };
+    if (!duplicateCase) {
+      scheduleCandidateProcessing(candidate.id, services);
+    }
   }
 
   // Log user operation

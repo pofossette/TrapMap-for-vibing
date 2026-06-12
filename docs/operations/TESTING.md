@@ -43,6 +43,11 @@ flowchart TB
 - Retry safety: confirm a candidate can be scheduled again after the prior queue row reaches `dead` / `completed` / `failed`, and that conflict recovery does not drop the enqueue during the unique-violation race window.
 - Trace persistence: inspect a processed candidate and confirm `analysisSnapshot.duplicateTrace` survives through the API / repository path with a plausible `detector` + `matchedLane` pair.
 
+**Phase 0 Atomic Delivery / Recovery Checks:**
+- 候选原子排队：提交候选后，确认 PostgreSQL 中不存在 `status='queued'` 但缺少活动 `task_queue` row 的候选。
+- Stuck task reclaim：手动将 `task_queue.status='running'` 且 `lease_until` 调整到过去时间，再触发 worker dequeue；确认任务会被回收并重新 claim。
+- Stuck outbox reclaim：手动将 `domain_event_outbox.status='processing'` 且 `lease_until` 调整到过去时间，再触发 outbox claim；确认事件会回到可处理状态。
+
 ### 目录结构
 
 ```text

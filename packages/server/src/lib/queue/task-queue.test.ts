@@ -32,6 +32,10 @@ interface MockTaskRow {
   last_error: string | null;
   dedupe_key: string | null;
   process_after: Date;
+  worker_id: string | null;
+  started_at: Date | null;
+  heartbeat_at: Date | null;
+  lease_until: Date | null;
   created_at: Date;
   updated_at: Date;
   completed_at: Date | null;
@@ -50,6 +54,10 @@ function makeRow(id: string, overrides: Partial<MockTaskRow> = {}): MockTaskRow 
     last_error: null,
     dedupe_key: null,
     process_after: new Date(now.getTime() - 10000),
+    worker_id: null,
+    started_at: null,
+    heartbeat_at: null,
+    lease_until: null,
     created_at: now,
     updated_at: now,
     completed_at: null,
@@ -93,6 +101,10 @@ function buildMockPool(initialRows: MockTaskRow[] = []) {
         last_error: null,
         dedupe_key: (params?.[7] as string) ?? null,
         process_after: (params?.[8] as Date) ?? now,
+        worker_id: null,
+        started_at: null,
+        heartbeat_at: null,
+        lease_until: null,
         created_at: now,
         updated_at: now,
         completed_at: null,
@@ -137,6 +149,10 @@ function buildMockPool(initialRows: MockTaskRow[] = []) {
         last_error: null,
         dedupe_key: dedupeKey,
         process_after: processAfter,
+        worker_id: null,
+        started_at: null,
+        heartbeat_at: null,
+        lease_until: null,
         created_at: now,
         updated_at: now,
         completed_at: null,
@@ -201,6 +217,11 @@ function buildMockPool(initialRows: MockTaskRow[] = []) {
       const selected = candidates[0];
       if (selected) {
         selected.status = 'running';
+        selected.attempts += 1;
+        selected.worker_id = (params?.[1] as string) ?? 'worker_test';
+        selected.started_at ??= new Date();
+        selected.heartbeat_at = new Date();
+        selected.lease_until = new Date(Date.now() + Number(params?.[2] ?? 30000));
         selected.updated_at = new Date();
         return { rows: [selected], rowCount: 1 };
       }
@@ -222,17 +243,25 @@ function buildMockPool(initialRows: MockTaskRow[] = []) {
       if (row) {
         if (setComplete) {
           row.status = 'completed';
+          row.worker_id = null;
+          row.started_at = null;
+          row.heartbeat_at = null;
+          row.lease_until = null;
           row.completed_at = new Date();
         } else if (setDead) {
           row.status = 'dead';
-          row.attempts = Number(params?.find((_p, i) => i === 1)) ?? row.attempts;
-          row.last_error =
-            (params?.find((p) => typeof p === 'string' && !p.startsWith('task_')) as string) ??
-            row.last_error;
+          row.attempts = Number(params?.[1] ?? row.attempts);
+          row.last_error = (params?.[2] as string) ?? row.last_error;
+          row.worker_id = null;
+          row.heartbeat_at = null;
+          row.lease_until = null;
         } else if (setPending) {
           row.status = 'pending';
-          row.attempts = Number(params?.find((_p, i) => i === 1)) ?? 0;
-          row.last_error = null;
+          row.attempts = Number(params?.[1] ?? 0);
+          row.last_error = (params?.[2] as string | null) ?? null;
+          row.worker_id = null;
+          row.heartbeat_at = null;
+          row.lease_until = null;
           // process_after is at index 3 after status($0), attempts($1), last_error($2)
           const paVal = params?.[3];
           row.process_after = paVal instanceof Date ? paVal : new Date(String(paVal ?? Date.now()));
@@ -240,6 +269,28 @@ function buildMockPool(initialRows: MockTaskRow[] = []) {
         row.updated_at = new Date();
       }
       return { rows: [], rowCount: row ? 1 : 0 };
+    }
+
+    if (sqlL.includes('lease_until < now()')) {
+      const type = params?.[0] as string | undefined;
+      let count = 0;
+      for (const row of rows) {
+        if (
+          row.status === 'running' &&
+          row.lease_until &&
+          row.lease_until.getTime() < Date.now() &&
+          (!type || row.type === type)
+        ) {
+          row.status = 'pending';
+          row.worker_id = null;
+          row.heartbeat_at = null;
+          row.lease_until = null;
+          row.process_after = new Date();
+          row.updated_at = new Date();
+          count += 1;
+        }
+      }
+      return { rows: [], rowCount: count };
     }
 
     // fail() reads attempts before update — handle unquoted column names

@@ -3,7 +3,7 @@
 > **源码真实来源**: `packages/server/src/lib/persistence/schema.ts`
 > **表定义目录**: `packages/server/src/lib/persistence/schema/`
 > **数据模型详情**: `docs/reference/DATA_MODEL.md`
-> **迁移历史**: `packages/server/drizzle/` (13 个迁移文件)
+> **迁移历史**: `packages/server/drizzle/`（当前包含 `0015_phase0_atomic_delivery_and_leases.sql`）
 
 ## 技术栈
 
@@ -135,6 +135,21 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 |--------|------|-----|------|------|
 | `task_queue_pending_dequeue_idx` | 部分索引 | `(type, process_after, priority DESC, created_at ASC)` | `WHERE status = 'pending'` | 匹配 SKIP LOCKED 出队谓词 |
 | `task_queue_dedupe_pending_idx` | 唯一部分索引 | `(type, dedupe_key)` | `WHERE status IN ('pending', 'running')` | 防止同一实体重复排队 |
+| `task_queue_running_lease_idx` | 部分索引 | `(type, lease_until, updated_at)` | `WHERE status = 'running'` | 支撑 stuck-task reclaim |
+
+### domain_event_outbox 关键索引
+
+| 索引名 | 类型 | 列 | 条件 | 用途 |
+|--------|------|-----|------|------|
+| `domain_event_outbox_pending_idx` | 部分索引 | `(event_name, available_at, created_at)` | `WHERE status = 'pending'` | 匹配 claimBatch 谓词 |
+| `domain_event_outbox_processing_lease_idx` | 部分索引 | `(event_name, lease_until, created_at)` | `WHERE status = 'processing'` | 支撑 stuck-outbox reclaim |
+
+### Phase 0 Lease 列
+
+- `task_queue`：
+  `worker_id`, `started_at`, `heartbeat_at`, `lease_until`
+- `domain_event_outbox`：
+  `worker_id`, `started_at`, `heartbeat_at`, `lease_until`
 
 ## 核心表关系图
 

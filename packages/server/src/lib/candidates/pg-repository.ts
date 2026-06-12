@@ -21,7 +21,7 @@ import type {
 } from '@trapmap/contracts';
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 import {
   candidateAnalyses,
@@ -30,14 +30,14 @@ import {
   candidateManualResults,
   candidates,
 } from '@trapmap/server/lib/persistence/schema.js';
-import type { CandidateRepository } from './repository.js';
+import type { CandidateRepository, TransactionalCandidateRepository } from './repository.js';
 import { createManualResultRecord } from './repository.js';
 
 /**
  * PostgreSQL-backed repository for candidate CRUD operations.
  * Implements row-level locking for concurrent-safe updates.
  */
-export class PgCandidateRepository implements CandidateRepository {
+export class PgCandidateRepository implements TransactionalCandidateRepository {
   private db: ReturnType<typeof drizzle>;
 
   constructor(private readonly pool: Pool) {
@@ -76,6 +76,35 @@ export class PgCandidateRepository implements CandidateRepository {
     if (candidate.manualResult) {
       await this.writeManualResultToSubTable(candidate.id, candidate.manualResult);
     }
+  }
+
+  async insertTx(client: PoolClient, candidate: CandidateSubmission): Promise<void> {
+    await client.query(
+      `INSERT INTO candidates (
+        id, source_type, submitted_by_user_id, team_id, status, original_payload,
+        analysis_snapshot, duplicate_case, received_at, queued_at, analyzing_at,
+        completed_at, last_error, retry_count, manual_result
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb, $9, $10, $11, $12, $13, $14, $15::jsonb
+      )`,
+      [
+        candidate.id,
+        candidate.sourceType,
+        candidate.submittedBy,
+        candidate.teamId,
+        candidate.status,
+        JSON.stringify(candidate.originalPayload),
+        candidate.analysisSnapshot ? JSON.stringify(candidate.analysisSnapshot) : null,
+        candidate.duplicateCase ? JSON.stringify(candidate.duplicateCase) : null,
+        new Date(candidate.receivedAt),
+        candidate.queuedAt ? new Date(candidate.queuedAt) : null,
+        candidate.analyzingAt ? new Date(candidate.analyzingAt) : null,
+        candidate.completedAt ? new Date(candidate.completedAt) : null,
+        candidate.lastError,
+        candidate.retryCount,
+        candidate.manualResult ? JSON.stringify(candidate.manualResult) : null,
+      ],
+    );
   }
 
   /**
@@ -119,63 +148,67 @@ export class PgCandidateRepository implements CandidateRepository {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
-
-      // Lock the row for update
-      const { rows } = await client.query<{ id: string }>(
-        'SELECT id FROM candidates WHERE id = $1 FOR UPDATE',
-        [candidateId],
-      );
-
-      if (rows.length === 0) {
-        throw new Error(`Candidate ${candidateId} not found`);
-      }
-
-      const now = new Date().toISOString();
-
-      // Determine which timestamp column to set based on status
-      const terminalStatuses: CandidateStatus[] = [
-        'ready_for_review',
-        'duplicate_detected',
-        'error',
-        'resolved',
-      ];
-
-      if (status === 'queued') {
-        await client.query(
-          'UPDATE candidates SET status = $1, queued_at = $2, updated_at = $2 WHERE id = $3',
-          [status, now, candidateId],
-        );
-      } else if (status === 'analyzing') {
-        await client.query(
-          'UPDATE candidates SET status = $1, analyzing_at = $2, updated_at = $2 WHERE id = $3',
-          [status, now, candidateId],
-        );
-      } else if (status === 'error') {
-        await client.query(
-          `UPDATE candidates
-           SET status = $1, completed_at = $2, last_error = $3, retry_count = retry_count + 1, updated_at = $2
-           WHERE id = $4`,
-          [status, now, error ?? 'Unknown error', candidateId],
-        );
-      } else if (terminalStatuses.includes(status)) {
-        await client.query(
-          'UPDATE candidates SET status = $1, completed_at = $2, updated_at = $2 WHERE id = $3',
-          [status, now, candidateId],
-        );
-      } else {
-        await client.query('UPDATE candidates SET status = $1, updated_at = $2 WHERE id = $3', [
-          status,
-          now,
-          candidateId,
-        ]);
-      }
-
+      await this.updateStatusTx(client, candidateId, status, error);
       await client.query('COMMIT');
     } catch (e) {
       await client.query('ROLLBACK').catch(() => {});
       throw e;
     } finally {
       client.release();
+    }
+  }
+
+  async updateStatusTx(
+    client: PoolClient,
+    candidateId: string,
+    status: CandidateStatus,
+    error?: string,
+  ): Promise<void> {
+    const { rows } = await client.query<{ id: string }>(
+      'SELECT id FROM candidates WHERE id = $1 FOR UPDATE',
+      [candidateId],
+    );
+
+    if (rows.length === 0) {
+      throw new Error(`Candidate ${candidateId} not found`);
+    }
+
+    const now = new Date().toISOString();
+    const terminalStatuses: CandidateStatus[] = [
+      'ready_for_review',
+      'duplicate_detected',
+      'error',
+      'resolved',
+    ];
+
+    if (status === 'queued') {
+      await client.query(
+        'UPDATE candidates SET status = $1, queued_at = $2, updated_at = $2 WHERE id = $3',
+        [status, now, candidateId],
+      );
+    } else if (status === 'analyzing') {
+      await client.query(
+        'UPDATE candidates SET status = $1, analyzing_at = $2, updated_at = $2 WHERE id = $3',
+        [status, now, candidateId],
+      );
+    } else if (status === 'error') {
+      await client.query(
+        `UPDATE candidates
+         SET status = $1, completed_at = $2, last_error = $3, retry_count = retry_count + 1, updated_at = $2
+         WHERE id = $4`,
+        [status, now, error ?? 'Unknown error', candidateId],
+      );
+    } else if (terminalStatuses.includes(status)) {
+      await client.query(
+        'UPDATE candidates SET status = $1, completed_at = $2, updated_at = $2 WHERE id = $3',
+        [status, now, candidateId],
+      );
+    } else {
+      await client.query('UPDATE candidates SET status = $1, updated_at = $2 WHERE id = $3', [
+        status,
+        now,
+        candidateId,
+      ]);
     }
   }
 
@@ -250,70 +283,7 @@ export class PgCandidateRepository implements CandidateRepository {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
-
-      // Lock the row for update
-      const { rows } = await client.query<{ id: string }>(
-        'SELECT id FROM candidates WHERE id = $1 FOR UPDATE',
-        [candidateId],
-      );
-
-      if (rows.length === 0) {
-        throw new Error(`Candidate ${candidateId} not found`);
-      }
-
-      const now = new Date().toISOString();
-
-      // Write to JSONB column (read-optimization cache)
-      await client.query(
-        'UPDATE candidates SET duplicate_case = $1, updated_at = $2 WHERE id = $3',
-        [JSON.stringify(duplicateCase), now, candidateId],
-      );
-
-      // Write to structured sub-tables
-      await client.query(
-        `INSERT INTO candidate_duplicate_cases (id, candidate_id, detected_at, detection_version, highest_similarity, has_exact_duplicate, duplicate_type)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (id) DO UPDATE SET
-           candidate_id = EXCLUDED.candidate_id,
-           detected_at = EXCLUDED.detected_at,
-           detection_version = EXCLUDED.detection_version,
-           highest_similarity = EXCLUDED.highest_similarity,
-           has_exact_duplicate = EXCLUDED.has_exact_duplicate,
-           duplicate_type = EXCLUDED.duplicate_type`,
-        [
-          duplicateCase.id,
-          candidateId,
-          duplicateCase.detectedAt,
-          duplicateCase.detectionVersion,
-          duplicateCase.highestSimilarity,
-          duplicateCase.hasExactDuplicate ? 1 : 0,
-          duplicateCase.duplicateType,
-        ],
-      );
-
-      // Delete existing matches and re-insert
-      await client.query('DELETE FROM candidate_duplicate_matches WHERE duplicate_case_id = $1', [
-        duplicateCase.id,
-      ]);
-
-      for (const match of duplicateCase.matches) {
-        await client.query(
-          `INSERT INTO candidate_duplicate_matches (duplicate_case_id, entity_type, entity_id, entity_title, similarity_score, match_type, shared_keywords, shared_tokens, text_overlap_percent)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-          [
-            duplicateCase.id,
-            match.entityType,
-            match.entityId,
-            match.entityTitle,
-            match.similarityScore,
-            match.matchType,
-            JSON.stringify(match.overlapDetails.sharedKeywords),
-            JSON.stringify(match.overlapDetails.sharedTokens),
-            match.overlapDetails.textOverlapPercent,
-          ],
-        );
-      }
-
+      await this.attachDuplicateCaseTx(client, candidateId, duplicateCase);
       await client.query('COMMIT');
     } catch (e) {
       await client.query('ROLLBACK').catch(() => {});
@@ -321,6 +291,29 @@ export class PgCandidateRepository implements CandidateRepository {
     } finally {
       client.release();
     }
+  }
+
+  async attachDuplicateCaseTx(
+    client: PoolClient,
+    candidateId: string,
+    duplicateCase: DuplicateCase,
+  ): Promise<void> {
+    const { rows } = await client.query<{ id: string }>(
+      'SELECT id FROM candidates WHERE id = $1 FOR UPDATE',
+      [candidateId],
+    );
+
+    if (rows.length === 0) {
+      throw new Error(`Candidate ${candidateId} not found`);
+    }
+
+    const now = new Date().toISOString();
+    await client.query('UPDATE candidates SET duplicate_case = $1, updated_at = $2 WHERE id = $3', [
+      JSON.stringify(duplicateCase),
+      now,
+      candidateId,
+    ]);
+    await this.writeDuplicateCaseToSubTablesTx(client, duplicateCase);
   }
 
   /**
@@ -449,6 +442,14 @@ export class PgCandidateRepository implements CandidateRepository {
     return result[0]?.candidateId ?? null;
   }
 
+  async findByFingerprintTx(client: PoolClient, fingerprint: string): Promise<string | null> {
+    const result = await client.query<{ candidate_id: string }>(
+      'SELECT candidate_id FROM candidate_analyses WHERE fingerprint = $1 LIMIT 1',
+      [fingerprint],
+    );
+    return result.rows[0]?.candidate_id ?? null;
+  }
+
   // =============================================================================
   // Private helpers for structured sub-table I/O
   // =============================================================================
@@ -528,6 +529,54 @@ export class PgCandidateRepository implements CandidateRepository {
       }
     } finally {
       client.release();
+    }
+  }
+
+  private async writeDuplicateCaseToSubTablesTx(
+    client: PoolClient,
+    duplicateCase: DuplicateCase,
+  ): Promise<void> {
+    await client.query(
+      `INSERT INTO candidate_duplicate_cases (id, candidate_id, detected_at, detection_version, highest_similarity, has_exact_duplicate, duplicate_type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (id) DO UPDATE SET
+         candidate_id = EXCLUDED.candidate_id,
+         detected_at = EXCLUDED.detected_at,
+         detection_version = EXCLUDED.detection_version,
+         highest_similarity = EXCLUDED.highest_similarity,
+         has_exact_duplicate = EXCLUDED.has_exact_duplicate,
+         duplicate_type = EXCLUDED.duplicate_type`,
+      [
+        duplicateCase.id,
+        duplicateCase.candidateId,
+        duplicateCase.detectedAt,
+        duplicateCase.detectionVersion,
+        duplicateCase.highestSimilarity,
+        duplicateCase.hasExactDuplicate ? 1 : 0,
+        duplicateCase.duplicateType,
+      ],
+    );
+
+    await client.query('DELETE FROM candidate_duplicate_matches WHERE duplicate_case_id = $1', [
+      duplicateCase.id,
+    ]);
+
+    for (const match of duplicateCase.matches) {
+      await client.query(
+        `INSERT INTO candidate_duplicate_matches (duplicate_case_id, entity_type, entity_id, entity_title, similarity_score, match_type, shared_keywords, shared_tokens, text_overlap_percent)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          duplicateCase.id,
+          match.entityType,
+          match.entityId,
+          match.entityTitle,
+          match.similarityScore,
+          match.matchType,
+          JSON.stringify(match.overlapDetails.sharedKeywords),
+          JSON.stringify(match.overlapDetails.sharedTokens),
+          match.overlapDetails.textOverlapPercent,
+        ],
+      );
     }
   }
 

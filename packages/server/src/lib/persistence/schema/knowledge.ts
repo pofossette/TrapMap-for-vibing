@@ -712,6 +712,10 @@ export const domainEventOutbox = pgTable(
     availableAt: timestamp('available_at', { withTimezone: true }).notNull().defaultNow(),
     attempts: integer('attempts').notNull().default(0),
     lastError: text('last_error'),
+    workerId: text('worker_id'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    heartbeatAt: timestamp('heartbeat_at', { withTimezone: true }),
+    leaseUntil: timestamp('lease_until', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     publishedAt: timestamp('published_at', { withTimezone: true }),
   },
@@ -719,5 +723,8 @@ export const domainEventOutbox = pgTable(
     index('domain_event_outbox_pending_idx')
       .on(table.eventName, table.availableAt, table.createdAt)
       .where(sql`${table.status} = 'pending'`),
+    index('domain_event_outbox_processing_lease_idx')
+      .on(table.eventName, table.leaseUntil, table.createdAt)
+      .where(sql`${table.status} = 'processing'`),
   ],
 );

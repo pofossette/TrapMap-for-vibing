@@ -10,7 +10,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 // =============================================================================
 // Schema Definition
@@ -41,6 +41,14 @@ export const taskQueue = pgTable(
     dedupeKey: text('dedupe_key'),
     /** When to process next (for delayed retry) */
     processAfter: timestamp('process_after', { withTimezone: true }).notNull().defaultNow(),
+    /** Worker that currently owns the task lease */
+    workerId: text('worker_id'),
+    /** When processing first started */
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    /** Last worker heartbeat timestamp */
+    heartbeatAt: timestamp('heartbeat_at', { withTimezone: true }),
+    /** Lease expiry timestamp used for reclaiming stuck work */
+    leaseUntil: timestamp('lease_until', { withTimezone: true }),
     /** When task was created */
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     /** When task was last updated */
@@ -73,6 +81,10 @@ export interface Task<T = unknown> {
   lastError: string | null;
   dedupeKey: string | null;
   processAfter: Date;
+  workerId: string | null;
+  startedAt: Date | null;
+  heartbeatAt: Date | null;
+  leaseUntil: Date | null;
   createdAt: Date;
   updatedAt: Date;
   completedAt: Date | null;
@@ -86,6 +98,8 @@ export interface TaskQueueConfig {
   baseRetryDelayMs?: number;
   /** Maximum delay for retries (ms) */
   maxRetryDelayMs?: number;
+  /** Lease duration for claimed tasks in ms */
+  leaseDurationMs?: number;
 }
 
 export interface EnqueueOptions {
@@ -97,6 +111,17 @@ export interface EnqueueOptions {
   delayMs?: number;
   /** Opaque deduplication key — prevents duplicate (type, key) pairs */
   dedupeKey?: string;
+}
+
+export interface LeaseSnapshot {
+  workerId: string | null;
+  startedAt: string | null;
+  heartbeatAt: string | null;
+  leaseUntil: string | null;
+}
+
+export interface DequeueOptions {
+  workerId?: string;
 }
 
 export interface TaskHandler<T = unknown> {
@@ -115,6 +140,7 @@ export interface TaskHandler<T = unknown> {
 const DEFAULT_MAX_ATTEMPTS = 3;
 const BASE_RETRY_DELAY_MS = 5000; // 5 seconds
 const MAX_RETRY_DELAY_MS = 300000; // 5 minutes
+const DEFAULT_LEASE_DURATION_MS = 30_000;
 
 /**
  * Create a PostgreSQL-backed task queue.
@@ -125,6 +151,7 @@ export function createTaskQueue(config: TaskQueueConfig) {
     defaultMaxAttempts = DEFAULT_MAX_ATTEMPTS,
     baseRetryDelayMs = BASE_RETRY_DELAY_MS,
     maxRetryDelayMs = MAX_RETRY_DELAY_MS,
+    leaseDurationMs = DEFAULT_LEASE_DURATION_MS,
   } = config;
 
   const db = drizzle(pool, { schema: { taskQueue } });
@@ -149,7 +176,8 @@ export function createTaskQueue(config: TaskQueueConfig) {
   /**
    * Enqueue a new task.
    */
-  async function enqueue<T>(
+  async function enqueueViaClient<T>(
+    client: Pick<PoolClient, 'query'>,
     type: string,
     payload: T,
     options: EnqueueOptions = {},
@@ -160,14 +188,15 @@ export function createTaskQueue(config: TaskQueueConfig) {
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        const result = await pool.query<TaskRow>(
+        const result = await client.query<TaskRow>(
           `
           INSERT INTO task_queue (
             id, type, payload, status, priority, attempts, max_attempts, dedupe_key,
-            process_after, created_at, updated_at, completed_at, last_error
+            process_after, worker_id, started_at, heartbeat_at, lease_until,
+            created_at, updated_at, completed_at, last_error
           )
           VALUES (
-            $1, $2, $3, 'pending', $4, 0, $5, $6, $7, NOW(), NOW(), NULL, NULL
+            $1, $2, $3, 'pending', $4, 0, $5, $6, $7, NULL, NULL, NULL, NULL, NOW(), NOW(), NULL, NULL
           )
           RETURNING *
           `,
@@ -193,13 +222,11 @@ export function createTaskQueue(config: TaskQueueConfig) {
           throw error;
         }
 
-        const existing = await findActiveTaskByDedupeKey<T>(type, dedupeKey);
+        const existing = await findActiveTaskByDedupeKeyWithClient<T>(client, type, dedupeKey);
         if (existing) {
           return existing;
         }
 
-        // Retry once when the conflict winner disappeared between the
-        // uniqueness violation and the follow-up read.
         if (attempt === 1) {
           throw new Error(
             `Task enqueue for type "${type}" with dedupeKey "${dedupeKey}" conflicted without an active task`,
@@ -211,14 +238,23 @@ export function createTaskQueue(config: TaskQueueConfig) {
     throw new Error(`Failed to enqueue task ${id}`);
   }
 
-  async function findActiveTaskByDedupeKey<T>(
+  async function enqueue<T>(
+    type: string,
+    payload: T,
+    options: EnqueueOptions = {},
+  ): Promise<Task<T>> {
+    return enqueueViaClient(pool, type, payload, options);
+  }
+
+  async function findActiveTaskByDedupeKeyWithClient<T>(
+    client: Pick<PoolClient, 'query'>,
     type: string,
     dedupeKey: string,
   ): Promise<Task<T> | null> {
     // Concurrent dedupe depends on the database partial unique index for
     // (type, dedupe_key) WHERE status IN ('pending', 'running'). When that
     // index rejects a competing insert, we read back the surviving active task.
-    const result = await pool.query<TaskRow>(
+    const result = await client.query<TaskRow>(
       `
       SELECT * FROM task_queue
       WHERE type = $1
@@ -234,15 +270,28 @@ export function createTaskQueue(config: TaskQueueConfig) {
     return row ? rowToTask<T>(row) : null;
   }
 
+  async function findActiveTaskByDedupeKey<T>(type: string, dedupeKey: string): Promise<Task<T> | null> {
+    return findActiveTaskByDedupeKeyWithClient(pool, type, dedupeKey);
+  }
+
   /**
    * Dequeue the next pending task for a given type (with SKIP LOCKED).
    */
-  async function dequeue<T>(type: string): Promise<Task<T> | null> {
+  async function dequeue<T>(type: string, options: DequeueOptions = {}): Promise<Task<T> | null> {
+    const workerId = options.workerId ?? `worker_${process.pid}`;
+    await reclaimExpiredLeases(type);
+
     // Use SKIP LOCKED for safe concurrent processing
     const result = await pool.query<TaskRow>(
       `
       UPDATE task_queue
-      SET status = 'running', updated_at = NOW()
+      SET status = 'running',
+          attempts = attempts + 1,
+          worker_id = $2,
+          started_at = COALESCE(started_at, NOW()),
+          heartbeat_at = NOW(),
+          lease_until = NOW() + ($3 * INTERVAL '1 millisecond'),
+          updated_at = NOW()
       WHERE id = (
         SELECT id FROM task_queue
         WHERE type = $1
@@ -254,7 +303,7 @@ export function createTaskQueue(config: TaskQueueConfig) {
       )
       RETURNING *
       `,
-      [type],
+      [type, workerId, leaseDurationMs],
     );
 
     if (result.rows.length === 0) {
@@ -275,6 +324,10 @@ export function createTaskQueue(config: TaskQueueConfig) {
       .update(taskQueue)
       .set({
         status: 'completed',
+        workerId: null,
+        startedAt: null,
+        heartbeatAt: null,
+        leaseUntil: null,
         completedAt: new Date(),
         updatedAt: new Date(),
       })
@@ -285,15 +338,15 @@ export function createTaskQueue(config: TaskQueueConfig) {
    * Mark task as failed and schedule retry or dead letter.
    */
   async function fail(taskId: string, error: string): Promise<void> {
-    const result = await pool.query<Pick<TaskRow, 'attempts' | 'max_attempts'>>(
-      'SELECT attempts, max_attempts FROM task_queue WHERE id = $1',
+    const result = await pool.query<Pick<TaskRow, 'attempts' | 'max_attempts' | 'status'>>(
+      'SELECT attempts, max_attempts, status FROM task_queue WHERE id = $1',
       [taskId],
     );
 
     const row = result.rows[0];
     if (!row) return;
 
-    const newAttempts = row.attempts + 1;
+    const newAttempts = row.status === 'running' ? row.attempts : row.attempts + 1;
     const isDead = newAttempts >= row.max_attempts;
 
     if (isDead) {
@@ -303,6 +356,9 @@ export function createTaskQueue(config: TaskQueueConfig) {
           status: 'dead',
           attempts: newAttempts,
           lastError: error,
+          workerId: null,
+          heartbeatAt: null,
+          leaseUntil: null,
           updatedAt: new Date(),
         })
         .where(eq(taskQueue.id, taskId));
@@ -315,6 +371,9 @@ export function createTaskQueue(config: TaskQueueConfig) {
           attempts: newAttempts,
           lastError: error,
           processAfter,
+          workerId: null,
+          heartbeatAt: null,
+          leaseUntil: null,
           updatedAt: new Date(),
         })
         .where(eq(taskQueue.id, taskId));
@@ -380,9 +439,56 @@ export function createTaskQueue(config: TaskQueueConfig) {
         attempts: 0,
         lastError: null,
         processAfter: new Date(),
+        workerId: null,
+        startedAt: null,
+        heartbeatAt: null,
+        leaseUntil: null,
         updatedAt: new Date(),
       })
       .where(and(eq(taskQueue.id, taskId), eq(taskQueue.status, 'dead')));
+  }
+
+  async function heartbeat(taskId: string, workerId: string): Promise<boolean> {
+    const result = await pool.query(
+      `
+      UPDATE task_queue
+      SET heartbeat_at = NOW(),
+          lease_until = NOW() + ($3 * INTERVAL '1 millisecond'),
+          updated_at = NOW()
+      WHERE id = $1
+        AND worker_id = $2
+        AND status = 'running'
+      `,
+      [taskId, workerId, leaseDurationMs],
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async function reclaimExpiredLeases(type?: string): Promise<number> {
+    const params: unknown[] = [];
+    let typeClause = '';
+    if (type) {
+      params.push(type);
+      typeClause = ` AND type = $${params.length}`;
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE task_queue
+      SET status = 'pending',
+          worker_id = NULL,
+          heartbeat_at = NULL,
+          lease_until = NULL,
+          process_after = NOW(),
+          updated_at = NOW()
+      WHERE status = 'running'
+        AND lease_until IS NOT NULL
+        AND lease_until < NOW()
+        ${typeClause}
+      `,
+      params,
+    );
+    return result.rowCount ?? 0;
   }
 
   /**
@@ -400,9 +506,12 @@ export function createTaskQueue(config: TaskQueueConfig) {
 
   return {
     enqueue,
+    enqueueTx: enqueueViaClient,
     dequeue,
     complete,
     fail,
+    heartbeat,
+    reclaimExpiredLeases,
     getPendingCount,
     getDeadTasks,
     requeue,
@@ -533,6 +642,10 @@ interface TaskRow {
   last_error: string | null;
   dedupe_key: string | null;
   process_after: Date;
+  worker_id: string | null;
+  started_at: Date | null;
+  heartbeat_at: Date | null;
+  lease_until: Date | null;
   created_at: Date;
   updated_at: Date;
   completed_at: Date | null;
@@ -550,6 +663,10 @@ function rowToTask<T>(row: TaskRow): Task<T> {
     lastError: row.last_error,
     dedupeKey: row.dedupe_key,
     processAfter: row.process_after,
+    workerId: row.worker_id,
+    startedAt: row.started_at,
+    heartbeatAt: row.heartbeat_at,
+    leaseUntil: row.lease_until,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     completedAt: row.completed_at,

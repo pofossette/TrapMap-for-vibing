@@ -1,549 +1,856 @@
-# Feedback Escalation And Remediation Queue Implementation Plan
+# Async Reliability And Workflow Runtime Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Reuse the existing feedback storage, admin processing flow, manual review/edit channels, and index rebuild paths to add a threshold-based feedback escalation loop that temporarily suppresses trap/skill retrieval visibility, sends items into a human remediation queue with source content plus feedback context, and restores normal ranking/index state after confirmed fixes.
+**Goal:** Evolve TrapMap into a reliable PostgreSQL-first async backend by fixing transactional delivery gaps first, then hardening queue/outbox runtime recovery, then adding split worker modes, workflow-level observability, badcase traceability, and metrics-based architecture decision gates.
 
-**Architecture:** Treat this as an additive governance workflow layered on top of the existing `feedback`, `knowledge review`, `skill review/edit`, `decay`, and lifecycle-driven indexing systems. Do not invent a second review universe: reuse the current feedback admin lane for threshold detection and queue operations, reuse the current trap/skill human edit-confirm flows for content correction, and reuse the existing lifecycle/index sync seams for suppress/remove/rebuild instead of bespoke direct index mutations from route handlers.
+**Architecture:** Keep TrapMap as a modular monolith with PostgreSQL as the authoritative write-path substrate. Reuse the existing `task_queue`, `domain_event_outbox`, candidate processor, lifecycle state machine, retrieval read models, and feedback flows, but tighten them into a stricter command-write plus async-worker model with atomic enqueue/outbox writes, reclaimable leases, dedicated worker entrypoints, workflow run snapshots, and operator-visible status APIs. Borrow GraphRAG’s workflow runtime ideas such as state snapshots, progress visibility, and controlled concurrency, but do not introduce MQ or microservice splits unless runtime metrics justify them later.
 
-**Tech Stack:** TypeScript, Fastify, Zod contracts, Vitest, PostgreSQL/Drizzle, existing repository layer, existing lifecycle/indexing subscribers, existing retrieval rerank logic, existing `eval:smoke` pipeline.
+**Tech Stack:** TypeScript, Fastify, Zod contracts, Vitest, PostgreSQL/Drizzle, existing repository layer, existing queue/outbox worker runtime, retrieval caches/read models, existing eval pipelines.
 
 ---
 
+## Current Verified Baseline
+
+- [x] `task_queue` already exists with durable persistence, dedupe keys, retry backoff, dead-letter state, and a polling worker abstraction.
+- [x] `domain_event_outbox` already exists with durable persistence, retry backoff, and asynchronous event consumption.
+- [x] candidate submission already uses PostgreSQL-backed async processing in PG mode.
+- [x] lifecycle state transitions already publish to async subscribers in PG mode through `emitLifecycleTransition()`.
+- [x] retrieval routes already generate `queryId` internally for analytics, but the public API does not consistently return it.
+- [x] feedback/remediation and retrieval eval docs already describe a badcase loop, but the durable trace and export path are incomplete.
+- [x] runtime readiness and stats surfaces already exist and can be extended instead of replaced.
+
 ## Archive Note
 
-- [x] Previous root plan archived to `docs/archived/archived-plans/plan-2026-06-09-runtime-foundations-archived.md`
+- [x] Previous root plan archived to `docs/archived/archived-plans/plan-2026-06-12-async-state-machine-backend-convergence-archived.md`
 - [x] Active tracking file remains `plan.md`
 
 ## Scope
 
-- [x] Threshold-based feedback escalation for both trap and skill entries
-- [x] Reuse of existing feedback admin queue instead of introducing a parallel moderation surface
-- [x] Reuse of existing trap review and skill edit/review paths for human remediation
-- [ ] Reuse of existing index removal/rebuild mechanisms wherever possible
-- [x] Explicit suppression state so feedback-driven hide/show is not overloaded onto `decayMeta`
-- [x] Recovery flow that clears active feedback penalty after confirmed human fix
-- [ ] Docs, tests, and eval coverage for the full feedback -> remediation -> reindex loop
+- [ ] Fix write-path reliability gaps before introducing broader async abstractions.
+- [ ] Keep `task_queue` and `domain_event_outbox` as separate authoritative transports in the first implementation wave.
+- [ ] Add lease/reclaim semantics so worker crashes do not leave stuck `running` or `processing` rows indefinitely.
+- [ ] Split API and worker runtime ownership without service explosion or external brokers.
+- [ ] Add workflow-level state snapshots for long-running jobs, starting with candidate processing and rebuild-style jobs.
+- [ ] Expose retrieval `queryId` and persist a durable badcase trace envelope that can later materialize into eval inputs.
+- [ ] Drive cache invalidation and read-model refresh from shared events/jobs instead of route-local side effects.
+- [ ] Add explicit metrics and decision gates for whether MQ or service splits are ever justified later.
 
 ## Non-Goals
 
-- [ ] Do not redesign the entire review system into a single new aggregate if the existing trap/skill review lanes can be adapted.
-- [ ] Do not delete historical feedback records when an issue is fixed; preserve raw history and only clear active suppression/penalty state.
-- [ ] Do not build a full new operator UI in this plan; API/CLI/admin route support is sufficient.
-- [ ] Do not change retrieval ranking formulas beyond the minimum needed to respect active suppression or active feedback penalty state.
-
-## Confirmed Current Baseline
-
-> **Code and doc evidence recorded 2026-06-09 before implementation changes.**
-
-- [x] Feedback is already a first-class domain with dedicated contracts, route handlers, and repository abstractions.
-  - **Evidence:** `packages/contracts/src/domain/feedback.ts`, `packages/server/src/routes/feedback.ts`, `packages/server/src/lib/feedback/repository.ts`
-- [x] Feedback already persists for both `trap` and `skill` entries via `entryType: 'trap' | 'skill'`.
-  - **Evidence:** `packages/contracts/src/domain/feedback.ts`, `packages/server/src/routes/feedback.ts`
-- [x] The existing feedback admin flow can list, triage, resolve, dismiss, and mark transition metadata, but it does not yet create a true remediation work item or suppress retrieval/index visibility.
-  - **Evidence:** `packages/server/src/routes/feedback-admin.ts`
-- [x] Trap retrieval penalty already exists through `decayMeta.decayState === 'stale'`, but that penalty is knowledge-only and is not a proper feedback suppression state.
-  - **Evidence:** `packages/server/src/lib/retrieval/scoring/rerank.ts`, `packages/server/src/routes/feedback-admin.ts`
-- [x] Skill retrieval rerank currently has no feedback-aware decay/suppression concept.
-  - **Evidence:** `packages/server/src/lib/retrieval/capsules/scoring/rerank.ts`
-- [x] Trap indexing already follows a lifecycle-driven event path; index removal is currently tied to lifecycle transitions such as `deactivated`.
-  - **Evidence:** `packages/server/src/lib/indexing/events.ts`, `packages/server/src/lib/lifecycle/subscribers/indexing.ts`
-- [x] Skill indexing already has a reusable lifecycle/index seam through `runSkillIndexEvent()` and artifact adapter fan-out/removal.
-  - **Evidence:** `packages/server/src/lib/indexing/skill-events.ts`, `packages/server/src/routes/operations/skill-review.ts`, `packages/server/src/routes/operations/skill-edit.ts`
-- [x] Trap and skill both already have human-governed revision history and review/edit channels suitable for remediation after escalation.
-  - **Evidence:** `packages/contracts/src/domain/knowledge.ts`, `packages/server/src/routes/review.ts`, `packages/server/src/routes/operations/skill-edit.ts`, `packages/server/src/routes/operations/skill-review.ts`
-- [x] There is already a project TODO calling for a feedback/badcase loop, but it currently stops at queueing and eval conversion, not remediation-driven suppression/reindex.
-  - **Evidence:** `docs/todos/badcase-feedback-loop.md`
+- [ ] Do not introduce Kafka, RabbitMQ, NATS, or another external MQ in this plan.
+- [ ] Do not merge `task_queue` and `domain_event_outbox` into one storage model in the first implementation wave.
+- [ ] Do not redesign all retrieval payload shapes if additive fields are sufficient.
+- [ ] Do not remove JSON compatibility paths unless the touched subsystem is already clearly PG-first.
+- [ ] Do not build a dedicated UI for queue orchestration; API, CLI, tests, and docs are sufficient.
+- [ ] Do not assume GraphRAG uses MQ; the relevant reference material is workflow runtime engineering, not broker topology.
 
 ## Execution Rules
 
-- [ ] Reuse the existing feedback admin route family unless a concrete gap requires a narrowly scoped sub-route.
-- [ ] Reuse the existing trap review and skill edit/review flows; do not add a duplicate “manual fix” workflow with overlapping authority.
-- [ ] Keep “raw feedback facts”, “active suppression/remediation state”, and “retrieval penalty/index visibility state” logically separate even if they share tables or route surfaces.
-- [ ] Any suppression state introduced must work for both trap and skill entries.
-- [ ] Any reindex or unsuppress action must be explicit and auditable; do not silently reactivate entries on ordinary feedback resolution.
-- [ ] Any new behavior must be testable in both JSON-store fallback mode and PostgreSQL-backed repository mode where practical.
-- [ ] Do not mark a phase complete until code, docs, tests, and required eval updates for that phase are all done.
+- [ ] No new async write path ships unless the business write and task/outbox registration happen atomically in one authoritative DB transaction.
+- [ ] No queue or outbox consumer is considered production-ready unless it can reclaim stuck work after process death.
+- [ ] Any new long-running task must define a typed payload, a persisted status model, retry/dead-letter semantics, and operator-visible status.
+- [ ] Any new async state must be inspectable through repositories or operator APIs, not only through logs.
+- [ ] Any new request/response trace or badcase payload must be stored durably and queryably, not only emitted to analytics or logs.
+- [ ] Cache invalidation must be event-driven or job-driven; request handlers must not clear unrelated caches ad hoc.
+- [ ] MQ or service-split recommendations must be backed by metrics added in this plan, not by general preference.
+- [ ] A phase is not complete until its code, docs, tests, and required eval updates are all done.
 
 ## File Structure
 
-### Feedback domain and admin workflow
+### Queue and outbox reliability
 
+- `packages/server/src/lib/queue/task-queue.ts`
+  - authoritative durable task queue implementation; extend with lease metadata, reclaim, richer operator queries, and safer worker loop behavior
+- `packages/server/src/lib/lifecycle/outbox.ts`
+  - authoritative domain-event outbox; extend with reclaim and stronger operator visibility
+- `packages/server/src/lib/lifecycle/emit-transition.ts`
+  - current PG outbox emission entrypoint; converge it onto transactional outbox registration instead of post-commit enqueue
+- `packages/server/src/lib/persistence/schema/queue.ts`
+  - schema source of truth for queue/outbox additions
+- `packages/server/drizzle/*.sql`
+  - migrations for queue/outbox columns, indexes, and any new workflow-run persistence
+
+### Candidate, workflow, and jobs runtime
+
+- `packages/server/src/lib/candidates/services/submission-service.ts`
+  - current candidate create + schedule path; tighten to atomic enqueue
+- `packages/server/src/lib/candidates/processor.ts`
+  - reference async workflow path for candidate processing; add step-level status snapshot integration
+- `packages/server/src/bootstrap/bootstrap-workers.ts`
+  - current task worker startup; adapt to runtime-mode-specific startup
+- `packages/server/src/bootstrap/bootstrap-lifecycle.ts`
+  - current outbox worker startup; adapt to runtime-mode-specific startup
+- `packages/server/src/index.ts`
+  - current server entrypoint; split API and worker modes cleanly
+- `packages/server/src/worker.ts`
+  - dedicated worker entrypoint to be added
+- `packages/server/src/bootstrap/run-worker-sequence.ts`
+  - shared worker bootstrap orchestration to be added
+- `packages/server/src/lib/jobs/`
+  - shared non-candidate async job handlers to be added after reliability hardening
+
+### Contracts, operator surfaces, and traces
+
+- `packages/contracts/src/domain/operations.ts`
+  - queue/outbox/workflow/operator status schemas
+- `packages/contracts/src/domain/retrieval.ts`
+  - additive public `queryId` and any durable trace fields returned to callers
 - `packages/contracts/src/domain/feedback.ts`
-  - existing feedback contracts; extend with escalation/remediation queue request/response shapes only if required
-- `packages/server/src/lib/feedback/repository.ts`
-  - feedback repository interface; likely needs aggregate/stat/query helpers
-- `packages/server/src/lib/feedback/pg-repository.ts`
-  - PostgreSQL-backed feedback persistence and query expansion
-- `packages/server/src/lib/feedback/lifecycle-triggers.ts`
-  - current threshold logic; evolve into reusable threshold evaluation without overloading `decayMeta`
+  - badcase reproducibility envelope
+- `packages/server/src/routes/operations/status.ts`
+  - queue/outbox/workflow status surfaces
+- `packages/server/src/routes/operations/stats.ts`
+  - metrics and architecture-decision surfaces
+- `packages/server/src/routes/retrieval.ts`
+  - return `queryId`, persist trace snapshots, and link retrieval outcomes to badcase storage
 - `packages/server/src/routes/feedback.ts`
-  - submission path; may stamp threshold metadata only, should not perform direct index mutation
+  - persist feedback trace context and future badcase export inputs
 - `packages/server/src/routes/feedback-admin.ts`
-  - primary admin/remediation queue surface; preferred reuse point
+  - remediation follow-up orchestration
 
-### Trap and skill governance/remediation integration
+### Read models, caches, and docs
 
-- `packages/contracts/src/domain/knowledge.ts`
-  - trap record shape; may need explicit suppression/remediation metadata
-- `packages/contracts/src/domain/artifacts.ts`
-  - skill artifact shape; may need explicit suppression/remediation metadata
-- `packages/server/src/routes/review.ts`
-  - trap manual review confirmation flow
-- `packages/server/src/routes/operations/skill-edit.ts`
-  - skill content correction flow
-- `packages/server/src/routes/operations/skill-review.ts`
-  - skill approval/re-approval flow after edits
-
-### Retrieval and indexing
-
-- `packages/server/src/lib/retrieval/scoring/rerank.ts`
-  - trap retrieval penalty/suppression handling
-- `packages/server/src/lib/retrieval/capsules/scoring/rerank.ts`
-  - skill retrieval suppression handling
-- `packages/server/src/lib/indexing/events.ts`
-  - trap lifecycle-driven index upsert/remove behavior
-- `packages/server/src/lib/indexing/skill-events.ts`
-  - skill lifecycle-driven index upsert/remove behavior
-- `packages/server/src/lib/retrieval/capsules/repositories/index-rebuild.ts`
-  - existing rebuild seam to be reused for skill/capsule recovery where needed
-- `packages/server/src/routes/operations/capsule-index.ts`
-  - existing operator surface for capsule index rebuild/repair
-
-### Tests and docs
-
-- `packages/server/src/routes/feedback.test.ts`
-  - feedback submission and admin workflow assertions
-- `packages/server/src/routes/retrieval.test.ts`
-  - retrieval visibility/ranking behavior after suppression
-- `packages/server/src/routes/operations/skill-review.test.ts`
-  - remediation/review path for skill
-- `packages/server/src/routes/operations/skill-edit.test.ts`
-  - remediation/edit path for skill
-- `packages/server/src/routes/review.test.ts`
-  - remediation/review path for trap
-- `packages/server/src/__tests__/skill-lifecycle-flow.test.ts`
-  - cross-route lifecycle/index assertions for skill
-- `packages/server/src/__tests__/candidate-pipeline.test.ts`
-  - only if remediation state affects lifecycle event publication
+- `packages/server/src/lib/retrieval/read-model.ts`
+  - retrieval read-model ownership and refresh semantics
+- `packages/server/src/lib/cache/retrieval-cache.ts`
+  - shared retrieval cache behavior and invalidation hooks
+- `packages/server/src/lib/cache/metrics.ts`
+  - cache metrics surfaced to operator stats
+- `packages/server/src/lib/runtime/metrics.ts`
+  - queue/outbox/workflow/runtime counters and decision metrics
 - `docs/PACKAGES.md`
-  - update package/responsibility map for feedback/remediation queue
-- `docs/operations/TESTING.md`
-  - new operator verification flow
-- `docs/reference/api-surface.md`
-  - contract updates for feedback admin/remediation endpoints
+  - ownership map for async runtime, worker entrypoints, jobs, cache invalidation, and trace capture
 - `docs/reference/DATA_MODEL.md`
-  - source-of-truth changes for feedback/remediation/suppression metadata
-- `docs/todos/badcase-feedback-loop.md`
-  - move from TODO direction to implemented loop and residual gaps
+  - async persistence truth, workflow status vocabulary, and badcase trace tables
+- `docs/reference/DATABASE_SCHEMA.md`
+  - queue/outbox/workflow schema additions
+- `docs/reference/api-surface.md`
+  - additive contracts and operator endpoints
+- `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+  - canonical entrypoint and truth-source mapping
+- `docs/operations/TESTING.md`
+  - per-phase verification and operator playbooks
 
-## Phase 1: Define Reusable Feedback Escalation Semantics
+## Phase 0: Atomic Delivery And Crash Recovery Guarantees
 
-**Objective:** Add the smallest shared domain model that can express “10 feedbacks trigger human remediation and temporary suppression” without creating a second moderation system.
+**Objective:** Remove the two most dangerous reliability gaps first: task registration outside the authoritative candidate write transaction, and outbox registration after the authoritative lifecycle write transaction. Add stuck-work reclaim so process death cannot leave indefinite `running` or `processing` rows.
 
 **Files:**
-- Modify: `packages/contracts/src/domain/feedback.ts`
-- Modify: `packages/contracts/src/domain/knowledge.ts`
-- Modify: `packages/contracts/src/domain/artifacts.ts`
-- Modify: `packages/server/src/lib/store/types/feedback-records.ts`
-- Modify: `packages/server/src/lib/feedback/repository.ts`
-- Modify: `packages/server/src/lib/feedback/pg-repository.ts`
+- Modify: `packages/server/src/lib/candidates/services/submission-service.ts`
+- Modify: `packages/server/src/lib/candidates/processor.ts`
+- Modify: `packages/server/src/lib/lifecycle/emit-transition.ts`
+- Modify: `packages/server/src/lib/lifecycle/outbox.ts`
+- Modify: `packages/server/src/lib/queue/task-queue.ts`
+- Modify: `packages/server/src/lib/persistence/schema/queue.ts`
+- Modify: `packages/server/drizzle/0015_*.sql`
+- Modify: `packages/server/src/lib/queue/task-queue.test.ts`
+- Modify: `packages/server/src/lib/lifecycle/outbox.test.ts`
+- Modify: `packages/server/src/routes/candidates.test.ts`
+- Modify: `packages/server/src/bootstrap/startup.test.ts`
 - Modify: `plan.md`
 
-- [x] Define one explicit remediation/suppression metadata shape that works for both trap and skill entries.
-- [x] Keep raw feedback record history unchanged; add separate “active suppression/remediation” state instead of mutating/deleting historical feedback.
-- [x] Represent threshold policy explicitly, with current target of “10 unresolved feedback items” and enough shape to support future policy tuning.
-- [ ] Prefer adding repository methods for aggregate counts and active-remediation lookups instead of embedding threshold scans in route handlers.
-- [ ] Record in `plan.md` the chosen semantic split between:
-  - raw feedback facts
-  - active remediation case / suppression state
-  - retrieval/index consequences
+- [x] Move candidate creation and candidate-processing task registration into one authoritative DB transaction.
+- [ ] Move lifecycle state transition persistence and outbox event registration into one authoritative DB transaction.
+- [x] Add reclaimable lease metadata for queue tasks:
+  - `workerId`
+  - `leaseUntil`
+  - `heartbeatAt`
+  - `startedAt`
+- [x] Add reclaimable lease metadata for outbox events:
+  - `workerId`
+  - `leaseUntil`
+  - `heartbeatAt`
+  - `startedAt`
+- [x] Add a reclaim path for stuck `running` tasks and stuck `processing` outbox events after lease expiry.
+- [x] Keep external route behavior compatible while tightening reliability semantics underneath.
 
 **Completion standard:**
 
-- [x] A developer can answer from contracts alone:
-  - what gets stored as raw feedback
-  - what marks an entry as escalated
-  - what marks an entry as suppressed from retrieval/index
-  - what must be cleared after human remediation
-- [x] The new model works for both trap and skill without trap-only `decayMeta` assumptions.
-- [x] No implementation in this phase directly couples threshold policy to rerank math or direct index writes.
+- [x] No candidate can be left in a durable “queued” state without a durable task registration.
+- [ ] No lifecycle transition can commit without its matching durable outbox event registration.
+- [x] A crashed worker can leave stale `running` or `processing` rows, but the system can reclaim them without manual SQL edits.
+- [x] Existing candidate and lifecycle behavior tests still pass with the stricter semantics.
 
 **Document updates in this phase:**
 
-- [ ] Update `docs/reference/DATA_MODEL.md` with the new remediation/suppression state fields and their lifecycle.
-- [ ] Update `docs/PACKAGES.md` to explain that `feedback` now owns escalation/remediation orchestration inputs, while trap/skill review lanes remain the human correction path.
-- [ ] Update `docs/reference/api-surface.md` if any contract-level admin route payloads change.
+- [x] Update `docs/reference/DATA_MODEL.md` with atomic registration rules and lease/reclaim semantics.
+- [x] Update `docs/reference/DATABASE_SCHEMA.md` with queue/outbox lease columns, indexes, and migration numbers.
+- [x] Update `docs/PACKAGES.md` to state that candidate scheduling and lifecycle event registration are transactional responsibilities.
+- [x] Update `docs/operations/TESTING.md` with stuck-task/stuck-outbox recovery verification steps.
 
 **Tests / eval updates in this phase:**
 
-- [x] Add or extend contract tests in:
-  - `packages/contracts/src/domain/feedback.test.ts`
-  - `packages/contracts/src/domain/knowledge.test.ts`
-  - `packages/contracts/src/domain/artifacts.test.ts`
-- [ ] Add repository-level tests for any new aggregate/stat methods in:
-  - `packages/server/src/lib/feedback/repository.test.ts`
-  - `packages/server/src/lib/feedback/pg-repository.test.ts`
+- [x] Extend `packages/server/src/lib/queue/task-queue.test.ts` with:
+  - lease creation on claim
+  - reclaim after expired lease
+  - no duplicate active task after reclaim
+- [ ] Extend `packages/server/src/lib/lifecycle/outbox.test.ts` with:
+  - lease creation on claim
+  - reclaim after expired lease
+  - retry path preserved after reclaim
+- [ ] Extend `packages/server/src/routes/candidates.test.ts` with:
+  - candidate submission does not leave orphan queued state on enqueue failure
+- [ ] Extend `packages/server/src/bootstrap/startup.test.ts` with:
+  - recovery path can reclaim stuck queue/outbox rows
 - [x] Run:
 ```bash
 rtk pnpm test -- --run \
-  packages/contracts/src/domain/feedback.test.ts \
-  packages/contracts/src/domain/knowledge.test.ts \
-  packages/contracts/src/domain/artifacts.test.ts \
-  packages/server/src/lib/feedback/repository.test.ts \
-  packages/server/src/lib/feedback/pg-repository.test.ts
+  packages/server/src/lib/queue/task-queue.test.ts \
+  packages/server/src/lib/lifecycle/outbox.test.ts \
+  packages/server/src/routes/candidates.test.ts \
+  packages/server/src/bootstrap/startup.test.ts
 ```
 - [x] Run:
 ```bash
 rtk pnpm typecheck
 ```
 
-Actual status:
-- Targeted tests passed after adding remediation contract/state wiring plus retrieval suppression coverage.
-- `rtk pnpm typecheck` passed on 2026-06-09.
-
 **Example structure or code:**
 ```ts
-export interface FeedbackRemediationState {
-  status: 'none' | 'pending-human-review' | 'in-remediation' | 'ready-to-reindex';
-  triggeredByFeedbackCount: number;
-  threshold: number;
-  suppressedFromRetrieval: boolean;
-  suppressedFromIndex: boolean;
-  activeFeedbackIds: string[];
-  openedAt: string | null;
-  openedByUserId: string | null;
-  resolvedAt: string | null;
-  resolvedByUserId: string | null;
+export interface LeaseSnapshot {
+  workerId: string | null;
+  startedAt: string | null;
+  heartbeatAt: string | null;
+  leaseUntil: string | null;
 }
 ```
 
 ```ts
-export interface FeedbackThresholdPolicy {
-  unresolvedCountThreshold: 10;
-  eligibleStatuses: Array<'new' | 'triaged'>;
-}
+await store.transact(async (tx) => {
+  const candidate = await candidateRepo.insertTx(tx, draft);
+  await queueRepo.enqueueTx(tx, {
+    type: 'candidate_processing',
+    dedupeKey: candidate.id,
+    payload: { candidateId: candidate.id, retryCount: 0 },
+  });
+});
 ```
 
-## Phase 2: Reuse Feedback Admin As The Remediation Queue
+## Phase 1: Harden Queue And Outbox Operator Semantics
 
-**Objective:** Extend the current feedback admin lane so operators can see escalated trap/skill items with source content and feedback context, without introducing a parallel queue product.
+**Objective:** Turn the existing queue/outbox pair into an operator-visible and testable async substrate without prematurely merging them into a single `async_jobs` abstraction.
 
 **Files:**
-- Modify: `packages/server/src/routes/feedback-admin.ts`
-- Modify: `packages/server/src/routes/feedback.test.ts`
-- Modify: `packages/contracts/src/domain/feedback.ts`
-- Modify: `packages/server/src/lib/feedback/repository.ts`
-- Modify: `packages/server/src/lib/feedback/pg-repository.ts`
-- Modify: `packages/server/src/lib/artifacts/pg-repository/index.ts`
+- Modify: `packages/server/src/lib/queue/task-queue.ts`
+- Modify: `packages/server/src/lib/lifecycle/outbox.ts`
+- Modify: `packages/server/src/lib/persistence/schema/queue.ts`
+- Modify: `packages/server/drizzle/0016_*.sql`
+- Modify: `packages/contracts/src/domain/operations.ts`
+- Modify: `packages/server/src/routes/operations/status.ts`
+- Modify: `packages/server/src/routes/operations/status.test.ts`
+- Modify: `packages/server/src/lib/runtime/metrics.ts`
+- Modify: `packages/server/src/lib/runtime/runtime-metadata.ts`
+- Modify: `packages/server/src/lib/runtime/http-surface.ts`
+- Modify: `packages/server/src/lib/runtime/runtime-metadata.test.ts`
+- Modify: `packages/server/src/app.test.ts`
 - Modify: `plan.md`
 
-- [x] Add a remediation-oriented listing/detail shape on top of the existing feedback admin surface.
-- [ ] Ensure each escalated item includes:
-  - entry identity and type
-  - trap detail or skill latest revision content summary/body snapshot
-  - aggregated unresolved feedback count
-  - recent feedback records and problem-type breakdown
-  - current remediation/suppression status
-- [x] Reuse the current permissions gate from `feedback-admin` instead of adding a new authority model.
-- [x] Keep the feedback queue and remediation queue logically connected:
-  - a remediation item is derived from entry + unresolved feedback set
-  - it is not an independent copy of all feedback data
-- [x] Prefer additive route extensions under `/v1/operations/feedback` rather than a new top-level area.
+- [ ] Add operator-visible snapshots for queue tasks and outbox events with separate status vocabularies if needed.
+- [ ] Add explicit status/requeue APIs for:
+  - queue backlog summary
+  - dead-letter summary
+  - running age / stuck age summary
+  - outbox backlog summary
+  - dead task requeue
+- [ ] Extend runtime readiness and stats surfaces with:
+  - queue backlog
+  - dead-letter count
+  - reclaim count
+  - worker degraded status
+- [ ] Keep queue and outbox abstractions separate, but normalize the operator response shape where it improves ergonomics.
+- [ ] Preserve current candidate worker behavior while routing its status through richer operator surfaces.
 
 **Completion standard:**
 
-- [x] An operator can list escalated trap and skill items from the existing admin route family.
-- [x] An operator can inspect both the underlying content and the unresolved feedback context needed to fix it.
-- [ ] The implementation does not require direct store snapshot spelunking for content lookup where repositories already exist.
+- [ ] Operators can inspect queue and outbox health without reading raw database rows.
+- [ ] Readiness and stats surfaces expose enough detail to detect backlog growth, dead letters, and stale running work.
+- [ ] Dead tasks can be requeued through one canonical operator flow.
+- [ ] No new generic `async_jobs` table is introduced in this phase.
 
 **Document updates in this phase:**
 
-- [ ] Update `docs/reference/api-surface.md` with remediation queue list/detail semantics.
-- [ ] Update `docs/PACKAGES.md` to note that `routes/feedback-admin.ts` now covers feedback queue plus remediation worklist behavior.
-- [ ] Update `docs/todos/badcase-feedback-loop.md` to reflect that feedback can now carry remediation queue state even before eval conversion is added.
+- [ ] Update `docs/reference/api-surface.md` with queue/outbox operator endpoints.
+- [ ] Update `docs/reference/DATA_MODEL.md` with the final queue/outbox status vocabulary.
+- [ ] Update `docs/reference/DATABASE_SCHEMA.md` with any additional queue/outbox indexes.
+- [ ] Update `docs/PACKAGES.md` to describe queue/outbox operator ownership.
+- [ ] Update `docs/operations/TESTING.md` with backlog, dead-letter, and requeue verification commands.
 
 **Tests / eval updates in this phase:**
 
-- [x] Extend `packages/server/src/routes/feedback.test.ts` with:
-  - escalated trap visible in remediation list
-  - escalated skill visible in remediation list
-  - detail payload contains source content snapshot plus recent feedback
-  - non-escalated items do not appear in remediation queue mode
-- [ ] Add any missing repository assertions in:
-  - `packages/server/src/lib/feedback/repository.test.ts`
-  - `packages/server/src/lib/feedback/pg-repository.test.ts`
-- [x] Run:
+- [ ] Extend `packages/server/src/routes/operations/status.test.ts` with:
+  - queue backlog snapshot
+  - outbox backlog snapshot
+  - dead-letter visibility
+  - requeue path
+- [ ] Extend `packages/server/src/lib/runtime/runtime-metadata.test.ts` and `packages/server/src/app.test.ts` with:
+  - readiness degradation when worker ownership exists but health is bad
+  - readiness success when the current process is not expected to own workers
+- [ ] Run:
 ```bash
 rtk pnpm test -- --run \
-  packages/server/src/routes/feedback.test.ts \
-  packages/server/src/lib/feedback/repository.test.ts \
-  packages/server/src/lib/feedback/pg-repository.test.ts
+  packages/server/src/routes/operations/status.test.ts \
+  packages/server/src/lib/runtime/runtime-metadata.test.ts \
+  packages/server/src/app.test.ts
+```
+- [ ] Run:
+```bash
+rtk pnpm typecheck
 ```
 
 **Example structure or code:**
 ```ts
-export interface FeedbackRemediationQueueItem {
-  entryId: string;
-  entryType: 'trap' | 'skill';
-  title: string;
-  remediationStatus: 'pending-human-review' | 'in-remediation' | 'ready-to-reindex';
-  unresolvedFeedbackCount: number;
-  suppressedFromRetrieval: boolean;
-  sourceSnapshot: {
-    trapDetail?: string;
-    skillRevision?: number;
-    skillProfileSummary?: string | null;
-    skillCapsules?: Array<{ capsuleId: string; problem: string; content: string }>;
+export interface QueueStatusSnapshot {
+  pending: number;
+  running: number;
+  dead: number;
+  staleRunning: number;
+}
+
+export interface OutboxStatusSnapshot {
+  pending: number;
+  processing: number;
+  failed: number;
+  staleProcessing: number;
+}
+```
+
+```ts
+app.get('/v1/operations/status/async', async () => {
+  return {
+    queue: await queueRepo.getStatusSnapshot(),
+    outbox: await outboxRepo.getStatusSnapshot(),
   };
-  recentFeedback: Array<{
-    feedbackId: string;
-    problemType: 'incorrect' | 'outdated' | 'context-mismatch' | 'incomplete' | 'other';
-    description: string;
-    status: 'new' | 'triaged' | 'resolved' | 'dismissed';
-    submittedAt: string;
-  }>;
-}
+});
 ```
 
-## Phase 3: Suppress Retrieval And Reuse Existing Index Removal Paths
+## Phase 2: Split API And Worker Runtime Modes
 
-**Objective:** Make escalation temporarily hide bad trap/skill content from retrieval, reusing lifecycle/indexing seams where possible and minimizing bespoke direct index mutation.
+**Objective:** Make worker execution deployable as dedicated processes while preserving one shared initialization path and keeping local development simple.
 
 **Files:**
-- Modify: `packages/server/src/lib/retrieval/scoring/rerank.ts`
-- Modify: `packages/server/src/lib/retrieval/capsules/scoring/rerank.ts`
-- Modify: `packages/server/src/lib/indexing/events.ts`
-- Modify: `packages/server/src/lib/indexing/skill-events.ts`
-- Modify: `packages/server/src/routes/feedback-admin.ts`
-- Modify: `packages/server/src/routes/retrieval.test.ts`
-- Modify: `packages/server/src/__tests__/skill-lifecycle-flow.test.ts`
+- Modify: `packages/server/src/index.ts`
+- Create: `packages/server/src/worker.ts`
+- Create: `packages/server/src/bootstrap/run-worker-sequence.ts`
+- Modify: `packages/server/src/bootstrap/bootstrap-workers.ts`
+- Modify: `packages/server/src/bootstrap/bootstrap-lifecycle.ts`
+- Modify: `packages/server/package.json`
+- Modify: `package.json`
+- Modify: `packages/server/src/bootstrap/startup.test.ts`
+- Modify: `packages/server/src/app.test.ts`
 - Modify: `plan.md`
 
-- [x] Decide and document the suppression strategy:
-  - retrieval-time hard filter only
-  - index removal only
-  - or both, with retrieval filter as safety net
-- [ ] Reuse existing trap and skill index removal/rebuild functions instead of open-coding adapter deletion in feedback routes.
-- [x] Ensure suppression applies symmetrically to trap and skill retrieval surfaces.
-- [ ] Do not overload ordinary `stale` decay penalty to mean “suppressed by feedback escalation”.
-- [ ] Ensure repeated remediation toggles are idempotent and auditable.
+- [ ] Split startup into explicit runtime modes:
+  - `api`
+  - `task-worker`
+  - `outbox-worker`
+  - `combined` for local development
+- [ ] Keep shared config, repository wiring, and bootstrap logic in reusable helpers instead of duplicating startup code.
+- [ ] Ensure readiness semantics understand process intent:
+  - API-only does not require worker health
+  - worker processes report only their owned runtimes
+- [ ] Keep one developer-friendly combined mode for contributors who do not need split processes locally.
 
 **Completion standard:**
 
-- [x] Escalated traps no longer surface in trap retrieval results.
-- [x] Escalated skills no longer surface in skill/capsule retrieval results.
-- [ ] Index suppression uses existing removal/rebuild seams, or if a new seam is required, it is shared by both trap and skill and not route-local.
-- [x] Retrieval has a safety filter so suppressed content cannot leak back due to stale index rows.
+- [ ] The repo can boot API-only, task-worker-only, outbox-worker-only, and combined local-dev modes from explicit entrypoints.
+- [ ] Startup tests can cover runtime-mode branching without spawning real external daemons.
+- [ ] Runtime metadata clearly reports what each process owns and why missing worker health may be acceptable.
+- [ ] No external infrastructure beyond PostgreSQL is introduced.
 
 **Document updates in this phase:**
 
-- [ ] Update `docs/reference/api-surface.md` if remediation actions can now trigger suppression/unsuppression state transitions.
-- [ ] Update `docs/PACKAGES.md` with the retrieval/indexing responsibility split for suppression.
-- [ ] Update `docs/operations/TESTING.md` with a manual verification recipe for “escalate -> suppress -> verify retrieval absence”.
+- [ ] Update `README.md` and `docs/guides/GETTING_STARTED.md` with runtime-mode startup commands.
+- [ ] Update `docs/PACKAGES.md` to describe `worker.ts` and runtime-mode ownership.
+- [ ] Update `docs/reference/SYSTEM_TRUTH_SOURCES.md` if startup entrypoints change authoritative ownership.
+- [ ] Update `docs/operations/TESTING.md` with split-process verification recipes.
 
 **Tests / eval updates in this phase:**
 
-- [x] Extend `packages/server/src/routes/retrieval.test.ts` with:
-  - suppressed trap excluded from retrieval
-  - suppressed skill capsule excluded from retrieval
-- [ ] Extend `packages/server/src/__tests__/skill-lifecycle-flow.test.ts` with suppression/removal/rebuild coverage for skill.
-- [ ] Add targeted tests in:
-  - `packages/server/src/lib/retrieval/scoring/rerank.test.ts`
-  - `packages/server/src/lib/retrieval/capsules/scoring/rerank.test.ts`
-  - `packages/server/src/lib/indexing/events.test.ts`
-  - `packages/server/src/lib/indexing/skill-events.test.ts`
-- [x] Run:
+- [ ] Extend `packages/server/src/bootstrap/startup.test.ts` with:
+  - API-only bootstrap
+  - task-worker-only bootstrap
+  - outbox-worker-only bootstrap
+  - combined bootstrap
+- [ ] Extend `packages/server/src/app.test.ts` readiness assertions for runtime-mode-aware health.
+- [ ] Run:
 ```bash
 rtk pnpm test -- --run \
-  packages/server/src/routes/retrieval.test.ts \
-  packages/server/src/__tests__/skill-lifecycle-flow.test.ts \
-  packages/server/src/lib/retrieval/scoring/rerank.test.ts \
-  packages/server/src/lib/retrieval/capsules/scoring/rerank.test.ts \
-  packages/server/src/lib/indexing/events.test.ts \
-  packages/server/src/lib/indexing/skill-events.test.ts
+  packages/server/src/bootstrap/startup.test.ts \
+  packages/server/src/app.test.ts
 ```
-
-**Example structure or code:**
-```ts
-function isSuppressedByFeedback(entry: { remediation?: FeedbackRemediationState | null }) {
-  return (
-    entry.remediation?.suppressedFromRetrieval === true ||
-    entry.remediation?.suppressedFromIndex === true
-  );
-}
-```
-
-```ts
-if (isSuppressedByFeedback(candidate.entry)) {
-  return null;
-}
-```
-
-## Phase 4: Reuse Trap Review And Skill Edit/Review For Human Fix Confirmation
-
-**Objective:** Connect remediation queue actions to the existing human correction paths, then explicitly clear active suppression/penalty state only after a confirmed fix and reindex.
-
-**Files:**
-- Modify: `packages/server/src/routes/feedback-admin.ts`
-- Modify: `packages/server/src/routes/review.ts`
-- Modify: `packages/server/src/routes/operations/skill-edit.ts`
-- Modify: `packages/server/src/routes/operations/skill-review.ts`
-- Modify: `packages/server/src/routes/review.test.ts`
-- Modify: `packages/server/src/routes/operations/skill-edit.test.ts`
-- Modify: `packages/server/src/routes/operations/skill-review.test.ts`
-- Modify: `packages/server/src/lib/indexing/events.ts`
-- Modify: `packages/server/src/lib/indexing/skill-events.ts`
-- Modify: `plan.md`
-
-- [x] Define the operator workflow for traps:
-  - remediation item opened
-  - human updates/reviews trap
-  - explicit action marks remediation ready to reindex
-  - reindex runs
-  - active suppression/penalty state clears
-- [x] Define the operator workflow for skills:
-  - remediation item opened
-  - human edits artifact through existing skill edit flow
-  - human review/approval completes via existing review flow
-  - reindex runs
-  - active suppression/penalty state clears
-- [x] Make the “clear active feedback penalty” action explicit and auditable.
-- [x] Ensure old feedback history remains queryable after remediation closure.
-- [ ] Reuse existing index rebuild/refresh pathways, including capsule index rebuild utilities if needed for skill capsule recovery.
-
-**Completion standard:**
-
-- [x] Trap remediation can be completed without inventing a second trap editing surface.
-- [x] Skill remediation can be completed without inventing a second skill editing surface.
-- [ ] Reactivation is blocked until human correction plus explicit queue transition is complete.
-- [ ] Reindex and active penalty clear happen in a deterministic order that tests assert.
-
-**Document updates in this phase:**
-
-- [ ] Update `docs/operations/TESTING.md` with the full operator playbook:
-  - submit feedback
-  - hit threshold
-  - verify suppression
-  - correct content
-  - review/approve
-  - reindex
-  - verify restoration
-- [ ] Update `docs/PACKAGES.md` with trap vs skill remediation integration points.
-- [ ] Update `docs/todos/badcase-feedback-loop.md` to note which parts of the remediation loop are now implemented and which eval conversion work remains future scope.
-
-**Tests / eval updates in this phase:**
-
-- [x] Extend:
-  - `packages/server/src/routes/review.test.ts`
-  - `packages/server/src/routes/operations/skill-edit.test.ts`
-  - `packages/server/src/routes/operations/skill-review.test.ts`
-  - `packages/server/src/routes/feedback.test.ts`
-- [x] Add end-to-end workflow assertions for:
-  - trap suppressed -> reviewed/fixed -> reindexed -> visible again
-  - skill suppressed -> edited/reviewed -> reindexed -> visible again
-- [x] Run:
-```bash
-rtk pnpm test -- --run \
-  packages/server/src/routes/review.test.ts \
-  packages/server/src/routes/operations/skill-edit.test.ts \
-  packages/server/src/routes/operations/skill-review.test.ts \
-  packages/server/src/routes/feedback.test.ts \
-  packages/server/src/routes/retrieval.test.ts \
-  packages/server/src/__tests__/skill-lifecycle-flow.test.ts
-```
-
-Actual status:
-- `skill edit` now pushes escalated unresolved feedback into `in-remediation`.
-- `trap review approve` and `skill review approve` now push escalated unresolved feedback into `ready-to-reindex`.
-- Targeted route tests passed on 2026-06-09.
-
-**Example structure or code:**
-```ts
-export interface CompleteRemediationRequest {
-  entryId: string;
-  entryType: 'trap' | 'skill';
-  action: 'mark-ready-to-reindex' | 'reindex-and-reactivate';
-  notes?: string;
-}
-```
-
-```ts
-async function clearActiveFeedbackPenaltyAfterRepair(args: {
-  entryId: string;
-  entryType: 'trap' | 'skill';
-  resolvedByUserId: string;
-  resolvedAt: string;
-}) {
-  // Preserve feedback history, clear only active remediation/suppression state.
-}
-```
-
-## Phase 5: Close The Loop With Docs And Eval Coverage
-
-**Objective:** Make the new feedback escalation loop operable, documented, and regression-protected, including at least one eval/backcase linkage update.
-
-**Files:**
-- Modify: `docs/operations/TESTING.md`
-- Modify: `docs/reference/api-surface.md`
-- Modify: `docs/reference/DATA_MODEL.md`
-- Modify: `docs/PACKAGES.md`
-- Modify: `docs/todos/badcase-feedback-loop.md`
-- Modify: `evals/retrieval/README.md`
-- Modify: `evals/summary/README.md` if any feedback-loop references belong there
-- Modify: `packages/server/src/__tests__/docs-truth-smoke.test.ts`
-- Modify: `plan.md`
-
-- [x] Document the final state machine and operator workflow in one place.
-- [x] Add at least one explicit “feedback badcase -> remediation -> eval follow-up” note or helper workflow in docs.
-- [ ] Update docs truth tests if new canonical docs or required phrases are introduced.
-- [ ] Run the minimum regression and smoke commands needed to prove this feature does not break retrieval/index flows.
-
-**Completion standard:**
-
-- [ ] Operators can execute the full loop from docs without tribal knowledge.
-- [ ] The plan records which commands were actually run and whether they passed.
-- [ ] The repository has at least one documented bridge from feedback remediation to future eval accumulation work.
-
-**Document updates in this phase:**
-
-- [x] Update `docs/operations/TESTING.md`
-- [x] Update `docs/reference/api-surface.md`
-- [x] Update `docs/reference/DATA_MODEL.md`
-- [x] Update `docs/PACKAGES.md`
-- [x] Update `docs/todos/badcase-feedback-loop.md`
-- [ ] Update `evals/retrieval/README.md`
-
-**Tests / eval updates in this phase:**
-
-- [ ] Extend `packages/server/src/__tests__/docs-truth-smoke.test.ts` if needed for new required docs references.
-- [x] Run:
-```bash
-rtk pnpm test -- --run \
-  packages/server/src/routes/feedback.test.ts \
-  packages/server/src/routes/review.test.ts \
-  packages/server/src/routes/operations/skill-edit.test.ts \
-  packages/server/src/routes/operations/skill-review.test.ts \
-  packages/server/src/routes/retrieval.test.ts \
-  packages/server/src/__tests__/skill-lifecycle-flow.test.ts \
-  packages/server/src/__tests__/docs-truth-smoke.test.ts
-```
-- [x] Run:
+- [ ] Run:
 ```bash
 rtk pnpm typecheck
+```
+
+**Example structure or code:**
+```ts
+export interface RuntimeModeConfig {
+  mode: 'api' | 'task-worker' | 'outbox-worker' | 'combined';
+  enableTaskWorker: boolean;
+  enableOutboxWorker: boolean;
+}
+```
+
+```ts
+if (runtime.mode === 'api') {
+  await app.listen({ host, port });
+} else {
+  await runWorkerSequence(app, runtime);
+}
+```
+
+## Phase 3: Add Workflow Run Snapshots For Long-Running Jobs
+
+**Objective:** Borrow the useful GraphRAG idea: long-running async work should have durable run/step snapshots, progress visibility, and reproducible state, starting with candidate processing and rebuild-style jobs.
+
+**Files:**
+- Create: `packages/server/src/lib/workflows/`
+- Create: `packages/server/src/lib/workflows/types.ts`
+- Create: `packages/server/src/lib/workflows/repository.ts`
+- Modify: `packages/server/src/lib/candidates/processor.ts`
+- Modify: `packages/server/src/lib/queue/task-queue.ts`
+- Modify: `packages/server/src/lib/persistence/schema/queue.ts`
+- Modify: `packages/server/drizzle/0017_*.sql`
+- Modify: `packages/contracts/src/domain/operations.ts`
+- Modify: `packages/server/src/routes/operations/status.ts`
+- Modify: `packages/server/src/__tests__/candidate-pipeline.test.ts`
+- Modify: `packages/server/src/routes/operations/status.test.ts`
+- Modify: `plan.md`
+
+- [ ] Add a durable workflow-run snapshot model with:
+  - `runId`
+  - `workflowType`
+  - `subjectId`
+  - `status`
+  - `stepName`
+  - `attempt`
+  - `startedAt`
+  - `completedAt`
+  - `lastError`
+  - `stats`
+- [ ] Instrument candidate processing as the first workflow-run-backed path.
+- [ ] Add one additional rebuild-style or export-style workflow that uses the same snapshot infrastructure.
+- [ ] Keep the first version linear-step-based; do not introduce DAG orchestration yet.
+- [ ] Expose workflow-run snapshots through the existing operator status family.
+
+**Completion standard:**
+
+- [ ] Candidate processing exposes durable run/step status rather than only raw queue status.
+- [ ] At least one non-candidate long-running flow uses the same workflow-run abstraction.
+- [ ] Operators can tell which step failed and with what last error.
+- [ ] This phase adds workflow observability without changing public route behavior unnecessarily.
+
+**Document updates in this phase:**
+
+- [ ] Update `docs/reference/DATA_MODEL.md` with workflow-run persistence and status vocabulary.
+- [ ] Update `docs/reference/DATABASE_SCHEMA.md` with workflow-run table/index additions.
+- [ ] Update `docs/reference/api-surface.md` with any workflow status fields surfaced through operations endpoints.
+- [ ] Update `docs/PACKAGES.md` to describe `lib/workflows/` ownership.
+- [ ] Update `docs/operations/TESTING.md` with workflow-run inspection examples.
+
+**Tests / eval updates in this phase:**
+
+- [ ] Extend `packages/server/src/__tests__/candidate-pipeline.test.ts` with:
+  - step status progression
+  - step failure persistence
+  - workflow completion snapshot
+- [ ] Extend `packages/server/src/routes/operations/status.test.ts` with workflow-run visibility.
+- [ ] Run:
+```bash
+rtk pnpm test -- --run \
+  packages/server/src/__tests__/candidate-pipeline.test.ts \
+  packages/server/src/routes/operations/status.test.ts
+```
+- [ ] Run:
+```bash
+rtk pnpm typecheck
+```
+
+**Example structure or code:**
+```ts
+export interface WorkflowRunSnapshot {
+  runId: string;
+  workflowType: 'candidate-processing' | 'index-rebuild' | 'badcase-export';
+  subjectId: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  stepName: string | null;
+  attempt: number;
+  startedAt: string | null;
+  completedAt: string | null;
+  lastError: string | null;
+  stats: Record<string, number | string | boolean | null>;
+}
+```
+
+```ts
+await workflowRepo.recordStep(runId, {
+  stepName: 'duplicate-detection',
+  status: 'running',
+  startedAt: new Date().toISOString(),
+});
+```
+
+## Phase 4: Add Query Traceability And Durable Badcase Capture
+
+**Objective:** Expose retrieval `queryId` publicly, persist enough request/result context to reproduce failures, and keep badcase trace storage as a reproducibility fact source rather than only an analytics side effect.
+
+**Files:**
+- Modify: `packages/contracts/src/domain/retrieval.ts`
+- Modify: `packages/contracts/src/domain/feedback.ts`
+- Modify: `packages/contracts/src/domain/operations.ts`
+- Modify: `packages/server/src/routes/retrieval.ts`
+- Modify: `packages/server/src/routes/feedback.ts`
+- Modify: `packages/server/src/lib/analytics/repository.ts`
+- Modify: `packages/server/src/lib/analytics/pg-repository.ts`
+- Modify: `packages/server/src/lib/persistence/schema/retrieval.ts`
+- Modify: `packages/server/drizzle/0018_*.sql`
+- Modify: `packages/server/src/routes/retrieval.test.ts`
+- Modify: `packages/server/src/routes/feedback.test.ts`
+- Modify: `packages/contracts/src/domain/retrieval.test.ts`
+- Modify: `packages/contracts/src/domain/feedback.test.ts`
+- Modify: `plan.md`
+
+- [ ] Return additive `queryId` fields in public retrieval responses instead of keeping them internal to analytics only.
+- [ ] Extend feedback submission with a minimal reproducibility envelope:
+  - `queryId`
+  - `querySeed`
+  - route family or retrieval flavor
+  - selected-result snapshot
+  - failure classification
+  - expected correction
+- [ ] Persist badcase trace data in a durable retrieval/badcase persistence model that can be queried later.
+- [ ] Reuse analytics IDs where useful, but do not make analytics the only truth source for badcase reconstruction.
+- [ ] Keep all additions backward-compatible by using additive fields.
+
+**Completion standard:**
+
+- [ ] Clients can tie feedback to a concrete public `queryId`.
+- [ ] Operators can inspect enough stored context to understand and reproduce a retrieval or summary failure.
+- [ ] Retrieval tests assert `queryId` for all supported retrieval route families.
+- [ ] Feedback trace fields survive repository and route round-trips.
+
+**Document updates in this phase:**
+
+- [ ] Update `docs/todos/badcase-feedback-loop.md` to mark public `queryId` and durable trace capture as implemented.
+- [ ] Update `docs/reference/api-surface.md` with additive retrieval and feedback contract fields.
+- [ ] Update `docs/reference/DATA_MODEL.md` with badcase trace storage shape.
+- [ ] Update `docs/PACKAGES.md` to explain trace-capture ownership.
+
+**Tests / eval updates in this phase:**
+
+- [ ] Extend `packages/contracts/src/domain/retrieval.test.ts` and `packages/contracts/src/domain/feedback.test.ts` with new additive fields.
+- [ ] Extend `packages/server/src/routes/retrieval.test.ts` with:
+  - v1 returns `queryId`
+  - v2 returns `queryId`
+  - v3 returns `queryId`
+- [ ] Extend `packages/server/src/routes/feedback.test.ts` with:
+  - feedback persists `queryId`
+  - feedback persists result snapshot and expected correction metadata
+- [ ] Run:
+```bash
+rtk pnpm test -- --run \
+  packages/contracts/src/domain/retrieval.test.ts \
+  packages/contracts/src/domain/feedback.test.ts \
+  packages/server/src/routes/retrieval.test.ts \
+  packages/server/src/routes/feedback.test.ts
+```
+- [ ] Run:
+```bash
+rtk pnpm typecheck
+```
+
+**Example structure or code:**
+```ts
+export const badcaseSnapshotSchema = z.object({
+  queryId: z.string().min(1),
+  querySeed: z.string().min(1),
+  routeFamily: z.enum(['entry', 'capsule', 'graph-plan']).optional(),
+  observedFailure: z.enum([
+    'missing-recall',
+    'ranking-error',
+    'summary-hallucination',
+    'governance-leak',
+    'outdated-content',
+  ]),
+  expectedBehavior: z.string().min(1).max(2000),
+  selectedResultSnapshot: z.record(z.string(), z.unknown()).optional(),
+});
+```
+
+```ts
+return retrievalV2ResponseWithHintsSchema.parse({
+  ...result,
+  queryId,
+});
+```
+
+## Phase 5: Move Derived Heavy Work Onto Shared Jobs
+
+**Objective:** Reuse the hardened queue/workflow substrate for the next set of heavy side effects instead of keeping them inside routes or narrow subscribers.
+
+**Files:**
+- Create: `packages/server/src/lib/jobs/`
+- Create: `packages/server/src/lib/jobs/handlers/*.ts`
+- Modify: `packages/server/src/bootstrap/bootstrap-workers.ts`
+- Modify: `packages/server/src/lib/lifecycle/subscribers/indexing.ts`
+- Modify: `packages/server/src/lib/feedback/remediation.ts`
+- Modify: `packages/server/src/routes/feedback-admin.ts`
+- Modify: `packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts`
+- Modify: `packages/server/src/__tests__/candidate-pipeline.test.ts`
+- Modify: `packages/server/src/routes/feedback.test.ts`
+- Modify: `plan.md`
+
+- [ ] Add shared job handlers for at least:
+  - index rebuild/removal follow-up
+  - remediation reactivation follow-up
+  - badcase export draft generation
+- [ ] Use outbox events or authoritative writes to enqueue derived jobs after commit.
+- [ ] Keep handlers idempotent by dedupe key and safe under repeated event delivery.
+- [ ] Route all failures through the queue/operator/workflow surfaces from earlier phases.
+- [ ] Reuse candidate processing and workflow-run conventions instead of inventing a parallel async framework.
+
+**Completion standard:**
+
+- [ ] At least one non-candidate subsystem uses the shared async substrate end-to-end.
+- [ ] Derived follow-up work no longer depends on route-local heavy side effects.
+- [ ] Repeated event delivery does not create duplicate active jobs.
+- [ ] Dead-letter derived jobs are visible and re-runnable through operator flows.
+
+**Document updates in this phase:**
+
+- [ ] Update `docs/PACKAGES.md` with `lib/jobs/` ownership.
+- [ ] Update `docs/reference/DATA_MODEL.md` with derived-job payload ownership and lifecycle notes.
+- [ ] Update `docs/reference/api-surface.md` if operator responses now include async job IDs.
+- [ ] Update `docs/operations/TESTING.md` with dead-letter recovery playbooks for derived jobs.
+
+**Tests / eval updates in this phase:**
+
+- [ ] Add handler-level tests under `packages/server/src/lib/jobs/handlers/*.test.ts`.
+- [ ] Extend `packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts` with outbox-to-job assertions.
+- [ ] Extend `packages/server/src/routes/feedback.test.ts` and `packages/server/src/__tests__/candidate-pipeline.test.ts` with async follow-up visibility checks.
+- [ ] Run:
+```bash
+rtk pnpm test -- --run \
+  packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts \
+  packages/server/src/__tests__/candidate-pipeline.test.ts \
+  packages/server/src/routes/feedback.test.ts
+```
+- [ ] Run:
+```bash
+rtk pnpm typecheck
+```
+
+**Example structure or code:**
+```ts
+export interface AsyncJobHandler<TPayload> {
+  type: string;
+  dedupeKey(payload: TPayload): string | null;
+  handle(payload: TPayload, signal: AbortSignal): Promise<void>;
+}
+```
+
+```ts
+await taskQueue.enqueue(
+  'feedback.badcase-export',
+  { feedbackId, entryId, queryId },
+  { dedupeKey: `feedback.badcase-export:${feedbackId}` },
+);
+```
+
+## Phase 6: Add Event-Driven Cache Invalidation And Read-Model Refresh
+
+**Objective:** Treat retrieval caches and derived read models as explicit event-driven artifacts rather than best-effort process-local optimizations.
+
+**Files:**
+- Modify: `packages/server/src/lib/cache/retrieval-cache.ts`
+- Modify: `packages/server/src/lib/cache/metrics.ts`
+- Modify: `packages/server/src/lib/retrieval/read-model.ts`
+- Modify: `packages/server/src/lib/retrieval/capsules/intent-cache.ts`
+- Modify: `packages/server/src/lib/lifecycle/subscribers/indexing.ts`
+- Modify: `packages/server/src/lib/jobs/handlers/*.ts`
+- Modify: `packages/server/src/lib/cache/retrieval-cache.test.ts`
+- Modify: `packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
+- Modify: `packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts`
+- Modify: `packages/server/src/routes/retrieval.test.ts`
+- Modify: `plan.md`
+
+- [ ] Define which retrieval-side caches remain process-local and which derived artifacts require explicit invalidation or refresh.
+- [ ] Add shared invalidation hooks for:
+  - lifecycle approval
+  - lifecycle deactivation
+  - remediation suppression
+  - remediation reactivation
+- [ ] Expose cache hit/miss/eviction metrics through operator-facing runtime surfaces.
+- [ ] Keep cache bounds explicit with TTL/LRU policy and prevent unbounded in-memory growth.
+- [ ] Ensure stale cached content cannot reintroduce suppressed artifacts into retrieval results.
+
+**Completion standard:**
+
+- [ ] Cache invalidation happens from shared events/jobs, not route-local one-offs.
+- [ ] Retrieval tests prove approved/reactivated content appears after refresh and suppressed content stays hidden.
+- [ ] Operators can inspect high-level cache metrics.
+- [ ] Cache ownership and invalidation policy are documented in truth docs.
+
+**Document updates in this phase:**
+
+- [ ] Update `docs/PACKAGES.md` and `docs/PACKAGE_STACK_RATIONALE.md` with cache ownership and invalidation posture.
+- [ ] Update `docs/operations/TESTING.md` with cache invalidation verification steps after lifecycle/remediation changes.
+- [ ] Update `docs/reference/SYSTEM_TRUTH_SOURCES.md` if cache policy becomes a documented truth source.
+
+**Tests / eval updates in this phase:**
+
+- [ ] Extend `packages/server/src/lib/cache/retrieval-cache.test.ts` with invalidation-triggered refresh behavior.
+- [ ] Extend retrieval integration tests with stale-cache guard assertions.
+- [ ] Run:
+```bash
+rtk pnpm test -- --run \
+  packages/server/src/lib/cache/retrieval-cache.test.ts \
+  packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts \
+  packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts \
+  packages/server/src/routes/retrieval.test.ts
+```
+- [ ] Run:
+```bash
+rtk pnpm typecheck
+```
+
+**Example structure or code:**
+```ts
+export interface CacheInvalidationEvent {
+  sourceType: 'trap' | 'skill';
+  sourceId: string;
+  reason:
+    | 'approved'
+    | 'deactivated'
+    | 'remediation-suppressed'
+    | 'remediation-reactivated';
+}
+```
+
+```ts
+if (event.reason === 'remediation-suppressed') {
+  retrievalCache.deleteByPrefix(`skill:${event.sourceId}`);
+}
+```
+
+## Phase 7: Materialize Badcases Into Eval Inputs And Decision Metrics
+
+**Objective:** Close the operational loop from live failure to regression case and finish with explicit architecture-decision metrics rather than assumptions about MQ or microservice splits.
+
+**Files:**
+- Modify: `packages/contracts/src/domain/operations.ts`
+- Create: `packages/server/src/routes/operations/badcases.ts`
+- Modify: `packages/server/src/routes/operations/index.ts`
+- Create: `scripts/export-badcase-to-eval.ts`
+- Modify: `packages/server/src/routes/operations/*.test.ts`
+- Modify: `packages/server/src/lib/runtime/metrics.ts`
+- Modify: `packages/server/src/routes/operations/stats.ts`
+- Modify: `packages/server/src/routes/operations/stats.test.ts`
+- Modify: `docs/todos/badcase-feedback-loop.md`
+- Modify: `docs/todos/backend-engineering-optimization-plan.md`
+- Modify: `evals/README.md`
+- Modify: `evals/retrieval/README.md`
+- Modify: `evals/summary/README.md`
+- Modify: `docs/operations/TESTING.md`
+- Modify: `docs/PACKAGES.md`
+- Modify: `docs/reference/api-surface.md`
+- Modify: `plan.md`
+
+- [ ] Add an operator flow to export a stored badcase into a deterministic retrieval or summary eval draft.
+- [ ] Decide and document the first-version export shape:
+  - return JSON draft
+  - write script-generated draft
+  - or both
+- [ ] Add metrics or summary endpoints that answer:
+  - queue backlog by type
+  - retry/dead-letter rate by type
+  - worker execution latency by type
+  - cache hit/miss rate
+  - badcase export volume
+  - retrieval failure distribution
+- [ ] Define explicit thresholds for:
+  - “PG queue is enough”
+  - “consider external MQ”
+  - “modular monolith is enough”
+  - “consider service split”
+- [ ] Update backend engineering TODO docs so future MQ/service decisions are contingent on measured thresholds.
+
+**Completion standard:**
+
+- [ ] An operator can take a stored badcase and produce a stable eval draft without reconstructing context manually.
+- [ ] The export path is documented and covered by at least one automated test.
+- [ ] Operator stats surfaces expose architecture-decision metrics instead of only generic counters.
+- [ ] The repository contains explicit written decision gates for MQ and service-split adoption.
+
+**Document updates in this phase:**
+
+- [ ] Update `docs/todos/badcase-feedback-loop.md` with the implemented end-to-end loop and remaining manual review boundary.
+- [ ] Update `evals/README.md`, `evals/retrieval/README.md`, and `evals/summary/README.md` with the export workflow.
+- [ ] Update `docs/todos/backend-engineering-optimization-plan.md` into a measured decision guide.
+- [ ] Update `docs/operations/TESTING.md` with the end-to-end operator recipe:
+  - retrieve with `queryId`
+  - submit feedback
+  - inspect badcase
+  - export eval draft
+  - add regression case
+- [ ] Update `docs/reference/api-surface.md` with badcase export and stats endpoint changes.
+
+**Tests / eval updates in this phase:**
+
+- [ ] Add route/script tests for badcase export.
+- [ ] Extend `packages/server/src/lib/runtime/metrics.test.ts` and `packages/server/src/routes/operations/stats.test.ts` with the new decision metrics.
+- [ ] Add at least one example exported retrieval eval draft fixture or snapshot test.
+- [ ] Run:
+```bash
+rtk pnpm test -- --run \
+  packages/server/src/routes/operations/*.test.ts \
+  packages/server/src/lib/runtime/metrics.test.ts \
+  packages/server/src/routes/operations/stats.test.ts
 ```
 - [ ] Run:
 ```bash
 rtk pnpm eval:smoke
 ```
+- [ ] Run:
+```bash
+rtk pnpm typecheck
+```
+
+**Example structure or code:**
+```ts
+export interface BadcaseEvalDraft {
+  kind: 'retrieval' | 'summary';
+  caseId: string;
+  sourceFeedbackId: string;
+  request: Record<string, unknown>;
+  expected: Record<string, unknown>;
+  notes: string[];
+}
+```
+
+```ts
+export interface AsyncArchitectureDecisionSnapshot {
+  queueBacklogByType: Record<string, number>;
+  deadLetterByType: Record<string, number>;
+  avgHandlerLatencyMsByType: Record<string, number>;
+  cacheHitRateByNamespace: Record<string, number>;
+  badcaseExportCount: number;
+}
+```
 
 ## Final Acceptance Checklist
 
-- [ ] `trap` and `skill` feedback both contribute to threshold-based escalation.
-- [ ] Existing feedback admin surface is reused as the remediation queue entrypoint.
-- [ ] Existing trap review and skill edit/review flows are reused for human correction.
-- [ ] Existing index removal/rebuild seams are reused for suppression and restoration.
-- [ ] Raw feedback history is preserved after remediation closure.
-- [ ] Active suppression/penalty state is cleared only after confirmed human fix and reindex.
-- [ ] Retrieval tests cover suppressed and restored visibility for both trap and skill.
-- [ ] Docs cover the end-to-end operator flow and the feedback-to-eval bridge.
+- [ ] Candidate scheduling and lifecycle outbox registration are transactional with their authoritative writes.
+- [ ] Queue and outbox consumers can reclaim stuck work after process death.
+- [ ] API, task-worker, outbox-worker, and combined runtime modes all work with correct readiness semantics.
+- [ ] Long-running jobs expose durable workflow-run snapshots with step-level visibility.
+- [ ] Public retrieval responses expose `queryId` and support badcase traceability.
+- [ ] Feedback submissions persist enough query/result context to reproduce failures.
+- [ ] Heavy follow-up work is scheduled through shared jobs rather than route-local side effects.
+- [ ] Retrieval caches/read models refresh through shared events/jobs and do not leak suppressed stale content.
+- [ ] Operators can export badcases into eval drafts with a documented workflow.
+- [ ] Runtime metrics define objective triggers for MQ or service-split adoption.
+- [ ] Docs cover the end-to-end operator and verification flow.
+- [ ] Phase-complete status is only checked after matching code, tests, evals, and docs are updated.

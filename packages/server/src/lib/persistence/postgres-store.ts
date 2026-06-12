@@ -43,6 +43,12 @@ export class PostgresStore implements SkillShareerStore {
   }
 
   async transact<T>(mutator: (data: StoreData) => Promise<T> | T): Promise<T> {
+    return this.transactWithPgClient((data) => mutator(data));
+  }
+
+  async transactWithPgClient<T>(
+    mutator: (data: StoreData, client: import('pg').PoolClient) => Promise<T> | T,
+  ): Promise<T> {
     // Use a database transaction with row-level locking to serialize writes
     const client = await this.pool.connect();
     try {
@@ -57,7 +63,7 @@ export class PostgresStore implements SkillShareerStore {
       const rawData = rows.length > 0 ? rows[0]!.data : null;
       const data: StoreData = rawData ?? createEmptyStoreData();
 
-      const result = await mutator(data);
+      const result = await mutator(data, client);
 
       const jsonStr = JSON.stringify(data);
       await client.query(
