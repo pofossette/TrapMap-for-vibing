@@ -2,6 +2,7 @@ import { feedbackResponseSchema, feedbackSubmissionSchema } from '@trapmap/contr
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '@trapmap/server/lib/errors.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
@@ -14,6 +15,45 @@ const TRANSITION_TRIGGERS = {
   outdated: { threshold: 3, targetState: 'stale', timeWindowDays: 30 },
   incorrect: { threshold: 5, targetState: 'review-due', timeWindowDays: 30 },
 } as const;
+
+async function persistBadcaseTrace(
+  app: Parameters<FastifyPluginAsync>[0],
+  feedbackId: string,
+  payload: {
+    entryId: string;
+    entryType: 'trap' | 'skill';
+    querySeed: string | null;
+    queryId: string | null;
+    routeFamily: 'entry' | 'capsule' | 'graph-plan' | null;
+    failureClassification: string | null;
+    expectedCorrection: string | null;
+    selectedResultSnapshot: Record<string, unknown> | null;
+  },
+) {
+  const store = app.skillShareer.store;
+  if (!(store instanceof PostgresStore)) return;
+  try {
+    await store.getPool().query(
+      `INSERT INTO retrieval_badcase_traces
+       (id, feedback_id, query_id, query_seed, route_family, entry_id, entry_type, failure_classification, expected_correction, selected_result_snapshot, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, NOW(), NOW())`,
+      [
+        `badcase_${feedbackId}`,
+        feedbackId,
+        payload.queryId,
+        payload.querySeed,
+        payload.routeFamily,
+        payload.entryId,
+        payload.entryType,
+        payload.failureClassification,
+        payload.expectedCorrection,
+        payload.selectedResultSnapshot ? JSON.stringify(payload.selectedResultSnapshot) : null,
+      ],
+    );
+  } catch {
+    // Best-effort trace capture must not break feedback submission.
+  }
+}
 
 export const feedbackRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/feedback', async (request, reply) => {
@@ -60,6 +100,11 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
       description: payload.description,
       context: payload.context ?? null,
       querySeed: payload.querySeed ?? null,
+      queryId: payload.badcase?.queryId ?? null,
+      routeFamily: payload.badcase?.routeFamily ?? null,
+      failureClassification: payload.badcase?.failureClassification ?? null,
+      expectedCorrection: payload.badcase?.expectedCorrection ?? null,
+      selectedResultSnapshot: payload.badcase?.selectedResultSnapshot ?? null,
       customAnswers: payload.customAnswers ?? null,
       submittedAt: now,
       submittedByUserId: auth.user!.id,
@@ -74,6 +119,16 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
     };
 
     await feedbackRepo.insert(feedbackRecord);
+    await persistBadcaseTrace(app, feedbackRecord.id, {
+      entryId: feedbackRecord.entryId,
+      entryType: feedbackRecord.entryType,
+      querySeed: feedbackRecord.querySeed,
+      queryId: feedbackRecord.queryId,
+      routeFamily: feedbackRecord.routeFamily,
+      failureClassification: feedbackRecord.failureClassification,
+      expectedCorrection: feedbackRecord.expectedCorrection,
+      selectedResultSnapshot: feedbackRecord.selectedResultSnapshot,
+    });
 
     // Log user operation (fire-and-forget)
     void logUserOperation(app.skillShareer.config.userOpsLog, {
@@ -100,6 +155,18 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
       description: feedbackRecord.description,
       ...(feedbackRecord.context != null ? { context: feedbackRecord.context } : {}),
       ...(feedbackRecord.querySeed != null ? { querySeed: feedbackRecord.querySeed } : {}),
+      ...(feedbackRecord.queryId != null ? { queryId: feedbackRecord.queryId } : {}),
+      ...(feedbackRecord.routeFamily != null ? { routeFamily: feedbackRecord.routeFamily } : {}),
+      ...(feedbackRecord.failureClassification != null
+        ? { failureClassification: feedbackRecord.failureClassification }
+        : {}),
+      ...(feedbackRecord.expectedCorrection != null
+        ? { expectedCorrection: feedbackRecord.expectedCorrection }
+        : {}),
+      ...(feedbackRecord.selectedResultSnapshot != null
+        ? { selectedResultSnapshot: feedbackRecord.selectedResultSnapshot }
+        : {}),
+      ...(payload.badcase ? { badcase: payload.badcase } : {}),
       ...(feedbackRecord.customAnswers != null
         ? { customAnswers: feedbackRecord.customAnswers }
         : {}),

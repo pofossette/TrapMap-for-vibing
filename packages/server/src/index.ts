@@ -1,14 +1,24 @@
 import { pathToFileURL } from 'node:url';
 
 import { buildServer } from './app.js';
+import type { RuntimeMode } from './bootstrap/runtime-mode.js';
+
+function resolveRuntimeMode(): RuntimeMode {
+  const mode = process.env.RUNTIME_MODE;
+  if (mode === 'api' || mode === 'task-worker' || mode === 'outbox-worker' || mode === 'combined') {
+    return mode;
+  }
+  return 'combined';
+}
 
 async function start() {
-  const server = buildServer();
+  const runtimeMode = resolveRuntimeMode();
+  const server = buildServer({ runtimeMode });
   const port = Number(process.env.PORT ?? 4000);
   const host = process.env.HOST ?? '127.0.0.1';
 
   await server.listen({ host, port });
-  server.log.info({ host, port }, 'Skill Shareer server started');
+  server.log.info({ host, port, runtimeMode }, 'Skill Shareer server started');
 }
 
 const entryUrl = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;

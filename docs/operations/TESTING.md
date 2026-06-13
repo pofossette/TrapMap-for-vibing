@@ -48,6 +48,22 @@ flowchart TB
 - Stuck task reclaim：手动将 `task_queue.status='running'` 且 `lease_until` 调整到过去时间，再触发 worker dequeue；确认任务会被回收并重新 claim。
 - Stuck outbox reclaim：手动将 `domain_event_outbox.status='processing'` 且 `lease_until` 调整到过去时间，再触发 outbox claim；确认事件会回到可处理状态。
 
+**Phase 1 Operator Surface Checks:**
+- Async backlog snapshot：调用 `GET /v1/operations/status/async`，确认返回 queue/outbox 的 `pending`、`dead/failed`、`stale*`、`reclaimCount` 和 workerState。
+- Dead-letter visibility：制造一个 dead task 后，确认 `queue.recentDeadLetters` 返回任务摘要而不是要求人工查表。
+- Requeue flow：调用 `POST /v1/operations/status/async/tasks/:taskId/requeue`，确认 dead task 回到 `pending` 且 dedupe 约束仍生效。
+
+**Phase 2 Runtime Mode Checks:**
+- Combined mode：`pnpm dev:server`，确认 `/ready` 会同时报告 API 进程拥有的 worker runtime。
+- API-only：`pnpm dev:server:api`，确认缺少本地 worker 不会导致 `/ready` 失败。
+- Task worker only：`pnpm dev:server:task-worker`，确认该进程不对外监听业务 API，但其 runtime mode 仅要求 queue worker 健康。
+- Outbox worker only：`pnpm dev:server:outbox-worker`，确认该进程只拥有 outbox runtime。
+
+**Phase 3 Workflow Snapshot Checks:**
+- 候选处理：提交 candidate 后，调用 `GET /v1/operations/status/async` 或直接查询 `workflow_runs`，确认存在 `workflowType='candidate-processing'` 且 step/status 随处理推进。
+- 失败持久化：制造 candidate 处理失败，确认 `lastError` 与 `status='failed'` 被保留。
+- Rebuild workflow：触发 capsule-index rebuild，确认存在 `workflowType='capsule-index-rebuild'` 的运行快照。
+
 ### 目录结构
 
 ```text

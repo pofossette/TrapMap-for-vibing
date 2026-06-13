@@ -91,11 +91,11 @@
 
 | 方法 | 路由 | 请求契约 | 响应契约 | 用途 |
 |------|------|----------|----------|------|
-| `POST` | `/v1/retrieval/search` | `retrievalQuerySchema` | `retrievalResponseSchema` | v1 条目级检索（语义/混合/图辅助） |
-| `POST` | `/v2/retrieval/search` | `retrievalV2QuerySchema` | `retrievalV2ResponseWithHintsSchema` | v2 胶囊检索（含激活提示） |
-| `POST` | `/v3/retrieval/search` | `graphPlanSearchQuerySchema` | `graphPlanSearchResponseSchema` | v3 图计划检索（置信度感知，高置信度返回计划，否则回退） |
+| `POST` | `/v1/retrieval/search` | `retrievalQuerySchema` | `retrievalResponseSchema` | v1 条目级检索（语义/混合/图辅助，additive `queryId`） |
+| `POST` | `/v2/retrieval/search` | `retrievalV2QuerySchema` | `retrievalV2ResponseWithHintsSchema` | v2 胶囊检索（含激活提示，additive `queryId`） |
+| `POST` | `/v3/retrieval/search` | `graphPlanSearchQuerySchema` | `graphPlanSearchResponseSchema` | v3 图计划检索（置信度感知，高置信度返回计划，否则回退，additive `queryId`） |
 | `POST` | `/v3/retrieval/plan` | `planQuerySchema` | `trapFirstPlanSchema` | v3 陷阱优先计划生成 |
-| `POST` | `/v1/retrieval/skills/search-by-content` | `skillLookupQuerySchema` | `skillLookupResponseSchema` | 按内容搜索技能 |
+| `POST` | `/v1/retrieval/skills/search-by-content` | `skillLookupQuerySchema` | `skillLookupResponseSchema` | 按内容搜索技能（additive `queryId`） |
 
 > 源码：`packages/server/src/routes/retrieval.ts`
 
@@ -103,7 +103,7 @@
 
 | 方法 | 路由 | 请求契约 | 响应契约 | 用途 |
 |------|------|----------|----------|------|
-| `POST` | `/v1/feedback` | `feedbackSubmissionSchema` | `feedbackResponseSchema` | 提交知识条目反馈 |
+| `POST` | `/v1/feedback` | `feedbackSubmissionSchema` | `feedbackResponseSchema` | 提交知识条目反馈，支持 additive badcase reproducibility envelope |
 | `GET` | `/v1/operations/feedback` | `feedbackListRequestSchema` | `feedbackListResponseSchema` | 管理员获取反馈列表 |
 | `GET` | `/v1/operations/feedback/remediation` | 无 | `feedbackRemediationQueueResponseSchema` | 获取达到阈值的 remediation 工作队列 |
 | `GET` | `/v1/operations/feedback/remediation/:entryId` | 无 | `feedbackRemediationDetailResponseSchema` | 获取单个 trap/skill remediation 详情与内容快照 |
@@ -161,6 +161,8 @@
 | `GET` | `/v1/operations/audit` | `auditQuerySchema` | `auditListResponseSchema` | 查看操作审计事件 |
 | `POST` | `/v1/operations/migrate` | `legacyMigrationRequestSchema` | `legacyMigrationResponseSchema` | 迁移旧版知识条目到工件格式 |
 | `GET` | `/v1/operations/status` | `compatibilityStatusRequestSchema` | `compatibilityStatusResponseSchema` | 获取系统兼容性状态 |
+| `GET` | `/v1/operations/status/async` | 无 | `asyncOperationsStatusResponseSchema` | 获取 queue/outbox backlog、dead-letter、reclaim、worker 状态，以及最近 workflow run 快照 |
+| `POST` | `/v1/operations/status/async/tasks/:taskId/requeue` | 无 | `asyncTaskRequeueResponseSchema` | 通过统一 operator flow 重新入队 dead task |
 
 > 源码：`packages/server/src/routes/operations.ts`（注册子路由）
 

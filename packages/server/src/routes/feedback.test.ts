@@ -176,6 +176,20 @@ describe('feedback routes', () => {
         problemType: 'incorrect',
         description:
           'The solution described does not work with the current version of the library.',
+        badcase: {
+          queryId: 'qry_test_1',
+          querySeed: 'library version issue',
+          routeFamily: 'entry',
+          failureClassification: 'outdated-content',
+          expectedCorrection: 'Return the current library migration guide.',
+          selectedResultSnapshot: {
+            entryId: 'trap_1',
+            entryType: 'trap',
+            title: 'test-trap-shortcut',
+            score: 0.9,
+            routeFamily: 'entry',
+          },
+        },
       },
     });
 
@@ -189,6 +203,9 @@ describe('feedback routes', () => {
       'The solution described does not work with the current version of the library.',
     );
     expect(body.feedback.status).toBe('new');
+    expect(body.feedback.queryId).toBe('qry_test_1');
+    expect(body.feedback.routeFamily).toBe('entry');
+    expect(body.feedback.expectedCorrection).toBe('Return the current library migration guide.');
     expect(body.feedback.submittedBy).toBeDefined();
     expect(body.feedback.submittedBy.id).toBe(userId);
   });

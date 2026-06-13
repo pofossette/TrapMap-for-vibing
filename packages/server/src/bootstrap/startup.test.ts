@@ -5,6 +5,9 @@ import { getArtifactAdapters } from '@trapmap/server/lib/indexing/artifact-pipel
 import { bootstrapCandidateRecovery } from './bootstrap-candidate-recovery.js';
 import { bootstrapLifecycle } from './bootstrap-lifecycle.js';
 
+const DATABASE_URL = process.env.TRAPMAP_DATABASE_URL || process.env.DATABASE_URL;
+const describeIfDb = DATABASE_URL ? describe : describe.skip;
+
 describe('startup sequence', () => {
   it('initializes repos before candidate recovery', async () => {
     const server = buildServer();
@@ -137,6 +140,65 @@ describe('startup sequence', () => {
     const adapters = getArtifactAdapters();
     expect(adapters.length).toBeGreaterThanOrEqual(1);
 
+    await server.close();
+  });
+
+  it('supports api-only runtime mode without owning workers locally', async () => {
+    const server = buildServer({ runtimeMode: 'api' });
+    await server.ready();
+
+    expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(false);
+    expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(false);
+
+    await server.close();
+  });
+
+  it('supports task-worker-only runtime mode', async () => {
+    const server = buildServer({ runtimeMode: 'task-worker' });
+    await server.ready();
+    expect(server).toBeTruthy();
+
+    await server.close();
+  });
+
+  it('supports outbox-worker-only runtime mode', async () => {
+    const server = buildServer({ runtimeMode: 'outbox-worker' });
+    await server.ready();
+    expect(server).toBeTruthy();
+
+    await server.close();
+  });
+
+  it('supports combined runtime mode', async () => {
+    const server = buildServer({ runtimeMode: 'combined' });
+    await server.ready();
+    expect(server).toBeTruthy();
+
+    await server.close();
+  });
+
+  it('freezes services after runtime-mode-aware startup', async () => {
+    const server = buildServer({ runtimeMode: 'api' });
+    await server.ready();
+    expect(Object.isFrozen(server.skillShareer)).toBe(true);
+    await server.close();
+  });
+});
+
+describeIfDb('startup sequence with postgres runtime modes', () => {
+  it('task-worker-only mode owns task work in postgres deployments', async () => {
+    const server = buildServer({ runtimeMode: 'task-worker', config: { databaseUrl: DATABASE_URL! } as any });
+    await server.ready();
+    expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(true);
+    expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(false);
+    await server.close();
+  });
+
+  it('outbox-worker-only mode owns outbox work in postgres deployments', async () => {
+    const server = buildServer({ runtimeMode: 'outbox-worker', config: { databaseUrl: DATABASE_URL! } as any });
+    await server.ready();
+    expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(false);
+    expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(true);
     await server.close();
   });
 });

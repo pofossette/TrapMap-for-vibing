@@ -15,8 +15,17 @@ import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js'
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/metrics.js';
 
-export async function bootstrapLifecycle(app: FastifyInstance): Promise<void> {
+export interface BootstrapLifecycleOptions {
+  startOutboxWorker?: boolean;
+  ownsOutboxWork?: boolean;
+}
+
+export async function bootstrapLifecycle(
+  app: FastifyInstance,
+  options: BootstrapLifecycleOptions = {},
+): Promise<void> {
   const { eventBus, store, adapterRegistry } = app.skillShareer;
+  const { startOutboxWorker = true, ownsOutboxWork = startOutboxWorker } = options;
 
   // Indexing subscriber: syncs knowledge indexes on state transitions
   eventBus.onDomainEvent(
@@ -156,11 +165,16 @@ export async function bootstrapLifecycle(app: FastifyInstance): Promise<void> {
       }
     }
 
-    void run();
-    app.log.info('Outbox event worker started');
+    if (startOutboxWorker) {
+      void run();
+      app.log.info('Outbox event worker started');
+    } else {
+      app.log.info('Outbox event worker ownership registered without starting local processing');
+    }
 
     app.decorate('outboxWorker', {
       isRunning: () => running,
+      ownsWork: () => ownsOutboxWork,
       stop: () => {
         running = false;
       },

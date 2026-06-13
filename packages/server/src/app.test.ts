@@ -234,6 +234,82 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     await app.close();
   });
 
+  it('keeps readiness successful when this process does not own async workers', async () => {
+    const app = buildServer({ runtimeMode: 'api' });
+    await app.ready();
+    (app as any).taskWorker = {
+      isRunning: () => false,
+      ownsWork: () => false,
+    };
+    (app as any).outboxWorker = {
+      isRunning: () => false,
+      ownsWork: () => false,
+    };
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/ready',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      ok: true,
+      dependencies: {
+        queueWorker: 'not-configured',
+        outboxWorker: 'not-configured',
+      },
+    });
+
+    await app.close();
+  });
+
+  it('api-only runtime does not require worker health', async () => {
+    const app = buildServer({ runtimeMode: 'api' });
+    await app.ready();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/ready',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      ok: true,
+      dependencies: {
+        queueWorker: 'not-configured',
+        outboxWorker: 'not-configured',
+      },
+    });
+
+    await app.close();
+  });
+
+  it('worker-only runtime remains request-ready in json-store mode', async () => {
+    const taskWorkerApp = buildServer({ runtimeMode: 'task-worker' });
+    await taskWorkerApp.ready();
+    const taskWorkerReady = await taskWorkerApp.inject({ method: 'GET', url: '/ready' });
+    expect(taskWorkerReady.statusCode).toBe(200);
+    expect(taskWorkerReady.json()).toMatchObject({
+      dependencies: {
+        queueWorker: 'not-configured',
+        outboxWorker: 'not-configured',
+      },
+    });
+    await taskWorkerApp.close();
+
+    const outboxWorkerApp = buildServer({ runtimeMode: 'outbox-worker' });
+    await outboxWorkerApp.ready();
+    const outboxWorkerReady = await outboxWorkerApp.inject({ method: 'GET', url: '/ready' });
+    expect(outboxWorkerReady.statusCode).toBe(200);
+    expect(outboxWorkerReady.json()).toMatchObject({
+      dependencies: {
+        queueWorker: 'not-configured',
+        outboxWorker: 'not-configured',
+      },
+    });
+    await outboxWorkerApp.close();
+  });
+
   it('logs request-context metadata on unhandled errors', async () => {
     const app = buildServer();
     app.get('/__phase1-error', async () => {

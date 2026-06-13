@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getRuntimeMetricsSnapshot,
+  recordRuntimeReclaim,
   recordRuntimeExecution,
   recordRuntimeRetry,
   resetRuntimeMetrics,
@@ -12,6 +13,7 @@ describe('runtime metrics', () => {
     resetRuntimeMetrics();
 
     recordRuntimeRetry('graph-bootstrap');
+    recordRuntimeReclaim('graph-bootstrap', 2);
     recordRuntimeExecution({
       dependencyName: 'graph-bootstrap',
       degraded: true,
@@ -21,8 +23,10 @@ describe('runtime metrics', () => {
     const snapshot = getRuntimeMetricsSnapshot();
     expect(snapshot.totals.retries).toBe(1);
     expect(snapshot.totals.degraded).toBe(1);
+    expect(snapshot.totals.reclaims).toBe(2);
     expect(snapshot.dependencies['graph-bootstrap']).toMatchObject({
       retries: 1,
+      reclaims: 2,
       degraded: 1,
       retryableFailures: 1,
     });
@@ -40,6 +44,7 @@ describe('runtime metrics', () => {
     expect(snapshot.totals).toMatchObject({
       executions: 0,
       degraded: 0,
+      reclaims: 0,
       timeouts: 0,
       retryableFailures: 0,
       permanentFailures: 0,

@@ -11,8 +11,17 @@ import { createCandidateProcessingHandler } from '@trapmap/server/lib/candidates
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { type TaskHandler, createTaskWorker } from '@trapmap/server/lib/queue/task-queue.js';
 
-export async function bootstrapWorkers(app: FastifyInstance): Promise<void> {
+export interface BootstrapWorkersOptions {
+  enabled?: boolean;
+  ownsWork?: boolean;
+}
+
+export async function bootstrapWorkers(
+  app: FastifyInstance,
+  options: BootstrapWorkersOptions = {},
+): Promise<void> {
   const store = app.skillShareer.store;
+  const { enabled = true, ownsWork = enabled } = options;
 
   // Only runs when using PostgresStore (databaseUrl configured)
   if (!(store instanceof PostgresStore)) return;
@@ -36,12 +45,15 @@ export async function bootstrapWorkers(app: FastifyInstance): Promise<void> {
     handlers: [handler as TaskHandler<unknown>],
     pollIntervalMs: 1000,
     concurrency: 1,
+    ownsWork,
   });
 
-  // Start worker in background
-  void worker.run();
-
-  app.log.info('Task worker started for candidate processing');
+  if (enabled) {
+    void worker.run();
+    app.log.info('Task worker started for candidate processing');
+  } else {
+    app.log.info('Task worker ownership registered without starting local processing');
+  }
 
   // Store worker reference for graceful shutdown
   app.decorate('taskWorker', worker);

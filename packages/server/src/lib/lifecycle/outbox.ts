@@ -16,7 +16,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool, PoolClient } from 'pg';
 
 import { domainEventOutbox } from '@trapmap/server/lib/persistence/schema.js';
-import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/metrics.js';
+import { recordRuntimeExecution, recordRuntimeReclaim } from '@trapmap/server/lib/runtime/metrics.js';
 import type { DomainEvent } from './types.js';
 
 export interface OutboxEvent {
@@ -83,6 +83,18 @@ export interface DomainEventOutboxConfig {
   leaseDurationMs?: number;
 }
 
+export interface OutboxStatusSnapshot {
+  pending: number;
+  processing: number;
+  failed: number;
+  staleProcessing: number;
+  backlogOldestAgeSeconds: number | null;
+  processingOldestAgeSeconds: number | null;
+  failedOldestAgeSeconds: number | null;
+  reclaimCount: number;
+  recentFailures: OutboxEvent[];
+}
+
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_BASE_RETRY_DELAY_MS = 5000;
 const DEFAULT_MAX_RETRY_DELAY_MS = 300000;
@@ -98,6 +110,7 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
   } = config;
 
   const db = drizzle(pool, { schema: { domainEventOutbox } });
+  let reclaimCount = 0;
 
   /**
    * Enqueue a domain event for async processing.
@@ -301,7 +314,60 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
         AND lease_until < NOW()
       `,
     );
-    return result.rowCount ?? 0;
+    const count = result.rowCount ?? 0;
+    if (count > 0) {
+      reclaimCount += count;
+      recordRuntimeReclaim('domain-event-outbox', count);
+    }
+    return count;
+  }
+
+  async function getStatusSnapshot(limit = 10): Promise<OutboxStatusSnapshot> {
+    const summaryResult = await pool.query<{
+      pending: string;
+      processing: string;
+      failed: string;
+      stale_processing: string;
+      backlog_oldest_age_seconds: string | null;
+      processing_oldest_age_seconds: string | null;
+      failed_oldest_age_seconds: string | null;
+    }>(
+      `
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'pending') AS pending,
+        COUNT(*) FILTER (WHERE status = 'processing') AS processing,
+        COUNT(*) FILTER (WHERE status = 'failed') AS failed,
+        COUNT(*) FILTER (WHERE status = 'processing' AND lease_until IS NOT NULL AND lease_until < NOW()) AS stale_processing,
+        MAX(FLOOR(EXTRACT(EPOCH FROM (NOW() - created_at)))) FILTER (WHERE status = 'pending')::text AS backlog_oldest_age_seconds,
+        MAX(FLOOR(EXTRACT(EPOCH FROM (NOW() - started_at)))) FILTER (WHERE status = 'processing' AND started_at IS NOT NULL)::text AS processing_oldest_age_seconds,
+        MAX(FLOOR(EXTRACT(EPOCH FROM (NOW() - created_at)))) FILTER (WHERE status = 'failed')::text AS failed_oldest_age_seconds
+      FROM domain_event_outbox
+      `,
+    );
+
+    const failures = await pool.query<OutboxRow>(
+      `
+      SELECT *
+      FROM domain_event_outbox
+      WHERE status = 'failed'
+      ORDER BY created_at DESC
+      LIMIT $1
+      `,
+      [limit],
+    );
+
+    const summary = summaryResult.rows[0];
+    return {
+      pending: Number(summary?.pending ?? 0),
+      processing: Number(summary?.processing ?? 0),
+      failed: Number(summary?.failed ?? 0),
+      staleProcessing: Number(summary?.stale_processing ?? 0),
+      backlogOldestAgeSeconds: parseNullableInt(summary?.backlog_oldest_age_seconds),
+      processingOldestAgeSeconds: parseNullableInt(summary?.processing_oldest_age_seconds),
+      failedOldestAgeSeconds: parseNullableInt(summary?.failed_oldest_age_seconds),
+      reclaimCount,
+      recentFailures: failures.rows.map(rowToOutboxEvent),
+    };
   }
 
   /**
@@ -335,6 +401,7 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
     fail,
     heartbeat,
     reclaimExpiredLeases,
+    getStatusSnapshot,
     getPendingCount,
     cleanup,
     policy: {
@@ -343,4 +410,9 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
       maxRetryDelayMs,
     },
   };
+}
+
+function parseNullableInt(value: string | null | undefined): number | null {
+  if (value == null) return null;
+  return Number.parseInt(value, 10);
 }

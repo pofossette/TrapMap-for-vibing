@@ -4,8 +4,44 @@ import { ZodError } from 'zod';
 import type { ServerConfig } from '@trapmap/server/config.js';
 import { isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
+import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
+import {
+  shouldBootOutboxWorker,
+  shouldBootTaskWorker,
+} from '@trapmap/server/bootstrap/runtime-mode.js';
 import { getOrCreateRequestContext } from './request-context.js';
 import { buildRuntimeStatusSnapshot } from './runtime-metadata.js';
+
+function resolveWorkerState(
+  database: 'postgres' | 'json-store',
+  expected: boolean,
+  owner: boolean | undefined,
+  running: boolean,
+): 'running' | 'degraded' | 'remote' | 'not-configured' {
+  if (database === 'json-store' || !expected) {
+    return 'not-configured';
+  }
+  if (owner === false) {
+    return 'remote';
+  }
+  return running ? 'running' : 'degraded';
+}
+
+async function buildRuntimeAsyncSnapshot(app: FastifyInstance) {
+  const store = app.skillShareer.store;
+  if (!(store instanceof PostgresStore)) {
+    return { queueSnapshot: undefined, outboxSnapshot: undefined };
+  }
+  const pool = store.getPool();
+  const queue = createTaskQueue({ pool });
+  const outbox = createDomainEventOutbox({ pool });
+  const [queueSnapshot, outboxSnapshot] = await Promise.all([
+    queue.getStatusSnapshot(),
+    outbox.getStatusSnapshot(),
+  ]);
+  return { queueSnapshot, outboxSnapshot };
+}
 
 export function registerRuntimeRoutes(
   app: FastifyInstance,
@@ -20,14 +56,26 @@ export function registerRuntimeRoutes(
     const store = app.skillShareer.store;
     const database =
       store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
+    const runtimeMode = app.skillShareer.runtimeMode;
+    const { queueSnapshot, outboxSnapshot } = await buildRuntimeAsyncSnapshot(app);
     const runtime = buildRuntimeStatusSnapshot({
       config,
       graphQuery,
       database,
-      queueWorkerConfigured: store instanceof PostgresStore,
-      queueWorkerRunning: queueWorker?.isRunning?.() ?? false,
-      outboxWorkerConfigured: store instanceof PostgresStore,
-      outboxWorkerRunning: outboxWorker?.isRunning?.() ?? false,
+      queueWorkerState: resolveWorkerState(
+        database,
+        shouldBootTaskWorker(runtimeMode),
+        queueWorker?.ownsWork?.(),
+        queueWorker?.isRunning?.() ?? false,
+      ),
+      outboxWorkerState: resolveWorkerState(
+        database,
+        shouldBootOutboxWorker(runtimeMode),
+        outboxWorker?.ownsWork?.(),
+        outboxWorker?.isRunning?.() ?? false,
+      ),
+      queueSnapshot,
+      outboxSnapshot,
     });
 
     return {
@@ -42,16 +90,28 @@ export function registerRuntimeRoutes(
     const store = app.skillShareer.store;
     const database =
       store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
+    const runtimeMode = app.skillShareer.runtimeMode;
     const graphQuery =
       app.skillShareer.graphQueryBackend?.getRuntimeState?.() ?? app.skillShareer.graphQuery;
+    const { queueSnapshot, outboxSnapshot } = await buildRuntimeAsyncSnapshot(app);
     const runtime = buildRuntimeStatusSnapshot({
       config,
       graphQuery,
       database,
-      queueWorkerConfigured: store instanceof PostgresStore,
-      queueWorkerRunning: taskWorker?.isRunning?.() ?? false,
-      outboxWorkerConfigured: store instanceof PostgresStore,
-      outboxWorkerRunning: outboxWorker?.isRunning?.() ?? false,
+      queueWorkerState: resolveWorkerState(
+        database,
+        shouldBootTaskWorker(runtimeMode),
+        taskWorker?.ownsWork?.(),
+        taskWorker?.isRunning?.() ?? false,
+      ),
+      outboxWorkerState: resolveWorkerState(
+        database,
+        shouldBootOutboxWorker(runtimeMode),
+        outboxWorker?.ownsWork?.(),
+        outboxWorker?.isRunning?.() ?? false,
+      ),
+      queueSnapshot,
+      outboxSnapshot,
     });
 
     const responseBody = {

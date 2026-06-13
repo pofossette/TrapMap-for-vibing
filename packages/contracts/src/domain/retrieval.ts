@@ -213,6 +213,7 @@ export const routingTraceSchema = z.object({
 export type RoutingTrace = z.infer<typeof routingTraceSchema>;
 
 export const retrievalResponseSchema = z.object({
+  queryId: z.string().min(1).optional(),
   globalConstraints: z.array(retrievalMatchSchema),
   projectKnowledge: z.array(retrievalMatchSchema),
   refinementSummary: z.string().nullable(),
@@ -449,6 +450,7 @@ const looksLikeRawCode = (s: string): boolean =>
 
 export const retrievalV2ResponseWithHintsSchema = z
   .object({
+    queryId: z.string().min(1).optional(),
     /** Ranked capsule matches with governance inheritance */
     capsules: z.array(capsuleMatchSchema).default([]),
     /** Lightweight artifact metadata for activation hints */
@@ -539,6 +541,7 @@ export const skillLookupResultItemSchema = z.object({
  * Stays distinct from capsule-native retrievalV2ResponseWithHintsSchema.
  */
 export const skillLookupResponseSchema = z.object({
+  queryId: z.string().min(1).optional(),
   /** Ranked artifact matches with brief metadata */
   matches: z.array(skillLookupResultItemSchema).default([]),
 });
@@ -607,6 +610,7 @@ export type GraphPlanFallback = z.infer<typeof graphPlanFallbackSchema>;
  */
 export const graphPlanSearchResponseSchema = z
   .object({
+    queryId: z.string().min(1).optional(),
     /** Canonical routing and confidence metadata for the request */
     routingTrace: graphPlanRoutingTraceSchema,
     /** Selected plan when confidence is high enough */

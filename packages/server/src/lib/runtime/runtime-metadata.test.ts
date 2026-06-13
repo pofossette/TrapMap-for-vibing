@@ -15,8 +15,8 @@ describe('buildRuntimeStatusSnapshot', () => {
     const snapshot = buildRuntimeStatusSnapshot({
       config: baseConfig,
       database: 'json-store',
-      queueWorkerConfigured: false,
-      queueWorkerRunning: false,
+      queueWorkerState: 'not-configured',
+      outboxWorkerState: 'not-configured',
       graphQuery: {
         mode: 'disabled',
         backendKind: 'memory',
@@ -38,10 +38,8 @@ describe('buildRuntimeStatusSnapshot', () => {
     const snapshot = buildRuntimeStatusSnapshot({
       config: baseConfig,
       database: 'postgres',
-      queueWorkerConfigured: true,
-      queueWorkerRunning: false,
-      outboxWorkerConfigured: true,
-      outboxWorkerRunning: true,
+      queueWorkerState: 'degraded',
+      outboxWorkerState: 'running',
       graphQuery: {
         mode: 'enabled-primary',
         backendKind: 'neo4j',
@@ -50,17 +48,15 @@ describe('buildRuntimeStatusSnapshot', () => {
     });
 
     expect(snapshot.readiness).toBe('not-ready');
-    expect(snapshot.dependencies.queueWorker).toBe('stopped');
+    expect(snapshot.dependencies.queueWorker).toBe('degraded');
   });
 
   it('reports degraded when graph backend is in fallback mode', () => {
     const snapshot = buildRuntimeStatusSnapshot({
       config: baseConfig,
       database: 'postgres',
-      queueWorkerConfigured: true,
-      queueWorkerRunning: true,
-      outboxWorkerConfigured: true,
-      outboxWorkerRunning: true,
+      queueWorkerState: 'running',
+      outboxWorkerState: 'running',
       graphQuery: {
         mode: 'enabled-fallback',
         backendKind: 'neo4j',
@@ -78,10 +74,8 @@ describe('buildRuntimeStatusSnapshot', () => {
     const snapshot = buildRuntimeStatusSnapshot({
       config: baseConfig,
       database: 'postgres',
-      queueWorkerConfigured: true,
-      queueWorkerRunning: true,
-      outboxWorkerConfigured: true,
-      outboxWorkerRunning: true,
+      queueWorkerState: 'running',
+      outboxWorkerState: 'running',
       graphQuery: {
         mode: 'enabled-primary',
         backendKind: 'neo4j',
@@ -97,10 +91,8 @@ describe('buildRuntimeStatusSnapshot', () => {
     const snapshot = buildRuntimeStatusSnapshot({
       config: baseConfig,
       database: 'postgres',
-      queueWorkerConfigured: true,
-      queueWorkerRunning: true,
-      outboxWorkerConfigured: true,
-      outboxWorkerRunning: false,
+      queueWorkerState: 'running',
+      outboxWorkerState: 'degraded',
       graphQuery: {
         mode: 'enabled-primary',
         backendKind: 'neo4j',
@@ -109,6 +101,24 @@ describe('buildRuntimeStatusSnapshot', () => {
     });
 
     expect(snapshot.readiness).toBe('not-ready');
-    expect(snapshot.dependencies.outboxWorker).toBe('stopped');
+    expect(snapshot.dependencies.outboxWorker).toBe('degraded');
+  });
+
+  it('reports ready when postgres runtime is not expected to own workers locally', () => {
+    const snapshot = buildRuntimeStatusSnapshot({
+      config: baseConfig,
+      database: 'postgres',
+      queueWorkerState: 'remote',
+      outboxWorkerState: 'remote',
+      graphQuery: {
+        mode: 'enabled-primary',
+        backendKind: 'neo4j',
+        failOpen: true,
+      },
+    });
+
+    expect(snapshot.readiness).toBe('ready');
+    expect(snapshot.dependencies.queueWorker).toBe('remote');
+    expect(snapshot.dependencies.outboxWorker).toBe('remote');
   });
 });

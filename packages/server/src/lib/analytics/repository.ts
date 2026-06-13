@@ -76,6 +76,12 @@ export interface UsageAnalyticsRepository {
    * Returns count of archived events.
    */
   archiveOldEvents(olderThanDays: number): Promise<{ archivedCount: number }>;
+
+  /**
+   * Check whether a public queryId exists in analytics events.
+   * Useful for correlating badcase traces without making analytics the only truth source.
+   */
+  hasQueryId(queryId: string): Promise<boolean>;
 }
 
 /**

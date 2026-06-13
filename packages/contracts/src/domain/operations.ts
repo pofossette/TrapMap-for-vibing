@@ -577,12 +577,133 @@ export const compatibilityStatusResponseSchema = z
   })
   .strict();
 
+export const asyncWorkerDependencyStateSchema = z.enum([
+  'running',
+  'degraded',
+  'remote',
+  'not-configured',
+]);
+
+export const queueTaskOperatorSnapshotSchema = z
+  .object({
+    id: entityIdSchema,
+    type: z.string().min(1),
+    status: z.enum(['pending', 'running', 'completed', 'failed', 'dead']),
+    attempts: z.number().int().min(0),
+    maxAttempts: z.number().int().min(1),
+    dedupeKey: z.string().nullable(),
+    workerId: z.string().nullable(),
+    startedAt: isoTimestampSchema.nullable(),
+    heartbeatAt: isoTimestampSchema.nullable(),
+    leaseUntil: isoTimestampSchema.nullable(),
+    createdAt: isoTimestampSchema,
+    updatedAt: isoTimestampSchema,
+    processAfter: isoTimestampSchema,
+    completedAt: isoTimestampSchema.nullable(),
+    lastError: z.string().nullable(),
+    ageSeconds: z.number().int().min(0),
+  })
+  .strict();
+
+export const outboxEventOperatorSnapshotSchema = z
+  .object({
+    id: entityIdSchema,
+    aggregateType: z.string().min(1),
+    aggregateId: entityIdSchema,
+    eventName: z.string().min(1),
+    status: z.enum(['pending', 'processing', 'completed', 'failed']),
+    attempts: z.number().int().min(0),
+    workerId: z.string().nullable(),
+    startedAt: isoTimestampSchema.nullable(),
+    heartbeatAt: isoTimestampSchema.nullable(),
+    leaseUntil: isoTimestampSchema.nullable(),
+    createdAt: isoTimestampSchema,
+    availableAt: isoTimestampSchema,
+    publishedAt: isoTimestampSchema.nullable(),
+    lastError: z.string().nullable(),
+    ageSeconds: z.number().int().min(0),
+  })
+  .strict();
+
+export const queueStatusSnapshotSchema = z
+  .object({
+    pending: z.number().int().min(0),
+    running: z.number().int().min(0),
+    dead: z.number().int().min(0),
+    staleRunning: z.number().int().min(0),
+    backlogOldestAgeSeconds: z.number().int().min(0).nullable(),
+    runningOldestAgeSeconds: z.number().int().min(0).nullable(),
+    deadOldestAgeSeconds: z.number().int().min(0).nullable(),
+    reclaimCount: z.number().int().min(0),
+    workerState: asyncWorkerDependencyStateSchema,
+    recentDeadLetters: z.array(queueTaskOperatorSnapshotSchema),
+  })
+  .strict();
+
+export const outboxStatusSnapshotSchema = z
+  .object({
+    pending: z.number().int().min(0),
+    processing: z.number().int().min(0),
+    failed: z.number().int().min(0),
+    staleProcessing: z.number().int().min(0),
+    backlogOldestAgeSeconds: z.number().int().min(0).nullable(),
+    processingOldestAgeSeconds: z.number().int().min(0).nullable(),
+    failedOldestAgeSeconds: z.number().int().min(0).nullable(),
+    reclaimCount: z.number().int().min(0),
+    workerState: asyncWorkerDependencyStateSchema,
+    recentFailures: z.array(outboxEventOperatorSnapshotSchema),
+  })
+  .strict();
+
+export const workflowRunSnapshotSchema = z
+  .object({
+    runId: entityIdSchema,
+    workflowType: z.enum(['candidate-processing', 'capsule-index-rebuild']),
+    subjectId: entityIdSchema,
+    status: z.enum(['pending', 'running', 'completed', 'failed']),
+    stepName: z.string().nullable(),
+    attempt: z.number().int().min(0),
+    startedAt: isoTimestampSchema.nullable(),
+    completedAt: isoTimestampSchema.nullable(),
+    lastError: z.string().nullable(),
+    stats: z.record(z.string(), z.union([z.number(), z.string(), z.boolean(), z.null()])),
+    createdAt: isoTimestampSchema,
+    updatedAt: isoTimestampSchema,
+  })
+  .strict();
+
+export const asyncOperationsStatusResponseSchema = z
+  .object({
+    asyncRuntimeEnabled: z.boolean(),
+    queue: queueStatusSnapshotSchema,
+    outbox: outboxStatusSnapshotSchema,
+    workflows: z.array(workflowRunSnapshotSchema),
+    reportedAt: isoTimestampSchema,
+  })
+  .strict();
+
+export const asyncTaskRequeueResponseSchema = z
+  .object({
+    taskId: entityIdSchema,
+    requeued: z.boolean(),
+    reportedAt: isoTimestampSchema,
+  })
+  .strict();
+
 export type LegacyMigrationMode = z.infer<typeof legacyMigrationModeSchema>;
 export type LegacyMigrationRequest = z.infer<typeof legacyMigrationRequestSchema>;
 export type LegacyMigrationResultItem = z.infer<typeof legacyMigrationResultItemSchema>;
 export type LegacyMigrationResponse = z.infer<typeof legacyMigrationResponseSchema>;
 export type CompatibilityStatusRequest = z.infer<typeof compatibilityStatusRequestSchema>;
 export type CompatibilityStatusResponse = z.infer<typeof compatibilityStatusResponseSchema>;
+export type AsyncWorkerDependencyState = z.infer<typeof asyncWorkerDependencyStateSchema>;
+export type QueueTaskOperatorSnapshot = z.infer<typeof queueTaskOperatorSnapshotSchema>;
+export type OutboxEventOperatorSnapshot = z.infer<typeof outboxEventOperatorSnapshotSchema>;
+export type QueueStatusSnapshot = z.infer<typeof queueStatusSnapshotSchema>;
+export type OutboxStatusSnapshot = z.infer<typeof outboxStatusSnapshotSchema>;
+export type WorkflowRunSnapshot = z.infer<typeof workflowRunSnapshotSchema>;
+export type AsyncOperationsStatusResponse = z.infer<typeof asyncOperationsStatusResponseSchema>;
+export type AsyncTaskRequeueResponse = z.infer<typeof asyncTaskRequeueResponseSchema>;
 
 // =============================================================================
 // Phase 19: Skill Edit and History Contracts (SKED-02, SKED-04)

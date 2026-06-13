@@ -3,7 +3,7 @@
 ## TODO
 
 - [ ] 定义 badcase 的统一分类：召回缺失、排序错误、摘要幻觉、治理泄漏、内容过时。
-- [ ] 在反馈提交中补齐 `queryId`、命中结果快照和期望结果。
+- [x] 在反馈提交中补齐 `queryId`、命中结果快照和期望结果。
 - [ ] 建立从 badcase 到 eval case 的标准转换流程。
 - [ ] 为回流后的 case 增加固定回归验证。
 
@@ -19,8 +19,8 @@
 
 ## 当前仍未闭合的部分
 
-- [ ] 检索响应还没有统一暴露 `queryId`
-- [ ] feedback 记录还没有保存完整命中快照和正确预期
+- [x] 检索响应已经统一暴露 `queryId`
+- [x] feedback 记录已经保存 `queryId`、命中快照和正确预期
 - [ ] remediation complete 目前主要 resolve active feedback，尚未真正复用索引摘除/重建运维动作
 - [ ] badcase -> eval case 的自动转换脚本还没落地
 

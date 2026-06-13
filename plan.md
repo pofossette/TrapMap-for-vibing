@@ -246,54 +246,54 @@ await store.transact(async (tx) => {
 - Modify: `packages/server/src/app.test.ts`
 - Modify: `plan.md`
 
-- [ ] Add operator-visible snapshots for queue tasks and outbox events with separate status vocabularies if needed.
-- [ ] Add explicit status/requeue APIs for:
+- [x] Add operator-visible snapshots for queue tasks and outbox events with separate status vocabularies if needed.
+- [x] Add explicit status/requeue APIs for:
   - queue backlog summary
   - dead-letter summary
   - running age / stuck age summary
   - outbox backlog summary
   - dead task requeue
-- [ ] Extend runtime readiness and stats surfaces with:
+- [x] Extend runtime readiness and stats surfaces with:
   - queue backlog
   - dead-letter count
   - reclaim count
   - worker degraded status
-- [ ] Keep queue and outbox abstractions separate, but normalize the operator response shape where it improves ergonomics.
-- [ ] Preserve current candidate worker behavior while routing its status through richer operator surfaces.
+- [x] Keep queue and outbox abstractions separate, but normalize the operator response shape where it improves ergonomics.
+- [x] Preserve current candidate worker behavior while routing its status through richer operator surfaces.
 
 **Completion standard:**
 
-- [ ] Operators can inspect queue and outbox health without reading raw database rows.
-- [ ] Readiness and stats surfaces expose enough detail to detect backlog growth, dead letters, and stale running work.
-- [ ] Dead tasks can be requeued through one canonical operator flow.
-- [ ] No new generic `async_jobs` table is introduced in this phase.
+- [x] Operators can inspect queue and outbox health without reading raw database rows.
+- [x] Readiness and stats surfaces expose enough detail to detect backlog growth, dead letters, and stale running work.
+- [x] Dead tasks can be requeued through one canonical operator flow.
+- [x] No new generic `async_jobs` table is introduced in this phase.
 
 **Document updates in this phase:**
 
-- [ ] Update `docs/reference/api-surface.md` with queue/outbox operator endpoints.
-- [ ] Update `docs/reference/DATA_MODEL.md` with the final queue/outbox status vocabulary.
-- [ ] Update `docs/reference/DATABASE_SCHEMA.md` with any additional queue/outbox indexes.
-- [ ] Update `docs/PACKAGES.md` to describe queue/outbox operator ownership.
-- [ ] Update `docs/operations/TESTING.md` with backlog, dead-letter, and requeue verification commands.
+- [x] Update `docs/reference/api-surface.md` with queue/outbox operator endpoints.
+- [x] Update `docs/reference/DATA_MODEL.md` with the final queue/outbox status vocabulary.
+- [x] Update `docs/reference/DATABASE_SCHEMA.md` with any additional queue/outbox indexes.
+- [x] Update `docs/PACKAGES.md` to describe queue/outbox operator ownership.
+- [x] Update `docs/operations/TESTING.md` with backlog, dead-letter, and requeue verification commands.
 
 **Tests / eval updates in this phase:**
 
-- [ ] Extend `packages/server/src/routes/operations/status.test.ts` with:
+- [x] Extend `packages/server/src/routes/operations/status.test.ts` with:
   - queue backlog snapshot
   - outbox backlog snapshot
   - dead-letter visibility
   - requeue path
-- [ ] Extend `packages/server/src/lib/runtime/runtime-metadata.test.ts` and `packages/server/src/app.test.ts` with:
+- [x] Extend `packages/server/src/lib/runtime/runtime-metadata.test.ts` and `packages/server/src/app.test.ts` with:
   - readiness degradation when worker ownership exists but health is bad
   - readiness success when the current process is not expected to own workers
-- [ ] Run:
+- [x] Run:
 ```bash
 rtk pnpm test -- --run \
   packages/server/src/routes/operations/status.test.ts \
   packages/server/src/lib/runtime/runtime-metadata.test.ts \
   packages/server/src/app.test.ts
 ```
-- [ ] Run:
+- [x] Run:
 ```bash
 rtk pnpm typecheck
 ```
@@ -340,46 +340,46 @@ app.get('/v1/operations/status/async', async () => {
 - Modify: `packages/server/src/app.test.ts`
 - Modify: `plan.md`
 
-- [ ] Split startup into explicit runtime modes:
+- [x] Split startup into explicit runtime modes:
   - `api`
   - `task-worker`
   - `outbox-worker`
   - `combined` for local development
-- [ ] Keep shared config, repository wiring, and bootstrap logic in reusable helpers instead of duplicating startup code.
-- [ ] Ensure readiness semantics understand process intent:
+- [x] Keep shared config, repository wiring, and bootstrap logic in reusable helpers instead of duplicating startup code.
+- [x] Ensure readiness semantics understand process intent:
   - API-only does not require worker health
   - worker processes report only their owned runtimes
-- [ ] Keep one developer-friendly combined mode for contributors who do not need split processes locally.
+- [x] Keep one developer-friendly combined mode for contributors who do not need split processes locally.
 
 **Completion standard:**
 
-- [ ] The repo can boot API-only, task-worker-only, outbox-worker-only, and combined local-dev modes from explicit entrypoints.
-- [ ] Startup tests can cover runtime-mode branching without spawning real external daemons.
-- [ ] Runtime metadata clearly reports what each process owns and why missing worker health may be acceptable.
-- [ ] No external infrastructure beyond PostgreSQL is introduced.
+- [x] The repo can boot API-only, task-worker-only, outbox-worker-only, and combined local-dev modes from explicit entrypoints.
+- [x] Startup tests can cover runtime-mode branching without spawning real external daemons.
+- [x] Runtime metadata clearly reports what each process owns and why missing worker health may be acceptable.
+- [x] No external infrastructure beyond PostgreSQL is introduced.
 
 **Document updates in this phase:**
 
-- [ ] Update `README.md` and `docs/guides/GETTING_STARTED.md` with runtime-mode startup commands.
-- [ ] Update `docs/PACKAGES.md` to describe `worker.ts` and runtime-mode ownership.
-- [ ] Update `docs/reference/SYSTEM_TRUTH_SOURCES.md` if startup entrypoints change authoritative ownership.
-- [ ] Update `docs/operations/TESTING.md` with split-process verification recipes.
+- [x] Update `README.md` and `docs/guides/GETTING_STARTED.md` with runtime-mode startup commands.
+- [x] Update `docs/PACKAGES.md` to describe `worker.ts` and runtime-mode ownership.
+- [x] Update `docs/reference/SYSTEM_TRUTH_SOURCES.md` if startup entrypoints change authoritative ownership.
+- [x] Update `docs/operations/TESTING.md` with split-process verification recipes.
 
 **Tests / eval updates in this phase:**
 
-- [ ] Extend `packages/server/src/bootstrap/startup.test.ts` with:
+- [x] Extend `packages/server/src/bootstrap/startup.test.ts` with:
   - API-only bootstrap
   - task-worker-only bootstrap
   - outbox-worker-only bootstrap
   - combined bootstrap
-- [ ] Extend `packages/server/src/app.test.ts` readiness assertions for runtime-mode-aware health.
-- [ ] Run:
+- [x] Extend `packages/server/src/app.test.ts` readiness assertions for runtime-mode-aware health.
+- [x] Run:
 ```bash
 rtk pnpm test -- --run \
   packages/server/src/bootstrap/startup.test.ts \
   packages/server/src/app.test.ts
 ```
-- [ ] Run:
+- [x] Run:
 ```bash
 rtk pnpm typecheck
 ```
@@ -419,7 +419,7 @@ if (runtime.mode === 'api') {
 - Modify: `packages/server/src/routes/operations/status.test.ts`
 - Modify: `plan.md`
 
-- [ ] Add a durable workflow-run snapshot model with:
+- [x] Add a durable workflow-run snapshot model with:
   - `runId`
   - `workflowType`
   - `subjectId`
@@ -430,40 +430,40 @@ if (runtime.mode === 'api') {
   - `completedAt`
   - `lastError`
   - `stats`
-- [ ] Instrument candidate processing as the first workflow-run-backed path.
-- [ ] Add one additional rebuild-style or export-style workflow that uses the same snapshot infrastructure.
-- [ ] Keep the first version linear-step-based; do not introduce DAG orchestration yet.
-- [ ] Expose workflow-run snapshots through the existing operator status family.
+- [x] Instrument candidate processing as the first workflow-run-backed path.
+- [x] Add one additional rebuild-style or export-style workflow that uses the same snapshot infrastructure.
+- [x] Keep the first version linear-step-based; do not introduce DAG orchestration yet.
+- [x] Expose workflow-run snapshots through the existing operator status family.
 
 **Completion standard:**
 
-- [ ] Candidate processing exposes durable run/step status rather than only raw queue status.
-- [ ] At least one non-candidate long-running flow uses the same workflow-run abstraction.
-- [ ] Operators can tell which step failed and with what last error.
-- [ ] This phase adds workflow observability without changing public route behavior unnecessarily.
+- [x] Candidate processing exposes durable run/step status rather than only raw queue status.
+- [x] At least one non-candidate long-running flow uses the same workflow-run abstraction.
+- [x] Operators can tell which step failed and with what last error.
+- [x] This phase adds workflow observability without changing public route behavior unnecessarily.
 
 **Document updates in this phase:**
 
-- [ ] Update `docs/reference/DATA_MODEL.md` with workflow-run persistence and status vocabulary.
-- [ ] Update `docs/reference/DATABASE_SCHEMA.md` with workflow-run table/index additions.
-- [ ] Update `docs/reference/api-surface.md` with any workflow status fields surfaced through operations endpoints.
-- [ ] Update `docs/PACKAGES.md` to describe `lib/workflows/` ownership.
-- [ ] Update `docs/operations/TESTING.md` with workflow-run inspection examples.
+- [x] Update `docs/reference/DATA_MODEL.md` with workflow-run persistence and status vocabulary.
+- [x] Update `docs/reference/DATABASE_SCHEMA.md` with workflow-run table/index additions.
+- [x] Update `docs/reference/api-surface.md` with any workflow status fields surfaced through operations endpoints.
+- [x] Update `docs/PACKAGES.md` to describe `lib/workflows/` ownership.
+- [x] Update `docs/operations/TESTING.md` with workflow-run inspection examples.
 
 **Tests / eval updates in this phase:**
 
-- [ ] Extend `packages/server/src/__tests__/candidate-pipeline.test.ts` with:
+- [x] Extend `packages/server/src/__tests__/candidate-pipeline.test.ts` with:
   - step status progression
   - step failure persistence
   - workflow completion snapshot
-- [ ] Extend `packages/server/src/routes/operations/status.test.ts` with workflow-run visibility.
-- [ ] Run:
+- [x] Extend `packages/server/src/routes/operations/status.test.ts` with workflow-run visibility.
+- [x] Run:
 ```bash
 rtk pnpm test -- --run \
   packages/server/src/__tests__/candidate-pipeline.test.ts \
   packages/server/src/routes/operations/status.test.ts
 ```
-- [ ] Run:
+- [x] Run:
 ```bash
 rtk pnpm typecheck
 ```
@@ -512,43 +512,43 @@ await workflowRepo.recordStep(runId, {
 - Modify: `packages/contracts/src/domain/feedback.test.ts`
 - Modify: `plan.md`
 
-- [ ] Return additive `queryId` fields in public retrieval responses instead of keeping them internal to analytics only.
-- [ ] Extend feedback submission with a minimal reproducibility envelope:
+- [x] Return additive `queryId` fields in public retrieval responses instead of keeping them internal to analytics only.
+- [x] Extend feedback submission with a minimal reproducibility envelope:
   - `queryId`
   - `querySeed`
   - route family or retrieval flavor
   - selected-result snapshot
   - failure classification
   - expected correction
-- [ ] Persist badcase trace data in a durable retrieval/badcase persistence model that can be queried later.
-- [ ] Reuse analytics IDs where useful, but do not make analytics the only truth source for badcase reconstruction.
-- [ ] Keep all additions backward-compatible by using additive fields.
+- [x] Persist badcase trace data in a durable retrieval/badcase persistence model that can be queried later.
+- [x] Reuse analytics IDs where useful, but do not make analytics the only truth source for badcase reconstruction.
+- [x] Keep all additions backward-compatible by using additive fields.
 
 **Completion standard:**
 
-- [ ] Clients can tie feedback to a concrete public `queryId`.
-- [ ] Operators can inspect enough stored context to understand and reproduce a retrieval or summary failure.
-- [ ] Retrieval tests assert `queryId` for all supported retrieval route families.
-- [ ] Feedback trace fields survive repository and route round-trips.
+- [x] Clients can tie feedback to a concrete public `queryId`.
+- [x] Operators can inspect enough stored context to understand and reproduce a retrieval or summary failure.
+- [x] Retrieval tests assert `queryId` for all supported retrieval route families.
+- [x] Feedback trace fields survive repository and route round-trips.
 
 **Document updates in this phase:**
 
-- [ ] Update `docs/todos/badcase-feedback-loop.md` to mark public `queryId` and durable trace capture as implemented.
-- [ ] Update `docs/reference/api-surface.md` with additive retrieval and feedback contract fields.
-- [ ] Update `docs/reference/DATA_MODEL.md` with badcase trace storage shape.
-- [ ] Update `docs/PACKAGES.md` to explain trace-capture ownership.
+- [x] Update `docs/todos/badcase-feedback-loop.md` to mark public `queryId` and durable trace capture as implemented.
+- [x] Update `docs/reference/api-surface.md` with additive retrieval and feedback contract fields.
+- [x] Update `docs/reference/DATA_MODEL.md` with badcase trace storage shape.
+- [x] Update `docs/PACKAGES.md` to explain trace-capture ownership.
 
 **Tests / eval updates in this phase:**
 
-- [ ] Extend `packages/contracts/src/domain/retrieval.test.ts` and `packages/contracts/src/domain/feedback.test.ts` with new additive fields.
-- [ ] Extend `packages/server/src/routes/retrieval.test.ts` with:
+- [x] Extend `packages/contracts/src/domain/retrieval.test.ts` and `packages/contracts/src/domain/feedback.test.ts` with new additive fields.
+- [x] Extend `packages/server/src/routes/retrieval.test.ts` with:
   - v1 returns `queryId`
   - v2 returns `queryId`
   - v3 returns `queryId`
-- [ ] Extend `packages/server/src/routes/feedback.test.ts` with:
+- [x] Extend `packages/server/src/routes/feedback.test.ts` with:
   - feedback persists `queryId`
   - feedback persists result snapshot and expected correction metadata
-- [ ] Run:
+- [x] Run:
 ```bash
 rtk pnpm test -- --run \
   packages/contracts/src/domain/retrieval.test.ts \
@@ -556,7 +556,7 @@ rtk pnpm test -- --run \
   packages/server/src/routes/retrieval.test.ts \
   packages/server/src/routes/feedback.test.ts
 ```
-- [ ] Run:
+- [x] Run:
 ```bash
 rtk pnpm typecheck
 ```

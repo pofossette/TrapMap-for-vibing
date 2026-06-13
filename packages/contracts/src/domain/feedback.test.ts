@@ -59,6 +59,27 @@ describe('feedback schema', () => {
       expect(result.customAnswers?.[0]?.prompt).toBe('What version were you using?');
     });
 
+    it('accepts additive badcase reproducibility fields', () => {
+      const result = feedbackSubmissionSchema.parse({
+        ...validSubmission,
+        badcase: {
+          queryId: 'qry_test_1',
+          querySeed: 'library version issue',
+          routeFamily: 'entry',
+          failureClassification: 'outdated-content',
+          expectedCorrection: 'Return current docs',
+          selectedResultSnapshot: {
+            entryId: 'entry-123',
+            entryType: 'trap',
+            title: 'Trap title',
+            score: 0.8,
+            routeFamily: 'entry',
+          },
+        },
+      });
+      expect(result.badcase?.queryId).toBe('qry_test_1');
+    });
+
     it('rejects submission with description shorter than 10 characters', () => {
       expect(() =>
         feedbackSubmissionSchema.parse({
@@ -120,11 +141,16 @@ describe('feedback schema', () => {
     };
 
     it('accepts record with all fields including id, submittedAt, submittedBy, status', () => {
-      const result = feedbackRecordSchema.parse(validRecord);
+      const result = feedbackRecordSchema.parse({
+        ...validRecord,
+        queryId: 'qry_test_1',
+        routeFamily: 'entry',
+      });
       expect(result.id).toBe('feedback-456');
       expect(result.submittedAt).toBe('2026-05-02T10:00:00Z');
       expect(result.submittedBy.handle).toBe('testuser');
       expect(result.status).toBe('new');
+      expect(result.queryId).toBe('qry_test_1');
     });
 
     it('default status is NOT automatically set (status is required)', () => {

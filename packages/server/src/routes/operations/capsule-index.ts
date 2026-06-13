@@ -12,6 +12,7 @@ import {
 } from '@trapmap/server/lib/retrieval/capsules/repositories/index-rebuild.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
+import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 
 const capsuleIndexRebuildRequestSchema = z
   .object({
@@ -77,6 +78,14 @@ function summarizeSyncResult(result: {
   };
 }
 
+async function recordWorkflowSafely(operation: () => Promise<void>): Promise<void> {
+  try {
+    await operation();
+  } catch {
+    // Workflow observability must not break capsule-index operator paths.
+  }
+}
+
 export const capsuleIndexRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/operations/capsule-index/rebuild', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
@@ -84,15 +93,47 @@ export const capsuleIndexRoutes: FastifyPluginAsync = async (app) => {
     requireSystemAdmin(auth.subjectType);
 
     const pool = getCapsuleIndexPool(app);
+    const workflowRepo = createWorkflowRepository(pool);
     const body = capsuleIndexRebuildRequestSchema.parse(
       (request.body as Record<string, unknown> | undefined) ?? {},
     );
+    const runId = `wf_capsule_index_${body.mode}_${body.artifactId ?? 'all'}_${Date.now()}`;
+    const startedAt = nowIso();
+    await recordWorkflowSafely(() =>
+      workflowRepo.upsertRun({
+        runId,
+        workflowType: 'capsule-index-rebuild',
+        subjectId: body.artifactId ?? 'all-artifacts',
+        status: 'running',
+        stepName: 'rebuild',
+        attempt: 1,
+        startedAt,
+        completedAt: null,
+        lastError: null,
+        stats: { mode: body.mode },
+        createdAt: startedAt,
+        updatedAt: startedAt,
+      }),
+    );
 
-    if (body.mode === 'full') {
+    try {
+      if (body.mode === 'full') {
       const artifacts = await app.skillShareer.repos.artifact.listForRetrieval({
         lifecycleState: 'approved',
       });
       const stats = await rebuildAllCapsuleIndexes({ pool, artifacts });
+      await recordWorkflowSafely(() =>
+        workflowRepo.updateRun(runId, {
+          status: 'completed',
+          stepName: 'completed',
+          completedAt: nowIso(),
+          stats: {
+            mode: body.mode,
+            sourceArtifactCount: artifacts.length,
+            rebuiltArtifacts: stats.artifactsProcessed,
+          },
+        }),
+      );
 
       return {
         mode: 'full' as const,
@@ -100,45 +141,70 @@ export const capsuleIndexRoutes: FastifyPluginAsync = async (app) => {
         stats,
         rebuiltAt: nowIso(),
       };
-    }
+      }
 
-    const artifactId = body.artifactId;
-    if (!artifactId) {
-      throw new AppError(400, 'invalid_request', 'artifactId is required when mode=artifact');
-    }
+      const artifactId = body.artifactId;
+      if (!artifactId) {
+        throw new AppError(400, 'invalid_request', 'artifactId is required when mode=artifact');
+      }
 
-    const artifact = await app.skillShareer.repos.artifact.getById(artifactId);
-    if (!artifact) {
-      throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
-    }
+      const artifact = await app.skillShareer.repos.artifact.getById(artifactId);
+      if (!artifact) {
+        throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
+      }
 
-    if (artifact.lifecycleState !== 'approved') {
-      throw new AppError(
-        409,
-        'artifact_not_indexed',
-        `Artifact ${artifactId} is not approved and has no capsule PG index to rebuild`,
+      if (artifact.lifecycleState !== 'approved') {
+        throw new AppError(
+          409,
+          'artifact_not_indexed',
+          `Artifact ${artifactId} is not approved and has no capsule PG index to rebuild`,
+        );
+      }
+
+      const result = await rebuildCapsuleIndexForArtifact(
+        { pool, artifacts: [artifact] },
+        artifact.id,
       );
-    }
 
-    const result = await rebuildCapsuleIndexForArtifact(
-      { pool, artifacts: [artifact] },
-      artifact.id,
-    );
-
-    if (!result) {
-      throw new AppError(
-        500,
-        'capsule_index_rebuild_failed',
-        `Capsule index rebuild failed for artifact ${artifact.id}`,
+      if (!result) {
+        throw new AppError(
+          500,
+          'capsule_index_rebuild_failed',
+          `Capsule index rebuild failed for artifact ${artifact.id}`,
+        );
+      }
+      const summary = summarizeSyncResult(result);
+      await recordWorkflowSafely(() =>
+        workflowRepo.updateRun(runId, {
+          status: 'completed',
+          stepName: 'completed',
+          completedAt: nowIso(),
+          stats: {
+            mode: body.mode,
+            artifactId: artifact.id,
+            capsulesSynced: summary.capsulesSynced,
+          },
+        }),
       );
-    }
 
-    return {
-      mode: 'artifact' as const,
-      artifactId: artifact.id,
-      result: summarizeSyncResult(result),
-      rebuiltAt: nowIso(),
-    };
+      return {
+        mode: 'artifact' as const,
+        artifactId: artifact.id,
+        result: summary,
+        rebuiltAt: nowIso(),
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await recordWorkflowSafely(() =>
+        workflowRepo.updateRun(runId, {
+          status: 'failed',
+          stepName: 'failed',
+          completedAt: nowIso(),
+          lastError: message,
+        }),
+      );
+      throw error;
+    }
   });
 
   app.get('/v1/operations/capsule-index/health', async (request) => {

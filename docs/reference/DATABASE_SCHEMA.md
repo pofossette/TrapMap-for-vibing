@@ -151,6 +151,29 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 - `domain_event_outbox`：
   `worker_id`, `started_at`, `heartbeat_at`, `lease_until`
 
+### Phase 1 Operator Read Model
+
+- `queue` operator snapshot 来自 `task_queue` 聚合查询，不新增 `async_jobs` 表。
+- `outbox` operator snapshot 来自 `domain_event_outbox` 聚合查询，不新增合并视图表。
+- 当前 Phase 1 未新增额外 schema index；沿用 Phase 0 的 lease 索引支撑 backlog / stuck-work operator 查询。
+
+### Phase 3 Workflow Run 表
+
+- `workflow_runs`
+  - `run_id` PK
+  - `workflow_type`
+  - `subject_id`
+  - `status`
+  - `step_name`
+  - `attempt`
+  - `started_at`
+  - `completed_at`
+  - `last_error`
+  - `stats` JSONB
+- 索引：
+  - `workflow_runs_type_subject_idx`
+  - `workflow_runs_status_updated_idx`
+
 ## 核心表关系图
 
 > 为保持可读性，下图只展开主干外键关系与高价值结构化子表。`*_boundary_*`、`*_manifest_*`、`feedback_*`、`usage_*`、`task_queue`、`graph_index_documents` 等重复模式、派生表或非主干队列表未全部展开。

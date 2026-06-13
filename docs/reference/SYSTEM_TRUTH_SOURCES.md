@@ -4,8 +4,8 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
 
 | Topic | Authoritative Source | Secondary Docs |
 |---|---|---|
-| Server entry point | `packages/server/src/app.ts` (`buildServer()`) | `docs/guides/CODE_GUIDE.md`, `docs/architecture/ARCHITECTURE.md` |
-| Startup sequence | `packages/server/src/bootstrap/run-startup-sequence.ts` | `docs/architecture/ARCHITECTURE.md`, `docs/guides/CODE_GUIDE.md` |
+| Server entry point | `packages/server/src/app.ts` (`buildServer()`), `packages/server/src/index.ts`, `packages/server/src/worker.ts` | `docs/guides/CODE_GUIDE.md`, `docs/architecture/ARCHITECTURE.md` |
+| Startup sequence | `packages/server/src/bootstrap/run-startup-sequence.ts` + `packages/server/src/bootstrap/run-worker-sequence.ts` | `docs/architecture/ARCHITECTURE.md`, `docs/guides/CODE_GUIDE.md` |
 | Persistence migration state | `docs/reference/DATA_MODEL.md` | `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md` |
 | DB schema | `packages/server/src/lib/persistence/schema/index.ts` (barrel, re-exports all domain table modules) | `docs/reference/DATABASE_SCHEMA.md` |
 | Server data-access boundary | `packages/server/src/lib/actors/lookup.ts` (actor lookup), `packages/server/src/lib/repos/index.ts` (`SkillShareerRepos`) | `docs/PACKAGES.md`, `docs/reference/DATA_MODEL.md` |

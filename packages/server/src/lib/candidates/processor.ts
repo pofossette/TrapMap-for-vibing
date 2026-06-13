@@ -3,6 +3,7 @@ import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import { executeWithResilience } from '@trapmap/server/lib/runtime/resilience.js';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 import type { Pool } from 'pg';
 import { detectDuplicates } from './detector.js';
 import { buildNormalizedDuplicateInput } from './fingerprint.js';
@@ -53,6 +54,19 @@ export interface CandidateProcessorServices {
   };
 }
 
+function workflowRunIdForCandidate(candidateId: string): string {
+  return `wf_candidate_${candidateId}`;
+}
+
+async function recordWorkflowSafely(operation: () => Promise<void>): Promise<void> {
+  try {
+    await operation();
+  } catch {
+    // Workflow observability must not break the business path in test doubles
+    // or deployments that have not applied the workflow migration yet.
+  }
+}
+
 /**
  * Process a single candidate through the full analysis pipeline.
  *
@@ -67,6 +81,28 @@ export async function processCandidate(
   candidateId: string,
   services: CandidateProcessorServices,
 ): Promise<void> {
+  const workflowRepo = services.pool ? createWorkflowRepository(services.pool) : null;
+  const runId = workflowRunIdForCandidate(candidateId);
+  const now = new Date().toISOString();
+  if (workflowRepo) {
+    await recordWorkflowSafely(() =>
+      workflowRepo.upsertRun({
+        runId,
+        workflowType: 'candidate-processing',
+        subjectId: candidateId,
+        status: 'running',
+        stepName: 'queue-status',
+        attempt: 1,
+        startedAt: now,
+        completedAt: null,
+        lastError: null,
+        stats: {},
+        createdAt: now,
+        updatedAt: now,
+      }),
+    );
+  }
+
   // Get fresh snapshot for processing
   const data = await services.getSnapshot();
   const candidate = getCandidateById(data, candidateId);
@@ -93,6 +129,14 @@ export async function processCandidate(
         });
       });
     }
+    if (workflowRepo) {
+      await recordWorkflowSafely(() =>
+        workflowRepo.updateRun(runId, {
+          stepName: 'analysis',
+          stats: { candidateStatus: 'queued' },
+        }),
+      );
+    }
 
     // Phase 2: Start analysis
     if (services.candidateRepo) {
@@ -105,6 +149,14 @@ export async function processCandidate(
           status: 'analyzing',
         });
       });
+    }
+    if (workflowRepo) {
+      await recordWorkflowSafely(() =>
+        workflowRepo.updateRun(runId, {
+          stepName: 'duplicate-detection',
+          stats: { candidateStatus: 'analyzing' },
+        }),
+      );
     }
 
     // Phase 3: Build normalized duplicate input (Phase 2 — shared helper)
@@ -203,6 +255,20 @@ export async function processCandidate(
         });
       });
     }
+
+    if (workflowRepo) {
+      await recordWorkflowSafely(() =>
+        workflowRepo.updateRun(runId, {
+          status: 'completed',
+          stepName: 'completed',
+          completedAt: new Date().toISOString(),
+          stats: {
+            finalStatus,
+            duplicateDetected: Boolean(result.duplicateCase),
+          },
+        }),
+      );
+    }
   } catch (error) {
     // Handle error with retry tracking
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -218,6 +284,18 @@ export async function processCandidate(
           error: errorMessage,
         });
       });
+    }
+
+    if (workflowRepo) {
+      await recordWorkflowSafely(() =>
+        workflowRepo.updateRun(runId, {
+          status: 'failed',
+          stepName: 'failed',
+          completedAt: new Date().toISOString(),
+          lastError: errorMessage,
+          stats: { candidateStatus: 'error' },
+        }),
+      );
     }
 
     throw error;

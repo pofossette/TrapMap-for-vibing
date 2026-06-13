@@ -3,6 +3,7 @@ export type RuntimeFailureKind = 'timeout' | 'retryable' | 'permanent';
 export interface RuntimeMetricsCounter {
   executions: number;
   degraded: number;
+  reclaims: number;
   timeouts: number;
   retryableFailures: number;
   permanentFailures: number;
@@ -18,6 +19,7 @@ function makeCounter(): RuntimeMetricsCounter {
   return {
     executions: 0,
     degraded: 0,
+    reclaims: 0,
     timeouts: 0,
     retryableFailures: 0,
     permanentFailures: 0,
@@ -76,6 +78,12 @@ export function recordRuntimeRetry(dependencyName: string) {
   const dependency = getDependencyCounter(dependencyName);
   totals.retries += 1;
   dependency.retries += 1;
+}
+
+export function recordRuntimeReclaim(dependencyName: string, count = 1) {
+  const dependency = getDependencyCounter(dependencyName);
+  totals.reclaims += count;
+  dependency.reclaims += count;
 }
 
 export function getRuntimeMetricsSnapshot(): RuntimeMetricsSnapshot {

@@ -123,6 +123,16 @@ pnpm dev:cli
 
 服务器启动后运行在 `http://127.0.0.1:4000`。
 
+如需拆分运行时：
+
+```bash
+pnpm dev:server:api
+pnpm dev:server:task-worker
+pnpm dev:server:outbox-worker
+```
+
+默认 `pnpm dev:server` 为 `combined` 模式，适合本地单进程开发。
+
 ### 方式二：Docker Compose
 
 ```bash

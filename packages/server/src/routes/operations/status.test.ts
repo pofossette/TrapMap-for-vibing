@@ -5,6 +5,9 @@ import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
 
+const DATABASE_URL = process.env.TRAPMAP_DATABASE_URL || process.env.DATABASE_URL;
+const describeIfDb = DATABASE_URL ? describe : describe.skip;
+
 describe('operations routes', () => {
   let app: FastifyInstance;
 
@@ -545,6 +548,76 @@ describe('operations routes', () => {
       expect(json).not.toHaveProperty('bundles');
       expect(json).not.toHaveProperty('entries');
       expect(json).not.toHaveProperty('payloads');
+    });
+  });
+});
+
+describeIfDb('operations async status routes', () => {
+  let app: FastifyInstance;
+  let sessionId: string;
+
+  beforeEach(async () => {
+    app = buildServer({ config: { databaseUrl: DATABASE_URL! } as any });
+    await app.ready();
+
+    const store = app.skillShareer.store as any;
+    await store.transact(async (data: any) => {
+      data.users.push({
+        id: 'user_async_ops',
+        handle: 'asyncops',
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+      data.memberships.push({
+        id: 'membership_async_ops',
+        userId: 'user_async_ops',
+        teamId: null,
+        roleTemplate: 'admin',
+        securityLevel: 10,
+        permissions: ['knowledge:export', 'stats:read'],
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+      const token = `session_async_${Date.now()}`;
+      data.sessions.push({
+        id: `session_async_ops_${Date.now()}`,
+        userId: 'user_async_ops',
+        tokenHash: hashSecret(token),
+        activeTeamId: null,
+        subjectType: 'user',
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      });
+      sessionId = token;
+    });
+  });
+
+  afterEach(async () => {
+    if (app) await app.close();
+  });
+
+  it('returns queue and outbox backlog snapshots', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/operations/status/async',
+      headers: { authorization: `Bearer ${sessionId}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      asyncRuntimeEnabled: true,
+      queue: expect.objectContaining({
+        pending: expect.any(Number),
+        dead: expect.any(Number),
+      }),
+      outbox: expect.objectContaining({
+        pending: expect.any(Number),
+        failed: expect.any(Number),
+      }),
+      workflows: expect.any(Array),
     });
   });
 });

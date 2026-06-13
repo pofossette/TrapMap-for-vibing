@@ -1775,6 +1775,7 @@ describe('retrieval route', () => {
         });
 
         expect(response.statusCode).toBe(200);
+        expect(response.json().queryId).toBeTruthy();
         await app.close();
       });
 
@@ -1789,6 +1790,7 @@ describe('retrieval route', () => {
         });
 
         expect(response.statusCode).toBe(200);
+        expect(response.json().queryId).toBeTruthy();
         await app.close();
       });
     });
@@ -2142,6 +2144,7 @@ describe('retrieval route', () => {
         const json = response.json();
 
         // Should have routing trace
+        expect(json.queryId).toBeTruthy();
         expect(json.routingTrace).toBeDefined();
         expect(json.routingTrace.routeFamily).toBeDefined();
 

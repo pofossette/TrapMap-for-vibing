@@ -76,6 +76,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
 
     // Parse and validate query
     const query = retrievalQuerySchema.parse(request.body);
+    const queryId = randomUUID();
 
     // Execute retrieval search
     const result = await searchKnowledge(app.skillShareer, auth, query);
@@ -96,13 +97,12 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
 
     // Record usage events (fire-and-forget)
     const { usageAnalytics } = app.skillShareer.repos;
-    const queryId = randomUUID();
     void usageAnalytics
       .recordEvents(buildUsageEvents(auth, result, queryId, query.seed))
       .catch(() => {});
 
     // Validate and return response
-    return retrievalResponseSchema.passthrough().parse(result);
+    return retrievalResponseSchema.passthrough().parse({ ...result, queryId });
   });
 
   // v2 capsule-native retrieval path (RETR-01, RETR-04, COMP-03)
@@ -116,6 +116,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
 
     // Parse and validate v2 query (seed-only contract)
     const query = retrievalV2QuerySchema.parse(request.body);
+    const queryId = randomUUID();
 
     // Execute capsule-native retrieval
     const result = await searchKnowledgeV2(app.skillShareer, auth, query);
@@ -133,7 +134,6 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
 
     // Record usage events (fire-and-forget)
     const { usageAnalytics } = app.skillShareer.repos;
-    const queryId = randomUUID();
     const events: UsageEventInput[] = result.capsules.map((capsule) => ({
       queryId,
       teamId: auth.activeTeamId,
@@ -145,7 +145,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
     void usageAnalytics.recordEvents(events).catch(() => {});
 
     // Validate and return v2 response with activation hints (T-15-03)
-    return retrievalV2ResponseWithHintsSchema.passthrough().parse(result);
+    return retrievalV2ResponseWithHintsSchema.passthrough().parse({ ...result, queryId });
   });
 
   // Phase 38: Confidence-aware GraphRAG-lite wrapper route
@@ -156,6 +156,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:search');
 
     const query = graphPlanSearchQuerySchema.parse(request.body);
+    const queryId = randomUUID();
     const result = await searchKnowledgeGraphPlan(app.skillShareer, auth, query);
 
     const resultCount = result.plan
@@ -186,7 +187,6 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
     // Record usage events (fire-and-forget)
     if (result.plan) {
       const { usageAnalytics } = app.skillShareer.repos;
-      const queryId = randomUUID();
       const events: UsageEventInput[] = [
         // Record trap hits
         ...result.plan.blockingTraps.map((trap) => ({
@@ -210,7 +210,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
       void usageAnalytics.recordEvents(events).catch(() => {});
     }
 
-    return graphPlanSearchResponseSchema.parse(result);
+    return graphPlanSearchResponseSchema.parse({ ...result, queryId });
   });
 
   // Phase 18: Skill lookup by content (SKED-01)
@@ -224,6 +224,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
 
     // Parse and validate lookup query
     const query = skillLookupQuerySchema.parse(request.body);
+    const queryId = randomUUID();
 
     // Execute artifact-first lookup
     const result = await searchSkillsByContent(app.skillShareer, auth, query);
@@ -243,7 +244,7 @@ export const retrievalRoutes: FastifyPluginAsync = async (app) => {
     });
 
     // Validate and return artifact-first response
-    return skillLookupResponseSchema.parse(result);
+    return skillLookupResponseSchema.parse({ ...result, queryId });
   });
 
   // Phase 37: Trap-first plan compilation (P37-05)

@@ -44,6 +44,35 @@ Round 0 的目标不是立即改完所有表，而是冻结后续数据库现代
 - worker 崩溃恢复：
   `running` task 或 `processing` outbox event 在 `leaseUntil < now()` 后可被回收为可再次 claim 的待处理状态，无需人工 SQL 清理。
 
+### Phase 1 Queue / Outbox 状态词汇
+
+- `task_queue.status`：
+  `pending | running | completed | failed | dead`
+- `domain_event_outbox.status`：
+  `pending | processing | completed | failed`
+- operator surface 派生状态：
+  `staleRunning` 表示 `running` 且 lease 已过期的 queue task 数；
+  `staleProcessing` 表示 `processing` 且 lease 已过期的 outbox event 数。
+- worker ownership vocabulary：
+  `running | degraded | remote | not-configured`
+
+### Phase 3 Workflow Run 持久化
+
+- `workflow_runs` 是长任务运行快照的权威持久化模型。
+- 当前 `workflowType`：
+  `candidate-processing | capsule-index-rebuild`
+- 当前 `status`：
+  `pending | running | completed | failed`
+- 第一版只记录线性 step：
+  `stepName` 表示当前或最近一步，不引入 DAG 编排。
+
+### Phase 4 Badcase Trace
+
+- 公共 retrieval 响应现在返回 additive `queryId`。
+- `feedback_records` 保存最小可复现字段：
+  `queryId`、`querySeed`、`routeFamily`、`failureClassification`、`expectedCorrection`、`selectedResultSnapshot`
+- `retrieval_badcase_traces` 是 durable reproducibility truth source，用于在 analytics 之外保留 badcase 关联上下文。
+
 ### JSONB 保留与拆分准则
 
 - 必须拆分为结构化列或子表的字段：

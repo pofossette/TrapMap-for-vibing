@@ -4,7 +4,7 @@
  * Covers: durable task queue backed by PostgreSQL SKIP LOCKED.
  */
 import { sql } from 'drizzle-orm';
-import { index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 // =============================================================================
 // Task Queue Table
@@ -53,5 +53,27 @@ export const taskQueue = pgTable(
     uniqueIndex('task_queue_dedupe_pending_idx')
       .on(table.type, table.dedupeKey)
       .where(sql`${table.status} IN ('pending', 'running')`),
+  ],
+);
+
+export const workflowRuns = pgTable(
+  'workflow_runs',
+  {
+    runId: text('run_id').primaryKey(),
+    workflowType: text('workflow_type').notNull(),
+    subjectId: text('subject_id').notNull(),
+    status: text('status').notNull(),
+    stepName: text('step_name'),
+    attempt: integer('attempt').notNull().default(0),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    lastError: text('last_error'),
+    stats: jsonb('stats').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('workflow_runs_type_subject_idx').on(table.workflowType, table.subjectId),
+    index('workflow_runs_status_updated_idx').on(table.status, table.updatedAt),
   ],
 );

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   capsuleMatchSchema,
   graphPlanSearchResponseSchema,
+  retrievalResponseSchema,
   retrievalCitationSchema,
   retrievalFiltersSchema,
   retrievalMatchSchema,
@@ -12,6 +13,7 @@ import {
   retrievalV2ResponseSchema,
   retrievalV2ResponseWithHintsSchema,
   routingTraceSchema,
+  skillLookupResponseSchema,
 } from './retrieval.js';
 
 describe('retrieval schema contracts', () => {
@@ -54,6 +56,27 @@ describe('retrieval schema contracts', () => {
         teamId: null,
       });
       expect(filters.teamId).toBeNull();
+    });
+  });
+
+  describe('public queryId fields', () => {
+    it('accepts additive queryId on v1 response', () => {
+      const result = retrievalResponseSchema.parse({
+        queryId: 'qry_test_1',
+        globalConstraints: [],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      });
+      expect(result.queryId).toBe('qry_test_1');
+    });
+
+    it('accepts additive queryId on skill lookup response', () => {
+      const result = skillLookupResponseSchema.parse({
+        queryId: 'qry_test_2',
+        matches: [],
+      });
+      expect(result.queryId).toBe('qry_test_2');
     });
   });
 
@@ -526,6 +549,7 @@ describe('retrieval schema contracts', () => {
 
     it('accepts distilled capsule content (not raw code)', () => {
       const result = retrievalV2ResponseWithHintsSchema.parse({
+        queryId: 'qry_v2_1',
         capsules: [
           {
             capsuleId: 'c1',
@@ -544,6 +568,7 @@ describe('retrieval schema contracts', () => {
           },
         ],
       });
+      expect(result.queryId).toBe('qry_v2_1');
       expect(result.capsules).toHaveLength(1);
     });
 
@@ -603,6 +628,7 @@ describe('retrieval schema contracts', () => {
     it('rejects unknown properties', () => {
       expect(() =>
         graphPlanSearchResponseSchema.parse({
+          queryId: 'qry_v3_1',
           routingTrace: {
             selectedMode: 'local',
             routeFamily: 'capsule',

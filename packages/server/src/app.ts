@@ -26,6 +26,7 @@ import { keywordChannel } from './lib/retrieval/recall/keyword.js';
 import { semanticChannel } from './lib/retrieval/recall/semantic.js';
 import { handleRuntimeError, registerRuntimeRoutes } from './lib/runtime/http-surface.js';
 import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
+import type { RuntimeMode } from './bootstrap/runtime-mode.js';
 
 import { runStartupSequence } from './bootstrap/run-startup-sequence.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
@@ -110,9 +111,11 @@ const documentedRoutes = [
 interface BuildServerOptions {
   config?: Partial<ServerConfig>;
   bodyLimit?: number;
+  runtimeMode?: RuntimeMode;
 }
 
 export function buildServer(options: BuildServerOptions = {}) {
+  const runtimeMode = options.runtimeMode ?? 'combined';
   const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
   const defaultTestDataFile =
     isTestEnv &&
@@ -152,6 +155,7 @@ export function buildServer(options: BuildServerOptions = {}) {
 
   app.decorate('skillShareer', {
     config,
+    runtimeMode,
     store: createSkillShareerStore(config),
     adapterRegistry: buildDefaultAdapterRegistry(),
     channelRegistry: (() => {
@@ -234,7 +238,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   // Single startup sequence orchestrator — replaces 6 scattered onReady hooks.
   // See bootstrap/run-startup-sequence.ts for the full sequence and rationale.
   app.addHook('onReady', async () => {
-    await runStartupSequence(app);
+    await runStartupSequence(app, runtimeMode);
   });
 
   // Graceful shutdown: stop background workers

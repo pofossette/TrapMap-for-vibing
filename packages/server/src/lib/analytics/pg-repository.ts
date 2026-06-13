@@ -219,4 +219,12 @@ export class PgUsageAnalyticsRepository implements UsageAnalyticsRepository {
       archivedCount: Number.parseInt(result.rows[0]!.count, 10),
     };
   }
+
+  async hasQueryId(queryId: string): Promise<boolean> {
+    const result = await this.pool.query<{ exists: boolean }>(
+      'SELECT EXISTS(SELECT 1 FROM usage_events WHERE query_id = $1) AS exists',
+      [queryId],
+    );
+    return Boolean(result.rows[0]?.exists);
+  }
 }

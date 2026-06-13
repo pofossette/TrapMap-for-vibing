@@ -16,15 +16,21 @@ import type { FastifyInstance } from 'fastify';
 
 import { bootstrapCandidateRecovery } from './bootstrap-candidate-recovery.js';
 import { bootstrapGraphReconciliation } from './bootstrap-graph-reconciliation.js';
-import { bootstrapLifecycle } from './bootstrap-lifecycle.js';
 import { bootstrapRepositories } from './bootstrap-repositories.js';
-import { bootstrapWorkers } from './bootstrap-workers.js';
+import { runWorkerSequence } from './run-worker-sequence.js';
+import { shouldBootApiRuntime, type RuntimeMode } from './runtime-mode.js';
 
-export async function runStartupSequence(app: FastifyInstance): Promise<void> {
+export async function runStartupSequence(
+  app: FastifyInstance,
+  mode: RuntimeMode = 'combined',
+): Promise<void> {
   await bootstrapRepositories(app);
-  await bootstrapCandidateRecovery(app);
-  await bootstrapWorkers(app);
-  await bootstrapGraphReconciliation(app);
-  await bootstrapLifecycle(app);
+
+  if (shouldBootApiRuntime(mode)) {
+    await bootstrapCandidateRecovery(app);
+    await bootstrapGraphReconciliation(app);
+  }
+
+  await runWorkerSequence(app, mode);
   Object.freeze(app.skillShareer);
 }

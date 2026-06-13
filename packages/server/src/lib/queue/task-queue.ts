@@ -11,6 +11,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import type { Pool, PoolClient } from 'pg';
+import { recordRuntimeReclaim } from '@trapmap/server/lib/runtime/metrics.js';
 
 // =============================================================================
 // Schema Definition
@@ -124,6 +125,18 @@ export interface DequeueOptions {
   workerId?: string;
 }
 
+export interface TaskQueueStatusSnapshot {
+  pending: number;
+  running: number;
+  dead: number;
+  staleRunning: number;
+  backlogOldestAgeSeconds: number | null;
+  runningOldestAgeSeconds: number | null;
+  deadOldestAgeSeconds: number | null;
+  reclaimCount: number;
+  recentDeadLetters: Task[];
+}
+
 export interface TaskHandler<T = unknown> {
   /** Handler name for task type */
   type: string;
@@ -155,6 +168,7 @@ export function createTaskQueue(config: TaskQueueConfig) {
   } = config;
 
   const db = drizzle(pool, { schema: { taskQueue } });
+  let reclaimCount = 0;
 
   /**
    * Generate a unique task ID.
@@ -488,7 +502,74 @@ export function createTaskQueue(config: TaskQueueConfig) {
       `,
       params,
     );
-    return result.rowCount ?? 0;
+    const count = result.rowCount ?? 0;
+    if (count > 0) {
+      reclaimCount += count;
+      recordRuntimeReclaim('task-queue', count);
+    }
+    return count;
+  }
+
+  async function getStatusSnapshot(type?: string, deadLetterLimit = 10): Promise<TaskQueueStatusSnapshot> {
+    const params: unknown[] = [];
+    const whereClauses: string[] = [];
+    if (type) {
+      params.push(type);
+      whereClauses.push(`type = $${params.length}`);
+    }
+    const where = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    const summaryResult = await pool.query<{
+      pending: string;
+      running: string;
+      dead: string;
+      stale_running: string;
+      backlog_oldest_age_seconds: string | null;
+      running_oldest_age_seconds: string | null;
+      dead_oldest_age_seconds: string | null;
+    }>(
+      `
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'pending') AS pending,
+        COUNT(*) FILTER (WHERE status = 'running') AS running,
+        COUNT(*) FILTER (WHERE status = 'dead') AS dead,
+        COUNT(*) FILTER (WHERE status = 'running' AND lease_until IS NOT NULL AND lease_until < NOW()) AS stale_running,
+        MAX(FLOOR(EXTRACT(EPOCH FROM (NOW() - created_at)))) FILTER (WHERE status = 'pending')::text AS backlog_oldest_age_seconds,
+        MAX(FLOOR(EXTRACT(EPOCH FROM (NOW() - started_at)))) FILTER (WHERE status = 'running' AND started_at IS NOT NULL)::text AS running_oldest_age_seconds,
+        MAX(FLOOR(EXTRACT(EPOCH FROM (NOW() - updated_at)))) FILTER (WHERE status = 'dead')::text AS dead_oldest_age_seconds
+      FROM task_queue
+      ${where}
+      `,
+      params,
+    );
+
+    const deadParams = [...params, deadLetterLimit];
+    const deadWhere = whereClauses.length > 0 ? `AND ${whereClauses.join(' AND ')}` : '';
+    const deadResult = await pool.query<TaskRow>(
+      `
+      SELECT *,
+        FLOOR(EXTRACT(EPOCH FROM (NOW() - created_at)))::int AS age_seconds
+      FROM task_queue
+      WHERE status = 'dead'
+        ${deadWhere}
+      ORDER BY updated_at DESC
+      LIMIT $${deadParams.length}
+      `,
+      deadParams,
+    );
+
+    const summary = summaryResult.rows[0];
+    return {
+      pending: Number(summary?.pending ?? 0),
+      running: Number(summary?.running ?? 0),
+      dead: Number(summary?.dead ?? 0),
+      staleRunning: Number(summary?.stale_running ?? 0),
+      backlogOldestAgeSeconds: parseNullableInt(summary?.backlog_oldest_age_seconds),
+      runningOldestAgeSeconds: parseNullableInt(summary?.running_oldest_age_seconds),
+      deadOldestAgeSeconds: parseNullableInt(summary?.dead_oldest_age_seconds),
+      reclaimCount,
+      recentDeadLetters: deadResult.rows.map((row) => rowToTask(row)),
+    };
   }
 
   /**
@@ -512,6 +593,7 @@ export function createTaskQueue(config: TaskQueueConfig) {
     fail,
     heartbeat,
     reclaimExpiredLeases,
+    getStatusSnapshot,
     getPendingCount,
     getDeadTasks,
     requeue,
@@ -530,13 +612,14 @@ export interface TaskWorkerConfig {
   pollIntervalMs?: number;
   /** Maximum concurrent tasks */
   concurrency?: number;
+  ownsWork?: boolean;
 }
 
 /**
  * Create a task worker that processes tasks from the queue.
  */
 export function createTaskWorker(config: TaskWorkerConfig) {
-  const { pool, handlers, pollIntervalMs = 1000, concurrency = 1 } = config;
+  const { pool, handlers, pollIntervalMs = 1000, concurrency = 1, ownsWork = true } = config;
 
   const queue = createTaskQueue({ pool });
   const handlerMap = new Map(handlers.map((h) => [h.type, h]));
@@ -624,7 +707,11 @@ export function createTaskWorker(config: TaskWorkerConfig) {
     return running;
   }
 
-  return { run, stop, isRunning };
+  function workerOwnsWork(): boolean {
+    return ownsWork;
+  }
+
+  return { run, stop, isRunning, ownsWork: workerOwnsWork };
 }
 
 // =============================================================================
@@ -675,4 +762,9 @@ function rowToTask<T>(row: TaskRow): Task<T> {
 
 function isUniqueViolation(error: unknown): error is { code: string } {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === '23505';
+}
+
+function parseNullableInt(value: string | null | undefined): number | null {
+  if (value == null) return null;
+  return Number.parseInt(value, 10);
 }

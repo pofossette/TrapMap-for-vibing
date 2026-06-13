@@ -555,6 +555,16 @@ export const feedbackRecords = pgTable(
     context: text('context'),
     /** Original query that surfaced the problem */
     querySeed: text('query_seed'),
+    /** Public query identifier tied to retrieval responses */
+    queryId: text('query_id'),
+    /** Route family for reproducibility */
+    routeFamily: text('route_family'),
+    /** Failure classification for badcase capture */
+    failureClassification: text('failure_classification'),
+    /** Expected correction / desired behavior */
+    expectedCorrection: text('expected_correction'),
+    /** Selected result snapshot used to reproduce the failure */
+    selectedResultSnapshot: jsonb('selected_result_snapshot'),
     /** When the feedback was submitted */
     submittedAt: timestamp('submitted_at', { withTimezone: true }).notNull(),
     /** User who submitted the feedback */

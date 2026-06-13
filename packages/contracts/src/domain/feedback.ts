@@ -26,6 +26,36 @@ export const feedbackCustomAnswerSchema = z
   })
   .strict();
 
+export const feedbackFailureClassificationSchema = z.enum([
+  'missing-recall',
+  'ranking-error',
+  'summary-hallucination',
+  'governance-leak',
+  'outdated-content',
+  'other',
+]);
+
+export const feedbackSelectedResultSnapshotSchema = z
+  .object({
+    entryId: entityIdSchema,
+    entryType: z.enum(['trap', 'skill']),
+    title: z.string().min(1).max(280).optional(),
+    score: z.number().min(0).max(1).optional(),
+    routeFamily: z.enum(['entry', 'capsule', 'graph-plan']).optional(),
+  })
+  .strict();
+
+export const badcaseSnapshotSchema = z
+  .object({
+    queryId: z.string().min(1).optional(),
+    querySeed: z.string().min(1).max(500).optional(),
+    routeFamily: z.enum(['entry', 'capsule', 'graph-plan']).optional(),
+    failureClassification: feedbackFailureClassificationSchema.optional(),
+    expectedCorrection: z.string().min(1).max(2000).optional(),
+    selectedResultSnapshot: feedbackSelectedResultSnapshotSchema.optional(),
+  })
+  .strict();
+
 /**
  * Request payload for feedback submission.
  * Validated on server before persisting to feedback queue.
@@ -44,6 +74,8 @@ export const feedbackSubmissionSchema = z
     context: z.string().max(1000).optional(),
     /** Optional: which retrieval query led to this entry */
     querySeed: z.string().max(500).optional(),
+    /** Optional reproducibility envelope for badcase capture */
+    badcase: badcaseSnapshotSchema.optional(),
     /** Optional: custom prompt answers if skill defined feedbackPrompts */
     customAnswers: z.array(feedbackCustomAnswerSchema).optional(),
   })
@@ -75,6 +107,16 @@ export const feedbackRecordSchema = feedbackSubmissionSchema.extend({
   status: feedbackStatusSchema,
   /** Admin notes added during review (Phase 57) */
   adminNotes: z.string().max(1000).optional(),
+  /** Additive public query identifier */
+  queryId: z.string().min(1).optional(),
+  /** Route family for reproduction */
+  routeFamily: z.enum(['entry', 'capsule', 'graph-plan']).optional(),
+  /** Failure classification */
+  failureClassification: feedbackFailureClassificationSchema.optional(),
+  /** Expected correction */
+  expectedCorrection: z.string().min(1).max(2000).optional(),
+  /** Selected result snapshot */
+  selectedResultSnapshot: feedbackSelectedResultSnapshotSchema.optional(),
 });
 
 /**

@@ -106,6 +106,18 @@ async function getTaskCount(store: PostgresStore, dedupeKey: string): Promise<nu
   return Number(result.rows[0]?.count ?? '0');
 }
 
+async function getWorkflowRun(
+  store: PostgresStore,
+  runId: string,
+): Promise<{ status: string; step_name: string | null; last_error: string | null } | null> {
+  const result = await store.getPool().query<{
+    status: string;
+    step_name: string | null;
+    last_error: string | null;
+  }>('SELECT status, step_name, last_error FROM workflow_runs WHERE run_id = $1 LIMIT 1', [runId]);
+  return result.rows[0] ?? null;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -142,6 +154,7 @@ describe('candidate pipeline: submission to approval', () => {
     const server = await buildTestServer();
     app = server.app;
     authToken = server.authToken;
+    store = server.store;
 
     const submitRes = await app.inject({
       method: 'POST',
@@ -155,6 +168,12 @@ describe('candidate pipeline: submission to approval', () => {
     expect(candidate.status).toBe('ready_for_review');
     expect(candidate.analysisSnapshot).toBeDefined();
     expect(candidate.analysisSnapshot.fingerprint).toBeDefined();
+
+    if (store instanceof PostgresStore) {
+      const workflow = await getWorkflowRun(store, `wf_candidate_${candidateId}`);
+      expect(workflow?.status).toBe('completed');
+      expect(workflow?.step_name).toBe('completed');
+    }
   });
 
   it('dedupes repeated candidate scheduling in the postgres queue', async () => {

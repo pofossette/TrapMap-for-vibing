@@ -40,6 +40,11 @@ export class PgFeedbackRepository implements FeedbackRepository {
       description: feedback.description,
       context: feedback.context,
       querySeed: feedback.querySeed,
+      queryId: feedback.queryId,
+      routeFamily: feedback.routeFamily,
+      failureClassification: feedback.failureClassification,
+      expectedCorrection: feedback.expectedCorrection,
+      selectedResultSnapshot: feedback.selectedResultSnapshot,
       submittedAt: new Date(feedback.submittedAt),
       submittedByUserId: feedback.submittedByUserId,
       submittedByHandle: feedback.submittedByHandle,
@@ -141,6 +146,14 @@ export class PgFeedbackRepository implements FeedbackRepository {
     if (updates.description !== undefined) setValues.description = updates.description;
     if (updates.context !== undefined) setValues.context = updates.context;
     if (updates.querySeed !== undefined) setValues.querySeed = updates.querySeed;
+    if (updates.queryId !== undefined) setValues.queryId = updates.queryId;
+    if (updates.routeFamily !== undefined) setValues.routeFamily = updates.routeFamily;
+    if (updates.failureClassification !== undefined)
+      setValues.failureClassification = updates.failureClassification;
+    if (updates.expectedCorrection !== undefined)
+      setValues.expectedCorrection = updates.expectedCorrection;
+    if (updates.selectedResultSnapshot !== undefined)
+      setValues.selectedResultSnapshot = updates.selectedResultSnapshot;
 
     setValues.updatedAt = new Date();
 
@@ -174,6 +187,11 @@ export class PgFeedbackRepository implements FeedbackRepository {
       description: string;
       context: string | null;
       querySeed: string | null;
+      queryId: string | null;
+      routeFamily: string | null;
+      failureClassification: string | null;
+      expectedCorrection: string | null;
+      selectedResultSnapshot: Record<string, unknown> | null;
       submittedAt: Date;
       submittedByUserId: string;
       submittedByHandle: string;
@@ -217,6 +235,11 @@ interface FeedbackRecordRow {
   description: string;
   context: string | null;
   querySeed: string | null;
+  queryId: string | null;
+  routeFamily: string | null;
+  failureClassification: string | null;
+  expectedCorrection: string | null;
+  selectedResultSnapshot: Record<string, unknown> | null;
   submittedAt: Date;
   submittedByUserId: string;
   submittedByHandle: string;
@@ -241,6 +264,11 @@ function rowToFeedbackRecord(
     description: row.description,
     context: row.context,
     querySeed: row.querySeed,
+    queryId: row.queryId,
+    routeFamily: row.routeFamily as FeedbackQueueRecord['routeFamily'],
+    failureClassification: row.failureClassification as FeedbackQueueRecord['failureClassification'],
+    expectedCorrection: row.expectedCorrection,
+    selectedResultSnapshot: row.selectedResultSnapshot,
     submittedAt: row.submittedAt.toISOString(),
     submittedByUserId: row.submittedByUserId,
     submittedByHandle: row.submittedByHandle,

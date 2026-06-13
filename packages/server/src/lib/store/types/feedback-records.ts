@@ -8,6 +8,18 @@ export interface FeedbackQueueRecord {
   description: string;
   context: string | null;
   querySeed: string | null;
+  queryId: string | null;
+  routeFamily: 'entry' | 'capsule' | 'graph-plan' | null;
+  failureClassification:
+    | 'missing-recall'
+    | 'ranking-error'
+    | 'summary-hallucination'
+    | 'governance-leak'
+    | 'outdated-content'
+    | 'other'
+    | null;
+  expectedCorrection: string | null;
+  selectedResultSnapshot: Record<string, unknown> | null;
   customAnswers: Array<{ prompt: string; answer: string }> | null;
   submittedAt: string;
   submittedByUserId: string;

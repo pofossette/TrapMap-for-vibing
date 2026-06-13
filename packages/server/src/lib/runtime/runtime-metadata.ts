@@ -1,10 +1,15 @@
 import type { ServerConfig } from '@trapmap/server/config.js';
+import type {
+  AsyncWorkerDependencyState,
+  OutboxStatusSnapshot,
+  QueueStatusSnapshot,
+} from '@trapmap/contracts';
 import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/backend.js';
 
 export interface RuntimeDependencyState {
   database: 'postgres' | 'json-store';
-  queueWorker: 'running' | 'stopped' | 'not-configured';
-  outboxWorker: 'running' | 'stopped' | 'not-configured';
+  queueWorker: AsyncWorkerDependencyState;
+  outboxWorker: AsyncWorkerDependencyState;
   graphQuery: 'disabled' | 'healthy' | 'fallback' | 'failed';
 }
 
@@ -25,16 +30,23 @@ export interface RuntimeStatusSnapshot {
     heapTotalMb: number;
   };
   uptimeSeconds: number;
+  async?: {
+    queue: Pick<QueueStatusSnapshot, 'pending' | 'running' | 'dead' | 'staleRunning' | 'reclaimCount'>;
+    outbox: Pick<
+      OutboxStatusSnapshot,
+      'pending' | 'processing' | 'failed' | 'staleProcessing' | 'reclaimCount'
+    >;
+  };
 }
 
 interface BuildRuntimeStatusSnapshotOptions {
   config: ServerConfig;
   graphQuery: GraphQueryRuntimeState;
   database: 'postgres' | 'json-store';
-  queueWorkerRunning: boolean;
-  queueWorkerConfigured: boolean;
-  outboxWorkerRunning: boolean;
-  outboxWorkerConfigured: boolean;
+  queueWorkerState: AsyncWorkerDependencyState;
+  outboxWorkerState: AsyncWorkerDependencyState;
+  queueSnapshot?: QueueStatusSnapshot;
+  outboxSnapshot?: OutboxStatusSnapshot;
 }
 
 function resolveGraphDependencyState(
@@ -55,19 +67,11 @@ export function buildRuntimeStatusSnapshot(
 ): RuntimeStatusSnapshot {
   const mem = process.memoryUsage();
   const graphDependency = resolveGraphDependencyState(options.graphQuery);
-  const queueWorker = options.queueWorkerConfigured
-    ? options.queueWorkerRunning
-      ? 'running'
-      : 'stopped'
-    : 'not-configured';
-  const outboxWorker = options.outboxWorkerConfigured
-    ? options.outboxWorkerRunning
-      ? 'running'
-      : 'stopped'
-    : 'not-configured';
+  const queueWorker = options.queueWorkerState;
+  const outboxWorker = options.outboxWorkerState;
 
   const readiness: RuntimeStatusSnapshot['readiness'] =
-    graphDependency === 'failed' || queueWorker === 'stopped' || outboxWorker === 'stopped'
+    graphDependency === 'failed' || queueWorker === 'degraded' || outboxWorker === 'degraded'
       ? 'not-ready'
       : 'ready';
   const normalizedReadiness =
@@ -95,5 +99,25 @@ export function buildRuntimeStatusSnapshot(
       heapTotalMb: Math.round(mem.heapTotal / 1024 / 1024),
     },
     uptimeSeconds: Math.round(process.uptime()),
+    ...(options.queueSnapshot && options.outboxSnapshot
+      ? {
+          async: {
+            queue: {
+              pending: options.queueSnapshot.pending,
+              running: options.queueSnapshot.running,
+              dead: options.queueSnapshot.dead,
+              staleRunning: options.queueSnapshot.staleRunning,
+              reclaimCount: options.queueSnapshot.reclaimCount,
+            },
+            outbox: {
+              pending: options.outboxSnapshot.pending,
+              processing: options.outboxSnapshot.processing,
+              failed: options.outboxSnapshot.failed,
+              staleProcessing: options.outboxSnapshot.staleProcessing,
+              reclaimCount: options.outboxSnapshot.reclaimCount,
+            },
+          },
+        }
+      : {}),
   };
 }

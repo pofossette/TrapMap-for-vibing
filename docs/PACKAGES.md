@@ -98,6 +98,14 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 > **Phase 2 更新**：`buildNormalizedDuplicateInput`（`packages/server/src/lib/candidates/fingerprint.ts`）是 trap 与 skill 候选的共享归一化入口，输出 `NormalizedDuplicateInput`（`packages/server/src/lib/candidates/types.ts`）并被 in-memory / PostgreSQL 探测器与 LLM 精排共享，确保 skill 候选也产出非空 title/body 用于 PG embedding 与 LLM 比对。
 >
 > **Phase 0 更新**：PostgreSQL 模式下，`createAndEnqueueCandidate()` 通过 `PostgresStore.transactWithPgClient()` 将候选创建、初始状态更新、以及 `task_queue` 注册放进同一事务；`task_queue` / `domain_event_outbox` 都携带 lease 与 reclaim 元数据，worker 启动后可回收过期 `running` / `processing` 记录。
+>
+> **Phase 1 更新**：queue / outbox 仍保持两套独立抽象，但 operator 入口统一收敛到 `routes/operations/status.ts`。`lib/queue/task-queue.ts` 与 `lib/lifecycle/outbox.ts` 负责各自的 status snapshot、dead-letter / failed-event 可视化与 reclaim 计数；runtime health surfaces 只消费这些 snapshot，不直接读取原始表。
+>
+> **Phase 2 更新**：server runtime 现在支持 `api`、`task-worker`、`outbox-worker`、`combined` 四种模式。`src/index.ts` 负责 HTTP listener 入口，`src/worker.ts` 负责 dedicated worker 入口，公共启动顺序集中在 `bootstrap/run-startup-sequence.ts` 与 `bootstrap/run-worker-sequence.ts`，避免重复初始化仓库、配置和 bootstrap 逻辑。
+>
+> **Phase 3 更新**：`lib/workflows/` 持有长任务运行快照的持久化与类型。当前由 candidate processing 和 capsule-index rebuild 写入 `workflow_runs`，而 `routes/operations/status.ts` 负责把最近 workflow runs 暴露到 operator status family。
+>
+> **Phase 4 更新**：retrieval 路由负责生成并公开 `queryId`；feedback 路由负责接收最小 badcase envelope，并在 PostgreSQL 模式下把可复现快照写入 `retrieval_badcase_traces`。usage analytics 仍可复用 `queryId` 做关联，但不再是 badcase reconstruction 的唯一事实源。
 | `UsageAnalyticsRepository` | `lib/analytics/repository.ts` | PG (`PgUsageAnalyticsRepository`) 或 InMemory (no-op) |
 | `AccessKeyRepository` | `lib/auth/repository.ts` | PG (`PgAccessKeyRepository`) 或 JSON (`InMemoryAccessKeyRepository`) |
 | `SessionRepository` | `lib/auth/repository.ts` | PG (`PgSessionRepository`) 或 JSON (`InMemorySessionRepository`) |

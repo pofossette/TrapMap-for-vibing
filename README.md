@@ -131,6 +131,15 @@ pnpm dev:server
 
 服务默认监听 `http://127.0.0.1:4000`。
 
+可选运行时模式：
+
+```bash
+pnpm dev:server               # combined
+pnpm dev:server:api           # 仅 API
+pnpm dev:server:task-worker   # 仅 task worker
+pnpm dev:server:outbox-worker # 仅 outbox worker
+```
+
 另一个终端可运行 CLI：
 
 ```bash
