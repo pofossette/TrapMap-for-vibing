@@ -213,10 +213,12 @@ describe('feedback routes', () => {
 
     if (store instanceof PostgresStore) {
       expect(body.feedback.asyncJobId).toBeDefined();
-      const queued = await store.getPool().query<{ count: string }>(
-        `SELECT COUNT(*) AS count FROM task_queue WHERE type = $1 AND dedupe_key = $2`,
-        [BADCASE_EXPORT_DRAFT_TASK_TYPE, `${BADCASE_EXPORT_DRAFT_TASK_TYPE}:feedback_1`],
-      );
+      const queued = await store
+        .getPool()
+        .query<{ count: string }>(
+          'SELECT COUNT(*) AS count FROM task_queue WHERE type = $1 AND dedupe_key = $2',
+          [BADCASE_EXPORT_DRAFT_TASK_TYPE, `${BADCASE_EXPORT_DRAFT_TASK_TYPE}:feedback_1`],
+        );
       expect(Number(queued.rows[0]?.count ?? '0')).toBe(1);
     }
   });
@@ -722,7 +724,7 @@ describe('feedback admin routes', () => {
       expect(body.entryId).toBe('trap_1');
       expect(body.resolvedCount).toBe(10);
       if (store instanceof PostgresStore) {
-        expect(body.asyncJobId).toBe(`wf_remediation_trap_1`);
+        expect(body.asyncJobId).toBe('wf_remediation_trap_1');
       }
 
       const data = await store.snapshot();

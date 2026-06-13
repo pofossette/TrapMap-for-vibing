@@ -118,29 +118,29 @@ export const capsuleIndexRoutes: FastifyPluginAsync = async (app) => {
 
     try {
       if (body.mode === 'full') {
-      const artifacts = await app.skillShareer.repos.artifact.listForRetrieval({
-        lifecycleState: 'approved',
-      });
-      const stats = await rebuildAllCapsuleIndexes({ pool, artifacts });
-      await recordWorkflowSafely(() =>
-        workflowRepo.updateRun(runId, {
-          status: 'completed',
-          stepName: 'completed',
-          completedAt: nowIso(),
-          stats: {
-            mode: body.mode,
-            sourceArtifactCount: artifacts.length,
-            rebuiltArtifacts: stats.artifactsProcessed,
-          },
-        }),
-      );
+        const artifacts = await app.skillShareer.repos.artifact.listForRetrieval({
+          lifecycleState: 'approved',
+        });
+        const stats = await rebuildAllCapsuleIndexes({ pool, artifacts });
+        await recordWorkflowSafely(() =>
+          workflowRepo.updateRun(runId, {
+            status: 'completed',
+            stepName: 'completed',
+            completedAt: nowIso(),
+            stats: {
+              mode: body.mode,
+              sourceArtifactCount: artifacts.length,
+              rebuiltArtifacts: stats.artifactsProcessed,
+            },
+          }),
+        );
 
-      return {
-        mode: 'full' as const,
-        sourceArtifactCount: artifacts.length,
-        stats,
-        rebuiltAt: nowIso(),
-      };
+        return {
+          mode: 'full' as const,
+          sourceArtifactCount: artifacts.length,
+          stats,
+          rebuiltAt: nowIso(),
+        };
       }
 
       const artifactId = body.artifactId;

@@ -1,8 +1,8 @@
 import type { Permission } from '@trapmap/contracts';
 import type { FastifyRequest } from 'fastify';
 
-import type { ServerConfig } from '@trapmap/server/config.js';
 import type { RuntimeMode } from '@trapmap/server/bootstrap/runtime-mode.js';
+import type { ServerConfig } from '@trapmap/server/config.js';
 import type { AiProviders } from './ai/types.js';
 import type { UsageAnalyticsRepository } from './analytics/index.js';
 import type { ArtifactRepository } from './artifacts/index.js';

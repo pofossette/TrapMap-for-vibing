@@ -18,7 +18,7 @@ import { bootstrapCandidateRecovery } from './bootstrap-candidate-recovery.js';
 import { bootstrapGraphReconciliation } from './bootstrap-graph-reconciliation.js';
 import { bootstrapRepositories } from './bootstrap-repositories.js';
 import { runWorkerSequence } from './run-worker-sequence.js';
-import { shouldBootApiRuntime, type RuntimeMode } from './runtime-mode.js';
+import { type RuntimeMode, shouldBootApiRuntime } from './runtime-mode.js';
 
 export async function runStartupSequence(
   app: FastifyInstance,

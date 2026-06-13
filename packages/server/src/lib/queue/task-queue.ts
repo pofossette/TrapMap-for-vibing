@@ -7,11 +7,11 @@
  * Phase: Replace setTimeout-based retry with persistent queue
  */
 
+import { recordRuntimeReclaim } from '@trapmap/server/lib/runtime/metrics.js';
 import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import type { Pool, PoolClient } from 'pg';
-import { recordRuntimeReclaim } from '@trapmap/server/lib/runtime/metrics.js';
 
 // =============================================================================
 // Schema Definition
@@ -284,10 +284,6 @@ export function createTaskQueue(config: TaskQueueConfig) {
     return row ? rowToTask<T>(row) : null;
   }
 
-  async function findActiveTaskByDedupeKey<T>(type: string, dedupeKey: string): Promise<Task<T> | null> {
-    return findActiveTaskByDedupeKeyWithClient(pool, type, dedupeKey);
-  }
-
   /**
    * Dequeue the next pending task for a given type (with SKIP LOCKED).
    */
@@ -510,7 +506,10 @@ export function createTaskQueue(config: TaskQueueConfig) {
     return count;
   }
 
-  async function getStatusSnapshot(type?: string, deadLetterLimit = 10): Promise<TaskQueueStatusSnapshot> {
+  async function getStatusSnapshot(
+    type?: string,
+    deadLetterLimit = 10,
+  ): Promise<TaskQueueStatusSnapshot> {
     const params: unknown[] = [];
     const whereClauses: string[] = [];
     if (type) {

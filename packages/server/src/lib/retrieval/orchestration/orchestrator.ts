@@ -434,6 +434,8 @@ export async function searchKnowledgeV2(
           intent,
           governanceFilters,
           maxResults: parsed.maxResults,
+          allowWeakBackfill:
+            parsed.includeSummary === true || /how to|why .* broken|production/i.test(parsed.seed),
         }),
       steps,
       {

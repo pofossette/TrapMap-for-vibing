@@ -11,6 +11,7 @@
 
 import { isSuppressedByFeedback } from '@trapmap/server/lib/feedback/remediation.js';
 import { isGovernanceEligible } from '@trapmap/server/lib/governance/index.js';
+import { normalizeQuery } from '@trapmap/server/lib/retrieval/recall/keyword.js';
 import type {
   ArtifactGovernanceFilters,
   CapsuleCandidate,
@@ -165,18 +166,8 @@ export function extractGovernedCapsules(
  * @returns Similarity score [0, 1]
  */
 function computeTextSimilarity(query: string, target: string): number {
-  const queryTokens = new Set(
-    query
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((t) => t.length > 2),
-  );
-  const targetTokens = new Set(
-    target
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((t) => t.length > 2),
-  );
+  const queryTokens = new Set(normalizeQuery(query));
+  const targetTokens = new Set(normalizeQuery(target));
 
   if (queryTokens.size === 0 || targetTokens.size === 0) {
     return 0;
@@ -328,7 +319,10 @@ export function computeKeywordScore(
   return matchCount / intent.tokens.length;
 }
 
-function computeArtifactKeywordScore(intent: ParsedIntent, artifact: SkillArtifactRecord): number {
+export function computeArtifactKeywordScore(
+  intent: ParsedIntent,
+  artifact: SkillArtifactRecord,
+): number {
   const profile = artifact.latestRevision.derived?.profile;
   const artifactText = [
     artifact.title ?? '',
@@ -470,12 +464,14 @@ export function rankCapsules(
     const stackPathBoost = computeStackPathBoost(intent, capsule);
 
     // Weighted combination (CAPS-04-CTX: 15% weight for contextual prefix)
+    const errorWeightedScore = errorScore === null ? 0 : errorScore * 0.12;
     const baseScore =
       problemScore * 0.3 + // Problem is most important
       situationScore * 0.21 +
       goalScore * 0.17 +
       keywordScore * 0.17 +
-      contextScore * 0.15; // Anthropic Contextual Retrieval
+      contextScore * 0.15 +
+      errorWeightedScore; // Stronger signal for exact/log-like failure text
 
     const finalScore = Math.min(1, baseScore * stackPathBoost);
 

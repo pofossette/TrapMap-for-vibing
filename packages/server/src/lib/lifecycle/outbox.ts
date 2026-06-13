@@ -16,7 +16,10 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool, PoolClient } from 'pg';
 
 import { domainEventOutbox } from '@trapmap/server/lib/persistence/schema.js';
-import { recordRuntimeExecution, recordRuntimeReclaim } from '@trapmap/server/lib/runtime/metrics.js';
+import {
+  recordRuntimeExecution,
+  recordRuntimeReclaim,
+} from '@trapmap/server/lib/runtime/metrics.js';
 import type { DomainEvent } from './types.js';
 
 export interface OutboxEvent {
@@ -181,7 +184,10 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
    * Claim a batch of pending events for processing (SKIP LOCKED).
    * Returns up to `limit` events, ordered by available_at then created_at.
    */
-  async function claimBatch(limit = 10, workerId = `outbox_${process.pid}`): Promise<OutboxEvent[]> {
+  async function claimBatch(
+    limit = 10,
+    workerId = `outbox_${process.pid}`,
+  ): Promise<OutboxEvent[]> {
     await reclaimExpiredLeases();
 
     const result = await pool.query<OutboxRow>(

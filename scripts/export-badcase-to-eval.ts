@@ -8,7 +8,9 @@ async function main() {
   const outputPath = process.argv[3];
 
   if (!feedbackId || !outputPath) {
-    throw new Error('Usage: pnpm exec tsx scripts/export-badcase-to-eval.ts <feedbackId> <outputPath>');
+    throw new Error(
+      'Usage: pnpm exec tsx scripts/export-badcase-to-eval.ts <feedbackId> <outputPath>',
+    );
   }
 
   const config = loadConfig();

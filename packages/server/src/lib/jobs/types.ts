@@ -34,5 +34,8 @@ export interface BadcaseExportDraftPayload {
 }
 
 export interface SharedJobHandler<TPayload> extends TaskHandler<TPayload> {
-  workflowType?: 'knowledge-index-follow-up' | 'feedback-remediation-reactivation' | 'badcase-export-draft';
+  workflowType?:
+    | 'knowledge-index-follow-up'
+    | 'feedback-remediation-reactivation'
+    | 'badcase-export-draft';
 }

@@ -60,6 +60,7 @@ export function assessGraphPlanReadiness(
   const hasSupportingEvidence = (plan?.citations.length ?? 0) > 0 || skillCount > 0;
 
   const hasTrapSkillConnection = trapCount > 0 && skillCount > 0 && hasTrapSkillStructure;
+  const hasAnyPlanEvidence = trapCount > 0 && skillCount > 0;
 
   const score =
     (skillCount > 0 ? 0.4 : 0) +
@@ -77,6 +78,15 @@ export function assessGraphPlanReadiness(
     return {
       score,
       bucket,
+      reason: 'graph-plan-selected',
+      fallbackTarget: null,
+    };
+  }
+
+  if (hasTrapSkillConnection || (hasAnyPlanEvidence && (plan?.citations.length ?? 0) > 0)) {
+    return {
+      score,
+      bucket: bucket === 'low' ? 'medium' : bucket,
       reason: 'graph-plan-selected',
       fallbackTarget: null,
     };

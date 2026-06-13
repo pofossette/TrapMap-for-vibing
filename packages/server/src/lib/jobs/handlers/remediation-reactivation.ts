@@ -1,18 +1,17 @@
 import { emitCacheInvalidation } from '@trapmap/server/lib/cache/invalidation.js';
-import { AppError } from '@trapmap/server/lib/errors.js';
-import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
-import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
-import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
-import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
-import type { Pool } from 'pg';
-
-import type { SharedJobHandler } from '../types.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
+import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
+import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
+import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
 import {
   REMEDIATION_REACTIVATION_TASK_TYPE,
   type RemediationReactivationPayload,
-} from '../types.js';
+  type SharedJobHandler,
+} from '@trapmap/server/lib/jobs/types.js';
+import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
+import type { Pool } from 'pg';
 
 function workflowRunIdForRemediation(entryId: string): string {
   return `wf_remediation_${entryId}`;
@@ -62,7 +61,9 @@ export function createRemediationReactivationHandler(args: {
             store: args.services.store,
             data: await args.services.store.snapshot(),
             ai: { chat: args.services.ai.chat },
-            graphQueryBackend: args.services.graphQueryBackend as GraphQueryBackend | undefined,
+            ...(args.services.graphQueryBackend
+              ? { graphQueryBackend: args.services.graphQueryBackend as GraphQueryBackend }
+              : {}),
           },
           entryId: task.payload.entryId,
           previousState: entry.lifecycleState,
@@ -81,7 +82,9 @@ export function createRemediationReactivationHandler(args: {
             store: args.services.store,
             data: await args.services.store.snapshot(),
             ai: { chat: args.services.ai.chat },
-            graphQueryBackend: args.services.graphQueryBackend,
+            ...(args.services.graphQueryBackend
+              ? { graphQueryBackend: args.services.graphQueryBackend }
+              : {}),
           },
           artifactId: task.payload.entryId,
           previousState: artifact.lifecycleState,

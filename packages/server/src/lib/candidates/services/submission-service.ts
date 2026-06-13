@@ -12,8 +12,8 @@ import { randomUUID } from 'node:crypto';
 import type { CandidateSubmission, DuplicateCase } from '@trapmap/contracts';
 import { buildNormalizedDuplicateInput } from '@trapmap/server/lib/candidates/fingerprint.js';
 import {
-  type CandidateProcessorServices,
   CANDIDATE_PROCESSING_TASK_TYPE,
+  type CandidateProcessorServices,
   scheduleCandidateProcessing,
 } from '@trapmap/server/lib/candidates/processor.js';
 import type {
@@ -22,8 +22,8 @@ import type {
 } from '@trapmap/server/lib/candidates/repository.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { createDuplicateCaseId } from '@trapmap/server/lib/ids.js';
-import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
@@ -93,7 +93,10 @@ async function detectDuplicateOnIngestTx(
   candidate: CandidateSubmission,
 ): Promise<DuplicateCase | null> {
   const normalized = buildNormalizedDuplicateInput(candidate);
-  const existingCandidateId = await candidateRepo.findByFingerprintTx(client, normalized.fingerprint);
+  const existingCandidateId = await candidateRepo.findByFingerprintTx(
+    client,
+    normalized.fingerprint,
+  );
 
   if (!existingCandidateId || existingCandidateId === candidate.id) {
     return null;

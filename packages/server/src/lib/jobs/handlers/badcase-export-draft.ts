@@ -1,11 +1,14 @@
+import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/metrics.js';
-import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 import type { Pool } from 'pg';
 
-import type { SharedJobHandler } from '../types.js';
-import { BADCASE_EXPORT_DRAFT_TASK_TYPE, type BadcaseExportDraftPayload } from '../types.js';
+import {
+  BADCASE_EXPORT_DRAFT_TASK_TYPE,
+  type BadcaseExportDraftPayload,
+  type SharedJobHandler,
+} from '@trapmap/server/lib/jobs/types.js';
 
 function workflowRunIdForBadcase(feedbackId: string): string {
   return `wf_badcase_${feedbackId}`;

@@ -411,6 +411,7 @@ export function makeMockStoreData(data: Partial<StoreData> = {}): StoreData {
 export function makeMockServices(storeData: Partial<StoreData> = {}): SkillShareerServices {
   const data = makeMockStoreData(storeData);
   return {
+    runtimeMode: 'combined',
     config: {} as SkillShareerServices['config'],
     store: {
       snapshot: async () => data,

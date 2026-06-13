@@ -124,10 +124,12 @@ async function getTaskCountByTypeAndDedupe(
   type: string,
   dedupeKey: string,
 ): Promise<number> {
-  const result = await store.getPool().query<{ count: string }>(
-    `SELECT COUNT(*) AS count FROM task_queue WHERE type = $1 AND dedupe_key = $2`,
-    [type, dedupeKey],
-  );
+  const result = await store
+    .getPool()
+    .query<{ count: string }>(
+      'SELECT COUNT(*) AS count FROM task_queue WHERE type = $1 AND dedupe_key = $2',
+      [type, dedupeKey],
+    );
   return Number(result.rows[0]?.count ?? '0');
 }
 

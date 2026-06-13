@@ -11,6 +11,7 @@ import type { FastifyInstance } from 'fastify';
 import type { RetrievalQuery, RetrievalV2Query, SkillLookupQuery } from '@trapmap/contracts';
 import type { RetrievalEvalCase, RetrievalEvalScenario } from '@trapmap/contracts/evals';
 import { buildServer } from '../../../packages/server/src/app.js';
+import { resetRetrievalReadModelCacheForTests } from '../../../packages/server/src/lib/cache/retrieval-read-model-cache.js';
 import type { GraphIndexDocumentRecord } from '../../../packages/server/src/lib/indexing/graph-lite/documents.js';
 import { createKnowledgeEntryRecord } from '../../../packages/server/src/lib/knowledge.js';
 import type { SkillShareerRepos } from '../../../packages/server/src/lib/repos/index.js';
@@ -98,6 +99,8 @@ export interface AdapterResult {
 export async function createExecutionContext(options?: {
   dataFile?: string;
 }): Promise<ExecutionContext> {
+  resetRetrievalReadModelCacheForTests();
+
   const dataFile =
     options?.dataFile ??
     `/tmp/trapmap-eval-${Date.now()}-${Math.random().toString(36).slice(2)}.json`;
@@ -190,6 +193,8 @@ async function createSession(
  * In PostgreSQL mode, truncates all tables and closes the pool to prevent connection leaks.
  */
 export async function closeExecutionContext(ctx: ExecutionContext): Promise<void> {
+  resetRetrievalReadModelCacheForTests();
+
   // Eval cases run in isolated app instances, but a shared Neo4j projection can
   // outlive each case. Clear the projection before closing so graph-backed
   // scenarios do not leak fixture state into subsequent cases.

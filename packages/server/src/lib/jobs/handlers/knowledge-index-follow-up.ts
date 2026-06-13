@@ -2,15 +2,14 @@ import { emitCacheInvalidation } from '@trapmap/server/lib/cache/invalidation.js
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
 import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
-import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
-import type { Pool } from 'pg';
-
-import type { SharedJobHandler } from '../types.js';
 import {
   KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
   type KnowledgeIndexFollowUpPayload,
-} from '../types.js';
+  type SharedJobHandler,
+} from '@trapmap/server/lib/jobs/types.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
+import type { Pool } from 'pg';
 
 function workflowRunIdForEntry(entryId: string): string {
   return `wf_knowledge_index_${entryId}`;
@@ -52,7 +51,7 @@ export function createKnowledgeIndexFollowUpHandler(args: {
         services: {
           store: args.store,
           data: await args.store.snapshot(),
-          graphQueryBackend: args.graphQueryBackend,
+          ...(args.graphQueryBackend ? { graphQueryBackend: args.graphQueryBackend } : {}),
         },
         entryId: task.payload.entryId,
         previousState: task.payload.previousState,

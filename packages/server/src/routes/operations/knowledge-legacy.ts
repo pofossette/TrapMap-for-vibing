@@ -189,55 +189,55 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
             return toKnowledgeEntry(data, entry);
           })
         : await app.skillShareer.store.transact((data) => {
-      const entry = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
+            const entry = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
 
-      if (!entry) {
-        throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
-      }
+            if (!entry) {
+              throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
+            }
 
-      if (entry.teamId) {
-        requireTeamAccess(auth, entry.teamId);
-      }
+            if (entry.teamId) {
+              requireTeamAccess(auth, entry.teamId);
+            }
 
-      requireHigherLevel(auth, entry.requiredLevel);
+            requireHigherLevel(auth, entry.requiredLevel);
 
-      const deactivatedAt = nowIso();
+            const deactivatedAt = nowIso();
 
-      // Capture previous state before deactivation
-      previousState = entry.lifecycleState;
+            // Capture previous state before deactivation
+            previousState = entry.lifecycleState;
 
-      // Set lifecycle state
-      transitionLifecycleState(entry, 'deactivated', 'knowledge deactivate');
-      nextState = 'deactivated';
+            // Set lifecycle state
+            transitionLifecycleState(entry, 'deactivated', 'knowledge deactivate');
+            nextState = 'deactivated';
 
-      // Add lifecycle event
-      entry.lifecycleHistory.push({
-        id: app.skillShareer.store.nextId(data, 'knowledge_event'),
-        type: 'deactivated',
-        createdAt: deactivatedAt,
-        actorUserId: auth.user?.id ?? null,
-        submissionId: entry.latestSubmissionId,
-        revision: entry.latestRevision.revision,
-        state: 'deactivated',
-        note: payload.reason,
-      });
+            // Add lifecycle event
+            entry.lifecycleHistory.push({
+              id: app.skillShareer.store.nextId(data, 'knowledge_event'),
+              type: 'deactivated',
+              createdAt: deactivatedAt,
+              actorUserId: auth.user?.id ?? null,
+              submissionId: entry.latestSubmissionId,
+              revision: entry.latestRevision.revision,
+              state: 'deactivated',
+              note: payload.reason,
+            });
 
-      entry.updatedAt = deactivatedAt;
+            entry.updatedAt = deactivatedAt;
 
-      // Record audit event
-      const auditEvent = createAuditEvent({
-        store: app.skillShareer.store,
-        data,
-        teamId: entry.teamId,
-        actor: auth,
-        action: 'knowledge-deactivated',
-        entityId: entry.id,
-        payload: { reason: payload.reason, previousState },
-      });
-      data.auditEvents.push(auditEvent);
+            // Record audit event
+            const auditEvent = createAuditEvent({
+              store: app.skillShareer.store,
+              data,
+              teamId: entry.teamId,
+              actor: auth,
+              action: 'knowledge-deactivated',
+              entityId: entry.id,
+              payload: { reason: payload.reason, previousState },
+            });
+            data.auditEvents.push(auditEvent);
 
-      return toKnowledgeEntry(data, entry);
-    });
+            return toKnowledgeEntry(data, entry);
+          });
 
     if (!(store instanceof PostgresStore) && previousState && nextState) {
       await emitLifecycleTransition({

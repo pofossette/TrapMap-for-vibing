@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import Fastify from 'fastify';
 
+import type { RuntimeMode } from './bootstrap/runtime-mode.js';
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
 import { createAiProviders } from './lib/ai/index.js';
@@ -26,7 +27,6 @@ import { keywordChannel } from './lib/retrieval/recall/keyword.js';
 import { semanticChannel } from './lib/retrieval/recall/semantic.js';
 import { handleRuntimeError, registerRuntimeRoutes } from './lib/runtime/http-surface.js';
 import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
-import type { RuntimeMode } from './bootstrap/runtime-mode.js';
 
 import { runStartupSequence } from './bootstrap/run-startup-sequence.js';
 import { accessKeyRoutes } from './routes/access-keys.js';

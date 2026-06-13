@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   getAverageLatencyMs,
   getRuntimeMetricsSnapshot,
-  recordRuntimeReclaim,
   recordRuntimeExecution,
+  recordRuntimeReclaim,
   recordRuntimeRetry,
   resetRuntimeMetrics,
 } from './metrics.js';

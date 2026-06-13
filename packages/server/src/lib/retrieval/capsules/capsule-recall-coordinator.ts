@@ -17,6 +17,7 @@ export interface CapsuleRecallInput {
   intent: ParsedIntent;
   governanceFilters: ArtifactGovernanceFilters;
   maxResults: number;
+  allowWeakBackfill?: boolean;
 }
 
 export interface CapsuleRecallResult {
@@ -88,6 +89,9 @@ export class CapsuleRecallCoordinator {
       input.intent,
       input.maxResults,
       input.governanceFilters,
+      ...(input.allowWeakBackfill !== undefined
+        ? [{ allowWeakBackfill: input.allowWeakBackfill }]
+        : []),
     );
 
     const capsuleScoreMap = new Map(capsuleCandidates.map((c) => [c.capsuleId, c]));

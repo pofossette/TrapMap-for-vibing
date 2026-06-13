@@ -22,8 +22,11 @@ import {
 
 import { getRetrievalCacheStats } from '@trapmap/server/lib/cache/metrics.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { getAverageLatencyMs, getRuntimeMetricsSnapshot } from '@trapmap/server/lib/runtime/metrics.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import {
+  getAverageLatencyMs,
+  getRuntimeMetricsSnapshot,
+} from '@trapmap/server/lib/runtime/metrics.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
 export const statsRoutes: FastifyPluginAsync = async (app) => {
@@ -161,19 +164,22 @@ export const statsRoutes: FastifyPluginAsync = async (app) => {
             metric: 'queueBacklogByType',
             healthyBelowOrEqual: 100,
             investigateAbove: 500,
-            action: 'PG queue is enough below 100 active backlog per type; investigate external MQ above 500 sustained backlog.',
+            action:
+              'PG queue is enough below 100 active backlog per type; investigate external MQ above 500 sustained backlog.',
           },
           {
             metric: 'deadLetterByType',
             healthyBelowOrEqual: 5,
             investigateAbove: 20,
-            action: 'Modular monolith is enough while dead letters stay below 5 per type; above 20 investigate service split or external broker isolation.',
+            action:
+              'Modular monolith is enough while dead letters stay below 5 per type; above 20 investigate service split or external broker isolation.',
           },
           {
             metric: 'avgHandlerLatencyMsByType',
             healthyBelowOrEqual: 2000,
             investigateAbove: 5000,
-            action: 'Average handler latency above 5000ms is the trigger to consider dedicated service boundaries.',
+            action:
+              'Average handler latency above 5000ms is the trigger to consider dedicated service boundaries.',
           },
         ],
       },

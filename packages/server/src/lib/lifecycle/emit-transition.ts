@@ -60,7 +60,9 @@ export async function emitLifecycleTransition(params: {
 
   if (store instanceof PostgresStore) {
     const outbox = createDomainEventOutbox({ pool: store.getPool() });
-    const enqueue = params.txClient ? outbox.enqueueTx.bind(outbox, params.txClient) : outbox.enqueue;
+    const enqueue = params.txClient
+      ? outbox.enqueueTx.bind(outbox, params.txClient)
+      : outbox.enqueue;
     await enqueue({
       aggregateType,
       aggregateId,

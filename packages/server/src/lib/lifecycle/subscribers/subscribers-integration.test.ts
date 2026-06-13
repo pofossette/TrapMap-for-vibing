@@ -13,7 +13,10 @@ import { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
 import type { DomainEvent } from '@trapmap/server/lib/lifecycle/types.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
-import { buildTestServer, seedApprovedKnowledgeEntry } from '@trapmap/server/lib/retrieval/__fixtures__/auth-store-helpers.js';
+import {
+  buildTestServer,
+  seedApprovedKnowledgeEntry,
+} from '@trapmap/server/lib/retrieval/__fixtures__/auth-store-helpers.js';
 import { createConflictSubscriber } from './conflict.js';
 import { createIndexingSubscriber } from './indexing.js';
 
@@ -361,13 +364,15 @@ describe('outbox-driven subscriber execution (Phase 2)', () => {
         status.recentDeadLetters.find((task) => task.type === KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE),
       ).toBeUndefined();
 
-      const count = await store.getPool().query<{ count: string }>(
-        `SELECT COUNT(*) AS count FROM task_queue WHERE type = $1 AND dedupe_key = $2`,
-        [
-          KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
-          `${KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE}:entry_phase5_pg_subscriber:approved:deactivated:phase5-subscriber`,
-        ],
-      );
+      const count = await store
+        .getPool()
+        .query<{ count: string }>(
+          'SELECT COUNT(*) AS count FROM task_queue WHERE type = $1 AND dedupe_key = $2',
+          [
+            KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
+            `${KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE}:entry_phase5_pg_subscriber:approved:deactivated:phase5-subscriber`,
+          ],
+        );
       expect(Number(count.rows[0]?.count ?? '0')).toBe(1);
       expect(runKnowledgeIndexEvent).not.toHaveBeenCalled();
     } finally {

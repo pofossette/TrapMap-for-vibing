@@ -1,9 +1,9 @@
-import { RetrievalCache } from '@trapmap/server/lib/cache/retrieval-cache.js';
 import {
+  type CacheInvalidationEvent,
   emitCacheInvalidation,
   registerCacheInvalidationListener,
-  type CacheInvalidationEvent,
 } from '@trapmap/server/lib/cache/invalidation.js';
+import { RetrievalCache } from '@trapmap/server/lib/cache/retrieval-cache.js';
 import type { RetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 
 const READ_MODEL_CACHE_KEY = 'retrieval-read-model:global';

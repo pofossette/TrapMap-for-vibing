@@ -1,7 +1,4 @@
-import {
-  badcaseExportResponseSchema,
-  type BadcaseEvalDraft,
-} from '@trapmap/contracts';
+import { type BadcaseEvalDraft, badcaseExportResponseSchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '@trapmap/server/lib/errors.js';
@@ -9,6 +6,7 @@ import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/metrics.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
+import type { Pool } from 'pg';
 
 interface BadcaseTraceRow {
   feedback_id: string;
@@ -54,13 +52,14 @@ export const badcaseRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:export');
 
-    const store = app.skillShareer.store as { getPool?: () => { query: Function } };
+    const store = app.skillShareer.store as { getPool?: () => Pool };
     if (typeof store.getPool !== 'function') {
       throw new AppError(409, 'badcase_export_unavailable', 'Badcase export requires PostgreSQL');
     }
 
     const feedbackId = (request.params as { feedbackId: string }).feedbackId;
-    const result = await store.getPool().query<BadcaseTraceRow>(
+    const pool = store.getPool();
+    const result = await pool.query<BadcaseTraceRow>(
       `SELECT feedback_id, query_id, query_seed, route_family, entry_id, entry_type,
               failure_classification, expected_correction, selected_result_snapshot
        FROM retrieval_badcase_traces

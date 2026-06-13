@@ -94,7 +94,13 @@ export async function alignLabel(
   const generateEventId = options?.generateEventId ?? defaultEventId;
 
   // Step 1: Recall candidates
-  const recallResult = await recallCandidates(repository, rawLabel, kind, embeddings, maxCandidates);
+  const recallResult = await recallCandidates(
+    repository,
+    rawLabel,
+    kind,
+    embeddings,
+    maxCandidates,
+  );
 
   // Step 2: Build alignment input
   const alignmentInput: LabelAlignmentInput = {

@@ -118,6 +118,9 @@ function createInMemoryUsageAnalyticsRepository(): UsageAnalyticsRepository {
     async recordEvents() {
       /* no-op in JSON mode */
     },
+    async hasQueryId() {
+      return false;
+    },
     async queryUsageTimeSeries() {
       return [];
     },

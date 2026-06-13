@@ -1,15 +1,15 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 
-import type { ServerConfig } from '@trapmap/server/config.js';
-import { isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
-import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import {
   shouldBootOutboxWorker,
   shouldBootTaskWorker,
 } from '@trapmap/server/bootstrap/runtime-mode.js';
+import type { ServerConfig } from '@trapmap/server/config.js';
+import { isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
+import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import { getOrCreateRequestContext } from './request-context.js';
 import { buildRuntimeStatusSnapshot } from './runtime-metadata.js';
 
@@ -31,7 +31,7 @@ function resolveWorkerState(
 async function buildRuntimeAsyncSnapshot(app: FastifyInstance) {
   const store = app.skillShareer.store;
   if (!(store instanceof PostgresStore)) {
-    return { queueSnapshot: undefined, outboxSnapshot: undefined };
+    return {};
   }
   const pool = store.getPool();
   const queue = createTaskQueue({ pool });
@@ -74,8 +74,8 @@ export function registerRuntimeRoutes(
         outboxWorker?.ownsWork?.(),
         outboxWorker?.isRunning?.() ?? false,
       ),
-      queueSnapshot,
-      outboxSnapshot,
+      ...(queueSnapshot ? { queueSnapshot } : {}),
+      ...(outboxSnapshot ? { outboxSnapshot } : {}),
     });
 
     return {
@@ -110,8 +110,8 @@ export function registerRuntimeRoutes(
         outboxWorker?.ownsWork?.(),
         outboxWorker?.isRunning?.() ?? false,
       ),
-      queueSnapshot,
-      outboxSnapshot,
+      ...(queueSnapshot ? { queueSnapshot } : {}),
+      ...(outboxSnapshot ? { outboxSnapshot } : {}),
     });
 
     const responseBody = {

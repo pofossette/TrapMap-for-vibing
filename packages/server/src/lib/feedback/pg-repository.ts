@@ -17,6 +17,8 @@ import { feedbackCustomAnswers, feedbackRecords } from '@trapmap/server/lib/pers
 import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
 import type { FeedbackRepository } from './repository.js';
 
+type JsonObject = Record<string, unknown>;
+
 /**
  * PostgreSQL-backed repository for feedback CRUD operations.
  */
@@ -44,7 +46,7 @@ export class PgFeedbackRepository implements FeedbackRepository {
       routeFamily: feedback.routeFamily,
       failureClassification: feedback.failureClassification,
       expectedCorrection: feedback.expectedCorrection,
-      selectedResultSnapshot: feedback.selectedResultSnapshot,
+      selectedResultSnapshot: (feedback.selectedResultSnapshot ?? null) as JsonObject | null,
       submittedAt: new Date(feedback.submittedAt),
       submittedByUserId: feedback.submittedByUserId,
       submittedByHandle: feedback.submittedByHandle,
@@ -86,7 +88,7 @@ export class PgFeedbackRepository implements FeedbackRepository {
 
     if (result.length === 0) return null;
 
-    const row = result[0]!;
+    const row = result[0]! as FeedbackRecordRow;
     const customAnswers = await this.getCustomAnswers(feedbackId);
     return rowToFeedbackRecord(row, customAnswers);
   }
@@ -97,7 +99,7 @@ export class PgFeedbackRepository implements FeedbackRepository {
       .from(feedbackRecords)
       .where(eq(feedbackRecords.entryId, entryId));
 
-    return this.hydrateRows(rows);
+    return this.hydrateRows(rows as FeedbackRecordRow[]);
   }
 
   async listByStatus(status: string): Promise<FeedbackQueueRecord[]> {
@@ -106,7 +108,7 @@ export class PgFeedbackRepository implements FeedbackRepository {
       .from(feedbackRecords)
       .where(eq(feedbackRecords.status, status));
 
-    return this.hydrateRows(rows);
+    return this.hydrateRows(rows as FeedbackRecordRow[]);
   }
 
   async listByFilter(filter: {
@@ -139,7 +141,7 @@ export class PgFeedbackRepository implements FeedbackRepository {
         : this.db.select().from(feedbackRecords);
 
     const rows = await query;
-    return this.hydrateRows(rows);
+    return this.hydrateRows(rows as FeedbackRecordRow[]);
   }
 
   async update(feedbackId: string, updates: Partial<FeedbackQueueRecord>): Promise<void> {
@@ -162,7 +164,8 @@ export class PgFeedbackRepository implements FeedbackRepository {
     if (updates.expectedCorrection !== undefined)
       setValues.expectedCorrection = updates.expectedCorrection;
     if (updates.selectedResultSnapshot !== undefined)
-      setValues.selectedResultSnapshot = updates.selectedResultSnapshot;
+      setValues.selectedResultSnapshot = (updates.selectedResultSnapshot ??
+        null) as JsonObject | null;
     if (updates.remediationStatus !== undefined)
       setValues.remediationStatus = updates.remediationStatus;
     if (updates.remediationOpenedAt !== undefined)
@@ -299,7 +302,8 @@ function rowToFeedbackRecord(
     querySeed: row.querySeed,
     queryId: row.queryId,
     routeFamily: row.routeFamily as FeedbackQueueRecord['routeFamily'],
-    failureClassification: row.failureClassification as FeedbackQueueRecord['failureClassification'],
+    failureClassification:
+      row.failureClassification as FeedbackQueueRecord['failureClassification'],
     expectedCorrection: row.expectedCorrection,
     selectedResultSnapshot: row.selectedResultSnapshot,
     submittedAt: row.submittedAt.toISOString(),

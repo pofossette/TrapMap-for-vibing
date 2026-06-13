@@ -30,7 +30,7 @@ import {
   candidateManualResults,
   candidates,
 } from '@trapmap/server/lib/persistence/schema.js';
-import type { CandidateRepository, TransactionalCandidateRepository } from './repository.js';
+import type { TransactionalCandidateRepository } from './repository.js';
 import { createManualResultRecord } from './repository.js';
 
 /**

@@ -116,7 +116,9 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
     const reviewedEntry =
       store instanceof PostgresStore
         ? await store.transactWithPgClient(async (data, client) => {
-            const entry = data.knowledgeEntries.find((candidate) => candidate.id === payload.entryId);
+            const entry = data.knowledgeEntries.find(
+              (candidate) => candidate.id === payload.entryId,
+            );
 
             if (!entry) {
               throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
@@ -201,75 +203,81 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
             return toKnowledgeEntry(data, entry);
           })
         : await app.skillShareer.store.transact((data) => {
-      const entry = data.knowledgeEntries.find((candidate) => candidate.id === payload.entryId);
+            const entry = data.knowledgeEntries.find(
+              (candidate) => candidate.id === payload.entryId,
+            );
 
-      if (!entry) {
-        throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
-      }
-
-      if (entry.teamId) {
-        requireTeamAccess(auth, entry.teamId);
-      }
-
-      requireHigherLevel(auth, entry.requiredLevel);
-
-      const decidedByUserId =
-        auth.user?.id ??
-        (() => {
-          throw new AppError(403, 'user_required', 'System admin cannot author review decisions');
-        })();
-
-      const decidedAt = appliedAt;
-      previousState = entry.lifecycleState;
-      applyReviewDecision(
-        payload.evidence !== undefined
-          ? {
-              data,
-              entry,
-              reviewerUserId: decidedByUserId,
-              decidedAt,
-              decision: payload.decision,
-              notes: payload.notes,
-              evidence: payload.evidence,
+            if (!entry) {
+              throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
             }
-          : {
+
+            if (entry.teamId) {
+              requireTeamAccess(auth, entry.teamId);
+            }
+
+            requireHigherLevel(auth, entry.requiredLevel);
+
+            const decidedByUserId =
+              auth.user?.id ??
+              (() => {
+                throw new AppError(
+                  403,
+                  'user_required',
+                  'System admin cannot author review decisions',
+                );
+              })();
+
+            const decidedAt = appliedAt;
+            previousState = entry.lifecycleState;
+            applyReviewDecision(
+              payload.evidence !== undefined
+                ? {
+                    data,
+                    entry,
+                    reviewerUserId: decidedByUserId,
+                    decidedAt,
+                    decision: payload.decision,
+                    notes: payload.notes,
+                    evidence: payload.evidence,
+                  }
+                : {
+                    data,
+                    entry,
+                    reviewerUserId: decidedByUserId,
+                    decidedAt,
+                    decision: payload.decision,
+                    notes: payload.notes,
+                  },
+            );
+
+            // Update boundary if provided in payload
+            if (payload.boundary !== undefined) {
+              entry.boundary = payload.boundary;
+            }
+
+            // Capture entry ID and new state for post-commit indexing
+            entryId = entry.id;
+            nextState = entry.lifecycleState;
+
+            // Record audit event
+            const auditEvent = createAuditEvent({
+              store: app.skillShareer.store,
               data,
-              entry,
-              reviewerUserId: decidedByUserId,
-              decidedAt,
-              decision: payload.decision,
-              notes: payload.notes,
-            },
-      );
+              teamId: entry.teamId,
+              actor: auth,
+              action: 'knowledge-reviewed',
+              entityId: entry.id,
+              payload: {
+                decision: payload.decision,
+                notes: payload.notes,
+                previousState,
+                ...(payload.evidence !== undefined && { evidence: payload.evidence }),
+              },
+            });
+            data.auditEvents.push(auditEvent);
 
-      // Update boundary if provided in payload
-      if (payload.boundary !== undefined) {
-        entry.boundary = payload.boundary;
-      }
-
-      // Capture entry ID and new state for post-commit indexing
-      entryId = entry.id;
-      nextState = entry.lifecycleState;
-
-      // Record audit event
-      const auditEvent = createAuditEvent({
-        store: app.skillShareer.store,
-        data,
-        teamId: entry.teamId,
-        actor: auth,
-        action: 'knowledge-reviewed',
-        entityId: entry.id,
-        payload: {
-          decision: payload.decision,
-          notes: payload.notes,
-          previousState,
-          ...(payload.evidence !== undefined && { evidence: payload.evidence }),
-        },
-      });
-      data.auditEvents.push(auditEvent);
-
-      return toKnowledgeEntry(data, entry);
-    });
+            return toKnowledgeEntry(data, entry);
+          });
 
     if (!(store instanceof PostgresStore) && entryId && previousState && nextState) {
       await emitLifecycleTransition({

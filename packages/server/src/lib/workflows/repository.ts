@@ -1,8 +1,14 @@
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
 import { workflowRuns } from '@trapmap/server/lib/persistence/schema.js';
-import type { WorkflowRunSnapshot, WorkflowRunStatus, WorkflowRunUpdate, WorkflowType } from './types.js';
+import type {
+  WorkflowRunSnapshot,
+  WorkflowRunStatus,
+  WorkflowRunUpdate,
+  WorkflowType,
+} from './types.js';
 
 interface WorkflowRunRow {
   run_id: string;
@@ -85,7 +91,7 @@ export function createWorkflowRepository(pool: Pool) {
     if (patch.lastError !== undefined) updates.lastError = patch.lastError;
     if (patch.stats !== undefined) updates.stats = patch.stats;
 
-    await db.update(workflowRuns).set(updates).where((table, { eq }) => eq(table.runId, runId));
+    await db.update(workflowRuns).set(updates).where(eq(workflowRuns.runId, runId));
   }
 
   async function getByRunId(runId: string): Promise<WorkflowRunSnapshot | null> {

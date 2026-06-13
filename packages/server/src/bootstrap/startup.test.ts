@@ -187,7 +187,10 @@ describe('startup sequence', () => {
 
 describeIfDb('startup sequence with postgres runtime modes', () => {
   it('task-worker-only mode owns task work in postgres deployments', async () => {
-    const server = buildServer({ runtimeMode: 'task-worker', config: { databaseUrl: DATABASE_URL! } as any });
+    const server = buildServer({
+      runtimeMode: 'task-worker',
+      config: { databaseUrl: DATABASE_URL! } as any,
+    });
     await server.ready();
     expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(true);
     expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(false);
@@ -195,7 +198,10 @@ describeIfDb('startup sequence with postgres runtime modes', () => {
   });
 
   it('outbox-worker-only mode owns outbox work in postgres deployments', async () => {
-    const server = buildServer({ runtimeMode: 'outbox-worker', config: { databaseUrl: DATABASE_URL! } as any });
+    const server = buildServer({
+      runtimeMode: 'outbox-worker',
+      config: { databaseUrl: DATABASE_URL! } as any,
+    });
     await server.ready();
     expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(false);
     expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(true);

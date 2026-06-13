@@ -1,9 +1,9 @@
-import type { ServerConfig } from '@trapmap/server/config.js';
 import type {
   AsyncWorkerDependencyState,
   OutboxStatusSnapshot,
   QueueStatusSnapshot,
 } from '@trapmap/contracts';
+import type { ServerConfig } from '@trapmap/server/config.js';
 import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/backend.js';
 
 export interface RuntimeDependencyState {
@@ -31,7 +31,10 @@ export interface RuntimeStatusSnapshot {
   };
   uptimeSeconds: number;
   async?: {
-    queue: Pick<QueueStatusSnapshot, 'pending' | 'running' | 'dead' | 'staleRunning' | 'reclaimCount'>;
+    queue: Pick<
+      QueueStatusSnapshot,
+      'pending' | 'running' | 'dead' | 'staleRunning' | 'reclaimCount'
+    >;
     outbox: Pick<
       OutboxStatusSnapshot,
       'pending' | 'processing' | 'failed' | 'staleProcessing' | 'reclaimCount'
@@ -45,8 +48,14 @@ interface BuildRuntimeStatusSnapshotOptions {
   database: 'postgres' | 'json-store';
   queueWorkerState: AsyncWorkerDependencyState;
   outboxWorkerState: AsyncWorkerDependencyState;
-  queueSnapshot?: QueueStatusSnapshot;
-  outboxSnapshot?: OutboxStatusSnapshot;
+  queueSnapshot?: Pick<
+    QueueStatusSnapshot,
+    'pending' | 'running' | 'dead' | 'staleRunning' | 'reclaimCount'
+  >;
+  outboxSnapshot?: Pick<
+    OutboxStatusSnapshot,
+    'pending' | 'processing' | 'failed' | 'staleProcessing' | 'reclaimCount'
+  >;
 }
 
 function resolveGraphDependencyState(
