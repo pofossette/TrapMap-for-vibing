@@ -925,9 +925,8 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       const source = readFileSync(path.join(__dirname, 'review.ts'), 'utf8');
       // review.ts now delegates to emitLifecycleTransition for PG/JSON routing.
       expect(source).toContain('emitLifecycleTransition');
-      // No longer contains inline outbox or PostgresStore checks.
+      // No longer contains inline outbox enqueue logic.
       expect(source).not.toContain('outbox.enqueue');
-      expect(source).not.toContain('PostgresStore');
     });
   });
 });

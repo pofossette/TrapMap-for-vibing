@@ -5,6 +5,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -90,6 +91,7 @@ describe('skill-lookup helper', () => {
   let authContext: ResolvedAuthContext;
 
   beforeEach(() => {
+    resetRetrievalReadModelCacheForTests();
     authContext = {
       userId: 'user1',
       activeTeamId: 'team1',

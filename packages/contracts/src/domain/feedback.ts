@@ -117,6 +117,8 @@ export const feedbackRecordSchema = feedbackSubmissionSchema.extend({
   expectedCorrection: z.string().min(1).max(2000).optional(),
   /** Selected result snapshot */
   selectedResultSnapshot: feedbackSelectedResultSnapshotSchema.optional(),
+  /** Async follow-up workflow identifier when durable background work is queued */
+  asyncJobId: entityIdSchema.optional(),
 });
 
 /**
@@ -398,6 +400,7 @@ export const feedbackRemediationCompleteResponseSchema = z
     resolvedFeedbackIds: z.array(entityIdSchema),
     resolvedCount: z.number().int().min(0),
     resolvedAt: isoTimestampSchema,
+    asyncJobId: entityIdSchema.optional(),
   })
   .strict();
 

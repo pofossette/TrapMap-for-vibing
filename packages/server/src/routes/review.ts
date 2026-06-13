@@ -3,6 +3,7 @@ import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
+import { emitCacheInvalidation } from '@trapmap/server/lib/cache/invalidation.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   FEEDBACK_REMEDIATION_THRESHOLD,
@@ -10,6 +11,7 @@ import {
 } from '@trapmap/server/lib/feedback/remediation.js';
 import { applyReviewDecision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import {
   requireHigherLevel,
   requirePermission,
@@ -110,7 +112,95 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
     let previousState: LifecycleState | undefined;
     let nextState: LifecycleState | undefined;
 
-    const reviewedEntry = await app.skillShareer.store.transact((data) => {
+    const store = app.skillShareer.store;
+    const reviewedEntry =
+      store instanceof PostgresStore
+        ? await store.transactWithPgClient(async (data, client) => {
+            const entry = data.knowledgeEntries.find((candidate) => candidate.id === payload.entryId);
+
+            if (!entry) {
+              throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
+            }
+
+            if (entry.teamId) {
+              requireTeamAccess(auth, entry.teamId);
+            }
+
+            requireHigherLevel(auth, entry.requiredLevel);
+
+            const decidedByUserId =
+              auth.user?.id ??
+              (() => {
+                throw new AppError(
+                  403,
+                  'user_required',
+                  'System admin cannot author review decisions',
+                );
+              })();
+
+            const decidedAt = appliedAt;
+            previousState = entry.lifecycleState;
+            applyReviewDecision(
+              payload.evidence !== undefined
+                ? {
+                    data,
+                    entry,
+                    reviewerUserId: decidedByUserId,
+                    decidedAt,
+                    decision: payload.decision,
+                    notes: payload.notes,
+                    evidence: payload.evidence,
+                  }
+                : {
+                    data,
+                    entry,
+                    reviewerUserId: decidedByUserId,
+                    decidedAt,
+                    decision: payload.decision,
+                    notes: payload.notes,
+                  },
+            );
+
+            if (payload.boundary !== undefined) {
+              entry.boundary = payload.boundary;
+            }
+
+            entryId = entry.id;
+            nextState = entry.lifecycleState;
+
+            const auditEvent = createAuditEvent({
+              store: app.skillShareer.store,
+              data,
+              teamId: entry.teamId,
+              actor: auth,
+              action: 'knowledge-reviewed',
+              entityId: entry.id,
+              payload: {
+                decision: payload.decision,
+                notes: payload.notes,
+                previousState,
+                ...(payload.evidence !== undefined && { evidence: payload.evidence }),
+              },
+            });
+            data.auditEvents.push(auditEvent);
+
+            if (entryId && previousState && nextState) {
+              await emitLifecycleTransition({
+                store: app.skillShareer.store,
+                eventBus: app.skillShareer.eventBus,
+                aggregateType: 'knowledge',
+                aggregateId: entryId,
+                previousState,
+                nextState,
+                actorId: auth.actorId,
+                reason: `reviewer-${payload.decision}`,
+                txClient: client,
+              });
+            }
+
+            return toKnowledgeEntry(data, entry);
+          })
+        : await app.skillShareer.store.transact((data) => {
       const entry = data.knowledgeEntries.find((candidate) => candidate.id === payload.entryId);
 
       if (!entry) {
@@ -181,8 +271,7 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
       return toKnowledgeEntry(data, entry);
     });
 
-    // Post-commit: emit domain event (lifecycle already updated in store transact above)
-    if (entryId && previousState && nextState) {
+    if (!(store instanceof PostgresStore) && entryId && previousState && nextState) {
       await emitLifecycleTransition({
         store: app.skillShareer.store,
         eventBus: app.skillShareer.eventBus,
@@ -207,6 +296,11 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
             remediationResolvedByUserId: auth.user?.id ?? null,
           });
         }
+        emitCacheInvalidation({
+          sourceType: 'trap',
+          sourceId: payload.entryId,
+          reason: 'remediation-suppressed',
+        });
       }
     }
 

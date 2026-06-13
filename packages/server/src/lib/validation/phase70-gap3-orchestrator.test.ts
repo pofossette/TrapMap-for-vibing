@@ -7,6 +7,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
@@ -311,6 +312,7 @@ function makeServices(overrides: Partial<SkillShareerServices> = {}): SkillShare
 
 describe('Gap 3: Retrieval orchestrator combines multiple recall paths correctly', () => {
   beforeEach(() => {
+    resetRetrievalReadModelCacheForTests();
     vi.clearAllMocks();
     process.env.USE_DB_SEARCH = undefined;
   });

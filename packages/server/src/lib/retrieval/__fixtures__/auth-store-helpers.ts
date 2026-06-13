@@ -227,7 +227,7 @@ async function resetPgFixtureState(store: PostgresStore) {
       feedback_records, feedback_custom_answers,
       graph_index_documents, entity_lineage,
       lifecycle_events, usage_events, usage_events_daily_rollup,
-      store_snapshot, task_queue
+      store_snapshot, task_queue, workflow_runs, retrieval_badcase_traces
     CASCADE
   `);
 }

@@ -12,6 +12,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
@@ -451,6 +452,7 @@ function createMockServices(overrides: Partial<SkillShareerServices> = {}): Skil
 
 describe('searchKnowledge', () => {
   beforeEach(() => {
+    resetRetrievalReadModelCacheForTests();
     vi.clearAllMocks();
   });
 
@@ -699,6 +701,7 @@ describe('searchKnowledge', () => {
 
 describe('updateEntryEmbeddingCache', () => {
   beforeEach(() => {
+    resetRetrievalReadModelCacheForTests();
     vi.clearAllMocks();
   });
 
@@ -788,6 +791,7 @@ describe('updateEntryEmbeddingCache', () => {
 
 describe('searchKnowledge with real store data', () => {
   beforeEach(() => {
+    resetRetrievalReadModelCacheForTests();
     vi.clearAllMocks();
   });
 
@@ -841,6 +845,7 @@ describe('searchKnowledge with real store data', () => {
 
 describe('searchKnowledgeV2 - label filtering regression', () => {
   beforeEach(() => {
+    resetRetrievalReadModelCacheForTests();
     vi.clearAllMocks();
   });
 

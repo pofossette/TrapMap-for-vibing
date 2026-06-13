@@ -8,6 +8,7 @@ export interface RuntimeMetricsCounter {
   retryableFailures: number;
   permanentFailures: number;
   retries: number;
+  totalLatencyMs: number;
 }
 
 export interface RuntimeMetricsSnapshot {
@@ -24,6 +25,7 @@ function makeCounter(): RuntimeMetricsCounter {
     retryableFailures: 0,
     permanentFailures: 0,
     retries: 0,
+    totalLatencyMs: 0,
   };
 }
 
@@ -58,10 +60,13 @@ export function recordRuntimeExecution(params: {
   dependencyName: string;
   degraded?: boolean;
   failureKind?: RuntimeFailureKind;
+  latencyMs?: number;
 }) {
   const dependency = getDependencyCounter(params.dependencyName);
   totals.executions += 1;
   dependency.executions += 1;
+  totals.totalLatencyMs += params.latencyMs ?? 0;
+  dependency.totalLatencyMs += params.latencyMs ?? 0;
 
   if (params.degraded) {
     totals.degraded += 1;
@@ -95,6 +100,10 @@ export function getRuntimeMetricsSnapshot(): RuntimeMetricsSnapshot {
     totals: { ...totals },
     dependencies,
   };
+}
+
+export function getAverageLatencyMs(counter: RuntimeMetricsCounter): number {
+  return counter.executions > 0 ? counter.totalLatencyMs / counter.executions : 0;
 }
 
 export function resetRuntimeMetrics() {

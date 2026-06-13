@@ -2,11 +2,11 @@
 
 ## TODO
 
-- [ ] 建立 badcase 回流闭环，把线上失败样本沉淀成可复现的评测 case。
+- [x] 建立 badcase 回流闭环，把线上失败样本沉淀成可复现的评测 case。
 - [ ] 为检索、摘要、治理失败补齐 `queryId`、结果快照和失败分类。
 - [ ] 将高频异步任务从进程内副作用迁移到持久化任务队列。
-- [ ] 补齐队列、回流、检索失败分布等关键指标。
-- [ ] 在真实吞吐出现后再评估 MQ 和微服务拆分。
+- [x] 补齐队列、回流、检索失败分布等关键指标。
+- [x] 在真实吞吐出现后再评估 MQ 和微服务拆分。
 
 ## 目标
 
@@ -82,7 +82,18 @@ TrapMap 现在更适合做“单体内分层 + 持久任务队列”的演进，
 
 标准流程建议是：
 
-`发现 badcase -> 标注原因 -> 关联 query/response -> 生成 eval case -> 修复 -> 回归验证 -> 关闭`
+`发现 badcase -> 标注原因 -> 关联 query/response -> 导出 deterministic eval draft -> 人工审核 -> 修复 -> 回归验证 -> 关闭`
+
+## 判定门槛
+
+- 保持 PostgreSQL queue：
+  单类型 backlog 持续 `<= 100`，dead-letter `<= 5`，平均 handler latency `<= 2000ms`
+- 考虑外部 MQ：
+  单类型 backlog 持续 `> 500`，dead-letter `> 20`，或平均 handler latency `> 5000ms`
+- 保持 modular monolith：
+  shared jobs、cache invalidation、badcase export 仍能在单进程/单仓内清晰观测和修复
+- 考虑服务拆分：
+  某一类任务长期高 backlog、高 dead-letter 或高延迟，并已需要独立扩缩容或独立故障域
 
 落地时至少要记录：
 

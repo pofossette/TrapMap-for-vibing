@@ -1,4 +1,9 @@
-export type WorkflowType = 'candidate-processing' | 'capsule-index-rebuild';
+export type WorkflowType =
+  | 'candidate-processing'
+  | 'capsule-index-rebuild'
+  | 'knowledge-index-follow-up'
+  | 'feedback-remediation-reactivation'
+  | 'badcase-export-draft';
 
 export type WorkflowRunStatus = 'pending' | 'running' | 'completed' | 'failed';
 

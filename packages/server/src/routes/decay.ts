@@ -24,6 +24,7 @@ import { executeBatchOperation, planBatchOperation } from '@trapmap/server/lib/d
 import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
 import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
 import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -267,24 +268,47 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Execute mode: plan and execute
-    const mutatedRecords = await app.skillShareer.store.transact((data) => {
-      return executeBatchOperation(app.skillShareer.store, data, input, config, now);
-    });
+    const store = app.skillShareer.store;
+    const mutatedRecords =
+      store instanceof PostgresStore
+        ? await store.transactWithPgClient(async (data, client) => {
+            const mutated = executeBatchOperation(store, data, input, config, now);
+            for (const record of mutated) {
+              const previousState = 'approved';
+              const nextState = record.lifecycleState;
+              await emitLifecycleTransition({
+                store,
+                eventBus: app.skillShareer.eventBus,
+                aggregateType: 'knowledge',
+                aggregateId: record.id,
+                previousState: previousState as LifecycleState,
+                nextState,
+                actorId: auth.actorId,
+                reason: `batch-${body.action}`,
+                txClient: client,
+              });
+            }
+            return mutated;
+          })
+        : await app.skillShareer.store.transact((data) => {
+            return executeBatchOperation(app.skillShareer.store, data, input, config, now);
+          });
 
-    // Post-commit: emit events for each mutated entry with lifecycle change
-    for (const record of mutatedRecords) {
-      const previousState = 'approved'; // Only approved entries can be batch-mutated
-      const nextState = record.lifecycleState;
-      await emitLifecycleTransition({
-        store: app.skillShareer.store,
-        eventBus: app.skillShareer.eventBus,
-        aggregateType: 'knowledge',
-        aggregateId: record.id,
-        previousState: previousState as LifecycleState,
-        nextState,
-        actorId: auth.actorId,
-        reason: `batch-${body.action}`,
-      });
+    if (!(store instanceof PostgresStore)) {
+      for (const record of mutatedRecords) {
+        const previousState = 'approved';
+        const nextState = record.lifecycleState;
+        await emitLifecycleTransition({
+          store: app.skillShareer.store,
+          eventBus: app.skillShareer.eventBus,
+          aggregateType: 'knowledge',
+          aggregateId: record.id,
+          previousState: previousState as LifecycleState,
+          nextState,
+          actorId: auth.actorId,
+          reason: `batch-${body.action}`,
+        });
+      }
     }
 
     // Get the plan for response

@@ -14,6 +14,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { buildServer } from '@trapmap/server/app.js';
+import { BADCASE_EXPORT_DRAFT_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
@@ -208,6 +210,15 @@ describe('feedback routes', () => {
     expect(body.feedback.expectedCorrection).toBe('Return the current library migration guide.');
     expect(body.feedback.submittedBy).toBeDefined();
     expect(body.feedback.submittedBy.id).toBe(userId);
+
+    if (store instanceof PostgresStore) {
+      expect(body.feedback.asyncJobId).toBeDefined();
+      const queued = await store.getPool().query<{ count: string }>(
+        `SELECT COUNT(*) AS count FROM task_queue WHERE type = $1 AND dedupe_key = $2`,
+        [BADCASE_EXPORT_DRAFT_TASK_TYPE, `${BADCASE_EXPORT_DRAFT_TASK_TYPE}:feedback_1`],
+      );
+      expect(Number(queued.rows[0]?.count ?? '0')).toBe(1);
+    }
   });
 
   it('returns 401 when not authenticated', async () => {
@@ -710,6 +721,9 @@ describe('feedback admin routes', () => {
       const body = response.json();
       expect(body.entryId).toBe('trap_1');
       expect(body.resolvedCount).toBe(10);
+      if (store instanceof PostgresStore) {
+        expect(body.asyncJobId).toBe(`wf_remediation_trap_1`);
+      }
 
       const data = await store.snapshot();
       const active = data.feedbackQueue.filter(

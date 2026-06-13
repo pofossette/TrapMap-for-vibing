@@ -12,6 +12,7 @@ import { AppError } from '@trapmap/server/lib/errors.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '@trapmap/server/lib/knowledge.js';
 import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import {
   requireHigherLevel,
   requirePermission,
@@ -126,7 +127,68 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
     let previousState: LifecycleState | undefined;
     let nextState: LifecycleState | undefined;
 
-    const updatedEntry = await app.skillShareer.store.transact((data) => {
+    const store = app.skillShareer.store;
+    const updatedEntry =
+      store instanceof PostgresStore
+        ? await store.transactWithPgClient(async (data, client) => {
+            const entry = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
+
+            if (!entry) {
+              throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
+            }
+
+            if (entry.teamId) {
+              requireTeamAccess(auth, entry.teamId);
+            }
+
+            requireHigherLevel(auth, entry.requiredLevel);
+
+            const deactivatedAt = nowIso();
+            previousState = entry.lifecycleState;
+            transitionLifecycleState(entry, 'deactivated', 'knowledge deactivate');
+            nextState = 'deactivated';
+
+            entry.lifecycleHistory.push({
+              id: app.skillShareer.store.nextId(data, 'knowledge_event'),
+              type: 'deactivated',
+              createdAt: deactivatedAt,
+              actorUserId: auth.user?.id ?? null,
+              submissionId: entry.latestSubmissionId,
+              revision: entry.latestRevision.revision,
+              state: 'deactivated',
+              note: payload.reason,
+            });
+
+            entry.updatedAt = deactivatedAt;
+
+            const auditEvent = createAuditEvent({
+              store: app.skillShareer.store,
+              data,
+              teamId: entry.teamId,
+              actor: auth,
+              action: 'knowledge-deactivated',
+              entityId: entry.id,
+              payload: { reason: payload.reason, previousState },
+            });
+            data.auditEvents.push(auditEvent);
+
+            if (previousState && nextState) {
+              await emitLifecycleTransition({
+                store: app.skillShareer.store,
+                eventBus: app.skillShareer.eventBus,
+                aggregateType: 'knowledge',
+                aggregateId: entryId,
+                previousState,
+                nextState,
+                actorId: auth.actorId,
+                reason: 'deactivated',
+                txClient: client,
+              });
+            }
+
+            return toKnowledgeEntry(data, entry);
+          })
+        : await app.skillShareer.store.transact((data) => {
       const entry = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
 
       if (!entry) {
@@ -177,9 +239,7 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
       return toKnowledgeEntry(data, entry);
     });
 
-    // Post-commit: emit domain event
-    // Note: store.transact() already updated lifecycle state; no repo.updateLifecycle() needed
-    if (previousState && nextState) {
+    if (!(store instanceof PostgresStore) && previousState && nextState) {
       await emitLifecycleTransition({
         store: app.skillShareer.store,
         eventBus: app.skillShareer.eventBus,

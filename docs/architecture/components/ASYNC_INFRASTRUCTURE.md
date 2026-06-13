@@ -1,5 +1,7 @@
 # 异步基础设施 (Async Infrastructure)
 
+> 当前更完整、包含 Phase 5-7 shared jobs / cache invalidation / badcase export / runtime modes 的异步模型说明见 [`ASYNC_MODEL.md`](ASYNC_MODEL.md)。
+
 ## 概述
 
 TrapMap 的异步基础设施**不依赖外部中间件**（无 Redis、Bull、WebSocket、worker_threads），而是基于 PostgreSQL 和 Node.js 原语自建了一套轻量级异步栈，覆盖事件驱动、持久化任务队列、并发控制、缓存优化四大需求。

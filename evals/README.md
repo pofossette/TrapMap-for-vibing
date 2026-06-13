@@ -39,6 +39,9 @@ pnpm eval:retrieval:core
 # 仅摘要
 pnpm eval:summary:smoke
 pnpm eval:summary:core
+
+# 从持久化 badcase trace 导出 eval draft
+pnpm exec tsx scripts/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
 ```
 
 ## 工作区布局

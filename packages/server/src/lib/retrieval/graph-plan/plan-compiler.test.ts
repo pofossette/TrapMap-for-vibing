@@ -5,6 +5,7 @@
  */
 
 import type { PlanQuery, TrapFirstPlan } from '@trapmap/contracts';
+import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type {
   GraphEdgeRecord,
@@ -13,7 +14,7 @@ import type {
 } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import { buildDeployClusterDataset } from '@trapmap/server/lib/retrieval/__fixtures__/graph-fixtures.js';
 import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { compileTrapFirstPlan } from './plan-compiler.js';
 
 // ---------------------------------------------------------------------------
@@ -381,6 +382,10 @@ function makeMockAuth(overrides: Partial<ResolvedAuthContext> = {}): ResolvedAut
 // ---------------------------------------------------------------------------
 
 describe('plan-compiler', () => {
+  beforeEach(() => {
+    resetRetrievalReadModelCacheForTests();
+  });
+
   describe('compileTrapFirstPlan', () => {
     it('returns empty plan when no candidates match query', async () => {
       const services = makeMockServices({

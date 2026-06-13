@@ -658,7 +658,13 @@ export const outboxStatusSnapshotSchema = z
 export const workflowRunSnapshotSchema = z
   .object({
     runId: entityIdSchema,
-    workflowType: z.enum(['candidate-processing', 'capsule-index-rebuild']),
+    workflowType: z.enum([
+      'candidate-processing',
+      'capsule-index-rebuild',
+      'knowledge-index-follow-up',
+      'feedback-remediation-reactivation',
+      'badcase-export-draft',
+    ]),
     subjectId: entityIdSchema,
     status: z.enum(['pending', 'running', 'completed', 'failed']),
     stepName: z.string().nullable(),
@@ -672,11 +678,23 @@ export const workflowRunSnapshotSchema = z
   })
   .strict();
 
+export const retrievalCacheNamespaceStatsSchema = z
+  .object({
+    hits: z.number().int().min(0),
+    misses: z.number().int().min(0),
+    evictions: z.number().int().min(0),
+    invalidations: z.number().int().min(0),
+    size: z.number().int().min(0),
+    hitRate: z.number().min(0).max(1),
+  })
+  .strict();
+
 export const asyncOperationsStatusResponseSchema = z
   .object({
     asyncRuntimeEnabled: z.boolean(),
     queue: queueStatusSnapshotSchema,
     outbox: outboxStatusSnapshotSchema,
+    cache: z.record(z.string(), retrievalCacheNamespaceStatsSchema),
     workflows: z.array(workflowRunSnapshotSchema),
     reportedAt: isoTimestampSchema,
   })
@@ -702,8 +720,39 @@ export type OutboxEventOperatorSnapshot = z.infer<typeof outboxEventOperatorSnap
 export type QueueStatusSnapshot = z.infer<typeof queueStatusSnapshotSchema>;
 export type OutboxStatusSnapshot = z.infer<typeof outboxStatusSnapshotSchema>;
 export type WorkflowRunSnapshot = z.infer<typeof workflowRunSnapshotSchema>;
+export type RetrievalCacheNamespaceStats = z.infer<typeof retrievalCacheNamespaceStatsSchema>;
 export type AsyncOperationsStatusResponse = z.infer<typeof asyncOperationsStatusResponseSchema>;
 export type AsyncTaskRequeueResponse = z.infer<typeof asyncTaskRequeueResponseSchema>;
+
+export const badcaseEvalDraftSchema = z
+  .object({
+    kind: z.enum(['retrieval', 'summary']),
+    caseId: entityIdSchema,
+    sourceFeedbackId: entityIdSchema,
+    queryId: z.string().nullable(),
+    routeFamily: z.enum(['entry', 'capsule', 'graph-plan']).nullable(),
+    request: z.record(z.string(), z.unknown()),
+    expected: z.record(z.string(), z.unknown()),
+    notes: z.array(z.string().min(1)),
+  })
+  .strict();
+
+export const badcaseExportResponseSchema = z
+  .object({
+    feedbackId: entityIdSchema,
+    draft: badcaseEvalDraftSchema,
+    exportedAt: isoTimestampSchema,
+  })
+  .strict();
+
+export const architectureDecisionThresholdSchema = z
+  .object({
+    metric: z.string().min(1),
+    healthyBelowOrEqual: z.number().min(0).nullable(),
+    investigateAbove: z.number().min(0).nullable(),
+    action: z.string().min(1),
+  })
+  .strict();
 
 // =============================================================================
 // Phase 19: Skill Edit and History Contracts (SKED-02, SKED-04)
@@ -1012,6 +1061,18 @@ export const statsSummaryResponseSchema = z
     uniqueQueries: z.number().int().min(0),
     uniqueTeams: z.number().int().min(0),
     uniqueAccounts: z.number().int().min(0),
+    asyncArchitecture: z
+      .object({
+        queueBacklogByType: z.record(z.string(), z.number().int().min(0)),
+        deadLetterByType: z.record(z.string(), z.number().int().min(0)),
+        retryRateByType: z.record(z.string(), z.number().min(0)),
+        avgHandlerLatencyMsByType: z.record(z.string(), z.number().min(0)),
+        cacheHitRateByNamespace: z.record(z.string(), z.number().min(0).max(1)),
+        badcaseExportCount: z.number().int().min(0),
+        retrievalFailureDistribution: z.record(z.string(), z.number().int().min(0)),
+        thresholds: z.array(architectureDecisionThresholdSchema),
+      })
+      .strict(),
   })
   .strict();
 
@@ -1025,3 +1086,5 @@ export type StatsHitRankingItem = z.infer<typeof statsHitRankingItemSchema>;
 export type StatsHitRankingResponse = z.infer<typeof statsHitRankingResponseSchema>;
 export type StatsSummaryQuery = z.infer<typeof statsSummaryQuerySchema>;
 export type StatsSummaryResponse = z.infer<typeof statsSummaryResponseSchema>;
+export type BadcaseEvalDraft = z.infer<typeof badcaseEvalDraftSchema>;
+export type BadcaseExportResponse = z.infer<typeof badcaseExportResponseSchema>;

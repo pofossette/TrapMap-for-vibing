@@ -20,7 +20,9 @@ import {
   statsUsageResponseSchema,
 } from '@trapmap/contracts';
 
+import { getRetrievalCacheStats } from '@trapmap/server/lib/cache/metrics.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
+import { getAverageLatencyMs, getRuntimeMetricsSnapshot } from '@trapmap/server/lib/runtime/metrics.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
@@ -116,6 +118,65 @@ export const statsRoutes: FastifyPluginAsync = async (app) => {
       ...(query.to !== undefined && { to: new Date(query.to) }),
     });
 
-    return statsSummaryResponseSchema.parse(result);
+    const runtime = getRuntimeMetricsSnapshot();
+    const cacheStats = getRetrievalCacheStats();
+    const queueBacklogByType: Record<string, number> = {};
+    const deadLetterByType: Record<string, number> = {};
+    const retryRateByType: Record<string, number> = {};
+    const avgHandlerLatencyMsByType: Record<string, number> = {};
+    const retrievalFailureDistribution: Record<string, number> = {};
+
+    for (const [dependencyName, counter] of Object.entries(runtime.dependencies)) {
+      if (dependencyName.startsWith('task:backlog:')) {
+        queueBacklogByType[dependencyName.replace('task:backlog:', '')] = counter.executions;
+      }
+      if (dependencyName.startsWith('task:dead-letter:')) {
+        deadLetterByType[dependencyName.replace('task:dead-letter:', '')] = counter.executions;
+      }
+      retryRateByType[dependencyName] =
+        counter.executions > 0 ? counter.retries / counter.executions : 0;
+      avgHandlerLatencyMsByType[dependencyName] = getAverageLatencyMs(counter);
+      if (dependencyName.startsWith('retrieval-failure:')) {
+        retrievalFailureDistribution[dependencyName.replace('retrieval-failure:', '')] =
+          counter.executions;
+      }
+    }
+
+    const cacheHitRateByNamespace = Object.fromEntries(
+      Object.entries(cacheStats).map(([ns, stats]) => [ns, stats.hitRate]),
+    );
+
+    return statsSummaryResponseSchema.parse({
+      ...result,
+      asyncArchitecture: {
+        queueBacklogByType,
+        deadLetterByType,
+        retryRateByType,
+        avgHandlerLatencyMsByType,
+        cacheHitRateByNamespace,
+        badcaseExportCount: runtime.dependencies['badcase-export']?.executions ?? 0,
+        retrievalFailureDistribution,
+        thresholds: [
+          {
+            metric: 'queueBacklogByType',
+            healthyBelowOrEqual: 100,
+            investigateAbove: 500,
+            action: 'PG queue is enough below 100 active backlog per type; investigate external MQ above 500 sustained backlog.',
+          },
+          {
+            metric: 'deadLetterByType',
+            healthyBelowOrEqual: 5,
+            investigateAbove: 20,
+            action: 'Modular monolith is enough while dead letters stay below 5 per type; above 20 investigate service split or external broker isolation.',
+          },
+          {
+            metric: 'avgHandlerLatencyMsByType',
+            healthyBelowOrEqual: 2000,
+            investigateAbove: 5000,
+            action: 'Average handler latency above 5000ms is the trigger to consider dedicated service boundaries.',
+          },
+        ],
+      },
+    });
   });
 };

@@ -106,6 +106,10 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 > **Phase 3 更新**：`lib/workflows/` 持有长任务运行快照的持久化与类型。当前由 candidate processing 和 capsule-index rebuild 写入 `workflow_runs`，而 `routes/operations/status.ts` 负责把最近 workflow runs 暴露到 operator status family。
 >
 > **Phase 4 更新**：retrieval 路由负责生成并公开 `queryId`；feedback 路由负责接收最小 badcase envelope，并在 PostgreSQL 模式下把可复现快照写入 `retrieval_badcase_traces`。usage analytics 仍可复用 `queryId` 做关联，但不再是 badcase reconstruction 的唯一事实源。
+>
+> **Phase 5 更新**：`lib/jobs/` 成为共享派生重活的统一入口。候选处理之外，生命周期索引 follow-up、feedback remediation 完成后的 reactivation/reindex follow-up、以及 badcase export draft generation 都通过 `task_queue` + `workflow_runs` 进入统一 worker substrate；路由和订阅器负责 authoritative write / outbox commit 后入队，不再在本地同步执行重活。
+>
+> **Phase 6 更新**：retrieval-side process-local caches 现在被显式视为 derived artifacts，而不是“透明优化”。`lib/cache/retrieval-read-model-cache.ts` 持有 read-model 缓存，`lib/retrieval/capsules/intent-cache.ts` 持有意图缓存；两者都通过 `lib/cache/invalidation.ts` 接受 shared invalidation events。生命周期 approval/deactivation、remediation suppression、remediation reactivation 都会清理 retrieval caches，operator 可在 `/v1/operations/status/async` 查看 cache hit/miss/eviction/invalidation 指标。
 | `UsageAnalyticsRepository` | `lib/analytics/repository.ts` | PG (`PgUsageAnalyticsRepository`) 或 InMemory (no-op) |
 | `AccessKeyRepository` | `lib/auth/repository.ts` | PG (`PgAccessKeyRepository`) 或 JSON (`InMemoryAccessKeyRepository`) |
 | `SessionRepository` | `lib/auth/repository.ts` | PG (`PgSessionRepository`) 或 JSON (`InMemorySessionRepository`) |
@@ -136,6 +140,14 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 | `routes/maintenance.ts` | `/v1/operations/maintenance` | 维护管理 |
 | `routes/admin-boundary-search.ts` | `/admin/boundary-search` | 管理员边界搜索 |
 | `routes/admin-benchmark.ts` | `/admin/benchmark` | 管理员基准测试 |
+
+### Shared Jobs
+
+| 模块 | 文件 | 说明 |
+|------|------|------|
+| shared jobs | `lib/jobs/index.ts` | 统一导出 shared task types、scheduler 与 handlers |
+| job handlers | `lib/jobs/handlers/*.ts` | 生命周期索引 follow-up、remediation reactivation、badcase export draft |
+| worker bootstrap | `bootstrap/bootstrap-workers.ts` | 把 candidate handler 与 shared job handlers 注册到同一 `task_queue` worker |
 
 > **Wiring debt convergence 更新**：知识生命周期的 PG 投影发布统一走 `emitLifecycleTransition()`。该入口现在支持复用活动事务 client，把生命周期变更与 `domain_event_outbox` 注册原子提交；JSON 模式保留同步 event bus 回退。
 

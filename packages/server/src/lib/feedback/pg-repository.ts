@@ -53,6 +53,15 @@ export class PgFeedbackRepository implements FeedbackRepository {
       resolvedAt: feedback.resolvedAt ? new Date(feedback.resolvedAt) : null,
       resolvedByUserId: feedback.resolvedByUserId,
       triggeredTransition: feedback.triggeredTransition,
+      remediationStatus: feedback.remediationStatus ?? null,
+      remediationOpenedAt: feedback.remediationOpenedAt
+        ? new Date(feedback.remediationOpenedAt)
+        : null,
+      remediationOpenedByUserId: feedback.remediationOpenedByUserId ?? null,
+      remediationResolvedAt: feedback.remediationResolvedAt
+        ? new Date(feedback.remediationResolvedAt)
+        : null,
+      remediationResolvedByUserId: feedback.remediationResolvedByUserId ?? null,
       createdAt: new Date(feedback.createdAt),
       updatedAt: new Date(feedback.updatedAt),
     });
@@ -154,6 +163,20 @@ export class PgFeedbackRepository implements FeedbackRepository {
       setValues.expectedCorrection = updates.expectedCorrection;
     if (updates.selectedResultSnapshot !== undefined)
       setValues.selectedResultSnapshot = updates.selectedResultSnapshot;
+    if (updates.remediationStatus !== undefined)
+      setValues.remediationStatus = updates.remediationStatus;
+    if (updates.remediationOpenedAt !== undefined)
+      setValues.remediationOpenedAt = updates.remediationOpenedAt
+        ? new Date(updates.remediationOpenedAt)
+        : null;
+    if (updates.remediationOpenedByUserId !== undefined)
+      setValues.remediationOpenedByUserId = updates.remediationOpenedByUserId;
+    if (updates.remediationResolvedAt !== undefined)
+      setValues.remediationResolvedAt = updates.remediationResolvedAt
+        ? new Date(updates.remediationResolvedAt)
+        : null;
+    if (updates.remediationResolvedByUserId !== undefined)
+      setValues.remediationResolvedByUserId = updates.remediationResolvedByUserId;
 
     setValues.updatedAt = new Date();
 
@@ -200,6 +223,11 @@ export class PgFeedbackRepository implements FeedbackRepository {
       resolvedAt: Date | null;
       resolvedByUserId: string | null;
       triggeredTransition: string | null;
+      remediationStatus: string | null;
+      remediationOpenedAt: Date | null;
+      remediationOpenedByUserId: string | null;
+      remediationResolvedAt: Date | null;
+      remediationResolvedByUserId: string | null;
       createdAt: Date;
       updatedAt: Date;
     }>,
@@ -248,6 +276,11 @@ interface FeedbackRecordRow {
   resolvedAt: Date | null;
   resolvedByUserId: string | null;
   triggeredTransition: string | null;
+  remediationStatus: string | null;
+  remediationOpenedAt: Date | null;
+  remediationOpenedByUserId: string | null;
+  remediationResolvedAt: Date | null;
+  remediationResolvedByUserId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -277,6 +310,11 @@ function rowToFeedbackRecord(
     resolvedAt: row.resolvedAt?.toISOString() ?? null,
     resolvedByUserId: row.resolvedByUserId,
     triggeredTransition: row.triggeredTransition,
+    remediationStatus: (row.remediationStatus as FeedbackQueueRecord['remediationStatus']) ?? null,
+    remediationOpenedAt: row.remediationOpenedAt?.toISOString() ?? null,
+    remediationOpenedByUserId: row.remediationOpenedByUserId,
+    remediationResolvedAt: row.remediationResolvedAt?.toISOString() ?? null,
+    remediationResolvedByUserId: row.remediationResolvedByUserId,
     customAnswers: customAnswers.length > 0 ? customAnswers : null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

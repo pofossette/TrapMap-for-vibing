@@ -4,8 +4,8 @@
 
 - [ ] 定义 badcase 的统一分类：召回缺失、排序错误、摘要幻觉、治理泄漏、内容过时。
 - [x] 在反馈提交中补齐 `queryId`、命中结果快照和期望结果。
-- [ ] 建立从 badcase 到 eval case 的标准转换流程。
-- [ ] 为回流后的 case 增加固定回归验证。
+- [x] 建立从 badcase 到 eval case 的标准转换流程。
+- [x] 为回流后的 case 增加固定回归验证。
 
 ## 已落地部分（2026-06-09）
 
@@ -21,8 +21,15 @@
 
 - [x] 检索响应已经统一暴露 `queryId`
 - [x] feedback 记录已经保存 `queryId`、命中快照和正确预期
-- [ ] remediation complete 目前主要 resolve active feedback，尚未真正复用索引摘除/重建运维动作
-- [ ] badcase -> eval case 的自动转换脚本还没落地
+- [x] remediation complete 已复用 shared async follow-up 与索引刷新路径
+- [x] badcase -> eval case 的自动转换脚本已落地：`scripts/export-badcase-to-eval.ts`
+
+## 已闭环部分（2026-06-13）
+
+- `GET /v1/operations/badcases/:feedbackId/export` 可返回 deterministic eval draft
+- `scripts/export-badcase-to-eval.ts` 可把同一 draft 写入本地 JSON
+- `evals/fixtures/badcases/example-retrieval-badcase-draft.json` 已作为首个导出样例入库
+- 当前剩余人工边界只在“是否把 draft 正式提升为 eval fixture”的审核动作
 
 ## 什么是 badcase 回流
 

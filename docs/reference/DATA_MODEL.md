@@ -60,11 +60,22 @@ Round 0 的目标不是立即改完所有表，而是冻结后续数据库现代
 
 - `workflow_runs` 是长任务运行快照的权威持久化模型。
 - 当前 `workflowType`：
-  `candidate-processing | capsule-index-rebuild`
+  `candidate-processing | capsule-index-rebuild | knowledge-index-follow-up | feedback-remediation-reactivation | badcase-export-draft`
 - 当前 `status`：
   `pending | running | completed | failed`
 - 第一版只记录线性 step：
   `stepName` 表示当前或最近一步，不引入 DAG 编排。
+
+### Phase 5 Shared Derived Jobs
+
+- `task_queue` 承载 shared derived jobs，当前包括：
+  - `knowledge.index-follow-up`
+  - `feedback.remediation-reactivation`
+  - `feedback.badcase-export-draft`
+- 这些任务的 payload 属于派生执行输入，不是业务主事实源；其 operator 可见性来自 `task_queue` 与 `workflow_runs`。
+- `feedback_records` 现在额外保存 remediation lifecycle columns：
+  `remediationStatus`、`remediationOpenedAt`、`remediationOpenedByUserId`、`remediationResolvedAt`、`remediationResolvedByUserId`
+- `retrieval_badcase_traces` 仍是 badcase 可复现场景的 durable truth source；Phase 5 只增加 export draft workflow，可在不重建上下文的情况下把 trace 提升为 operator-visible async follow-up。
 
 ### Phase 4 Badcase Trace
 

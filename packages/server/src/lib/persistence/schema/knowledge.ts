@@ -581,6 +581,16 @@ export const feedbackRecords = pgTable(
     resolvedByUserId: text('resolved_by_user_id'),
     /** Lifecycle transition triggered by this feedback */
     triggeredTransition: text('triggered_transition'),
+    /** Derived remediation status for escalated entries */
+    remediationStatus: text('remediation_status'),
+    /** When remediation was opened */
+    remediationOpenedAt: timestamp('remediation_opened_at', { withTimezone: true }),
+    /** Who opened remediation */
+    remediationOpenedByUserId: text('remediation_opened_by_user_id'),
+    /** When remediation was resolved */
+    remediationResolvedAt: timestamp('remediation_resolved_at', { withTimezone: true }),
+    /** Who resolved remediation */
+    remediationResolvedByUserId: text('remediation_resolved_by_user_id'),
     /** Record creation timestamp */
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     /** Record update timestamp */
@@ -600,6 +610,10 @@ export const feedbackRecords = pgTable(
     check(
       'ck_feedback_records_status',
       sql`${table.status} IN ('new', 'triaged', 'resolved', 'dismissed')`,
+    ),
+    check(
+      'ck_feedback_records_remediation_status',
+      sql`${table.remediationStatus} IS NULL OR ${table.remediationStatus} IN ('pending-human-review', 'in-remediation', 'ready-to-reindex')`,
     ),
   ],
 );

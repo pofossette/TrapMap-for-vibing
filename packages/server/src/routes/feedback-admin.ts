@@ -34,8 +34,9 @@ import {
   computeFeedbackRemediationState,
   getActiveEntryFeedback,
 } from '@trapmap/server/lib/feedback/remediation.js';
-import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
-import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
+import { scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
+import { REMEDIATION_REACTIVATION_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
@@ -542,45 +543,6 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
 
     const entryType = unresolved[0]!.entryType;
 
-    if (entryType === 'trap') {
-      const entry = await app.skillShareer.repos.knowledge.getById(entryId);
-      if (!entry) {
-        throw new AppError(404, 'not_found', 'Knowledge entry not found');
-      }
-
-      await runKnowledgeIndexEvent({
-        services: {
-          store: app.skillShareer.store,
-          data: await app.skillShareer.store.snapshot(),
-          ai: { chat: app.skillShareer.ai.chat },
-          graphQueryBackend: app.skillShareer.graphQueryBackend,
-        },
-        entryId,
-        previousState: entry.lifecycleState,
-        nextState: entry.lifecycleState,
-        reason: 'updated',
-        registry: app.skillShareer.adapterRegistry,
-      });
-    } else {
-      const artifact = await app.skillShareer.repos.artifact.getById(entryId);
-      if (!artifact) {
-        throw new AppError(404, 'not_found', 'Skill artifact not found');
-      }
-
-      await runSkillIndexEvent({
-        services: {
-          store: app.skillShareer.store,
-          data: await app.skillShareer.store.snapshot(),
-          ai: { chat: app.skillShareer.ai.chat },
-          graphQueryBackend: app.skillShareer.graphQueryBackend,
-        },
-        artifactId: entryId,
-        previousState: artifact.lifecycleState,
-        nextState: artifact.lifecycleState,
-        reason: 'updated',
-      });
-    }
-
     for (const feedback of unresolved) {
       await feedbackRepo.update(feedback.id, {
         status: 'resolved',
@@ -593,12 +555,31 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
+    if (app.skillShareer.store instanceof PostgresStore) {
+      await scheduleSharedJob(
+        app.skillShareer.store,
+        REMEDIATION_REACTIVATION_TASK_TYPE,
+        {
+          entryId,
+          entryType,
+          feedbackIds: unresolved.map((feedback) => feedback.id),
+          resolvedAt: appliedAt,
+          resolvedByUserId: auth.user?.id ?? null,
+          notes: body.notes ?? null,
+        },
+        `${REMEDIATION_REACTIVATION_TASK_TYPE}:${entryId}:${appliedAt}`,
+      );
+    }
+
     return feedbackRemediationCompleteResponseSchema.parse({
       entryId,
       entryType,
       resolvedFeedbackIds: unresolved.map((feedback) => feedback.id),
       resolvedCount: unresolved.length,
       resolvedAt: appliedAt,
+      ...(app.skillShareer.store instanceof PostgresStore
+        ? { asyncJobId: `wf_remediation_${entryId}` }
+        : {}),
     });
   });
 

@@ -103,11 +103,11 @@
 
 | 方法 | 路由 | 请求契约 | 响应契约 | 用途 |
 |------|------|----------|----------|------|
-| `POST` | `/v1/feedback` | `feedbackSubmissionSchema` | `feedbackResponseSchema` | 提交知识条目反馈，支持 additive badcase reproducibility envelope |
+| `POST` | `/v1/feedback` | `feedbackSubmissionSchema` | `feedbackResponseSchema` | 提交知识条目反馈，支持 additive badcase reproducibility envelope；PG 模式下会返回 additive `asyncJobId` 用于 badcase export draft follow-up |
 | `GET` | `/v1/operations/feedback` | `feedbackListRequestSchema` | `feedbackListResponseSchema` | 管理员获取反馈列表 |
 | `GET` | `/v1/operations/feedback/remediation` | 无 | `feedbackRemediationQueueResponseSchema` | 获取达到阈值的 remediation 工作队列 |
 | `GET` | `/v1/operations/feedback/remediation/:entryId` | 无 | `feedbackRemediationDetailResponseSchema` | 获取单个 trap/skill remediation 详情与内容快照 |
-| `POST` | `/v1/operations/feedback/remediation/:entryId/complete` | `feedbackRemediationCompleteRequestSchema` | `feedbackRemediationCompleteResponseSchema` | 完成 remediation；先复用现有 trap/skill 索引刷新路径，再批量 resolve 当前未解决 feedback |
+| `POST` | `/v1/operations/feedback/remediation/:entryId/complete` | `feedbackRemediationCompleteRequestSchema` | `feedbackRemediationCompleteResponseSchema` | 完成 remediation；批量 resolve 当前未解决 feedback，并在 PG 模式下返回 additive `asyncJobId` 指向后续 reactivation/reindex job |
 | `POST` | `/v1/operations/feedback/batch` | `feedbackBatchRequestSchema` | `feedbackBatchResponseSchema` | 批量处理反馈（resolve/dismiss/triage/transition） |
 | `GET` | `/v1/operations/feedback/stats/:entryId` | 无 | `feedbackStatsResponseSchema` | 获取条目的反馈统计和质量分数 |
 
@@ -163,6 +163,7 @@
 | `GET` | `/v1/operations/status` | `compatibilityStatusRequestSchema` | `compatibilityStatusResponseSchema` | 获取系统兼容性状态 |
 | `GET` | `/v1/operations/status/async` | 无 | `asyncOperationsStatusResponseSchema` | 获取 queue/outbox backlog、dead-letter、reclaim、worker 状态，以及最近 workflow run 快照 |
 | `POST` | `/v1/operations/status/async/tasks/:taskId/requeue` | 无 | `asyncTaskRequeueResponseSchema` | 通过统一 operator flow 重新入队 dead task |
+| `GET` | `/v1/operations/badcases/:feedbackId/export` | 无 | `badcaseExportResponseSchema` | 把持久化 badcase trace 导出为 deterministic eval draft |
 
 > 源码：`packages/server/src/routes/operations.ts`（注册子路由）
 
@@ -184,7 +185,7 @@
 |------|------|----------|----------|------|
 | `GET` | `/v1/operations/stats/usage` | `statsUsageQuerySchema` | `statsUsageResponseSchema` | 按时间桶聚合的使用量时序数据 |
 | `GET` | `/v1/operations/stats/hits` | `statsHitRankingQuerySchema` | `statsHitRankingResponseSchema` | 按条目命中次数排名 |
-| `GET` | `/v1/operations/stats/summary` | `statsSummaryQuerySchema` | `statsSummaryResponseSchema` | 系统级汇总统计（仅 system-admin） |
+| `GET` | `/v1/operations/stats/summary` | `statsSummaryQuerySchema` | `statsSummaryResponseSchema` | 系统级汇总统计（仅 system-admin），包含 asyncArchitecture 决策指标 |
 
 > 源码：`packages/server/src/routes/operations/stats.ts`。注意：统计端点需要 PostgreSQL（`usageAnalyticsRepo`），否则返回 503。
 

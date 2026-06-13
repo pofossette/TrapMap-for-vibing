@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { buildServer } from '@trapmap/server/app.js';
+import { emitCacheInvalidation } from '@trapmap/server/lib/cache/invalidation.js';
+import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 import {
   buildTestServer,
   seedApprovedKnowledgeEntry,
@@ -31,6 +33,7 @@ describe('retrieval route', () => {
   let app: FastifyInstance;
 
   beforeEach(async () => {
+    resetRetrievalReadModelCacheForTests();
     app = buildServer();
     await app.ready();
   });
@@ -2293,6 +2296,10 @@ describe('retrieval route', () => {
 // =============================================================================
 
 describe('retrieval visibility main link tests (Phase 2)', () => {
+  beforeEach(() => {
+    resetRetrievalReadModelCacheForTests();
+  });
+
   describe('approved artifact retrieval via v1', () => {
     it('retrieves approved knowledge entry via v1 semantic search', async () => {
       const { app, authToken } = await buildTestServer(
@@ -2407,6 +2414,23 @@ describe('retrieval visibility main link tests (Phase 2)', () => {
         });
       });
 
+      const warmResponse = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/search',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: {
+          seed: 'Suppressed Trap Entry',
+          mode: 'hybrid',
+        },
+      });
+      expect(warmResponse.statusCode).toBe(200);
+      const warmJson = warmResponse.json();
+      expect(
+        [...warmJson.globalConstraints, ...warmJson.projectKnowledge].find(
+          (r: any) => r.shortcut === 'Suppressed Trap Entry',
+        ),
+      ).toBeDefined();
+
       await store.transact((data) => {
         for (let i = 1; i <= 10; i++) {
           data.feedbackQueue.push({
@@ -2435,6 +2459,16 @@ describe('retrieval visibility main link tests (Phase 2)', () => {
             updatedAt: nowIso(),
           });
         }
+        for (const feedback of data.feedbackQueue.filter(
+          (record) => record.entryId === 'knowledge_suppressed_test',
+        )) {
+          feedback.remediationStatus = 'in-remediation';
+        }
+      });
+      emitCacheInvalidation({
+        sourceType: 'trap',
+        sourceId: 'knowledge_suppressed_test',
+        reason: 'remediation-suppressed',
       });
 
       const response = await app.inject({
@@ -2595,6 +2629,19 @@ describe('retrieval visibility main link tests (Phase 2)', () => {
         },
       );
 
+      const warmResponse = await app.inject({
+        method: 'POST',
+        url: '/v1/retrieval/skills/search-by-content',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: { text: 'Suppressed Skill Artifact' },
+      });
+      expect(warmResponse.statusCode).toBe(200);
+      expect(
+        warmResponse
+          .json()
+          .matches.find((m: any) => m.artifactId === 'skill-suppressed-test'),
+      ).toBeDefined();
+
       await store.transact((data) => {
         for (let i = 1; i <= 10; i++) {
           data.feedbackQueue.push({
@@ -2623,6 +2670,16 @@ describe('retrieval visibility main link tests (Phase 2)', () => {
             updatedAt: nowIso(),
           });
         }
+        for (const feedback of data.feedbackQueue.filter(
+          (record) => record.entryId === 'skill-suppressed-test',
+        )) {
+          feedback.remediationStatus = 'in-remediation';
+        }
+      });
+      emitCacheInvalidation({
+        sourceType: 'skill',
+        sourceId: 'skill-suppressed-test',
+        reason: 'remediation-suppressed',
       });
 
       const response = await app.inject({

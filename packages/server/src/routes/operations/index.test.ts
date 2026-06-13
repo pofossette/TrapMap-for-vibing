@@ -6,8 +6,8 @@
  * they verify that violations would be caught.
  *
  * Coverage:
- * - All 18 route handlers are registered via /meta/routes
- * - Barrel export provides all 10 route modules
+ * - All 19 route handlers are registered via /meta/routes
+ * - Barrel export provides all 11 route modules
  * - Each route module exports a FastifyPluginAsync function
  * - Thin router has zero route handlers (only app.register calls)
  * - Thin router exports operationsRoutes for app.ts compatibility
@@ -28,6 +28,7 @@ import {
   artifactsExportRoutes,
   artifactsImportRoutes,
   auditRoutes,
+  badcaseRoutes,
   capsuleIndexRoutes,
   knowledgeLegacyRoutes,
   migrateRoutes,
@@ -59,13 +60,14 @@ async function routeExists(
 
 describe('Phase 80 Nyquist Validation', () => {
   describe('structural validation', () => {
-    it('registers all 18 operation routes', async () => {
+    it('registers all 19 operation routes', async () => {
       const app = buildServer();
       await app.ready();
 
-      // All 18 routes that must be registered
+      // All 19 routes that must be registered
       const requiredRoutes = [
         { method: 'GET', path: '/v1/operations/audit' },
+        { method: 'GET', path: '/v1/operations/badcases/feedback_test/export' },
         { method: 'POST', path: '/v1/operations/capsule-index/rebuild' },
         { method: 'GET', path: '/v1/operations/capsule-index/health' },
         { method: 'POST', path: '/v1/operations/capsule-index/cleanup-orphans' },
@@ -93,10 +95,13 @@ describe('Phase 80 Nyquist Validation', () => {
       await app.close();
     });
 
-    it('barrel export provides all 10 route modules', () => {
-      // Verify all 10 exports exist and are functions
+    it('barrel export provides all 11 route modules', () => {
+      // Verify all 11 exports exist and are functions
       expect(auditRoutes).toBeDefined();
       expect(typeof auditRoutes).toBe('function');
+
+      expect(badcaseRoutes).toBeDefined();
+      expect(typeof badcaseRoutes).toBe('function');
 
       expect(capsuleIndexRoutes).toBeDefined();
       expect(typeof capsuleIndexRoutes).toBe('function');
@@ -131,6 +136,7 @@ describe('Phase 80 Nyquist Validation', () => {
       // but we can verify they are async functions by checking their prototype
       const routeModules = [
         { name: 'auditRoutes', fn: auditRoutes },
+        { name: 'badcaseRoutes', fn: badcaseRoutes },
         { name: 'capsuleIndexRoutes', fn: capsuleIndexRoutes },
         { name: 'knowledgeLegacyRoutes', fn: knowledgeLegacyRoutes },
         { name: 'artifactsImportRoutes', fn: artifactsImportRoutes },
@@ -195,9 +201,9 @@ describe('Phase 80 Nyquist Validation', () => {
       const hasRouteHandlers = /app\.(get|post)\s*\(/.test(content);
       expect(hasRouteHandlers, 'Thin router should have no app.get/app.post handlers').toBe(false);
 
-      // Should have exactly 11 app.register calls
+      // Should have exactly 12 app.register calls
       const registerMatches = content.match(/app\.register\s*\(/g);
-      expect(registerMatches, 'Thin router should have 11 app.register calls').toHaveLength(11);
+      expect(registerMatches, 'Thin router should have 12 app.register calls').toHaveLength(12);
     });
   });
 

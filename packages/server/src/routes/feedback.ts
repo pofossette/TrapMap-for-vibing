@@ -2,6 +2,8 @@ import { feedbackResponseSchema, feedbackSubmissionSchema } from '@trapmap/contr
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '@trapmap/server/lib/errors.js';
+import { scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
+import { BADCASE_EXPORT_DRAFT_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -129,6 +131,19 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
       expectedCorrection: feedbackRecord.expectedCorrection,
       selectedResultSnapshot: feedbackRecord.selectedResultSnapshot,
     });
+    if (payload.badcase) {
+      await scheduleSharedJob(
+        app.skillShareer.store,
+        BADCASE_EXPORT_DRAFT_TASK_TYPE,
+        {
+          feedbackId: feedbackRecord.id,
+          entryId: feedbackRecord.entryId,
+          entryType: feedbackRecord.entryType,
+          queryId: feedbackRecord.queryId,
+        },
+        `${BADCASE_EXPORT_DRAFT_TASK_TYPE}:${feedbackRecord.id}`,
+      );
+    }
 
     // Log user operation (fire-and-forget)
     void logUserOperation(app.skillShareer.config.userOpsLog, {
@@ -167,6 +182,7 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
         ? { selectedResultSnapshot: feedbackRecord.selectedResultSnapshot }
         : {}),
       ...(payload.badcase ? { badcase: payload.badcase } : {}),
+      ...(payload.badcase ? { asyncJobId: `wf_badcase_${feedbackRecord.id}` } : {}),
       ...(feedbackRecord.customAnswers != null
         ? { customAnswers: feedbackRecord.customAnswers }
         : {}),

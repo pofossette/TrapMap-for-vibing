@@ -23,6 +23,7 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
 | Runtime status/readiness contract | `packages/server/src/app.ts` + `packages/server/src/lib/runtime/runtime-metadata.ts` | `docs/architecture/DEPLOYMENT.md`, `docs/architecture/ARCHITECTURE.md`, `docs/reference/api-surface.md`, `docs/operations/TESTING.md` |
 | Shared resilience policy | `packages/server/src/lib/runtime/resilience.ts` | `docs/operations/ENVIRONMENT.md`, `docs/operations/TESTING.md`, `docs/architecture/ARCHITECTURE.md` |
 | Runtime metrics snapshot semantics | `packages/server/src/lib/runtime/metrics.ts` | `docs/operations/ENVIRONMENT.md`, `docs/operations/TESTING.md` |
+| Retrieval cache invalidation policy | `packages/server/src/lib/cache/invalidation.ts` + `packages/server/src/lib/cache/retrieval-read-model-cache.ts` + `packages/server/src/lib/retrieval/capsules/intent-cache.ts` | `docs/PACKAGES.md`, `docs/PACKAGE_STACK_RATIONALE.md`, `docs/operations/TESTING.md` |
 | Queue / outbox reliability policy | `packages/server/src/lib/queue/task-queue.ts` + `packages/server/src/lib/lifecycle/outbox.ts` + `packages/server/src/bootstrap/bootstrap-lifecycle.ts` | `docs/operations/TESTING.md`, `docs/operations/CI_CD.md`, `docs/architecture/DEPLOYMENT.md` |
 | AI provider/model defaults | `packages/server/src/lib/ai/provider-config.ts` | `docs/operations/ENVIRONMENT.md`, `docs/architecture/ARCHITECTURE.md`, `docs/guides/GETTING_STARTED.md` |
 | Eval workflow | `.github/workflows/eval.yml` | `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` |
@@ -46,7 +47,7 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
    - **Lifecycle subscribers** (`lib/lifecycle/subscribers/*.ts`): event-driven side effects
    - **Candidate processing** (`lib/candidates/processor.ts`, `lib/candidates/services/*.ts`): pipeline mutations
    - **Operations/admin routes** (`routes/operations/*.ts`, `routes/admin-*.ts`, `routes/decay.ts`, `routes/maintenance.ts`, etc.): diagnostic and migration HTTP tools
-   - **Remaining migration targets** (`lib/knowledge/application-service.ts`, `lib/retrieval/read-model.ts`): tracked for future migration
+   - **Remaining migration targets** (`lib/knowledge/application-service.ts`, `lib/retrieval/read-model.ts`): tracked for future migration. `read-model.ts` now owns a bounded derived cache, but its conflict/remediation assembly still reads from compatibility snapshot input.
 5. All pull requests that touch architecture or persistence docs must verify consistency against this table.
 
 ## CI Guards

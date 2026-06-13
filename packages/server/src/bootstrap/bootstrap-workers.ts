@@ -8,6 +8,11 @@
 import type { FastifyInstance } from 'fastify';
 
 import { createCandidateProcessingHandler } from '@trapmap/server/lib/candidates/index.js';
+import {
+  createBadcaseExportDraftHandler,
+  createKnowledgeIndexFollowUpHandler,
+  createRemediationReactivationHandler,
+} from '@trapmap/server/lib/jobs/index.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { type TaskHandler, createTaskWorker } from '@trapmap/server/lib/queue/task-queue.js';
 
@@ -42,7 +47,31 @@ export async function bootstrapWorkers(
 
   const worker = createTaskWorker({
     pool,
-    handlers: [handler as TaskHandler<unknown>],
+    handlers: [
+      handler as TaskHandler<unknown>,
+      createKnowledgeIndexFollowUpHandler({
+        store,
+        registry: app.skillShareer.adapterRegistry,
+        pool,
+        graphQueryBackend: app.skillShareer.graphQueryBackend,
+      }) as TaskHandler<unknown>,
+      createRemediationReactivationHandler({
+        services: {
+          store,
+          repos: app.skillShareer.repos,
+          adapterRegistry: app.skillShareer.adapterRegistry,
+          ai: app.skillShareer.ai,
+          graphQueryBackend: app.skillShareer.graphQueryBackend,
+        },
+        pool,
+      }) as TaskHandler<unknown>,
+      createBadcaseExportDraftHandler({
+        services: {
+          store,
+        },
+        pool,
+      }) as TaskHandler<unknown>,
+    ],
     pollIntervalMs: 1000,
     concurrency: 1,
     ownsWork,
@@ -50,7 +79,7 @@ export async function bootstrapWorkers(
 
   if (enabled) {
     void worker.run();
-    app.log.info('Task worker started for candidate processing');
+    app.log.info('Task worker started for candidate and shared async jobs');
   } else {
     app.log.info('Task worker ownership registered without starting local processing');
   }

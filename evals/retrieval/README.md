@@ -154,17 +154,18 @@ expected: {
 - `skill edit`、`trap review approve`、`skill review approve` 会推进 remediation 状态
 - remediation complete 会先复用现有索引刷新路径，再批量 resolve 当前 active feedback
 
-这还不是完整的 badcase -> eval 自动化闭环，但已经形成了明确的回流入口。推荐人工流程是：
+现在已经有 badcase -> eval draft 的导出路径。推荐流程是：
 
 1. 先通过 `/v1/operations/feedback/remediation` 确认是 trap 还是 skill 的检索坏例
 2. 修正内容并完成 remediation
-3. 把对应 query / 失败现象 / 正确期望补成 retrieval eval case
-4. 至少运行 `pnpm eval:retrieval:smoke` 或 `pnpm eval:smoke`，确保问题转化为固定回归题
+3. 调用 `/v1/operations/badcases/:feedbackId/export` 或运行 `scripts/export-badcase-to-eval.ts`
+4. 审核导出的 draft JSON，并补成 retrieval eval case
+5. 至少运行 `pnpm eval:retrieval:smoke` 或 `pnpm eval:smoke`，确保问题转化为固定回归题
 
 当前仍未自动化的部分：
 
 - feedback 记录还没有统一保存完整命中快照
-- 还没有 badcase 自动转 `evals/retrieval` case 的脚本
+- 已有 badcase draft 导出脚本；正式纳入 `evals/retrieval` 仍保留人工审核
 - remediation 解除仍以“索引刷新 + active feedback 清理”为主，不含额外运维审批层
 
 ## Phase 25 范围外

@@ -1,4 +1,5 @@
 import { buildServer } from '@trapmap/server/app.js';
+import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createKnowledgeEntryRecord } from './knowledge.js';
@@ -31,6 +32,7 @@ describe('End-to-end retrieval workflow', () => {
   });
 
   beforeEach(async () => {
+    resetRetrievalReadModelCacheForTests();
     // Reset store data
     await store.transact(async (data) => {
       data.counters = {};

@@ -33,7 +33,7 @@
 - [ ] Split API and worker runtime ownership without service explosion or external brokers.
 - [ ] Add workflow-level state snapshots for long-running jobs, starting with candidate processing and rebuild-style jobs.
 - [ ] Expose retrieval `queryId` and persist a durable badcase trace envelope that can later materialize into eval inputs.
-- [ ] Drive cache invalidation and read-model refresh from shared events/jobs instead of route-local side effects.
+- [x] Drive cache invalidation and read-model refresh from shared events/jobs instead of route-local side effects.
 - [ ] Add explicit metrics and decision gates for whether MQ or service splits are ever justified later.
 
 ## Non-Goals
@@ -602,34 +602,34 @@ return retrievalV2ResponseWithHintsSchema.parse({
 - Modify: `packages/server/src/routes/feedback.test.ts`
 - Modify: `plan.md`
 
-- [ ] Add shared job handlers for at least:
+- [x] Add shared job handlers for at least:
   - index rebuild/removal follow-up
   - remediation reactivation follow-up
   - badcase export draft generation
-- [ ] Use outbox events or authoritative writes to enqueue derived jobs after commit.
-- [ ] Keep handlers idempotent by dedupe key and safe under repeated event delivery.
-- [ ] Route all failures through the queue/operator/workflow surfaces from earlier phases.
-- [ ] Reuse candidate processing and workflow-run conventions instead of inventing a parallel async framework.
+- [x] Use outbox events or authoritative writes to enqueue derived jobs after commit.
+- [x] Keep handlers idempotent by dedupe key and safe under repeated event delivery.
+- [x] Route all failures through the queue/operator/workflow surfaces from earlier phases.
+- [x] Reuse candidate processing and workflow-run conventions instead of inventing a parallel async framework.
 
 **Completion standard:**
 
-- [ ] At least one non-candidate subsystem uses the shared async substrate end-to-end.
-- [ ] Derived follow-up work no longer depends on route-local heavy side effects.
-- [ ] Repeated event delivery does not create duplicate active jobs.
-- [ ] Dead-letter derived jobs are visible and re-runnable through operator flows.
+- [x] At least one non-candidate subsystem uses the shared async substrate end-to-end.
+- [x] Derived follow-up work no longer depends on route-local heavy side effects.
+- [x] Repeated event delivery does not create duplicate active jobs.
+- [x] Dead-letter derived jobs are visible and re-runnable through operator flows.
 
 **Document updates in this phase:**
 
-- [ ] Update `docs/PACKAGES.md` with `lib/jobs/` ownership.
-- [ ] Update `docs/reference/DATA_MODEL.md` with derived-job payload ownership and lifecycle notes.
-- [ ] Update `docs/reference/api-surface.md` if operator responses now include async job IDs.
-- [ ] Update `docs/operations/TESTING.md` with dead-letter recovery playbooks for derived jobs.
+- [x] Update `docs/PACKAGES.md` with `lib/jobs/` ownership.
+- [x] Update `docs/reference/DATA_MODEL.md` with derived-job payload ownership and lifecycle notes.
+- [x] Update `docs/reference/api-surface.md` if operator responses now include async job IDs.
+- [x] Update `docs/operations/TESTING.md` with dead-letter recovery playbooks for derived jobs.
 
 **Tests / eval updates in this phase:**
 
 - [ ] Add handler-level tests under `packages/server/src/lib/jobs/handlers/*.test.ts`.
-- [ ] Extend `packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts` with outbox-to-job assertions.
-- [ ] Extend `packages/server/src/routes/feedback.test.ts` and `packages/server/src/__tests__/candidate-pipeline.test.ts` with async follow-up visibility checks.
+- [x] Extend `packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts` with outbox-to-job assertions.
+- [x] Extend `packages/server/src/routes/feedback.test.ts` and `packages/server/src/__tests__/candidate-pipeline.test.ts` with async follow-up visibility checks.
 - [ ] Run:
 ```bash
 rtk pnpm test -- --run \
@@ -676,33 +676,33 @@ await taskQueue.enqueue(
 - Modify: `packages/server/src/routes/retrieval.test.ts`
 - Modify: `plan.md`
 
-- [ ] Define which retrieval-side caches remain process-local and which derived artifacts require explicit invalidation or refresh.
-- [ ] Add shared invalidation hooks for:
+- [x] Define which retrieval-side caches remain process-local and which derived artifacts require explicit invalidation or refresh.
+- [x] Add shared invalidation hooks for:
   - lifecycle approval
   - lifecycle deactivation
   - remediation suppression
   - remediation reactivation
-- [ ] Expose cache hit/miss/eviction metrics through operator-facing runtime surfaces.
-- [ ] Keep cache bounds explicit with TTL/LRU policy and prevent unbounded in-memory growth.
-- [ ] Ensure stale cached content cannot reintroduce suppressed artifacts into retrieval results.
+- [x] Expose cache hit/miss/eviction metrics through operator-facing runtime surfaces.
+- [x] Keep cache bounds explicit with TTL/LRU policy and prevent unbounded in-memory growth.
+- [x] Ensure stale cached content cannot reintroduce suppressed artifacts into retrieval results.
 
 **Completion standard:**
 
-- [ ] Cache invalidation happens from shared events/jobs, not route-local one-offs.
-- [ ] Retrieval tests prove approved/reactivated content appears after refresh and suppressed content stays hidden.
-- [ ] Operators can inspect high-level cache metrics.
-- [ ] Cache ownership and invalidation policy are documented in truth docs.
+- [x] Cache invalidation happens from shared events/jobs, not route-local one-offs.
+- [x] Retrieval tests prove approved/reactivated content appears after refresh and suppressed content stays hidden.
+- [x] Operators can inspect high-level cache metrics.
+- [x] Cache ownership and invalidation policy are documented in truth docs.
 
 **Document updates in this phase:**
 
-- [ ] Update `docs/PACKAGES.md` and `docs/PACKAGE_STACK_RATIONALE.md` with cache ownership and invalidation posture.
-- [ ] Update `docs/operations/TESTING.md` with cache invalidation verification steps after lifecycle/remediation changes.
-- [ ] Update `docs/reference/SYSTEM_TRUTH_SOURCES.md` if cache policy becomes a documented truth source.
+- [x] Update `docs/PACKAGES.md` and `docs/PACKAGE_STACK_RATIONALE.md` with cache ownership and invalidation posture.
+- [x] Update `docs/operations/TESTING.md` with cache invalidation verification steps after lifecycle/remediation changes.
+- [x] Update `docs/reference/SYSTEM_TRUTH_SOURCES.md` if cache policy becomes a documented truth source.
 
 **Tests / eval updates in this phase:**
 
-- [ ] Extend `packages/server/src/lib/cache/retrieval-cache.test.ts` with invalidation-triggered refresh behavior.
-- [ ] Extend retrieval integration tests with stale-cache guard assertions.
+- [x] Extend `packages/server/src/lib/cache/retrieval-cache.test.ts` with invalidation-triggered refresh behavior.
+- [x] Extend retrieval integration tests with stale-cache guard assertions.
 - [ ] Run:
 ```bash
 rtk pnpm test -- --run \
@@ -758,50 +758,50 @@ if (event.reason === 'remediation-suppressed') {
 - Modify: `docs/reference/api-surface.md`
 - Modify: `plan.md`
 
-- [ ] Add an operator flow to export a stored badcase into a deterministic retrieval or summary eval draft.
-- [ ] Decide and document the first-version export shape:
+- [x] Add an operator flow to export a stored badcase into a deterministic retrieval or summary eval draft.
+- [x] Decide and document the first-version export shape:
   - return JSON draft
   - write script-generated draft
   - or both
-- [ ] Add metrics or summary endpoints that answer:
+- [x] Add metrics or summary endpoints that answer:
   - queue backlog by type
   - retry/dead-letter rate by type
   - worker execution latency by type
   - cache hit/miss rate
   - badcase export volume
   - retrieval failure distribution
-- [ ] Define explicit thresholds for:
+- [x] Define explicit thresholds for:
   - “PG queue is enough”
   - “consider external MQ”
   - “modular monolith is enough”
   - “consider service split”
-- [ ] Update backend engineering TODO docs so future MQ/service decisions are contingent on measured thresholds.
+- [x] Update backend engineering TODO docs so future MQ/service decisions are contingent on measured thresholds.
 
 **Completion standard:**
 
-- [ ] An operator can take a stored badcase and produce a stable eval draft without reconstructing context manually.
-- [ ] The export path is documented and covered by at least one automated test.
-- [ ] Operator stats surfaces expose architecture-decision metrics instead of only generic counters.
-- [ ] The repository contains explicit written decision gates for MQ and service-split adoption.
+- [x] An operator can take a stored badcase and produce a stable eval draft without reconstructing context manually.
+- [x] The export path is documented and covered by at least one automated test.
+- [x] Operator stats surfaces expose architecture-decision metrics instead of only generic counters.
+- [x] The repository contains explicit written decision gates for MQ and service-split adoption.
 
 **Document updates in this phase:**
 
-- [ ] Update `docs/todos/badcase-feedback-loop.md` with the implemented end-to-end loop and remaining manual review boundary.
-- [ ] Update `evals/README.md`, `evals/retrieval/README.md`, and `evals/summary/README.md` with the export workflow.
-- [ ] Update `docs/todos/backend-engineering-optimization-plan.md` into a measured decision guide.
-- [ ] Update `docs/operations/TESTING.md` with the end-to-end operator recipe:
+- [x] Update `docs/todos/badcase-feedback-loop.md` with the implemented end-to-end loop and remaining manual review boundary.
+- [x] Update `evals/README.md`, `evals/retrieval/README.md`, and `evals/summary/README.md` with the export workflow.
+- [x] Update `docs/todos/backend-engineering-optimization-plan.md` into a measured decision guide.
+- [x] Update `docs/operations/TESTING.md` with the end-to-end operator recipe:
   - retrieve with `queryId`
   - submit feedback
   - inspect badcase
   - export eval draft
   - add regression case
-- [ ] Update `docs/reference/api-surface.md` with badcase export and stats endpoint changes.
+- [x] Update `docs/reference/api-surface.md` with badcase export and stats endpoint changes.
 
 **Tests / eval updates in this phase:**
 
-- [ ] Add route/script tests for badcase export.
-- [ ] Extend `packages/server/src/lib/runtime/metrics.test.ts` and `packages/server/src/routes/operations/stats.test.ts` with the new decision metrics.
-- [ ] Add at least one example exported retrieval eval draft fixture or snapshot test.
+- [x] Add route/script tests for badcase export.
+- [x] Extend `packages/server/src/lib/runtime/metrics.test.ts` and `packages/server/src/routes/operations/stats.test.ts` with the new decision metrics.
+- [x] Add at least one example exported retrieval eval draft fixture or snapshot test.
 - [ ] Run:
 ```bash
 rtk pnpm test -- --run \
@@ -842,15 +842,15 @@ export interface AsyncArchitectureDecisionSnapshot {
 
 ## Final Acceptance Checklist
 
-- [ ] Candidate scheduling and lifecycle outbox registration are transactional with their authoritative writes.
-- [ ] Queue and outbox consumers can reclaim stuck work after process death.
-- [ ] API, task-worker, outbox-worker, and combined runtime modes all work with correct readiness semantics.
-- [ ] Long-running jobs expose durable workflow-run snapshots with step-level visibility.
-- [ ] Public retrieval responses expose `queryId` and support badcase traceability.
-- [ ] Feedback submissions persist enough query/result context to reproduce failures.
-- [ ] Heavy follow-up work is scheduled through shared jobs rather than route-local side effects.
-- [ ] Retrieval caches/read models refresh through shared events/jobs and do not leak suppressed stale content.
-- [ ] Operators can export badcases into eval drafts with a documented workflow.
-- [ ] Runtime metrics define objective triggers for MQ or service-split adoption.
-- [ ] Docs cover the end-to-end operator and verification flow.
+- [x] Candidate scheduling and lifecycle outbox registration are transactional with their authoritative writes.
+- [x] Queue and outbox consumers can reclaim stuck work after process death.
+- [x] API, task-worker, outbox-worker, and combined runtime modes all work with correct readiness semantics.
+- [x] Long-running jobs expose durable workflow-run snapshots with step-level visibility.
+- [x] Public retrieval responses expose `queryId` and support badcase traceability.
+- [x] Feedback submissions persist enough query/result context to reproduce failures.
+- [x] Heavy follow-up work is scheduled through shared jobs rather than route-local side effects.
+- [x] Retrieval caches/read models refresh through shared events/jobs and do not leak suppressed stale content.
+- [x] Operators can export badcases into eval drafts with a documented workflow.
+- [x] Runtime metrics define objective triggers for MQ or service-split adoption.
+- [x] Docs cover the end-to-end operator and verification flow.
 - [ ] Phase-complete status is only checked after matching code, tests, evals, and docs are updated.

@@ -57,6 +57,7 @@ TrapMap 现在的消费者几乎都在同一个 TypeScript monorepo 里。相比
 | `src/lib/indexing/adapters/` | 向量、关键词、图适配器 | 检索后端天然异构，向量检索、BM25、图遍历的数据结构不同。拆成适配器后，召回层可以组合能力，而不需要知道底层如何存储。 |
 | `src/lib/indexing/graph-lite/` | `graphology` 系列库 | GraphRAG-lite 需要图构建、遍历和 DAG 辅助能力。Graphology 的算法和数据结构足够直接，适合在应用层显式控制节点、边和投影，而不是引入一整套图数据库运行时。 |
 | `src/lib/retrieval/` | 分阶段检索管线 | 这里被拆成 `recall`、`orchestration`、`scoring`、`response`、`capsules`、`graph-plan` 等子包，是因为 v1/v2/v3 检索策略并存。分阶段后可以替换单个阶段，不必重写整条链。 |
+| `src/lib/cache/` | 轻量进程内 derived cache + 显式 invalidation | Retrieval read model 和 intent parsing 需要低延迟复用，但这些缓存不能成为真相来源。保留进程内 LRU/TTL 实现，同时把 invalidation 事件显式化，能在不引入外部缓存基础设施的前提下避免 stale retrieval 重新暴露被 suppression/deactivation 隐藏的内容。 |
 | `src/lib/retrieval/capsules/` | Capsule 原生检索子包 | Skill 工件不是普通知识条目，检索结果还要带激活提示和客户端消费信息。单独拆 capsule 子包，能把工件检索和传统知识检索区分开。 |
 | `src/lib/retrieval/orchestration/` | Channel/strategy 注册表 | 召回通道和检索策略都在持续演进，用注册表比写死 `if/else` 更利于实验和按版本路由。 |
 | `src/lib/artifacts/`、`knowledge/`、`candidates/`、`feedback/`、`maintenance/`、`decay/` 等领域子包 | 领域模型 + repository/service 组合 | 这些目录的共同目标是把“治理规则”和“存储细节”从 HTTP 层剥离出来。每个域单独演进，能降低 round 式数据迁移时的连锁修改。 |

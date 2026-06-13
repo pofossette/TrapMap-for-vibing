@@ -7,9 +7,10 @@
  * - Conflicts are sourced from the store snapshot
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ConflictRelation } from '@trapmap/contracts';
+import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type {
   KnowledgeRecord,
@@ -184,6 +185,10 @@ function createMockStore(conflicts: ConflictRelation[] = []): SkillShareerStore 
 // ---------------------------------------------------------------------------
 
 describe('buildRetrievalReadModel', () => {
+  beforeEach(() => {
+    resetRetrievalReadModelCacheForTests();
+  });
+
   it('returns knowledge entries from the knowledge repository', async () => {
     const entries = [makeKnowledgeRecord('k_1'), makeKnowledgeRecord('k_2')];
     const repos = createMockRepos({

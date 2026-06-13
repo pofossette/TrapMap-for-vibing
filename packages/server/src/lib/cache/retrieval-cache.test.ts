@@ -128,6 +128,16 @@ describe('RetrievalCache.clear', () => {
     expect(cache.get('a')).toBeNull();
     expect(cache.get('b')).toBeNull();
   });
+
+  it('tracks invalidations when clear removes entries', () => {
+    const cache = new RetrievalCache<number>();
+    cache.set('a', 1);
+    cache.set('b', 2);
+
+    cache.clear();
+
+    expect(cache.stats.invalidations).toBe(2);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -229,6 +239,23 @@ describe('RetrievalCache.has side-effect isolation', () => {
     const s = cache.stats;
     expect(s.hits).toBe(0);
     expect(s.misses).toBe(0);
+  });
+});
+
+describe('RetrievalCache.deleteByPrefix', () => {
+  it('removes matching keys and tracks invalidations', () => {
+    const cache = new RetrievalCache<string>();
+    cache.set('skill:1', 'a');
+    cache.set('skill:2', 'b');
+    cache.set('trap:1', 'c');
+
+    const removed = cache.deleteByPrefix('skill:');
+
+    expect(removed).toBe(2);
+    expect(cache.get('skill:1')).toBeNull();
+    expect(cache.get('skill:2')).toBeNull();
+    expect(cache.get('trap:1')).toBe('c');
+    expect(cache.stats.invalidations).toBe(2);
   });
 });
 

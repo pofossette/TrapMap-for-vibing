@@ -25,6 +25,7 @@ export interface CacheStats {
   hits: number;
   misses: number;
   evictions: number;
+  invalidations: number;
   size: number;
   hitRate: number;
 }
@@ -74,6 +75,7 @@ export function getRetrievalCacheStats(): Record<string, CacheStats> {
       existing.hits += s.hits;
       existing.misses += s.misses;
       existing.evictions += s.evictions;
+      existing.invalidations += s.invalidations;
       existing.size += s.size;
       existing.hitRate =
         existing.hits + existing.misses > 0 ? existing.hits / (existing.hits + existing.misses) : 0;
@@ -105,6 +107,7 @@ export class RetrievalCache<V> {
   private hits = 0;
   private misses = 0;
   private evictions = 0;
+  private invalidations = 0;
 
   constructor(options?: RetrievalCacheOptions) {
     this.maxSize = options?.maxSize ?? DEFAULT_MAX_SIZE;
@@ -186,7 +189,22 @@ export class RetrievalCache<V> {
 
   /** Remove all entries. */
   clear(): void {
+    if (this.store.size > 0) {
+      this.invalidations += this.store.size;
+    }
     this.store.clear();
+  }
+
+  /** Remove all keys with the given prefix. */
+  deleteByPrefix(prefix: string): number {
+    let removed = 0;
+    for (const key of [...this.store.keys()]) {
+      if (!key.startsWith(prefix)) continue;
+      this.store.delete(key);
+      removed += 1;
+    }
+    this.invalidations += removed;
+    return removed;
   }
 
   /** Current number of entries (may include expired entries not yet accessed). */
@@ -201,6 +219,7 @@ export class RetrievalCache<V> {
       hits: this.hits,
       misses: this.misses,
       evictions: this.evictions,
+      invalidations: this.invalidations,
       size: this.store.size,
       hitRate: total > 0 ? this.hits / total : 0,
     };

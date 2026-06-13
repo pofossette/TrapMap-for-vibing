@@ -10,6 +10,10 @@
 
 import type { ConflictRelation } from '@trapmap/contracts';
 import {
+  getCachedRetrievalReadModel,
+  setCachedRetrievalReadModel,
+} from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
+import {
   attachRemediationToArtifacts,
   attachRemediationToKnowledgeEntries,
 } from '@trapmap/server/lib/feedback/remediation.js';
@@ -46,6 +50,11 @@ export async function buildRetrievalReadModel(
   repos: SkillShareerRepos,
   store: SkillShareerStore,
 ): Promise<RetrievalReadModel> {
+  const cached = getCachedRetrievalReadModel();
+  if (cached) {
+    return cached;
+  }
+
   const artifactLister =
     typeof repos.artifact.listForRetrieval === 'function'
       ? repos.artifact.listForRetrieval.bind(repos.artifact)
@@ -57,7 +66,7 @@ export async function buildRetrievalReadModel(
     store.snapshot(),
   ]);
 
-  return {
+  const model = {
     knowledgeEntries: attachRemediationToKnowledgeEntries(
       knowledgeEntries,
       snapshot.feedbackQueue ?? [],
@@ -65,4 +74,7 @@ export async function buildRetrievalReadModel(
     skillArtifacts: attachRemediationToArtifacts(skillArtifacts, snapshot.feedbackQueue ?? []),
     conflicts: snapshot.conflicts,
   };
+
+  setCachedRetrievalReadModel(model);
+  return model;
 }

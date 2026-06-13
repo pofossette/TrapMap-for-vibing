@@ -1,4 +1,5 @@
 export { auditRoutes } from './audit.js';
+export { badcaseRoutes } from './badcases.js';
 export { knowledgeLegacyRoutes } from './knowledge-legacy.js';
 export { artifactsImportRoutes } from './artifacts-import.js';
 export { artifactsExportRoutes } from './artifacts-export.js';

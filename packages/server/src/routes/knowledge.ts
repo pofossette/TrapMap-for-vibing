@@ -9,10 +9,12 @@ import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
+import { supersedeEntry } from '@trapmap/server/lib/decay/supersede.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { createKnowledgeRevision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
 import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import {
   requireHigherLevel,
   requirePermission,
@@ -284,23 +286,51 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(400, 'replacement_required', 'replacementId is required');
     }
 
-    const { entry } = await getKnowledgeService().supersede({
-      kind: 'knowledge',
-      entryId,
-      replacementId: body.replacementId,
-      actorId: auth.actorId,
-    });
+    const store = app.skillShareer.store;
+    const entry =
+      store instanceof PostgresStore
+        ? await store.transactWithPgClient(async (data, client) => {
+            const updated = supersedeEntry({
+              store,
+              data,
+              entryId,
+              replacementId: body.replacementId!,
+              actorId: auth.actorId,
+            });
+            await emitLifecycleTransition({
+              store,
+              eventBus: app.skillShareer.eventBus,
+              aggregateType: 'knowledge',
+              aggregateId: entryId,
+              previousState: 'approved',
+              nextState: 'deactivated',
+              actorId: auth.actorId,
+              reason: 'superseded',
+              txClient: client,
+            });
+            return updated;
+          })
+        : (
+            await getKnowledgeService().supersede({
+              kind: 'knowledge',
+              entryId,
+              replacementId: body.replacementId,
+              actorId: auth.actorId,
+            })
+          ).entry;
 
-    await emitLifecycleTransition({
-      store: app.skillShareer.store,
-      eventBus: app.skillShareer.eventBus,
-      aggregateType: 'knowledge',
-      aggregateId: entryId,
-      previousState: 'approved',
-      nextState: 'deactivated',
-      actorId: auth.actorId,
-      reason: 'superseded',
-    });
+    if (!(store instanceof PostgresStore)) {
+      await emitLifecycleTransition({
+        store: app.skillShareer.store,
+        eventBus: app.skillShareer.eventBus,
+        aggregateType: 'knowledge',
+        aggregateId: entryId,
+        previousState: 'approved',
+        nextState: 'deactivated',
+        actorId: auth.actorId,
+        reason: 'superseded',
+      });
+    }
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),

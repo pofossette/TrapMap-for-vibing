@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  getAverageLatencyMs,
   getRuntimeMetricsSnapshot,
   recordRuntimeReclaim,
   recordRuntimeExecution,
@@ -51,5 +52,21 @@ describe('runtime metrics', () => {
       retries: 0,
     });
     expect(snapshot.dependencies).toEqual({});
+  });
+
+  it('tracks average execution latency per dependency', () => {
+    resetRuntimeMetrics();
+    recordRuntimeExecution({
+      dependencyName: 'badcase-export',
+      latencyMs: 100,
+    });
+    recordRuntimeExecution({
+      dependencyName: 'badcase-export',
+      latencyMs: 300,
+    });
+
+    const snapshot = getRuntimeMetricsSnapshot();
+    expect(snapshot.dependencies['badcase-export'].totalLatencyMs).toBe(400);
+    expect(getAverageLatencyMs(snapshot.dependencies['badcase-export'])).toBe(200);
   });
 });

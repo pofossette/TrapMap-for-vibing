@@ -8,8 +8,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
+import { KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
 import type { DomainEvent } from '@trapmap/server/lib/lifecycle/types.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
+import { buildTestServer, seedApprovedKnowledgeEntry } from '@trapmap/server/lib/retrieval/__fixtures__/auth-store-helpers.js';
 import { createConflictSubscriber } from './conflict.js';
 import { createIndexingSubscriber } from './indexing.js';
 
@@ -324,5 +328,50 @@ describe('outbox-driven subscriber execution (Phase 2)', () => {
     await subscriber(makeEvent({ reason: 'retry-2' }));
 
     expect(runKnowledgeIndexEvent).toHaveBeenCalledTimes(2);
+  });
+
+  it('postgres subscriber enqueues shared indexing jobs instead of running heavy work inline', async () => {
+    const { app, store, userId } = await buildTestServer((data, auth) => {
+      seedApprovedKnowledgeEntry(data, auth.userId, {
+        id: 'entry_phase5_pg_subscriber',
+        shortcut: 'PG subscriber target',
+      });
+    });
+
+    try {
+      if (!(store instanceof PostgresStore)) {
+        return;
+      }
+
+      const registry = new AdapterRegistry();
+      const subscriber = createIndexingSubscriber(store, registry);
+      await subscriber(
+        makeEvent({
+          entryId: 'entry_phase5_pg_subscriber',
+          previousState: 'approved',
+          nextState: 'deactivated',
+          reason: 'phase5-subscriber',
+          actorId: userId,
+        }),
+      );
+
+      const queue = createTaskQueue({ pool: store.getPool() });
+      const status = await queue.getStatusSnapshot();
+      expect(
+        status.recentDeadLetters.find((task) => task.type === KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE),
+      ).toBeUndefined();
+
+      const count = await store.getPool().query<{ count: string }>(
+        `SELECT COUNT(*) AS count FROM task_queue WHERE type = $1 AND dedupe_key = $2`,
+        [
+          KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
+          `${KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE}:entry_phase5_pg_subscriber:approved:deactivated:phase5-subscriber`,
+        ],
+      );
+      expect(Number(count.rows[0]?.count ?? '0')).toBe(1);
+      expect(runKnowledgeIndexEvent).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
   });
 });

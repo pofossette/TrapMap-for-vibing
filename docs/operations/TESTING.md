@@ -64,6 +64,21 @@ flowchart TB
 - 失败持久化：制造 candidate 处理失败，确认 `lastError` 与 `status='failed'` 被保留。
 - Rebuild workflow：触发 capsule-index rebuild，确认存在 `workflowType='capsule-index-rebuild'` 的运行快照。
 
+**Phase 5 Shared Jobs Checks:**
+- Lifecycle follow-up：在 PostgreSQL 模式下触发 knowledge approve/deactivate/update，确认不会在订阅器内同步执行重索引，而是新增 `task_queue.type='knowledge.index-follow-up'`，并能在 `workflow_runs.workflow_type='knowledge-index-follow-up'` 中观察到执行快照。
+- Remediation complete：调用 `POST /v1/operations/feedback/remediation/:entryId/complete` 后，确认响应中的 additive `asyncJobId` 存在，且队列中出现 `feedback.remediation-reactivation` 任务；该任务 dead-letter 后可通过 async operator flow 重跑。
+- Badcase draft：提交带 `badcase` 的 feedback 后，确认在 PostgreSQL 模式下响应返回 additive `asyncJobId`，并且 `task_queue` 中存在 `feedback.badcase-export-draft` 任务，同时 `retrieval_badcase_traces` 已先落库。
+
+**Phase 6 Cache Invalidation Checks:**
+- Retrieval read-model cache：连续执行两次 retrieval，第二次命中缓存后，再触发 knowledge approval/deactivation 或 remediation state change；确认后续 retrieval 结果反映最新可见性，而不是继续返回旧缓存内容。
+- Suppression safety：先 warm 一次 approved trap/skill 的 retrieval，再通过 remediation suppression 写路径触发 `remediation-suppressed` invalidation；确认该 trap/skill 随后从 retrieval 结果中消失。
+- Reactivation safety：在 remediation complete / reactivation follow-up 完成后，确认被压制内容在下一次 retrieval 中重新可见，且 `/v1/operations/status/async` 的 `cache` 字段可观察到 invalidation 计数增长。
+
+**Phase 7 Badcase Export / Decision Metrics Checks:**
+- Operator export flow：先用 retrieval 拿到 `queryId`，提交带 badcase 的 feedback，再调用 `GET /v1/operations/badcases/:feedbackId/export`，确认返回 deterministic draft JSON。
+- Script export flow：运行 `pnpm exec tsx scripts/export-badcase-to-eval.ts <feedbackId> <outputPath>`，确认输出文件与 route draft shape 一致。
+- Decision metrics：调用 `GET /v1/operations/stats/summary`，确认返回 `asyncArchitecture.queueBacklogByType`、`deadLetterByType`、`retryRateByType`、`avgHandlerLatencyMsByType`、`cacheHitRateByNamespace`、`badcaseExportCount`、`retrievalFailureDistribution` 与 `thresholds`。
+
 ### 目录结构
 
 ```text

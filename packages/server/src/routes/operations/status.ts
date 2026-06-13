@@ -6,6 +6,7 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
+import { getRetrievalCacheStats } from '@trapmap/server/lib/cache/metrics.js';
 import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
@@ -47,6 +48,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
           workerState: 'not-configured',
           recentFailures: [],
         },
+        cache: {},
         workflows: [],
         reportedAt: nowIso(),
       });
@@ -85,6 +87,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
               ? 'running'
               : 'degraded',
       },
+      cache: getRetrievalCacheStats(),
       workflows,
       reportedAt: nowIso(),
     });

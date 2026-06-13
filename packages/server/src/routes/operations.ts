@@ -5,6 +5,7 @@ import {
   artifactsExportRoutes,
   artifactsImportRoutes,
   auditRoutes,
+  badcaseRoutes,
   capsuleIndexRoutes,
   knowledgeLegacyRoutes,
   migrateRoutes,
@@ -18,6 +19,7 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
   // Register all operation sub-routes
   // Order matters: more specific paths should be registered before parameterized ones
   await app.register(auditRoutes);
+  await app.register(badcaseRoutes);
   await app.register(knowledgeLegacyRoutes);
   await app.register(artifactsExportRoutes);
   await app.register(artifactsImportRoutes);

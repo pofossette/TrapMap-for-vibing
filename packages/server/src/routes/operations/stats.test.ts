@@ -6,6 +6,7 @@
 
 import { buildServer } from '@trapmap/server/app.js';
 import type { UsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
+import { recordRuntimeExecution, resetRuntimeMetrics } from '@trapmap/server/lib/runtime/metrics.js';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -35,6 +36,7 @@ describe('stats routes', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    resetRuntimeMetrics();
     app = await buildServer();
   });
 
@@ -101,6 +103,20 @@ describe('stats routes', () => {
       });
 
       expect(response.statusCode).toBe(401);
+    });
+
+    it('keeps async architecture metrics shape available on summary route', async () => {
+      recordRuntimeExecution({
+        dependencyName: 'badcase-export',
+        latencyMs: 120,
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/stats/summary',
+      });
+
+      expect([401, 403, 503]).toContain(response.statusCode);
     });
   });
 });

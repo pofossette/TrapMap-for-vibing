@@ -550,6 +550,71 @@ describe('operations routes', () => {
       expect(json).not.toHaveProperty('payloads');
     });
   });
+
+  describe('async status cache metrics (Phase 6)', () => {
+    let testApp: FastifyInstance;
+    let testStore: SkillShareerStore;
+    let sessionToken: string;
+
+    beforeEach(async () => {
+      const testDataFile = `/tmp/trapmap-test-async-status-${Date.now()}-${Math.random()}.json`;
+      testApp = buildServer({ config: { dataFile: testDataFile } });
+      await testApp.ready();
+      testStore = testApp.skillShareer.store;
+
+      await testStore.transact(async (data) => {
+        data.users.push({
+          id: 'user_async_status',
+          handle: 'async-status',
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+        data.memberships.push({
+          id: 'membership_async_status',
+          userId: 'user_async_status',
+          teamId: null,
+          roleTemplate: 'admin',
+          securityLevel: 5,
+          permissions: ['knowledge:export'],
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+        sessionToken = `session_async_status_${Date.now()}`;
+        data.sessions.push({
+          id: `session_async_status_${Date.now()}`,
+          userId: 'user_async_status',
+          tokenHash: hashSecret(sessionToken),
+          activeTeamId: null,
+          subjectType: 'user',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        });
+      });
+    });
+
+    afterEach(async () => {
+      if (testApp) {
+        await testApp.close();
+      }
+    });
+
+    it('exposes retrieval cache metrics on async status route', async () => {
+      const response = await testApp.inject({
+        method: 'GET',
+        url: '/v1/operations/status/async',
+        headers: {
+          authorization: `Bearer ${sessionToken}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      expect(json.cache).toBeDefined();
+    });
+  });
 });
 
 describeIfDb('operations async status routes', () => {

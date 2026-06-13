@@ -9,6 +9,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { getSkillHistory, submitSkillEdit } from '@trapmap/server/lib/artifacts/edit.js';
 import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
+import { emitCacheInvalidation } from '@trapmap/server/lib/cache/invalidation.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   FEEDBACK_REMEDIATION_THRESHOLD,
@@ -141,6 +142,11 @@ export const skillEditRoutes: FastifyPluginAsync = async (app) => {
           remediationOpenedByUserId: feedback.remediationOpenedByUserId ?? editorUserId,
         });
       }
+      emitCacheInvalidation({
+        sourceType: 'skill',
+        sourceId: artifactId,
+        reason: 'remediation-suppressed',
+      });
     }
 
     // Trigger skill graph indexing AFTER the transaction commits (P36-02)

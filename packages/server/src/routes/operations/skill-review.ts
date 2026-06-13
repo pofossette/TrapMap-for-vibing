@@ -7,6 +7,7 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
+import { emitCacheInvalidation } from '@trapmap/server/lib/cache/invalidation.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   FEEDBACK_REMEDIATION_THRESHOLD,
@@ -247,6 +248,11 @@ export const skillReviewRoutes: FastifyPluginAsync = async (app) => {
             remediationResolvedByUserId: reviewerUserId,
           });
         }
+        emitCacheInvalidation({
+          sourceType: 'skill',
+          sourceId: artifactId,
+          reason: 'remediation-suppressed',
+        });
       }
     }
 

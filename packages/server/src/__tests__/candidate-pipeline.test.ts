@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 
 import { scheduleCandidateProcessing } from '@trapmap/server/lib/candidates/processor.js';
+import { KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import {
   buildTestServer,
@@ -116,6 +117,18 @@ async function getWorkflowRun(
     last_error: string | null;
   }>('SELECT status, step_name, last_error FROM workflow_runs WHERE run_id = $1 LIMIT 1', [runId]);
   return result.rows[0] ?? null;
+}
+
+async function getTaskCountByTypeAndDedupe(
+  store: PostgresStore,
+  type: string,
+  dedupeKey: string,
+): Promise<number> {
+  const result = await store.getPool().query<{ count: string }>(
+    `SELECT COUNT(*) AS count FROM task_queue WHERE type = $1 AND dedupe_key = $2`,
+    [type, dedupeKey],
+  );
+  return Number(result.rows[0]?.count ?? '0');
 }
 
 // ---------------------------------------------------------------------------
@@ -323,6 +336,42 @@ describe('candidate pipeline: submission to approval', () => {
     );
     expect(entry).toBeDefined();
     expect(entry!.lifecycleState).toBe('agent-pass');
+  });
+
+  it('queues shared lifecycle follow-up jobs for approved knowledge transitions in postgres mode', async () => {
+    const server = await buildTestServer((data, auth) => {
+      seedApprovedKnowledgeEntry(data, auth.userId, {
+        id: 'knowledge_phase5_target',
+        shortcut: 'Phase5 target',
+        detail: 'Phase5 detail',
+      });
+    });
+    app = server.app;
+    authToken = server.authToken;
+    store = server.store;
+
+    if (!(store instanceof PostgresStore)) {
+      return;
+    }
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/knowledge/deactivate',
+      headers: { authorization: `Bearer ${authToken}` },
+      payload: {
+        entryId: 'knowledge_phase5_target',
+        reason: 'phase5 validation',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(
+      await getTaskCountByTypeAndDedupe(
+        store,
+        KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
+        `${KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE}:knowledge_phase5_target:approved:deactivated:phase5 validation`,
+      ),
+    ).toBe(1);
   });
 
   it('full pipeline: submit with duplicate → duplicate_detected → manual-result (merged) → apply-resolution → lineage recorded', async () => {
