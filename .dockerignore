@@ -41,6 +41,7 @@ docs/
 # Claude/AI
 .claude/
 .agents/
+.codegraph/
 .planning/
 CLAUDE.md
 AGENTS.md

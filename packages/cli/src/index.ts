@@ -25,6 +25,23 @@ function hasPermission(permissions: string[] | undefined, required: string): boo
   return (permissions ?? []).includes(required);
 }
 
+function collectCommandPaths(command: Command, parents: string[] = []): string[] {
+  const paths: string[] = [];
+
+  for (const child of command.commands) {
+    const name = child.name();
+    if (name === 'help') {
+      continue;
+    }
+
+    const path = [...parents, name];
+    paths.push(path.join(' '));
+    paths.push(...collectCommandPaths(child, path));
+  }
+
+  return paths;
+}
+
 const cliState = await loadCliState();
 const session = cliState.session;
 const effectivePermissions = session?.effectivePermissions ?? [];
@@ -70,7 +87,7 @@ program
   .command('about')
   .description('Show current prototype scope and package boundaries')
   .action(() => {
-    console.log('Skill Shareer prototype');
+    console.log('TrapMap prototype');
     console.log('- packages/cli: imperative user-facing terminal commands');
     console.log('- packages/server: Fastify API and LangChain-oriented service boundary');
     console.log('- packages/contracts: shared Zod schemas and runtime-safe contracts');
@@ -80,45 +97,7 @@ program
   .command('api:list')
   .description('List the currently available CLI command surface')
   .action(() => {
-    const availableCommands = [
-      'about',
-      'api:list',
-      'login',
-      'logout',
-      'session',
-      'team list',
-      'team select',
-      ...(visibility.allowTeamCreate ? ['team create'] : []),
-      ...(visibility.allowMemberCreate ? ['member create'] : []),
-      ...(visibility.allowMemberUpdate ? ['member update'] : []),
-      ...(visibility.allowAccessKeyCreate ? ['access-key:create'] : []),
-      ...(visibility.allowKnowledgeSubmit
-        ? ['submit', 'resubmit', 'skill edit', 'trap submit', 'trap resubmit']
-        : []),
-      ...(visibility.allowKnowledgeInspect ? ['review-status', 'trap list', 'trap show'] : []),
-      ...(visibility.allowKnowledgeSearch ? ['search', 'skill search-by-content', 'load'] : []),
-      ...(visibility.allowKnowledgeReview
-        ? [
-            'review:queue',
-            'review:approve',
-            'review:reject',
-            'skill review:queue',
-            'skill review:approve',
-            'skill review:reject',
-            'skill duplicate-job fetch',
-            'skill duplicate-job resolve',
-            'skill find',
-            'skill apply',
-          ]
-        : []),
-      ...(visibility.allowKnowledgeExport ? ['list', 'export', 'skill history'] : []),
-      ...(visibility.allowKnowledgeImport ? ['import'] : []),
-      ...(visibility.allowKnowledgeUpdate ? ['edit'] : []),
-      ...(visibility.allowKnowledgeDeactivate ? ['deactivate'] : []),
-      ...(visibility.allowAuditRead ? ['audit'] : []),
-      ...(visibility.allowFeedbackSubmit ? ['feedback'] : []),
-      ...(visibility.allowFeedbackManage ? ['feedback-list', 'feedback-batch'] : []),
-    ];
+    const availableCommands = collectCommandPaths(program).sort((a, b) => a.localeCompare(b));
 
     for (const commandName of availableCommands) {
       console.log(commandName);

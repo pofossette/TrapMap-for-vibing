@@ -8,6 +8,7 @@
 |------|------|------|
 | `TRAPMAP_SYSTEM_ADMIN_KEY` | 管理员密钥；仅在需要 system-admin 能力时配置 | `openssl rand -hex 32` 生成 |
 | `OPENAI_API_KEY` | OpenAI API 密钥；未配置时 AI provider 会回退到 `fallback` | `sk-...` |
+| `GEMINI_API_KEY` | Google GenAI 密钥；设置后 provider 可自动切到 `google-genai` | `AIza...` |
 
 ## 数据库配置
 
@@ -105,8 +106,10 @@ pnpm dev:server
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `NODE_ENV` | 运行环境 | 未设置（由部署环境控制） |
-| `HOST` | 绑定地址 | `127.0.0.1` |
+| `HOST` | 绑定地址；本地裸跑默认 `127.0.0.1`，容器内通常设为 `0.0.0.0` | `127.0.0.1` |
 | `PORT` | 服务器端口 | `4000` |
+| `RUNTIME_MODE` | 运行模式：`api`、`task-worker`、`outbox-worker`、`combined` | `combined` |
+| `LOG_LEVEL` | Fastify 日志级别 | `info` |
 | `TRAPMAP_REQUEST_ID_HEADER` | 运行时 request id 响应/透传头名 | `x-request-id` |
 | `TRAPMAP_TRACE_HEADER_NAME` | 运行时 trace header 名 | `traceparent` |
 
@@ -150,6 +153,21 @@ TrapMap 现在通过共享 runtime resilience 层统一处理部分 timeout / re
 | `EMBEDDING_BASE_URL` | Embedding API Base URL | 提供商默认值 |
 | `EMBEDDING_API_KEY` | Embedding API 密钥 | 与 `AI_API_KEY` 相同 |
 | `EMBEDDING_MODEL` | Embedding 模型名称 | 提供商默认值 |
+
+## 检索 / Decay 开关
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `USE_DB_SEARCH` | 是否启用 DB search path；只有严格等于 `true` 才启用 | `false` |
+| `TRAPMAP_DECAY_ENABLED` | 是否启用 decay 状态计算 | `false` |
+| `TRAPMAP_DECAY_REVIEW_DUE_DAYS` | `review-due` 阈值天数 | `90` |
+| `TRAPMAP_DECAY_STALE_DAYS` | `stale` 阈值天数 | `180` |
+| `TRAPMAP_DECAY_EXPIRE_DAYS` | `expired` 阈值天数 | `365` |
+
+说明：
+
+- `USE_DB_SEARCH` 当前由检索编排层直接读取；文档化是为了部署可见性，不代表它已经成为长期稳定 public surface。
+- decay 配置由 `packages/server/src/lib/decay/config.ts` 读取并做 Zod 校验。
 
 ## 系统提示词模板
 
@@ -218,10 +236,14 @@ openssl rand -hex 32
 ```bash
 # .env.production
 NODE_ENV=production
+HOST=0.0.0.0
+PORT=4000
+RUNTIME_MODE=combined
 TRAPMAP_SYSTEM_ADMIN_KEY=<your-admin-key>
 OPENAI_API_KEY=<your-openai-key>
 TRAPMAP_DATABASE_URL=postgresql://user:pass@localhost:5432/trapmap
 AI_PROVIDER=openai
+LOG_LEVEL=info
 LOG_USER_OPS_ENABLED=true
 LOG_RAG_ENABLED=true
 ```

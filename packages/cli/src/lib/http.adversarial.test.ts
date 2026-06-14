@@ -47,16 +47,17 @@ describe('HTTP client adversarial tests', () => {
       }
     });
 
-    it('should propagate fetch network errors (rejected promise)', async () => {
+    it('should wrap fetch network errors with target URL context', async () => {
       mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
 
-      await expect(apiRequest(defaultState, { path: '/api/test' })).rejects.toThrow(TypeError);
+      await expect(apiRequest(defaultState, { path: '/api/test' })).rejects.toMatchObject({
+        statusCode: 0,
+        message: 'Request to http://localhost:4000/api/test failed: Failed to fetch',
+        payload: { cause: 'Failed to fetch', url: 'http://localhost:4000/api/test' },
+      });
     });
 
-    it('should throw SyntaxError on non-JSON response body (unprotected parse)', async () => {
-      // The implementation calls JSON.parse(text) without try/catch,
-      // so non-JSON text on the error path throws SyntaxError before
-      // the !response.ok check can create an ApiError.
+    it('should wrap non-JSON response bodies as ApiError with raw body context', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
@@ -64,7 +65,10 @@ describe('HTTP client adversarial tests', () => {
         text: () => Promise.resolve('Internal Server Error'),
       });
 
-      await expect(apiRequest(defaultState, { path: '/api/test' })).rejects.toThrow(SyntaxError);
+      await expect(apiRequest(defaultState, { path: '/api/test' })).rejects.toMatchObject({
+        statusCode: 502,
+        payload: { rawBody: 'Internal Server Error' },
+      });
     });
 
     it('should extract message from nested error payload with message field', async () => {
@@ -166,9 +170,7 @@ describe('HTTP client adversarial tests', () => {
         session: null,
       };
 
-      expect(() => requireSessionToken(state)).toThrow(
-        'Not authenticated. Run `skill-shareer login` first.',
-      );
+      expect(() => requireSessionToken(state)).toThrow('Not authenticated. Run `trapmap login` first.');
     });
 
     it('should return the exact token string when present', () => {

@@ -17,14 +17,19 @@ if [ ! -f .env ]; then
     cat > .env << EOF
 # API Keys (Required)
 OPENAI_API_KEY=your-openai-api-key-here
+# GEMINI_API_KEY=
 
-# Admin Security
+# Admin Security (Optional unless you need system-admin bootstrap)
 TRAPMAP_SYSTEM_ADMIN_KEY=$(openssl rand -hex 32)
 
 # Server Config
 NODE_ENV=production
 HOST=0.0.0.0
 PORT=4000
+
+# Database (recommended)
+POSTGRES_PASSWORD=trapmap
+TRAPMAP_DATABASE_URL=postgres://trapmap:\${POSTGRES_PASSWORD}@postgres:5432/trapmap
 EOF
     echo -e "${YELLOW}⚠️  Please edit .env and add your OPENAI_API_KEY${NC}"
     echo ""

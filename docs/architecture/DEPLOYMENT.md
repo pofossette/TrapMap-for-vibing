@@ -104,6 +104,15 @@ LOG_LEVEL=info
 - Docker 24+
 - Docker Compose 2.20+
 
+### 脚本入口
+
+仓库内有两个便捷脚本：
+
+- `scripts/deploy.sh`：完整部署脚本，包含 `deploy/start/stop/restart/logs/status/update/shell/clean`
+- `scripts/deploy-quick.sh`：最小化快速启动脚本，适合本地试跑
+
+推荐优先使用 `scripts/deploy.sh deploy`，因为它会检查 Docker daemon、生成 `.env` 模板并给出更明确的失败提示。
+
 ### 生产环境配置
 
 ```bash

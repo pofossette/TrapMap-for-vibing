@@ -20,6 +20,47 @@ export async function runMigrations(pool: Pool): Promise<void> {
   const db = drizzle(pool);
   const migrationsFolder = path.resolve(__dirname, '../../../drizzle');
   await migrate(db, { migrationsFolder });
+  await ensureLeaseColumns(pool);
+  await ensureSystemAdminUser(pool);
 
   console.log('[MigrationRunner] Migrations applied successfully');
+}
+
+async function ensureLeaseColumns(pool: Pool): Promise<void> {
+  // Compatibility guard for databases that recorded later migrations while
+  // 0015_phase0_atomic_delivery_and_leases was absent from the Drizzle journal.
+  await pool.query(`
+    ALTER TABLE "task_queue"
+      ADD COLUMN IF NOT EXISTS "worker_id" TEXT,
+      ADD COLUMN IF NOT EXISTS "started_at" TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS "heartbeat_at" TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS "lease_until" TIMESTAMPTZ;
+
+    CREATE INDEX IF NOT EXISTS "task_queue_running_lease_idx"
+    ON "task_queue" ("type", "lease_until", "updated_at")
+    WHERE "status" = 'running';
+
+    ALTER TABLE "domain_event_outbox"
+      ADD COLUMN IF NOT EXISTS "worker_id" TEXT,
+      ADD COLUMN IF NOT EXISTS "started_at" TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS "heartbeat_at" TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS "lease_until" TIMESTAMPTZ;
+
+    CREATE INDEX IF NOT EXISTS "domain_event_outbox_processing_lease_idx"
+    ON "domain_event_outbox" ("event_name", "lease_until", "created_at")
+    WHERE "status" = 'processing';
+  `);
+}
+
+async function ensureSystemAdminUser(pool: Pool): Promise<void> {
+  // Access keys issued by the virtual system-admin still satisfy the
+  // access_keys.issued_by_user_id FK in PostgreSQL-backed deployments.
+  await pool.query(`
+    INSERT INTO "users" ("id", "handle", "notes", "created_at", "updated_at")
+    VALUES ('system-admin', 'system-admin', 'Virtual system administrator account', NOW(), NOW())
+    ON CONFLICT ("id") DO UPDATE
+    SET "handle" = EXCLUDED."handle",
+        "notes" = COALESCE("users"."notes", EXCLUDED."notes"),
+        "updated_at" = NOW();
+  `);
 }

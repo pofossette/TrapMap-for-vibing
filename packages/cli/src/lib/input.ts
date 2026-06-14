@@ -15,6 +15,14 @@ async function readFromStdin(): Promise<string> {
   return Buffer.concat(chunks).toString('utf8').trim();
 }
 
+function formatMissingTextError(fieldName: string): string {
+  if (fieldName === 'seed') {
+    return 'Seed text is required. Provide a seed argument or use --stdin.';
+  }
+
+  return `Provide --${fieldName} <text>, --file <path>, or pipe content on stdin.`;
+}
+
 function hasStdinContent(): boolean {
   if (!process.stdin) return false;
   return !process.stdin.isTTY;
@@ -48,11 +56,11 @@ export async function resolveTextInput(
     const stdinText = await readFromStdin();
 
     if (!stdinText) {
-      throw new Error(`No ${fieldName} content received on stdin.`);
+      throw new Error(formatMissingTextError(fieldName));
     }
 
     return stdinText;
   }
 
-  throw new Error(`Provide --${fieldName} <text>, --file <path>, or pipe content on stdin.`);
+  throw new Error(formatMissingTextError(fieldName));
 }

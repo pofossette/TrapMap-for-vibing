@@ -23,6 +23,22 @@ export interface ApiResponse<T> {
   sessionToken: string | null;
 }
 
+function parseResponsePayload<T>(text: string, url: string): T | { message?: string } | null {
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text) as T | { message?: string };
+  } catch (error) {
+    throw new ApiError(
+      502,
+      { rawBody: text },
+      `Invalid JSON response from ${url}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
 export async function apiRequest<T>(
   state: CliState,
   options: ApiRequestOptions,
@@ -38,15 +54,22 @@ export async function apiRequest<T>(
     headers.authorization = `Bearer ${options.sessionToken ?? state.sessionToken}`;
   }
 
-  const response = await fetch(url, {
-    method: options.method ?? 'GET',
-    headers,
-    ...(options.body ? { body: JSON.stringify(options.body) } : {}),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      method: options.method ?? 'GET',
+      headers,
+      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new ApiError(0, { cause: reason, url }, `Request to ${url} failed: ${reason}`);
+  }
 
   const sessionToken = response.headers.get('x-session-token');
   const text = await response.text();
-  const payload = text ? (JSON.parse(text) as T | { message?: string }) : null;
+  const payload = parseResponsePayload<T>(text, url);
 
   if (!response.ok) {
     const message =
@@ -64,7 +87,7 @@ export async function apiRequest<T>(
 
 export function requireSessionToken(state: CliState): string {
   if (typeof state.sessionToken !== 'string' || state.sessionToken.length === 0) {
-    throw new Error('Not authenticated. Run `skill-shareer login` first.');
+    throw new Error('Not authenticated. Run `trapmap login` first.');
   }
 
   return state.sessionToken;

@@ -11,6 +11,7 @@ services:
       - ./logs:/app/logs
     environment:
       - NODE_ENV=production
+      - RUNTIME_MODE=${RUNTIME_MODE:-combined}
       - HOST=0.0.0.0
       - PORT=4000
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -26,7 +27,7 @@ services:
       - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
       # Database (set to use PostgreSQL; omit for JSON file storage)
-      - TRAPMAP_DATABASE_URL=postgres://trapmap:trapmap@postgres:5432/trapmap
+      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
       # Logging Configuration (Phase 24)
       - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
       - LOG_USER_OPS_DIR=${LOG_USER_OPS_DIR:-/app/logs/user-ops}

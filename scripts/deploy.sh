@@ -15,6 +15,7 @@ ENV_FILE="$PROJECT_ROOT/.env"
 DATA_DIR="$PROJECT_ROOT/.data"
 LOGS_DIR="$PROJECT_ROOT/logs"
 CONTAINER_NAME="trapmap-server"
+SCRIPT_VERSION="0.1.0"
 
 # Helper functions
 log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
@@ -31,6 +32,10 @@ check_docker() {
         log_error "Docker Compose is not installed. Please install Docker Compose first."
         exit 1
     fi
+    if ! docker info &> /dev/null; then
+        log_error "Docker daemon is not reachable. Start Docker and try again."
+        exit 1
+    fi
 }
 
 # Get docker compose command
@@ -44,9 +49,13 @@ get_compose_cmd() {
 
 # Create .env file if not exists
 create_env_file() {
-    if [ ! -f "$ENV_FILE" ]; then
-        log_info "Creating .env file from template..."
-        cat > "$ENV_FILE" << EOF
+    if [ -f "$ENV_FILE" ]; then
+        log_info "Using existing .env file at $ENV_FILE"
+        return 0
+    fi
+
+    log_info "Creating .env file from template..."
+    cat > "$ENV_FILE" << EOF
 # Server Configuration
 NODE_ENV=production
 HOST=0.0.0.0
@@ -54,12 +63,36 @@ PORT=4000
 
 # API Keys (Required)
 OPENAI_API_KEY=your-openai-api-key-here
+# GEMINI_API_KEY=
 
-# Admin Security (Required - generate with: openssl rand -hex 32)
+# Admin Security (Optional unless you need system-admin bootstrap)
 TRAPMAP_SYSTEM_ADMIN_KEY=$(openssl rand -hex 32)
 
-# Data Storage
-TRAPMAP_DATA_FILE=/app/.data/trapmap.json
+# Database (recommended for Docker deployment)
+POSTGRES_PASSWORD=trapmap
+TRAPMAP_DATABASE_URL=postgres://trapmap:\${POSTGRES_PASSWORD}@postgres:5432/trapmap
+TRAPMAP_DATA_FILE=/app/.data/skill-shareer.json
+
+# AI Provider (optional overrides)
+AI_PROVIDER=
+AI_BASE_URL=
+AI_API_KEY=
+AI_CHAT_MODEL=
+AI_EMBEDDING_MODEL=
+EMBEDDING_PROVIDER=
+EMBEDDING_BASE_URL=
+EMBEDDING_API_KEY=
+EMBEDDING_MODEL=
+
+# Optional graph query backend
+TRAPMAP_GRAPH_DB_ENABLED=false
+TRAPMAP_GRAPH_DB_PROVIDER=neo4j
+TRAPMAP_GRAPH_DB_URI=
+TRAPMAP_GRAPH_DB_USERNAME=
+TRAPMAP_GRAPH_DB_PASSWORD=
+TRAPMAP_GRAPH_DB_DATABASE=neo4j
+TRAPMAP_GRAPH_DB_FAIL_OPEN=true
+TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true
 
 # Logging Configuration (Phase 24)
 LOG_USER_OPS_ENABLED=false
@@ -69,11 +102,28 @@ LOG_RAG_DIR=/app/logs/rag
 LOG_MAX_FILE_SIZE_MB=10
 LOG_MAX_BACKUP_FILES=5
 EOF
-        log_warn ".env file created. Please edit it with your API keys and configuration."
-        log_warn "Required: OPENAI_API_KEY"
-        return 1
+    log_warn ".env file created. Please edit it with your API keys and configuration."
+    log_warn "Required: OPENAI_API_KEY"
+    return 1
+}
+
+validate_env_file() {
+    if [ ! -f "$ENV_FILE" ]; then
+        log_error "Missing .env file. Run '$0 deploy' first or copy .env.production.example to .env."
+        exit 1
     fi
-    return 0
+
+    if grep -q '^OPENAI_API_KEY=your-openai-api-key-here$' "$ENV_FILE"; then
+        log_error "OPENAI_API_KEY is still using the placeholder value in $ENV_FILE."
+        exit 1
+    fi
+}
+
+require_interactive_confirmation() {
+    if [ ! -t 0 ]; then
+        log_error "This command requires an interactive terminal confirmation."
+        exit 1
+    fi
 }
 
 # Create data directory
@@ -116,6 +166,7 @@ deploy() {
 start() {
     log_info "Starting service..."
     check_docker
+    validate_env_file
     create_data_dir
     create_logs_dir
     cd "$PROJECT_ROOT"
@@ -135,7 +186,9 @@ stop() {
 # Restart the service
 restart() {
     log_info "Restarting service..."
-    stop
+    if ! stop; then
+        log_warn "Stop step failed or no running containers found; continuing with start."
+    fi
     start
 }
 
@@ -155,6 +208,7 @@ status() {
 
 # Clean up (remove container, image, and data)
 clean() {
+    require_interactive_confirmation
     log_warn "This will remove the container, image, and all data. Are you sure?"
     read -p "Type 'yes' to confirm: " confirm
     if [ "$confirm" = "yes" ]; then
@@ -189,6 +243,7 @@ shell() {
 show_help() {
     cat << EOF
 TrapMap - Docker Deployment Script
+Version: $SCRIPT_VERSION
 
 Usage: $0 <command>
 
@@ -218,6 +273,9 @@ EOF
 
 # Main command routing
 case "${1:-}" in
+    "")
+        show_help
+        ;;
     deploy)
         deploy
         ;;
@@ -249,7 +307,7 @@ case "${1:-}" in
         show_help
         ;;
     *)
-        log_error "Unknown command: ${1:-}"
+        log_error "Unknown command: $1"
         show_help
         exit 1
         ;;

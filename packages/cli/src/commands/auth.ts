@@ -73,15 +73,25 @@ export function registerAuthCommands(program: Command): void {
     .option('--json', 'Output JSON')
     .action(async (options: { json?: boolean }) => {
       const state = await loadCliState();
+      let remoteLogoutError: unknown = null;
 
       if (state.sessionToken) {
-        await apiRequest(state, {
-          method: 'POST',
-          path: '/v1/auth/logout',
-        });
+        try {
+          await apiRequest(state, {
+            method: 'POST',
+            path: '/v1/auth/logout',
+          });
+        } catch (error) {
+          remoteLogoutError = error;
+        }
       }
 
       await clearSession();
+
+      if (remoteLogoutError) {
+        throw remoteLogoutError;
+      }
+
       printCommandResult(
         {
           action: 'logout',

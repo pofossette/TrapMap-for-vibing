@@ -152,19 +152,34 @@ docker compose down
 
 ```bash
 curl http://127.0.0.1:4000/health
+curl http://127.0.0.1:4000/ready
 ```
 
-预期响应：
+预期要点：
 
 ```json
 {
   "status": "ok",
+  "liveness": "alive",
+  "readiness": "ready",
   "product": "trapmap",
   "packages": ["cli", "server", "contracts"],
+  "requestContext": {
+    "requestIdHeader": "x-request-id",
+    "traceHeader": "traceparent"
+  },
+  "dependencies": {
+    "database": "postgres",
+    "queueWorker": "running",
+    "outboxWorker": "running",
+    "graphQuery": "disabled"
+  },
   "memory": { "rssMb": 128, "heapUsedMb": 64, "heapTotalMb": 96 },
   "uptimeSeconds": 42
 }
 ```
+
+`/ready` 与 `/health` 共享同一份 runtime snapshot，但会额外返回 `ok`。当 `readiness === "not-ready"` 时，`/ready` 返回 `503`。
 
 ### 运行测试
 

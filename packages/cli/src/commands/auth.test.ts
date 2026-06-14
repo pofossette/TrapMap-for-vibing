@@ -16,6 +16,7 @@ vi.mock('../lib/config.js', () => ({
   clearSession: vi.fn(),
 }));
 
+import { clearSession } from '../lib/config.js';
 import { registerAuthCommands } from './auth.js';
 
 const mockBaseState = {
@@ -250,6 +251,21 @@ describe('auth commands', () => {
       const output = consoleLogSpy.mock.calls[0][0];
       const parsed = JSON.parse(output);
       expect(parsed).toHaveProperty('ok', true);
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('clears the local session even when the logout API fails', async () => {
+      vi.mocked(http.apiRequest).mockRejectedValueOnce(new Error('server unavailable'));
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerAuthCommands(program);
+
+      await expect(program.parseAsync(['logout'], { from: 'user' })).rejects.toThrow(
+        'server unavailable',
+      );
+      expect(clearSession).toHaveBeenCalledTimes(1);
 
       consoleLogSpy.mockRestore();
     });

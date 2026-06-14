@@ -34,27 +34,31 @@ RUN pnpm exec tsc -b packages/contracts/tsconfig.json packages/server/tsconfig.j
 # Stage 3: Production
 FROM node:22-alpine AS production
 
-# Enable pnpm via corepack
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
-
 WORKDIR /app
 
 # Copy workspace root files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json tsconfig.json ./
+COPY --from=deps /app/node_modules ./node_modules
 
 # Copy contracts package (built)
 COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/contracts/tsconfig.json ./packages/contracts/
+COPY --from=deps /app/packages/contracts/node_modules ./packages/contracts/node_modules
 COPY --from=build /app/packages/contracts/dist ./packages/contracts/dist
 
 # Copy server package (built)
 COPY packages/server/package.json ./packages/server/
 COPY packages/server/tsconfig.json ./packages/server/
+COPY --from=deps /app/packages/server/node_modules ./packages/server/node_modules
+COPY packages/server/drizzle ./packages/server/drizzle
 COPY --from=build /app/packages/server/dist ./packages/server/dist
 
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
+# Create self-reference symlink so @trapmap/server resolves to dist/
+# (the copied workspace node_modules does not include a self-link; compiled imports use
+# @trapmap/server/lib/...)
+RUN mkdir -p /app/packages/server/node_modules/@trapmap && \
+    ln -s ../../dist /app/packages/server/node_modules/@trapmap/server
 
 WORKDIR /app/packages/server
 

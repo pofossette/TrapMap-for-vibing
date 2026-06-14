@@ -18,14 +18,14 @@ async function start() {
   const host = process.env.HOST ?? '127.0.0.1';
 
   await server.listen({ host, port });
-  server.log.info({ host, port, runtimeMode }, 'Skill Shareer server started');
+  server.log.info({ host, port, runtimeMode }, 'TrapMap server started');
 }
 
 const entryUrl = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
 
 if (entryUrl === import.meta.url) {
   start().catch((error: unknown) => {
-    console.error('Failed to start Skill Shareer server', error);
+    console.error('Failed to start TrapMap server', error);
     process.exitCode = 1;
   });
 }

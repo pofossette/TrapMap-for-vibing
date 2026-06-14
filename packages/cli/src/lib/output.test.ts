@@ -1,8 +1,9 @@
 import type { RetrievalResponse } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ApiError } from './http.js';
 import { getDefaultOutputProfile } from './output-profile.js';
-import { printAdaptiveResult, printResult } from './output.js';
+import { printAdaptiveResult, printError, printResult } from './output.js';
 
 describe('output helpers', () => {
   it('prints raw json when json flag is enabled', () => {
@@ -118,5 +119,24 @@ describe('output helpers', () => {
 
     expect(consoleLogSpy).toHaveBeenCalledWith('legacy graph formatter');
     consoleLogSpy.mockRestore();
+  });
+
+  it('prints structured JSON for ApiError', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const previousExitCode = process.exitCode;
+
+    printError(new ApiError(0, { url: 'http://localhost:4000/v1/auth/session' }, 'fetch failed'));
+
+    expect(JSON.parse(String(consoleErrorSpy.mock.calls[0]?.[0]))).toEqual({
+      error: {
+        type: 'api',
+        statusCode: 0,
+        message: 'fetch failed',
+        payload: { url: 'http://localhost:4000/v1/auth/session' },
+      },
+    });
+
+    process.exitCode = previousExitCode;
+    consoleErrorSpy.mockRestore();
   });
 });

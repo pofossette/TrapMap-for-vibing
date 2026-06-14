@@ -91,7 +91,16 @@ export function printAdaptiveResult<T extends RenderPayload>(
 
 export function printError(error: unknown): void {
   if (error instanceof ApiError) {
-    console.error(error.message);
+    console.error(
+      JSON.stringify({
+        error: {
+          type: 'api',
+          statusCode: error.statusCode,
+          message: error.message,
+          payload: error.payload,
+        },
+      }),
+    );
     process.exitCode = 1;
     return;
   }

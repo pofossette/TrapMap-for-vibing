@@ -285,6 +285,17 @@ describe('apiRequest', () => {
     });
   });
 
+  describe('network failures', () => {
+    it('should include the request URL when fetch throws', async () => {
+      mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'));
+
+      await expect(apiRequest(defaultState, { path: '/v1/auth/session' })).rejects.toMatchObject({
+        statusCode: 0,
+        message: 'Request to http://localhost:4000/v1/auth/session failed: fetch failed',
+      });
+    });
+  });
+
   describe('Error handling', () => {
     it('should throw ApiError for non-OK responses', async () => {
       mockFetch.mockResolvedValueOnce({

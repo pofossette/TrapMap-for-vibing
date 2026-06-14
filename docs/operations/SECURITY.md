@@ -189,10 +189,16 @@ OPENAI_API_KEY=sk-...
 
 ```bash
 NODE_ENV=production                    # 启用生产模式
-HOST=127.0.0.1                        # 绑定本地地址
+HOST=127.0.0.1                        # 裸机/反代场景绑定本地地址
 PORT=4000
 LOG_USER_OPS_ENABLED=true             # 记录用户操作
 LOG_RAG_ENABLED=true                  # 记录检索请求
+```
+
+如果运行在 Docker 容器内，容器内进程通常应配置为：
+
+```bash
+HOST=0.0.0.0
 ```
 
 ### 可选安全加固
@@ -217,7 +223,7 @@ LOG_MAX_BACKUP_FILES=5
 
 ```bash
 # 通过 CLI 创建
-pnpm --filter @trapmap/cli dev -- member key:create <username> --name "CI Pipeline" --days 90
+pnpm --filter @trapmap/cli dev -- access-key:create <memberId> --team <teamId> --note "CI Pipeline"
 ```
 
 创建后密钥明文仅显示一次，务必立即保存到安全位置。
@@ -279,22 +285,19 @@ LOG_USER_OPS_DIR=logs/user-ops
 | `auth.failed` | 登录失败 |
 | `auth.access_key_created` | 创建访问密钥 |
 | `auth.access_key_used` | 使用密钥认证 |
-| `knowledge-reviewed` | 审核知识条目（含 evidence 更新） |
-| `knowledge-deactivated` | 停用知识条目 |
-| `knowledge-exported` / `knowledge-imported` | 导出/导入知识 |
-| `artifact-edited` | 编辑工件 |
-| `artifact-reviewed` | 审核工件 |
-| `artifact-deactivated` | 停用工件 |
-| `artifact-exported` / `artifact-imported` | 导出/导入工件 |
-| `artifact-history-viewed` | 查看工件历史 |
-| `decay-batch` / `maintenance-batch` | 批量 decay/维护操作 |
-| `feedback` / `feedback-batch` | 反馈提交/批量处理 |
-| `reconcile-knowledge-indexes` | 索引重同步 |
+| `knowledge-reviewed`、`knowledge-deactivated` | 知识审核 / 停用 |
+| `knowledge-exported`、`knowledge-imported` | 知识导出 / 导入 |
+| `artifact-edited`、`artifact-reviewed`、`artifact-deactivated` | 工件编辑 / 审核 / 停用 |
+| `artifact-exported`、`artifact-imported`、`artifact-history-viewed` | 工件导出 / 导入 / 历史查看 |
+| `decay-batch`、`maintenance-batch`、`feedback-batch` | 批量运维动作 |
+| `feedback`、`reconcile-knowledge-indexes` | 反馈提交 / 索引重同步 |
+
+注意：当前审计 action 命名同时存在点分风格（如 `auth.login`）和连字符风格（如 `artifact-reviewed`）。文档在这里按当前实现如实列出，不再假设单一命名风格。
 
 审计日志需要 `audit:read` 权限才能查看：
 
 ```bash
-pnpm --filter @trapmap/cli dev -- audit list --limit 50
+pnpm --filter @trapmap/cli dev -- audit --limit 50
 ```
 
 ---

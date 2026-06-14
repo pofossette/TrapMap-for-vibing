@@ -111,6 +111,34 @@
       "idx": 15,
       "version": "7",
       "when": 1779400000000,
+      "tag": "0015_phase0_atomic_delivery_and_leases",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1779401000000,
+      "tag": "0016_phase1_async_operator_semantics",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1779402000000,
+      "tag": "0017_phase3_workflow_runs",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1779403000000,
+      "tag": "0018_phase4_query_traceability_and_badcase_capture",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1779400000000,
       "tag": "0019_phase5_shared_jobs_feedback_remediation",
       "breakpoints": true
     }

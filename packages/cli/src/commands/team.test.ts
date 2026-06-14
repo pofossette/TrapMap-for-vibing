@@ -155,7 +155,7 @@ describe('team commands', () => {
         session: null,
       });
       vi.mocked(http.requireSessionToken).mockImplementationOnce(() => {
-        throw new Error('Not authenticated. Run `skill-shareer login` first.');
+        throw new Error('Not authenticated. Run `trapmap login` first.');
       });
 
       const program = new Command();
@@ -251,7 +251,7 @@ describe('team commands', () => {
         session: null,
       });
       vi.mocked(http.requireSessionToken).mockImplementationOnce(() => {
-        throw new Error('Not authenticated. Run `skill-shareer login` first.');
+        throw new Error('Not authenticated. Run `trapmap login` first.');
       });
 
       const program = new Command();
@@ -361,7 +361,7 @@ describe('team commands', () => {
         session: null,
       });
       vi.mocked(http.requireSessionToken).mockImplementationOnce(() => {
-        throw new Error('Not authenticated. Run `skill-shareer login` first.');
+        throw new Error('Not authenticated. Run `trapmap login` first.');
       });
 
       const program = new Command();
