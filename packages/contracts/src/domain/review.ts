@@ -27,7 +27,11 @@ export const reviewQueueQuerySchema = paginatedQuerySchema
 export const reviewDecisionRequestSchema = z
   .object({
     entryId: entityIdSchema,
-    decision: z.enum(['approve', 'reject']),
+    decision: z.preprocess((value) => {
+      if (value === 'approved') return 'approve';
+      if (value === 'rejected') return 'reject';
+      return value;
+    }, z.enum(['approve', 'reject'])),
     notes: z.string().min(1).max(2000),
     boundary: boundarySchema.nullable().optional(),
     evidence: evidenceMetaSchema

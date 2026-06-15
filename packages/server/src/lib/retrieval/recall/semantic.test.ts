@@ -8,8 +8,12 @@
  * - getEntryEmbedding / getQueryEmbedding: embedding retrieval with cache support
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  buildQueryEmbeddingCacheKey,
+  resetQueryEmbeddingCacheForTests,
+} from '@trapmap/server/lib/cache/query-embedding-cache.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import {
   buildEmbeddingText,
@@ -372,11 +376,74 @@ describe('semantic recall', () => {
   });
 
   describe('getQueryEmbedding', () => {
-    it('calls generateEmbedding with query text', async () => {
+    afterEach(() => {
+      vi.useRealTimers();
+      resetQueryEmbeddingCacheForTests();
+      vi.mocked(generateEmbedding).mockReset();
+      vi.mocked(generateEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+    });
+
+    it('calls generateEmbedding with query text on cache miss', async () => {
+      resetQueryEmbeddingCacheForTests();
+      vi.mocked(generateEmbedding).mockClear();
       const vector = await getQueryEmbedding('JWT authentication');
 
       expect(generateEmbedding).toHaveBeenCalledWith('JWT authentication');
       expect(vector).toEqual([0.1, 0.2, 0.3]);
+    });
+
+    it('reuses cached vector for repeated normalized query text', async () => {
+      resetQueryEmbeddingCacheForTests();
+      vi.mocked(generateEmbedding).mockClear();
+
+      const first = await getQueryEmbedding('Docker cache');
+      const second = await getQueryEmbedding(' docker   CACHE ');
+
+      expect(first).toEqual([0.1, 0.2, 0.3]);
+      expect(second).toEqual(first);
+      expect(generateEmbedding).toHaveBeenCalledTimes(1);
+      expect(buildQueryEmbeddingCacheKey('Docker cache')).toBe('docker cache');
+      expect(buildQueryEmbeddingCacheKey(' docker   CACHE ')).toBe('docker cache');
+    });
+
+    it('uses distinct cache entries for different normalized queries', async () => {
+      resetQueryEmbeddingCacheForTests();
+      vi.mocked(generateEmbedding).mockImplementation(async (text) => [String(text).length]);
+
+      await getQueryEmbedding('docker cache');
+      await getQueryEmbedding('docker network');
+
+      expect(generateEmbedding).toHaveBeenCalledTimes(2);
+    });
+
+    it('recomputes after query embedding cache TTL expires', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-06-15T00:00:00.000Z'));
+      resetQueryEmbeddingCacheForTests({ ttlMs: 1_000 });
+      vi.mocked(generateEmbedding).mockClear();
+
+      await getQueryEmbedding('docker cache');
+      vi.setSystemTime(new Date('2026-06-15T00:00:01.001Z'));
+      await getQueryEmbedding('docker cache');
+
+      expect(generateEmbedding).toHaveBeenCalledTimes(2);
+    });
+
+    it('evicts least recently used query embedding when max size is exceeded', async () => {
+      resetQueryEmbeddingCacheForTests({ maxSize: 2 });
+      vi.mocked(generateEmbedding).mockImplementation(async (text) => [String(text).length]);
+
+      await getQueryEmbedding('query one');
+      await getQueryEmbedding('query two');
+      await getQueryEmbedding('query one');
+      await getQueryEmbedding('query three');
+      await getQueryEmbedding('query two');
+
+      expect(generateEmbedding).toHaveBeenCalledTimes(4);
+      expect(generateEmbedding).toHaveBeenNthCalledWith(1, 'query one');
+      expect(generateEmbedding).toHaveBeenNthCalledWith(2, 'query two');
+      expect(generateEmbedding).toHaveBeenNthCalledWith(3, 'query three');
+      expect(generateEmbedding).toHaveBeenNthCalledWith(4, 'query two');
     });
   });
 

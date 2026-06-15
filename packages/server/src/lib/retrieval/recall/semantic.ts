@@ -12,6 +12,10 @@
  */
 
 import type { RetrievalQuery } from '@trapmap/contracts';
+import {
+  getCachedQueryEmbedding,
+  setCachedQueryEmbedding,
+} from '@trapmap/server/lib/cache/query-embedding-cache.js';
 import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
 import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/channel-registry.js';
 import { normalizeQuery } from '@trapmap/server/lib/retrieval/recall/keyword.js';
@@ -159,7 +163,14 @@ export async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[
  * Generate embedding vector for a query text.
  */
 export async function getQueryEmbedding(queryText: string): Promise<number[]> {
-  return generateEmbedding(queryText);
+  const cached = getCachedQueryEmbedding(queryText);
+  if (cached) {
+    return cached;
+  }
+
+  const vector = await generateEmbedding(queryText);
+  setCachedQueryEmbedding(queryText, vector);
+  return vector;
 }
 
 // =============================================================================

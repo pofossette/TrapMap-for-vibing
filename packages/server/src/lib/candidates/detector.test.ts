@@ -579,6 +579,28 @@ describe('detectDuplicates', () => {
     expect(match.matchType).not.toBe('exact');
   });
 
+  it('does not mark short topic-only overlap as a duplicate when fingerprint differs', async () => {
+    const trap = createTestTrap({
+      id: 'trap_short_topic_overlap',
+      shortcut: 'Docker cache',
+      detail: '',
+      labels: ['docker'],
+      lifecycleState: 'approved',
+    });
+
+    const input = createTestInput({
+      candidateTokens: [...tokenize('Docker cache')],
+      candidateKeywords: ['docker'],
+      candidateFingerprint: 'different-fingerprint',
+      candidateExactLookupKey: 'different-fingerprint',
+      trapEntries: [trap],
+      threshold: 0.38,
+    });
+
+    const result = await detectDuplicates(input);
+    expect(result.duplicateCase).toBeNull();
+  });
+
   it('trap exact match produces duplicateCase with duplicateType "exact"', async () => {
     const trap = createTestTrap({
       id: 'trap_dup_type',

@@ -377,6 +377,7 @@ edges:
 
 | 缓存名称 | namespace | maxSize | TTL | 用途 |
 |----------|-----------|---------|-----|------|
+| Query Embedding Cache | `query-embedding` | 300 | 20 min | 检索 query 文本的 embedding 向量 |
 | IntentCache | `intent` | 200 | 30 min | LLM 意图解析结果（ParsedIntent） |
 | Graph State Cache | `graph-state` | 500 | 1 h | 图索引适配器的同步状态（LegacyGraphSyncState） |
 | Graph Docs Cache | `graph-docs` | 500 | 1 h | 图文档记录（GraphIndexDocumentRecord） |

@@ -20,6 +20,7 @@ import type { DuplicateDetectionInput, DuplicateDetectionResult } from './types.
 
 const DETECTION_VERSION = '2.0.0';
 const HIGH_OVERLAP_THRESHOLD = 0.72;
+const MIN_NON_EXACT_SHARED_TOKENS = 4;
 
 /** Pre-filter threshold for LLM refinement stage — lower than HIGH_OVERLAP to cast a wider net */
 const LLM_PREFILTER_THRESHOLD = 0.3;
@@ -137,6 +138,11 @@ function checkTrapDuplicate(
 
   const entryText = `${entry.shortcut}\n${entry.detail}`;
   const entryTokens = tokenize(entryText);
+  const sharedTokens = [...candidateTokens].filter((t) => entryTokens.has(t));
+
+  if (sharedTokens.length < MIN_NON_EXACT_SHARED_TOKENS) {
+    return null;
+  }
 
   const similarity = overlapScore(candidateTokens, entryTokens);
   const effectiveThreshold = minThreshold ?? threshold;
@@ -146,7 +152,6 @@ function checkTrapDuplicate(
   }
 
   const isExact = false;
-  const sharedTokens = [...candidateTokens].filter((t) => entryTokens.has(t));
   const sharedKeywords = candidateKeywords.filter((k) =>
     entry.labels.some((l) => l.toLowerCase() === k.toLowerCase()),
   );
@@ -211,6 +216,11 @@ function checkSkillDuplicate(
 
   const artifactText = `${profile.title}\n${profile.summary}`;
   const artifactTokens = tokenize(artifactText);
+  const sharedTokens = [...candidateTokens].filter((t) => artifactTokens.has(t));
+
+  if (sharedTokens.length < MIN_NON_EXACT_SHARED_TOKENS) {
+    return null;
+  }
 
   const similarity = overlapScore(candidateTokens, artifactTokens);
   const effectiveThreshold = minThreshold ?? threshold;
@@ -219,7 +229,6 @@ function checkSkillDuplicate(
     return null;
   }
 
-  const sharedTokens = [...candidateTokens].filter((t) => artifactTokens.has(t));
   const sharedKeywords = candidateKeywords.filter((k) =>
     profile.keywords.some((pk) => pk.toLowerCase() === k.toLowerCase()),
   );

@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { buildServer } from '@trapmap/server/app.js';
+import {
+  getCachedQueryEmbedding,
+  resetQueryEmbeddingCacheForTests,
+  setCachedQueryEmbedding,
+} from '@trapmap/server/lib/cache/query-embedding-cache.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
@@ -602,6 +607,10 @@ describe('operations routes', () => {
     });
 
     it('exposes retrieval cache metrics on async status route', async () => {
+      resetQueryEmbeddingCacheForTests();
+      setCachedQueryEmbedding('Docker cache', [0.1, 0.2, 0.3]);
+      expect(getCachedQueryEmbedding('docker   CACHE')).toEqual([0.1, 0.2, 0.3]);
+
       const response = await testApp.inject({
         method: 'GET',
         url: '/v1/operations/status/async',
@@ -613,6 +622,13 @@ describe('operations routes', () => {
       expect(response.statusCode).toBe(200);
       const json = response.json();
       expect(json.cache).toBeDefined();
+      expect(json.cache['query-embedding']).toMatchObject({
+        hits: expect.any(Number),
+        misses: expect.any(Number),
+        size: expect.any(Number),
+        hitRate: expect.any(Number),
+      });
+      expect(json.cache['query-embedding'].hits).toBeGreaterThanOrEqual(1);
     });
   });
 });

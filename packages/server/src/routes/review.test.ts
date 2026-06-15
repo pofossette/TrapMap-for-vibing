@@ -234,6 +234,28 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       expect(Array.isArray(entry?.embeddingCache?.vector)).toBe(true);
     });
 
+    it('accepts "approved" as an alias for approve decisions', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/knowledge/review',
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+        payload: {
+          entryId,
+          decision: 'approved',
+          notes: 'Looks good with lifecycle alias',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const data = await store.snapshot();
+      const entry = data.knowledgeEntries.find((e) => e.id === entryId);
+      expect(entry?.lifecycleState).toBe('approved');
+      expect(entry?.reviewHistory.at(-1)?.decision).toBe('approve');
+    });
+
     it('should not create index state for rejected entries (T-11-03)', async () => {
       // Reject the entry
       const response = await app.inject({
@@ -261,6 +283,28 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       // Rejection should be a no-op for indexing
       expect(entry?.indexState).toBeNull();
       expect(entry?.embeddingCache).toBeNull();
+    });
+
+    it('accepts "rejected" as an alias for reject decisions', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/knowledge/review',
+        headers: {
+          authorization: `Bearer ${sessionId}`,
+        },
+        payload: {
+          entryId,
+          decision: 'rejected',
+          notes: 'Not ready with lifecycle alias',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const data = await store.snapshot();
+      const entry = data.knowledgeEntries.find((e) => e.id === entryId);
+      expect(entry?.lifecycleState).toBe('rejected');
+      expect(entry?.reviewHistory.at(-1)?.decision).toBe('reject');
     });
 
     it('should trigger indexing only after the transaction commits (T-11-01)', async () => {

@@ -352,6 +352,20 @@ describe('operations routes', () => {
         handle: 'system-admin',
         securityLevel: 10,
       });
+
+      const getResponse = await testApp.inject({
+        method: 'GET',
+        url: `/v1/knowledge/${entryId}`,
+        headers: adminHeaders,
+      });
+
+      expect(getResponse.statusCode).toBe(200);
+      const getJson = getResponse.json() as typeof json;
+      expect(getJson.entry.lifecycleHistory.at(-1)?.actor).toEqual({
+        id: 'system-admin',
+        handle: 'system-admin',
+        securityLevel: 10,
+      });
     });
   });
 

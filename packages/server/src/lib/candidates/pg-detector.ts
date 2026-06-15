@@ -37,6 +37,7 @@ import type { DuplicateDetectionResult } from './types.js';
 // Thresholds (match detector.ts for compatibility)
 const HIGH_OVERLAP_THRESHOLD = 0.72;
 const MEDIUM_OVERLAP_THRESHOLD = 0.38;
+const MIN_NON_EXACT_SHARED_TOKENS = 4;
 const DETECTION_VERSION = '3.0.0'; // Bumped for LLM-enhanced detection
 
 /** Maximum number of top-K matches sent to LLM for refinement */
@@ -546,6 +547,13 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
 
       // Hybrid score: weighted average (0.6 vector + 0.4 keyword)
       const hybridScore = scores.vectorScore * 0.6 + scores.keywordScore * 0.4;
+
+      if (
+        scores.sharedTokens.size > 0 &&
+        scores.sharedTokens.size < MIN_NON_EXACT_SHARED_TOKENS
+      ) {
+        continue;
+      }
 
       if (hybridScore < MEDIUM_OVERLAP_THRESHOLD) {
         continue;

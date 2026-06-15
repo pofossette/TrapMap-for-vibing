@@ -123,6 +123,7 @@
 | `packages/server/src/lib/retrieval/capsules/capsule-recall.ts` | Impl | Capsule 召回：`rankCapsules()`, `getCapsuleRecords()`, `computeContextMatchScore()` |
 | `packages/server/src/lib/retrieval/response/assembly.ts` | Impl | `buildCapsuleMatch()` — 将 capsule 候选装配为检索响应匹配结果 |
 | `packages/server/src/lib/retrieval/capsules/intent.ts` | Impl | `parseSeedIntent()` + `parseSeedIntentWithLLM()` — 将查询解析为 situation/problem/goal/errorText，LLM 路径额外产出 category/semanticQuery/parseMethod |
+| `packages/server/src/lib/cache/query-embedding-cache.ts` | Impl | `query-embedding` — 检索 query embedding 的过程内缓存（TTL 20 分钟，容量上限 300） |
 | `packages/server/src/lib/retrieval/capsules/intent-cache.ts` | Impl | `InMemoryIntentCache` — LLM 意图解析结果的过程内缓存（TTL 30 分钟，容量上限 200） |
 
 ### IntentCategory（意图分类）
@@ -192,7 +193,7 @@ Skill 工件的客户端激活元数据，包含 references、assets、scripts �
 
 ### namespace（缓存命名空间）
 
-缓存实例标识，用于 metrics 聚合时区分不同缓存。同一 namespace 下的多个实例会被合并统计。当前 namespace 值：`intent`、`graph-state`、`graph-docs`、`llm-phase1`、`llm-phase2`。
+缓存实例标识，用于 metrics 聚合时区分不同缓存。同一 namespace 下的多个实例会被合并统计。当前 namespace 值：`query-embedding`、`intent`、`graph-state`、`graph-docs`、`llm-phase1`、`llm-phase2`。
 
 | 位置 | 形式 | 说明 |
 |------|------|------|

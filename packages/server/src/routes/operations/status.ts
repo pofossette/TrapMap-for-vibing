@@ -48,7 +48,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
           workerState: 'not-configured',
           recentFailures: [],
         },
-        cache: {},
+        cache: getRetrievalCacheStats(),
         workflows: [],
         reportedAt: nowIso(),
       });

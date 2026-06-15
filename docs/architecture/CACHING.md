@@ -47,6 +47,7 @@ class RetrievalCache<V> {
 
 | 缓存名称 | namespace | maxSize | TTL | 值类型 | 位置 |
 |----------|-----------|---------|-----|--------|------|
+| Query Embedding Cache | `query-embedding` | 300 | 20 min | `number[]` | `packages/server/src/lib/cache/query-embedding-cache.ts` |
 | IntentCache | `intent` | 200 | 30 min | `ParsedIntent` | `packages/server/src/lib/retrieval/capsules/intent-cache.ts` |
 | Graph State Cache | `graph-state` | 500 | 1 h | `LegacyGraphSyncState` | `packages/server/src/lib/indexing/adapters/graph.ts` |
 | Graph Docs Cache | `graph-docs` | 500 | 1 h | `GraphIndexDocumentRecord` | `packages/server/src/lib/indexing/adapters/graph.ts` |
@@ -66,6 +67,7 @@ import { getRetrievalCacheStats } from '@trapmap/server/lib/cache/metrics.js';
 
 const stats = getRetrievalCacheStats();
 // {
+//   'query-embedding': { hits, misses, evictions, size, hitRate },
 //   'intent':      { hits, misses, evictions, size, hitRate },
 //   'graph-state': { hits, misses, evictions, size, hitRate },
 //   'graph-docs':  { ... },

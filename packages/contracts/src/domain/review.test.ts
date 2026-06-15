@@ -30,6 +30,21 @@ describe('review schema contracts', () => {
       expect(() => reviewDecisionRequestSchema.parse(baseRequest)).not.toThrow();
     });
 
+    it('normalizes lifecycle-state decision aliases for API compatibility', () => {
+      expect(
+        reviewDecisionRequestSchema.parse({
+          ...baseRequest,
+          decision: 'approved',
+        }).decision,
+      ).toBe('approve');
+      expect(
+        reviewDecisionRequestSchema.parse({
+          ...baseRequest,
+          decision: 'rejected',
+        }).decision,
+      ).toBe('reject');
+    });
+
     it('accepts evidence without verifiedAt/verifiedBy for server-side backfill', () => {
       const request = reviewDecisionRequestSchema.parse({
         ...baseRequest,
