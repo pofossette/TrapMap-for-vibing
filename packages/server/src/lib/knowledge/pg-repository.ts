@@ -909,7 +909,90 @@ function reconstructKnowledgeRecord(
   }
 
   // Populate lifecycle events
-  entry.lifecycleHistory = eventRows.map(rowToLifecycleEvent);
+  const lifecycleHistory = eventRows.map(rowToLifecycleEvent);
+  entry.lifecycleHistory = lifecycleHistory;
+
+  entry.metadata.revisionCount = revisions.length > 0 ? revisions.length : 1;
+  entry.metadata.latestSubmittedAt = revisions.at(-1)?.submittedAt ?? entry.createdAt;
+
+  const reviewerEvents = lifecycleHistory.filter(
+    (event) => event.type === 'reviewer-approved' || event.type === 'reviewer-rejected',
+  );
+  const latestReviewerEvent = reviewerEvents.at(-1) ?? null;
+  if (latestReviewerEvent) {
+    entry.metadata.latestReviewedAt = latestReviewerEvent.createdAt;
+    entry.metadata.latestDecision =
+      latestReviewerEvent.type === 'reviewer-approved' ? 'approve' : 'reject';
+  } else {
+    const latestAgentEvent = [...lifecycleHistory]
+      .reverse()
+      .find((event) => event.type === 'agent-reviewed');
+    entry.metadata.latestReviewedAt = latestAgentEvent?.createdAt ?? null;
+    entry.metadata.latestDecision = null;
+  }
+
+  const submissionIdByRevision = new Map<number, string>();
+  for (const event of lifecycleHistory) {
+    if (event.submissionId && event.revision !== null) {
+      submissionIdByRevision.set(event.revision, event.submissionId);
+    }
+  }
+
+  entry.submissionHistory = revisions.map((revision, index) => {
+    const revisionNo = revision.revision;
+    const submissionId = submissionIdByRevision.get(revisionNo) ?? `${entry.id}_submission_${revisionNo}`;
+    const agentReviewedEvent = lifecycleHistory.find(
+      (event) => event.type === 'agent-reviewed' && event.revision === revisionNo,
+    );
+    const reviewerEvent = lifecycleHistory.find(
+      (event) =>
+        (event.type === 'reviewer-approved' || event.type === 'reviewer-rejected') &&
+        event.revision === revisionNo,
+    );
+    const submissionLifecycleState =
+      reviewerEvent?.state ?? agentReviewedEvent?.state ?? entry.lifecycleState;
+    const reviewNotes = revision.reviewNotes;
+    const agentNotes = reviewNotes.filter((note) => note.authorType === 'agent').map((note) => note.message);
+
+    return {
+      id: submissionId,
+      revision: revisionNo,
+      submittedAt: revision.submittedAt,
+      submittedByUserId: revision.submittedByUserId,
+      lifecycleState: submissionLifecycleState,
+      resubmissionOf: index > 0 ? entry.submissionHistory[index - 1]?.id ?? null : null,
+      agentReview: agentReviewedEvent
+        ? {
+            status: agentReviewedEvent.state as 'agent-pass' | 'agent-rejected',
+            duplicateRisk: 'low',
+            correctnessRisk: 'medium',
+            completenessRisk: 'medium',
+            checkedAt: agentReviewedEvent.createdAt,
+            notes: agentNotes.length > 0 ? agentNotes : agentReviewedEvent.note ? [agentReviewedEvent.note] : [],
+          }
+        : null,
+      reviewerDecision: reviewerEvent && reviewerEvent.actorUserId
+        ? {
+            decidedAt: reviewerEvent.createdAt,
+            decidedByUserId: reviewerEvent.actorUserId,
+            decision: reviewerEvent.type === 'reviewer-approved' ? 'approve' : 'reject',
+            notes: reviewerEvent.note ?? '',
+          }
+        : null,
+      reviewNotes,
+    };
+  });
+
+  entry.latestSubmissionId = entry.submissionHistory.at(-1)?.id ?? null;
+  entry.metadata.latestSubmissionId = entry.latestSubmissionId;
+  entry.metadata.submissionCount = entry.submissionHistory.length;
+  entry.metadata.resubmissionCount = Math.max(0, entry.submissionHistory.length - 1);
+
+  entry.reviewHistory = entry.submissionHistory
+    .map((submission) => submission.reviewerDecision)
+    .filter((decision): decision is NonNullable<typeof decision> => decision !== null);
+  entry.reviewNotes = revisions.flatMap((revision) => revision.reviewNotes);
+  entry.agentReview = entry.submissionHistory.at(-1)?.agentReview ?? null;
 
   return entry;
 }

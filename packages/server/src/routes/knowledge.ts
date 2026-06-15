@@ -12,6 +12,7 @@ import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/look
 import { supersedeEntry } from '@trapmap/server/lib/decay/supersede.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { createKnowledgeRevision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
+import { upsertKnowledgeEntryShadow } from '@trapmap/server/lib/knowledge/shadow-sync.js';
 import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
 import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
@@ -78,6 +79,10 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       boundary: payload.boundary,
     });
 
+    await app.skillShareer.store.transact((data) => {
+      upsertKnowledgeEntryShadow(data, entry);
+    });
+
     const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entry]);
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
@@ -112,7 +117,10 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     const entryId = (request.params as { entryId: string }).entryId;
     const { knowledge: knowledgeRepo } = app.skillShareer.repos;
-    const entry = await knowledgeRepo.getById(entryId);
+    const snapshot = await app.skillShareer.store.snapshot();
+    const entry =
+      snapshot.knowledgeEntries.find((candidate) => candidate.id === entryId) ??
+      (await knowledgeRepo.getById(entryId));
 
     if (!entry) {
       throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
@@ -148,6 +156,10 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       payload,
     });
 
+    await app.skillShareer.store.transact((data) => {
+      upsertKnowledgeEntryShadow(data, entry);
+    });
+
     const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entry]);
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
@@ -164,7 +176,6 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       entry: toKnowledgeEntry(lookup, entry),
     });
   });
-
   app.patch('/v1/knowledge/:entryId', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:update');

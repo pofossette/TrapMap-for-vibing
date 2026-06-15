@@ -8,11 +8,12 @@ import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
+import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
+import { upsertKnowledgeEntryShadow } from '@trapmap/server/lib/knowledge/shadow-sync.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '@trapmap/server/lib/knowledge.js';
 import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import {
   requireHigherLevel,
   requirePermission,
@@ -27,27 +28,17 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:export');
 
     const query = knowledgeListRequestSchema.parse(request.query as Record<string, unknown>);
-
-    // Use repository for listing entries (replaces store.snapshot())
     const { knowledge: knowledgeRepo } = app.skillShareer.repos;
     let entries = await knowledgeRepo.listByFilter({});
 
-    // Filter based on user permissions
     if (auth.subjectType !== 'system-admin') {
       entries = entries.filter((entry) => {
-        // User can see entries where their level > entry.requiredLevel
-        if (auth.securityLevel > entry.requiredLevel) {
-          return true;
-        }
-        // Or entries in their active team
-        if (entry.teamId && auth.activeTeamId === entry.teamId) {
-          return true;
-        }
+        if (auth.securityLevel > entry.requiredLevel) return true;
+        if (entry.teamId && auth.activeTeamId === entry.teamId) return true;
         return false;
       });
     }
 
-    // Apply optional filters
     if (query.scope !== undefined) {
       entries = entries.filter((entry) => entry.scope === query.scope);
     }
@@ -58,15 +49,13 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (query.requiredLevelMax !== undefined) {
-      const maxLevel = query.requiredLevelMax;
-      entries = entries.filter((entry) => entry.requiredLevel <= maxLevel);
+      entries = entries.filter((entry) => entry.requiredLevel <= query.requiredLevelMax!);
     }
 
     if (query.ownerUserId !== undefined) {
       entries = entries.filter((entry) => entry.ownerUserId === query.ownerUserId);
     }
 
-    // Apply evidence-based filters
     if (query.evidenceLevel && query.evidenceLevel.length > 0) {
       entries = entries.filter(
         (entry) =>
@@ -96,21 +85,12 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
       entries = entries.filter((entry) => !entry.evidenceMeta);
     }
 
-    // Sort by updatedAt descending
     entries.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
-    // Apply limit
-    const limit = query.limit;
     const total = entries.length;
-    entries = entries.slice(0, limit);
+    const items = entries.slice(0, query.limit).map((entry) => toKnowledgeListItem(entry));
 
-    const items = entries.map((entry) => toKnowledgeListItem(entry));
-
-    return knowledgeListResponseSchema.parse({
-      items,
-      nextCursor: null,
-      total,
-    });
+    return knowledgeListResponseSchema.parse({ items, nextCursor: null, total });
   });
 
   app.post('/v1/operations/knowledge/:entryId/deactivate', async (request) => {
@@ -123,123 +103,59 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
       entryId,
     });
 
-    // Capture transition context for post-commit indexing
     let previousState: LifecycleState | undefined;
     let nextState: LifecycleState | undefined;
 
-    const store = app.skillShareer.store;
-    const updatedEntry =
-      store instanceof PostgresStore
-        ? await store.transactWithPgClient(async (data, client) => {
-            const entry = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
+    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
+    const entry = await knowledgeRepo.getById(entryId);
+    if (!entry) {
+      throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
+    }
 
-            if (!entry) {
-              throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
-            }
+    if (entry.teamId) {
+      requireTeamAccess(auth, entry.teamId);
+    }
 
-            if (entry.teamId) {
-              requireTeamAccess(auth, entry.teamId);
-            }
+    requireHigherLevel(auth, entry.requiredLevel);
 
-            requireHigherLevel(auth, entry.requiredLevel);
+    const deactivatedAt = nowIso();
+    const actorId = auth.user?.id ?? auth.actorId;
+    previousState = entry.lifecycleState;
+    transitionLifecycleState(entry, 'deactivated', 'knowledge deactivate');
+    nextState = 'deactivated';
 
-            const deactivatedAt = nowIso();
-            previousState = entry.lifecycleState;
-            transitionLifecycleState(entry, 'deactivated', 'knowledge deactivate');
-            nextState = 'deactivated';
+    await knowledgeRepo.updateLifecycle(entryId, 'deactivated', {
+      actorId,
+      note: payload.reason,
+    });
 
-            entry.lifecycleHistory.push({
-              id: app.skillShareer.store.nextId(data, 'knowledge_event'),
-              type: 'deactivated',
-              createdAt: deactivatedAt,
-              actorUserId: auth.user?.id ?? null,
-              submissionId: entry.latestSubmissionId,
-              revision: entry.latestRevision.revision,
-              state: 'deactivated',
-              note: payload.reason,
-            });
+    await app.skillShareer.store.transact((data) => {
+      entry.lifecycleHistory.push({
+        id: app.skillShareer.store.nextId(data, 'knowledge_event'),
+        type: 'deactivated',
+        createdAt: deactivatedAt,
+        actorUserId: actorId,
+        submissionId: entry.latestSubmissionId,
+        revision: entry.latestRevision.revision,
+        state: 'deactivated',
+        note: payload.reason,
+      });
+      entry.updatedAt = deactivatedAt;
+      upsertKnowledgeEntryShadow(data, entry);
 
-            entry.updatedAt = deactivatedAt;
+      const auditEvent = createAuditEvent({
+        store: app.skillShareer.store,
+        data,
+        teamId: entry.teamId,
+        actor: auth,
+        action: 'knowledge-deactivated',
+        entityId: entry.id,
+        payload: { reason: payload.reason, previousState },
+      });
+      data.auditEvents.push(auditEvent);
+    });
 
-            const auditEvent = createAuditEvent({
-              store: app.skillShareer.store,
-              data,
-              teamId: entry.teamId,
-              actor: auth,
-              action: 'knowledge-deactivated',
-              entityId: entry.id,
-              payload: { reason: payload.reason, previousState },
-            });
-            data.auditEvents.push(auditEvent);
-
-            if (previousState && nextState) {
-              await emitLifecycleTransition({
-                store: app.skillShareer.store,
-                eventBus: app.skillShareer.eventBus,
-                aggregateType: 'knowledge',
-                aggregateId: entryId,
-                previousState,
-                nextState,
-                actorId: auth.actorId,
-                reason: 'deactivated',
-                txClient: client,
-              });
-            }
-
-            return toKnowledgeEntry(data, entry);
-          })
-        : await app.skillShareer.store.transact((data) => {
-            const entry = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
-
-            if (!entry) {
-              throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
-            }
-
-            if (entry.teamId) {
-              requireTeamAccess(auth, entry.teamId);
-            }
-
-            requireHigherLevel(auth, entry.requiredLevel);
-
-            const deactivatedAt = nowIso();
-
-            // Capture previous state before deactivation
-            previousState = entry.lifecycleState;
-
-            // Set lifecycle state
-            transitionLifecycleState(entry, 'deactivated', 'knowledge deactivate');
-            nextState = 'deactivated';
-
-            // Add lifecycle event
-            entry.lifecycleHistory.push({
-              id: app.skillShareer.store.nextId(data, 'knowledge_event'),
-              type: 'deactivated',
-              createdAt: deactivatedAt,
-              actorUserId: auth.user?.id ?? null,
-              submissionId: entry.latestSubmissionId,
-              revision: entry.latestRevision.revision,
-              state: 'deactivated',
-              note: payload.reason,
-            });
-
-            entry.updatedAt = deactivatedAt;
-
-            // Record audit event
-            const auditEvent = createAuditEvent({
-              store: app.skillShareer.store,
-              data,
-              teamId: entry.teamId,
-              actor: auth,
-              action: 'knowledge-deactivated',
-              entityId: entry.id,
-              payload: { reason: payload.reason, previousState },
-            });
-            data.auditEvents.push(auditEvent);
-
-            return toKnowledgeEntry(data, entry);
-          });
-
-    if (!(store instanceof PostgresStore) && previousState && nextState) {
+    if (previousState && nextState) {
       await emitLifecycleTransition({
         store: app.skillShareer.store,
         eventBus: app.skillShareer.eventBus,
@@ -252,6 +168,14 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    return knowledgeDeactivateResponseSchema.parse({ entry: updatedEntry });
+    const updatedEntry = await knowledgeRepo.getById(entryId);
+    if (!updatedEntry) {
+      throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found after update');
+    }
+
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [updatedEntry]);
+    return knowledgeDeactivateResponseSchema.parse({
+      entry: toKnowledgeEntry(lookup, updatedEntry),
+    });
   });
 };

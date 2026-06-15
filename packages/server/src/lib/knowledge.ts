@@ -80,6 +80,14 @@ function toActorRef(
   teamId: string | null,
   fallbackLevel: number,
 ) {
+  if (userId === 'system-admin') {
+    return {
+      id: 'system-admin',
+      handle: 'system-admin',
+      securityLevel: 10,
+    };
+  }
+
   const user = getUser(data, userId);
 
   return {
@@ -324,6 +332,11 @@ export function createKnowledgeEntryRecord(args: {
   };
 }
 
+type ReviewEvidenceInput = Omit<EvidenceMeta, 'verifiedAt' | 'verifiedBy'> & {
+  verifiedAt?: string;
+  verifiedBy?: EvidenceMeta['verifiedBy'];
+};
+
 export function resubmitKnowledgeEntry(args: {
   entry: KnowledgeRecord;
   ownerUserId: string;
@@ -406,8 +419,8 @@ export function applyReviewDecision(args: {
   decidedAt: string;
   decision: 'approve' | 'reject';
   notes: string;
-  /** Optional evidence metadata (new field) */
-  evidence?: EvidenceMeta;
+  /** Optional evidence metadata from review input; server may fill verifier fields. */
+  evidence?: ReviewEvidenceInput;
 }): KnowledgeRecord {
   const reviewDecision: KnowledgeReviewDecisionRecord = {
     decidedAt: args.decidedAt,

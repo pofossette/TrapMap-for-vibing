@@ -92,6 +92,7 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   'routes/feedback-admin.ts',
   'routes/admin-benchmark.ts',
   'routes/review.ts',
+  'routes/knowledge.ts',
   'routes/teams.ts',
   'routes/admin-boundary-search.ts',
   'routes/maintenance.ts',

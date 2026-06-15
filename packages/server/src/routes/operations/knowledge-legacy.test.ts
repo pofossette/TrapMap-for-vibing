@@ -11,6 +11,37 @@ import type { FastifyInstance } from 'fastify';
 describe('operations routes', () => {
   let app: FastifyInstance;
 
+  async function getSystemAdminAuth(targetApp: FastifyInstance): Promise<{ Authorization: string }> {
+    const loginResponse = await targetApp.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: {
+        systemAdminKey: 'test-system-admin-key',
+      },
+    });
+
+    if (loginResponse.statusCode === 200) {
+      const loginJson = loginResponse.json() as { token?: string };
+      return { Authorization: `Bearer ${loginJson.token}` };
+    }
+
+    const token = `test-ops-admin-token-${Date.now()}`;
+    const tokenHash = hashSecret(token);
+    await targetApp.skillShareer.store.transact((txData) => {
+      txData.sessions.push({
+        id: `ops-admin-session-${Date.now()}`,
+        subjectType: 'system-admin',
+        userId: null,
+        activeTeamId: null,
+        tokenHash,
+        expiresAt: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+    });
+    return { Authorization: `Bearer ${token}` };
+  }
+
   beforeEach(async () => {
     app = buildServer();
     await app.ready();
@@ -287,6 +318,40 @@ describe('operations routes', () => {
 
       // Embedding cache should also be cleared
       expect(entry?.embeddingCache).toBeNull();
+    });
+
+    it('returns 200 and serializes system-admin actor on deactivate', async () => {
+      const adminHeaders = await getSystemAdminAuth(testApp);
+
+      const response = await testApp.inject({
+        method: 'POST',
+        url: `/v1/operations/knowledge/${entryId}/deactivate`,
+        headers: adminHeaders,
+        payload: {
+          reason: 'System admin lifecycle cleanup',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const json = response.json() as {
+        entry: {
+          lifecycleState: string;
+          lifecycleHistory: Array<{
+            type: string;
+            actor: { id: string; handle: string; securityLevel: number } | null;
+          }>;
+        };
+      };
+
+      expect(json.entry.lifecycleState).toBe('deactivated');
+      const deactivatedEvent = json.entry.lifecycleHistory.at(-1);
+      expect(deactivatedEvent?.type).toBe('deactivated');
+      expect(deactivatedEvent?.actor).toEqual({
+        id: 'system-admin',
+        handle: 'system-admin',
+        securityLevel: 10,
+      });
     });
   });
 

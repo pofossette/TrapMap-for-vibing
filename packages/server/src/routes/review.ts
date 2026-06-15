@@ -2,6 +2,7 @@ import { reviewDecisionRequestSchema, reviewQueueResponseSchema } from '@trapmap
 import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
+import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { emitCacheInvalidation } from '@trapmap/server/lib/cache/invalidation.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
@@ -10,8 +11,8 @@ import {
   getActiveEntryFeedback,
 } from '@trapmap/server/lib/feedback/remediation.js';
 import { applyReviewDecision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
+import { upsertKnowledgeEntryShadow } from '@trapmap/server/lib/knowledge/shadow-sync.js';
 import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import {
   requireHigherLevel,
   requirePermission,
@@ -31,58 +32,68 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
 
     const allEntries = await knowledgeRepo.listByFilter({});
     const filteredEntries = allEntries.filter((entry) => {
-      if (entry.teamId && auth.subjectType !== 'system-admin') {
-        requireTeamAccess(auth, entry.teamId);
+      if (entry.teamId && auth.subjectType !== 'system-admin' && auth.activeTeamId !== entry.teamId) {
+        return false;
       }
-
       if (auth.subjectType !== 'system-admin' && auth.securityLevel <= entry.requiredLevel) {
         return false;
       }
-
       return rawQuery.status ? entry.lifecycleState === rawQuery.status : true;
     });
 
-    // toKnowledgeEntry needs StoreData for user handle resolution
-    const data = await app.skillShareer.store.snapshot();
+    const fullEntries = await Promise.all(
+      filteredEntries.map(async (entrySummary) =>
+        (await knowledgeRepo.getById(entrySummary.id)) ?? entrySummary,
+      ),
+    );
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, fullEntries);
 
-    const items = await Promise.all(
-      filteredEntries.map(async (entry) => {
-        const owner = await userRepo.getById(entry.ownerUserId);
+    const queueItems = await Promise.all(
+      fullEntries.map(async (entry) => {
+        try {
+          const owner = await userRepo.getById(entry.ownerUserId);
+          if (!owner) return null;
 
-        if (!owner) {
-          throw new AppError(404, 'owner_not_found', 'Entry owner not found');
-        }
+          const lastDecision = entry.reviewHistory.at(-1) ?? null;
+          const lastDecisionUserId = lastDecision?.decidedByUserId ?? owner.id;
+          const lastDecisionUser =
+            lastDecisionUserId === owner.id ? owner : await userRepo.getById(lastDecisionUserId);
 
-        const lastDecisionUserId = entry.reviewHistory.at(-1)?.decidedByUserId ?? owner.id;
-        const lastDecisionUser =
-          lastDecisionUserId === owner.id ? owner : await userRepo.getById(lastDecisionUserId);
-
-        return {
-          entry: toKnowledgeEntry(data, entry),
-          agentReview: entry.agentReview,
-          submittedBy: {
-            id: owner.id,
-            handle: owner.handle,
-            securityLevel: entry.requiredLevel,
-          },
-          lastDecision:
-            entry.reviewHistory.length > 0
+          const serializedEntry = toKnowledgeEntry(lookup, entry);
+          return {
+            entry: serializedEntry,
+            agentReview: entry.agentReview,
+            submittedBy: {
+              id: owner.id,
+              handle: owner.handle,
+              securityLevel: entry.requiredLevel,
+            },
+            latestSubmission: null,
+            reviewNotes: serializedEntry.reviewNotes,
+            lastDecision: lastDecision
               ? {
-                  decidedAt: entry.reviewHistory.at(-1)?.decidedAt,
+                  decidedAt: lastDecision.decidedAt,
                   decidedBy: {
                     id: lastDecisionUserId,
                     handle: lastDecisionUser?.handle ?? owner.handle,
                     securityLevel: entry.requiredLevel,
                   },
-                  decision: entry.reviewHistory.at(-1)?.decision,
-                  notes: entry.reviewHistory.at(-1)?.notes,
+                  decision: lastDecision.decision,
+                  notes: lastDecision.notes,
                 }
               : null,
-        };
+          };
+        } catch (error) {
+          if (error instanceof AppError && error.code === 'user_not_found') {
+            return null;
+          }
+          throw error;
+        }
       }),
     );
 
-    // Log user operation (fire-and-forget)
+    const items = queueItems.filter((item): item is NonNullable<typeof item> => item !== null);
+
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
       actorId: auth.actorId,
@@ -107,179 +118,133 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
     const payload = reviewDecisionRequestSchema.parse(request.body);
     const appliedAt = nowIso();
 
-    // Capture transition context for post-commit indexing
     let entryId: string | undefined;
     let previousState: LifecycleState | undefined;
     let nextState: LifecycleState | undefined;
 
-    const store = app.skillShareer.store;
-    const reviewedEntry =
-      store instanceof PostgresStore
-        ? await store.transactWithPgClient(async (data, client) => {
-            const entry = data.knowledgeEntries.find(
-              (candidate) => candidate.id === payload.entryId,
-            );
+    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
+    const reviewSnapshot = await app.skillShareer.store.snapshot();
+    const existingEntry =
+      (await knowledgeRepo.getById(payload.entryId)) ??
+      reviewSnapshot.knowledgeEntries.find((candidate) => candidate.id === payload.entryId) ??
+      null;
+    if (!existingEntry) {
+      throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
+    }
 
-            if (!entry) {
-              throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
-            }
+    if (existingEntry.teamId) {
+      requireTeamAccess(auth, existingEntry.teamId);
+    }
 
-            if (entry.teamId) {
-              requireTeamAccess(auth, entry.teamId);
-            }
+    requireHigherLevel(auth, existingEntry.requiredLevel);
 
-            requireHigherLevel(auth, entry.requiredLevel);
+    const decidedByUserId =
+      auth.user?.id ??
+      (() => {
+        throw new AppError(
+          403,
+          'user_required',
+          'System admin cannot author review decisions',
+        );
+      })();
 
-            const decidedByUserId =
-              auth.user?.id ??
-              (() => {
-                throw new AppError(
-                  403,
-                  'user_required',
-                  'System admin cannot author review decisions',
-                );
-              })();
+    previousState = existingEntry.lifecycleState;
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [existingEntry]);
+    if (!lookup.users.some((user) => user.id === decidedByUserId)) {
+      const reviewerUser = await app.skillShareer.repos.user.getById(decidedByUserId);
+      if (!reviewerUser) {
+        throw new AppError(404, 'user_not_found', 'User record not found');
+      }
+      lookup.users.push({ id: reviewerUser.id, handle: reviewerUser.handle });
+    }
+    if (existingEntry.teamId) {
+      const reviewerMembership = await app.skillShareer.repos.membership.findByUserAndTeam(
+        decidedByUserId,
+        existingEntry.teamId,
+      );
+      if (
+        reviewerMembership &&
+        !lookup.memberships.some(
+          (membership) =>
+            membership.userId === decidedByUserId && membership.teamId === existingEntry.teamId,
+        )
+      ) {
+        lookup.memberships.push({
+          userId: decidedByUserId,
+          teamId: existingEntry.teamId,
+          securityLevel: reviewerMembership.securityLevel,
+        });
+      }
+    }
 
-            const decidedAt = appliedAt;
-            previousState = entry.lifecycleState;
-            applyReviewDecision(
-              payload.evidence !== undefined
-                ? {
-                    data,
-                    entry,
-                    reviewerUserId: decidedByUserId,
-                    decidedAt,
-                    decision: payload.decision,
-                    notes: payload.notes,
-                    evidence: payload.evidence,
-                  }
-                : {
-                    data,
-                    entry,
-                    reviewerUserId: decidedByUserId,
-                    decidedAt,
-                    decision: payload.decision,
-                    notes: payload.notes,
-                  },
-            );
+    const normalizedEvidence =
+      payload.evidence !== undefined
+        ? {
+            sourceType: payload.evidence.sourceType,
+            evidenceLevel: payload.evidence.evidenceLevel,
+            ...(payload.evidence.sourceRef !== undefined && { sourceRef: payload.evidence.sourceRef }),
+            ...(payload.evidence.verifiedAt !== undefined && { verifiedAt: payload.evidence.verifiedAt }),
+            ...(payload.evidence.verifiedBy !== undefined && { verifiedBy: payload.evidence.verifiedBy }),
+          }
+        : undefined;
 
-            if (payload.boundary !== undefined) {
-              entry.boundary = payload.boundary;
-            }
+    applyReviewDecision(
+      normalizedEvidence !== undefined
+        ? {
+            data: lookup,
+            entry: existingEntry,
+            reviewerUserId: decidedByUserId,
+            decidedAt: appliedAt,
+            decision: payload.decision,
+            notes: payload.notes,
+            evidence: normalizedEvidence,
+          }
+        : {
+            data: lookup,
+            entry: existingEntry,
+            reviewerUserId: decidedByUserId,
+            decidedAt: appliedAt,
+            decision: payload.decision,
+            notes: payload.notes,
+          },
+    );
 
-            entryId = entry.id;
-            nextState = entry.lifecycleState;
+    if (payload.boundary !== undefined) {
+      existingEntry.boundary = payload.boundary;
+    }
 
-            const auditEvent = createAuditEvent({
-              store: app.skillShareer.store,
-              data,
-              teamId: entry.teamId,
-              actor: auth,
-              action: 'knowledge-reviewed',
-              entityId: entry.id,
-              payload: {
-                decision: payload.decision,
-                notes: payload.notes,
-                previousState,
-                ...(payload.evidence !== undefined && { evidence: payload.evidence }),
-              },
-            });
-            data.auditEvents.push(auditEvent);
+    entryId = existingEntry.id;
+    nextState = existingEntry.lifecycleState;
 
-            if (entryId && previousState && nextState) {
-              await emitLifecycleTransition({
-                store: app.skillShareer.store,
-                eventBus: app.skillShareer.eventBus,
-                aggregateType: 'knowledge',
-                aggregateId: entryId,
-                previousState,
-                nextState,
-                actorId: auth.actorId,
-                reason: `reviewer-${payload.decision}`,
-                txClient: client,
-              });
-            }
+    const repoEntry = await knowledgeRepo.getById(payload.entryId);
+    if (repoEntry) {
+      await knowledgeRepo.updateLifecycle(payload.entryId, existingEntry.lifecycleState, {
+        actorId: decidedByUserId,
+        note: payload.notes,
+      });
+    }
 
-            return toKnowledgeEntry(data, entry);
-          })
-        : await app.skillShareer.store.transact((data) => {
-            const entry = data.knowledgeEntries.find(
-              (candidate) => candidate.id === payload.entryId,
-            );
+    await app.skillShareer.store.transact((data) => {
+      upsertKnowledgeEntryShadow(data, existingEntry);
 
-            if (!entry) {
-              throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
-            }
+      const auditEvent = createAuditEvent({
+        store: app.skillShareer.store,
+        data,
+        teamId: existingEntry.teamId,
+        actor: auth,
+        action: 'knowledge-reviewed',
+        entityId: existingEntry.id,
+        payload: {
+          decision: payload.decision,
+          notes: payload.notes,
+          previousState,
+          ...(payload.evidence !== undefined && { evidence: payload.evidence }),
+        },
+      });
+      data.auditEvents.push(auditEvent);
+    });
 
-            if (entry.teamId) {
-              requireTeamAccess(auth, entry.teamId);
-            }
-
-            requireHigherLevel(auth, entry.requiredLevel);
-
-            const decidedByUserId =
-              auth.user?.id ??
-              (() => {
-                throw new AppError(
-                  403,
-                  'user_required',
-                  'System admin cannot author review decisions',
-                );
-              })();
-
-            const decidedAt = appliedAt;
-            previousState = entry.lifecycleState;
-            applyReviewDecision(
-              payload.evidence !== undefined
-                ? {
-                    data,
-                    entry,
-                    reviewerUserId: decidedByUserId,
-                    decidedAt,
-                    decision: payload.decision,
-                    notes: payload.notes,
-                    evidence: payload.evidence,
-                  }
-                : {
-                    data,
-                    entry,
-                    reviewerUserId: decidedByUserId,
-                    decidedAt,
-                    decision: payload.decision,
-                    notes: payload.notes,
-                  },
-            );
-
-            // Update boundary if provided in payload
-            if (payload.boundary !== undefined) {
-              entry.boundary = payload.boundary;
-            }
-
-            // Capture entry ID and new state for post-commit indexing
-            entryId = entry.id;
-            nextState = entry.lifecycleState;
-
-            // Record audit event
-            const auditEvent = createAuditEvent({
-              store: app.skillShareer.store,
-              data,
-              teamId: entry.teamId,
-              actor: auth,
-              action: 'knowledge-reviewed',
-              entityId: entry.id,
-              payload: {
-                decision: payload.decision,
-                notes: payload.notes,
-                previousState,
-                ...(payload.evidence !== undefined && { evidence: payload.evidence }),
-              },
-            });
-            data.auditEvents.push(auditEvent);
-
-            return toKnowledgeEntry(data, entry);
-          });
-
-    if (!(store instanceof PostgresStore) && entryId && previousState && nextState) {
+    if (entryId && previousState && nextState) {
       await emitLifecycleTransition({
         store: app.skillShareer.store,
         eventBus: app.skillShareer.eventBus,
@@ -312,7 +277,6 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
       }
     }
 
-    // Log user operation (fire-and-forget)
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: appliedAt,
       actorId: auth.actorId,
@@ -323,6 +287,9 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
       metadata: { decision: payload.decision },
     });
 
-    return { entry: reviewedEntry };
+    const responseLookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [
+      existingEntry,
+    ]);
+    return { entry: toKnowledgeEntry(responseLookup, existingEntry) };
   });
 };

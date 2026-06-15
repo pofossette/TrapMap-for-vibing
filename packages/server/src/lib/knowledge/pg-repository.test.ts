@@ -258,6 +258,86 @@ describeIfDb('PgKnowledgeRepository', () => {
       expect(retrieved!.history[1]!.revision).toBe(2);
     });
 
+    it('should reconstruct metadata and submission history from revisions and lifecycle events', async () => {
+      const now = nowIso();
+      const entry = createTestEntry({
+        id: 'knowledge_test_metadata_1',
+        lifecycleState: 'agent-pass',
+        latestSubmissionId: 'submission_meta_1',
+        metadata: {
+          scopeLabel: 'global-constraint',
+          submissionCount: 1,
+          resubmissionCount: 0,
+          revisionCount: 1,
+          latestSubmissionId: 'submission_meta_1',
+          latestSubmittedAt: now,
+          latestReviewedAt: now,
+          latestDecision: null,
+        },
+        submissionHistory: [
+          {
+            id: 'submission_meta_1',
+            revision: 1,
+            submittedAt: now,
+            submittedByUserId: 'user_1',
+            lifecycleState: 'agent-pass',
+            resubmissionOf: null,
+            agentReview: {
+              status: 'agent-pass',
+              duplicateRisk: 'low',
+              correctnessRisk: 'medium',
+              completenessRisk: 'low',
+              checkedAt: now,
+              notes: ['Agent pass'],
+            },
+            reviewerDecision: null,
+            reviewNotes: [],
+          },
+        ],
+        agentReview: {
+          status: 'agent-pass',
+          duplicateRisk: 'low',
+          correctnessRisk: 'medium',
+          completenessRisk: 'low',
+          checkedAt: now,
+          notes: ['Agent pass'],
+        },
+        lifecycleHistory: [
+          {
+            id: 'le_meta_submit',
+            type: 'submitted',
+            createdAt: now,
+            actorUserId: 'user_1',
+            submissionId: 'submission_meta_1',
+            revision: 1,
+            state: 'submitted',
+            note: null,
+          },
+          {
+            id: 'le_meta_agent',
+            type: 'agent-reviewed',
+            createdAt: now,
+            actorUserId: null,
+            submissionId: 'submission_meta_1',
+            revision: 1,
+            state: 'agent-pass',
+            note: 'Agent pass',
+          },
+        ],
+      });
+
+      await repository.insert(entry);
+      const retrieved = await repository.getById('knowledge_test_metadata_1');
+
+      expect(retrieved).not.toBeNull();
+      expect(retrieved!.metadata.revisionCount).toBe(1);
+      expect(retrieved!.latestSubmissionId).toBe('submission_meta_1');
+      expect(retrieved!.metadata.latestSubmissionId).toBe('submission_meta_1');
+      expect(retrieved!.submissionHistory).toHaveLength(1);
+      expect(retrieved!.submissionHistory[0]!.id).toBe('submission_meta_1');
+      expect(retrieved!.agentReview?.status).toBe('agent-pass');
+    });
+
     it('should retrieve entry with lifecycle events', async () => {
       const entry = createTestEntry({ id: 'knowledge_test_events_1' });
       await repository.insert(entry);

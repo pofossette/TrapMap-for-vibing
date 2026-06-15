@@ -30,8 +30,13 @@ export const reviewDecisionRequestSchema = z
     decision: z.enum(['approve', 'reject']),
     notes: z.string().min(1).max(2000),
     boundary: boundarySchema.nullable().optional(),
-    /** Optional evidence metadata for provenance tracking */
-    evidence: evidenceMetaSchema.optional(),
+    evidence: evidenceMetaSchema
+      .omit({ verifiedAt: true, verifiedBy: true })
+      .extend({
+        verifiedAt: evidenceMetaSchema.shape.verifiedAt.optional(),
+        verifiedBy: evidenceMetaSchema.shape.verifiedBy.optional(),
+      })
+      .optional(),
   })
   .strict();
 

@@ -4,13 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createKnowledgeEntryRecord } from './knowledge.js';
 import { runPreReview } from './pre-review.js';
-import {
-  JsonStore,
-  type SkillShareerStore,
-  createOpaqueToken,
-  hashSecret,
-  nowIso,
-} from './store.js';
+import { type SkillShareerStore, createOpaqueToken, hashSecret, nowIso } from './store.js';
 
 describe('End-to-end retrieval workflow', () => {
   let server: FastifyInstance;
@@ -22,18 +16,14 @@ describe('End-to-end retrieval workflow', () => {
   let reviewerSessionToken: string;
 
   beforeAll(async () => {
-    // Create temporary store
     const testDataFile = `/tmp/skill-shareer-workflow-test-${Date.now()}.json`;
-    store = new JsonStore(testDataFile);
-
-    // Build server with temporary store
-    server = buildServer();
-    server.skillShareer.store = store;
+    server = buildServer({ config: { dataFile: testDataFile } });
+    await server.ready();
+    store = server.skillShareer.store;
   });
 
   beforeEach(async () => {
     resetRetrievalReadModelCacheForTests();
-    // Reset store data
     await store.transact(async (data) => {
       data.counters = {};
       data.users = [];
@@ -45,11 +35,9 @@ describe('End-to-end retrieval workflow', () => {
       data.auditEvents = [];
     });
 
-    // Setup test users and team
     const createdAt = nowIso();
 
     await store.transact(async (data) => {
-      // Create submitter user
       userId = store.nextId(data, 'user');
       data.users.push({
         id: userId,
@@ -59,7 +47,6 @@ describe('End-to-end retrieval workflow', () => {
         updatedAt: createdAt,
       });
 
-      // Create reviewer user
       reviewerId = store.nextId(data, 'user');
       data.users.push({
         id: reviewerId,
@@ -69,7 +56,6 @@ describe('End-to-end retrieval workflow', () => {
         updatedAt: createdAt,
       });
 
-      // Create team
       teamId = store.nextId(data, 'team');
       data.teams.push({
         id: teamId,
@@ -80,7 +66,6 @@ describe('End-to-end retrieval workflow', () => {
         updatedAt: createdAt,
       });
 
-      // Create submitter membership with knowledge:submit permission
       const submitterMemberId = store.nextId(data, 'member');
       data.memberships.push({
         id: submitterMemberId,
@@ -94,7 +79,6 @@ describe('End-to-end retrieval workflow', () => {
         updatedAt: createdAt,
       });
 
-      // Create reviewer membership with knowledge:review permission
       const reviewerMemberId = store.nextId(data, 'member');
       data.memberships.push({
         id: reviewerMemberId,
@@ -108,7 +92,6 @@ describe('End-to-end retrieval workflow', () => {
         updatedAt: createdAt,
       });
 
-      // Create submitter session
       submitterSessionToken = createOpaqueToken('sess');
       const submitterSessionId = store.nextId(data, 'session');
       data.sessions.push({
@@ -122,7 +105,6 @@ describe('End-to-end retrieval workflow', () => {
         updatedAt: createdAt,
       });
 
-      // Create reviewer session
       reviewerSessionToken = createOpaqueToken('sess');
       const reviewerSessionId = store.nextId(data, 'session');
       data.sessions.push({
@@ -139,7 +121,6 @@ describe('End-to-end retrieval workflow', () => {
   });
 
   afterEach(async () => {
-    // Clean up knowledge entries between tests
     await store.transact(async (data) => {
       data.knowledgeEntries = [];
     });
@@ -151,7 +132,6 @@ describe('End-to-end retrieval workflow', () => {
 
   describe('full submission to search workflow', () => {
     it('should not return unapproved knowledge in search results', async () => {
-      // Submit knowledge entry
       const submitResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge',
@@ -171,13 +151,11 @@ describe('End-to-end retrieval workflow', () => {
       const submitData = submitResponse.json();
       const entryId = submitData.entry.id;
 
-      // Verify the entry is not approved (submitted or agent-rejected)
       const snapshot = await store.snapshot();
       const entry = snapshot.knowledgeEntries.find((e) => e.id === entryId);
       expect(entry).toBeDefined();
       expect(['submitted', 'agent-rejected', 'rejected']).toContain(entry?.lifecycleState ?? '');
 
-      // Try to search - should NOT return the unapproved entry
       const searchResponse = await server.inject({
         method: 'POST',
         url: '/v1/retrieval/search',
@@ -195,15 +173,12 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(searchResponse.statusCode).toBe(200);
       const searchData = searchResponse.json();
-
-      // The unapproved entry should NOT appear in search results
       const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
       const unapprovedMatch = allMatches.find((m: any) => m.entryId === entryId);
       expect(unapprovedMatch).toBeUndefined();
     });
 
     it('should return approved knowledge in search results after reviewer approval', async () => {
-      // Submit knowledge entry
       const submitResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge',
@@ -223,7 +198,6 @@ describe('End-to-end retrieval workflow', () => {
       const submitData = submitResponse.json();
       const entryId = submitData.entry.id;
 
-      // Reviewer approves the entry
       const approveResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge/review',
@@ -240,7 +214,6 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(approveResponse.statusCode).toBe(200);
 
-      // Now search should return the approved entry
       const searchResponse = await server.inject({
         method: 'POST',
         url: '/v1/retrieval/search',
@@ -258,8 +231,6 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(searchResponse.statusCode).toBe(200);
       const searchData = searchResponse.json();
-
-      // The approved entry SHOULD appear in search results
       const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
       const approvedMatch = allMatches.find((m: any) => m.entryId === entryId);
       expect(approvedMatch).toBeDefined();
@@ -269,7 +240,6 @@ describe('End-to-end retrieval workflow', () => {
 
   describe('resubmit workflow with rejection', () => {
     it('should allow resubmit after rejection and preserve lifecycle linkage', async () => {
-      // Submit knowledge entry
       const submitResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge',
@@ -289,7 +259,6 @@ describe('End-to-end retrieval workflow', () => {
       const submitData = submitResponse.json();
       const entryId = submitData.entry.id;
 
-      // Reviewer rejects the entry
       const rejectResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge/review',
@@ -306,7 +275,6 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(rejectResponse.statusCode).toBe(200);
 
-      // Verify rejection details are visible through entry endpoint
       const statusResponse = await server.inject({
         method: 'GET',
         url: `/v1/knowledge/${entryId}`,
@@ -317,11 +285,8 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(statusResponse.statusCode).toBe(200);
       const statusData = statusResponse.json();
-
-      // Should show rejected state
       expect(statusData.entry.lifecycleState).toBe('rejected');
 
-      // Resubmit with corrected content
       const resubmitResponse = await server.inject({
         method: 'POST',
         url: `/v1/knowledge/${entryId}/resubmit`,
@@ -338,12 +303,9 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(resubmitResponse.statusCode).toBe(200);
       const resubmitData = resubmitResponse.json();
-
-      // Round 2: resubmit uses repository, verify via API response.
       expect(resubmitData.entry.latestRevision.revision).toBe(2);
       expect(resubmitData.entry.labels).toContain('fix');
 
-      // Reviewer approves the corrected entry
       const approveResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge/review',
@@ -360,7 +322,6 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(approveResponse.statusCode).toBe(200);
 
-      // Now search should return the approved corrected entry
       const searchResponse = await server.inject({
         method: 'POST',
         url: '/v1/retrieval/search',
@@ -377,13 +338,10 @@ describe('End-to-end retrieval workflow', () => {
       });
 
       expect(searchResponse.statusCode).toBe(200);
-      const _searchData = searchResponse.json();
-
-      // Round 2: search indexes may reflect JSONB state (not yet synchronized with repo).
-      // The resubmitted entry should appear in search results.
+      const searchData = searchResponse.json();
       const approvedMatch = [
-        ...(_searchData?.globalConstraints ?? []),
-        ...(_searchData?.projectKnowledge ?? []),
+        ...(searchData?.globalConstraints ?? []),
+        ...(searchData?.projectKnowledge ?? []),
       ].find((m: any) => m.entryId === entryId);
       expect(approvedMatch).toBeDefined();
       expect(approvedMatch.labels).toBeDefined();
@@ -392,7 +350,6 @@ describe('End-to-end retrieval workflow', () => {
 
   describe('review-status history inspection', () => {
     it('should expose lifecycle history and reviewer feedback across rejection and approval', async () => {
-      // Submit knowledge entry
       const submitResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge',
@@ -412,7 +369,6 @@ describe('End-to-end retrieval workflow', () => {
       const submitData = submitResponse.json();
       const entryId = submitData.entry.id;
 
-      // Reviewer rejects
       const rejectResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge/review',
@@ -429,7 +385,6 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(rejectResponse.statusCode).toBe(200);
 
-      // Check review-status shows rejection
       const statusResponse1 = await server.inject({
         method: 'GET',
         url: `/v1/knowledge/${entryId}`,
@@ -442,12 +397,10 @@ describe('End-to-end retrieval workflow', () => {
       const statusData1 = statusResponse1.json();
       expect(statusData1.entry.lifecycleState).toBe('rejected');
 
-      // Should show reviewer notes
       const lastDecision =
         statusData1.entry.reviewHistory[statusData1.entry.reviewHistory.length - 1];
       expect(lastDecision.notes).toBe('Add more specific implementation details');
 
-      // Resubmit
       const resubmitResponse = await server.inject({
         method: 'POST',
         url: `/v1/knowledge/${entryId}/resubmit`,
@@ -464,7 +417,6 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(resubmitResponse.statusCode).toBe(200);
 
-      // Reviewer approves
       const approveResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge/review',
@@ -481,7 +433,6 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(approveResponse.statusCode).toBe(200);
 
-      // Check review-status shows approval and retained history
       const statusResponse2 = await server.inject({
         method: 'GET',
         url: `/v1/knowledge/${entryId}`,
@@ -492,14 +443,8 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(statusResponse2.statusCode).toBe(200);
       const statusData2 = statusResponse2.json();
-
-      // Should show approved state
       expect(statusData2.entry.lifecycleState).toBe('approved');
-
-      // Should show multiple revisions (history preserved)
       expect(statusData2.entry.history.length).toBeGreaterThan(1);
-
-      // Should show review history with both decisions
       expect(statusData2.entry.reviewHistory.length).toBe(2);
     });
   });
@@ -523,8 +468,6 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(submitResponse.statusCode).toBe(200);
       const submitData = submitResponse.json();
-
-      // Should have entry property with contract-shaped data
       expect(submitData).toHaveProperty('entry');
       expect(submitData.entry).toHaveProperty('id');
       expect(submitData.entry).toHaveProperty('lifecycleState');
@@ -532,7 +475,6 @@ describe('End-to-end retrieval workflow', () => {
     });
 
     it('should return parseable JSON from retrieval search endpoint', async () => {
-      // First, submit and approve an entry
       const submitResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge',
@@ -551,7 +493,6 @@ describe('End-to-end retrieval workflow', () => {
       const submitData = submitResponse.json();
       const entryId = submitData.entry.id;
 
-      // Approve the entry
       await server.inject({
         method: 'POST',
         url: '/v1/knowledge/review',
@@ -566,7 +507,6 @@ describe('End-to-end retrieval workflow', () => {
         }),
       });
 
-      // Search with JSON output
       const searchResponse = await server.inject({
         method: 'POST',
         url: '/v1/retrieval/search',
@@ -584,8 +524,6 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(searchResponse.statusCode).toBe(200);
       const searchData = searchResponse.json();
-
-      // Should have contract-shaped retrieval data
       expect(searchData).toHaveProperty('globalConstraints');
       expect(searchData).toHaveProperty('projectKnowledge');
       expect(searchData).toHaveProperty('refinementSummary');
@@ -594,7 +532,6 @@ describe('End-to-end retrieval workflow', () => {
     });
 
     it('should return parseable JSON from review-status endpoint', async () => {
-      // Submit an entry
       const submitResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge',
@@ -613,7 +550,6 @@ describe('End-to-end retrieval workflow', () => {
       const submitData = submitResponse.json();
       const entryId = submitData.entry.id;
 
-      // Get entry details
       const statusResponse = await server.inject({
         method: 'GET',
         url: `/v1/knowledge/${entryId}`,
@@ -624,8 +560,6 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(statusResponse.statusCode).toBe(200);
       const statusData = statusResponse.json();
-
-      // Should have contract-shaped entry data
       expect(statusData).toHaveProperty('entry');
       expect(statusData.entry).toHaveProperty('id');
       expect(statusData.entry).toHaveProperty('lifecycleState');
@@ -636,7 +570,6 @@ describe('End-to-end retrieval workflow', () => {
 
   describe('hybrid mode with rerank (HYBR-05)', () => {
     it('hybrid mode does not bypass approved-only filter after rerank', async () => {
-      // Submit knowledge entry (not approved)
       const submitResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge',
@@ -656,13 +589,10 @@ describe('End-to-end retrieval workflow', () => {
       const submitData = submitResponse.json();
       const entryId = submitData.entry.id;
 
-      // Verify the entry is not approved
       const snapshot = await store.snapshot();
       const entry = snapshot.knowledgeEntries.find((e) => e.id === entryId);
       expect(['submitted', 'agent-rejected', 'rejected']).toContain(entry?.lifecycleState ?? '');
 
-      // Search with hybrid mode - should NOT return the unapproved entry
-      // even though the keyword channel would find exact lexical matches
       const searchResponse = await server.inject({
         method: 'POST',
         url: '/v1/retrieval/search',
@@ -681,15 +611,12 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(searchResponse.statusCode).toBe(200);
       const searchData = searchResponse.json();
-
-      // The unapproved entry should NOT appear in hybrid search results
       const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
       const unapprovedMatch = allMatches.find((m: any) => m.entryId === entryId);
       expect(unapprovedMatch).toBeUndefined();
     });
 
     it('hybrid mode returns approved entries with valid response shape', async () => {
-      // Submit and approve an entry
       const submitResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge',
@@ -708,7 +635,6 @@ describe('End-to-end retrieval workflow', () => {
       const submitData = submitResponse.json();
       const entryId = submitData.entry.id;
 
-      // Approve the entry
       await server.inject({
         method: 'POST',
         url: '/v1/knowledge/review',
@@ -723,7 +649,6 @@ describe('End-to-end retrieval workflow', () => {
         }),
       });
 
-      // Search with hybrid mode
       const searchResponse = await server.inject({
         method: 'POST',
         url: '/v1/retrieval/search',
@@ -742,24 +667,18 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(searchResponse.statusCode).toBe(200);
       const searchData = searchResponse.json();
-
-      // Response should have correct shape
       expect(searchData).toHaveProperty('globalConstraints');
       expect(searchData).toHaveProperty('projectKnowledge');
       expect(searchData).toHaveProperty('refinementSummary');
 
-      // The approved entry should appear in hybrid search results
       const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
       const approvedMatch = allMatches.find((m: any) => m.entryId === entryId);
       expect(approvedMatch).toBeDefined();
-
-      // Match should have valid score after rerank
       expect(approvedMatch.score).toBeGreaterThanOrEqual(0);
       expect(approvedMatch.score).toBeLessThanOrEqual(1);
     });
 
     it('hybrid mode respects team boundaries after rerank', async () => {
-      // Submit and approve an entry for the test team
       const submitResponse = await server.inject({
         method: 'POST',
         url: '/v1/knowledge',
@@ -778,7 +697,6 @@ describe('End-to-end retrieval workflow', () => {
       const submitData = submitResponse.json();
       const entryId = submitData.entry.id;
 
-      // Approve the entry
       await server.inject({
         method: 'POST',
         url: '/v1/knowledge/review',
@@ -793,7 +711,6 @@ describe('End-to-end retrieval workflow', () => {
         }),
       });
 
-      // Search with hybrid mode - should find the entry
       const searchResponse = await server.inject({
         method: 'POST',
         url: '/v1/retrieval/search',
@@ -812,8 +729,6 @@ describe('End-to-end retrieval workflow', () => {
 
       expect(searchResponse.statusCode).toBe(200);
       const searchData = searchResponse.json();
-
-      // The team-scoped entry should appear for team member
       const allMatches = [...searchData.globalConstraints, ...searchData.projectKnowledge];
       const teamMatch = allMatches.find((m: any) => m.entryId === entryId);
       expect(teamMatch).toBeDefined();

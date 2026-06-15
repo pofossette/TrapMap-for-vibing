@@ -29,6 +29,21 @@ describe('review schema contracts', () => {
     it('accepts omitted boundary (optional since boundary can be absent)', () => {
       expect(() => reviewDecisionRequestSchema.parse(baseRequest)).not.toThrow();
     });
+
+    it('accepts evidence without verifiedAt/verifiedBy for server-side backfill', () => {
+      const request = reviewDecisionRequestSchema.parse({
+        ...baseRequest,
+        evidence: {
+          sourceType: 'incident',
+          evidenceLevel: 'documented',
+          sourceRef: 'INC-123',
+        },
+      });
+
+      expect(request.evidence?.sourceType).toBe('incident');
+      expect(request.evidence?.verifiedAt).toBeUndefined();
+      expect(request.evidence?.verifiedBy).toBeUndefined();
+    });
   });
 
   describe('reviewQueueQuerySchema', () => {
