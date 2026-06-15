@@ -12,8 +12,8 @@ import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/look
 import { supersedeEntry } from '@trapmap/server/lib/decay/supersede.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { createKnowledgeRevision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
-import { upsertKnowledgeEntryShadow } from '@trapmap/server/lib/knowledge/shadow-sync.js';
 import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
+import { upsertKnowledgeEntryShadow } from '@trapmap/server/lib/knowledge/shadow-sync.js';
 import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import {

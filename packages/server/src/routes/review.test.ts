@@ -394,6 +394,156 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
     });
   });
 
+  describe('review queue response', () => {
+    it('returns latestSubmission with submittedBy metadata for agent-pass entries', async () => {
+      let reviewSessionId!: string;
+      const reviewerId = 'user_review_queue_reviewer';
+      const submitterId = 'user_review_queue_submitter';
+      const submissionId = 'submission_review_queue_1';
+      const submittedAt = nowIso();
+
+      await store.transact(async (data) => {
+        if (!data.counters) data.counters = {};
+        data.counters.user = 2;
+
+        data.users.push(
+          {
+            id: submitterId,
+            handle: 'queue_submitter',
+            notes: null,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          },
+          {
+            id: reviewerId,
+            handle: 'queue_reviewer',
+            notes: null,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          },
+        );
+
+        data.memberships.push({
+          id: 'membership_review_queue',
+          userId: reviewerId,
+          teamId: '',
+          roleTemplate: 'admin',
+          securityLevel: 10,
+          permissions: ['knowledge:review'],
+          notes: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+
+        const sessionToken = `session_review_queue_${Date.now()}`;
+        data.sessions.push({
+          id: `session_review_queue_${Date.now()}`,
+          userId: reviewerId,
+          tokenHash: hashSecret(sessionToken),
+          activeTeamId: null,
+          subjectType: 'user',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        });
+        reviewSessionId = sessionToken;
+
+        data.knowledgeEntries.push({
+          id: 'knowledge_review_queue_1',
+          teamId: null,
+          scope: 'global',
+          labels: ['queue'],
+          shortcut: 'Queue Entry',
+          detail: 'Queue entry detail',
+          requiredLevel: 0,
+          lifecycleState: 'agent-pass',
+          ownerUserId: submitterId,
+          latestRevision: {
+            revision: 1,
+            submittedAt,
+            submittedByUserId: submitterId,
+            shortcut: 'Queue Entry',
+            detail: 'Queue entry detail',
+            labels: ['queue'],
+            reviewNotes: [],
+          },
+          history: [
+            {
+              revision: 1,
+              submittedAt,
+              submittedByUserId: submitterId,
+              shortcut: 'Queue Entry',
+              detail: 'Queue entry detail',
+              labels: ['queue'],
+              reviewNotes: [],
+            },
+          ],
+          metadata: {
+            scopeLabel: 'global-constraint',
+            submissionCount: 1,
+            resubmissionCount: 0,
+            revisionCount: 1,
+            latestSubmissionId: submissionId,
+            latestSubmittedAt: submittedAt,
+            latestReviewedAt: submittedAt,
+            latestDecision: null,
+          },
+          latestSubmissionId: submissionId,
+          submissionHistory: [
+            {
+              id: submissionId,
+              revision: 1,
+              submittedAt,
+              submittedByUserId: submitterId,
+              lifecycleState: 'agent-pass',
+              resubmissionOf: null,
+              agentReview: null,
+              reviewerDecision: null,
+              reviewNotes: [],
+            },
+          ],
+          agentReview: null,
+          reviewHistory: [],
+          reviewNotes: [],
+          lifecycleHistory: [],
+          embeddingCache: null,
+          indexState: null,
+          decayMeta: null,
+          evidenceMeta: null,
+          maintenanceMeta: null,
+          boundary: null,
+          createdAt: submittedAt,
+          updatedAt: submittedAt,
+        });
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/knowledge/review-queue?status=agent-pass',
+        headers: {
+          authorization: `Bearer ${reviewSessionId}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = response.json();
+      expect(body.total).toBe(1);
+      expect(body.items[0]?.latestSubmission).toMatchObject({
+        id: submissionId,
+        revision: 1,
+        submittedAt,
+        lifecycleState: 'agent-pass',
+        submittedBy: {
+          id: submitterId,
+          handle: 'queue_submitter',
+          securityLevel: 0,
+        },
+      });
+      expect(body.items[0]?.submittedBy).toEqual(body.items[0]?.latestSubmission?.submittedBy);
+    });
+  });
+
   describe('artifact coexistence (COMP-02, T-12-05)', () => {
     it('should continue to enforce review permissions with skillArtifacts present (COMP-02)', async () => {
       let reviewSessionId!: string; // Will be assigned in transaction

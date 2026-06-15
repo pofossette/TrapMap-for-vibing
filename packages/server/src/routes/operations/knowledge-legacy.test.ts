@@ -11,7 +11,9 @@ import type { FastifyInstance } from 'fastify';
 describe('operations routes', () => {
   let app: FastifyInstance;
 
-  async function getSystemAdminAuth(targetApp: FastifyInstance): Promise<{ Authorization: string }> {
+  async function getSystemAdminAuth(
+    targetApp: FastifyInstance,
+  ): Promise<{ Authorization: string }> {
     const loginResponse = await targetApp.inject({
       method: 'POST',
       url: '/v1/auth/login',

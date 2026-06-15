@@ -548,10 +548,7 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
       // Hybrid score: weighted average (0.6 vector + 0.4 keyword)
       const hybridScore = scores.vectorScore * 0.6 + scores.keywordScore * 0.4;
 
-      if (
-        scores.sharedTokens.size > 0 &&
-        scores.sharedTokens.size < MIN_NON_EXACT_SHARED_TOKENS
-      ) {
+      if (scores.sharedTokens.size > 0 && scores.sharedTokens.size < MIN_NON_EXACT_SHARED_TOKENS) {
         continue;
       }
 

@@ -170,7 +170,9 @@ describe('HTTP client adversarial tests', () => {
         session: null,
       };
 
-      expect(() => requireSessionToken(state)).toThrow('Not authenticated. Run `trapmap login` first.');
+      expect(() => requireSessionToken(state)).toThrow(
+        'Not authenticated. Run `trapmap login` first.',
+      );
     });
 
     it('should return the exact token string when present', () => {

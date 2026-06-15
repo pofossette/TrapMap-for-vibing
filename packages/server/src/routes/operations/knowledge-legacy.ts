@@ -7,11 +7,11 @@ import {
 import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
+import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { upsertKnowledgeEntryShadow } from '@trapmap/server/lib/knowledge/shadow-sync.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '@trapmap/server/lib/knowledge.js';
+import { upsertKnowledgeEntryShadow } from '@trapmap/server/lib/knowledge/shadow-sync.js';
 import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import {

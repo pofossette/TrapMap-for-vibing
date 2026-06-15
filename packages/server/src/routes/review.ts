@@ -32,7 +32,11 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
 
     const allEntries = await knowledgeRepo.listByFilter({});
     const filteredEntries = allEntries.filter((entry) => {
-      if (entry.teamId && auth.subjectType !== 'system-admin' && auth.activeTeamId !== entry.teamId) {
+      if (
+        entry.teamId &&
+        auth.subjectType !== 'system-admin' &&
+        auth.activeTeamId !== entry.teamId
+      ) {
         return false;
       }
       if (auth.subjectType !== 'system-admin' && auth.securityLevel <= entry.requiredLevel) {
@@ -42,8 +46,8 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
     });
 
     const fullEntries = await Promise.all(
-      filteredEntries.map(async (entrySummary) =>
-        (await knowledgeRepo.getById(entrySummary.id)) ?? entrySummary,
+      filteredEntries.map(
+        async (entrySummary) => (await knowledgeRepo.getById(entrySummary.id)) ?? entrySummary,
       ),
     );
     const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, fullEntries);
@@ -60,15 +64,12 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
             lastDecisionUserId === owner.id ? owner : await userRepo.getById(lastDecisionUserId);
 
           const serializedEntry = toKnowledgeEntry(lookup, entry);
+          const latestSubmission = serializedEntry.latestSubmission;
           return {
             entry: serializedEntry,
             agentReview: entry.agentReview,
-            submittedBy: {
-              id: owner.id,
-              handle: owner.handle,
-              securityLevel: entry.requiredLevel,
-            },
-            latestSubmission: null,
+            submittedBy: latestSubmission?.submittedBy ?? serializedEntry.owner,
+            latestSubmission,
             reviewNotes: serializedEntry.reviewNotes,
             lastDecision: lastDecision
               ? {
@@ -141,11 +142,7 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
     const decidedByUserId =
       auth.user?.id ??
       (() => {
-        throw new AppError(
-          403,
-          'user_required',
-          'System admin cannot author review decisions',
-        );
+        throw new AppError(403, 'user_required', 'System admin cannot author review decisions');
       })();
 
     previousState = existingEntry.lifecycleState;
@@ -182,9 +179,15 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
         ? {
             sourceType: payload.evidence.sourceType,
             evidenceLevel: payload.evidence.evidenceLevel,
-            ...(payload.evidence.sourceRef !== undefined && { sourceRef: payload.evidence.sourceRef }),
-            ...(payload.evidence.verifiedAt !== undefined && { verifiedAt: payload.evidence.verifiedAt }),
-            ...(payload.evidence.verifiedBy !== undefined && { verifiedBy: payload.evidence.verifiedBy }),
+            ...(payload.evidence.sourceRef !== undefined && {
+              sourceRef: payload.evidence.sourceRef,
+            }),
+            ...(payload.evidence.verifiedAt !== undefined && {
+              verifiedAt: payload.evidence.verifiedAt,
+            }),
+            ...(payload.evidence.verifiedBy !== undefined && {
+              verifiedBy: payload.evidence.verifiedBy,
+            }),
           }
         : undefined;
 

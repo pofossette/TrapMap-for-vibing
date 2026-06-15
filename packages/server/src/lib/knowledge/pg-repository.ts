@@ -940,7 +940,8 @@ function reconstructKnowledgeRecord(
 
   entry.submissionHistory = revisions.map((revision, index) => {
     const revisionNo = revision.revision;
-    const submissionId = submissionIdByRevision.get(revisionNo) ?? `${entry.id}_submission_${revisionNo}`;
+    const submissionId =
+      submissionIdByRevision.get(revisionNo) ?? `${entry.id}_submission_${revisionNo}`;
     const agentReviewedEvent = lifecycleHistory.find(
       (event) => event.type === 'agent-reviewed' && event.revision === revisionNo,
     );
@@ -952,7 +953,9 @@ function reconstructKnowledgeRecord(
     const submissionLifecycleState =
       reviewerEvent?.state ?? agentReviewedEvent?.state ?? entry.lifecycleState;
     const reviewNotes = revision.reviewNotes;
-    const agentNotes = reviewNotes.filter((note) => note.authorType === 'agent').map((note) => note.message);
+    const agentNotes = reviewNotes
+      .filter((note) => note.authorType === 'agent')
+      .map((note) => note.message);
 
     return {
       id: submissionId,
@@ -960,7 +963,7 @@ function reconstructKnowledgeRecord(
       submittedAt: revision.submittedAt,
       submittedByUserId: revision.submittedByUserId,
       lifecycleState: submissionLifecycleState,
-      resubmissionOf: index > 0 ? entry.submissionHistory[index - 1]?.id ?? null : null,
+      resubmissionOf: index > 0 ? (entry.submissionHistory[index - 1]?.id ?? null) : null,
       agentReview: agentReviewedEvent
         ? {
             status: agentReviewedEvent.state as 'agent-pass' | 'agent-rejected',
@@ -968,10 +971,15 @@ function reconstructKnowledgeRecord(
             correctnessRisk: 'medium',
             completenessRisk: 'medium',
             checkedAt: agentReviewedEvent.createdAt,
-            notes: agentNotes.length > 0 ? agentNotes : agentReviewedEvent.note ? [agentReviewedEvent.note] : [],
+            notes:
+              agentNotes.length > 0
+                ? agentNotes
+                : agentReviewedEvent.note
+                  ? [agentReviewedEvent.note]
+                  : [],
           }
         : null,
-      reviewerDecision: reviewerEvent && reviewerEvent.actorUserId
+      reviewerDecision: reviewerEvent?.actorUserId
         ? {
             decidedAt: reviewerEvent.createdAt,
             decidedByUserId: reviewerEvent.actorUserId,

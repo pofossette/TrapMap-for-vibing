@@ -16,7 +16,7 @@ vi.mock('../lib/config.js', () => ({
   clearSession: vi.fn(),
 }));
 
-import { clearSession } from '../lib/config.js';
+import { clearSession } from '@trapmap/cli/lib/config.js';
 import { registerAuthCommands } from './auth.js';
 
 const mockBaseState = {
