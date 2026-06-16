@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/repository.js';
-import type { KnowledgeRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 
 import {
@@ -93,6 +93,23 @@ function makeMockRepo(entries: KnowledgeRecord[] = []): KnowledgeRepository {
     appendLifecycleEvent: vi.fn().mockResolvedValue(undefined),
     listByFilter: vi.fn().mockImplementation(async () => [...store]),
     updateGovernance: vi.fn().mockResolvedValue(undefined),
+    supersede: vi.fn().mockImplementation(async (entryId: string, input) => {
+      const entry = store.find((candidate) => candidate.id === entryId);
+      if (!entry) {
+        throw new Error(`Knowledge entry ${entryId} not found`);
+      }
+      return {
+        ...entry,
+        lifecycleState: 'deactivated',
+        decayMeta: {
+          lastVerifiedAt: entry.decayMeta?.lastVerifiedAt ?? entry.updatedAt,
+          decayState: 'superseded',
+          supersededById: input.replacementId,
+          decayStateComputedAt: nowIso(),
+          freshnessType: entry.decayMeta?.freshnessType ?? 'evergreen',
+        },
+      };
+    }),
   };
 }
 
@@ -101,41 +118,6 @@ function makeMockChatProvider(): ChatProvider {
     provider: 'test',
     isConfigured: false,
     invoke: vi.fn().mockResolvedValue(''),
-  };
-}
-
-function makeMockStore(): SkillShareerStore {
-  return {
-    snapshot: vi.fn().mockResolvedValue({
-      knowledgeEntries: [],
-      users: [],
-      memberships: [],
-      teams: [],
-      sessions: [],
-      accessKeys: [],
-      skillArtifacts: [],
-      usageAnalytics: [],
-      feedback: [],
-      audit: [],
-      counters: {},
-    }),
-    transact: vi.fn().mockImplementation(async (mutator: any) => {
-      const data = {
-        knowledgeEntries: [],
-        users: [],
-        memberships: [],
-        teams: [],
-        sessions: [],
-        accessKeys: [],
-        skillArtifacts: [],
-        usageAnalytics: [],
-        feedback: [],
-        audit: [],
-        counters: {},
-      };
-      return mutator(data);
-    }),
-    nextId: vi.fn().mockReturnValue('next_id'),
   };
 }
 
@@ -149,7 +131,6 @@ describe('KnowledgeApplicationService', () => {
     deps = {
       knowledgeRepo: mockRepo,
       chatProvider: makeMockChatProvider(),
-      store: makeMockStore(),
     };
     service = createKnowledgeApplicationService(deps);
   });
@@ -343,17 +324,18 @@ describe('KnowledgeApplicationService', () => {
   });
 
   describe('supersede', () => {
-    it('should delegate to store.transact with supersedeEntry', async () => {
-      const supersededEntry = makeEntry({
+    it('should delegate to knowledgeRepo.supersede', async () => {
+      const sourceEntry = makeEntry({
         id: 'knowledge_superseded',
-        lifecycleState: 'deactivated',
+        lifecycleState: 'approved',
       });
-
-      (deps.store.transact as ReturnType<typeof vi.fn>).mockImplementation(
-        async (_mutator: any) => {
-          return supersededEntry;
-        },
-      );
+      const replacementEntry = makeEntry({
+        id: 'knowledge_replacement',
+        lifecycleState: 'approved',
+      });
+      mockRepo = makeMockRepo([sourceEntry, replacementEntry]);
+      deps.knowledgeRepo = mockRepo;
+      service = createKnowledgeApplicationService(deps);
 
       const result = await service.supersede({
         kind: 'knowledge',
@@ -364,7 +346,10 @@ describe('KnowledgeApplicationService', () => {
 
       expect(result.entry.id).toBe('knowledge_superseded');
       expect(result.entry.lifecycleState).toBe('deactivated');
-      expect(deps.store.transact).toHaveBeenCalled();
+      expect(mockRepo.supersede).toHaveBeenCalledWith('knowledge_superseded', {
+        replacementId: 'knowledge_replacement',
+        actorId: 'user_1',
+      });
     });
   });
 });

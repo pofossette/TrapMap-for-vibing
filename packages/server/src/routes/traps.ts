@@ -7,12 +7,10 @@ import {
 import type { FastifyPluginAsync } from 'fastify';
 
 import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
-import { supersedeEntry } from '@trapmap/server/lib/decay/supersede.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
 import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -34,7 +32,6 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
     return createKnowledgeApplicationService({
       knowledgeRepo: app.skillShareer.repos.knowledge,
       chatProvider: app.skillShareer.ai.chat,
-      store: app.skillShareer.store,
     });
   }
 
@@ -171,51 +168,25 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(400, 'replacement_required', 'replacementId is required');
     }
 
-    const store = app.skillShareer.store;
-    const entry =
-      store instanceof PostgresStore
-        ? await store.transactWithPgClient(async (data, client) => {
-            const updated = supersedeEntry({
-              store,
-              data,
-              entryId: trapId,
-              replacementId: body.replacementId!,
-              actorId: auth.actorId,
-            });
-            await emitLifecycleTransition({
-              store,
-              eventBus: app.skillShareer.eventBus,
-              aggregateType: 'knowledge',
-              aggregateId: trapId,
-              previousState: 'approved',
-              nextState: 'deactivated',
-              actorId: auth.actorId,
-              reason: 'superseded',
-              txClient: client,
-            });
-            return updated;
-          })
-        : (
-            await getKnowledgeService().supersede({
-              kind: 'trap',
-              entryId: trapId,
-              replacementId: body.replacementId,
-              actorId: auth.actorId,
-            })
-          ).entry;
-
-    if (!(store instanceof PostgresStore)) {
-      await emitLifecycleTransition({
-        store: app.skillShareer.store,
-        eventBus: app.skillShareer.eventBus,
-        aggregateType: 'knowledge',
-        aggregateId: trapId,
-        previousState: 'approved',
-        nextState: 'deactivated',
+    const entry = (
+      await getKnowledgeService().supersede({
+        kind: 'trap',
+        entryId: trapId,
+        replacementId: body.replacementId,
         actorId: auth.actorId,
-        reason: 'superseded',
-      });
-    }
+      })
+    ).entry;
+
+    await emitLifecycleTransition({
+      store: app.skillShareer.store,
+      eventBus: app.skillShareer.eventBus,
+      aggregateType: 'knowledge',
+      aggregateId: trapId,
+      previousState: 'approved',
+      nextState: 'deactivated',
+      actorId: auth.actorId,
+      reason: 'superseded',
+    });
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),

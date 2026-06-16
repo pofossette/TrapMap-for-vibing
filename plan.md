@@ -91,8 +91,8 @@ Stage 1 读侧 ownership 补充：
 
 - Stage 1C：`store.transact()` 向 repo-backed transaction 的迁移尚未完全结束，当前命名化债务主要保留在 `supersede` 相关路径；在边界稳定前继续视为受控兼容例外，而不是恢复为通用做法。
 - Stage 1 验证收尾：
-  - `review-queue` 投影仍属于 `知识治理` 读侧债务，后续应继续从 route-local query assembly 收口到显式 projection/helper。
-  - `decay entries/search` 投影仍属于 `运维与运行时` 读侧债务，后续应继续从 route 内筛选/组装收口到显式 projection/helper。
+  - `review-queue` 投影已收口到 `lib/operations/read-model.ts` 的显式 projection helper，`routes/review.ts` 只保留 transport / auth / response 映射职责。
+  - `decay entries/search` 投影已收口到 `lib/operations/read-model.ts` 的显式 projection helper，`routes/decay.ts` 只保留 transport / auth / response 映射职责。
 - 横切“暂不做”清单继续作为持续约束：
   - 不把 Kafka、RabbitMQ、NATS 当作当前耦合或异步问题的默认解法。
   - 不在内部 seam 已稳定之前拆服务。
@@ -101,7 +101,7 @@ Stage 1 读侧 ownership 补充：
 ## 下一阶段建议
 
 - 先补可观测性，而不是继续扩大基础设施种类：把 queue/outbox/workflow/cache freshness 指标接到外部 metrics/logging/tracing 面，建立 backlog、dead-letter、stale recovery、projection lag 的长期趋势观测。
-- 在现有 async substrate 已稳定的前提下，继续把剩余 operator/read-side route 收口到 application service 或 projection seam，优先处理 `review-queue`、`decay entries/search` 这两类已点名债务。
+- 在现有 async substrate 已稳定的前提下，继续把剩余 operator/read-side route 收口到 application service 或 projection seam，优先处理新的 route-local projection 热点，而不是重新打开已收口的 `review-queue` / `decay entries/search`。
 - 如果边界继续保持稳定，可以开始做性能与容量侧工作，例如 retrieval cache 命中率、workflow 吞吐、reclaim/dead-letter 频率和热点 route 延迟画像。
 - 再往后才适合新增业务功能：优先选择能直接复用现有 application service、queue/outbox、projection 约束的新治理或检索能力，而不是重新引入跨层 reach-through。
 

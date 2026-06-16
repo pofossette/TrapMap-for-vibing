@@ -3,7 +3,6 @@ import type { BatchOperationItem, BatchOperationRequest } from '@trapmap/contrac
 import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
-import { supersedeEntry } from '@trapmap/server/lib/decay/supersede.js';
 import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
 import type { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
 import {
@@ -95,20 +94,14 @@ async function executeBatch(
   const plan = planBatchOperation(entryMap, operationInput, config, now);
 
   if (input.command.action === 'supersede') {
-    const mutated = await deps.store.transact((data) => {
-      const results: Array<{ id: string; nextState: KnowledgeRecord['lifecycleState'] }> = [];
-      for (const planItem of plan.filter((item) => item.eligible)) {
-        const supersededEntry = supersedeEntry({
-          store: deps.store,
-          data,
-          entryId: planItem.entryId,
-          replacementId: input.command.replacementId ?? '',
-          actorId: input.auth.actorId,
-        });
-        results.push({ id: supersededEntry.id, nextState: supersededEntry.lifecycleState });
-      }
-      return results;
-    });
+    const mutated: Array<{ id: string; nextState: KnowledgeRecord['lifecycleState'] }> = [];
+    for (const planItem of plan.filter((item) => item.eligible)) {
+      const supersededEntry = await deps.repos.knowledge.supersede(planItem.entryId, {
+        replacementId: input.command.replacementId ?? '',
+        actorId: input.auth.actorId,
+      });
+      mutated.push({ id: supersededEntry.id, nextState: supersededEntry.lifecycleState });
+    }
 
     for (const item of mutated) {
       await emitLifecycleTransition({

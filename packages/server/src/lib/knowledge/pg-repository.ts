@@ -28,6 +28,7 @@ import {
   lifecycleEvents,
 } from '@trapmap/server/lib/persistence/schema.js';
 import type {
+  DecayMeta,
   EmbeddingCacheRecord,
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
@@ -568,6 +569,122 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
     } finally {
       client.release();
     }
+  }
+
+  async supersede(
+    entryId: string,
+    input: { replacementId: string; actorId: string },
+  ): Promise<KnowledgeRecord> {
+    if (entryId === input.replacementId) {
+      throw new Error('Cannot supersede an entry with itself');
+    }
+
+    const sourceBefore = await this.getById(entryId);
+    if (!sourceBefore) {
+      throw new Error(`Knowledge entry ${entryId} not found`);
+    }
+    const replacement = await this.getById(input.replacementId);
+    if (!replacement) {
+      throw new Error(`Replacement entry ${input.replacementId} not found`);
+    }
+    if (sourceBefore.lifecycleState !== 'approved') {
+      throw new Error('Only approved entries can be superseded');
+    }
+    if (replacement.lifecycleState !== 'approved') {
+      throw new Error('Replacement must be an approved entry');
+    }
+
+    const client = await this.pool.connect();
+    const updatedAt = new Date().toISOString();
+    const eventId = `le_${entryId}_supersede_${Date.now()}`;
+
+    try {
+      await client.query('BEGIN');
+
+      const sourceLock = await client.query<DrizzleKnowledgeEntryRow>(
+        'SELECT id FROM knowledge_entries WHERE id = $1 FOR UPDATE',
+        [entryId],
+      );
+      if (sourceLock.rows.length === 0) {
+        throw new Error(`Knowledge entry ${entryId} not found`);
+      }
+
+      const replacementLock = await client.query<DrizzleKnowledgeEntryRow>(
+        'SELECT id, lifecycle_state FROM knowledge_entries WHERE id = $1 FOR UPDATE',
+        [input.replacementId],
+      );
+      if (replacementLock.rows.length === 0) {
+        throw new Error(`Replacement entry ${input.replacementId} not found`);
+      }
+      if (replacementLock.rows[0]!.lifecycle_state !== 'approved') {
+        throw new Error('Replacement must be an approved entry');
+      }
+
+      transitionLifecycleState(sourceBefore, 'deactivated', 'knowledge supersede');
+
+      await client.query(
+        'UPDATE knowledge_entries SET lifecycle_state = $1, updated_at = $2 WHERE id = $3',
+        ['deactivated', updatedAt, entryId],
+      );
+      await client.query(
+        `INSERT INTO lifecycle_events (id, entry_id, type, created_at, actor_user_id, state, note)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          eventId,
+          entryId,
+          'deactivated',
+          updatedAt,
+          input.actorId,
+          'deactivated',
+          `Superseded by ${input.replacementId}`,
+        ],
+      );
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    if (this.compatStore) {
+      await this.compatStore.transact((data) => {
+        const shadow = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
+        if (!shadow) {
+          return;
+        }
+
+        const decayMeta: DecayMeta = {
+          lastVerifiedAt: shadow.decayMeta?.lastVerifiedAt ?? shadow.updatedAt,
+          decayState: 'superseded',
+          supersededById: input.replacementId,
+          decayStateComputedAt: updatedAt,
+          freshnessType: shadow.decayMeta?.freshnessType ?? 'evergreen',
+        };
+        const event: KnowledgeLifecycleEventRecord = {
+          id: this.compatStore.nextId(data, 'evt'),
+          type: 'deactivated',
+          createdAt: updatedAt,
+          actorUserId: input.actorId,
+          submissionId: null,
+          revision: null,
+          state: 'deactivated',
+          note: `Superseded by ${input.replacementId}`,
+        };
+
+        shadow.decayMeta = decayMeta;
+        shadow.lifecycleState = 'deactivated';
+        shadow.updatedAt = updatedAt;
+        shadow.lifecycleHistory.push(event);
+      });
+    }
+
+    const updated = await this.getById(entryId);
+    if (!updated) {
+      throw new Error(`Knowledge entry ${entryId} not found`);
+    }
+    return updated;
   }
 
   async save(entry: KnowledgeRecord): Promise<void> {

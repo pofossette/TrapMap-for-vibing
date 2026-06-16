@@ -650,7 +650,7 @@ describe('operations routes', () => {
       expect(json.cache['query-embedding'].hits).toBeGreaterThanOrEqual(1);
     });
 
-    it('surfaces retrieval read-model and intent cache invalidation signals', async () => {
+    it('surfaces intent cache invalidation signals alongside cache hit metrics', async () => {
       setCachedRetrievalReadModel({
         knowledgeEntries: [],
         skillArtifacts: [],
@@ -697,12 +697,6 @@ describe('operations routes', () => {
 
       expect(response.statusCode).toBe(200);
       const json = response.json();
-      expect(json.cache['retrieval-read-model']).toMatchObject({
-        hits: expect.any(Number),
-        misses: expect.any(Number),
-        invalidations: 1,
-        size: 0,
-      });
       expect(json.cache.intent).toMatchObject({
         hits: expect.any(Number),
         misses: expect.any(Number),

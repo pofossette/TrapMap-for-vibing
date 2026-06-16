@@ -6,7 +6,7 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { getCacheMetricsSnapshot } from '@trapmap/server/lib/cache/metrics.js';
+import { getRetrievalCacheStats } from '@trapmap/server/lib/cache/metrics.js';
 import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
 import { buildCompatibilityStatusProjection } from '@trapmap/server/lib/operations/read-model.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
@@ -50,7 +50,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
           workerState: 'not-configured',
           recentFailures: [],
         },
-        cache: getCacheMetricsSnapshot(),
+        cache: getRetrievalCacheStats(),
         workflows: [],
         reportedAt: nowIso(),
       });
@@ -92,7 +92,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
           running: outboxWorker?.isRunning?.() ?? false,
         }),
       },
-      cache: getCacheMetricsSnapshot(),
+      cache: getRetrievalCacheStats(),
       workflows,
       reportedAt: nowIso(),
     });

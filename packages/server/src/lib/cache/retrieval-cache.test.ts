@@ -1,7 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { resetCacheFreshnessForTests } from './invalidation.js';
+import {
+  createCacheInvalidationEvent,
+  emitCacheInvalidation,
+  resetCacheFreshnessForTests,
+} from './invalidation.js';
 import { getCacheMetricsSnapshot } from './metrics.js';
+import {
+  getCachedRetrievalReadModel,
+  resetRetrievalReadModelCacheForTests,
+  setCachedRetrievalReadModel,
+} from './retrieval-read-model-cache.js';
 import {
   RetrievalCache,
   clearRetrievalCacheRegistry,
@@ -243,6 +252,66 @@ describe('getCacheMetricsSnapshot', () => {
       lastInvalidatedAt: null,
       lastRecoveredAt: null,
     });
+  });
+});
+
+describe('retrieval read-model cache observability', () => {
+  it('tracks hit, miss, invalidation, and stale-recovery semantics', () => {
+    resetRetrievalReadModelCacheForTests();
+    const initialMiss = getCachedRetrievalReadModel();
+    expect(initialMiss).toBeNull();
+
+    setCachedRetrievalReadModel({
+      knowledgeEntries: [],
+      skillArtifacts: [],
+      conflicts: [],
+    });
+    const cachedModel = getCachedRetrievalReadModel();
+    expect(cachedModel).toEqual({
+      knowledgeEntries: [],
+      skillArtifacts: [],
+      conflicts: [],
+    });
+
+    emitCacheInvalidation(
+      createCacheInvalidationEvent({
+        sourceType: 'trap',
+        sourceId: 'knowledge-1',
+        reason: 'approved',
+        owner: 'knowledge-lifecycle-projection',
+        trigger: 'shared-job',
+      }),
+    );
+
+    const missAfterInvalidation = getCachedRetrievalReadModel();
+    expect(missAfterInvalidation).toBeNull();
+
+    const snapshotAfterInvalidation = getCacheMetricsSnapshot();
+    expect(snapshotAfterInvalidation['retrieval-read-model']).toMatchObject({
+      invalidations: 0,
+      staleRecoveries: 0,
+      pendingInvalidation: true,
+      lastInvalidatedAt: expect.any(String),
+      lastRecoveredAt: null,
+    });
+
+    setCachedRetrievalReadModel({
+      knowledgeEntries: [],
+      skillArtifacts: [],
+      conflicts: [],
+    });
+
+    const snapshotAfterRecovery = getCacheMetricsSnapshot();
+    expect(snapshotAfterRecovery['retrieval-read-model']).toMatchObject({
+      staleRecoveries: 1,
+      pendingInvalidation: false,
+      lastInvalidatedAt: expect.any(String),
+      lastRecoveredAt: expect.any(String),
+    });
+
+    expect(cachedModel).not.toBeNull();
+    expect(initialMiss).toBeNull();
+    expect(missAfterInvalidation).toBeNull();
   });
 });
 

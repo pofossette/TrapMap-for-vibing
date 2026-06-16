@@ -16,14 +16,13 @@ import type {
 } from '@trapmap/contracts';
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
-import { supersedeEntry } from '@trapmap/server/lib/decay/supersede.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   createKnowledgeEntryRecord,
   createKnowledgeRevision,
 } from '@trapmap/server/lib/knowledge.js';
 import { runPreReview } from '@trapmap/server/lib/pre-review.js';
-import type { KnowledgeRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import type { KnowledgeRepository } from './repository.js';
 
@@ -83,7 +82,6 @@ export interface KnowledgeApplicationService {
 export interface KnowledgeApplicationServiceDeps {
   knowledgeRepo: KnowledgeRepository;
   chatProvider: ChatProvider;
-  store: SkillShareerStore;
 }
 
 // ---------------------------------------------------------------------------
@@ -233,19 +231,9 @@ async function supersede(
   deps: KnowledgeApplicationServiceDeps,
   input: SupersedeKnowledgeInput,
 ): Promise<KnowledgeSupersedeResult> {
-  const { store } = deps;
-
-  // supersedeEntry still requires store.transact() because it uses
-  // store.nextId() for sub-record IDs and mutates StoreData directly.
-  // Phase 4 will address this.
-  const supersededEntry = await store.transact((data) => {
-    return supersedeEntry({
-      store,
-      data,
-      entryId: input.entryId,
-      replacementId: input.replacementId,
-      actorId: input.actorId,
-    });
+  const supersededEntry = await deps.knowledgeRepo.supersede(input.entryId, {
+    replacementId: input.replacementId,
+    actorId: input.actorId,
   });
 
   return { entry: supersededEntry };

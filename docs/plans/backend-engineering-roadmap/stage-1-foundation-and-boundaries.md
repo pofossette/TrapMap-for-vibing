@@ -91,7 +91,7 @@
 ## Stage 1C：收紧 repository 与兼容层边界
 
 - [x] 移除或隔离那些本该通过 `repos.*` 访问、却仍依赖 `store.snapshot()` 的业务路径读取。
-- [ ] 收敛 application-level business workflow 中仍在使用的 `store.transact()`，让 repo-backed transaction 成为主路径。
+- [x] 收敛 application-level business workflow 中仍在使用的 `store.transact()`，让 repo-backed transaction 成为主路径。
 - [x] 兼容访问只保留在明确允许的类别里：bootstrap、migration/backfill、repository 内部、受控 admin/diagnostic 流程，以及已记录的迁移债务。
 - [x] 记录那些迫使调用方回退到兼容数据访问的 repository 能力缺口。
 
@@ -99,7 +99,7 @@
 
 - `lib/knowledge/review-application-service.ts` 已移除聚合读取上的 snapshot 回退，review 写流程先通过 `repos.knowledge` 读取当前状态。
 - `lib/knowledge/review-application-service.ts` 仍保留局部 `store.transact()`，仅用于 legacy audit 兼容写入；knowledge shadow persist 已下沉到 `repos.knowledge.save()`.
-- `lib/decay/application-service.ts` 已移除 current aggregate state 上的 snapshot 依赖；`supersede` 仍保留命名化 `store.transact()` 迁移债务。
+- `lib/knowledge/application-service.ts` 与 `lib/decay/application-service.ts` 的 `supersede` 已迁移到 `repos.knowledge.supersede()`；application service 不再直接打开 compatibility transaction。
 - `lib/operations/read-model.ts` 已成为 Stage 1 operator 读侧 seam：`operations/status`、`feedback-admin`、`operations/audit` 默认经由 repo/read helper 读取；剩余 snapshot 仅限 artifact revision payload hydration 这一项 projection exception。
 
 **完成标准**
@@ -145,8 +145,8 @@ Stage 1 operator/read-side ownership 补充：
 
 已记录但未在本次收口中完成的读侧债务：
 
-- `routes/review.ts` 的 review-queue 投影仍是 route-local query assembly，属于 `知识治理` 读侧债务。
-- `routes/decay.ts` 的 entries/search 仍在 route 内完成筛选与投影，属于 `运维与运行时` 读侧债务。
+- `routes/review.ts` 的 review-queue 读侧已收口到 `lib/operations/read-model.ts` 的 `buildReviewQueueProjection()` helper，route 只保留 transport / auth / response 映射。
+- `routes/decay.ts` 的 entries/search 读侧已收口到 `lib/operations/read-model.ts` 的 `buildDecayEntriesProjection()` helper，route 只保留 transport / auth / response 映射。
 
 **完成标准**
 

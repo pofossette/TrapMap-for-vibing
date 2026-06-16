@@ -116,6 +116,11 @@ export interface KnowledgeRepository {
    */
   updateEmbeddingCache(entryId: string, cache: EmbeddingCacheRecord): Promise<void>;
 
+  supersede(
+    entryId: string,
+    input: { replacementId: string; actorId: string },
+  ): Promise<KnowledgeRecord>;
+
   /**
    * Persist a full aggregate snapshot via the repository seam.
    * Structured fields remain authoritative in repo-owned storage; compatibility
@@ -267,6 +272,62 @@ export class InMemoryKnowledgeRepository implements KnowledgeRepository {
       entry.embeddingCache = cache;
       entry.updatedAt = new Date().toISOString();
     });
+  }
+
+  async supersede(
+    entryId: string,
+    input: { replacementId: string; actorId: string },
+  ): Promise<KnowledgeRecord> {
+    let updated!: KnowledgeRecord;
+    await this.store.transact((data) => {
+      if (entryId === input.replacementId) {
+        throw new Error('Cannot supersede an entry with itself');
+      }
+
+      const source = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
+      if (!source) {
+        throw new Error(`Knowledge entry ${entryId} not found`);
+      }
+
+      const replacement = data.knowledgeEntries.find(
+        (candidate) => candidate.id === input.replacementId,
+      );
+      if (!replacement) {
+        throw new Error(`Replacement entry ${input.replacementId} not found`);
+      }
+
+      if (source.lifecycleState !== 'approved') {
+        throw new Error('Only approved entries can be superseded');
+      }
+      if (replacement.lifecycleState !== 'approved') {
+        throw new Error('Replacement must be an approved entry');
+      }
+
+      const now = new Date().toISOString();
+      source.decayMeta = {
+        lastVerifiedAt: source.decayMeta?.lastVerifiedAt ?? source.updatedAt,
+        decayState: 'superseded',
+        supersededById: input.replacementId,
+        decayStateComputedAt: now,
+        freshnessType: source.decayMeta?.freshnessType ?? 'evergreen',
+      };
+      transitionLifecycleState(source, 'deactivated', 'knowledge supersede');
+      source.updatedAt = now;
+
+      const event: KnowledgeLifecycleEventRecord = {
+        id: this.store.nextId(data, 'evt'),
+        type: 'deactivated',
+        createdAt: now,
+        actorUserId: input.actorId,
+        submissionId: null,
+        revision: null,
+        state: 'deactivated',
+        note: `Superseded by ${input.replacementId}`,
+      };
+      source.lifecycleHistory.push(event);
+      updated = source;
+    });
+    return updated;
   }
 
   async save(entry: KnowledgeRecord): Promise<void> {

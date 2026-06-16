@@ -15,8 +15,7 @@ const SERVER_SRC = resolve(process.cwd(), 'packages/server/src');
  * - Candidate processing: pipeline that mutates store during candidate lifecycle
  * - Diagnostic/admin mutations: controlled operator writes and migration HTTP tools
  * - Projection exceptions: explicit read-side helpers that still need compatibility snapshot input
- * - Named compatibility debt: audit / supersede seams that still require store access
- * - Supersede workflow: knowledge/application-service.ts (tracked for future migration)
+ * - Named compatibility debt: audit seams that still require store access
  *
  * Core business routes (auth, knowledge, traps, retrieval, members, teams)
  * must use repos.* and must NOT appear here.
@@ -33,6 +32,7 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   'lib/feedback/repository.ts',
   'lib/candidates/repository.ts',
   'lib/duplicates/repository.ts',
+  'lib/conflict/repository.ts',
   'lib/graph-index/repository.ts',
 
   // Migration and backfill scripts
@@ -57,10 +57,8 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   'lib/candidates/services/submission-service.ts',
   'lib/candidates/services/resolution-service.ts',
 
-  // Knowledge/decay application services (named compatibility debt, tracked for migration)
-  'lib/knowledge/application-service.ts',
+  // Knowledge review application service (named compatibility debt: local audit seam)
   'lib/knowledge/review-application-service.ts',
-  'lib/decay/application-service.ts',
 
   // Retrieval read-model (parallel read, tracked for migration)
   'lib/retrieval/read-model.ts',
