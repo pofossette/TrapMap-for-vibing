@@ -9,13 +9,13 @@ import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 
 import { createBadcaseExportDraftHandler } from './handlers/badcase-export-draft.js';
 import { createKnowledgeIndexFollowUpHandler } from './handlers/knowledge-index-follow-up.js';
-import { createSkillIndexFollowUpHandler } from './handlers/skill-index-follow-up.js';
 import { createRemediationReactivationHandler } from './handlers/remediation-reactivation.js';
+import { createSkillIndexFollowUpHandler } from './handlers/skill-index-follow-up.js';
 import {
-  BADCASE_EXPORT_DRAFT_TASK_TYPE,
-  KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
-  REMEDIATION_REACTIVATION_TASK_TYPE,
-  SKILL_INDEX_FOLLOW_UP_TASK_TYPE,
+  type BADCASE_EXPORT_DRAFT_TASK_TYPE,
+  type KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
+  type REMEDIATION_REACTIVATION_TASK_TYPE,
+  type SKILL_INDEX_FOLLOW_UP_TASK_TYPE,
   getSharedJobContract,
 } from './types.js';
 
@@ -66,7 +66,9 @@ export function buildSharedJobHandlersContract(
   };
 }
 
-export function createSharedJobHandlers(args: SharedJobHandlerDependencies): TaskHandler<unknown>[] {
+export function createSharedJobHandlers(
+  args: SharedJobHandlerDependencies,
+): TaskHandler<unknown>[] {
   const contract = buildSharedJobHandlersContract(args);
   return [
     contract.knowledgeIndexFollowUp,

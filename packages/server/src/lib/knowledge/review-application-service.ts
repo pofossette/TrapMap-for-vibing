@@ -54,10 +54,7 @@ export function createReviewApplicationService(
   };
 }
 
-async function applyDecision(
-  deps: ReviewApplicationServiceDeps,
-  input: ApplyReviewDecisionInput,
-) {
+async function applyDecision(deps: ReviewApplicationServiceDeps, input: ApplyReviewDecisionInput) {
   const { repos, store, eventBus, feedbackRepo } = deps;
   const existingEntry = await repos.knowledge.getById(input.entryId);
   if (!existingEntry) {
@@ -109,13 +106,25 @@ async function applyDecision(
   applyReviewDecision(
     input.evidence !== undefined
       ? {
-      data: lookup,
-      entry: existingEntry,
-      reviewerUserId,
+          data: lookup,
+          entry: existingEntry,
+          reviewerUserId,
           decidedAt: input.appliedAt,
           decision: input.decision,
           notes: input.notes,
-          evidence: input.evidence,
+          evidence: {
+            sourceType: input.evidence.sourceType,
+            evidenceLevel: input.evidence.evidenceLevel,
+            ...(input.evidence.sourceRef !== undefined
+              ? { sourceRef: input.evidence.sourceRef }
+              : {}),
+            ...(input.evidence.verifiedAt !== undefined
+              ? { verifiedAt: input.evidence.verifiedAt }
+              : {}),
+            ...(input.evidence.verifiedBy !== undefined
+              ? { verifiedBy: input.evidence.verifiedBy }
+              : {}),
+          },
         }
       : {
           data: lookup,

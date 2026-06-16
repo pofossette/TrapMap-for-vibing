@@ -108,7 +108,9 @@ export function registerCacheInvalidationListener(listener: CacheInvalidationLis
   };
 }
 
-export function emitCacheInvalidation(event: CacheInvalidationEvent | CacheInvalidationEventInput): void {
+export function emitCacheInvalidation(
+  event: CacheInvalidationEvent | CacheInvalidationEventInput,
+): void {
   const normalizedEvent = normalizeCacheInvalidationEvent(event);
   const namespaces = new Set<string>();
   for (const listener of listeners) {

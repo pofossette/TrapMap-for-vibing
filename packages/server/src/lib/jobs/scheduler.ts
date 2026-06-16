@@ -4,7 +4,11 @@ import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
-import { getSharedJobContract, type SharedJobPayloadByType, type SharedJobTaskType } from './types.js';
+import {
+  type SharedJobPayloadByType,
+  type SharedJobTaskType,
+  getSharedJobContract,
+} from './types.js';
 
 export async function scheduleSharedJobTx<TTaskType extends SharedJobTaskType>(
   store: SkillShareerStore,

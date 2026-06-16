@@ -1,9 +1,9 @@
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 
+import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
 import { scheduleSharedJob } from './index.js';
 import { SKILL_INDEX_FOLLOW_UP_TASK_TYPE, type SkillIndexFollowUpPayload } from './types.js';
-import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
 
 export async function runOrScheduleSkillIndexFollowUp(args: {
   services: Pick<SkillShareerServices, 'store' | 'ai' | 'graphQueryBackend'>;

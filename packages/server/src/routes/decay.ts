@@ -49,9 +49,17 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
 
     const config = loadDecayConfig();
     const now = new Date();
+    const filters = {
+      limit: query.limit,
+      ...(query.decayStates !== undefined ? { decayStates: query.decayStates } : {}),
+      ...(query.ageMinDays !== undefined ? { ageMinDays: query.ageMinDays } : {}),
+      ...(query.ageMaxDays !== undefined ? { ageMaxDays: query.ageMaxDays } : {}),
+      ...(query.labels !== undefined ? { labels: query.labels } : {}),
+      ...(query.scope !== undefined ? { scope: query.scope } : {}),
+    };
     const projection = await buildDecayEntriesProjection(app.skillShareer.repos, {
       auth,
-      filters: { ...query, limit: query.limit },
+      filters,
       config,
       now,
     });
@@ -131,9 +139,18 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
 
     const config = loadDecayConfig();
     const now = new Date();
+    const filters = {
+      pattern,
+      limit: body.limit,
+      ...(body.decayStates !== undefined ? { decayStates: body.decayStates } : {}),
+      ...(body.ageMinDays !== undefined ? { ageMinDays: body.ageMinDays } : {}),
+      ...(body.ageMaxDays !== undefined ? { ageMaxDays: body.ageMaxDays } : {}),
+      ...(body.labels !== undefined ? { labels: body.labels } : {}),
+      ...(body.scope !== undefined ? { scope: body.scope } : {}),
+    };
     const projection = await buildDecayEntriesProjection(app.skillShareer.repos, {
       auth,
-      filters: { ...body, pattern, limit: body.limit },
+      filters,
       config,
       now,
     });

@@ -49,9 +49,10 @@ function buildLifecycleSubscriberContract(app: FastifyInstance): LifecycleSubscr
 
   const registrations = INDEXING_EVENT_NAMES.map((eventName) => ({
     eventName,
-    handlers: eventName === 'knowledge.approved'
-      ? [indexingHandler, auditHandler, conflictHandler]
-      : [indexingHandler, auditHandler],
+    handlers:
+      eventName === 'knowledge.approved'
+        ? [indexingHandler, auditHandler, conflictHandler]
+        : [indexingHandler, auditHandler],
   }));
 
   return {
@@ -66,7 +67,7 @@ export async function bootstrapLifecycle(
   app: FastifyInstance,
   options: BootstrapLifecycleOptions = {},
 ): Promise<void> {
-  const { eventBus, store, adapterRegistry } = app.skillShareer;
+  const { eventBus, store } = app.skillShareer;
   const { startOutboxWorker = true, ownsOutboxWork = startOutboxWorker } = options;
   const lifecycleContract = buildLifecycleSubscriberContract(app);
 

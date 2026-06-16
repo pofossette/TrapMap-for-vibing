@@ -12,7 +12,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ConflictRelation } from '@trapmap/contracts';
 import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
-import type { FeedbackQueueRecord, KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import type {
+  FeedbackQueueRecord,
+  KnowledgeRecord,
+  SkillArtifactRecord,
+} from '@trapmap/server/lib/store.js';
 
 import { buildRetrievalReadModel } from './read-model.js';
 
@@ -312,7 +316,9 @@ describe('buildRetrievalReadModel', () => {
     await buildRetrievalReadModel(repos);
 
     expect(callOrder).toHaveLength(4);
-    expect(callOrder).toEqual(expect.arrayContaining(['knowledge', 'artifact', 'feedback', 'conflict']));
+    expect(callOrder).toEqual(
+      expect.arrayContaining(['knowledge', 'artifact', 'feedback', 'conflict']),
+    );
   });
 
   it('returns empty arrays when repositories return empty results', async () => {

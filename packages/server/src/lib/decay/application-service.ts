@@ -1,14 +1,14 @@
 import type { BatchOperationItem, BatchOperationRequest } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
-import { AppError } from '@trapmap/server/lib/errors.js';
 import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
-import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
-import type { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   loadKnowledgeEntriesByIds,
   saveKnowledgeEntry,
 } from '@trapmap/server/lib/knowledge/repository.js';
+import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
+import type { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type { KnowledgeRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
 import {
@@ -116,12 +116,7 @@ async function executeBatch(
       });
     }
 
-    return buildBatchResponse(
-      input.command.action,
-      false,
-      plan,
-      appliedAt,
-    );
+    return buildBatchResponse(input.command.action, false, plan, appliedAt);
   }
 
   for (const item of plan.filter((candidate) => candidate.eligible)) {
@@ -143,12 +138,7 @@ async function executeBatch(
     });
   }
 
-  return buildBatchResponse(
-    input.command.action,
-    false,
-    plan,
-    appliedAt,
-  );
+  return buildBatchResponse(input.command.action, false, plan, appliedAt);
 }
 
 function toBatchOperationInput(

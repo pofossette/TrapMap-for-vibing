@@ -7,9 +7,9 @@ import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
 import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import {
   KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
-  getSharedJobContract,
   type KnowledgeIndexFollowUpPayload,
   type SharedJobHandler,
+  getSharedJobContract,
 } from '@trapmap/server/lib/jobs/types.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';

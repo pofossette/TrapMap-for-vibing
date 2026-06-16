@@ -34,7 +34,7 @@ describe('createAllRepos', () => {
     }
   });
 
-  it('returns object with all 14 expected keys', async () => {
+  it('returns object with all 15 expected keys', async () => {
     const repos = await createAllRepos({ store });
 
     expect(repos).toHaveProperty('knowledge');
@@ -52,7 +52,7 @@ describe('createAllRepos', () => {
     expect(repos).toHaveProperty('lineage');
     expect(repos).toHaveProperty('graphIndex');
 
-    expect(Object.keys(repos)).toHaveLength(14);
+    expect(Object.keys(repos)).toHaveLength(15);
   });
 
   it('each property is an object with expected methods', async () => {

@@ -17,8 +17,10 @@ export interface BootstrapWorkersOptions {
   ownsWork?: boolean;
 }
 
-function buildSharedJobWorkerHandlers(app: FastifyInstance): TaskHandler<unknown>[] {
-  const store = app.skillShareer.store;
+function buildSharedJobWorkerHandlers(
+  app: FastifyInstance,
+  store: PostgresStore,
+): TaskHandler<unknown>[] {
   const contract = buildSharedJobHandlersContract({
     knowledgeIndexFollowUp: {
       store,
@@ -86,10 +88,7 @@ export async function bootstrapWorkers(
 
   const worker = createTaskWorker({
     pool,
-    handlers: [
-      handler as TaskHandler<unknown>,
-      ...buildSharedJobWorkerHandlers(app),
-    ],
+    handlers: [handler as TaskHandler<unknown>, ...buildSharedJobWorkerHandlers(app, store)],
     pollIntervalMs: 1000,
     concurrency: 1,
     ownsWork,

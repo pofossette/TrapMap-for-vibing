@@ -95,9 +95,7 @@ export interface SharedJobContract<TTaskType extends SharedJobTaskType> {
   workflow: SharedJobWorkflowBinding<SharedJobPayloadByType[TTaskType]>;
 }
 
-function workflowRunIdForKnowledgeIndexFollowUp(
-  payload: KnowledgeIndexFollowUpPayload,
-): string {
+function workflowRunIdForKnowledgeIndexFollowUp(payload: KnowledgeIndexFollowUpPayload): string {
   return [
     'wf',
     'knowledge_index',
@@ -110,9 +108,7 @@ function workflowRunIdForKnowledgeIndexFollowUp(
     .join('_');
 }
 
-function workflowRunIdForRemediationReactivation(
-  payload: RemediationReactivationPayload,
-): string {
+function workflowRunIdForRemediationReactivation(payload: RemediationReactivationPayload): string {
   return ['wf', 'remediation', payload.entryId, payload.resolvedAt]
     .map((part) => part.replace(/[^a-zA-Z0-9_-]+/g, '_'))
     .join('_');
@@ -135,8 +131,14 @@ function workflowRunIdForBadcaseExportDraft(payload: BadcaseExportDraftPayload):
   return `wf_badcase_${payload.feedbackId}`;
 }
 
+function defineSharedJobContract<TTaskType extends SharedJobTaskType>(
+  contract: SharedJobContract<TTaskType>,
+): SharedJobContract<TTaskType> {
+  return contract;
+}
+
 export const sharedJobContracts = {
-  [KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE]: {
+  [KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE]: defineSharedJobContract({
     taskType: KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
     owner: (payload: KnowledgeIndexFollowUpPayload) => ({
       owner: 'knowledge-entry',
@@ -146,8 +148,7 @@ export const sharedJobContracts = {
     idempotencyKey: {
       description:
         'One follow-up per knowledge lifecycle transition and reason combination while work is pending/running.',
-      format:
-        'knowledge.index-follow-up:<entryId>:<previousState>:<nextState>:<reason>',
+      format: 'knowledge.index-follow-up:<entryId>:<previousState>:<nextState>:<reason>',
     },
     payloadDescription:
       'Lifecycle transition payload for reindexing one knowledge entry after approval, deactivation, or approved-content updates.',
@@ -164,8 +165,8 @@ export const sharedJobContracts = {
       runId: workflowRunIdForKnowledgeIndexFollowUp,
       subjectId: (payload: KnowledgeIndexFollowUpPayload) => payload.entryId,
     },
-  },
-  [REMEDIATION_REACTIVATION_TASK_TYPE]: {
+  }),
+  [REMEDIATION_REACTIVATION_TASK_TYPE]: defineSharedJobContract({
     taskType: REMEDIATION_REACTIVATION_TASK_TYPE,
     owner: (payload: RemediationReactivationPayload) => ({
       owner: 'feedback-remediation',
@@ -175,8 +176,7 @@ export const sharedJobContracts = {
     idempotencyKey: {
       description:
         'One remediation reactivation per entry and remediation completion timestamp while work is pending/running.',
-      format:
-        'feedback.remediation-reactivation:<entryId>:<resolvedAt>',
+      format: 'feedback.remediation-reactivation:<entryId>:<resolvedAt>',
     },
     payloadDescription:
       'Resolved feedback bundle that reactivates one trap or skill entry after remediation and refreshes its index state.',
@@ -193,8 +193,8 @@ export const sharedJobContracts = {
       runId: workflowRunIdForRemediationReactivation,
       subjectId: (payload: RemediationReactivationPayload) => payload.entryId,
     },
-  },
-  [SKILL_INDEX_FOLLOW_UP_TASK_TYPE]: {
+  }),
+  [SKILL_INDEX_FOLLOW_UP_TASK_TYPE]: defineSharedJobContract({
     taskType: SKILL_INDEX_FOLLOW_UP_TASK_TYPE,
     owner: (payload: SkillIndexFollowUpPayload) => ({
       owner: 'skill-artifact',
@@ -221,8 +221,8 @@ export const sharedJobContracts = {
       runId: workflowRunIdForSkillIndexFollowUp,
       subjectId: (payload: SkillIndexFollowUpPayload) => payload.artifactId,
     },
-  },
-  [BADCASE_EXPORT_DRAFT_TASK_TYPE]: {
+  }),
+  [BADCASE_EXPORT_DRAFT_TASK_TYPE]: defineSharedJobContract({
     taskType: BADCASE_EXPORT_DRAFT_TASK_TYPE,
     owner: (payload: BadcaseExportDraftPayload) => ({
       owner: 'feedback-badcase',
@@ -230,10 +230,8 @@ export const sharedJobContracts = {
       subjectType: 'feedback',
     }),
     idempotencyKey: {
-      description:
-        'One export-draft task per feedback record while work is pending/running.',
-      format:
-        'feedback.badcase-export-draft:<feedbackId>',
+      description: 'One export-draft task per feedback record while work is pending/running.',
+      format: 'feedback.badcase-export-draft:<feedbackId>',
     },
     payloadDescription:
       'Feedback-derived badcase export draft request bound to one feedback record and its originating entry/query context.',
@@ -250,15 +248,13 @@ export const sharedJobContracts = {
       runId: workflowRunIdForBadcaseExportDraft,
       subjectId: (payload: BadcaseExportDraftPayload) => payload.feedbackId,
     },
-  },
-} satisfies {
-  [TTaskType in SharedJobTaskType]: SharedJobContract<TTaskType>;
-};
+  }),
+} satisfies { [TTaskType in SharedJobTaskType]: SharedJobContract<TTaskType> };
 
 export function getSharedJobContract<TTaskType extends SharedJobTaskType>(
   taskType: TTaskType,
 ): SharedJobContract<TTaskType> {
-  return sharedJobContracts[taskType];
+  return sharedJobContracts[taskType] as unknown as SharedJobContract<TTaskType>;
 }
 
 export function getSharedJobWorkflowRunId<TTaskType extends SharedJobTaskType>(

@@ -114,6 +114,12 @@ describe('retrieval', () => {
             return snapshot.skillArtifacts;
           },
         },
+        feedback: {
+          listByFilter: async () => [],
+        },
+        conflict: {
+          listAll: async () => [],
+        },
       } as any,
     };
 

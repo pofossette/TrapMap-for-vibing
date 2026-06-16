@@ -305,6 +305,12 @@ function makeServices(overrides: Partial<SkillShareerServices> = {}): SkillShare
       artifact: {
         listByFilter: vi.fn().mockResolvedValue([]),
       },
+      feedback: {
+        listByFilter: vi.fn().mockResolvedValue([]),
+      },
+      conflict: {
+        listAll: vi.fn().mockResolvedValue([]),
+      },
     } as any,
     ...overrides,
   } as SkillShareerServices;
@@ -341,6 +347,8 @@ describe('Gap 3: Retrieval orchestrator combines multiple recall paths correctly
       repos: {
         knowledge: { listByFilter: vi.fn().mockResolvedValue([entry]) },
         artifact: { listByFilter: vi.fn().mockResolvedValue([]) },
+        feedback: { listByFilter: vi.fn().mockResolvedValue([]) },
+        conflict: { listAll: vi.fn().mockResolvedValue([]) },
       } as any,
     });
 
@@ -372,6 +380,8 @@ describe('Gap 3: Retrieval orchestrator combines multiple recall paths correctly
       repos: {
         knowledge: { listByFilter: vi.fn().mockResolvedValue([]) },
         artifact: { listByFilter: vi.fn().mockResolvedValue([]) },
+        feedback: { listByFilter: vi.fn().mockResolvedValue([]) },
+        conflict: { listAll: vi.fn().mockResolvedValue([]) },
       } as any,
     });
 
@@ -409,6 +419,8 @@ describe('Gap 3: Retrieval orchestrator combines multiple recall paths correctly
       repos: {
         knowledge: { listByFilter: vi.fn().mockResolvedValue([entry]) },
         artifact: { listByFilter: vi.fn().mockResolvedValue([]) },
+        feedback: { listByFilter: vi.fn().mockResolvedValue([]) },
+        conflict: { listAll: vi.fn().mockResolvedValue([]) },
       } as any,
     });
 
@@ -426,14 +438,11 @@ describe('Gap 3: Retrieval orchestrator combines multiple recall paths correctly
   it('error during snapshot re-throws and logs the failure', async () => {
     const testError = new Error('DB connection lost');
     const services = makeServices({
-      store: {
-        snapshot: vi.fn().mockRejectedValue(testError),
-        transact: vi.fn(),
-        nextId: vi.fn(),
-      } as unknown as SkillShareerServices['store'],
       repos: {
-        knowledge: { listByFilter: vi.fn().mockResolvedValue([]) },
+        knowledge: { listByFilter: vi.fn().mockRejectedValue(testError) },
         artifact: { listByFilter: vi.fn().mockResolvedValue([]) },
+        feedback: { listByFilter: vi.fn().mockResolvedValue([]) },
+        conflict: { listAll: vi.fn().mockResolvedValue([]) },
       } as any,
     });
 

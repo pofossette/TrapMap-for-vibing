@@ -688,9 +688,23 @@ pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent-cache.test.
 
 # 运行特定文件
 pnpm vitest run evals/retrieval/runner.test.ts
+
+# 从仓库根可靠运行单个测试文件
+pnpm test:file -- packages/server/src/lib/runtime/metrics.test.ts
 ```
 
 测试文件遵循 `*.test.ts` 命名约定，放置在对应模块目录下。
+
+#### 单文件测试注意事项
+
+根 [vitest.config.ts](/home/wunai/Disks/Data/my-project/Trap-Map/vitest.config.ts:1) 使用多 `project` 配置。直接在仓库根执行 basename 或过短路径过滤（例如 `pnpm test -- --run metrics.test.ts`）时，Vitest 会把它当作 workspace 级过滤条件，可能同时命中多个 project 中的同名文件。
+
+推荐做法：
+
+- 从仓库根运行单文件时使用 `pnpm test:file -- <repo-root-relative-test-path>`
+- 或者在包目录内运行包级脚本，例如 `pnpm --filter @trapmap/server test --run src/lib/runtime/metrics.test.ts`
+
+`test:file` 会先把文件路径映射到唯一 project，再执行 `vitest run --project <name> <project-local-path>`，避免跨 project 误命中。
 
 ### Live PG Eval Parity
 

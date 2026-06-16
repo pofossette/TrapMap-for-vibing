@@ -23,10 +23,15 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:review');
 
     const rawQuery = (request.query as Record<string, string | undefined>) ?? {};
-    const projection = await buildReviewQueueProjection(app.skillShareer.repos, {
-      auth,
-      status: rawQuery.status,
-    });
+    const projection = await buildReviewQueueProjection(
+      app.skillShareer.repos,
+      rawQuery.status !== undefined
+        ? {
+            auth,
+            status: rawQuery.status,
+          }
+        : { auth },
+    );
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
@@ -76,8 +81,8 @@ export const reviewRoutes: FastifyPluginAsync = async (app) => {
       decision: payload.decision,
       notes: payload.notes,
       appliedAt,
-      boundary: payload.boundary,
-      evidence: normalizedEvidence,
+      ...(payload.boundary !== null ? { boundary: payload.boundary } : {}),
+      ...(normalizedEvidence !== undefined ? { evidence: normalizedEvidence } : {}),
     });
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {

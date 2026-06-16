@@ -10,9 +10,9 @@ import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
 import {
   REMEDIATION_REACTIVATION_TASK_TYPE,
-  getSharedJobContract,
   type RemediationReactivationPayload,
   type SharedJobHandler,
+  getSharedJobContract,
 } from '@trapmap/server/lib/jobs/types.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 import type { Pool } from 'pg';

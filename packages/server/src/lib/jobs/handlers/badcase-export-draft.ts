@@ -6,9 +6,9 @@ import type { Pool } from 'pg';
 
 import {
   BADCASE_EXPORT_DRAFT_TASK_TYPE,
-  getSharedJobContract,
   type BadcaseExportDraftPayload,
   type SharedJobHandler,
+  getSharedJobContract,
 } from '@trapmap/server/lib/jobs/types.js';
 
 export function createBadcaseExportDraftHandler(args: {

@@ -1,11 +1,8 @@
-import type {
-  AsyncWorkerDependencyState,
-  OutboxStatusSnapshot,
-  QueueStatusSnapshot,
-} from '@trapmap/contracts';
+import type { AsyncWorkerDependencyState } from '@trapmap/contracts';
 import type { ServerConfig } from '@trapmap/server/config.js';
 import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/backend.js';
-import type { AsyncWorkerKind, RuntimeMode } from './runtime-contract.js';
+import type { OutboxStatusSnapshot } from '@trapmap/server/lib/lifecycle/outbox.js';
+import type { TaskQueueStatusSnapshot } from '@trapmap/server/lib/queue/task-queue.js';
 export { resolveAsyncWorkerState } from './runtime-ownership.js';
 
 export interface RuntimeDependencyState {
@@ -34,7 +31,7 @@ export interface RuntimeStatusSnapshot {
   uptimeSeconds: number;
   async?: {
     queue: Pick<
-      QueueStatusSnapshot,
+      TaskQueueStatusSnapshot,
       'pending' | 'running' | 'dead' | 'staleRunning' | 'reclaimCount'
     >;
     outbox: Pick<
@@ -51,7 +48,7 @@ interface BuildRuntimeStatusSnapshotOptions {
   queueWorkerState: AsyncWorkerDependencyState;
   outboxWorkerState: AsyncWorkerDependencyState;
   queueSnapshot?: Pick<
-    QueueStatusSnapshot,
+    TaskQueueStatusSnapshot,
     'pending' | 'running' | 'dead' | 'staleRunning' | 'reclaimCount'
   >;
   outboxSnapshot?: Pick<

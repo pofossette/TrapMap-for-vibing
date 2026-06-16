@@ -6,8 +6,8 @@ import { isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
 import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
-import { snapshotRuntimeWorker } from './runtime-contract.js';
 import { getOrCreateRequestContext } from './request-context.js';
+import { snapshotRuntimeWorker } from './runtime-contract.js';
 import { buildRuntimeStatusSnapshot, resolveAsyncWorkerState } from './runtime-metadata.js';
 
 async function buildRuntimeAsyncSnapshot(app: FastifyInstance) {

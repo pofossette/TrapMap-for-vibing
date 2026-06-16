@@ -6,9 +6,9 @@ import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
 import {
   SKILL_INDEX_FOLLOW_UP_TASK_TYPE,
-  getSharedJobContract,
   type SharedJobHandler,
   type SkillIndexFollowUpPayload,
+  getSharedJobContract,
 } from '@trapmap/server/lib/jobs/types.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 import type { Pool } from 'pg';

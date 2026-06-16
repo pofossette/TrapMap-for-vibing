@@ -35,9 +35,7 @@ import {
   getActiveEntryFeedback,
 } from '@trapmap/server/lib/feedback/remediation.js';
 import { scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
-import {
-  REMEDIATION_REACTIVATION_TASK_TYPE,
-} from '@trapmap/server/lib/jobs/types.js';
+import { REMEDIATION_REACTIVATION_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import { getSharedJobWorkflowRunId } from '@trapmap/server/lib/jobs/types.js';
 import { buildOperatorEntryDisplayLookup } from '@trapmap/server/lib/operations/read-model.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';

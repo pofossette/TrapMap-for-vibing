@@ -7,15 +7,15 @@ import {
 } from './invalidation.js';
 import { getCacheMetricsSnapshot } from './metrics.js';
 import {
-  getCachedRetrievalReadModel,
-  resetRetrievalReadModelCacheForTests,
-  setCachedRetrievalReadModel,
-} from './retrieval-read-model-cache.js';
-import {
   RetrievalCache,
   clearRetrievalCacheRegistry,
   getRetrievalCacheStats,
 } from './retrieval-cache.js';
+import {
+  getCachedRetrievalReadModel,
+  resetRetrievalReadModelCacheForTests,
+  setCachedRetrievalReadModel,
+} from './retrieval-read-model-cache.js';
 
 // ---------------------------------------------------------------------------
 // helpers

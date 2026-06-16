@@ -17,10 +17,9 @@ function normalizeLegacySlug(shortcut: string): string {
     .slice(0, 80);
 }
 
-export async function buildOperatorEntryDisplayLookup(repos: Pick<
-  SkillShareerRepos,
-  'artifact' | 'knowledge'
->) {
+export async function buildOperatorEntryDisplayLookup(
+  repos: Pick<SkillShareerRepos, 'artifact' | 'knowledge'>,
+) {
   const [knowledgeEntries, artifacts] = await Promise.all([
     repos.knowledge.listByFilter({}),
     repos.artifact.listByFilter({}),
@@ -154,7 +153,9 @@ export async function buildReviewQueueProjection(
   });
 
   const fullEntries = await Promise.all(
-    filteredEntries.map(async (entrySummary) => (await knowledgeRepo.getById(entrySummary.id)) ?? entrySummary),
+    filteredEntries.map(
+      async (entrySummary) => (await knowledgeRepo.getById(entrySummary.id)) ?? entrySummary,
+    ),
   );
   const lookup = await buildUserLookupContextFromRepos(repos, fullEntries);
 
@@ -305,16 +306,28 @@ export async function buildDecayEntriesProjection(
     })
     .map((entry) => toDecayAwareListItem(entry, input.now, input.config))
     .filter((item) => {
-      if (input.filters.decayStates?.length && (!item.decayState || !input.filters.decayStates.includes(item.decayState))) {
+      if (
+        input.filters.decayStates?.length &&
+        (!item.decayState || !input.filters.decayStates.includes(item.decayState))
+      ) {
         return false;
       }
-      if (input.filters.ageMinDays !== undefined && (item.ageDays === null || item.ageDays < input.filters.ageMinDays)) {
+      if (
+        input.filters.ageMinDays !== undefined &&
+        (item.ageDays === null || item.ageDays < input.filters.ageMinDays)
+      ) {
         return false;
       }
-      if (input.filters.ageMaxDays !== undefined && (item.ageDays === null || item.ageDays > input.filters.ageMaxDays)) {
+      if (
+        input.filters.ageMaxDays !== undefined &&
+        (item.ageDays === null || item.ageDays > input.filters.ageMaxDays)
+      ) {
         return false;
       }
-      if (input.filters.labels?.length && !input.filters.labels.every((label) => item.labels.includes(label))) {
+      if (
+        input.filters.labels?.length &&
+        !input.filters.labels.every((label) => item.labels.includes(label))
+      ) {
         return false;
       }
       if (input.filters.scope && item.scope !== input.filters.scope) {

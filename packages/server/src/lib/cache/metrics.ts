@@ -7,7 +7,7 @@ export {
 export type { CacheFreshnessSnapshot, CacheInvalidationEvent } from './invalidation.js';
 
 import { getCacheFreshnessSnapshot } from './invalidation.js';
-import { getRetrievalCacheStats, type CacheStats } from './retrieval-cache.js';
+import { type CacheStats, getRetrievalCacheStats } from './retrieval-cache.js';
 
 export interface CacheMetricsSnapshot extends CacheStats {
   staleRecoveries: number;

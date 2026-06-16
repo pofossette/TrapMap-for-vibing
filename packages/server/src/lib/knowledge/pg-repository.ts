@@ -13,6 +13,7 @@ import type { Boundary, LifecycleState } from '@trapmap/contracts';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
+import type { DecayMeta } from '@trapmap/contracts';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import {
   knowledgeBoundaryContexts,
@@ -28,7 +29,6 @@ import {
   lifecycleEvents,
 } from '@trapmap/server/lib/persistence/schema.js';
 import type {
-  DecayMeta,
   EmbeddingCacheRecord,
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
@@ -663,7 +663,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
           freshnessType: shadow.decayMeta?.freshnessType ?? 'evergreen',
         };
         const event: KnowledgeLifecycleEventRecord = {
-          id: this.compatStore.nextId(data, 'evt'),
+          id: this.compatStore!.nextId(data, 'evt'),
           type: 'deactivated',
           createdAt: updatedAt,
           actorUserId: input.actorId,
@@ -1045,9 +1045,7 @@ async function clearBoundarySubTables(
 ): Promise<void> {
   await client.query('DELETE FROM knowledge_boundary_contexts WHERE entry_id = $1', [entryId]);
   await client.query('DELETE FROM knowledge_boundary_versions WHERE entry_id = $1', [entryId]);
-  await client.query('DELETE FROM knowledge_boundary_prerequisites WHERE entry_id = $1', [
-    entryId,
-  ]);
+  await client.query('DELETE FROM knowledge_boundary_prerequisites WHERE entry_id = $1', [entryId]);
   await client.query('DELETE FROM knowledge_boundary_signals WHERE entry_id = $1', [entryId]);
   await client.query('DELETE FROM knowledge_boundary_exclusions WHERE entry_id = $1', [entryId]);
   await client.query('DELETE FROM knowledge_boundary_evidence WHERE entry_id = $1', [entryId]);
@@ -1078,7 +1076,11 @@ function mergeCompatEntry(
     decayMeta: shadow.decayMeta,
     evidenceMeta: shadow.evidenceMeta,
     maintenanceMeta: shadow.maintenanceMeta ?? authoritative.maintenanceMeta,
-    remediation: shadow.remediation ?? authoritative.remediation,
+    ...(shadow.remediation !== undefined
+      ? { remediation: shadow.remediation }
+      : authoritative.remediation !== undefined
+        ? { remediation: authoritative.remediation }
+        : {}),
     updatedAt: shadow.updatedAt,
   };
 }

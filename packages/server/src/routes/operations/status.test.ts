@@ -11,12 +11,12 @@ import {
   resetQueryEmbeddingCacheForTests,
   setCachedQueryEmbedding,
 } from '@trapmap/server/lib/cache/query-embedding-cache.js';
+import { clearRetrievalCacheRegistry } from '@trapmap/server/lib/cache/retrieval-cache.js';
 import {
   getCachedRetrievalReadModel,
   resetRetrievalReadModelCacheForTests,
   setCachedRetrievalReadModel,
 } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
-import { clearRetrievalCacheRegistry } from '@trapmap/server/lib/cache/retrieval-cache.js';
 import { InMemoryIntentCache } from '@trapmap/server/lib/retrieval/capsules/intent-cache.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';

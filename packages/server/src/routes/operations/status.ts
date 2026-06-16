@@ -133,7 +133,10 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
       (request.query as Record<string, unknown>) ?? {},
     );
 
-    const projection = await buildCompatibilityStatusProjection(app.skillShareer.repos, query);
+    const projection = await buildCompatibilityStatusProjection(
+      app.skillShareer.repos,
+      query.teamId !== undefined ? { teamId: query.teamId } : {},
+    );
 
     return compatibilityStatusResponseSchema.parse({
       ...projection,

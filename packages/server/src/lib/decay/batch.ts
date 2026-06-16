@@ -176,7 +176,10 @@ export function applyBatchMutation(
   entry: KnowledgeRecord,
   input: BatchOperationInput,
   appliedAt: string,
-): { previousState: KnowledgeRecord['lifecycleState']; nextState: KnowledgeRecord['lifecycleState'] } {
+): {
+  previousState: KnowledgeRecord['lifecycleState'];
+  nextState: KnowledgeRecord['lifecycleState'];
+} {
   const previousState = entry.lifecycleState;
 
   switch (input.action) {
@@ -242,7 +245,9 @@ export function applyBatchMutation(
   return { previousState, nextState: entry.lifecycleState };
 }
 
-export function indexEntriesById(entries: readonly KnowledgeRecord[]): Map<string, KnowledgeRecord> {
+export function indexEntriesById(
+  entries: readonly KnowledgeRecord[],
+): Map<string, KnowledgeRecord> {
   return new Map(entries.map((entry) => [entry.id, entry]));
 }
 

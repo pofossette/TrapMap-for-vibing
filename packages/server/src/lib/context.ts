@@ -15,10 +15,10 @@ import type { SkillShareerRepos } from './repos/index.js';
 import type { ChannelRegistry } from './retrieval/orchestration/channel-registry.js';
 import type { StrategyRegistry } from './retrieval/orchestration/strategy-registry.js';
 import type { RequestContext } from './runtime/request-context.js';
+import type { RuntimeMode, RuntimeWorkerHandle } from './runtime/runtime-contract.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
 import type { MembershipRepository, TeamRepository } from './teams/index.js';
 import type { UserRepository } from './users/index.js';
-import type { RuntimeMode, RuntimeWorkerHandle } from './runtime/runtime-contract.js';
 
 export interface SkillShareerServices {
   config: ServerConfig;
