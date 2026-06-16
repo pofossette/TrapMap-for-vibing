@@ -143,4 +143,28 @@ describe('buildRuntimeStatusSnapshot', () => {
       }),
     ).toBe('not-configured');
   });
+
+  it('treats explicit non-owner workers as remote even when a local runtime handle exists', () => {
+    expect(
+      resolveAsyncWorkerState({
+        database: 'postgres',
+        runtimeMode: 'combined',
+        workerKind: 'queue',
+        owner: false,
+        running: true,
+      }),
+    ).toBe('remote');
+  });
+
+  it('treats owning but stopped workers as degraded infrastructure state', () => {
+    expect(
+      resolveAsyncWorkerState({
+        database: 'postgres',
+        runtimeMode: 'outbox-worker',
+        workerKind: 'outbox',
+        owner: true,
+        running: false,
+      }),
+    ).toBe('degraded');
+  });
 });

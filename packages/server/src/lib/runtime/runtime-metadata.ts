@@ -3,9 +3,10 @@ import type {
   OutboxStatusSnapshot,
   QueueStatusSnapshot,
 } from '@trapmap/contracts';
-import type { RuntimeMode } from '@trapmap/server/bootstrap/runtime-mode.js';
 import type { ServerConfig } from '@trapmap/server/config.js';
 import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/backend.js';
+import type { AsyncWorkerKind, RuntimeMode } from './runtime-contract.js';
+export { resolveAsyncWorkerState } from './runtime-ownership.js';
 
 export interface RuntimeDependencyState {
   database: 'postgres' | 'json-store';
@@ -57,31 +58,6 @@ interface BuildRuntimeStatusSnapshotOptions {
     OutboxStatusSnapshot,
     'pending' | 'processing' | 'failed' | 'staleProcessing' | 'reclaimCount'
   >;
-}
-
-export type AsyncWorkerKind = 'queue' | 'outbox';
-
-export function resolveAsyncWorkerState(args: {
-  database: 'postgres' | 'json-store';
-  runtimeMode: RuntimeMode;
-  workerKind: AsyncWorkerKind;
-  owner: boolean | undefined;
-  running: boolean;
-}): AsyncWorkerDependencyState {
-  if (args.database === 'json-store') {
-    return 'not-configured';
-  }
-
-  const expectsLocalOwnership =
-    args.workerKind === 'queue'
-      ? args.runtimeMode === 'task-worker' || args.runtimeMode === 'combined'
-      : args.runtimeMode === 'outbox-worker' || args.runtimeMode === 'combined';
-
-  if (!expectsLocalOwnership || args.owner === false) {
-    return 'remote';
-  }
-
-  return args.running ? 'running' : 'degraded';
 }
 
 function resolveGraphDependencyState(

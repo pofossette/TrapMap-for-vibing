@@ -1,5 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  createCacheInvalidationEvent,
+  emitCacheInvalidation,
+  resetCacheFreshnessForTests,
+} from '@trapmap/server/lib/cache/invalidation.js';
+import {
+  getCacheMetricsSnapshot,
+  getRetrievalCacheStats,
+} from '@trapmap/server/lib/cache/metrics.js';
+import { clearRetrievalCacheRegistry } from '@trapmap/server/lib/cache/retrieval-cache.js';
 import type { ParsedIntent } from '@trapmap/server/lib/retrieval/types.js';
 
 import { InMemoryIntentCache } from './intent-cache.js';
@@ -19,6 +29,15 @@ function makeIntent(seed: string): ParsedIntent {
     parseMethod: 'regex',
   };
 }
+
+beforeEach(() => {
+  clearRetrievalCacheRegistry();
+  resetCacheFreshnessForTests();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('InMemoryIntentCache', () => {
   it('returns null on cache miss', () => {
@@ -78,5 +97,54 @@ describe('InMemoryIntentCache', () => {
 
     expect(cache.get('key1')).toBeNull();
     expect(cache.get('key2')).toBeNull();
+  });
+
+  it('tracks hit, miss, invalidation, and stale-recovery semantics', () => {
+    const cache = new InMemoryIntentCache();
+    const intent = makeIntent('docker cache');
+
+    expect(cache.get('missing')).toBeNull();
+    cache.set('docker cache', intent);
+    expect(cache.get('docker cache')).toEqual(intent);
+
+    emitCacheInvalidation(
+      createCacheInvalidationEvent({
+        sourceType: 'trap',
+        sourceId: 'knowledge-1',
+        reason: 'approved',
+        owner: 'knowledge-lifecycle-projection',
+        trigger: 'shared-job',
+      }),
+    );
+
+    expect(cache.get('docker cache')).toBeNull();
+
+    const retrievalStats = getRetrievalCacheStats();
+    expect(retrievalStats.intent).toMatchObject({
+      hits: 1,
+      misses: 2,
+      invalidations: 1,
+      size: 0,
+    });
+
+    const snapshotAfterInvalidation = getCacheMetricsSnapshot();
+    expect(snapshotAfterInvalidation.intent).toMatchObject({
+      staleRecoveries: 0,
+      pendingInvalidation: true,
+      lastInvalidatedAt: expect.any(String),
+      lastRecoveredAt: null,
+    });
+
+    cache.set('docker cache', intent);
+
+    const snapshotAfterRecovery = getCacheMetricsSnapshot();
+    expect(snapshotAfterRecovery.intent).toMatchObject({
+      staleRecoveries: 1,
+      pendingInvalidation: false,
+      lastInvalidatedAt: expect.any(String),
+      lastRecoveredAt: expect.any(String),
+    });
+
+    cache.dispose();
   });
 });

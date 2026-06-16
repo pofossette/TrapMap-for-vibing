@@ -45,7 +45,7 @@
 - [x] 让 route 只负责请求校验、鉴权、actor 解析和响应映射。
 - [x] 当 route 里已经在串多步持久化或生命周期操作时，把编排移到 application service。
 - [x] 统一命令型 service 接口，避免 route 了解内部持久化细节。
-- [ ] 不要把 runtime/bootstrap 工具引入 route 或 application 代码，除非它确实属于基础设施且是显式依赖。
+- [x] 不要把 runtime/bootstrap 工具引入 route 或 application 代码，除非它确实属于基础设施且是显式依赖。
 
 **完成标准**
 
@@ -58,7 +58,7 @@
 - [x] 把兼容存储使用收进显式 adapter、迁移 helper 或文档化例外里。
 - [x] 增补 repository 能力，而不是让 application code 因为省事就回退到 `store.snapshot()`。
 - [x] 对 operator/diagnostic 读侧，把 compatibility snapshot 限制在命名的 projection exception，而不是 route-local query assembly。
-- [ ] 把 transaction 归属保持在 authoritative write repository 和 outbox/queue 注册点附近。
+- [x] 把 transaction 归属保持在 authoritative write repository 和 outbox/queue 注册点附近。
 
 **完成标准**
 
@@ -67,10 +67,10 @@
 
 ## 工作流 C：Runtime 与 Bootstrap 解耦
 
-- [ ] 让 startup sequence、worker ownership 和 lifecycle bootstrap 保持在 runtime 模块，不进入 domain 模块。
-- [ ] 防止 domain/application 逻辑依赖进程是 `api`、`task-worker`、`outbox-worker` 还是 `combined`。
-- [ ] 把 runtime mode 视为基础设施策略，而不是业务行为。
-- [ ] 让 shared jobs 和 outbox subscriber 依赖显式合约，而不是隐式 app-wide mutable state。
+- [x] 让 startup sequence、worker ownership 和 lifecycle bootstrap 保持在 runtime 模块，不进入 domain 模块。
+- [x] 防止 domain/application 逻辑依赖进程是 `api`、`task-worker`、`outbox-worker` 还是 `combined`。
+- [x] 把 runtime mode 视为基础设施策略，而不是业务行为。
+- [x] 让 shared jobs 和 outbox subscriber 依赖显式合约，而不是隐式 app-wide mutable state。
 
 **完成标准**
 
@@ -80,9 +80,9 @@
 ## 工作流 D：检索与派生读隔离
 
 - [x] 保持 retrieval read model、cache、graph query adapter 和 operator projection 为派生消费者，并明确它们的 source input。
-- [ ] 移除那种既重建 truth 又在 route 中临时施加派生策略的混合 ownership。
+- [x] 移除那种既重建 truth 又在 route 中临时施加派生策略的混合 ownership。
 - [x] 让 badcase、remediation 和 operator inspection 流程都落在明确的派生模型上，而不是隐藏的 route-local snapshot。
-- [ ] 把 read-model freshness 和 invalidation 视为显式合约，而不是偶然行为。
+- [x] 把 read-model freshness 和 invalidation 视为显式合约，而不是偶然行为。
 
 **完成标准**
 

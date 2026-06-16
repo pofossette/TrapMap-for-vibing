@@ -237,13 +237,15 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   it('keeps readiness successful when this process does not own async workers', async () => {
     const app = buildServer({ runtimeMode: 'api' });
     await app.ready();
-    (app as any).taskWorker = {
+    app.taskWorker = {
       isRunning: () => false,
       ownsWork: () => false,
+      stop: async () => {},
     };
-    (app as any).outboxWorker = {
+    app.outboxWorker = {
       isRunning: () => false,
       ownsWork: () => false,
+      stop: async () => {},
     };
 
     const response = await app.inject({

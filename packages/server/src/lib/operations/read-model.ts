@@ -1,7 +1,10 @@
-import type { AuditEvent } from '@trapmap/contracts';
+import type { AuditEvent, DecayAwareListItem } from '@trapmap/contracts';
 
+import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
+import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
+import { toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type { KnowledgeRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 type FeedbackEntryType = 'trap' | 'skill';
 
@@ -118,6 +121,213 @@ export async function buildAuditEventProjection(
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   }));
+}
+
+export async function buildReviewQueueProjection(
+  repos: Pick<SkillShareerRepos, 'knowledge' | 'user' | 'membership'>,
+  input: {
+    auth: {
+      subjectType: 'user' | 'system-admin';
+      activeTeamId: string | null;
+      securityLevel: number;
+    };
+    status?: string;
+  },
+) {
+  const { knowledge: knowledgeRepo, user: userRepo } = repos;
+  const allEntries = await knowledgeRepo.listByFilter({});
+  const filteredEntries = allEntries.filter((entry) => {
+    if (
+      entry.teamId &&
+      input.auth.subjectType !== 'system-admin' &&
+      input.auth.activeTeamId !== entry.teamId
+    ) {
+      return false;
+    }
+    if (
+      input.auth.subjectType !== 'system-admin' &&
+      input.auth.securityLevel <= entry.requiredLevel
+    ) {
+      return false;
+    }
+    return input.status ? entry.lifecycleState === input.status : true;
+  });
+
+  const fullEntries = await Promise.all(
+    filteredEntries.map(async (entrySummary) => (await knowledgeRepo.getById(entrySummary.id)) ?? entrySummary),
+  );
+  const lookup = await buildUserLookupContextFromRepos(repos, fullEntries);
+
+  const items = (
+    await Promise.all(
+      fullEntries.map(async (entry) => {
+        const owner = await userRepo.getById(entry.ownerUserId);
+        if (!owner) {
+          return null;
+        }
+
+        const lastDecision = entry.reviewHistory.at(-1) ?? null;
+        const lastDecisionUserId = lastDecision?.decidedByUserId ?? owner.id;
+        const lastDecisionUser =
+          lastDecisionUserId === owner.id ? owner : await userRepo.getById(lastDecisionUserId);
+
+        const serializedEntry = toKnowledgeEntry(lookup, entry);
+        const latestSubmission = serializedEntry.latestSubmission;
+        return {
+          entry: serializedEntry,
+          agentReview: entry.agentReview,
+          submittedBy: latestSubmission?.submittedBy ?? serializedEntry.owner,
+          latestSubmission,
+          reviewNotes: serializedEntry.reviewNotes,
+          lastDecision: lastDecision
+            ? {
+                decidedAt: lastDecision.decidedAt,
+                decidedBy: {
+                  id: lastDecisionUserId,
+                  handle: lastDecisionUser?.handle ?? owner.handle,
+                  securityLevel: entry.requiredLevel,
+                },
+                decision: lastDecision.decision,
+                notes: lastDecision.notes,
+              }
+            : null,
+        };
+      }),
+    )
+  ).filter((item): item is NonNullable<typeof item> => item !== null);
+
+  return {
+    items,
+    total: items.length,
+  };
+}
+
+function computeAgeDays(lastVerifiedAt: string | null, now: Date): number | null {
+  if (!lastVerifiedAt) return null;
+  const verifiedAt = new Date(lastVerifiedAt);
+  const ageMs = now.getTime() - verifiedAt.getTime();
+  return ageMs / (1000 * 60 * 60 * 24);
+}
+
+function filterEntriesByPermission(
+  entries: Array<{
+    id: string;
+    teamId: string | null;
+    requiredLevel: number;
+  }>,
+  auth: {
+    subjectType: 'user' | 'system-admin';
+    activeTeamId: string | null;
+    securityLevel: number;
+  },
+): Array<{ id: string; teamId: string | null; requiredLevel: number }> {
+  return entries.filter((entry) => {
+    if (auth.subjectType === 'system-admin') return true;
+    if (auth.securityLevel > entry.requiredLevel) return false;
+    if (entry.teamId === null) return true;
+    return entry.teamId === auth.activeTeamId;
+  });
+}
+
+function toDecayAwareListItem(
+  entry: KnowledgeRecord,
+  now: Date,
+  config: Parameters<typeof computeDecayState>[1],
+): DecayAwareListItem {
+  const decayResult = entry.decayMeta
+    ? computeDecayState(
+        {
+          lastVerifiedAt: entry.decayMeta.lastVerifiedAt,
+          decayState: entry.decayMeta.decayState,
+          supersededById: entry.decayMeta.supersededById,
+        },
+        config,
+        now,
+      )
+    : null;
+
+  return {
+    id: entry.id,
+    scope: entry.scope,
+    labels: entry.labels,
+    shortcut: entry.shortcut,
+    lifecycleState: entry.lifecycleState,
+    requiredLevel: entry.requiredLevel,
+    updatedAt: entry.updatedAt,
+    decayState: decayResult?.decayState ?? null,
+    freshnessType: entry.decayMeta?.freshnessType ?? null,
+    ageDays: computeAgeDays(entry.decayMeta?.lastVerifiedAt ?? null, now),
+    lastVerifiedAt: entry.decayMeta?.lastVerifiedAt ?? null,
+    supersededById: entry.decayMeta?.supersededById ?? null,
+  };
+}
+
+export async function buildDecayEntriesProjection(
+  repos: Pick<SkillShareerRepos, 'knowledge'>,
+  input: {
+    auth: {
+      subjectType: 'user' | 'system-admin';
+      activeTeamId: string | null;
+      securityLevel: number;
+    };
+    filters: {
+      decayStates?: string[];
+      ageMinDays?: number;
+      ageMaxDays?: number;
+      labels?: string[];
+      scope?: string;
+      pattern?: string;
+      limit: number;
+    };
+    config: Parameters<typeof computeDecayState>[1];
+    now: Date;
+  },
+) {
+  const allEntries = await repos.knowledge.listByFilter({});
+  const permittedIds = new Set(
+    filterEntriesByPermission(
+      allEntries.map((entry) => ({
+        id: entry.id,
+        teamId: entry.teamId,
+        requiredLevel: entry.requiredLevel,
+      })),
+      input.auth,
+    ).map((entry) => entry.id),
+  );
+  const patternLower = input.filters.pattern?.toLowerCase() ?? '';
+
+  const items = allEntries
+    .filter((entry) => permittedIds.has(entry.id))
+    .filter((entry) => {
+      if (!input.filters.pattern) return true;
+      const searchText = `${entry.shortcut} ${entry.detail}`.toLowerCase();
+      return searchText.includes(patternLower);
+    })
+    .map((entry) => toDecayAwareListItem(entry, input.now, input.config))
+    .filter((item) => {
+      if (input.filters.decayStates?.length && (!item.decayState || !input.filters.decayStates.includes(item.decayState))) {
+        return false;
+      }
+      if (input.filters.ageMinDays !== undefined && (item.ageDays === null || item.ageDays < input.filters.ageMinDays)) {
+        return false;
+      }
+      if (input.filters.ageMaxDays !== undefined && (item.ageDays === null || item.ageDays > input.filters.ageMaxDays)) {
+        return false;
+      }
+      if (input.filters.labels?.length && !input.filters.labels.every((label) => item.labels.includes(label))) {
+        return false;
+      }
+      if (input.filters.scope && item.scope !== input.filters.scope) {
+        return false;
+      }
+      return true;
+    });
+
+  items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return {
+    items: items.slice(0, input.filters.limit),
+    total: items.length,
+  };
 }
 
 export async function listArtifactRevisionFilePayloads(

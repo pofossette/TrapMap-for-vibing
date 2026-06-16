@@ -6,6 +6,7 @@ import { isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
 import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
+import { snapshotRuntimeWorker } from './runtime-contract.js';
 import { getOrCreateRequestContext } from './request-context.js';
 import { buildRuntimeStatusSnapshot, resolveAsyncWorkerState } from './runtime-metadata.js';
 
@@ -32,8 +33,8 @@ export function registerRuntimeRoutes(
   app.get('/health', async () => {
     const graphQuery =
       app.skillShareer.graphQueryBackend?.getRuntimeState?.() ?? app.skillShareer.graphQuery;
-    const queueWorker = (app as any).taskWorker;
-    const outboxWorker = (app as any).outboxWorker;
+    const queueWorker = snapshotRuntimeWorker(app.taskWorker);
+    const outboxWorker = snapshotRuntimeWorker(app.outboxWorker);
     const store = app.skillShareer.store;
     const database =
       store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
@@ -47,15 +48,15 @@ export function registerRuntimeRoutes(
         database,
         runtimeMode,
         workerKind: 'queue',
-        owner: queueWorker?.ownsWork?.(),
-        running: queueWorker?.isRunning?.() ?? false,
+        owner: queueWorker.owner,
+        running: queueWorker.running,
       }),
       outboxWorkerState: resolveAsyncWorkerState({
         database,
         runtimeMode,
         workerKind: 'outbox',
-        owner: outboxWorker?.ownsWork?.(),
-        running: outboxWorker?.isRunning?.() ?? false,
+        owner: outboxWorker.owner,
+        running: outboxWorker.running,
       }),
       ...(queueSnapshot ? { queueSnapshot } : {}),
       ...(outboxSnapshot ? { outboxSnapshot } : {}),
@@ -68,8 +69,8 @@ export function registerRuntimeRoutes(
   });
 
   app.get('/ready', async (_request, reply) => {
-    const taskWorker = (app as any).taskWorker;
-    const outboxWorker = (app as any).outboxWorker;
+    const taskWorker = snapshotRuntimeWorker(app.taskWorker);
+    const outboxWorker = snapshotRuntimeWorker(app.outboxWorker);
     const store = app.skillShareer.store;
     const database =
       store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
@@ -85,15 +86,15 @@ export function registerRuntimeRoutes(
         database,
         runtimeMode,
         workerKind: 'queue',
-        owner: taskWorker?.ownsWork?.(),
-        running: taskWorker?.isRunning?.() ?? false,
+        owner: taskWorker.owner,
+        running: taskWorker.running,
       }),
       outboxWorkerState: resolveAsyncWorkerState({
         database,
         runtimeMode,
         workerKind: 'outbox',
-        owner: outboxWorker?.ownsWork?.(),
-        running: outboxWorker?.isRunning?.() ?? false,
+        owner: outboxWorker.owner,
+        running: outboxWorker.running,
       }),
       ...(queueSnapshot ? { queueSnapshot } : {}),
       ...(outboxSnapshot ? { outboxSnapshot } : {}),

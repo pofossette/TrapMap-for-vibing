@@ -1,16 +1,19 @@
 import {
   type CacheInvalidationEvent,
+  createCacheInvalidationEvent,
   emitCacheInvalidation,
+  recordCacheStaleRecovery,
   registerCacheInvalidationListener,
 } from '@trapmap/server/lib/cache/invalidation.js';
 import { RetrievalCache } from '@trapmap/server/lib/cache/retrieval-cache.js';
 import type { RetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 
 const READ_MODEL_CACHE_KEY = 'retrieval-read-model:global';
+const READ_MODEL_CACHE_NAMESPACE = 'retrieval-read-model';
 const readModelCache = new RetrievalCache<RetrievalReadModel>({
   maxSize: 1,
   ttlMs: 60_000,
-  namespace: 'retrieval-read-model',
+  namespace: READ_MODEL_CACHE_NAMESPACE,
 });
 
 let listenerRegistered = false;
@@ -20,6 +23,7 @@ function ensureInvalidationHook(): void {
     return;
   }
   registerCacheInvalidationListener({
+    namespaces: [READ_MODEL_CACHE_NAMESPACE],
     invalidate(_event: CacheInvalidationEvent) {
       readModelCache.clear();
     },
@@ -35,14 +39,19 @@ export function getCachedRetrievalReadModel(): RetrievalReadModel | null {
 export function setCachedRetrievalReadModel(model: RetrievalReadModel): void {
   ensureInvalidationHook();
   readModelCache.set(READ_MODEL_CACHE_KEY, model);
+  recordCacheStaleRecovery(READ_MODEL_CACHE_NAMESPACE);
 }
 
 export function invalidateRetrievalReadModel(reason: CacheInvalidationEvent['reason']): void {
-  emitCacheInvalidation({
-    sourceType: 'trap',
-    sourceId: 'global',
-    reason,
-  });
+  emitCacheInvalidation(
+    createCacheInvalidationEvent({
+      sourceType: 'trap',
+      sourceId: 'global',
+      reason,
+      owner: 'knowledge-lifecycle-projection',
+      trigger: 'operator-request',
+    }),
+  );
 }
 
 export function clearRetrievalReadModelCache(): void {

@@ -1,7 +1,6 @@
 import type { Boundary, LifecycleState, ReviewDecisionRequest } from '@trapmap/contracts';
 
 import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
-import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import {
   createCacheInvalidationEvent,
   emitCacheInvalidation,
@@ -134,22 +133,21 @@ async function applyDecision(
 
   await saveKnowledgeEntry(repos.knowledge, existingEntry);
 
-  await store.transact((data) => {
-    const auditEvent = createAuditEvent({
-      store,
-      data,
-      teamId: existingEntry.teamId,
-      actor: input.authContext,
-      action: 'knowledge-reviewed',
-      entityId: existingEntry.id,
-      payload: {
-        decision: input.decision,
-        notes: input.notes,
-        previousState,
-        ...(input.evidence !== undefined && { evidence: input.evidence }),
-      },
-    });
-    data.auditEvents.push(auditEvent);
+  const auditEventId = await repos.audit.nextId();
+  await repos.audit.insert({
+    id: auditEventId,
+    teamId: existingEntry.teamId,
+    actorId: input.authContext.actorId,
+    action: 'knowledge-reviewed',
+    entityId: existingEntry.id,
+    payload: {
+      decision: input.decision,
+      notes: input.notes,
+      previousState,
+      ...(input.evidence !== undefined && { evidence: input.evidence }),
+    },
+    createdAt: input.appliedAt,
+    updatedAt: input.appliedAt,
   });
 
   if (input.decision === 'approve') {

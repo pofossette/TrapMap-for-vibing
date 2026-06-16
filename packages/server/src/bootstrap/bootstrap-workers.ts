@@ -8,13 +8,56 @@
 import type { FastifyInstance } from 'fastify';
 
 import { createCandidateProcessingHandler } from '@trapmap/server/lib/candidates/index.js';
-import { createSharedJobHandlers } from '@trapmap/server/lib/jobs/index.js';
+import { buildSharedJobHandlersContract } from '@trapmap/server/lib/jobs/index.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { type TaskHandler, createTaskWorker } from '@trapmap/server/lib/queue/task-queue.js';
 
 export interface BootstrapWorkersOptions {
   enabled?: boolean;
   ownsWork?: boolean;
+}
+
+function buildSharedJobWorkerHandlers(app: FastifyInstance): TaskHandler<unknown>[] {
+  const store = app.skillShareer.store;
+  const contract = buildSharedJobHandlersContract({
+    knowledgeIndexFollowUp: {
+      store,
+      registry: app.skillShareer.adapterRegistry,
+      pool: store.getPool(),
+      graphQueryBackend: app.skillShareer.graphQueryBackend,
+    },
+    skillIndexFollowUp: {
+      services: {
+        store,
+        ai: app.skillShareer.ai,
+        graphQueryBackend: app.skillShareer.graphQueryBackend,
+      },
+      pool: store.getPool(),
+    },
+    remediationReactivation: {
+      services: {
+        store,
+        repos: app.skillShareer.repos,
+        adapterRegistry: app.skillShareer.adapterRegistry,
+        ai: app.skillShareer.ai,
+        graphQueryBackend: app.skillShareer.graphQueryBackend,
+      },
+      pool: store.getPool(),
+    },
+    badcaseExportDraft: {
+      services: {
+        store,
+      },
+      pool: store.getPool(),
+    },
+  });
+
+  return [
+    contract.knowledgeIndexFollowUp,
+    contract.skillIndexFollowUp,
+    contract.remediationReactivation,
+    contract.badcaseExportDraft,
+  ];
 }
 
 export async function bootstrapWorkers(
@@ -45,38 +88,7 @@ export async function bootstrapWorkers(
     pool,
     handlers: [
       handler as TaskHandler<unknown>,
-      ...createSharedJobHandlers({
-        knowledgeIndexFollowUp: {
-          store,
-          registry: app.skillShareer.adapterRegistry,
-          pool,
-          graphQueryBackend: app.skillShareer.graphQueryBackend,
-        },
-        skillIndexFollowUp: {
-          services: {
-            store,
-            ai: app.skillShareer.ai,
-            graphQueryBackend: app.skillShareer.graphQueryBackend,
-          },
-          pool,
-        },
-        remediationReactivation: {
-          services: {
-            store,
-            repos: app.skillShareer.repos,
-            adapterRegistry: app.skillShareer.adapterRegistry,
-            ai: app.skillShareer.ai,
-            graphQueryBackend: app.skillShareer.graphQueryBackend,
-          },
-          pool,
-        },
-        badcaseExportDraft: {
-          services: {
-            store,
-          },
-          pool,
-        },
-      }),
+      ...buildSharedJobWorkerHandlers(app),
     ],
     pollIntervalMs: 1000,
     concurrency: 1,

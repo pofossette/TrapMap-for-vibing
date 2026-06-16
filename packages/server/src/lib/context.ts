@@ -1,7 +1,6 @@
 import type { Permission } from '@trapmap/contracts';
 import type { FastifyRequest } from 'fastify';
 
-import type { RuntimeMode } from '@trapmap/server/bootstrap/runtime-mode.js';
 import type { ServerConfig } from '@trapmap/server/config.js';
 import type { AiProviders } from './ai/types.js';
 import type { UsageAnalyticsRepository } from './analytics/index.js';
@@ -19,6 +18,7 @@ import type { RequestContext } from './runtime/request-context.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
 import type { MembershipRepository, TeamRepository } from './teams/index.js';
 import type { UserRepository } from './users/index.js';
+import type { RuntimeMode, RuntimeWorkerHandle } from './runtime/runtime-contract.js';
 
 export interface SkillShareerServices {
   config: ServerConfig;
@@ -88,6 +88,8 @@ export interface ResolvedAuthContext {
 declare module 'fastify' {
   interface FastifyInstance {
     skillShareer: SkillShareerServices;
+    taskWorker?: RuntimeWorkerHandle;
+    outboxWorker?: RuntimeWorkerHandle;
   }
 
   interface FastifyRequest {

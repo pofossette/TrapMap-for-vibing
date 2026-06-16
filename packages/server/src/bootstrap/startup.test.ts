@@ -133,6 +133,33 @@ describe('startup sequence', () => {
     expect(registeredEvents).toContain('knowledge.re-review');
   });
 
+  it('registers the same lifecycle ownership contract for event bus and outbox processing', () => {
+    const registrations = new Map<string, number>();
+    const mockEventBus = {
+      onDomainEvent: (event: string) => {
+        registrations.set(event, (registrations.get(event) ?? 0) + 1);
+      },
+      on: () => {},
+    };
+
+    const mockApp = {
+      skillShareer: {
+        eventBus: mockEventBus,
+        store: {} as any,
+        adapterRegistry: {} as any,
+        graphQueryBackend: {} as any,
+      },
+      log: { info: () => {}, error: () => {} },
+      decorate: () => {},
+    } as any;
+
+    bootstrapLifecycle(mockApp);
+
+    expect(registrations.get('knowledge.approved')).toBe(3);
+    expect(registrations.get('knowledge.deactivated')).toBe(2);
+    expect(registrations.get('knowledge.resubmitted')).toBe(2);
+  });
+
   it('registers shared artifact adapters during startup', async () => {
     const server = buildServer();
     await server.ready();

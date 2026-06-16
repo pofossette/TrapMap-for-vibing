@@ -26,3 +26,9 @@
 | `capsule-contextual-enrichment-plan.md` | active-reference | 检索/capsule 设计上下文 |
 | `round4-cross-table-consistency-plan.md` | active-reference | package 文档引用的 artifact 结构化事实源 |
 | `v2-multi-recall-plan.md` | active-reference | 检索设计上下文 |
+
+## 后端工程化阶段总结
+
+当前后端工程化三段主线已经完成并回写到根 `plan.md`：Stage 1「基础与边界」、Stage 2「异步运行时与读写分离」、以及横切「耦合度降低」。当前仓库继续以模块化单体为前提，默认通过 `repos`、application service、shared job / outbox worker 和显式 projection seam 演进，而不是提前切向外部 MQ、拆服务或拆包。
+
+仍保留并已记录的迁移债务主要有三类：一是 Stage 1C 中 `store.transact()` 到 repo-backed transaction 的剩余迁移，当前以 `supersede` 等命名化兼容路径为主；二是 Stage 1 验证收尾中尚未完全收口的读侧债务，包括 `review-queue` 投影，以及 `decay entries/search` 投影；三是耦合度降低计划中的“暂不做”约束，继续明确排除 Kafka/RabbitMQ/NATS、过早拆服务和过早拆包，直到现有 seam、指标和运行数据证明这些动作有必要。

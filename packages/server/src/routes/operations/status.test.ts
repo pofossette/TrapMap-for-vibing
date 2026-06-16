@@ -2,10 +2,22 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { buildServer } from '@trapmap/server/app.js';
 import {
+  createCacheInvalidationEvent,
+  emitCacheInvalidation,
+  resetCacheFreshnessForTests,
+} from '@trapmap/server/lib/cache/invalidation.js';
+import {
   getCachedQueryEmbedding,
   resetQueryEmbeddingCacheForTests,
   setCachedQueryEmbedding,
 } from '@trapmap/server/lib/cache/query-embedding-cache.js';
+import {
+  getCachedRetrievalReadModel,
+  resetRetrievalReadModelCacheForTests,
+  setCachedRetrievalReadModel,
+} from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
+import { clearRetrievalCacheRegistry } from '@trapmap/server/lib/cache/retrieval-cache.js';
+import { InMemoryIntentCache } from '@trapmap/server/lib/retrieval/capsules/intent-cache.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
@@ -560,8 +572,13 @@ describe('operations routes', () => {
     let testApp: FastifyInstance;
     let testStore: SkillShareerStore;
     let sessionToken: string;
+    let intentCache: InMemoryIntentCache | null = null;
 
     beforeEach(async () => {
+      clearRetrievalCacheRegistry();
+      resetCacheFreshnessForTests();
+      resetQueryEmbeddingCacheForTests();
+      resetRetrievalReadModelCacheForTests();
       const testDataFile = `/tmp/trapmap-test-async-status-${Date.now()}-${Math.random()}.json`;
       testApp = buildServer({ config: { dataFile: testDataFile } });
       await testApp.ready();
@@ -601,6 +618,8 @@ describe('operations routes', () => {
     });
 
     afterEach(async () => {
+      intentCache?.dispose();
+      intentCache = null;
       if (testApp) {
         await testApp.close();
       }
@@ -629,6 +648,67 @@ describe('operations routes', () => {
         hitRate: expect.any(Number),
       });
       expect(json.cache['query-embedding'].hits).toBeGreaterThanOrEqual(1);
+    });
+
+    it('surfaces retrieval read-model and intent cache invalidation signals', async () => {
+      setCachedRetrievalReadModel({
+        knowledgeEntries: [],
+        skillArtifacts: [],
+        conflicts: [],
+      });
+      expect(getCachedRetrievalReadModel()).not.toBeNull();
+
+      intentCache = new InMemoryIntentCache();
+      intentCache.set('docker cache', {
+        seed: 'docker cache',
+        normalized: 'docker cache',
+        situation: null,
+        problem: null,
+        goal: null,
+        errorText: null,
+        tokens: [],
+        stackPathHints: [],
+        category: null,
+        semanticQuery: null,
+        parseMethod: 'regex',
+      });
+      expect(intentCache.get('docker cache')).not.toBeNull();
+
+      emitCacheInvalidation(
+        createCacheInvalidationEvent({
+          sourceType: 'trap',
+          sourceId: 'knowledge-2',
+          reason: 'approved',
+          owner: 'knowledge-lifecycle-projection',
+          trigger: 'operator-request',
+        }),
+      );
+
+      expect(getCachedRetrievalReadModel()).toBeNull();
+      expect(intentCache.get('docker cache')).toBeNull();
+
+      const response = await testApp.inject({
+        method: 'GET',
+        url: '/v1/operations/status/async',
+        headers: {
+          authorization: `Bearer ${sessionToken}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const json = response.json();
+      expect(json.cache['retrieval-read-model']).toMatchObject({
+        hits: expect.any(Number),
+        misses: expect.any(Number),
+        invalidations: 1,
+        size: 0,
+      });
+      expect(json.cache.intent).toMatchObject({
+        hits: expect.any(Number),
+        misses: expect.any(Number),
+        invalidations: 1,
+        size: 0,
+      });
     });
   });
 });

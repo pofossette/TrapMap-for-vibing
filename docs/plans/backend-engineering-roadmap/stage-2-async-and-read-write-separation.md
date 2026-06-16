@@ -74,7 +74,7 @@
 
 - [x] 让 cache invalidation 由 lifecycle event、job 或 projection refresh 触发，而不是 route 内部随手清缓存。
 - [x] 为 retrieval read-model cache、intent cache，以及未来的派生 cache 统一 invalidation 合约。
-- [ ] 对命中、未命中、失效和 stale-read recovery 记录相关指标。
+- [x] 对命中、未命中、失效和 stale-read recovery 记录相关指标。
 - [x] 让 invalidation 尽量局部化，不要因为缓存操作而阻塞写路径成功。
 
 **完成标准**

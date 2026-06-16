@@ -15,9 +15,51 @@ import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js'
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/metrics.js';
 
+const INDEXING_EVENT_NAMES = [
+  'knowledge.approved',
+  'knowledge.deactivated',
+  'knowledge.agent-reviewed',
+  'knowledge.rejected',
+  'knowledge.resubmitted',
+  'knowledge.re-review',
+] as const;
+
+type LifecycleEventName = (typeof INDEXING_EVENT_NAMES)[number];
+
+interface LifecycleSubscriberRegistration {
+  eventName: LifecycleEventName;
+  handlers: readonly DomainEventHandler[];
+}
+
+interface LifecycleSubscriberContract {
+  readonly registrations: readonly LifecycleSubscriberRegistration[];
+  readonly compositeHandlers: ReadonlyMap<LifecycleEventName, readonly DomainEventHandler[]>;
+}
+
 export interface BootstrapLifecycleOptions {
   startOutboxWorker?: boolean;
   ownsOutboxWork?: boolean;
+}
+
+function buildLifecycleSubscriberContract(app: FastifyInstance): LifecycleSubscriberContract {
+  const { store, adapterRegistry, graphQueryBackend } = app.skillShareer;
+  const indexingHandler = createIndexingSubscriber(store, adapterRegistry, graphQueryBackend);
+  const auditHandler = createAuditSubscriber(store, app.log);
+  const conflictHandler = createConflictSubscriber(store);
+
+  const registrations = INDEXING_EVENT_NAMES.map((eventName) => ({
+    eventName,
+    handlers: eventName === 'knowledge.approved'
+      ? [indexingHandler, auditHandler, conflictHandler]
+      : [indexingHandler, auditHandler],
+  }));
+
+  return {
+    registrations,
+    compositeHandlers: new Map(
+      registrations.map(({ eventName, handlers }) => [eventName, handlers] as const),
+    ),
+  };
 }
 
 export async function bootstrapLifecycle(
@@ -26,43 +68,13 @@ export async function bootstrapLifecycle(
 ): Promise<void> {
   const { eventBus, store, adapterRegistry } = app.skillShareer;
   const { startOutboxWorker = true, ownsOutboxWork = startOutboxWorker } = options;
+  const lifecycleContract = buildLifecycleSubscriberContract(app);
 
-  // Indexing subscriber: syncs knowledge indexes on state transitions
-  eventBus.onDomainEvent(
-    'knowledge.approved',
-    createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
-  );
-  eventBus.onDomainEvent(
-    'knowledge.deactivated',
-    createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
-  );
-  eventBus.onDomainEvent(
-    'knowledge.agent-reviewed',
-    createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
-  );
-  eventBus.onDomainEvent(
-    'knowledge.rejected',
-    createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
-  );
-  eventBus.onDomainEvent(
-    'knowledge.resubmitted',
-    createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
-  );
-  eventBus.onDomainEvent(
-    'knowledge.re-review',
-    createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
-  );
-
-  // Audit subscriber: logs lifecycle transitions
-  eventBus.onDomainEvent('knowledge.approved', createAuditSubscriber(store, app.log));
-  eventBus.onDomainEvent('knowledge.deactivated', createAuditSubscriber(store, app.log));
-  eventBus.onDomainEvent('knowledge.rejected', createAuditSubscriber(store, app.log));
-  eventBus.onDomainEvent('knowledge.agent-reviewed', createAuditSubscriber(store, app.log));
-  eventBus.onDomainEvent('knowledge.resubmitted', createAuditSubscriber(store, app.log));
-  eventBus.onDomainEvent('knowledge.re-review', createAuditSubscriber(store, app.log));
-
-  // Conflict subscriber: detects conflicts on approval
-  eventBus.onDomainEvent('knowledge.approved', createConflictSubscriber(store));
+  for (const registration of lifecycleContract.registrations) {
+    for (const handler of registration.handlers) {
+      eventBus.onDomainEvent(registration.eventName, handler);
+    }
+  }
 
   // Error handler: log subscriber failures without crashing
   eventBus.on('error', ({ event, error, handler }) => {
@@ -78,49 +90,6 @@ export async function bootstrapLifecycle(
     const pool = store.getPool();
     const outbox = createDomainEventOutbox({ pool });
 
-    const handlerMap = new Map<string, DomainEventHandler>([
-      [
-        'knowledge.approved',
-        createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
-      ],
-      [
-        'knowledge.deactivated',
-        createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
-      ],
-      [
-        'knowledge.agent-reviewed',
-        createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
-      ],
-      [
-        'knowledge.rejected',
-        createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
-      ],
-      [
-        'knowledge.resubmitted',
-        createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
-      ],
-      [
-        'knowledge.re-review',
-        createIndexingSubscriber(store, adapterRegistry, app.skillShareer.graphQueryBackend),
-      ],
-      ['knowledge.approved+audit', createAuditSubscriber(store, app.log)],
-      ['knowledge.deactivated+audit', createAuditSubscriber(store, app.log)],
-      ['knowledge.rejected+audit', createAuditSubscriber(store, app.log)],
-      ['knowledge.agent-reviewed+audit', createAuditSubscriber(store, app.log)],
-      ['knowledge.resubmitted+audit', createAuditSubscriber(store, app.log)],
-      ['knowledge.re-review+audit', createAuditSubscriber(store, app.log)],
-      ['knowledge.approved+conflict', createConflictSubscriber(store)],
-    ]);
-
-    // Build composite handler map: each event name can have multiple handlers
-    const compositeHandlers = new Map<string, DomainEventHandler[]>();
-    for (const [key, handler] of handlerMap) {
-      const eventName = key.includes('+') ? key.split('+')[0]! : key;
-      const list = compositeHandlers.get(eventName) ?? [];
-      list.push(handler);
-      compositeHandlers.set(eventName, list);
-    }
-
     const pollIntervalMs = 2000;
     let running = false;
 
@@ -130,7 +99,9 @@ export async function bootstrapLifecycle(
         try {
           const events = await outbox.claimBatch(10);
           for (const event of events) {
-            const handlers = compositeHandlers.get(event.eventName);
+            const handlers = lifecycleContract.compositeHandlers.get(
+              event.eventName as LifecycleEventName,
+            );
             if (handlers && handlers.length > 0) {
               try {
                 await Promise.all(handlers.map((h) => h(event.payload)));

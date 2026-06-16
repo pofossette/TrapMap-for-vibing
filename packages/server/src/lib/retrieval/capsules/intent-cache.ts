@@ -1,7 +1,12 @@
 import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
-import { registerCacheInvalidationListener } from '@trapmap/server/lib/cache/invalidation.js';
+import {
+  recordCacheStaleRecovery,
+  registerCacheInvalidationListener,
+} from '@trapmap/server/lib/cache/invalidation.js';
 
 import type { ParsedIntent } from '@trapmap/server/lib/retrieval/types.js';
+
+const INTENT_CACHE_NAMESPACE = 'intent';
 
 export interface IntentCacheStore {
   get(key: string): ParsedIntent | null;
@@ -17,9 +22,10 @@ export class InMemoryIntentCache implements IntentCacheStore {
     this.cache = new RetrievalCache<ParsedIntent>({
       maxSize: options?.maxSize ?? 200,
       ttlMs: options?.ttlMs ?? 30 * 60_000,
-      namespace: 'intent',
+      namespace: INTENT_CACHE_NAMESPACE,
     });
     this.unregister = registerCacheInvalidationListener({
+      namespaces: [INTENT_CACHE_NAMESPACE],
       invalidate: () => {
         this.cache.clear();
       },
@@ -32,6 +38,7 @@ export class InMemoryIntentCache implements IntentCacheStore {
 
   set(key: string, intent: ParsedIntent): void {
     this.cache.set(key, intent);
+    recordCacheStaleRecovery(INTENT_CACHE_NAMESPACE);
   }
 
   clear(): void {

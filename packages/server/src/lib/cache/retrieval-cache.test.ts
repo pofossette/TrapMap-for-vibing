@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { resetCacheFreshnessForTests } from './invalidation.js';
+import { getCacheMetricsSnapshot } from './metrics.js';
 import {
   RetrievalCache,
   clearRetrievalCacheRegistry,
@@ -12,6 +14,7 @@ import {
 
 beforeEach(() => {
   clearRetrievalCacheRegistry();
+  resetCacheFreshnessForTests();
 });
 
 afterEach(() => {
@@ -220,6 +223,26 @@ describe('getRetrievalCacheStats', () => {
     expect(agg.default).toBeDefined();
     expect(agg.default!.hits).toBe(1);
     expect(agg.default!.size).toBe(1);
+  });
+});
+
+describe('getCacheMetricsSnapshot', () => {
+  it('includes retrieval namespace stats with freshness defaults', () => {
+    const cache = new RetrievalCache<string>({ namespace: 'alpha' });
+    cache.set('k', 'v');
+    cache.get('k');
+
+    const snapshot = getCacheMetricsSnapshot();
+
+    expect(snapshot.alpha).toMatchObject({
+      hits: 1,
+      misses: 0,
+      invalidations: 0,
+      staleRecoveries: 0,
+      pendingInvalidation: false,
+      lastInvalidatedAt: null,
+      lastRecoveredAt: null,
+    });
   });
 });
 

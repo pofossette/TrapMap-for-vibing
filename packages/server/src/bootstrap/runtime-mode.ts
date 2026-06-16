@@ -1,17 +1,14 @@
-export type RuntimeMode = 'api' | 'task-worker' | 'outbox-worker' | 'combined';
-
-export interface RuntimeModeConfig {
-  mode: RuntimeMode;
-}
-
-export function shouldBootApiRuntime(mode: RuntimeMode): boolean {
-  return mode === 'api' || mode === 'combined';
-}
-
-export function shouldBootTaskWorker(mode: RuntimeMode): boolean {
-  return mode === 'task-worker' || mode === 'combined';
-}
-
-export function shouldBootOutboxWorker(mode: RuntimeMode): boolean {
-  return mode === 'outbox-worker' || mode === 'combined';
-}
+export {
+  shouldBootApiRuntime,
+  shouldBootOutboxWorker,
+  shouldBootTaskWorker,
+  shouldOwnAsyncWork,
+  snapshotRuntimeWorker,
+} from '@trapmap/server/lib/runtime/runtime-contract.js';
+export type {
+  AsyncWorkerKind,
+  RuntimeMode,
+  RuntimeModeConfig,
+  RuntimeWorkerHandle,
+  RuntimeWorkerSnapshot,
+} from '@trapmap/server/lib/runtime/runtime-contract.js';

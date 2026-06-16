@@ -19,12 +19,23 @@ import {
   getSharedJobContract,
 } from './types.js';
 
-export function createSharedJobHandlers(args: {
+export interface SharedJobHandlerDependencies {
   knowledgeIndexFollowUp: Parameters<typeof createKnowledgeIndexFollowUpHandler>[0];
   skillIndexFollowUp: Parameters<typeof createSkillIndexFollowUpHandler>[0];
   remediationReactivation: Parameters<typeof createRemediationReactivationHandler>[0];
   badcaseExportDraft: Parameters<typeof createBadcaseExportDraftHandler>[0];
-}): TaskHandler<unknown>[] {
+}
+
+export interface SharedJobHandlersContract {
+  readonly knowledgeIndexFollowUp: TaskHandler<unknown>;
+  readonly skillIndexFollowUp: TaskHandler<unknown>;
+  readonly remediationReactivation: TaskHandler<unknown>;
+  readonly badcaseExportDraft: TaskHandler<unknown>;
+}
+
+export function buildSharedJobHandlersContract(
+  args: SharedJobHandlerDependencies,
+): SharedJobHandlersContract {
   const knowledgeHandler = createKnowledgeIndexFollowUpHandler(args.knowledgeIndexFollowUp);
   const skillHandler = createSkillIndexFollowUpHandler(args.skillIndexFollowUp);
   const remediationHandler = createRemediationReactivationHandler(args.remediationReactivation);
@@ -47,5 +58,20 @@ export function createSharedJobHandlers(args: {
     }
   }
 
-  return handlers as TaskHandler<unknown>[];
+  return {
+    knowledgeIndexFollowUp: knowledgeHandler as TaskHandler<unknown>,
+    skillIndexFollowUp: skillHandler as TaskHandler<unknown>,
+    remediationReactivation: remediationHandler as TaskHandler<unknown>,
+    badcaseExportDraft: badcaseHandler as TaskHandler<unknown>,
+  };
+}
+
+export function createSharedJobHandlers(args: SharedJobHandlerDependencies): TaskHandler<unknown>[] {
+  const contract = buildSharedJobHandlersContract(args);
+  return [
+    contract.knowledgeIndexFollowUp,
+    contract.skillIndexFollowUp,
+    contract.remediationReactivation,
+    contract.badcaseExportDraft,
+  ];
 }

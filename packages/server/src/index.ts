@@ -1,7 +1,7 @@
 import { pathToFileURL } from 'node:url';
 
 import { buildServer } from './app.js';
-import type { RuntimeMode } from './bootstrap/runtime-mode.js';
+import type { RuntimeMode } from './lib/runtime/runtime-contract.js';
 
 function resolveRuntimeMode(): RuntimeMode {
   const mode = process.env.RUNTIME_MODE;
