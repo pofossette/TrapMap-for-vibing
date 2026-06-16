@@ -35,7 +35,11 @@ import {
   getActiveEntryFeedback,
 } from '@trapmap/server/lib/feedback/remediation.js';
 import { scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
-import { REMEDIATION_REACTIVATION_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
+import {
+  REMEDIATION_REACTIVATION_TASK_TYPE,
+} from '@trapmap/server/lib/jobs/types.js';
+import { getSharedJobWorkflowRunId } from '@trapmap/server/lib/jobs/types.js';
+import { buildOperatorEntryDisplayLookup } from '@trapmap/server/lib/operations/read-model.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
@@ -191,7 +195,7 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
     // Parse query parameters
     const query = feedbackListRequestSchema.parse(request.query);
 
-    const { feedback: feedbackRepo, knowledge: knowledgeRepo } = app.skillShareer.repos;
+    const { feedback: feedbackRepo } = app.skillShareer.repos;
     const now = new Date();
 
     // Filter feedback queue using repository
@@ -225,25 +229,15 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
       );
     }
 
-    // Build lookup maps for entry shortcuts using repositories
-    const knowledgeEntries = await knowledgeRepo.listByFilter({});
-    const knowledgeEntryMap = new Map(knowledgeEntries.map((e) => [e.id, e.shortcut]));
-    // skillArtifacts are read-only for shortcut lookup; keep store access for now
-    const data = await app.skillShareer.store.snapshot();
-    const skillArtifactMap = new Map(data.skillArtifacts.map((a) => [a.id, a.slug]));
+    const entryDisplayLookup = await buildOperatorEntryDisplayLookup(app.skillShareer.repos);
 
     // Build response items
     const items: FeedbackListItem[] = filtered.map((f) => {
-      const entryShortcut =
-        f.entryType === 'trap'
-          ? (knowledgeEntryMap.get(f.entryId) ?? 'unknown')
-          : (skillArtifactMap.get(f.entryId) ?? 'unknown');
-
       return {
         id: f.id,
         entryId: f.entryId,
         entryType: f.entryType,
-        entryShortcut,
+        entryShortcut: entryDisplayLookup.getEntryShortcut(f.entryId, f.entryType),
         problemType: f.problemType,
         description: f.description,
         context: f.context,
@@ -578,7 +572,16 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
       resolvedCount: unresolved.length,
       resolvedAt: appliedAt,
       ...(app.skillShareer.store instanceof PostgresStore
-        ? { asyncJobId: `wf_remediation_${entryId}` }
+        ? {
+            asyncJobId: getSharedJobWorkflowRunId(REMEDIATION_REACTIVATION_TASK_TYPE, {
+              entryId,
+              entryType,
+              feedbackIds: unresolved.map((feedback) => feedback.id),
+              resolvedAt: appliedAt,
+              resolvedByUserId: auth.user?.id ?? null,
+              notes: body.notes ?? null,
+            }),
+          }
         : {}),
     });
   });

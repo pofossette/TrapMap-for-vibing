@@ -9,13 +9,16 @@ import type { FastifyPluginAsync } from 'fastify';
 import { getSkillHistory, submitSkillEdit } from '@trapmap/server/lib/artifacts/edit.js';
 import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
-import { emitCacheInvalidation } from '@trapmap/server/lib/cache/invalidation.js';
+import {
+  createCacheInvalidationEvent,
+  emitCacheInvalidation,
+} from '@trapmap/server/lib/cache/invalidation.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   FEEDBACK_REMEDIATION_THRESHOLD,
   getActiveEntryFeedback,
 } from '@trapmap/server/lib/feedback/remediation.js';
-import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
+import { runOrScheduleSkillIndexFollowUp } from '@trapmap/server/lib/jobs/skill-index-follow-up.js';
 import { runPreReview } from '@trapmap/server/lib/pre-review.js';
 import { requirePermission, requireTeamAccess } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
@@ -142,30 +145,33 @@ export const skillEditRoutes: FastifyPluginAsync = async (app) => {
           remediationOpenedByUserId: feedback.remediationOpenedByUserId ?? editorUserId,
         });
       }
-      emitCacheInvalidation({
-        sourceType: 'skill',
-        sourceId: artifactId,
-        reason: 'remediation-suppressed',
-      });
+      emitCacheInvalidation(
+        createCacheInvalidationEvent({
+          sourceType: 'skill',
+          sourceId: artifactId,
+          reason: 'remediation-suppressed',
+          owner: 'feedback-remediation-projection',
+          trigger: 'write-through-fallback',
+        }),
+      );
     }
 
-    // Trigger skill graph indexing AFTER the transaction commits (P36-02)
-    // Delegate to shared seam: determineSkillIndexAction() decides upsert/remove/noop
     if (
       result.lifecycleTransition &&
       result.lifecycleTransition.from !== result.lifecycleTransition.to
     ) {
-      await runSkillIndexEvent({
+      await runOrScheduleSkillIndexFollowUp({
         services: {
           store: app.skillShareer.store,
-          data: await app.skillShareer.store.snapshot(),
-          ai: { chat: app.skillShareer.ai.chat },
+          ai: app.skillShareer.ai,
           graphQueryBackend: app.skillShareer.graphQueryBackend,
         },
-        artifactId,
-        previousState: result.lifecycleTransition.from,
-        nextState: result.lifecycleTransition.to,
-        reason: 'updated',
+        payload: {
+          artifactId,
+          previousState: result.lifecycleTransition.from,
+          nextState: result.lifecycleTransition.to,
+          reason: 'updated',
+        },
       });
     }
 

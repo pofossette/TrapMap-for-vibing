@@ -1,13 +1,4 @@
-/**
- * Batch mutation service for knowledge lifecycle management.
- *
- * Provides pure functions for planning and executing batch operations
- * on knowledge entries. Supports extend, mark-review, deactivate, and
- * supersede actions with dry-run mode.
- *
- * All functions are pure (except executeBatchOperation which mutates data)
- * and use injected timestamps for deterministic testing.
- */
+import { randomUUID } from 'node:crypto';
 
 import type { BatchAction, DecayConfig, DecayState } from '@trapmap/contracts';
 
@@ -19,84 +10,45 @@ import type {
   SkillShareerStore,
   StoreData,
 } from '@trapmap/server/lib/store.js';
-import { nowIso } from '@trapmap/server/lib/store.js';
 import { computeDecayState } from './state-machine.js';
 import { supersedeEntry } from './supersede.js';
 
-/**
- * Input for batch operation planning and execution.
- */
 export interface BatchOperationInput {
-  /** IDs of entries to operate on (max 100) */
   entryIds: string[];
-  /** Action to perform */
   action: BatchAction;
-  /** ID of the user performing the operation */
   actorId: string;
-  /** Days to extend (for extend action) */
   extendDays?: number;
-  /** Replacement entry ID (for supersede action) */
   replacementId?: string;
 }
 
-/**
- * Plan item for a single entry in a batch operation.
- */
 export interface BatchOperationPlanItem {
-  /** Entry ID */
   entryId: string;
-  /** Entry shortcut for display */
   shortcut: string;
-  /** Current decay state (null if entry has no decayMeta) */
   currentDecayState: DecayState | null;
-  /** Proposed decay state after the operation (null for deactivate) */
   proposedDecayState: DecayState | null;
-  /** Human-readable description of the change */
   changeDescription: string;
-  /** Whether this entry is eligible for the operation */
   eligible: boolean;
-  /** Reason for ineligibility (null if eligible) */
   ineligibilityReason: string | null;
 }
 
-/**
- * Plan a batch operation without executing it.
- *
- * Computes what would happen for each entry without mutating any data.
- * Used for dry-run mode and for validating batch requests.
- *
- * @param data - Current store data (not mutated)
- * @param input - Batch operation parameters
- * @param config - Decay configuration
- * @param now - Current timestamp
- * @returns Array of plan items for each entry
- */
 export function planBatchOperation(
-  data: StoreData,
+  entriesById: ReadonlyMap<string, KnowledgeRecord> | StoreData,
   input: BatchOperationInput,
   config: DecayConfig,
   now: Date,
 ): BatchOperationPlanItem[] {
+  const indexedEntries = isEntryMap(entriesById)
+    ? entriesById
+    : indexEntriesById(entriesById.knowledgeEntries);
   const results: BatchOperationPlanItem[] = [];
 
   for (const entryId of input.entryIds) {
-    const entry = data.knowledgeEntries.find((candidate) => candidate.id === entryId);
-
-    // Entry not found
+    const entry = indexedEntries.get(entryId);
     if (!entry) {
-      results.push({
-        entryId,
-        shortcut: '',
-        currentDecayState: null,
-        proposedDecayState: null,
-        changeDescription: '',
-        eligible: false,
-        ineligibilityReason: 'Entry not found',
-      });
+      results.push(ineligiblePlanItem(entryId, '', null, 'Entry not found'));
       continue;
     }
 
-    // Compute current decay state
     const currentDecay = entry.decayMeta
       ? computeDecayState(
           {
@@ -109,23 +61,20 @@ export function planBatchOperation(
         ).decayState
       : null;
 
-    // Check if entry is approved (required for all batch operations)
     if (entry.lifecycleState !== 'approved') {
-      results.push({
-        entryId,
-        shortcut: entry.shortcut,
-        currentDecayState: currentDecay,
-        proposedDecayState: null,
-        changeDescription: '',
-        eligible: false,
-        ineligibilityReason: 'Only approved entries can be modified',
-      });
+      results.push(
+        ineligiblePlanItem(
+          entryId,
+          entry.shortcut,
+          currentDecay,
+          'Only approved entries can be modified',
+        ),
+      );
       continue;
     }
 
-    // Process based on action type
     switch (input.action) {
-      case 'extend': {
+      case 'extend':
         results.push({
           entryId,
           shortcut: entry.shortcut,
@@ -136,9 +85,7 @@ export function planBatchOperation(
           ineligibilityReason: null,
         });
         break;
-      }
-
-      case 'mark-review': {
+      case 'mark-review':
         results.push({
           entryId,
           shortcut: entry.shortcut,
@@ -149,82 +96,63 @@ export function planBatchOperation(
           ineligibilityReason: null,
         });
         break;
-      }
-
-      case 'deactivate': {
+      case 'deactivate':
         results.push({
           entryId,
           shortcut: entry.shortcut,
           currentDecayState: currentDecay,
-          proposedDecayState: null, // No decay state change
+          proposedDecayState: null,
           changeDescription: 'Deactivate entry',
           eligible: true,
           ineligibilityReason: null,
         });
         break;
-      }
-
       case 'supersede': {
-        // Validate replacementId is provided
         if (!input.replacementId) {
-          results.push({
-            entryId,
-            shortcut: entry.shortcut,
-            currentDecayState: currentDecay,
-            proposedDecayState: null,
-            changeDescription: '',
-            eligible: false,
-            ineligibilityReason: 'replacementId required for supersede action',
-          });
+          results.push(
+            ineligiblePlanItem(
+              entryId,
+              entry.shortcut,
+              currentDecay,
+              'replacementId required for supersede action',
+            ),
+          );
           break;
         }
-
-        // Cannot supersede with itself
         if (entryId === input.replacementId) {
-          results.push({
-            entryId,
-            shortcut: entry.shortcut,
-            currentDecayState: currentDecay,
-            proposedDecayState: null,
-            changeDescription: '',
-            eligible: false,
-            ineligibilityReason: 'Cannot supersede an entry with itself',
-          });
+          results.push(
+            ineligiblePlanItem(
+              entryId,
+              entry.shortcut,
+              currentDecay,
+              'Cannot supersede an entry with itself',
+            ),
+          );
           break;
         }
-
-        // Find replacement entry
-        const replacement = data.knowledgeEntries.find(
-          (candidate) => candidate.id === input.replacementId,
-        );
-
+        const replacement = indexedEntries.get(input.replacementId);
         if (!replacement) {
-          results.push({
-            entryId,
-            shortcut: entry.shortcut,
-            currentDecayState: currentDecay,
-            proposedDecayState: null,
-            changeDescription: '',
-            eligible: false,
-            ineligibilityReason: 'Replacement entry not found',
-          });
+          results.push(
+            ineligiblePlanItem(
+              entryId,
+              entry.shortcut,
+              currentDecay,
+              'Replacement entry not found',
+            ),
+          );
           break;
         }
-
-        // Replacement must be approved
         if (replacement.lifecycleState !== 'approved') {
-          results.push({
-            entryId,
-            shortcut: entry.shortcut,
-            currentDecayState: currentDecay,
-            proposedDecayState: null,
-            changeDescription: '',
-            eligible: false,
-            ineligibilityReason: 'Replacement must be approved',
-          });
+          results.push(
+            ineligiblePlanItem(
+              entryId,
+              entry.shortcut,
+              currentDecay,
+              'Replacement must be approved',
+            ),
+          );
           break;
         }
-
         results.push({
           entryId,
           shortcut: entry.shortcut,
@@ -236,7 +164,6 @@ export function planBatchOperation(
         });
         break;
       }
-
       default:
         throw new AppError(400, 'invalid_action', `Unknown batch action: ${input.action}`);
     }
@@ -245,19 +172,80 @@ export function planBatchOperation(
   return results;
 }
 
-/**
- * Execute a batch operation, mutating entries in the store data.
- *
- * First plans the operation, then applies changes only to eligible entries.
- * Creates lifecycle events for audit trail.
- *
- * @param store - Store instance for ID generation
- * @param data - Store data to mutate
- * @param input - Batch operation parameters
- * @param config - Decay configuration
- * @param now - Current timestamp
- * @returns Array of mutated knowledge records
- */
+export function applyBatchMutation(
+  entry: KnowledgeRecord,
+  input: BatchOperationInput,
+  appliedAt: string,
+): { previousState: KnowledgeRecord['lifecycleState']; nextState: KnowledgeRecord['lifecycleState'] } {
+  const previousState = entry.lifecycleState;
+
+  switch (input.action) {
+    case 'extend':
+      entry.decayMeta = {
+        lastVerifiedAt: appliedAt,
+        decayState: 'active',
+        supersededById: entry.decayMeta?.supersededById ?? null,
+        decayStateComputedAt: appliedAt,
+        freshnessType: entry.decayMeta?.freshnessType ?? 'evergreen',
+      };
+      entry.lifecycleHistory.push(
+        createLifecycleEvent({
+          actorId: input.actorId,
+          createdAt: appliedAt,
+          note: 'Lifecycle extended',
+          state: entry.lifecycleState,
+          type: 'updated',
+        }),
+      );
+      break;
+    case 'mark-review':
+      entry.decayMeta = {
+        lastVerifiedAt: entry.decayMeta?.lastVerifiedAt ?? entry.updatedAt,
+        decayState: 'review-due',
+        supersededById: entry.decayMeta?.supersededById ?? null,
+        decayStateComputedAt: appliedAt,
+        freshnessType: entry.decayMeta?.freshnessType ?? 'evergreen',
+      };
+      entry.lifecycleHistory.push(
+        createLifecycleEvent({
+          actorId: input.actorId,
+          createdAt: appliedAt,
+          note: 'Marked for review',
+          state: entry.lifecycleState,
+          type: 'updated',
+        }),
+      );
+      break;
+    case 'deactivate':
+      transitionLifecycleState(entry, 'deactivated', 'batch deactivate');
+      entry.lifecycleHistory.push(
+        createLifecycleEvent({
+          actorId: input.actorId,
+          createdAt: appliedAt,
+          note: 'Batch deactivated',
+          state: 'deactivated',
+          type: 'deactivated',
+        }),
+      );
+      break;
+    case 'supersede':
+      throw new AppError(
+        500,
+        'supersede_requires_compat_transaction',
+        'Supersede must execute through the compatibility transaction seam',
+      );
+    default:
+      throw new AppError(400, 'invalid_action', `Unknown batch action: ${input.action}`);
+  }
+
+  entry.updatedAt = appliedAt;
+  return { previousState, nextState: entry.lifecycleState };
+}
+
+export function indexEntriesById(entries: readonly KnowledgeRecord[]): Map<string, KnowledgeRecord> {
+  return new Map(entries.map((entry) => [entry.id, entry]));
+}
+
 export function executeBatchOperation(
   store: SkillShareerStore,
   data: StoreData,
@@ -265,123 +253,81 @@ export function executeBatchOperation(
   config: DecayConfig,
   now: Date,
 ): KnowledgeRecord[] {
-  // Plan first to get eligibility
   const plan = planBatchOperation(data, input, config, now);
-
-  // Filter to eligible items only
-  const eligibleItems = plan.filter((item) => item.eligible);
-
   const mutatedRecords: KnowledgeRecord[] = [];
+  const appliedAt = batchAppliedAt(now);
 
-  for (const item of eligibleItems) {
-    const entry = data.knowledgeEntries.find((candidate) => candidate.id === item.entryId);
-    if (!entry) continue; // Should not happen since we just planned
+  for (const planItem of plan.filter((item) => item.eligible)) {
+    const entry = data.knowledgeEntries.find((candidate) => candidate.id === planItem.entryId);
+    if (!entry) {
+      continue;
+    }
 
-    switch (input.action) {
-      case 'extend': {
-        // Initialize or update decayMeta
-        const nowStr = nowIso();
-        entry.decayMeta = {
-          lastVerifiedAt: nowStr,
-          decayState: 'active' as DecayState,
-          supersededById: entry.decayMeta?.supersededById ?? null,
-          decayStateComputedAt: nowStr,
-          freshnessType: entry.decayMeta?.freshnessType ?? 'evergreen',
-        };
-
-        // Create lifecycle event
-        const event: KnowledgeLifecycleEventRecord = {
-          id: store.nextId(data, 'evt'),
-          type: 'updated',
-          createdAt: nowStr,
-          actorUserId: input.actorId,
-          submissionId: null,
-          revision: null,
-          state: entry.lifecycleState,
-          note: 'Lifecycle extended',
-        };
-        entry.lifecycleHistory.push(event);
-
-        // Update timestamp
-        entry.updatedAt = nowStr;
-        mutatedRecords.push(entry);
-        break;
+    if (input.action === 'supersede') {
+      if (!input.replacementId) {
+        continue;
       }
-
-      case 'mark-review': {
-        // Initialize or update decayMeta
-        const nowStr = nowIso();
-        entry.decayMeta = {
-          lastVerifiedAt: entry.decayMeta?.lastVerifiedAt ?? entry.updatedAt,
-          decayState: 'review-due' as DecayState,
-          supersededById: entry.decayMeta?.supersededById ?? null,
-          decayStateComputedAt: nowStr,
-          freshnessType: entry.decayMeta?.freshnessType ?? 'evergreen',
-        };
-
-        // Create lifecycle event
-        const event: KnowledgeLifecycleEventRecord = {
-          id: store.nextId(data, 'evt'),
-          type: 'updated',
-          createdAt: nowStr,
-          actorUserId: input.actorId,
-          submissionId: null,
-          revision: null,
-          state: entry.lifecycleState,
-          note: 'Marked for review',
-        };
-        entry.lifecycleHistory.push(event);
-
-        // Update timestamp
-        entry.updatedAt = nowStr;
-        mutatedRecords.push(entry);
-        break;
-      }
-
-      case 'deactivate': {
-        const nowStr = nowIso();
-
-        // Update lifecycle state
-        transitionLifecycleState(entry, 'deactivated', 'batch deactivate');
-
-        // Create lifecycle event
-        const event: KnowledgeLifecycleEventRecord = {
-          id: store.nextId(data, 'evt'),
-          type: 'deactivated',
-          createdAt: nowStr,
-          actorUserId: input.actorId,
-          submissionId: null,
-          revision: null,
-          state: 'deactivated',
-          note: 'Batch deactivated',
-        };
-        entry.lifecycleHistory.push(event);
-
-        // Update timestamp
-        entry.updatedAt = nowStr;
-        mutatedRecords.push(entry);
-        break;
-      }
-
-      case 'supersede': {
-        // Delegate to supersedeEntry
-        if (!input.replacementId) continue; // Should not happen since we validated
-
-        const supersededEntry = supersedeEntry({
+      mutatedRecords.push(
+        supersedeEntry({
           store,
           data,
-          entryId: item.entryId,
+          entryId: planItem.entryId,
           replacementId: input.replacementId,
           actorId: input.actorId,
-        });
-        mutatedRecords.push(supersededEntry);
-        break;
-      }
-
-      default:
-        throw new AppError(400, 'invalid_action', `Unknown batch action: ${input.action}`);
+        }),
+      );
+      continue;
     }
+
+    applyBatchMutation(entry, input, appliedAt);
+    mutatedRecords.push(entry);
   }
 
   return mutatedRecords;
+}
+
+function ineligiblePlanItem(
+  entryId: string,
+  shortcut: string,
+  currentDecayState: DecayState | null,
+  reason: string,
+): BatchOperationPlanItem {
+  return {
+    entryId,
+    shortcut,
+    currentDecayState,
+    proposedDecayState: null,
+    changeDescription: '',
+    eligible: false,
+    ineligibilityReason: reason,
+  };
+}
+
+function createLifecycleEvent(args: {
+  actorId: string;
+  createdAt: string;
+  note: string;
+  state: KnowledgeRecord['lifecycleState'];
+  type: KnowledgeLifecycleEventRecord['type'];
+}): KnowledgeLifecycleEventRecord {
+  return {
+    id: `evt_${randomUUID()}`,
+    type: args.type,
+    createdAt: args.createdAt,
+    actorUserId: args.actorId,
+    submissionId: null,
+    revision: null,
+    state: args.state,
+    note: args.note,
+  };
+}
+
+export function batchAppliedAt(now: Date): string {
+  return now.toISOString();
+}
+
+function isEntryMap(
+  value: ReadonlyMap<string, KnowledgeRecord> | StoreData,
+): value is ReadonlyMap<string, KnowledgeRecord> {
+  return value instanceof Map;
 }

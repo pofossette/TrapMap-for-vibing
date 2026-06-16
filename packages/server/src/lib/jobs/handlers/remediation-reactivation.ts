@@ -1,4 +1,7 @@
-import { emitCacheInvalidation } from '@trapmap/server/lib/cache/invalidation.js';
+import {
+  createCacheInvalidationEvent,
+  emitCacheInvalidation,
+} from '@trapmap/server/lib/cache/invalidation.js';
 import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
@@ -7,15 +10,12 @@ import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
 import {
   REMEDIATION_REACTIVATION_TASK_TYPE,
+  getSharedJobContract,
   type RemediationReactivationPayload,
   type SharedJobHandler,
 } from '@trapmap/server/lib/jobs/types.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 import type { Pool } from 'pg';
-
-function workflowRunIdForRemediation(entryId: string): string {
-  return `wf_remediation_${entryId}`;
-}
 
 export function createRemediationReactivationHandler(args: {
   services: Pick<
@@ -24,18 +24,19 @@ export function createRemediationReactivationHandler(args: {
   >;
   pool: Pool;
 }): SharedJobHandler<RemediationReactivationPayload> {
+  const contract = getSharedJobContract(REMEDIATION_REACTIVATION_TASK_TYPE);
   return {
     type: REMEDIATION_REACTIVATION_TASK_TYPE,
-    workflowType: 'feedback-remediation-reactivation',
+    workflowType: contract.workflow.workflowType,
     handle: async (task) => {
       const workflowRepo = createWorkflowRepository(args.pool);
-      const runId = workflowRunIdForRemediation(task.payload.entryId);
+      const runId = contract.workflow.runId(task.payload);
       const now = new Date().toISOString();
 
       await workflowRepo.upsertRun({
         runId,
-        workflowType: 'feedback-remediation-reactivation',
-        subjectId: task.payload.entryId,
+        workflowType: contract.workflow.workflowType,
+        subjectId: contract.workflow.subjectId(task.payload),
         status: 'running',
         stepName: 'reactivation',
         attempt: task.attempts,
@@ -93,11 +94,15 @@ export function createRemediationReactivationHandler(args: {
         });
       }
 
-      emitCacheInvalidation({
-        sourceType: task.payload.entryType,
-        sourceId: task.payload.entryId,
-        reason: 'remediation-reactivated',
-      });
+      emitCacheInvalidation(
+        createCacheInvalidationEvent({
+          sourceType: task.payload.entryType,
+          sourceId: task.payload.entryId,
+          reason: 'remediation-reactivated',
+          owner: 'feedback-remediation-projection',
+          trigger: 'shared-job',
+        }),
+      );
 
       await workflowRepo.updateRun(runId, {
         status: 'completed',
@@ -112,11 +117,11 @@ export function createRemediationReactivationHandler(args: {
     onDead: async (task) => {
       const workflowRepo = createWorkflowRepository(args.pool);
       await workflowRepo.upsertRun({
-        runId: workflowRunIdForRemediation(task.payload.entryId),
-        workflowType: 'feedback-remediation-reactivation',
-        subjectId: task.payload.entryId,
+        runId: contract.workflow.runId(task.payload),
+        workflowType: contract.workflow.workflowType,
+        subjectId: contract.workflow.subjectId(task.payload),
         status: 'failed',
-        stepName: 'dead-letter',
+        stepName: contract.deadLetter.stepName,
         attempt: task.attempts,
         startedAt: task.startedAt?.toISOString() ?? new Date().toISOString(),
         completedAt: new Date().toISOString(),

@@ -10,7 +10,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
+import { runOrScheduleSkillIndexFollowUp } from '@trapmap/server/lib/jobs/skill-index-follow-up.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import {
   requireHigherLevel,
@@ -214,25 +214,23 @@ export const artifactsActivateRoutes: FastifyPluginAsync = async (app) => {
       };
     });
 
-    // Trigger skill graph indexing AFTER the transaction commits (P36-02, T-36-12)
-    // Indexing must complete before response so graph state is consistent
     if (previousState && nextState && previousState !== nextState) {
       try {
-        await runSkillIndexEvent({
+        await runOrScheduleSkillIndexFollowUp({
           services: {
             store: app.skillShareer.store,
-            data: await app.skillShareer.store.snapshot(),
-            ai: { chat: app.skillShareer.ai.chat },
+            ai: app.skillShareer.ai,
             graphQueryBackend: app.skillShareer.graphQueryBackend,
           },
-          artifactId,
-          previousState,
-          nextState,
-          reason: 'deactivated',
+          payload: {
+            artifactId,
+            previousState,
+            nextState,
+            reason: 'deactivated',
+          },
         });
       } catch {
-        // Indexing failure should not block deactivation response
-        // Graph state will be reconciled on next lifecycle event
+        // Async scheduling failure should not block deactivation response.
       }
     }
 

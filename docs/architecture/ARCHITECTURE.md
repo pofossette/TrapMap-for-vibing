@@ -4,6 +4,72 @@
 
 ## 系统架构
 
+## Server Bounded Context
+
+当前 `packages/server` 以内聚职责划分为七个 bounded context：
+
+- `身份与访问`：auth、session、access key、team、membership、user
+- `知识治理`：knowledge、traps、review、decay、evidence、知识生命周期维护规则
+- `工件生命周期`：artifact 导入/导出、激活、lifecycle、profile、capsule、manifest
+- `候选摄取`：candidates、duplicates、lineage、pre-review、异步 candidate 处理
+- `检索读侧`：retrieval read model、capsule recall、graph query adapter、retrieval cache
+- `反馈与修复`：feedback、remediation、badcase 持久化、reactivation hook
+- `运维与运行时`：operator 端点、stats、migration/admin 流程、runtime/status
+
+工作规则：
+
+- route 是 transport adapter，只负责校验、鉴权、actor 解析、delegate 和响应映射。
+- application service 负责多步业务编排、生命周期变化、side effect 触发和已命名的 compatibility debt。
+- repository 是业务路径的默认持久化入口；compatibility store 不是并行一等公民。
+
+## Server Layer Ownership
+
+当前 `packages/server` 采用五层 ownership 模型，对应现有目录而不是新的部署拆分：
+
+| Layer | 当前目录/模块 | Ownership |
+|---|---|---|
+| `domain` | `packages/server/src/lib/<context>/` 中的实体、规则、仓库接口、policy | 表达 bounded context 语义、不变量、状态转移和聚合边界 |
+| `application` | `packages/server/src/lib/<context>/application-*.ts`、命名 service/processor | 编排命令式业务用例，协调 `repos.*`、lifecycle、权限前提和受控 side effect |
+| `infrastructure` | `packages/server/src/lib/persistence/`、`repos/`、`queue/`、`runtime/`、`ai/`、`lifecycle/`、`bootstrap/` | 持久化、队列、AI/provider、runtime metadata、startup/bootstrap、worker wiring |
+| `interfaces/http` | `packages/server/src/routes/` | Fastify transport adapter：请求解析、鉴权、delegate、响应映射 |
+| `interfaces/worker` | `packages/server/src/worker.ts`、worker/bootstrap 模块 | 异步任务消费与重试边界，把任务载荷翻译成 application/infrastructure 调用 |
+
+层间约束：
+
+- runtime/bootstrap responsibility 留在 `infrastructure`，不进入 `domain` 或 `application`。
+- `interfaces/http` 和 `interfaces/worker` 都不定义业务规则，只适配 transport/runtime 触发。
+- read-model assembly 留在 `检索读侧` 或其他明确的读侧模块；写侧 application service 默认不拼装 retrieval/runtime projection，除非文档显式声明这种耦合是刻意的。
+
+## 重上下文的具体落点
+
+### 知识治理
+
+- `domain` / `application`：`knowledge`、`traps`、`review`、`decay` 的命令语义、生命周期规则、共享 application service。
+- `infrastructure`：knowledge repository、索引 side effect、lifecycle subscriber、兼容层适配。
+- `interfaces/http`：知识、trap、review、decay 路由只做 transport delegate。
+- 约束：检索 read-model 和 response assembly 不回流到知识写服务内部。
+
+### 候选摄取
+
+- `domain` / `application`：candidate submission、duplicate detection、resolution、pre-review、processing policy。
+- `infrastructure`：queue、candidate recovery、startup re-enqueue、worker supervision、PG/JSON persistence 细节。
+- `interfaces/worker`：消费 candidate task 并调用既有 application/infrastructure 能力。
+- 约束：中断恢复和重入队属于 bootstrap/runtime，不属于 candidate domain 本身。
+
+### 反馈与修复
+
+- `domain` / `application`：feedback、remediation、badcase/reactivation 相关命令和状态变化。
+- `infrastructure`：badcase 持久化、subscriber/hook wiring、异步执行、operator-facing persistence adapter。
+- `interfaces/http` / `interfaces/worker`：只暴露命令入口或执行异步载荷。
+- 约束：修复动作的运行时触发方式不能替代领域规则定义。
+
+### 运维与运行时
+
+- `domain` / `application`：仅保留被明确命名的 operator use case。
+- `infrastructure`：`/health`、`/ready`、runtime snapshot、migration/admin flow、startup sequence、worker lifecycle。
+- `interfaces/http`：operations/status/admin 路由仅暴露这些能力。
+- 约束：进程状态、bootstrap 顺序、依赖健康判定属于基础设施 ownership，而不是业务服务。
+
 ## 持久化演进边界
 
 Round 0 已对数据库现代化方案完成基线冻结，后续架构演进遵守以下约定：
@@ -33,11 +99,18 @@ Round 0 已对数据库现代化方案完成基线冻结，后续架构演进遵
 
 关键约束：Repos 必须先于 Candidate Recovery 和 Workers 初始化，因为两者依赖 `repos.candidate`。
 
+启动序列是基础设施责任，不属于任何 bounded context 的 domain/application service。领域模块可以声明它需要的 repository、event、queue contract，但不能拥有进程启动顺序、worker 存活或 readiness 判定。
+
 运行时状态约束：
 
 - `packages/server/src/lib/runtime/request-context.ts` 负责为每个请求建立统一 `requestId` / trace header 上下文
 - `packages/server/src/lib/runtime/runtime-metadata.ts` 负责构建 `/health` 与 `/ready` 共用的 runtime snapshot
-- JSON store 模式下 `queueWorker` 会显示为 `not-configured`，这不是异常；PostgreSQL 模式下 worker 停止才应视为 `not-ready`
+- JSON store 模式下 `queueWorker` / `outboxWorker` 会显示为 `not-configured`，这不是异常
+- PostgreSQL 模式下：
+  - 当前进程拥有本地 consumer 且正在运行：`running`
+  - 当前进程不拥有该类 work，由其他实例承接：`remote`
+  - 当前进程应拥有该类 work 但本地 worker 未运行：`degraded`
+- API-only 进程在 PostgreSQL 部署下可对 worker dependency 报告 `remote`，不应因此被判为不健康
 - 当 graph backend 进入 fail-open fallback 时，实例 runtime `readiness` 应为 `degraded` 而非 `not-ready`
 - 当前 Phase 1 runtime snapshot 只对已观测的运行时依赖给出判断，明确覆盖 graph query backend 与 candidate task worker；更广义的后台依赖健康会在后续 runtime foundations 阶段继续扩展
 

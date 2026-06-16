@@ -133,7 +133,7 @@ export async function searchKnowledge(
 
     const readModel = await timedStep(
       'snapshot',
-      () => buildRetrievalReadModel(services.repos, services.store),
+      () => buildRetrievalReadModel(services.repos),
       steps,
       {
         outputSize: (d) =>
@@ -396,7 +396,7 @@ export async function searchKnowledgeV2(
 
     const readModel = await timedStep(
       'snapshot',
-      () => buildRetrievalReadModel(services.repos, services.store),
+      () => buildRetrievalReadModel(services.repos),
       steps,
       {
         outputSize: (d) =>

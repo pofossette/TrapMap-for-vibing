@@ -13,7 +13,9 @@ const SERVER_SRC = resolve(process.cwd(), 'packages/server/src');
  * - Bootstrap files: startup wiring and recovery
  * - Lifecycle subscribers: event-driven side effects on store changes
  * - Candidate processing: pipeline that mutates store during candidate lifecycle
- * - Operations/admin routes: diagnostic and migration HTTP tools
+ * - Diagnostic/admin mutations: controlled operator writes and migration HTTP tools
+ * - Projection exceptions: explicit read-side helpers that still need compatibility snapshot input
+ * - Named compatibility debt: audit / supersede seams that still require store access
  * - Supersede workflow: knowledge/application-service.ts (tracked for future migration)
  *
  * Core business routes (auth, knowledge, traps, retrieval, members, teams)
@@ -55,8 +57,10 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   'lib/candidates/services/submission-service.ts',
   'lib/candidates/services/resolution-service.ts',
 
-  // Knowledge application service (supersede workflow, tracked for migration)
+  // Knowledge/decay application services (named compatibility debt, tracked for migration)
   'lib/knowledge/application-service.ts',
+  'lib/knowledge/review-application-service.ts',
+  'lib/decay/application-service.ts',
 
   // Retrieval read-model (parallel read, tracked for migration)
   'lib/retrieval/read-model.ts',
@@ -68,7 +72,9 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   'lib/indexing/reconcile.ts',
   'lib/indexing/adapters/graph.ts',
   'lib/jobs/handlers/knowledge-index-follow-up.ts',
+  'lib/jobs/handlers/skill-index-follow-up.ts',
   'lib/jobs/handlers/remediation-reactivation.ts',
+  'lib/jobs/skill-index-follow-up.ts',
 
   // Conflict detection
   'lib/conflict/detect.ts',
@@ -76,22 +82,16 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   // Session fallback
   'lib/session.ts',
 
-  // Operations/admin routes — diagnostic and migration tools
-  'routes/operations/status.ts',
+  // Diagnostic/admin mutations — controlled operator writes and migration tools
   'routes/operations/artifacts-export.ts',
   'routes/operations/artifacts-activate.ts',
   'routes/operations/artifacts-import.ts',
   'routes/operations/migrate.ts',
   'routes/operations/skill-edit.ts',
   'routes/operations/skill-review.ts',
-  'routes/operations/audit.ts',
   'routes/operations/knowledge-legacy.ts',
-
-  // Admin/diagnostic routes
-  'routes/decay.ts',
   'routes/feedback-admin.ts',
   'routes/admin-benchmark.ts',
-  'routes/review.ts',
   'routes/knowledge.ts',
   'routes/teams.ts',
   'routes/admin-boundary-search.ts',
@@ -99,6 +99,9 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   'routes/access-keys.ts',
   'routes/evidence.ts',
   'routes/members.ts',
+
+  // Projection exceptions — explicit read-side helpers with named repo capability gaps
+  'lib/operations/read-model.ts',
 ];
 
 function findAllTsFiles(dir: string): string[] {

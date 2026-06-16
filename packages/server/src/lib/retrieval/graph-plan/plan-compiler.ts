@@ -77,7 +77,7 @@ export async function compileTrapFirstPlan(
   });
 
   // 2. Load store snapshot
-  const readModel = await buildRetrievalReadModel(services.repos, services.store);
+  const readModel = await buildRetrievalReadModel(services.repos);
 
   // 3. Get governed trap candidates (from knowledgeEntries)
   const trapCandidates = filterEligibleEntries(readModel.knowledgeEntries, auth, {

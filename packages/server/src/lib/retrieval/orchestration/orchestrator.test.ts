@@ -432,6 +432,12 @@ function createMockServices(overrides: Partial<SkillShareerServices> = {}): Skil
       artifact: {
         listByFilter: vi.fn().mockResolvedValue([]),
       },
+      feedback: {
+        listByFilter: vi.fn().mockResolvedValue([]),
+      },
+      conflict: {
+        listAll: vi.fn().mockResolvedValue([]),
+      },
     } as any,
     adapterRegistry: {} as any,
     channelRegistry: {} as any,
@@ -606,13 +612,15 @@ describe('searchKnowledge', () => {
 
   describe('error handling', () => {
     it('logs failed retrieval and re-throws errors', async () => {
-      const testError = new Error('Store snapshot failed');
+      const testError = new Error('Feedback repository failed');
       const services = createMockServices();
-      vi.mocked(services.store.snapshot).mockRejectedValue(testError);
+      vi.mocked(services.repos.feedback.listByFilter).mockRejectedValue(testError);
       const auth = createMockAuth();
       const query = { seed: 'test query', mode: 'semantic' as const };
 
-      await expect(searchKnowledge(services, auth, query)).rejects.toThrow('Store snapshot failed');
+      await expect(searchKnowledge(services, auth, query)).rejects.toThrow(
+        'Feedback repository failed',
+      );
 
       // Should log the failed retrieval attempt
       expect(logRagRetrieval).toHaveBeenCalled();
@@ -629,8 +637,8 @@ describe('searchKnowledge', () => {
       const _query = { seed: '', mode: 'semantic' as const };
 
       // seed: '' fails zod .min(1) validation
-      // But searchKnowledge catches error before parsing, so let's make the store fail
-      vi.mocked(services.store.snapshot).mockRejectedValue(testError);
+      // Trigger a repository-backed read-model failure after query parse succeeds.
+      vi.mocked(services.repos.feedback.listByFilter).mockRejectedValue(testError);
       const queryValid = { seed: 'test query', mode: 'semantic' as const };
 
       await expect(searchKnowledge(services, auth, queryValid)).rejects.toThrow(
@@ -824,6 +832,12 @@ describe('searchKnowledge with real store data', () => {
         },
         artifact: {
           listByFilter: vi.fn().mockResolvedValue([]),
+        },
+        feedback: {
+          listByFilter: vi.fn().mockResolvedValue([]),
+        },
+        conflict: {
+          listAll: vi.fn().mockResolvedValue([]),
         },
       } as any,
     });

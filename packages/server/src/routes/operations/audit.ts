@@ -1,7 +1,7 @@
 import { auditListResponseSchema, auditQuerySchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { toAuditEvent } from '@trapmap/server/lib/audit.js';
+import { buildAuditEventProjection } from '@trapmap/server/lib/operations/read-model.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
@@ -24,9 +24,7 @@ export const auditRoutes: FastifyPluginAsync = async (app) => {
       limit: query.limit,
     });
 
-    // Still need store.snapshot() for toAuditEvent() user handle resolution
-    const data = await app.skillShareer.store.snapshot();
-    const items = result.items.map((record) => toAuditEvent(record, data));
+    const items = await buildAuditEventProjection(app.skillShareer.repos, result.items);
 
     return auditListResponseSchema.parse({
       items,

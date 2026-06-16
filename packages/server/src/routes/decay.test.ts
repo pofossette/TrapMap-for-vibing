@@ -698,8 +698,14 @@ describe('decay routes', () => {
   describe('outbox vs direct sync emission convergence (Phase 4)', () => {
     it('uses emitLifecycleTransition helper instead of direct eventBus', () => {
       const source = readFileSync(path.join(__dirname, 'decay.ts'), 'utf8');
-      // decay.ts now delegates to emitLifecycleTransition for PG/JSON routing.
-      expect(source).toContain('emitLifecycleTransition');
+      const serviceSource = readFileSync(
+        path.join(__dirname, '..', 'lib', 'decay', 'application-service.ts'),
+        'utf8',
+      );
+      // decay route now delegates batch orchestration to the application service,
+      // which owns lifecycle transition emission.
+      expect(source).toContain('createDecayBatchApplicationService');
+      expect(serviceSource).toContain('emitLifecycleTransition');
       expect(source).not.toContain('emitDomainEventAsync');
       expect(source).not.toContain('outbox.enqueue');
     });

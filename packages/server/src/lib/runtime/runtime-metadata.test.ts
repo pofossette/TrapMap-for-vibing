@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ServerConfig } from '@trapmap/server/config.js';
-import { buildRuntimeStatusSnapshot } from './runtime-metadata.js';
+import { buildRuntimeStatusSnapshot, resolveAsyncWorkerState } from './runtime-metadata.js';
 
 const baseConfig = {
   runtime: {
@@ -120,5 +120,27 @@ describe('buildRuntimeStatusSnapshot', () => {
     expect(snapshot.readiness).toBe('ready');
     expect(snapshot.dependencies.queueWorker).toBe('remote');
     expect(snapshot.dependencies.outboxWorker).toBe('remote');
+  });
+
+  it('distinguishes remote ownership from not-configured based on runtime mode and database', () => {
+    expect(
+      resolveAsyncWorkerState({
+        database: 'postgres',
+        runtimeMode: 'api',
+        workerKind: 'queue',
+        owner: false,
+        running: false,
+      }),
+    ).toBe('remote');
+
+    expect(
+      resolveAsyncWorkerState({
+        database: 'json-store',
+        runtimeMode: 'api',
+        workerKind: 'queue',
+        owner: false,
+        running: false,
+      }),
+    ).toBe('not-configured');
   });
 });

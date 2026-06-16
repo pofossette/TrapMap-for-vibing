@@ -7,8 +7,10 @@ import {
 import type { FastifyPluginAsync } from 'fastify';
 
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
+import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
+import { listArtifactRevisionFilePayloads } from '@trapmap/server/lib/operations/read-model.js';
 import { requirePermission, requireTeamAccess } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -41,9 +43,8 @@ export const artifactsExportRoutes: FastifyPluginAsync = async (app) => {
       entries = entries.filter((entry) => auth.securityLevel >= entry.requiredLevel);
     }
 
-    // toKnowledgeEntry needs StoreData for user handle resolution
-    const data = await app.skillShareer.store.snapshot();
-    const items = entries.map((entry) => toKnowledgeEntry(data, entry));
+    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, entries);
+    const items = entries.map((entry) => toKnowledgeEntry(lookup, entry));
 
     const actorRef = {
       id: auth.actorId,
@@ -101,9 +102,6 @@ export const artifactsExportRoutes: FastifyPluginAsync = async (app) => {
     if (!artifact) {
       throw new AppError(404, 'artifact_not_found', `Artifact ${artifactId} not found`);
     }
-
-    // Still need store.snapshot() for artifactFilePayloads and toSkillArtifact() user handle resolution
-    const data = await app.skillShareer.store.snapshot();
 
     // Check team access
     if (artifact.teamId !== null) {
@@ -178,10 +176,11 @@ export const artifactsExportRoutes: FastifyPluginAsync = async (app) => {
     }
     // bundle-json or skill-dir: return canonical bundle
     // Reconstruct bundle from stored artifact and file payloads
-    const filePayloads =
-      data.artifactFilePayloads?.filter(
-        (p) => p.artifactId === artifactId && p.revision === artifact.latestRevision.revision,
-      ) ?? [];
+    const filePayloads = await listArtifactRevisionFilePayloads(
+      app.skillShareer.store,
+      artifactId,
+      artifact.latestRevision.revision,
+    );
 
     const bundle = {
       scope: artifact.scope,

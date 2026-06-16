@@ -6,31 +6,29 @@ import type { Pool } from 'pg';
 
 import {
   BADCASE_EXPORT_DRAFT_TASK_TYPE,
+  getSharedJobContract,
   type BadcaseExportDraftPayload,
   type SharedJobHandler,
 } from '@trapmap/server/lib/jobs/types.js';
-
-function workflowRunIdForBadcase(feedbackId: string): string {
-  return `wf_badcase_${feedbackId}`;
-}
 
 export function createBadcaseExportDraftHandler(args: {
   services: Pick<SkillShareerServices, 'store'>;
   pool: Pool;
 }): SharedJobHandler<BadcaseExportDraftPayload> {
+  const contract = getSharedJobContract(BADCASE_EXPORT_DRAFT_TASK_TYPE);
   return {
     type: BADCASE_EXPORT_DRAFT_TASK_TYPE,
-    workflowType: 'badcase-export-draft',
+    workflowType: contract.workflow.workflowType,
     handle: async (task) => {
       const startedAt = Date.now();
       const workflowRepo = createWorkflowRepository(args.pool);
-      const runId = workflowRunIdForBadcase(task.payload.feedbackId);
+      const runId = contract.workflow.runId(task.payload);
       const now = new Date().toISOString();
 
       await workflowRepo.upsertRun({
         runId,
-        workflowType: 'badcase-export-draft',
-        subjectId: task.payload.feedbackId,
+        workflowType: contract.workflow.workflowType,
+        subjectId: contract.workflow.subjectId(task.payload),
         status: 'running',
         stepName: 'draft-export',
         attempt: task.attempts,
@@ -73,11 +71,11 @@ export function createBadcaseExportDraftHandler(args: {
     onDead: async (task) => {
       const workflowRepo = createWorkflowRepository(args.pool);
       await workflowRepo.upsertRun({
-        runId: workflowRunIdForBadcase(task.payload.feedbackId),
-        workflowType: 'badcase-export-draft',
-        subjectId: task.payload.feedbackId,
+        runId: contract.workflow.runId(task.payload),
+        workflowType: contract.workflow.workflowType,
+        subjectId: contract.workflow.subjectId(task.payload),
         status: 'failed',
-        stepName: 'dead-letter',
+        stepName: contract.deadLetter.stepName,
         attempt: task.attempts,
         startedAt: task.startedAt?.toISOString() ?? new Date().toISOString(),
         completedAt: new Date().toISOString(),

@@ -1,32 +1,13 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 
-import {
-  shouldBootOutboxWorker,
-  shouldBootTaskWorker,
-} from '@trapmap/server/bootstrap/runtime-mode.js';
 import type { ServerConfig } from '@trapmap/server/config.js';
 import { isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
 import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import { getOrCreateRequestContext } from './request-context.js';
-import { buildRuntimeStatusSnapshot } from './runtime-metadata.js';
-
-function resolveWorkerState(
-  database: 'postgres' | 'json-store',
-  expected: boolean,
-  owner: boolean | undefined,
-  running: boolean,
-): 'running' | 'degraded' | 'remote' | 'not-configured' {
-  if (database === 'json-store' || !expected) {
-    return 'not-configured';
-  }
-  if (owner === false) {
-    return 'remote';
-  }
-  return running ? 'running' : 'degraded';
-}
+import { buildRuntimeStatusSnapshot, resolveAsyncWorkerState } from './runtime-metadata.js';
 
 async function buildRuntimeAsyncSnapshot(app: FastifyInstance) {
   const store = app.skillShareer.store;
@@ -62,18 +43,20 @@ export function registerRuntimeRoutes(
       config,
       graphQuery,
       database,
-      queueWorkerState: resolveWorkerState(
+      queueWorkerState: resolveAsyncWorkerState({
         database,
-        shouldBootTaskWorker(runtimeMode),
-        queueWorker?.ownsWork?.(),
-        queueWorker?.isRunning?.() ?? false,
-      ),
-      outboxWorkerState: resolveWorkerState(
+        runtimeMode,
+        workerKind: 'queue',
+        owner: queueWorker?.ownsWork?.(),
+        running: queueWorker?.isRunning?.() ?? false,
+      }),
+      outboxWorkerState: resolveAsyncWorkerState({
         database,
-        shouldBootOutboxWorker(runtimeMode),
-        outboxWorker?.ownsWork?.(),
-        outboxWorker?.isRunning?.() ?? false,
-      ),
+        runtimeMode,
+        workerKind: 'outbox',
+        owner: outboxWorker?.ownsWork?.(),
+        running: outboxWorker?.isRunning?.() ?? false,
+      }),
       ...(queueSnapshot ? { queueSnapshot } : {}),
       ...(outboxSnapshot ? { outboxSnapshot } : {}),
     });
@@ -98,18 +81,20 @@ export function registerRuntimeRoutes(
       config,
       graphQuery,
       database,
-      queueWorkerState: resolveWorkerState(
+      queueWorkerState: resolveAsyncWorkerState({
         database,
-        shouldBootTaskWorker(runtimeMode),
-        taskWorker?.ownsWork?.(),
-        taskWorker?.isRunning?.() ?? false,
-      ),
-      outboxWorkerState: resolveWorkerState(
+        runtimeMode,
+        workerKind: 'queue',
+        owner: taskWorker?.ownsWork?.(),
+        running: taskWorker?.isRunning?.() ?? false,
+      }),
+      outboxWorkerState: resolveAsyncWorkerState({
         database,
-        shouldBootOutboxWorker(runtimeMode),
-        outboxWorker?.ownsWork?.(),
-        outboxWorker?.isRunning?.() ?? false,
-      ),
+        runtimeMode,
+        workerKind: 'outbox',
+        owner: outboxWorker?.ownsWork?.(),
+        running: outboxWorker?.isRunning?.() ?? false,
+      }),
       ...(queueSnapshot ? { queueSnapshot } : {}),
       ...(outboxSnapshot ? { outboxSnapshot } : {}),
     });

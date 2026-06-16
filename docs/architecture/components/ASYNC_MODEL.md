@@ -178,15 +178,19 @@ flowchart TB
 ### 当前 shared jobs
 
 - `knowledge.index-follow-up`
+- `skill.index-follow-up`
 - `feedback.remediation-reactivation`
 - `feedback.badcase-export-draft`
 
 这些任务都：
 
 - 有 typed payload
+- 先在 shared contract registry 中声明 owner、幂等键、`maxAttempts`、dead-letter 语义和 workflow binding
 - 走同一 `task_queue`
 - 写入 `workflow_runs`
 - 通过 operator surface 可见
+
+详细契约见 [`ASYNC_SHARED_JOB_CONTRACTS.md`](./ASYNC_SHARED_JOB_CONTRACTS.md)。
 
 ## 5. Cache invalidation 模型
 
@@ -206,6 +210,28 @@ flowchart LR
 - `deactivated`
 - `remediation-suppressed`
 - `remediation-reactivated`
+
+### 归属与触发
+
+- `knowledge-lifecycle-projection`
+  - trigger: `outbox-subscriber` 或 `shared-job`
+  - owner scope: retrieval read-model 与 trap 可见性派生面
+- `skill-lifecycle-projection`
+  - trigger: `shared-job`
+  - owner scope: skill graph / retrieval 可见性派生面
+- `feedback-remediation-projection`
+  - trigger: `shared-job` 或 `write-through-fallback`
+  - owner scope: remediation suppression / reactivation 对 retrieval 可见性的派生面
+
+### Freshness 语义
+
+- authoritative write 成功不等于读侧投影立即可见
+- 标准语义是 `eventual-consistency`
+- 允许短暂的 “write succeeded, projection still catching up”
+- 观察入口：
+  - `workflow_runs`
+  - `GET /v1/operations/status/async`
+  - retrieval cache invalidation metrics
 
 ### 受控缓存
 
@@ -232,6 +258,7 @@ flowchart TB
 - `candidate-processing`
 - `capsule-index-rebuild`
 - `knowledge-index-follow-up`
+- `skill-index-follow-up`
 - `feedback-remediation-reactivation`
 - `badcase-export-draft`
 

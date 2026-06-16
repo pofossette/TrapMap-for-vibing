@@ -3,7 +3,10 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
-import { BADCASE_EXPORT_DRAFT_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
+import {
+  BADCASE_EXPORT_DRAFT_TASK_TYPE,
+  getSharedJobWorkflowRunId,
+} from '@trapmap/server/lib/jobs/types.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -182,7 +185,16 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
         ? { selectedResultSnapshot: feedbackRecord.selectedResultSnapshot }
         : {}),
       ...(payload.badcase ? { badcase: payload.badcase } : {}),
-      ...(payload.badcase ? { asyncJobId: `wf_badcase_${feedbackRecord.id}` } : {}),
+      ...(payload.badcase
+        ? {
+            asyncJobId: getSharedJobWorkflowRunId(BADCASE_EXPORT_DRAFT_TASK_TYPE, {
+              feedbackId: feedbackRecord.id,
+              entryId: feedbackRecord.entryId,
+              entryType: feedbackRecord.entryType,
+              queryId: feedbackRecord.queryId,
+            }),
+          }
+        : {}),
       ...(feedbackRecord.customAnswers != null
         ? { customAnswers: feedbackRecord.customAnswers }
         : {}),

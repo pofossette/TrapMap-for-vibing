@@ -116,7 +116,7 @@ export async function searchSkillsByContent(
   });
 
   // Get current data snapshot
-  const readModel = await buildRetrievalReadModel(services.repos, services.store);
+  const readModel = await buildRetrievalReadModel(services.repos);
 
   // Build governance filters from auth context (T-14-04 pattern)
   const governanceFilters = {

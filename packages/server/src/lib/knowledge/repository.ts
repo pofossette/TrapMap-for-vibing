@@ -58,6 +58,12 @@ export interface KnowledgeRepository {
   getById(entryId: string): Promise<KnowledgeRecord | null>;
 
   /**
+   * Get multiple knowledge entries by ID.
+   * Implementations should preserve the caller's requested ID order.
+   */
+  getByIds?(entryIds: string[]): Promise<KnowledgeRecord[]>;
+
+  /**
    * Update the lifecycle state of an entry.
    * Uses SELECT FOR UPDATE for row-level locking.
    * Validates transition using state machine.
@@ -109,6 +115,13 @@ export interface KnowledgeRepository {
    * Uses SELECT FOR UPDATE for row-level locking.
    */
   updateEmbeddingCache(entryId: string, cache: EmbeddingCacheRecord): Promise<void>;
+
+  /**
+   * Persist a full aggregate snapshot via the repository seam.
+   * Structured fields remain authoritative in repo-owned storage; compatibility
+   * shadow writes stay encapsulated inside repository implementations.
+   */
+  save?(entry: KnowledgeRecord): Promise<void>;
 }
 
 // Round 2: DualWriteKnowledgeRepository removed.
@@ -138,6 +151,14 @@ export class InMemoryKnowledgeRepository implements KnowledgeRepository {
   async getById(entryId: string): Promise<KnowledgeRecord | null> {
     const data = await this.store.snapshot();
     return data.knowledgeEntries.find((e) => e.id === entryId) ?? null;
+  }
+
+  async getByIds(entryIds: string[]): Promise<KnowledgeRecord[]> {
+    const data = await this.store.snapshot();
+    const entriesById = new Map(data.knowledgeEntries.map((entry) => [entry.id, entry]));
+    return entryIds
+      .map((entryId) => entriesById.get(entryId) ?? null)
+      .filter((entry): entry is KnowledgeRecord => entry !== null);
   }
 
   async updateLifecycle(
@@ -247,6 +268,17 @@ export class InMemoryKnowledgeRepository implements KnowledgeRepository {
       entry.updatedAt = new Date().toISOString();
     });
   }
+
+  async save(entry: KnowledgeRecord): Promise<void> {
+    await this.store.transact((data) => {
+      const index = data.knowledgeEntries.findIndex((candidate) => candidate.id === entry.id);
+      if (index >= 0) {
+        data.knowledgeEntries[index] = entry;
+        return;
+      }
+      data.knowledgeEntries.push(entry);
+    });
+  }
 }
 
 /**
@@ -260,9 +292,34 @@ export function createKnowledgeRepository(config: {
 }): KnowledgeRepository {
   if (config.pool) {
     // Round 2: PG-only, no JSONB shadow writes
-    return new PgKnowledgeRepository(config.pool);
+    return new PgKnowledgeRepository(config.pool, config.store);
   }
   return new InMemoryKnowledgeRepository(config.store);
+}
+
+export async function loadKnowledgeEntriesByIds(
+  repository: KnowledgeRepository,
+  entryIds: string[],
+): Promise<KnowledgeRecord[]> {
+  if (entryIds.length === 0) {
+    return [];
+  }
+  if (repository.getByIds) {
+    return repository.getByIds(entryIds);
+  }
+  const loaded = await Promise.all(entryIds.map((entryId) => repository.getById(entryId)));
+  return loaded.filter((entry): entry is KnowledgeRecord => entry !== null);
+}
+
+export async function saveKnowledgeEntry(
+  repository: KnowledgeRepository,
+  entry: KnowledgeRecord,
+): Promise<void> {
+  if (repository.save) {
+    await repository.save(entry);
+    return;
+  }
+  throw new Error('KnowledgeRepository.save() is required for this workflow');
 }
 
 // Re-export types and functions for convenience

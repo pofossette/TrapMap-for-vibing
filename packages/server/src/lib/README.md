@@ -1,19 +1,33 @@
 # Server Library Layout
 
-`packages/server/src/lib/` is organized by domain and shared infrastructure.
+`packages/server/src/lib/` is organized by bounded context plus shared infrastructure. `lib/` is not a single "service layer"; it contains the server's `domain`, `application`, and `infrastructure` ownership.
 
-## Domain Modules
+## Layer Ownership Inside `lib/`
 
-| Directory | Responsibility |
+| Layer | Typical Location | Responsibility |
+|---|---|---|
+| `domain` | `lib/<context>/` entities, repository contracts, rule helpers, lifecycle policy | Business concepts, invariants, transitions, and terms the rest of the server must honor |
+| `application` | `lib/<context>/application-*.ts`, named services/processors | Use-case orchestration for commands: actor, aggregate lookup, repo writes, lifecycle/event triggering, documented compatibility seams |
+| `infrastructure` | `lib/persistence/`, `lib/repos/`, `lib/queue/`, `lib/lifecycle/`, `lib/ai/`, `lib/runtime/`, compatibility store adapters | Concrete persistence, queue/runtime integration, AI adapters, startup-facing support code |
+
+Boundary rules:
+
+- `domain` and `application` do not own bootstrap/process lifecycle concerns.
+- Runtime readiness, worker startup, migration execution, and recovery stay in infrastructure modules.
+- Read-model assembly stays on the read side such as `retrieval/` or other projection modules; write-side application services should return write results, not silently assemble retrieval/runtime projections unless that coupling is explicitly documented.
+
+## Bounded Context Modules
+
+| Directory | Primary Ownership |
 |---|---|
-| `knowledge/` | Knowledge application service and repositories |
-| `artifacts/` | Skill artifact model, repository, reconstruction, and derived data |
-| `candidates/` | Candidate submission, duplicate detection, resolution, and processing |
-| `retrieval/` | v1/v2/v3 retrieval orchestration, recall, scoring, capsules, graph plans, and response assembly |
-| `indexing/` | Index event pipeline, adapters, graph-lite, vector, keyword, and normalization |
-| `governance/` | Permission and eligibility checks |
-| `auth/`, `users/`, `teams/` | Identity, sessions, teams, and membership repositories |
-| `feedback/`, `decay/`, `maintenance/` | Lifecycle-adjacent operator domains |
+| `knowledge/` | Knowledge/trap/review/decay write-side domain and application services |
+| `artifacts/` | Artifact lifecycle domain, repository implementations, and derived artifact support |
+| `candidates/` | Candidate ingestion domain, application services, duplicate detection, resolution, and processing policy |
+| `retrieval/` | Read-side retrieval orchestration, recall, scoring, capsules, graph plans, and response assembly |
+| `indexing/` | Derived indexing pipeline, adapters, graph-lite, vector, keyword, and normalization |
+| `governance/` | Permission and eligibility policy reused by interfaces/application flows |
+| `auth/`, `users/`, `teams/` | Identity and access domain plus repository-backed application helpers |
+| `feedback/`, `decay/`, `maintenance/` | Feedback/remediation and lifecycle-adjacent operator use cases |
 
 ## Shared Infrastructure
 
@@ -21,10 +35,20 @@
 |---|---|
 | `persistence/` | Store creation, migrations, Drizzle schema, and PostgreSQL store |
 | `repos/` | Aggregate repository boundary exposed on `app.skillShareer.repos` |
-| `queue/` | Task queue primitives |
+| `queue/` | Task queue primitives and worker-facing infrastructure |
 | `lifecycle/` | Event bus, lifecycle state machine, and subscribers |
 | `ai/` | Provider configuration, prompts, dynamic context, and cache |
+| `runtime/` | Request context, resilience policy, runtime metadata, and metrics snapshots |
 | `store/` and `store.ts` | JSON compatibility store and store record types |
+
+## Heavy-Context Placement Rules
+
+| Context | What stays in domain/application | What stays in infrastructure/read side |
+|---|---|---|
+| `knowledge` | submit/resubmit/supersede/review/decay commands, lifecycle mutations, named compatibility debt | repo implementations, indexing adapters, lifecycle subscribers, startup wiring |
+| `candidate ingestion` | submission, duplicate/review decisions, remediation commands, processing policy | queue transport, interrupted-candidate recovery, worker boot, PG/JSON storage details |
+| `feedback/remediation` | feedback command handling, badcase/remediation state changes, reactivation decisions | persistence adapters, async subscribers/hooks, worker execution, operator transport |
+| `operations/runtime` | explicitly named admin use cases only | `/health` and `/ready`, startup sequencing, runtime snapshots, migration execution, worker supervision |
 
 ## Test Placement Rule
 

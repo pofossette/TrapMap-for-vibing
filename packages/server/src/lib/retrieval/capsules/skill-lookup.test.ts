@@ -114,6 +114,12 @@ describe('skill-lookup helper', () => {
         artifact: {
           listByFilter: async () => [],
         },
+        feedback: {
+          listByFilter: async () => [],
+        },
+        conflict: {
+          listAll: async () => [],
+        },
       },
       ai: {
         embeddings: {
@@ -197,6 +203,7 @@ describe('skill-lookup helper', () => {
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
       mockServices.repos = {
+        ...mockServices.repos,
         knowledge: { listByFilter: async () => [] },
         artifact: { listByFilter: async () => artifacts },
       } as any;
@@ -277,6 +284,7 @@ describe('skill-lookup helper', () => {
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
       mockServices.repos = {
+        ...mockServices.repos,
         knowledge: { listByFilter: async () => [] },
         artifact: { listByFilter: async () => artifacts },
       } as any;
@@ -364,6 +372,7 @@ describe('skill-lookup helper', () => {
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
       mockServices.repos = {
+        ...mockServices.repos,
         knowledge: { listByFilter: async () => [] },
         artifact: { listByFilter: async () => artifacts },
       } as any;
@@ -443,6 +452,7 @@ describe('skill-lookup helper', () => {
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
       mockServices.repos = {
+        ...mockServices.repos,
         knowledge: { listByFilter: async () => [] },
         artifact: { listByFilter: async () => artifacts },
       } as any;
@@ -519,6 +529,7 @@ describe('skill-lookup helper', () => {
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
       mockServices.repos = {
+        ...mockServices.repos,
         knowledge: { listByFilter: async () => [] },
         artifact: { listByFilter: async () => artifacts },
       } as any;
@@ -580,6 +591,7 @@ describe('skill-lookup helper', () => {
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
       mockServices.repos = {
+        ...mockServices.repos,
         knowledge: { listByFilter: async () => [] },
         artifact: { listByFilter: async () => artifacts },
       } as any;
@@ -635,6 +647,7 @@ describe('skill-lookup helper', () => {
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
       mockServices.repos = {
+        ...mockServices.repos,
         knowledge: { listByFilter: async () => [] },
         artifact: { listByFilter: async () => artifacts },
       } as any;
@@ -702,6 +715,7 @@ describe('skill-lookup helper', () => {
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
       mockServices.repos = {
+        ...mockServices.repos,
         knowledge: { listByFilter: async () => [] },
         artifact: { listByFilter: async () => artifacts },
       } as any;
@@ -717,6 +731,7 @@ describe('skill-lookup helper', () => {
     it('returns empty array when no artifacts match', async () => {
       mockStore.snapshot = async () => ({ skillArtifacts: [] });
       mockServices.repos = {
+        ...mockServices.repos,
         knowledge: { listByFilter: async () => [] },
         artifact: { listByFilter: async () => [] },
       } as any;
@@ -765,6 +780,7 @@ describe('skill-lookup helper', () => {
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
       mockServices.repos = {
+        ...mockServices.repos,
         knowledge: { listByFilter: async () => [] },
         artifact: { listByFilter: async () => artifacts },
       } as any;
@@ -798,6 +814,7 @@ describe('skill-lookup helper', () => {
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
       mockServices.repos = {
+        ...mockServices.repos,
         knowledge: { listByFilter: async () => [] },
         artifact: { listByFilter: async () => artifacts },
       } as any;
@@ -830,6 +847,7 @@ describe('skill-lookup helper', () => {
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
       mockServices.repos = {
+        ...mockServices.repos,
         knowledge: { listByFilter: async () => [] },
         artifact: { listByFilter: async () => artifacts },
       } as any;
@@ -853,6 +871,7 @@ describe('skill-lookup helper', () => {
 
       mockStore.snapshot = async () => ({ skillArtifacts: artifacts });
       mockServices.repos = {
+        ...mockServices.repos,
         knowledge: { listByFilter: async () => [] },
         artifact: { listByFilter: async () => artifacts },
       } as any;

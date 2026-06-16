@@ -2,6 +2,7 @@ export type WorkflowType =
   | 'candidate-processing'
   | 'capsule-index-rebuild'
   | 'knowledge-index-follow-up'
+  | 'skill-index-follow-up'
   | 'feedback-remediation-reactivation'
   | 'badcase-export-draft';
 

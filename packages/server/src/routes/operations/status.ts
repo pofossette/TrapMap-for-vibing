@@ -8,9 +8,11 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { getRetrievalCacheStats } from '@trapmap/server/lib/cache/metrics.js';
 import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
+import { buildCompatibilityStatusProjection } from '@trapmap/server/lib/operations/read-model.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { resolveAsyncWorkerState } from '@trapmap/server/lib/runtime/runtime-metadata.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
@@ -66,26 +68,29 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
 
     const queueWorker = (app as any).taskWorker;
     const outboxWorker = (app as any).outboxWorker;
+    const runtimeMode = app.skillShareer.runtimeMode;
 
     return asyncOperationsStatusResponseSchema.parse({
       asyncRuntimeEnabled: true,
       queue: {
         ...queueSnapshot,
-        workerState:
-          queueWorker?.ownsWork?.() === false
-            ? 'remote'
-            : queueWorker?.isRunning?.()
-              ? 'running'
-              : 'degraded',
+        workerState: resolveAsyncWorkerState({
+          database: 'postgres',
+          runtimeMode,
+          workerKind: 'queue',
+          owner: queueWorker?.ownsWork?.(),
+          running: queueWorker?.isRunning?.() ?? false,
+        }),
       },
       outbox: {
         ...outboxSnapshot,
-        workerState:
-          outboxWorker?.ownsWork?.() === false
-            ? 'remote'
-            : outboxWorker?.isRunning?.()
-              ? 'running'
-              : 'degraded',
+        workerState: resolveAsyncWorkerState({
+          database: 'postgres',
+          runtimeMode,
+          workerKind: 'outbox',
+          owner: outboxWorker?.ownsWork?.(),
+          running: outboxWorker?.isRunning?.() ?? false,
+        }),
       },
       cache: getRetrievalCacheStats(),
       workflows,
@@ -128,80 +133,10 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
       (request.query as Record<string, unknown>) ?? {},
     );
 
-    // Status route legitimately needs store.snapshot() for cross-entity diagnostics:
-    // it reads both knowledgeEntries and skillArtifacts in a single snapshot to compute
-    // migration status, unmigrated counts, and coexistence flags. No single repository
-    // method provides this cross-entity view, so store.snapshot() is the correct pattern here.
-    const data = await app.skillShareer.store.snapshot();
-
-    // Ensure skillArtifacts exists
-    if (!data.skillArtifacts) {
-      data.skillArtifacts = [];
-    }
-
-    // Filter by team if specified
-    let legacyEntries = data.knowledgeEntries;
-    let artifacts = data.skillArtifacts;
-
-    if (query.teamId) {
-      legacyEntries = legacyEntries.filter((entry) => entry.teamId === query.teamId);
-      artifacts = artifacts.filter((artifact) => artifact.teamId === query.teamId);
-    }
-
-    // Calculate migration status
-    const totalLegacyEntries = legacyEntries.length;
-    const migratedArtifacts = artifacts.filter(
-      (artifact) => artifact.metadata.sourceKind === 'legacy-knowledge',
-    );
-    const migratedEntriesCount = migratedArtifacts.length;
-    const unmigratedEntriesCount = Math.max(0, totalLegacyEntries - migratedEntriesCount);
-    const totalArtifacts = artifacts.length;
-
-    // Count by source kind
-    const artifactsBySourceKind = {
-      'skill-directory': artifacts.filter((a) => a.metadata.sourceKind === 'skill-directory')
-        .length,
-      'single-skill-md': artifacts.filter((a) => a.metadata.sourceKind === 'single-skill-md')
-        .length,
-      'legacy-knowledge': migratedArtifacts.length,
-    };
-
-    // Get sample of unmigrated entry IDs
-    const migratedSlugs = new Set(migratedArtifacts.map((a) => a.slug));
-    const unmigratedEntries = legacyEntries.filter((entry) => {
-      const expectedSlug = entry.shortcut
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .slice(0, 80);
-      return !migratedSlugs.has(expectedSlug);
-    });
-    const unmigratedEntryIds = unmigratedEntries.slice(0, 50).map((entry) => entry.id);
-
-    // Determine coexistence and sunset status
-    const coexistenceActive = totalLegacyEntries > 0 && totalArtifacts > 0;
-    const sunsetBlockers: string[] = [];
-
-    if (unmigratedEntriesCount > 0) {
-      sunsetBlockers.push(`${unmigratedEntriesCount} unmigrated entries remaining`);
-    }
-    if (totalLegacyEntries > 0 && totalArtifacts === 0) {
-      sunsetBlockers.push('No artifacts created yet');
-    }
-
-    const sunsetReady = sunsetBlockers.length === 0;
+    const projection = await buildCompatibilityStatusProjection(app.skillShareer.repos, query);
 
     return compatibilityStatusResponseSchema.parse({
-      totalLegacyEntries,
-      migratedEntriesCount,
-      unmigratedEntriesCount,
-      totalArtifacts,
-      artifactsBySourceKind,
-      unmigratedEntryIds,
-      coexistenceActive,
-      sunsetReady,
-      sunsetBlockers,
+      ...projection,
       reportedAt: nowIso(),
     });
   });

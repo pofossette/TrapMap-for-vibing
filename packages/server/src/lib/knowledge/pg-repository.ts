@@ -33,6 +33,7 @@ import type {
   KnowledgeRecord,
   KnowledgeRevisionRecord,
   MaintenanceMetaRecord,
+  SkillShareerStore,
 } from '@trapmap/server/lib/store.js';
 import type { KnowledgeRepository } from './repository.js';
 
@@ -41,7 +42,10 @@ import type { KnowledgeRepository } from './repository.js';
  * Implements row-level locking for concurrent-safe updates.
  */
 export class PgKnowledgeRepository implements KnowledgeRepository {
-  constructor(private readonly pool: Pool) {
+  constructor(
+    private readonly pool: Pool,
+    private readonly compatStore?: SkillShareerStore,
+  ) {
     drizzle(pool, {
       schema: {
         knowledgeEntries,
@@ -229,7 +233,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
     const maintenanceMeta =
       maintenanceResult.rows.length > 0 ? rowToMaintenanceMeta(maintenanceResult.rows[0]!) : null;
 
-    return reconstructKnowledgeRecord(
+    const authoritative = reconstructKnowledgeRecord(
       entryRow,
       revisionsResult.rows,
       eventsResult.rows,
@@ -237,6 +241,12 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
       boundary,
       maintenanceMeta,
     );
+    return this.applyCompatOverlay(authoritative);
+  }
+
+  async getByIds(entryIds: string[]): Promise<KnowledgeRecord[]> {
+    const loaded = await Promise.all(entryIds.map((entryId) => this.getById(entryId)));
+    return loaded.filter((entry): entry is KnowledgeRecord => entry !== null);
   }
 
   /**
@@ -446,7 +456,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
     );
 
     // Return lightweight records (without full history)
-    return result.rows.map((row) => {
+    const authoritativeEntries = result.rows.map((row) => {
       const entry = rowToKnowledgeEntry(row);
       // Clear heavy fields for list view
       entry.history = [];
@@ -456,6 +466,7 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
       entry.reviewNotes = [];
       return entry;
     });
+    return this.applyCompatOverlayToMany(authoritativeEntries);
   }
 
   /**
@@ -557,6 +568,119 @@ export class PgKnowledgeRepository implements KnowledgeRepository {
     } finally {
       client.release();
     }
+  }
+
+  async save(entry: KnowledgeRecord): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const { rows } = await client.query<DrizzleKnowledgeEntryRow>(
+        'SELECT * FROM knowledge_entries WHERE id = $1 FOR UPDATE',
+        [entry.id],
+      );
+
+      if (rows.length === 0) {
+        throw new Error(`Knowledge entry ${entry.id} not found`);
+      }
+
+      await client.query(
+        `UPDATE knowledge_entries
+         SET team_id = $1,
+             scope = $2,
+             labels = $3,
+             shortcut = $4,
+             detail = $5,
+             required_level = $6,
+             lifecycle_state = $7,
+             boundary = $8,
+             maintenance_meta = $9,
+             embedding_cache = $10,
+             updated_at = $11
+         WHERE id = $12`,
+        [
+          entry.teamId,
+          entry.scope,
+          JSON.stringify(entry.labels),
+          entry.shortcut,
+          entry.detail,
+          entry.requiredLevel,
+          entry.lifecycleState,
+          entry.boundary ? JSON.stringify(entry.boundary) : null,
+          entry.maintenanceMeta ? JSON.stringify(entry.maintenanceMeta) : null,
+          entry.embeddingCache ? JSON.stringify(entry.embeddingCache) : null,
+          entry.updatedAt,
+          entry.id,
+        ],
+      );
+
+      await client.query('DELETE FROM knowledge_labels WHERE entry_id = $1', [entry.id]);
+      for (const label of entry.labels) {
+        await client.query(
+          'INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [entry.id, label],
+        );
+      }
+
+      await clearBoundarySubTables(client, entry.id);
+      if (entry.boundary) {
+        await insertBoundarySubTables(client, entry.id, entry.boundary);
+      }
+
+      await client.query('DELETE FROM knowledge_maintenance_assignments WHERE entry_id = $1', [
+        entry.id,
+      ]);
+      if (entry.maintenanceMeta) {
+        await client.query(
+          `INSERT INTO knowledge_maintenance_assignments (
+            entry_id, maintainer_user_id, maintainer_handle, maintainer_level, review_by
+          ) VALUES ($1, $2, $3, $4, $5)`,
+          [
+            entry.id,
+            entry.maintenanceMeta.maintainerUserId,
+            entry.maintenanceMeta.maintainerHandle,
+            entry.maintenanceMeta.maintainerLevel,
+            entry.maintenanceMeta.reviewBy,
+          ],
+        );
+      }
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    if (this.compatStore) {
+      await this.compatStore.transact((data) => {
+        const index = data.knowledgeEntries.findIndex((candidate) => candidate.id === entry.id);
+        if (index >= 0) {
+          data.knowledgeEntries[index] = entry;
+          return;
+        }
+        data.knowledgeEntries.push(entry);
+      });
+    }
+  }
+
+  private async applyCompatOverlay(entry: KnowledgeRecord): Promise<KnowledgeRecord> {
+    if (!this.compatStore) {
+      return entry;
+    }
+    const data = await this.compatStore.snapshot();
+    const shadow = data.knowledgeEntries.find((candidate) => candidate.id === entry.id) ?? null;
+    return mergeCompatEntry(entry, shadow);
+  }
+
+  private async applyCompatOverlayToMany(entries: KnowledgeRecord[]): Promise<KnowledgeRecord[]> {
+    if (!this.compatStore || entries.length === 0) {
+      return entries;
+    }
+    const data = await this.compatStore.snapshot();
+    const shadows = new Map(data.knowledgeEntries.map((entry) => [entry.id, entry]));
+    return entries.map((entry) => mergeCompatEntry(entry, shadows.get(entry.id) ?? null));
   }
 }
 
@@ -796,6 +920,50 @@ async function insertBoundarySubTables(
       [entryId, ev.kind, ev.identifier, ev.url ?? null, ev.note ?? null],
     );
   }
+}
+
+async function clearBoundarySubTables(
+  client: import('pg').PoolClient,
+  entryId: string,
+): Promise<void> {
+  await client.query('DELETE FROM knowledge_boundary_contexts WHERE entry_id = $1', [entryId]);
+  await client.query('DELETE FROM knowledge_boundary_versions WHERE entry_id = $1', [entryId]);
+  await client.query('DELETE FROM knowledge_boundary_prerequisites WHERE entry_id = $1', [
+    entryId,
+  ]);
+  await client.query('DELETE FROM knowledge_boundary_signals WHERE entry_id = $1', [entryId]);
+  await client.query('DELETE FROM knowledge_boundary_exclusions WHERE entry_id = $1', [entryId]);
+  await client.query('DELETE FROM knowledge_boundary_evidence WHERE entry_id = $1', [entryId]);
+}
+
+function mergeCompatEntry(
+  authoritative: KnowledgeRecord,
+  shadow: KnowledgeRecord | null,
+): KnowledgeRecord {
+  if (!shadow) {
+    return authoritative;
+  }
+
+  return {
+    ...authoritative,
+    latestRevision: shadow.latestRevision,
+    history: shadow.history,
+    metadata: shadow.metadata,
+    latestSubmissionId: shadow.latestSubmissionId,
+    submissionHistory: shadow.submissionHistory,
+    agentReview: shadow.agentReview,
+    reviewHistory: shadow.reviewHistory,
+    reviewNotes: shadow.reviewNotes,
+    lifecycleHistory: shadow.lifecycleHistory,
+    embeddingCache: shadow.embeddingCache,
+    indexState: shadow.indexState,
+    boundary: shadow.boundary ?? authoritative.boundary,
+    decayMeta: shadow.decayMeta,
+    evidenceMeta: shadow.evidenceMeta,
+    maintenanceMeta: shadow.maintenanceMeta ?? authoritative.maintenanceMeta,
+    remediation: shadow.remediation ?? authoritative.remediation,
+    updatedAt: shadow.updatedAt,
+  };
 }
 
 /**

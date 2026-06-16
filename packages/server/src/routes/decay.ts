@@ -8,7 +8,6 @@
  */
 
 import {
-  type BatchOperationItem,
   type DecayAwareListItem,
   batchOperationRequestSchema,
   batchOperationResponseSchema,
@@ -16,15 +15,12 @@ import {
   decayEntryListRequestSchema,
   decayEntryListResponseSchema,
 } from '@trapmap/contracts';
-import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 
-import { executeBatchOperation, planBatchOperation } from '@trapmap/server/lib/decay/batch.js';
+import { createDecayBatchApplicationService } from '@trapmap/server/lib/decay/application-service.js';
 import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
 import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
-import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -71,6 +67,14 @@ function filterEntriesByPermission(
 }
 
 export const decayRoutes: FastifyPluginAsync = async (app) => {
+  function getDecayBatchService() {
+    return createDecayBatchApplicationService({
+      repos: app.skillShareer.repos,
+      store: app.skillShareer.store,
+      eventBus: app.skillShareer.eventBus,
+    });
+  }
+
   /**
    * GET /v1/operations/decay/entries
    *
@@ -206,133 +210,15 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:update');
 
-    // Parse body
     const body = batchOperationRequestSchema.parse(request.body);
+    const service = getDecayBatchService();
+    const result = body.dryRun
+      ? await service.previewBatch({ auth, command: body })
+      : await service.executeBatch({ auth, command: body });
 
-    // Get decay config
-    const config = loadDecayConfig();
-    const now = new Date();
-
-    // Build input for batch operation
-    const input = {
-      entryIds: body.entryIds,
-      action: body.action,
-      actorId: auth.actorId,
-      ...(body.extendDays !== undefined ? { extendDays: body.extendDays } : {}),
-      ...(body.replacementId !== undefined ? { replacementId: body.replacementId } : {}),
-    };
-
-    if (body.dryRun) {
-      // Dry-run mode: plan without executing
-      const data = await app.skillShareer.store.snapshot();
-      const planItems = planBatchOperation(data, input, config, now);
-
-      // Map to response items
-      const items: BatchOperationItem[] = planItems.map((item) => ({
-        entryId: item.entryId,
-        shortcut: item.shortcut,
-        currentDecayState: item.currentDecayState,
-        proposedDecayState: item.proposedDecayState,
-        changeDescription: item.changeDescription,
-        eligible: item.eligible,
-        ineligibilityReason: item.ineligibilityReason,
-      }));
-
-      const eligibleCount = items.filter((i) => i.eligible).length;
-
-      // Log operation
-      const logConfig = loadUserOpsLogConfig();
-      await logUserOperation(logConfig, {
-        timestamp: nowIso(),
-        actorId: auth.actorId,
-        actorHandle: auth.handle,
-        action: 'decay-batch',
-        targetId: null,
-        teamId: auth.activeTeamId,
-        metadata: {
-          action: body.action,
-          dryRun: true,
-          entryCount: body.entryIds.length,
-          eligibleCount,
-        },
-      });
-
-      return batchOperationResponseSchema.parse({
-        action: body.action,
-        dryRun: true,
-        items,
-        totalEligible: eligibleCount,
-        totalIneligible: items.length - eligibleCount,
-        appliedAt: null,
-      });
-    }
-
-    // Execute mode: plan and execute
-    const store = app.skillShareer.store;
-    const mutatedRecords =
-      store instanceof PostgresStore
-        ? await store.transactWithPgClient(async (data, client) => {
-            const mutated = executeBatchOperation(store, data, input, config, now);
-            for (const record of mutated) {
-              const previousState = 'approved';
-              const nextState = record.lifecycleState;
-              await emitLifecycleTransition({
-                store,
-                eventBus: app.skillShareer.eventBus,
-                aggregateType: 'knowledge',
-                aggregateId: record.id,
-                previousState: previousState as LifecycleState,
-                nextState,
-                actorId: auth.actorId,
-                reason: `batch-${body.action}`,
-                txClient: client,
-              });
-            }
-            return mutated;
-          })
-        : await app.skillShareer.store.transact((data) => {
-            return executeBatchOperation(app.skillShareer.store, data, input, config, now);
-          });
-
-    if (!(store instanceof PostgresStore)) {
-      for (const record of mutatedRecords) {
-        const previousState = 'approved';
-        const nextState = record.lifecycleState;
-        await emitLifecycleTransition({
-          store: app.skillShareer.store,
-          eventBus: app.skillShareer.eventBus,
-          aggregateType: 'knowledge',
-          aggregateId: record.id,
-          previousState: previousState as LifecycleState,
-          nextState,
-          actorId: auth.actorId,
-          reason: `batch-${body.action}`,
-        });
-      }
-    }
-
-    // Get the plan for response
-    const data = await app.skillShareer.store.snapshot();
-    const planItems = planBatchOperation(data, input, config, now);
-
-    // Map to response items
-    const items: BatchOperationItem[] = planItems.map((item) => ({
-      entryId: item.entryId,
-      shortcut: item.shortcut,
-      currentDecayState: item.currentDecayState,
-      proposedDecayState: item.proposedDecayState,
-      changeDescription: item.changeDescription,
-      eligible: item.eligible,
-      ineligibilityReason: item.ineligibilityReason,
-    }));
-
-    const eligibleCount = items.filter((i) => i.eligible).length;
-    const appliedAt = nowIso();
-
-    // Log operation
     const logConfig = loadUserOpsLogConfig();
     await logUserOperation(logConfig, {
-      timestamp: appliedAt,
+      timestamp: nowIso(),
       actorId: auth.actorId,
       actorHandle: auth.handle,
       action: 'decay-batch',
@@ -340,21 +226,13 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
       teamId: auth.activeTeamId,
       metadata: {
         action: body.action,
-        dryRun: false,
+        dryRun: body.dryRun,
         entryCount: body.entryIds.length,
-        eligibleCount,
-        mutatedCount: mutatedRecords.length,
+        eligibleCount: result.totalEligible,
       },
     });
 
-    return batchOperationResponseSchema.parse({
-      action: body.action,
-      dryRun: false,
-      items,
-      totalEligible: eligibleCount,
-      totalIneligible: items.length - eligibleCount,
-      appliedAt,
-    });
+    return batchOperationResponseSchema.parse(result);
   });
 
   /**

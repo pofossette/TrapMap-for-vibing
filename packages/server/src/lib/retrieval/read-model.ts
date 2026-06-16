@@ -2,8 +2,8 @@
  * Repository-backed retrieval read model.
  *
  * Assembles knowledge entries, skill artifacts, and conflict relations
- * from their canonical sources (repositories + store snapshot for conflicts)
- * instead of relying on the deprecated store.snapshot() compatibility rows.
+ * from their canonical repository seams instead of relying on
+ * compatibility store snapshot reads inside retrieval assembly.
  *
  * Phase 4.1: Introduce a repository-backed retrieval read model.
  */
@@ -18,11 +18,7 @@ import {
   attachRemediationToKnowledgeEntries,
 } from '@trapmap/server/lib/feedback/remediation.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
-import type {
-  KnowledgeRecord,
-  SkillArtifactRecord,
-  SkillShareerStore,
-} from '@trapmap/server/lib/store.js';
+import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Assembled read model for retrieval flows.
@@ -36,19 +32,16 @@ export interface RetrievalReadModel {
 }
 
 /**
- * Build a retrieval read model from repositories and store.
+ * Build a retrieval read model from repositories.
  *
- * Knowledge and artifact data are read from their dedicated repositories
- * in parallel. Conflicts are read from the store snapshot because no
- * ConflictRepository exists yet.
+ * Knowledge, artifact, feedback, and conflict data are read from their
+ * dedicated repository seams in parallel.
  *
  * @param repos - Unified repository object
- * @param store - Store used solely for conflict snapshot (temporary)
  * @returns Assembled read model with all retrieval-relevant data
  */
 export async function buildRetrievalReadModel(
   repos: SkillShareerRepos,
-  store: SkillShareerStore,
 ): Promise<RetrievalReadModel> {
   const cached = getCachedRetrievalReadModel();
   if (cached) {
@@ -60,19 +53,17 @@ export async function buildRetrievalReadModel(
       ? repos.artifact.listForRetrieval.bind(repos.artifact)
       : repos.artifact.listByFilter.bind(repos.artifact);
 
-  const [knowledgeEntries, skillArtifacts, snapshot] = await Promise.all([
+  const [knowledgeEntries, skillArtifacts, feedbackQueue, conflicts] = await Promise.all([
     repos.knowledge.listByFilter({}),
     artifactLister({}),
-    store.snapshot(),
+    repos.feedback.listByFilter({}),
+    repos.conflict.listAll(),
   ]);
 
   const model = {
-    knowledgeEntries: attachRemediationToKnowledgeEntries(
-      knowledgeEntries,
-      snapshot.feedbackQueue ?? [],
-    ),
-    skillArtifacts: attachRemediationToArtifacts(skillArtifacts, snapshot.feedbackQueue ?? []),
-    conflicts: snapshot.conflicts,
+    knowledgeEntries: attachRemediationToKnowledgeEntries(knowledgeEntries, feedbackQueue),
+    skillArtifacts: attachRemediationToArtifacts(skillArtifacts, feedbackQueue),
+    conflicts,
   };
 
   setCachedRetrievalReadModel(model);

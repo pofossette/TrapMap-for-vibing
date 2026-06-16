@@ -2,9 +2,9 @@
  * Tests for retrieval read model (Phase 4.1).
  *
  * Covers:
- * - buildRetrievalReadModel() assembles data from repos + store snapshot
+ * - buildRetrievalReadModel() assembles data from repository seams
  * - Knowledge and artifact reads happen in parallel via Promise.all
- * - Conflicts are sourced from the store snapshot
+ * - Feedback and conflicts are sourced from repositories
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,11 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ConflictRelation } from '@trapmap/contracts';
 import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
-import type {
-  KnowledgeRecord,
-  SkillArtifactRecord,
-  SkillShareerStore,
-} from '@trapmap/server/lib/store.js';
+import type { FeedbackQueueRecord, KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
 import { buildRetrievalReadModel } from './read-model.js';
 
@@ -158,26 +154,19 @@ function createMockRepos(overrides: Partial<SkillShareerRepos> = {}): SkillShare
     membership: {} as never,
     user: {} as never,
     candidate: {} as never,
+    conflict: {
+      listAll: vi.fn().mockResolvedValue([]),
+    } as never,
     usageAnalytics: {} as never,
-    feedback: {} as never,
+    feedback: {
+      listByFilter: vi.fn().mockResolvedValue([]),
+    } as never,
     audit: {} as never,
     duplicate: {} as never,
     lineage: {} as never,
     graphIndex: {} as never,
     ...overrides,
   } as SkillShareerRepos;
-}
-
-function createMockStore(conflicts: ConflictRelation[] = []): SkillShareerStore {
-  return {
-    snapshot: vi.fn().mockResolvedValue({
-      conflicts,
-      knowledgeEntries: [],
-      skillArtifacts: [],
-    }),
-    transact: vi.fn(),
-    nextId: vi.fn(),
-  } as unknown as SkillShareerStore;
 }
 
 // ---------------------------------------------------------------------------
@@ -194,9 +183,8 @@ describe('buildRetrievalReadModel', () => {
     const repos = createMockRepos({
       knowledge: { listByFilter: vi.fn().mockResolvedValue(entries) },
     } as never);
-    const store = createMockStore();
 
-    const result = await buildRetrievalReadModel(repos, store);
+    const result = await buildRetrievalReadModel(repos);
 
     expect(result.knowledgeEntries).toEqual(entries);
     expect(repos.knowledge.listByFilter).toHaveBeenCalledWith({});
@@ -207,9 +195,8 @@ describe('buildRetrievalReadModel', () => {
     const repos = createMockRepos({
       artifact: { listByFilter: vi.fn().mockResolvedValue(artifacts) },
     } as never);
-    const store = createMockStore();
 
-    const result = await buildRetrievalReadModel(repos, store);
+    const result = await buildRetrievalReadModel(repos);
 
     expect(result.skillArtifacts).toEqual(artifacts);
     expect(repos.artifact.listByFilter).toHaveBeenCalledWith({});
@@ -225,21 +212,21 @@ describe('buildRetrievalReadModel', () => {
         listForRetrieval,
       },
     } as never);
-    const store = createMockStore();
 
-    const result = await buildRetrievalReadModel(repos, store);
+    const result = await buildRetrievalReadModel(repos);
 
     expect(result.skillArtifacts).toEqual(hydratedArtifacts);
     expect(listForRetrieval).toHaveBeenCalledWith({});
     expect(listByFilter).not.toHaveBeenCalled();
   });
 
-  it('returns conflicts from the store snapshot', async () => {
+  it('returns conflicts from the conflict repository', async () => {
     const conflicts = [makeConflict('c_1', 'k_1', 'k_2'), makeConflict('c_2', 'k_3', 'k_4')];
-    const repos = createMockRepos();
-    const store = createMockStore(conflicts);
+    const repos = createMockRepos({
+      conflict: { listAll: vi.fn().mockResolvedValue(conflicts) },
+    } as never);
 
-    const result = await buildRetrievalReadModel(repos, store);
+    const result = await buildRetrievalReadModel(repos);
 
     expect(result.conflicts).toEqual(conflicts);
   });
@@ -252,10 +239,10 @@ describe('buildRetrievalReadModel', () => {
     const repos = createMockRepos({
       knowledge: { listByFilter: vi.fn().mockResolvedValue(entries) },
       artifact: { listByFilter: vi.fn().mockResolvedValue(artifacts) },
+      conflict: { listAll: vi.fn().mockResolvedValue(conflicts) },
     } as never);
-    const store = createMockStore(conflicts);
 
-    const result = await buildRetrievalReadModel(repos, store);
+    const result = await buildRetrievalReadModel(repos);
 
     expect(result.knowledgeEntries).toEqual(entries);
     expect(result.skillArtifacts).toEqual(artifacts);
@@ -283,9 +270,7 @@ describe('buildRetrievalReadModel', () => {
         }),
       },
     } as never);
-    const store = createMockStore();
-
-    await buildRetrievalReadModel(repos, store);
+    await buildRetrievalReadModel(repos);
 
     // Both calls should start before either finishes (parallel execution).
     // The first two elements should be the two "start" events.
@@ -294,7 +279,7 @@ describe('buildRetrievalReadModel', () => {
     );
   });
 
-  it('includes store.snapshot() in the parallel read', async () => {
+  it('includes feedback and conflict repositories in the parallel read', async () => {
     const callOrder: string[] = [];
 
     const repos = createMockRepos({
@@ -310,29 +295,30 @@ describe('buildRetrievalReadModel', () => {
           return [];
         }),
       },
+      feedback: {
+        listByFilter: vi.fn().mockImplementation(async () => {
+          callOrder.push('feedback');
+          return [] as FeedbackQueueRecord[];
+        }),
+      } as never,
+      conflict: {
+        listAll: vi.fn().mockImplementation(async () => {
+          callOrder.push('conflict');
+          return [] as ConflictRelation[];
+        }),
+      } as never,
     } as never);
 
-    const store = {
-      snapshot: vi.fn().mockImplementation(async () => {
-        callOrder.push('snapshot');
-        return { conflicts: [] };
-      }),
-      transact: vi.fn(),
-      nextId: vi.fn(),
-    } as unknown as SkillShareerStore;
+    await buildRetrievalReadModel(repos);
 
-    await buildRetrievalReadModel(repos, store);
-
-    // All three should have been called.
-    expect(callOrder).toHaveLength(3);
-    expect(callOrder).toEqual(expect.arrayContaining(['knowledge', 'artifact', 'snapshot']));
+    expect(callOrder).toHaveLength(4);
+    expect(callOrder).toEqual(expect.arrayContaining(['knowledge', 'artifact', 'feedback', 'conflict']));
   });
 
   it('returns empty arrays when repositories return empty results', async () => {
     const repos = createMockRepos();
-    const store = createMockStore();
 
-    const result = await buildRetrievalReadModel(repos, store);
+    const result = await buildRetrievalReadModel(repos);
 
     expect(result.knowledgeEntries).toEqual([]);
     expect(result.skillArtifacts).toEqual([]);

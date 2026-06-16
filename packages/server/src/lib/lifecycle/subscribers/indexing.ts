@@ -1,5 +1,8 @@
 import type { LifecycleState } from '@trapmap/contracts';
-import { emitCacheInvalidation } from '@trapmap/server/lib/cache/invalidation.js';
+import {
+  createCacheInvalidationEvent,
+  emitCacheInvalidation,
+} from '@trapmap/server/lib/cache/invalidation.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
 import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
@@ -28,11 +31,15 @@ export function createIndexingSubscriber(
     if (previousState === nextState && event.reason !== 'updated') return;
 
     if (!(store instanceof PostgresStore)) {
-      emitCacheInvalidation({
-        sourceType: 'trap',
-        sourceId: event.entryId,
-        reason: nextState === 'deactivated' ? 'deactivated' : 'approved',
-      });
+      emitCacheInvalidation(
+        createCacheInvalidationEvent({
+          sourceType: 'trap',
+          sourceId: event.entryId,
+          reason: nextState === 'deactivated' ? 'deactivated' : 'approved',
+          owner: 'knowledge-lifecycle-projection',
+          trigger: 'write-through-fallback',
+        }),
+      );
       const data = await store.snapshot();
       await runKnowledgeIndexEvent({
         services: {
@@ -49,11 +56,15 @@ export function createIndexingSubscriber(
       return;
     }
 
-    emitCacheInvalidation({
-      sourceType: 'trap',
-      sourceId: event.entryId,
-      reason: nextState === 'deactivated' ? 'deactivated' : 'approved',
-    });
+    emitCacheInvalidation(
+      createCacheInvalidationEvent({
+        sourceType: 'trap',
+        sourceId: event.entryId,
+        reason: nextState === 'deactivated' ? 'deactivated' : 'approved',
+        owner: 'knowledge-lifecycle-projection',
+        trigger: 'outbox-subscriber',
+      }),
+    );
     await scheduleSharedJob(
       store,
       KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,

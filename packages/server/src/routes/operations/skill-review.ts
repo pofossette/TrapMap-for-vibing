@@ -7,13 +7,16 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
-import { emitCacheInvalidation } from '@trapmap/server/lib/cache/invalidation.js';
+import {
+  createCacheInvalidationEvent,
+  emitCacheInvalidation,
+} from '@trapmap/server/lib/cache/invalidation.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   FEEDBACK_REMEDIATION_THRESHOLD,
   getActiveEntryFeedback,
 } from '@trapmap/server/lib/feedback/remediation.js';
-import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';
+import { runOrScheduleSkillIndexFollowUp } from '@trapmap/server/lib/jobs/skill-index-follow-up.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import {
   requireHigherLevel,
@@ -221,19 +224,20 @@ export const skillReviewRoutes: FastifyPluginAsync = async (app) => {
 
     const reviewedSnapshot = await app.skillShareer.store.snapshot();
 
-    // Trigger skill graph indexing AFTER the transaction commits (P36-02, T-36-11)
     if (result.previousState !== result.newState) {
-      await runSkillIndexEvent({
+      const reason = `reviewer-${body.decision}`;
+      await runOrScheduleSkillIndexFollowUp({
         services: {
           store: app.skillShareer.store,
-          data: await app.skillShareer.store.snapshot(),
-          ai: { chat: app.skillShareer.ai.chat },
+          ai: app.skillShareer.ai,
           graphQueryBackend: app.skillShareer.graphQueryBackend,
         },
-        artifactId,
-        previousState: result.previousState,
-        nextState: result.newState,
-        reason: `reviewer-${body.decision}`,
+        payload: {
+          artifactId,
+          previousState: result.previousState,
+          nextState: result.newState,
+          reason,
+        },
       });
     }
 
@@ -248,11 +252,15 @@ export const skillReviewRoutes: FastifyPluginAsync = async (app) => {
             remediationResolvedByUserId: reviewerUserId,
           });
         }
-        emitCacheInvalidation({
-          sourceType: 'skill',
-          sourceId: artifactId,
-          reason: 'remediation-suppressed',
-        });
+        emitCacheInvalidation(
+          createCacheInvalidationEvent({
+            sourceType: 'skill',
+            sourceId: artifactId,
+            reason: 'remediation-suppressed',
+            owner: 'feedback-remediation-projection',
+            trigger: 'write-through-fallback',
+          }),
+        );
       }
     }
 

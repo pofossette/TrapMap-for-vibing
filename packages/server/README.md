@@ -37,6 +37,34 @@ Fastify API 服务，承载检索、索引、治理、认证、候选处理等�
 - 业务逻辑：[`src/lib/`](src/lib/)
 - 启动序列：[`src/bootstrap/`](src/bootstrap/)
 
+## 分层 Ownership
+
+`packages/server` 现阶段按五层理解，目录放置优先服从这个模型：
+
+| Layer | 当前落点 | Responsibility |
+|---|---|---|
+| `domain` | `src/lib/<context>/` 内的实体、规则、仓库接口、policy/helper | 表达业务概念、不变量、生命周期规则、读写边界语义，不拥有 Fastify、worker、进程启动细节 |
+| `application` | `src/lib/<context>/application-*.ts`、命名 service/processor | 编排命令式用例：actor、目标聚合、权限前提、repository 调用、lifecycle side effect、受控 compatibility debt |
+| `infrastructure` | `src/lib/persistence/`、`src/lib/repos/`、`src/lib/queue/`、`src/lib/ai/`、`src/lib/runtime/`、`src/bootstrap/` | PostgreSQL/JSON store、队列、AI provider、runtime metadata、startup/bootstrap、进程级装配 |
+| `interfaces/http` | `src/routes/` | 请求解析、schema 校验、auth/permission gate、delegate、响应映射 |
+| `interfaces/worker` | `src/worker.ts`、`src/bootstrap/bootstrap-workers.ts`、worker entry modules | 消费异步任务、把任务负载翻译成 application/infrastructure 调用，不承载领域规则定义 |
+
+两个明确约束：
+
+- runtime/bootstrap responsibility 留在 `infrastructure`，不要放进 `domain` 或 `application` 模块。
+- read-model assembly 留在读侧模块；写侧 application service 默认不负责拼装 retrieval/review/runtime projection，除非该耦合被刻意记录。
+
+## 重上下文落点
+
+下面四个上下文优先按同一模型收口：
+
+| Context | Domain/Application Ownership | Infrastructure / Interface Ownership |
+|---|---|---|
+| `知识治理` | `lib/knowledge/` 负责知识/trap/review/decay 的业务语义；写流程通过共享 application service 编排 | 路由只做 transport；索引、持久化、runtime hook 留在 `repos` / `persistence` / `lifecycle` |
+| `候选摄取` | `lib/candidates/` 负责 submission、duplicate、resolution、processing policy | recovery、queue worker、startup re-enqueue 属于 `bootstrap` + `queue`，不是 candidate domain 规则 |
+| `反馈与修复` | `lib/feedback/`、`lib/maintenance/`、相关 remediation hook 负责命令语义和状态变化 | badcase 存储、reactivation wiring、subscriber/worker 执行留在 infra；HTTP 端点只触发用例 |
+| `运维与运行时` | 只保留被明确命名的 operator use case；不把进程状态判断伪装成 domain service | `/health`、`/ready`、startup、migration/admin flow、runtime snapshot 属于 `runtime` / `bootstrap` / `operations` infra 边界 |
+
 ## Former Hotspot Modules and Regression Tests
 
 fm-agent 原始报告（391 已确认发现）经过当前 HEAD 审计回写后，以下模块保留为回归入口或环境边界说明，不再有已复现的 current-live gap：
