@@ -1115,17 +1115,18 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
   });
 
   describe('outbox vs direct sync emission convergence (Phase 4)', () => {
-    it('uses emitLifecycleTransition helper instead of inline PG/JSON split', () => {
+    it('uses lifecycle publisher boundary instead of inline PG/JSON split', () => {
       const source = readFileSync(path.join(__dirname, 'review.ts'), 'utf8');
       const serviceSource = readFileSync(
         path.join(__dirname, '..', 'lib', 'knowledge', 'review-application-service.ts'),
         'utf8',
       );
-      // review.ts now delegates write orchestration to the application service,
-      // which owns lifecycle transition emission.
+      // review.ts now passes a narrow lifecycle publisher into the application service,
+      // which owns transition emission without raw eventBus access.
       expect(source).toContain('createReviewApplicationService');
-      expect(serviceSource).toContain('emitLifecycleTransition');
-      // No longer contains inline outbox enqueue logic.
+      expect(source).toContain('createLifecyclePublisher');
+      expect(source).not.toContain('eventBus: app.skillShareer.eventBus');
+      expect(serviceSource).toContain('lifecyclePublisher.publishTransition');
       expect(source).not.toContain('outbox.enqueue');
     });
   });

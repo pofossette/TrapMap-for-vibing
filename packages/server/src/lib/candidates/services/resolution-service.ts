@@ -13,8 +13,8 @@ import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { applyManualResultResolution } from '@trapmap/server/lib/candidates/reconcile.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import type { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
-import { findTransitionEvent } from '@trapmap/server/lib/lifecycle/transitions.js';
+import type { LifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
+import type { CandidateRepository, LineageRepository } from '@trapmap/server/lib/repos/index.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
@@ -22,8 +22,11 @@ import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 /** Dependencies required by the resolution service. */
 export interface ResolutionDeps {
   store: SkillShareerStore;
-  repos: SkillShareerServices['repos'];
-  eventBus: LifecycleEventBus;
+  repos: {
+    candidate: CandidateRepository;
+    lineage: LineageRepository;
+  };
+  lifecyclePublisher: LifecyclePublisher;
   config: SkillShareerServices['config'];
 }
 
@@ -98,7 +101,7 @@ export async function applyResolution(
   outcome: any;
   lineage: any;
 }> {
-  const { store, repos, eventBus, config } = deps;
+  const { store, repos, lifecyclePublisher, config } = deps;
 
   // Capture context for post-commit indexing
   let publishedEntityId: string | null = null;
@@ -157,18 +160,14 @@ export async function applyResolution(
 
   // Post-commit: emit event for newly published entities
   if (publishedEntityId && publishedEntityType === 'trap') {
-    const eventName = findTransitionEvent('submitted', 'agent-pass');
-    if (eventName) {
-      await eventBus.emitDomainEventAsync({
-        name: eventName,
-        entryId: publishedEntityId,
-        previousState: 'submitted',
-        nextState: 'agent-pass',
-        actorId: auth.actorId,
-        reason: 'duplicate-resolved-independent',
-        timestamp: nowIso(),
-      });
-    }
+    await lifecyclePublisher.publishTransition({
+      aggregateType: 'knowledge',
+      aggregateId: publishedEntityId,
+      previousState: 'submitted',
+      nextState: 'agent-pass',
+      actorId: auth.actorId,
+      reason: 'duplicate-resolved-independent',
+    });
   }
 
   // Log user operation

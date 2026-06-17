@@ -7,7 +7,6 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
 import { createAuditSubscriber } from '@trapmap/server/lib/lifecycle/subscribers/audit.js';
 import { createConflictSubscriber } from '@trapmap/server/lib/lifecycle/subscribers/conflict.js';
 import { createIndexingSubscriber } from '@trapmap/server/lib/lifecycle/subscribers/indexing.js';
@@ -88,8 +87,10 @@ export async function bootstrapLifecycle(
   // Start outbox event worker for PG mode
   // Processes domain events asynchronously — indexing, conflict detection, audit
   if (store instanceof PostgresStore) {
-    const pool = store.getPool();
-    const outbox = createDomainEventOutbox({ pool });
+    const outbox = app.skillShareer.asyncTransport?.events;
+    if (!outbox) {
+      throw new Error('Postgres runtime requires asyncTransport.events for outbox processing');
+    }
 
     const pollIntervalMs = 2000;
     let running = false;

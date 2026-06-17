@@ -7,10 +7,9 @@ import {
   loadKnowledgeEntriesByIds,
   saveKnowledgeEntry,
 } from '@trapmap/server/lib/knowledge/repository.js';
-import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
-import type { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
+import type { LifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
-import type { KnowledgeRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import {
   applyBatchMutation,
   batchAppliedAt,
@@ -45,8 +44,7 @@ export interface DecayBatchApplicationService {
 
 export interface DecayBatchApplicationServiceDeps {
   repos: SkillShareerRepos;
-  store: SkillShareerStore;
-  eventBus: LifecycleEventBus;
+  lifecyclePublisher: LifecyclePublisher;
 }
 
 export function createDecayBatchApplicationService(
@@ -104,9 +102,7 @@ async function executeBatch(
     }
 
     for (const item of mutated) {
-      await emitLifecycleTransition({
-        store: deps.store,
-        eventBus: deps.eventBus,
+      await deps.lifecyclePublisher.publishTransition({
         aggregateType: 'knowledge',
         aggregateId: item.id,
         previousState: 'approved',
@@ -126,9 +122,7 @@ async function executeBatch(
     }
     applyBatchMutation(entry, operationInput, appliedAt);
     await saveEntry(deps.repos, entry);
-    await emitLifecycleTransition({
-      store: deps.store,
-      eventBus: deps.eventBus,
+    await deps.lifecyclePublisher.publishTransition({
       aggregateType: 'knowledge',
       aggregateId: entry.id,
       previousState: 'approved',

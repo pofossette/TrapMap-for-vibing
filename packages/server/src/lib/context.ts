@@ -9,6 +9,7 @@ import type { AccessKeyRepository } from './auth/index.js';
 import type { SessionRepository } from './auth/index.js';
 import type { GraphQueryBackend, GraphQueryRuntimeState } from './graph-query/backend.js';
 import type { AdapterRegistry } from './indexing/registry.js';
+import type { AsyncTransport } from './async/transport.js';
 import type { KnowledgeRepository } from './knowledge/index.js';
 import type { LifecycleEventBus } from './lifecycle/event-bus.js';
 import type { SkillShareerRepos } from './repos/index.js';
@@ -16,6 +17,7 @@ import type { ChannelRegistry } from './retrieval/orchestration/channel-registry
 import type { StrategyRegistry } from './retrieval/orchestration/strategy-registry.js';
 import type { RequestContext } from './runtime/request-context.js';
 import type { RuntimeMode, RuntimeWorkerHandle } from './runtime/runtime-contract.js';
+import type { ServiceUnit } from './runtime/service-unit.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
 import type { MembershipRepository, TeamRepository } from './teams/index.js';
 import type { UserRepository } from './users/index.js';
@@ -23,7 +25,9 @@ import type { UserRepository } from './users/index.js';
 export interface SkillShareerServices {
   config: ServerConfig;
   runtimeMode: RuntimeMode;
+  serviceUnit: ServiceUnit;
   store: SkillShareerStore;
+  asyncTransport?: AsyncTransport;
   /** Adapter registry for indexing pipeline (replaces indexAdapters array) */
   adapterRegistry: AdapterRegistry;
   /** Channel registry for retrieval recall channels */

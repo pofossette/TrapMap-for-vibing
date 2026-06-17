@@ -13,7 +13,7 @@ import { AppError } from '@trapmap/server/lib/errors.js';
 import { createKnowledgeRevision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
 import { upsertKnowledgeEntryShadow } from '@trapmap/server/lib/knowledge/shadow-sync.js';
-import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
+import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
 import {
   requireHigherLevel,
   requirePermission,
@@ -37,6 +37,13 @@ function requireRealUser(userId: string | undefined): string {
 }
 
 export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
+  const { store, eventBus, asyncTransport } = app.skillShareer;
+  const lifecyclePublisher = createLifecyclePublisher({
+    store,
+    eventBus,
+    asyncTransport,
+  });
+
   function getKnowledgeService() {
     return createKnowledgeApplicationService({
       knowledgeRepo: app.skillShareer.repos.knowledge,
@@ -114,10 +121,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     const entryId = (request.params as { entryId: string }).entryId;
     const { knowledge: knowledgeRepo } = app.skillShareer.repos;
-    const snapshot = await app.skillShareer.store.snapshot();
-    const entry =
-      snapshot.knowledgeEntries.find((candidate) => candidate.id === entryId) ??
-      (await knowledgeRepo.getById(entryId));
+    const entry = await knowledgeRepo.getById(entryId);
 
     if (!entry) {
       throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
@@ -258,9 +262,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     // Post-commit: emit event for index refresh on approved entries
     // Only refresh indexes for approved entries (IDX-05, T-11-04)
     if (previousState && nextState && nextState === 'approved') {
-      await emitLifecycleTransition({
-        store: app.skillShareer.store,
-        eventBus: app.skillShareer.eventBus,
+      await lifecyclePublisher.publishTransition({
         aggregateType: 'knowledge',
         aggregateId: entryId,
         previousState,
@@ -303,9 +305,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       })
     ).entry;
 
-    await emitLifecycleTransition({
-      store: app.skillShareer.store,
-      eventBus: app.skillShareer.eventBus,
+    await lifecyclePublisher.publishTransition({
       aggregateType: 'knowledge',
       aggregateId: entryId,
       previousState: 'approved',

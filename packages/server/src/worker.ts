@@ -2,6 +2,7 @@ import { pathToFileURL } from 'node:url';
 
 import { buildServer } from './app.js';
 import type { RuntimeMode } from './lib/runtime/runtime-contract.js';
+import { resolveServiceUnit } from './lib/runtime/service-unit.js';
 
 function resolveWorkerRuntimeMode(): RuntimeMode {
   const mode = process.env.RUNTIME_MODE;
@@ -13,9 +14,10 @@ function resolveWorkerRuntimeMode(): RuntimeMode {
 
 async function startWorker() {
   const runtimeMode = resolveWorkerRuntimeMode();
-  const server = buildServer({ runtimeMode });
+  const serviceUnit = resolveServiceUnit(process.env.TRAPMAP_SERVICE_UNIT);
+  const server = buildServer({ runtimeMode, serviceUnit });
   await server.ready();
-  server.log.info({ runtimeMode }, 'Worker runtime started');
+  server.log.info({ runtimeMode, serviceUnit }, 'Worker runtime started');
 }
 
 const entryUrl = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;

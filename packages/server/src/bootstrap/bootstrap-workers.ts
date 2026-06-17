@@ -14,7 +14,8 @@ import { type TaskHandler, createTaskWorker } from '@trapmap/server/lib/queue/ta
 
 export interface BootstrapWorkersOptions {
   enabled?: boolean;
-  ownsWork?: boolean;
+  ownCandidateTaskWork?: boolean;
+  ownSharedJobTaskWork?: boolean;
 }
 
 function buildSharedJobWorkerHandlers(
@@ -39,7 +40,10 @@ function buildSharedJobWorkerHandlers(
     remediationReactivation: {
       services: {
         store,
-        repos: app.skillShareer.repos,
+        repos: {
+          knowledge: app.skillShareer.repos.knowledge,
+          artifact: app.skillShareer.repos.artifact,
+        },
         adapterRegistry: app.skillShareer.adapterRegistry,
         ai: app.skillShareer.ai,
         graphQueryBackend: app.skillShareer.graphQueryBackend,
@@ -67,7 +71,11 @@ export async function bootstrapWorkers(
   options: BootstrapWorkersOptions = {},
 ): Promise<void> {
   const store = app.skillShareer.store;
-  const { enabled = true, ownsWork = enabled } = options;
+  const {
+    enabled = true,
+    ownCandidateTaskWork = enabled,
+    ownSharedJobTaskWork = enabled,
+  } = options;
 
   // Only runs when using PostgresStore (databaseUrl configured)
   if (!(store instanceof PostgresStore)) return;
@@ -86,21 +94,51 @@ export async function bootstrapWorkers(
     chat: app.skillShareer.ai.chat,
   });
 
-  const worker = createTaskWorker({
-    pool,
-    handlers: [handler as TaskHandler<unknown>, ...buildSharedJobWorkerHandlers(app, store)],
-    pollIntervalMs: 1000,
-    concurrency: 1,
-    ownsWork,
-  });
+  const taskWorkers = [
+    {
+      key: 'candidateTaskWorker',
+      label: 'candidate',
+      shouldOwn: ownCandidateTaskWork,
+      worker: createTaskWorker({
+        pool,
+        handlers: [handler as TaskHandler<unknown>],
+        pollIntervalMs: 1000,
+        concurrency: 1,
+        ownsWork: ownCandidateTaskWork,
+      }),
+    },
+    {
+      key: 'sharedJobTaskWorker',
+      label: 'shared-async-job',
+      shouldOwn: ownSharedJobTaskWork,
+      worker: createTaskWorker({
+        pool,
+        handlers: buildSharedJobWorkerHandlers(app, store),
+        pollIntervalMs: 1000,
+        concurrency: 1,
+        ownsWork: ownSharedJobTaskWork,
+      }),
+    },
+  ] as const;
 
-  if (enabled) {
-    void worker.run();
-    app.log.info('Task worker started for candidate and shared async jobs');
-  } else {
-    app.log.info('Task worker ownership registered without starting local processing');
+  for (const entry of taskWorkers) {
+    if (enabled && entry.shouldOwn) {
+      void entry.worker.run();
+      app.log.info({ worker: entry.label }, 'Task worker started');
+    } else {
+      app.log.info(
+        { worker: entry.label },
+        'Task worker ownership registered without starting local processing',
+      );
+    }
   }
 
   // Store worker reference for graceful shutdown
-  app.decorate('taskWorker', worker);
+  app.decorate('taskWorker', {
+    isRunning: () => taskWorkers.some((entry) => entry.worker.isRunning()),
+    ownsWork: () => taskWorkers.some((entry) => entry.worker.ownsWork()),
+    stop: async () => {
+      await Promise.all(taskWorkers.map((entry) => entry.worker.stop()));
+    },
+  });
 }

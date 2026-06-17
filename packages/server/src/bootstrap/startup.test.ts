@@ -204,6 +204,34 @@ describe('startup sequence', () => {
     await server.close();
   });
 
+  it('supports candidate-ingestion service unit booted as api plus worker combination', async () => {
+    const server = buildServer({
+      runtimeMode: 'combined',
+      serviceUnit: 'candidate-ingestion',
+    });
+    await server.ready();
+
+    expect(server.skillShareer.serviceUnit).toBe('candidate-ingestion');
+    expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(false);
+    expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(false);
+
+    await server.close();
+  });
+
+  it('supports knowledge-governance service unit booted as api plus worker combination', async () => {
+    const server = buildServer({
+      runtimeMode: 'combined',
+      serviceUnit: 'knowledge-governance',
+    });
+    await server.ready();
+
+    expect(server.skillShareer.serviceUnit).toBe('knowledge-governance');
+    expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(false);
+    expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(false);
+
+    await server.close();
+  });
+
   it('freezes services after runtime-mode-aware startup', async () => {
     const server = buildServer({ runtimeMode: 'api' });
     await server.ready();
@@ -233,5 +261,39 @@ describeIfDb('startup sequence with postgres runtime modes', () => {
     expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(false);
     expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(true);
     await server.close();
+  });
+
+  it('candidate-ingestion service unit owns only candidate task work in postgres deployments', async () => {
+    const server = buildServer({
+      runtimeMode: 'task-worker',
+      serviceUnit: 'candidate-ingestion',
+      config: { databaseUrl: DATABASE_URL! } as any,
+    });
+    await server.ready();
+    expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(true);
+    expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(false);
+    await server.close();
+  });
+
+  it('knowledge-governance service unit owns shared jobs and outbox work in postgres deployments', async () => {
+    const workerServer = buildServer({
+      runtimeMode: 'task-worker',
+      serviceUnit: 'knowledge-governance',
+      config: { databaseUrl: DATABASE_URL! } as any,
+    });
+    await workerServer.ready();
+    expect((workerServer as any).taskWorker?.ownsWork?.() ?? false).toBe(true);
+    expect((workerServer as any).outboxWorker?.ownsWork?.() ?? false).toBe(false);
+    await workerServer.close();
+
+    const outboxServer = buildServer({
+      runtimeMode: 'outbox-worker',
+      serviceUnit: 'knowledge-governance',
+      config: { databaseUrl: DATABASE_URL! } as any,
+    });
+    await outboxServer.ready();
+    expect((outboxServer as any).taskWorker?.ownsWork?.() ?? false).toBe(false);
+    expect((outboxServer as any).outboxWorker?.ownsWork?.() ?? false).toBe(true);
+    await outboxServer.close();
   });
 });

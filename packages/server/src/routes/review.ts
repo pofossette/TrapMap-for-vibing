@@ -2,6 +2,7 @@ import { reviewDecisionRequestSchema, reviewQueueResponseSchema } from '@trapmap
 import type { FastifyPluginAsync } from 'fastify';
 
 import { createReviewApplicationService } from '@trapmap/server/lib/knowledge/review-application-service.js';
+import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
 import { buildReviewQueueProjection } from '@trapmap/server/lib/operations/read-model.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
@@ -9,11 +10,15 @@ import { nowIso } from '@trapmap/server/lib/store.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 export const reviewRoutes: FastifyPluginAsync = async (app) => {
+  const { store, eventBus, asyncTransport } = app.skillShareer;
   function getReviewService() {
     return createReviewApplicationService({
       repos: app.skillShareer.repos,
-      store: app.skillShareer.store,
-      eventBus: app.skillShareer.eventBus,
+      lifecyclePublisher: createLifecyclePublisher({
+        store,
+        eventBus,
+        asyncTransport,
+      }),
       feedbackRepo: app.skillShareer.repos.feedback,
     });
   }

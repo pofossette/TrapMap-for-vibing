@@ -18,7 +18,6 @@ import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 
 import type { LifecycleEventBus } from './event-bus.js';
-import { createDomainEventOutbox } from './outbox.js';
 import { findTransitionEvent } from './transitions.js';
 import type { DomainEvent } from './types.js';
 
@@ -32,6 +31,25 @@ import type { DomainEvent } from './types.js';
 export async function emitLifecycleTransition(params: {
   store: SkillShareerStore;
   eventBus: LifecycleEventBus;
+  asyncTransport?: {
+    events: {
+      enqueue(params: {
+        aggregateType: string;
+        aggregateId: string;
+        eventName: string;
+        payload: DomainEvent;
+      }): Promise<unknown>;
+      enqueueTx(
+        client: PoolClient,
+        params: {
+          aggregateType: string;
+          aggregateId: string;
+          eventName: string;
+          payload: DomainEvent;
+        },
+      ): Promise<unknown>;
+    };
+  };
   aggregateType: string;
   aggregateId: string;
   previousState: LifecycleState;
@@ -59,10 +77,13 @@ export async function emitLifecycleTransition(params: {
   };
 
   if (store instanceof PostgresStore) {
-    const outbox = createDomainEventOutbox({ pool: store.getPool() });
+    const transport = params.asyncTransport;
+    if (!transport) {
+      throw new Error('Postgres lifecycle transition requires async transport');
+    }
     const enqueue = params.txClient
-      ? outbox.enqueueTx.bind(outbox, params.txClient)
-      : outbox.enqueue;
+      ? transport.events.enqueueTx.bind(transport.events, params.txClient)
+      : transport.events.enqueue;
     await enqueue({
       aggregateType,
       aggregateId,

@@ -18,10 +18,18 @@ import {
   attachManualResult,
 } from '@trapmap/server/lib/candidates/services/resolution-service.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
+import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
 export const candidateResolutionRoutes: FastifyPluginAsync = async (app) => {
+  const { store, eventBus, asyncTransport } = app.skillShareer;
+  const lifecyclePublisher = createLifecyclePublisher({
+    store,
+    eventBus,
+    asyncTransport,
+  });
+
   // POST /v1/candidates/:candidateId/manual-result - Submit manual resolution
   app.post('/v1/candidates/:candidateId/manual-result', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
@@ -39,7 +47,7 @@ export const candidateResolutionRoutes: FastifyPluginAsync = async (app) => {
       {
         store: app.skillShareer.store,
         repos: app.skillShareer.repos,
-        eventBus: app.skillShareer.eventBus,
+        lifecyclePublisher,
         config: app.skillShareer.config,
       },
       auth,
@@ -61,7 +69,7 @@ export const candidateResolutionRoutes: FastifyPluginAsync = async (app) => {
       {
         store: app.skillShareer.store,
         repos: app.skillShareer.repos,
-        eventBus: app.skillShareer.eventBus,
+        lifecyclePublisher,
         config: app.skillShareer.config,
       },
       auth,

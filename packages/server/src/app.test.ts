@@ -312,6 +312,44 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     await outboxWorkerApp.close();
   });
 
+  it('service units remain request-ready in json-store mode', async () => {
+    const candidateIngestionApp = buildServer({
+      runtimeMode: 'combined',
+      serviceUnit: 'candidate-ingestion',
+    });
+    await candidateIngestionApp.ready();
+    const candidateIngestionReady = await candidateIngestionApp.inject({
+      method: 'GET',
+      url: '/ready',
+    });
+    expect(candidateIngestionReady.statusCode).toBe(200);
+    expect(candidateIngestionReady.json()).toMatchObject({
+      dependencies: {
+        queueWorker: 'not-configured',
+        outboxWorker: 'not-configured',
+      },
+    });
+    await candidateIngestionApp.close();
+
+    const knowledgeGovernanceApp = buildServer({
+      runtimeMode: 'combined',
+      serviceUnit: 'knowledge-governance',
+    });
+    await knowledgeGovernanceApp.ready();
+    const knowledgeGovernanceReady = await knowledgeGovernanceApp.inject({
+      method: 'GET',
+      url: '/ready',
+    });
+    expect(knowledgeGovernanceReady.statusCode).toBe(200);
+    expect(knowledgeGovernanceReady.json()).toMatchObject({
+      dependencies: {
+        queueWorker: 'not-configured',
+        outboxWorker: 'not-configured',
+      },
+    });
+    await knowledgeGovernanceApp.close();
+  });
+
   it('logs request-context metadata on unhandled errors', async () => {
     const app = buildServer();
     app.get('/__phase1-error', async () => {

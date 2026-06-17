@@ -24,6 +24,7 @@ import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/
 import { createDuplicateCaseId } from '@trapmap/server/lib/ids.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
+import type { DuplicateRepository } from '@trapmap/server/lib/repos/index.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
@@ -31,7 +32,10 @@ import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 /** Dependencies required by the submission service. */
 export interface SubmissionDeps {
   store: SkillShareerStore;
-  repos: SkillShareerServices['repos'];
+  repos: {
+    candidate: CandidateRepository;
+    duplicate: DuplicateRepository;
+  };
   config: SkillShareerServices['config'];
 }
 

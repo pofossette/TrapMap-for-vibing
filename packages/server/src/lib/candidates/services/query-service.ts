@@ -8,12 +8,22 @@
  */
 
 import type { DuplicateJobBundleResponse, DuplicateJobMatchEntity } from '@trapmap/contracts';
-import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
+import type {
+  ArtifactRepository,
+  CandidateRepository,
+  DuplicateRepository,
+  KnowledgeRepository,
+} from '@trapmap/server/lib/repos/index.js';
 
 /** Dependencies required by the query service. */
 export interface QueryDeps {
-  repos: SkillShareerServices['repos'];
+  repos: {
+    candidate: CandidateRepository;
+    duplicate: DuplicateRepository;
+    knowledge: KnowledgeRepository;
+    artifact: ArtifactRepository;
+  };
 }
 
 /**

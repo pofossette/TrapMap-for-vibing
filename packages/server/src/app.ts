@@ -6,6 +6,7 @@ import Fastify from 'fastify';
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
 import { createAiProviders } from './lib/ai/index.js';
+import { createPostgresAsyncTransport } from './lib/async/transport.js';
 import type { SkillShareerServices } from './lib/context.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
 import type { GraphQueryBackend } from './lib/graph-query/backend.js';
@@ -27,6 +28,7 @@ import { semanticChannel } from './lib/retrieval/recall/semantic.js';
 import { handleRuntimeError, registerRuntimeRoutes } from './lib/runtime/http-surface.js';
 import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
 import type { RuntimeMode } from './lib/runtime/runtime-contract.js';
+import { resolveServiceUnit, type ServiceUnit } from './lib/runtime/service-unit.js';
 
 import { runStartupSequence } from './bootstrap/run-startup-sequence.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
@@ -112,10 +114,12 @@ interface BuildServerOptions {
   config?: Partial<ServerConfig>;
   bodyLimit?: number;
   runtimeMode?: RuntimeMode;
+  serviceUnit?: ServiceUnit;
 }
 
 export function buildServer(options: BuildServerOptions = {}) {
   const runtimeMode = options.runtimeMode ?? 'combined';
+  const serviceUnit = resolveServiceUnit(options.serviceUnit ?? process.env.TRAPMAP_SERVICE_UNIT);
   const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
   const defaultTestDataFile =
     isTestEnv &&
@@ -156,7 +160,9 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.decorate('skillShareer', {
     config,
     runtimeMode,
+    serviceUnit,
     store: createSkillShareerStore(config),
+    asyncTransport: undefined,
     adapterRegistry: buildDefaultAdapterRegistry(),
     channelRegistry: (() => {
       const cr = new ChannelRegistry();
@@ -212,6 +218,12 @@ export function buildServer(options: BuildServerOptions = {}) {
     graphQuery: createGraphQueryRuntimeState(config.graphDb),
     eventBus: new LifecycleEventBus(),
   });
+
+  if (app.skillShareer.store instanceof PostgresStore) {
+    app.skillShareer.asyncTransport = createPostgresAsyncTransport(
+      app.skillShareer.store.getPool(),
+    );
+  }
 
   // Bridge: wire global embeddings provider so existing generateEmbedding() callers
   // delegate through the new AI provider layer.

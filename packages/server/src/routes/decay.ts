@@ -19,6 +19,7 @@ import { z } from 'zod';
 
 import { createDecayBatchApplicationService } from '@trapmap/server/lib/decay/application-service.js';
 import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
+import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
 import { buildDecayEntriesProjection } from '@trapmap/server/lib/operations/read-model.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
@@ -26,11 +27,15 @@ import { nowIso } from '@trapmap/server/lib/store.js';
 import { loadUserOpsLogConfig, logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 export const decayRoutes: FastifyPluginAsync = async (app) => {
+  const { store, eventBus, asyncTransport } = app.skillShareer;
   function getDecayBatchService() {
     return createDecayBatchApplicationService({
       repos: app.skillShareer.repos,
-      store: app.skillShareer.store,
-      eventBus: app.skillShareer.eventBus,
+      lifecyclePublisher: createLifecyclePublisher({
+        store,
+        eventBus,
+        asyncTransport,
+      }),
     });
   }
 

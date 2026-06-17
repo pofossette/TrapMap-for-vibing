@@ -965,10 +965,12 @@ describe('knowledge routes with indexing integration (IDX-05, IDX-06)', () => {
   });
 
   describe('outbox vs direct sync emission convergence (Phase 4)', () => {
-    it('uses emitLifecycleTransition helper instead of direct eventBus', () => {
+    it('uses lifecycle publisher boundary instead of direct eventBus', () => {
       const source = readFileSync(path.join(__dirname, 'knowledge.ts'), 'utf8');
-      // knowledge.ts now delegates to emitLifecycleTransition for PG/JSON routing.
-      expect(source).toContain('emitLifecycleTransition');
+      // knowledge.ts now delegates lifecycle routing to a publisher facade.
+      expect(source).toContain('createLifecyclePublisher');
+      expect(source).toContain('lifecyclePublisher.publishTransition');
+      expect(source).not.toContain('eventBus: app.skillShareer.eventBus');
       expect(source).not.toContain('emitDomainEventAsync');
       expect(source).not.toContain('outbox.enqueue');
     });

@@ -14,14 +14,20 @@ import {
   type SharedJobHandler,
   getSharedJobContract,
 } from '@trapmap/server/lib/jobs/types.js';
+import type { ArtifactRepository, KnowledgeRepository } from '@trapmap/server/lib/repos/index.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 import type { Pool } from 'pg';
 
 export function createRemediationReactivationHandler(args: {
   services: Pick<
     SkillShareerServices,
-    'store' | 'repos' | 'adapterRegistry' | 'ai' | 'graphQueryBackend'
-  >;
+    'store' | 'adapterRegistry' | 'ai' | 'graphQueryBackend'
+  > & {
+    repos: {
+      knowledge: KnowledgeRepository;
+      artifact: ArtifactRepository;
+    };
+  };
   pool: Pool;
 }): SharedJobHandler<RemediationReactivationPayload> {
   const contract = getSharedJobContract(REMEDIATION_REACTIVATION_TASK_TYPE);

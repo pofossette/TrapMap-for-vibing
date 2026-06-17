@@ -13,11 +13,9 @@ import {
   getActiveEntryFeedback,
 } from '@trapmap/server/lib/feedback/remediation.js';
 import { applyReviewDecision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
-import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
-import type { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
+import type { LifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
 import { requireHigherLevel, requireTeamAccess } from '@trapmap/server/lib/rbac.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { saveKnowledgeEntry } from './repository.js';
 
 export interface ApplyReviewDecisionInput {
@@ -41,8 +39,7 @@ export interface ReviewApplicationService {
 
 export interface ReviewApplicationServiceDeps {
   repos: SkillShareerRepos;
-  store: SkillShareerStore;
-  eventBus: LifecycleEventBus;
+  lifecyclePublisher: LifecyclePublisher;
   feedbackRepo: FeedbackRepository;
 }
 
@@ -55,7 +52,7 @@ export function createReviewApplicationService(
 }
 
 async function applyDecision(deps: ReviewApplicationServiceDeps, input: ApplyReviewDecisionInput) {
-  const { repos, store, eventBus, feedbackRepo } = deps;
+  const { repos, lifecyclePublisher, feedbackRepo } = deps;
   const existingEntry = await repos.knowledge.getById(input.entryId);
   if (!existingEntry) {
     throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
@@ -183,9 +180,7 @@ async function applyDecision(deps: ReviewApplicationServiceDeps, input: ApplyRev
   }
 
   const nextState = existingEntry.lifecycleState;
-  await emitLifecycleTransition({
-    store,
-    eventBus,
+  await lifecyclePublisher.publishTransition({
     aggregateType: 'knowledge',
     aggregateId: existingEntry.id,
     previousState,
