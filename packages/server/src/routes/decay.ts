@@ -28,9 +28,12 @@ import { loadUserOpsLogConfig, logUserOperation } from '@trapmap/server/lib/user
 
 export const decayRoutes: FastifyPluginAsync = async (app) => {
   const { store, eventBus, asyncTransport } = app.skillShareer;
+  const decayRepos = {
+    knowledge: app.skillShareer.repos.knowledge,
+  };
   function getDecayBatchService() {
     return createDecayBatchApplicationService({
-      repos: app.skillShareer.repos,
+      repos: decayRepos,
       lifecyclePublisher: createLifecyclePublisher({
         store,
         eventBus,

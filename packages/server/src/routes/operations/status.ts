@@ -7,12 +7,11 @@ import {
 import type { FastifyPluginAsync } from 'fastify';
 
 import { getRetrievalCacheStats } from '@trapmap/server/lib/cache/metrics.js';
-import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
 import { buildCompatibilityStatusProjection } from '@trapmap/server/lib/operations/read-model.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAsyncWorkerState } from '@trapmap/server/lib/runtime/runtime-metadata.js';
+import { getServiceUnitProfile } from '@trapmap/server/lib/runtime/service-unit.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
@@ -23,9 +22,14 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:export');
 
     const store = app.skillShareer.store;
+    const runtimeMode = app.skillShareer.runtimeMode;
+    const serviceUnit = app.skillShareer.serviceUnit;
+    const serviceUnitProfile = getServiceUnitProfile(serviceUnit, runtimeMode);
     if (!(store instanceof PostgresStore)) {
       return asyncOperationsStatusResponseSchema.parse({
         asyncRuntimeEnabled: false,
+        runtimeMode,
+        serviceUnit,
         queue: {
           pending: 0,
           running: 0,
@@ -36,6 +40,12 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
           deadOldestAgeSeconds: null,
           reclaimCount: 0,
           workerState: 'not-configured',
+          serviceUnit,
+          ownership: {
+            ownsAny: false,
+            ownsCandidateTaskWork: false,
+            ownsSharedJobTaskWork: false,
+          },
           recentDeadLetters: [],
         },
         outbox: {
@@ -48,6 +58,11 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
           failedOldestAgeSeconds: null,
           reclaimCount: 0,
           workerState: 'not-configured',
+          serviceUnit,
+          ownership: {
+            ownsAny: false,
+            ownsOutboxWork: false,
+          },
           recentFailures: [],
         },
         cache: getRetrievalCacheStats(),
@@ -56,22 +71,24 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    const pool = store.getPool();
-    const queue = createTaskQueue({ pool });
-    const outbox = createDomainEventOutbox({ pool });
-    const workflowRepo = createWorkflowRepository(pool);
+    const transport = app.skillShareer.asyncTransport;
+    if (!transport) {
+      throw new Error('Postgres runtime requires skillShareer.asyncTransport for async status');
+    }
+    const workflowRepo = createWorkflowRepository(store.getPool());
     const [queueSnapshot, outboxSnapshot, workflows] = await Promise.all([
-      queue.getStatusSnapshot(),
-      outbox.getStatusSnapshot(),
+      transport.queue.getStatusSnapshot(),
+      transport.events.getStatusSnapshot(),
       workflowRepo.listRecent(25),
     ]);
 
     const queueWorker = (app as any).taskWorker;
     const outboxWorker = (app as any).outboxWorker;
-    const runtimeMode = app.skillShareer.runtimeMode;
 
     return asyncOperationsStatusResponseSchema.parse({
       asyncRuntimeEnabled: true,
+      runtimeMode,
+      serviceUnit,
       queue: {
         ...queueSnapshot,
         workerState: resolveAsyncWorkerState({
@@ -81,6 +98,14 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
           owner: queueWorker?.ownsWork?.(),
           running: queueWorker?.isRunning?.() ?? false,
         }),
+        serviceUnit,
+        ownership: {
+          ownsAny:
+            serviceUnitProfile.ownsCandidateTaskWork ||
+            serviceUnitProfile.ownsSharedJobTaskWork,
+          ownsCandidateTaskWork: serviceUnitProfile.ownsCandidateTaskWork,
+          ownsSharedJobTaskWork: serviceUnitProfile.ownsSharedJobTaskWork,
+        },
       },
       outbox: {
         ...outboxSnapshot,
@@ -91,6 +116,11 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
           owner: outboxWorker?.ownsWork?.(),
           running: outboxWorker?.isRunning?.() ?? false,
         }),
+        serviceUnit,
+        ownership: {
+          ownsAny: serviceUnitProfile.ownsOutboxWork,
+          ownsOutboxWork: serviceUnitProfile.ownsOutboxWork,
+        },
       },
       cache: getRetrievalCacheStats(),
       workflows,
@@ -112,10 +142,13 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const taskId = (request.params as { taskId: string }).taskId;
-    const queue = createTaskQueue({ pool: store.getPool() });
-    const before = await queue.getStatusSnapshot();
-    await queue.requeue(taskId);
-    const after = await queue.getStatusSnapshot();
+    const transport = app.skillShareer.asyncTransport;
+    if (!transport) {
+      throw new Error('Postgres runtime requires skillShareer.asyncTransport for task requeue');
+    }
+    const before = await transport.queue.getStatusSnapshot();
+    await transport.queue.requeue(taskId);
+    const after = await transport.queue.getStatusSnapshot();
 
     return asyncTaskRequeueResponseSchema.parse({
       taskId,

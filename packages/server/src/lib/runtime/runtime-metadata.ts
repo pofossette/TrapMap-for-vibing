@@ -3,6 +3,8 @@ import type { ServerConfig } from '@trapmap/server/config.js';
 import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/backend.js';
 import type { OutboxStatusSnapshot } from '@trapmap/server/lib/lifecycle/outbox.js';
 import type { TaskQueueStatusSnapshot } from '@trapmap/server/lib/queue/task-queue.js';
+import type { RuntimeMode } from './runtime-contract.js';
+import type { ServiceUnit, ServiceUnitProfile } from './service-unit.js';
 export { resolveAsyncWorkerState } from './runtime-ownership.js';
 
 export interface RuntimeDependencyState {
@@ -10,6 +12,19 @@ export interface RuntimeDependencyState {
   queueWorker: AsyncWorkerDependencyState;
   outboxWorker: AsyncWorkerDependencyState;
   graphQuery: 'disabled' | 'healthy' | 'fallback' | 'failed';
+  runtimeMode: RuntimeMode;
+  serviceUnit: ServiceUnit;
+  ownership: {
+    queue: {
+      ownsAny: boolean;
+      ownsCandidateTaskWork: boolean;
+      ownsSharedJobTaskWork: boolean;
+    };
+    outbox: {
+      ownsAny: boolean;
+      ownsOutboxWork: boolean;
+    };
+  };
 }
 
 export interface RuntimeStatusSnapshot {
@@ -23,6 +38,10 @@ export interface RuntimeStatusSnapshot {
   };
   dependencies: RuntimeDependencyState;
   graphQuery: GraphQueryRuntimeState;
+  serviceUnit: {
+    name: ServiceUnit;
+    ownership: ServiceUnitProfile;
+  };
   memory: {
     rssMb: number;
     heapUsedMb: number;
@@ -45,6 +64,9 @@ interface BuildRuntimeStatusSnapshotOptions {
   config: ServerConfig;
   graphQuery: GraphQueryRuntimeState;
   database: 'postgres' | 'json-store';
+  runtimeMode: RuntimeMode;
+  serviceUnit: ServiceUnit;
+  serviceUnitProfile: ServiceUnitProfile;
   queueWorkerState: AsyncWorkerDependencyState;
   outboxWorkerState: AsyncWorkerDependencyState;
   queueSnapshot?: Pick<
@@ -99,8 +121,27 @@ export function buildRuntimeStatusSnapshot(
       queueWorker,
       outboxWorker,
       graphQuery: graphDependency,
+      runtimeMode: options.runtimeMode,
+      serviceUnit: options.serviceUnit,
+      ownership: {
+        queue: {
+          ownsAny:
+            options.serviceUnitProfile.ownsCandidateTaskWork ||
+            options.serviceUnitProfile.ownsSharedJobTaskWork,
+          ownsCandidateTaskWork: options.serviceUnitProfile.ownsCandidateTaskWork,
+          ownsSharedJobTaskWork: options.serviceUnitProfile.ownsSharedJobTaskWork,
+        },
+        outbox: {
+          ownsAny: options.serviceUnitProfile.ownsOutboxWork,
+          ownsOutboxWork: options.serviceUnitProfile.ownsOutboxWork,
+        },
+      },
     },
     graphQuery: options.graphQuery,
+    serviceUnit: {
+      name: options.serviceUnit,
+      ownership: options.serviceUnitProfile,
+    },
     memory: {
       rssMb: Math.round(mem.rss / 1024 / 1024),
       heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024),

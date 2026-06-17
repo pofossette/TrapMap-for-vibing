@@ -133,6 +133,21 @@ pnpm dev:server:outbox-worker
 
 默认 `pnpm dev:server` 为 `combined` 模式，适合本地单进程开发。
 
+运行时说明：
+
+- `serviceUnit=candidate-ingestion` 拥有 candidate processing 任务面，适合候选提交与候选 worker 相关验证。
+- `serviceUnit=knowledge-governance` 拥有 shared jobs / lifecycle follow-up / outbox 相关工作面，适合 review、decay、indexing follow-up 验证。
+- API / worker 组合层通过 `asyncTransport` 和 `LifecyclePublisher` 接入异步基础设施；业务服务本身不应直接构造 `TaskQueue`。
+
+如需预演服务拆分，额外设置 `TRAPMAP_SERVICE_UNIT`：
+
+```bash
+TRAPMAP_SERVICE_UNIT=candidate-ingestion pnpm dev:server:task-worker
+TRAPMAP_SERVICE_UNIT=knowledge-governance pnpm dev:server:task-worker
+TRAPMAP_SERVICE_UNIT=knowledge-governance pnpm dev:server:outbox-worker
+TRAPMAP_SERVICE_UNIT=full-platform pnpm dev:server
+```
+
 ### 方式二：Docker Compose
 
 ```bash
@@ -170,9 +185,14 @@ curl http://127.0.0.1:4000/ready
   },
   "dependencies": {
     "database": "postgres",
+    "runtimeMode": "combined",
+    "serviceUnit": "full-platform",
     "queueWorker": "running",
     "outboxWorker": "running",
     "graphQuery": "disabled"
+  },
+  "serviceUnit": {
+    "name": "full-platform"
   },
   "memory": { "rssMb": 128, "heapUsedMb": 64, "heapTotalMb": 96 },
   "uptimeSeconds": 42
@@ -180,6 +200,17 @@ curl http://127.0.0.1:4000/ready
 ```
 
 `/ready` 与 `/health` 共享同一份 runtime snapshot，但会额外返回 `ok`。当 `readiness === "not-ready"` 时，`/ready` 返回 `503`。
+
+拆分运行时时重点看 ownership：
+
+```bash
+curl -H "Authorization: Bearer <token>" http://127.0.0.1:4000/v1/operations/status/async
+```
+
+- `candidate-ingestion` 进程应只声明 `queue.ownership.ownsCandidateTaskWork=true`
+- `knowledge-governance` task-worker 进程应只声明 `queue.ownership.ownsSharedJobTaskWork=true`
+- `knowledge-governance` outbox-worker 进程应声明 `outbox.ownership.ownsOutboxWork=true`
+- JSON store 模式下 ownership 仍会声明，但 async worker state 会是 `not-configured`
 
 ### 运行测试
 

@@ -21,6 +21,13 @@ Fastify API 服务，承载检索、索引、治理、认证、候选处理等�
 7. `src/bootstrap/bootstrap-graph-reconciliation.ts` — 图索引一致性修复
 8. `src/bootstrap/bootstrap-lifecycle.ts` — 事件订阅者注册、OutboxWorker 启动
 
+运行时拆分由两个维度共同决定：
+
+- `runtimeMode`：当前进程是 `api`、`task-worker`、`outbox-worker` 还是 `combined`
+- `TRAPMAP_SERVICE_UNIT`：当前进程拥有 `full-platform`、`candidate-ingestion`、`knowledge-governance` 中哪类 async work
+
+默认消息底座仍是 PostgreSQL `task_queue` + `domain_event_outbox`，但运行时代码和业务入口统一通过 `app.skillShareer.asyncTransport` 访问，不在路由或应用服务里直接拼装底层 transport。
+
 ## 目录结构
 
 - `src/bootstrap/` — 启动序列、候选恢复、图协调、生命周期、仓库初始化、Worker

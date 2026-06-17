@@ -56,9 +56,14 @@ contracts → server (app → routes → lib) → cli → evals
 
 1. `bootstrapRepositories` — 运行迁移、创建所有 repo、确保向量索引
 2. `bootstrapCandidateRecovery` — 查找并重新排队中断的候选
-3. `bootstrapWorkers` — 创建并启动任务 worker
+3. `bootstrapWorkers` — 按 `runtimeMode × serviceUnit` 创建并启动任务 worker
 4. `bootstrapGraphReconciliation` — 对账图索引
-5. `bootstrapLifecycle` — 注册事件订阅者 + 启动 outbox worker
+5. `bootstrapLifecycle` — 注册事件订阅者 + 按 `serviceUnit` ownership 启动 outbox worker
+
+运行时拆分时有两个独立维度：
+
+- `runtimeMode` 决定当前进程暴露 HTTP、task worker、outbox worker 中的哪一类运行面。
+- `serviceUnit` 决定当前进程拥有哪类 async work。当前只允许 `full-platform`、`candidate-ingestion`、`knowledge-governance`。
 
 `src/index.ts` 只是调用 `buildServer()` 并启动 Fastify 监听，可以快速扫过。
 

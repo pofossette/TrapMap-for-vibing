@@ -2,6 +2,8 @@
 
 > 当前更完整、包含 Phase 5-7 shared jobs / cache invalidation / badcase export / runtime modes 的异步模型说明见 [`ASYNC_MODEL.md`](ASYNC_MODEL.md)。
 
+> 当前组合层边界补充：PG 模式下，路由/服务不应直接构造 `TaskQueue` 或直接写 outbox。统一入口是 `app.skillShareer.asyncTransport`，其中 `asyncTransport.queue` 用于 candidate processing / shared jobs，`LifecyclePublisher` 用于 lifecycle event 注册。
+
 ## 概述
 
 TrapMap 的异步基础设施**不依赖外部中间件**（无 Redis、Bull、WebSocket、worker_threads），而是基于 PostgreSQL 和 Node.js 原语自建了一套轻量级异步栈，覆盖事件驱动、持久化任务队列、并发控制、缓存优化四大需求。
@@ -159,8 +161,8 @@ WHERE status = 'pending';
 
 | 模式 | 路径 | 说明 |
 |------|------|------|
-| **PostgreSQL** | 写路由 → outbox.enqueue() → OutboxWorker 后台消费 → subscriber | 请求不等待索引/冲突检测完成 |
-| **JSON (本地)** | 写路由 → eventBus.emitDomainEventAsync() | 本地轻量运行，保留同步语义 |
+| **PostgreSQL** | 写路由 / application service → `createLifecyclePublisher()` / `asyncTransport` → OutboxWorker / TaskWorker → subscriber / handler | 业务层不直接拼装 `task_queue` / `domain_event_outbox` |
+| **JSON (本地)** | 写路由 / application service → `createLifecyclePublisher()` → `eventBus.emitDomainEventAsync()` | 本地轻量运行，保留同步兼容语义 |
 
 ### OutboxWorker
 

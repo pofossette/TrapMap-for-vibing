@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildServer } from '@trapmap/server/app.js';
 import {
@@ -764,15 +764,168 @@ describeIfDb('operations async status routes', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       asyncRuntimeEnabled: true,
+      runtimeMode: 'combined',
+      serviceUnit: 'full-platform',
       queue: expect.objectContaining({
         pending: expect.any(Number),
         dead: expect.any(Number),
+        serviceUnit: 'full-platform',
+        ownership: {
+          ownsAny: true,
+          ownsCandidateTaskWork: true,
+          ownsSharedJobTaskWork: true,
+        },
       }),
       outbox: expect.objectContaining({
         pending: expect.any(Number),
         failed: expect.any(Number),
+        serviceUnit: 'full-platform',
+        ownership: {
+          ownsAny: true,
+          ownsOutboxWork: true,
+        },
       }),
       workflows: expect.any(Array),
     });
+  });
+
+  it('uses skillShareer asyncTransport snapshots as the authoritative status source', async () => {
+    const queueSnapshot = {
+      pending: 17,
+      running: 3,
+      dead: 1,
+      staleRunning: 0,
+      backlogOldestAgeSeconds: 12,
+      runningOldestAgeSeconds: 9,
+      deadOldestAgeSeconds: 30,
+      reclaimCount: 4,
+      recentDeadLetters: [],
+    };
+    const outboxSnapshot = {
+      pending: 8,
+      processing: 2,
+      failed: 1,
+      staleProcessing: 0,
+      backlogOldestAgeSeconds: 15,
+      processingOldestAgeSeconds: 6,
+      failedOldestAgeSeconds: 44,
+      reclaimCount: 5,
+      recentFailures: [],
+    };
+    app.skillShareer.asyncTransport = {
+      kind: 'postgres-outbox-task-queue',
+      queue: {
+        enqueue: vi.fn(),
+        enqueueTx: vi.fn(),
+        requeue: vi.fn(),
+        getStatusSnapshot: vi.fn().mockResolvedValue(queueSnapshot),
+      },
+      events: {
+        enqueue: vi.fn(),
+        enqueueTx: vi.fn(),
+        claimBatch: vi.fn(),
+        complete: vi.fn(),
+        fail: vi.fn(),
+        getStatusSnapshot: vi.fn().mockResolvedValue(outboxSnapshot),
+      },
+    } as any;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/operations/status/async',
+      headers: { authorization: `Bearer ${sessionId}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      queue: expect.objectContaining({
+        pending: 17,
+        running: 3,
+        reclaimCount: 4,
+      }),
+      outbox: expect.objectContaining({
+        pending: 8,
+        processing: 2,
+        reclaimCount: 5,
+      }),
+    });
+    expect(app.skillShareer.asyncTransport.queue.getStatusSnapshot).toHaveBeenCalledTimes(1);
+    expect(app.skillShareer.asyncTransport.events.getStatusSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports candidate-ingestion ownership without implying outbox ownership', async () => {
+    const candidateApp = buildServer({
+      runtimeMode: 'combined',
+      serviceUnit: 'candidate-ingestion',
+      config: { databaseUrl: DATABASE_URL! } as any,
+    });
+    await candidateApp.ready();
+
+    const store = candidateApp.skillShareer.store as any;
+    let candidateSessionId = '';
+    await store.transact(async (data: any) => {
+      data.users.push({
+        id: 'user_async_ops_candidate',
+        handle: 'asyncopscandidate',
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+      data.memberships.push({
+        id: 'membership_async_ops_candidate',
+        userId: 'user_async_ops_candidate',
+        teamId: null,
+        roleTemplate: 'admin',
+        securityLevel: 10,
+        permissions: ['knowledge:export', 'stats:read'],
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+      const token = `session_async_candidate_${Date.now()}`;
+      data.sessions.push({
+        id: `session_async_ops_candidate_${Date.now()}`,
+        userId: 'user_async_ops_candidate',
+        tokenHash: hashSecret(token),
+        activeTeamId: null,
+        subjectType: 'user',
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      });
+      candidateSessionId = token;
+    });
+
+    const response = await candidateApp.inject({
+      method: 'GET',
+      url: '/v1/operations/status/async',
+      headers: { authorization: `Bearer ${candidateSessionId}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      asyncRuntimeEnabled: true,
+      runtimeMode: 'combined',
+      serviceUnit: 'candidate-ingestion',
+      queue: expect.objectContaining({
+        serviceUnit: 'candidate-ingestion',
+        workerState: 'running',
+        ownership: {
+          ownsAny: true,
+          ownsCandidateTaskWork: true,
+          ownsSharedJobTaskWork: false,
+        },
+      }),
+      outbox: expect.objectContaining({
+        serviceUnit: 'candidate-ingestion',
+        workerState: 'remote',
+        ownership: {
+          ownsAny: false,
+          ownsOutboxWork: false,
+        },
+      }),
+    });
+
+    await candidateApp.close();
   });
 });

@@ -8,6 +8,7 @@ import {
 import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import type { FeedbackRepository } from '@trapmap/server/lib/feedback/index.js';
+import type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
 import {
   FEEDBACK_REMEDIATION_THRESHOLD,
   getActiveEntryFeedback,
@@ -15,7 +16,9 @@ import {
 import { applyReviewDecision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import type { LifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
 import { requireHigherLevel, requireTeamAccess } from '@trapmap/server/lib/rbac.js';
-import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
+import type { AuditRepository } from '@trapmap/server/lib/audit/index.js';
+import type { MembershipRepository } from '@trapmap/server/lib/teams/index.js';
+import type { UserRepository } from '@trapmap/server/lib/users/index.js';
 import { saveKnowledgeEntry } from './repository.js';
 
 export interface ApplyReviewDecisionInput {
@@ -38,7 +41,12 @@ export interface ReviewApplicationService {
 }
 
 export interface ReviewApplicationServiceDeps {
-  repos: SkillShareerRepos;
+  repos: {
+    knowledge: KnowledgeRepository;
+    audit: AuditRepository;
+    user: UserRepository;
+    membership: MembershipRepository;
+  };
   lifecyclePublisher: LifecyclePublisher;
   feedbackRepo: FeedbackRepository;
 }

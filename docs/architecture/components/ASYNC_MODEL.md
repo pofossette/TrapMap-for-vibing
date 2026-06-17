@@ -74,6 +74,13 @@ flowchart TB
 
 ## 1. Authoritative write 与异步注册
 
+当前 PG 运行时通过 `app.skillShareer.asyncTransport` 暴露唯一异步基础设施边界：
+
+- `asyncTransport.queue`：`task_queue` 的注册/状态端口
+- `asyncTransport.events`：`domain_event_outbox` 的注册/消费端口
+
+业务服务不应直接 `createTaskQueue()` 或直接操作 outbox 表；候选提交、shared jobs 和 lifecycle follow-up 都应通过上述 transport seam 或其上层窄端口完成。
+
 ### 1.1 Candidate 提交
 
 ```mermaid
@@ -81,16 +88,18 @@ sequenceDiagram
     participant Route as /v1/candidates
     participant Store as PostgresStore.transactWithPgClient
     participant Candidate as candidate repo
+    participant QueuePort as asyncTransport.queue
     participant Queue as task_queue
 
     Route->>Store: begin tx
     Store->>Candidate: insert candidate
     Store->>Candidate: set initial status
-    Store->>Queue: enqueue candidate_processing
+    Store->>QueuePort: enqueueTx(candidate_processing)
+    QueuePort->>Queue: register task
     Store-->>Route: commit
 ```
 
-当前 candidate 提交已经满足“authoritative write + queue registration”同事务。
+当前 candidate 提交通过 route composition 注入窄 `candidateQueue` 端口，满足“authoritative write + queue registration”同事务；服务层本身不再直接构造 queue。
 
 ### 1.2 Lifecycle transition
 
@@ -98,18 +107,21 @@ sequenceDiagram
 sequenceDiagram
     participant Route as review/knowledge/decay/traps
     participant Repo as authoritative write
+    participant Publisher as LifecyclePublisher
     participant Emit as emitLifecycleTransition()
     participant Outbox as domain_event_outbox
 
     Route->>Repo: write lifecycle state
     Repo-->>Route: commit
-    Route->>Emit: enqueue lifecycle event
+    Route->>Publisher: publishTransition()
+    Publisher->>Emit: enqueue lifecycle event
     Emit->>Outbox: register event
 ```
 
 说明：
 
-- `emitLifecycleTransition()` 已统一为 lifecycle event 唯一出口
+- `LifecyclePublisher` 是 review / knowledge / decay 等写路径进入 lifecycle async 边界的组合层 seam
+- `emitLifecycleTransition()` 仍是 lifecycle event 注册唯一出口
 - 但仍有若干调用点在事务提交后才调用该函数
 - 因此“所有 lifecycle write 均与 outbox registration 原子同事务”仍是仓库剩余差距
 
@@ -186,7 +198,7 @@ flowchart TB
 
 - 有 typed payload
 - 先在 shared contract registry 中声明 owner、幂等键、`maxAttempts`、dead-letter 语义和 workflow binding
-- 走同一 `task_queue`
+- 通过 `asyncTransport.queue` 走同一 `task_queue`
 - 写入 `workflow_runs`
 - 通过 operator surface 可见
 

@@ -2,12 +2,14 @@ import type { LifecycleState } from '@trapmap/contracts';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 import type { WorkflowType } from '@trapmap/server/lib/workflows/types.js';
 
+export const CANDIDATE_PROCESSING_TASK_TYPE = 'candidate_processing';
 export const KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE = 'knowledge.index-follow-up';
 export const SKILL_INDEX_FOLLOW_UP_TASK_TYPE = 'skill.index-follow-up';
 export const REMEDIATION_REACTIVATION_TASK_TYPE = 'feedback.remediation-reactivation';
 export const BADCASE_EXPORT_DRAFT_TASK_TYPE = 'feedback.badcase-export-draft';
 
 export type SharedJobTaskType =
+  | typeof CANDIDATE_PROCESSING_TASK_TYPE
   | typeof KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE
   | typeof SKILL_INDEX_FOLLOW_UP_TASK_TYPE
   | typeof REMEDIATION_REACTIVATION_TASK_TYPE
@@ -43,7 +45,13 @@ export interface BadcaseExportDraftPayload {
   queryId: string | null;
 }
 
+export interface CandidateProcessingPayload {
+  candidateId: string;
+  retryCount: number;
+}
+
 export type SharedJobPayloadByType = {
+  [CANDIDATE_PROCESSING_TASK_TYPE]: CandidateProcessingPayload;
   [KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE]: KnowledgeIndexFollowUpPayload;
   [SKILL_INDEX_FOLLOW_UP_TASK_TYPE]: SkillIndexFollowUpPayload;
   [REMEDIATION_REACTIVATION_TASK_TYPE]: RemediationReactivationPayload;
@@ -138,6 +146,34 @@ function defineSharedJobContract<TTaskType extends SharedJobTaskType>(
 }
 
 export const sharedJobContracts = {
+  [CANDIDATE_PROCESSING_TASK_TYPE]: defineSharedJobContract({
+    taskType: CANDIDATE_PROCESSING_TASK_TYPE,
+    owner: (payload: CandidateProcessingPayload) => ({
+      owner: 'candidate-submission',
+      subjectId: payload.candidateId,
+      subjectType: 'candidate',
+    }),
+    idempotencyKey: {
+      description:
+        'One candidate-processing task per candidate while work is pending/running; retries reuse the same durable work item.',
+      format: 'candidate_processing:<candidateId>',
+    },
+    payloadDescription:
+      'Candidate ingestion follow-up payload that advances one durable candidate through duplicate analysis and review readiness.',
+    maxAttempts: 3,
+    deadLetter: {
+      stepName: 'dead-letter',
+      meaning:
+        'Candidate processing exhausted retries and the candidate remains outside duplicate-detected or review-ready states.',
+      operatorAction:
+        'Inspect the candidate workflow run and queue dead letter, repair duplicate-analysis failures, then requeue if the candidate is still actionable.',
+    },
+    workflow: {
+      workflowType: 'candidate-processing',
+      runId: (payload: CandidateProcessingPayload) => `wf_candidate_${payload.candidateId}`,
+      subjectId: (payload: CandidateProcessingPayload) => payload.candidateId,
+    },
+  }),
   [KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE]: defineSharedJobContract({
     taskType: KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
     owner: (payload: KnowledgeIndexFollowUpPayload) => ({

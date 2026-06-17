@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const ROUTES_SRC = resolve(process.cwd(), 'src/routes');
+const ROUTES_SRC = resolve(process.cwd(), 'packages/server/src/routes');
 const FORBIDDEN_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
   { label: 'store.snapshot()', pattern: /\bstore\.snapshot\(\)/ },
   { label: 'PostgresStore', pattern: /\bPostgresStore\b/ },

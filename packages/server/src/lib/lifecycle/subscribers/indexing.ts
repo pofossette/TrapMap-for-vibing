@@ -6,7 +6,10 @@ import {
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
 import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
-import { scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
+import {
+  createSharedJobQueuePort,
+  scheduleSharedJob,
+} from '@trapmap/server/lib/jobs/index.js';
 import { KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
@@ -21,7 +24,9 @@ export function createIndexingSubscriber(
   store: SkillShareerStore,
   registry: AdapterRegistry,
   graphQueryBackend?: GraphQueryBackend,
+  asyncQueue?: Parameters<typeof createSharedJobQueuePort>[0],
 ): DomainEventHandler {
+  const sharedJobQueue = asyncQueue ? createSharedJobQueuePort(asyncQueue) : undefined;
   return async (event) => {
     const previousState = event.previousState as LifecycleState;
     const nextState = event.nextState as LifecycleState;
@@ -66,6 +71,7 @@ export function createIndexingSubscriber(
       }),
     );
     await scheduleSharedJob(
+      sharedJobQueue,
       store,
       KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
       {

@@ -2,7 +2,7 @@ import { feedbackResponseSchema, feedbackSubmissionSchema } from '@trapmap/contr
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
+import { createSharedJobQueuePort, scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
 import {
   BADCASE_EXPORT_DRAFT_TASK_TYPE,
   getSharedJobWorkflowRunId,
@@ -61,6 +61,10 @@ async function persistBadcaseTrace(
 }
 
 export const feedbackRoutes: FastifyPluginAsync = async (app) => {
+  const sharedJobQueue = app.skillShareer.asyncTransport?.queue
+    ? createSharedJobQueuePort(app.skillShareer.asyncTransport.queue)
+    : undefined;
+
   app.post('/v1/feedback', async (request, reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
 
@@ -136,6 +140,7 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
     });
     if (payload.badcase) {
       await scheduleSharedJob(
+        sharedJobQueue,
         app.skillShareer.store,
         BADCASE_EXPORT_DRAFT_TASK_TYPE,
         {

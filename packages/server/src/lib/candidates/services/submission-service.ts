@@ -13,6 +13,7 @@ import type { CandidateSubmission, DuplicateCase } from '@trapmap/contracts';
 import { buildNormalizedDuplicateInput } from '@trapmap/server/lib/candidates/fingerprint.js';
 import {
   CANDIDATE_PROCESSING_TASK_TYPE,
+  type CandidateProcessingPayload,
   type CandidateProcessorServices,
   scheduleCandidateProcessing,
 } from '@trapmap/server/lib/candidates/processor.js';
@@ -20,14 +21,19 @@ import type {
   CandidateRepository,
   TransactionalCandidateRepository,
 } from '@trapmap/server/lib/candidates/repository.js';
+import type { AsyncQueueTransport } from '@trapmap/server/lib/async/transport.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { createDuplicateCaseId } from '@trapmap/server/lib/ids.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import type { DuplicateRepository } from '@trapmap/server/lib/repos/index.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
+
+export interface CandidateQueuePort {
+  enqueue(payload: CandidateProcessingPayload): Promise<void>;
+  enqueueTx(client: import('pg').PoolClient, payload: CandidateProcessingPayload): Promise<void>;
+}
 
 /** Dependencies required by the submission service. */
 export interface SubmissionDeps {
@@ -36,7 +42,38 @@ export interface SubmissionDeps {
     candidate: CandidateRepository;
     duplicate: DuplicateRepository;
   };
+  candidateQueue: CandidateQueuePort;
   config: SkillShareerServices['config'];
+}
+
+export function createCandidateQueuePort(queue: AsyncQueueTransport): CandidateQueuePort {
+  return {
+    async enqueue(payload) {
+      await queue.enqueue(CANDIDATE_PROCESSING_TASK_TYPE, payload, {
+        dedupeKey: payload.candidateId,
+        maxAttempts: 3,
+      });
+    },
+    async enqueueTx(client, payload) {
+      await queue.enqueueTx(client, CANDIDATE_PROCESSING_TASK_TYPE, payload, {
+        dedupeKey: payload.candidateId,
+        maxAttempts: 3,
+      });
+    },
+  };
+}
+
+export function createImmediateCandidateQueuePort(
+  services: CandidateProcessorServices,
+): CandidateQueuePort {
+  return {
+    async enqueue(payload) {
+      scheduleCandidateProcessing(payload.candidateId, services);
+    },
+    async enqueueTx(_client, payload) {
+      scheduleCandidateProcessing(payload.candidateId, services);
+    },
+  };
 }
 
 /**
@@ -153,7 +190,7 @@ export async function createAndEnqueueCandidate(
   candidate: CandidateSubmission;
   response: { candidateId: string; status: string; receivedAt: string };
 }> {
-  const { store, repos, config } = deps;
+  const { store, repos, candidateQueue, config } = deps;
   const { candidate: candidateRepo } = repos;
 
   const candidateId = `candidate_${randomUUID()}`;
@@ -190,7 +227,6 @@ export async function createAndEnqueueCandidate(
     'findByFingerprintTx' in candidateRepo
   ) {
     const transactionalRepo = candidateRepo as TransactionalCandidateRepository;
-    const queue = createTaskQueue({ pool: store.getPool() });
 
     await store.transactWithPgClient(async (_data, client) => {
       await transactionalRepo.insertTx(client, candidate);
@@ -201,12 +237,7 @@ export async function createAndEnqueueCandidate(
       if (duplicateCase) {
         await transactionalRepo.attachDuplicateCaseTx(client, candidate.id, duplicateCase);
       } else {
-        await queue.enqueueTx(
-          client,
-          CANDIDATE_PROCESSING_TASK_TYPE,
-          { candidateId: candidate.id, retryCount: 0 },
-          { dedupeKey: candidate.id, maxAttempts: 3 },
-        );
+        await candidateQueue.enqueueTx(client, { candidateId: candidate.id, retryCount: 0 });
       }
     });
   } else {
@@ -222,7 +253,7 @@ export async function createAndEnqueueCandidate(
       candidateRepo,
     };
     if (!duplicateCase) {
-      scheduleCandidateProcessing(candidate.id, services);
+      await candidateQueue.enqueue({ candidateId: candidate.id, retryCount: 0 });
     }
   }
 

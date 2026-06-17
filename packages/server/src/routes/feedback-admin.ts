@@ -34,7 +34,7 @@ import {
   computeFeedbackRemediationState,
   getActiveEntryFeedback,
 } from '@trapmap/server/lib/feedback/remediation.js';
-import { scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
+import { createSharedJobQueuePort, scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
 import { REMEDIATION_REACTIVATION_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import { getSharedJobWorkflowRunId } from '@trapmap/server/lib/jobs/types.js';
 import { buildOperatorEntryDisplayLookup } from '@trapmap/server/lib/operations/read-model.js';
@@ -181,6 +181,10 @@ async function buildRemediationQueueItems(app: Parameters<FastifyPluginAsync>[0]
 }
 
 export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
+  const sharedJobQueue = app.skillShareer.asyncTransport?.queue
+    ? createSharedJobQueuePort(app.skillShareer.asyncTransport.queue)
+    : undefined;
+
   /**
    * GET /v1/operations/feedback
    *
@@ -549,6 +553,7 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
 
     if (app.skillShareer.store instanceof PostgresStore) {
       await scheduleSharedJob(
+        sharedJobQueue,
         app.skillShareer.store,
         REMEDIATION_REACTIVATION_TASK_TYPE,
         {

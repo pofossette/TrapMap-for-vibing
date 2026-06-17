@@ -1,7 +1,7 @@
 import type { PoolClient } from 'pg';
 
+import type { AsyncQueueTransport } from '@trapmap/server/lib/async/transport.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 import {
@@ -10,39 +10,64 @@ import {
   getSharedJobContract,
 } from './types.js';
 
+export interface SharedJobQueuePort {
+  enqueue<TTaskType extends SharedJobTaskType>(
+    type: TTaskType,
+    payload: SharedJobPayloadByType[TTaskType],
+    dedupeKey: string,
+  ): Promise<void>;
+  enqueueTx<TTaskType extends SharedJobTaskType>(
+    client: PoolClient,
+    type: TTaskType,
+    payload: SharedJobPayloadByType[TTaskType],
+    dedupeKey: string,
+  ): Promise<void>;
+}
+
+export function createSharedJobQueuePort(queue: AsyncQueueTransport): SharedJobQueuePort {
+  return {
+    async enqueue(type, payload, dedupeKey) {
+      const contract = getSharedJobContract(type);
+      await queue.enqueue(type, payload, {
+        dedupeKey,
+        maxAttempts: contract.maxAttempts,
+      });
+    },
+    async enqueueTx(client, type, payload, dedupeKey) {
+      const contract = getSharedJobContract(type);
+      await queue.enqueueTx(client, type, payload, {
+        dedupeKey,
+        maxAttempts: contract.maxAttempts,
+      });
+    },
+  };
+}
+
 export async function scheduleSharedJobTx<TTaskType extends SharedJobTaskType>(
+  queue: SharedJobQueuePort | undefined,
   store: SkillShareerStore,
   client: PoolClient,
   type: TTaskType,
   payload: SharedJobPayloadByType[TTaskType],
   dedupeKey: string,
 ): Promise<void> {
-  if (!(store instanceof PostgresStore)) {
+  if (!(store instanceof PostgresStore) || !queue) {
     return;
   }
 
-  const queue = createTaskQueue({ pool: store.getPool() });
-  const contract = getSharedJobContract(type);
-  await queue.enqueueTx(client, type, payload, {
-    dedupeKey,
-    maxAttempts: contract.maxAttempts,
-  });
+  await queue.enqueueTx(client, type, payload, dedupeKey);
 }
 
 export async function scheduleSharedJob<TTaskType extends SharedJobTaskType>(
+  queue: SharedJobQueuePort | undefined,
   store: SkillShareerStore,
   type: TTaskType,
   payload: SharedJobPayloadByType[TTaskType],
   dedupeKey: string,
 ): Promise<void> {
-  if (!(store instanceof PostgresStore)) {
+  if (!(store instanceof PostgresStore) || !queue) {
     return;
   }
 
-  const queue = createTaskQueue({ pool: store.getPool() });
-  const contract = getSharedJobContract(type);
-  await queue.enqueue(type, payload, {
-    dedupeKey,
-    maxAttempts: contract.maxAttempts,
-  });
+  await queue.enqueue(type, payload, dedupeKey);
 }

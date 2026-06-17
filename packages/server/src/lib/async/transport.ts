@@ -25,6 +25,7 @@ export interface AsyncQueueTransport {
       dedupeKey?: string;
     },
   ): Promise<unknown>;
+  requeue(taskId: string): Promise<void>;
   getStatusSnapshot(): Promise<{
     pending: number;
     running: number;
@@ -79,6 +80,7 @@ export function createPostgresAsyncTransport(pool: Pool): AsyncTransport {
     queue: {
       enqueue: queue.enqueue,
       enqueueTx: queue.enqueueTx,
+      requeue: queue.requeue,
       getStatusSnapshot: queue.getStatusSnapshot,
     },
     events: {

@@ -636,6 +636,14 @@ export const queueStatusSnapshotSchema = z
     deadOldestAgeSeconds: z.number().int().min(0).nullable(),
     reclaimCount: z.number().int().min(0),
     workerState: asyncWorkerDependencyStateSchema,
+    serviceUnit: z.enum(['full-platform', 'candidate-ingestion', 'knowledge-governance']),
+    ownership: z
+      .object({
+        ownsAny: z.boolean(),
+        ownsCandidateTaskWork: z.boolean(),
+        ownsSharedJobTaskWork: z.boolean(),
+      })
+      .strict(),
     recentDeadLetters: z.array(queueTaskOperatorSnapshotSchema),
   })
   .strict();
@@ -651,6 +659,13 @@ export const outboxStatusSnapshotSchema = z
     failedOldestAgeSeconds: z.number().int().min(0).nullable(),
     reclaimCount: z.number().int().min(0),
     workerState: asyncWorkerDependencyStateSchema,
+    serviceUnit: z.enum(['full-platform', 'candidate-ingestion', 'knowledge-governance']),
+    ownership: z
+      .object({
+        ownsAny: z.boolean(),
+        ownsOutboxWork: z.boolean(),
+      })
+      .strict(),
     recentFailures: z.array(outboxEventOperatorSnapshotSchema),
   })
   .strict();
@@ -693,6 +708,8 @@ export const retrievalCacheNamespaceStatsSchema = z
 export const asyncOperationsStatusResponseSchema = z
   .object({
     asyncRuntimeEnabled: z.boolean(),
+    runtimeMode: z.enum(['api', 'task-worker', 'outbox-worker', 'combined']),
+    serviceUnit: z.enum(['full-platform', 'candidate-ingestion', 'knowledge-governance']),
     queue: queueStatusSnapshotSchema,
     outbox: outboxStatusSnapshotSchema,
     cache: z.record(z.string(), retrievalCacheNamespaceStatsSchema),

@@ -3,12 +3,12 @@ import type { BatchOperationItem, BatchOperationRequest } from '@trapmap/contrac
 import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
 import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
+import type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
 import {
   loadKnowledgeEntriesByIds,
   saveKnowledgeEntry,
 } from '@trapmap/server/lib/knowledge/repository.js';
 import type { LifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
-import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import {
   applyBatchMutation,
@@ -43,7 +43,9 @@ export interface DecayBatchApplicationService {
 }
 
 export interface DecayBatchApplicationServiceDeps {
-  repos: SkillShareerRepos;
+  repos: {
+    knowledge: KnowledgeRepository;
+  };
   lifecyclePublisher: LifecyclePublisher;
 }
 
@@ -148,7 +150,10 @@ function toBatchOperationInput(
   };
 }
 
-async function loadEntriesForBatch(depsRepos: SkillShareerRepos, command: BatchOperationRequest) {
+async function loadEntriesForBatch(
+  depsRepos: DecayBatchApplicationServiceDeps['repos'],
+  command: BatchOperationRequest,
+) {
   const ids = [...command.entryIds];
   if (command.replacementId) {
     ids.push(command.replacementId);
@@ -156,7 +161,7 @@ async function loadEntriesForBatch(depsRepos: SkillShareerRepos, command: BatchO
   return loadKnowledgeEntriesByIds(depsRepos.knowledge, ids);
 }
 
-async function saveEntry(depsRepos: SkillShareerRepos, entry: KnowledgeRecord) {
+async function saveEntry(depsRepos: DecayBatchApplicationServiceDeps['repos'], entry: KnowledgeRecord) {
   try {
     await saveKnowledgeEntry(depsRepos.knowledge, entry);
   } catch {

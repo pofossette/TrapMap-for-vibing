@@ -87,7 +87,7 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 
 ### 持久化层
 
-**规范服务边界**：路由和业务逻辑通过 `app.skillShareer.repos`（`SkillShareerRepos`）访问所有领域仓库。Actor 查找（用户 handle、成员安全等级）通过 `lib/actors/lookup.ts` 使用 `repos.user` 和 `repos.membership`，不再依赖 `store.snapshot()`。`store_snapshot` 仅作为未迁移辅助域和 supersede 工作流的兼容层。
+**规范服务边界**：组合层仍可从 `app.skillShareer.repos`（`SkillShareerRepos`）取仓库实例，但关键 application services 应注入最小 repo ports，而不是整包 repos。Actor 查找（用户 handle、成员安全等级）通过 `lib/actors/lookup.ts` 使用 `repos.user` 和 `repos.membership`，不再依赖 `store.snapshot()`。`store_snapshot` 仅作为未迁移辅助域和 supersede 工作流的兼容层。
 
 | 仓库 | 文件 | 存储后端 |
 |------|------|----------|
@@ -97,17 +97,17 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 
 > **Phase 2 更新**：`buildNormalizedDuplicateInput`（`packages/server/src/lib/candidates/fingerprint.ts`）是 trap 与 skill 候选的共享归一化入口，输出 `NormalizedDuplicateInput`（`packages/server/src/lib/candidates/types.ts`）并被 in-memory / PostgreSQL 探测器与 LLM 精排共享，确保 skill 候选也产出非空 title/body 用于 PG embedding 与 LLM 比对。
 >
-> **Phase 0 更新**：PostgreSQL 模式下，`createAndEnqueueCandidate()` 通过 `PostgresStore.transactWithPgClient()` 将候选创建、初始状态更新、以及 `task_queue` 注册放进同一事务；`task_queue` / `domain_event_outbox` 都携带 lease 与 reclaim 元数据，worker 启动后可回收过期 `running` / `processing` 记录。
+> **Phase 0 更新**：PostgreSQL 模式下，`createAndEnqueueCandidate()` 通过 `PostgresStore.transactWithPgClient()` 将候选创建、初始状态更新、以及 `asyncTransport.queue` 上的 `candidate_processing` 注册放进同一事务；`task_queue` / `domain_event_outbox` 都携带 lease 与 reclaim 元数据，worker 启动后可回收过期 `running` / `processing` 记录。
 >
 > **Phase 1 更新**：queue / outbox 仍保持两套独立抽象，但 operator 入口统一收敛到 `routes/operations/status.ts`。`lib/queue/task-queue.ts` 与 `lib/lifecycle/outbox.ts` 负责各自的 status snapshot、dead-letter / failed-event 可视化与 reclaim 计数；runtime health surfaces 只消费这些 snapshot，不直接读取原始表。
 >
-> **Phase 2 更新**：server runtime 现在支持 `api`、`task-worker`、`outbox-worker`、`combined` 四种模式。`src/index.ts` 负责 HTTP listener 入口，`src/worker.ts` 负责 dedicated worker 入口，公共启动顺序集中在 `bootstrap/run-startup-sequence.ts` 与 `bootstrap/run-worker-sequence.ts`，避免重复初始化仓库、配置和 bootstrap 逻辑。
+> **Phase 2 更新**：server runtime 现在用 `runtimeMode × serviceUnit` 表达启动语义。`runtimeMode` 仍区分 `api`、`task-worker`、`outbox-worker`、`combined`，而 `TRAPMAP_SERVICE_UNIT` 进一步声明当前进程拥有哪类 bounded-context async work：`candidate-ingestion` 只拥有 candidate task work，`knowledge-governance` 拥有 shared-job task work 与 outbox work，`full-platform` 拥有全部。`src/index.ts` 与 `src/worker.ts` 共用 `bootstrap/run-startup-sequence.ts` / `bootstrap/run-worker-sequence.ts`，避免重复初始化仓库、配置和 bootstrap 逻辑。
 >
 > **Phase 3 更新**：`lib/workflows/` 持有长任务运行快照的持久化与类型。当前由 candidate processing 和 capsule-index rebuild 写入 `workflow_runs`，而 `routes/operations/status.ts` 负责把最近 workflow runs 暴露到 operator status family。
 >
 > **Phase 4 更新**：retrieval 路由负责生成并公开 `queryId`；feedback 路由负责接收最小 badcase envelope，并在 PostgreSQL 模式下把可复现快照写入 `retrieval_badcase_traces`。usage analytics 仍可复用 `queryId` 做关联，但不再是 badcase reconstruction 的唯一事实源。
 >
-> **Phase 5 更新**：`lib/jobs/` 成为共享派生重活的统一入口。候选处理之外，生命周期索引 follow-up、feedback remediation 完成后的 reactivation/reindex follow-up、以及 badcase export draft generation 都通过 `task_queue` + `workflow_runs` 进入统一 worker substrate；路由和订阅器负责 authoritative write / outbox commit 后入队，不再在本地同步执行重活。
+> **Phase 5 更新**：`lib/jobs/` 成为共享派生重活的统一入口。候选处理之外，生命周期索引 follow-up、feedback remediation 完成后的 reactivation/reindex follow-up、以及 badcase export draft generation 都通过 `asyncTransport.queue` 背后的 `task_queue` + `workflow_runs` 进入统一 worker substrate；路由和订阅器负责 authoritative write / outbox commit 后经窄 queue port 入队，不再在本地同步执行重活。
 >
 > **Phase 6 更新**：retrieval-side process-local caches 现在被显式视为 derived artifacts，而不是“透明优化”。`lib/cache/retrieval-read-model-cache.ts` 持有 read-model 缓存，`lib/retrieval/capsules/intent-cache.ts` 持有意图缓存；两者都通过 `lib/cache/invalidation.ts` 接受 shared invalidation events。生命周期 approval/deactivation、remediation suppression、remediation reactivation 都会清理 retrieval caches，operator 可在 `/v1/operations/status/async` 查看 cache hit/miss/eviction/invalidation 指标。
 | `UsageAnalyticsRepository` | `lib/analytics/repository.ts` | PG (`PgUsageAnalyticsRepository`) 或 InMemory (no-op) |
@@ -149,7 +149,7 @@ HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 | job handlers | `lib/jobs/handlers/*.ts` | 生命周期索引 follow-up、remediation reactivation、badcase export draft |
 | worker bootstrap | `bootstrap/bootstrap-workers.ts` | 把 candidate handler 与 shared job handlers 注册到同一 `task_queue` worker |
 
-> **Wiring debt convergence 更新**：知识生命周期的 PG 投影发布统一走 `emitLifecycleTransition()`。该入口现在支持复用活动事务 client，把生命周期变更与 `domain_event_outbox` 注册原子提交；JSON 模式保留同步 event bus 回退。
+> **Wiring debt convergence 更新**：知识生命周期的 PG 投影发布统一走 `emitLifecycleTransition()` / `createLifecyclePublisher()`，异步底座统一从 `app.skillShareer.asyncTransport` 暴露。业务写路径不再直接拼装 `task_queue` / `domain_event_outbox`；JSON 模式仅保留同步 event bus 兼容回退。
 
 ### 配置
 

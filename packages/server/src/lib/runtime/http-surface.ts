@@ -3,9 +3,8 @@ import { ZodError } from 'zod';
 
 import type { ServerConfig } from '@trapmap/server/config.js';
 import { isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
-import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
+import { getServiceUnitProfile } from './service-unit.js';
 import { getOrCreateRequestContext } from './request-context.js';
 import { snapshotRuntimeWorker } from './runtime-contract.js';
 import { buildRuntimeStatusSnapshot, resolveAsyncWorkerState } from './runtime-metadata.js';
@@ -15,12 +14,13 @@ async function buildRuntimeAsyncSnapshot(app: FastifyInstance) {
   if (!(store instanceof PostgresStore)) {
     return {};
   }
-  const pool = store.getPool();
-  const queue = createTaskQueue({ pool });
-  const outbox = createDomainEventOutbox({ pool });
+  const transport = app.skillShareer.asyncTransport;
+  if (!transport) {
+    throw new Error('Postgres runtime requires skillShareer.asyncTransport for runtime status');
+  }
   const [queueSnapshot, outboxSnapshot] = await Promise.all([
-    queue.getStatusSnapshot(),
-    outbox.getStatusSnapshot(),
+    transport.queue.getStatusSnapshot(),
+    transport.events.getStatusSnapshot(),
   ]);
   return { queueSnapshot, outboxSnapshot };
 }
@@ -39,11 +39,16 @@ export function registerRuntimeRoutes(
     const database =
       store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
     const runtimeMode = app.skillShareer.runtimeMode;
+    const serviceUnit = app.skillShareer.serviceUnit;
+    const serviceUnitProfile = getServiceUnitProfile(serviceUnit, runtimeMode);
     const { queueSnapshot, outboxSnapshot } = await buildRuntimeAsyncSnapshot(app);
     const runtime = buildRuntimeStatusSnapshot({
       config,
       graphQuery,
       database,
+      runtimeMode,
+      serviceUnit,
+      serviceUnitProfile,
       queueWorkerState: resolveAsyncWorkerState({
         database,
         runtimeMode,
@@ -75,6 +80,8 @@ export function registerRuntimeRoutes(
     const database =
       store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
     const runtimeMode = app.skillShareer.runtimeMode;
+    const serviceUnit = app.skillShareer.serviceUnit;
+    const serviceUnitProfile = getServiceUnitProfile(serviceUnit, runtimeMode);
     const graphQuery =
       app.skillShareer.graphQueryBackend?.getRuntimeState?.() ?? app.skillShareer.graphQuery;
     const { queueSnapshot, outboxSnapshot } = await buildRuntimeAsyncSnapshot(app);
@@ -82,6 +89,9 @@ export function registerRuntimeRoutes(
       config,
       graphQuery,
       database,
+      runtimeMode,
+      serviceUnit,
+      serviceUnitProfile,
       queueWorkerState: resolveAsyncWorkerState({
         database,
         runtimeMode,

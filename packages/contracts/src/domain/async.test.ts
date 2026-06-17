@@ -5,8 +5,7 @@ import {
   asyncEventContracts,
   asyncEventNameSchema,
   badcaseExportDraftPayloadSchema,
-  candidateResolvedEventPayloadSchema,
-  candidateSubmittedEventPayloadSchema,
+  candidateProcessingPayloadSchema,
   feedbackRemediationTriggeredEventPayloadSchema,
   getAsyncEventContract,
   getSharedJobContract,
@@ -32,8 +31,6 @@ describe('async contract catalog', () => {
       'TrapActivated',
       'TrapDeactivated',
       'ArtifactIndexed',
-      'CandidateSubmitted',
-      'CandidateResolved',
       'FeedbackRemediationTriggered',
       'ReadModelRefreshRequested',
     ] as const;
@@ -51,6 +48,7 @@ describe('async contract catalog', () => {
 
   it('exposes shared job contracts with payload schemas and required metadata', () => {
     const taskTypes = [
+      'candidate_processing',
       'knowledge.index-follow-up',
       'skill.index-follow-up',
       'feedback.remediation-reactivation',
@@ -89,80 +87,6 @@ describe('async event payload schemas', () => {
     expect(result.approvedBy.handle).toBe('alice');
   });
 
-  it('rejects CandidateSubmitted trap payloads that omit trapPayload', () => {
-    expect(() =>
-      candidateSubmittedEventPayloadSchema.parse({
-        candidateId: 'candidate-1',
-        sourceType: 'trap',
-        submittedAt: '2026-06-17T10:00:00+00:00',
-        submittedBy: 'user-1',
-        teamId: null,
-        initialStatus: 'received',
-      }),
-    ).toThrow(/trapPayload/i);
-  });
-
-  it('rejects CandidateSubmitted skill payloads that include trapPayload', () => {
-    expect(() =>
-      candidateSubmittedEventPayloadSchema.parse({
-        candidateId: 'candidate-2',
-        sourceType: 'skill',
-        submittedAt: '2026-06-17T10:00:00+00:00',
-        submittedBy: 'user-1',
-        teamId: null,
-        initialStatus: 'received',
-        trapPayload: {
-          scope: 'project',
-          labels: ['dup'],
-          shortcut: 'Trap candidate',
-          detail: 'Detailed trap candidate payload',
-        },
-      }),
-    ).toThrow(/trapPayload/i);
-  });
-
-  it('accepts a valid CandidateResolved payload tied to ResolutionOutcome', () => {
-    const result = candidateResolvedEventPayloadSchema.parse({
-      candidateId: 'candidate-3',
-      decision: 'merged',
-      resolvedAt: '2026-06-17T10:00:00+00:00',
-      resolvedBy: 'reviewer-1',
-      resolution: {
-        candidateId: 'candidate-3',
-        decision: 'merged',
-        publishedEntityId: null,
-        mergedIntoEntityId: 'entry-77',
-        entityType: 'trap',
-        resolvedAt: '2026-06-17T10:00:00+00:00',
-        resolvedBy: 'reviewer-1',
-        notes: 'Merged into the existing canonical trap.',
-      },
-    });
-
-    expect(result.resolution.mergedIntoEntityId).toBe('entry-77');
-  });
-
-  it('rejects CandidateResolved payloads when top-level decision diverges from resolution decision', () => {
-    expect(() =>
-      candidateResolvedEventPayloadSchema.parse({
-        candidateId: 'candidate-3',
-        decision: 'independent',
-        resolvedAt: '2026-06-17T10:00:00+00:00',
-        resolvedBy: 'reviewer-1',
-        resolution: {
-          candidateId: 'candidate-3',
-          decision: 'merged',
-          publishedEntityId: null,
-          mergedIntoEntityId: 'entry-77',
-          entityType: 'trap',
-          resolvedAt: '2026-06-17T10:00:00+00:00',
-          resolvedBy: 'reviewer-1',
-          notes: 'Merged into the existing canonical trap.',
-        },
-      }),
-    ).toThrow(/resolution\.decision/i);
-  });
-
   it('accepts a valid read model refresh request payload', () => {
     const result = readModelRefreshRequestedEventPayloadSchema.parse({
       requestId: 'refresh-1',
@@ -197,6 +121,24 @@ describe('async event payload schemas', () => {
 });
 
 describe('shared job payload schemas', () => {
+  it('accepts candidate processing payloads with retry metadata', () => {
+    const result = candidateProcessingPayloadSchema.parse({
+      candidateId: 'candidate-1',
+      retryCount: 0,
+    });
+
+    expect(result.retryCount).toBe(0);
+  });
+
+  it('rejects candidate processing payloads with negative retry counts', () => {
+    expect(() =>
+      candidateProcessingPayloadSchema.parse({
+        candidateId: 'candidate-1',
+        retryCount: -1,
+      }),
+    ).toThrow();
+  });
+
   it('accepts remediation reactivation payloads with one or more feedback ids', () => {
     const result = remediationReactivationPayloadSchema.parse({
       entryId: 'entry-1',

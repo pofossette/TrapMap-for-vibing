@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
 import {
-  ManualResultDecisionSchema,
-  ResolutionOutcomeSchema,
-  TrapCandidatePayloadSchema,
-} from './candidates.js';
-import {
   actorRefSchema,
   entityIdSchema,
   isoTimestampSchema,
@@ -21,13 +16,12 @@ export const asyncEventNameSchema = z.enum([
   'TrapActivated',
   'TrapDeactivated',
   'ArtifactIndexed',
-  'CandidateSubmitted',
-  'CandidateResolved',
   'FeedbackRemediationTriggered',
   'ReadModelRefreshRequested',
 ]);
 
 export const asyncJobTaskTypeSchema = z.enum([
+  'candidate_processing',
   'knowledge.index-follow-up',
   'skill.index-follow-up',
   'feedback.remediation-reactivation',
@@ -104,8 +98,6 @@ const asyncTriggeringEventNameSchema = z.enum([
   'KnowledgeSuperseded',
   'TrapActivated',
   'TrapDeactivated',
-  'CandidateSubmitted',
-  'CandidateResolved',
   'FeedbackRemediationTriggered',
   'ReadModelRefreshRequested',
 ]);
@@ -198,60 +190,6 @@ export const artifactIndexedEventPayloadSchema = z
   })
   .strict();
 
-export const candidateSubmittedEventPayloadSchema = z
-  .object({
-    candidateId: entityIdSchema,
-    sourceType: z.enum(['trap', 'skill']),
-    submittedAt: isoTimestampSchema,
-    submittedBy: entityIdSchema,
-    teamId: entityIdSchema.nullable(),
-    initialStatus: z.literal('received'),
-    trapPayload: TrapCandidatePayloadSchema.optional(),
-  })
-  .strict()
-  .superRefine((payload, ctx) => {
-    if (payload.sourceType === 'trap' && payload.trapPayload == null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'trapPayload is required when sourceType is "trap"',
-        path: ['trapPayload'],
-      });
-    }
-    if (payload.sourceType === 'skill' && payload.trapPayload != null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'trapPayload must be omitted when sourceType is "skill"',
-        path: ['trapPayload'],
-      });
-    }
-  });
-
-export const candidateResolvedEventPayloadSchema = z
-  .object({
-    candidateId: entityIdSchema,
-    decision: ManualResultDecisionSchema,
-    resolvedAt: isoTimestampSchema,
-    resolvedBy: entityIdSchema,
-    resolution: ResolutionOutcomeSchema,
-  })
-  .strict()
-  .superRefine((payload, ctx) => {
-    if (payload.resolution.candidateId !== payload.candidateId) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'resolution.candidateId must match candidateId',
-        path: ['resolution', 'candidateId'],
-      });
-    }
-    if (payload.resolution.decision !== payload.decision) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'resolution.decision must match decision',
-        path: ['resolution', 'decision'],
-      });
-    }
-  });
-
 export const feedbackRemediationTriggeredEventPayloadSchema = z
   .object({
     feedbackId: entityIdSchema,
@@ -287,11 +225,16 @@ export const asyncEventPayloadSchemaMap = {
   TrapActivated: trapActivatedEventPayloadSchema,
   TrapDeactivated: trapDeactivatedEventPayloadSchema,
   ArtifactIndexed: artifactIndexedEventPayloadSchema,
-  CandidateSubmitted: candidateSubmittedEventPayloadSchema,
-  CandidateResolved: candidateResolvedEventPayloadSchema,
   FeedbackRemediationTriggered: feedbackRemediationTriggeredEventPayloadSchema,
   ReadModelRefreshRequested: readModelRefreshRequestedEventPayloadSchema,
 } satisfies Record<z.infer<typeof asyncEventNameSchema>, z.ZodTypeAny>;
+
+export const candidateProcessingPayloadSchema = z
+  .object({
+    candidateId: entityIdSchema,
+    retryCount: z.number().int().min(0),
+  })
+  .strict();
 
 export const knowledgeIndexFollowUpPayloadSchema = z
   .object({
@@ -332,6 +275,7 @@ export const badcaseExportDraftPayloadSchema = z
   .strict();
 
 export const sharedJobPayloadSchemaMap = {
+  candidate_processing: candidateProcessingPayloadSchema,
   'knowledge.index-follow-up': knowledgeIndexFollowUpPayloadSchema,
   'skill.index-follow-up': skillIndexFollowUpPayloadSchema,
   'feedback.remediation-reactivation': remediationReactivationPayloadSchema,
@@ -356,13 +300,14 @@ export const sharedJobContractSchema = z
     }),
     owner: z.object({
       owner: z.enum([
+        'candidate-submission',
         'knowledge-entry',
         'feedback-remediation',
         'skill-artifact',
         'feedback-badcase',
       ]),
       subjectIdField: z.string().min(1).max(120),
-      subjectType: z.enum(['trap', 'skill', 'feedback', 'trap-or-skill']),
+      subjectType: z.enum(['candidate', 'trap', 'skill', 'feedback', 'trap-or-skill']),
     }).strict(),
     idempotencyKey: asyncIdempotencyKeySchema,
     payloadDescription: z.string().min(1).max(500),
@@ -573,68 +518,6 @@ export const asyncEventContracts = {
       crossesServiceBoundaryLater: true,
     },
   }),
-  CandidateSubmitted: defineAsyncEventContract({
-    eventName: 'CandidateSubmitted',
-    payloadSchema: candidateSubmittedEventPayloadSchema,
-    metadata: {
-      publisher: {
-        boundedContext: 'candidate-ingestion',
-        service: 'server.candidates',
-        trigger: 'A trap or skill candidate is accepted into the async ingestion pipeline',
-        owner: 'candidate-submission',
-      },
-      idempotencyKey: {
-        description: 'One submitted event per durable candidate record.',
-        format: 'CandidateSubmitted:<candidateId>',
-      },
-      ordering: 'per-subject-sequential',
-      retryPolicy: {
-        maxAttempts: 5,
-        backoff: 'exponential',
-        deadLetterStepName: 'dead-letter',
-        deadLetterMeaning:
-          'Candidate intake propagation exhausted retries and duplicate analysis/review automation may not start.',
-        operatorAction:
-          'Verify the candidate record exists, repair queue/outbox failures, and replay the submission event to resume ingestion.',
-      },
-      downstreamConsumers: [
-        { name: 'candidate-analysis-workflow', purpose: 'Begin duplicate analysis and queueing' },
-        { name: 'submission-analytics', purpose: 'Track candidate intake volume by source type' },
-      ],
-      crossesServiceBoundaryLater: false,
-    },
-  }),
-  CandidateResolved: defineAsyncEventContract({
-    eventName: 'CandidateResolved',
-    payloadSchema: candidateResolvedEventPayloadSchema,
-    metadata: {
-      publisher: {
-        boundedContext: 'candidate-ingestion',
-        service: 'server.candidates',
-        trigger: 'A reviewer applies the final duplicate-resolution decision for a candidate',
-        owner: 'candidate-submission',
-      },
-      idempotencyKey: {
-        description: 'One resolved event per candidate and applied resolution timestamp.',
-        format: 'CandidateResolved:<candidateId>:<resolvedAt>',
-      },
-      ordering: 'per-subject-sequential',
-      retryPolicy: {
-        maxAttempts: 5,
-        backoff: 'exponential',
-        deadLetterStepName: 'dead-letter',
-        deadLetterMeaning:
-          'Candidate resolution propagation exhausted retries and lineage or follow-up publishing may remain incomplete.',
-        operatorAction:
-          'Inspect the applied resolution, repair lineage/publish consumers, and replay the event if the resolution is still authoritative.',
-      },
-      downstreamConsumers: [
-        { name: 'entity-lineage-projection', purpose: 'Persist published_as or merged_into lineage' },
-        { name: 'read-model-refresh', purpose: 'Refresh candidate and published-entity projections' },
-      ],
-      crossesServiceBoundaryLater: true,
-    },
-  }),
   FeedbackRemediationTriggered: defineAsyncEventContract({
     eventName: 'FeedbackRemediationTriggered',
     payloadSchema: feedbackRemediationTriggeredEventPayloadSchema,
@@ -700,6 +583,37 @@ export const asyncEventContracts = {
 } satisfies { [TEventName in AsyncEventName]: AsyncEventContract<TEventName> };
 
 export const sharedJobContracts = {
+  candidate_processing: defineSharedJobContract({
+    taskType: 'candidate_processing',
+    payloadSchema: candidateProcessingPayloadSchema,
+    owner: {
+      owner: 'candidate-submission',
+      subjectIdField: 'candidateId',
+      subjectType: 'candidate',
+    },
+    idempotencyKey: {
+      description:
+        'One candidate-processing task per candidate while work is pending or running; retries reuse the same durable work item.',
+      format: 'candidate_processing:<candidateId>',
+    },
+    payloadDescription:
+      'Candidate ingestion follow-up payload that advances one durable candidate through duplicate analysis and review readiness.',
+    ordering: 'per-subject-sequential',
+    retryPolicy: {
+      maxAttempts: 3,
+      backoff: 'exponential',
+      deadLetterStepName: 'dead-letter',
+      deadLetterMeaning:
+        'Candidate processing exhausted retries and the candidate remains outside duplicate-detected or review-ready states.',
+      operatorAction:
+        'Inspect the candidate workflow run and queue dead letter, repair duplicate-analysis failures, then requeue if the candidate is still actionable.',
+    },
+    downstreamConsumers: [
+      { name: 'candidate-processing-worker', purpose: 'Run duplicate analysis and status transitions' },
+      { name: 'workflow-audit', purpose: 'Track candidate ingestion progress and dead letters' },
+    ],
+    crossesServiceBoundaryLater: false,
+  }),
   'knowledge.index-follow-up': defineSharedJobContract({
     taskType: 'knowledge.index-follow-up',
     payloadSchema: knowledgeIndexFollowUpPayloadSchema,
@@ -857,14 +771,13 @@ export type KnowledgeSupersededEventPayload = z.infer<
 export type TrapActivatedEventPayload = z.infer<typeof trapActivatedEventPayloadSchema>;
 export type TrapDeactivatedEventPayload = z.infer<typeof trapDeactivatedEventPayloadSchema>;
 export type ArtifactIndexedEventPayload = z.infer<typeof artifactIndexedEventPayloadSchema>;
-export type CandidateSubmittedEventPayload = z.infer<typeof candidateSubmittedEventPayloadSchema>;
-export type CandidateResolvedEventPayload = z.infer<typeof candidateResolvedEventPayloadSchema>;
 export type FeedbackRemediationTriggeredEventPayload = z.infer<
   typeof feedbackRemediationTriggeredEventPayloadSchema
 >;
 export type ReadModelRefreshRequestedEventPayload = z.infer<
   typeof readModelRefreshRequestedEventPayloadSchema
 >;
+export type CandidateProcessingPayload = z.infer<typeof candidateProcessingPayloadSchema>;
 export type KnowledgeIndexFollowUpPayload = z.infer<typeof knowledgeIndexFollowUpPayloadSchema>;
 export type RemediationReactivationPayload = z.infer<typeof remediationReactivationPayloadSchema>;
 export type SkillIndexFollowUpPayload = z.infer<typeof skillIndexFollowUpPayloadSchema>;

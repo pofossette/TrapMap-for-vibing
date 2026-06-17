@@ -41,8 +41,13 @@ export interface BootstrapLifecycleOptions {
 }
 
 function buildLifecycleSubscriberContract(app: FastifyInstance): LifecycleSubscriberContract {
-  const { store, adapterRegistry, graphQueryBackend } = app.skillShareer;
-  const indexingHandler = createIndexingSubscriber(store, adapterRegistry, graphQueryBackend);
+  const { store, adapterRegistry, graphQueryBackend, asyncTransport } = app.skillShareer;
+  const indexingHandler = createIndexingSubscriber(
+    store,
+    adapterRegistry,
+    graphQueryBackend,
+    asyncTransport?.queue,
+  );
   const auditHandler = createAuditSubscriber(store, app.log);
   const conflictHandler = createConflictSubscriber(store);
 

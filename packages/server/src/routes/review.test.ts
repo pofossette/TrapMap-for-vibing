@@ -1125,6 +1125,8 @@ describe('review routes with indexing integration (IDX-03, IDX-04)', () => {
       // which owns transition emission without raw eventBus access.
       expect(source).toContain('createReviewApplicationService');
       expect(source).toContain('createLifecyclePublisher');
+      expect(source).toContain('const reviewRepos = {');
+      expect(source).not.toContain('repos: app.skillShareer.repos');
       expect(source).not.toContain('eventBus: app.skillShareer.eventBus');
       expect(serviceSource).toContain('lifecyclePublisher.publishTransition');
       expect(source).not.toContain('outbox.enqueue');

@@ -50,6 +50,9 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     expect(response.json()).toMatchObject({
       ok: true,
       readiness: 'ready',
+      serviceUnit: {
+        name: 'full-platform',
+      },
       requestContext: {
         requestIdHeader: 'x-request-id',
         traceHeader: 'traceparent',
@@ -59,6 +62,8 @@ describe('app.ts live gaps — fm-agent raw report', () => {
         queueWorker: 'not-configured',
         outboxWorker: 'not-configured',
         graphQuery: 'disabled',
+        runtimeMode: 'combined',
+        serviceUnit: 'full-platform',
       },
       graphQuery: {
         mode: 'disabled',
@@ -83,6 +88,9 @@ describe('app.ts live gaps — fm-agent raw report', () => {
       status: 'ok',
       liveness: 'alive',
       readiness: 'ready',
+      serviceUnit: {
+        name: 'full-platform',
+      },
       requestContext: {
         requestIdHeader: 'x-request-id',
         traceHeader: 'traceparent',
@@ -92,6 +100,8 @@ describe('app.ts live gaps — fm-agent raw report', () => {
         queueWorker: 'not-configured',
         outboxWorker: 'not-configured',
         graphQuery: 'disabled',
+        runtimeMode: 'combined',
+        serviceUnit: 'full-platform',
       },
       graphQuery: {
         mode: 'disabled',
@@ -324,9 +334,29 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     });
     expect(candidateIngestionReady.statusCode).toBe(200);
     expect(candidateIngestionReady.json()).toMatchObject({
+      serviceUnit: {
+        name: 'candidate-ingestion',
+        ownership: {
+          ownsCandidateTaskWork: true,
+          ownsSharedJobTaskWork: false,
+          ownsOutboxWork: false,
+        },
+      },
       dependencies: {
         queueWorker: 'not-configured',
         outboxWorker: 'not-configured',
+        serviceUnit: 'candidate-ingestion',
+        ownership: {
+          queue: {
+            ownsAny: true,
+            ownsCandidateTaskWork: true,
+            ownsSharedJobTaskWork: false,
+          },
+          outbox: {
+            ownsAny: false,
+            ownsOutboxWork: false,
+          },
+        },
       },
     });
     await candidateIngestionApp.close();
@@ -342,9 +372,29 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     });
     expect(knowledgeGovernanceReady.statusCode).toBe(200);
     expect(knowledgeGovernanceReady.json()).toMatchObject({
+      serviceUnit: {
+        name: 'knowledge-governance',
+        ownership: {
+          ownsCandidateTaskWork: false,
+          ownsSharedJobTaskWork: true,
+          ownsOutboxWork: true,
+        },
+      },
       dependencies: {
         queueWorker: 'not-configured',
         outboxWorker: 'not-configured',
+        serviceUnit: 'knowledge-governance',
+        ownership: {
+          queue: {
+            ownsAny: true,
+            ownsCandidateTaskWork: false,
+            ownsSharedJobTaskWork: true,
+          },
+          outbox: {
+            ownsAny: true,
+            ownsOutboxWork: true,
+          },
+        },
       },
     });
     await knowledgeGovernanceApp.close();

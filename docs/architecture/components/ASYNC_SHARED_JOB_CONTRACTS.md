@@ -8,6 +8,30 @@
 - `subjectId` 表示业务归属对象，用于 operator 视角按 entry / feedback 定位问题。
 - `runId` 表示任务实例绑定，必须至少与该任务的幂等单元同粒度，避免多个合法 follow-up 覆盖同一 workflow run。
 - authoritative write 仍在命令事务内完成；这些 jobs 只负责 derived / retryable follow-up。
+- 组合层通过 `asyncTransport.queue` 注入窄 queue port；调度器和业务服务本身不应直接构造 `TaskQueue`。
+
+## `candidate_processing`
+
+- Owner context: `candidate-submission`
+- Subject: `candidate:<candidateId>`
+- Payload:
+  - `candidateId`
+  - `retryCount`
+- Idempotency key:
+  - Format: `candidate_processing:<candidateId>`
+  - Meaning: 同一 candidate 在 pending/running 期间只保留一个 durable processing work item；重试复用同一业务主键
+- Max attempts: `3`
+- Workflow binding:
+  - `workflowType = candidate-processing`
+  - `subjectId = candidateId`
+  - `runId` 绑定到 `candidateId`
+- Ownership:
+  - bounded context: `candidate-ingestion`
+  - service boundary: candidate route/service 通过窄 `candidateQueue` 端口提交，不直接构造 queue
+- Dead-letter:
+  - Step: `dead-letter`
+  - Meaning: duplicate analysis / review-ready 转换未能在重试内完成，candidate 会停留在错误态
+  - Operator action: 检查 candidate workflow run 与 queue dead letter，修复处理错误后按需 requeue
 
 ## `knowledge.index-follow-up`
 
