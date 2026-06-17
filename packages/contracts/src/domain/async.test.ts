@@ -59,7 +59,9 @@ describe('async contract catalog', () => {
 
     for (const taskType of taskTypes) {
       expect(() => sharedJobContractSchema.parse(sharedJobContracts[taskType])).not.toThrow();
-      expect(getSharedJobContract(taskType).payloadSchema).toBe(sharedJobContracts[taskType].payloadSchema);
+      expect(getSharedJobContract(taskType).payloadSchema).toBe(
+        sharedJobContracts[taskType].payloadSchema,
+      );
     }
   });
 

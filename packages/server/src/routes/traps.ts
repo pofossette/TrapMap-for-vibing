@@ -180,6 +180,9 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
     await emitLifecycleTransition({
       store: app.skillShareer.store,
       eventBus: app.skillShareer.eventBus,
+      ...(app.skillShareer.asyncTransport
+        ? { asyncTransport: app.skillShareer.asyncTransport }
+        : {}),
       aggregateType: 'knowledge',
       aggregateId: trapId,
       previousState: 'approved',

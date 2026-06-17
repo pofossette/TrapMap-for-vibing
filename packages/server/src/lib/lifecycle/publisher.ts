@@ -38,7 +38,7 @@ export function createLifecyclePublisher(deps: {
       return emitLifecycleTransition({
         store: deps.store,
         eventBus: deps.eventBus,
-        asyncTransport: deps.asyncTransport as Parameters<typeof emitLifecycleTransition>[0]['asyncTransport'],
+        ...(deps.asyncTransport ? { asyncTransport: deps.asyncTransport } : {}),
         ...input,
       });
     },

@@ -298,17 +298,19 @@ export const sharedJobContractSchema = z
     payloadSchema: z.custom<z.ZodTypeAny>((value) => value instanceof z.ZodType, {
       message: 'payloadSchema must be a Zod schema',
     }),
-    owner: z.object({
-      owner: z.enum([
-        'candidate-submission',
-        'knowledge-entry',
-        'feedback-remediation',
-        'skill-artifact',
-        'feedback-badcase',
-      ]),
-      subjectIdField: z.string().min(1).max(120),
-      subjectType: z.enum(['candidate', 'trap', 'skill', 'feedback', 'trap-or-skill']),
-    }).strict(),
+    owner: z
+      .object({
+        owner: z.enum([
+          'candidate-submission',
+          'knowledge-entry',
+          'feedback-remediation',
+          'skill-artifact',
+          'feedback-badcase',
+        ]),
+        subjectIdField: z.string().min(1).max(120),
+        subjectType: z.enum(['candidate', 'trap', 'skill', 'feedback', 'trap-or-skill']),
+      })
+      .strict(),
     idempotencyKey: asyncIdempotencyKeySchema,
     payloadDescription: z.string().min(1).max(500),
     ordering: asyncContractOrderingRequirementSchema,
@@ -387,7 +389,10 @@ export const asyncEventContracts = {
           'Review the failed publication, verify the rejection still stands, and replay after fixing the consumer or outbox issue.',
       },
       downstreamConsumers: [
-        { name: 'review-queue-projection', purpose: 'Remove rejected revision from pending review' },
+        {
+          name: 'review-queue-projection',
+          purpose: 'Remove rejected revision from pending review',
+        },
         { name: 'audit-log', purpose: 'Persist review decision history' },
       ],
       crossesServiceBoundaryLater: true,
@@ -481,7 +486,10 @@ export const asyncEventContracts = {
           'Remove or suppress stale projections, then replay the deactivation event if the trap must remain inactive.',
       },
       downstreamConsumers: [
-        { name: 'knowledge-index-follow-up', purpose: 'Remove or suppress trap from retrieval index' },
+        {
+          name: 'knowledge-index-follow-up',
+          purpose: 'Remove or suppress trap from retrieval index',
+        },
         { name: 'governance-monitor', purpose: 'Audit inactive content suppression' },
       ],
       crossesServiceBoundaryLater: true,
@@ -513,7 +521,10 @@ export const asyncEventContracts = {
       },
       downstreamConsumers: [
         { name: 'skill-search-read-model', purpose: 'Expose new profile/capsules to retrieval' },
-        { name: 'artifact-operations-dashboard', purpose: 'Report indexing completion to operators' },
+        {
+          name: 'artifact-operations-dashboard',
+          purpose: 'Report indexing completion to operators',
+        },
       ],
       crossesServiceBoundaryLater: true,
     },
@@ -529,7 +540,8 @@ export const asyncEventContracts = {
         owner: 'feedback-record',
       },
       idempotencyKey: {
-        description: 'One remediation-trigger event per feedback record and active suppression opening.',
+        description:
+          'One remediation-trigger event per feedback record and active suppression opening.',
         format: 'FeedbackRemediationTriggered:<feedbackId>:<entryId>:<triggeredAt>',
       },
       ordering: 'per-subject-sequential',
@@ -543,7 +555,10 @@ export const asyncEventContracts = {
           'Check remediation state and failed tasks, repair the workflow trigger, then replay if the entry still requires remediation.',
       },
       downstreamConsumers: [
-        { name: 'feedback-remediation-workflow', purpose: 'Open remediation tracking and suppression' },
+        {
+          name: 'feedback-remediation-workflow',
+          purpose: 'Open remediation tracking and suppression',
+        },
         { name: 'read-model-refresh', purpose: 'Refresh feedback and retrieval suppression views' },
       ],
       crossesServiceBoundaryLater: true,
@@ -609,7 +624,10 @@ export const sharedJobContracts = {
         'Inspect the candidate workflow run and queue dead letter, repair duplicate-analysis failures, then requeue if the candidate is still actionable.',
     },
     downstreamConsumers: [
-      { name: 'candidate-processing-worker', purpose: 'Run duplicate analysis and status transitions' },
+      {
+        name: 'candidate-processing-worker',
+        purpose: 'Run duplicate analysis and status transitions',
+      },
       { name: 'workflow-audit', purpose: 'Track candidate ingestion progress and dead letters' },
     ],
     crossesServiceBoundaryLater: false,
@@ -765,9 +783,7 @@ export type ReadModelProjection = z.infer<typeof readModelProjectionSchema>;
 export type ReadModelRefreshCause = z.infer<typeof readModelRefreshCauseSchema>;
 export type KnowledgeApprovedEventPayload = z.infer<typeof knowledgeApprovedEventPayloadSchema>;
 export type KnowledgeRejectedEventPayload = z.infer<typeof knowledgeRejectedEventPayloadSchema>;
-export type KnowledgeSupersededEventPayload = z.infer<
-  typeof knowledgeSupersededEventPayloadSchema
->;
+export type KnowledgeSupersededEventPayload = z.infer<typeof knowledgeSupersededEventPayloadSchema>;
 export type TrapActivatedEventPayload = z.infer<typeof trapActivatedEventPayloadSchema>;
 export type TrapDeactivatedEventPayload = z.infer<typeof trapDeactivatedEventPayloadSchema>;
 export type ArtifactIndexedEventPayload = z.infer<typeof artifactIndexedEventPayloadSchema>;

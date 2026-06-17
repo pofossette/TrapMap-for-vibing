@@ -38,11 +38,18 @@ function requireRealUser(userId: string | undefined): string {
 
 export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
   const { store, eventBus, asyncTransport } = app.skillShareer;
-  const lifecyclePublisher = createLifecyclePublisher({
-    store,
-    eventBus,
-    asyncTransport,
-  });
+  const lifecyclePublisher = createLifecyclePublisher(
+    asyncTransport
+      ? {
+          store,
+          eventBus,
+          asyncTransport,
+        }
+      : {
+          store,
+          eventBus,
+        },
+  );
 
   function getKnowledgeService() {
     return createKnowledgeApplicationService({

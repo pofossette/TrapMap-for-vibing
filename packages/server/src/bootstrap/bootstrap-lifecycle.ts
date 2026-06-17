@@ -10,6 +10,7 @@ import type { FastifyInstance } from 'fastify';
 import { createAuditSubscriber } from '@trapmap/server/lib/lifecycle/subscribers/audit.js';
 import { createConflictSubscriber } from '@trapmap/server/lib/lifecycle/subscribers/conflict.js';
 import { createIndexingSubscriber } from '@trapmap/server/lib/lifecycle/subscribers/indexing.js';
+import type { DomainEvent } from '@trapmap/server/lib/lifecycle/types.js';
 import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/metrics.js';
@@ -92,10 +93,11 @@ export async function bootstrapLifecycle(
   // Start outbox event worker for PG mode
   // Processes domain events asynchronously — indexing, conflict detection, audit
   if (store instanceof PostgresStore) {
-    const outbox = app.skillShareer.asyncTransport?.events;
-    if (!outbox) {
+    const maybeOutbox = app.skillShareer.asyncTransport?.events;
+    if (!maybeOutbox) {
       throw new Error('Postgres runtime requires asyncTransport.events for outbox processing');
     }
+    const outbox = maybeOutbox;
 
     const pollIntervalMs = 2000;
     let running = false;
@@ -111,7 +113,7 @@ export async function bootstrapLifecycle(
             );
             if (handlers && handlers.length > 0) {
               try {
-                await Promise.all(handlers.map((h) => h(event.payload)));
+                await Promise.all(handlers.map((h) => h(event.payload as DomainEvent)));
                 await outbox.complete(event.id);
               } catch (error) {
                 const msg = error instanceof Error ? error.message : String(error);

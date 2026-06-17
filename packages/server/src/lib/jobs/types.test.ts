@@ -101,12 +101,14 @@ describe('shared job contracts', () => {
   });
 
   it('registers every shared job type in one central registry', () => {
-    expect(Object.keys(sharedJobContracts).sort()).toEqual([
-      BADCASE_EXPORT_DRAFT_TASK_TYPE,
-      'candidate_processing',
-      REMEDIATION_REACTIVATION_TASK_TYPE,
-      KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
-      SKILL_INDEX_FOLLOW_UP_TASK_TYPE,
-    ]);
+    expect(Object.keys(sharedJobContracts).sort()).toEqual(
+      [
+        BADCASE_EXPORT_DRAFT_TASK_TYPE,
+        'candidate_processing',
+        REMEDIATION_REACTIVATION_TASK_TYPE,
+        KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
+        SKILL_INDEX_FOLLOW_UP_TASK_TYPE,
+      ].sort(),
+    );
   });
 });

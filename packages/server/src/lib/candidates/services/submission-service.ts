@@ -10,6 +10,7 @@
 
 import { randomUUID } from 'node:crypto';
 import type { CandidateSubmission, DuplicateCase } from '@trapmap/contracts';
+import type { AsyncQueueTransport } from '@trapmap/server/lib/async/transport.js';
 import { buildNormalizedDuplicateInput } from '@trapmap/server/lib/candidates/fingerprint.js';
 import {
   CANDIDATE_PROCESSING_TASK_TYPE,
@@ -21,7 +22,6 @@ import type {
   CandidateRepository,
   TransactionalCandidateRepository,
 } from '@trapmap/server/lib/candidates/repository.js';
-import type { AsyncQueueTransport } from '@trapmap/server/lib/async/transport.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { createDuplicateCaseId } from '@trapmap/server/lib/ids.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
@@ -74,6 +74,18 @@ export function createImmediateCandidateQueuePort(
       scheduleCandidateProcessing(payload.candidateId, services);
     },
   };
+}
+
+export function createCandidateQueuePortForRuntime(args: {
+  asyncQueue?: AsyncQueueTransport;
+  store: SkillShareerStore;
+}): CandidateQueuePort {
+  return args.asyncQueue
+    ? createCandidateQueuePort(args.asyncQueue)
+    : createImmediateCandidateQueuePort({
+        store: args.store,
+        getSnapshot: () => args.store.snapshot(),
+      });
 }
 
 /**
@@ -214,7 +226,6 @@ export async function createAndEnqueueCandidate(
     manualResult: null,
   };
 
-  const pool = store instanceof PostgresStore ? store.getPool() : undefined;
   let duplicateCase: DuplicateCase | null = null;
   let initialStatus: 'duplicate_detected' | 'queued' = 'queued';
 
@@ -246,12 +257,6 @@ export async function createAndEnqueueCandidate(
     initialStatus = duplicateCase ? 'duplicate_detected' : 'queued';
     await candidateRepo.updateStatus(candidate.id, initialStatus);
 
-    const services: CandidateProcessorServices = {
-      store,
-      getSnapshot: () => store.snapshot(),
-      ...(pool ? { pool } : {}),
-      candidateRepo,
-    };
     if (!duplicateCase) {
       await candidateQueue.enqueue({ candidateId: candidate.id, retryCount: 0 });
     }

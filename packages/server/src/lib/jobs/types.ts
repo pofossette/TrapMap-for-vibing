@@ -60,6 +60,11 @@ export type SharedJobPayloadByType = {
 
 export type SharedJobOwnerContext =
   | {
+      owner: 'candidate-submission';
+      subjectId: string;
+      subjectType: 'candidate';
+    }
+  | {
       owner: 'knowledge-entry';
       subjectId: string;
       subjectType: 'trap';

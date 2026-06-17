@@ -705,7 +705,7 @@ describe('decay routes', () => {
       // decay route now delegates batch orchestration through a narrow lifecycle publisher.
       expect(source).toContain('createDecayBatchApplicationService');
       expect(source).toContain('createLifecyclePublisher');
-      expect(source).toContain('const decayRepos = {');
+      expect(source).toContain('knowledge: app.skillShareer.repos.knowledge');
       expect(source).not.toContain('repos: app.skillShareer.repos');
       expect(source).not.toContain('eventBus: app.skillShareer.eventBus');
       expect(serviceSource).toContain('lifecyclePublisher.publishTransition');

@@ -48,6 +48,14 @@ import {
 } from '@trapmap/server/lib/teams/index.js';
 import { createUserRepository } from '@trapmap/server/lib/users/index.js';
 
+export type { ArtifactRepository } from '@trapmap/server/lib/artifacts/index.js';
+export type { AuditRepository } from '@trapmap/server/lib/audit/index.js';
+export type { CandidateRepository } from '@trapmap/server/lib/candidates/index.js';
+export type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
+export type { FeedbackRepository } from '@trapmap/server/lib/feedback/index.js';
+export type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
+export type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
+
 /**
  * Unified repository object containing all domain repositories.
  * Always populated in both JSON and PG modes.

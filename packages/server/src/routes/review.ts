@@ -11,20 +11,26 @@ import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 export const reviewRoutes: FastifyPluginAsync = async (app) => {
   const { store, eventBus, asyncTransport } = app.skillShareer;
-  const reviewRepos = {
-    knowledge: app.skillShareer.repos.knowledge,
-    audit: app.skillShareer.repos.audit,
-    user: app.skillShareer.repos.user,
-    membership: app.skillShareer.repos.membership,
-  };
   function getReviewService() {
     return createReviewApplicationService({
-      repos: reviewRepos,
-      lifecyclePublisher: createLifecyclePublisher({
-        store,
-        eventBus,
-        asyncTransport,
-      }),
+      repos: {
+        knowledge: app.skillShareer.repos.knowledge,
+        audit: app.skillShareer.repos.audit,
+        user: app.skillShareer.repos.user,
+        membership: app.skillShareer.repos.membership,
+      },
+      lifecyclePublisher: createLifecyclePublisher(
+        asyncTransport
+          ? {
+              store,
+              eventBus,
+              asyncTransport,
+            }
+          : {
+              store,
+              eventBus,
+            },
+      ),
       feedbackRepo: app.skillShareer.repos.feedback,
     });
   }

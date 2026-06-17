@@ -412,6 +412,7 @@ export function makeMockServices(storeData: Partial<StoreData> = {}): SkillShare
   const data = makeMockStoreData(storeData);
   return {
     runtimeMode: 'combined',
+    serviceUnit: 'full-platform',
     config: {} as SkillShareerServices['config'],
     store: {
       snapshot: async () => data,

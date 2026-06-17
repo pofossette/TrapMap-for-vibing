@@ -28,7 +28,7 @@ import { semanticChannel } from './lib/retrieval/recall/semantic.js';
 import { handleRuntimeError, registerRuntimeRoutes } from './lib/runtime/http-surface.js';
 import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
 import type { RuntimeMode } from './lib/runtime/runtime-contract.js';
-import { resolveServiceUnit, type ServiceUnit } from './lib/runtime/service-unit.js';
+import { type ServiceUnit, resolveServiceUnit } from './lib/runtime/service-unit.js';
 
 import { runStartupSequence } from './bootstrap/run-startup-sequence.js';
 import { accessKeyRoutes } from './routes/access-keys.js';
@@ -157,12 +157,11 @@ export function buildServer(options: BuildServerOptions = {}) {
 
   registerRuntimeRoutes(app, config, documentedRoutes);
 
-  app.decorate('skillShareer', {
+  const skillShareer: SkillShareerServices = {
     config,
     runtimeMode,
     serviceUnit,
     store: createSkillShareerStore(config),
-    asyncTransport: undefined,
     adapterRegistry: buildDefaultAdapterRegistry(),
     channelRegistry: (() => {
       const cr = new ChannelRegistry();
@@ -217,7 +216,9 @@ export function buildServer(options: BuildServerOptions = {}) {
     graphQueryBackend: {} as GraphQueryBackend,
     graphQuery: createGraphQueryRuntimeState(config.graphDb),
     eventBus: new LifecycleEventBus(),
-  });
+  };
+
+  app.decorate('skillShareer', skillShareer);
 
   if (app.skillShareer.store instanceof PostgresStore) {
     app.skillShareer.asyncTransport = createPostgresAsyncTransport(

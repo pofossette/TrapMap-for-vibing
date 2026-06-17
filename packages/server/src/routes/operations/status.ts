@@ -101,8 +101,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
         serviceUnit,
         ownership: {
           ownsAny:
-            serviceUnitProfile.ownsCandidateTaskWork ||
-            serviceUnitProfile.ownsSharedJobTaskWork,
+            serviceUnitProfile.ownsCandidateTaskWork || serviceUnitProfile.ownsSharedJobTaskWork,
           ownsCandidateTaskWork: serviceUnitProfile.ownsCandidateTaskWork,
           ownsSharedJobTaskWork: serviceUnitProfile.ownsSharedJobTaskWork,
         },

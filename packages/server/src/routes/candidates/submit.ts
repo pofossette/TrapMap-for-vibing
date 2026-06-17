@@ -14,8 +14,7 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import {
   createAndEnqueueCandidate,
-  createImmediateCandidateQueuePort,
-  createCandidateQueuePort,
+  createCandidateQueuePortForRuntime,
 } from '@trapmap/server/lib/candidates/services/submission-service.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
@@ -45,12 +44,16 @@ function computeSha256(content: string): string {
 }
 
 export const candidateSubmissionRoutes: FastifyPluginAsync = async (app) => {
-  const candidateQueue = app.skillShareer.asyncTransport?.queue
-    ? createCandidateQueuePort(app.skillShareer.asyncTransport.queue)
-    : createImmediateCandidateQueuePort({
-        store: app.skillShareer.store,
-        getSnapshot: () => app.skillShareer.store.snapshot(),
-      });
+  const candidateQueue = createCandidateQueuePortForRuntime(
+    app.skillShareer.asyncTransport?.queue
+      ? {
+          asyncQueue: app.skillShareer.asyncTransport.queue,
+          store: app.skillShareer.store,
+        }
+      : {
+          store: app.skillShareer.store,
+        },
+  );
 
   // POST /v1/candidates - Submit a new candidate
   app.post('/v1/candidates', async (request) => {

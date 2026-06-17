@@ -53,7 +53,10 @@ export interface AsyncEventTransport {
       delayMs?: number;
     },
   ): Promise<unknown>;
-  claimBatch(limit?: number, workerId?: string): Promise<Array<{ id: string; eventName: string; payload: unknown; aggregateId: string }>>;
+  claimBatch(
+    limit?: number,
+    workerId?: string,
+  ): Promise<Array<{ id: string; eventName: string; payload: unknown; aggregateId: string }>>;
   complete(eventId: string): Promise<void>;
   fail(eventId: string, error: string): Promise<void>;
   getStatusSnapshot(): Promise<{

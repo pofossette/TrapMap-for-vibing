@@ -4,10 +4,10 @@ import { ZodError } from 'zod';
 import type { ServerConfig } from '@trapmap/server/config.js';
 import { isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import { getServiceUnitProfile } from './service-unit.js';
 import { getOrCreateRequestContext } from './request-context.js';
 import { snapshotRuntimeWorker } from './runtime-contract.js';
 import { buildRuntimeStatusSnapshot, resolveAsyncWorkerState } from './runtime-metadata.js';
+import { getServiceUnitProfile } from './service-unit.js';
 
 async function buildRuntimeAsyncSnapshot(app: FastifyInstance) {
   const store = app.skillShareer.store;

@@ -19,10 +19,7 @@ import { createWorkflowRepository } from '@trapmap/server/lib/workflows/reposito
 import type { Pool } from 'pg';
 
 export function createRemediationReactivationHandler(args: {
-  services: Pick<
-    SkillShareerServices,
-    'store' | 'adapterRegistry' | 'ai' | 'graphQueryBackend'
-  > & {
+  services: Pick<SkillShareerServices, 'store' | 'adapterRegistry' | 'ai' | 'graphQueryBackend'> & {
     repos: {
       knowledge: KnowledgeRepository;
       artifact: ArtifactRepository;

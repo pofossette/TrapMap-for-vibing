@@ -161,7 +161,10 @@ async function loadEntriesForBatch(
   return loadKnowledgeEntriesByIds(depsRepos.knowledge, ids);
 }
 
-async function saveEntry(depsRepos: DecayBatchApplicationServiceDeps['repos'], entry: KnowledgeRecord) {
+async function saveEntry(
+  depsRepos: DecayBatchApplicationServiceDeps['repos'],
+  entry: KnowledgeRecord,
+) {
   try {
     await saveKnowledgeEntry(depsRepos.knowledge, entry);
   } catch {

@@ -24,11 +24,18 @@ import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
 export const candidateResolutionRoutes: FastifyPluginAsync = async (app) => {
   const { store, eventBus, asyncTransport } = app.skillShareer;
-  const lifecyclePublisher = createLifecyclePublisher({
-    store,
-    eventBus,
-    asyncTransport,
-  });
+  const lifecyclePublisher = createLifecyclePublisher(
+    asyncTransport
+      ? {
+          store,
+          eventBus,
+          asyncTransport,
+        }
+      : {
+          store,
+          eventBus,
+        },
+  );
 
   // POST /v1/candidates/:candidateId/manual-result - Submit manual resolution
   app.post('/v1/candidates/:candidateId/manual-result', async (request) => {

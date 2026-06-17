@@ -6,10 +6,7 @@ import {
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
 import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
-import {
-  createSharedJobQueuePort,
-  scheduleSharedJob,
-} from '@trapmap/server/lib/jobs/index.js';
+import { createSharedJobQueuePort, scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
 import { KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
