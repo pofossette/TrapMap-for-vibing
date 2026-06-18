@@ -1,211 +1,119 @@
-# TrapMap 灵活构建部署总入口
+# TrapMap Runtime Recomposition Plan
 
-> 根 `plan.md` 是当前“灵活构建部署 + CLI 接入 + 重后端微服务化”工作的总审计入口。具体实施细则拆分到 `docs/plans/deployment-flexibility/`，本文件负责统一状态、依赖、偏移和缺漏项。
-
-**背景：** TrapMap 后端已经不再只是“为未来拆分预留 runtime seam”。当前仓库已出现一批实际落地：
-
-- server runtime 已有正式 `deployment profile` 词汇：`local-agent`、`team-monolith`、`distributed`
-- `deployment preset` 已退回兼容输入，解析后统一收敛到 `profile + runtimeMode + serviceUnit + capabilities`
-- CLI 正式接入模型已收敛为 `gateway only`
-- README / docs / runtime metadata / route surface / compose / scripts 已在推进同一条部署叙事
-
-**总需求：** 在以下三种目标形态之间保持统一 core、统一 CLI 接入、统一文档和测试约束，并把“已经落地的部分”和“仍待完成的部分”明确分开：
-
-1. `local-agent`
-   面向单用户、轻量本地服务，保留 retrieval-first 的最小能力面。
-2. `team-monolith`
-   面向小团队或单实例部署，保留完整 HTTP API 和 PostgreSQL 主路径。
-3. `distributed`
-   面向多用户重后端，通过 gateway + 多服务/多 worker 运行，逐步引入微服务化部署。
-
-**开发要求：**
-
-- 不做 MCP 协议；CLI 仍是正式接入面。
-- CLI 默认且优先只连接统一 gateway，不直接感知后端微服务拆分。
-- 第一阶段允许共享 PostgreSQL，不要求一开始就拆库。
-- 新能力必须优先复用现有 `repos`、application service、queue/outbox、runtime seams，而不是平行实现第二套逻辑。
-- 每个子计划都必须同步写明：
-  - 代码改动范围
-  - 需要更新的文档
-  - 需要补充或调整的测试
-  - 兼容性/回滚边界
-
----
-
-## 本次总审计结论
-
-### 已确认落地
-
-- `P1 Profile 与 Capability 模型` 已不再是纯计划项，仓库已有实装痕迹：
-  - README / docs / architecture 已写入 `local-agent`、`team-monolith`、`distributed`
-  - server runtime 已存在 `ResolvedRuntimeDeployment` 叙事与 capability 驱动的 route surface
-  - runtime metadata / readiness 已开始表达 profile 与 topology 信息
-- `P2 Gateway 与 CLI 接入收敛` 也已部分完成：
-  - CLI 配置层已收敛为单一 gateway URL，并兼容旧 `serverUrl`
-  - 文档已把 `gateway only` 写成正式约束
-- `P4 构建、部署、文档与测试收敛` 已进入落地中：
-  - 根 README / docs/README / DEPLOYMENT / package scripts / compose 已有对应改动
-
-### 仍需继续收口
-
-- `P0` 仍需作为术语与边界的基线文档保留，但不应继续暗示“profile 尚未进入代码”。
-- `P3` 仍是当前最主要的未完全收敛项：
-  - distributed 服务边界虽已进入 metadata/test 叙事，但 retrieval / gateway / governance / outbox 的代码级边界与验证矩阵仍需继续固化。
-- `P4` 需要补齐“实现完成后的最小验证闭环”，避免只改文档和脚本、不固化测试入口。
-
-### 本文件修复的偏移
-
-- 修复“计划仍假设 profile 只是未来目标”的偏移。
-- 修复“CLI 仍接近单 gateway”这一过时表述，改为“gateway only 已是正式模型”。
-- 修复“README / DEPLOYMENT 仍主要讲旧故事”的偏移；这些文件当前已在改动中，不应继续在总计划中按旧状态描述。
-
-### 本文件补齐的缺漏
-
-- 为各子计划增加状态语义，避免根入口只列链接、不说明哪些已经实现。
-- 补齐跨子计划依赖关系，避免 P3/P4 重复定义 P1/P2 已确定事实。
-- 补齐总体验证要求，明确计划完成不等于仅有文档更新。
-
----
-
-## 计划结构
-
-### P0. 基线与约束
+## 状态
 
 - 状态：`active`
-- 文件：[`docs/plans/deployment-flexibility/00-baseline-and-constraints.md`](./docs/plans/deployment-flexibility/00-baseline-and-constraints.md)
+- 目标日期：`2026-06-18`
+- 本文件角色：根级总计划与索引，只描述背景、总要求、阶段边界与子计划入口
 
-用途：
-- 冻结术语、目标部署形态、非目标和兼容边界。
-- 为后续子计划提供统一词汇，避免重新发明 `profile / preset / runtimeMode / serviceUnit / capability / topology`。
+## 背景
 
-审计要求：
-- 该文件必须承认 `deployment profile` 已进入当前代码与文档事实层。
-- 不再使用“CLI 仍基于 `serverUrl` 单点接入”这类过时表述；应改成 `gatewayUrl` 为正式词汇，`serverUrl` 仅为兼容读取。
+TrapMap 当前已经完成了两条关键演进：
 
-### P1. Profile 与 Capability 模型
+- CLI 已经收敛为 `gateway-only` 接入模型，`packages/cli/src/lib/http.ts` 代表了一层可进一步抽离的通用网络访问能力。
+- Server 已经具备 `local-agent`、`team-monolith`、`distributed` 三种 deployment profile，以及 `runtimeMode`、`serviceUnit`、`task transport` 等运行时语义。
 
-- 状态：`partially landed`
-- 文件：[`docs/plans/deployment-flexibility/01-profile-and-capability-model.md`](./docs/plans/deployment-flexibility/01-profile-and-capability-model.md)
+下一阶段不是继续把所有能力堆进 `packages/cli` 和 `packages/server`，而是做一次面向长期复用和宿主装配的重构：
 
-用途：
-- 定义 `local-agent` / `team-monolith` / `distributed` 三类 deployment profile。
-- 把当前 `runtimeMode + serviceUnit + deployment preset` 升级为一套可解释的 capability matrix。
+1. 把 CLI 中已经去掉 Node 专属依赖的网络层和可复用通用逻辑上提为 monorepo 新包，给未来 Web 面板、其他客户端和轻宿主共用。
+2. 把后端从“单包内支持多种运行模式”推进到“公共核心内核 + 轻量本地宿主 + 细粒度重型微服务宿主”的可装配架构。
+3. 明确 `gateway / identity-access / knowledge-read / knowledge-write / candidate-ingestion / governance-review / job-runtime` 等服务边界，让轻后端与重后端不是两套平行产品，而是同一核心内核的两种组装方式。
 
-审计要求：
-- 该文件中的“目标模型”可以保留，但必须显式区分：
-  - 已落地：统一解析、capability 驱动 route surface、metadata/readiness
-  - 未落地：剩余 boot strategy、边界清理、测试收口
-- 不应继续把已实现项表述成纯设计提案。
+## 这轮计划的总目标
 
-### P2. Gateway 与 CLI 接入收敛
+- 建立一个新的共享客户端核心包，承载 CLI 当前可复用的 HTTP gateway 访问层与后续面板通用逻辑。
+- 建立一个新的后端核心内核层，沉淀 contracts 之上的应用编排、端口定义、运行时能力模型与宿主无关逻辑。
+- 建立轻量本地宿主，服务 `local-agent` / `team-monolith` 等低运维形态。
+- 建立更细粒度的重型微服务宿主，服务 `distributed` 以及未来更彻底的读写拆分、治理拆分和独立扩缩容。
+- 在不破坏 gateway-only CLI 接入模型的前提下完成迁移。
 
-- 状态：`largely landed`
-- 文件：[`docs/plans/deployment-flexibility/02-gateway-and-cli-integration.md`](./docs/plans/deployment-flexibility/02-gateway-and-cli-integration.md)
+## 总体要求
 
-用途：
-- 明确 CLI 始终只连接 gateway。
-- 定义 gateway 对外 API、内部路由责任，以及轻量模式与重后端的对外一致性要求。
+### 1. 架构要求
 
-审计要求：
-- 该文件应把“gateway-only 已成立”写成当前事实，而不是待决定方向。
-- 后续重点转为：
-  - 本地裁剪路由时的 capability/error 语义
-  - CLI 关键命令回归测试
-  - 文档中彻底移除多 URL 想象空间
+- 新增共享包不能只是“把文件挪位置”，必须先冻结公开接口、依赖边界和宿主责任。
+- 轻宿主和重宿主都必须复用同一个核心内核，禁止复制一份“轻版本业务逻辑”和一份“重版本业务逻辑”。
+- 读路径和写路径拆分后，gateway 仍然是外部唯一稳定入口；CLI 和未来 Web 面板不直接感知微服务内部拓扑。
+- 微服务边界要按 authoritative ownership、读写语义和故障域划分，而不是按技术层随意拆文件。
+- 重后端必须预留内部同步调用的 `RPC seam`，但首期不做 `RPC-first` 架构；先冻结服务接口与调用语义，再决定具体传输协议。
+- 分布式形态首期继续共享 `packages/contracts`、共享 PostgreSQL、共享 queue/outbox 语义。
 
-### P3. 重后端微服务化拆分
+### 2. 工程要求
 
-- 状态：`active`
-- 文件：[`docs/plans/deployment-flexibility/03-distributed-service-topology.md`](./docs/plans/deployment-flexibility/03-distributed-service-topology.md)
+- 迁移要允许分阶段落地，不能要求一次性切换全部命令、全部路由、全部 worker。
+- 每一阶段都要保留最小可运行形态，至少保证 `local-agent` 或 `team-monolith` 有一条稳定开发入口。
+- 新包命名、目录位置、导出面、测试入口和 README 必须在计划阶段冻结。
 
-用途：
-- 规划 `distributed` 形态下的 gateway / retrieval / candidate ingestion / governance / outbox 等服务拓扑。
-- 明确第一阶段共享 PostgreSQL、后续再评估更强隔离。
+### 3. 非目标
 
-审计要求：
-- 该文件是当前主增量区域，需避免与 P1 重复定义 profile/capability。
-- 应把重点收敛到：
-  - service identity / topology metadata
-  - route ownership 与 worker ownership 的代码映射
-  - distributed readiness / health / smoke matrix
+- 本轮不让 CLI 直连多个后端服务。
+- 本轮不把 PostgreSQL 按服务拆库。
+- 本轮不把 Kafka / NATS / Redis Streams 变成默认基础设施。
+- 本轮不把 gRPC / Connect / tRPC 等 RPC 基础设施作为首期必须项。
+- 本轮不引入第二套与现有 contracts 平行的数据契约系统。
+- 本轮不优先做 UI 设计或 Web 面板具体页面实现；这里只为其共享层打基础。
 
-### P4. 构建、部署、文档与测试收敛
+## 建议交付顺序
 
-- 状态：`active`
-- 文件：[`docs/plans/deployment-flexibility/04-build-deploy-docs-and-tests.md`](./docs/plans/deployment-flexibility/04-build-deploy-docs-and-tests.md)
+1. 先冻结边界和术语，避免“拆包”和“微服务化”在不同文档里指代不同事情。
+2. 先抽共享客户端核心包，让 CLI 与未来 Web 面板先在网络访问层达成复用。
+3. 再抽后端公共核心内核，把当前 `packages/server` 内的宿主相关和业务编排相关逻辑拆开。
+4. 在核心内核稳定后分别实现轻宿主和更细粒度的重宿主服务单元。
+5. 最后推进增量迁移、验证矩阵和文档回写。
 
-用途：
-- 收敛 pnpm scripts、环境变量、docker compose/profile、文档索引和测试矩阵。
-- 保证实现完成后，仓库的 README / DEPLOYMENT / PACKAGES / TESTING 不会继续讲旧故事。
+## 子计划目录
 
-审计要求：
-- 该文件要承认 README / docs / compose / scripts 已存在在途改动。
-- 重点应从“是否命名 profile 脚本”转为“脚本、env、compose、文档、测试是否完全对齐”。
+### A. 总边界与目标蓝图
 
----
+- [00-baseline-and-target-architecture.md](docs/plans/runtime-recomposition/00-baseline-and-target-architecture.md)
+  作用：冻结术语、边界、目标拓扑、包布局和非目标，给后续子计划提供统一前提。
 
-## 跨计划依赖
+### B. 共享客户端核心包
 
-- `P0 -> P1/P2/P3/P4`
-  - P0 只负责冻结词汇和边界，不重复承载实现细节。
-- `P1 -> P2/P3/P4`
-  - P2 的 gateway-only 约束和 P3 的 topology metadata 都应复用 P1 的 profile/capability 事实源。
-- `P2 -> P4`
-  - CLI 接入模型一旦固定，P4 的脚本、README、部署文档、smoke 测试都必须围绕单 gateway 入口展开。
-- `P3 -> P4`
-  - 只有当 distributed 拓扑边界写清楚后，compose profile、部署示例和 smoke matrix 才能真正定稿。
+- [01-shared-client-core-extraction.md](docs/plans/runtime-recomposition/01-shared-client-core-extraction.md)
+  作用：规划从 `packages/cli/src/lib/http.ts` 和通用逻辑中抽出新包，定义 Web 面板与 CLI 的共享 API。
 
----
+### C. 后端公共核心内核
 
-## 全局完成标准
+- [02-backend-core-kernel-extraction.md](docs/plans/runtime-recomposition/02-backend-core-kernel-extraction.md)
+  作用：规划把 `packages/server` 中与宿主无关的应用编排、端口、能力模型、以及更细粒度服务单元边界上提为核心内核。
 
-- [x] 仓库存在统一的 deployment profile 词汇，不再仅靠零散 env/worker 模式描述部署形态。
-- [x] CLI 对后端的正式接入模型固定为 `gateway only`。
-- [x] `local-agent`、`team-monolith`、`distributed` 三种目标形态已进入代码和文档词汇层。
-- [ ] 三种形态在代码、文档、测试里的能力边界完全一致，没有残留旧叙事。
-- [ ] distributed 第一阶段服务边界、共享基础设施和非目标在实现与文档中都完全闭环。
-- [ ] 构建/部署脚本、docker compose、环境变量示例与架构文档完全一致。
-- [ ] 相关测试覆盖 config/profile 解析、runtime ownership、route exposure、CLI 接入和部署 smoke。
+### D. 轻量本地宿主
 
-## 当前缺口清单
+- [03-light-host-assembly.md](docs/plans/runtime-recomposition/03-light-host-assembly.md)
+  作用：规划本地/单实例轻宿主，服务 `local-agent` 与 `team-monolith` 的最小装配方案。
 
-- `P0` 文案仍含旧事实：
-  - CLI 仍写作 `serverUrl`
-  - 部署文档仍被描述为 `monolith / split-pg / split-rabbitmq` 主叙事
-- `P1` 文档状态已比根入口更超前，但仍缺统一“已落地/待落地”分界。
-- `P3` 缺少显式引用当前已出现的 topology 代码入口：
-  - `packages/server/src/lib/runtime/service-topology.ts`
-  - `packages/server/src/lib/runtime/service-topology.test.ts`
-- `P4` 缺少“最小必跑命令”的正式总表，根入口应要求最终至少回填到 `docs/operations/TESTING.md`。
+### E. 重型微服务宿主
 
-## 执行顺序
+- [04-heavy-microservice-assembly.md](docs/plans/runtime-recomposition/04-heavy-microservice-assembly.md)
+  作用：规划 `gateway / identity-access / knowledge-read / knowledge-write / candidate-ingestion / governance-review / job-runtime` 的重型装配方式和服务边界。
 
-建议按以下顺序推进剩余工作：
+### F. 迁移、验证与回写
 
-1. 修正 `00-baseline-and-constraints.md` 的过时事实表述
-2. 收口 `03-distributed-service-topology.md` 的代码映射与边界定义
-3. 收口 `04-build-deploy-docs-and-tests.md` 的脚本、compose、env、测试闭环
-4. 回头对 `01`、`02` 做状态性整理，避免继续把已完成事项写成未来计划
+- [05-migration-validation-and-doc-rollout.md](docs/plans/runtime-recomposition/05-migration-validation-and-doc-rollout.md)
+  作用：规划分阶段迁移、兼容策略、测试矩阵、文档与脚本回写。
 
-如果实现中发现子计划需要进一步拆分，新增文件放在同目录下，并在本入口追加链接与状态。
+## 阶段依赖
 
-## 现有事实入口
+- `00` 是所有后续子计划的前置。
+- `01` 与 `02` 可以并行设计，但实施上优先完成 `01`，避免 Web 共享层继续绑死在 CLI 包内。
+- `03`、`04` 都依赖 `02` 的核心内核边界冻结。
+- `05` 依赖 `01` 到 `04` 的接口与目录方案基本稳定后再统一收口。
 
-- 架构入口：[`architecture.md`](./architecture.md)
-- 包职责：[`docs/PACKAGES.md`](./docs/PACKAGES.md)
-- 部署文档：[`docs/architecture/DEPLOYMENT.md`](./docs/architecture/DEPLOYMENT.md)
-- 测试文档：[`docs/operations/TESTING.md`](./docs/operations/TESTING.md)
-- 代码现状：
-  - [`packages/server/src/app.ts`](./packages/server/src/app.ts)
-  - [`packages/server/src/lib/runtime/deployment-profile.ts`](./packages/server/src/lib/runtime/deployment-profile.ts)
-  - [`packages/server/src/lib/runtime/deployment-preset.ts`](./packages/server/src/lib/runtime/deployment-preset.ts)
-  - [`packages/server/src/lib/runtime/runtime-metadata.ts`](./packages/server/src/lib/runtime/runtime-metadata.ts)
-  - [`packages/server/src/lib/runtime/http-surface.ts`](./packages/server/src/lib/runtime/http-surface.ts)
-  - [`packages/server/src/lib/runtime/service-topology.ts`](./packages/server/src/lib/runtime/service-topology.ts)
-  - [`packages/cli/src/index.ts`](./packages/cli/src/index.ts)
-  - [`packages/cli/src/lib/http.ts`](./packages/cli/src/lib/http.ts)
-  - [`packages/cli/src/lib/config.ts`](./packages/cli/src/lib/config.ts)
+## 关键决策原则
 
-## 归档说明
+- 优先抽“稳定边界”，再抽“实现文件”。
+- 优先让轻宿主可运行，再让重宿主可扩展。
+- 微服务化是运行时装配策略，不是复制代码和复制契约。
+- 优先定义逻辑服务边界，再决定物理进程如何合并部署。
+- 优先定义 internal port 和调用语义，再决定是否升级为正式 RPC。
+- 所有客户端只面向 gateway，所有宿主都面向核心内核。
 
-此前根 `plan.md` 更接近“未来部署规划入口”，现在改为“总审计入口”。后续若某一阶段已经彻底落定，应把过时叙事归档到 `docs/archived/archived-plans/`，而不是继续让根入口同时承担旧计划和现状描述。
+## 完成定义
+
+当以下条件全部满足时，可认为这轮大计划完成：
+
+- Monorepo 中新增了共享客户端核心包，并被 CLI 消费。
+- Monorepo 中新增了后端核心内核层，并由轻宿主和重宿主共同复用。
+- `local-agent`、`team-monolith`、`distributed` 的叙事被重新统一为“同一内核，不同宿主装配”。
+- 更细粒度的重型部署拓扑有清晰的逻辑服务边界、运行入口、验证矩阵和文档事实源。

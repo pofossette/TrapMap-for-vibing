@@ -86,6 +86,216 @@ profile capability 语义：
 - `TRAPMAP_TASK_TRANSPORT=rabbitmq` 只适用于 task-capable runtime。
 - 没有明确 backlog / isolation 需求时，建议保持 `TRAPMAP_TASK_TRANSPORT=postgres`。
 
+### 预留的内部服务通信配置
+
+以下变量是为 runtime recomposition / 重后端微服务化预留的 planned config surface。当前版本可以尚未全部实现，但命名和语义应尽量按这里冻结，避免后续宿主、adapter 和文档各自发明一套。
+
+#### Internal service mode
+
+| 变量 | 说明 | 计划默认值 |
+|------|------|------------|
+| `TRAPMAP_INTERNAL_IDENTITY_ACCESS_MODE` | `identity-access` 内部调用模式：`in-process`、`http`、`rpc` | `in-process` |
+| `TRAPMAP_INTERNAL_KNOWLEDGE_READ_MODE` | `knowledge-read` 内部调用模式 | `in-process` |
+| `TRAPMAP_INTERNAL_KNOWLEDGE_WRITE_MODE` | `knowledge-write` 内部调用模式 | `in-process` |
+| `TRAPMAP_INTERNAL_CANDIDATE_INGESTION_MODE` | `candidate-ingestion` 内部调用模式 | `in-process` |
+| `TRAPMAP_INTERNAL_GOVERNANCE_REVIEW_MODE` | `governance-review` 内部调用模式 | `in-process` |
+| `TRAPMAP_INTERNAL_JOB_RUNTIME_MODE` | `job-runtime` 内部调用模式 | `in-process` |
+
+语义约定：
+
+- `in-process`：宿主内直接调用核心内核 port
+- `http`：通过内部 HTTP/JSON adapter 调用
+- `rpc`：为未来正式 RPC adapter 预留；首期可未实现
+
+#### Internal service endpoint
+
+| 变量 | 说明 | 计划默认值 |
+|------|------|------------|
+| `TRAPMAP_INTERNAL_IDENTITY_ACCESS_URL` | `identity-access` 内部 endpoint | 空 |
+| `TRAPMAP_INTERNAL_KNOWLEDGE_READ_URL` | `knowledge-read` 内部 endpoint | 空 |
+| `TRAPMAP_INTERNAL_KNOWLEDGE_WRITE_URL` | `knowledge-write` 内部 endpoint | 空 |
+| `TRAPMAP_INTERNAL_CANDIDATE_INGESTION_URL` | `candidate-ingestion` 内部 endpoint | 空 |
+| `TRAPMAP_INTERNAL_GOVERNANCE_REVIEW_URL` | `governance-review` 内部 endpoint | 空 |
+| `TRAPMAP_INTERNAL_JOB_RUNTIME_URL` | `job-runtime` 内部 endpoint | 空 |
+
+约定：
+
+- 仅当对应 service mode 为 `http` 或 `rpc` 时必填
+- `in-process` 模式下应忽略这些地址
+
+#### Internal timeout / retry
+
+| 变量 | 说明 | 计划默认值 |
+|------|------|------------|
+| `TRAPMAP_INTERNAL_DEFAULT_TIMEOUT_MS` | 内部同步调用默认超时预算 | `3000` |
+| `TRAPMAP_INTERNAL_IDENTITY_ACCESS_TIMEOUT_MS` | `identity-access` 调用超时 | 继承默认值 |
+| `TRAPMAP_INTERNAL_KNOWLEDGE_READ_TIMEOUT_MS` | `knowledge-read` 调用超时 | 继承默认值 |
+| `TRAPMAP_INTERNAL_KNOWLEDGE_WRITE_TIMEOUT_MS` | `knowledge-write` 调用超时 | 继承默认值 |
+| `TRAPMAP_INTERNAL_MAX_RETRIES` | 内部同步调用默认最大重试次数 | `1` |
+| `TRAPMAP_INTERNAL_RETRY_BACKOFF_MS` | 内部同步调用默认退避时间 | `200` |
+
+约定：
+
+- `identity-access` 默认应 fail-closed，不因超时自动放宽权限
+- `knowledge-read` 可按 capability 允许更短 timeout 或有限 fallback
+- `knowledge-write` 的 retry 必须考虑 idempotency
+
+#### Internal propagation headers
+
+| 变量 | 说明 | 计划默认值 |
+|------|------|------------|
+| `TRAPMAP_INTERNAL_TRACE_HEADER_NAME` | 内部 trace header 名 | `traceparent` |
+| `TRAPMAP_INTERNAL_REQUEST_ID_HEADER_NAME` | 内部 request id header 名 | `x-request-id` |
+| `TRAPMAP_INTERNAL_CORRELATION_ID_HEADER_NAME` | 内部 correlation id header 名 | `x-correlation-id` |
+| `TRAPMAP_INTERNAL_TEAM_HEADER_NAME` | 内部 team context header 名 | `x-team-id` |
+| `TRAPMAP_INTERNAL_ACTOR_HEADER_NAME` | 内部 actor context header 名 | `x-actor-id` |
+
+#### Internal async routing
+
+| 变量 | 说明 | 计划默认值 |
+|------|------|------------|
+| `TRAPMAP_INTERNAL_JOB_RUNTIME_TRANSPORT` | 内部 job runtime transport：`in-memory`、`postgres`、`rabbitmq` | `postgres` |
+| `TRAPMAP_INTERNAL_GOVERNANCE_QUEUE_NAME` | governance review 队列名 | `trapmap.governance` |
+| `TRAPMAP_INTERNAL_CANDIDATE_QUEUE_NAME` | candidate ingestion 队列名 | `trapmap.candidate` |
+| `TRAPMAP_INTERNAL_OUTBOX_QUEUE_NAME` | outbox runtime 队列名 | `trapmap.outbox` |
+
+当前建议：
+
+- `local-agent` 与 `team-monolith` 默认保持全部 internal service `in-process`
+- `distributed` 首期可以按服务逐步切到 `http`
+- `rpc` 是预留值，不作为当前主文档推荐入口
+
+### 预留的重后端缓存配置
+
+以下变量同样属于 runtime recomposition / 重后端微服务化的 planned config surface。它们主要面向 `knowledge-read` 及其相关只读消费者，目标是冻结缓存层级、key 语义、失效与预热策略，而不是让缓存成为新的真相源。
+
+#### Retrieval local cache
+
+| 变量 | 说明 | 计划默认值 |
+|------|------|------------|
+| `TRAPMAP_RETRIEVAL_LOCAL_CACHE_ENABLED` | 启用 read-side 本地缓存 | `true` |
+| `TRAPMAP_RETRIEVAL_READ_MODEL_CACHE_TTL_MS` | retrieval read-model cache TTL | `60000` |
+| `TRAPMAP_RETRIEVAL_INTENT_CACHE_TTL_MS` | intent cache TTL | `1800000` |
+| `TRAPMAP_RETRIEVAL_INTENT_CACHE_MAX_SIZE` | intent cache 最大条目数 | `200` |
+| `TRAPMAP_RETRIEVAL_QUERY_RESULT_CACHE_TTL_MS` | exact query result cache TTL | `30000` |
+| `TRAPMAP_RETRIEVAL_QUERY_RESULT_CACHE_MAX_SIZE` | exact query result cache 最大条目数 | `500` |
+| `TRAPMAP_RETRIEVAL_FILTER_CACHE_TTL_MS` | filter/intermediate cache TTL | `60000` |
+| `TRAPMAP_RETRIEVAL_FILTER_CACHE_MAX_SIZE` | filter/intermediate cache 最大条目数 | `500` |
+| `TRAPMAP_RETRIEVAL_REVISION_OBJECT_CACHE_TTL_MS` | immutable revision object cache TTL | `3600000` |
+| `TRAPMAP_RETRIEVAL_REVISION_OBJECT_CACHE_MAX_SIZE` | immutable revision object cache 最大条目数 | `2000` |
+
+约定：
+
+- 本地缓存适合 `knowledge-read` 的 process-local 热点复用。
+- query result cache 仅适用于确定性请求，不建议缓存带调试/实验参数的请求。
+- revision object cache 应优先使用 `artifactId + revisionNo` / `knowledgeId + revisionNo` 这类不可变 key。
+
+#### Distributed invalidation
+
+| 变量 | 说明 | 计划默认值 |
+|------|------|------------|
+| `TRAPMAP_CACHE_INVALIDATION_MODE` | 缓存失效传播模式：`in-process`、`outbox`、`queue` | `in-process` |
+| `TRAPMAP_CACHE_INVALIDATION_CHANNEL` | 分布式失效 channel / topic 名称 | `trapmap.cache.invalidate` |
+| `TRAPMAP_CACHE_INVALIDATION_BATCH_SIZE` | 单次失效广播批量大小 | `100` |
+| `TRAPMAP_CACHE_INVALIDATION_FLUSH_INTERVAL_MS` | 失效事件批量刷出间隔 | `500` |
+| `TRAPMAP_CACHE_INVALIDATION_MAX_LAG_MS` | 允许的失效传播滞后预算 | `5000` |
+
+约定：
+
+- `local-agent` / `team-monolith` 可保持 `in-process`。
+- `distributed` 应逐步切到 `outbox` 或 `queue` 驱动。
+- 先做 distributed invalidation，再决定是否引入 shared remote cache。
+
+#### Remote cache 预留
+
+| 变量 | 说明 | 计划默认值 |
+|------|------|------------|
+| `TRAPMAP_REMOTE_CACHE_ENABLED` | 启用远程共享缓存 | `false` |
+| `TRAPMAP_REMOTE_CACHE_PROVIDER` | 远程缓存提供者；建议预留 `redis` | `redis` |
+| `TRAPMAP_REMOTE_CACHE_URL` | 远程缓存连接地址 | 空 |
+| `TRAPMAP_REMOTE_CACHE_PREFIX` | 远程缓存 key 前缀 | `trapmap` |
+| `TRAPMAP_REMOTE_CACHE_DEFAULT_TTL_MS` | 远程缓存默认 TTL | `60000` |
+| `TRAPMAP_REMOTE_CACHE_FAIL_OPEN` | 远程缓存不可用时是否降级为本地/直查 | `true` |
+
+当前建议：
+
+- 首期不要把远程缓存设为必需依赖。
+- 若启用远程缓存，优先用于：
+  - exact query result cache
+  - immutable revision object cache
+- 不建议首期把 candidate processing state、governance queue state 或全量 permission decision 直接塞进远程缓存。
+
+#### Cache key / warmup 约束
+
+| 变量 | 说明 | 计划默认值 |
+|------|------|------------|
+| `TRAPMAP_RETRIEVAL_CACHE_KEY_INCLUDE_POLICY_REVISION` | retrieval cache key 是否强制包含 policy/security revision | `true` |
+| `TRAPMAP_RETRIEVAL_CACHE_KEY_INCLUDE_INDEX_REVISION` | retrieval cache key 是否强制包含 index/data revision | `true` |
+| `TRAPMAP_RETRIEVAL_WARMUP_ENABLED` | 是否启用 read-host 启动预热 | `false` |
+| `TRAPMAP_RETRIEVAL_WARMUP_TOP_QUERY_LIMIT` | 启动时预热的热点 query 数量 | `100` |
+| `TRAPMAP_RETRIEVAL_WARMUP_TOP_CAPSULE_LIMIT` | 启动时预热的热点 capsule 数量 | `100` |
+
+关键约束：
+
+- retrieval cache key 不应使用 `queryId`。
+- retrieval 结果缓存必须带 `teamId` 与 policy/security revision 维度。
+- 不要依赖 TTL 作为唯一一致性手段；写路径仍要负责 invalidation。
+
+### 预留的批量入库 / bulk ingestion 配置
+
+以下变量用于重后端下的导入、回填、批量候选入库、索引重建和 projection refresh 等 bulk path。目标是把 online command path 与 bulk path 明确分离，并冻结 batch commit、retry、resume 的控制面。
+
+#### Bulk write limits
+
+| 变量 | 说明 | 计划默认值 |
+|------|------|------------|
+| `TRAPMAP_BULK_WRITE_BATCH_SIZE` | 单批默认记录数 | `100` |
+| `TRAPMAP_BULK_WRITE_MAX_ROWS_PER_TX` | 单事务最大写入行数 | `500` |
+| `TRAPMAP_BULK_WRITE_MAX_BYTES_PER_BATCH` | 单批最大 payload 大小（字节） | `1048576` |
+| `TRAPMAP_BULK_WRITE_MAX_CONCURRENT_BATCHES` | 并发批次数 | `2` |
+
+约定：
+
+- bulk path 应分批提交，不建议把超大导入放进单个长事务。
+- 这些限制既适用于 bulk ingestion，也适用于 rebuild/backfill 类作业。
+
+#### Bulk retry / resume
+
+| 变量 | 说明 | 计划默认值 |
+|------|------|------------|
+| `TRAPMAP_BULK_WRITE_RETRY_LIMIT` | 单批最大重试次数 | `3` |
+| `TRAPMAP_BULK_WRITE_RETRY_BACKOFF_MS` | 单批重试退避时间 | `1000` |
+| `TRAPMAP_BULK_WRITE_JOB_LEASE_TTL_MS` | bulk job lease TTL | `60000` |
+| `TRAPMAP_BULK_WRITE_RESUME_ENABLED` | 是否允许从 offset/checkpoint 恢复 | `true` |
+| `TRAPMAP_BULK_WRITE_IDEMPOTENCY_REQUIRED` | 是否要求 bulk job 提供 idempotency key | `true` |
+
+约定：
+
+- bulk job 应支持 `jobId / batchId / idempotencyKey / resumeFromOffset`。
+- authoritative write 与 outbox append 仍要在每批事务内原子提交。
+- 不同批次之间不要求单一大事务。
+
+#### Bulk write mode
+
+| 变量 | 说明 | 计划默认值 |
+|------|------|------------|
+| `TRAPMAP_BULK_WRITE_MODE` | 默认 bulk write 模式：`multi-row-upsert`、`staging-merge`、`copy-merge` | `multi-row-upsert` |
+| `TRAPMAP_BULK_WRITE_STAGING_ENABLED` | 是否启用 staging table + merge | `false` |
+| `TRAPMAP_BULK_WRITE_COPY_ENABLED` | 是否启用 `COPY` 类批量导入 | `false` |
+
+当前建议：
+
+- 当前阶段优先 `multi-row-upsert`
+- 当导入量或重建量明显上升后，再评估：
+  - `staging-merge`
+  - `copy-merge`
+
+关键约束：
+
+- 不要让 bulk path 直接复用在线 API 的逐条写逻辑无限循环。
+- online command path 继续优先小事务、低延迟。
+- derived projection / index rebuild 应作为 Phase B follow-up，而不是和所有 truth write 强绑定在同一超大事务里。
+
 ### 可选 Graph DB 查询后端
 
 TrapMap 的 graph DB 是可选查询后端。PostgreSQL `graph_index_documents` 仍是图索引的权威真相源；可选 graph DB 仅用于查询期图遍历与扩张，不接管图数据所有权。
