@@ -1,0 +1,165 @@
+# Deployment Flexibility Plan 01: Profile And Capability Model
+
+## 目标
+
+把现有零散的部署开关收敛为统一的 profile/capability 模型，作为所有运行时、路由暴露和构建脚本的事实源。
+
+## 当前事实
+
+- `packages/server/src/config.ts` 目前只理解：
+  - `deployment.preset`
+  - `asyncTaskTransport`
+- `packages/server/src/app.ts` 当前装配顺序是：
+  - `loadConfig()`
+  - `resolveDeploymentPreset()`
+  - 得到 `runtimeMode + serviceUnit`
+  - 全量注册 HTTP routes
+  - `onReady` 统一执行 startup sequence
+- `packages/server/src/lib/runtime/http-surface.ts` 的 `/health` 和 `/ready` 当前只认识：
+  - `runtimeMode`
+  - `serviceUnit`
+  - worker owner/running 状态
+- 当前没有单独的 capability object 来驱动：
+  - route exposure
+  - auth surface
+  - worker boot strategy
+  - local-agent / monolith / distributed 的差异
+
+## 详细改动内容
+
+- 在 server runtime 层引入统一的 deployment profile 解析结果，至少覆盖：
+  - profile 名称
+  - transport surface
+  - store kind
+  - auth/tenancy 模式
+  - async execution mode
+  - enabled capability set
+- 重新定义 `deployment preset` 的职责：
+  - 作为兼容输入
+  - 解析后映射到 profile + runtime ownership，而不是直接成为事实源
+- 规定三类 profile 的能力面：
+  - `local-agent`：retrieval-first、本地单用户、最小路由与最轻持久化
+  - `team-monolith`：完整单体后端、统一 API、PostgreSQL 主路径
+  - `distributed`：gateway + 多服务/多 worker、适配微服务部署
+- 规定 capability 如何驱动：
+  - 路由注册
+  - worker boot ownership
+  - runtime health/readiness
+  - config 校验
+
+## 目标模型
+
+建议引入三层结果，而不是继续把所有语义塞给 `deployment preset`：
+
+1. `DeploymentProfile`
+   - `local-agent`
+   - `team-monolith`
+   - `distributed`
+
+2. `DeploymentCapabilities`
+   - `exposesGateway`
+   - `exposesFullHttpApi`
+   - `supportsLocalSingleUserMode`
+   - `requiresPostgres`
+   - `supportsJsonStore`
+   - `ownsCandidateTaskWork`
+   - `ownsSharedJobTaskWork`
+   - `ownsOutboxWork`
+   - `supportsReviewGovernance`
+   - `supportsTeamAuth`
+   - `supportsDistributedRouting`
+
+3. `ResolvedRuntimeDeployment`
+   - profile
+   - preset
+   - runtimeMode
+   - serviceUnit
+   - capabilities
+
+## 建议分步
+
+### Step 1. 新增统一解析层
+
+- 新增或重构 runtime 模块，使 `config + env + preset` 最终先解析成 `ResolvedRuntimeDeployment`。
+- `resolveDeploymentPreset()` 保留，但只作为兼容输入解析器。
+- `index.ts`、`worker.ts`、`app.ts` 改为消费统一解析结果，而不是各自重复推导。
+
+### Step 2. 用 capability 驱动装配
+
+- `buildServer()` 不再默认全量注册所有 routes。
+- route registration 按 capability 分组：
+  - minimal agent routes
+  - core API routes
+  - governance/admin routes
+- worker bootstrap 按 capability 决定：
+  - 是否启动本地 worker
+  - 是否只注册 owner metadata
+  - 是否在 `local-agent` 下降级为更轻量的执行模式
+
+### Step 3. 用 capability 驱动 readiness 语义
+
+- `/health` 与 `/ready` 应根据 capability 判断：
+  - 某 worker 未运行是故障，还是“本实例本就不拥有该工作”
+  - `local-agent` 下没有完整 team/auth 不应被视为 not-ready
+  - `distributed` 下远端 owner 应体现为 expected remote ownership
+
+### Step 4. 保持兼容输入
+
+- 现有 env 和 scripts 短期仍可用：
+  - `RUNTIME_MODE`
+  - `TRAPMAP_SERVICE_UNIT`
+  - `TRAPMAP_DEPLOYMENT_PRESET`
+- 但新文档和新脚本优先使用新的 profile 语义。
+
+## 涉及代码入口
+
+- `packages/server/src/config.ts`
+- `packages/server/src/index.ts`
+- `packages/server/src/worker.ts`
+- `packages/server/src/app.ts`
+- `packages/server/src/lib/runtime/deployment-preset.ts`
+- `packages/server/src/lib/runtime/runtime-contract.ts`
+- `packages/server/src/lib/runtime/service-unit.ts`
+- `packages/server/src/lib/runtime/runtime-metadata.ts`
+- `packages/server/src/lib/runtime/http-surface.ts`
+- `packages/server/src/bootstrap/run-startup-sequence.ts`
+- `packages/server/src/bootstrap/run-worker-sequence.ts`
+- `packages/server/src/bootstrap/bootstrap-workers.ts`
+
+## 需要同步更新的文档
+
+- `docs/architecture/ARCHITECTURE.md`
+- `docs/architecture/DEPLOYMENT.md`
+- `docs/PACKAGES.md`
+
+## 需要补充或更新的测试
+
+- `packages/server/src/lib/runtime/runtime-metadata.test.ts`
+  - 覆盖不同 profile 下的 ownership / readiness 语义。
+- `packages/server/src/app.test.ts`
+  - 覆盖不同 profile 下的 server 装配结果。
+- `packages/server/src/bootstrap/startup.test.ts`
+  - 覆盖 profile 对 startup/worker boot 的影响。
+
+建议补充的具体场景：
+
+- `local-agent` profile:
+  - 只开放最小路由
+  - 不要求本地拥有完整 candidate/shared/outbox worker
+- `team-monolith` profile:
+  - 可对应当前 `combined` 行为
+  - readiness 与现有单体语义兼容
+- `distributed` profile:
+  - API/gateway 进程不因未启动本地 worker 而 not-ready
+  - 专用 worker 进程只对自己拥有的任务负责
+
+## 验收标准
+
+- 任何一处 runtime 装配都只消费一份统一的 deployment 解析结果。
+- route/worker/health 三个系统的部署语义一致。
+- 不再出现“文档里叫 split/distributed，代码里只有 preset/runtimeMode”的双重叙事。
+
+## 交付要求
+
+- 实现者不能再通过散落的 `if env === ...` 判断定义产品形态。
+- 新增 profile/capability 结构必须可被文档直接引用。

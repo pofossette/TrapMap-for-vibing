@@ -18,6 +18,28 @@ TrapMap 采用四层架构设计：
 持久层（存储抽象，支持 JSON 文件和 PostgreSQL）
 ```
 
+## 部署基线
+
+TrapMap 当前把部署语义拆成几层，后续文档与实现都应按这组词汇区分：
+
+- `deployment profile`：产品/部署目标形态。当前活跃计划冻结为 `local-agent`、`team-monolith`、`distributed`。
+- `deployment preset`：启动快捷方式与兼容输入。当前代码已实现 `monolith`、`api`、`candidate-worker`、`governance-worker`、`outbox-worker`。
+- `runtimeMode`：当前进程运行角色，区分 `api`、`task-worker`、`outbox-worker`、`combined`。
+- `serviceUnit`：当前进程拥有的异步工作边界，区分 `full-platform`、`candidate-ingestion`、`knowledge-governance`。
+- `task transport`：任务投递介质。当前正式支持 `postgres`，可选支持 `rabbitmq`。
+
+当前状态与目标状态需要明确区分：
+
+- 已实现的是 `deployment preset -> runtimeMode/serviceUnit` 这层运行时语义。
+- `local-agent`、`team-monolith`、`distributed` 是当前总计划冻结的目标 deployment profile，用来统一产品形态叙事；它们不是今天已经完整实装的独立配置模型。
+
+当前阶段的明确非目标：
+
+- 不做 MCP 协议。
+- CLI 不直连多个后端服务，正式接入面保持 `gateway only`。
+- 第一阶段不按服务拆分数据库。
+- 不把 Kafka、NATS、Redis Streams 作为默认基础设施。
+
 ## 持久化基线
 
 Round 0 已冻结数据库演进方向，后续轮次必须遵守以下边界：

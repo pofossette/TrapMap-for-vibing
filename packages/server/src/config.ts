@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { loadAiProviderConfig } from './lib/ai/index.js';
 import { GraphDbConfigSchema, loadGraphDbConfig } from './lib/graph-query/config.js';
 import { loadRagLogConfig } from './lib/rag-log.js';
+import { resolveDeploymentProfileCompatibility } from './lib/runtime/deployment-profile.js';
 import { loadUserOpsLogConfig } from './lib/user-ops-log.js';
 
 // =============================================================================
@@ -82,9 +83,19 @@ const AsyncTaskTransportSchema = z
   });
 
 const DeploymentSchema = z.object({
+  profile: z.enum(['local-agent', 'team-monolith', 'distributed']).nullable().default(null),
   preset: z
     .enum(['monolith', 'api', 'candidate-worker', 'governance-worker', 'outbox-worker'])
     .default('monolith'),
+  compatibility: z.object({
+    profile: z.enum(['local-agent', 'team-monolith', 'distributed']),
+    source: z.enum(['explicit', 'inferred']),
+    requiresGateway: z.literal(true),
+    requiresAsyncOwnership: z.boolean(),
+    allowsSingleProcess: z.boolean(),
+    requiresPostgres: z.boolean(),
+    minimumPreset: z.enum(['monolith', 'api', 'candidate-worker', 'governance-worker', 'outbox-worker']),
+  }),
 });
 
 /**
@@ -168,7 +179,26 @@ export function loadConfig(): ServerConfig {
         (process.env.TRAPMAP_TRACE_HEADER_NAME?.trim().toLowerCase() || undefined) ?? 'traceparent',
     },
     deployment: {
+      profile: process.env.TRAPMAP_DEPLOYMENT_PROFILE ?? null,
       preset: process.env.TRAPMAP_DEPLOYMENT_PRESET,
+      compatibility: resolveDeploymentProfileCompatibility({
+        profile:
+          process.env.TRAPMAP_DEPLOYMENT_PROFILE === undefined
+            ? undefined
+            : (process.env.TRAPMAP_DEPLOYMENT_PROFILE as
+                | 'local-agent'
+                | 'team-monolith'
+                | 'distributed'),
+        preset:
+          process.env.TRAPMAP_DEPLOYMENT_PRESET === undefined
+            ? undefined
+            : (process.env.TRAPMAP_DEPLOYMENT_PRESET as
+                | 'monolith'
+                | 'api'
+                | 'candidate-worker'
+                | 'governance-worker'
+                | 'outbox-worker'),
+      }),
     },
     asyncTaskTransport: {
       provider: process.env.TRAPMAP_TASK_TRANSPORT,

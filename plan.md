@@ -1,125 +1,110 @@
-# TrapMap 后端工程化总规约
+# TrapMap 灵活构建部署总入口
 
-> 根 `plan.md` 现在是后端工程化总索引。详细计划见 `docs/plans/backend-engineering-roadmap/`。
+> 根 `plan.md` 是当前“灵活构建部署 + CLI 接入 + 重后端微服务化”工作的总入口。具体实施细则拆分到 `docs/plans/deployment-flexibility/`。
 
-**目标：** 将 TrapMap 演进为低耦合、以 PostgreSQL 为主的模块化单体，并为独立 worker、读写分离以及后续服务拆分预留清晰边界。
+**背景：** TrapMap 现有后端已经具备 `runtimeMode`、`serviceUnit`、PostgreSQL queue/outbox、CLI + HTTP API、可选 RabbitMQ task transport 等基础能力，但当前主叙事仍然以模块化单体为中心，尚未把“轻量本地服务”和“支持多用户的重后端”收敛成同一套明确的部署/构建模型。
 
-**架构：** 继续复用现有 `repos` 边界、应用服务、`task_queue`、`domain_event_outbox`、运行时模式、workflow run 和检索读模型。先做边界收敛和异步/运行时规范，再做读侧分离和可观测性，MQ 与微服务放在有指标支撑之后。
+**总需求：** 让项目能够在以下三种目标形态之间有意识地切换，并保持共享 core、统一 CLI 接入和清晰文档/测试约束：
 
-**技术栈：** TypeScript、Fastify、Zod、Vitest、PostgreSQL、Drizzle、现有 repository 层、queue/outbox worker、检索缓存/读模型。
+1. `local-agent`
+   面向单用户、轻量本地服务，保留 retrieval-first 的最小能力面。
+2. `team-monolith`
+   面向小团队或单实例部署，保留完整 HTTP API 和 PostgreSQL 主路径。
+3. `distributed`
+   面向多用户重后端，通过 gateway + 多服务/多 worker 运行，逐步引入微服务化部署。
+
+**开发要求：**
+
+- 不做 MCP 协议；CLI 仍是正式接入面。
+- CLI 默认且优先只连接统一 gateway，不直接感知后端微服务拆分。
+- 第一阶段允许共享 PostgreSQL，不要求一开始就拆库。
+- 新能力必须优先复用现有 `repos`、application service、queue/outbox、runtime seams，而不是平行实现第二套逻辑。
+- 每个子计划都必须同步写明：
+  - 代码改动范围
+  - 需要更新的文档
+  - 需要补充或调整的测试
+  - 兼容性/回滚边界
 
 ---
 
-## 为什么要做这版计划
+## 计划结构
 
-TrapMap 现在已经具备后端工程化的基础：
+### P0. 基线与约束
 
-- 核心域已经是 PostgreSQL 优先写入
-- 已经有 durable queue 和 outbox
-- 已经有独立 worker 入口和运行时模式
-- 已经形成应用服务和 repository 的雏形
-- 已经有 workflow 和 operator 可观测面
+- [`docs/plans/deployment-flexibility/00-baseline-and-constraints.md`](./docs/plans/deployment-flexibility/00-baseline-and-constraints.md)
 
-当前主要瓶颈不是“缺少分布式组件”，而是：
+用途：
+- 冻结术语、目标部署形态、非目标和兼容边界。
+- 明确哪些现有 runtime / transport / store 能力要保留，哪些旧叙事需要修订。
 
-- 路由、store、repo、lifecycle 在少数热路径里仍然耦合
-- 部分业务流程还依赖兼容存储
-- 读侧刷新和缓存失效还没有完全标准化
-- 服务边界还不够稳定，不适合过早拆服务
+### P1. Profile 与 Capability 模型
 
-## 约束原则
+- [`docs/plans/deployment-flexibility/01-profile-and-capability-model.md`](./docs/plans/deployment-flexibility/01-profile-and-capability-model.md)
 
-- [ ] Stage 1 和 Stage 2 期间保持模块化单体。
-- [ ] 默认只通过 `repos` 和 application service 走业务路径。
-- [ ] 重活、可重试工作交给 durable worker，不放在请求链路里。
-- [ ] 写模型与检索/Operator 读模型分开。
-- [ ] 先收敛耦合，再考虑部署拆分。
-- [ ] MQ 和微服务只作为有指标支撑后的后续选项。
+用途：
+- 定义 `local-agent` / `team-monolith` / `distributed` 三类 deployment profile。
+- 把当前 `runtimeMode + serviceUnit + deployment preset` 升级为一套可解释的 capability matrix。
 
-## 路线索引
+### P2. Gateway 与 CLI 接入收敛
 
-### Stage 1：基础与边界
+- [`docs/plans/deployment-flexibility/02-gateway-and-cli-integration.md`](./docs/plans/deployment-flexibility/02-gateway-and-cli-integration.md)
 
-目标：硬化 bounded context、瘦化路由、扩大应用服务职责，并减少业务路径对兼容存储的依赖。
+用途：
+- 明确 CLI 始终只连接 gateway。
+- 定义 gateway 对外 API、内部路由责任，以及轻量模式与重后端的对外一致性要求。
 
-计划：
-- [`./docs/plans/backend-engineering-roadmap/stage-1-foundation-and-boundaries.md`](./docs/plans/backend-engineering-roadmap/stage-1-foundation-and-boundaries.md)
+### P3. 重后端微服务化拆分
 
-下一步执行包：
-- 第一优先级：[`./docs/plans/backend-engineering-roadmap/stage-1-review-and-decay-write-path-convergence.md`](./docs/plans/backend-engineering-roadmap/stage-1-review-and-decay-write-path-convergence.md)
-- 第二优先级：[`./docs/plans/backend-engineering-roadmap/stage-1-operations-read-model-and-compat-boundary.md`](./docs/plans/backend-engineering-roadmap/stage-1-operations-read-model-and-compat-boundary.md)
+- [`docs/plans/deployment-flexibility/03-distributed-service-topology.md`](./docs/plans/deployment-flexibility/03-distributed-service-topology.md)
 
-Stage 1 读侧 ownership 补充：
-- operator status、feedback admin、artifact export、audit inspection、badcase/remediation inspection 属于派生读侧，不是写事实源 owner。
-- 这类读路径默认通过 repository + 显式 projection/helper 组装；compatibility snapshot 只允许作为命名过的 projection exception 或 diagnostic/admin mutation 边界存在。
+用途：
+- 规划 `distributed` 形态下的 gateway / retrieval / candidate ingestion / governance / outbox 等服务拓扑。
+- 明确第一阶段共享 PostgreSQL、后续再评估更强隔离。
 
-状态：
-- [x] 已完成
-- [x] Stage 1A：bounded context、route/application/repository 规则已冻结到架构文档与 truth source
-- [x] Stage 1B：`review` / `decay` 写密集 route 已收口到 application service seam
-- [x] Stage 1C：operator 读侧与 compatibility seam 已收口到显式 projection/helper 边界
+### P4. 构建、部署、文档与测试收敛
 
-### Stage 2：异步运行时与读写分离
+- [`docs/plans/deployment-flexibility/04-build-deploy-docs-and-tests.md`](./docs/plans/deployment-flexibility/04-build-deploy-docs-and-tests.md)
 
-目标：强化异步执行、workflow 可见性、投影归属和 worker/API 运行时分离，但不拆成过多服务。
+用途：
+- 收敛 pnpm scripts、环境变量、docker compose/profile、文档索引和测试矩阵。
+- 保证实现完成后，仓库的 README / DEPLOYMENT / PACKAGES / TESTING 不会继续讲旧故事。
 
-计划：
-- [`./docs/plans/backend-engineering-roadmap/stage-2-async-and-read-write-separation.md`](./docs/plans/backend-engineering-roadmap/stage-2-async-and-read-write-separation.md)
+---
 
-下一步执行包：
-- [`./docs/plans/backend-engineering-roadmap/stage-2-async-runtime-contracts-and-projection-ownership.md`](./docs/plans/backend-engineering-roadmap/stage-2-async-runtime-contracts-and-projection-ownership.md)
+## 全局完成标准
 
-状态：
-- [x] 已完成
+- [ ] 仓库存在统一的 deployment profile 词汇，不再仅靠零散 env/worker 模式描述部署形态。
+- [ ] `local-agent`、`team-monolith`、`distributed` 三种目标形态在代码、文档、测试里都有一致定义。
+- [ ] CLI 对后端的正式接入模型固定为 `gateway only`。
+- [ ] 重后端微服务化的第一阶段服务边界、共享基础设施和非目标写入正式文档。
+- [ ] 构建/部署脚本、docker compose、环境变量示例与架构文档一致。
+- [ ] 相关测试覆盖 config/profile 解析、runtime ownership、route exposure、CLI 接入和部署 smoke。
 
-### 横切：耦合度降低
+## 执行顺序
 
-目标：降低 route-to-domain、domain-to-runtime、read-model-to-compatibility 的耦合，让 Stage 1 和 Stage 2 能稳定落地。
+建议按以下顺序推进：
 
-计划：
-- [`./docs/plans/backend-engineering-roadmap/coupling-reduction-plan.md`](./docs/plans/backend-engineering-roadmap/coupling-reduction-plan.md)
+1. `00-baseline-and-constraints.md`
+2. `01-profile-and-capability-model.md`
+3. `02-gateway-and-cli-integration.md`
+4. `03-distributed-service-topology.md`
+5. `04-build-deploy-docs-and-tests.md`
 
-当前落点：
-- 写路径收口：`stage-1-review-and-decay-write-path-convergence.md`
-- 读侧与兼容层隔离：`stage-1-operations-read-model-and-compat-boundary.md`
-- async/runtime 合约标准化：`stage-2-async-runtime-contracts-and-projection-ownership.md`
+如果实现中发现子计划需要进一步拆分，新增文件放在同目录下，并在本入口追加链接。
 
-状态：
-- [x] 已完成
+## 现有事实入口
 
-## 已记录遗留债务
-
-- Stage 1C：`store.transact()` 向 repo-backed transaction 的迁移尚未完全结束，当前命名化债务主要保留在 `supersede` 相关路径；在边界稳定前继续视为受控兼容例外，而不是恢复为通用做法。
-- Stage 1 验证收尾：
-  - `review-queue` 投影已收口到 `lib/operations/read-model.ts` 的显式 projection helper，`routes/review.ts` 只保留 transport / auth / response 映射职责。
-  - `decay entries/search` 投影已收口到 `lib/operations/read-model.ts` 的显式 projection helper，`routes/decay.ts` 只保留 transport / auth / response 映射职责。
-- 横切“暂不做”清单继续作为持续约束：
-  - 不把 Kafka、RabbitMQ、NATS 当作当前耦合或异步问题的默认解法。
-  - 不在内部 seam 已稳定之前拆服务。
-  - 不在 `packages/server` 内过早拆包。
-
-## 下一阶段建议
-
-- 先补可观测性，而不是继续扩大基础设施种类：把 queue/outbox/workflow/cache freshness 指标接到外部 metrics/logging/tracing 面，建立 backlog、dead-letter、stale recovery、projection lag 的长期趋势观测。
-- 在现有 async substrate 已稳定的前提下，继续把剩余 operator/read-side route 收口到 application service 或 projection seam，优先处理新的 route-local projection 热点，而不是重新打开已收口的 `review-queue` / `decay entries/search`。
-- 如果边界继续保持稳定，可以开始做性能与容量侧工作，例如 retrieval cache 命中率、workflow 吞吐、reclaim/dead-letter 频率和热点 route 延迟画像。
-- 再往后才适合新增业务功能：优先选择能直接复用现有 application service、queue/outbox、projection 约束的新治理或检索能力，而不是重新引入跨层 reach-through。
-
-## 决策门槛
-
-- PostgreSQL queue/outbox 只要 backlog、重试和 dead-letter 仍可运维，就继续使用。
-- 在写路径边界、读模型归属和 async 合约稳定之前，不拆服务。
-- 只有当某类异步负载确实需要独立 consumer group、强回放或更高吞吐时，才考虑 Kafka、RabbitMQ 或 NATS。
-
-## 参考
-
-- 事实源映射：[`docs/reference/SYSTEM_TRUTH_SOURCES.md`](./docs/reference/SYSTEM_TRUTH_SOURCES.md)
-- 数据与迁移状态：[`docs/reference/DATA_MODEL.md`](./docs/reference/DATA_MODEL.md)
+- 架构入口：[`architecture.md`](./architecture.md)
 - 包职责：[`docs/PACKAGES.md`](./docs/PACKAGES.md)
-- 后端优化背景：[`docs/todos/backend-engineering-optimization-plan.md`](./docs/todos/backend-engineering-optimization-plan.md)
+- 部署文档：[`docs/architecture/DEPLOYMENT.md`](./docs/architecture/DEPLOYMENT.md)
+- 代码现状：
+  - [`packages/server/src/app.ts`](./packages/server/src/app.ts)
+  - [`packages/server/src/lib/runtime/deployment-preset.ts`](./packages/server/src/lib/runtime/deployment-preset.ts)
+  - [`packages/server/src/lib/runtime/runtime-contract.ts`](./packages/server/src/lib/runtime/runtime-contract.ts)
+  - [`packages/server/src/lib/runtime/service-unit.ts`](./packages/server/src/lib/runtime/service-unit.ts)
+  - [`packages/cli/src/index.ts`](./packages/cli/src/index.ts)
+  - [`packages/cli/src/lib/http.ts`](./packages/cli/src/lib/http.ts)
 
 ## 归档说明
 
-旧的根执行计划已归档到：
-
-- [`docs/archived/archived-plans/plan-2026-06-16-async-reliability-and-workflow-runtime-archived.md`](./docs/archived/archived-plans/plan-2026-06-16-async-reliability-and-workflow-runtime-archived.md)
+此前根 `plan.md` 聚焦“后端工程化总规约”，现已被本入口取代。若后续仍需保留旧版叙事，应归档到 `docs/archived/archived-plans/`，而不是在根目录并存多个计划入口。

@@ -25,12 +25,26 @@
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
+| `TRAPMAP_DEPLOYMENT_PROFILE` | 目标部署形态：`local-agent`、`team-monolith`、`distributed`。这是产品/部署叙事层，不直接替代 runtime/preset | 未设置（按 `TRAPMAP_DEPLOYMENT_PRESET` 推断） |
 | `TRAPMAP_DEPLOYMENT_PRESET` | 部署预设：`monolith`、`api`、`candidate-worker`、`governance-worker`、`outbox-worker` | `monolith` |
 | `TRAPMAP_TASK_TRANSPORT` | 异步任务传输提供者：`postgres` 或 `rabbitmq` | `postgres` |
 | `TRAPMAP_RABBITMQ_URL` | RabbitMQ 连接串；仅在 `TRAPMAP_TASK_TRANSPORT=rabbitmq` 时必填 | 空 |
 | `TRAPMAP_RABBITMQ_TASK_EXCHANGE` | RabbitMQ task exchange 名称 | `trapmap.tasks` |
 | `TRAPMAP_RABBITMQ_TASK_QUEUE` | 当前 worker 绑定的 task queue 名称 | `trapmap.default` |
 | `TRAPMAP_RABBITMQ_PREFETCH` | RabbitMQ consumer prefetch | `1` |
+
+profile 兼容约定：
+
+- 未设置 `TRAPMAP_DEPLOYMENT_PROFILE` 时：
+  - `monolith` 默认推断为 `team-monolith`
+  - `api` / `candidate-worker` / `governance-worker` / `outbox-worker` 默认推断为 `distributed`
+- 显式设置 `TRAPMAP_DEPLOYMENT_PROFILE=local-agent` 时：
+  - 允许本地单进程、最小能力面
+  - 不要求 PostgreSQL 或完整 async ownership
+  - CLI 仍通过单一 gateway 接入
+- 显式设置 `TRAPMAP_DEPLOYMENT_PROFILE=distributed` 时：
+  - 表示 gateway + async ownership 的分布式目标形态
+  - 不是 `runtimeMode=combined` 的别名
 
 预设映射约定：
 

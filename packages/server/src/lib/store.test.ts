@@ -1,3 +1,4 @@
+import { writeFile } from 'node:fs/promises';
 import type { Pool } from 'pg';
 import { newDb } from 'pg-mem';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -221,6 +222,45 @@ runSharedStoreContractTests('PostgresStore', () => createPostgresStore());
 runSharedStoreContractTests('JsonStore', () => {
   const tmpFile = `/tmp/trapmap-jsonstore-contract-test-${Date.now()}-${Math.random()}.json`;
   return new JsonStore(tmpFile);
+});
+
+describe('JsonStore compatibility', () => {
+  it('fills missing fields when reading legacy store snapshots', async () => {
+    const tmpFile = `/tmp/trapmap-jsonstore-legacy-${Date.now()}-${Math.random()}.json`;
+    await writeFile(
+      tmpFile,
+      `${JSON.stringify(
+        {
+          counters: { user: 1 },
+          users: [],
+          teams: [],
+          memberships: [],
+          accessKeys: [],
+          sessions: [],
+          knowledgeEntries: [],
+          auditEvents: [],
+          skillArtifacts: [],
+          artifactFilePayloads: [],
+          candidateSubmissions: [],
+          duplicateCases: [],
+          entityLineage: [],
+        },
+        null,
+        2,
+      )}\n`,
+      'utf8',
+    );
+
+    const store = new JsonStore(tmpFile);
+    const snapshot = await store.snapshot();
+
+    expect(snapshot.counters).toEqual({ user: 1 });
+    expect(snapshot.graphIndexDocuments).toEqual([]);
+    expect(snapshot.conflicts).toEqual([]);
+    expect(snapshot.feedbackQueue).toEqual([]);
+    expect(snapshot.promptVersion).toBeNull();
+    expect(snapshot.rebuildState).toBeNull();
+  });
 });
 
 describe('createSkillShareerStore', () => {

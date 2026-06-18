@@ -24,7 +24,17 @@ const minimalConfig = {
     traceHeaderName: 'traceparent',
   },
   deployment: {
+    profile: null as 'local-agent' | 'team-monolith' | 'distributed' | null,
     preset: 'monolith' as const,
+    compatibility: {
+      profile: 'team-monolith' as const,
+      source: 'inferred' as const,
+      requiresGateway: true as const,
+      requiresAsyncOwnership: false,
+      allowsSingleProcess: true,
+      requiresPostgres: true,
+      minimumPreset: 'monolith' as const,
+    },
   },
   asyncTaskTransport: {
     provider: 'postgres' as const,
@@ -231,6 +241,7 @@ describe('loadConfig', () => {
       'TRAPMAP_GRAPH_DB_DATABASE',
       'TRAPMAP_GRAPH_DB_FAIL_OPEN',
       'TRAPMAP_GRAPH_DB_SYNC_ON_WRITE',
+      'TRAPMAP_DEPLOYMENT_PROFILE',
       'TRAPMAP_DEPLOYMENT_PRESET',
       'TRAPMAP_TASK_TRANSPORT',
       'TRAPMAP_RABBITMQ_URL',
@@ -264,6 +275,19 @@ describe('loadConfig', () => {
         database: 'neo4j',
         failOpen: true,
         syncOnWrite: true,
+      });
+      expect(config.deployment).toEqual({
+        profile: null,
+        preset: 'monolith',
+        compatibility: {
+          profile: 'team-monolith',
+          source: 'inferred',
+          requiresGateway: true,
+          requiresAsyncOwnership: false,
+          allowsSingleProcess: true,
+          requiresPostgres: true,
+          minimumPreset: 'monolith',
+        },
       });
     });
   });
@@ -426,8 +450,56 @@ describe('loadConfig', () => {
         expect(config.asyncTaskTransport.rabbitmq?.url).toBe(
           'amqp://guest:guest@localhost:5672',
         );
+        expect(config.deployment.compatibility).toEqual({
+          profile: 'distributed',
+          source: 'inferred',
+          requiresGateway: true,
+          requiresAsyncOwnership: true,
+          allowsSingleProcess: false,
+          requiresPostgres: true,
+          minimumPreset: 'api',
+        });
       },
     );
+  });
+
+  it('accepts local-agent profile without postgres or worker-only settings', () => {
+    withEnv({ TRAPMAP_DEPLOYMENT_PROFILE: 'local-agent' }, () => {
+      const config = loadConfig();
+
+      expect(config.databaseUrl).toBeNull();
+      expect(config.deployment).toEqual({
+        profile: 'local-agent',
+        preset: 'monolith',
+        compatibility: {
+          profile: 'local-agent',
+          source: 'explicit',
+          requiresGateway: true,
+          requiresAsyncOwnership: false,
+          allowsSingleProcess: true,
+          requiresPostgres: false,
+          minimumPreset: 'monolith',
+        },
+      });
+    });
+  });
+
+  it('accepts explicit distributed profile and keeps it distinct from combined monolith defaults', () => {
+    withEnv({ TRAPMAP_DEPLOYMENT_PROFILE: 'distributed' }, () => {
+      const config = loadConfig();
+
+      expect(config.deployment.profile).toBe('distributed');
+      expect(config.deployment.preset).toBe('monolith');
+      expect(config.deployment.compatibility).toEqual({
+        profile: 'distributed',
+        source: 'explicit',
+        requiresGateway: true,
+        requiresAsyncOwnership: true,
+        allowsSingleProcess: false,
+        requiresPostgres: true,
+        minimumPreset: 'api',
+      });
+    });
   });
 
   it('fails fast when graph DB is enabled without required connection fields', () => {

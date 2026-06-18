@@ -64,6 +64,20 @@ import { reviewDecisionRequestSchema } from '@trapmap/contracts';
 
 HTTP 路由、授权、持久化、审核编排、检索和审计记录。
 
+### Runtime 与部署词汇
+
+Server 相关文档默认使用以下术语，不再混用：
+
+| 术语 | 当前含义 | 当前实现状态 |
+|---|---|---|
+| `deployment profile` | 产品/部署目标形态：`local-agent`、`team-monolith`、`distributed` | 计划层已冻结，能力模型在后续阶段继续落地 |
+| `deployment preset` | 启动快捷方式/兼容输入：`monolith`、`api`、`candidate-worker`、`governance-worker`、`outbox-worker` | 已在 `packages/server/src/config.ts` 与 `lib/runtime/deployment-preset.ts` 中实现 |
+| `runtimeMode` | 当前进程是否暴露 API、task worker、outbox worker | 已实现 |
+| `serviceUnit` | 当前进程拥有哪类 bounded-context async ownership | 已实现 |
+| `task transport` | 任务投递走 PostgreSQL 还是 RabbitMQ | 已实现 |
+
+`deployment profile` 不等同于 `deployment preset`。前者描述目标产品形态，后者只负责把当前进程解析到既有的 `runtimeMode × serviceUnit` 组合上。
+
 > **Round 2 更新**：知识、工件、候选的持久化已迁移到 PostgreSQL 专用表。`DualWriteKnowledgeRepository`、`DualWriteCandidateRepository`、`DualWriteArtifactRepository` 已删除。路由层不再对 `store_snapshot` 进行业务读写（审查/衰减/维护等操作仍用于审计/索引等辅助目的，延后至各轮次处理）。
 >
 > **Round 8 更新**：命名规范已统一（`revision` → `revision_no`，`submitted_by` → `submitted_by_user_id`）。所有核心表已补齐外键约束。`store_snapshot` 仅作为尚未迁移辅助域的兼容层，不再是 PG 主读路径用于身份/审计域；这些域的迁移已在 Round 10 Phase 3 完成。权威的迁移状态记录见 [reference/DATA_MODEL.md](reference/DATA_MODEL.md)。
@@ -170,6 +184,12 @@ For package-local navigation, read:
 ## packages/cli
 
 命令行接口，命令格式明确，shell 友好输出，支持可选 JSON 模式。
+
+CLI 当前正式接入模型固定为单一 gateway：
+
+- `packages/cli/src/lib/http.ts` 只基于一个 `serverUrl` 发起请求。
+- `packages/cli/src/lib/config.ts` 只持久化一个 `serverUrl`。
+- 即使后端后续演进到 `distributed` profile，CLI 仍然只连接统一 gateway，不直接感知微服务拆分。
 
 ### 命令模块
 

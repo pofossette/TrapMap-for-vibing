@@ -4,6 +4,28 @@
 
 本文档介绍 TrapMap 的各种部署方式，包括开发环境、Staging 环境和生产环境。
 
+## 术语与边界
+
+先区分两层概念：
+
+- `deployment profile`：当前总计划冻结的目标产品形态，分别是 `local-agent`、`team-monolith`、`distributed`。
+- `deployment preset`：当前代码已实现的启动快捷方式，分别是 `monolith`、`api`、`candidate-worker`、`governance-worker`、`outbox-worker`。
+
+当前仓库已实现的是 `deployment preset -> runtimeMode/serviceUnit` 映射，以及 `postgres` / `rabbitmq` 两类 `task transport` 选择；`deployment profile` 用来统一“想要支持哪种部署形态”的叙事，不应与 preset 混为一谈。
+
+三种目标 profile 的当前定义：
+
+- `local-agent`：单用户、轻量本地服务、retrieval-first；CLI 仍通过 HTTP gateway 接入，路由面应尽量收敛到最小能力集。
+- `team-monolith`：单实例、多用户、完整 HTTP API，PostgreSQL 是主路径，可按需要把 API/worker 组合在同一进程。
+- `distributed`：gateway + 多服务/多 worker，首期仍共享 PostgreSQL；CLI 仍只连接 gateway。
+
+当前阶段的明确非目标：
+
+- 不做 MCP 协议。
+- 不让 CLI 直连多个微服务。
+- 第一阶段不拆分数据库。
+- 不把 Kafka、NATS、Redis Streams 作为默认基础设施。
+
 ## 部署选项
 
 | 环境 | 存储 | 适用场景 |
@@ -12,9 +34,9 @@
 | Staging | PostgreSQL | 预发布验证 |
 | 生产 | PostgreSQL + Docker | 正式运营 |
 
-## Supported Shapes
+## 当前已实现的部署形态
 
-TrapMap 当前支持三种部署形态，详见 [OPTIONAL_SERVICE_SPLIT_AND_MQ.md](./components/OPTIONAL_SERVICE_SPLIT_AND_MQ.md)。
+TrapMap 当前代码已经支持以下运行形态，详见 [OPTIONAL_SERVICE_SPLIT_AND_MQ.md](./components/OPTIONAL_SERVICE_SPLIT_AND_MQ.md)。
 
 - `monolith`: 单进程 API + task worker + outbox worker，默认也是推荐路径。
 - `split-pg`: 拆分 API / task / outbox 进程，但异步任务仍走 PostgreSQL `task_queue`。
@@ -25,6 +47,12 @@ TrapMap 当前支持三种部署形态，详见 [OPTIONAL_SERVICE_SPLIT_AND_MQ.m
 - 不做数据库按服务拆分。
 - 不引入 Kafka、NATS、Redis Streams。
 - 不把 `domain_event_outbox` 从 PostgreSQL 挪走。
+
+这些已实现形态与目标 `deployment profile` 的关系可暂时理解为：
+
+- `local-agent` 当前更接近“通过现有 gateway/server 收敛最小路由面”的目标，而不是新的独立进程模型。
+- `team-monolith` 当前主要由 `monolith` preset 表达。
+- `distributed` 当前主要由 `api` / `candidate-worker` / `governance-worker` / `outbox-worker` 这组 preset 加上可选 RabbitMQ transport 表达。
 
 ---
 
@@ -258,6 +286,8 @@ TRAPMAP_TASK_TRANSPORT=rabbitmq docker compose --profile split --profile mq up -
 ### docker-compose.yml
 
 实际 compose 文件位于项目根目录，使用 PostgreSQL 作为默认存储后端（带 pgvector 扩展）：
+
+当前 checked-in compose 采用“单镜像复用”策略：`server` 负责构建并标记 `trap-map-server:latest`，`candidate-worker`、`governance-worker`、`outbox-worker` 直接复用同一镜像，只覆盖各自的 `command` 与环境变量，避免 split deployment 下重复构建同一个 Dockerfile。
 
 ```yaml
 services:
