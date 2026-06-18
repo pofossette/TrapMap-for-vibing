@@ -27,6 +27,7 @@
 |------|------|--------|
 | `TRAPMAP_DEPLOYMENT_PROFILE` | 目标部署形态：`local-agent`、`team-monolith`、`distributed`。这是产品/部署叙事层，不直接替代 runtime/preset | 未设置（按 `TRAPMAP_DEPLOYMENT_PRESET` 推断） |
 | `TRAPMAP_DEPLOYMENT_PRESET` | 部署预设：`monolith`、`api`、`candidate-worker`、`governance-worker`、`outbox-worker` | `monolith` |
+| `TRAPMAP_GATEWAY_URL` | CLI 默认连接的单一 gateway URL；即使 `distributed` 也不改成多服务地址 | `http://127.0.0.1:4000` |
 | `TRAPMAP_TASK_TRANSPORT` | 异步任务传输提供者：`postgres` 或 `rabbitmq` | `postgres` |
 | `TRAPMAP_RABBITMQ_URL` | RabbitMQ 连接串；仅在 `TRAPMAP_TASK_TRANSPORT=rabbitmq` 时必填 | 空 |
 | `TRAPMAP_RABBITMQ_TASK_EXCHANGE` | RabbitMQ task exchange 名称 | `trapmap.tasks` |
@@ -129,7 +130,7 @@ export TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true
 
 # 3. 可选：先做连通性检查，再启动服务
 pnpm --filter @trapmap/server graph-db:check
-pnpm dev:server
+pnpm dev:local-agent
 ```
 
 补充说明：
@@ -137,6 +138,17 @@ pnpm dev:server
 - checked-in `docker-compose.yml` 默认只启动 `server + postgres`；Neo4j 需要你本地额外启动或通过 compose override 自行接入。
 - 当前 rollout 默认值保持保守策略：所有环境都默认 `TRAPMAP_GRAPH_DB_ENABLED=false`，只有显式设置环境变量时才启用 Neo4j backend。
 - `TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true` 时，图索引写入会额外尝试刷新 Neo4j projection；若 Neo4j 短暂不可用且 `TRAPMAP_GRAPH_DB_FAIL_OPEN=true`，主检索路径仍会继续使用 memory fallback。
+
+开发入口建议：
+
+- `pnpm dev:local-agent`
+- `pnpm dev:team-monolith`
+- `pnpm dev:distributed:gateway`
+- `pnpm dev:distributed:candidate-worker`
+- `pnpm dev:distributed:governance-worker`
+- `pnpm dev:distributed:outbox-worker`
+
+兼容脚本 `pnpm dev:server*` 仍可使用，但不再作为主要文档入口。
 
 ### PG Recall 配置 (Phase 6，多路召回已全线落地)
 
@@ -304,10 +316,11 @@ openssl rand -hex 32
 NODE_ENV=production
 HOST=0.0.0.0
 PORT=4000
+TRAPMAP_DEPLOYMENT_PROFILE=team-monolith
+TRAPMAP_GATEWAY_URL=https://trapmap.example.com
 TRAPMAP_SYSTEM_ADMIN_KEY=<your-admin-key>
 OPENAI_API_KEY=<your-openai-key>
 TRAPMAP_DATABASE_URL=postgresql://user:pass@localhost:5432/trapmap
-TRAPMAP_DEPLOYMENT_PRESET=monolith
 TRAPMAP_TASK_TRANSPORT=postgres
 AI_PROVIDER=openai
 LOG_LEVEL=info
@@ -319,6 +332,7 @@ LOG_RAG_ENABLED=true
 
 ```bash
 TRAPMAP_DATABASE_URL=postgresql://user:pass@postgres:5432/trapmap
+TRAPMAP_DEPLOYMENT_PROFILE=distributed
 TRAPMAP_DEPLOYMENT_PRESET=candidate-worker
 TRAPMAP_TASK_TRANSPORT=rabbitmq
 TRAPMAP_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672

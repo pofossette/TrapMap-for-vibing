@@ -3,6 +3,12 @@ import type { DeploymentRouteSurface, ResolvedRuntimeDeployment } from './deploy
 export type RouteAudience = 'gateway-public' | 'internal-status';
 export type RouteFamilyKind = 'gateway-api' | 'local-agent-minimal' | 'worker-status';
 
+export interface UnsupportedRouteDescriptor {
+  pathPrefix: string;
+  capability: string;
+  message: string;
+}
+
 export interface RouteFamilyDescriptor {
   kind: RouteFamilyKind;
   audience: RouteAudience;
@@ -77,6 +83,82 @@ const governanceGatewayRoutes = [
 
 const workerStatusRoutes = ['/health', '/ready', '/meta/routes'] as const;
 
+const localAgentUnsupportedRoutes: readonly UnsupportedRouteDescriptor[] = [
+  {
+    pathPrefix: '/v1/auth',
+    capability: 'team-auth',
+    message: 'local-agent only exposes retrieval-first gateway routes; auth and session APIs are unavailable.',
+  },
+  {
+    pathPrefix: '/v1/teams',
+    capability: 'team-governance',
+    message: 'local-agent does not expose team or member governance APIs.',
+  },
+  {
+    pathPrefix: '/v1/members',
+    capability: 'team-governance',
+    message: 'local-agent does not expose team or member governance APIs.',
+  },
+  {
+    pathPrefix: '/v1/access-keys',
+    capability: 'team-governance',
+    message: 'local-agent does not expose team or member governance APIs.',
+  },
+  {
+    pathPrefix: '/v1/candidates',
+    capability: 'candidate-ingestion',
+    message: 'local-agent omits candidate ingestion and review APIs.',
+  },
+  {
+    pathPrefix: '/v1/duplicates',
+    capability: 'candidate-ingestion',
+    message: 'local-agent omits candidate ingestion and review APIs.',
+  },
+  {
+    pathPrefix: '/v1/traps',
+    capability: 'governance-write-path',
+    message: 'local-agent omits governance and write-side knowledge APIs.',
+  },
+  {
+    pathPrefix: '/v1/knowledge',
+    capability: 'governance-write-path',
+    message: 'local-agent omits governance and write-side knowledge APIs.',
+  },
+  {
+    pathPrefix: '/v1/feedback',
+    capability: 'governance-write-path',
+    message: 'local-agent omits governance and write-side knowledge APIs.',
+  },
+  {
+    pathPrefix: '/v1/operations',
+    capability: 'operator-surface',
+    message: 'local-agent does not expose operator, audit, or maintenance APIs.',
+  },
+  {
+    pathPrefix: '/v1/admin',
+    capability: 'operator-surface',
+    message: 'local-agent does not expose operator, audit, or maintenance APIs.',
+  },
+  {
+    pathPrefix: '/admin',
+    capability: 'operator-surface',
+    message: 'local-agent does not expose operator, audit, or maintenance APIs.',
+  },
+] as const;
+
+const workerOnlyUnsupportedRoutes: readonly UnsupportedRouteDescriptor[] = [
+  {
+    pathPrefix: '/v1/',
+    capability: 'gateway-public-api',
+    message: 'This runtime only exposes worker status routes; gateway business APIs are handled by the distributed gateway.',
+  },
+  {
+    pathPrefix: '/v3/',
+    capability: 'gateway-public-api',
+    message: 'This runtime only exposes worker status routes; gateway business APIs are handled by the distributed gateway.',
+  },
+] as const;
+
 export function resolveRouteFamilies(
   routeSurface: DeploymentRouteSurface,
   supportsReviewGovernance: boolean,
@@ -144,4 +226,18 @@ export function buildRouteSurfaceSummary(runtimeDeployment: ResolvedRuntimeDeplo
     publicGatewayRouteCount,
     internalRouteCount,
   };
+}
+
+export function getUnsupportedRouteDescriptors(
+  routeSurface: DeploymentRouteSurface,
+): readonly UnsupportedRouteDescriptor[] {
+  if (routeSurface === 'minimal-agent') {
+    return localAgentUnsupportedRoutes;
+  }
+
+  if (routeSurface === 'worker-status') {
+    return workerOnlyUnsupportedRoutes;
+  }
+
+  return [];
 }

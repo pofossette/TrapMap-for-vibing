@@ -8,6 +8,8 @@ import type { RouteFamilyDescriptor } from './route-surface.js';
 import { buildRouteSurfaceSummary } from './route-surface.js';
 import type { RuntimeMode } from './runtime-contract.js';
 import type { ServiceUnit, ServiceUnitProfile } from './service-unit.js';
+import type { ServiceTopologySnapshot } from './service-topology.js';
+import { buildServiceTopologySnapshot } from './service-topology.js';
 export { resolveAsyncWorkerState } from './runtime-ownership.js';
 
 export interface RuntimeDependencyState {
@@ -39,6 +41,7 @@ export interface RuntimeDependencyState {
       ownsOutboxWork: boolean;
     };
   };
+  topology: ServiceTopologySnapshot;
 }
 
 export interface RuntimeStatusSnapshot {
@@ -57,6 +60,7 @@ export interface RuntimeStatusSnapshot {
     name: ServiceUnit;
     ownership: ServiceUnitProfile;
   };
+  topology: ServiceTopologySnapshot;
   memory: {
     rssMb: number;
     heapUsedMb: number;
@@ -116,6 +120,13 @@ export function buildRuntimeStatusSnapshot(
   const queueWorker = options.queueWorkerState;
   const outboxWorker = options.outboxWorkerState;
   const routeSurfaceSummary = buildRouteSurfaceSummary(options.runtimeDeployment);
+  const topology = buildServiceTopologySnapshot({
+    deployment: options.runtimeDeployment,
+    routeFamilies: routeSurfaceSummary.routeFamilies,
+    runtimeMode: options.runtimeMode,
+    serviceUnit: options.serviceUnit,
+    serviceUnitProfile: options.serviceUnitProfile,
+  });
 
   const readiness: RuntimeStatusSnapshot['readiness'] =
     graphDependency === 'failed' || queueWorker === 'degraded' || outboxWorker === 'degraded'
@@ -165,6 +176,7 @@ export function buildRuntimeStatusSnapshot(
           ownsOutboxWork: options.serviceUnitProfile.ownsOutboxWork,
         },
       },
+      topology,
     },
     graphQuery: options.graphQuery,
     deployment: options.runtimeDeployment,
@@ -172,6 +184,7 @@ export function buildRuntimeStatusSnapshot(
       name: options.serviceUnit,
       ownership: options.serviceUnitProfile,
     },
+    topology,
     memory: {
       rssMb: Math.round(mem.rss / 1024 / 1024),
       heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024),

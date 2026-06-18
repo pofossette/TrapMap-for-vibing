@@ -13,7 +13,7 @@ vi.mock('../lib/http.js', () => ({
 
 vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(() => ({
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: 'mock-token',
     session: {
       member: { handle: 'testuser', securityLevel: 0 },
@@ -176,7 +176,7 @@ describe('CLI skill commands', () => {
     it('renders codex tool-specific skill lookup output when configured', async () => {
       const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
-        serverUrl: 'http://localhost:3000',
+        gatewayUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',
         session: {
           member: { handle: 'testuser', securityLevel: 0 },
@@ -223,7 +223,7 @@ describe('CLI skill commands', () => {
     it('falls back to legacy skill formatter when tool-specific renderer fails', async () => {
       const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
-        serverUrl: 'http://localhost:3000',
+        gatewayUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',
         session: {
           member: { handle: 'testuser', securityLevel: 0 },
@@ -275,7 +275,7 @@ describe('CLI skill commands', () => {
     it('renders codex command-result JSON for skill edit when output profile is configured', async () => {
       const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
-        serverUrl: 'http://localhost:3000',
+        gatewayUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',
         session: {
           member: { handle: 'testuser', securityLevel: 0 },
@@ -368,7 +368,7 @@ describe('CLI skill commands', () => {
     it('renders opencode command-result Markdown for skill history when output profile is configured', async () => {
       const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
-        serverUrl: 'http://localhost:3000',
+        gatewayUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',
         session: {
           member: { handle: 'testuser', securityLevel: 0 },

@@ -13,7 +13,7 @@
 #### 症状
 
 ```bash
-pnpm dev:server
+pnpm dev:local-agent
 # Error: Cannot find module 'xxx'
 # 或
 # SyntaxError: Cannot use import statement outside a module
@@ -71,7 +71,7 @@ netstat -tlnp | grep 4000
 kill <PID>
 
 # 方案 2: 使用其他端口
-PORT=4001 pnpm dev:server
+PORT=4001 pnpm dev:local-agent
 
 # 方案 3: Docker 中修改
 # docker-compose.yml 中修改 ports 配置
@@ -164,7 +164,7 @@ export TRAPMAP_GRAPH_DB_DATABASE=neo4j
 
 # 首次接入建议保持 fail-open
 export TRAPMAP_GRAPH_DB_FAIL_OPEN=true
-pnpm dev:server
+pnpm dev:local-agent
 ```
 
 补充说明：

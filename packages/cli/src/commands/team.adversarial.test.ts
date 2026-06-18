@@ -18,7 +18,7 @@ vi.mock('../lib/http.js', () => ({
 
 vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(() => ({
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: 'mock-token',
     session: {
       member: { handle: 'testuser', securityLevel: 0 },
@@ -27,7 +27,7 @@ vi.mock('../lib/config.js', () => ({
   })),
   updateCliState: vi.fn(async (patch: unknown) => {
     const current = {
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'mock-token',
       session: {
         member: { handle: 'testuser', securityLevel: 0 },

@@ -1,5 +1,10 @@
 # Deployment Flexibility Plan 02: Gateway And CLI Integration
 
+## 状态
+
+- 状态：`largely landed`
+- 审计结论：gateway-only 已经是正式事实；本文件后续应主要约束回归风险与本地裁剪语义，而不是继续把方向写成待决定。
+
 ## 目标
 
 固定 CLI 的接入模型为 `gateway only`，让后端是否单体或微服务对 CLI 保持透明。
@@ -12,7 +17,19 @@
 - `docs/architecture/CLI.md` 已说明：
   - 只有 `login` 支持 `--server <gateway-url>`
   - CLI 没有全局 `--url`
-- 当前 CLI 事实层面已经是 gateway-only，但文档尚未把这一点定义成正式约束。
+- README / `docs/PACKAGES.md` / 部署文档已经把 `gateway only` 写成正式约束。
+
+## 已完成
+
+- CLI 状态存储的新写入已经使用 `gatewayUrl`。
+- 旧 `serverUrl` 只作为兼容读取保留。
+- CLI 命令面没有暴露多 URL 或按服务直连的正式能力。
+
+## 剩余收口
+
+- 继续清理测试里残留的 legacy `serverUrl` fixture 命名，保留兼容语义但不再把它写成主词汇。
+- 已补齐：`local-agent` 和 worker-only runtime 裁剪路由时返回 `501 capability_unsupported`，而不是偶发 404。
+- 把 gateway-only 的 smoke 测试入口固化到测试矩阵中，避免后续回归。
 
 ## 详细改动内容
 
@@ -81,6 +98,7 @@
 - `packages/cli/src/lib/config.ts`
 - `packages/cli/src/index.ts`
 - `packages/cli/src/commands/auth.ts`
+- `packages/cli/src/commands/*.ts`
 - `packages/server/src/app.ts`
 - `packages/server/src/routes/*.ts`
 - 如需新增 gateway 内部转发层，则落在 `packages/server/src/lib/` 对应 runtime 或 application seam
@@ -106,6 +124,7 @@
 - `login --server` 仍然只写入一个 gateway 地址。
 - `search` / `load` / `activate` 在 `local-agent` 与 `distributed` 下都使用同一 CLI 通信模型。
 - 若 `local-agent` 裁剪了 review/governance 路由，CLI 报错信息应清晰表达 capability 不支持，而不是表现为随机 404。
+- 旧配置文件包含 `serverUrl` 时，CLI 仍能正常工作，但写回后文件只保留 `gatewayUrl`。
 
 ## 验收标准
 

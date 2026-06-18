@@ -30,7 +30,7 @@ vi.mock('../lib/prompts.js', () => ({
 }));
 
 const mockBaseState = {
-  serverUrl: 'http://localhost:3000',
+  gatewayUrl: 'http://localhost:3000',
   sessionToken: 'mock-token',
   session: {
     member: { handle: 'testuser', securityLevel: 0 },
@@ -397,7 +397,7 @@ describe('CLI feedback command', () => {
 
   describe('profile-aware output', () => {
     const codexProfileState = {
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'test-token',
       session: null,
       outputProfile: {
@@ -799,7 +799,7 @@ describe('CLI feedback admin commands', () => {
 
   describe('profile-aware output', () => {
     const codexProfileState = {
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'test-token',
       session: null,
       outputProfile: {

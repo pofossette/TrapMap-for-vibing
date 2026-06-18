@@ -84,12 +84,23 @@ P1 之后，server runtime 会统一生成 `ResolvedRuntimeDeployment`，其中�
 - `preset`
 - `runtimeMode`
 - `serviceUnit`
+- `topology`
 - `capabilities.routeSurface`
 - `capabilities.asyncOwnershipExpectation`
 - `capabilities.storagePosture`
 - `capabilities.authTeamExpectation`
 
 路由暴露、worker ownership、`/health`、`/ready`、`/v1/operations/status/async` 都消费这同一份解析结果，不再各自散落推导。
+
+P3 起，`topology` 会把 distributed 第一阶段的正式服务词汇固化到 runtime seams：
+
+- `gateway`
+- `retrieval`
+- `candidate-ingestion`
+- `governance`
+- `outbox-runtime`
+
+当前实现仍保持单个 `packages/server` 包和共享 PostgreSQL，不平行实现第二套后端；拓扑的事实源是 runtime metadata，而不是仅靠 docker compose 命名。
 
 > **Round 2 更新**：知识、工件、候选的持久化已迁移到 PostgreSQL 专用表。`DualWriteKnowledgeRepository`、`DualWriteCandidateRepository`、`DualWriteArtifactRepository` 已删除。路由层不再对 `store_snapshot` 进行业务读写（审查/衰减/维护等操作仍用于审计/索引等辅助目的，延后至各轮次处理）。
 >

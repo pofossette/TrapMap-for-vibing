@@ -169,7 +169,7 @@ const createMockResponse = (
 describe('CLI review commands with evidence flags (Phase 58-06)', () => {
   let program: Command;
   const mockState = {
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: 'test-token',
     session: null,
   };
@@ -431,7 +431,7 @@ describe('CLI review commands with evidence flags (Phase 58-06)', () => {
 
   describe('profile-aware output', () => {
     const codexProfileState = {
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'test-token',
       session: null,
       outputProfile: {

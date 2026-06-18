@@ -29,6 +29,7 @@ import { handleRuntimeError, registerRuntimeRoutes } from './lib/runtime/http-su
 import {
   buildRouteSurfaceSummary,
   flattenDocumentedRoutes,
+  getUnsupportedRouteDescriptors,
 } from './lib/runtime/route-surface.js';
 import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
 import { resolveRuntimeDeployment } from './lib/runtime/deployment-profile.js';
@@ -240,6 +241,26 @@ export function buildServer(options: BuildServerOptions = {}) {
   void app.register(async (capabilityScopedApp) => {
     await registerCapabilityRoutes(capabilityScopedApp, config);
   });
+
+  const unsupportedRoutes = getUnsupportedRouteDescriptors(routeSurfaceSummary.routeSurface);
+  if (unsupportedRoutes.length > 0) {
+    app.setNotFoundHandler((request, reply) => {
+      const matched = unsupportedRoutes.find((descriptor) =>
+        request.url.startsWith(descriptor.pathPrefix),
+      );
+      if (!matched) {
+        return reply.status(404).send({
+          code: 'not_found',
+          message: 'Route not found',
+        });
+      }
+
+      return reply.status(501).send({
+        code: 'capability_unsupported',
+        message: `${matched.message} Missing capability: ${matched.capability}.`,
+      });
+    });
+  }
 
   // Single startup sequence orchestrator — replaces 6 scattered onReady hooks.
   // See bootstrap/run-startup-sequence.ts for the full sequence and rationale.

@@ -285,7 +285,7 @@ TrapMap 里有三种常见写法。
 docker compose up -d postgres
 
 export TRAPMAP_DATABASE_URL=postgresql://trapmap:trapmap@127.0.0.1:5434/trapmap
-pnpm dev:server
+pnpm dev:team-monolith
 ```
 
 说明：

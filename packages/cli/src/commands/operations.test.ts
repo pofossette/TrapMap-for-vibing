@@ -52,7 +52,7 @@ describe('CLI operations commands (Phase 13)', () => {
   let program: Command;
   let testDir: string;
   const mockState = {
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: 'test-token',
     session: null,
   };
@@ -1219,7 +1219,7 @@ describe('Phase 85: Barrel export completeness', () => {
 
 describe('Phase 2: Input validation', () => {
   const validationMockState = {
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: 'test-token',
     session: null,
   };
@@ -1422,7 +1422,7 @@ describe('fm-agent freeze: live gaps', () => {
       throw err;
     });
     mockedLoadCliState.mockResolvedValue({
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'test-token',
       session: null,
     });
@@ -1525,7 +1525,7 @@ describe('fm-agent freeze: live gaps', () => {
       throw err;
     });
     mockedLoadCliState.mockResolvedValue({
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'test-token',
       session: null,
     });
@@ -1552,7 +1552,7 @@ describe('fm-agent freeze: live gaps', () => {
 describe('CLI capsule-index commands', () => {
   let capsuleIndexProgram: Command;
   const mockState = {
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: 'test-token',
     session: null,
   };

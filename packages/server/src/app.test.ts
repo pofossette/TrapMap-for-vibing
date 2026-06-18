@@ -103,6 +103,14 @@ describe('app.ts live gaps — fm-agent raw report', () => {
         runtimeMode: 'combined',
         serviceUnit: 'full-platform',
       },
+      topology: {
+        deploymentProfile: 'team-monolith',
+        phase: 'shared-postgres-phase1',
+        currentService: {
+          name: 'gateway',
+          surface: 'gateway-public',
+        },
+      },
       graphQuery: {
         mode: 'disabled',
         backendKind: 'memory',
@@ -349,6 +357,14 @@ describe('app.ts live gaps — fm-agent raw report', () => {
       routeSurface: 'minimal-agent',
       publicGatewayRouteCount: 3,
       internalRouteCount: 0,
+      topology: {
+        deploymentProfile: 'local-agent',
+        phase: 'shared-postgres-phase1',
+        currentService: {
+          name: 'gateway',
+          surface: 'gateway-public',
+        },
+      },
       routeFamilies: [
         {
           kind: 'local-agent-minimal',
@@ -363,7 +379,78 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     ]);
 
     const authResponse = await app.inject({ method: 'GET', url: '/v1/auth/session' });
-    expect(authResponse.statusCode).toBe(404);
+    expect(authResponse.statusCode).toBe(501);
+    expect(authResponse.json()).toMatchObject({
+      code: 'capability_unsupported',
+      message: expect.stringContaining('local-agent'),
+    });
+
+    const ready = await app.inject({ method: 'GET', url: '/ready' });
+    expect(ready.statusCode).toBe(200);
+    expect(ready.json()).toMatchObject({
+      ok: true,
+      topology: {
+        deploymentProfile: 'local-agent',
+        phase: 'shared-postgres-phase1',
+        currentService: {
+          name: 'gateway',
+          surface: 'gateway-public',
+        },
+      },
+      dependencies: {
+        topology: {
+          currentService: {
+            name: 'gateway',
+          },
+        },
+      },
+    });
+
+    await app.close();
+  });
+
+  it('team-monolith health exposes shared gateway topology with local worker ownership', async () => {
+    const app = buildServer();
+    await app.ready();
+    app.taskWorker = {
+      isRunning: () => true,
+      ownsWork: () => true,
+      stop: async () => {},
+    };
+    app.outboxWorker = {
+      isRunning: () => true,
+      ownsWork: () => true,
+      stop: async () => {},
+    };
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      topology: {
+        deploymentProfile: 'team-monolith',
+        phase: 'shared-postgres-phase1',
+        currentService: {
+          name: 'gateway',
+          surface: 'gateway-public',
+          ownsCandidateTaskWork: true,
+          ownsSharedJobTaskWork: true,
+          ownsOutboxWork: true,
+        },
+      },
+      dependencies: {
+        queueWorker: 'not-configured',
+        outboxWorker: 'not-configured',
+        topology: {
+          currentService: {
+            name: 'gateway',
+          },
+        },
+      },
+    });
 
     await app.close();
   });
@@ -398,6 +485,17 @@ describe('app.ts live gaps — fm-agent raw report', () => {
       documentedRoutes: [],
       publicGatewayRouteCount: 0,
       internalRouteCount: 3,
+      topology: {
+        deploymentProfile: 'distributed',
+        phase: 'shared-postgres-phase1',
+        currentService: {
+          name: 'candidate-ingestion',
+          surface: 'worker-internal',
+          ownsCandidateTaskWork: true,
+          ownsSharedJobTaskWork: false,
+          ownsOutboxWork: false,
+        },
+      },
       routeFamilies: [
         {
           kind: 'worker-status',
@@ -411,7 +509,11 @@ describe('app.ts live gaps — fm-agent raw report', () => {
       url: '/v1/retrieval/search',
       payload: { query: 'test' },
     });
-    expect(retrievalResponse.statusCode).toBe(404);
+    expect(retrievalResponse.statusCode).toBe(501);
+    expect(retrievalResponse.json()).toMatchObject({
+      code: 'capability_unsupported',
+      message: expect.stringContaining('distributed gateway'),
+    });
 
     const ready = await app.inject({ method: 'GET', url: '/ready' });
     expect(ready.statusCode).toBe(200);
@@ -427,6 +529,77 @@ describe('app.ts live gaps — fm-agent raw report', () => {
               audience: 'internal-status',
             },
           ],
+        },
+        topology: {
+          currentService: {
+            name: 'candidate-ingestion',
+          },
+        },
+      },
+    });
+
+    await app.close();
+  });
+
+  it('distributed gateway readiness exposes shared-postgres phase1 topology', async () => {
+    const app = buildServer({
+      runtimeMode: 'api',
+      serviceUnit: 'full-platform',
+      config: {
+        deployment: {
+          profile: 'distributed',
+          preset: 'api',
+          compatibility: {
+            profile: 'distributed',
+            source: 'explicit',
+            requiresGateway: true,
+            requiresAsyncOwnership: true,
+            allowsSingleProcess: false,
+            requiresPostgres: true,
+            minimumPreset: 'api',
+          },
+          resolved: undefined as never,
+        },
+      } as any,
+    });
+    await app.ready();
+
+    const ready = await app.inject({ method: 'GET', url: '/ready' });
+    expect(ready.statusCode).toBe(200);
+    expect(ready.json()).toMatchObject({
+      ok: true,
+      topology: {
+        deploymentProfile: 'distributed',
+        phase: 'shared-postgres-phase1',
+        currentService: {
+          name: 'gateway',
+          surface: 'gateway-public',
+          ownsCandidateTaskWork: false,
+          ownsSharedJobTaskWork: false,
+          ownsOutboxWork: false,
+        },
+      },
+      dependencies: {
+        queueWorker: 'not-configured',
+        outboxWorker: 'not-configured',
+        deployment: {
+          routeSurface: 'gateway-core',
+        },
+        topology: {
+          currentService: {
+            name: 'gateway',
+          },
+        },
+      },
+    });
+
+    const health = await app.inject({ method: 'GET', url: '/health' });
+    expect(health.statusCode).toBe(200);
+    expect(health.json()).toMatchObject({
+      topology: {
+        deploymentProfile: 'distributed',
+        currentService: {
+          name: 'gateway',
         },
       },
     });

@@ -4,6 +4,14 @@
 
 本文档介绍 TrapMap 的各种部署方式，包括开发环境、Staging 环境和生产环境。
 
+当前推荐的正式入口统一使用 deployment profile：
+
+- `local-agent`
+- `team-monolith`
+- `distributed`
+
+旧 `monolith` / `api` / `candidate-worker` / `governance-worker` / `outbox-worker` 继续保留为 deployment preset 与兼容输入，不再作为面向操作者的首要产品形态词汇。
+
 ## 术语与边界
 
 先区分两层概念：
@@ -51,6 +59,7 @@ CLI 接入语义在这三个 profile 下保持一致：
 - `team-monolith` 中 gateway 与内部实现可同进程。
 - `distributed` 中 gateway 可以把请求路由到内部 service/worker，但 CLI 不感知这些拆分。
 - `local-agent` 仍通过 HTTP gateway 接入，只保留 retrieval-first 的最小外部面。
+- 对于被当前 profile 裁剪掉的 route family，server 返回 `501 capability_unsupported`，而不是把缺失能力伪装成普通 `404`。
 
 当前阶段的明确非目标：
 
@@ -67,13 +76,29 @@ CLI 接入语义在这三个 profile 下保持一致：
 | Staging | PostgreSQL | 预发布验证 |
 | 生产 | PostgreSQL + Docker | 正式运营 |
 
+## 推荐启动矩阵
+
+| Profile | 推荐入口 | 说明 |
+|------|------|------|
+| `local-agent` | `pnpm dev:local-agent` | 单用户、轻量 gateway、retrieval-first，不要求完整治理链路 |
+| `team-monolith` | `pnpm dev:team-monolith` 或 `docker compose up -d` | 单实例、多用户、完整 HTTP API 与 PostgreSQL 主路径；compose 默认启动统一 gateway |
+| `distributed` | `pnpm dev:distributed:*` 或 `docker compose --profile distributed up -d` | gateway + 多 worker，CLI 仍只连接 gateway |
+
 ## 当前已实现的部署形态
 
-TrapMap 当前代码已经支持以下运行形态，详见 [OPTIONAL_SERVICE_SPLIT_AND_MQ.md](./components/OPTIONAL_SERVICE_SPLIT_AND_MQ.md)。
+当前代码已经把对操作者的正式入口收敛到三种 profile：
 
-- `monolith`: 单进程 API + task worker + outbox worker，默认也是推荐路径。
-- `split-pg`: 拆分 API / task / outbox 进程，但异步任务仍走 PostgreSQL `task_queue`。
-- `split-rabbitmq`: task transport 改为 RabbitMQ，domain event outbox 仍固定在 PostgreSQL。
+- `local-agent`：单进程、单用户、最小 retrieval-first gateway
+- `team-monolith`：单进程 gateway，必要时在同进程内拥有 task/outbox runtime
+- `distributed`：gateway + candidate/governance/outbox worker，多进程但首期仍共享 PostgreSQL
+
+兼容层里仍保留的 `deployment preset` 只是启动映射：
+
+- `monolith`
+- `api`
+- `candidate-worker`
+- `governance-worker`
+- `outbox-worker`
 
 当前版本的明确非目标：
 
@@ -81,11 +106,38 @@ TrapMap 当前代码已经支持以下运行形态，详见 [OPTIONAL_SERVICE_SP
 - 不引入 Kafka、NATS、Redis Streams。
 - 不把 `domain_event_outbox` 从 PostgreSQL 挪走。
 
-这些已实现形态与目标 `deployment profile` 的关系可暂时理解为：
+## Distributed Phase 1 服务拓扑
 
-- `local-agent` 当前更接近“通过现有 gateway/server 收敛最小路由面”的目标，而不是新的独立进程模型。
-- `team-monolith` 当前主要由 `monolith` preset 表达。
-- `distributed` 当前主要由 `api` / `candidate-worker` / `governance-worker` / `outbox-worker` 这组 preset 加上可选 RabbitMQ transport 表达。
+`distributed` 当前的正式目标不是“立刻完成最终分布式架构”，而是先固化第一阶段服务边界，并继续复用现有 `packages/server`、共享 contracts、PostgreSQL queue/outbox 和 runtime seams。
+
+第一阶段逻辑服务固定为：
+
+- `gateway`：对外唯一入口，负责 CLI / 外部 HTTP API、auth、session，不拥有 candidate/shared-job/outbox worker ownership。
+- `retrieval`：负责 search、read-model、capsule recall 等读侧编排；不承载 review / governance 写路径。
+- `candidate-ingestion`：负责 candidate submit 后续处理、去重和 resolution follow-up，拥有 candidate task work。
+- `governance`：负责 review、maintenance、decay、feedback remediation 等治理写路径，拥有 shared-job task work。
+- `outbox-runtime`：负责 PostgreSQL outbox 消费、派生刷新和 follow-up dispatch，作为独立 worker runtime 暴露 status-only surface。
+
+第一阶段共享基础设施固定为：
+
+- PostgreSQL
+- shared contracts
+- auth/session model
+- queue/outbox semantics
+
+当前明确先不做：
+
+- per-service database
+- split repo / split package
+- service mesh / complex event backbone
+
+这些拓扑语义现在会进入 `/health`、`/ready`、`/meta/routes` 的 runtime metadata，作为 operator 判断 gateway public surface、internal-only worker boundary 和 shared-PostgreSQL 阶段约束的正式事实源。
+
+补充说明：
+
+- `gateway`、`candidate-ingestion`、`outbox-runtime` 当前都有明确 runtime 入口。
+- `retrieval` 与 `governance` 在 phase-1 仍主要是逻辑服务边界和 ownership boundary。
+- 这意味着 retrieval 目前不是独立部署二进制；CLI 也不会看到独立 retrieval URL，仍然只通过 gateway 访问相关读侧能力。
 
 ---
 
@@ -111,8 +163,10 @@ pnpm install
 cp .env.example .env
 # 编辑 .env，按需填入数据库和 AI 配置
 
-# 4. 启动服务器
-pnpm dev:server
+# 4. 启动 local-agent 或 team-monolith
+pnpm dev:local-agent
+# 或
+pnpm dev:team-monolith
 
 # 5. 另一个终端运行 CLI
 pnpm dev:cli -- login --access-key <key>
@@ -140,7 +194,7 @@ export TRAPMAP_GRAPH_DB_FAIL_OPEN=true
 export TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true
 
 pnpm --filter @trapmap/server graph-db:check
-pnpm dev:server
+pnpm dev:local-agent
 ```
 
 说明：
@@ -158,10 +212,16 @@ OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxx
 HOST=127.0.0.1
 PORT=4000
 
+# 正式部署形态
+TRAPMAP_DEPLOYMENT_PROFILE=team-monolith
+TRAPMAP_GATEWAY_URL=http://127.0.0.1:4000
+
 # PostgreSQL（默认存储后端）
 TRAPMAP_DATABASE_URL=postgresql://localhost:5432/trapmap
-TRAPMAP_DEPLOYMENT_PRESET=monolith
 TRAPMAP_TASK_TRANSPORT=postgres
+
+# 兼容启动快捷方式，可选
+# TRAPMAP_DEPLOYMENT_PRESET=monolith
 
 # AI 提供商配置（可选）
 AI_PROVIDER=openai                    # openai, openai-compatible, ollama, google-genai
@@ -177,10 +237,13 @@ LOG_LEVEL=info
 如果需要在本地验证拆分部署，可以分别启动：
 
 ```bash
-TRAPMAP_DEPLOYMENT_PRESET=api TRAPMAP_TASK_TRANSPORT=postgres pnpm dev:server
-TRAPMAP_DEPLOYMENT_PRESET=candidate-worker TRAPMAP_TASK_TRANSPORT=postgres pnpm dev:server:worker
-TRAPMAP_DEPLOYMENT_PRESET=outbox-worker TRAPMAP_TASK_TRANSPORT=postgres pnpm dev:server:outbox-worker
+pnpm dev:distributed:gateway
+pnpm dev:distributed:candidate-worker
+pnpm dev:distributed:governance-worker
+pnpm dev:distributed:outbox-worker
 ```
+
+这些脚本内部仍通过 `TRAPMAP_DEPLOYMENT_PRESET` + `RUNTIME_MODE` 解析到现有 runtime seams，但操作者应优先使用 profile-named 命令。
 
 ### 可选：RabbitMQ task transport
 
@@ -194,13 +257,26 @@ TRAPMAP_RABBITMQ_URL=amqp://guest:guest@127.0.0.1:5672
 TRAPMAP_RABBITMQ_TASK_EXCHANGE=trapmap.tasks
 TRAPMAP_RABBITMQ_TASK_QUEUE=trapmap.candidate
 TRAPMAP_RABBITMQ_PREFETCH=4
-pnpm dev:server:worker
+pnpm dev:distributed:candidate-worker
 ```
 
 注意：
 
 - 这只会把 task delivery 切到 RabbitMQ。
-- `domain_event_outbox` 仍然留在 PostgreSQL，由 monolith 或 `outbox-worker` 进程处理。
+- `domain_event_outbox` 仍然留在 PostgreSQL，由 `team-monolith` 或 `outbox-worker` 进程处理。
+
+## 最小验证矩阵
+
+deployment flexibility 相关改动至少执行：
+
+```bash
+pnpm test:deployment-smoke
+pnpm test:runtime-foundations
+pnpm typecheck
+pnpm check:docs-drift
+```
+
+如果只改了代码且未触碰文档事实，可省略 `pnpm check:docs-drift`。
 
 ---
 
@@ -227,8 +303,14 @@ pnpm dev:server:worker
 cp .env.production.example .env
 # 编辑 .env
 
-# 2. 构建并启动
+# 2. 构建并启动 team-monolith
 docker compose up -d
+
+# 或 distributed
+docker compose --profile distributed up -d
+
+# 或 distributed + mq
+docker compose --profile distributed --profile mq up -d
 
 # 3. 查看日志
 docker compose logs -f
@@ -265,7 +347,7 @@ TRAPMAP_SYSTEM_ADMIN_KEY=generate-a-secure-random-string
 
 # 数据库
 TRAPMAP_DATABASE_URL=postgresql://trapmap:password@postgres:5432/trapmap
-TRAPMAP_DEPLOYMENT_PRESET=monolith
+TRAPMAP_DEPLOYMENT_PROFILE=team-monolith
 TRAPMAP_TASK_TRANSPORT=postgres
 
 # Optional Neo4j graph backend
@@ -291,12 +373,12 @@ AI_EMBEDDING_MODEL=text-embedding-3-small
 LOG_LEVEL=info
 ```
 
-### 可选 split deployment 示例
+### Distributed 示例
 
 保持 PostgreSQL task queue：
 
 ```bash
-docker compose --profile split up -d
+docker compose --profile distributed up -d
 ```
 
 这会额外启动：
@@ -308,7 +390,7 @@ docker compose --profile split up -d
 可选 RabbitMQ task transport：
 
 ```bash
-TRAPMAP_TASK_TRANSPORT=rabbitmq docker compose --profile split --profile mq up -d
+TRAPMAP_TASK_TRANSPORT=rabbitmq docker compose --profile distributed --profile mq up -d
 ```
 
 这个组合会：
@@ -322,7 +404,7 @@ TRAPMAP_TASK_TRANSPORT=rabbitmq docker compose --profile split --profile mq up -
 
 实际 compose 文件位于项目根目录，使用 PostgreSQL 作为默认存储后端（带 pgvector 扩展）：
 
-当前 checked-in compose 采用“单镜像复用”策略：`server` 负责构建并标记 `trap-map-server:latest`，`candidate-worker`、`governance-worker`、`outbox-worker` 直接复用同一镜像，只覆盖各自的 `command` 与环境变量，避免 split deployment 下重复构建同一个 Dockerfile。
+当前 checked-in compose 采用“单镜像复用”策略：`server` 负责构建并标记 `trap-map-server:latest`，`candidate-worker`、`governance-worker`、`outbox-worker` 直接复用同一镜像，只覆盖各自的 `command` 与环境变量，避免 distributed 形态下重复构建同一个 Dockerfile。
 
 ```yaml
 services:

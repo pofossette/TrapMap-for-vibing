@@ -5,7 +5,7 @@ import { registerOutputProfileCommands } from './output-profile.js';
 
 vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(async () => ({
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: null,
     session: null,
     outputProfile: {
@@ -19,7 +19,7 @@ vi.mock('../lib/config.js', () => ({
   })),
   updateCliState: vi.fn(async (updater) => {
     const current = {
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: null,
       session: null,
       outputProfile: {

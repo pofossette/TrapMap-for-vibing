@@ -133,7 +133,7 @@ const mockSearchResponse = {
 describe('CLI decay commands (Phase 50)', () => {
   let program: Command;
   const mockState = {
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: 'test-token',
     session: null,
   };
@@ -793,7 +793,7 @@ describe('CLI decay commands (Phase 50)', () => {
 
   describe('profile-aware output', () => {
     const codexProfileState = {
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'test-token',
       session: null,
       outputProfile: {

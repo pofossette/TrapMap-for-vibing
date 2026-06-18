@@ -1,29 +1,37 @@
 # Deployment Flexibility Plan 01: Profile And Capability Model
 
+## 状态
+
+- 状态：`partially landed`
+- 审计结论：核心解析层与 capability 驱动装配已落地，但文档仍混有落地前叙事，需要明确“已完成”和“剩余收口”。
+
 ## 目标
 
 把现有零散的部署开关收敛为统一的 profile/capability 模型，作为所有运行时、路由暴露和构建脚本的事实源。
 
 ## 当前事实
 
-- `packages/server/src/config.ts` 目前只理解：
-  - `deployment.preset`
-  - `asyncTaskTransport`
-- `packages/server/src/app.ts` 当前装配顺序是：
-  - `loadConfig()`
-  - `resolveDeploymentPreset()`
-  - 得到 `runtimeMode + serviceUnit`
-  - 全量注册 HTTP routes
-  - `onReady` 统一执行 startup sequence
-- `packages/server/src/lib/runtime/http-surface.ts` 的 `/health` 和 `/ready` 当前只认识：
-  - `runtimeMode`
-  - `serviceUnit`
-  - worker owner/running 状态
-- 当前没有单独的 capability object 来驱动：
-  - route exposure
-  - auth surface
-  - worker boot strategy
-  - local-agent / monolith / distributed 的差异
+- `packages/server/src/lib/runtime/deployment-profile.ts` 已提供正式的 `ResolvedRuntimeDeployment`
+- `packages/server/src/config.ts` 已写入 `deployment.resolved`
+- `packages/server/src/app.ts`、`src/index.ts`、`src/worker.ts` 已统一消费 deployment 解析结果
+- `packages/server/src/lib/runtime/http-surface.ts` 已按 capability/route surface 驱动不同 HTTP 暴露面
+- `packages/server/src/lib/runtime/runtime-metadata.ts` 与相关状态路由已开始暴露：
+  - profile
+  - route surface
+  - async ownership expectation
+  - service topology metadata
+
+## 已完成
+
+- 统一解析层已存在，`deployment preset` 已退回兼容输入。
+- route registration 已按 `minimal-agent` / `gateway-core` / `worker-status` 收敛。
+- runtime metadata、`/health`、`/ready`、`/v1/operations/status/async` 已开始表达 profile/capability 语义。
+
+## 剩余收口
+
+- 明确哪些 capability 仍仅用于 metadata/route surface，哪些已实际控制 boot strategy。
+- 继续减少散落的 runtime 条件分支，避免出现“统一解析结果存在，但调用方仍各自推导”的回潮。
+- 把本文件中的“建议模型”收敛为与现有代码命名一致的术语，避免文档自造另一套字段名。
 
 ## 详细改动内容
 
@@ -122,6 +130,7 @@
 - `packages/server/src/lib/runtime/service-unit.ts`
 - `packages/server/src/lib/runtime/runtime-metadata.ts`
 - `packages/server/src/lib/runtime/http-surface.ts`
+- `packages/server/src/lib/runtime/service-topology.ts`
 - `packages/server/src/bootstrap/run-startup-sequence.ts`
 - `packages/server/src/bootstrap/run-worker-sequence.ts`
 - `packages/server/src/bootstrap/bootstrap-workers.ts`
@@ -152,12 +161,14 @@
 - `distributed` profile:
   - API/gateway 进程不因未启动本地 worker 而 not-ready
   - 专用 worker 进程只对自己拥有的任务负责
+- CLI/文档所见 profile 词汇与 runtime metadata 中暴露的 profile 词汇完全一致。
 
 ## 验收标准
 
 - [x] 任何一处 runtime 装配都只消费一份统一的 deployment 解析结果。
 - [x] route/worker/health 三个系统的部署语义一致。
 - [x] 不再出现“文档里叫 split/distributed，代码里只有 preset/runtimeMode”的双重叙事。
+- [ ] startup / worker boot / topology metadata 的最后一层散落条件判断被继续压缩，没有重新分叉出第二套 profile 判定。
 
 ## 交付要求
 
@@ -171,3 +182,4 @@
 - `packages/server/src/app.ts`、`src/index.ts`、`src/worker.ts` 统一消费 `deployment.resolved`
 - runtime metadata、`/health`、`/ready`、`/v1/operations/status/async` 已开始暴露 profile/capability 语义
 - route registration 已按 `minimal-agent` / `gateway-core` / `worker-status` 收敛为 capability 驱动
+- `packages/server/src/lib/runtime/service-topology.ts` 已把 distributed phase-1 的共享基础设施与延后隔离边界纳入 metadata 叙事

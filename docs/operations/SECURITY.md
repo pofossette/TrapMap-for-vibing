@@ -86,16 +86,18 @@ flowchart TB
 | 显示时机 | 创建时仅显示一次明文 |
 | 密钥类型 | `--access-key`（成员密钥）/ `--system-admin-key`（管理员引导密钥）|
 
-### CLI 服务器地址配置
+### CLI Gateway 地址配置
 
-CLI **同时只连接一个服务器**，`serverUrl` 为单值（非数组）。配置优先级（高→低）：
+CLI **同时只连接一个 gateway**，本地状态里只保存单值地址。配置优先级（高→低）：
 
 1. **`trapmap login --server <url>`** — 登录时指定，写入 `~/.trapmap/cli.json` 后持久生效
-2. **`~/.trapmap/cli.json`** 中的 `serverUrl` 字段 — 首次登录后自动保存
-3. **`TRAPMAP_SERVER_URL` 环境变量** — 未登录时的默认值
+2. **`~/.trapmap/cli.json`** 中的 `gatewayUrl` 字段 — 首次登录后自动保存
+3. **`TRAPMAP_GATEWAY_URL` 环境变量** — 未登录时的默认值
 4. **硬编码默认值** `http://127.0.0.1:4000`
 
 切换服务器只需重新 `trapmap login --server <新地址> --access-key <key>`。
+
+兼容说明：CLI 仍兼容读取旧 `serverUrl` 配置，但新写入只使用 `gatewayUrl`。
 
 ### 登出行为
 

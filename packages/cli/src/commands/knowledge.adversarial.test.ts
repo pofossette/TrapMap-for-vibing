@@ -23,7 +23,7 @@ vi.mock('../lib/http.js', () => ({
 
 vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(() => ({
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: 'mock-token',
     session: {
       member: { handle: 'testuser', securityLevel: 0 },

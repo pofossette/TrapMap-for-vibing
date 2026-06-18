@@ -10,7 +10,7 @@ import { ApiError, apiRequest, requireSessionToken } from './http.js';
 
 describe('HTTP client adversarial tests', () => {
   const defaultState: CliState = {
-    serverUrl: 'http://localhost:4000',
+    gatewayUrl: 'http://localhost:4000',
     sessionToken: null,
     session: null,
   };
@@ -165,7 +165,7 @@ describe('HTTP client adversarial tests', () => {
   describe('requireSessionToken edge cases', () => {
     it('should throw error with exact login command message', () => {
       const state: CliState = {
-        serverUrl: 'http://localhost:4000',
+        gatewayUrl: 'http://localhost:4000',
         sessionToken: null,
         session: null,
       };
@@ -178,7 +178,7 @@ describe('HTTP client adversarial tests', () => {
     it('should return the exact token string when present', () => {
       const token = 'bearer-abc-123-def-456';
       const state: CliState = {
-        serverUrl: 'http://localhost:4000',
+        gatewayUrl: 'http://localhost:4000',
         sessionToken: token,
         session: null,
       };
@@ -190,7 +190,7 @@ describe('HTTP client adversarial tests', () => {
   describe('apiRequest token precedence', () => {
     it('should prefer options.sessionToken over state.sessionToken', async () => {
       const stateWithToken: CliState = {
-        serverUrl: 'http://localhost:4000',
+        gatewayUrl: 'http://localhost:4000',
         sessionToken: 'state-token',
         session: null,
       };
@@ -216,7 +216,7 @@ describe('HTTP client adversarial tests', () => {
 
     it('should use state token when options.sessionToken is undefined', async () => {
       const stateWithToken: CliState = {
-        serverUrl: 'http://localhost:4000',
+        gatewayUrl: 'http://localhost:4000',
         sessionToken: 'state-token',
         session: null,
       };

@@ -15,9 +15,10 @@ services:
       - RUNTIME_MODE=${RUNTIME_MODE:-combined}
       - HOST=0.0.0.0
       - PORT=4000
+      - TRAPMAP_DEPLOYMENT_PROFILE=${TRAPMAP_DEPLOYMENT_PROFILE:-team-monolith}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
-      - TRAPMAP_DEPLOYMENT_PRESET=${TRAPMAP_DEPLOYMENT_PRESET:-monolith}
+      - TRAPMAP_DEPLOYMENT_PRESET=${TRAPMAP_DEPLOYMENT_PRESET:-}
       - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
       - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
       - TRAPMAP_RABBITMQ_TASK_EXCHANGE=${TRAPMAP_RABBITMQ_TASK_EXCHANGE:-trapmap.tasks}
@@ -55,7 +56,7 @@ services:
 
   candidate-worker:
     image: trap-map-server:latest
-    profiles: ["split", "mq"]
+    profiles: ["distributed"]
     command: ["node", "dist/worker.js"]
     working_dir: /app/packages/server
     environment:
@@ -63,6 +64,7 @@ services:
       - HOST=0.0.0.0
       - PORT=4000
       - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
       - TRAPMAP_DEPLOYMENT_PRESET=candidate-worker
       - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
       - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
@@ -91,7 +93,7 @@ services:
 
   governance-worker:
     image: trap-map-server:latest
-    profiles: ["split", "mq"]
+    profiles: ["distributed"]
     command: ["node", "dist/worker.js"]
     working_dir: /app/packages/server
     environment:
@@ -99,6 +101,7 @@ services:
       - HOST=0.0.0.0
       - PORT=4000
       - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
       - TRAPMAP_DEPLOYMENT_PRESET=governance-worker
       - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
       - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
@@ -127,7 +130,7 @@ services:
 
   outbox-worker:
     image: trap-map-server:latest
-    profiles: ["split"]
+    profiles: ["distributed"]
     command: ["node", "dist/worker.js"]
     working_dir: /app/packages/server
     environment:
@@ -135,6 +138,7 @@ services:
       - HOST=0.0.0.0
       - PORT=4000
       - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
       - TRAPMAP_DEPLOYMENT_PRESET=outbox-worker
       - TRAPMAP_TASK_TRANSPORT=postgres
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}

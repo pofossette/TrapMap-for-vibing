@@ -28,7 +28,7 @@ describe('output helpers', () => {
       'retrieval-v1',
       payload,
       {
-        serverUrl: 'http://localhost:3000',
+        gatewayUrl: 'http://localhost:3000',
         sessionToken: null,
         session: null,
       },
@@ -55,7 +55,7 @@ describe('output helpers', () => {
       'retrieval-v1',
       payload,
       {
-        serverUrl: 'http://localhost:3000',
+        gatewayUrl: 'http://localhost:3000',
         sessionToken: null,
         session: null,
         outputProfile: {
@@ -81,7 +81,7 @@ describe('output helpers', () => {
       'generic',
       payload,
       {
-        serverUrl: 'http://localhost:3000',
+        gatewayUrl: 'http://localhost:3000',
         sessionToken: null,
         session: null,
         outputProfile: {
@@ -105,7 +105,7 @@ describe('output helpers', () => {
       'graph-plan',
       payload,
       {
-        serverUrl: 'http://localhost:3000',
+        gatewayUrl: 'http://localhost:3000',
         sessionToken: null,
         session: null,
         outputProfile: {

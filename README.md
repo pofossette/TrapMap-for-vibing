@@ -86,6 +86,8 @@ TrapMap 有两类典型使用方式：
 - `deployment preset` 继续作为兼容启动输入存在，但解析后统一收敛到 `profile + runtimeMode + serviceUnit + capabilities`
 - `/health`、`/ready` 与 runtime/status metadata 现在会暴露 profile、route surface、async ownership expectation、storage posture、auth/team expectation
 - CLI 的正式接入模型固定为 `gateway only`：本地配置只保存一个 gateway URL，后端是否单体或拆成 worker/service unit 对 CLI 透明
+- `distributed` phase-1 的正式拓扑为 `gateway / retrieval / candidate-ingestion / governance / outbox-runtime`
+- `retrieval` 当前仍是逻辑服务边界，不是独立 runtime 二进制；CLI 也不会看到 retrieval 专用 URL
 - Knowledge 域已经完成结构化拆表
 - Skill Artifact 域已进入 Round 4：主路径在 PostgreSQL，`files`、`script_descriptors`、`profile/capsules/clientManifest` 已补入结构化子表；原 `artifact_revisions` JSONB 列继续保留为兼容缓存，不再是唯一事实源
 - PG-first 收敛已完成：核心请求处理通过 `repos` 读写（`packages/server/src/lib/repos/`）；`store_snapshot` 作为兼容层保留，仍服务于未迁移辅助域以及部分启动恢复/运维路径。详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
@@ -130,18 +132,20 @@ pnpm install
 cp .env.example .env
 # 编辑 .env，至少填入 OPENAI_API_KEY 和 TRAPMAP_SYSTEM_ADMIN_KEY
 
-pnpm dev:server
+pnpm dev:local-agent
 ```
 
 本地默认 gateway 监听 `http://127.0.0.1:4000`。
 
-可选运行时模式：
+三种正式开发入口：
 
 ```bash
-pnpm dev:server               # combined
-pnpm dev:server:api           # 仅 API
-pnpm dev:server:task-worker   # 仅 task worker
-pnpm dev:server:outbox-worker # 仅 outbox worker
+pnpm dev:local-agent                    # 单用户、最小 retrieval-first gateway
+pnpm dev:team-monolith                  # 小团队/单实例完整 gateway
+pnpm dev:distributed:gateway            # distributed gateway
+pnpm dev:distributed:candidate-worker   # distributed candidate worker
+pnpm dev:distributed:governance-worker  # distributed governance worker
+pnpm dev:distributed:outbox-worker      # distributed outbox worker
 ```
 
 另一个终端可运行 CLI：
@@ -152,7 +156,24 @@ pnpm dev:cli
 
 ### 2. Docker 部署
 
-最快捷的部署方式：
+推荐按 deployment profile 选择入口：
+
+```bash
+# team-monolith gateway（compose 默认入口）
+docker compose up -d
+
+# distributed gateway + workers
+docker compose --profile distributed up -d
+
+# distributed + optional RabbitMQ task transport
+docker compose --profile distributed --profile mq up -d
+```
+
+`local-agent` 不推荐走 compose；直接使用 `pnpm dev:local-agent` 更符合单用户轻量模式。
+
+`docker-compose.yml` 中的 `server` service 就是统一 gateway。`distributed` profile 只是在它之外追加 `candidate-worker`、`governance-worker`、`outbox-worker`；CLI 仍然只连 `TRAPMAP_GATEWAY_URL`。
+
+最快捷试跑方式：
 
 ```bash
 cp .env.production.example .env
@@ -161,6 +182,17 @@ cp .env.production.example .env
 ```
 
 部署后服务将在 http://localhost:4000 可用。
+
+## 最小验证
+
+deployment flexibility 相关改动至少回归：
+
+```bash
+pnpm test:deployment-smoke
+pnpm test:runtime-foundations
+pnpm typecheck
+pnpm check:docs-drift
+```
 
 ---
 
@@ -411,8 +443,11 @@ pnpm install
 # 构建所有包
 pnpm build
 
-# 开发模式运行服务器
-pnpm dev:server
+# 开发模式运行 local-agent
+pnpm dev:local-agent
+
+# 或完整 team-monolith
+pnpm dev:team-monolith
 
 # 开发模式运行 CLI
 pnpm dev:cli

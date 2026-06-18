@@ -14,7 +14,7 @@ vi.mock('../lib/http.js', () => ({
 
 vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(() => ({
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: 'mock-token',
     session: {
       member: { handle: 'testuser', securityLevel: 0 },
@@ -36,7 +36,7 @@ describe('CLI retrieval commands', () => {
   beforeEach(async () => {
     const { loadCliState } = await import('@trapmap/cli/lib/config.js');
     vi.mocked(loadCliState).mockResolvedValue({
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'mock-token',
       session: {
         member: { handle: 'testuser', securityLevel: 0 },
@@ -205,7 +205,7 @@ describe('CLI retrieval commands', () => {
     it('renders claude-code text for v2 retrieval when output profile is configured', async () => {
       const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
-        serverUrl: 'http://localhost:3000',
+        gatewayUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',
         session: {
           member: { handle: 'testuser', securityLevel: 0 },
@@ -286,7 +286,7 @@ describe('CLI retrieval commands', () => {
     it('falls back to legacy formatter when codex retrieval-v2 renderer fails', async () => {
       const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
-        serverUrl: 'http://localhost:3000',
+        gatewayUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',
         session: {
           member: { handle: 'testuser', securityLevel: 0 },

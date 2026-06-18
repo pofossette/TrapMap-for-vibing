@@ -83,11 +83,21 @@ pnpm install
 cp .env.example .env
 # 编辑 .env，填入 OPENAI_API_KEY 和 TRAPMAP_SYSTEM_ADMIN_KEY
 
-# 启动服务器
-pnpm dev:server
+# 启动 local-agent
+pnpm dev:local-agent
 
 # 另一个终端运行 CLI
 pnpm dev:cli
+```
+
+也可按 profile 启动其他形态：
+
+```bash
+pnpm dev:team-monolith
+pnpm dev:distributed:gateway
+pnpm dev:distributed:candidate-worker
+pnpm dev:distributed:governance-worker
+pnpm dev:distributed:outbox-worker
 ```
 
 ### Docker 部署
@@ -98,9 +108,17 @@ cp .env.production.example .env
 
 docker compose up -d
 
+# distributed gateway + workers
+docker compose --profile distributed up -d
+
+# distributed + optional RabbitMQ task transport
+docker compose --profile distributed --profile mq up -d
+
 # 健康检查
 curl http://127.0.0.1:4000/health
 ```
+
+`server` compose service 是统一 gateway；`candidate-worker`、`governance-worker`、`outbox-worker` 只在 `distributed` profile 下追加。
 
 ### 评估
 
@@ -134,6 +152,12 @@ pnpm eval:ci
 - [测试指南](operations/TESTING.md) — 测试架构、运行方法和用例编写规范
 - [CI/CD 流水线](operations/CI_CD.md) — GitHub Actions 流水线、评测质量门
 
+deployment flexibility 最小验证矩阵：
+- `pnpm test:deployment-smoke`
+- `pnpm test:runtime-foundations`
+- `pnpm typecheck`
+- 文档事实变更时补 `pnpm check:docs-drift`
+
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
 - [Badcase 回流待办](todos/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
@@ -157,7 +181,7 @@ pnpm eval:ci
 - [数据库表结构速查](reference/DATABASE_SCHEMA.md) — PostgreSQL 57 张表完整参考
 
 ### 部署与运维
-- [部署指南](architecture/DEPLOYMENT.md) — Docker 部署详细步骤
+- [部署指南](architecture/DEPLOYMENT.md) — `local-agent` / `team-monolith` / `distributed` 启动与 compose 入口
 - [故障排查](architecture/TROUBLESHOOTING.md) — 常见问题及解决方案
 - [环境变量参考](operations/ENVIRONMENT.md) — 所有环境变量完整参考
 - [性能指南](reference/PERFORMANCE.md) — 性能调优与瓶颈排查

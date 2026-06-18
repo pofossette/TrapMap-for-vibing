@@ -58,15 +58,15 @@ trapmap logout
 
 ---
 
-## CLI 服务器地址配置
+## CLI Gateway 地址配置
 
-CLI **同时只连接一个服务器**（`CliState.serverUrl` 为单值）。优先级：
+CLI **同时只连接一个 gateway**（`CliState.gatewayUrl` 为主字段，兼容读取旧 `serverUrl`）。优先级：
 
 | 优先级 | 来源 | 说明 |
 |--------|------|------|
 | 1 | `trapmap login --server <url>` | 登录时覆盖，写入 `~/.trapmap/cli.json` |
-| 2 | `~/.trapmap/cli.json` → `serverUrl` | 登录后持久化 |
-| 3 | `TRAPMAP_SERVER_URL` 环境变量 | 首次使用前的默认值 |
+| 2 | `~/.trapmap/cli.json` → `gatewayUrl` | 登录后持久化 |
+| 3 | `TRAPMAP_GATEWAY_URL` 环境变量 | 首次使用前的默认值 |
 | 4 | `http://127.0.0.1:4000` | 硬编码兜底 |
 
 切换服务器：

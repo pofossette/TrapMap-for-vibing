@@ -54,10 +54,11 @@ flowchart TB
 - Requeue flow：调用 `POST /v1/operations/status/async/tasks/:taskId/requeue`，确认 dead task 回到 `pending` 且 dedupe 约束仍生效。
 
 **Phase 2 Runtime Mode Checks:**
-- Combined mode：`pnpm dev:server`，确认 `/ready` 会同时报告 API 进程拥有的 worker runtime。
-- API-only：`pnpm dev:server:api`，确认缺少本地 worker 不会导致 `/ready` 失败。
-- Task worker only：`pnpm dev:server:task-worker`，确认该进程不对外监听业务 API，但其 runtime mode 仅要求 queue worker 健康。
-- Outbox worker only：`pnpm dev:server:outbox-worker`，确认该进程只拥有 outbox runtime。
+- `local-agent`：`pnpm dev:local-agent`，确认 `/ready` 反映最小 gateway 能力面。
+- `team-monolith`：`pnpm dev:team-monolith`，确认 `/ready` 会同时报告 gateway 进程拥有的本地 worker runtime。
+- `distributed gateway`：`pnpm dev:distributed:gateway`，确认缺少本地 worker 不会导致 `/ready` 失败。
+- `distributed task worker`：`pnpm dev:distributed:candidate-worker` 或 `pnpm dev:distributed:governance-worker`，确认该进程不对外监听业务 API，但其 runtime mode 仅要求对应 worker 健康。
+- `distributed outbox worker`：`pnpm dev:distributed:outbox-worker`，确认该进程只拥有 outbox runtime。
 
 **Phase 3 Workflow Snapshot Checks:**
 - 候选处理：提交 candidate 后，调用 `GET /v1/operations/status/async` 或直接查询 `workflow_runs`，确认存在 `workflowType='candidate-processing'` 且 step/status 随处理推进。
@@ -131,6 +132,47 @@ pnpm test:coverage
 # 类型检查
 pnpm typecheck
 ```
+
+### Deployment / Runtime 最小验证矩阵
+
+完成 deployment flexibility 相关改动后，至少运行以下命令：
+
+```bash
+# profile / preset / runtime / route exposure / CLI gateway-only 关键切片
+pnpm test:deployment-smoke
+
+# runtime metadata / readiness / ownership / startup foundations
+pnpm test:runtime-foundations
+
+# 全局类型检查
+pnpm typecheck
+
+# 文档叙事与命令示例一致性
+pnpm check:docs-drift
+```
+
+建议的手动 smoke 步骤：
+
+```bash
+# local-agent
+pnpm dev:local-agent
+pnpm dev:cli -- login --access-key <key>
+pnpm dev:cli -- retrieval search "postgres queue"
+
+# distributed
+pnpm dev:distributed:gateway
+pnpm dev:distributed:candidate-worker
+pnpm dev:distributed:governance-worker
+pnpm dev:distributed:outbox-worker
+pnpm dev:cli -- retrieval search "capsule recall"
+```
+
+`distributed` 手动 smoke 的判定标准是：CLI 始终只连 gateway，而不是直接访问 worker 进程。
+
+补充判定：
+
+- `local-agent` 裁剪掉的治理/团队/运维 API 应返回 `501 capability_unsupported`。
+- `distributed` worker runtime 命中业务 API 时也应返回 `501 capability_unsupported`，表明 gateway 才是正式入口。
 
 ### 评测（Eval）
 

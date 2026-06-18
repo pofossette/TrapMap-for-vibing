@@ -114,8 +114,10 @@ AI 提供商支持自动解析。设置 `OPENAI_API_KEY` 后自动使用 OpenAI�
 ### 方式一：直接运行（推荐）
 
 ```bash
-# 终端 1：启动 API 服务器
-pnpm dev:server
+# 终端 1：启动 local-agent 或 team-monolith
+pnpm dev:local-agent
+# 或
+pnpm dev:team-monolith
 
 # 终端 2：启动 CLI（可选，用于测试）
 pnpm dev:cli
@@ -126,12 +128,13 @@ pnpm dev:cli
 如需拆分运行时：
 
 ```bash
-pnpm dev:server:api
-pnpm dev:server:task-worker
-pnpm dev:server:outbox-worker
+pnpm dev:distributed:gateway
+pnpm dev:distributed:candidate-worker
+pnpm dev:distributed:governance-worker
+pnpm dev:distributed:outbox-worker
 ```
 
-默认 `pnpm dev:server` 为 `combined` 模式，适合本地单进程开发。
+默认推荐 `pnpm dev:local-agent`；需要完整团队能力时使用 `pnpm dev:team-monolith`。
 
 运行时说明：
 
@@ -142,10 +145,10 @@ pnpm dev:server:outbox-worker
 如需预演服务拆分，额外设置 `TRAPMAP_SERVICE_UNIT`：
 
 ```bash
-TRAPMAP_SERVICE_UNIT=candidate-ingestion pnpm dev:server:task-worker
-TRAPMAP_SERVICE_UNIT=knowledge-governance pnpm dev:server:task-worker
-TRAPMAP_SERVICE_UNIT=knowledge-governance pnpm dev:server:outbox-worker
-TRAPMAP_SERVICE_UNIT=full-platform pnpm dev:server
+TRAPMAP_SERVICE_UNIT=candidate-ingestion pnpm dev:distributed:candidate-worker
+TRAPMAP_SERVICE_UNIT=knowledge-governance pnpm dev:distributed:governance-worker
+TRAPMAP_SERVICE_UNIT=knowledge-governance pnpm dev:distributed:outbox-worker
+TRAPMAP_SERVICE_UNIT=full-platform pnpm dev:team-monolith
 ```
 
 ### 方式二：Docker Compose
@@ -248,7 +251,8 @@ pnpm eval:summary:smoke
 | 命令 | 说明 |
 |------|------|
 | `pnpm build` | 构建所有包 |
-| `pnpm dev:server` | 开发模式启动服务器（热重载） |
+| `pnpm dev:local-agent` | 开发模式启动最小本地 gateway（热重载） |
+| `pnpm dev:team-monolith` | 开发模式启动完整 team gateway（热重载） |
 | `pnpm dev:cli` | 开发模式启动 CLI |
 | `pnpm test` | 运行测试 |
 | `pnpm typecheck` | TypeScript 类型检查 |
@@ -276,7 +280,7 @@ Trap-Map/
 如果 `4000` 端口被占用，可通过 `PORT` 环境变量修改：
 
 ```bash
-PORT=4001 pnpm dev:server
+PORT=4001 pnpm dev:local-agent
 ```
 
 ### pnpm install 失败
@@ -317,7 +321,7 @@ EMBEDDING_MODEL=text-embedding-004
 
 ```bash
 # 终端 1：启动服务器
-pnpm dev:server
+pnpm dev:local-agent
 
 # 终端 2：运行冒烟评测
 pnpm eval:smoke

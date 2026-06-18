@@ -18,7 +18,7 @@ vi.mock('../lib/config.js', () => ({
 import { registerMemberCommands } from './member.js';
 
 const mockBaseState = {
-  serverUrl: 'http://localhost:3000',
+  gatewayUrl: 'http://localhost:3000',
   sessionToken: 'mock-token',
   session: {
     member: { handle: 'testuser', securityLevel: 5 },
@@ -419,7 +419,7 @@ describe('member commands', () => {
 
   describe('profile-aware output', () => {
     const codexProfileState = {
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'test-token',
       session: null,
       outputProfile: {

@@ -15,7 +15,7 @@ vi.mock('../lib/http.js', () => ({
 
 vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(() => ({
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: 'mock-token',
     session: {
       member: { handle: 'testuser', securityLevel: 0 },
@@ -227,7 +227,7 @@ describe('trap commands', () => {
     it('renders codex command-result JSON for submit when output profile is configured', async () => {
       const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
-        serverUrl: 'http://localhost:3000',
+        gatewayUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',
         session: {
           member: { handle: 'testuser', securityLevel: 0 },
@@ -271,7 +271,7 @@ describe('trap commands', () => {
     it('renders codex command-result JSON for show when output profile is configured', async () => {
       const { loadCliState } = await import('@trapmap/cli/lib/config.js');
       vi.mocked(loadCliState).mockResolvedValue({
-        serverUrl: 'http://localhost:3000',
+        gatewayUrl: 'http://localhost:3000',
         sessionToken: 'mock-token',
         session: {
           member: { handle: 'testuser', securityLevel: 0 },

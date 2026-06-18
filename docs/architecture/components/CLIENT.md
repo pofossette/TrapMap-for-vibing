@@ -52,7 +52,7 @@ flowchart TB
 
 ```typescript
 interface CliState {
-  serverUrl: string;              // 服务器 URL
+  gatewayUrl: string;             // 统一 gateway URL
   sessionToken: string | null;    // 会话令牌
   session: ActiveSession | null;  // 活动会话
   outputProfile?: OutputProfile;  // 输出配置
@@ -76,7 +76,7 @@ interface OutputProfile {
 
 - **路径**：`~/.trapmap/cli.json`
 - **格式**：JSON
-- **默认服务器**：`http://127.0.0.1:4000`（可通过 `TRAPMAP_SERVER_URL` 环境变量覆盖）
+- **默认 gateway**：`http://127.0.0.1:4000`（可通过 `TRAPMAP_GATEWAY_URL` 环境变量覆盖）
 
 ### 状态管理 API
 
@@ -114,7 +114,7 @@ interface ApiRequestOptions {
   path: string;                  // API 路径
   method?: 'GET' | 'POST' | 'PATCH'; // HTTP 方法
   body?: unknown;                // 请求体
-  serverUrl?: string;            // 服务器 URL（覆盖默认）
+  gatewayUrl?: string;           // gateway URL（覆盖默认）
   sessionToken?: string | null;  // 会话令牌（覆盖默认）
 }
 ```

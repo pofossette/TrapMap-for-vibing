@@ -210,6 +210,17 @@ describe('buildRuntimeStatusSnapshot', () => {
         audience: 'gateway-public',
       }),
     ]);
+    expect(snapshot.topology).toMatchObject({
+      deploymentProfile: 'distributed',
+      phase: 'shared-postgres-phase1',
+      currentService: {
+        name: 'gateway',
+        surface: 'gateway-public',
+        runtimeBoundary: 'dedicated-runtime',
+        ownershipMode: 'remote-owner-expected',
+      },
+    });
+    expect(snapshot.dependencies.topology).toEqual(snapshot.topology);
   });
 
   it('surfaces service-unit ownership for candidate-ingestion combined runtime', () => {
@@ -252,6 +263,254 @@ describe('buildRuntimeStatusSnapshot', () => {
     expect(snapshot.serviceUnit).toEqual({
       name: 'candidate-ingestion',
       ownership: getServiceUnitProfile('candidate-ingestion', 'combined'),
+    });
+    expect(snapshot.topology.currentService).toMatchObject({
+      name: 'candidate-ingestion',
+      ownsCandidateTaskWork: true,
+      ownsSharedJobTaskWork: false,
+      ownsOutboxWork: false,
+      runtimeBoundary: 'logical-service-boundary',
+      ownershipMode: 'local-worker-owned',
+    });
+  });
+
+  it('integrates distributed gateway topology with full shared infrastructure metadata', () => {
+    const snapshot = buildRuntimeStatusSnapshot({
+      config: baseConfig,
+      database: 'postgres',
+      runtimeMode: 'api',
+      serviceUnit: 'full-platform',
+      runtimeDeployment: resolveRuntimeDeployment({
+        profile: 'distributed',
+        preset: 'api',
+        runtimeMode: 'api',
+        serviceUnit: 'full-platform',
+      }),
+      serviceUnitProfile: getServiceUnitProfile('full-platform', 'api'),
+      queueWorkerState: 'remote',
+      outboxWorkerState: 'remote',
+      graphQuery: {
+        mode: 'enabled-primary',
+        backendKind: 'neo4j',
+        failOpen: true,
+      },
+    });
+
+    expect(snapshot.topology).toMatchObject({
+      deploymentProfile: 'distributed',
+      phase: 'shared-postgres-phase1',
+      currentService: {
+        name: 'gateway',
+        surface: 'gateway-public',
+      },
+      sharedInfrastructure: [
+        'postgresql',
+        'shared-contracts',
+        'auth-session-model',
+        'queue-outbox-semantics',
+      ],
+      deferredIsolationBoundaries: [
+        'per-service-database',
+        'split-repository-packages',
+        'service-mesh-event-backbone',
+      ],
+    });
+    expect(snapshot.topology.distributedServices.map((service) => service.name)).toEqual([
+      'gateway',
+      'retrieval',
+      'candidate-ingestion',
+      'governance',
+      'outbox-runtime',
+    ]);
+    expect(snapshot.topology.distributedServices.find((service) => service.name === 'retrieval'))
+      .toMatchObject({
+        runtimeBoundary: 'logical-service-boundary',
+        notes: expect.stringContaining('logical service boundary'),
+      });
+  });
+
+  it('integrates distributed candidate worker ownership into topology and dependency state', () => {
+    const snapshot = buildRuntimeStatusSnapshot({
+      config: baseConfig,
+      database: 'postgres',
+      runtimeMode: 'task-worker',
+      serviceUnit: 'candidate-ingestion',
+      runtimeDeployment: resolveRuntimeDeployment({
+        profile: 'distributed',
+        preset: 'candidate-worker',
+        runtimeMode: 'task-worker',
+        serviceUnit: 'candidate-ingestion',
+      }),
+      serviceUnitProfile: getServiceUnitProfile('candidate-ingestion', 'task-worker'),
+      queueWorkerState: 'running',
+      outboxWorkerState: 'remote',
+      graphQuery: {
+        mode: 'enabled-primary',
+        backendKind: 'neo4j',
+        failOpen: true,
+      },
+    });
+
+    expect(snapshot.readiness).toBe('ready');
+    expect(snapshot.dependencies).toMatchObject({
+      runtimeMode: 'task-worker',
+      queueWorker: 'running',
+      outboxWorker: 'remote',
+      ownership: {
+        queue: {
+          ownsAny: true,
+          ownsCandidateTaskWork: true,
+          ownsSharedJobTaskWork: false,
+        },
+        outbox: {
+          ownsAny: false,
+          ownsOutboxWork: false,
+        },
+      },
+    });
+    expect(snapshot.topology.currentService).toMatchObject({
+      name: 'candidate-ingestion',
+      surface: 'worker-internal',
+      ownsCandidateTaskWork: true,
+      ownsSharedJobTaskWork: false,
+      ownsOutboxWork: false,
+    });
+  });
+
+  it('integrates distributed outbox worker ownership into topology and dependency state', () => {
+    const snapshot = buildRuntimeStatusSnapshot({
+      config: baseConfig,
+      database: 'postgres',
+      runtimeMode: 'outbox-worker',
+      serviceUnit: 'knowledge-governance',
+      runtimeDeployment: resolveRuntimeDeployment({
+        profile: 'distributed',
+        preset: 'outbox-worker',
+        runtimeMode: 'outbox-worker',
+        serviceUnit: 'knowledge-governance',
+      }),
+      serviceUnitProfile: getServiceUnitProfile('knowledge-governance', 'outbox-worker'),
+      queueWorkerState: 'remote',
+      outboxWorkerState: 'running',
+      graphQuery: {
+        mode: 'enabled-primary',
+        backendKind: 'neo4j',
+        failOpen: true,
+      },
+    });
+
+    expect(snapshot.readiness).toBe('ready');
+    expect(snapshot.dependencies).toMatchObject({
+      runtimeMode: 'outbox-worker',
+      queueWorker: 'remote',
+      outboxWorker: 'running',
+      ownership: {
+        queue: {
+          ownsAny: false,
+          ownsCandidateTaskWork: false,
+          ownsSharedJobTaskWork: false,
+        },
+        outbox: {
+          ownsAny: true,
+          ownsOutboxWork: true,
+        },
+      },
+    });
+    expect(snapshot.topology.currentService).toMatchObject({
+      name: 'outbox-runtime',
+      surface: 'worker-internal',
+      ownsCandidateTaskWork: false,
+      ownsSharedJobTaskWork: false,
+      ownsOutboxWork: true,
+    });
+  });
+
+  it('integrates local-agent topology as the minimal gateway-only service set', () => {
+    const snapshot = buildRuntimeStatusSnapshot({
+      config: baseConfig,
+      database: 'json-store',
+      runtimeMode: 'api',
+      serviceUnit: 'full-platform',
+      runtimeDeployment: resolveRuntimeDeployment({
+        profile: 'local-agent',
+        preset: 'monolith',
+        runtimeMode: 'api',
+        serviceUnit: 'full-platform',
+      }),
+      serviceUnitProfile: getServiceUnitProfile('full-platform', 'api'),
+      queueWorkerState: 'not-configured',
+      outboxWorkerState: 'not-configured',
+      graphQuery: {
+        mode: 'disabled',
+        backendKind: 'memory',
+        failOpen: true,
+      },
+    });
+
+    expect(snapshot.topology).toMatchObject({
+      deploymentProfile: 'local-agent',
+      phase: 'shared-postgres-phase1',
+      currentService: {
+        name: 'gateway',
+        surface: 'gateway-public',
+        routeFamilies: ['local-agent-minimal'],
+      },
+    });
+    expect(snapshot.dependencies.deployment).toMatchObject({
+      profile: 'local-agent',
+      routeSurface: 'minimal-agent',
+      publicGatewayRouteCount: 3,
+      internalRouteCount: 0,
+    });
+  });
+
+  it('integrates team-monolith topology as a gateway process with shared local ownership', () => {
+    const snapshot = buildRuntimeStatusSnapshot({
+      config: baseConfig,
+      database: 'postgres',
+      runtimeMode: 'combined',
+      serviceUnit: 'full-platform',
+      runtimeDeployment: resolveRuntimeDeployment({
+        profile: 'team-monolith',
+        preset: 'monolith',
+        runtimeMode: 'combined',
+        serviceUnit: 'full-platform',
+      }),
+      serviceUnitProfile: getServiceUnitProfile('full-platform', 'combined'),
+      queueWorkerState: 'running',
+      outboxWorkerState: 'running',
+      graphQuery: {
+        mode: 'enabled-primary',
+        backendKind: 'neo4j',
+        failOpen: true,
+      },
+    });
+
+    expect(snapshot.topology).toMatchObject({
+      deploymentProfile: 'team-monolith',
+      phase: 'shared-postgres-phase1',
+      currentService: {
+        name: 'gateway',
+        surface: 'gateway-public',
+        ownsCandidateTaskWork: true,
+        ownsSharedJobTaskWork: true,
+        ownsOutboxWork: true,
+      },
+    });
+    expect(snapshot.dependencies).toMatchObject({
+      queueWorker: 'running',
+      outboxWorker: 'running',
+      ownership: {
+        queue: {
+          ownsAny: true,
+          ownsCandidateTaskWork: true,
+          ownsSharedJobTaskWork: true,
+        },
+        outbox: {
+          ownsAny: true,
+          ownsOutboxWork: true,
+        },
+      },
     });
   });
 

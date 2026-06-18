@@ -1,5 +1,10 @@
 # Deployment Flexibility Plan 03: Distributed Service Topology
 
+## 状态
+
+- 状态：`active`
+- 审计结论：这是当前最主要的未完成子计划。topology 词汇和 metadata 已有初步实现，但代码映射、边界验证和文档闭环还没完全收口。
+
 ## 目标
 
 为重后端提供第一阶段可落地的微服务拓扑，同时保持共享 core 和共享 PostgreSQL。
@@ -11,12 +16,35 @@
   - worker 入口：`packages/server/src/worker.ts`
   - task worker bootstrap：`packages/server/src/bootstrap/bootstrap-workers.ts`
   - outbox/lifecycle bootstrap：`packages/server/src/bootstrap/*`
+- 当前已有 topology 代码入口：
+  - `packages/server/src/lib/runtime/service-topology.ts`
+  - `packages/server/src/lib/runtime/service-topology.test.ts`
 - 当前 `serviceUnit` 只覆盖：
   - `candidate-ingestion`
   - `knowledge-governance`
   - `full-platform`
-- 当前还没有显式的 retrieval-only service boundary，也没有显式 gateway service boundary。
-- `docs/architecture/DEPLOYMENT.md` 已有 `split-pg` / `split-rabbitmq`，但还没有第一阶段微服务拓扑定义。
+- distributed phase-1 已在 runtime metadata 中显式写入：
+  - `gateway`
+  - `retrieval`
+  - `candidate-ingestion`
+  - `governance`
+  - `outbox-runtime`
+- 但 retrieval / governance / gateway 的实现边界仍主要体现在 topology metadata 与路由语义上，尚未完全收敛成更强的代码结构隔离。
+
+## 已完成
+
+- distributed phase-1 服务词汇已进入 runtime topology。
+- 共享基础设施与延后隔离边界已能在 topology snapshot 中表达。
+- topology 测试文件已出现，说明这不再只是文档层方案。
+
+## 剩余收口
+
+- 已补齐各服务边界到 route family、worker ownership、readiness 语义的映射入口：
+  - `service-topology.ts`
+  - `runtime-metadata.ts`
+  - `/health` / `/ready` / `/meta/routes`
+- 已明确 retrieval 是“内部逻辑服务边界”，不等于当前已有独立运行时二进制。
+- 剩余重点转为后续是否真的拆出 retrieval / governance 独立 runtime，而不是继续模糊 phase-1 边界。
 
 ## 详细改动内容
 
@@ -119,6 +147,7 @@
 - `packages/server/src/bootstrap/bootstrap-workers.ts`
 - `packages/server/src/bootstrap/bootstrap-lifecycle.ts`
 - `packages/server/src/lib/runtime/service-unit.ts`
+- `packages/server/src/lib/runtime/service-topology.ts`
 - `packages/server/src/lib/runtime/runtime-metadata.ts`
 - `packages/server/src/lib/runtime/http-surface.ts`
 - `packages/server/src/routes/retrieval.ts`
@@ -139,6 +168,8 @@
   - 验证服务单元 ownership 语义。
 - `packages/server/src/lib/runtime/runtime-metadata.test.ts`
   - 验证远程 owner / 本地非 owner / 分布式 readiness 语义。
+- `packages/server/src/lib/runtime/service-topology.test.ts`
+  - 验证 distributed phase-1 服务清单、共享基础设施和 deferred isolation 边界。
 - `packages/server/src/__tests__/service-boundary-guard.test.ts`
   - 如现有 guard 覆盖不足，补充对新边界的约束。
 
@@ -148,12 +179,14 @@
 - `retrieval` 服务边界不会反向依赖 governance 写路径。
 - `candidate-ingestion` 与 `governance` 的 worker ownership 不互相混淆。
 - `distributed` profile 下的 `/health` / `/ready` 能正确体现 remote ownership。
+- topology snapshot 会稳定暴露 `shared-postgres-phase1`，避免文档和实现对当前阶段边界产生歧义。
 
 ## 验收标准
 
 - 微服务拓扑不再只是 docker compose 命名，而是代码和文档中都存在的正式概念。
 - 首期共享 PostgreSQL 的边界在所有相关文档中写清楚。
 - retrieval/candidate/governance/gateway/outbox 的职责边界对实现者足够清晰，不需要临场决策。
+- retrieval 若仍未独立成单独 runtime，也必须在文档中明确其当前属于逻辑边界而非独立部署单元。
 
 ## 交付要求
 

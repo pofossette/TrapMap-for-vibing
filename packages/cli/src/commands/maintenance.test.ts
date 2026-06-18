@@ -89,7 +89,7 @@ const mockBatchResponse: MaintenanceBatchOperationResponse = {
 describe('CLI maintenance commands', () => {
   let program: Command;
   const mockState = {
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: 'test-token',
     session: null,
   };
@@ -402,7 +402,7 @@ describe('CLI maintenance commands', () => {
 
   describe('profile-aware output', () => {
     const codexProfileState = {
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'test-token',
       session: null,
       outputProfile: {

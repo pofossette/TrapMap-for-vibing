@@ -15,7 +15,7 @@ vi.mock('../lib/http.js', () => ({
 
 vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(() => ({
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: 'mock-token',
     session: {
       member: { handle: 'testuser', securityLevel: 0 },
@@ -200,7 +200,7 @@ describe('CLI load command', () => {
   it('should render codex profile output when configured', async () => {
     const { loadCliState } = await import('@trapmap/cli/lib/config.js');
     vi.mocked(loadCliState).mockResolvedValue({
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'mock-token',
       session: {
         member: { handle: 'testuser', securityLevel: 0 },
@@ -237,7 +237,7 @@ describe('CLI load command', () => {
   it('should render opencode markdown fallback sections when configured', async () => {
     const { loadCliState } = await import('@trapmap/cli/lib/config.js');
     vi.mocked(loadCliState).mockResolvedValue({
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'mock-token',
       session: {
         member: { handle: 'testuser', securityLevel: 0 },
@@ -333,7 +333,7 @@ describe('CLI load command', () => {
   it('should fall back to legacy graph formatter when tool-specific renderer fails', async () => {
     const { loadCliState } = await import('@trapmap/cli/lib/config.js');
     vi.mocked(loadCliState).mockResolvedValue({
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'mock-token',
       session: {
         member: { handle: 'testuser', securityLevel: 0 },

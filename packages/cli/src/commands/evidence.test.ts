@@ -62,7 +62,7 @@ const mockEmptyListResponse = {
 describe('CLI evidence commands', () => {
   let program: Command;
   const mockState = {
-    serverUrl: 'http://localhost:3000',
+    gatewayUrl: 'http://localhost:3000',
     sessionToken: 'test-token',
     session: null,
   };
@@ -277,7 +277,7 @@ describe('CLI evidence commands', () => {
 
   describe('profile-aware output', () => {
     const codexProfileState = {
-      serverUrl: 'http://localhost:3000',
+      gatewayUrl: 'http://localhost:3000',
       sessionToken: 'test-token',
       session: null,
       outputProfile: {

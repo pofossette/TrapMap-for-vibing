@@ -371,7 +371,7 @@ describe('apiRequest', () => {
 describe('requireSessionToken', () => {
   it('should return token when sessionToken exists', () => {
     const state: CliState = {
-      serverUrl: 'http://localhost:4000',
+      gatewayUrl: 'http://localhost:4000',
       sessionToken: 'valid-token-123',
       session: null,
     };
@@ -383,7 +383,7 @@ describe('requireSessionToken', () => {
 
   it('should throw Error when sessionToken is null', () => {
     const state: CliState = {
-      serverUrl: 'http://localhost:4000',
+      gatewayUrl: 'http://localhost:4000',
       sessionToken: null,
       session: null,
     };
@@ -401,7 +401,7 @@ describe('requireSessionToken', () => {
 
   it('should have error message mentioning login command', () => {
     const state: CliState = {
-      serverUrl: 'http://localhost:4000',
+      gatewayUrl: 'http://localhost:4000',
       sessionToken: null,
       session: null,
     };

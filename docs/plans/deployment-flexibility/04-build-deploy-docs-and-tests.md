@@ -1,20 +1,44 @@
 # Deployment Flexibility Plan 04: Build, Deploy, Docs And Tests
 
+## 状态
+
+- 状态：`active`
+- 审计结论：脚本、compose、env、README 和测试矩阵已经显著前进，本文件当前最大问题是“当前事实”仍停留在改造前。
+
 ## 目标
 
 把新的部署模型收敛到脚本、compose、环境变量模板、文档索引和测试矩阵，确保实现结束后仓库是可构建、可部署、可验证的。
 
 ## 当前事实
 
-- 根 `package.json` 目前有：
-  - `dev:server`
-  - `dev:server:api`
-  - `dev:server:task-worker`
-  - `dev:server:outbox-worker`
-  - 没有 `local-agent` / `team-monolith` / `distributed` 命名的启动脚本
-- `packages/server/package.json` 目前只暴露基于 `RUNTIME_MODE` 的脚本。
-- `docs/architecture/DEPLOYMENT.md` 已描述 `monolith` / `split-pg` / `split-rabbitmq`，但和新 profile 词汇不一致。
+- 根 `package.json` 已存在 profile 命名的开发入口：
+  - `dev:local-agent`
+  - `dev:team-monolith`
+  - `dev:distributed:gateway`
+  - `dev:distributed:candidate-worker`
+  - `dev:distributed:governance-worker`
+  - `dev:distributed:outbox-worker`
+  - 同时仍保留 `dev:server*` 兼容脚本
+- 根 `package.json` 已存在面向本计划的测试入口：
+  - `test:deployment-smoke`
+  - `test:runtime-foundations`
+- `packages/server/package.json` 已同时暴露：
+  - 基于 `RUNTIME_MODE` 的兼容脚本
+  - 更贴近 profile / service identity 的 `dev:local-agent`、`dev:team-monolith`、`dev:gateway`、`dev:candidate-worker`、`dev:governance-worker`
+- `docs/architecture/DEPLOYMENT.md`、README、`docs/README.md` 已在推进 profile 词汇对齐
 - 当前工作区已有 `docker-compose.yml` 相关改动在进行中，后续实现时要谨慎与用户现有变更并行。
+
+## 已完成
+
+- profile 命名脚本已进入根 `package.json`。
+- 最小 deployment smoke 测试入口已被加入脚本。
+- 文档主入口已开始按 `local-agent` / `team-monolith` / `distributed` 组织。
+
+## 剩余收口
+
+- 已补齐根脚本与 `packages/server` 的 distributed script alias 对齐。
+- 已把 `.env.example` / `.env.production.example` / DEPLOYMENT / TESTING 的 profile、compose profile、task transport 叙事对齐。
+- 已将最小验证矩阵正式回写到 `docs/operations/TESTING.md`。
 
 ## 详细改动内容
 
@@ -47,7 +71,7 @@
 
 - 根 `package.json`
   - 保留现有脚本做兼容
-  - 增加以 profile 命名的开发入口，例如：
+  - 已增加以 profile 命名的开发入口：
     - `dev:local-agent`
     - `dev:team-monolith`
     - `dev:distributed:gateway`
@@ -56,7 +80,7 @@
     - `dev:distributed:outbox-worker`
 - `packages/server/package.json`
   - 保留 `dev` / `dev:api` / `dev:task-worker` / `dev:outbox-worker`
-  - 必要时新增更贴近 profile/service identity 的脚本或由根脚本封装
+  - 已新增更贴近 profile/service identity 的脚本；剩余工作是校准命名和文档引用
 
 ### Step 2. 收敛环境变量叙事
 
@@ -78,7 +102,8 @@
 ### Step 4. 固化测试与 smoke matrix
 
 - 至少定义一套“实现完成后必须跑”的最小命令：
-  - `rtk pnpm test -- --run ...` 对应 runtime/config/CLI 关键切片
+  - `rtk pnpm test:deployment-smoke`
+  - `rtk pnpm test:runtime-foundations`
   - `rtk pnpm typecheck`
   - 如涉及部署文档调整，补 `rtk pnpm check:docs-drift`
 - 若新增 profile-based route exposure，文档中要给出最小 smoke 步骤：
@@ -120,6 +145,7 @@
 - `distributed` 文档示例能清楚说明 gateway 与 worker 的启动组合。
 - `local-agent` 的 smoke 步骤只要求最小能力，不强迫完整治理链路。
 - 若旧脚本仍保留，测试或文档要标明其兼容性质，避免新老叙事混用。
+- `test:deployment-smoke` 覆盖 config、app、startup、deployment-profile、service-topology、CLI gateway-only 关键切片。
 
 ## 验收标准
 
