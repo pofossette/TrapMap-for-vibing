@@ -6,6 +6,8 @@
 - Created: 2026-06-18
 - Purpose: Comprehensive validation checklist for the runtime recomposition
 
+> This matrix is a migration-era checklist. Package creation and root script rewiring are already complete; unchecked items below mostly represent manual parity, runtime smoke, and operational hardening work that still remains.
+
 ## Package-Level Validation
 
 ### @trapmap/client-core
@@ -180,6 +182,7 @@
 - [x] Database ownership is documented
 - [x] Transaction boundaries are documented
 - [x] Cache strategies are documented
+- [x] Root `dev:local-agent` / `dev:team-monolith` / `dev:distributed:*` scripts now prefer the new hosts
 
 ### Validation Completion
 
@@ -202,3 +205,4 @@
 - Phase 1 validation focuses on package correctness and compilation
 - Phase 2 validation (manual testing) should be done after deployment
 - Phase 3 validation (performance testing) should be done under load
+- `packages/server` still being present is not by itself a failure; the relevant question is whether the new hosts have become the preferred runtime entrypoints and whether parity/hardening work is complete.

@@ -8,7 +8,10 @@
 |----|------|------|
 | `packages/client-core` | `src/index.ts` | 客户端共享 gateway 传输层：HTTP SDK、session contract、error model |
 | `packages/cli` | `src/index.ts` | Commander.js CLI 客户端，用户交互终端入口 |
-| `packages/server` | `src/index.ts` | Fastify API 服务器，业务逻辑编排 |
+| `packages/backend-core` | `src/index.ts` | 宿主无关的后端核心内核、运行时能力模型与端口 |
+| `packages/host-local` | `src/index.ts` | `local-agent` / `team-monolith` 轻量宿主装配 |
+| `packages/host-distributed` | `src/index.ts` | `distributed` 重型宿主装配 |
+| `packages/server` | `src/index.ts` | 迁移期兼容壳层与既有实现面 |
 | `packages/contracts` | `src/index.ts` | 共享 Zod Schema 和 TypeScript 类型 |
 | `packages/skills` | `trapmap-knowledge-workflow/SKILL.md` | 项目级 Skill 工作流与参考资料 |
 

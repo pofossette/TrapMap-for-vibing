@@ -15,9 +15,10 @@
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `TRAPMAP_DATABASE_URL` | PostgreSQL 连接字符串（设置后启用 PostgresStore） | 空（使用 JsonStore） |
+| `DATABASE_URL` | PostgreSQL 连接字符串（`host-local` / `host-distributed` 同样接受） | 空 |
 | `TRAPMAP_DATA_FILE` | JSON 文件存储路径（兼容回退，可选） | `.data/skill-shareer.json` |
 
-> 设置 `TRAPMAP_DATABASE_URL` 后，服务器启动时会自动通过 Drizzle migration runner 运行数据库迁移（位于 `packages/server/drizzle/`）。迁移包含所有核心表、索引和 pgvector 扩展的创建。
+> 设置 `TRAPMAP_DATABASE_URL` 或 `DATABASE_URL` 后，宿主启动时会连接 PostgreSQL。Drizzle migration runner 的权威迁移目录仍是 `packages/server/drizzle/`。
 
 ### 可选部署拆分与任务传输
 
@@ -358,7 +359,7 @@ pnpm dev:local-agent
 - `pnpm dev:distributed:governance-worker`
 - `pnpm dev:distributed:outbox-worker`
 
-兼容脚本 `pnpm dev:server*` 仍可使用，但不再作为主要文档入口。
+兼容脚本 `pnpm dev:server*` 仍可使用，但不再作为主要文档入口。正式入口优先使用 `pnpm dev:local-agent`、`pnpm dev:team-monolith` 和 `pnpm dev:distributed:*`，它们分别装配 `@trapmap/host-local` 与 `@trapmap/host-distributed`。
 
 ### PG Recall 配置 (Phase 6，多路召回已全线落地)
 

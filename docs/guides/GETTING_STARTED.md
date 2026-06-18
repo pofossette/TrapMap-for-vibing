@@ -43,12 +43,13 @@ cp .env.example .env
 |------|------|------|
 | `TRAPMAP_SYSTEM_ADMIN_KEY` | 管理员密钥（可选；仅在你要创建/使用 system-admin 能力时需要） | `openssl rand -hex 32` 生成 |
 | `OPENAI_API_KEY` | OpenAI API 密钥（可选；未配置时回退到 fallback provider） | `sk-...` |
-| `TRAPMAP_DATABASE_URL` | PostgreSQL 连接字符串（推荐；默认生产路径） | `postgresql://localhost:5432/trapmap` |
+| `TRAPMAP_DATABASE_URL` | PostgreSQL 连接字符串（推荐；兼容主文档口径） | `postgresql://localhost:5432/trapmap` |
+| `DATABASE_URL` | PostgreSQL 连接字符串（新宿主同样支持） | `postgresql://localhost:5432/trapmap` |
 | `TRAPMAP_DATA_FILE` | JSON 存储路径（兼容回退，可选） | `.data/skill-shareer.json` |
 
 ### PostgreSQL 设置（默认）
 
-服务器默认使用 PostgreSQL 作为存储后端。设置 `TRAPMAP_DATABASE_URL` 后即可启动，首次启动时自动运行 Drizzle 数据库迁移。
+宿主默认优先使用 PostgreSQL。设置 `TRAPMAP_DATABASE_URL` 或 `DATABASE_URL` 后即可启动；Drizzle 数据库迁移仍由 `packages/server/drizzle/` 作为权威迁移目录提供。
 
 ```bash
 # 创建数据库
@@ -88,7 +89,7 @@ pnpm --filter @trapmap/server graph-db:check
 
 ### JSON 文件存储（兼容回退）
 
-如未设置 `TRAPMAP_DATABASE_URL`，服务器会回退到 JSON 文件存储模式。此模式仅用于向后兼容，推荐使用 PostgreSQL。
+如未设置 `TRAPMAP_DATABASE_URL` 或 `DATABASE_URL`，`local-agent` 会回退到 JSON 文件存储模式。此模式仅用于向后兼容，推荐使用 PostgreSQL。
 
 ### AI 提供商配置（可选）
 
@@ -123,7 +124,7 @@ pnpm dev:team-monolith
 pnpm dev:cli
 ```
 
-服务器启动后运行在 `http://127.0.0.1:4000`。
+默认 gateway 运行在 `http://127.0.0.1:4000`。`pnpm dev:local-agent` / `pnpm dev:team-monolith` 现在由 `@trapmap/host-local` 提供；`distributed` 相关根脚本由 `@trapmap/host-distributed` 提供。
 
 如需拆分运行时：
 
@@ -251,8 +252,12 @@ pnpm eval:summary:smoke
 | 命令 | 说明 |
 |------|------|
 | `pnpm build` | 构建所有包 |
-| `pnpm dev:local-agent` | 开发模式启动最小本地 gateway（热重载） |
-| `pnpm dev:team-monolith` | 开发模式启动完整 team gateway（热重载） |
+| `pnpm dev:local-agent` | 通过 `@trapmap/host-local` 启动最小本地 gateway（热重载） |
+| `pnpm dev:team-monolith` | 通过 `@trapmap/host-local` 启动完整 team gateway（热重载） |
+| `pnpm dev:distributed:gateway` | 通过 `@trapmap/host-distributed` 启动 distributed gateway |
+| `pnpm dev:distributed:candidate-worker` | 通过 `@trapmap/host-distributed` 启动 candidate-ingestion service |
+| `pnpm dev:distributed:governance-worker` | 通过 `@trapmap/host-distributed` 启动 governance-review service |
+| `pnpm dev:distributed:outbox-worker` | 通过 `@trapmap/host-distributed` 启动 job-runtime service |
 | `pnpm dev:cli` | 开发模式启动 CLI |
 | `pnpm test` | 运行测试 |
 | `pnpm typecheck` | TypeScript 类型检查 |
@@ -264,10 +269,14 @@ pnpm eval:summary:smoke
 ```
 Trap-Map/
 ├── packages/
-│   ├── cli/          # CLI 客户端
-│   ├── server/       # API 服务器
-│   ├── contracts/    # 共享 Schema
-│   └── skills/       # 项目 Skill 定义
+│   ├── client-core/      # 共享 gateway SDK
+│   ├── backend-core/     # 宿主无关内核
+│   ├── host-local/       # local-agent / team-monolith 宿主
+│   ├── host-distributed/ # distributed 宿主
+│   ├── cli/              # CLI 客户端
+│   ├── server/           # 迁移期兼容壳层
+│   ├── contracts/        # 共享 Schema
+│   └── skills/           # 项目 Skill 定义
 ├── evals/            # 评估系统
 ├── scripts/          # 部署脚本
 ├── docs/             # 项目文档

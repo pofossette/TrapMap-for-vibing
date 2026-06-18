@@ -2,6 +2,8 @@
 
 本文档提供 TrapMap 生产部署的性能调优参考。
 
+> 当前正式运行入口优先通过 `@trapmap/host-local` 与 `@trapmap/host-distributed` 暴露。本文中提到的 PostgreSQL、检索、索引和缓存底层模块仍大量位于 `packages/server`，因为那部分实现尚未完全从兼容代码面退场。
+
 ## 检索性能
 
 ### 三种索引的延迟特征
@@ -155,6 +157,8 @@ AI_EMBEDDING_MODEL=text-embedding-3-large   # 更高质量，更高延迟
 
 ```bash
 TRAPMAP_DATABASE_URL=postgresql://user:pass@localhost:5432/trapmap
+# 或
+DATABASE_URL=postgresql://user:pass@localhost:5432/trapmap
 ```
 
 - 适用场景：生产环境、大规模部署
@@ -181,6 +185,8 @@ TRAPMAP_DATABASE_URL=postgresql://user:pass@localhost:5432/trapmap
 ---
 
 ## 服务器配置
+
+这里的 `HOST` / `PORT` 直接作用于当前宿主入口。`pnpm dev:local-agent` 与 `pnpm dev:team-monolith` 默认由 `@trapmap/host-local` 监听 `4000`；distributed 服务默认监听 `4000-4006`。
 
 ### 运行时调优
 

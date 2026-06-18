@@ -8,6 +8,13 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx watch src/index.ts",
+    "dev:gateway": "tsx watch src/index.ts --service gateway",
+    "dev:identity-access": "tsx watch src/index.ts --service identity-access",
+    "dev:knowledge-read": "tsx watch src/index.ts --service knowledge-read",
+    "dev:knowledge-write": "tsx watch src/index.ts --service knowledge-write",
+    "dev:candidate-ingestion": "tsx watch src/index.ts --service candidate-ingestion",
+    "dev:governance-review": "tsx watch src/index.ts --service governance-review",
+    "dev:job-runtime": "tsx watch src/index.ts --service job-runtime",
     "start": "node dist/index.js",
     "start:gateway": "node dist/index.js --service gateway",
     "start:identity-access": "node dist/index.js --service identity-access",

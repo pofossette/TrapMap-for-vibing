@@ -42,16 +42,17 @@ const DEFAULT_POOL_CONFIG: PoolConfig = {
  * Create a PostgreSQL connection pool for a specific service.
  *
  * Uses the service configuration to determine the database URL
- * and pool size. Falls back to DATABASE_URL environment variable
+ * and pool size. Falls back to DATABASE_URL / TRAPMAP_DATABASE_URL
  * if the service doesn't have its own database URL.
  */
 export function createServiceDatabase(config: ServiceConfig): ServiceDatabase {
-  const databaseUrl = config.databaseUrl ?? process.env.DATABASE_URL;
+  const databaseUrl =
+    config.databaseUrl ?? process.env.DATABASE_URL ?? process.env.TRAPMAP_DATABASE_URL;
 
   if (!databaseUrl) {
     throw new Error(
       `Database URL required for service '${config.serviceName}'. ` +
-      'Set DATABASE_URL or TRAPMAP_SERVICE_DATABASE_URL environment variable.'
+      'Set DATABASE_URL, TRAPMAP_DATABASE_URL, or TRAPMAP_SERVICE_DATABASE_URL environment variable.'
     );
   }
 

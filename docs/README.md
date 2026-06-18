@@ -11,7 +11,9 @@ flowchart TB
     subgraph 代码仓库["TrapMap Monorepo"]
     subgraph 核心包["核心包"]
             CLI["CLI<br/>(Commander)"]
-            Server["Server<br/>(Fastify)"]
+            ClientCore["Client Core<br/>(Gateway SDK)"]
+            BackendCore["Backend Core<br/>(Kernel)"]
+            Hosts["Hosts<br/>(Local / Distributed)"]
             Contracts["Contracts<br/>(Zod)"]
             Evals["Evals<br/>(Vitest)"]
         end
@@ -181,7 +183,7 @@ deployment flexibility 最小验证矩阵：
 - [数据库表结构速查](reference/DATABASE_SCHEMA.md) — PostgreSQL 57 张表完整参考
 
 ### 部署与运维
-- [部署指南](architecture/DEPLOYMENT.md) — `local-agent` / `team-monolith` / `distributed` 启动与 compose 入口
+- [部署指南](architecture/DEPLOYMENT.md) — `host-local` / `host-distributed` 宿主与 `local-agent` / `team-monolith` / `distributed` 启动入口
 - [故障排查](architecture/TROUBLESHOOTING.md) — 常见问题及解决方案
 - [环境变量参考](operations/ENVIRONMENT.md) — 所有环境变量完整参考
 - [性能指南](reference/PERFORMANCE.md) — 性能调优与瓶颈排查
@@ -190,7 +192,7 @@ deployment flexibility 最小验证矩阵：
 - [Prompt 缓存](operations/PROMPT_CACHING.md) — 提示缓存策略
 
 ### 包结构
-- [包结构说明](PACKAGES.md) — packages/cli、server、contracts、skills 各包职责与接口
+- [包结构说明](PACKAGES.md) — client-core、backend-core、hosts、cli、server、contracts、skills 各包职责与接口
 - [包技术选型说明](PACKAGE_STACK_RATIONALE.md) — 解释各包及主要子包为什么选择当前技术栈
 
 ### 归档文档

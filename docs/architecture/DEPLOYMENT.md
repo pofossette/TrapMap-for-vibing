@@ -28,7 +28,7 @@
 - `runtimeMode`：当前进程是否暴露 API、task worker、outbox worker
 - `serviceUnit`：当前进程拥有哪类 async work ownership
 
-Server 启动时会先把 `profile + preset + runtimeMode override + serviceUnit override` 统一解析为一份 `ResolvedRuntimeDeployment`，再驱动 route registration、worker ownership、health/readiness metadata 和 operator status surface。
+当前宿主会先把 `profile + preset + runtimeMode override + serviceUnit override` 统一解析为一份 `ResolvedRuntimeDeployment`，再驱动 route registration、worker ownership、health/readiness metadata 和 operator status surface。
 
 三种目标 profile 的当前定义：
 
@@ -59,7 +59,7 @@ CLI 接入语义在这三个 profile 下保持一致：
 - `team-monolith` 中 gateway 与内部实现可同进程。
 - `distributed` 中 gateway 可以把请求路由到内部 service/worker，但 CLI 不感知这些拆分。
 - `local-agent` 仍通过 HTTP gateway 接入，只保留 retrieval-first 的最小外部面。
-- 对于被当前 profile 裁剪掉的 route family，server 返回 `501 capability_unsupported`，而不是把缺失能力伪装成普通 `404`。
+- 对于被当前 profile 裁剪掉的 route family，gateway 返回 `501 capability_unsupported`，而不是把缺失能力伪装成普通 `404`。
 
 当前阶段的明确非目标：
 
@@ -108,7 +108,7 @@ CLI 接入语义在这三个 profile 下保持一致：
 
 ## Distributed Phase 1 服务拓扑
 
-`distributed` 当前的正式目标不是“立刻完成最终分布式架构”，而是先固化第一阶段服务边界，并继续复用现有 `packages/server`、共享 contracts、PostgreSQL queue/outbox 和 runtime seams。
+`distributed` 当前的正式目标不是“立刻完成最终分布式架构”，而是先固化第一阶段服务边界，并继续复用共享 contracts、PostgreSQL queue/outbox 和既有 runtime seams。
 
 第一阶段逻辑服务固定为：
 
@@ -216,8 +216,9 @@ PORT=4000
 TRAPMAP_DEPLOYMENT_PROFILE=team-monolith
 TRAPMAP_GATEWAY_URL=http://127.0.0.1:4000
 
-# PostgreSQL（默认存储后端）
+# PostgreSQL（默认存储后端；宿主同时接受 DATABASE_URL）
 TRAPMAP_DATABASE_URL=postgresql://localhost:5432/trapmap
+# DATABASE_URL=postgresql://localhost:5432/trapmap
 TRAPMAP_TASK_TRANSPORT=postgres
 
 # 兼容启动快捷方式，可选
@@ -243,7 +244,7 @@ pnpm dev:distributed:governance-worker
 pnpm dev:distributed:outbox-worker
 ```
 
-这些脚本内部仍通过 `TRAPMAP_DEPLOYMENT_PRESET` + `RUNTIME_MODE` 解析到现有 runtime seams，但操作者应优先使用 profile-named 命令。
+这些根脚本已经直接指向 `@trapmap/host-distributed`，底层仍通过 `TRAPMAP_DEPLOYMENT_PRESET` + `RUNTIME_MODE` 兼容既有 runtime seams。
 
 ### 可选：RabbitMQ task transport
 

@@ -217,7 +217,7 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<Bootstr
   }
 
   // Start listening
-  const port = options.port ?? 3000;
+  const port = options.port ?? 4000;
   const host = options.host ?? '0.0.0.0';
   await app.listen({ port, host });
 

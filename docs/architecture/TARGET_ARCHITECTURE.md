@@ -7,17 +7,21 @@
 - Phase: 1 (shared database, explicit ownership)
 - Authoritative source for terminology frozen in this document
 
-## Current State (Baseline)
+## Current State
 
-TrapMap is a `pnpm` + TypeScript monorepo with three runtime packages:
+TrapMap started from a `cli + server + contracts` runtime shape, but the repository has now progressed into an intermediate migration state:
 
 | Package | Role today |
 |---|---|
-| `packages/cli` | Commander.js CLI client, HTTP calls, output rendering, local config |
-| `packages/server` | Fastify API server, all business logic, persistence, worker bootstrap |
+| `packages/client-core` | Shared gateway transport layer for CLI and future clients |
+| `packages/backend-core` | Host-agnostic backend kernel and capability model |
+| `packages/host-local` | Preferred light-host runtime for `local-agent` / `team-monolith` |
+| `packages/host-distributed` | Preferred heavy-host runtime for `distributed` |
+| `packages/cli` | Commander.js CLI client, output rendering, local config |
+| `packages/server` | Transition shell plus large compatibility / implementation surface |
 | `packages/contracts` | Shared Zod schemas and TypeScript types |
 
-The server already has `deployment profile` (`local-agent`, `team-monolith`, `distributed`), `runtimeMode`, `serviceUnit`, and `task transport` concepts implemented. However, the single `packages/server` package still holds gateway routing, application services, repository implementations, worker bootstrap, and host wiring in a single tree.
+The runtime model already has `deployment profile` (`local-agent`, `team-monolith`, `distributed`), `runtimeMode`, `serviceUnit`, and `task transport` concepts implemented. The repository has also already introduced the new host packages and rewired the preferred root development scripts to them. However, `packages/server` still holds a large amount of gateway routing, application services, repository implementations, worker bootstrap, tests, and migration-era truth.
 
 ## Target Package Roles
 

@@ -13,6 +13,7 @@
 const ENV_SERVICE_NAME = 'TRAPMAP_SERVICE_NAME';
 const ENV_SERVICE_PORT = 'TRAPMAP_SERVICE_PORT';
 const ENV_DATABASE_URL = 'DATABASE_URL';
+const ENV_LEGACY_DATABASE_URL = 'TRAPMAP_DATABASE_URL';
 const ENV_SERVICE_DATABASE_URL = 'TRAPMAP_SERVICE_DATABASE_URL';
 const ENV_GATEWAY_URL = 'TRAPMAP_GATEWAY_URL';
 const ENV_IDENTITY_ACCESS_URL = 'TRAPMAP_IDENTITY_ACCESS_URL';
@@ -51,13 +52,13 @@ export const ALL_SERVICES: readonly ServiceName[] = [
 // ---------------------------------------------------------------------------
 
 const DEFAULT_PORTS: Record<ServiceName, number> = {
-  'gateway': 3000,
-  'identity-access': 3001,
-  'knowledge-read': 3002,
-  'knowledge-write': 3003,
-  'candidate-ingestion': 3004,
-  'governance-review': 3005,
-  'job-runtime': 3006,
+  'gateway': 4000,
+  'identity-access': 4001,
+  'knowledge-read': 4002,
+  'knowledge-write': 4003,
+  'candidate-ingestion': 4004,
+  'governance-review': 4005,
+  'job-runtime': 4006,
 };
 
 // ---------------------------------------------------------------------------
@@ -115,7 +116,10 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
     : DEFAULT_PORTS[name];
 
   const databaseUrl =
-    process.env[ENV_SERVICE_DATABASE_URL] ?? process.env[ENV_DATABASE_URL] ?? null;
+    process.env[ENV_SERVICE_DATABASE_URL] ??
+    process.env[ENV_DATABASE_URL] ??
+    process.env[ENV_LEGACY_DATABASE_URL] ??
+    null;
 
   const defaults = defaultInternalUrls();
 

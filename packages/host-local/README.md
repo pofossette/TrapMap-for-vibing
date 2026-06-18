@@ -36,7 +36,7 @@ const handle = await start({
 | `TRAPMAP_DEPLOYMENT_PROFILE` | `team-monolith` | `local-agent` or `team-monolith` |
 | `TRAPMAP_DEPLOYMENT_PRESET` | `monolith` | Deployment preset |
 | `RUNTIME_MODE` | `combined` | `api`, `task-worker`, `outbox-worker`, `combined` |
-| `PORT` | `3000` | HTTP listen port |
+| `PORT` | `4000` | HTTP listen port |
 | `DATABASE_URL` | (none) | PostgreSQL connection string |
 
 ## Architecture

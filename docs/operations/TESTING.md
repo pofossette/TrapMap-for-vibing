@@ -60,6 +60,8 @@ flowchart TB
 - `distributed task worker`：`pnpm dev:distributed:candidate-worker` 或 `pnpm dev:distributed:governance-worker`，确认该进程不对外监听业务 API，但其 runtime mode 仅要求对应 worker 健康。
 - `distributed outbox worker`：`pnpm dev:distributed:outbox-worker`，确认该进程只拥有 outbox runtime。
 
+这些根脚本现在分别装配 `@trapmap/host-local` 与 `@trapmap/host-distributed`。测试命令里仍然大量引用 `packages/server/...`，是因为当前权威测试文件与核心实现仍主要驻留在该兼容层和既有代码面中。
+
 **Phase 3 Workflow Snapshot Checks:**
 - 候选处理：提交 candidate 后，调用 `GET /v1/operations/status/async` 或直接查询 `workflow_runs`，确认存在 `workflowType='candidate-processing'` 且 step/status 随处理推进。
 - 失败持久化：制造 candidate 处理失败，确认 `lastError` 与 `status='failed'` 被保留。
@@ -222,7 +224,7 @@ cat reports/eval-report.json
 ### PostgreSQL 全量评测（Docker 环境）
 
 当需要在 Docker + PostgreSQL 环境下验证检索/摘要/图提取/摄取的端到端行为时，使用以下命令集。
-需要 `.env` 中配置 `TRAPMAP_DATABASE_URL` 且 `trapmap-postgres` 容器正在运行。
+需要 `.env` 中配置 `TRAPMAP_DATABASE_URL` 或 `DATABASE_URL`，且 `trapmap-postgres` 容器正在运行。
 如果在 Codex 中执行，按仓库约定为这些命令加上 `rtk` 前缀。
 
 ```bash
@@ -761,7 +763,7 @@ pnpm test:file -- packages/server/src/lib/runtime/metrics.test.ts
 
 ### PostgreSQL 集成测试
 
-部分模块包含需要真实 PostgreSQL 连接的集成测试。这些测试通过 `TRAPMAP_DATABASE_URL` 或 `DATABASE_URL` 环境变量控制，未设置时自动跳过。
+部分模块包含需要真实 PostgreSQL 连接的集成测试。这些测试通过 `TRAPMAP_DATABASE_URL` 或 `DATABASE_URL` 环境变量控制，未设置时自动跳过。新宿主入口同样接受这两种变量名。
 
 ```bash
 # 运行 PG 集成测试（需要数据库）

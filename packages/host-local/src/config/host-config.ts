@@ -87,8 +87,8 @@ export function loadHostConfig(): HostConfig {
     deploymentPreset: resolvePreset(readEnvString('TRAPMAP_DEPLOYMENT_PRESET', 'monolith')),
     runtimeMode: resolveRuntimeMode(readEnvString('RUNTIME_MODE', 'combined')),
     serviceUnit: resolveServiceUnit(readEnvString('TRAPMAP_SERVICE_UNIT', 'full-platform')),
-    port: readEnvInt('PORT', 3000),
-    databaseUrl: process.env.DATABASE_URL,
+    port: readEnvInt('PORT', 4000),
+    databaseUrl: process.env.DATABASE_URL ?? process.env.TRAPMAP_DATABASE_URL,
     host: readEnvString('HOST', '0.0.0.0'),
     logLevel: readEnvString('LOG_LEVEL', 'info') as HostConfig['logLevel'],
   };

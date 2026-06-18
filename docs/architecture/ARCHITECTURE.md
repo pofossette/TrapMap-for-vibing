@@ -4,6 +4,8 @@
 
 ## 系统架构
 
+> 当前正式运行入口已经迁移到 `packages/host-local` 与 `packages/host-distributed`。本页中大量 `packages/server` 结构说明仍然保留，是因为现阶段的权威实现、测试与兼容壳层仍主要驻留在该代码面中。
+
 ## Server Bounded Context
 
 当前 `packages/server` 以内聚职责划分为七个 bounded context：
@@ -207,7 +209,7 @@ audit/         审计日志查看
 
 ### 2. Server 包 (`packages/server`)
 
-**职责**：Fastify API 服务器，业务逻辑编排
+**职责**：迁移期兼容壳层与既有 Fastify 实现面；当前仍承载大量权威实现、测试和运行时基础设施
 
 **路由处理器**：
 | 文件 | 端点类别 |

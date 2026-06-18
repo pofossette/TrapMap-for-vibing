@@ -4,6 +4,8 @@
 
 本文档收集 TrapMap 部署和运行中的常见问题及其解决方案。
 
+> 当前正式开发入口优先使用 `pnpm dev:local-agent`、`pnpm dev:team-monolith` 和 `pnpm dev:distributed:*`。它们分别装配 `@trapmap/host-local` 与 `@trapmap/host-distributed`。本文中的部分底层排查仍会引用 `packages/server`，因为现阶段大量权威实现与诊断代码仍驻留在该兼容实现面中。
+
 ---
 
 ## 服务启动问题
@@ -98,11 +100,11 @@ docker compose ps postgres
 pg_isready -h localhost -p 5432
 
 # 2. 检查连接字符串
-echo $TRAPMAP_DATABASE_URL
+echo ${TRAPMAP_DATABASE_URL:-$DATABASE_URL}
 # 格式应为: postgresql://user:password@host:5432/database
 
 # 3. 测试连接
-psql $TRAPMAP_DATABASE_URL -c "SELECT 1"
+psql "${TRAPMAP_DATABASE_URL:-$DATABASE_URL}" -c "SELECT 1"
 ```
 
 #### 解决方案

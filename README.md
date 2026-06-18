@@ -14,7 +14,7 @@
 
 面向 AI 编程工作流的知识与 Skill 治理基础设施。
 
-这个仓库是一个 `pnpm` + TypeScript monorepo，包含 gateway/server、CLI、共享契约和评测工具，用来提交、审核、索引、检索和激活团队的工程知识与 Skill 工件。
+这个仓库是一个 `pnpm` + TypeScript monorepo，包含 `client-core`、`backend-core`、`host-local`、`host-distributed`、CLI、共享契约和评测工具，用来提交、审核、索引、检索和激活团队的工程知识与 Skill 工件。
 
 ## TL;DR
 
@@ -82,7 +82,7 @@ TrapMap 有两类典型使用方式：
 
 当前工程状态：
 
-- deployment profile 现已作为正式 capability 模型落地到 server runtime：`local-agent`、`team-monolith`、`distributed`
+- deployment profile 现已作为正式 capability 模型落地到宿主 runtime：`local-agent`、`team-monolith`、`distributed`
 - `deployment preset` 继续作为兼容启动输入存在，但解析后统一收敛到 `profile + runtimeMode + serviceUnit + capabilities`
 - `/health`、`/ready` 与 runtime/status metadata 现在会暴露 profile、route surface、async ownership expectation、storage posture、auth/team expectation
 - CLI 的正式接入模型固定为 `gateway only`：本地配置只保存一个 gateway URL，后端是否单体或拆成 worker/service unit 对 CLI 透明
@@ -135,7 +135,7 @@ cp .env.example .env
 pnpm dev:local-agent
 ```
 
-本地默认 gateway 监听 `http://127.0.0.1:4000`。
+本地默认 gateway 监听 `http://127.0.0.1:4000`，其中 `local-agent` / `team-monolith` 由 `@trapmap/host-local` 提供，`distributed` 由 `@trapmap/host-distributed` 提供。
 
 三种正式开发入口：
 
@@ -171,7 +171,7 @@ docker compose --profile distributed --profile mq up -d
 
 `local-agent` 不推荐走 compose；直接使用 `pnpm dev:local-agent` 更符合单用户轻量模式。
 
-`docker-compose.yml` 中的 `server` service 就是统一 gateway。`distributed` profile 只是在它之外追加 `candidate-worker`、`governance-worker`、`outbox-worker`；CLI 仍然只连 `TRAPMAP_GATEWAY_URL`。
+`docker-compose.yml` 中的 `server` service 目前仍承担统一 gateway 的 compose 入口。`distributed` profile 只是在它之外追加 `candidate-worker`、`governance-worker`、`outbox-worker`；CLI 仍然只连 `TRAPMAP_GATEWAY_URL`。
 
 最快捷试跑方式：
 
@@ -407,7 +407,7 @@ curl http://localhost:4000/health
 {
   "status": "ok",
   "product": "trapmap",
-  "packages": ["cli", "server", "contracts"],
+  "packages": ["client-core", "backend-core", "host-local", "cli", "contracts"],
   "memory": { "rssMb": 128, "heapUsedMb": 64, "heapTotalMb": 96 },
   "uptimeSeconds": 42
 }
@@ -420,10 +420,14 @@ curl http://localhost:4000/health
 ```
 Trap-Map/
 ├── packages/
-│   ├── cli/          # Commander.js CLI 客户端
-│   ├── server/       # Fastify API 服务器
-│   ├── contracts/    # 共享 Zod Schema
-│   └── skills/       # 项目级 Skill 工作流
+│   ├── client-core/      # 共享 gateway SDK
+│   ├── backend-core/     # 宿主无关后端内核
+│   ├── host-local/       # local-agent / team-monolith 宿主
+│   ├── host-distributed/ # distributed 宿主
+│   ├── cli/              # Commander.js CLI 客户端
+│   ├── server/           # 迁移期兼容壳层
+│   ├── contracts/        # 共享 Zod Schema
+│   └── skills/           # 项目级 Skill 工作流
 ├── evals/             # 检索和摘要评估系统
 ├── docs/              # 项目文档
 │   └── architecture/  # 详细架构文档

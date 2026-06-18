@@ -15,10 +15,12 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
 | CI jobs | `.github/workflows/ci.yml` | `docs/operations/CI_CD.md`, `docs/operations/TESTING.md` |
 | Schema count | `packages/server/src/lib/persistence/schema/*.ts` (artifacts.ts, knowledge.ts, candidates.ts, auth.ts, retrieval.ts, queue.ts, index.ts) | `docs/reference/DATABASE_SCHEMA.md`, `docs/README.md` |
 | Guardrail commands | `scripts/complexity-budgets.json` + `.github/workflows/ci.yml` | `docs/reference/SYSTEM_TRUTH_SOURCES.md`, `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` |
-| Startup commands | `package.json` scripts section | `docs/README.md`, `docs/guides/GETTING_STARTED.md` |
+| Startup commands | `package.json` scripts section | `docs/README.md`, `docs/guides/GETTING_STARTED.md`, `docs/guides/MIGRATION_GUIDE.md` |
 | Eval entrypoints | `package.json` scripts section | `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` |
 | Deployment defaults | `docker-compose.yml` + `packages/server/Dockerfile` | `docs/architecture/DEPLOYMENT.md`, `docs/README.md` |
-| Deployment profile glossary and compatibility boundary | `plan.md` + `packages/server/src/config.ts` + `packages/server/src/lib/runtime/deployment-profile.ts` + `packages/server/src/lib/runtime/deployment-preset.ts` | `architecture.md`, `docs/PACKAGES.md`, `docs/architecture/DEPLOYMENT.md`, `docs/plans/README.md` |
+| Deployment profile glossary and compatibility boundary | `plan.md` + `packages/backend-core/src/runtime/capability-model.ts` + `packages/server/src/config.ts` + `packages/server/src/lib/runtime/deployment-profile.ts` + `packages/server/src/lib/runtime/deployment-preset.ts` | `architecture.md`, `docs/PACKAGES.md`, `docs/architecture/DEPLOYMENT.md`, `docs/plans/README.md`, `docs/guides/MIGRATION_GUIDE.md` |
+| Host-local runtime defaults | `packages/host-local/src/config/host-config.ts` + `packages/host-local/src/bootstrap/server.ts` | `README.md`, `docs/guides/MIGRATION_GUIDE.md`, `packages/host-local/README.md` |
+| Host-distributed service defaults | `packages/host-distributed/src/config/service-config.ts` | `docs/guides/MIGRATION_GUIDE.md`, `packages/host-distributed/README.md` |
 | Root workspace commands | `package.json` (scripts section) | `README.md`, `docs/README.md`, `docs/operations/TESTING.md` |
 | Server-only DB commands | `packages/server/package.json` (db:generate, db:migrate, db:push) | `docs/guides/GETTING_STARTED.md`, `docs/architecture/DEPLOYMENT.md` |
 | Runtime env defaults | `packages/server/src/config.ts` | `docs/operations/ENVIRONMENT.md`, `docs/architecture/ARCHITECTURE.md`, `docs/guides/GETTING_STARTED.md` |
