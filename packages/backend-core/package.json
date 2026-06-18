@@ -1,0 +1,51 @@
+{
+  "name": "@trapmap/backend-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js"
+    },
+    "./ports": {
+      "types": "./dist/ports/index.d.ts",
+      "import": "./dist/ports/index.js"
+    },
+    "./use-cases": {
+      "types": "./dist/use-cases/index.d.ts",
+      "import": "./dist/use-cases/index.js"
+    },
+    "./modules": {
+      "types": "./dist/modules/index.d.ts",
+      "import": "./dist/modules/index.js"
+    },
+    "./invocation": {
+      "types": "./dist/invocation/index.d.ts",
+      "import": "./dist/invocation/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@trapmap/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.1"
+  }
+}

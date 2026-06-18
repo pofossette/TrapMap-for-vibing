@@ -42,17 +42,45 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@25.6.0)(jiti@2.6.1)(jsdom@29.1.1)(tsx@4.21.0)(yaml@2.8.3)
 
+  packages/backend-core:
+    dependencies:
+      '@trapmap/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.1
+        version: 3.2.4(@types/node@25.6.0)(jiti@2.6.1)(jsdom@29.1.1)(tsx@4.21.0)(yaml@2.8.3)
+
   packages/cli:
     dependencies:
       '@inquirer/prompts':
         specifier: ^8.4.2
         version: 8.4.2(@types/node@25.6.0)
+      '@trapmap/client-core':
+        specifier: workspace:*
+        version: link:../client-core
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
       commander:
         specifier: ^14.0.1
         version: 14.0.3
+
+  packages/client-core:
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@25.6.0)(jiti@2.6.1)(jsdom@29.1.1)(tsx@4.21.0)(yaml@2.8.3)
 
   packages/contracts:
     dependencies:
@@ -65,6 +93,50 @@ importers:
       zod:
         specifier: ^4.1.12
         version: 4.3.6
+
+  packages/host-distributed:
+    dependencies:
+      '@trapmap/backend-core':
+        specifier: workspace:*
+        version: link:../backend-core
+      '@trapmap/client-core':
+        specifier: workspace:*
+        version: link:../client-core
+      '@trapmap/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      fastify:
+        specifier: ^5.6.1
+        version: 5.8.4
+      pg:
+        specifier: ^8.16.0
+        version: 8.20.0
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      '@types/pg':
+        specifier: ^8.15.4
+        version: 8.20.0
+
+  packages/host-local:
+    dependencies:
+      '@trapmap/backend-core':
+        specifier: workspace:*
+        version: link:../backend-core
+      '@trapmap/client-core':
+        specifier: workspace:*
+        version: link:../client-core
+      '@trapmap/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      fastify:
+        specifier: ^5.6.1
+        version: 5.8.4
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
 
   packages/server:
     dependencies:

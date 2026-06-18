@@ -1,89 +1,64 @@
-import { resolveCliGatewayUrl, type CliState } from './config.js';
+import { ApiError as ClientApiError, apiRequest as clientApiRequest } from '@trapmap/client-core';
+import type { ApiResponse as ClientApiResponse, RequestOptions } from '@trapmap/client-core';
 
-export class ApiError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    public readonly payload: unknown,
-    message: string,
-  ) {
-    super(message);
-  }
-}
+import type { CliState } from './config.js';
+import { CliSessionProvider } from './client-core-adapter.js';
 
+// ---------------------------------------------------------------------------
+// Re-exports
+//
+// Existing CLI code imports `ApiError` and `ApiResponse` from this module.
+// We re-export the canonical types from client-core to avoid divergence.
+// ---------------------------------------------------------------------------
+
+export { ClientApiError as ApiError };
+export type { ClientApiResponse as ApiResponse };
+
+/** CLI-level request options (backward compatible with the pre-extraction shape). */
 export interface ApiRequestOptions {
   body?: unknown;
-  method?: 'GET' | 'POST' | 'PATCH';
+  method?: RequestOptions['method'];
   path: string;
+  /** @deprecated Use the provider's base URL. Kept for backward compat. */
   gatewayUrl?: string;
+  /** @deprecated Use the provider's session token. Kept for backward compat. */
   sessionToken?: string | null;
 }
 
-export interface ApiResponse<T> {
-  data: T;
-  sessionToken: string | null;
-}
+// ---------------------------------------------------------------------------
+// CLI wrapper -- preserves the original `apiRequest(state, options)` call-site
+// while delegating to client-core underneath.
+// ---------------------------------------------------------------------------
 
-function parseResponsePayload<T>(text: string, url: string): T | { message?: string } | null {
-  if (!text) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(text) as T | { message?: string };
-  } catch (error) {
-    throw new ApiError(
-      502,
-      { rawBody: text },
-      `Invalid JSON response from ${url}: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}
-
+/**
+ * CLI-compatible wrapper around the generic {@link clientApiRequest}.
+ *
+ * Accepts a {@link CliState} (as the existing commands do) and adapts it to
+ * the client-core `SessionProvider` contract.  Any per-request overrides
+ * (`gatewayUrl`, `sessionToken`) are forwarded as `baseUrl` / `sessionToken`
+ * overrides.
+ */
 export async function apiRequest<T>(
   state: CliState,
   options: ApiRequestOptions,
-): Promise<ApiResponse<T>> {
-  const url = new URL(options.path, options.gatewayUrl ?? resolveCliGatewayUrl(state)).toString();
-  const headers: Record<string, string> = {};
+): Promise<ClientApiResponse<T>> {
+  const provider = new CliSessionProvider(state);
 
-  if (options.body) {
-    headers['content-type'] = 'application/json';
-  }
-
-  if (options.sessionToken ?? state.sessionToken) {
-    headers.authorization = `Bearer ${options.sessionToken ?? state.sessionToken}`;
-  }
-
-  let response: Response;
-
-  try {
-    response = await fetch(url, {
-      method: options.method ?? 'GET',
-      headers,
-      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
-    });
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    throw new ApiError(0, { cause: reason, url }, `Request to ${url} failed: ${reason}`);
-  }
-
-  const sessionToken = response.headers.get('x-session-token');
-  const text = await response.text();
-  const payload = parseResponsePayload<T>(text, url);
-
-  if (!response.ok) {
-    const message =
-      typeof payload === 'object' && payload !== null && 'message' in payload
-        ? String(payload.message)
-        : `Request failed with status ${response.status}`;
-    throw new ApiError(response.status, payload, message);
-  }
-
-  return {
-    data: payload as T,
-    sessionToken,
+  const req: RequestOptions = {
+    path: options.path,
+    ...(options.method != null ? { method: options.method } : {}),
+    ...(options.body != null ? { body: options.body } : {}),
+    ...(options.sessionToken != null ? { sessionToken: options.sessionToken } : {}),
+    ...(options.gatewayUrl != null ? { baseUrl: options.gatewayUrl } : {}),
   };
+
+  return clientApiRequest<T>(provider, req);
 }
+
+// ---------------------------------------------------------------------------
+// requireSessionToken -- remains CLI-specific (error message references the
+// `trapmap login` command).
+// ---------------------------------------------------------------------------
 
 export function requireSessionToken(state: CliState): string {
   if (typeof state.sessionToken !== 'string' || state.sessionToken.length === 0) {

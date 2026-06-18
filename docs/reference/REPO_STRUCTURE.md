@@ -20,9 +20,13 @@ Historical plans, temporary notes, audits, and human-authored reports must live 
 ## Product Packages
 
 - `packages/cli/`: Commander CLI and CLI tests.
-- `packages/server/`: Fastify API, persistence, retrieval, indexing, governance, and server tests.
+- `packages/server/`: Fastify API, persistence, retrieval, indexing, governance, and server tests (being replaced by host-local/host-distributed).
 - `packages/contracts/`: shared Zod schemas and TypeScript types.
 - `packages/skills/`: project-level Skill artifacts.
+- `packages/client-core/`: Browser-compatible shared gateway transport layer (HTTP SDK, session contract, error model). Used by CLI and future web panel.
+- `packages/backend-core/`: Host-agnostic backend core kernel (runtime capability model, port interfaces, use-case patterns, bounded-context modules, invocation model). Used by all hosts.
+- `packages/host-local/`: Lightweight host assembly for local-agent and team-monolith profiles. Single-process deployment with minimal dependencies.
+- `packages/host-distributed/`: Heavy host assembly for distributed profile with 7 microservices (gateway, identity-access, knowledge-read, knowledge-write, candidate-ingestion, governance-review, job-runtime). Enables independent scaling and service isolation.
 
 ## Documentation
 

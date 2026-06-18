@@ -1,0 +1,97 @@
+/**
+ * Internal HTTP routes for the governance-review service.
+ *
+ * Thin transport layer -- all business logic lives in the
+ * governance-review backend-core module.
+ */
+
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+
+import type { GovernanceReviewPort } from '@trapmap/backend-core';
+import { InvocationError } from '@trapmap/backend-core';
+
+// ---------------------------------------------------------------------------
+// Error translation
+// ---------------------------------------------------------------------------
+
+function translateInvocationError(error: unknown): { status: number; body: { error: string; kind: string } } {
+  if (error instanceof InvocationError) {
+    const statusMap: Record<string, number> = {
+      'validation': 400,
+      'not-found': 404,
+      'conflict': 409,
+      'forbidden': 403,
+      'timeout': 504,
+      'unavailable': 503,
+      'internal': 500,
+    };
+    return {
+      status: statusMap[error.kind] ?? 500,
+      body: { error: error.message, kind: error.kind },
+    };
+  }
+  return {
+    status: 500,
+    body: { error: 'Internal server error', kind: 'internal' },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Route registration
+// ---------------------------------------------------------------------------
+
+export function registerRoutes(app: FastifyInstance, module: GovernanceReviewPort): void {
+
+  // POST /internal/review/approve
+  app.post('/internal/review/approve', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const body = request.body as { entryId: string; actorId: string; note?: string };
+      await module.approve(body.entryId, body.actorId, body.note);
+      return reply.status(200).send({ ok: true });
+    } catch (err) {
+      const { status, body } = translateInvocationError(err);
+      return reply.status(status).send(body);
+    }
+  });
+
+  // POST /internal/review/reject
+  app.post('/internal/review/reject', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const body = request.body as { entryId: string; actorId: string; note?: string };
+      await module.reject(body.entryId, body.actorId, body.note);
+      return reply.status(200).send({ ok: true });
+    } catch (err) {
+      const { status, body } = translateInvocationError(err);
+      return reply.status(status).send(body);
+    }
+  });
+
+  // POST /internal/review/artifact
+  app.post('/internal/review/artifact', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const body = request.body as { artifactId: string; decision: 'approve' | 'reject'; actorId: string; note?: string };
+      await module.reviewArtifact(body.artifactId, body.decision, body.actorId, body.note);
+      return reply.status(200).send({ ok: true });
+    } catch (err) {
+      const { status, body } = translateInvocationError(err);
+      return reply.status(status).send(body);
+    }
+  });
+
+  // POST /internal/feedback
+  app.post('/internal/feedback', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const body = request.body as { entryId: string; problemType: string; description: string; actorId: string };
+      const result = await module.submitFeedback(body);
+      return reply.status(201).send(result);
+    } catch (err) {
+      const { status, body } = translateInvocationError(err);
+      return reply.status(status).send(body);
+    }
+  });
+
+  // GET /internal/health
+  app.get('/internal/health', async (_request: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(200).send({ status: 'ok', service: 'governance-review' });
+  });
+}

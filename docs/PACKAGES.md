@@ -6,6 +6,7 @@
 
 | 包 | 入口 | 职责 |
 |----|------|------|
+| `packages/client-core` | `src/index.ts` | 客户端共享 gateway 传输层：HTTP SDK、session contract、error model |
 | `packages/cli` | `src/index.ts` | Commander.js CLI 客户端，用户交互终端入口 |
 | `packages/server` | `src/index.ts` | Fastify API 服务器，业务逻辑编排 |
 | `packages/contracts` | `src/index.ts` | 共享 Zod Schema 和 TypeScript 类型 |
@@ -205,6 +206,24 @@ For package-local navigation, read:
 
 ---
 
+## packages/client-core
+
+客户端共享 gateway 传输层，从 CLI 中提取。浏览器兼容，仅依赖标准 `fetch` API。
+
+### 导出
+
+| 导出 | 类型 | 说明 |
+|------|------|------|
+| `apiRequest` | function | 对 gateway 发起带类型的 HTTP 请求 |
+| `ApiError` | class | 统一 gateway 错误，含状态码和 payload |
+| `SessionProvider` | interface | base URL 和 session token 的注入契约 |
+| `ApiResponse<T>` | type | 成功响应包装 |
+| `RequestOptions` | type | 单次请求选项 |
+
+CLI 通过 `CliSessionProvider`（`packages/cli/src/lib/client-core-adapter.ts`）实现 `SessionProvider`，将 `CliState` 桥接到 client-core 的通用契约。
+
+---
+
 ## packages/cli
 
 命令行接口，命令格式明确，shell 友好输出，支持可选 JSON 模式。
@@ -301,6 +320,11 @@ flowchart TB
         Types["TypeScript Types"]
     end
 
+    subgraph 客户端内核["@trapmap/client-core"]
+        Gateway["Gateway SDK"]
+        Session["SessionProvider"]
+    end
+
     subgraph 服务器包["@trapmap/server"]
         Routes["Routes"]
         Lib["Business Logic"]
@@ -308,11 +332,12 @@ flowchart TB
 
     subgraph CLI包["@trapmap/cli"]
         Commands["Commands"]
-        HTTP["HTTP Client"]
+        Adapter["CliSessionProvider"]
     end
 
     契约包 --> 服务器包
-    契约包 --> CLI包
+    契约包 --> 客户端内核
+    客户端内核 --> CLI包
     服务器包 -. "HTTP API" .-> CLI包
 
     subgraph 评测包["evals/"]
@@ -325,6 +350,105 @@ flowchart TB
 
 **依赖说明:**
 - `@trapmap/contracts` 被所有其他包依赖，定义共享 Schema 和类型
+- `@trapmap/client-core` 依赖 contracts，提供浏览器兼容的 gateway SDK
 - `@trapmap/server` 依赖 contracts，提供 REST API
-- `@trapmap/cli` 依赖 contracts 和 server (via HTTP)
+- `@trapmap/cli` 依赖 contracts、client-core 和 server (via HTTP)
 - `evals/` 依赖 contracts 进行测试验证
+
+---
+
+## 目标包布局（Runtime Recomposition）
+
+> 本节冻结于 runtime recomposition 计划 Task 00。当前 `cli + server + contracts` 三包结构将逐步演进为 `client-core + backend-core + services + hosts` 可装配体系。权威定义见 [architecture/TARGET_ARCHITECTURE.md](architecture/TARGET_ARCHITECTURE.md)。
+
+### 目标包角色
+
+| 角色 | 包 | 职责 |
+|------|------|------|
+| **client-core** | `packages/client-core` | 客户端共享访问层：HTTP gateway SDK、session handling、error model、request helpers |
+| **backend-core** | `packages/backend-core` | 后端核心内核：应用服务、端口、宿主无关 runtime capability model、bounded-context 编排 |
+| **host (light)** | `packages/host-local` | 轻量宿主：面向 `local-agent` 和 `team-monolith`，单机、最小依赖、低运维 |
+| **host (heavy)** | `packages/host-distributed` | 重型宿主：面向分布式装配，独立扩缩容、读写隔离、服务边界 |
+| **service** | `packages/service-*` | 七个逻辑服务包，每个对应一个 bounded context（见下表） |
+
+### 目标服务包
+
+| 包 | 服务角色 | bounded context |
+|------|------|------|
+| `packages/service-gateway` | `gateway` | 唯一外部入口：请求聚合、限流、外部认证边界、稳定 API surface |
+| `packages/service-identity-access` | `identity-access` | auth、session、access-keys、membership、team、RBAC decision |
+| `packages/service-knowledge-read` | `knowledge-read` | retrieval、query trace、只读投影、status read model、读缓存 |
+| `packages/service-knowledge-write` | `knowledge-write` | knowledge/trap/skill/lifecycle/maintenance/decay 的 authoritative 写路径 |
+| `packages/service-candidate-ingestion` | `candidate-ingestion` | candidate intake、归一化、去重预处理、候选状态推进 |
+| `packages/service-governance-review` | `governance-review` | 人工介入队列、审核工作流、冲突解决、remediation 队列 |
+| `packages/service-job-runtime` | `job-runtime` | task queue、workflow runs、outbox dispatch、shared jobs 执行 |
+
+### 目标包布局
+
+```
+Trap-Map/
+├── packages/
+│   ├── client-core/               # 客户端共享 HTTP gateway SDK
+│   ├── backend-core/              # 后端核心内核（服务、端口、能力模型）
+│   ├── service-gateway/           # Gateway 宿主/传输/装配
+│   ├── service-identity-access/   # Auth、session、access-keys、membership、team、RBAC
+│   ├── service-knowledge-read/    # Retrieval、只读投影、query trace、读缓存
+│   ├── service-knowledge-write/   # Knowledge/trap/skill/lifecycle/maintenance/decay 写路径
+│   ├── service-candidate-ingestion/ # Candidate intake、归一化、去重、状态推进
+│   ├── service-governance-review/ # 审核队列、工作台、冲突解决、remediation
+│   ├── service-job-runtime/       # Task queue、workflow runs、outbox dispatch、shared jobs
+│   ├── host-local/                # 轻量宿主装配（local-agent、team-monolith）
+│   ├── host-distributed/          # 重型宿主装配（分布式服务）
+│   ├── cli/                       # CLI（精简后不再持有共享 HTTP SDK）
+│   ├── server/                    # 迁移期兼容壳层，逐步被 host-local/host-distributed 替代
+│   ├── contracts/                 # 共享 Zod Schema 和 TypeScript 类型
+│   └── skills/                    # 项目级 Skill 工作流
+├── evals/
+├── docs/
+├── scripts/
+└── docker-compose.yml
+```
+
+### 依赖方向
+
+```
+contracts ──────────────────────────────────────────────────┐
+    │                                                       │
+    ▼                                                       │
+client-core ← cli, future web client                        │
+    │                                                       │
+backend-core ← service-* ← host-local, host-distributed     │
+    │                           │                           │
+    └───────────────────────────┴───────────────────────────┘
+                                ↑
+                           server (迁移期壳层，逐步缩减)
+```
+
+关键约束：
+
+1. `client-core` 只依赖 `contracts`，不依赖 `backend-core` 或任何服务端包。
+2. `backend-core` 依赖 `contracts`，不依赖任何 service 或 host 包。
+3. 各 `service-*` 是对等包，互不直接依赖；跨服务交互通过 `backend-core` 中定义的 internal ports。
+4. `host-local` 和 `host-distributed` 依赖 `backend-core`、`contracts` 和所装配的 service 包。
+5. `packages/cli` 依赖 `client-core` 和 `contracts`，不依赖 `backend-core` 或任何服务端包。
+6. `packages/server`（迁移期壳层）在迁移期间依赖 `backend-core`、`contracts` 和 service 包，最终被替代。
+
+### 数据库与事务边界
+
+首期继续共享 PostgreSQL，但已冻结表级 ownership。详见 [architecture/DATABASE_OWNERSHIP.md](architecture/DATABASE_OWNERSHIP.md) 和 [architecture/SERVICE_BOUNDARIES.md](architecture/SERVICE_BOUNDARIES.md)。
+
+### 架构原则摘要
+
+1. 所有客户端只对 gateway SDK / gateway API 编程。
+2. 所有宿主都对 `backend-core` 编程，不直接复制业务逻辑。
+3. 微服务边界先按 authoritative ownership、读写路径和故障域划分，再考虑物理进程数。
+4. 首期可以保留共享数据库，但不能把共享数据库当作"服务边界不需要定义"的借口。
+5. 不引入分布式事务；跨服务一致性通过 outbox + queue + projection 实现。
+6. 不引入 RPC-first 架构；先做 port-first、transport-agnostic。
+
+### 参考文档
+
+- [architecture/TARGET_ARCHITECTURE.md](architecture/TARGET_ARCHITECTURE.md) -- 术语冻结、包角色、部署角色、服务角色、架构原则
+- [architecture/DATABASE_OWNERSHIP.md](architecture/DATABASE_OWNERSHIP.md) -- 表级 ownership 和事务边界规则
+- [architecture/SERVICE_BOUNDARIES.md](architecture/SERVICE_BOUNDARIES.md) -- 服务角色定义和 ownership 模型
+- [plans/runtime-recomposition/](plans/runtime-recomposition/) -- 完整 Runtime Recomposition 计划

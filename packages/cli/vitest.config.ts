@@ -9,6 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@trapmap/contracts': resolve(__dirname, '../contracts/src/index.ts'),
+      '@trapmap/client-core': resolve(__dirname, '../client-core/src/index.ts'),
       '@trapmap/cli': resolve(__dirname, 'src'),
     },
   },

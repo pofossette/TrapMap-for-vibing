@@ -67,6 +67,28 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'backend-core',
+          root: './packages/backend-core',
+          include: ['src/**/*.test.ts'],
+        },
+        resolve: {
+          alias: [
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+          ],
+        },
+      },
+      {
+        test: {
+          name: 'client-core',
+          root: './packages/client-core',
+          include: ['src/**/*.test.ts'],
+        },
+      },
+      {
+        test: {
           name: 'cli',
           root: './packages/cli',
           include: ['src/**/*.test.ts'],
@@ -96,6 +118,10 @@ export default defineConfig({
             {
               find: /^@trapmap\/cli\/(.+)$/,
               replacement: resolve(__dirname, './packages/cli/src/$1'),
+            },
+            {
+              find: '@trapmap/client-core',
+              replacement: resolve(__dirname, './packages/client-core/src/index.ts'),
             },
           ],
         },
