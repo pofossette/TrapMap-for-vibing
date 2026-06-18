@@ -51,8 +51,7 @@ export function createServiceDatabase(config: ServiceConfig): ServiceDatabase {
 
   if (!databaseUrl) {
     throw new Error(
-      `Database URL required for service '${config.serviceName}'. ` +
-      'Set DATABASE_URL, TRAPMAP_DATABASE_URL, or TRAPMAP_SERVICE_DATABASE_URL environment variable.'
+      `Database URL required for service '${config.serviceName}'. Set DATABASE_URL, TRAPMAP_DATABASE_URL, or TRAPMAP_SERVICE_DATABASE_URL environment variable.`,
     );
   }
 

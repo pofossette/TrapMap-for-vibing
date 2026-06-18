@@ -5,13 +5,13 @@
  * and internal HTTP routes into a standalone Fastify server instance.
  */
 
-import Fastify, { type FastifyInstance } from 'fastify';
 import { createKnowledgeWriteModule } from '@trapmap/backend-core';
+import Fastify, { type FastifyInstance } from 'fastify';
 import type { ServiceConfig } from '../config/index.js';
 import type { ServiceDatabase } from '../shared/database.js';
+import { createServicePorts } from '../shared/ports.js';
 import { createKnowledgeWriteDeps } from './ports.js';
 import { registerRoutes } from './routes.js';
-import { createServicePorts } from '../shared/ports.js';
 
 // ---------------------------------------------------------------------------
 // Server interface

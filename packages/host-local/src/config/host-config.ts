@@ -5,7 +5,12 @@
  * Configuration is loaded from environment variables with sensible defaults.
  */
 
-import type { DeploymentProfile, DeploymentPreset, RuntimeMode, ServiceUnit } from '@trapmap/backend-core';
+import type {
+  DeploymentPreset,
+  DeploymentProfile,
+  RuntimeMode,
+  ServiceUnit,
+} from '@trapmap/backend-core';
 
 // ---------------------------------------------------------------------------
 // Host configuration interface
@@ -48,7 +53,7 @@ function readEnvString(key: string, fallback: string): string {
 function readEnvInt(key: string, fallback: number): number {
   const raw = process.env[key];
   if (!raw) return fallback;
-  const parsed = parseInt(raw, 10);
+  const parsed = Number.parseInt(raw, 10);
   return Number.isNaN(parsed) ? fallback : parsed;
 }
 
@@ -60,19 +65,34 @@ function resolveProfile(value: string): DeploymentProfile {
 }
 
 function resolvePreset(value: string): DeploymentPreset {
-  const valid: DeploymentPreset[] = ['monolith', 'api', 'candidate-worker', 'governance-worker', 'outbox-worker'];
+  const valid: DeploymentPreset[] = [
+    'monolith',
+    'api',
+    'candidate-worker',
+    'governance-worker',
+    'outbox-worker',
+  ];
   return valid.includes(value as DeploymentPreset) ? (value as DeploymentPreset) : 'monolith';
 }
 
 function resolveRuntimeMode(value: string): RuntimeMode {
-  if (value === 'api' || value === 'task-worker' || value === 'outbox-worker' || value === 'combined') {
+  if (
+    value === 'api' ||
+    value === 'task-worker' ||
+    value === 'outbox-worker' ||
+    value === 'combined'
+  ) {
     return value;
   }
   return 'combined';
 }
 
 function resolveServiceUnit(value: string): ServiceUnit {
-  if (value === 'full-platform' || value === 'candidate-ingestion' || value === 'knowledge-governance') {
+  if (
+    value === 'full-platform' ||
+    value === 'candidate-ingestion' ||
+    value === 'knowledge-governance'
+  ) {
     return value;
   }
   return 'full-platform';

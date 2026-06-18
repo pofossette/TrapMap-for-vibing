@@ -12,7 +12,7 @@
  *   // handle.close() to shut down
  */
 
-import { bootstrap, type BootstrapOptions, type BootstrapResult } from './bootstrap/index.js';
+import { type BootstrapOptions, type BootstrapResult, bootstrap } from './bootstrap/index.js';
 import { loadHostConfig } from './config/index.js';
 
 // ---------------------------------------------------------------------------

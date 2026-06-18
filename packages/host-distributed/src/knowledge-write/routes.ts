@@ -6,24 +6,27 @@
  * consumed by the gateway, not public-facing.
  */
 
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { KnowledgeWritePort } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 // ---------------------------------------------------------------------------
 // Error translation
 // ---------------------------------------------------------------------------
 
-function translateInvocationError(error: unknown): { status: number; body: { error: string; kind: string } } {
+function translateInvocationError(error: unknown): {
+  status: number;
+  body: { error: string; kind: string };
+} {
   if (error instanceof InvocationError) {
     const statusMap: Record<string, number> = {
-      'validation': 400,
+      validation: 400,
       'not-found': 404,
-      'conflict': 409,
-      'forbidden': 403,
-      'timeout': 504,
-      'unavailable': 503,
-      'internal': 500,
+      conflict: 409,
+      forbidden: 403,
+      timeout: 504,
+      unavailable: 503,
+      internal: 500,
     };
     return {
       status: statusMap[error.kind] ?? 500,
@@ -41,7 +44,6 @@ function translateInvocationError(error: unknown): { status: number; body: { err
 // ---------------------------------------------------------------------------
 
 export function registerRoutes(app: FastifyInstance, module: KnowledgeWritePort): void {
-
   // --- Knowledge entries ---
 
   app.post('/internal/knowledge', async (req: FastifyRequest, reply: FastifyReply) => {
@@ -73,29 +75,35 @@ export function registerRoutes(app: FastifyInstance, module: KnowledgeWritePort)
     }
   });
 
-  app.post('/internal/knowledge/:entryId/resubmit', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const { entryId } = req.params as { entryId: string };
-      const body = req.body as { updates: Record<string, unknown>; actorId: string };
-      await module.resubmit(entryId, body.updates, body.actorId);
-      return reply.status(200).send({ ok: true });
-    } catch (err) {
-      const { status, body } = translateInvocationError(err);
-      return reply.status(status).send(body);
-    }
-  });
+  app.post(
+    '/internal/knowledge/:entryId/resubmit',
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const { entryId } = req.params as { entryId: string };
+        const body = req.body as { updates: Record<string, unknown>; actorId: string };
+        await module.resubmit(entryId, body.updates, body.actorId);
+        return reply.status(200).send({ ok: true });
+      } catch (err) {
+        const { status, body } = translateInvocationError(err);
+        return reply.status(status).send(body);
+      }
+    },
+  );
 
-  app.post('/internal/knowledge/:entryId/supersede', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const { entryId } = req.params as { entryId: string };
-      const body = req.body as { replacementId: string; actorId: string };
-      await module.supersede(entryId, body.replacementId, body.actorId);
-      return reply.status(200).send({ ok: true });
-    } catch (err) {
-      const { status, body } = translateInvocationError(err);
-      return reply.status(status).send(body);
-    }
-  });
+  app.post(
+    '/internal/knowledge/:entryId/supersede',
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const { entryId } = req.params as { entryId: string };
+        const body = req.body as { replacementId: string; actorId: string };
+        await module.supersede(entryId, body.replacementId, body.actorId);
+        return reply.status(200).send({ ok: true });
+      } catch (err) {
+        const { status, body } = translateInvocationError(err);
+        return reply.status(status).send(body);
+      }
+    },
+  );
 
   // --- Traps ---
 

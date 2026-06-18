@@ -104,7 +104,12 @@ async function main() {
   } else {
     // Start all services
     console.log('Starting all services...');
-    const handles: Array<{ name: ServiceName; config: { port: number }; server: { close(): Promise<void> }; db?: { close(): Promise<void> } }> = [];
+    const handles: Array<{
+      name: ServiceName;
+      config: { port: number };
+      server: { close(): Promise<void> };
+      db?: { close(): Promise<void> };
+    }> = [];
 
     for (const name of ALL_SERVICES) {
       try {
@@ -122,16 +127,18 @@ async function main() {
     // Graceful shutdown
     const shutdown = async () => {
       console.log('Shutting down all services...');
-      await Promise.all(handles.map(async (h) => {
-        try {
-          await h.server.close();
-          if (h.db) {
-            await h.db.close();
+      await Promise.all(
+        handles.map(async (h) => {
+          try {
+            await h.server.close();
+            if (h.db) {
+              await h.db.close();
+            }
+          } catch (error) {
+            console.error(`Error shutting down ${h.name}:`, error);
           }
-        } catch (error) {
-          console.error(`Error shutting down ${h.name}:`, error);
-        }
-      }));
+        }),
+      );
       process.exit(0);
     };
     process.on('SIGINT', shutdown);

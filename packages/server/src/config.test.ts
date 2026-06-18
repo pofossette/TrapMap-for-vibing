@@ -501,9 +501,7 @@ describe('loadConfig', () => {
 
         expect(config.deployment.preset).toBe('candidate-worker');
         expect(config.asyncTaskTransport.provider).toBe('rabbitmq');
-        expect(config.asyncTaskTransport.rabbitmq?.url).toBe(
-          'amqp://guest:guest@localhost:5672',
-        );
+        expect(config.asyncTaskTransport.rabbitmq?.url).toBe('amqp://guest:guest@localhost:5672');
         expect(config.deployment.compatibility).toEqual({
           profile: 'distributed',
           source: 'inferred',

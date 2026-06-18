@@ -97,7 +97,13 @@ const DeploymentSchema = z.object({
     requiresAsyncOwnership: z.boolean(),
     allowsSingleProcess: z.boolean(),
     requiresPostgres: z.boolean(),
-    minimumPreset: z.enum(['monolith', 'api', 'candidate-worker', 'governance-worker', 'outbox-worker']),
+    minimumPreset: z.enum([
+      'monolith',
+      'api',
+      'candidate-worker',
+      'governance-worker',
+      'outbox-worker',
+    ]),
   }),
   resolved: z.object({
     deploymentProfile: z.enum(['local-agent', 'team-monolith', 'distributed']),
@@ -211,42 +217,64 @@ export function loadConfig(): ServerConfig {
     deployment: {
       profile: process.env.TRAPMAP_DEPLOYMENT_PROFILE ?? null,
       preset: process.env.TRAPMAP_DEPLOYMENT_PRESET,
-      compatibility: resolveDeploymentProfileCompatibility({
-        profile:
-          process.env.TRAPMAP_DEPLOYMENT_PROFILE === undefined
-            ? undefined
-            : (process.env.TRAPMAP_DEPLOYMENT_PROFILE as
+      compatibility: resolveDeploymentProfileCompatibility(
+        process.env.TRAPMAP_DEPLOYMENT_PROFILE === undefined
+          ? {
+              preset:
+                process.env.TRAPMAP_DEPLOYMENT_PRESET === undefined
+                  ? undefined
+                  : (process.env.TRAPMAP_DEPLOYMENT_PRESET as
+                      | 'monolith'
+                      | 'api'
+                      | 'candidate-worker'
+                      | 'governance-worker'
+                      | 'outbox-worker'),
+            }
+          : {
+              profile: process.env.TRAPMAP_DEPLOYMENT_PROFILE as
                 | 'local-agent'
                 | 'team-monolith'
-                | 'distributed'),
-        preset:
-          process.env.TRAPMAP_DEPLOYMENT_PRESET === undefined
-            ? undefined
-            : (process.env.TRAPMAP_DEPLOYMENT_PRESET as
-                | 'monolith'
-                | 'api'
-                | 'candidate-worker'
-                | 'governance-worker'
-                | 'outbox-worker'),
-      }),
-      resolved: resolveRuntimeDeployment({
-        profile:
-          process.env.TRAPMAP_DEPLOYMENT_PROFILE === undefined
-            ? undefined
-            : (process.env.TRAPMAP_DEPLOYMENT_PROFILE as
+                | 'distributed',
+              preset:
+                process.env.TRAPMAP_DEPLOYMENT_PRESET === undefined
+                  ? undefined
+                  : (process.env.TRAPMAP_DEPLOYMENT_PRESET as
+                      | 'monolith'
+                      | 'api'
+                      | 'candidate-worker'
+                      | 'governance-worker'
+                      | 'outbox-worker'),
+            },
+      ),
+      resolved: resolveRuntimeDeployment(
+        process.env.TRAPMAP_DEPLOYMENT_PROFILE === undefined
+          ? {
+              preset:
+                process.env.TRAPMAP_DEPLOYMENT_PRESET === undefined
+                  ? undefined
+                  : (process.env.TRAPMAP_DEPLOYMENT_PRESET as
+                      | 'monolith'
+                      | 'api'
+                      | 'candidate-worker'
+                      | 'governance-worker'
+                      | 'outbox-worker'),
+            }
+          : {
+              profile: process.env.TRAPMAP_DEPLOYMENT_PROFILE as
                 | 'local-agent'
                 | 'team-monolith'
-                | 'distributed'),
-        preset:
-          process.env.TRAPMAP_DEPLOYMENT_PRESET === undefined
-            ? undefined
-            : (process.env.TRAPMAP_DEPLOYMENT_PRESET as
-                | 'monolith'
-                | 'api'
-                | 'candidate-worker'
-                | 'governance-worker'
-                | 'outbox-worker'),
-      }),
+                | 'distributed',
+              preset:
+                process.env.TRAPMAP_DEPLOYMENT_PRESET === undefined
+                  ? undefined
+                  : (process.env.TRAPMAP_DEPLOYMENT_PRESET as
+                      | 'monolith'
+                      | 'api'
+                      | 'candidate-worker'
+                      | 'governance-worker'
+                      | 'outbox-worker'),
+            },
+      ),
     },
     asyncTaskTransport: {
       provider: process.env.TRAPMAP_TASK_TRANSPORT,

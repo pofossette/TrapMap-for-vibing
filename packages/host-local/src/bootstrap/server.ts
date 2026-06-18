@@ -11,50 +11,50 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import type {
-  DeploymentProfile,
+  AuditLogPort,
   DeploymentPreset,
-  RepositoryPorts,
-  RuntimeMode,
-  TaskQueuePort,
+  DeploymentProfile,
   OutboxPort,
+  PermissionCheckPort,
+  RepositoryPorts,
+  RetrievalQueryPort,
+  RuntimeMode,
   RuntimeWorkerHandle,
   SessionLookupPort,
+  TaskQueuePort,
   TeamLookupPort,
-  PermissionCheckPort,
-  AuditLogPort,
-  RetrievalQueryPort,
 } from '@trapmap/backend-core';
 import {
-  resolveRuntimeDeployment,
-  shouldBootTaskWorker,
-  shouldBootOutboxWorker,
-  createIdentityAccessModule,
-  createKnowledgeReadModule,
-  createKnowledgeWriteModule,
   createCandidateIngestionModule,
   createGovernanceReviewModule,
+  createIdentityAccessModule,
   createJobRuntimeModule,
+  createKnowledgeReadModule,
+  createKnowledgeWriteModule,
+  resolveRuntimeDeployment,
+  shouldBootOutboxWorker,
+  shouldBootTaskWorker,
 } from '@trapmap/backend-core';
 
-import { registerRequestLogging, registerErrorHandler, registerCors } from './middleware.js';
-import { registerRoutes } from './routes.js';
-import { createInProcessTaskWorker } from '../runtime/worker.js';
 import { createInProcessOutboxDispatcher } from '../runtime/outbox.js';
+import { createInProcessTaskWorker } from '../runtime/worker.js';
+import { registerCors, registerErrorHandler, registerRequestLogging } from './middleware.js';
+import { registerRoutes } from './routes.js';
 import {
-  createStubSessionLookup,
-  createStubTeamLookup,
-  createStubPermissionCheck,
-  createStubAuditLog,
-  createStubRetrievalQuery,
-  createStubKnowledgeRepo,
-  createStubCandidateRepo,
-  createStubSessionRepo,
-  createStubAccessKeyRepo,
-  createStubTeamRepo,
-  createStubMembershipRepo,
-  createStubUserRepo,
-  createStubFeedbackRepo,
   createQueuePorts,
+  createStubAccessKeyRepo,
+  createStubAuditLog,
+  createStubCandidateRepo,
+  createStubFeedbackRepo,
+  createStubKnowledgeRepo,
+  createStubMembershipRepo,
+  createStubPermissionCheck,
+  createStubRetrievalQuery,
+  createStubSessionLookup,
+  createStubSessionRepo,
+  createStubTeamLookup,
+  createStubTeamRepo,
+  createStubUserRepo,
 } from './stubs.js';
 
 // ---------------------------------------------------------------------------

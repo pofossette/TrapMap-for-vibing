@@ -65,10 +65,7 @@ describe('apiRequest', () => {
         baseUrl: 'http://custom:5000',
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://custom:5000/api/test',
-        expect.any(Object),
-      );
+      expect(mockFetch).toHaveBeenCalledWith('http://custom:5000/api/test', expect.any(Object));
     });
   });
 
@@ -324,7 +321,9 @@ describe('apiRequest', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(ApiError);
         expect((error as ApiError).statusCode).toBe(502);
-        expect((error as ApiError).message).toMatch(/Invalid JSON response from http:\/\/localhost:4000\/api\/test/);
+        expect((error as ApiError).message).toMatch(
+          /Invalid JSON response from http:\/\/localhost:4000\/api\/test/,
+        );
         expect((error as ApiError).payload).toEqual({ rawBody: '{invalid json!!' });
       }
     });

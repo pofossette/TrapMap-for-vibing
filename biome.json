@@ -34,6 +34,7 @@
       "dist",
       "coverage",
       "node_modules",
+      ".pnpm-store",
       "data",
       ".tmp",
       ".data",

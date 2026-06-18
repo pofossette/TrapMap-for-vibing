@@ -52,7 +52,7 @@ export const ALL_SERVICES: readonly ServiceName[] = [
 // ---------------------------------------------------------------------------
 
 const DEFAULT_PORTS: Record<ServiceName, number> = {
-  'gateway': 4000,
+  gateway: 4000,
   'identity-access': 4001,
   'knowledge-read': 4002,
   'knowledge-write': 4003,

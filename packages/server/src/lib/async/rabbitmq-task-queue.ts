@@ -23,15 +23,8 @@ export interface RabbitMqChannelLike {
     type: string,
     options?: Record<string, unknown>,
   ): Promise<unknown> | unknown;
-  assertQueue(
-    queue: string,
-    options?: Record<string, unknown>,
-  ): Promise<unknown> | unknown;
-  bindQueue(
-    queue: string,
-    exchange: string,
-    pattern: string,
-  ): Promise<unknown> | unknown;
+  assertQueue(queue: string, options?: Record<string, unknown>): Promise<unknown> | unknown;
+  bindQueue(queue: string, exchange: string, pattern: string): Promise<unknown> | unknown;
   publish(
     exchange: string,
     routingKey: string,

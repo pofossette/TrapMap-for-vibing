@@ -6,10 +6,10 @@
  * This module handles all governance write operations.
  */
 
-import type { KnowledgeRepositoryPort, FeedbackRepositoryPort } from '../ports/repo-ports.js';
-import type { GovernanceReviewPort } from '../ports/internal-ports.js';
-import type { AuditLogPort } from '../ports/audit-ports.js';
 import { InvocationError } from '../invocation/invocation-model.js';
+import type { AuditLogPort } from '../ports/audit-ports.js';
+import type { GovernanceReviewPort } from '../ports/internal-ports.js';
+import type { FeedbackRepositoryPort, KnowledgeRepositoryPort } from '../ports/repo-ports.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)

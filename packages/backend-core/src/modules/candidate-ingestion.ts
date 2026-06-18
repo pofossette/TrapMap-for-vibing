@@ -5,12 +5,12 @@
  * This module handles all candidate lifecycle operations.
  */
 
-import type { CandidateRepositoryPort } from '../ports/repo-ports.js';
-import type { CandidateIngestionPort } from '../ports/internal-ports.js';
-import type { AuditLogPort } from '../ports/audit-ports.js';
-import type { QueuePorts } from '../ports/queue-ports.js';
-import { InvocationError } from '../invocation/invocation-model.js';
 import type { CandidateStatus, CandidateSubmission } from '@trapmap/contracts';
+import { InvocationError } from '../invocation/invocation-model.js';
+import type { AuditLogPort } from '../ports/audit-ports.js';
+import type { CandidateIngestionPort } from '../ports/internal-ports.js';
+import type { QueuePorts } from '../ports/queue-ports.js';
+import type { CandidateRepositoryPort } from '../ports/repo-ports.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)
@@ -35,7 +35,9 @@ export const CANDIDATE_INGESTION_MODULE = {
 /**
  * Create a CandidateIngestionPort backed by the given dependencies.
  */
-export function createCandidateIngestionModule(deps: CandidateIngestionDeps): CandidateIngestionPort {
+export function createCandidateIngestionModule(
+  deps: CandidateIngestionDeps,
+): CandidateIngestionPort {
   return {
     async submit(candidate: CandidateSubmission) {
       await deps.candidateRepo.insert(candidate);

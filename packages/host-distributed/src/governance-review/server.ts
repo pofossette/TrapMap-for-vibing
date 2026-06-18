@@ -1,10 +1,10 @@
-import Fastify, { type FastifyInstance } from 'fastify';
 import { createGovernanceReviewModule } from '@trapmap/backend-core';
+import Fastify, { type FastifyInstance } from 'fastify';
 import type { ServiceConfig } from '../config/index.js';
 import type { ServiceDatabase } from '../shared/database.js';
+import { createServicePorts } from '../shared/ports.js';
 import { createGovernanceReviewDeps } from './ports.js';
 import { registerRoutes } from './routes.js';
-import { createServicePorts } from '../shared/ports.js';
 
 export interface GovernanceReviewServer {
   app: FastifyInstance;
@@ -12,7 +12,10 @@ export interface GovernanceReviewServer {
   close(): Promise<void>;
 }
 
-export async function createServer(config: ServiceConfig, db: ServiceDatabase): Promise<GovernanceReviewServer> {
+export async function createServer(
+  config: ServiceConfig,
+  db: ServiceDatabase,
+): Promise<GovernanceReviewServer> {
   const app = Fastify({ logger: { level: config.logLevel } });
   const ports = createServicePorts(db.pool);
   const deps = createGovernanceReviewDeps(ports);
@@ -20,7 +23,11 @@ export async function createServer(config: ServiceConfig, db: ServiceDatabase): 
   registerRoutes(app, module);
   return {
     app,
-    async start() { await app.listen({ port: config.port, host: config.host }); },
-    async close() { await app.close(); },
+    async start() {
+      await app.listen({ port: config.port, host: config.host });
+    },
+    async close() {
+      await app.close();
+    },
   };
 }

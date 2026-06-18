@@ -6,6 +6,14 @@
  * that host assemblies implement.
  */
 
+import { InvocationError } from '../invocation/invocation-model.js';
+import type {
+  PermissionCheckPort,
+  SessionLookupPort,
+  TeamLookupPort,
+} from '../ports/actor-ports.js';
+import type { AuditLogPort } from '../ports/audit-ports.js';
+import type { IdentityAccessPort } from '../ports/internal-ports.js';
 import type {
   AccessKeyRepositoryPort,
   MembershipRepositoryPort,
@@ -13,10 +21,6 @@ import type {
   TeamRepositoryPort,
   UserRepositoryPort,
 } from '../ports/repo-ports.js';
-import type { PermissionCheckPort, SessionLookupPort, TeamLookupPort } from '../ports/actor-ports.js';
-import type { AuditLogPort } from '../ports/audit-ports.js';
-import type { IdentityAccessPort } from '../ports/internal-ports.js';
-import { InvocationError } from '../invocation/invocation-model.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)
@@ -101,12 +105,14 @@ export function createIdentityAccessModule(deps: IdentityAccessDeps): IdentityAc
 
     async listTeams(userId: string) {
       const memberships = await deps.membershipRepo.listByUser(userId);
-      const teams = await Promise.all(
-        memberships.map((m) => deps.teamRepo.getById(m.teamId)),
-      );
+      const teams = await Promise.all(memberships.map((m) => deps.teamRepo.getById(m.teamId)));
       return teams
         .filter((t): t is NonNullable<typeof t> => t !== null)
-        .map((t) => ({ id: t.id, slug: t.slug, name: (t as Record<string, unknown>).name as string ?? t.slug }));
+        .map((t) => ({
+          id: t.id,
+          slug: t.slug,
+          name: ((t as Record<string, unknown>).name as string) ?? t.slug,
+        }));
     },
 
     async addMember(teamId: string, userId: string, role: string, actorId: string) {
@@ -126,7 +132,10 @@ export function createIdentityAccessModule(deps: IdentityAccessDeps): IdentityAc
     },
 
     async updateMember(memberId: string, updates: Record<string, unknown>, actorId: string) {
-      await deps.membershipRepo.update(memberId, updates as Parameters<MembershipRepositoryPort['update']>[1]);
+      await deps.membershipRepo.update(
+        memberId,
+        updates as Parameters<MembershipRepositoryPort['update']>[1],
+      );
       await deps.auditLog.record({
         action: 'member.update',
         actorId,

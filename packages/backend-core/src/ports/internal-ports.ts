@@ -42,7 +42,11 @@ export interface IdentityAccessPort {
 export interface KnowledgeReadPort {
   getById(entryId: string): Promise<KnowledgeEntryRecord | null>;
   listMine(userId: string, teamId?: string): Promise<KnowledgeEntryRecord[]>;
-  search(params: { query: string; teamId?: string; limit?: number }): Promise<RetrievalSearchResponse>;
+  search(params: {
+    query: string;
+    teamId?: string;
+    limit?: number;
+  }): Promise<RetrievalSearchResponse>;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,19 +70,11 @@ export interface KnowledgeWritePort {
     [key: string]: unknown;
   }): Promise<{ entryId: string }>;
 
-  updateEntry(
-    entryId: string,
-    updates: KnowledgeEntryUpdate,
-    actorId: string,
-  ): Promise<void>;
+  updateEntry(entryId: string, updates: KnowledgeEntryUpdate, actorId: string): Promise<void>;
 
   resubmit(entryId: string, input: KnowledgeEntryUpdate, actorId: string): Promise<void>;
 
-  supersede(
-    entryId: string,
-    replacementId: string,
-    actorId: string,
-  ): Promise<void>;
+  supersede(entryId: string, replacementId: string, actorId: string): Promise<void>;
 
   createTrap(input: {
     content: string;
@@ -143,11 +139,15 @@ export interface JobRuntimePort {
    * Schedule a named job with the given payload.
    * Returns a job ID for tracking.
    */
-  schedule(type: string, payload: unknown, options?: {
-    delayMs?: number;
-    priority?: number;
-    maxAttempts?: number;
-  }): Promise<string>;
+  schedule(
+    type: string,
+    payload: unknown,
+    options?: {
+      delayMs?: number;
+      priority?: number;
+      maxAttempts?: number;
+    },
+  ): Promise<string>;
 
   /**
    * Get the status of a scheduled job.

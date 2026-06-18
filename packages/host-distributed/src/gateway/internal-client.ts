@@ -79,8 +79,16 @@ export interface InternalServiceClients {
     selectTeam(body: { sessionToken: string; teamId: string }): Promise<ServiceResponse>;
     createTeam(body: { name: string; slug: string; actorId: string }): Promise<ServiceResponse>;
     listTeams(userId: string): Promise<ServiceResponse>;
-    addMember(body: { teamId: string; userId: string; role: string; actorId: string }): Promise<ServiceResponse>;
-    updateMember(memberId: string, body: { updates: Record<string, unknown>; actorId: string }): Promise<ServiceResponse>;
+    addMember(body: {
+      teamId: string;
+      userId: string;
+      role: string;
+      actorId: string;
+    }): Promise<ServiceResponse>;
+    updateMember(
+      memberId: string,
+      body: { updates: Record<string, unknown>; actorId: string },
+    ): Promise<ServiceResponse>;
     provisionAccessKey(body: { memberId: string; actorId: string }): Promise<ServiceResponse>;
   };
   knowledgeRead: {
@@ -89,11 +97,28 @@ export interface InternalServiceClients {
     search(body: { query: string; teamId?: string; limit?: number }): Promise<ServiceResponse>;
   };
   knowledgeWrite: {
-    submit(body: { content: string; actorId: string; title?: string; labels?: string[]; teamId?: string }): Promise<ServiceResponse>;
-    updateEntry(entryId: string, body: { updates: Record<string, unknown>; actorId: string }): Promise<ServiceResponse>;
+    submit(body: {
+      content: string;
+      actorId: string;
+      title?: string;
+      labels?: string[];
+      teamId?: string;
+    }): Promise<ServiceResponse>;
+    updateEntry(
+      entryId: string,
+      body: { updates: Record<string, unknown>; actorId: string },
+    ): Promise<ServiceResponse>;
     resubmit(entryId: string, body: { actorId: string; note?: string }): Promise<ServiceResponse>;
-    supersede(entryId: string, body: { replacementId: string; actorId: string }): Promise<ServiceResponse>;
-    createTrap(body: { content: string; teamId: string; actorId: string; title?: string }): Promise<ServiceResponse>;
+    supersede(
+      entryId: string,
+      body: { replacementId: string; actorId: string },
+    ): Promise<ServiceResponse>;
+    createTrap(body: {
+      content: string;
+      teamId: string;
+      actorId: string;
+      title?: string;
+    }): Promise<ServiceResponse>;
     listTraps(teamId: string): Promise<ServiceResponse>;
     getTrap(trapId: string): Promise<ServiceResponse>;
   };
@@ -101,17 +126,39 @@ export interface InternalServiceClients {
     submit(body: { id: string; content: string; submittedBy: string }): Promise<ServiceResponse>;
     getById(candidateId: string): Promise<ServiceResponse>;
     listByStatus(status: string): Promise<ServiceResponse>;
-    applyResolution(candidateId: string, body: { resolution: Record<string, unknown>; actorId: string }): Promise<ServiceResponse>;
-    submitManualResult(candidateId: string, body: { result: Record<string, unknown>; actorId: string }): Promise<ServiceResponse>;
+    applyResolution(
+      candidateId: string,
+      body: { resolution: Record<string, unknown>; actorId: string },
+    ): Promise<ServiceResponse>;
+    submitManualResult(
+      candidateId: string,
+      body: { result: Record<string, unknown>; actorId: string },
+    ): Promise<ServiceResponse>;
   };
   governanceReview: {
     approve(body: { entryId: string; actorId: string; note?: string }): Promise<ServiceResponse>;
     reject(body: { entryId: string; actorId: string; note?: string }): Promise<ServiceResponse>;
-    reviewArtifact(body: { artifactId: string; decision: 'approve' | 'reject'; actorId: string; note?: string }): Promise<ServiceResponse>;
-    submitFeedback(body: { entryId: string; problemType: string; description: string; actorId: string }): Promise<ServiceResponse>;
+    reviewArtifact(body: {
+      artifactId: string;
+      decision: 'approve' | 'reject';
+      actorId: string;
+      note?: string;
+    }): Promise<ServiceResponse>;
+    submitFeedback(body: {
+      entryId: string;
+      problemType: string;
+      description: string;
+      actorId: string;
+    }): Promise<ServiceResponse>;
   };
   jobRuntime: {
-    schedule(body: { type: string; payload: unknown; delayMs?: number; priority?: number; maxAttempts?: number }): Promise<ServiceResponse>;
+    schedule(body: {
+      type: string;
+      payload: unknown;
+      delayMs?: number;
+      priority?: number;
+      maxAttempts?: number;
+    }): Promise<ServiceResponse>;
     getStatus(jobId: string): Promise<ServiceResponse>;
     getQueueStatus(): Promise<ServiceResponse>;
   };
@@ -123,41 +170,89 @@ export interface InternalServiceClients {
 export function createInternalServiceClients(urls: InternalServiceUrls): InternalServiceClients {
   return {
     identityAccess: {
-      login: (body) => callInternalService(`${urls.identityAccess}/internal/auth/login`, 'POST', body),
-      logout: (body) => callInternalService(`${urls.identityAccess}/internal/auth/logout`, 'POST', body),
-      selectTeam: (body) => callInternalService(`${urls.identityAccess}/internal/auth/select-team`, 'POST', body),
-      createTeam: (body) => callInternalService(`${urls.identityAccess}/internal/teams`, 'POST', body),
-      listTeams: (userId) => callInternalService(`${urls.identityAccess}/internal/teams`, 'GET', undefined, { userId }),
-      addMember: (body) => callInternalService(`${urls.identityAccess}/internal/members`, 'POST', body),
-      updateMember: (memberId, body) => callInternalService(`${urls.identityAccess}/internal/members/${memberId}`, 'PUT', body),
-      provisionAccessKey: (body) => callInternalService(`${urls.identityAccess}/internal/access-keys`, 'POST', body),
+      login: (body) =>
+        callInternalService(`${urls.identityAccess}/internal/auth/login`, 'POST', body),
+      logout: (body) =>
+        callInternalService(`${urls.identityAccess}/internal/auth/logout`, 'POST', body),
+      selectTeam: (body) =>
+        callInternalService(`${urls.identityAccess}/internal/auth/select-team`, 'POST', body),
+      createTeam: (body) =>
+        callInternalService(`${urls.identityAccess}/internal/teams`, 'POST', body),
+      listTeams: (userId) =>
+        callInternalService(`${urls.identityAccess}/internal/teams`, 'GET', undefined, { userId }),
+      addMember: (body) =>
+        callInternalService(`${urls.identityAccess}/internal/members`, 'POST', body),
+      updateMember: (memberId, body) =>
+        callInternalService(`${urls.identityAccess}/internal/members/${memberId}`, 'PUT', body),
+      provisionAccessKey: (body) =>
+        callInternalService(`${urls.identityAccess}/internal/access-keys`, 'POST', body),
     },
     knowledgeRead: {
-      getById: (entryId) => callInternalService(`${urls.knowledgeRead}/internal/knowledge/${entryId}`, 'GET'),
-      listMine: (userId, teamId) => callInternalService(`${urls.knowledgeRead}/internal/knowledge/mine`, 'GET', undefined, { userId, ...(teamId ? { teamId } : {}) }),
-      search: (body) => callInternalService(`${urls.knowledgeRead}/internal/retrieval/search`, 'POST', body),
+      getById: (entryId) =>
+        callInternalService(`${urls.knowledgeRead}/internal/knowledge/${entryId}`, 'GET'),
+      listMine: (userId, teamId) =>
+        callInternalService(`${urls.knowledgeRead}/internal/knowledge/mine`, 'GET', undefined, {
+          userId,
+          ...(teamId ? { teamId } : {}),
+        }),
+      search: (body) =>
+        callInternalService(`${urls.knowledgeRead}/internal/retrieval/search`, 'POST', body),
     },
     knowledgeWrite: {
-      submit: (body) => callInternalService(`${urls.knowledgeWrite}/internal/knowledge`, 'POST', body),
-      updateEntry: (entryId, body) => callInternalService(`${urls.knowledgeWrite}/internal/knowledge/${entryId}`, 'PUT', body),
-      resubmit: (entryId, body) => callInternalService(`${urls.knowledgeWrite}/internal/knowledge/${entryId}/resubmit`, 'POST', body),
-      supersede: (entryId, body) => callInternalService(`${urls.knowledgeWrite}/internal/knowledge/${entryId}/supersede`, 'POST', body),
-      createTrap: (body) => callInternalService(`${urls.knowledgeWrite}/internal/traps`, 'POST', body),
-      listTraps: (teamId) => callInternalService(`${urls.knowledgeWrite}/internal/traps`, 'GET', undefined, { teamId }),
-      getTrap: (trapId) => callInternalService(`${urls.knowledgeWrite}/internal/traps/${trapId}`, 'GET'),
+      submit: (body) =>
+        callInternalService(`${urls.knowledgeWrite}/internal/knowledge`, 'POST', body),
+      updateEntry: (entryId, body) =>
+        callInternalService(`${urls.knowledgeWrite}/internal/knowledge/${entryId}`, 'PUT', body),
+      resubmit: (entryId, body) =>
+        callInternalService(
+          `${urls.knowledgeWrite}/internal/knowledge/${entryId}/resubmit`,
+          'POST',
+          body,
+        ),
+      supersede: (entryId, body) =>
+        callInternalService(
+          `${urls.knowledgeWrite}/internal/knowledge/${entryId}/supersede`,
+          'POST',
+          body,
+        ),
+      createTrap: (body) =>
+        callInternalService(`${urls.knowledgeWrite}/internal/traps`, 'POST', body),
+      listTraps: (teamId) =>
+        callInternalService(`${urls.knowledgeWrite}/internal/traps`, 'GET', undefined, { teamId }),
+      getTrap: (trapId) =>
+        callInternalService(`${urls.knowledgeWrite}/internal/traps/${trapId}`, 'GET'),
     },
     candidateIngestion: {
-      submit: (body) => callInternalService(`${urls.candidateIngestion}/internal/candidates`, 'POST', body),
-      getById: (candidateId) => callInternalService(`${urls.candidateIngestion}/internal/candidates/${candidateId}`, 'GET'),
-      listByStatus: (status) => callInternalService(`${urls.candidateIngestion}/internal/candidates`, 'GET', undefined, { status }),
-      applyResolution: (candidateId, body) => callInternalService(`${urls.candidateIngestion}/internal/candidates/${candidateId}/resolution`, 'POST', body),
-      submitManualResult: (candidateId, body) => callInternalService(`${urls.candidateIngestion}/internal/candidates/${candidateId}/manual-result`, 'POST', body),
+      submit: (body) =>
+        callInternalService(`${urls.candidateIngestion}/internal/candidates`, 'POST', body),
+      getById: (candidateId) =>
+        callInternalService(`${urls.candidateIngestion}/internal/candidates/${candidateId}`, 'GET'),
+      listByStatus: (status) =>
+        callInternalService(`${urls.candidateIngestion}/internal/candidates`, 'GET', undefined, {
+          status,
+        }),
+      applyResolution: (candidateId, body) =>
+        callInternalService(
+          `${urls.candidateIngestion}/internal/candidates/${candidateId}/resolution`,
+          'POST',
+          body,
+        ),
+      submitManualResult: (candidateId, body) =>
+        callInternalService(
+          `${urls.candidateIngestion}/internal/candidates/${candidateId}/manual-result`,
+          'POST',
+          body,
+        ),
     },
     governanceReview: {
-      approve: (body) => callInternalService(`${urls.governanceReview}/internal/review/approve`, 'POST', body),
-      reject: (body) => callInternalService(`${urls.governanceReview}/internal/review/reject`, 'POST', body),
-      reviewArtifact: (body) => callInternalService(`${urls.governanceReview}/internal/review/artifact`, 'POST', body),
-      submitFeedback: (body) => callInternalService(`${urls.governanceReview}/internal/feedback`, 'POST', body),
+      approve: (body) =>
+        callInternalService(`${urls.governanceReview}/internal/review/approve`, 'POST', body),
+      reject: (body) =>
+        callInternalService(`${urls.governanceReview}/internal/review/reject`, 'POST', body),
+      reviewArtifact: (body) =>
+        callInternalService(`${urls.governanceReview}/internal/review/artifact`, 'POST', body),
+      submitFeedback: (body) =>
+        callInternalService(`${urls.governanceReview}/internal/feedback`, 'POST', body),
     },
     jobRuntime: {
       schedule: (body) => callInternalService(`${urls.jobRuntime}/internal/jobs`, 'POST', body),

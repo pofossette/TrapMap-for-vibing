@@ -14,7 +14,9 @@ vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(),
   updateCliState: vi.fn(),
   clearSession: vi.fn(),
-  resolveCliGatewayUrl: vi.fn((state) => state.gatewayUrl ?? state.serverUrl ?? 'http://localhost:3000'),
+  resolveCliGatewayUrl: vi.fn(
+    (state) => state.gatewayUrl ?? state.serverUrl ?? 'http://localhost:3000',
+  ),
 }));
 
 import { clearSession } from '@trapmap/cli/lib/config.js';

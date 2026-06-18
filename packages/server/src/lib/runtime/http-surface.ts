@@ -8,8 +8,8 @@ import { getOrCreateRequestContext } from './request-context.js';
 import type { RouteFamilyDescriptor } from './route-surface.js';
 import { snapshotRuntimeWorker } from './runtime-contract.js';
 import { buildRuntimeStatusSnapshot, resolveAsyncWorkerState } from './runtime-metadata.js';
-import { getServiceUnitProfile } from './service-unit.js';
 import { buildServiceTopologySnapshot } from './service-topology.js';
+import { getServiceUnitProfile } from './service-unit.js';
 
 interface RouteSurfaceSummary {
   routeSurface: 'minimal-agent' | 'gateway-core' | 'worker-status';

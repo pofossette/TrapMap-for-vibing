@@ -1,30 +1,34 @@
 import { describe, expect, it } from 'vitest';
+import { InvocationError } from '../invocation/invocation-model.js';
 import {
-  resolveRuntimeDeployment,
-  resolveDeploymentProfileCompatibility,
-  shouldBootApiRuntime,
-  shouldBootTaskWorker,
-  shouldBootOutboxWorker,
-  shouldOwnAsyncWork,
-  resolveServiceUnit,
   getServiceUnitProfile,
-  resolveDeploymentPreset,
   resolveAsyncWorkerState,
+  resolveDeploymentPreset,
+  resolveDeploymentProfileCompatibility,
+  resolveRuntimeDeployment,
+  resolveServiceUnit,
+  shouldBootApiRuntime,
+  shouldBootOutboxWorker,
+  shouldBootTaskWorker,
+  shouldOwnAsyncWork,
 } from '../runtime/capability-model.js';
 import {
-  resolveRouteFamilies,
   buildRouteSurfaceSummary,
   getUnsupportedRouteDescriptors,
+  resolveRouteFamilies,
 } from '../runtime/route-surface.js';
 import {
-  buildServiceTopologySnapshot,
   DISTRIBUTED_SERVICES,
   SHARED_INFRASTRUCTURE,
+  buildServiceTopologySnapshot,
 } from '../runtime/topology.js';
-import { InvocationError } from '../invocation/invocation-model.js';
+import {
+  createStubAuditLog,
+  createStubMetrics,
+  createStubRepositoryPorts,
+} from '../testing/test-utils.js';
 import { executeCommand } from '../use-cases/command-handling.js';
 import type { Command } from '../use-cases/command-handling.js';
-import { createStubAuditLog, createStubMetrics, createStubRepositoryPorts } from '../testing/test-utils.js';
 
 describe('runtime/capability-model', () => {
   describe('resolveRuntimeDeployment', () => {
@@ -286,7 +290,9 @@ describe('use-cases/command-handling', () => {
 
   it('executeCommand wraps InvocationError', async () => {
     const cmd: Command<string, number> = {
-      execute: async () => { throw InvocationError.notFound('nope'); },
+      execute: async () => {
+        throw InvocationError.notFound('nope');
+      },
     };
     const result = await executeCommand(cmd, 'hello');
     expect(result.ok).toBe(false);
@@ -297,7 +303,9 @@ describe('use-cases/command-handling', () => {
 
   it('executeCommand wraps unknown errors as internal', async () => {
     const cmd: Command<string, number> = {
-      execute: async () => { throw new Error('boom'); },
+      execute: async () => {
+        throw new Error('boom');
+      },
     };
     const result = await executeCommand(cmd, 'hello');
     expect(result.ok).toBe(false);

@@ -5,7 +5,7 @@
  * backend-core module. Routes delegate directly to the IdentityAccessPort.
  */
 
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type { IdentityAccessPort } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
@@ -14,16 +14,19 @@ import { InvocationError } from '@trapmap/backend-core';
 // Error translation
 // ---------------------------------------------------------------------------
 
-function translateInvocationError(error: unknown): { status: number; body: { error: string; kind: string } } {
+function translateInvocationError(error: unknown): {
+  status: number;
+  body: { error: string; kind: string };
+} {
   if (error instanceof InvocationError) {
     const statusMap: Record<string, number> = {
-      'validation': 400,
+      validation: 400,
       'not-found': 404,
-      'conflict': 409,
-      'forbidden': 403,
-      'timeout': 504,
-      'unavailable': 503,
-      'internal': 500,
+      conflict: 409,
+      forbidden: 403,
+      timeout: 504,
+      unavailable: 503,
+      internal: 500,
     };
     return {
       status: statusMap[error.kind] ?? 500,
@@ -165,7 +168,12 @@ export function registerRoutes(app: FastifyInstance, identityAccessPort: Identit
       if (validationError) {
         return reply.status(400).send(validationError);
       }
-      const body = request.body as { teamId: string; userId: string; role: string; actorId: string };
+      const body = request.body as {
+        teamId: string;
+        userId: string;
+        role: string;
+        actorId: string;
+      };
       await identityAccessPort.addMember(body.teamId, body.userId, body.role, body.actorId);
       return reply.status(201).send({ ok: true });
     } catch (error) {

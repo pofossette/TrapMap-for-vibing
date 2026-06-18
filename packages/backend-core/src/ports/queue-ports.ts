@@ -35,7 +35,10 @@ export interface TaskConsumerHandle {
 
 export interface TaskHandler<T> {
   type: string;
-  handle(task: { id: string; type: string; payload: T; attempt: number }, signal: AbortSignal): Promise<void>;
+  handle(
+    task: { id: string; type: string; payload: T; attempt: number },
+    signal: AbortSignal,
+  ): Promise<void>;
   onDead?(task: { id: string; type: string; payload: T }): Promise<void>;
 }
 

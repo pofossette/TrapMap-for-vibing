@@ -45,9 +45,7 @@ export interface OutputProfile {
 }
 
 const DEFAULT_GATEWAY_URL =
-  process.env.TRAPMAP_GATEWAY_URL ??
-  process.env.TRAPMAP_SERVER_URL ??
-  'http://127.0.0.1:4000';
+  process.env.TRAPMAP_GATEWAY_URL ?? process.env.TRAPMAP_SERVER_URL ?? 'http://127.0.0.1:4000';
 
 function getConfigPath(): string {
   let base: string;
@@ -135,18 +133,18 @@ export async function loadCliState(): Promise<CliState> {
   try {
     const raw = await readFile(configPath, 'utf8');
     const parsed = JSON.parse(raw) as Partial<CliState>;
+    const { serverUrl: _legacyServerUrl, ...parsedWithoutLegacyServerUrl } = parsed;
     const outputProfile = normalizeOutputProfile(parsed.outputProfile);
     const configHadOutputProfile = 'outputProfile' in parsed;
     return {
       ...getDefaultState(),
-      ...parsed,
+      ...parsedWithoutLegacyServerUrl,
       gatewayUrl: normalizeGatewayUrl(parsed),
       ...(outputProfile != null
         ? { outputProfile }
         : configHadOutputProfile
           ? { outputProfile: getDefaultState().outputProfile }
           : {}),
-      serverUrl: undefined,
     };
   } catch {
     return getDefaultState();

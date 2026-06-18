@@ -7,8 +7,8 @@ import { resolveRuntimeDeployment } from './lib/runtime/deployment-profile.js';
 async function start() {
   const config = loadConfig();
   const runtimeDeployment = resolveRuntimeDeployment({
-    profile: config.deployment.profile ?? undefined,
     preset: config.deployment.preset,
+    ...(config.deployment.profile ? { profile: config.deployment.profile } : {}),
   });
   const runtimeMode = runtimeDeployment.runtimeMode;
   const serviceUnit = runtimeDeployment.serviceUnit;

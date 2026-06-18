@@ -7,20 +7,29 @@
  */
 
 import type {
-  KnowledgeRepositoryPort,
-  CandidateRepositoryPort,
-  SessionRepositoryPort,
-  AccessKeyRepositoryPort,
-  TeamRepositoryPort,
-  MembershipRepositoryPort,
-  UserRepositoryPort,
-  FeedbackRepositoryPort,
-  AuditRepositoryPort,
-} from '../ports/repo-ports.js';
-import type { TaskQueuePort, TaskStatusSnapshot, OutboxPort, OutboxStatusSnapshot } from '../ports/queue-ports.js';
+  PermissionCheckPort,
+  SessionLookupPort,
+  TeamLookupPort,
+} from '../ports/actor-ports.js';
 import type { AuditLogPort } from '../ports/audit-ports.js';
 import type { MetricsPort } from '../ports/audit-ports.js';
-import type { SessionLookupPort, TeamLookupPort, PermissionCheckPort } from '../ports/actor-ports.js';
+import type {
+  OutboxPort,
+  OutboxStatusSnapshot,
+  TaskQueuePort,
+  TaskStatusSnapshot,
+} from '../ports/queue-ports.js';
+import type {
+  AccessKeyRepositoryPort,
+  AuditRepositoryPort,
+  CandidateRepositoryPort,
+  FeedbackRepositoryPort,
+  KnowledgeRepositoryPort,
+  MembershipRepositoryPort,
+  SessionRepositoryPort,
+  TeamRepositoryPort,
+  UserRepositoryPort,
+} from '../ports/repo-ports.js';
 import type { RepositoryPorts } from '../ports/repo-ports.js';
 
 // ---------------------------------------------------------------------------
@@ -28,7 +37,8 @@ import type { RepositoryPorts } from '../ports/repo-ports.js';
 // ---------------------------------------------------------------------------
 
 export function createStubAuditLog(): AuditLogPort {
-  const entries: Array<{ action: string; actorId: string; entityId?: string; timestamp: string }> = [];
+  const entries: Array<{ action: string; actorId: string; entityId?: string; timestamp: string }> =
+    [];
   return {
     async record(entry) {
       entries.push({ ...entry, timestamp: entry.timestamp ?? new Date().toISOString() });
@@ -61,9 +71,15 @@ export function createStubMetrics(): MetricsPort & {
     recordGauge(name, value, _labels) {
       gauges.set(name, value);
     },
-    getCounters() { return counters; },
-    getDurations() { return durations; },
-    getGauges() { return gauges; },
+    getCounters() {
+      return counters;
+    },
+    getDurations() {
+      return durations;
+    },
+    getGauges() {
+      return gauges;
+    },
   };
 }
 
@@ -173,16 +189,36 @@ export function createStubOutbox(): OutboxPort {
 
 export function createStubKnowledgeRepository(): KnowledgeRepositoryPort {
   return {
-    async nextId() { return `k_${Date.now()}`; },
-    async insert(_entry) { /* no-op */ },
-    async getById(_entryId) { return null; },
-    async updateLifecycle(_entryId, _newState, _context) { return {} as never; },
-    async appendRevision(_entryId, _revision) { /* no-op */ },
-    async appendLifecycleEvent(_entryId, _event) { /* no-op */ },
-    async listByFilter(_filter) { return []; },
-    async updateGovernance(_entryId, _governance) { /* no-op */ },
-    async updateEmbeddingCache(_entryId, _cache) { /* no-op */ },
-    async supersede(_entryId, _input) { return {} as never; },
+    async nextId() {
+      return `k_${Date.now()}`;
+    },
+    async insert(_entry) {
+      /* no-op */
+    },
+    async getById(_entryId) {
+      return null;
+    },
+    async updateLifecycle(_entryId, _newState, _context) {
+      return {} as never;
+    },
+    async appendRevision(_entryId, _revision) {
+      /* no-op */
+    },
+    async appendLifecycleEvent(_entryId, _event) {
+      /* no-op */
+    },
+    async listByFilter(_filter) {
+      return [];
+    },
+    async updateGovernance(_entryId, _governance) {
+      /* no-op */
+    },
+    async updateEmbeddingCache(_entryId, _cache) {
+      /* no-op */
+    },
+    async supersede(_entryId, _input) {
+      return {} as never;
+    },
   };
 }
 
@@ -192,15 +228,33 @@ export function createStubKnowledgeRepository(): KnowledgeRepositoryPort {
 
 export function createStubCandidateRepository(): CandidateRepositoryPort {
   return {
-    async insert(_candidate) { /* no-op */ },
-    async getById(_candidateId) { return null; },
-    async updateStatus(_candidateId, _status, _error) { /* no-op */ },
-    async attachAnalysis(_candidateId, _snapshot) { /* no-op */ },
-    async attachDuplicateCase(_candidateId, _duplicateCase) { /* no-op */ },
-    async attachManualResult(_candidateId, _result, _reviewedBy) { /* no-op */ },
-    async listByStatus(_status) { return []; },
-    async markResolved(_candidateId, _resolvedBy) { /* no-op */ },
-    async findByFingerprint(_fingerprint) { return null; },
+    async insert(_candidate) {
+      /* no-op */
+    },
+    async getById(_candidateId) {
+      return null;
+    },
+    async updateStatus(_candidateId, _status, _error) {
+      /* no-op */
+    },
+    async attachAnalysis(_candidateId, _snapshot) {
+      /* no-op */
+    },
+    async attachDuplicateCase(_candidateId, _duplicateCase) {
+      /* no-op */
+    },
+    async attachManualResult(_candidateId, _result, _reviewedBy) {
+      /* no-op */
+    },
+    async listByStatus(_status) {
+      return [];
+    },
+    async markResolved(_candidateId, _resolvedBy) {
+      /* no-op */
+    },
+    async findByFingerprint(_fingerprint) {
+      return null;
+    },
   };
 }
 
@@ -210,11 +264,21 @@ export function createStubCandidateRepository(): CandidateRepositoryPort {
 
 export function createStubSessionRepository(): SessionRepositoryPort {
   return {
-    async nextId() { return `s_${Date.now()}`; },
-    async create(session) { return { id: 's1', ...session, createdAt: '', updatedAt: '' } as never; },
-    async getByTokenHash(_tokenHash) { return null; },
-    async deleteByTokenHash(_tokenHash) { /* no-op */ },
-    async updateActiveTeam(_sessionId, _teamId) { return {} as never; },
+    async nextId() {
+      return `s_${Date.now()}`;
+    },
+    async create(session) {
+      return { id: 's1', ...session, createdAt: '', updatedAt: '' } as never;
+    },
+    async getByTokenHash(_tokenHash) {
+      return null;
+    },
+    async deleteByTokenHash(_tokenHash) {
+      /* no-op */
+    },
+    async updateActiveTeam(_sessionId, _teamId) {
+      return {} as never;
+    },
   };
 }
 
@@ -224,12 +288,24 @@ export function createStubSessionRepository(): SessionRepositoryPort {
 
 export function createStubAccessKeyRepository(): AccessKeyRepositoryPort {
   return {
-    async nextId() { return `ak_${Date.now()}`; },
-    async insert(_key) { /* no-op */ },
-    async getByTokenHash(_tokenHash) { return null; },
-    async getById(_keyId) { return null; },
-    async revoke(_keyId) { /* no-op */ },
-    async listByMember(_memberId) { return []; },
+    async nextId() {
+      return `ak_${Date.now()}`;
+    },
+    async insert(_key) {
+      /* no-op */
+    },
+    async getByTokenHash(_tokenHash) {
+      return null;
+    },
+    async getById(_keyId) {
+      return null;
+    },
+    async revoke(_keyId) {
+      /* no-op */
+    },
+    async listByMember(_memberId) {
+      return [];
+    },
   };
 }
 
@@ -239,12 +315,24 @@ export function createStubAccessKeyRepository(): AccessKeyRepositoryPort {
 
 export function createStubTeamRepository(): TeamRepositoryPort {
   return {
-    async nextId() { return `t_${Date.now()}`; },
-    async insert(_team) { /* no-op */ },
-    async getById(_teamId) { return null; },
-    async getBySlug(_slug) { return null; },
-    async listAll() { return []; },
-    async update(_teamId, _updates) { /* no-op */ },
+    async nextId() {
+      return `t_${Date.now()}`;
+    },
+    async insert(_team) {
+      /* no-op */
+    },
+    async getById(_teamId) {
+      return null;
+    },
+    async getBySlug(_slug) {
+      return null;
+    },
+    async listAll() {
+      return [];
+    },
+    async update(_teamId, _updates) {
+      /* no-op */
+    },
   };
 }
 
@@ -254,13 +342,27 @@ export function createStubTeamRepository(): TeamRepositoryPort {
 
 export function createStubMembershipRepository(): MembershipRepositoryPort {
   return {
-    async nextId() { return `m_${Date.now()}`; },
-    async insert(_membership) { /* no-op */ },
-    async getById(_membershipId) { return null; },
-    async findByUserAndTeam(_userId, _teamId) { return null; },
-    async listByUser(_userId) { return []; },
-    async listByTeam(_teamId) { return []; },
-    async update(_membershipId, _updates) { /* no-op */ },
+    async nextId() {
+      return `m_${Date.now()}`;
+    },
+    async insert(_membership) {
+      /* no-op */
+    },
+    async getById(_membershipId) {
+      return null;
+    },
+    async findByUserAndTeam(_userId, _teamId) {
+      return null;
+    },
+    async listByUser(_userId) {
+      return [];
+    },
+    async listByTeam(_teamId) {
+      return [];
+    },
+    async update(_membershipId, _updates) {
+      /* no-op */
+    },
   };
 }
 
@@ -270,11 +372,21 @@ export function createStubMembershipRepository(): MembershipRepositoryPort {
 
 export function createStubUserRepository(): UserRepositoryPort {
   return {
-    async nextId() { return `u_${Date.now()}`; },
-    async insert(_user) { /* no-op */ },
-    async getById(_userId) { return null; },
-    async getByHandle(_handle) { return null; },
-    async update(_userId, _updates) { /* no-op */ },
+    async nextId() {
+      return `u_${Date.now()}`;
+    },
+    async insert(_user) {
+      /* no-op */
+    },
+    async getById(_userId) {
+      return null;
+    },
+    async getByHandle(_handle) {
+      return null;
+    },
+    async update(_userId, _updates) {
+      /* no-op */
+    },
   };
 }
 
@@ -284,13 +396,27 @@ export function createStubUserRepository(): UserRepositoryPort {
 
 export function createStubFeedbackRepository(): FeedbackRepositoryPort {
   return {
-    async nextId() { return `f_${Date.now()}`; },
-    async insert(_feedback) { /* no-op */ },
-    async getById(_feedbackId) { return null; },
-    async listByEntry(_entryId) { return []; },
-    async listByStatus(_status) { return []; },
-    async listByFilter(_filter) { return []; },
-    async update(_feedbackId, _updates) { /* no-op */ },
+    async nextId() {
+      return `f_${Date.now()}`;
+    },
+    async insert(_feedback) {
+      /* no-op */
+    },
+    async getById(_feedbackId) {
+      return null;
+    },
+    async listByEntry(_entryId) {
+      return [];
+    },
+    async listByStatus(_status) {
+      return [];
+    },
+    async listByFilter(_filter) {
+      return [];
+    },
+    async update(_feedbackId, _updates) {
+      /* no-op */
+    },
   };
 }
 
@@ -300,10 +426,18 @@ export function createStubFeedbackRepository(): FeedbackRepositoryPort {
 
 export function createStubAuditRepository(): AuditRepositoryPort {
   return {
-    async nextId() { return `ae_${Date.now()}`; },
-    async insert(_event) { /* no-op */ },
-    async getById(_eventId) { return null; },
-    async listByFilter(_filter) { return { items: [], total: 0 }; },
+    async nextId() {
+      return `ae_${Date.now()}`;
+    },
+    async insert(_event) {
+      /* no-op */
+    },
+    async getById(_eventId) {
+      return null;
+    },
+    async listByFilter(_filter) {
+      return { items: [], total: 0 };
+    },
   };
 }
 

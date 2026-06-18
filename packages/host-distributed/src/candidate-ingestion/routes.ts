@@ -5,7 +5,7 @@
  * candidate-ingestion backend-core module.
  */
 
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type { CandidateIngestionPort } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
@@ -15,16 +15,19 @@ import type { CandidateStatus } from '@trapmap/contracts';
 // Error translation
 // ---------------------------------------------------------------------------
 
-function translateInvocationError(error: unknown): { status: number; body: { error: string; kind: string } } {
+function translateInvocationError(error: unknown): {
+  status: number;
+  body: { error: string; kind: string };
+} {
   if (error instanceof InvocationError) {
     const statusMap: Record<string, number> = {
-      'validation': 400,
+      validation: 400,
       'not-found': 404,
-      'conflict': 409,
-      'forbidden': 403,
-      'timeout': 504,
-      'unavailable': 503,
-      'internal': 500,
+      conflict: 409,
+      forbidden: 403,
+      timeout: 504,
+      unavailable: 503,
+      internal: 500,
     };
     return {
       status: statusMap[error.kind] ?? 500,
@@ -42,7 +45,6 @@ function translateInvocationError(error: unknown): { status: number; body: { err
 // ---------------------------------------------------------------------------
 
 export function registerRoutes(app: FastifyInstance, module: CandidateIngestionPort): void {
-
   // POST /internal/candidates
   app.post('/internal/candidates', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -83,30 +85,36 @@ export function registerRoutes(app: FastifyInstance, module: CandidateIngestionP
   });
 
   // POST /internal/candidates/:candidateId/resolution
-  app.post('/internal/candidates/:candidateId/resolution', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const { candidateId } = req.params as { candidateId: string };
-      const body = req.body as { resolution: Record<string, unknown>; actorId: string };
-      await module.applyResolution(candidateId, body.resolution, body.actorId);
-      return reply.status(200).send({ ok: true });
-    } catch (err) {
-      const { status, body } = translateInvocationError(err);
-      return reply.status(status).send(body);
-    }
-  });
+  app.post(
+    '/internal/candidates/:candidateId/resolution',
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const { candidateId } = req.params as { candidateId: string };
+        const body = req.body as { resolution: Record<string, unknown>; actorId: string };
+        await module.applyResolution(candidateId, body.resolution, body.actorId);
+        return reply.status(200).send({ ok: true });
+      } catch (err) {
+        const { status, body } = translateInvocationError(err);
+        return reply.status(status).send(body);
+      }
+    },
+  );
 
   // POST /internal/candidates/:candidateId/manual-result
-  app.post('/internal/candidates/:candidateId/manual-result', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const { candidateId } = req.params as { candidateId: string };
-      const body = req.body as { result: Record<string, unknown>; actorId: string };
-      await module.submitManualResult(candidateId, body.result, body.actorId);
-      return reply.status(200).send({ ok: true });
-    } catch (err) {
-      const { status, body } = translateInvocationError(err);
-      return reply.status(status).send(body);
-    }
-  });
+  app.post(
+    '/internal/candidates/:candidateId/manual-result',
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const { candidateId } = req.params as { candidateId: string };
+        const body = req.body as { result: Record<string, unknown>; actorId: string };
+        await module.submitManualResult(candidateId, body.result, body.actorId);
+        return reply.status(200).send({ ok: true });
+      } catch (err) {
+        const { status, body } = translateInvocationError(err);
+        return reply.status(status).send(body);
+      }
+    },
+  );
 
   // GET /internal/health
   app.get('/internal/health', async (_req: FastifyRequest, reply: FastifyReply) => {

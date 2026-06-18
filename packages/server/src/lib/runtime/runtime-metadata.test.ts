@@ -322,11 +322,12 @@ describe('buildRuntimeStatusSnapshot', () => {
       'governance',
       'outbox-runtime',
     ]);
-    expect(snapshot.topology.distributedServices.find((service) => service.name === 'retrieval'))
-      .toMatchObject({
-        runtimeBoundary: 'logical-service-boundary',
-        notes: expect.stringContaining('logical service boundary'),
-      });
+    expect(
+      snapshot.topology.distributedServices.find((service) => service.name === 'retrieval'),
+    ).toMatchObject({
+      runtimeBoundary: 'logical-service-boundary',
+      notes: expect.stringContaining('logical service boundary'),
+    });
   });
 
   it('integrates distributed candidate worker ownership into topology and dependency state', () => {

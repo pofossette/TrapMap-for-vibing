@@ -16,10 +16,7 @@
  * TODO(Task 05): Add graceful drain, metrics, and dead-letter handling
  */
 
-import type {
-  RuntimeWorkerHandle,
-  OutboxPort,
-} from '@trapmap/backend-core';
+import type { OutboxPort, RuntimeWorkerHandle } from '@trapmap/backend-core';
 
 // ---------------------------------------------------------------------------
 // Outbox configuration

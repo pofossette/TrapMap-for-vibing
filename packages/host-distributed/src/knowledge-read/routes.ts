@@ -6,22 +6,22 @@
  * the public API surface.
  */
 
-import type { FastifyInstance } from 'fastify';
 import { InvocationError } from '@trapmap/backend-core';
 import type { KnowledgeReadPort } from '@trapmap/backend-core';
+import type { FastifyInstance } from 'fastify';
 
 // ---------------------------------------------------------------------------
 // Error kind -> HTTP status mapping
 // ---------------------------------------------------------------------------
 
 const ERROR_STATUS: Record<string, number> = {
-  'validation': 400,
+  validation: 400,
   'not-found': 404,
-  'conflict': 409,
-  'forbidden': 403,
-  'timeout': 504,
-  'unavailable': 503,
-  'internal': 500,
+  conflict: 409,
+  forbidden: 403,
+  timeout: 504,
+  unavailable: 503,
+  internal: 500,
 };
 
 function errorToStatus(err: unknown): number {
@@ -61,7 +61,9 @@ export function registerRoutes(app: FastifyInstance, module: KnowledgeReadPort):
     try {
       const { userId, teamId } = request.query;
       if (!userId) {
-        return reply.status(400).send({ error: 'validation', message: 'userId query parameter is required' });
+        return reply
+          .status(400)
+          .send({ error: 'validation', message: 'userId query parameter is required' });
       }
       const entries = await module.listMine(userId, teamId);
       return reply.send(entries);
@@ -80,7 +82,9 @@ export function registerRoutes(app: FastifyInstance, module: KnowledgeReadPort):
     try {
       const { query, teamId, limit } = request.body;
       if (!query) {
-        return reply.status(400).send({ error: 'validation', message: 'query is required in request body' });
+        return reply
+          .status(400)
+          .send({ error: 'validation', message: 'query is required in request body' });
       }
       const results = await module.search({
         query,

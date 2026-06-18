@@ -1,10 +1,10 @@
-import Fastify, { type FastifyInstance } from 'fastify';
 import { createJobRuntimeModule } from '@trapmap/backend-core';
+import Fastify, { type FastifyInstance } from 'fastify';
 import type { ServiceConfig } from '../config/index.js';
 import type { ServiceDatabase } from '../shared/database.js';
+import { createServicePorts } from '../shared/ports.js';
 import { createJobRuntimeDeps } from './ports.js';
 import { registerRoutes } from './routes.js';
-import { createServicePorts } from '../shared/ports.js';
 
 export interface JobRuntimeServer {
   app: FastifyInstance;
@@ -12,7 +12,10 @@ export interface JobRuntimeServer {
   close(): Promise<void>;
 }
 
-export async function createServer(config: ServiceConfig, db: ServiceDatabase): Promise<JobRuntimeServer> {
+export async function createServer(
+  config: ServiceConfig,
+  db: ServiceDatabase,
+): Promise<JobRuntimeServer> {
   const app = Fastify({ logger: { level: config.logLevel } });
   const ports = createServicePorts(db.pool);
   const deps = createJobRuntimeDeps(ports);
@@ -20,7 +23,11 @@ export async function createServer(config: ServiceConfig, db: ServiceDatabase): 
   registerRoutes(app, module);
   return {
     app,
-    async start() { await app.listen({ port: config.port, host: config.host }); },
-    async close() { await app.close(); },
+    async start() {
+      await app.listen({ port: config.port, host: config.host });
+    },
+    async close() {
+      await app.close();
+    },
   };
 }

@@ -16,10 +16,7 @@
  * TODO(Task 05): Add graceful drain, metrics, and retry logic
  */
 
-import type {
-  RuntimeWorkerHandle,
-  TaskQueuePort,
-} from '@trapmap/backend-core';
+import type { RuntimeWorkerHandle, TaskQueuePort } from '@trapmap/backend-core';
 
 // ---------------------------------------------------------------------------
 // Worker configuration

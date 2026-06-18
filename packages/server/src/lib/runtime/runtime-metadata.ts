@@ -7,9 +7,9 @@ import type { ResolvedRuntimeDeployment } from './deployment-profile.js';
 import type { RouteFamilyDescriptor } from './route-surface.js';
 import { buildRouteSurfaceSummary } from './route-surface.js';
 import type { RuntimeMode } from './runtime-contract.js';
-import type { ServiceUnit, ServiceUnitProfile } from './service-unit.js';
 import type { ServiceTopologySnapshot } from './service-topology.js';
 import { buildServiceTopologySnapshot } from './service-topology.js';
+import type { ServiceUnit, ServiceUnitProfile } from './service-unit.js';
 export { resolveAsyncWorkerState } from './runtime-ownership.js';
 
 export interface RuntimeDependencyState {
@@ -156,8 +156,7 @@ export function buildRuntimeStatusSnapshot(
         preset: options.runtimeDeployment.preset,
         routeSurface: options.runtimeDeployment.capabilities.routeSurface,
         routeFamilies: routeSurfaceSummary.routeFamilies,
-        asyncOwnershipExpectation:
-          options.runtimeDeployment.capabilities.asyncOwnershipExpectation,
+        asyncOwnershipExpectation: options.runtimeDeployment.capabilities.asyncOwnershipExpectation,
         storagePosture: options.runtimeDeployment.capabilities.storagePosture,
         authTeamExpectation: options.runtimeDeployment.capabilities.authTeamExpectation,
         publicGatewayRouteCount: routeSurfaceSummary.publicGatewayRouteCount,

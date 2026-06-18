@@ -207,14 +207,18 @@ function buildCurrentServiceDescriptor(args: {
       ownsOutboxWork: false,
       runtimeBoundary: 'dedicated-runtime',
       ownershipMode: 'local-only',
-      notes: 'Local-agent trims the gateway to retrieval-first routes and returns capability_unsupported for omitted surfaces.',
+      notes:
+        'Local-agent trims the gateway to retrieval-first routes and returns capability_unsupported for omitted surfaces.',
     };
   }
 
   if (args.deployment.deploymentProfile === 'team-monolith') {
     return {
       name,
-      surface: args.runtimeMode === 'api' || args.runtimeMode === 'combined' ? 'gateway-public' : 'worker-internal',
+      surface:
+        args.runtimeMode === 'api' || args.runtimeMode === 'combined'
+          ? 'gateway-public'
+          : 'worker-internal',
       responsibilities: [
         'Single-instance team deployment surface',
         'Gateway and internal services may share one process',
@@ -231,7 +235,8 @@ function buildCurrentServiceDescriptor(args: {
         args.serviceUnitProfile.ownsOutboxWork
           ? 'local-worker-owned'
           : 'local-only',
-      notes: 'Team-monolith may co-locate gateway, retrieval, governance, and worker ownership inside one process.',
+      notes:
+        'Team-monolith may co-locate gateway, retrieval, governance, and worker ownership inside one process.',
     };
   }
 

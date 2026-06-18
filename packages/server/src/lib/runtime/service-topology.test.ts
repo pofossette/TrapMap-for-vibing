@@ -126,7 +126,9 @@ describe('service topology snapshot', () => {
       'governance',
       'outbox-runtime',
     ]);
-    expect(topology.distributedServices.find((service) => service.name === 'retrieval')).toMatchObject({
+    expect(
+      topology.distributedServices.find((service) => service.name === 'retrieval'),
+    ).toMatchObject({
       runtimeBoundary: 'logical-service-boundary',
       notes: expect.stringContaining('not a dedicated runtime binary'),
     });

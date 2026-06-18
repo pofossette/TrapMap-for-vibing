@@ -62,8 +62,10 @@ function resolveDeploymentCapabilities(
   const taskRuntime = runtimeMode === 'task-worker' || runtimeMode === 'combined';
   const outboxRuntime = runtimeMode === 'outbox-worker' || runtimeMode === 'combined';
   const workerStatusOnly = runtimeMode === 'task-worker' || runtimeMode === 'outbox-worker';
-  const ownsCandidateTaskWork = serviceUnit === 'full-platform' || serviceUnit === 'candidate-ingestion';
-  const ownsSharedJobTaskWork = serviceUnit === 'full-platform' || serviceUnit === 'knowledge-governance';
+  const ownsCandidateTaskWork =
+    serviceUnit === 'full-platform' || serviceUnit === 'candidate-ingestion';
+  const ownsSharedJobTaskWork =
+    serviceUnit === 'full-platform' || serviceUnit === 'knowledge-governance';
   const ownsOutboxWork = serviceUnit === 'full-platform' || serviceUnit === 'knowledge-governance';
 
   if (deploymentProfile === 'local-agent') {
@@ -155,7 +157,11 @@ function inferDeploymentProfileFromPreset(
         preset: normalizedPreset,
         runtimeMode: 'task-worker',
         serviceUnit: 'candidate-ingestion',
-        capabilities: resolveDeploymentCapabilities('distributed', 'task-worker', 'candidate-ingestion'),
+        capabilities: resolveDeploymentCapabilities(
+          'distributed',
+          'task-worker',
+          'candidate-ingestion',
+        ),
       };
     case 'governance-worker':
       return {
@@ -164,7 +170,11 @@ function inferDeploymentProfileFromPreset(
         preset: normalizedPreset,
         runtimeMode: 'task-worker',
         serviceUnit: 'knowledge-governance',
-        capabilities: resolveDeploymentCapabilities('distributed', 'task-worker', 'knowledge-governance'),
+        capabilities: resolveDeploymentCapabilities(
+          'distributed',
+          'task-worker',
+          'knowledge-governance',
+        ),
       };
     case 'outbox-worker':
       return {
@@ -173,9 +183,12 @@ function inferDeploymentProfileFromPreset(
         preset: normalizedPreset,
         runtimeMode: 'outbox-worker',
         serviceUnit: 'knowledge-governance',
-        capabilities: resolveDeploymentCapabilities('distributed', 'outbox-worker', 'knowledge-governance'),
+        capabilities: resolveDeploymentCapabilities(
+          'distributed',
+          'outbox-worker',
+          'knowledge-governance',
+        ),
       };
-    case 'monolith':
     default:
       return {
         deploymentProfile: 'team-monolith',
@@ -215,15 +228,15 @@ function withRuntimeOverrides(
 }
 
 function buildResolvedRuntimeDeployment(args: {
-  profile: DeploymentProfile | undefined;
+  profile?: DeploymentProfile;
   preset: DeploymentPreset | undefined;
   runtimeMode?: RuntimeMode;
   serviceUnit?: ServiceUnit;
 }): ResolvedRuntimeDeployment {
   if (!args.profile) {
     return withRuntimeOverrides(inferDeploymentProfileFromPreset(args.preset), {
-      runtimeMode: args.runtimeMode,
-      serviceUnit: args.serviceUnit,
+      ...(args.runtimeMode !== undefined ? { runtimeMode: args.runtimeMode } : {}),
+      ...(args.serviceUnit !== undefined ? { serviceUnit: args.serviceUnit } : {}),
     });
   }
 
@@ -251,7 +264,6 @@ function buildResolvedRuntimeDeployment(args: {
         serviceUnit,
         capabilities: resolveDeploymentCapabilities('distributed', runtimeMode, serviceUnit),
       };
-    case 'team-monolith':
     default:
       return {
         deploymentProfile: 'team-monolith',
@@ -276,14 +288,13 @@ function resolveDeploymentPresetShape(
       return { runtimeMode: 'task-worker', serviceUnit: 'knowledge-governance' };
     case 'outbox-worker':
       return { runtimeMode: 'outbox-worker', serviceUnit: 'knowledge-governance' };
-    case 'monolith':
     default:
       return { runtimeMode: 'combined', serviceUnit: 'full-platform' };
   }
 }
 
 export function resolveRuntimeDeployment(args: {
-  profile: DeploymentProfile | undefined;
+  profile?: DeploymentProfile;
   preset: DeploymentPreset | undefined;
   runtimeMode?: RuntimeMode;
   serviceUnit?: ServiceUnit;
@@ -292,7 +303,7 @@ export function resolveRuntimeDeployment(args: {
 }
 
 export function resolveDeploymentProfileCompatibility(args: {
-  profile: DeploymentProfile | undefined;
+  profile?: DeploymentProfile;
   preset: DeploymentPreset | undefined;
 }): DeploymentProfileCompatibility {
   const resolved = resolveRuntimeDeployment(args);
@@ -307,7 +318,6 @@ export function resolveDeploymentProfileCompatibility(args: {
     requiresAsyncOwnership,
     allowsSingleProcess,
     requiresPostgres,
-    minimumPreset:
-      resolved.deploymentProfile === 'distributed' ? 'api' : 'monolith',
+    minimumPreset: resolved.deploymentProfile === 'distributed' ? 'api' : 'monolith',
   };
 }

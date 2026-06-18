@@ -55,13 +55,13 @@ export interface InvocationAck {
  * can act on without inspecting error messages.
  */
 export type InvocationErrorKind =
-  | 'validation'      // Input failed validation
-  | 'not-found'       // Requested resource does not exist
-  | 'conflict'        // State conflict (e.g. invalid lifecycle transition)
-  | 'forbidden'       // Actor lacks required permission
-  | 'timeout'         // Operation exceeded time limit
-  | 'unavailable'     // Downstream dependency is unavailable
-  | 'internal';       // Unexpected internal error
+  | 'validation' // Input failed validation
+  | 'not-found' // Requested resource does not exist
+  | 'conflict' // State conflict (e.g. invalid lifecycle transition)
+  | 'forbidden' // Actor lacks required permission
+  | 'timeout' // Operation exceeded time limit
+  | 'unavailable' // Downstream dependency is unavailable
+  | 'internal'; // Unexpected internal error
 
 export class InvocationError extends Error {
   constructor(

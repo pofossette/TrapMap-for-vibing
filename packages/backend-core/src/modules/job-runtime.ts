@@ -5,9 +5,9 @@
  * This module handles all async job and workflow operations.
  */
 
+import type { AuditLogPort } from '../ports/audit-ports.js';
 import type { JobRuntimePort } from '../ports/internal-ports.js';
 import type { QueuePorts } from '../ports/queue-ports.js';
-import type { AuditLogPort } from '../ports/audit-ports.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)

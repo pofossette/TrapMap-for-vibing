@@ -6,15 +6,15 @@
  * Routes are registered based on deployment profile capabilities.
  */
 
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type {
-  IdentityAccessPort,
-  KnowledgeReadPort,
-  KnowledgeWritePort,
   CandidateIngestionPort,
   GovernanceReviewPort,
+  IdentityAccessPort,
   JobRuntimePort,
+  KnowledgeReadPort,
+  KnowledgeWritePort,
 } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
 import type { ResolvedRuntimeDeployment } from '@trapmap/backend-core';
@@ -36,16 +36,19 @@ export interface GatewayHandlerDeps {
 // Error translation
 // ---------------------------------------------------------------------------
 
-function translateInvocationError(error: unknown): { status: number; body: { error: string; kind: string } } {
+function translateInvocationError(error: unknown): {
+  status: number;
+  body: { error: string; kind: string };
+} {
   if (error instanceof InvocationError) {
     const statusMap: Record<string, number> = {
-      'validation': 400,
+      validation: 400,
       'not-found': 404,
-      'conflict': 409,
-      'forbidden': 403,
-      'timeout': 504,
-      'unavailable': 503,
-      'internal': 500,
+      conflict: 409,
+      forbidden: 403,
+      timeout: 504,
+      unavailable: 503,
+      internal: 500,
     };
     return {
       status: statusMap[error.kind] ?? 500,
@@ -220,7 +223,12 @@ function registerCoreRoutes(app: FastifyInstance, deps: GatewayHandlerDeps): voi
       if (validationError) {
         return reply.status(400).send(validationError);
       }
-      const body = request.body as { teamId: string; userId: string; role: string; actorId: string };
+      const body = request.body as {
+        teamId: string;
+        userId: string;
+        role: string;
+        actorId: string;
+      };
       await deps.identityAccess.addMember(body.teamId, body.userId, body.role, body.actorId);
       return reply.status(201).send({ ok: true });
     } catch (error) {
@@ -262,7 +270,13 @@ function registerCoreRoutes(app: FastifyInstance, deps: GatewayHandlerDeps): voi
       if (validationError) {
         return reply.status(400).send(validationError);
       }
-      const body = request.body as { content: string; title?: string; labels?: string[]; teamId?: string; actorId: string };
+      const body = request.body as {
+        content: string;
+        title?: string;
+        labels?: string[];
+        teamId?: string;
+        actorId: string;
+      };
       const result = await deps.knowledgeWrite.submit(body);
       return reply.status(201).send(result);
     } catch (error) {
@@ -310,7 +324,12 @@ function registerCoreRoutes(app: FastifyInstance, deps: GatewayHandlerDeps): voi
       if (validationError) {
         return reply.status(400).send(validationError);
       }
-      const body = request.body as { entryId: string; decision: 'approve' | 'reject'; actorId: string; note?: string };
+      const body = request.body as {
+        entryId: string;
+        decision: 'approve' | 'reject';
+        actorId: string;
+        note?: string;
+      };
       if (body.decision === 'approve') {
         await deps.governanceReview.approve(body.entryId, body.actorId, body.note);
       } else {

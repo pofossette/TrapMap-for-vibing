@@ -25,14 +25,14 @@ import type { RetrievalStrategy } from './lib/retrieval/orchestration/strategy-r
 import { StrategyRegistry } from './lib/retrieval/orchestration/strategy-registry.js';
 import { keywordChannel } from './lib/retrieval/recall/keyword.js';
 import { semanticChannel } from './lib/retrieval/recall/semantic.js';
+import { resolveRuntimeDeployment } from './lib/runtime/deployment-profile.js';
 import { handleRuntimeError, registerRuntimeRoutes } from './lib/runtime/http-surface.js';
+import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
 import {
   buildRouteSurfaceSummary,
   flattenDocumentedRoutes,
   getUnsupportedRouteDescriptors,
 } from './lib/runtime/route-surface.js';
-import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
-import { resolveRuntimeDeployment } from './lib/runtime/deployment-profile.js';
 import type { RuntimeMode } from './lib/runtime/runtime-contract.js';
 import { type ServiceUnit, resolveServiceUnit } from './lib/runtime/service-unit.js';
 
@@ -120,17 +120,18 @@ export function buildServer(options: BuildServerOptions = {}) {
     options.serviceUnit ??
     config.deployment.resolved?.serviceUnit ??
     process.env.TRAPMAP_SERVICE_UNIT;
-  const runtimeDeployment = resolveRuntimeDeployment({
-    profile: config.deployment.profile ?? undefined,
+  const runtimeDeploymentArgs = {
     preset: config.deployment.preset,
-    runtimeMode:
-      options.runtimeMode ??
-      config.deployment.resolved?.runtimeMode ??
-      undefined,
-    serviceUnit:
-      serviceUnitOverride === undefined
-        ? undefined
-        : resolveServiceUnit(serviceUnitOverride),
+    ...(config.deployment.profile ? { profile: config.deployment.profile } : {}),
+    ...((options.runtimeMode ?? config.deployment.resolved?.runtimeMode) !== undefined
+      ? { runtimeMode: options.runtimeMode ?? config.deployment.resolved?.runtimeMode }
+      : {}),
+    ...(serviceUnitOverride === undefined
+      ? {}
+      : { serviceUnit: resolveServiceUnit(serviceUnitOverride) }),
+  };
+  const runtimeDeployment = resolveRuntimeDeployment({
+    ...runtimeDeploymentArgs,
   });
   config.deployment.resolved = runtimeDeployment;
   const runtimeMode = runtimeDeployment.runtimeMode;

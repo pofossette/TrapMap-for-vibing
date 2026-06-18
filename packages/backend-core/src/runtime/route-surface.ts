@@ -94,7 +94,8 @@ const localAgentUnsupportedRoutes: readonly UnsupportedRouteDescriptor[] = [
   {
     pathPrefix: '/v1/auth',
     capability: 'team-auth',
-    message: 'local-agent only exposes retrieval-first gateway routes; auth and session APIs are unavailable.',
+    message:
+      'local-agent only exposes retrieval-first gateway routes; auth and session APIs are unavailable.',
   },
   {
     pathPrefix: '/v1/teams',
@@ -157,12 +158,14 @@ const workerOnlyUnsupportedRoutes: readonly UnsupportedRouteDescriptor[] = [
   {
     pathPrefix: '/v1/',
     capability: 'gateway-public-api',
-    message: 'This runtime only exposes worker status routes; gateway business APIs are handled by the distributed gateway.',
+    message:
+      'This runtime only exposes worker status routes; gateway business APIs are handled by the distributed gateway.',
   },
   {
     pathPrefix: '/v3/',
     capability: 'gateway-public-api',
-    message: 'This runtime only exposes worker status routes; gateway business APIs are handled by the distributed gateway.',
+    message:
+      'This runtime only exposes worker status routes; gateway business APIs are handled by the distributed gateway.',
   },
 ] as const;
 

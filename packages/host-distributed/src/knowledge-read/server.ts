@@ -6,13 +6,13 @@
  * the internal HTTP routes.
  */
 
-import Fastify, { type FastifyInstance } from 'fastify';
 import { createKnowledgeReadModule } from '@trapmap/backend-core';
+import Fastify, { type FastifyInstance } from 'fastify';
 import type { ServiceConfig } from '../config/index.js';
 import type { ServiceDatabase } from '../shared/database.js';
+import { createServicePorts } from '../shared/ports.js';
 import { createKnowledgeReadDeps } from './ports.js';
 import { registerRoutes } from './routes.js';
-import { createServicePorts } from '../shared/ports.js';
 
 // ---------------------------------------------------------------------------
 // Server interface

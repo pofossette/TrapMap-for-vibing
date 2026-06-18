@@ -6,28 +6,28 @@
  * to wire backend-core modules to real persistence.
  */
 
-import type { Pool } from 'pg';
 import { randomUUID } from 'node:crypto';
+import type { Pool } from 'pg';
 
 import type {
-  RepositoryPorts,
-  KnowledgeRepositoryPort,
-  CandidateRepositoryPort,
-  SessionRepositoryPort,
   AccessKeyRepositoryPort,
-  TeamRepositoryPort,
-  MembershipRepositoryPort,
-  UserRepositoryPort,
-  FeedbackRepositoryPort,
-  AuditRepositoryPort,
-  SessionLookupPort,
-  TeamLookupPort,
-  PermissionCheckPort,
   AuditLogPort,
-  RetrievalQueryPort,
-  TaskQueuePort,
+  AuditRepositoryPort,
+  CandidateRepositoryPort,
+  FeedbackRepositoryPort,
+  KnowledgeRepositoryPort,
+  MembershipRepositoryPort,
   OutboxPort,
+  PermissionCheckPort,
   QueuePorts,
+  RepositoryPorts,
+  RetrievalQueryPort,
+  SessionLookupPort,
+  SessionRepositoryPort,
+  TaskQueuePort,
+  TeamLookupPort,
+  TeamRepositoryPort,
+  UserRepositoryPort,
 } from '@trapmap/backend-core';
 import type { LifecycleState } from '@trapmap/contracts';
 
@@ -87,11 +87,12 @@ function createPgKnowledgeRepo(pool: Pool): KnowledgeRepositoryPort {
       );
     },
     async getById(entryId) {
-      const { rows } = await pool.query(
-        'SELECT * FROM knowledge_entries WHERE id = $1',
-        [entryId],
+      const { rows } = await pool.query('SELECT * FROM knowledge_entries WHERE id = $1', [entryId]);
+      return (
+        (rows[0] as KnowledgeRepositoryPort extends { getById(id: string): Promise<infer R> }
+          ? R
+          : never) ?? null
       );
-      return (rows[0] as KnowledgeRepositoryPort extends { getById(id: string): Promise<infer R> } ? R : never) ?? null;
     },
     async updateLifecycle(entryId, newState: LifecycleState, context) {
       const { rows } = await pool.query(
@@ -102,7 +103,14 @@ function createPgKnowledgeRepo(pool: Pool): KnowledgeRepositoryPort {
       await pool.query(
         `INSERT INTO knowledge_lifecycle_events (id, type, actor_user_id, submission_id, state, note, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-        [generateId('le'), 'lifecycle-change', context.actorId, entryId, newState, context.note ?? null],
+        [
+          generateId('le'),
+          'lifecycle-change',
+          context.actorId,
+          entryId,
+          newState,
+          context.note ?? null,
+        ],
       );
       return rows[0] as never;
     },
@@ -155,7 +163,12 @@ function createPgKnowledgeRepo(pool: Pool): KnowledgeRepositoryPort {
       await pool.query(
         `UPDATE knowledge_entries SET content = $2, title = $3, labels = $4, updated_at = NOW()
          WHERE id = $1`,
-        [entry.id, entry.content, (entry as Record<string, unknown>).title ?? null, JSON.stringify(entry.labels ?? [])],
+        [
+          entry.id,
+          entry.content,
+          (entry as Record<string, unknown>).title ?? null,
+          JSON.stringify(entry.labels ?? []),
+        ],
       );
     },
   };
@@ -184,11 +197,12 @@ function createPgCandidateRepo(pool: Pool): CandidateRepositoryPort {
       );
     },
     async getById(candidateId) {
-      const { rows } = await pool.query(
-        'SELECT * FROM candidates WHERE id = $1',
-        [candidateId],
+      const { rows } = await pool.query('SELECT * FROM candidates WHERE id = $1', [candidateId]);
+      return (
+        (rows[0] as CandidateRepositoryPort extends { getById(id: string): Promise<infer R> }
+          ? R
+          : never) ?? null
       );
-      return (rows[0] as CandidateRepositoryPort extends { getById(id: string): Promise<infer R> } ? R : never) ?? null;
     },
     async updateStatus(candidateId, status, error) {
       await pool.query(
@@ -243,16 +257,26 @@ function createPgSessionRepo(pool: Pool): SessionRepositoryPort {
       await pool.query(
         `INSERT INTO sessions (id, user_id, token_hash, active_team_id, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [id, (session as Record<string, unknown>).userId, session.tokenHash, session.activeTeamId, now, now],
+        [
+          id,
+          (session as Record<string, unknown>).userId,
+          session.tokenHash,
+          session.activeTeamId,
+          now,
+          now,
+        ],
       );
       return { id, ...session, createdAt: now, updatedAt: now } as never;
     },
     async getByTokenHash(tokenHash) {
-      const { rows } = await pool.query(
-        'SELECT * FROM sessions WHERE token_hash = $1',
-        [tokenHash],
+      const { rows } = await pool.query('SELECT * FROM sessions WHERE token_hash = $1', [
+        tokenHash,
+      ]);
+      return (
+        (rows[0] as SessionRepositoryPort extends { getByTokenHash(t: string): Promise<infer R> }
+          ? R
+          : never) ?? null
       );
-      return (rows[0] as SessionRepositoryPort extends { getByTokenHash(t: string): Promise<infer R> } ? R : never) ?? null;
     },
     async deleteByTokenHash(tokenHash) {
       await pool.query('DELETE FROM sessions WHERE token_hash = $1', [tokenHash]);
@@ -284,24 +308,25 @@ function createPgAccessKeyRepo(pool: Pool): AccessKeyRepositoryPort {
       );
     },
     async getByTokenHash(tokenHash) {
-      const { rows } = await pool.query(
-        'SELECT * FROM access_keys WHERE token_hash = $1',
-        [tokenHash],
+      const { rows } = await pool.query('SELECT * FROM access_keys WHERE token_hash = $1', [
+        tokenHash,
+      ]);
+      return (
+        (rows[0] as AccessKeyRepositoryPort extends { getByTokenHash(t: string): Promise<infer R> }
+          ? R
+          : never) ?? null
       );
-      return (rows[0] as AccessKeyRepositoryPort extends { getByTokenHash(t: string): Promise<infer R> } ? R : never) ?? null;
     },
     async getById(keyId) {
-      const { rows } = await pool.query(
-        'SELECT * FROM access_keys WHERE id = $1',
-        [keyId],
+      const { rows } = await pool.query('SELECT * FROM access_keys WHERE id = $1', [keyId]);
+      return (
+        (rows[0] as AccessKeyRepositoryPort extends { getById(id: string): Promise<infer R> }
+          ? R
+          : never) ?? null
       );
-      return (rows[0] as AccessKeyRepositoryPort extends { getById(id: string): Promise<infer R> } ? R : never) ?? null;
     },
     async revoke(keyId) {
-      await pool.query(
-        'UPDATE access_keys SET revoked_at = NOW() WHERE id = $1',
-        [keyId],
-      );
+      await pool.query('UPDATE access_keys SET revoked_at = NOW() WHERE id = $1', [keyId]);
     },
     async listByMember(memberId) {
       const { rows } = await pool.query(
@@ -331,20 +356,26 @@ function createPgTeamRepo(pool: Pool): TeamRepositoryPort {
     },
     async getById(teamId) {
       const { rows } = await pool.query('SELECT * FROM teams WHERE id = $1', [teamId]);
-      return (rows[0] as TeamRepositoryPort extends { getById(id: string): Promise<infer R> } ? R : never) ?? null;
+      return (
+        (rows[0] as TeamRepositoryPort extends { getById(id: string): Promise<infer R> }
+          ? R
+          : never) ?? null
+      );
     },
     async getBySlug(slug) {
       const { rows } = await pool.query('SELECT * FROM teams WHERE slug = $1', [slug]);
-      return (rows[0] as TeamRepositoryPort extends { getBySlug(s: string): Promise<infer R> } ? R : never) ?? null;
+      return (
+        (rows[0] as TeamRepositoryPort extends { getBySlug(s: string): Promise<infer R> }
+          ? R
+          : never) ?? null
+      );
     },
     async listAll() {
       const { rows } = await pool.query('SELECT * FROM teams ORDER BY slug');
       return rows as never[];
     },
     async update(teamId, updates) {
-      const TEAM_ALLOWED_COLUMNS: ReadonlySet<string> = new Set([
-        'name', 'slug', 'description',
-      ]);
+      const TEAM_ALLOWED_COLUMNS: ReadonlySet<string> = new Set(['name', 'slug', 'description']);
       const { clauses, values } = buildSetClauses(
         updates as Record<string, unknown>,
         TEAM_ALLOWED_COLUMNS,
@@ -373,19 +404,34 @@ function createPgMembershipRepo(pool: Pool): MembershipRepositoryPort {
       await pool.query(
         `INSERT INTO memberships (id, user_id, team_id, role, created_at, updated_at)
          VALUES ($1, $2, $3, $4, NOW(), NOW())`,
-        [membership.id, membership.userId, membership.teamId, (membership as Record<string, unknown>).role],
+        [
+          membership.id,
+          membership.userId,
+          membership.teamId,
+          (membership as Record<string, unknown>).role,
+        ],
       );
     },
     async getById(membershipId) {
       const { rows } = await pool.query('SELECT * FROM memberships WHERE id = $1', [membershipId]);
-      return (rows[0] as MembershipRepositoryPort extends { getById(id: string): Promise<infer R> } ? R : never) ?? null;
+      return (
+        (rows[0] as MembershipRepositoryPort extends { getById(id: string): Promise<infer R> }
+          ? R
+          : never) ?? null
+      );
     },
     async findByUserAndTeam(userId, teamId) {
       const { rows } = await pool.query(
         'SELECT * FROM memberships WHERE user_id = $1 AND team_id = $2',
         [userId, teamId],
       );
-      return (rows[0] as MembershipRepositoryPort extends { findByUserAndTeam(u: string, t: string): Promise<infer R> } ? R : never) ?? null;
+      return (
+        (rows[0] as MembershipRepositoryPort extends {
+          findByUserAndTeam(u: string, t: string): Promise<infer R>;
+        }
+          ? R
+          : never) ?? null
+      );
     },
     async listByUser(userId) {
       const { rows } = await pool.query('SELECT * FROM memberships WHERE user_id = $1', [userId]);
@@ -397,7 +443,10 @@ function createPgMembershipRepo(pool: Pool): MembershipRepositoryPort {
     },
     async update(membershipId, updates) {
       const MEMBERSHIP_ALLOWED_COLUMNS: ReadonlySet<string> = new Set([
-        'role', 'security_level', 'permissions', 'notes',
+        'role',
+        'security_level',
+        'permissions',
+        'notes',
       ]);
       const { clauses, values } = buildSetClauses(
         updates as Record<string, unknown>,
@@ -432,16 +481,22 @@ function createPgUserRepo(pool: Pool): UserRepositoryPort {
     },
     async getById(userId) {
       const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-      return (rows[0] as UserRepositoryPort extends { getById(id: string): Promise<infer R> } ? R : never) ?? null;
+      return (
+        (rows[0] as UserRepositoryPort extends { getById(id: string): Promise<infer R> }
+          ? R
+          : never) ?? null
+      );
     },
     async getByHandle(handle) {
       const { rows } = await pool.query('SELECT * FROM users WHERE handle = $1', [handle]);
-      return (rows[0] as UserRepositoryPort extends { getByHandle(h: string): Promise<infer R> } ? R : never) ?? null;
+      return (
+        (rows[0] as UserRepositoryPort extends { getByHandle(h: string): Promise<infer R> }
+          ? R
+          : never) ?? null
+      );
     },
     async update(userId, updates) {
-      const USER_ALLOWED_COLUMNS: ReadonlySet<string> = new Set([
-        'handle', 'notes',
-      ]);
+      const USER_ALLOWED_COLUMNS: ReadonlySet<string> = new Set(['handle', 'notes']);
       const { clauses, values } = buildSetClauses(
         updates as Record<string, unknown>,
         USER_ALLOWED_COLUMNS,
@@ -470,15 +525,27 @@ function createPgFeedbackRepo(pool: Pool): FeedbackRepositoryPort {
       await pool.query(
         `INSERT INTO feedback_queue (id, entry_id, problem_type, description, status, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
-        [feedback.id, feedback.entryId, feedback.problemType, (feedback as Record<string, unknown>).description, feedback.status ?? 'open'],
+        [
+          feedback.id,
+          feedback.entryId,
+          feedback.problemType,
+          (feedback as Record<string, unknown>).description,
+          feedback.status ?? 'open',
+        ],
       );
     },
     async getById(feedbackId) {
       const { rows } = await pool.query('SELECT * FROM feedback_queue WHERE id = $1', [feedbackId]);
-      return (rows[0] as FeedbackRepositoryPort extends { getById(id: string): Promise<infer R> } ? R : never) ?? null;
+      return (
+        (rows[0] as FeedbackRepositoryPort extends { getById(id: string): Promise<infer R> }
+          ? R
+          : never) ?? null
+      );
     },
     async listByEntry(entryId) {
-      const { rows } = await pool.query('SELECT * FROM feedback_queue WHERE entry_id = $1', [entryId]);
+      const { rows } = await pool.query('SELECT * FROM feedback_queue WHERE entry_id = $1', [
+        entryId,
+      ]);
       return rows as never[];
     },
     async listByStatus(status) {
@@ -512,10 +579,20 @@ function createPgFeedbackRepo(pool: Pool): FeedbackRepositoryPort {
     },
     async update(feedbackId, updates) {
       const FEEDBACK_ALLOWED_COLUMNS: ReadonlySet<string> = new Set([
-        'status', 'description', 'context', 'entry_type', 'problem_type',
-        'admin_notes', 'resolved_at', 'resolved_by_user_id', 'triggered_transition',
-        'remediation_status', 'remediation_opened_at', 'remediation_opened_by_user_id',
-        'remediation_resolved_at', 'remediation_resolved_by_user_id',
+        'status',
+        'description',
+        'context',
+        'entry_type',
+        'problem_type',
+        'admin_notes',
+        'resolved_at',
+        'resolved_by_user_id',
+        'triggered_transition',
+        'remediation_status',
+        'remediation_opened_at',
+        'remediation_opened_by_user_id',
+        'remediation_resolved_at',
+        'remediation_resolved_by_user_id',
       ]);
       const { clauses, values } = buildSetClauses(
         updates as Record<string, unknown>,
@@ -545,12 +622,24 @@ function createPgAuditRepo(pool: Pool): AuditRepositoryPort {
       await pool.query(
         `INSERT INTO audit_events (id, action, actor_id, entity_id, team_id, metadata, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [event.id, event.action, event.actorId, event.entityId ?? null, event.teamId ?? null, JSON.stringify((event as Record<string, unknown>).metadata ?? {}), event.createdAt],
+        [
+          event.id,
+          event.action,
+          event.actorId,
+          event.entityId ?? null,
+          event.teamId ?? null,
+          JSON.stringify((event as Record<string, unknown>).metadata ?? {}),
+          event.createdAt,
+        ],
       );
     },
     async getById(eventId) {
       const { rows } = await pool.query('SELECT * FROM audit_events WHERE id = $1', [eventId]);
-      return (rows[0] as AuditRepositoryPort extends { getById(id: string): Promise<infer R> } ? R : never) ?? null;
+      return (
+        (rows[0] as AuditRepositoryPort extends { getById(id: string): Promise<infer R> }
+          ? R
+          : never) ?? null
+      );
     },
     async listByFilter(filter) {
       const conditions: string[] = [];
@@ -616,7 +705,9 @@ function createPgSessionLookup(pool: Pool): SessionLookupPort {
          WHERE s.token_hash = $1`,
         [sessionToken],
       );
-      const row = rows[0] as { session_id: string; user_id: string; handle: string; active_team_id: string | null } | undefined;
+      const row = rows[0] as
+        | { session_id: string; user_id: string; handle: string; active_team_id: string | null }
+        | undefined;
       if (!row) return null;
       return {
         sessionId: row.session_id,
@@ -699,7 +790,7 @@ function createPgRetrievalQuery(pool: Pool): RetrievalQueryPort {
     async search(params) {
       // Basic text search implementation
       const limit = params.limit ?? 10;
-      const conditions: string[] = ['lifecycle_state = \'approved\''];
+      const conditions: string[] = ["lifecycle_state = 'approved'"];
       const queryParams: unknown[] = [];
       let paramIndex = 1;
 
@@ -751,7 +842,9 @@ function createPgTaskQueue(pool: Pool): TaskQueuePort {
           JSON.stringify(payload),
           options?.priority ?? 0,
           options?.maxAttempts ?? 3,
-          options?.delayMs ? new Date(Date.now() + options.delayMs).toISOString() : new Date().toISOString(),
+          options?.delayMs
+            ? new Date(Date.now() + options.delayMs).toISOString()
+            : new Date().toISOString(),
         ],
       );
       return id;
@@ -763,9 +856,15 @@ function createPgTaskQueue(pool: Pool): TaskQueuePort {
       );
     },
     async getStatusSnapshot() {
-      const pendingResult = await pool.query("SELECT COUNT(*) as count FROM task_queue WHERE status = 'pending'");
-      const runningResult = await pool.query("SELECT COUNT(*) as count FROM task_queue WHERE status = 'running'");
-      const deadResult = await pool.query("SELECT COUNT(*) as count FROM task_queue WHERE status = 'dead'");
+      const pendingResult = await pool.query(
+        "SELECT COUNT(*) as count FROM task_queue WHERE status = 'pending'",
+      );
+      const runningResult = await pool.query(
+        "SELECT COUNT(*) as count FROM task_queue WHERE status = 'running'",
+      );
+      const deadResult = await pool.query(
+        "SELECT COUNT(*) as count FROM task_queue WHERE status = 'dead'",
+      );
       return {
         provider: 'postgres' as const,
         pending: Number((pendingResult.rows[0] as { count: string }).count),
@@ -786,7 +885,13 @@ function createPgOutbox(pool: Pool): OutboxPort {
       await pool.query(
         `INSERT INTO domain_outbox (id, aggregate_type, aggregate_id, event_name, payload, status, created_at)
          VALUES ($1, $2, $3, $4, $5, 'pending', NOW())`,
-        [id, params.aggregateType, params.aggregateId, params.eventName, JSON.stringify(params.payload)],
+        [
+          id,
+          params.aggregateType,
+          params.aggregateId,
+          params.eventName,
+          JSON.stringify(params.payload),
+        ],
       );
       return id;
     },
@@ -804,7 +909,9 @@ function createPgOutbox(pool: Pool): OutboxPort {
          RETURNING id, event_name as "eventName", payload, aggregate_id as "aggregateId"`,
         [limit, workerId],
       );
-      return rows as OutboxPort extends { claimBatch(...args: unknown[]): Promise<infer R> } ? R : never;
+      return rows as OutboxPort extends { claimBatch(...args: unknown[]): Promise<infer R> }
+        ? R
+        : never;
     },
     async complete(eventId) {
       await pool.query(
@@ -819,9 +926,15 @@ function createPgOutbox(pool: Pool): OutboxPort {
       );
     },
     async getStatusSnapshot() {
-      const pendingResult = await pool.query("SELECT COUNT(*) as count FROM domain_outbox WHERE status = 'pending'");
-      const processingResult = await pool.query("SELECT COUNT(*) as count FROM domain_outbox WHERE status = 'processing'");
-      const failedResult = await pool.query("SELECT COUNT(*) as count FROM domain_outbox WHERE status = 'failed'");
+      const pendingResult = await pool.query(
+        "SELECT COUNT(*) as count FROM domain_outbox WHERE status = 'pending'",
+      );
+      const processingResult = await pool.query(
+        "SELECT COUNT(*) as count FROM domain_outbox WHERE status = 'processing'",
+      );
+      const failedResult = await pool.query(
+        "SELECT COUNT(*) as count FROM domain_outbox WHERE status = 'failed'",
+      );
       return {
         provider: 'postgres' as const,
         pending: Number((pendingResult.rows[0] as { count: string }).count),

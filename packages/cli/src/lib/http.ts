@@ -1,8 +1,8 @@
 import { ApiError as ClientApiError, apiRequest as clientApiRequest } from '@trapmap/client-core';
 import type { ApiResponse as ClientApiResponse, RequestOptions } from '@trapmap/client-core';
 
-import type { CliState } from './config.js';
 import { CliSessionProvider } from './client-core-adapter.js';
+import type { CliState } from './config.js';
 
 // ---------------------------------------------------------------------------
 // Re-exports

@@ -9,23 +9,23 @@
 import type { FastifyInstance } from 'fastify';
 
 import type {
-  ResolvedRuntimeDeployment,
-  RepositoryPorts,
-  IdentityAccessPort,
-  KnowledgeReadPort,
-  KnowledgeWritePort,
   CandidateIngestionPort,
   GovernanceReviewPort,
+  IdentityAccessPort,
   JobRuntimePort,
+  KnowledgeReadPort,
+  KnowledgeWritePort,
+  RepositoryPorts,
+  ResolvedRuntimeDeployment,
 } from '@trapmap/backend-core';
 import {
-  resolveRouteFamilies,
   buildRouteSurfaceSummary,
   getUnsupportedRouteDescriptors,
+  resolveRouteFamilies,
 } from '@trapmap/backend-core';
 
-import { registerHealthRoutes, type HealthState } from '../http/health.js';
-import { registerGatewayRoutes, type GatewayHandlerDeps } from '../http/gateway.js';
+import { type GatewayHandlerDeps, registerGatewayRoutes } from '../http/gateway.js';
+import { type HealthState, registerHealthRoutes } from '../http/health.js';
 
 // ---------------------------------------------------------------------------
 // Route registration

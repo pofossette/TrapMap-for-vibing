@@ -8,7 +8,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import type { ServiceConfig } from '../config/index.js';
-import { createInternalServiceClients, type InternalServiceClients } from './internal-client.js';
+import { type InternalServiceClients, createInternalServiceClients } from './internal-client.js';
 import { registerGatewayRoutes } from './routes.js';
 
 // ---------------------------------------------------------------------------

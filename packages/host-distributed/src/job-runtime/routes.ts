@@ -5,7 +5,7 @@
  * job-runtime backend-core module.
  */
 
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type { JobRuntimePort } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
@@ -14,16 +14,19 @@ import { InvocationError } from '@trapmap/backend-core';
 // Error translation
 // ---------------------------------------------------------------------------
 
-function translateInvocationError(error: unknown): { status: number; body: { error: string; kind: string } } {
+function translateInvocationError(error: unknown): {
+  status: number;
+  body: { error: string; kind: string };
+} {
   if (error instanceof InvocationError) {
     const statusMap: Record<string, number> = {
-      'validation': 400,
+      validation: 400,
       'not-found': 404,
-      'conflict': 409,
-      'forbidden': 403,
-      'timeout': 504,
-      'unavailable': 503,
-      'internal': 500,
+      conflict: 409,
+      forbidden: 403,
+      timeout: 504,
+      unavailable: 503,
+      internal: 500,
     };
     return {
       status: statusMap[error.kind] ?? 500,
@@ -41,11 +44,16 @@ function translateInvocationError(error: unknown): { status: number; body: { err
 // ---------------------------------------------------------------------------
 
 export function registerRoutes(app: FastifyInstance, module: JobRuntimePort): void {
-
   // POST /internal/jobs - schedule a job
   app.post('/internal/jobs', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const body = request.body as { type: string; payload: unknown; delayMs?: number; priority?: number; maxAttempts?: number };
+      const body = request.body as {
+        type: string;
+        payload: unknown;
+        delayMs?: number;
+        priority?: number;
+        maxAttempts?: number;
+      };
       const jobId = await module.schedule(body.type, body.payload, {
         ...(body.delayMs !== undefined ? { delayMs: body.delayMs } : {}),
         ...(body.priority !== undefined ? { priority: body.priority } : {}),

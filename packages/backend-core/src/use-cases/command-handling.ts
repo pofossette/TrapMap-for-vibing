@@ -24,9 +24,7 @@ export interface Command<TInput, TOutput> {
 /**
  * Result type for commands that may succeed or fail with a domain error.
  */
-export type CommandResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: InvocationError };
+export type CommandResult<T> = { ok: true; value: T } | { ok: false; error: InvocationError };
 
 /**
  * Execute a command and wrap the result in a CommandResult.

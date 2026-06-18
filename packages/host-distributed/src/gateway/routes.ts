@@ -7,7 +7,7 @@
  * lives in the internal services.
  */
 
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type { InternalServiceClients } from './internal-client.js';
 
@@ -97,10 +97,7 @@ function registerAuthHook(app: FastifyInstance, clients: InternalServiceClients)
  * These are the public-facing API endpoints that clients use.
  * Each route forwards to the appropriate internal service.
  */
-export function registerGatewayRoutes(
-  app: FastifyInstance,
-  clients: InternalServiceClients,
-): void {
+export function registerGatewayRoutes(app: FastifyInstance, clients: InternalServiceClients): void {
   // Apply authentication middleware (skips public paths)
   registerAuthHook(app, clients);
 
@@ -166,7 +163,9 @@ export function registerGatewayRoutes(
   app.get('/v1/teams', async (request: FastifyRequest, reply: FastifyReply) => {
     const query = request.query as { userId: string };
     if (!query.userId) {
-      return reply.status(400).send({ error: 'Missing required query param: userId', kind: 'validation' });
+      return reply
+        .status(400)
+        .send({ error: 'Missing required query param: userId', kind: 'validation' });
     }
     try {
       const result = await clients.identityAccess.listTeams(query.userId);
@@ -214,7 +213,9 @@ export function registerGatewayRoutes(
   app.get('/v1/knowledge/mine', async (request: FastifyRequest, reply: FastifyReply) => {
     const query = request.query as { userId: string; teamId?: string };
     if (!query.userId) {
-      return reply.status(400).send({ error: 'Missing required query param: userId', kind: 'validation' });
+      return reply
+        .status(400)
+        .send({ error: 'Missing required query param: userId', kind: 'validation' });
     }
     try {
       const result = await clients.knowledgeRead.listMine(query.userId, query.teamId);
@@ -241,7 +242,13 @@ export function registerGatewayRoutes(
     if (validationError) {
       return reply.status(400).send(validationError);
     }
-    const body = request.body as { content: string; title?: string; labels?: string[]; teamId?: string; actorId: string };
+    const body = request.body as {
+      content: string;
+      title?: string;
+      labels?: string[];
+      teamId?: string;
+      actorId: string;
+    };
     try {
       const result = await clients.knowledgeWrite.submit(body);
       return forwardResponse(reply, result);
@@ -314,7 +321,12 @@ export function registerGatewayRoutes(
     if (validationError) {
       return reply.status(400).send(validationError);
     }
-    const body = request.body as { entryId: string; decision: 'approve' | 'reject'; actorId: string; note?: string };
+    const body = request.body as {
+      entryId: string;
+      decision: 'approve' | 'reject';
+      actorId: string;
+      note?: string;
+    };
     try {
       let result: { status: number; body: unknown };
       if (body.decision === 'approve') {
@@ -338,7 +350,12 @@ export function registerGatewayRoutes(
   });
 
   app.post('/v1/feedback', async (request: FastifyRequest, reply: FastifyReply) => {
-    const body = request.body as { entryId: string; problemType: string; description: string; actorId: string };
+    const body = request.body as {
+      entryId: string;
+      problemType: string;
+      description: string;
+      actorId: string;
+    };
     try {
       const result = await clients.governanceReview.submitFeedback(body);
       return forwardResponse(reply, result);

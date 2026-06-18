@@ -411,6 +411,33 @@ export function makeMockStoreData(data: Partial<StoreData> = {}): StoreData {
 export function makeMockServices(storeData: Partial<StoreData> = {}): SkillShareerServices {
   const data = makeMockStoreData(storeData);
   return {
+    runtimeDeployment: {
+      deploymentProfile: 'team-monolith',
+      profileSource: 'explicit',
+      preset: 'monolith',
+      runtimeMode: 'combined',
+      serviceUnit: 'full-platform',
+      capabilities: {
+        routeSurface: 'gateway-core',
+        asyncOwnershipExpectation: 'local-owned',
+        storagePosture: 'postgres-required',
+        authTeamExpectation: 'team-auth',
+        exposesGateway: true,
+        exposesFullHttpApi: true,
+        supportsLocalSingleUserMode: false,
+        supportsJsonStore: false,
+        requiresPostgres: true,
+        requiresGateway: true,
+        requiresAsyncOwnership: false,
+        allowsSingleProcess: true,
+        ownsCandidateTaskWork: true,
+        ownsSharedJobTaskWork: true,
+        ownsOutboxWork: true,
+        supportsReviewGovernance: true,
+        supportsTeamAuth: true,
+        supportsDistributedRouting: false,
+      },
+    },
     runtimeMode: 'combined',
     serviceUnit: 'full-platform',
     config: {} as SkillShareerServices['config'],

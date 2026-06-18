@@ -40,10 +40,7 @@ export function registerErrorHandler(app: FastifyInstance): void {
     const statusCode = (rawError as { statusCode?: number }).statusCode ?? 500;
     const message = statusCode >= 500 ? 'Internal server error' : error.message;
 
-    app.log.error(
-      { error: error.message, statusCode, stack: error.stack },
-      'unhandled error',
-    );
+    app.log.error({ error: error.message, statusCode, stack: error.stack }, 'unhandled error');
 
     return reply.status(statusCode).send({
       error: message,
