@@ -1,4 +1,4 @@
-import type { CliState } from './config.js';
+import { resolveCliGatewayUrl, type CliState } from './config.js';
 
 export class ApiError extends Error {
   constructor(
@@ -14,7 +14,7 @@ export interface ApiRequestOptions {
   body?: unknown;
   method?: 'GET' | 'POST' | 'PATCH';
   path: string;
-  serverUrl?: string;
+  gatewayUrl?: string;
   sessionToken?: string | null;
 }
 
@@ -43,7 +43,7 @@ export async function apiRequest<T>(
   state: CliState,
   options: ApiRequestOptions,
 ): Promise<ApiResponse<T>> {
-  const url = new URL(options.path, options.serverUrl ?? state.serverUrl).toString();
+  const url = new URL(options.path, options.gatewayUrl ?? resolveCliGatewayUrl(state)).toString();
   const headers: Record<string, string> = {};
 
   if (options.body) {

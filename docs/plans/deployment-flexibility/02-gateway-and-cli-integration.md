@@ -7,10 +7,10 @@
 ## 当前事实
 
 - `packages/cli/src/lib/http.ts` 的所有请求都基于一个 base URL。
-- `packages/cli/src/lib/config.ts` 只存储一个 `serverUrl`。
+- `packages/cli/src/lib/config.ts` 当前已收敛为单一 gateway URL 持久化，并兼容读取旧 `serverUrl` 配置。
 - `packages/cli/src/index.ts` 和各命令模块不感知多服务地址。
 - `docs/architecture/CLI.md` 已说明：
-  - 只有 `login` 支持 `--server <url>`
+  - 只有 `login` 支持 `--server <gateway-url>`
   - CLI 没有全局 `--url`
 - 当前 CLI 事实层面已经是 gateway-only，但文档尚未把这一点定义成正式约束。
 
@@ -21,7 +21,7 @@
   - 对外稳定 API surface
   - 路由到内部 retrieval / governance / candidate 等服务或本地实现
 - 定义 CLI 的约束：
-  - 默认只读取一个 `serverUrl` / gateway URL
+  - 默认只读取一个 `gatewayUrl`（兼容旧 `serverUrl`） 
   - 不按命令类别直接拼接不同服务地址
   - 不把微服务拓扑暴露为用户必须理解的配置项
 - 对 `local-agent` 的最小 gateway 形态做约束：
@@ -36,7 +36,7 @@
 ### Step 1. 冻结 CLI 接入约束
 
 - 明确 CLI 的正式模型为：
-  - 一个 `serverUrl`
+  - 一个 `gatewayUrl`
   - 一个 gateway
   - 由 gateway 负责把命令请求路由到内部实现
 - 明确不支持：

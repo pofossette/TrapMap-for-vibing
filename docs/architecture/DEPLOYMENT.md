@@ -45,6 +45,13 @@ Server 启动时会先把 `profile + preset + runtimeMode override + serviceUnit
   - `single-user`
   - `team-auth`
 
+CLI 接入语义在这三个 profile 下保持一致：
+
+- CLI 只连接统一 gateway。
+- `team-monolith` 中 gateway 与内部实现可同进程。
+- `distributed` 中 gateway 可以把请求路由到内部 service/worker，但 CLI 不感知这些拆分。
+- `local-agent` 仍通过 HTTP gateway 接入，只保留 retrieval-first 的最小外部面。
+
 当前阶段的明确非目标：
 
 - 不做 MCP 协议。
@@ -236,6 +243,7 @@ curl http://127.0.0.1:4000/ready
 - `/health` 用于 liveness，返回 `status: "ok"` 以及统一 runtime snapshot：`product`、`packages`、`liveness`、`readiness`、`requestContext`、`dependencies`、`graphQuery`、`memory`、`uptimeSeconds`
 - `/ready` 用于 traffic readiness，返回 `ok` 与同一份 runtime snapshot；当 `readiness === "not-ready"` 时，HTTP 状态码为 `503`，且 `ok` 为 `false`
 - 两个端点都会返回 `deployment` 与 `dependencies.deployment` 语义，包括 `profile`、`preset`、`routeSurface`、`asyncOwnershipExpectation`、`storagePosture`、`authTeamExpectation`
+- `/meta/routes` 会返回 `routeSurface`、`routeFamilies`、`publicGatewayRouteCount`、`internalRouteCount` 和对外 `documentedRoutes`，用于区分正式 gateway API、local-agent 最小外部面以及 worker/status-only surface
 - 两个端点都返回 `requestContext.requestIdHeader` 与 `requestContext.traceHeader`，用于说明实例当前使用的请求链路头约定
 - `dependencies.queueWorker` 的语义为：
   - `running`：PostgreSQL 模式且 worker 正常运行

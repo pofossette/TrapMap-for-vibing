@@ -26,6 +26,10 @@ import { StrategyRegistry } from './lib/retrieval/orchestration/strategy-registr
 import { keywordChannel } from './lib/retrieval/recall/keyword.js';
 import { semanticChannel } from './lib/retrieval/recall/semantic.js';
 import { handleRuntimeError, registerRuntimeRoutes } from './lib/runtime/http-surface.js';
+import {
+  buildRouteSurfaceSummary,
+  flattenDocumentedRoutes,
+} from './lib/runtime/route-surface.js';
 import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
 import { resolveRuntimeDeployment } from './lib/runtime/deployment-profile.js';
 import type { RuntimeMode } from './lib/runtime/runtime-contract.js';
@@ -55,90 +59,6 @@ interface BuildServerOptions {
   bodyLimit?: number;
   runtimeMode?: RuntimeMode;
   serviceUnit?: ServiceUnit;
-}
-
-const minimalAgentRoutes = [
-  'POST /v1/retrieval/search',
-  'POST /v3/retrieval/search',
-  'POST /v1/retrieval/skills/search-by-content',
-] as const;
-
-const coreGatewayRoutes = [
-  'POST /v1/auth/login',
-  'GET /v1/auth/session',
-  'POST /v1/auth/logout',
-  'POST /v1/teams',
-  'GET /v1/teams',
-  'POST /v1/teams/select',
-  'POST /v1/members',
-  'PATCH /v1/members/:memberId',
-  'POST /v1/access-keys',
-  'POST /v1/candidates',
-  'GET /v1/candidates',
-  'GET /v1/candidates/:candidateId',
-  'POST /v1/candidates/:candidateId/apply-resolution',
-  'GET /v1/duplicates',
-  'GET /v1/duplicates/:candidateId',
-  'POST /v1/traps',
-  'GET /v1/traps',
-  'GET /v1/traps/:trapId',
-  'POST /v1/traps/:trapId/resubmit',
-  'POST /v1/traps/:trapId/supersede',
-  'POST /v1/knowledge',
-  'GET /v1/knowledge/mine',
-  'GET /v1/knowledge/:entryId',
-  'POST /v1/knowledge/:entryId/resubmit',
-  'PATCH /v1/knowledge/:entryId',
-  'GET /v1/knowledge/review-queue',
-  'POST /v1/knowledge/review',
-] as const;
-
-const governanceRoutes = [
-  'POST /v1/knowledge/:entryId/supersede',
-  'GET /v1/operations/audit',
-  'GET /v1/operations/stats/usage',
-  'GET /v1/operations/stats/hits',
-  'GET /v1/operations/stats/summary',
-  'POST /v1/operations/import',
-  'POST /v1/operations/export',
-  'GET /v1/operations/knowledge',
-  'POST /v1/operations/knowledge/:entryId/deactivate',
-  'POST /v1/operations/artifacts/:artifactId/edit',
-  'GET /v1/operations/artifacts/:artifactId/history',
-  'GET /v1/operations/artifacts/review-queue',
-  'POST /v1/operations/artifacts/:artifactId/review',
-  'POST /v1/candidates/:candidateId/manual-result',
-  'POST /v1/feedback',
-  'GET /v1/operations/feedback',
-  'POST /v1/operations/feedback/batch',
-  'GET /v1/operations/feedback/stats/:entryId',
-  'GET /v1/operations/decay/entries',
-  'POST /v1/operations/decay/batch',
-  'POST /v1/operations/decay/search',
-  'PATCH /v1/knowledge/:id/evidence',
-  'GET /v1/operations/maintenance/entries',
-  'POST /v1/operations/maintenance/batch',
-  'POST /v1/admin/reconcile-knowledge-indexes',
-  'POST /admin/boundary-search',
-] as const;
-
-const documentedRoutes = [...coreGatewayRoutes, ...minimalAgentRoutes, ...governanceRoutes] as const;
-
-function resolveDocumentedRoutes(
-  routeSurface: ServerConfig['deployment']['resolved']['capabilities']['routeSurface'],
-  supportsReviewGovernance: boolean,
-) {
-  if (routeSurface === 'worker-status') {
-    return [] as string[];
-  }
-
-  if (routeSurface === 'minimal-agent') {
-    return [...minimalAgentRoutes];
-  }
-
-  return supportsReviewGovernance
-    ? [...coreGatewayRoutes, ...minimalAgentRoutes, ...governanceRoutes]
-    : [...coreGatewayRoutes, ...minimalAgentRoutes];
 }
 
 async function registerCapabilityRoutes(app: FastifyInstance, config: ServerConfig) {
@@ -232,12 +152,13 @@ export function buildServer(options: BuildServerOptions = {}) {
     }
   });
 
+  const routeSurfaceSummary = buildRouteSurfaceSummary(runtimeDeployment);
   registerRuntimeRoutes(
     app,
     config,
-    resolveDocumentedRoutes(
-      runtimeDeployment.capabilities.routeSurface,
-      runtimeDeployment.capabilities.supportsReviewGovernance,
+    routeSurfaceSummary,
+    flattenDocumentedRoutes(
+      routeSurfaceSummary.routeFamilies.filter((family) => family.audience === 'gateway-public'),
     ),
   );
 

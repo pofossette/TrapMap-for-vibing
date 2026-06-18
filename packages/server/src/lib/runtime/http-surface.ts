@@ -5,9 +5,17 @@ import type { ServerConfig } from '@trapmap/server/config.js';
 import { isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { getOrCreateRequestContext } from './request-context.js';
+import type { RouteFamilyDescriptor } from './route-surface.js';
 import { snapshotRuntimeWorker } from './runtime-contract.js';
 import { buildRuntimeStatusSnapshot, resolveAsyncWorkerState } from './runtime-metadata.js';
 import { getServiceUnitProfile } from './service-unit.js';
+
+interface RouteSurfaceSummary {
+  routeSurface: 'minimal-agent' | 'gateway-core' | 'worker-status';
+  routeFamilies: RouteFamilyDescriptor[];
+  publicGatewayRouteCount: number;
+  internalRouteCount: number;
+}
 
 async function buildRuntimeAsyncSnapshot(app: FastifyInstance) {
   const store = app.skillShareer.store;
@@ -28,6 +36,7 @@ async function buildRuntimeAsyncSnapshot(app: FastifyInstance) {
 export function registerRuntimeRoutes(
   app: FastifyInstance,
   config: ServerConfig,
+  routeSurfaceSummary: RouteSurfaceSummary,
   documentedRoutes: readonly string[],
 ) {
   app.get('/health', async () => {
@@ -127,6 +136,10 @@ export function registerRuntimeRoutes(
   });
 
   app.get('/meta/routes', async () => ({
+    routeSurface: routeSurfaceSummary.routeSurface,
+    routeFamilies: routeSurfaceSummary.routeFamilies,
+    publicGatewayRouteCount: routeSurfaceSummary.publicGatewayRouteCount,
+    internalRouteCount: routeSurfaceSummary.internalRouteCount,
     documentedRoutes,
   }));
 }

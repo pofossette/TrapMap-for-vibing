@@ -55,8 +55,16 @@ describe('buildRuntimeStatusSnapshot', () => {
         profile: 'local-agent',
         routeSurface: 'minimal-agent',
         storagePosture: 'json-store-ok',
+        publicGatewayRouteCount: 3,
+        internalRouteCount: 0,
       },
     });
+    expect(snapshot.dependencies.deployment.routeFamilies).toEqual([
+      expect.objectContaining({
+        kind: 'local-agent-minimal',
+        audience: 'gateway-public',
+      }),
+    ]);
   });
 
   it('reports not-ready when a configured queue worker is stopped', () => {
@@ -192,6 +200,16 @@ describe('buildRuntimeStatusSnapshot', () => {
         asyncOwnershipExpectation: 'remote-expected',
       },
     });
+    expect(snapshot.dependencies.deployment).toMatchObject({
+      publicGatewayRouteCount: expect.any(Number),
+      internalRouteCount: 0,
+    });
+    expect(snapshot.dependencies.deployment.routeFamilies).toEqual([
+      expect.objectContaining({
+        kind: 'gateway-api',
+        audience: 'gateway-public',
+      }),
+    ]);
   });
 
   it('surfaces service-unit ownership for candidate-ingestion combined runtime', () => {

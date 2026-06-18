@@ -18,7 +18,12 @@ export interface ScriptPolicyOverride {
 }
 
 export interface CliState {
-  serverUrl: string;
+  gatewayUrl?: string;
+  /**
+   * @deprecated P2 keeps reading legacy config files that still persist `serverUrl`.
+   * New writes must only persist `gatewayUrl`.
+   */
+  serverUrl?: string;
   sessionToken: string | null;
   session: ActiveSession | null;
   outputProfile?: OutputProfile;
@@ -39,7 +44,10 @@ export interface OutputProfile {
   includeRawHints: boolean;
 }
 
-const DEFAULT_SERVER_URL = process.env.TRAPMAP_SERVER_URL ?? 'http://127.0.0.1:4000';
+const DEFAULT_GATEWAY_URL =
+  process.env.TRAPMAP_GATEWAY_URL ??
+  process.env.TRAPMAP_SERVER_URL ??
+  'http://127.0.0.1:4000';
 
 function getConfigPath(): string {
   let base: string;
@@ -53,10 +61,34 @@ function getConfigPath(): string {
 
 function getDefaultState(): CliState {
   return {
-    serverUrl: DEFAULT_SERVER_URL,
+    gatewayUrl: DEFAULT_GATEWAY_URL,
     sessionToken: null,
     session: null,
   };
+}
+
+function normalizeGatewayUrl(parsed: Partial<CliState>): string {
+  if (typeof parsed.gatewayUrl === 'string' && parsed.gatewayUrl.length > 0) {
+    return parsed.gatewayUrl;
+  }
+
+  if (typeof parsed.serverUrl === 'string' && parsed.serverUrl.length > 0) {
+    return parsed.serverUrl;
+  }
+
+  return DEFAULT_GATEWAY_URL;
+}
+
+export function resolveCliGatewayUrl(state: Pick<CliState, 'gatewayUrl' | 'serverUrl'>): string {
+  if (typeof state.gatewayUrl === 'string' && state.gatewayUrl.length > 0) {
+    return state.gatewayUrl;
+  }
+
+  if (typeof state.serverUrl === 'string' && state.serverUrl.length > 0) {
+    return state.serverUrl;
+  }
+
+  return DEFAULT_GATEWAY_URL;
 }
 
 export function getDefaultOutputProfile(): OutputProfile {
@@ -108,11 +140,13 @@ export async function loadCliState(): Promise<CliState> {
     return {
       ...getDefaultState(),
       ...parsed,
+      gatewayUrl: normalizeGatewayUrl(parsed),
       ...(outputProfile != null
         ? { outputProfile }
         : configHadOutputProfile
           ? { outputProfile: getDefaultState().outputProfile }
           : {}),
+      serverUrl: undefined,
     };
   } catch {
     return getDefaultState();
@@ -122,7 +156,13 @@ export async function loadCliState(): Promise<CliState> {
 export async function saveCliState(state: CliState): Promise<void> {
   const configPath = getConfigPath();
   await mkdir(path.dirname(configPath), { recursive: true });
-  await writeFile(configPath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  const persistedState = {
+    gatewayUrl: state.gatewayUrl,
+    sessionToken: state.sessionToken,
+    session: state.session,
+    ...(state.outputProfile === undefined ? {} : { outputProfile: state.outputProfile }),
+  };
+  await writeFile(configPath, `${JSON.stringify(persistedState, null, 2)}\n`, 'utf8');
 }
 
 export async function updateCliState(

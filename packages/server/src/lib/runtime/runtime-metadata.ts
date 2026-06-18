@@ -4,6 +4,8 @@ import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/bac
 import type { OutboxStatusSnapshot } from '@trapmap/server/lib/lifecycle/outbox.js';
 import type { TaskQueueStatusSnapshot } from '@trapmap/server/lib/queue/task-queue.js';
 import type { ResolvedRuntimeDeployment } from './deployment-profile.js';
+import type { RouteFamilyDescriptor } from './route-surface.js';
+import { buildRouteSurfaceSummary } from './route-surface.js';
 import type { RuntimeMode } from './runtime-contract.js';
 import type { ServiceUnit, ServiceUnitProfile } from './service-unit.js';
 export { resolveAsyncWorkerState } from './runtime-ownership.js';
@@ -19,9 +21,12 @@ export interface RuntimeDependencyState {
     profile: ResolvedRuntimeDeployment['deploymentProfile'];
     preset: ResolvedRuntimeDeployment['preset'];
     routeSurface: ResolvedRuntimeDeployment['capabilities']['routeSurface'];
+    routeFamilies: RouteFamilyDescriptor[];
     asyncOwnershipExpectation: ResolvedRuntimeDeployment['capabilities']['asyncOwnershipExpectation'];
     storagePosture: ResolvedRuntimeDeployment['capabilities']['storagePosture'];
     authTeamExpectation: ResolvedRuntimeDeployment['capabilities']['authTeamExpectation'];
+    publicGatewayRouteCount: number;
+    internalRouteCount: number;
   };
   ownership: {
     queue: {
@@ -110,6 +115,7 @@ export function buildRuntimeStatusSnapshot(
   const graphDependency = resolveGraphDependencyState(options.graphQuery);
   const queueWorker = options.queueWorkerState;
   const outboxWorker = options.outboxWorkerState;
+  const routeSurfaceSummary = buildRouteSurfaceSummary(options.runtimeDeployment);
 
   const readiness: RuntimeStatusSnapshot['readiness'] =
     graphDependency === 'failed' || queueWorker === 'degraded' || outboxWorker === 'degraded'
@@ -138,10 +144,13 @@ export function buildRuntimeStatusSnapshot(
         profile: options.runtimeDeployment.deploymentProfile,
         preset: options.runtimeDeployment.preset,
         routeSurface: options.runtimeDeployment.capabilities.routeSurface,
+        routeFamilies: routeSurfaceSummary.routeFamilies,
         asyncOwnershipExpectation:
           options.runtimeDeployment.capabilities.asyncOwnershipExpectation,
         storagePosture: options.runtimeDeployment.capabilities.storagePosture,
         authTeamExpectation: options.runtimeDeployment.capabilities.authTeamExpectation,
+        publicGatewayRouteCount: routeSurfaceSummary.publicGatewayRouteCount,
+        internalRouteCount: routeSurfaceSummary.internalRouteCount,
       },
       ownership: {
         queue: {

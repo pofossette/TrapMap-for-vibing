@@ -2,7 +2,12 @@ import type { LoginResponse, SessionStatusResponse } from '@trapmap/contracts';
 import { loginResponseSchema, sessionStatusResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
-import { clearSession, loadCliState, updateCliState } from '@trapmap/cli/lib/config.js';
+import {
+  clearSession,
+  loadCliState,
+  resolveCliGatewayUrl,
+  updateCliState,
+} from '@trapmap/cli/lib/config.js';
 import { apiRequest } from '@trapmap/cli/lib/http.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
 
@@ -12,7 +17,7 @@ export function registerAuthCommands(program: Command): void {
     .description('Authenticate with an access key or system admin key')
     .option('--access-key <key>', 'Permanent access key for a member')
     .option('--system-admin-key <key>', 'System admin bootstrap key')
-    .option('--server <url>', 'Override the saved server URL')
+    .option('--server <url>', 'Override the saved gateway URL')
     .option('--json', 'Output JSON')
     .action(
       async (options: {
@@ -34,14 +39,14 @@ export function registerAuthCommands(program: Command): void {
           method: 'POST',
           path: '/v1/auth/login',
           body: payload,
-          ...(options.server ? { serverUrl: options.server } : {}),
+          ...(options.server ? { gatewayUrl: options.server } : {}),
         });
 
         const parsed = loginResponseSchema.parse(response.data);
-        const serverUrl = options.server ?? state.serverUrl;
+        const gatewayUrl = options.server ?? resolveCliGatewayUrl(state);
 
         await updateCliState({
-          serverUrl,
+          gatewayUrl,
           sessionToken: response.sessionToken,
           session: parsed.session,
         });

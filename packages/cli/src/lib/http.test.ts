@@ -36,7 +36,7 @@ describe('ApiError', () => {
 
 describe('apiRequest', () => {
   const defaultState: CliState = {
-    serverUrl: 'http://localhost:4000',
+    gatewayUrl: 'http://localhost:4000',
     sessionToken: null,
     session: null,
   };
@@ -53,7 +53,7 @@ describe('apiRequest', () => {
   });
 
   describe('URL construction', () => {
-    it('should use state.serverUrl when options.serverUrl not provided', async () => {
+    it('should use state.gatewayUrl when override not provided', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         headers: { get: () => null },
@@ -65,7 +65,7 @@ describe('apiRequest', () => {
       expect(mockFetch).toHaveBeenCalledWith('http://localhost:4000/api/test', expect.any(Object));
     });
 
-    it('should use options.serverUrl when provided (override)', async () => {
+    it('should use options.gatewayUrl when provided (override)', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         headers: { get: () => null },
@@ -74,7 +74,7 @@ describe('apiRequest', () => {
 
       await apiRequest(defaultState, {
         path: '/api/test',
-        serverUrl: 'http://custom-server:5000',
+        gatewayUrl: 'http://custom-server:5000',
       });
 
       expect(mockFetch).toHaveBeenCalledWith(

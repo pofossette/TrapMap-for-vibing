@@ -89,7 +89,7 @@ program
   .action(() => {
     console.log('TrapMap prototype');
     console.log('- packages/cli: imperative user-facing terminal commands');
-    console.log('- packages/server: Fastify API and LangChain-oriented service boundary');
+    console.log('- packages/server: Fastify gateway and runtime service boundary');
     console.log('- packages/contracts: shared Zod schemas and runtime-safe contracts');
   });
 

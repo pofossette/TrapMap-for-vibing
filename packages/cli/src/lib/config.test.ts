@@ -15,7 +15,7 @@ describe('cli config', () => {
     const fs = await import('node:fs/promises');
     vi.mocked(fs.readFile).mockResolvedValue(
       JSON.stringify({
-        serverUrl: 'http://localhost:9999',
+        gatewayUrl: 'http://localhost:9999',
         outputProfile: {
           tool: 'codex',
         },
@@ -25,7 +25,7 @@ describe('cli config', () => {
     const { getDefaultOutputProfile, loadCliState } = await import('./config.js');
     const state = await loadCliState();
 
-    expect(state.serverUrl).toBe('http://localhost:9999');
+    expect(state.gatewayUrl).toBe('http://localhost:9999');
     expect(state.outputProfile).toEqual({
       ...getDefaultOutputProfile(),
       tool: 'codex',
@@ -41,7 +41,7 @@ describe('cli config', () => {
     try {
       const { loadCliState } = await import('./config.js');
       const result = await loadCliState();
-      expect(result.serverUrl).toBeDefined();
+      expect(result.gatewayUrl).toBeDefined();
     } finally {
       osModule.default.homedir = originalHomedir;
     }
@@ -63,14 +63,14 @@ describe('cli config', () => {
     const fs = await import('node:fs/promises');
     vi.mocked(fs.readFile).mockResolvedValue(
       JSON.stringify({
-        serverUrl: 'http://localhost:9999',
+        gatewayUrl: 'http://localhost:9999',
       }) as never,
     );
 
     const { loadCliState } = await import('./config.js');
     const state = await loadCliState();
 
-    expect(state.serverUrl).toBe('http://localhost:9999');
+    expect(state.gatewayUrl).toBe('http://localhost:9999');
     expect('outputProfile' in state).toBe(false);
   });
 
@@ -78,7 +78,7 @@ describe('cli config', () => {
     const fs = await import('node:fs/promises');
     vi.mocked(fs.readFile).mockResolvedValue(
       JSON.stringify({
-        serverUrl: 'http://localhost:9999',
+        gatewayUrl: 'http://localhost:9999',
         outputProfile: {
           tool: 'codex',
           colorScheme: 'dark',
@@ -99,5 +99,36 @@ describe('cli config', () => {
     const actualKeys = Object.keys(state.outputProfile!);
     const extraKeys = actualKeys.filter((k) => !validKeys.includes(k));
     expect(extraKeys).toEqual([]);
+  });
+
+  it('migrates legacy serverUrl config to gatewayUrl in memory', async () => {
+    const fs = await import('node:fs/promises');
+    vi.mocked(fs.readFile).mockResolvedValue(
+      JSON.stringify({
+        serverUrl: 'http://legacy-server:9999',
+      }) as never,
+    );
+
+    const { loadCliState } = await import('./config.js');
+    const state = await loadCliState();
+
+    expect(state.gatewayUrl).toBe('http://legacy-server:9999');
+    expect(state.serverUrl).toBeUndefined();
+  });
+
+  it('prefers explicit gatewayUrl over legacy serverUrl when both exist', async () => {
+    const fs = await import('node:fs/promises');
+    vi.mocked(fs.readFile).mockResolvedValue(
+      JSON.stringify({
+        gatewayUrl: 'http://gateway:4000',
+        serverUrl: 'http://legacy-server:9999',
+      }) as never,
+    );
+
+    const { loadCliState } = await import('./config.js');
+    const state = await loadCliState();
+
+    expect(state.gatewayUrl).toBe('http://gateway:4000');
+    expect(state.serverUrl).toBeUndefined();
   });
 });

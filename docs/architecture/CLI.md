@@ -30,13 +30,15 @@
 
 | 命令 | 参数 |
 |------|------|
-| `trapmap login` | `--access-key <key>` 或 `--system-admin-key <key>`；可选 `--server <url>`、`--json` |
+| `trapmap login` | `--access-key <key>` 或 `--system-admin-key <key>`；可选 `--server <gateway-url>`、`--json` |
 | `trapmap logout` | 可选 `--json` |
 | `trapmap session` | 可选 `--json` |
 
 说明：
 
-- CLI 只在 `login` 上支持 `--server <url>`，并把值写入本地状态文件
+- CLI 的正式接入模型是 `gateway only`
+- CLI 只在 `login` 上支持 `--server <gateway-url>`，并把值写入本地状态文件中的单一 gateway URL
+- CLI 不支持按命令或按后端 service unit 配置多个远端地址
 - 认证缺失时，CLI 会提示 `trapmap login`
 - `logout` 会始终清理本地 session；远端不可达时仍会清本地状态
 

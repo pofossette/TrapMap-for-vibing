@@ -345,6 +345,17 @@ describe('app.ts live gaps — fm-agent raw report', () => {
 
     const routes = await app.inject({ method: 'GET', url: '/meta/routes' });
     expect(routes.statusCode).toBe(200);
+    expect(routes.json()).toMatchObject({
+      routeSurface: 'minimal-agent',
+      publicGatewayRouteCount: 3,
+      internalRouteCount: 0,
+      routeFamilies: [
+        {
+          kind: 'local-agent-minimal',
+          audience: 'gateway-public',
+        },
+      ],
+    });
     expect(routes.json().documentedRoutes).toEqual([
       'POST /v1/retrieval/search',
       'POST /v3/retrieval/search',
@@ -382,7 +393,18 @@ describe('app.ts live gaps — fm-agent raw report', () => {
 
     const routes = await app.inject({ method: 'GET', url: '/meta/routes' });
     expect(routes.statusCode).toBe(200);
-    expect(routes.json().documentedRoutes).toEqual([]);
+    expect(routes.json()).toMatchObject({
+      routeSurface: 'worker-status',
+      documentedRoutes: [],
+      publicGatewayRouteCount: 0,
+      internalRouteCount: 3,
+      routeFamilies: [
+        {
+          kind: 'worker-status',
+          audience: 'internal-status',
+        },
+      ],
+    });
 
     const retrievalResponse = await app.inject({
       method: 'POST',
@@ -393,6 +415,21 @@ describe('app.ts live gaps — fm-agent raw report', () => {
 
     const ready = await app.inject({ method: 'GET', url: '/ready' });
     expect(ready.statusCode).toBe(200);
+    expect(ready.json()).toMatchObject({
+      dependencies: {
+        deployment: {
+          routeSurface: 'worker-status',
+          publicGatewayRouteCount: 0,
+          internalRouteCount: 3,
+          routeFamilies: [
+            {
+              kind: 'worker-status',
+              audience: 'internal-status',
+            },
+          ],
+        },
+      },
+    });
 
     await app.close();
   });

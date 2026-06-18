@@ -200,8 +200,8 @@ For package-local navigation, read:
 
 CLI 当前正式接入模型固定为单一 gateway：
 
-- `packages/cli/src/lib/http.ts` 只基于一个 `serverUrl` 发起请求。
-- `packages/cli/src/lib/config.ts` 只持久化一个 `serverUrl`。
+- `packages/cli/src/lib/http.ts` 只基于一个 gateway URL 发起请求。
+- `packages/cli/src/lib/config.ts` 只持久化一个 `gatewayUrl`，并兼容读取旧 `serverUrl`。
 - 即使后端后续演进到 `distributed` profile，CLI 仍然只连接统一 gateway，不直接感知微服务拆分。
 
 ### 命令模块

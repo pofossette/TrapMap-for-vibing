@@ -14,13 +14,15 @@ vi.mock('../lib/config.js', () => ({
   loadCliState: vi.fn(),
   updateCliState: vi.fn(),
   clearSession: vi.fn(),
+  resolveCliGatewayUrl: vi.fn((state) => state.gatewayUrl ?? state.serverUrl ?? 'http://localhost:3000'),
 }));
 
 import { clearSession } from '@trapmap/cli/lib/config.js';
+import { updateCliState } from '@trapmap/cli/lib/config.js';
 import { registerAuthCommands } from './auth.js';
 
 const mockBaseState = {
-  serverUrl: 'http://localhost:3000',
+  gatewayUrl: 'http://localhost:3000',
   sessionToken: 'mock-token',
   session: {
     member: { handle: 'testuser', securityLevel: 5 },
@@ -188,6 +190,38 @@ describe('auth commands', () => {
       registerAuthCommands(program);
 
       await expect(program.parseAsync(['login'], { from: 'user' })).rejects.toThrow();
+    });
+
+    it('persists only one gateway URL when login overrides remote address', async () => {
+      const mockResponse = createMockLoginResponse();
+      vi.mocked(http.apiRequest).mockResolvedValue({
+        data: mockResponse,
+        sessionToken: 'new-token',
+      });
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerAuthCommands(program);
+
+      await program.parseAsync(
+        ['login', '--access-key', 'ak_test-key-12345678', '--server', 'http://gateway:4100'],
+        { from: 'user' },
+      );
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          gatewayUrl: 'http://gateway:4100',
+        }),
+      );
+      expect(vi.mocked(updateCliState)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          gatewayUrl: 'http://gateway:4100',
+        }),
+      );
+
+      consoleLogSpy.mockRestore();
     });
   });
 
