@@ -3,6 +3,7 @@ import type { ServerConfig } from '@trapmap/server/config.js';
 import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/backend.js';
 import type { OutboxStatusSnapshot } from '@trapmap/server/lib/lifecycle/outbox.js';
 import type { TaskQueueStatusSnapshot } from '@trapmap/server/lib/queue/task-queue.js';
+import type { ResolvedRuntimeDeployment } from './deployment-profile.js';
 import type { RuntimeMode } from './runtime-contract.js';
 import type { ServiceUnit, ServiceUnitProfile } from './service-unit.js';
 export { resolveAsyncWorkerState } from './runtime-ownership.js';
@@ -14,6 +15,14 @@ export interface RuntimeDependencyState {
   graphQuery: 'disabled' | 'healthy' | 'fallback' | 'failed';
   runtimeMode: RuntimeMode;
   serviceUnit: ServiceUnit;
+  deployment: {
+    profile: ResolvedRuntimeDeployment['deploymentProfile'];
+    preset: ResolvedRuntimeDeployment['preset'];
+    routeSurface: ResolvedRuntimeDeployment['capabilities']['routeSurface'];
+    asyncOwnershipExpectation: ResolvedRuntimeDeployment['capabilities']['asyncOwnershipExpectation'];
+    storagePosture: ResolvedRuntimeDeployment['capabilities']['storagePosture'];
+    authTeamExpectation: ResolvedRuntimeDeployment['capabilities']['authTeamExpectation'];
+  };
   ownership: {
     queue: {
       ownsAny: boolean;
@@ -38,6 +47,7 @@ export interface RuntimeStatusSnapshot {
   };
   dependencies: RuntimeDependencyState;
   graphQuery: GraphQueryRuntimeState;
+  deployment: ResolvedRuntimeDeployment;
   serviceUnit: {
     name: ServiceUnit;
     ownership: ServiceUnitProfile;
@@ -66,6 +76,7 @@ interface BuildRuntimeStatusSnapshotOptions {
   database: 'postgres' | 'json-store';
   runtimeMode: RuntimeMode;
   serviceUnit: ServiceUnit;
+  runtimeDeployment: ResolvedRuntimeDeployment;
   serviceUnitProfile: ServiceUnitProfile;
   queueWorkerState: AsyncWorkerDependencyState;
   outboxWorkerState: AsyncWorkerDependencyState;
@@ -123,6 +134,15 @@ export function buildRuntimeStatusSnapshot(
       graphQuery: graphDependency,
       runtimeMode: options.runtimeMode,
       serviceUnit: options.serviceUnit,
+      deployment: {
+        profile: options.runtimeDeployment.deploymentProfile,
+        preset: options.runtimeDeployment.preset,
+        routeSurface: options.runtimeDeployment.capabilities.routeSurface,
+        asyncOwnershipExpectation:
+          options.runtimeDeployment.capabilities.asyncOwnershipExpectation,
+        storagePosture: options.runtimeDeployment.capabilities.storagePosture,
+        authTeamExpectation: options.runtimeDeployment.capabilities.authTeamExpectation,
+      },
       ownership: {
         queue: {
           ownsAny:
@@ -138,6 +158,7 @@ export function buildRuntimeStatusSnapshot(
       },
     },
     graphQuery: options.graphQuery,
+    deployment: options.runtimeDeployment,
     serviceUnit: {
       name: options.serviceUnit,
       ownership: options.serviceUnitProfile,

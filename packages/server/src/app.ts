@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
-import Fastify from 'fastify';
+import Fastify, { type FastifyInstance } from 'fastify';
 
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
@@ -27,8 +27,8 @@ import { keywordChannel } from './lib/retrieval/recall/keyword.js';
 import { semanticChannel } from './lib/retrieval/recall/semantic.js';
 import { handleRuntimeError, registerRuntimeRoutes } from './lib/runtime/http-surface.js';
 import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
+import { resolveRuntimeDeployment } from './lib/runtime/deployment-profile.js';
 import type { RuntimeMode } from './lib/runtime/runtime-contract.js';
-import { resolveDeploymentPreset } from './lib/runtime/deployment-preset.js';
 import { type ServiceUnit, resolveServiceUnit } from './lib/runtime/service-unit.js';
 
 import { runStartupSequence } from './bootstrap/run-startup-sequence.js';
@@ -50,7 +50,20 @@ import { reviewRoutes } from './routes/review.js';
 import { teamRoutes } from './routes/teams.js';
 import { trapRoutes } from './routes/traps.js';
 
-const documentedRoutes = [
+interface BuildServerOptions {
+  config?: Partial<ServerConfig>;
+  bodyLimit?: number;
+  runtimeMode?: RuntimeMode;
+  serviceUnit?: ServiceUnit;
+}
+
+const minimalAgentRoutes = [
+  'POST /v1/retrieval/search',
+  'POST /v3/retrieval/search',
+  'POST /v1/retrieval/skills/search-by-content',
+] as const;
+
+const coreGatewayRoutes = [
   'POST /v1/auth/login',
   'GET /v1/auth/session',
   'POST /v1/auth/logout',
@@ -60,7 +73,6 @@ const documentedRoutes = [
   'POST /v1/members',
   'PATCH /v1/members/:memberId',
   'POST /v1/access-keys',
-  // Candidate management routes
   'POST /v1/candidates',
   'GET /v1/candidates',
   'GET /v1/candidates/:candidateId',
@@ -79,10 +91,10 @@ const documentedRoutes = [
   'PATCH /v1/knowledge/:entryId',
   'GET /v1/knowledge/review-queue',
   'POST /v1/knowledge/review',
+] as const;
+
+const governanceRoutes = [
   'POST /v1/knowledge/:entryId/supersede',
-  'POST /v1/retrieval/search',
-  'POST /v3/retrieval/search',
-  'POST /v1/retrieval/skills/search-by-content',
   'GET /v1/operations/audit',
   'GET /v1/operations/stats/usage',
   'GET /v1/operations/stats/hits',
@@ -95,7 +107,6 @@ const documentedRoutes = [
   'GET /v1/operations/artifacts/:artifactId/history',
   'GET /v1/operations/artifacts/review-queue',
   'POST /v1/operations/artifacts/:artifactId/review',
-  'GET /v1/duplicates/:candidateId/bundle',
   'POST /v1/candidates/:candidateId/manual-result',
   'POST /v1/feedback',
   'GET /v1/operations/feedback',
@@ -111,11 +122,59 @@ const documentedRoutes = [
   'POST /admin/boundary-search',
 ] as const;
 
-interface BuildServerOptions {
-  config?: Partial<ServerConfig>;
-  bodyLimit?: number;
-  runtimeMode?: RuntimeMode;
-  serviceUnit?: ServiceUnit;
+const documentedRoutes = [...coreGatewayRoutes, ...minimalAgentRoutes, ...governanceRoutes] as const;
+
+function resolveDocumentedRoutes(
+  routeSurface: ServerConfig['deployment']['resolved']['capabilities']['routeSurface'],
+  supportsReviewGovernance: boolean,
+) {
+  if (routeSurface === 'worker-status') {
+    return [] as string[];
+  }
+
+  if (routeSurface === 'minimal-agent') {
+    return [...minimalAgentRoutes];
+  }
+
+  return supportsReviewGovernance
+    ? [...coreGatewayRoutes, ...minimalAgentRoutes, ...governanceRoutes]
+    : [...coreGatewayRoutes, ...minimalAgentRoutes];
+}
+
+async function registerCapabilityRoutes(app: FastifyInstance, config: ServerConfig) {
+  const capabilities = config.deployment.resolved.capabilities;
+
+  if (!capabilities.exposesGateway) {
+    return;
+  }
+
+  await app.register(retrievalRoutes);
+
+  if (capabilities.routeSurface === 'minimal-agent') {
+    return;
+  }
+
+  await app.register(authRoutes);
+  await app.register(teamRoutes);
+  await app.register(memberRoutes);
+  await app.register(accessKeyRoutes);
+  await app.register(reviewRoutes);
+  await app.register(trapRoutes);
+  await app.register(knowledgeRoutes);
+  await app.register(candidateRoutes);
+
+  if (!capabilities.supportsReviewGovernance) {
+    return;
+  }
+
+  await app.register(evidenceRoutes);
+  await app.register(operationsRoutes);
+  await app.register(decayRoutes);
+  await app.register(maintenanceRoutes);
+  await app.register(feedbackRoutes);
+  await app.register(feedbackAdminRoutes);
+  await app.register(adminBenchmarkRoutes);
+  await app.register(adminBoundarySearchRoutes);
 }
 
 export function buildServer(options: BuildServerOptions = {}) {
@@ -136,11 +195,25 @@ export function buildServer(options: BuildServerOptions = {}) {
     ...(defaultTestDataFile ? { dataFile: defaultTestDataFile } : {}),
     ...options.config,
   };
-  const preset = resolveDeploymentPreset(config.deployment?.preset);
-  const runtimeMode = options.runtimeMode ?? preset?.runtimeMode ?? 'combined';
-  const serviceUnit = resolveServiceUnit(
-    options.serviceUnit ?? preset?.serviceUnit ?? process.env.TRAPMAP_SERVICE_UNIT,
-  );
+  const serviceUnitOverride =
+    options.serviceUnit ??
+    config.deployment.resolved?.serviceUnit ??
+    process.env.TRAPMAP_SERVICE_UNIT;
+  const runtimeDeployment = resolveRuntimeDeployment({
+    profile: config.deployment.profile ?? undefined,
+    preset: config.deployment.preset,
+    runtimeMode:
+      options.runtimeMode ??
+      config.deployment.resolved?.runtimeMode ??
+      undefined,
+    serviceUnit:
+      serviceUnitOverride === undefined
+        ? undefined
+        : resolveServiceUnit(serviceUnitOverride),
+  });
+  config.deployment.resolved = runtimeDeployment;
+  const runtimeMode = runtimeDeployment.runtimeMode;
+  const serviceUnit = runtimeDeployment.serviceUnit;
   const app = Fastify({
     logger: isTestEnv
       ? false
@@ -159,10 +232,18 @@ export function buildServer(options: BuildServerOptions = {}) {
     }
   });
 
-  registerRuntimeRoutes(app, config, documentedRoutes);
+  registerRuntimeRoutes(
+    app,
+    config,
+    resolveDocumentedRoutes(
+      runtimeDeployment.capabilities.routeSurface,
+      runtimeDeployment.capabilities.supportsReviewGovernance,
+    ),
+  );
 
   const skillShareer: SkillShareerServices = {
     config,
+    runtimeDeployment,
     runtimeMode,
     serviceUnit,
     store: createSkillShareerStore(config),
@@ -235,23 +316,9 @@ export function buildServer(options: BuildServerOptions = {}) {
   // delegate through the new AI provider layer.
   setGlobalEmbeddingsProvider(app.skillShareer.ai.embeddings);
 
-  app.register(authRoutes);
-  app.register(teamRoutes);
-  app.register(memberRoutes);
-  app.register(accessKeyRoutes);
-  app.register(reviewRoutes);
-  app.register(trapRoutes);
-  app.register(knowledgeRoutes);
-  app.register(evidenceRoutes);
-  app.register(candidateRoutes);
-  app.register(retrievalRoutes);
-  app.register(operationsRoutes);
-  app.register(decayRoutes);
-  app.register(maintenanceRoutes);
-  app.register(feedbackRoutes);
-  app.register(feedbackAdminRoutes);
-  app.register(adminBenchmarkRoutes);
-  app.register(adminBoundarySearchRoutes);
+  void app.register(async (capabilityScopedApp) => {
+    await registerCapabilityRoutes(capabilityScopedApp, config);
+  });
 
   // Single startup sequence orchestrator — replaces 6 scattered onReady hooks.
   // See bootstrap/run-startup-sequence.ts for the full sequence and rationale.

@@ -78,6 +78,19 @@ Server 相关文档默认使用以下术语，不再混用：
 
 `deployment profile` 不等同于 `deployment preset`。前者描述目标产品形态，后者只负责把当前进程解析到既有的 `runtimeMode × serviceUnit` 组合上。
 
+P1 之后，server runtime 会统一生成 `ResolvedRuntimeDeployment`，其中至少包含：
+
+- `deploymentProfile`
+- `preset`
+- `runtimeMode`
+- `serviceUnit`
+- `capabilities.routeSurface`
+- `capabilities.asyncOwnershipExpectation`
+- `capabilities.storagePosture`
+- `capabilities.authTeamExpectation`
+
+路由暴露、worker ownership、`/health`、`/ready`、`/v1/operations/status/async` 都消费这同一份解析结果，不再各自散落推导。
+
 > **Round 2 更新**：知识、工件、候选的持久化已迁移到 PostgreSQL 专用表。`DualWriteKnowledgeRepository`、`DualWriteCandidateRepository`、`DualWriteArtifactRepository` 已删除。路由层不再对 `store_snapshot` 进行业务读写（审查/衰减/维护等操作仍用于审计/索引等辅助目的，延后至各轮次处理）。
 >
 > **Round 8 更新**：命名规范已统一（`revision` → `revision_no`，`submitted_by` → `submitted_by_user_id`）。所有核心表已补齐外键约束。`store_snapshot` 仅作为尚未迁移辅助域的兼容层，不再是 PG 主读路径用于身份/审计域；这些域的迁移已在 Round 10 Phase 3 完成。权威的迁移状态记录见 [reference/DATA_MODEL.md](reference/DATA_MODEL.md)。

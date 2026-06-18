@@ -710,8 +710,13 @@ export const retrievalCacheNamespaceStatsSchema = z
 export const asyncOperationsStatusResponseSchema = z
   .object({
     asyncRuntimeEnabled: z.boolean(),
+    deploymentProfile: z.enum(['local-agent', 'team-monolith', 'distributed']),
     runtimeMode: z.enum(['api', 'task-worker', 'outbox-worker', 'combined']),
     serviceUnit: z.enum(['full-platform', 'candidate-ingestion', 'knowledge-governance']),
+    routeSurface: z.enum(['minimal-agent', 'gateway-core', 'worker-status']),
+    asyncOwnershipExpectation: z.enum(['local-owned', 'split-owned', 'remote-expected']),
+    storagePosture: z.enum(['json-store-ok', 'postgres-required']),
+    authTeamExpectation: z.enum(['single-user', 'team-auth']),
     taskTransportProvider: z.enum(['postgres', 'rabbitmq', 'not-configured']),
     eventTransportProvider: z.enum(['postgres', 'not-configured']),
     adoptionGuidance: z.string(),

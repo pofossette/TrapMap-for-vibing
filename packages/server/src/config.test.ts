@@ -35,6 +35,33 @@ const minimalConfig = {
       requiresPostgres: true,
       minimumPreset: 'monolith' as const,
     },
+    resolved: {
+      deploymentProfile: 'team-monolith' as const,
+      profileSource: 'inferred' as const,
+      preset: 'monolith' as const,
+      runtimeMode: 'combined' as const,
+      serviceUnit: 'full-platform' as const,
+      capabilities: {
+        routeSurface: 'gateway-core' as const,
+        asyncOwnershipExpectation: 'split-owned' as const,
+        storagePosture: 'postgres-required' as const,
+        authTeamExpectation: 'team-auth' as const,
+        exposesGateway: true,
+        exposesFullHttpApi: true,
+        supportsLocalSingleUserMode: false,
+        supportsJsonStore: false,
+        requiresPostgres: true,
+        requiresGateway: true as const,
+        requiresAsyncOwnership: true,
+        allowsSingleProcess: true,
+        ownsCandidateTaskWork: true,
+        ownsSharedJobTaskWork: true,
+        ownsOutboxWork: true,
+        supportsReviewGovernance: true,
+        supportsTeamAuth: true,
+        supportsDistributedRouting: false,
+      },
+    },
   },
   asyncTaskTransport: {
     provider: 'postgres' as const,
@@ -288,6 +315,33 @@ describe('loadConfig', () => {
           requiresPostgres: true,
           minimumPreset: 'monolith',
         },
+        resolved: {
+          deploymentProfile: 'team-monolith',
+          profileSource: 'inferred',
+          preset: 'monolith',
+          runtimeMode: 'combined',
+          serviceUnit: 'full-platform',
+          capabilities: {
+            routeSurface: 'gateway-core',
+            asyncOwnershipExpectation: 'split-owned',
+            storagePosture: 'postgres-required',
+            authTeamExpectation: 'team-auth',
+            exposesGateway: true,
+            exposesFullHttpApi: true,
+            supportsLocalSingleUserMode: false,
+            supportsJsonStore: false,
+            requiresPostgres: true,
+            requiresGateway: true,
+            requiresAsyncOwnership: true,
+            allowsSingleProcess: true,
+            ownsCandidateTaskWork: true,
+            ownsSharedJobTaskWork: true,
+            ownsOutboxWork: true,
+            supportsReviewGovernance: true,
+            supportsTeamAuth: true,
+            supportsDistributedRouting: false,
+          },
+        },
       });
     });
   });
@@ -480,6 +534,20 @@ describe('loadConfig', () => {
           requiresPostgres: false,
           minimumPreset: 'monolith',
         },
+        resolved: {
+          deploymentProfile: 'local-agent',
+          profileSource: 'explicit',
+          preset: 'monolith',
+          runtimeMode: 'combined',
+          serviceUnit: 'full-platform',
+          capabilities: expect.objectContaining({
+            routeSurface: 'minimal-agent',
+            storagePosture: 'json-store-ok',
+            authTeamExpectation: 'single-user',
+            exposesFullHttpApi: false,
+            supportsLocalSingleUserMode: true,
+          }),
+        },
       });
     });
   });
@@ -498,6 +566,18 @@ describe('loadConfig', () => {
         allowsSingleProcess: false,
         requiresPostgres: true,
         minimumPreset: 'api',
+      });
+      expect(config.deployment.resolved).toMatchObject({
+        deploymentProfile: 'distributed',
+        profileSource: 'explicit',
+        preset: 'monolith',
+        runtimeMode: 'combined',
+        serviceUnit: 'full-platform',
+        capabilities: {
+          routeSurface: 'gateway-core',
+          asyncOwnershipExpectation: 'remote-expected',
+          supportsDistributedRouting: true,
+        },
       });
     });
   });

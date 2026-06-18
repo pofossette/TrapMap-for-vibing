@@ -16,6 +16,7 @@ import type { SkillShareerRepos } from './repos/index.js';
 import type { ChannelRegistry } from './retrieval/orchestration/channel-registry.js';
 import type { StrategyRegistry } from './retrieval/orchestration/strategy-registry.js';
 import type { RequestContext } from './runtime/request-context.js';
+import type { ResolvedRuntimeDeployment } from './runtime/deployment-profile.js';
 import type { RuntimeMode, RuntimeWorkerHandle } from './runtime/runtime-contract.js';
 import type { ServiceUnit } from './runtime/service-unit.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
@@ -24,6 +25,7 @@ import type { UserRepository } from './users/index.js';
 
 export interface SkillShareerServices {
   config: ServerConfig;
+  runtimeDeployment: ResolvedRuntimeDeployment;
   runtimeMode: RuntimeMode;
   serviceUnit: ServiceUnit;
   store: SkillShareerStore;

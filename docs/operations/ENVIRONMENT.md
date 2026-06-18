@@ -46,6 +46,25 @@ profile 兼容约定：
   - 表示 gateway + async ownership 的分布式目标形态
   - 不是 `runtimeMode=combined` 的别名
 
+profile capability 语义：
+
+- `local-agent`
+  - `routeSurface=minimal-agent`
+  - `asyncOwnershipExpectation=local-owned`
+  - `storagePosture=json-store-ok`
+  - `authTeamExpectation=single-user`
+- `team-monolith`
+  - `routeSurface=gateway-core`
+  - `asyncOwnershipExpectation=split-owned`
+  - `storagePosture=postgres-required`
+  - `authTeamExpectation=team-auth`
+- `distributed`
+  - gateway 进程通常是 `routeSurface=gateway-core`
+  - worker 进程通常是 `routeSurface=worker-status`
+  - `asyncOwnershipExpectation=remote-expected`
+  - `storagePosture=postgres-required`
+  - `authTeamExpectation=team-auth`
+
 预设映射约定：
 
 - `monolith` -> `runtimeMode=combined`, `serviceUnit=full-platform`

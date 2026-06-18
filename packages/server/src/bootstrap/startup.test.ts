@@ -207,13 +207,20 @@ describe('startup sequence', () => {
   it('supports deployment preset driven runtime resolution', async () => {
     const server = buildServer({
       config: {
-        deployment: { preset: 'candidate-worker' },
+        deployment: { profile: 'distributed', preset: 'candidate-worker' },
       } as any,
     });
     await server.ready();
 
     expect(server.skillShareer.runtimeMode).toBe('task-worker');
     expect(server.skillShareer.serviceUnit).toBe('candidate-ingestion');
+    expect(server.skillShareer.runtimeDeployment).toMatchObject({
+      deploymentProfile: 'distributed',
+      preset: 'candidate-worker',
+      capabilities: {
+        routeSurface: 'worker-status',
+      },
+    });
 
     await server.close();
   });

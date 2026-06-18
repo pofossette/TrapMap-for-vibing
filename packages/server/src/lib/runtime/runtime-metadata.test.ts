@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ServerConfig } from '@trapmap/server/config.js';
+import { resolveRuntimeDeployment } from './deployment-profile.js';
 import { buildRuntimeStatusSnapshot, resolveAsyncWorkerState } from './runtime-metadata.js';
 import { getServiceUnitProfile } from './service-unit.js';
 
@@ -11,6 +12,13 @@ const baseConfig = {
   },
 } as ServerConfig;
 
+function deployment(profile: 'local-agent' | 'team-monolith' | 'distributed') {
+  return resolveRuntimeDeployment({
+    profile,
+    preset: profile === 'distributed' ? 'api' : 'monolith',
+  });
+}
+
 describe('buildRuntimeStatusSnapshot', () => {
   it('reports ready when graph is disabled and queue worker is not configured', () => {
     const snapshot = buildRuntimeStatusSnapshot({
@@ -18,6 +26,12 @@ describe('buildRuntimeStatusSnapshot', () => {
       database: 'json-store',
       runtimeMode: 'api',
       serviceUnit: 'full-platform',
+      runtimeDeployment: resolveRuntimeDeployment({
+        profile: 'local-agent',
+        preset: 'monolith',
+        runtimeMode: 'api',
+        serviceUnit: 'full-platform',
+      }),
       serviceUnitProfile: getServiceUnitProfile('full-platform', 'api'),
       queueWorkerState: 'not-configured',
       outboxWorkerState: 'not-configured',
@@ -37,6 +51,11 @@ describe('buildRuntimeStatusSnapshot', () => {
       graphQuery: 'disabled',
       runtimeMode: 'api',
       serviceUnit: 'full-platform',
+      deployment: {
+        profile: 'local-agent',
+        routeSurface: 'minimal-agent',
+        storagePosture: 'json-store-ok',
+      },
     });
   });
 
@@ -46,6 +65,7 @@ describe('buildRuntimeStatusSnapshot', () => {
       database: 'postgres',
       runtimeMode: 'combined',
       serviceUnit: 'full-platform',
+      runtimeDeployment: deployment('team-monolith'),
       serviceUnitProfile: getServiceUnitProfile('full-platform', 'combined'),
       queueWorkerState: 'degraded',
       outboxWorkerState: 'running',
@@ -66,6 +86,7 @@ describe('buildRuntimeStatusSnapshot', () => {
       database: 'postgres',
       runtimeMode: 'combined',
       serviceUnit: 'full-platform',
+      runtimeDeployment: deployment('team-monolith'),
       serviceUnitProfile: getServiceUnitProfile('full-platform', 'combined'),
       queueWorkerState: 'running',
       outboxWorkerState: 'running',
@@ -88,6 +109,7 @@ describe('buildRuntimeStatusSnapshot', () => {
       database: 'postgres',
       runtimeMode: 'combined',
       serviceUnit: 'full-platform',
+      runtimeDeployment: deployment('team-monolith'),
       serviceUnitProfile: getServiceUnitProfile('full-platform', 'combined'),
       queueWorkerState: 'running',
       outboxWorkerState: 'running',
@@ -108,6 +130,7 @@ describe('buildRuntimeStatusSnapshot', () => {
       database: 'postgres',
       runtimeMode: 'combined',
       serviceUnit: 'full-platform',
+      runtimeDeployment: deployment('team-monolith'),
       serviceUnitProfile: getServiceUnitProfile('full-platform', 'combined'),
       queueWorkerState: 'running',
       outboxWorkerState: 'degraded',
@@ -128,6 +151,12 @@ describe('buildRuntimeStatusSnapshot', () => {
       database: 'postgres',
       runtimeMode: 'api',
       serviceUnit: 'knowledge-governance',
+      runtimeDeployment: resolveRuntimeDeployment({
+        profile: 'distributed',
+        preset: 'api',
+        runtimeMode: 'api',
+        serviceUnit: 'knowledge-governance',
+      }),
       serviceUnitProfile: getServiceUnitProfile('knowledge-governance', 'api'),
       queueWorkerState: 'remote',
       outboxWorkerState: 'remote',
@@ -156,6 +185,13 @@ describe('buildRuntimeStatusSnapshot', () => {
       name: 'knowledge-governance',
       ownership: getServiceUnitProfile('knowledge-governance', 'api'),
     });
+    expect(snapshot.deployment).toMatchObject({
+      deploymentProfile: 'distributed',
+      capabilities: {
+        routeSurface: 'gateway-core',
+        asyncOwnershipExpectation: 'remote-expected',
+      },
+    });
   });
 
   it('surfaces service-unit ownership for candidate-ingestion combined runtime', () => {
@@ -164,6 +200,12 @@ describe('buildRuntimeStatusSnapshot', () => {
       database: 'postgres',
       runtimeMode: 'combined',
       serviceUnit: 'candidate-ingestion',
+      runtimeDeployment: resolveRuntimeDeployment({
+        profile: 'team-monolith',
+        preset: 'monolith',
+        runtimeMode: 'combined',
+        serviceUnit: 'candidate-ingestion',
+      }),
       serviceUnitProfile: getServiceUnitProfile('candidate-ingestion', 'combined'),
       queueWorkerState: 'running',
       outboxWorkerState: 'remote',

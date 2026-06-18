@@ -322,6 +322,81 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     await outboxWorkerApp.close();
   });
 
+  it('local-agent only exposes minimal retrieval gateway routes', async () => {
+    const app = buildServer({
+      config: {
+        deployment: {
+          profile: 'local-agent',
+          preset: 'monolith',
+          compatibility: {
+            profile: 'local-agent',
+            source: 'explicit',
+            requiresGateway: true,
+            requiresAsyncOwnership: false,
+            allowsSingleProcess: true,
+            requiresPostgres: false,
+            minimumPreset: 'monolith',
+          },
+          resolved: undefined as never,
+        },
+      } as any,
+    });
+    await app.ready();
+
+    const routes = await app.inject({ method: 'GET', url: '/meta/routes' });
+    expect(routes.statusCode).toBe(200);
+    expect(routes.json().documentedRoutes).toEqual([
+      'POST /v1/retrieval/search',
+      'POST /v3/retrieval/search',
+      'POST /v1/retrieval/skills/search-by-content',
+    ]);
+
+    const authResponse = await app.inject({ method: 'GET', url: '/v1/auth/session' });
+    expect(authResponse.statusCode).toBe(404);
+
+    await app.close();
+  });
+
+  it('distributed worker profile does not expose gateway business routes', async () => {
+    const app = buildServer({
+      runtimeMode: 'task-worker',
+      serviceUnit: 'candidate-ingestion',
+      config: {
+        deployment: {
+          profile: 'distributed',
+          preset: 'candidate-worker',
+          compatibility: {
+            profile: 'distributed',
+            source: 'explicit',
+            requiresGateway: true,
+            requiresAsyncOwnership: true,
+            allowsSingleProcess: false,
+            requiresPostgres: true,
+            minimumPreset: 'api',
+          },
+          resolved: undefined as never,
+        },
+      } as any,
+    });
+    await app.ready();
+
+    const routes = await app.inject({ method: 'GET', url: '/meta/routes' });
+    expect(routes.statusCode).toBe(200);
+    expect(routes.json().documentedRoutes).toEqual([]);
+
+    const retrievalResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/retrieval/search',
+      payload: { query: 'test' },
+    });
+    expect(retrievalResponse.statusCode).toBe(404);
+
+    const ready = await app.inject({ method: 'GET', url: '/ready' });
+    expect(ready.statusCode).toBe(200);
+
+    await app.close();
+  });
+
   it('service units remain request-ready in json-store mode', async () => {
     const candidateIngestionApp = buildServer({
       runtimeMode: 'combined',

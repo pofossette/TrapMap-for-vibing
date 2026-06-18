@@ -2,25 +2,16 @@ import { pathToFileURL } from 'node:url';
 
 import { buildServer } from './app.js';
 import { loadConfig } from './config.js';
-import { resolveDeploymentPreset } from './lib/runtime/deployment-preset.js';
-import type { RuntimeMode } from './lib/runtime/runtime-contract.js';
-import { resolveServiceUnit } from './lib/runtime/service-unit.js';
-
-function resolveWorkerRuntimeMode(): RuntimeMode {
-  const mode = process.env.RUNTIME_MODE;
-  if (mode === 'task-worker' || mode === 'outbox-worker' || mode === 'combined') {
-    return mode;
-  }
-  return 'combined';
-}
+import { resolveRuntimeDeployment } from './lib/runtime/deployment-profile.js';
 
 async function startWorker() {
   const config = loadConfig();
-  const preset = resolveDeploymentPreset(config.deployment.preset);
-  const runtimeMode = preset?.runtimeMode ?? resolveWorkerRuntimeMode();
-  const serviceUnit = resolveServiceUnit(
-    preset?.serviceUnit ?? process.env.TRAPMAP_SERVICE_UNIT,
-  );
+  const runtimeDeployment = resolveRuntimeDeployment({
+    profile: config.deployment.profile ?? undefined,
+    preset: config.deployment.preset,
+  });
+  const runtimeMode = runtimeDeployment.runtimeMode;
+  const serviceUnit = runtimeDeployment.serviceUnit;
 
   if (
     config.asyncTaskTransport.provider === 'rabbitmq' &&
@@ -32,7 +23,14 @@ async function startWorker() {
 
   const server = buildServer({ runtimeMode, serviceUnit });
   await server.ready();
-  server.log.info({ runtimeMode, serviceUnit }, 'Worker runtime started');
+  server.log.info(
+    {
+      deploymentProfile: runtimeDeployment.deploymentProfile,
+      runtimeMode,
+      serviceUnit,
+    },
+    'Worker runtime started',
+  );
 }
 
 const entryUrl = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;

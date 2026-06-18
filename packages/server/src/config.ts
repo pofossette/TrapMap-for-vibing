@@ -4,7 +4,10 @@ import { z } from 'zod';
 import { loadAiProviderConfig } from './lib/ai/index.js';
 import { GraphDbConfigSchema, loadGraphDbConfig } from './lib/graph-query/config.js';
 import { loadRagLogConfig } from './lib/rag-log.js';
-import { resolveDeploymentProfileCompatibility } from './lib/runtime/deployment-profile.js';
+import {
+  resolveDeploymentProfileCompatibility,
+  resolveRuntimeDeployment,
+} from './lib/runtime/deployment-profile.js';
 import { loadUserOpsLogConfig } from './lib/user-ops-log.js';
 
 // =============================================================================
@@ -96,6 +99,33 @@ const DeploymentSchema = z.object({
     requiresPostgres: z.boolean(),
     minimumPreset: z.enum(['monolith', 'api', 'candidate-worker', 'governance-worker', 'outbox-worker']),
   }),
+  resolved: z.object({
+    deploymentProfile: z.enum(['local-agent', 'team-monolith', 'distributed']),
+    profileSource: z.enum(['explicit', 'inferred']),
+    preset: z.enum(['monolith', 'api', 'candidate-worker', 'governance-worker', 'outbox-worker']),
+    runtimeMode: z.enum(['api', 'task-worker', 'outbox-worker', 'combined']),
+    serviceUnit: z.enum(['full-platform', 'candidate-ingestion', 'knowledge-governance']),
+    capabilities: z.object({
+      routeSurface: z.enum(['minimal-agent', 'gateway-core', 'worker-status']),
+      asyncOwnershipExpectation: z.enum(['local-owned', 'split-owned', 'remote-expected']),
+      storagePosture: z.enum(['json-store-ok', 'postgres-required']),
+      authTeamExpectation: z.enum(['single-user', 'team-auth']),
+      exposesGateway: z.boolean(),
+      exposesFullHttpApi: z.boolean(),
+      supportsLocalSingleUserMode: z.boolean(),
+      supportsJsonStore: z.boolean(),
+      requiresPostgres: z.boolean(),
+      requiresGateway: z.literal(true),
+      requiresAsyncOwnership: z.boolean(),
+      allowsSingleProcess: z.boolean(),
+      ownsCandidateTaskWork: z.boolean(),
+      ownsSharedJobTaskWork: z.boolean(),
+      ownsOutboxWork: z.boolean(),
+      supportsReviewGovernance: z.boolean(),
+      supportsTeamAuth: z.boolean(),
+      supportsDistributedRouting: z.boolean(),
+    }),
+  }),
 });
 
 /**
@@ -182,6 +212,24 @@ export function loadConfig(): ServerConfig {
       profile: process.env.TRAPMAP_DEPLOYMENT_PROFILE ?? null,
       preset: process.env.TRAPMAP_DEPLOYMENT_PRESET,
       compatibility: resolveDeploymentProfileCompatibility({
+        profile:
+          process.env.TRAPMAP_DEPLOYMENT_PROFILE === undefined
+            ? undefined
+            : (process.env.TRAPMAP_DEPLOYMENT_PROFILE as
+                | 'local-agent'
+                | 'team-monolith'
+                | 'distributed'),
+        preset:
+          process.env.TRAPMAP_DEPLOYMENT_PRESET === undefined
+            ? undefined
+            : (process.env.TRAPMAP_DEPLOYMENT_PRESET as
+                | 'monolith'
+                | 'api'
+                | 'candidate-worker'
+                | 'governance-worker'
+                | 'outbox-worker'),
+      }),
+      resolved: resolveRuntimeDeployment({
         profile:
           process.env.TRAPMAP_DEPLOYMENT_PROFILE === undefined
             ? undefined

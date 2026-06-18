@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveDeploymentProfileCompatibility } from './deployment-profile.js';
+import {
+  resolveDeploymentProfileCompatibility,
+  resolveRuntimeDeployment,
+} from './deployment-profile.js';
 
 describe('deployment profile compatibility', () => {
   it('keeps monolith preset mapped to team-monolith when no profile is set', () => {
@@ -65,5 +68,47 @@ describe('deployment profile compatibility', () => {
     expect(compatibility.requiresAsyncOwnership).toBe(true);
     expect(compatibility.allowsSingleProcess).toBe(false);
     expect(compatibility.minimumPreset).toBe('api');
+  });
+
+  it('resolves local-agent into a minimal gateway capability model', () => {
+    const deployment = resolveRuntimeDeployment({
+      profile: 'local-agent',
+      preset: 'monolith',
+    });
+
+    expect(deployment).toMatchObject({
+      deploymentProfile: 'local-agent',
+      runtimeMode: 'combined',
+      serviceUnit: 'full-platform',
+      capabilities: {
+        routeSurface: 'minimal-agent',
+        storagePosture: 'json-store-ok',
+        authTeamExpectation: 'single-user',
+        supportsLocalSingleUserMode: true,
+        exposesFullHttpApi: false,
+        supportsReviewGovernance: false,
+      },
+    });
+  });
+
+  it('resolves split presets into distributed worker ownership semantics', () => {
+    const deployment = resolveRuntimeDeployment({
+      profile: undefined,
+      preset: 'governance-worker',
+    });
+
+    expect(deployment).toMatchObject({
+      deploymentProfile: 'distributed',
+      runtimeMode: 'task-worker',
+      serviceUnit: 'knowledge-governance',
+      capabilities: {
+        routeSurface: 'worker-status',
+        asyncOwnershipExpectation: 'remote-expected',
+        ownsCandidateTaskWork: false,
+        ownsSharedJobTaskWork: true,
+        ownsOutboxWork: true,
+        supportsDistributedRouting: true,
+      },
+    });
   });
 });

@@ -82,6 +82,9 @@ TrapMap 有两类典型使用方式：
 
 当前工程状态：
 
+- deployment profile 现已作为正式 capability 模型落地到 server runtime：`local-agent`、`team-monolith`、`distributed`
+- `deployment preset` 继续作为兼容启动输入存在，但解析后统一收敛到 `profile + runtimeMode + serviceUnit + capabilities`
+- `/health`、`/ready` 与 runtime/status metadata 现在会暴露 profile、route surface、async ownership expectation、storage posture、auth/team expectation
 - Knowledge 域已经完成结构化拆表
 - Skill Artifact 域已进入 Round 4：主路径在 PostgreSQL，`files`、`script_descriptors`、`profile/capsules/clientManifest` 已补入结构化子表；原 `artifact_revisions` JSONB 列继续保留为兼容缓存，不再是唯一事实源
 - PG-first 收敛已完成：核心请求处理通过 `repos` 读写（`packages/server/src/lib/repos/`）；`store_snapshot` 作为兼容层保留，仍服务于未迁移辅助域以及部分启动恢复/运维路径。详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`

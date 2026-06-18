@@ -24,6 +24,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
     const store = app.skillShareer.store;
     const runtimeMode = app.skillShareer.runtimeMode;
     const serviceUnit = app.skillShareer.serviceUnit;
+    const runtimeDeployment = app.skillShareer.runtimeDeployment;
     const serviceUnitProfile = getServiceUnitProfile(serviceUnit, runtimeMode);
     const adoptionGuidanceForProviders = (
       taskTransportProvider: 'postgres' | 'rabbitmq' | 'not-configured',
@@ -35,8 +36,13 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
     if (!(store instanceof PostgresStore)) {
       return asyncOperationsStatusResponseSchema.parse({
         asyncRuntimeEnabled: false,
+        deploymentProfile: runtimeDeployment.deploymentProfile,
         runtimeMode,
         serviceUnit,
+        routeSurface: runtimeDeployment.capabilities.routeSurface,
+        asyncOwnershipExpectation: runtimeDeployment.capabilities.asyncOwnershipExpectation,
+        storagePosture: runtimeDeployment.capabilities.storagePosture,
+        authTeamExpectation: runtimeDeployment.capabilities.authTeamExpectation,
         taskTransportProvider: 'not-configured',
         eventTransportProvider: 'not-configured',
         adoptionGuidance: adoptionGuidanceForProviders('not-configured'),
@@ -99,8 +105,13 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
 
     return asyncOperationsStatusResponseSchema.parse({
       asyncRuntimeEnabled: true,
+      deploymentProfile: runtimeDeployment.deploymentProfile,
       runtimeMode,
       serviceUnit,
+      routeSurface: runtimeDeployment.capabilities.routeSurface,
+      asyncOwnershipExpectation: runtimeDeployment.capabilities.asyncOwnershipExpectation,
+      storagePosture: runtimeDeployment.capabilities.storagePosture,
+      authTeamExpectation: runtimeDeployment.capabilities.authTeamExpectation,
       taskTransportProvider: queueSnapshot.provider,
       eventTransportProvider: outboxSnapshot.provider,
       adoptionGuidance: adoptionGuidanceForProviders(queueSnapshot.provider),

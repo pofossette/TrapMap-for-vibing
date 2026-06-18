@@ -13,11 +13,37 @@
 
 当前仓库已实现的是 `deployment preset -> runtimeMode/serviceUnit` 映射，以及 `postgres` / `rabbitmq` 两类 `task transport` 选择；`deployment profile` 用来统一“想要支持哪种部署形态”的叙事，不应与 preset 混为一谈。
 
+运行时解析关系现在固定为：
+
+- `profile`：正式产品形态与 capability matrix 的事实源
+- `preset`：兼容输入与启动快捷方式
+- `runtimeMode`：当前进程是否暴露 API、task worker、outbox worker
+- `serviceUnit`：当前进程拥有哪类 async work ownership
+
+Server 启动时会先把 `profile + preset + runtimeMode override + serviceUnit override` 统一解析为一份 `ResolvedRuntimeDeployment`，再驱动 route registration、worker ownership、health/readiness metadata 和 operator status surface。
+
 三种目标 profile 的当前定义：
 
 - `local-agent`：单用户、轻量本地服务、retrieval-first；CLI 仍通过 HTTP gateway 接入，路由面应尽量收敛到最小能力集。
 - `team-monolith`：单实例、多用户、完整 HTTP API，PostgreSQL 是主路径，可按需要把 API/worker 组合在同一进程。
 - `distributed`：gateway + 多服务/多 worker，首期仍共享 PostgreSQL；CLI 仍只连接 gateway。
+
+当前 capability 语义最少覆盖：
+
+- `route surface`
+  - `minimal-agent`
+  - `gateway-core`
+  - `worker-status`
+- `async ownership expectation`
+  - `local-owned`
+  - `split-owned`
+  - `remote-expected`
+- `storage posture`
+  - `json-store-ok`
+  - `postgres-required`
+- `auth/team expectation`
+  - `single-user`
+  - `team-auth`
 
 当前阶段的明确非目标：
 
@@ -209,6 +235,7 @@ curl http://127.0.0.1:4000/ready
 
 - `/health` 用于 liveness，返回 `status: "ok"` 以及统一 runtime snapshot：`product`、`packages`、`liveness`、`readiness`、`requestContext`、`dependencies`、`graphQuery`、`memory`、`uptimeSeconds`
 - `/ready` 用于 traffic readiness，返回 `ok` 与同一份 runtime snapshot；当 `readiness === "not-ready"` 时，HTTP 状态码为 `503`，且 `ok` 为 `false`
+- 两个端点都会返回 `deployment` 与 `dependencies.deployment` 语义，包括 `profile`、`preset`、`routeSurface`、`asyncOwnershipExpectation`、`storagePosture`、`authTeamExpectation`
 - 两个端点都返回 `requestContext.requestIdHeader` 与 `requestContext.traceHeader`，用于说明实例当前使用的请求链路头约定
 - `dependencies.queueWorker` 的语义为：
   - `running`：PostgreSQL 模式且 worker 正常运行

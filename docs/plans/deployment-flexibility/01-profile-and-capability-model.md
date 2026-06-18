@@ -155,11 +155,19 @@
 
 ## 验收标准
 
-- 任何一处 runtime 装配都只消费一份统一的 deployment 解析结果。
-- route/worker/health 三个系统的部署语义一致。
-- 不再出现“文档里叫 split/distributed，代码里只有 preset/runtimeMode”的双重叙事。
+- [x] 任何一处 runtime 装配都只消费一份统一的 deployment 解析结果。
+- [x] route/worker/health 三个系统的部署语义一致。
+- [x] 不再出现“文档里叫 split/distributed，代码里只有 preset/runtimeMode”的双重叙事。
 
 ## 交付要求
 
 - 实现者不能再通过散落的 `if env === ...` 判断定义产品形态。
 - 新增 profile/capability 结构必须可被文档直接引用。
+
+## 本轮落地说明
+
+- `packages/server/src/lib/runtime/deployment-profile.ts` 现在提供正式的 `ResolvedRuntimeDeployment`
+- `packages/server/src/config.ts` 会把 `deployment.resolved` 写入配置结果
+- `packages/server/src/app.ts`、`src/index.ts`、`src/worker.ts` 统一消费 `deployment.resolved`
+- runtime metadata、`/health`、`/ready`、`/v1/operations/status/async` 已开始暴露 profile/capability 语义
+- route registration 已按 `minimal-agent` / `gateway-core` / `worker-status` 收敛为 capability 驱动
