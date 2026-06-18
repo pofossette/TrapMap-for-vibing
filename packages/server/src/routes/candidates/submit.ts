@@ -45,9 +45,9 @@ function computeSha256(content: string): string {
 
 export const candidateSubmissionRoutes: FastifyPluginAsync = async (app) => {
   const candidateQueue = createCandidateQueuePortForRuntime(
-    app.skillShareer.asyncTransport?.queue
+    app.skillShareer.asyncTransport?.task
       ? {
-          asyncQueue: app.skillShareer.asyncTransport.queue,
+          asyncQueue: app.skillShareer.asyncTransport.task,
           store: app.skillShareer.store,
         }
       : {

@@ -59,6 +59,34 @@ const RuntimeConfigSchema = z.object({
   traceHeaderName: z.string().min(1).default('traceparent'),
 });
 
+const RabbitMqTaskTransportSchema = z.object({
+  url: z.string().min(1),
+  exchange: z.string().min(1).default('trapmap.tasks'),
+  queue: z.string().min(1).default('trapmap.default'),
+  prefetch: z.coerce.number().int().min(1).max(100).default(1),
+});
+
+const AsyncTaskTransportSchema = z
+  .object({
+    provider: z.enum(['postgres', 'rabbitmq']).default('postgres'),
+    rabbitmq: RabbitMqTaskTransportSchema.nullable().default(null),
+  })
+  .superRefine((value, ctx) => {
+    if (value.provider === 'rabbitmq' && value.rabbitmq === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['rabbitmq'],
+        message: 'RabbitMQ config is required when TRAPMAP_TASK_TRANSPORT=rabbitmq',
+      });
+    }
+  });
+
+const DeploymentSchema = z.object({
+  preset: z
+    .enum(['monolith', 'api', 'candidate-worker', 'governance-worker', 'outbox-worker'])
+    .default('monolith'),
+});
+
 /**
  * Full server configuration schema.
  */
@@ -72,6 +100,8 @@ export const ServerConfigSchema = z.object({
   rateLimitMaxPerMinute: RateLimitMaxSchema,
   sessionTransport: SessionTransportSchema,
   runtime: RuntimeConfigSchema,
+  deployment: DeploymentSchema,
+  asyncTaskTransport: AsyncTaskTransportSchema,
   userOpsLog: UserOpsLogSchema,
   ragLog: RagLogSchema,
   graphDb: GraphDbConfigSchema,
@@ -136,6 +166,20 @@ export function loadConfig(): ServerConfig {
         'x-request-id',
       traceHeaderName:
         (process.env.TRAPMAP_TRACE_HEADER_NAME?.trim().toLowerCase() || undefined) ?? 'traceparent',
+    },
+    deployment: {
+      preset: process.env.TRAPMAP_DEPLOYMENT_PRESET,
+    },
+    asyncTaskTransport: {
+      provider: process.env.TRAPMAP_TASK_TRANSPORT,
+      rabbitmq: process.env.TRAPMAP_RABBITMQ_URL
+        ? {
+            url: process.env.TRAPMAP_RABBITMQ_URL,
+            exchange: process.env.TRAPMAP_RABBITMQ_TASK_EXCHANGE,
+            queue: process.env.TRAPMAP_RABBITMQ_TASK_QUEUE,
+            prefetch: process.env.TRAPMAP_RABBITMQ_PREFETCH,
+          }
+        : null,
     },
     userOpsLog,
     ragLog,

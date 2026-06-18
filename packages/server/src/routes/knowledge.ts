@@ -43,7 +43,9 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       ? {
           store,
           eventBus,
-          asyncTransport,
+          asyncTransport: {
+            events: asyncTransport.events,
+          },
         }
       : {
           store,

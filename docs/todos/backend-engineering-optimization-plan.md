@@ -53,6 +53,12 @@ TrapMap 现在更适合做“单体内分层 + 持久任务队列”的演进，
 
 不要为了“先进”而上 MQ，要在明确场景下引入。
 
+Optional adoption rule:
+
+- 默认保持 `TRAPMAP_TASK_TRANSPORT=postgres`。
+- 只有在 task backlog、隔离域或独立扩缩容目标持续存在时，才启用 `TRAPMAP_TASK_TRANSPORT=rabbitmq`。
+- 无论是否启用 RabbitMQ，`domain_event_outbox` 都必须继续保留在 PostgreSQL。
+
 适合 MQ 的场景：
 
 - 外部事件持续进入系统

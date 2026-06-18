@@ -204,6 +204,20 @@ describe('startup sequence', () => {
     await server.close();
   });
 
+  it('supports deployment preset driven runtime resolution', async () => {
+    const server = buildServer({
+      config: {
+        deployment: { preset: 'candidate-worker' },
+      } as any,
+    });
+    await server.ready();
+
+    expect(server.skillShareer.runtimeMode).toBe('task-worker');
+    expect(server.skillShareer.serviceUnit).toBe('candidate-ingestion');
+
+    await server.close();
+  });
+
   it('supports candidate-ingestion service unit booted as api plus worker combination', async () => {
     const server = buildServer({
       runtimeMode: 'combined',

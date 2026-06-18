@@ -24,6 +24,7 @@
     "@langchain/core": "^1.1.39",
     "@langchain/openai": "^1.4.4",
     "@trapmap/contracts": "workspace:*",
+    "amqplib": "^0.10.8",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.6.1",
     "graphology": "^0.26.0",

@@ -19,7 +19,7 @@ async function buildRuntimeAsyncSnapshot(app: FastifyInstance) {
     throw new Error('Postgres runtime requires skillShareer.asyncTransport for runtime status');
   }
   const [queueSnapshot, outboxSnapshot] = await Promise.all([
-    transport.queue.getStatusSnapshot(),
+    transport.task.getStatusSnapshot(),
     transport.events.getStatusSnapshot(),
   ]);
   return { queueSnapshot, outboxSnapshot };

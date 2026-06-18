@@ -766,6 +766,10 @@ describeIfDb('operations async status routes', () => {
       asyncRuntimeEnabled: true,
       runtimeMode: 'combined',
       serviceUnit: 'full-platform',
+      taskTransportProvider: 'postgres',
+      eventTransportProvider: 'postgres',
+      adoptionGuidance:
+        'Default mode: keep postgres task queue unless sustained backlog thresholds justify RabbitMQ.',
       queue: expect.objectContaining({
         pending: expect.any(Number),
         dead: expect.any(Number),
@@ -791,6 +795,7 @@ describeIfDb('operations async status routes', () => {
 
   it('uses skillShareer asyncTransport snapshots as the authoritative status source', async () => {
     const queueSnapshot = {
+      provider: 'postgres',
       pending: 17,
       running: 3,
       dead: 1,
@@ -802,6 +807,7 @@ describeIfDb('operations async status routes', () => {
       recentDeadLetters: [],
     };
     const outboxSnapshot = {
+      provider: 'postgres',
       pending: 8,
       processing: 2,
       failed: 1,
@@ -813,14 +819,15 @@ describeIfDb('operations async status routes', () => {
       recentFailures: [],
     };
     app.skillShareer.asyncTransport = {
-      kind: 'postgres-outbox-task-queue',
-      queue: {
+      task: {
+        kind: 'postgres-task-queue',
         enqueue: vi.fn(),
         enqueueTx: vi.fn(),
         requeue: vi.fn(),
         getStatusSnapshot: vi.fn().mockResolvedValue(queueSnapshot),
       },
       events: {
+        kind: 'postgres-domain-outbox',
         enqueue: vi.fn(),
         enqueueTx: vi.fn(),
         claimBatch: vi.fn(),
@@ -838,19 +845,115 @@ describeIfDb('operations async status routes', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
+      taskTransportProvider: 'postgres',
+      eventTransportProvider: 'postgres',
+      adoptionGuidance:
+        'Default mode: keep postgres task queue unless sustained backlog thresholds justify RabbitMQ.',
       queue: expect.objectContaining({
+        provider: 'postgres',
         pending: 17,
         running: 3,
         reclaimCount: 4,
       }),
       outbox: expect.objectContaining({
+        provider: 'postgres',
         pending: 8,
         processing: 2,
         reclaimCount: 5,
       }),
     });
-    expect(app.skillShareer.asyncTransport.queue.getStatusSnapshot).toHaveBeenCalledTimes(1);
+    expect(app.skillShareer.asyncTransport.task.kind).toBe('postgres-task-queue');
+    expect(app.skillShareer.asyncTransport.events.kind).toBe('postgres-domain-outbox');
+    expect(app.skillShareer.asyncTransport.task.getStatusSnapshot).toHaveBeenCalledTimes(1);
     expect(app.skillShareer.asyncTransport.events.getStatusSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps domain events on postgres even when rabbitmq task transport is enabled', async () => {
+    const rabbitApp = buildServer({
+      config: {
+        databaseUrl: DATABASE_URL!,
+        asyncTaskTransport: {
+          provider: 'rabbitmq',
+          rabbitmq: {
+            url: 'amqp://guest:guest@localhost:5672',
+            exchange: 'trapmap.tasks',
+            queue: 'trapmap.default',
+            prefetch: 1,
+          },
+        },
+      } as any,
+    });
+    await rabbitApp.ready();
+
+    expect(rabbitApp.skillShareer.asyncTransport?.task.kind).toBe('rabbitmq-task-queue');
+    expect(rabbitApp.skillShareer.asyncTransport?.events.kind).toBe('postgres-domain-outbox');
+
+    await rabbitApp.close();
+  });
+
+  it('exposes transport providers and rabbitmq adoption guidance in async status', async () => {
+    const queueSnapshot = {
+      provider: 'rabbitmq' as const,
+      pending: 0,
+      running: 0,
+      dead: 0,
+      staleRunning: 0,
+      backlogOldestAgeSeconds: null,
+      runningOldestAgeSeconds: null,
+      deadOldestAgeSeconds: null,
+      reclaimCount: 0,
+      recentDeadLetters: [],
+    };
+    const outboxSnapshot = {
+      provider: 'postgres' as const,
+      pending: 0,
+      processing: 0,
+      failed: 0,
+      staleProcessing: 0,
+      backlogOldestAgeSeconds: null,
+      processingOldestAgeSeconds: null,
+      failedOldestAgeSeconds: null,
+      reclaimCount: 0,
+      recentFailures: [],
+    };
+    app.skillShareer.asyncTransport = {
+      task: {
+        kind: 'rabbitmq-task-queue',
+        enqueue: vi.fn(),
+        enqueueTx: vi.fn(),
+        requeue: vi.fn(),
+        getStatusSnapshot: vi.fn().mockResolvedValue(queueSnapshot),
+      },
+      events: {
+        kind: 'postgres-domain-outbox',
+        enqueue: vi.fn(),
+        enqueueTx: vi.fn(),
+        claimBatch: vi.fn(),
+        complete: vi.fn(),
+        fail: vi.fn(),
+        getStatusSnapshot: vi.fn().mockResolvedValue(outboxSnapshot),
+      },
+    } as any;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/operations/status/async',
+      headers: { authorization: `Bearer ${sessionId}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      taskTransportProvider: 'rabbitmq',
+      eventTransportProvider: 'postgres',
+      adoptionGuidance:
+        'RabbitMQ mode enabled: PostgreSQL outbox remains authoritative for domain events.',
+      queue: expect.objectContaining({
+        provider: 'rabbitmq',
+      }),
+      outbox: expect.objectContaining({
+        provider: 'postgres',
+      }),
+    });
   });
 
   it('reports candidate-ingestion ownership without implying outbox ownership', async () => {
@@ -907,6 +1010,10 @@ describeIfDb('operations async status routes', () => {
       asyncRuntimeEnabled: true,
       runtimeMode: 'combined',
       serviceUnit: 'candidate-ingestion',
+      taskTransportProvider: 'postgres',
+      eventTransportProvider: 'postgres',
+      adoptionGuidance:
+        'Default mode: keep postgres task queue unless sustained backlog thresholds justify RabbitMQ.',
       queue: expect.objectContaining({
         serviceUnit: 'candidate-ingestion',
         workerState: 'running',

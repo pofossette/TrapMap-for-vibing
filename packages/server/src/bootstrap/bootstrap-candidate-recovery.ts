@@ -59,7 +59,7 @@ export async function bootstrapCandidateRecovery(app: FastifyInstance): Promise<
       // Re-enqueue all interrupted candidates to the task queue
       const store = app.skillShareer.store;
       const isPostgres = store instanceof PostgresStore;
-      const queue = isPostgres ? app.skillShareer.asyncTransport?.queue : undefined;
+      const queue = isPostgres ? app.skillShareer.asyncTransport?.task : undefined;
       for (const candidate of allInterrupted) {
         if (queue) {
           await queue
@@ -68,7 +68,7 @@ export async function bootstrapCandidateRecovery(app: FastifyInstance): Promise<
               { candidateId: candidate.id, retryCount: 0 },
               { dedupeKey: candidate.id, maxAttempts: 3 },
             )
-            .catch((error) => {
+            .catch((error: unknown) => {
               app.log.error(
                 { error, candidateId: candidate.id },
                 'Failed to re-enqueue interrupted candidate',

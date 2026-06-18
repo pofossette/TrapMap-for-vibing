@@ -181,8 +181,8 @@ async function buildRemediationQueueItems(app: Parameters<FastifyPluginAsync>[0]
 }
 
 export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
-  const sharedJobQueue = app.skillShareer.asyncTransport?.queue
-    ? createSharedJobQueuePort(app.skillShareer.asyncTransport.queue)
+  const sharedJobQueue = app.skillShareer.asyncTransport?.task
+    ? createSharedJobQueuePort(app.skillShareer.asyncTransport.task)
     : undefined;
 
   /**

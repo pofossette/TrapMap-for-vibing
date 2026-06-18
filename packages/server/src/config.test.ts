@@ -23,6 +23,13 @@ const minimalConfig = {
     requestIdHeader: 'x-request-id',
     traceHeaderName: 'traceparent',
   },
+  deployment: {
+    preset: 'monolith' as const,
+  },
+  asyncTaskTransport: {
+    provider: 'postgres' as const,
+    rabbitmq: null,
+  },
   graphDb: {
     enabled: false,
     provider: 'neo4j' as const,
@@ -224,6 +231,12 @@ describe('loadConfig', () => {
       'TRAPMAP_GRAPH_DB_DATABASE',
       'TRAPMAP_GRAPH_DB_FAIL_OPEN',
       'TRAPMAP_GRAPH_DB_SYNC_ON_WRITE',
+      'TRAPMAP_DEPLOYMENT_PRESET',
+      'TRAPMAP_TASK_TRANSPORT',
+      'TRAPMAP_RABBITMQ_URL',
+      'TRAPMAP_RABBITMQ_TASK_EXCHANGE',
+      'TRAPMAP_RABBITMQ_TASK_QUEUE',
+      'TRAPMAP_RABBITMQ_PREFETCH',
     ];
     for (const k of envKeys) {
       cleanEnv[k] = undefined;
@@ -394,6 +407,25 @@ describe('loadConfig', () => {
           failOpen: false,
           syncOnWrite: false,
         });
+      },
+    );
+  });
+
+  it('parses optional deployment preset and task transport config', () => {
+    withEnv(
+      {
+        TRAPMAP_DEPLOYMENT_PRESET: 'candidate-worker',
+        TRAPMAP_TASK_TRANSPORT: 'rabbitmq',
+        TRAPMAP_RABBITMQ_URL: 'amqp://guest:guest@localhost:5672',
+      },
+      () => {
+        const config = loadConfig();
+
+        expect(config.deployment.preset).toBe('candidate-worker');
+        expect(config.asyncTaskTransport.provider).toBe('rabbitmq');
+        expect(config.asyncTaskTransport.rabbitmq?.url).toBe(
+          'amqp://guest:guest@localhost:5672',
+        );
       },
     );
   });

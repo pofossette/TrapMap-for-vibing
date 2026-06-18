@@ -25,12 +25,23 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
     const runtimeMode = app.skillShareer.runtimeMode;
     const serviceUnit = app.skillShareer.serviceUnit;
     const serviceUnitProfile = getServiceUnitProfile(serviceUnit, runtimeMode);
+    const adoptionGuidanceForProviders = (
+      taskTransportProvider: 'postgres' | 'rabbitmq' | 'not-configured',
+    ): string =>
+      taskTransportProvider === 'rabbitmq'
+        ? 'RabbitMQ mode enabled: PostgreSQL outbox remains authoritative for domain events.'
+        : 'Default mode: keep postgres task queue unless sustained backlog thresholds justify RabbitMQ.';
+
     if (!(store instanceof PostgresStore)) {
       return asyncOperationsStatusResponseSchema.parse({
         asyncRuntimeEnabled: false,
         runtimeMode,
         serviceUnit,
+        taskTransportProvider: 'not-configured',
+        eventTransportProvider: 'not-configured',
+        adoptionGuidance: adoptionGuidanceForProviders('not-configured'),
         queue: {
+          provider: 'not-configured',
           pending: 0,
           running: 0,
           dead: 0,
@@ -49,6 +60,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
           recentDeadLetters: [],
         },
         outbox: {
+          provider: 'not-configured',
           pending: 0,
           processing: 0,
           failed: 0,
@@ -77,7 +89,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
     }
     const workflowRepo = createWorkflowRepository(store.getPool());
     const [queueSnapshot, outboxSnapshot, workflows] = await Promise.all([
-      transport.queue.getStatusSnapshot(),
+      transport.task.getStatusSnapshot(),
       transport.events.getStatusSnapshot(),
       workflowRepo.listRecent(25),
     ]);
@@ -89,6 +101,9 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
       asyncRuntimeEnabled: true,
       runtimeMode,
       serviceUnit,
+      taskTransportProvider: queueSnapshot.provider,
+      eventTransportProvider: outboxSnapshot.provider,
+      adoptionGuidance: adoptionGuidanceForProviders(queueSnapshot.provider),
       queue: {
         ...queueSnapshot,
         workerState: resolveAsyncWorkerState({
@@ -145,9 +160,9 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
     if (!transport) {
       throw new Error('Postgres runtime requires skillShareer.asyncTransport for task requeue');
     }
-    const before = await transport.queue.getStatusSnapshot();
-    await transport.queue.requeue(taskId);
-    const after = await transport.queue.getStatusSnapshot();
+    const before = await transport.task.getStatusSnapshot();
+    await transport.task.requeue(taskId);
+    const after = await transport.task.getStatusSnapshot();
 
     return asyncTaskRequeueResponseSchema.parse({
       taskId,

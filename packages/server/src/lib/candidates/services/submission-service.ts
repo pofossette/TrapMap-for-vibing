@@ -10,7 +10,7 @@
 
 import { randomUUID } from 'node:crypto';
 import type { CandidateSubmission, DuplicateCase } from '@trapmap/contracts';
-import type { AsyncQueueTransport } from '@trapmap/server/lib/async/transport.js';
+import type { AsyncTaskTransport } from '@trapmap/server/lib/async/transport.js';
 import { buildNormalizedDuplicateInput } from '@trapmap/server/lib/candidates/fingerprint.js';
 import {
   CANDIDATE_PROCESSING_TASK_TYPE,
@@ -46,7 +46,7 @@ export interface SubmissionDeps {
   config: SkillShareerServices['config'];
 }
 
-export function createCandidateQueuePort(queue: AsyncQueueTransport): CandidateQueuePort {
+export function createCandidateQueuePort(queue: AsyncTaskTransport): CandidateQueuePort {
   return {
     async enqueue(payload) {
       await queue.enqueue(CANDIDATE_PROCESSING_TASK_TYPE, payload, {
@@ -77,7 +77,7 @@ export function createImmediateCandidateQueuePort(
 }
 
 export function createCandidateQueuePortForRuntime(args: {
-  asyncQueue?: AsyncQueueTransport;
+  asyncQueue?: AsyncTaskTransport;
   store: SkillShareerStore;
 }): CandidateQueuePort {
   return args.asyncQueue

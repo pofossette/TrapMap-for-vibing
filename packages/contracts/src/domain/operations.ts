@@ -627,6 +627,7 @@ export const outboxEventOperatorSnapshotSchema = z
 
 export const queueStatusSnapshotSchema = z
   .object({
+    provider: z.enum(['postgres', 'rabbitmq', 'not-configured']),
     pending: z.number().int().min(0),
     running: z.number().int().min(0),
     dead: z.number().int().min(0),
@@ -650,6 +651,7 @@ export const queueStatusSnapshotSchema = z
 
 export const outboxStatusSnapshotSchema = z
   .object({
+    provider: z.enum(['postgres', 'not-configured']),
     pending: z.number().int().min(0),
     processing: z.number().int().min(0),
     failed: z.number().int().min(0),
@@ -710,6 +712,9 @@ export const asyncOperationsStatusResponseSchema = z
     asyncRuntimeEnabled: z.boolean(),
     runtimeMode: z.enum(['api', 'task-worker', 'outbox-worker', 'combined']),
     serviceUnit: z.enum(['full-platform', 'candidate-ingestion', 'knowledge-governance']),
+    taskTransportProvider: z.enum(['postgres', 'rabbitmq', 'not-configured']),
+    eventTransportProvider: z.enum(['postgres', 'not-configured']),
+    adoptionGuidance: z.string(),
     queue: queueStatusSnapshotSchema,
     outbox: outboxStatusSnapshotSchema,
     cache: z.record(z.string(), retrievalCacheNamespaceStatsSchema),

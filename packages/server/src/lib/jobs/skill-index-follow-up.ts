@@ -12,8 +12,8 @@ export async function runOrScheduleSkillIndexFollowUp(args: {
   const { services, payload } = args;
 
   if (services.store instanceof PostgresStore) {
-    const queue = services.asyncTransport?.queue
-      ? createSharedJobQueuePort(services.asyncTransport.queue)
+    const queue = services.asyncTransport?.task
+      ? createSharedJobQueuePort(services.asyncTransport.task)
       : undefined;
     await scheduleSharedJob(
       queue,

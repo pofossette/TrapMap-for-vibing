@@ -181,7 +181,11 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       store: app.skillShareer.store,
       eventBus: app.skillShareer.eventBus,
       ...(app.skillShareer.asyncTransport
-        ? { asyncTransport: app.skillShareer.asyncTransport }
+        ? {
+            asyncTransport: {
+              events: app.skillShareer.asyncTransport.events,
+            },
+          }
         : {}),
       aggregateType: 'knowledge',
       aggregateId: trapId,

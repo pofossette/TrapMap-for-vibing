@@ -81,6 +81,7 @@ export async function bootstrapWorkers(
   if (!(store instanceof PostgresStore)) return;
 
   const pool = store.getPool();
+  const taskTransport = app.skillShareer.asyncTransport?.task;
 
   const handler = createCandidateProcessingHandler({
     store,
@@ -93,6 +94,26 @@ export async function bootstrapWorkers(
     // LLM-based duplicate adjudication
     chat: app.skillShareer.ai.chat,
   });
+
+  if (taskTransport?.kind === 'rabbitmq-task-queue' && taskTransport.createConsumer) {
+    const consumer = await taskTransport.createConsumer({
+      handlers: [handler as TaskHandler<unknown>, ...buildSharedJobWorkerHandlers(app, store)],
+      ownsWork: enabled,
+    });
+
+    if (enabled) {
+      void consumer.run();
+      app.log.info({ worker: 'rabbitmq-task-consumer' }, 'Task worker started');
+    } else {
+      app.log.info(
+        { worker: 'rabbitmq-task-consumer' },
+        'Task worker ownership registered without starting local processing',
+      );
+    }
+
+    app.decorate('taskWorker', consumer);
+    return;
+  }
 
   const taskWorkers = [
     {

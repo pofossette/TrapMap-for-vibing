@@ -19,6 +19,39 @@
 
 > 设置 `TRAPMAP_DATABASE_URL` 后，服务器启动时会自动通过 Drizzle migration runner 运行数据库迁移（位于 `packages/server/drizzle/`）。迁移包含所有核心表、索引和 pgvector 扩展的创建。
 
+### 可选部署拆分与任务传输
+
+以下变量用于“按部署拆分进程”和“可选切换 task transport”。默认值保持当前模块化单体 + PostgreSQL task queue，不需要 MQ。
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `TRAPMAP_DEPLOYMENT_PRESET` | 部署预设：`monolith`、`api`、`candidate-worker`、`governance-worker`、`outbox-worker` | `monolith` |
+| `TRAPMAP_TASK_TRANSPORT` | 异步任务传输提供者：`postgres` 或 `rabbitmq` | `postgres` |
+| `TRAPMAP_RABBITMQ_URL` | RabbitMQ 连接串；仅在 `TRAPMAP_TASK_TRANSPORT=rabbitmq` 时必填 | 空 |
+| `TRAPMAP_RABBITMQ_TASK_EXCHANGE` | RabbitMQ task exchange 名称 | `trapmap.tasks` |
+| `TRAPMAP_RABBITMQ_TASK_QUEUE` | 当前 worker 绑定的 task queue 名称 | `trapmap.default` |
+| `TRAPMAP_RABBITMQ_PREFETCH` | RabbitMQ consumer prefetch | `1` |
+
+预设映射约定：
+
+- `monolith` -> `runtimeMode=combined`, `serviceUnit=full-platform`
+- `api` -> `runtimeMode=api`, `serviceUnit=full-platform`
+- `candidate-worker` -> `runtimeMode=task-worker`, `serviceUnit=candidate-ingestion`
+- `governance-worker` -> `runtimeMode=task-worker`, `serviceUnit=knowledge-governance`
+- `outbox-worker` -> `runtimeMode=outbox-worker`, `serviceUnit=knowledge-governance`
+
+支持组合：
+
+- 默认：`TRAPMAP_DEPLOYMENT_PRESET=monolith` + `TRAPMAP_TASK_TRANSPORT=postgres`
+- 拆分但仍走 PG task queue：`TRAPMAP_DEPLOYMENT_PRESET=api|candidate-worker|governance-worker|outbox-worker` + `TRAPMAP_TASK_TRANSPORT=postgres`
+- 可选 RabbitMQ task transport：通常用于 `candidate-worker` 或 `governance-worker`
+
+关键约束：
+
+- `domain_event_outbox` 在所有模式下都保留 PostgreSQL，不受 `TRAPMAP_TASK_TRANSPORT` 影响。
+- `TRAPMAP_TASK_TRANSPORT=rabbitmq` 只适用于 task-capable runtime。
+- 没有明确 backlog / isolation 需求时，建议保持 `TRAPMAP_TASK_TRANSPORT=postgres`。
+
 ### 可选 Graph DB 查询后端
 
 TrapMap 的 graph DB 是可选查询后端。PostgreSQL `graph_index_documents` 仍是图索引的权威真相源；可选 graph DB 仅用于查询期图遍历与扩张，不接管图数据所有权。
@@ -238,12 +271,25 @@ openssl rand -hex 32
 NODE_ENV=production
 HOST=0.0.0.0
 PORT=4000
-RUNTIME_MODE=combined
 TRAPMAP_SYSTEM_ADMIN_KEY=<your-admin-key>
 OPENAI_API_KEY=<your-openai-key>
 TRAPMAP_DATABASE_URL=postgresql://user:pass@localhost:5432/trapmap
+TRAPMAP_DEPLOYMENT_PRESET=monolith
+TRAPMAP_TASK_TRANSPORT=postgres
 AI_PROVIDER=openai
 LOG_LEVEL=info
 LOG_USER_OPS_ENABLED=true
 LOG_RAG_ENABLED=true
+```
+
+可选 RabbitMQ task transport 示例：
+
+```bash
+TRAPMAP_DATABASE_URL=postgresql://user:pass@postgres:5432/trapmap
+TRAPMAP_DEPLOYMENT_PRESET=candidate-worker
+TRAPMAP_TASK_TRANSPORT=rabbitmq
+TRAPMAP_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+TRAPMAP_RABBITMQ_TASK_EXCHANGE=trapmap.tasks
+TRAPMAP_RABBITMQ_TASK_QUEUE=trapmap.candidate
+TRAPMAP_RABBITMQ_PREFETCH=4
 ```

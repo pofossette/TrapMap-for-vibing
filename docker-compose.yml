@@ -16,6 +16,12 @@ services:
       - PORT=4000
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
+      - TRAPMAP_DEPLOYMENT_PRESET=${TRAPMAP_DEPLOYMENT_PRESET:-monolith}
+      - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
+      - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      - TRAPMAP_RABBITMQ_TASK_EXCHANGE=${TRAPMAP_RABBITMQ_TASK_EXCHANGE:-trapmap.tasks}
+      - TRAPMAP_RABBITMQ_TASK_QUEUE=${TRAPMAP_RABBITMQ_TASK_QUEUE:-trapmap.default}
+      - TRAPMAP_RABBITMQ_PREFETCH=${TRAPMAP_RABBITMQ_PREFETCH:-1}
       # AI Provider
       - AI_PROVIDER=${AI_PROVIDER:-}
       - AI_BASE_URL=${AI_BASE_URL:-}
@@ -44,6 +50,121 @@ services:
       timeout: 10s
       start_period: 5s
       retries: 3
+    restart: unless-stopped
+
+  candidate-worker:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+    profiles: ["split", "mq"]
+    command: ["node", "dist/worker.js"]
+    working_dir: /app/packages/server
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=4000
+      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+      - TRAPMAP_DEPLOYMENT_PRESET=candidate-worker
+      - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
+      - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      - TRAPMAP_RABBITMQ_TASK_EXCHANGE=${TRAPMAP_RABBITMQ_TASK_EXCHANGE:-trapmap.tasks}
+      - TRAPMAP_RABBITMQ_TASK_QUEUE=${TRAPMAP_RABBITMQ_TASK_QUEUE:-trapmap.candidate}
+      - TRAPMAP_RABBITMQ_PREFETCH=${TRAPMAP_RABBITMQ_PREFETCH:-4}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AI_PROVIDER=${AI_PROVIDER:-}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+        required: false
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+
+  governance-worker:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+    profiles: ["split", "mq"]
+    command: ["node", "dist/worker.js"]
+    working_dir: /app/packages/server
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=4000
+      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+      - TRAPMAP_DEPLOYMENT_PRESET=governance-worker
+      - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
+      - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      - TRAPMAP_RABBITMQ_TASK_EXCHANGE=${TRAPMAP_RABBITMQ_TASK_EXCHANGE:-trapmap.tasks}
+      - TRAPMAP_RABBITMQ_TASK_QUEUE=${TRAPMAP_RABBITMQ_TASK_QUEUE:-trapmap.governance}
+      - TRAPMAP_RABBITMQ_PREFETCH=${TRAPMAP_RABBITMQ_PREFETCH:-1}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AI_PROVIDER=${AI_PROVIDER:-}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+        required: false
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+
+  outbox-worker:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+    profiles: ["split"]
+    command: ["node", "dist/worker.js"]
+    working_dir: /app/packages/server
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=4000
+      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+      - TRAPMAP_DEPLOYMENT_PRESET=outbox-worker
+      - TRAPMAP_TASK_TRANSPORT=postgres
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AI_PROVIDER=${AI_PROVIDER:-}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    profiles: ["mq"]
+    ports:
+      - "5672:5672"
+      - "15672:15672"
     restart: unless-stopped
 
   postgres:

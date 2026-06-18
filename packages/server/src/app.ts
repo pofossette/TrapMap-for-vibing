@@ -6,7 +6,7 @@ import Fastify from 'fastify';
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
 import { createAiProviders } from './lib/ai/index.js';
-import { createPostgresAsyncTransport } from './lib/async/transport.js';
+import { createAsyncTransport } from './lib/async/factory.js';
 import type { SkillShareerServices } from './lib/context.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
 import type { GraphQueryBackend } from './lib/graph-query/backend.js';
@@ -28,6 +28,7 @@ import { semanticChannel } from './lib/retrieval/recall/semantic.js';
 import { handleRuntimeError, registerRuntimeRoutes } from './lib/runtime/http-surface.js';
 import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
 import type { RuntimeMode } from './lib/runtime/runtime-contract.js';
+import { resolveDeploymentPreset } from './lib/runtime/deployment-preset.js';
 import { type ServiceUnit, resolveServiceUnit } from './lib/runtime/service-unit.js';
 
 import { runStartupSequence } from './bootstrap/run-startup-sequence.js';
@@ -118,8 +119,6 @@ interface BuildServerOptions {
 }
 
 export function buildServer(options: BuildServerOptions = {}) {
-  const runtimeMode = options.runtimeMode ?? 'combined';
-  const serviceUnit = resolveServiceUnit(options.serviceUnit ?? process.env.TRAPMAP_SERVICE_UNIT);
   const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
   const defaultTestDataFile =
     isTestEnv &&
@@ -137,6 +136,11 @@ export function buildServer(options: BuildServerOptions = {}) {
     ...(defaultTestDataFile ? { dataFile: defaultTestDataFile } : {}),
     ...options.config,
   };
+  const preset = resolveDeploymentPreset(config.deployment?.preset);
+  const runtimeMode = options.runtimeMode ?? preset?.runtimeMode ?? 'combined';
+  const serviceUnit = resolveServiceUnit(
+    options.serviceUnit ?? preset?.serviceUnit ?? process.env.TRAPMAP_SERVICE_UNIT,
+  );
   const app = Fastify({
     logger: isTestEnv
       ? false
@@ -221,9 +225,10 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.decorate('skillShareer', skillShareer);
 
   if (app.skillShareer.store instanceof PostgresStore) {
-    app.skillShareer.asyncTransport = createPostgresAsyncTransport(
-      app.skillShareer.store.getPool(),
-    );
+    app.skillShareer.asyncTransport = createAsyncTransport({
+      config: app.skillShareer.config,
+      pool: app.skillShareer.store.getPool(),
+    });
   }
 
   // Bridge: wire global embeddings provider so existing generateEmbedding() callers

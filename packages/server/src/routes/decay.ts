@@ -38,7 +38,9 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
           ? {
               store,
               eventBus,
-              asyncTransport,
+              asyncTransport: {
+                events: asyncTransport.events,
+              },
             }
           : {
               store,

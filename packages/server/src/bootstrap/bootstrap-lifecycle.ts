@@ -47,7 +47,7 @@ function buildLifecycleSubscriberContract(app: FastifyInstance): LifecycleSubscr
     store,
     adapterRegistry,
     graphQueryBackend,
-    asyncTransport?.queue,
+    asyncTransport?.task,
   );
   const auditHandler = createAuditSubscriber(store, app.log);
   const conflictHandler = createConflictSubscriber(store);
@@ -93,11 +93,14 @@ export async function bootstrapLifecycle(
   // Start outbox event worker for PG mode
   // Processes domain events asynchronously — indexing, conflict detection, audit
   if (store instanceof PostgresStore) {
-    const maybeOutbox = app.skillShareer.asyncTransport?.events;
-    if (!maybeOutbox) {
-      throw new Error('Postgres runtime requires asyncTransport.events for outbox processing');
+    const eventTransport = app.skillShareer.asyncTransport?.events;
+    if (!eventTransport) {
+      throw new Error('Postgres runtime requires postgres-backed async event transport');
     }
-    const outbox = maybeOutbox;
+    if (eventTransport.kind !== 'postgres-domain-outbox') {
+      throw new Error(`Unsupported event transport kind: ${eventTransport.kind}`);
+    }
+    const outbox = eventTransport;
 
     const pollIntervalMs = 2000;
     let running = false;

@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
 
-import type { AsyncQueueTransport } from '@trapmap/server/lib/async/transport.js';
+import type { AsyncTaskTransport } from '@trapmap/server/lib/async/transport.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
@@ -24,7 +24,7 @@ export interface SharedJobQueuePort {
   ): Promise<void>;
 }
 
-export function createSharedJobQueuePort(queue: AsyncQueueTransport): SharedJobQueuePort {
+export function createSharedJobQueuePort(queue: AsyncTaskTransport): SharedJobQueuePort {
   return {
     async enqueue(type, payload, dedupeKey) {
       const contract = getSharedJobContract(type);

@@ -12,6 +12,20 @@
 | Staging | PostgreSQL | 预发布验证 |
 | 生产 | PostgreSQL + Docker | 正式运营 |
 
+## Supported Shapes
+
+TrapMap 当前支持三种部署形态，详见 [OPTIONAL_SERVICE_SPLIT_AND_MQ.md](./components/OPTIONAL_SERVICE_SPLIT_AND_MQ.md)。
+
+- `monolith`: 单进程 API + task worker + outbox worker，默认也是推荐路径。
+- `split-pg`: 拆分 API / task / outbox 进程，但异步任务仍走 PostgreSQL `task_queue`。
+- `split-rabbitmq`: task transport 改为 RabbitMQ，domain event outbox 仍固定在 PostgreSQL。
+
+当前版本的明确非目标：
+
+- 不做数据库按服务拆分。
+- 不引入 Kafka、NATS、Redis Streams。
+- 不把 `domain_event_outbox` 从 PostgreSQL 挪走。
+
 ---
 
 ## 本地开发部署
@@ -85,6 +99,8 @@ PORT=4000
 
 # PostgreSQL（默认存储后端）
 TRAPMAP_DATABASE_URL=postgresql://localhost:5432/trapmap
+TRAPMAP_DEPLOYMENT_PRESET=monolith
+TRAPMAP_TASK_TRANSPORT=postgres
 
 # AI 提供商配置（可选）
 AI_PROVIDER=openai                    # openai, openai-compatible, ollama, google-genai
@@ -94,6 +110,36 @@ AI_EMBEDDING_MODEL=text-embedding-3-small
 # 可选
 LOG_LEVEL=info
 ```
+
+### 可选：拆分进程但保持 PostgreSQL task queue
+
+如果需要在本地验证拆分部署，可以分别启动：
+
+```bash
+TRAPMAP_DEPLOYMENT_PRESET=api TRAPMAP_TASK_TRANSPORT=postgres pnpm dev:server
+TRAPMAP_DEPLOYMENT_PRESET=candidate-worker TRAPMAP_TASK_TRANSPORT=postgres pnpm dev:server:worker
+TRAPMAP_DEPLOYMENT_PRESET=outbox-worker TRAPMAP_TASK_TRANSPORT=postgres pnpm dev:server:outbox-worker
+```
+
+### 可选：RabbitMQ task transport
+
+只在需要独立扩缩容或隔离 task backlog 时启用：
+
+```bash
+TRAPMAP_DATABASE_URL=postgresql://localhost:5432/trapmap
+TRAPMAP_DEPLOYMENT_PRESET=candidate-worker
+TRAPMAP_TASK_TRANSPORT=rabbitmq
+TRAPMAP_RABBITMQ_URL=amqp://guest:guest@127.0.0.1:5672
+TRAPMAP_RABBITMQ_TASK_EXCHANGE=trapmap.tasks
+TRAPMAP_RABBITMQ_TASK_QUEUE=trapmap.candidate
+TRAPMAP_RABBITMQ_PREFETCH=4
+pnpm dev:server:worker
+```
+
+注意：
+
+- 这只会把 task delivery 切到 RabbitMQ。
+- `domain_event_outbox` 仍然留在 PostgreSQL，由 monolith 或 `outbox-worker` 进程处理。
 
 ---
 
@@ -156,6 +202,8 @@ TRAPMAP_SYSTEM_ADMIN_KEY=generate-a-secure-random-string
 
 # 数据库
 TRAPMAP_DATABASE_URL=postgresql://trapmap:password@postgres:5432/trapmap
+TRAPMAP_DEPLOYMENT_PRESET=monolith
+TRAPMAP_TASK_TRANSPORT=postgres
 
 # Optional Neo4j graph backend
 # TRAPMAP_GRAPH_DB_ENABLED=true
@@ -179,6 +227,33 @@ AI_EMBEDDING_MODEL=text-embedding-3-small
 # 日志
 LOG_LEVEL=info
 ```
+
+### 可选 split deployment 示例
+
+保持 PostgreSQL task queue：
+
+```bash
+docker compose --profile split up -d
+```
+
+这会额外启动：
+
+- `candidate-worker`
+- `governance-worker`
+- `outbox-worker`
+
+可选 RabbitMQ task transport：
+
+```bash
+TRAPMAP_TASK_TRANSPORT=rabbitmq docker compose --profile split --profile mq up -d
+```
+
+这个组合会：
+
+- 保持 `server` 默认可用
+- 额外启动 RabbitMQ
+- 让 `candidate-worker` / `governance-worker` 可选消费 RabbitMQ task queue
+- 继续用 PostgreSQL `domain_event_outbox` 处理领域事件
 
 ### docker-compose.yml
 

@@ -2,8 +2,10 @@ import type { Pool, PoolClient } from 'pg';
 
 import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
+import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 
-export interface AsyncQueueTransport {
+export interface AsyncTaskTransport {
+  kind: 'postgres-task-queue' | 'rabbitmq-task-queue';
   enqueue<T>(
     type: string,
     payload: T,
@@ -27,15 +29,26 @@ export interface AsyncQueueTransport {
   ): Promise<unknown>;
   requeue(taskId: string): Promise<void>;
   getStatusSnapshot(): Promise<{
+    provider: 'postgres' | 'rabbitmq';
     pending: number;
     running: number;
     dead: number;
     staleRunning: number;
     reclaimCount: number;
   }>;
+  createConsumer?: (params: {
+    handlers: TaskHandler<unknown>[];
+    ownsWork: boolean;
+  }) => Promise<{
+    run(): Promise<void>;
+    stop(): Promise<void>;
+    isRunning(): boolean;
+    ownsWork(): boolean;
+  }>;
 }
 
 export interface AsyncEventTransport {
+  kind: 'postgres-domain-outbox';
   enqueue(params: {
     aggregateType: string;
     aggregateId: string;
@@ -60,6 +73,7 @@ export interface AsyncEventTransport {
   complete(eventId: string): Promise<void>;
   fail(eventId: string, error: string): Promise<void>;
   getStatusSnapshot(): Promise<{
+    provider: 'postgres';
     pending: number;
     processing: number;
     failed: number;
@@ -69,30 +83,44 @@ export interface AsyncEventTransport {
 }
 
 export interface AsyncTransport {
-  kind: 'postgres-outbox-task-queue';
-  queue: AsyncQueueTransport;
+  task: AsyncTaskTransport;
   events: AsyncEventTransport;
 }
 
-export function createPostgresAsyncTransport(pool: Pool): AsyncTransport {
+export function createPostgresTaskTransport(pool: Pool): AsyncTaskTransport {
   const queue = createTaskQueue({ pool });
+
+  return {
+    kind: 'postgres-task-queue',
+    enqueue: queue.enqueue,
+    enqueueTx: queue.enqueueTx,
+    requeue: queue.requeue,
+    async getStatusSnapshot() {
+      const snapshot = await queue.getStatusSnapshot();
+      return {
+        provider: 'postgres',
+        ...snapshot,
+      };
+    },
+  };
+}
+
+export function createPostgresEventTransport(pool: Pool): AsyncEventTransport {
   const events = createDomainEventOutbox({ pool });
 
   return {
-    kind: 'postgres-outbox-task-queue',
-    queue: {
-      enqueue: queue.enqueue,
-      enqueueTx: queue.enqueueTx,
-      requeue: queue.requeue,
-      getStatusSnapshot: queue.getStatusSnapshot,
-    },
-    events: {
-      enqueue: events.enqueue,
-      enqueueTx: events.enqueueTx,
-      claimBatch: events.claimBatch,
-      complete: events.complete,
-      fail: events.fail,
-      getStatusSnapshot: events.getStatusSnapshot,
+    kind: 'postgres-domain-outbox',
+    enqueue: events.enqueue,
+    enqueueTx: events.enqueueTx,
+    claimBatch: events.claimBatch,
+    complete: events.complete,
+    fail: events.fail,
+    async getStatusSnapshot() {
+      const snapshot = await events.getStatusSnapshot();
+      return {
+        provider: 'postgres',
+        ...snapshot,
+      };
     },
   };
 }
