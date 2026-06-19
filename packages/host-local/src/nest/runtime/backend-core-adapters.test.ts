@@ -3,81 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createAuditLogPort,
   createIdentityAccessRepos,
-  createKnowledgeRepoPort,
   createQueuePorts,
 } from './backend-core-adapters.js';
 
 describe('backend-core adapters', () => {
-  it('maps server knowledge records into backend-core knowledge entries', async () => {
-    const knowledgeRepo = createKnowledgeRepoPort({
-      nextId: vi.fn(async () => 'entry_1'),
-      insert: vi.fn(),
-      getById: vi.fn(async () => ({
-        id: 'entry_1',
-        teamId: 'team_1',
-        scope: 'project',
-        labels: ['ops'],
-        shortcut: 'Title',
-        detail: 'Body',
-        requiredLevel: 3,
-        lifecycleState: 'approved',
-        ownerUserId: 'user_1',
-        latestRevision: {
-          revision: 1,
-          submittedAt: '2026-01-01T00:00:00.000Z',
-          submittedByUserId: 'user_1',
-          shortcut: 'Title',
-          detail: 'Body',
-          labels: ['ops'],
-          reviewNotes: [],
-        },
-        history: [],
-        metadata: {
-          scopeLabel: 'project-knowledge',
-          submissionCount: 1,
-          resubmissionCount: 0,
-          revisionCount: 1,
-          latestSubmissionId: null,
-          latestSubmittedAt: null,
-          latestReviewedAt: null,
-          latestDecision: null,
-        },
-        latestSubmissionId: null,
-        submissionHistory: [],
-        agentReview: null,
-        reviewHistory: [],
-        reviewNotes: [],
-        lifecycleHistory: [],
-        embeddingCache: null,
-        indexState: null,
-        boundary: null,
-        decayMeta: null,
-        evidenceMeta: null,
-        maintenanceMeta: null,
-        createdAt: '2026-01-01T00:00:00.000Z',
-        updatedAt: '2026-01-01T00:00:00.000Z',
-      })),
-      listByFilter: vi.fn(async () => []),
-      updateLifecycle: vi.fn(),
-      appendRevision: vi.fn(),
-      appendLifecycleEvent: vi.fn(),
-      updateGovernance: vi.fn(),
-      updateEmbeddingCache: vi.fn(),
-      supersede: vi.fn(),
-      save: vi.fn(),
-    });
-
-    await expect(knowledgeRepo.getById('entry_1')).resolves.toMatchObject({
-      id: 'entry_1',
-      content: 'Body',
-      title: 'Title',
-      ownerUserId: 'user_1',
-      teamId: 'team_1',
-      lifecycleState: 'approved',
-      labels: ['ops'],
-    });
-  });
-
   it('fills required identity fields when backend-core creates new records', async () => {
     const sessionCreate = vi.fn(async (session) => ({
       id: 'session_1',

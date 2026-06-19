@@ -9,6 +9,30 @@ const fastifyEntry = resolve(
 );
 const alias = [
   {
+    find: /^@trapmap\/contracts\/evals$/,
+    replacement: resolve(__dirname, './packages/contracts/src/domain/evals/index.ts'),
+  },
+  {
+    find: /^@trapmap\/backend-core\/(.+)\.js$/,
+    replacement: resolve(__dirname, './packages/backend-core/src/$1.ts'),
+  },
+  {
+    find: /^@trapmap\/host-distributed\/(.+)\.js$/,
+    replacement: resolve(__dirname, './packages/host-distributed/src/$1.ts'),
+  },
+  {
+    find: /^@trapmap\/host-local\/(.+)\.js$/,
+    replacement: resolve(__dirname, './packages/host-local/src/$1.ts'),
+  },
+  {
+    find: /^@trapmap\/cli\/(.+)\.js$/,
+    replacement: resolve(__dirname, './packages/cli/src/$1.ts'),
+  },
+  {
+    find: /^@trapmap\/web-panel\/(.+)\.js$/,
+    replacement: resolve(__dirname, './packages/web-panel/src/$1.ts'),
+  },
+  {
     find: '@trapmap/contracts',
     replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
   },
