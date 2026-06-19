@@ -1,0 +1,23 @@
+import { buildJsonDraftState, prettyPrintJson } from '../../shared/lib/json-editor';
+import type { ManualJsonEditInput } from '../../shared/types/admin-panel';
+
+export { buildJsonDraftState };
+
+export function formatJsonDraft(text: string): { error: string | null; value: string } {
+  return prettyPrintJson(text);
+}
+
+export function buildManualJsonEditInput(args: {
+  draftText: string;
+  filePath: string;
+  isStructured: boolean;
+  rationale: string;
+  reviewId: string;
+}): ManualJsonEditInput {
+  return {
+    filePath: args.filePath,
+    reviewId: args.reviewId,
+    rationale: args.rationale.trim(),
+    payload: args.isStructured ? JSON.parse(args.draftText) : args.draftText,
+  };
+}

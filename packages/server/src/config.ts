@@ -169,6 +169,15 @@ export const ServerConfigSchema = z.object({
 
 export type ServerConfig = z.infer<typeof ServerConfigSchema>;
 
+function normalizeOptionalEnvValue(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
+}
+
 // =============================================================================
 // Configuration Loading with Validation
 // =============================================================================
@@ -194,6 +203,23 @@ export function loadConfig(): ServerConfig {
           .filter((s) => s.length > 0)
       : undefined;
 
+  const deploymentProfile = normalizeOptionalEnvValue(process.env.TRAPMAP_DEPLOYMENT_PROFILE) as
+    | 'local-agent'
+    | 'team-monolith'
+    | 'distributed'
+    | undefined;
+  const deploymentPreset = normalizeOptionalEnvValue(process.env.TRAPMAP_DEPLOYMENT_PRESET) as
+    | 'monolith'
+    | 'api'
+    | 'candidate-worker'
+    | 'governance-worker'
+    | 'outbox-worker'
+    | undefined;
+  const deploymentCompatibilityInput =
+    deploymentProfile === undefined
+      ? { preset: deploymentPreset }
+      : { profile: deploymentProfile, preset: deploymentPreset };
+
   // Build the full config object
   const rawConfig = {
     dataFile: path.resolve(
@@ -215,66 +241,10 @@ export function loadConfig(): ServerConfig {
         (process.env.TRAPMAP_TRACE_HEADER_NAME?.trim().toLowerCase() || undefined) ?? 'traceparent',
     },
     deployment: {
-      profile: process.env.TRAPMAP_DEPLOYMENT_PROFILE ?? null,
-      preset: process.env.TRAPMAP_DEPLOYMENT_PRESET,
-      compatibility: resolveDeploymentProfileCompatibility(
-        process.env.TRAPMAP_DEPLOYMENT_PROFILE === undefined
-          ? {
-              preset:
-                process.env.TRAPMAP_DEPLOYMENT_PRESET === undefined
-                  ? undefined
-                  : (process.env.TRAPMAP_DEPLOYMENT_PRESET as
-                      | 'monolith'
-                      | 'api'
-                      | 'candidate-worker'
-                      | 'governance-worker'
-                      | 'outbox-worker'),
-            }
-          : {
-              profile: process.env.TRAPMAP_DEPLOYMENT_PROFILE as
-                | 'local-agent'
-                | 'team-monolith'
-                | 'distributed',
-              preset:
-                process.env.TRAPMAP_DEPLOYMENT_PRESET === undefined
-                  ? undefined
-                  : (process.env.TRAPMAP_DEPLOYMENT_PRESET as
-                      | 'monolith'
-                      | 'api'
-                      | 'candidate-worker'
-                      | 'governance-worker'
-                      | 'outbox-worker'),
-            },
-      ),
-      resolved: resolveRuntimeDeployment(
-        process.env.TRAPMAP_DEPLOYMENT_PROFILE === undefined
-          ? {
-              preset:
-                process.env.TRAPMAP_DEPLOYMENT_PRESET === undefined
-                  ? undefined
-                  : (process.env.TRAPMAP_DEPLOYMENT_PRESET as
-                      | 'monolith'
-                      | 'api'
-                      | 'candidate-worker'
-                      | 'governance-worker'
-                      | 'outbox-worker'),
-            }
-          : {
-              profile: process.env.TRAPMAP_DEPLOYMENT_PROFILE as
-                | 'local-agent'
-                | 'team-monolith'
-                | 'distributed',
-              preset:
-                process.env.TRAPMAP_DEPLOYMENT_PRESET === undefined
-                  ? undefined
-                  : (process.env.TRAPMAP_DEPLOYMENT_PRESET as
-                      | 'monolith'
-                      | 'api'
-                      | 'candidate-worker'
-                      | 'governance-worker'
-                      | 'outbox-worker'),
-            },
-      ),
+      profile: deploymentProfile ?? null,
+      preset: deploymentPreset,
+      compatibility: resolveDeploymentProfileCompatibility(deploymentCompatibilityInput),
+      resolved: resolveRuntimeDeployment(deploymentCompatibilityInput),
     },
     asyncTaskTransport: {
       provider: process.env.TRAPMAP_TASK_TRANSPORT,

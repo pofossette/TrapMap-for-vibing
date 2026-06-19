@@ -6,6 +6,7 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import type { Pool } from 'pg';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const MIGRATION_LOCK_KEY = 42187319;
 
 export async function runMigrations(pool: Pool): Promise<void> {
   try {
@@ -17,13 +18,24 @@ export async function runMigrations(pool: Pool): Promise<void> {
     );
   }
 
-  const db = drizzle(pool);
-  const migrationsFolder = path.resolve(__dirname, '../../../drizzle');
-  await migrate(db, { migrationsFolder });
-  await ensureLeaseColumns(pool);
-  await ensureSystemAdminUser(pool);
+  await withMigrationLock(pool, async () => {
+    const db = drizzle(pool);
+    const migrationsFolder = path.resolve(__dirname, '../../../drizzle');
+    await migrate(db, { migrationsFolder });
+    await ensureLeaseColumns(pool);
+    await ensureSystemAdminUser(pool);
+  });
 
   console.log('[MigrationRunner] Migrations applied successfully');
+}
+
+async function withMigrationLock(pool: Pool, operation: () => Promise<void>): Promise<void> {
+  await pool.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_KEY]);
+  try {
+    await operation();
+  } finally {
+    await pool.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY]);
+  }
 }
 
 async function ensureLeaseColumns(pool: Pool): Promise<void> {

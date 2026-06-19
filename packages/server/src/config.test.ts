@@ -515,6 +515,16 @@ describe('loadConfig', () => {
     );
   });
 
+  it('treats empty deployment preset as unset and falls back to defaults', () => {
+    withEnv({ TRAPMAP_DEPLOYMENT_PRESET: '' }, () => {
+      const config = loadConfig();
+
+      expect(config.deployment.preset).toBe('monolith');
+      expect(config.deployment.compatibility.profile).toBe('team-monolith');
+      expect(config.deployment.resolved.preset).toBe('monolith');
+    });
+  });
+
   it('accepts local-agent profile without postgres or worker-only settings', () => {
     withEnv({ TRAPMAP_DEPLOYMENT_PROFILE: 'local-agent' }, () => {
       const config = loadConfig();

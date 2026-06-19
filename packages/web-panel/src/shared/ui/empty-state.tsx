@@ -1,0 +1,50 @@
+import { Button } from '@heroui/react';
+import type { ReactElement, ReactNode } from 'react';
+
+type EmptyStateProps = {
+  action?: {
+    label: string;
+    onPress: () => void | Promise<void>;
+  };
+  description?: string;
+  icon?: ReactNode;
+  title?: string;
+};
+
+export function EmptyState({
+  action,
+  description = 'No items found matching your filters.',
+  icon,
+  title = 'No Data Available',
+}: EmptyStateProps): ReactElement {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-panel border border-dashed border-panel-line bg-panel-surface/40 px-6 py-12 text-center">
+      {icon ? (
+        <div className="mb-4 text-panel-muted">{icon}</div>
+      ) : (
+        <svg
+          className="mx-auto h-12 w-12 text-panel-muted/60 mb-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+          />
+        </svg>
+      )}
+      <h3 className="text-base font-semibold text-panel-text">{title}</h3>
+      <p className="mt-2 max-w-sm text-sm text-panel-muted">{description}</p>
+      {action ? (
+        <div className="mt-6">
+          <Button onPress={action.onPress} size="sm">
+            {action.label}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}

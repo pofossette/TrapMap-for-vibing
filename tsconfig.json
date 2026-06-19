@@ -4,6 +4,7 @@
     { "path": "./packages/contracts" },
     { "path": "./packages/client-core" },
     { "path": "./packages/backend-core" },
+    { "path": "./packages/web-panel" },
     { "path": "./packages/host-local" },
     { "path": "./packages/host-distributed" },
     { "path": "./packages/server" },

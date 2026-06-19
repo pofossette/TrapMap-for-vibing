@@ -74,6 +74,7 @@ export const submissionHistoryResponseSchema = knowledgeSubmissionHistoryRespons
 
 export type ReviewQueueQuery = z.infer<typeof reviewQueueQuerySchema>;
 export type ReviewDecisionRequest = z.infer<typeof reviewDecisionRequestSchema>;
+export type ReviewQueueItem = z.infer<typeof reviewQueueItemSchema>;
 export type ReviewQueueResponse = z.infer<typeof reviewQueueResponseSchema>;
 export type ReviewerDecisionOutput = z.infer<typeof reviewerDecisionOutputSchema>;
 export type SubmissionHistoryResponse = z.infer<typeof submissionHistoryResponseSchema>;
