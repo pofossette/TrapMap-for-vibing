@@ -1,5 +1,6 @@
 import { Button } from '@heroui/react';
 import type { ReactElement } from 'react';
+import { useI18nStore } from '../../stores/i18n-store';
 
 import type { ReviewArtifactFile } from '../types/admin-panel';
 
@@ -38,6 +39,7 @@ export function JsonEditorPanel({
   rationale,
   rationaleMissing,
 }: JsonEditorPanelProps): ReactElement {
+  const { t } = useI18nStore();
   const activeFile = files.find((file) => file.path === activeFilePath) ?? null;
   const isJsonFile = activeFile?.language === 'json';
 
@@ -45,18 +47,16 @@ export function JsonEditorPanel({
     <div className="flex flex-col gap-4 rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-panel-text">File Editor</h3>
-          <p className="mt-1 text-sm leading-6 text-panel-muted">
-            Select a review artifact, inspect content, and save audited edits.
-          </p>
+          <h3 className="text-lg font-semibold text-panel-text">{t('fileEditorTitle')}</h3>
+          <p className="mt-1 text-sm leading-6 text-panel-muted">{t('fileEditorDesc')}</p>
         </div>
         {isDirty ? (
           <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-200 border border-amber-500/30">
-            Unsaved Changes
+            {t('unsavedChangesBadge')}
           </span>
         ) : (
           <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-200 border border-emerald-500/30">
-            Synced
+            {t('syncedBadge')}
           </span>
         )}
       </div>
@@ -64,7 +64,7 @@ export function JsonEditorPanel({
       <div className="grid gap-4 xl:grid-cols-[240px,1fr]">
         <div className="rounded-xl border border-panel-line bg-panel-surface p-2">
           <div className="mb-2 px-2 py-1 font-mono text-[12px] font-medium uppercase text-panel-muted">
-            Review Files
+            {t('reviewFilesTitle')}
           </div>
           <div className="space-y-1">
             {files.map((file) => {
@@ -94,13 +94,13 @@ export function JsonEditorPanel({
         <div className="space-y-4">
           <div className="rounded-xl border border-panel-line bg-panel-surface-strong px-4 py-3">
             <div className="text-xs font-semibold text-panel-text">
-              {activeFile?.name ?? 'No file selected'}
+              {activeFile?.name ?? t('noFileSelected')}
             </div>
             <div className="mt-1 text-[11px] text-panel-muted">
-              {activeFile?.path ?? 'Select a file from the list.'}
+              {activeFile?.path ?? t('selectFileFromList')}
             </div>
             <div className="mt-2 text-[11px] text-panel-muted">
-              Last edited: {activeFile?.lastEditedAt ?? 'n/a'}
+              {t('lastEdited')} {activeFile?.lastEditedAt ?? 'n/a'}
             </div>
           </div>
 
@@ -120,7 +120,7 @@ export function JsonEditorPanel({
               className="text-xs font-medium uppercase tracking-[0.12em] text-panel-muted"
               htmlFor="edit-rationale"
             >
-              Edit Rationale
+              {t('editRationaleLabel')}
             </label>
             <input
               className={`w-full rounded-md border bg-panel-surface-strong px-4 py-3 text-sm focus:outline-none focus:ring-1 ${
@@ -130,7 +130,7 @@ export function JsonEditorPanel({
               }`}
               id="edit-rationale"
               onChange={(e) => onChangeRationale(e.target.value)}
-              placeholder="Why are you making this change?"
+              placeholder={t('editRationalePlaceholder')}
               type="text"
               value={rationale}
             />
@@ -144,7 +144,7 @@ export function JsonEditorPanel({
               size="sm"
               variant="secondary"
             >
-              Format JSON
+              {t('formatJsonBtn')}
             </Button>
             <Button
               className="border border-panel-line bg-panel-surface"
@@ -153,7 +153,7 @@ export function JsonEditorPanel({
               size="sm"
               variant="secondary"
             >
-              Reset
+              {t('resetBtn')}
             </Button>
             <Button
               className="ml-auto border border-panel-text bg-panel-text text-white font-medium"
@@ -163,20 +163,20 @@ export function JsonEditorPanel({
               size="sm"
               variant="primary"
             >
-              Save File Changes
+              {t('saveFileChangesBtn')}
             </Button>
           </div>
 
           {error ? (
             <div className="rounded-xl border border-[#ffd9d9] bg-[#fff5f5] p-3 text-xs text-[#c50000]">
-              <p className="font-semibold">JSON Validation Error:</p>
+              <p className="font-semibold">{t('jsonValidationError')}</p>
               <p className="mt-1 font-mono break-all">{error}</p>
             </div>
           ) : null}
 
           {rationaleMissing && isDirty ? (
             <p className="text-xs text-amber-300 font-medium">
-              Edit rationale is required before saving your edits.
+              {t('editRationaleRequiredWarning')}
             </p>
           ) : null}
         </div>

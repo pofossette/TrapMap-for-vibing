@@ -10,6 +10,7 @@ export function Bootstrap(): ReactElement {
   useEffect(() => {
     document.documentElement.classList.toggle('light', theme === 'light');
     document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
   return (

@@ -13,6 +13,7 @@ export function SkeletonBlock({ count = 1, variant = 'line' }: SkeletonBlockProp
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {items.map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders are stateless
           <Skeleton className="rounded-panel" key={i}>
             <div className="h-32 rounded-panel bg-panel-elevated" />
           </Skeleton>
@@ -28,6 +29,7 @@ export function SkeletonBlock({ count = 1, variant = 'line' }: SkeletonBlockProp
           <div className="h-10 bg-panel-elevated" />
         </Skeleton>
         {items.map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders are stateless
           <Skeleton className="rounded-2xl" key={i}>
             <div className="h-16 bg-panel-elevated" />
           </Skeleton>
@@ -39,6 +41,7 @@ export function SkeletonBlock({ count = 1, variant = 'line' }: SkeletonBlockProp
   return (
     <div className="space-y-3">
       {items.map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders are stateless
         <Skeleton className="rounded-xl" key={i}>
           <div className="h-6 bg-panel-elevated" />
         </Skeleton>

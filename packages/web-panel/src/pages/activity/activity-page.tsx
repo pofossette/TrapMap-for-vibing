@@ -52,36 +52,38 @@ export function ActivityPage(): ReactElement {
         <section className="grid gap-4 lg:grid-cols-3">
           <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
             <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-              Event Volume
+              {t('eventVolume')}
             </p>
             <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-panel-text">
               {filteredEvents.length}
             </p>
-            <p className="mt-2 text-sm leading-6 text-panel-muted">
-              Visible timeline events after applying current filters.
-            </p>
+            <p className="mt-2 text-sm leading-6 text-panel-muted">{t('eventVolumeDesc')}</p>
           </div>
           <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
             <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-              Search Focus
+              {t('searchFocus')}
             </p>
             <p className="mt-3 text-lg font-semibold text-panel-text">
-              {search.trim() || 'All operators and events'}
+              {search.trim() || t('allOperatorsAndEvents')}
             </p>
-            <p className="mt-2 text-sm leading-6 text-panel-muted">
-              Narrow by actor, title, or event description.
-            </p>
+            <p className="mt-2 text-sm leading-6 text-panel-muted">{t('searchFocusDesc')}</p>
           </div>
           <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
             <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-              Type Slice
+              {t('typeSlice')}
             </p>
             <p className="mt-3 text-lg font-semibold text-panel-text">
-              {typeFilter === 'all' ? t('allTypes') : typeFilter}
+              {typeFilter === 'all'
+                ? t('allTypes')
+                : typeFilter === 'Review Decision'
+                  ? t('decisions')
+                  : typeFilter === 'Manual Intervention'
+                    ? t('interventions')
+                    : typeFilter === 'System Ingestion'
+                      ? t('systemIngestion')
+                      : typeFilter}
             </p>
-            <p className="mt-2 text-sm leading-6 text-panel-muted">
-              Review operational activity by event class.
-            </p>
+            <p className="mt-2 text-sm leading-6 text-panel-muted">{t('typeSliceDesc')}</p>
           </div>
         </section>
 
@@ -213,10 +215,10 @@ export function ActivityPage(): ReactElement {
             <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
               <div className="mb-5 flex items-center justify-between gap-3 border-b border-panel-line pb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-panel-text">Operational Timeline</h3>
-                  <p className="mt-1 text-sm text-panel-muted">
-                    Ordered stream of review decisions, manual interventions, and runtime actions.
-                  </p>
+                  <h3 className="text-lg font-semibold text-panel-text">
+                    {t('operationalTimeline')}
+                  </h3>
+                  <p className="mt-1 text-sm text-panel-muted">{t('operationalTimelineDesc')}</p>
                 </div>
               </div>
               <div className="relative ml-2 border-l-0 border-panel-line/30">

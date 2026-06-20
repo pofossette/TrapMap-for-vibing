@@ -1,5 +1,6 @@
 import { Button } from '@heroui/react';
 import type { ReactElement } from 'react';
+import { useI18nStore } from '../../stores/i18n-store';
 
 type ReviewActionBarProps = {
   error?: string | null;
@@ -18,17 +19,15 @@ export function ReviewActionBar({
   onSubmitDecision,
   rationale,
 }: ReviewActionBarProps): ReactElement {
+  const { t } = useI18nStore();
   const isRationaleMissing = !rationale.trim();
 
   return (
     <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
       <div className="relative flex flex-col gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-panel-text">Governance Action Panel</h3>
-          <p className="mt-2 text-sm leading-6 text-panel-muted">
-            Submit your official decision. Rejecting or returning for correction requires providing
-            a detailed rationale.
-          </p>
+          <h3 className="text-lg font-semibold text-panel-text">{t('govActionPanel')}</h3>
+          <p className="mt-2 text-sm leading-6 text-panel-muted">{t('govActionPanelDesc')}</p>
         </div>
 
         <div className="space-y-1">
@@ -36,13 +35,13 @@ export function ReviewActionBar({
             className="text-xs font-medium uppercase tracking-[0.12em] text-panel-muted"
             htmlFor="decision-rationale"
           >
-            Decision Rationale / Notes
+            {t('decisionRationaleLabel')}
           </label>
           <textarea
             className="w-full min-h-[120px] rounded-md border border-panel-line bg-panel-surface-strong px-4 py-3 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent"
             id="decision-rationale"
             onChange={(e) => onChangeRationale(e.target.value)}
-            placeholder="Enter notes. Required for Reject and Return For Correction."
+            placeholder={t('decisionRationalePlaceholder')}
             value={rationale}
           />
         </div>
@@ -57,7 +56,7 @@ export function ReviewActionBar({
             onPress={() => void onSubmitDecision('approve')}
             variant="primary"
           >
-            Approve
+            {t('approveBtn')}
           </Button>
           <Button
             className="border border-[#ffd9d9] bg-[#fff5f5] py-3 text-[#c50000]"
@@ -66,7 +65,7 @@ export function ReviewActionBar({
             onPress={() => void onSubmitDecision('reject')}
             variant="danger"
           >
-            Reject
+            {t('rejectBtn')}
           </Button>
           <Button
             className="border border-[#ffd79e] bg-[#ffefcf] py-3 text-[#ab570a]"
@@ -75,14 +74,12 @@ export function ReviewActionBar({
             onPress={() => void onSubmitDecision('return-for-correction')}
             variant="secondary"
           >
-            Return For Correction
+            {t('returnBtn')}
           </Button>
         </div>
 
         {isRationaleMissing && (
-          <p className="text-xs text-amber-300">
-            * Rationale is required before submitting Rejection or Return For Correction.
-          </p>
+          <p className="text-xs text-amber-300">{t('rationaleRequiredWarning')}</p>
         )}
       </div>
     </div>

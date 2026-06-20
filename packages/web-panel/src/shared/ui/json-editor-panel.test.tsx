@@ -1,6 +1,7 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { useI18nStore } from '../../stores/i18n-store';
 import { JsonEditorPanel } from './json-editor-panel';
 
 // Configure React act environment for Vitest
@@ -8,6 +9,9 @@ import { JsonEditorPanel } from './json-editor-panel';
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 describe('JsonEditorPanel Component UI Rendering', () => {
+  beforeAll(() => {
+    useI18nStore.getState().setLanguage('en');
+  });
   it('disables the save button and shows validation status when canSave is false', async () => {
     const container = document.createElement('div');
     document.body.appendChild(container);

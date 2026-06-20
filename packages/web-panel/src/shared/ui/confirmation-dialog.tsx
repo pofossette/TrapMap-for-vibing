@@ -1,5 +1,6 @@
 import { Button, Modal } from '@heroui/react';
 import type { ReactElement } from 'react';
+import { useI18nStore } from '../../stores/i18n-store';
 
 type ConfirmationDialogProps = {
   cancelLabel?: string;
@@ -15,8 +16,8 @@ type ConfirmationDialogProps = {
 };
 
 export function ConfirmationDialog({
-  cancelLabel = 'Cancel',
-  confirmLabel = 'Confirm',
+  cancelLabel,
+  confirmLabel,
   isConfirmDanger = false,
   isOpen,
   isPending = false,
@@ -26,6 +27,10 @@ export function ConfirmationDialog({
   onOpenChange,
   title,
 }: ConfirmationDialogProps): ReactElement {
+  const { t } = useI18nStore();
+  const finalCancelLabel = cancelLabel ?? t('cancel');
+  const finalConfirmLabel = confirmLabel ?? t('confirm');
+
   return (
     <Modal isOpen={isOpen} {...(onOpenChange ? { onOpenChange } : {})}>
       <Modal.Backdrop>
@@ -48,7 +53,7 @@ export function ConfirmationDialog({
                 }}
                 variant="secondary"
               >
-                {cancelLabel}
+                {finalCancelLabel}
               </Button>
               <Button
                 isPending={isPending}
@@ -57,7 +62,7 @@ export function ConfirmationDialog({
                 }}
                 variant={isConfirmDanger ? 'danger' : 'primary'}
               >
-                {confirmLabel}
+                {finalConfirmLabel}
               </Button>
             </Modal.Footer>
           </Modal.Dialog>

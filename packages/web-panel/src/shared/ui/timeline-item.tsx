@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
+import { useI18nStore } from '../../stores/i18n-store';
 import { StatusBadge } from './status-badge';
 
 type TimelineItemProps = {
@@ -21,6 +22,8 @@ export function TimelineItem({
   tone = 'neutral',
   typeLabel,
 }: TimelineItemProps): ReactElement {
+  const { t } = useI18nStore();
+
   return (
     <article className="relative border-l border-panel-line pl-7 pb-6 last:pb-0">
       <span className="absolute -left-[7px] top-2 h-3 w-3 rounded-full border border-panel-line bg-panel-surface ring-4 ring-panel-bg" />
@@ -41,8 +44,16 @@ export function TimelineItem({
               className="text-xs font-semibold text-panel-accent hover:underline flex items-center gap-1"
               to={linkTo}
             >
-              View Related Entry
-              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {t('viewRelatedEntry')}
+              <svg
+                className="h-3 w-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                role="img"
+                aria-label="Link"
+              >
+                <title>Link</title>
                 <path
                   d="M9 5l7 7-7 7"
                   strokeLinecap="round"

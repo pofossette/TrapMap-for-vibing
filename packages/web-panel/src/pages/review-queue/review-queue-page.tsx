@@ -37,34 +37,44 @@ export function ReviewQueuePage(): ReactElement {
         <section className="grid gap-4 lg:grid-cols-[1.2fr,0.8fr,0.8fr]">
           <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
             <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-              Queue Pulse
+              {t('queuePulse')}
             </p>
             <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-panel-text">
               {model.items.length}
             </p>
-            <p className="mt-2 text-sm leading-6 text-panel-muted">
-              Items currently visible after filter application.
-            </p>
+            <p className="mt-2 text-sm leading-6 text-panel-muted">{t('queuePulseDesc')}</p>
           </div>
           <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
             <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-              Highest Risk
+              {t('highestRisk')}
             </p>
             <p className="mt-3 text-lg font-semibold text-panel-text">
-              {model.items[0]?.riskLabel ?? 'No items'}
+              {model.items[0]
+                ? model.items[0].riskLabel === 'High Risk'
+                  ? t('highRisk')
+                  : model.items[0].riskLabel === 'Needs Review'
+                    ? t('mediumRisk')
+                    : t('lowRisk')
+                : t('noItems')}
             </p>
-            <p className="mt-2 text-sm leading-6 text-panel-muted">
-              Prioritize entries with schema, correctness, or duplicate pressure.
-            </p>
+            <p className="mt-2 text-sm leading-6 text-panel-muted">{t('highestRiskDesc')}</p>
           </div>
           <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
-            <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">Focus</p>
+            <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
+              {t('focus')}
+            </p>
             <p className="mt-3 text-lg font-semibold text-panel-text">
-              {model.filters.status === 'all' ? 'All statuses' : model.filters.status}
+              {model.filters.status === 'all'
+                ? t('allStatuses')
+                : model.filters.status === 'submitted'
+                  ? t('submitted')
+                  : model.filters.status === 'approved'
+                    ? t('approved')
+                    : model.filters.status === 'rejected'
+                      ? t('rejected')
+                      : model.filters.status}
             </p>
-            <p className="mt-2 text-sm leading-6 text-panel-muted">
-              Current queue slice based on status, source, risk, and search.
-            </p>
+            <p className="mt-2 text-sm leading-6 text-panel-muted">{t('focusDesc')}</p>
           </div>
         </section>
 
@@ -180,7 +190,7 @@ export function ReviewQueuePage(): ReactElement {
             />
           </FilterItem>
 
-          <FilterItem label="Sort By">
+          <FilterItem label={t('sortBy')}>
             <Select
               className="w-full"
               value={model.filters.sort}
@@ -230,11 +240,11 @@ export function ReviewQueuePage(): ReactElement {
             </Select>
           </FilterItem>
 
-          <FilterItem label="Search Query">
+          <FilterItem label={t('searchQuery')}>
             <input
               className="w-full rounded-md border border-panel-line bg-panel-surface px-3 py-2.5 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent"
               onChange={(event) => model.updateFilters({ search: event.target.value })}
-              placeholder={t('searchPlaceholder')}
+              placeholder={t('searchQueryPlaceholder')}
               type="text"
               value={model.filters.search}
             />
@@ -264,7 +274,11 @@ export function ReviewQueuePage(): ReactElement {
                           {item.title}
                         </h3>
                         <StatusBadge tone={item.riskTone === 'neutral' ? 'success' : item.riskTone}>
-                          {item.riskLabel}
+                          {item.riskLabel === 'High Risk'
+                            ? t('highRisk')
+                            : item.riskLabel === 'Needs Review'
+                              ? t('mediumRisk')
+                              : t('lowRisk')}
                         </StatusBadge>
                       </div>
                       <p className="text-sm leading-6 text-panel-muted/95">{item.subtitle}</p>
@@ -281,8 +295,14 @@ export function ReviewQueuePage(): ReactElement {
                         <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
                           {t('statusLabel')}
                         </p>
-                        <p className="mt-1 text-sm font-semibold capitalize text-panel-text">
-                          {item.status}
+                        <p className="mt-1 text-sm font-semibold text-panel-text">
+                          {item.status === 'submitted'
+                            ? t('submitted')
+                            : item.status === 'approved'
+                              ? t('approved')
+                              : item.status === 'rejected'
+                                ? t('rejected')
+                                : item.status}
                         </p>
                       </div>
                       <div className="rounded-xl border border-panel-line bg-panel-surface-strong px-4 py-3">

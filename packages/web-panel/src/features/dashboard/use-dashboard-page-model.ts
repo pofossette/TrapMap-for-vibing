@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 
 import { getAdminPanelApi } from '../../services/admin-panel-service-context';
 import { useDashboardStore } from '../../stores/dashboard-store';
+import { useI18nStore } from '../../stores/i18n-store';
 import { loadRuntimeOverview } from './service';
 
 type DashboardCardTone = 'success' | 'warning' | 'danger';
@@ -26,6 +27,7 @@ export function useDashboardPageModel(): {
   overview: RuntimeOverview | null;
 } {
   const api = getAdminPanelApi();
+  const { t, language } = useI18nStore();
   const request = useDashboardStore((state) => state.request);
   const setLoading = useDashboardStore((state) => state.setLoading);
   const setOverview = useDashboardStore((state) => state.setOverview);
@@ -50,6 +52,7 @@ export function useDashboardPageModel(): {
     }
   }, [request.status, refresh]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: t uses language state internally
   const cards: DashboardCard[] = useMemo(() => {
     const overview = request.payload;
 
@@ -66,35 +69,35 @@ export function useDashboardPageModel(): {
 
     return [
       {
-        label: 'Service Health',
+        label: t('serviceHealthLabel'),
         value: `${healthyServices} / ${overview.services.length}`,
-        badge: degradedServices === 0 ? 'Healthy' : 'Watch',
+        badge: degradedServices === 0 ? t('badgeHealthy') : t('badgeWatch'),
         tone: degradedServices === 0 ? 'success' : 'warning',
-        helpText: `Last health check ${overview.lastHealthCheckAt}.`,
+        helpText: `${t('lastHealthCheck')} ${overview.lastHealthCheckAt}.`,
       },
       {
-        label: 'Pending Reviews',
+        label: t('pendingReviewsLabel'),
         value: String(overview.pendingReviewCount),
-        badge: overview.pendingReviewCount > 0 ? 'Attention' : 'Clear',
+        badge: overview.pendingReviewCount > 0 ? t('badgeAttention') : t('badgeClear'),
         tone: overview.pendingReviewCount > 0 ? 'warning' : 'success',
-        helpText: `${overview.workload.find((metric) => metric.label === 'Candidate Backlog')?.value ?? 0} items in candidate backlog.`,
+        helpText: `${overview.workload.find((metric) => metric.label === 'Candidate Backlog')?.value ?? 0} ${t('backlogItems')}.`,
       },
       {
-        label: 'Failed Jobs',
+        label: t('failedJobsLabel'),
         value: String(overview.failedJobsCount),
-        badge: overview.failedJobsCount > 0 ? 'Watch' : 'Stable',
+        badge: overview.failedJobsCount > 0 ? t('badgeWatch') : t('badgeStable'),
         tone: overview.failedJobsCount > 0 ? 'danger' : 'success',
-        helpText: overview.incidents[0] ?? 'No active incidents.',
+        helpText: overview.incidents[0] ?? `${t('noIncidents')}.`,
       },
       {
-        label: 'Throughput',
+        label: t('throughputLabel'),
         value: `${overview.throughputPerHour}/hr`,
         badge: overview.deploymentProfile,
         tone: 'success',
-        helpText: `Build ${overview.buildId}.`,
+        helpText: `${t('buildLabel')} ${overview.buildId}.`,
       },
     ];
-  }, [request.payload]);
+  }, [request.payload, t, language]);
 
   return {
     cards,

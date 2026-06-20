@@ -118,6 +118,114 @@ export const translations = {
     noActivityLogs: '暂无审计日志',
     noActivityLogsDesc: '暂无审计日志记录。',
     noMatchedLogsDesc: '没有匹配该筛选条件的日志。',
+
+    // Dashboard Cards & Badges
+    serviceHealthLabel: '服务集成健康状况',
+    pendingReviewsLabel: '待审核任务',
+    failedJobsLabel: '失败任务',
+    throughputLabel: '吞吐量',
+    badgeHealthy: '健康',
+    badgeWatch: '待观察',
+    badgeAttention: '需处理',
+    badgeClear: '无积压',
+    badgeStable: '稳定',
+    lastHealthCheck: '上次健康检查',
+    backlogItems: '个任务积压中',
+    noIncidents: '当前无异常事件',
+    buildLabel: '构建版本',
+
+    // Review Queue Dashboard Cards
+    queuePulse: '队列状态',
+    queuePulseDesc: '应用当前筛选后可见的条目。',
+    highestRisk: '最高风险',
+    highestRiskDesc: '优先处理有 Schema、正确性或重复压力的条目。',
+    noItems: '无条目',
+    focus: '关注点',
+    allStatuses: '所有状态',
+    focusDesc: '基于状态、来源、风险和搜索的当前队列分片。',
+    searchQuery: '搜索查询',
+    searchQueryPlaceholder: '搜索标题、描述或 ID...',
+    sortBy: '排序方式',
+
+    // Activity Page Dashboard Cards
+    eventVolume: '事件总量',
+    eventVolumeDesc: '应用当前筛选后可见的审计日志条目。',
+    searchFocus: '搜索范围',
+    allOperatorsAndEvents: '所有操作员和事件',
+    searchFocusDesc: '按操作员、标题或事件描述缩小范围。',
+    typeSlice: '分类切片',
+    typeSliceDesc: '按事件类别审查操作活动。',
+    operationalTimeline: '操作时间线',
+    operationalTimelineDesc: '按时间顺序排列的判定决策、人工干预和运行时操作流。',
+
+    // Dashboard Header
+    runtimeSnapshot: '运行时快照',
+    supervisionTitle: '治理运行状态处于活跃监控下。',
+    supervisionDesc: '集中视图展示当前部署配置的服务健康状况、队列压力和高信号事件。',
+    lastCheck: '上次检查',
+    submitted: '已提交',
+    servicesCount: '个服务',
+    checkedAt: '检查于',
+    reviewGovQueueDesc: '直接进入受治理的审核工作区。',
+    auditLogsDesc: '在单一时间线中检查操作员和系统操作。',
+
+    // Shared / Global UI Controls
+    confirm: '确认',
+    viewRelatedEntry: '查看相关条目',
+    noDataAvailable: '暂无数据',
+    noItemsMatched: '没有找到符合筛选条件的条目。',
+    systemError: '系统错误',
+    retryRequest: '重试请求',
+
+    // Review Details Page Extra Translations
+    govDetailWorkspace: '治理详情工作区',
+    backToReviewQueue: '返回审核队列',
+    reviewDetailsDesc: '详细的治理元数据、验证报告、JSON 配置以及审计记录。',
+    reviewWorkspace: '审核工作区',
+    loadingReviewItem: '正在加载审核条目...',
+    noSummary: '暂无摘要说明。',
+    automatedValidationReports: '自动验证报告',
+    itemAuditTimeline: '条目审计时间线',
+    noTimelineEntries: '未记录时间线条目。',
+    assignedReviewer: '分配的审核员',
+    unassigned: '未指派',
+    createdAt: '创建于',
+
+    // Decision Confirmation Dialog
+    approveReviewItem: '批准审核条目',
+    rejectReviewItem: '拒绝审核条目',
+    returnReviewItem: '退回审核条目以进行修改',
+    confirmAction: '确认操作',
+    approveConfirmMsg: '您确定要批准此治理条目吗？批准的条目将被导入平台系统。',
+    rejectConfirmMsg: '您确定要拒绝此条目吗？被拒绝的条目将被永久锁定，并附上指定的理由。',
+    returnConfirmMsg: '您确定要将此条目退回给贡献者以进行修改吗？',
+
+    // Review Action Bar
+    govActionPanel: '治理操作面板',
+    govActionPanelDesc: '提交您的正式决策。拒绝或退回修改需要提供详细的判定理由。',
+    decisionRationaleLabel: '决策理由 / 批注',
+    decisionRationalePlaceholder: '输入批注。拒绝和退回修改时必填。',
+    approveBtn: '批准',
+    rejectBtn: '拒绝',
+    returnBtn: '退回修改',
+    rationaleRequiredWarning: '* 提交拒绝或退回修改之前，必须填写理由。',
+
+    // File Editor / JSON Editor Panel
+    fileEditorTitle: '文件编辑器',
+    fileEditorDesc: '选择审核工件、检查内容，并保存审计后的修改。',
+    unsavedChangesBadge: '未保存的修改',
+    syncedBadge: '已同步',
+    reviewFilesTitle: '审核文件列表',
+    noFileSelected: '未选择文件',
+    selectFileFromList: '从列表中选择一个文件。',
+    lastEdited: '最后修改时间:',
+    editRationaleLabel: '修改理由',
+    editRationalePlaceholder: '为什么进行此修改？',
+    formatJsonBtn: '格式化 JSON',
+    resetBtn: '重置',
+    saveFileChangesBtn: '保存文件修改',
+    jsonValidationError: 'JSON 验证错误:',
+    editRationaleRequiredWarning: '保存修改之前必须填写修改理由。',
   },
   en: {
     // Shell & Nav
@@ -234,6 +342,122 @@ export const translations = {
     noActivityLogs: 'No Activity Logs',
     noActivityLogsDesc: 'No activities have been recorded in the audit log yet.',
     noMatchedLogsDesc: 'No logs match your filter criteria.',
+
+    // Dashboard Cards & Badges
+    serviceHealthLabel: 'Service Health',
+    pendingReviewsLabel: 'Pending Reviews',
+    failedJobsLabel: 'Failed Jobs',
+    throughputLabel: 'Throughput',
+    badgeHealthy: 'Healthy',
+    badgeWatch: 'Watch',
+    badgeAttention: 'Attention',
+    badgeClear: 'Clear',
+    badgeStable: 'Stable',
+    lastHealthCheck: 'Last health check',
+    backlogItems: 'items in candidate backlog',
+    noIncidents: 'No active incidents',
+    buildLabel: 'Build',
+
+    // Review Queue Dashboard Cards
+    queuePulse: 'Queue Pulse',
+    queuePulseDesc: 'Items currently visible after filter application.',
+    highestRisk: 'Highest Risk',
+    highestRiskDesc: 'Prioritize entries with schema, correctness, or duplicate pressure.',
+    noItems: 'No items',
+    focus: 'Focus',
+    allStatuses: 'All statuses',
+    focusDesc: 'Current queue slice based on status, source, risk, and search.',
+    searchQuery: 'Search Query',
+    searchQueryPlaceholder: 'Search title, description or ID...',
+    sortBy: 'Sort By',
+
+    // Activity Page Dashboard Cards
+    eventVolume: 'Event Volume',
+    eventVolumeDesc: 'Visible timeline events after applying current filters.',
+    searchFocus: 'Search Focus',
+    allOperatorsAndEvents: 'All operators and events',
+    searchFocusDesc: 'Narrow by actor, title, or event description.',
+    typeSlice: 'Type Slice',
+    typeSliceDesc: 'Review operational activity by event class.',
+    operationalTimeline: 'Operational Timeline',
+    operationalTimelineDesc:
+      'Ordered stream of review decisions, manual interventions, and runtime actions.',
+
+    // Dashboard Header
+    runtimeSnapshot: 'Runtime Snapshot',
+    supervisionTitle: 'Governance runtime is under active supervision.',
+    supervisionDesc:
+      'Centralized view of service health, queue pressure, and high-signal incidents for the current deployment profile.',
+    lastCheck: 'Last Check',
+    submitted: 'Submitted',
+    servicesCount: 'services',
+    checkedAt: 'Checked',
+    reviewGovQueueDesc: 'Move directly into the governed review workspace.',
+    auditLogsDesc: 'Inspect operator and system actions in a single timeline.',
+
+    // Shared / Global UI Controls
+    confirm: 'Confirm',
+    viewRelatedEntry: 'View Related Entry',
+    noDataAvailable: 'No Data Available',
+    noItemsMatched: 'No items found matching your filters.',
+    systemError: 'System Error',
+    retryRequest: 'Retry Request',
+
+    // Review Details Page Extra Translations
+    govDetailWorkspace: 'Governance Detail Workspace',
+    backToReviewQueue: 'Back to Review Queue',
+    reviewDetailsDesc:
+      'Detailed governance metadata, validation reports, JSON configuration, and audit records.',
+    reviewWorkspace: 'Review Workspace',
+    loadingReviewItem: 'Loading review item...',
+    noSummary: 'No summary available.',
+    automatedValidationReports: 'Automated Validation Reports',
+    itemAuditTimeline: 'Item Audit Timeline',
+    noTimelineEntries: 'No timeline entries recorded.',
+    assignedReviewer: 'Assigned Reviewer',
+    unassigned: 'Unassigned',
+    createdAt: 'Created At',
+
+    // Decision Confirmation Dialog
+    approveReviewItem: 'Approve Review Item',
+    rejectReviewItem: 'Reject Review Item',
+    returnReviewItem: 'Return Review Item for Correction',
+    confirmAction: 'Confirm Action',
+    approveConfirmMsg:
+      'Are you sure you want to approve this governance item? Approved entries are ingested into the platform system.',
+    rejectConfirmMsg:
+      'Are you sure you want to reject this entry? Rejected items will be permanently locked with the specified rationale.',
+    returnConfirmMsg:
+      'Are you sure you want to return this entry to the contributor for correction?',
+
+    // Review Action Bar
+    govActionPanel: 'Governance Action Panel',
+    govActionPanelDesc:
+      'Submit your official decision. Rejecting or returning for correction requires providing a detailed rationale.',
+    decisionRationaleLabel: 'Decision Rationale / Notes',
+    decisionRationalePlaceholder: 'Enter notes. Required for Reject and Return For Correction.',
+    approveBtn: 'Approve',
+    rejectBtn: 'Reject',
+    returnBtn: 'Return For Correction',
+    rationaleRequiredWarning:
+      '* Rationale is required before submitting Rejection or Return For Correction.',
+
+    // File Editor / JSON Editor Panel
+    fileEditorTitle: 'File Editor',
+    fileEditorDesc: 'Select a review artifact, inspect content, and save audited edits.',
+    unsavedChangesBadge: 'Unsaved Changes',
+    syncedBadge: 'Synced',
+    reviewFilesTitle: 'Review Files',
+    noFileSelected: 'No file selected',
+    selectFileFromList: 'Select a file from the list.',
+    lastEdited: 'Last edited:',
+    editRationaleLabel: 'Edit Rationale',
+    editRationalePlaceholder: 'Why are you making this change?',
+    formatJsonBtn: 'Format JSON',
+    resetBtn: 'Reset',
+    saveFileChangesBtn: 'Save File Changes',
+    jsonValidationError: 'JSON Validation Error:',
+    editRationaleRequiredWarning: 'Edit rationale is required before saving your edits.',
   },
 };
 
@@ -251,7 +475,7 @@ const getInitialLanguage = (): Language => {
         return saved;
       }
     }
-  } catch (e) {
+  } catch (_e) {
     // Ignore storage availability errors
   }
   return 'cn';

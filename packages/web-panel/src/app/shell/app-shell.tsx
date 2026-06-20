@@ -449,15 +449,17 @@ export function AppShell(): ReactElement {
 
             {user ? (
               <Dropdown>
-                <div className="flex cursor-pointer items-center gap-2.5 rounded-full border border-panel-line bg-panel-surface py-1 pl-2.5 pr-3 transition select-none">
-                  <Avatar className="h-6 w-6 text-xs animate-none" variant="soft" color="accent">
-                    <Avatar.Fallback>{getInitials(user.displayName)}</Avatar.Fallback>
-                  </Avatar>
-                  <span className="text-xs font-semibold text-panel-text max-w-[120px] truncate">
-                    {user.displayName}
-                  </span>
-                  <ChevronIcon />
-                </div>
+                <Dropdown.Trigger>
+                  <div className="flex cursor-pointer items-center gap-2.5 rounded-full border border-panel-line bg-panel-surface py-1 pl-2.5 pr-3 transition select-none">
+                    <Avatar className="h-6 w-6 text-xs animate-none" variant="soft" color="accent">
+                      <Avatar.Fallback>{getInitials(user.displayName)}</Avatar.Fallback>
+                    </Avatar>
+                    <span className="text-xs font-semibold text-panel-text max-w-[120px] truncate">
+                      {user.displayName}
+                    </span>
+                    <ChevronIcon />
+                  </div>
+                </Dropdown.Trigger>
 
                 <Dropdown.Popover className="min-w-[220px] rounded-xl border border-panel-line bg-panel-surface shadow-panel">
                   <Dropdown.Menu onAction={handleDropdownAction}>

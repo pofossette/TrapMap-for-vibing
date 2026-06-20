@@ -66,22 +66,21 @@ export function DashboardPage(): ReactElement {
               <div className="relative grid gap-6 lg:grid-cols-[1.45fr,0.9fr]">
                 <div className="space-y-4">
                   <span className="inline-flex rounded-full border border-panel-line bg-panel-surface px-3 py-1 font-mono text-[12px] font-medium uppercase text-panel-muted">
-                    Runtime Snapshot
+                    {t('runtimeSnapshot')}
                   </span>
                   <div>
                     <h3 className="text-[48px] font-semibold leading-[48px] tracking-[-2.4px] text-panel-text">
-                      Governance runtime is under active supervision.
+                      {t('supervisionTitle')}
                     </h3>
                     <p className="mt-3 max-w-2xl text-sm leading-6 text-panel-muted">
-                      Centralized view of service health, queue pressure, and high-signal incidents
-                      for the current deployment profile.
+                      {t('supervisionDesc')}
                     </p>
                   </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
                   <div className="rounded-xl border border-panel-line bg-panel-surface-strong p-4">
                     <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-                      Build
+                      {t('buildLabel')}
                     </p>
                     <p className="mt-2 text-lg font-semibold text-panel-text">
                       {model.overview?.buildId ?? 'web-panel-dev'}
@@ -97,7 +96,7 @@ export function DashboardPage(): ReactElement {
                   </div>
                   <div className="rounded-xl border border-panel-line bg-panel-surface-strong p-4">
                     <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-                      Last Check
+                      {t('lastCheck')}
                     </p>
                     <p className="mt-2 text-lg font-semibold text-panel-text">
                       {model.overview?.lastHealthCheckAt ?? 'n/a'}
@@ -129,7 +128,7 @@ export function DashboardPage(): ReactElement {
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-lg font-semibold text-panel-text">{t('serviceHealth')}</h3>
                   <span className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-                    {model.services.length} services
+                    {model.services.length} {t('servicesCount')}
                   </span>
                 </div>
                 <div className="divide-y divide-panel-line/40">
@@ -159,10 +158,15 @@ export function DashboardPage(): ReactElement {
                                 : 'danger'
                           }
                         >
-                          {service.status.toUpperCase()}
+                          {(service.status === 'healthy'
+                            ? t('badgeHealthy')
+                            : service.status === 'degraded'
+                              ? t('badgeWatch')
+                              : service.status
+                          ).toUpperCase()}
                         </StatusBadge>
                         <p className="mt-2 text-[11px] text-panel-muted">
-                          Checked {service.lastCheckedAt}
+                          {t('checkedAt')} {service.lastCheckedAt}
                         </p>
                       </div>
                     </div>
@@ -185,9 +189,7 @@ export function DashboardPage(): ReactElement {
                     >
                       <div>
                         <p className="font-semibold text-panel-text">{t('reviewGovQueue')}</p>
-                        <p className="mt-1 text-xs text-panel-muted">
-                          Move directly into the governed review workspace.
-                        </p>
+                        <p className="mt-1 text-xs text-panel-muted">{t('reviewGovQueueDesc')}</p>
                       </div>
                       <svg
                         role="img"
@@ -212,9 +214,7 @@ export function DashboardPage(): ReactElement {
                     >
                       <div>
                         <p className="font-semibold text-panel-text">{t('auditLogs')}</p>
-                        <p className="mt-1 text-xs text-panel-muted">
-                          Inspect operator and system actions in a single timeline.
-                        </p>
+                        <p className="mt-1 text-xs text-panel-muted">{t('auditLogsDesc')}</p>
                       </div>
                       <svg
                         role="img"

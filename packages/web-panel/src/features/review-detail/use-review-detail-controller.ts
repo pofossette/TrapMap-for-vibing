@@ -34,6 +34,7 @@ export function useReviewDetailController(reviewId: string) {
     }
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refresh ref is stable and details reload when ID changes
   useEffect(() => {
     if (request.status === 'idle' || request.payload?.id !== reviewId) {
       void refresh();

@@ -38,6 +38,7 @@ export function useReviewQueuePageModel(): {
     }
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run refresh on filter changes
   useEffect(() => {
     void refresh();
   }, [filters.riskLevel, filters.search, filters.sort, filters.source, filters.status]);

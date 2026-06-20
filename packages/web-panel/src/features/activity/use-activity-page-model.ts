@@ -9,6 +9,7 @@ export function useActivityPageModel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: api context is static
   useEffect(() => {
     let active = true;
 
