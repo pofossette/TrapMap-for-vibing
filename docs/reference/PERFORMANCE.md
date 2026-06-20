@@ -213,6 +213,38 @@ AI_EMBEDDING_MODEL=nomic-embed-text
 
 本地部署 AI 模型可消除网络延迟和 API 限流。
 
+## Phase 3 容量建模入口
+
+当前 Phase 3 不引入第二套性能协议，而是把容量入口挂到现有 operator surface：
+
+- `GET /v1/operations/status/async`
+  - `capacityModel.backlogPressure`
+  - `capacityModel.handlerLatency`
+  - `capacityModel.cachePressure`
+  - `capacityModel.databasePool`
+- `GET /v1/operations/stats/summary`
+  - `asyncArchitecture.queueBacklogByType`
+  - `asyncArchitecture.deadLetterByType`
+  - `asyncArchitecture.retryRateByType`
+  - `asyncArchitecture.avgHandlerLatencyMsByType`
+  - `asyncArchitecture.cacheHitRateByNamespace`
+  - `asyncArchitecture.cacheInvalidationByNamespace`
+  - `asyncArchitecture.cachePendingInvalidationByNamespace`
+
+当前事实：
+
+- PostgreSQL 连接池预算目前只暴露“是否配置”与后续扩展位 `maxConnections`，还没有把驱动内部池状态做成正式 contract。
+- bulk/rebuild/backfill 的进度、checkpoint、failure sample 与 resume 能力统一从 `workflow_runs.stats` 汇总到 `bulkOperations`，而不是单独维护第二套性能记录面。
+
+Phase 4 closeout 结论：
+
+- `capacityModel.databasePool.maxConnections` 已关闭为 deferred detail：
+  - 当前仅保留 operator-facing shape，不把运行时连接池 introspection 升级为正式 contract。
+  - closeout 理由是现有 runtime mode / transport / host 之间没有统一、稳定的池状态来源。
+- 热点 `team/query/artifact` 已关闭为 non-default deep drill-down：
+  - 默认 operator surface 保持 backlog、latency、cache invalidation、workflow progress 等高层容量信号。
+  - 热点分析若未来需要，应独立设计数据来源与响应 contract，而不是扩张默认 status 首页。
+
 ---
 
 ## 日志性能影响

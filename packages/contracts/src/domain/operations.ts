@@ -704,6 +704,163 @@ export const retrievalCacheNamespaceStatsSchema = z
     invalidations: z.number().int().min(0),
     size: z.number().int().min(0),
     hitRate: z.number().min(0).max(1),
+    staleRecoveries: z.number().int().min(0),
+    pendingInvalidation: z.boolean(),
+    lastInvalidatedAt: isoTimestampSchema.nullable(),
+    lastRecoveredAt: isoTimestampSchema.nullable(),
+  })
+  .strict();
+
+export const operatorStatusGroupSchema = z
+  .object({
+    headline: z.string().min(1).max(280),
+    status: z.enum(['healthy', 'degraded', 'investigate']),
+    summary: z.string().min(1).max(1000),
+  })
+  .strict();
+
+export const configGovernanceSummarySchema = z
+  .object({
+    fingerprint: z.string().min(1).max(128),
+    deploymentProfile: z.enum(['local-agent', 'team-monolith', 'distributed']),
+    runtimeMode: z.enum(['api', 'task-worker', 'outbox-worker', 'combined']),
+    serviceUnit: z.enum(['full-platform', 'candidate-ingestion', 'knowledge-governance']),
+    taskTransportProvider: z.enum(['postgres', 'rabbitmq']),
+    eventTransportProvider: z.literal('postgres'),
+    profileAwareCapabilitySummary: z
+      .object({
+        routeSurface: z.enum(['minimal-agent', 'gateway-core', 'worker-status']),
+        asyncOwnershipExpectation: z.enum(['local-owned', 'split-owned', 'remote-expected']),
+        storagePosture: z.enum(['json-store-ok', 'postgres-required']),
+        authTeamExpectation: z.enum(['single-user', 'team-auth']),
+      })
+      .strict(),
+    deprecatedEnvKeys: z.array(z.string().min(1).max(120)),
+    conflictWarnings: z.array(z.string().min(1).max(500)),
+  })
+  .strict();
+
+export const capacityModelSummarySchema = z
+  .object({
+    databasePool: z
+      .object({
+        configured: z.boolean(),
+        maxConnections: z.number().int().min(0).nullable(),
+      })
+      .strict(),
+    handlerLatency: z
+      .object({
+        averageMs: z.number().min(0),
+        investigateAboveMs: z.number().min(0),
+      })
+      .strict(),
+    backlogPressure: z
+      .object({
+        queuePending: z.number().int().min(0),
+        outboxPending: z.number().int().min(0),
+        workflowsInFlight: z.number().int().min(0),
+      })
+      .strict(),
+    cachePressure: z
+      .object({
+        namespacesWithPendingInvalidation: z.number().int().min(0),
+        staleRecoveryCount: z.number().int().min(0),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const workflowOperatorSummarySchema = z
+  .object({
+    runId: entityIdSchema,
+    workflowType: workflowRunSnapshotSchema.shape.workflowType,
+    status: workflowRunSnapshotSchema.shape.status,
+    stepName: z.string().nullable(),
+    lastError: z.string().nullable(),
+    checkpoint: z.string().nullable(),
+    resumeAllowed: z.boolean(),
+    progress: z
+      .object({
+        completed: z.number().min(0).nullable(),
+        total: z.number().min(0).nullable(),
+        percent: z.number().min(0).max(100).nullable(),
+      })
+      .strict(),
+    failureSample: z.string().nullable(),
+  })
+  .strict();
+
+export const asyncFailureCategorySchema = z.enum([
+  'user-error',
+  'auth-policy-error',
+  'dependency-error',
+  'timeout',
+  'stale-projection',
+  'retryable-async-failure',
+  'permanent-failure',
+]);
+
+export const asyncFailureTaxonomyItemSchema = z
+  .object({
+    category: asyncFailureCategorySchema,
+    meaning: z.string().min(1).max(500),
+    operatorAction: z.string().min(1).max(1000),
+  })
+  .strict();
+
+export const asyncFreshnessContractSchema = z
+  .object({
+    consistencyModel: z.literal('eventual-consistency'),
+    writeVisibility: z
+      .object({
+        authoritativeWriteCommitted: z.boolean(),
+        projectionRefreshPending: z.boolean(),
+        cachesPendingInvalidation: z.boolean(),
+      })
+      .strict(),
+    projectionLag: z
+      .object({
+        queueBacklog: z.number().int().min(0),
+        outboxBacklog: z.number().int().min(0),
+        staleWorkers: z.number().int().min(0),
+        workflowsInFlight: z.number().int().min(0),
+      })
+      .strict(),
+    operatorGuidance: z.string().min(1).max(1000),
+  })
+  .strict();
+
+export const asyncRuntimeContractSchema = z
+  .object({
+    workerModes: z
+      .object({
+        api: z.string().min(1).max(500),
+        'task-worker': z.string().min(1).max(500),
+        'outbox-worker': z.string().min(1).max(500),
+        combined: z.string().min(1).max(500),
+      })
+      .strict(),
+    degradedSemantics: z.string().min(1).max(1000),
+  })
+  .strict();
+
+export const asyncIdempotencyContractSchema = z
+  .object({
+    syncCommandKey: z.string().min(1).max(280),
+    asyncTaskKey: z.string().min(1).max(280),
+    bulkJobKey: z.string().min(1).max(280),
+    dedupeWindow: z.string().min(1).max(500),
+  })
+  .strict();
+
+export const asyncRetryResumeContractSchema = z
+  .object({
+    queueRetryPolicy: z.string().min(1).max(500),
+    outboxRetryPolicy: z.string().min(1).max(500),
+    deadLetterPolicy: z.string().min(1).max(500),
+    reclaimPolicy: z.string().min(1).max(500),
+    workflowCheckpointSource: z.string().min(1).max(500),
+    bulkResumePolicy: z.string().min(1).max(500),
   })
   .strict();
 
@@ -720,10 +877,27 @@ export const asyncOperationsStatusResponseSchema = z
     taskTransportProvider: z.enum(['postgres', 'rabbitmq', 'not-configured']),
     eventTransportProvider: z.enum(['postgres', 'not-configured']),
     adoptionGuidance: z.string(),
+    runtimeContract: asyncRuntimeContractSchema,
+    idempotencyContract: asyncIdempotencyContractSchema,
+    retryResumeContract: asyncRetryResumeContractSchema,
+    freshnessContract: asyncFreshnessContractSchema,
+    failureTaxonomy: z.array(asyncFailureTaxonomyItemSchema).length(7),
+    operatorHome: z
+      .object({
+        health: operatorStatusGroupSchema,
+        status: operatorStatusGroupSchema,
+        freshness: operatorStatusGroupSchema,
+        capacity: operatorStatusGroupSchema,
+        jobControl: operatorStatusGroupSchema,
+      })
+      .strict(),
+    configGovernance: configGovernanceSummarySchema,
+    capacityModel: capacityModelSummarySchema,
     queue: queueStatusSnapshotSchema,
     outbox: outboxStatusSnapshotSchema,
     cache: z.record(z.string(), retrievalCacheNamespaceStatsSchema),
     workflows: z.array(workflowRunSnapshotSchema),
+    bulkOperations: z.array(workflowOperatorSummarySchema),
     reportedAt: isoTimestampSchema,
   })
   .strict();
@@ -749,6 +923,16 @@ export type QueueStatusSnapshot = z.infer<typeof queueStatusSnapshotSchema>;
 export type OutboxStatusSnapshot = z.infer<typeof outboxStatusSnapshotSchema>;
 export type WorkflowRunSnapshot = z.infer<typeof workflowRunSnapshotSchema>;
 export type RetrievalCacheNamespaceStats = z.infer<typeof retrievalCacheNamespaceStatsSchema>;
+export type OperatorStatusGroup = z.infer<typeof operatorStatusGroupSchema>;
+export type ConfigGovernanceSummary = z.infer<typeof configGovernanceSummarySchema>;
+export type CapacityModelSummary = z.infer<typeof capacityModelSummarySchema>;
+export type WorkflowOperatorSummary = z.infer<typeof workflowOperatorSummarySchema>;
+export type AsyncFailureCategory = z.infer<typeof asyncFailureCategorySchema>;
+export type AsyncFailureTaxonomyItem = z.infer<typeof asyncFailureTaxonomyItemSchema>;
+export type AsyncFreshnessContract = z.infer<typeof asyncFreshnessContractSchema>;
+export type AsyncRuntimeContract = z.infer<typeof asyncRuntimeContractSchema>;
+export type AsyncIdempotencyContract = z.infer<typeof asyncIdempotencyContractSchema>;
+export type AsyncRetryResumeContract = z.infer<typeof asyncRetryResumeContractSchema>;
 export type AsyncOperationsStatusResponse = z.infer<typeof asyncOperationsStatusResponseSchema>;
 export type AsyncTaskRequeueResponse = z.infer<typeof asyncTaskRequeueResponseSchema>;
 
@@ -1096,6 +1280,8 @@ export const statsSummaryResponseSchema = z
         retryRateByType: z.record(z.string(), z.number().min(0)),
         avgHandlerLatencyMsByType: z.record(z.string(), z.number().min(0)),
         cacheHitRateByNamespace: z.record(z.string(), z.number().min(0).max(1)),
+        cacheInvalidationByNamespace: z.record(z.string(), z.number().int().min(0)),
+        cachePendingInvalidationByNamespace: z.record(z.string(), z.boolean()),
         badcaseExportCount: z.number().int().min(0),
         retrievalFailureDistribution: z.record(z.string(), z.number().int().min(0)),
         thresholds: z.array(architectureDecisionThresholdSchema),

@@ -156,6 +156,24 @@ flowchart LR
   - failed-event visibility
   - lease/reclaim
 
+## 2.1 Failure taxonomy
+
+Phase 2 统一后的失败类别固定为：
+
+- `user-error`
+- `auth-policy-error`
+- `dependency-error`
+- `timeout`
+- `stale-projection`
+- `retryable-async-failure`
+- `permanent-failure`
+
+解释约定：
+
+- `retryable-async-failure` 表示 queue/outbox/worker 已接手自动恢复，operator 首先观察 backlog、reclaim 和 attempts，而不是立即人工重放。
+- `permanent-failure` 表示 retry budget 已耗尽，当前 work item 已进入 dead-letter / failed，需要人工修复后 requeue 或 replay。
+- `stale-projection` 不等于 authoritative write 失败；它表示 committed write 尚未完成 projection/cache convergence。
+
 ## 3. Worker runtime modes
 
 ```mermaid
@@ -172,6 +190,21 @@ flowchart LR
 - `task-worker`
 - `outbox-worker`
 - `combined`
+
+Phase 2 runtime contract 解释：
+
+- `api`
+  - 允许在 PostgreSQL 部署中看到 `queueWorker=remote` / `outboxWorker=remote`
+  - 只要本进程不被期望拥有 async work，本地无 worker 不构成故障
+- `task-worker`
+  - 只负责 task queue consumer
+  - 若本地拥有 task work 但 worker 未运行，则为 `degraded`
+- `outbox-worker`
+  - 只负责 outbox consumer
+  - 若本地拥有 outbox work 但 worker 未运行，则为 `degraded`
+- `combined`
+  - 同时承接 gateway 与本地 worker
+  - 任一 locally-owned async dependency degraded 都会让 runtime 进入 `not-ready`
 
 ## 4. Shared jobs
 
@@ -245,6 +278,17 @@ flowchart LR
   - `GET /v1/operations/status/async`
   - retrieval cache invalidation metrics
 
+Phase 2 显式 freshness contract：
+
+- `authoritativeWriteCommitted=true` 表示真相写入已成功，不应再把陈旧读误解成写失败。
+- `projectionRefreshPending=true` 表示 queue backlog、outbox backlog、workflow in-flight 或 cache pending invalidation 之一仍未清空。
+- `cachesPendingInvalidation=true` 表示 process-local caches 已收到刷新请求但尚未完成 stale recovery。
+- operator 应优先通过 `/v1/operations/status/async.freshnessContract.projectionLag` 解释 lag：
+  - `queueBacklog`
+  - `outboxBacklog`
+  - `staleWorkers`
+  - `workflowsInFlight`
+
 ### 受控缓存
 
 - `retrieval-read-model`
@@ -273,6 +317,12 @@ flowchart TB
 - `skill-index-follow-up`
 - `feedback-remediation-reactivation`
 - `badcase-export-draft`
+
+Phase 2 resume / checkpoint 约定：
+
+- `workflow_runs.stats` 是当前唯一持久化 checkpoint surface。
+- shared jobs、candidate processing、capsule rebuild 和未来 bulk path 都应把可恢复进度写入 `stats`，而不是只保存在进程内变量。
+- bulk path 在进入 Phase 3 operator/control 面之前，contract 先统一为 `jobId + batchId + idempotencyKey + resumeFromOffset/checkpoint`。
 
 ## 7. Badcase export
 

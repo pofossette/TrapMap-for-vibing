@@ -703,6 +703,18 @@ describe('operations routes', () => {
         invalidations: 1,
         size: 0,
       });
+      expect(json.cache['retrieval-read-model']).toMatchObject({
+        pendingInvalidation: true,
+        lastInvalidatedAt: expect.any(String),
+      });
+      expect(json.freshnessContract).toMatchObject({
+        consistencyModel: 'eventual-consistency',
+        writeVisibility: {
+          authoritativeWriteCommitted: true,
+          projectionRefreshPending: true,
+          cachesPendingInvalidation: true,
+        },
+      });
     });
   });
 });
@@ -770,6 +782,92 @@ describeIfDb('operations async status routes', () => {
       eventTransportProvider: 'postgres',
       adoptionGuidance:
         'Default mode: keep postgres task queue unless sustained backlog thresholds justify RabbitMQ.',
+      runtimeContract: expect.objectContaining({
+        workerModes: expect.objectContaining({
+          api: expect.any(String),
+          'task-worker': expect.any(String),
+          'outbox-worker': expect.any(String),
+          combined: expect.any(String),
+        }),
+        degradedSemantics: expect.any(String),
+      }),
+      idempotencyContract: expect.objectContaining({
+        syncCommandKey: 'teamId + commandName + clientRequestId',
+        asyncTaskKey: expect.any(String),
+        bulkJobKey: expect.any(String),
+        dedupeWindow: expect.any(String),
+      }),
+      retryResumeContract: expect.objectContaining({
+        queueRetryPolicy: expect.any(String),
+        outboxRetryPolicy: expect.any(String),
+        deadLetterPolicy: expect.any(String),
+        reclaimPolicy: expect.any(String),
+        workflowCheckpointSource: expect.any(String),
+        bulkResumePolicy: expect.any(String),
+      }),
+      freshnessContract: expect.objectContaining({
+        consistencyModel: 'eventual-consistency',
+        writeVisibility: expect.objectContaining({
+          authoritativeWriteCommitted: true,
+        }),
+        projectionLag: expect.objectContaining({
+          queueBacklog: expect.any(Number),
+          outboxBacklog: expect.any(Number),
+          staleWorkers: expect.any(Number),
+          workflowsInFlight: expect.any(Number),
+        }),
+        operatorGuidance: expect.any(String),
+      }),
+      failureTaxonomy: expect.arrayContaining([
+        expect.objectContaining({ category: 'stale-projection' }),
+        expect.objectContaining({ category: 'permanent-failure' }),
+      ]),
+      operatorHome: expect.objectContaining({
+        health: expect.objectContaining({
+          headline: expect.any(String),
+          status: expect.stringMatching(/healthy|degraded|investigate/),
+          summary: expect.any(String),
+        }),
+        status: expect.objectContaining({
+          headline: expect.any(String),
+        }),
+        freshness: expect.objectContaining({
+          headline: expect.any(String),
+        }),
+        capacity: expect.objectContaining({
+          headline: expect.any(String),
+        }),
+        jobControl: expect.objectContaining({
+          headline: expect.any(String),
+        }),
+      }),
+      configGovernance: expect.objectContaining({
+        fingerprint: expect.stringMatching(/^[0-9a-f]{16}$/),
+        deploymentProfile: expect.any(String),
+        runtimeMode: expect.any(String),
+        serviceUnit: expect.any(String),
+        deprecatedEnvKeys: expect.any(Array),
+        conflictWarnings: expect.any(Array),
+      }),
+      capacityModel: expect.objectContaining({
+        databasePool: expect.objectContaining({
+          configured: true,
+          maxConnections: null,
+        }),
+        handlerLatency: expect.objectContaining({
+          averageMs: expect.any(Number),
+          investigateAboveMs: 5000,
+        }),
+        backlogPressure: expect.objectContaining({
+          queuePending: expect.any(Number),
+          outboxPending: expect.any(Number),
+          workflowsInFlight: expect.any(Number),
+        }),
+        cachePressure: expect.objectContaining({
+          namespacesWithPendingInvalidation: expect.any(Number),
+          staleRecoveryCount: expect.any(Number),
+        }),
+      }),
       queue: expect.objectContaining({
         pending: expect.any(Number),
         dead: expect.any(Number),
@@ -789,7 +887,9 @@ describeIfDb('operations async status routes', () => {
           ownsOutboxWork: true,
         },
       }),
+      cache: expect.any(Object),
       workflows: expect.any(Array),
+      bulkOperations: expect.any(Array),
     });
   });
 
@@ -849,6 +949,21 @@ describeIfDb('operations async status routes', () => {
       eventTransportProvider: 'postgres',
       adoptionGuidance:
         'Default mode: keep postgres task queue unless sustained backlog thresholds justify RabbitMQ.',
+      freshnessContract: {
+        consistencyModel: 'eventual-consistency',
+        writeVisibility: {
+          authoritativeWriteCommitted: true,
+          projectionRefreshPending: true,
+          cachesPendingInvalidation: false,
+        },
+        projectionLag: {
+          queueBacklog: 17,
+          outboxBacklog: 8,
+          staleWorkers: 0,
+          workflowsInFlight: 0,
+        },
+        operatorGuidance: expect.any(String),
+      },
       queue: expect.objectContaining({
         provider: 'postgres',
         pending: 17,
@@ -860,6 +975,18 @@ describeIfDb('operations async status routes', () => {
         pending: 8,
         processing: 2,
         reclaimCount: 5,
+      }),
+      operatorHome: expect.objectContaining({
+        freshness: expect.objectContaining({
+          status: 'degraded',
+        }),
+      }),
+      capacityModel: expect.objectContaining({
+        backlogPressure: {
+          queuePending: 17,
+          outboxPending: 8,
+          workflowsInFlight: 0,
+        },
       }),
     });
     expect(app.skillShareer.asyncTransport.task.kind).toBe('postgres-task-queue');
@@ -954,6 +1081,37 @@ describeIfDb('operations async status routes', () => {
         provider: 'postgres',
       }),
     });
+  });
+
+  it('exposes config governance summary and bulk workflow drill-down for operator surfaces', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/operations/status/async',
+      headers: { authorization: `Bearer ${sessionId}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const json = response.json();
+    expect(json.configGovernance).toMatchObject({
+      fingerprint: expect.stringMatching(/^[0-9a-f]{16}$/),
+      profileAwareCapabilitySummary: expect.objectContaining({
+        routeSurface: 'gateway-core',
+        asyncOwnershipExpectation: expect.any(String),
+      }),
+    });
+    expect(Array.isArray(json.bulkOperations)).toBe(true);
+    if (json.bulkOperations.length > 0) {
+      expect(json.bulkOperations[0]).toMatchObject({
+        runId: expect.any(String),
+        workflowType: expect.any(String),
+        progress: expect.objectContaining({
+          completed: expect.anything(),
+          total: expect.anything(),
+          percent: expect.anything(),
+        }),
+        resumeAllowed: expect.any(Boolean),
+      });
+    }
   });
 
   it('reports candidate-ingestion ownership without implying outbox ownership', async () => {

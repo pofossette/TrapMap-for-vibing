@@ -77,10 +77,29 @@ flowchart TB
 - Suppression safety：先 warm 一次 approved trap/skill 的 retrieval，再通过 remediation suppression 写路径触发 `remediation-suppressed` invalidation；确认该 trap/skill 随后从 retrieval 结果中消失。
 - Reactivation safety：在 remediation complete / reactivation follow-up 完成后，确认被压制内容在下一次 retrieval 中重新可见，且 `/v1/operations/status/async` 的 `cache` 字段可观察到 invalidation 计数增长。
 
+**Phase 2 Contract Checks:**
+- Async status contract：调用 `GET /v1/operations/status/async`，确认返回 `runtimeContract`、`idempotencyContract`、`retryResumeContract`、`freshnessContract` 和 `failureTaxonomy`。
+- Freshness contract：制造 queue backlog、outbox backlog 或 cache pending invalidation，确认 `freshnessContract.writeVisibility.projectionRefreshPending=true`，并且 `projectionLag` 计数随实际 backlog 变化。
+- Resume/checkpoint contract：触发带 workflow snapshot 的 shared job 或 candidate processing，确认 checkpoint/progress 位于 `workflow_runs.stats`，而不是仅存在于日志或内存。
+- Failure taxonomy：制造 dead-letter / failed event，确认 operator 仍通过统一 taxonomy 解释为 `permanent-failure`，而不是只输出底层 status 字符串。
+
 **Phase 7 Badcase Export / Decision Metrics Checks:**
 - Operator export flow：先用 retrieval 拿到 `queryId`，提交带 badcase 的 feedback，再调用 `GET /v1/operations/badcases/:feedbackId/export`，确认返回 deterministic draft JSON。
 - Script export flow：运行 `pnpm exec tsx scripts/export-badcase-to-eval.ts <feedbackId> <outputPath>`，确认输出文件与 route draft shape 一致。
 - Decision metrics：调用 `GET /v1/operations/stats/summary`，确认返回 `asyncArchitecture.queueBacklogByType`、`deadLetterByType`、`retryRateByType`、`avgHandlerLatencyMsByType`、`cacheHitRateByNamespace`、`badcaseExportCount`、`retrievalFailureDistribution` 与 `thresholds`。
+
+**Phase 3 Operator / Config / Capacity Checks:**
+- Operator home：调用 `GET /v1/operations/status/async`，确认返回 `operatorHome.health/status/freshness/capacity/jobControl` 五组首页摘要，而不是要求 operator 自己拼 queue/outbox/cache/workflow 字段。
+- Config governance：确认 `configGovernance` 返回 `fingerprint`、`deprecatedEnvKeys`、`conflictWarnings` 与 `profileAwareCapabilitySummary`。
+- Bulk/workflow drill-down：确认 `bulkOperations[*]` 返回 `checkpoint`、`resumeAllowed`、`progress` 与 `failureSample`，其来源仍然是 `workflow_runs.stats`。
+- Cache capacity summary：调用 `GET /v1/operations/stats/summary`，确认 `asyncArchitecture.cacheInvalidationByNamespace` 与 `cachePendingInvalidationByNamespace` 可用。
+
+**Backend Engineering Master Plan Phase 4 Closeout Matrix:**
+- Phase 0：至少运行当前 gap / docs 相关 truth smoke，并确认 `docs/plans/README.md`、`plan.md` 与阶段索引没有入口漂移。
+- Phase 1：至少运行边界/compat 相关测试入口，并确认 `ARCHITECTURE.md`、`SYSTEM_TRUTH_SOURCES.md` 与相关 README 已回写 ownership / allowlist。
+- Phase 2：至少运行 `packages/server/src/routes/operations/status.test.ts` 与 async/runtime 相关测试，确认 `/v1/operations/status/async` contract、`workflow_runs.stats` checkpoint source 和 failure taxonomy 已冻结。
+- Phase 3：至少运行 `packages/server/src/routes/operations/status.test.ts`、`packages/server/src/routes/operations/stats.test.ts`、`packages/server/src/config.test.ts`，确认 operatorHome / configGovernance / capacityModel / bulkOperations 以及 cache invalidation summary 已落地。
+- Phase 4：至少运行本轮 closeout 相关测试与守卫，确认 truth-source 回写、active-execution 边界和 closeout 规则已固定。
 
 ### 目录结构
 
@@ -346,6 +365,16 @@ pnpm check:complexity
 | 环境默认值变更 | `pnpm check:docs-drift` + smoke 测试（验证 ENVIRONMENT.md 中的默认值正确） |
 | 深层架构文档变更 | `pnpm check:docs-drift` + smoke 测试（验证 ARCHITECTURE.md / PERSISTENCE.md 中的运行时默认值和表计数） |
 | Schema 变更 (retrieval/artifact/eval) | `pnpm test` + `pnpm --filter @trapmap/contracts typecheck` + `pnpm eval:smoke` + `pnpm check:docs-drift` + 更新 `DATABASE_SCHEMA.md` 表计数 |
+
+### 后端工程化总控阶段最小验证矩阵
+
+| 阶段 | 最小验证 |
+|---|---|
+| `Phase 0` | `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
+| `Phase 1` | 聚焦边界/compat 测试入口 + `pnpm check:docs-drift` + `pnpm check:structure` |
+| `Phase 2` | `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts packages/server/src/config.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
+| `Phase 3` | `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/routes/operations/stats.test.ts packages/server/src/config.test.ts` + 如涉及 retrieval/cache freshness 则补 `pnpm eval:smoke` + `pnpm check:docs-drift` + `pnpm check:structure` |
+| `Phase 4` | 本轮相关测试 + `pnpm check:docs-drift` + `pnpm check:structure`；只有在 truth-source、计划边界和 closeout 规则回写完成后才能勾选根 `plan.md` |
 | CI 配置变更 | `pnpm check:docs-drift` + 更新 `CI_CD.md` |
 | 架构变更 | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:complexity` + `pnpm eval:smoke` |
 | 脚本/守卫变更 | `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` + `pnpm check:docs-drift` |

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ServerConfigSchema, loadConfig } from './config.js';
+import { buildConfigGovernanceSummary, ServerConfigSchema, loadConfig } from './config.js';
 import { createGraphQueryRuntimeState, loadGraphDbConfig } from './lib/graph-query/config.js';
 
 const originalEnv = { ...process.env };
@@ -229,6 +229,71 @@ describe('ServerConfigSchema', () => {
       });
       expect(result.success).toBe(true);
     });
+  });
+});
+
+describe('buildConfigGovernanceSummary', () => {
+  it('returns stable fingerprint and profile-aware capability summary', () => {
+    const parsed = ServerConfigSchema.parse(minimalConfig);
+
+    const summary = buildConfigGovernanceSummary(parsed);
+
+    expect(summary.fingerprint).toMatch(/^[0-9a-f]{16}$/);
+    expect(summary.deploymentProfile).toBe('team-monolith');
+    expect(summary.runtimeMode).toBe('combined');
+    expect(summary.serviceUnit).toBe('full-platform');
+    expect(summary.taskTransportProvider).toBe('postgres');
+    expect(summary.eventTransportProvider).toBe('postgres');
+    expect(summary.profileAwareCapabilitySummary).toEqual({
+      routeSurface: 'gateway-core',
+      asyncOwnershipExpectation: 'split-owned',
+      storagePosture: 'postgres-required',
+      authTeamExpectation: 'team-auth',
+    });
+  });
+
+  it('records deprecated env keys and conflict warnings from live env state', () => {
+    withEnv(
+      {
+        DATABASE_URL: 'postgres://legacy.example/test',
+      },
+      () => {
+        const parsed = ServerConfigSchema.parse({
+          ...minimalConfig,
+          databaseUrl: null,
+          deployment: {
+            ...minimalConfig.deployment,
+            resolved: {
+              ...minimalConfig.deployment.resolved,
+              runtimeMode: 'api',
+              capabilities: {
+                ...minimalConfig.deployment.resolved.capabilities,
+                ownsSharedJobTaskWork: false,
+              },
+            },
+          },
+          asyncTaskTransport: {
+            provider: 'rabbitmq',
+            rabbitmq: {
+              url: 'amqp://guest:guest@localhost:5672',
+              exchange: 'trapmap.tasks',
+              queue: 'trapmap.default',
+              prefetch: 1,
+            },
+          },
+        });
+
+        const summary = buildConfigGovernanceSummary(parsed);
+
+        expect(summary.deprecatedEnvKeys).toContain('DATABASE_URL');
+        expect(summary.conflictWarnings).toEqual(
+          expect.arrayContaining([
+            expect.stringContaining('RabbitMQ task transport is enabled on an API runtime'),
+            expect.stringContaining('requires PostgreSQL'),
+          ]),
+        );
+      },
+    );
   });
 });
 

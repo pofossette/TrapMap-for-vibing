@@ -161,11 +161,16 @@
 | `GET` | `/v1/operations/audit` | `auditQuerySchema` | `auditListResponseSchema` | 查看操作审计事件 |
 | `POST` | `/v1/operations/migrate` | `legacyMigrationRequestSchema` | `legacyMigrationResponseSchema` | 迁移旧版知识条目到工件格式 |
 | `GET` | `/v1/operations/status` | `compatibilityStatusRequestSchema` | `compatibilityStatusResponseSchema` | 获取系统兼容性状态 |
-| `GET` | `/v1/operations/status/async` | 无 | `asyncOperationsStatusResponseSchema` | 获取 queue/outbox backlog、dead-letter、reclaim、worker 状态，以及最近 workflow run 快照 |
+| `GET` | `/v1/operations/status/async` | 无 | `asyncOperationsStatusResponseSchema` | 获取 Phase 2 async contract，以及 Phase 3 的 `operatorHome`、`configGovernance`、`capacityModel`、`bulkOperations`、queue/outbox/cache/workflow drill-down |
 | `POST` | `/v1/operations/status/async/tasks/:taskId/requeue` | 无 | `asyncTaskRequeueResponseSchema` | 通过统一 operator flow 重新入队 dead task |
 | `GET` | `/v1/operations/badcases/:feedbackId/export` | 无 | `badcaseExportResponseSchema` | 把持久化 badcase trace 导出为 deterministic eval draft |
 
 > 源码：`packages/server/src/routes/operations.ts`（注册子路由）
+
+Phase 4 closeout 补充：
+
+- 默认 operator surface 已冻结为 `operatorHome`、`configGovernance`、`capacityModel`、`bulkOperations` 以及 queue/outbox/cache/workflow drill-down。
+- 热点 `team/query/artifact` 当前不属于默认 operator surface contract；如后续需要，应作为单独 deep drill-down 能力新增，而不是隐式塞入现有首页 schema。
 
 ## Capsule-Index 运维
 
@@ -185,7 +190,7 @@
 |------|------|----------|----------|------|
 | `GET` | `/v1/operations/stats/usage` | `statsUsageQuerySchema` | `statsUsageResponseSchema` | 按时间桶聚合的使用量时序数据 |
 | `GET` | `/v1/operations/stats/hits` | `statsHitRankingQuerySchema` | `statsHitRankingResponseSchema` | 按条目命中次数排名 |
-| `GET` | `/v1/operations/stats/summary` | `statsSummaryQuerySchema` | `statsSummaryResponseSchema` | 系统级汇总统计（仅 system-admin），包含 asyncArchitecture 决策指标 |
+| `GET` | `/v1/operations/stats/summary` | `statsSummaryQuerySchema` | `statsSummaryResponseSchema` | 系统级汇总统计（仅 system-admin），包含 asyncArchitecture 决策指标，以及 namespace 级 cache invalidation / pending invalidation capacity 视角 |
 
 > 源码：`packages/server/src/routes/operations/stats.ts`。注意：统计端点需要 PostgreSQL（`usageAnalyticsRepo`），否则返回 503。
 

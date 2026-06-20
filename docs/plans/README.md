@@ -21,9 +21,10 @@
 
 | 文件 | 状态 | 保留原因 |
 |---|---|---|
-| `deployment-flexibility/` | active-reference | 灵活构建部署、gateway-only CLI 接入与重后端微服务化总细则，由根 `plan.md` 链接 |
-| `runtime-recomposition/` | active-reference | 共享客户端核心包、后端核心内核、轻宿主与重宿主拆分计划，由根 `plan.md` 链接 |
-| `backend-engineering-roadmap/` | active-reference | Stage 1、Stage 2、耦合度降低计划及其执行包目录，由根 `plan.md` 链接 |
+| `backend-engineering-masterplan/` | active-execution | 当前根 `plan.md` 引用的唯一后端工程化正式执行包；Phase 0-4 的事实、验证与 closeout 以此目录为准 |
+| `deployment-flexibility/` | historical-reference | 仍提供 deployment profile、gateway-only CLI 接入与 distributed 约束背景，但不再是默认执行入口 |
+| `runtime-recomposition/` | historical-reference | 仍提供 backend-core / host-local / host-distributed 的迁移背景，但不再承担当前阶段执行入口 |
+| `backend-engineering-roadmap/` | historical-reference | 保留 Stage 1/2/3 的历史收敛事实与旧细化计划，供引用，不再承担主执行入口 |
 | `fm-agent-scan/` | active-reference | FM-agent 原始报告整改计划、source pack 和 live-gap matrix |
 | `capsule-contextual-enrichment-plan.md` | active-reference | 检索/capsule 设计上下文 |
 | `round4-cross-table-consistency-plan.md` | active-reference | package 文档引用的 artifact 结构化事实源 |
@@ -43,6 +44,23 @@
 
 当前仓库仍然优先复用模块化单体时期沉淀下来的 `repos`、application service、shared job / outbox worker、runtime seams 与显式 projection seam；这不再意味着“排除分布式目标形态”，而是意味着 `distributed` 的第一阶段仍需建立在共享 contracts、共享 PostgreSQL 与现有 runtime ownership 之上，而不是平行重写第二套后端。
 
+## 当前主入口补充
+
+当前根 [`plan.md`](../../plan.md) 已切换为“后端工程化总控计划”。执行后端工程化工作时，默认阅读顺序应为：
+
+1. 根 `plan.md`
+2. `docs/plans/backend-engineering-masterplan/README.md`
+3. 对应阶段文件
+4. 旧目录中的 historical-reference 计划与 `docs/todos/` 问题池
+
+当前进度补充：
+
+- `Phase 0` 已完成：当前事实、活跃计划边界与 gap matrix 已冻结。
+- `Phase 1` 已完成：边界与 compat 收敛事实已回写到 `backend-engineering-masterplan/01-boundaries-and-compat-convergence.md`、`docs/architecture/ARCHITECTURE.md` 与 `docs/reference/SYSTEM_TRUTH_SOURCES.md`。
+- `Phase 2` 已完成：async runtime、freshness / projection lag、idempotency / retry / resume、failure semantics 与 operator-visible async status 已回写到正式事实源。
+- `Phase 3` 已完成：operator 首页分组、config governance summary、capacity model summary、cache invalidation drill-down 与 bulk/workflow operator summary 已回写到 `operations/status`、`operations/stats` 与正式事实源。
+- `Phase 4` 已完成：验证矩阵、truth-source 回写、旧计划角色边界与 closeout 规则已固定；当前不再存在需要新增 `Phase 5` 的总控范围。
+
 当前活跃的 Stage 3 细化执行包主要覆盖五条工程化主线：
 
 - freshness / projection lag contract
@@ -50,5 +68,13 @@
 - operator surface
 - config governance / capacity modeling
 - cache invalidation / bulk path operations
+
+其中前两条已经在 `Phase 2` 完成并冻结为当前事实；后两条已在 `Phase 3` 落地为当前事实。下一轮只应进入 `Phase 4` 的验证、closeout 与文档归档，不应回退重做 Phase 2/3。
+
+Phase 4 closeout 补充规则：
+
+- `backend-engineering-masterplan/` 是当前唯一 active-execution 入口。
+- 仍被当前文档引用的旧目录保留在 `docs/plans/`，但统一降级为 `historical-reference`。
+- 只有在旧目录不再被当前文档引用时，才应移动到 `docs/archived/archived-plans/`。
 
 仍保留并已记录的迁移债务主要有两类：一是 Stage 1C 中 `store.transact()` 到 repo-backed transaction 的剩余迁移，当前以 `supersede` 等命名化兼容路径为主；二是灵活部署路线里的明确非目标，当前继续排除 MCP、CLI 直连多个服务、按服务拆库，以及把 Kafka/NATS/Redis Streams 作为默认基础设施。此前点名的 `review-queue` 与 `decay entries/search` 读侧投影已收口到 `lib/operations/read-model.ts`，不再属于 route-local query assembly 债务。

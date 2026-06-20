@@ -121,5 +121,38 @@ describe('stats routes', () => {
 
       expect([401, 403, 503]).toContain(response.statusCode);
     });
+
+    it('exposes Phase 3 cache capacity fields in summary schema', async () => {
+      const schema = (await import('@trapmap/contracts')).statsSummaryResponseSchema;
+
+      const parsed = schema.parse({
+        totalEvents: 1000,
+        uniqueQueries: 500,
+        uniqueTeams: 10,
+        uniqueAccounts: 100,
+        asyncArchitecture: {
+          queueBacklogByType: { candidate: 5 },
+          deadLetterByType: { candidate: 1 },
+          retryRateByType: { candidate: 0.1 },
+          avgHandlerLatencyMsByType: { candidate: 1200 },
+          cacheHitRateByNamespace: { intent: 0.75 },
+          cacheInvalidationByNamespace: { intent: 3 },
+          cachePendingInvalidationByNamespace: { intent: false },
+          badcaseExportCount: 0,
+          retrievalFailureDistribution: { timeout: 1 },
+          thresholds: [
+            {
+              metric: 'queueBacklogByType',
+              healthyBelowOrEqual: 100,
+              investigateAbove: 500,
+              action: 'investigate backlog',
+            },
+          ],
+        },
+      });
+
+      expect(parsed.asyncArchitecture.cacheInvalidationByNamespace.intent).toBe(3);
+      expect(parsed.asyncArchitecture.cachePendingInvalidationByNamespace.intent).toBe(false);
+    });
   });
 });

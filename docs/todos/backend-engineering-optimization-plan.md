@@ -1,5 +1,7 @@
 # 后端工程化优化计划
 
+> 当前角色：问题池与优先级记录，不再作为根级执行计划。正式执行入口见 [`plan.md`](../../plan.md) 与 [`docs/plans/backend-engineering-masterplan/README.md`](../plans/backend-engineering-masterplan/README.md)。
+
 ## TODO
 
 - [x] 建立 badcase 回流闭环，把线上失败样本沉淀成可复现的评测 case。
@@ -7,14 +9,40 @@
 - [ ] 将高频异步任务从进程内副作用迁移到持久化任务队列。
 - [x] 补齐队列、回流、检索失败分布等关键指标。
 - [x] 在真实吞吐出现后再评估 MQ 和微服务拆分。
-- [ ] 统一 read freshness / projection lag contract，并把 freshness 暴露到 retrieval、operator、governance read model。
-- [ ] 统一 command / async / bulk job 的 idempotency、retry、resume 语义。
-- [ ] 补齐跨服务/跨 worker 的错误分类、失败语义和 operator 可见性。
-- [ ] 做厚 operator 面，补 queue/cache/projection/bulk job 的运维控制与排障信息。
-- [ ] 建立 config governance：分层配置、deprecated env、冲突配置检测、config fingerprint。
-- [ ] 为共享 PostgreSQL 的重后端补齐连接池预算、热点分析和容量建模。
-- [ ] 把 distributed invalidation、cache freshness、remote cache fallback 变成显式运维能力。
-- [ ] 建立 bulk ingestion / rebuild / backfill 的统一 batch contract 与观测面。
+- [x] 统一 read freshness / projection lag contract，并把 freshness 暴露到 retrieval、operator、governance read model。
+- [x] 统一 command / async / bulk job 的 idempotency、retry、resume 语义。
+- [x] 补齐跨服务/跨 worker 的错误分类、失败语义和 operator 可见性。
+- [x] 做厚 operator 面，补 queue/cache/projection/bulk job 的运维控制与排障信息。
+- [x] 建立 config governance：分层配置、deprecated env、冲突配置检测、config fingerprint。
+- [x] 为共享 PostgreSQL 的重后端补齐连接池预算、热点分析和容量建模。
+- [x] 把 distributed invalidation、cache freshness、remote cache fallback 变成显式运维能力。
+- [x] 建立 bulk ingestion / rebuild / backfill 的统一 batch contract 与观测面。
+
+## 与总控阶段的映射
+
+- `Phase 0` 已完成：本文件的角色已冻结为问题池与优先级记录，不再充当执行计划。
+- `Phase 1` 已完成：route / application service / repository / compat seam 的边界与 allowlist 已在正式执行包和事实源文档中收敛；本文件不再重复维护这部分规则正文。
+- `Phase 4` 已完成：validation / rollout / doc backfill closeout 已回写到正式执行包、truth sources 与测试指南。
+
+Phase 3 已完成并冻结的事实：
+
+- `/v1/operations/status/async` 现在额外暴露 `operatorHome`、`configGovernance`、`capacityModel` 与 `bulkOperations`。
+- `packages/server/src/config.ts` 现在提供 config fingerprint、deprecated env 和 conflict warning summary。
+- `/v1/operations/stats/summary` 现在额外暴露 namespace 级 cache invalidation / pending invalidation summary。
+
+Phase 3 遗留问题 closeout：
+
+- `capacityModel.databasePool.maxConnections` 已明确关闭为 deferred detail：
+  - 当前 contract 只保证保守 shape，不把驱动内部连接池状态提升为新的 runtime truth surface。
+- 热点 `team/query/artifact` 已明确关闭为 non-default deep drill-down：
+  - 默认 operator surface 继续只承担 backlog / latency / cache pressure / workflow progress 摘要。
+- 上述两项都不阻塞 Phase 4 closeout。
+
+Phase 2 已完成并冻结的事实：
+
+- `/v1/operations/status/async` 已统一暴露 runtime contract、freshness / projection lag contract、idempotency contract、retry/resume contract 和 failure taxonomy。
+- queue/outbox/workflow/cache 的 operator-visible 语义已经统一到同一套术语。
+- Phase 1 遗留的 operator 读侧 projection exception 核查已关闭；`lib/operations/read-model.ts` 当前只保留 artifact revision payload hydration 这一个命名 repo capability gap。
 
 ## 目标
 

@@ -9,6 +9,8 @@
 - `runId` 表示任务实例绑定，必须至少与该任务的幂等单元同粒度，避免多个合法 follow-up 覆盖同一 workflow run。
 - authoritative write 仍在命令事务内完成；这些 jobs 只负责 derived / retryable follow-up。
 - 组合层通过 `asyncTransport.queue` 注入窄 queue port；调度器和业务服务本身不应直接构造 `TaskQueue`。
+- `workflow_runs.stats` 是 shared job 的 checkpoint / resume surface；需要恢复的进度必须写入这里，而不是依赖进程内状态。
+- Phase 2 之后，operator 必须通过 `/v1/operations/status/async` 的统一 failure taxonomy 和 freshness contract 理解 shared job 故障，而不是只看 task status 字符串。
 
 ## `candidate_processing`
 

@@ -86,6 +86,32 @@ profile capability 语义：
 - `domain_event_outbox` 在所有模式下都保留 PostgreSQL，不受 `TRAPMAP_TASK_TRANSPORT` 影响。
 - `TRAPMAP_TASK_TRANSPORT=rabbitmq` 只适用于 task-capable runtime。
 - 没有明确 backlog / isolation 需求时，建议保持 `TRAPMAP_TASK_TRANSPORT=postgres`。
+- `TRAPMAP_TASK_TRANSPORT=rabbitmq` 且 `runtimeMode=api` 时，不应假设 API 进程自己拥有 shared-job backlog；应确保独立 worker preset 在运行，这类风险会通过 `configGovernance.conflictWarnings` 暴露。
+
+Phase 2 runtime / failure contract 补充约定：
+
+- `GET /v1/operations/status/async` 现在是 async operator truth surface，统一暴露：
+  - `runtimeContract`
+  - `idempotencyContract`
+  - `retryResumeContract`
+  - `freshnessContract`
+  - `failureTaxonomy`
+- `runtimeMode=api` 在 PostgreSQL 部署下允许报告 `remote` worker state；这不是故障。
+- `runtimeMode=combined`、`task-worker`、`outbox-worker` 只有在本地应拥有的 async work 未运行时才应报告 `degraded` / `not-ready`。
+- `freshnessContract.writeVisibility.authoritativeWriteCommitted=true` 表示真相写已提交；若仍然读到旧结果，应优先排查 projection lag，而不是直接回滚写路径。
+- `retryResumeContract.workflowCheckpointSource` 的当前权威落点是 `workflow_runs.stats`。
+
+Phase 3 operator / config governance 补充约定：
+
+- `GET /v1/operations/status/async` 现在额外暴露：
+  - `operatorHome`
+  - `configGovernance`
+  - `capacityModel`
+  - `bulkOperations`
+- `configGovernance.fingerprint` 是当前 deployment/runtime/task-transport/profile-aware capability 组合的稳定摘要，不是 secrets dump。
+- `configGovernance.deprecatedEnvKeys` 当前用于提示仍被读取或仍在环境中出现的旧变量，例如 `DATABASE_URL` 与旧 embedding env alias。
+- `configGovernance.conflictWarnings` 用于暴露 profile/preset/task-transport 之间的高风险组合，而不是替代启动期 schema 校验。
+- `capacityModel` 当前提供 backlog、平均 handler latency、cache pending invalidation 与 database-pool 是否配置的摘要；它是 operator 容量建模入口，不是性能基准报告。
 
 ### 预留的内部服务通信配置
 
@@ -275,6 +301,14 @@ profile capability 语义：
 - bulk job 应支持 `jobId / batchId / idempotencyKey / resumeFromOffset`。
 - authoritative write 与 outbox append 仍要在每批事务内原子提交。
 - 不同批次之间不要求单一大事务。
+
+Phase 2 补充：
+
+- `TRAPMAP_BULK_WRITE_IDEMPOTENCY_REQUIRED=true` 不只是建议项；它与 `/v1/operations/status/async.idempotencyContract.bulkJobKey` 一起构成当前 bulk contract。
+- bulk path 的 retry / resume 解释必须和 queue/outbox 共享同一套 failure taxonomy：
+  - transient infra / timeout -> `retryable-async-failure`
+  - retry budget exhausted -> `permanent-failure`
+  - committed write but projection still stale -> `stale-projection`
 
 #### Bulk write mode
 

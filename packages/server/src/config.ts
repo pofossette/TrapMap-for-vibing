@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 
 import { loadAiProviderConfig } from './lib/ai/index.js';
@@ -169,6 +170,23 @@ export const ServerConfigSchema = z.object({
 
 export type ServerConfig = z.infer<typeof ServerConfigSchema>;
 
+export interface ConfigGovernanceSummary {
+  fingerprint: string;
+  deploymentProfile: ServerConfig['deployment']['resolved']['deploymentProfile'];
+  runtimeMode: ServerConfig['deployment']['resolved']['runtimeMode'];
+  serviceUnit: ServerConfig['deployment']['resolved']['serviceUnit'];
+  taskTransportProvider: ServerConfig['asyncTaskTransport']['provider'];
+  eventTransportProvider: 'postgres';
+  profileAwareCapabilitySummary: {
+    routeSurface: ServerConfig['deployment']['resolved']['capabilities']['routeSurface'];
+    asyncOwnershipExpectation: ServerConfig['deployment']['resolved']['capabilities']['asyncOwnershipExpectation'];
+    storagePosture: ServerConfig['deployment']['resolved']['capabilities']['storagePosture'];
+    authTeamExpectation: ServerConfig['deployment']['resolved']['capabilities']['authTeamExpectation'];
+  };
+  deprecatedEnvKeys: string[];
+  conflictWarnings: string[];
+}
+
 function normalizeOptionalEnvValue(value: string | undefined): string | undefined {
   if (value === undefined) {
     return undefined;
@@ -176,6 +194,81 @@ function normalizeOptionalEnvValue(value: string | undefined): string | undefine
 
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : undefined;
+}
+
+const DEPRECATED_ENV_ALIASES = [
+  'DATABASE_URL',
+  'EMBEDDING_PROVIDER',
+  'EMBEDDING_BASE_URL',
+  'EMBEDDING_API_KEY',
+  'EMBEDDING_MODEL',
+] as const;
+
+function buildConfigFingerprint(config: ServerConfig): string {
+  const fingerprintInput = JSON.stringify({
+    deploymentProfile: config.deployment.resolved.deploymentProfile,
+    runtimeMode: config.deployment.resolved.runtimeMode,
+    serviceUnit: config.deployment.resolved.serviceUnit,
+    routeSurface: config.deployment.resolved.capabilities.routeSurface,
+    asyncOwnershipExpectation: config.deployment.resolved.capabilities.asyncOwnershipExpectation,
+    storagePosture: config.deployment.resolved.capabilities.storagePosture,
+    authTeamExpectation: config.deployment.resolved.capabilities.authTeamExpectation,
+    taskTransportProvider: config.asyncTaskTransport.provider,
+    eventTransportProvider: 'postgres',
+    graphEnabled: config.graphDb.enabled,
+    graphProvider: config.graphDb.provider,
+    aiProvider: config.ai.provider,
+    sessionTransport: config.sessionTransport,
+  });
+
+  return createHash('sha256').update(fingerprintInput).digest('hex').slice(0, 16);
+}
+
+export function buildConfigGovernanceSummary(config: ServerConfig): ConfigGovernanceSummary {
+  const deprecatedEnvKeys = DEPRECATED_ENV_ALIASES.filter(
+    (key) => normalizeOptionalEnvValue(process.env[key]) !== undefined,
+  );
+
+  const conflictWarnings: string[] = [];
+  if (
+    config.asyncTaskTransport.provider === 'rabbitmq' &&
+    config.deployment.resolved.capabilities.ownsSharedJobTaskWork === false &&
+    config.deployment.resolved.runtimeMode === 'api'
+  ) {
+    conflictWarnings.push(
+      'RabbitMQ task transport is enabled on an API runtime; ensure a separate worker preset is running to own shared-job backlog.',
+    );
+  }
+  if (config.deployment.resolved.capabilities.requiresPostgres && config.databaseUrl === null) {
+    conflictWarnings.push(
+      'Resolved deployment profile requires PostgreSQL, but TRAPMAP_DATABASE_URL is not configured.',
+    );
+  }
+  if (
+    config.deployment.resolved.capabilities.routeSurface === 'worker-status' &&
+    config.graphDb.enabled
+  ) {
+    conflictWarnings.push(
+      'Worker-status surface has graph backend enabled; verify this worker preset actually needs graph-query dependencies.',
+    );
+  }
+
+  return {
+    fingerprint: buildConfigFingerprint(config),
+    deploymentProfile: config.deployment.resolved.deploymentProfile,
+    runtimeMode: config.deployment.resolved.runtimeMode,
+    serviceUnit: config.deployment.resolved.serviceUnit,
+    taskTransportProvider: config.asyncTaskTransport.provider,
+    eventTransportProvider: 'postgres',
+    profileAwareCapabilitySummary: {
+      routeSurface: config.deployment.resolved.capabilities.routeSurface,
+      asyncOwnershipExpectation: config.deployment.resolved.capabilities.asyncOwnershipExpectation,
+      storagePosture: config.deployment.resolved.capabilities.storagePosture,
+      authTeamExpectation: config.deployment.resolved.capabilities.authTeamExpectation,
+    },
+    deprecatedEnvKeys: [...deprecatedEnvKeys],
+    conflictWarnings,
+  };
 }
 
 // =============================================================================

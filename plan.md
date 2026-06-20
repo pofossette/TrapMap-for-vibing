@@ -1,119 +1,122 @@
-# TrapMap Runtime Recomposition Plan
+# TrapMap Backend Engineering Master Plan
 
 ## 状态
 
 - 状态：`active`
-- 目标日期：`2026-06-18`
-- 本文件角色：根级总计划与索引，只描述背景、总要求、阶段边界与子计划入口
+- 日期：`2026-06-20`
+- 本文件角色：根级总控执行计划与索引，统一后端工程化、可扩展性、异步处理与验证回写
+- 已归档旧根计划：[`docs/archived/archived-plans/plan-2026-06-20-runtime-recomposition-root-archived.md`](docs/archived/archived-plans/plan-2026-06-20-runtime-recomposition-root-archived.md)
 
 ## 背景
 
-TrapMap 当前已经完成了两条关键演进：
+TrapMap 当前的真实代码结构已经进入“多层后端演进期”：
 
-- CLI 已经收敛为 `gateway-only` 接入模型，`packages/cli/src/lib/http.ts` 代表了一层可进一步抽离的通用网络访问能力。
-- Server 已经具备 `local-agent`、`team-monolith`、`distributed` 三种 deployment profile，以及 `runtimeMode`、`serviceUnit`、`task transport` 等运行时语义。
+- `packages/server` 仍然是权威实现、测试与兼容壳层的主要落点，`buildServer()`、`runStartupSequence()`、`/v1/operations/status/async` 等主入口都在这里。
+- `packages/backend-core`、`packages/host-local`、`packages/host-distributed` 已存在，说明 runtime capability、宿主装配和服务边界不再只是文档叙事，而是已进入代码层。
+- `task_queue`、`domain_event_outbox`、`workflow_runs`、retrieval cache、intent cache、operator routes 已经形成异步和运维基座，但 failure semantics、freshness、config governance、capacity modeling 仍未统一成一条执行主线。
 
-下一阶段不是继续把所有能力堆进 `packages/cli` 和 `packages/server`，而是做一次面向长期复用和宿主装配的重构：
+因此当前更需要的不是再新增一批分散计划，而是用一条新的根计划把已有后端工程化成果、活跃参考计划和待收敛债务重新编排成一条可直接执行的轨道。
 
-1. 把 CLI 中已经去掉 Node 专属依赖的网络层和可复用通用逻辑上提为 monorepo 新包，给未来 Web 面板、其他客户端和轻宿主共用。
-2. 把后端从“单包内支持多种运行模式”推进到“公共核心内核 + 轻量本地宿主 + 细粒度重型微服务宿主”的可装配架构。
-3. 明确 `gateway / identity-access / knowledge-read / knowledge-write / candidate-ingestion / governance-review / job-runtime` 等服务边界，让轻后端与重后端不是两套平行产品，而是同一核心内核的两种组装方式。
+## 当前事实
 
-## 这轮计划的总目标
+- 当前后端主代码入口：
+  - `packages/server/src/app.ts`
+  - `packages/server/src/bootstrap/run-startup-sequence.ts`
+  - `packages/server/src/routes/operations/status.ts`
+  - `packages/server/src/lib/runtime/runtime-metadata.ts`
+  - `packages/server/src/lib/operations/read-model.ts`
+  - `packages/server/src/config.ts`
+- 当前后端演进相关包已存在：
+  - `packages/backend-core`
+  - `packages/host-local`
+  - `packages/host-distributed`
+- 当前活跃长期计划入口仍分散在：
+  - `docs/plans/backend-engineering-roadmap/`
+  - `docs/plans/runtime-recomposition/`
+  - `docs/plans/deployment-flexibility/`
+- `docs/todos/backend-engineering-optimization-plan.md` 已记录工程化问题池，但它不是正式总控执行计划。
 
-- 建立一个新的共享客户端核心包，承载 CLI 当前可复用的 HTTP gateway 访问层与后续面板通用逻辑。
-- 建立一个新的后端核心内核层，沉淀 contracts 之上的应用编排、端口定义、运行时能力模型与宿主无关逻辑。
-- 建立轻量本地宿主，服务 `local-agent` / `team-monolith` 等低运维形态。
-- 建立更细粒度的重型微服务宿主，服务 `distributed` 以及未来更彻底的读写拆分、治理拆分和独立扩缩容。
-- 在不破坏 gateway-only CLI 接入模型的前提下完成迁移。
+## 这轮要做的变更
 
-## 总体要求
+- 用新的后端工程化总控计划接管根 `plan.md`。
+- 保留并吸收现有 active-reference 计划的有效结论，但把执行入口统一到新的索引目录。
+- 按阶段明确：
+  - 当前事实
+  - 要做的变更
+  - non-goals
+  - 主要修改文件
+  - 文档更新
+  - 测试 / eval 更新
+  - 必要示例
 
-### 1. 架构要求
+## Non-Goals
 
-- 新增共享包不能只是“把文件挪位置”，必须先冻结公开接口、依赖边界和宿主责任。
-- 轻宿主和重宿主都必须复用同一个核心内核，禁止复制一份“轻版本业务逻辑”和一份“重版本业务逻辑”。
-- 读路径和写路径拆分后，gateway 仍然是外部唯一稳定入口；CLI 和未来 Web 面板不直接感知微服务内部拓扑。
-- 微服务边界要按 authoritative ownership、读写语义和故障域划分，而不是按技术层随意拆文件。
-- 重后端必须预留内部同步调用的 `RPC seam`，但首期不做 `RPC-first` 架构；先冻结服务接口与调用语义，再决定具体传输协议。
-- 分布式形态首期继续共享 `packages/contracts`、共享 PostgreSQL、共享 queue/outbox 语义。
+- 本轮不直接实现后端代码改造。
+- 本轮不把 Web 面板和前端规划并入根计划。
+- 本轮不把 `docs/superpowers/plans/` 自动提升为正式活跃长期计划目录。
+- 本轮不重写已有运行时/部署计划的技术内容，只做承接、边界澄清和执行排序。
 
-### 2. 工程要求
+## 总体目标
 
-- 迁移要允许分阶段落地，不能要求一次性切换全部命令、全部路由、全部 worker。
-- 每一阶段都要保留最小可运行形态，至少保证 `local-agent` 或 `team-monolith` 有一条稳定开发入口。
-- 新包命名、目录位置、导出面、测试入口和 README 必须在计划阶段冻结。
+- 让 TrapMap 的后端工程化主线从“文档上可扩展”收敛到“执行上可推进”。
+- 让边界、异步运行时、失败语义、operator 能力、配置治理、容量建模和验证闭环进入统一总控轨道。
+- 让未来的代码执行可以直接沿根计划和阶段计划推进，而不需要再手动拼接多份历史文档。
 
-### 3. 非目标
+## 进度跟踪
 
-- 本轮不让 CLI 直连多个后端服务。
-- 本轮不把 PostgreSQL 按服务拆库。
-- 本轮不把 Kafka / NATS / Redis Streams 变成默认基础设施。
-- 本轮不把 gRPC / Connect / tRPC 等 RPC 基础设施作为首期必须项。
-- 本轮不引入第二套与现有 contracts 平行的数据契约系统。
-- 本轮不优先做 UI 设计或 Web 面板具体页面实现；这里只为其共享层打基础。
+- [x] Phase 0 baseline 与 gap matrix 固化完成
+- [x] Phase 1 边界与兼容收敛完成
+- [x] Phase 2 异步运行时与失败语义完成
+- [x] Phase 3 operator / config / capacity / cache-ops 完成
+- [x] Phase 4 验证、eval 与文档回写完成
 
-## 建议交付顺序
+## 子计划索引
 
-1. 先冻结边界和术语，避免“拆包”和“微服务化”在不同文档里指代不同事情。
-2. 先抽共享客户端核心包，让 CLI 与未来 Web 面板先在网络访问层达成复用。
-3. 再抽后端公共核心内核，把当前 `packages/server` 内的宿主相关和业务编排相关逻辑拆开。
-4. 在核心内核稳定后分别实现轻宿主和更细粒度的重宿主服务单元。
-5. 最后推进增量迁移、验证矩阵和文档回写。
-
-## 子计划目录
-
-### A. 总边界与目标蓝图
-
-- [00-baseline-and-target-architecture.md](docs/plans/runtime-recomposition/00-baseline-and-target-architecture.md)
-  作用：冻结术语、边界、目标拓扑、包布局和非目标，给后续子计划提供统一前提。
-
-### B. 共享客户端核心包
-
-- [01-shared-client-core-extraction.md](docs/plans/runtime-recomposition/01-shared-client-core-extraction.md)
-  作用：规划从 `packages/cli/src/lib/http.ts` 和通用逻辑中抽出新包，定义 Web 面板与 CLI 的共享 API。
-
-### C. 后端公共核心内核
-
-- [02-backend-core-kernel-extraction.md](docs/plans/runtime-recomposition/02-backend-core-kernel-extraction.md)
-  作用：规划把 `packages/server` 中与宿主无关的应用编排、端口、能力模型、以及更细粒度服务单元边界上提为核心内核。
-
-### D. 轻量本地宿主
-
-- [03-light-host-assembly.md](docs/plans/runtime-recomposition/03-light-host-assembly.md)
-  作用：规划本地/单实例轻宿主，服务 `local-agent` 与 `team-monolith` 的最小装配方案。
-
-### E. 重型微服务宿主
-
-- [04-heavy-microservice-assembly.md](docs/plans/runtime-recomposition/04-heavy-microservice-assembly.md)
-  作用：规划 `gateway / identity-access / knowledge-read / knowledge-write / candidate-ingestion / governance-review / job-runtime` 的重型装配方式和服务边界。
-
-### F. 迁移、验证与回写
-
-- [05-migration-validation-and-doc-rollout.md](docs/plans/runtime-recomposition/05-migration-validation-and-doc-rollout.md)
-  作用：规划分阶段迁移、兼容策略、测试矩阵、文档与脚本回写。
+- [backend-engineering-masterplan/README.md](docs/plans/backend-engineering-masterplan/README.md)
+  作用：后端工程化正式执行包索引，说明与 `docs/plans`、`docs/todos`、`docs/archived`、`docs/superpowers` 的边界。
+- [00-current-state-and-gap-baseline.md](docs/plans/backend-engineering-masterplan/00-current-state-and-gap-baseline.md)
+  作用：冻结当前实现基线、活跃参考计划和真实 gap。
+- [01-boundaries-and-compat-convergence.md](docs/plans/backend-engineering-masterplan/01-boundaries-and-compat-convergence.md)
+  作用：收敛 route / application / repo / runtime / compat 边界。
+- [02-async-runtime-and-failure-semantics.md](docs/plans/backend-engineering-masterplan/02-async-runtime-and-failure-semantics.md)
+  作用：统一 async runtime、freshness、failure semantics、idempotency、retry、resume。
+- [03-operator-config-capacity-and-cache-ops.md](docs/plans/backend-engineering-masterplan/03-operator-config-capacity-and-cache-ops.md)
+  作用：补强 operator surface、config governance、capacity modeling、cache 与 bulk path operations。
+- [04-validation-rollout-and-doc-backfill.md](docs/plans/backend-engineering-masterplan/04-validation-rollout-and-doc-backfill.md)
+  作用：定义验证矩阵、文档回写、旧计划退出与最终 closeout。
 
 ## 阶段依赖
 
-- `00` 是所有后续子计划的前置。
-- `01` 与 `02` 可以并行设计，但实施上优先完成 `01`，避免 Web 共享层继续绑死在 CLI 包内。
-- `03`、`04` 都依赖 `02` 的核心内核边界冻结。
-- `05` 依赖 `01` 到 `04` 的接口与目录方案基本稳定后再统一收口。
+- `Phase 0` 是所有后续阶段的前置。
+- `Phase 1` 先冻结真实边界和兼容责任，再推进运行时 contract 收敛。
+- `Phase 2` 在 `Phase 1` 收紧边界后统一异步和失败语义。
+- `Phase 3` 建立在 `Phase 2` 的 contract 之上，把运维与容量能力做厚。
+- `Phase 4` 负责统一验证、归档、文档事实源回写和 closeout。
 
-## 关键决策原则
+## 当前阶段结论
 
-- 优先抽“稳定边界”，再抽“实现文件”。
-- 优先让轻宿主可运行，再让重宿主可扩展。
-- 微服务化是运行时装配策略，不是复制代码和复制契约。
-- 优先定义逻辑服务边界，再决定物理进程如何合并部署。
-- 优先定义 internal port 和调用语义，再决定是否升级为正式 RPC。
-- 所有客户端只面向 gateway，所有宿主都面向核心内核。
+- `Phase 0` 已冻结当前实现、活跃计划状态和 gap matrix。
+- `Phase 1` 已把 route / application / repository / runtime / compatibility 的 ownership、compat allowlist，以及 `packages/server` 与 `backend-core` / `host-*` 的承接关系回写为正式事实源。
+- `Phase 2` 已完成：async runtime contract、freshness / projection lag contract、idempotency / retry / resume semantics、failure taxonomy 与 operator-visible async status 已统一到 `packages/contracts`、`packages/server/src/routes/operations/status.ts` 及相关事实源文档。
+- `Phase 3` 已完成：`GET /v1/operations/status/async` 额外暴露 `operatorHome`、`configGovernance`、`capacityModel`、`bulkOperations`；`packages/server/src/config.ts` 提供 fingerprint / deprecated env / conflict warning / profile-aware capability summary；`GET /v1/operations/stats/summary` 额外暴露 `cacheInvalidationByNamespace` 与 `cachePendingInvalidationByNamespace`。
+- `Phase 4` 已完成：验证矩阵、文档 truth-source 回写、旧计划与 active-reference 边界、以及 closeout 规则已经统一；本轮不再新增 `Phase 5`，也不回头重做 `Phase 2` / `Phase 3`。
+- `Phase 3` 遗留 open question 已在 closeout 中处理：
+  - `capacityModel.databasePool.maxConnections` 继续保留为 operator-facing 扩展位，但在当前仓库中明确降级为 deferred detail；正式 contract 仅保证 `configured` 与 `maxConnections: null | integer` 这一保守 shape，不把驱动内部连接池状态升级为新的 runtime contract。
+  - 热点 `team/query/artifact` 明确不进入默认 operator surface，保持为后续深钻能力；默认首页只保留 backlog / latency / cache pressure 等高层容量信号。
+- 当前不存在阻塞本总计划收尾的 open question。
+
+## 计划边界说明
+
+- `docs/plans/`：当前仍被引用、仍应执行的长期计划。
+- `docs/archived/archived-plans/`：被替代、完成或退出活跃轨道的历史计划。
+- `docs/todos/`：问题池、提案和待升级工作项，不直接充当执行计划。
+- `docs/superpowers/plans/`：Superpowers 工作流输出区，除非被本根计划或 `docs/plans/README.md` 显式接管，否则不自动视为活跃长期计划。
 
 ## 完成定义
 
-当以下条件全部满足时，可认为这轮大计划完成：
+当以下条件全部满足时，可认为这轮后端工程化总控计划完成：
 
-- Monorepo 中新增了共享客户端核心包，并被 CLI 消费。
-- Monorepo 中新增了后端核心内核层，并由轻宿主和重宿主共同复用。
-- `local-agent`、`team-monolith`、`distributed` 的叙事被重新统一为“同一内核，不同宿主装配”。
-- 更细粒度的重型部署拓扑有清晰的逻辑服务边界、运行入口、验证矩阵和文档事实源。
+- 根 `plan.md` 与 `docs/plans/backend-engineering-masterplan/` 成为唯一明确的后端工程化执行入口。
+- 当前活跃参考计划与问题池的关系已经写清，不再需要执行者自行判断入口。
+- 每个阶段都明确了目标、范围、主要修改文件、完成标准、文档更新、测试 / eval 更新和必要示例。
+- 文档事实源、结构守卫和归档路径与仓库规则保持一致。

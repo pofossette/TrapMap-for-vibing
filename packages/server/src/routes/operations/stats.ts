@@ -148,6 +148,12 @@ export const statsRoutes: FastifyPluginAsync = async (app) => {
     const cacheHitRateByNamespace = Object.fromEntries(
       Object.entries(cacheStats).map(([ns, stats]) => [ns, stats.hitRate]),
     );
+    const cacheInvalidationByNamespace = Object.fromEntries(
+      Object.entries(cacheStats).map(([ns, stats]) => [ns, stats.invalidations]),
+    );
+    const cachePendingInvalidationByNamespace = Object.fromEntries(
+      Object.entries(cacheStats).map(([ns, stats]) => [ns, stats.pendingInvalidation]),
+    );
 
     return statsSummaryResponseSchema.parse({
       ...result,
@@ -157,6 +163,8 @@ export const statsRoutes: FastifyPluginAsync = async (app) => {
         retryRateByType,
         avgHandlerLatencyMsByType,
         cacheHitRateByNamespace,
+        cacheInvalidationByNamespace,
+        cachePendingInvalidationByNamespace,
         badcaseExportCount: runtime.dependencies['badcase-export']?.executions ?? 0,
         retrievalFailureDistribution,
         thresholds: [

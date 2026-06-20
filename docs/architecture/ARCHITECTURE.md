@@ -6,6 +6,30 @@
 
 > 当前正式运行入口已经迁移到 `packages/host-local` 与 `packages/host-distributed`。本页中大量 `packages/server` 结构说明仍然保留，是因为现阶段的权威实现、测试与兼容壳层仍主要驻留在该代码面中。
 
+Phase 1 边界收敛补充事实：
+
+- `packages/server` 当前仍是权威实现、测试与 compatibility shell。
+- `packages/backend-core` 当前承载 command/use-case/port 模式与内核契约，是后续收敛目标，不是允许与 `packages/server` 平行增长的第二主实现面。
+- `packages/host-local` 与 `packages/host-distributed` 当前承载宿主装配、HTTP/worker transport 和 concrete port wiring；它们消费 `backend-core` 契约，不重新定义业务真相。
+
+Phase 2 异步 contract 补充事实：
+
+- `packages/contracts/src/domain/async.ts` 冻结 async event / shared job 的 idempotency key、retry policy、dead-letter meaning 和 operator action catalog。
+- `packages/contracts/src/domain/operations.ts` + `packages/server/src/routes/operations/status.ts` 共同定义 operator-visible async runtime contract：runtime mode semantics、freshness / projection lag contract、failure taxonomy、idempotency contract、retry / reclaim / resume contract。
+- `workflow_runs.stats` 是当前长任务 checkpoint / resume 的权威持久化 surface；bulk path 在进入 Phase 3 之前，不应再额外发明第二套 checkpoint 记录面。
+
+Phase 3 operator / config / capacity 补充事实：
+
+- `packages/server/src/routes/operations/status.ts` 继续作为 operator truth surface，并在 Phase 2 contract 之上加厚 `operatorHome`、`configGovernance`、`capacityModel` 与 `bulkOperations`。
+- `packages/server/src/config.ts` 现在提供 config governance summary：fingerprint、deprecated env、conflict warning 与 profile-aware capability summary。
+- `packages/server/src/routes/operations/stats.ts` 继续承担系统级 summary，并额外暴露 namespace 级 cache invalidation / pending invalidation 视角，作为 capacity modeling 的基础观测入口。
+
+Phase 4 closeout 补充事实：
+
+- `capacityModel.databasePool.maxConnections` 当前仍是保守扩展位，不是正式 runtime/driver introspection contract；当前权威语义是“是否配置数据库池 + 可为空的扩展位 shape”。
+- 默认 operator surface 明确保留高层容量摘要，不把热点 `team/query/artifact` 明细纳入默认首页；热点分析如有需要，应作为后续 deep drill-down 能力单独设计。
+- 上述两项都不阻塞后端工程化总计划 closeout。
+
 ## Server Bounded Context
 
 当前 `packages/server` 以内聚职责划分为七个 bounded context：
@@ -23,6 +47,7 @@
 - route 是 transport adapter，只负责校验、鉴权、actor 解析、delegate 和响应映射。
 - application service 负责多步业务编排、生命周期变化、side effect 触发和已命名的 compatibility debt。
 - repository 是业务路径的默认持久化入口；compatibility store 不是并行一等公民。
+- `store.snapshot()` / `store.transact()` 只允许留在已命名 compat allowlist：repository internals、bootstrap、migration/backfill、受控 admin/diagnostic、projection exceptions 与已命名迁移债务。
 
 ## Server Layer Ownership
 
@@ -41,6 +66,7 @@
 - runtime/bootstrap responsibility 留在 `infrastructure`，不进入 `domain` 或 `application`。
 - `interfaces/http` 和 `interfaces/worker` 都不定义业务规则，只适配 transport/runtime 触发。
 - read-model assembly 留在 `检索读侧` 或其他明确的读侧模块；写侧 application service 默认不拼装 retrieval/runtime projection，除非文档显式声明这种耦合是刻意的。
+- `backend-core` / `host-*` 对这些边界的角色是“承接并装配”，不是绕过 `packages/server` 当前事实再定义一套并行 ownership。
 
 ## 重上下文的具体落点
 
