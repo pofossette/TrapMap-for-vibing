@@ -1,8 +1,11 @@
+import type {
+  ReviewItemViewModel,
+  ReviewQueueFilters,
+} from '@trapmap/web-panel/shared/types/admin-panel';
 import { useEffect, useMemo } from 'react';
-import type { ReviewItemViewModel, ReviewQueueFilters } from '../../shared/types/admin-panel';
 
-import { getAdminPanelApi } from '../../services/admin-panel-service-context';
-import { useReviewQueueStore } from '../../stores/review-queue-store';
+import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
+import { useReviewQueueStore } from '@trapmap/web-panel/stores/review-queue-store';
 import { loadPendingReviews } from './service';
 
 export function useReviewQueuePageModel(): {

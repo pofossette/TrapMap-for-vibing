@@ -1,10 +1,10 @@
-import { mapReviewQueueItem } from '../../services/mappers/review-item-mapper';
+import { mapReviewQueueItem } from '@trapmap/web-panel/services/mappers/review-item-mapper';
 import type {
   AdminPanelApiContract,
   ReviewItemViewModel,
   ReviewQueuePage,
   ReviewQueueRequest,
-} from '../../shared/types/admin-panel';
+} from '@trapmap/web-panel/shared/types/admin-panel';
 
 function applyClientFilters(
   items: ReviewItemViewModel[],

@@ -3,7 +3,7 @@ import type {
   RuntimeOverviewResponse,
   RuntimeServiceHealth,
   RuntimeServiceStatus,
-} from '../../shared/types/admin-panel';
+} from '@trapmap/web-panel/shared/types/admin-panel';
 
 function normalizeServiceStatus(status: RuntimeServiceHealth): RuntimeServiceHealth {
   if (status === 'failed') {

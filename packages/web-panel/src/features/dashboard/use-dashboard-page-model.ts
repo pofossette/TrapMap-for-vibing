@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo } from 'react';
 
-import { getAdminPanelApi } from '../../services/admin-panel-service-context';
-import { useDashboardStore } from '../../stores/dashboard-store';
-import { useI18nStore } from '../../stores/i18n-store';
+import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
+import { useDashboardStore } from '@trapmap/web-panel/stores/dashboard-store';
+import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import { loadRuntimeOverview } from './service';
 
 type DashboardCardTone = 'success' | 'warning' | 'danger';
@@ -15,7 +15,10 @@ type DashboardCard = {
   value: string;
 };
 
-import type { RuntimeOverview, RuntimeServiceStatus } from '../../shared/types/admin-panel';
+import type {
+  RuntimeOverview,
+  RuntimeServiceStatus,
+} from '@trapmap/web-panel/shared/types/admin-panel';
 
 export function useDashboardPageModel(): {
   cards: DashboardCard[];

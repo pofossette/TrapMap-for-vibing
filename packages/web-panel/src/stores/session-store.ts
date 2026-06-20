@@ -6,8 +6,8 @@ import {
   createIdleRequestState,
   createLoadingRequestState,
   createSuccessRequestState,
-} from '../shared/lib/request-state';
-import type { AdminPanelSession } from '../shared/types/admin-panel';
+} from '@trapmap/web-panel/shared/lib/request-state';
+import type { AdminPanelSession } from '@trapmap/web-panel/shared/types/admin-panel';
 
 type SessionStore = {
   request: RequestState<AdminPanelSession>;

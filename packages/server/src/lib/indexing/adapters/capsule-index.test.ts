@@ -5,13 +5,13 @@
  * maintenance: sync on approve, stale cleanup, full removal on leave-approved.
  */
 
-import { createCapsuleIndexAdapter } from '@trapmap/server/lib/indexing/adapters/capsule-index.js';
-import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createMockArtifact,
   createMockCapsule,
-} from '../../../__tests__/lib/retrieval/test-helpers.js';
+} from '@trapmap/server/__tests__/lib/retrieval/test-helpers.js';
+import { createCapsuleIndexAdapter } from '@trapmap/server/lib/indexing/adapters/capsule-index.js';
+import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Mocks

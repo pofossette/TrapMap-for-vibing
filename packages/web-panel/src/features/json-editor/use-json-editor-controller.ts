@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
-import { getAdminPanelApi } from '../../services/admin-panel-service-context';
-import { useJsonEditorStore } from '../../stores/json-editor-store';
+import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
+import { useJsonEditorStore } from '@trapmap/web-panel/stores/json-editor-store';
 import { buildManualJsonEditInput, formatJsonDraft } from './service';
 
 export function useJsonEditorController(reviewId: string) {

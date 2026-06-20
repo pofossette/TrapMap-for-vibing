@@ -1,4 +1,4 @@
-import type { ActivityEventViewModel } from '../../shared/types/admin-panel';
+import type { ActivityEventViewModel } from '@trapmap/web-panel/shared/types/admin-panel';
 
 export function mapActivityEvent(event: ActivityEventViewModel): ActivityEventViewModel {
   return { ...event };

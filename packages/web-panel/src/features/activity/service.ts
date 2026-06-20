@@ -1,9 +1,9 @@
-import { mapActivityFeed } from '../../services/mappers/activity-event-mapper';
+import { mapActivityFeed } from '@trapmap/web-panel/services/mappers/activity-event-mapper';
 import type {
   ActivityEventViewModel,
   ActivityFeedQuery,
   AdminPanelApiContract,
-} from '../../shared/types/admin-panel';
+} from '@trapmap/web-panel/shared/types/admin-panel';
 
 export async function loadActivityFeed(
   api: AdminPanelApiContract,

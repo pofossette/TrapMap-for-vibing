@@ -1,7 +1,6 @@
 import { ListBox, Select } from '@heroui/react';
-import { type ReactElement, useMemo, useState } from 'react';
-import { useActivityPageModel } from '../../features/activity/use-activity-page-model';
-import { FadeIn, PageTransition } from '../../shared/motion';
+import { useActivityPageModel } from '@trapmap/web-panel/features/activity/use-activity-page-model';
+import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
   EmptyState,
   ErrorPanel,
@@ -11,8 +10,9 @@ import {
   SectionHeader,
   SkeletonBlock,
   TimelineItem,
-} from '../../shared/ui';
-import { useI18nStore } from '../../stores/i18n-store';
+} from '@trapmap/web-panel/shared/ui';
+import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
+import { type ReactElement, useMemo, useState } from 'react';
 
 export function ActivityPage(): ReactElement {
   const model = useActivityPageModel();

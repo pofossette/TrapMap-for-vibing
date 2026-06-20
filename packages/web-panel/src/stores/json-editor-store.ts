@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 
-import { buildJsonDraftState } from '../shared/lib/json-editor';
+import { buildJsonDraftState } from '@trapmap/web-panel/shared/lib/json-editor';
 import {
   type RequestState,
   createErrorRequestState,
   createIdleRequestState,
   createLoadingRequestState,
   createSuccessRequestState,
-} from '../shared/lib/request-state';
-import type { ReviewArtifactFile } from '../shared/types/admin-panel';
+} from '@trapmap/web-panel/shared/lib/request-state';
+import type { ReviewArtifactFile } from '@trapmap/web-panel/shared/types/admin-panel';
 
 type JsonEditorSnapshot = {
   activeFilePath: string | null;

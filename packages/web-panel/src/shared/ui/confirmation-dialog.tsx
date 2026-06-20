@@ -1,6 +1,6 @@
 import { Button, Modal } from '@heroui/react';
+import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import type { ReactElement } from 'react';
-import { useI18nStore } from '../../stores/i18n-store';
 
 type ConfirmationDialogProps = {
   cancelLabel?: string;

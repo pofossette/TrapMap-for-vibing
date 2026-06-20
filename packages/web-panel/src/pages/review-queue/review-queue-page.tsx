@@ -2,8 +2,8 @@ import { ListBox, Select } from '@heroui/react';
 import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useReviewQueuePageModel } from '../../features/review-queue/use-review-queue-page-model';
-import { FadeIn, PageTransition } from '../../shared/motion';
+import { useReviewQueuePageModel } from '@trapmap/web-panel/features/review-queue/use-review-queue-page-model';
+import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
   EmptyState,
   ErrorPanel,
@@ -13,8 +13,8 @@ import {
   SectionHeader,
   SkeletonBlock,
   StatusBadge,
-} from '../../shared/ui';
-import { useI18nStore } from '../../stores/i18n-store';
+} from '@trapmap/web-panel/shared/ui';
+import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 
 export function ReviewQueuePage(): ReactElement {
   const model = useReviewQueuePageModel();

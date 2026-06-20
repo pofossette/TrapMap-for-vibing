@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createMockAdminPanelApi } from '../../services/api/mock-admin-panel-api';
+import { createMockAdminPanelApi } from '@trapmap/web-panel/services/api/mock-admin-panel-api';
 import { loadReviewDetail, submitReviewDecision } from './service';
 
 describe('review-detail service', () => {

@@ -1,5 +1,8 @@
-import { mapRuntimeOverview } from '../../services/mappers/runtime-status-mapper';
-import type { AdminPanelApiContract, RuntimeOverview } from '../../shared/types/admin-panel';
+import { mapRuntimeOverview } from '@trapmap/web-panel/services/mappers/runtime-status-mapper';
+import type {
+  AdminPanelApiContract,
+  RuntimeOverview,
+} from '@trapmap/web-panel/shared/types/admin-panel';
 
 export async function loadRuntimeOverview(api: AdminPanelApiContract): Promise<RuntimeOverview> {
   const response = await api.loadRuntimeOverview();

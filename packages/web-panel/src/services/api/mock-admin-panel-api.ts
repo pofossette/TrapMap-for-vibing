@@ -9,7 +9,7 @@ import type {
   ReviewDetailResponse,
   RuntimeOverviewResponse,
   SessionAccount,
-} from '../../shared/types/admin-panel';
+} from '@trapmap/web-panel/shared/types/admin-panel';
 
 const mockRuntimeOverview: RuntimeOverviewResponse = {
   deploymentProfile: 'team-monolith',

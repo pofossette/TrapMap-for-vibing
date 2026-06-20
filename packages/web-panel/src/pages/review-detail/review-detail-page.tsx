@@ -2,8 +2,8 @@ import { toast } from '@heroui/react';
 import { type ReactElement, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import { useReviewDetailController } from '../../features/review-detail/use-review-detail-controller';
-import { FadeIn, PageTransition } from '../../shared/motion';
+import { useReviewDetailController } from '@trapmap/web-panel/features/review-detail/use-review-detail-controller';
+import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
   ConfirmationDialog,
   ErrorPanel,
@@ -14,8 +14,8 @@ import {
   SkeletonBlock,
   StatusBadge,
   TimelineItem,
-} from '../../shared/ui';
-import { useI18nStore } from '../../stores/i18n-store';
+} from '@trapmap/web-panel/shared/ui';
+import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 
 export function ReviewDetailPage(): ReactElement {
   const params = useParams();

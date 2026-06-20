@@ -1,6 +1,6 @@
+import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
-import { useI18nStore } from '../../stores/i18n-store';
 import { StatusBadge } from './status-badge';
 
 type TimelineItemProps = {

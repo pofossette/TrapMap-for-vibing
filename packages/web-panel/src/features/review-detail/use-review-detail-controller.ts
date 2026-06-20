@@ -1,9 +1,9 @@
 import { useEffect, useMemo } from 'react';
 
-import { getAdminPanelApi } from '../../services/admin-panel-service-context';
-import { useJsonEditorStore } from '../../stores/json-editor-store';
-import { useReviewDetailStore } from '../../stores/review-detail-store';
-import { useJsonEditorController } from '../json-editor/use-json-editor-controller';
+import { useJsonEditorController } from '@trapmap/web-panel/features/json-editor/use-json-editor-controller';
+import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
+import { useJsonEditorStore } from '@trapmap/web-panel/stores/json-editor-store';
+import { useReviewDetailStore } from '@trapmap/web-panel/stores/review-detail-store';
 import { loadReviewDetail, submitReviewDecision } from './service';
 
 type ContextCard = {

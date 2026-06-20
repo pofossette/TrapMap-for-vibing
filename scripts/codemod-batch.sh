@@ -68,13 +68,13 @@ for ((i=0; i<total; i+=BATCH_SIZE)); do
     # 注意: --dry 模式下 --silent 会抑制结果输出，因此不加 --silent
     output=$(NODE_OPTIONS="--max-old-space-size=${HEAP_MB}" \
       npx jscodeshift -t "$TRANSFORM" "${batch[@]}" \
-        --parser=ts --extensions=ts,tsx --dry 2>&1)
+        --parser=tsx --extensions=ts,tsx --dry 2>&1)
   else
     # 实际写入: 使用 --stdin 批量处理 (不加 --silent，否则 jscodeshift 不输出结果计数)
     tmpfile=$(mktemp)
     printf '%s\n' "${batch[@]}" > "$tmpfile"
     output=$(cat "$tmpfile" | NODE_OPTIONS="--max-old-space-size=${HEAP_MB}" \
-      npx jscodeshift -t "$TRANSFORM" --parser=ts --extensions=ts,tsx --quote=single --cpus=1 --stdin 2>&1)
+      npx jscodeshift -t "$TRANSFORM" --parser=tsx --extensions=ts,tsx --quote=single --cpus=1 --stdin 2>&1)
     rm -f "$tmpfile"
   fi
 
@@ -94,7 +94,7 @@ for ((i=0; i<total; i+=BATCH_SIZE)); do
 
   printf "OK=%d  UNCHANGED=%d  SKIPPED=%d  ERR=%d\n" "$n_ok" "$n_unmodified" "$n_skip" "$n_error"
 
-  if [ "$rc" -ne 0 ] && [ "$n_error" -gt 0 ]; then
+  if [ "$n_error" -gt 0 ]; then
     echo "    错误输出: $output"
   fi
 done

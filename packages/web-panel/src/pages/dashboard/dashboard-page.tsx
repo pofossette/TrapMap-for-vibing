@@ -2,8 +2,8 @@ import { toast } from '@heroui/react';
 import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useDashboardPageModel } from '../../features/dashboard/use-dashboard-page-model';
-import { FadeIn, PageTransition } from '../../shared/motion';
+import { useDashboardPageModel } from '@trapmap/web-panel/features/dashboard/use-dashboard-page-model';
+import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
   ErrorPanel,
   PageContainer,
@@ -11,8 +11,8 @@ import {
   SkeletonBlock,
   StatusBadge,
   SummaryCard,
-} from '../../shared/ui';
-import { useI18nStore } from '../../stores/i18n-store';
+} from '@trapmap/web-panel/shared/ui';
+import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 
 export function DashboardPage(): ReactElement {
   const model = useDashboardPageModel();

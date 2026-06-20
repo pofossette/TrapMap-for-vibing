@@ -1,6 +1,6 @@
 import { Button } from '@heroui/react';
+import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import type { ReactElement, ReactNode } from 'react';
-import { useI18nStore } from '../../stores/i18n-store';
 
 type EmptyStateProps = {
   action?: {

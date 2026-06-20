@@ -1,12 +1,15 @@
 import type { ReviewDecisionRequest } from '@trapmap/contracts';
 
-import { mapActivityFeed } from '../../services/mappers/activity-event-mapper';
-import { buildReviewDetailFiles, mapReviewDetail } from '../../services/mappers/review-item-mapper';
+import { mapActivityFeed } from '@trapmap/web-panel/services/mappers/activity-event-mapper';
+import {
+  buildReviewDetailFiles,
+  mapReviewDetail,
+} from '@trapmap/web-panel/services/mappers/review-item-mapper';
 import type {
   AdminPanelApiContract,
   ManualJsonEditInput,
   ReviewDetailViewModel,
-} from '../../shared/types/admin-panel';
+} from '@trapmap/web-panel/shared/types/admin-panel';
 
 export async function loadReviewDetail(
   api: AdminPanelApiContract,

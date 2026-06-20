@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { getAdminPanelApi } from '../../services/admin-panel-service-context';
+import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
 import { loadActivityFeed } from './service';
 
 export function useActivityPageModel() {

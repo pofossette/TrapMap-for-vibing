@@ -1,4 +1,4 @@
-import type { RequestStatus } from '../types/admin-panel';
+import type { RequestStatus } from '@trapmap/web-panel/shared/types/admin-panel';
 
 export type RequestState<T> =
   | {

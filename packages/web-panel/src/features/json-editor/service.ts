@@ -1,5 +1,5 @@
-import { buildJsonDraftState, prettyPrintJson } from '../../shared/lib/json-editor';
-import type { ManualJsonEditInput } from '../../shared/types/admin-panel';
+import { buildJsonDraftState, prettyPrintJson } from '@trapmap/web-panel/shared/lib/json-editor';
+import type { ManualJsonEditInput } from '@trapmap/web-panel/shared/types/admin-panel';
 
 export { buildJsonDraftState };
 

@@ -6,7 +6,7 @@ import type {
   ReviewHistoryEntry,
   ReviewItemViewModel,
   ReviewQueueItemDto,
-} from '../../shared/types/admin-panel';
+} from '@trapmap/web-panel/shared/types/admin-panel';
 
 function formatActor(actor: ActorRefDto | null | undefined): string | null {
   return actor?.handle ?? null;

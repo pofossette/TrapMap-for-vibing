@@ -13,10 +13,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { type ReactElement, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
-import { getAdminPanelApi } from '../../services/admin-panel-service-context';
-import { useI18nStore } from '../../stores/i18n-store';
-import { useSessionStore } from '../../stores/session-store';
-import { useThemeStore } from '../../stores/theme-store';
+import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
+import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
+import { useSessionStore } from '@trapmap/web-panel/stores/session-store';
+import { useThemeStore } from '@trapmap/web-panel/stores/theme-store';
 
 type NavigationItem = {
   end?: boolean;

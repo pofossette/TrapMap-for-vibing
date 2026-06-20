@@ -1,11 +1,11 @@
 import type { ReactElement } from 'react';
 import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
 
-import { ActivityPage } from '../../pages/activity/activity-page';
-import { DashboardPage } from '../../pages/dashboard/dashboard-page';
-import { ReviewDetailPage } from '../../pages/review-detail/review-detail-page';
-import { ReviewQueuePage } from '../../pages/review-queue/review-queue-page';
-import { AppShell } from '../shell/app-shell';
+import { AppShell } from '@trapmap/web-panel/app/shell/app-shell';
+import { ActivityPage } from '@trapmap/web-panel/pages/activity/activity-page';
+import { DashboardPage } from '@trapmap/web-panel/pages/dashboard/dashboard-page';
+import { ReviewDetailPage } from '@trapmap/web-panel/pages/review-detail/review-detail-page';
+import { ReviewQueuePage } from '@trapmap/web-panel/pages/review-queue/review-queue-page';
 
 const router = createBrowserRouter([
   {
