@@ -5,7 +5,7 @@
 ## 覆盖范围
 
 - pnpm workspace 包：`packages/contracts`、`packages/server`、`packages/cli`
-- 仓库内可激活子包：`packages/skills/trapmap-knowledge-workflow`
+- 仓库内可激活子包：`packages/skills/workflow-with-trapmap`、`packages/skills/trapmap-cli-usage-guide`
 
 ## 统一基线
 
@@ -104,7 +104,7 @@ TrapMap 现在的消费者几乎都在同一个 TypeScript monorepo 里。相比
 | 子包/目录 | 当前选型 | 选择原因 |
 |-----------|----------|----------|
 | `packages/skills/` | 文件系统目录而非 workspace runtime package | 这些内容的主要消费方式不是 `import`，而是被 TrapMap 检索、导出、激活到客户端技能目录。用普通目录比包装成 JS 库更符合分发形态。 |
-| `trapmap-knowledge-workflow/` | `SKILL.md` 入口 + frontmatter | Skill 的第一消费者是智能体和人类审阅者，不是 Node 运行时。Markdown 入口可直接读、可 diff、可检索，也天然适合摘要和片段激活。 |
+| `workflow-with-trapmap/`、`trapmap-cli-usage-guide/` | `SKILL.md` 入口 + frontmatter | Skill 的第一消费者是智能体和人类审阅者，不是 Node 运行时。Markdown 入口可直接读、可 diff、可检索，也天然适合摘要和片段激活。 |
 | `references/` | 长文说明拆分为引用材料 | Skill 主入口需要保持短而硬，长说明放到 `references/` 才能支持按需加载、节省上下文，并提升检索命中后的“下一步阅读”质量。 |
 | `agents/` | YAML 子智能体配置 | 代理配置属于声明式元数据，YAML 对这类结构足够清晰，人工审核比嵌在 TS 代码里更直观。 |
 

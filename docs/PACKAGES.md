@@ -13,7 +13,7 @@
 | `packages/host-distributed` | `src/index.ts` | `distributed` 重型宿主装配 |
 | `packages/server` | `src/index.ts` | 迁移期兼容壳层与既有实现面 |
 | `packages/contracts` | `src/index.ts` | 共享 Zod Schema 和 TypeScript 类型 |
-| `packages/skills` | `trapmap-knowledge-workflow/SKILL.md` | 项目级 Skill 工作流与参考资料 |
+| `packages/skills` | `workflow-with-trapmap/SKILL.md` | 项目级 Skill 工作流与 CLI 使用指南 |
 
 ---
 
@@ -299,18 +299,22 @@ const session = cliState.session;
 
 ## packages/skills
 
-当前包含 `trapmap-knowledge-workflow`，用于规范 TrapMap 相关规划、检索、评审和经验沉淀流程。
+当前包含两个 skill：`workflow-with-trapmap` 用于规范 TrapMap 相关规划、检索、评审和经验沉淀流程；`trapmap-cli-usage-guide` 用于提供按阶段组织的 CLI 命令索引。
 
 ```
-trapmap-knowledge-workflow/
+workflow-with-trapmap/
 ├── SKILL.md          # 入口文件：工作流定义和控制路径
 ├── agents/           # 子智能体定义
-└── references/       # 参考资料（架构、API、数据模型等）
+└── references/       # 工作流参考资料
+
+trapmap-cli-usage-guide/
+├── SKILL.md          # 入口文件：CLI 使用边界与装载时机
+└── references/       # CLI 命令索引
 ```
 
-**控制路径**：SKILL.md 定义了知识条目的完整工作流——从需求分析、检索、评审到经验沉淀的每一步骤和决策点。
+**控制路径**：`workflow-with-trapmap/SKILL.md` 定义知识条目的完整工作流；`trapmap-cli-usage-guide/SKILL.md` 则提供命令签名查询入口，避免把工作流和命令索引耦合在一个 skill 中。
 
-> 源码：`packages/skills/trapmap-knowledge-workflow/SKILL.md`
+> 源码：`packages/skills/workflow-with-trapmap/SKILL.md`、`packages/skills/trapmap-cli-usage-guide/SKILL.md`
 
 ---
 

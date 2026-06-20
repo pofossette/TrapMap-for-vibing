@@ -98,4 +98,4 @@ trapmap output profile set --tool claude-code --verbosity balanced
 可选工具：`claude-code`、`codex`、`opencode`、`generic`。
 可选详细程度：`compact`、`balanced`、`detailed`。
 
-完整命令索引参见 [cli-index.md](cli-index.md)。
+需要完整命令索引时，加载 `trapmap-cli-usage-guide` Skill。

@@ -23,7 +23,7 @@ TrapMap 是 pnpm + TypeScript monorepo，用于团队工程知识、陷阱经验
 - 改契约：先看 [`packages/contracts/src/index.ts`](packages/contracts/src/index.ts) 与 [`packages/contracts/src/domain/`](packages/contracts/src/domain/)。
 - 改检索或摘要质量：先看 [`docs/operations/TESTING.md`](docs/operations/TESTING.md)、[`evals/retrieval/README.md`](evals/retrieval/README.md)、[`evals/summary/README.md`](evals/summary/README.md)。
 - 改安全、权限或配置：先看 [`docs/operations/SECURITY.md`](docs/operations/SECURITY.md)、[`docs/operations/ENVIRONMENT.md`](docs/operations/ENVIRONMENT.md)、[`docs/architecture/components/GOVERNANCE.md`](docs/architecture/components/GOVERNANCE.md)。
-- 改 Skill 工作流：先看 [`packages/skills/trapmap-knowledge-workflow/SKILL.md`](packages/skills/trapmap-knowledge-workflow/SKILL.md)。
+- 改 Skill 工作流：先看 [`packages/skills/workflow-with-trapmap/SKILL.md`](packages/skills/workflow-with-trapmap/SKILL.md)；需要具体命令签名时再看 [`packages/skills/trapmap-cli-usage-guide/SKILL.md`](packages/skills/trapmap-cli-usage-guide/SKILL.md)。
 
 ## 常用命令
 

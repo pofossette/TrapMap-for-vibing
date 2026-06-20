@@ -1,9 +1,9 @@
 ---
-name: trapmap-knowledge-workflow
-description: 用于规划或实施 TrapMap 工作、操作 TrapMap CLI 或保存已解决的工程陷阱。强制执行先技能后规划、先实现后检索、陷阱优先规划编译、CLI 帮助验证、工件激活/审核和紧凑经验捕获。
+name: workflow-with-trapmap
+description: 用于规划或实施 TrapMap 工作，并将 TrapMap 检索、陷阱约束、知识沉淀、反馈和维护流程作为硬性门控。需要具体命令签名时再加载 trapmap-cli-usage-guide。
 ---
 
-# TrapMap 知识工作流
+# Workflow With TrapMap
 
 ## 控制路径
 
@@ -16,7 +16,7 @@ description: 用于规划或实施 TrapMap 工作、操作 TrapMap CLI 或保存
 7. 解决问题后，仅在经验紧凑、已验证且不包含敏感信息时，才保存可复用的经验。使用 [references/accumulation.md](references/accumulation.md)。
 8. 解决问题后，如果检索到的陷阱或技能不准确、过时或不匹配上下文，在继续之前使用 `trapmap feedback` 提交反馈。参见 [references/feedback.md](references/feedback.md)。
 9. 使用可能老化的陷阱或技能前，通过 `trapmap decay-search` 或 `trapmap decay-stale` 检查其衰减状态。如果是 stale 或 expired，优先寻找更新的替代或报告反馈。参见 [references/maintenance.md](references/maintenance.md)。
-10. 对于技能特定操作（内容搜索、编辑、历史查看），使用 `trapmap skill` 命令族。参见 [references/cli-index.md](references/cli-index.md) 获取命令映射。
+10. 仅在需要具体命令签名、标志或命令族映射时，加载 `trapmap-cli-usage-guide`，不要把 CLI 索引与当前工作流引用一并整体读入。
 
 ## 引用地图
 
@@ -29,7 +29,6 @@ description: 用于规划或实施 TrapMap 工作、操作 TrapMap CLI 或保存
 - [references/accumulation.md](references/accumulation.md)：策略基因风格的 `MATCH/GOAL/STRATEGY/AVOID/VERIFY` 捕获。
 - [references/feedback.md](references/feedback.md)：反馈提交、队列查看、批量处理。
 - [references/maintenance.md](references/maintenance.md)：衰减生命周期、维护操作、代理使用指引。
-- [references/cli-index.md](references/cli-index.md)：按工作流阶段组织的 CLI 命令紧凑索引（渐进式按需披露）。
 
 ## 护栏
 
@@ -37,4 +36,4 @@ description: 用于规划或实施 TrapMap 工作、操作 TrapMap CLI 或保存
 - 代理对代理/工具解析时优先使用 JSON 输出。
 - 不要将原始聊天日志、秘密、访问密钥、私有路径或庞大的文档粘贴到可复用知识中。
 - 不要天真地组合许多技能。单一针对性技能加上显式 `AVOID` 警告通常比大量部分相关指导的捆绑更强大。
-- 输出配置不确定时，使用 `trapmap output profile set --tool <tool>` 匹配代理环境。参见 [references/cli-index.md](references/cli-index.md) §1。
+- 输出配置不确定时，使用 `trapmap output profile set --tool <tool>` 匹配代理环境；具体标志查 `trapmap-cli-usage-guide` 或 CLI 帮助。

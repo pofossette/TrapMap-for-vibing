@@ -124,7 +124,7 @@ pnpm --filter @trapmap/server db:migrate
 - `pnpm build` 生成的 `dist/` 目录不得提交到版本控制
 - 提交前运行 `git status` 确认无构建产物被暂存
 - 如需添加新的忽略规则，修改根目录 `.gitignore`（而非各包内的 `.gitignore`）
-- AI 工具目录（`.claude/`、`.agent/` 等）大部分已忽略，仅保留 `trapmap-knowledge-workflow` Skill 文件
+- AI 工具目录（`.claude/`、`.agent/` 等）大部分已忽略，仅保留 `workflow-with-trapmap` 与 `trapmap-cli-usage-guide` Skill 文件
 
 ## Pull Request 流程
 

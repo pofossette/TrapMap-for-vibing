@@ -1,4 +1,0 @@
-interface:
-  display_name: "TrapMap Knowledge Workflow"
-  short_description: "Retrieve traps and skills before TrapMap work"
-  default_prompt: "Use $trapmap-knowledge-workflow to retrieve relevant TrapMap skills and traps before planning this task."
