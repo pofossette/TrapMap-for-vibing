@@ -136,6 +136,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/server':
+        specifier: workspace:*
+        version: link:../server
       fastify:
         specifier: ^5.6.1
         version: 5.8.4
