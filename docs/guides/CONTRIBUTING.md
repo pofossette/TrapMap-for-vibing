@@ -166,6 +166,20 @@ PR 修改以下路径时，`eval.yml` 的 smoke tier 会自动触发：
 - 新功能需同步更新相关文档
 - 文档位于 `docs/` 目录
 - 保持文档语言一致性（简体中文）
+- 文档分层、回写触发条件与 badcase 沉淀规则见 [`DOCUMENTATION_GOVERNANCE.md`](./DOCUMENTATION_GOVERNANCE.md)
+
+## 复发性问题沉淀规则
+
+当一次真实问题满足“可复现或可稳定描述”、“未来可能再次发生”、“会影响结果正确性、治理安全性或开发流程稳定性”时，提交者必须判断是否要把它沉淀为长期资产。
+
+需要显式判断的资产类型：
+
+- 测试用例
+- 文档规则
+- Skill / Trap 条目
+- badcase / eval case
+
+如果判断不需要沉淀，也要在 PR 描述或变更说明里写出原因。
 
 ## 文档影响检查清单
 
@@ -173,9 +187,11 @@ PR 修改以下路径时，`eval.yml` 的 smoke tier 会自动触发：
 
 - [ ] **持久化架构**：检查 `docs/reference/DOCS_TRUTH_MATRIX.md` 中的持久化相关行
 - [ ] **启动流程或命令**：更新 `docs/README.md` 和 `docs/guides/GETTING_STARTED.md` 中的命令示例
+- [ ] **入口职责变化**：检查 `README.md`、`AGENTS.md`、`CLAUDE.md` 与 `docs/guides/DOCUMENTATION_GOVERNANCE.md`
 - [ ] **CI/CD 流水线**：更新 `docs/operations/CI_CD.md` 和 `docs/operations/TESTING.md`
 - [ ] **数据库 Schema**：更新 `docs/reference/DATABASE_SCHEMA.md` 中的表计数
 - [ ] **部署配置**：更新 `docs/architecture/DEPLOYMENT.md`
+- [ ] **复发性真实问题**：判断是否需要沉淀为 test/docs/skill/badcase，并在 PR 描述说明结论
 
 ### 验证命令
 

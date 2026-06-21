@@ -1,3 +1,3 @@
 # Claude Entry
 
-本仓库的智能体说明以 [`AGENTS.md`](AGENTS.md) 为准。请从该入口按需继续阅读项目文档、短期计划和源码入口，避免在 `CLAUDE.md` 中维护重复规则。
+本仓库的智能体说明以 [`AGENTS.md`](AGENTS.md) 为准。`CLAUDE.md` 只作为 Claude Code 兼容入口保留，不维护独立规则。

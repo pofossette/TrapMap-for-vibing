@@ -16,6 +16,13 @@
 
 这个仓库是一个 `pnpm` + TypeScript monorepo，包含 `client-core`、`backend-core`、`host-local`、`host-distributed`、CLI、共享契约和评测工具，用来提交、审核、索引、检索和激活团队的工程知识与 Skill 工件。
 
+文档入口分工：
+
+- `README.md` 给人读，负责项目概览、价值、快速开始和主要导航
+- `AGENTS.md` 给 agent 读，负责任务路由、最小验证和回写要求
+- `CLAUDE.md` 只作为 Claude Code 兼容入口，指向 `AGENTS.md`
+- 文档分层与回写规则见 [`docs/guides/DOCUMENTATION_GOVERNANCE.md`](docs/guides/DOCUMENTATION_GOVERNANCE.md)
+
 ## TL;DR
 
 - 问题：AI 编程工具跨会话记忆隔离，同类坑点会反复出现；Skill 过量会污染上下文；Skill 缩略信息质量不稳会直接影响命中效果

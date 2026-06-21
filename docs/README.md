@@ -143,6 +143,7 @@ pnpm eval:ci
 ### 新手入门
 - [代码导读](guides/CODE_GUIDE.md) — 源码导航与建议阅读顺序
 - [快速上手](guides/GETTING_STARTED.md) — 本地开发环境搭建
+- [文档治理指南](guides/DOCUMENTATION_GOVERNANCE.md) — `README` / `AGENTS` / `reference` 分层与回写规则
 - [PostgreSQL 与 Graphology 上手](guides/PG_AND_GRAPHOLOGY.md) — 面向仓库实际代码的 `pg` / `graphology` 使用方式导读
 - [客户端集成](guides/CLIENT_INTEGRATION.md) — Skill 工件结构、检索→激活流程、各客户端落地方式
 - [数据模型](reference/DATA_MODEL.md) — 核心数据实体及关系
