@@ -887,6 +887,16 @@ describeIfDb('operations async status routes', () => {
           ownsOutboxWork: true,
         },
       }),
+      diagnostics: expect.objectContaining({
+        dominantFailureCategory: expect.anything(),
+        owningSubsystem: expect.stringMatching(/queue|outbox|workflow|cache|badcase|none/),
+        nextInspection: expect.any(String),
+        evidence: expect.any(Array),
+        badcaseClassificationSummary: expect.objectContaining({
+          totalClassified: expect.any(Number),
+          counts: expect.any(Array),
+        }),
+      }),
       cache: expect.any(Object),
       workflows: expect.any(Array),
       bulkOperations: expect.any(Array),
@@ -980,6 +990,10 @@ describeIfDb('operations async status routes', () => {
         freshness: expect.objectContaining({
           status: 'degraded',
         }),
+      }),
+      diagnostics: expect.objectContaining({
+        dominantFailureCategory: 'stale-projection',
+        owningSubsystem: expect.stringMatching(/queue|outbox|cache|badcase/),
       }),
       capacityModel: expect.objectContaining({
         backlogPressure: {

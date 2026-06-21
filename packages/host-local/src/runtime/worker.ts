@@ -16,7 +16,7 @@
  * TODO(Task 05): Add graceful drain, metrics, and retry logic
  */
 
-import type { RuntimeWorkerHandle, TaskQueuePort } from '@trapmap/backend-core';
+import type { RuntimeWorkerHandle, TaskHandler, TaskQueuePort } from '@trapmap/backend-core';
 
 // ---------------------------------------------------------------------------
 // Worker configuration
@@ -27,6 +27,7 @@ export interface WorkerConfig {
   ownsWork: boolean;
   pollIntervalMs: number;
   concurrency: number;
+  handlers: TaskHandler<unknown>[];
 }
 
 export const DEFAULT_WORKER_CONFIG: WorkerConfig = {
@@ -34,6 +35,7 @@ export const DEFAULT_WORKER_CONFIG: WorkerConfig = {
   ownsWork: true,
   pollIntervalMs: 1000,
   concurrency: 1,
+  handlers: [],
 };
 
 // ---------------------------------------------------------------------------
@@ -52,18 +54,41 @@ export const DEFAULT_WORKER_CONFIG: WorkerConfig = {
  * @stub Lifecycle stub only -- no polling, no task processing.
  */
 export function createInProcessTaskWorker(
-  _taskQueue: TaskQueuePort | null,
+  taskQueue: TaskQueuePort | null,
   config: Partial<WorkerConfig> = {},
 ): RuntimeWorkerHandle | null {
   const merged = { ...DEFAULT_WORKER_CONFIG, ...config };
 
-  if (!merged.enabled) {
+  if (!merged.enabled || !taskQueue) {
     return null;
   }
 
-  // Stub: mark as running on creation to reflect the lifecycle state
-  // even though no real work is performed.
-  let running = true;
+  if (!taskQueue.createConsumer) {
+    return null;
+  }
+
+  let consumerPromise: Promise<{
+    run(): Promise<void>;
+    stop(): Promise<void>;
+    isRunning(): boolean;
+    ownsWork(): boolean;
+  }> | null = null;
+  let running = false;
+
+  const getConsumer = async () => {
+    if (!consumerPromise) {
+      consumerPromise = taskQueue.createConsumer!({
+        handlers: merged.handlers,
+        ownsWork: merged.ownsWork,
+      });
+    }
+    return consumerPromise;
+  };
+
+  void getConsumer().then((consumer) => {
+    void consumer.run();
+    running = true;
+  });
 
   return {
     isRunning(): boolean {
@@ -76,6 +101,7 @@ export function createInProcessTaskWorker(
 
     stop(): void {
       running = false;
+      void getConsumer().then((consumer) => consumer.stop());
     },
   };
 }

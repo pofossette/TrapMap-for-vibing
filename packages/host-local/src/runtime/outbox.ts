@@ -16,7 +16,7 @@
  * TODO(Task 05): Add graceful drain, metrics, and dead-letter handling
  */
 
-import type { OutboxPort, RuntimeWorkerHandle } from '@trapmap/backend-core';
+import type { OutboxEvent, OutboxPort, RuntimeWorkerHandle } from '@trapmap/backend-core';
 
 // ---------------------------------------------------------------------------
 // Outbox configuration
@@ -27,6 +27,7 @@ export interface OutboxConfig {
   ownsWork: boolean;
   pollIntervalMs: number;
   batchSize: number;
+  dispatch: (event: OutboxEvent) => Promise<void>;
 }
 
 export const DEFAULT_OUTBOX_CONFIG: OutboxConfig = {
@@ -34,6 +35,7 @@ export const DEFAULT_OUTBOX_CONFIG: OutboxConfig = {
   ownsWork: true,
   pollIntervalMs: 2000,
   batchSize: 10,
+  dispatch: async () => {},
 };
 
 // ---------------------------------------------------------------------------
@@ -52,18 +54,41 @@ export const DEFAULT_OUTBOX_CONFIG: OutboxConfig = {
  * @stub Lifecycle stub only -- no polling, no event dispatching.
  */
 export function createInProcessOutboxDispatcher(
-  _outbox: OutboxPort | null,
+  outbox: OutboxPort | null,
   config: Partial<OutboxConfig> = {},
 ): RuntimeWorkerHandle | null {
   const merged = { ...DEFAULT_OUTBOX_CONFIG, ...config };
 
-  if (!merged.enabled) {
+  if (!merged.enabled || !outbox) {
     return null;
   }
 
-  // Stub: mark as running on creation to reflect the lifecycle state
-  // even though no real work is performed.
   let running = true;
+  let activeRun: Promise<void> | null = null;
+
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const run = async () => {
+    while (running) {
+      const events = await outbox.claimBatch(merged.batchSize);
+      if (events.length === 0) {
+        await sleep(merged.pollIntervalMs);
+        continue;
+      }
+
+      for (const event of events) {
+        try {
+          await merged.dispatch(event);
+          await outbox.complete(event.id);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          await outbox.fail(event.id, message);
+        }
+      }
+    }
+  };
+
+  activeRun = run();
 
   return {
     isRunning(): boolean {
@@ -76,6 +101,7 @@ export function createInProcessOutboxDispatcher(
 
     stop(): void {
       running = false;
+      void activeRun;
     },
   };
 }

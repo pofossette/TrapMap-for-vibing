@@ -3,6 +3,7 @@ import type { Pool, PoolClient } from 'pg';
 import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
+import { createTaskWorker } from '@trapmap/server/lib/queue/task-queue.js';
 
 export interface AsyncTaskTransport {
   kind: 'postgres-task-queue' | 'rabbitmq-task-queue';
@@ -101,6 +102,13 @@ export function createPostgresTaskTransport(pool: Pool): AsyncTaskTransport {
         provider: 'postgres',
         ...snapshot,
       };
+    },
+    async createConsumer({ handlers, ownsWork }) {
+      return createTaskWorker({
+        pool,
+        handlers,
+        ownsWork,
+      });
     },
   };
 }

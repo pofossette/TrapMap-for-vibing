@@ -37,7 +37,11 @@ import {
 import { createSharedJobQueuePort, scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
 import { REMEDIATION_REACTIVATION_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import { getSharedJobWorkflowRunId } from '@trapmap/server/lib/jobs/types.js';
-import { buildOperatorEntryDisplayLookup } from '@trapmap/server/lib/operations/read-model.js';
+import {
+  buildOperatorEntryDisplayLookup,
+  summarizeFailureClassifications,
+  toFailureClassificationAwareFeedbackItem,
+} from '@trapmap/server/lib/operations/read-model.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
@@ -128,24 +132,29 @@ async function buildRemediationQueueItems(app: Parameters<FastifyPluginAsync>[0]
     const recentFeedback: FeedbackListItem[] = [...entryFeedback]
       .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
       .slice(0, 10)
-      .map((f) => ({
-        id: f.id,
-        entryId: f.entryId,
-        entryType: f.entryType,
-        entryShortcut: title,
-        problemType: f.problemType,
-        description: f.description,
-        context: f.context,
-        submittedAt: f.submittedAt,
-        submittedBy: {
-          id: f.submittedByUserId,
-          handle: f.submittedByHandle,
-          securityLevel: 0,
-        },
-        status: f.status,
-        ageDays: Math.round(computeAgeDays(f.submittedAt, now)),
-        adminNotes: f.adminNotes,
-      }));
+      .map((f) =>
+        toFailureClassificationAwareFeedbackItem(
+          {
+            id: f.id,
+            entryId: f.entryId,
+            entryType: f.entryType,
+            entryShortcut: title,
+            problemType: f.problemType,
+            description: f.description,
+            context: f.context,
+            submittedAt: f.submittedAt,
+            submittedBy: {
+              id: f.submittedByUserId,
+              handle: f.submittedByHandle,
+              securityLevel: 0,
+            },
+            status: f.status,
+            ageDays: Math.round(computeAgeDays(f.submittedAt, now)),
+            adminNotes: f.adminNotes,
+          },
+          f.failureClassification,
+        ),
+      );
 
     items.push({
       entryId,
@@ -234,26 +243,29 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
     const entryDisplayLookup = await buildOperatorEntryDisplayLookup(app.skillShareer.repos);
 
     // Build response items
-    const items: FeedbackListItem[] = filtered.map((f) => {
-      return {
-        id: f.id,
-        entryId: f.entryId,
-        entryType: f.entryType,
-        entryShortcut: entryDisplayLookup.getEntryShortcut(f.entryId, f.entryType),
-        problemType: f.problemType,
-        description: f.description,
-        context: f.context,
-        submittedAt: f.submittedAt,
-        submittedBy: {
-          id: f.submittedByUserId,
-          handle: f.submittedByHandle,
-          securityLevel: 0, // We don't have this info stored, default to 0
+    const items: FeedbackListItem[] = filtered.map((f) =>
+      toFailureClassificationAwareFeedbackItem(
+        {
+          id: f.id,
+          entryId: f.entryId,
+          entryType: f.entryType,
+          entryShortcut: entryDisplayLookup.getEntryShortcut(f.entryId, f.entryType),
+          problemType: f.problemType,
+          description: f.description,
+          context: f.context,
+          submittedAt: f.submittedAt,
+          submittedBy: {
+            id: f.submittedByUserId,
+            handle: f.submittedByHandle,
+            securityLevel: 0,
+          },
+          status: f.status,
+          ageDays: Math.round((f as { _ageDays?: number })._ageDays ?? 0),
+          adminNotes: f.adminNotes,
         },
-        status: f.status,
-        ageDays: Math.round((f as { _ageDays?: number })._ageDays ?? 0),
-        adminNotes: f.adminNotes,
-      };
-    });
+        f.failureClassification,
+      ),
+    );
 
     // Sort by submittedAt descending
     items.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
@@ -289,10 +301,14 @@ export const feedbackAdminRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:update');
 
     const items = await buildRemediationQueueItems(app);
+    const failureClassificationSummary = summarizeFailureClassifications(
+      items.flatMap((item) => item.recentFeedback),
+    );
 
     return feedbackRemediationQueueResponseSchema.parse({
       items,
       total: items.length,
+      failureClassificationSummary,
     });
   });
 

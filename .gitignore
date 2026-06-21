@@ -87,3 +87,4 @@ pids/
 # Data directory (generated at runtime)
 data/
 graphify-out/
+.fallow/

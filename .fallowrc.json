@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": [
+    "packages/backend-core/src/index.ts",
+    "packages/cli/src/index.ts",
+    "packages/client-core/src/index.ts",
+    "packages/contracts/src/index.ts",
+    "packages/host-distributed/src/index.ts",
+    "packages/host-local/src/index.ts",
+    "packages/server/src/index.ts",
+    "packages/server/src/worker.ts",
+    "packages/web-panel/index.html",
+    "packages/web-panel/src/main.tsx",
+    "scripts/*.ts",
+    "packages/server/scripts/*.ts",
+    "evals/**/*.ts"
+  ],
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/.fallow/**",
+    "**/*.generated.*",
+    "reports/**",
+    "data/**",
+    "graphify-out/**"
+  ]
+}

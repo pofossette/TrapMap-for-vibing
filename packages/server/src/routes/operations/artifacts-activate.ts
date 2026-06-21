@@ -10,7 +10,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { runOrScheduleSkillIndexFollowUp } from '@trapmap/server/lib/jobs/skill-index-follow-up.js';
+import { scheduleSkillLifecycleFollowUp } from '@trapmap/server/lib/jobs/skill-lifecycle-follow-up.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import {
   requireHigherLevel,
@@ -216,19 +216,20 @@ export const artifactsActivateRoutes: FastifyPluginAsync = async (app) => {
 
     if (previousState && nextState && previousState !== nextState) {
       try {
-        await runOrScheduleSkillIndexFollowUp({
-          services: {
+        await scheduleSkillLifecycleFollowUp(
+          {
             store: app.skillShareer.store,
             ai: app.skillShareer.ai,
             graphQueryBackend: app.skillShareer.graphQueryBackend,
+            asyncTransport: app.skillShareer.asyncTransport,
           },
-          payload: {
+          {
             artifactId,
             previousState,
             nextState,
             reason: 'deactivated',
           },
-        });
+        );
       } catch {
         // Async scheduling failure should not block deactivation response.
       }

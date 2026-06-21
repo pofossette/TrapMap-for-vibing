@@ -8,7 +8,10 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { buildConfigGovernanceSummary } from '@trapmap/server/config.js';
 import { getCacheMetricsSnapshot } from '@trapmap/server/lib/cache/metrics.js';
-import { buildCompatibilityStatusProjection } from '@trapmap/server/lib/operations/read-model.js';
+import {
+  buildCompatibilityStatusProjection,
+  summarizeFailureClassifications,
+} from '@trapmap/server/lib/operations/read-model.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAsyncWorkerState } from '@trapmap/server/lib/runtime/runtime-metadata.js';
@@ -114,6 +117,97 @@ function buildRetryResumeContract() {
   } as const;
 }
 
+function buildDiagnostics(args: {
+  queuePending: number;
+  queueDead: number;
+  queueStaleRunning: number;
+  outboxPending: number;
+  outboxFailed: number;
+  outboxStaleProcessing: number;
+  workflows: Array<{ status: string; lastError: string | null }>;
+  cacheMetrics: ReturnType<typeof getCacheMetricsSnapshot>;
+  badcaseSummary: ReturnType<typeof summarizeFailureClassifications>;
+}) {
+  const evidence: string[] = [];
+  let dominantFailureCategory:
+    | 'stale-projection'
+    | 'permanent-failure'
+    | 'retryable-async-failure'
+    | 'dependency-error'
+    | null = null;
+  let owningSubsystem: 'queue' | 'outbox' | 'workflow' | 'cache' | 'badcase' | 'none' = 'none';
+  let nextInspection = 'No urgent async fault detected; continue routine status checks.';
+
+  const failedWorkflows = args.workflows.filter((workflow) => workflow.status === 'failed').length;
+  const staleCaches = Object.entries(args.cacheMetrics).filter(
+    ([, value]) => value.pendingInvalidation,
+  ).length;
+
+  if (args.queueDead > 0 || args.outboxFailed > 0 || failedWorkflows > 0) {
+    dominantFailureCategory = 'permanent-failure';
+    if (args.queueDead >= args.outboxFailed && args.queueDead >= failedWorkflows) {
+      owningSubsystem = 'queue';
+      nextInspection =
+        'Inspect queue dead letters and the corresponding workflow run before requeue.';
+      evidence.push(`${args.queueDead} dead queue task(s) awaiting manual repair`);
+    } else if (args.outboxFailed >= failedWorkflows) {
+      owningSubsystem = 'outbox';
+      nextInspection = 'Inspect failed outbox events and subscriber errors before replay.';
+      evidence.push(`${args.outboxFailed} failed outbox event(s) blocked`);
+    } else {
+      owningSubsystem = 'workflow';
+      nextInspection = 'Inspect failed workflow runs and their checkpoint stats before replay.';
+      evidence.push(`${failedWorkflows} failed workflow run(s) detected`);
+    }
+  } else if (
+    args.queuePending > 0 ||
+    args.outboxPending > 0 ||
+    args.queueStaleRunning > 0 ||
+    args.outboxStaleProcessing > 0 ||
+    staleCaches > 0
+  ) {
+    dominantFailureCategory = 'stale-projection';
+    if (args.queuePending >= args.outboxPending && args.queuePending > 0) {
+      owningSubsystem = 'queue';
+      nextInspection = 'Inspect queue backlog, worker ownership, and stale leases.';
+      evidence.push(`${args.queuePending} pending queue task(s) delaying convergence`);
+    } else if (args.outboxPending > 0 || args.outboxStaleProcessing > 0) {
+      owningSubsystem = 'outbox';
+      nextInspection = 'Inspect outbox backlog, failed subscribers, and stale processing leases.';
+      evidence.push(`${args.outboxPending} pending outbox event(s) delaying projection refresh`);
+    } else if (staleCaches > 0) {
+      owningSubsystem = 'cache';
+      nextInspection = 'Inspect cache invalidation backlog before replaying manual refreshes.';
+      evidence.push(`${staleCaches} cache namespace(s) still pending invalidation`);
+    }
+  }
+
+  if (args.badcaseSummary.totalClassified > 0) {
+    evidence.push(
+      `badcase dominant classification: ${args.badcaseSummary.dominantClassification ?? 'none'}`,
+    );
+    if (owningSubsystem === 'none') {
+      owningSubsystem = 'badcase';
+      nextInspection =
+        'Inspect badcase classifications to determine whether recall, ranking, or summary remediation is needed.';
+    }
+  }
+
+  if (args.queueStaleRunning > 0 || args.outboxStaleProcessing > 0) {
+    evidence.push(
+      `${args.queueStaleRunning + args.outboxStaleProcessing} stale lease(s) indicate worker reclaim pressure`,
+    );
+  }
+
+  return {
+    dominantFailureCategory,
+    owningSubsystem,
+    nextInspection,
+    evidence: evidence.slice(0, 10),
+    badcaseClassificationSummary: args.badcaseSummary,
+  } as const;
+}
+
 export const statusRoutes: FastifyPluginAsync = async (app) => {
   app.get('/v1/operations/status/async', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
@@ -215,6 +309,17 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
           },
           recentFailures: [],
         },
+        diagnostics: buildDiagnostics({
+          queuePending: 0,
+          queueDead: 0,
+          queueStaleRunning: 0,
+          outboxPending: 0,
+          outboxFailed: 0,
+          outboxStaleProcessing: 0,
+          workflows: [],
+          cacheMetrics,
+          badcaseSummary: summarizeFailureClassifications([]),
+        }),
         cache: cacheMetrics,
         workflows: [],
         bulkOperations,
@@ -232,6 +337,12 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
       transport.events.getStatusSnapshot(),
       workflowRepo.listRecent(25),
     ]);
+    const badcaseRows = await store.getPool().query<{ failure_classification: string | null }>(
+      `SELECT failure_classification
+       FROM retrieval_badcase_traces
+       ORDER BY created_at DESC
+       LIMIT 100`,
+    );
     const queueWorker = (app as any).taskWorker;
     const outboxWorker = (app as any).outboxWorker;
     const queueWorkerState = resolveAsyncWorkerState({
@@ -259,6 +370,21 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
       workflowsInFlight,
       cacheMetrics,
       databaseUrlConfigured: app.skillShareer.config.databaseUrl !== null,
+    });
+    const diagnostics = buildDiagnostics({
+      queuePending: queueSnapshot.pending,
+      queueDead: queueSnapshot.dead,
+      queueStaleRunning: queueSnapshot.staleRunning,
+      outboxPending: outboxSnapshot.pending,
+      outboxFailed: outboxSnapshot.failed,
+      outboxStaleProcessing: outboxSnapshot.staleProcessing,
+      workflows,
+      cacheMetrics,
+      badcaseSummary: summarizeFailureClassifications(
+        badcaseRows.rows.map((row) => ({
+          failureClassification: row.failure_classification,
+        })),
+      ),
     });
 
     return asyncOperationsStatusResponseSchema.parse({
@@ -316,6 +442,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
           ownsOutboxWork: serviceUnitProfile.ownsOutboxWork,
         },
       },
+      diagnostics,
       cache: cacheMetrics,
       workflows,
       bulkOperations,

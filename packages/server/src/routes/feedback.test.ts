@@ -628,6 +628,22 @@ describe('feedback admin routes', () => {
       const body = response.json();
       expect(body.items[0].entryShortcut).toBe('test-trap-shortcut');
     });
+
+    it('surfaces failure classification when present', async () => {
+      await store.transact((data) => {
+        data.feedbackQueue[0]!.failureClassification = 'outdated-content';
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback',
+        headers: { authorization: `Bearer ${adminSessionToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.items[0].failureClassification).toBe('outdated-content');
+    });
   });
 
   describe('GET /v1/operations/feedback/remediation', () => {
@@ -677,6 +693,11 @@ describe('feedback admin routes', () => {
       expect(body.items[0].remediation.status).toBe('pending-human-review');
       expect(body.items[0].remediation.suppressedFromRetrieval).toBe(true);
       expect(body.items[0].sourceSnapshot.trapDetail).toBe('Test trap content');
+      expect(body.failureClassificationSummary).toMatchObject({
+        totalClassified: expect.any(Number),
+        counts: expect.any(Array),
+      });
+      expect(body.failureClassificationSummary).toHaveProperty('dominantClassification');
     });
 
     it('completes remediation by resolving active escalated feedback for an entry', async () => {

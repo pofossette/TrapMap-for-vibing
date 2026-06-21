@@ -18,7 +18,7 @@ import {
   FEEDBACK_REMEDIATION_THRESHOLD,
   getActiveEntryFeedback,
 } from '@trapmap/server/lib/feedback/remediation.js';
-import { runOrScheduleSkillIndexFollowUp } from '@trapmap/server/lib/jobs/skill-index-follow-up.js';
+import { scheduleSkillLifecycleFollowUp } from '@trapmap/server/lib/jobs/skill-lifecycle-follow-up.js';
 import { runPreReview } from '@trapmap/server/lib/pre-review.js';
 import { requirePermission, requireTeamAccess } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
@@ -160,19 +160,20 @@ export const skillEditRoutes: FastifyPluginAsync = async (app) => {
       result.lifecycleTransition &&
       result.lifecycleTransition.from !== result.lifecycleTransition.to
     ) {
-      await runOrScheduleSkillIndexFollowUp({
-        services: {
+      await scheduleSkillLifecycleFollowUp(
+        {
           store: app.skillShareer.store,
           ai: app.skillShareer.ai,
           graphQueryBackend: app.skillShareer.graphQueryBackend,
+          asyncTransport: app.skillShareer.asyncTransport,
         },
-        payload: {
+        {
           artifactId,
           previousState: result.lifecycleTransition.from,
           nextState: result.lifecycleTransition.to,
           reason: 'updated',
         },
-      });
+      );
     }
 
     return skillEditResponseSchema.parse({

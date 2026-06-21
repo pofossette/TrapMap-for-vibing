@@ -1,4 +1,9 @@
-import type { AuditEvent, DecayAwareListItem } from '@trapmap/contracts';
+import type {
+  AuditEvent,
+  DecayAwareListItem,
+  FeedbackFailureClassification,
+  FeedbackListItem,
+} from '@trapmap/contracts';
 
 import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
 import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
@@ -7,6 +12,27 @@ import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type { KnowledgeRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 type FeedbackEntryType = 'trap' | 'skill';
+type FailureClassification = FeedbackFailureClassification;
+
+const FAILURE_CLASSIFICATIONS: FailureClassification[] = [
+  'missing-recall',
+  'ranking-error',
+  'summary-hallucination',
+  'governance-leak',
+  'outdated-content',
+  'other',
+];
+
+export interface FailureClassificationCount {
+  classification: FailureClassification;
+  count: number;
+}
+
+export interface FailureClassificationSummary {
+  totalClassified: number;
+  dominantClassification: FailureClassification | null;
+  counts: FailureClassificationCount[];
+}
 
 function normalizeLegacySlug(shortcut: string): string {
   return shortcut
@@ -200,6 +226,58 @@ export async function buildReviewQueueProjection(
   return {
     items,
     total: items.length,
+  };
+}
+
+export function summarizeFailureClassifications(
+  records: Array<{
+    failureClassification?: string | null;
+  }>,
+): FailureClassificationSummary {
+  const counts = new Map<FailureClassification, number>(
+    FAILURE_CLASSIFICATIONS.map((classification) => [classification, 0]),
+  );
+
+  for (const record of records) {
+    const classification = record.failureClassification;
+    if (!classification || !counts.has(classification as FailureClassification)) {
+      continue;
+    }
+    counts.set(
+      classification as FailureClassification,
+      (counts.get(classification as FailureClassification) ?? 0) + 1,
+    );
+  }
+
+  const countEntries = FAILURE_CLASSIFICATIONS.map((classification) => ({
+    classification,
+    count: counts.get(classification) ?? 0,
+  }));
+  const dominant = [...countEntries]
+    .sort((left, right) => right.count - left.count)
+    .find((entry) => entry.count > 0)?.classification;
+
+  return {
+    totalClassified: countEntries.reduce((sum, entry) => sum + entry.count, 0),
+    dominantClassification: dominant ?? null,
+    counts: countEntries,
+  };
+}
+
+export function toFailureClassificationAwareFeedbackItem(
+  item: FeedbackListItem,
+  failureClassification: string | null | undefined,
+): FeedbackListItem & { failureClassification?: FailureClassification } {
+  if (
+    !failureClassification ||
+    !FAILURE_CLASSIFICATIONS.includes(failureClassification as FailureClassification)
+  ) {
+    return item;
+  }
+
+  return {
+    ...item,
+    failureClassification: failureClassification as FailureClassification,
   };
 }
 

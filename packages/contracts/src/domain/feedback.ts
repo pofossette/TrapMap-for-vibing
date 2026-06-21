@@ -222,6 +222,8 @@ export const feedbackListItemSchema = z.object({
   ageDays: z.number(),
   /** Admin notes added during review */
   adminNotes: z.string().nullable(),
+  /** Optional badcase failure classification */
+  failureClassification: feedbackFailureClassificationSchema.optional(),
 });
 
 /**
@@ -378,6 +380,20 @@ export const feedbackRemediationQueueResponseSchema = z
   .object({
     items: z.array(feedbackRemediationQueueItemSchema),
     total: z.number().int().min(0),
+    failureClassificationSummary: z
+      .object({
+        totalClassified: z.number().int().min(0),
+        dominantClassification: feedbackFailureClassificationSchema.nullable(),
+        counts: z.array(
+          z
+            .object({
+              classification: feedbackFailureClassificationSchema,
+              count: z.number().int().min(0),
+            })
+            .strict(),
+        ),
+      })
+      .strict(),
   })
   .strict();
 
@@ -438,6 +454,7 @@ export const DEFAULT_LIFECYCLE_TRIGGER_RULES: LifecycleTriggerRule[] = [
 
 // Type exports
 export type FeedbackProblemType = z.infer<typeof feedbackProblemTypeSchema>;
+export type FeedbackFailureClassification = z.infer<typeof feedbackFailureClassificationSchema>;
 export type FeedbackCustomAnswer = z.infer<typeof feedbackCustomAnswerSchema>;
 export type FeedbackSubmission = z.infer<typeof feedbackSubmissionSchema>;
 export type FeedbackStatus = z.infer<typeof feedbackStatusSchema>;

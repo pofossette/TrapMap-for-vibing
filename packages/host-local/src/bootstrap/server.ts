@@ -34,6 +34,8 @@ import {
   resolveRuntimeDeployment,
   shouldBootOutboxWorker,
   shouldBootTaskWorker,
+  type OutboxEvent,
+  type TaskHandler,
 } from '@trapmap/backend-core';
 
 import { createInProcessOutboxDispatcher } from '../runtime/outbox.js';
@@ -103,6 +105,12 @@ export interface BootstrapOptions {
 
   /** Retrieval query port */
   retrievalQuery?: RetrievalQueryPort;
+
+  /** Optional concrete task handlers for real in-process queue consumption */
+  taskHandlers?: TaskHandler<unknown>[];
+
+  /** Optional concrete outbox event dispatcher for real in-process outbox consumption */
+  dispatchOutboxEvent?: (event: OutboxEvent) => Promise<void>;
 }
 
 export interface BootstrapResult {
@@ -203,16 +211,22 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<Bootstr
   let outboxDispatcher: RuntimeWorkerHandle | null = null;
 
   if (shouldBootTaskWorker(deployment.runtimeMode)) {
-    taskWorker = createInProcessTaskWorker(options.taskQueue ?? null);
+    taskWorker = createInProcessTaskWorker(options.taskQueue ?? null, {
+      ownsWork: deployment.deploymentProfile === 'team-monolith',
+      handlers: options.taskHandlers ?? [],
+    });
     if (taskWorker) {
-      app.log.info('In-process task worker registered (ownership only)');
+      app.log.info('In-process task worker started');
     }
   }
 
   if (shouldBootOutboxWorker(deployment.runtimeMode)) {
-    outboxDispatcher = createInProcessOutboxDispatcher(options.outbox ?? null);
+    outboxDispatcher = createInProcessOutboxDispatcher(options.outbox ?? null, {
+      ownsWork: deployment.deploymentProfile === 'team-monolith',
+      dispatch: options.dispatchOutboxEvent ?? (async () => {}),
+    });
     if (outboxDispatcher) {
-      app.log.info('In-process outbox dispatcher registered (ownership only)');
+      app.log.info('In-process outbox dispatcher started');
     }
   }
 

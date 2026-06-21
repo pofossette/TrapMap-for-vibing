@@ -6,6 +6,7 @@ import {
   skillArtifactFileSourceSchema,
   skillArtifactSchema,
 } from './artifacts.js';
+import { feedbackFailureClassificationSchema } from './feedback.js';
 import {
   actorRefSchema,
   auditMetadataSchema,
@@ -895,6 +896,28 @@ export const asyncOperationsStatusResponseSchema = z
     capacityModel: capacityModelSummarySchema,
     queue: queueStatusSnapshotSchema,
     outbox: outboxStatusSnapshotSchema,
+    diagnostics: z
+      .object({
+        dominantFailureCategory: asyncFailureCategorySchema.nullable(),
+        owningSubsystem: z.enum(['queue', 'outbox', 'workflow', 'cache', 'badcase', 'none']),
+        nextInspection: z.string().min(1).max(500),
+        evidence: z.array(z.string().min(1).max(500)).max(10),
+        badcaseClassificationSummary: z
+          .object({
+            totalClassified: z.number().int().min(0),
+            dominantClassification: feedbackFailureClassificationSchema.nullable(),
+            counts: z.array(
+              z
+                .object({
+                  classification: feedbackFailureClassificationSchema,
+                  count: z.number().int().min(0),
+                })
+                .strict(),
+            ),
+          })
+          .strict(),
+      })
+      .strict(),
     cache: z.record(z.string(), retrievalCacheNamespaceStatsSchema),
     workflows: z.array(workflowRunSnapshotSchema),
     bulkOperations: z.array(workflowOperatorSummarySchema),
