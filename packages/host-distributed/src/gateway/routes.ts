@@ -208,6 +208,40 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     }
   });
 
+  app.put('/v1/members/:memberId', async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { memberId: string };
+    const validationError = validateBody(request.body, ['actorId']);
+    if (validationError) {
+      return reply.status(400).send(validationError);
+    }
+    const body = request.body as { updates?: Record<string, unknown>; actorId: string };
+    try {
+      const result = await clients.identityAccess.updateMember(params.memberId, {
+        updates: body.updates ?? {},
+        actorId: body.actorId,
+      });
+      return forwardResponse(reply, result);
+    } catch (err: unknown) {
+      request.log.error({ err }, 'identity-access updateMember failed');
+      return reply.status(502).send({ error: 'Identity service unavailable', kind: 'upstream' });
+    }
+  });
+
+  app.post('/v1/access-keys', async (request: FastifyRequest, reply: FastifyReply) => {
+    const validationError = validateBody(request.body, ['memberId', 'actorId']);
+    if (validationError) {
+      return reply.status(400).send(validationError);
+    }
+    const body = request.body as { memberId: string; actorId: string };
+    try {
+      const result = await clients.identityAccess.provisionAccessKey(body);
+      return forwardResponse(reply, result);
+    } catch (err: unknown) {
+      request.log.error({ err }, 'identity-access provisionAccessKey failed');
+      return reply.status(502).send({ error: 'Identity service unavailable', kind: 'upstream' });
+    }
+  });
+
   // ---- Knowledge routes (knowledge-read / knowledge-write) ----
 
   app.get('/v1/knowledge/mine', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -254,6 +288,110 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       return forwardResponse(reply, result);
     } catch (err: unknown) {
       request.log.error({ err }, 'knowledge-write submit failed');
+      return reply.status(502).send({ error: 'Knowledge service unavailable', kind: 'upstream' });
+    }
+  });
+
+  app.put('/v1/knowledge/:entryId', async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { entryId: string };
+    const validationError = validateBody(request.body, ['actorId']);
+    if (validationError) {
+      return reply.status(400).send(validationError);
+    }
+    const body = request.body as { updates?: Record<string, unknown>; actorId: string };
+    try {
+      const result = await clients.knowledgeWrite.updateEntry(params.entryId, {
+        updates: body.updates ?? {},
+        actorId: body.actorId,
+      });
+      return forwardResponse(reply, result);
+    } catch (err: unknown) {
+      request.log.error({ err }, 'knowledge-write updateEntry failed');
+      return reply.status(502).send({ error: 'Knowledge service unavailable', kind: 'upstream' });
+    }
+  });
+
+  app.post(
+    '/v1/knowledge/:entryId/resubmit',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const params = request.params as { entryId: string };
+      const validationError = validateBody(request.body, ['actorId']);
+      if (validationError) {
+        return reply.status(400).send(validationError);
+      }
+      const body = request.body as { actorId: string; note?: string };
+      try {
+        const result = await clients.knowledgeWrite.resubmit(params.entryId, body);
+        return forwardResponse(reply, result);
+      } catch (err: unknown) {
+        request.log.error({ err }, 'knowledge-write resubmit failed');
+        return reply.status(502).send({ error: 'Knowledge service unavailable', kind: 'upstream' });
+      }
+    },
+  );
+
+  app.post(
+    '/v1/knowledge/:entryId/supersede',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const params = request.params as { entryId: string };
+      const validationError = validateBody(request.body, ['replacementId', 'actorId']);
+      if (validationError) {
+        return reply.status(400).send(validationError);
+      }
+      const body = request.body as { replacementId: string; actorId: string };
+      try {
+        const result = await clients.knowledgeWrite.supersede(params.entryId, body);
+        return forwardResponse(reply, result);
+      } catch (err: unknown) {
+        request.log.error({ err }, 'knowledge-write supersede failed');
+        return reply.status(502).send({ error: 'Knowledge service unavailable', kind: 'upstream' });
+      }
+    },
+  );
+
+  app.post('/v1/traps', async (request: FastifyRequest, reply: FastifyReply) => {
+    const validationError = validateBody(request.body, ['content', 'teamId', 'actorId']);
+    if (validationError) {
+      return reply.status(400).send(validationError);
+    }
+    const body = request.body as {
+      content: string;
+      teamId: string;
+      actorId: string;
+      title?: string;
+    };
+    try {
+      const result = await clients.knowledgeWrite.createTrap(body);
+      return forwardResponse(reply, result);
+    } catch (err: unknown) {
+      request.log.error({ err }, 'knowledge-write createTrap failed');
+      return reply.status(502).send({ error: 'Knowledge service unavailable', kind: 'upstream' });
+    }
+  });
+
+  app.get('/v1/traps', async (request: FastifyRequest, reply: FastifyReply) => {
+    const query = request.query as { teamId?: string };
+    if (!query.teamId) {
+      return reply
+        .status(400)
+        .send({ error: 'Missing required query param: teamId', kind: 'validation' });
+    }
+    try {
+      const result = await clients.knowledgeWrite.listTraps(query.teamId);
+      return forwardResponse(reply, result);
+    } catch (err: unknown) {
+      request.log.error({ err }, 'knowledge-write listTraps failed');
+      return reply.status(502).send({ error: 'Knowledge service unavailable', kind: 'upstream' });
+    }
+  });
+
+  app.get('/v1/traps/:trapId', async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { trapId: string };
+    try {
+      const result = await clients.knowledgeWrite.getTrap(params.trapId);
+      return forwardResponse(reply, result);
+    } catch (err: unknown) {
+      request.log.error({ err }, 'knowledge-write getTrap failed');
       return reply.status(502).send({ error: 'Knowledge service unavailable', kind: 'upstream' });
     }
   });
@@ -314,6 +452,58 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     }
   });
 
+  app.get('/v1/candidates', async (request: FastifyRequest, reply: FastifyReply) => {
+    const query = request.query as { status?: string };
+    try {
+      const result = await clients.candidateIngestion.listByStatus(query.status ?? 'received');
+      return forwardResponse(reply, result);
+    } catch (err: unknown) {
+      request.log.error({ err }, 'candidate-ingestion listByStatus failed');
+      return reply.status(502).send({ error: 'Candidate service unavailable', kind: 'upstream' });
+    }
+  });
+
+  app.post(
+    '/v1/candidates/:candidateId/resolution',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const params = request.params as { candidateId: string };
+      const validationError = validateBody(request.body, ['resolution', 'actorId']);
+      if (validationError) {
+        return reply.status(400).send(validationError);
+      }
+      const body = request.body as { resolution: Record<string, unknown>; actorId: string };
+      try {
+        const result = await clients.candidateIngestion.applyResolution(params.candidateId, body);
+        return forwardResponse(reply, result);
+      } catch (err: unknown) {
+        request.log.error({ err }, 'candidate-ingestion applyResolution failed');
+        return reply.status(502).send({ error: 'Candidate service unavailable', kind: 'upstream' });
+      }
+    },
+  );
+
+  app.post(
+    '/v1/candidates/:candidateId/manual-result',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const params = request.params as { candidateId: string };
+      const validationError = validateBody(request.body, ['result', 'actorId']);
+      if (validationError) {
+        return reply.status(400).send(validationError);
+      }
+      const body = request.body as { result: Record<string, unknown>; actorId: string };
+      try {
+        const result = await clients.candidateIngestion.submitManualResult(
+          params.candidateId,
+          body,
+        );
+        return forwardResponse(reply, result);
+      } catch (err: unknown) {
+        request.log.error({ err }, 'candidate-ingestion submitManualResult failed');
+        return reply.status(502).send({ error: 'Candidate service unavailable', kind: 'upstream' });
+      }
+    },
+  );
+
   // ---- Governance routes (governance-review) ----
 
   app.post('/v1/knowledge/review', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -362,6 +552,68 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     } catch (err: unknown) {
       request.log.error({ err }, 'governance-review submitFeedback failed');
       return reply.status(502).send({ error: 'Governance service unavailable', kind: 'upstream' });
+    }
+  });
+
+  app.post('/v1/artifacts/review', async (request: FastifyRequest, reply: FastifyReply) => {
+    const validationError = validateBody(request.body, ['artifactId', 'decision', 'actorId']);
+    if (validationError) {
+      return reply.status(400).send(validationError);
+    }
+    const body = request.body as {
+      artifactId: string;
+      decision: 'approve' | 'reject';
+      actorId: string;
+      note?: string;
+    };
+    try {
+      const result = await clients.governanceReview.reviewArtifact(body);
+      return forwardResponse(reply, result);
+    } catch (err: unknown) {
+      request.log.error({ err }, 'governance-review reviewArtifact failed');
+      return reply.status(502).send({ error: 'Governance service unavailable', kind: 'upstream' });
+    }
+  });
+
+  app.post('/v1/jobs', async (request: FastifyRequest, reply: FastifyReply) => {
+    const validationError = validateBody(request.body, ['type', 'payload']);
+    if (validationError) {
+      return reply.status(400).send(validationError);
+    }
+    const body = request.body as {
+      type: string;
+      payload: unknown;
+      delayMs?: number;
+      priority?: number;
+      maxAttempts?: number;
+    };
+    try {
+      const result = await clients.jobRuntime.schedule(body);
+      return forwardResponse(reply, result);
+    } catch (err: unknown) {
+      request.log.error({ err }, 'job-runtime schedule failed');
+      return reply.status(502).send({ error: 'Job service unavailable', kind: 'upstream' });
+    }
+  });
+
+  app.get('/v1/jobs/:jobId', async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { jobId: string };
+    try {
+      const result = await clients.jobRuntime.getStatus(params.jobId);
+      return forwardResponse(reply, result);
+    } catch (err: unknown) {
+      request.log.error({ err }, 'job-runtime getStatus failed');
+      return reply.status(502).send({ error: 'Job service unavailable', kind: 'upstream' });
+    }
+  });
+
+  app.get('/v1/jobs/queue', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const result = await clients.jobRuntime.getQueueStatus();
+      return forwardResponse(reply, result);
+    } catch (err: unknown) {
+      request.log.error({ err }, 'job-runtime getQueueStatus failed');
+      return reply.status(502).send({ error: 'Job service unavailable', kind: 'upstream' });
     }
   });
 }

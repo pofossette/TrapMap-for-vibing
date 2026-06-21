@@ -231,7 +231,7 @@ export async function buildReviewQueueProjection(
 
 export function summarizeFailureClassifications(
   records: Array<{
-    failureClassification?: string | null;
+    failureClassification?: string | null | undefined;
   }>,
 ): FailureClassificationSummary {
   const counts = new Map<FailureClassification, number>(
@@ -267,7 +267,9 @@ export function summarizeFailureClassifications(
 export function toFailureClassificationAwareFeedbackItem(
   item: FeedbackListItem,
   failureClassification: string | null | undefined,
-): FeedbackListItem & { failureClassification?: FailureClassification } {
+): Omit<FeedbackListItem, 'failureClassification'> & {
+  failureClassification?: FailureClassification | undefined;
+} {
   if (
     !failureClassification ||
     !FAILURE_CLASSIFICATIONS.includes(failureClassification as FailureClassification)
@@ -275,10 +277,9 @@ export function toFailureClassificationAwareFeedbackItem(
     return item;
   }
 
-  return {
-    ...item,
+  return Object.assign({}, item, {
     failureClassification: failureClassification as FailureClassification,
-  };
+  });
 }
 
 function computeAgeDays(lastVerifiedAt: string | null, now: Date): number | null {

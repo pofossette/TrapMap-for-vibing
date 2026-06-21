@@ -231,7 +231,9 @@ export const skillReviewRoutes: FastifyPluginAsync = async (app) => {
           store: app.skillShareer.store,
           ai: app.skillShareer.ai,
           graphQueryBackend: app.skillShareer.graphQueryBackend,
-          asyncTransport: app.skillShareer.asyncTransport,
+          ...(app.skillShareer.asyncTransport
+            ? { asyncTransport: app.skillShareer.asyncTransport }
+            : {}),
         },
         {
           artifactId,

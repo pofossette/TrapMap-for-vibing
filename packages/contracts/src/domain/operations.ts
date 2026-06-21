@@ -6,7 +6,6 @@ import {
   skillArtifactFileSourceSchema,
   skillArtifactSchema,
 } from './artifacts.js';
-import { feedbackFailureClassificationSchema } from './feedback.js';
 import {
   actorRefSchema,
   auditMetadataSchema,
@@ -20,6 +19,7 @@ import {
   sha256HexSchema,
 } from './common.js';
 import { evidenceLevelSchema, evidenceSourceTypeSchema } from './evidence.js';
+import { feedbackFailureClassificationSchema } from './feedback.js';
 import {
   agentReviewResultSchema,
   knowledgeEntrySchema,

@@ -92,6 +92,29 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'host-distributed',
+          root: './packages/host-distributed',
+          include: ['src/**/*.test.ts'],
+        },
+        resolve: {
+          alias: [
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+            {
+              find: '@trapmap/backend-core',
+              replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
+            },
+            {
+              find: '@trapmap/client-core',
+              replacement: resolve(__dirname, './packages/client-core/src/index.ts'),
+            },
+          ],
+        },
+      },
+      {
+        test: {
           name: 'cli',
           root: './packages/cli',
           include: ['src/**/*.test.ts'],

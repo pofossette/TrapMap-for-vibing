@@ -25,6 +25,8 @@ import type {
   TeamLookupPort,
 } from '@trapmap/backend-core';
 import {
+  type OutboxEvent,
+  type TaskHandler,
   createCandidateIngestionModule,
   createGovernanceReviewModule,
   createIdentityAccessModule,
@@ -34,8 +36,6 @@ import {
   resolveRuntimeDeployment,
   shouldBootOutboxWorker,
   shouldBootTaskWorker,
-  type OutboxEvent,
-  type TaskHandler,
 } from '@trapmap/backend-core';
 
 import { createInProcessOutboxDispatcher } from '../runtime/outbox.js';
