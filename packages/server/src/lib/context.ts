@@ -86,6 +86,7 @@ export interface ResolvedAuthContext {
   activeTeamId: string | null;
   securityLevel: number;
   effectivePermissions: Permission[];
+  localSingleUserMode?: boolean;
   user: UserRecord | null;
   membership: MembershipRecord | null;
   team: TeamRecord | null;

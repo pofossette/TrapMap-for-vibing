@@ -34,6 +34,10 @@ export function requireTeamAccess(auth: ResolvedAuthContext, teamId: string): vo
     return;
   }
 
+  if (auth.localSingleUserMode) {
+    return;
+  }
+
   if (auth.activeTeamId !== teamId) {
     throw new AppError(403, 'team_mismatch', 'Active session is not scoped to the requested team');
   }

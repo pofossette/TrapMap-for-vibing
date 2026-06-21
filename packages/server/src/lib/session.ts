@@ -256,6 +256,23 @@ export async function resolveAuthContext(
   const memberships = await repos.membership.listByUser(user.id);
   const membership = findMembershipForTeamFromList(memberships, session.activeTeamId);
 
+  if (!membership && services.runtimeDeployment.capabilities.supportsLocalSingleUserMode) {
+    const team = session.activeTeamId ? await repos.team.getById(session.activeTeamId) : null;
+
+    return {
+      subjectType: 'user',
+      actorId: user.id,
+      handle: user.handle,
+      activeTeamId: session.activeTeamId,
+      securityLevel: Number.MAX_SAFE_INTEGER,
+      effectivePermissions: resolveEffectivePermissions('system-admin', []),
+      localSingleUserMode: true,
+      user,
+      membership: null,
+      team,
+    };
+  }
+
   if (!membership) {
     throw new AppError(
       403,
@@ -277,6 +294,7 @@ export async function resolveAuthContext(
     activeTeamId: membership.teamId,
     securityLevel: membership.securityLevel,
     effectivePermissions,
+    localSingleUserMode: false,
     user,
     membership,
     team,

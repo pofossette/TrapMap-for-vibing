@@ -70,7 +70,7 @@ describe('deployment profile compatibility', () => {
     expect(compatibility.minimumPreset).toBe('api');
   });
 
-  it('resolves local-agent into a minimal gateway capability model', () => {
+  it('resolves local-agent into a governance-capable single-user gateway model', () => {
     const deployment = resolveRuntimeDeployment({
       profile: 'local-agent',
       preset: 'monolith',
@@ -81,12 +81,12 @@ describe('deployment profile compatibility', () => {
       runtimeMode: 'combined',
       serviceUnit: 'full-platform',
       capabilities: {
-        routeSurface: 'minimal-agent',
+        routeSurface: 'gateway-core',
         storagePosture: 'json-store-ok',
         authTeamExpectation: 'single-user',
         supportsLocalSingleUserMode: true,
-        exposesFullHttpApi: false,
-        supportsReviewGovernance: false,
+        exposesFullHttpApi: true,
+        supportsReviewGovernance: true,
       },
     });
   });

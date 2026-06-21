@@ -330,7 +330,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     await outboxWorkerApp.close();
   });
 
-  it('local-agent only exposes minimal retrieval gateway routes', async () => {
+  it('local-agent exposes the governance-capable gateway surface', async () => {
     const app = buildServer({
       config: {
         deployment: {
@@ -354,8 +354,8 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     const routes = await app.inject({ method: 'GET', url: '/meta/routes' });
     expect(routes.statusCode).toBe(200);
     expect(routes.json()).toMatchObject({
-      routeSurface: 'minimal-agent',
-      publicGatewayRouteCount: 3,
+      routeSurface: 'gateway-core',
+      publicGatewayRouteCount: expect.any(Number),
       internalRouteCount: 0,
       topology: {
         deploymentProfile: 'local-agent',
@@ -367,23 +367,21 @@ describe('app.ts live gaps — fm-agent raw report', () => {
       },
       routeFamilies: [
         {
-          kind: 'local-agent-minimal',
+          kind: 'gateway-api',
           audience: 'gateway-public',
         },
       ],
     });
-    expect(routes.json().documentedRoutes).toEqual([
-      'POST /v1/retrieval/search',
-      'POST /v3/retrieval/search',
-      'POST /v1/retrieval/skills/search-by-content',
-    ]);
+    expect(routes.json().documentedRoutes).toContain('POST /v1/feedback');
+    expect(routes.json().documentedRoutes).toContain('GET /v1/knowledge/review-queue');
+    expect(routes.json().documentedRoutes).toContain('POST /v1/knowledge/review');
+    expect(routes.json().documentedRoutes).toContain('GET /v1/duplicates');
+    expect(routes.json().documentedRoutes).toContain(
+      'POST /v1/candidates/:candidateId/manual-result',
+    );
 
     const authResponse = await app.inject({ method: 'GET', url: '/v1/auth/session' });
-    expect(authResponse.statusCode).toBe(501);
-    expect(authResponse.json()).toMatchObject({
-      code: 'capability_unsupported',
-      message: expect.stringContaining('local-agent'),
-    });
+    expect(authResponse.statusCode).not.toBe(501);
 
     const ready = await app.inject({ method: 'GET', url: '/ready' });
     expect(ready.statusCode).toBe(200);

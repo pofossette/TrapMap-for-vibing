@@ -4,13 +4,13 @@ Light-weight local host assembly for TrapMap's `local-agent` and `team-monolith`
 
 ## Purpose
 
-This package assembles the backend-core kernel into a runnable process with an HTTP server and optional in-process worker. It provides the entry point for single-machine TrapMap deployments, replacing the monolithic `packages/server` with a capability-driven host that only wires what the deployment profile requires.
+This package is the local entrypoint for single-machine TrapMap deployments. It now reuses the production `@trapmap/server` runtime assembly so `local-agent` and `team-monolith` share the same feedback, review, duplicate-resolution, and skill-governance behavior.
 
 ## Deployment Profiles
 
 | Profile | Route Surface | Worker | Database | Auth |
 |---|---|---|---|---|
-| `local-agent` | Minimal retrieval-only | None | JSON store OK | Single-user |
+| `local-agent` | Full gateway + governance | In-process when runtime mode owns work | JSON store OK | Single-user full-governance |
 | `team-monolith` | Full gateway | In-process task + outbox | PostgreSQL required | Team auth |
 
 ## Usage
@@ -41,7 +41,7 @@ const handle = await start({
 
 ## Architecture
 
-The host-local package is a **transport and lifecycle assembly only**. It contains no business logic. All domain behavior is delegated to backend-core modules through port interfaces:
+The host-local package is a thin bootstrap wrapper. Runtime behavior comes from `@trapmap/server`, so local deployments and the main server share one route surface and one governance implementation.
 
 ```
 host-local (HTTP, middleware, lifecycle)

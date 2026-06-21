@@ -229,22 +229,22 @@ function resolveDeploymentCapabilities(
 
   if (deploymentProfile === 'local-agent') {
     return {
-      routeSurface: workerStatusOnly ? 'worker-status' : 'minimal-agent',
+      routeSurface: workerStatusOnly ? 'worker-status' : 'gateway-core',
       asyncOwnershipExpectation: 'local-owned',
       storagePosture: 'json-store-ok',
       authTeamExpectation: 'single-user',
       exposesGateway: !workerStatusOnly,
-      exposesFullHttpApi: false,
+      exposesFullHttpApi: !workerStatusOnly,
       supportsLocalSingleUserMode: true,
       supportsJsonStore: true,
       requiresPostgres: false,
       requiresGateway: true,
       requiresAsyncOwnership: false,
       allowsSingleProcess: true,
-      ownsCandidateTaskWork: false,
-      ownsSharedJobTaskWork: false,
-      ownsOutboxWork: false,
-      supportsReviewGovernance: false,
+      ownsCandidateTaskWork,
+      ownsSharedJobTaskWork,
+      ownsOutboxWork,
+      supportsReviewGovernance: !workerStatusOnly,
       supportsTeamAuth: false,
       supportsDistributedRouting: false,
     };

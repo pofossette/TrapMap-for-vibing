@@ -4,6 +4,8 @@ import { buildServer } from './app.js';
 import { loadConfig } from './config.js';
 import { resolveRuntimeDeployment } from './lib/runtime/deployment-profile.js';
 
+export { buildServer } from './app.js';
+
 async function start() {
   const config = loadConfig();
   const runtimeDeployment = resolveRuntimeDeployment({

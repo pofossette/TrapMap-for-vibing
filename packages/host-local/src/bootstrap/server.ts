@@ -1,63 +1,20 @@
-/**
- * HTTP server setup and configuration.
- *
- * Creates a Fastify instance, initializes backend-core modules with
- * the provided port implementations, registers middleware and routes,
- * and starts listening on the configured port.
- *
- * This is the top-level assembly point for the light host.
- */
-
-import Fastify, { type FastifyInstance } from 'fastify';
-
 import type {
   AuditLogPort,
   DeploymentPreset,
   DeploymentProfile,
+  OutboxEvent,
   OutboxPort,
   PermissionCheckPort,
   RepositoryPorts,
   RetrievalQueryPort,
   RuntimeMode,
-  RuntimeWorkerHandle,
   SessionLookupPort,
   TaskQueuePort,
   TeamLookupPort,
 } from '@trapmap/backend-core';
-import {
-  type OutboxEvent,
-  type TaskHandler,
-  createCandidateIngestionModule,
-  createGovernanceReviewModule,
-  createIdentityAccessModule,
-  createJobRuntimeModule,
-  createKnowledgeReadModule,
-  createKnowledgeWriteModule,
-  resolveRuntimeDeployment,
-  shouldBootOutboxWorker,
-  shouldBootTaskWorker,
-} from '@trapmap/backend-core';
-
-import { createInProcessOutboxDispatcher } from '../runtime/outbox.js';
-import { createInProcessTaskWorker } from '../runtime/worker.js';
-import { registerCors, registerErrorHandler, registerRequestLogging } from './middleware.js';
-import { registerRoutes } from './routes.js';
-import {
-  createQueuePorts,
-  createStubAccessKeyRepo,
-  createStubAuditLog,
-  createStubCandidateRepo,
-  createStubFeedbackRepo,
-  createStubKnowledgeRepo,
-  createStubMembershipRepo,
-  createStubPermissionCheck,
-  createStubRetrievalQuery,
-  createStubSessionLookup,
-  createStubSessionRepo,
-  createStubTeamLookup,
-  createStubTeamRepo,
-  createStubUserRepo,
-} from './stubs.js';
+import type { TaskHandler } from '@trapmap/backend-core';
+import { buildServer } from '@trapmap/server';
+import type { FastifyInstance } from 'fastify';
 
 // ---------------------------------------------------------------------------
 // Bootstrap options
@@ -135,123 +92,24 @@ export interface BootstrapResult {
  * 7. Starts listening on the configured port
  */
 export async function bootstrap(options: BootstrapOptions = {}): Promise<BootstrapResult> {
-  // Resolve deployment configuration
-  const deployment = resolveRuntimeDeployment({
-    profile: options.deploymentProfile,
-    preset: options.deploymentPreset ?? 'monolith',
-    ...(options.runtimeMode !== undefined ? { runtimeMode: options.runtimeMode } : {}),
+  const app = buildServer({
+    runtimeMode: options.runtimeMode,
+    config: {
+      deployment: {
+        profile: options.deploymentProfile,
+        preset: options.deploymentPreset ?? 'monolith',
+        compatibility: undefined as never,
+        resolved: undefined as never,
+      },
+    } as never,
   });
 
-  // Create Fastify instance
-  const app = Fastify({
-    logger: {
-      level: options.logLevel ?? 'info',
-    },
-  });
-
-  // Resolve port implementations with safe defaults
-  const repos = options.repos ?? null;
-  const sessionLookup = options.sessionLookup ?? createStubSessionLookup();
-  const teamLookup = options.teamLookup ?? createStubTeamLookup();
-  const permissionCheck = options.permissionCheck ?? createStubPermissionCheck();
-  const auditLog = options.auditLog ?? createStubAuditLog();
-  const retrievalQuery = options.retrievalQuery ?? createStubRetrievalQuery();
-
-  // Initialize backend-core modules
-  const modules = {
-    identityAccess: createIdentityAccessModule({
-      sessionRepo: repos?.session ?? createStubSessionRepo(),
-      accessKeyRepo: repos?.accessKey ?? createStubAccessKeyRepo(),
-      teamRepo: repos?.team ?? createStubTeamRepo(),
-      membershipRepo: repos?.membership ?? createStubMembershipRepo(),
-      userRepo: repos?.user ?? createStubUserRepo(),
-      sessionLookup,
-      teamLookup,
-      permissionCheck,
-      auditLog,
-    }),
-    knowledgeRead: createKnowledgeReadModule({
-      knowledgeRepo: repos?.knowledge ?? createStubKnowledgeRepo(),
-      retrievalQuery,
-    }),
-    knowledgeWrite: createKnowledgeWriteModule({
-      knowledgeRepo: repos?.knowledge ?? createStubKnowledgeRepo(),
-      auditLog,
-    }),
-    candidateIngestion: createCandidateIngestionModule({
-      candidateRepo: repos?.candidate ?? createStubCandidateRepo(),
-      auditLog,
-    }),
-    governanceReview: createGovernanceReviewModule({
-      knowledgeRepo: repos?.knowledge ?? createStubKnowledgeRepo(),
-      feedbackRepo: repos?.feedback ?? createStubFeedbackRepo(),
-      auditLog,
-    }),
-    jobRuntime: createJobRuntimeModule({
-      queuePorts: createQueuePorts(options.taskQueue, options.outbox),
-      auditLog,
-    }),
-  };
-
-  // Register middleware
-  registerRequestLogging(app);
-  registerCors(app);
-  registerErrorHandler(app);
-
-  // Register routes based on deployment profile
-  registerRoutes({
-    app,
-    deployment,
-    repos,
-    modules,
-  });
-
-  // Optionally start in-process workers
-  let taskWorker: RuntimeWorkerHandle | null = null;
-  let outboxDispatcher: RuntimeWorkerHandle | null = null;
-
-  if (shouldBootTaskWorker(deployment.runtimeMode)) {
-    taskWorker = createInProcessTaskWorker(options.taskQueue ?? null, {
-      ownsWork: deployment.deploymentProfile === 'team-monolith',
-      handlers: options.taskHandlers ?? [],
-    });
-    if (taskWorker) {
-      app.log.info('In-process task worker started');
-    }
-  }
-
-  if (shouldBootOutboxWorker(deployment.runtimeMode)) {
-    outboxDispatcher = createInProcessOutboxDispatcher(options.outbox ?? null, {
-      ownsWork: deployment.deploymentProfile === 'team-monolith',
-      dispatch: options.dispatchOutboxEvent ?? (async () => {}),
-    });
-    if (outboxDispatcher) {
-      app.log.info('In-process outbox dispatcher started');
-    }
-  }
-
-  // Start listening
   const port = options.port ?? 4000;
   const host = options.host ?? '0.0.0.0';
   await app.listen({ port, host });
 
-  app.log.info(
-    {
-      port,
-      host,
-      profile: deployment.deploymentProfile,
-      runtimeMode: deployment.runtimeMode,
-      routeSurface: deployment.capabilities.routeSurface,
-    },
-    'Light host started',
-  );
-
   return {
     app,
-    close: async () => {
-      taskWorker?.stop();
-      outboxDispatcher?.stop();
-      await app.close();
-    },
+    close: async () => app.close(),
   };
 }

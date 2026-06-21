@@ -147,7 +147,7 @@ pnpm dev:local-agent
 三种正式开发入口：
 
 ```bash
-pnpm dev:local-agent                    # 单用户、最小 retrieval-first gateway
+pnpm dev:local-agent                    # 单用户、本地完整治理 gateway（JSON store 可用）
 pnpm dev:team-monolith                  # 小团队/单实例完整 gateway
 pnpm dev:distributed:gateway            # distributed gateway
 pnpm dev:distributed:candidate-worker   # distributed candidate worker

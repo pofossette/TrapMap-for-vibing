@@ -32,7 +32,7 @@
 
 三种目标 profile 的当前定义：
 
-- `local-agent`：单用户、轻量本地服务、retrieval-first；CLI 仍通过 HTTP gateway 接入，路由面应尽量收敛到最小能力集。
+- `local-agent`：单用户、本地服务、完整质量治理；CLI 仍通过 HTTP gateway 接入，但现在可直接使用 feedback、review、duplicates、manual-resolution 与 skill review 流程。
 - `team-monolith`：单实例、多用户、完整 HTTP API，PostgreSQL 是主路径，可按需要把 API/worker 组合在同一进程。
 - `distributed`：gateway + 多服务/多 worker，首期仍共享 PostgreSQL；CLI 仍只连接 gateway。
 
@@ -58,7 +58,7 @@ CLI 接入语义在这三个 profile 下保持一致：
 - CLI 只连接统一 gateway。
 - `team-monolith` 中 gateway 与内部实现可同进程。
 - `distributed` 中 gateway 可以把请求路由到内部 service/worker，但 CLI 不感知这些拆分。
-- `local-agent` 仍通过 HTTP gateway 接入，只保留 retrieval-first 的最小外部面。
+- `local-agent` 仍通过 HTTP gateway 接入，并暴露与本地质量闭环相关的完整治理面。
 - 对于被当前 profile 裁剪掉的 route family，gateway 返回 `501 capability_unsupported`，而不是把缺失能力伪装成普通 `404`。
 
 当前阶段的明确非目标：
@@ -80,7 +80,7 @@ CLI 接入语义在这三个 profile 下保持一致：
 
 | Profile | 推荐入口 | 说明 |
 |------|------|------|
-| `local-agent` | `pnpm dev:local-agent` | 单用户、轻量 gateway、retrieval-first，不要求完整治理链路 |
+| `local-agent` | `pnpm dev:local-agent` | 单用户、本地 gateway、支持完整治理链路与 JSON store |
 | `team-monolith` | `pnpm dev:team-monolith` 或 `docker compose up -d` | 单实例、多用户、完整 HTTP API 与 PostgreSQL 主路径；compose 默认启动统一 gateway |
 | `distributed` | `pnpm dev:distributed:*` 或 `docker compose --profile distributed up -d` | gateway + 多 worker，CLI 仍只连接 gateway |
 
@@ -88,7 +88,7 @@ CLI 接入语义在这三个 profile 下保持一致：
 
 当前代码已经把对操作者的正式入口收敛到三种 profile：
 
-- `local-agent`：单进程、单用户、最小 retrieval-first gateway
+- `local-agent`：单进程、单用户、完整本地治理 gateway
 - `team-monolith`：单进程 gateway，必要时在同进程内拥有 task/outbox runtime
 - `distributed`：gateway + candidate/governance/outbox worker，多进程但首期仍共享 PostgreSQL
 

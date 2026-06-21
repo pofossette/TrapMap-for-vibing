@@ -38,7 +38,7 @@ describe('runtime/capability-model', () => {
         preset: 'monolith',
       });
       expect(resolved.deploymentProfile).toBe('local-agent');
-      expect(resolved.capabilities.routeSurface).toBe('minimal-agent');
+      expect(resolved.capabilities.routeSurface).toBe('gateway-core');
       expect(resolved.capabilities.supportsLocalSingleUserMode).toBe(true);
       expect(resolved.capabilities.requiresPostgres).toBe(false);
     });
@@ -205,21 +205,10 @@ describe('runtime/route-surface', () => {
     expect(families[0]!.kind).toBe('worker-status');
   });
 
-  it('resolveRouteFamilies returns local-agent-minimal for minimal-agent surface', () => {
-    const families = resolveRouteFamilies('minimal-agent', false);
-    expect(families).toHaveLength(1);
-    expect(families[0]!.kind).toBe('local-agent-minimal');
-  });
-
   it('resolveRouteFamilies returns gateway-api for gateway-core surface', () => {
     const families = resolveRouteFamilies('gateway-core', false);
     expect(families).toHaveLength(1);
     expect(families[0]!.kind).toBe('gateway-api');
-  });
-
-  it('getUnsupportedRouteDescriptors returns descriptors for minimal-agent', () => {
-    const descriptors = getUnsupportedRouteDescriptors('minimal-agent');
-    expect(descriptors.length).toBeGreaterThan(0);
   });
 
   it('getUnsupportedRouteDescriptors returns empty for gateway-core', () => {

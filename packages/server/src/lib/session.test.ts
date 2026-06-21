@@ -152,6 +152,61 @@ describe('session.ts repository operations', () => {
     });
   });
 
+  describe('resolveAuthContext local-agent single-user mode', () => {
+    it('grants full local governance access without team membership in local-agent mode', async () => {
+      const token = 'local-agent-session-token';
+      const tokenHash = hashSecret(token);
+      const localAgentApp = buildServer({
+        config: {
+          dataFile: `/tmp/trapmap-test-session-local-agent-${Date.now()}-${Math.random()}.json`,
+          deployment: {
+            profile: 'local-agent',
+            preset: 'monolith',
+            compatibility: undefined as never,
+            resolved: undefined as never,
+          },
+        } as never,
+      });
+      await localAgentApp.ready();
+
+      try {
+        await localAgentApp.skillShareer.store.transact(async (data) => {
+          data.users.push({
+            id: 'local_user',
+            handle: 'local-user',
+            notes: null,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          });
+
+          data.sessions.push({
+            id: 'session_local',
+            userId: 'local_user',
+            tokenHash,
+            activeTeamId: null,
+            subjectType: 'user',
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+            expiresAt: new Date(Date.now() + 3600000).toISOString(),
+          });
+        });
+
+        const auth = await resolveAuthContext(localAgentApp.skillShareer, {
+          headers: { authorization: `Bearer ${token}` },
+        } as any);
+
+        expect(auth.subjectType).toBe('user');
+        expect(auth.actorId).toBe('local_user');
+        expect(auth.localSingleUserMode).toBe(true);
+        expect(auth.membership).toBeNull();
+        expect(auth.effectivePermissions).toContain('knowledge:review');
+        expect(auth.effectivePermissions).toContain('knowledge:update');
+      } finally {
+        await localAgentApp.close();
+      }
+    });
+  });
+
   describe('findAccessKeyByToken', () => {
     it('finds access key via repository', async () => {
       const plainToken = 'test-access-key-repo-001';

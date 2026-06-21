@@ -234,10 +234,6 @@ export function buildRouteSurfaceSummary(runtimeDeployment: ResolvedRuntimeDeplo
 export function getUnsupportedRouteDescriptors(
   routeSurface: DeploymentRouteSurface,
 ): readonly UnsupportedRouteDescriptor[] {
-  if (routeSurface === 'minimal-agent') {
-    return localAgentUnsupportedRoutes;
-  }
-
   if (routeSurface === 'worker-status') {
     return workerOnlyUnsupportedRoutes;
   }
