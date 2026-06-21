@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  fallow-pr-audit:
-    if: github.event_name == 'pull_request'
+  fallow-push-audit:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Audit new static analysis issues in changed files
-        run: pnpm exec fallow audit --base origin/${{ github.base_ref }} --gate new-only --ci --fail-on-issues
+        run: pnpm exec fallow audit --base ${{ github.event.before }} --gate new-only --ci --fail-on-issues
 
   typecheck:
     runs-on: ubuntu-latest
