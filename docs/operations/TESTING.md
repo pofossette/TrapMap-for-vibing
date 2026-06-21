@@ -316,6 +316,14 @@ pnpm check:complexity
 
 CI 中由 `architecture-guardrails` 和 `doc-rules` jobs 自动执行。本地开发时可在改动 Mermaid 图、热点文件或架构文档后手动运行。
 
+PR CI 还会运行一层增量 `fallow` 守卫，只检查相对基线分支新增的静态问题：
+
+```bash
+pnpm exec fallow audit --base origin/main --gate new-only --ci --fail-on-issues
+```
+
+它用于补充未使用导出/文件、重复代码、循环依赖和 changed-files 健康审计，不替代 `pnpm check:complexity`。
+
 ### Runtime Foundations Verification
 
 当改动 request context、health/readiness、shared resilience、queue/outbox worker 可靠性时，至少运行以下验证矩阵：

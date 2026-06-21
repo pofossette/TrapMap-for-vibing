@@ -13,10 +13,11 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 
 ## CI 流水线（ci.yml）
 
-六个并行 job，无依赖关系：
+默认有七个并行 job，其中 `fallow-pr-audit` 仅在 PR 事件触发，无依赖关系：
 
 | Job | 命令 | 说明 |
 |-----|------|------|
+| `fallow-pr-audit` | `pnpm exec fallow audit --base origin/<base-branch> --gate new-only --ci --fail-on-issues` | PR 增量静态质量门，只阻断相对基线分支新增的问题 |
 | `typecheck` | `pnpm typecheck` | TypeScript 类型检查 |
 | `check` | `pnpm check` | Biome 代码检查（lint + format） |
 | `test` | `pnpm test` | 全量单元测试 |
@@ -29,11 +30,18 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 
 Runtime foundations 相关改动主要依赖以下 job 组合形成质量门：
 
+- `fallow-pr-audit`: changed-files 级别的静态质量回归守卫（dead code / dupes / circular deps / health audit）
 - `typecheck`: runtime config / shared resilience 类型面
 - `test`: request context、runtime snapshot、shared resilience 单测
 - `postgres-integration`: queue + outbox + lifecycle subscriber 真实 PG 可靠性链路
 - `architecture-guardrails`: runtime 文档契约与复杂度守卫
 - `doc-rules`: docs drift、Mermaid 和仓库结构守卫
+
+`fallow-pr-audit` 只在 `pull_request` 事件运行，并以 PR 基线分支为参照执行增量审计：
+
+- 只检查 changed-files 范围内的新问题，不因历史存量问题直接阻断 PR。
+- 适合作为 `typecheck` / `test` / `check` 之外的补位守卫，补充未使用导出/文件、重复代码、循环依赖和变更面健康审计。
+- 当前没有用它替代 `pnpm check:complexity` 或文档守卫；这些仓库定制规则仍由现有 jobs 负责。
 
 `architecture-guardrails` job 运行文档漂移守卫（`pnpm check:docs-drift`）和复杂度预算守卫（`pnpm check:complexity`），确保关键文档不含过时内容且热点文件未超出行数预算。漂移规则覆盖以下类别：
 
