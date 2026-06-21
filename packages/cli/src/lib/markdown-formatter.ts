@@ -119,9 +119,9 @@ function formatCapsuleFallback(
       capsules: Array<{
         capsuleId: string;
         artifactId: string;
-        situation: string;
-        problem: string;
-        goal: string;
+        situation: string | null;
+        problem: string | null;
+        goal: string | null;
         labels: string[];
         scope: string;
         score: number;
@@ -136,9 +136,9 @@ function formatCapsuleFallback(
   if (capsules.length === 0) return 'No capsules found.';
 
   const lines = capsules.map((cap, i) => {
-    const situation = truncateText(escapeMarkdown(cap.situation), maxLen);
-    const problem = truncateText(escapeMarkdown(cap.problem), maxLen);
-    const goal = truncateText(escapeMarkdown(cap.goal), maxLen);
+    const situation = truncateText(escapeMarkdown(cap.situation ?? 'n/a'), maxLen);
+    const problem = truncateText(escapeMarkdown(cap.problem ?? 'n/a'), maxLen);
+    const goal = truncateText(escapeMarkdown(cap.goal ?? 'n/a'), maxLen);
     return [
       `${i + 1}. **${escapeMarkdown(cap.capsuleId)}** (score: ${cap.score.toFixed(2)})`,
       `   - Situation: ${situation}`,

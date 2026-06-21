@@ -93,7 +93,7 @@ export interface BootstrapResult {
  */
 export async function bootstrap(options: BootstrapOptions = {}): Promise<BootstrapResult> {
   const app = buildServer({
-    runtimeMode: options.runtimeMode,
+    ...(options.runtimeMode !== undefined ? { runtimeMode: options.runtimeMode } : {}),
     config: {
       deployment: {
         profile: options.deploymentProfile,

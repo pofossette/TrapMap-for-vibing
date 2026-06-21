@@ -355,7 +355,7 @@ export const feedbackRemediationSourceSnapshotSchema = z
         z
           .object({
             capsuleId: entityIdSchema,
-            problem: z.string().min(1),
+            problem: z.string().min(1).nullable(),
             content: z.string().min(1),
           })
           .strict(),

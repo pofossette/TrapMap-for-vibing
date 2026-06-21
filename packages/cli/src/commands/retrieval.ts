@@ -12,6 +12,7 @@ interface RetrievalCommandOptions {
 }
 
 type RetrievalMatch = NonNullable<RetrievalResponse['globalConstraints'][number]>;
+type RetrievalV2Capsule = RetrievalV2Response['capsules'][number];
 
 /**
  * Format conflict hints for display.
@@ -60,25 +61,13 @@ function formatMatch(match: RetrievalMatch): string {
  * Format a capsule match for text output (Phase 14 v2 retrieval).
  * Renders capsule-first distilled sections without exposing bundle payloads (T-14-11).
  */
-function formatCapsuleMatch(capsule: {
-  capsuleId: string;
-  artifactId: string;
-  situation: string;
-  problem: string;
-  goal: string;
-  labels: string[];
-  scope: string;
-  requiredLevel: number;
-  score: number;
-  reason: string;
-  conflicts?: ConflictHint[] | undefined;
-}): string {
+function formatCapsuleMatch(capsule: RetrievalV2Capsule): string {
   const lines = [
     `${capsule.capsuleId}`,
     `Artifact: ${capsule.artifactId}`,
-    `Situation: ${capsule.situation}`,
-    `Problem: ${capsule.problem}`,
-    `Goal: ${capsule.goal}`,
+    `Situation: ${capsule.situation ?? 'n/a'}`,
+    `Problem: ${capsule.problem ?? 'n/a'}`,
+    `Goal: ${capsule.goal ?? 'n/a'}`,
     `Labels: ${capsule.labels.join(', ')}`,
     `Scope: ${capsule.scope} (level ${capsule.requiredLevel})`,
     `Score: ${capsule.score.toFixed(2)}`,

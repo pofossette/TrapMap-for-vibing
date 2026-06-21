@@ -53,15 +53,15 @@ describe('buildRuntimeStatusSnapshot', () => {
       serviceUnit: 'full-platform',
       deployment: {
         profile: 'local-agent',
-        routeSurface: 'minimal-agent',
+        routeSurface: 'gateway-core',
         storagePosture: 'json-store-ok',
-        publicGatewayRouteCount: 3,
+        publicGatewayRouteCount: 56,
         internalRouteCount: 0,
       },
     });
     expect(snapshot.dependencies.deployment.routeFamilies).toEqual([
       expect.objectContaining({
-        kind: 'local-agent-minimal',
+        kind: 'gateway-api',
         audience: 'gateway-public',
       }),
     ]);
@@ -454,13 +454,13 @@ describe('buildRuntimeStatusSnapshot', () => {
       currentService: {
         name: 'gateway',
         surface: 'gateway-public',
-        routeFamilies: ['local-agent-minimal'],
+        routeFamilies: ['gateway-api'],
       },
     });
     expect(snapshot.dependencies.deployment).toMatchObject({
       profile: 'local-agent',
-      routeSurface: 'minimal-agent',
-      publicGatewayRouteCount: 3,
+      routeSurface: 'gateway-core',
+      publicGatewayRouteCount: 56,
       internalRouteCount: 0,
     });
   });
