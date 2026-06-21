@@ -195,7 +195,7 @@ export function computeSituationScore(
   intent: ParsedIntent,
   capsule: DerivedSkillCapsuleRecord,
 ): number {
-  if (!intent.situation) {
+  if (!intent.situation || !capsule.situation) {
     return 0;
   }
   return computeTextSimilarity(intent.situation, capsule.situation);
@@ -218,10 +218,10 @@ export function computeProblemScore(
 
   if (!queryText) {
     // Fall back to normalized seed
-    return computeTextSimilarity(intent.normalized, capsule.problem);
+    return capsule.problem ? computeTextSimilarity(intent.normalized, capsule.problem) : 0;
   }
 
-  return computeTextSimilarity(queryText, capsule.problem);
+  return capsule.problem ? computeTextSimilarity(queryText, capsule.problem) : 0;
 }
 
 /**
@@ -232,7 +232,7 @@ export function computeProblemScore(
  * @returns Goal match score [0, 1]
  */
 export function computeGoalScore(intent: ParsedIntent, capsule: DerivedSkillCapsuleRecord): number {
-  if (!intent.goal) {
+  if (!intent.goal || !capsule.goal) {
     return 0;
   }
   return computeTextSimilarity(intent.goal, capsule.goal);
@@ -276,7 +276,10 @@ export function computeStackPathBoost(
     return 1.0;
   }
 
-  const capsuleText = `${capsule.content} ${capsule.situation} ${capsule.problem}`.toLowerCase();
+  const capsuleText = [capsule.content, capsule.situation, capsule.problem]
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .join(' ')
+    .toLowerCase();
 
   let matchCount = 0;
   for (const hint of intent.stackPathHints) {

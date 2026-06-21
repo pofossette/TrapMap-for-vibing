@@ -193,94 +193,9 @@ function detectError(seed: string): string | null {
 }
 
 /**
- * Extract situation context from seed.
- * Looks for action-oriented phrases like "when deploying", "while running", etc.
- *
- * @param seed - The seed text
- * @param tokens - Normalized tokens
- * @returns Extracted situation or null
- */
-function extractSituation(seed: string, _tokens: NormalizedToken[]): string | null {
-  const situationPatterns = [
-    /when\s+(\w+ing\s+.+?)(?:,|\.|\?|$)/i,
-    /while\s+(\w+ing\s+.+?)(?:,|\.|\?|$)/i,
-    /during\s+(\w+ing\s+.+?)(?:,|\.|\?|$)/i,
-    /after\s+(\w+ing\s+.+?)(?:,|\.|\?|$)/i,
-    /before\s+(\w+ing\s+.+?)(?:,|\.|\?|$)/i,
-  ];
-
-  for (const pattern of situationPatterns) {
-    const match = seed.match(pattern);
-    if (match?.[1]) {
-      return match[1].trim();
-    }
-  }
-
-  return null;
-}
-
-/**
- * Extract problem statement from seed.
- * Looks for complaint-style phrases.
- *
- * @param seed - The seed text
- * @param tokens - Normalized tokens
- * @returns Extracted problem or null
- */
-function extractProblem(seed: string, _tokens: NormalizedToken[]): string | null {
-  const problemPatterns = [
-    /(?:my|the)\s+(.+?)\s+(?:fails?|crashes?|errors?|broken|not working|doesn'?t work)/i,
-    /(.+?)\s+(?:fails?|crashes?|errors?|broken)/i,
-    /problem\s+(?:is|with)\s+(.+?)(?:\.|,|$)/i,
-    /issue\s+(?:is|with)\s+(.+?)(?:\.|,|$)/i,
-  ];
-
-  for (const pattern of problemPatterns) {
-    const match = seed.match(pattern);
-    if (match?.[1]) {
-      return match[1].trim();
-    }
-  }
-
-  // If we detected an error, use that as the problem
-  const error = detectError(seed);
-  if (error) {
-    return error;
-  }
-
-  return null;
-}
-
-/**
- * Extract goal/intent from seed.
- * Looks for question-style or intent phrases.
- *
- * @param seed - The seed text
- * @param tokens - Normalized tokens
- * @returns Extracted goal or null
- */
-function extractGoal(seed: string, _tokens: NormalizedToken[]): string | null {
-  const goalPatterns = [
-    /how\s+(?:do\s+i|can\s+i|to)\s+(.+?)(?:\?|\.|$)/i,
-    /(?:i\s+want|i\s+need|i'd\s+like)\s+(?:to\s+)?(.+?)(?:\.|,|$)/i,
-    /(?:trying|attempting)\s+(?:to\s+)?(.+?)(?:\.|,|but|$)/i,
-    /configure\s+(.+?)(?:\?|\.|$)/i,
-    /set\s+up\s+(.+?)(?:\?|\.|$)/i,
-  ];
-
-  for (const pattern of goalPatterns) {
-    const match = seed.match(pattern);
-    if (match?.[1]) {
-      return match[1].trim();
-    }
-  }
-
-  return null;
-}
-
-/**
  * Parse a natural-language seed into structured intent fields (RETR-02).
- * This is a deterministic, heuristic-based parser that runs without external dependencies.
+ * This fallback parser only extracts explicit structural signals that are
+ * safe to derive without semantic interpretation.
  *
  * The ParsedIntent result is server-internal and NOT part of the client contract.
  * This ensures RETR-01 compliance - clients only send seed, server handles decomposition.
@@ -316,18 +231,14 @@ export function parseSeedIntent(seed: string): ParsedIntent {
   // Extract stack and path hints
   const stackPathHints = extractStackPathHints(normalized);
 
-  // Extract structured intent fields
-  const situation = extractSituation(seed, tokens);
-  const problem = extractProblem(seed, tokens);
-  const goal = extractGoal(seed, tokens);
   const errorText = detectError(seed);
 
   return {
     seed,
     normalized,
-    situation,
-    problem,
-    goal,
+    situation: null,
+    problem: null,
+    goal: null,
     errorText,
     tokens,
     stackPathHints,

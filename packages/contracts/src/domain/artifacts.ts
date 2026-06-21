@@ -170,12 +170,12 @@ export const skillCapsuleSchema = z
     sourcePaths: z.array(canonicalPathSchema).min(1),
     /** Distilled capsule content (text only, no asset/script bodies) */
     content: z.string().min(1).max(5000),
-    /** Situation context */
-    situation: z.string().min(1).max(1000),
-    /** Problem statement */
-    problem: z.string().min(1).max(1000),
-    /** Goal or solution */
-    goal: z.string().min(1).max(1000),
+    /** Situation context when explicitly extracted or inferred */
+    situation: z.string().min(1).max(1000).nullable(),
+    /** Problem statement when explicitly extracted or inferred */
+    problem: z.string().min(1).max(1000).nullable(),
+    /** Goal or solution when explicitly extracted or inferred */
+    goal: z.string().min(1).max(1000).nullable(),
     /** Optional error text for error-specific capsules */
     errorText: z.string().max(500).nullable().optional(),
     /** LLM-generated contextual prefix for improved retrieval (Anthropic Contextual Retrieval) */

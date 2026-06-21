@@ -208,7 +208,8 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
 
       // Assert deterministic outputs
       expect(derived1.sourceHash).toBe(derived2.sourceHash);
-      expect(derived1.profile?.contentHash).toBe(derived2.profile?.contentHash);
+      expect(derived1.profile).toBeNull();
+      expect(derived2.profile).toBeNull();
 
       // Check capsules have stable IDs
       expect(derived1.capsules).toHaveLength(derived2.capsules.length);
@@ -216,8 +217,8 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
         expect(derived1.capsules[i]?.capsuleId).toBe(derived2.capsules[i]?.capsuleId);
       }
 
-      // Check reference paths are ordered
-      expect(derived1.profile?.referencePaths).toEqual([
+      // Check reference paths are ordered in client manifest
+      expect(derived1.clientManifest?.references.map((item) => item.path)).toEqual([
         'references/docker-trap.md',
         'references/node-version-bug.md',
       ]);
@@ -250,51 +251,22 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
     it('should include only SKILL.md and references/ in profile and capsules', () => {
       const derived = deriveSkillArtifactOutputs(artifact, revision);
 
-      // Profile should exist
-      expect(derived.profile).toBeDefined();
-      expect(derived.profile?.artifactId).toBe(artifact.id);
-      expect(derived.profile?.revision).toBe(revision.revision);
+      // Legacy derivation must not invent retrieval semantics.
+      expect(derived.profile).toBeNull();
+      expect(derived.capsules).toEqual([]);
 
-      // Profile reference paths should only include references/
-      expect(derived.profile?.referencePaths).toEqual([
+      // Client manifest should still expose deterministic reference metadata.
+      expect(derived.clientManifest?.references.map((item) => item.path)).toEqual([
         'references/docker-trap.md',
         'references/node-version-bug.md',
       ]);
-
-      // Profile should not include assets or scripts
-      expect(derived.profile?.referencePaths).not.toContain('assets/docker-compose.yml');
-      expect(derived.profile?.referencePaths).not.toContain('scripts/setup.sh');
-
-      // Capsules should exist
-      expect(derived.capsules.length).toBeGreaterThan(0);
-
-      // Each capsule should only reference SKILL.md or references/
-      for (const capsule of derived.capsules) {
-        for (const path of capsule.sourcePaths) {
-          const file = revision.files.find((f) => f.path === path);
-          expect(file).toBeDefined();
-          expect(file?.includeInDerivation).toBe(true);
-          expect(file?.source).toMatch(/^(SKILL\.md|references\/)$/);
-        }
-      }
     });
 
     it('should explicitly exclude assets/ and scripts/ from profile and capsule content', () => {
       const derived = deriveSkillArtifactOutputs(artifact, revision);
 
-      // Check profile doesn't reference assets or scripts
-      for (const path of derived.profile?.referencePaths ?? []) {
-        expect(path).not.toMatch(/^assets\//);
-        expect(path).not.toMatch(/^scripts\//);
-      }
-
-      // Check capsules don't reference assets or scripts
-      for (const capsule of derived.capsules) {
-        for (const path of capsule.sourcePaths) {
-          expect(path).not.toMatch(/^assets\//);
-          expect(path).not.toMatch(/^scripts\//);
-        }
-      }
+      expect(derived.profile).toBeNull();
+      expect(derived.capsules).toEqual([]);
     });
   });
 
@@ -405,15 +377,13 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
 
       // Verify derived outputs are cached on latestRevision
       expect(updatedArtifact.latestRevision.derived).toBeDefined();
-      expect(updatedArtifact.latestRevision.derived?.profile).toBeDefined();
+      expect(updatedArtifact.latestRevision.derived?.profile).toBeNull();
       expect(updatedArtifact.latestRevision.derived?.capsules).toBeDefined();
       expect(updatedArtifact.latestRevision.derived?.clientManifest).toBeDefined();
 
       // Verify hashes match
       expect(updatedArtifact.latestRevision.derived?.sourceHash).toBe(derived.sourceHash);
-      expect(updatedArtifact.latestRevision.derived?.profile?.contentHash).toBe(
-        derived.profile?.contentHash,
-      );
+      expect(updatedArtifact.latestRevision.derived?.profile).toBe(derived.profile);
     });
 
     it('should cache derived outputs by sourceHash for downstream consumption', async () => {
@@ -433,8 +403,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
       expect(updatedArtifact.latestRevision.derived?.derivedAt).toBeDefined();
       expect(updatedArtifact.latestRevision.derived?.derivedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
 
-      // All derived components should share the same source hash
-      expect(updatedArtifact.latestRevision.derived?.profile?.sourceHash).toBe(derived.sourceHash);
+      // Client manifest should share the same source hash
       expect(updatedArtifact.latestRevision.derived?.clientManifest?.sourceHash).toBe(
         derived.sourceHash,
       );
@@ -455,9 +424,6 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
         expect(capsule.scope).toBe(artifact.scope);
         expect(capsule.requiredLevel).toBe(artifact.requiredLevel);
       }
-
-      // Profile should reference artifact id
-      expect(updatedArtifact.latestRevision.derived?.profile?.artifactId).toBe(artifact.id);
 
       // Client manifest should reference artifact id
       expect(updatedArtifact.latestRevision.derived?.clientManifest?.artifactId).toBe(artifact.id);
@@ -688,9 +654,9 @@ The versions must match exactly for consistent behavior.
 
       // Each capsule should have meaningful content fields
       for (const capsule of derived.capsules) {
-        expect(capsule.situation.length).toBeGreaterThan(5);
-        expect(capsule.problem.length).toBeGreaterThan(5);
-        expect(capsule.goal.length).toBeGreaterThan(5);
+        expect(capsule.situation?.length ?? 0).toBeGreaterThan(5);
+        expect(capsule.problem?.length ?? 0).toBeGreaterThan(5);
+        expect(capsule.goal?.length ?? 0).toBeGreaterThan(5);
         expect(capsule.content.length).toBeGreaterThan(10);
 
         // Source paths should only reference derivation-eligible files
@@ -699,6 +665,45 @@ The versions must match exactly for consistent behavior.
           expect(path).not.toMatch(/^scripts\//);
         }
       }
+    });
+
+    it('should not generate capsules when text lacks explicit semantic sections', async () => {
+      const artifactId = store.nextId(storeData, 'artifact');
+      const filePayloads: ArtifactFilePayloadRecord[] = [
+        {
+          artifactId,
+          revision: 1,
+          path: 'SKILL.md',
+          sha256: 'a'.repeat(64),
+          sizeBytes: 120,
+          mediaType: 'text/markdown',
+          content: '# Minimal Skill\n\nThis file has summary text but no structured sections.',
+          storedAt: createdAt,
+        },
+        {
+          artifactId,
+          revision: 1,
+          path: 'references/plain.md',
+          sha256: 'b'.repeat(64),
+          sizeBytes: 90,
+          mediaType: 'text/markdown',
+          content:
+            '# Plain Reference\n\nBackground details without explicit situation/problem/goal.',
+          storedAt: createdAt,
+        },
+      ];
+
+      const derived = await deriveFromPayloads(filePayloads, {
+        artifactId,
+        labels: ['docker'],
+        title: 'Minimal Skill',
+        scope: 'project',
+        requiredLevel: 3,
+      });
+
+      expect(derived.profile).not.toBeNull();
+      expect(derived.profile?.summary).toContain('Background details');
+      expect(derived.capsules).toEqual([]);
     });
 
     it('should exclude assets and scripts from profile/capsule content', async () => {
@@ -1064,8 +1069,8 @@ describe('Phase 1 regression: retrieval reads stale derived data after edit', ()
 
     // Sanity: revision 1 now has derived data on latestRevision
     expect(artifact.latestRevision.derived).toBeDefined();
-    expect(artifact.latestRevision.derived?.profile).toBeDefined();
-    expect(artifact.latestRevision.derived?.capsules.length).toBeGreaterThan(0);
+    expect(artifact.latestRevision.derived?.profile).toBeNull();
+    expect(artifact.latestRevision.derived?.capsules).toEqual([]);
   });
 
   it('should show latestRevision.derived is null after edit (current broken behavior)', () => {
@@ -1156,8 +1161,8 @@ describe('Phase 1 regression: retrieval reads stale derived data after edit', ()
     const historicalRev1 = artifact.history.find((r) => r.revision === 1);
     expect(historicalRev1).toBeDefined();
     expect(historicalRev1!.derived).toBeDefined();
-    expect(historicalRev1!.derived?.profile).toBeDefined();
-    expect(historicalRev1!.derived?.capsules.length).toBeGreaterThan(0);
+    expect(historicalRev1!.derived?.profile).toBeNull();
+    expect(historicalRev1!.derived?.capsules).toEqual([]);
     expect(historicalRev1!.derived?.clientManifest).toBeDefined();
 
     // Meanwhile latestRevision (rev2) has null derived
@@ -1347,11 +1352,9 @@ Ensure all paths converge on a single derive-and-apply function.
     // derived should be populated (via legacy path)
     expect(result.latestRevision.derived).toBeDefined();
     expect(result.latestRevision.derived).not.toBeNull();
-    expect(result.latestRevision.derived?.profile).toBeDefined();
-    expect(result.latestRevision.derived?.capsules.length).toBeGreaterThan(0);
-
-    // Legacy: summary will be a placeholder
-    expect(result.latestRevision.derived?.profile?.summary).toContain('Unified Seam Test');
+    expect(result.latestRevision.derived?.profile).toBeNull();
+    expect(result.latestRevision.derived?.capsules).toEqual([]);
+    expect(result.latestRevision.derived?.clientManifest).toBeDefined();
   });
 
   it('should fall back to legacy derivation when filePayloads is empty array', async () => {
@@ -1363,7 +1366,7 @@ Ensure all paths converge on a single derive-and-apply function.
 
     // derived should be populated (via legacy path)
     expect(result.latestRevision.derived).toBeDefined();
-    expect(result.latestRevision.derived?.profile).toBeDefined();
+    expect(result.latestRevision.derived?.profile).toBeNull();
   });
 
   it('should not leave derived as null after applying', async () => {

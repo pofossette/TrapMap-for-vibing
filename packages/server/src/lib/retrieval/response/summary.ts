@@ -227,7 +227,7 @@ export function buildCapsuleCitations(capsules: CapsuleMatch[]): RetrievalCitati
     source: {
       entryId: capsule.capsuleId,
       scope: capsule.scope,
-      shortcut: capsule.situation, // Closest analog to shortcut for capsules
+      shortcut: capsule.situation ?? capsule.problem ?? capsule.goal ?? capsule.content,
     },
     sourceType: 'capsule' as const,
     snippet: capsule.content,
@@ -246,6 +246,7 @@ export function buildCapsuleCitations(capsules: CapsuleMatch[]): RetrievalCitati
 
 function buildCapsuleFactLines(capsule: CapsuleMatch): string[] {
   return [capsule.problem, capsule.goal, capsule.content]
+    .filter((value): value is string => typeof value === 'string')
     .map((value) => value.trim())
     .filter((value) => value.length > 0);
 }

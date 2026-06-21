@@ -168,9 +168,9 @@ export const artifactRevisions = pgTable(
         revision: number;
         sourcePaths: string[];
         content: string;
-        situation: string;
-        problem: string;
-        goal: string;
+        situation: string | null;
+        problem: string | null;
+        goal: string | null;
         errorText: string | null;
         labels: string[];
         scope: string;

@@ -260,9 +260,9 @@ export function extractSkillGraphPrimitives(args: {
   } | null;
   capsules: Array<{
     capsuleId: string;
-    situation: string;
-    problem: string;
-    goal: string;
+    situation: string | null;
+    problem: string | null;
+    goal: string | null;
     content: string;
     labels: string[];
   }>;
@@ -366,7 +366,15 @@ export function extractSkillGraphPrimitives(args: {
     if (!capsule) {
       continue;
     }
-    const capsuleText = `${capsule.situation} ${capsule.problem} ${capsule.goal} ${capsule.content} ${capsule.labels.join(' ')}`;
+    const capsuleText = [
+      capsule.situation,
+      capsule.problem,
+      capsule.goal,
+      capsule.content,
+      capsule.labels.join(' '),
+    ]
+      .filter((value): value is string => typeof value === 'string' && value.length > 0)
+      .join(' ');
     const capsuleFieldRef = `capsules[${i}]`;
 
     // Extract cues from problem/situation
@@ -573,7 +581,11 @@ export async function buildSkillGraphDocument(
   const canonicalText = [
     profile?.summary ?? '',
     ...(profile?.keywords ?? []),
-    ...capsules.flatMap((c) => [c.situation, c.problem, c.goal, c.content, ...c.labels]),
+    ...capsules.flatMap((c) =>
+      [c.situation, c.problem, c.goal, c.content, ...c.labels].filter(
+        (value): value is string => typeof value === 'string' && value.length > 0,
+      ),
+    ),
   ].join('\n');
 
   let nodes: GraphNodeRecord[];

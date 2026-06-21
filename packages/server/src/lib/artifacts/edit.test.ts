@@ -562,8 +562,8 @@ describe('edit helper', () => {
         'SKILL.md',
         'references/guide.md',
       ]);
-      expect(result.artifact.latestRevision.derived?.profile?.summary).not.toBe(
-        'Skill artifact: Updated Title',
+      expect(result.artifact.latestRevision.derived?.profile?.summary).toContain(
+        'Reference body content',
       );
     });
   });

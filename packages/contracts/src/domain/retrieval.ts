@@ -272,12 +272,12 @@ export const capsuleMatchSchema = z.object({
   sourcePaths: z.array(canonicalPathSchema).min(1),
   /** Distilled capsule content */
   content: z.string().min(1).max(5000),
-  /** Situation context */
-  situation: z.string().min(1).max(1000),
-  /** Problem statement */
-  problem: z.string().min(1).max(1000),
-  /** Goal or solution */
-  goal: z.string().min(1).max(1000),
+  /** Situation context when available */
+  situation: z.string().min(1).max(1000).nullable(),
+  /** Problem statement when available */
+  problem: z.string().min(1).max(1000).nullable(),
+  /** Goal or solution when available */
+  goal: z.string().min(1).max(1000).nullable(),
   /** Optional error text for error-specific capsules */
   errorText: z.string().max(500).optional(),
   /** Searchable labels */

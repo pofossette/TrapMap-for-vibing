@@ -50,7 +50,7 @@ describe('parseSeedIntent', () => {
 
       expect(result.errorText).not.toBeNull();
       expect(result.errorText).toContain('permission denied');
-      expect(result.problem).not.toBeNull();
+      expect(result.problem).toBeNull();
     });
 
     it('extracts error-like seeds without leaking new fields into client contract', () => {
@@ -59,7 +59,7 @@ describe('parseSeedIntent', () => {
 
       expect(result.errorText).toBe('TypeError: Cannot read property of undefined');
       // Server keeps parsed intent internal per RETR-02
-      expect(result.problem).not.toBeNull();
+      expect(result.problem).toBeNull();
     });
 
     it('recognizes common error patterns', () => {
@@ -134,25 +134,23 @@ describe('parseSeedIntent', () => {
     });
   });
 
-  describe('situation, problem, goal extraction', () => {
-    it('extracts situation from action-oriented seeds', () => {
+  describe('semantic fields stay null in fallback mode', () => {
+    it('does not infer situation from action-oriented text without llm', () => {
       const result = parseSeedIntent('When deploying containers to production, the network fails');
 
-      expect(result.situation).not.toBeNull();
-      expect(result.situation).toContain('deploying');
+      expect(result.situation).toBeNull();
     });
 
-    it('extracts problem from complaint-style seeds', () => {
+    it('does not infer problem from complaint-style text without llm', () => {
       const result = parseSeedIntent('My docker container fails with error');
 
-      expect(result.problem).not.toBeNull();
+      expect(result.problem).toBeNull();
     });
 
-    it('extracts goal from question-style seeds', () => {
+    it('does not infer goal from question-style text without llm', () => {
       const result = parseSeedIntent('How do I configure TLS for my PostgreSQL connection?');
 
-      expect(result.goal).not.toBeNull();
-      expect(result.goal).toContain('configure TLS');
+      expect(result.goal).toBeNull();
     });
   });
 });

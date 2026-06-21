@@ -80,9 +80,9 @@ export function createMockArtifact(overrides: {
 export function createMockCapsule(overrides: {
   capsuleId: string;
   artifactId: string;
-  situation: string;
-  problem: string;
-  goal: string;
+  situation: string | null;
+  problem: string | null;
+  goal: string | null;
   labels: string[];
   scope: 'global' | 'project';
   requiredLevel: number;
@@ -94,7 +94,7 @@ export function createMockCapsule(overrides: {
     artifactId: overrides.artifactId,
     revision: 1,
     sourcePaths: ['SKILL.md'],
-    content: overrides.content ?? `Content for ${overrides.problem}`,
+    content: overrides.content ?? `Content for ${overrides.problem ?? overrides.capsuleId}`,
     situation: overrides.situation,
     problem: overrides.problem,
     goal: overrides.goal,

@@ -108,113 +108,6 @@ function getFilesBySource(
 }
 
 /**
- * Build a distilled skill profile from SKILL.md and references/.
- *
- * T-12-09: derive hashes from ordered SKILL.md + references/ text only
- * T-12-10: exclude assets/ and scripts/ bodies from profile content
- *
- * @param artifact - Skill artifact record
- * @param revision - Artifact revision
- * @param sourceHash - Hash of all derivation-eligible files
- * @returns Derived skill profile
- */
-function buildSkillProfile(
-  artifact: SkillArtifactRecord,
-  revision: SkillArtifactRevisionRecord,
-  sourceHash: string,
-): DerivedSkillProfileRecord | null {
-  const eligibleFiles = getDerivationEligibleFiles(revision);
-
-  if (eligibleFiles.length === 0) {
-    return null;
-  }
-
-  // In a real implementation, this would parse SKILL.md frontmatter
-  // and extract actual content. For now, we use placeholder values
-  // that can be filled in during Phase 13 import work.
-  const referenceFiles = eligibleFiles.filter((f) => f.source === 'references/');
-
-  // Placeholder content hash - will be computed from actual file contents
-  // during Phase 13 when file content is available
-  const contentHash = buildContentHash(
-    eligibleFiles.map((f) => f.sha256), // Using file hashes as content proxy
-  );
-
-  // Extract reference paths in deterministic order
-  const referencePaths = referenceFiles.map((f) => f.path).sort((a, b) => a.localeCompare(b));
-
-  // Extract keywords from artifact labels
-  const keywords = [...artifact.labels].sort();
-
-  return {
-    artifactId: artifact.id,
-    revision: revision.revision,
-    sourceHash,
-    title: artifact.title,
-    summary: `Skill artifact: ${artifact.title}`, // Placeholder summary
-    keywords,
-    labels: keywords,
-    prerequisites: [],
-    referencePaths,
-    contentHash,
-  };
-}
-
-/**
- * Build knowledge capsules from SKILL.md and references/.
- *
- * T-12-09: derive hashes from ordered SKILL.md + references/ text only
- * T-12-10: exclude assets/ and scripts/ bodies from capsule content
- * T-12-11: capsules inherit scope and requiredLevel from artifact root
- *
- * @param artifact - Skill artifact record
- * @param revision - Artifact revision
- * @param sourceHash - Hash of all derivation-eligible files
- * @returns Array of derived skill capsules
- */
-function buildSkillCapsules(
-  artifact: SkillArtifactRecord,
-  revision: SkillArtifactRevisionRecord,
-  sourceHash: string,
-): DerivedSkillCapsuleRecord[] {
-  const eligibleFiles = getDerivationEligibleFiles(revision);
-
-  if (eligibleFiles.length === 0) {
-    return [];
-  }
-
-  // In a real implementation, this would:
-  // 1. Parse SKILL.md to identify situation/problem/goal triples
-  // 2. Parse each reference/ file to extract additional context
-  // 3. Generate one capsule per distinct problem/solution pattern
-  //
-  // For Phase 12, we create a placeholder capsule that will be
-  // replaced with actual LLM-derived content in Phase 14.
-
-  const capsuleId = buildCapsuleId(artifact.id, revision.revision, sourceHash, 0);
-
-  // Source paths for this capsule (all derivation-eligible files)
-  const sourcePaths = eligibleFiles.map((f) => f.path).sort((a, b) => a.localeCompare(b));
-
-  return [
-    {
-      capsuleId,
-      artifactId: artifact.id,
-      revision: revision.revision,
-      sourcePaths,
-      content: `Skill artifact: ${artifact.title}\n\nLabels: ${artifact.labels.join(', ')}`, // Placeholder content
-      situation: 'When working with this skill', // Placeholder situation
-      problem: `The problem addressed by ${artifact.title}`, // Placeholder problem
-      goal: `Apply the solution pattern from ${artifact.title}`, // Placeholder goal
-      errorText: null,
-      labels: [...artifact.labels],
-      scope: artifact.scope, // Inherit governance (T-12-11)
-      requiredLevel: artifact.requiredLevel, // Inherit governance (T-12-11)
-    },
-  ];
-}
-
-/**
  * Build client activation manifest for references, assets, and scripts.
  *
  * T-12-10: expose assets/ and scripts/ through clientManifest metadata only
@@ -303,18 +196,11 @@ export function deriveSkillArtifactOutputs(
 ): DerivedArtifactOutputs {
   const derivedAt = nowIso();
 
-  // Compute source hash from derivation-eligible files only (SKILL.md + references/)
-  // T-12-09: derive hashes from ordered SKILL.md + references/ text only
-  const eligibleFiles = getDerivationEligibleFiles(revision);
-  const sourceHash = buildContentHash(eligibleFiles.map((f) => f.sha256));
-
-  // Build profile from SKILL.md and references/
-  const profile = buildSkillProfile(artifact, revision, sourceHash);
-
-  // Build capsules from SKILL.md and references/
-  const capsules = buildSkillCapsules(artifact, revision, sourceHash);
-
-  // Build client manifest for references, assets, and scripts
+  const sourceHash = buildContentHash(
+    getDerivationEligibleFiles(revision).map((file) => file.sha256),
+  );
+  const profile = null;
+  const capsules: DerivedSkillCapsuleRecord[] = [];
   const clientManifest = buildClientManifest(artifact, revision, sourceHash);
 
   return {
@@ -445,9 +331,9 @@ function extractSections(content: string): {
 
   // Extract sections using markdown headers
   const sectionPatterns = {
-    situation: /^##\s*Situation\s*\n([\s\S]*?)(?=\n##|\n#|$)/i,
-    problem: /^##\s*Problem\s*\n([\s\S]*?)(?=\n##|\n#|$)/i,
-    goal: /^##\s*Goal\s*\n([\s\S]*?)(?=\n##|\n#|$)/i,
+    situation: /^##\s*Situation\s*\n([\s\S]*?)(?=\n##|\n#|$)/im,
+    problem: /^##\s*Problem\s*\n([\s\S]*?)(?=\n##|\n#|$)/im,
+    goal: /^##\s*Goal\s*\n([\s\S]*?)(?=\n##|\n#|$)/im,
   };
 
   const extractSection = (pattern: RegExp): string | null => {
@@ -527,6 +413,14 @@ function extractKeywords(text: string, existingLabels: string[]): string[] {
   return Array.from(keywords).sort().slice(0, 10);
 }
 
+function hasStructuredCapsuleSemantics(sections: {
+  situation: string | null;
+  problem: string | null;
+  goal: string | null;
+}): boolean {
+  return Boolean(sections.situation || sections.problem || sections.goal);
+}
+
 /**
  * Derive profile and capsules from actual file payloads.
  * This is the retrieval-grade derivation that produces meaningful content
@@ -598,8 +492,8 @@ export async function deriveFromPayloads(
   // Build capsule(s) from content
   const capsules: DerivedSkillCapsuleRecord[] = [];
 
-  if (derivationEligible.length > 0) {
-    // Generate primary capsule from SKILL.md sections
+  if (derivationEligible.length > 0 && hasStructuredCapsuleSemantics(sections)) {
+    // Generate primary capsule only when explicit semantic sections exist.
     const capsuleId = buildCapsuleId(context.artifactId, 1, sourceHash, 0);
     const capsuleContent = buildSummaryFromText(derivationText);
 
@@ -609,9 +503,9 @@ export async function deriveFromPayloads(
       revision: 1,
       sourcePaths: derivationEligible.map((p) => p.path),
       content: capsuleContent,
-      situation: sections.situation ?? `When working with ${context.title}`,
-      problem: sections.problem ?? `The problem addressed by ${context.title}`,
-      goal: sections.goal ?? `Apply the solution from ${context.title}`,
+      situation: sections.situation,
+      problem: sections.problem,
+      goal: sections.goal,
       errorText: null,
       labels: allLabels.sort(),
       scope: context.scope,
@@ -627,7 +521,7 @@ export async function deriveFromPayloads(
 
       // Check if this reference has meaningful distinct content
       const refSections = extractSections(refContent);
-      if (refSections.problem || refSections.situation) {
+      if (hasStructuredCapsuleSemantics(refSections)) {
         const refCapsuleId = buildCapsuleId(context.artifactId, 1, sourceHash, capsules.length);
         const refCapsuleContent = buildSummaryFromText(refContent);
 
@@ -637,9 +531,9 @@ export async function deriveFromPayloads(
           revision: 1,
           sourcePaths: [refPayload.path],
           content: refCapsuleContent,
-          situation: refSections.situation ?? `When working with ${refPayload.path}`,
-          problem: refSections.problem ?? `Issue described in ${refPayload.path}`,
-          goal: refSections.goal ?? `Apply solution from ${refPayload.path}`,
+          situation: refSections.situation,
+          problem: refSections.problem,
+          goal: refSections.goal,
           errorText: null,
           labels: allLabels.sort(),
           scope: context.scope,

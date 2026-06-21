@@ -39,15 +39,18 @@ const FIELD_WEIGHTS: Record<string, number> = {
 
 const MAX_WEIGHT_SUM = Object.values(FIELD_WEIGHTS).reduce((a, b) => a + b, 0);
 
-function tokenizeField(text: string): Set<string> {
+function tokenizeField(text: string | null | undefined): Set<string> {
+  if (!text) {
+    return new Set<string>();
+  }
   return new Set(tokenize(text));
 }
 
 function fieldTokenizeCapsule(capsule: {
   content: string;
-  situation: string;
-  problem: string;
-  goal: string;
+  situation: string | null;
+  problem: string | null;
+  goal: string | null;
   contextualPrefix?: string;
   labels: string[];
 }) {

@@ -57,7 +57,10 @@ export interface SyncResult {
 // Field tokenization (mirrors channels/keyword.ts)
 // ---------------------------------------------------------------------------
 
-function tokenizeField(text: string): string[] {
+function tokenizeField(text: string | null | undefined): string[] {
+  if (!text) {
+    return [];
+  }
   return tokenize(text);
 }
 
@@ -92,9 +95,9 @@ export function createCapsuleIndexSync(config: CapsuleIndexSyncConfig) {
       const tokens = normalizeQuery(
         [
           capsule.content,
-          capsule.situation,
-          capsule.problem,
-          capsule.goal,
+          capsule.situation ?? '',
+          capsule.problem ?? '',
+          capsule.goal ?? '',
           capsule.labels.join(' '),
           capsule.contextualPrefix ?? '',
         ].join(' '),

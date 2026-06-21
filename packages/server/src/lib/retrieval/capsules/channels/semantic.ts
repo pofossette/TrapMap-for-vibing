@@ -42,17 +42,17 @@ const MAX_CONTENT_CHARS = 500;
  */
 export function buildCapsuleEmbeddingText(capsule: {
   labels: string[];
-  situation: string;
-  problem: string;
-  goal: string;
+  situation: string | null;
+  problem: string | null;
+  goal: string | null;
   contextualPrefix?: string;
   content: string;
 }): string {
   const parts: string[] = [
     capsule.labels.join(' '),
-    capsule.situation,
-    capsule.problem,
-    capsule.goal,
+    capsule.situation ?? '',
+    capsule.problem ?? '',
+    capsule.goal ?? '',
   ];
 
   if (capsule.contextualPrefix) {
