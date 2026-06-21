@@ -1,4 +1,4 @@
-import type { ReviewArtifactFile } from '@trapmap/web-panel/shared/types/admin-panel';
+import type { ReviewArtifactFile } from '@trapmap/web-panel/shared/enum-types';
 
 export type JsonDraftState = {
   canSave: boolean;

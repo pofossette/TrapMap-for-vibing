@@ -1,122 +1,95 @@
-# TrapMap Backend Engineering Master Plan
+# TrapMap Enum And Export Cleanup Plan
 
 ## 状态
 
 - 状态：`active`
-- 日期：`2026-06-20`
-- 本文件角色：根级总控执行计划与索引，统一后端工程化、可扩展性、异步处理与验证回写
-- 已归档旧根计划：[`docs/archived/archived-plans/plan-2026-06-20-runtime-recomposition-root-archived.md`](docs/archived/archived-plans/plan-2026-06-20-runtime-recomposition-root-archived.md)
+- 日期：`2026-06-21`
+- 本文件角色：根级执行计划，专门跟踪枚举、类型定义与导出收敛
 
-## 背景
+## 目标
 
-TrapMap 当前的真实代码结构已经进入“多层后端演进期”：
+- 把项目内分散的枚举、字面量联合类型、共享类型定义收敛到就近的 `enum-types/` 文件夹。
+- 用 `index.ts` 作为每个 `enum-types/` 目录和包级类型入口的唯一聚合出口。
+- 清理当前零散的 `export *`、跨层深链类型导入和“大文件既定义又到处被直接引用”的状况。
 
-- `packages/server` 仍然是权威实现、测试与兼容壳层的主要落点，`buildServer()`、`runStartupSequence()`、`/v1/operations/status/async` 等主入口都在这里。
-- `packages/backend-core`、`packages/host-local`、`packages/host-distributed` 已存在，说明 runtime capability、宿主装配和服务边界不再只是文档叙事，而是已进入代码层。
-- `task_queue`、`domain_event_outbox`、`workflow_runs`、retrieval cache、intent cache、operator routes 已经形成异步和运维基座，但 failure semantics、freshness、config governance、capacity modeling 仍未统一成一条执行主线。
+## 当前现状
 
-因此当前更需要的不是再新增一批分散计划，而是用一条新的根计划把已有后端工程化成果、活跃参考计划和待收敛债务重新编排成一条可直接执行的轨道。
+- `packages/web-panel/src/shared/types/admin-panel.ts` 聚合了大量 UI 共享类型与字面量联合，但当前仍是单文件承载，没有 `index.ts` 聚合层。
+- `packages/server/src/lib/store/types/index.ts` 已经形成按目录聚合导出的雏形，但目录命名仍停留在 `types/`，尚未统一到 `enum-types/` 约定。
+- `packages/server/src/lib/types.ts`、`packages/server/src/lib/store/index.ts`、`packages/contracts/src/index.ts` 存在多处 `export * from ...` 链式转发，导出边界较宽。
+- 当前仓库里显式 `enum` 很少，已识别的代表点是 `packages/contracts/src/domain/path-validation.ts` 中的 `PathValidationError`；更多“枚举语义”目前以字符串字面量联合散落在各处。
+- 已识别的分散类型热点包括：
+  - `packages/web-panel/src/shared/types/admin-panel.ts`
+  - `packages/web-panel/src/stores/theme-store.ts`
+  - `packages/server/src/lib/store/types/*.ts`
+  - `packages/server/src/lib/types.ts`
+  - `packages/contracts/src/domain/*.ts`
 
-## 当前事实
+## 约束
 
-- 当前后端主代码入口：
-  - `packages/server/src/app.ts`
-  - `packages/server/src/bootstrap/run-startup-sequence.ts`
-  - `packages/server/src/routes/operations/status.ts`
-  - `packages/server/src/lib/runtime/runtime-metadata.ts`
-  - `packages/server/src/lib/operations/read-model.ts`
-  - `packages/server/src/config.ts`
-- 当前后端演进相关包已存在：
-  - `packages/backend-core`
-  - `packages/host-local`
-  - `packages/host-distributed`
-- 当前活跃长期计划入口仍分散在：
-  - `docs/plans/backend-engineering-roadmap/`
-  - `docs/plans/runtime-recomposition/`
-  - `docs/plans/deployment-flexibility/`
-- `docs/todos/backend-engineering-optimization-plan.md` 已记录工程化问题池，但它不是正式总控执行计划。
+- 不为了“集中”而打破现有 domain 边界；`enum-types/` 应放在就近领域根下，而不是把全仓库类型堆到单一目录。
+- 不在本计划中顺带重做业务逻辑。
+- 收敛导出时优先保留已有公共 import path，避免无必要的对外破坏。
 
-## 这轮要做的变更
+## 目标结构
 
-- 用新的后端工程化总控计划接管根 `plan.md`。
-- 保留并吸收现有 active-reference 计划的有效结论，但把执行入口统一到新的索引目录。
-- 按阶段明确：
-  - 当前事实
-  - 要做的变更
-  - non-goals
-  - 主要修改文件
-  - 文档更新
-  - 测试 / eval 更新
-  - 必要示例
+- 每个需要暴露共享枚举/类型的上下文，采用如下结构：
 
-## Non-Goals
+```text
+<context>/
+  enum-types/
+    <domain-a>.ts
+    <domain-b>.ts
+    index.ts
+```
 
-- 本轮不直接实现后端代码改造。
-- 本轮不把 Web 面板和前端规划并入根计划。
-- 本轮不把 `docs/superpowers/plans/` 自动提升为正式活跃长期计划目录。
-- 本轮不重写已有运行时/部署计划的技术内容，只做承接、边界澄清和执行排序。
+- 目录外统一从 `<context>/enum-types/index.ts` 导入。
+- 包级 `index.ts` 只转发对应上下文的 `enum-types/index.ts`，不再拼接零散文件列表。
 
-## 总体目标
+## 分阶段执行
 
-- 让 TrapMap 的后端工程化主线从“文档上可扩展”收敛到“执行上可推进”。
-- 让边界、异步运行时、失败语义、operator 能力、配置治理、容量建模和验证闭环进入统一总控轨道。
-- 让未来的代码执行可以直接沿根计划和阶段计划推进，而不需要再手动拼接多份历史文档。
+### Phase 0 基线盘点
 
-## 进度跟踪
+- [ ] 列出各包现有 `types/`、显式 `enum`、字面量联合热点与 `export *` 聚合点。
+- [ ] 标记哪些目录直接升级为 `enum-types/`，哪些目录需要先拆分文件再迁移。
+- [ ] 冻结需要兼容的公共导入路径。
 
-- [x] Phase 0 baseline 与 gap matrix 固化完成
-- [x] Phase 1 边界与兼容收敛完成
-- [x] Phase 2 异步运行时与失败语义完成
-- [x] Phase 3 operator / config / capacity / cache-ops 完成
-- [x] Phase 4 验证、eval 与文档回写完成
+### Phase 1 目录与导出规范收口
 
-## 子计划索引
+- [ ] 在 `AGENTS.md`、必要的包 README 或局部说明中固定 `enum-types/` + `index.ts` 规则。
+- [ ] 为每个首批治理目录补齐 `enum-types/index.ts`。
+- [ ] 停止新增“业务文件内顺手定义共享类型”的写法。
 
-- [backend-engineering-masterplan/README.md](docs/plans/backend-engineering-masterplan/README.md)
-  作用：后端工程化正式执行包索引，说明与 `docs/plans`、`docs/todos`、`docs/archived`、`docs/superpowers` 的边界。
-- [00-current-state-and-gap-baseline.md](docs/plans/backend-engineering-masterplan/00-current-state-and-gap-baseline.md)
-  作用：冻结当前实现基线、活跃参考计划和真实 gap。
-- [01-boundaries-and-compat-convergence.md](docs/plans/backend-engineering-masterplan/01-boundaries-and-compat-convergence.md)
-  作用：收敛 route / application / repo / runtime / compat 边界。
-- [02-async-runtime-and-failure-semantics.md](docs/plans/backend-engineering-masterplan/02-async-runtime-and-failure-semantics.md)
-  作用：统一 async runtime、freshness、failure semantics、idempotency、retry、resume。
-- [03-operator-config-capacity-and-cache-ops.md](docs/plans/backend-engineering-masterplan/03-operator-config-capacity-and-cache-ops.md)
-  作用：补强 operator surface、config governance、capacity modeling、cache 与 bulk path operations。
-- [04-validation-rollout-and-doc-backfill.md](docs/plans/backend-engineering-masterplan/04-validation-rollout-and-doc-backfill.md)
-  作用：定义验证矩阵、文档回写、旧计划退出与最终 closeout。
+### Phase 2 首批迁移
 
-## 阶段依赖
+- [ ] `packages/web-panel/src/shared/types/admin-panel.ts` 拆分为 `packages/web-panel/src/shared/enum-types/` 下的领域文件并补 `index.ts`。
+- [ ] `packages/server/src/lib/store/types/` 评估后迁移到 `packages/server/src/lib/store/enum-types/`，保留兼容导出层。
+- [ ] `packages/contracts/src/domain/` 中具有枚举语义的共享定义逐步抽到就近 `enum-types/` 目录，`PathValidationError` 作为首批样板。
 
-- `Phase 0` 是所有后续阶段的前置。
-- `Phase 1` 先冻结真实边界和兼容责任，再推进运行时 contract 收敛。
-- `Phase 2` 在 `Phase 1` 收紧边界后统一异步和失败语义。
-- `Phase 3` 建立在 `Phase 2` 的 contract 之上，把运维与容量能力做厚。
-- `Phase 4` 负责统一验证、归档、文档事实源回写和 closeout。
+### Phase 3 导出清理
 
-## 当前阶段结论
+- [ ] 收紧 `packages/contracts/src/index.ts` 的零散转发，优先改为面向聚合入口导出。
+- [ ] 收紧 `packages/server/src/lib/types.ts`、`packages/server/src/lib/store/index.ts` 的转发链。
+- [ ] 清理跨层深链导入，避免外部模块直接引用迁移前的叶子类型文件。
 
-- `Phase 0` 已冻结当前实现、活跃计划状态和 gap matrix。
-- `Phase 1` 已把 route / application / repository / runtime / compatibility 的 ownership、compat allowlist，以及 `packages/server` 与 `backend-core` / `host-*` 的承接关系回写为正式事实源。
-- `Phase 2` 已完成：async runtime contract、freshness / projection lag contract、idempotency / retry / resume semantics、failure taxonomy 与 operator-visible async status 已统一到 `packages/contracts`、`packages/server/src/routes/operations/status.ts` 及相关事实源文档。
-- `Phase 3` 已完成：`GET /v1/operations/status/async` 额外暴露 `operatorHome`、`configGovernance`、`capacityModel`、`bulkOperations`；`packages/server/src/config.ts` 提供 fingerprint / deprecated env / conflict warning / profile-aware capability summary；`GET /v1/operations/stats/summary` 额外暴露 `cacheInvalidationByNamespace` 与 `cachePendingInvalidationByNamespace`。
-- `Phase 4` 已完成：验证矩阵、文档 truth-source 回写、旧计划与 active-reference 边界、以及 closeout 规则已经统一；本轮不再新增 `Phase 5`，也不回头重做 `Phase 2` / `Phase 3`。
-- `Phase 3` 遗留 open question 已在 closeout 中处理：
-  - `capacityModel.databasePool.maxConnections` 继续保留为 operator-facing 扩展位，但在当前仓库中明确降级为 deferred detail；正式 contract 仅保证 `configured` 与 `maxConnections: null | integer` 这一保守 shape，不把驱动内部连接池状态升级为新的 runtime contract。
-  - 热点 `team/query/artifact` 明确不进入默认 operator surface，保持为后续深钻能力；默认首页只保留 backlog / latency / cache pressure 等高层容量信号。
-- 当前不存在阻塞本总计划收尾的 open question。
+### Phase 4 验证与收尾
 
-## 计划边界说明
+- [ ] 运行受影响包的最小类型检查与测试。
+- [ ] 运行 `pnpm check:structure`，确认根级计划与文档入口未破坏结构守护。
+- [ ] 如涉及事实源或说明入口变更，再补 `pnpm check:docs-drift`。
+- [ ] 在本文件回写已完成目录、兼容导入保留策略和剩余债务。
 
-- `docs/plans/`：当前仍被引用、仍应执行的长期计划。
-- `docs/archived/archived-plans/`：被替代、完成或退出活跃轨道的历史计划。
-- `docs/todos/`：问题池、提案和待升级工作项，不直接充当执行计划。
-- `docs/superpowers/plans/`：Superpowers 工作流输出区，除非被本根计划或 `docs/plans/README.md` 显式接管，否则不自动视为活跃长期计划。
+## 优先级
+
+1. `packages/web-panel/src/shared/types/admin-panel.ts`
+2. `packages/server/src/lib/store/types/`
+3. `packages/server/src/lib/types.ts`
+4. `packages/contracts/src/domain/path-validation.ts`
+5. `packages/contracts/src/index.ts`
 
 ## 完成定义
 
-当以下条件全部满足时，可认为这轮后端工程化总控计划完成：
-
-- 根 `plan.md` 与 `docs/plans/backend-engineering-masterplan/` 成为唯一明确的后端工程化执行入口。
-- 当前活跃参考计划与问题池的关系已经写清，不再需要执行者自行判断入口。
-- 每个阶段都明确了目标、范围、主要修改文件、完成标准、文档更新、测试 / eval 更新和必要示例。
-- 文档事实源、结构守卫和归档路径与仓库规则保持一致。
+- 枚举和共享类型定义都有明确的 `enum-types/` 归属目录。
+- 每个治理目录都通过 `index.ts` 统一导出。
+- 首批重点区域不再依赖散乱的深链类型导入。
+- 根 `plan.md`、`AGENTS.md` 与仓库结构规则保持一致。

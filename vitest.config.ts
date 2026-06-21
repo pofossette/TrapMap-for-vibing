@@ -1,6 +1,9 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
+const rootVitestMaxWorkers = process.env.VITEST_MAX_WORKERS ?? '50%';
+const rootVitestMinWorkers = process.env.VITEST_MIN_WORKERS ?? '1';
+
 export default defineConfig({
   test: {
     projects: [
@@ -163,5 +166,7 @@ export default defineConfig({
       },
     ],
     pool: 'forks',
+    maxWorkers: rootVitestMaxWorkers,
+    minWorkers: rootVitestMinWorkers,
   },
 });

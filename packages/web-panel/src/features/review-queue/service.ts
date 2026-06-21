@@ -4,7 +4,7 @@ import type {
   ReviewItemViewModel,
   ReviewQueuePage,
   ReviewQueueRequest,
-} from '@trapmap/web-panel/shared/types/admin-panel';
+} from '@trapmap/web-panel/shared/enum-types';
 
 function applyClientFilters(
   items: ReviewItemViewModel[],

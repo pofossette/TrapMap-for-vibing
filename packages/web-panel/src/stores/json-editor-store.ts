@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import type { ReviewArtifactFile } from '@trapmap/web-panel/shared/enum-types';
 import { buildJsonDraftState } from '@trapmap/web-panel/shared/lib/json-editor';
 import {
   type RequestState,
@@ -8,7 +9,6 @@ import {
   createLoadingRequestState,
   createSuccessRequestState,
 } from '@trapmap/web-panel/shared/lib/request-state';
-import type { ReviewArtifactFile } from '@trapmap/web-panel/shared/types/admin-panel';
 
 type JsonEditorSnapshot = {
   activeFilePath: string | null;

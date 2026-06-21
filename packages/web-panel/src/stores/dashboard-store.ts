@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import type { RuntimeOverview } from '@trapmap/web-panel/shared/enum-types';
 import {
   type RequestState,
   createErrorRequestState,
@@ -7,7 +8,6 @@ import {
   createLoadingRequestState,
   createSuccessRequestState,
 } from '@trapmap/web-panel/shared/lib/request-state';
-import type { RuntimeOverview } from '@trapmap/web-panel/shared/types/admin-panel';
 
 type DashboardStore = {
   request: RequestState<RuntimeOverview>;

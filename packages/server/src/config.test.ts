@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { buildConfigGovernanceSummary, ServerConfigSchema, loadConfig } from './config.js';
+import { ServerConfigSchema, buildConfigGovernanceSummary, loadConfig } from './config.js';
 import { createGraphQueryRuntimeState, loadGraphDbConfig } from './lib/graph-query/config.js';
 
 const originalEnv = { ...process.env };

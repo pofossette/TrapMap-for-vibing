@@ -3,7 +3,7 @@ import type {
   ActivityEventViewModel,
   ActivityFeedQuery,
   AdminPanelApiContract,
-} from '@trapmap/web-panel/shared/types/admin-panel';
+} from '@trapmap/web-panel/shared/enum-types';
 
 export async function loadActivityFeed(
   api: AdminPanelApiContract,

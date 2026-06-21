@@ -20,7 +20,7 @@ import {
   statsUsageResponseSchema,
 } from '@trapmap/contracts';
 
-import { getRetrievalCacheStats } from '@trapmap/server/lib/cache/metrics.js';
+import { getCacheMetricsSnapshot } from '@trapmap/server/lib/cache/metrics.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import {
@@ -122,7 +122,7 @@ export const statsRoutes: FastifyPluginAsync = async (app) => {
     });
 
     const runtime = getRuntimeMetricsSnapshot();
-    const cacheStats = getRetrievalCacheStats();
+    const cacheStats = getCacheMetricsSnapshot();
     const queueBacklogByType: Record<string, number> = {};
     const deadLetterByType: Record<string, number> = {};
     const retryRateByType: Record<string, number> = {};

@@ -173,3 +173,37 @@ export function buildOperatorHome(args: {
     },
   } as const;
 }
+
+export function buildFreshnessContract(args: {
+  queuePending: number;
+  outboxPending: number;
+  staleWorkers: number;
+  workflowsInFlight: number;
+  cacheMetrics: Record<string, CacheMetricsSnapshot>;
+}) {
+  const cacheValues = Object.values(args.cacheMetrics);
+  const cachesPendingInvalidation = cacheValues.some((snapshot) => snapshot.pendingInvalidation);
+  const projectionRefreshPending = [
+    args.queuePending > 0,
+    args.outboxPending > 0,
+    args.workflowsInFlight > 0,
+    cachesPendingInvalidation,
+  ].some(Boolean);
+
+  return {
+    consistencyModel: 'eventual-consistency' as const,
+    writeVisibility: {
+      authoritativeWriteCommitted: true,
+      projectionRefreshPending,
+      cachesPendingInvalidation,
+    },
+    projectionLag: {
+      queueBacklog: args.queuePending,
+      outboxBacklog: args.outboxPending,
+      staleWorkers: args.staleWorkers,
+      workflowsInFlight: args.workflowsInFlight,
+    },
+    operatorGuidance:
+      'Interpret stale reads as a convergence question first: committed writes may still await outbox fanout, queue follow-up, workflow completion, or cache recovery. Inspect these lag counters before assuming data loss.',
+  } as const;
+}

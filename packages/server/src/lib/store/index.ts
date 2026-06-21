@@ -1,5 +1,5 @@
 // Types
-export * from './types/index.js';
+export * from './enum-types/index.js';
 // Store data and interface
 export * from './store-data.js';
 export * from './store-interface.js';

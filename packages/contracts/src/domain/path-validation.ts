@@ -1,15 +1,7 @@
 import { z } from 'zod';
+import { PathValidationError } from '../enum-types/path-validation.js';
 
-/**
- * Error codes for path validation failures.
- * @internal Not directly imported by server or CLI — used internally by validateRelativePath.
- */
-export enum PathValidationError {
-  ABSOLUTE_PATH = 'ABSOLUTE_PATH',
-  PARENT_TRAVERSAL = 'PARENT_TRAVERSAL',
-  EMPTY_PATH = 'EMPTY_PATH',
-  INVALID_WINDOWS_PATH = 'INVALID_WINDOWS_PATH',
-}
+export { PathValidationError };
 
 /**
  * Validates a relative file path for security.

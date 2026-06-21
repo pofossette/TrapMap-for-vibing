@@ -14,7 +14,7 @@ import type {
   SkillArtifactRecord,
   TeamRecord,
   UserRecord,
-} from './types/index.js';
+} from './enum-types/index.js';
 
 export interface StoreData {
   counters: Record<string, number>;

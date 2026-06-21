@@ -13,7 +13,7 @@ import type {
   ReviewDetailResponse,
   ReviewQueueRequest,
   RuntimeOverviewResponse,
-} from '@trapmap/web-panel/shared/types/admin-panel';
+} from '@trapmap/web-panel/shared/enum-types';
 import type { HttpClient } from './http-client';
 
 function buildReviewQueueQuery(request?: Partial<ReviewQueueRequest>): string {

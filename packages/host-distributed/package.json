@@ -29,7 +29,7 @@
     "start:candidate-ingestion": "node dist/index.js --service candidate-ingestion",
     "start:governance-review": "node dist/index.js --service governance-review",
     "start:job-runtime": "node dist/index.js --service job-runtime",
-    "test": "vitest --passWithNoTests",
+    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

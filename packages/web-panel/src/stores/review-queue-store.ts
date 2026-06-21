@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 
+import type {
+  ReviewItemViewModel,
+  ReviewQueueFilters,
+  ReviewQueuePage,
+} from '@trapmap/web-panel/shared/enum-types';
 import {
   type RequestState,
   createErrorRequestState,
@@ -7,11 +12,6 @@ import {
   createLoadingRequestState,
   createSuccessRequestState,
 } from '@trapmap/web-panel/shared/lib/request-state';
-import type {
-  ReviewItemViewModel,
-  ReviewQueueFilters,
-  ReviewQueuePage,
-} from '@trapmap/web-panel/shared/types/admin-panel';
 
 type ReviewQueueStore = {
   filters: ReviewQueueFilters;

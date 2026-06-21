@@ -1,3 +1,5 @@
+export * from './enum-types/index.js';
+
 export * from './domain/artifacts.js';
 export * from './domain/auth.js';
 export * from './domain/boundary.js';
@@ -21,16 +23,3 @@ export * from './domain/async.js';
 export * from './domain/plans.js';
 export * from './domain/skills.js';
 export * from './domain/team.js';
-
-// Re-export specific types for Phase 35 resolution workflow
-export type {
-  ResolutionOutcome,
-  EntityLineage,
-  ApplyResolutionResponse,
-} from './domain/candidates.js';
-
-export {
-  ResolutionOutcomeSchema,
-  EntityLineageSchema,
-  applyResolutionResponseSchema,
-} from './domain/candidates.js';

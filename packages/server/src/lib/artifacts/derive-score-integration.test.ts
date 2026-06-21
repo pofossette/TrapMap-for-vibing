@@ -19,7 +19,7 @@ import { nowIso } from '@trapmap/server/lib/store.js';
 import type {
   DerivedSkillCapsuleRecord,
   SkillArtifactRecord,
-} from '@trapmap/server/lib/store/types/artifact-records.js';
+} from '@trapmap/server/lib/store/enum-types/artifact-records.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

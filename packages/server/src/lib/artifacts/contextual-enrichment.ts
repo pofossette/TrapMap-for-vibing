@@ -11,7 +11,7 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
-import type { DerivedSkillCapsuleRecord } from '@trapmap/server/lib/store/types/artifact-records.js';
+import type { DerivedSkillCapsuleRecord } from '@trapmap/server/lib/store/enum-types/artifact-records.js';
 
 // ---------------------------------------------------------------------------
 // Types

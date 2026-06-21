@@ -13,7 +13,7 @@
  */
 
 // Store record types (system, knowledge, artifact, candidate, feedback)
-export * from './store/types/index.js';
+export * from './store/enum-types/index.js';
 
 // Store interfaces and utilities
 export { type StoreData, type SkillShareerStore, JsonStore } from './store/index.js';

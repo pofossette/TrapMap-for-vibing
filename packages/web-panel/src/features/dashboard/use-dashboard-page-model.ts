@@ -15,10 +15,7 @@ type DashboardCard = {
   value: string;
 };
 
-import type {
-  RuntimeOverview,
-  RuntimeServiceStatus,
-} from '@trapmap/web-panel/shared/types/admin-panel';
+import type { RuntimeOverview, RuntimeServiceStatus } from '@trapmap/web-panel/shared/enum-types';
 
 export function useDashboardPageModel(): {
   cards: DashboardCard[];

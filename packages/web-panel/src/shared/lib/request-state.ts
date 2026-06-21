@@ -1,4 +1,4 @@
-import type { RequestStatus } from '@trapmap/web-panel/shared/types/admin-panel';
+import type { RequestStatus } from '@trapmap/web-panel/shared/enum-types';
 
 export type RequestState<T> =
   | {

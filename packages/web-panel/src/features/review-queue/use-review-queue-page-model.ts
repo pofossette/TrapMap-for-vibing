@@ -1,7 +1,4 @@
-import type {
-  ReviewItemViewModel,
-  ReviewQueueFilters,
-} from '@trapmap/web-panel/shared/types/admin-panel';
+import type { ReviewItemViewModel, ReviewQueueFilters } from '@trapmap/web-panel/shared/enum-types';
 import { useEffect, useMemo } from 'react';
 
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';

@@ -1,5 +1,5 @@
+import type { ManualJsonEditInput } from '@trapmap/web-panel/shared/enum-types';
 import { buildJsonDraftState, prettyPrintJson } from '@trapmap/web-panel/shared/lib/json-editor';
-import type { ManualJsonEditInput } from '@trapmap/web-panel/shared/types/admin-panel';
 
 export { buildJsonDraftState };
 

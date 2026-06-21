@@ -58,6 +58,10 @@ export class JsonStore {
   private async read(): Promise<StoreData> {
     await this.ensureFile();
     const raw = await readFile(this.filePath, 'utf8');
+    if (raw.trim().length === 0) {
+      return createEmptyStoreData();
+    }
+
     const parsed = JSON.parse(raw) as Partial<StoreData>;
     return {
       ...createEmptyStoreData(),

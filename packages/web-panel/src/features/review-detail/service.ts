@@ -9,7 +9,7 @@ import type {
   AdminPanelApiContract,
   ManualJsonEditInput,
   ReviewDetailViewModel,
-} from '@trapmap/web-panel/shared/types/admin-panel';
+} from '@trapmap/web-panel/shared/enum-types';
 
 export async function loadReviewDetail(
   api: AdminPanelApiContract,
