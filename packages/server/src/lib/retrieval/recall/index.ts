@@ -12,7 +12,6 @@ export type {
   VectorSearchStats,
   VectorSearchResultWithStats,
 } from './db-search.js';
-export { extractTrapGraphEntities, extractGraphEntities } from './graph-extract.js';
 export {
   optimizedSemanticRecall,
   getQueryEmbedding,

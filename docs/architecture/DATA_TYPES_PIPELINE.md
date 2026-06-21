@@ -376,7 +376,7 @@ flowchart TB
     I --> J["assertNoHardDependencyCycles()\n+ upsertGraphIndexDocument()"]
 ```
 
-LLM 不可用时的降级路径：LLM 失败 → 缓存命中 → 使用缓存 → 无缓存 → `extractTrapGraphEntities()` 规则引擎 fallback
+LLM 不可用时不会再降级到规则引擎；索引链路返回空抽取结果，query 侧仅做图标签归一化。
 
 **LLM 提取的优势**（相比规则引擎）：
 - 理解否定句："does NOT require X" 不会生成 requires 边
@@ -620,7 +620,7 @@ flowchart TB
 | GraphIndexRepository 接口 | `packages/server/src/lib/graph-index/repository.ts` |
 | **LLM 实体提取（主路径）** | **`packages/server/src/lib/indexing/graph-lite/llm-extract.ts`** |
 | **LLM 提取缓存** | **`packages/server/src/lib/indexing/graph-lite/llm-cache.ts`** |
-| Trap 实体提取（规则引擎 fallback） | `packages/server/src/lib/retrieval/recall/graph-extract.ts` |
+| Query 图标签归一化 | `packages/server/src/lib/retrieval/recall/query-graph-labels.ts` |
 | **LLM 重复判定** | **`packages/server/src/lib/candidates/llm-dedup.ts`** |
 | **LLM 冲突判定** | **`packages/server/src/lib/conflict/llm-conflict.ts`** |
 | **图提取 Zod Schema** | **`packages/contracts/src/domain/graph-extraction.ts`** |

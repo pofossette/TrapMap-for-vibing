@@ -121,8 +121,7 @@ export const graphIndexAdapter: IndexAdapter & {
     }
 
     try {
-      // Extract TrapMap-specific entities and relations
-      // Use LLM extraction when ChatProvider is available, fall back to rule engine
+      // Extract graph entities and relations through the LLM pipeline only.
       const llmResult = await extractGraphEntitiesWithLLM(
         chat ?? { provider: 'none', isConfigured: false, invoke: async () => '' },
         document.canonicalText,
@@ -138,7 +137,6 @@ export const graphIndexAdapter: IndexAdapter & {
                 }
               : null,
         },
-        document,
       );
       const extractionResult = { nodes: llmResult.nodes, edges: llmResult.edges };
 

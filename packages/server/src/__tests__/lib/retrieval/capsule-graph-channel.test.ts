@@ -4,9 +4,8 @@ import {
   buildGraphRuntimeSnapshot,
   expandSourcesOneHop,
 } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
-import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import { createCapsuleGraphChannel } from '@trapmap/server/lib/retrieval/capsules/index.js';
-import { extractGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
+import { normalizeQueryGraphLabels } from '@trapmap/server/lib/retrieval/recall/query-graph-labels.js';
 import type {
   ArtifactGovernanceFilters,
   ParsedIntent,
@@ -215,74 +214,17 @@ describe('capsuleGraphChannel', () => {
     });
   });
 
-  describe('entity extraction', () => {
-    it('should extract jest as a tool entity', () => {
-      const doc: NormalizedIndexDocument = {
-        entryId: 'query',
-        teamId: null,
-        scope: 'global',
-        requiredLevel: 0,
-        lifecycleState: 'approved',
-        revision: 0,
-        updatedAt: new Date().toISOString(),
-        shortcut: 'jest',
-        detail: '',
-        labels: [],
-        canonicalText: 'jest',
-        tokens: [],
-        contentHash: '',
-        normalizedAt: new Date().toISOString(),
-        boundary: null,
-      };
-      const result = extractGraphEntities(doc);
-      const values = result.entities.map((e) => e.normalizedValue);
-      expect(values).toContain('jest');
+  describe('query label normalization', () => {
+    it('normalizes simple tool labels', () => {
+      expect(normalizeQueryGraphLabels('jest')).toEqual(new Set(['jest']));
+      expect(normalizeQueryGraphLabels('docker')).toEqual(new Set(['docker']));
+      expect(normalizeQueryGraphLabels('vitest')).toEqual(new Set(['vitest']));
     });
 
-    it('should extract docker as a tool entity', () => {
-      const doc: NormalizedIndexDocument = {
-        entryId: 'query',
-        teamId: null,
-        scope: 'global',
-        requiredLevel: 0,
-        lifecycleState: 'approved',
-        revision: 0,
-        updatedAt: new Date().toISOString(),
-        shortcut: 'docker',
-        detail: '',
-        labels: [],
-        canonicalText: 'docker',
-        tokens: [],
-        contentHash: '',
-        normalizedAt: new Date().toISOString(),
-        boundary: null,
-      };
-      const result = extractGraphEntities(doc);
-      const values = result.entities.map((e) => e.normalizedValue);
-      expect(values).toContain('docker');
-    });
-
-    it('should extract vitest as a tool entity', () => {
-      const doc: NormalizedIndexDocument = {
-        entryId: 'query',
-        teamId: null,
-        scope: 'global',
-        requiredLevel: 0,
-        lifecycleState: 'approved',
-        revision: 0,
-        updatedAt: new Date().toISOString(),
-        shortcut: 'vitest',
-        detail: '',
-        labels: [],
-        canonicalText: 'vitest',
-        tokens: [],
-        contentHash: '',
-        normalizedAt: new Date().toISOString(),
-        boundary: null,
-      };
-      const result = extractGraphEntities(doc);
-      const values = result.entities.map((e) => e.normalizedValue);
-      expect(values).toContain('vitest');
+    it('removes stop words and keeps useful tokens', () => {
+      expect(normalizeQueryGraphLabels('how to use vitest with docker')).toEqual(
+        new Set(['vitest', 'docker']),
+      );
     });
   });
 

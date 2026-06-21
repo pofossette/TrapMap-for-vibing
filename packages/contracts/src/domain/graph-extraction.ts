@@ -104,7 +104,9 @@ export const extractionMetricsSchema = z
   .object({
     llmSuccessCount: z.number().int().min(0).default(0),
     cacheHitCount: z.number().int().min(0).default(0),
-    fallbackCount: z.number().int().min(0).default(0),
+    llmUnavailableCount: z.number().int().min(0).default(0),
+    extractionErrorCount: z.number().int().min(0).default(0),
+    emptyExtractionCount: z.number().int().min(0).default(0),
     phase1Ms: z.number().min(0).default(0),
     phase2Ms: z.number().min(0).default(0),
     gleaningCount: z.number().int().min(0).default(0),

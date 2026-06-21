@@ -28,10 +28,10 @@ flowchart TB
 
 **Graph Extraction Eval Reporting:**
 - `pnpm eval:graph-extraction` — live mode, requires chat provider config
-- `pnpm eval:graph-extraction --dry-run` — deterministic fallback, all cases marked as fallback mode
-- Treat a run as truly live only when the aggregate output shows `Mode Breakdown: Live: N cases, Fallback: 0 cases`
-- If the output contains `DEGRADED`, `WARNING: Chat provider not configured`, or any non-zero fallback count, the run is not a clean live proof
-- A report with zero live cases and non-zero fallback cases should NOT be used to evaluate LLM extraction quality
+- `pnpm eval:graph-extraction --dry-run` — runner validation only, no baseline extraction
+- Treat a run as truly live only when the aggregate output shows all cases in `Live`
+- If the output contains `DEGRADED`, `Unavailable`, `Error`, or `Empty`, the run is not a clean live proof
+- A dry-run or unavailable run should NOT be used to evaluate LLM extraction quality
 
 **Phase 3 Duplicate Recall Focus Runs:**
 - Trap-only: run the duplicate eval and inspect the trap exact case that exercises the trap-side recall / exact-preservation lane.
@@ -283,7 +283,7 @@ pnpm eval:ingestion:smoke | tee reports/eval/ingestion-smoke-postgres.txt
 
 **注意：** eval runner 通过 `loadAiProviderConfig()` 读取环境变量，不会自动加载 `.env` 文件。
 如不 source `.env`，retrieval、summary、graph extraction、ingestion 都可能读取不到 PostgreSQL 或 AI provider 配置，导致结果失真或直接回退。
-图提取日志中如果出现 `WARNING: Chat provider not configured, falling back to rule engine`，即使顶部仍显示 `Mode: live`，该次运行也只能记为 degraded fallback。
+图提取日志中如果出现 `WARNING: Chat provider not configured` 或 `DEGRADED`，该次运行只能记为 degraded。
 摘要 multi-fact 用例需要真实 embedding provider（如 Google GenAI），fallback embedding 可能无法召回该用例的 capsule。
 `eval:dedup` 当前不会按 fixture id 过滤执行，因此上面的 `rg` 命令用于从完整报告中聚焦 Phase 3 的 trap-only、skill-only 与 mixed case 行。
 Phase 4 的 queue-dedupe 验证不需要额外环境变量；只要 PostgreSQL schema 已应用到包含 `task_queue_dedupe_pending_idx` 与 `candidate_analyses.duplicate_trace` 的最新 migration 即可。
@@ -296,7 +296,7 @@ Phase 4 的 queue-dedupe 验证不需要额外环境变量；只要 PostgreSQL s
 |------|------|
 | `retrieval-core-postgres.json` | 检索 core 层全量 JSON 结果 |
 | `summary-core-postgres.json` | 摘要 core 层全量 JSON 结果 |
-| `graph-extraction-smoke-live.txt` | 图提取 smoke 文本输出；必须检查 `Mode Breakdown` 和 `DEGRADED`/fallback 提示 |
+| `graph-extraction-smoke-live.txt` | 图提取 smoke 文本输出；必须检查 `Mode Breakdown` 和 `DEGRADED`/unavailable/error/empty 提示 |
 | `ingestion-smoke-postgres.txt` | 摄取 smoke 文本输出 |
 
 ### 文档漂移与复杂度守卫
@@ -575,7 +575,7 @@ Trace 新增字段：`channelsPlanned`、`channelsUsed`、`mergeStats`（totalCh
 **Phase 5 状态**: `capsule-graph` 通道已接入。graph 通道通过 skill graph 做结构化扩召回，采用 `artifact-level graph hit → capsule 映射` 策略。使用工厂函数 `createCapsuleGraphChannel(graphIndexRepo)` 实现，注册于 heuristic/keyword/semantic 之后作为补召回通道。
 
 Graph 通道工作机制：
-1. 从 query 提取工具关键词实体（复用 graph-extract.ts）
+1. 从 query 归一化图标签关键词（不再复用规则引擎）
 2. 按 `sourceType: 'skill'` 过滤 graph 文档，构建图运行时快照
 3. 通过 `expandSourcesOneHop()` 做实体匹配 + 邻居展开，获取候选 artifact ID
 4. artifact ID → governed capsule 映射（仅返回治理交集内的 capsules）

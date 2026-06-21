@@ -303,7 +303,7 @@ boundary.exclusions    // 排除项：[{kind: "platform", description: "..."}]
 NormalizedDocument
        │
        ├──▶ extractGraphEntitiesWithLLM(chat?, text)  ──▶ LLM 两阶段提取: nodes + edges
-       │     (三层降级: LLM → 缓存 → extractTrapGraphEntities() 规则引擎)
+       │     (无规则引擎 fallback；LLM 不可用时返回空抽取结果)
        │
        ├──▶ extractBoundaryGraphEntities() ──▶ 边界节点和边
        │
@@ -316,7 +316,7 @@ NormalizedDocument
 
 ### 5.2 Trap 实体提取
 
-实体提取在 `extractGraphEntitiesWithLLM`（`packages/server/src/lib/indexing/graph-lite/llm-extract.ts`）中实现，采用**两阶段 LLM 提取 + 规则引擎 fallback**：
+实体提取在 `extractGraphEntitiesWithLLM`（`packages/server/src/lib/indexing/graph-lite/llm-extract.ts`）中实现，采用**两阶段 LLM 提取**：
 
 **两阶段 LLM 提取**（详见 `HYBRID_GRAPH_EXTRACTION.md`）：
 1. **Phase 1（切分策略）**：长文本（>2000 字符）经 LLM 规划分为多个 segment
@@ -345,9 +345,7 @@ NormalizedDocument
 | `mitigates` | mitigation → trap | hard/soft | LLM 判定修复强制性 |
 | `order` | prereq → prereq | soft | 前置条件顺序 |
 
-**强度判定**（LLM 主路径）：LLM 直接输出 hard/soft，语义理解否定句和句级作用域。规则引擎 fallback 使用触发词匹配（HARD_TRIGGER_PHRASES / SOFT_MITIGATION_PHRASES）。
-
-**三层降级**：LLM → 缓存 → `extractTrapGraphEntities()` 规则引擎
+**强度判定**：LLM 直接输出 hard/soft，语义理解否定句和句级作用域。
 
 ### 5.3 边界实体提取
 

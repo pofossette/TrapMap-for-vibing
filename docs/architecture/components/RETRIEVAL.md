@@ -548,7 +548,7 @@ graph recall artifact IDs -> map to artifact capsules -> rerank within artifact
 在 v2 管线中，graph 结果进入 merge 层与其他通道平等竞争，rerank 层决定最终排序。graph 不作为唯一排序器。
 
 **entity 提取与图匹配**:
-- 从 query seed 中提取工具关键词实体（复用 graph-extract.ts 的遗留实体提取逻辑）
+- 从 query seed 归一化图标签关键词（不再复用规则抽取器）
 - 按 `sourceType: 'skill'` 过滤 graph 文档，构建图运行时快照
 - 通过 `expandSourcesOneHop()` 做 bounded expansion 获取候选 artifact ID
 

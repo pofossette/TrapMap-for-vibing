@@ -218,7 +218,9 @@ describe('graph-extraction schema', () => {
       const result = extractionMetricsSchema.parse({});
       expect(result.llmSuccessCount).toBe(0);
       expect(result.cacheHitCount).toBe(0);
-      expect(result.fallbackCount).toBe(0);
+      expect(result.llmUnavailableCount).toBe(0);
+      expect(result.extractionErrorCount).toBe(0);
+      expect(result.emptyExtractionCount).toBe(0);
       expect(result.phase1Ms).toBe(0);
       expect(result.phase2Ms).toBe(0);
       expect(result.gleaningCount).toBe(0);
@@ -228,7 +230,9 @@ describe('graph-extraction schema', () => {
       const result = extractionMetricsSchema.parse({
         llmSuccessCount: 3,
         cacheHitCount: 1,
-        fallbackCount: 0,
+        llmUnavailableCount: 0,
+        extractionErrorCount: 0,
+        emptyExtractionCount: 0,
         phase1Ms: 150.5,
         phase2Ms: 400.2,
         gleaningCount: 1,

@@ -569,7 +569,7 @@ export async function buildSkillGraphDocument(
     labels: c.labels,
   }));
 
-  // Build canonical text for LLM extraction (same sources as rule engine)
+  // Build canonical text for LLM extraction from approved derived skill text.
   const canonicalText = [
     profile?.summary ?? '',
     ...(profile?.keywords ?? []),
@@ -580,7 +580,7 @@ export async function buildSkillGraphDocument(
   let edges: GraphEdgeRecord[];
 
   if (chat?.isConfigured) {
-    // LLM extraction with rule engine fallback
+    // LLM extraction path
     const llmResult = await extractGraphEntitiesWithLLM(chat, canonicalText, {
       llmEnabled: true,
       alignmentService:

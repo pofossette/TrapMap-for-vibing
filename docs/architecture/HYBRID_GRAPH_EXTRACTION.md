@@ -1,10 +1,12 @@
-# LLM 驱动的图构建与入库智能设计
+# LLM 驱动的图构建与入库智能设计（历史计划）
+
+> 已完成的历史设计文档。当前实现已移除 `graph-extract.ts` 规则引擎和相关 fallback 语义；仓库现状以 `packages/server/src/lib/indexing/graph-lite/llm-extract.ts`、`packages/server/src/lib/retrieval/recall/query-graph-labels.ts` 及相关 truth docs 为准。
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 用 LLM 完全替代 graph-extract.ts 中的规则引擎，同时增强重复检测、冲突检测和预审质量评估。
+**Goal:** 用 LLM 完全替代当时的 `graph-extract.ts` 规则引擎，同时增强重复检测、冲突检测和预审质量评估。
 
-**Architecture:** 两阶段 LLM 提取（架构思路借鉴 capsule 管线的两阶段模式，具体流程为新设计：Phase 1 切分策略，Phase 2 并行补全），入库效果优先，出库纯代码路径不变。规则引擎保留为降级 fallback。
+**Architecture:** 两阶段 LLM 提取（架构思路借鉴 capsule 管线的两阶段模式，具体流程为新设计：Phase 1 切分策略，Phase 2 并行补全），入库效果优先，出库纯代码路径不变。文中关于“规则引擎保留为 fallback”的部分已过时。
 
 **Tech Stack:** `@langchain/openai`, `ChatProvider` (现有), `Zod` schema 校验, `graphology` (现有), 现有 prompt 模板系统 (`ai/prompts.ts`)
 

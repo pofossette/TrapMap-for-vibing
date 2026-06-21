@@ -20,11 +20,10 @@
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
-import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/channel-registry.js';
 import type { RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
-import { extractGraphEntities } from './graph-extract.js';
+import { normalizeQueryGraphLabels } from './query-graph-labels.js';
 
 /**
  * Scoring configuration for graph-assisted recall.
@@ -36,30 +35,6 @@ interface GraphScoringConfig {
   relationBoost?: number;
   /** Maximum score cap (default 1.0) */
   maxScore?: number;
-}
-
-/**
- * Convert a knowledge record to normalized document for extraction.
- */
-function toNormalizedDocument(entry: KnowledgeRecord): NormalizedIndexDocument {
-  const canonicalText = `${entry.shortcut}\n${entry.detail}\n${entry.labels.join('\n')}`;
-  return {
-    entryId: entry.id,
-    teamId: entry.teamId,
-    scope: entry.scope,
-    requiredLevel: entry.requiredLevel,
-    lifecycleState: entry.lifecycleState,
-    revision: entry.history.length,
-    updatedAt: entry.updatedAt,
-    shortcut: entry.shortcut,
-    detail: entry.detail,
-    labels: entry.labels,
-    canonicalText,
-    tokens: [],
-    contentHash: '',
-    normalizedAt: new Date().toISOString(),
-    boundary: entry.boundary ?? null,
-  };
 }
 
 function calculateGraphScore(
@@ -87,32 +62,7 @@ function calculateGraphScore(
 }
 
 function extractQueryEntities(queryText: string): Set<string> {
-  const normalizedDoc: NormalizedIndexDocument = {
-    entryId: 'query',
-    teamId: null,
-    scope: 'global',
-    requiredLevel: 0,
-    lifecycleState: 'approved',
-    revision: 0,
-    updatedAt: new Date().toISOString(),
-    shortcut: queryText,
-    detail: '',
-    labels: [],
-    canonicalText: queryText,
-    tokens: [],
-    contentHash: '',
-    normalizedAt: new Date().toISOString(),
-    boundary: null,
-  };
-
-  const extractionResult = extractGraphEntities(normalizedDoc);
-  const entityValues = new Set<string>();
-
-  for (const entity of extractionResult.entities) {
-    entityValues.add(entity.normalizedValue);
-  }
-
-  return entityValues;
+  return normalizeQueryGraphLabels(queryText);
 }
 
 interface GraphAssistedRecallConfig extends GraphScoringConfig {
@@ -155,13 +105,19 @@ export async function graphAssistedRecall(
       continue;
     }
 
-    const entryDoc = toNormalizedDocument(entry);
-    const entryExtraction = extractGraphEntities(entryDoc);
     const directMatches = new Set<string>();
 
-    for (const entity of entryExtraction.entities) {
-      if (queryEntities.has(entity.normalizedValue)) {
-        directMatches.add(entity.normalizedValue);
+    const entryLabels = new Set<string>();
+    for (const label of entry.labels) {
+      const normalized = label.toLowerCase().trim().replace(/\s+/g, '-');
+      if (normalized.length > 1) {
+        entryLabels.add(normalized);
+      }
+    }
+
+    for (const label of entryLabels) {
+      if (queryEntities.has(label)) {
+        directMatches.add(label);
       }
     }
 

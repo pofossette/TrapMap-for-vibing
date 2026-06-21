@@ -7,7 +7,7 @@
  * - Node precision/recall/F1 (match by normalized label)
  * - Edge precision/recall/F1 (match by source+target+type)
  * - Strength classification accuracy
- * - Comparison: LLM vs rule-engine results
+ * - Extraction status reporting for unavailable/error/empty cases
  *
  * Usage:
  *   pnpm eval:graph-extraction
@@ -28,7 +28,7 @@ import type { ExpectedEdge, ExpectedNode, GraphExtractionFixture } from './fixtu
 
 export interface ExtractionRunResult {
   extraction: LlmGraphExtraction;
-  mode: 'live' | 'fallback';
+  mode: 'live' | 'unavailable' | 'error' | 'empty';
   degraded: boolean;
   warning: string | null;
 }
@@ -102,7 +102,7 @@ export interface CaseMetrics {
   strengthAccuracy: number;
   totalExpectedStrengths: number;
   correctStrengths: number;
-  mode: 'live' | 'fallback';
+  mode: 'live' | 'unavailable' | 'error' | 'empty';
   degraded: boolean;
   warning: string | null;
 }
@@ -174,73 +174,16 @@ function evaluateEdges(
 // Extraction strategies
 // ---------------------------------------------------------------------------
 
-/**
- * Simulate rule-engine extraction from text.
- * Simple keyword-based extraction for comparison.
- */
-export function simulateRuleEngineExtraction(text: string): LlmGraphExtraction {
-  const nodes: LlmGraphExtraction['nodes'] = [];
-  const edges: LlmGraphExtraction['edges'] = [];
-
-  // Simple keyword-based extraction (mimics extractTrapGraphEntities)
-  const toolKeywords = [
-    'docker',
-    'npm',
-    'yarn',
-    'node.js',
-    'nodejs',
-    'postgresql',
-    'redis',
-    'kubernetes',
-    'helm',
-    'ssh',
-    'tmux',
-    'screen',
-    'graphql',
-    'apollo',
-    'eslint',
-    'prettier',
-    'pgbouncer',
-    'github actions',
-  ];
-
-  const lowerText = text.toLowerCase();
-
-  for (const tool of toolKeywords) {
-    if (lowerText.includes(tool)) {
-      nodes.push({ kind: 'tool', label: tool.replace(/\s+/g, '-') });
-    }
-  }
-
-  // Detect cue patterns
-  const cuePatterns = [/timeout/i, /error/i, /fail/i, /crash/i, /leak/i, /drop/i];
-  for (const pattern of cuePatterns) {
-    if (pattern.test(text)) {
-      const cueLabel = pattern.source.replace(/[\\\/\(\)]/g, '').toLowerCase();
-      if (!nodes.some((n) => n.label === cueLabel)) {
-        nodes.push({ kind: 'cue', label: `${cueLabel}-issue` });
-      }
-    }
-  }
-
-  return { nodes, edges };
-}
-
-/**
- * Perform actual LLM extraction.
- * Falls back to mock data in dry-run mode.
- */
 export async function performLLMExtraction(
   text: string,
   dryRun: boolean,
 ): Promise<ExtractionRunResult> {
   if (dryRun) {
-    // In dry-run mode, use a deterministic mock that returns a reasonable subset
     return {
-      extraction: simulateRuleEngineExtraction(text),
-      mode: 'fallback',
-      degraded: false,
-      warning: null,
+      extraction: { nodes: [], edges: [] },
+      mode: 'unavailable',
+      degraded: true,
+      warning: 'dry-run-no-llm',
     };
   }
 
@@ -258,10 +201,10 @@ export async function performLLMExtraction(
     const config = loadAiProviderConfig();
     const { chat } = createAiProviders(config);
     if (!chat.isConfigured) {
-      console.warn('WARNING: Chat provider not configured, falling back to rule engine');
+      console.warn('WARNING: Chat provider not configured, graph extraction eval unavailable');
       return {
-        extraction: simulateRuleEngineExtraction(text),
-        mode: 'fallback',
+        extraction: { nodes: [], edges: [] },
+        mode: 'unavailable',
         degraded: true,
         warning: 'chat-provider-not-configured',
       };
@@ -270,15 +213,15 @@ export async function performLLMExtraction(
     const result = await extractSegmentEntities(chat, text);
     return {
       extraction: result ?? { nodes: [], edges: [] },
-      mode: 'live',
-      degraded: false,
-      warning: null,
+      mode: result ? 'live' : 'empty',
+      degraded: result === null,
+      warning: result ? null : 'llm-returned-empty-or-invalid',
     };
   } catch (error) {
-    console.warn('LLM extraction failed, falling back to rule engine:', error);
+    console.warn('LLM extraction failed:', error);
     return {
-      extraction: simulateRuleEngineExtraction(text),
-      mode: 'fallback',
+      extraction: { nodes: [], edges: [] },
+      mode: 'error',
       degraded: true,
       warning: 'llm-extraction-failed',
     };
@@ -332,7 +275,7 @@ export interface AggregateMetrics {
   totalEdgeTP: number;
   totalEdgeFP: number;
   totalEdgeFN: number;
-  modeBreakdown: { live: number; fallback: number };
+  modeBreakdown: { live: number; unavailable: number; error: number; empty: number };
   degradedCount: number;
   warnings: string[];
 }
@@ -354,7 +297,7 @@ export function aggregateMetrics(results: CaseMetrics[]): AggregateMetrics {
       totalEdgeTP: 0,
       totalEdgeFP: 0,
       totalEdgeFN: 0,
-      modeBreakdown: { live: 0, fallback: 0 },
+      modeBreakdown: { live: 0, unavailable: 0, error: 0, empty: 0 },
       degradedCount: 0,
       warnings: [],
     };
@@ -370,7 +313,9 @@ export function aggregateMetrics(results: CaseMetrics[]): AggregateMetrics {
   let totalCorrectStrengths = 0;
   let totalExpectedStrengths = 0;
   let liveCount = 0;
-  let fallbackCount = 0;
+  let unavailableCount = 0;
+  let errorCount = 0;
+  let emptyCount = 0;
   let degradedCount = 0;
   const uniqueWarnings = new Set<string>();
 
@@ -384,7 +329,9 @@ export function aggregateMetrics(results: CaseMetrics[]): AggregateMetrics {
     totalCorrectStrengths += r.correctStrengths;
     totalExpectedStrengths += r.totalExpectedStrengths;
     if (r.mode === 'live') liveCount++;
-    else fallbackCount++;
+    else if (r.mode === 'unavailable') unavailableCount++;
+    else if (r.mode === 'error') errorCount++;
+    else emptyCount++;
     if (r.degraded) degradedCount++;
     if (r.warning) uniqueWarnings.add(r.warning);
   }
@@ -408,7 +355,12 @@ export function aggregateMetrics(results: CaseMetrics[]): AggregateMetrics {
     totalEdgeTP,
     totalEdgeFP,
     totalEdgeFN,
-    modeBreakdown: { live: liveCount, fallback: fallbackCount },
+    modeBreakdown: {
+      live: liveCount,
+      unavailable: unavailableCount,
+      error: errorCount,
+      empty: emptyCount,
+    },
     degradedCount,
     warnings: [...uniqueWarnings],
   };
@@ -421,8 +373,8 @@ export function aggregateMetrics(results: CaseMetrics[]): AggregateMetrics {
 export function formatReport(
   results: CaseMetrics[],
   agg: AggregateMetrics,
-  _ruleEngineResults: CaseMetrics[],
-  ruleEngineAgg: AggregateMetrics,
+  _unusedComparisonResults: CaseMetrics[],
+  _unusedComparisonAgg: AggregateMetrics,
   dryRun: boolean,
 ): string {
   const lines: string[] = [];
@@ -435,11 +387,11 @@ export function formatReport(
 
   // Mode line
   if (dryRun) {
-    lines.push('Mode: DRY-RUN (mock data)');
+    lines.push('Mode: DRY-RUN (runner validation only, no LLM calls)');
   } else if (agg.modeBreakdown.live === agg.totalCases) {
     lines.push('Mode: LIVE (LLM calls)');
   } else {
-    lines.push('Mode: LIVE with fallback (some cases used rule engine)');
+    lines.push('Mode: MIXED (some cases unavailable, empty, or failed)');
   }
 
   lines.push(`Total fixtures: ${agg.totalCases}`);
@@ -448,40 +400,25 @@ export function formatReport(
   // Mode breakdown
   if (!dryRun) {
     lines.push(
-      `Mode Breakdown: Live: ${agg.modeBreakdown.live} cases, Fallback: ${agg.modeBreakdown.fallback} cases`,
+      `Mode Breakdown: Live: ${agg.modeBreakdown.live}, Unavailable: ${agg.modeBreakdown.unavailable}, Error: ${agg.modeBreakdown.error}, Empty: ${agg.modeBreakdown.empty}`,
     );
     if (agg.degradedCount > 0) {
-      lines.push(`DEGRADED: ${agg.degradedCount} case(s) fell back to rule engine`);
+      lines.push(`DEGRADED: ${agg.degradedCount} case(s) ran without a usable live extraction`);
     }
     lines.push('');
   }
 
-  // Aggregate comparison table
   lines.push('=== Aggregate Metrics (Micro-Averaged) ===');
   lines.push('');
-  lines.push('Metric              | LLM     | Rule Engine');
-  lines.push('--------------------|---------|------------');
-  lines.push(
-    `Node Precision      | ${agg.avgNodePrecision.toFixed(3).padStart(7)} | ${ruleEngineAgg.avgNodePrecision.toFixed(3).padStart(7)}`,
-  );
-  lines.push(
-    `Node Recall         | ${agg.avgNodeRecall.toFixed(3).padStart(7)} | ${ruleEngineAgg.avgNodeRecall.toFixed(3).padStart(7)}`,
-  );
-  lines.push(
-    `Node F1             | ${agg.avgNodeF1.toFixed(3).padStart(7)} | ${ruleEngineAgg.avgNodeF1.toFixed(3).padStart(7)}`,
-  );
-  lines.push(
-    `Edge Precision      | ${agg.avgEdgePrecision.toFixed(3).padStart(7)} | ${ruleEngineAgg.avgEdgePrecision.toFixed(3).padStart(7)}`,
-  );
-  lines.push(
-    `Edge Recall         | ${agg.avgEdgeRecall.toFixed(3).padStart(7)} | ${ruleEngineAgg.avgEdgeRecall.toFixed(3).padStart(7)}`,
-  );
-  lines.push(
-    `Edge F1             | ${agg.avgEdgeF1.toFixed(3).padStart(7)} | ${ruleEngineAgg.avgEdgeF1.toFixed(3).padStart(7)}`,
-  );
-  lines.push(
-    `Strength Accuracy   | ${agg.avgStrengthAccuracy.toFixed(3).padStart(7)} | ${ruleEngineAgg.avgStrengthAccuracy.toFixed(3).padStart(7)}`,
-  );
+  lines.push('Metric              | Value');
+  lines.push('--------------------|--------');
+  lines.push(`Node Precision      | ${agg.avgNodePrecision.toFixed(3).padStart(6)}`);
+  lines.push(`Node Recall         | ${agg.avgNodeRecall.toFixed(3).padStart(6)}`);
+  lines.push(`Node F1             | ${agg.avgNodeF1.toFixed(3).padStart(6)}`);
+  lines.push(`Edge Precision      | ${agg.avgEdgePrecision.toFixed(3).padStart(6)}`);
+  lines.push(`Edge Recall         | ${agg.avgEdgeRecall.toFixed(3).padStart(6)}`);
+  lines.push(`Edge F1             | ${agg.avgEdgeF1.toFixed(3).padStart(6)}`);
+  lines.push(`Strength Accuracy   | ${agg.avgStrengthAccuracy.toFixed(3).padStart(6)}`);
   lines.push('');
 
   // Per-case details
@@ -493,7 +430,13 @@ export function formatReport(
   for (const r of results) {
     const caseId = r.caseId.padEnd(25);
     const modeIndicator =
-      r.mode === 'live' ? (r.degraded ? ' F!' : ' L ') : r.degraded ? ' F!' : ' F ';
+      r.mode === 'live'
+        ? ' L '
+        : r.mode === 'unavailable'
+          ? ' U '
+          : r.mode === 'error'
+            ? ' E '
+            : ' M ';
     const nodePrf =
       `${r.nodeMetrics.precision.toFixed(2)}/${r.nodeMetrics.recall.toFixed(2)}/${r.nodeMetrics.f1.toFixed(2)}`.padStart(
         13,
@@ -566,50 +509,18 @@ async function main(): Promise<void> {
 
   const agg = aggregateMetrics(results);
 
-  // Run rule-engine comparison
-  const ruleEngineResults: CaseMetrics[] = [];
-  for (const fixture of fixtures) {
-    // For rule engine, always use the simulated extraction
-    const extraction = simulateRuleEngineExtraction(fixture.input);
-    const nodeResult = evaluateNodes(fixture.expectedNodes, extraction.nodes);
-    const edgeResult = evaluateEdges(fixture.expectedEdges, extraction.edges);
-
-    ruleEngineResults.push({
-      caseId: fixture.id,
-      nodeMetrics: computeMetrics(nodeResult.tp, nodeResult.fp, nodeResult.fn),
-      edgeMetrics: computeMetrics(edgeResult.tp, edgeResult.fp, edgeResult.fn),
-      strengthAccuracy:
-        edgeResult.totalStrengths > 0 ? edgeResult.correctStrengths / edgeResult.totalStrengths : 0,
-      totalExpectedStrengths: edgeResult.totalStrengths,
-      correctStrengths: edgeResult.correctStrengths,
-      mode: 'fallback' as const,
-      degraded: false,
-      warning: null,
-    });
-  }
-
-  const ruleEngineAgg = aggregateMetrics(ruleEngineResults);
-
   // Print report
-  console.log(formatReport(results, agg, ruleEngineResults, ruleEngineAgg, options.dryRun));
+  console.log(formatReport(results, agg, [], aggregateMetrics([]), options.dryRun));
 
   const durationMs = Date.now() - startTime;
   console.log(`Duration: ${durationMs}ms`);
   console.log('');
 
-  // In live mode, check if LLM outperforms rule engine
   if (!options.dryRun) {
     if (agg.degradedCount > 0) {
       console.log(
         `WARNING: ${agg.degradedCount} case(s) degraded -- results may not reflect true LLM quality`,
       );
-    }
-    const llmBetter =
-      agg.avgNodeF1 > ruleEngineAgg.avgNodeF1 || agg.avgEdgeF1 > ruleEngineAgg.avgEdgeF1;
-    if (llmBetter) {
-      console.log('LLM extraction outperforms rule engine baseline.');
-    } else {
-      console.log('WARNING: LLM extraction does not outperform rule engine baseline.');
     }
   }
 

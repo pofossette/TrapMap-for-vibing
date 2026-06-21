@@ -213,7 +213,7 @@ async function runRetrievalEval(options: EvalAllOptions): Promise<RetrievalResul
 
 /**
  * Run graph extraction evaluation and return results.
- * Always runs in dry-run mode (mock data) in the unified runner for CI stability.
+ * Uses a deterministic lightweight approximation in the unified runner for CI stability.
  */
 async function runGraphExtractionEval(
   options: EvalAllOptions,
@@ -225,10 +225,10 @@ async function runGraphExtractionEval(
     const smokeFixtures = fixtures.getSmokeFixtures();
     const allFixtures = options.tier === 'smoke' ? smokeFixtures : fixtures.graphExtractionFixtures;
 
-    // Simple metric computation for the unified report (dry-run mode)
+    // Simple metric computation for the unified report
     const { normalizeLabel: _nl } = await import('../graph-extraction/fixtures.js');
 
-    // Compute rule-engine baseline metrics (deterministic, no LLM calls)
+    // Compute deterministic approximation metrics without LLM calls
     let totalNodeTP = 0;
     let totalNodeFP = 0;
     let totalNodeFN = 0;
@@ -237,7 +237,7 @@ async function runGraphExtractionEval(
     let _totalEdgeFN = 0;
 
     for (const fixture of allFixtures) {
-      // Simple keyword-based rule engine simulation
+      // Simple keyword-based approximation
       const lowerText = fixture.input.toLowerCase();
       const toolKeywords = [
         'docker',
@@ -272,7 +272,7 @@ async function runGraphExtractionEval(
       totalNodeFP += actualNodes.size - tp;
       totalNodeFN += expectedNodes.size - tp;
 
-      // Edges: rule engine produces no edges in simple simulation
+      // Edges: the deterministic approximation does not model edges
       _totalEdgeFN += fixture.expectedEdges.length;
     }
 

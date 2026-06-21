@@ -474,28 +474,12 @@ describe('llm-extract', () => {
       expect(result.metrics.llmSuccessCount).toBe(1);
     });
 
-    it('falls back to rule engine when chat not configured', async () => {
+    it('returns empty with llmUnavailableCount when chat not configured', async () => {
       const chat = unconfiguredChat();
-      const mockDocument = {
-        entryId: 'test-entry',
-        shortcut: 'docker-timeout',
-        detail: 'Docker container times out',
-        canonicalText: 'Docker container times out during health check',
-        labels: ['docker', 'timeout'],
-        teamId: null,
-        scope: 'global' as const,
-        requiredLevel: 0,
-        revision: 1,
-        lifecycleState: 'approved' as const,
-        tokens: ['docker', 'container', 'timeout'],
-        contentHash: 'abc',
-        boundary: null,
-        updatedAt: '2026-01-01T00:00:00Z',
-        normalizedAt: '2026-01-01T00:00:00Z',
-      };
-      const result = await extractGraphEntitiesWithLLM(chat, 'text', {}, mockDocument);
-      expect(result.metrics.fallbackCount).toBe(1);
-      expect(result.nodes.length).toBeGreaterThan(0);
+      const result = await extractGraphEntitiesWithLLM(chat, 'text');
+      expect(result.metrics.llmUnavailableCount).toBe(1);
+      expect(result.nodes).toHaveLength(0);
+      expect(result.edges).toHaveLength(0);
     });
 
     it('returns empty when chat not configured and no fallback document', async () => {
@@ -505,28 +489,12 @@ describe('llm-extract', () => {
       expect(result.edges).toHaveLength(0);
     });
 
-    it('falls back to rule engine when LLM returns empty results', async () => {
+    it('records emptyExtractionCount when LLM returns empty results', async () => {
       const emptyExtraction = JSON.stringify({ nodes: [], edges: [] });
       const chat = mockChat(emptyExtraction);
-      const mockDocument = {
-        entryId: 'test-entry',
-        shortcut: 'docker-timeout',
-        detail: 'Docker container times out',
-        canonicalText: 'Docker container times out during health check',
-        labels: ['docker', 'timeout'],
-        teamId: null,
-        scope: 'global' as const,
-        requiredLevel: 0,
-        revision: 1,
-        lifecycleState: 'approved' as const,
-        tokens: ['docker', 'container', 'timeout'],
-        contentHash: 'abc',
-        boundary: null,
-        updatedAt: '2026-01-01T00:00:00Z',
-        normalizedAt: '2026-01-01T00:00:00Z',
-      };
-      const result = await extractGraphEntitiesWithLLM(chat, 'short text', {}, mockDocument);
-      expect(result.metrics.fallbackCount).toBe(1);
+      const result = await extractGraphEntitiesWithLLM(chat, 'short text');
+      expect(result.metrics.emptyExtractionCount).toBe(1);
+      expect(result.nodes).toHaveLength(0);
     });
 
     it('deduplicates aligned nodes that resolve to the same canonical label', async () => {

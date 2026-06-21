@@ -53,7 +53,9 @@ function makeResult(
     metrics: {
       llmSuccessCount: 1,
       cacheHitCount: 0,
-      fallbackCount: 0,
+      llmUnavailableCount: 0,
+      extractionErrorCount: 0,
+      emptyExtractionCount: 0,
       phase1Ms: 0,
       phase2Ms: 0,
       gleaningCount: 0,

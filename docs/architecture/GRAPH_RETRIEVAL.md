@@ -118,7 +118,7 @@
        mitigation --mitigates--> trap    (LLM 判定修复强制性)
        prereq --order--> prereq          (soft)
   |
-  +-> 三层降级: LLM 失败 -> 缓存 -> extractTrapGraphEntities() 规则引擎
+  +-> 无规则引擎降级；LLM 不可用时返回空图抽取结果
 ```
 
 **Boundary 侧** (`boundary-extract.ts` -> `extractBoundaryGraphEntities()`): 纯代码路径，不变。
@@ -137,7 +137,7 @@
        +-- keywordIndexAdapter  (token)
        +-- graphIndexAdapter:
            +-- extractGraphEntitiesWithLLM(chat?, text)  <- LLM 两阶段提取
-           |     (三层降级: LLM -> 缓存 -> extractTrapGraphEntities() 规则引擎)
+           |     (无规则引擎 fallback)
            +-- extractBoundaryGraphEntities()
            +-- buildTrapGraphDocument()
            |      (预计算 trap severity: hard risk-blocks 边 -> 'hard', 否则 -> 'soft')
@@ -158,7 +158,7 @@
 ```
 查询文本
   |
-  +-- extractGraphEntities() --> 提取查询中的实体标签
+  +-- normalizeQueryGraphLabels() --> 归一化查询中的图标签
   |
   +-- buildGraphRuntimeSnapshot() --> 加载图 -> graphology 有向多重图
   |
@@ -421,7 +421,7 @@ edges:
 |------|------|
 | `packages/server/src/lib/indexing/graph-lite/llm-extract.ts` | **LLM 两阶段实体提取** (planExtraction + extractSegmentEntities + gleaning) |
 | `packages/server/src/lib/indexing/graph-lite/llm-cache.ts` | **LLM 提取缓存** (contentHash + promptVersion) |
-| `packages/server/src/lib/retrieval/recall/graph-extract.ts` | Trap 侧规则抽取 (LLM fallback 时使用) |
+| `packages/server/src/lib/retrieval/recall/query-graph-labels.ts` | query 侧图标签归一化 |
 | `packages/server/src/lib/indexing/boundary-extract.ts` | Boundary 侧抽取 (context, version, platform) |
 | `packages/server/src/lib/indexing/boundary-normalize.ts` | Boundary 节点 ID 构建与值标准化 |
 | `packages/contracts/src/domain/graph-extraction.ts` | LLM 提取 Zod schema (节点/边/计划/指标) |
@@ -476,7 +476,7 @@ edges:
 | 文件 | 职责 |
 |------|------|
 | `packages/server/src/lib/retrieval/__fixtures__/graph-fixtures.ts` | 测试 fixture (Deploy Cluster 数据集, 环路检测数据集) |
-| `packages/server/src/lib/retrieval/recall/graph-extract.test.ts` | 实体抽取测试 |
+| `packages/server/src/lib/retrieval/recall/graph-assisted.test.ts` | graph-assisted 图标签召回测试 |
 | `packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts` | v3 图计划搜索测试 |
 | `packages/server/src/lib/retrieval/recall/graph-assisted.test.ts` | v1 图召回测试 |
 | `packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts` | Plan 编译器测试 |

@@ -19,9 +19,8 @@
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
 import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
-import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import { extractGovernedCapsules } from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
-import { extractGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
+import { normalizeQueryGraphLabels } from '@trapmap/server/lib/retrieval/recall/query-graph-labels.js';
 import type {
   ArtifactGovernanceFilters,
   CapsuleRecallCandidate,
@@ -32,47 +31,11 @@ import type {
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
 /**
- * Build a normalized document from query text for entity extraction.
- * Reuses the same extraction logic that built the graph index.
- */
-function buildQueryDocument(queryText: string): NormalizedIndexDocument {
-  return {
-    entryId: 'query',
-    teamId: null,
-    scope: 'global',
-    requiredLevel: 0,
-    lifecycleState: 'approved',
-    revision: 0,
-    updatedAt: new Date().toISOString(),
-    shortcut: queryText,
-    detail: '',
-    labels: [],
-    canonicalText: queryText,
-    tokens: [],
-    contentHash: '',
-    normalizedAt: new Date().toISOString(),
-    boundary: null,
-  };
-}
-
-/**
  * Extract entity values from query text that can be matched against graph nodes.
  * Returns a set of normalized entity values.
  */
 function extractQueryEntityLabels(queryText: string): Set<string> {
-  if (!queryText || queryText.trim().length === 0) return new Set();
-
-  const normalizedDoc = buildQueryDocument(queryText);
-  const extractionResult = extractGraphEntities(normalizedDoc);
-  const entityValues = new Set<string>();
-
-  for (const entity of extractionResult.entities) {
-    if (entity.normalizedValue.length > 1) {
-      entityValues.add(entity.normalizedValue);
-    }
-  }
-
-  return entityValues;
+  return normalizeQueryGraphLabels(queryText);
 }
 
 /**

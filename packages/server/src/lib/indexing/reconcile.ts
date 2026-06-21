@@ -17,7 +17,6 @@
 
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
-import { extractTrapGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
 import type {
   KnowledgeRecord,
   SkillArtifactRecord,
@@ -201,14 +200,12 @@ function isStaleDocument(
 function buildCandidateForTrap(source: ApprovedSource): GraphIndexDocumentRecord | null {
   const entry = source.entity as KnowledgeRecord;
 
-  // Normalize and extract graph entities
   const normalized = normalizeKnowledgeIndexDocument(entry);
-  const extraction = extractTrapGraphEntities(normalized);
 
   return buildTrapGraphDocument({
     normalizedDocument: normalized,
-    nodes: extraction.nodes,
-    edges: extraction.edges,
+    nodes: [],
+    edges: [],
   });
 }
 

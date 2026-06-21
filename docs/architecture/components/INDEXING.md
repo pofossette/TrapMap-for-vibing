@@ -54,7 +54,7 @@ packages/server/src/lib/
 │   ├── llm-conflict.ts            # LLM 冲突判定 (contradictory/alternative/superseded/none)
 │   └── ...
 └── retrieval/
-    └── graph-extract.ts           # TrapMap 实体提取（规则引擎，LLM fallback 时使用）
+    └── graph-lite/llm-extract.ts  # LLM 图实体提取
 ```
 
 ---
@@ -274,7 +274,7 @@ flowchart TB
 
     subgraph 实体提取["实体提取（LLM 主路径 + 规则 fallback）"]
         subgraph LLM提取["extractGraphEntitiesWithLLM(chat?, text)"]
-            B1["Phase 1: planExtraction → ExtractionPlan (长文本切分)\nPhase 2: extractSegmentEntities × N (并行)\nGleaning: 二次提取追问\n三层降级: LLM → 缓存 → 规则引擎"]
+            B1["Phase 1: planExtraction → ExtractionPlan (长文本切分)\nPhase 2: extractSegmentEntities × N (并行)\nGleaning: 二次提取追问\nLLM 不可用时返回空抽取结果"]
         end
 
         subgraph 边界实体["extractBoundaryGraphEntities"]
@@ -350,9 +350,9 @@ function assertNoHardDependencyCycles(documents) {
 
 ### 图提取评估契约 (Graph Extraction Evaluation Contract)
 
-The eval runner at `evals/graph-extraction/run.ts` evaluates the LLM extraction pipeline against annotated ground truth. It reports whether each extraction used live LLM or fallback rule engine. This distinction is critical because:
-- Silent fallback to the rule engine can make infra-constrained runs appear to produce valid results when they are actually using keyword-based heuristics
-- Edge extraction metrics are only meaningful in live mode since the rule-engine fallback produces zero edges by design
+The eval runner at `evals/graph-extraction/run.ts` evaluates the LLM extraction pipeline against annotated ground truth. It reports whether each extraction was live, unavailable, errored, or empty. This distinction is critical because:
+- Unavailable or errored runs are not valid quality evidence
+- Edge extraction metrics are only meaningful in live mode
 - A degraded report signals infrastructure issues, not model quality
 
 When evaluating extraction quality, always check the mode breakdown in the report header.

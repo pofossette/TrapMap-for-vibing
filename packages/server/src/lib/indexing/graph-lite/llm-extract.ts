@@ -14,9 +14,7 @@ import {
   buildPrompt,
 } from '@trapmap/server/lib/ai/prompts.js';
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
-import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
-import { extractTrapGraphEntities } from '@trapmap/server/lib/retrieval/recall/graph-extract.js';
 import { executeWithResilience } from '@trapmap/server/lib/runtime/resilience.js';
 import type {
   GraphEdgeRecord,
@@ -57,7 +55,7 @@ export interface LlmExtractionResult {
 
 /** Options for the extraction orchestrator. */
 export interface ExtractGraphOptions {
-  /** Disable LLM and fall back to rule engine directly. */
+  /** Disable LLM and return empty extraction directly. */
   llmEnabled?: boolean;
   /** Custom prompt version for cache keying. */
   promptVersion?: string;
@@ -427,24 +425,7 @@ export async function gleaningExtraction(
 }
 
 // ---------------------------------------------------------------------------
-// Fallback: convert rule engine output to LLM-compatible format
-// ---------------------------------------------------------------------------
-
-function ruleEngineFallback(document: NormalizedIndexDocument): {
-  nodes: GraphNodeRecord[];
-  edges: GraphEdgeRecord[];
-} {
-  const result = extractTrapGraphEntities(document);
-  // GraphRelation from graph-extract lacks `id` — add deterministic IDs
-  const edges: GraphEdgeRecord[] = result.edges.map((e) => ({
-    ...e,
-    id: buildEdgeId(e.sourceNodeId, e.targetNodeId, e.relationType),
-  }));
-  return { nodes: result.nodes as GraphNodeRecord[], edges };
-}
-
-// ---------------------------------------------------------------------------
-// Main orchestrator: two-phase LLM extraction with fallback
+// Main orchestrator: two-phase LLM extraction
 // ---------------------------------------------------------------------------
 
 /**
@@ -457,23 +438,21 @@ function ruleEngineFallback(document: NormalizedIndexDocument): {
  * 4. Optional gleaning
  * 5. Convert to GraphNodeRecord/GraphEdgeRecord
  *
- * Fallback chain: LLM → rule engine (extractTrapGraphEntities)
- *
  * @param chat - LLM chat provider
  * @param text - canonical text to extract from
  * @param options - extraction options
- * @param fallbackDocument - document for rule engine fallback (required for trap side)
  */
 export async function extractGraphEntitiesWithLLM(
   chat: ChatProvider,
   text: string,
   options?: ExtractGraphOptions,
-  fallbackDocument?: NormalizedIndexDocument,
 ): Promise<LlmExtractionResult> {
   const metrics: ExtractionMetrics = {
     llmSuccessCount: 0,
     cacheHitCount: 0,
-    fallbackCount: 0,
+    llmUnavailableCount: 0,
+    extractionErrorCount: 0,
+    emptyExtractionCount: 0,
     phase1Ms: 0,
     phase2Ms: 0,
     gleaningCount: 0,
@@ -481,13 +460,9 @@ export async function extractGraphEntitiesWithLLM(
 
   const llmEnabled = options?.llmEnabled !== false;
 
-  // If LLM disabled, go straight to fallback
+  // If LLM disabled or unavailable, return empty extraction with explicit metrics.
   if (!llmEnabled || !chat.isConfigured) {
-    if (fallbackDocument) {
-      const { nodes, edges } = ruleEngineFallback(fallbackDocument);
-      metrics.fallbackCount = 1;
-      return { nodes, edges, metrics };
-    }
+    metrics.llmUnavailableCount = 1;
     return { nodes: [], edges: [], metrics };
   }
 
@@ -531,13 +506,9 @@ export async function extractGraphEntitiesWithLLM(
     metrics.phase2Ms = Date.now() - phase2Start;
     metrics.llmSuccessCount = extractions.length;
 
-    // If all segments failed, fall back
+    // If all segments failed, return empty extraction with explicit error metrics.
     if (extractions.length === 0) {
-      if (fallbackDocument) {
-        const { nodes, edges } = ruleEngineFallback(fallbackDocument);
-        metrics.fallbackCount = 1;
-        return { nodes, edges, metrics };
-      }
+      metrics.extractionErrorCount = 1;
       return { nodes: [], edges: [], metrics };
     }
 
@@ -583,11 +554,8 @@ export async function extractGraphEntitiesWithLLM(
       }
     }
 
-    // If LLM produced no usable nodes, fall back to rule engine
-    if (nodes.length === 0 && fallbackDocument) {
-      const fallback = ruleEngineFallback(fallbackDocument);
-      metrics.fallbackCount = 1;
-      return { nodes: fallback.nodes, edges: fallback.edges, metrics };
+    if (nodes.length === 0) {
+      metrics.emptyExtractionCount = 1;
     }
 
     // Store in Phase 2 cache
@@ -597,12 +565,7 @@ export async function extractGraphEntitiesWithLLM(
 
     return { ...dedupeGraphRecords({ nodes, edges }), metrics };
   } catch {
-    // Total failure — fall back to rule engine
-    if (fallbackDocument) {
-      const { nodes, edges } = ruleEngineFallback(fallbackDocument);
-      metrics.fallbackCount = 1;
-      return { ...dedupeGraphRecords({ nodes, edges }), metrics };
-    }
+    metrics.extractionErrorCount = 1;
     return { nodes: [], edges: [], metrics };
   }
 }
