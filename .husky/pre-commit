@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+pnpm format || exit 1
+
+# Refresh tracked files in the index so formatting changes are included.
+git update-index --again || exit 1
+
+pnpm check:imports || exit 1
+pnpm check:mermaid || exit 1

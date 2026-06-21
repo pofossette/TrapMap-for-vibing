@@ -40,6 +40,8 @@ reports/*.json
 .opencode/
 .golutra/
 .codegraph/
+.codebuddy/
+.qoder/
 .mcp.json
 opencode.jsonc
 
